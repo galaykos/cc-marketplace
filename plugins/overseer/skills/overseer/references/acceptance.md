@@ -34,7 +34,7 @@ never silent.
 A kind whose `kinds.tsv` row carries the `headless` profile (`audit`, `library`) has no
 viewport to walk, so `accept` requires exactly two kinds (**gate**) and none of the browser
 rows above. Demanding the nine of a research pass or a CLI change is why every such
-milestone used to end `parked` — measured 2026-09-16, a program run over this marketplace.
+milestone used to end `parked`.
 
 | Kind | What was done | The file |
 | --- | --- | --- |

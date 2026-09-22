@@ -50,8 +50,8 @@ test suite alone is refused with exit 2 and the list of what is missing. A kind 
 screen — `audit` (a read-only review or research pass), `library` (a script, CLI or package
 change) — carries the `headless` evidence profile instead: `tests` plus a `run-log`, the
 captured run of the command the milestone exists to make work. Nine browser kinds a
-non-UI milestone can never record is how every one of them ended `parked` (measured
-2026-09-16). A hands-off program
+non-UI milestone can never record is how every one of them ended `parked`. A hands-off
+program
 is refused until at least one ASSUMED decision is recorded. The script checks that files
 exist, not what they show — the residual is stated in `skills/overseer/references/acceptance.md`.
 

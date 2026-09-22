@@ -35,8 +35,9 @@
   # subagent report is dense with capitalised tokens (a review's "NULL", "WHERE",
   # "FAIL") that would become ledger entries the Stop gate then demands lines for
   # (measured 2026-09-22: twelve false names from one notification, two blocked turns).
+  # Anchored to the start: a real ask that merely QUOTES a marker mid-sentence is an ask.
   case "$prompt" in
-    *'<system-reminder>'*|*'<task-notification>'*|*'[SYSTEM NOTIFICATION'*|*'Stop hook feedback:'*) exit 0 ;;
+    '<system-reminder>'*|'<task-notification>'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) exit 0 ;;
   esac
 
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')

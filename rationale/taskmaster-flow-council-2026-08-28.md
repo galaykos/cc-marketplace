@@ -1,5 +1,7 @@
 # The taskmaster-suite reform council, 2026-08-28
 
+> **Superseded** — historical record only, read with its date in mind. Superseded by the 2026-09-14 consolidation (taskmaster-suite became workflow-suite); the four changes it recorded shipped. Plugin names below may no longer exist; see `marketplace.json` for the live set. <!-- removed-ok -->
+
 **Standing: `recorded`.** Nothing reads this file back. The four changes it
 records are enforced by the gates named against each; this document explains why
 they were made and, more usefully, what was deliberately NOT made.

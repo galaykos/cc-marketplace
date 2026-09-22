@@ -13,7 +13,7 @@ touched; process friction with nothing left in the tree is reported, not patched
 
 - **`check-version-bumps.sh` changelog coverage anchored to a `##` heading.** It was a
   bare substring match, so a bundle that inherited its predecessor's changelog
-  (core-suite from always-on-suite, workflow-suite from taskmaster-suite) passed six <!-- removed-ok -->
+  (core-suite from always-on-suite, workflow-suite from taskmaster-suite) passed six
   unreleased versions vacuously — measured by running the grep by hand. Both inherited
   tails now sit under an "Inherited history" heading as `###` entries the gate cannot
   mistake for a release; core-suite's duplicate `## 0.1.1` heading is gone with it.
@@ -37,7 +37,7 @@ touched; process friction with nothing left in the tree is reported, not patched
   reference path), database 0.9.3 / laravel 0.9.3 (two-skill rubric line rendered as one
   name — template fixed), ui-ux 0.24.3 (MUI stamp unparseable to the staleness checker),
   stack-scan 0.8.4 (unstamped vendored snapshot, last frozen picker integer, catalog),
-  skill-router 0.17.3 (Livewire route promised 27 days after the skill was deleted), <!-- removed-ok -->
+  skill-router 0.17.3 (Livewire route promised 27 days after the skill was deleted),
   devops 0.6.10 / resilience 0.7.2 (ultra-assess recommendation names its owner).
 - **overseer 0.5.0 — non-UI programs can close.** Per-kind evidence profiles; `audit` and
   `library` kinds accept on a suite tail plus a captured run log instead of browser
@@ -50,6 +50,13 @@ touched; process friction with nothing left in the tree is reported, not patched
   own past mistakes (14% of its prose) now live in
   `rationale/claude-md-incident-log.md`; the rules they wrapped stay, plus one standing
   rule: numbers in this file rot, recount them.
+- **Stale-content sweep before merge.** `rationale/per-leaf-cost-2026-08-25.md` (uncited,
+  its own first line said recount instead) and `templates/blocks/docs-unreachable.md` (the
+  navigator chassis it served is gone) deleted; seven pre-consolidation rationale docs
+  carry a Superseded header; README's three stale counts fixed (five write-time hooks, 33
+  manifests, `ask-ledger` in the no-suite list); taxonomy orphans resolved — resilience
+  adopts `performance` and `observability`, api-design 0.9.2 adopts `docs`, `navigator`
+  deleted. **ui-ux 0.24.4** refreshes the Astryx digest 0.5 → 0.6.2 (live minor drift).
 - **ask-ledger 0.1.1** no longer mines subagent notifications and Stop-hook relays as the
   user's ask (it blocked two turns of this very review on names from a report).
 - Eight `evals/*/case.yaml` (overseer, resilience, web-dev) carry `timeout_seconds: 900`;

@@ -58,7 +58,7 @@ rather than invented ones).
   process-suite or quality-principles-suite install: uninstall it with its own <!-- removed-ok -->
   `uninstall` command, then install this one.
 
-## Inherited history — taskmaster-suite (before 2026-09-14) <!-- removed-ok -->
+## Inherited history — taskmaster-suite (before 2026-09-14)
 
 The entries below carry taskmaster-suite's own version numbers and are not releases of
 this bundle; they are kept as `###` headings so the changelog-coverage gate cannot

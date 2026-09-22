@@ -75,7 +75,7 @@ criterion and then contradicted itself twice.
   installs without a pick.
 - Evidence column: the literal string `core` — the evidence is this file, not
   a manifest.
-- Two of these ship write-time hooks (secret-scanning blocks secrets,
+- Five of these ship write-time hooks (secret-scanning blocks secrets,
   command-guard denies destructive commands). A `--yes` run must name that in
   its summary: the user did not see a picker for them.
 

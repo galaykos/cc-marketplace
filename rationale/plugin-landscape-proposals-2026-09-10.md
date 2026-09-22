@@ -1,5 +1,7 @@
 # Plugin landscape proposals — 2026-09-10
 
+> **Superseded** — historical record only, read with its date in mind. Superseded by the 2026-09-14 consolidation; kept for its "not built, and why" records. Plugin names below may no longer exist; see `marketplace.json` for the live set. <!-- removed-ok -->
+
 Detailed design for each proposal in `plugin-landscape-review-2026-09-10.md` §6.
 Read that document for the evidence; this one says what gets built, where, how it
 is gated, and what it leaves undone. **Standing: `recorded`.** Each section ends with

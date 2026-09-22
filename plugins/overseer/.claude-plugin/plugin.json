@@ -1,7 +1,7 @@
 {
   "name": "overseer",
   "version": "0.5.0",
-  "description": "A program-level product owner for long, multi-session, multi-branch builds. /overseer:start \"Build a CRM that manages clients\" inventories the project and every installed plugin (user, project, local scope), asks one clarifying round, writes a milestone roadmap, then delivers each milestone on its own branch by briefing the taskmaster pipeline and task-runner execution with skill-pinned dispatch prompts. An accept script refuses to close a UI milestone until the app was driven in a real browser at three widths with a clean console — a green suite alone does not count; headless kinds (audit, library) close on a suite tail plus a captured run log. State under .claude/overseer/ lets /overseer:resume continue in a fresh session; a SessionStart hook announces it.",
+  "description": "A program-level product owner for long, multi-session, multi-branch builds. /overseer:start \"Build a CRM that manages clients\" inventories the project and every installed plugin, asks one clarifying round, writes a milestone roadmap, then delivers each milestone on its own branch by briefing the taskmaster pipeline and task-runner execution with skill-pinned dispatch prompts. An accept script refuses to close a UI milestone until the app was driven in a real browser at three widths with a clean console; headless kinds (audit, library) close on a suite tail plus a captured run log. State under .claude/overseer/ lets /overseer:resume continue in a fresh session.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

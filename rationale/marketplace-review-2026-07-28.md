@@ -1,5 +1,7 @@
 # Marketplace review — 2026-07-28
 
+> **Superseded** — historical record only, read with its date in mind. Superseded by the 2026-09-14 consolidation plan and endgame review (`marketplace-consolidation-plan-2026-09-14.md`, `marketplace-endgame-review-2026-09-14.md`); the tree it audited (57 leaves, 8 bundles) no longer exists. Plugin names below may no longer exist; see `marketplace.json` for the live set. <!-- removed-ok -->
+
 Adversarial, review-only. 57 leaf plugins + 8 bundles, 124 `SKILL.md`, 89
 `references/*.md`, 29 agents, 16 `hooks.json`, 32 `review.md` commands.
 Context numbers from `bash scripts/context-budget.sh` (measured, 2026-07-28).

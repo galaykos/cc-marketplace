@@ -4,6 +4,16 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.24.4 — 2026-09-22
+
+### Changed
+- `astryx-best-practices` refreshed from 0.5 to 0.6.2 against the live docs: `adaptations`
+  and the full `defineTheme()` key set, data attributes preferred over bare classes (removal
+  window 0.7.0), `astryx upgrade --apply`, 47 templates, the new CLI verbs, StyleX peer and
+  the swizzle compile requirement, English as the only shipped locale. Net-negative in
+  bytes: the plugin's on-invoke corpus sits 216 B under the 160 KB cap, so the digest lost
+  its per-category name lists (the CLI prints them) to fit.
+
 ## 0.24.3 — 2026-09-22
 
 ### Fixed

@@ -52,7 +52,7 @@ What the scout prints, in order:
    marketplace has nothing for it (Terraform, i18n, Django), it says so and routes you
    onward instead of padding the list.
 2. **Any-project core** — code-review, debugging, testing, git-workflow,
-   code-architecture, secret-scanning, command-guard: useful whatever the stack. Two of
+   code-architecture, secret-scanning, command-guard: useful whatever the stack. Five of
    those ship write-time hooks; a `--yes` run names them because you saw no picker.
 3. **Universal remainder** — every other plugin, numbered, with 3-5 lifted into
    `worth a look here` with a one-line reason. Never auto-installed.
@@ -167,7 +167,7 @@ early:
 Suites are curated starting points, not coverage: the stack and domain leaves
 that belong to no suite — `laravel`, `database`, `devops`, `api-design`,
 `resilience`, `toolchain-experts` — are named by `/stack-scan:suggest` when the
-project's manifests earn them, and `brain`, `command-guard`, `overseer`,
+project's manifests earn them, and `ask-ledger`, `brain`, `command-guard`, `overseer`,
 `ultra-deep-research` and `all-plugins` are per-project or per-user opt-ins. Install
 them by name. (The list has gone stale before — recount it: a leaf is in no suite
 when no bundle's `dependencies` array names it.)
@@ -565,5 +565,5 @@ those as `-` in the `stamped_npm` column.
 
 MIT — see [LICENSE](LICENSE). **It covers every plugin in this repository.**
 No `plugins/*/.claude-plugin/plugin.json` carries a `license` field: each plugin
-is a directory of this repo, not a separately licensed artifact, and 63 manifests
-restating one licence is 63 places for it to drift. Stated once, here.
+is a directory of this repo, not a separately licensed artifact, and 33 manifests
+restating one licence is 33 places for it to drift. Stated once, here.

@@ -51,8 +51,9 @@ the edit is out of scope, and that includes polishing this file. **Standing:
 
     - **A case whose CONTROL arm passes cannot measure the skill.** It is a regression
       guard — it catches the plugin breaking something and can never show it helping,
-      because there is no headroom above 1.00. All five `resilience` cases are in that
-      state, including two written specifically to be hard for the base model.
+      because there is no headroom above 1.00. Every `resilience` case is in that
+      state (recount: `ls -d plugins/resilience/evals/*/ | wc -l`), including two written
+      specifically to be hard for the base model.
     - **Three runs cannot separate a regression from a flake.** The −1.00 above was three
       runs agreeing; three more runs a day later disagreed. State the run count and the
       vote spread with any delta, or do not state the delta.

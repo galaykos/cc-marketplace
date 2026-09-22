@@ -40,4 +40,5 @@ check "11 a harness-injected notification writes no ledger" "$(run '<system-remi
 </system-reminder>' s11)" ""
 check "12 a Stop-hook relay writes no ledger" "$(run 'Stop hook feedback:
 [gate.sh]: ask-ledger: the ask named Stripe and the final message does not account for it. Add one line.' s12)" ""
+check "13 a real ask that quotes a marker mid-sentence still writes a ledger" "$(run 'Fix candor so the Stop hook feedback: line it prints names the Stripe webhook that failed' s13)" "Stop,Stripe"
 exit $rc

@@ -51,7 +51,7 @@ are always-on-suite's own, with its version numbers. <!-- removed-ok -->
   quality-suite install: uninstall it with its own `uninstall` command, then install <!-- removed-ok -->
   this one.
 
-## Inherited history — always-on-suite (before 2026-09-14) <!-- removed-ok -->
+## Inherited history — always-on-suite (before 2026-09-14)
 
 The entries below carry always-on-suite's own version numbers and are not releases of this
 bundle; they are kept as `###` headings so the changelog-coverage gate cannot mistake

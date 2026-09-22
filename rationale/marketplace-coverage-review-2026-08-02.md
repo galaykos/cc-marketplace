@@ -1,5 +1,7 @@
 # Marketplace review — 2026-08-02: coverage breadth
 
+> **Superseded** — historical record only, read with its date in mind. Superseded by the 2026-09-14 consolidation plan; 41 of the plugins it names are gone. Plugin names below may no longer exist; see `marketplace.json` for the live set. <!-- removed-ok -->
+
 Companion to `rationale/marketplace-review-2026-07-28.md`, which audited
 **enforcement and mechanism**. This one audits the other axis: **is this a
 credible one-stop shop for every type of task?**

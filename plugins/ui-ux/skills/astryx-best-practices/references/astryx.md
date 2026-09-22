@@ -1,27 +1,30 @@
 # Astryx structure digest — packages, imports, CLI, themes, templates
 
-> Last verified: 2026-09-09 — https://astryx.atmeta.com/docs/getting-started — npm:@astryxdesign/core@0.5
+> Last verified: 2026-09-22 — https://astryx.atmeta.com/docs/getting-started — npm:@astryxdesign/core@0.6
 
-Read on demand from astryx-best-practices. Structure-stable material only:
-package layout, install shape, the CSS and theme wiring, the CLI surface, the
-component category inventory, the shipped theme and template lists. Astryx is
-**beta** (0.x, `0.5.4` on npm at the stamp above, with a `canary` dist-tag
-publishing several times a day) — nothing in this file answers a props
-question, and a 0.x MINOR is where this file goes stale: 0.3 → 0.5 split the
-package, renamed a category and added the CLI agent surface below.
+Read on demand from astryx-best-practices: structure only — packages, install,
+CSS and theme wiring, the CLI, the theme and template inventories. Astryx is
+**beta** (0.x, `0.6.2` on npm at the stamp above, `canary` publishing several
+times a day) — nothing here answers a props question, and a 0.x MINOR is where
+this file goes stale: 0.3 → 0.5 split the package, renamed a category and added
+the agent surface; 0.5 → 0.6 changed the CSS selector contract, added
+`adaptations` to `defineTheme`, and shipped 7 more templates.
 
 ## Package layout and install
 
 - Install set from the getting-started page:
   `npm install @astryxdesign/core @stylexjs/stylex @astryxdesign/theme-neutral @astryxdesign/cli`
   then `npx astryx init` (`--all` for extended guidance).
-- Peer dependencies: React and ReactDOM **>= 19.0.0**. An app on React
-  18 cannot adopt Astryx without upgrading first — say so before any code.
+- Peers: React and ReactDOM **>= 19.0.0**, plus `@stylexjs/stylex` (`^0.19.0`
+  per npm). React 18 cannot adopt Astryx without upgrading first.
 - Packages: `@astryxdesign/core` (components, `theme` and `Layout` entrypoints),
-  `@astryxdesign/cli`, one `@astryxdesign/theme-<name>` package per shipped
-  theme, `@stylexjs/stylex` for the `xstyle` override channel. Pre-built CSS
-  ships with `core`; a StyleX compiler is needed only for your OWN
-  `stylex.create()` overrides.
+  `@astryxdesign/cli`, one `@astryxdesign/theme-<name>` per shipped theme,
+  `@stylexjs/stylex` for the `xstyle` channel. Pre-built CSS ships with `core`,
+  so the published package needs NO StyleX compiler; one IS required for
+  `swizzle`d source and your own `stylex.create()`, and without it the component
+  renders unstyled with no build or runtime error. On Next.js App Router use an
+  SWC-based StyleX transform — `@stylexjs/babel-plugin` disables SWC and breaks
+  `next/font`.
 - Three global CSS imports are required, in this order:
 
   ```css
@@ -30,37 +33,42 @@ package, renamed a category and added the CLI agent surface below.
   @import '@astryxdesign/theme-neutral/theme.css'; /* or the theme you chose */
   ```
 
-  and the documented cascade order for `globals.css` is
+  and the documented cascade order for `globals.css` (`/docs/styling`) is
   `@layer reset, theme, base, astryx-base, astryx-theme, components, utilities;`.
 
 ## Import shape
 
-- Subpath imports, never a barrel. Most components are their own subpath
-  (`import {Button} from '@astryxdesign/core/Button';`); layout primitives sit
-  under one entrypoint (`import {VStack} from '@astryxdesign/core/Layout';`);
-  theming under `@astryxdesign/core/theme`. `astryx component <Name>` prints
-  the exact import for the installed version — use it rather than guessing
-  which of the two shapes a component has.
+Subpath imports, never a barrel: `import {Button} from
+'@astryxdesign/core/Button';`, layout primitives under one entrypoint (`import
+{VStack} from '@astryxdesign/core/Layout';`), `Theme` from `@astryxdesign/core`,
+`defineTheme` / `useTheme` from `@astryxdesign/core/theme`. `astryx component
+<Name>` prints the exact import for the installed version.
 
 ## Theming (`/docs/theme`)
 
-- Wrap the tree: `<Theme theme={neutralTheme} mode="system">` from
-  `@astryxdesign/core` with the theme object from its package. `mode` is
+- Wrap the tree: `<Theme theme={neutralTheme} mode="system">`; `mode` is
   `'system'` (default), `'light'` or `'dark'`. Dark mode is **[light, dark]
   tuples** inside the theme, switched through CSS custom properties and media
   queries — there is no `dark` class or `data-theme` attribute to toggle.
 - Two delivery modes per theme package: runtime (`@astryxdesign/theme-neutral`,
-  styles injected during hydration) and built
-  (`@astryxdesign/theme-neutral/built` + its `theme.css`, no hydration flash,
-  SSR-safe). Prefer built for production.
-- Custom theme: `defineTheme({ name, color, typography, tokens, components })`
-  from `@astryxdesign/core/theme`; `components` holds per-component overrides
-  keyed `base` / `'variant:<name>'`. Scaffold with `astryx theme add <name>`,
-  compile with `astryx theme build ./src/themes/<name>.ts` → `.css`, `.js`,
-  `.d.ts`. `astryx theme list` names the shipped ones.
+  injected during hydration) and built (`…/built` + its `theme.css`, SSR-safe).
+  Prefer built in production; runtime component overrides FLASH on hydration.
+- Custom theme: `defineTheme({...})` from `@astryxdesign/core/theme`. Top-level
+  keys: `name`, `extends`, `color`, `typography`, `radius`, `motion`, `tokens`,
+  `localTokens`, `components`, `adaptations`, `icons`, `fonts`, `indicators`,
+  `onDark`, `onLight`. `components` holds per-component overrides keyed `base`
+  or `<prop>:<value>` (`variant:ghost`, `status:neutral`) / a state name — never
+  raw CSS selectors. `adaptations` (0.6) carries ordered `rules` over named
+  `widthBreakpoints`, pointer precision, contrast and motion preference;
+  conditions in one `when` are ANDed, later matching rules win.
+- Scaffold with `astryx theme add <slug>`, compile with `astryx theme build
+  ./src/themes/<name>.ts` → `.css`, `.js`, `.d.ts` and an optional
+  `.variants.d.ts` for theme-declared custom variants. A built theme carries
+  `__built: true` and the runtime will NOT repair stale CSS from it: after a
+  core upgrade that moves the selector contract, rebuild and redeploy every
+  artifact together.
 - Shipped theme packages (7): neutral, butter, chocolate, gothic, matcha,
-  stone, y2k. The themes page also names a built-in default. Any other theme
-  name the model remembers is unverified.
+  stone, y2k, plus a built-in default. Any other theme name is unverified.
 
 ## Styling overrides (`/docs/styling`)
 
@@ -68,112 +76,91 @@ Ordered as the docs recommend; all are usage-site, none touch library output:
 
 1. `xstyle={overrides.x}` — `stylex.create()` objects only, merged last;
    `:hover` needs an `@media (hover: hover)` guard.
-2. Tailwind utilities via the bridge `@import "@astryxdesign/core/tailwind-theme.css";`
-   which maps tokens to classes (`text-primary`, `bg-surface`, `rounded-container`).
+2. Tailwind (v4) utilities via the bridge `@import "@astryxdesign/core/tailwind-theme.css";`
+   mapping tokens to classes (`text-primary`, `bg-surface`, `rounded-container`).
 3. `className` (appended after the component's own classes) and `style`
    (consumer wins on conflict).
-4. Plain CSS against stable classes + data attributes:
-   `.astryx-button[data-variant="primary"]`.
+4. Plain CSS against the stable base class plus reflected data attributes:
+   `.astryx-button[data-variant="primary"]`. **Data attributes are the preferred
+   selector surface.** Bare prop/state classes (`.primary`, `.sm`, `.checked`)
+   are DEPRECATED — still emitted through the 0.7.0 removal window, and
+   `astryx upgrade --apply` rewrites qualified `.css` selectors into an
+   `:is(.primary, [data-variant="primary"])` union. Semantic
+   `defineTheme({components})` keys did not change.
 
-The docs' own "don't" list: hardcoded colours or spacing, `!important`, and
-wrapping a component in a `div` for margin — use `xstyle` instead.
+The docs add one the SKILL does not: no `style={{}}` on a raw `<div>` wrapper.
 
 ## CLI (`@astryxdesign/cli`, `/docs/cli`)
 
-| Command | What it answers |
-|---|---|
-| `astryx init [--features agents] [--agent claude\|cursor\|codex]` | wires the project; writes `AGENTS.md`, or `.claude/CLAUDE.md` with `--agent claude`; `--apply` refreshes stale blocks after upgrades |
-| `astryx search <query>` | one ranked list across components, hooks, docs, templates |
-| `astryx component [Name] [--props\|--source\|--showcase]` | the typed props/examples for the INSTALLED version |
-| `astryx hook [name]` | the hook inventory (focus trap, theme, and the rest) |
-| `astryx docs [topic]` | reference docs; `astryx docs tokens` is the token table |
-| `astryx template --list` / `astryx template <name> [--skeleton]` | page and block templates, injected into the project |
-| `astryx theme add\|list\|build` | see Theming |
-| `astryx upgrade [--list\|--codemod <n>\|--apply]` | codemods between versions |
-| `astryx swizzle <Component>` | copies a component's source into the project for deep customisation — the sanctioned "eject", not a patch |
-| `astryx doctor` | read-only setup diagnosis |
-| `astryx manifest --json` | self-describing capability manifest: every command, flag, response type |
+Prefer `npx @astryxdesign/cli …` for first-run use: bare `astryx` resolves to an
+UNRELATED npm package until the CLI is installed.
 
-Global flags: `--json` (typed `{type, data}` envelope; errors carry stable
-codes such as `ERR_UNKNOWN_COMPONENT`, `ERR_CORE_NOT_FOUND`), `--detail
-brief|compact|full`, `--dense` (token-efficient output meant for agents).
-Programmatic: `import {component, docs, search} from '@astryxdesign/cli/api'`.
+- `astryx init [--features agents|theme] [--agent claude|cursor|codex|muse]` —
+  wires the project; writes `AGENTS.md`, or `.claude/CLAUDE.md` with `--agent claude`.
+- `astryx build "<idea>"` — composition kit: closest templates, block patterns,
+  components. Bare `build` prints the page-building playbook.
+- `astryx component [Name] [--props|--source|--showcase|--blocks]` — typed
+  props/examples, and the category list, for the INSTALLED version.
+- `astryx template --list` / `<name> [--skeleton]` — page and block templates,
+  injected into the project. `astryx search <query>` ranks across all domains.
+- `astryx theme add|list|build|targets|template` — see Theming.
+- `astryx upgrade [--list|--codemod <n>|--apply]` — codemods between versions;
+  also refreshes a stale agent-docs block.
+- `astryx swizzle <Component>` — copies a component's source in as owned code:
+  the sanctioned "eject", not a patch.
+- `astryx hook [name]` / `astryx docs [topic]` — hook inventory; reference docs
+  (`astryx docs tokens` is the token table).
+- `astryx doctor [integration <leaf>]` — read-only diagnosis, exits 1 only on a
+  FAIL, so it works as a CI step. `astryx manifest --json` self-describes every
+  command, flag and response type.
+
+Also `layout`, `discover`, `integration`, `gap-report`, `blog`. Global flags:
+`--json` (typed `{type, data}`; errors carry stable append-only codes such as
+`ERR_UNKNOWN_COMPONENT` — branch on `code`, not the message), `--detail
+brief|compact|full`, `--dense` (token-efficient, meant for agents), `--lang
+<en|zh|dense>`. Programmatic: `import {component, docs, discover, template,
+hook, search} from '@astryxdesign/cli/api'`.
 
 ## Agent surface (`/docs/working-with-ai`)
 
-- The docs' recommended order before writing UI: `astryx template --list` →
-  `astryx template <name> --skeleton` → `astryx component <Name>`.
-- Hosted MCP server: `https://astryx.atmeta.com/mcp` exposing `search(query)`
-  and `get(name)`. It answers for the PUBLISHED docs; the CLI answers for the
-  installed version — when they disagree the lockfile wins.
-- The docs advise an npm script alias for the CLI so agents do not invoke a
-  wrong path.
+The SKILL carries the template → skeleton → component order and the
+`upgrade --apply` refresh; what only lives here:
 
-## Component category inventory (as fetched 2026-09-09)
+- The layout guide starts from `astryx build "<idea>"` instead of that order.
+- Hosted MCP server `https://astryx.atmeta.com/mcp` exposes `search(query)` and
+  `get(name)` — for the PUBLISHED docs. The CLI answers for the installed
+  version; when they disagree the lockfile wins.
+- The docs advise an npm script alias so agents do not guess the binary path:
+  `node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs`.
 
-Eleven categories, "over 170 components" per the home page; the 0.5.2 release
-renamed **Data Input → Form Controls**. Glosses are representative:
+## Components and templates (as fetched 2026-09-22)
 
-- **Action** — Button, Button Group, Icon Button, Toggle Button (+ Group),
-  Dropdown Menu, More Menu, Segmented Control, Toolbar, Link.
-- **Chat** — Chat Composer, Layout, Message, Message Metadata, System
-  Message, Tool Calls.
-- **Container** — Card, Clickable Card, Selectable Card, Carousel, Collapsible.
-- **Content** — Avatar (+ Group), Blockquote, Citation, Code, Code Block,
-  Empty State, Heading, Text, Icon, Kbd, Markdown, Thumbnail, Timestamp, Token.
-- **Feedback & Status** — Badge, Banner, Progress Bar, Skeleton, Spinner,
-  Status Dot.
-- **Form Controls** — Text/Number/Date/Date Range/Date Time/Time/File Input,
-  Text Area, Field, Checkbox Input, Radio List, Switch, Slider, Selector,
-  Multi Selector, Complex Selector, Typeahead (+ Item), Tokenizer, Calendar,
-  Power Search.
-- **Layout** — App Shell, Layout, Stack, Grid, Section, Divider, Form Layout,
-  Aspect Ratio, Resize Handle.
-- **Navigation** — Breadcrumbs, Pagination, Outline, Side Nav, Stepper, Tab
-  List, Top Nav (+ Menu, Mega Menu, Mega Menu Featured Card).
-- **Overlay** — Dialog, Popover, Tooltip, Toast, Hover Card, Lightbox,
-  Overlay, Command Palette, Bottom Sheet (+ Switcher; 0.5).
-- **Table & List** — Table, List, Tree List, Overflow List, Metadata List.
-- **Utility** — VisuallyHidden.
+Eleven categories, "over 170 components" per the home page: Action, Chat,
+Container, Content, Feedback & Status, Form Controls (renamed from Data Input
+in 0.5.2), Layout, Navigation, Overlay, Table & List, Utility. 47 page
+templates under the templates page's own ten filters: Dashboard, Table, Form,
+Settings, Login, Tools, Content, AI Chat, Gallery, Shell.
 
+**Member names are deliberately not listed.** They churn faster than anything
+else here (40 templates on 2026-09-09, 47 today — the whole Dashboard filter is
+new since; Scrollable Area joined Layout in 0.6), and `astryx component --list`
+/ `astryx template --list` print the installed set, the one that compiles.
 Per-component pages: `https://astryx.atmeta.com/components/<Name>`.
-
-## Templates (`/templates`, 40 as fetched 2026-09-09)
-
-Installed with `npx @astryxdesign/cli template <name>`; families, each name
-verbatim from the page:
-
-- **Tables** — `table-filter`, `table-grouped`, `table-inbox`, `table-page`.
-- **Forms** — `contact-form`, `payment-form`, `form-two-column`,
-  `form-wizard`, `form-wizard-dialog`, `form-wizard-inline`,
-  `form-wizard-vertical`, `checkout-wizard`.
-- **Settings** — `settings`, `settings-dialog`, `settings-sidebar`.
-- **Auth** — `login-card`, `login-split`, `login-sso`.
-- **Workspaces** — `file-explorer`, `ide`, `kanban-board`, `editor`, `library`.
-- **Docs** — `documentation`, `documentation-design`, `documentation-technical`.
-- **Detail** — `detail-page`, `product-detail`, `work-item-detail`.
-- **AI** — `ai-chat`, `ai-chat-landing`.
-- **Marketing / galleries** — `centered-hero`, `gallery-hero`, `side-gallery`,
-  `classic-gallery`, `mixed-gallery`, `product-gallery`.
-- **Shells** — `shell-nav`, `shell-side-nav`, `shell-top-nav`.
-
-A template is a starting layout, not a finished screen: it is injected as
-owned code, so the review rules for copied components apply to it.
 
 ## Other doc pages worth knowing exist
 
-`/docs/tokens` (all tokens), `/docs/color|spacing|typography|elevation|motion|shape`,
-`/docs/icons`, `/docs/internationalization` (30 locales in 0.5),
-`/docs/migration` (cascade-layer safety and `astryx upgrade`),
-`/docs/styling-libraries` (interop), `/docs/browser-support`, `/changelog`,
-and the canary docs at https://astryx-canary.vercel.app/ for unreleased APIs.
+`/docs/tokens`, `/docs/color|spacing|typography|elevation|motion|shape`,
+`/docs/icons`, `/docs/illustrations`, `/docs/layout` (outside-in layout guide),
+`/docs/principles`, `/docs/styling-libraries`, `/docs/cli-integrations`,
+`/docs/browser-support`, `/changelog`, canary docs at
+https://astryx-canary.vercel.app/, and two that carry rules:
+`/docs/migration` (cascade-layer safety, `astryx upgrade`) and
+`/docs/internationalization` — English is the ONLY shipped catalog today, other
+locales are roadmap and apps pass their own; RTL derives from the locale.
 
-## Beta discipline (summary — the SKILL's steps stay binding)
+## Beta discipline
 
-1. Resolve the installed version from the lockfile FIRST; a 0.x minor changes
-   APIs, package layout and category names.
-2. Props, variants, defaults and event signatures are NEVER answered from this
-   digest or from memory — run `astryx component <Name>` for the installed
-   version, or open the component's page for the published one.
-3. Prefer the CLI (`--json`) or the MCP server over prose docs when either is
-   reachable; they are the typed sources.
+The SKILL's steps bind; the one rule worth repeating at the point of use is
+that a 0.x minor moves APIs, package layout, category names AND the CSS
+selector contract, so resolve the installed version from the lockfile before
+trusting any line above it.
