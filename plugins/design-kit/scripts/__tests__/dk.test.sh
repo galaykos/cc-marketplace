@@ -86,4 +86,15 @@ assert all(set(r)=={"ts","verb","outcome","artifact"} for r in rows)
 assert any(r["verb"]=="export" and r["outcome"]=="fail" for r in rows)
 ' || { echo "FAIL: usage.jsonl shape"; exit 1; }
 grep -rq "8124" .design-kit/usage.jsonl .design-kit/workshop.json && { echo "FAIL: literal port in state"; exit 1; }
+# self-ignore: first verb inside a git repo writes one managed block; a second verb leaves one block; tracked scratch is never ignored
+dk="$here/dk.sh"; ig="$(mktemp -d)"; ( cd "$ig" && git init -q && git commit -q --allow-empty -m init
+  out="$(bash "$dk" status 2>&1)"; case "$out" in *"added .design-kit/ and __design-kit__/ to .gitignore"*) ;; *) echo "FAIL: self-ignore line missing: $out"; exit 1 ;; esac
+  git check-ignore -q .design-kit/x && git check-ignore -q __design-kit__/x || { echo "FAIL: scratch not ignored"; exit 1; }
+  bash "$dk" status >/dev/null 2>&1; [ "$(grep -c 'design-kit scratch (managed' .gitignore)" = 1 ] || { echo "FAIL: managed block duplicated"; exit 1; }
+  rm .gitignore; mkdir -p __design-kit__ && echo x > __design-kit__/keep && git add __design-kit__ && git commit -q -m tracked
+  out="$(bash "$dk" status 2>&1)"; case "$out" in *".gitignore"*) echo "FAIL: tracked scratch must be left alone silently: $out"; exit 1 ;; esac
+  [ ! -f .gitignore ] || { echo "FAIL: .gitignore written despite tracked scratch"; exit 1; }
+  DESIGN_KIT_IGNORE=off bash "$dk" status >/dev/null 2>&1; [ ! -f .gitignore ] || { echo "FAIL: DESIGN_KIT_IGNORE=off ignored"; exit 1; }
+) || exit 1; rm -rf "$ig"
+
 echo "PASS dk.test.sh"

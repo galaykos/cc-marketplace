@@ -35,6 +35,36 @@ here="$(cd "$(dirname "$0")" && pwd)"
 DK="${DESIGN_KIT_DIR:-.design-kit}"
 WS="$DK/workshop.json"; USAGE="$DK/usage.jsonl"; DEC="$DK/decisions.jsonl"
 verb="${1:-}"; [ $# -gt 0 ] && shift
+
+# ensure_ignored — the plugin's scratch paths never reach a commit by accident.
+# Once per repo: inside a git work tree, when .design-kit/ or __design-kit__/ is not
+# already ignored, append one managed block to .gitignore (idempotent — re-runs
+# rewrite the block, never duplicate it) and say so in one line. design-system/ is
+# NOT added: it is the tracked record. Outside git, nothing. DESIGN_KIT_IGNORE=off
+# skips it (a repo that wants the previews committed).
+ensure_ignored() {
+  [ "${DESIGN_KIT_IGNORE:-on}" = "off" ] && return 0
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  local root; root="$(git rev-parse --show-toplevel)"
+  if git -C "$root" check-ignore -q "$DK/x" 2>/dev/null && git -C "$root" check-ignore -q "__design-kit__/x" 2>/dev/null; then return 0; fi
+  # tracked on purpose (a repo that commits its evidence): say nothing, touch nothing
+  [ -n "$(git -C "$root" ls-files -- "$DK" "__design-kit__" 2>/dev/null)" ] && return 0
+  python3 - "$root/.gitignore" "$DK/" "__design-kit__/" <<'PY'
+import sys, re
+p, *pats = sys.argv[1:]
+start, end = "# >>> design-kit scratch (managed by design-kit dk.sh) >>>", "# <<< design-kit scratch <<<"
+try: s = open(p, encoding="utf-8").read()
+except FileNotFoundError: s = ""
+block = start + "\n" + "\n".join(pats) + "\n" + end + "\n"
+if start in s and end in s:
+    s = re.sub(re.escape(start) + r".*?" + re.escape(end) + r"\n?", block, s, count=1, flags=re.S)
+else:
+    s = s + ("" if s.endswith("\n") or not s else "\n") + block
+open(p, "w", encoding="utf-8").write(s)
+PY
+  echo "design-kit: added $DK/ and __design-kit__/ to .gitignore (managed block; DESIGN_KIT_IGNORE=off to skip)"
+}
+ensure_ignored
 mkdir -p "$DK"
 
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }

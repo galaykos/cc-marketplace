@@ -246,6 +246,17 @@ browser leaves no record. A project not passed to the script is not measured.
 Standing: the script and its harness (`scripts/__tests__/dk-usage.test.sh`) — **gate**;
 the thirty-day reading and the retirement call — **recorded**, a human reads the table.
 
+## What gets ignored, and what is yours
+
+The first `dk` verb inside a git repo appends one managed block to `.gitignore` with
+`.design-kit/` and `__design-kit__/` — previews, exports, decisions and scratch never
+reach a commit by accident. It never adds a path that already has tracked files, and
+`DESIGN_KIT_IGNORE=off` skips it. `design-system/` is deliberately not in the block: it
+is the tracked record. Standing: `dk.test.sh` drives first run, idempotence, the
+tracked-path refusal and the off switch — **gate**. A marketplace-wide sweep across
+every plugin's scratch paths lives in git-workflow (`scratch-ignore.sh`, run by
+`/git-workflow:finish`).
+
 ## Disabling
 
 Uninstall the plugin. `DESIGN_KIT_PORT` moves the server. `.design-kit/` is safe to

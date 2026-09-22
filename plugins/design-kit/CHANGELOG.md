@@ -19,6 +19,9 @@ The experience pass after the simulation (`rationale/design-kit-experience-ideas
 - `/design-kit:system`: a Blade view without `@props` that is the template of a class component now takes its props from `app/View/Components/<Name>.php`'s promoted constructor parameters, with types.
 - `/design-kit:in-codebase`: a required Blade prop with no declared type is filled from the brief instead of commenting the component out; the scratch page wraps in `<x-app-layout>` only when the project defines one, otherwise it is a standalone page carrying the layout's `@vite` directive.
 
+### Added (scratch hygiene)
+- The first `dk` verb inside a git repo appends a managed `.gitignore` block for `.design-kit/` and `__design-kit__/`; never for a path with tracked files; `DESIGN_KIT_IGNORE=off` skips it.
+
 ### Changed
 - The server's contract: "no write route" became one loopback-only, header-gated, append-only route; export and publish stay scripts.
 

@@ -16,6 +16,14 @@ requirements nudge on a merge decision is noise. **Remove it before this command
 returns, on every path including discard and the red-suite stop below.** A TTL
 bounds a leaked sentinel, but the clear is this command's responsibility.
 
+Before the gate, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/scratch-ignore.sh --check`.
+Exit 1 means a marketplace plugin's scratch (a mockup dir, preview state, a scratch
+entry) sits on disk unignored and would ride into the branch as `??` noise. Show the
+rows it printed and ask via AskUserQuestion: "Add the managed block to .gitignore
+(Recommended)" runs `scratch-ignore.sh --apply` and stages `.gitignore`; "Leave it"
+continues. Rows marked `left to you` (brain/, design-system/, research/, …) are
+per-project state the script never touches — name them in the report, decide nothing.
+
 Run the project's full check suite as the gate — a red suite stops here with
 the failures reported; no destination options for broken work.
 
