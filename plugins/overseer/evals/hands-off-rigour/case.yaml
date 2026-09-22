@@ -4,6 +4,7 @@ description: A hands-off program's lean/standard milestone is briefed goal-lean,
 context:
   scaffold_script: scaffold.sh
 execution:
+  timeout_seconds: 900
   max_turns: 12
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |

@@ -2,6 +2,7 @@ schema_version: "1.0"
 name: idempotency-only
 description: The timeout is already set, so only ONE defect remains — the retry is not idempotent. Isolates whether the plugin arm's failure on timeout-and-retry is attention split across two required findings, or the rule itself getting buried.
 execution:
+  timeout_seconds: 900
   max_turns: 25
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |

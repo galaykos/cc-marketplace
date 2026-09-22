@@ -1,7 +1,9 @@
 # Acceptance — a milestone is done when a user could use it
 
-`scripts/program.sh accept --id <id>` closes a milestone only when these nine evidence
-kinds are recorded, each with a `--file` that exists at record time and still exists at
+`scripts/program.sh accept --id <id>` closes a milestone only when its kind's evidence
+kinds are recorded — these nine for every kind with a screen (the `ui` evidence profile,
+`kinds.tsv` column 4, the default; a kind with no screen is "Headless kinds" below) —
+each with a `--file` that exists at record time and still exists at
 accept time, and each recorded after the last gated worker or follow-up dispatch (**gate**,
 exit 2 otherwise; a screenshot deleted after recording un-accepts; a walk before the last
 fix cycle is re-run, not re-dated). Nine rows on one file and a milestone with no gated
@@ -26,6 +28,25 @@ never silent.
 | `console-clean` | browser console and network panel read after the walk, since the last navigation | the dump — zero errors, or each one named and fixed |
 | `keyboard` | the full path driven with Tab, Enter, Space and Escape only, from page load to the success feedback, including the destructive action's confirm | screenshot with the focus ring visible on the primary action, plus the key sequence in the note |
 | `motion` | `prefers-reduced-motion: reduce` emulated — Playwright MCP: `browser_run_code_unsafe` with `await page.emulateMedia({ reducedMotion: 'reduce' })` (verified; `browser_evaluate` cannot), Chrome MCP: DevTools rendering — and the walk repeated | screenshot; the note says which animations stopped and that none looped |
+
+## Headless kinds — the milestone with no screen
+
+A kind whose `kinds.tsv` row carries the `headless` profile (`audit`, `library`) has no
+viewport to walk, so `accept` requires exactly two kinds (**gate**) and none of the browser
+rows above. Demanding the nine of a research pass or a CLI change is why every such
+milestone used to end `parked` — measured 2026-09-16, a program run over this marketplace.
+
+| Kind | What was done | The file |
+| --- | --- | --- |
+| `tests` | as above; on an `audit` milestone it is the baseline suite, proving the tree the pass read is still green and nothing was edited in passing | one saved output holding EVERY command's tail |
+| `run-log` | the command the milestone exists to make work, run and captured: the CLI invocation, the script, the query, the harness, the analysis that produced the findings | the saved output with the command line at its head and the exit status at its foot — the run itself, not a note saying it ran |
+
+Two kinds, two files: the suite tail and the run are different runs, and `accept` WARNs
+when every row points at one file. Of the Protocol below, steps 2-5 (serve, walk three
+widths, read the console) have nothing to act on; 1, 4's charter check, 6, 7 and 8 bind
+unchanged — the file is still `Read` before it is recorded, the row is still newer than
+the last gated worker dispatch, and a FAIL is still a finding, not a softened line. A
+headless milestone may record any other kind too; only these two are demanded.
 
 Optional kinds, recorded when produced: `a11y` (`/ui-ux:audit` result), `review` (the
 reviewer pass), `perf` (a measured metric), `dark-mode` (required by judgment, not by

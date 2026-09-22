@@ -113,9 +113,7 @@ it shipped as a plugin "because that one SHIPS"; it has one user, so it does not
 
 Worked examples in-repo: the "What has teeth and what is recorded" table in
 `plugins/craft-layer/skills/asset-sourcing/references/component-sourcing.md`.
-Adopted incrementally as plugins are touched, not in a sweep. **This paragraph
-carries no count on purpose** — the one it used to carry was wrong twice in two
-days, once within the same branch that wrote it. Run:
+Adopted incrementally as plugins are touched, not in a sweep. No count here; recount:
 
 ```bash
 grep -rl "Standing:" --include='*.md' plugins/ | cut -d/ -f2 | sort -u | wc -l
@@ -128,12 +126,16 @@ and saying so is the point.
 
 Four scripts. **Every derivation below lives in the check's own header** — each
 `pc_*` function in `scripts/lib/plugin-checks.sh` carries a header explaining
-what it catches, what it does not, and what shipped that made it exist. This
-section used to restate them, which put the same argument in two files and let
-the copy here go stale: it described `pc_budget_crowding`'s ceiling as 150 lines
-four days after it moved to 200. **Cite them; do not restate them here** — the
-same rule this file already applies to the four laws and the has-teeth
-convention. What follows is only what you need in hand while editing.
+what it catches, what it does not, and what shipped that made it exist. **Cite
+them; do not restate them here** — the same rule this file already applies to the
+four laws and the has-teeth convention. What follows is only what you need in hand
+while editing.
+
+**Numbers in this file rot.** Every count ever written here went stale within days,
+usually in both directions. The file carries one on purpose (the CI step count,
+below) and prints a recount command for every other. The record of how each one
+went wrong is `rationale/claude-md-incident-log.md` — read it before adding a number
+or restating a check's header here; do not add the story back to this file.
 
 - **`scripts/validate.sh`** — structure, frontmatter, reference resolution, README
   structure, routing reachability, the doc-location rule above, and the `pc_*`
@@ -238,8 +240,7 @@ may declare only its OWN artifacts), `pc_lanes_resolve`, `pc_lanes_territory` (t
 artifacts must not claim one `owns` in one `phase` without a `yields_to` edge or a
 `# lane-cofire-ok:` blessing in either file), `pc_lanes_coverage`, and
 `pc_lanes_vocabulary` (an `owns` noun must be declared in
-`scripts/lane-vocabulary.txt`). **This paragraph used to carry a count, and the
-count was wrong within a day of a check being added** — recount instead:
+`scripts/lane-vocabulary.txt`). Recount rather than copy a number:
 `grep -c '^pc_lanes_[a-z_]*() {' scripts/lib/plugin-checks.sh`. Plus
 `pc_phase_guard`: a hook whose lane names a specific phase must read
 `.claude/cc-phase.json`. That last one gates the READ only — no gate can prove an
@@ -306,17 +307,15 @@ state. Run the budget gate on its own before trusting a red from it.
 
 ## Every enforcement surface, by tier
 
-Those four are the ones you invoke. They are **not** all the enforcement, and
-"run all four" previously read as if they were. Named by filename and standing,
+Those four are the ones you invoke. They are **not** all the enforcement. Named
+by filename and standing,
 per the has-teeth convention above:
 
 **Blocking — fails CI.** `.github/workflows/validate.yml` has **37 named steps;
 36 can fail the build**, and on a push to `master` only **35** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
-This is the one count deliberately carried here and nowhere else —
-`scripts/done-gate.sh:7` says why: two files carrying one number is how they
-drift apart. It has still been stale in both directions five times, so
-**recount it, do not copy it**:
+This is the one count deliberately carried here and nowhere else
+(`scripts/done-gate.sh:7` says why); **recount it, do not copy it**:
 
 ```bash
 python3 -c "import re;s=open('.github/workflows/validate.yml').read();t=re.split(r'\n      - name:',s)[1:];f=[x for x in t if 'continue-on-error: true' not in x];print(len(t),'named',len(f),'fail-capable',len([x for x in f if 'pull_request' in x]),'PR-gated')"
@@ -327,10 +326,8 @@ ANY plugin shipping a harness is enforced the moment it lands; and the host's ow
 validator, `claude plugin validate --strict` over every plugin and the marketplace
 manifest, run through `scripts/official-validate.sh` (pinned CLI version asserted;
 it catches manifest SCHEMA errors `validate.sh` never models, and nothing about
-SKILL.md frontmatter — its header says why). **Do not record the
-count here** — this paragraph used to name 20 and list them, which was stale within
-two commits of being written and contradicted the very sentence you are reading.
-Recount instead:
+SKILL.md frontmatter — its header says why). **Do not record the count here**;
+recount:
 
 ```bash
 grep -c 'run: bash scripts/smoke/' .github/workflows/validate.yml   # smoke steps
@@ -338,8 +335,7 @@ ls plugins/*/scripts/__tests__/*.test.sh | wc -l                    # plugin har
 bash scripts/gate-coverage.sh   # which author-time checks a harness exercises
 ```
 
-The glob is the right fix precisely because a counted list here is not — this
-paragraph carried a wrong count three times before it stopped carrying one.
+The glob is the right fix precisely because a counted list here is not.
 (`scripts/smoke/canary.sh` is deliberately NOT a CI step: its own header says it
 needs a live model; it stays a local authoring harness. **A live-model script under
 `scripts/smoke/` must refuse to run without an explicit opt-in env var** —
@@ -387,8 +383,7 @@ doctrine: zero proves nobody used it HERE, non-zero proves it fired and not that
 it helped, and it says where a control/treatment run is worth spending — nothing
 more. Why this channel and not the byte ones, and what it measured:
 `rationale/2026-08-31-token-cost-review.md`. Cite it; do not restate its numbers
-here. The unrouted count is not recorded here — it was recorded stale three
-times — recount:
+here. The unrouted count is not recorded here — recount:
 
 ```bash
 python3 -c "import glob,os;s={os.path.basename(os.path.dirname(p)) for p in glob.glob('plugins/*/skills/*/SKILL.md')};r=open('plugins/skill-router/rules.tsv').read();print(sum(1 for x in s if f'\t{x}\t' not in r),'of',len(s),'unrouted')"
@@ -408,10 +403,6 @@ post-removal it shows stale counts while `--check` reports no drift — the fail
 surfaces as a red build rather than as table drift, which is why the WARN above
 matters.
 
-This paragraph used to assert the opposite ("nothing gates that table"), which
-contradicted the `generate.sh --check` paragraph above for three weeks. The
-correction is the lesson this section teaches, running backwards: a gate can be
-mis-tiered as toothless as easily as a habit can be mis-tiered as a gate, and the
-toothless direction is more expensive — it makes someone build what already
-exists. `pc_version_stamp` carried the same inversion in its own header for 21
-days after it started blocking.
+A gate can be mis-tiered as toothless as easily as a habit can be mis-tiered as a
+gate, and the toothless direction is more expensive — it makes someone build what
+already exists. Both directions have happened here; the incident log has the cases.

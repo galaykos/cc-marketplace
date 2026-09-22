@@ -2,6 +2,15 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.1.1 — 2026-09-22
+
+### Fixed
+- `hooks/ledger.sh` mined harness-injected turns — a subagent's completion notification,
+  a Stop-hook relay, a system reminder — as if they were the user's ask, so a review
+  report's "NULL", "WHERE", "FAIL" became ledger names the Stop gate then blocked on
+  (two blocked turns in one session on 2026-09-22). Those turns are skipped; two
+  harness cases pin it.
+
 ## 0.1.0 — 2026-09-20
 
 ### Added

@@ -5,7 +5,9 @@
 # Tokens: `<plugin>:<skill>` = a marketplace plugin skill; `project:<skill>` = <root>/.claude/skills/<skill>;
 # `stack` = any project skill or any laravel/web-dev plugin skill. A group whose every alternative
 # is NOT installed is a WARN (fallback), never a refusal — the capability map says what to do then.
-# kind	required	note
+# `profile` (optional 4th field, default `ui`) is the EVIDENCE set `accept` demands: `ui` = the
+# nine-kind browser walk; `headless` = `tests` + `run-log` for a kind with no screen to walk.
+# kind	required	note	profile
 feature	stack testing:testing-best-practices	default: any user-facing increment that fits no row below
 marketing-page	craft-layer:creative-direction|craft-layer:section-decisions ui-ux:motion-best-practices|craft-layer:motion-tiers ui-ux:a11y-audit ui-ux:tailwind-best-practices|ui-ux:shadcn-best-practices|ui-ux:component-libraries	a page whose job is to sell; direction before build
 crud	stack testing:testing-best-practices ui-ux:a11y-audit ui-ux:shadcn-best-practices|ui-ux:component-libraries|ui-ux:tailwind-best-practices	list/create/edit/delete of one resource
@@ -17,3 +19,5 @@ data-model	stack database:sql-best-practices|database:mariadb-best-practices tes
 infra	devops:devops-practices|devops:docker-best-practices|devops:compose-init	CI, containers, deploy, environments
 game	stack testing:testing-best-practices ui-ux:a11y-audit ui-ux:motion-best-practices|craft-layer:interaction-fx	a game or any motion-heavy interactive screen — keyboard path and reduced motion are the product
 integration	testing:testing-best-practices	merge the done branches into one tree and walk the product across them; close refuses divergent done branches without one
+audit	stack	a read-only review, research or inventory pass: nothing ships and the deliverable is findings — no testing group, there is no new code to test; the suite proves the tree it read is still green	headless
+library	stack testing:testing-best-practices	a non-UI code change with no screen: a script, CLI, package or build step — proven by a captured run, never by a browser walk	headless

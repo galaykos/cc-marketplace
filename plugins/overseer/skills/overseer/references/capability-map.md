@@ -58,7 +58,9 @@ Rules:
 Which phase a plugin covers is the table above; which skills a given milestone must pin is
 `${CLAUDE_PLUGIN_ROOT}/kinds.tsv`, one row per kind. `milestone add --kind` records the
 kind; `dispatch check --milestone <id>` WARNs for every group no gated dispatch has pinned
-yet; `accept` refuses while one is still unpinned. A pin counts only from a file `dispatch
+yet; `accept` refuses while one is still unpinned. The row's 4th column is the EVIDENCE
+profile — `ui` (default) demands the nine-kind browser walk, `headless` demands `tests`
+plus `run-log` for a kind with no screen (`acceptance.md`). A pin counts only from a file `dispatch
 check` passed and unchanged since, and only by a path that exists. A group whose every
 alternative is not installed is a WARN with the fallback, never a refusal — the run is
 weaker and says so (the `stack` group is installed only when a project skill or a
@@ -77,6 +79,8 @@ laravel/web-dev skill really is).
 | infra | a devops skill | CI, containers, deploy |
 | game | stack · testing · a11y-audit · motion or interaction-fx | a game or motion-heavy interactive screen |
 | integration | testing | merge the done branches and walk the product across them; `close` needs one when done branches diverge |
+| audit | a stack skill | a read-only review, research or inventory pass — no testing group, nothing new is written; evidence profile `headless` |
+| library | stack · testing | a non-UI code change: script, CLI, package, build step; evidence profile `headless` |
 
 "stack" is any project skill under `.claude/skills/` or any `laravel`/`web-dev` plugin skill.
 The rows are the two simulations' pins written down; a kind the table lacks is `feature`

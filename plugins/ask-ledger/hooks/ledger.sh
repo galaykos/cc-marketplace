@@ -30,6 +30,14 @@
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
   [ -n "$prompt" ] || exit 0
   case "$prompt" in /*) exit 0 ;; esac
+  # Harness-injected turns reach UserPromptSubmit as prompts: a subagent's completion
+  # notification, a Stop-hook relay, a system reminder. None is the user's ask, and a
+  # subagent report is dense with capitalised tokens (a review's "NULL", "WHERE",
+  # "FAIL") that would become ledger entries the Stop gate then demands lines for
+  # (measured 2026-09-22: twelve false names from one notification, two blocked turns).
+  case "$prompt" in
+    *'<system-reminder>'*|*'<task-notification>'*|*'[SYSTEM NOTIFICATION'*|*'Stop hook feedback:'*) exit 0 ;;
+  esac
 
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-600 | tr 'A-Z' 'a-z')

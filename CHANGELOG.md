@@ -39,6 +39,21 @@ touched; process friction with nothing left in the tree is reported, not patched
   stack-scan 0.8.4 (unstamped vendored snapshot, last frozen picker integer, catalog),
   skill-router 0.17.3 (Livewire route promised 27 days after the skill was deleted), <!-- removed-ok -->
   devops 0.6.10 / resilience 0.7.2 (ultra-assess recommendation names its owner).
+- **overseer 0.5.0 — non-UI programs can close.** Per-kind evidence profiles; `audit` and
+  `library` kinds accept on a suite tail plus a captured run log instead of browser
+  evidence. Every milestone of the 2026-09-16 self-audit had parked on this.
+- **security 0.10.1** gains the SSRF section a reviewer asked for on 2026-08-27;
+  **database 0.9.3** gets its worked SQL pairs back (the reason the SKILL cap was raised
+  that day); **web-dev 0.8.1** refreshes the expo digest from 54 to 57 against live docs
+  (13 claims corrected, including SDK 57's `prebuild` clean-by-default inversion).
+- **CLAUDE.md narration moved out.** Fifteen sentences telling the story of the file's
+  own past mistakes (14% of its prose) now live in
+  `rationale/claude-md-incident-log.md`; the rules they wrapped stay, plus one standing
+  rule: numbers in this file rot, recount them.
+- **ask-ledger 0.1.1** no longer mines subagent notifications and Stop-hook relays as the
+  user's ask (it blocked two turns of this very review on names from a report).
+- Eight `evals/*/case.yaml` (overseer, resilience, web-dev) carry `timeout_seconds: 900`;
+  code-review's README names the docblock-heavy-project gap of the density deny.
 - **Repo hooks carry timeouts**; `eval-cases.sh` names the grader-key gap it measured on
   2026-09-18; the `authoring-hooks` project skill documents `SubagentStart`, the eighth
   event the tree ships; README tells installers why `N plugins failed to update` appears

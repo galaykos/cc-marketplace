@@ -13,11 +13,12 @@ description: Use when writing or reviewing React Native or Expo code — FlatLis
   Legacy Architecture support.
 - **0.82** (2025-10) — New Architecture ONLY: `newArchEnabled=false` and
   `RCT_NEW_ARCH_ENABLED=0` are ignored; legacy APIs remain present but frozen.
-- **Expo SDK 55** — RN 0.83 + React 19.2; **SDK 56** (current, 2026) — RN 0.85, Expo UI
-  Jetpack Compose/SwiftUI components stable.
+- **Expo SDK 55** — RN 0.83 + React 19.2; **SDK 56** (2026-05) — RN 0.85, `expo-router`
+  forks off React Navigation; **SDK 57** (current, 2026-06) — RN 0.86 + React 19.2.
 - Expo projects invert several core rules (install via `expo install`, CNG prebuild
-  overwrites native dirs, EAS `runtimeVersion` gates OTA delivery) — read
-  `references/expo.md` before advising an Expo app.
+  overwrites native dirs — and from SDK 57 cleans by DEFAULT, `--no-clean` to opt out —
+  EAS `runtimeVersion` gates OTA delivery) — read `references/expo.md` before advising
+  an Expo app.
 
 ## List virtualization: keyExtractor, getItemLayout, stable renderItem
 
@@ -63,6 +64,9 @@ navigation.navigate('Profile', { userId: user.id });
 Avoid deep navigator nesting (stack-in-tab-in-drawer-in-stack) — each layer complicates `goBack()`
 and needs its own deep-link segment. Prefer top-level navigators switched by app state, nested one
 or two levels at most.
+
+On Expo SDK 56+, `expo-router` no longer depends on `react-navigation`, so `@react-navigation/*`
+imports mostly stop working alongside it — see `references/expo.md` before mixing the two.
 
 ## Platform-specific code: Platform.select and file splits
 

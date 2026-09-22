@@ -15,6 +15,19 @@ An index is used only when the column stands alone on its side of the comparison
 - Leading wildcards (`LIKE '%term'`) cannot seek; if you need contains-search, that
   is a full-text/trigram problem, not a LIKE problem.
 
+```sql
+-- Bad: the function hides the column, so every row is converted and compared
+SELECT id FROM orders WHERE YEAR(created_at) = 2026;
+SELECT id FROM users  WHERE LOWER(email) = 'a@b.test';
+-- Good: half-open range; fix the case at the schema (or index the expression)
+SELECT id FROM orders WHERE created_at >= '2026-01-01'
+                        AND created_at <  '2027-01-01';
+SELECT id FROM users  WHERE email = 'a@b.test';
+```
+
+**Why:** the index stores `created_at`, not `YEAR(created_at)` — wrap the column
+and the seek degrades to a scan of the whole index or table.
+
 ## Join correctness
 
 - Explicit `JOIN ... ON` always; a comma-join with a WHERE is a cartesian accident
@@ -36,6 +49,20 @@ An index is used only when the column stands alone on its side of the comparison
   with NULL yields NULL. `COALESCE` at the edge, not sprinkled everywhere.
 - Prefer `IS [NOT] DISTINCT FROM` (or the engine's equivalent) for null-safe
   comparison instead of `OR` gymnastics.
+
+```sql
+-- Bad: one NULL user_id makes the predicate UNKNOWN for every row — zero results
+SELECT * FROM users u WHERE u.id NOT IN (SELECT o.user_id FROM orders o);
+-- Bad: drops rows whose status IS NULL, silently
+SELECT * FROM tickets WHERE status != 'closed';
+-- Good: NOT EXISTS is null-safe; state out loud what NULL should do
+SELECT * FROM users u
+ WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id);
+SELECT * FROM tickets WHERE status IS NULL OR status != 'closed';
+```
+
+**Why:** `NULL != 'closed'` evaluates to UNKNOWN, not TRUE, and a WHERE clause
+keeps only TRUE — so the row disappears instead of matching.
 
 ## Indexing logic
 
@@ -83,6 +110,19 @@ An index is used only when the column stands alone on its side of the comparison
   Use keyset pagination: `WHERE (created_at, id) < (?, ?) ORDER BY created_at
   DESC, id DESC LIMIT ?`, with an index matching the sort. Include a unique
   tiebreaker column or rows straddle page boundaries.
+
+```sql
+-- Bad: reads 20,000 rows, discards 19,980 — page 1000 is 1000x the work of page 1
+SELECT id, created_at FROM events
+ ORDER BY created_at DESC, id DESC LIMIT 20 OFFSET 19980;
+-- Good: keyset — carry the previous page's last sort key forward, read 20 rows
+SELECT id, created_at FROM events
+ WHERE (created_at, id) < (:last_created_at, :last_id)
+ ORDER BY created_at DESC, id DESC LIMIT 20;
+```
+
+**Why:** OFFSET cost grows with the page number and shifts when rows are inserted
+mid-scroll; keyset cost is constant and the page boundary is a row, not a count.
 
 ## Migrations
 

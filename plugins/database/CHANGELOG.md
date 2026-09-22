@@ -10,6 +10,11 @@ releases were not recorded here and are not reconstructed.
   skill name ("the `sql-best-practices,mariadb-best-practices` skill"); the rubric line
   now names each listed skill in order. Template fixed in the same change.
 
+### Added
+- `sql-best-practices` carries three worked bad/good pairs again — sargable predicates,
+  NULL three-valued logic, keyset pagination. The 2026-08-27 cap raise to 200 lines was
+  justified by restoring these and never did; body is 185 lines.
+
 ## 0.9.2
 
 ### Fixed

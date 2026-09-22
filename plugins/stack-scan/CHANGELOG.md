@@ -12,7 +12,7 @@ recorded; plugin-scout, which was merged into this plugin, kept its own changelo
   Stamped 2026-09-02, the date it was written.
 - `plugin-scout/SKILL.md` froze "(~5 calls)" for `--all`; it now states the rule (one
   call per page of 15 rows) the way the rest of the picker prose does.
-- Scout catalog regenerated for skill-router 0.17.3's description.
+- Scout catalog regenerated for the skill-router 0.17.3 and overseer 0.5.0 descriptions.
 
 ## 0.8.3 — 2026-09-20
 

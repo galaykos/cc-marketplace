@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 — 2026-09-22
+
+### Added
+- **Headless evidence profile.** `kinds.tsv` takes an optional fourth column, `profile`
+  (`ui`, the default for every existing row, or `headless`). `accept` resolves the
+  required evidence from the milestone's kind: `ui` keeps the nine kinds; `headless`
+  requires exactly `tests` plus the new file-kind `run-log` (captured command output,
+  read-gated like every other file). New kinds `audit` (read-only review or research;
+  `stack` only) and `library` (non-UI code: script, CLI, package). Before this, every
+  milestone of a non-UI program ended `parked` — measured 2026-09-16 when overseer ran a
+  program over this marketplace itself. Harness 251 → 279 assertions.
+- `evals/*/case.yaml` carry `timeout_seconds: 900` (the 300 s default timed out 5 of 6
+  runs on 2026-09-18).
+
 ## 0.4.9 — 2026-09-16
 
 ### Changed

@@ -94,6 +94,21 @@ not just `auth` middleware:
 - Serve user files with `Content-Disposition: attachment` or from a cookie-less
   domain; never let the browser execute what users uploaded.
 
+## SSRF
+
+- A user-controlled URL reaching a server-side fetch makes the backend the attacker's proxy
+  inside the perimeter: `Http::get($request->url)`, `file_get_contents`, cURL, `fetch`/`axios`,
+  plus the indirect ones — image-by-URL, webhook/callback registration, PDF and HTML renderers.
+- Triage by what the request reaches, not by the sink: cloud metadata (`169.254.169.254`,
+  `metadata.google.internal`) returns credentials — Critical; internal admin, Redis or
+  `localhost` — High; a blind fetch whose response is never echoed back — Low.
+- Allowlist hosts and schemes (`https` only; reject `file:`, `gopher:`), never blocklist IPs.
+  Resolve the host first, check the resolved address against private and link-local ranges,
+  then connect to THAT address — validating a name the client re-resolves is DNS rebinding.
+- Redirects off by default (`Http::withoutRedirecting()`, `redirect: 'manual'`) — a 302 to the
+  metadata IP defeats a first-URL-only check. Structurally: an egress proxy with a destination
+  allowlist, or in Node an `undici` `Agent` with a validating `connect` hook, as `dispatcher`.
+
 ## CSRF
 
 - Laravel's `web` group covers forms by default — findings live in the escape
@@ -151,5 +166,7 @@ not just `auth` middleware:
 - "Sanitize on input, trust forever" — escape at output, per context.
 - Treating frontend enforcement (disabled buttons, `v-if`, client validation) as
   any part of the security story.
+- Blocking known-bad IPs instead of allowlisting destinations — DNS rebinding, redirects
+  and alternate encodings all walk around a blocklist.
 - Prescribing WAF/CSP/headers as the fix for an injection or authz bug — those
   are depth layers, not repairs.

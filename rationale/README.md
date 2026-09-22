@@ -27,6 +27,13 @@ This directory is that location.
 - **A copy of something that ships.** Two copies of one rule is a guarantee that
   one of them will eventually be wrong. Put the rule where it ships and link it.
 
+## Standing reviews worth re-reading
+
+- `2026-09-01-fable5-prompt-alignment.md` — the leaked Fable-5 system prompt held
+  against nine plugins; the eight fixes landed, the reasoning for what was NOT
+  changed is only here.
+- `claude-md-incident-log.md` — every number `CLAUDE.md` carried and how it rotted.
+
 `scripts/validate.sh` enforces that non-functional `.md` files stay out of
 `plugins/`. Nothing enforces what lands here — this file is `recorded`, not a
 gate, and saying so is the point.

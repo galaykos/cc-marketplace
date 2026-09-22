@@ -2,6 +2,7 @@ schema_version: "1.0"
 name: breadth-review
 description: Six independent runtime hazards in one class, and the grader wants coverage rather than one load-bearing claim. The control for the crowding-out hypothesis — if the plugin's six-rubric process trades depth for breadth, this is the case it should WIN.
 execution:
+  timeout_seconds: 900
   max_turns: 25
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |
