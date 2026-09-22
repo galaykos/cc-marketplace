@@ -224,6 +224,34 @@ def build(spec, theme, device_default):
     return shell
 
 
+def tokens_stamp(tokens_path):
+    """`<meta name="design-kit-tokens" content="<sha12> <gitshort|none>">` — the
+    tokens file this build actually read (first 12 hex of its sha256, or `none`)
+    and the repo revision, so a gallery can tell a page built against tokens
+    that have since moved. Reads the file bytes; never the git index."""
+    import hashlib
+    import subprocess
+    sha = "none"
+    if tokens_path and os.path.isfile(tokens_path):
+        with open(tokens_path, "rb") as fh:
+            sha = hashlib.sha256(fh.read()).hexdigest()[:12]
+    short = "none"
+    try:
+        r = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=5)
+        if r.returncode == 0 and r.stdout.strip():
+            short = r.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return '<meta name="design-kit-tokens" content="%s %s">' % (sha, short)
+
+
+def with_stamp(page, tokens_path):
+    meta = tokens_stamp(tokens_path)
+    page = re.sub(r'<meta\s+name="design-kit-tokens"[^>]*>\s*', "", page, flags=re.I)
+    m = re.search(r"<head\b[^>]*>", page, flags=re.I)
+    return page[: m.end()] + "\n" + meta + page[m.end():] if m else page
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="render a design board from a spec")
     ap.add_argument("spec", help="spec .json or .md (see references/spec-format.md)")
@@ -236,7 +264,7 @@ def main(argv=None):
     spec = load_spec(args.spec)
     tokens = args.tokens if args.tokens is not None else ("design-system/tokens.json" if os.path.isfile("design-system/tokens.json") else None)
     theme, used = read_tokens(tokens)
-    html = build(spec, theme, args.device)
+    html = with_stamp(build(spec, theme, args.device), tokens if (tokens and os.path.isfile(tokens)) else None)
     out = args.out or os.path.join(args.docroot, "boards", f"{_dt.date.today():%Y-%m-%d}-{slugify(spec.get('title') or 'board')}.html")
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     with open(out, "w", encoding="utf-8") as fh:

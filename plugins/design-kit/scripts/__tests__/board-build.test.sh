@@ -34,6 +34,9 @@ JSON
 out2="$(python3 "$here/board-build.py" spec.json --out b2.html 2>err.txt)"
 grep -q -- '--dk-accent-h:145' b2.html || { echo "FAIL: accent hue from tokens (expected 145)"; grep -o -- '--dk-accent-h:[0-9]*' b2.html; exit 1; }
 grep -q -- '--dk-radius:6px' b2.html && grep -q -- '--dk-space:10px' b2.html && grep -q 'Georgia' b2.html || { echo "FAIL: tokens not applied"; cat err.txt; exit 1; }
+sha="$(python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest()[:12])" design-system/tokens.json)"
+grep -q "<meta name=\"design-kit-tokens\" content=\"$sha " b2.html || { echo "FAIL: board tokens stamp"; grep design-kit-tokens b2.html; exit 1; }
+grep -q '<meta name="design-kit-tokens" content="none ' "$out" || { echo "FAIL: untokened board should stamp none"; grep design-kit-tokens "$out"; exit 1; }
 
 cat > spec.md <<'MD'
 # Onboarding

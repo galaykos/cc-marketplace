@@ -149,9 +149,36 @@ grep -q 'variants: variant: default, outline, ghost' "$kit" || fail "Button vari
 grep -q '<title>UI kit — fixture</title>' "$kit" || fail "title slot"
 grep -q 'SLOT:' "$kit" && fail "unfilled slot remains"
 
+cj="$out/components.json"
+[ -f "$cj" ] || fail "components.json missing"
+python3 - "$cj" <<'PY' || fail "components.json shape"
+import json, sys
+d = json.load(open(sys.argv[1]))
+by = {c["name"]: c for c in d["components"]}
+b = by["Button"]
+assert b["source"] == "src/components/ui/button.tsx" and b["export"] == "named", b
+assert [p["name"] for p in b["props"]] == ["variant", "size", "asChild"], b["props"]
+assert b["props"][0]["type"] == '"default" | "outline" | "ghost"' and b["props"][0]["required"] is False
+assert b["variants"] == {"variant": ["default", "outline", "ghost"], "size": ["sm", "lg"]} and b["stories"] == ["Primary", "Outline"]
+assert any("extends React.ButtonHTMLAttributes" in g for g in b["gaps"]), b["gaps"]
+st = by["StatTile"]
+assert st["export"] == "default" and st["props"][0] == {"name": "label", "type": "string", "default": None, "required": True}, st["props"]
+al = by["Alert"]
+assert al["props"] == [{"name": "type", "type": "mixed", "default": "info", "required": False}, {"name": "dismissible", "type": "mixed", "default": False, "required": False}], al["props"]
+PY
+
 out2="$tmp/out2"
 python3 "$ex" "$repo" --out "$out2" --project-name fixture >/dev/null
-cmp -s "$out/tokens.json" "$out2/tokens.json" && cmp -s "$out/kit.html" "$out2/kit.html" && cmp -s "$md" "$out2/DESIGN-SYSTEM.md" || fail "second run differs"
+cmp -s "$out/tokens.json" "$out2/tokens.json" && cmp -s "$out/kit.html" "$out2/kit.html" && cmp -s "$md" "$out2/DESIGN-SYSTEM.md" && cmp -s "$cj" "$out2/components.json" || fail "second run differs"
+
+python3 "$ex" "$repo" --out "$out" --check >/dev/null || fail "--check should exit 0 when nothing moved"
+cp "$repo/src/styles/globals.css" "$tmp/globals.bak"
+sed -i.bak 's/--background: #ffffff;/--background: #fffff0;/' "$repo/src/styles/globals.css"; rm -f "$repo/src/styles/globals.css.bak"
+chk="$(python3 "$ex" "$repo" --out "$out" --check)" && fail "--check should exit 1 on drift"
+grep -q '^check: color.background #ffffff → #fffff0 (src/styles/globals.css:11)$' <<<"$chk" || fail "check line: $chk"
+[ "$(echo "$chk" | wc -l | tr -d ' ')" = 1 ] || fail "one moved token, one line: $chk"
+cmp -s "$out/tokens.json" "$out2/tokens.json" || fail "--check wrote tokens.json"
+cp "$tmp/globals.bak" "$repo/src/styles/globals.css"
 
 dry="$(python3 "$ex" "$repo" --dry-run)"
 echo "$dry" | grep -q $'^color.background\tcolor\t#ffffff\tdark=#0a0a0a\t' || fail "dry-run row: $(echo "$dry" | head -3)"

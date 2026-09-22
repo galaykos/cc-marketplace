@@ -58,9 +58,9 @@ especially images — so leave out interactivity nobody asked for.
    `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/artifact-bundle.py <path> --name <slug>`.
    Read its lines: `inlined:`, `network:`, `unresolved-link:`, `WARN:`. Fix every
    unresolved link; decide each network line on purpose.
-3. Start or reuse the preview: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh`. Print
-   the URL `preview.sh` printed plus `/artifacts/<slug>.html`, and the gallery URL. The page reloads
-   itself when re-bundled.
+3. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh bundle <source> [--name slug]` bundles,
+   starts or reuses the preview and prints `url=`; give the user that URL and the
+   gallery base URL. The page reloads itself when re-bundled.
 4. Revising means re-bundling: the bundler keeps `v1`, `v2`… under
    `.design-kit/artifacts/.versions/<slug>/` and appends to `<slug>.versions.json`.
    Never edit the bundled file by hand; edit the source and re-run.
@@ -76,9 +76,9 @@ Ask with AskUserQuestion, first option "Keep it local (Recommended)", before any
 
 | step | what leaves the machine | how | say first |
 |---|---|---|---|
-| LAN | the page, to anyone on the same network while the server runs | `preview.sh --lan`, then print the LAN URL | "any device on this network can open it; stop with `preview.sh --stop`" |
-| Pages branch | the page, committed and pushed to `<remote>/design-kit-pages` | `artifact-publish.sh <file>` (dry run) → confirm → `--push` | the branch, the remote, that Pages must be enabled by the user, the expected URL |
-| Zip | nothing; a file beside the artifact | `--zip` on the bundler | where it landed |
+| LAN | the page, to anyone on the same network while the server runs | `dk.sh share <file> --lan`, then print the URL | "any device on this network can open it; stop with `dk.sh serve --stop`" |
+| Pages branch | the page, committed and pushed to `<remote>/design-kit-pages` | `dk.sh share <file> --pages` (dry run) → confirm → `--pages --push` | the branch, the remote, that Pages must be enabled by the user, the expected URL |
+| Zip | nothing; a file beside the artifact | `dk.sh share <file> --zip` | where it landed |
 
 The publish script works in a scratch worktree and never touches the current branch
 or working tree; it pushes only with `--push`, which is only passed after the user

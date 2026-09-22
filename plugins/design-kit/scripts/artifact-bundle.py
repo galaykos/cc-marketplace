@@ -333,8 +333,38 @@ def stamp(doc, slug, version, date):
     doc = re.sub(r"<meta\s+name=\"design-kit-artifact\"[^>]*>\s*", "", doc, flags=re.I)
     m = re.search(r"<head\b[^>]*>", doc, flags=re.I)
     if m:
-        return doc[: m.end()] + "\n" + meta + doc[m.end():]
-    return f"<!doctype html><html><head><meta charset=\"utf-8\">{meta}</head><body>{doc}</body></html>"
+        doc = doc[: m.end()] + "\n" + meta + doc[m.end():]
+    else:
+        doc = f"<!doctype html><html><head><meta charset=\"utf-8\">{meta}</head><body>{doc}</body></html>"
+    return with_stamp(doc, None)  # an artifact reads no tokens file: sha `none`, revision recorded
+
+
+def tokens_stamp(tokens_path):
+    """`<meta name="design-kit-tokens" content="<sha12> <gitshort|none>">` — the
+    tokens file this build actually read (first 12 hex of its sha256, or `none`)
+    and the repo revision, so a gallery can tell a page built against tokens
+    that have since moved. Reads the file bytes; never the git index."""
+    import hashlib
+    import subprocess
+    sha = "none"
+    if tokens_path and os.path.isfile(tokens_path):
+        with open(tokens_path, "rb") as fh:
+            sha = hashlib.sha256(fh.read()).hexdigest()[:12]
+    short = "none"
+    try:
+        r = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=5)
+        if r.returncode == 0 and r.stdout.strip():
+            short = r.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return '<meta name="design-kit-tokens" content="%s %s">' % (sha, short)
+
+
+def with_stamp(page, tokens_path):
+    meta = tokens_stamp(tokens_path)
+    page = re.sub(r'<meta\s+name="design-kit-tokens"[^>]*>\s*', "", page, flags=re.I)
+    m = re.search(r"<head\b[^>]*>", page, flags=re.I)
+    return page[: m.end()] + "\n" + meta + page[m.end():] if m else page
 
 
 def main(argv=None):

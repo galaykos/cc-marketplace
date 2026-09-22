@@ -188,9 +188,13 @@ def render_blocks(blocks, base, fragments):
     return "\n".join(out), "\n".join(plain), visible
 
 
+THEME_USED = {"path": None}  # the theme file theme_css() actually read, for the stamp
+
+
 def theme_css(theme_path, cwd):
     """Map design-system output to --dk-* variables. Returns css lines (may be empty)."""
     cands = [theme_path] if theme_path else [os.path.join(cwd, "design-system", "tokens.json"), os.path.join(cwd, "design-system", "DESIGN-SYSTEM.md")]
+    THEME_USED["path"] = None
     for p in cands:
         if not p or not os.path.isfile(p):
             continue
@@ -250,9 +254,38 @@ def theme_css(theme_path, cwd):
             if m:
                 vals.setdefault("dk-mono", '"%s", ui-monospace, monospace' % m.group(1).strip())
         if vals:
+            THEME_USED["path"] = p
             print("deck-build: theme from %s (%s)" % (os.path.relpath(p, cwd), ", ".join(sorted(vals))), file=sys.stderr)
             return "\n".join("  --%s:%s;" % (k, v) for k, v in vals.items())
     return ""
+
+
+def tokens_stamp(tokens_path):
+    """`<meta name="design-kit-tokens" content="<sha12> <gitshort|none>">` — the
+    tokens file this build actually read (first 12 hex of its sha256, or `none`)
+    and the repo revision, so a gallery can tell a page built against tokens
+    that have since moved. Reads the file bytes; never the git index."""
+    import hashlib
+    import subprocess
+    sha = "none"
+    if tokens_path and os.path.isfile(tokens_path):
+        with open(tokens_path, "rb") as fh:
+            sha = hashlib.sha256(fh.read()).hexdigest()[:12]
+    short = "none"
+    try:
+        r = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=5)
+        if r.returncode == 0 and r.stdout.strip():
+            short = r.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return '<meta name="design-kit-tokens" content="%s %s">' % (sha, short)
+
+
+def with_stamp(page, tokens_path):
+    meta = tokens_stamp(tokens_path)
+    page = re.sub(r'<meta\s+name="design-kit-tokens"[^>]*>\s*', "", page, flags=re.I)
+    m = re.search(r"<head\b[^>]*>", page, flags=re.I)
+    return page[: m.end()] + "\n" + meta + page[m.end():] if m else page
 
 
 def build(outline_path, out_path, theme_path, max_lines, allow_long):
@@ -289,6 +322,7 @@ def build(outline_path, out_path, theme_path, max_lines, allow_long):
                  .replace("{{GENERATED}}", _dt.date.today().isoformat())
                  .replace("{{THEME_CSS}}", theme_css(theme_path, cwd))
                  .replace("{{SLIDES}}", "\n".join(parts)))
+    page = with_stamp(page, THEME_USED["path"])
     ext = re.findall(r'(?:src|href)="(https?:)?//', page)
     if ext:
         print("deck-build: %d external src/href reference(s) — a deck must be self-contained" % len(ext), file=sys.stderr)

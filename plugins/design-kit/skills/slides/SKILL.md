@@ -42,10 +42,12 @@ memory gets wrong.
 2. **Build.** `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/deck-build.py <outline>`; on
    exit 2 fix the outline (split the long slide — do not reach for `--allow-long`
    to silence it). The stderr names the theme file used, if any.
-3. **Serve.** `bash ${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh` and give the user the
-   deck URL (the base `preview.sh` printed plus `/decks/<file>.html`). The page reloads itself on
-   every rebuild; the gallery at `/` lists every deck. `--lan` puts it on the
-   network for a phone — say that a page leaves the machine before using it.
+3. **Serve.** `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh slides <outline>` does the build
+   and the serve in one call and prints `url=`; give the user that URL. The page reloads
+   itself on every rebuild; the gallery at the base URL lists every deck with a badge
+   that turns amber when `design-system/tokens.json` moved after the build. `dk.sh
+   share <deck> --lan` puts it on the network for a phone — say that a page leaves the
+   machine before using it.
 4. **Iterate** one axis per round: order, then headlines, then figures, then
    notes. Rebuild after each edit; the open tab follows.
 5. **Export** only when asked: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/deck-export.sh

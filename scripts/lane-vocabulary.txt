@@ -43,6 +43,7 @@ key-moment-second-opinion
 persona-opinion-shard
 spec-hole-adversary
 ui-direction-artboards
+unread-board-pick-notice
 unanchored-second-opinion
 
 # --- plan ---

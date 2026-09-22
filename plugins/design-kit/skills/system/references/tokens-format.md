@@ -81,3 +81,16 @@ nicer scheme.
 - `shadow` values are raw CSS strings, not the DTCG composite object.
 - Determinism is byte-level for the same source and script version; a script change may
   reorder or rename, so pin the plugin version in a consumer that diffs the file.
+
+## components.json — the inventory beside the tokens
+
+Written by the same run, same determinism. Shape:
+`{generated, source, components: [{name, source, export: "named"|"default", props: [{name, type, default, required}], variants: {prop: [values]}, stories: [names], gaps: [why]}]}`.
+`props` are in declaration order with the type verbatim; `default` comes from a
+destructured signature, `withDefaults`, a Blade `@props` pair or a PHP constructor;
+`required` is "no `?` and no default". `variants` are union-of-literal props (and cva
+variant keys); `stories` are Storybook export names, never props. `gaps` is the honest
+list of what the extractor could not read — a generic interface, an `extends`, an
+intersection, a spread — so a consumer opens the file instead of guessing. The
+consumer that ships is `scaffold-fill.py` (the `/design-kit:in-codebase` scratch page);
+a `--check` run compares tokens only, never this file.

@@ -8,3 +8,4 @@ design-kit:in-codebase	command	build	real-component-design-render	the user runs 
 design-kit:artifact	command	ship	self-contained-artifact-bundle	the user asks for an artifact, a shareable page, or to bundle a page/markdown into one file; writes only under .design-kit/artifacts/ and, on explicit consent, a pages branch in a scratch worktree	-
 design-kit:design	command	decide	ui-direction-artboards	/design-kit:design <brief> typed; drafts 2-4 artboard directions into .design-kit/boards/ and asks for the pick	-
 design-kit:system	command	understand	design-system-extraction	invoked as /design-kit:system, or a design/deck/artifact must start from the project's real tokens rather than a remembered palette	-
+design-kit:unread-pick	hook	decide	unread-board-pick-notice	.design-kit/decisions.jsonl holds a row with consumed:false and the phase sentinel is absent or at understand/shape/decide	-

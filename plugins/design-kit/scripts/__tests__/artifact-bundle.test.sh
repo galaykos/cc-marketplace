@@ -38,6 +38,8 @@ grep -q 'src="https://cdn.example.com/lib.js"' "$f" || { echo "FAIL: https scrip
 case "$r1" in *"network: https://cdn.example.com/lib.js"*) ;; *) echo "FAIL: network not reported: $r1"; exit 1 ;; esac
 case "$r1" in *"unresolved-link: about.html"*) ;; *) echo "FAIL: relative link not reported"; exit 1 ;; esac
 grep -qE '<meta name="design-kit-artifact" content="fixture v1 [0-9]{4}-' "$f" || { echo "FAIL: v1 stamp"; exit 1; }
+grep -qE '<meta name="design-kit-tokens" content="none (none|[0-9a-f]{7,})">' "$f" || { echo "FAIL: tokens stamp on artifact"; grep design-kit-tokens "$f"; exit 1; }
+[ "$(grep -c 'name="design-kit-tokens"' "$f")" -eq 1 ] || { echo "FAIL: tokens stamp duplicated"; exit 1; }
 [ -f "$out/.versions/fixture/v1.html" ] || { echo "FAIL: v1 not kept"; exit 1; }
 
 $b "$tmp/site/index.html" --name fixture --out-dir "$out" --zip >/dev/null

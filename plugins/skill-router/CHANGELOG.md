@@ -2,6 +2,14 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.17.4 — 2026-09-22
+
+### Added
+- Five `**/dir/**` rows for `design-kit` (`design-system/`, `.design-kit/decks|boards|artifacts/`,
+  `__design-kit__/`), so the router ledger can count that plugin's offers — its README names
+  `turn-cost.sh --skills` as its retirement queue, and with no row that queue read zero by
+  construction. Rows fire only in directories the plugin itself creates.
+
 ## 0.17.3 — 2026-09-22
 
 ### Fixed

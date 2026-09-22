@@ -24,16 +24,19 @@ Two entry shapes, one procedure:
    spacing intent; build every element from the component library. A `.html` from a
    bundle that lands under `src/`, `resources/` or `app/` is a defect. Standing:
    agent-graded — `git status` after the pick is the check.
-2. **Find components before writing any.** Read, in this order:
-   `components=` from `--detect`; the library's index exports; Storybook stories
-   (`*.stories.*` name every variant); the two closest existing pages; the design
-   system in `design-system/` or the `## Design system` block in CLAUDE.md. A
-   component you could not find is a question to the user, not a new file.
-   Details: `references/finding-components.md`.
-3. **Props come from the component, not the design.** Open the component's
-   signature (types, `defineProps`, Blade `@props`) and pass only what exists. An
-   invented prop renders as nothing and hides that the design asks for a variant
-   the library lacks — surface that as a gap row instead.
+2. **Find components before writing any.** When `design-system/components.json`
+   exists (`/design-kit:system` wrote it), the scratch page already opens with every
+   component imported, its prop signature in a comment, and a strip rendering every
+   variant — your job is composition and data, not discovery. Otherwise read, in
+   order: `components=` from `--detect`; the library's index exports; Storybook
+   stories; the two closest existing pages. A component you could not find is a
+   question to the user, not a new file. Details: `references/finding-components.md`.
+3. **Props come from the component, not the design.** Pass only what the signature
+   comment (or the component's types, `defineProps`, Blade `@props`) lists. A
+   `gap:` comment on the scratch page names a file the extractor could not fully
+   read (a generic, an `extends`, an intersection) — open that file before using
+   the component; never guess a prop. An invented prop renders as nothing and hides
+   that the design asks for a variant the library lacks — surface a gap row instead.
 4. **Every screen renders its states.** Populated, empty, loading and error, in
    that order, on the same scratch page, with the library's own empty/loading/error
    components. A design that shows only the populated state is not done.
@@ -64,15 +67,19 @@ Two entry shapes, one procedure:
    into the project tree under `__design-kit__/` paths and removed after the pick.
    "Write the scratch entry (Recommended)" / "Show me the plan only". No write
    before the first option is chosen.
-4. `codebase-scaffold.sh --create <slug>` → fill ONLY the files it printed as
-   `wrote=`, importing real components and providers. Start the dev server with
-   `dev_cmd=` if it is not running, open `open=`.
+4. `dk.sh scratch --create <slug> --brief "<one line>"` → edit ONLY the files it
+   printed as `wrote=`. `filled=` means the inventory pre-filled the page: keep the
+   imports and the app stylesheet import, replace the strip with the composition, and
+   keep any commented-out line until its required prop has real data. Start the dev
+   server with `dev_cmd=` if it is not running, open `open=`. With no brief, the pick comes from
+   `dk.sh decision --latest --consume` — the board's recorded artboard, knobs and edits.
 5. Iterate on the scratch page while the user looks: one change per request, the
    dev server reloads. Take a screenshot when the environment offers one; say when
    it does not.
 6. After the pick: record what was decided (which components, which variants,
-   which tokens, any gap rows) in the reply, then run
-   `codebase-cleanup.sh` and `codebase-cleanup.sh --verify`. Verify failing means
+   which tokens, any gap rows) in the reply and as one line via
+   `dk.sh decision --record "…"` (→ `design-system/DECISIONS.md`), then run
+   `dk.sh scratch --cleanup` and `dk.sh scratch --verify`. Verify failing means
    the turn is not done. The user may say "keep it" — then say in one line that
    `__design-kit__` paths remain and `--verify` will fail until they are removed.
 

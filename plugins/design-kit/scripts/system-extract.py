@@ -29,6 +29,7 @@ Usage:
                     [--dry-run]
 """
 import argparse
+import datetime as _dt
 import collections
 import html
 import json
@@ -360,26 +361,98 @@ def pascal(name):
     return "".join(p[:1].upper() + p[1:] for p in parts if p)
 
 
+def _ts_default_map(text):
+    """Defaults from a destructured signature: `function X({ a = 1, b = "x" }: Props)`
+    or `({ a = 1 }) =>`. Best-effort; a miss leaves default null."""
+    out = {}
+    m = re.search(r"\(\s*\{([^}]*)\}\s*(?::\s*[A-Za-z_$][\w$<>,\s.|&\[\]]*)?\s*\)", text)
+    if not m:
+        return out
+    for part in re.split(r",(?![^(\[{]*[)\]}])", m.group(1)):
+        dm = re.match(r"\s*([A-Za-z_$][\w$]*)\s*=\s*(.+?)\s*$", part.strip(), re.S)
+        if dm:
+            out[dm.group(1)] = _literal(dm.group(2).strip())
+    return out
+
+
+def _literal(raw):
+    raw = raw.strip().rstrip(",")
+    if re.match(r"^(['\"]).*\1$", raw):
+        return raw[1:-1]
+    if raw in ("true", "false"):
+        return raw == "true"
+    if raw in ("null", "undefined"):
+        return None
+    if re.match(r"^-?\d+(\.\d+)?$", raw):
+        return float(raw) if "." in raw else int(raw)
+    return raw
+
+
+def _ts_decls(block):
+    """Split an interface/type body into `name?: type` declarations, honouring
+    nested braces and generics so a union of object literals does not split."""
+    depth = 0; cur = ""; out = []
+    for ch in block:
+        if ch in "{(<[":
+            depth += 1
+        elif ch in "})>]":
+            depth -= 1
+        if ch in ";\n" and depth == 0:
+            out.append(cur); cur = ""
+        else:
+            cur += ch
+    out.append(cur)
+    return out
+
+
 def props_from_source(text, ext):
-    props, variants = [], collections.OrderedDict()
+    """Return (names, variants, details, gaps). `details` is the components.json
+    shape — {name, type, default, required} — and `gaps` says honestly why a prop
+    set may be incomplete (a generic, an `extends`, an intersection, a spread)."""
+    props, variants, details, gaps = [], collections.OrderedDict(), [], []
+    def add(name, ptype, default=None, required=False):
+        if name in props:
+            return
+        props.append(name)
+        details.append({"name": name, "type": ptype, "default": default, "required": required})
     if ext in (".tsx", ".jsx", ".ts", ".js", ".vue", ".svelte"):
-        for m in re.finditer(r"(?:interface\s+\w*Props\w*\s*(?:extends[^{]+)?\{|type\s+\w*Props\w*\s*=\s*(?:[^{=]+&\s*)?\{|defineProps<\s*\{)", text):
+        defaults = _ts_default_map(text)
+        found_block = False
+        for m in re.finditer(r"(?:interface\s+(\w*Props\w*)(\s*<[^>]*>)?\s*(extends[^{]+)?\{|type\s+(\w*Props\w*)(\s*<[^>]*>)?\s*=\s*([^{=]+&\s*)?\{|defineProps<\s*\{)", text):
+            found_block = True
+            iname = m.group(1) or m.group(4) or "defineProps"
+            generic = m.group(2) or m.group(5)
+            if generic:
+                gaps.append(f"generic interface {iname}{generic.strip()} — the type parameter's members are not listed")
+            if m.group(3):
+                gaps.append(f"{iname} {m.group(3).strip()} — inherited props are not listed")
+            if m.group(6):
+                gaps.append(f"{iname} is an intersection with {m.group(6).replace('&', '').strip()} — those members are not listed")
             block = balanced(text, m.end() - 1)
-            for decl in re.split(r"[;\n]", block[1:-1]):
-                pm = re.match(r"\s*(?:readonly\s+)?([A-Za-z_$][A-Za-z0-9_$]*)\??\s*:\s*(.+)$", decl)
+            for decl in _ts_decls(block[1:-1]):
+                pm = re.match(r"\s*(?:readonly\s+)?([A-Za-z_$][A-Za-z0-9_$]*)(\??)\s*:\s*(.+)$", decl.strip(), re.S)
                 if not pm:
+                    if re.match(r"\s*\.\.\.", decl):
+                        gaps.append(f"{iname} spreads another type — those members are not listed")
                     continue
-                pname, ptype = pm.group(1), pm.group(2).strip().rstrip(",")
-                if pname not in props:
-                    props.append(pname)
+                pname, opt, ptype = pm.group(1), pm.group(2), " ".join(pm.group(3).split()).rstrip(",")
+                add(pname, ptype, defaults.get(pname), required=(opt == "" and pname not in defaults))
                 lits = re.findall(r"['\"]([A-Za-z0-9_-]+)['\"]", ptype)
-                if len(lits) >= 2 and "|" in ptype:
+                if len(lits) >= 2 and "|" in ptype and pname not in variants:
                     variants[pname] = lits
+        wd = re.search(r"withDefaults\s*\(\s*defineProps<[^(]*\(\)\s*,\s*\{", text)
+        if wd:
+            for key, val in parse_js_object(balanced(text, wd.end() - 1)):
+                for d in details:
+                    if d["name"] == key:
+                        d["default"] = _literal(val) if isinstance(val, str) else val
+                        d["required"] = False
         dm = re.search(r"defineProps\(\s*\{", text)
         if dm:
-            for key, _ in parse_js_object(balanced(text, dm.end() - 1)):
-                if "-" not in key and key not in props:
-                    props.append(key)
+            found_block = True
+            for key, val in parse_js_object(balanced(text, dm.end() - 1)):
+                if "-" not in key:
+                    add(key, str(val).strip() if val is not None else "unknown", None, False)
         cm = re.search(r"variants\s*:\s*\{", text)
         if cm:
             block = balanced(text, cm.end() - 1)
@@ -388,23 +461,28 @@ def props_from_source(text, ext):
                 keys = re.findall(r"^\s*['\"]?([A-Za-z0-9_-]+)['\"]?\s*:", sub[1:-1], re.M)
                 if keys:
                     variants.setdefault(vm.group(1), keys)
+        if not found_block and re.search(r"export\s+(?:default\s+)?(?:function|const)\s+[A-Z]", text):
+            gaps.append("no props signature found by the extractor (no `*Props` interface/type or defineProps) — open the file")
     elif ext == ".blade.php":
         m = re.search(r"@props\(\s*\[", text)
         if m:
             block = text[m.end():]
             end = block.find("]")
             for part in block[:end if end > 0 else None].split(","):
-                pm = re.search(r"['\"]([A-Za-z0-9_-]+)['\"]", part)
-                if pm and pm.group(1) not in props:
-                    props.append(pm.group(1))
+                pm = re.match(r"\s*['\"]([A-Za-z0-9_-]+)['\"]\s*(?:=>\s*(.+))?\s*$", part.strip(), re.S)
+                if pm:
+                    default = _literal(pm.group(2)) if pm.group(2) else None
+                    add(pm.group(1), "mixed", default, required=pm.group(2) is None)
+        else:
+            gaps.append("no @props([...]) — attributes pass through $attributes; open the file")
     elif ext == ".php":
         m = re.search(r"function\s+__construct\s*\(", text)
         if m:
             sig = text[m.end():text.find(")", m.end())]
-            for pm in re.finditer(r"\$([A-Za-z_][A-Za-z0-9_]*)", sig):
-                if pm.group(1) not in props:
-                    props.append(pm.group(1))
-    return props, variants
+            for pm in re.finditer(r"(?:public|protected|private)?\s*(?:readonly\s+)?([?\w|\\]+)?\s*\$([A-Za-z_][A-Za-z0-9_]*)\s*(?:=\s*([^,]+))?", sig):
+                if pm.group(2):
+                    add(pm.group(2), (pm.group(1) or "mixed").strip(), _literal(pm.group(3)) if pm.group(3) else None, required=pm.group(3) is None)
+    return props, variants, details, gaps
 
 
 def scan_components(root, ex):
@@ -450,12 +528,16 @@ def scan_components(root, ex):
                     text = open(full, encoding="utf-8", errors="replace").read()
                 except OSError:
                     continue
-                props, variants = props_from_source(text, ext)
+                props, variants, details, gaps = props_from_source(text, ext)
                 if name in stories and "stories" not in variants:
                     variants["stories"] = stories[name]
                 seen.add(name)
+                export = "default" if re.search(r"export\s+default\b", text) and not re.search(r"export\s+(?:function|const|class)\s+" + re.escape(name) + r"\b", text) else "named"
+                if ext in (".vue", ".svelte", ".blade.php", ".php"):
+                    export = "default"
                 ex.components.append({"name": name, "path": rel, "props": props,
-                                      "variants": {k: v for k, v in variants.items()}})
+                                      "variants": {k: v for k, v in variants.items()},
+                                      "details": details, "gaps": gaps, "export": export})
     ex.components.sort(key=lambda c: (c["path"]))
 
 
@@ -605,6 +687,52 @@ def build_tokens(ex):
         top = ex.literal_colors.most_common(12)
         out["$extensions"] = {"design-kit": {"literalColors": [{"value": v, "uses": c} for v, c in sorted(top, key=lambda kv: (-kv[1], kv[0]))]}}
     return out
+
+
+def build_components(ex, source_label):
+    """The inventory as a machine-readable file beside tokens.json — the shape
+    scaffold-fill.py reads. Deterministic: components sorted by path (already),
+    props in declaration order, variants in declaration order."""
+    comps = []
+    for c in ex.components:
+        comps.append(collections.OrderedDict([
+            ("name", c["name"]),
+            ("source", c["path"]),
+            ("export", c.get("export", "named")),
+            ("props", c.get("details", [])),
+            ("variants", collections.OrderedDict((k, v) for k, v in c["variants"].items() if k != "stories")),
+            ("stories", c["variants"].get("stories", [])),
+            ("gaps", c.get("gaps", [])),
+        ]))
+    return collections.OrderedDict([("generated", _dt.date.today().isoformat()), ("source", source_label), ("components", comps)])
+
+
+def check_tokens(fresh, committed_path):
+    """Compare a fresh extraction against the committed tokens.json. Prints one
+    `check:` line per moved, added or removed token; returns the line count."""
+    try:
+        committed = json.load(open(committed_path, encoding="utf-8"))
+    except (OSError, ValueError):
+        print(f"check: no readable {committed_path} — run /design-kit:system first")
+        return 1
+    def table(tokens):
+        out = collections.OrderedDict()
+        for path, node in flat(tokens):
+            dk = node.get("$extensions", {}).get("design-kit", {})
+            out[path] = (str(node.get("$value")), str(dk.get("modes", {}).get("dark", "")), (dk.get("sources") or [""])[0])
+        return out
+    a, b = table(committed), table(fresh)
+    lines = 0
+    for path in sorted(set(a) | set(b)):
+        if path not in b:
+            print(f"check: {path} {a[path][0]} → — (removed; was {a[path][2]})"); lines += 1
+        elif path not in a:
+            print(f"check: {path} — → {b[path][0]} ({b[path][2]})"); lines += 1
+        elif a[path][0] != b[path][0]:
+            print(f"check: {path} {a[path][0]} → {b[path][0]} ({b[path][2]})"); lines += 1
+        elif a[path][1] != b[path][1]:
+            print(f"check: {path} dark {a[path][1] or '—'} → {b[path][1] or '—'} ({b[path][2]})"); lines += 1
+    return lines
 
 
 def flat(tokens, prefix=""):
@@ -757,6 +885,7 @@ def main(argv=None):
     ap.add_argument("--kit-shell", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "skills", "system", "assets", "kit-shell.html"))
     ap.add_argument("--project-name", default=None)
     ap.add_argument("--dry-run", action="store_true", help="print the token table; write nothing")
+    ap.add_argument("--check", action="store_true", help="compare against <out>/tokens.json: exit 1 and print `check:` lines on drift; writes nothing")
     args = ap.parse_args(argv)
     source = args.source or guess_source(args.target)
     ex = Extraction()
@@ -774,6 +903,8 @@ def main(argv=None):
         extract_brand(args.target, ex)
     project = args.project_name or (os.path.basename(os.path.abspath(args.target)) if source != "url" else urllib.parse.urlsplit(args.target).netloc)
     tokens = build_tokens(ex)
+    if args.check:
+        return 1 if check_tokens(tokens, os.path.join(args.out, "tokens.json")) else 0
     if args.dry_run:
         for path, node in flat(tokens):
             dk = node["$extensions"]["design-kit"]
@@ -788,13 +919,16 @@ def main(argv=None):
     with open(os.path.join(args.out, "tokens.json"), "w", encoding="utf-8") as fh:
         json.dump(tokens, fh, indent=2, ensure_ascii=False)
         fh.write("\n")
+    label = os.path.basename(os.path.abspath(args.target)) if source in ("repo", "brand") else args.target
     with open(os.path.join(args.out, "DESIGN-SYSTEM.md"), "w", encoding="utf-8") as fh:
-        label = os.path.basename(os.path.abspath(args.target)) if source in ("repo", "brand") else args.target
         fh.write(build_markdown(ex, tokens, project, f"{source} `{label}`"))
     with open(os.path.join(args.out, "kit.html"), "w", encoding="utf-8") as fh:
         fh.write(build_kit(ex, tokens, project, args.kit_shell))
+    with open(os.path.join(args.out, "components.json"), "w", encoding="utf-8") as fh:
+        json.dump(build_components(ex, f"{source} `{label}`"), fh, indent=2, ensure_ascii=False)
+        fh.write("\n")
     n_tokens = sum(1 for _ in flat(tokens))
-    print(f"design-system/: {n_tokens} tokens, {len(ex.components)} components, {len(set(ex.sources))} sources → {args.out}/tokens.json, DESIGN-SYSTEM.md, kit.html")
+    print(f"design-system/: {n_tokens} tokens, {len(ex.components)} components, {len(set(ex.sources))} sources → {args.out}/tokens.json, components.json, DESIGN-SYSTEM.md, kit.html")
     for n in ex.notes:
         print("note: " + n)
     return 0

@@ -151,3 +151,17 @@ content	@mui/(material|icons-material|x-[a-z-]+|lab)\b	mui-best-practices	ui-ux	
 content	@astryxdesign/(core|cli|theme-[a-z0-9-]+)\b	astryx-best-practices	ui-ux	low
 content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|lenis|react-three|keyframes|animation-timeline|starting-style|startViewTransition)\b	motion-best-practices	ui-ux	low
 content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.)	threejs-best-practices	craft-layer	low
+# design-kit rows (2026-09-22). Every one is a `**/dir/**` form — the only path-aware
+# glob route.sh implements — keyed on the directories design-kit itself creates, so a
+# row fires only where the plugin has already been used. The point is not the nudge:
+# without a row the router ledger reads zero for design-kit BY CONSTRUCTION, and
+# `turn-cost.sh --skills`, the retirement queue its README cites, cannot see it
+# (rationale/design-kit-experience-ideas-2026-09-22.md §0.4). LIMITATION: a deck or
+# board is usually written by the plugin's own scripts, not by an Edit/Write the
+# hook sees; the rows that fire on real edits are `**/__design-kit__/**` (a scratch
+# page the model fills) and `**/design-system/**` (a record the user re-reads).
+glob	**/design-system/**	system	design-kit	high
+glob	**/.design-kit/decks/**	slides	design-kit	high
+glob	**/.design-kit/boards/**	design	design-kit	high
+glob	**/__design-kit__/**	in-codebase	design-kit	high
+glob	**/.design-kit/artifacts/**	artifact	design-kit	high

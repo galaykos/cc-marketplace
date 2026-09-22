@@ -2,6 +2,22 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.0 — 2026-09-22
+
+The experience pass after the simulation (`rationale/design-kit-experience-ideas-2026-09-22.md` ideas 1–4, 6).
+
+### Added
+- `scripts/dk.sh`: one entry point for every surface (one permission rule); `.design-kit/workshop.json` state so commands default their next step; `.design-kit/usage.jsonl` per verb; `dk status`; `dk check` before every command.
+- Decision channel: the board posts picks, knobs and text edits to the server's loopback-only `/_decision` route; `dk decision --latest --consume` reads them back as the copy-as-prompt prose; `dk decision --record` appends to tracked `design-system/DECISIONS.md`; a UserPromptSubmit hook names an unread pick in one line (`CC_DESIGN_KIT_PICK=off`).
+- Gallery: flow strip and a per-page token badge (green current / amber moved) from the `design-kit-tokens` stamp; `_index.json` carries it.
+- `/design-kit:system`: writes `design-system/components.json` (typed props, defaults, required flags, variants, stories, honest `gaps`); `--check` compares a fresh extraction against the committed tokens and exits 1 with one `check:` line per moved token.
+- `/design-kit:in-codebase`: the scratch page is pre-filled from components.json — stylesheet, alias-aware imports, prop signatures, a variant strip with required props filled or commented out, a `gap:` comment per extractor blind spot.
+- Every deck, board and artifact is stamped `design-kit-tokens` (tokens sha12 + git revision).
+- Measured: skill-router rows for every surface and `scripts/dk-usage.sh` (created / revisited / picked / rendered / exported / shared / followed-by-commit per project); the README states the kill trigger as a number — 30 days after 0.2.0, ≥3 projects, followed-by-commit = 0 and shared = 0 → retire.
+
+### Changed
+- The server's contract: "no write route" became one loopback-only, header-gated, append-only route; export and publish stay scripts.
+
 ## 0.1.0 — 2026-09-22
 
 ### Added

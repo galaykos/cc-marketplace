@@ -36,17 +36,21 @@ pasting the artboard's HTML into the tree.
    depends on them.
 4. **Give each artboard one signature element** — the thing a reader remembers — and keep
    everything else quiet. Spend the `css` field on that element, not on decoration.
-5. **Build and serve**: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/board-build.py <spec>` then
-   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh`; give the user the board URL. The
-   builder refuses lorem, external assets and artboard counts outside 2–4 — fix the
-   spec, do not work around the gate.
-6. **Ask for the pick** with the URL in hand. Offer via AskUserQuestion: pick an artboard ·
-   revise one direction · add a direction · stop. Read the pasted prompt literally — the
-   knob values and text edits are requirements now, and a global knob applies to every
-   artboard while a scoped one applies to its artboard only.
-7. **Hand off**: with a pick, run `/design-kit:in-codebase` (or the project's UI plugin's
-   build command) naming the artboard, the knob values, and the text edits. Export PNG or
-   PDF (`scripts/board-export.sh`) only when someone outside the session needs to see it.
+5. **Build and serve**: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh board <spec>` builds,
+   starts or reuses the server and prints `url=`; give the user that URL. The builder
+   refuses lorem, external assets and artboard counts outside 2–4 — fix the spec, do
+   not work around the gate.
+6. **Ask for the pick** with the URL in hand. The board records every pick, knob move and
+   text edit to the local server as it happens (loopback only; a phone on the LAN is
+   not recorded). Offer via AskUserQuestion: read my pick (`dk.sh decision --board
+   <board> --consume`) · pick an artboard · revise one direction · add a direction ·
+   stop. The read-back and the pasted "Copy edits as prompt" text are the same prose;
+   read it literally — knob values and text edits are requirements now, a global knob
+   applies to every artboard, a scoped one to its artboard only.
+7. **Hand off**: with a pick, `dk.sh decision --record "…"` writes one line to
+   `design-system/DECISIONS.md`; then run `/design-kit:in-codebase` with no arguments
+   (it reads the same pick) or the project's UI plugin's build command. Export PNG or
+   PDF (`dk.sh export <board> --png|--pdf`) only when someone outside the session needs it.
 
 ## Rules the draft gets wrong from memory
 

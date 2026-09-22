@@ -77,6 +77,8 @@ python3 "$here/deck-build.py" outline.md --out themed.html 2>err.txt >/dev/null
 grep -q 'dk-accent:#1a4d8f' themed.html || { echo "FAIL: theme accent not applied"; grep dk- themed.html | head -3; exit 1; }
 grep -q 'dk-font:"Inter"' themed.html || { echo "FAIL: theme font not applied"; exit 1; }
 grep -q "DESIGN-SYSTEM.md" err.txt || { echo "FAIL: theme source not reported"; exit 1; }
+sha="$(python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest()[:12])" design-system/DESIGN-SYSTEM.md)"
+grep -q "<meta name=\"design-kit-tokens\" content=\"$sha " themed.html || { echo "FAIL: tokens stamp sha"; grep design-kit-tokens themed.html; exit 1; }
 
 python3 "$here/deck-build.py" outline.md >out.txt 2>/dev/null
 grep -qE '^deck-build: \.design-kit/decks/[0-9]{4}-[0-9]{2}-[0-9]{2}-quarterly-review\.html' out.txt || { echo "FAIL: default output path: $(cat out.txt)"; exit 1; }

@@ -191,7 +191,21 @@ html.isolate .dk-frame{border:0;border-radius:0;box-shadow:none;overflow:hidden}
     try { var s = JSON.parse(localStorage.getItem(KEY) || '{}'); return { knobs: s.knobs || {}, text: s.text || {}, picked: s.picked || null }; }
     catch (e) { return { knobs: {}, text: {}, picked: null }; }
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} post(); }
+  /* ---------- decision channel: tell the local server, silently when there is none ---------- */
+  var postTimer = null;
+  function post() {
+    if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+    clearTimeout(postTimer);
+    postTimer = setTimeout(function () {
+      var body = { board: location.pathname.split('/').pop(), picked: state.picked, knobs: state.knobs, text: state.text, prompt: prompt() };
+      try {
+        fetch('/_decision', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Design-Kit-Decision': '1' }, body: JSON.stringify(body) })
+          .then(function (r) { if (r.ok) say('Recorded — the session can read it'); })
+          .catch(function () {});
+      } catch (e) {}
+    }, 500);
+  }
   function say(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(say.t); say.t = setTimeout(function () { toast.classList.remove('show'); }, 1800); }
 
   /* ---------- isolate mode for export: #board=N ---------- */

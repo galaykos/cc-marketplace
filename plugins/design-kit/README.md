@@ -42,12 +42,35 @@ live reload over Server-Sent Events injected into each page, `/_index.json` for
 scripts. `--lan` binds every interface so a phone on your network can open it — that
 is the only way a page leaves the machine through the server, and every command says
 so before using it. Port 8123 belongs to the taskmaster/ui-ux mockup server and is
-never used here. No write route exists; export and publish are scripts.
+never used here. One write route exists, `/_decision` — loopback only, header-gated,
+append-only (see the next section); export and publish stay scripts.
 
 Standing: `scripts/__tests__/serve.test.sh` and `preview.test.sh` drive start, static
 serving, reload injection, the listing, path traversal and stop — **gate** (CI runs
 every `plugins/*/scripts/__tests__/*.test.sh`). Nothing proves a browser rendered a
 page — **recorded**.
+
+## One entry point: dk
+
+Every command runs its scripts through `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh <verb>` —
+one permission rule (`Bash(bash */design-kit/scripts/dk.sh*)`) instead of one per script.
+`dk` keeps `.design-kit/workshop.json` (brief, device, theme, the last system stamp, board,
+scratch, artifacts, deck) so a command with no argument offers the natural next step, and
+appends one line per verb to `.design-kit/usage.jsonl` — the record the Measured section
+reads. `dk status` prints the flow; the gallery shows it as a strip, and stamps each page
+green or amber ("tokens moved since build") against the current `design-system/tokens.json`.
+
+The board talks back. "Pick this", a knob move or a text edit posts to the server's one
+write route, `/_decision`: loopback only, header-gated, append-only into
+`.design-kit/decisions.jsonl`; a phone on the LAN is not recorded. `dk decision --latest
+--consume` prints exactly the prose the "Copy edits as prompt" button gives, and
+`/design-kit:in-codebase` with no arguments renders that pick. A UserPromptSubmit hook
+says one line when a pick is waiting and nothing otherwise (`CC_DESIGN_KIT_PICK=off`).
+Every pick a command acts on lands as one line in tracked `design-system/DECISIONS.md`.
+
+Standing: `dk.test.sh` drives every verb, `serve.test.sh` the route's accept and three
+reject paths and both badge states, `unread-pick.test.sh` the hook — **gate**. That the
+model reads the prose as requirements is **agent-graded**.
 
 ## Commands
 
@@ -121,6 +144,15 @@ a Laravel + separate Vite SPA repo resolves to Laravel unless `--stack` override
 format is undocumented by Anthropic, so detection is lenient and says which files it read; nothing
 here proves the page rendered — the browser does. Spacing/radius/shadow drift is read by eye.
 
+Since 0.2.0, `--create <slug> --brief "<line>"` reads `design-system/components.json` when
+`/design-kit:system` has written it: the scratch page opens with the app's stylesheet, every
+component imported (alias-aware), its prop signature as a comment, and a strip rendering each
+union variant with the brief as content. Required props get type-shaped values; one the strip
+cannot fake is commented out naming the prop; each extractor blind spot (a generic, an
+`extends`, an intersection) is a `gap:` comment naming the file to open. Without
+components.json the plain template is written, as before. That the imports resolve is the
+dev server's overlay, not a script — **agent-graded**; the filled shape is **gate**.
+
 ### `/design-kit:system` — the design system as a record, not a proposal
 
 `/design-kit:system [repo | https://url | brand-dir]` runs `scripts/system-extract.py`
@@ -146,6 +178,13 @@ its literal entries), does not render real components (`kit.html` cards are stat
 stand-ins that name the component and its props — `/design-kit:in-codebase` renders
 the real thing), and does not conform to the DTCG 2025.10 object forms for colour and
 dimension — values stay as the source wrote them; `references/tokens-format.md` says why.
+
+Since 0.2.0 it also writes `components.json` (props with types, defaults, required flags;
+variants; stories; honest `gaps`) and gains `--check`: against the committed `tokens.json` it
+prints one `check:` line per moved token and exits 1, writing nothing — every command runs it
+first through `dk check`. Every deck, board and artifact carries `<meta name="design-kit-tokens">`,
+the sha of the tokens file it read (or `none`) plus the git revision, which the gallery badge
+reads. Determinism, `--check` and the stamps are **gate** (harness-driven).
 
 ### `/design-kit:artifact` — one self-contained page, versioned, shared on a question
 
@@ -181,11 +220,31 @@ fetches assets from JavaScript keeps those references unreported), `srcset` rewr
 
 ## Measured
 
-A plugin with one real invocation across ten projects was retired from this
-marketplace. This one starts with zero. `bash scripts/turn-cost.sh --skills` from the
-marketplace root is the retirement queue: it names every design-kit skill with its
-router-ledger and transcript counts. Zero proves nobody used it here; non-zero proves it
-fired, not that it helped. The first version after this one should cite that table.
+A design plugin with one real invocation across ten projects was retired from this
+marketplace on 2026-09-14. This one starts from zero and says now what would retire it.
+
+**How it is measured.** `bash scripts/dk-usage.sh --projects <dir>...` (in this plugin)
+prints one row per surface per project — created, revisited, picked, rendered, exported,
+shared, followed-by-commit — from `.design-kit/usage.jsonl` (one line per `dk` verb),
+`.design-kit/decisions.jsonl` (one line per board pick), file mtimes, and `git log` over
+the seven days after each decision, restricted to the component paths the decision names.
+`followed-by-commit` reads `n/a`, never 0, when no decision names a path. The router side:
+skill-router carries a `**/dir/**` row per surface, so `turn-cost.sh --skills` at the
+marketplace root can count offers; without those rows it read zero by construction.
+
+**The kill trigger, as a number.** Thirty days after 0.2.0, with at least three projects
+that have a `.design-kit/` directory: `followed-by-commit = 0` across all of them AND
+`shared = 0` → retire the plugin on the same evidence that retired its predecessor. The
+script prints the verdict inputs; the decision is a human's. A non-zero count proves a
+surface fired, not that it helped — the only column that means "a design decision changed
+code" is `followed-by-commit`.
+
+**Blind spots, stated.** Subagent turns are invisible. A pick pasted from the clipboard is
+prose in a transcript, not a decision row, so it counts as nothing. A deck opened in a
+browser leaves no record. A project not passed to the script is not measured.
+
+Standing: the script and its harness (`scripts/__tests__/dk-usage.test.sh`) — **gate**;
+the thirty-day reading and the retirement call — **recorded**, a human reads the table.
 
 ## Disabling
 
