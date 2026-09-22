@@ -125,6 +125,23 @@ EOF_M
   #
   # The old harness only exercised `api_key = "..."` — lowercase, no tail — so a
   # green run never showed either hole.
+  # A credential that lives in a URL rather than in an assignment. `DATABASE_URL=
+  # postgres://admin:<pw>@db/app` in a .env, a tfvars connection string, a compose
+  # `POSTGRES_*` DSN, a Helm values DSN — none of them is a provider key and none of
+  # them has 24 characters after a `secret=`-shaped operator, so the whole file passed.
+  # The password run is bounded at 6+ so `redis://localhost:6379` (no password) and
+  # `https://user:@host` do not match; it excludes `/?#` because RFC 3986 userinfo
+  # cannot contain them, which is what keeps `https://host:8080/mail?to=a@b.com` out;
+  # and it refuses a leading `$`/`{` so the CORRECT shape, `postgres://u:${DB_PASS}@db`,
+  # is not denied on every retry (measured — the first draft denied it). NOT caught,
+  # stated: a real password that itself begins with `$` or `{`, one under 6 characters,
+  # and any credential in a URL whose scheme is not in the list.
+  detect "a credential embedded in a URL" '(postgres|postgresql|mysql|mongodb(\+srv)?|redis|rediss|amqp|amqps|https?)://[^:/@[:space:]]+:[^@[:space:]/?#${][^@[:space:]/?#]{5,}@'
+  # A Slack incoming-webhook URL is a bearer credential in URL clothing: anyone holding
+  # it posts as the app, forever, and it matches no `secrets.`-shaped assignment. NOT
+  # caught: any other vendor's webhook URL — each has its own shape and this is the one
+  # that came up.
+  detect "a Slack webhook URL" 'hooks\.slack\.com/services/T[^/]+/B[^/]+/.{16,}'
   detect_i "an assigned secret literal" '(api[_-]?key|secret|token|passwd|password)([_-][A-Za-z0-9]+)*["'"'"' ]*[:=]["'"'"' ]*[A-Za-z0-9/+=_-]{24,}'
   [ -n "$hit" ] || exit 0
 

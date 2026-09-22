@@ -4,6 +4,62 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.25.0 — 2026-09-22
+
+### Added
+- **`/ui-ux:audit` runs the project's own a11y and style tools before it judges.** New
+  step 2 dispatches toolchain-experts' `ui-expert` — which runs `detect-analyzers.sh`,
+  then stylelint/pa11y/axe/lighthouse-ci where the project configures them — and folds
+  its findings in tagged `(tool)`, carrying its switched-off-rule list into the
+  not-checkable-statically list. With that plugin absent, or no tool configured, the
+  report says the tool pass was not run rather than letting silence read as a clean
+  automated run. Until now `ui-expert` was dispatched by nothing: it exists to run
+  those four tools and defers TO this command, and nothing reciprocated.
+- **`a11y-audit` gains four older AA criteria** it was missing while covering all six
+  new 2.2 ones: `autocomplete` tokens (SC 1.3.5), status messages via `role="status"` /
+  `aria-live="polite"` (4.1.3), the dismissible/hoverable/persistent triad for content
+  shown on hover or focus (1.4.13), and `lang` on `<html>` and on foreign-language
+  passages (3.1.1, 3.1.2).
+- **An RTL section in `tailwind-best-practices`** — the physical→logical utility map
+  (`ml-`→`ms-`, `pl-`→`ps-`, `left-`→`start-`, `text-left`→`text-start`) and `dir` on
+  `<html>`, plus the matching bullet in `component-libraries` §4. Nothing in this
+  plugin mentioned a logical property before.
+- **`/ui-ux:audit` declares `argument-hint`.** The README advertised `[files-or-diff]`
+  and the slash menu showed nothing.
+
+### Changed
+- **`library-map.md`: Radix Themes, Park UI, Flowbite and a Svelte block.** A project
+  importing `@radix-ui/themes` was answered by the headless Primitives row ("none —
+  your CSS") when it has a full theme system (`<Theme accentColor grayColor radius
+  scaling>`, `--accent-1..12`); it now has its own styled-table row and the Primitives
+  row says which is which. Park UI (Ark UI + Panda, CLI copy-in) and Flowbite React
+  (`createTheme`/`ThemeProvider`, Tailwind class strings, not CSS variables) added. A
+  Svelte 5 block — Bits UI, shadcn-svelte, Melt UI's two packages, Skeleton — for an
+  extension the router already routes. Re-stamped 2026-09-22 for those rows only; every
+  other row still carries its 2026-09-02 reading and the stamp says so.
+- **`/ui-ux:theme` and `shadcn-theming` drop a `.gitignore` holding `*` into
+  `taskmaster-docs/mockups/`** when they create it. The preview page is scratch, and
+  the only artifact that dropped that file was taskmaster's grill — which craft-suite
+  and frontend-suite do not ship.
+- **`design-tokens` points at the static type contract** (fluid `clamp()`,
+  `text-wrap`, WOFF2 subsetting, metric-compatible fallbacks, the licence trap) at
+  `plugins/craft-layer/skills/kinetic-typography/references/type-system.md` — until now
+  reachable only through a skill whose description reads "use when animating type".
+- **`lane.tsv`'s `a11y-audit` trigger names the nine file kinds the router routes**
+  (tsx, jsx, vue, blade, svelte, astro, html, erb, twig), not four.
+
+### Removed
+- **Paid for every byte above in the same plugin.** ui-ux's on-invoke corpus had 216 B
+  of headroom under the 160 KB per-plugin cap, so the additions above are net-zero:
+  `component-libraries` lost its review checklist and its sibling-routing table (both
+  restated `references/library-map.md`, which now carries them), `library-map` lost the
+  Kibo UI and 21st.dev rows (their whole content was "a registry you treat as copy-in",
+  which the section heading states) and the Vue/Svelte `Model` column (the theme-channel
+  column already separates headless from styled), `a11y-audit` folded its worked example
+  into one Semantics bullet, and `design-tokens` merged three anti-patterns that restated
+  a rule from the same file. Corpus after: 159,937 B — 63 B of headroom, so the next
+  addition to this plugin needs its own cut.
+
 ## 0.24.4 — 2026-09-22
 
 ### Changed

@@ -4,6 +4,15 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.8.6 — 2026-09-22
+
+### Changed
+- Picker question headers name the group instead of its tier number: `Your stack`,
+  `Any project 1/2`, `Everything else` in place of `Tier 1`, `Core 1/2`, `The rest`
+  (`skills/plugin-scout/references/picker.md`). `commands/suggest.md` names the resolved
+  scope in the install option rather than "scope S", and calls question 4 the way into
+  everything else rather than "the tier-3 door".
+
 ## 0.8.5 — 2026-09-22
 
 ### Changed

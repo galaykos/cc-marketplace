@@ -92,7 +92,8 @@ as variable names:
 
 1. Never hand-write a theme page. Copy `assets/theme-shell.html` (relative to
    this skill's directory) to `taskmaster-docs/mockups/theme.html` and fill its
-   SLOTs. The starter already carries the component skeleton (every button
+   SLOTs. Creating that directory, drop a `.gitignore` holding `*` in if one is not
+   there — the page is scratch and nothing else ignores it. The starter already carries the component skeleton (every button
    variant, a card with form inputs, a destructive alert, badges, a swatch grid,
    a chart strip), the 🎨 favicon, the `Phone 375 / Tablet 768 / Full` viewport
    axis, and the auto-reload lane — so none of that can be forgotten and the
@@ -149,9 +150,7 @@ as variable names:
 - Dark mode via `filter: invert()` or by copying light values verbatim.
 - A `primary` whose `primary-foreground` fails 4.5:1 — the commonest broken theme.
 - Chart colors improvised per page instead of `chart-*` tokens.
-- Picking a theme from swatches alone — components change how colours read;
-  judge the preview, both modes.
+- Picking a theme from swatches alone — judge the preview, both modes.
 - Opening a new preview file/port per iteration — one URL, always live.
 - Publishing the preview as a remote Artifact instead of serving it locally —
-  a hosted page has no viewport control, no push-reload lane, and no ledger
-  file, and it ships the project's unreleased palette off the machine.
+  no viewport control, no push-reload, and the unreleased palette leaves the machine.

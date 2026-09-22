@@ -11,6 +11,7 @@
   "argumentHint": "[path-diff-or-design-doc]",
   "applyExtra": [],
   "applyExtraBlock": "",
+  "divergencePreamble": "",
   "workerChain": "database:database-engineer if installed → task-runner:task-executor if installed → inline",
   "lane": {
     "owns": "sample-foreign-review",

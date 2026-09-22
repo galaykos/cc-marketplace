@@ -11,3 +11,5 @@ api-design:docs-upkeep	skill	verify	own-docs-drift-scan	a change altered behavio
 api-design:remind	hook	build	third-party-api-doc-reminder	prompt head carries an integration noun (library|sdk|integrate|webhook|oauth|graphql|external/third-party/public/vendor api|api client/key/token/docs/reference) AND a making or calling verb	-
 # generated:end
 api-design:review	command	review	api-surface-review	routes, controllers, API resources or an OpenAPI/GraphQL/proto spec changed and the contract needs reviewing	code-review:review
+api-design:api-design	skill	review	api-surface-review	a REST route, controller, API resource or OpenAPI spec is being designed or reviewed against the contract rubric	api-design:review,api-design:graphql-grpc
+api-design:graphql-grpc	skill	review	api-surface-review	a GraphQL schema or resolver, or a .proto/gRPC service definition, is being designed or reviewed	api-design:review

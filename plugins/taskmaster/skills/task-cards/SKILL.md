@@ -126,7 +126,18 @@ taskmaster-docs/tasks/YYYY-MM-DD-<slug>/
 `00-INDEX.md` holds: the spec path, a table (card / title / depends-on / agent /
 parallel group / status), and the run note — each card is executed by pasting it into a
 fresh session or `claude "$(cat 01-*.md)"`. Update the status column as cards
-land; the index is the only file that mutates during execution. Boosted runs also stamp `Ultra:`/`Goal:` markers and the upgraded statement into the index — `references/index-markers.md`.
+land; the index is the only file that mutates during execution.
+
+**Upgraded statement — every run, boosted or not.** When the spec header carries the
+labeled `**Upgraded statement:**` pair, copy it VERBATIM into a `## Upgraded statement`
+section of `00-INDEX.md`: one Markdown blockquote, every line `> `-prefixed, ~8 lines at
+most. task-execution reads that section on every run, so an index that omits it hands the
+executor nothing where it looks — which is what happened while this instruction lived
+behind the boost gate. The `> ` prefix is load-bearing: marker parsing is exact-prefix,
+so an unprefixed statement line beginning `Ultra:` or `Goal:` would be read as a tier
+declaration. No labeled pair in the spec header (older or hand-written spec) → skip the
+section entirely; never derive a statement at card time. Boosted runs stamp `Ultra:`/`Goal:`
+markers beside it — `references/index-markers.md`.
 
 When cards are executed by subagents, the dispatch-prompt and return-format
 contract is the task-runner plugin's delegation-contracts skill.

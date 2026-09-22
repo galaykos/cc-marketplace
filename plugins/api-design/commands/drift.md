@@ -1,5 +1,6 @@
 ---
 description: "Scan the current change (or repo) for documentation drift — README claims, changelog gaps, stale examples, dead links — and list exact fixes."
+argument-hint: [path-range-or-repo]
 ---
 
 # Documentation Drift Check

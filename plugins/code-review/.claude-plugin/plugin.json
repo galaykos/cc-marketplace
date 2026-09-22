@@ -1,6 +1,6 @@
 {
   "name": "code-review",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "description": "Stack-agnostic code review: correctness bugs, code smells, convention drift on any diff or PR — severity-sorted one-line findings — plus comment discipline (default: no comment; write-time hooks warn, and deny the strictest patterns and any file over a 0.4:1 comment ceiling, at most twice per file per session; /code-review:comment-review). Defers structure/YAGNI to code-architecture, security depth to security, stack idioms to the per-framework review plugins. Includes /code-review:review, a code-reviewer agent, the code-smells, reuse-hygiene and comment-discipline skills; the fan-in loads every installed matching stack skill in one pass.",
   "author": {
     "name": "Ivan-WG",

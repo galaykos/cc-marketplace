@@ -55,7 +55,7 @@ Two entry shapes, one procedure:
 
 ## Procedure
 
-1. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/codebase-scaffold.sh --detect` → read
+1. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh scratch --detect` → read
    `stack=`, `dev_url=`, `components=`, `lang=`. `stack=unknown` → ask which of
    `vite-react | vite-vue | next | nuxt | laravel` and pass `--stack`. Two stacks in
    one repo resolve to Laravel; override when the design belongs to the SPA.

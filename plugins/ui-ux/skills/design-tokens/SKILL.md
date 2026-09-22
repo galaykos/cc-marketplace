@@ -37,6 +37,13 @@ state the display-to-body ratio the brief asked for and check the built page aga
 Marketing and editorial surfaces owe a display tier; app shells and dense data surfaces
 legitimately do not — say which this is.
 
+The static type CONTRACT the scale meets once real fonts arrive — fluid `clamp()`,
+`text-wrap: balance`/`pretty`, optical sizing, WOFF2 subsetting, `font-display`,
+metric-compatible fallbacks, the licence trap — is written once at
+`plugins/craft-layer/skills/kinetic-typography/references/type-system.md`. Read it
+there; if craft-layer is not installed, say the contract was not consulted rather
+than rebuilding it from memory.
+
 ### Radius
 A short radius scale (`0, 4, 8, 12, full`) applied consistently: inputs and cards share
 a radius, pills use `full`. Mixed radii on sibling elements read as unfinished.
@@ -77,23 +84,17 @@ A component using `blue-500` directly has broken the tier boundary; it should us
 
 ## Wiring tokens to the stack
 
-- **Tailwind** — define the scales as tokens (`@theme` in CSS on v4; `theme.extend`
-  on v3); use the utility that reads them
-  (`p-4`, `text-lg`, `rounded-md`), never arbitrary values (`p-[13px]`) except as a
-  deliberate one-off with a comment.
+- **Tailwind** — scales as tokens (`@theme` on v4, `theme.extend` on v3), consumed
+  through the utilities that read them (`p-4`, `text-lg`).
 - **CSS variables** — semantic tokens as custom properties (`--background`) so runtime
-  theming works; this is the shadcn convention.
+  theming works; the shadcn convention.
 
 ## Starting a token system
 
-1. **Pick the base unit and ratio** — 4px spacing base, a type ratio (1.2–1.25). Everything
-   derives from these two decisions.
-2. **Define the six families** — spacing, type, radius, elevation, motion, and semantic
-   color — as the smallest scale that covers real needs, not every value you might want.
-3. **Map semantic color onto the palette** — `background`/`foreground`/`primary`/… onto
-   the generated ramp (shadcn-theming), so components never touch a primitive.
-4. **Wire into the stack** — Tailwind `theme` extension + CSS variables; then use only the
-   scale utilities. The system exists the moment arbitrary values stop appearing.
+Pick the base unit and ratio (4px spacing, a 1.2–1.25 type ratio) — everything derives
+from those two. Define the six families above as the smallest scale that covers real
+needs, map semantic color onto the generated ramp (`shadcn-theming`), then wire it into
+the stack. The system exists the moment arbitrary values stop appearing.
 
 ## Defer rule
 
@@ -107,16 +108,13 @@ A component using `blue-500` directly has broken the tier boundary; it should us
 
 ## Anti-patterns
 
-- **Magic numbers** — `margin: 13px`, `font-size: 15px`; values off the scale that only
-  almost align.
-- **Arbitrary Tailwind values** — `p-[13px]`, `text-[15px]` sprinkled instead of scale steps.
+- **Off-scale values** — `margin: 13px`, `p-[13px]`, a font size picked per component.
 - **Primitive colors in components** — `blue-500` instead of `primary`; theming now means
   find-and-replace.
 - **Per-element shadows** — a new box-shadow per card instead of an elevation token.
 - **Motion without reduced-motion** — animations that ignore the user's preference.
 - **Two systems drifting** — a Figma scale and a code scale maintained separately until
   they disagree; the code tokens are the source of truth.
-- **A type size per component** — sizes chosen ad hoc instead of assigned a scale step.
 - **Overgrown scales** — twelve spacing steps and nine radii nobody can keep straight; a
   scale earns its size by being small enough to hold in your head.
 - **Scale membership mistaken for hierarchy** — every size is a legal step and the largest

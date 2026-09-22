@@ -809,14 +809,49 @@ harness_gap=$(pc_harness_payload .) || true
 
 # The SessionStart index must not claim a skill the documented manifest map never
 # sanctioned — that is how prime.sh came to assert tailwind on any React dependency.
+# ...and, since 2026-09-22, the reverse: the map must not declare a repository signal
+# the probe never emits. WARN TIER for that direction only — the two it found are in
+# skill-router's hook, another hand than the one adding the check, and the forward
+# direction stays a FAIL. Derivation and the matcher blind spot: pc_prime_coverage's header.
 prime_gap=$(pc_prime_coverage plugins) || true
-[ -n "$prime_gap" ] && lane_err "$prime_gap" "prime.sh names a skill coding-entry/references/skill-map.md does not — add the row to that map, or mark the line '# prime-ok: <skill>' in prime.sh"
+prime_fwd=$(printf '%s\n' "$prime_gap" | grep '^prime-unmapped ') || true
+prime_rev=$(printf '%s\n' "$prime_gap" | grep '^map-unprimed ') || true
+[ -n "$prime_fwd" ] && lane_err "$prime_fwd" "prime.sh names a skill coding-entry/references/skill-map.md does not — add the row to that map, or mark the line '# prime-ok: <skill>' in prime.sh"
+if [ -n "$prime_rev" ]; then
+  while IFS= read -r l; do
+    [ -n "$l" ] || continue
+    warn "$l — coding-entry/references/skill-map.md declares this row and prime.sh emits nothing for it; add the branch to prime.sh, drop the row, or mark '# prime-ok: <skill>'"
+  done <<EOF
+$prime_rev
+EOF
+fi
 
 # A hook runs inside the user's turn, so the plugin must say how long it may hold
 # it. Gates that a number EXISTS, not that it is right, and says nothing about
 # what a killed hook does — both residuals are stated in pc_hook_timeout's header.
 hook_to_gap=$(pc_hook_timeout plugins) || true
 [ -n "$hook_to_gap" ] && lane_err "$hook_to_gap" "every hook entry in hooks.json must declare a timeout (seconds) — size it to what the script does, not to a house default"
+
+# The slash-command menu shows `argument-hint` as the user types; without it a
+# command that reads $ARGUMENTS asks for input it never names. Derivation and
+# residuals: pc_command_arg_hint's header.
+arghint_gap=$(pc_command_arg_hint plugins) || true
+[ -n "$arghint_gap" ] && lane_err "$arghint_gap" "a command whose body reads \$ARGUMENTS must declare argument-hint: in its frontmatter — the host shows it in the slash-command menu"
+
+# The fail-open guarantee six hook headers assert in their own words, read back for
+# the first time. WARN TIER THIS RUN, not because the claim is soft but because the
+# 11 offenders it found on 2026-09-22 are spread across seven plugins and land in
+# other hands than the one adding the check; promoting it to err() is a follow-up
+# once those shebangs are fixed. Residuals are in pc_hook_shebang's header.
+shebang_gap=$(pc_hook_shebang plugins) || true
+if [ -n "$shebang_gap" ]; then
+  while IFS= read -r l; do
+    [ -n "$l" ] || continue
+    warn "$l — a registered hook must start #!/bin/bash so the fail-open guarantee holds under a stripped PATH where \`env bash\` exits 127; or carry '# env-shebang-ok: <reason>'"
+  done <<EOF
+$shebang_gap
+EOF
+fi
 
 # Corpus-level companion to the per-file SKILL budget: a ceiling authors write TO
 # stops being a ceiling, and no per-file check can see that. Ratchet, not

@@ -118,8 +118,11 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    produce it, never edit the evidence file; evidence older than the last worker/follow-up dispatch
    is re-walked, not re-dated. Every state the charter promised is checked against what
    shipped: a mismatch is a fix or a recorded amendment.
-6. **Finish.** With git-workflow installed, offer `/git-workflow:finish`; else offer merge
-   / keep / PR via AskUserQuestion. Hands-off or headless: keep the branch and record the
+6. **Finish.** With git-workflow installed, offer `/git-workflow:finish`; else offer three
+   destinations via AskUserQuestion, each spelled out: **merge locally** (fast-forward or
+   merge into the base branch here, no review), **push and open a PR** (push the branch and
+   open a pull request for review), **keep the branch open** (leave it as it is and come
+   back). Hands-off or headless: keep the branch and record the
    next command. Merging to the base branch is the user's act, never yours.
 7. **Next.** `program.sh next`. Hands-off: deliver it, and the one after, until `next`
    prints none (sim 4 stopped at m1 of 3 with nobody there to resume). Interactive: ask

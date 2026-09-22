@@ -60,15 +60,16 @@ Steps:
    command entry against 6,000 (200k) and 30,000 (1M) chars with the
    `skillListingBudgetFraction` lever — then the `Beyond this marketplace`
    block, then ONE AskUserQuestion, after Preflight's own ask if any: "Install N
-   plugins at scope S (Recommended)" / "Print the commands instead" / "Stop".
+   plugins into <project|local|user> (Recommended)" — name the resolved scope, not
+   the letter — / "Print the commands instead" / "Stop".
    `--full --yes` skips the ask. Headless without `--yes`, or no `claude` CLI:
    print the commands and stop. Then install per leaf with the same `--scope`
    rules and the same exit-0 success rule below.
    Without `--full`: run the picker per the skill's `references/picker.md` contract: by
    default ONE AskUserQuestion call — questions 1-3 hold tier-1 picks with
-   evidence then the core rows, 4 options each, and question 4 is the tier-3
-   door (browse the remainder / print its install commands / just these /
-   stop). With `--all`, page every eligible row as an explicit option
+   evidence then the core rows, 4 options each, and question 4 is the way into
+   everything else (browse the rest of the marketplace / print its install
+   commands / just these / stop). With `--all`, page every eligible row as an explicit option
    instead, 15 per call with one "Stop — skip remaining" slot. Installed
    rows (including leaves an installed suite provides) are never options;
    deprioritize only on the named overlap pairs, never on keyword overlap.

@@ -15,6 +15,9 @@ description: Use before writing any code that calls an external API, SDK, or thi
 
 2. **Locate current official docs for that exact version.** In order of preference:
    - WebFetch or WebSearch the vendor's official docs site, if available in this environment.
+   - An MCP docs server, when one is connected to this session — `context7` resolves a
+     package name to version-pinned upstream docs without a general web tool, and is the
+     only source on this list a subagent with no WebFetch can still reach.
    - A local docs directory in the repo (`docs/`, `api-docs/`, a vendored OpenAPI/Swagger
      spec, generated SDK reference).
    - A vendored README or CHANGELOG shipped inside `node_modules/<pkg>`,
@@ -34,7 +37,8 @@ description: Use before writing any code that calls an external API, SDK, or thi
    added, deprecated, or changed independently of each other.
 
 4. **If no docs are reachable, STOP and ask the user for a URL or file path.** Never proceed
-   on memory alone. It is better to pause and ask than to ship integration code built on a
+   on memory alone. When there is no user to ask — you are a dispatched subagent — step 6
+   is the branch, not this one. It is better to pause and ask than to ship integration code built on a
    guess. Do not scaffold "best effort" code in the meantime — see "How to ask" below for
    exactly what to request and what to avoid doing while waiting.
 
@@ -48,6 +52,17 @@ description: Use before writing any code that calls an external API, SDK, or thi
      deprecation warning or have been removed entirely).
    - SDK method renames across major versions (the same operation may have a different method
      name, module path, or calling convention in v10 vs. v14).
+
+6. **No fetch tool AND no user to ask: return the unverified call surface as a blocking
+   finding to whoever dispatched you, instead of writing the call.** Step 4 assumes a
+   human is there to answer; a subagent has no one, and the default when both doors are
+   shut is memory — the one thing this skill exists to prevent. Report the package and
+   version from step 1, each operation you could not verify, and which sources you
+   actually tried (no web tool, no MCP docs server, nothing vendored under
+   `node_modules/<pkg>` or `vendor/<pkg>`). The dispatcher usually has WebFetch or a
+   user and can close it in one turn; a guessed call shape buried in a worker's diff
+   cannot be told from a verified one. **Standing: recorded** — no script checks that a
+   worker took this branch rather than guessing.
 
 ## Signals you are coding from stale memory
 

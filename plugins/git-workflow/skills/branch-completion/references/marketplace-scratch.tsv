@@ -12,7 +12,7 @@
 .design-kit/	design-kit	scratch	design-kit/scripts/dk.sh:35 — decks, boards, artifacts, previews, exports, workshop.json, usage.jsonl, decisions.jsonl, .cache/
 __design-kit__/	design-kit	cleaned	design-kit/scripts/codebase-scaffold.sh:31 — scratch entry on the project's dev server; codebase-cleanup.sh removes it after the pick
 .claude/design-kit/	design-kit	scratch	design-kit/hooks/unread-pick.sh — once-per-session markers
-taskmaster-docs/	taskmaster	scratch	taskmaster/skills/grill/SKILL.md:58 — specs, cards, mockups (and craft-layer's craft/ run records, craft-layer/commands/craft.md:60); the skill drops a .gitignore holding * on creation
+taskmaster-docs/	taskmaster, ui-ux	scratch	taskmaster/skills/grill/SKILL.md:58 — specs, cards, mockups (and craft-layer's craft/ run records, craft-layer/commands/craft.md:60); the skill drops a .gitignore holding * on creation, but ui-ux/commands/theme.md:36 writes mockups/theme.html into the same tree and drops none, so a bundle without taskmaster leaves it untracked by nothing
 .craft-layer/	craft-layer	scratch	craft-layer/commands/craft.md:41 — run-log.md and shots/ (template/craft-gates/gates.spec.ts:182); created with a .gitignore holding *
 .playwright-mcp/	overseer	scratch	overseer/skills/overseer/references/acceptance.md:95 — the Playwright MCP's capture dir under the session cwd
 .claude/task-runner/	task-runner	scratch	task-runner/hooks/drift.sh:56 — active-run.json, rv/, bg/, gate-pass.json; the first hook to see it drops a .gitignore holding *

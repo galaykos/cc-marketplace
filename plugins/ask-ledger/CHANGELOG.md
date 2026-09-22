@@ -2,6 +2,28 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.2.0 — 2026-09-22
+
+### Added
+- `hooks/ledger.sh` drops every candidate the session project's tracked tree already
+  carries before it reaches the ledger (`git grep -qliF`, falling back to `rg -qiF` when
+  git grep errors out; no git work tree → no filter, the previous behaviour). "Fix the
+  N+1 in OrderController when Laravel eager-loads Invoice and Payment relations under
+  Inertia" ledgered six entries and the Stop gate then demanded an accounting line for
+  every class the ask had asked it to REPAIR; against a Laravel fixture repo the same
+  prompt now ledgers one (`N+1`), while "add a Stripe checkout" in a repo with no Stripe
+  still ledgers Stripe. Bounded to the ledger's own 12-name cap — 12 tree-wide greps on
+  this marketplace measured 0.32 s against a 5 s hook timeout. Three residuals, stated in
+  the hook header and the README: no work tree means no filter, `git grep` reads tracked
+  files only, and a name the ask ADDS to something the repo already mentions is dropped
+  with the rest. Three harness cases pin it.
+
+### Changed
+- README: the `claude plugin eval` invocation now shows the `--allow-tools Write Edit`
+  grant as mandatory and states what the ungranted command actually does — the suite
+  loads and then declines the case (`not granted … Write, Edit`, CLI 2.1.278), so a run
+  that looks clean has measured nothing.
+
 ## 0.1.1 — 2026-09-22
 
 ### Fixed

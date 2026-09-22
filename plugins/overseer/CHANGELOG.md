@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1 — 2026-09-22
+
+### Changed
+- The Finish step's destination offer spells each option out instead of showing bare
+  `merge / PR / keep`: what merging does, what opening a PR does, what keeping the
+  branch means. Three sites carried the same unglossed triple — `skills/overseer/SKILL.md`,
+  `references/capability-map.md`, `scripts/capability-scan.sh` — and a user reading a
+  picker has no access to any of them.
+
 ## 0.5.0 — 2026-09-22
 
 ### Added

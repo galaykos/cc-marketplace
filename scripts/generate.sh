@@ -478,6 +478,25 @@ render_bundle_table() {
       jq -e 'has("dependencies")' "$lp" >/dev/null 2>&1 || nonsuite=$((nonsuite+1))
     done
     printf '\nEvery row is a curated subset. The marketplace ships all %s leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and it also raises `skillListingBudgetFraction` in the scope it installs to, so the listing is sent whole — its README carries the arithmetic and the one measurement (2026-09-15, n=50) that found the overflow changes nothing detectable.\n' "$nonsuite"
+    # The fraction each OVER bundle's own README names, READ OUT of those READMEs
+    # rather than typed here. Two of the four were missing from the hand-written list
+    # (craft-suite and frontend-suite, found 2026-09-22) — a reader who installed
+    # either was told to use "the value that bundle's README names" and then shown a
+    # parenthesis that did not name it. Deriving it means the sentence cannot go stale
+    # when a bundle crosses the floor.
+    frac_list=""
+    for bp in "$ROOT"/plugins/*/README.md; do
+      bj="$(dirname "$bp")/.claude-plugin/plugin.json"
+      [ -f "$bj" ] || continue
+      jq -e 'has("dependencies")' "$bj" >/dev/null 2>&1 || continue
+      fv=$(grep -oE '"skillListingBudgetFraction"[[:space:]]*:[[:space:]]*[0-9.]+' "$bp" \
+           | head -1 | grep -oE '[0-9.]+$')
+      [ -n "$fv" ] || continue
+      frac_list="$frac_list, $fv for $(jq -r '.name' "$bj")"
+    done
+    frac_list="${frac_list#, }"
+    [ -n "$frac_list" ] || frac_list="no bundle currently declares one"
+
     # The budget these numbers are measured AGAINST, stated once, with its source.
     # Claude Code budgets the skill listing at 1%% of the model context window and,
     # on overflow, drops descriptions starting with the skills you invoke least —
@@ -486,7 +505,23 @@ render_bundle_table() {
     # history. Our figures also read LOW: `claude plugin details` charges a
     # per-component floor our bytes/4 estimate does not, measured at 1.54x across
     # the 61 leaves on 2026-08-20 (scripts/context-budget-official.json).
-    printf '\nThe budget these are measured against is the host'"'"'s skill listing, and it is a FORMULA,\nnot a constant — read out of the shipped CLI (2.1.251), not from documentation:\n\n    budget_chars = contextWindowTokens x bytesPerToken x skillListingBudgetFraction\n\n`skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.\nIf you install a bundle flagged over the 200k floor, set it to the value that bundle'"'"'s README\nnames (0.02 for core-suite, 0.05 for workflow-suite) in the settings.json of the PROJECT where you use it — the fraction is a\nceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the\ndescriptions being evicted.\n`bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including\nopus-5. So the budget spans 6.7x by where you run: **6,000 chars** on opus-5 at 200k,\n**30,000** at 1M, 8,000 / 40,000 on a 4-byte model. A second cap truncates any single\ndescription past **1,536** chars (`skillListingMaxDescChars`); this repo lints at 500, so it\nnever binds. Over budget the CLI reduces entries to name-only and buys descriptions back in\npriority order — text past the budget is never sent, so it costs reachability, never tokens.\nThe cost is per ENTRY, `name + 4 + description`, so artifact COUNT is charged directly: that\nis the mechanical reason fewer artifacts beats shorter descriptions.\nUnit note: the token columns above are estimated at 4 bytes/token; on the 3-bytes-per-token\nmodels this paragraph calls current, add ~33%%. The host also charges a per-component floor\nthis estimate does not — a 2026-08-20 snapshot measured ~1.5x on a now-changed tree; treat\nthat as an order-of-magnitude correction, never as a coefficient\n(`scripts/context-budget-official.json` header has the derivation and the staleness).\n'
+    printf '\nThe budget these are measured against is the host'"'"'s skill listing, and it is a FORMULA,\nnot a constant — read out of the shipped CLI (2.1.251), not from documentation:\n\n    budget_chars = contextWindowTokens x bytesPerToken x skillListingBudgetFraction\n\n`skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.\nIf you install a bundle flagged over the 200k floor, set it to the value that bundle'"'"'s README\nnames (%s) in the settings.json of the PROJECT where you use it — the fraction is a\nceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the\ndescriptions being evicted.\n`bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including\nopus-5. So the budget spans 6.7x by where you run: **6,000 chars** on opus-5 at 200k,\n**30,000** at 1M, 8,000 / 40,000 on a 4-byte model. A second cap truncates any single\ndescription past **1,536** chars (`skillListingMaxDescChars`); this repo lints at 500, so it\nnever binds. Over budget the CLI reduces entries to name-only and buys descriptions back in\npriority order — text past the budget is never sent, so it costs reachability, never tokens.\nThe cost is per ENTRY, `name + 4 + description`, so artifact COUNT is charged directly: that\nis the mechanical reason fewer artifacts beats shorter descriptions.\nUnit note: the token columns above are estimated at 4 bytes/token; on the 3-bytes-per-token\nmodels this paragraph calls current, add ~33%%. The host also charges a per-component floor\nthis estimate does not — a 2026-08-20 snapshot measured ~1.5x on a now-changed tree; treat\nthat as an order-of-magnitude correction, never as a coefficient\n(`scripts/context-budget-official.json` header has the derivation and the staleness).\n' "$frac_list"
+    # THE HOST'S OWN REMEDIES, ordered as the host orders them (`/skills` first) and
+    # placed as the LAST word on the subject so it is what a reader leaves with: they
+    # are the only lever that reduces the CHARGE rather than buying more ceiling.
+    # Added 2026-09-22 — `/skills` and `/skill-doctor` appeared in zero shipped docs
+    # while every bundle README taught the fraction, and the 2026-09-15 probe measured
+    # the byte framing as the wrong first move.
+    printf '\n%s\n' 'Before raising the fraction, use what the host already ships, in the order it names them:
+**`/skills`** lists every skill the session can see with its source, and lets you turn off the
+ones this project does not need — the cost is charged per ENTRY (`name + 4 + description`), so
+fewer entries is the only lever that reduces it rather than buying more ceiling.
+**`/skill-doctor`** then reports what is reachable and what is being evicted, which is how you
+find out whether anything you rely on sits in the tail. Raise the fraction third.
+And do not trim descriptions to fit: measured 2026-09-15, n=50 per arm
+(`rationale/2026-09-15-listing-eviction-probe.md`), stripping a description changed firing by
+nothing (47/50 both arms), while OVERLAP between skills contesting one territory dropped firing
+from 100% to ~75%. What costs a marketplace is two skills that sound alike, not long text.'
     printf '\n%s\n' '<!-- end:bundle-table -->'
   } > "$block"
 

@@ -110,20 +110,15 @@ jobs:
         run: bash scripts/smoke/source-of-truth-tests.sh
       - name: scout-name gate smoke tests (a dead plugin name fails the build)
         run: bash scripts/smoke/scout-names-tests.sh
-      # An eval suite that loads ZERO cases is indistinguishable from a passing one
-      # when nothing executes it — two suites sat dead for weeks that way. This LOADS
-      # every case (case.yaml, or prompt.md + typed graders) and never runs a model,
-      # so it costs nothing and needs no credential; running the evals themselves is
-      # a separate, paid decision.
-      - name: eval suites load (a suite with zero cases fails the build)
-        run: bash scripts/eval-cases.sh
       - name: eval-case gate smoke tests
         run: bash scripts/smoke/eval-case-tests.sh
       # The host's own validator, pinned to the CLI this repo was measured against —
       # scripts/official-validate.sh is the local twin and carries the derivation.
-      # LAST among the fail-capable steps on purpose: the install is a ~217 MB native
-      # download, and every sub-second repo-owned harness above should report before
-      # a registry blip can. Supply-chain residual, stated: the wrapper and its
+      # LAST among the fail-capable steps that do not need the binary, on purpose: the
+      # install is a ~217 MB native download, and every sub-second repo-owned harness
+      # above should report before a registry blip can. The one step that follows it,
+      # the eval-suite load gate, is there because it drives the binary this installs.
+      # Supply-chain residual, stated: the wrapper and its
       # platform binary are exact-pinned, but their tarball hashes are registry-TOFU —
       # committed nowhere in this repo. Egress: auto-updater and non-essential traffic
       # are disabled inside the script so the verdict cannot depend on network.
@@ -131,6 +126,16 @@ jobs:
         run: |
           npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.273
           bash scripts/official-validate.sh
+      # An eval suite that loads ZERO cases is indistinguishable from a passing one
+      # when nothing executes it — two suites sat dead for weeks that way. This LOADS
+      # every case (case.yaml, or prompt.md + typed graders) and never runs a model:
+      # the schema half is free, and the free-load half drives the real runner with
+      # `--max-cost-usd 0`, which aborts before the first run launches. It sits AFTER
+      # the validator step because that step is where `claude` reaches PATH — run
+      # earlier, the free-load half would skip with a WARN and the gate would be half
+      # a gate in the only place it is enforced.
+      - name: eval suites load (a suite with zero cases fails the build)
+        run: bash scripts/eval-cases.sh
       - name: doc staleness (warn-only)
         continue-on-error: true
         run: bash scripts/check-doc-staleness.sh

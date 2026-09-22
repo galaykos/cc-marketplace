@@ -12,3 +12,4 @@ devops:compose-init	skill	build	compose-generation-procedure	dispatched by /devo
 devops:devops-engineer	agent	build	pipeline-and-infra-implementation	work targets CI config, a Dockerfile, a Kubernetes manifest, deploy config, or secrets wiring	resilience:observability-engineer
 # generated:end
 devops:workflow-guard	hook	any	ci-workflow-write-block	a Write/Edit under .github/workflows/ weakens the pipeline in one of the two shapes the guard recognises	devops:devops-reviewer
+devops:devops-practices	skill	build	cicd-and-deploy-idioms	an edit to CI config, a Kubernetes manifest, or deploy/secret config	-

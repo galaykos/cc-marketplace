@@ -3,15 +3,16 @@
 # hold even under a stripped/broken PATH, where `env bash` itself exits 127.
 #
 # UserPromptSubmit tool-fit check. This hook does NOT decide which command fits —
-# it hands the model the catalog of installed commands and the rules for judging.
-# A previous version matched prompt patterns to commands in a table; a table only
-# ever routes the phrasings its author thought of, and every new plugin needed a
-# new row. The judgment belongs to the model, which reads meaning; the hook's job
-# is to make sure the model has the list and the discipline to use it.
+# it hands the model the rules for judging and points at the command list the HOST
+# already put in this session. A previous version matched prompt patterns to
+# commands in a table; a table only ever routes the phrasings its author thought
+# of, and every new plugin needed a new row. The judgment belongs to the model,
+# which reads meaning; the hook's job is the discipline around that judgment.
 #
-# The catalog is built at runtime from the SIBLING plugins' commands/*.md
-# frontmatter, so it reflects what is actually installed — nothing generated,
-# nothing to drift, and no row naming a command the user does not have.
+# It used to rebuild the list too — one truncated frontmatter line per installed
+# command — which cost ~5.2 kB per session to restate what the model could already
+# read, and grew with every plugin. See the block above the heredoc for what that
+# removal gave up (the repo-evidence filter went with it).
 #
 # Fires once per session, on the first work-shaped prompt: a chat-only session
 # pays nothing, and once injected the catalog stays in context for later prompts.
@@ -146,133 +147,22 @@
   fi
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-route-catalog-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
 
-  # ---- catalog: every installed plugin's commands, one line each ---------------
-  # Only the sibling plugins directory is read, so an uninstalled plugin cannot
-  # appear. The description is the command's own frontmatter, already length-linted
-  # by scripts/validate.sh; the first clause is the part that says what it is FOR.
+  # ---- the protocol, not a catalog --------------------------------------------
+  # This hook used to rebuild every installed plugin's commands as one truncated line
+  # each: 61 rows, 5,179 of the 6,892 chars it emitted, a second copy of a listing the
+  # host had already sent this session and one row longer per command installed. What
+  # the model does NOT have from that listing is the discipline below, which is the
+  # whole reason this hook exists; the rows were the part it could already read.
   #
-  # `pr_plugin_roots` yields one content root per plugin under either layout — see
-  # hooks/plugins-dir.sh. The previous `"$plugins_dir"/*/commands/*.md` glob was
-  # one level short on a versioned cache and matched nothing, so this hook printed
-  # no catalog at all on a real install.
-  PLUGINS_DIR=""; PLUGIN_LAYOUT="flat"
-  . "$(dirname "$0")/plugins-dir.sh" 2>/dev/null
-  command -v pr_resolve_plugins_dir >/dev/null 2>&1 || exit 0
-  pr_resolve_plugins_dir
-  [ -n "$PLUGINS_DIR" ] || exit 0
-
-  # ---- stack relevance (spec 4.6) ---------------------------------------------
-  # The catalog used to list every installed plugin's commands, filtered only by
-  # installed-ness, so a Laravel repo was offered /web-dev:review (then /nextjs:review). A command whose
-  # stack is demonstrably absent is noise at the exact surface where the model
-  # picks a tool, and it is the largest line item in this hook's output.
-  #
-  # PREDICATE: drop a plugin's commands only when it OWNS rules.tsv rows AND none
-  # of them can match anything in this repo. Two corrections the design needed:
-  #   * NOT the stack_marker column. It is populated on 15 of 67 data rows and is
-  #     absent on exactly the Next.js, Nuxt, Vite and Three.js rows — the stacks the
-  #     filter is FOR (now owned by web-dev and craft-layer). A stack_marker predicate would silently do nothing for them.
-  #   * NOT glob rows alone. Several plugins ship ONLY content rows (resilience,
-  #     security, craft-layer's threejs row; payments and llm-app did too before their
-  #     2026-09-14 removal), so a
-  #     glob-only predicate matches nothing for them in ANY repo and would delete
-  #     /security:review from every repository on earth. A plugin with no rows, or
-  #     with no glob rows, is stack-NEUTRAL and always kept.
-  #
-  # Cost: bounded by the once-per-session marker claimed above — this walk runs at
-  # most once per session, never per prompt. Fail open: any error keeps the row.
-  RULES="$(dirname "$0")/../rules.tsv"
-  # SCOPE. This filter may drop a stack review command and nothing else. rules.tsv globs
-  # were authored to route a SKILL to files that already exist, so reusing them as a
-  # relevance test for EVERY command was a category error: it hid the commands whose whole
-  # job is to create the thing the glob looks for. Measured on a Laravel repo, the earlier
-  # form hid the compose init from any repo without a Dockerfile, craft-layer craft from every
-  # greenfield repo, and the a11y audit from anything without a .tsx at depth four, since
-  # its plugin shipped one glob row and it was .tsx alone. The original motivation was narrow: a
-  # Laravel repo should not be offered the Next.js review, so the filter is narrow now.
-  #
-  # PRUNED AND MEMOISED. Unpruned walks measured 2.86s at 4515 entries and 20.26s at 35014,
-  # linear, and a real node_modules is often past 100k. That is dead air on the first
-  # work-shaped prompt of a session. Worse, the once-per-session marker is claimed about 65
-  # lines above this point, so a hook killed on timeout leaves the marker behind and the
-  # catalog never prints again for that session. Pruning the vendor trees bounds the walk
-  # and the per-plugin memo stops the same answer being recomputed for every row.
-  SR_SEEN=""
-  sr_find() {
-    find "$cwd_f" \( -name node_modules -o -name vendor -o -name .git -o -name dist \) -prune \
-      -o -maxdepth 4 "$@" -print -quit 2>/dev/null
-  }
-  sr_repo_has() {
-    [ -r "$RULES" ] || return 0
-    [ -n "$cwd_f" ] || return 0
-    case " $SR_SEEN " in *" keep:$1 "*) return 0 ;; *" drop:$1 "*) return 1 ;; esac
-    local pat kind owner hit=1 globs=0 mid
-    while IFS=$'\t' read -r kind pat _skill owner _conf _mark; do
-      case "$kind" in '#'*|'') continue ;; esac
-      [ "$owner" = "$1" ] || continue
-      case "$kind" in
-          # Only a FILE-shaped glob can justify HIDING a review; a directory-shaped one cannot.
-          # A directory row marks something the repo has already ADOPTED. i18n ships only
-          # lang and locales rows, testing only tests, database only migrations, so treating a
-          # miss there as absence-of-stack hid the review from exactly the repo that needed it:
-          # the i18n review finds hardcoded strings, and a repo with no lang directory is the
-          # one that has the most of them. A file row such as a blade template or a next config
-          # marks the stack's own sources, which is the question this filter actually asks. A
-          # directory row still counts as a HIT when it matches, since that is evidence the
-          # stack is present; it simply never votes for absence.
-        glob)
-          case "$pat" in
-            '**/'*'/**')
-              mid=${pat#**/}; mid=${mid%/**}
-              [ -n "$(sr_find -type d -name "$mid")" ] && hit=0
-              ;;
-            *)
-              globs=1
-              [ -n "$(sr_find -name "$pat")" ] && hit=0
-              ;;
-          esac
-          ;;
-      esac
-      [ "$hit" = 0 ] && break
-    done < "$RULES"
-    [ "$globs" = 0 ] && hit=0
-    if [ "$hit" = 0 ]; then SR_SEEN="$SR_SEEN keep:$1"; else SR_SEEN="$SR_SEEN drop:$1"; fi
-    return $hit
-  }
-
-  catalog=$(
-    pr_plugin_roots | while IFS=$'\t' read -r plug proot; do
-      for cmd in "$proot"/commands/*.md; do
-        [ -f "$cmd" ] || continue
-        name=$(basename "$cmd" .md)
-        # A command that creates or audits is most needed where its artifact does not
-        # exist yet, so only a stack review is ever filtered on repo evidence.
-        [ "$name" = review ] && ! sr_repo_has "$plug" && continue
-        desc=$(awk '
-        /^---[[:space:]]*$/ { f++; next }
-        f==1 && /^description:/ {
-          sub(/^description:[[:space:]]*/, "")
-          gsub(/^["'"'"']|["'"'"']$/, "")
-          split($0, a, / — |\. |: /)
-          d = a[1]
-          # Trim to a word boundary: a description cut mid-word reads as corruption
-          # and costs the same tokens as one that stops cleanly.
-          if (length(d) > 85) { d = substr(d, 1, 85); sub(/[[:space:]][^[:space:]]*$/, "", d); d = d "…" }
-          print d
-          exit
-        }
-        f>=2 { exit }' "$cmd" 2>/dev/null)
-        [ -n "$desc" ] || continue
-        printf -- '- /%s:%s — %s\n' "$plug" "$name" "$desc"
-      done
-    done
-  )
-  [ -n "$catalog" ] || exit 0
-
+  # LIMITATION (honest scope), and it is a real trade. The host listing is not filtered
+  # by repo evidence, so a Laravel repo now sees the Next.js review in it where the
+  # built catalog hid that row — the stack-relevance walk went with the rows it filtered.
+  # Step 1 below ("most requests fit none of them") is the only thing left holding that
+  # down, and it is the model's judgment, not a gate. Nothing here can verify the host
+  # actually sent a listing either; if a session has none, step 1 reads as vacuous and
+  # the hook is silent rather than wrong.
   cat <<CATALOG
-[skill-router] Tool-fit check (once this session). Commands installed here, and what each is for:
-
-$catalog
+[skill-router] Tool-fit check (once this session). Judge against the slash commands already listed in this session — do not rebuild or ask for that list.
 
 Apply this to work requests for the rest of the session:
 

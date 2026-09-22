@@ -77,6 +77,13 @@ detect it and follow its conventions.
    the manifests define). Report the exact command and its output. If
    nothing runnable exists, say so explicitly instead of claiming
    success.
+5. Verify it in a browser when the change is user-facing AND a route
+   exists to see it: a browser tool in this session, or a
+   `playwright.config.*` in the repo. Load the affected route and
+   report what you SAW — rendered state, console errors, the request
+   that failed. With neither route available, end the report with one
+   line saying the change is unverified in a browser. A green build is
+   not that evidence: it cannot see a blank page.
 
 ## Domain checklist
 

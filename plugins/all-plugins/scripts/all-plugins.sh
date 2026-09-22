@@ -13,7 +13,10 @@
 # (default 0.01 — 6,000 chars at 200k on a 3-byte model) and past it drops entries to
 # name-only. Every leaf here costs several times that, so `install` computes the
 # listing cost the way scripts/lib/plugin-checks.sh's pc_listing_entry_cost does
-# (name + 4 + min(desc,1536) per skill/command), and raises skillListingBudgetFraction
+# (name + 4 + min(description, 1536) per skill/command — and `description` is the
+# JOINED pair the CLI lists, `description + " - " + when_to_use` when the frontmatter
+# carries both, capped once after the join, not twice; see the walk near the bottom of
+# this file), and raises skillListingBudgetFraction
 # in the SCOPE's settings file to the smallest 0.01 step that covers it at the 200k
 # floor — a cap, not a fill, so a 1M window pays nothing extra. `uninstall` removes
 # the key again, but only when it still holds the value this script would set; any

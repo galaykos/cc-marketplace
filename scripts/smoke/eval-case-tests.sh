@@ -231,5 +231,46 @@ PY
 expect_fail "a schema_version whose major does not parseInt fails" "is not a valid version string"
 rm -rf "$T/plugins/beta"
 
+# --- scaffold_script: declared and missing ------------------------------------------
+# `--scaffold` is off by default, so a scaffold_script naming a file that is not there
+# is only discovered on a paid run of a suite somebody trusted enough to pass the flag.
+good_case "$T/plugins/beta/evals/c"
+printf 'context:\n  scaffold_script: scaffold.sh\n' >> "$T/plugins/beta/evals/c/case.yaml"
+expect_fail "a scaffold_script with no scaffold.sh fails" "is not a file in this case directory"
+
+printf '#!/bin/bash\n' > "$T/plugins/beta/evals/c/scaffold.sh"
+out=$(run_gate); st=$?
+[ "$st" -eq 0 ] && ok "a scaffold_script whose file exists passes" || bad "a scaffold_script whose file exists passes" "$out"
+
+# ...and the suite's README must say the flag exists, or the gate says so (WARN, not FAIL)
+case "$out" in
+  *"never names \`--scaffold\`"*) ok "a scaffolded suite with no --scaffold in its README warns" ;;
+  *) bad "a scaffolded suite with no --scaffold in its README warns" "$out" ;;
+esac
+mkdir -p "$T/plugins/beta" && printf 'Run it with --scaffold.\n' > "$T/plugins/beta/README.md"
+out=$(run_gate); st=$?
+case "$st:$out" in
+  0:*"never names \`--scaffold\`"*) bad "a README naming --scaffold silences the warning" "$out" ;;
+  0:*) ok "a README naming --scaffold silences the warning" ;;
+  *) bad "a README naming --scaffold silences the warning" "$out" ;;
+esac
+rm -rf "$T/plugins/beta"
+
+# --- runs below 3 with an llm grader (WARN) -------------------------------------------
+# CLAUDE.md's rule: three runs cannot separate a regression from a flake. A case that
+# asks for fewer still LOADS, so this warns and never fails.
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; t=open(p).read().replace("runs: 3","runs: 1")
+open(p,'w').write(t)
+PY
+out=$(run_gate); st=$?
+case "$st:$out" in
+  0:*"cannot separate a regression from a flake"*) ok "runs: 1 with an llm grader warns and still passes" ;;
+  *) bad "runs: 1 with an llm grader warns and still passes" "$out" ;;
+esac
+rm -rf "$T/plugins/beta"
+
 printf '\n%s assertion(s) passed\n' "$pass"
 exit "$rc"

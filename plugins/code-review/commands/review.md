@@ -47,7 +47,8 @@ changed with no covering test → testing's testing-best-practices; `.github/wor
 container files; routes, controllers, API resources, OpenAPI/GraphQL/proto files →
 api-design; Three.js / react-three-fiber imports → craft-layer's threejs-best-practices;
 a configured analyzer for the changed language (phpstan/psalm/phpcs, tsc/eslint/biome,
-vue-tsc) → toolchain-experts' matching expert agent, which RUNS it rather than reciting
+vue-tsc, and for styles and markup stylelint/pa11y/axe/lighthouse-ci, whose reviewer is
+`ui-expert`) → toolchain-experts' matching expert agent, which RUNS it rather than reciting
 it, plus its analyzer-triage skill to say whether CI enforces the result).
 Load each skill whose plugin IS installed and apply it inside the
 single pass below — never tell the user to run the per-stack review commands

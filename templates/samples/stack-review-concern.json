@@ -11,6 +11,7 @@
   "argumentHint": "[path-diff-or-design-doc]",
   "applyExtra": [],
   "applyExtraBlock": "",
+  "divergencePreamble": "This plugin's rubric diverges from the house default: report cache-stampede risk as high even when the TTL is short.",
   "workerChain": "observability-engineer → task-runner:task-executor if installed → inline",
   "lane": {
     "owns": "sample-concern-review",

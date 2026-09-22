@@ -39,6 +39,26 @@
 #     the other was not. The runner is the authority on which types exist; both branches
 #     now ask the same question — is there a non-empty `type`.
 #   - a non-numeric or non-positive `runs` / `max_turns`
+#   - a `context.scaffold_script` naming a file that is not in the case directory. The
+#     runner reports nothing for it without `--scaffold`, so the broken path only shows
+#     up on a paid run of a suite somebody trusted enough to pass the flag to.
+#   - (WARN) a suite with a scaffolded case whose plugin README never names `--scaffold`.
+#     `--scaffold` is OFF by default; on 2026-09-22 five of fourteen cases declared a
+#     scaffold and only `overseer`'s README said so, so candor's three ran against
+#     whatever happened to be in the operator's unstaged workspace and scored it.
+#   - (WARN) `runs` below 3 on a case carrying an `llm` grader. CLAUDE.md's own rule:
+#     three runs cannot separate a regression from a flake — fewer cannot even try.
+#   - (FREE LOAD) per suite, the documented zero-cost invocation
+#     `claude plugin eval ./plugins/<p> --max-cost-usd 0 --no-publish --trust-plugin`,
+#     failing on the runner's `not granted` and `cannot pass with the granted tools`
+#     lines. Those are operator-grant facts, not file facts: a case that legitimately
+#     declares Write/Edit/Bash in `execution.allowed_tools` draws them under the bare
+#     command no matter what it contains. So the FAIL is discharged by DOCUMENTING the
+#     grant — the plugin's own README naming `--allow-tools` — which is the defect the
+#     2026-09-22 panel actually found (candor's grant lived in CHANGELOG:26 and nowhere
+#     an installer reads). Measured that day: `ran-a-command` in
+#     candor/limitation-checked-before-stated cannot pass under the bare command, and
+#     ask-ledger/named-things-accounted reports Write, Edit not granted.
 #
 # WHAT IT DOES NOT CATCH, stated because this repo tiers its claims:
 #   - whether a case MEASURES anything. A case whose control arm passes is a regression
@@ -71,10 +91,21 @@
 #     sit at any depth. Until 2026-09-17 this walked `evals/*/` only and FAILED the
 #     PARENT of a nested case as "not a case" — a gate rejecting a layout the runner
 #     loads, and a regression against the recursive `find` it replaced.
+#   - whether a scaffold_script that EXISTS builds the workspace the prompt assumes, or
+#     whether the README's documented grant is the RIGHT grant. Both are agent-graded:
+#     this checks that the file is there and that the flag is named, nothing more.
+#   - anything at all when `claude` is not on PATH — the free load check then prints a
+#     WARN and is skipped, exactly as `official-validate.sh` does. A gate that skips is
+#     not a gate, so the skip is printed by name rather than swallowed.
+#   - a suite under a directory with no `.claude-plugin/plugin.json`. The runner resolves
+#     a plugin from the target path; with no manifest there is nothing to resolve, so the
+#     free load check is skipped there (which is also what keeps the synthetic fixtures in
+#     scripts/smoke/eval-case-tests.sh from invoking the binary).
 set -u
 cd "$(dirname "$0")/.." || exit 1
 rc=0
 fail() { printf 'FAIL: %s\n' "$1" >&2; rc=1; }
+warn() { printf 'WARN: %s\n' "$1" >&2; }
 
 python3 -c 'import yaml' 2>/dev/null || {
   echo "FAIL: python3 cannot import yaml — this gate cannot run, and a gate that skips is not a gate" >&2
@@ -136,6 +167,40 @@ for n in subdirs(root):
 PYCD
 }
 
+free_load_check() { # free_load_check <plugin>
+  # The documented zero-cost invocation. `--max-cost-usd 0` aborts before the first run
+  # launches (exit 2, "partial"), so no model is called and no credential is needed — but
+  # the runner has already resolved the plugin, read every case and printed the grant
+  # diagnostics by then. That is the whole of what this reads.
+  local plugin="$1" out tmp granted docs
+  [ -f "plugins/$plugin/.claude-plugin/plugin.json" ] || return 0
+  command -v claude >/dev/null 2>&1 || { warn "$plugin: free load check SKIPPED — claude is not on PATH"; return 0; }
+  tmp=$(mktemp -d) || return 0
+  # --output-dir AND --report: the first redirects aggregate-result.json, the second the
+  # HTML report, and only both together keep the runner out of `plugins/<p>/evals/results/`
+  # (gitignored, so this litters rather than dirties — measured 2026-09-22). HOME is
+  # throwaway so the check cannot depend on, or write to, the operator's config.
+  out=$(HOME="$tmp" DISABLE_AUTOUPDATER=1 CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
+        claude plugin eval "./plugins/$plugin" --max-cost-usd 0 --no-publish --trust-plugin \
+        --output-dir "$tmp/results" --report "$tmp/report.html" </dev/null 2>&1)
+  rm -rf "$tmp"
+  case "$out" in
+    *"Plugin under test:"*) ;;
+    *) warn "$plugin: free load check SKIPPED — the runner never reported a plugin under test: ${out%%$'\n'*}"; return 0 ;;
+  esac
+  granted=$(printf '%s\n' "$out" | grep -E 'not granted|cannot pass with the granted tools')
+  [ -n "$granted" ] || return 0
+  # Discharged by documenting the grant: the lines are a property of the bare command,
+  # not of the files, so the fix an author can make is to name `--allow-tools` where an
+  # installer reads it. A CHANGELOG entry is not that place (candor, 2026-09-22).
+  docs=$(grep -l -- '--allow-tools' "plugins/$plugin/README.md" 2>/dev/null)
+  if [ -n "$docs" ]; then return 0; fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    fail "$plugin: ${line# }  — and plugins/$plugin/README.md never names \`--allow-tools\`, so the invocation it documents cannot run this suite"
+  done <<< "$granted"
+}
+
 suites=0
 cases=0
 for dir in plugins/*/evals; do
@@ -143,6 +208,7 @@ for dir in plugins/*/evals; do
   suites=$((suites + 1))
   plugin=$(basename "$(dirname "$dir")")
   ncases=0
+  scaffolded=0
 
   while IFS=$'\t' read -r kind cdir; do
     [ -n "${cdir:-}" ] || continue
@@ -168,6 +234,7 @@ for dir in plugins/*/evals; do
     fi
 
     [ "$has_yaml" -eq 1 ] || continue
+    grep -qE '^[[:space:]]*scaffold_script:' "$cdir/case.yaml" && scaffolded=1
     case_file="$cdir/case.yaml"
     msg=$(python3 - "$case_file" "$has_prompt" <<'PY'
 import sys, yaml, os, re
@@ -238,6 +305,23 @@ r = d.get("runs")
 if r is not None and (not isinstance(r, int) or isinstance(r, bool) or r < 1):
     errs.append(f"`runs: {r!r}` is not a positive integer")
 
+# A scaffold the runner cannot find is only discovered on a paid --scaffold run.
+ctx = d.get("context")
+if isinstance(ctx, dict):
+    ss = str(ctx.get("scaffold_script") or "").strip()
+    if ss and not os.path.isfile(os.path.join(os.path.dirname(path), ss)):
+        errs.append(f"`context.scaffold_script: {ss}` is not a file in this case directory")
+
+# WARNs go to stderr and never set the exit status: neither stops the suite loading,
+# which is this gate's subject. They are here because both were counted by hand on
+# 2026-09-22 and nothing re-counts them.
+has_llm = isinstance(g, list) and any(
+    isinstance(one, dict) and one.get("type") == "llm" for one in g)
+if has_llm and isinstance(r, int) and not isinstance(r, bool) and r < 3:
+    print(f"WARN: {path}: `runs: {r}` with an `llm` grader — CLAUDE.md's rule is that "
+          "three runs cannot separate a regression from a flake; fewer cannot try",
+          file=sys.stderr)
+
 if errs:
     print("; ".join(errs)); sys.exit(1)
 PY
@@ -247,6 +331,12 @@ PY
   [ "$ncases" -gt 0 ] \
     || fail "$plugin: $dir contains no case.yaml or prompt.md — the suite loads ZERO cases and every run of it is a no-op."
   cases=$((cases + ncases))
+
+  if [ "$scaffolded" -eq 1 ] && ! grep -q -- '--scaffold' "plugins/$plugin/README.md" 2>/dev/null; then
+    warn "$plugin: a case declares scaffold_script and plugins/$plugin/README.md never names \`--scaffold\` — the flag is OFF by default, so anyone following the README runs the case against their own unstaged workspace"
+  fi
+
+  free_load_check "$plugin"
 done
 
 if [ "$rc" -eq 0 ]; then

@@ -1,17 +1,24 @@
 /* craft-layer — the trigger suite.
  * ---------------------------------------------------------------------------
- * Copy ALL THREE of this file, `contrast.mjs` and `divergence.mjs` into a
- * crafted project — the two .mjs files wherever the run block below invokes
- * them, e.g. `scripts/` — then:
+ * Run ALL THREE of this file, `contrast.mjs` and `divergence.mjs` FROM THE
+ * PLUGIN, never a copy — `commands/audit.md` step 4 owns the invocation, and a
+ * vendored gate is a snapshot with no freshness signal. From the crafted
+ * project's root, with the two dev dependencies installed THERE:
  *
  *     npm i -D @playwright/test @axe-core/playwright && npx playwright install chromium
  *     CRAFT_EXPECT_TITLE='<a string only THIS build serves>' \
- *       BASE_URL=http://localhost:5173 npx playwright test
- *     node scripts/contrast.mjs
- *     node scripts/divergence.mjs
+ *       BASE_URL=http://localhost:5173 NODE_PATH="$PWD/node_modules" \
+ *       npx playwright test --config "$CLAUDE_PLUGIN_ROOT/template/craft-gates/playwright.config.ts"
+ *     node "$CLAUDE_PLUGIN_ROOT/template/craft-gates/contrast.mjs"
+ *     node "$CLAUDE_PLUGIN_ROOT/template/craft-gates/divergence.mjs"
  *
- * Copying only some of the three is the quiet failure: an uncopied gate never
- * fails, it just never runs, and silence reads as a pass.
+ * Neither flag is decoration. Playwright has no `--spec` flag, so without
+ * `--config` the run scans the PROJECT's testDir and exits 0 having found no
+ * craft gate; without `NODE_PATH` this file's own imports resolve from the
+ * plugin directory, which has no `node_modules`, and the run dies before the
+ * first test.
+ * Running only some of the three is the same quiet failure by another route: a
+ * gate never run never fails, it just never runs, and silence reads as a pass.
  *
  * WHY THIS EXISTS — read before deleting a check.
  *
@@ -47,8 +54,9 @@
  * assertions, riding triggers this file already fires, that measure the
  * clipping and collision an image shows and a query cannot. They are the half
  * of the capture trigger's defect class a machine CAN judge; the rest still
- * needs an opened image. `fixture-sight.html` and `fixture-sight-clean.html`
- * are the pair that proves they fail for the right reason.
+ * needs an opened image. `fixture-sight.html` and `fixture-sight-clean.html`,
+ * in this plugin's `scripts/__tests__/fixtures/`, are the pair that proves they
+ * fail for the right reason.
  */
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
@@ -280,9 +288,9 @@ test.describe('capture: the shipped design, at the widths people read it', () =>
    rendered position contradicts where the markup implies it sits. Saying which
    half is which is worth more than a check that pretends to cover both.
 
-   `fixture-sight.html` carries three defects — one of each machine class plus
-   the agent-graded rail — and `fixture-sight-clean.html` is the same page
-   without them. Point BASE_URL at each in turn: the pair is what proves these
+   `scripts/__tests__/fixtures/fixture-sight.html` carries three defects — one of
+   each machine class plus the agent-graded rail — and `fixture-sight-clean.html`
+   beside it is the same page without them. Point BASE_URL at each in turn: the pair is what proves these
    assertions fail for the right reason, and a check that has never failed on
    purpose is not known to work. */
 for (const [label, width, height] of BREAKPOINTS) {

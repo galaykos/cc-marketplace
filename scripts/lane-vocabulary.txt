@@ -54,18 +54,23 @@ task-list-parallelization-plan
 # --- build ---
 accessibility-remediation
 astryx-idioms
+cicd-and-deploy-idioms
 comment-placement-rule
 component-library-floor
 compose-generation-procedure
+concurrency-hazard-discipline
+cross-boundary-failure-design
 decided-fix-list-application
 defensive-security-remediation
 dependency-management-discipline
 dockerfile-and-compose-idioms
+error-propagation-discipline
 in-code-instrumentation
 inertia-idioms
 laravel-idioms
 local-dev-environment-generation
 mariadb-idioms
+message-delivery-design
 mui-idioms
 nextjs-idioms
 performance-optimization
@@ -133,6 +138,7 @@ workflow-suite-uninstall
 # --- any ---
 ad-hoc-breadth-question
 ai-attribution-in-git-history
+ask-named-things-ledger
 ci-workflow-write-block
 claim-reversal-discipline
 comment-noise-write-block
@@ -141,10 +147,10 @@ config-file-write-consent
 destructive-command-classification
 destructive-command-execution
 destructive-schema-consent
-first-work-prompt-discipline-preamble
 dispatch-hedge-guard
-ask-named-things-ledger
 final-message-ask-accounting
+first-work-prompt-discipline-preamble
+invisible-character-report
 irreversible-command-or-repeated-attempt
 mockup-preview-consent
 non-destructive-command-equivalents
@@ -155,6 +161,7 @@ program-board
 program-level-delivery-ownership
 program-resume
 read-ledger-for-evidence
+registered-run-announcement
 reply-shape-contract
 reply-verbosity-level
 reply-verbosity-mode

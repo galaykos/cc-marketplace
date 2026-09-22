@@ -82,6 +82,50 @@ jobs:
     steps:
       - run: make test'
 
+# --- composite actions. Until 0.7.0 the identical injection was denied in
+#     workflows/ci.yml and allowed in .github/actions/*/action.yml, which runs with the
+#     calling workflow's token. Rules 2 and 3 apply there; 1, 4, 5 and 6 read fields a
+#     composite does not have, so a clean composite must stay clean.
+comp_case() { # label want_rc workflow_yaml action_yaml
+  local label="$1" want="$2" got
+  rm -rf "$FX/gh"; mkdir -p "$FX/gh/workflows" "$FX/gh/actions/setup"
+  printf '%s\n' "$3" > "$FX/gh/workflows/w.yml"
+  printf '%s\n' "$4" > "$FX/gh/actions/setup/action.yml"
+  bash "$AUDIT" --dir "$FX/gh/workflows" --quiet; got=$?
+  if [ "$got" = "$want" ]; then echo "PASS[audit]: $label (rc=$got)"
+  else echo "FAIL[audit]: $label — want rc=$want, got $got"; rc=1; fi
+}
+CLEANWF='on:
+  push:
+permissions:
+  contents: read
+jobs:
+  b:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup'
+
+comp_case "PR title in a composite run: is critical" 2 "$CLEANWF" 'name: setup
+runs:
+  using: composite
+  steps:
+    - run: echo "${{ github.event.pull_request.title }}"
+      shell: bash'
+
+comp_case "a clean composite stays clean" 0 "$CLEANWF" 'name: setup
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4'
+
+comp_case "base.sha in a composite is SAFE" 0 "$CLEANWF" 'name: setup
+runs:
+  using: composite
+  steps:
+    - run: bash check.sh "${{ github.event.pull_request.base.sha }}"
+      shell: bash'
+rm -rf "$FX/gh"
+
 rm -rf "$FX/wf"; bash "$AUDIT" --dir "$FX/nope" --quiet; [ $? -eq 3 ] \
   && echo "PASS[audit]: absent directory exits 3" \
   || { echo "FAIL[audit]: absent directory did not exit 3"; rc=1; }
@@ -139,8 +183,38 @@ hook_case "unpinned action is warn-only, never denied" allow \
     steps:
       - uses: some-org/some-action@v3'
 
+hook_case "PR title in a composite action is denied" deny \
+  ".github/actions/setup/action.yml" 'runs:
+  using: composite
+  steps:
+    - run: echo "${{ github.event.pull_request.title }}"
+      shell: bash'
+
+hook_case "a clean composite action is allowed" allow \
+  ".github/actions/setup/action.yaml" 'runs:
+  using: composite
+  steps:
+    - run: make test
+      shell: bash'
+
 hook_case "a non-workflow file is out of scope" allow \
   "src/app.ts" 'const x = "${{ github.event.pull_request.title }}"'
+
+# 0.7.0: the deny reason used to name plugins/devops/scripts/workflow-audit.sh, a path
+# that exists only in this marketplace's own tree. It must resolve the plugin root the
+# host hands the hook.
+out=$(jq -nc --arg f ".github/workflows/ci.yml" --arg c 'jobs:
+  b:
+    steps:
+      - run: echo "${{ github.event.pull_request.body }}"' \
+      '{tool_name:"Write",tool_input:{file_path:$f,content:$c}}' \
+      | CLAUDE_PLUGIN_ROOT=/opt/plugins/devops bash "$HOOK" 2>/dev/null)
+if printf '%s' "$out" | grep -q '/opt/plugins/devops/scripts/workflow-audit.sh' \
+   && ! printf '%s' "$out" | grep -q 'Run bash plugins/devops/'; then
+  echo "PASS[hook]: deny reason names the installed audit path"
+else
+  echo "FAIL[hook]: deny reason does not resolve CLAUDE_PLUGIN_ROOT: $out"; rc=1
+fi
 
 if printf 'not json' | bash "$HOOK" >/dev/null 2>&1; then
   echo "PASS[hook]: garbage input exits 0 (fail-open)"

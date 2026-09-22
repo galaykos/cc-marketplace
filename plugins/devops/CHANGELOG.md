@@ -2,6 +2,35 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.7.0 — 2026-09-22
+
+### Fixed
+- **Composite actions were a hole straight through both halves of the guard.** An
+  identical `run: echo "${{ github.event.pull_request.title }}"` was denied in
+  `.github/workflows/ci.yml` and allowed in `.github/actions/<name>/action.yml`, which a
+  workflow calls with its own token — so the same command execution shipped through the
+  side door. `hooks/workflow-guard.sh` now matches the composite path, and
+  `scripts/workflow-audit.sh` reads `.github/actions/*/action.y{a,}ml` as a second root.
+  Only rules 2 (expression injection) and 3 (unpinned third-party `uses:`) apply there;
+  rules 1, 4, 5 and 6 read triggers, top-level `permissions:` and `runs-on`, fields a
+  composite does not have, so applying them would warn on every composite in existence.
+  Still not read: an `action.yml` outside `.github/actions/`, and a composite that shells
+  out to a script file.
+- **The deny reason named a path that does not exist on an installer's disk** —
+  `plugins/devops/scripts/workflow-audit.sh` is this marketplace's own layout. It now
+  resolves `${CLAUDE_PLUGIN_ROOT}` (falling back to the hook's own directory), so the
+  command in the message is one the reader can paste.
+
+### Changed
+- Fixtures for every row above, both directions, in
+  `scripts/__tests__/workflow-audit.test.sh`.
+- `README.md`: the composite scope, and a **Running headless / in CI** note — this
+  plugin's guard only ever denies, so it is headless-safe; the `ask` tiers belong to
+  `command-guard` and `database`. Standing: recorded.
+
+### Changed
+- `lane.tsv` now declares the `devops-practices` skill (build phase, `cicd-and-deploy-idioms`); it was the plugin's headline skill and the only one with no lane row.
+
 ## 0.6.10 — 2026-09-22
 
 ### Fixed

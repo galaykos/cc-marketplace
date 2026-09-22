@@ -12,6 +12,7 @@
   "argumentHint": "[files-or-diff]",
   "applyExtra": [],
   "applyExtraBlock": "",
+  "divergencePreamble": "",
   "workerChain": "backend-engineer → task-runner:task-executor if installed → inline",
   "lane": {
     "owns": "sample-lang-review",

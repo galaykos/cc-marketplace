@@ -5,21 +5,19 @@ description: Use when building or reviewing UI on any React or Vue component lib
 
 # Component libraries — the library-agnostic floor
 
-The UI layer is not one library or one framework. A project may run shadcn/ui, a
-registry, MUI, Astryx, vanilla Tailwind, Mantine, Chakra, Ant Design, a headless
-primitive set, or on Vue: Reka UI, shadcn-vue, PrimeVue, Vuetify, Element Plus,
-Naive UI — and the marketplace does not get to pick. Sibling skills in this plugin
-carry the idioms of the libraries they name; this skill carries what is true
-across all of them, and says where to go for the rest.
+The UI layer is not one library or one framework, and the marketplace does not get
+to pick. Sibling skills carry the idioms of the libraries they name; this skill
+carries what is true across all of them, and `references/library-map.md` says where
+to go for the rest.
 
 ## 1. Detect, then build in what the project has
 
 - Read `package.json` and the lockfile before touching markup. The library is a
   dependency name, a registry file (`components.json`), or a `components/ui/`
   tree of owned code — see `references/library-map.md` for the signals.
-- Build in the library the project has. Adding a second one because a
-  component "is easier" there is the top defect this skill exists to stop: two
-  token vocabularies, two focus-ring styles, two a11y models on one surface.
+- Build in the library the project has. Adding a second because a component "is
+  easier" there is the top defect this skill exists to stop: two token
+  vocabularies, two focus-ring styles, two a11y models on one surface.
 - No library and no design system? Say so and build with Tailwind or plain CSS
   under the project's tokens — do not install one unasked. A decided
   `Stack:`/`Locks:` line in the dispatch outranks this rule.
@@ -30,19 +28,17 @@ Two ownership models, and the rules differ:
 
 | Model | Examples | You may | You must not |
 |---|---|---|---|
-| **Copy-in / registry** | shadcn/ui, ReUI, Aceternity, Untitled UI, Kibo, 21st.dev blocks | edit the component file, restyle to the project's tokens | re-fetch over local edits; reinstall to "fix" a diff |
-| **npm dependency** | MUI, Mantine, Chakra, Ant Design, HeroUI, Astryx, the headless sets | configure the theme, override at the usage site, wrap | patch `node_modules`, fork a component to change one colour, reach into private classnames |
+| **Copy-in / registry** | shadcn/ui, ReUI, Aceternity, Park UI, registry blocks | edit the component file, restyle to the project's tokens | re-fetch over local edits; reinstall to "fix" a diff |
+| **npm dependency** | MUI, Mantine, Chakra, Ant Design, Astryx, the headless sets | configure the theme, override at the usage site, wrap | patch `node_modules`, fork a component to change one colour, reach into private classnames |
 
 The registry model pins nothing in `package.json`: the version is whatever was
-fetched. Record the source and date in the file header or the project's docs,
-because nothing else does.
+fetched. Record source and date in the file header — nothing else does.
 
 ## 3. Tokens through the library's own mechanism
 
-- Every library has one theme channel: CSS variables (shadcn, daisyUI, Base UI
-  consumers), `createTheme` (MUI, Mantine, Chakra's system), ConfigProvider
-  tokens (Ant Design), `Theme` (Astryx), Tailwind `@theme` (HeroUI, Untitled UI).
-  Put the project's `design-tokens` values THERE — once — and consume them.
+- Every library has exactly one theme channel and `references/library-map.md`
+  names it per library. Put the project's `design-tokens` values THERE — once —
+  and consume them.
 - A hardcoded hex, pixel radius or font-size on a component is a token fork.
   Fix at the theme, not at the instance.
 - Dark mode is the library's switch, not a second stylesheet. Verify both
@@ -60,6 +56,9 @@ because nothing else does.
 - Never re-implement a primitive the library ships (menu, dialog, combobox,
   tooltip, tabs). Hand-rolled twins are where the WCAG failures live;
   `a11y-audit` (this plugin) is the checklist.
+- RTL is the same failure one layer out: the library's components usually mirror,
+  YOUR wrapper classes do not. Use logical utilities (`ms-`/`ps-`/`start-`,
+  `tailwind-best-practices`) and set `dir` on `<html>`.
 
 ## 5. Composition over configuration
 
@@ -75,9 +74,8 @@ because nothing else does.
 
 ## 6. Docs, registry and MCP — not memory
 
-- Resolve the installed major and read that major's docs. Headless libraries
-  in particular renamed APIs between 0.x and 1.0 (Base UI's `render` prop, Ark's
-  `.Root` split, React Aria Components vs the hooks package, Radix Vue → Reka UI).
+- Resolve the installed major and read that major's docs. Headless libraries in
+  particular renamed APIs between 0.x and 1.0 — the map's Notes say which.
 - When a registry MCP is connected (shadcn's `npx shadcn@latest mcp init`, ReUI's
   hosted `mcp.reui.io`) or a library ships its own MCP/JSON manifest, query it before
   writing a component. Unavailable → say so and cite the docs URL from
@@ -85,23 +83,10 @@ because nothing else does.
 
 ## Routing: which sibling owns what
 
-| Library | Go to |
-|---|---|
-| shadcn/ui (Radix or Base UI build), its registries | `shadcn-best-practices`, `shadcn-theming` |
-| ReUI, Aceternity UI | `reui-best-practices`, `aceternity-best-practices` |
-| Astryx | `astryx-best-practices` |
-| Material UI, MUI X | `mui-best-practices` |
-| Tailwind utility work, daisyUI classes | `tailwind-best-practices` |
-| Vue libraries, and everything else in `references/library-map.md` | this skill + the docs URL there |
-
-## Review checklist
-
-- Library identified from the manifest; nothing built beside it.
-- Ownership model named (copy-in vs dependency) and the edits match it.
-- Tokens flow through the library's theme channel; no instance-level hex or px.
-- Both colour schemes rendered on touched screens.
-- No hand-rolled primitive the library ships; polymorphic escape used correctly.
-- Installed major resolved; docs/registry/MCP consulted for names and props.
+`references/library-map.md` names the sibling skill in the Notes column of every
+row that has one (shadcn, ReUI, Aceternity, Astryx, MUI, daisyUI→Tailwind).
+Everything else — every Vue and Svelte library, every unlisted one — is this skill
+plus the docs URL there.
 
 ## Defer rule
 

@@ -52,8 +52,16 @@ page — **recorded**.
 
 ## One entry point: dk
 
-Every command runs its scripts through `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh <verb>` —
-one permission rule (`Bash(bash */design-kit/scripts/dk.sh*)`) instead of one per script.
+Every command's MAIN path runs through `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh <verb>`,
+so `Bash(bash */design-kit/scripts/dk.sh*)` is the one rule that covers ordinary use.
+**It is not the only rule you will be asked for.** Four steps deliberately call a script
+directly, because `dk` has no verb that does only what they need: the deck build alone
+(`deck-build.py`, so a long-slide exit 2 can be fixed before anything is served), the
+artifact bundle alone (`artifact-bundle.py`), the handoff-drift table
+(`handoff-drift.py`), and the system extraction's dry run (`system-extract.py --dry-run`,
+which `dk system` only ever runs as the first half of a full extraction). Those draw a
+second prompt, or a second rule — `Bash(python3 */design-kit/scripts/*)` — and saying
+"one permission rule" full stop was wrong.
 `dk` keeps `.design-kit/workshop.json` (brief, device, theme, the last system stamp, board,
 scratch, artifacts, deck) so a command with no argument offers the natural next step, and
 appends one line per verb to `.design-kit/usage.jsonl` — the record the Measured section
@@ -179,6 +187,21 @@ stand-ins that name the component and its props — `/design-kit:in-codebase` re
 the real thing), and does not conform to the DTCG 2025.10 object forms for colour and
 dimension — values stay as the source wrote them; `references/tokens-format.md` says why.
 
+**Where these tokens can go.** The target is the DTCG **Format Module 2025.10** draft
+(designtokens.org, Draft Community Group Report of 2026-09-08, which carries its own
+"do not attempt to implement this version" warning). The structure matches it: one object
+per token with `$type` and `$value`, plain nested groups, `{group.token}` aliases,
+`$extensions` for tool data. It diverges in exactly two places, both written down in
+`skills/system/references/tokens-format.md`: a `color` `$value` stays the string the
+source wrote — a hex, an `oklch()` call, a shadcn HSL triplet — rather than the draft's
+`{colorSpace, components, hex}` object, and a `dimension` stays `0.5rem` or `24px` rather
+than `{value, unit}`. Both because the form the source used is evidence, and because
+`%`/`em` have no conforming object form to convert into. What that costs a consumer:
+**Tokens Studio** (the Figma plugin that reads and writes DTCG) and **Style Dictionary**
+(which compiles DTCG into CSS, iOS and Android output) both read this structure, and both
+need those two value forms converted on their side. This plugin ships neither converter —
+standing: **recorded**, nothing here has been run against either tool.
+
 Since 0.2.0 it also writes `components.json` (props with types, defaults, required flags;
 variants; stories; honest `gaps`) and gains `--check`: against the committed `tokens.json` it
 prints one `check:` line per moved token and exits 1, writing nothing — every command runs it
@@ -267,3 +290,7 @@ delete at any time; `design-system/` is yours and is not.
 Reading comments on a shared page, a version picker in the browser, Figma import or
 export, image generation, a component registry, and any hosted publishing beyond a git
 pages branch you push yourself.
+
+No Figma bridge does not mean no route out: `design-system/tokens.json` is DTCG-shaped,
+and the paragraph under `/design-kit:system` names the two value forms a Tokens Studio or
+Style Dictionary consumer has to convert to use it.

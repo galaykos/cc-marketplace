@@ -76,10 +76,10 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `workflow-suite` | 15 | ~5.8k tokens | ~1.3k tokens | ~2.4k tokens |
-| `craft-suite` | 2 | ~2.1k tokens | — | — |
-| `frontend-suite` | 4 | ~1.7k tokens | ~32 tokens | ~2.0k tokens |
-| `core-suite` | 7 | ~1.5k tokens | ~1.3k tokens | ~2.2k tokens |
+| `workflow-suite` | 15 | ~5.8k tokens | ~1.3k tokens | ~1.1k tokens |
+| `craft-suite` | 3 | ~2.8k tokens | — | — |
+| `frontend-suite` | 4 | ~1.7k tokens | ~43 tokens | ~678 tokens |
+| `core-suite` | 7 | ~1.5k tokens | ~1.3k tokens | ~897 tokens |
 
 Every row is a curated subset. The marketplace ships all 30 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and it also raises `skillListingBudgetFraction` in the scope it installs to, so the listing is sent whole — its README carries the arithmetic and the one measurement (2026-09-15, n=50) that found the overflow changes nothing detectable.
 
@@ -90,7 +90,7 @@ not a constant — read out of the shipped CLI (2.1.251), not from documentation
 
 `skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.
 If you install a bundle flagged over the 200k floor, set it to the value that bundle's README
-names (0.02 for core-suite, 0.05 for workflow-suite) in the settings.json of the PROJECT where you use it — the fraction is a
+names (0.02 for core-suite, 0.02 for craft-suite, 0.02 for frontend-suite, 0.05 for workflow-suite) in the settings.json of the PROJECT where you use it — the fraction is a
 ceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the
 descriptions being evicted.
 `bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including
@@ -106,6 +106,17 @@ models this paragraph calls current, add ~33%. The host also charges a per-compo
 this estimate does not — a 2026-08-20 snapshot measured ~1.5x on a now-changed tree; treat
 that as an order-of-magnitude correction, never as a coefficient
 (`scripts/context-budget-official.json` header has the derivation and the staleness).
+
+Before raising the fraction, use what the host already ships, in the order it names them:
+**`/skills`** lists every skill the session can see with its source, and lets you turn off the
+ones this project does not need — the cost is charged per ENTRY (`name + 4 + description`), so
+fewer entries is the only lever that reduces it rather than buying more ceiling.
+**`/skill-doctor`** then reports what is reachable and what is being evicted, which is how you
+find out whether anything you rely on sits in the tail. Raise the fraction third.
+And do not trim descriptions to fit: measured 2026-09-15, n=50 per arm
+(`rationale/2026-09-15-listing-eviction-probe.md`), stripping a description changed firing by
+nothing (47/50 both arms), while OVERLAP between skills contesting one territory dropped firing
+from 100% to ~75%. What costs a marketplace is two skills that sound alike, not long text.
 
 <!-- end:bundle-table -->
 
@@ -124,6 +135,24 @@ at the same scope, minus anything another installed suite also lists. It cannot 
 an auto-install from one you made yourself (install records routinely carry no
 marker), so a hand-installed dependency shows up in the removal list and the confirm
 step is what protects it — read the list before you accept it.
+
+### Is any of this actually working?
+
+Every guard here fails open by design, so silence is the output of a clean install and
+of a broken one alike. Three read-only checks tell them apart — none of them changes
+anything, and all three work from the marketplace clone `claude plugin marketplace add
+galaykos/cc-marketplace` already put on your disk:
+
+```bash
+/skill-doctor                                                                            # the host's own report: which skills are reachable, which are being evicted
+bash ~/.claude/plugins/marketplaces/cc-plugins-marketplace/scripts/turn-cost.sh --skills # which shipped skills have ever fired for you, and which never have
+bash ~/.claude/plugins/marketplaces/cc-plugins-marketplace/scripts/context-budget.sh     # what the installed set costs per session, against the committed baselines
+```
+
+`turn-cost.sh --skills` answers *did anyone use this*, never *did it help*: a zero means
+nobody invoked that skill in the ledgers it can read, a non-zero means it fired. Subagent
+turns are invisible to it and are billed. `context-budget.sh` is the same gate CI runs;
+locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 
 ---
 

@@ -16,6 +16,11 @@ pattern — chosen so real secrets trip it and placeholders do not:
 - **Slack token** — `xoxb-`/`xoxp-`/`xoxa-`/`xoxr-`/`xoxs-` + body.
 - **Google API key** — `AIza` + 35 chars.
 - **Stripe live secret** — `sk_live_` + 24+ chars.
+- **Credential in a URL** — a `postgres://`, `mysql://`, `mongodb://` (plus `+srv`),
+  `redis://`, `amqp://` or `https://` scheme whose authority carries inline userinfo with a
+  password of 6+ characters. A `${VAR}` or `{{ … }}` password is the correct shape and
+  passes, as does a scheme outside that list.
+- **Slack webhook URL** — `hooks.slack.com/services/T…/B…/` + 16+ chars.
 - **Assigned secret literal** — `api_key`/`secret`/`token`/`passwd`/`password` set
   to a 24+ char base64-ish value. Matched **case-insensitively**, and the key name
   may carry `_`- or `-`-separated suffixes: `AWS_SECRET_ACCESS_KEY=…` matches on
@@ -74,8 +79,8 @@ is tuned for precision, a human review can afford suspicion:
 
 - **`.env`, `.env.*`, config, and CI files** — the highest-yield targets; a filled-in
   `.env` committed instead of `.env.example` is the classic leak.
-- **Connection strings** — `postgres://USER:PASSWORD@host`, `redis://:PASS@host` — the
-  password sits inline in a URL the provider patterns may not catch.
+- **Connection strings on schemes the hook does not list** — an `ldap://`, `ftp://` or
+  vendor SDK URL with inline userinfo; the listed schemes already deny at write time.
 - **Base64 blobs** — a long opaque string assigned to a credential-shaped name.
 - **Private keys and certs** — `.pem`, `.key`, `id_rsa`, keystore files added to the
   tree at all.

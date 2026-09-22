@@ -87,6 +87,40 @@ echo '{"compilerOptions":{"strict":true}}' > "$vue/tsconfig.json"
 check "vue-tsc supersedes tsc when present" "$vue" 0 "analyzer vue vue-tsc tsconfig.json"
 refute "plain tsc is not offered on a vue-tsc project" "$vue" "analyzer ts tsc"
 
+# --- Svelte and Astro: tsc parses neither component format ------------------
+# Measured 2026-09-22: a SvelteKit project with svelte-check in devDependencies
+# and `npm run check` in CI was reported as `npx tsc --noEmit`, with no ci line
+# for the check it actually runs.
+sv="$tmp/svelte"; mkdir -p "$sv/.github/workflows"
+cat > "$sv/package.json" <<'JSON'
+{
+  "devDependencies": {"svelte": "^5", "svelte-check": "^4", "typescript": "^5"},
+  "scripts": {"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"}
+}
+JSON
+echo '{"compilerOptions":{"strict":true}}' > "$sv/tsconfig.json"
+echo 'jobs: { ci: { steps: [ { run: npm run check } ] } }' > "$sv/.github/workflows/check.yml"
+check "svelte-check supersedes tsc on a Svelte project" "$sv" 0 \
+  "analyzer svelte svelte-check tsconfig.json" \
+  "npx svelte-check --tsconfig ./tsconfig.json" \
+  "ci .github/workflows/check.yml svelte-check via-script"
+refute "plain tsc is not offered on a Svelte project" "$sv" "analyzer ts tsc"
+
+ast="$tmp/astro"; mkdir -p "$ast/.github/workflows"
+cat > "$ast/package.json" <<'JSON'
+{
+  "devDependencies": {"astro": "^5", "typescript": "^5"},
+  "scripts": {"check": "astro check"}
+}
+JSON
+echo '{"compilerOptions":{"strict":true}}' > "$ast/tsconfig.json"
+echo 'jobs: { ci: { steps: [ { run: npm run check } ] } }' > "$ast/.github/workflows/check.yml"
+check "astro check supersedes tsc on an Astro project" "$ast" 0 \
+  "analyzer astro astro-check tsconfig.json" \
+  "npx astro check" \
+  "ci .github/workflows/check.yml astro-check via-script"
+refute "plain tsc is not offered on an Astro project" "$ast" "analyzer ts tsc"
+
 # --- formatters are reported but never listed as analyzers ------------------
 fmt="$tmp/fmt"; mkdir -p "$fmt"
 echo '{"devDependencies":{"prettier":"^3","eslint":"^9"}}' > "$fmt/package.json"

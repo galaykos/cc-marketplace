@@ -35,6 +35,10 @@ accent swap.
 3. Generate up to 3 candidate token sets (light + dark each, contrast-checked),
    write `taskmaster-docs/mockups/theme.html`, reuse-or-start the shared preview
    server (port `${PREVIEW_PORT:-8123}`), and give the user the stable URL.
+   Creating `taskmaster-docs/mockups/`, drop a `.gitignore` holding `*` into it if
+   one is not there — this page is scratch and belongs in no commit, and the only
+   other artifact that drops that file is taskmaster's grill, which craft-suite and
+   frontend-suite do not ship.
    Build and serve the page per `shadcn-theming` §"The live theme preview"
    (the `theme-shell.html` starter, viewport control, light and dark side by
    side). It decides COLOUR, not component look — say so rather than implying

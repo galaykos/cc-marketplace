@@ -121,6 +121,18 @@
     # bare-extension glob has no way to say "except these". Before 0.16.0 an
     # `@base` alternative was indecisive (no such file) and skipped, so a rules.tsv
     # carrying one is safe under an older route.sh: it simply fires.
+    #
+    # `@path` is the same device one level up: the ERE runs against the edited
+    # file's PATH as the tool payload reported it, so a row can exclude a
+    # DIRECTORY. `!@path~(^|/)dist/` keeps the markup a11y rows off built output —
+    # a bundled `dist/index.html` has the same BASENAME as its source, so `@base`
+    # cannot tell them apart, and match_glob's one path-aware form (`**/dir/**`)
+    # can only say "inside", never "not inside". LIMITATION (honest scope): the
+    # value is whatever the payload carried — relative in most sessions, absolute
+    # in some — so an exclusion must anchor on `(^|/)`, never on `^` alone, and a
+    # build directory under a name nobody listed is still routed. Unknown to an
+    # older route.sh, where `@path` is just a manifest that does not exist and the
+    # alternative is skipped: the row fires, the same safe fallback as `@base`.
     local list="$1" alt m neg manifest regex mcontent rc
     [ -z "$list" ] || [ "$list" = "-" ] && return 0
     while [ -n "$list" ]; do
@@ -134,6 +146,8 @@
       [ -n "$manifest" ] && [ -n "$regex" ] || continue
       if [ "$manifest" = "@base" ]; then
         mcontent="$base"
+      elif [ "$manifest" = "@path" ]; then
+        mcontent="$file_path"
       else
         [ -f "$cwd/$manifest" ] && [ -r "$cwd/$manifest" ] || continue
         mcontent=$(head -c 65536 "$cwd/$manifest" 2>/dev/null) || continue

@@ -4,14 +4,17 @@
 # The skill-router's tool-fit check (hooks/route-prompt.sh).
 #
 # SCOPE, stated up front so nobody reads this harness as more than it is: the hook
-# does not choose a command. It builds the catalog of installed commands and injects
-# the rules for judging; the routing verdict is the MODEL's, and a judgment cannot be
+# does not choose a command. It injects the rules for judging and points at the host's
+# own command listing; the routing verdict is the MODEL's, and a judgment cannot be
 # asserted by a shell test. What is gated here is the mechanism around the judgment —
-# that the catalog is built, correct, and installed-scoped; that the directive carries
-# the discipline that keeps it from nagging; that every guard silences the hook; that
-# it costs its tokens once per session. Which command the model then picks is
-# agent-graded, per CLAUDE.md's has-teeth convention. Do not add a test here that
-# claims otherwise.
+# that the directive carries the discipline that keeps it from nagging; that every
+# guard silences the hook; that it costs its tokens once per session. Which command
+# the model then picks is agent-graded, per CLAUDE.md's has-teeth convention. Do not
+# add a test here that claims otherwise.
+#
+# The hook BUILT a 60-row catalog until 2026-09-22, and the assertions that measured
+# it (row count, entries resolving, installed-scoping, per-repo stack filtering) were
+# removed with it — see the two paragraphs below marking where they stood.
 #
 # Half B covers the two validate.sh gates that keep the mechanism honest: no literal
 # command token in the hook, and no second routing pattern growing back in shell.
@@ -174,46 +177,21 @@ osq=$(printf '%s' "$sqj" | env TMPDIR="$sq" CLAUDE_PLUGIN_ROOT="$ROOT/$SR" "$BAS
 [ -z "$osq" ] && pass "file squatting the marker suppresses (no per-prompt re-injection)" \
   || fail "file squatting the marker suppresses" "injected ${#osq} bytes past a squatted marker"
 
-printf '== half A: catalog content ==\n'
+printf '== half A: directive content ==\n'
+# THE CATALOG IS GONE, and with it the three assertions that measured it: line count,
+# every entry resolving to a command file, and installed-scoping. route-prompt.sh no
+# longer builds a 60-row copy of the host's own listing (5,071 of 6,784 chars, a
+# truncated duplicate that grew with every plugin added —
+# rationale/specialist-panel-2026-09-22.md #38); it points at the listing instead. An
+# assertion that a catalog has 20+ rows is now a test that the defect is still there.
+# What survives is the half that was never about the rows: the anti-nag discipline,
+# which is the reason this hook may speak at all.
 cat_out="$(run_hook "build a landing page for a B2B marketing agency" "$ROOT/$SR")"
-lines=$(printf '%s' "$cat_out" | grep -c '^- /' || true)
-[ "$lines" -ge 20 ] && pass "catalog has $lines command lines" \
-  || fail "catalog line count" "only $lines lines — expected the installed commands"
-
-# every catalog line must name a command that actually exists on disk
-bad=""
-while IFS= read -r line; do
-  tok=${line#- }; tok=${tok%% *}
-  p=${tok#/}; p=${p%%:*}; c=${tok##*:}
-  [ -f "plugins/$p/commands/$c.md" ] || bad="$bad $tok"
-done <<EOF_LINES
-$(printf '%s' "$cat_out" | grep '^- /')
-EOF_LINES
-[ -z "$bad" ] && pass "every catalog entry resolves to a command file" \
-  || fail "catalog entries resolve" "no such command:$bad"
-
-# the directive must carry the anti-nag discipline — these are the rules that stop a
-# catalog from turning every prompt into a suggestion
 for phrase in "Silence is the default" "AskUserQuestion" "(Recommended)" "as asked" \
               "one picker per named tool per session" "goal ledger"; do
   printf '%s' "$cat_out" | grep -qF "$phrase" \
     && pass "directive carries: $phrase" || fail "directive carries: $phrase" "missing"
 done
-
-# installed-scoping: a tree holding two plugins must yield a catalog of only those.
-# Fixture plugin: secret-scanning (one command, content-only routing) — the
-# payments plugin this case used to copy was removed 2026-09-14.
-SOLO="$WORK/solo/plugins"; mkdir -p "$SOLO/skill-router/hooks"
-cp -R plugins/secret-scanning "$SOLO/secret-scanning"
-cp "$HOOK" "$SOLO/skill-router/hooks/route-prompt.sh"
-solo_out="$(run_hook "review the repo for committed secrets before I push" "$SOLO/skill-router")"
-solo_lines=$(printf '%s' "$solo_out" | grep -c '^- /' || true)
-foreign=$(printf '%s' "$solo_out" | grep '^- /' | grep -vc '^- /secret-scanning:' || true)
-if [ "$solo_lines" -ge 1 ] && [ "$foreign" -eq 0 ]; then
-  pass "catalog is installed-scoped ($solo_lines entries, all secret-scanning)"
-else
-  fail "catalog is installed-scoped" "$solo_lines entries, $foreign from uninstalled plugins"
-fi
 
 printf '== half C: the incident moment has an owner ==\n'
 # These four cases exercise plugins/*/hooks/remind.sh, not the hook this file is
@@ -311,58 +289,16 @@ else
   fail "mirror tree built" "missing $MHOOK"
 fi
 
-# ---- STACK RELEVANCE of the catalog (spec 4.6, card C6) ----------------------
-# The catalog is filtered by repo evidence, not just installed-ness: a Laravel repo
-# should not be offered /web-dev:review. Asserted in BOTH directions plus the trap
-# that a glob-only predicate would fall into.
-#
-# THE TRAP: seven plugins own ONLY content rows in rules.tsv (llm-app,
-# node-backend, observability, payments, resilience, security, threejs). A
-# predicate that asked "does any GLOB row match" would find nothing for them in
-# any repository, and would therefore delete /security:review from every repo on
-# earth. The empty-repo case below is what catches that, and it is the reason a
-# plugin with no rows — or no glob rows — is defined as stack-neutral and kept.
-CAT_HOOK="$ROOT/plugins/skill-router/hooks/route-prompt.sh"
-if [ -f "$CAT_HOOK" ]; then
-  cat_for() { # $1 project dir, $2 session tag
-    printf '{"prompt":"refactor the checkout module","session_id":"cat-%s","cwd":"%s"}' "$2" "$1" \
-      | CLAUDE_PLUGIN_ROOT="$ROOT/plugins/skill-router" \
-        TMPDIR="$(mktemp -d "$WORK/cat.XXXXXX")" "$BASH_BIN" "$CAT_HOOK" 2>/dev/null
-  }
-  cat_expect() { # $1 desc, $2 output, $3 needle, $4 present|absent
-    local got=absent
-    case "$2" in *"$3"*) got=present ;; esac
-    [ "$got" = "$4" ] && pass "catalog: $1" || fail "catalog: $1" "$3 is $got, wanted $4"
-  }
-
-  # The per-stack review commands (/laravel:review, /web-dev:review, …) that this filter
-  # was written for were retired 2026-09-14 — the fan-in owns them. The remaining stack
-  # reviews with FILE-shaped glob rows are devops (Dockerfile*, compose*.yml) and
-  # api-design (openapi*, *.graphql, *.proto, api.php); the cases below use those.
-  CL="$WORK/cat-laravel"; mkdir -p "$CL"
-  printf '{"require":{"laravel/framework":"^11"}}' > "$CL/composer.json"; : > "$CL/app.php"
-  OL=$(cat_for "$CL" laravel)
-  cat_expect "a repo with no container or CI files is not offered /devops:review" "$OL" "/devops:review" absent
-  cat_expect "a repo with no API spec is not offered /api-design:review"          "$OL" "/api-design:review" absent
-  cat_expect "stack-neutral /code-review:review always kept" "$OL" "/code-review:review" present
-
-  CN="$WORK/cat-docker"; mkdir -p "$CN"
-  printf '{"dependencies":{"next":"^14"}}' > "$CN/package.json"; : > "$CN/Dockerfile"; : > "$CN/openapi.yaml"
-  ON=$(cat_for "$CN" docker)
-  cat_expect "a repo with a Dockerfile keeps /devops:review"    "$ON" "/devops:review" present
-  cat_expect "a repo with an OpenAPI spec keeps /api-design:review" "$ON" "/api-design:review" present
-
-  CE="$WORK/cat-empty"; mkdir -p "$CE"
-  OE=$(cat_for "$CE" empty)
-  cat_expect "content-only /security:review survives an empty repo"     "$OE" "/security:review" present
-  cat_expect "content-only /resilience:review survives an empty repo"   "$OE" "/resilience:review" present
-  cat_expect "content-only /stack-scan:audit survives an empty repo"    "$OE" "/stack-scan:audit" present
-
-  # A filter that dropped everything would pass every "absent" assertion above.
-  ln_l=$(printf '%s' "$OL" | grep -c '^- /')
-  [ "$ln_l" -gt 30 ] && pass "catalog: the filter narrows without emptying ($ln_l rows on Laravel)" \
-    || fail "catalog: the filter narrows without emptying" "only $ln_l rows survived — over-filtering"
-fi
+# ---- STACK RELEVANCE: retired with the catalog ------------------------------
+# This block filtered a 60-row command catalog by repo evidence and asserted both
+# directions plus the empty-repo trap (a glob-only predicate would have deleted every
+# content-only plugin's command from every repository). route-prompt.sh no longer
+# builds that catalog — it points at the host's own listing — so there is nothing left
+# to filter and every one of those cases would now assert the absence of a feature
+# rather than the presence of a behaviour. The trap they guarded is recorded here
+# because it is the non-obvious half: a plugin with no glob rows is stack-NEUTRAL and
+# must be kept, not dropped. Whoever reintroduces per-repo filtering re-reads this
+# paragraph and `git show` for the cases.
 
 if [ "$rc" -eq 0 ]; then
   printf '\nAll tool-fit check cases passed (mechanism only — the routing verdict is agent-graded).\n'

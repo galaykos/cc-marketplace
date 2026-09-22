@@ -15,7 +15,7 @@ own plugin so it can be disabled on its own.
 
 | event | script | does |
 |---|---|---|
-| `UserPromptSubmit` | `hooks/ledger.sh` | on a work-shaped prompt (a making verb in an imperative clause), destructures the ask into the things it **names** — proper nouns not at a clause start (`Laravel`, `Digimon`), quoted terms (`"digimon"`), digit-letter tokens with their word (`2D Sprites`) — into a session ledger (deduped, later prompts append, 12 max) and tells the model the gate shape once per prompt that added entries |
+| `UserPromptSubmit` | `hooks/ledger.sh` | on a work-shaped prompt (a making verb in an imperative clause), destructures the ask into the things it **names** — proper nouns not at a clause start (`Laravel`, `Digimon`), quoted terms (`"digimon"`), digit-letter tokens with their word (`2D Sprites`) — drops every name the project's tracked tree already carries, and keeps the rest as a session ledger (deduped, later prompts append, 12 max), telling the model the gate shape once per prompt that added entries |
 | `Stop` | `hooks/gate.sh` | refuses the final message (exit 2, reason on stderr) unless it carries one line per ledgered name: `<name>: as named` \| `<name>: substituted → what, why` \| `<name>: omitted → why`. At most two blocks per session; then it warns and lets the turn end |
 
 Your original prompt of 2026-09-18 ("create a Laravel + React project … landing page
@@ -34,6 +34,14 @@ Patamon and Gomamon" appends four more. The final message then owes eight lines.
   ledger sees names, not nouns; a name mentioned in passing ("like Stripe does") is
   ledgered and costs one line; anything inside code spans. A name the extractor misses is
   a name the gate never asks about.
+- **Names your repo already has are dropped.** "Fix the N+1 in `OrderController` when
+  Laravel eager-loads `Invoice` and `Payment` under Inertia" used to ledger six entries and
+  block the turn until the model accounted for six classes it had been asked to REPAIR.
+  Each candidate is checked against the session project's tracked tree (`git grep`,
+  case-insensitively) and dropped when it is already there. Three residuals, all real: no
+  git work tree means no filter; `git grep` reads tracked files, so a name living only in
+  an untracked or ignored file still ledgers; and a name the ask ADDS to something the repo
+  already mentions is dropped with the rest.
 - **Off switch:** `CC_ASK_LEDGER=off`. No ledger (no work-shaped prompt this session): silent.
 - **Subagents:** not wired. A worker's final message is the orchestrator's data, not the
   user's reading; the orchestrator's own final message is where the accounting belongs.
@@ -42,7 +50,19 @@ Patamon and Gomamon" appends four more. The final message then owes eight lines.
 
 `evals/named-things-accounted/case.yaml` — the Digimon prompt whose control arm is
 recorded inventing creatures 6/6 with no accounting. Run it with the operator grant the
-runner needs: `claude plugin eval ./plugins/ask-ledger --ablation with-without --runs 3
---allow-tools Write Edit`. Not run yet; the number it would produce is the one this
-README does not have. Harnesses: `scripts/__tests__/ledger-hook.test.sh` (10 cases) and
-`gate-hook.test.sh` (9 cases), picked up by CI's glob.
+runner needs:
+
+```bash
+claude plugin eval ./plugins/ask-ledger --ablation with-without --runs 3 \
+  --allow-tools Write Edit --no-publish --trust-plugin
+```
+
+**The grant is not optional.** The case writes `digimon.html`, and `Write`/`Edit` are
+gated tools the runner will not hand a plugin without `--allow-tools`. Without it the
+suite still LOADS and then declines the case —
+`named-things-accounted: not granted (missing --allow-tools grant…): Write, Edit`
+(measured on CLI 2.1.278, 2026-09-22) — so a run that looks clean has measured nothing.
+Add `--max-cost-usd 0` to that command to load-check the suite for free. Not run for
+score yet; the number it would produce is the one this README does not have. Harnesses:
+`scripts/__tests__/ledger-hook.test.sh` and `gate-hook.test.sh`, picked up by CI's glob —
+run them for the case count rather than trusting one written here.

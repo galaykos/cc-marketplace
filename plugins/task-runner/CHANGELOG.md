@@ -2,6 +2,29 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.37.0 — 2026-09-22
+
+### Added
+- `hooks/announce.sh` (SessionStart, matcher `startup|resume|clear`): one line when the
+  project has a registered run — slug, branch, how many index cards are still open, and
+  the declared arc phase. `active-run.json` outlives the session that wrote it while the
+  model's knowledge of it does not, so a cold session met candor's Stop block at the end
+  of its first turn with no idea what the run was, and the cheapest-looking escape was
+  deleting a live run's sentinel. Standing: advisory — SessionStart context informs a
+  turn and cannot block one; the teeth remain the Stop gate. Pure read, silent with no
+  run registered (so the always-on and activated context budgets read 0), and compaction
+  is left to skill-router's capsule. Pinned by `scripts/__tests__/announce-hook.test.sh`.
+
+### Fixed
+- `commands/run.md` step 1 pre-created `rv/`, `rt/`, `bg/` and `reductions/` but not
+  `nc/`, and `negative-control.sh` only creates it lazily on the first control that
+  actually runs — so a run that skipped its first control left candor's gate on its
+  "no `nc/` dir → legacy allow" path and the per-card negative-control count never armed.
+- `skills/code-redteam/SKILL.md` named `plugins/task-runner/scripts/code-redteam-diff.sh`,
+  a repo-relative path that does not exist on an installer's disk; now
+  `${CLAUDE_PLUGIN_ROOT}/scripts/`.
+- `commands/plan.md` read `$ARGUMENTS` with no `argument-hint` frontmatter.
+
 ## 0.36.6 — 2026-09-22
 
 ### Fixed

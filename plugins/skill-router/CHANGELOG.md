@@ -2,6 +2,63 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.18.0 — 2026-09-22
+
+### Added
+- Next.js SERVER files route: `**/app/**`, `middleware.*`, `proxy.*` → `nextjs-best-practices`,
+  marked `package.json~"next"`. The `*.tsx` row covered components only, so a route handler,
+  a server action or `middleware.ts` — the files the skill's own
+  server-actions-are-public-endpoints rule is about — drew `low-cognitive-load` and
+  `solid-principles` and nothing else, while `web-dev/lane.tsv` already declared "an edit
+  under app/" as the trigger. Probed: `app/api/checkout/route.ts` in a Next fixture nudges
+  `nextjs-best-practices`; the same path in a Go module and in a Vite/React repo nudges
+  nothing from web-dev.
+- Server-rendered markup routes to the WCAG checklist: `*.html`, `*.erb`, `*.twig` →
+  `a11y-audit`. The six component extensions were the whole list, so a Rails, Django, Twig
+  or static-HTML project got the checklist on no file it edits. Built output is excluded by
+  a new `@path` marker; probed both (`app/views/show.html.erb` fires, `build/page.twig` does not).
+- API ROUTE files reach `api-design`: `**/app/api/**`, `**/server/api/**`, `+server.ts`.
+  `api.php` and `openapi*.y*ml` covered the Laravel and spec-first shapes and no 2026
+  JS-side server route. (The finding named `**/+server.ts`; that form is basename-matched
+  by `route.sh` and can never fire — `pc_rules_reachable` rejects it — so the row is
+  `+server.ts`.)
+- Stylesheet and token rows for four previously unrouted theming skills: `globals.css`,
+  `app.css`, `*.scss` → `shadcn-theming`; `*.tokens.json` and a `design-system/`-scoped
+  `tokens.json` → `design-tokens`. The router could see a project DECLARE a theme
+  (`tailwind.config.*` had a row) and not see anyone edit one.
+- One `content` row at `low` for `component-libraries`, the floor skill for every library
+  without a sibling skill — Mantine, Chakra, Ant Design, PrimeVue, Vuetify, Base UI, Ark,
+  Reka, Nuxt UI and the rest. Alternatives mirror the Signal column of
+  `ui-ux/skills/component-libraries/references/library-map.md`; **standing: recorded**,
+  nothing reads that file back.
+- `prime.sh` primes `nextjs-best-practices` and `vite-best-practices` from
+  `package.json` `"next"` / `"vite"` — two rows `coding-entry/references/skill-map.md`
+  has declared since it was written. A Next + Vite + Tailwind fixture used to be told
+  about package-hygiene, a11y-audit and tailwind only.
+- `@path` marker form: matches the ERE against the edited file's PATH instead of a
+  manifest's content, which is the only way a row can exclude a build DIRECTORY —
+  `dist/index.html` and `src/index.html` share a basename. Unknown to an older
+  `route.sh`, where the alternative is skipped and the row fires, the same safe
+  fallback `@base` has.
+
+### Changed
+- **The tool-fit check no longer rebuilds the command catalog.** It emitted 61 truncated
+  frontmatter lines — 5,122 of 6,892 characters, measured against this repository's plugin
+  tree — restating a listing the host had already sent, and growing by a row with every
+  command installed. The numbered protocol is unchanged and is the part the model does not
+  otherwise have; the header line now points at the host's listing. Measured after: 1,770
+  characters. What went with it, stated rather than hidden: the catalog was filtered by
+  repo evidence, so a Laravel repo was never shown the Next.js review, and the host listing
+  has no such filter — rule 1 ("most requests fit none of them") is now the only thing
+  holding that down, and it is agent-graded.
+- The `**/components/** → tailwind-best-practices` row, the only stack row shipping no
+  marker at all, now carries `package.json~"tailwindcss"||!@base~.`. A Go module with a
+  `components/` directory, and a Blade app with no Tailwind in it, both drew the Tailwind
+  skill; `prime.sh:62-69` had already removed exactly this falsehood from the sibling hook.
+  The `!@base~.` tail is a **default-deny** alternative — a basename is never empty, so it
+  is always decisive-suppress — which is what makes "no package.json" mean no instead of
+  maybe. It is per-row and opt-in; the general absent-manifest behaviour is unchanged.
+
 ## 0.17.4 — 2026-09-22
 
 ### Added

@@ -9,6 +9,23 @@ creative direction, an optional guided section-decision loop, a research→brief
 an asset-sourcing + licence gate, a concept→token-system derivation, a tiered motion
 **decision** system, sprite guidance, information design, and a craft **audit**.
 
+## Vocabulary
+
+Eight words below carry load in every section that follows, and none of them means
+here what it means in ordinary design talk. One clause each; the owning reference is
+the authority, and the clause is a pointer, not a summary.
+
+| Term | In one clause | Owned by |
+| --- | --- | --- |
+| **spine** | the eight questions a visitor asks that the page owes an answer to — slots with owners, not prescribed sections, and which of them are owed is archetype-keyed | `skills/creative-direction/references/offer-contract.md` |
+| **archetype** | which of five kinds of thing this build is (creative/portfolio, marketing/campaign, product/SaaS, editorial/content, app/CRM), picked once and keying the spine, the depth budget and the motion ceiling | `skills/creative-direction/references/archetypes.md` |
+| **draw** | one option pulled per axis from the concept deck under an exclusion window, never picked — the starting CONSTRAINT the concept works inside, not a description of the page | `skills/creative-direction/references/concept-deck.md` |
+| **move** | a CATEGORY of craft device (hero archetype, scroll device, transition…) with a when-it-earns-its-cost rule; the concrete move is derived from the brief, never chosen off a list | `skills/creative-direction/references/moves-taxonomy.md` |
+| **genus** | the recognisable KIND of artifact a page imitates — a technical drafting sheet, a boarding pass, a lab notebook; the level above register and vocabulary, and the one a `Banned genus:` line rules out for a run | `skills/creative-direction/references/concept-deck.md` |
+| **concept deck** | the positive generator the draw comes from: five axes of STRATEGY, deliberately naming no typeface, product, vendor or colour, so it cannot decay into a catalog | `skills/creative-direction/references/concept-deck.md` |
+| **register gate** | `divergence.mjs`'s `spine-register` check — the shipped copy in each buyer-facing spine slot is graded against a corpus of registers that slot must not be written in, scoped by the build task's `Spine regions:` line | `skills/creative-direction/references/register-corpus.md` |
+| **section ledger** | the artifact carrying a guided run's per-section picks from the user to `/ui-ux:build` and then to the audit — the section-level sibling of taskmaster's visual contract | `skills/section-decisions/references/section-ledger.md` |
+
 ## The craft flow
 
 `/craft-layer:craft <idea>` chains the whole path — it writes no framework code itself,
@@ -233,6 +250,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/ui-ux:audit` |
 | Performance / Lighthouse (optional external delegation) | `/resilience:review --concern performance` requires the `resilience` plugin; skipped if not installed |
 | Chart form / color | the `dataviz` skill (external host skill, not in this repo) |
+| Pre-build artboards a user picks a direction from, and the project's extracted `design-system/` token record a run should start from | `plugins/design-kit` — `/design-kit:design` and `/design-kit:system`; bundled in craft-suite, skipped if not installed |
 
 ## Install
 

@@ -28,7 +28,9 @@ bundle still overflows; nothing checks the figures below, so recompute them with
 Claude Code budgets the skill listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
 fraction 0.01). On the default 200k window with a current-tokenizer model that is
-**6,000 chars**, and this bundle's listing costs **8,223 chars** (LC_ALL=C bytes — the marketplace's deterministic measure, ~1% above what the CLI counts; measured 2026-09-16, `bash scripts/context-budget.sh`, listing channel) — over
+**6,000 chars**, and this bundle's listing costs **8,223 chars** (LC_ALL=C bytes — the marketplace's deterministic measure, ~1% above what the CLI counts; measured 2026-09-16, `bash scripts/context-budget.sh`, listing channel; measured BEFORE
+`design-kit` joined the bundle on 2026-09-22, so the figure is now low — recompute it rather
+than quoting this one) — over
 budget, the host reduces entries to name-only in priority order, silently, so
 skills stop being reachable without any error.
 
@@ -46,7 +48,7 @@ text that was previously being evicted.
 
 ## What's included
 
-One bullet per bundled plugin, in dependency order (2):
+One bullet per bundled plugin, in dependency order (3):
 
 - **craft-layer** — creative direction, section decisions, asset sourcing,
   and tiered motion for distinctive builds, via `/craft-layer:craft`
@@ -57,11 +59,22 @@ One bullet per bundled plugin, in dependency order (2):
   measured one real use, its real-component preview became a rung of
   `taskmaster:visual-decisions`, and live registry lookups now go to shadcn's own MCP
   server and ReUI's hosted one, named in the stack skills <!-- removed-ok -->
+- **design-kit** — the pre-build half the studio had no answer for: `/design-kit:design`
+  draws 2–4 artboard directions the user picks from before any component is written, and
+  `/design-kit:system` extracts the project's real tokens into the `design-system/` record
+  a craft run should start from rather than a remembered palette. Everything is a plain
+  HTML file under `.design-kit/`, served on one localhost URL
 
 ui-ux is listed here AND in frontend-suite on purpose: craft-layer
 delegates theming to ui-ux and auditing to `/ui-ux:audit`, so a standalone
 craft-suite install must carry both. Installing both suites installs each
 companion once.
+
+design-kit is in no other bundle. It joined this one on 2026-09-22 because it was
+reachable from nothing: craft-layer and ui-ux between them had zero references to it,
+and the two moves it owns — deciding a direction on artboards BEFORE the build, and
+recording the project's real tokens — sit on either side of the craft flow. The cost is
+real and named in the section above: three plugins' skill listings, not two.
 
 | Command | What it does |
 |---------|--------------|

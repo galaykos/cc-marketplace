@@ -8,8 +8,10 @@ short pointer; this file is the source of truth a reviewer checks against.
 AskUserQuestion is hard-capped at 4 options per question and 4 questions per
 call — a tool limit, not a choice. One slot is reserved for stopping, so a call
 offers **15 suggestions, not 16**. Each question also carries a required short
-`header` (a few words, truncated hard in the UI): use the tier and group —
-`Tier 1`, `Core 1/2`, `The rest`.
+`header` (a few words, truncated hard in the UI). Name what the group IS, not
+which tier it is: `Your stack` (tier 1, signal-earned), `Any project 1/2`
+(tier 2, the curated core), `Everything else` (tier 3, the remainder). A header
+reading `Tier 1` is a number the user has no way to decode in the picker.
 
 The eligible set is every catalog leaf minus the bundles and stack-scan itself
 — recount it, never write the number down. At 15 per call the bill is **one call

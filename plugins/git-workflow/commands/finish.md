@@ -45,10 +45,14 @@ on the record — record the waiver text in the report, not just the choice.
 
 Then gather the state evidence the skill specifies (diffstat against the base,
 ahead/behind counts, commit list, suite output tail), present it together with
-the review results, and use AskUserQuestion. Which destinations to offer — and
-the default-branch-is-PR-only rule that removes "merge locally" when the base is
-the default branch — comes from the skill's destination protocol: apply it from
-there, do not re-derive it here. Execute the chosen protocol from the skill end
+the review results, and use AskUserQuestion. The four destinations, each offered
+with what it does rather than its label alone: **merge locally** — merge into the
+base branch here, no review; **push and open a PR** — push the branch and open a
+pull request for review; **keep the branch open** — leave it as it is and come
+back to it; **discard the work** — delete the branch and lose the commits. Which
+of the four apply — and the default-branch-is-PR-only rule that removes "merge
+locally" when the base is the default branch — comes from the skill's destination
+protocol: apply it from there, do not re-derive it here. Execute the chosen protocol from the skill end
 to end, including post-merge re-verification, worktree removal, and branch
 deletion where the protocol calls for them — discard only after the user types
 the branch name back.

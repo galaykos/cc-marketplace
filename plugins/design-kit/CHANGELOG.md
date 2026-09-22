@@ -2,6 +2,40 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.0 — 2026-09-22
+
+### Fixed
+- **`hooks/unread-pick.sh` could fail on every prompt, and could be muted forever by a run
+  that died.** It was the only hook in the marketplace carrying `set -euo pipefail` and it
+  called `python3` unguarded, so a machine without `python3` on PATH got rc=127 on each
+  prompt. It also hand-rolled the phase-sentinel read: no TTL, no `session_id` check, and a
+  hardcoded `build|verify|review|ship` list that let it speak through `plan` while its own
+  `lane.tsv` row claims `decide`. It now guards `python3` like `jq`, drops `set -e`, and runs
+  the marketplace's shared phase guard against its OWN `lane.tsv` row, so the phase list
+  cannot drift from the declaration. `unread-pick.test.sh` gained the two probes:
+  python3 off PATH → exit 0, silent; a dead session's sentinel aged past the 120-minute TTL
+  → the hook speaks again and the stale file is unlinked.
+
+### Added
+- **design-kit is in a bundle.** It joined `craft-suite` (0.8.0) alongside craft-layer and
+  ui-ux, which had zero references to it between them, and craft-layer's Reuse map now names
+  the two moves it owns: pre-build artboards, and the extracted `design-system/` record.
+- **A DTCG interop paragraph in the README.** Names the Format Module 2025.10 draft, the two
+  places `tokens.json` deviates from it (colour and dimension stay the strings the source
+  wrote), and Tokens Studio and Style Dictionary as the consumers that read this structure
+  and need those two forms converted. The "Figma import or export: not in this release" line
+  now points at it instead of reading as a dead end.
+- The `system` skill says in one line that it RECORDS values and `/ui-ux:theme` GENERATES
+  them, which is the next move when the `## Not found` list says the source has no palette.
+
+### Changed
+- `/design-kit:in-codebase` glosses what the "scratch entry" consent actually buys at the
+  point of the ask, rather than offering an undecodable label.
+- Two more steps route through `dk.sh` (`scratch --detect`, `export`). The README's claim of
+  "one permission rule" is corrected rather than repeated: four steps deliberately call a
+  script directly because `dk` has no verb that does only what they need, and the README now
+  names all four and the second rule they draw.
+
 ## 0.2.0 — 2026-09-22
 
 The experience pass after the simulation (`rationale/design-kit-experience-ideas-2026-09-22.md` ideas 1–4, 6).

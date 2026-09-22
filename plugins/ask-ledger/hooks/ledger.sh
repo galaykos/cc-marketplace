@@ -19,10 +19,25 @@
 # named, substituted it, or omitted it — and the gate can refuse a final message that
 # does not. The truth of each line is the model's word; the shape is enforced.
 #
+# A NAME THE REPO ALREADY HAS IS NOT A THING THE ASK INTRODUCES (2026-09-22). "Fix the
+# N+1 in OrderController when Laravel eager-loads Invoice and Payment relations under
+# Inertia" ledgered six entries and the Stop gate then blocked the turn until the model
+# wrote six lines about code it had been asked to REPAIR, not to deliver. Every
+# candidate is now checked against the session project's tracked tree (`git grep -qliF`,
+# `rg -qiF` when git grep errors out) and dropped when it is already there; a name the
+# repo has never heard of — Digimon, Stripe, a new library — still ledgers.
+#
 # WHAT IT DOES NOT SEE (honest scope): lowercase features ("login", "register", "a
 # library") — the ledger sees names, not nouns; a name mentioned in passing ("like
 # Stripe does") is ledgered and must be accounted for, one line, cheap; anything in a
-# fenced or inline code span is ignored. Off switch: CC_ASK_LEDGER=off. Fail-open.
+# fenced or inline code span is ignored. The existence filter carries three residuals of
+# its own, each real: it needs a git work tree, so a session opened outside one is
+# unfiltered exactly as before; `git grep` reads TRACKED files, so a name that exists
+# only in an untracked or ignored file still ledgers; and it cannot tell a name the repo
+# has from a name the ask ADDS to what the repo has ("also add a Stripe refund flow" in
+# a repo that already mentions Stripe drops Stripe). It trades those false negatives for
+# the false positives above, which were blocking turns.
+# Off switch: CC_ASK_LEDGER=off. Fail-open.
 {
   command -v jq >/dev/null 2>&1 || exit 0
   [ "${CC_ASK_LEDGER:-}" = "off" ] && exit 0
@@ -70,6 +85,43 @@
     | awk '{ k=tolower($0); if (!(k in s)) { s[k]=1; print } }' \
     | awk '{ a[NR]=$0 } END { for (i=1;i<=NR;i++){ keep=1; for (j=1;j<=NR;j++) if (i!=j && length(a[j])>length(a[i]) && index(tolower(a[j]), tolower(a[i]))) keep=0; if (keep) print a[i] } }' > "$dir/new" 2>/dev/null
   [ -s "$dir/new" ] || exit 0
+
+  # DROP WHAT THE REPO ALREADY HAS. Scoped to the git work tree of the payload cwd: no
+  # work tree, no filter (fail-open — the pre-2026-09-22 behaviour). `git grep` exits 0
+  # on a hit, 1 on a clean miss, >1 on an error (bare repo, no index), and only that
+  # last case falls through to rg, so an unmatched name is never re-searched twice.
+  # BOUNDED AT 24 GREPS, and candidates past that pass UNFILTERED — the honest residual
+  # of a bound inside a 5-second hook. 24 is twice the ledger's own 12-name cap so a
+  # prompt whose first names are all pre-existing still gets its later ones checked;
+  # measured 2026-09-22, 12 tree-wide greps on this marketplace cost 0.32 s.
+  root=""
+  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null)
+  if [ -n "$root" ]; then
+    kept=""; scanned=0
+    while IFS= read -r cand; do
+      [ -n "$cand" ] || continue
+      if [ "$scanned" -lt 24 ]; then
+        scanned=$((scanned + 1))
+        # -i: the ask writes a name in prose ("Laravel", "Payment") and the repo writes
+        # it as a slug, a column or a class (`laravel/framework`, `payments`). Case is
+        # not the signal for "this already exists here", and a case-sensitive miss put
+        # `Laravel` back in the ledger of a Laravel project.
+        git -C "$root" grep -qliF -- "$cand" >/dev/null 2>&1
+        case $? in
+          0) continue ;;
+          1) ;;
+          *) command -v rg >/dev/null 2>&1 \
+               && rg -qiF --max-count 1 -- "$cand" "$root" >/dev/null 2>&1 && continue ;;
+        esac
+      fi
+      kept="${kept}${cand}
+"
+    done < "$dir/new"
+    printf '%s' "$kept" > "$dir/new" 2>/dev/null
+    [ -s "$dir/new" ] || exit 0
+  fi
+
   touch "$dir/entries"
   added=$(awk -v ef="$dir/entries" 'FILENAME==ef { seen[tolower($0)]=1; n++; next } !(tolower($0) in seen) && n+c<12 { c++; print }' "$dir/entries" "$dir/new")
   [ -n "$added" ] || exit 0

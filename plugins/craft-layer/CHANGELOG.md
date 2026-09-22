@@ -7,6 +7,40 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.52.0
+
+### Added
+- **`template/craft-gates/playwright.config.ts` — the gate suite can now actually be run.**
+  `commands/audit.md` step 4 said run from the plugin, never a copy, and then gave a bare
+  `npx playwright test`. Playwright has no `--spec` flag, so that command scanned the
+  PROJECT's testDir, found no craft gate and exited 0 — a gate never run, reported green.
+  The config pins the spec's own directory as the testDir and the project's
+  `.craft-layer/` as the output dir, so nothing is written into the installed plugin.
+  Measured against a throwaway page on 2026-09-22: bare → `Error: No tests found`;
+  `--config` alone → MODULE_NOT_FOUND; `--config` plus `NODE_PATH=<project>/node_modules`
+  → 21 tests, 12 screenshots in `<project>/.craft-layer/shots/`.
+- **A Vocabulary table in the README.** spine, archetype, draw, move, genus, concept deck,
+  register gate and section ledger carried load on every page of the docs and none was
+  defined where a reader meets it; `genus` was defined nowhere at all, and now is, in
+  `concept-deck.md` beside the `Banned genus:` key that is the only place a run must name one.
+
+### Fixed
+- **`gates.spec.ts` told you to copy the gates into your project; `commands/audit.md` told
+  you never to.** The header now carries the run-from-the-plugin invocation, including the
+  `NODE_PATH` without which the spec's own imports resolve from a directory that has no
+  `node_modules`.
+- **Corpus freshness was the file's mtime, so the gate overstated it.** `divergence.mjs`
+  printed `2026-09-16` for a register corpus whose own text says `Last verified: 2026-07-26`
+  — 52 days — and would print the clone date in a fresh checkout. It now reads the corpus's
+  own `verified:` line, and a corpus carrying no stamp is reported `<date> (unstamped, mtime)`
+  rather than handed a date it never claimed. The anti-corpus registry is currently in that
+  second state and now says so.
+
+### Changed
+- **The twelve `fixture-*.html` control pages moved to `scripts/__tests__/fixtures/`.** 64K
+  shipped to every installer, inside the directory audit.md says to run from and never to
+  copy, read by nothing but the harness beside which they now sit.
+
 ## 0.51.1
 
 ### Fixed

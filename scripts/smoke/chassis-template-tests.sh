@@ -61,6 +61,7 @@ if render "$TPL/review-command.md.tmpl" "$SAMPLES/stack-review-lang.json" "$L"; 
   expect_has "$L" "backend-engineer → task-runner:task-executor if installed → inline" "lang: workerChain stamped"
   expect_absent "$L" "design-doc review" "lang: concern affordance dropped"
   expect_has "$L" "skill from this plugin" "lang: local skillHome branch rendered"
+  expect_absent "$L" "diverges from the house default" "lang: empty divergencePreamble renders nothing"
 fi
 
 # ---- review command: skill owned by ANOTHER plugin -----------------------------
@@ -86,6 +87,7 @@ if render "$TPL/review-command.md.tmpl" "$SAMPLES/stack-review-concern.json" "$C
   expect_has "$C" "section/heading for a design-doc review" "concern: design-doc locator affordance kept"
   expect_has "$C" "observability-engineer → task-runner:task-executor if installed → inline" "concern: workerChain stamped"
   expect_absent "$C" "https://laravel.com/docs" "concern: lang block dropped"
+  expect_has "$C" "diverges from the house default" "concern: divergencePreamble rendered inside its {{#if}}"
 fi
 
 # ---- worker agent -------------------------------------------------------------
@@ -221,6 +223,58 @@ if bash "$MIR/scripts/generate.sh" --check >/dev/null 2>"$WORK/chk0.err" && ! gr
 else
   fail "lane-block-control" "pristine mirror --check already reports drift: $(grep 'DRIFT' "$WORK/chk0.err" | head -3)"
 fi
+# ---- injected-key parity: the samples must carry what generate.sh ENRICHES ----------
+# THE FAILURE THIS CATCHES. generate.sh computes keys and adds them to the manifest
+# before rendering, so `--check` can never see a manifest missing one and no
+# .chassis.json on disk contains them at all. This harness feeds the FROZEN samples to
+# the engine raw, so the samples must carry every injected key literally — and twice
+# now they have not: `skillHome` on 2026-08-25 (all four gates green, this harness red,
+# the branch pushed that way) and `divergencePreamble` again on 2026-09-22, invisible
+# because review-command.md.tmpl:8-9 wraps it in `{{#if}}`, which renders nothing rather
+# than erroring on an absent key. The key list is READ OUT of generate.sh's enrichment
+# jq, not restated here, so adding a seventh key fails this assert on the next run.
+#
+# WHAT IT DOES NOT CATCH: enrichment done anywhere other than that one jq expression
+# (per-kind renderers compute their own values), whether an injected key is rendered by
+# any template, or whether a sample's VALUE is representative. It asserts presence.
+INJECTED="$(python3 - "$REPO_ROOT/scripts/generate.sh" <<'PY'
+import re, sys
+src = open(sys.argv[1]).read()
+m = re.search(r"'\. \+ \{(.*?)\}' > \"\$dfile\"", src, re.S)
+if not m:
+    sys.stderr.write("no `. + {...}' > \"$dfile\"` enrichment found in generate.sh\n"); sys.exit(1)
+depth, buf, keys = 0, "", []
+for ch in m.group(1):
+    if ch in "({[":
+        depth += 1; continue
+    if ch in ")}]":
+        depth -= 1; continue
+    if depth == 0:
+        if ch == ",":
+            buf = ""; continue
+        if ch == ":":
+            k = buf.strip()
+            if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", k):
+                keys.append(k)
+            buf = ""; continue
+        buf += ch
+if "skillHome" not in keys:
+    sys.stderr.write("matched the wrong jq expression: %r\n" % keys); sys.exit(1)
+print(" ".join(keys))
+PY
+)" || fail "injected-key-parity" "could not read the enrichment key list out of generate.sh"
+if [[ -n "$INJECTED" ]]; then
+  inj_ok=1
+  for s in "$SAMPLES"/*.json; do
+    [[ "$(jq -r '.chassis' "$s")" == "stack-review" ]] || continue
+    for k in $INJECTED; do
+      jq -e --arg k "$k" 'has($k)' "$s" >/dev/null 2>&1 && continue
+      fail "injected-key-parity $(basename "$s")" "generate.sh injects \`$k\`; the frozen sample does not carry it"; inj_ok=0
+    done
+  done
+  [[ $inj_ok == 1 ]] && pass "injected-key-parity (every stack-review sample carries all of: $INJECTED)"
+fi
+
 # Sample `lane` keys are inert to the templates (no template names them); assert their
 # schema here so a key rename in generate.sh cannot round-trip green past the samples.
 lane_ok=1

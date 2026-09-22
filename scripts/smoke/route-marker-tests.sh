@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Smoke tests for skill-router route.sh stack_marker evaluation: marker match
 # fires / mismatch suppresses / absent manifest fires (fail-open) / negation /
-# malformed regex fires / markerless rows unchanged / hook stays fail-open.
+# malformed regex fires / markerless rows unchanged / hook stays fail-open /
+# `@base` (basename) and `@path` (payload path) pseudo-manifests / the
+# `||!@base~.` default-deny tail, which is the one construct that REVERSES the
+# absent-manifest default and therefore cannot be read off the other cases.
 # Uses a scratch CLAUDE_PLUGIN_ROOT and scratch cwds — never the live rules.tsv
 # or any real .claude state.
 set -euo pipefail
@@ -37,6 +40,14 @@ printf 'glob\t**/Pages/**\tcase-canary\tmisc\thigh\n' >> "$PR/rules.tsv"
 printf 'glob\t*.js\tbase-canary\tmisc\thigh\t!@base~(^[a-z0-9_.-]*\\.config\\.[cm]?js$|\\.min\\.js$)\n' >> "$PR/rules.tsv"
 # positive form: fire ONLY on a basename shape, chained after a manifest alternative
 printf 'glob\t*.py\tbasepos-canary\tmisc\thigh\tnosuchfile.json~x||@base~^test_\n' >> "$PR/rules.tsv"
+# @path marker: the ERE runs against the edited file's PATH, so a row can exclude a
+# DIRECTORY. `@base` cannot: `dist/index.html` and `src/index.html` share a basename.
+printf 'glob\t*.html\tpath-canary\tmisc\thigh\t!@path~(^|/)(dist|build)/\n' >> "$PR/rules.tsv"
+# DEFAULT-DENY TAIL: `||!@base~.` after a manifest alternative. A basename is never
+# empty, so the tail is always decisive — it converts marker_ok's default-FIRE (no
+# decisive alternative) into a default-SUPPRESS when the manifest is absent. This is
+# what keeps a framework row off a repo that has no manifest at all.
+printf 'glob\t*.jsx\tdeny-canary\tmisc\thigh\tpackage.json~"denydep"||!@base~.\n' >> "$PR/rules.tsv"
 
 mkdir -p "$TMP/vue3cwd" "$TMP/vue2cwd" "$TMP/emptycwd" "$TMP/laravelcwd"
 echo '{"dependencies":{"vue":"^3.2.4"}}'   > "$TMP/vue3cwd/package.json"
@@ -93,6 +104,30 @@ out=$(route "$TMP/emptycwd" tests/test_thing.py)
 expect "@base positive after indecisive manifest alt: fires on shape" "$out" 'basepos-canary' ''
 out=$(route "$TMP/emptycwd" src/thing.py)
 expect "@base positive: non-matching shape suppressed" "$out" '' 'basepos-canary'
+
+# @path: same basename, different directory — the distinction @base cannot make.
+out=$(route "$TMP/emptycwd" src/index.html)
+expect "@path negated: source path fires" "$out" 'path-canary' ''
+out=$(route "$TMP/emptycwd" dist/index.html)
+expect "@path negated: built output suppressed" "$out" '' 'path-canary'
+out=$(route "$TMP/emptycwd" packages/web/build/index.html)
+expect "@path negated: nested build dir suppressed ((^|/) anchor)" "$out" '' 'path-canary'
+out=$(route "$TMP/emptycwd" src/redistribute/index.html)
+expect "@path negated: 'dist' inside a longer segment still fires" "$out" 'path-canary' ''
+
+# default-deny tail: with no package.json the first alternative is indecisive and the
+# tail decides — suppress. With the dependency present the first alternative is
+# decisive and the tail is never reached.
+out=$(route "$TMP/emptycwd" src/App.jsx)
+expect "default-deny tail: no manifest suppresses (not the fail-open default)" "$out" '' 'deny-canary'
+mkdir -p "$TMP/denycwd"
+echo '{"dependencies":{"denydep":"^1.0.0"}}' > "$TMP/denycwd/package.json"
+out=$(route "$TMP/denycwd" src/App.jsx)
+expect "default-deny tail: the manifest alternative still decides first" "$out" 'deny-canary' ''
+mkdir -p "$TMP/denyothercwd"
+echo '{"dependencies":{"other":"^1.0.0"}}' > "$TMP/denyothercwd/package.json"
+out=$(route "$TMP/denyothercwd" src/App.jsx)
+expect "default-deny tail: manifest present without the dep suppresses" "$out" '' 'deny-canary'
 # The state dir must ignore itself (0.16.0) — the README claimed "(gitignored)" for
 # as long as the file existed and nothing made it so.
 printf '{"session_id":"s%s","cwd":"%s","tool_input":{"file_path":"%s"}}' "$RANDOM$RANDOM" "$TMP/emptycwd" src/state.js \

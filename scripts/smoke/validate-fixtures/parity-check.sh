@@ -157,6 +157,7 @@ rassert_hit   violation-skill-name.md          # removed skill name, word-bounde
 rassert_hit   violation-install-target.md      # name@marketplace install pointer
 rassert_hit   violation-routing-arrow.md       # "→ name" fan-in routing row
 rassert_hit   violation-claude-api.md          # claude-api as if a marketplace skill
+rassert_hit   violation-stamp-line-plugin-ref.md # a real plugin ref on a stamp line is still caught
 
 # RESCUES — honest wording stays legal without a marker.
 rassert_clean rescued-claude-api-builtin.md    # "built-in" on the same line
@@ -164,6 +165,7 @@ rassert_clean rescued-claude-api-external.md   # "external" on the same line
 rassert_clean rescued-claude-api-harness.md    # shipped wrapped disclosure line
 rassert_clean rescued-removal-discussion.md    # "was removed"/"plugins were"/"no longer"
 rassert_clean clean-ordinary-english.md        # rollout/concurrency/etc. as plain English
+rassert_clean rescued-npm-version-stamp.md     # npm:<pkg>@<ver> in a Last-verified stamp is a package, not a plugin
 
 # ESCAPE HATCH — <!-- removed-ok --> suppresses a would-be hit.
 rassert_clean rescued-removed-ok-marker.md

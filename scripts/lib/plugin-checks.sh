@@ -147,6 +147,102 @@ pc_hook_timeout() {
   return $bad
 }
 
+# pc_hook_shebang <plugins_root>
+# Every script a hooks.json registers as a `command` must start `#!/bin/bash`.
+# Prints one "hook-shebang <plugin>:<script> <first line>" per offender; returns 1.
+#
+# WHY THIS EXISTS. The fail-open guarantee these hooks sell is written into six of
+# their own headers in almost identical words — "the fail-open guarantee must hold
+# even under a stripped/broken PATH, where `/usr/bin/env bash` itself exits 127".
+# That is a doctrine the repo asserts and nothing reads back: counted 2026-09-22
+# (OPS 7, rationale/specialist-panel-2026-09-22.md #46), 11 of 53 registered hooks
+# used `#!/usr/bin/env bash`, two of them decision-capable — taskmaster's and
+# ui-ux's `preview-guard.sh`, both of which can return a DENY verdict. A guard that
+# cannot start is a guard that allows, and the exit code it never produced looks
+# exactly like an allow on the host side. This is the four laws' theater test
+# applied to a claim six files make about themselves.
+#
+# WHAT IT DOES NOT CATCH, stated because the header it enforces over-claims:
+#   - anything about the hook's BEHAVIOUR on a broken PATH. `/bin/bash` starting is
+#     necessary, not sufficient: the script's own `jq`/`python3` calls still go
+#     through PATH, and whether each of those is guarded is agent-graded.
+#   - a host where `/bin/bash` is absent (NixOS, some containers). There the
+#     absolute path is the WRONG choice and the escape below is the right answer —
+#     the check has an opinion, not a proof.
+#   - scripts a hook SOURCES or execs. Only the `command` string in hooks.json is
+#     resolved; a helper under `scripts/` reached from inside a hook is invisible.
+#   - non-hook scripts. A plugin's `scripts/*.sh` is run by a model or a human with
+#     a working PATH and is deliberately out of scope.
+#   - jq-dependent, like its siblings here. No jq, no check — it returns 0.
+#
+# ESCAPE: `# env-shebang-ok: <reason>` on any line of the hook. A reason that
+# earns it names the host or the interpreter — "NixOS has no /bin/bash", "runs
+# under a pinned bash 5 from brew" — not "portability", which is the claim the
+# absolute path is already making.
+pc_hook_shebang() {
+  local root="${1:-plugins}" bad=0 hj d p sh rel first
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      rel=$(basename "$sh")
+      IFS= read -r first < "$sh" || true
+      case "$first" in '#!/bin/bash'*) continue ;; esac
+      grep -qF 'env-shebang-ok:' "$sh" 2>/dev/null && continue
+      printf 'hook-shebang %s:%s %s\n' "$p" "$rel" "$first"
+      bad=1
+    done <<EOF
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
+         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+EOF
+  done <<EOF
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
+  return $bad
+}
+
+# pc_command_arg_hint <plugins_root>
+# A `commands/*.md` whose BODY reads `$ARGUMENTS` or a positional `$1` must declare
+# `argument-hint:` in its frontmatter. Prints one "command-arg-hint <plugin>:<cmd>"
+# per offender; returns 1.
+#
+# WHY THIS EXISTS. The hint is what the host shows in the slash-command menu as the
+# command is typed: with it the user reads `/ui-ux:audit [files-or-diff]`, without it
+# they read `/ui-ux:audit` and then guess. `.claude/skills/authoring-commands/SKILL.md:31`
+# has said "expected whenever the command takes input" since it was written, and the
+# 2026-09-22 panel (UX 11, rationale/specialist-panel-2026-09-22.md #49) found three
+# commands reading `$ARGUMENTS` with no hint — `api-design:drift`, `task-runner:plan`
+# and `ui-ux:audit`, the last of which is advertised as taking `[files-or-diff]` in its
+# own plugin README. 26 of 29 commands had it: a convention everyone followed and
+# nothing checked, which is the shape a gate is cheap for.
+#
+# WHAT IT DOES NOT CATCH:
+#   - whether the hint DESCRIBES the arguments. `argument-hint: [x]` on a command
+#     taking a PR number passes. Accuracy is agent-graded, presence is gated.
+#   - a command that takes input without naming `$ARGUMENTS` — one that tells the
+#     model in prose to "read what follows the command". Nothing here can see that.
+#   - a `$1` inside a fenced code block that is shell the command tells the user to
+#     run, not an argument reference. That direction over-reports rather than under-,
+#     which is the right way for a gate to be wrong; no offender in this tree hits it.
+#   - the host's own commands, which this never reads — plugins only.
+pc_command_arg_hint() {
+  local root="${1:-plugins}" bad=0 f p body
+  for f in "$root"/*/commands/*.md; do
+    [ -f "$f" ] || continue
+    p=$(basename "$(dirname "$(dirname "$f")")")
+    body=$(awk 'BEGIN{n=0} /^---$/{n++; next} n>=2{print}' "$f")
+    printf '%s' "$body" | grep -qE '\$ARGUMENTS|\$[0-9]' || continue
+    awk 'BEGIN{n=0} /^---$/{n++; next} n==1{print}' "$f" | grep -q '^argument-hint:' && continue
+    printf 'command-arg-hint %s:%s\n' "$p" "$(basename "$f" .md)"
+    bad=1
+  done
+  return $bad
+}
+
 # pc_budget_crowding <plugins_root> <baseline_file>
 # Corpus-level companion to pc_skill_budget. Counts skill bodies within 3 lines
 # of the LINE ceiling (200 since 2026-08-27, so >=198) and fails if that count
@@ -512,7 +608,18 @@ pc_removed_refs() {
   #   "`error-handling` and `concurrency` plugins were / merged into this one"
   #   "**vue2** (Vue 2 is EOL) is no longer bundled"   (frontend-suite README)
   rescue="(was|were|been|are|is) (removed|merged|retired)|merged into|no longer|plugins? (were|was)($b|\$)"
+  # NPM TAIL OF A `Last verified` STAMP, blanked before matching. `$bm` excludes
+  # `/@.-` so a package path cannot be mistaken for a plugin reference, but NOT `:`
+  # — so `npm:vite@8` and `npm:react-native@0.82` matched `(^|$bm)($moved)@` and
+  # failed two shipped skills whose whole job is to name those packages
+  # (2026-09-22). Only the `npm:<pkg>@<ver>` TOKEN is blanked, not the stamp line
+  # and not the `:` boundary: a stale `/vite:review` or `plugins/vite` on the same
+  # line is still caught, and `install vite@cc-plugins-marketplace` after a colon
+  # anywhere else is still caught. WHAT IT NO LONGER CATCHES: a removed plugin name
+  # written in the exact shape `npm:<name>@<version>`, which is a package
+  # coordinate, not a marketplace reference — that is the point.
   hit=$(grep -vF '<!-- removed-ok -->' "$f" \
+        | sed -E 's/npm:(@[^ ]+\/)?[^ ]+@[0-9]+(\.[0-9]+)?/npm-pin/g' \
         | grep -viE "$rescue" \
         | grep -Eo "$shapes" \
         | sed -e 's/^[^[:alnum:]*]*//' -e 's/[^[:alnum:]*]*$//' | sort -u | tr '\n' ',' | sed 's/,$//')
@@ -1944,17 +2051,40 @@ EOF
 # when prime.sh names a skill the documented map does not. Proportionality, not laziness;
 # the generation entry stays open and this makes its absence survivable.
 #
-# ONE DIRECTION ONLY, deliberately. prime.sh is a cheap SessionStart probe and is meant
-# to be a SUBSET — skill-map.md carrying rows prime.sh does not is correct, not drift.
-# The failure that matters is prime.sh claiming something the map never sanctioned.
+# TWO DIRECTIONS, TIERED DIFFERENTLY. `prime-unmapped` (prime.sh claims a skill the map
+# never sanctioned) is the original failure and the hard one. `map-unprimed` (the map
+# declares a repository signal prime.sh never emits) was added 2026-09-22: the subset
+# argument above held right up until it hid a real gap — skill-map.md:25-26 declared the
+# Next.js and Vite rows and prime.sh emitted neither, so a session opened in a Next repo
+# got no nextjs-best-practices line while the documented map said it would
+# (rationale/specialist-panel-2026-09-22.md #20, WEB 6). "Meant to be a subset" and
+# "silently missing four rows" are the same shape from inside the gate, which is why
+# this direction reports rather than trusting the intent.
 #
-# Prints `prime-unmapped <skill>` per offender; returns 1 if any.
+# ASK-KEYED ROWS ARE STRUCTURALLY EXEMPT, not blessed by hand: a row whose Signal column
+# says "the ASK mentions …" keys off the user's prompt, and prime.sh is a SessionStart
+# probe that has no prompt to read. Excluding them by their own wording means the map
+# stays the single source; a hand list here would be the third copy this file warns about.
+# For anything else the map declares and the probe deliberately will not sniff, the
+# escape is the marker this repo already has — `# prime-ok: <skill>` on any line of
+# prime.sh, which clears BOTH directions. No new marker was minted: a fifteenth escape
+# in CLAUDE.md's table to say "this row is fine" is ceremony the existing one covers,
+# and the decision belongs where the probe is written, not in the map.
+#
+# WHAT NEITHER DIRECTION CATCHES: whether prime.sh's MATCHER agrees with the map's
+# Signal column. Both sides can name `tailwind-best-practices` while one fires on any
+# React dependency and the other on `"tailwindcss"` — which is the exact defect that
+# made this gate exist, and it is still only caught by reading. Generation would catch
+# it; this is the proportionate stand-in, and saying so is the point.
+#
+# Prints `prime-unmapped <skill>` and `map-unprimed <skill>` per offender; returns 1.
 pc_prime_coverage() {
-  local root="${1:-plugins}" bad=0 sk
+  local root="${1:-plugins}" bad=0 sk primed
   local prime="$root/skill-router/hooks/prime.sh"
   local map="$root/code-architecture/skills/coding-entry/references/skill-map.md"
   [ -f "$prime" ] || return 0
   [ -f "$map" ] || return 0
+  primed=$(grep -oE '(^|[;&[:space:]])add [a-z0-9-]+' "$prime" 2>/dev/null | awk '{print $NF}' | sort -u)
   while IFS= read -r sk; do
     [ -n "$sk" ] || continue
     grep -qF ":$sk\`" "$map" 2>/dev/null && continue
@@ -1962,7 +2092,17 @@ pc_prime_coverage() {
     printf 'prime-unmapped %s\n' "$sk"
     bad=1
   done <<EOF
-$(grep -oE '(^|[;&[:space:]])add [a-z0-9-]+' "$prime" 2>/dev/null | awk '{print $NF}' | sort -u)
+$primed
+EOF
+  while IFS= read -r sk; do
+    [ -n "$sk" ] || continue
+    printf '%s\n' "$primed" | grep -qxF "$sk" && continue
+    grep -qF "prime-ok: $sk" "$prime" 2>/dev/null && continue
+    printf 'map-unprimed %s\n' "$sk"
+    bad=1
+  done <<EOF
+$(grep -E '^\|' "$map" 2>/dev/null | grep -v 'the ASK' \
+  | sed -nE 's/.*\`[a-z0-9-]+:([a-z0-9-]+)\`.*/\1/p' | sort -u)
 EOF
   return $bad
 }

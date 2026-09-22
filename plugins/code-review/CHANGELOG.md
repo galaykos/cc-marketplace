@@ -3,6 +3,11 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.20.1
+
+### Fixed
+- **The stack fan-in roster omitted the CSS and accessibility analyzers.** It named phpstan/psalm/phpcs and tsc/eslint/biome/vue-tsc, so toolchain-experts' `ui-expert` — the agent whose whole job is running stylelint, pa11y, axe and lighthouse-ci — sat in no dispatch path from this command. The analyzer row now names those four tools and the agent that owns them, which by this file's own rule ("a plugin that ships a review command and is not named here is a defect in this file") it should have from the start.
+
 ## 0.20.0
 
 ### Changed

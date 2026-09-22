@@ -12,6 +12,13 @@
 # The crowding ratchet gets a directional pair specifically: a check that only
 # ever fires upward must be shown NOT firing when the number falls, or "ratchet"
 # is a claim rather than a behaviour.
+#
+# Two more checks joined them on 2026-09-22 and are exercised the same way:
+# pc_hook_shebang (a registered hook must start `#!/bin/bash`) and
+# pc_command_arg_hint (a command reading `$ARGUMENTS` must declare the hint the
+# host shows in the slash menu). The shebang one has 11 live offenders and is
+# WARN-tier in validate.sh until they land, so these fixtures are the only place
+# its FAIL path is executed at all.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT" || exit 2
@@ -189,9 +196,61 @@ printf '# smallbundle\n' > "$LD2/smallbundle/README.md"
 run pc_listing_declaration "$LD2"
 clean "an under-floor bundle needs no declaration"
 
+# --------------------------------------------------------------- pc_hook_shebang
+# Only a script a hooks.json REGISTERS is in scope, so the fixtures must go through
+# a real hooks.json — a loose .sh in hooks/ must not be read at all.
+HSOK="$FIX/hsok"; HSBAD="$FIX/hsbad"; HSMARK="$FIX/hsmark"
+mkdir -p "$HSOK/good/hooks" "$HSBAD/bad/hooks" "$HSMARK/blessed/hooks"
+hooksjson() { cat > "$1" <<EOF
+{"hooks":{"UserPromptSubmit":[{"hooks":[
+  {"type":"command","command":"\${CLAUDE_PLUGIN_ROOT}/hooks/h.sh","timeout":5}]}]}}
+EOF
+}
+hooksjson "$HSOK/good/hooks/hooks.json"
+hooksjson "$HSBAD/bad/hooks/hooks.json"
+hooksjson "$HSMARK/blessed/hooks/hooks.json"
+printf '#!/bin/bash\nexit 0\n' > "$HSOK/good/hooks/h.sh"
+run pc_hook_shebang "$HSOK"
+clean "absolute shebang — passes"
+
+printf '#!/usr/bin/env bash\nexit 0\n' > "$HSBAD/bad/hooks/h.sh"
+run pc_hook_shebang "$HSBAD"
+fails "env shebang on a registered hook — fails" "hook-shebang bad:h.sh"
+
+printf '#!/usr/bin/env bash\n# env-shebang-ok: NixOS image has no /bin/bash\nexit 0\n' > "$HSMARK/blessed/hooks/h.sh"
+run pc_hook_shebang "$HSMARK"
+clean "the env-shebang-ok marker clears it"
+
+# An UNREGISTERED script with the wrong shebang is out of scope by design.
+printf '#!/usr/bin/env bash\nexit 0\n' > "$HSOK/good/hooks/helper.sh"
+run pc_hook_shebang "$HSOK"
+clean "an unregistered hooks/*.sh is not read"
+
+# ------------------------------------------------------------ pc_command_arg_hint
+AHOK="$FIX/ahok"; AHBAD="$FIX/ahbad"; AHNONE="$FIX/ahnone"
+mkdir -p "$AHOK/good/commands" "$AHBAD/bad/commands" "$AHNONE/noargs/commands"
+printf -- '---\ndescription: d\nargument-hint: [path]\n---\n\nReview $ARGUMENTS.\n' > "$AHOK/good/commands/c.md"
+run pc_command_arg_hint "$AHOK"
+clean "\$ARGUMENTS with a hint — passes"
+
+printf -- '---\ndescription: d\n---\n\nReview $ARGUMENTS.\n' > "$AHBAD/bad/commands/c.md"
+run pc_command_arg_hint "$AHBAD"
+fails "\$ARGUMENTS with no hint — fails" "command-arg-hint bad:c"
+
+printf -- '---\ndescription: d\n---\n\nRun the audit over the working tree.\n' > "$AHNONE/noargs/commands/c.md"
+run pc_command_arg_hint "$AHNONE"
+clean "a command taking no arguments needs no hint"
+
+# `argument-hint` in the BODY is not a declaration — the host reads frontmatter.
+printf -- '---\ndescription: d\n---\n\nSet argument-hint: [path] one day. Review $ARGUMENTS.\n' > "$AHBAD/bad/commands/c.md"
+run pc_command_arg_hint "$AHBAD"
+fails "the key in the body does not count" "command-arg-hint bad:c"
+
 # ------------------------------------------------------------------ live tree
 run pc_hook_timeout plugins
 clean "shipped tree: every hook entry declares a timeout"
+run pc_command_arg_hint plugins
+clean "shipped tree: every \$ARGUMENTS command declares an argument-hint"
 run pc_budget_crowding plugins scripts/skill-crowding-baseline.json
 clean "shipped tree: crowding at or below the committed baseline"
 run pc_listing_declaration plugins

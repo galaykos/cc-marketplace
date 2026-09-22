@@ -612,7 +612,7 @@ case "$cmd" in
         # The rigour profile says whether the code red-team is worth buying here; the marker says whether it was.
         # `Goal: true (boost=off)` is taskmaster's goal-lean (≥0.42.1, task-runner ≥0.32.0): hands-off without the boost.
         if [ -n "$idx" ]; then
-          # head -40, not -12: index-markers.md lets an upgraded-statement blockquote sit above the markers
+          # head -40, not -12: task-cards/SKILL.md lets an upgraded-statement blockquote sit above the markers
           if head -40 "$idx" | grep -E '^(Goal|Ultra): *true' | grep -qv 'boost=off'; then
             if in_list "$mrig" lean standard; then
               if [ "$hands" = true ]; then warn="$warn

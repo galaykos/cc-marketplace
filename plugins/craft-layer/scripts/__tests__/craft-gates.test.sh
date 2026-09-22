@@ -12,6 +12,11 @@
 # and then verified BY HAND, once, by whoever wrote it. This makes them execute.
 #
 # Four sections:
+# The fixtures live HERE, beside this harness, not in template/craft-gates/. They
+# are this file's inputs and nothing else reads them, so shipping 64K of them to
+# every installer inside the directory commands/audit.md says to run from — and
+# never to copy — bought nobody anything (moved 2026-09-22).
+#
 #   1. FIXTURE CONTROLS — each defective fixture must FAIL the check it was
 #      built to trip, and its clean twin must PASS. A gate that greens both is
 #      measuring nothing; a gate that reds both is a gate nobody will keep on.
@@ -32,12 +37,14 @@ set -u
 
 here=$(cd "$(dirname "$0")" && pwd)
 GATES="$here/../../template/craft-gates"
+FIXTURES="$here/fixtures"
 DIVERGENCE="$GATES/divergence.mjs"
 CONTRAST="$GATES/contrast.mjs"
 repo_root=$(cd "$here" && git rev-parse --show-toplevel 2>/dev/null || echo "")
 
 [ -f "$DIVERGENCE" ] || { printf 'FAIL: divergence.mjs not found at %s\n' "$DIVERGENCE"; exit 1; }
 [ -f "$CONTRAST" ]   || { printf 'FAIL: contrast.mjs not found at %s\n' "$CONTRAST"; exit 1; }
+[ -d "$FIXTURES" ]   || { printf 'FAIL: control fixtures not found at %s\n' "$FIXTURES"; exit 1; }
 command -v node >/dev/null 2>&1 || { printf 'SKIP: node not installed\n'; exit 0; }
 
 WS=$(mktemp -d); trap 'rm -rf "$WS"' EXIT
@@ -122,10 +129,10 @@ state_of() {
 # a gate that returns the same verdict for both has stopped measuring shape.
 for pair in "fixture-shape.html:FAIL" "fixture-shape-clean.html:PASS"; do
   fx=${pair%%:*}; want=${pair##*:}
-  [ -f "$GATES/$fx" ] || { bad "composition-shape fixture missing" "$fx"; continue; }
+  [ -f "$FIXTURES/$fx" ] || { bad "composition-shape fixture missing" "$fx"; continue; }
   d="$WS/shape-${want}"; mkdir -p "$d"
   write_tokens "$d"
-  cp "$GATES/$fx" "$d/page.html"
+  cp "$FIXTURES/$fx" "$d/page.html"
   out=$(run_divergence "$d")
   got=$(state_of "$out" composition-shape)
   if [ "$got" = "$want" ]; then ok; else
@@ -136,7 +143,7 @@ done
 
 # The defective shape fixture must make the RUN fail, not merely report a FAIL
 # row. A gate whose failing assertion still exits 0 cannot block anything.
-d="$WS/shape-exit"; mkdir -p "$d"; write_tokens "$d"; cp "$GATES/fixture-shape.html" "$d/page.html"
+d="$WS/shape-exit"; mkdir -p "$d"; write_tokens "$d"; cp "$FIXTURES/fixture-shape.html" "$d/page.html"
 out=$(run_divergence "$d")
 if printf '%s\n' "$out" | grep -q 'EXIT=1'; then ok; else
   bad "defective shape fixture did not exit 1" "$(printf '%s\n' "$out" | tail -3)"
@@ -162,10 +169,10 @@ reg_regions() { # fixture -> the Spine regions: value
 }
 for pair in "fixture-register.html:FAIL" "fixture-register-clean.html:PASS" "fixture-register-falsepos.html:PASS"; do
   fx=${pair%%:*}; want=${pair##*:}
-  [ -f "$GATES/$fx" ] || { bad "spine-register fixture missing" "$fx"; continue; }
+  [ -f "$FIXTURES/$fx" ] || { bad "spine-register fixture missing" "$fx"; continue; }
   d="$WS/reg-${fx%%.html}"; mkdir -p "$d/craft"
   write_tokens "$d"
-  cp "$GATES/$fx" "$d/page.html"
+  cp "$FIXTURES/$fx" "$d/page.html"
   # spine-register needs the build task's `Spine regions:` line to know which
   # region answers which slot; without it the check SKIPs and measures nothing.
   printf 'Spine regions: %s\n' "$(reg_regions "$fx")" > "$d/craft/build-task.md"
@@ -191,10 +198,10 @@ done
 # the customer's voice and the legal line, not the build's icon decision.
 for pair in "fixture-emoji.html:FAIL" "fixture-emoji-clean.html:PASS" "fixture-emoji-falsepos.html:PASS"; do
   fx=${pair%%:*}; want=${pair##*:}
-  [ -f "$GATES/$fx" ] || { bad "emoji-as-icon fixture missing" "$fx"; continue; }
+  [ -f "$FIXTURES/$fx" ] || { bad "emoji-as-icon fixture missing" "$fx"; continue; }
   d="$WS/emoji-${fx%%.html}"; mkdir -p "$d"
   write_tokens "$d"
-  cp "$GATES/$fx" "$d/page.html"
+  cp "$FIXTURES/$fx" "$d/page.html"
   out=$(run_divergence "$d")
   got=$(state_of "$out" emoji-as-icon)
   if [ "$got" = "$want" ]; then ok; else
@@ -208,7 +215,7 @@ done
 # the lane is actually connected.
 d="$WS/emoji-waived"; mkdir -p "$d/.craft-layer"
 write_tokens "$d"
-cp "$GATES/fixture-emoji.html" "$d/page.html"
+cp "$FIXTURES/fixture-emoji.html" "$d/page.html"
 cat > "$d/.craft-layer/waivers.json" <<'JSON'
 [{ "check": "emoji-as-icon", "value": "*", "reason": "the brief reproduces user chat messages verbatim, emoji included" }]
 JSON
@@ -225,10 +232,10 @@ fi
 # on a single word would turn it into a vocabulary ban.
 for pair in "fixture-copy.html:FAIL" "fixture-copy-clean.html:PASS"; do
   fx=${pair%%:*}; want=${pair##*:}
-  [ -f "$GATES/$fx" ] || { bad "copy-register fixture missing" "$fx"; continue; }
+  [ -f "$FIXTURES/$fx" ] || { bad "copy-register fixture missing" "$fx"; continue; }
   d="$WS/copy-${fx%%.html}"; mkdir -p "$d"
   write_tokens "$d"
-  cp "$GATES/$fx" "$d/page.html"
+  cp "$FIXTURES/$fx" "$d/page.html"
   out=$(run_divergence "$d")
   got=$(state_of "$out" copy-register)
   if [ "$got" = "$want" ]; then ok; else
@@ -503,7 +510,7 @@ fi
 
 # Optional artifacts absent must not crash the gate (exit 0/1/2 are all verdicts;
 # anything else is a stack trace reaching the user).
-d="$WS/bare"; mkdir -p "$d"; write_tokens "$d"; cp "$GATES/fixture-shape-clean.html" "$d/page.html"
+d="$WS/bare"; mkdir -p "$d"; write_tokens "$d"; cp "$FIXTURES/fixture-shape-clean.html" "$d/page.html"
 out=$(run_divergence "$d")
 code=$(printf '%s\n' "$out" | sed -n 's/^EXIT=//p')
 case "$code" in
@@ -515,7 +522,7 @@ if printf '%s\n' "$out" | grep -qE 'Error:|at Object\.|node:internal'; then
 else ok; fi
 
 # The gates must never write into the tree they measure.
-d="$WS/readonly"; mkdir -p "$d"; write_tokens "$d"; cp "$GATES/fixture-shape-clean.html" "$d/page.html"
+d="$WS/readonly"; mkdir -p "$d"; write_tokens "$d"; cp "$FIXTURES/fixture-shape-clean.html" "$d/page.html"
 before=$( cd "$d" && find . -type f | sort )
 run_divergence "$d" >/dev/null
 after=$( cd "$d" && find . -type f | sort )

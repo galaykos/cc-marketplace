@@ -32,10 +32,6 @@ expect() { # $1 label, $2 output, $3 must-contain ('' = skip), $4 must-not-conta
   if [ -n "$no"  ]; then case "$out" in *"$no"*)  ok=0 ;; esac; fi
   if [ "$ok" -eq 1 ]; then echo "PASS: $label"; else echo "FAIL: $label — got: ${out:-<empty>}"; rc=1; fi
 }
-expect_eq() { # $1 label, $2 actual, $3 expected
-  if [ "$2" = "$3" ]; then echo "PASS: $1"; else echo "FAIL: $1 — expected '$3', got '$2'"; rc=1; fi
-}
-
 # Scratch rules: one row per owning plugin, so "installed" and "absent" are
 # distinguishable by which nudge appears. Never the live rules.tsv.
 write_rules() { # $1 destination file
@@ -103,17 +99,12 @@ for layout in flat versioned; do
   expect "[$layout] absent plugin's rule is suppressed" "$out" '' 'vl-absent-canary'
   expect "[$layout] nudge names the resolvable SKILL.md" "$out" 'skills/vl-present-canary/SKILL.md' ''
 
-  # Catalog: exactly one line per plugin, whatever the cache holds.
-  # Fresh session id per invocation: route-prompt.sh injects its catalog ONCE per
-  # session and records that in a TMPDIR marker that outlives the process, so a
-  # fixed id would make every run after the first silently assert nothing.
-  cat_cwd="$TMP/catcwd-$layout"; mkdir -p "$cat_cwd"
-  cout=$(jq -n --arg cwd "$cat_cwd" --arg sid "cat-$layout-$RANDOM$RANDOM" \
-      '{hook_event_name:"UserPromptSubmit",session_id:$sid,cwd:$cwd,prompt:"implement a dashboard component"}' \
-    | CLAUDE_PLUGIN_ROOT="$pr" bash "$pr/hooks/route-prompt.sh" 2>/dev/null || true)
-  expect "[$layout] catalog lists the installed command" "$cout" '/vlpresent:vlcmd' ''
-  expect_eq "[$layout] catalog lists it exactly once" \
-    "$(printf '%s\n' "$cout" | grep -c -- '- /vlpresent:vlcmd' || true)" "1"
+  # A catalog pair stood here: route-prompt.sh listed the installed command exactly
+  # once, under both layouts. The hook stopped building a catalog on 2026-09-22 — it
+  # points at the host's own listing, which resolves both layouts itself — so there is
+  # no per-layout catalog left to read. What the pair was really guarding, that the
+  # install layout does not change what the router can SEE, is still asserted by the
+  # three route.sh cases above and the prime.sh case below, which read the same cache.
 
   # prime.sh: a .tsx repo asks for a11y-audit, owned by the `ui-ux` plugin, which
   # this fixture does NOT install — the include-filter must still say no.

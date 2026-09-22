@@ -47,7 +47,7 @@ confirmation when it introduces data loss or a lock hazard:
 
 | Tier | Shapes | Standing |
 |---|---|---|
-| data loss | `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE`, an unqualified `DELETE`/`UPDATE` with no `WHERE`; Laravel's `Schema::drop*(`; the same statement as spelled by Prisma, Drizzle, TypeORM, Doctrine, Knex and Alembic (`dropTable`, `drop_table`, `dropSchema`, `drop_all`, …); and the NoSQL twins — `deleteMany`/`updateMany`/`remove` with an empty filter, `.drop()`/`.dropCollection()`/`.dropDatabase()` | **ask** — `permissionDecision: "ask"`, fixtures in `scripts/__tests__/guard.test.sh` |
+| data loss | `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE`, an unqualified `DELETE`/`UPDATE` with no `WHERE`; Laravel's `Schema::drop*(`; the same statement as spelled by Prisma, Drizzle, TypeORM, Doctrine, Knex, Alembic, Rails, GORM and Django (`dropTable`, `drop_table :users`, `dropSchema`, `drop_all`, `DeleteModel`, `RemoveField`, `DeleteField`, …), matched case-insensitively; and the NoSQL twins — `deleteMany`/`updateMany`/`remove` with an empty filter, a bare `deleteMany()`, `.drop()`/`.dropCollection()`/`.dropDatabase()` | **ask** — `permissionDecision: "ask"`, fixtures in `scripts/__tests__/guard.test.sh` |
 | lock hazard | `CREATE INDEX` without `CONCURRENTLY`, a table-rewriting `ALTER` (column TYPE change, `SET NOT NULL`), a DynamoDB `Scan` on a path that is not a script/migration/seed/test | **ask** — same tier, different message |
 | everything else in `sql-best-practices` | expand→migrate→contract ordering, index choice, pool sizing, rollback notes | **agent-graded** — a reviewer applies them; no script does |
 
@@ -56,8 +56,12 @@ any error. `CC_DB_GUARD=off` disables it for the session, and the ask message sa
 so. Two things it deliberately does not reach: a **rename** of a column or table
 (that rule is `sql-best-practices` § Migrations, agent-graded), and documentation —
 `.md`, `.mdx`, `.markdown`, `.txt`, `.rst` and anything under `taskmaster-docs/`
-exit early, because a card that quotes a migration executes nothing and an
-unanswerable `ask` stalls a headless run. A destructive statement typed at a shell
+exit early, because a card that quotes a migration executes nothing and, with no
+interactive prompt to answer — `claude -p`, a headless agent, a `dontAsk` session — an
+`ask` is **auto-denied**, not held open: one quoted migration would fail the turn.
+(Standing: **recorded**. No hook payload field says whether a prompt can be shown, so
+nothing here detects headless mode; see command-guard's README, *Running headless / in
+CI*.) A destructive statement typed at a shell
 rather than written to a file is `command-guard`'s territory, which is the
 `yields_to` edge in `lane.tsv`.
 

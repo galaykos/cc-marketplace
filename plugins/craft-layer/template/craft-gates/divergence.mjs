@@ -55,6 +55,22 @@ const SNAPSHOT = {
    the same tell either way. */
 const DEFAULT_BAND = [275, 315]
 
+/** A corpus's OWN freshness stamp — its `verified:` line — never the file's mtime.
+    mtime is the date the BYTES last moved, which is not the date a human last
+    reviewed the list: on the shipped tree it printed 2026-09-16 for a corpus whose
+    own text says `Last verified: 2026-07-26`, overstating freshness by 52 days, and
+    in a fresh clone it prints the clone date for every corpus ever written. That
+    number is the only thing a reader has to decide whether to trust the gate.
+
+    A corpus carrying no stamp is reported as unstamped rather than handed a date it
+    never claimed. LIMIT: this proves the file SAYS it was verified then — nothing
+    here can check that it was, and a stamp nobody updates ages silently. */
+function corpusDate(text, path) {
+  const m = text.match(/verified:\s*(\d{4}-\d{2}-\d{2})/i)
+  if (m) return m[1]
+  return `${statSync(path).mtime.toISOString().slice(0, 10)} (unstamped, mtime)`
+}
+
 function loadAntiCorpus() {
   const root = process.env.CLAUDE_PLUGIN_ROOT
   if (root) {
@@ -65,7 +81,7 @@ function loadAntiCorpus() {
       return {
         source: p,
         kind: 'live registry',
-        date: statSync(p).mtime.toISOString().slice(0, 10),
+        date: corpusDate(text, p),
         familyText: m ? m[0] : text,
       }
     }
@@ -399,8 +415,9 @@ const waiverFor = (waivers, check, value) => waivers.find((w) =>
  * `craft/build-task.md`'s `Spine regions:` line. Mapping, corpus and declared
  * limits: skills/creative-direction/references/register-corpus.md
  *
- * `fixture-register.html` and `fixture-register-clean.html` are the pair that
- * proves this fails for the right reason: same product, same facts, same
+ * `fixture-register.html` and `fixture-register-clean.html` (in this plugin's
+ * `scripts/__tests__/fixtures/`, with the harness that runs them) are the pair
+ * that proves this fails for the right reason: same product, same facts, same
  * endpoints and the same limits list — only the register of the three buyer
  * slots differs. The clean one MUST pass; a run that fails it has become the
  * whole-page grep. `fixture-register-falsepos.html` is the third of the set: a
@@ -441,7 +458,8 @@ function loadRegisterCorpus() {
     const p = join(root, 'skills/creative-direction/references/register-corpus.md')
     if (existsSync(p)) {
       try {
-        const m = readFileSync(p, 'utf8')
+        const text = readFileSync(p, 'utf8')
+        const m = text
           .match(/<!--\s*register-corpus:start\s*-->([\s\S]*?)<!--\s*register-corpus:end\s*-->/)
         const rules = []
         for (const line of (m ? m[1] : '').split('\n')) {
@@ -452,7 +470,7 @@ function loadRegisterCorpus() {
           rules.push([parts[0].trim(), parts[1].trim(), parts.slice(2).join(' :: ').trim()])
         }
         if (rules.length) {
-          return { source: p, kind: 'live corpus', date: statSync(p).mtime.toISOString().slice(0, 10), rules }
+          return { source: p, kind: 'live corpus', date: corpusDate(text, p), rules }
         }
       } catch { /* fall through to the snapshot */ }
     }

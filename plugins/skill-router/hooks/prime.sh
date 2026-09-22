@@ -59,6 +59,18 @@
   if dep package.json '"react-native"'; then add react-native-best-practices web-dev
   fi
 
+  # next and vite: declared in skill-map.md's Frontend table since it was written and
+  # absent here, so a Next + Vite + Tailwind repo was primed with package-hygiene,
+  # a11y-audit and tailwind-best-practices and told nothing about the two skills whose
+  # whole subject is those two tools. pc_prime_coverage only checks this file against
+  # the map, never the map against this file, so the gap was structurally invisible.
+  # NOT exclusive of each other: a Next app can carry vite for its test runner, and both
+  # skills are wanted then.
+  if dep package.json '"next"'; then add nextjs-best-practices web-dev
+  fi
+  if dep package.json '"vite"'; then add vite-best-practices web-dev
+  fi
+
   # Tailwind requires an actual Tailwind signal. This line previously read
   # grep -qE '"(react|vue|@?tailwind)' — so ANY React or Vue dependency asserted
   # tailwind-best-practices on a repo with no Tailwind in it. That is the falsehood

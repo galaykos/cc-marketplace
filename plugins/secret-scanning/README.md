@@ -31,7 +31,9 @@ off-switch documented only in a changelog is not reachable by the person it exis
 - **PreToolUse hook** (`hooks/scan.sh`) — denies any `Write`/`Edit`/`MultiEdit`/
   `NotebookEdit`, or an MCP `apply_patch`/`create_new_file`, whose incoming text
   carries a high-confidence secret (cloud keys, private-key blocks, provider tokens,
-  assigned secret literals). Fail-open: any error or a missing `jq` allows the write,
+  assigned secret literals, a credential embedded in a `postgres://`/`mysql://`/
+  `mongodb://`/`redis://`/`amqp://`/`https://` URL, a Slack incoming-webhook URL).
+  Fail-open: any error or a missing `jq` allows the write,
   so the guard never wedges a session. `CC_SECRET_SCAN=off` disables it for a session.
 - **PostToolUse hook** (`hooks/unicode-scan.sh`) — **warns**, never blocks, when a file
   this session wrote *or read* carries invisible characters: zero-width
