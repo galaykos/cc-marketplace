@@ -538,6 +538,26 @@ def scan_components(root, ex):
                 ex.components.append({"name": name, "path": rel, "props": props,
                                       "variants": {k: v for k, v in variants.items()},
                                       "details": details, "gaps": gaps, "export": export})
+    # A Blade view without @props may be the template of a class component
+    # (app/View/Components/<Name>.php) whose promoted constructor parameters ARE
+    # the props — Laravel's own convention; the Blade-first walk hid it (measured
+    # 2026-09-22 on a fixture: Alert.php's type/message/dismissible read as "no props").
+    for c in ex.components:
+        if not c["path"].endswith(".blade.php") or c["props"]:
+            continue
+        cls = os.path.join(root, "app", "View", "Components", c["name"] + ".php")
+        if not os.path.isfile(cls):
+            continue
+        try:
+            ctext = open(cls, encoding="utf-8", errors="replace").read()
+        except OSError:
+            continue
+        props, variants, details, gaps = props_from_source(ctext, ".php")
+        if props:
+            c["props"] = props
+            c["details"] = details
+            c["variants"].update(variants)
+            c["gaps"] = [g for g in c["gaps"] if not g.startswith("no @props")]
     ex.components.sort(key=lambda c: (c["path"]))
 
 

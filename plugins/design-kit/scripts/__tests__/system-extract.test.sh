@@ -84,6 +84,19 @@ defineProps<{ label: string; value: number; trend?: "up" | "down" }>()
 </script>
 <template><div>{{ label }}</div></template>
 EOF
+mkdir -p "$repo/resources/views/components" "$repo/app/View/Components"
+cat > "$repo/resources/views/components/toast.blade.php" <<'EOF'
+<div class="toast toast-{{ $level }}">{{ $message ?? $slot }}</div>
+EOF
+cat > "$repo/app/View/Components/Toast.php" <<'EOF'
+<?php
+namespace App\View\Components;
+use Illuminate\View\Component;
+class Toast extends Component
+{
+    public function __construct(public string $level = 'info', public ?string $message = null, public bool $sticky = false) {}
+}
+EOF
 cat > "$repo/resources/views/components/alert.blade.php" <<'EOF'
 @props(['type' => 'info', 'dismissible' => false])
 <div {{ $attributes }}>{{ $slot }}</div>
@@ -136,6 +149,8 @@ grep -q '^- Radius: .*radius 0.5rem' "$md" || fail "radius line"
 grep -q '^| Button | `src/components/ui/button.tsx` | variant, size, asChild | .*variant: default, outline, ghost.*stories: Primary, Outline' "$md" || fail "Button row: $(grep '| Button' "$md")"
 grep -q '^| StatTile | `src/components/StatTile.vue` | label, value, trend | trend: up, down' "$md" || fail "StatTile row: $(grep StatTile "$md")"
 grep -q '^| Alert | `resources/views/components/alert.blade.php` | type, dismissible |' "$md" || fail "Alert row: $(grep Alert "$md")"
+grep -q '^| Toast | `resources/views/components/toast.blade.php` | level, message, sticky |' "$md" || fail "Toast row (class props merged): $(grep Toast "$md")"
+python3 -c "import json,sys;c=[c for c in json.load(open('$(dirname "$md")/components.json'))['components'] if c['name']=='Toast'][0];assert not any(g.startswith('no @props') for g in c['gaps']),c['gaps'];assert c['props'][0]['required'] is False" || fail "Toast gaps/required"
 grep -q 'components.json: style=new-york, baseColor=zinc' "$md" || fail "components.json note"
 grep -q '^## Not found' "$md" || fail "Not found section"
 

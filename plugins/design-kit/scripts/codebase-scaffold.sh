@@ -158,13 +158,11 @@ EOF
 EOF
     echo "open=$d_dev_url/__design-kit__/$slug" ;;
   laravel)
-    fill "resources/views/__design-kit__/$slug.blade.php" <<EOF
-{{-- $MARK --}}
-{{-- Extend the project's real layout and use its real components — never restyle a copy. --}}
-<x-app-layout>
-    <main data-design-kit="$slug">Fill me with real components.</main>
-</x-app-layout>
-EOF
+    # the wrapper (<x-app-layout> vs a standalone page with the layout's @vite) is
+    # evidence-based, so the plain template also goes through scaffold-fill.py
+    target="resources/views/__design-kit__/$slug.blade.php"; mkdir -p "$(dirname "$target")"
+    if [ -f "$components" ]; then fill "$target" </dev/null; else
+      python3 "$HERE/scaffold-fill.py" laravel "$slug" --components /dev/null --brief "$brief" > "$target"; echo "wrote=$target"; fi
     [ -f routes/web.php ] || { mkdir -p routes; echo "<?php" > routes/web.php; echo "wrote=routes/web.php"; }
     printf "Route::view('/__design-kit__/%s', '__design-kit__.%s'); // %s\n" "$slug" "$slug" "$MARK" >> routes/web.php
     echo "appended=routes/web.php"

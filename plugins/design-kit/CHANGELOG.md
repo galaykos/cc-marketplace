@@ -15,6 +15,10 @@ The experience pass after the simulation (`rationale/design-kit-experience-ideas
 - Every deck, board and artifact is stamped `design-kit-tokens` (tokens sha12 + git revision).
 - Measured: skill-router rows for every surface and `scripts/dk-usage.sh` (created / revisited / picked / rendered / exported / shared / followed-by-commit per project); the README states the kill trigger as a number — 30 days after 0.2.0, ≥3 projects, followed-by-commit = 0 and shared = 0 → retire.
 
+### Fixed (second simulation, a Laravel Blade fixture)
+- `/design-kit:system`: a Blade view without `@props` that is the template of a class component now takes its props from `app/View/Components/<Name>.php`'s promoted constructor parameters, with types.
+- `/design-kit:in-codebase`: a required Blade prop with no declared type is filled from the brief instead of commenting the component out; the scratch page wraps in `<x-app-layout>` only when the project defines one, otherwise it is a standalone page carrying the layout's `@vite` directive.
+
 ### Changed
 - The server's contract: "no write route" became one loopback-only, header-gated, append-only route; export and publish stay scripts.
 

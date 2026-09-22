@@ -93,6 +93,12 @@ grep -q '^dev_url=http://127.0.0.1:8000$' <<<"$det" || fail "laravel url: $det"
 out="$(bash "$scaffold" --create pricing)"
 [ -f "resources/views/__design-kit__/pricing.blade.php" ] || fail "blade scratch missing"
 head -1 "resources/views/__design-kit__/pricing.blade.php" | grep -q '__design-kit__ scratch' || fail "blade marker"
+grep -q '@vite(\["resources/css/app.css"\])' "resources/views/__design-kit__/pricing.blade.php" || fail "blade standalone page should carry the layout's @vite"
+grep -q '<x-app-layout>' "resources/views/__design-kit__/pricing.blade.php" && fail "no <x-app-layout> is defined in this fixture; it must not be assumed"
+mkdir -p app/View/Components && printf '<?php\nnamespace App\\View\\Components;\nclass AppLayout {}\n' > app/View/Components/AppLayout.php
+bash "$scaffold" --create pricing2 >/dev/null || fail "laravel create 2"
+grep -q '<x-app-layout>' "resources/views/__design-kit__/pricing2.blade.php" || fail "with AppLayout.php the scratch should wrap in <x-app-layout>"
+rm -rf app/View/Components/AppLayout.php
 grep -q "Route::view('/__design-kit__/pricing'" routes/web.php || fail "route line not appended"
 grep -q '^open=http://127.0.0.1:8000/__design-kit__/pricing$' <<<"$out" || fail "laravel open url: $out"
 bash "$cleanup" --verify >/dev/null 2>&1 && fail "laravel verify should fail"

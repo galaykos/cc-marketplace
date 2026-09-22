@@ -112,6 +112,8 @@ def fill_value(ptype, text, style):
         return "{[]}" if style == "jsx" else "[]"
     if re.search(r"=>", t):
         return "{() => {}}" if style == "jsx" else "() => {}"
+    if style == "blade" and t in ("", "mixed", "string", "?string"):
+        return text  # Blade attributes are strings; @props declares no type
     return None  # a union of literals is a variant (rendered per value), an object or a generic is not fakeable
 
 
@@ -226,10 +228,50 @@ def render(stack, slug, comps, brief, lang, root, css=""):
             sigs.append("{{-- " + "\n     ".join(signature_lines(c)) + " --}}")
             items += strip_items(c, text or c["name"], "blade")
             gaps += gap_comments(c, "blade")
-        return "\n".join([f"{{{{-- {MARK} --}}}}"] + sigs + ["<x-app-layout>", f'    <main data-design-kit="{slug}">', '        <section data-design-kit="strip">'] +
+        open_l, close_l, note = laravel_wrapper(root)
+        return "\n".join([f"{{{{-- {MARK} --}}}}", f"{{{{-- {note} --}}}}"] + sigs + open_l + [f'    <main data-design-kit="{slug}">', '        <section data-design-kit="strip">'] +
                          [f"            {i}" for i in items] + ["        </section>"] + [f"        {g}" for g in gaps] +
-                         ["        {{-- Compose the design below from the components above; real data, never lorem. --}}", "    </main>", "</x-app-layout>", ""])
+                         ["        {{-- Compose the design below from the components above; real data, never lorem. --}}", "    </main>"] + close_l + [""])
     raise SystemExit(f"scaffold-fill: no template for stack {stack}")
+
+
+def laravel_wrapper(root):
+    """(open lines, close lines, note): `<x-app-layout>` only when the project defines
+    it (Breeze/Jetstream: app/View/Components/AppLayout.php or an anonymous
+    components/app-layout.blade.php); otherwise a standalone page carrying the first
+    `@vite([...])` directive found in the project's layouts, so the real stylesheet
+    loads; otherwise a bare page. Measured 2026-09-22: a fixture with only
+    resources/views/layouts/app.blade.php has no <x-app-layout> and the scratch page
+    would have thrown "Unable to locate a class or view for component [app-layout]"."""
+    if os.path.isfile(os.path.join(root, "app", "View", "Components", "AppLayout.php")) or \
+       os.path.isfile(os.path.join(root, "resources", "views", "components", "app-layout.blade.php")):
+        return ["<x-app-layout>"], ["</x-app-layout>"], "wrapped in the project's <x-app-layout>"
+    vite = None
+    for d in ("resources/views/layouts", "resources/views"):
+        base = os.path.join(root, d)
+        if not os.path.isdir(base):
+            continue
+        for dirpath, dirnames, filenames in os.walk(base):
+            dirnames[:] = sorted(x for x in dirnames if x != "__design-kit__")
+            for fn in sorted(filenames):
+                if not fn.endswith(".blade.php"):
+                    continue
+                try:
+                    t = open(os.path.join(dirpath, fn), encoding="utf-8", errors="replace").read()
+                except OSError:
+                    continue
+                m = re.search(r"@vite\((.|\n)*?\)", t)
+                if m:
+                    vite = m.group(0)
+                    break
+            if vite:
+                break
+        if vite:
+            break
+    head = ['<!doctype html>', '<html lang="en">', '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">']
+    if vite:
+        return head + [f"    {vite}", "</head>", "<body>"], ["</body>", "</html>"], "standalone page; @vite copied from the project's layout (the project defines no app-layout component)"
+    return head + ["</head>", "<body>"], ["</body>", "</html>"], "standalone page; no layout with @vite found — add the project's stylesheet by hand"
 
 
 def main(argv=None):
@@ -242,11 +284,14 @@ def main(argv=None):
     ap.add_argument("--root", default=".")
     ap.add_argument("--css", default="", help="the app's main stylesheet (repo-relative); imported first so the strip is styled")
     a = ap.parse_args(argv)
-    try:
-        doc = json.load(open(a.components, encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        print(f"scaffold-fill: cannot read {a.components}: {exc}", file=sys.stderr)
-        return 2
+    if a.components in ("", "/dev/null") or not os.path.exists(a.components):
+        doc = {}  # no inventory: the wrapper and the marker still come from here
+    else:
+        try:
+            doc = json.load(open(a.components, encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            print(f"scaffold-fill: cannot read {a.components}: {exc}", file=sys.stderr)
+            return 2
     comps = [c for c in doc.get("components", []) if c.get("name") and c.get("source")]
     lara = a.stack == "laravel"
     comps = [c for c in comps if (c["source"].endswith((".blade.php", ".php")) if lara else not c["source"].endswith((".blade.php", ".php")))]
