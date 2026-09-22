@@ -139,7 +139,7 @@ def read_tokens(path):
     flat = []
     _walk(data, [], flat)
     used = []
-    for want in ("accent", "primary", "brand"):
+    for want in ("primary", "brand", "accent"):  # the product colour first; "accent" is often the highlight, not the brand
         for p, t, v in flat:
             hsl = _hex_to_hsl(v) if (t in (None, "color")) else None
             if want in p and hsl:

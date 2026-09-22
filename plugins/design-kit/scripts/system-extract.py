@@ -789,7 +789,8 @@ def main(argv=None):
         json.dump(tokens, fh, indent=2, ensure_ascii=False)
         fh.write("\n")
     with open(os.path.join(args.out, "DESIGN-SYSTEM.md"), "w", encoding="utf-8") as fh:
-        fh.write(build_markdown(ex, tokens, project, f"{source}: {args.target}"))
+        label = os.path.basename(os.path.abspath(args.target)) if source in ("repo", "brand") else args.target
+        fh.write(build_markdown(ex, tokens, project, f"{source} `{label}`"))
     with open(os.path.join(args.out, "kit.html"), "w", encoding="utf-8") as fh:
         fh.write(build_kit(ex, tokens, project, args.kit_shell))
     n_tokens = sum(1 for _ in flat(tokens))

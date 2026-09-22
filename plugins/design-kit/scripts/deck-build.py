@@ -210,7 +210,11 @@ def theme_css(theme_path, cwd):
                         for k, v in node.items():
                             walk(v, path + [k])
             walk(doc, [])
-            for key, val in flat.items():
+            # primary before brand before accent: the product colour, not the highlight
+            def _rank(item):
+                k = item[0].lower()
+                return 0 if "primary" in k else 1 if "brand" in k else 2 if "accent" in k else 3
+            for key, val in sorted(flat.items(), key=_rank):
                 k = key.lower()
                 if not isinstance(val, str):
                     continue

@@ -13,6 +13,12 @@ gal="$(curl -s "http://127.0.0.1:$port/")"
 case "$gal" in *"design-kit gallery"*"Deck A"*) ;; *) echo "FAIL: gallery missing page: ${gal:0:200}"; exit 1 ;; esac
 page="$(curl -s "http://127.0.0.1:$port/decks/a.html")"
 case "$page" in *"data-design-kit-reload"*"</body>"*) ;; *) echo "FAIL: reload snippet not injected"; exit 1 ;; esac
+gal_h="$(curl -s -A "Mozilla/5.0 HeadlessChrome/130" "http://127.0.0.1:$port/")"
+case "$gal_h" in *"data-design-kit-reload"*) echo "FAIL: gallery carries the reload snippet for a headless UA"; exit 1 ;; esac
+page_h="$(curl -s -A "Mozilla/5.0 HeadlessChrome/130" "http://127.0.0.1:$port/decks/a.html")"
+case "$page_h" in *"data-design-kit-reload"*) echo "FAIL: reload snippet injected for a headless UA"; exit 1 ;; esac
+page_s="$(curl -s "http://127.0.0.1:$port/decks/a.html?static=1")"
+case "$page_s" in *"data-design-kit-reload"*) echo "FAIL: reload snippet injected despite static=1"; exit 1 ;; esac
 idx="$(curl -s "http://127.0.0.1:$port/_index.json")"
 case "$idx" in *'"path": "decks/a.html"'*) ;; *) echo "FAIL: _index.json: $idx"; exit 1 ;; esac
 ( curl -s -N --max-time 3 "http://127.0.0.1:$port/_events" > "$tmp/.sse" 2>/dev/null || true ) &

@@ -10,7 +10,9 @@ WHAT IT DOES. Serves a docroot (default ./.design-kit) on 127.0.0.1:8124 with:
                      includes the reload snippet refreshes itself
   GET /_index.json   the same listing the gallery renders, for scripts
   GET /<path>        static files; .html pages get the reload snippet injected
-                     before </body>
+                     before </body> — except for a headless browser (User-Agent)
+                     or a `?static=1` query, because an open event stream keeps a
+                     screenshot or print from ever settling
 --lan binds 0.0.0.0 so a phone on the same network can open it. That is the only
 path here that lets a page leave the machine, and the launcher says so.
 
@@ -92,7 +94,7 @@ def _newest_mtime(root):
     return newest
 
 
-def _gallery_html(pages):
+def _gallery_html(pages, live=True):
     groups = {}
     for p in pages:
         groups.setdefault(p["group"], []).append(p)
@@ -122,7 +124,7 @@ def _gallery_html(pages):
                 f"<div class=\"t\">{html.escape(p['title'])}</div><div class=\"p\">{html.escape(p['path'])} · {when}</div></a>"
             )
         parts.append("</div>")
-    parts.append(RELOAD_SNIPPET + "</body></html>")
+    parts.append((RELOAD_SNIPPET if live else "") + "</body></html>")
     return "".join(parts)
 
 
@@ -147,7 +149,7 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(_walk_pages(self.root))
         if path in ("/", "/index.html"):
             if not os.path.exists(os.path.join(self.root, "index.html")):
-                return self._html(_gallery_html(_walk_pages(self.root)))
+                return self._html(_gallery_html(_walk_pages(self.root), live=self._wants_live()))
             path = "/index.html"
         full = self.translate_path(path)
         if os.path.isfile(full) and full.lower().endswith(PAGE_EXT):
@@ -158,10 +160,19 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_error(HTTPStatus.NOT_FOUND)
             low = body.lower()
             i = low.rfind(b"</body>")
-            if i >= 0 and b"data-design-kit-reload" not in body:
+            if i >= 0 and b"data-design-kit-reload" not in body and self._wants_live():
                 body = body[:i] + RELOAD_SNIPPET.encode() + body[i:]
             return self._bytes(body, "text/html; charset=utf-8")
         return super().do_GET()
+
+    def _wants_live(self):
+        """Headless browsers taking a screenshot or a print must not get the
+        reload snippet: its open EventSource never goes idle, so a virtual-time
+        budget never expires and the capture hangs (measured with Chrome 2026-09-22).
+        `?static=1` opts any client out."""
+        if "static=1" in (urlsplit(self.path).query or ""):
+            return False
+        return "headless" not in (self.headers.get("User-Agent") or "").lower()
 
     def _events(self):
         self.send_response(HTTPStatus.OK)
