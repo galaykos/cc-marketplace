@@ -954,7 +954,7 @@ pc_handoff_refs() {
 # check-doc-staleness.sh can see it decay. Prints `unstamped <plugin>` and returns
 # 1 when the claim exists and no stamp does; returns 0 otherwise.
 #
-# STANDING: gate — validate.sh:559-561 feeds this straight to `err`, so a plugin
+# STANDING: gate — validate.sh's `pc_version_stamp` loop feeds this straight to `err`, so a plugin
 # claiming version leverage with no stamp FAILS the build. Promoted in 6487412
 # (2026-08-02, "put teeth behind the stamp") after the verification pass below was
 # actually run and the claimants were actually stamped.
@@ -1455,7 +1455,7 @@ pc_deference_edges() {
         [ "$tok" = "$p" ] && continue
         [ -d "$root/$tok" ] || continue
         if ! awk -F'\t' -v t="$tok:" '
-              /^#/ { next } NF==6 { n=split($6, a, ","); for (i=1;i<=n;i++) if (index(a[i], t)==1) { f=1 } }
+              /^#/ { next } NF==6 { n=split($6, a, ","); for (i=1;i<=n;i++) { gsub(/^[ \t]+/, "", a[i]); if (index(a[i], t)==1) { f=1 } } }
               END { exit f ? 0 : 1 }' "$lane" 2>/dev/null; then
           printf 'deference %s -> %s\n' "$p" "$tok"; bad=1
         fi

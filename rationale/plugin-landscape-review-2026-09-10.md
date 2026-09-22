@@ -1,5 +1,7 @@
 # Plugin landscape review — 2026-09-10
 
+> **Superseded** — historical record only, read with its date in mind. Superseded by `marketplace-consolidation-plan-2026-09-14.md`, four days later, which cites it. Plugin names below may no longer exist; see `marketplace.json` for the live set. <!-- removed-ok -->
+
 **Question asked:** what the marketplace has, where plugins fail to reinforce each
 other, what is missing, and what a plugin could do that none does today.
 

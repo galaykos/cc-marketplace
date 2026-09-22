@@ -2,6 +2,7 @@ schema_version: "1.0"
 name: caching-inversion
 description: A reviewer applies Next.js 14's fetch-caching default to a Next 15 project, where the default inverted — the answer must correct the reviewer and give the opt-IN remedy, not the opt-out one.
 execution:
+  timeout_seconds: 900
   max_turns: 25
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |

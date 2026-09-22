@@ -8,7 +8,7 @@ description: Use when building or reviewing UI with Astryx, Meta's open-source R
 Astryx is Meta's open-source React design system (MIT, grown inside Meta over
 eight years, 13,000+ apps): 170+ accessible typed components on StyleX with
 pre-compiled CSS, seven shipped theme packages plus a built-in default, dark
-mode through light/dark token tuples, 40 page templates, and a CLI whose
+mode through light/dark token tuples, 47 page templates, and a CLI whose
 `--json` / `--dense` output, `astryx manifest`, generated `AGENTS.md` /
 `CLAUDE.md`, and hosted MCP server exist so coding agents consume the system
 the same way humans do. Requires **React 19+**.
@@ -16,8 +16,9 @@ the same way humans do. Requires **React 19+**.
 ## Beta discipline: lockfile, then CLI, then docs
 
 Astryx is **0.x**: a minor release has already split the package, renamed a
-component category and added the agent surface. For structure — packages,
-CSS wiring, import shape, the CLI, category and template names — read
+component category, added the agent surface and changed the CSS selector
+contract. For structure — packages, CSS wiring, import shape, the CLI,
+category and template names — read
 `references/astryx.md` first; no fetch needed. Props are never answered from
 the digest. Before writing any Astryx code:
 
@@ -39,9 +40,10 @@ the digest. Before writing any Astryx code:
   `astryx.css`, the theme's `theme.css`) in the documented `@layer` order — a
   screen that "renders unstyled" is nearly always a missing import.
 - Subpath imports, never a barrel: `@astryxdesign/core/Button`,
-  `@astryxdesign/core/Layout` for the stack/grid primitives,
-  `@astryxdesign/core/theme` for `Theme` / `defineTheme`. The CLI prints the
-  exact import for the installed version.
+  `@astryxdesign/core/Layout` for the stack/grid primitives, `Theme` from
+  `@astryxdesign/core`, `defineTheme` / `useTheme` from
+  `@astryxdesign/core/theme`. The CLI prints the exact import for the
+  installed version.
 - `astryx doctor` before debugging a setup by hand; `astryx upgrade --list`
   before a version bump — codemods exist for the breaking changes.
 
@@ -62,7 +64,9 @@ the digest. Before writing any Astryx code:
   bespoke a11y or theme plumbing.
 - Deep customisation goes through `astryx swizzle <Component>`, which copies
   the source into the project as owned code. That is the sanctioned eject;
-  editing `node_modules` is not.
+  editing `node_modules` is not. Swizzled source is raw StyleX: with no StyleX
+  compiler it renders unstyled and silent (Next.js App Router needs an SWC
+  transform, not the Babel plugin).
 
 ## Theming and dark mode
 
@@ -70,9 +74,11 @@ the digest. Before writing any Astryx code:
   `Theme` boundaries only for a genuinely different surface. Themes come from
   `@astryxdesign/theme-<name>` (runtime) or `…/built` + its `theme.css`
   (SSR-safe, no hydration flash — use built in production).
-- A brand theme is `defineTheme({name, color, typography, tokens, components})`
-  in a file the project owns, scaffolded by `astryx theme add` and compiled
-  by `astryx theme build`. Dark mode lives in **[light, dark] tuples** on
+- A brand theme is `defineTheme({name, extends, color, typography, radius,
+  motion, tokens, components, adaptations, …})` in a file the project owns,
+  scaffolded by `astryx theme add`, compiled by `astryx theme build` — rebuild
+  after a core upgrade, a built theme is never repaired at runtime. Dark mode
+  lives in **[light, dark] tuples** on
   each token — never a `dark` class, `data-theme` attribute or a second
   stylesheet, and never a `palette.mode`-style branch in components.
 - Verify both modes render for every screen touched; token symmetry is not
@@ -86,15 +92,16 @@ the digest. Before writing any Astryx code:
 At the usage site, in the docs' order: `xstyle` with `stylex.create()`
 (merged last; `:hover` behind `@media (hover: hover)`), Tailwind utilities via
 the `tailwind-theme.css` bridge, `className` / `style`, then plain CSS against
-the stable `.astryx-*` classes and `data-*` attributes. No hardcoded colours or
-spacing, no `!important`, no wrapper `div` for margin — and never a patch to
-the library's compiled CSS.
+the stable `.astryx-*` class plus reflected `data-*` attributes — the preferred
+surface since 0.6, the bare prop/state classes (`.primary`, `.sm`, `.checked`)
+deprecated until 0.7.0 removes them. No hardcoded colours or spacing, no
+`!important`, no wrapper `div` for margin, never a patch to compiled CSS.
 
 ## Working with the agent surface
 
 - `astryx init --features agents --agent claude` writes the component index
-  and behavioural rules into `.claude/CLAUDE.md`; re-run with `--apply` after
-  a dependency bump so the block is not stale. Add the documented npm script
+  and behavioural rules into `.claude/CLAUDE.md`; after a dependency bump
+  `astryx upgrade --apply` refreshes that block. Add the documented npm script
   alias so agents call one CLI path.
 - Validate every prop name and variant against `astryx component <Name>
   --json` — a prop hallucinated from another design system is the most common
@@ -137,8 +144,8 @@ the library's compiled CSS.
 
 ## Anti-patterns
 
-- **Beta APIs from memory** — 0.3 knowledge on a 0.5 install ships yesterday's
-  package layout and category names.
+- **Beta APIs from memory** — 0.5 knowledge on a 0.6 install ships yesterday's
+  package layout, category names and CSS selectors.
 - **React 18 adoption** — the peer range is 19+; there is no compat build.
 - **Missing CSS trio** — components render unstyled, then get "fixed" with
   hardcoded values.

@@ -2,6 +2,7 @@ schema_version: "1.0"
 name: idempotency-only-ts
 description: The TypeScript replicate of idempotency-only — same single defect, same rubric, different language. Isolates whether the plugin's effect on a sharp-claim review is stack-dependent or not.
 execution:
+  timeout_seconds: 900
   max_turns: 25
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |

@@ -51,9 +51,12 @@ are always-on-suite's own, with its version numbers. <!-- removed-ok -->
   quality-suite install: uninstall it with its own `uninstall` command, then install <!-- removed-ok -->
   this one.
 
----
+## Inherited history — always-on-suite (before 2026-09-14)
 
-## 0.6.0
+The entries below carry always-on-suite's own version numbers and are not releases of this
+bundle; they are kept as `###` headings so the changelog-coverage gate cannot mistake
+one for a current entry.
+### 0.6.0
 
 ### Changed
 - `terse` merged into `candor` on 2026-09-14 (consolidation plan §3.1), so the bundle <!-- removed-ok -->
@@ -61,7 +64,7 @@ are always-on-suite's own, with its version numbers. <!-- removed-ok -->
   its Stop gate. Nothing a user of the bundle sets changes — the level file and
   `CC_TERSE` keep their names.
 
-## 0.5.0
+### 0.5.0
 
 ### Changed
 - `plugin-scout` and `vercel-skills-scout` merged into `stack-scan` on 2026-09-14, so the <!-- removed-ok -->
@@ -71,7 +74,7 @@ are always-on-suite's own, with its version numbers. <!-- removed-ok -->
   the project tier lives inside it, and its report/audit commands are inert until invoked.
   Seven members.
 
-## 0.4.0
+### 0.4.0
 
 ### Removed
 - `lean` leaves the bundle: the plugin was removed from the marketplace on
@@ -79,14 +82,14 @@ are always-on-suite's own, with its version numbers. <!-- removed-ok -->
   Its cost-model rule is stated inline by `code-architecture:coding-entry`; the
   goal-lean rigour tier is overseer's. Eight members remain. <!-- removed-ok -->
 
-## 0.3.0
+### 0.3.0
 
 ### Added
 - `vercel-skills-scout` joins the bundle beside `plugin-scout`: the same scan-and-suggest
   shape for third-party skills.sh skills, project-agnostic, inert until invoked.
   (2026-09-03 marketplace review: it belonged to no suite.)
 
-## 0.2.3
+### 0.2.3
 
 ### Changed
 - `lane.tsv` rows for this plugin's chassis-generated artifacts are now rendered by
@@ -95,14 +98,14 @@ are always-on-suite's own, with its version numbers. <!-- removed-ok -->
   same territory, trigger and yields_to; `generate.sh --check` fails if the two drift.
   No behaviour change for a user of the plugin.
 
-## 0.2.2
+### 0.2.2
 
 ### Changed
 - README only: the exclusion notes name code-review's comment-discipline lane where they
   named the comment-discipline plugin (merged into code-review, 2026-09-02). Membership <!-- removed-ok -->
   and cost unchanged.
 
-## 0.2.1
+### 0.2.1
 
 ### Changed
 - Regenerated `/always-on-suite:uninstall` from the shared template: it no longer
@@ -110,7 +113,7 @@ are always-on-suite's own, with its version numbers. <!-- removed-ok -->
   because that bundle was removed from the marketplace. Membership and behaviour
   are unchanged.
 
-## 0.2.0
+### 0.2.0
 
 ### Removed
 - **command-guard is no longer a member.** Not a quality judgement on the plugin —
@@ -161,7 +164,7 @@ are always-on-suite's own, with its version numbers. <!-- removed-ok -->
   every un-indexed repo.
 - Member count is unchanged at 8.
 
-## 0.1.1
+### 0.1.1
 
 Baseline release. No changelog was kept before 0.2.0; this file starts here rather
 than inventing entries for releases nobody recorded.

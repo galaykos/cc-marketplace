@@ -523,5 +523,73 @@ for k in tests browser-happy browser-error viewport:mobile viewport:tablet viewp
 expect 0 "accept passes under a project root with a space" -- env OVERSEER_ROOT="$W8" HOME="$FAKEHOME" "$PS" accept --id m1
 rm -rf "$(dirname "$W8")"
 
+# ---- evidence profiles: a milestone kind with no screen (kinds.tsv column 4) --------------------
+# the required evidence set used to be one global list of nine browser kinds, so an audit, research
+# or CLI/library milestone could never satisfy accept — there is no viewport to walk — and every one
+# of them ended parked. accept now reads the required set from the milestone kind's profile.
+W9=$(mktemp -d); git -C "$W9" init -q -b main 2>/dev/null || git -C "$W9" init -q
+mkdir -p "$W9/.claude/skills/proj"; printf 'x' > "$W9/.claude/skills/proj/SKILL.md"
+PROJSK="$W9/.claude/skills/proj/SKILL.md"; S9="$W9/.claude/overseer"
+# the home whose plugin cache holds the testing skill fixture: an uninstalled group is a WARN,
+# so the library case below can only prove its REFUSAL with testing installed and unpinned
+H9="${TESTSK%%/.claude/plugins/*}"
+P9() { env OVERSEER_ROOT="$W9" HOME="$H9" "$PS" "$@"; }
+P9 init --goal "audit this repo" --slug prof >/dev/null 2>&1
+expect 0 "milestone add --kind audit" -- P9 milestone add --id m1 --title "Gate audit" --branch ov/m1 --kind audit --size S
+expect 0 "milestone add --kind library" -- P9 milestone add --id m2 --title "CLI flag" --branch ov/m2 --kind library --size S
+P9 milestone set --id m1 --status building >/dev/null
+expect 2 "accept refuses a headless milestone with no evidence" -- P9 accept --id m1
+grep -q "evidence profile headless" "$WS/err" && grep -q "run-log" "$WS/err" && ok || bad "the refusal names the profile and run-log: $(head -1 "$WS/err")"
+grep -qE "viewport|browser-happy|keyboard" "$WS/err" && bad "a headless milestone was asked for browser evidence: $(head -1 "$WS/err")" || ok
+expect 2 "run-log is a file kind: no --file is refused" -- P9 evidence add --id m1 --kind run-log --note "ran it"
+expect 2 "run-log --file must exist" -- P9 evidence add --id m1 --kind run-log --note "ran it" --file "$W9/nope.txt"
+: > "$W9/empty.log"
+expect 2 "run-log --file must be non-empty" -- P9 evidence add --id m1 --kind run-log --note "ran it" --file "$W9/empty.log"
+mkdir -p "$S9/milestones/m1/dispatch"; wprompt "$S9/milestones/m1/dispatch/1.md" "$PROJSK"
+expect 0 "audit worker dispatch gates on the stack pin alone" -- P9 dispatch check "$S9/milestones/m1/dispatch/1.md" --kind worker --milestone m1
+sleep 1; mkfile "$W9/suite.txt"; mkfile "$W9/run.txt"
+expect 0 "evidence add --kind run-log" -- P9 evidence add --id m1 --kind run-log --note "./gate.sh --check, exit 0" --file "$W9/run.txt"
+expect 0 "evidence add --kind tests on a headless milestone" -- P9 evidence add --id m1 --kind tests --note "suite + lint" --file "$W9/suite.txt"
+expect 0 "accept closes an audit milestone on tests + run-log alone" -- P9 accept --id m1
+grep -q "testing:testing-best-practices" "$WS/err" && bad "kind audit demanded a testing pin it does not declare: $(head -1 "$WS/err")" || ok
+grep -q "same file" "$WS/err" && bad "two distinct files drew the one-file WARN" || ok
+jq -e '.milestones[]|select(.id=="m1")|.status=="done"' "$S9/program.json" >/dev/null && ok || bad "the audit milestone is done"
+# library is headless too, but its row declares the testing group: the evidence set and the skill
+# groups are separate gates, and a headless profile lifts neither
+P9 milestone set --id m2 --status building >/dev/null
+mkdir -p "$S9/milestones/m2/dispatch"; wprompt "$S9/milestones/m2/dispatch/1.md" "$PROJSK"
+P9 dispatch check "$S9/milestones/m2/dispatch/1.md" --kind worker --milestone m2 >/dev/null 2>&1
+sleep 1
+P9 evidence add --id m2 --kind tests --note "suite" --file "$W9/suite.txt" >/dev/null 2>&1
+P9 evidence add --id m2 --kind run-log --note "npx tool --help" --file "$W9/run.txt" >/dev/null 2>&1
+expect 2 "a library milestone with both evidence kinds still needs its testing pin" -- P9 accept --id m2
+grep -q "testing:testing-best-practices" "$WS/err" && ok || bad "the unpinned group is named on a headless kind too: $(head -1 "$WS/err")"
+rprompt "$S9/milestones/m2/dispatch/2-review.md" "$TESTSK"
+P9 dispatch check "$S9/milestones/m2/dispatch/2-review.md" --kind reviewer --milestone m2 >/dev/null 2>&1
+expect 0 "accept closes a library milestone once the testing group is pinned" -- P9 accept --id m2
+# the headless set does not leak into a kind that HAS a screen
+expect 0 "add a feature milestone" -- P9 milestone add --id m3 --title "Clients list" --branch ov/m3 --kind feature --size S
+P9 milestone set --id m3 --status building >/dev/null
+expect 0 "run-log is recordable on a ui-profile milestone" -- P9 evidence add --id m3 --kind run-log --note "artisan test" --file "$W9/run.txt"
+P9 evidence add --id m3 --kind tests --note "suite" --file "$W9/suite.txt" >/dev/null 2>&1
+expect 2 "a feature milestone is still refused without the browser evidence" -- P9 accept --id m3
+grep -q "evidence profile ui" "$WS/err" && grep -q "browser-happy" "$WS/err" && grep -q "viewport:mobile" "$WS/err" && grep -q "motion" "$WS/err" && ok || bad "the ui profile still demands the nine: $(head -1 "$WS/err")"
+grep -q " run-log" "$WS/err" && bad "run-log was demanded of a ui-profile milestone" || ok
+# run-log is a FILE kind, so the read-before-record gate covers it like any screenshot: a captured
+# run nobody opened proves as little as a screenshot nobody opened
+mkfile "$W9/unread.log"
+payload s9 "$W9" "$W9/run.txt" | bash "$TR"
+expect 0 "run-log passes the read gate for a file this session Read" -- env OVERSEER_ROOT="$W9" HOME="$H9" CLAUDE_CODE_SESSION_ID=s9 "$PS" evidence add --id m3 --kind run-log --note "looked" --file "$W9/run.txt"
+expect 2 "run-log is refused for a file this session never Read" -- env OVERSEER_ROOT="$W9" HOME="$H9" CLAUDE_CODE_SESSION_ID=s9 "$PS" evidence add --id m3 --kind run-log --note "claimed" --file "$W9/unread.log"
+# a profile word kinds.tsv does not define is refused at milestone add — a typo would silently fall
+# back to the nine browser kinds, which is the failure this column exists to fix
+PLUG="$W9/plug"; mkdir -p "$PLUG/scripts"; cp "$PS" "$PLUG/scripts/program.sh"; cp "$here/../../kinds.tsv" "$PLUG/kinds.tsv"
+printf 'ghost\tstack\ta kind whose profile word is a typo\thedless\n' >> "$PLUG/kinds.tsv"
+expect 2 "milestone add refuses a kind whose kinds.tsv profile is not a profile" -- env OVERSEER_ROOT="$W9" HOME="$H9" bash "$PLUG/scripts/program.sh" milestone add --id m8 --title t --branch b --kind ghost
+grep -q "ui headless" "$WS/err" && ok || bad "the refusal names the known profiles: $(head -1 "$WS/err")"
+printf 'ghost2\tstack\ta kind added at runtime with a real profile\theadless\n' >> "$PLUG/kinds.tsv"
+expect 0 "a kinds.tsv row carrying a valid profile is accepted (the column is data, not hard-coded)" -- env OVERSEER_ROOT="$W9" HOME="$H9" bash "$PLUG/scripts/program.sh" milestone add --id m9 --title t --branch b --kind ghost2
+rm -rf "$W9"
+
 echo "program.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

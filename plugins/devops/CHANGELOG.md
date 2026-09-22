@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.10 — 2026-09-22
+
+### Fixed
+- `commands/review.md` recommended an ultra-assess re-run without saying it is
+  task-runner's and only exists when that plugin is installed.
+
 ## 0.6.9 — 2026-09-16
 
 ### Changed

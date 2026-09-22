@@ -2,6 +2,14 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.17.3 — 2026-09-22
+
+### Fixed
+- `plugin.json` description still promised a Livewire route; the `livewire` skill and its <!-- removed-ok -->
+  `rules.tsv` row were deleted on 2026-08-26 (`cfef9c1`), so the always-on bytes
+  advertised a route nothing could fire. Word removed; catalog and marketplace copies
+  regenerated.
+
 ## 0.17.2 — 2026-09-16
 
 ### Fixed

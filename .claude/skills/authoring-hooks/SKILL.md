@@ -1,6 +1,6 @@
 ---
 name: authoring-hooks
-description: Use when writing or editing hooks.json or hook scripts — event choice (UserPromptSubmit, SessionStart, Pre/PostToolUse, Stop, SubagentStop, SessionEnd), matchers, ${CLAUDE_PLUGIN_ROOT}, one-shot state and marker files, testing a hook against the real payload, when NOT to hook.
+description: Use when writing or editing hooks.json or hook scripts — event choice (UserPromptSubmit, SessionStart, Pre/PostToolUse, Stop, SubagentStart/Stop, SessionEnd), matchers, ${CLAUDE_PLUGIN_ROOT}, one-shot state and marker files, testing a hook against the real payload, when NOT to hook.
 ---
 
 ## Anatomy
@@ -50,13 +50,17 @@ executable file.
   file just written, record the command just run.
 - Stop — fires when the model tries to finish its turn. Use for
   completion gates: refuse "done" until verification evidence exists.
-- SubagentStop — the same moment for a spawned agent's turn. Use to hold
+- SubagentStart — fires before a spawned agent's first prompt; additionalContext
+  lands in the worker, nothing can block. Use to hand a worker the same preamble
+  its parent got (candor's preamble.sh, probed on 2.1.276).
+- SubagentStop — the same moment as Stop for a spawned agent's turn. Use to hold
   a worker to the gate its parent is held to (candor wires one script to both).
 - SessionEnd — fires after the last model turn; nothing printed reaches
   the model. Use for ledgers and cleanup (hindsight's session stats,
   skill-router's surfaced-signal ledger).
 
-The host documents more events than this tree uses (seven) — recount in
+The host documents more events than this tree uses — recount the tree with
+`jq -r '.hooks|keys[]' plugins/*/hooks/hooks.json | sort -u` and the host in
 the hooks doc's event table (code.claude.com/docs/en/hooks). Reach for
 another only with its real payload in hand.
 

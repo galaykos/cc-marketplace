@@ -1,5 +1,7 @@
 # Audit: `web-dev` and `brain` — the two nominated deletion candidates
 
+> **Superseded** — historical record only, read with its date in mind. Superseded by the 2026-09-02 web-dev merge (`2026-09-02-web-dev-merge.md`); the web-dev it audited was rebuilt. Plugin names below may no longer exist; see `marketplace.json` for the live set. <!-- removed-ok -->
+
 The 2026-08-02 coverage review's cost-and-scope refuter closed with "not one item
 cuts anything" and nominated these two as the concrete answers, on the grounds
 that both ship **zero skills** and were therefore invisible to every skill-shaped

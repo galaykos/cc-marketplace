@@ -4,6 +4,7 @@ description: A green suite plus CLEAN reviews is not acceptance — the mileston
 context:
   scaffold_script: scaffold.sh
 execution:
+  timeout_seconds: 900
   max_turns: 12
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |

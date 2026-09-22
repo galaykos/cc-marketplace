@@ -86,7 +86,9 @@ the comment ceiling (0.4:1 comment-to-code by default), at most twice per file, 
 warns when a file is over min(2x its committed siblings' median, the ceiling); a file
 with no committed siblings is judged against the ceiling alone. A project that specifies
 a heavier style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (10 for
-1:1, 0 for the sibling test only). `verbosity.sh` applies the same rule to terminal
+1:1, 0 for the sibling test only) — a project whose own CLAUDE.md demands a docblock on
+every method gets its first over-ceiling `Write` per file denied until it sets that
+variable; the hook does not read CLAUDE.md. `verbosity.sh` applies the same rule to terminal
 prose. Ledgers and markers live under `.claude/comment-discipline/`. Silence any
 advisory with `CC_REMIND=off`; the denies are not advisories and do not honour it.
 

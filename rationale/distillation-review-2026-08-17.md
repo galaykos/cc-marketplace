@@ -1,5 +1,7 @@
 # Did the distillation encode the habits, or only the artifacts?
 
+> **Superseded** — historical record only, read with its date in mind. Superseded by `distillation-2026-08-23.md` and the 2026-09-17/18 Fable distillations. Plugin names below may no longer exist; see `marketplace.json` for the live set. <!-- removed-ok -->
+
 Review of the 2026-08-17 quality-distillation run (branch `worktree-quality-distill`),
 against the question that prompted it: were the improvements really made, and will
 they keep working?

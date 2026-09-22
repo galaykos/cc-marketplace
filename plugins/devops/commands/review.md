@@ -64,5 +64,6 @@ Before reporting, validate mechanically against the artifact where a tool exists
    the user to retype findings as instructions. In a headless or non-interactive run,
    report only and print the apply command instead of dispatching.
 
-You may close by recommending an ultra-assess re-run when the change was large or
-high-risk — recommend it only, never self-execute it.
+You may close by recommending an ultra-assess re-run (task-runner's, only when that
+plugin is installed) when the change was large or high-risk — recommend it only,
+never self-execute it.

@@ -85,5 +85,6 @@ An unknown name aborts with one line printing that list. `--concern all` loads e
    headless or non-interactive run, report only and print the apply command instead of
    dispatching.
 
-You may close by recommending an ultra-assess re-run when the change was large or
-high-risk — recommend it only, never self-execute it.
+You may close by recommending an ultra-assess re-run (task-runner's, only when that
+plugin is installed) when the change was large or high-risk — recommend it only,
+never self-execute it.

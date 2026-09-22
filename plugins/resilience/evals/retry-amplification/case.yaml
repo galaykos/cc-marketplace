@@ -2,6 +2,7 @@ schema_version: "1.0"
 name: retry-amplification
 description: Retries that multiply load against an already-degraded dependency, where "add exponential backoff" is the trap answer rather than the fix. Probes whether the skill helps on a rule the base model does NOT already hold — the opposite end from timeout-and-retry, where it plainly does.
 execution:
+  timeout_seconds: 900
   max_turns: 25
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |

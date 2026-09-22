@@ -4,6 +4,16 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.8.4 — 2026-09-22
+
+### Fixed
+- `references/official-complements.md` — a vendored snapshot of `claude-plugins-official`
+  — carried no `Last verified` stamp, so `check-doc-staleness.sh` could not see it age.
+  Stamped 2026-09-02, the date it was written.
+- `plugin-scout/SKILL.md` froze "(~5 calls)" for `--all`; it now states the rule (one
+  call per page of 15 rows) the way the rest of the picker prose does.
+- Scout catalog regenerated for the skill-router 0.17.3 and overseer 0.5.0 descriptions.
+
 ## 0.8.3 — 2026-09-20
 
 ### Changed

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # scripts/smoke/comment-discipline-hook-tests.sh
 #
-# Pins the contract of plugins/comment-discipline/hooks/scan.sh — a warn-only PostToolUse
+# Pins the contract of plugins/code-review/hooks/scan.sh (the comment-discipline skill's
+# hook; the standalone plugin was folded into code-review on 2026-09-02) — a warn-only PostToolUse
 # guard. Three properties, each of which fails silently in production if it regresses:
 #   1. FIRES  on the six high-confidence noise patterns, across all three tool shapes
 #   2. SILENT on every keep-case, on exempt paths/extensions, and on unknown tools

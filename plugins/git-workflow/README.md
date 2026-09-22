@@ -84,7 +84,7 @@ the hook stays silent, exits 0, and the command proceeds. The harness asserts it
 
 ## Pairs well with
 
-- **taskmaster** / **task-runner** — a worktree per task run, and the finish
-  protocol to close the run out
+- **taskmaster** / **task-runner** — task-runner's `--tracks` runs milestones in
+  worktrees; this plugin's finish protocol closes the run out
 - **code-architecture** — its work-verification discipline backs every gate in
   this plugin

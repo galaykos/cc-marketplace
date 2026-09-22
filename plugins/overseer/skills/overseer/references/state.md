@@ -61,7 +61,8 @@ evidence stamps, dispatch file times, `decisions.md` and `suggestions.md` into o
 close prints and archives.
 
 `kind` (default `feature`) selects the row of `kinds.tsv` whose skill groups `accept`
-requires some gated dispatch to have pinned by an existing path (**gate**). `size`
+requires some gated dispatch to have pinned by an existing path, and whose `profile`
+column (`ui` default, `headless`) picks the evidence set it demands (**gate**). `size`
 (`S|M|L|XL`, default `M`) is the MILESTONE scale, not `/approaches:size`'s card scale (sim
 4's M was five cards and two hours — an L card): S one direct worker; M one taskmaster run
 in one session; L two sessions; XL a roadmap error, split it before briefing. It routes the
@@ -84,9 +85,12 @@ refuses `done` (**gate**; only `accept` sets it). `done` and `parked` are both C
 `next`, the hook and `close`; a parked milestone whose dependants are queued makes them
 unreachable, which the hook says out loud ("none runnable").
 
-Evidence kinds (fixed vocabulary, **gate**): required — `tests`, `browser-happy`,
+Evidence kinds (fixed vocabulary, **gate**): required under the `ui` evidence profile —
+`tests`, `browser-happy`,
 `browser-error`, `viewport:mobile`, `viewport:tablet`, `viewport:desktop`, `console-clean`,
-`keyboard`, `motion`; optional — `a11y`, `review`, `perf`, `dark-mode`, `progress`. Every
+`keyboard`, `motion`; required under `headless` (`audit`, `library`) — `tests` and
+`run-log`; optional — `a11y`, `review`, `perf`, `dark-mode`, `progress`. Any kind may be
+recorded on any milestone; the profile decides only what `accept` demands. Every
 required kind needs `--file`, a non-empty regular file, stored as an absolute path and
 re-checked by `accept`, and Read in this session since it last changed (**gate** — the
 `.reads` ledger `hooks/track-read.sh` writes; no session id or no row for the session → a

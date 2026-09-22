@@ -2,6 +2,15 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.36.6 — 2026-09-22
+
+### Fixed
+- `agents/task-executor.md` told every worker to write the fixed `scope.json`, which
+  parallel workers clobber and which `routing.md` reserves for the inline tripwire; it
+  now writes `scope-<task-id>.json` and says the hook does not read it.
+- `track-orchestration/SKILL.md` cited `references/reviewer-routing.md`, a file that
+  lives under `task-execution/references/`; path corrected.
+
 ## 0.36.5 — 2026-09-18
 
 ### Changed

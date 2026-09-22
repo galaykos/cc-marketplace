@@ -288,8 +288,9 @@ for f in files:
 # ---- SKILLS MODE: the retirement queue, folded in from scripts/retirement-queue.sh
 # (deleted 2026-08-31). That script read two ledgers — skill-router's surfaced.jsonl
 # (what the router OFFERED, SessionEnd) and hindsight's skills.jsonl (what was
-# INVOKED) — and on the machine it was folded on, BOTH were empty in every project:
-# a reader without writers that ever fired. Transcript attributionSkill records are
+# INVOKED) — scoped to the current project, where neither had records; the records
+# existed under the projects where plugins are USED (measured 2026-09-01: 45 router,
+# 195 hindsight, earliest 2026-08-22). Transcript attributionSkill records are
 # the data that actually exists, so this mode joins shipped skills against all
 # THREE sources and names which ones had data. Ledger semantics preserved from the
 # original: `fired` and `pending_low_flushed` count as surfaced; a bare

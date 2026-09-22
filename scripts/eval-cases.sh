@@ -59,6 +59,10 @@
 #     demanding `execution.prompt` there (as this did until 2026-09-17) failed a shape
 #     the runner loads. A key that IS present is still shape-checked; whether the runner
 #     prefers the yaml's `graders:` list or the directory when both exist is unmeasured.
+#   - which grader KEYS the runner accepts. Only `type` is asserted; on 2026-09-18 this
+#     loaded a case whose grader carried a `target:` key the runner rejected at run time
+#     (rationale/fable-distillation-2026-09-18.md). The key set is the runner's, not this
+#     script's — see the schema-drift bullet above.
 #   - anything INSIDE a case. A case dir is the first directory on a branch holding a
 #     `case.yaml` or a `prompt.md`; the walk stops there, so a `prompt.md` under its
 #     `resources/` or `mocks/` is a fixture the case reads, neither counted nor failed.

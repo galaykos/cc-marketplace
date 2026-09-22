@@ -5,7 +5,8 @@ sentence — `/overseer:start "Build a CRM that manages clients"` — and the pl
 rest the way a product manager owns a roadmap: it discovers what the project and the
 installed plugins can do, asks one round of questions, writes a milestone roadmap, and
 delivers each milestone on its own branch by briefing the pipeline plugins already installed.
-It accepts nothing it has not watched work in a browser.
+It accepts nothing it has not watched work: in a browser where the milestone has a screen,
+in a captured run where it has none.
 
 ## What it ships
 
@@ -17,7 +18,7 @@ It accepts nothing it has not watched work in a browser.
 | `overseer` | skill | the loop, the product-judgment rules, the acceptance protocol, the prompt templates |
 | `hooks/announce.sh` | SessionStart hook | one line when a program is open, silent otherwise |
 | `hooks/track-read.sh` | PostToolUse hook (Read) | while a program is open, ledgers each Read as `epoch, session, path` in `.claude/overseer/.reads`; prints nothing |
-| `kinds.tsv` | data | milestone kind → the skill groups a gated dispatch must pin before accept; read by `program.sh` |
+| `kinds.tsv` | data | milestone kind → the skill groups a gated dispatch must pin before accept, and the evidence profile accept demands (`ui`, the default, or `headless`); read by `program.sh` |
 | `scripts/program.sh` | script | the state machine; the only writer of `.claude/overseer/program.json`; `init --model` (tier), `milestone add --kind --size`, `dispatch check` (prompt gate: preamble, scope, verify, skill path, `MODEL:` line within the tier; kinds worker, reader, reviewer, followup; size WARN), `decision add --assumed`, `suggestion add`, `log`, `close` (divergence gate, plugins-used line, archive with evidence paths rewritten) |
 | `scripts/capability-scan.sh` | script | which installed plugins (user, project, local scope) cover which phase, the fallback for each gap, and the CI workflows with their trigger branches checked against the base branch |
 | `evals/` | eval cases | two scaffolded cases for `claude plugin eval plugins/overseer --scaffold --ablation with-without`: the hands-off rigour pick and the green-suite acceptance refusal; the without-plugin arm is the control the score is measured against (CHANGELOG 0.4.0 carries the measured deltas and their caveats) |
@@ -39,12 +40,18 @@ Each step writes state, so the session can end anywhere and `/overseer:resume` p
 
 ## What "done" means here
 
-`program.sh accept` closes a milestone only when nine evidence kinds are recorded, each
-backed by a file that exists when recorded and still exists at accept: the suite, types,
+`program.sh accept` closes a milestone only when its kind's evidence kinds are recorded,
+each backed by a file that exists when recorded and still exists at accept. For a
+milestone with a screen that is nine: the suite, types,
 lint and build ran green; the happy path (success feedback in frame) and the error path
 were driven in a real browser; the feature was walked at 375, 768 and 1280 px; the console
 was read clean; the whole path was driven by keyboard; reduced motion was emulated. A green
-test suite alone is refused with exit 2 and the list of what is missing. A hands-off program
+test suite alone is refused with exit 2 and the list of what is missing. A kind with no
+screen — `audit` (a read-only review or research pass), `library` (a script, CLI or package
+change) — carries the `headless` evidence profile instead: `tests` plus a `run-log`, the
+captured run of the command the milestone exists to make work. Nine browser kinds a
+non-UI milestone can never record is how every one of them ended `parked`. A hands-off
+program
 is refused until at least one ASSUMED decision is recorded. The script checks that files
 exist, not what they show — the residual is stated in `skills/overseer/references/acceptance.md`.
 
@@ -63,7 +70,7 @@ dispatched directly — weaker, and said so in the charter.
 
 | Rule | Standing |
 | --- | --- |
-| no `done` without the nine evidence kinds, each with a file that still exists; hands-off needs a reason and an ASSUMED decision; fixed status and kind vocabularies | **gate** — `scripts/program.sh`, harness `scripts/__tests__/program.test.sh` |
+| no `done` without the kind's evidence kinds (nine with a screen, `tests` + `run-log` headless), each with a file that still exists; hands-off needs a reason and an ASSUMED decision; fixed status and kind vocabularies | **gate** — `scripts/program.sh`, harness `scripts/__tests__/program.test.sh` |
 | close refuses two done milestones on branches that contain neither the other until an `integration` milestone is done or `--divergent-ok` records why | **gate** — `program.sh close` exit 2 |
 | a milestone of kind K reaches `done` only after a dispatch that passed `dispatch check` (recorded in `dispatch/.gated`, unchanged since) pinned a skill from each of K's groups (`kinds.tsv`) by a path that exists; every required evidence row postdates the last gated worker or follow-up dispatch; `init` refuses a session opened in another project unless `--foreign-session` says why | **gate** — `program.sh accept` / `init` exit 2 |
 | a worker prompt carries every line of the discipline preamble verbatim, a scope lock and a verify command; a reader/reviewer prompt a return shape and the read-only statement, no preamble (it is worker discipline); every kind an existing skill path and a `MODEL:` line the program tier allows — nothing above opus unless the program was started `--model auto`, and a worker never `inherit`s | **gate when run** — `program.sh dispatch check`; running it is agent-graded, and a prompt never checked is not part of the record |

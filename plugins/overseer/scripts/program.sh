@@ -2,9 +2,11 @@
 # program.sh — the overseer's state machine. The ONLY writer of .claude/overseer/program.json
 # (serialised by a mkdir lock, so two invocations of this script cannot lose each other's write).
 #
-# What it gates: a milestone cannot reach `done` without the nine required evidence kinds
-# (accept exits 2 and lists them); the browser kinds and `tests` must carry a --file that
-# exists at add time AND at accept time (a deleted screenshot un-accepts); every required
+# What it gates: a milestone cannot reach `done` without the evidence kinds its KIND's evidence
+# profile requires (kinds.tsv column 4 — `ui`, the default: the nine-kind browser walk; `headless`:
+# `tests` + `run-log`, for a kind with no screen); accept exits 2 and lists them; every file kind
+# must carry a --file that exists at add time AND at accept time (a deleted screenshot
+# un-accepts); every required
 # evidence row must be newer than the last worker/follow-up dispatch that passed `dispatch check`
 # (a walk recorded before the last fix cycle is a walk of older code); at least one dispatch
 # under the milestone passed `dispatch check` unchanged since (recorded in dispatch/.gated —
@@ -22,15 +24,18 @@
 #   program.sh status [--json]
 #   program.sh next                          # first milestone not done/parked whose deps are done
 #   program.sh milestone add --id <id> --title "<t>" --branch <b> [--depends a,b] [--kind <kind>] [--size S|M|L|XL] [--rigour lean|standard|adversarial]
-#                                            # kinds: kinds.tsv (default feature); size (default M): only S may skip taskmaster for a direct worker
+#                                            # kinds: kinds.tsv (default feature) — its row also carries the EVIDENCE PROFILE accept demands:
+#                                            #   `ui` (default): the nine browser kinds · `headless` (audit, library): tests + run-log, no screen to walk
+#                                            # size (default M): only S may skip taskmaster for a direct worker
 #                                            # rigour: how much adversarial scrutiny the milestone buys (dispatch-prompts.md § Rigour) — decided from
 #                                            # the brief's signals, so it may be set later; unset draws a WARN on every gated dispatch
 #   program.sh milestone set --id <id> --status <queued|briefed|building|accepting|parked> [--reason "<r>"]
 #   program.sh milestone set --id <id> --size <S|M|L|XL> | --rigour <profile>  --reason "<why>"   # re-sized / re-rigoured with a reason, kept in history
 #   program.sh evidence add --id <id> --kind <kind> --note "<n>" [--file <path>]   # --file required for file kinds
+#                                            # every kind of either profile may be recorded on any milestone; the profile decides only what accept DEMANDS
 #   program.sh evidence clear --id <id>
 #   program.sh accept --id <id>              # exit 0 → status done + "sized X · actual …" line; exit 2 → the first failing gate, listed
-#                                            # gates in order: a gated dispatch exists · kind groups pinned by existing paths · nine evidence kinds,
+#                                            # gates in order: a gated dispatch exists · kind groups pinned by existing paths · the profile's evidence kinds,
 #                                            # files present, each newer than the last gated worker dispatch · hands-off has an ASSUMED row
 #   program.sh decision add --text "<what>" --rationale "<why>" [--options "<a | b>"]
 #   program.sh decision add --assumed --text "<what>" --alternative "<other reading>" --rationale "<why>"
@@ -62,9 +67,21 @@
 #      OVERSEER_PREAMBLE overrides where `dispatch check` finds the canonical discipline preamble.
 set -u
 
-REQUIRED_KINDS="tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop console-clean keyboard motion"
+# Evidence profiles (kinds.tsv column 4) — what `accept` demands of a milestone of that kind.
+# `ui` is the default and the original nine: a milestone with a screen is proven in a browser.
+# `headless` exists because that list is impossible for a kind with no screen — a research pass or a
+# CLI/script/library change can never record a viewport, so every such milestone ended `parked`
+# (measured 2026-09-16, a program run over this marketplace itself). Its two kinds are the two a
+# script CAN check: the suite ran, and the command the milestone exists to make work ran and was
+# captured. Both are file kinds, so `accept`'s "every row points at one file" WARN still bites.
+REQUIRED_UI="tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop console-clean keyboard motion"
+REQUIRED_HEADLESS="tests run-log"
 OPTIONAL_KINDS="a11y review perf dark-mode progress"
-FILE_KINDS="tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop console-clean keyboard motion"
+PROFILES="ui headless"
+FILE_KINDS="tests run-log browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop console-clean keyboard motion"
+# the recordable vocabulary is every profile's kinds plus the optional ones: a headless milestone
+# that did open a browser may record the screenshot, and a `ui` one may record its run log
+KINDS_VOCABULARY=$(printf '%s\n' $REQUIRED_UI $REQUIRED_HEADLESS $OPTIONAL_KINDS | awk '!seen[$0]++' | tr '\n' ' ')
 STATUSES="queued briefed building accepting done parked"
 SIZES="S M L XL"
 RIGOURS="lean standard adversarial"          # dispatch-prompts.md § Rigour: what scrutiny a milestone buys, decided from the brief, not the size
@@ -113,6 +130,12 @@ has_ms() { jq -e --arg id "$1" '.milestones[] | select(.id==$id)' "$state" >/dev
 KINDS_FILE="$(cd "$(dirname "$0")/.." && pwd)/kinds.tsv"
 kind_required() { grep -v '^#' "$KINDS_FILE" | awk -F'\t' -v k="$1" '$1==k {print $2}'; }
 kind_known() { [ -n "$(kind_required "$1")" ]; }
+# kind_profile <kind>: column 4 of the kind's row — its EVIDENCE profile. Absent (every row written
+# before profiles existed) reads as `ui`, so the nine browser kinds stay the default for a kind with
+# a screen; `milestone add` refuses any other word, or a typo here would silently demand a browser
+# walk of a headless milestone — the failure this column was added to fix.
+kind_profile() { local p; p=$(grep -v '^#' "$KINDS_FILE" | awk -F'\t' -v k="$1" '$1==k {gsub(/[[:space:]]/,"",$4); print $4}'); printf '%s' "${p:-ui}"; }
+required_kinds() { if [ "$(kind_profile "$1")" = headless ]; then printf '%s' "$REQUIRED_HEADLESS"; else printf '%s' "$REQUIRED_UI"; fi; }
 # session_root_check: this Claude session's transcript lives under ~/.claude/projects/<encoded cwd>/;
 # when that cwd is not this project, the pipeline commands (taskmaster, task-runner, craft) are
 # unreachable and both simulations ran on hand-dispatch without noticing. Fail-open when the
@@ -264,6 +287,7 @@ case "$cmd" in
         [ -n "$title" ] && [ -n "$branch" ] || usage
         has_ms "$id" && { echo "program.sh: $id already exists" >&2; exit 2; }
         kind_known "$kind" || { echo "program.sh: unknown kind '$kind' — one of: $(grep -v '^#' "$KINDS_FILE" | cut -f1 | tr '\n' ' ')" >&2; exit 2; }
+        in_list "$(kind_profile "$kind")" $PROFILES || { echo "program.sh: kind '$kind' declares evidence profile '$(kind_profile "$kind")' in $KINDS_FILE — one of: $PROFILES" >&2; exit 2; }
         in_list "$size" $SIZES || { echo "program.sh: --size must be one of: $SIZES" >&2; exit 2; }
         [ -z "$rigour" ] || in_list "$rigour" $RIGOURS || { echo "program.sh: --rigour must be one of: $RIGOURS (dispatch-prompts.md § Rigour)" >&2; exit 2; }
         deps=$(printf '%s' "$depends" | tr ',' '\n' | sed '/^$/d' | jq -R . | jq -s 'unique')
@@ -305,7 +329,7 @@ case "$cmd" in
     has_ms "$id" || { echo "program.sh: no milestone $id" >&2; exit 2; }
     case "$sub" in
       add)
-        in_list "$kind" $REQUIRED_KINDS $OPTIONAL_KINDS || { echo "program.sh: kind must be one of: $REQUIRED_KINDS $OPTIONAL_KINDS" >&2; exit 2; }
+        in_list "$kind" $KINDS_VOCABULARY || { echo "program.sh: kind must be one of: $KINDS_VOCABULARY" >&2; exit 2; }
         [ -n "$note" ] || { echo "program.sh: --note is required (what was done, in one line)" >&2; exit 2; }
         if in_list "$kind" $FILE_KINDS && [ -z "$file" ]; then
           echo "program.sh: kind $kind needs --file (a screenshot, dump or saved output a human can open)" >&2; exit 2
@@ -348,20 +372,22 @@ case "$cmd" in
     has_ms "$id" || { echo "program.sh: no milestone $id" >&2; exit 2; }
     st=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.status' "$state")
     in_list "$st" building accepting || { echo "program.sh: $id is '$st' — accept runs from building/accepting" >&2; exit 2; }
+    mkind=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.kind // "feature"' "$state")
+    # the evidence set is the KIND's, not one global list: a headless kind has no viewport to walk
+    rkinds=$(required_kinds "$mkind")
     missing=""; gone=""
-    for k in $REQUIRED_KINDS; do
+    for k in $rkinds; do
       jq -e --arg id "$id" --arg k "$k" '.milestones[]|select(.id==$id)|.evidence[]|select(.kind==$k)' "$state" >/dev/null 2>&1 || missing="$missing $k"
     done
     while IFS= read -r f; do
       [ -n "$f" ] && [ ! -s "$f" ] && gone="$gone $f"
     done < <(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.evidence[]|.file' "$state")
     if [ -n "$missing" ] || [ -n "$gone" ]; then
-      [ -n "$missing" ] && echo "program.sh: $id NOT accepted — missing evidence:$missing" >&2
+      [ -n "$missing" ] && echo "program.sh: $id NOT accepted — missing evidence (kind $mkind, evidence profile $(kind_profile "$mkind")):$missing" >&2
       [ -n "$gone" ] && echo "program.sh: $id NOT accepted — evidence files no longer exist:$gone" >&2
       echo "record each with: program.sh evidence add --id $id --kind <kind> --note \"<what was done>\" --file <path>" >&2
       exit 2
     fi
-    mkind=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.kind // "feature"' "$state")
     # only dispatches that passed `dispatch check` and are unchanged since count: a review closed an auth milestone
     # with zero dispatch files and a hand-written pin to a path that did not exist
     dfiles=(); while IFS= read -r f; do [ -n "$f" ] && dfiles+=("$f"); done < <(gated_files "$id")
@@ -384,7 +410,7 @@ case "$cmd" in
       m=$(date -u -r "$f" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || continue; [ "$m" \> "$lastw" ] && lastw="$m"; done < <(gated_files "$id" "worker followup")
     stale=""
     if [ -n "$lastw" ]; then
-      for k in $REQUIRED_KINDS; do
+      for k in $rkinds; do
         last=$(jq -r --arg id "$id" --arg k "$k" '[.milestones[]|select(.id==$id)|.evidence[]|select(.kind==$k)|.at]|max // ""' "$state")
         [ "$last" \< "$lastw" ] && stale="$stale $k"
       done
@@ -395,7 +421,7 @@ case "$cmd" in
       exit 2
     fi
     nfiles=$(jq -r --arg id "$id" '[.milestones[]|select(.id==$id)|.evidence[]|select(.file!="")|.file]|unique|length' "$state")
-    [ "${nfiles:-0}" -ge 2 ] || echo "program.sh: WARN $id: every evidence row points at the same file — nine kinds behind one artefact is a claim, not a record (acceptance.md: one screenshot per line)" >&2
+    [ "${nfiles:-0}" -ge 2 ] || echo "program.sh: WARN $id: every evidence row points at the same file — every kind behind one artefact is a claim, not a record (acceptance.md: one screenshot per line, one run log per run)" >&2
     [ -n "$(gated_files "$id" reviewer)" ] || echo "program.sh: WARN $id: no gated reviewer dispatch (--kind reviewer) — the review step ran nowhere the record can see; a skipped review is a decisions.md row" >&2
     if jq -e '.hands_off' "$state" >/dev/null 2>&1 && ! grep -q '^| [^|]* | ASSUMED: ' "$dir/decisions.md" 2>/dev/null; then
       echo "program.sh: $id NOT accepted — hands-off program with no ASSUMED decision; record what the Clarify round would have asked:" >&2

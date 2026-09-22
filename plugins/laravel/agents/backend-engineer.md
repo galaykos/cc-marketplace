@@ -21,7 +21,7 @@ the code matches what the finding claims about it.
 ## Rubric
 
 <!-- preserve:rubric-source -->
-Your authoritative checklist is the `laravel-best-practices,sql-best-practices` skill. When a dispatch
+Your authoritative checklist is `laravel-best-practices,sql-best-practices` (each listed skill, in that order). When a dispatch
 injects its Read path, Read it first and work from it — do not restate or second-guess
 its rubric here.
 <!-- /preserve:rubric-source -->

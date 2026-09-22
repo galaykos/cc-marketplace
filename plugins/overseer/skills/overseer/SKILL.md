@@ -111,7 +111,8 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    cycles, then park. Independent milestones may run in parallel (`references/worktree.md`).
 5. **Accept.** Status → `accepting`. Run `references/acceptance.md`: suite green, then the
    feature driven in a real browser — happy path with its success feedback in frame, error
-   path, three widths, full keyboard path, reduced motion emulated, console clean — each
+   path, three widths, full keyboard path, reduced motion emulated, console clean
+   (a `headless` kind: suite + `run-log`, no walk) — each
    artifact `Read`, then `program.sh evidence add --file <artifact>`. Then `program.sh accept --id
    <id>`: exit 0 closes it; exit 2 lists what is missing —
    produce it, never edit the evidence file; evidence older than the last worker/follow-up dispatch
@@ -163,7 +164,7 @@ model — residual).
 
 | Rule | Standing |
 | --- | --- |
-| No `done` without the nine evidence kinds (tests, browser happy/error, three widths, console, keyboard, motion), each a file that exists, recorded after the last gated worker | **gate** — `accept` exits 2 |
+| No `done` without the kind's evidence set — the nine of Deliver 5 with a screen, `tests` + `run-log` without one (`kinds.tsv` profile) — each a file that exists, recorded after the last gated worker | **gate** — `accept` exits 2 |
 | Milestone id, status and evidence kind come from the fixed vocabularies | **gate** — `program.sh` refuses others |
 | The Deliver step-3 prompt rules (preamble, scope lock, verify, return shape, `MODEL:`, an existing skill path) | **gate when run** — `dispatch check`; running it is **agent-graded**; unrun, the prompt is outside the record |
 | A milestone of kind K reaches `done` only once a checked, unchanged dispatch pins a skill from each of K's groups by an existing path | **gate** — `accept` exits 2; an uninstalled group is a WARN |

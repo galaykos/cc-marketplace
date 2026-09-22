@@ -95,7 +95,7 @@ is, written only by the orchestrator turn, never by a worker.
 The completion gate (candor's clause 4, with candor installed) counts per-card reviewer
 records against done cards, and the tracks
 path is where they are easiest to forget: a track worker is a leaf and dispatches no
-reviewers at all (`references/reviewer-routing.md` § Tracks). So the ORCHESTRATOR records
+reviewers at all (`task-execution/references/reviewer-routing.md` § Tracks). So the ORCHESTRATOR records
 them — the worker cannot:
 
 - every card executed inside a track leaf → `scripts/review-skip.sh --card <id> --exempt leaf`

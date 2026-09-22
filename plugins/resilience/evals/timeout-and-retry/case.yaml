@@ -2,6 +2,7 @@ schema_version: "1.0"
 name: timeout-and-retry
 description: A queued Laravel job retries a POST that charges a card, with no timeout and no idempotency key — the review must name the double-charge, not just the missing timeout.
 execution:
+  timeout_seconds: 900
   max_turns: 25
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |
