@@ -163,7 +163,7 @@ EOF
 
   printf '%s 1\n' "$lines" > "$state" 2>/dev/null
 
-  msg=$(printf 'comment-discipline: this session has emitted ~%s characters of prose per tool call (threshold %s; p95 of measured sessions is ~389). Cut preamble, narration of steps already visible in the tool calls, and closing summaries that restate the diff. Report outcomes, not process. Shown once per session.' "$ratio" "$THRESHOLD")
+  msg=$(printf 'comment-discipline: this session has emitted ~%s characters of prose per tool call (threshold %s; p95 of measured sessions is ~389). Keep what the user needs to follow the work — what you found, what changed, what you need from them — and drop preamble and closing summaries that restate the diff. Shown once per session.' "$ratio" "$THRESHOLD")
 
   jq -cn --arg m "$msg" \
     '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$m}}' 2>/dev/null \

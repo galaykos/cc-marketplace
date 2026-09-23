@@ -161,9 +161,9 @@ objective, not an aesthetic judgment.
 **The section COUNT is reported, never a finding on its own.** A minimum-section counter
 can only push one way: more blocks. Against the eight slots the offer contract already
 owes, a 9–13 range demands one to five sections no slot asked for — which is where
-"Integrations", "Why us", "Security", "FAQ" and "Get started" arrive, and why a build that
-answers its brief in six committed sections had to pad to clear a number. Restraint is a
-legitimate answer and this file no longer fails it. Thinness is caught by the SPECIFICITY
+"Integrations", "Why us", "Security", "FAQ" and "Get started" arrive as padding. A build
+that answers its brief in six committed sections is a legitimate answer and this file does
+not fail it. Thinness is caught by the SPECIFICITY
 rule below the table, which is the half that cannot be satisfied by adding blocks: a
 section with no numeral and no typed slot is a finding at any count. Report the count
 against the range as context for the reviewer's judgement; do not convert it to a verdict.

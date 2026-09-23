@@ -1,8 +1,7 @@
 # Worked task decomposition
 
-Merged here on 2026-08-21 from the `task-orchestration` skill. <!-- removed-ok -->
-Its rules are in the SKILL body under "Split into tasks"; the table below is the
-demonstration, and it is the one part of that skill nothing else stated.
+The rules are in the SKILL body under "Split into tasks"; the table below
+demonstrates them.
 
 ## Worked decomposition example
 

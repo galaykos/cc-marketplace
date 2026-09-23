@@ -80,8 +80,6 @@ a wide, long-lived set of mutable locals that all interact by the end of the fun
 Read `references/kiss-dry.md` when the specific question is duplication or over-design:
 simplest thing that works, the rule of three before extracting, DRY of knowledge rather
 than of text, and the precedence order when those pull against SOLID or YAGNI.
-`simplicity-principles` was merged in here because its trigger — "when writing or
-reviewing code" — fired on every edit and so discriminated nothing.
 
 ## When to apply
 

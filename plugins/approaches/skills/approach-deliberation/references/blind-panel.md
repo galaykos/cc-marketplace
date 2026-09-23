@@ -3,12 +3,6 @@
 Read this when the deliberation runs as a BLIND PANEL rather than an inline
 candidate slate. The SKILL body decides which; this file is the mechanism.
 
-Merged here on 2026-08-21 from the former `opinion-round` skill. <!-- removed-ok --> Its own
-`lane.tsv` already declared the two as one territory — "both decide the SHAPE of
-a change and both say 'skip if the other already ran'" — and both ended in the
-same output shape, the same marker, the same proceed rule, and the same
-kill-trigger. Two skills, one decision, two copies of the bookkeeping.
-
 ## The personas — fixed, non-configurable
 
 Four voices, always the same four — two push for more work (Purist, Quality), two

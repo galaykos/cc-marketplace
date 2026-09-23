@@ -28,8 +28,8 @@ own values and mining.
 
 The `/craft-layer:craft` command owns the seam: it classifies the archetype, dispatches
 the `creative-director` agent, then passes the chosen concept (and its divergence record)
-as an INPUT into the `design-research` briefs. `design-research`'s mining method is
-unchanged — it gains a concept input that biases the theme brief + build task. The
+as an INPUT into the `design-research` briefs. `design-research` mines by its own method
+and takes the concept as an input that biases the theme brief + build task. The
 concept never reaches the build except through those briefs, so the command MUST thread
 it; a concept generated and dropped is the failure this seam exists to prevent.
 
@@ -62,8 +62,7 @@ The concept is DIVERGENT reasoning, so it is an agent, not a checklist: dispatch
 `creative-director` agent (`agents/creative-director.md`). It generates N blind concepts —
 each a central metaphor, an editorial voice, and ONE signature interaction — seeded by the
 anti-corpus differential (each must break K sameness-fingerprint defaults on K DIFFERENT
-axes — K scales with the pinned ambition, `restrained` 1 / `standard` 2 / `maximal` 3; a flat
-floor of one let a single departure discharge the whole gate), scores them on
+axes — K scales with the pinned ambition, `restrained` 1 / `standard` 2 / `maximal` 3), scores them on
 distinctiveness × brief-fit × feasibility (feasibility includes a usability floor), and
 returns the winner plus a **structured divergence record** the audit later checks. The
 agent owns the rubric; this skill only says WHEN to run it and WHAT it feeds.

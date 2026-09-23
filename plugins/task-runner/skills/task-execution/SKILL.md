@@ -76,7 +76,7 @@ the registry-miss path: `references/reviewer-routing.md` § Role-tier floor.
 **Upgraded statement:** when `00-INDEX.md` carries a `## Upgraded statement` blockquote
 (the `> `-prefixed section task-cards writes), read it as binding context for every task
 — it sharpens the shared goal, NEVER a license to widen, drop, or reinterpret a card;
-cards stay the sole scope authority, halt-with-evidence unchanged. Absent → as today.
+cards stay the sole scope authority, and halt-with-evidence applies as written. No such section → nothing extra to read.
 
 **Extreme Boost:** an `Ultra: true` / `Goal: true` marker in `00-INDEX.md` escalates
 the reviewer, worker and code-redteam dispatches, adds a code-redteam pass over the

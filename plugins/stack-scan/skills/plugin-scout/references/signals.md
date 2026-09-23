@@ -31,7 +31,7 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `k8s/`, `helm/`, `*.yaml` with `apiVersion:` + `kind:` | `devops` | |
 | `Dockerfile*`, `docker-compose*.y{a,}ml`, `compose*.y{a,}ml` | `devops` | mirrors rules.tsv, which covers `.yml` only — a repo with `compose.yaml` (the Compose Spec's preferred name) is suggested here and not routed there |
 | `openapi*.y{a,}ml`, `swagger*.json`, `*.proto`, `*.graphql` | `api-design` | mirrors rules.tsv, forked both ways: `swagger*.json` is only here, `api.php` is only there |
-| `.env` / `.env.example` key matching `STRIPE_`, `PADDLE_`, `BRAINTREE_`; or dep `stripe`, `@stripe/stripe-js`, `braintree`, `@paddle/*`; or composer require `stripe/stripe-php`, `laravel/cashier` | — | **no plugin covers this** — the payments plugin was removed from this marketplace on 2026-09-14; `security` and `resilience` skills co-fire on provider calls. Key name only — never read the value |
+| `.env` / `.env.example` key matching `STRIPE_`, `PADDLE_`, `BRAINTREE_`; or dep `stripe`, `@stripe/stripe-js`, `braintree`, `@paddle/*`; or composer require `stripe/stripe-php`, `laravel/cashier` | — | **no plugin covers this** — `security` and `resilience` skills co-fire on provider calls. Key name only — never read the value |
 | dep `three` or `@react-three/fiber` | `craft-layer` | |
 | `tailwind.config.*`, `components.json`, or dep `tailwindcss` | `ui-ux` | |
 | `components.json` carrying a `registries` or `aliases` key | `ui-ux` | a configured registry is what its stack skills read component APIs from; print shadcn's own MCP install line (`npx shadcn@latest mcp init`) with it — this marketplace ships no registry server |
@@ -41,7 +41,7 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | composer require `laravel/sanctum` or `laravel/passport`; or dep `next-auth`, `@auth/core`, `jsonwebtoken`, `passport` | `security` | an auth dependency is the app-shaped evidence its OWASP review wants |
 | `phpstan.neon*`, `psalm.xml*`, `phpcs.xml*`, `rector.php`, `eslint.config.*`, `.eslintrc*`, `biome.json*`, `.oxlintrc.json`, `.stylelintrc*`, `lighthouserc*`, `.pa11yci*`, `tsconfig.json`; or the matching composer/npm devDependency | `toolchain-experts` | a configured analyzer is the whole signal: its five reviewers RUN that tool and report what the baseline forgives and which rules are off, and its own `detect-analyzers.sh` exits 1 when nothing is configured, so with no config there is nothing to suggest |
 | a `package.json` or `composer.json` exists | — | the Composer/npm dependency-hygiene rubric ships IN the plugin running this scout, so there is no row to offer: name the lane instead — `/stack-scan:audit` for vulnerabilities, outdated packages and licences |
-| `.env` key `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*` | — | **no plugin covers this** — the llm-app plugin was removed on 2026-09-14; `security`'s write-scan keeps the LLM-sink patterns, and the host's built-in `claude-api` skill carries provider facts |
+| `.env` key `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*` | — | **no plugin covers this** — `security`'s write-scan keeps the LLM-sink patterns, and the host's built-in `claude-api` skill carries provider facts |
 | `prometheus` / `grafana` / `otel-collector` service in compose, or `@opentelemetry/*` dep | `resilience` | |
 | `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `build.gradle*`, `Gemfile` | — | **no plugin covers this stack.** The version-truth lane is already installed — `/stack-scan:report` reads these manifests, and `references/ecosystems.md` carries their authority conflicts — so route the rest to `/stack-scan:suggest --skills` |
 | dep `prisma`, `@prisma/client`, `typeorm`, `sequelize`, `mongoose`, `drizzle-orm`; or composer require `doctrine/orm`; or `**/migrations/**` | `database` | the schema/migration/pooling half, and it ships a PreToolUse guard. The `sql` row above fires on some of the same evidence and owns statements; `references/picker.md` already pairs the two as overlapping, so both rows firing is correct, not a duplicate |
@@ -50,7 +50,7 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | dep `p-retry`, `cockatiel`, `opossum`, `bullmq`, `bull`; or composer require `laravel/horizon` | `resilience` | retry/breaker/queue libraries are integration points with failure modes, which is the whole subject |
 | any of the above **plus** no tier-1 hit | — | say so explicitly: this marketplace has no plugin for that stack, and `/stack-scan:suggest --skills` (third-party skills on skills.sh) is the intended next step |
 | `*.tf`, `*.tofu`, `.terraform/` | — | **no plugin covers this.** Do not pad the list; route to `/stack-scan:suggest --skills terraform` |
-| `locales/`, `lang/`, `*.po`, `messages/*.json`, `i18n` dep | — | **no plugin covers this** — the i18n plugin was removed from this marketplace on 2026-08-26. Route to `/stack-scan:suggest --skills i18n` |
+| `locales/`, `lang/`, `*.po`, `messages/*.json`, `i18n` dep | — | **no plugin covers this.** Route to `/stack-scan:suggest --skills i18n` <!-- removed-ok --> |
 
 ## The uncovered-stack rows are the point
 

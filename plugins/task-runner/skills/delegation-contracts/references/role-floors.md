@@ -23,47 +23,46 @@ taskmaster:spec-adversary                 opus
 ultra-deep-research:verifier              sonnet
 ```
 
-A floor is the agent's own pin, reinterpreted — not a raise. `frontend-reviewer` joined
-2026-09-02 when web-dev absorbed the Next.js, React Native and Vite skills: its verdict
-is Reasoning-class, and an `inherit` reviewer in a Sonnet session judged code with a
-Sonnet-class verdict while the session's own work never dropped that low. `verifier` floors at `sonnet`
-because the defect was the *ceiling*, never the level: it kept an adversarial refuter at
-sonnet while the claims it audits were produced under a stronger session.
+A floor is the agent's own pin, reinterpreted — not a raise. `frontend-reviewer`'s verdict
+is Reasoning-class, so an `inherit` pin would let a Sonnet session judge code with a
+Sonnet-class verdict. `verifier` floors at `sonnet` because the risk is the *ceiling*, not
+the level: capped at sonnet, an adversarial refuter would audit claims produced under a
+stronger session.
 
 An agent with no row here is **unfloored** — that is the correct default, not an oversight.
 
 ## The rule — two classes, one rule each
 
-A single formula cannot serve both classes; trying to write one is how an earlier draft
-silently turned an explicit low-tier marker (`Ultra: true (model=haiku)`) into a no-op.
+A single formula cannot serve both classes: one formula turns an explicit low-tier marker
+(`Ultra: true (model=haiku)`) into a no-op for unfloored agents.
 
     FLOORED (every agent in the registry above — count it there, not here):
         model: = max( marker tier if a marker is present else session model,
                       role floor )
         ladder: haiku < sonnet < opus < fable
 
-    UNFLOORED (every other agent): UNCHANGED from today.
+    UNFLOORED (every other agent):
         marker tier if a marker is present; otherwise omit `model:` entirely.
 
 `auto` is not an explicit tier — it resolves per this plugin's
 `verification-panels/references/dispatch-tier.md` (session model or opus, whichever is
 higher), and only the resolution enters the max.
 
-**For a floored agent under a marker this is exactly `ultra/SKILL.md`'s existing
-`max(marker tier, frontmatter tier)`.** The only new behavior is that the *session model*
-takes the marker's place when no marker is present. Nothing else about dispatch changes.
+**For a floored agent under a marker this equals `ultra/SKILL.md`'s
+`max(marker tier, frontmatter tier)`**; with no marker, the *session model* takes the
+marker's place.
 
 Worked cases:
 
-| Case | Result | vs before |
-|---|---|---|
-| unboosted, fable session, `code-reviewer` | `max(fable, opus)` = fable | **fixed** — was opus |
-| unboosted, sonnet session, `code-reviewer` | `max(sonnet, opus)` = opus | unchanged |
-| legacy `Ultra: true (model=haiku)` marker, `code-reviewer` | `max(haiku, opus)` = opus | unchanged |
-| legacy `Ultra: true (model=haiku)` marker, an `inherit` worker | haiku | unchanged — the explicit-marker lever survives |
-| a batch worker under any marker | the marker tier | unchanged — it is unfloored |
-| unboosted, opus session, `verifier` | `max(opus, sonnet)` = opus | **fixed** — was sonnet |
-| unboosted, haiku session, `verifier` | `max(haiku, sonnet)` = sonnet | unchanged |
+| Case | Result |
+|---|---|
+| unboosted, fable session, `code-reviewer` | `max(fable, opus)` = fable |
+| unboosted, sonnet session, `code-reviewer` | `max(sonnet, opus)` = opus |
+| `Ultra: true (model=haiku)` marker, `code-reviewer` | `max(haiku, opus)` = opus |
+| `Ultra: true (model=haiku)` marker, an `inherit` worker | haiku — the explicit-marker lever holds |
+| a batch worker under any marker | the marker tier — it is unfloored |
+| unboosted, opus session, `verifier` | `max(opus, sonnet)` = opus |
+| unboosted, haiku session, `verifier` | `max(haiku, sonnet)` = sonnet |
 
 A floor below `opus` is not a weaker floor — it is the same rule at the agent's own level.
 `sonnet` is where `verifier` already sat; the row only stops it capping there.
@@ -73,7 +72,7 @@ stands. Effort remains a `Workflow`-path concern.
 
 ## Resolving this file
 
-It lives in `task-runner` (in `orchestration` until 2026-09-14), which a consumer
+It lives in `task-runner`, which a consumer
 plugin may not have installed. Probe in order:
 
 1. `${CLAUDE_PLUGIN_ROOT}/skills/delegation-contracts/references/role-floors.md` (task-runner itself)

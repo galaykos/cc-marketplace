@@ -1,20 +1,16 @@
 # Surgical edits: assumptions, traceability, orphans
 
-The `surgical-coding` skill was merged into `plan-before-code` here on 2026-07-28.
-Its trigger — "outside a planned pipeline" — was negatively scoped and so could not
-be evaluated at fire time. Adapted from Andrej Karpathy's LLM-coding guidelines
-(multica-ai/andrej-karpathy-skills, MIT); that attribution travels with the text.
-`plan-before-code` reads this file for edits made without a plan.
+Adapted from Andrej Karpathy's LLM-coding guidelines (multica-ai/andrej-karpathy-skills,
+MIT); that attribution travels with the text. `plan-before-code` reads this file for
+edits made without a plan.
 
 
 ## Where this fits
 
 The taskmaster/task-runner pipeline enforces this discipline through commands
-and cards. This skill is the ALWAYS-ON version for the other 80% of coding —
-the quick fix, the small feature, the "just change X" — where no pipeline runs
-but the same failure modes bite. Adapted from Andrej Karpathy's observations
-on LLM coding pitfalls (multica-ai/andrej-karpathy-skills, MIT). Bias is
-caution over speed; for genuinely trivial edits, judgment applies.
+and cards. This file covers the rest of coding — the quick fix, the small
+feature, the "just change X" — where no pipeline runs but the same failure
+modes bite. Bias is caution over speed; for genuinely trivial edits, judgment applies.
 
 ## Surface assumptions before code
 

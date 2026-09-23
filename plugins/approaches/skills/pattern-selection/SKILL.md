@@ -119,8 +119,8 @@ const report = (fmt) => `<<${section(fmt)}>>`;   // fmt is the injected step
 
 ## Full catalog — intent, structure, example per pattern
 
-For any pattern in the map, read `references/catalog.md` (this skill's directory) before writing
-code: it carries the intent, a minimal structure, a runnable example, and the collapse-to-idiom
-note for all patterns above plus non-GoF ones (Repository, Null Object, DI). Do not reconstruct a
-pattern from memory. For diagrams or a fuller applicability checklist, the GoF write-ups live at
+`references/catalog.md` (this skill's directory) carries the intent, a minimal structure, a
+runnable example and the collapse-to-idiom note for every pattern above plus non-GoF ones
+(Repository, Null Object, DI); open it when the idiom form or a non-GoF entry is in question.
+For diagrams or a fuller applicability checklist, the GoF write-ups live at
 https://refactoring.guru/design-patterns

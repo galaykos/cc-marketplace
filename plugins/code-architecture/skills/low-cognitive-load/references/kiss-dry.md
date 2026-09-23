@@ -1,9 +1,5 @@
 # KISS and DRY, with judgment
 
-The `simplicity-principles` skill was merged into `low-cognitive-load` here on
-2026-07-28. It was one of seven skills whose description read "when writing or
-reviewing code" — a trigger that fires on every edit and therefore discriminates
-nothing. The material was worth keeping; the always-on description was not.
 `low-cognitive-load` reads this file when the question is duplication or over-design.
 
 

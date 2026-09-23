@@ -73,7 +73,7 @@ Mining is unchanged — the concept STEERS it: elaborate the metaphor and voice 
 extracted patterns, prefer patterns that express the concept, and honour the divergence
 record (break the sameness-fingerprint defaults it names rather than reaching for them).
 Both briefs must read as ONE concept, not a generic direction with a concept bolted on.
-With no concept supplied, brief as before.
+With no concept supplied, mine and brief without one.
 
 ## Emit two briefs
 

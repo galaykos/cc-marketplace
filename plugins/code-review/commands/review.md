@@ -57,8 +57,7 @@ relevant-but-uninstalled plugins in one closing line instead. This list is the
 contract behind every per-stack command's hand-up clause ("the aggregator reaches
 this plugin's rubric too"): a plugin that ships a review command and is not named
 here is a defect in this file, not in that command. That holds for a plugin shipping
-review AGENTS and no review command too — toolchain-experts was missing here for the
-12 days it existed, and the letter of the old sentence excused it.
+review AGENTS and no review command too.
 
 Then:
 

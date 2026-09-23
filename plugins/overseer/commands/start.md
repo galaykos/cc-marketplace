@@ -34,4 +34,4 @@ user chose to let judgment seats inherit the session model). Then:
    Finish, `program.sh next` — under `--hands-off` deliver every runnable milestone in this
    session; interactive, ask once per milestone whether to continue now or resume in a
    fresh session. Do not stop after planning, and do not stop after m1 with nobody at the
-   keyboard — a roadmap with one branch behind it is the failure simulation 4 shipped.
+   keyboard — a roadmap with one branch behind it delivers nothing the user can try.

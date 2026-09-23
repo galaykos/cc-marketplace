@@ -141,8 +141,7 @@ land; the index is the only file that mutates during execution.
 labeled `**Upgraded statement:**` pair, copy it VERBATIM into a `## Upgraded statement`
 section of `00-INDEX.md`: one Markdown blockquote, every line `> `-prefixed, ~8 lines at
 most. task-execution reads that section on every run, so an index that omits it hands the
-executor nothing where it looks — which is what happened while this instruction lived
-behind the boost gate. The `> ` prefix is load-bearing: marker parsing is exact-prefix,
+executor nothing where it looks. The `> ` prefix is load-bearing: marker parsing is exact-prefix,
 so an unprefixed statement line beginning `Ultra:` or `Goal:` would be read as a tier
 declaration. No labeled pair in the spec header (older or hand-written spec) → skip the
 section entirely; never derive a statement at card time. Boosted runs stamp `Ultra:`/`Goal:`

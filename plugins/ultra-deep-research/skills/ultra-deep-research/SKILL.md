@@ -108,10 +108,10 @@ The SHARD-facing hardening (primary sources, verbatim quote or no claim, only pa
 actually opened, label inference, trace a conflict to its origin, absence is data)
 lives ONCE, in `agents/researcher.md` and `agents/verifier.md`. Both dispatch paths
 bind those files — `subagent_type` on the standard path, `agentType` on the Workflow
-path since 0.6.0 — so a shard already carries them. Do not re-paste them into a shard
+path — so a shard already carries them. Do not re-paste them into a shard
 prompt; a third copy only drifts from the two that reach the model. A shard dispatched
 with NEITHER key inherits none of it, and an unbound run's transcript is
-indistinguishable from a bound one (the 0.6.0 bug).
+indistinguishable from a bound one — set the key on every dispatch.
 
 What the ORCHESTRATOR owes on top, because no agent file can supply it:
 

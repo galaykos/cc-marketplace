@@ -3,6 +3,11 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.22.2 — 2026-09-23
+
+### Changed
+- **Prompt audit (Claude Code's built-in `claude-api` skill, `prompt-audit` subcommand; target Opus 5.5 / Fable 5.1):** `hooks/verbosity.sh` no longer tells the model to cut narration of steps — that update-suppressor makes Opus 5.5 / Fable 5.1 under-narrate; it now names what user-facing text is wanted. review.md and comment-discipline drop dated history. Method: that built-in skill's `shared/prompt-audit.md`; the full report and diff are in the maintainers' working area, not shipped.
+
 ## 0.22.1
 
 ### Changed

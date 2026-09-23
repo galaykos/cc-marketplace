@@ -97,7 +97,7 @@ and `budget.remaining()` cannot fund it, shrink the stage toward its inline fall
 rather than drop a mandatory phase — red-team and coverage still always run, at N=1 if
 that is all the budget funds. `budget.total == null` means no token target, so the count
 ceilings alone apply. The inline (non-`Workflow`) path exposes no budget handle; there the
-counts are the only bound. This is D2's cost concern answered at the granularity that has
+counts are the only bound. Budget is the cost bound at the granularity that has
 a real handle, not a total-agent cap that binds the wrong variable.
 
 A second bound is the harness's, not ours: the session carries a **workflow-size
@@ -128,10 +128,6 @@ two compatible:
   its scouts native).
 
 ## Per-stage bindings — grill
-
-Moved out of `../../grill/SKILL.md` on 2026-08-20: it was the second half of a
-632-character line, inert on every standard run, and the line-count ceiling could
-not see it growing there.
 
 Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout NATIVE — a mechanical role, so no model override — with recon lenses sized to blast radius per that skill's `references/dispatch-tiers.md`, run extra question rounds, and make spec-redteam + coverage-check mandatory; opinion-lens stays native.
 

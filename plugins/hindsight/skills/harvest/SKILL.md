@@ -13,7 +13,7 @@ transcript. Nothing is written without an explicit user pick.
   in the project tree. One JSON row per session, schema v1:
   `{"v":1, "session_id", "ts_start", "ts_end", "turns", "friction_events",
   "errors", "user_msgs", "reason", "transcript_path", "mined": false}`.
-  Since 0.9.0 the hook also writes one row per subagent the session spawned,
+  The hook also writes one row per subagent the session spawned,
   same fields plus `"kind":"agent", "agent_id", "agent_type"` (`agent_type` is
   the spawned name, e.g. `code-review:code-reviewer`; `unknown` when the
   meta file was missing). A row without `kind` is a session.

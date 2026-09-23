@@ -2,8 +2,7 @@
 
 The orchestrator's prompt is the only thing a delegate ever sees. When `task-runner`
 is installed, `cat` its `delegation-contracts/references/discipline-preamble.md` into the
-prompt — never retype it; a retyped preamble shed one clause per dispatch in the first
-simulation. Write each prompt to `milestones/<id>/dispatch/<n>.md` and run
+prompt — never retype it; a retyped preamble drifts clause by clause. Write each prompt to `milestones/<id>/dispatch/<n>.md` and run
 `program.sh dispatch check <file>` before spawning: it refuses a worker prompt in which any
 line of any preamble clause is missing or reworded (whitespace folded, so a reflow passes),
 or that lacks `TOUCH ONLY`, `VERIFY`, or a `…/SKILL.md` path that exists. A reader or
@@ -27,7 +26,7 @@ It resolves through the CLI's `installPath` when the plugin is enabled in this s
 falls back to the newest cache directory that HAS the file, printing which route it used.
 A skill name that resolves only to an old version has been renamed or retired — read the
 plugin's current skill list before pinning it (a `database-design` skill existed only up <!-- removed-ok -->
-to database 0.4.2; simulation 2 pinned it without noticing).
+to database 0.4.2).
 
 Inject as: `Read <abs-path> before writing; it is the authoritative best-practice source
 for this stack.` A miss is skipped silently, never invented.
@@ -36,8 +35,8 @@ for this stack.` A miss is skipped silently, never invented.
 
 `MODEL: <value>` names the model the Agent call passes for this seat; `dispatch check`
 refuses a prompt without it, with a value above the program's tier (`init --model`,
-default `opus`), or with `inherit` on a worker under any tier. Simulation 3 ran two thirds of its subagent turns on the session model
-because no dispatch said one and every `inherit` agent followed the session.
+default `opus`), or with `inherit` on a worker under any tier. Without the line, an
+`inherit` agent silently runs on the session model.
 
 | Seat | tier `opus` (default) | tier `auto` (`/overseer:start … --model auto`) |
 | --- | --- | --- |
@@ -47,7 +46,7 @@ because no dispatch said one and every `inherit` agent followed the session.
 
 Tier `opus` is a program-level cost cap, on record here: it overrides `delegation-contracts`
 `references/role-floors.md` (judgment seats float to `max(session, opus)`) and task-executor's
-"nothing lowers my tier" — simulation 3's unasked session-model spend is the reason. `auto` is
+"nothing lowers my tier" — it keeps subagent turns off the session model unasked. `auto` is
 the tier that honours role-floors. Below the tier is always allowed (`sonnet`, `haiku`). The tier binds only prompts the
 overseer writes: taskmaster's own red-team and coverage seats resolve `auto` against the
 session model under `goal`, so the one way to hold every seat at opus is to start the
@@ -100,16 +99,10 @@ the card index has two-plus parallel groups, hand execution to `/task-runner:run
 ## Rigour — what scrutiny a milestone buys, decided from the brief, not from its size
 
 The size letter says how much work a milestone is; it says nothing about how wrong the
-work can be. Simulation 4 priced the boost by size and got both directions wrong: "reserve
-it for L/XL" could never fire (an M milestone was five cards and 119 minutes) and "WARN on
-a boosted S/M" always did. What taskmaster's `ultra`/`goal` marker actually buys on top of a
-standard run — the per-card reviewers and the negative control are task-runner's baseline
-either way, and the spec red-team already runs past three criteria or an ASSUMED row — is
-the code red-team over the shipped diff (three refuters, a completeness critic with browser
-probes, up to three rounds), coverage loop-until-dry and tier escalation. In simulation 4
-that phase was 40 of 119 minutes and found the negative-total-interest bug, a 2.78:1 stale
-label and a comma-decimal keypad lockout; its third round found one test-strength issue and
-changed no source.
+work can be. The boost buys the code red-team over the shipped diff (three refuters, a
+completeness critic with browser probes, up to three rounds), coverage loop-until-dry and
+tier escalation; per-card reviewers and the negative control are baseline either way, and
+the spec red-team already runs past three criteria or an ASSUMED row.
 
 Score six signals from the brief, one line each in the block; the profile is the sum,
 overrides first (**agent-graded** — no script reads a brief for novelty):
@@ -131,15 +124,14 @@ overrides first (**agent-graded** — no script reads a brief for novelty):
   gate); after the run, ONE code red-team round you drive yourself — the correctness lens
   always, the security lens only with a surface, the test-teeth lens when a card's negative
   control needed an explicit mutant — as reviewer dispatches (`--kind reviewer`), then the
-  fix loop. Simulation 4's m2 (marketing page: a11y and direction already forced by its
-  kind) is the worked case.
+  fix loop. A marketing page, whose kind already forces a11y and direction, is the worked
+  case.
 - **sum ≥ 4 → `adversarial`**: `/taskmaster:task ultra <brief>` (hands-off: `goal`, never
   `goal-lean`): the
   full code red-team; stop after the critic round unless its fixes touched source no test
-  covers. Simulation 4's m1 (money maths, new primitives, first milestone) scores 5 and
-  buys what it bought, minus the six-minute third round; its m3 (an application form:
-  name, email, phone) is signal 1 → adversarial, which `--kind feature` would never have
-  reached — register it `--kind form`.
+  covers. A first milestone with money maths and new primitives scores 5; an application
+  form (name, email, phone) is signal 1 → adversarial, which `--kind feature` never
+  reaches — register it `--kind form`.
 
 Record the profile: `program.sh milestone set --id <id> --rigour <profile> --reason
 "<the signals>"` (or `--rigour` at `milestone add` when the roadmap already shows it);
@@ -150,8 +142,7 @@ whose marker is `Goal: true (boost=off)`) or no boost on an adversarial one (**W
 score itself is recorded). Budget
 left is not an input: the plugin has no cost channel, and a rule on a number nothing can
 read is a fifth unenforceable claim. What the rule never cuts: the reviewers task-runner
-routes per card and the negative control — in simulation 4 every card major came from
-the second or third reviewer, and they cost nothing extra.
+routes per card and the negative control — they cost nothing extra.
 
 ```
 ## Rigour: <lean | standard | adversarial>
@@ -202,8 +193,8 @@ RETURN (max 120 lines, this structure): <sections>. No narrative outside it.
 ```
 Gate it with `program.sh dispatch check <file> --kind reader`. The overseer amends the
 returned direction in `decisions.md` before the build worker sees it — and checks it
-against the other milestones' contracts (simulation 2's direction sold four renameable
-stages; the product shipped five fixed ones).
+against the other milestones' contracts (a direction that sells four renameable stages
+contradicts a product that ships five fixed ones).
 
 ## Reviewer (read-only)
 
@@ -224,9 +215,8 @@ criterion, the compressed return); this template is the direct-worker path's.
 
 ## Follow-up to a worker that is still alive
 
-A second message to a running worker IS a dispatch: the second simulation sent two ("fix
-cycle 3 — same preamble and rules as your card…") and neither reached `dispatch/` or the
-gate, so the record has a fix cycle no prompt explains. Write it to `dispatch/<n>-followup.md`
+A second message to a running worker IS a dispatch: one that skips `dispatch/` and the
+gate leaves the record with a fix cycle no prompt explains. Write it to `dispatch/<n>-followup.md`
 and gate it with `--kind followup`: no preamble text (the worker holds it), but the message
 must say the preamble still binds, keep or extend TOUCH ONLY, repeat VERIFY and RETURN, and
 name the dispatch file it continues by absolute path.

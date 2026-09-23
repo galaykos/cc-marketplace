@@ -9,8 +9,8 @@ Before you call work done, review the whole diff for this unit of work against *
 was actually asked — for **drift** (a strayed or cheaper Y shipped instead of the asked X)
 and for **cut corners**.
 
-This is **cooperative integrity, not a wall**. You own the diff and you own this review —
-you *can* skip it. Do not. The value is that drift and corner-cutting get seen and fixed
+This is **cooperative integrity, not a wall**: you own the diff and this review, and
+nothing forces the review to run. Run it because drift and corner-cutting get seen and fixed
 *before* "done", while fixing them still costs one edit instead of a re-litigation. It is
 not tamper-proof and it is not a security boundary; it raises the visibility of casual
 drift, not an adversary's.

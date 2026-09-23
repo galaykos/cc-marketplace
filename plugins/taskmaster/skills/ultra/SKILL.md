@@ -61,8 +61,7 @@ ladder, and why `effort` binds only on the Workflow `agent()` path are owned by
 restated (§ Panel width owns panel width N and states none of the three). Taskmaster adds two
 rules of its own: the resolution is a FLOOR (`max(marker, frontmatter)`), so it never lowers
 an agent below its shipped tier; and never edit agent frontmatter to achieve it — the boost
-is a dispatch-time override. (The old per-token `-<model>`/`-<effort>` suffix grammar is
-REMOVED — bare tokens only, one fixed tier.)
+is a dispatch-time override. Tokens take no suffix — a bare token, one fixed tier.
 
 ## The boost contract (both modes)
 

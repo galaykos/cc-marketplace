@@ -5,9 +5,8 @@ the craft DECISION for right-to-left / bidirectional targets — not the base RT
 
 ## The base rules
 
-The marketplace's i18n plugin, which owned the general RTL rule set, was removed
-2026-08-26 — this floor is now the only shipped statement of the base rules, so it
-is the full set for craft work, not a fallback. This file otherwise adds only the
+No other installed file states the base RTL rules, so this floor is the full set for
+craft work, not a fallback. This file otherwise adds only the
 MOTION + creative decisions general i18n guidance does not cover.
 
 The four rules you cannot skip:

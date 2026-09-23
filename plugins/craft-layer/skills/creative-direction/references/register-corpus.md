@@ -2,11 +2,9 @@
 
 `offer-contract.md` Part 3 already says it in prose: method disclosure, spec sheets and API
 tables are **supporting** material, and a page built only of specs "has skipped every other
-slot". It names the anti-pattern too — *Spec sheet as sales page*. Nothing greped for it, so
-it caught nothing, and a build shipped a landing page whose every spine slot was ANSWERED and
-whose every answer read as documentation: `POST /api/task` for what it is, a token scope for
-who it is for, a schema fact for why change. The presence gate passed green. A human found it
-by reading the page.
+slot". It names the anti-pattern too — *Spec sheet as sales page*. Prose alone detects
+nothing: a page can answer every spine slot in documentation — `POST /api/task` for what it
+is, a token scope for who it is for, a schema fact for why change — and pass the presence gate.
 
 This file is the machine half. It owns three things: the **slot → region mapping** that makes
 the check scoped rather than blunt, the **corpus of register markers** it tests against, and

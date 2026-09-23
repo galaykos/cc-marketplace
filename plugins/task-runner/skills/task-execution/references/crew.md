@@ -9,7 +9,7 @@ Only the main `/task-runner:run` orchestrator runs a crew; a delegated leaf neve
 ## Trigger — `--crew` only
 
 `--crew` is the **sole** switch. No hook, no `Ultra: true` marker, and no `ultra-task` /
-`ultra-assess` run ever engages crew; a run without `--crew` behaves exactly as today.
+`ultra-assess` run ever engages crew; a run without `--crew` runs no crew step.
 Ultra touches crew **only** by escalating crew-agent model when `--crew` is already active
 (§ Ultra). `--crew` is a bare boolean; `--crew=<value>` is a usage error.
 

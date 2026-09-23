@@ -2,9 +2,8 @@
 
 A rebuild, a redesign, or a front-door refresh usually arrives with the words already
 written: a live marketing site, a deck, a PDF, a page the client pasted into the brief.
-The flow used to assume page copy was GENERATED — so it had no step that asked whether
-copy existed and no lane that ingested it when it did. The failure that follows is
-specific and expensive: a run that cannot reach the client's own copy substitutes
+Ask whether copy exists before generating any. The failure this prevents is specific and
+expensive: a run that cannot reach the client's own copy substitutes
 whatever facts it does have — endpoints, auth scopes, rate limits — and ships a sales
 page that reads as documentation, clearing every gate on the way.
 

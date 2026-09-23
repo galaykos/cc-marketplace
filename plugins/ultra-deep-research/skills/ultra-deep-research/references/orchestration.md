@@ -9,8 +9,9 @@ Runs anywhere, no opt-in. One round of shards, one refutation pass.
 1. **Decompose** the question into 4–8 facets. Write them down.
 2. **Fan out** — spawn one `researcher` per facet in a *single* message (parallel
    tool calls) so they run concurrently. Each prompt is self-contained: the facet, the
-   parent question for context, any domain constraints (region, timeframe, language),
-   the prompt-hardening rules from the skill, and the required return shape below.
+   parent question for context, and any domain constraints (region, timeframe,
+   language). The `researcher` agent file already carries the accuracy rules and the
+   return shape below — do not re-paste them.
 3. **Collect** the claim lists. Merge into one ledger keyed by claim; note which facet
    and which sources back each.
 4. **Corroborate** — mark every load-bearing claim `confirmed` only if ≥2 independent
@@ -19,7 +20,7 @@ Runs anywhere, no opt-in. One round of shards, one refutation pass.
    or downgrade whatever a refuter breaks.
 6. **Synthesize** the report and write the file.
 
-### researcher return shape (require this in the prompt)
+### researcher return shape (bound by `agents/researcher.md`; shown for the merge step)
 
 ```
 FACET: <the sub-question>

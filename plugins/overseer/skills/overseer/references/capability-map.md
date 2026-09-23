@@ -12,12 +12,12 @@ file with the branches it triggers on, flagged when the base branch is not among
 
 **The scan cannot see the session.** Installed and enabled is not the same as invocable:
 a project's first-ever session registers its `enabledPlugins` and loads only user-scope
-ones (simulation 4's first launch: 62 slash commands, 233 after a restart), and the scan
+ones (a restart can multiply the reachable slash commands several times over), and the scan
 reads the same settings files the CLI just registered from. The Discover step therefore
 compares the table against the session's own Skill listing; a row the session cannot
 invoke is `unreachable`, and the remedy is `/reload-plugins` (interactive) or a fresh
-session (headless) before any milestone is registered — a fallback there would quietly
-re-run the hand-dispatch path every earlier simulation took. Standing: agent-graded.
+session (headless) before any milestone is registered — anything softer quietly
+hand-dispatches work an installed plugin owns. Standing: agent-graded.
 
 | Phase | Preferred (cc-plugins-marketplace) | Also counts | Fallback when nothing is installed |
 | --- | --- | --- | --- |
@@ -83,5 +83,5 @@ laravel/web-dev skill really is).
 | library | stack · testing | a non-UI code change: script, CLI, package, build step; evidence profile `headless` |
 
 "stack" is any project skill under `.claude/skills/` or any `laravel`/`web-dev` plugin skill.
-The rows are the two simulations' pins written down; a kind the table lacks is `feature`
+A kind the table lacks is `feature`
 plus a decision row naming what you pinned and why — and a row to add here.

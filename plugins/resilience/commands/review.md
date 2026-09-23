@@ -4,7 +4,6 @@ argument-hint: [path-diff-or-design-doc] [--concern failure|errors|concurrency|o
 ---
 
 Review the target in $ARGUMENTS against this plugin's rubrics — audit it, do not rewrite it.
-One command, six concerns; until 2026-09-14 five of them were separate slash commands.
 
 Parse `--concern <name>` (also `--concern=<name>`) out of $ARGUMENTS first; the remainder
 is the target. The names and the skill each loads:

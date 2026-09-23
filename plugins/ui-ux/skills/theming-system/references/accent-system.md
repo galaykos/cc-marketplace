@@ -138,12 +138,10 @@ step's DIRECTION set by the ground.
 
 ## Ratio-is-a-rule, value-is-forbidden
 
-Keep the boundary explicit so a fresh session neither strips the rules nor smuggles in
-numbers. A contrast RATIO (`≥4.5:1`, `≥3:1`) is a REQUIRED rule and MUST survive here; it is
-the whole point of the split. A colour VALUE (a hex, a functional-colour scalar, a named
-colour used as a value) is FORBIDDEN here — that is the kill-trigger, and it is
-`/ui-ux:theme`'s job to resolve the step to actual tones along the `design-tokens` ramps.
-Ratios survive; colour values do not.
+A contrast ratio (`≥4.5:1`, `≥3:1`) stays here — it is the whole point of the split. A
+colour value (a hex, a functional-colour scalar, a named colour used as a value) does not:
+that is the kill-trigger, and resolving the step to actual tones along the `design-tokens`
+ramps is `/ui-ux:theme`'s job.
 
 ## Verification lives elsewhere
 

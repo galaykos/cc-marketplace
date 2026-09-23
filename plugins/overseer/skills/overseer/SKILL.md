@@ -72,7 +72,7 @@ Register each with `program.sh milestone add --id mN --title … --branch <slug>
 never `feature`) names the skill groups a gated dispatch must pin before `accept` closes
 the milestone (**gate**). The size routes the pipeline: only S may go straight to one
 worker; M and up are briefed to taskmaster, and "grill would ask nothing" is not a reason
-to skip it (three simulations said so). The first milestone in a greenfield project is the
+to skip it. The first milestone in a greenfield project is the
 walking skeleton — one route, one page, one test, in the browser — never a data model alone.
 
 ### Deliver — one milestone at a time
@@ -92,8 +92,8 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    task-runner's baseline, never a boost cost. Let taskmaster hand off to task-runner
    (`--tracks` only for two-plus track-eligible milestones; parallel groups within one
    are its default path); when the index appears, diff
-   its decisions against the brief's binding ones and record each delta (sim 4 shipped
-   three silently). Size S, or no taskmaster: cards from the brief, one scope-locked worker
+   its decisions against the brief's binding ones and record each delta.
+   Size S, or no taskmaster: cards from the brief, one scope-locked worker
    per disjoint file set. Every prompt you dispatch is written
    to `milestones/<id>/dispatch/<n>.md` and passed through `program.sh dispatch check
    <file>` first: a worker with any preamble line missing or reworded, no scope lock or
@@ -125,7 +125,7 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    back). Hands-off or headless: keep the branch and record the
    next command. Merging to the base branch is the user's act, never yours.
 7. **Next.** `program.sh next`. Hands-off: deliver it, and the one after, until `next`
-   prints none (sim 4 stopped at m1 of 3 with nobody there to resume). Interactive: ask
+   prints none. Interactive: ask
    once per milestone — continue now, or `/overseer:resume` in a fresh session.
 
 ### Close
@@ -153,7 +153,7 @@ Every worker, reviewer and subagent runs in a fresh context: a prompt that depen
 conversation is broken. Apply `task-runner:delegation-contracts` when installed (minimal
 form in `references/dispatch-prompts.md`): skills and files by absolute path, resolved by
 you; return shape and verify commands stated; a worker's discipline preamble `cat`-ed in,
-never retyped (a retyped one shed a clause per dispatch). A prompt
+never retyped (a retyped one drifts clause by clause). A prompt
 naming a plugin the scan showed missing will be ignored — use the fallback.
 
 **Model per seat is a line, not a default.** Every dispatch file carries `MODEL: <value>`

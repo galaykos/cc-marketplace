@@ -5,7 +5,7 @@ path are known. Both are advisory inputs the runner honors per the rules at the 
 
 ## S-card batching — the BATCH verdict
 
-Today a lone S task is INLINE ("delegating an S task spends more on spawn than on work").
+A lone S task is INLINE (delegating one S task spends more on spawn than on work).
 That is right for ONE S task and wrong for a *cluster* of them: the spawn tax a single
 delegation cannot justify is amortized when one agent runs several disjoint S-cards.
 
@@ -17,7 +17,7 @@ Form batches per level, after disjoint grouping:
    mixing tags would silently discard per-card specialist routing. Same-tag (or all
    `generic`) only.
 2. **Threshold.** A same-worker disjoint group of **≥3** S-cards becomes a BATCH. A group
-   of 1–2 stays INLINE (today's behavior — too small to amortize a spawn).
+   of 1–2 stays INLINE (too small to amortize a spawn).
 3. **Cap.** One batch holds at most **8 S-members** (S weight 1 each → weight ≤8 ≈ one L).
    A larger cluster splits into multiple batches of ≤8.
 4. **Never spans levels.** All members share one dependency level; a batch is disjoint
@@ -70,12 +70,11 @@ concurrently with. A batched level clears the ≥1.5× delegate bar only via tha
 
 ## How the runner honors this
 
-Default-path per-level delegation is **already today's behavior** — a plain
-`/task-runner:run` shows the plan then delegates disjoint groups (`task-execution/
-SKILL.md` § Sequencing). BATCH is one more per-level verdict on that same path, so it
-introduces **no new silent fleet** and needs no new confirmation.
+On the default path a plain `/task-runner:run` shows the plan then delegates disjoint
+groups (`task-execution/SKILL.md` § Sequencing). BATCH is one more per-level verdict on
+that path, so it needs no confirmation of its own.
 
-The **only** genuinely new auto-engage is `workflow-tracks` — it spawns git worktrees:
+`workflow-tracks` is the one auto-engage that needs confirmation, because it spawns git worktrees:
 
 - **Interactive:** display the recommended mechanism and pre-select it at the existing
   Run-now gate (`plan.md` step 4 / `run` handoff). The user still confirms. Never a

@@ -2,6 +2,11 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.10 — 2026-09-23
+
+### Changed
+- **Prompt audit (Claude Code's built-in `claude-api` skill, `prompt-audit` subcommand; target Opus 5.5 / Fable 5.1):** the per-turn terse reminder (`hooks/mode.sh`) and `/candor:level` now put "blocker or decision" second in the report skeleton, matching terse-output's skill since 0.4.9 — both copies had kept the old fifth-slot order; `/candor:check` and `/candor:level` drop dated incident prose. Method: that built-in skill's `shared/prompt-audit.md`; the full report and diff are in the maintainers' working area, not shipped.
+
 ## 0.4.9 — 2026-09-23
 
 ### Changed
