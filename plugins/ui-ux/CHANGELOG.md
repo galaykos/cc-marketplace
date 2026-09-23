@@ -10,8 +10,10 @@ rather than invented ones.
 - **`/ui-ux:build` names the defaults to leave out when no decided lines arrive.** A
   bare build carried no art direction, so the worker got the model's house styles. The
   dispatch now names five patterns as left out unless asked for (cream background, italic
-  accent word, `01 / 02 / 03` labels, monospace labels, pill buttons), or hands the
-  worker craft-layer's `sameness-fingerprint.md` when that plugin is installed. Per the
+  accent word, `01 / 02 / 03` labels, monospace labels, pill buttons) or already in the
+  project's own tokens or components — the list yields to the codebase, never overrides
+  it — or hands the worker craft-layer's `sameness-fingerprint.md` when that plugin is
+  installed. Per the
   Opus 5.5 playbook (claude.dev, 2026-09-22): "avoid a generic look" swaps one default
   for another; a list of named patterns works. Standing: recorded.
 
