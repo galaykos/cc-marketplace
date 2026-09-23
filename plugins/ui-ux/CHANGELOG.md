@@ -4,6 +4,17 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.26.1 — 2026-09-23
+
+### Added
+- **`/ui-ux:build` names the defaults to leave out when no decided lines arrive.** A
+  bare build carried no art direction, so the worker got the model's house styles. The
+  dispatch now names five patterns as left out unless asked for (cream background, italic
+  accent word, `01 / 02 / 03` labels, monospace labels, pill buttons), or hands the
+  worker craft-layer's `sameness-fingerprint.md` when that plugin is installed. Per the
+  Opus 5.5 playbook (claude.dev, 2026-09-22): "avoid a generic look" swaps one default
+  for another; a list of named patterns works. Standing: recorded.
+
 ## 0.26.0 — 2026-09-22
 
 ### Added

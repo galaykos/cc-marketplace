@@ -104,6 +104,9 @@ Output rules:
   critical first — the marketplace-wide scale the chassis reviews use, so
   fan-in output merges with theirs without translation.
 - No praise, no restating the diff, no findings on unchanged lines.
+- A `critical` or `high` finding says how to show it fails — the input or state that
+  produces the wrong output — inside its problem clause. It is the same content the
+  `failure_scenario` field carries below; the prose line must not be the poorer copy.
 - **Also emit through `ReportFindings` when that tool is available.** This command
   is the active code-review instruction the tool's own usage rule waits for, so
   the condition is met here. Emit once, after the self-refute pass, with the

@@ -2,6 +2,16 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.9 — 2026-09-23
+
+### Changed
+- **`terse-output`'s work-done skeleton puts "Blocker or decision" second, right after
+  the verdict.** It sat fifth of six. The Opus 5.5 playbook (claude.dev, 2026-09-22)
+  says the first thing to read when a long run ends is what the model is waiting on
+  you for; a slot near the bottom of a 12-line budget is the wrong place for it. The
+  hooks read the contract block live from the skill, so the injected card moves with
+  it. Order only; every slot's content is unchanged.
+
 ## 0.4.8 — 2026-09-22
 
 ### Fixed

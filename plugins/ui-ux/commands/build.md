@@ -45,6 +45,17 @@ convention.
    than shipped in the registry's defaults.
    Layout, responsive breakpoints, spacing rhythm, and element hierarchy are its job.
 
+   **No decided lines → name the defaults to leave out.** With no art direction the
+   model falls back on a few house styles, and "avoid a generic look" only swaps one
+   default for another; a list of named patterns works. When $ARGUMENTS carries no
+   `Banned vocabulary:` or `Signature:` line, the dispatch names these five as left out
+   unless the request asks for one: a cream or off-white page background, an italic
+   accent word in headings, numbered `01 / 02 / 03` section labels, monospace labels
+   with no data argument, pill-shaped buttons as the one silhouette. When craft-layer is
+   installed, hand the worker the Read path to its
+   `skills/creative-direction/references/sameness-fingerprint.md` instead — the fuller
+   registry the five belong to. Standing: recorded — the worker may still pick them.
+
    Two conditional injections ride the same dispatch — the worker has no Skill tool, so
    a skill not injected here never reaches it:
    - **Motion.** When the request or target files carry animation signals — the same list

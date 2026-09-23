@@ -37,8 +37,10 @@ pressure that produces an undisclosed skip.
 Work-done reports use one skeleton, same order every time, empty parts skipped:
 
 1. **Verdict** — one line, what is now true. `Done. spec/ = 70 files, 16.8k lines.`
-2. **Artifacts** — table or tree. Path plus one phrase. No sentences.
-3. **Findings** — max 5, ranked by cost of not knowing, one line each, in the form
+2. **Blocker or decision** — only real ones, only if the user must act. Second on
+   purpose: a reader of a long run looks for what is waiting on them before anything else.
+3. **Artifacts** — table or tree. Path plus one phrase. No sentences.
+4. **Findings** — max 5, ranked by cost of not knowing, one line each, in the form
    `path:line — problem → impact`. Drop the `:line` (keep the path) when the turn
    itself deleted, renamed or shortened that file: this plugin's own Stop gate cannot
    see intent and blocks a citation that no longer resolves, so a line number for a
@@ -48,10 +50,9 @@ Work-done reports use one skeleton, same order every time, empty parts skipped:
    or scan the user invoked returns every finding it found, in that command's own
    format. Compressing someone's requested output into a file is data loss wearing
    a budget.
-4. **Skipped** — what the turn did not do, and why: a check not run, a file not
+5. **Skipped** — what the turn did not do, and why: a check not run, a file not
    touched, a sample instead of the full pass. Print `Skipped: none` explicitly.
    An omitted section is invisible; an empty one is a claim that can be held.
-5. **Blocker or decision** — only real ones, only if the user must act.
 6. **Next** — one line, only when the user must choose between paths.
 
 Cut on sight, every level:
