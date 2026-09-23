@@ -69,7 +69,7 @@ fire() { # $1 transcript_path, $2 cwd, $3 session_id -> additionalContext (empty
 out=$(fire "$FX/t/main.jsonl" "$REPO")
 if [ -n "$out" ]; then pass "warn branch: unlinted card set is no longer silent"
 else bad "warn branch: silent on a card set with zero lint records"; fi
-for want in "01-alpha.md" "02-beta.md" "verify-teeth" "skills-stamp" "2 of 2"; do
+for want in "01-alpha.md" "02-beta.md" "card-shape" "verify-teeth" "skills-stamp" "2 of 2"; do
   if printf '%s' "$out" | grep -qF "$want"; then pass "warning names '$want'"
   else bad "warning missing '$want' (got: $out)"; fi
 done
@@ -97,11 +97,13 @@ else bad "subagent silenced by the parent's marker — session-keyed, and the cl
 # --- 5. the linters leave a record -------------------------------------------
 # Run them the way skills/task-cards/SKILL.md says to, per card.
 for card in "$SET/01-alpha.md" "$SET/02-beta.md"; do
+  bash "$TM/scripts/card-shape-lint.sh" --card "$card" >/dev/null 2>&1
   bash "$TM/scripts/verify-teeth-lint.sh" --card "$card" >/dev/null 2>&1
   bash "$TM/scripts/skills-stamp-lint.sh" --card "$card" >/dev/null 2>&1
 done
 log="$SET/.lint-records/01-alpha.md.log"
 if [ -r "$log" ] \
+   && grep -q "$(printf '\tcard-shape\tpass\t')" "$log" \
    && grep -q "$(printf '\tverify-teeth\tpass\t')" "$log" \
    && grep -q "$(printf '\tskills-stamp\tpass\t')" "$log"; then
   pass "each linter leaves a run record beside the card"
@@ -139,6 +141,7 @@ cat > "$SET/03-gamma.md" <<'EOF'
 - **Verify:** `pytest -k gamma_rejects asserts 400`
 - **Skills to apply:** none
 EOF
+bash "$TM/scripts/card-shape-lint.sh" --card "$SET/03-gamma.md" >/dev/null 2>&1
 bash "$TM/scripts/verify-teeth-lint.sh" --card "$SET/03-gamma.md" >/dev/null 2>&1
 out=$(fire "$FX/t/partial.jsonl" "$REPO")
 if printf '%s' "$out" | grep -qF '03-gamma.md (skills-stamp)' \

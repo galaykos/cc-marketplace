@@ -1,6 +1,9 @@
 # Agent capability tags
 
-Every card emits `**Agent:**` with exactly one tag from the closed vocabulary below.
+Every card emits `<agent>` with exactly one tag from the closed vocabulary below
+(a legacy card carries `**Agent:**`; both are read). `scripts/card-shape-lint.sh`
+reads THIS file's fenced list at run time to gate the value, so the list below is
+the single copy.
 The tag is a routing hint the runner resolves to a specialist worker; it selects
 **aptitude, not authority** (all workers are equally privileged). Keep this vocabulary
 in sync with **both** resolution maps —

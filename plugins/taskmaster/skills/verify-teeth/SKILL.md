@@ -6,27 +6,18 @@ disable-model-invocation: true
 
 # Verify teeth
 
-A card closes when its `**Verify:**` command exits 0. If that command passes whether the
+A card closes when its `<verify>` command exits 0. If that command passes whether the
 feature works or not — `test -f out.js`, `node -e "require('./x')"`, `npm test` over an empty
-suite, anything ending `|| true` — then "green" proves nothing, and broken code ships marked
-done. That is the root cause behind untested, non-combat-ready output: the gate that was
-supposed to prove the work is itself hollow. This skill makes the Verify line earn its green
-at authoring time, before a single line of implementation is written.
+suite, anything ending `|| true` — "green" proves nothing and broken code ships marked done.
+This skill makes the line earn its green at authoring time, before any implementation.
 
-## Where it sits — layer 1 of the three-layer defense
+## Where it sits, and when
 
-Standing: recorded — owns layer 1 only: a syntactic denylist over the Verify *line
-text*, before any code exists. Layers 2 and 3 run during execution and belong to
-`task-runner`, which owns the full map: `task-runner:behavioral-gate` § "The
-three-gate defense".
-
-## When it runs
-
-In the task-cards tail, immediately after `coverage-check` and before the task-runner
-handoff. `coverage-check` grades whether each success criterion is *claimed* by some card's
-acceptance text; it never inspects the Verify line's strength. verify-teeth is the missing
-half — it grades the Verify line itself. The two are complementary: run both, in that order,
-and neither substitutes for the other.
+Standing: recorded — layer 1 of three: a syntactic denylist over the line *text*, before
+any code exists. Layers 2 and 3 run during execution and belong to `task-runner`
+(`task-runner:behavioral-gate` § "The three-gate defense"). Runs in the task-cards tail,
+after `coverage-check` — which grades whether a criterion is *claimed*, never the line's
+strength — and before the task-runner handoff. Run both, in that order.
 
 ## What it does
 
@@ -36,41 +27,27 @@ For every card in the run, invoke the shipped denylist linter:
 ${CLAUDE_PLUGIN_ROOT}/scripts/verify-teeth-lint.sh --card <card-file>
 ```
 
-The script reads the card's `**Verify:**` line and exits:
-
-- **0** — the line has teeth (names a specific test / assertion / observable).
-- **2** — weak: it prints `verify-teeth: <reason>` naming the matched pattern.
-- **3** — usage error (no Verify line found / bad args).
-
-On a `2`, block the card: report the reason and the matching fix below; do not proceed to
-the handoff until the author sharpens the line. Re-run the linter after each fix until it
-exits 0. The script is the single source of truth for the pattern set — invoke it; never
-re-implement the list in prose here.
+It reads the card's `<verify>` element (or a legacy `**Verify:**` line) and exits **0**
+(teeth: names a test / assertion / observable), **2** (weak: prints `verify-teeth: <reason>`),
+or **3** (usage: no line found). On a `2`, block the card: report the reason and the fix
+below, re-run after each fix until 0. The script is the single source of truth for the
+pattern set — invoke it; never re-implement the list here.
 
 ## The weak forms it blocks (and the fix)
 
-- `existence-only` (`test -f`, `test -e`, `ls` as the whole check) → run the code and assert
-  an observable *value*, not merely that a file exists.
-- `|| true` / `; true` → never swallow the exit code; a check that cannot fail is not a check.
-- `require-only` / `import-only` (`node -e "require(...)"`, `python -c "import ..."` with no
-  assertion) → an import proves the module parses, not that it behaves; add an assertion.
-- `compile-only` (`tsc --noEmit`, `-fsyntax-only`, `go build` as the whole check) → compiling
-  is not behaving; exercise the changed code path. **Project-references caveat:** on the very
-  common root of `"files": []` + `"references"` (the Vite React-TS scaffold, most monorepos)
-  `tsc --noEmit` is not merely weak, it is **vacuous** — tsc is handed zero files and exits 0
-  having checked nothing, so the line is a guaranteed green even for the type errors it looks
-  like it covers. `tsc -b` is the check that runs; the linter prints this as a NOTE when it
-  spots that shape in the working directory's `tsconfig.json`, and a NOTE is advice, not a
-  block: it reads line text, so it cannot see which config a build actually uses.
-- `migration-run-only` (a migration command — `artisan migrate`, `alembic upgrade`,
-  `db:migrate`, `flyway`, `goose`, `prisma migrate deploy` — whose whole check is that it
-  ran) → that proves the DDL parsed, not that the schema is right; assert the resulting
-  column/constraint or a behavior that needs it.
-- `bare-suite-pass` (a runner invoked with no named test / assertion token) → name the new
-  test or the asserted outcome, e.g. `pytest -k reject_malicious_host asserts 422`.
+Each token is the exact `verify-teeth: <reason>` the script prints; the script's header
+owns the pattern set and its caveats (the `tsc --noEmit` project-references NOTE among
+them). This is only the fix table.
 
-Each bullet's leading token is the exact `verify-teeth: <reason>` the script prints, so a
-block routes to its fix by name. The script owns the patterns; this is only the fix table.
+- `existence-only` → run the code and assert an observable *value*, not that a file exists.
+- `always-true` (`|| true`, `; true`, `|| :`) → never swallow the exit code.
+- `require-only` / `import-only` → a load proves the module parses, not that it behaves; assert.
+- `compile-only` → compiling is not behaving; exercise the changed code path (`tsc -b` on a
+  project-references root, where `--noEmit` checks nothing).
+- `migration-run-only` → the DDL parsed, nothing more; assert the resulting column or a
+  behavior that needs it.
+- `bare-suite-pass` → name the new test or the asserted outcome, e.g.
+  `pytest -k reject_malicious_host asserts 422`.
 
 A line that names its assertion — `jest -t "rejects bad host" asserts throw`, or
 `npm test -- invoice → all pass, including new test totals_rounds_half_up` — passes.
@@ -80,7 +57,7 @@ A line that names its assertion — `jest -t "rejects bad host" asserts throw`, 
 A card lands with:
 
 ```
-**Verify:** node -e "require('./dist/guard.js')"  → no error
+<verify>node -e "require('./dist/guard.js')"  → no error</verify>
 ```
 
 The linter returns exit 2 `verify-teeth: require-only`. The card's acceptance criterion is
@@ -88,25 +65,23 @@ The linter returns exit 2 `verify-teeth: require-only`. The card's acceptance cr
 the guard could refuse nothing and this still passes. The author rewrites:
 
 ```
-**Verify:** node --test guard.test.js  → 1 pass, including "refuses 169.254.169.254"
+<verify>node --test guard.test.js  → 1 pass, including "refuses 169.254.169.254"</verify>
 ```
 
 Now the line names the assertion that fails if the guard is absent. Re-run: exit 0.
 
 ## Edge cases
 
-- **Manual / visual verify lines** ("dialog renders centered") — a card whose verification is
-  a human observation has no command for the linter to grade; the script reports it and the
-  line is allowed, but such cards must still be genuinely non-automatable, not an escape
-  hatch for skippable executable checks. Name the **automatable-looking-manual-line** finding
-  when a line tagged manual/visual nonetheless carries a shell command, an exit-code
-  assertion, or a greppable expectation — it is contradicting its own tag. Hand it back to
-  the author to either automate the check or state why the automatable-looking token is
-  incidental. This is author-judgment guidance, not a syntactic block the script performs
-  (see "What it is NOT"); the runtime counterpart is negative-control's manual-skip residual.
+- **Manual / visual verify lines** ("dialog renders centered") — no command to grade; allowed,
+  but only when genuinely non-automatable. A line tagged manual that still carries a shell
+  command, an exit-code assertion or a greppable expectation is the
+  **automatable-looking-manual-line** finding: hand it back to automate the check or say why
+  the token is incidental. Author judgment, not a script block; negative-control's manual-skip
+  residual is the runtime counterpart.
 - **Multi-command verify** (`cmd-a && cmd-b`) — the whole line is linted; a weak segment
-  anywhere (e.g. a trailing `|| true`) blocks it.
-- **A card with no Verify line at all** — exit 3; that is a malformed card, not a teeth pass.
+  anywhere blocks it.
+- **No `<verify>` at all** — exit 3, a malformed card (`card-shape-lint.sh` reports it first,
+  as `verify-count`).
 
 ## What it is NOT (stated limits)
 

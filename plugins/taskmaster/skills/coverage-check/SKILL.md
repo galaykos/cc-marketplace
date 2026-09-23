@@ -5,19 +5,17 @@ description: Use after task-cards splits a spec into cards — verifies every sp
 
 ## Where this sits
 
-Standing: the INVOCATION is `recorded` — nothing schedules or observes it (the
-card-lint observer reads verify-teeth and skills-stamp records only, never this
-skill's), and the resolution hold below is `agent-graded`. Runs at the tail of
-`task-cards`, once `00-INDEX.md` and the
-cards are written and before the execution handoff. It verifies task-cards' own output
-with fresh eyes, which is why the matrix build is dispatched to a subagent. It checks
-documents against documents; `work-verification` and `task-runner` check delivered
-code later.
+Standing: the INVOCATION is `recorded` — nothing schedules or observes it (the card-lint
+observer reads the three card linters' records, never this skill's); the resolution hold
+below is `agent-graded`. Runs at the tail of `task-cards`, once `00-INDEX.md` and the
+cards are written, before the execution handoff. It verifies task-cards' own output with
+fresh eyes — hence the subagent — and checks documents against documents;
+`work-verification` and `task-runner` check delivered code later.
 
 ## What it checks
 
 One correspondence: the spec's `## Success criteria` against every card's
-`**Acceptance criteria:**`. The relationship is many-to-many — one criterion may
+`<proof>` criteria (`<criterion>` elements; `**Acceptance criteria:**` on a legacy card). The relationship is many-to-many — one criterion may
 take several cards to satisfy, one card may serve several criteria. Match by
 meaning, never by string equality: a criterion is covered when at least one
 card's acceptance criteria would, if met, make that criterion true. You are
@@ -31,19 +29,15 @@ a decision is not a success criterion.
 
 ## The two directions, and drift
 
-Walk the correspondence both ways — a one-directional check misses half the
-failures:
+Walk the correspondence both ways — one direction misses half the failures:
 
-- **Forward — coverage.** For each success criterion, find the card(s) whose
-  acceptance criteria satisfy it. A criterion with no such card is a **GAP**:
-  scope the spec promised that the cards silently dropped.
-- **Reverse — traceability.** For each card, find the criteria it serves. A card
-  that serves none is an **ORPHAN**: work the cards added that the spec never
-  asked for.
-- **Drift.** A card whose acceptance criteria assert behavior traceable to no
-  spec criterion and no spec decision is scope creep — flag it with the orphans.
-  (A card doing setup for a criterion it does not itself prove is not drift; ask
-  which criterion it serves before flagging.)
+- **Forward — coverage.** For each success criterion, find the card(s) whose criteria
+  satisfy it. None → a **GAP**: scope the spec promised that the cards silently dropped.
+- **Reverse — traceability.** For each card, find the criteria it serves. None → an
+  **ORPHAN**: work the spec never asked for.
+- **Drift.** A card whose criteria assert behavior traceable to no spec criterion and no
+  spec decision is scope creep — flag it with the orphans. (Setup for a criterion the card
+  does not itself prove is not drift; ask which criterion it serves first.)
 
 ## The coverage matrix
 
@@ -68,22 +62,17 @@ No HTML, no separate file — the index is the single run view.
 
 ## Build the matrix — dispatch
 
-Dispatch ONE read-only subagent (Read/Grep/Glob) to build the matrix. Give it
-exactly two inputs — the spec file path and the cards directory — plus the
-matching rules above and the `## Coverage` format above as its output contract.
-Do not pass it the conversation, the ledger, or your own summary of either
-document: a brief pre-digested by the cards' author re-imports the blind spots
-this gate exists to escape. The subagent reads the spec's `## Success criteria`
-(and `## Visual contract` when present) and every card's
-`**Acceptance criteria:**`, walks both directions, and returns ONLY the
-compressed `## Coverage` block in that exact format — no file dumps. The main
-thread gets the matrix without re-ingesting the spec and cards; every finding
-is then resolved here, in the main thread, through the gate below.
+Dispatch ONE read-only subagent (Read/Grep/Glob) with exactly two inputs — the spec
+path and the cards directory — plus the matching rules and the `## Coverage` format
+above as its output contract. Never pass it the conversation, the ledger, or your own
+summary: a brief pre-digested by the cards' author re-imports the blind spots this gate
+exists to escape. It reads `## Success criteria` (and `## Visual contract` when present)
+and every card's `<criterion>` elements, walks both directions, and returns ONLY the
+`## Coverage` block — no file dumps. Every finding is then resolved in the main thread.
 
-**Headless fallback.** When subagent dispatch is unavailable, build the matrix
-inline: read the spec and every card yourself and apply the same rules and
-format. The resolution procedure below is unchanged — only the fresh-eyes
-property degrades, so read both documents cold, end to end, before matching.
+**Headless fallback.** No subagent dispatch → build the matrix inline with the same
+rules and format; only the fresh-eyes property degrades, so read both documents cold,
+end to end, before matching.
 
 ## The resolution gate
 
@@ -115,28 +104,18 @@ runs where it is not.
 
 ## Worked example
 
-A spec lists six success criteria. The card set covers five; criterion 4 ("a
-malformed payload is rejected with a 422") maps to no card's acceptance criteria —
-a GAP. Card 07 asserts "adds a Prometheus metrics endpoint", which no criterion or
-decision mentions — DRIFT. Present the matrix, then: for the gap, the user picks
-"Add a card" → hand off to task-cards to author the validation card; for card 07,
-the user picks "Drop the card". Re-check, matrix clean, write `## Coverage`,
-proceed.
+Six criteria, five covered; criterion 4 ("a malformed payload is rejected with a 422")
+maps to no card — GAP. Card 07 asserts "adds a Prometheus metrics endpoint", named by no
+criterion or decision — DRIFT. Present the matrix; the user picks "Add a card" for the
+gap (task-cards authors it) and "Drop the card" for 07. Re-check, clean, write
+`## Coverage`, proceed.
 
 ## Anti-patterns
 
-- **Authoring cards here.** "Add a card" hands off to task-cards; this skill never
-  writes a card file. Splitting is task-cards' judgment, not this gate's.
-- **String-matching criteria.** Coverage is about meaning — a criterion and the
-  acceptance line that satisfies it rarely share words. Judge intent.
-- **Proceeding on an unresolved gap.** The hold is agent-graded — nothing but
-  this instruction stops a wave-through, which is exactly why every finding is
-  resolved or explicitly accepted before the handoff.
-- **Flagging a legitimate non-goal as a gap.** The spec's `## Non-goals` are not
-  criteria; do not demand cards for them.
-- **Re-litigating an accepted gap.** Once recorded in `## Coverage` with a reason,
-  it is settled for the run.
-- **Summarizing the documents for the subagent.** Pass paths, not digests — the
-  author's summary carries the author's blind spots into the check.
-- **Letting the subagent resolve findings.** It returns the matrix, nothing more;
-  every gap, orphan, and drift decision belongs to the main thread's gate.
+- **Authoring cards here.** "Add a card" hands off to task-cards; splitting is its judgment.
+- **String-matching criteria.** A criterion and the line that satisfies it rarely share words.
+- **Proceeding on an unresolved gap.** Nothing but this instruction stops a wave-through.
+- **Flagging a non-goal as a gap.** `## Non-goals` are not criteria.
+- **Re-litigating an accepted gap.** Recorded with a reason, it is settled for the run.
+- **Summarizing the documents for the subagent, or letting it resolve findings.** Paths,
+  not digests; it returns the matrix, the main thread decides.

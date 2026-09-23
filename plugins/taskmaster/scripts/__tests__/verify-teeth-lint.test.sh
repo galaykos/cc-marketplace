@@ -102,5 +102,17 @@ printf -- '- **Verify:** `pytest -k reject_bad_host asserts 422`\n' > "$tmp_stro
 run_case "card: extracts weak Verify line"   2 "bare-suite-pass" --card "$tmp_weak"
 run_case "card: extracts strong Verify line" 0 ""                --card "$tmp_strong"
 
+# --- --card extraction, role-tagged shape: <verify> element wins over a legacy line ---
+tmp_tag_weak=$(mktemp); tmp_tag_strong=$(mktemp); tmp_tag_both=$(mktemp); tmp_tag_none=$(mktemp)
+trap 'rm -f "$tmp_weak" "$tmp_strong" "$tmp_tag_weak" "$tmp_tag_strong" "$tmp_tag_both" "$tmp_tag_none"' EXIT
+printf '# 07\n<card id="07">\n<proof>\n<verify>npm test</verify>\n</proof>\n</card>\n' > "$tmp_tag_weak"
+printf '# 07\n<card id="07">\n<proof>\n<verify>`pytest -k reject_bad_host asserts 422`</verify>\n</proof>\n</card>\n' > "$tmp_tag_strong"
+printf '# 07\n<verify>pytest -k reject_bad_host asserts 422</verify>\n**Verify:** `npm test`\n' > "$tmp_tag_both"
+printf '# 07\n<card id="07">\n<proof>\n<criterion>x</criterion>\n</proof>\n</card>\n' > "$tmp_tag_none"
+run_case "card: tagged weak <verify>"          2 "bare-suite-pass" --card "$tmp_tag_weak"
+run_case "card: tagged strong <verify>"        0 ""                --card "$tmp_tag_strong"
+run_case "card: tagged element beats legacy"   0 ""                --card "$tmp_tag_both"
+run_case "card: no element, no line -> usage"  3 "no <verify> element" --card "$tmp_tag_none"
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

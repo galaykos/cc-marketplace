@@ -36,7 +36,7 @@ marker; only task-cards stamps the `Goal: true` marker.
 1. Resolve the target: the `00-INDEX.md` and the spec it links under
    `taskmaster-docs/specs/`.
 2. Invoke the coverage-check skill — cross-check the spec's `## Success criteria`
-   against every card's `**Acceptance criteria:**` in both directions (coverage
+   against every card's `<proof>` criteria in both directions (coverage
    and traceability), plus the drift check.
 3. Present the coverage matrix, then take each GAP / ORPHAN / DRIFT through its
    resolution choice per the skill; block until every finding is resolved or

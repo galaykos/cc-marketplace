@@ -81,8 +81,8 @@ its `Verify:` line) plus this instruction, verbatim:
 This is what makes a silent reviewer distinguishable from a clean diff: "no findings"
 now asserts "each criterion checked", not "nothing jumped out".
 
-**Bound:** inject the card's `Skills to apply` (deduped) + at most one agnostic domain
-skill from the map. The sentinel `none detected` (or an absent `Skills to apply` line)
+**Bound:** inject the card's `<skill>` names (deduped) + at most one agnostic domain
+skill from the map. The sentinel `<skill name="none"/>` (or an absent element)
 resolves to **zero** priming skills — no log. A named skill that is absent is omitted and
 **logged in the run report**. If a reviewer ends with **zero** domain grounding (every
 priming skill missed, or a real reviewer agent whose rubric is absent), flag
@@ -122,7 +122,7 @@ Runs after the card's verification passes — a command OR a recorded manual che
    marker, where a pinned reviewer would otherwise run BELOW a stronger session. Reviewers
    with no row are unfloored and unchanged. Registry unresolved → omit `model:` and log it.
 
-A card whose `Agent:` tag and `Skills to apply` imply different stacks is **not** a
+A card whose `<agent>` tag and `<skill>` names imply different stacks is **not** a
 conflict — inject both the tag's agnostic domain skill and the card's stack skills; they
 are complementary.
 

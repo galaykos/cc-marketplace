@@ -98,7 +98,7 @@ or parked, the run ENDS with a report, no self-restart.
 
 ## Sequencing and status
 
-- Execute in index order, respecting `Depends on`; parallel groups (and disjoint
+- Execute in index order, respecting `<depends-on>`; parallel groups (and disjoint
   same-worker S-card batches) may be delegated ONLY if file sets are disjoint — else serial.
 - Status lives in one place (the task index / todo list, e.g. taskmaster's
   `00-INDEX.md`): pending → in_progress (exactly one) → done | parked(reason). Task definitions stay immutable during the run.

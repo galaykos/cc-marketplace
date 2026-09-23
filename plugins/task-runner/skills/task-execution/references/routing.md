@@ -29,7 +29,7 @@ and picks the first present in its available-agent-types list.
 
 ## Per-card dispatch procedure
 
-1. **Read the tag.** Take the card's `**Agent:**` value. Missing or not in the closed
+1. **Read the tag.** Take the card's `<agent>` value (`**Agent:**` on a legacy card). Missing or not in the closed
    vocabulary → treat as `generic` and log the normalization.
 2. **Resolve the worker.** Walk the tag's preference list; pick the first agent present
    in the runner's available-agent-types list. If none is reachable, use
@@ -43,7 +43,7 @@ and picks the first present in its available-agent-types list.
    paste its text **verbatim** into the dispatch prompt, together with the card, its
    allowed-files, and the index's `## Upgraded statement` block when one is present.
    The preamble overrides the worker's own default procedure. THEN, for
-   every skill named in the card's `Skills to apply`, resolve its installed `SKILL.md`
+   every `<skill name="…"/>` in the card's `<must>`, resolve its installed `SKILL.md`
    and inject a `Read <abs-path>` line into the same prompt (delegation-contracts
    § Skill priming) — a delegate cannot self-load skills. Do this **unconditionally, not
    only under ultra**: a framework card must reach its worker with the framework skill

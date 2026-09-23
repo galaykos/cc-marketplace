@@ -123,7 +123,8 @@ A delegated implementer writes stack code in a fresh context: no inherited skill
 auto-loading, no `Skill` tool, and it cannot self-locate an installed skill (CWD is the
 user's project; skills live under `~/.claude/plugins/…`, so a project-CWD glob misses).
 Only the orchestrator can resolve the path, so it resolves and injects it — for each
-skill a card names in `Skills to apply`, and each `bestpractices-skill:` in frontmatter:
+skill a card names in a `<skill name="…"/>` element, and each `bestpractices-skill:` in
+frontmatter:
 
 1. **Resolve** dir `<name>`'s installed `SKILL.md` — same-plugin
    `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md`, else the `installPath` of the plugin's
