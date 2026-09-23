@@ -4,6 +4,11 @@ All notable changes to the ultra-deep-research plugin. Entries start at 0.6.0, w
 this file was created; earlier releases have no entries rather than invented ones.
 The verdict lint referenced below landed in 0.5.0, before that.
 
+## 0.7.2 — 2026-09-23
+
+### Changed
+- **Prompt audit (Claude Code's built-in `claude-api` skill, `prompt-audit` subcommand; target Opus 5.5 / Fable 5.1):** orchestration.md no longer tells the orchestrator to paste prompt-hardening rules the skill removed in 0.6.x — the agent files carry them; the 0.6.0 references and "used to live here" note are gone. Method: that built-in skill's `shared/prompt-audit.md`; the full report and diff are in the maintainers' working area, not shipped.
+
 ## 0.7.1 — 2026-09-16
 
 ### Changed

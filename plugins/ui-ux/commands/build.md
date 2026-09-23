@@ -93,7 +93,5 @@ convention.
    via ASCII options inline — so the choice is made on concrete mockups without dead-ending
    on a missing command. Headless: take the decided lines above as binding, resolve what
    they leave open to the most COMMITTED reading consistent with them, and note every
-   assumption. "Build to the most conventional interpretation" was the instruction here
-   until it was read against its own output: it names the failure mode as the procedure,
-   on the most reachable UI entry point in this marketplace, and it orders exactly the
-   stacked centred document `craft-layer`'s composition gate exists to fail.
+   assumption. The most conventional reading is the wrong default here: it produces the
+   stacked, centred document `craft-layer`'s composition gate exists to fail.

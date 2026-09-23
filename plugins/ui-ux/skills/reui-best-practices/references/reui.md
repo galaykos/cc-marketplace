@@ -29,12 +29,12 @@ https://reui.io/docs for those; the pages ARE the version, no npm to pin.
    from the item being added.
 3. Add items via the shadcn CLI: `npx shadcn@latest add @reui/<name>`.
 
-   **`c-*` IS NOT THE FREE-COMPONENT PREFIX.** This file said it was. The
-   registry's own server distinguishes four TYPES, and `c-*` names one of them:
-   `component` (plain names — `alert`, `badge`, `data-grid`), `example`
-   (`c-badge-22`, `c-alert-3`), `block`, and `icon`. Components and examples are
-   free; blocks and icons are premium. So `c-*` marks an EXAMPLE, free or not,
-   and a plain name marks a component — the opposite of a paywall prefix.
+   **`c-*` marks an example, not a free component.** The registry's own server
+   distinguishes four types: `component` (plain names — `alert`, `badge`,
+   `data-grid`), `example` (`c-badge-22`, `c-alert-3`), `block`, and `icon`.
+   Components and examples are free; blocks and icons are premium. So `c-*`
+   marks an EXAMPLE, free or not, and a plain name marks a component — neither
+   is a paywall prefix.
 
    The gate is per-type and it composes: **an example is only as free as the
    component under it.** A `badge` example search returns free `c-badge-*`

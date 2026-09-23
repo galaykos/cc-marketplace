@@ -3,9 +3,7 @@
 Read this when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker. On a
 standard run none of it applies — and a `Goal: true (boost=off)` marker (taskmaster's
 `goal-lean`) is a standard run plus the autonomy paragraph below: read ONLY the sentences
-marked "Under `Goal:`" from it, which is why it left the SKILL body on
-2026-08-20: it was ~1.9 kB of the body's 11.9 kB, on lines of 150-530 characters,
-loaded on every card execution including the unboosted ones.
+marked "Under `Goal:`" from it.
 
 ## The rules
 

@@ -149,9 +149,7 @@ to every file in scope; a Fable-class session may compress it once the lockfile 
 
 ## Anti-patterns
 
-Names only — each rule is stated once above, in the section that owns it. (These
-six used to be restated here in full, jammed onto shared lines with mid-line ` - `
-separators, which markdown renders as one paragraph.)
+Names only — each rule is stated once above, in the section that owns it.
 
 - Secrets behind `VITE_` vars, or `process.env.SECRET` in client code — see Env security.
 - Missing `base` on a sub-path deploy — see base and dev server.proxy.

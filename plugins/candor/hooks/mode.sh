@@ -177,6 +177,6 @@
     *) w='' ;;
   esac
 
-  emit "$(printf 'TERSE %s — chat message only; full depth in the work, the code, the files, the subagent prompts. Budget: progress 1 line, %s prose lines (tables, code and trees are free). Report shape: verdict → artifacts → max 5 findings as `path:line — problem → impact` (cap waived when findings are the deliverable, e.g. an invoked review or audit) → skipped (print `none` if nothing was) → blocker → next. Cut process narration, re-summary of files just written, unchanged inventories, framing phrases, closing offers. Never drop a finding to fit — overflow goes to a file, cited by path.%s' "$level" "$b" "$w")"
+  emit "$(printf 'TERSE %s — chat message only; full depth in the work, the code, the files, the subagent prompts. Budget: progress 1 line, %s prose lines (tables, code and trees are free). Report shape: verdict → blocker or decision (only if the user must act) → artifacts → max 5 findings as `path:line — problem → impact` (cap waived when findings are the deliverable, e.g. an invoked review or audit) → skipped (print `none` if nothing was) → next. Cut process narration, re-summary of files just written, unchanged inventories, framing phrases, closing offers. Never drop a finding to fit — overflow goes to a file, cited by path.%s' "$level" "$b" "$w")"
 } 2>/dev/null
 exit 0

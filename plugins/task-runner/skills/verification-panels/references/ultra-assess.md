@@ -3,9 +3,7 @@
 Read when the `ultra-assess` boost hook (`hooks/ultra-assess.sh`) has printed its
 banner — a prompt carried "ultra-assess" / "ultraassess" / "ultra-assessment" —
 for inventory, audit, gap-analysis, survey or review-at-scale work. Output is
-findings/backlog, never task cards. It was the `task-runner:ultra-assess` skill
-until 2026-09-14; the hook directive names this path, so a listing entry was a
-second trigger for the same text.
+findings/backlog, never task cards.
 
 # Ultra-assess — Extreme Boost for an assessment run
 
@@ -48,7 +46,7 @@ e.g. `fable`, never the word `auto`). Print it once per run, not once per phase.
 ## Fixed tier
 
 `model=auto, effort=xhigh`, always — the bare `ultra-assess` token carries no tier
-suffix (the old `-<model>[-<effort>]` grammar is REMOVED, mirroring `ultra-task`).
+suffix (no `-<model>[-<effort>]` grammar, matching `ultra-task`).
 The resolution rule is owned by `verification-panels` `references/dispatch-tier.md`,
 in this plugin (§ Panel width owns N, not the tier); the hook injects
 `(model=auto, effort=xhigh)` and every rule below reads those values.
@@ -57,8 +55,7 @@ in this plugin (§ Panel width owns N, not the tier); the hook injects
 
 The hook injects a ONE-LINE directive naming this skill; the block below is the
 contract that directive stands for, and is what you honor. It is not the hook's
-text verbatim — an earlier version of this line claimed it was, which sent anyone
-diffing the two hunting a discrepancy that was never there. Honor every line:
+text verbatim. Honor every line:
 
 ```
 ULTRA-ASSESS ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this assessment run.

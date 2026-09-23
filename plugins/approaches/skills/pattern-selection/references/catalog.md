@@ -3,7 +3,7 @@
 One entry per pattern the selector map names. Each: **Intent** (one line), **Use / Skip**
 (mirrors the map), **Example** (minimal, runnable-shaped), and where useful a **Collapse** note
 (the language idiom that replaces the class-based form). Names and categories follow the GoF
-catalog. Read the entry before writing the pattern — do not reconstruct from memory.
+catalog. Read the entry before writing the pattern.
 
 ---
 

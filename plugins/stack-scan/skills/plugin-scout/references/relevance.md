@@ -2,10 +2,9 @@
 
 Tiers 1 and 2 are lookups: a signal table and a curated list. Tier 3 is defined
 by **subtraction** — "every catalog plugin not already in tier 1 or 2" — so
-before this pass existed, no plugin ever entered the report because of anything
-about the project in front of it. Roughly a third of the eligible set can
-never be earned by any signal, so those rows printed the literal string
-`universal` in every repo forever, and `--yes` never touched them.
+nothing enters it because of the project in front of it, and roughly a third of
+the eligible set can never be earned by any signal. This pass is where those rows
+get judged against the repo.
 
 This is the one step where the model judges instead of matching.
 

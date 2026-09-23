@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.8 — 2026-09-23
+
+### Changed
+- **Prompt audit (Claude Code's built-in `claude-api` skill, `prompt-audit` subcommand; target Opus 5.5 / Fable 5.1):** `/command-guard:check` states the no-self-exemption rule in the present tense instead of the 0.2.0/0.2.1 attempt history. Method: that built-in skill's `shared/prompt-audit.md`; the full report and diff are in the maintainers' working area, not shipped.
+
 ## 0.6.7
 
 ### Changed

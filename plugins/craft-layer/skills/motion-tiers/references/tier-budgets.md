@@ -25,12 +25,9 @@ Library idioms are NOT repeated here. This is the DECISION table only:
 
 ## A tier is named for the job, not the package that currently does it
 
-Tiers 1–3 used to be called *Framer Motion*, *anime.js*, and *Three.js / R3F* — the
-occupant WAS the name. That is a catalog wearing a taxonomy's clothes, and it fails in a
-specific way: when a package is superseded, a library name is a fact you re-verify and
-re-date, but a library name that IS the taxonomy slot invalidates the vocabulary every
-other file speaks. No count is recorded here — it was wrong by three within the plugin that
-wrote it. Recount: `grep -rlE '[Tt]ier [1-5]' plugins/craft-layer | wc -l`.
+Name a tier by its job, never by its current package: when a package is superseded, a
+library name is a fact you re-verify and re-date, but a library name that IS the taxonomy
+slot invalidates the vocabulary every other file speaks.
 
 The durable axis is what a tier is FOR — declarative UI state, imperative timeline, real
 3D, raster frame sequence, authored vector data. Those five hold whatever ships next. So

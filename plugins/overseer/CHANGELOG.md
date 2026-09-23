@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.3 — 2026-09-23
+
+### Changed
+- **Prompt audit (Claude Code's built-in `claude-api` skill, `prompt-audit` subcommand; target Opus 5.5 / Fable 5.1):** dispatch-prompts, acceptance, capability-map, worktree, the SKILL body and `/overseer:start` state their rules without the simulation-N attributions. Method: that built-in skill's `shared/prompt-audit.md`; the full report and diff are in the maintainers' working area, not shipped.
+
 ## 0.5.2 — 2026-09-22
 
 ### Changed

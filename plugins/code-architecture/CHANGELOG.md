@@ -2,6 +2,11 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.16.4 — 2026-09-23
+
+### Changed
+- **Prompt audit (Claude Code's built-in `claude-api` skill, `prompt-audit` subcommand; target Opus 5.5 / Fable 5.1):** yagni-check's checklist no longer contradicts its own boundary paragraph on single-implementation interfaces; drift-review, coding-entry, low-cognitive-load and plan-before-code drop merge history and migration-relative prose from the bodies the model reads. Method: that built-in skill's `shared/prompt-audit.md`; the full report and diff are in the maintainers' working area, not shipped.
+
 ## 0.16.3 — 2026-09-22
 
 ### Added

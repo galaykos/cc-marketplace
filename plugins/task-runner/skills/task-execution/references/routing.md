@@ -39,7 +39,7 @@ and picks the first present in its available-agent-types list.
    e.g. `<cwd>/.claude/task-runner/scope-<cardId>.json` (the runner's own — NOT the
    legacy fixed `scope.json`, which stays the inline path's soft tripwire).
 4. **Inject discipline + prime stack skills.** Read
-   `task-runner/skills/delegation-contracts/references/discipline-preamble.md` and
+   `${CLAUDE_PLUGIN_ROOT}/skills/delegation-contracts/references/discipline-preamble.md` and
    paste its text **verbatim** into the dispatch prompt, together with the card, its
    allowed-files, and the index's `## Upgraded statement` block when one is present.
    The preamble overrides the worker's own default procedure. THEN, for
@@ -59,11 +59,10 @@ and picks the first present in its available-agent-types list.
    call that omits it spawns the GENERIC workflow subagent: steps 1–2 still run, the
    prompt still arrives, and the worker's own contract does not. Everything the resolved
    agent carries in its frontmatter body is then silently absent — including
-   `task-executor`'s *"match the surrounding file's naming, idiom, and comment density"*
-   and its *"new behavior no test exercises is named as untested"* rule. Both were
-   written, shipped, and unreachable on a 30-card run that fanned out through
-   `Workflow` with no `agentType`: the output carried ~2× the repo's comment density
-   and ~8× its tests-per-integration, and every gate passed green.
+   `task-executor`'s *"match the surrounding file's naming and idiom, not its comment
+   density"* and its *"new behavior no test exercises is named as untested"* rule. Without
+   them the output drifts from the repo's comment density and test ratio while every gate
+   passes green.
 
    Log the dispatch mechanism and the bound agent per card in the run report, next to
    the worker downgrade line from step 2 — an unbound dispatch is invisible in the diff
@@ -131,25 +130,16 @@ applied per member. Differences:
    so `dispatch-tiers.md`'s "never downgrades an agent below its frontmatter" invariant is
    untouched.
 
-   Earlier revisions down-tiered a batch to `haiku`/`sonnet` + `effort: low`, citing
-   delegation-contracts § Model and effort tiering. That rule is sound where it was written
-   — its examples are rename sweeps, format checks, and inventory scans, work where *the
-   prompt fully defines the task* and deliberation buys nothing. It does not transfer here:
-   **batches are selected by card SIZE and file-disjointness, never by a mechanicalness
-   test** (`parallel-planning/references/dispatch-selection.md` § S-card batching). Three
-   S-sized `security` cards satisfy every batching condition and none of delegation-contracts'.
-   A card states what to change and how to verify it; the implementation is still judgment,
-   which is why cards exist rather than scripts. Down-tiering on size alone silently gave a
-   weaker model than the session had chosen, so the override is gone rather than bounded —
-   which is also why `dispatch-tiers.md`'s "never downgrades an agent below its frontmatter"
-   invariant now holds with no exception anywhere in the system.
-
-   A genuine cost lever for mechanical work is still possible later, but it must gate on an
-   actual mechanicalness signal (a `generic` tag plus a rename/scaffold/sweep `Change` line),
-   not on card size — and note the `effort` half only ever worked on the `Workflow` path: the
-   plain Agent tool has no `effort` parameter (this plugin's
-   `verification-panels/references/dispatch-tier.md`, which owns that rule), so
-   on the default dispatch path it was inert.
+   delegation-contracts § Model and effort tiering does not apply here: its cheap tier is
+   for work where *the prompt fully defines the task* (rename sweeps, format checks,
+   inventory scans), while **batches are selected by card SIZE and file-disjointness,
+   never by a mechanicalness test** (`parallel-planning/references/dispatch-selection.md`
+   § S-card batching). Three S-sized `security` cards satisfy every batching condition and
+   none of that rule's; a card's implementation is still judgment. This keeps
+   `dispatch-tiers.md`'s "never downgrades an agent below its frontmatter" invariant
+   exception-free. A cost lever for mechanical work must gate on a mechanicalness signal (a
+   `generic` tag plus a rename/scaffold/sweep `Change` line), not on size — and `effort`
+   binds only on the `Workflow` path (`verification-panels/references/dispatch-tier.md`).
 4. **Mid-batch failure is park-one-continue-rest.** A member hitting its 3-cycle halt or a
    park is parked; the worker continues the remaining disjoint members and returns
    **per-card statuses** (done + commit sha, or parked + reason). Members are disjoint, so

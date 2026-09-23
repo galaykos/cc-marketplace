@@ -191,8 +191,7 @@ of `references/stack-relevance.md`, nothing else.
 
 Restores exhaustive paging: every eligible row is offered as an explicit
 checkbox, 15 per call, paging until all of them appeared or the user stops.
-That was the default before the one-call picker landed. Its cost is one call and
-four blocking questions per 15 eligible rows — derive it from the eligible count,
+Its cost is one call and four blocking questions per 15 eligible rows — derive it from the eligible count,
 never from a number written down here or in `references/picker.md`, which is the
 one place that arithmetic lives. Opt-in for the user who wants to see everything
 as options rather than as a numbered report plus a door (`references/picker.md`).

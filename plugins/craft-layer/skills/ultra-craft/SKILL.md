@@ -100,8 +100,8 @@ asset lookups — stay NATIVE. Escalating a builder buys latency, not craft.
    panel owes — SWEEP an interactive signature's reachable state space instead of reasoning
    about representative values, attack the post-audit FIX LIST as its own claim set, and
    RENDER the surface and look at it before calling it verified — are in
-   `references/red-team-contract.md`. Each exists because a gate-clean build shipped a
-   defect that inverted the concept's own claim. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+   `references/red-team-contract.md`. Each catches a defect a gate-clean build can still
+   ship: a surface that argues against the concept's own claim. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 6. **Persist the boost so the audit can read it back.** The contract's `Boost` row
    carries `ultra-craft` (or `none`). A boost that was only spoken cannot be

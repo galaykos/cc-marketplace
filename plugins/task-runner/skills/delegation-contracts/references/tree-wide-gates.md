@@ -94,9 +94,9 @@ agent and this file all CITE that paragraph rather than each carrying a copy. Re
 how the orchestrator's gate and a worker's gate come to mean different things while both
 report green.
 
-The failure it was written from: a concept step ruled out a prior build's visual genus, the
-ruling went into prose, no dispatch and no command carried it, every gate reported green,
-and the build shipped that exact genus. A human found it by opening a screenshot.
+A ruling that lives only in prose reaches no dispatch and no command: every gate reports
+green while the build ships exactly what was ruled out, and only a human looking at the
+result finds it.
 
 ## Anti-patterns
 

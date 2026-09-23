@@ -178,7 +178,7 @@ enough regardless of how much of the template you used.
 
 Read `references/surgical-edits.md` for the everyday edit this ceremony does not cover: surfacing
 assumptions first, every changed line traceable to the request, the orphan rule, vague ask to verifiable
-goal. `surgical-coding` was merged in here (Karpathy guidelines, MIT); its trigger — "outside a planned pipeline" — could not be evaluated at fire time.
+goal (adapted from Karpathy's LLM-coding guidelines, MIT).
 
 ## When to apply
 

@@ -4,12 +4,6 @@ The one scroll decision `../SKILL.md` does not make. Its "Choose the engine"
 section picks Lenis+ScrollTrigger vs native CSS scroll-driven — a different axis.
 This picks the mental model.
 
-Four other sections used to live here — whether scroll motion earns its cost, the
-single-scroll-contract rule, engine sizing, and reduced-motion — each restating a
-section of the SKILL body heading-for-heading, including the same KB figures.
-They were deleted on 2026-07-27 rather than kept in sync by hand.
-
-
 Three distinct mental models — pick ONE per scene, never blend:
 
 - **Trigger (play-on-enter)** — the animation runs once when the element enters, on

@@ -312,8 +312,7 @@ as a dead link is worse.
 The fixed names in Part 3 are what make these files findable without being told. They are
 also what makes them COLLIDABLE: a second craft run in the same session writes the same
 paths, and a run that stopped early leaves its artifacts sitting exactly where the next
-audit globs. That has happened — a previous run's contract was read as the current run's,
-and a person caught it rather than a gate. Per-run SUBDIRECTORIES are not the fix; they
+audit globs, where a previous run's contract reads as the current run's. Per-run SUBDIRECTORIES are not the fix; they
 would break the fixed-name rule above and the fixed-depth resolution in
 `template/craft-gates/divergence.mjs`, which would then find no contract and no record and
 switch two live assertions off in silence.

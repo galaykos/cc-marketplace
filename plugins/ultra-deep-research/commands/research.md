@@ -7,8 +7,7 @@ Invoke the `ultra-deep-research` skill from this plugin and research `$ARGUMENTS
 under its loop, which owns the method, every threshold and the report shape. **If
 `$ARGUMENTS` is empty, ask what to research first** — never infer a topic from the
 surrounding conversation. The steps below are the only things this command decides;
-the loop is deliberately not restated here, because the copy that used to live here
-had already drifted from the skill in two places: no verdict lint, no local-corpus fork.
+the loop itself lives in the skill and is not restated here.
 
 1. **Resolve depth, then say which you picked.** `--ultra` forces the Workflow
    `loop-until-dry` engine with multi-vote refutation panels; `--standard` forces the

@@ -5,8 +5,8 @@ while the main checkout builds another. That is the parallelism `task-runner --t
 gives inside one tree, without the two workers fighting one working copy. The
 `git-workflow` plugin's `worktree-isolation` skill owns the pattern — location, dependency
 install, baseline suite, lifecycle — and this page adds only what a Laravel + Vite project
-needs on top, learned the expensive way. Where the two disagreed before 0.3.2 (a sibling
-directory, a copied `vendor/`, `remove --force`), worktree-isolation is right.
+needs on top, learned the expensive way. Where this page and worktree-isolation differ,
+worktree-isolation is right.
 
 Create it as that skill says: `EnterWorktree` when the host offers it, else
 `git worktree add -b <branch> .claude/worktrees/<branch> <base-or-dependency-branch>`.

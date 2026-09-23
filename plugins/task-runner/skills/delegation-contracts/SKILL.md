@@ -49,7 +49,7 @@ next, not a human enjoying narrative. Demand compression in the prompt:
 
 In-repo exemplars to copy:
 
-- **context-scout** — fixed 5-section report, under 60 lines total.
+- **context-scout** — fixed 5-section report, one line per fact with its `path:line`.
 - **code-reviewer** — `path:line — severity — problem — fix`, one
   line per finding.
 - **transcript-miner** — typed one-liners, each with a verbatim quote
@@ -64,9 +64,9 @@ last ten lines of the test run is evidence.
 Put the verify commands INSIDE the prompt. The agent runs them and
 returns their raw output; the orchestrator re-runs only what it
 doubts — and always doubts a report that blames a sibling's file for
-a failed check without quoting the output line that names it (one
-worker did exactly that on 2026-09-18; its own output named its own
-file). An agent that reports "done" without evidence has not
+a failed check without quoting the output line that names it — a
+worker's own output can name its own file. An agent that reports
+"done" without evidence has not
 finished — it has stopped. Send it back with the verify commands or
 run them yourself, but never merge an evidence-free "done" into your
 plan state.
@@ -132,7 +132,7 @@ frontmatter:
    + `/skills/<name>/SKILL.md`, else the cache dir whose VERSION segment sorts highest
    (`~/.claude/plugins/cache/*/<plugin>/*/skills/<name>/SKILL.md`, `sort -V` on that
    segment alone — `find ~/.claude/plugins/cache … | sort -V | tail -1` over the full path
-   picked database 0.4.2 over 0.7.0 and another marketplace's older copy; overseer's `scripts/skill-path.sh` is the
+   can pick an older version or another marketplace's copy; overseer's `scripts/skill-path.sh` is the
    worked implementation), else repo `plugins/*/skills/<name>/SKILL.md` (dev). On miss:
    skip, never error.
 2. **Inject**: `Read <abs-path> before writing; it is the authoritative best-practice

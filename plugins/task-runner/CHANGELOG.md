@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.39.1 — 2026-09-23
+
+### Changed
+- **Prompt audit (Claude Code's built-in `claude-api` skill, `prompt-audit` subcommand; target Opus 5.5 / Fable 5.1):** reviewers list every blocker and major finding (only minor ones past the tenth may collapse); routing.md quotes task-executor's comment-density rule correctly; discipline-preamble and negative-control paths are plugin-root-relative; the ≥0.11.0 Goal-marker pin and "as today" phrasing are gone; role-floors, fleet-and-apply, behavioral-gate, ultra-assess and dispatch-tier drop dated history. Method: that built-in skill's `shared/prompt-audit.md`; the full report and diff are in the maintainers' working area, not shipped.
+
 ## 0.39.0 — 2026-09-23
 
 ### Changed

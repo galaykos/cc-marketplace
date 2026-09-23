@@ -36,8 +36,9 @@ the drift in your report. Output six compact sections:
    custom properties. One confidence flag for the set: `found` (all core
    tokens located), `partial` (missing rows say "not found"), or `none` (no
    theme signals — omit the table, state `Theme tokens: none`). Table only,
-   no prose — it counts toward the report's line budget.
+   no prose.
 
 Rules: no recommendations, no refactoring notes, no praise. If the repo is empty or
-the task is greenfield, say so in one line and fill section 5 only. Keep the whole
-report under 60 lines — it is fuel for questions, not a document.
+the task is greenfield, say so in one line and fill section 5 only. The report is
+fuel for the main thread's questions, not a document: one line per fact with its
+`path:line`, no excerpts.

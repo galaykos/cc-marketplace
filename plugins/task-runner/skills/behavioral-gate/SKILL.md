@@ -6,12 +6,12 @@ disable-model-invocation: true
 
 # Behavioral gate
 
-A green run should mean the produced code *works*, but the completion gate has historically
-run "whatever the repo defines" — which for a freshly generated subtree is often a static
-linter (JSON shape, frontmatter, line budgets) that never executes a single line of the new
-code. So an SSRF guard that fails open, a documented flag that is a silent no-op, and a test
-suite that collects zero tests all pass a fully green run. This gate closes that hole: at
-completion it **runs the artifact**, and refuses to certify code it could not exercise.
+A green run should mean the produced code *works*, but "whatever the repo defines" is often,
+for a freshly generated subtree, a static linter (JSON shape, frontmatter, line budgets)
+that never executes a single line of the new code. So an SSRF guard that fails open, a
+documented flag that is a silent no-op, and a test suite that collects zero tests all pass
+a fully green suite. At completion this gate **runs the artifact**, and refuses to certify
+code it could not exercise.
 
 ## The three-gate defense
 
@@ -85,7 +85,7 @@ files. Vitest exits 0 ("no test files found"), so the repo's full suite is green
 reports 13/13 cards done. The behavioral gate classifies the run as needing coverage (`.ts`
 files touched, a runner resolves), runs the suite, applies empty-detection, sees zero
 collected tests, and exits 2 `empty-suite`. Completion is blocked with the artifact path —
-the false-green that previously shipped is now caught before the run closes.
+the false-green is caught before the run closes.
 
 ## Safety
 
@@ -104,8 +104,8 @@ surfaced for the operator.
 
 The completion protocol runs this gate and, on a pass, records it to
 `.claude/task-runner/gate-pass.json` (`{"head":"<HEAD sha>"}`). Candor's **Stop
-hook** (clause 4 of `plugins/candor/hooks/gate.sh`; this plugin's `hooks/completion-gate.sh`
-until 2026-09-14, so the gate has teeth only with candor installed) reads that record: for a run that registered itself
+hook** (clause 4 of candor's `hooks/gate.sh`, so the gate has teeth only with candor
+installed) reads that record: for a run that registered itself
 (`.claude/task-runner/active-run.json`, written at run start per `run.md` step 1), it
 refuses a clean stop unless a gate pass is recorded for the current HEAD — a hard block
 by default (`${TASK_RUNNER_STOP_GATE:-block}`), downgradable to a warning only by

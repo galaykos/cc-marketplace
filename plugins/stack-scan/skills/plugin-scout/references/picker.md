@@ -15,13 +15,9 @@ reading `Tier 1` is a number the user has no way to decode in the picker.
 
 The eligible set is every catalog leaf minus the bundles and stack-scan itself
 — recount it, never write the number down. At 15 per call the bill is **one call
-and four blocking questions per 15 eligible rows**: two calls and eight questions
-at today's catalog size, four and sixteen when the catalog was fifty rows — on
-every run, in every repo, including a Django repo being asked to consider
-`laravel` and `database` two pages deep. This file used to require exactly that,
-under the name "full coverage". (It billed the cost at a frozen 5 and 20 for
-months, in two files, neither of which derived it from the 15-per-call rule
-stated one paragraph up. Deriving it is the fix; a fresh frozen number is not.)
+and four blocking questions per 15 eligible rows**, on every run, in every repo,
+including a Django repo being asked to consider `laravel` and `database` two pages
+deep. Derive the cost from the eligible count, never from a written number.
 
 ## The contract
 
@@ -41,14 +37,12 @@ stated one paragraph up. Deriving it is the fix; a fresh frozen number is not.)
    - `Just the picks above` — install and stop
    - `Stop — install nothing`
 
-   Picking `Browse` opts into the old behaviour for that run. `--all` opts into
+   Picking `Browse` opts into exhaustive paging for that run. `--all` opts into
    it from the start, skipping the door and paging every row explicitly.
 
-Why the change: the blast radius of not check-boxing a tier-3 row is that the
-user types its number, or installs it later in one command. The ceremony it cost
-was 20 modal questions. That is the proportionality law, and the paging pages
-survived the theater test only by asserting that a typed number is not a real
-pick — stated in this file for months, never argued.
+Why a door: the blast radius of not check-boxing a tier-3 row is that the user
+types its number, or installs it later in one command, while paging every row costs
+a modal question per four rows. A typed number is a real pick.
 
 ## Report layout
 

@@ -49,11 +49,9 @@ Honest scope, and state it if the numbers are used to argue anything:
 - **The citation axis is backward-looking and the gate is not.** The scan resolves
   every historical citation against the tree as it is *now*, so a file since
   edited, renamed or deleted reports as unresolved even though the citation was
-  true when it was written. Measured across 47 real transcripts and 3,848
-  assistant messages: 168 unresolved citations, of which the recognisable
-  majority were exactly that — `plugin-checks.sh:531` in a file that has since
-  shrunk to 518 lines. Prefer `--last 40` for a reading about the current
-  session, and open the file before calling any single hit a fabrication. The
+  true when it was written — most unresolved hits in a long history are that
+  kind. Prefer `--last 40` for a reading about the current session, and open
+  the file before calling any single hit a fabrication. The
   Stop gate has no such problem: it judges one message against the tree at the
   moment that message is sent.
 - Citations resolve against the **transcript's own recorded `cwd`**, printed at

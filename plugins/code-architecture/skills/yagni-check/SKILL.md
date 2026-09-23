@@ -109,8 +109,9 @@ mechanism; that's good design, not a YAGNI violation.
 When reviewing a diff or design, scan for each of these and ask "who calls this today?":
 
 - [ ] Every parameter has at least one real caller passing a non-default value.
-- [ ] Every interface/abstract type has at least two real implementations, or one implementation
-      plus a concretely scheduled second one.
+- [ ] Every interface/abstract type has two real implementations, a concretely scheduled
+      second one, or was written by its consumer at a genuine boundary (the solid-principles
+      boundary above — one implementation is normal there).
 - [ ] Every config key has been set to something other than its default in at least one real
       environment.
 - [ ] Every "pluggable" or "extensible" mechanism has at least two things currently plugged in.

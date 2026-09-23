@@ -33,10 +33,8 @@ lines of ~100 rendered characters each).
 
 The three `wenyan-lite` / `wenyan-full` / `wenyan-ultra` levels are the SAME rows
 of that table — identical prose-line budgets — with the word layer swapped for a
-classical-Chinese register (`terse-output`'s `references/wenyan.md`). `hooks/mode.sh`
-has always accepted them; this doc did not branch on them until 2026-08-25, so a
-`wenyan-full` argument fell through every case here while the hook wrote the level.
-Confirm one of them the same way, naming the register alongside the budgets.
+classical-Chinese register (`terse-output`'s `references/wenyan.md`). Confirm one of
+them the same way, naming the register alongside the budgets.
 
 Then apply it from your very next message. Load the `terse-output` skill if the
 contract is not already in context.
@@ -65,8 +63,8 @@ Then print the reference card (display only, change nothing):
 | `/candor:level [name\|status]` | Set or report the level; persists across sessions |
 | `/candor:check [--last N] [--tokens]` | Measure turn-final messages against the budget, beside the candour axes |
 
-Reports use one skeleton: verdict → artifacts → ≤5 findings → skipped (`none` when
-nothing was) → blocker → next. Tables, code blocks and trees are free. `wenyan`
+Reports use one skeleton: verdict → blocker or decision → artifacts → ≤5 findings →
+skipped (`none` when nothing was) → next. Tables, code blocks and trees are free. `wenyan`
 alone is an alias for `wenyan-full`. Chat prose only: the same tool calls run, the
 same tests run, files are written at full length.
 

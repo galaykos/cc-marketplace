@@ -33,8 +33,7 @@ never silent.
 
 A kind whose `kinds.tsv` row carries the `headless` profile (`audit`, `library`) has no
 viewport to walk, so `accept` requires exactly two kinds (**gate**) and none of the browser
-rows above. Demanding the nine of a research pass or a CLI change is why every such
-milestone used to end `parked`.
+rows above. The nine rows assume a screen; a research pass or a CLI change has none.
 
 | Kind | What was done | The file |
 | --- | --- | --- |
@@ -59,9 +58,8 @@ the loading state the charter promised must be seen, not inferred from the code)
 1. **Suite first.** Run the exact verify commands from the brief and save every tail into
    one file. Red → back to the fix loop; acceptance never starts on a red suite. Then
    `git status --short --untracked-files=all`: every untracked path is in the milestone's
-   scope or explained (a worker left a compiled `a.out` in simulation 2; simulation 4 left
-   other plugins' scratch — `.claude/candor-last-*`, `.claude/comment-discipline/`,
-   `.claude/task-runner/`, `.claude/taskmaster/` — unnamed). Name them in the walk note or
+   scope or explained (a compiled `a.out`; other plugins' scratch — `.claude/candor-last-*`,
+   `.claude/comment-discipline/`, `.claude/task-runner/`, `.claude/taskmaster/`). Name them in the walk note or
    propose the ignore lines as a suggestion; "not mine" is an explanation only once written.
 2. **Serve the app from the BUILT assets.** Kill any dev server a worker left (`lsof -i`
    on the Vite port), delete the framework's hot file (`public/hot` in Laravel) — a walk

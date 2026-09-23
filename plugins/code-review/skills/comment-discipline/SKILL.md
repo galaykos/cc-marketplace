@@ -156,7 +156,6 @@ style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (10 for 1:1
 is per project on purpose. It is also the ONLY one the hooks read: neither
 `scan.sh` nor `density.sh` parses CLAUDE.md, so a house style written only in prose
 there is recorded, not enforced, and its first tag-carrying write is still denied.
-The description said otherwise until 2026-09-15.
 
 ## Anti-patterns
 

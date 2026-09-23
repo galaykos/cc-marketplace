@@ -7,9 +7,9 @@ description: Use when security-reviewing web application code — authorization 
 > skill that reviews the pending changes on the current branch. This skill is a
 > different artifact with a different scope: an OWASP-mapped review body invoked as
 > `security:security-review`, stack-aware for PHP/Laravel and JS/Vue, and reachable
-> from `/security:review` and the task-runner reviewer map. Since security 0.8.0
-> `/security:review` wraps the host skill on a branch-diff scope — its generic pass is
-> delegated, this body supplies the mapping, the triage and the depth on top. <!-- host-ok -->
+> from `/security:review` and the task-runner reviewer map. On a branch-diff scope
+> `/security:review` wraps the host skill — its generic pass is delegated, this body
+> supplies the mapping, the triage and the depth on top. <!-- host-ok -->
 
 ## Severity is exploitability times impact
 
