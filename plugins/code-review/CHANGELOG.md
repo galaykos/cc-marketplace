@@ -3,6 +3,17 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.22.1
+
+### Changed
+- **A `critical` or `high` finding says how to show it fails.** The prose line's problem
+  clause now carries the input or state that produces the wrong output — the content
+  `ReportFindings`' `failure_scenario` already required, so the prose line stops being the
+  poorer copy on hosts without the tool. Format unchanged (`path:line — severity — problem
+  — fix`); the fan-in still merges on it. From the Opus 5.5 playbook's review prompt
+  (claude.dev, 2026-09-22): "give the file and line, why it's wrong, and how to show it
+  fails".
+
 ## 0.22.0
 
 ### Added

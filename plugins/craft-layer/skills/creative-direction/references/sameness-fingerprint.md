@@ -108,6 +108,10 @@ exception; the craft-reviewer reads shipped markup against this list:
 - numbered markers (`01 / 02 / 03`) on content that is not a sequence
 - `→` appended to every link and button label
 - a monospace face for small data labels with no data argument
+- pill-shaped (fully rounded) buttons as the one button silhouette, with no radius
+  argument — the Opus 5.5 playbook (claude.dev, 2026-09-22) names it beside the cream
+  background, the italic accent word, the `01 / 02 / 03` labels and the monospace label
+  as the five defaults a model falls back on with no direction; four were already here
 - tinted near-black (`#0B0B0B`, `#111`) standing in for black
 - identical rounded cards with one border-radius for every hierarchy level and the same
   soft grey shadow (`rgba(0,0,0,.1)`) under each — the SaaS card kit

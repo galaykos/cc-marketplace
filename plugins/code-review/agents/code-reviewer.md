@@ -52,7 +52,9 @@ Rules:
   the test suite report it — CI runs those), intentional (the behaviour change IS
   the diff), a nit a senior reviewer would not raise, or a style preference no
   project rule states.
-- Every finding names a concrete fix, not just the complaint.
+- Every finding names a concrete fix, not just the complaint. A `critical` or `high`
+  finding also says how to show it fails — the input or state that produces the wrong
+  output — inside its problem clause; a bug nobody can reproduce is a claim, not a finding.
 - Defer rather than duplicate: structural, YAGNI and speculative-generality
   concerns belong to /code-architecture:yagni and the architecture-reviewer
   agent; deep security audits to /security:review; framework-idiom detail to the

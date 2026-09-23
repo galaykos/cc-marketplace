@@ -7,6 +7,14 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.53.1
+
+### Added
+- **`sameness-fingerprint.md` gains the pill-shaped-button row.** The Opus 5.5 playbook
+  (claude.dev, 2026-09-22) names five defaults the model falls back on with no design
+  direction; four were already in the category-default chrome list and this was the
+  fifth. Agent-graded like the rest of that list — no `divergence.mjs` assertion reads it.
+
 ## 0.53.0
 
 ### Added
