@@ -81,7 +81,7 @@ The pipeline:
 
 - **taskmaster** — clarification-to-spec: grill, brainstorm, red-team, coverage, task cards (`/taskmaster:task`); `ultra` / `goal` / `goal-lean` for the boost and hands-off modes
 - **task-runner** — executes task lists with scope lock and bounded verify-fix loops (`/task-runner:run`), the delegation contracts every dispatch is held to, the verification panels, `--tracks` for concurrent milestones
-- **approaches** — deliberates the change shape before implementation (`/approaches:opinions`, `/approaches:compare`), the build-vs-buy, estimation, rollout and pattern-selection disciplines, and `/approaches:consult` — a blind stronger-model second opinion when stuck
+- **approaches** — deliberates the change shape before implementation (`/approaches:opinions`, `/approaches:compare`), the build-vs-buy, rollout and pattern-selection disciplines, and `/approaches:consult` — a blind stronger-model second opinion when stuck
 - **code-architecture** — plan-before-code (the `plan` phase), SOLID/YAGNI audits, drift review, work verification (the `verify` phase, enforced at Stop by candor)
 - **testing** — TDD discipline, the test-engineer agent cards dispatch to, and `/testing:flake-hunt`, its only command: test review rides the code-review fan-in, not a per-plugin review entry
 - **debugging** — `/debugging:debug`, root cause with evidence before any fix

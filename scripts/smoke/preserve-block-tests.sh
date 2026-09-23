@@ -4,9 +4,10 @@
 # WHY: the only escape from the drift gate used to be a whole-file `optout`. A
 # generated file needing ONE different sentence had to be hand-maintained
 # forever, forfeiting every later template improvement; the alternative, adding a
-# template slot, re-renders all 31 sharers of review-command.md.tmpl and
-# patch-bumps 31 plugin.json in one commit. A preserve block is the per-region
-# escape between those two.
+# template slot, re-renders every sharer of that template and patch-bumps each of
+# their plugin.json in one commit — 31 files when this was written, all of them
+# sharing review-command.md.tmpl, which was retired 2026-09-22. A preserve block is
+# the per-region escape between those two.
 #
 # Runs entirely inside a fixture tree via CHASSIS_ROOT / CHASSIS_TEMPLATES — it
 # never touches plugins/ or templates/.

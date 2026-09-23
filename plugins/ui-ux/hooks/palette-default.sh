@@ -66,8 +66,11 @@
     *) exit 0 ;;
   esac
 
+  # -d, not just -n: `mkdir -p "$cwd/.claude/ui-ux"` below RECREATES a project directory
+  # the session deleted, three levels deep, from a payload field nobody validated
+  # (overseer/hooks/track-read.sh:30-31 is the shape this copies).
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  [ -n "$cwd" ] || exit 0
+  [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
 
   # CONTEXT KEY, hashed before it becomes a filename. The key is normally an absolute
   # path; interpolated raw it names a file whose parents never existed, every write fails,

@@ -99,8 +99,23 @@ the default branch is finished via the PR protocol, never a local merge.
 Push with an upstream (`git push -u origin <branch>`), then write the title
 and description from the ACTUAL diff — read `git diff "$BASE...HEAD"` again
 rather than trusting session memory, which describes what was attempted, not
-what survived. State what the change does, why, and how it was verified; link
-the issues it closes. Keep the branch and its worktree alive — review feedback
+what survived.
+
+**Fill the repo's own PR template if it has one** — `.github/PULL_REQUEST_TEMPLATE.md`,
+`.github/pull_request_template.md`, `docs/pull_request_template.md`, in that order. Its
+headings and checkboxes are what that team's reviewers look for and what their release
+tooling parses; three sections of your own discard both. Say which file you filled, or
+say none existed. Only with none: state what the change does, why, and how it was
+verified, and link the issues it closes.
+
+**Name the owning teams.** If `CODEOWNERS` exists (`.github/`, repo root, or `docs/`),
+match `git diff --name-only "$BASE...HEAD"` against its patterns — last matching rule
+wins, as GitHub resolves it — and name the owning teams in the finish report. A PR that
+routes past its owners waits on a review request nobody knew to make.
+
+Standing for both: agent-graded. No script reads the template or the ownership map.
+
+Keep the branch and its worktree alive — review feedback
 lands here, and deleting the workspace under an open PR guarantees a rushed
 re-setup at the worst moment.
 

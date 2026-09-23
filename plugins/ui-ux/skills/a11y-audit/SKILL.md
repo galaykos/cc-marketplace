@@ -7,11 +7,9 @@ description: Use when writing or reviewing UI markup, styles, or interactions �
 
 ## Core rule
 
-Accessibility is a correctness property, not polish. A keyboard trap is a
-blocker bug for the user it traps — for them the feature does not work at
-all. Treat findings with the same severity as functional defects:
-blockers block the merge, minors get an owner and a follow-up, and none
-get waved off as "nice to have".
+Accessibility is a correctness property, not polish: a keyboard trap is a
+blocker bug for the user it traps. Findings carry the same severity as
+functional defects — blockers block the merge, minors get an owner.
 
 ## Semantics first
 
@@ -27,6 +25,10 @@ rebuilt `div` ships none of them.
   `header` and `footer` where they apply.
 - Lists as lists: `ul`/`ol`/`li` for anything that reads as a sequence.
 - Tables with `th` and `scope` for data only, never for layout.
+- `type="button"` on any `button` inside a form that is not the submit; an
+  icon-only one needs `aria-label` and an `aria-hidden="true"` glyph.
+- `lang` on `<html>`, and on any passage in another language (SC 3.1.1,
+  3.1.2) — without it a screen reader reads French copy with English phonemes.
 
 ## First rule of ARIA
 
@@ -71,6 +73,9 @@ alone.
 - Focused element stays visible: sticky headers and overlays must not
   fully cover it (SC 2.4.11); the indicator must exist and be visible
   (SC 2.4.7). Focus Appearance (SC 2.4.13) is AAA — never flag at AA.
+- Content shown on hover or focus (tooltip, popover) owes all three:
+  dismissible without moving the pointer, hoverable, and persistent until
+  dismissed or invalid (SC 1.4.13).
 
 ## Contrast (AA)
 
@@ -98,6 +103,17 @@ alone.
   allow paste and password managers, no transcription puzzles (SC 3.3.8).
 - Help mechanisms — contact link, chat, FAQ — sit in the same relative
   place on every page that offers them (SC 3.2.6).
+- `autocomplete` on every input collecting the user's OWN data, and only a
+  token from the WCAG list (`name`, `email`, `tel`, `street-address`,
+  `cc-number`, `current-password`) — an invented one is treated as `off` (SC 1.3.5).
+
+## Status messages (SC 4.1.3)
+
+- A message that appears without moving focus — toast, "Saved", result count,
+  async done/failed — is announced only by `role="status"` (or
+  `aria-live="polite"`) on a container ALREADY in the DOM; injecting region and
+  text together announces nothing in most screen readers.
+- `role="alert"` / `aria-live="assertive"` only for an error that interrupts.
 
 ## Media and images
 
@@ -117,21 +133,6 @@ alone.
   has a single-pointer alternative — visible controls doing the same job
   without dragging or tracing a path (SC 2.5.7). Keyboard access alone
   does not satisfy this; pointer users need the non-dragging route too.
-
-## Worked micro-example
-
-An icon-only delete button in a list row needs all of:
-
-    <button type="button" aria-label="Delete item">
-      <svg aria-hidden="true">…</svg>
-    </button>
-
-- `type="button"` so it never submits an enclosing form, and a visible
-  focus style (the default outline or a styled replacement).
-- `aria-label="Delete item"` because there is no visible text.
-- A confirm dialog that traps focus while open and returns focus to the
-  triggering button on close — deletion is destructive, and a stray
-  Enter from an invisible focus position must not destroy data.
 
 ## Boundaries
 

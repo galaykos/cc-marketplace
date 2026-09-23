@@ -9,11 +9,14 @@
 # WHAT IT MATCHES, in priority order (the first hit wins the message; relational data
 # loss outranks a lock hazard, which outranks the NoSQL analogues):
 #   1. DATA LOSS — DROP TABLE/DATABASE/SCHEMA, TRUNCATE, an unqualified DELETE/UPDATE
-#      with no WHERE on the line; Laravel's `Schema::drop*(`; and the same statement
-#      as spelled by every other migration DSL (`dropTable`, `dropTableIfExists`,
-#      `drop_table`, `dropSchema`, `drop_schema`, `dropAll`, `drop_all`) — Prisma,
-#      Drizzle, TypeORM, Doctrine, Knex, Alembic. Plus the NoSQL twins: `deleteMany`
-#      / `updateMany` / `remove` with an EMPTY filter `({})`, and `.drop()` /
+#      with no WHERE on the line; Laravel's `Schema::drop*(`; and the LISTED drop
+#      spellings of the other migration DSLs, matched case-insensitively and followed
+#      by `(` or a Ruby symbol `:` — `dropTable`, `dropTableIfExists`, `drop_table`,
+#      `dropSchema`, `drop_schema`, `dropAll`, `drop_all`, plus Django's `DeleteModel`,
+#      `RemoveField` and `DeleteField` (Prisma, Drizzle, TypeORM, Doctrine, Knex,
+#      Alembic, Rails, GORM, Django). Plus the NoSQL twins: `deleteMany` / `updateMany`
+#      / `remove` with an EMPTY filter `({})`, a bare `deleteMany()` (Prisma's
+#      delete-everything call takes no argument at all), and `.drop()` /
 #      `.dropCollection()` / `.dropDatabase()` / `.dropIndexes()` called with no
 #      arguments.
 #   2. LOCK HAZARD — `CREATE [UNIQUE] INDEX` with no `CONCURRENTLY`, a table-rewriting
@@ -29,6 +32,9 @@
 #     under `taskmaster-docs/` exit early: a card or spec that QUOTES a migration
 #     executes nothing, and gating them would storm one permission prompt per card and
 #     stall a headless run that has nobody to answer "ask".
+#   - A drop spelled outside the list above — the alternation is literal, not "every
+#     DSL". `drop_table 'users'` with a quoted string instead of a Ruby symbol, a name
+#     built at runtime, or an ORM that spells it some third way, passes silently.
 #   - A destructive statement run through Bash rather than written to a file — that is
 #     `command-guard`'s territory, which is why this row yields to it in lane.tsv.
 #   - Single-line matching: a DELETE whose WHERE sits on the next line still asks
@@ -79,7 +85,17 @@
   # name contains `dropTable`/`drop_table`/`dropSchema`/`drop_all`; TypeORM and Doctrine
   # write `dropTable(` / `->dropTable(` in a migration class. Ask tier and escape are
   # identical to the Laravel row: a down()/rollback legitimately drops.
-  [ -z "$hit" ] && printf '%s' "$text" | grep -qE '(\.|->|\b)(dropTable|dropTableIfExists|drop_table|dropSchema|drop_schema|dropAll|drop_all)[[:space:]]*\(' && hit="a drop-table call in a migration DSL (Prisma/Drizzle/TypeORM/Doctrine/Knex/Alembic)"
+  #
+  # Three things this row got wrong until 2026-09-22, each silencing a whole ecosystem:
+  # it was case-SENSITIVE, so GORM's `Migrator().DropTable(` never matched; it required
+  # a `(`, so Rails' `drop_table :users` never matched; and it listed no Django
+  # operation, so `migrations.DeleteModel`/`RemoveField` never matched. `-i`, a second
+  # argument form, and the three Django names fix all three. The symbol form REQUIRES a
+  # space before the `:` and an identifier after it (`drop_table :users`): a bare `[(:]`
+  # also matched `dropAll: boolean` in a TS interface and `dropTable: false` in a config
+  # file, both measured, neither a migration. A quoted-string argument
+  # (`drop_table 'users'`) still passes — stated in the header.
+  [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '(\.|->|\b)(dropTable|dropTableIfExists|drop_table|dropSchema|drop_schema|dropAll|drop_all|DeleteModel|RemoveField|DeleteField)([[:space:]]*\(|[[:space:]]+:[A-Za-z_])' && hit="a drop-table call in a migration DSL (Prisma/Drizzle/TypeORM/Doctrine/Knex/Alembic/Rails/GORM/Django)"
   [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '\btruncate[[:space:]]+(table[[:space:]]+)?[^;]' && hit="TRUNCATE"
   # unqualified DELETE/UPDATE: a line with DELETE FROM or UPDATE … SET and no WHERE on it
   if [ -z "$hit" ]; then
@@ -109,7 +125,11 @@
   # Only checked when nothing above fired; relational data loss wins the message.
   if [ -z "$hit" ] && [ -z "$lockhit" ]; then
     # deleteMany / updateMany / remove with an EMPTY filter, and .drop() outright.
-    if printf '%s' "$text" | grep -qE '\b(deleteMany|updateMany|remove)\([[:space:]]*\{[[:space:]]*\}'; then
+    # Prisma spells delete-everything as `deleteMany()` with NO argument, so the
+    # empty-object requirement made the commonest shape the one this never asked about.
+    # The bare-parens alternative is scoped to `deleteMany` alone on purpose: extending
+    # it to `remove` would fire on every DOM `element.remove()`.
+    if printf '%s' "$text" | grep -qE '\b(deleteMany|updateMany|remove)\([[:space:]]*\{[[:space:]]*\}|\bdeleteMany\([[:space:]]*\)'; then
       hit="an unfiltered deleteMany/updateMany/remove (empty filter matches every document)"
     elif printf '%s' "$text" | grep -qE '\.drop(Collection|Database|Indexes)?\([[:space:]]*\)'; then
       hit="a collection/database drop"

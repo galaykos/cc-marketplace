@@ -37,6 +37,16 @@ check "Schema::dropIfExists (Laravel)" ask   database/migrations/2026_01_01_0000
 check "Schema::drop (Laravel)"         ask   database/migrations/2026_01_01_000000_x.php "Schema::drop('users');"
 check "Schema::table add index"        allow database/migrations/2026_01_01_000000_x.php "Schema::table('users', fn (\$t) => \$t->index('email'));"
 check "Schema::dropColumns is not a table drop" allow database/migrations/2026_01_01_000000_x.php "Schema::table('users', fn (\$t) => \$t->dropColumn('legacy'));"
+# 0.10.0: the DSL row was case-sensitive, required a `(`, and knew no Django
+# operation — so Rails, GORM and Django wrote a table drop in silence. Both
+# directions: a config key that merely SPELLS one of the names is not a migration.
+check "rails drop_table :symbol"      ask   db/migrate/001_x.rb 'drop_table :users'
+check "django DeleteModel"            ask   app/migrations/0002_x.py 'migrations.DeleteModel(name="Order")'
+check "django RemoveField"            ask   app/migrations/0003_x.py 'migrations.RemoveField(model_name="order", name="legacy")'
+check "gorm DropTable"                ask   db/migrate.go       'db.Migrator().DropTable(&User{})'
+check "TS interface dropAll flag"     allow src/types.ts        'export interface Opts { dropAll: boolean }'
+check "config key dropTable"          allow config/knex.yml     '  dropTable: false'
+check "rails add_column"              allow db/migrate/002_x.rb 'add_column :users, :email, :string'
 check "CREATE INDEX, no CONCURRENTLY" ask   db/migrate.sql   'CREATE INDEX idx_a ON t (a);'
 check "CREATE INDEX CONCURRENTLY"     allow db/migrate.sql   'CREATE INDEX CONCURRENTLY idx_a ON t (a);'
 
@@ -45,6 +55,10 @@ check "CREATE INDEX CONCURRENTLY"     allow db/migrate.sql   'CREATE INDEX CONCU
 check "deleteMany empty filter"       ask   src/repo.ts      'await col.deleteMany({})'
 check "updateMany empty filter"       ask   src/repo.ts      'await col.updateMany({}, { $set: { x: 1 } })'
 check "deleteMany WITH a filter"      allow src/repo.ts      'await col.deleteMany({ tenantId })'
+# Prisma's delete-everything call takes NO argument, so the empty-object requirement
+# missed the commonest shape. Scoped to deleteMany: `el.remove()` is a DOM call.
+check "bare deleteMany()"             ask   src/repo.ts      'await prisma.user.deleteMany()'
+check "DOM element.remove()"          allow src/ui.ts        'el.remove()'
 check "collection drop()"             ask   src/repo.ts      'await col.drop()'
 check "dropDatabase()"                ask   src/repo.ts      'await db.dropDatabase()'
 check "ordinary find()"               allow src/repo.ts      'await col.find({ id })'

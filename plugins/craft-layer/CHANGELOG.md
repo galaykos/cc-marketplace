@@ -7,6 +7,84 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.53.0
+
+### Added
+- **A `Voice:` line on the build task, and a `voice-contract` assertion that reads it.**
+  Brand voice was a slot name: "editorial voice" was defined only as a typographic role, and
+  the marketplace's one operational rule about copy craft lived inside a per-section brief
+  the audit never opens. `skills/creative-direction/references/voice-contract.md` now owns the
+  four dimensions — person and address, a sentence-length band in words, what the copy does
+  with fragments/questions/imperatives, and 2–3 literal `NEVER "<string>"` items — and
+  `/craft-layer:craft` step 5 writes them onto `craft/build-task.md` as a sixth line beside
+  `Banned vocabulary:`. Standing is split on purpose: the LINE's presence and at least one
+  NEVER are a **gate** (`divergence.mjs` FAILs a resolved build task without them, SKIPs when
+  no build task exists at all), the NEVER literals in shipped copy are graded by
+  `copy-register`, and the voice itself — person, band, fragment rules — stays
+  **agent-graded**, because nothing here counts a sentence.
+
+### Fixed
+- **`hooks/ultra-craft.sh` starts `#!/bin/bash`, not `#!/usr/bin/env bash`.** The fail-open
+  promise the boost hooks make in their own headers has to survive a stripped PATH, where
+  `/usr/bin/env bash` exits 127 before the hook runs a line — a guard that cannot start
+  looks to the host exactly like a guard that allowed. Rendered from
+  `templates/boost-hook.sh.tmpl`, not edited here; `pc_hook_shebang` reads the claim back
+  and is a build failure now that every shipped hook agrees with it.
+- **The sameness-fingerprint "gate" read 1,683 of the registry's 13,951 characters.**
+  `copy-register`'s lexicon was six phrases frozen into `divergence.mjs`, and the only live
+  read of `sameness-fingerprint.md` was its `### Type families` section. A page reproducing
+  nine registry entries verbatim — magnetic CTA, glass-card grid, logo marquee,
+  tilt-on-hover, ALL-CAPS eyebrows, `01 / 02 / 03` — cleared every assertion the gate could
+  grade. The registry now carries a `copy-lexicon` block read LIVE (source, kind and date
+  printed every run, frozen snapshot as the fallback), and it arms the three rows the
+  registry's own note already named as mechanical: the tracked-out ALL-CAPS eyebrow, the
+  middle-dot meta string (`A · B · C`) and the trailing `→`. Re-run of that probe: three
+  FAILs, exit 1. Rows carry a `min` so a repetition tell needs repetition — one honest
+  `Read more →` and one footer middle dot stay clean, and `craft-gates.test.sh` ships the
+  control pair that proves it.
+- **Four gates were sold where one is scripted.** `README.md` named the offer-contract,
+  ambition-tier, content-depth and sameness-fingerprint "gates" without saying which has a
+  script behind it; eight `(teeth)` / `gate` headings sat over prose a reviewing agent reads.
+  Every one now names its standing: `gate` for what `divergence.mjs` asserts,
+  `agent-graded` for the rest — in the README, `content-depth.md`, `offer-contract.md`,
+  `content-source.md`, `section-ledger.md`, `asset-sourcing/SKILL.md`, `type-strategy.md`,
+  `creative-direction/SKILL.md` and `sameness-fingerprint.md` itself, whose "How divergence
+  is measured (teeth)" heading contradicted its own text forty lines above.
+
+## 0.52.0
+
+### Added
+- **`template/craft-gates/playwright.config.ts` — the gate suite can now actually be run.**
+  `commands/audit.md` step 4 said run from the plugin, never a copy, and then gave a bare
+  `npx playwright test`. Playwright has no `--spec` flag, so that command scanned the
+  PROJECT's testDir, found no craft gate and exited 0 — a gate never run, reported green.
+  The config pins the spec's own directory as the testDir and the project's
+  `.craft-layer/` as the output dir, so nothing is written into the installed plugin.
+  Measured against a throwaway page on 2026-09-22: bare → `Error: No tests found`;
+  `--config` alone → MODULE_NOT_FOUND; `--config` plus `NODE_PATH=<project>/node_modules`
+  → 21 tests, 12 screenshots in `<project>/.craft-layer/shots/`.
+- **A Vocabulary table in the README.** spine, archetype, draw, move, genus, concept deck,
+  register gate and section ledger carried load on every page of the docs and none was
+  defined where a reader meets it; `genus` was defined nowhere at all, and now is, in
+  `concept-deck.md` beside the `Banned genus:` key that is the only place a run must name one.
+
+### Fixed
+- **`gates.spec.ts` told you to copy the gates into your project; `commands/audit.md` told
+  you never to.** The header now carries the run-from-the-plugin invocation, including the
+  `NODE_PATH` without which the spec's own imports resolve from a directory that has no
+  `node_modules`.
+- **Corpus freshness was the file's mtime, so the gate overstated it.** `divergence.mjs`
+  printed `2026-09-16` for a register corpus whose own text says `Last verified: 2026-07-26`
+  — 52 days — and would print the clone date in a fresh checkout. It now reads the corpus's
+  own `verified:` line, and a corpus carrying no stamp is reported `<date> (unstamped, mtime)`
+  rather than handed a date it never claimed. The anti-corpus registry is currently in that
+  second state and now says so.
+
+### Changed
+- **The twelve `fixture-*.html` control pages moved to `scripts/__tests__/fixtures/`.** 64K
+  shipped to every installer, inside the directory audit.md says to run from and never to
+  copy, read by nothing but the harness beside which they now sit.
+
 ## 0.51.1
 
 ### Fixed

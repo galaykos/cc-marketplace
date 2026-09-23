@@ -51,9 +51,11 @@ pattern on a public endpoint.
 
 Since 0.6.0 a PostToolUse hook (`hooks/write-scan.sh`, fixture harness in CI) WARNS at
 write time on the mechanically detectable shapes from the security-review skill:
-empty `$guarded`, unescaped `{!! $ !!}` Blade output, `VITE_`-prefixed secrets,
-variables inside `whereRaw` SQL, and raw HTML sinks (`dangerouslySetInnerHTML`,
-`v-html`, `innerHTML`/`outerHTML`/`insertAdjacentHTML`, `document.write`). Since 0.7.0
+empty `$guarded`, unescaped `{!! $ !!}` Blade output, secrets carrying any
+public-bundle env prefix (`VITE_`, `NEXT_PUBLIC_`, `NUXT_PUBLIC_`, `EXPO_PUBLIC_`,
+`PUBLIC_`, `REACT_APP_`, `GATSBY_`, `VUE_APP_`), variables inside `whereRaw` SQL, and
+raw HTML sinks (`dangerouslySetInnerHTML`, `v-html`, Svelte `{@html }`, Astro
+`set:html=`, `innerHTML`/`outerHTML`/`insertAdjacentHTML`, `document.write`). Since 0.7.0
 it also carries the stack-agnostic sinks ported from Anthropic's `security-guidance`
 pattern set, each gated to the file types where the token IS the sink: `eval` / `new
 Function`, shell-string execution (`child_process.exec`, `execSync`, PHP `exec` /

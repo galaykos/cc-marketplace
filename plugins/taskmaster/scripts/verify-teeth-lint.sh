@@ -29,10 +29,21 @@
 #                     check is that it ran. Proves the DDL parsed, not that the schema
 #                     is right. Blocked separately from bare-suite-pass because a
 #                     migration runner is not a test runner.
-#   bare-suite-pass : a test runner (npm test / pytest / jest / go test / pest /
-#                     phpunit / php artisan test / composer test ...) with
-#                     NO named test/assertion token (no -k/-t/named file) AND no
-#                     trailing `asserts <x>` / `including <x>` clause
+#   bare-suite-pass : a test runner (npm test / pytest / jest / go test / cargo test /
+#                     rspec / pest / phpunit / php artisan test / composer test /
+#                     ./gradlew / mvn / ./mvnw / dotnet test / sbt test / bazel test /
+#                     ctest ...) with NO named test/assertion token (no
+#                     -k/-t/--tests/-Dtest=/--filter/named file) AND no trailing
+#                     `asserts <x>` / `including <x>` clause.
+#                     THE JVM/.NET HALF WAS BLIND UNTIL 2026-09-22: the alternation
+#                     required a literal `mvn test` / `gradle test`, so `./gradlew test`,
+#                     `mvn -q test` and `dotnet test` all passed as if they named a test,
+#                     and card-lint-record.sh then recorded "teeth OK" for them.
+#                     RESIDUAL: the build-tool names (gradle/gradlew/mvn/mvnw) are matched
+#                     as bare commands, so a non-test invocation used as a whole Verify
+#                     line (`mvn package`) is also called bare-suite-pass. That reason
+#                     misnames it; the verdict — a build command proves nothing about
+#                     behavior — is still right, and widening beats staying silent.
 # Anything else (a line naming a specific new test / assertion / observable)
 # passes with exit 0.
 #
@@ -161,11 +172,11 @@ if has 'python[0-9]?[[:space:]]+-c' && has '(^|[^._a-z])import[[:space:]]' && ! 
 fi
 
 # 5) bare-suite-pass — a test runner with no named test and no assertion clause.
-runner_re='npm[[:space:]]+(run[[:space:]]+)?test|yarn[[:space:]]+test|pnpm[[:space:]]+(run[[:space:]]+)?test|(^|[^a-z])pytest|(^|[^a-z])jest|(^|[^a-z])vitest|(^|[^a-z])mocha|go[[:space:]]+test|rspec|cargo[[:space:]]+test|mvn[[:space:]]+test|gradle[[:space:]]+test|php[[:space:]]+artisan[[:space:]]+test|(^|[^a-z])pest|(^|[^a-z])phpunit|composer[[:space:]]+test'
-named_re='-k[[:space:]]|-t[[:space:]]|-g[[:space:]]|--grep|--filter[[:space:]=]|-run[[:space:]]|-run=|::[a-z_]|_test\.|\.test\.|\.spec\.|test_[a-z]|-e[[:space:]]+["'\'']?[a-z]'
+runner_re='npm[[:space:]]+(run[[:space:]]+)?test|yarn[[:space:]]+test|pnpm[[:space:]]+(run[[:space:]]+)?test|(^|[^a-z])pytest|(^|[^a-z])jest|(^|[^a-z])vitest|(^|[^a-z])mocha|go[[:space:]]+test|rspec|cargo[[:space:]]+test|(^|[^a-z])mvnw?([[:space:]]|$)|(^|[^a-z])gradlew?([[:space:]]|$)|dotnet[[:space:]]+test|sbt[[:space:]]+test|bazel[[:space:]]+test|(^|[^a-z])ctest([[:space:]]|$)|php[[:space:]]+artisan[[:space:]]+test|(^|[^a-z])pest|(^|[^a-z])phpunit|composer[[:space:]]+test'
+named_re='-k[[:space:]]|-t[[:space:]]|-g[[:space:]]|--grep|--tests[[:space:]=]|-dtest=|--filter[[:space:]=]|-run[[:space:]]|-run=|::[a-z_]|_test\.|\.test\.|\.spec\.|test_[a-z]|-e[[:space:]]+["'\'']?[a-z]'
 clause_re='assert|including|expects?[[:space:]]|verif(y|ies|ying)|observ'
 if has "$runner_re" && ! has "$named_re" && ! has "$clause_re"; then
-  weak "bare-suite-pass: test runner with no named test (-k/-t/file) or asserts/including clause"
+  weak "bare-suite-pass: test runner with no named test (-k/-t/--tests/-Dtest=/file) or asserts/including clause"
 fi
 
 # 6) migration-run-only — a migration command whose whole check is that it ran.

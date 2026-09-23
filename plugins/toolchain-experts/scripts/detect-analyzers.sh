@@ -88,8 +88,19 @@ if [ -f "$root/package.json" ]; then
     # vue-tsc supersedes tsc when the project has .vue single-file components:
     # plain tsc cannot parse them, so reporting tsc here would send the caller
     # at a command that fails for a reason unrelated to the code under review.
+    # svelte-check and `astro check` are the same case for .svelte and .astro:
+    # measured 2026-09-22, a SvelteKit project carrying svelte-check in
+    # devDependencies was reported as `npx tsc --noEmit`, which parses none of
+    # its components. Does NOT catch a project mixing two of these frameworks
+    # (Astro with a Svelte integration reports astro only, the first branch
+    # that matches), a framework with no branch here (it still falls through to
+    # plain tsc), or a JS-only project whose config is jsconfig.json.
     if manifest_has package.json '"vue-tsc"'; then
       emit "analyzer vue vue-tsc ${cfg} - 'npx vue-tsc --noEmit'"
+    elif manifest_has package.json '"astro"'; then
+      emit "analyzer astro astro-check ${cfg} - 'npx astro check'"
+    elif manifest_has package.json '"svelte"'; then
+      emit "analyzer svelte svelte-check ${cfg} - 'npx svelte-check --tsconfig ./${cfg}'"
     else
       emit "analyzer ts tsc ${cfg} - 'npx tsc --noEmit'"
     fi
@@ -249,8 +260,15 @@ $body"
       queue="$next"
       depth=$((depth + 1))
     done
-    for tool in phpstan psalm phpcs rector pint tsc vue-tsc eslint biome oxlint stylelint pa11y lhci axe prettier; do
-      pat="(^|[^a-zA-Z-])${tool}([^a-zA-Z-]|$)"
+    for tool in phpstan psalm phpcs rector pint tsc vue-tsc svelte-check astro-check eslint biome oxlint stylelint pa11y lhci axe prettier; do
+      # `astro check` is two words wherever a script invokes it, while the
+      # analyzer record above names it astro-check; match both spellings rather
+      # than rename the record. Bare `astro` is deliberately not a token: it
+      # would label `astro build` as an analyzer step.
+      case "$tool" in
+        astro-check) pat="(^|[^a-zA-Z-])astro[ -]check([^a-zA-Z-]|$)" ;;
+        *)           pat="(^|[^a-zA-Z-])${tool}([^a-zA-Z-]|$)" ;;
+      esac
       if printf '%s' "$direct" | grep -qE "$pat"; then
         printf 'ci %s %s direct\n' "${wf#"$root/"}" "$tool"
       elif printf '%s' "$blob" | grep -qE "$pat"; then

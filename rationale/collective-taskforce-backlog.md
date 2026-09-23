@@ -79,6 +79,8 @@ decisions rather than as omissions.
    generated stack reviews carry it from one edit, and code-review's description now
    leads with "fanning in every installed stack review" (76 chars, clause one).
 
+   Amended 2026-09-22 (panel finding 64): wave 2 retired the review-command chassis and its 26 generated stack reviews, so the clause had no consumer left — `templates/blocks/triage.md` is deleted, with the never-consumed `tiers.md`, `closer.md` and `apply-lane.md`.
+
 5. ~~**Stop-gate cross-disarm.**~~ **DONE** — the shared flag is honoured only when a
    gate cannot write its own marker; otherwise each bounds itself. Proven by execution:
    with the flag set the first stop still blocks and an identical second does not. The

@@ -55,6 +55,70 @@ if printf '%s' "$out" | grep -q 'CI actually invokes'; then
   echo "PASS: states that CI is authoritative"
 else echo "FAIL: CI-authoritative rule missing"; rc=1; fi
 
+# ---- the five non-GitHub CI formats ------------------------------------------------
+# The message tells the reader that whatever CI invokes is the standard. On every GitLab,
+# CircleCI, Jenkins, Azure and Bitbucket repo it then named nothing, because the sweep read
+# `.github/workflows/` and nothing else (panel 2026-09-22, SW 6). Each fixture below is the
+# canonical shape of its format, and the assertion is that the COMMAND is extracted, not
+# merely that a line appeared.
+ci_case() { # label relative-path heredoc-on-stdin expected-command
+  local label="$1" rel="$2" want="$3" dir
+  dir="$FX/ci-$label"
+  mkdir -p "$dir/src" "$dir/$(dirname "$rel")"
+  printf 'root = true\n[*]\nindent_style = tab\n' > "$dir/.editorconfig"
+  cat > "$dir/$rel"
+  local o; o=$(fire "$dir/src/a.ts" "$dir" "ci-$label")
+  if printf '%s' "$o" | grep -qF "CI runs: $rel"; then
+    if printf '%s' "$o" | grep -qF -- "— $want"; then echo "PASS: $label names its CI lint command"
+    else echo "FAIL: $label named the file but not '$want': $o"; rc=1; fi
+  else echo "FAIL: $label produced no CI line: ${o:-<silent>}"; rc=1; fi
+}
+
+ci_case gitlab .gitlab-ci.yml 'npm run lint' <<'YML'
+stages:
+  - test
+lint:
+  stage: test
+  script:
+    - npm ci
+    - npm run lint
+YML
+
+ci_case circleci .circleci/config.yml 'npm run lint' <<'YML'
+version: 2.1
+jobs:
+  build:
+    steps:
+      - checkout
+      - run: npm run lint
+YML
+
+ci_case jenkins Jenkinsfile 'npm run lint' <<'GROOVY'
+pipeline {
+  stages {
+    stage('Lint') {
+      steps {
+        sh 'npm run lint'
+      }
+    }
+  }
+}
+GROOVY
+
+ci_case azure azure-pipelines.yml 'npm run lint' <<'YML'
+steps:
+  - script: npm run lint
+    displayName: Lint
+YML
+
+ci_case bitbucket bitbucket-pipelines.yml 'npm run lint' <<'YML'
+pipelines:
+  default:
+    - step:
+        script:
+          - npm run lint
+YML
+
 silent() { # label file cwd session
   local o; o=$(fire "$2" "$3" "$4")
   if [ -z "$o" ]; then echo "PASS: $1 (silent)"; else echo "FAIL: $1 — fired"; rc=1; fi

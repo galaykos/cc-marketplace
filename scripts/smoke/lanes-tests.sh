@@ -459,5 +459,119 @@ run pc_twin_files "$TW"
 fails "[twin] a file declaring itself its own twin fails" "declares itself"
 rm -rf "$TW"
 
+# ---------------------------------------------------------------- pc_lanes_adjacency
+# CROWDING, the defect pc_lanes_territory structurally cannot see: it compares `owns`
+# as a string and the shipped vocabulary is 1:1 with the claimed nouns, so it has never
+# had a live pair. The probe (rationale/2026-09-15-listing-eviction-probe.md:60-66)
+# measured what crowding costs — eight rivals on one territory dropped firing from 100%
+# to ~75% — so the fixtures below are the whole enforcement record for the check that
+# prices it. Triggers are DERIVED (rules.tsv globs for a skill, `bestpractices-skill`
+# for an agent), which is the half most worth watching fail.
+AD=$(mktemp -d) || exit 2
+ADR="$ROOT/scripts/smoke/validate-fixtures/lanes-adjacency-rules.tsv"
+mkdir -p "$AD/foo/agents" "$AD/bar/agents"
+adlane()  { sed $'s/@@/\t/g' > "$AD/$1/lane.tsv"; }   # rows on stdin, @@ = TAB
+adagent() {                                           # <plugin> <name> <skills|->
+  { printf -- '---\nname: %s\n' "$2"
+    [ "$3" = '-' ] || printf 'bestpractices-skill: %s\n' "$3"
+    printf -- '---\n\nBody prose.\n'
+  } > "$AD/$1/agents/$2.md"
+}
+: > "$AD/bar/lane.tsv"
+
+adlane foo <<'EOF'
+foo:alpha-skill@@skill@@build@@alpha-noun@@a checkable condition@@-
+foo:beta-skill@@skill@@build@@beta-noun@@a checkable condition@@-
+EOF
+adlane bar <<'EOF'
+bar:gamma-skill@@skill@@build@@gamma-noun@@a checkable condition@@-
+EOF
+run pc_lanes_adjacency "$AD" "$ADR"
+fails "[adjacency] three skills on one glob in one phase are a cluster" \
+  "lane-adjacency *.qq build bar:gamma-skill foo:alpha-skill foo:beta-skill"
+
+# the same three, but one phase apart: the model never sees them at once
+adlane bar <<'EOF'
+bar:gamma-skill@@skill@@review@@gamma-noun@@a checkable condition@@-
+EOF
+run pc_lanes_adjacency "$AD" "$ADR"; clean "[adjacency] one shape in two phases is not a cluster"
+
+# two is a pair, and pairs are pc_rules_overlap's job, not this one
+: > "$AD/bar/lane.tsv"
+run pc_lanes_adjacency "$AD" "$ADR"; clean "[adjacency] two artifacts are below the default threshold"
+run pc_lanes_adjacency "$AD" "$ADR" 2
+fails "[adjacency] the threshold is a parameter" "lane-adjacency *.qq build foo:alpha-skill foo:beta-skill"
+
+# a SINGLE yields_to edge does not clear a crowd — it settles one pair of three
+adlane foo <<'EOF'
+foo:alpha-skill@@skill@@build@@alpha-noun@@a checkable condition@@foo:beta-skill
+foo:beta-skill@@skill@@build@@beta-noun@@a checkable condition@@-
+EOF
+adlane bar <<'EOF'
+bar:gamma-skill@@skill@@build@@gamma-noun@@a checkable condition@@-
+EOF
+run pc_lanes_adjacency "$AD" "$ADR"
+fails "[adjacency] one yields_to edge leaves the other two pairs contested" "lane-adjacency *.qq build"
+
+adlane foo <<'EOF'
+foo:alpha-skill@@skill@@build@@alpha-noun@@a checkable condition@@foo:beta-skill,bar:gamma-skill
+foo:beta-skill@@skill@@build@@beta-noun@@a checkable condition@@bar:gamma-skill
+EOF
+run pc_lanes_adjacency "$AD" "$ADR"; clean "[adjacency] every pair settled by yields_to clears the cluster"
+
+# blessings resolve pairs too, and are collected from EVERY file before anything is judged
+adlane foo <<'EOF'
+# lane-cofire-ok: foo:alpha-skill foo:beta-skill
+# lane-cofire-ok: foo:alpha-skill bar:gamma-skill
+foo:alpha-skill@@skill@@build@@alpha-noun@@a checkable condition@@-
+foo:beta-skill@@skill@@build@@beta-noun@@a checkable condition@@-
+EOF
+adlane bar <<'EOF'
+# lane-cofire-ok: bar:gamma-skill foo:beta-skill
+bar:gamma-skill@@skill@@build@@gamma-noun@@a checkable condition@@-
+EOF
+run pc_lanes_adjacency "$AD" "$ADR"; clean "[adjacency] pairs blessed across both files clear the cluster"
+
+# an AGENT has no glob of its own: its shape is the shape of the skills it declares
+adlane foo <<'EOF'
+foo:alpha-skill@@skill@@build@@alpha-noun@@a checkable condition@@-
+foo:beta-skill@@skill@@build@@beta-noun@@a checkable condition@@-
+EOF
+adlane bar <<'EOF'
+bar:worker@@agent@@build@@worker-noun@@a checkable condition@@-
+EOF
+adagent bar worker delta-skill
+run pc_lanes_adjacency "$AD" "$ADR"; clean "[adjacency] an agent declaring a skill on another glob joins no cluster"
+
+adagent bar worker alpha-skill
+run pc_lanes_adjacency "$AD" "$ADR"
+fails "[adjacency] an agent is pulled in by its bestpractices-skill globs" \
+  "lane-adjacency *.qq build bar:worker foo:alpha-skill foo:beta-skill"
+
+# … but it does NOT contest the skills it READS: those shapes came from them
+adagent bar worker 'alpha-skill, beta-skill'
+run pc_lanes_adjacency "$AD" "$ADR"; clean "[adjacency] an agent does not contest a skill it declares"
+
+# the key is frontmatter-only; the same line in the body is prose
+{ printf -- '---\nname: worker\n---\n\nbestpractices-skill: alpha-skill\n'; } > "$AD/bar/agents/worker.md"
+run pc_lanes_adjacency "$AD" "$ADR"; clean "[adjacency] bestpractices-skill in the BODY derives nothing"
+
+# a command declares no file shape anywhere in this tree, so it can never complete one
+adagent bar worker -
+adlane bar <<'EOF'
+bar:gamma-skill@@command@@build@@gamma-noun@@a checkable condition@@-
+EOF
+run pc_lanes_adjacency "$AD" "$ADR"; clean "[adjacency] a command row derives no shape (stated limitation)"
+
+# content rows fire on a file's BODY — pc_rules_cofire owns those, with a corpus
+adlane bar <<'EOF'
+bar:eps-skill@@skill@@build@@eps-noun@@a checkable condition@@-
+EOF
+run pc_lanes_adjacency "$AD" "$ADR"; clean "[adjacency] a content-routed skill is not a file shape"
+
+# a missing rules.tsv must not fail the build of a tree that ships no router
+run pc_lanes_adjacency "$AD" "$AD/no-such-rules.tsv"; clean "[adjacency] an absent rules file is a no-op"
+rm -rf "$AD"
+
 [ "$rc" -eq 0 ] && echo "All lane-declaration smoke tests passed."
 exit "$rc"

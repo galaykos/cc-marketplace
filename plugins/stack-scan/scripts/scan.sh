@@ -48,8 +48,14 @@ if [[ -f package.json ]] && j; then
   esac
   [[ -f package.json && -n "${locks[0]:-}" && package.json -nt "${locks[0]}" ]] \
     && flags+=("package.json is newer than ${locks[0]} — lock may be stale")
-  # Top framework floors worth pinning advice to.
-  for dep in react vue nuxt next vite express fastify "@nestjs/core" livewire; do
+  # Top framework floors worth pinning advice to. The list is what the report NAMES; a
+  # package absent from it leaves no row at all, so an Astro-, Svelte- or Angular-only
+  # repo scanned as "node + a lockfile" and nothing else (panel 2026-09-22, WEB 12). It
+  # does NOT decide what is installed and it never will be complete: a framework missing
+  # here is invisible, not misreported, and the honest fix is to add the name.
+  for dep in react vue nuxt next vite express fastify "@nestjs/core" livewire \
+             svelte "@sveltejs/kit" astro "@angular/core" \
+             "@remix-run/react" react-router hono "@prisma/client" drizzle-orm; do
     req=$(jq -r --arg d "$dep" '.dependencies[$d] // .devDependencies[$d] // empty' package.json 2>/dev/null)
     [[ -z "$req" ]] && continue
     res="—"

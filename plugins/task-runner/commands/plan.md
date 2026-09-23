@@ -1,5 +1,6 @@
 ---
 description: Dry-run parallelization plan — dependency levels, parallel groups, subagent count, speedup estimate, inline-vs-delegate verdict. No execution.
+argument-hint: [index-path | tasks-dir | plan-doc | inline-list]
 ---
 
 Run the parallel-planning skill from this plugin on $ARGUMENTS (a taskmaster

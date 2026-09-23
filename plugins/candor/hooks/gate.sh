@@ -119,7 +119,13 @@ command -v jq >/dev/null 2>&1 || { echo "[candor] gate: jq not found — gate no
 sha_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)
 evt=$(printf '%s' "$input" | jq -r '.hook_event_name // "Stop"' 2>/dev/null)
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-[ -n "$cwd" ] || cwd="."
+# `-d`, not just `-n`. The payload cwd is a STRING the host supplies and the mkdir that
+# creates the state dir below recreated a project directory the user had just deleted,
+# three levels deep (live repro, AR 1 of the 2026-09-22 panel). A cwd that is not a
+# directory degrades to the process cwd, which by construction exists. Residual: a cwd
+# that IS a directory but not this project's still gets a .claude/candor/ — the check
+# proves existence, never identity.
+[ -n "$cwd" ] && [ -d "$cwd" ] || cwd="."
 # Per-agent marker suffix: hashed, so the id never lands raw in a path.
 agent_sfx=""
 agent_id=$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)
@@ -139,7 +145,11 @@ agent_id=$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)
 # every user's `git status` (observed in a live repo, and named as "other plugins'
 # scratch" by overseer's own acceptance protocol), one `git add -A` away from being
 # committed. A directory can ignore itself; a bare file cannot.
-state_dir="$cwd/.claude/candor"
+# Anchored at the repo root when there is one, so a stop taken from a subdirectory does
+# not scatter a second .claude/candor/ beside it (pattern: overseer/hooks/track-read.sh).
+state_root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || state_root="$cwd"
+[ -d "$state_root" ] || state_root="$cwd"
+state_dir="$state_root/.claude/candor"
 claimed="$state_dir/blocked$agent_sfx"
 skip=""
 if [ "$sha_active" = "true" ] && [ -f "$claimed" ]; then
@@ -351,7 +361,13 @@ if [ "$verdict" = "run" ]; then
   # clears it (the run clears active-run.json, not this), so a marker left by run A
   # must not eat run B's first block at the same HEAD. A same-tick tie fails toward
   # blocking, never toward silence. Warn mode never writes it.
+  # NAME THE OFF SWITCH IN THE MESSAGE. A Stop gate reaches the reader only through
+  # this stderr, so a var documented anywhere else is a var the person being blocked
+  # cannot find (UX 1 of the 2026-09-22 panel: every PreToolUse guard here names its
+  # own switch, every Stop gate omitted it). One line at the single print site covers
+  # all eight completion-gate reasons, which is why it is here and not in each printf.
   printf '%s\n' "$run_msg" >&2
+  printf '  TASK_RUNNER_STOP_GATE=off disables this clause for the session; =warn prints without blocking.\n' >&2
   if [ "$run_mode" = "block" ]; then
     nudge="$cwd/.claude/task-runner/gate-nudge"
     if [ -r "$nudge" ] && [ "$nudge" -nt "$RUN_SENTINEL" ] && [ "$(cat "$nudge" 2>/dev/null)" = "$RUN_HEAD" ]; then
@@ -747,14 +763,16 @@ case "$verdict" in
     printf '[candor] gate: %s cites a location that does not exist.%s\n' "$what" "$detail" >&2
     printf '  A file:line citation asserts you read that line. Open the file, cite what is actually\n' >&2
     printf '  there, or drop the number and say plainly that you are inferring rather than quoting.\n' >&2
-    printf '  Inventing a location is the failure this clause exists to stop.\n' >&2 ;;
+    printf '  Inventing a location is the failure this clause exists to stop.\n' >&2
+    printf '  CC_CANDOR_GATE=off disables this gate for the session; =warn prints without blocking.\n' >&2 ;;
   reversal)
     printf '[candor] gate: the user pushed back without giving you new information, and this turn\n' >&2
     printf '  retracts your position anyway — nothing was re-checked between the challenge and the\n' >&2
     printf '  retraction.\n' >&2
     printf '  Do one of two things. Re-check: run the command or read the file that would settle it,\n' >&2
     printf '  then report what it showed. Or hold: say you still believe what you said, and why.\n' >&2
-    printf '  "You are right" is a finding. It needs the same evidence as any other finding.\n' >&2 ;;
+    printf '  "You are right" is a finding. It needs the same evidence as any other finding.\n' >&2
+    printf '  CC_CANDOR_GATE=off disables this gate for the session; =warn prints without blocking.\n' >&2 ;;
   lockfile)
     printf '[candor] gate: a dependency manifest changed and its lockfile did not — %s.\n' "$detail" >&2
     printf '  The install step was skipped, so the tree you are leaving has a manifest and a lockfile\n' >&2
@@ -767,7 +785,8 @@ case "$verdict" in
     printf '  Either run the check that would FAIL if the change were broken (test, build, lint, or execute\n' >&2
     printf '  the changed code) and show its output — or restate honestly: what changed, what was NOT\n' >&2
     printf '  verified, and the exact command the user can run to verify it.\n' >&2
-    printf '  A claim with no execution behind it is the failure this gate exists to stop.\n' >&2 ;;
+    printf '  A claim with no execution behind it is the failure this gate exists to stop.\n' >&2
+    printf '  CC_EVIDENCE_GATE=off disables this clause for the session; =warn prints without blocking.\n' >&2 ;;
 esac
 
 [ "$mode" = "block" ] || exit 0

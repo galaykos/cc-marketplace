@@ -3,6 +3,31 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.8.0
+
+### Added
+- **URL-embedded credentials now deny.** A `DATABASE_URL` DSN in a `.env`, a tfvars
+  connection string, a compose `AMQP_URL:`, a Helm values DSN and an HTTPS basic-auth
+  URL all reached disk silently: the credential is not a provider key and carries no
+  `password=`-shaped operator, so neither the provider tier nor the generic
+  assigned-literal rule could see it. One pattern over the `postgres://`, `mysql://`,
+  `mongodb://` (plus `+srv`), `redis://`, `amqp://` and `https://` schemes now denies it, and
+  a second denies a Slack incoming-webhook URL (`hooks.slack.com/services/T…/B…/…`),
+  which is a bearer credential in URL clothing. The generic `{24,}` rule was
+  deliberately NOT widened.
+- The password run excludes `/?#` (RFC 3986 userinfo cannot contain them, which keeps
+  an ordinary URL with a port and a mailto-ish query out) and refuses a leading `$` or
+  `{`, so the CORRECT shape — a DSN whose password is a `${DB_PASS}` substitution — is
+  not denied on every retry. The existing placeholder escape applies unchanged: a DSN
+  whose password is the word `changeme` passes. Stated residual: a DSN whose password is
+  the literal word `password` **denies**, because that word is not one of the escape's
+  placeholder words; a real password that
+  begins with `$` or `{`, one under six characters, and any scheme outside the list are
+  not caught. Fixtures for every row above in `scripts/__tests__/scan-hook.test.sh`.
+
+### Changed
+- `lane.tsv` now declares the `unicode-scan` PostToolUse hook (`invisible-character-report`); it was registered in hooks.json and undeclared in the lane file.
+
 ## 0.7.0
 
 ### Fixed

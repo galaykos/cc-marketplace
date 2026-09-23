@@ -47,6 +47,16 @@
   # nudges only the PARENT ever saw, so the context where most fan-out code is written
   # is the one context this never speaks in. Pattern and rationale: code-review/hooks/conventions.sh (context-key one-shot).
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // "nosession"' 2>/dev/null)
+  # The context value is usually an ABSOLUTE transcript path. Used raw as a directory
+  # component it mirrored the whole path under $TMPDIR — seven nested dirs per session —
+  # and nothing ever removed them. Hash it, the way every sibling one-shot does
+  # (ask-ledger/hooks/ledger.sh:53), so the marker tree is one flat dir per context, and
+  # sweep keys older than a day. Does NOT catch: a machine where this hook never fires
+  # again keeps its last day of markers — the sweep only runs when the hook runs.
+  skey=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
+  [ -n "$skey" ] || skey=nosession
+  lockroot="${TMPDIR:-/tmp}/cc-security-scan"
+  find "$lockroot" -mindepth 1 -maxdepth 1 -type d -mmin +1440 -exec rm -rf {} + 2>/dev/null
 
   hits=""
   # Extension gate: a pattern that only means something in one language (eval in a
@@ -69,8 +79,8 @@
     else
       printf '%s' "$text" | grep -qE "$2" || return 0
     fi
-    lock="${TMPDIR:-/tmp}/cc-security-scan/${sid}/$(printf '%s%s' "$file" "$1" | cksum | tr ' ' '_')"
-    mkdir -p "$(dirname "$lock")" 2>/dev/null || return 0
+    lock="${lockroot}/${skey}/$(printf '%s%s' "$file" "$1" | cksum | tr ' ' '_')"
+    mkdir -p "${lockroot}/${skey}" 2>/dev/null || return 0
     mkdir "$lock" 2>/dev/null || return 0   # already warned for this file+finding
     hits="${hits}[security] ${1}: ${3}
 "
@@ -82,14 +92,20 @@
   detect "blade-unescaped" \
     '\{!![[:space:]]*\$' \
     "{!! \$var !!} skips Blade escaping — use {{ }} unless this exact value is sanitized HTML"
-  detect "vite-client-secret" \
-    'VITE_[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|PRIVATE|API_?KEY)' \
-    "VITE_-prefixed vars are compiled into the public client bundle — server secrets must not carry the prefix"
+  # Every bundler that exposes env to the client does it by PREFIX, and each picked its
+  # own: Vite `VITE_`, Next `NEXT_PUBLIC_`, Nuxt `NUXT_PUBLIC_`, Expo `EXPO_PUBLIC_`,
+  # SvelteKit/Astro `PUBLIC_`, CRA `REACT_APP_`, Gatsby `GATSBY_`, Vue CLI `VUE_APP_`.
+  # The slug is prefix-neutral for the same reason. Does NOT catch: a secret exposed
+  # without a prefix (an explicit `define:`/`envPrefix` override), or a name whose
+  # secret-ness is not in the identifier (`NEXT_PUBLIC_FOO`).
+  detect "client-bundle-secret" \
+    '(^|[^A-Z0-9_])(VITE|NEXT_PUBLIC|NUXT_PUBLIC|EXPO_PUBLIC|PUBLIC|REACT_APP|GATSBY|VUE_APP)_[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|PRIVATE|API_?KEY)' \
+    "a public-bundle env prefix (VITE_, NEXT_PUBLIC_, NUXT_PUBLIC_, EXPO_PUBLIC_, PUBLIC_, REACT_APP_, GATSBY_, VUE_APP_) compiles the value into the client bundle — server secrets must not carry one"
   detect "raw-sql-interpolation" \
     'whereRaw\((["'"'"'][^"'"'"')]*\{\$|[^,)]*\.[[:space:]]*\$)' \
     "variable inside whereRaw SQL — use ? placeholders with the bindings array"
   detect "raw-html-sink" \
-    'dangerouslySetInnerHTML|v-html[[:space:]]*=|\.(innerHTML|outerHTML)[[:space:]]*=|\.insertAdjacentHTML[[:space:]]*\(|document\.write(ln)?[[:space:]]*\(' \
+    'dangerouslySetInnerHTML|v-html[[:space:]]*=|\{@html[[:space:]]|set:html[[:space:]]*=|\.(innerHTML|outerHTML)[[:space:]]*=|\.insertAdjacentHTML[[:space:]]*\(|document\.write(ln)?[[:space:]]*\(' \
     "raw HTML sink — sanitize upstream or render as text; XSS if any user data reaches it"
 
   # ---- stack-agnostic sinks, ported from Anthropic's security-guidance pattern set ----

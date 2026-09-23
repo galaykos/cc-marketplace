@@ -43,6 +43,14 @@
   [ -n "$file_path" ] || exit 0
   [ -n "$session_id" ] || exit 0
   [ -n "$cwd" ] || exit 0
+  # `-d`, not just `-n`: the state write below is `mkdir -p "$cwd/.claude/skill-router"`,
+  # which RECREATES a project directory the session has deleted — reproduced live three
+  # levels deep (2026-09-22 panel, architecture #1). A payload naming a directory that no
+  # longer exists has no state worth keeping and no file worth routing. Same guard as
+  # plugins/overseer/hooks/track-read.sh:30. LIMITATION: it proves the path EXISTS, not
+  # that it is the project — a payload whose cwd is `/` or `$HOME` still passes, and the
+  # state dir is created there. Nothing available to a hook can tell those apart.
+  [ -d "$cwd" ] || exit 0
 
   rules="${CLAUDE_PLUGIN_ROOT}/rules.tsv"
   [ -f "$rules" ] || exit 0
@@ -121,12 +129,39 @@
     # bare-extension glob has no way to say "except these". Before 0.16.0 an
     # `@base` alternative was indecisive (no such file) and skipped, so a rules.tsv
     # carrying one is safe under an older route.sh: it simply fires.
-    local list="$1" alt m neg manifest regex mcontent rc
+    #
+    # `@path` is the same device one level up: the ERE runs against the edited
+    # file's PATH as the tool payload reported it, so a row can exclude a
+    # DIRECTORY. `!@path~(^|/)dist/` keeps the markup a11y rows off built output —
+    # a bundled `dist/index.html` has the same BASENAME as its source, so `@base`
+    # cannot tell them apart, and match_glob's one path-aware form (`**/dir/**`)
+    # can only say "inside", never "not inside". LIMITATION (honest scope): the
+    # value is whatever the payload carried — relative in most sessions, absolute
+    # in some — so an exclusion must anchor on `(^|/)`, never on `^` alone, and a
+    # build directory under a name nobody listed is still routed. Unknown to an
+    # older route.sh, where `@path` is just a manifest that does not exist and the
+    # alternative is skipped: the row fires, the same safe fallback as `@base`.
+    # `?` PREFIX — `?package.json~"next"` — makes the alternative REQUIRE its manifest:
+    # absent or unreadable is then decisive-SUPPRESS instead of skipped, so a chain of
+    # `?` alternatives reads "fire only on a manifest that exists and says yes". It is
+    # the general form of the `||!@base~.` default-deny tail 0.18.0 bolted onto four
+    # rows; those rows now carry `?` instead, so one mechanism expresses it. Per-row and
+    # opt-in — an unprefixed alternative keeps the fire-if-uncertain default. Write `?`
+    # first when negating too (`?!composer.json~laravel/framework`).
+    # LIMITATION: absent/unreadable manifest is the ONLY indecisiveness it converts. A
+    # malformed ERE (grep exit >= 2) still skips the alternative, so a row with a broken
+    # regex and a present manifest keeps firing; and marker_ok reads `$cwd/<manifest>`
+    # only, so a monorepo whose package.json sits in a workspace subdirectory is "absent"
+    # here and a `?` row suppresses there. Unknown to an older route.sh, where
+    # `?package.json` is a manifest name that does not exist: the alternative is skipped
+    # and the row fires — the same safe fallback `@base` and `@path` have.
+    local list="$1" alt m neg req manifest regex mcontent rc
     [ -z "$list" ] || [ "$list" = "-" ] && return 0
     while [ -n "$list" ]; do
       alt="${list%%||*}"
       if [ "$alt" = "$list" ]; then list=""; else list="${list#*||}"; fi
-      m="$alt"; neg=0
+      m="$alt"; neg=0; req=0
+      case "$m" in '?'*) req=1; m="${m#'?'}" ;; esac
       case "$m" in '!'*) neg=1; m="${m#!}" ;; esac
       manifest="${m%%~*}"
       regex="${m#*~}"
@@ -134,9 +169,14 @@
       [ -n "$manifest" ] && [ -n "$regex" ] || continue
       if [ "$manifest" = "@base" ]; then
         mcontent="$base"
+      elif [ "$manifest" = "@path" ]; then
+        mcontent="$file_path"
+      elif [ -f "$cwd/$manifest" ] && [ -r "$cwd/$manifest" ] \
+           && mcontent=$(head -c 65536 "$cwd/$manifest" 2>/dev/null); then
+        :
       else
-        [ -f "$cwd/$manifest" ] && [ -r "$cwd/$manifest" ] || continue
-        mcontent=$(head -c 65536 "$cwd/$manifest" 2>/dev/null) || continue
+        [ "$req" -eq 1 ] && return 1
+        continue
       fi
       printf '%s' "$mcontent" | grep -qE "$regex" 2>/dev/null
       rc=$?

@@ -3,6 +3,42 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.22.0
+
+### Added
+- **The two comment DENIES have an off switch, and every refusal names it.**
+  `scan.sh` and `density.sh` read `CC_REMIND` on their advisory lane only, so the
+  `PreToolUse` block — the one that actually stops a write — could be silenced by nothing
+  and told the blocked reader nothing. Both now read `CC_COMMENT_GUARD=off` on the deny
+  lane and name it in the deny reason; the advisory messages name `CC_REMIND`. The two
+  lanes switch separately on purpose: turning the block off leaves the finding visible.
+  Documented in the README (panel finding UX 1; `pc_offswitch_named` reports the file, not
+  the branch, so which message carries the name stays agent-graded).
+
+## 0.21.1
+
+### Changed
+- **`commands/comment-review.md` is hand-maintained now, not generated.** It was the only
+  file in the marketplace rendered by the review-command chassis — a 24-line template,
+  four partials and nine opt-out justifications producing one artifact, which is more
+  prose in the machinery than in the thing it made. The rendered output is inlined
+  verbatim (the `generated from templates/...` header is gone); nothing else about the
+  command changed. `.chassis.json` keeps the entry as a plain opt-out note, and its lane
+  row moved from the generated block into the hand rows of `lane.tsv`.
+
+## 0.21.0
+
+### Added
+- **`conventions.sh` reads five more CI formats.** It swept `.github/workflows/` and nothing else, so every GitLab, CircleCI, Jenkins, Azure Pipelines and Bitbucket repo got the configs half of the message and no `CI runs:` line — while the same message told the reader that whatever CI invokes is the standard. `.gitlab-ci.yml`, `.circleci/config.yml`, `Jenkinsfile`, `azure-pipelines.yml` and `bitbucket-pipelines.yml` are now read with the prefix each format uses for a shell command. Its header names what still escapes: any other runner, a composite or reusable workflow, a command built from a variable, and anything past the first hit.
+
+### Fixed
+- **A deleted project directory is no longer recreated by a hook.** `verbosity.sh`, `density.sh` and `scan.sh` took the payload's `cwd` on trust and ran `mkdir -p "$cwd/.claude/comment-discipline"` — which rebuilds every missing parent. A session outlives the directory it started in, and a deleted project came back three levels deep holding nothing but hook state. All three now require the directory to exist. `scripts/__tests__/cwd-guard.test.sh` reproduces the old behaviour and keeps it closed.
+
+## 0.20.1
+
+### Fixed
+- **The stack fan-in roster omitted the CSS and accessibility analyzers.** It named phpstan/psalm/phpcs and tsc/eslint/biome/vue-tsc, so toolchain-experts' `ui-expert` — the agent whose whole job is running stylelint, pa11y, axe and lighthouse-ci — sat in no dispatch path from this command. The analyzer row now names those four tools and the agent that owns them, which by this file's own rule ("a plugin that ships a review command and is not named here is a defect in this file") it should have from the start.
+
 ## 0.20.0
 
 ### Changed

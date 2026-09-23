@@ -118,10 +118,12 @@ exception; the craft-reviewer reads shipped markup against this list:
   budget; this row only names the default)
 
 Source: the official `frontend-design` skill's calibration list, 2026-09-03, cross-checked
-against the vocabulary above so nothing is listed twice. Standing: agent-graded — no
-assertion in `template/craft-gates/divergence.mjs` reads this subsection yet; the
-`emoji-as-icon` and `copy-register` assertions are the pattern to extend if one of these
-proves mechanical (the eyebrow, the middle-dot string and the trailing arrow are).
+against the vocabulary above so nothing is listed twice. Standing: **agent-graded for the
+list, `gate` for three rows.** The eyebrow, the middle-dot meta string and the trailing
+arrow are mechanical, and since 0.16.0 they ride the `copy-register` assertion in
+`template/craft-gates/divergence.mjs` through the lexicon block below — read LIVE from this
+file. Every other row here is the craft-reviewer reading shipped markup, and no script fails
+a build over it.
 - (the don't-repeat-recent nudge in `palette-strategy.md` reads this list)
 
 ### Recurring copy register (category default)
@@ -143,6 +145,46 @@ phrase list is mechanical, gated: the `copy-register` assertion in
 `template/craft-gates/divergence.mjs` flags the multi-word phrases only, so a lone
 "seamless" in honest copy never fires.
 
+### The copy lexicon, as the gate reads it
+
+`divergence.mjs`'s `copy-register` assertion reads THIS block when `CLAUDE_PLUGIN_ROOT` is
+set and falls back to a frozen snapshot otherwise, printing which one it used and its date
+on every run — the same contract as `register-corpus.md`. It is the mechanical subset of the
+two sections above: the multi-word phrases from the copy register, plus the three
+category-default chrome rows a machine can see.
+
+<!-- copy-lexicon:start -->
+```
+supercharge your :: gi :: 1 :: \bsupercharge\s+your\b
+seamlessly integrate :: gi :: 1 :: \bseamlessly\s+integrat\w*
+take your * to the next level :: gi :: 1 :: \btake\s+your\s+[^<>.!?]{0,60}?to\s+the\s+next\s+level\b
+effortless. powerful. :: gi :: 1 :: \beffortless\.\s*powerful\.
+unlock the power :: gi :: 1 :: \bunlock\s+the\s+power\b
+game-changing :: gi :: 1 :: \bgame-chang(?:ing|ers?)\b
+all-caps eyebrow :: g :: 3 :: ^\s*[A-Z][A-Z0-9&'’]*(?:\s+[A-Z0-9&'’]+){1,4}\s*$
+middle-dot meta string :: g :: 1 :: ·[^·\n]{1,60}·
+trailing arrow :: g :: 3 :: [^→\n]{0,40}[^\s→]\s*→\s*$
+```
+<!-- copy-lexicon:end -->
+
+Format: `label :: flags :: min :: pattern`, one per line, JavaScript regular-expression
+source, matched against reader-visible copy one text chunk at a time. A pattern that will
+not compile is reported and DROPPED rather than silently ignored.
+
+**`min` is why the three chrome rows do not fire on honest pages.** Their registry entries
+say "above EVERY heading" and "appended to EVERY link" — repetition is the tell, and one
+`Read more →` is a choice. So the eyebrow and the arrow need **three** distinct chunks
+before either is a finding, while a meta string needs two middle dots in ONE chunk (`A · B · C`)
+because a single ` · ` between a copyright line and a phone number is the shape every real
+footer ships. A row that fires on correct pages is waived into silence within one run, which
+is the anti-pattern `register-corpus.md` names.
+
+**Declared limits.** The eyebrow row sees ALL-CAPS text, not letter-spacing, so an eyebrow
+set in small-caps or `text-transform: uppercase` over mixed-case source is invisible here —
+that half stays the craft-reviewer's. Three all-caps labels that are not eyebrows (a
+data-table header row rendered as text) fire it, and the waiver lane is the answer. The
+arrow row reads `→` only, never an SVG chevron or an `::after` pseudo-element.
+
 ### Two sources of sameness, and they age differently
 
 Most entries above are SELF-repetition: what craft-layer itself has produced lately, retired
@@ -160,7 +202,16 @@ landing in a merely conventional design, because it reads as unauthored rather t
 restrained. The escape hatch still applies — an explicitly requested conventional design is a
 valid justification — but "conventional" and "generated-looking" are not the same request.
 
-## How divergence is measured (teeth)
+## How divergence is measured (agent-graded, over a scripted floor)
+
+**Standing: `agent-graded`.** The K count, the different-axes rule and both failure
+conditions below are read and judged by `/craft-layer:audit`; no assertion in
+`template/craft-gates/divergence.mjs` counts departures or reads the divergence record's
+entries. What IS scripted is a floor under the registry, not this section: the type-family
+and copy-register lists above are loaded LIVE from this file, and the hue band, the repeat
+window, emoji-as-icon and the utility-layer palette/font are encoded in the script. A build
+can clear every one of those and still reproduce the spine end-to-end — which is exactly
+what the judgement below exists to catch, and exactly why calling it teeth was wrong.
 
 The creative-director agent returns a **divergence record**: for each departure,
 { fingerprint axis (spine / a named vocabulary move / recent hue) · the entry it replaces ·

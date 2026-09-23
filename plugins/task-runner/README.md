@@ -123,6 +123,17 @@ tool call is blocked and fed back, so an announced next step actually happens
 instead of leaving a dead turn the user waits on. An intentional pause is a tool,
 not prose: a question via `AskUserQuestion`, or a parked card with a reason.
 
+That sentinel outlives the session that wrote it, so a session opened cold used to meet
+the Stop block at the end of its first turn knowing nothing about the run — and the
+cheapest-looking escape was deleting the sentinel of a live one. `hooks/announce.sh`
+(SessionStart, `startup|resume|clear`) says one line when the project has a registered
+run: slug, branch, how many index cards are still open, and the declared arc phase.
+**Standing: advisory** — SessionStart context informs a turn and cannot block one; the
+teeth are still the Stop gate. It reads three files and writes nothing, is silent when
+no run is registered, and leaves compaction to skill-router's capsule. It cannot tell a
+live run from an abandoned one, and the card count is the index's bookkeeping rather
+than the work.
+
 ## Nothing gets quietly dropped
 
 A real run reviewed card 01, dropped the reviewer pass on cards 02-08 to save context,

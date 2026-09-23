@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 # Shared per-plugin checks, sourced by validate.sh (full sweep) and
-# authoring-guard.sh (single edited file). Pure: sourcing runs no code, functions
-# close over no caller globals (no err/fail/allow_md), and take all inputs as args.
+# authoring-guard.sh (single edited file). Pure: sourcing assigns the host listing
+# constants (scripts/host-constants.sh — variable definitions only) and runs nothing
+# else; functions close over no caller globals (no err/fail/allow_md), and take all
+# inputs as args.
+
+# The `1536` per-entry description cap below is the host's, not ours. One definition,
+# re-read out of the pinned CLI by `scripts/host-constants.sh --check`.
+. "$(dirname "${BASH_SOURCE[0]}")/../host-constants.sh" \
+  || echo "plugin-checks.sh: cannot source scripts/host-constants.sh — the per-entry description cap is unset" >&2
 
 # pc_skill_budget <skill_md_path>
 # On a violation: prints "budget <path> <kind> <n>" and returns 1, where kind is
@@ -144,6 +151,340 @@ pc_hook_timeout() {
                     | select(has("timeout") | not)
                     | "\($e.key):\(.command | split("/") | last)"' "$hj" 2>/dev/null)
   done < <(find "$root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+  return $bad
+}
+
+# pc_hook_shebang <plugins_root>
+# Every script a hooks.json registers as a `command` must start `#!/bin/bash`.
+# Prints one "hook-shebang <plugin>:<script> <first line>" per offender; returns 1.
+#
+# WHY THIS EXISTS. The fail-open guarantee these hooks sell is written into six of
+# their own headers in almost identical words — "the fail-open guarantee must hold
+# even under a stripped/broken PATH, where `/usr/bin/env bash` itself exits 127".
+# That is a doctrine the repo asserts and nothing reads back: counted 2026-09-22
+# (OPS 7, rationale/specialist-panel-2026-09-22.md #46), 11 of 53 registered hooks
+# used `#!/usr/bin/env bash`, two of them decision-capable — taskmaster's and
+# ui-ux's `preview-guard.sh`, both of which can return a DENY verdict. A guard that
+# cannot start is a guard that allows, and the exit code it never produced looks
+# exactly like an allow on the host side. This is the four laws' theater test
+# applied to a claim six files make about themselves.
+#
+# WHAT IT DOES NOT CATCH, stated because the header it enforces over-claims:
+#   - anything about the hook's BEHAVIOUR on a broken PATH. `/bin/bash` starting is
+#     necessary, not sufficient: the script's own `jq`/`python3` calls still go
+#     through PATH, and whether each of those is guarded is agent-graded.
+#   - a host where `/bin/bash` is absent (NixOS, some containers). There the
+#     absolute path is the WRONG choice and the escape below is the right answer —
+#     the check has an opinion, not a proof.
+#   - scripts a hook SOURCES or execs. Only the `command` string in hooks.json is
+#     resolved; a helper under `scripts/` reached from inside a hook is invisible.
+#   - non-hook scripts. A plugin's `scripts/*.sh` is run by a model or a human with
+#     a working PATH and is deliberately out of scope.
+#   - jq-dependent, like its siblings here. No jq, no check — it returns 0.
+#
+# TIER: FAIL. It shipped at WARN on 2026-09-22 because 11 hooks failed it that hour;
+# eight were regenerated from the two hook templates and three fixed by hand the same
+# day, and it was promoted once the tree agreed with it.
+#
+# ESCAPE: `# env-shebang-ok: <reason>` on any line of the hook. A reason that
+# earns it names the host or the interpreter — "NixOS has no /bin/bash", "runs
+# under a pinned bash 5 from brew" — not "portability", which is the claim the
+# absolute path is already making.
+pc_hook_shebang() {
+  local root="${1:-plugins}" bad=0 hj d p sh rel first
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      rel=$(basename "$sh")
+      IFS= read -r first < "$sh" || true
+      case "$first" in '#!/bin/bash'*) continue ;; esac
+      grep -qF 'env-shebang-ok:' "$sh" 2>/dev/null && continue
+      printf 'hook-shebang %s:%s %s\n' "$p" "$rel" "$first"
+      bad=1
+    done <<EOF
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
+         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+EOF
+  done <<EOF
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
+  return $bad
+}
+
+# pc_cwd_validated <plugins_root>
+# A hook registered in a hooks.json may not `mkdir -p` a path built from the payload's
+# `cwd` without first proving that directory still exists. Prints one
+# "cwd-unvalidated <plugin>:<script> <line>:<statement>" per offender; returns 1.
+#
+# WHY THIS EXISTS. The Stop/PostToolUse payload's `cwd` is where the SESSION STARTED,
+# and a session outlives the directory. `mkdir -p "$cwd/.claude/<state>"` then does not
+# fail on a deleted project — it REBUILDS it, three levels deep, holding nothing but the
+# hook's own state dir. Measured live on a deleted `work/acme/design-studio`
+# (rationale/specialist-panel-2026-09-22.md #2, AR 1; first reported as trend-audit H6
+# and still open a review later). Eight hooks across six plugins shared the shape;
+# `plugins/overseer/hooks/track-read.sh:30-31` already had the right one. `-n "$cwd"` is
+# not the test — an empty string is not the failure mode, a stale path is.
+#
+# WHAT COUNTS AS VALIDATION, before the first such `mkdir -p`:
+#   - `[ -d "$cwd" ]`, the direct test;
+#   - `-e|-f|-r|-s|-w|-d "$cwd/<something>"`, a test on a path INSIDE cwd, which proves
+#     the directory exists just as well (task-runner/hooks/rv-observe.sh reads
+#     `$cwd/.claude/task-runner/active-run.json` before writing beside it);
+#   - `cd "$cwd"`.
+# Taint follows one hop of path building: `dir="$cwd/.claude/x"` then `mkdir -p "$dir"`
+# is the shape almost every hook here uses, so the check has to see through it.
+#
+# WHAT IT DOES NOT CATCH:
+#   - a cwd that EXISTS but is not this project — a stale session left in a sibling
+#     checkout writes its state there and nothing in the payload can tell.
+#   - taint through a transformation rather than a path join. `slug=$(printf %s "$cwd" |
+#     tr -c '[:alnum:]' -)` then `mkdir -p "$HOME/.claude/x/$slug"` is deliberately NOT
+#     flagged: the target is under $HOME and no project directory can be resurrected by
+#     it (hindsight's two hooks and skill-router's summary.sh are that shape).
+#   - any write that is not `mkdir -p` — a bare `>` redirect into a missing directory
+#     fails rather than resurrecting, which is the behaviour this check wants.
+#   - scripts a hook sources or execs, and non-hook scripts. Like its siblings here it
+#     resolves only the `command` string in hooks.json, and it is jq-dependent: no jq,
+#     no check.
+#
+# ESCAPE: `# cwd-mkdir-ok: <reason>` anywhere in the hook. A reason that earns it says
+# why resurrecting the directory is correct for that hook, not that the path is short.
+pc_cwd_validated() {
+  local root="${1:-plugins}" bad=0 hj d p sh rel out
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      grep -qF 'cwd-mkdir-ok:' "$sh" 2>/dev/null && continue
+      rel=$(basename "$sh")
+      out=$(awk '
+        BEGIN { seeded = 0; validated = 0; tainted["cwd"] = 1 }
+        {
+          line = $0
+          t = line; sub(/^[ \t]+/, "", t)
+          if (t ~ /^#/) next                       # headers DISCUSS the pattern
+          sub(/[ \t]*#.*$/, "", line)              # and so do trailing comments
+          if (line ~ /cwd[ \t]*=.*\.cwd/) { seeded = 1; next }
+          if (!seeded) next
+          if (line ~ /-d[ \t]+"\$\{?cwd\}?"/)         validated = 1
+          if (line ~ /-[defrswx][ \t]+"\$\{?cwd\}?\//) validated = 1
+          if (line ~ /cd[ \t]+"\$\{?cwd\}?"/)         validated = 1
+          if (match(line, /^[ \t]*(local[ \t]+)?[A-Za-z_][A-Za-z0-9_]*=/)) {
+            lhs = substr(line, RSTART, RLENGTH)
+            sub(/^[ \t]*(local[ \t]+)?/, "", lhs); sub(/=$/, "", lhs)
+            rhs = substr(line, RSTART + RLENGTH)
+            for (v in tainted) if (rhs ~ ("\\$" v "/") || rhs ~ ("\\$\\{" v "\\}/")) { tainted[lhs] = 1; break }
+          }
+          if (line ~ /mkdir[ \t]+-p/ && !validated) {
+            for (v in tainted)
+              if (line ~ ("\\$" v "[/\"]") || line ~ ("\\$\\{" v "\\}")) { printf "%d:%s", FNR, t; exit }
+          }
+        }' "$sh")
+      [ -z "$out" ] && continue
+      printf 'cwd-unvalidated %s:%s %s\n' "$p" "$rel" "$out"
+      bad=1
+    done <<EOF
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
+         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+EOF
+  done <<EOF
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
+  return $bad
+}
+
+# pc_offswitch_named <plugins_root>
+# A registered hook that can BLOCK or DENY and reads an environment off switch must name
+# that variable in the text it emits. Prints one
+# "offswitch-unnamed <plugin>:<script> <switches>" per offender; returns 1.
+#
+# WHY THIS EXISTS. Every guard here fails open and every one of them can be switched
+# off, but the person who needs that fact is the person whose turn just got refused —
+# and they are reading the refusal, not the hook's header. Counted 2026-09-22 (UX 1,
+# rationale/specialist-panel-2026-09-22.md #5): the root README documented 0 of 30
+# `CC_*` switches, and the PreToolUse guards named theirs in the message
+# (candor/hooks/avert.sh, database/hooks/guard.sh, secret-scanning/hooks/scan.sh,
+# devops/hooks/workflow-guard.sh) while the Stop gates did not — candor's gate.sh never
+# printed `CC_EVIDENCE_GATE` or `TASK_RUNNER_STOP_GATE`, ask-ledger's gate.sh never
+# printed `CC_ASK_LEDGER` although its own sibling ledger.sh did. The remedy the user
+# cannot find is the remedy they do not have.
+#
+# THE RULE, precisely: a hook is in scope when it emits `permissionDecision` deny/ask or
+# `exit 2` (the two channels that reach the model as a refusal). Its switches are the
+# names read as `${NAME:-…}` matching `CC_*`, `CLAUDE_*`, `*_BOOST` or `*_STOP_GATE`,
+# minus the host-supplied path/session variables, plus the indirect `plugin_switch=NAME`
+# form the boost chassis uses. At least ONE of those names must also appear in prose —
+# an occurrence that is neither `$NAME`/`${NAME}` nor a line-leading assignment.
+#
+# WHAT IT DOES NOT CATCH, and this is the gap that matters:
+#   - WHICH message names it. The contract is per-message ("every reason that blocks");
+#     no static reader can attribute a string constant to one of eight branches, so this
+#     gates the FILE. A hook with eight refusal strings and the switch named in one of
+#     them passes here and still fails the contract. That half is agent-graded.
+#   - whether the name is spelled correctly, or is the switch that actually silences
+#     THAT branch. `CC_ANYTHING=off` in a comment-free string satisfies it. The inverse
+#     is live in this tree: code-review's scan.sh and density.sh read `CC_REMIND` on
+#     their PostToolUse branch only, so their DENY branch has no off switch at all — this
+#     check reports them as "switch not named", which understates it.
+#   - a hook whose off switch is read some other way (a settings file, a marker file).
+#   - jq-dependent, hooks.json-registered scripts only, like its siblings here.
+#
+# ESCAPE: `# offswitch-ok: <reason>` in the hook. A reason that earns it explains why a
+# refused user should not be told how to turn the thing off.
+#
+# TIER, THIS RUN: WARN, not FAIL. Five hooks in four plugins fail it the moment it
+# ships — candor/avert.sh (CC_AVERT), code-review/density.sh and scan.sh (CC_REMIND),
+# command-guard/destructive-guard.sh (CLAUDE_DESTRUCTIVE_GUARD), git-workflow/
+# no-ai-trailer.sh (CLAUDE_AI_TRAILER) — every one of them naming the switch in a
+# comment and in none of its reasons. Promoting this to err() is the follow-up, owed
+# once those five messages carry the name; the rule is not soft, the tree is.
+pc_offswitch_named() {
+  local root="${1:-plugins}" bad=0 hj d p sh rel sw named
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      grep -qF 'offswitch-ok:' "$sh" 2>/dev/null && continue
+      # Refusal-capable? Either channel counts. Comments are stripped so a header that
+      # merely DISCUSSES exit 2 (every one of them does) does not put a hook in scope.
+      grep -v '^[[:space:]]*#' "$sh" \
+        | grep -qE 'permissionDecision[^,}]*(deny|ask)|permissionDecision:[[:space:]]*\$|exit 2' || continue
+      sw=$( { grep -ohE '\$\{(CC_[A-Z0-9_]+|CLAUDE_[A-Z0-9_]+|[A-Z0-9_]+_BOOST|[A-Z0-9_]+_STOP_GATE):-' "$sh" \
+                | sed -E 's/^\$\{//; s/:-$//'
+              grep -ohE '^[[:space:]]*plugin_switch=[A-Z0-9_]+' "$sh" | sed -E 's/.*=//'
+            } 2>/dev/null \
+            | grep -vxE 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR|CLAUDE_CONFIG_DIR|CLAUDE_CODE_SESSION_ID' \
+            | sort -u )
+      [ -n "$sw" ] || continue
+      named=0
+      while IFS= read -r v; do
+        [ -n "$v" ] || continue
+        grep -v '^[[:space:]]*#' "$sh" \
+          | grep -qE "[^A-Z_$\{]$v" && { named=1; break; }
+      done <<EOF
+$sw
+EOF
+      [ "$named" -eq 1 ] && continue
+      rel=$(basename "$sh")
+      printf 'offswitch-unnamed %s:%s %s\n' "$p" "$rel" "$(printf '%s' "$sw" | tr '\n' ' ' | sed 's/ $//')"
+      bad=1
+    done <<EOF
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
+         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+EOF
+  done <<EOF
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
+  return $bad
+}
+
+# pc_version_stamp_tail <plugins_root>
+# A SKILL.md whose own description/when_to_use PROMISES version pinning must carry a
+# machine-readable package tail on its `Last verified` stamp. Prints one
+# "version-stamp-tail <plugin>:<skill> <why>" per offender; returns 1.
+#
+# WHY THIS EXISTS. `scripts/check-doc-staleness.sh --live` compares the
+# `npm:<pkg>@<major>` tail of a stamp against the registry; with no tail there is
+# nothing to compare and the skill is invisible to the only instrument that can tell it
+# has gone stale. Measured 2026-09-22 (WEB 4, rationale/specialist-panel-2026-09-22.md
+# #21): five web/laravel skills promised pinning, one reference file in the whole set
+# carried a tail, `--live` printed nothing, and the shipped ceilings were two minor
+# versions behind upstream (next 16.3 against a skill saying 16.2, react-native 0.87
+# against 0.82). The root README sells this as "pins its advice to the version in your
+# lockfile", so the promise is the marketplace's, not one skill's.
+#
+# THE TRIGGER is the skill's own frontmatter claim — `pinned`, `version leverage` or
+# `installed version`. A skill that never claims pinning is not asked for a tail.
+#
+# WHAT IT DOES NOT CATCH:
+#   - whether the tail is TRUE. `npm:next@16` on a skill teaching v14 passes; the tail
+#     makes staleness checkable, it does not check it.
+#   - a pinning promise phrased some other way ("reads your lockfile first", "matches
+#     the installed major"). Three phrases, chosen because they are what the shipped
+#     descriptions actually say; widening them is a follow-up with a re-count.
+#   - a body claim with no frontmatter claim — every skill teaches versions somewhere.
+#   - registries other than npm/composer/pypi, which is why it accepts any of the three
+#     and why a Go or crates skill would need this list extended, not blessed.
+#
+# ESCAPE: `<!-- version-tail-ok: <reason> -->` in the SKILL.md. A reason that earns it
+# names the source the stamp points at instead (an EOL calendar, a vendor release page
+# with no package).
+#
+# TIER, THIS RUN: WARN, not FAIL. Two skills fail it on the day it ships —
+# devops:compose-init (stamp points at endoflife.date, no package tail) and
+# ui-ux:astryx-best-practices (no `Last verified` stamp at all, while its description
+# says "pin the installed version before advising"). Both are other plugins' to fix;
+# err() is the follow-up once they do.
+pc_version_stamp_tail() {
+  local root="${1:-plugins}" bad=0 f p s fm stamp
+  for f in "$root"/*/skills/*/SKILL.md; do
+    [ -f "$f" ] || continue
+    grep -qF 'version-tail-ok:' "$f" && continue
+    fm=$(awk 'BEGIN{n=0} /^---$/{n++; next} n==1{print} n>=2{exit}' "$f")
+    printf '%s\n' "$fm" | grep -qiE 'pinned|version leverage|installed version' || continue
+    p=$(basename "$(dirname "$(dirname "$(dirname "$f")")")")
+    s=$(basename "$(dirname "$f")")
+    stamp=$(grep -m1 'Last verified' "$f")
+    if [ -z "$stamp" ]; then
+      printf 'version-stamp-tail %s:%s no "Last verified" stamp at all\n' "$p" "$s"
+    elif ! printf '%s' "$stamp" | grep -qE '(npm|composer|pypi):'; then
+      printf 'version-stamp-tail %s:%s stamp has no npm:/composer:/pypi: tail\n' "$p" "$s"
+    else
+      continue
+    fi
+    bad=1
+  done
+  return $bad
+}
+
+# pc_command_arg_hint <plugins_root>
+# A `commands/*.md` whose BODY reads `$ARGUMENTS` or a positional `$1` must declare
+# `argument-hint:` in its frontmatter. Prints one "command-arg-hint <plugin>:<cmd>"
+# per offender; returns 1.
+#
+# WHY THIS EXISTS. The hint is what the host shows in the slash-command menu as the
+# command is typed: with it the user reads `/ui-ux:audit [files-or-diff]`, without it
+# they read `/ui-ux:audit` and then guess. `.claude/skills/authoring-commands/SKILL.md:31`
+# has said "expected whenever the command takes input" since it was written, and the
+# 2026-09-22 panel (UX 11, rationale/specialist-panel-2026-09-22.md #49) found three
+# commands reading `$ARGUMENTS` with no hint — `api-design:drift`, `task-runner:plan`
+# and `ui-ux:audit`, the last of which is advertised as taking `[files-or-diff]` in its
+# own plugin README. 26 of 29 commands had it: a convention everyone followed and
+# nothing checked, which is the shape a gate is cheap for.
+#
+# WHAT IT DOES NOT CATCH:
+#   - whether the hint DESCRIBES the arguments. `argument-hint: [x]` on a command
+#     taking a PR number passes. Accuracy is agent-graded, presence is gated.
+#   - a command that takes input without naming `$ARGUMENTS` — one that tells the
+#     model in prose to "read what follows the command". Nothing here can see that.
+#   - a `$1` inside a fenced code block that is shell the command tells the user to
+#     run, not an argument reference. That direction over-reports rather than under-,
+#     which is the right way for a gate to be wrong; no offender in this tree hits it.
+#   - the host's own commands, which this never reads — plugins only.
+pc_command_arg_hint() {
+  local root="${1:-plugins}" bad=0 f p body
+  for f in "$root"/*/commands/*.md; do
+    [ -f "$f" ] || continue
+    p=$(basename "$(dirname "$(dirname "$f")")")
+    body=$(awk 'BEGIN{n=0} /^---$/{n++; next} n>=2{print}' "$f")
+    printf '%s' "$body" | grep -qE '\$ARGUMENTS|\$[0-9]' || continue
+    awk 'BEGIN{n=0} /^---$/{n++; next} n==1{print}' "$f" | grep -q '^argument-hint:' && continue
+    printf 'command-arg-hint %s:%s\n' "$p" "$(basename "$f" .md)"
+    bad=1
+  done
   return $bad
 }
 
@@ -388,7 +729,7 @@ pc_jargon() {
 # rescue list frees lines DISCUSSING a removal; anything else needs the
 # <!-- removed-ok --> marker.
 pc_removed_refs() {
-  local f="$1" b plug skills shapes rescue hit capi
+  local f="$1" b plug skills cmds shapes rescue hit capi
   [ -f "$f" ] || return 0
   b='[^[:alnum:]-]'
   # Nine stack plugins removed 2026-08-26 (cfef9c1, marketplace-necessity-review):
@@ -495,7 +836,23 @@ pc_removed_refs() {
   # after the retirement and no shape saw them: the names sat in neither list, and the
   # `moved` list would not have helped because it guards the PLUGIN half of
   # `plugin:artifact`, while these appeared as the artifact half (`ui-ux:real-preview`).
-  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress|real-preview|design-session'
+  # estimation added 2026-09-22 (specialist-panel-2026-09-22 §3.2, software finding 12):
+  # approaches' estimation skill was measured-zero shape 2 verbatim — a checklist with no
+  # mechanism, no Standing: line and no eval — and the ledger it appended to had exactly
+  # one grep hit, the instruction to write it. It rides $skills, not $moved, for the
+  # real-preview reason: it is the ARTIFACT half of `approaches:estimation`, which the
+  # $moved list cannot see. It is the first SINGLE BARE WORD in this list, and the i18n
+  # note above is the standing argument against that — so the survey that earned it:
+  # after the removal every word-bounded `estimation` in the scanned .md set was a
+  # dangling pointer, none was ordinary English. WHAT IT DOES NOT CATCH: "estimate",
+  # "sizing" and "S/M/L/XL" name the same dead capability and match nothing here, and a
+  # future skill using "estimation" as ordinary English needs <!-- removed-ok -->.
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress|real-preview|design-session|estimation'
+  # Removed COMMANDS, fully qualified. `/approaches:size` (2026-09-22, same finding) went
+  # with the estimation skill, and no list above can hold it: the plugin half is live, so
+  # $moved would mis-fire on every surviving /approaches: command, and the artifact half
+  # `size` is ordinary English in every table in the repo. Only the joined token matches.
+  cmds='approaches:size'
   # `bundles?` added 2026-08-31: the `everything` removal shipped six shipped-doc
   # references in the form "`everything` bundle(s)" / "`craft-suite` and
   # `everything`" that no existing shape matched — the guard was extended for that
@@ -505,14 +862,25 @@ pc_removed_refs() {
   # the first version of that addition REPLACED the skills clause instead of
   # appending, silently un-guarding every removed skill name; parity-check.sh's
   # violation-skill-name fixture is what caught it.
-  shapes="/($moved):|\\\`($moved):[a-z][a-z0-9-]*|(^|$b)plugins/($moved)($b|\$)|(^|$bm)($moved)@|\\*\\*($moved)\\*\\*|(^|$bm)($moved)\`? plugins?($b|\$)|\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)"
+  shapes="/($moved):|\\\`($moved):[a-z][a-z0-9-]*|(^|$b)plugins/($moved)($b|\$)|(^|$bm)($moved)@|\\*\\*($moved)\\*\\*|(^|$bm)($moved)\`? plugins?($b|\$)|\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)|(^|$b)($cmds)($b|\$)"
   # Lines legitimately discussing the removal itself stay legal without a
   # marker. Every phrase below is quoted from a shipped disclosure:
   #   "it was removed after baseline testing"          (plugin-scout flags.md)
   #   "`error-handling` and `concurrency` plugins were / merged into this one"
   #   "**vue2** (Vue 2 is EOL) is no longer bundled"   (frontend-suite README)
   rescue="(was|were|been|are|is) (removed|merged|retired)|merged into|no longer|plugins? (were|was)($b|\$)"
+  # NPM TAIL OF A `Last verified` STAMP, blanked before matching. `$bm` excludes
+  # `/@.-` so a package path cannot be mistaken for a plugin reference, but NOT `:`
+  # — so `npm:vite@8` and `npm:react-native@0.82` matched `(^|$bm)($moved)@` and
+  # failed two shipped skills whose whole job is to name those packages
+  # (2026-09-22). Only the `npm:<pkg>@<ver>` TOKEN is blanked, not the stamp line
+  # and not the `:` boundary: a stale `/vite:review` or `plugins/vite` on the same
+  # line is still caught, and `install vite@cc-plugins-marketplace` after a colon
+  # anywhere else is still caught. WHAT IT NO LONGER CATCHES: a removed plugin name
+  # written in the exact shape `npm:<name>@<version>`, which is a package
+  # coordinate, not a marketplace reference — that is the point.
   hit=$(grep -vF '<!-- removed-ok -->' "$f" \
+        | sed -E 's/npm:(@[^ ]+\/)?[^ ]+@[0-9]+(\.[0-9]+)?/npm-pin/g' \
         | grep -viE "$rescue" \
         | grep -Eo "$shapes" \
         | sed -e 's/^[^[:alnum:]*]*//' -e 's/[^[:alnum:]*]*$//' | sort -u | tr '\n' ',' | sed 's/,$//')
@@ -1225,6 +1593,184 @@ pc_lanes_territory() {
         }
       exit bad
     }' "$@"
+}
+
+# pc_lanes_adjacency [plugins_root] [rules_tsv] [min_cluster]
+# CROWDING, not collision. pc_lanes_territory compares `owns` and `phase` as
+# strings, so two artifacts doing one job pass it by picking two nouns for that job
+# — its own RESIDUAL paragraph says exactly that, and pc_lanes_vocabulary cannot
+# close the hole because it gates that a noun is DECLARED, not that two nouns name
+# two jobs. This check asks what neither can: how many artifacts speak at once
+# about ONE file shape, in one phase, whatever each calls its territory.
+#
+# WHY IT EXISTS. rationale/2026-09-15-listing-eviction-probe.md:60-66 priced the
+# defect: stripping a skill's description changed firing not at all (47/50 in both
+# arms), while EIGHT rivals contesting one territory dropped the target from 100%
+# to ~75%. Overlap is what costs a marketplace, not bytes. The 2026-09-22
+# specialist panel (finding 10) named the shape no gate could see — "twelve
+# review-phase agents whose triggers match one .tsx diff".
+#
+# WHERE THE TRIGGER COMES FROM, since `definite_trigger` is prose no script reads:
+#   skill   — the glob rows routing to it in plugins/skill-router/rules.tsv, keyed
+#             by owning_plugin + skill so the row and the lane artifact agree.
+#   agent   — the globs of every skill its frontmatter names in
+#             `bestpractices-skill`, the only machine-readable file claim an agent
+#             carries in this tree. No agent frontmatter and no .chassis.json field
+#             declares a path or file kind; the worker-agent manifests carry the
+#             same `bestpractices-skill` key and generate.sh --check holds the two
+#             byte-equal, so reading the rendered agent reads both.
+#   command — NOTHING. No command declares a file shape anywhere here, so commands
+#             are invisible to this check and their crowding stays agent-graded.
+#
+# A pair inside a cluster is RESOLVED, and stops counting, when either row
+# `yields_to` the other, when a `# lane-cofire-ok: <a> <b>` blesses it in any
+# lane.tsv, or when the agent names that skill in `bestpractices-skill` — an agent
+# that READS a skill consumes it rather than contesting it, and its shapes were
+# derived from that skill to begin with. An artifact keeping at least one
+# unresolved pair counts toward the cluster; a cluster of `min_cluster` (default 3)
+# or more prints.
+#
+# WHAT IT CANNOT SEE, beyond commands: content rows, which fire on a regex over a
+# file's BODY and never collide by string equality — pc_rules_cofire owns those
+# with a corpus; every skill and command with no lane row at all (pc_lanes_coverage
+# warns, and most skills are in that state); any agent naming no
+# `bestpractices-skill`, 21 of 33 on 2026-09-22, which is why the panel's twelve
+# review-phase agents surface here as ONE pair below the threshold rather than the
+# crowd they are (ui-ux:ui-ux-reviewer and web-dev:frontend-reviewer, on *.tsx);
+# and whether a crowd is actually WRONG,
+# which needs a reader. pc_rules_overlap already fails two skills sharing one glob
+# PATTERN, pairwise, and excuses a pair whose stack_markers differ — this one
+# counts those excused rows, because one Next.js repo with a components.json
+# satisfies three markers at once and the model still sees the crowd.
+#
+# TIER: WARN, and the validate.sh call site says so. It ships as a WARN because the
+# tree had SIX clusters at min 3 the day it landed (build *.tsx N=6, *.blade.php
+# N=5, *.sql N=4, **/migrations/** N=4, *.jsx N=3, *.vue N=3) — a FAIL would have
+# blocked the build on work nobody had scheduled. Flipping the call site from warn
+# to lane_err is the whole follow-up; nothing in this function changes.
+#
+# Prints `lane-adjacency <shape> <phase> <artifact> …` per cluster, sorted, and
+# returns 1 when any printed.
+pc_lanes_adjacency() {
+  local root="${1:-plugins}" rules="${2:-}" min="${3:-3}" out lanes agents f
+  [ -n "$rules" ] || rules="$root/skill-router/rules.tsv"
+  [ -f "$rules" ] || return 0
+  # find, not a glob: an unmatched glob is a literal path under bash and a hard
+  # error under zsh, and this file is sourced by validate.sh and by a hook.
+  lanes=$(find "$root" -maxdepth 2 -name lane.tsv 2>/dev/null | sort)
+  [ -n "$lanes" ] || return 0
+  agents=$(find "$root" -maxdepth 3 -type f -path '*/agents/*.md' 2>/dev/null | sort)
+  # Build the awk argument list positionally rather than by word-splitting an
+  # unquoted expansion: this file is sourced by validate.sh under bash AND by a
+  # hook, and zsh does not word-split unquoted parameters at all.
+  set -- "$rules"
+  while IFS= read -r f; do
+    [ -n "$f" ] && set -- "$@" "$f"
+  done <<EOF_LANE_ADJ_FILES
+$lanes
+$agents
+EOF_LANE_ADJ_FILES
+  out=$(awk -F'\t' -v min="$min" -v rules="$rules" '
+    function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    function yields(list, target,   m, parts, k) {
+      if (list == "" || list == "-") return 0
+      m = split(list, parts, ",")
+      for (k = 1; k <= m; k++) if (trim(parts[k]) == target) return 1
+      return 0
+    }
+    function declares(list, art,   m, parts, k, sn) {
+      sn = art; sub(/^[^:]*:/, "", sn)
+      m = split(list, parts, ",")
+      for (k = 1; k <= m; k++) if (trim(parts[k]) == sn) return 1
+      return 0
+    }
+    function resolved(ck, a, b,   ia, ib) {
+      ia = IDX[ck SUBSEP a]; ib = IDX[ck SUBSEP b]
+      if (yields(Y[ia], b) || yields(Y[ib], a)) return 1
+      if ((a SUBSEP b) in OK) return 1
+      if (K[ia] == "agent" && K[ib] == "skill" && declares(BP[a], b)) return 1
+      if (K[ib] == "agent" && K[ia] == "skill" && declares(BP[b], a)) return 1
+      return 0
+    }
+    FILENAME == rules {
+      sub(/\r$/, "")
+      if ($0 ~ /^#/ || NF < 4 || $1 != "glob") next
+      art = $4 ":" $3
+      if (!((art SUBSEP $2) in aseen)) { aseen[art SUBSEP $2] = 1; ASH[art] = ASH[art] " " $2 }
+      if (!(($3 SUBSEP $2) in sseen)) { sseen[$3 SUBSEP $2] = 1; SSH[$3] = SSH[$3] " " $2 }
+      next
+    }
+    FILENAME ~ /lane\.tsv$/ {
+      sub(/\r$/, "")
+      if ($0 ~ /^#[[:space:]]*lane-cofire-ok:/) {
+        line = $0
+        sub(/^#[[:space:]]*lane-cofire-ok:[[:space:]]*/, "", line)
+        n = split(line, t, /[[:space:]]+/)
+        if (n >= 2) { OK[t[1] SUBSEP t[2]] = 1; OK[t[2] SUBSEP t[1]] = 1 }
+        next
+      }
+      if ($0 ~ /^#/ || NF != 6) next
+      i = ++rows; A[i] = $1; K[i] = $2; P[i] = $3; Y[i] = $6
+      next
+    }
+    {
+      # an agent markdown file: read bestpractices-skill from the FRONTMATTER only
+      if (FNR == 1) { fm = ($0 ~ /^---[[:space:]]*$/); next }
+      if (!fm) next
+      if ($0 ~ /^---[[:space:]]*$/) { fm = 0; next }
+      if ($0 !~ /^bestpractices-skill:/) next
+      line = $0; sub(/^bestpractices-skill:[[:space:]]*/, "", line)
+      n = split(FILENAME, seg, "/")
+      key = seg[n-2] ":" seg[n]; sub(/\.md$/, "", key)
+      BP[key] = line
+    }
+    END {
+      for (i = 1; i <= rows; i++) {
+        shapes = ""
+        if (K[i] == "skill") shapes = ASH[A[i]]
+        else if (K[i] == "agent") {
+          m = split(BP[A[i]], bs, ",")
+          for (j = 1; j <= m; j++) { s = trim(bs[j]); if (s != "") shapes = shapes " " SSH[s] }
+        }
+        if (trim(shapes) == "") continue
+        n = split(shapes, sh, /[[:space:]]+/)
+        for (j = 1; j <= n; j++) {
+          if (sh[j] == "") continue
+          ck = P[i] SUBSEP sh[j]
+          if ((ck SUBSEP A[i]) in mseen) continue
+          mseen[ck SUBSEP A[i]] = 1
+          MEM[ck] = MEM[ck] " " A[i]
+          IDX[ck SUBSEP A[i]] = i
+          SHAPE[ck] = sh[j]; PH[ck] = P[i]
+        }
+      }
+      for (ck in MEM) {
+        c = 0; delete M
+        n = split(MEM[ck], mm, /[[:space:]]+/)
+        for (x = 1; x <= n; x++) if (mm[x] != "") M[++c] = mm[x]
+        if (c < min) continue
+        delete keep
+        for (x = 1; x <= c; x++)
+          for (y = x + 1; y <= c; y++) {
+            if (resolved(ck, M[x], M[y])) continue
+            keep[M[x]] = 1; keep[M[y]] = 1
+          }
+        nk = 0; delete L
+        for (k in keep) L[++nk] = k
+        if (nk < min) continue
+        for (x = 2; x <= nk; x++) {
+          v = L[x]; y = x - 1
+          while (y >= 1 && L[y] > v) { L[y+1] = L[y]; y-- }
+          L[y+1] = v
+        }
+        line = "lane-adjacency " SHAPE[ck] " " PH[ck]
+        for (x = 1; x <= nk; x++) line = line " " L[x]
+        print line
+      }
+    }' "$@" | sort)
+  [ -n "$out" ] || return 0
+  printf '%s\n' "$out"
+  return 1
 }
 
 # pc_lanes_coverage [plugins_root]
@@ -1944,17 +2490,40 @@ EOF
 # when prime.sh names a skill the documented map does not. Proportionality, not laziness;
 # the generation entry stays open and this makes its absence survivable.
 #
-# ONE DIRECTION ONLY, deliberately. prime.sh is a cheap SessionStart probe and is meant
-# to be a SUBSET — skill-map.md carrying rows prime.sh does not is correct, not drift.
-# The failure that matters is prime.sh claiming something the map never sanctioned.
+# TWO DIRECTIONS, TIERED DIFFERENTLY. `prime-unmapped` (prime.sh claims a skill the map
+# never sanctioned) is the original failure and the hard one. `map-unprimed` (the map
+# declares a repository signal prime.sh never emits) was added 2026-09-22: the subset
+# argument above held right up until it hid a real gap — skill-map.md:25-26 declared the
+# Next.js and Vite rows and prime.sh emitted neither, so a session opened in a Next repo
+# got no nextjs-best-practices line while the documented map said it would
+# (rationale/specialist-panel-2026-09-22.md #20, WEB 6). "Meant to be a subset" and
+# "silently missing four rows" are the same shape from inside the gate, which is why
+# this direction reports rather than trusting the intent.
 #
-# Prints `prime-unmapped <skill>` per offender; returns 1 if any.
+# ASK-KEYED ROWS ARE STRUCTURALLY EXEMPT, not blessed by hand: a row whose Signal column
+# says "the ASK mentions …" keys off the user's prompt, and prime.sh is a SessionStart
+# probe that has no prompt to read. Excluding them by their own wording means the map
+# stays the single source; a hand list here would be the third copy this file warns about.
+# For anything else the map declares and the probe deliberately will not sniff, the
+# escape is the marker this repo already has — `# prime-ok: <skill>` on any line of
+# prime.sh, which clears BOTH directions. No new marker was minted: a fifteenth escape
+# in CLAUDE.md's table to say "this row is fine" is ceremony the existing one covers,
+# and the decision belongs where the probe is written, not in the map.
+#
+# WHAT NEITHER DIRECTION CATCHES: whether prime.sh's MATCHER agrees with the map's
+# Signal column. Both sides can name `tailwind-best-practices` while one fires on any
+# React dependency and the other on `"tailwindcss"` — which is the exact defect that
+# made this gate exist, and it is still only caught by reading. Generation would catch
+# it; this is the proportionate stand-in, and saying so is the point.
+#
+# Prints `prime-unmapped <skill>` and `map-unprimed <skill>` per offender; returns 1.
 pc_prime_coverage() {
-  local root="${1:-plugins}" bad=0 sk
+  local root="${1:-plugins}" bad=0 sk primed
   local prime="$root/skill-router/hooks/prime.sh"
   local map="$root/code-architecture/skills/coding-entry/references/skill-map.md"
   [ -f "$prime" ] || return 0
   [ -f "$map" ] || return 0
+  primed=$(grep -oE '(^|[;&[:space:]])add [a-z0-9-]+' "$prime" 2>/dev/null | awk '{print $NF}' | sort -u)
   while IFS= read -r sk; do
     [ -n "$sk" ] || continue
     grep -qF ":$sk\`" "$map" 2>/dev/null && continue
@@ -1962,7 +2531,17 @@ pc_prime_coverage() {
     printf 'prime-unmapped %s\n' "$sk"
     bad=1
   done <<EOF
-$(grep -oE '(^|[;&[:space:]])add [a-z0-9-]+' "$prime" 2>/dev/null | awk '{print $NF}' | sort -u)
+$primed
+EOF
+  while IFS= read -r sk; do
+    [ -n "$sk" ] || continue
+    printf '%s\n' "$primed" | grep -qxF "$sk" && continue
+    grep -qF "prime-ok: $sk" "$prime" 2>/dev/null && continue
+    printf 'map-unprimed %s\n' "$sk"
+    bad=1
+  done <<EOF
+$(grep -E '^\|' "$map" 2>/dev/null | grep -v 'the ASK' \
+  | sed -nE 's/.*\`[a-z0-9-]+:([a-z0-9-]+)\`.*/\1/p' | sort -u)
 EOF
   return $bad
 }
@@ -2190,7 +2769,7 @@ pc_listing_entry_cost() {
     desc=${fields%%$'\t'*}
     wtu=${fields#*$'\t'}; wtu=${wtu%%$'\t'*}
     dl=$(printf '%s%s' "$desc" "${wtu:+ - $wtu}" | LC_ALL=C wc -c | tr -d ' ')
-    [ "$dl" -gt 1536 ] && dl=1536
+    [ "$dl" -gt "$HOST_LISTING_MAX_DESC" ] && dl=$HOST_LISTING_MAX_DESC
     total=$(( total + ${#name} + 4 + dl )); n=$((n+1))
   done
   printf '%s %s' "$total" "$n"

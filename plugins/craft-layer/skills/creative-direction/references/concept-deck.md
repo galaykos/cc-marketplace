@@ -73,6 +73,14 @@ Banned register: draughting-office sheet labelling
 Banned vocabulary: SHEET, TITLE BLOCK, "REV A", "DRAWN BY", SCALE 1:1, first angle projection
 ```
 
+**`genus` — defined here because nothing else defines it.** A genus is the recognisable
+KIND of artifact a page imitates: a technical drafting sheet, a boarding pass, a lab
+notebook, a gallery wall label. It is the level ABOVE register (how the words are
+pitched) and vocabulary (which literal strings appear), which is why one banned genus
+usually implies a banned register and a banned vocabulary list beneath it. The deck,
+`/craft-layer:craft` and the `creative-director` agent all use the word; this paragraph
+is the one place it means something.
+
 **The three keys are fixed and the line format is a hard rule.**
 
 - Exactly these keys: `Banned genus:`, `Banned register:`, `Banned vocabulary:`. One

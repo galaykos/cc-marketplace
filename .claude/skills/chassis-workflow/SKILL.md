@@ -1,6 +1,6 @@
 ---
 name: chassis-workflow
-description: How this repo's chassis generator works — .chassis.json manifests, scripts/generate.sh --check/--write, templates/, gates. Use when creating or editing any chassis-generated file (commands/review.md, agents from worker-agent.md.tmpl, suite uninstalls, reminder hooks), when a file carries a "generated from templates/..." header, when adding a .chassis.json, or when validate.sh complains about chassis headers or drift.
+description: How this repo's chassis generator works — .chassis.json manifests, scripts/generate.sh --check/--write, templates/, gates. Use when creating or editing any chassis-generated file (worker agents, suite uninstalls, reminder hooks, boost hooks), when a file carries a "generated from templates/..." header, when adding a .chassis.json, or when validate.sh complains about chassis headers or drift.
 ---
 
 # Chassis workflow (cc-marketplace)
@@ -12,17 +12,23 @@ the plugin's `.chassis.json`, then regenerate.
 ## The pieces
 
 - `plugins/<name>/.chassis.json` — ONE chassis object or an ARRAY of them.
-  Kinds seen in-tree: `stack-review` (stamps `commands/review.md`),
-  `suite-uninstall` (stamps `commands/uninstall.md`), `reminder-hook` (stamps
-  `hooks/remind.sh`), `boost-hook` (stamps the `hooks/<name>.sh` named in `file`
-  — the ultra-* injectors; `regex2`/`message2` add an elif branch), `worker-agent`
-  (stamps the agent file declared in `agentFile`), `optout` (declares a chassis-shaped file as intentionally
-  hand-written).
+  Four renderers survive: `worker-agent` (stamps the agent file declared in
+  `agentFile`), `suite-uninstall` (stamps `commands/uninstall.md`),
+  `reminder-hook` (stamps `hooks/remind.sh`, or the `file` it names),
+  `boost-hook` (stamps the `hooks/<name>.sh` named in `file` — the ultra-*
+  injectors; `regex2`/`message2` add an elif branch). Plus `optout`, which
+  renders nothing and declares a chassis-shaped file intentionally
+  hand-written. A fifth kind, `stack-review` (with
+  `templates/review-command.md.tmpl` and the build-time worker routing), was
+  **retired 2026-09-22** — panel finding 64: one rendered file behind a
+  template, four partials and nine justifications. `commands/review.md` is
+  still a chassis-shaped NAME, so the files that kept it are `optout` entries
+  now; `generate.sh` dies on `"chassis":"stack-review"`.
 - Every artifact-rendering object also carries **`lane`** —
   `{"owns", "trigger", "yieldsTo"[, "phase"]}` — and generate.sh renders the
   plugin's lane.tsv row for that artifact into a `# generated:start` …
-  `# generated:end` block. A missing `lane` key is a hard error. Commands default
-  their phase (review command → `review`, uninstall → `ship`); **hooks and agents
+  `# generated:end` block. A missing `lane` key is a hard error. The uninstall
+  command is the one kind with a default phase (`ship`); **hooks and agents
   must declare `phase` explicitly** (a hook's phase is what `pc_phase_guard` reads;
   `any` exempts it). Never hand-write a lane row for a generated artifact — the
   generator dies on the duplicate.
@@ -41,16 +47,6 @@ bash scripts/generate.sh --write   # stamp deltas; chmod +x for .sh; patch-bumps
 Fixture roots for experiments: `CHASSIS_ROOT=<dir>` and `CHASSIS_TEMPLATES=<dir>`
 — use a scratch copy instead of dirtying the tree.
 
-## Worker routing (stack-review)
-
-`{{workerChain}}` resolves the manifest's capability `tag` through the map in
-`plugins/task-runner/skills/task-execution/references/routing.md` — FIRST entry
-of the tag's preference list wins. An explicit manifest `worker:` field
-overrides the map. Unresolvable tag or missing
-`plugins/<pl>/agents/<name>.md` for the resolved worker = hard error in both
-modes. Tag vocabulary is closed (11 tags) and synced across `agent-tags.md`,
-`routing.md`, `reviewer-routing.md` — `validate.sh` fails on drift.
-
 ## Procedure for a new/changed chassis file
 
 1. Edit template and/or `.chassis.json` (single object → convert to array when
@@ -65,8 +61,10 @@ modes. Tag vocabulary is closed (11 tags) and synced across `agent-tags.md`,
 
 When a generated file needs ONE local difference, do **not** reach for `optout`
 (which forfeits every later template improvement) or add a template slot (which
-re-renders all 31 sharers of `review-command.md.tmpl` and patch-bumps 31
-`plugin.json` in a single commit). Put a preserve block in the template:
+re-renders EVERY sharer of that template and patch-bumps each of their
+`plugin.json` in a single commit — count them first:
+`grep -l '"chassis": *"worker-agent"' plugins/*/.chassis.json | wc -l`). Put a
+preserve block in the template:
 
 ```
 <!-- preserve:notes -->

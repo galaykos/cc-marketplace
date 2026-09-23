@@ -7,6 +7,12 @@
 #   dk serve [--lan|--stop]                 start / expose / stop the preview server, print its URL
 #   dk system [target] [--out DIR]          extract → copy kit into previews → serve → URL
 #   dk check                                one line: design-system current, moved, or missing
+#   dk drift [PATHS|--staged|--diff REF] [--ci]   literal colours + named Tailwind palette
+#                                           utilities in components that reach no token
+#   dk snapshot [--routes R] [--device desktop|mobile|both] [--base-url U] [--out DIR]
+#                                           one PNG per route per device off the running app
+#   dk review --base <dir|git-ref>          before / after / pixel-diff page for the
+#                                           last two shot sets, served, with a table
 #   dk slides <outline.md> [--theme FILE]   build a deck, record it, print its URL
 #   dk board <spec.json|.md> [--device D]   build a board, record it, print its URL
 #   dk scratch --detect|--create SLUG|--cleanup|--verify [--stack S]
@@ -139,6 +145,51 @@ case "$verb" in
     if [ "$rc" = 0 ]; then echo "design-system: current"; log ok; exit 0; fi
     echo "$out" | grep -E '^check:' || echo "$out" | tail -3
     log ok; exit 0 ;;
+
+  drift)
+    # WHAT IT CATCHES. Literal hex/rgb/hsl/oklch colours and named Tailwind palette
+    # utilities in .tsx/.jsx/.vue/.blade.php/.css/.scss that resolve to no declared
+    # token. WHAT IT DOES NOT. Spacing, radius, shadow and font drift; a colour
+    # computed at runtime; a token used in the wrong role. handoff-drift.py's header
+    # carries the full residual list.
+    #
+    # --staged and --diff resolve the FILE LIST here, in git, so the python stays
+    # git-free and one reader serves both modes. --diff compares against the WORKING
+    # TREE, not HEAD: a check run before committing that reads HEAD is blind to the
+    # edit it was run for, which is the trap this repo has already paid for once.
+    ci=""; paths=(); selector=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --ci) ci="--ci" ;;
+        --staged) selector="--staged"
+                  while IFS= read -r f; do [ -n "$f" ] && paths+=("$f"); done < <(git diff --cached --name-only --relative --diff-filter=ACMR 2>/dev/null) ;;
+        --diff) base="${2:-}"; [ -n "$base" ] || fail "--diff needs a base ref" "" 2; shift; selector="--diff $base"
+                while IFS= read -r f; do [ -n "$f" ] && paths+=("$f"); done < <(git diff --name-only --relative --diff-filter=ACMR "$base" 2>/dev/null) ;;
+        *) paths+=("$1") ;;
+      esac; shift
+    done
+    # AN EMPTY SELECTOR SCANS NOTHING, never the whole tree. `--staged` with nothing
+    # staged, or `--diff <base>` with no changed file, used to fall through to `.`
+    # and red a --ci run over code the change never touched.
+    if [ -n "$selector" ] && [ ${#paths[@]} -eq 0 ]; then
+      echo "drift: $selector selected no file — nothing scanned"; log skip; exit 0
+    fi
+    [ ${#paths[@]} -gt 0 ] || paths=(".")
+    set +e; python3 "$here/handoff-drift.py" --scan ${ci:+"$ci"} "${paths[@]}"; rc=$?; set -e
+    case "$rc" in
+      0) log ok ;;
+      2) log skip ;;
+      *) log fail ;;
+    esac
+    exit "$rc" ;;
+
+  snapshot|review)
+    # Both live in snapshot.sh, which owns the exit codes — 0 rendered, 1 bad
+    # arguments, 2 the browser or the server was unreachable — and they pass through
+    # here unchanged, so a wired-up caller reads the same number either way.
+    set +e; bash "$here/snapshot.sh" "$verb" "$@"; rc=$?; set -e
+    case "$rc" in 0) log ok ;; 2) log skip ;; *) log fail ;; esac
+    exit "$rc" ;;
 
   slides)
     outline="${1:-}"; [ -n "$outline" ] || fail "needs an outline path" "" 2; shift
@@ -273,6 +324,6 @@ print("server: " + (u or "not running"))
 PY
     log ok ;;
 
-  -h|--help|"") sed -n '2,32p' "$0"; exit 0 ;;
-  *) echo "dk: unknown verb $verb" >&2; sed -n '7,17p' "$0" >&2; exit 2 ;;
+  -h|--help|"") sed -n '2,37p' "$0"; exit 0 ;;
+  *) echo "dk: unknown verb $verb" >&2; sed -n '7,23p' "$0" >&2; exit 2 ;;
 esac

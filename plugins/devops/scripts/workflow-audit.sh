@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# GitHub Actions trust-boundary audit. Reads .github/workflows/*.y{a,}ml and exits
+# GitHub Actions trust-boundary audit. Reads .github/workflows/*.y{a,}ml — and, for the
+# two rules that apply to them, .github/actions/*/action.y{a,}ml composites — and exits
 # non-zero on the classes where a workflow hands repository write or secrets to
 # code the repository does not control.
 #
@@ -17,8 +18,12 @@
 #
 # HONEST LIMITATION. This is a line-oriented scan, not a YAML parser: it reads
 # what a workflow SAYS, and it can be fooled by an unusual layout, a composite
-# action that hides the sink one level down, or a reusable workflow called with
-# `secrets: inherit`. Treat a clean run as "none of the six known shapes are
+# action outside `.github/actions/`, a composite that shells out to a script file,
+# or a reusable workflow called with `secrets: inherit`. Composites ARE read as of
+# 2026-09-22, but only for rules 2 (expression injection) and 3 (unpinned `uses:`):
+# rules 1, 4, 5 and 6 are about a workflow's triggers, top-level `permissions:` and
+# runner, none of which a composite has, so applying them there would warn on every
+# composite in existence. Treat a clean run as "none of the known shapes are
 # present in these files", never as "this pipeline is safe".
 set -u
 
@@ -46,15 +51,24 @@ finding() { # severity file line rule detail
 
 shopt -s nullglob 2>/dev/null || true
 files=$(find "$dir" -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null | sort)
-[ -n "$files" ] || { say "workflow-audit: no workflow files in $dir"; exit 3; }
+# Second root: composite actions live beside the workflows dir, one per directory. A
+# composite runs with the CALLING workflow's token, so an injected expression in its
+# `run:` is the same critical shape — it was simply never read here.
+actdir="$(dirname "$dir")/actions"
+cfiles=$(find "$actdir" -maxdepth 2 -type f \( -name 'action.yml' -o -name 'action.yaml' \) 2>/dev/null | sort)
+[ -n "$files$cfiles" ] || { say "workflow-audit: no workflow files in $dir"; exit 3; }
 
-for wf in $files; do
+for wf in $files $cfiles; do
+  # Composite or workflow? Rules 1, 4, 5 and 6 read triggers, top-level permissions: and
+  # runs-on — fields a composite does not have — so they stay workflow-only.
+  composite=0
+  case " $cfiles " in *" $wf "*) composite=1 ;; esac
   # 1. CRITICAL — pull_request_target / workflow_run that checks out a ref.
   #    The trigger runs with the BASE repo's secrets and a write token; checking
   #    out the PR head then executes fork-authored code inside that context. This
   #    is GitHub's own documented critical anti-pattern and it reads, to a
   #    reviewer skimming for correctness, as "checks out the PR — correct".
-  if grep -qE '^[[:space:]]*(pull_request_target|workflow_run):' "$wf"; then
+  if [ "$composite" -eq 0 ] && grep -qE '^[[:space:]]*(pull_request_target|workflow_run):' "$wf"; then
     ln=$(grep -nE '^[[:space:]]*(pull_request_target|workflow_run):' "$wf" | head -1 | cut -d: -f1)
     if grep -qE '^[[:space:]]*ref:[[:space:]]*\$\{\{[[:space:]]*github\.event\.(pull_request\.head|workflow_run\.head)' "$wf" \
        || grep -qE '^[[:space:]]*ref:[[:space:]]*\$\{\{[[:space:]]*github\.head_ref' "$wf"; then
@@ -106,13 +120,13 @@ for wf in $files; do
 
   # 4. WARN — no top-level permissions:. Without it the job inherits the repo
   #    default, which on many repos is still write-all.
-  grep -qE '^permissions:' "$wf" || finding warn "$wf" 1 \
+  [ "$composite" -eq 1 ] || grep -qE '^permissions:' "$wf" || finding warn "$wf" 1 \
     "no top-level permissions: block" \
     "The job inherits the repository default token scope. Declare 'permissions: contents: read' at the top and widen per job only where needed."
 
   # 5. WARN — self-hosted runner on a fork-reachable trigger. A fork PR then runs
   #    on infrastructure the repo owns, with whatever state the last job left.
-  if grep -qE '^[[:space:]]*runs-on:.*self-hosted' "$wf" \
+  if [ "$composite" -eq 0 ] && grep -qE '^[[:space:]]*runs-on:.*self-hosted' "$wf" \
      && grep -qE '^[[:space:]]*(pull_request|pull_request_target):' "$wf"; then
     ln=$(grep -nE '^[[:space:]]*runs-on:.*self-hosted' "$wf" | head -1 | cut -d: -f1)
     finding warn "$wf" "$ln" \
@@ -122,7 +136,7 @@ for wf in $files; do
 
   # 6. WARN — script injection's quieter cousin: secrets used in a job whose
   #    trigger a fork can reach.
-  if grep -qE '^[[:space:]]*pull_request_target:' "$wf" && grep -qE '\$\{\{[[:space:]]*secrets\.' "$wf"; then
+  if [ "$composite" -eq 0 ] && grep -qE '^[[:space:]]*pull_request_target:' "$wf" && grep -qE '\$\{\{[[:space:]]*secrets\.' "$wf"; then
     ln=$(grep -nE '\$\{\{[[:space:]]*secrets\.' "$wf" | head -1 | cut -d: -f1)
     finding warn "$wf" "$ln" \
       "secrets referenced in a pull_request_target workflow" \
@@ -131,7 +145,7 @@ for wf in $files; do
 done
 
 if [ "$findings" -eq 0 ]; then
-  say "workflow-audit: clean — none of the six known shapes present in $(printf '%s\n' $files | wc -l | tr -d ' ') workflow file(s)"
+  say "workflow-audit: clean — none of the known shapes present in $(printf '%s\n' $files $cfiles | grep -c . | tr -d ' ') workflow/composite file(s)"
   exit 0
 fi
 say ""

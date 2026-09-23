@@ -300,8 +300,14 @@ if SKILLS:
     import glob as _g
     shipped = []
     for f in sorted(_g.glob(os.path.join(ROOT, "plugins/*/skills/*/SKILL.md"))):
+        # parts[-4] is the plugin dir of `plugins/<p>/skills/<s>/SKILL.md`, counted from
+        # the END. `parts.index("plugins")` counted from the front and hit the FIRST
+        # "plugins" segment, which on the installer's own path
+        # (~/.claude/plugins/marketplaces/cc-plugins-marketplace/plugins/<p>/…) is the
+        # host's cache dir — every row then read plugin "marketplaces". Found 2026-09-22
+        # while verifying the invocation README.md now documents.
         parts = f.split(os.sep)
-        shipped.append((parts[-2], parts[parts.index("plugins") + 1]))
+        shipped.append((parts[-2], parts[-4]))
     surfaced, invoked = collections.Counter(), collections.Counter()
     led_srf = led_inv = 0
     for f in _g.glob(os.path.expanduser("~/.claude/skill-router/*/surfaced.jsonl")):

@@ -85,6 +85,31 @@ plugin ships no hook and the rule has teeth only with candor installed —
 silence evades it, and any post-edit execution satisfies it. `CC_EVIDENCE_GATE=warn|off`
 still downgrades that clause alone.
 
+## Evals
+
+One case, and it is a measurement of this plugin's SHAPE rather than a regression
+guard. Ten checklist skills across this marketplace — `solid-principles`,
+`low-cognitive-load`, `yagni-check`, `domain-modeling`, `system-design`, and five
+more in sibling plugins — ship prose with no mechanism and no eval.
+`evals/solid-control/` puts one real SRP violation in front of three deliberate
+decoys that a reflex SOLID review flags, and requires the decoys to be declined
+with a reason:
+
+```bash
+claude plugin eval ./plugins/code-architecture --ablation with-without --runs 5 \
+  --no-publish --trust-plugin
+```
+
+No `--allow-tools` grant is needed (the case declares `Read, Glob, Grep, Skill`,
+none of them gated) and no `--scaffold`. `--max-cost-usd 0` load-checks it for free,
+which is what `scripts/eval-cases.sh` does in CI; nothing runs a model there.
+
+**The delta is unmeasured.** The expectation is that the control arm produces a
+SUPERSET of the treatment's findings — that is the shape `rationale/stack-skill-baselines.md`
+measured for eight stack skills in 2026-07. If both arms pass, the skill restates the
+model and the shape is settled for all ten. State the run count and the vote spread
+with any delta or do not state the delta.
+
 ## Example
 
 ```bash

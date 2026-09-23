@@ -1,0 +1,107 @@
+schema_version: "1.0"
+name: a11y-older-criteria
+description: >
+  A checkout form collecting the user's own name, email, phone, address and card
+  number with no `autocomplete` attribute anywhere, beside a toast that is mounted
+  only when an async save finishes. Everything the base model reliably catches has
+  been fixed already — every field has a real `<label for>`, the button is a
+  `<button>`, focus styles are present, contrast is high — so the two remaining
+  defects are the older AA criteria `a11y-audit` was missing until 0.25.0. The
+  control arm reviews this and calls it clean, or offers generic advice (add ARIA,
+  check contrast, add a landmark); what it omits is SC 1.3.5, because a form with
+  correct labels LOOKS finished, and SC 4.1.3, because `{msg && <div>{msg}</div>}`
+  is the idiomatic React toast and the failure is invisible in the markup — the
+  live region and its text are inserted in one commit, so most screen readers
+  announce nothing. The grader detects the miss by requiring the identity fields to
+  be named as needing `autocomplete` tokens AND the toast container to be required
+  ALREADY IN THE DOM before the message arrives; naming the criterion numbers is
+  credited, not required, since a review that states the rule has done the work.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    `src/components/CheckoutForm.tsx`:
+
+    ```tsx
+    import { useState } from 'react'
+
+    export function CheckoutForm() {
+      const [status, setStatus] = useState<string | null>(null)
+
+      async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault()
+        setStatus(null)
+        const res = await fetch('/api/checkout', { method: 'POST' })
+        setStatus(res.ok ? 'Order placed' : 'Could not place the order')
+      }
+
+      return (
+        <form onSubmit={onSubmit} className="text-slate-900 bg-white">
+          <h1>Checkout</h1>
+
+          <label htmlFor="name">Full name</label>
+          <input id="name" name="name" type="text" required />
+
+          <label htmlFor="email">Email</label>
+          <input id="email" name="email" type="email" required />
+
+          <label htmlFor="tel">Phone</label>
+          <input id="tel" name="tel" type="tel" required />
+
+          <label htmlFor="street">Street address</label>
+          <input id="street" name="street" type="text" required />
+
+          <label htmlFor="postcode">Postcode</label>
+          <input id="postcode" name="postcode" type="text" required />
+
+          <label htmlFor="card">Card number</label>
+          <input id="card" name="card" type="text" inputMode="numeric" required />
+
+          <button type="submit" className="bg-slate-900 text-white focus-visible:outline-2">
+            Place order
+          </button>
+
+          {status && <div className="toast">{status}</div>}
+        </form>
+      )
+    }
+    ```
+
+    Review this component for accessibility.
+runs: 5
+graders:
+  - type: llm
+    name: older-aa-criteria-named
+    criteria: |
+      The easy findings are already fixed in this fixture on purpose. Two defects
+      remain and both must be found.
+
+      PASS requires BOTH:
+
+      1. **Input purpose (SC 1.3.5).** The response must say that these inputs collect
+         the USER'S OWN information and carry no `autocomplete` attribute, and must map
+         at least three of them to concrete tokens (`name`, `email`, `tel`,
+         `street-address`, `postal-code`, `cc-number`). A bare "add autocomplete" with
+         no tokens does not pass; an invented token like `autocomplete="phone"` or
+         `autocomplete="card"` is a FAIL for this clause, because a token outside the
+         WCAG list is treated as `off`.
+      2. **Status messages (SC 4.1.3).** The response must say that
+         `{status && <div className="toast">{status}</div>}` announces nothing to a
+         screen reader, and that the fix is a container that is ALREADY IN THE DOM
+         carrying `role="status"` / `aria-live="polite"` into which the text is then
+         written — mounting the region and its text together is the defect. A response
+         that only says "add aria-live to the toast" without the already-in-the-DOM
+         requirement does NOT pass this clause: it names the attribute and keeps the
+         bug.
+
+      FAIL if either clause is missing, and FAIL if the response reports the component
+      as accessible. Naming the criterion numbers (1.3.5, 4.1.3) is credited but not
+      required — the rule stated correctly is the finding.
+
+      Do NOT require, and do not treat their absence as a defect: labels (present),
+      contrast (fine), button semantics (correct), focus visibility (present), a
+      `<fieldset>`/`<legend>`, an `aria-describedby` error pattern, or a heading-level
+      audit. Credit the error branch needing `role="alert"` rather than `role="status"`
+      if raised, and credit `autocomplete="cc-number"` being paired with a note about
+      one-time-code fields, but neither is required.

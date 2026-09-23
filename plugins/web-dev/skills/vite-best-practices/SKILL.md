@@ -3,7 +3,7 @@ name: vite-best-practices
 description: Use when writing or reviewing Vite config or a Vite-built app — VITE_-prefix env security, optimizeDeps, code splitting (manualChunks), base for sub-path deploys, server.proxy, import.meta.glob, SSR externalization, plugin order — pinned to the lockfile's vite version.
 ---
 
-> Last verified: 2026-08-02 — https://vite.dev/releases
+> Last verified: 2026-08-02 — https://vite.dev/releases — npm:vite@8
 
 ## Know the version before advising
 

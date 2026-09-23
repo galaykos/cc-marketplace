@@ -89,9 +89,12 @@ this brief's alone. A sourced block declares itself with a greppable `component-
 marker keyed to a manifest record; an UNMARKED one is invisible to the gate, which that
 file states rather than papers over.
 
-## Cross-cutting gates
+## Cross-cutting checks (agent-graded)
 
-Both apply on top of the routed kind, on every asset:
+**Standing: `agent-graded`, both of them.** Nothing in `template/craft-gates/` reads an
+asset manifest or a fallback path — `licence-discipline.md` says so itself ("Read-only, the
+reviewer verifies STRUCTURE + COMPLETENESS"). A run that never dispatches the audit ships
+unchecked. Both apply on top of the routed kind, on every asset:
 
 - **Licence / provenance gate** (INDEX-THIN — the schema lives in
   `references/licence-discipline.md`). Every build that ships a non-code visual or

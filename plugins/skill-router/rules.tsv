@@ -1,7 +1,17 @@
 # signal_type	pattern	skill	owning_plugin	confidence	stack_marker
 # stack_marker: `[!]<manifest>~<ERE>` alternatives joined by `||`; `@base` as the manifest
 # matches the ERE against the edited file's BASENAME (route.sh marker_ok), which is how a
-# bare-extension row excludes tool configs, rc files, .d.ts and minified bundles.
+# bare-extension row excludes tool configs, rc files, .d.ts and minified bundles. `@path`
+# matches it against the file's PATH instead, which is how a row excludes a built-output
+# DIRECTORY (dist/, build/, .next/) that a basename cannot distinguish from its source.
+# A `?` PREFIX on an alternative — `?package.json~"next"`, `?!composer.json~x` — REQUIRES
+# its manifest: absent or unreadable is decisive-suppress instead of merely indecisive,
+# so a chain of `?` alternatives means "fire only on a manifest that exists and says
+# yes". Without it an ABSENT manifest lets the row fire anyway (route.sh marker_ok) —
+# which is how the Tailwind row nudged a Go module with a components/ directory, and how
+# every shadcn row nudged a `.tsx` in a repo with no components.json. Per-row and opt-in;
+# an unprefixed alternative keeps the fire-if-uncertain default. It replaced the
+# `||!@base~.` default-deny tail 0.18.0 put on four rows — same behaviour, one mechanism.
 # co-fire-ok: *.tsx a11y-audit react-native-best-practices
 # co-fire-ok: *.tsx a11y-audit nextjs-best-practices
 # Accessibility is orthogonal to every stack skill: the WCAG checklist and a library's
@@ -97,12 +107,32 @@ glob	*.rb	low-cognitive-load	code-architecture	high
 glob	*.rb	solid-principles	code-architecture	high
 glob	*.rs	low-cognitive-load	code-architecture	high
 glob	*.rs	solid-principles	code-architecture	high
-glob	**/components/**	tailwind-best-practices	ui-ux	high
-glob	*.tsx	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
-glob	*.jsx	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
-glob	*.vue	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
+# The only stack row that carried no marker at all: a Go module with `components/`,
+# and a Blade app with no Tailwind in it, both drew the Tailwind skill. The `?` prefix
+# is what makes "no package.json" mean no, instead of maybe.
+glob	**/components/**	tailwind-best-practices	ui-ux	high	?package.json~"tailwindcss"
+# shadcn's registry file is the ONLY evidence a project uses shadcn, so an absent
+# `components.json` is a no, not a maybe: without the `?` these three rows nudged the
+# shadcn skill on every `.tsx`/`.jsx`/`.vue` edit in a Nuxt, Next or plain-React repo
+# that had never installed it. LIMITATION: `components.json` is also ReUI's registry
+# file, and a project that keeps one under a workspace subdirectory reads as absent.
+glob	*.tsx	shadcn-best-practices	ui-ux	high	?components.json~"(ui|components)"
+glob	*.jsx	shadcn-best-practices	ui-ux	high	?components.json~"(ui|components)"
+glob	*.vue	shadcn-best-practices	ui-ux	high	?components.json~"(ui|components)"
 content	(@reui/|\breui\.io|\bfrom ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-ux	low
 content	\b(aceternity|ui\.aceternity\.com|motion/react|framer-motion)\b	aceternity-best-practices	ui-ux	low
+# The library-agnostic fallback. shadcn, ReUI, Aceternity, MUI and Astryx each have a
+# sibling skill and a row of their own; a project on Mantine, Chakra, Ant Design,
+# PrimeVue, Vuetify, Base UI, Ark, Reka or Nuxt UI matched nothing at all, so the one
+# skill written for exactly that case never loaded. The alternatives are the package
+# signals in the Signal column of
+# plugins/ui-ux/skills/component-libraries/references/library-map.md — keep the two in
+# step; nothing reads that file back, so this is `recorded`, not a gate. `low` because
+# an import line is weaker evidence than a file extension: it lands in the session
+# digest, not an inline nudge. LIMITATION: it keys on a QUOTED module specifier, so a
+# library reached only through an auto-import plugin or a framework config is missed,
+# and a lockfile or a docs page quoting the name matches.
+content	['"](@(base-ui|ark-ui|headlessui|ariakit|mantine|chakra-ui|heroui|fluentui|primer|blueprintjs|untitledui|radix-ui)/|@nuxt/ui|(radix-ui|antd|primevue|vuetify|element-plus|naive-ui|quasar|reka-ui|radix-vue)['"/])	component-libraries	ui-ux	low
 glob	**/dashboard/**	information-design	craft-layer	high
 glob	**/admin/**	information-design	craft-layer	high
 glob	*.tsx	a11y-audit	ui-ux	high
@@ -111,14 +141,49 @@ glob	*.vue	a11y-audit	ui-ux	high
 glob	*.blade.php	a11y-audit	ui-ux	high
 glob	*.svelte	a11y-audit	ui-ux	high
 glob	*.astro	a11y-audit	ui-ux	high
-glob	*.tsx	react-native-best-practices	web-dev	high	package.json~"react-native"
-glob	*.tsx	nextjs-best-practices	web-dev	high	package.json~"next"
+# Server-rendered and static markup. a11y-audit routed only the six component
+# extensions above, so a Rails/Django/Twig/plain-HTML project got the WCAG checklist
+# on no file it actually edits. The `@path` exclusion keeps these off BUILT output —
+# `dist/index.html` carries the same basename as its source and nothing worth
+# auditing. LIMITATION: it lists the build directories people use; a bundler
+# configured to emit somewhere else still routes, and a hand-minified page without
+# `.min.` in its name does too.
+glob	*.html	a11y-audit	ui-ux	high	!@path~(^|/)(dist|build|out|\.next|_site|coverage|vendor|node_modules)/|\.min\.
+glob	*.erb	a11y-audit	ui-ux	high	!@path~(^|/)(dist|build|out|\.next|_site|coverage|vendor|node_modules)/|\.min\.
+glob	*.twig	a11y-audit	ui-ux	high	!@path~(^|/)(dist|build|out|\.next|_site|coverage|vendor|node_modules)/|\.min\.
+# `?` on both: a `.tsx` in a repo with NO package.json is a component in a stack this
+# router cannot name, and firing every framework skill at once was the whole defect.
+glob	*.tsx	react-native-best-practices	web-dev	high	?package.json~"react-native"
+glob	*.tsx	nextjs-best-practices	web-dev	high	?package.json~"next"
+# Next.js SERVER files. The *.tsx row above routes components only, so a route
+# handler, a server action, `middleware.ts` or `proxy.ts` — the files the skill's own
+# server-actions-are-public-endpoints rule is about — reached low-cognitive-load and
+# solid-principles and nothing else. `**/app/**` is broad on purpose and the marker is
+# what makes it safe: a Laravel `app/` or a Rails `app/` has no `"next"` in a
+# package.json, so it suppresses, and the `?` prefix means a repo with no
+# package.json at all — a Go module with an `app/` directory — suppresses too.
+# LIMITATION: a Next repo whose package.json sits in a
+# workspace subdirectory is invisible to marker_ok, which reads `$cwd/package.json`
+# only, and a pages-router repo has no `app/` at all.
+glob	**/app/**	nextjs-best-practices	web-dev	high	?package.json~"next"
+glob	middleware.*	nextjs-best-practices	web-dev	high	?package.json~"next"
+glob	proxy.*	nextjs-best-practices	web-dev	high	?package.json~"next"
 glob	**/resources/js/Pages/**	inertia-best-practices	laravel	high
 glob	*.blade.php	laravel-best-practices	laravel	high
 glob	*.php	laravel-best-practices	laravel	high	composer.json~laravel/framework
 glob	api.php	api-design	api-design	high
 glob	openapi*.yml	api-design	api-design	high
 glob	openapi*.yaml	api-design	api-design	high
+# API ROUTE FILES, not just the spec. api.php and openapi*.y*ml route the two shapes
+# Laravel and spec-first projects use; every JS-side HTTP surface — a Next route
+# handler, a Nuxt/Nitro `server/api` handler, a SvelteKit `+server.ts` — matched
+# nothing, so the REST rubric never loaded on the file that defines the endpoint.
+# LIMITATION: `+server.js` and framework-free routers (Hono, Express) have no
+# file-shaped signal to key on and stay unrouted; `**/server/api/**` also matches a
+# non-Nitro directory that happens to be named that.
+glob	**/app/api/**	api-design	api-design	high
+glob	**/server/api/**	api-design	api-design	high
+glob	+server.ts	api-design	api-design	high
 glob	*.test.*	testing-best-practices	testing	high
 glob	*.spec.*	testing-best-practices	testing	high
 glob	**/tests/**	testing-best-practices	testing	high
@@ -134,8 +199,24 @@ glob	vite.config.*	vite-best-practices	web-dev	high
 # tailwind did not, and tailwind-best-practices' own description names "config tokens".
 # prime.sh already sniffs `tailwind.config.*` for the SessionStart index, so the two
 # signals now agree. LIMITATION: Tailwind v4 is CSS-first and a v4 project may ship no
-# config file at all; there its only route stays the **/components/** row above.
+# config file at all; there its only route stays the **/components/** row above, which
+# now carries a `package.json~"tailwindcss"` marker a v4 project still satisfies.
 glob	tailwind.config.*	tailwind-best-practices	ui-ux	high
+# STYLESHEETS. Four theming skills — shadcn-theming, design-tokens, theming-system,
+# component-libraries — were reachable from no file rule at all, while the tailwind
+# CONFIG had a row: the router could see a project declare its theme and not see
+# anyone edit it. shadcn-theming owns the colour channel (CSS variables, Tailwind
+# semantic tokens, Bootstrap Sass), design-tokens owns the scales. theming-system and
+# component-libraries stay prompt-shaped and content-shaped respectively — no file
+# extension identifies them. LIMITATION: these are the CONVENTIONAL entry-point
+# filenames, not a proof that the project theme lives there; a project whose tokens
+# sit in `src/styles/theme.css` routes nothing, and every `*.scss` in a Bootstrap or
+# legacy Sass app draws the colour skill whether or not it touches colour.
+glob	globals.css	shadcn-theming	ui-ux	high
+glob	app.css	shadcn-theming	ui-ux	high
+glob	*.scss	shadcn-theming	ui-ux	high
+glob	*.tokens.json	design-tokens	ui-ux	high
+glob	tokens.json	design-tokens	ui-ux	high	@path~(^|/)design-system/
 glob	app.config.*	react-native-best-practices	web-dev	high	package.json~"expo"
 glob	eas.json	react-native-best-practices	web-dev	high	package.json~"expo"
 glob	*.graphql	graphql-grpc	api-design	high

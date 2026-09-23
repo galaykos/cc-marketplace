@@ -20,8 +20,12 @@ Resolve the argument first:
   for structure and copy (`dk.sh decision --board <file>` reads its recorded edits too).
 - Anything else → a brief.
 
-Then, in order: `dk.sh scratch --detect`; consent via AskUserQuestion ("Write the
-scratch entry (Recommended)" / "Show me the plan only") once per session;
+Then, in order: `dk.sh scratch --detect`; consent via AskUserQuestion once per session —
+say what the choice buys before offering it: the scratch entry is a few throwaway files
+written into the project tree under `__design-kit__/` paths and removed after the pick, so
+the design renders on the project's own dev server with its own components. Labels:
+"Write the scratch entry (Recommended)" / "Show me the plan only". No write before the
+first is chosen. Then
 `dk.sh scratch --create <slug> --brief "<one line>"` (the brief seeds the variant strip; omitted, the workshop's brief is used); fill only the printed files with real components;
 open the printed URL; iterate; after the pick `dk.sh scratch --cleanup` then
 `dk.sh scratch --verify`, unless the user says keep — then say in one line that

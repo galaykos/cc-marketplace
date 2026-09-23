@@ -6,6 +6,13 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.11.0
+
+### Fixed
+- **`test-shape` detected nothing in Python, Go or Ruby.** The path glob admitted `*_test.py`, `*_test.go` and `*_spec.rb`; the block-opener vocabulary matched only JS and PHP, so all three found zero test blocks and the hook stayed silent — the same output a clean file produces, which is why nobody noticed. `is_opener()` now reads `def test…`, `func Test…` and RSpec's paren-less `it "…" do`, and the assertion vocabulary gains pytest's bare `assert` statement, Go's `t.Error`/`t.Fatal` and testify's `require.`/`assert.`, and RSpec's `expect { }`/`is_expected`/`should` forms. Declared skips in those languages live in the block BODY or on the decorator line above rather than on the opener, so exclusions are now tested against every line of a block; Go's `TestMain` is excluded outright. The header's LIMITATION section now separates the two vocabularies and says which failure each produces — a missing OPENER dialect reads as *no test file*, a missing ASSERTION dialect reads as assertion-free — and names the dialects still absent (JUnit, Rust, C++, Elixir).
+- **`protect-tests` let every paren-less Ruby skip through.** `xit "adds" do`, `pending "…"` and a bare `skip "…"` are how RSpec, minitest and bats spell a skip, and every Ruby arm of the matcher required a `(`. They deny now when followed by a quote; `items.skip 2` still does not, and the same-line-reason escape still clears them.
+- **A payload `cwd` that no longer exists is no longer rebuilt.** `test-shape` ran `mkdir -p` on it, recreating a deleted project tree to hold its own state file. It now requires `[ -d "$cwd" ]` and resolves its state dir through `git rev-parse --show-toplevel`, so one repository gets one bound instead of one per working directory.
+
 ## 0.10.3
 
 ### Fixed

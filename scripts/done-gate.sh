@@ -130,6 +130,6 @@ remedy="validate.sh, context-budget.sh, generate.sh --check"
 [ "$ran_bumps" -eq 1 ] && remedy="$remedy, check-version-bumps.sh $base"
 
 cat >&2 <<EOF
-{"decision":"block","reason":"This turn is ending with plugin changes in the working tree and failing gates: $fails — and said nothing about it. Either fix them ($remedy), or state plainly what is failing and why that is acceptable right now. Silence on a red gate is the one thing this hook exists to stop."}
+{"decision":"block","reason":"This turn is ending with plugin changes in the working tree and failing gates: $fails — and said nothing about it. Either fix them ($remedy), or state plainly what is failing and why that is acceptable right now. Silence on a red gate is the one thing this hook exists to stop. CRAFT_DONE_GATE=off disables this gate for the session."}
 EOF
 exit 2

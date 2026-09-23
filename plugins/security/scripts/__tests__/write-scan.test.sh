@@ -25,10 +25,22 @@ silent() { # silent <name> <session> <tool> <content>
 
 warns "empty guarded"      'protected $guarded = [];'                        "mass-assignment-open"
 warns "blade unescaped"    '<div>{!! $user->bio !!}</div>'                   "blade-unescaped"
-warns "vite secret"        'VITE_STRIPE_SECRET=sk_test_x'                    "vite-client-secret"
+warns "vite secret"        'VITE_STRIPE_SECRET=sk_test_x'                    "client-bundle-secret"
 warns "whereRaw interp"    '->whereRaw("id = {$id}")'                        "raw-sql-interpolation"
 warns "whereRaw concat"    "->whereRaw('id = ' . \$id)"                      "raw-sql-interpolation"
 warns "raw html sink"      '<div dangerouslySetInnerHTML={{__html: bio}} />' "raw-html-sink"
+# One public-bundle prefix per bundler: the rule used to know VITE_ only, so a Next,
+# Nuxt, Expo, SvelteKit/Astro, CRA, Gatsby or Vue-CLI secret was written in silence.
+warns "next public"        'NEXT_PUBLIC_STRIPE_SECRET_KEY=sk_live_1'         "client-bundle-secret"
+warns "expo public"        'EXPO_PUBLIC_API_KEY=abc123'                      "client-bundle-secret"
+warns "nuxt public"        'NUXT_PUBLIC_API_TOKEN=abc123'                    "client-bundle-secret"
+warns "bare public"        'PUBLIC_DATABASE_PASSWORD=hunter2'                "client-bundle-secret"
+warns "react app"          'REACT_APP_AUTH_TOKEN=abc123'                     "client-bundle-secret"
+warns "gatsby"             'GATSBY_ADMIN_SECRET=abc123'                      "client-bundle-secret"
+warns "vue app"            'VUE_APP_PRIVATE_KEY=abc123'                      "client-bundle-secret"
+# A server-side name with no public prefix must stay silent, or the widening has
+# turned the rule into "any variable whose name contains SECRET".
+silent "unprefixed secret" sp Write 'STRIPE_SECRET_KEY=sk_live_1'
 
 # ---- ported stack-agnostic sinks, each gated to its language --------------------------
 runf() { # runf <session> <file_path> <content>
@@ -47,6 +59,8 @@ silentf() { # silentf <name> <file_path> <content>
 }
 warnsf "innerHTML"          /tmp/a.js  'el.innerHTML = user.bio'                          "raw-html-sink"
 warnsf "insertAdjacentHTML" /tmp/a.ts  'el.insertAdjacentHTML("beforeend", html)'         "raw-html-sink"
+warnsf "svelte @html"       /tmp/a.svelte '<p>{@html bio}</p>'                              "raw-html-sink"
+warnsf "astro set:html"     /tmp/a.astro  '<div set:html={bio} />'                          "raw-html-sink"
 warnsf "js eval"            /tmp/a.js  'const v = eval(input)'                            "code-eval"
 warnsf "php eval"           /tmp/a.php 'eval($code);'                                     "code-eval"
 warnsf "new Function"       /tmp/a.ts  'const fn = new Function("a", body)'               "code-eval"
@@ -169,13 +183,14 @@ out2=$(tprun "$DIRTY")
 if [ -z "$out2" ]; then pass=$((pass+1)); echo "PASS transcript_path: dedup still holds on the second write"
 else echo "FAIL transcript_path: warned twice, dedup dead: $out2"; fail=$((fail+1)); fi
 
-# Scoped to THIS run's key, not any lock dir: the transcript path is absolute, so if the
-# mkdir -p rescue works the path's own leading segments appear under cc-security-scan.
-# A bare `find -name '*_*'` would have passed on locks left by the session_id cases above,
-# which is a green assertion that proves nothing.
-if [ -d "$TMPDIR/cc-security-scan/Users/x/.claude/projects" ]; then
-  pass=$((pass+1)); echo "PASS transcript_path: mkdir -p \$(dirname) rescued the nested path"
-else echo "FAIL transcript_path: nested lock path never created"; fail=$((fail+1)); fi
+# Scoped to THIS run's key, not any lock dir: the marker dir is the cksum of the
+# transcript path, ONE level under cc-security-scan. Assert both directions — the keyed
+# dir exists AND the absolute path's own segments do not — because the old shape mirrored
+# `/Users/x/.claude/projects/...` into $TMPDIR, seven dirs per session, swept by nothing.
+TPKEY=$(printf '%s' "$TP" | cksum | cut -d' ' -f1)
+if [ -d "$TMPDIR/cc-security-scan/$TPKEY" ] && [ ! -d "$TMPDIR/cc-security-scan/Users" ]; then
+  pass=$((pass+1)); echo "PASS transcript_path: flat cksum key, no mirrored path"
+else echo "FAIL transcript_path: expected a flat cc-security-scan/$TPKEY and no mirrored path"; fail=$((fail+1)); fi
 
 echo "write-scan tests: $pass passed, $fail failed"
 exit $((fail > 0))

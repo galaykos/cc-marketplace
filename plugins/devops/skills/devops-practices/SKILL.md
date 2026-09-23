@@ -70,6 +70,7 @@ Config is code; check it before shipping and paste the output:
 | Helm chart | `helm template \| kubeconform`, `helm lint` |
 | CI workflow | the CI system's lint/dry-run (`actionlint`, `gitlab-ci lint`) |
 | GitHub Actions trust boundary | `bash ${CLAUDE_PLUGIN_ROOT}/scripts/workflow-audit.sh` |
+| Terraform/OpenTofu plan | `bash ${CLAUDE_PLUGIN_ROOT}/scripts/plan-audit.sh plan.json` |
 
 "The manifest looks right" is not evidence; the dry-run's output is. If no mechanical
 check exists for an artifact, say so explicitly rather than implying it was verified.
@@ -84,6 +85,20 @@ a fork-reachable trigger, secrets reachable from a fork trigger — are reported
 not fail. A PreToolUse hook denies the two critical shapes at edit time; it
 deliberately denies nothing else, because a deny that fires on ambiguous cases gets
 switched off and takes the unambiguous ones with it.
+
+## Terraform / OpenTofu: read the plan, do not advise from memory
+
+Standing: **gate — exit code**. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/plan-audit.sh
+plan.json --tf-dir <dir> --base <ref>` (JSON from `terraform show -json plan.out` or
+`tofu show -json`, path or stdin) exits **2** when the plan deletes or replaces a
+resource whose type holds data — RDS, S3, DynamoDB, EFS/EBS, Cloud SQL, GCS, Azure
+storage/SQL/disks, a PVC, a `helm_release` whose values name one (`--list-types`
+prints the list with reasons) — or when `lifecycle.prevent_destroy = true` was removed
+from a resource since `--base`. **1** means it could not read the input, so nothing was
+checked; **0** means none of those shapes. It reads the plan you hand it and does not
+run Terraform. That exit code is this plugin's whole Terraform surface: there is no
+terraform rubric here, and writing one from memory is the shape
+`rationale/measured-zero-shapes.md` records as measuring zero.
 
 ## The observability boundary
 

@@ -73,6 +73,20 @@ run_case "weak: composer test bare"       2 "bare-suite-pass"    --line 'compose
 run_case "strong: pest --filter="         0 ""                   --line 'pest --filter=RefundTest'
 run_case "strong: phpunit --filter space" 0 ""                   --line 'phpunit --filter OrderTest'
 
+# --- JVM / .NET / C++ runners: blind until 2026-09-22, when the alternation demanded a
+#     literal `mvn test` / `gradle test` and every wrapper form passed as if it named a
+#     test. Bare forms blocked; --tests / -Dtest= / --filter named forms pass. ---
+run_case "weak: ./gradlew test bare"      2 "bare-suite-pass"    --line './gradlew test'
+run_case "weak: mvn -q test bare"         2 "bare-suite-pass"    --line 'mvn -q test'
+run_case "weak: dotnet test bare"         2 "bare-suite-pass"    --line 'dotnet test'
+run_case "weak: ./mvnw test bare"         2 "bare-suite-pass"    --line './mvnw test'
+run_case "weak: sbt test bare"            2 "bare-suite-pass"    --line 'sbt test'
+run_case "weak: bazel test bare"          2 "bare-suite-pass"    --line 'bazel test //...'
+run_case "weak: ctest bare"               2 "bare-suite-pass"    --line 'ctest'
+run_case "strong: gradlew --tests"        0 ""                   --line './gradlew test --tests com.acme.OrderServiceTest'
+run_case "strong: mvn -Dtest="            0 ""                   --line 'mvn test -Dtest=OrderServiceTest'
+run_case "strong: dotnet test --filter"   0 ""                   --line 'dotnet test --filter FullyQualifiedName~OrderTests'
+
 # --- migration-run-only: the command ran proves the DDL parsed, not the schema ---
 run_case "weak: artisan migrate only"     2 "migration-run-only" --line 'php artisan migrate — exits 0'
 run_case "weak: alembic upgrade only"     2 "migration-run-only" --line 'alembic upgrade head'

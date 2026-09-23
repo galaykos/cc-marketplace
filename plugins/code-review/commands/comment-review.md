@@ -2,7 +2,6 @@
 description: Audit comments — restatement, section banners, commented-out code, bare TODOs, docblock tags repeating the signature, change-narration, missing why-comments — one line per finding.
 argument-hint: [path-or-diff]
 ---
-<!-- generated from templates/review-command.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
 Review the target in $ARGUMENTS against this plugin's rubric — audit it, do not rewrite it.
 

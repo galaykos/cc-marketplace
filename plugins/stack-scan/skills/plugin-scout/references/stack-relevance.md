@@ -13,7 +13,7 @@ silently skips — or, worse, a ghost it tries to install.
 
 "dep X" is an **exact key** in `dependencies` or `devDependencies`, the same rule
 as the tier-1 table in `SKILL.md` — `react-native-web` is not `react-native`. The
-JS class is deliberately WIDER than that table (`vue` and `svelte` earn no row in
+JS class is deliberately WIDER than that table (`vue`, `svelte` and `astro` earn no row in
 SKILL.md's tier-1 table; `tailwindcss`'s own signals.md row targets `ui-ux`, which is not in
 this class — it still counts as class evidence here; `vite` needs no `vite.config.*` here): suggesting needs one strong signal,
 excluding needs the absence of every frontend signal. **A fired signals.md row always
@@ -30,7 +30,7 @@ those rows exist because three tokens share a name with plugins removed on
 | Class | Plugin | Manifest evidence that satisfies it | `--stack` tokens that satisfy it |
 |---|---|---|---|
 | PHP / Laravel | `laravel` | composer.json require `laravel/framework` or `inertiajs/inertia-laravel`, or package.json dep `@inertiajs/*` — the SKILL.md tier-1 keys. Bare composer.json never earns it: a Symfony or WordPress repo must not install laravel | `php`, `laravel`, `inertia` <!-- removed-ok --> |
-| JS / web frontend | `web-dev`, `craft-layer` | package.json (scan root, or a workspace member one level deep under SKILL.md's Detection precondition — root `workspaces`, `pnpm-workspace.yaml` or `turbo.json`) declaring an exact dep among `react`, `react-dom`, `vue`, `svelte`, `@angular/core`, `next`, `nuxt`, `react-native`, `vite`, `@inertiajs/*`, `@react-three/fiber`, `tailwindcss`, `three`; or a `components.json` at the scan root. Bare package.json never earns it: a Go repo with prettier must not install web-dev | `react`, `vue`, `next`, `nuxt`, `react-native`, `vite`, `node`, `inertia` <!-- removed-ok --> |
+| JS / web frontend | `web-dev`, `craft-layer` | package.json (scan root, or a workspace member one level deep under SKILL.md's Detection precondition — root `workspaces`, `pnpm-workspace.yaml` or `turbo.json`) declaring an exact dep among `react`, `react-dom`, `vue`, `svelte`, `@sveltejs/kit`, `astro`, `@angular/core`, `next`, `nuxt`, `react-native`, `vite`, `@inertiajs/*`, `@react-three/fiber`, `tailwindcss`, `three`; or a `components.json` at the scan root. Bare package.json never earns it: a Go repo with prettier must not install web-dev | `react`, `vue`, `svelte`, `astro`, `angular`, `next`, `nuxt`, `react-native`, `vite`, `node`, `inertia` <!-- removed-ok --> |
 
 ## Everything else
 

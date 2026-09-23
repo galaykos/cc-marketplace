@@ -4,6 +4,23 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.9.0 — 2026-09-22
+
+### Added
+- **`/stack-scan:audit` has a fourth axis and no longer stops on an infra-only repo.** With neither `composer.json` nor `package.json` it used to say so and stop; a repo whose dependencies are base images got nothing. It now collects `FROM` tags from every `Dockerfile*` and `image:` values from compose and Kubernetes manifests, runs `trivy image` per tag when `trivy` is on PATH, and otherwise checks each tag's major against endoflife.date — reported plainly as a tag check and never as a CVE scan, with the absent tool named as the finding. Everything past the tag (layers, `USER`, build context, compose topology) is handed to `/devops:review` instead of re-derived.
+
+### Changed
+- **`scan.sh` names the 2026 JS frameworks.** Its framework loop listed nine packages, so an Astro-, Svelte- or Angular-only repo produced a table of "node + a lockfile" and no framework row at all. It now also reads `svelte`, `@sveltejs/kit`, `astro`, `@angular/core`, `@remix-run/react`, `react-router`, `hono`, `@prisma/client` and `drizzle-orm`. `plugin-scout`'s `--full` exclusion table gains `astro` and `@sveltejs/kit` as JS-class evidence and `svelte`, `astro`, `angular` as `--stack` tokens — an Astro-only repo satisfied no class, so `--full` excluded `web-dev` and `craft-layer` from it.
+
+## 0.8.6 — 2026-09-22
+
+### Changed
+- Picker question headers name the group instead of its tier number: `Your stack`,
+  `Any project 1/2`, `Everything else` in place of `Tier 1`, `Core 1/2`, `The rest`
+  (`skills/plugin-scout/references/picker.md`). `commands/suggest.md` names the resolved
+  scope in the install option rather than "scope S", and calls question 4 the way into
+  everything else rather than "the tier-3 door".
+
 ## 0.8.5 — 2026-09-22
 
 ### Changed

@@ -28,7 +28,7 @@ re-run the hand-dispatch path every earlier simulation took. Standing: agent-gra
 | build | `task-runner` (run, --tracks, task-executor), `laravel`, `web-dev`, `ui-ux` (ui-ux-engineer), `database`, `security`, `testing` (test-engineer), `craft-layer` (a per-milestone build tool for a crafted surface — a landing or marketing page; it consumes a spec, it never owns the program) | project `.claude/skills/*` | dispatch general-purpose workers with the discipline preamble; one per disjoint file set |
 | verify | `testing`, `code-architecture` (work-verification, drift-review), `task-runner` (behavioral-gate) | official `playwright` (not a marketplace plugin — the scan never lists it as installable), `claude-in-chrome` MCP | run the suite yourself; browser via Playwright MCP, Chrome MCP, or `npx playwright` — see acceptance.md |
 | review | `code-review` (the fan-in; loads the laravel, web-dev, database and ui-ux skills the diff touches — their own review commands were retired 2026-09-14), `ui-ux` (audit), `security`, `resilience` (`--concern`), `api-design` | — | one read-only reviewer subagent with the diff, `path:line — severity — problem — fix` |
-| ship | `git-workflow` (`/git-workflow:finish`, skills `branch-completion`, `worktree-isolation`) | official `commit-commands` | offer merge / PR / keep via AskUserQuestion; headless: keep and print the command |
+| ship | `git-workflow` (`/git-workflow:finish`, skills `branch-completion`, `worktree-isolation`) | official `commit-commands` | offer three spelled-out destinations via AskUserQuestion — merge locally (into the base branch, no review), push and open a PR (for review), keep the branch open (leave it, come back); headless: keep and print the command |
 | guard | `command-guard`, `secret-scanning`, `candor` | — | none — say in the charter that no destructive-command guard is active |
 
 Rules:
@@ -46,7 +46,7 @@ Rules:
   Boost ships several) is a build-phase source; pin it by absolute path in every worker
   prompt that touches its domain, the same as a marketplace skill.
 - **A command you have and do not use is a decision.** `/stack-scan:report`,
-  `/approaches:size`, `/ui-ux:audit`, `/git-workflow:finish` installed and skipped is fine
+  `/ui-ux:audit`, `/git-workflow:finish` installed and skipped is fine
   when the inline route was cheaper — one `decision add` row per skip, so the user can see
   what strength was left on the table.
 - **A missing stack plugin is a finding, not a blocker.** No `laravel` plugin in a Laravel

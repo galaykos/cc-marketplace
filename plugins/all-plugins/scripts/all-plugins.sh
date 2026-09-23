@@ -13,7 +13,10 @@
 # (default 0.01 — 6,000 chars at 200k on a 3-byte model) and past it drops entries to
 # name-only. Every leaf here costs several times that, so `install` computes the
 # listing cost the way scripts/lib/plugin-checks.sh's pc_listing_entry_cost does
-# (name + 4 + min(desc,1536) per skill/command), and raises skillListingBudgetFraction
+# (name + 4 + min(description, 1536) per skill/command — and `description` is the
+# JOINED pair the CLI lists, `description + " - " + when_to_use` when the frontmatter
+# carries both, capped once after the join, not twice; see the walk near the bottom of
+# this file), and raises skillListingBudgetFraction
 # in the SCOPE's settings file to the smallest 0.01 step that covers it at the 200k
 # floor — a cap, not a fill, so a 1M window pays nothing extra. `uninstall` removes
 # the key again, but only when it still holds the value this script would set; any
@@ -217,6 +220,10 @@ listing_cost() { # listing_cost <root> — stdout: entry chars of every leaf, pc
       desc=$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)
       wtu=$(printf '%s\n' "$fm" | sed -n 's/^when_to_use:[[:space:]]*//p' | head -1)
       dl=$(printf '%s%s' "$desc" "${wtu:+ - $wtu}" | LC_ALL=C wc -c | tr -d ' ')
+      # 1536 is the host's skillListingMaxDescChars default. SOURCE OF TRUTH:
+      # scripts/host-constants.sh in the marketplace repo, which re-reads it out of the
+      # pinned CLI binary. This copy cannot source it — this script ships inside the
+      # plugin and runs on an installer's disk where that repo path does not exist.
       [ "$dl" -gt 1536 ] && dl=1536
       total=$(( total + ${#name} + 4 + dl ))
     done

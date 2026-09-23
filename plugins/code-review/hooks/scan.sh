@@ -47,6 +47,12 @@
   # for two releases while nothing read it. It silences the WARN lane only: a PreToolUse
   # deny is not an advisory, so an env var must not be able to turn a block into a pass.
   [ "$event" = "PostToolUse" ] && [ "${CC_REMIND:-on}" = "off" ] && exit 0
+  # CC_COMMENT_GUARD=off disables the DENY lane and leaves the advisory lane on.
+  # Added 2026-09-22 (UX 1): until now the block had no off switch at all — CC_REMIND
+  # covers the advisory only — so the refusal could name none, which is what
+  # pc_offswitch_named reports. Read from the hook's environment, which the edit text
+  # cannot reach. Two lanes, two switches: silencing the block keeps the finding visible.
+  [ "$event" = "PreToolUse" ] && [ "${CC_COMMENT_GUARD:-on}" = "off" ] && exit 0
 
   fp=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
   [ -n "$fp" ] || exit 0
@@ -317,7 +323,10 @@
   # jq builds the envelope so the message stays valid JSON whatever the comment text
   # contains. jq presence is guaranteed by the guard at the top of the block.
   if [ "$event" != "PreToolUse" ]; then
-    jq -cn --arg ctx "$warn" \
+    # The switch is named HERE and not in "$warn": the deny below reuses that text, and
+    # CC_REMIND does not silence a deny — naming it there would send the blocked reader
+    # to a variable that changes nothing.
+    jq -cn --arg ctx "$warn CC_REMIND=off silences these." \
       '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
     exit 0
   fi
@@ -359,7 +368,14 @@
   # is the one context this never speaks in. Pattern and rationale: hooks/conventions.sh (context-key one-shot).
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
   [ -n "$sid" ] || exit 0                     # cannot bound the deny → do not block
-  [ -n "$cwd" ] || exit 0                     # no cwd → nowhere to record the bound
+  # `-d` as well as `-n`: a payload cwd is where the session STARTED, and a deleted project
+  # dir came back three levels deep holding only `mkdir -p "$cwd/.claude/comment-discipline"`
+  # below. A cwd that is gone is also nowhere to record the bound, so it withholds the deny
+  # on the same rule as the rest of this block. Plain `-d`, not `git rev-parse
+  # --show-toplevel`: this address is SHARED with density.sh, verbosity.sh and
+  # conventions.sh, and re-rooting one of four splits the one-shot. Does NOT catch a cwd
+  # that exists but belongs to another checkout.
+  [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0    # no cwd, or a cwd that is gone → nowhere to record the bound
   key=$(printf '%s' "$fp" | (command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
   [ -n "$key" ] || exit 0
   # THE KEY IS A PATH, SO IT MUST BE HASHED BEFORE IT CAN BE A FILENAME. `.transcript_path`
@@ -402,7 +418,7 @@
   # the bound only on an observed write needs a PostToolUse handshake, which is a larger
   # change to a guard with 55 assertions; two tries survives the measured single-sibling
   # case, which is the one reproduced with all 31 plugins installed.
-  reason=$(printf '%s Write the edit again without them: a comment restating the next line, a line of commented-out code, or a docblock tag that only repeats the signature has no fact to carry — delete it or move the fact to a name, a type, or a test. The default is no comment; a docblock earns a line only for what the signature cannot state. Blocked at most twice per file; after that an edit goes through with a warning instead.' "$warn")
+  reason=$(printf '%s Write the edit again without them: a comment restating the next line, a line of commented-out code, or a docblock tag that only repeats the signature has no fact to carry — delete it or move the fact to a name, a type, or a test. The default is no comment; a docblock earns a line only for what the signature cannot state. Blocked at most twice per file; after that an edit goes through with a warning instead. CC_COMMENT_GUARD=off disables this block for the session (CC_REMIND=off silences the warning it falls back to).' "$warn")
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
 } 2>/dev/null

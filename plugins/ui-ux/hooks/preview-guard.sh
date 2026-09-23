@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # PreToolUse guard on the Artifact tool.
 #
 # The failure this exists for: a visual decision gets published as a remote

@@ -63,7 +63,7 @@ close prints and archives.
 `kind` (default `feature`) selects the row of `kinds.tsv` whose skill groups `accept`
 requires some gated dispatch to have pinned by an existing path, and whose `profile`
 column (`ui` default, `headless`) picks the evidence set it demands (**gate**). `size`
-(`S|M|L|XL`, default `M`) is the MILESTONE scale, not `/approaches:size`'s card scale (sim
+(`S|M|L|XL`, default `M`) is the MILESTONE scale, not a card scale (sim
 4's M was five cards and two hours — an L card): S one direct worker; M one taskmaster run
 in one session; L two sessions; XL a roadmap error, split it before briefing. It routes the
 pipeline: M and up are briefed to taskmaster, only S may go to one direct worker

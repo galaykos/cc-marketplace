@@ -10,6 +10,13 @@ The script `scripts/system-extract.py` reads the source and writes three files u
 `design-system/`; this skill is the judgment around it — what to run it on, how to
 read what comes back, and what never to add by hand.
 
+**Recording values is this skill; GENERATING them is `/ui-ux:theme`.** When the `## Not
+found` list says the source has no palette, no dark mode or no scale, that is the
+deliverable — and the next move is `/ui-ux:theme`, which derives a contrast-checked
+light/dark token set with a live preview, written into the project's stylesheet. Re-run
+the extraction afterwards and the record catches up. (`ui-ux` ships in craft-suite and
+frontend-suite; skipped if not installed.)
+
 ## The rule the model gets wrong
 
 Left to memory, the model *remembers* a palette: a primary the repo never declared, a

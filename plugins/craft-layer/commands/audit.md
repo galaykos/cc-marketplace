@@ -80,7 +80,9 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
      node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/divergence.mjs
    cd <project> && CRAFT_TOKEN_SOURCE=<the CSS holding the tokens> \
      node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/contrast.mjs
-   BASE_URL=<the dev server> CRAFT_EXPECT_TITLE=<the contract's product name> npx playwright test
+   cd <project> && BASE_URL=<the dev server> CRAFT_EXPECT_TITLE=<the contract's product name> \
+     NODE_PATH=<project>/node_modules \
+     npx playwright test --config "${CLAUDE_PLUGIN_ROOT}/template/craft-gates/playwright.config.ts"
    ```
 
    **`contrast.mjs` is not optional and it is not covered by the Playwright suite.**
@@ -90,6 +92,12 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    nothing — the suite's disabled rule plus an unrun script is a hole, not a
    division of labour. Exit 1 is a FINDING; exit 2 (`not measured`, no token
    source found) is a FAILURE here by the script's own contract, not a skip.
+
+   **`voice-contract` and the `voice NEVER` rows need the same `CRAFT_BUILD_TASK` path `spine-register`
+   does.** Both read the build task's `Voice:` line; omit the path and the voice gate reports
+   `no build task resolved` — a SKIP, which is the one state here that is NOT a finding. A build task
+   that resolved and carries no `Voice:` line IS one (exit 1), and the fix is step 5 writing the line,
+   never deleting the artifact (`.../references/voice-contract.md` carries the standing table).
 
    Pass the paths step 3 resolved: `divergence.mjs` resolves `craft/…` relative to the PROJECT ROOT while
    the craft flow persists to the run's working area — the session scratch on a project with no
@@ -103,6 +111,15 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    stand. `CRAFT_EXPECT_TITLE` is the only thing proving the server on that port is THIS build; the
    suite runs inside the target and cannot read the contract, and without it reports `IDENTITY NOT
    MEASURED` and captures anyway — carry that phrase into the `Visual:` line rather than dropping it.
+   **Neither `--config` nor `NODE_PATH` is optional, and both fail in opposite directions.** Playwright
+   has no `--spec` flag, so a bare `npx playwright test` scans the PROJECT's own testDir, finds no
+   craft gate and exits 0 having run nothing — a `not checked` wearing a green. `--config` points at
+   the config shipped beside the spec, which pins the plugin dir as the testDir and the project's
+   `.craft-layer/` as the output dir. But Node then resolves the spec's `@playwright/test` and
+   `@axe-core/playwright` imports from the PLUGIN, which has no `node_modules`, and the run dies with
+   MODULE_NOT_FOUND before the first test — `NODE_PATH` is what points it back at the project. Both
+   measured 2026-09-22 against a throwaway page: bare → `Error: No tests found`; `--config` alone →
+   MODULE_NOT_FOUND; both → 21 tests, 12 shots in `<project>/.craft-layer/shots/`.
 
    Carry the verdicts into the table: **exit 1 is a FINDING** to resolve or waive in
    `<project>/.craft-layer/waivers.json` with a reason · **exit 2 is `not measured`, EXCEPT from
@@ -127,7 +144,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    paths, and Read paths to the references its checks cite: `motion-tiers/references/tier-budgets.md` ·
    `creative-direction/references/` `sameness-fingerprint.md`, `content-depth.md`, `offer-contract.md`,
    `ambition-tiers.md`, `content-source.md`, `concept-deck.md`, `moves-taxonomy.md`, `type-strategy.md`,
-   `register-corpus.md` · `scroll-orchestration/references/scroll-acts.md` ·
+   `register-corpus.md`, `voice-contract.md` · `scroll-orchestration/references/scroll-acts.md` ·
    `asset-sourcing/references/` `licence-discipline.md`, `component-sourcing.md` ·
    `section-decisions/references/section-ledger.md` plus the ledger when one exists · and, when the
    contract's archetype is `app/CRM` or the target has a logged-in data-dense half,

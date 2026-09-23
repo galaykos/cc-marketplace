@@ -151,8 +151,11 @@ and a source that never came back still owes a row saying so. `search-layer` is 
 that does NOT cross over — it records a search discharged with no page retrieved, which is a
 research lane's half-result and never a capture of the client's published words.
 
-## What the audit checks (teeth)
+## What the audit checks (agent-graded)
 
+**Standing: `agent-graded` except for the stamp.** `divergence.mjs`'s `craft-stamp`
+assertion is the only script that reads this artifact, and it checks only that the stamp
+agrees with its siblings; every claim-to-block trace below is a reviewing agent's read.
 `/craft-layer:audit` globs `**/craft/content-source.md` with the other artifacts and, when
 one exists, verifies:
 

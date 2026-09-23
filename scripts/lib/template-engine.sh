@@ -19,8 +19,10 @@
 # They exist because the only escape from the drift gate was a whole-file
 # `optout`: a generated file needing ONE different sentence had to be
 # hand-maintained forever, forfeiting every later template improvement — while
-# the alternative, a new template slot, re-renders all 31 sharers of
-# review-command.md.tmpl and patch-bumps 31 plugin.json in a single commit.
+# the alternative, a new template slot, re-renders every sharer of the template and
+# patch-bumps each of their plugin.json in a single commit (when this was written that
+# meant 31 files sharing review-command.md.tmpl, retired 2026-09-22; the reminder- and
+# boost-hook templates have the same property at a smaller count).
 
 # _read_raw <file>: emit file bytes then an 'X' sentinel so callers can preserve a
 # trailing newline through $(...) (which strips trailing newlines). Nonzero if unreadable.

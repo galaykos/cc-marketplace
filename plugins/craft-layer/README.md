@@ -9,6 +9,23 @@ creative direction, an optional guided section-decision loop, a research→brief
 an asset-sourcing + licence gate, a concept→token-system derivation, a tiered motion
 **decision** system, sprite guidance, information design, and a craft **audit**.
 
+## Vocabulary
+
+Eight words below carry load in every section that follows, and none of them means
+here what it means in ordinary design talk. One clause each; the owning reference is
+the authority, and the clause is a pointer, not a summary.
+
+| Term | In one clause | Owned by |
+| --- | --- | --- |
+| **spine** | the eight questions a visitor asks that the page owes an answer to — slots with owners, not prescribed sections, and which of them are owed is archetype-keyed | `skills/creative-direction/references/offer-contract.md` |
+| **archetype** | which of five kinds of thing this build is (creative/portfolio, marketing/campaign, product/SaaS, editorial/content, app/CRM), picked once and keying the spine, the depth budget and the motion ceiling | `skills/creative-direction/references/archetypes.md` |
+| **draw** | one option pulled per axis from the concept deck under an exclusion window, never picked — the starting CONSTRAINT the concept works inside, not a description of the page | `skills/creative-direction/references/concept-deck.md` |
+| **move** | a CATEGORY of craft device (hero archetype, scroll device, transition…) with a when-it-earns-its-cost rule; the concrete move is derived from the brief, never chosen off a list | `skills/creative-direction/references/moves-taxonomy.md` |
+| **genus** | the recognisable KIND of artifact a page imitates — a technical drafting sheet, a boarding pass, a lab notebook; the level above register and vocabulary, and the one a `Banned genus:` line rules out for a run | `skills/creative-direction/references/concept-deck.md` |
+| **concept deck** | the positive generator the draw comes from: five axes of STRATEGY, deliberately naming no typeface, product, vendor or colour, so it cannot decay into a catalog | `skills/creative-direction/references/concept-deck.md` |
+| **register gate** | `divergence.mjs`'s `spine-register` check — the shipped copy in each buyer-facing spine slot is graded against a corpus of registers that slot must not be written in, scoped by the build task's `Spine regions:` line | `skills/creative-direction/references/register-corpus.md` |
+| **section ledger** | the artifact carrying a guided run's per-section picks from the user to `/ui-ux:build` and then to the audit — the section-level sibling of taskmaster's visual contract | `skills/section-decisions/references/section-ledger.md` |
+
 ## The craft flow
 
 `/craft-layer:craft <idea>` chains the whole path — it writes no framework code itself,
@@ -74,7 +91,7 @@ project has one, otherwise the session scratch area, and **never** in the shippe
 | `craft/content-source.md` | step 0/1, from the copy that already exists | step 1's briefs, the build, and the audit's content-fidelity gate |
 | `craft/section-ledger.md` | step 3 (guided only) | `/ui-ux:build` via the build task, and the audit's conformance gate |
 | `craft/reference-board.md` | step 1 at the `ultra-craft` boost, echoed to you before any file is written | the audit's boost-evidence gate, and step 2's concept work |
-| `craft/build-task.md` | step 5, once its five lines resolve | `/ui-ux:build` at step 6, and the audit's signature, named-escalation, ambition, banned-vocabulary and buyer-REGISTER gates (`Spine regions:` is the register gate's only input) |
+| `craft/build-task.md` | step 5, once its six lines resolve | `/ui-ux:build` at step 6, and the audit's signature, named-escalation, ambition, banned-vocabulary, buyer-REGISTER and VOICE gates (`Spine regions:` is the register gate's only input; `Voice:` is the voice gate's) |
 
 Missing any of them is not a failure — the gates that need them report `not checked` rather
 than passing or failing a build that simply never saved one.
@@ -140,7 +157,15 @@ source; when the rubric moves, fix and re-date it here first.
 - **creative-direction** — the concept-first anti-sameness layer: generates a divergent
   concept (metaphor, editorial voice, one signature interaction), scores blind candidates,
   and records a divergence the audit checks; owns the offer-contract, ambition-tier,
-  content-depth, and sameness-fingerprint gates.
+  content-depth and sameness-fingerprint checks. **Of those four, only sameness-fingerprint
+  has a script behind it.** `template/craft-gates/divergence.mjs` is the entire scripted
+  surface: it reads the registry's type families and copy register LIVE from
+  `skills/creative-direction/references/sameness-fingerprint.md` and encodes the hue band and
+  the repeat window, plus `craft-stamp` and `spine-register` — one slice each of the offer
+  contract. Standing: **gate** for what that file asserts; **agent-graded** for everything
+  else these four own — the ambition tier's K, the content-depth budget, the offer spine's
+  slot coverage, and the registry's spine and vocabulary-move lists — where
+  `/craft-layer:audit` reads the reference and judges, and no script fails a build over it.
 - **section-decisions** — the guided-build checkpoint: derives a decision agenda from the
   offer contract's spine slots (never an invented one), batches it into three capped rounds,
   offers 2–3 structurally different treatments per section, and records the picks in a
@@ -233,6 +258,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/ui-ux:audit` |
 | Performance / Lighthouse (optional external delegation) | `/resilience:review --concern performance` requires the `resilience` plugin; skipped if not installed |
 | Chart form / color | the `dataviz` skill (external host skill, not in this repo) |
+| Pre-build artboards a user picks a direction from, and the project's extracted `design-system/` token record a run should start from | `plugins/design-kit` — `/design-kit:design` and `/design-kit:system`; bundled in craft-suite, skipped if not installed |
 
 ## Install
 

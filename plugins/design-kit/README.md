@@ -52,8 +52,16 @@ page — **recorded**.
 
 ## One entry point: dk
 
-Every command runs its scripts through `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh <verb>` —
-one permission rule (`Bash(bash */design-kit/scripts/dk.sh*)`) instead of one per script.
+Every command's MAIN path runs through `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh <verb>`,
+so `Bash(bash */design-kit/scripts/dk.sh*)` is the one rule that covers ordinary use.
+**It is not the only rule you will be asked for.** Four steps deliberately call a script
+directly, because `dk` has no verb that does only what they need: the deck build alone
+(`deck-build.py`, so a long-slide exit 2 can be fixed before anything is served), the
+artifact bundle alone (`artifact-bundle.py`), the handoff-drift table
+(`handoff-drift.py`), and the system extraction's dry run (`system-extract.py --dry-run`,
+which `dk system` only ever runs as the first half of a full extraction). Those draw a
+second prompt, or a second rule — `Bash(python3 */design-kit/scripts/*)` — and saying
+"one permission rule" full stop was wrong.
 `dk` keeps `.design-kit/workshop.json` (brief, device, theme, the last system stamp, board,
 scratch, artifacts, deck) so a command with no argument offers the natural next step, and
 appends one line per verb to `.design-kit/usage.jsonl` — the record the Measured section
@@ -134,8 +142,31 @@ A Claude Design handoff bundle (a folder of exported .html plus a README) goes t
 one row per value — `match`, `near (Δ)`, `no token` — and each `no token` row is a question, never a
 literal in the tree. The export is a reference; its HTML and class names never land in the project.
 
-What has teeth: the scratch-file cleanup (`--verify`) and the drift table are **gates** — scripts
-under `scripts/__tests__/` drive both. Consent before the first write is an AskUserQuestion, once
+Since 0.4.0 the same reader asks that question of the project's OWN components:
+
+```
+dk drift [PATHS | --staged | --diff <base>] [--ci]
+```
+
+It reads `.tsx/.jsx/.vue/.blade.php/.css/.scss` and reports two kinds of hit — a literal
+hex/rgb/hsl/oklch colour that resolves to no declared token, and a NAMED TAILWIND PALETTE
+utility (`bg-indigo-500`, `text-slate-700/50`) whose scale is not a declared token name. That
+second kind is the gap that made this exist: it never reaches a stylesheet, so `dk check` and
+the bundle table above both stay green while the components drift. `bg-primary` and
+`var(--primary)` are clean by construction, which is the whole test. Without `--ci` the table
+is the output and the exit is 0; with `--ci` any hit exits 1. No token source anywhere exits 2
+(`not measured`) — a drift check that cannot find the tokens has not cleared anything, and an
+empty `--staged`/`--diff` selection scans nothing rather than the whole tree.
+
+**Standing: `gate` only where you wire it.** Nothing in this plugin runs `dk drift` for you —
+no hook, no command step. It is a script with a harness (`scripts/__tests__/drift.test.sh`,
+run by CI's plugin-harness step), and `--ci` is what makes it block, in a CI step or a
+pre-commit hook you add. Not run is not clean. What it does NOT catch: spacing, radius, shadow
+and font drift; a colour computed at runtime; the right token used in the wrong role. The
+script's own header carries the full residual list.
+
+What has teeth: the scratch-file cleanup (`--verify`), the bundle drift table and `dk drift`'s
+scan are **gates** — scripts under `scripts/__tests__/` drive all three. Consent before the first write is an AskUserQuestion, once
 per session. Finding the right component, passing only real props, rendering all four states, and
 never touching a real file are **agent-graded**; `git status` after cleanup is the check.
 
@@ -179,6 +210,21 @@ stand-ins that name the component and its props — `/design-kit:in-codebase` re
 the real thing), and does not conform to the DTCG 2025.10 object forms for colour and
 dimension — values stay as the source wrote them; `references/tokens-format.md` says why.
 
+**Where these tokens can go.** The target is the DTCG **Format Module 2025.10** draft
+(designtokens.org, Draft Community Group Report of 2026-09-08, which carries its own
+"do not attempt to implement this version" warning). The structure matches it: one object
+per token with `$type` and `$value`, plain nested groups, `{group.token}` aliases,
+`$extensions` for tool data. It diverges in exactly two places, both written down in
+`skills/system/references/tokens-format.md`: a `color` `$value` stays the string the
+source wrote — a hex, an `oklch()` call, a shadcn HSL triplet — rather than the draft's
+`{colorSpace, components, hex}` object, and a `dimension` stays `0.5rem` or `24px` rather
+than `{value, unit}`. Both because the form the source used is evidence, and because
+`%`/`em` have no conforming object form to convert into. What that costs a consumer:
+**Tokens Studio** (the Figma plugin that reads and writes DTCG) and **Style Dictionary**
+(which compiles DTCG into CSS, iOS and Android output) both read this structure, and both
+need those two value forms converted on their side. This plugin ships neither converter —
+standing: **recorded**, nothing here has been run against either tool.
+
 Since 0.2.0 it also writes `components.json` (props with types, defaults, required flags;
 variants; stories; honest `gaps`) and gains `--check`: against the committed `tokens.json` it
 prints one `check:` line per moved token and exits 1, writing nothing — every command runs it
@@ -206,6 +252,40 @@ and unresolved-link reports, and the publisher's worktree isolation are **gates*
 `scripts/__tests__/artifact-*.test.sh` drive each. Page quality is **agent-graded**.
 Not here: comments on a page, refresh from live data, runtime asset loads (a page that
 fetches assets from JavaScript keeps those references unreported), `srcset` rewriting.
+
+## Snapshots and review
+
+Two `dk` verbs, no command and no hook — a UI change is easier to judge beside the screen
+it replaced than from a diff:
+
+```bash
+dk snapshot --routes /,/pricing --device both        # one PNG per route per device
+# …change the UI…
+dk snapshot --routes /,/pricing --device both
+dk review --base .design-kit/shots/<the first set>   # or a git ref whose shots were committed
+```
+
+`snapshot` loads each route in the same Chromium-family browser `board-export.sh` finds
+(it asks that script, so one install hint serves both) and writes
+`<out>/<device>/<route-slug>.png` — `<out>` defaults to
+`.design-kit/shots/<git short sha, else a UTC timestamp>/`, desktop is 1440x900, mobile
+390x844, and `--base-url` defaults to the dev URL `dk scratch --detect` reports. A second
+shoot at the same commit writes `<sha>-2` rather than over the set you are about to
+compare against. `review` pairs the newest set (or `--current`) against `--base`, writes
+`.design-kit/reviews/<pair>.html` with **before | after | a pixel-diff heatmap** per
+route, serves it on the same preview URL as everything else, and prints one table row per
+route with the changed-pixel percentage. The heatmap and the percentage need `python3`
+with Pillow; without it the page shows the pair alone and every row reads
+`no diff engine: install Pillow`.
+
+**Exit codes are the contract** — **gate**, `scripts/__tests__/snapshot.test.sh` drives
+each: `0` shot or rendered, `1` bad arguments, `2` the browser or the server was
+unreachable, printed as `NOT MEASURED` and never as "no change" — a shot nobody took is
+not a screen that did not change. Reading the pair is **agent-graded**: nothing here
+asserts a pixel, so there is no threshold and no failing build. Also not here: auth flows
+(a route behind a login shoots the login page), per-component crops, scroll or animation
+settling past one 3 s budget, and device emulation beyond the viewport size — no touch,
+no mobile UA, no DPR change. Two machines' antialiasing counts as changed pixels.
 
 ## Boundary with the host
 
@@ -267,3 +347,7 @@ delete at any time; `design-system/` is yours and is not.
 Reading comments on a shared page, a version picker in the browser, Figma import or
 export, image generation, a component registry, and any hosted publishing beyond a git
 pages branch you push yourself.
+
+No Figma bridge does not mean no route out: `design-system/tokens.json` is DTCG-shaped,
+and the paragraph under `/design-kit:system` names the two value forms a Tokens Studio or
+Style Dictionary consumer has to convert to use it.

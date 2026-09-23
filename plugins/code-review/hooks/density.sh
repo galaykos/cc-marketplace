@@ -80,6 +80,10 @@
   case "$tool" in Edit|Write|MultiEdit) ;; *) exit 0 ;; esac
   # WARN lane only — see scan.sh's note; the PreToolUse deny ignores this switch.
   [ "$event" = "PostToolUse" ] && [ "${CC_REMIND:-on}" = "off" ] && exit 0
+  # CC_COMMENT_GUARD=off disables the DENY lane and leaves the advisory lane on.
+  # Added 2026-09-22 (UX 1), same reasoning as scan.sh's: the block had no off switch,
+  # so its refusal could name none. Read from the hook's environment.
+  [ "$event" = "PreToolUse" ] && [ "${CC_COMMENT_GUARD:-on}" = "off" ] && exit 0
   # Only a whole file has a ratio, and only a Write carries a whole file.
   [ "$event" = "PreToolUse" ] && [ "$tool" != "Write" ] && exit 0
 
@@ -93,7 +97,13 @@
   # nudges only the PARENT ever saw, so the context where most fan-out code is written
   # is the one context this never speaks in. Key on transcript_path first, session_id as fallback.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
-  [ -n "$cwd" ] && [ -n "$sid" ] || exit 0
+  # `-d` as well as `-n`: a session outlives the directory it started in, and the
+  # `mkdir -p "$dir"` below rebuilt a deleted three-level project tree just to hold this
+  # hook's state. Plain `-d` rather than `git rev-parse --show-toplevel`: the address
+  # `$cwd/.claude/comment-discipline` is SHARED with verbosity.sh, scan.sh and
+  # conventions.sh, and re-rooting one of the four splits a one-shot across two paths.
+  # Does NOT catch a cwd that exists but is the wrong checkout — the payload cannot say.
+  [ -n "$cwd" ] && [ -d "$cwd" ] && [ -n "$sid" ] || exit 0
 
   # Same exclusions and extension set as scan.sh, and against the same LOGICAL path
   # (worktree prefix stripped — see hooks/paths.sh): generated, vendored and tooling
@@ -193,7 +203,7 @@ EOF
     [ "$tries" -ge "$DENY_CAP" ] && exit 0
     mkdir "$marker.d$((tries + 1))" 2>/dev/null || exit 0
     reason=$(awk -v f="$(basename "$fp")" -v c="$pc" -v cd="$pcode" -v r="$pratio" -v l="$CEIL" \
-      'BEGIN { printf "comment-discipline: %s would be %.1f:1 comment-to-code (%d comment lines, %d code); the ceiling is %.1f:1. Write it again with the code carrying the meaning: keep only a why-this-not-the-obvious, an external constraint with a link, a deliberate no-op, or a contract fact the signature cannot state (units, ownership, what throws) — and move the rest to a name, a type, or a test. Blocked at most twice per file; after that a write goes through with a warning instead.", f, r/10, c, cd, l/10 }')
+      'BEGIN { printf "comment-discipline: %s would be %.1f:1 comment-to-code (%d comment lines, %d code); the ceiling is %.1f:1. Write it again with the code carrying the meaning: keep only a why-this-not-the-obvious, an external constraint with a link, a deliberate no-op, or a contract fact the signature cannot state (units, ownership, what throws) — and move the rest to a name, a type, or a test. Blocked at most twice per file; after that a write goes through with a warning instead. CC_COMMENT_GUARD=off disables this block for the session (CC_REMIND=off silences the warning it falls back to).", f, r/10, c, cd, l/10 }')
     jq -cn --arg r "$reason" \
       '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
     exit 0
@@ -337,7 +347,7 @@ EOS
     'BEGIN {
       if (b >= 0) printf "comment-discipline: %s is %.1f:1 comment-to-code (%d comment lines, %d code); its siblings run %.1f:1 and the limit here is %.1f:1.", f, r/10, c, cd, b/10, l/10
       else        printf "comment-discipline: %s is %.1f:1 comment-to-code (%d comment lines, %d code); no committed siblings to compare against, so the ceiling of %.1f:1 applies.", f, r/10, c, cd, l/10
-      printf " The default is code that needs no comment. If this file genuinely needs the prose (vendor quirks, a protocol the code cannot show), keep it and move on; otherwise keep only why-comments, linked constraints, deliberate no-ops and contract facts the signature cannot state, and move the rest to a name, a type, or a test. Warning %d of %d this session.", n, m }')
+      printf " The default is code that needs no comment. If this file genuinely needs the prose (vendor quirks, a protocol the code cannot show), keep it and move on; otherwise keep only why-comments, linked constraints, deliberate no-ops and contract facts the signature cannot state, and move the rest to a name, a type, or a test. Warning %d of %d this session. CC_REMIND=off silences these.", n, m }')
 
   jq -cn --arg m "$msg" \
     '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$m}}' 2>/dev/null || exit 0

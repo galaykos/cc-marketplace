@@ -30,7 +30,7 @@ writing panel logic, stop — it exists in that skill; this one only wires it to
 The panel attacks code, not prose. Get the exact slice from the harness:
 
 ```
-plugins/task-runner/scripts/code-redteam-diff.sh --base <base-ref> [--paths <glob>...]
+${CLAUDE_PLUGIN_ROOT}/scripts/code-redteam-diff.sh --base <base-ref> [--paths <glob>...]
 ```
 
 `--base` prints `git diff <ref>..HEAD`. The base is INCREMENTAL: each milestone-boundary

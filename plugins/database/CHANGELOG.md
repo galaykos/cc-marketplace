@@ -3,6 +3,31 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.10.0 — 2026-09-22
+
+### Fixed
+- **The migration-DSL drop row was blind to Rails, GORM and Django**, while the hook's
+  own header claimed "every other migration DSL". Three causes, each silencing a whole
+  ecosystem: the match was case-SENSITIVE, so GORM's `Migrator().DropTable(` never fired;
+  it required a `(`, so Rails' `drop_table :users` never fired; and it listed no Django
+  operation, so `migrations.DeleteModel`/`RemoveField`/`DeleteField` never fired. The row
+  is now case-insensitive, accepts the Ruby symbol argument form, and carries the three
+  Django names. The symbol form requires a space before the `:` and an identifier after
+  it — a bare `[(:]` also matched `dropAll: boolean` in a TS interface and
+  `dropTable: false` in a config file, both measured, neither a migration.
+- **Prisma's `deleteMany()` takes no argument**, so requiring an empty object `({})` made
+  the commonest delete-everything shape the one this never asked about. A bare
+  `deleteMany()` now asks; the bare-parens form is scoped to `deleteMany` alone, because
+  extending it to `remove` would fire on every DOM `element.remove()`.
+- The header's coverage claim is now a literal list with its own residual: a drop spelled
+  outside that list — `drop_table 'users'` with a quoted string, a name built at runtime —
+  passes silently.
+- `README.md` said an unanswerable `ask` "stalls a headless run". It does not: with no
+  interactive prompt, `ask` is **auto-denied**. Corrected, with the standing named.
+
+### Changed
+- Fixtures for all of the above, both directions, in `scripts/__tests__/guard.test.sh`.
+
 ## 0.9.3 — 2026-09-22
 
 ### Fixed

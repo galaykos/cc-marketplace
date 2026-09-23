@@ -128,6 +128,141 @@ JS
 out=$(fire "$f"); [ -z "$out" ] && pass "silent on ava/tape assertions" \
   || fail "silent on ava/tape assertions" "flagged: $out"
 
+# ---- 5c. the three dialects the PATH GLOB admits and the OPENER SET did not --------------
+# `*_test.py`, `*_test.go` and `*_spec.rb` were in the glob at :82 while is_opener() matched
+# only JS and PHP, so all three found zero blocks and the hook was silent — the same output
+# a clean file produces (panel 2026-09-22, SW 4). One assertion-free block each: each file
+# must report exactly the hollow block and leave the asserting one alone.
+f=$(mk tests/calc_test.py <<'PY'
+def test_it_can_be_instantiated():
+    Calc()
+
+def test_adds():
+    assert Calc().add(1, 1) == 2
+PY
+)
+out=$(fire "$f")
+case "$out" in *"L1"*"no assertion"*) pass "flags an assertion-free pytest block" ;;
+  *) fail "flags an assertion-free pytest block" "got: ${out:-<silent>}" ;; esac
+case "$out" in *"L4"*) fail "pytest bare assert counts as an assertion" "flagged L4: $out" ;;
+  *) pass "pytest bare assert counts as an assertion" ;; esac
+
+f=$(mk tests/calc_test.go <<'GO'
+package calc
+
+import "testing"
+
+func TestItCanBeInstantiated(t *testing.T) {
+	New()
+}
+
+func TestAdds(t *testing.T) {
+	if New().Add(1, 1) != 2 {
+		t.Fatalf("bad")
+	}
+}
+GO
+)
+out=$(fire "$f")
+case "$out" in *"L5"*"no assertion"*) pass "flags an assertion-free Go block" ;;
+  *) fail "flags an assertion-free Go block" "got: ${out:-<silent>}" ;; esac
+case "$out" in *"L9"*) fail "Go t.Fatalf counts as an assertion" "flagged L9: $out" ;;
+  *) pass "Go t.Fatalf counts as an assertion" ;; esac
+
+f=$(mk tests/calc_spec.rb <<'RB'
+RSpec.describe Calc do
+  it "can be instantiated" do
+    Calc.new
+  end
+
+  it "adds" do
+    expect(Calc.new.add(1, 1)).to eq(2)
+  end
+end
+RB
+)
+out=$(fire "$f")
+case "$out" in *"L2"*"no assertion"*) pass "flags an assertion-free RSpec block" ;;
+  *) fail "flags an assertion-free RSpec block" "got: ${out:-<silent>}" ;; esac
+case "$out" in *"L6"*) fail "the RSpec block that asserts is left alone" "flagged L6: $out" ;;
+  *) pass "the RSpec block that asserts is left alone" ;; esac
+
+# ---- 5d. SILENCE: the same three dialects' DECLARED skips and their other assertion forms -
+# Widening the opener set makes every declared skip in these languages a candidate finding,
+# and in Python, Go and Ruby the declaration sits in the BODY or on the decorator line above,
+# not on the opener line where the JS spelling lives. The `skip:` comments inside these
+# heredocs are the sibling guard's documented same-line-reason escape: protect-tests.sh
+# reads this harness as a test file and denies the fixture text without them.
+f=$(mk tests/skips_test.py <<'PY'
+import pytest
+
+@pytest.mark.skip(reason="not ready")  # skip: harness fixture, not a real suite
+def test_later():
+    Calc()
+
+def test_inline_skip():
+    pytest.skip("env missing")
+
+def test_adds():
+    assert Calc().add(1, 1) == 2
+PY
+)
+out=$(fire "$f"); [ -z "$out" ] && pass "silent on pytest decorator and inline skips" \
+  || fail "silent on pytest decorator and inline skips" "flagged: $out"
+
+f=$(mk tests/skips_test.go <<'GO'
+package calc
+
+import (
+	"os"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func TestMain(m *testing.M) {
+	os.Exit(m.Run())
+}
+
+func TestLater(t *testing.T) {
+	t.Skip("needs docker")  // skip: harness fixture, not a real suite
+}
+
+func TestReq(t *testing.T) {
+	require.Equal(t, 2, New().Add(1, 1))
+}
+GO
+)
+out=$(fire "$f"); [ -z "$out" ] && pass "silent on Go TestMain, t.Skip and testify require" \
+  || fail "silent on Go TestMain, t.Skip and testify require" "flagged: $out"
+
+f=$(mk tests/skips_spec.rb <<'RB'
+RSpec.describe Calc do
+  context "when new" do
+    xit "is instantiable" do  # skip: harness fixture, not a real suite
+      Calc.new
+    end
+
+    it "is later" do
+      pending "not implemented"  # skip: harness fixture, not a real suite
+    end
+
+    it { is_expected.to be_valid }
+
+    it "raises" do
+      expect { Calc.new(-1) }.to raise_error(ArgumentError)
+    end
+
+    it "adds" do
+      Calc.new.add(1, 1).should eq(2)
+    end
+  end
+end
+RB
+)
+out=$(fire "$f"); [ -z "$out" ] && pass "silent on RSpec xit/pending and its paren-less assertion forms" \
+  || fail "silent on RSpec xit/pending and its paren-less assertion forms" "flagged: $out"
+
 # ---- 6. SILENCE: not a test file ---------------------------------------------------------
 f=$(mk src/plain.ts <<'TS'
 export const add = (a: number, b: number) => a + b
@@ -159,6 +294,19 @@ then pass "the state file lands on disk (the key is hashed, not a raw path)"
 else fail "the state file lands on disk (the key is hashed, not a raw path)" "none under $cwd"; fi
 if [ "$(cat "$cwd/.claude/testing/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
 else fail "the state dir ignores itself" ".claude/testing/.gitignore missing or not '*'"; fi
+
+# ---- 7b. a payload cwd that no longer exists must not be rebuilt -------------------------
+# A session outlives the directory it started in, and `mkdir -p` was happy to recreate a
+# deleted project tree three levels deep just to hold this hook's state (panel 2026-09-22,
+# AR 1 — the same class resurrected a deleted design-studio in a live repo).
+gone="$TMP/work/acme/design-studio"
+mkdir -p "$gone"; rm -rf "$TMP/work"
+python3 -c 'import json,sys
+print(json.dumps({"hook_event_name":"PostToolUse","tool_name":"Write","cwd":sys.argv[1],
+ "session_id":"g","transcript_path":"/t/g.jsonl","tool_input":{"file_path":sys.argv[2]}}))' \
+  "$gone" "$f" | bash "$HOOK" >/dev/null 2>&1
+[ -d "$TMP/work" ] && fail "a deleted cwd is not recreated" "rebuilt $TMP/work" \
+  || pass "a deleted cwd is not recreated"
 
 # ---- 8. FAIL-OPEN ------------------------------------------------------------------------
 printf '' | bash "$HOOK" >/dev/null 2>&1 && pass "empty stdin exits 0" || fail "empty stdin exits 0" "non-zero"

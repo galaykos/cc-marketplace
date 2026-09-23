@@ -90,6 +90,35 @@ deny  "EXAMPLE in the NAME only"         "$(printf 'EXAMPLE_%s = "%s"' 'TOKEN' "
 deny  "placeholder + real key together"  "a = \"$AWS_DOC\"; b = \"$AWS\""
 deny  "base64 padding is not a name"     "$(printf 'PASSWORD=%s==' "$LONGVAL")"
 
+# 0.8.0 URL-EMBEDDED CREDENTIALS. A DSN in a .env, tfvars, compose or Helm values file
+# is neither a provider key nor an `assigned secret literal` — the trigger word is the
+# scheme, not a `password=` operator — so every shape below was written to disk silently.
+# Assembled at runtime, same reason as every other trigger in this file.
+DSN_PG="$(printf 'DATABASE_URL=postgres://admin:%s@db.internal:5432/app' 'Sup3rS3cretVal')"
+DSN_MONGO="$(printf 'MONGO=mongodb+srv://svc:%s@cluster0.mongodb.net/db' 'Hunter2Hunter2')"
+DSN_AMQP="$(printf 'AMQP_URL: amqps://rabbit:%s@mq:5671/' 'Pr0dRabbitPass')"
+DSN_MYSQL="$(printf 'db_url = "mysql://root:%s@10.0.0.4/prod"' 'T3rraf0rmPass')"
+DSN_HTTPS="$(printf 'FEED=https://svc:%s@api.example.com/feed' 'Gk39dkLwq2x')"
+HOOK_URL="$(printf 'SLACK=https://hooks.slack.com/services/T01ABCD2EF/B09XYZ12345/%s' 'abcdefghijklmnopqrstuvwx')"
+deny "postgres DSN"        "$DSN_PG"
+deny "mongodb+srv DSN"     "$DSN_MONGO"
+deny "amqps DSN in compose" "$DSN_AMQP"
+deny "mysql DSN in tfvars" "$DSN_MYSQL"
+deny "https basic-auth URL" "$DSN_HTTPS"
+deny "Slack webhook URL"   "$HOOK_URL"
+# The shapes that must stay allowed, or the rule denies correct code on every retry.
+# The runtime-substitution one is the CORRECT way to write a DSN; a deny there has no
+# satisfiable fix. `/?#` exclusion is what keeps an ordinary URL with a mailto-ish query
+# out; the placeholder escape still applies to the whole match.
+allow "DSN with \${VAR} password"  Write "$(printf 'DATABASE_URL=postgres://admin:${DB_PASS}@db/app')"
+allow "DSN with a Helm template"   Write 'url: postgres://u:{{.Values.db.pass}}@db/app'
+allow "DSN with no password"       Write 'REDIS_URL=redis://localhost:6379/0'
+allow "DSN with an empty password" Write 'DATABASE_URL=postgres://admin:@db/app'
+allow "port then a mail query"     Write 'see https://host.example.com:8080/mail?to=a@b.com'
+allow "changeme DSN"               Write 'DATABASE_URL=postgres://user:changeme@localhost/db'
+allow "webhook of x-runs"          Write "$(printf 'https://hooks.slack.com/services/T00000000/B00000000/%s' 'xxxxxxxxxxxxxxxxxxxxxxxx')"
+allow "ssh remote, not a DSN"      Write 'git clone git@github.com:org/repo.git'
+
 # Fail-open: malformed JSON must not deny (and must exit 0).
 out=$(printf 'not json' | bash "$HOOK"); rc=$?
 if [[ $rc -eq 0 && -z "$out" ]]; then pass=$((pass+1));

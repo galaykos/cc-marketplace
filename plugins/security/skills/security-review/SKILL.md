@@ -123,8 +123,10 @@ not just `auth` middleware:
 
 - `.env` never committed — check git history, not just the working tree; a
   rotated-out secret in history is still leaked. `.env.example` carries keys, never values.
-- Anything `VITE_`-prefixed compiles into the public JS bundle — server tokens and
-  API secrets must never carry the prefix. Grep the built assets when unsure.
+- Any public-bundle env prefix — `VITE_`, `NEXT_PUBLIC_`, `NUXT_PUBLIC_`,
+  `EXPO_PUBLIC_`, `PUBLIC_`, `REACT_APP_`, `GATSBY_`, `VUE_APP_` — compiles the value
+  into the client bundle; server tokens and API secrets must never carry one. Grep the
+  built assets when unsure.
 - Code reads `config()`, never `env()` outside config files — `config:cache` turns
   stray `env()` calls into nulls, which teams "fix" by disabling the cache.
 - Rotation must be possible: secrets in one place, out of logs, with an `APP_KEY`

@@ -50,7 +50,7 @@ memory gets wrong.
    machine before using it.
 4. **Iterate** one axis per round: order, then headlines, then figures, then
    notes. Rebuild after each edit; the open tab follows.
-5. **Export** only when asked: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/deck-export.sh
+5. **Export** only when asked: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh export
    <deck.html> --pdf` (needs a Chromium-family browser; exit 3 prints what to
    install, and pressing `P` in any browser is the same output) and `--pptx`
    (needs Node; the script refuses to download `pptxgenjs` until

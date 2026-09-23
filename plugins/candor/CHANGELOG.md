@@ -2,6 +2,28 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.8 — 2026-09-22
+
+### Fixed
+- **`hooks/gate.sh` validates the payload `cwd` with `[ -d ]` before creating its state
+  dir.** It checked only `-n`, so a stop taken with a deleted project directory as `cwd`
+  recreated that directory three levels deep to hold `.claude/candor/` — reproduced
+  against the committed hook. A cwd that is not a directory now degrades to the process
+  cwd, which by construction exists, and the state dir is anchored at
+  `git rev-parse --show-toplevel` when there is one. Residual: a cwd that IS a directory
+  but not this project's still gets a `.claude/candor/` — the check proves existence,
+  never identity.
+
+### Changed
+- **Every blocking reason now names its own off switch**, the way the lockfile clause
+  already did for `CC_LOCKFILE_GATE`. Citation and reversal name `CC_CANDOR_GATE`, the
+  evidence clause names `CC_EVIDENCE_GATE`, and all eight completion-gate reasons name
+  `TASK_RUNNER_STOP_GATE` (one line at the single print site, not eight copies). A Stop
+  gate reaches the reader only through its stderr, so a variable documented anywhere else
+  is a variable the person being blocked cannot find.
+- `hooks/avert.sh`'s ask reason names `CC_AVERT=off` and `CC_AVERT=notify`. It reads both
+  and could deny; it named neither in anything it printed.
+
 ## 0.4.7 — 2026-09-19
 
 ### Removed

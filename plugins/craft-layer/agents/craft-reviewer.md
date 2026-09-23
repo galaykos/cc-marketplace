@@ -99,9 +99,18 @@ without exception:
       fingerprint's "Recurring copy register" section
       (`skills/creative-direction/references/sameness-fingerprint.md`) — `divergence.mjs`'s
       `copy-register` and `emoji-as-icon` verdicts reported as the scripted half (multi-word
-      phrases and pictograph icons only), plus this agent's own half: the verb family,
-      intensifiers and fragment-headline shapes the mechanical patterns cannot see, graded in
-      rendered copy.
+      phrases, pictograph icons, and the three mechanical chrome rows: the ALL-CAPS eyebrow,
+      the middle-dot meta string and the trailing arrow), plus this agent's own half: the verb
+      family, intensifiers and fragment-headline shapes the mechanical patterns cannot see,
+      graded in rendered copy.
+- [ ] The VOICE was honored — `craft/build-task.md`'s `Voice:` line read, then rendered copy
+      graded against its four dimensions: person and address held everywhere, sentences inside
+      the declared word band, fragments/questions/imperatives used only where the line allows.
+      `divergence.mjs`'s `voice-contract` and the `voice NEVER` rows of `copy-register` are the
+      scripted half (the line exists, carries a NEVER, and no NEVER literal ships); THIS is the
+      half no script can do — nothing counts a sentence
+      (`skills/creative-direction/references/voice-contract.md`). No line → that script FAILED,
+      so report its finding; do not re-grade the voice from how the page reads.
 - [ ] The BANNED VOCABULARY was greped ONCE over the whole tree, not per section and not
       per agent — terms read from `craft/build-task.md`'s `Banned vocabulary:` line (or the
       divergence record's, said out loud), terms-checked reported beside hits, one finding

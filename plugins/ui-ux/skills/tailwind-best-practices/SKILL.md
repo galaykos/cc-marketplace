@@ -77,6 +77,14 @@ by NAME when a diff mixes eras; no build output will.
 - **Class order belongs to the formatter.** Install `prettier-plugin-tailwindcss` and
   stop reviewing order by hand — hand-sorting is the noisy-diff source, not the fix.
 
+## RTL: logical utilities, not physical ones
+
+`ml-`/`pl-`/`left-`/`text-left` mirror nothing when the direction flips; the logical
+forms mirror for free. `ml-*`/`mr-*` → `ms-*`/`me-*`, `pl-*`/`pr-*` → `ps-*`/`pe-*`,
+`left-*`/`right-*` → `start-*`/`end-*`, `text-left` → `text-start`, same shape for
+`rounded-l-*` and `border-l-*` — and `dir` on `<html>`, without which none of it
+mirrors. Physical utilities stay only where the direction is physical.
+
 ## Defer rule
 
 - Colour values, ramps, light/dark token blocks → `shadcn-theming` (it owns the v3 HSL
@@ -95,6 +103,7 @@ Named for citing in a review; each rule is stated once above.
 - **Unreferenced `@apply`** — in a `<style>` block or CSS module, silently producing nothing.
 - **Mixed-era scale names** — v3 `shadow`/`rounded`/`ring` left in a v4 file.
 - **`@apply` clusters** standing in for a component.
+- **Physical-direction utilities** — `ml-`/`left-`/`text-left` in an RTL-capable app.
 
 Config keys, variant syntax and utility names move between majors; check
 https://tailwindcss.com/docs for the installed one rather than recalling either.

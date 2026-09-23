@@ -4,6 +4,114 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.26.0 — 2026-09-22
+
+### Added
+- **The contrast checker `/ui-ux:theme` has always claimed now ships here.**
+  `scripts/contrast.mjs` is a byte-identical twin of
+  `plugins/craft-layer/template/craft-gates/contrast.mjs`, declared with the
+  marketplace's twin marker and held in step by `pc_twin_files` (**gate** — it checks sameness, not
+  correctness). craft-layer depends on ui-ux and not the reverse, so a bare `ui-ux`,
+  `frontend-suite` or `workflow-suite` install reached NO contrast checker while this
+  command's description, the README and `shadcn-theming` all promised one. `/ui-ux:theme`
+  step 5 now runs it on the accepted token set before offering the diff, and
+  `/ui-ux:audit` runs it whenever a token source exists, folding each FAIL in as an
+  SC 1.4.3 / 1.4.11 violation. It parses `oklch()` under `:root`/`.dark` only — a
+  Tailwind v3 HSL-triplet or Bootstrap Sass target exits 2 and is reported as *not
+  measured*, never as a pass.
+- **First eval suite.** `evals/a11y-older-criteria` is a checkout form whose easy
+  defects are already fixed, leaving SC 1.3.5 (`autocomplete` tokens) and SC 4.1.3 (a
+  live region that must already be in the DOM before the message arrives) — the two
+  criteria 0.25.0 added to `a11y-audit`, and the two a blind review omits.
+  `evals/design-tokens-control` is the opposite kind of case, written down as such: a
+  removal measurement with no headroom by design. Both are `runs: 5`; the README carries
+  the paid invocation with `--ablation with-without`. Neither delta is measured.
+
+### Fixed
+- `hooks/palette-default.sh` validated its payload `cwd` with `-n` and then
+  `mkdir -p "$cwd/.claude/ui-ux"`, which RECREATED a project directory the session had
+  deleted, three levels deep. It now requires `-d` as well
+  (`overseer/hooks/track-read.sh` is the shape it copies), with a fixture in
+  `scripts/__tests__/palette-default.test.sh` that reproduces the resurrection on the
+  old line and not on the new one.
+- `hooks/preview-guard.sh` uses an absolute `#!/bin/bash` shebang. `env bash` itself
+  exits 127 under a stripped PATH, which is precisely when a fail-open guard must still
+  run; this hook can return a `permissionDecision`, so it is one of the two decision-capable
+  hooks that carried the relative form. Its twin in taskmaster must match byte for byte.
+
+### Changed
+- `astryx-best-practices` carries a `Last verified` stamp with an
+  `npm:@astryxdesign/core@0.6` tail, so `check-doc-staleness.sh --live` can see it at all
+  — the skill's own frontmatter promises a pinned version and the plugin's corpus had no
+  stamp to check. The minor, not the bare major, is the tail: on a 0.x package a minor is
+  the breaking release. Paid for in bytes by dropping the **Beta APIs from memory**
+  anti-pattern, which restated the Beta-discipline section above it verbatim; this
+  plugin's on-invoke corpus had 63 B of headroom under `pc_plugin_corpus`'s 160,000 B cap
+  before the stamp, and a stamp is not free. Recount, do not copy:
+  `find plugins/ui-ux/skills -name '*.md' | xargs wc -c | tail -1`.
+- `design-tokens`' display-tier paragraph, the scale-is-not-hierarchy rule, the
+  motion-source line and the `type-system.md` pointer moved into `theming-system`, where
+  they are stated as ROLE rules rather than scale steps. Nothing was deleted: the fold is
+  what makes `evals/design-tokens-control` a decision rather than a loss — the skill is
+  removed only if the measured delta is zero. The move is byte-neutral inside the plugin's
+  corpus budget, paid for by trimming three restatements of neighbouring skills.
+
+## 0.25.0 — 2026-09-22
+
+### Added
+- **`/ui-ux:audit` runs the project's own a11y and style tools before it judges.** New
+  step 2 dispatches toolchain-experts' `ui-expert` — which runs `detect-analyzers.sh`,
+  then stylelint/pa11y/axe/lighthouse-ci where the project configures them — and folds
+  its findings in tagged `(tool)`, carrying its switched-off-rule list into the
+  not-checkable-statically list. With that plugin absent, or no tool configured, the
+  report says the tool pass was not run rather than letting silence read as a clean
+  automated run. Until now `ui-expert` was dispatched by nothing: it exists to run
+  those four tools and defers TO this command, and nothing reciprocated.
+- **`a11y-audit` gains four older AA criteria** it was missing while covering all six
+  new 2.2 ones: `autocomplete` tokens (SC 1.3.5), status messages via `role="status"` /
+  `aria-live="polite"` (4.1.3), the dismissible/hoverable/persistent triad for content
+  shown on hover or focus (1.4.13), and `lang` on `<html>` and on foreign-language
+  passages (3.1.1, 3.1.2).
+- **An RTL section in `tailwind-best-practices`** — the physical→logical utility map
+  (`ml-`→`ms-`, `pl-`→`ps-`, `left-`→`start-`, `text-left`→`text-start`) and `dir` on
+  `<html>`, plus the matching bullet in `component-libraries` §4. Nothing in this
+  plugin mentioned a logical property before.
+- **`/ui-ux:audit` declares `argument-hint`.** The README advertised `[files-or-diff]`
+  and the slash menu showed nothing.
+
+### Changed
+- **`library-map.md`: Radix Themes, Park UI, Flowbite and a Svelte block.** A project
+  importing `@radix-ui/themes` was answered by the headless Primitives row ("none —
+  your CSS") when it has a full theme system (`<Theme accentColor grayColor radius
+  scaling>`, `--accent-1..12`); it now has its own styled-table row and the Primitives
+  row says which is which. Park UI (Ark UI + Panda, CLI copy-in) and Flowbite React
+  (`createTheme`/`ThemeProvider`, Tailwind class strings, not CSS variables) added. A
+  Svelte 5 block — Bits UI, shadcn-svelte, Melt UI's two packages, Skeleton — for an
+  extension the router already routes. Re-stamped 2026-09-22 for those rows only; every
+  other row still carries its 2026-09-02 reading and the stamp says so.
+- **`/ui-ux:theme` and `shadcn-theming` drop a `.gitignore` holding `*` into
+  `taskmaster-docs/mockups/`** when they create it. The preview page is scratch, and
+  the only artifact that dropped that file was taskmaster's grill — which craft-suite
+  and frontend-suite do not ship.
+- **`design-tokens` points at the static type contract** (fluid `clamp()`,
+  `text-wrap`, WOFF2 subsetting, metric-compatible fallbacks, the licence trap) at
+  `plugins/craft-layer/skills/kinetic-typography/references/type-system.md` — until now
+  reachable only through a skill whose description reads "use when animating type".
+- **`lane.tsv`'s `a11y-audit` trigger names the nine file kinds the router routes**
+  (tsx, jsx, vue, blade, svelte, astro, html, erb, twig), not four.
+
+### Removed
+- **Paid for every byte above in the same plugin.** ui-ux's on-invoke corpus had 216 B
+  of headroom under the 160 KB per-plugin cap, so the additions above are net-zero:
+  `component-libraries` lost its review checklist and its sibling-routing table (both
+  restated `references/library-map.md`, which now carries them), `library-map` lost the
+  Kibo UI and 21st.dev rows (their whole content was "a registry you treat as copy-in",
+  which the section heading states) and the Vue/Svelte `Model` column (the theme-channel
+  column already separates headless from styled), `a11y-audit` folded its worked example
+  into one Semantics bullet, and `design-tokens` merged three anti-patterns that restated
+  a rule from the same file. Corpus after: 159,937 B — 63 B of headroom, so the next
+  addition to this plugin needs its own cut.
+
 ## 0.24.4 — 2026-09-22
 
 ### Changed

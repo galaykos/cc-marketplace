@@ -2,6 +2,76 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.8.0 — 2026-09-22
+
+### Added
+- **`scripts/plan-audit.sh` — a Terraform/OpenTofu plan reader with an exit code.**
+  `terraform show -json plan.out | bash scripts/plan-audit.sh` (path or stdin) exits **2**
+  when the plan deletes or replaces a resource whose type holds data — RDS, Aurora, S3,
+  DynamoDB, EFS/EBS, Cloud SQL, GCS, Compute Disk, Azure storage account / SQL database /
+  flexible server / managed disk, a PVC, and a `helm_release` only when its values or
+  `set` blocks name one. `--list-types` prints the list with a reason per type. **1** means
+  it could not read the input and nothing was checked; it fails CLOSED, unlike this
+  plugin's hook, because the only other thing a reader can say about a plan it cannot
+  parse is "clean". `/devops:review` runs it when `*.tf`/`*.tofu` or a plan JSON is in
+  scope, and `devops-practices` carries the invocation. No hook: a plan arrives as a
+  file, not as a tool call.
+- The second half, `lifecycle.prevent_destroy = true` removed since `--base`, reads the
+  `.tf` SOURCE in a git work tree (`--tf-dir`, `--base`), not the plan. Terraform does not
+  record `lifecycle` in state and does not emit it in the JSON plan at all, so a
+  plan-only check for it would have been theater; with no work tree to read, the reader
+  prints `prevent_destroy: NOT CHECKED` and never "clean". Fixtures in
+  `scripts/__tests__/plan-audit.test.sh` (28 asserts).
+- What the reader does NOT catch is in its own header and the README: a resource type not
+  on the list, another provider, a module that wraps storage under a type of its own, data
+  loss inside an `update` (a shrunk volume, `skip_final_snapshot` flipped), a `moved`
+  block, whether the destroy is recoverable, and a chart whose PVC never appears in the
+  release's values. Untested against output a real `terraform` binary produced — no
+  binary exists on the machine it was written on; the schema is honoured from
+  HashiCorp's JSON output format docs, re-read 2026-09-22.
+  Panel finding 43 (`rationale/specialist-panel-2026-09-22.md` §2): the marketplace had
+  no IaC lane, and the mechanism-bearing slice of that gap is this reader, not a
+  terraform skill — that shape is `rationale/measured-zero-shapes.md` shape 4.
+
+## 0.7.1 — 2026-09-22
+
+### Changed
+- `compose-init`'s `Last verified` stamp carries a `version-tail-ok:` marker. The stamp
+  points at an EOL calendar, not a package registry — the skill pins container image tags
+  read from the project's manifests and depends on no package of its own — so
+  `check-doc-staleness.sh --live` has nothing to compare and `pc_version_stamp_tail` was
+  warning about a tail that cannot exist. The marker states that, and states that nothing
+  machine-reads the EOL calendar either.
+
+## 0.7.0 — 2026-09-22
+
+### Fixed
+- **Composite actions were a hole straight through both halves of the guard.** An
+  identical `run: echo "${{ github.event.pull_request.title }}"` was denied in
+  `.github/workflows/ci.yml` and allowed in `.github/actions/<name>/action.yml`, which a
+  workflow calls with its own token — so the same command execution shipped through the
+  side door. `hooks/workflow-guard.sh` now matches the composite path, and
+  `scripts/workflow-audit.sh` reads `.github/actions/*/action.y{a,}ml` as a second root.
+  Only rules 2 (expression injection) and 3 (unpinned third-party `uses:`) apply there;
+  rules 1, 4, 5 and 6 read triggers, top-level `permissions:` and `runs-on`, fields a
+  composite does not have, so applying them would warn on every composite in existence.
+  Still not read: an `action.yml` outside `.github/actions/`, and a composite that shells
+  out to a script file.
+- **The deny reason named a path that does not exist on an installer's disk** —
+  `plugins/devops/scripts/workflow-audit.sh` is this marketplace's own layout. It now
+  resolves `${CLAUDE_PLUGIN_ROOT}` (falling back to the hook's own directory), so the
+  command in the message is one the reader can paste.
+
+### Changed
+- Fixtures for every row above, both directions, in
+  `scripts/__tests__/workflow-audit.test.sh`.
+- `README.md`: the composite scope, and a **Running headless / in CI** note — this
+  plugin's guard only ever denies, so it is headless-safe; the `ask` tiers belong to
+  `command-guard` and `database`. Standing: recorded.
+
+### Changed
+- `lane.tsv` now declares the `devops-practices` skill (build phase, `cicd-and-deploy-idioms`); it was the plugin's headline skill and the only one with no lane row.
+
 ## 0.6.10 — 2026-09-22
 
 ### Fixed

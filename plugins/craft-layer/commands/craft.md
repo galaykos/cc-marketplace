@@ -129,7 +129,7 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    does not move for ambition. A floor the brief genuinely does not want is waived in the divergence
    record with a reason, never by silence.
 
-   **Resolve five lines on the build task:**
+   **Resolve six lines on the build task:**
 
    - `Motion:` — a named tier per surface plus fallbacks; at `maximal`, one `(escalated ← …)`
    - `Signature:` — the move, its section, its owning skill
@@ -143,6 +143,16 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
      key is on and nothing else, so every pair after a wrap is lost silently. Let the line be long. It
      resolves at every tier — `one-shot` writes no ledger to carry it; a `guided` run copies the
      ledger's `slot` + `section` columns.
+   - `Voice:` — the concept's editorial voice made buildable, four dimensions separated by `·`: person
+     and address · sentence-length band in words · what it does with fragments, questions and
+     imperatives · 2–3 `NEVER "<literal>"` items, the exact strings THIS product does not say. Same
+     lane and same one-line shape as `Banned vocabulary:`, and drawn from the concept deck's editorial
+     voice rather than invented here. Shape, the four dimensions and the standing split:
+     `skills/creative-direction/references/voice-contract.md`. **Standing: `gate` for the line and for
+     at least one NEVER** (`divergence.mjs`'s `voice-contract` assertion FAILs a resolved build task
+     without them, and `copy-register` greps the literals in shipped copy); the voice ITSELF — person,
+     band, fragment rules — is **agent-graded**, the reviewer's read. An adjective is not a value: a
+     `Voice:` line reading "confident and human" clears no dimension.
 
    Reach for the owning skill per call — each references its library by path, never re-teach. **Tier**
    (the base per-surface choice) → `motion-tiers`: Framer Motion, anime.js, Three.js/R3F, sprites
@@ -163,7 +173,7 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    a previous run left behind, and the audit fails it rather than reading it as this build's.
 
 6. **Build.** Pass the build task — the section ledger's choices when step 3 ran, step 4's
-   `Assets / provenance:` and `Components / provenance:` lines, and step 5's five lines — to
+   `Assets / provenance:` and `Components / provenance:` lines, and step 5's six lines — to
    `/ui-ux:build`, applying `design-tokens` and, for data-dense CRM/SaaS surfaces,
    `information-design`. ONE pass: layout and motion land together, because the signature and the
    scroll device are structural, not decoration applied afterwards. A section assigned to a registry

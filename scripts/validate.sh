@@ -719,8 +719,9 @@ fi
 # ---- Lane declarations: who owns which territory -----------------------------
 # Every plugin declares, in its own plugins/<name>/lane.tsv, which territory each
 # of its artifacts owns, at which phase of the arc it may speak, the condition
-# that fires it, and who outranks it. Five gates read those files by glob — there
-# is deliberately no generated aggregate, because a concatenation would carry no
+# that fires it, and who outranks it. The pc_lanes_* family reads those files by
+# glob (recount: `grep -c '^pc_lanes_[a-z_]*() {' scripts/lib/plugin-checks.sh`)
+# — there is deliberately no generated aggregate, because a concatenation would carry no
 # rule this glob does not and would add a chassis-drift surface for nothing.
 #
 # THE ONE THAT CARRIES THE MISSION is pc_lanes_territory: it is the only
@@ -763,6 +764,22 @@ lane_wc=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn command ' || true)
 lane_ws=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn skill ' || true)
 [ "$lane_wc" -gt 0 ] && warn "$lane_wc command(s) have no lane row — WARN tier this run; agents, prompt/Stop hooks and deny-capable Pre/PostToolUse hooks are the gate"
 [ "$lane_ws" -gt 0 ] && warn "$lane_ws skill(s) have no lane row — WARN tier this run; agents, prompt/Stop hooks and deny-capable Pre/PostToolUse hooks are the gate"
+
+# The territory gate above fires only on an exact `owns` collision, and the live
+# vocabulary is 1:1 with the claimed nouns, so it has never had a pair. Crowding is
+# the defect the probe actually priced (eight rivals on one territory: firing
+# 100% → ~75%), and it is invisible to a string compare. WARN tier deliberately —
+# the derivation, the six live clusters and the FAIL flip are in the function's
+# header in scripts/lib/plugin-checks.sh.
+lane_adj=$(pc_lanes_adjacency plugins) || true
+if [ -n "$lane_adj" ]; then
+  while IFS= read -r l; do
+    [ -n "$l" ] || continue
+    warn "$l — artifacts sharing one phase and one file shape; give one a narrower trigger, add a yields_to edge, or bless the pairs with '# lane-cofire-ok: <a> <b>'"
+  done <<EOF_LANE_ADJ
+$lane_adj
+EOF_LANE_ADJ
+fi
 
 # A prompt/Stop hook that declared a SPECIFIC phase must read the sentinel, or it
 # speaks in every phase forever. `any` lanes are guards and exempt by declaration.
@@ -809,14 +826,79 @@ harness_gap=$(pc_harness_payload .) || true
 
 # The SessionStart index must not claim a skill the documented manifest map never
 # sanctioned — that is how prime.sh came to assert tailwind on any React dependency.
+# ...and, since 2026-09-22, the reverse: the map must not declare a repository signal
+# the probe never emits. WARN TIER for that direction only — the two it found are in
+# skill-router's hook, another hand than the one adding the check, and the forward
+# direction stays a FAIL. Derivation and the matcher blind spot: pc_prime_coverage's header.
 prime_gap=$(pc_prime_coverage plugins) || true
-[ -n "$prime_gap" ] && lane_err "$prime_gap" "prime.sh names a skill coding-entry/references/skill-map.md does not — add the row to that map, or mark the line '# prime-ok: <skill>' in prime.sh"
+prime_fwd=$(printf '%s\n' "$prime_gap" | grep '^prime-unmapped ') || true
+prime_rev=$(printf '%s\n' "$prime_gap" | grep '^map-unprimed ') || true
+[ -n "$prime_fwd" ] && lane_err "$prime_fwd" "prime.sh names a skill coding-entry/references/skill-map.md does not — add the row to that map, or mark the line '# prime-ok: <skill>' in prime.sh"
+if [ -n "$prime_rev" ]; then
+  while IFS= read -r l; do
+    [ -n "$l" ] || continue
+    warn "$l — coding-entry/references/skill-map.md declares this row and prime.sh emits nothing for it; add the branch to prime.sh, drop the row, or mark '# prime-ok: <skill>'"
+  done <<EOF
+$prime_rev
+EOF
+fi
 
 # A hook runs inside the user's turn, so the plugin must say how long it may hold
 # it. Gates that a number EXISTS, not that it is right, and says nothing about
 # what a killed hook does — both residuals are stated in pc_hook_timeout's header.
 hook_to_gap=$(pc_hook_timeout plugins) || true
 [ -n "$hook_to_gap" ] && lane_err "$hook_to_gap" "every hook entry in hooks.json must declare a timeout (seconds) — size it to what the script does, not to a house default"
+
+# The slash-command menu shows `argument-hint` as the user types; without it a
+# command that reads $ARGUMENTS asks for input it never names. Derivation and
+# residuals: pc_command_arg_hint's header.
+arghint_gap=$(pc_command_arg_hint plugins) || true
+[ -n "$arghint_gap" ] && lane_err "$arghint_gap" "a command whose body reads \$ARGUMENTS must declare argument-hint: in its frontmatter — the host shows it in the slash-command menu"
+
+# The fail-open guarantee six hook headers assert in their own words, read back. FAIL
+# TIER as of 2026-09-22: all 11 offenders counted that day are fixed — eight were chassis
+# output and went with one line each in templates/reminder-hook.sh.tmpl and
+# templates/boost-hook.sh.tmpl, three (ui-ux and taskmaster preview-guard.sh, design-kit
+# unread-pick.sh) by hand. The check shipped at WARN for exactly as long as the tree
+# disagreed with it. `# env-shebang-ok: <reason>` is the escape for a host with no
+# /bin/bash; the residuals are in pc_hook_shebang's header.
+shebang_gap=$(pc_hook_shebang plugins) || true
+[ -n "$shebang_gap" ] && lane_err "$shebang_gap" "a registered hook must start #!/bin/bash so the fail-open guarantee holds under a stripped PATH where \`env bash\` exits 127; or carry '# env-shebang-ok: <reason>'"
+
+# A hook may not `mkdir -p` a path built from the payload's cwd without first proving
+# that directory still exists — the shape that rebuilt a deleted three-level project
+# tree to hold a state dir. FAIL tier: the live tree passes it as it lands. What it
+# cannot see (a cwd that exists but is not this project) is in pc_cwd_validated's header.
+cwdval_gap=$(pc_cwd_validated plugins) || true
+[ -n "$cwdval_gap" ] && lane_err "$cwdval_gap" "a hook mkdir -p's a path built from the payload cwd with nothing proving that directory still exists — add [ -d \"\$cwd\" ] (or a test on a path inside it) before the write, or carry '# cwd-mkdir-ok: <why>'"
+
+# The person who needs to know a guard has an off switch is the person it just refused.
+# WARN TIER THIS RUN — five hooks in four plugins fail it the moment it ships, and they
+# are other hands than the one adding the check. Per-message attribution is out of reach
+# for a static reader; that half is agent-graded, and pc_offswitch_named's header says so.
+offsw_gap=$(pc_offswitch_named plugins) || true
+if [ -n "$offsw_gap" ]; then
+  while IFS= read -r l; do
+    [ -n "$l" ] || continue
+    warn "$l — this hook can deny or block and reads that env switch, but names it in no text it emits; put '<VAR>=off disables this for the session' in the reason, or carry '# offswitch-ok: <why>'"
+  done <<EOF
+$offsw_gap
+EOF
+fi
+
+# A skill that promises version pinning must leave check-doc-staleness.sh --live
+# something to compare: an npm:/composer:/pypi: tail on its stamp. WARN TIER THIS RUN
+# (two offenders, both other plugins'). It gates the TAIL, never its truth —
+# pc_version_stamp_tail's header.
+stamptail_gap=$(pc_version_stamp_tail plugins) || true
+if [ -n "$stamptail_gap" ]; then
+  while IFS= read -r l; do
+    [ -n "$l" ] || continue
+    warn "$l — its frontmatter promises version pinning, so its 'Last verified' stamp needs an npm:/composer:/pypi: tail for check-doc-staleness.sh --live to read; or carry '<!-- version-tail-ok: <why> -->'"
+  done <<EOF
+$stamptail_gap
+EOF
+fi
 
 # Corpus-level companion to the per-file SKILL budget: a ceiling authors write TO
 # stops being a ceiling, and no per-file check can see that. Ratchet, not

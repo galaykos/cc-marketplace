@@ -35,6 +35,10 @@ accent swap.
 3. Generate up to 3 candidate token sets (light + dark each, contrast-checked),
    write `taskmaster-docs/mockups/theme.html`, reuse-or-start the shared preview
    server (port `${PREVIEW_PORT:-8123}`), and give the user the stable URL.
+   Creating `taskmaster-docs/mockups/`, drop a `.gitignore` holding `*` into it if
+   one is not there — this page is scratch and belongs in no commit, and the only
+   other artifact that drops that file is taskmaster's grill, which craft-suite and
+   frontend-suite do not ship.
    Build and serve the page per `shadcn-theming` §"The live theme preview"
    (the `theme-shell.html` starter, viewport control, light and dark side by
    side). It decides COLOUR, not component look — say so rather than implying
@@ -42,7 +46,16 @@ accent swap.
    artifact; the decision lives on the local URL.
 4. Iterate per the skill's protocol: one axis per round, picks via
    AskUserQuestion, regenerate in place so the open tab reloads itself.
-5. On acceptance: show the diff against the real target for the detected stack —
+5. **Measure the contrast before the diff.** Write the accepted token set to a CSS
+   file with `:root` and `.dark` blocks (the preview scratch dir is fine) and run
+   `cd <project root> && CRAFT_TOKEN_SOURCE=<that file> node "${CLAUDE_PLUGIN_ROOT}/scripts/contrast.mjs"`.
+   Exit 1 prints every pairing below its WCAG 2 threshold — fix those steps and
+   re-run before showing anything. Exit 2 means it resolved no token and measured
+   nothing, which is not a pass either. It parses `oklch()` values only, so a
+   Tailwind v3 HSL-triplet or Bootstrap Sass target will exit 2: say the tokens
+   were judged by reading and NOT measured, rather than repeating this command's
+   own "contrast-checked" claim over an unmeasured build.
+6. On acceptance: show the diff against the real target for the detected stack —
    `globals.css` (plus `tailwind.config` mappings on v3), or the Sass partial
    holding `$variables` before the Bootstrap import — then offer the write as a
    selectable choice (AskUserQuestion): "Apply this theme now (Recommended)" /

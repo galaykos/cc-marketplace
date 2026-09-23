@@ -76,16 +76,39 @@
     && found="$found pyproject.toml"
 
   # The CI lint invocation — authoritative, and not derivable from any config file.
+  #
+  # SIX FORMATS, because only one of them was ever read. Scanning `.github/workflows/`
+  # alone meant every GitLab, CircleCI, Jenkins, Azure and Bitbucket repo got the configs
+  # half of this message and no `CI runs:` line — and the paragraph below still told the
+  # reader that whatever CI invokes is the standard, while naming nothing. The keyword
+  # list is shared; only the PREFIX differs, because each format spells "this is a shell
+  # command" its own way (`run:`, `script:`, `command:`, `sh '…'`, or a bare list item).
+  #
+  # WHAT THIS DOES NOT CATCH: any other runner (Drone, Buildkite, Tekton, Woodpecker,
+  # Travis, Bamboo, a Makefile target CI calls); a GitHub composite action or reusable
+  # workflow called from the job that does the linting; a command built from a variable;
+  # and anything after the FIRST hit — one line is named, not the pipeline.
   ci=""
+  ci_try() { # $1 file  $2 ERE for what precedes the command on its line
+    [ -n "$ci" ] && return 0
+    [ -f "$1" ] || return 1
+    line=$(grep -nE "^[[:space:]]*$2.*(lint|format|fmt|pint|rubocop|ruff|biome|prettier|phpstan|psalm|vet)" "$1" 2>/dev/null | head -1)
+    [ -n "$line" ] || return 1
+    cmd=$(printf '%s' "${line#*:}" | sed -E "s/^[[:space:]]*$2//; s/^[[:space:]]*//; s/[[:space:]]*\$//; s/^['\"]//; s/['\"]\$//")
+    ci="${1#$cwd/}:${line%%:*} — $cmd"
+  }
+  # `- run:` as a list item is the common GitHub shape; without the optional dash this
+  # matched nothing in a real workflow and the CI half silently never fired.
   for w in "$cwd"/.github/workflows/*.yml "$cwd"/.github/workflows/*.yaml; do
-    [ -f "$w" ] || continue
-    # `- run:` as a list item is the common shape; without the optional dash this
-    # matched nothing in a real workflow and the CI half silently never fired.
-    line=$(grep -nE '^[[:space:]]*-?[[:space:]]*run:.*(lint|format|fmt|pint|rubocop|ruff|biome|prettier|phpstan|psalm|vet)' "$w" 2>/dev/null | head -1)
-    [ -n "$line" ] || continue
-    ci="${w#$cwd/}:${line%%:*} — $(printf '%s' "${line#*:}" | sed 's/^[[:space:]]*-\{0,1\}[[:space:]]*run:[[:space:]]*//')"
-    break
+    ci_try "$w" '-?[[:space:]]*run:[[:space:]]*'
   done
+  ci_try "$cwd/.gitlab-ci.yml"          '(-[[:space:]]*|script:[[:space:]]*)'
+  ci_try "$cwd/.gitlab-ci.yaml"         '(-[[:space:]]*|script:[[:space:]]*)'
+  ci_try "$cwd/.circleci/config.yml"    '-?[[:space:]]*(run|command):[[:space:]]*'
+  ci_try "$cwd/Jenkinsfile"             'sh[[:space:]]+'
+  ci_try "$cwd/azure-pipelines.yml"     '-?[[:space:]]*script:[[:space:]]*'
+  ci_try "$cwd/azure-pipelines.yaml"    '-?[[:space:]]*script:[[:space:]]*'
+  ci_try "$cwd/bitbucket-pipelines.yml" '-[[:space:]]*'
 
   [ -n "$found" ] || [ -n "$ci" ] || exit 0
 

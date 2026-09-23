@@ -13,15 +13,39 @@ instrumentation to **resilience** (its observability skill).
 | Rule | Standing |
 |---|---|
 | A write to `.github/workflows/` that triggers on `pull_request_target`/`workflow_run` **and** checks out the untrusted head ref | **gate** — PreToolUse deny; GitHub's own documented critical anti-pattern |
-| A write to `.github/workflows/` interpolating a `${{ github.event.* }}` field an author can type directly into a `run:` block | **gate** — PreToolUse deny; the shell substitution happens before the shell runs |
+| A write to `.github/workflows/` **or `.github/actions/*/action.yml`** interpolating a `${{ github.event.* }}` field an author can type directly into a `run:` block | **gate** — PreToolUse deny; the shell substitution happens before the shell runs, and a composite runs with the calling workflow's token |
+| A Terraform/OpenTofu plan that deletes or replaces a resource whose type holds data, or a `lifecycle.prevent_destroy = true` removed from the source since `--base` | **gate** — `scripts/plan-audit.sh` exits **2**; **1** means it could not read the input, so nothing was checked; **0** means none of those shapes. You run it (`/devops:review` does when `*.tf`/`*.tofu` or a plan JSON is in scope) — no hook fires, because a plan arrives as a file, not as a tool call |
 | Every other CI/CD, Kubernetes, deploy and secrets rule in `devops-practices` | **agent-graded** — a reviewer applies them; no script does |
 | The warn-level workflow findings (unpinned action tag, no top-level `permissions:`, self-hosted runner on a fork trigger, secrets in a `pull_request_target` workflow) | **recorded** — `scripts/workflow-audit.sh` prints them and **exits 0**; only a CRITICAL finding exits 2, and 3 means it could not read (bad argument, missing dir, no workflow files). Reached through the mechanical-check table in `devops-practices`, which `/devops:review` loads — never by a hook |
 
 The guard blocks two shapes and nothing else. Everything the audit script finds
-beyond them is a report you have to run — and a clean run means "none of the six
+beyond them is a report you have to run — and a clean run means "none of the
 shapes it knows are present in these files", not "this pipeline is safe": it is a
-line scan, not a YAML parser, so a composite action or a `secrets: inherit`
-reusable workflow hides the sink one level down where it cannot look.
+line scan, not a YAML parser. Composite actions under `.github/actions/` are read
+for expression injection and unpinned `uses:` only; the trigger, `permissions:`
+and runner rules are workflow-only, because a composite has none of those fields.
+A composite elsewhere in the tree, one that shells out to a script file, or a
+`secrets: inherit` reusable workflow still hides the sink where it cannot look.
+
+The plan reader is a reader, not a terraform rubric: this plugin carries no terraform
+advice, because a skill restating Terraform's docs is the shape
+`rationale/measured-zero-shapes.md` records as measuring zero. What it misses is on
+its own header — a resource type nobody put on the list, data loss inside an `update`
+(a shrunk volume, `skip_final_snapshot` flipped), and whether a destroy is recoverable
+at all. `--list-types` prints the list it does check. The `prevent_destroy` half reads
+the `.tf` SOURCE against `--base`, because Terraform does not put `lifecycle` in the
+JSON plan at all; with no git work tree to read it says `NOT CHECKED`, never "clean".
+
+```bash
+terraform show -json plan.out | bash scripts/plan-audit.sh          # 0 clean · 2 finding · 1 cannot read
+bash scripts/plan-audit.sh --tf-dir infra --base origin/main plan.json
+```
+
+**Running headless / in CI.** Neither the audit script nor this guard asks anything —
+the guard's only verdict is `deny`, so a headless run is unaffected by it. The plugins
+that return `ask` are `command-guard` and `database`, and with no interactive prompt an
+`ask` is auto-denied; see **Running headless / in CI** in `command-guard`'s README for
+the automation profile. Standing: **recorded**.
 
 ## Install
 

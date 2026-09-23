@@ -89,6 +89,7 @@ run_with_timeout() {
 CHANGED=()
 ENTRYPOINTS=()
 DIFFERENTIALS=()
+CUSTOM_RUNNERS=()
 add_changed() {
   local raw="$1" tok _o="$IFS"
   set -f; IFS=$' \t\n'
@@ -104,7 +105,9 @@ while [ $# -gt 0 ]; do
     --entrypoint=*)   ENTRYPOINTS+=("${1#--entrypoint=}"); shift ;;
     --differential)   shift; [ $# -gt 0 ] || usage "--differential requires a value"; DIFFERENTIALS+=("$1"); shift ;;
     --differential=*) DIFFERENTIALS+=("${1#--differential=}"); shift ;;
-    -h|--help)   printf 'usage: %s --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2; exit 3 ;;
+    --runner)         shift; [ $# -gt 0 ] || usage "--runner requires a value"; CUSTOM_RUNNERS+=("$1"); shift ;;
+    --runner=*)       CUSTOM_RUNNERS+=("${1#--runner=}"); shift ;;
+    -h|--help)   printf 'usage: %s --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--runner '\''<cmd>::<empty-regex>'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2; exit 3 ;;
     --*)         usage "unknown flag: $1" ;;
     *)           add_changed "$1"; shift ;;
   esac
@@ -112,27 +115,53 @@ done
 [ "${#CHANGED[@]}" -gt 0 ] || usage "no --changed files given (want --changed <file-or-list>)"
 
 # ---- (a) CLASSIFY: touched files -> language flags --------------------------
-HAS_PY=0; HAS_JS=0; HAS_GO=0; HAS_DOC=0; HAS_OPAQUE=0
+# php/rs/rb/java+kt were added 2026-09-22 (SW 1 of the specialist panel). Before that
+# the classifier knew py/js/go and nothing else, so a PHP, Rust, Java or Ruby run fell
+# to HAS_OPAQUE=1 -> no-behavioral-coverage -> exit 2 with no flag to escape it, and
+# candor's Stop gate then refused every close: a gate that could not be passed rather
+# than a rule that could be followed. Measured on four fixtures with green suites:
+# EXIT=2 all four.
+HAS_PY=0; HAS_JS=0; HAS_GO=0; HAS_PHP=0; HAS_RS=0; HAS_RB=0; HAS_JAVA=0; HAS_DOC=0; HAS_OPAQUE=0
 for f in "${CHANGED[@]}"; do
   base="${f##*/}"; ext="${base##*.}"; [ "$ext" = "$base" ] && ext=""
   case "$ext" in
     py)                        HAS_PY=1 ;;
     js|mjs|cjs|jsx|ts|tsx)     HAS_JS=1 ;;
     go)                        HAS_GO=1 ;;
+    php)                       HAS_PHP=1 ;;
+    rs)                        HAS_RS=1 ;;
+    rb)                        HAS_RB=1 ;;
+    java|kt)                   HAS_JAVA=1 ;;
     md|json|txt|yml|yaml|sh|tmpl) HAS_DOC=1 ;; # .sh + .tmpl (prose templates) treated as doc/non-exec surface
     *)                         HAS_OPAQUE=1 ;;
   esac
 done
-log "classify: py=$HAS_PY js=$HAS_JS go=$HAS_GO doc=$HAS_DOC opaque=$HAS_OPAQUE (files=${#CHANGED[@]})"
+log "classify: py=$HAS_PY js=$HAS_JS go=$HAS_GO php=$HAS_PHP rs=$HAS_RS rb=$HAS_RB java=$HAS_JAVA doc=$HAS_DOC opaque=$HAS_OPAQUE (files=${#CHANGED[@]})"
 
 runners=()
 [ "$HAS_PY" = 1 ] && runners+=("py")
 [ "$HAS_JS" = 1 ] && runners+=("js")
 [ "$HAS_GO" = 1 ] && runners+=("go")
+[ "$HAS_PHP" = 1 ] && runners+=("php")
+[ "$HAS_RS" = 1 ] && runners+=("rs")
+[ "$HAS_RB" = 1 ] && runners+=("rb")
+[ "$HAS_JAVA" = 1 ] && runners+=("java")
+# --runner is the escape for the FIFTH language — anything the classifier still calls
+# opaque. Declaring one satisfies the opaque surface: the caller has named a command
+# and the output that means "it ran nothing", which is the only thing the classifier
+# was ever supplying.
+ci=0
+for _cr in ${CUSTOM_RUNNERS[@]+"${CUSTOM_RUNNERS[@]}"}; do
+  case "$_cr" in *"::"*) : ;; *) usage "--runner must be '<cmd>::<empty-output-regex>' (got: $_cr)" ;; esac
+  [ -n "${_cr%%::*}" ] || usage "--runner command must be non-empty (got: $_cr)"
+  [ -n "${_cr#*::}" ]  || usage "--runner empty-output regex must be non-empty (got: $_cr)"
+  ci=$((ci + 1)); runners+=("custom$ci")
+done
 
 if [ "${#runners[@]}" -eq 0 ]; then
   if [ "$HAS_OPAQUE" = 1 ]; then
     log "needs behavioral coverage but NO test runner resolves for the touched types"
+    log "declare one with --runner '<cmd>::<empty-output-regex>' if this stack has a suite"
     log "VERDICT: no-behavioral-coverage"
     bg_record no-behavioral-coverage
     exit 2
@@ -151,6 +180,28 @@ js_has_tests() {
        -o -name '*.spec.js' -o -name '*-test.js' -o -name '*_test.js' \) -print 2>/dev/null | grep -q .
 }
 go_has_tests() { find . -type f -name '*_test.go' 2>/dev/null | grep -q .; }
+php_has_tests() {
+  find . -type d -name vendor -prune -o -type f \
+    \( -name '*Test.php' -o -name '*_test.php' -o -path './tests/*.php' \) -print 2>/dev/null | grep -q .
+}
+# Rust tests are USUALLY inline `#[test]` fns in the same file, not a separate naming
+# convention, so the static zero-check greps for the attribute as well as tests/. The
+# pattern is deliberately loose (anywhere on the line, any `#[<path>test…]` attribute:
+# `#[test]`, `#[tokio::test]`, `#[rstest]`, `#[test_case(..)]`) and deliberately not
+# `#[cfg(test)]`, which is a module gate and not a test. Over-matching — a commented-out
+# attribute — costs nothing: cargo then runs and the empty-suite branch renders the
+# verdict. UNDER-matching is the expensive direction, because it reports
+# no-behavioral-coverage for a crate that does have tests.
+rs_has_tests() {
+  { find . -type d -name target -prune -o -type f -path './tests/*.rs' -print 2>/dev/null | grep -q .; } && return 0
+  grep -rl --include='*.rs' --exclude-dir=target -E '#\[[a-z_:]*test' . 2>/dev/null | grep -q .
+}
+rb_has_tests() { find . -type f \( -name '*_spec.rb' -o -name '*_test.rb' \) 2>/dev/null | grep -q .; }
+java_has_tests() {
+  find . -type d \( -name build -o -name target -o -name .gradle \) -prune -o -type f \
+    \( -name '*Test.java'  -o -name '*Tests.java'  -o -name '*TestCase.java' \
+    -o -name '*Test.kt'    -o -name '*Tests.kt'    -o -name '*Spec.kt' \) -print 2>/dev/null | grep -q .
+}
 
 pkg_test_script() {
   [ -f package.json ] || { printf ''; return 0; }
@@ -291,12 +342,180 @@ verdict_go() {
   log "go test: no parseable result — fail-closed"; printf 'unverifiable-suite\n'
 }
 
+# ---- php / rs / rb / java (SW 1, 2026-09-22) --------------------------------
+# Each follows the SAME three-step shape as py/js/go above and must: (1) declare
+# no-behavioral-coverage when no own-test exists statically, (2) declare
+# unverifiable-suite when the runner binary is absent — never a silent pass, and
+# (3) check its EMPTY signal BEFORE its covered signal wherever the empty output is
+# unambiguous, and AFTER it wherever a multi-target runner can print both (rs, like go).
+# Unparseable output is unverifiable-suite. The table in
+# skills/behavioral-gate/references/runners.md mirrors these; this script is the
+# source of truth.
+
+verdict_php() {
+  if ! php_has_tests; then
+    log "php: no *Test.php / *_test.php / tests/*.php present — no runnable own-test"; printf 'no-behavioral-coverage\n'; return
+  fi
+  local bin=""
+  if   [ -x ./vendor/bin/pest ];     then bin=./vendor/bin/pest
+  elif [ -x ./vendor/bin/phpunit ];  then bin=./vendor/bin/phpunit
+  elif command -v pest    >/dev/null 2>&1; then bin=pest
+  elif command -v phpunit >/dev/null 2>&1; then bin=phpunit
+  fi
+  if [ -z "$bin" ]; then
+    log "php: tests present but neither vendor/bin/pest nor vendor/bin/phpunit is executable (fail-closed)"; printf 'unverifiable-suite\n'; return
+  fi
+  log "php: running '$bin' (timeout ${TIMEOUT_SECS}s)"
+  run_capture "$bin"
+  log "php: exit=$RUN_RC"
+  if [ "$RUN_RC" = 124 ]; then log "php: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  # PHPUnit's empty signal is "No tests executed!"; Pest's is "No tests found".
+  if printf '%s\n' "$CAP" | grep -Eq 'No tests executed|No tests found'; then printf 'empty-suite\n'; return; fi
+  # PHPUnit green: "OK (5 tests, 9 assertions)". PHPUnit red and Pest both print a
+  # "Tests:" summary line carrying a non-zero count.
+  if printf '%s\n' "$CAP" | grep -Eq 'OK \([1-9][0-9]* test|Tests:[[:space:]]+[1-9]|FAILURES!|ERRORS!'; then printf 'covered\n'; return; fi
+  log "php: no parseable test count in output — refusing to assume coverage (fail-closed)"
+  printf 'unverifiable-suite\n'
+}
+
+verdict_rs() {
+  if ! rs_has_tests; then
+    log "cargo test: no tests/*.rs and no #[test] attribute present — no runnable own-test"; printf 'no-behavioral-coverage\n'; return
+  fi
+  if ! command -v cargo >/dev/null 2>&1; then
+    log "cargo test: tests present but 'cargo' not installed (fail-closed)"; printf 'unverifiable-suite\n'; return
+  fi
+  log "cargo test: running 'cargo test' (timeout ${TIMEOUT_SECS}s)"
+  run_capture cargo test
+  log "cargo test: exit=$RUN_RC"
+  if [ "$RUN_RC" = 124 ]; then log "cargo test: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  # A compile error runs ZERO tests while printing a non-zero exit; route it to
+  # unverifiable BEFORE anything else so it never reads green (same trap as go's
+  # '[build failed]').
+  if printf '%s\n' "$CAP" | grep -Eq 'error\[E[0-9]+\]|error: could not compile|^error: aborting'; then
+    log "cargo test: crate failed to compile — no tests executed (fail-closed)"
+    printf 'unverifiable-suite\n'; return
+  fi
+  # COVERED before EMPTY, as with go: a crate has one 'test result:' line per target
+  # (lib, each bin, each integration test, doc-tests), so a 0-passed line sits beside
+  # a real one routinely. Empty is declared only when NO target passed anything.
+  if printf '%s\n' "$CAP" | grep -Eq 'test result:.*[1-9][0-9]* passed'; then printf 'covered\n'; return; fi
+  if printf '%s\n' "$CAP" | grep -Eq 'test result:.*\b0 passed'; then printf 'empty-suite\n'; return; fi
+  log "cargo test: no parseable 'test result:' line — fail-closed"; printf 'unverifiable-suite\n'
+}
+
+verdict_rb() {
+  if ! rb_has_tests; then
+    log "rspec: no *_spec.rb / *_test.rb present — no runnable own-test"; printf 'no-behavioral-coverage\n'; return
+  fi
+  local -a cmd=()
+  if   [ -f Gemfile ] && command -v bundle >/dev/null 2>&1; then cmd=(bundle exec rspec)
+  elif command -v rspec >/dev/null 2>&1;                    then cmd=(rspec)
+  fi
+  if [ "${#cmd[@]}" -eq 0 ]; then
+    log "rspec: specs present but neither 'bundle exec rspec' nor 'rspec' is available (fail-closed)"; printf 'unverifiable-suite\n'; return
+  fi
+  log "rspec: running '${cmd[*]}' (timeout ${TIMEOUT_SECS}s)"
+  run_capture "${cmd[@]}"
+  log "rspec: exit=$RUN_RC"
+  if [ "$RUN_RC" = 124 ]; then log "rspec: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  # "0 examples, 0 failures" is the empty signal and it is unambiguous — rspec prints
+  # exactly one summary line per run — so it is checked first.
+  if printf '%s\n' "$CAP" | grep -Eq '(^|[^0-9])0 examples'; then printf 'empty-suite\n'; return; fi
+  if printf '%s\n' "$CAP" | grep -Eq '[1-9][0-9]* examples?'; then printf 'covered\n'; return; fi
+  log "rspec: no parseable 'N examples' summary — fail-closed"; printf 'unverifiable-suite\n'
+}
+
+verdict_java() {
+  if ! java_has_tests; then
+    log "java/kotlin: no *Test(s).java / *Test(s).kt / *Spec.kt present — no runnable own-test"; printf 'no-behavioral-coverage\n'; return
+  fi
+  # --rerun-tasks on the Gradle path, measured 2026-09-22: a plain `gradle test` on an
+  # already-built tree prints `> Task :test UP-TO-DATE` and executes NOTHING, and the
+  # gate is run from a copied checkout that carries build/ — so the second invocation of
+  # an honest green suite failed. Forcing the task is what makes the Java arm passable
+  # at all. Cost: the compile is redone (0.6s on the probe fixture; minutes on a large
+  # module, which is what BEHAVIORAL_GATE_TIMEOUT is for). Maven's surefire always runs.
+  # BOTH wrappers before EITHER system binary. A project that ships ./mvnw is a Maven
+  # project, and a `gradle` that happens to be on the developer's PATH has no business
+  # building it — checking the system binary first ran the wrong build system whenever
+  # both were present.
+  local -a cmd=()
+  if   [ -x ./gradlew ];                    then cmd=(./gradlew test --rerun-tasks)
+  elif [ -x ./mvnw ];                       then cmd=(./mvnw test)
+  elif command -v gradle >/dev/null 2>&1;   then cmd=(gradle test --rerun-tasks)
+  elif command -v mvn >/dev/null 2>&1;      then cmd=(mvn test)
+  fi
+  if [ "${#cmd[@]}" -eq 0 ]; then
+    log "java/kotlin: tests present but no gradlew/gradle/mvnw/mvn available (fail-closed)"; printf 'unverifiable-suite\n'; return
+  fi
+  log "java/kotlin: running '${cmd[*]}' (timeout ${TIMEOUT_SECS}s)"
+  run_capture "${cmd[@]}"
+  log "java/kotlin: exit=$RUN_RC"
+  if [ "$RUN_RC" = 124 ]; then log "java/kotlin: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  # Surefire's empty signal is "Tests run: 0"; Gradle's is a test task that found no
+  # source. A task reported UP-TO-DATE executed nothing THIS invocation, which is not
+  # a pass either — name --rerun-tasks rather than guess.
+  if printf '%s\n' "$CAP" | grep -Eq 'Tests run: 0|Task :[a-zA-Z:]*test NO-SOURCE|No tests found|There are no tests to run|did not discover any tests'; then
+    printf 'empty-suite\n'; return
+  fi
+  # Defensive: --rerun-tasks above should make this unreachable on the Gradle path, but a
+  # wrapper or init script can still skip the task, and a skipped task is not a pass.
+  if printf '%s\n' "$CAP" | grep -Eq 'Task :[a-zA-Z:]*test UP-TO-DATE'; then
+    log "java/kotlin: the test task was UP-TO-DATE — nothing executed this invocation (fail-closed)"
+    printf 'unverifiable-suite\n'; return
+  fi
+  if printf '%s\n' "$CAP" | grep -Eq 'Tests run: [1-9]|[1-9][0-9]* tests? completed'; then printf 'covered\n'; return; fi
+  # GRADLE'S WEAK SIGNAL, stated rather than hidden. `gradle test` prints no counts at
+  # all on a green run — only "BUILD SUCCESSFUL" (verified against Gradle 9.7.1,
+  # 2026-09-22) — so for that one path the gate falls back to "test sources exist
+  # (checked above) and the test task did not fail". That is weaker than every other row
+  # in this file. Two ways past it, both named in runners.md: a suite whose tests are all
+  # filtered out by a --tests selector, and a build that sets failOnNoDiscoveredTests to
+  # false (on Gradle 9 the default TRUE turns a zero-discovery run into the build failure
+  # matched as empty-suite above — that default is doing the empty-detection here).
+  if printf '%s\n' "$CAP" | grep -Eq 'BUILD SUCCESSFUL'; then
+    log "java/kotlin: gradle printed no test counts; falling back to test-sources-exist + BUILD SUCCESSFUL (weak signal — see runners.md)"
+    printf 'covered\n'; return
+  fi
+  log "java/kotlin: no parseable test count in output — refusing to assume coverage (fail-closed)"
+  printf 'unverifiable-suite\n'
+}
+
+# --runner '<cmd>::<empty-output-regex>'. The CALLER owns the empty signal here, which
+# is the whole point and also the whole residual: a regex that never matches turns an
+# empty suite into a green one, and nothing in this script can tell. What the gate
+# still owns is the pair of failures a declaration cannot paper over — a command that
+# never started (126/127/signal) and one that hung (124).
+verdict_custom() {
+  local spec="$1" cmd="${1%%::*}" empty="${1#*::}"
+  log "custom runner: running 'sh -c \"$cmd\"' (timeout ${TIMEOUT_SECS}s)"
+  run_capture sh -c "$cmd"
+  log "custom runner: exit=$RUN_RC"
+  if [ "$RUN_RC" = 124 ]; then log "custom runner: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  if [ "$RUN_RC" -eq 126 ] || [ "$RUN_RC" -eq 127 ] || [ "$RUN_RC" -ge 128 ]; then
+    log "custom runner: did not start (exit $RUN_RC: not-executable/not-found/signal) — fail-closed"
+    printf 'unverifiable-suite\n'; return
+  fi
+  if printf '%s\n' "$CAP" | grep -Eq -- "$empty"; then
+    log "custom runner: output matched the declared empty signal /$empty/"
+    printf 'empty-suite\n'; return
+  fi
+  printf 'covered\n'
+}
+
 verdicts=()
+ci=0
 for r in "${runners[@]}"; do
   case "$r" in
     py) v=$(verdict_py) ;;
     js) v=$(verdict_js) ;;
     go) v=$(verdict_go) ;;
+    php) v=$(verdict_php) ;;
+    rs) v=$(verdict_rs) ;;
+    rb) v=$(verdict_rb) ;;
+    java) v=$(verdict_java) ;;
+    custom*) ci=$((ci + 1)); v=$(verdict_custom "${CUSTOM_RUNNERS[$((ci - 1))]}") ;;
   esac
   verdicts+=("$r=$v")
   if [ "$v" = covered ]; then log "runner[$r]: covered"; else log "runner[$r]: FAIL ($v)"; fi

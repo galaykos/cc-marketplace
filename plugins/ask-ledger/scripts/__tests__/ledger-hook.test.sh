@@ -3,7 +3,11 @@
 # a work-shaped prompt into the things it names and keeps a session ledger. Each case is a
 # branch a one-character edit could remove while the happy path stays green: the trigger,
 # the three extraction kinds, the clause-start exclusion, dedupe and merge across prompts,
-# the substring collapse, the off switch, fail-open.
+# the substring collapse, the existing-identifier filter, the off switch, fail-open.
+#
+# The `run()` cases below pass cwd=/tmp deliberately: /tmp is not a git work tree, so the
+# existing-identifier filter is inert there and every extraction case reads the raw
+# extractor. Cases 14-16 supply a real fixture repo and are the only ones that exercise it.
 set -u
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 HOOK="$ROOT/plugins/ask-ledger/hooks/ledger.sh"
@@ -41,4 +45,30 @@ check "11 a harness-injected notification writes no ledger" "$(run '<system-remi
 check "12 a Stop-hook relay writes no ledger" "$(run 'Stop hook feedback:
 [gate.sh]: ask-ledger: the ask named Stripe and the final message does not account for it. Add one line.' s12)" ""
 check "13 a real ask that quotes a marker mid-sentence still writes a ledger" "$(run 'Fix candor so the Stop hook feedback: line it prints names the Stripe webhook that failed' s13)" "Stop,Stripe"
+
+# --- 14-16 the existing-identifier filter (2026-09-22). A name the repo already carries
+#     is code to be REPAIRED, not a thing to be delivered; ledgering it made the Stop gate
+#     demand an accounting line for every class the ask happened to mention. ---
+if command -v git >/dev/null 2>&1; then
+  FX="$TMP/fixture"; mkdir -p "$FX/app"
+  git -C "$FX" init -q 2>/dev/null
+  printf '# Acme\nA Laravel + Inertia app.\n' > "$FX/README.md"
+  printf '<?php\nuse App\\Models\\Invoice;\nclass OrderController {}\n' > "$FX/app/OrderController.php"
+  git -C "$FX" add -A >/dev/null 2>&1
+  git -C "$FX" -c user.email=t@t -c user.name=t commit -qm init >/dev/null 2>&1
+  runat() { # $1 prompt, $2 session, $3 cwd
+    jq -n --arg pr "$1" --arg s "$2" --arg c "$3" '{hook_event_name:"UserPromptSubmit",session_id:$s,transcript_path:("/nowhere/"+$s+".jsonl"),cwd:$c,prompt:$pr}' \
+      | env -u CC_ASK_LEDGER bash "$HOOK" >/dev/null 2>&1
+    key=$(printf '/nowhere/%s.jsonl' "$2" | cksum | cut -d' ' -f1)
+    [ -f "$TMP/cc-ask-ledger-$key/entries" ] && paste -sd, - < "$TMP/cc-ask-ledger-$key/entries"
+  }
+  check "14 identifiers the repo already carries are not ledgered" \
+    "$(runat 'Fix the eager loading in OrderController so Invoice loads under Inertia' s14 "$FX")" ""
+  check "15 case does not save an existing name (Laravel vs laravel)" \
+    "$(runat 'update the Laravel config' s15 "$FX")" ""
+  check "16 a name the repo has never heard of still ledgers" \
+    "$(runat 'add a Stripe checkout to OrderController' s16 "$FX")" "Stripe"
+else
+  echo "SKIP: 14-16 existing-identifier filter (git not available)"
+fi
 exit $rc

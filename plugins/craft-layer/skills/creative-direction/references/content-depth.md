@@ -126,9 +126,12 @@ that sub-block and let the region stand on the slots that CAN render finished â€
 quotes attributed by ROLE and SEGMENT rather than by an invented name. A region reduced this way
 still satisfies its presence requirement; a grid of empty placeholders does not.
 
-## What the audit checks (teeth)
+## What the audit checks (agent-graded)
 
-The craft audit (`/craft-layer:audit`) reads THIS file (injected as a Read path) and:
+**Standing: `agent-graded`.** No assertion in `template/craft-gates/divergence.mjs` reads
+this file; every check below is a reviewing agent grepping the shipped tree against these
+rules, with the variance that implies. The craft audit (`/craft-layer:audit`) reads THIS
+file (injected as a Read path) and:
 
 - reports the section count against the archetype's range as context â€” never a finding on
   count alone, in either direction; on a `long-scroll` contract the Part-5 long-page rules

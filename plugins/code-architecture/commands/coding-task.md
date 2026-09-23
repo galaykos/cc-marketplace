@@ -29,11 +29,17 @@ edit.
    and priming entirely, and stop. Those commands prime their own skills.
 
 5. Act on the triage verdict, without exception:
-   - `trivial` → **write the arc phase sentinel** `.claude/cc-phase.json`
-     (`{"phase":"build","owner":"code-architecture:coding-task","session_id":"<this
-     session id>","started_at":"<ISO-8601 UTC>"}`), then do the work now, applying the
-     loaded skills and reading a primed path when the work reaches that surface. Remove
-     it when the work is done.
+   - `trivial` → **write the arc phase sentinel** `.claude/cc-phase.json` with
+     taskmaster's writer, never by hand —
+     `bash ${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh write build --owner code-architecture:coding-task --session "<this session id>"`.
+     It ships in taskmaster, which may not be installed: if that path does not resolve,
+     try `find ~/.claude/plugins/cache -name phase-sentinel.sh`, and only if that misses
+     too write the JSON yourself —
+     `{"phase":"build","owner":"code-architecture:coding-task","session_id":"<this session id>","started_at":"<ISO-8601 UTC>"}`
+     — spelling `build` exactly, because the script exists to catch the typo that makes a
+     sentinel read to every hook as no sentinel at all. Then do the work now, applying the
+     loaded skills and reading a primed path when the work reaches that surface. Clear it
+     when the work is done — `phase-sentinel.sh clear`, else delete the file.
      This is the ONE path here that writes it. The other three verdicts hand off, and
      the receiving command writes its own phase — `taskmaster:task` writes `shape`,
      `task-runner:run` writes `build`. Writing one before a handover would be a phase

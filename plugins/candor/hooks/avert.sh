@@ -79,7 +79,7 @@
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-avert-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
   mkdir "${TMPDIR:-/tmp}/cc-avert-$key" 2>/dev/null || exit 0
 
-  reason="candor: this $what adds a hedge the user never raised (\"$term\") — doing less than what they named is their call, not yours. Ask them first, or proceed only if they already decided it; the next call with this term is not asked again."
+  reason="candor: this $what adds a hedge the user never raised (\"$term\") — doing less than what they named is their call, not yours. Ask them first, or proceed only if they already decided it; the next call with this term is not asked again. CC_AVERT=off disables this guard for the session; CC_AVERT=notify downgrades it to a notification."
   if [ "${CC_AVERT:-}" = "notify" ]; then
     jq -cn --arg r "$reason" '{systemMessage:$r,hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$r}}' 2>/dev/null
   else

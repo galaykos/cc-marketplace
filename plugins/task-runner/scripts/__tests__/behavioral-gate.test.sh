@@ -62,6 +62,26 @@ STUB
 chmod +x "$GOBIN/go"
 export PATH="$GOBIN:$PATH"
 
+# ---- php / rust / ruby / java stubs (SW 1, 2026-09-22). Same deterministic shape as
+# the `go` stub above: each prints the fixture's ./<name>.out and exits ./<name>.rc.
+# The .out bodies below are VERBATIM output captured from real runs on 2026-09-22 —
+# PHPUnit 13.3, cargo 1.98.1, rspec 3.13.6, Gradle 9.7.1 — because CI has none of those
+# four toolchains and a stub that invents its runner's wording proves nothing. The
+# real-runner probes are recorded in the plugin CHANGELOG entry for 0.38.0.
+LANGBIN="$WS/langbin"; mkdir -p "$LANGBIN"
+mk_stub() { # mk_stub <path> <out-file> <rc-file>
+  cat > "$1" <<STUB
+#!/usr/bin/env bash
+[ -f ./$2 ] && cat ./$2
+if [ -f ./$3 ]; then exit "\$(cat ./$3)"; fi
+exit 0
+STUB
+  chmod +x "$1"
+}
+mk_stub "$LANGBIN/cargo" .cargostub.out .cargostub.rc
+mk_stub "$LANGBIN/rspec" .rspecstub.out .rspecstub.rc
+export PATH="$LANGBIN:$PATH"
+
 # ---- case harness: exit code + optional stderr label + live-tree-untouched ----
 # usage: case_run <desc> <workdir> <expected_rc> [--label <substr>] -- <gate args...>
 case_run() {
@@ -347,6 +367,170 @@ BIN
 chmod +x "$GE2/okbin"
 case_run "differential empty with-marker -> usage error(3)" "$GE2" 3 --label 'usage error' -- \
   --changed impl.js --entrypoint ./okbin --differential '--flag::::mode=default'
+
+# ---- SW 1 (2026-09-22): php / rust / ruby / java + the --runner escape -------------
+# Every case below EXITED 2 with "no test runner resolves for the touched types" before
+# 0.38.0 — the classifier knew py/js/go and nothing else, so a PHP/Rust/Java/Ruby run
+# could not close and there was no flag to escape with. Each is therefore non-vacuous
+# against the old logic by construction.
+
+# ---- P1. php green suite -> covered(0)
+PH1="$WS/php-green"; mkdir -p "$PH1/vendor/bin" "$PH1/tests" "$PH1/src"
+printf '<?php class Calc {}\n' > "$PH1/src/Calc.php"
+printf '<?php final class CalcTest {}\n' > "$PH1/tests/CalcTest.php"
+mk_stub "$PH1/vendor/bin/phpunit" .phpstub.out .phpstub.rc
+printf 'PHPUnit 13.3.1 by Sebastian Bergmann and contributors.\n\n.  1 / 1 (100%%)\n\nOK (1 test, 1 assertion)\n' > "$PH1/.phpstub.out"
+printf '0\n' > "$PH1/.phpstub.rc"
+case_run "php green suite (phpunit OK (1 test)) -> covered(0)" "$PH1" 0 --label 'covered' -- --changed src/Calc.php
+
+# ---- P2. php suite that collects nothing -> empty-suite(2)
+PH2="$WS/php-empty"; mkdir -p "$PH2/vendor/bin" "$PH2/tests" "$PH2/src"
+printf '<?php class Calc {}\n' > "$PH2/src/Calc.php"
+printf '<?php // no test class\n' > "$PH2/tests/CalcTest.php"
+mk_stub "$PH2/vendor/bin/phpunit" .phpstub.out .phpstub.rc
+printf 'PHPUnit 13.3.1 by Sebastian Bergmann and contributors.\n\nNo tests executed!\n' > "$PH2/.phpstub.out"
+printf '1\n' > "$PH2/.phpstub.rc"
+case_run "php runner that executes zero tests -> empty-suite(2)" "$PH2" 2 --label 'empty-suite' -- --changed src/Calc.php
+
+# ---- P3. php changed, no test file anywhere -> no-behavioral-coverage(2)
+PH3="$WS/php-nocov"; mkdir -p "$PH3/src"
+printf '<?php class Calc {}\n' > "$PH3/src/Calc.php"
+case_run "php changed, no test file -> no-behavioral-coverage(2)" "$PH3" 2 --label 'no-behavioral-coverage' -- --changed src/Calc.php
+
+# ---- R1. cargo multi-target: lib target passes, doc-tests report 0 -> covered(0).
+# This is the real shape of a green crate (captured verbatim), and it is why COVERED is
+# checked before EMPTY: an empty-first reader calls a healthy crate empty.
+RS1="$WS/rs-green"; mkdir -p "$RS1/src"
+printf 'pub fn add(a: i32, b: i32) -> i32 { a + b }\n#[cfg(test)]\nmod tests { #[test] fn adds() {} }\n' > "$RS1/src/lib.rs"
+cat > "$RS1/.cargostub.out" <<'OUT'
+   Compiling bgprobe-rs v0.1.0 (/tmp/bgprobe-rs)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.31s
+     Running unittests src/lib.rs (target/debug/deps/bgprobe_rs-10a368df25a6d13e)
+
+running 1 test
+test tests::adds ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests bgprobe_rs
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+OUT
+printf '0\n' > "$RS1/.cargostub.rc"
+case_run "cargo multi-target (1 passed + doc-tests 0 passed) -> covered(0)" "$RS1" 0 --label 'covered' -- --changed src/lib.rs
+
+# ---- R2. every cargo target reports 0 passed -> empty-suite(2)
+RS2="$WS/rs-empty"; mkdir -p "$RS2/src" "$RS2/tests"
+printf 'pub fn add(a: i32, b: i32) -> i32 { a + b }\n' > "$RS2/src/lib.rs"
+printf '// an integration test file with zero #[test] fns\n' > "$RS2/tests/it.rs"
+cat > "$RS2/.cargostub.out" <<'OUT'
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running tests/it.rs (target/debug/deps/it-6a1b2c3d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+OUT
+printf '0\n' > "$RS2/.cargostub.rc"
+case_run "cargo runner that executes zero tests -> empty-suite(2)" "$RS2" 2 --label 'empty-suite' -- --changed src/lib.rs
+
+# ---- R3. cargo compile error: zero tests ran, must not read green -> unverifiable(2)
+RS3="$WS/rs-buildfail"; mkdir -p "$RS3/src"
+printf 'pub fn add(a: i32, b: i32) -> i32 { a + b }\n#[cfg(test)]\nmod tests { #[test] fn adds() {} }\n' > "$RS3/src/lib.rs"
+cat > "$RS3/.cargostub.out" <<'OUT'
+error[E0425]: cannot find value `c` in this scope
+ --> src/lib.rs:1:45
+error: could not compile `bgprobe-rs` (lib test) due to 1 previous error
+OUT
+printf '101\n' > "$RS3/.cargostub.rc"
+case_run "cargo compile error (zero tests ran) -> unverifiable-suite(2)" "$RS3" 2 --label 'unverifiable-suite' -- --changed src/lib.rs
+
+# ---- B1. rspec green -> covered(0)
+RB1="$WS/rb-green"; mkdir -p "$RB1/lib" "$RB1/spec"
+printf 'module Calc\nend\n' > "$RB1/lib/calc.rb"
+printf 'RSpec.describe Calc do\n  it("adds") { }\nend\n' > "$RB1/spec/calc_spec.rb"
+printf '.\n\nFinished in 0.00108 seconds (files took 0.03 seconds to load)\n1 example, 0 failures\n' > "$RB1/.rspecstub.out"
+printf '0\n' > "$RB1/.rspecstub.rc"
+case_run "rspec green (1 example) -> covered(0)" "$RB1" 0 --label 'covered' -- --changed lib/calc.rb
+
+# ---- B2. rspec runs zero examples -> empty-suite(2)
+RB2="$WS/rb-empty"; mkdir -p "$RB2/lib" "$RB2/spec"
+printf 'module Calc\nend\n' > "$RB2/lib/calc.rb"
+printf 'RSpec.describe Calc do\nend\n' > "$RB2/spec/calc_spec.rb"
+printf 'No examples found.\n\nFinished in 0.00008 seconds (files took 0.02 seconds to load)\n0 examples, 0 failures\n' > "$RB2/.rspecstub.out"
+printf '0\n' > "$RB2/.rspecstub.rc"
+case_run "rspec runner that executes zero examples -> empty-suite(2)" "$RB2" 2 --label 'empty-suite' -- --changed lib/calc.rb
+
+# ---- J1. gradle green prints NO counts, only BUILD SUCCESSFUL -> covered(0) via the
+# weak fallback. The weakness is documented in runners.md; the case pins the behaviour
+# so a future tightening is a deliberate change, not a surprise.
+JV1="$WS/java-green"; mkdir -p "$JV1/src/main/java" "$JV1/src/test/java"
+printf 'public class Calc {}\n' > "$JV1/src/main/java/Calc.java"
+printf 'public class CalcTest {}\n' > "$JV1/src/test/java/CalcTest.java"
+mk_stub "$JV1/gradlew" .gradlestub.out .gradlestub.rc
+printf '> Task :compileJava\n> Task :test\n\nBUILD SUCCESSFUL in 572ms\n3 actionable tasks: 3 executed\n' > "$JV1/.gradlestub.out"
+printf '0\n' > "$JV1/.gradlestub.rc"
+case_run "gradle green (no counts printed) -> covered(0) via the weak fallback" "$JV1" 0 --label 'covered' -- --changed src/main/java/Calc.java
+
+# ---- J2. gradle discovers nothing (Gradle 9 failOnNoDiscoveredTests) -> empty-suite(2)
+JV2="$WS/java-nodiscovery"; mkdir -p "$JV2/src/main/java" "$JV2/src/test/java"
+printf 'public class Calc {}\n' > "$JV2/src/main/java/Calc.java"
+printf 'public class CalcTest {}\n' > "$JV2/src/test/java/CalcTest.java"
+mk_stub "$JV2/gradlew" .gradlestub.out .gradlestub.rc
+cat > "$JV2/.gradlestub.out" <<'OUT'
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There are test sources present and no filters are applied, but the test task did not discover any tests to execute. This is likely due to a misconfiguration.
+
+BUILD FAILED in 570ms
+OUT
+printf '1\n' > "$JV2/.gradlestub.rc"
+case_run "gradle discovered zero tests -> empty-suite(2)" "$JV2" 2 --label 'empty-suite' -- --changed src/main/java/Calc.java
+
+# ---- J3. gradle test task UP-TO-DATE: nothing executed this invocation -> unverifiable(2)
+JV3="$WS/java-uptodate"; mkdir -p "$JV3/src/main/java" "$JV3/src/test/java"
+printf 'public class Calc {}\n' > "$JV3/src/main/java/Calc.java"
+printf 'public class CalcTest {}\n' > "$JV3/src/test/java/CalcTest.java"
+mk_stub "$JV3/gradlew" .gradlestub.out .gradlestub.rc
+printf '> Task :compileTestJava UP-TO-DATE\n> Task :test UP-TO-DATE\n\nBUILD SUCCESSFUL in 618ms\n' > "$JV3/.gradlestub.out"
+printf '0\n' > "$JV3/.gradlestub.rc"
+case_run "gradle test task UP-TO-DATE (nothing ran) -> unverifiable-suite(2)" "$JV3" 2 --label 'unverifiable-suite' -- --changed src/main/java/Calc.java
+
+# ---- J4. maven surefire 'Tests run: 0' -> empty-suite(2); .kt classifies as java too
+JV4="$WS/java-surefire-zero"; mkdir -p "$JV4/src/main/kotlin" "$JV4/src/test/kotlin"
+printf 'class Calc\n' > "$JV4/src/main/kotlin/Calc.kt"
+printf 'class CalcTest\n' > "$JV4/src/test/kotlin/CalcTest.kt"
+mk_stub "$JV4/mvnw" .mvnstub.out .mvnstub.rc
+printf '[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0\n[INFO] BUILD SUCCESS\n' > "$JV4/.mvnstub.out"
+printf '0\n' > "$JV4/.mvnstub.rc"
+case_run "kotlin + maven 'Tests run: 0' -> empty-suite(2)" "$JV4" 2 --label 'empty-suite' -- --changed src/main/kotlin/Calc.kt
+
+# ---- C1. --runner escape on a language the classifier still calls opaque -> covered(0)
+CR1="$WS/custom-green"; mkdir -p "$CR1"
+printf 'defmodule Calc do\nend\n' > "$CR1/calc.ex"
+printf '#!/bin/sh\necho "Finished in 0.02 seconds"\necho "3 tests, 0 failures"\n' > "$CR1/suite.sh"; chmod +x "$CR1/suite.sh"
+case_run "--runner escape, declared suite runs 3 tests -> covered(0)" "$CR1" 0 --label 'covered' -- \
+  --changed calc.ex --runner './suite.sh::^0 tests'
+
+# ---- C2. --runner whose suite runs zero tests, per the DECLARED regex -> empty-suite(2)
+CR2="$WS/custom-empty"; mkdir -p "$CR2"
+printf 'defmodule Calc do\nend\n' > "$CR2/calc.ex"
+printf '#!/bin/sh\necho "Finished in 0.01 seconds"\necho "0 tests, 0 failures"\n' > "$CR2/suite.sh"; chmod +x "$CR2/suite.sh"
+case_run "--runner escape, declared suite runs zero tests -> empty-suite(2)" "$CR2" 2 --label 'empty-suite' -- \
+  --changed calc.ex --runner './suite.sh::^0 tests'
+
+# ---- C3. --runner naming a command that never starts -> unverifiable-suite(2). The one
+# failure the caller's declaration cannot paper over.
+case_run "--runner naming a missing command -> unverifiable-suite(2)" "$CR2" 2 --label 'unverifiable-suite' -- \
+  --changed calc.ex --runner 'no-such-binary-here::^0 tests'
+
+# ---- C4. malformed --runner (no :: separator) -> usage error(3)
+case_run "--runner without the :: separator -> usage error(3)" "$CR2" 3 --label 'usage error' -- \
+  --changed calc.ex --runner 'justacommand'
 
 # ---- tally ----
 printf '\nbehavioral-gate.test: %d passed, %d failed\n' "$pass" "$fail"

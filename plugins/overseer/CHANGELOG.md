@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.2 — 2026-09-22
+
+### Changed
+- Dropped the three mentions of `/approaches:size` (the approaches plugin removed its estimation skill and that command the same day); the milestone scale is described on its own terms. <!-- removed-ok -->
+
+## 0.5.1 — 2026-09-22
+
+### Changed
+- The Finish step's destination offer spells each option out instead of showing bare
+  `merge / PR / keep`: what merging does, what opening a PR does, what keeping the
+  branch means. Three sites carried the same unglossed triple — `skills/overseer/SKILL.md`,
+  `references/capability-map.md`, `scripts/capability-scan.sh` — and a user reading a
+  picker has no access to any of them.
+
 ## 0.5.0 — 2026-09-22
 
 ### Added
@@ -140,7 +154,7 @@ web survey of comparable harnesses (`taskmaster-docs/overseer/final-review-2026-
   git-workflow's worktree-isolation (`.claude/worktrees/`, lockfile install, plain remove)
   and keeps only the Laravel/Vite additions; the `api` kind pins `graphql-grpc`, not
   `api-docs-first` (which disclaims own-API design); the size letters are declared a
-  milestone scale, not `/approaches:size`'s card scale; tier `opus` is stated as a cost cap
+  milestone scale, not `/approaches:size`'s card scale; <!-- removed-ok --> tier `opus` is stated as a cost cap
   overriding role-floors; lean drops the code red-team only (the spec red-team is
   taskmaster's gate); README no longer says `goal` alone for hands-off, or that `--model
   auto` is the only way any seat runs above opus.

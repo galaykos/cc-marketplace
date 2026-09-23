@@ -3,7 +3,7 @@ name: react-native-best-practices
 description: Use when writing or reviewing React Native or Expo code — FlatList/FlashList, React Navigation typed params, `Platform.select`, `.ios`/`.android` splits, `useNativeDriver`, image sizing — and the Expo/EAS traps: `expo install`, `expo prebuild --clean`, `app.config`/`eas.json`, `runtimeVersion`, `newArchEnabled: false`.
 ---
 
-> Last verified: 2026-08-12 — https://reactnative.dev/blog
+> Last verified: 2026-08-12 — https://reactnative.dev/blog — npm:react-native@0.82
 
 ## Version reality — pin to package.json first
 

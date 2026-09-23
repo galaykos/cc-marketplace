@@ -165,9 +165,24 @@ router nudges after a file is edited, and the skills are command-gated
 (`rationale/fable-distillation-2026-09-17.md` §3). Why five short lines: nine Opus 5
 runs of one build task moved three observable process moves from 0/3 to 6/6 with a
 535-char preamble, and a 4,362-char catalogue added nothing over it (§2 there). Vote
-counts on nine runs, not a replicated delta; the four cases under `evals/` are the fixtures
-that would measure it (one for the whole preamble, one each for moves 1, 4 and 5), and
-nothing runs them in CI.
+counts on nine runs, not a replicated delta; the cases under `evals/` are the fixtures
+that would measure it — one for the whole preamble, the rest one per move; recount them
+with `ls -d plugins/candor/evals/*/ | grep -v results` — and nothing runs them in CI.
+
+Running them takes two operator grants the case files cannot give themselves:
+
+```bash
+claude plugin eval ./plugins/candor --allow-tools Write Edit Bash --scaffold --ablation with-without
+```
+
+`execution.allowed_tools` declares what a case may use; only `--allow-tools` grants it,
+so without that flag `Write`, `Edit` and `Bash` are withheld from the model and the
+`ran-a-command` grader on `limitation-checked-before-stated` cannot pass — no call, not
+even a refused one, can appear in the trace. `--scaffold` is off by default and runs
+author-supplied bash as you; three of the five cases build their workspace with it, and
+without the flag they score whatever happens to be in your working directory. Add
+`--max-cost-usd 0` to check that the suite loads without spending anything — that is what
+`scripts/eval-cases.sh` does on every CI run.
 
 ## What this does not carry
 

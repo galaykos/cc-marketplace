@@ -17,7 +17,7 @@ that classifies the command string itself.
 | Verdict | When | Effect |
 |---|---|---|
 | `deny` | irreversible loss whose blast radius is not visible in the command — `migrate:fresh`, `db:wipe`, `DROP DATABASE`, `rm -rf /`, `rm .env`, `git clean -fdx`, `git push --force`, `docker compose down -v`, `kubectl delete pvc`, `terraform destroy`, `aws s3 rb`, `gcloud … delete` | the call is blocked; the model is told not to rephrase it, and to hand the command to the user |
-| `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git clean -fd`, `rm -rf ./some-dir` *when git cannot restore it* (see below), `DELETE FROM`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh` | the user gets a permission prompt naming what is lost |
+| `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git clean -fd`, `rm -rf ./some-dir` *when git cannot restore it* (see below), `DELETE FROM`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh` | the user gets a permission prompt naming what is lost — with no interactive prompt (`claude -p`, a headless agent, `dontAsk`) the request is **auto-denied**, see [Running headless / in CI](#running-headless--in-ci) |
 | `allow` | everything else, including `rm -rf node_modules`, `rm -rf /tmp/scratch-dir`, `git commit -m "drop the table step"`, `grep -r migrate:fresh .` | silent; normal permissions apply |
 
 `rm -rf` **inside the OS temp directory** is silent — under `/tmp`,
@@ -112,6 +112,52 @@ string cannot reach the hook's environment, so
 both mean "no ask tier". Until 0.6.3 they did not: config-guard read only its own
 variable, so the setting core-suite's README recommends for a global install left an
 ask running on every `tsconfig.json`, `pyproject.toml` or `hooks.json` write.
+
+### Running headless / in CI
+
+**An `ask` with nobody to answer it is a DENY, not a pause.** In `claude -p`, in a
+headless agent, in a subagent, and in any session started with `dontAsk`, there is no
+interactive prompt: the host resolves the permission request by refusing it. The
+command does not run and the turn continues with a refusal, so every row of the `ask`
+tier above — `git reset --hard`, `rm -rf ./dir`, `DELETE FROM`, `kubectl delete pod`,
+`terraform apply -auto-approve`, `curl … | sh` — behaves as a hard block there, and so
+does config-guard's ask on an existing `tsconfig.json` or `hooks.json`.
+
+That makes `deny-only` the **automation profile**, not merely the quiet one: it keeps
+every irreversible-loss block and hands the scoped-and-commonly-intended tier back to
+the run, instead of turning it into a silent refusal nobody is present to override.
+
+```json
+{ "env": { "CLAUDE_DESTRUCTIVE_GUARD": "deny-only" } }
+```
+
+Put that in the `settings.json` the automated run loads (project `.claude/settings.json`,
+or your CI image's user settings) — not in your interactive one, where the ask tier is
+doing its job.
+
+**Standing: `recorded`.** Nothing here is enforced or even detected: **no hook payload
+field exposes whether an interactive prompt can be shown**, so the guard cannot behave
+differently headless, cannot warn that it is about to be auto-denied, and no script
+checks that an automated run set the variable. The only mechanism is you setting it.
+
+### When another guard also fires
+
+One command can meet **two** hooks. All `PreToolUse` hooks that match the call run, and
+the host takes the strictest verdict: **`deny` beats `ask` beats `allow`.** A `deny`
+from any hook ends the call, whatever this one returned.
+
+So fixing a command for one guard can land it on a second. The worked case:
+`git reset --hard HEAD~3` is this plugin's `ask` tier; rewrite it as
+`git reset --hard HEAD~3 && git commit -m "…"` with an AI attribution trailer in the
+message and `git-workflow`'s `no-ai-trailer` hook **denies** the whole call — one
+payload, two verdicts, and the deny is the one you get. The reason text you are shown
+is the denying hook's, which is why a deny reason that says nothing about `rm -rf` is
+not this guard changing its mind.
+
+Practical reading: a blocked command is blocked for *every* reason that matched, not
+just the one named. Fix the named reason, re-run, and read the next reason if there is
+one. Standing: **recorded** — precedence is the host's behaviour, not something this
+plugin implements or tests.
 
 ### Why you might want `deny-only`
 

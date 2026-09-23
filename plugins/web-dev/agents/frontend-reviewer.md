@@ -32,6 +32,14 @@ on a `.vue` file. On a Laravel + Inertia app the `inertia-best-practices` skill 
 one carrying version-pinned rules; the page component is graded here, the controller
 and props shape belong to the laravel skills `/code-review:review` loads.
 
+A framework this file has NO vocabulary for — Svelte 5 runes, Astro islands, Solid,
+Qwik, Angular — is not quietly graded as React. Name the framework in the report,
+restrict findings to the stack-neutral rubric (data fetching, types, build layer,
+dead code, obvious correctness), and state in one line that the idiom pass was NOT
+run because this reviewer carries no vocabulary for it. Step 2 below is React and
+Vue 3 only; applying its rules to a `.svelte` or `.astro` file produces confident
+findings about rules that framework does not have.
+
 ## What you check
 
 1. **Framework idioms** from the loaded skill(s) — the version-correct patterns, the
@@ -68,6 +76,7 @@ low-severity; the dispatcher filters, you do not. Say which you could not confir
 
 - [ ] The framework was detected and its skill applied (or noted absent).
 - [ ] React and Vue 3 files were graded in their own vocabulary (step 2), not each other's.
+- [ ] Any framework with no vocabulary here was NAMED, and the un-run idiom pass stated.
 - [ ] Every finding cites the file:line and the idiom or rule it violates.
 - [ ] No styling/a11y nits smuggled in past the defer rule.
 

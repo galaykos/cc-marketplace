@@ -112,6 +112,9 @@ plugin_desc_bytes() {
 # of the chars the CLI counts, conservative for a floor warning. Agents excluded: they
 # render in a separate system-prompt section (unverified whether it shares this budget).
 . "$(dirname "$0")/lib/plugin-checks.sh"
+# The host's own listing constants, defined once in scripts/host-constants.sh and
+# re-read out of the pinned CLI by `host-constants.sh --check`. Sourcing only assigns.
+. "$(dirname "$0")/host-constants.sh"
 
 # Stdout bytes a plugin's SessionStart hooks inject each session, measured by
 # executing them in a throwaway sandbox (empty CLAUDE_PROJECT_DIR/HOME, minimal
@@ -462,21 +465,25 @@ fail=0
 # spent (bundled-prompt skills are protected outright). So the survivors are the
 # high-priority ones, and "least-invoked first" is the right intuition.
 #
+# SHORT-CIRCUIT, unmodelled: the CLI reads `process.env.SLASH_COMMAND_TOOL_CHAR_BUDGET`
+# FIRST and returns it verbatim when set, so a user who exports it has no formula at all
+# and every number below is wrong for them. Nothing here detects that.
+#
 # WHAT THIS CHANNEL REPORTS: the worst realistic case, opus-5 at 200k = 6,000 chars,
 # overridable with LISTING_CTX_TOKENS / LISTING_BYTES_PER_TOKEN / LISTING_FRACTION.
 # A 1M-context session gets 5x that, so an install flagged here may be entirely fine
 # where you personally run it — the row prints both. Report-only, never fails a build.
-LISTING_CTX_TOKENS=${LISTING_CTX_TOKENS:-200000}
+LISTING_CTX_TOKENS=${LISTING_CTX_TOKENS:-$HOST_LISTING_CTX_TOKENS}
 LISTING_BYTES_PER_TOKEN=${LISTING_BYTES_PER_TOKEN:-3}
 # LISTING_FRACTION takes the same unit as the CLI's skillListingBudgetFraction
 # (0.01, 0.02, ...) — the unit every bundle README teaches. awk, not $(( )): the
 # first version read an undocumented integer-percent variable and crashed on
 # exactly the values the READMEs recommend.
-LISTING_FRACTION=${LISTING_FRACTION:-0.01}
+LISTING_FRACTION=${LISTING_FRACTION:-$HOST_LISTING_FRACTION}
 LISTING_CAP=$(awk -v t="$LISTING_CTX_TOKENS" -v b="$LISTING_BYTES_PER_TOKEN" -v f="$LISTING_FRACTION" 'BEGIN{printf "%d", t*b*f}')
 LISTING_CAP_1M=$(awk -v b="$LISTING_BYTES_PER_TOKEN" -v f="$LISTING_FRACTION" 'BEGIN{printf "%d", 1000000*b*f}')
 case "$LISTING_CAP" in ''|*[!0-9]*|0) LISTING_CAP=6000; LISTING_CAP_1M=30000 ;; esac
-LISTING_MAX_DESC=1536
+LISTING_MAX_DESC=$HOST_LISTING_MAX_DESC
 listing_rows=""
 union_chars=0
 union_n=0

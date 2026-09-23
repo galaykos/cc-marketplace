@@ -31,8 +31,16 @@
   case "$tool" in Write|Edit|MultiEdit) ;; *) exit 0 ;; esac
 
   file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
+  # A COMPOSITE ACTION IS THE SAME SINK. `.github/actions/<name>/action.yml` carries
+  # `runs.steps[].run:` and is called from a workflow with that workflow's token, so the
+  # identical `${{ github.event.pull_request.title }}` interpolation is the identical
+  # command execution — and until 2026-09-22 it was allowed here while the same body in
+  # `workflows/ci.yml` was denied. Rule 1 cannot fire on a composite (it has no `on:`
+  # triggers); rule 2 is the whole point. NOT covered: an action.yml anywhere else in the
+  # tree, and a composite that shells out to a script file the guard never sees.
   case "$file" in
     */.github/workflows/*.yml|*/.github/workflows/*.yaml|.github/workflows/*.yml|.github/workflows/*.yaml) ;;
+    */.github/actions/*/action.yml|*/.github/actions/*/action.yaml|.github/actions/*/action.yml|.github/actions/*/action.yaml) ;;
     *) exit 0 ;;
   esac
 
@@ -66,7 +74,11 @@
   fi
 
   [ -n "$reason" ] || exit 0
-  reason="$reason (file: $file)  Run plugins/devops/scripts/workflow-audit.sh for the full report, including the warn-level findings this hook deliberately does not block."
+  # The path in the message has to be one the READER can type. `plugins/devops/scripts/…`
+  # is this marketplace's own layout and does not exist on an installer's disk; resolve
+  # the real root the host hands the hook, and fall back to this script's own directory.
+  auditroot="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)}"
+  reason="$reason (file: $file)  Run bash ${auditroot}/scripts/workflow-audit.sh for the full report, including the warn-level findings this hook deliberately does not block."
   # Name the escape in the message that blocks you.
   reason="$reason CC_WORKFLOW_GUARD=off disables this guard for the session."
 

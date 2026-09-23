@@ -5,19 +5,8 @@
     "reason": "Bespoke scope-resolution cascade (path/PR/branch → staged → working-tree diff) distinct from the fable triage/tiers/closer payload; general-purpose reviewer, not a single-skill stack-review chassis."
   },
   {
-    "chassis": "stack-review",
-    "variant": "concern",
-    "skill": "comment-discipline",
-    "tag": "generic",
-    "worker": null,
-    "applyExtra": [],
-    "outfile": "commands/comment-review.md",
-    "description": "Audit comments — restatement, section banners, commented-out code, bare TODOs, docblock tags repeating the signature, change-narration, missing why-comments — one line per finding.",
-    "argumentHint": "[path-or-diff]",
-    "lane": {
-      "owns": "comment-placement-review",
-      "trigger": "invoked as /code-review:comment-review",
-      "yieldsTo": "-"
-    }
+    "chassis": "optout",
+    "file": "commands/comment-review.md",
+    "reason": "The review-command chassis was retired on 2026-09-22 (panel finding #64): it rendered exactly ONE file in the whole marketplace — this one — behind a 24-line template, four partials and nine opt-out justifications, so the machinery cost more prose than the artifact it produced. The rendered output is inlined here and hand-maintained; the other four template families each render several files and earn their place."
   }
 ]

@@ -1,0 +1,52 @@
+schema_version: "1.0"
+name: design-tokens-control
+description: >
+  A REMOVAL MEASUREMENT, not a headroom case, and it is written down that way because
+  CLAUDE.md's ceiling rule says a case whose control arm passes can never show a skill
+  helping. That is exactly what is being tested. `rationale/stack-skill-baselines.md`
+  recorded the css3 control arm producing a token scale and a color-mix derivation
+  unaided (control 6/6, treatment 5/6) on 2026-07-27, and the 2026-09-22 specialist
+  panel proposed deleting `design-tokens` on that neighbouring evidence alone. This
+  case supplies the missing direct measurement: a component prompt in a repo with no
+  token file, graded only on whether a NAMED spacing/type scale and a semantic tier
+  (`primary`/`foreground`/`background`, not `blue-500` in the component) come out.
+  If the with-plugin and without-plugin arms both pass, the control ceiling is
+  confirmed on this skill and the delta is zero. Read the vote spread and the run
+  count with the delta or do not read the delta; the disposition the number decides
+  is in plugins/ui-ux/README.md.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    This project has no design-token file yet — no `@theme` block, no CSS custom
+    properties, no `tailwind.config` theme extension. Write a `PricingCard` component
+    (React + Tailwind) with a plan name, a price, a four-item feature list, and a
+    call-to-action button, and set up whatever token foundation it should sit on.
+runs: 5
+graders:
+  - type: llm
+    name: scale-and-semantic-tier
+    criteria: |
+      Score only the two things `design-tokens` claims to add. Both arms of the
+      ablation are graded identically; the point of the case is the DIFFERENCE.
+
+      PASS requires BOTH:
+
+      1. **A named scale, not magic numbers.** The response defines a spacing and/or
+         type scale as named steps from one base (a 4px spacing rhythm, a modular type
+         ratio, a short radius scale) and the component's spacing and sizes are steps
+         on it. Arbitrary one-off values in the component (`p-[13px]`, a font size
+         invented per element, a bespoke `box-shadow`) FAIL this clause.
+      2. **A semantic tier the component uses.** The response defines semantic tokens
+         (`background`, `foreground`, `primary`, `muted`, `border` or equivalents)
+         mapped onto a primitive ramp, and the component references the SEMANTIC name.
+         A component reaching for a primitive directly — `bg-blue-500`,
+         `text-gray-100` — FAILS this clause even if a palette was also defined.
+
+      FAIL if either is absent, e.g. a component written straight onto raw Tailwind
+      colour utilities with no token foundation.
+
+      Do NOT require: elevation tokens, motion tokens, a DTCG export, dark mode, a
+      display tier, accessibility commentary, or any particular file layout. Those are
+      other skills' subjects and requiring them would measure the wrong thing.

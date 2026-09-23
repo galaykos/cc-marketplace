@@ -6,6 +6,16 @@
 # review is one command over six rubrics (--concern); until 2026-09-14 the five
 # per-concern commands each held a territory of their own. One row, one territory.
 resilience:review	command	review	runtime-quality-review	invoked as /resilience:review [--concern …], a change crosses a process boundary, or a measured slowness is reported	code-review:review
+# The six skills, added 2026-09-22: resilience declared none of them while
+# /code-review:review fans all six in. observability-design and performance-tuning
+# share their agent's territory on purpose — the skill is the rubric, the agent is the
+# hand — so each yields to the worker that outranks it there.
+resilience:resilience-design	skill	build	cross-boundary-failure-design	code crosses a process boundary — an HTTP call, queue, database, third-party API or background job — and the timeout, retry, circuit breaker, fallback or backpressure is about to be left at its default	-
+resilience:error-handling-design	skill	build	error-propagation-discipline	a try/catch, error boundary, custom error type or rethrow is being written or reviewed	-
+resilience:concurrency-safety	skill	build	concurrency-hazard-discipline	code has concurrent writers or a retried operation — check-then-act, a lock choice, or retry idempotency	resilience:event-driven
+resilience:event-driven	skill	build	message-delivery-design	a broker, topic, event schema, outbox, saga, dead-letter queue or consumer idempotency is being designed or reviewed	-
+resilience:observability-design	skill	build	in-code-instrumentation	code that emits telemetry is being written or reviewed — logs, metrics, traces, health checks, alerting	resilience:observability-engineer,devops:devops-engineer
+resilience:performance-tuning	skill	build	performance-optimization	something measurably slow or heavy is being optimized or profiled, or a change is reviewed for performance or cache correctness	resilience:performance-engineer
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 resilience:observability-engineer	agent	build	in-code-instrumentation	diff adds logs, correlation IDs, metrics, spans, or health signals inside application code	devops:devops-engineer
 resilience:performance-engineer	agent	build	performance-optimization	a measured number exists (profile, bundle report, query log, Core Web Vital) and the work is to move it	-
