@@ -13,7 +13,7 @@ the arithmetic, recommend — and leave the pick to the user.
 
 From the task list (taskmaster cards, a plan's steps, a todo list):
 
-- Dependencies: each task's `Depends on` (or inferred ordering).
+- Dependencies: each task's `<depends-on>` (or inferred ordering).
 - File sets: the files each task lists. Tasks without file lists cannot be
   proven disjoint — treat them as conflicting until listed.
 - Size class per task: S (≲15 min — single-file edit, config change),

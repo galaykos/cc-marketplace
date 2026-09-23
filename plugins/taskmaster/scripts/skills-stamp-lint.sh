@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# skills-stamp-lint.sh — author-time lint for a task card's `Skills to apply` stamp.
+# skills-stamp-lint.sh — author-time lint for a task card's skill stamp: its
+# <skill name="…"/> elements, or the legacy `Skills to apply` bold line.
 #
 # WHY: the stamp is what makes a framework/stack best-practice skill (laravel,
 # react, vue, …) reach the card's executor. If a card that touches FRAMEWORK source
@@ -22,7 +23,7 @@
 set -euo pipefail
 
 # RUN RECORD. The lint is a gate when it runs, and nothing observed that it ran —
-# a card set could reach execution with none of the three invoked and every check in
+# a card set could reach execution with none of the linters invoked and every check in
 # the repo green. `record_run` appends one line per invocation beside the card; the
 # reader is hooks/card-lint-observe.sh. Written on BOTH outcomes: the record says the
 # lint ran and what it said, never that the card is good.
@@ -52,10 +53,19 @@ done
 if [ "$mode" = card ]; then
   [ -f "$card" ] || usage "card file not found: $card"
   _cardlint_target="$card"
-  raw=$(grep -E -m1 '\*\*Skills to apply:\*\*' "$card" 2>/dev/null || true)
-  [ -n "$raw" ] || fail "missing-stamp: card has no **Skills to apply:** line"
-  line=${raw#*\*\*Skills to apply:\*\*}
-  files=$(grep -vF -- "$raw" "$card" || true)   # the card minus the stamp line
+  # Two card shapes: role-tagged <skill name="…"/> elements (taskmaster ≥0.45.0, one
+  # per line, `name="none"` is the explicit no-skill stamp) and the legacy
+  # **Skills to apply:** bold label. Tagged first; the value is the comma-joined names.
+  tagged=$(grep -E '^<skill([ />]|$)' "$card" 2>/dev/null || true)
+  if [ -n "$tagged" ]; then
+    line=$(printf '%s\n' "$tagged" | grep -Eo 'name="[^"]*"' | sed -e 's/^name="//' -e 's/"$//' | paste -sd, -)
+    files=$(grep -Ev '^<skill([ />]|$)' "$card" || true)   # the card minus the stamp lines
+  else
+    raw=$(grep -E -m1 '\*\*Skills to apply:\*\*' "$card" 2>/dev/null || true)
+    [ -n "$raw" ] || fail "missing-stamp: card has no <skill> element and no **Skills to apply:** line"
+    line=${raw#*\*\*Skills to apply:\*\*}
+    files=$(grep -vF -- "$raw" "$card" || true)   # the card minus the stamp line
+  fi
 elif [ "$mode" != parts ]; then
   usage "need --card <file> (or --line \"<value>\" --files \"<paths>\" for testing)"
 fi

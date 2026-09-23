@@ -34,7 +34,7 @@ intersection, treating a directory entry as covering everything under its prefix
 ## Dependency roll-up
 
 Milestone B **depends on** milestone A if any card in B lists (transitively) a
-`Depends on` a card in A. A milestone is *launchable* only when every milestone it
+`<depends-on>` a card in A. A milestone is *launchable* only when every milestone it
 depends on has already **merged**. Cross-milestone dependencies never run concurrently;
 they land in a later wave.
 

@@ -13,35 +13,49 @@ inline the discussion's conclusion instead.
 
 ## Card template
 
+Role tags inside a `.md` file: the H1 is for humans, the tags name what the author
+decided about each sentence, attributes carry the evidence. Standing of every rule:
+`references/card-shape.md`.
+
 ```markdown
 # NN — <imperative title, no "and">
 
-**Why:** one line tying this card to the spec's goal.
+<card id="NN">
+<goal>one line tying this card to the spec's goal</goal>
 
-**Context:**
-- Files: `src/billing/invoice.ts:88` (current: totals computed inline),
-  `src/billing/__tests__/invoice.test.ts`
-- Current behavior: <quote or describe what exists today>
-- Target behavior: <what exists after this card>
-- Interfaces crossed: <signatures/data shapes this card must respect>
+<facts>
+<file path="src/billing/invoice.ts" line="88" mode="edit">totals computed inline</file>
+<file path="src/billing/__tests__/invoice.test.ts" mode="create"/>
+<current>quote what exists today</current>
+<target>what exists after this card</target>
+<convention>service classes live in `app/Services`</convention>
+</facts>
 
-**Change:** exact edits at file level — create X, extract Y into Z, wire A to B.
+<must>
+<change>exact edits at file level — create X, extract Y into Z, wire A to B</change>
+<interface consumer="04">the signature or data shape card 04 reads</interface>
+<contract section="Data Model"/>
+<skill name="laravel-best-practices"/>
+</must>
 
-**Acceptance criteria:**
-- [ ] <observable behavior, binary checkable>
-- [ ] <second criterion if needed>
+<must-not>
+<file path="src/billing/discounts.ts" reason="card 05 owns it; the tempting fix is not this card's"/>
+<rule reason="card 04 imports this signature">rename or add parameters</rule>
+</must-not>
 
-**Verify:** `npm test -- invoice` → all pass, including new test <name>.
+<proof>
+<criterion>observable behaviour, binary checkable</criterion>
+<verify>npm test -- invoice → all pass, including new test <name></verify>
+</proof>
 
-**Out of scope:** what an eager implementer might also touch, but must not.
-
-**Depends on:** 02, 03 — or "none".
-
-**Skills to apply:** <stack skills for this card; the executing session MUST Read each
-named SKILL.md before implementing — e.g. laravel-best-practices; or "none detected">
-
-**Agent:** <capability tag per `references/agent-tags.md` — always emit; `generic` when files span >1 domain or no tag matches>
+<depends-on>02, 03</depends-on>
+<agent>backend</agent>
+</card>
 ```
+
+One `<skill>` per skill, `name="none"` when none; the executing session MUST Read each
+before implementing. `<agent>`: one tag from `references/agent-tags.md`, `generic` when
+files span >1 domain. `<contract>` only when the spec has that binding section.
 
 ## Sizing rules
 
@@ -58,41 +72,36 @@ named SKILL.md before implementing — e.g. laravel-best-practices; or "none det
 
 ## Context rules
 
-- Repo-relative paths with line numbers for every file mentioned.
-- Quote current behavior rather than describing it from memory — the executing
-  session will trust the card verbatim.
-- Spell out data shapes and signatures crossing card boundaries; two cards that
-  each "know" half an interface will disagree.
-- Cards that touch a binding contract section — `## Data Model` for persistence,
-  `## Visual contract` for a staged visual/creative surface — must reference it and
-  conform; deviation requires re-approval, not drift.
-- Cards implement the spec's chosen approach and respect its kill-trigger. A card
-  that silently picks a different shape reopens a decision the persona round settled.
-- Name the conventions to follow ("service classes live in `app/Services`, one
-  public method") — the fresh session has not read the scout report.
-- Skills to apply: stamp the stack/framework skills relevant to each card from
-  the stack-scan inventory taken at pipeline step 1 (fall back to reading
-  manifests when stack-scan is absent). delegation-contracts § Skill priming
-  resolves each named skill's installed SKILL.md and injects a Read-by-path into
-  the implementer dispatch — a delegate cannot self-load skills.
-- On a card that CREATES a unit (new module, class, service, or boundary) rather
-  than editing one, also stamp `approaches:pattern-selection`. A card-scoped
-  executor picks a shape by default whenever it makes a new unit; stamping makes
-  that pick deliberate and reviewable instead of incidental. Do not stamp it on
-  edit-in-place cards — pattern-selection is a decision aid, not a checklist to
-  run over every card.
+- Every `<file>` names its `mode`; an edited file names its `line`. The shape lint
+  refuses a bare path — the executor trusts the card, not its memory of the repo.
+- Quote current behavior rather than describing it from memory.
+- Signatures and data shapes crossing card boundaries go in `<interface>`, with the
+  reading card in `consumer`; two cards that each "know" half will disagree.
+- A card touching a binding spec section — `## Data Model`, `## Visual contract` —
+  carries `<contract section="…"/>` and conforms; deviation needs re-approval.
+- Cards implement the spec's chosen approach and respect its kill-trigger; a card that
+  silently picks another shape reopens a settled decision.
+- Repo conventions go in `<convention>` — the fresh session has not read the scout report.
+- Every `<must-not>` entry carries a `reason`. "Out of scope" with no why is the line an
+  eager implementer argues past.
+- `<skill>`: stamp the stack skills relevant to each card from the stack-scan inventory
+  taken at pipeline step 1 (read manifests when stack-scan is absent). delegation-contracts
+  § Skill priming injects a Read-by-path into the dispatch — a delegate cannot self-load.
+- A card that CREATES a unit (module, class, service, boundary) also stamps
+  `approaches:pattern-selection`, so the shape pick is deliberate and reviewable. Not on
+  edit-in-place cards — it is a decision aid, not a checklist.
 
 ## Acceptance criteria rules
 
 - Criteria describe observable behavior, never the change itself. "Deleting a
   project soft-deletes its tasks" — not "code for soft-delete is added".
 - Each criterion is binary: passes or fails, no "works well".
-- The Verify line is an exact command with **teeth**: a named assertion that fails if the
+- `<verify>` is ONE line, an exact command with **teeth**: a named assertion that fails if the
   feature is absent — verify-teeth blocks compile/existence/require-only, `|| true`, bare "suite passes".
 
 ## Ordering and parallelism
 
-- Topologically order by `Depends on`; number cards in that order.
+- Topologically order by `<depends-on>`; number cards in that order.
 - Mark parallel groups — cards with no mutual dependency that touch disjoint
   files. Within a group, put the riskiest card first so failures surface early.
 - Cards coupled through shared work-in-progress state are ordering bugs: merge
@@ -148,9 +157,12 @@ Once `00-INDEX.md` is written, before the task-runner handoff, in order:
 
 1. **Verify coverage.** Invoke coverage-check: it cross-checks success criteria ↔ cards
    both ways, blocks on any gap/orphan/drift, and writes `## Coverage` into `00-INDEX.md`.
-2. **Lint each card.** All three live in `${CLAUDE_PLUGIN_ROOT}/scripts/` — a bare name
-   resolves nowhere in the user's project. Per card run `verify-teeth-lint.sh --card <file>`
-   (blocks a weak Verify line) and `skills-stamp-lint.sh --card <file>` (blocks a framework card stamped "none").
+2. **Lint each card.** All four live in `${CLAUDE_PLUGIN_ROOT}/scripts/` — a bare name
+   resolves nowhere in the user's project. Per card run `card-shape-lint.sh --card <file>`
+   (blocks a missing section, a `<file>` without `mode`/`line`, a `<must-not>` without
+   `reason`, an `<interface>` without `consumer`, a `<verify>` count other than one),
+   `verify-teeth-lint.sh --card <file>` (blocks a weak `<verify>`) and
+   `skills-stamp-lint.sh --card <file>` (blocks a framework card stamped "none").
    Plus `spec-ledger-lint.sh --spec <spec>` once — an unconverged spec (open UNKNOWN, missing/empty ledger) never becomes cards; route holes back to grill.
 3. **Suggest a project skill.** If a `project-skill-suggester` skill is available (the
    marketplace repository keeps one under `.claude/skills/`), it scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill);
@@ -158,15 +170,12 @@ Once `00-INDEX.md` is written, before the task-runner handoff, in order:
 
 ## Anti-patterns
 
-- Cards that only make sense in sequence-of-conversation order — the fresh-session
-  test exists precisely to kill these.
-- Hidden dependencies: card 04 quietly assumes card 02's helper exists. If it is
-  needed, it goes in `Depends on`.
+- Cards that only make sense in conversation order — the fresh-session test kills these.
+- Hidden dependencies: card 04 quietly assumes card 02's helper. Needed → `<depends-on>`.
 - Criteria that restate the diff ("function X exists") instead of behavior.
-- A "misc cleanup" card — scope leftovers either become real cards or non-goals.
-- Splitting below verifiability to make cards look small: ten unverifiable
-  micro-cards are worse than three honest ones.
-- Duplicating the whole spec into every card. Context is task-scoped: what THIS
-  card needs, not everything anyone decided.
-- Tracking status inside cards — status lives only in `00-INDEX.md`, so cards
-  stay immutable prompts that can be re-run verbatim.
+- A `<must-not>` whose `reason` restates the prohibition ("do not touch: out of scope").
+  The lint sees a non-empty attribute; only a reader sees an empty one.
+- A "misc cleanup" card — leftovers become real cards or non-goals.
+- Splitting below verifiability: ten unverifiable micro-cards are worse than three honest ones.
+- Duplicating the whole spec into every card. Context is what THIS card needs.
+- Status inside a card — it lives only in `00-INDEX.md`, so cards stay re-runnable verbatim.

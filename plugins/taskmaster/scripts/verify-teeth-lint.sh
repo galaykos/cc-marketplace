@@ -49,7 +49,7 @@
 #
 # CLI:
 #   verify-teeth-lint.sh --line "<verify text>"
-#   verify-teeth-lint.sh --card <card.md>     # lints the file's **Verify:** line
+#   verify-teeth-lint.sh --card <card.md>     # lints the card's <verify> element, or its legacy **Verify:** line
 # Exit codes:
 #   0  teeth OK (no known-weak form matched)
 #   2  weak form matched (reason on stderr)
@@ -57,7 +57,7 @@
 set -euo pipefail
 
 # RUN RECORD. The lint is a gate when it runs, and nothing observed that it ran —
-# a card set could reach execution with none of the three invoked and every check in
+# a card set could reach execution with none of the linters invoked and every check in
 # the repo green. `record_run` appends one line per invocation beside the card; the
 # reader is hooks/card-lint-observe.sh. Written on BOTH outcomes: the record says the
 # lint ran and what it said, never that the card is good.
@@ -103,9 +103,17 @@ done
 if [ "$mode" = "card" ]; then
   [ -f "$value" ] || die_usage "card file not found: $value"
   _cardlint_target="$value"
-  raw=$(grep -E -m1 '\*\*Verify:\*\*' "$value" 2>/dev/null || true)
-  [ -n "$raw" ] || die_usage "no **Verify:** line in card: $value"
-  line=${raw#*\*\*Verify:\*\*}
+  # Two card shapes: the role-tagged <verify>…</verify> element (taskmaster ≥0.45.0,
+  # one line by card-shape-lint's rule) and the legacy **Verify:** bold label.
+  # Tagged first; a card carrying both is linted on the element.
+  raw=$(grep -E -m1 '<verify>.*</verify>' "$value" 2>/dev/null || true)
+  if [ -n "$raw" ]; then
+    line=$(printf '%s' "$raw" | sed -e 's/.*<verify>//' -e 's/<\/verify>.*//')
+  else
+    raw=$(grep -E -m1 '\*\*Verify:\*\*' "$value" 2>/dev/null || true)
+    [ -n "$raw" ] || die_usage "no <verify> element or **Verify:** line in card: $value"
+    line=${raw#*\*\*Verify:\*\*}
+  fi
 else
   line="$value"
 fi

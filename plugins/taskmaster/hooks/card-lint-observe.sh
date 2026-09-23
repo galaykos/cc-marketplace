@@ -5,8 +5,8 @@
 # card-lint-observe.sh — PostToolUse observer that says out loud when a card set
 # reached EXECUTION unlinted.
 #
-# THE GAP IT CLOSES. taskmaster ships three author-time linters — verify-teeth,
-# skills-stamp, spec-ledger. Each is a gate WHEN IT RUNS, and until now nothing
+# THE GAP IT CLOSES. taskmaster ships four author-time linters — card-shape,
+# verify-teeth, skills-stamp, spec-ledger. Each is a gate WHEN IT RUNS, and until now nothing
 # observed that any of them ran: a card set could reach the runner with none of them
 # invoked and every check in this marketplace green. The linters now append a run
 # record beside each card (scripts/card-lint-record.sh); this reads them back at the
@@ -87,7 +87,8 @@
     total=$((total + 1))
     [ "$total" -gt 60 ] && break                # bounded: this runs inside the turn
     gaps=""
-    cardlint_has verify-teeth "$card" || gaps="verify-teeth"
+    cardlint_has card-shape "$card"   || gaps="card-shape"
+    cardlint_has verify-teeth "$card" || gaps="${gaps:+$gaps+}verify-teeth"
     cardlint_has skills-stamp "$card" || gaps="${gaps:+$gaps+}skills-stamp"
     [ -n "$gaps" ] || continue
     miss_n=$((miss_n + 1))
@@ -110,8 +111,8 @@
     -exec rmdir {} + 2>/dev/null
 
   [ "$miss_n" -gt 4 ] && named="$named; +$((miss_n - 4)) more"
-  msg=$(printf '[taskmaster] card-lint: %s of %s card(s) in %s reached this run with no recorded lint — %s. Per card, before executing it: %s/scripts/verify-teeth-lint.sh --card <card> (blocks a toothless Verify line) and %s/scripts/skills-stamp-lint.sh --card <card> (blocks a framework card stamped "none"). Warning only, nothing is blocked.' \
-    "$miss_n" "$total" "$(basename "$set_dir")" "$named" "$tmroot" "$tmroot")
+  msg=$(printf '[taskmaster] card-lint: %s of %s card(s) in %s reached this run with no recorded lint — %s. Per card, before executing it: %s/scripts/card-shape-lint.sh --card <card> (blocks a role-tagged card missing a section or an attribute), %s/scripts/verify-teeth-lint.sh --card <card> (blocks a toothless Verify line) and %s/scripts/skills-stamp-lint.sh --card <card> (blocks a framework card stamped "none"). Warning only, nothing is blocked.' \
+    "$miss_n" "$total" "$(basename "$set_dir")" "$named" "$tmroot" "$tmroot" "$tmroot")
   jq -cn --arg r "$msg" \
     '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$r}}'
 } 2>/dev/null

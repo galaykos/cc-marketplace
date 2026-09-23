@@ -49,6 +49,18 @@ run_case "card: framework file + none detected -> block" 2 "framework-card-no-sk
 run_case "card: framework file + laravel skill -> ok"   0 ""                        --card "$tmp_ok"
 run_case "card: missing stamp line -> block"            2 "missing-stamp"           --card "$tmp_nostamp"
 
+# --- --card extraction, role-tagged shape ---
+tmp_t_none=$(mktemp); tmp_t_ok=$(mktemp); tmp_t_two=$(mktemp); tmp_t_absent=$(mktemp)
+trap 'rm -f "$tmp_fw" "$tmp_ok" "$tmp_nostamp" "$tmp_t_none" "$tmp_t_ok" "$tmp_t_two" "$tmp_t_absent"' EXIT
+printf '# 04\n<card id="04">\n<facts>\n<file path="app/Policies/PostPolicy.php" line="3" mode="edit">x</file>\n</facts>\n<must>\n<skill name="none"/>\n</must>\n</card>\n' > "$tmp_t_none"
+printf '# 04\n<card id="04">\n<facts>\n<file path="app/Policies/PostPolicy.php" line="3" mode="edit">x</file>\n</facts>\n<must>\n<skill name="laravel-best-practices"/>\n</must>\n</card>\n' > "$tmp_t_ok"
+printf '# 04\n<card id="04">\n<facts>\n<file path="resources/js/Modal.vue" mode="create"/>\n</facts>\n<must>\n<skill name="vue-best-practices"/>\n<skill name="inertia-best-practices"/>\n</must>\n</card>\n' > "$tmp_t_two"
+printf '# 04\n<card id="04">\n<facts>\n<file path="app/Policies/PostPolicy.php" line="3" mode="edit">x</file>\n</facts>\n<must>\n<change>y</change>\n</must>\n</card>\n' > "$tmp_t_absent"
+run_case "tagged: framework file + name=none -> block"  2 "framework-card-no-skill" --card "$tmp_t_none"
+run_case "tagged: framework file + laravel -> ok"       0 ""                        --card "$tmp_t_ok"
+run_case "tagged: two <skill> elements -> ok"           0 ""                        --card "$tmp_t_two"
+run_case "tagged: no <skill> element -> missing-stamp"  2 "missing-stamp"           --card "$tmp_t_absent"
+
 # --- usage ---
 run_case "usage: no args" 3 "usage"
 

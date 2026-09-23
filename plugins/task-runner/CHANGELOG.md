@@ -2,6 +2,17 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.39.0 — 2026-09-23
+
+### Changed
+- **Card readers accept taskmaster's role-tagged card shape.** The routing reference
+  reads the worker tag from `<agent>` and the skills to prime from `<skill name="…"/>`
+  elements; delegation-contracts' skill-priming rule and task-execution's ordering rule
+  name the same elements. A legacy bold-label card (`**Agent:**`, `Skills to apply`,
+  `Depends on`) is still read — the acceptance is for in-flight card sets, not a second
+  template. Why the shape changed, and the measurement showing it changes nothing on the
+  READING side: taskmaster's `skills/task-cards/references/card-shape.md`.
+
 ## 0.38.0 — 2026-09-22
 
 ### Added

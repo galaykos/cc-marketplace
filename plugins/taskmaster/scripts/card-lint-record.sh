@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# card-lint-record.sh — the run record the three card linters leave behind, and the
+# card-lint-record.sh — the run record the four card linters leave behind, and the
 # ONE place its location, name and format are decided. Sourced by the writers
-# (verify-teeth-lint.sh, skills-stamp-lint.sh, spec-ledger-lint.sh) and by the reader
+# (card-shape-lint.sh, verify-teeth-lint.sh, skills-stamp-lint.sh, spec-ledger-lint.sh) and by the reader
 # (hooks/card-lint-observe.sh). Writer and reader sharing one file is the point: a
 # drift between them would disable the observation silently, with every gate still
 # green — which is the failure this whole path exists to make visible.
 #
-# WHY A RECORD AT ALL. The three linters are gates WHEN THEY RUN, and nothing
+# WHY A RECORD AT ALL. The linters are gates WHEN THEY RUN, and nothing
 # observed that they ran: a card set could reach execution having had none of them
 # invoked, with every check in the repo green. The record is what an after-the-fact
 # reader can count.
