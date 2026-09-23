@@ -1,14 +1,14 @@
 # Verify-side reviewer routing
 
 How the runner picks the reviewer(s) for a card after its verification passes. This
-**augments** the existing reviewer pass — it never removes a reviewer. Mirror of the
+adds a tag-routed reviewer on top of the baseline pass — it never removes one. Mirror of the
 implement-side `references/routing.md`; reuses the same closed 10-tag vocabulary
 (`taskmaster/skills/task-cards/references/agent-tags.md`). Applies to **serial**
 execution only (see § Tracks).
 
-## The existing reviewer pass (preserved)
+## The baseline reviewer pass
 
-Four reviewers already run, each condition-gated — all kept:
+Four baseline reviewers, each condition-gated:
 
 1. `code-review:code-reviewer` — **always**, on the diff (baseline correctness + smells).
 2. `ui-ux:ui-ux-reviewer` — **diff-content gate:** when the diff touches UI files.
@@ -64,10 +64,11 @@ direction is deliberate.
 **Compressed-return contract** — every reviewer dispatch prompt ALSO demands a compressed
 return (delegation-contracts § Compressed returns), injected verbatim:
 
-> "Return AT MOST 10 findings, most severe first, ONE line each:
-> `file:line — severity(blocker|major|minor) — problem — fix`. No prose introductions, no
-> summary of the summary; findings past the cap collapse into one final `+N more (minor)`
-> line. Your final message is data for the orchestrator, not prose for a human."
+> "Return findings most severe first, ONE line each:
+> `file:line — severity(blocker|major|minor) — problem — fix`. List every blocker and
+> major; minor findings past the tenth may collapse into one final `+N more (minor)` line.
+> No prose introductions, no summary of the summary. Your final message is data for the
+> orchestrator, not prose for a human."
 
 **Card-criteria inject** — every reviewer dispatch ALSO carries the card's own bar,
 right after `RV-CARD`: paste the card's success criteria (or, when the card has none,
@@ -93,7 +94,7 @@ priming skill missed, or a real reviewer agent whose rubric is absent), flag
 Runs after the card's verification passes — a command OR a recorded manual check
 (`SKILL.md`'s manual-check rule), so UI/visual cards without a runnable command are still reviewed.
 
-1. **Existing pass:** baseline `code-reviewer` + whichever diff-content gates match the
+1. **Baseline pass:** `code-reviewer` + whichever diff-content gates match the
    diff (ui-ux / architecture / security).
 2. **Tag route:** add the card's tag reviewer (map above), primed per § Priming.
 3. **Dedup over (agent + rubric):** never run the same review twice.
@@ -112,8 +113,8 @@ Runs after the card's verification passes — a command OR a recorded manual che
    orchestrator after the batch joins.
 6. **Severity normalization** (routed reviewers use varying scales): **critical/high** or
    **blocker/major** → re-enter the existing **3-cycle fix loop** (`SKILL.md`'s fix-loop rule);
-   **medium/low** or **minor** → the backlog. The fix loop itself is unchanged: the
-   runner applies fixes (or re-dispatches the builder), re-runs verify, then re-reviews.
+   **medium/low** or **minor** → the backlog. In the fix loop the runner applies fixes
+   (or re-dispatches the builder), re-runs verify, then re-reviews.
 7. **Ultra:** routed reviewers inherit the `Ultra:` marker model override (`SKILL.md` § Extreme Boost).
 8. **Role-tier floor — unboosted too:** a routed reviewer with a row in delegation-contracts
    `references/role-floors.md` (that registry is the source of truth for which reviewers
@@ -151,8 +152,6 @@ inline counterpart would. Batching moves where the code is written, never the re
 
 ## Role-tier floor
 
-Moved out of the SKILL body on 2026-08-20, where it was a 400-character line.
-
 **Role-tier floor — applies boosted or NOT:** an agent with a row in delegation-contracts
 `references/role-floors.md` dispatches at `max(marker tier if present ELSE the session model,
 its floor)` — never below the session model; agents with no row are unfloored and unchanged
@@ -161,4 +160,4 @@ not applied` in the run report.
 
 The floor is a MINIMUM, not an override: an agent already dispatching above its
 floor keeps its tier. Unfloored agents are the common case and stay untouched, so
-a registry miss degrades to today's behaviour rather than to a guess.
+a registry miss degrades to frontmatter tiers rather than to a guess.

@@ -1,14 +1,11 @@
 # Index markers — `Ultra:` and `Goal:`
 
-Read this when a run is boosted. On a standard run none of it applies, which is
-why it is not in the SKILL body: it was four rules on ONE 1,542-character line
-(~380 tokens), loaded on every card-writing run including the unboosted ones, and
-a line-count ceiling cannot see a line grow.
+Read this when a run is boosted. On a standard run none of it applies.
 
 Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: true
 (model=auto, effort=xhigh)` line near the top of `00-INDEX.md` — copy the directive's
 `model`/`effort` VERBATIM. The tier is FIXED, not defaulted: `ultra/SKILL.md` § Fixed tier
-makes it `model=auto, effort=xhigh` always, the suffix grammar is removed, and both hook
+makes it `model=auto, effort=xhigh` always, and both hook
 directives hardcode it — so those two values are the only ones that can ever appear. `auto`
 stays the literal `auto` so execution
 re-resolves it in its own session. That is how a fresh-session execution run inherits the boost at the
@@ -30,8 +27,6 @@ line would buy the code red-team the caller declined.
 ## The upgraded statement is NOT here
 
 Writing `## Upgraded statement` into the index is unconditional and lives in the SKILL
-body (`SKILL.md`, "Output layout"). It was in this file until 2026-09-22, which put the
-write behind the boost gate while `task-runner`'s task-execution skill read the section
-on every run: a standard run's index never carried it, and the reader found nothing
-where it looked. Only the `Ultra:`/`Goal:` markers are boosted-only, and the blockquote
+body (`SKILL.md`, "Output layout"), because task-execution reads it on every run. Only
+the `Ultra:`/`Goal:` markers are boosted-only, and the blockquote
 prefix that keeps exact-prefix marker parsing safe is stated beside the write.

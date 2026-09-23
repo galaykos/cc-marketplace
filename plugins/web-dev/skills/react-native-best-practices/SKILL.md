@@ -131,11 +131,6 @@ const handler = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffse
 <Animated.ScrollView onScroll={handler} scrollEventThrottle={16} />
 ```
 
-## StyleSheet.create over inline style objects
-
-Prefer `StyleSheet.create` at module scope for static styles over inline object literals
-re-allocated every render — it also validates style keys in development.
-
 ## Scope by model tier
 
 **All models** — every rule above: the version gates, the boundaries, the footguns. Facts
@@ -154,7 +149,6 @@ to every file in scope; a Fable-class session may compress it once the lockfile 
 - Requesting `useNativeDriver: true` for layout properties (width, height, margin, flex).
 - Rendering unsized remote images, causing layout shift while they load.
 - Driving per-frame JS state updates (e.g. raw scroll position) instead of native/shared values.
-- Inline style objects recreated every render instead of `StyleSheet.create`.
 - Letting `.ios.tsx`/`.android.tsx` file pairs drift in exported prop shape.
 
 ## Verify Against Current Docs

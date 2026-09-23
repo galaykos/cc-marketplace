@@ -36,8 +36,8 @@ those rows exist because three tokens share a name with plugins removed on
 
 Every leaf not named above is **any stack** and is always in the plan — every eligible
 leaf except the three in the table above. Count them from `references/catalog.md` at run
-time (leaves, minus `stack-scan` and `all-plugins`); no number is written here, because the one that used to
-be was wrong within a day of a plugin landing. That includes `ui-ux`: its a11y-audit, design-tokens and
+time (leaves, minus `stack-scan` and `all-plugins`) — never from a number written down.
+That includes `ui-ux`: its a11y-audit, design-tokens and
 theming-system skills are stack-agnostic, so a server-rendered app with no
 JavaScript framework still gets it. The four `*-suite` bundles, `stack-scan`
 itself and `all-plugins` are excluded by construction and never listed one by one —

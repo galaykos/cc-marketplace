@@ -61,8 +61,7 @@ Note what that last bullet is NOT: "member of core-suite". `git-workflow` and
 `secret-scanning` are members of that bundle, `command-guard` is not, and all three are
 in the core list, because the two write-time guards it ships are exactly the kind
 of floor test 1 and 2 select for. The criterion is the membership test above, not
-bundle membership — an earlier version of this file used the bundle as the
-criterion and then contradicted itself twice.
+bundle membership.
 
 ## Rules
 

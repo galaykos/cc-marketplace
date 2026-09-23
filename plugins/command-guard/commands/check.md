@@ -27,14 +27,9 @@ Classify `$ARGUMENTS` without executing anything.
    `PreToolUse` hook reads it and sees the deny-tier target quoted inside — and
    denies it. For a deny-tier target this step therefore fails, which is the case
    where "a command was blocked and the reason needs unpacking" applies. Standing:
-   **unfixed by design**. A self-exemption was written twice and reverted twice
-   (0.2.0 matched its tokens as substrings and fell to `bash -c PAYLOAD name arg…`;
-   0.2.1 matched by argv position and fell to command substitution, backticks, and
-   redirection, because skipping classification skips the whole segment while the
-   shell still evaluates what is inside it). A convenience command does not justify
-   a hole in a deny gate. See the comment at `hooks/destructive-guard.sh` and the
-   `no self-exemption` section of `scripts/__tests__/destructive-guard.test.sh`,
-   which pins every known vector.
+   **unfixed by design**: any self-exemption skips classifying a segment the shell
+   still evaluates (substitution, backticks, redirection, `bash -c`), and a
+   convenience command does not justify a hole in a deny gate.
 
    **What to do instead when the target is deny-tier.** Do not retry with
    different quoting, a wrapper, or a script file — the guard reads those too, and

@@ -15,7 +15,7 @@ independent milestones run as concurrent git-worktree tracks. `N` is clamped to
 `[1,6]`; `--tracks=1` warns and runs serial; `--tracks=0`, negative, or non-integer is a
 usage error (do not run); bare `--tracks` uses the default cap `min(eligible, 4)`. With
 no `--tracks` — or when the index lacks per-milestone `Files:` sets or has 0–1 eligible
-milestone — run the serial `task-execution` path below (backward compatible).
+milestone — run the serial `task-execution` path below.
 
 **`--sweep`** — at-scale mechanical change (a codemod, a rename, "replace every X
 with Y") rather than a task list. Bounded by a residual gate instead of a card count:
@@ -53,15 +53,15 @@ check), then an unconditional card-verify re-run and a fresh bounded fix loop. C
 `--crew`; `--tracks[=N] --crew`; `--tracks=1 --crew` — crew applies only to serial cards /
 non-eligible milestones, **never** inside a track leaf or any delegated parallel-group leaf.
 `--crew` is the **sole** trigger: no hook, no `Ultra: true` marker, and no
-`ultra-task`/`ultra-assess` run engages crew; without `--crew` the run is exactly as today.
+`ultra-task`/`ultra-assess` run engages crew; without `--crew` no crew step runs.
 
 **Auto-pick (no dispatch flag)** — when `$ARGUMENTS` includes no dispatch flag (`--tracks`
 absent), consult `parallel-planning`'s `Dispatch:` recommendation
 (`skills/parallel-planning/references/dispatch-selection.md`) and honor it:
 
 - `Dispatch: default` → the serial `task-execution` path below; its per-level
-  `INLINE`/`DELEGATE`/`BATCH` verdicts decide subagent use as today (default-path
-  delegation is existing behavior, **not** a new silent fleet). A **BATCH** level
+  `INLINE`/`DELEGATE`/`BATCH` verdicts decide subagent use and need no extra
+  confirmation. A **BATCH** level
   dispatches each same-worker disjoint S-batch as one agent per
   `skills/task-execution/references/routing.md` § Batch dispatch — one commit per card,
   and per-card verify + negative-control + scope check + reviewer pass on return.
@@ -162,7 +162,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    parked tasks now" / "Stop here" — one offer, not both. Headless: print
    the exact next command.
 
-**Goal marker** (`Goal: true` in `00-INDEX.md`, requires task-runner ≥0.11.0) — hands-off
+**Goal marker** (`Goal: true` in `00-INDEX.md`) — hands-off
 execution per the task-execution skill. The step-1 run plan is displayed, then execution
 proceeds without waiting. The step-5 green branch-finish gate is
 EXEMPT from take-Recommended — under Goal it ALWAYS resolves to "Stop here" regardless of

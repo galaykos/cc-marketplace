@@ -8,13 +8,10 @@ The sibling of `../../motion-tiers/references/tier-budgets.md`, for the other ha
 of the work. `motion-tiers` decides how a surface MOVES; this decides what a
 data-dense surface is BUILT from.
 
-**Why this exists.** craft-layer named eighteen motion and visual packages and
-zero application packages, while claiming CRM and SaaS as targets. The result is
-predictable: a build hand-rolls its grid, its drag interaction, its palette. Two
-demo builds did exactly that, and the hand-rolled rota grid shipped with every
-cell in the tab order — a keyboard user traversing 45 stops to reach the rest of
-the page. A mature grid or an accessible-primitive library gives roving tabindex
-by default. **That bug was the cost of having rules and no routing.**
+**Why this exists.** Without a package route, a build hand-rolls its grid, its drag
+interaction, its palette — and a hand-rolled grid puts every cell in the tab order, so a
+keyboard user traverses dozens of stops to leave it. A mature grid or an
+accessible-primitive library gives roving tabindex by default.
 
 ## The sixth question, and why this layer has one motion does not
 

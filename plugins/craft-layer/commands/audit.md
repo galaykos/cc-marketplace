@@ -118,8 +118,8 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    `.craft-layer/` as the output dir. But Node then resolves the spec's `@playwright/test` and
    `@axe-core/playwright` imports from the PLUGIN, which has no `node_modules`, and the run dies with
    MODULE_NOT_FOUND before the first test — `NODE_PATH` is what points it back at the project. Both
-   measured 2026-09-22 against a throwaway page: bare → `Error: No tests found`; `--config` alone →
-   MODULE_NOT_FOUND; both → 21 tests, 12 shots in `<project>/.craft-layer/shots/`.
+   symptoms, for diagnosis: bare → `Error: No tests found`; `--config` alone → MODULE_NOT_FOUND;
+   both set → the suite runs and writes shots into `<project>/.craft-layer/shots/`.
 
    Carry the verdicts into the table: **exit 1 is a FINDING** to resolve or waive in
    `<project>/.craft-layer/waivers.json` with a reason · **exit 2 is `not measured`, EXCEPT from

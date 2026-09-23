@@ -17,8 +17,7 @@ Deliberate when ANY of these holds:
 - The change introduces a new capability, or is a refactor/rewrite/migrate request.
   File COUNT alone is not the trigger: a few mechanical lines across a few files is
   already-decided work, and `code-architecture:coding-entry` sends it straight to the
-  edit. Claiming it here put two artifacts on one ordinary prompt saying opposite
-  things — `lane.tsv` always said "two-plus viable shapes"; this line did not.
+  edit.
 - Two or more shapes are genuinely viable (new module vs extend existing, sync vs
   async, rewrite vs strangler, migrate vs wrap, extract vs restructure in place).
 - The territory is unfamiliar — new subsystem, new dependency, new domain.
@@ -43,10 +42,9 @@ produces confident nonsense.
 One deliberation per task; a second is re-litigation, and the manual commands do
 not bypass it. Check the MARKER, never memory — `.claude/approaches/deliberated.json`
 (`{"task": "<short slug>", "by": "approach-deliberation", "at": "<ISO-8601>"}`):
-read it FIRST, skip if it names this task, write it on completion. This was prose
-with nothing recording that a deliberation HAD run, so a subagent, a compacted
-session, or a session resumed after a break re-litigated a decided shape. The
-marker is what makes the exclusion checkable rather than remembered. **Standing:
+read it FIRST, skip if it names this task, write it on completion. The marker makes
+the exclusion checkable across subagents, compaction and resumed sessions, where
+memory is not. **Standing:
 agent-graded** — `pc_lanes_territory` proves the territory is declared; no gate
 proves this skill reads the file.
 

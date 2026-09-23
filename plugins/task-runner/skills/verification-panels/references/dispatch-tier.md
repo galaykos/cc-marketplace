@@ -15,7 +15,7 @@ effort knob, so inline dispatch escalates the model only — a contract that pro
 
 Consumers — `taskmaster:ultra`, `task-runner:ultra-assess`, `craft-layer:ultra-craft`
 — cite this file. Each keeps only what is genuinely its own: taskmaster the goal-mode
-ledger and the `Ultra:`/`Goal:` index markers, task-runner (orchestration until 2026-09-14) the assessment recipe and
+ledger and the `Ultra:`/`Goal:` index markers, task-runner the assessment recipe and
 its "never emits task cards" rule, craft-layer the six bindings and the live-research
 mandate.
 

@@ -1,6 +1,6 @@
 {
   "name": "toolchain-experts",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Five expert reviewers that RUN the project's own static analysis instead of reciting a best-practice checklist: php-expert (phpstan, psalm, phpcs, rector), ts-expert (tsc, eslint, biome, oxlint), react-expert (the hook rules), vue-expert (vue-tsc, eslint-plugin-vue) and ui-expert (stylelint, pa11y, lighthouse-ci, axe). A detect-analyzers.sh mechanism reports which tool is configured, which one CI actually enforces, what the baseline already forgives and which rules are switched off — so the headline finding is the analyzer's blind spot, which no remembered rubric can produce. Read-only; fixes route to the existing workers.",
   "author": {
     "name": "Ivan-WG",

@@ -3,6 +3,11 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.10.2 — 2026-09-23
+
+### Changed
+- **Prompt audit (Claude Code's built-in `claude-api` skill, `prompt-audit` subcommand; target Opus 5.5 / Fable 5.1):** the consult nudge on an irreversible command is advisory in its own words ("a blind second opinion is available if the moment warrants one") instead of "stop", matching consult/SKILL.md; approach-deliberation and pattern-selection drop merge history and the mandatory catalog read. Method: that built-in skill's `shared/prompt-audit.md`; the full report and diff are in the maintainers' working area, not shipped.
+
 ## 0.10.0
 
 ### Removed

@@ -65,11 +65,11 @@ project, not a licence to fall back to opinion.
 
 **Empty output is not a clean run.** A non-zero exit with zero bytes on both stdout and
 stderr is a crash, and it looks identical to success to anything that only reads text.
-Measured 2026-09-15: phpstan hitting PHP's default 128M limit exits 255 silently, and the
-memory flag lived only inside a composer script, so the documented invocation "passed"
+phpstan hitting PHP's default 128M memory limit exits 255 with no output; when the
+project's memory flag lives only inside a composer script, the bare invocation "passes"
 while checking nothing. Always pair the exit code with the output; when they disagree,
 the exit code wins. If a tool exposes a verbose flag, a surprising count is the moment to
-use it — the same run truncated its details until `-v` was passed.
+use it — some tools truncate details until `-v` is passed.
 
 ### 5. Triage every line into exactly three buckets
 

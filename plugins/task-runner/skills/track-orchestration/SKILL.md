@@ -8,7 +8,7 @@ description: Use when /task-runner:run is invoked with --tracks[=N] — independ
 The `--tracks` execution mode. One main-thread orchestrator (this skill) runs the
 **independent milestones** of a `00-INDEX.md` as concurrent tracks — each a subagent in
 its own git worktree — to cut wall-clock. The serial one-card-at-a-time path
-(`task-execution`) is unchanged and remains the default; `--tracks` is opt-in.
+(`task-execution`) is the default; `--tracks` is opt-in.
 
 Read `references/algorithm.md` for the step-by-step algorithm and the exact git and
 dispatch commands, and `references/eligibility.md` for how milestone independence is

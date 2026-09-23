@@ -27,7 +27,8 @@ Steps:
 1. Preflight per the skill: check that the marketplace is registered, then
    detect the installed set — `claude plugin list --json` filtered to this
    project (the unfiltered list is machine-wide), unioned with the
-   `enabledPlugins` keys of the project's settings files.
+   `enabledPlugins` keys of all three settings files (`.claude/settings.json`,
+   `.claude/settings.local.json`, `~/.claude/settings.json`).
 2. Detect the stack per the skill: resolve the path argument as the scan
    root, scan its manifests (plus workspace members one level deep), and
    fold in this plugin's `/stack-scan:report` inventory as a version-truth

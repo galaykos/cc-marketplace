@@ -67,14 +67,13 @@ list above is the whole split. The craft flow drives this skill through
 
 ## The two seam rules
 
-Both bind every card and every reference; they keep the files from stripping rules or
-duplicating an owner:
+Both apply to this skill and every reference it routes to:
 
-- **Ratio-is-a-rule, not a value.** A contrast RATIO (`≥4.5:1` for small text, `≥3:1` for
-  marks and large text) is a REQUIRED rule and MUST survive in the derivation — it is what
-  makes the split reviewable. A colour VALUE — a hex code, an `oklch`/`hsl`/`rgb` scalar, or
-  a named colour used as a value — is forbidden. The kill-trigger forbids VALUES, never
-  ratios. A fresh session must neither strip the ratios (toothless) nor keep other numbers.
+- **Ratio-is-a-rule, not a value.** A contrast ratio (`≥4.5:1` for small text, `≥3:1` for
+  marks and large text) stays in the derivation — it is what makes the split reviewable.
+  A colour value — a hex code, an `oklch`/`hsl`/`rgb` scalar, or a named colour used as a
+  value — does not. The kill-trigger fires on values, never on ratios, and no other number
+  belongs in the direction either.
 - **Tiers name, accent-system derives.** `references/token-tiers.md` NAMES the accent roles
   (display + fill + text/mark, as tiers with roles). `references/accent-system.md` DERIVES the
   contrast STEPS between them (hue constraints first, then the split). Tiers name; accent-system derives —

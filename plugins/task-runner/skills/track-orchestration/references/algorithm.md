@@ -77,7 +77,7 @@ Repeat until no eligible milestone remains:
 The prompt to each track-worker contains, in order:
 
 1. The delegation-contracts **discipline preamble** verbatim (Read
-   `plugins/task-runner/skills/delegation-contracts/references/discipline-preamble.md`
+   `${CLAUDE_PLUGIN_ROOT}/skills/delegation-contracts/references/discipline-preamble.md`
    and paste it).
 2. The worktree **absolute path**, and: *"Your cwd resets between bash calls. Pin every
    command to this worktree with `git -C <abs>` or absolute paths. Do NOT touch any path
@@ -103,7 +103,7 @@ The prompt to each track-worker contains, in order:
    each card's negative-control result, and the commit sha. If you cannot finish,
    return a park reason instead — do not force a pass."*
    The orchestrator substitutes `<abs-negative-control.sh>` with the ABSOLUTE path to
-   `plugins/task-runner/scripts/negative-control.sh` at dispatch time (the leaf has no
+   `${CLAUDE_PLUGIN_ROOT}/scripts/negative-control.sh` at dispatch time (the leaf has no
    `CLAUDE_PLUGIN_ROOT` and a bare script name is command-not-found in its worktree —
    same absolute-path rule as the primed `Read <abs-path>` lines in item 4), and
    `--root` with the worktree's absolute path.

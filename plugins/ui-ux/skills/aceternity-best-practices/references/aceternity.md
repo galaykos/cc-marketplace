@@ -51,12 +51,9 @@ Buttons; Loaders; Navigation; Inputs & Forms; Overlays & Popovers; Carousels
 & Sliders; Layout & Grid; Data & Visualization; Cursor & Pointer; 3D
 Components; Sections & Blocks (hero, feature, pricing, testimonial blocks).
 
-**No number lives in this file, deliberately.** It used to say "100+
-components"; the registry's own index answers **270**, split `ui` and `block`.
-The figure was not stale — it was wrong when written, and a `Last verified`
-date cannot detect that, so re-dating this file would have preserved the error
-with a fresher stamp on it. A count in a static file is a count that will be
-wrong; the registry index is the only thing that knows.
+**No number lives in this file, deliberately.** A count in a static file goes wrong
+as soon as the registry changes, and a `Last verified` date cannot tell a wrong figure
+from a right one; the registry index is the only thing that knows.
 
 Get it live instead. `https://ui.aceternity.com/registry.json` is the current
 inventory, raw: per-item dependencies, and the 3D/particle runtimes that price a

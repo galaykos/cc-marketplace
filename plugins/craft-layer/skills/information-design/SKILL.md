@@ -5,8 +5,8 @@ description: Use when designing or reviewing data-dense CRM, SaaS, or admin surf
 
 # Information design for dense surfaces
 
-The raw ask was "eye-catching, eye candy, **informative**". This skill owns the
-informative half for CRM/SaaS/admin screens — the ones that carry a lot of data
+This skill owns the informative half of a craft build for CRM/SaaS/admin screens
+— the ones that carry a lot of data
 and still have to be read in one glance. Craft without information design is
 decoration; a dashboard where everything shouts says nothing.
 

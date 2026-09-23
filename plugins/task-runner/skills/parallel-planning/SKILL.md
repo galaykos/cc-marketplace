@@ -62,8 +62,8 @@ is not one; nor is a blanket INLINE across a long run's every level — the shap
 
 The recommendation names each level's verdict AND a run-level `Dispatch:`
 mechanism (below); it is the Run-now default and, under a `Goal:` marker,
-auto-taken. The default path may delegate disjoint groups/batches as it does
-today, but a `workflow-tracks` pick never spawns a worktree fleet without the
+auto-taken. The default path may delegate disjoint groups/batches, but a
+`workflow-tracks` pick never spawns a worktree fleet without the
 Run-now confirmation or the Goal marker. Present the table, then offer the pick
 (delegate per plan / inline / adjust).
 
@@ -79,7 +79,7 @@ Two extra outputs, both detailed in `references/dispatch-selection.md`:
 - **`Dispatch:`** ∈ {`default`, `workflow-tracks`}: `workflow-tracks` when ≥2
   dependency-independent, file-disjoint, track-eligible milestones exist, else
   `default` (whose per-level verdicts decide subagent use within it). The default
-  path delegates as today; `workflow-tracks` auto-engages only at the Run-now
+  path delegates per those verdicts; `workflow-tracks` auto-engages only at the Run-now
   confirmation / under a `Goal:` marker, and only if track preconditions hold
   (else downgrade to `default`, noted in the run report).
 
