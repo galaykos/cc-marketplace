@@ -16,8 +16,8 @@ that classifies the command string itself.
 
 | Verdict | When | Effect |
 |---|---|---|
-| `deny` | irreversible loss whose blast radius is not visible in the command — `migrate:fresh`, `db:wipe`, `DROP DATABASE`, `rm -rf /`, `rm .env`, `git clean -fdx`, `git push --force`, `docker compose down -v`, `kubectl delete pvc`, `terraform destroy`, `aws s3 rb`, `gcloud … delete` | the call is blocked; the model is told not to rephrase it, and to hand the command to the user |
-| `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git clean -fd`, `rm -rf ./some-dir` *when git cannot restore it* (see below), `DELETE FROM`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh` | the user gets a permission prompt naming what is lost — with no interactive prompt (`claude -p`, a headless agent, `dontAsk`) the request is **auto-denied**, see [Running headless / in CI](#running-headless--in-ci) |
+| `deny` | irreversible loss whose blast radius is not visible in the command — `migrate:fresh`, `db:wipe`, `DROP DATABASE`, `rm -rf /`, `rm .env` or a `cp`/`mv`/`tee` over a live one, `artisan key:generate` over a set `APP_KEY`, `cd /missing/dir; …` (the rest would run in the live tree), `git clean -fdx`, `git push --force`, `docker compose down -v`, `kubectl delete pvc`, `terraform destroy`, `aws s3 rb`, `gcloud … delete` | the call is blocked; the model is told not to rephrase it, and to hand the command to the user |
+| `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git clean -fd`, `rm -rf ./some-dir` *when git cannot restore it* (see below), `DELETE FROM`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh`, a `Write` that replaces an existing `.env` | the user gets a permission prompt naming what is lost — with no interactive prompt (`claude -p`, a headless agent, `dontAsk`) the request is **auto-denied**, see [Running headless / in CI](#running-headless--in-ci) |
 | `allow` | everything else, including `rm -rf node_modules`, `rm -rf /tmp/scratch-dir`, `git commit -m "drop the table step"`, `grep -r migrate:fresh .` | silent; normal permissions apply |
 
 `rm -rf` **inside the OS temp directory** is silent — under `/tmp`,
@@ -34,6 +34,20 @@ under it, deleting it is not a loss and there is no prompt. Ignored content
 counts as a loss — git has no copy of a `.gitignore`d `.env`. The check is
 dropped whenever the command contains `cd`/`pushd`, since the hook's working
 directory is then not the one the `rm` resolves against.
+
+A **live `.env`** is judged by state too. `cp .env.example .env` in a clone with no
+`.env` is the setup step and passes; the same command over an existing `.env`
+that git has no clean copy of is denied, as are `mv`/`install`/`ln`/`rsync`/`tee`
+onto it, a truncating `>` onto `.env.*`, and `artisan key:generate` when the file
+already holds an `APP_KEY` (`--show` passes — it writes nothing). After a `cd` the
+guard cannot tell which `.env` a relative path lands on, so it denies. A
+**`cd` that must fail** is denied too: an absolute target that does not exist,
+not created earlier in the command, whose chain ends in `;` — the Bash tool keeps
+its working directory, so every step after the `;` would run in the live tree.
+That deny invites the corrected retry (`test -d` first, then `&&`). Both exist
+because of one 2026-09-24 incident: a hand-built worktree was never created,
+`cd /tmp/… && …; cp .env.example .env && php artisan key:generate` ran in the
+real repo, and the credentials and the key were gone.
 
 It reads through the usual disguises — quotes (`artisan "migrate:fresh"`),
 wrappers (`bash -c`, `eval`, `docker compose exec`), extra whitespace, `&&`
@@ -217,7 +231,7 @@ Standing markers per the marketplace convention (see
 | ask tier on `Bash` | **gate**, with a human in it | a permission prompt; the user decides |
 | agent writes to the allow-file | **gate** | denied on `Write`/`Edit` and on shell redirects/`sed -i` |
 | agent writes to a settings / hooks / lint config file | **gate**, with a human in it — `config-guard.sh` | a permission prompt on an existing listed file; it reads the path, so whether the edit *weakens* anything is **agent-graded** |
-| the classification rules themselves | **gate**, tested | 221 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
+| the classification rules themselves | **gate**, tested | 261 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
 | `rm -rf` recoverability | **gate**, tested | asserted against a throwaway git repo fixture, not a mock; fails closed to `ask` on any git error |
 | "do not rephrase a denied command" | **recorded** | it is instruction text in the deny reason and in the skill; nothing detects a rephrase attempt |
 | coverage of destructive shapes | **unenforceable** | the rule table matches known shapes; a command inside a script, a Makefile target, an npm script, or application code is invisible to it |

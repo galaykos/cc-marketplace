@@ -127,15 +127,18 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
 4. Finish with BOTH completion gates, never one alone:
    - the full project check suite (catches lint/type/build regressions), AND
    - the **behavioral-gate** on the run's changed files —
-     `${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed "<the run's touched
-     files>" [--entrypoint <bin>] [--differential 'flag::with::without']
-     [--runner '<cmd>::<empty-output-regex>']`, run from a
-     disposable checkout/temp so it never mutates the live tree. The gate resolves a
+     `${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed "<the run's
+     touched files>" [--entrypoint <bin>] [--differential 'flag::with::without']
+     [--runner '<cmd>::<empty-output-regex>']`, run from the repo root after committing.
+     `--isolate` builds, verifies and removes its own worktree of HEAD and never touches
+     the live `.env`; do NOT hand-build a checkout (`git worktree add`, `cd /tmp/…`,
+     `cp .env…`, `key:generate`) — that improvisation destroyed a live `.env` once. Without
+     `--isolate` the gate refuses to run in a registered run's live tree. The gate resolves a
      runner for py, js/ts, go, php, rust, ruby and java/kotlin on its own; for any other
      language pass `--runner` with the suite command and the output that means it ran
-     nothing (`skills/behavioral-gate/references/runners.md`), or the run cannot close. Pass
-     `--record-dir <live-repo>/.claude/task-runner/bg` so the gate's own verdict record
-     lands in the repo the Stop hook reads, not in the copy that is about to be deleted. The repo suite may be a
+     nothing (`skills/behavioral-gate/references/runners.md`), or the run cannot close. Under
+     `--isolate` the verdict record lands in the live repo's `.claude/task-runner/bg`, which
+     the Stop hook reads; `--record-dir` overrides it. The repo suite may be a
      static linter that never executes the new code; the behavioral-gate is what proves
      it ran. A green suite alone does NOT close the run.
    On BOTH green, record the pass to `.claude/task-runner/gate-pass.json` as ONE JSON

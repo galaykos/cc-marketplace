@@ -31,6 +31,8 @@ never an action to take.
 | `rm -rf <dir>` | `rm -rf` on build output only (`node_modules`, `dist`, `.next`, `vendor`) | regenerable |
 | `git reset --hard` | `git stash` | recoverable |
 | `git clean -fdx` | `git clean -fd` | `-x` also deletes `.env` and local config |
+| `cp .env.example .env` in a scratch dir | `cp .env.example /abs/scratch/.env` after `test -d` | a relative `.env` after a failed `cd` is the live one |
+| `php artisan key:generate` for tests | `APP_KEY=base64:… ` exported for the process | rewrites `APP_KEY`; old ciphertext becomes unreadable |
 | `git push --force` | `git push --force-with-lease`, on your own branch | refuses if someone else pushed |
 | `docker compose down -v` | `docker compose down` | `-v` removes the volume holding the database |
 | `kubectl delete <stateful thing>` | `kubectl scale --replicas=0`, or delete one pod | storage survives |
@@ -63,6 +65,11 @@ The deny is a decision, not an obstacle:
 - **Re-read the goal.** A denied command is usually a shortcut to a goal that
   has a longer, safe route. Take the longer route.
 - If the goal genuinely requires it, use the handover above.
+
+One deny is the exception: **`cd X` will fail**. Nothing is wrong with the goal —
+X does not exist, so the steps after the `;` would run in the live tree. Check
+`test -d X` in its own call, read the result, then re-issue with `&&`. If an
+earlier call was meant to create X, treat that call as having run nothing.
 
 `/command-guard:check '<command>'` classifies a command without running it —
 useful before proposing one to the user.

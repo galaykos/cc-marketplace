@@ -335,14 +335,28 @@ run_clause() {
 
   # No gate pass for HEAD → the run is not complete. Mid-run and end-of-run both land
   # here and the hook cannot tell them apart cheaply, so it names BOTH branches.
+  #
+  # The gate branch names the exact command and a pace rule. Until 0.4.11 it said
+  # "run behavioral-gate.sh (isolated)" under a "continue NOW" that read as applying to
+  # both branches. On 2026-09-24 an agent at the end of a 44-card run hand-built the
+  # "isolated" checkout in a rush of chained commands. Its worktree call was denied
+  # whole, it read that as "only the cp failed", and its next `cd /tmp/… && …; cp
+  # .env.example .env && php artisan key:generate` ran in the live repo, overwriting the
+  # developer's .env and APP_KEY. Urgency belongs to the cards branch; the gate branch
+  # has no deadline, and a setup step that fails must stop the sequence.
   run_msg=$(printf '[candor] completion-gate: %s is a registered run with no behavioral-gate pass for HEAD %s.
   The run is not complete, so this turn must not end here.
-  Cards still to execute -> continue NOW with a tool call. Do not name the next card in prose
-    and yield: that binds nothing, and the user waits on a turn that already ended. Need a
-    decision -> ask it with AskUserQuestion (not a stop). Blocked -> park the card with a reason.
-  Every card done or parked -> run behavioral-gate.sh on the produced code (isolated), record
-    the pass to .claude/task-runner/gate-pass.json as {"head":"%s"} plus the card counts,
-    then clear active-run.json. A green repo suite alone is NOT this gate.
+  Cards still to execute -> continue with the next card'"'"'s tool call. Do not name the next card
+    in prose and yield: that binds nothing, and the user waits on a turn that already ended.
+    Need a decision -> ask it with AskUserQuestion (not a stop). Blocked -> park the card with a reason.
+  Every card done or parked -> the gate is the only step left, and it has no deadline. From the
+    repo root run task-runner'"'"'s scripts/behavioral-gate.sh --isolate --changed "<the run'"'"'s touched
+    files>" (the path run.md step 4 names). --isolate creates, checks and removes its own worktree
+    and writes the verdict record; do not hand-build a checkout, and do not copy, generate or write
+    any .env for it. Then record the pass to .claude/task-runner/gate-pass.json as {"head":"%s"}
+    plus the card counts, and clear active-run.json. A green repo suite alone is NOT this gate.
+  Any shell setup: one step per call, and read each result before the next. A denied or failed
+    call ran NOTHING, not "everything but the part named in the error".
   Not running this task list at all? The sentinel outlived its run — delete
     .claude/task-runner/active-run.json.' "$slug" "${head:0:12}" "$head")
   verdict="run"

@@ -157,7 +157,7 @@
     {
       "name": "command-guard",
       "source": "./plugins/command-guard",
-      "description": "Destructive-command prevention: a PreToolUse hook that classifies every Bash (and MCP shell/SQL) command before it runs — denying irreversible data loss (migrate:fresh, db:wipe, DROP DATABASE, rm -rf /, git clean -fdx, docker compose down -v, terraform destroy, cloud deletes) and prompting on scoped-but-destructive ones (git reset --hard, rm -rf on a path git cannot restore, kubectl delete pod). Reads through quotes, wrappers and heredocs; skips read-only commands; fail-open. A second PreToolUse config-guard asks before a write weakens settings, hooks, manifests or lint/test config. Ships /command-guard:check and a user-owned allow-file the agent cannot edit."
+      "description": "Destructive-command prevention: a PreToolUse hook that classifies every Bash (and MCP shell/SQL) command before it runs — denying irreversible data loss (migrate:fresh, DROP DATABASE, rm -rf /, docker compose down -v, terraform destroy, cloud deletes, overwriting a live .env, a cd into a missing dir) and prompting on scoped-but-destructive ones (git reset --hard, rm -rf on a path git cannot restore, kubectl delete pod). Reads through quotes, wrappers and heredocs; skips read-only commands; fail-open. A second PreToolUse config-guard asks before a write weakens settings, hooks, manifests or lint/test config. Ships /command-guard:check and a user-owned allow-file the agent cannot edit."
     },
     {
       "name": "secret-scanning",

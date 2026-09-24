@@ -4,6 +4,13 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.9.2 — 2026-09-24
+
+### Changed
+- **Scout catalog regenerated** for command-guard 0.7.0's new description (it now names
+  overwriting a live `.env` and a `cd` into a missing directory). The catalog has no hand
+  edits: `scripts/generate.sh --write` produced this change.
+
 ## 0.9.1 — 2026-09-23
 
 ### Changed

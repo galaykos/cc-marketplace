@@ -45,9 +45,19 @@ the others.
 Invoke the shipped script (it is the authoritative logic; this skill only drives it):
 
 ```
-${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed "<the run's touched files>" \
+${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed "<the run's touched files>" \
   [--entrypoint <bin> ...] [--differential 'flag::with::without' ...]
 ```
+
+`--isolate` is the isolation: the script makes a worktree of HEAD under `mktemp -d`,
+checks it exists and is not the live tree, and refuses with exit 3 otherwise. It links
+`vendor`/`node_modules`, builds `.env` from the tree's own `.env.example`, and removes
+the worktree on exit. Commit first, because it tests HEAD. Never hand-build the checkout
+with `cd /tmp/…;` chains, and never copy or `key:generate` a `.env`: a failed `cd` sends
+the rest of the chain into the live repo. Laravel takes test env from `phpunit.xml`, and
+`--isolate` exports `APP_KEY` for the process only. `--in-place` is for a caller that is
+already in a disposable copy. With neither flag, the script refuses inside a registered
+run's live tree.
 
 ## What it does
 

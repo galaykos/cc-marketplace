@@ -287,6 +287,64 @@ env -u TMPDIR "$BASH_BIN" "$GUARD" --check 'rm -rf $TMPDIR/build' >/dev/null 2>&
 [ $? -eq 1 ] && ok || bad "want ask, got a different tier (TMPDIR unset)" 'rm -rf $TMPDIR/build'
 
 # ---------------------------------------------------------------------------
+# 1d. .env OVERWRITE + FAILING cd CHAIN — the 2026-09-24 incident: a hand-built
+# worktree was never created, `cd /tmp/dq-bg` failed, the `;` carried on, and
+# `cp .env.example .env && php artisan key:generate` replaced the live .env. The
+# PAIRS matter: the same cp is the ordinary setup step in a clone with no .env
+# and must stay silent there, or the guard gets switched off.
+# ---------------------------------------------------------------------------
+printf '== .env overwrite and failing cd chain\n'
+ENVFIX="$WS/envapp"
+mkdir -p "$ENVFIX"
+( cd "$ENVFIX" && git init -q . && printf '.env\n.env.local\n' > .gitignore \
+  && printf 'APP_KEY=\n' > .env.example && : > artisan \
+  && git -c user.email=t@t -c user.name=t add -A \
+  && git -c user.email=t@t -c user.name=t commit -qm init ) >/dev/null 2>&1
+tier_env() { ( cd "$ENVFIX" && "$BASH_BIN" "$GUARD" --check "$1" >/dev/null 2>&1; case $? in 0) echo allow ;; 1) echo ask ;; 2) echo deny ;; *) echo error ;; esac ); }
+expect_env() { local got; got=$(tier_env "$2"); [ "$got" = "$1" ] && ok || bad "want $1, got $got (env fixture)" "$2"; }
+INCIDENT='cd /tmp/dq-bg-cg-absent && ls vendor node_modules >/dev/null && echo links-ok; cp .env.example .env && php artisan key:generate --no-interaction >/dev/null && echo key-ok'
+
+if [ -d "$ENVFIX/.git" ]; then
+  # fresh clone: no .env yet — the setup step is not a loss
+  expect_env allow 'cp .env.example .env'
+  expect_env allow 'cp .env.example .env && php artisan key:generate'
+  printf 'APP_KEY=base64:abc\nAPP_URL=https://tunnel.example\n' > "$ENVFIX/.env"
+  expect_env deny  "$INCIDENT"                              # the incident, verbatim shape
+  expect_env deny  'cp .env.example .env'
+  expect_env deny  'mv .env.example .env'
+  expect_env deny  'cat .env.example | tee .env'
+  expect_env deny  'cp /backup/.env ./'                     # lands on ./.env
+  expect_env deny  'php artisan key:generate --no-interaction'
+  expect_env deny  'cd sub && cp .env.example .env'         # relative after a cd: unknowable
+  expect_env allow 'php artisan key:generate --show'        # prints, writes nothing
+  expect_env allow 'cp .env .env.bak'                       # copies it aside
+  expect_env allow 'echo FOO=1 >> .env.local'               # append loses nothing
+  expect_env allow 'cp .env.example /tmp/scratch-cg/.env'   # absolute, inside temp
+  expect_env allow 'cp .env.example config/app.env'
+  printf 'X=1\n' > "$ENVFIX/.env.local"
+  expect_env deny  'echo X=2 > .env.local'                  # truncating redirect
+  printf 'APP_KEY=\n' > "$ENVFIX/.env"
+  expect_env allow 'php artisan key:generate'               # empty key: fresh setup
+else
+  bad ".env fixture" "could not create a git repo in $ENVFIX"
+fi
+
+expect deny  'cd /tmp/cg-absent-dir; ls'
+expect deny  'cd /tmp/cg-absent-dir && ls | head; touch x'  # the && chain ends in ;
+expect deny  '( cd /tmp/cg-absent-dir; ls )'
+expect allow 'cd /tmp/cg-absent-dir && ls && echo ok'        # a failed cd stops it all
+expect allow 'cd /tmp/cg-absent-dir || exit 1; ls'
+expect allow 'mkdir -p /tmp/cg-absent-dir; cd /tmp/cg-absent-dir; ls'
+expect allow 'git worktree add /tmp/cg-absent-wt HEAD; cd /tmp/cg-absent-wt; ls'
+expect allow 'set -euo pipefail; cd /tmp/cg-absent-dir; ls'
+expect allow 'cd /tmp; ls'                                   # exists
+expect allow 'cd sub; ls'                                    # relative: not judged
+expect allow 'echo "cd /tmp/cg-absent-dir; rm x"'
+out=$("$BASH_BIN" "$GUARD" --check 'cd /tmp/cg-absent-dir; ls' 2>/dev/null)
+case "$out" in *"re-issuing the corrected command is the expected next step"*) ok ;;
+  *) bad "the cd deny must invite the corrected retry, not forbid retrying" "$out" ;; esac
+
+# ---------------------------------------------------------------------------
 # 2. EVASION — same command, different clothes. Each must stay deny.
 # ---------------------------------------------------------------------------
 printf '== evasion\n'
@@ -438,6 +496,29 @@ out=$(hook "$(bash_json 'php artisan migrate:fresh --env=testing')" "CLAUDE_PROJ
 out=$(hook "$(bash_json 'php artisan migrate:fresh')" "CLAUDE_PROJECT_DIR=$PROJ" "HOME=$WS/nohome")
 [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "deny" ] \
   && ok || bad "allow-file must not release commands it does not name" "$out"
+
+# A whole-file Write onto an existing, untracked .env asks; creating one, an
+# Edit, and deny-only stay silent. Driven by a RELATIVE path from inside the
+# fixture: the fixture lives under $TMPDIR, and an absolute path there is
+# scratch to the guard by design (section 1c).
+file_json() { jq -cn --arg t "$1" --arg f "$2" '{hook_event_name:"PreToolUse",tool_name:$t,tool_input:{file_path:$f,content:"A=1"}}'; }
+hook_in() { local d="$1"; shift; ( cd "$d" && hook "$@" ); }
+WENV="$WS/wenv"; mkdir -p "$WENV"
+out=$(hook_in "$WENV" "$(file_json Write .env)")
+[ -z "$out" ] && ok || bad "Write creating a new .env must be silent" "$out"
+printf 'APP_KEY=base64:abc\n' > "$WENV/.env"
+out=$(hook_in "$WENV" "$(file_json Write .env)")
+[ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision' 2>/dev/null)" = "ask" ] \
+  && ok || bad "Write replacing an existing .env must ask" "${out:-<silent>}"
+out=$(hook_in "$WENV" "$(file_json Write "$WENV/.env")")
+[ -z "$out" ] && ok || bad "Write to a .env under the temp dir is scratch and must be silent" "$out"
+out=$(hook_in "$WENV" "$(file_json Edit .env)")
+[ -z "$out" ] && ok || bad "Edit on .env is targeted and must be silent" "$out"
+out=$(hook_in "$WENV" "$(file_json Write .env)" CLAUDE_DESTRUCTIVE_GUARD=deny-only)
+[ -z "$out" ] && ok || bad "deny-only must drop the .env Write ask" "$out"
+printf 'APP_KEY=\n' > "$WENV/.env.example"
+out=$(hook_in "$WENV" "$(file_json Write .env.example)")
+[ -z "$out" ] && ok || bad "Write to .env.example must be silent" "$out"
 
 # ---------------------------------------------------------------------------
 # 4. FAIL-OPEN

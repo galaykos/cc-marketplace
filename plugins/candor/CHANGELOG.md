@@ -2,6 +2,22 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.11 — 2026-09-24
+
+### Changed
+- **The completion gate's end-of-run branch names the exact command and a pace rule.** It
+  said "run behavioral-gate.sh on the produced code (isolated)" under a "continue NOW with a
+  tool call" that read as applying to both branches. On 2026-09-24, at the end of a 44-card
+  run, an agent hand-built that "isolated" checkout as a rushed chain of commands. The
+  worktree call was denied as a whole and the agent read the denial as "only the cp failed".
+  The next `cd /tmp/… && …; cp .env.example .env && php artisan key:generate` then ran in the
+  live repo and replaced the developer's `.env` and `APP_KEY`. Now the urgency applies only to
+  the cards branch. The gate branch says it has no deadline and names task-runner's
+  `scripts/behavioral-gate.sh --isolate --changed "…"` (task-runner 0.40.0). It forbids
+  hand-built checkouts and writing any `.env` for the gate. It also adds one line for every
+  branch: one shell step per call, read each result, and a denied or failed call ran
+  NOTHING. The first line of the message is unchanged, so matchers on it still work.
+
 ## 0.4.10 — 2026-09-23
 
 ### Changed
