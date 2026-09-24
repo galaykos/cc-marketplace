@@ -37,7 +37,11 @@ executed `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE`, `dropdb`, `FLUSHALL`,
 `dropDatabase()`, `deleteMany({})` · `rm -rf` on `/`, `~`, `$HOME`, `.`, a
 top-level system directory, or a temp ROOT (`/tmp`, `/private/tmp`, `/var/tmp`,
 and their `/*` spellings — those hold every other process's scratch state, not
-just this session's) · `rm` of `.env` · `git clean -fdx`, `push --force`,
+just this session's) · `rm` of `.env`; `cp`/`mv`/`install`/`ln`/`rsync`/`tee`
+or a truncating `>` onto an existing `.env`/`.env.*` git has no clean copy of
+(`.env.example` and its kin excluded), or onto a relative one after a `cd`;
+`artisan key:generate` over a set `APP_KEY` · `cd` into an absolute path that
+does not exist, not created earlier in the command, whose chain ends in `;` · `git clean -fdx`, `push --force`,
 `push --delete`, `filter-branch`, `reflog expire`, `gc --prune=now`,
 `update-ref -d` · `docker compose down -v`, `docker volume rm/prune`,
 `system prune -a|--volumes` · `kubectl delete namespace|pvc|statefulset` ·
@@ -54,7 +58,8 @@ the user is the right decider: `git reset --hard`, `git clean -fd`,
 · `rm -rf` on a project-relative path, a deep absolute path, or a path built
 from a variable · `kubectl delete <pod>`, `helm uninstall`, `terraform apply
 -auto-approve`, `docker system prune`, `docker rm -f` · `npm publish` ·
-`curl … | sh` · `find … -delete`, `shred`, `truncate -s 0`, `history -c`,
+`curl … | sh` · a `Write` that replaces an existing `.env` git has no copy
+of (an `Edit` stays silent) · `find … -delete`, `shred`, `truncate -s 0`, `history -c`,
 `chmod -R 777`.
 
 **allow, deliberately** — `rm -rf` on build output (`node_modules`, `vendor`,
@@ -108,6 +113,14 @@ judged by asking git whether the path is restorable, so its verdict depends on
 a clean repo and ask in a dirty one, and it always asks when the command moves
 directory. And under `CLAUDE_DESTRUCTIVE_GUARD=deny-only` the ask tier does not
 run at all; the hard stops are then the entire guard.
+
+The `.env` and `cd` checks carry the same two limits. A **relative** `cd` target
+is never judged — the hook cannot be sure which directory the Bash tool's shell
+is in, and a false deny there would cost a turn on every legitimate `cd sub; make`.
+And "created earlier in the command" is read loosely: any earlier segment that
+names the path counts, so `echo /tmp/x; cd /tmp/x; …` passes. `||` after the
+chain counts as handling the failure. `cp -t DIR` and a `key:generate --env=X`
+whose `.env.X` lives elsewhere are not resolved.
 
 A silent pass therefore means "no known destructive shape matched", never "this
 command is safe". The guard raises the cost of an accident; it does not make

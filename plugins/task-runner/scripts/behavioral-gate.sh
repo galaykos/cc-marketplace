@@ -19,13 +19,29 @@
 #              | entrypoint-error (crash-on-invoke) | dead-affordance (flag is a no-op)
 #   3  usage
 #
-# SAFETY: this gate RUNS code (the artifact's own tests) IN the current working
-# directory — a misbehaving suite CAN write into cwd (runner cache dirs, coverage
-# files, test-created artifacts). The gate does NOT sandbox those writes; only its
-# own capture of runner output goes to a mktemp file OUTSIDE the tree. Tree isolation
-# is the CALLER's responsibility: invoke from a disposable checkout / temp fixture.
-# The dogfood harness does exactly that and asserts `git status --porcelain` (and a
-# fixture-dir checksum) is byte-identical before/after.
+# SAFETY: this gate RUNS code (the artifact's own tests) IN the directory it runs in —
+# a misbehaving suite CAN write there (runner cache dirs, coverage files, test-created
+# artifacts). Three modes decide which directory that is:
+#   --isolate   the gate builds the disposable checkout ITSELF: a detached `git worktree`
+#               of HEAD under mktemp -d, verified to exist and to be a different
+#               toplevel than the live repo BEFORE anything runs (refuses, exit 3,
+#               otherwise — it never falls back to running in place), removed by the
+#               EXIT trap. It never reads or writes the live .env.
+#   --in-place  the caller has already isolated (a temp fixture, a scratch clone); run
+#               in cwd. The dogfood harnesses do this and assert `git status --porcelain`
+#               (and a fixture-dir checksum) is byte-identical before/after.
+#   neither     as --in-place, EXCEPT inside a registered run's live tree
+#               (.claude/task-runner/active-run.json at the toplevel), where it refuses.
+# WHY --isolate exists (2026-09-24): the header used to say "tree isolation is the
+# CALLER's responsibility", so every run improvised worktree + symlink + env steps. One
+# such hand-built `git worktree add` was rejected with the rest of its Bash call, the
+# next call's `cd /tmp/<dir>; cp .env.example .env && php artisan key:generate` ran in
+# the live repo after the cd failed, and a developer's .env and APP_KEY were destroyed.
+# RESIDUAL --isolate does not close: vendor/ and node_modules/ are SYMLINKED from the
+# live tree (a fresh install per gate run is minutes), so a suite that writes into its
+# dependency dirs writes live; and the worktree is HEAD, so uncommitted changes to
+# tracked files are not what gets tested (warned, not refused — the record is keyed by
+# HEAD anyway).
 
 set -euo pipefail
 
@@ -90,6 +106,7 @@ CHANGED=()
 ENTRYPOINTS=()
 DIFFERENTIALS=()
 CUSTOM_RUNNERS=()
+ISOLATE=0; IN_PLACE=0
 add_changed() {
   local raw="$1" tok _o="$IFS"
   set -f; IFS=$' \t\n'
@@ -107,12 +124,84 @@ while [ $# -gt 0 ]; do
     --differential=*) DIFFERENTIALS+=("${1#--differential=}"); shift ;;
     --runner)         shift; [ $# -gt 0 ] || usage "--runner requires a value"; CUSTOM_RUNNERS+=("$1"); shift ;;
     --runner=*)       CUSTOM_RUNNERS+=("${1#--runner=}"); shift ;;
-    -h|--help)   printf 'usage: %s --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--runner '\''<cmd>::<empty-regex>'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2; exit 3 ;;
+    --isolate)        ISOLATE=1; shift ;;
+    --in-place)       IN_PLACE=1; shift ;;
+    -h|--help)   printf 'usage: %s (--isolate | --in-place) --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--runner '\''<cmd>::<empty-regex>'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2; exit 3 ;;
     --*)         usage "unknown flag: $1" ;;
     *)           add_changed "$1"; shift ;;
   esac
 done
 [ "${#CHANGED[@]}" -gt 0 ] || usage "no --changed files given (want --changed <file-or-list>)"
+[ "$ISOLATE" = 1 ] && [ "$IN_PLACE" = 1 ] && usage "--isolate and --in-place are mutually exclusive"
+
+# ---- ISOLATION (see the SAFETY header) ---------------------------------------
+# Every step that can fail refuses with exit 3 and runs NOTHING: the failure this
+# exists for was a setup step that failed silently while the steps after it ran in the
+# live repo. Cleanup is one function so the WORKTMP trap below can call it too — a
+# second `trap … EXIT` would replace this one.
+ISO_LIVE=""; ISO_DIR=""; ISO_TREE=""
+iso_cleanup() {
+  [ -n "$ISO_DIR" ] || return 0
+  if [ -n "$ISO_TREE" ] && [ -n "$ISO_LIVE" ]; then
+    git -C "$ISO_LIVE" worktree remove --force "$ISO_TREE" >/dev/null 2>&1 || true
+  fi
+  rm -rf "$ISO_DIR" 2>/dev/null || true
+  [ -n "$ISO_LIVE" ] && git -C "$ISO_LIVE" worktree prune >/dev/null 2>&1
+  return 0
+}
+iso_refuse() { log "--isolate: $1 — refusing; nothing was run"; exit 3; }
+
+live_top=""
+command -v git >/dev/null 2>&1 && live_top=$(git rev-parse --show-toplevel 2>/dev/null || true)
+
+if [ "$ISOLATE" = 1 ]; then
+  [ -n "$live_top" ] || iso_refuse "$(pwd) is not inside a git work tree, so there is no HEAD to check out"
+  ISO_LIVE=$(cd "$live_top" && pwd -P) || iso_refuse "cannot resolve the live toplevel $live_top"
+  trap 'iso_cleanup' EXIT INT TERM
+  ISO_DIR=$(mktemp -d "${TMPDIR:-/tmp}/bg-isolate.XXXXXX" 2>/dev/null) || iso_refuse "mktemp -d failed"
+  ISO_DIR=$(cd "$ISO_DIR" && pwd -P) || iso_refuse "cannot resolve the temp dir"
+  git -C "$ISO_LIVE" worktree add --detach -q "$ISO_DIR/tree" HEAD >/dev/null 2>&1 \
+    || iso_refuse "git worktree add $ISO_DIR/tree HEAD failed"
+  ISO_TREE="$ISO_DIR/tree"
+  # Verified, not assumed: the directory exists AND git inside it names IT as the
+  # toplevel. A tree that resolves to the live repo is the incident, so it refuses.
+  [ -d "$ISO_TREE" ] || iso_refuse "$ISO_TREE does not exist after worktree add"
+  iso_top=$(git -C "$ISO_TREE" rev-parse --show-toplevel 2>/dev/null) || iso_refuse "$ISO_TREE is not a git work tree"
+  iso_top=$(cd "$iso_top" && pwd -P) || iso_refuse "cannot resolve $iso_top"
+  [ "$iso_top" = "$ISO_TREE" ] || iso_refuse "$ISO_TREE resolves to toplevel $iso_top, not itself"
+  [ "$iso_top" != "$ISO_LIVE" ] || iso_refuse "the isolated tree resolves to the live repo $ISO_LIVE"
+
+  if [ -n "$(git -C "$ISO_LIVE" status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+    log "WARN: the live tree has uncommitted changes to tracked files; --isolate tests HEAD $(git -C "$ISO_LIVE" rev-parse --short HEAD 2>/dev/null), so those changes are NOT tested — commit them first"
+  fi
+  # Dependency dirs are symlinked, not installed: the residual named in the header.
+  for dep in vendor node_modules; do
+    if [ -d "$ISO_LIVE/$dep" ] && [ ! -e "$ISO_TREE/$dep" ]; then
+      ln -s "$ISO_LIVE/$dep" "$ISO_TREE/$dep" || iso_refuse "cannot link $dep into $ISO_TREE"
+    fi
+  done
+  # Environment: built from the tree's OWN committed example, by absolute path into the
+  # verified tree. The live .env is never read — it holds the developer's credentials.
+  if [ -f "$ISO_TREE/.env.example" ] && [ ! -e "$ISO_TREE/.env" ]; then
+    cp "$ISO_TREE/.env.example" "$ISO_TREE/.env" || iso_refuse "cannot write $ISO_TREE/.env"
+  fi
+  # Laravel: tests take their env from phpunit.xml, but the app still boots with
+  # APP_KEY. Exported for this process only — `artisan key:generate` writes a .env
+  # file, which is the command that destroyed a live key.
+  if [ -f "$ISO_TREE/artisan" ] && [ -z "${APP_KEY:-}" ]; then
+    APP_KEY="base64:$(head -c 32 /dev/urandom | base64 | tr -d '\n')"; export APP_KEY
+  fi
+  # The record belongs to the live repo, not the tree about to be deleted.
+  : "${BG_RECORD_DIR:=$ISO_LIVE/.claude/task-runner/bg}"
+  # Keep the caller's position: `--changed` paths are relative to it.
+  iso_rel=$(pwd -P); iso_rel=${iso_rel#"$ISO_LIVE"}
+  if [ -d "$ISO_TREE$iso_rel" ]; then cd "$ISO_TREE$iso_rel"; else cd "$ISO_TREE"; fi
+  log "isolate: running in $(pwd) (worktree of HEAD $(git rev-parse --short HEAD 2>/dev/null)); removed on exit"
+elif [ "$IN_PLACE" = 0 ] && [ -n "$live_top" ] && [ -e "$live_top/.claude/task-runner/active-run.json" ]; then
+  log "refusing to run in $live_top: it is a registered task-runner run's LIVE tree, and a suite run here can mutate it"
+  log "re-run with --isolate (the gate builds and removes its own worktree), or --in-place if cwd is already a disposable copy"
+  exit 3
+fi
 
 # ---- (a) CLASSIFY: touched files -> language flags --------------------------
 # php/rs/rb/java+kt were added 2026-09-22 (SW 1 of the specialist panel). Before that
@@ -223,7 +312,7 @@ pkg_test_script() {
 # and the trap's `rm -rf` returns 0, so it never clobbers the script's exit code.
 CAP=""; RUN_RC=0
 WORKTMP=$(mktemp -d) || { log "cannot create temp workspace (mktemp -d failed)"; exit 3; }
-trap 'rm -rf "$WORKTMP"' EXIT INT TERM
+trap 'rm -rf "$WORKTMP"; iso_cleanup' EXIT INT TERM
 run_capture() {
   set +e
   run_with_timeout "$TIMEOUT_SECS" "$@" >"$WORKTMP/cap" 2>&1

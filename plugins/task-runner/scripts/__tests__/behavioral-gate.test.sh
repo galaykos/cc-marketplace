@@ -532,6 +532,87 @@ case_run "--runner naming a missing command -> unverifiable-suite(2)" "$CR2" 2 -
 case_run "--runner without the :: separator -> usage error(3)" "$CR2" 3 --label 'usage error' -- \
   --changed calc.ex --runner 'justacommand'
 
+# ---- I. isolation modes (2026-09-24). The fixture is its own git repo standing in for a
+# LIVE project: a committed .env.example and artisan, an untracked .env holding the
+# "credentials", and a test that drops ran.marker in whatever directory it runs in — so
+# "was the live tree touched" is a file check, not an inference. The gate's worktrees go
+# under a TMPDIR private to this harness, so leftovers are countable.
+iso_ok()  { printf 'PASS: %s\n' "$1"; pass=$((pass+1)); }
+iso_bad() { printf 'FAIL: %s (%s)\n' "$1" "$2"; fail=$((fail+1)); [ -n "${3:-}" ] && printf '%s\n' "$3" | sed 's/^/    | /'; return 0; }
+iso_gate() { # iso_gate <dir> <args...> -> sets IRC, IOUT
+  set +e; IOUT=$( cd "$1" && shift && TMPDIR="$ISO_TMP" "$BG" "$@" 2>&1 ); IRC=$?; set -e
+}
+ISO_TMP="$WS/isotmp"; mkdir -p "$ISO_TMP"
+LIVE="$WS/live-app"; mkdir -p "$LIVE/.claude/task-runner/bg"
+cat > "$LIVE/impl.js" <<'JS'
+module.exports = () => 42;
+JS
+cat > "$LIVE/impl.test.js" <<'JS'
+const test = require('node:test'); const assert = require('node:assert'); const fs = require('node:fs');
+test('impl', () => {
+  fs.writeFileSync('ran.marker', 'x');
+  if (process.env.BG_EXPECT_ISO) {
+    assert.strictEqual(fs.readFileSync('.env', 'utf8'), fs.readFileSync('.env.example', 'utf8'));
+    assert.match(process.env.APP_KEY || '', /^base64:/);
+  }
+  assert.strictEqual(require('./impl.js')(), 42);
+});
+JS
+printf 'APP_KEY=\nAPP_URL=http://localhost\n' > "$LIVE/.env.example"
+printf '#!/usr/bin/env php\n' > "$LIVE/artisan"
+printf '.env\nran.marker\n.claude/\n' > "$LIVE/.gitignore"
+( cd "$LIVE" && git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm fixture )
+printf 'APP_KEY=base64:LIVE-SECRET\nAPP_URL=https://live.example\n' > "$LIVE/.env"
+live_env_sum=$(cksum < "$LIVE/.env"); live_status=$(git -C "$LIVE" status --porcelain)
+live_head=$(git -C "$LIVE" rev-parse HEAD)
+
+# I1. --isolate: runs in its own worktree, builds env there, records to the LIVE bg dir,
+#     leaves no worktree and no temp dir behind, and the live tree is byte-identical.
+set +e; IOUT=$( cd "$LIVE" && BG_EXPECT_ISO=1 TMPDIR="$ISO_TMP" "$BG" --isolate --changed impl.js 2>&1 ); IRC=$?; set -e
+d="--isolate green suite -> covered(0), live tree untouched, worktree removed"
+if [ "$IRC" != 0 ] || ! printf '%s' "$IOUT" | grep -q 'covered'; then iso_bad "$d" "rc=$IRC" "$IOUT"
+elif [ -e "$LIVE/ran.marker" ]; then iso_bad "$d" "test ran in the LIVE tree"
+elif [ "$(cksum < "$LIVE/.env")" != "$live_env_sum" ]; then iso_bad "$d" "live .env CHANGED"
+elif [ "$(git -C "$LIVE" status --porcelain)" != "$live_status" ]; then iso_bad "$d" "live git status CHANGED"
+elif [ "$(git -C "$LIVE" worktree list | wc -l | tr -d ' ')" != 1 ]; then iso_bad "$d" "worktree left behind" "$(git -C "$LIVE" worktree list)"
+elif [ -n "$(ls -A "$ISO_TMP")" ]; then iso_bad "$d" "temp dir left behind" "$(ls -A "$ISO_TMP")"
+elif ! grep -q '"verdict":"covered"' "$LIVE/.claude/task-runner/bg/bg-$live_head.json" 2>/dev/null; then iso_bad "$d" "no bg record in the LIVE bg dir"
+else iso_ok "$d"; fi
+
+# I2. --isolate when `git worktree add` fails (unborn HEAD) -> refuse(3), nothing ran anywhere.
+UNBORN="$WS/unborn"; mkdir -p "$UNBORN"; cp "$LIVE/impl.js" "$LIVE/impl.test.js" "$UNBORN/"
+( cd "$UNBORN" && git init -q )
+iso_gate "$UNBORN" --isolate --changed impl.js
+d="--isolate, worktree add fails -> refuse(3), suite never ran"
+if [ "$IRC" != 3 ] || ! printf '%s' "$IOUT" | grep -q 'nothing was run'; then iso_bad "$d" "rc=$IRC" "$IOUT"
+elif [ -e "$UNBORN/ran.marker" ]; then iso_bad "$d" "suite ran IN PLACE after the setup failed"
+elif [ -n "$(ls -A "$ISO_TMP")" ]; then iso_bad "$d" "temp dir left behind"
+else iso_ok "$d"; fi
+
+# I3. --isolate outside any git work tree -> refuse(3).
+iso_gate "$N1" --isolate --changed impl.js
+d="--isolate outside a git work tree -> refuse(3)"
+{ [ "$IRC" = 3 ] && printf '%s' "$IOUT" | grep -q 'not inside a git work tree'; } && iso_ok "$d" || iso_bad "$d" "rc=$IRC" "$IOUT"
+
+# I4. no flag inside a registered run's live tree -> refuse(3), naming --isolate; nothing ran.
+printf '{"slug":"t"}\n' > "$LIVE/.claude/task-runner/active-run.json"
+iso_gate "$LIVE" --changed impl.js
+d="no flag in a registered run's live tree -> refuse(3) naming --isolate"
+if [ "$IRC" != 3 ] || ! printf '%s' "$IOUT" | grep -q -- '--isolate'; then iso_bad "$d" "rc=$IRC" "$IOUT"
+elif [ -e "$LIVE/ran.marker" ]; then iso_bad "$d" "suite ran in the live tree"
+else iso_ok "$d"; fi
+
+# I5. --isolate and --in-place together -> usage(3).
+iso_gate "$LIVE" --isolate --in-place --changed impl.js
+d="--isolate with --in-place -> usage error(3)"
+{ [ "$IRC" = 3 ] && printf '%s' "$IOUT" | grep -q 'mutually exclusive'; } && iso_ok "$d" || iso_bad "$d" "rc=$IRC" "$IOUT"
+
+# I6. --in-place is the explicit escape: runs in cwd even with the sentinel present.
+#     (Last on purpose — it writes ran.marker into the fixture.)
+iso_gate "$LIVE" --in-place --changed impl.js
+d="--in-place escape with the sentinel present -> covered(0) in cwd"
+{ [ "$IRC" = 0 ] && [ -e "$LIVE/ran.marker" ]; } && iso_ok "$d" || iso_bad "$d" "rc=$IRC" "$IOUT"
+
 # ---- tally ----
 printf '\nbehavioral-gate.test: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

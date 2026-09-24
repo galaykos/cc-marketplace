@@ -2,6 +2,33 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.40.0 — 2026-09-24
+
+### Added
+- **`behavioral-gate.sh --isolate` builds its own disposable checkout.** It adds a detached
+  `git worktree` of HEAD under `mktemp -d` and checks that the directory exists and that git
+  inside it names a different toplevel from the live repo. If either check fails it
+  refuses with exit 3 and runs nothing; it never falls back to the live tree. It links
+  `vendor`/`node_modules`, copies `.env` from the tree's own `.env.example` by absolute
+  path, exports a throwaway `APP_KEY` for Laravel (no `key:generate`), writes the verdict
+  record to the live repo's `bg/` dir, and removes the worktree on exit. It never reads or
+  writes the live `.env`. `run.md` step 4, the behavioral-gate, task-execution and
+  track-orchestration texts all name `--isolate`.
+  **Why:** on 2026-09-24 a run followed the old instruction, "invoke from a disposable
+  checkout", and built the checkout by hand. The permission layer rejected the Bash call
+  holding `git worktree add`, and the model did not see that the worktree was never made.
+  In the next call, `cd /tmp/<dir>; cp .env.example .env && php artisan key:generate` ran
+  in the live repo after the `cd` failed, and a developer's `.env` and `APP_KEY` were
+  overwritten.
+- **Refuses in a registered run's live tree.** Without `--isolate`, the gate exits 3 when
+  `.claude/task-runner/active-run.json` is at the toplevel. `--in-place` is the explicit
+  escape for a caller that is already in a disposable copy.
+
+### Residual
+- `vendor/` and `node_modules/` are symlinks to the live directories, so a suite that
+  writes into them writes to the live tree. The worktree is HEAD, so uncommitted changes to
+  tracked files are not tested; the gate warns about this but does not refuse.
+
 ## 0.39.1 — 2026-09-23
 
 ### Changed

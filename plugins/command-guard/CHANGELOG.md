@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.7.0 — 2026-09-24
+
+### Added
+- **A live `.env` is protected from being overwritten, not only from being deleted.** The rule
+  table denied `rm .env` and `> .env` and allowed everything else, so on 2026-09-24 an agent
+  ran `cd /tmp/dq-bg && …; cp .env.example .env && php artisan key:generate` with no
+  prompt. The worktree it meant to `cd` into had never been created, and both writes landed
+  in the real project. The credentials were gone, and so was the `APP_KEY` that the stored
+  OAuth tokens and sessions were encrypted with. The guard now denies `cp`/`mv`/`install`/`ln`/`rsync`/`tee`
+  onto an existing `.env`/`.env.*` that git has no clean copy of, a truncating `>` onto
+  `.env.*`, and `artisan key:generate` when the file already holds an `APP_KEY`. It also
+  denies any relative `.env` write after a `cd`, because the guard cannot tell which
+  `.env` that is. The decision is based on the file's state, not the command's spelling: `cp .env.example .env` in a clone with
+  no `.env` still passes, as do `key:generate --show`, appends, copies aside, and absolute
+  paths inside the OS temp directory.
+- **A `cd` that must fail is denied before the chain runs.** If the target is an absolute path that does not exist, no earlier segment names
+  it, and its `&&` chain ends in `;`, the Bash tool's persisted working directory
+  means every step after the `;` runs in the live tree. The deny reason is its own. It
+  tells the model to check `test -d` in a separate call and then re-issue the command with `&&`, and to
+  treat an earlier call that was meant to create the directory as having run nothing.
+  Relative targets are not judged.
+- **A `Write` that replaces an existing, untracked `.env` asks.** An `Edit`, a `Write` that
+  creates the file, and `deny-only` stay silent.
+- 34 harness assertions, including the incident command verbatim and the fresh-clone controls.
+
 ## 0.6.8 — 2026-09-23
 
 ### Changed
