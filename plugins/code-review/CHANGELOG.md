@@ -5,6 +5,8 @@ file is what makes an upgrade readable. Newest first.
 
 ## 0.23.0 — 2026-09-25
 
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
 ### Added
 - **A review-debt nudge (`hooks/review-debt.sh`, advisory).** On a user prompt in a git
   repo, when the diff since this session's last review (or its first prompt) reaches 8

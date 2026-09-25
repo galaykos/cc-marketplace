@@ -126,7 +126,7 @@ jobs:
       # are disabled inside the script so the verdict cannot depend on network.
       - name: Official plugin validator (--strict)
         run: |
-          npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.273
+          npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.282
           bash scripts/official-validate.sh
       # An eval suite that loads ZERO cases is indistinguishable from a passing one
       # when nothing executes it — two suites sat dead for weeks that way. This LOADS

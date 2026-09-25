@@ -186,6 +186,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_SECURITY_SCAN` | security | CC_SECURITY_SCAN=off disables |
 | `CC_SKILL_LOG` | hindsight | CC_SKILL_LOG=off disables it outright |
 | `CC_SPAWN_CAP` | task-runner | CC_SPAWN_CAP=off disables it |
+| `CC_SUBAGENT_SKILLS` | skill-router | CC_SUBAGENT_SKILLS=off silences this hook alone; CC_REMIND=off does too |
 | `CC_SURFACED_LOG` | skill-router | CC_SURFACED_LOG=off |
 | `CC_TERSE` | candor | see hook header |
 | `CC_TEST_SHAPE` | testing | CC_TEST_SHAPE=off silences only this one |

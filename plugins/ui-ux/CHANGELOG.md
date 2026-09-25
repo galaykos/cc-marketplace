@@ -6,6 +6,8 @@ rather than invented ones.
 
 ## 0.26.3 — 2026-09-25
 
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
 ### Fixed
 - **`palette-default` nudges once per session again, not once per directory.** Its
   one-shot state lived under the hook payload's `cwd`, which follows the model's `cd`

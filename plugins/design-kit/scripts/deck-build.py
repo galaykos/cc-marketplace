@@ -5,7 +5,8 @@ WHAT IT DOES. Reads an outline (grammar: skills/slides/references/outline-format
 renders every slide into skills/slides/assets/deck-shell.html, inlines local images
 as data URIs, applies theme tokens from design-system/tokens.json or
 design-system/DESIGN-SYSTEM.md when either exists, and writes
-.design-kit/decks/YYYY-MM-DD-<slug>.html (or --out). Stdlib only.
+.design-kit/decks/YYYY-MM-DD-<slug>.html (or --out) — .design-kit/ at the git root,
+or $DESIGN_KIT_DIR when set. Stdlib only.
 
 WHAT IT CHECKS (exit 2 on any): a deck title (`# `) exists; at least one slide;
 no slide body over --max-lines (default 6) visible lines — the rule the model
@@ -30,6 +31,22 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SHELL = os.path.join(HERE, "..", "skills", "slides", "assets", "deck-shell.html")
 
 INLINE_RE = re.compile(r"(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(\[([^\]]+)\]\(([^)]+)\))")
+
+
+def dk_dir():
+    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit
+    at the git root — never under a subdirectory the shell had cd'd into, which scattered
+    a second .design-kit/ (finding 2 of the marketplace's
+    rationale/2026-09-25-session-plugin-usage-review.md)."""
+    import subprocess
+    if os.environ.get("DESIGN_KIT_DIR"):
+        return os.environ["DESIGN_KIT_DIR"]
+    try:
+        r = subprocess.run(["git", "rev-parse", "--show-cdup"], capture_output=True, text=True, timeout=5)
+        up = r.stdout.strip() if r.returncode == 0 else ""
+    except (OSError, subprocess.SubprocessError):
+        up = ""
+    return os.path.join(up, ".design-kit")
 
 
 def inline(text):
@@ -328,7 +345,7 @@ def build(outline_path, out_path, theme_path, max_lines, allow_long):
         print("deck-build: %d external src/href reference(s) — a deck must be self-contained" % len(ext), file=sys.stderr)
         return 2
     if not out_path:
-        out_path = os.path.join(".design-kit", "decks", "%s-%s.html" % (_dt.date.today().isoformat(), slugify(title)))
+        out_path = os.path.join(dk_dir(), "decks", "%s-%s.html" % (_dt.date.today().isoformat(), slugify(title)))
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as fh:
         fh.write(page)

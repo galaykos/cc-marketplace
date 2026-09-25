@@ -96,7 +96,7 @@ design shapes are viable, do not generate them from one voice — that anchors e
 "alternative" on a single draft. approaches plugin installed → run its blind panel on the
 design question per `approaches:approach-deliberation` `references/blind-panel.md`, which
 owns the persona roster and the dispatch contract; synthesize alternatives + recommendation
-from their takes, then WRITE the round's marker `.claude/approaches/deliberated.json`:
+from their takes, then WRITE the round's marker `<repo root>/.claude/approaches/deliberated.json`:
 unwritten, the double-run guard is unarmed and the question is re-litigated downstream.
 The panel's own pick-approval is satisfied here by the design doc's approval gate below.
 Absent → propose 2–3 yourself, recommendation first and argued. If only one approach exists, say so — "alternatives considered: none viable

@@ -5,12 +5,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh\"",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ultra.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/ultra.sh\"",
             "timeout": 5
           }
         ]
@@ -22,7 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/preview-guard.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/preview-guard.sh\"",
             "timeout": 10
           }
         ]
@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/clarify-gate.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/clarify-gate.sh\"",
             "timeout": 10
           }
         ]
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/card-lint-observe.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/card-lint-observe.sh\"",
             "timeout": 10
           }
         ]

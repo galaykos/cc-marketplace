@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/collect.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/collect.sh\"",
             "timeout": 15
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/skill-use.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/skill-use.sh\"",
             "timeout": 5
           }
         ]

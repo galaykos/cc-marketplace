@@ -5,6 +5,8 @@ releases were not recorded here and are not reconstructed.
 
 ## 0.9.0 - 2026-09-25
 
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
 ### Added
 - **The write guard now reads Bash writes.** `hooks/scan.sh` matched the host write tools
   only, and its own header named a heredoc as the way around it. Measured 2026-09-25

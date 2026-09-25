@@ -91,15 +91,16 @@ This is a DISCOVERY task, so the arithmetic is different from a single contested
 - **Majority voting applies only to adjudicating one contested claim** — when refuters
   disagree about whether a specific named defect is real, spawn a refuter round on THAT
   claim and let the majority-refute rule from verification-panels settle it.
-- **Dedup against confirmed findings** every round, via the harness:
+- **Dedup against everything SEEN** every round, via the harness:
 
   ```
-  ... | code-redteam-diff.sh --dedup <confirmed-findings-file>
+  ... | code-redteam-diff.sh --dedup <seen-findings-file>
   ```
 
   It removes any finding whose `file:line` plus normalized title already appears in the
-  seen file, printing only novel findings. SEEN means seen — carry every confirmed finding
-  forward so the loop converges instead of resurfacing the same defect each round.
+  seen file, printing only novel findings. SEEN means seen, not accepted — carry every
+  finding forward, refuted ones included, or a refuted defect resurfaces each round and the
+  loop never converges (verification-panels § loop-until-dry).
 
 ## Confirmed findings reopen cards — fresh budget
 

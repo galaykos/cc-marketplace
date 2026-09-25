@@ -61,10 +61,10 @@ case "$(subp | bash "$hook")" in "design-kit: 2026-09-25-root.html has an unread
 printf '{"phase":"build"}' > "$repo/.claude/cc-phase.json"
 [ -z "$(subp | bash "$hook")" ] || { echo "FAIL: spoke from a subdirectory during a root-declared build phase"; exit 1; }
 [ ! -e "$repo/app/Models/.claude" ] || { echo "FAIL: a .claude/ dir appeared in the subdirectory"; exit 1; }
-# dk.sh writes .design-kit/ under the shell cwd it ran in: a board built after a `cd` sits
-# in the subdirectory, and the cwd fallback still finds it.
+# A stray <subdir>/.design-kit/ from a dk.sh before 0.5.1 stays silent: dk.sh now anchors
+# at the root, so `dk decision --consume` could never clear that row and the line would
+# repeat on every prompt. Until 0.5.1 this hook fell back to the cwd's board.
 rm -f "$repo/.design-kit/decisions.jsonl" "$repo/.claude/cc-phase.json"; mkdir -p "$repo/app/Models/.design-kit"
 printf '{"ts":"t","board":"2026-09-25-sub.html","picked":3,"knobs":{},"text":{},"prompt":"p","consumed":false}\n' > "$repo/app/Models/.design-kit/decisions.jsonl"
-case "$(subp | bash "$hook")" in "design-kit: 2026-09-25-sub.html has an unread pick"*) ;;
-  *) echo "FAIL: missed a board built in the subdirectory"; exit 1 ;; esac
+[ -z "$(subp | bash "$hook")" ] || { echo "FAIL: announced a stray subdirectory board the root's consume cannot clear"; exit 1; }
 echo "PASS unread-pick.test.sh"

@@ -20,7 +20,7 @@ each group holds a "hooks" array of command entries:
             "matcher": "<optional tool-name pattern>",
             "hooks": [
               { "type": "command",
-                "command": "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.sh",
+                "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/<script>.sh\"",
                 "timeout": <seconds> }
             ]
           }
@@ -29,8 +29,12 @@ each group holds a "hooks" array of command entries:
     }
 
 Reference scripts through ${CLAUDE_PLUGIN_ROOT}, never absolute paths —
-the plugin installs at a path you do not control. Every referenced script
-must exist and be executable (chmod +x).
+the plugin installs at a path you do not control — and QUOTE it inside the
+command (`"\"${CLAUDE_PLUGIN_ROOT}/hooks/x.sh\""`): the command runs through a
+shell, so an install path with a space splits into several words, and
+`claude plugin validate --strict` rejects the unquoted form from CLI 2.1.282
+(gate: `official-validate.sh`, pinned there). Every referenced script must
+exist and be executable (chmod +x).
 
 This marketplace's validator (scripts/validate.sh, the hooks.json check) enforces both
 rules mechanically: hooks.json must parse as JSON, and every
@@ -86,7 +90,7 @@ among them — share this exact hooks.json shape:
           {
             "hooks": [
               { "type": "command",
-                "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh",
+                "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh\"",
                 "timeout": 10 }
             ]
           }

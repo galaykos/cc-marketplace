@@ -4,6 +4,8 @@ All notable changes to the skill-router plugin.
 
 ## 0.20.0 — 2026-09-25
 
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
 ### Added
 - **Files written through Bash route.** `route.sh`'s PostToolUse matcher now includes
   `Bash`. For a Bash payload, each target the command writes (`>`/`>>`, including
@@ -24,8 +26,44 @@ All notable changes to the skill-router plugin.
   It fails 18 of them against 0.19.0's hooks, and each of three targeted mutations (cap
   removed, manifests read from cwd, globs matched on the absolute path) fails exactly
   the case written for it. `compact-capsule.test.sh` gained a subdirectory-cwd case.
+- **Plugin subagents get their stack's skill paths.** New `SubagentStart` hook
+  `hooks/subagent-skills.sh`, matched to plugin-scoped agent types only
+  (`^[a-z0-9-]+:`). It resolves the spawned agent's definition in this marketplace's
+  install root (flat or versioned cache, through `hooks/plugins-dir.sh`), reads its
+  `bestpractices-skill:` list, and keeps the skills `prime.sh`'s manifest-evidence rows
+  find at the project root, with the owning plugin installed and the SKILL.md present. It
+  injects one `additionalContext` of at most 700 characters: the line "Read these before
+  working; a path the dispatcher already gave you needs no second Read" and one absolute
+  path per kept skill. `web-dev:frontend-reviewer` in a Laravel/Inertia/Vite repo now gets
+  the Inertia and Vite paths and not React Native or Next.js. Why: `bestpractices-skill:`
+  is this marketplace's own key, and only task-runner's dispatcher read it. Three ad-hoc
+  `ui-ux-reviewer` spawns in one measured session read zero SKILL.md files
+  (`rationale/2026-09-25-session-plugin-usage-review.md`, finding 6). A static `skills:`
+  preload of these lists was rejected because it cannot see the stack. Silent for
+  built-in and project agents, an agent with no list, nothing matching, a skill the
+  agent already preloads through `skills:`, and under `CC_REMIND=off` or the new
+  `CC_SUBAGENT_SKILLS=off`. A declared skill `prime.sh` has no evidence row for (motion,
+  security-review, performance-tuning, observability-design) is never handed out. Cost:
+  200-265 ms per plugin-agent spawn on two real Laravel/Inertia repos. Not metered:
+  `scripts/context-budget.sh` does not execute SubagentStart hooks. Probed once live
+  (CLI 2.1.282, haiku, `--plugin-dir`): the subagent's transcript carried exactly the
+  Inertia and Vite paths, and the agent quoted them back. Whether an agent then Reads
+  them on a real task is unmeasured. Lane row `subagent-stack-skill-paths`, phase `any`.
+- `scripts/__tests__/subagent-skills.test.sh`: 37 assertions against a fake versioned
+  install holding the real agent files. Six targeted mutations each fail their own case:
+  stack filter removed, `prime.sh` reading the cwd, the hook resolving from the cwd, cap
+  removed, `CC_SUBAGENT_SKILLS` ignored, and the preload check removed.
 
 ### Changed
+- **`prime.sh` reads manifests at the project root**, through the shared `cc_state_root`
+  block, the same root `route.sh` reads its markers at. SessionStart fires again on resume
+  and compact, and the payload cwd follows the model's `cd`, so a session compacted inside
+  `app/Enums` was re-primed from that directory and lost `laravel-best-practices`. Same
+  trade as `route.sh`: a session started inside a monorepo workspace is now primed from the
+  repo root's manifests. The evidence rows moved into a function, `sr_repo_skills`, which
+  `subagent-skills.sh` sources. They stay in `prime.sh` because `pc_prime_coverage` and
+  `validate.sh`'s resolution loop read the `add <skill>` lines from this file by path.
+  Output is byte-identical on the fixtures compared.
 - **State lives at the project root, not the payload cwd.** `route.sh`, `route-prompt.sh`
   (flush), `summary.sh` and `compact-capsule.sh` resolve one root through the shared
   `cc_state_root` block (`templates/blocks/state-root.md`): the git toplevel, else

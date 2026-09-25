@@ -170,6 +170,7 @@ stop-turn-honesty
 stuck-loop-signal
 subagent-dispatch-contract
 subagent-spawn-cap
+subagent-stack-skill-paths
 test-weakening-write-block
 tool-fit-catalog
 ultra-assess-boost-directive

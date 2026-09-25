@@ -27,7 +27,7 @@ After the card's build verify passes:
 ## Reviewer pass
 
 The reviewer set resolves, primes, AND dispatches exactly as the BASELINE pass does
-(`reviewer-routing.md` § Concurrent dispatch: one concurrent read-only batch, `Bash`-holding
+(`reviewer-routing.md`, batch rule 5 "Concurrent dispatch": one concurrent read-only batch, `Bash`-holding
 reviewers serial, the `security:security-review` skill inline after the join). Crew adds no
 dispatch mechanics of its own; it runs that pass as step 1 of the crew sequence.
 

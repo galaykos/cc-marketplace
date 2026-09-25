@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/announce.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/announce.sh\"",
             "timeout": 10
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scope.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scope.sh\"",
             "timeout": 5
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/rv-observe.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/rv-observe.sh\"",
             "timeout": 5
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/drift.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/drift.sh\"",
             "timeout": 5
           }
         ]
@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/rv-consent.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/rv-consent.sh\"",
             "timeout": 10
           }
         ]
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/spawn-cap.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/spawn-cap.sh\"",
             "timeout": 10
           }
         ]
@@ -71,7 +71,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ultra-assess.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/ultra-assess.sh\"",
             "timeout": 5
           }
         ]

@@ -4,6 +4,8 @@ All notable changes to the `ask-ledger` plugin.
 
 ## 0.2.2 — 2026-09-25
 
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
 ### Fixed
 - **`hooks/ledger.sh` no longer ledgers a subagent's hand-back.** A SendMessage report
   arrives as a prompt opening `Another Claude session sent a message:` /

@@ -4,6 +4,7 @@
 # share --zip → export (no-browser path) → status. Asserts workshop.json keys,
 # usage.jsonl lines, the URL never being a literal port, and DECISIONS.md.
 set -euo pipefail
+unset CLAUDE_PROJECT_DIR DESIGN_KIT_DIR   # a live session exports the first; the state root would resolve there
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; port=$(( 20000 + RANDOM % 10000 ))
 trap 'cd /; bash "$here/preview.sh" --docroot "$tmp/.design-kit" --stop >/dev/null 2>&1 || true; rm -rf "$tmp"' EXIT
@@ -76,6 +77,31 @@ case "$st" in *"server: http://127.0.0.1:$port/"*) ;; *) echo "FAIL: status serv
 gal="$(curl -s "http://127.0.0.1:$port/")"
 case "$gal" in *'class="flow"'*"picked 2"*) ;; *) echo "FAIL: gallery flow strip"; exit 1 ;; esac
 
+# SUBDIRECTORY cwd — the model's `cd` (finding 2 of the marketplace's
+# rationale/2026-09-25-session-plugin-usage-review.md). Until 0.5.1 every verb below built
+# a second .design-kit/ under src/components: its own board, decisions and usage log,
+# invisible to the unread-pick hook and to a `dk decision` run from the root.
+( cd src/components
+  out="$(dk board ../../spec.json 2>/dev/null)"; sb="$(echo "$out" | sed -n 's/^board=//p')"
+  case "$sb" in "$tmp/.design-kit/boards/"*) ;; *) echo "FAIL: a board built from a subdirectory is not at the root: $out"; exit 1 ;; esac
+  [ -f "$sb" ] || { echo "FAIL: subdirectory board not written: $out"; exit 1; }
+  case "$out" in *"url=http://127.0.0.1:$port/boards/$(basename "$sb")"*) ;; *) echo "FAIL: subdirectory board url: $out"; exit 1 ;; esac
+  out="$(dk slides ../../outline.md 2>/dev/null)"
+  case "$out" in *"deck=$tmp/.design-kit/decks/"*"url=http://127.0.0.1:$port/decks/"*) ;; *) echo "FAIL: subdirectory deck: $out"; exit 1 ;; esac
+  # the pick the root's server records is the one read from here
+  curl -s -o /dev/null -X POST -H 'X-Design-Kit-Decision: 1' -H 'Content-Type: application/json' \
+    --data "{\"board\":\"$(basename "$sb")\",\"picked\":1,\"knobs\":{},\"text\":{},\"prompt\":\"subdirectory pick\"}" "http://127.0.0.1:$port/_decision"
+  case "$(dk decision --latest --consume)" in *"subdirectory pick"*) ;; *) echo "FAIL: dk decision from a subdirectory missed the root's row"; exit 1 ;; esac
+  # a build script run on its own lands at the git root too (the slides skill calls it direct)
+  case "$(python3 "$here/deck-build.py" ../../outline.md 2>&1)" in *"../../.design-kit/decks/"*) ;; *) echo "FAIL: deck-build alone did not anchor at the root"; exit 1 ;; esac
+  # an explicit DESIGN_KIT_DIR is used as given
+  DESIGN_KIT_DIR="$tmp/elsewhere" dk board ../../spec.json >/dev/null 2>&1
+  ls "$tmp"/elsewhere/boards/*.html >/dev/null 2>&1 || { echo "FAIL: an explicit DESIGN_KIT_DIR was not honoured"; exit 1; }
+  [ ! -e .design-kit ] && [ ! -e ../.design-kit ] || { echo "FAIL: a .design-kit/ appeared under the subdirectory"; exit 1; }
+) || exit 1
+grep -q '"verb": "slides"' .design-kit/usage.jsonl && [ "$(grep -c '"verb": "board"' .design-kit/usage.jsonl)" -ge 2 ] \
+  || { echo "FAIL: the subdirectory verbs were not logged at the root"; exit 1; }
+
 n="$(wc -l < .design-kit/usage.jsonl | tr -d ' ')"; [ "$n" -ge 12 ] || { echo "FAIL: usage.jsonl has $n lines"; exit 1; }
 python3 -c '
 import json
@@ -96,5 +122,13 @@ dk="$here/dk.sh"; ig="$(mktemp -d)"; ( cd "$ig" && git init -q && git commit -q 
   [ ! -f .gitignore ] || { echo "FAIL: .gitignore written despite tracked scratch"; exit 1; }
   DESIGN_KIT_IGNORE=off bash "$dk" status >/dev/null 2>&1; [ ! -f .gitignore ] || { echo "FAIL: DESIGN_KIT_IGNORE=off ignored"; exit 1; }
 ) || exit 1; rm -rf "$ig"
+# from a subdirectory: --help writes nothing, and the first verb's block names the
+# root-relative .design-kit/ (never the absolute path $DK holds there) at the root
+sg="$(mktemp -d)"; ( cd "$sg" && git init -q && mkdir -p a/b && cd a/b
+  bash "$dk" --help >/dev/null; [ ! -e "$sg/.gitignore" ] && [ ! -e "$sg/.design-kit" ] || { echo "FAIL: --help wrote state"; exit 1; }
+  out="$(bash "$dk" status 2>&1)"; case "$out" in *"added .design-kit/ and __design-kit__/ to .gitignore"*) ;; *) echo "FAIL: subdirectory self-ignore line: $out"; exit 1 ;; esac
+  grep -qx '.design-kit/' "$sg/.gitignore" || { echo "FAIL: the managed block is not root-relative: $(cat "$sg/.gitignore")"; exit 1; }
+  [ -d "$sg/.design-kit" ] && [ ! -e .design-kit ] || { echo "FAIL: status from a subdirectory did not use the root"; exit 1; }
+) || exit 1; rm -rf "$sg"
 
 echo "PASS dk.test.sh"

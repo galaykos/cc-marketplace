@@ -242,6 +242,18 @@ restated here so the shipped CHANGELOGs have a tracked source).
 | UI: no walk access | grill settles "Walk access" and a `Narrow (375):` field per screen; the first UI card builds access and seeders; UI cards carry a `<walk>` line; `verify-teeth-lint` WARNs `ui-static-only` | taskmaster 0.45.2 |
 | unicode one-shot spent by a clean touch | marker claimed only when a warning prints | secret-scanning 0.9.0 |
 
+**Follow-ups, same branch.**
+
+| item | change | plugin (version) |
+|---|---|---|
+| unquoted `${CLAUDE_PLUGIN_ROOT}` (CLI 2.1.282 `--strict` rejects it) | every hook command quoted; the CI pin moved 2.1.273 → 2.1.282; every hooks.json reader in `plugin-checks.sh` strips the quotes. Quoting first blinded `pc_lanes_coverage` (a `case` pattern expected the bare form); a fixture now asserts that every reader draws the same findings, quoted or not | 22 plugins |
+| `prime.sh` read manifests at the drifting cwd | root via `cc_state_root` | skill-router 0.20.0 |
+| declared stack skills never reached ad-hoc subagents | SubagentStart hook injects the stack-filtered `bestpractices-skill:` Read paths (≤700 chars; live-probed once) | skill-router 0.20.0 |
+| `.design-kit/` written under `$PWD`; no screenshots behind a login | root-anchored state; `snapshot.sh --storage-state` (refuses an un-ignored state file in the repo; warns on cookies for other hosts — a naive save exported 48 of the user's own cookies) | design-kit 0.6.0 |
+| a typeless `<button>` submits its form, unseen by lint | detector reports `react/button-has-type` severity or `absent` | toolchain-experts 0.3.2 |
+| `deliberated.json` prose writers | name the repo root | approaches, taskmaster, brain |
+| code-redteam dedup said "confirmed" | dedup against everything SEEN, as verification-panels and the harness already did | task-runner 0.41.0 |
+
 **Standing of what shipped.** The two block gates, the harnesses and the prose-corpus cap
 are `gate`. The review-debt nudge, the UI walk, the walk-access row and the `<walk>` line
 are `recorded` or advisory: no script proves a walk ran or looked at the right state, and

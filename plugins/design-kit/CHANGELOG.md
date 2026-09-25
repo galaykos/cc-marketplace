@@ -2,7 +2,9 @@
 
 Consumer-facing changes only. Newest first.
 
-## 0.5.1 — 2026-09-25
+## 0.6.0 — 2026-09-25
+
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
 
 ### Fixed
 - **The unread-pick nudge reads the phase sentinel and the board at the project root, not
@@ -11,9 +13,50 @@ Consumer-facing changes only. Newest first.
   repository), so a `build` phase declared at the root was invisible from `app/Models` and
   the nudge spoke through it, and a board built at the root went unannounced after a `cd`.
   It now resolves the git root (outside git, `CLAUDE_PROJECT_DIR` when the cwd is under
-  it) and reads `.claude/cc-phase.json` there; `.design-kit/decisions.jsonl` is read at
-  the root first, then at the cwd — `dk.sh` still writes `.design-kit/` under the shell
-  cwd it ran in. The harness gained the subdirectory-cwd cases.
+  it) and reads `.claude/cc-phase.json` and `.design-kit/decisions.jsonl` there, and only
+  there. A stray `<subdir>/.design-kit/` left by an older `dk.sh` is no longer announced:
+  `dk decision --consume` could never clear it, so the line would repeat on every prompt.
+  The harness gained the subdirectory-cwd cases.
+- **`.design-kit/` lives at the project root, whichever directory the shell is in.**
+  `dk.sh` wrote `./.design-kit`, so a verb run after the model had `cd`'d into `src/` built
+  a second one there, with its own board, decisions and usage log. The unread-pick hook
+  never saw it, and `dk decision` run from the root never saw it either. `dk.sh` now
+  resolves the root with the same shared state-root block the hook uses, and exports
+  `DESIGN_KIT_DIR` so every script it runs writes there. Run on their own, `deck-build.py`,
+  `board-build.py`, `artifact-bundle.py`, `deck-export.sh` and `snapshot.sh` fall back to
+  `.design-kit/` at the git toplevel. At the root every printed path is unchanged; from a
+  subdirectory it is absolute. An explicit `DESIGN_KIT_DIR` is still used exactly as given.
+  The `.gitignore` block stays root-relative. `dk review --base <git-ref>` now reads the
+  committed shots from the toplevel: `git archive` refuses a path outside the cwd, so from
+  a subdirectory it found none. `dk --help` no longer writes the `.gitignore` block before
+  printing. `design-system/` is not anchored: `dk check` and `dk decision --record` still
+  read the shell's directory. Standing: **gate**. `dk.test.sh` runs board, slides,
+  decision, a standalone `deck-build.py` and an explicit override from a subdirectory.
+  `snapshot.test.sh` runs a review from one, with a directory base and with a git-ref base.
+  `unread-pick.test.sh` checks that the stray board stays silent.
+
+### Added
+- **`dk snapshot --storage-state <file>`: before/after behind a login.** Until now a route
+  behind a login shot the login page, so none of the authenticated apps in the measured
+  sessions could get a before/after. The file is a Playwright `storageState` JSON (cookies,
+  plus localStorage per origin), saved once from the walk user's sign-in and never from the
+  user's own account. The README's "Behind a login" gives a one-call save for the
+  Playwright MCP browser. That call keeps only the app's cookies: a plain `storageState()`
+  from a browser attached to a real profile saved 48 cookies of the user's own sessions
+  beside the app's one. The CLI screenshot cannot take a cookie, so this path drives the
+  same Chromium browser over the DevTools protocol on a pipe (python3 stdlib only). It
+  settles in real time: the load event, then 500 ms of network quiet, at most 3 s. A route
+  that ends on another URL (a sign-in redirect, an expired session) is still shot, with a
+  `WARN` naming where it landed. A file holding cookies for other hosts draws a `WARN` too.
+  **A state file inside a git work tree that git does not ignore is refused with exit 1**,
+  and a tracked file never counts as ignored: it holds a live session token. Keep it under
+  `.design-kit/` or outside the repo. Standing: **gate** for the refusals (missing,
+  malformed, empty, un-ignored, tracked). With a browser installed, the harness shoots a
+  cookie-guarded route where the server logs the cookie and the seeded localStorage, and an
+  expired session that must `WARN`. Run by hand once on 2026-09-25 (Chrome 153, Playwright
+  MCP): signed in through a form on a throwaway app, saved with the README call (2 cookies
+  plus localStorage), then `dk snapshot` from `app/Models` shot the signed-in dashboard at
+  1440 and 390. Not carried: sessionStorage, IndexedDB, HTTP auth headers.
 
 ## 0.5.0 — 2026-09-22
 

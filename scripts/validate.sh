@@ -256,7 +256,7 @@ while IFS= read -r f; do
   while IFS= read -r cmd; do
     script="${cmd/\$\{CLAUDE_PLUGIN_ROOT\}/$plugroot}"
     [ -x "$script" ] || err "$f: hook script $script missing or not executable"
-  done < <(jq -r '.. | .command? // empty' "$f" | grep '^\${CLAUDE_PLUGIN_ROOT}')
+  done < <(jq -r '.. | .command? // empty' "$f" | tr -d '"' | grep '^\${CLAUDE_PLUGIN_ROOT}')
 done < <(find plugins -path '*/hooks/hooks.json')
 
 # Plugins ship ONLY functional files. Task documentation, specs, and design/task

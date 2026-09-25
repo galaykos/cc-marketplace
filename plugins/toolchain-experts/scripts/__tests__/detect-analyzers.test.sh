@@ -70,6 +70,17 @@ check "a disabled strict flag is reported as a gap, not silence" "$ts" 0 \
 check "a demoted rule reports its real severity" "$ts" 0 \
   "strictness eslint react-hooks/exhaustive-deps warn"
 
+# --- react/button-has-type: absent is a gap, a set rule reports its severity --
+rb="$tmp/reactbtn"; mkdir -p "$rb"
+echo '{"devDependencies":{"eslint":"^9","eslint-plugin-react":"^7"}}' > "$rb/package.json"
+printf 'module.exports={extends:["plugin:react/recommended"],rules:{}};\n' > "$rb/.eslintrc.js"
+check "eslint-plugin-react without button-has-type reports the gap" "$rb" 0 \
+  "strictness eslint react/button-has-type absent"
+printf 'module.exports={extends:["plugin:react/recommended"],rules:{"react/button-has-type":"error"}};\n' > "$rb/.eslintrc.js"
+check "a configured button-has-type reports its severity" "$rb" 0 \
+  "strictness eslint react/button-has-type error"
+refute "no eslint-plugin-react, no button-has-type line" "$ts" "react/button-has-type"
+
 # --- strict:true and an absent flag are distinguishable ---------------------
 st="$tmp/strict"; mkdir -p "$st"
 echo '{"devDependencies":{"typescript":"^5"}}' > "$st/package.json"

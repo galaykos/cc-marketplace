@@ -89,7 +89,9 @@ Two entry shapes, one procedure:
    <r> --device both` before and after it, then `dk.sh review --base <the first
    shot dir>` — before/after/heatmap on the preview URL plus a changed-pixel table.
    It renders the pair and counts pixels; it asserts nothing (README, "Snapshots
-   and review").
+   and review"). A screen behind a login needs `--storage-state <file>`, a session
+   saved from the walk user's sign-in and never the user's own account. It refuses a
+   file that git would commit (README, "Behind a login").
 6. After the pick: record what was decided (which components, which variants,
    which tokens, any gap rows) in the reply and as one line via
    `dk.sh decision --record "…"` (→ `design-system/DECISIONS.md`), then run

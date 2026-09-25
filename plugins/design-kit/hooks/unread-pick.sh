@@ -16,11 +16,14 @@
 # a run that died muted this channel in every later session. Off with CC_REMIND=off or
 # CC_DESIGN_KIT_PICK=off.
 #
-# WHERE IT LOOKS. The phase sentinel is read at the project root, not the payload cwd,
-# which follows the model's `cd` (finding 2, rationale/2026-09-25-session-plugin-usage-
-# review.md) — so both shared blocks are inlined below: state-root (held byte-identical
-# to templates/blocks/state-root.md by pc_shared_blocks) and phase-guard. NO gate holds
-# the phase-guard copy to its block — keeping the two identical is by hand, **recorded**.
+# WHERE IT LOOKS. The phase sentinel and .design-kit/decisions.jsonl are read at the
+# project root, not the payload cwd, which follows the model's `cd` (finding 2,
+# rationale/2026-09-25-session-plugin-usage-review.md) — so both shared blocks are
+# inlined below: state-root (held byte-identical to templates/blocks/state-root.md by
+# pc_shared_blocks) and phase-guard. dk.sh resolves its .design-kit/ with the same
+# state-root block, so writer and reader agree from any directory. An explicit
+# DESIGN_KIT_DIR elsewhere is not seen here. NO gate holds the phase-guard copy to its
+# block — keeping the two identical is by hand, **recorded**.
 #
 # FAIL-OPEN, like every hook here: no python3, no jq, no readable sentinel, a foreign
 # session or a stale one all mean "proceed" or "say nothing", never an error on the
@@ -65,10 +68,11 @@ cwd=""
 if command -v jq >/dev/null 2>&1; then cwd="$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null || true)"; fi
 [ -n "$cwd" ] || cwd="$PWD"
 root=$(cc_state_root "$cwd") || exit 0
-# The root's board first, then the cwd's: dk.sh writes .design-kit/ under the shell cwd it
-# ran in, which is the root unless the model had already cd'd into a subdirectory.
+# The root's board only. dk.sh anchors .design-kit/ at this same root (the same
+# cc_state_root), and `dk decision --consume` clears rows there — so a stray
+# <subdir>/.design-kit/ left by a dk.sh before 0.5.1 is not announced: the consume this
+# line tells the model to run could never clear it, and it would repeat on every prompt.
 dec="$root/.design-kit/decisions.jsonl"
-[ -s "$dec" ] || dec="$cwd/.design-kit/decisions.jsonl"
 [ -s "$dec" ] || exit 0
 
 # --- phase guard -------------------------------------------------------------

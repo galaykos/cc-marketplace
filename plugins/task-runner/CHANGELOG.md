@@ -4,6 +4,10 @@ All notable changes to the task-runner plugin.
 
 ## 0.41.0 — 2026-09-25
 
+- `code-redteam` dedups each round against every finding SEEN, refuted ones included, matching verification-panels' loop-until-dry rule and the harness's own `--dedup <seen-file>`; its prose said "confirmed findings", the shape verification-panels names as the non-converging anti-pattern. `crew.md`'s pointer names reviewer-routing's batch rule 5 (it cited a heading that does not exist).
+
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
 Source for every change here: the review of four real sessions in
 `rationale/2026-09-25-session-plugin-usage-review.md`, which is in the marketplace repo.
 

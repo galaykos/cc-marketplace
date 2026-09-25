@@ -149,7 +149,7 @@ pc_hook_timeout() {
     done < <(jq -r '.hooks | to_entries[] as $e
                     | $e.value[].hooks[]
                     | select(has("timeout") | not)
-                    | "\($e.key):\(.command | split("/") | last)"' "$hj" 2>/dev/null)
+                    | "\($e.key):\(.command | gsub("\""; "") | split("/") | last)"' "$hj" 2>/dev/null)
   done < <(find "$root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
   return $bad
 }
@@ -198,7 +198,7 @@ pc_hook_shebang() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       IFS= read -r first < "$sh" || true
@@ -208,7 +208,7 @@ pc_hook_shebang() {
       bad=1
     done <<EOF
 $(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
-         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+         | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
@@ -263,7 +263,7 @@ pc_cwd_validated() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       grep -qF 'cwd-mkdir-ok:' "$sh" 2>/dev/null && continue
       rel=$(basename "$sh")
@@ -295,7 +295,7 @@ pc_cwd_validated() {
       bad=1
     done <<EOF
 $(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
-         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+         | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
@@ -334,7 +334,7 @@ pc_state_root() {
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
       sh=${sh#bash }
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       grep -qF 'state-root-ok:' "$sh" 2>/dev/null && continue
       out=$(awk '
@@ -345,7 +345,7 @@ pc_state_root() {
       bad=1
     done <<HOOKS
 $(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
-         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+         | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 HOOKS
   done <<FILES
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
@@ -440,7 +440,7 @@ pc_offswitch_named() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       grep -qF 'offswitch-ok:' "$sh" 2>/dev/null && continue
       # Refusal-capable? Either channel counts. Comments are stripped so a header that
@@ -468,7 +468,7 @@ EOF
       bad=1
     done <<EOF
 $(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
-         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+         | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
@@ -1918,7 +1918,7 @@ pc_lanes_coverage() {
         esac
       done < <(jq -r '.hooks | to_entries[]
                       | select(.key=="UserPromptSubmit" or .key=="Stop")
-                      | .value[].hooks[].command // empty' "$hj" 2>/dev/null | sort -u)
+                      | (.value[].hooks[].command // empty) | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
       # DENY-CAPABLE TOOL-CHANNEL HOOKS ARE GATED TOO (2026-09-15). The two events above
       # were the whole hook half of this check, which left the most contended surface in
       # the marketplace undeclared: 14 hooks can return a permissionDecision on one tool
@@ -1950,7 +1950,7 @@ pc_lanes_coverage() {
         esac
       done < <(jq -r '.hooks | to_entries[]
                       | select(.key=="PreToolUse" or .key=="PostToolUse")
-                      | .value[].hooks[].command // empty' "$hj" 2>/dev/null | sort -u)
+                      | (.value[].hooks[].command // empty) | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
     fi
     while IFS= read -r a; do
       [ -n "$a" ] || continue
@@ -2133,7 +2133,7 @@ pc_phase_guard() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       grep -qF 'cc-phase.json' "$sh" 2>/dev/null && continue
@@ -2153,7 +2153,7 @@ pc_phase_guard() {
     done <<EOF
 $(jq -r '((.hooks.UserPromptSubmit // []) + (.hooks.Stop // [])
           + (.hooks.PreToolUse // []) + (.hooks.PostToolUse // []))
-         | .[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+         | .[]? | .hooks[]? | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
@@ -2187,7 +2187,7 @@ pc_context_key() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       grep -q 'session_id' "$sh" 2>/dev/null || continue
@@ -2196,7 +2196,7 @@ pc_context_key() {
       printf 'context-keyed-on-session %s:%s\n' "$p" "$rel"
       bad=1
     done <<EOF
-$(jq -r '(.hooks.PostToolUse // []) | .[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+$(jq -r '(.hooks.PostToolUse // []) | .[]? | .hooks[]? | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
@@ -2274,7 +2274,7 @@ pc_marker_key() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       grep -q 'marker-key-ok:' "$sh" 2>/dev/null && continue
@@ -2297,7 +2297,7 @@ $(grep -nE "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[\"']?[^\"']*/[^\"']*\\\$\{?$v\}
 EOF
       done
     done <<EOF
-$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]? | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)

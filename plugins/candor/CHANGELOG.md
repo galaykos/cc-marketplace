@@ -4,6 +4,8 @@ All notable changes to the `candor` plugin.
 
 ## 0.5.0 — 2026-09-25
 
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
 Why for all three: `rationale/2026-09-25-session-plugin-usage-review.md`, findings 2, 4, 5.
 
 ### Changed

@@ -39,6 +39,16 @@ for each are in `rationale/2026-09-25-session-plugin-usage-review.md`.
   frontmatter, probed live), about 1.8k tokens per spawn.
 - task-runner's skill prose stayed under the 160,000 B corpus ratchet by moving dated
   derivations to `rationale/2026-09-25-task-runner-prose-derivations.md`; no rule changed.
+- **Hook commands quote `${CLAUDE_PLUGIN_ROOT}`** in all 22 plugins with hooks; the CI pin
+  for `official-validate.sh` moved to CLI 2.1.282, whose `--strict` rejects the bare form.
+  Every hooks.json reader in `scripts/lib/plugin-checks.sh` strips the quotes, and a new
+  fixture proves each draws the same findings either way (quoting first blinded
+  `pc_lanes_coverage`, caught before merge).
+- **skill-router** injects stack-filtered skill Read paths into plugin subagents on
+  SubagentStart and primes from the project root; **design-kit 0.6.0** anchors
+  `.design-kit/` at the root and shoots behind a login with `snapshot.sh --storage-state`;
+  **toolchain-experts 0.3.2** reports `react/button-has-type`; code-redteam's dedup rule
+  matches verification-panels'.
 - **Unmeasured:** no control arm shows any of this changes an outcome; the walk, the
   walk-access row and the nudge are `recorded`/advisory, not gates.
 
