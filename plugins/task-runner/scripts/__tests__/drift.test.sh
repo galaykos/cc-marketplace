@@ -8,6 +8,7 @@
 # demands it FIRE caught it. A suite of silence assertions cannot tell correct suppression
 # from a dead hook.
 set -u
+unset CLAUDE_PROJECT_DIR   # the hook's state-root resolver reads it; fixtures must not inherit it
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HOOK="$ROOT/hooks/drift.sh"
 [ -f "$HOOK" ] || { echo "FAIL: hook not found at $HOOK"; exit 2; }
@@ -71,12 +72,19 @@ c="$TMP/cwd$_n"; mkdir -p "$c"
 out="$(fire "$(mk "$named" 20)" "$c")"
 [ -z "$out" ] && pass "silent when the ask names the files" || fail "silent when the ask names the files" "$out"
 
-# ---- 5. SILENT when a declared scope exists — scope.sh owns that turn --------------------
+# ---- 5. SILENT while a run is registered — scope.sh owns that turn ---------------------
 c="$TMP/cwd$_n"; mkdir -p "$c"; mkdir -p "$c/.claude/task-runner"
+echo '{"slug":"t"}' > "$c/.claude/task-runner/active-run.json"
+out="$(fire "$(mk 'fix the login page title' 20)" "$c")"
+[ -z "$out" ] && pass "silent while a run is registered (no two voices on one lane)" \
+  || fail "silent while a run is registered (no two voices on one lane)" "$out"
+# A LEFTOVER scope.json with no run: scope.sh ignores it since 0.41.0, so yielding to it
+# would leave nobody watching.
+c="$TMP/cwd$_n-left"; mkdir -p "$c/.claude/task-runner"
 echo '{"allow":[]}' > "$c/.claude/task-runner/scope.json"
 out="$(fire "$(mk 'fix the login page title' 20)" "$c")"
-[ -z "$out" ] && pass "silent when scope.json exists (no two voices on one lane)" \
-  || fail "silent when scope.json exists (no two voices on one lane)" "$out"
+[ -n "$out" ] && pass "a leftover scope.json with no run does not mute it" \
+  || fail "a leftover scope.json with no run does not mute it" "stayed silent"
 
 # ---- 6. bounded per REQUEST, and a new request may speak again --------------------------
 c="$TMP/cwd-bound"; mkdir -p "$c"; tp="$(mk 'fix the login page title' 20)"
@@ -103,6 +111,23 @@ print(json.dumps({\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Edit\",\"c
 # No transcript at all: nothing to compare the work against, so say nothing.
 out="$(python3 -c 'import json;print(json.dumps({"hook_event_name":"PostToolUse","tool_name":"Edit","cwd":"/tmp","session_id":"s","tool_input":{"file_path":"/p/x.ts"}}))' | bash "$HOOK" 2>/dev/null)"
 [ -z "$out" ] && pass "no transcript: silent rather than guessing" || fail "no transcript: silent rather than guessing" "$out"
+
+# ---- 8. STATE ROOT (0.41.0): payload cwd in a SUBDIRECTORY of a git repo -----------------
+G="$TMP/gitrepo"; mkdir -p "$G/app/Models"; git init -q "$G" 2>/dev/null
+out="$(fire "$(mk 'fix the login page title' 20)" "$G/app/Models")"
+[ -n "$out" ] && pass "subdirectory cwd: still fires" || fail "subdirectory cwd: still fires" "stayed silent"
+[ -n "$(find "$G/.claude/task-runner" -name 'drift-*' -type f 2>/dev/null)" ] \
+  && pass "subdirectory cwd: the marker lands at the repo root" \
+  || fail "subdirectory cwd: the marker lands at the repo root" "none under $G/.claude"
+[ ! -e "$G/app/Models/.claude" ] && [ ! -e "$G/app/.claude" ] \
+  && pass "subdirectory cwd: no .claude/ created there" \
+  || fail "subdirectory cwd: no .claude/ created there" "found one under $G/app"
+# The run registered at the root must be seen from the subdirectory too. Before, the
+# yield looked under the payload cwd and spoke over scope.sh during a live run.
+echo '{"slug":"t"}' > "$G/.claude/task-runner/active-run.json"
+out="$(fire "$(mk 'fix the header nav' 20)" "$G/app/Models")"
+[ -z "$out" ] && pass "subdirectory cwd: yields to the run registered at the root" \
+  || fail "subdirectory cwd: yields to the run registered at the root" "$out"
 
 printf '\n'
 [ "$rc" -eq 0 ] && printf 'drift.test: all cases passed\n' || printf 'drift.test: FAILURES above\n'

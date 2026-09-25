@@ -20,13 +20,15 @@ at authoring time only, and only because the **gate** rows below are a script.
 | every `<skill>` has `name` | **gate** — `skill-name` |
 | `<agent>` value is in the closed vocabulary | **gate** — `agent-vocabulary`, list read from `agent-tags.md` at run time |
 | the `<verify>` text names an assertion | **gate** — `verify-teeth-lint.sh` |
+| a UI card's `<verify>` is more than types/lint/build/grep | **WARN** — `verify-teeth-lint.sh` `ui-static-only` |
+| a UI card has one `<walk surface="/approvals" widths="1280,375">seeded state to see</walk>` in `<proof>` | **agent-graded** — no lint requires it; the group-close walk reads it (task-runner `skills/task-execution/references/ui-walk.md`) |
 | a framework card names a real skill | **gate** — `skills-stamp-lint.sh` |
 | a `<criterion>` describes behaviour, not the diff | **agent-graded** — coverage-check reads it; no script can |
 | a `reason` is true; the `<change>` is the right change | **agent-graded** — spec-redteam and the reviewer pass |
 | the lints ran at all | **recorded + observed** — `hooks/card-lint-observe.sh` warns once per run on a card with no record |
 
-`<file>`, `<interface>`, `<skill>`, `<verify>`, `<agent>` are one per line — the scripts
-grep them. `<change>`, `<current>`, `<target>`, `<criterion>`, `<rule>` may span lines.
+`<file>`, `<interface>`, `<skill>`, `<verify>`, `<walk>`, `<agent>` are one per line — the
+scripts grep them. `<change>`, `<current>`, `<target>`, `<criterion>`, `<rule>` may span lines.
 
 ## Legacy cards
 

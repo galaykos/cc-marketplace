@@ -71,7 +71,10 @@ that looks great as a swatch can fail hard as a button.
   audit command)
 - **Agents**: ui-ux-reviewer, ui-ux-engineer, a11y-engineer (applies an audit's fix
   list, preferring native semantics over ARIA patches, each change tagged with its
-  WCAG criterion)
+  WCAG criterion). The reviewer and the engineer preload `a11y-audit` through the host's
+  `skills:` frontmatter, which costs about 1.8k tokens per spawn, so its rules are in
+  context even when nothing injects a Read path. They flag or apply those rules in the
+  same pass and leave `/ui-ux:audit` for a full audit.
 - **Hooks**, and they are not the same tier:
   - `preview-guard` (PreToolUse on `Artifact`) — **gate, with a human in it.** It
     returns `permissionDecision: "ask"`, which stops the tool call until you answer:

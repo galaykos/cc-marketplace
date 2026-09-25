@@ -52,11 +52,11 @@ state your assumption before editing.
    record, not an errand you run — but evidence your change BREAKS an unlisted file
    (an error naming it, or a call-site grep finding callers there) is a blast-radius
    signal: halt and report it, never a silent follow-up. Before editing for a task,
-   write its allowed files to `<cwd>/.claude/task-runner/scope-<task-id>.json` as
+   write its allowed files to `<repo root>/.claude/task-runner/scope-<task-id>.json` as
    `{"allow":["path/a","dir/b/"],"task":"<id>"}` — one file per task, never the fixed
    `scope.json`, which is the inline path's tripwire and would be clobbered by
-   parallel workers. The scope-lock hook does not read per-task files; your scope is
-   held by the diff-vs-declared check on return. Delete the file when the task ends.
+   parallel workers. The scope-lock hook reads it only while a run is registered; your
+   scope is held by the diff-vs-declared check on return. Delete the file when the task ends.
 5. At the end, run the project's FULL check suite (tests, lint, type-check, build) —
    local per-task passes can compose into a global failure.
 

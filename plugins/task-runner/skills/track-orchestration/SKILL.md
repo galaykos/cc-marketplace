@@ -74,9 +74,7 @@ per-track lifecycle is:
 - `parked(reason)` — a merge conflict, an undeclared-overlap, or a timeout; retained
   for inspection and listed in the backlog.
 
-This stays inside the single 00-INDEX view — no separate dashboard or run board (the
-"no status theater" rule holds). The status is a plain reflection of where each track
-is, written only by the orchestrator turn, never by a worker.
+No separate dashboard or run board — the 00-INDEX view is the only one ("no status theater").
 
 ## Merge, park, and partial failure
 
@@ -109,9 +107,8 @@ them — the worker cannot:
   `.claude/task-runner/nc` by absolute path, because `.claude/` is gitignored and a
   worktree-local record merges nowhere (`references/algorithm.md` § Dispatch item 6)
 
-Without the exemption records a tracks run blocks at completion having done nothing
-wrong, which is the failure mode this whole mechanism must not add. Records written
-before the run registered are ignored, so re-registration re-arms every check.
+Without these records a tracks run blocks at completion having done nothing wrong. Records
+written before the run registered are ignored, so re-registration re-arms every check.
 
 ## Final gate and the red-gate protocol
 
@@ -139,11 +136,9 @@ per-track green is stale after merge. Therefore:
   against `git worktree list`; foreign worktrees and any other live run's worktrees are
   never targeted. Parked/dirty worktrees are retained (never `--force`-removed) so
   evidence survives. The guard is one-directional: it stops this run touching another
-  owner's trees, not the reverse. `.claude/worktrees/` is also where the harness's
-  own `EnterWorktree` puts trees, and `ExitWorktree` prompts the user to keep or
-  remove at session exit — so name the run's live track worktrees in the halt/handoff
-  report, or a keep-or-remove prompt lands on the user with no way to tell which
-  trees a mid-flight run still needs.
+  owner's trees, not the reverse. Name the run's live track worktrees in the
+  halt/handoff report: the harness's `ExitWorktree` keep-or-remove prompt covers
+  `.claude/worktrees/` too, and the user cannot otherwise tell which trees a mid-flight run needs.
 - **Degradation / kill-trigger.** If the index lacks per-milestone `Files:` sets, or
   0–1 milestone is eligible, warn and fall back to the serial `task-execution` path. If
   worktree/merge orchestration proves flaky in practice, `--tracks` degrades to a

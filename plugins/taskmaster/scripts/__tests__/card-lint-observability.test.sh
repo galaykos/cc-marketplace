@@ -17,6 +17,7 @@
 # the warning, because a subagent shares its parent's session and is exactly where a
 # card gets implemented.
 set -u
+unset CLAUDE_PROJECT_DIR   # a live session exports it; the state root would resolve there
 cd "$(dirname "$0")/../../../.." || exit 1
 TM=plugins/taskmaster
 H=$TM/hooks/card-lint-observe.sh
@@ -39,7 +40,8 @@ export TMPDIR="$FX/tmp"
 # for a taskmaster-index run: that file carrying an index_path IS the handoff.
 REPO="$FX/repo"
 SET="$REPO/taskmaster-docs/tasks/2026-08-31-demo"
-mkdir -p "$SET" "$REPO/.claude/task-runner"
+mkdir -p "$SET" "$REPO/.claude/task-runner" "$REPO/src"
+git -C "$REPO" init -q   # a real project root, so case 11's subdirectory cwd resolves to it
 printf '# Index\n\n| Card | Status |\n' > "$SET/00-INDEX.md"
 cat > "$SET/01-alpha.md" <<'EOF'
 # 01 — alpha
@@ -182,5 +184,18 @@ else bad "bad envelope: $env_out"; fi
 if ! printf '%s' "$env_out" | jq -e '.hookSpecificOutput.permissionDecision // .decision' >/dev/null 2>&1; then
   pass "warns only — no permission decision in the output"
 else bad "emitted a blocking decision: $env_out"; fi
+
+# --- 11. SUBDIRECTORY cwd (finding 2, rationale/2026-09-25-session-plugin-usage-review.md)
+# The payload cwd follows the model's `cd`. The registration sits at the repo root with a
+# RELATIVE index_path, and the edit is made from src/: the hook must still find both, and
+# must leave no .claude/ under src/.
+rm -f "$SET/.lint-records"/*.log
+jq -nc '{slug:"2026-08-31-demo",index_path:"taskmaster-docs/tasks/2026-08-31-demo/00-INDEX.md"}' \
+  > "$REPO/.claude/task-runner/active-run.json"
+out=$(fire "$FX/t/subdir.jsonl" "$REPO/src")
+if printf '%s' "$out" | grep -qF "01-alpha.md"; then pass "subdirectory cwd: root registration + relative index_path found"
+else bad "subdirectory cwd: silent from src/ (got: $out)"; fi
+if [ ! -e "$REPO/src/.claude" ]; then pass "subdirectory cwd: no .claude/ under src/"
+else bad "subdirectory cwd: a .claude/ dir appeared under src/"; fi
 
 exit "$rc"

@@ -36,7 +36,7 @@ and picks the first present in its available-agent-types list.
    `task-runner:task-executor`. Log any downgrade (requested tag → actual worker) in
    the run report.
 3. **Arm scope.** Record the card's declared allowed-files to a per-card artifact,
-   e.g. `<cwd>/.claude/task-runner/scope-<cardId>.json` (the runner's own — NOT the
+   e.g. `<repo root>/.claude/task-runner/scope-<cardId>.json` (the runner's own — NOT the
    legacy fixed `scope.json`, which stays the inline path's soft tripwire).
 4. **Inject discipline + prime stack skills.** Read
    `${CLAUDE_PLUGIN_ROOT}/skills/delegation-contracts/references/discipline-preamble.md` and
@@ -56,13 +56,9 @@ and picks the first present in its available-agent-types list.
    if the dispatch names the worker.** On the Agent path that is `subagent_type:
    <resolved>`; on the `Workflow` path it is the `agentType` option —
    `agent(prompt, {agentType: 'task-runner:task-executor', …})`. A `Workflow` `agent()`
-   call that omits it spawns the GENERIC workflow subagent: steps 1–2 still run, the
-   prompt still arrives, and the worker's own contract does not. Everything the resolved
-   agent carries in its frontmatter body is then silently absent — including
-   `task-executor`'s *"match the surrounding file's naming and idiom, not its comment
-   density"* and its *"new behavior no test exercises is named as untested"* rule. Without
-   them the output drifts from the repo's comment density and test ratio while every gate
-   passes green.
+   call that omits it spawns the GENERIC workflow subagent: the prompt arrives, the
+   resolved agent's own contract (e.g. `task-executor`'s code-shape and named-untested
+   rules) silently does not, and every gate still passes green.
 
    Log the dispatch mechanism and the bound agent per card in the run report, next to
    the worker downgrade line from step 2 — an unbound dispatch is invisible in the diff
@@ -80,21 +76,15 @@ and picks the first present in its available-agent-types list.
    inside the subagent. On a green re-verify, run the **negative-control** before the
    card closes — the same gate the inline inner loop runs (`references/negative-control.md`,
    `task-execution/SKILL.md` inner-loop step 3): `negative-control.sh --verify "<the card's
-   exact verify>" --target <impl-file> --auto --record-dir .claude/task-runner/nc --card <cardId>`
-   (a discriminating pass writes `nc-pass-<cardId>.json` mechanically; the completion
-   gate counts these against `cards_done`), with `--target` set to the CARD's declared
-   primary implementation file — an authoring property the worker cannot arrange around; a
-   multi-file return still runs the control against that declared file (the copy carries
-   the other files along). Only a card that declares no single implementation file falls to
-   the unresolvable-target exemption (negative-control.md exemption 2).
+   exact verify>" --target <impl-file> --auto --record-dir .claude/task-runner/nc --card <cardId>`,
+   with `--target` set to the CARD's declared primary implementation file, even on a
+   multi-file return (the copy carries the other files along).
    `discriminating` closes the card; `vacuous`/`invalid-control` counts as a failed
    re-verification under the two-strike rule (§ Delegating parallel groups): one
    re-dispatch, then reclaim the card for inline execution where the inner-loop 3-cycle
    ceiling applies; exit 5 (isolation failure) halts. The standard exemptions apply (manual/visual
-   lines → the recorded why-non-automatable note; an unresolvable `--target` → record
-   control-not-applicable (`references/negative-control.md`) — never a silent pass.
-   This runs on every delegated return, so a delegated/parallel-group card gets the teeth
-   check the inline path already had.
+   lines → the recorded why-non-automatable note; a card declaring no single implementation
+   file → record control-not-applicable, `references/negative-control.md`) — never a silent pass.
 
 ## Batch dispatch (bundled same-worker S-cards)
 
@@ -116,30 +106,20 @@ applied per member. Differences:
    `00-INDEX.md`.
 
    **No tier override — batching is a parallelism mechanism, not a cost lever.** Dispatch a
-   batch exactly like any other delegated card: no `model:` param, no `opts.effort`, so the
-   worker runs at its shipped frontmatter tier (and, under a marker, the boost it would have
-   received anyway). Batching therefore never changes WHICH model writes the code — only how
-   many cards one dispatch carries.
+   batch like any other delegated card: the worker runs at its shipped frontmatter tier (and,
+   under a marker, the boost it would have received anyway), so batching never changes WHICH
+   model writes the code. "No override" means UNFLOORED: every worker in the resolution map
+   ships `model: inherit` with no row in delegation-contracts `references/role-floors.md`, so
+   the batch passes no `model:` or `opts.effort` of its own; an agent that DOES carry
+   a row dispatches at `max(marker tier if present ELSE the session model, its floor)`, which
+   only raises (`dispatch-tiers.md`'s "never downgrades an agent below its frontmatter" holds).
 
-   **"No override" means the worker is UNFLOORED — not that dispatch never passes `model:`.**
-   Every worker in the resolution map ships `model: inherit` and has no row in
-   delegation-contracts `references/role-floors.md`, so there is no floor to apply and the
-   param is omitted. Read the parenthetical above as the proof: a marker tier already lands
-   here. An agent that DOES carry a role-floor row is dispatched at
-   `max(marker tier if present ELSE the session model, its floor)` — which only ever RAISES,
-   so `dispatch-tiers.md`'s "never downgrades an agent below its frontmatter" invariant is
-   untouched.
-
-   delegation-contracts § Model and effort tiering does not apply here: its cheap tier is
-   for work where *the prompt fully defines the task* (rename sweeps, format checks,
-   inventory scans), while **batches are selected by card SIZE and file-disjointness,
-   never by a mechanicalness test** (`parallel-planning/references/dispatch-selection.md`
-   § S-card batching). Three S-sized `security` cards satisfy every batching condition and
-   none of that rule's; a card's implementation is still judgment. This keeps
-   `dispatch-tiers.md`'s "never downgrades an agent below its frontmatter" invariant
-   exception-free. A cost lever for mechanical work must gate on a mechanicalness signal (a
-   `generic` tag plus a rename/scaffold/sweep `Change` line), not on size — and `effort`
-   binds only on the `Workflow` path (`verification-panels/references/dispatch-tier.md`).
+   delegation-contracts' cheap tier does not apply: it is for work *the prompt fully defines*,
+   while **batches are selected by card SIZE and file-disjointness, never by a mechanicalness
+   test** (`parallel-planning/references/dispatch-selection.md` § S-card batching). A cost
+   lever for mechanical work must gate on a mechanicalness signal (a `generic` tag plus a
+   rename/scaffold/sweep `Change` line), not on size — and `effort` binds only on the
+   `Workflow` path (`verification-panels/references/dispatch-tier.md`).
 4. **Mid-batch failure is park-one-continue-rest.** A member hitting its 3-cycle halt or a
    park is parked; the worker continues the remaining disjoint members and returns
    **per-card statuses** (done + commit sha, or parked + reason). Members are disjoint, so

@@ -67,5 +67,15 @@ orig=$(jq -r '.original_total' "$FX/.claude/task-runner/sweep-m3.json" 2>/dev/nu
 if [ "${orig:-0}" -eq 6 ]; then echo "PASS: original total frozen (6)"
 else echo "FAIL: original total wrong (got ${orig:-none}, want 6)"; rc=1; fi
 
+# STATE ROOT (0.41.0): a --dir inside a git repo keeps its state at the repo ROOT. Before,
+# `--dir src` left src/.claude/task-runner/ beside the code it scanned.
+G="$FX/g"; mkdir -p "$G/src"; git init -q "$G" 2>/dev/null
+printf 'axios.get(a)\n' > "$G/src/a.ts"
+expect "freeze with --dir in a subdirectory"       0 --freeze  --id m4 --dir "$G/src" --pattern 'axios'
+if [ -f "$G/.claude/task-runner/sweep-m4.json" ] && [ ! -e "$G/src/.claude" ]; then
+  echo "PASS: state lands at the repo root, none beside the scanned dir"
+else echo "FAIL: state not at the repo root (or a src/.claude/ appeared)"; rc=1; fi
+expect "measure finds the root-anchored state"      2 --measure --id m4 --dir "$G/src"
+
 [ "$rc" -eq 0 ] && echo "All sweep-residual fixtures passed."
 exit "$rc"

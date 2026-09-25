@@ -81,8 +81,15 @@ the skill on `app.config.*` and `eas.json` edits in an Expo project.
   fetching, TS types, and vite config. Returns severity-ranked `path:line` findings;
   never edits.
 
-The worker recommends `/code-review:review` after implementing; the reviewer
-hands accessibility to `/ui-ux:audit` and design-system concerns to ui-ux's reviewer.
+The worker recommends `/code-review:review` after implementing. The reviewer
+preloads ui-ux's `a11y-audit` skill through the host's `skills:` frontmatter
+(`skills: [ui-ux:a11y-audit]`). That adds a 7,140-byte body, about 1.8k tokens at 4
+bytes/token (about 2.4k at 3), to every spawn. The reviewer flags the rules that skill
+lists in the same review, for example focus returning to a dialog's trigger on close,
+or a typeless button inside a form. It hands only a full WCAG audit to `/ui-ux:audit`,
+and design-system concerns to ui-ux's reviewer. With ui-ux not installed, the host
+skips the preload without an error (measured on CLI 2.1.282), and the reviewer runs
+without those rules.
 
 ## Model tiers — why the reviewer is floored
 

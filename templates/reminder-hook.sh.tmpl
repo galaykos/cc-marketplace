@@ -3,6 +3,7 @@
 # Fail open: never block the prompt. Print a reminder only when the prompt reads
 # like the work it nudges about — a mere mention of the words stays silent.
 command -v jq >/dev/null 2>&1 || exit 0
+{{> state-root}}
 {{> phase-guard}}
 {
   input=$(cat)

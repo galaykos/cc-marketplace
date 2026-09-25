@@ -4,6 +4,7 @@ description: Use PROACTIVELY to implement UI work — layouts, breakpoints, spac
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
+skills: [ui-ux:a11y-audit]
 bestpractices-skill: tailwind-best-practices,shadcn-best-practices,motion-best-practices
 ---
 <!-- generated from templates/worker-agent.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
@@ -122,6 +123,10 @@ applying it (WCAG contrast and touch-target rules stay here).
 
 ## Defer rule
 
+- `ui-ux:a11y-audit` is preloaded into your context (frontmatter `skills:`, so a
+  dispatch's Read path for it needs no second Read): every rule it lists is applied
+  in this change, never deferred — `/ui-ux:audit` is for a full WCAG audit beyond
+  that list.
 - Post-implementation review belongs to the ui-ux-reviewer agent and
   `/code-review:review` (the fan-in loads the matching ui-ux stack skill and
   a11y-audit) — do not review your own work beyond the checklist above.

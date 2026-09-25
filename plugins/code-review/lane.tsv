@@ -9,3 +9,4 @@ code-review:comment-review	command	review	comment-placement-review	invoked as /c
 code-review:scan	hook	any	comment-noise-write-block	a Write/Edit adds a comment restating the next line, a line of commented-out code, or a docblock tag repeating the signature	code-review:comment-discipline
 code-review:density	hook	any	comment-volume-write-block	a Write/Edit puts a file over min(2x its committed siblings' median, the ceiling) comment-to-code	code-review:comment-discipline
 code-review:review	command	review	cross-stack-review-fan-in	a diff, PR, branch or path needs reviewing — the single entry that loads every installed stack rubric for whatever the diff touches	code-review:code-reviewer
+code-review:review-debt	hook	any	unreviewed-diff-nudge	a user prompt in a git repo outside a task-runner run, when the diff since this context's last review (or its first prompt) is 8+ non-doc files or touches an auth-surface path; once per HEAD	-

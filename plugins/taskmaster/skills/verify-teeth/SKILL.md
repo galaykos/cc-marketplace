@@ -52,6 +52,9 @@ them). This is only the fix table.
 A line that names its assertion — `jest -t "rejects bad host" asserts throw`, or
 `npm test -- invoice → all pass, including new test totals_rounds_half_up` — passes.
 
+WARN, exit 0: `ui-static-only` (UI card, type-check/lint/build/grep only) → name a component
+or browser test if the repo has a runner; if not, its `<walk>` line is the check.
+
 ## Worked example
 
 A card lands with:

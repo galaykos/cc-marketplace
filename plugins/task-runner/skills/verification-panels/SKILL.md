@@ -40,10 +40,9 @@ consumer; one that re-derives its own N does not inherit corrections to this.
 | **Large** — irreversible, security/auth/data, or cross-module | 3, and round up one row when two risk factors stack |
 | **Lens-fixed** — `task-runner:code-redteam` alone | 3 at any radius: its N is a lens taxonomy, not a radius call. The one blessed exception; a new one belongs in this table or it is an invention |
 
-No dispatch mechanism (no `Workflow` tool AND no Agent tool) → 1 inline pass, reported as **"inline heuristic pass — single
-model, uncorroborated"**, never as a panel or an adversary count. That label and the
-boost dispatch tier (`references/dispatch-tier.md`) are owned here; consumers cite,
-never restate.
+No dispatch mechanism (no `Workflow` tool AND no Agent tool) → 1 inline pass, labelled per
+§ A panel verdict is a claim about process. That label and the boost dispatch tier
+(`references/dispatch-tier.md`) are owned here; consumers cite, never restate.
 
 A consumer may map its OWN triggers onto these rows — `spec-redteam`'s four gate bullets,
 `ultra`'s recon/coverage columns — because which conditions signal "large" is domain
@@ -136,19 +135,7 @@ prompt, and it means the question was framed to invite approval.
 
 ## Anti-patterns
 
-- **Panel theater.** Five agents voting on a typo fix — the cost gate
-  exists so panels stay credible where they matter.
-- **Confirmation-prompted "refuters".** "Please verify this finding is
-  correct" produces agreeable validators; a refuter must be told to
-  disprove, with refuted as the tie-break default.
-- **Identical-refuter redundancy.** N copies of the same prompt share
-  the same blind spots; you paid N times for one opinion.
-- **Sharing verdicts between panelists.** One anchored opinion echoed N
-  times; independence is the entire mechanism.
-- **Dedup against confirmed only.** Rejected findings resurface every
-  round and the discovery loop never converges — dedup against SEEN.
-- **Critic as rubber stamp.** A completeness pass that returns "all
-  good" without naming a single unchecked angle checked nothing.
-- **Imagined panel.** Reporting a "panel" or "N refuters" when no
-  separate agents ran — a single-model pass wearing a panel's name.
-  Label it "inline heuristic pass — single model, uncorroborated".
+Each breaks a rule above: panel theater (a panel on a typo fix); confirmation-prompted
+"refuters"; identical refuters; panelists sharing verdicts; dedup against confirmed only (dedup
+against SEEN); a critic that names no unchecked angle; an imagined panel — no separate agents
+ran, so label it "inline heuristic pass — single model, uncorroborated".

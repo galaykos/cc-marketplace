@@ -45,6 +45,14 @@ check "11 a harness-injected notification writes no ledger" "$(run '<system-remi
 check "12 a Stop-hook relay writes no ledger" "$(run 'Stop hook feedback:
 [gate.sh]: ask-ledger: the ask named Stripe and the final message does not account for it. Add one line.' s12)" ""
 check "13 a real ask that quotes a marker mid-sentence still writes a ledger" "$(run 'Fix candor so the Stop hook feedback: line it prints names the Stripe webhook that failed' s13)" "Stop,Stripe"
+check "13b a subagent hand-back writes no ledger" "$(run 'Another Claude session sent a message:
+<agent-message from="ac61f13cc0e92d08a">
+[Subagent hand-back] The text below is the final report of a subagent this session delegated to.
+  RV-CARD 08: Add the PopoverContent fix. NOT merge-ready until Card 09 lands.
+</agent-message>' s13b)" ""
+check "13c a bare agent-message tag writes no ledger" "$(run '<agent-message from="a0d31354dca16ebac">Build the Stripe adapter next.</agent-message>' s13c)" ""
+check "13d a hand-back frame under a harness note writes no ledger" "$(run 'Note: relayed.
+[Subagent hand-back] Create PopoverContent for Card 03.' s13d)" ""
 
 # --- 14-16 the existing-identifier filter (2026-09-22). A name the repo already carries
 #     is code to be REPAIRED, not a thing to be delivered; ledgering it made the Stop gate

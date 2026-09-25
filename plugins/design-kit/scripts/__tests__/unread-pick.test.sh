@@ -8,6 +8,7 @@
 # without it the guard fails open and every phase case below would pass for the wrong
 # reason. What this does NOT prove: that the model acts on the line (agent-graded).
 set -euo pipefail
+unset CLAUDE_PROJECT_DIR   # a live session exports it; the state root would resolve there
 here="$(cd "$(dirname "$0")/../.." && pwd)"; hook="$here/hooks/unread-pick.sh"
 export CLAUDE_PLUGIN_ROOT="$here"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -44,4 +45,26 @@ python3 -c "import os,sys,time; p=sys.argv[1]; os.utime(p,(time.time()-3*3600,)*
 [ ! -e "$tmp/.claude/cc-phase.json" ] || { echo "FAIL: stale sentinel not unlinked"; exit 1; }
 printf '{"ts":"t","board":"2026-09-22-deal.html","picked":2,"knobs":{},"text":{},"prompt":"p","consumed":true}\n' > "$tmp/.design-kit/decisions.jsonl"
 [ -z "$(payload | bash "$hook")" ] || { echo "FAIL: spoke after consume"; exit 1; }
+
+# SUBDIRECTORY cwd. The payload cwd follows the model's `cd` (finding 2 of
+# rationale/2026-09-25-session-plugin-usage-review.md), so a sentinel and a board at the
+# repo root must still be found from app/Models. Before 0.5.1 the guard read
+# <cwd>/.claude/cc-phase.json, found nothing there and spoke through a root-declared build.
+repo="$tmp/repo"; mkdir -p "$repo/app/Models" "$repo/.design-kit" "$repo/.claude"
+git -C "$repo" init -q
+subp() { printf '{"cwd":"%s","prompt":"x"}' "$repo/app/Models"; }
+printf '{"ts":"t","board":"2026-09-25-root.html","picked":1,"knobs":{},"text":{},"prompt":"p","consumed":false}\n' > "$repo/.design-kit/decisions.jsonl"
+# speaking first, so the build-phase silence below cannot pass for a board never found
+printf '{"phase":"decide"}' > "$repo/.claude/cc-phase.json"
+case "$(subp | bash "$hook")" in "design-kit: 2026-09-25-root.html has an unread pick"*) ;;
+  *) echo "FAIL: missed the root's board from a subdirectory"; exit 1 ;; esac
+printf '{"phase":"build"}' > "$repo/.claude/cc-phase.json"
+[ -z "$(subp | bash "$hook")" ] || { echo "FAIL: spoke from a subdirectory during a root-declared build phase"; exit 1; }
+[ ! -e "$repo/app/Models/.claude" ] || { echo "FAIL: a .claude/ dir appeared in the subdirectory"; exit 1; }
+# dk.sh writes .design-kit/ under the shell cwd it ran in: a board built after a `cd` sits
+# in the subdirectory, and the cwd fallback still finds it.
+rm -f "$repo/.design-kit/decisions.jsonl" "$repo/.claude/cc-phase.json"; mkdir -p "$repo/app/Models/.design-kit"
+printf '{"ts":"t","board":"2026-09-25-sub.html","picked":3,"knobs":{},"text":{},"prompt":"p","consumed":false}\n' > "$repo/app/Models/.design-kit/decisions.jsonl"
+case "$(subp | bash "$hook")" in "design-kit: 2026-09-25-sub.html has an unread pick"*) ;;
+  *) echo "FAIL: missed a board built in the subdirectory"; exit 1 ;; esac
 echo "PASS unread-pick.test.sh"

@@ -42,6 +42,29 @@
 #     unlinks a sentinel older than its cc_phase_ttl_min).
 #   - Knows the ledgers it names. A plugin that keeps state elsewhere is invisible
 #     here — add its path to this file, which is why the list is short and literal.
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
 {
   command -v jq >/dev/null 2>&1 || exit 0
   input=$(cat)
@@ -49,6 +72,11 @@
   [ "$src" = "compact" ] || exit 0
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
+  # Every ledger below lives at the PROJECT root. Read under the payload cwd, a
+  # compaction after `cd app/Models` would find none of them and stay silent while a
+  # run, a scope lock and a phase sentinel sat two levels up (review finding 2 measured
+  # that drift, rationale/2026-09-25-session-plugin-usage-review.md).
+  root=$(cc_state_root "$cwd") || exit 0
   sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 
   lines=""
@@ -56,7 +84,7 @@
 "; }
 
   sentinel_sid=""
-  f="$cwd/.claude/cc-phase.json"
+  f="$root/.claude/cc-phase.json"
   if [ -f "$f" ]; then
     phase=$(jq -r '.phase // empty' "$f" 2>/dev/null)
     owner=$(jq -r '.owner // empty' "$f" 2>/dev/null)
@@ -69,7 +97,7 @@
     fi
   fi
 
-  f="$cwd/.claude/task-runner/active-run.json"
+  f="$root/.claude/task-runner/active-run.json"
   if [ -f "$f" ]; then
     slug=$(jq -r '.slug // empty' "$f" 2>/dev/null)
     branch=$(jq -r '.branch // empty' "$f" 2>/dev/null)
@@ -77,18 +105,18 @@
     add "registered task-runner run${slug:+ \`$slug\`}${branch:+ on branch $branch}${idx:+, cards at $idx} — .claude/task-runner/active-run.json (the completion gate still requires a recorded behavioral-gate pass before this run may stop clean)"
   fi
 
-  f="$cwd/.claude/task-runner/scope.json"
+  f="$root/.claude/task-runner/scope.json"
   [ -f "$f" ] && add "scope lock active — .claude/task-runner/scope.json (edits outside it are warned; the run owns the list)"
 
   names=""
-  for f in "$cwd"/.claude/taskmaster/ledger-*.md; do
+  for f in "$root"/.claude/taskmaster/ledger-*.md; do
     [ -f "$f" ] || continue
     names="${names}${names:+, }${f##*/}"
   done
   [ -n "$names" ] && add "open taskmaster ambiguity ledger(s): $names — .claude/taskmaster/ (grill offers Resume / Start fresh; do not re-ask what a ledger already settled)"
 
   names=""
-  for f in "$cwd"/.claude/taskmaster/goal-ledger-*.md; do
+  for f in "$root"/.claude/taskmaster/goal-ledger-*.md; do
     [ -f "$f" ] || continue
     names="${names}${names:+, }${f##*/}"
   done
@@ -101,7 +129,7 @@
 
   if [ -n "$sentinel_sid" ] && [ -n "$sid" ]; then
     match=false; [ "$sentinel_sid" = "$sid" ] && match=true
-    dir="$cwd/.claude/skill-router"
+    dir="$root/.claude/skill-router"
     mkdir -p "$dir" 2>/dev/null && { [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null; } && printf '{"event":"compact","sentinel_session_matches_payload":%s}\n' "$match" >> "$dir/compact-log.jsonl" 2>/dev/null
   fi
 } 2>/dev/null || exit 0

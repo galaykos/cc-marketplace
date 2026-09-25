@@ -180,6 +180,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_PREVIEW_GUARD` | taskmaster, ui-ux | see hook header |
 | `CC_PROTECT_TESTS` | testing | CC_PROTECT_TESTS=off for the session |
 | `CC_REMIND` | api-design, approaches, code-review, debugging, design-kit, secret-scanning, security, skill-router, task-runner, taskmaster, testing, ui-ux | CC_REMIND=off silences every reminder hook in the marketplace |
+| `CC_REVIEW_NUDGE` | code-review | CC_REVIEW_NUDGE=off silences only this one |
 | `CC_ROUTE` | skill-router | CC_ROUTE=off silences only this check |
 | `CC_SECRET_SCAN` | secret-scanning | see hook header |
 | `CC_SECURITY_SCAN` | security | CC_SECURITY_SCAN=off disables |

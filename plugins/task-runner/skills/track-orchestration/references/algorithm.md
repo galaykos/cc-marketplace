@@ -28,11 +28,9 @@ inherited cwd.
    `⚡ Ultra run — workers model=<marker-model>→<resolved>, effort=<effort>` or
    `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>`.
 
-Read each milestone's normalized `Files:` set. A milestone is **track-eligible** iff its
-file-set is disjoint from every other candidate's, it touches no shared/registry file,
-and its dependency milestones are not blocking. Everything else is a **serial milestone**
-(run by the orchestrator in the main tree, in dependency order). If the index has no
-`Files:` lines, or 0–1 milestone is eligible → warn and fall back to `task-execution`. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+Classify each milestone from its normalized `Files:` set per `eligibility.md` § Verdict;
+the rest are **serial milestones** (orchestrator, main tree, dependency order). No `Files:`
+lines, or 0–1 milestone eligible → warn and fall back to `task-execution`. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## 2. Wave loop (strict dependency waves — fork-join)
 
@@ -59,10 +57,8 @@ Repeat until no eligible milestone remains:
    tier RESOLVED per task-execution/SKILL.md's rule — never the literal `auto`, which is
    not a model. Prompt item 5 below is an informational echo only; it sets nothing.
    **The WORKER is a parameter of the same call:** pass
-   `agentType: 'task-runner:task-executor'`. Omitted, the batch spawns generic workflow
-   subagents and the executor's contract — code shape, the untested-behavior
-   admission, the halt rules — never reaches the tracks, though the prompt does and the
-   run looks identical (`task-execution/references/routing.md` step 5).
+   `agentType: 'task-runner:task-executor'`; omitted, generic workflow subagents run and the
+   executor's contract never reaches the tracks (`task-execution/references/routing.md` step 5).
    A track worker stays `task-executor` rather than a specialist even when its cards
    carry specialist tags: it runs mixed cards INLINE as a leaf (§Dispatch item 4), so
    there is no per-card resolution to bind, and per-card skill priming is what carries
@@ -109,12 +105,8 @@ The prompt to each track-worker contains, in order:
    `--root` with the worktree's absolute path.
 
    **`<abs-main-repo-nc>` is the MAIN repo's `.claude/task-runner/nc`, absolute — never the
-   worktree's.** The completion gate counts nc records under the session's own cwd, and
-   `.claude/` is gitignored, so a record written inside a worktree merges nowhere and is
-   invisible to the gate. Omit these two flags and a tracks run reaches completion with N
-   done cards and zero controls recorded, and the gate refuses the stop — the same
-   blocks-having-done-nothing-wrong failure § Coverage records exists to prevent, arriving
-   through the other record channel.
+   worktree's**: `.claude/` is gitignored, so a worktree-local record merges nowhere and the
+   gate refuses the stop (SKILL.md § Coverage records on this path).
 
 ## Merge (per track, on the orchestrator)
 
@@ -144,21 +136,14 @@ The prompt to each track-worker contains, in order:
    all track branches, and their worktrees; report the failure and point the user at the
    retained branches for bisection.
 
-## Partial failure & timeouts
+## Partial failure, timeouts, cleanup
 
-- A track that does not return by its timeout → `parked(timeout)`; retain its worktree.
-- Any parked track (conflict / undeclared overlap / timeout) → its dependent milestones
-  are blocked; send them to the backlog.
-- Merge the greens and run the final gate on what merged. If the merged set is empty, or
-  a parked root cascaded the whole graph, report the run **failed / no-op** — never a
-  green completion.
-
-## Cleanup ownership (never touch foreign work)
-
-Every remove/delete targets ONLY names matching this run's `<run-branch>-track-*`,
-cross-checked against `git worktree list`. Parked/dirty worktrees are retained (never
-`git worktree remove --force`) so evidence survives. Foreign worktrees under
-`.claude/worktrees/` and any other live run's worktrees are never touched.
+Per SKILL.md § Merge, park, and partial failure and § Preconditions: a timeout →
+`parked(timeout)`, worktree retained; a parked track's dependents are blocked, to the
+backlog; merge the greens and gate what merged; empty merged set or a cascaded root →
+**failed / no-op**, never green. Every remove/delete targets ONLY this
+run's `<run-branch>-track-*` names, cross-checked against `git worktree list`; never
+`git worktree remove --force`.
 
 ## Consumer-repo caveat
 

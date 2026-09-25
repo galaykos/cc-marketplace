@@ -2,7 +2,8 @@
 # Renders the four chassis templates (templates/*.tmpl) with the hand-built sample
 # manifests (templates/samples/*.json) through card 01's template engine and asserts
 # each one's contract: frontmatter fence at line 1, generated header after it,
-# worker-agent carries all six frontmatter fields plus the three-strikes kill-trigger,
+# worker-agent carries all six frontmatter fields plus the three-strikes kill-trigger
+# and renders a host `skills:` line only when the manifest sets `preloadSkills`,
 # suite-uninstall carries its scope discovery and manifest-derived removal set,
 # reminder-hook has shebang line 1 + guards + optional extraGuard, boost-hook gates both
 # branches and behaves, and no {{token}} survives. Engine path overridable via
@@ -67,6 +68,21 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   expect_has "$W" "three strikes" "worker: three-strikes kill-trigger present"
   expect_has "$W" "fails its verify three" "worker: kill-trigger cites 3 failed cycles"
   expect_absent "$W" "Domain checklist" "worker: no restated checklist (skill pointer only)"
+  # preloadSkills (2026-09-25): an optional host `skills:` line, so a plugin agent gets a
+  # skill body injected at spawn without a dispatcher. The frozen sample carries the key
+  # (the 2026-08-25 lesson: generate.sh and this harness must read the same keys), so the
+  # absent arm renders from a copy without it and must differ by that one line only —
+  # that is what keeps every other worker agent byte-identical.
+  pre=$(jq -r '.preloadSkills' "$SAMPLES/worker-agent.json")
+  expect_has "$W" "skills: [$pre]" "worker: preloadSkills renders the host skills: line"
+  WN="$WORK/worker-nopreload.md"
+  jq 'del(.preloadSkills)' "$SAMPLES/worker-agent.json" > "$WORK/worker-nopreload.json"
+  if render "$TPL/worker-agent.md.tmpl" "$WORK/worker-nopreload.json" "$WN"; then
+    if grep -q '^skills:' "$WN"; then fail "worker: no skills: line without preloadSkills" "$(grep -n '^skills:' "$WN")"
+    else pass "worker: no skills: line without preloadSkills"; fi
+    if grep -v '^skills: ' "$W" | diff - "$WN" >/dev/null; then pass "worker: preloadSkills changes that one line only"
+    else fail "worker: preloadSkills changes that one line only" "$(grep -v '^skills: ' "$W" | diff - "$WN" | head -5)"; fi
+  fi
 fi
 
 # ---- suite uninstall ----------------------------------------------------------
@@ -91,7 +107,13 @@ if render "$TPL/reminder-hook.sh.tmpl" "$SAMPLES/reminder-hook.json" "$H"; then
   expect_has "$H" "command -v jq" "hook: jq fail-open guard"
   expect_has "$H" 'case "$prompt" in "" | "/"*) exit 0' "hook: empty + slash guards"
   expect_has "$H" "adspower|local" "hook: regex substituted"
-  expect_absent "$H" " && [ " "hook(plain): no extraGuard when null"
+  # Pinned to the TRIGGER line, not a substring over the whole file: the state-root
+  # block (included since 2026-09-25) legitimately carries a two-test conjunction, so a
+  # file-wide absence check failed on shared code instead of on a leaked extraGuard.
+  re_plain=$(jq -r '.regex' "$SAMPLES/reminder-hook.json")
+  expect_has "$H" "\"\$head\" | grep -qiE '$re_plain'; then" "hook(plain): no extraGuard when null"
+  expect_has "$H" 'cc_state_root() {' "hook: state-root block included (defines cc_state_root)"
+  expect_has "$H" 'sentinel="$root/.claude/cc-phase.json"' "hook: phase sentinel read at the state root, not the payload cwd"
   expect_has "$H" 'CC_REMIND:-on' "hook: CC_REMIND off switch present"
   expect_has "$H" 'cut -c1-400' "hook: head-window narrowing present"
   expect_has "$H" 'task-notification|SYSTEM NOTIFICATION' "hook: machinery guard present"

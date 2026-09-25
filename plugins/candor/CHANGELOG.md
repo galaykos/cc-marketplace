@@ -2,6 +2,46 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.5.0 — 2026-09-25
+
+Why for all three: `rationale/2026-09-25-session-plugin-usage-review.md`, findings 2, 4, 5.
+
+### Changed
+- **The completion gate no longer blocks while workers are in flight.** Clause 4's "no
+  behavioral-gate pass for HEAD" branch prints one line and stands down while this session
+  has a background worker running. It writes no per-HEAD nudge, so the stop after the last
+  hand-back still gets its one block. Measured: one orchestrated run took 47 of these
+  blocks, nearly all while workers were in flight, and each was answered with "No card can
+  start yet…". The gate reads the host's `background_tasks` list when the Stop payload
+  carries it; a live probe on CLI 2.1.282 showed a running background agent listed as
+  `type: "subagent"`. Without that list it reads in-flight records: `hooks/preamble.sh`
+  writes one on every `SubagentStart`, even under `CC_PREAMBLE=off`, and `hooks/gate.sh`
+  deletes it on `SubagentStop`. If the gate blocks a subagent, the subagent keeps running,
+  so the gate restores its record. A record older than 180 minutes is swept and not
+  counted; that is what bounds an agent killed without a `SubagentStop`. Records live under
+  `$TMPDIR`, keyed on the hashed `session_id`. The same probe showed that `SubagentStart`,
+  `SubagentStop` and the parent's `Stop` share one `session_id`. The other clause-4 reasons
+  still block with workers in flight.
+- **`no-behavioral-coverage` can close a run, but only honestly.** Before this, the verdict
+  always blocked, and in one run with ~40 React files and no JS runner the only exit was
+  deleting `active-run.json`. It now passes when
+  `.claude/task-runner/reductions/coverage-bg-<HEAD12>.json` exists and is newer than the
+  run's registration. That file is exactly what task-runner's `scripts/reduction-record.sh
+  --kind coverage --id bg-<HEAD12>` writes. The existing disclosure check then requires
+  `bg-<HEAD12>` in the closing report. The block message for this verdict now names that
+  command. `empty-suite`, `unverifiable-suite` and every other red verdict still block.
+
+### Fixed
+- **State and run records resolve at the project root, not the payload `cwd`.** The payload
+  `cwd` follows the model's `cd`. The gate's own state dir already resolved the git
+  toplevel, but clause 4 read `active-run.json`, `gate-pass.json`, `nc/`, `rv/`, `bg/`,
+  `rt/` and `reductions/` from the raw `cwd`, so a stop taken from a subdirectory found no
+  run and enforced nothing. Clause 5 read `$cwd/package.json` against repo-relative
+  `git status` paths and passed silently. Clause 1 walked only the subdirectory, so a
+  correct repo-relative citation could block as invented. All of them now use the shared
+  `cc_state_root` block (`templates/blocks/state-root.md`). Clause 1 still tries the shell
+  `cwd` first, then the root.
+
 ## 0.4.11 — 2026-09-24
 
 ### Changed

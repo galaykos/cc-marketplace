@@ -35,7 +35,7 @@ plug offender 'sid=$(printf "%s" "$input" | jq -r ".transcript_path // .session_
 marker="$cwd/.claude/x/blocked-$sid-$key"
 : > "$marker"'
 
-# The two shipped hooks that got it right (conventions.sh:59, budget.sh:64).
+# The two shipped hooks that got it right (conventions.sh's `seen=` line, budget.sh:64).
 plug hashed 'sid=$(printf "%s" "$input" | jq -r ".transcript_path // .session_id // empty")
 key=$(printf "%s" "$sid" | cksum | cut -d" " -f1)
 seen="${TMPDIR:-/tmp}/cc-x-$key"

@@ -48,6 +48,37 @@
 # CC_PALETTE=off silences only this one.
 #
 # FAIL-OPEN: missing jq, unreadable file, unwritable state dir, or any error exits 0.
+#
+# STATE AT THE PROJECT ROOT (state-root block below), not the payload cwd. The cwd
+# follows the model's `cd` — measured 2026-09-25 (finding 2,
+# rationale/2026-09-25-session-plugin-usage-review.md): one session's cwd moved through
+# app/Enums, app/Models and the root, so a per-cwd state dir is a new one-shot in every
+# directory and "says so once per session" became once per directory.
+
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
 {
   [ "${CC_REMIND:-}" = "off" ] && exit 0
   [ "${CC_PALETTE:-}" = "off" ] && exit 0
@@ -66,11 +97,12 @@
     *) exit 0 ;;
   esac
 
-  # -d, not just -n: `mkdir -p "$cwd/.claude/ui-ux"` below RECREATES a project directory
-  # the session deleted, three levels deep, from a payload field nobody validated
+  # -d, not just -n: the state-dir `mkdir -p` below RECREATES a project directory the
+  # session deleted, three levels deep, from a payload field nobody validated
   # (overseer/hooks/track-read.sh:30-31 is the shape this copies).
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
+  root=$(cc_state_root "$cwd") || exit 0
 
   # CONTEXT KEY, hashed before it becomes a filename. The key is normally an absolute
   # path; interpolated raw it names a file whose parents never existed, every write fails,
@@ -90,7 +122,7 @@
   hexes=$(grep -ioE '#(6366f1|818cf8|4f46e5|8b5cf6|a78bfa|7c3aed|a855f7|c084fc|9333ea)\b' "$fp" 2>/dev/null | sort -u)
   [ -n "$named$hexes" ] || exit 0
 
-  dir="$cwd/.claude/ui-ux"
+  dir="$root/.claude/ui-ux"
   state="$dir/palette-$ctx"
   # A bound that cannot be recorded is not a bound: unwritable state means silence rather
   # than the same nudge on every edit for the rest of the run.

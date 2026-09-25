@@ -8,6 +8,7 @@
 # mktemp -d workspace; the hook is driven with canned SessionStart stdin JSON and
 # judged on rc + the additionalContext string.
 set -u
+unset CLAUDE_PROJECT_DIR   # the hook's state-root resolver reads it; fixtures must not inherit it
 
 here=$(cd "$(dirname "$0")" && pwd)
 HOOK="$here/../../hooks/announce.sh"
@@ -61,5 +62,17 @@ check "11 CC_REMIND=off is silent" \
 
 out=$(printf 'not json' | bash "$HOOK" 2>/dev/null; echo "rc=$?")
 check "12 malformed payload fails open" "$out" "rc=0"
+
+# 13-15) STATE ROOT (0.41.0). The payload cwd follows the model's `cd`; the run is
+#        registered at the project root. Before, a session opened in a subdirectory
+#        looked for app/Models/.claude/task-runner/active-run.json and said nothing.
+git init -q "$RUN" 2>/dev/null
+mkdir -p "$RUN/app/Models"
+printf '{"slug":"2026-09-22-demo","branch":"feat/orders","index_path":"tasks/demo/00-INDEX.md"}\n' \
+  > "$RUN/.claude/task-runner/active-run.json"
+line=$(fire "$RUN/app/Models")
+has "13 subdirectory cwd: the root's run is announced" "$line" '`2026-09-22-demo`'
+has "14 subdirectory cwd: the root-relative index still resolves" "$line" '2 of 4 cards still open'
+check "15 subdirectory cwd: no .claude/ created there" "$([ -e "$RUN/app/Models/.claude" ] && echo yes)" ""
 
 exit $rc

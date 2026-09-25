@@ -2,6 +2,52 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.20.0 — 2026-09-25
+
+### Added
+- **Files written through Bash route.** `route.sh`'s PostToolUse matcher now includes
+  `Bash`. For a Bash payload, each target the command writes (`>`/`>>`, including
+  `cat > f <<'EOF'`, `tee`, `sed -i`/`perl -i`, from the shared
+  `templates/blocks/bash-write-targets.md` parser) is routed exactly as if it had been
+  Edited: high-confidence path matches go inline, and content matches are read from the
+  file on disk into the pending digest. The one-shot per signal per context and the
+  single envelope per call still hold. At most 8 targets are examined per command, and a
+  target must exist afterwards as a regular file under the project root. Why:
+  in one measured session 233 of 238 main-thread writes were Bash heredocs, and the router
+  routed ONE edit in three weeks of auth, token and HTTP-client work
+  (`rationale/2026-09-25-session-plugin-usage-review.md`, finding 1). Not caught:
+  interpreter writes, `cp`/`mv`/`install` destinations, `{ …; } > f` groups, a path
+  held in a variable.
+  Cost: a Bash call with no write target exits after reading the command, before
+  `rules.tsv` or any state is touched.
+- `scripts/__tests__/route.test.sh`: 38 assertions over real commands in temp git repos.
+  It fails 18 of them against 0.19.0's hooks, and each of three targeted mutations (cap
+  removed, manifests read from cwd, globs matched on the absolute path) fails exactly
+  the case written for it. `compact-capsule.test.sh` gained a subdirectory-cwd case.
+
+### Changed
+- **State lives at the project root, not the payload cwd.** `route.sh`, `route-prompt.sh`
+  (flush), `summary.sh` and `compact-capsule.sh` resolve one root through the shared
+  `cc_state_root` block (`templates/blocks/state-root.md`): the git toplevel, else
+  `CLAUDE_PROJECT_DIR` when the cwd sits under it, else the cwd. The payload cwd follows the
+  model's `cd`. One measured session moved through `app/Enums`, `app/Models` and the repo
+  root, and each directory got its own `.claude/`. The 0.19.0 entry deferred this move
+  because the state file's address is a three-hook contract. All three hooks now move
+  together, and so does the capsule's ledger read. `summary.sh` derives the
+  `surfaced.jsonl` slug from the root, so one project no longer splits into a slug per
+  directory. `turn-cost.sh --skills` globs every slug, so existing rows still count.
+  The `-d "$cwd"` guard is unchanged.
+- **Rules match the root-relative path.** `**/dir/**` globs and `@path` markers see the
+  path relative to the project root. A file written after `cd app/Enums` still matches
+  `**/app/**`, and a checkout that merely lives under a directory named `tests/` or `app/`
+  no longer draws those rows on every file. A file outside the root keeps the payload's
+  spelling, as before.
+- **Stack-marker manifests are read at the project root**, not the payload cwd. Trade,
+  stated: a session started inside a monorepo workspace used to read that workspace's
+  `package.json`, and now reads the repo root's. Walking up from the file to the nearest
+  manifest was considered and rejected. A Laravel app's per-module `composer.json` would
+  then suppress the Laravel row on the files it is for.
+
 ## 0.19.0 — 2026-09-22
 
 ### Added

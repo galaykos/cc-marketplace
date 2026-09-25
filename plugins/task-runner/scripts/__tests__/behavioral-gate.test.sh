@@ -613,6 +613,17 @@ iso_gate "$LIVE" --in-place --changed impl.js
 d="--in-place escape with the sentinel present -> covered(0) in cwd"
 { [ "$IRC" = 0 ] && [ -e "$LIVE/ran.marker" ]; } && iso_ok "$d" || iso_bad "$d" "rc=$IRC" "$IOUT"
 
+# I7. STATE ROOT (0.41.0): --in-place from a SUBDIRECTORY writes its verdict record to the
+#     repo root's armed bg dir. Before, it looked for sub/.claude/task-runner/bg, found it
+#     unarmed, and left the root's record (I1's "covered") untouched.
+mkdir -p "$LIVE/docs"
+iso_gate "$LIVE/docs" --in-place --changed notes.md
+d="--in-place from a subdirectory -> verdict recorded at the repo root, no sub/.claude"
+if [ "$IRC" != 0 ]; then iso_bad "$d" "rc=$IRC" "$IOUT"
+elif ! grep -q '"verdict":"no-executable-surface"' "$LIVE/.claude/task-runner/bg/bg-$live_head.json" 2>/dev/null; then iso_bad "$d" "root bg record not rewritten"
+elif [ -e "$LIVE/docs/.claude" ]; then iso_bad "$d" "a .claude/ appeared under docs/"
+else iso_ok "$d"; fi
+
 # ---- tally ----
 printf '\nbehavioral-gate.test: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -17,6 +17,29 @@
 # Fires once per session, on the first work-shaped prompt: a chat-only session
 # pays nothing, and once injected the catalog stays in context for later prompts.
 # Fail-open: any error, or a missing jq, exits silently and never blocks.
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -39,16 +62,21 @@
   # where one must not stay buried. Honest limitation: if the state file is
   # unwritable the flushed flag cannot persist and entries re-surface next
   # prompt — fail-open toward repetition, never toward losing a signal.
-  # CONTEXT KEY — must match route.sh:28-55 exactly, field order included: read
-  # `.transcript_path // .session_id`, then hash. Reading the raw `.session_id` here
-  # named a file route.sh never writes, so this flush found nothing on every prompt
-  # and the whole low-confidence channel was dead. The cksum applies to the fallback
-  # branch too, so no payload shape makes the two spellings coincide.
+  # CONTEXT KEY — must match route.sh's CONTEXT KEY block exactly, field order
+  # included: read `.transcript_path // .session_id`, then hash. Reading the raw
+  # `.session_id` here named a file route.sh never writes, so this flush found nothing
+  # on every prompt and the whole low-confidence channel was dead. The cksum applies to
+  # the fallback branch too, so no payload shape makes the two spellings coincide.
+  # STATE ROOT — the same rule, one level up: route.sh writes under cc_state_root of
+  # ITS payload cwd, so this reads under cc_state_root of this one. Reading the raw cwd
+  # after the model had `cd`-ed would look in a directory the writer never used.
   sid_f=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
   cwd_f=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   ctx_f=$(printf '%s' "$sid_f" | cksum 2>/dev/null | cut -d' ' -f1)
-  if [ -n "$sid_f" ] && [ -n "$cwd_f" ] && [ -n "$ctx_f" ] && [ -r "$cwd_f/.claude/skill-router/fired-$ctx_f.json" ]; then
-    state_f="$cwd_f/.claude/skill-router/fired-$ctx_f.json"
+  root_f=""
+  [ -n "$cwd_f" ] && root_f=$(cc_state_root "$cwd_f")
+  if [ -n "$sid_f" ] && [ -n "$root_f" ] && [ -n "$ctx_f" ] && [ -r "$root_f/.claude/skill-router/fired-$ctx_f.json" ]; then
+    state_f="$root_f/.claude/skill-router/fired-$ctx_f.json"
     digest=$(jq -r '
       [ (.pending_low // [])[] | select(.flushed != true) ]
       | group_by(.skill)
@@ -120,8 +148,8 @@
   # `.session_id` RAW is correct here and is NOT the pc_context_key defect. That gate
   # exists because a subagent shares its parent's session_id, so a one-shot keyed on it
   # dedups the worker against a nudge only the parent saw — but UserPromptSubmit never
-  # fires in a subagent at all (route.sh:23 and testing/hooks/test-shape.sh:90
-  # both state PostToolUse is the only channel that reaches one). There is no second context to starve. The flush block at :46 keys on
+  # fires in a subagent at all (route.sh's CONTEXT KEY block and testing/hooks/test-shape.sh:90
+  # both state PostToolUse is the only channel that reaches one). There is no second context to starve. The flush block above keys on
   # `.transcript_path // .session_id` for a different reason: it READS the state file
   # route.sh writes, so it must spell the key exactly as route.sh does.
   sid=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null)
@@ -130,7 +158,7 @@
   # opposite correct responses: the marker already exists (fired this session —
   # suppress, the whole point), or TMPDIR is not writable so the marker can never
   # exist (suppressing costs the catalog on EVERY prompt of EVERY session, silently).
-  # route.sh:156 states this plugin's doctrine for exactly this case — "an unwritable
+  # route.sh's deliver block states this plugin's doctrine for exactly this case — "an unwritable
   # state dir cannot swallow a nudge the model should have seen" — and delivers before
   # persisting. This is the same rule on the bigger payload. mkdir stays the atomic
   # first attempt; the existence test only runs once it has already failed.

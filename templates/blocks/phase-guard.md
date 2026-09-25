@@ -12,6 +12,17 @@
 # plain-prompt path is the overwhelming case and must not change, so turn-taking
 # engages only once an entry command has actually declared a phase.
 #
+# WHERE IT LIVES: <state root>/.claude/cc-phase.json, the root cc_state_root resolves
+# from the payload cwd. That function comes from the state-root block
+# (templates/blocks/state-root.md), which the reminder template includes just above
+# this one; a hand copy of this guard must paste it too, or the call fails and the
+# guard proceeds as if no sentinel existed. It read `<payload cwd>/.claude/` until
+# 2026-09-25, and the payload cwd follows the model's `cd` (finding 2 of
+# rationale/2026-09-25-session-plugin-usage-review.md): a sentinel written at the root
+# was absent to a hook whose cwd had drifted into a subdirectory, and absent means
+# proceed. taskmaster/scripts/phase-sentinel.sh writes at the same root, so writer and
+# reader agree from any directory of the project.
+#
 # Reader contract, in order:
 #   absent .............. proceed (no sentinel, no turns)
 #   jq missing .......... proceed (fail open, as every hook here does)
@@ -59,11 +70,12 @@
 cc_phase_ttl_min=120
 cc_phase_now=""
 cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = proceed.
-  local sentinel lane want have ssid
+  local sentinel lane want have ssid root
   command -v jq >/dev/null 2>&1 || return 0
   [ -n "${cwd:-}" ] || cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] || return 0
-  sentinel="$cwd/.claude/cc-phase.json"
+  root=$(cc_state_root "$cwd") || return 0
+  sentinel="$root/.claude/cc-phase.json"
   [ -r "$sentinel" ] || return 0
 
   # Stale? mtime, not started_at — no ISO-8601 parsing in portable shell, and the
@@ -77,12 +89,11 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   [ -n "$have" ] || return 0
   cc_phase_now="$have"
 
-  # Nested ifs on purpose, never a conjunction of two bracket tests on one line:
-  # chassis-template-tests.sh's "hook(plain): no extraGuard when null" assertion
-  # treats that shape as a leaked extraGuard and fails the render. Cited by
-  # assertion NAME, not line number — the number went stale once already. Do not
-  # quote the shape in a comment either: the assertion is a substring match over
-  # the rendered file, so describing it reintroduces it.
+  # Nested ifs: a conjunction of two bracket tests here once tripped
+  # chassis-template-tests.sh's "hook(plain): no extraGuard when null" assertion,
+  # then a substring match over the whole rendered file. Since 2026-09-25 it pins the
+  # trigger line instead — the state-root block carries that shape legitimately — so
+  # the nesting is no longer load-bearing. It stays; it reads the same either way.
   ssid=$(jq -r '.session_id // empty' "$sentinel" 2>/dev/null)
   if [ -n "$ssid" ]; then
     if [ -n "${sid:-}" ]; then

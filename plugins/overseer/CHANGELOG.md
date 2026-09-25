@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.4 — 2026-09-25
+
+- `references/acceptance.md`'s list of other plugins' scratch directories names
+  `.claude/code-review/`, the self-ignoring state dir code-review 0.23.0's review-debt nudge
+  writes at the repo root — so an acceptance walk explains it instead of chasing it.
+
 ## 0.5.3 — 2026-09-23
 
 ### Changed

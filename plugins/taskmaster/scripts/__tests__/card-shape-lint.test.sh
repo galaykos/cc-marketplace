@@ -98,6 +98,11 @@ run_case "<agent> outside vocabulary" 2 "agent-vocabulary" \
 run_case "<agent>generic</agent> is in vocabulary" 0 "" \
   "$(printf '%s' "$good" | sed 's|<agent>backend</agent>|<agent>generic</agent>|')"
 
+# --- <walk> (UI cards, task-cards card-shape.md) is optional: present passes, absent
+#     passes (the good card above has none), and it is not counted as a <verify> ---
+run_case "UI card with a <walk> line passes" 0 "" \
+  "$(printf '%s\n' "$good" | awk '{ print } /^<verify>/ { print "<walk surface=\"/invoices\" widths=\"1280,375\">an invoice with a half-cent total: the rounded amount, not truncated, at both widths</walk>" }')"
+
 # --- every finding is reported, not just the first ---
 f="$FX/multi.md"
 printf '%s\n' "$good" | sed -e 's| consumer="04"||' -e 's| line="11"||' > "$f"

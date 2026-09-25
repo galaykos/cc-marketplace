@@ -20,6 +20,11 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open
 
 pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
+# This session exports CLAUDE_PROJECT_DIR (the marketplace repo); cc_state_root would read
+# it for a non-git cwd under it. In-flight records land under TMPDIR — kept in the sandbox.
+unset CLAUDE_PROJECT_DIR
+export TMPDIR="$WS/tmp"; mkdir -p "$TMPDIR"
+PREAMBLE="$ROOT/plugins/candor/hooks/preamble.sh"
 CWD="$WS/proj"; mkdir -p "$CWD/src" "$CWD/deep/nested"
 MARKER="$CWD/.claude/candor/last"
 CLAIMED="$CWD/.claude/candor/blocked"
@@ -346,9 +351,166 @@ if command -v git >/dev/null 2>&1; then
     pass=$((pass+1)); printf 'PASS  clause 5: disarmed for a subagent (no user turn to answer it)\n'
   else fail=$((fail+1)); printf 'FAIL  clause 5 subagent disarm (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
+  # 0.5.0 state root: porcelain paths are repo-relative, so a stop taken from a
+  # subdirectory used to read `sub/package.json`, find nothing and pass silently.
+  mkdir -p "$LW/sub/dir"
+  ( cd "$LW" && printf '{"name":"x","dependencies":{"a":"^1.0.0","d":"^4.0.0"}}\n' > package.json )
+  clear_lock_state
+  err=$(jq -cn --arg cwd "$LW/sub/dir" '{transcript_path:"/nonexistent",cwd:$cwd,stop_hook_active:false}' | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'lockfile did not' && [ ! -e "$LW/sub/dir/.claude" ] && [ -f "$LW/.claude/candor/last" ]; then
+    pass=$((pass+1)); printf 'PASS  clause 5: a stop from a subdirectory reads the manifest at the repo root, state at the root\n'
+  else fail=$((fail+1)); printf 'FAIL  clause 5 from a subdirectory (rc=%s subdir-state=%s stderr=%s)\n' "$rc" "$([ -e "$LW/sub/dir/.claude" ] && echo y || echo n)" "$err"; fi
+
   ( cd "$LW" && git checkout -q -- . )
 else
   printf 'SKIP  clause 5 cases (git not available)\n'
+fi
+
+# ---------------------------------------------------------------------------
+# 0.5.0 — state root, in-flight workers, the no-behavioral-coverage exit.
+# One throwaway repo, driven through the real hooks: preamble.sh writes the in-flight
+# record on SubagentStart, gate.sh removes it on SubagentStop and reads it on Stop.
+# ---------------------------------------------------------------------------
+if command -v git >/dev/null 2>&1; then
+  RR="$WS/run"; mkdir -p "$RR/src/deep"
+  printf 'a\nb\nc\nd\n' > "$RR/src/real.ts"
+  git -C "$RR" init -q && git -C "$RR" config user.email t@t.t && git -C "$RR" config user.name t
+  git -C "$RR" add -A >/dev/null 2>&1 && git -C "$RR" commit -qm init
+  SUBD="$RR/src/deep"
+  RHEAD=$(git -C "$RR" rev-parse HEAD); H12=${RHEAD:0:12}
+  TRD="$RR/.claude/task-runner"; RSENT="$TRD/active-run.json"; RNUDGE="$TRD/gate-nudge"
+  SID="sess-0-5-0"
+  IDIR="$TMPDIR/cc-candor-inflight-$(printf '%s' "$SID" | cksum | cut -d' ' -f1)"
+  rec_of() { printf '%s/%s' "$IDIR" "$(printf '%s' "$1" | cksum | cut -d' ' -f1)"; }
+  RUN_SUB='registered run with no behavioral-gate pass'
+  WAIT_SUB='still in flight'
+
+  # stop_json <cwd> <transcript> [background_tasks-json] — the Stop payload as the host sends it
+  stop_json() {
+    if [ -n "${3:-}" ]; then
+      jq -cn --arg cwd "$1" --arg tp "$2" --arg sid "$SID" --argjson bt "$3" \
+        '{hook_event_name:"Stop",session_id:$sid,transcript_path:$tp,cwd:$cwd,stop_hook_active:false,background_tasks:$bt}'
+    else
+      jq -cn --arg cwd "$1" --arg tp "$2" --arg sid "$SID" \
+        '{hook_event_name:"Stop",session_id:$sid,transcript_path:$tp,cwd:$cwd,stop_hook_active:false}'
+    fi
+  }
+  start_json() { jq -cn --arg cwd "$RR" --arg sid "$SID" --arg a "$1" --arg tp "$WS/rparent.jsonl" \
+    '{hook_event_name:"SubagentStart",session_id:$sid,transcript_path:$tp,cwd:$cwd,agent_id:$a,agent_type:"general-purpose"}'; }
+  substop_json() { jq -cn --arg cwd "$RR" --arg sid "$SID" --arg a "$1" --arg m "$2" --arg tp "$WS/rparent.jsonl" --arg atp "$WS/ragent.jsonl" \
+    '{hook_event_name:"SubagentStop",session_id:$sid,transcript_path:$tp,agent_transcript_path:$atp,cwd:$cwd,agent_id:$a,agent_type:"general-purpose",last_assistant_message:$m,stop_hook_active:false}'; }
+  # run_hook <hook> <json> [env] — sets rc and err
+  run_hook() { err=$(printf '%s' "$2" | env ${3:-} bash "$1" 2>&1 >/dev/null); rc=$?; }
+  verdict_is() { # desc  condition-exit-status
+    if [ "$2" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"
+    else fail=$((fail+1)); printf 'FAIL  %s (rc=%s stderr=%s)\n' "$1" "$rc" "$err"; fi
+  }
+  clear_rr() { rm -rf "$RR/.claude/candor" "$RNUDGE"; }
+
+  CLEAN="$WS/rclean.jsonl"; { user "run the cards"; asst "Waiting on the workers."; } > "$CLEAN"
+  { user "run the cards"; } > "$WS/rparent.jsonl"
+  { user "card 01"; asst "placeholder"; } > "$WS/ragent.jsonl"
+
+  # --- state root: a subdirectory cwd reads and writes at the repo root -----------------
+  T="$WS/rsub1.jsonl"; { user "where"; asst "The guard is at src/real.ts:3."; } > "$T"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$SUBD" "$T")"
+  verdict_is "state root: a repo-relative citation resolves from a subdirectory cwd" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  T="$WS/rsub2.jsonl"; { user "where"; asst "The guard is at src/ghost.ts:3."; } > "$T"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$SUBD" "$T")"
+  verdict_is "state root: a block from a subdirectory writes its marker at the repo root, none in the subdir" \
+    "$([ "$rc" -eq 2 ] && [ -f "$RR/.claude/candor/last" ] && [ ! -e "$SUBD/.claude" ]; echo $?)"
+
+  mkdir -p "$TRD"; printf '{"slug":"t"}' > "$RSENT"; touch -t 200001010000 "$RSENT"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$SUBD" "$CLEAN")"
+  verdict_is "state root: a subdirectory cwd reads the run registered at the repo root" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && [ -r "$RNUDGE" ] && [ ! -e "$SUBD/.claude" ]; echo $?)"
+
+  # --- in-flight workers -----------------------------------------------------------------
+  rm -rf "$IDIR"
+  run_hook "$PREAMBLE" "$(start_json agentA)"
+  verdict_is "in flight: SubagentStart writes a record holding the agent_id" \
+    "$([ "$(cat "$(rec_of agentA)" 2>/dev/null)" = agentA ]; echo $?)"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+  verdict_is "in flight: a fresh record suppresses the no-gate-pass block, prints, writes no nudge" \
+    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB" && ! printf '%s' "$err" | grep -qF "$RUN_SUB" && [ ! -e "$RNUDGE" ]; echo $?)"
+  run_hook "$HOOK" "$(substop_json agentA "Card 01 done; the tests ran green.")"
+  verdict_is "in flight: SubagentStart then SubagentStop leaves no record" \
+    "$([ "$rc" -eq 0 ] && [ -z "$(ls -A "$IDIR" 2>/dev/null)" ]; echo $?)"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+  verdict_is "in flight: after the last hand-back the no-gate-pass block is back" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+
+  run_hook "$PREAMBLE" "$(start_json agentOld)"; touch -t 200001010000 "$(rec_of agentOld)"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+  verdict_is "in flight: an expired record (>180 min) does not suppress the block, and is swept" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && [ ! -e "$(rec_of agentOld)" ]; echo $?)"
+
+  run_hook "$PREAMBLE" "$(start_json agentOff)" "CC_PREAMBLE=off"
+  verdict_is "in flight: CC_PREAMBLE=off silences the text, not the record" \
+    "$([ -z "$(printf '%s' "$err")" ] && [ -f "$(rec_of agentOff)" ]; echo $?)"
+  run_hook "$HOOK" "$(substop_json agentOff "Found it at src/ghost.ts:12.")"
+  verdict_is "in flight: a SubagentStop the gate BLOCKS keeps the record (the agent keeps running)" \
+    "$([ "$rc" -eq 2 ] && [ -f "$(rec_of agentOff)" ]; echo $?)"
+  run_hook "$HOOK" "$(substop_json agentOff "Found it at src/real.ts:3.")"
+  verdict_is "in flight: its clean SubagentStop then removes it" "$([ "$rc" -eq 0 ] && [ ! -e "$(rec_of agentOff)" ]; echo $?)"
+
+  # The host's list, probed on CLI 2.1.282, wins whenever the payload carries it.
+  BT_RUNNING='[{"id":"a176b79786a57ef62","type":"subagent","status":"running","description":"card 02","agent_type":"general-purpose"}]'
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" "$BT_RUNNING")"
+  verdict_is "in flight: background_tasks listing a running subagent suppresses the block with no record" \
+    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB"; echo $?)"
+  run_hook "$PREAMBLE" "$(start_json agentKilled)"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" '[{"id":"b1","type":"shell","status":"running","command":"sleep 9"}]')"
+  verdict_is "in flight: a present background_tasks with no worker outranks a stale record (killed agent)" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+  rm -f "$(rec_of agentKilled)"
+
+  # Only the no-gate-pass branch stands down: a claimed pass short of its records still blocks.
+  mkdir -p "$TRD/bg"
+  printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$RHEAD" > "$TRD/gate-pass.json"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" "$BT_RUNNING")"
+  verdict_is "in flight: a claimed pass with no bg verdict record still blocks" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'left no verdict record'; echo $?)"
+
+  # --- no-behavioral-coverage + a recorded coverage reduction -------------------------------
+  printf '{"head":"%s","verdict":"no-behavioral-coverage"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
+  COVRED="$TRD/reductions/coverage-bg-$H12.json"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+  verdict_is "coverage: no-behavioral-coverage without a reduction blocks and names the reduction command" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "no-behavioral-coverage"' && printf '%s' "$err" | grep -qF "reduction-record.sh --kind coverage --id bg-$H12"; echo $?)"
+  RS="$ROOT/plugins/task-runner/scripts/reduction-record.sh"
+  if [ -r "$RS" ]; then
+    # The real writer, run from a subdirectory: it must land the file this gate reads.
+    ( cd "$SUBD" && bash "$RS" --kind coverage --id "bg-$H12" --reason "no JS runner in this project" ) >/dev/null 2>&1
+  else
+    printf 'SKIP  reduction-record.sh not in this checkout; writing its record shape by hand\n'
+    mkdir -p "$TRD/reductions"
+    printf '{"kind":"coverage","id":"bg-%s","reduced":true,"reason":"no JS runner"}\n' "$H12" > "$COVRED"
+  fi
+  verdict_is "coverage: reduction-record.sh --kind coverage --id bg-<HEAD12> writes the file the gate reads" "$([ -f "$COVRED" ]; echo $?)"
+  T="$WS/rhide.jsonl"; { user "run the cards"; asst "All cards done, gate recorded."; } > "$T"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "coverage: a matching reduction the closing report never names still blocks (disclosure)" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "never names" && printf '%s' "$err" | grep -qF "bg-$H12"; echo $?)"
+  T="$WS/rshow.jsonl"; { user "run the cards"; asst "Cards done. Reduced: bg-$H12 — no JS runner in this project covers the changed React files."; } > "$T"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "coverage: no-behavioral-coverage + matching reduction + report naming it -> allow" \
+    "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  touch -t 199901010000 "$COVRED"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "coverage: a reduction older than the run's registration does not count" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "no-behavioral-coverage"'; echo $?)"
+  touch "$COVRED"
+  printf '{"head":"%s","verdict":"unverifiable-suite"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "coverage: unverifiable-suite plus a coverage reduction still blocks" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "unverifiable-suite"'; echo $?)"
+  printf '{"head":"%s","verdict":"empty-suite"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "coverage: empty-suite plus a coverage reduction still blocks" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "empty-suite"'; echo $?)"
+else
+  printf 'SKIP  0.5.0 state-root / in-flight / coverage cases (git not available)\n'
 fi
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"

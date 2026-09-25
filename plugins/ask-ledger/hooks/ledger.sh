@@ -51,8 +51,19 @@
   # "FAIL") that would become ledger entries the Stop gate then demands lines for
   # (measured 2026-09-22: twelve false names from one notification, two blocked turns).
   # Anchored to the start: a real ask that merely QUOTES a marker mid-sentence is an ask.
+  #
+  # SUBAGENT HAND-BACKS (2026-09-25). A SendMessage report arrives as its own prompt,
+  # `Another Claude session sent a message:` then `<agent-message from="<id>">` then a
+  # `[Subagent hand-back]` frame, and none of those three was on the list. Measured in two
+  # sessions (rationale/2026-09-25-session-plugin-usage-review.md, finding 3): agent ids
+  # (`ac61f13cc0e92d08a`), their fragments (`430c`), `SubagentHandback`, `NOT`,
+  # `PopoverContent` ledgered; the gate blocked 6 turns and 32+ `<id>: as named` lines
+  # reached the user. The opening line and the tag are matched at the start; the frame
+  # marker anywhere, because the harness may put a note above it.
   case "$prompt" in
     '<system-reminder>'*|'<task-notification>'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) exit 0 ;;
+    'Another Claude session sent a message:'*|'<agent-message'*) exit 0 ;;
+    *'[Subagent hand-back]'*) exit 0 ;;
   esac
 
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')

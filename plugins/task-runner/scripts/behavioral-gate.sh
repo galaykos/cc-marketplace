@@ -66,7 +66,10 @@ bg_record() { # bg_record <verdict-label> [runners]
   # checkout so it cannot mutate the tree it is judging, which means $(pwd) here is the
   # temp copy: without the flag the record landed in a directory about to be deleted and
   # the completion gate then blocked an honest run for a pass it had actually earned.
-  bg_dir="${BG_RECORD_DIR:-$(pwd)/.claude/task-runner/bg}"
+  # Without the flag it is anchored at the git toplevel, not $(pwd), like
+  # reduction-record.sh: run from a subdirectory, the gate looked for sub/.claude/…/bg,
+  # found it unarmed, and left no record.
+  bg_dir="${BG_RECORD_DIR:-${live_top:-$(pwd)}/.claude/task-runner/bg}"
   [ -d "$bg_dir" ] && [ -w "$bg_dir" ] || return 0
   command -v git >/dev/null 2>&1 || return 0
   bg_head=$(git rev-parse HEAD 2>/dev/null) || return 0

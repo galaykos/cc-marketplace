@@ -46,6 +46,15 @@
 #     positive costs up to two turns and the third attempt goes through with a warning.
 #     The bound was one until 2026-09-15; a sibling hook denying the same call spent it
 #     without the write ever landing, which cost this guard its only enforcement.
+#   - WRITE|EDIT ONLY: a file written through Bash is out of reach. The deny must judge a
+#     Write's content BEFORE it lands, and a Bash command carries that content inside shell
+#     syntax (a heredoc, `echo >`, `sed -i`) this hook does not parse. Measured 2026-09-25
+#     (rationale/2026-09-25-session-plugin-usage-review.md, finding 1): 233 of 238
+#     main-thread writes in one session were `cat > file <<EOF`, so on the host's bash-first
+#     path this guard is absent. Kept on Write|Edit on purpose in 0.23.0. The warn lane reads
+#     the file on disk and COULD measure a Bash-written file; it stays matched with the deny
+#     lane so both see the same writes — a residual, not a principle.
+#     conventions.sh, which only needs to know that a code file was written, does read Bash.
 #   - A ratio is not a judgment. A file legitimately denser than its siblings (the one
 #     driver full of vendor workarounds) trips this, and that is a false positive the
 #     author should overrule by keeping the comments and moving on — the message says so.
@@ -69,6 +78,31 @@
 #     instead of re-argued.
 #
 # FAIL-OPEN: missing jq/awk, unreadable file, too few siblings, or any error exits 0.
+
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
 {
   command -v jq  >/dev/null 2>&1 || exit 0
   command -v awk >/dev/null 2>&1 || exit 0
@@ -97,13 +131,18 @@
   # nudges only the PARENT ever saw, so the context where most fan-out code is written
   # is the one context this never speaks in. Key on transcript_path first, session_id as fallback.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
-  # `-d` as well as `-n`: a session outlives the directory it started in, and the
-  # `mkdir -p "$dir"` below rebuilt a deleted three-level project tree just to hold this
-  # hook's state. Plain `-d` rather than `git rev-parse --show-toplevel`: the address
-  # `$cwd/.claude/comment-discipline` is SHARED with verbosity.sh, scan.sh and
-  # conventions.sh, and re-rooting one of the four splits a one-shot across two paths.
-  # Does NOT catch a cwd that exists but is the wrong checkout — the payload cannot say.
+  # `-d` as well as `-n`: a session outlives its directories, and the `mkdir -p "$dir"`
+  # below rebuilt a deleted three-level project tree just to hold this hook's state. Then
+  # the state ROOT, not the cwd: the payload cwd is the shell's and follows the model's
+  # `cd` (measured 2026-09-25, rationale/2026-09-25-session-plugin-usage-review.md finding
+  # 2 — app/Enums, app/Models, then the repo root in one session), so `<cwd>/.claude` scattered
+  # one state dir per directory and reset MAX_WARN and the per-file dedup at every `cd`.
+  # The address `<root>/.claude/comment-discipline` is SHARED with verbosity.sh and
+  # scan.sh; all three moved to cc_state_root in one change (0.23.0), because re-rooting
+  # one of them alone splits a bound across two paths. Does NOT catch a cwd that exists
+  # but is the wrong checkout — the payload cannot say.
   [ -n "$cwd" ] && [ -d "$cwd" ] && [ -n "$sid" ] || exit 0
+  root=$(cc_state_root "$cwd") || exit 0
 
   # Same exclusions and extension set as scan.sh, and against the same LOGICAL path
   # (worktree prefix stripped — see hooks/paths.sh): generated, vendored and tooling
@@ -140,13 +179,13 @@
   case "$CEIL" in ''|*[!0-9]*) CEIL=4 ;; esac
   MAX_WARN=3
 
-  dir="$cwd/.claude/comment-discipline"
+  dir="$root/.claude/comment-discipline"
   # Hashed, not raw: `.transcript_path` is an absolute path, so `density-$sid` names a
   # nested file whose parents are never created. Every state write then fails silently,
   # `warned` stays 0, MAX_WARN never engages, the per-file dedup never engages, and the
   # self-output filter below never engages — so a track run raises the sibling median to
   # match its own dense output and certifies the drift it just wrote. Same idiom as
-  # code-review/hooks/conventions.sh:59.
+  # the `seen=` line of hooks/conventions.sh.
   ctx=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0
   state="$dir/density-$ctx"
@@ -286,7 +325,7 @@ EOF
     if command -v git >/dev/null 2>&1; then
       top=$(cd "$rdir" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)
     fi
-    [ -n "$top" ] || top=$(cd "$cwd" 2>/dev/null && pwd -P) || top="$cwd"
+    [ -n "$top" ] || top=$(cd "$root" 2>/dev/null && pwd -P) || top="$root"
 
     sibs=""; n=0; d="$rdir"; depth=1; up=0
     while [ "$up" -lt 4 ]; do

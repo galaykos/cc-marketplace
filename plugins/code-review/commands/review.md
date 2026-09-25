@@ -5,7 +5,7 @@ argument-hint: "[path | PR number | branch | --debt]"
 
 Review the code change in $ARGUMENTS. Resolve scope in this order:
 
-1. If $ARGUMENTS names a path, PR number, or branch — review that.
+1. If $ARGUMENTS names a path, PR number, branch, or commit range (`<sha>..HEAD`) — review that.
 2. Else if staged changes exist (`git diff --cached --stat`) — review staged.
 3. Else review the working tree against the default branch
    (`git diff $(git merge-base HEAD origin/HEAD 2>/dev/null || echo HEAD~1)`).

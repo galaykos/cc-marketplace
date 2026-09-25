@@ -13,7 +13,9 @@ and never by hand —
 `bash ${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh write ship --owner git-workflow:finish --session "<this session id>"`.
 It ships in taskmaster, which may not be installed: if that path does not resolve, try
 `find ~/.claude/plugins/cache -name phase-sentinel.sh`, and only if that misses too
-write the JSON yourself —
+write the JSON yourself, at the repo root (`git rev-parse --show-toplevel`; outside git,
+the project directory), never under a subdirectory the shell has `cd`'d into — the
+readers look only at the root —
 `{"phase":"ship","owner":"git-workflow:finish","session_id":"<this session id>","started_at":"<ISO-8601 UTC>"}`
 — spelling `ship` exactly, because the script exists to catch the typo that makes a
 sentinel read to every hook as no sentinel at all. The sentinel is what makes

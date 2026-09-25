@@ -802,7 +802,7 @@ ctx_gap=$(pc_context_key plugins) || true
 # bound it claims to keep. pc_context_key cannot see the difference — both hooks mention
 # transcript_path. This is the half that can.
 marker_gap=$(pc_marker_key plugins) || true
-[ -n "$marker_gap" ] && lane_err "$marker_gap" "a context key reaching a filesystem path must be hashed first (cksum/shasum, as in code-review/hooks/conventions.sh:59) — or carry '# marker-key-ok: <why>'"
+[ -n "$marker_gap" ] && lane_err "$marker_gap" "a context key reaching a filesystem path must be hashed first (cksum/shasum, as the `seen=` line in code-review/hooks/conventions.sh does) — or carry '# marker-key-ok: <why>'"
 
 # A SKILL that names a reference as SOURCE OF TRUTH for its figures must not carry
 # a figure that reference lacks. Converts a mirror the skill itself declared
@@ -871,6 +871,18 @@ shebang_gap=$(pc_hook_shebang plugins) || true
 # cannot see (a cwd that exists but is not this project) is in pc_cwd_validated's header.
 cwdval_gap=$(pc_cwd_validated plugins) || true
 [ -n "$cwdval_gap" ] && lane_err "$cwdval_gap" "a hook mkdir -p's a path built from the payload cwd with nothing proving that directory still exists — add [ -d \"\$cwd\" ] (or a test on a path inside it) before the write, or carry '# cwd-mkdir-ok: <why>'"
+
+# A hook may not build state from `$cwd/.claude`: the payload cwd follows the model's
+# `cd`, so per-project state split into one `.claude/` dir per subdirectory, one-shots
+# re-fired, and task-runner's scope-lock read an empty directory (2026-09-25 session
+# review, finding 2). State goes through the shared cc_state_root block. FAIL tier.
+stroot_gap=$(pc_state_root plugins) || true
+[ -n "$stroot_gap" ] && lane_err "$stroot_gap" "a hook builds a path from \$cwd/.claude — the payload cwd follows the model's cd; resolve root=\$(cc_state_root \"\$cwd\") (paste templates/blocks/state-root.md) and use \$root/.claude, or carry '# state-root-ok: <why this state is per-directory>'"
+
+# A hook that defines a shared-block helper must carry the block byte-for-byte: plugins
+# install alone, so the helper is copied, and an edited copy is a fix the others never got.
+shblk_gap=$(pc_shared_blocks plugins templates/blocks) || true
+[ -n "$shblk_gap" ] && lane_err "$shblk_gap" "a copy of a shared block differs from templates/blocks/<name>.md — paste the block file unchanged; change the block itself (and every copy) if the helper must change"
 
 # The person who needs to know a guard has an off switch is the person it just refused.
 # WARN TIER THIS RUN — five hooks in four plugins fail it the moment it ships, and they

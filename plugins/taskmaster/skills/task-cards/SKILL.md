@@ -99,6 +99,14 @@ files span >1 domain. `<contract>` only when the spec has that binding section.
 - `<verify>` is ONE line, an exact command with **teeth**: a named assertion that fails if the
   feature is absent — verify-teeth blocks compile/existence/require-only, `|| true`, bare "suite passes".
 
+## UI cards
+
+- Spec has UI → the FIRST UI card builds the sign-in and seeders its Walk access row settled
+  (grill `references/visual-contract.md`); later UI cards depend on it. Already in the repo → no card.
+- Each UI card carries one `<walk>` line (surface, 1280/375, state) for the group-close walk:
+  `references/card-shape.md`. A `<verify>` of types/lint/grep alone draws a `ui-static-only` WARN;
+  name a component or browser test when the repo has a runner.
+
 ## Ordering and parallelism
 
 - Topologically order by `<depends-on>`; number cards in that order.
@@ -157,11 +165,9 @@ Once `00-INDEX.md` is written, before the task-runner handoff, in order:
 1. **Verify coverage.** Invoke coverage-check: it cross-checks success criteria ↔ cards
    both ways, blocks on any gap/orphan/drift, and writes `## Coverage` into `00-INDEX.md`.
 2. **Lint each card.** All four live in `${CLAUDE_PLUGIN_ROOT}/scripts/` — a bare name
-   resolves nowhere in the user's project. Per card run `card-shape-lint.sh --card <file>`
-   (blocks a missing section, a `<file>` without `mode`/`line`, a `<must-not>` without
-   `reason`, an `<interface>` without `consumer`, a `<verify>` count other than one),
-   `verify-teeth-lint.sh --card <file>` (blocks a weak `<verify>`) and
-   `skills-stamp-lint.sh --card <file>` (blocks a framework card stamped "none").
+   resolves nowhere in the user's project. Per card run `card-shape-lint.sh`,
+   `verify-teeth-lint.sh` and `skills-stamp-lint.sh`, each `--card <file>`; what each
+   blocks is a gate row in `references/card-shape.md`.
    Plus `spec-ledger-lint.sh --spec <spec>` once — an unconverged spec (open UNKNOWN, missing/empty ledger) never becomes cards; route holes back to grill.
 3. **Suggest a project skill.** If a `project-skill-suggester` skill is available (the
    marketplace repository keeps one under `.claude/skills/`), it scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill);

@@ -2,6 +2,19 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.2.2 — 2026-09-25
+
+### Fixed
+- **`hooks/ledger.sh` no longer ledgers a subagent's hand-back.** A SendMessage report
+  arrives as a prompt opening `Another Claude session sent a message:` /
+  `<agent-message from="…">` with a `[Subagent hand-back]` frame, and the skip list held
+  only `<task-notification>`, `<system-reminder>`, `[SYSTEM NOTIFICATION` and
+  `Stop hook feedback:`. In two measured sessions agent ids, their fragments,
+  `SubagentHandback`, `NOT` and `PopoverContent` became "things the user asked for"; the
+  Stop gate blocked 6 turns and 32+ `<id>: as named` lines reached the user
+  (`rationale/2026-09-25-session-plugin-usage-review.md`, finding 3). Three harness cases
+  (13b-13d) pin it; each fails against 0.2.1 with the session's own false names.
+
 ## 0.2.1 — 2026-09-22
 
 ### Changed

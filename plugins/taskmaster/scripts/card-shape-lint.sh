@@ -35,7 +35,8 @@
 # behaviour rather than the diff, whether a reason="…" is true, whether the
 # <change> is the right change. Those stay agent-graded in task-cards. It also does
 # not grade the <verify> text — that is verify-teeth-lint.sh — nor the <skill>
-# names against the touched files — that is skills-stamp-lint.sh.
+# names against the touched files — that is skills-stamp-lint.sh. A UI card's
+# <walk> line is optional and unchecked: present or absent, no finding.
 #
 # LEGACY SHAPE. A card with no <card> wrapper but a **Verify:** line is the bold-label
 # shape task-cards emitted before taskmaster 0.45.0. It passes with a NOTE on stderr

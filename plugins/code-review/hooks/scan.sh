@@ -32,7 +32,41 @@
 # edit` marker in the first five added lines) are exempt, as are the paths and extensions
 # already excluded below.
 #
+# WRITE|EDIT ONLY — a file written through Bash is out of reach, stated rather than hidden.
+# Both lanes read the ADDED text from `tool_input` (content / new_string / edits); a Bash
+# command carries its file content inside shell syntax (a heredoc, `echo >`, `sed -i`), and
+# the deny lane must judge that content before it lands. Measured 2026-09-25
+# (rationale/2026-09-25-session-plugin-usage-review.md, finding 1): 233 of 238 main-thread
+# writes in one session were `cat > file <<EOF`, so on the host's bash-first path this
+# guard never ran. Left on Write|Edit on purpose in 0.23.0; conventions.sh, which only needs
+# to know that a code file was written, reads Bash writes through cc_bash_write_targets.
+#
 # Fail-open throughout: a missing jq/awk, or any error, exits 0 and denies nothing.
+
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
 {
   command -v jq  >/dev/null 2>&1 || exit 0
   command -v awk >/dev/null 2>&1 || exit 0
@@ -351,7 +385,7 @@
   # a session id, a cwd, a hashable path, and a marker that actually landed on disk —
   # is checked BEFORE the deny is emitted, and any one of them missing withholds the
   # deny entirely. An earlier revision wrote the marker with `2>/dev/null` and ignored
-  # the result, which meant a read-only `$cwd/.claude` (sealed root when cwd was
+  # the result, which meant a read-only `.claude` state dir (sealed root when cwd was
   # absent, a 555 checkout, a container mount) produced a deny on every attempt with
   # nothing recording that it had fired: precisely the unwedgeable loop this comment
   # promised could not happen. Blocking is only defensible while it is bounded, so a
@@ -368,26 +402,31 @@
   # is the one context this never speaks in. Pattern and rationale: hooks/conventions.sh (context-key one-shot).
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
   [ -n "$sid" ] || exit 0                     # cannot bound the deny → do not block
-  # `-d` as well as `-n`: a payload cwd is where the session STARTED, and a deleted project
-  # dir came back three levels deep holding only `mkdir -p "$cwd/.claude/comment-discipline"`
-  # below. A cwd that is gone is also nowhere to record the bound, so it withholds the deny
-  # on the same rule as the rest of this block. Plain `-d`, not `git rev-parse
-  # --show-toplevel`: this address is SHARED with density.sh, verbosity.sh and
-  # conventions.sh, and re-rooting one of four splits the one-shot. Does NOT catch a cwd
-  # that exists but belongs to another checkout.
+  # `-d` as well as `-n`: a deleted project dir came back three levels deep holding only
+  # the `mkdir -p` of this hook's state dir below. A cwd that is gone is also nowhere to
+  # record the bound, so it withholds the deny on the same rule as the rest of this block.
+  # Then the state ROOT, not the cwd. This comment said the payload cwd was "where the
+  # session STARTED"; it is the shell's cwd and follows the model's `cd` (measured
+  # 2026-09-25, rationale/2026-09-25-session-plugin-usage-review.md finding 2: app/Enums,
+  # app/Models, then the repo root in one session). Under `<cwd>/.claude` every `cd` handed
+  # each file a fresh DENY_CAP (scripts/__tests__/cwd-guard.test.sh replays it). The address `<root>/.claude/comment-discipline` is SHARED
+  # with density.sh and verbosity.sh; all three moved to cc_state_root in one change
+  # (0.23.0), because re-rooting one alone splits the bound. Does NOT catch a cwd that
+  # exists but belongs to another checkout.
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0    # no cwd, or a cwd that is gone → nowhere to record the bound
+  root=$(cc_state_root "$cwd") || exit 0
   key=$(printf '%s' "$fp" | (command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
   [ -n "$key" ] || exit 0
   # THE KEY IS A PATH, SO IT MUST BE HASHED BEFORE IT CAN BE A FILENAME. `.transcript_path`
   # is an absolute path; interpolating it raw builds `…/blocked-/Users/…/x.jsonl-<key>`,
-  # whose parents `mkdir -p "$cwd/.claude/comment-discipline"` never creates. Every write
+  # whose parents `mkdir -p "<root>/.claude/comment-discipline"` never creates. Every write
   # then fails, the withhold below fires, and the deny is silently absent on every edit of
   # every file — the tooth reads as present in this file and is gone in every real session.
-  # Hashed with the same cksum idiom as code-review/hooks/conventions.sh:59 and
-  # hooks/conventions.sh, which got this right.
+  # Hashed with the same cksum idiom as hooks/conventions.sh (its `seen=` line), which got
+  # this right.
   ctx=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0
-  marker="$cwd/.claude/comment-discipline/blocked-$ctx-$key"
+  marker="$root/.claude/comment-discipline/blocked-$ctx-$key"
   # BOUNDED RETRIES, not a one-shot. The bound is spent when this hook DENIES, but a
   # deny does not mean the write landed: any sibling PreToolUse hook denying the same
   # call (testing:protect-tests, secret-scanning/scan, command-guard, …) blocks it too,
@@ -407,10 +446,10 @@
   i=1
   while [ "$i" -le "$DENY_CAP" ]; do [ -d "$marker.d$i" ] && tries=$i; i=$((i + 1)); done
   [ "$tries" -ge "$DENY_CAP" ] && exit 0
-  mkdir -p "$cwd/.claude/comment-discipline" 2>/dev/null || exit 0
+  mkdir -p "$root/.claude/comment-discipline" 2>/dev/null || exit 0
   # The state dir ignores itself (0.18.3): a marker per denied file showed up as
   # untracked in every repo without a hand-written ignore line.
-  [ -e "$cwd/.claude/comment-discipline/.gitignore" ] || printf '*\n' > "$cwd/.claude/comment-discipline/.gitignore" 2>/dev/null
+  [ -e "$root/.claude/comment-discipline/.gitignore" ] || printf '*\n' > "$root/.claude/comment-discipline/.gitignore" 2>/dev/null
   mkdir "$marker.d$((tries + 1))" 2>/dev/null || exit 0   # lost the race → a sibling instance denied
   # RESIDUAL, stated rather than hidden: the bound is spent when this hook DENIES, and a
   # deny does not prove the write landed. Two co-firing siblings can still exhaust both

@@ -11,6 +11,7 @@
 # The silence cases carry equal weight. An advisory that fires on a deliberate palette is
 # noise, and a reader who learns to skip it has lost the signal too.
 set -u
+unset CLAUDE_PROJECT_DIR   # a live session exports it; the state root would resolve there
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HOOK="$ROOT/hooks/palette-default.sh"
 [ -f "$HOOK" ] || { echo "FAIL: hook not found at $HOOK"; exit 2; }
@@ -106,6 +107,19 @@ gone="$(mktemp -d "$TMP/gone.XXXXXX")"; rm -rf "$gone"
 out=$(fire "$TMP/views/login.blade.php" "$gone")
 if [ -z "$out" ] && [ ! -e "$gone" ]; then pass "a deleted cwd is neither used nor recreated"
 else fail "a deleted cwd is neither used nor recreated" "output='${out:0:40}' exists=$([ -e "$gone" ] && echo yes || echo no)"; fi
+
+# ---- 9. SUBDIRECTORY cwd: one nudge per session, not per directory ---------------------
+# The payload cwd follows the model's `cd` (measured 2026-09-25, finding 2 of
+# rationale/2026-09-25-session-plugin-usage-review.md). State must land at the repo root,
+# never under the subdirectory, and a later edit from the root must see the same one-shot.
+repo="$(mktemp -d "$TMP/repo.XXXXXX")"; mkdir -p "$repo/app/Models"; git -C "$repo" init -q
+a=$(fire "$TMP/views/login.blade.php" "$repo/app/Models")
+b=$(fire "$TMP/src/Hero.tsx" "$repo")
+if [ -n "$a" ] && [ -z "$b" ]; then pass "one nudge across a cd from app/Models to the root"
+else fail "one nudge across a cd from app/Models to the root" "first='${a:0:30}' second='${b:0:30}'"; fi
+if [ -n "$(find "$repo/.claude/ui-ux" -name 'palette-*' -type f 2>/dev/null)" ] && [ ! -e "$repo/app/Models/.claude" ]
+then pass "state lands at the repo root, none under the subdirectory"
+else fail "state lands at the repo root, none under the subdirectory" "root=$(ls "$repo/.claude/ui-ux" 2>&1 | tr '\n' ' ') sub=$([ -e "$repo/app/Models/.claude" ] && echo present || echo absent)"; fi
 
 printf '\n'
 [ "$rc" -eq 0 ] && printf 'palette-default.test: all cases passed\n' || printf 'palette-default.test: FAILURES above\n'

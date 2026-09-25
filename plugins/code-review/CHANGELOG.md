@@ -3,6 +3,36 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.23.0 — 2026-09-25
+
+### Added
+- **A review-debt nudge (`hooks/review-debt.sh`, advisory).** On a user prompt in a git
+  repo, when the diff since this session's last review (or its first prompt) reaches 8
+  code files, or touches one auth-surface path, the model gets one line: the count, up to
+  three such paths, `/code-review:review <base>..HEAD`, "or say in one line why not", and
+  the off switch. It fires at most once per commit and again only when the count grows. A
+  reviewer agent, a `code-review:review` / `security:review` call or a typed review command
+  resets the count, and it is silent under a task-runner run. `CC_REVIEW_NUDGE=off` turns
+  it off. Why: one measured inline session shipped about 40 items (auth guard,
+  impersonation, API tokens) with zero reviews, while a sibling session's reviewers caught
+  bugs that tests had passed.
+- **`conventions.sh` sees files written through Bash.** It matched Write/Edit only, and in
+  one measured session 233 of 238 writes were `cat > file <<EOF`. It now also fires when a
+  Bash command writes an existing code file under the project root. The one-shot is
+  unchanged.
+
+### Fixed
+- **Hook state lives at the project root, not the shell's cwd.** `verbosity.sh`,
+  `density.sh` and `scan.sh` kept state under the payload `cwd`. The hook headers said
+  that was the directory the session started in, but it follows the model's `cd`. In one
+  measured session the "shown once per session" verbosity warning fired three times and a
+  `.claude/` directory was left in each subdirectory. `scripts/__tests__/cwd-guard.test.sh`
+  now replays that walk, and against the old hooks it also shows each `cd` giving a file a
+  fresh deny budget. All three hooks moved together to `.claude/comment-discipline/` at the git
+  toplevel (else `CLAUDE_PROJECT_DIR`), and `conventions.sh` reads configs there. Any
+  `.claude/comment-discipline/` directories already left in subdirectories are yours to
+  delete. Nothing reads them any more.
+
 ## 0.22.2 — 2026-09-23
 
 ### Changed

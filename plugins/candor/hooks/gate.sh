@@ -13,7 +13,7 @@
 #
 #   CLAUSE 1 — FABRICATED CITATION. The final assistant message contains a
 #   `path/to/file.ext:NNN` reference that does not resolve: no such file under
-#   cwd, or the file has fewer lines than the number cited. A file:line citation
+#   cwd or the state root, or the file has fewer lines than the number cited. A file:line citation
 #   asserts "I read this"; when it resolves to nothing, that assertion is false
 #   and a script can prove it.
 #
@@ -31,12 +31,14 @@
 #   The escape is honesty: prose naming what is unverified passes.
 #
 #   CLAUSE 4 — REGISTERED RUN NOT COMPLETE (was task-runner's completion-gate).
-#   A task-runner run REGISTERED itself ($cwd/.claude/task-runner/active-run.json)
-#   and is stopping without a recorded behavioral-gate pass for the current HEAD,
-#   with cards neither done nor parked, with per-card negative-control or
-#   reviewer records short, with a red-team panel short on a boosted run, or
-#   with a recorded reduction its closing report never names. Dormant outside a
-#   registered run, on another branch, and without git — exactly as before.
+#   A task-runner run REGISTERED itself (<root>/.claude/task-runner/active-run.json,
+#   <root> per STATE ROOT below) and is stopping without a recorded behavioral-gate
+#   pass for the current HEAD, with cards neither done nor parked, with per-card
+#   negative-control or reviewer records short, with a red-team panel short on a
+#   boosted run, or with a recorded reduction its closing report never names.
+#   Dormant outside a registered run, on another branch, and without git — exactly
+#   as before. The no-gate-pass branch alone also stands down while a worker is in
+#   flight (IN-FLIGHT WORKERS below).
 #
 # WHAT NO OTHER GATE CARRIES (Admission law — .claude/skills/authoring-skills/SKILL.md
 # in the marketplace repository, "The four laws"): this repo's scripts/done-gate.sh
@@ -108,16 +110,95 @@
 # and the first merge (0.3.0) let clause 4's verdict occupy the only slot for the
 # rest of a HEAD — every card of a live run went uncovered for fabricated
 # citations, bare reversals and naked completion claims after its first block.
+#
+# IN-FLIGHT WORKERS (0.5.0). Clause 4's no-gate-pass branch does not block while this
+# session has a background worker running. Measured 2026-09-25
+# (rationale/2026-09-25-session-plugin-usage-review.md, finding 4): 47 completion-gate
+# blocks in one orchestrated run, almost every one while workers were in flight, each
+# answered "No card can start yet…" — a turn that bought nothing, and the pressure the
+# model named ("a hook kept pressing me to close it") before the 2026-09-24 .env
+# overwrite. A worker's hand-back wakes the orchestrator anyway. Two sources:
+#   - The host's `background_tasks` array on the Stop payload, entries of type subagent
+#     or teammate. Probed live on CLI 2.1.282: a Stop taken while a background agent ran
+#     listed {"id":<agent_id>,"type":"subagent","status":"running",…}; the Stop after its
+#     hand-back no longer did. When the array is PRESENT it is authoritative — a worker
+#     killed without a SubagentStop (usage limits killed three in one measured session)
+#     leaves it at once.
+#   - Records, when the array is absent (an older CLI; the hooks reference says it is
+#     present only "when the task registry is reachable"): hooks/preamble.sh writes one
+#     per SubagentStart, this script removes it on SubagentStop and puts it back when it
+#     BLOCKS the subagent, which then keeps running. A record older than 180 minutes is
+#     swept and not counted; the cutoff is what bounds a worker that died silently.
+# The records are keyed on the hashed session_id under $TMPDIR, not under the state root.
+# The same probe showed SubagentStart, SubagentStop and Stop carrying ONE session_id and
+# ONE transcript_path — the parent's. A subagent's cwd need not be the parent's, though
+# (not measured; a worktree-isolated worker is the obvious case), and a state root
+# resolved from it would put its SubagentStop's delete where the parent's Stop never reads.
+# RESIDUAL: on an older CLI a worker running past 180 minutes expires and the gate blocks
+# once per HEAD as before; a session resumed under a new session_id cannot see the old
+# records; background shell tasks and workflows are not workers here. Only the no-gate-
+# pass branch consults any of this: a claimed pass with short nc/rv/bg records, a short
+# red-team panel or an undisclosed reduction still blocks with workers in flight.
+#
+# STATE ROOT (0.5.0). Every state path and project-root read goes through cc_state_root
+# (the shared block below). The payload cwd follows the model's `cd` (finding 2 of the
+# same review). The state dir already anchored at the git toplevel, but clause 4 read
+# active-run.json from the raw cwd — so, by construction, a stop taken from a
+# subdirectory found no registered run and enforced nothing — and clause 5 read the
+# manifest at `$cwd/package.json` against `git status` paths that are repo-relative.
+# Clause 1 still tries a citation against the shell cwd first (a relative path the model
+# just used there), then against the root, and walks the tree from the root.
+
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
 
 input=$(cat)
+
+have_jq=0; command -v jq >/dev/null 2>&1 && have_jq=1
+evt="Stop"; agent_id=""; sid=""
+if [ "$have_jq" = 1 ]; then
+  evt=$(printf '%s' "$input" | jq -r '.hook_event_name // "Stop"' 2>/dev/null)
+  agent_id=$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)
+  sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
+fi
+# IN-FLIGHT bookkeeping runs BEFORE the off switch: it is not enforcement, and a record
+# left behind while the gate was off would hold the no-gate-pass branch silent for up to
+# 180 minutes after it is switched back on. Hashed names — neither id lands raw in a path.
+inflight_dir=""; inflight_rec=""
+[ -n "$sid" ] && inflight_dir="${TMPDIR:-/tmp}/cc-candor-inflight-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
+if [ "$evt" = "SubagentStop" ] && [ -n "$inflight_dir" ] && [ -n "$agent_id" ]; then
+  inflight_rec="$inflight_dir/$(printf '%s' "$agent_id" | cksum | cut -d' ' -f1)"
+  # Only a record that existed is restored if the gate then blocks this subagent (bottom).
+  if [ -f "$inflight_rec" ]; then rm -f "$inflight_rec" 2>/dev/null; else inflight_rec=""; fi
+fi
 
 gate_mode="${CC_CANDOR_GATE:-block}"
 case "$gate_mode" in off) exit 0 ;; esac
 
-command -v jq >/dev/null 2>&1 || { echo "[candor] gate: jq not found — gate not enforced" >&2; exit 0; }
+[ "$have_jq" = 1 ] || { echo "[candor] gate: jq not found — gate not enforced" >&2; exit 0; }
 
 sha_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)
-evt=$(printf '%s' "$input" | jq -r '.hook_event_name // "Stop"' 2>/dev/null)
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 # `-d`, not just `-n`. The payload cwd is a STRING the host supplies and the mkdir that
 # creates the state dir below recreated a project directory the user had just deleted,
@@ -126,9 +207,9 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 # that IS a directory but not this project's still gets a .claude/candor/ — the check
 # proves existence, never identity.
 [ -n "$cwd" ] && [ -d "$cwd" ] || cwd="."
+root=$(cc_state_root "$cwd") || exit 0
 # Per-agent marker suffix: hashed, so the id never lands raw in a path.
 agent_sfx=""
-agent_id=$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)
 [ -n "$agent_id" ] && agent_sfx="-$(printf '%s' "$agent_id" | cksum | cut -d' ' -f1)"
 
 # PER-CLAUSE DISARM. stop_hook_active is SHARED across every Stop hook: the host
@@ -145,11 +226,10 @@ agent_id=$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)
 # every user's `git status` (observed in a live repo, and named as "other plugins'
 # scratch" by overseer's own acceptance protocol), one `git add -A` away from being
 # committed. A directory can ignore itself; a bare file cannot.
-# Anchored at the repo root when there is one, so a stop taken from a subdirectory does
-# not scatter a second .claude/candor/ beside it (pattern: overseer/hooks/track-read.sh).
-state_root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || state_root="$cwd"
-[ -d "$state_root" ] || state_root="$cwd"
-state_dir="$state_root/.claude/candor"
+# Anchored at the state root, so a stop taken from a subdirectory does not scatter a
+# second .claude/candor/ beside it. Until 0.5.0 this line resolved --show-toplevel on its
+# own while every clause-4 read used the raw cwd (STATE ROOT in the header).
+state_dir="$root/.claude/candor"
 claimed="$state_dir/blocked$agent_sfx"
 skip=""
 if [ "$sha_active" = "true" ] && [ -f "$claimed" ]; then
@@ -168,15 +248,34 @@ run_msg=""
 # completion protocol runs behavioral-gate.sh in isolation and records the pass;
 # this only verifies that record exists for the final commit). It never mutates
 # the tree; the nudge marker under .claude/task-runner/ is the only thing written.
+
+# inflight_count — background workers this session is waiting on (IN-FLIGHT WORKERS in
+# the header): the host's background_tasks when the payload carries the array, else the
+# SubagentStart records younger than 180 minutes. Older records are swept here. `-O`: a
+# records dir another user created under a shared /tmp is not evidence.
+inflight_count() {
+  local n
+  n=$(printf '%s' "$input" | jq -r 'if (.background_tasks | type) == "array"
+        then [.background_tasks[] | select(.type == "subagent" or .type == "teammate")] | length
+        else "absent" end' 2>/dev/null)
+  case "$n" in '' | absent | *[!0-9]*) ;; *) printf '%s' "$n"; return 0 ;; esac
+  if [ -n "$inflight_dir" ] && [ -d "$inflight_dir" ] && [ -O "$inflight_dir" ]; then
+    find "$inflight_dir" -type f -mmin +180 -delete 2>/dev/null
+    find "$inflight_dir" -type f ! -mmin +180 2>/dev/null | wc -l | tr -d ' '
+  else
+    printf '0'
+  fi
+}
+
 run_clause() {
-  local sentinel="$cwd/.claude/task-runner/active-run.json"
+  local sentinel="$root/.claude/task-runner/active-run.json"
   [ "$evt" != "SubagentStop" ] || return 0
   case "${TASK_RUNNER_STOP_GATE:-block}" in off) return 0 ;; esac
   [ -r "$sentinel" ] || return 0                     # no registered run → nothing to enforce
   jq empty "$sentinel" 2>/dev/null || { echo "[candor] completion-gate: active-run.json malformed — not enforced" >&2; return 0; }
   command -v git >/dev/null 2>&1 || { echo "[candor] completion-gate: git not found — not enforced" >&2; return 0; }
   local head run_branch cur_branch slug
-  head=$(git -C "$cwd" rev-parse HEAD 2>/dev/null) || { echo "[candor] completion-gate: not a git repo — not enforced" >&2; return 0; }
+  head=$(git -C "$root" rev-parse HEAD 2>/dev/null) || { echo "[candor] completion-gate: not a git repo — not enforced" >&2; return 0; }
 
   # BRANCH GUARD: a sentinel is cleared only on clean completion, so an abandoned run
   # leaves one behind indefinitely. Enforcing it from a different branch would turn a
@@ -184,7 +283,7 @@ run_clause() {
   # on that branch; a sentinel without one (pre-0.17 registration) keeps the old
   # unconditional behaviour.
   run_branch=$(jq -r '.branch // empty' "$sentinel" 2>/dev/null)
-  cur_branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  cur_branch=$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)
   if [ -n "$run_branch" ] && [ -n "$cur_branch" ] && [ "$run_branch" != "$cur_branch" ]; then
     printf '[candor] completion-gate: run registered on branch %s, now on %s — not enforced here.\n' "$run_branch" "$cur_branch" >&2
     printf '  If that run is finished or abandoned, delete .claude/task-runner/active-run.json.\n' >&2
@@ -193,7 +292,7 @@ run_clause() {
   RUN_HEAD="$head"; RUN_SENTINEL="$sentinel"
   slug=$(jq -r '.slug // "the active run"' "$sentinel" 2>/dev/null)
 
-  local gatepass="$cwd/.claude/task-runner/gate-pass.json" v ct cdone cpark
+  local gatepass="$root/.claude/task-runner/gate-pass.json" v ct cdone cpark
   if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" = "$head" ]; then
     # Gate pass recorded for THIS commit. For an index run, run.md also records card
     # counts; when those numeric fields are present, refuse a clean stop while any
@@ -225,7 +324,7 @@ run_clause() {
     # Until 0.3.7 this count was unbounded while its three siblings were not, so a
     # record left in nc/ by a PREVIOUS run (card ids repeat across runs, and the dir
     # is never cleared) satisfied this run's gate for a card that never had a control.
-    local ncdir="$cwd/.claude/task-runner/nc" nc_count
+    local ncdir="$root/.claude/task-runner/nc" nc_count
     if [ "$v" = "complete" ] && [ -d "$ncdir" ]; then
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
       nc_count=$(find "$ncdir" -maxdepth 1 \( -name 'nc-pass-*.json' -o -name 'nc-skip-*.json' \) -newer "$sentinel" 2>/dev/null |
@@ -239,7 +338,7 @@ run_clause() {
     # when it OBSERVES a reviewer dispatch carrying the RV-CARD marker, so the count is
     # not model-authored. Only records newer than THIS registration count (card ids
     # repeat across runs), and distinct ids (rv-seen-01 + rv-skip-01 is one card).
-    local rvdir="$cwd/.claude/task-runner/rv" rv_count
+    local rvdir="$root/.claude/task-runner/rv" rv_count
     if [ "$v" = "complete" ] && [ -d "$rvdir" ]; then
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
       rv_count=$(find "$rvdir" -maxdepth 1 \( -name 'rv-seen-*.json' -o -name 'rv-skip-*.json' -o -name 'rv-exempt-*.json' \) -newer "$sentinel" 2>/dev/null |
@@ -254,7 +353,17 @@ run_clause() {
     # present (created at registration) a complete verdict must be backed by a matching
     # record. `covered` and `no-executable-surface` are BOTH passing verdicts — the
     # second is an honest doc/lint-only change with nothing runnable to prove.
-    local bgdir="$cwd/.claude/task-runner/bg" bgv
+    # `no-behavioral-coverage` passes ONLY beside a recorded coverage reduction for THIS
+    # HEAD — reductions/coverage-bg-<HEAD12>.json, newer than the sentinel, which is the
+    # exact file task-runner's `reduction-record.sh --kind coverage --id bg-<HEAD12>`
+    # writes. Measured 2026-09-25 (same review, finding 5): a run whose ~40 changed React
+    # files had no JS runner in the project reached this verdict and could not close; the
+    # user's only exit was deleting active-run.json, after which nothing blocked at all.
+    # The reduction keeps the gap visible instead: the DISCLOSURE step below strips the
+    # `coverage-` prefix and requires `bg-<HEAD12>` in the closing report. empty-suite,
+    # unverifiable-suite and any other verdict still block — a runner that exists and
+    # proved nothing is not the same gap as no runner at all.
+    local bgdir="$root/.claude/task-runner/bg" bgv covred
     if [ "$v" = "complete" ] && [ -d "$bgdir" ]; then
       if [ ! -r "$bgdir/bg-$head.json" ]; then
         run_msg=$(printf '[candor] completion-gate: %s recorded a gate pass for HEAD %s, but behavioral-gate.sh left no verdict record for it.\n  gate-pass.json is written by hand; bg/bg-<head>.json is written by the gate itself. Run scripts/behavioral-gate.sh against this HEAD, then stop.' "$slug" "${head:0:12}")
@@ -262,6 +371,14 @@ run_clause() {
       fi
       bgv=$(jq -r '.verdict // empty' "$bgdir/bg-$head.json" 2>/dev/null)
       case "$bgv" in covered | no-executable-surface | '') bgv="" ;; esac
+      covred="$root/.claude/task-runner/reductions/coverage-bg-${head:0:12}.json"
+      if [ "$bgv" = "no-behavioral-coverage" ] && [ -f "$covred" ] && [ "$covred" -nt "$sentinel" ]; then
+        bgv=""
+      fi
+      if [ "$bgv" = "no-behavioral-coverage" ]; then
+        run_msg=$(printf '[candor] completion-gate: behavioral-gate.sh reached "no-behavioral-coverage" for HEAD %s, and the run is reporting complete.\n  No test in this project exercises the changed files. Add tests a runner here executes, re-run the gate, then stop — or, if that coverage is out of this run'"'"'s scope, record the gap honestly. From the repo root run task-runner'"'"'s scripts/reduction-record.sh --kind coverage --id bg-%s --reason "<which files no runner covers, and why>", name bg-%s and that reason in the closing report, then stop.' "${head:0:12}" "${head:0:12}" "${head:0:12}")
+        verdict="run"; return 0
+      fi
       if [ -n "$bgv" ]; then
         run_msg=$(printf '[candor] completion-gate: behavioral-gate.sh reached "%s" for HEAD %s, and the run is reporting complete.\n  A run may not close over a red or unverifiable behavioral gate. Fix the coverage, re-run the gate, then stop.' "$bgv" "${head:0:12}")
         verdict="run"; return 0
@@ -272,11 +389,11 @@ run_clause() {
     # inline fallback is legitimate but must be RECORDED (reduction-record.sh --kind
     # redteam). A boosted run that touched no code owes no panel; unknown diff → do
     # not enforce (a missed check costs a check, a false block costs the run).
-    local rtdir="$cwd/.claude/task-runner/rt" idx idxp boosted run_base code_touched lenses critic degraded
+    local rtdir="$root/.claude/task-runner/rt" idx idxp boosted run_base code_touched lenses critic degraded
     if [ "$v" = "complete" ] && [ -d "$rtdir" ]; then
       idx=$(jq -r '.index_path // empty' "$sentinel" 2>/dev/null)
       boosted=0
-      case "$idx" in /*) idxp="$idx" ;; *) idxp="$cwd/$idx" ;; esac
+      case "$idx" in /*) idxp="$idx" ;; *) idxp="$root/$idx" ;; esac
       if [ -n "$idx" ] && [ -r "$idxp" ]; then
         # a Goal: line carrying boost=off (taskmaster goal-lean) is hands-off without the boost
         grep -iE '^[[:space:]]*(Ultra|Goal):[[:space:]]*true' "$idxp" 2>/dev/null | grep -qv 'boost=off' && boosted=1
@@ -284,8 +401,8 @@ run_clause() {
       if [ "$boosted" = 1 ]; then
         run_base=$(jq -r '.base // empty' "$sentinel" 2>/dev/null)
         code_touched=unknown
-        if [ -n "$run_base" ] && git -C "$cwd" rev-parse --verify "$run_base" >/dev/null 2>&1; then
-          if git -C "$cwd" diff --name-only "$run_base..HEAD" 2>/dev/null |
+        if [ -n "$run_base" ] && git -C "$root" rev-parse --verify "$run_base" >/dev/null 2>&1; then
+          if git -C "$root" diff --name-only "$run_base..HEAD" 2>/dev/null |
                grep -qvE '\.(md|txt|json|ya?ml|lock|csv|svg|png|jpe?g|gif)$|^$'; then
             code_touched=yes
           else
@@ -297,7 +414,7 @@ run_clause() {
       if [ "$boosted" = 1 ]; then
         lenses=$(find "$rtdir" -maxdepth 1 -name 'rt-lens-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
         critic=$(find "$rtdir" -maxdepth 1 -name 'rt-critic-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
-        degraded=$(find "$cwd/.claude/task-runner/reductions" -maxdepth 1 -name 'redteam-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
+        degraded=$(find "$root/.claude/task-runner/reductions" -maxdepth 1 -name 'redteam-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
         if [ "$degraded" -eq 0 ] 2>/dev/null && { [ "$lenses" -lt 3 ] || [ "$critic" -lt 1 ]; } 2>/dev/null; then
           run_msg=$(printf '[candor] completion-gate: this is a boosted run, and the code red-team panel is short: %s of 3 refuter lenses, %s of 1 completeness critic.\n  Dispatch the missing refuters (each prompt carries RT-LENS: <lens>, the critic RT-CRITIC: <id>), or record the degraded inline pass with scripts/reduction-record.sh --kind redteam --id <ref> --reason "...". Then stop.' "$lenses" "$critic")
           verdict="run"; return 0
@@ -312,7 +429,7 @@ run_clause() {
     if [ "$v" = "complete" ]; then
       ids=$(find "$rvdir" -maxdepth 1 -name 'rv-skip-*.json' -newer "$sentinel" 2>/dev/null |
               sed -E 's|.*/rv-skip-||; s|\.json$||'
-            find "$cwd/.claude/task-runner/reductions" -maxdepth 1 -name '*.json' -newer "$sentinel" 2>/dev/null |
+            find "$root/.claude/task-runner/reductions" -maxdepth 1 -name '*.json' -newer "$sentinel" 2>/dev/null |
               sed -E 's|.*/[a-z]+-||; s|\.json$||')
       ids=$(printf '%s\n' "$ids" | sed '/^$/d' | sort -u)
       if [ -n "$ids" ]; then
@@ -344,6 +461,15 @@ run_clause() {
   # .env.example .env && php artisan key:generate` ran in the live repo, overwriting the
   # developer's .env and APP_KEY. Urgency belongs to the cards branch; the gate branch
   # has no deadline, and a setup step that fails must stop the sequence.
+  #
+  # Workers in flight → print, do not block, and write no nudge: the one block this HEAD
+  # owes is kept for the stop after the last worker hands back (IN-FLIGHT WORKERS).
+  local waiting
+  waiting=$(inflight_count)
+  if [ "${waiting:-0}" -gt 0 ] 2>/dev/null; then
+    printf '[candor] completion-gate: %s has no behavioral-gate pass for HEAD %s, and %s background worker(s) of this session are still in flight — not blocking.\n  A worker'"'"'s hand-back wakes this session; the gate holds the stop after the last one returns.\n' "$slug" "${head:0:12}" "$waiting" >&2
+    return 0
+  fi
   run_msg=$(printf '[candor] completion-gate: %s is a registered run with no behavioral-gate pass for HEAD %s.
   The run is not complete, so this turn must not end here.
   Cards still to execute -> continue with the next card'"'"'s tool call. Do not name the next card
@@ -383,7 +509,7 @@ if [ "$verdict" = "run" ]; then
   printf '%s\n' "$run_msg" >&2
   printf '  TASK_RUNNER_STOP_GATE=off disables this clause for the session; =warn prints without blocking.\n' >&2
   if [ "$run_mode" = "block" ]; then
-    nudge="$cwd/.claude/task-runner/gate-nudge"
+    nudge="$root/.claude/task-runner/gate-nudge"
     if [ -r "$nudge" ] && [ "$nudge" -nt "$RUN_SENTINEL" ] && [ "$(cat "$nudge" 2>/dev/null)" = "$RUN_HEAD" ]; then
       :                                   # bounded at this HEAD — printed, not blocked
     elif printf '%s' "$RUN_HEAD" > "$nudge" 2>/dev/null; then
@@ -436,7 +562,7 @@ if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ]; then
 
   # _find <predicate…> — one pruned, depth-capped tree walk. Bounded so a Stop hook
   # stays cheap on a large repo.
-  _find() { find "$cwd" -maxdepth 8 \
+  _find() { find "$root" -maxdepth 8 \
     \( -name node_modules -o -name .git -o -name vendor -o -name dist -o -name build -o -name .venv \) -prune \
     -o "$@" -type f -print 2>/dev/null; }
 
@@ -465,7 +591,9 @@ if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ]; then
     case "$p" in
       /*) [ -f "$p" ] && { printf 'FILE %s' "$p"; return 0; } ;;
     esac
+    # The shell cwd first — a relative path the model just used from there — then the root.
     [ -f "$cwd/$p" ] && { printf 'FILE %s' "$cwd/$p"; return 0; }
+    [ -f "$root/$p" ] && { printf 'FILE %s' "$root/$p"; return 0; }
     m=$(_find -path "*/$p" | head -1)
     [ -n "$m" ] && { printf 'FILE %s' "$m"; return 0; }
     b=${p##*/}
@@ -487,7 +615,7 @@ if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ]; then
     r=$(resolve "$path")
     case "$r" in
       MISSING)   misses="$misses
-  - $c — no file named ${path##*/} exists anywhere under $cwd"; continue ;;
+  - $c — no file named ${path##*/} exists anywhere under $root"; continue ;;
       AMBIGUOUS) continue ;;   # path unresolved but the name is real — not decidable
     esac
     file="${r#FILE }"
@@ -658,8 +786,8 @@ fi
 # unchanged and why") could never be taken, and the turn was unblockable. Found by a
 # branch review before merge; clauses 1-3 each carry the same term at :387, :470, :537.
 if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" ] && [ "${CC_LOCKFILE_GATE:-on}" != "off" ]; then
-  if command -v git >/dev/null 2>&1 && git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
-    changed=$(git -C "$cwd" status --porcelain 2>/dev/null | awk '{print $NF}')
+  if command -v git >/dev/null 2>&1 && git -C "$root" rev-parse --git-dir >/dev/null 2>&1; then
+    changed=$(git -C "$root" status --porcelain 2>/dev/null | awk '{print $NF}')
     if [ -n "$changed" ]; then
       lock_detail=""
       # manifest -> the lockfile(s) that satisfy it. First match wins per manifest.
@@ -674,15 +802,15 @@ if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" 
         # heuristic — their dependency sections are line-oriented by construction.
         case "$man" in
           package.json|composer.json)
-            head_deps=$(git -C "$cwd" show "HEAD:$man" 2>/dev/null \
+            head_deps=$(git -C "$root" show "HEAD:$man" 2>/dev/null \
               | jq -cS '{d:(.dependencies//{}),dd:(.devDependencies//{}),p:(.peerDependencies//{}),o:(.optionalDependencies//{}),r:(.require//{}),rd:(."require-dev"//{})}' 2>/dev/null)
-            work_deps=$(jq -cS '{d:(.dependencies//{}),dd:(.devDependencies//{}),p:(.peerDependencies//{}),o:(.optionalDependencies//{}),r:(.require//{}),rd:(."require-dev"//{})}' "$cwd/$man" 2>/dev/null)
+            work_deps=$(jq -cS '{d:(.dependencies//{}),dd:(.devDependencies//{}),p:(.peerDependencies//{}),o:(.optionalDependencies//{}),r:(.require//{}),rd:(."require-dev"//{})}' "$root/$man" 2>/dev/null)
             # Unparseable either side → fall through to the line heuristic rather than
             # silently allowing: a manifest mid-edit is exactly when this matters.
             if [ -n "$head_deps" ] && [ -n "$work_deps" ]; then
               [ "$head_deps" = "$work_deps" ] && continue
             else
-              git -C "$cwd" diff -U0 -- "$man" 2>/dev/null | grep -qE '^[+-].*"(dependencies|devDependencies|peerDependencies|optionalDependencies|require|require-dev)"' || continue
+              git -C "$root" diff -U0 -- "$man" 2>/dev/null | grep -qE '^[+-].*"(dependencies|devDependencies|peerDependencies|optionalDependencies|require|require-dev)"' || continue
             fi
             ;;
           *)
@@ -714,7 +842,7 @@ if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" 
                 dep_re='^[+-]'
                 meta_re='^$' ;;
             esac
-            git -C "$cwd" diff -U0 -- "$man" 2>/dev/null \
+            git -C "$root" diff -U0 -- "$man" 2>/dev/null \
               | grep -E "$dep_re" 2>/dev/null | grep -qvE "$meta_re" || continue
             ;;
         esac
@@ -804,4 +932,8 @@ case "$verdict" in
 esac
 
 [ "$mode" = "block" ] || exit 0
+# A blocked subagent keeps running: put back the in-flight record removed above.
+if [ -n "$inflight_rec" ]; then
+  printf '%s\n' "$agent_id" > "$inflight_rec" 2>/dev/null
+fi
 exit 2

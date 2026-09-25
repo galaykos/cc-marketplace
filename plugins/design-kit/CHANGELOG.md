@@ -2,6 +2,19 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.1 — 2026-09-25
+
+### Fixed
+- **The unread-pick nudge reads the phase sentinel and the board at the project root, not
+  wherever the shell had `cd`'d to.** The hook's payload `cwd` follows the model's `cd`
+  (finding 2 of `rationale/2026-09-25-session-plugin-usage-review.md`, in the marketplace
+  repository), so a `build` phase declared at the root was invisible from `app/Models` and
+  the nudge spoke through it, and a board built at the root went unannounced after a `cd`.
+  It now resolves the git root (outside git, `CLAUDE_PROJECT_DIR` when the cwd is under
+  it) and reads `.claude/cc-phase.json` there; `.design-kit/decisions.jsonl` is read at
+  the root first, then at the cwd — `dk.sh` still writes `.design-kit/` under the shell
+  cwd it ran in. The harness gained the subdirectory-cwd cases.
+
 ## 0.5.0 — 2026-09-22
 
 ### Added

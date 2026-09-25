@@ -64,7 +64,6 @@ Standing: **recorded**. `scripts/validate.sh` checks that every trigger token in
 taskmaster's hook is named in its command preamble; nothing checks that the four tier
 strings agree.
 
-
 ## Residual: no cross-plugin activation guard
 
 `taskmaster`, `task-runner` and `craft-layer` install independently, declare no
@@ -84,13 +83,9 @@ cross-plugin even though a mutual-exclusion guard does not.
 Trigger narrowing is likewise heuristic, not parsing. Each hook drops fenced and
 backticked spans, looks only at the first 200 characters, refuses a negated mention,
 and refuses a banner of its own family echoed back — `ultra-(task|goal|assess|craft)
-ACTIVE`, enumerated rather than `ultra-<anything> ACTIVE`. The enumeration is the fix
-for a live false-negative: the loose form also matched the harness's own vocabulary, so
-"ultracode active — now ultra-task X" and "ultrathink active, ultra-task X" silently
-suppressed the boost the user had just typed. Narrowing converts "any mention anywhere
-fires the boost" into "a mention that reads like an invocation fires it" — an unquoted,
-unnegated quotation in the opening 200 characters still fires, and an invocation past
-200 characters no longer does. The off switch is the reliable control.
+ACTIVE`, enumerated rather than `ultra-<anything> ACTIVE` (why: `rationale/2026-09-25-task-runner-prose-derivations.md`).
+An unquoted, unnegated quotation in the opening 200 characters still fires, and an invocation
+past 200 characters no longer does. The off switch is the reliable control.
 
 Standing: **gated**, narrowly. `scripts/smoke/hook-guard-tests.sh` asserts the four
 boost tokens still fire and that a `ultracode active` / `ultrathink active` preamble no

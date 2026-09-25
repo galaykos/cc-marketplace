@@ -7,9 +7,10 @@ Blocks secrets before they reach disk.
 | Rule | Standing |
 |---|---|
 | A `Write`/`Edit`/`MultiEdit`/`NotebookEdit`, or an MCP `create_new_file`/`apply_patch`, whose new text matches a high-confidence secret pattern | **gate** — PreToolUse `permissionDecision: "deny"`; the write never happens |
+| A `Bash` command that writes a file through a heredoc (`cat > config/aws.php <<'PHP'`, `cat <<EOF \| tee -a f`) or `echo`/`printf` (`echo "K=…" >> .env.example`), whose heredoc body or echo/printf arguments match the same patterns (since 0.9.0) | **gate** — same deny, same patterns, same placeholder escape, naming the file the command writes |
 | The pattern set itself (which shapes count as high-confidence) | **recorded** — `hooks/scan.sh`'s header argues each one; `scripts/__tests__/scan-hook.test.sh` pins the behaviour, nothing pins the coverage |
 | Invisible characters in a file this session wrote or read | **advisory** — `hooks/unicode-scan.sh` is a PostToolUse **warning**; it never blocks, once per file per session |
-| A secret written through a shell heredoc (`cat > .env <<EOF`) | **unenforceable here** — no file-write tool is involved, so no PreToolUse matcher sees it. `command-guard` classifies the command, not its content |
+| A secret reaching a file through Bash any other way — an interpreter (`python open()`, `php file_put_contents`), `cp`/`mv` of a file that already holds one, `sed -i` replacement text, a here-string `<<<`, a `{ echo …; } > f` group, a `printf 'KEY=%s' value` pair the generic assigned-literal rule cannot join (a provider-shaped value still matches alone) — or a live key in a command that writes no file (`curl -H "Authorization: …"`) | **unenforceable here** — the guard reads only heredoc bodies and echo/printf arguments whose pipeline writes a file; `scan.sh`'s header lists each gap. `command-guard` owns destroying a live `.env`, not what enters a file |
 | A secret introduced by an MCP server whose write tool uses key names this hook does not list | **unenforceable** — the extraction in `scan.sh` names the keys it knows (verified against the JetBrains MCP schema, 2026-09-14); a different server writes past it |
 | Secrets already committed before this plugin was installed | **out of scope** — that is `/secret-scanning:scan`, a command you run, not a hook |
 
@@ -29,14 +30,19 @@ off-switch documented only in a changelog is not reachable by the person it exis
 ## What's included
 
 - **PreToolUse hook** (`hooks/scan.sh`) — denies any `Write`/`Edit`/`MultiEdit`/
-  `NotebookEdit`, or an MCP `apply_patch`/`create_new_file`, whose incoming text
-  carries a high-confidence secret (cloud keys, private-key blocks, provider tokens,
+  `NotebookEdit`, an MCP `apply_patch`/`create_new_file`, or (since 0.9.0) a `Bash`
+  command whose heredoc body or `echo`/`printf` arguments land in a file, whose incoming
+  text carries a high-confidence secret (cloud keys, private-key blocks, provider tokens,
   assigned secret literals, a credential embedded in a `postgres://`/`mysql://`/
   `mongodb://`/`redis://`/`amqp://`/`https://` URL, a Slack incoming-webhook URL).
-  Fail-open: any error or a missing `jq` allows the write,
+  The Bash path exists because the host steers file writes through heredocs: in one
+  measured session 233 of the main thread's 238 file writes went through Bash, and this
+  guard saw none of them. Fail-open: any error or a missing `jq` allows the write,
   so the guard never wedges a session. `CC_SECRET_SCAN=off` disables it for a session.
 - **PostToolUse hook** (`hooks/unicode-scan.sh`) — **warns**, never blocks, when a file
-  this session wrote *or read* carries invisible characters: zero-width
+  this session wrote *or read* carries invisible characters — since 0.9.0 including up to
+  8 files per `Bash` command that wrote them (redirect, `tee`, `sed -i`) under the
+  project root: zero-width
   space/joiner/non-joiner, word joiner, soft hyphen, a mid-file BOM, the Unicode tag
   block, and the bidirectional overrides that make source display in an order different
   from the one it executes (the Trojan Source class, CVE-2021-42574), which get their

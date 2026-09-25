@@ -60,12 +60,9 @@ each implement, the registry every variant edits, or a lone batch with no concur
 sibling. No nameable reason → DELEGATE (or BATCH) per the rules above. "Simpler serial"
 is not one; nor is a blanket INLINE across a long run's every level — the shape this catches.
 
-The recommendation names each level's verdict AND a run-level `Dispatch:`
-mechanism (below); it is the Run-now default and, under a `Goal:` marker,
-auto-taken. The default path may delegate disjoint groups/batches, but a
-`workflow-tracks` pick never spawns a worktree fleet without the
-Run-now confirmation or the Goal marker. Present the table, then offer the pick
-(delegate per plan / inline / adjust).
+The recommendation names each level's verdict AND a run-level `Dispatch:` mechanism
+(below); it is the Run-now default and, under a `Goal:` marker, auto-taken. Present the
+table, then offer the pick (delegate per plan / inline / adjust).
 
 ## Batching and dispatch mechanism
 
@@ -134,15 +131,11 @@ The plan is priced once, then reality edits it:
 
 ## Milestone tracks (--tracks)
 
-Beyond the per-level card groups above, check for **milestone-level** concurrency. Read
-each milestone's normalized `Files:` set from the 00-INDEX (see task-cards'
-`references/milestone-file-sets.md`). When **two or more milestones** are
-dependency-independent and file-disjoint and touch no shared/registry file, print a
-`Dispatch: workflow-tracks` recommendation (above). It becomes the Run-now default
-(interactive) or is auto-taken under a `Goal:` marker, and engages only if track
-preconditions hold — never a worktree fleet without that confirmation/marker
-(`references/dispatch-selection.md`). This is coarser than the per-card levels above —
-the unit is a whole milestone, matching the `track-orchestration` skill's eligibility rule.
+Also check **milestone-level** concurrency from each milestone's normalized `Files:` set in
+the 00-INDEX (task-cards' `references/milestone-file-sets.md`) — the unit is a whole
+milestone, per `track-orchestration`'s eligibility rule. It feeds the
+`Dispatch: workflow-tracks` bullet above, which never spawns a worktree fleet without the
+Run-now confirmation or a `Goal:` marker.
 
 ## Boundaries
 

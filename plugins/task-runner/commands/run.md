@@ -141,7 +141,14 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
      the Stop hook reads; `--record-dir` overrides it. The repo suite may be a
      static linter that never executes the new code; the behavioral-gate is what proves
      it ran. A green suite alone does NOT close the run.
-   On BOTH green, record the pass to `.claude/task-runner/gate-pass.json` as ONE JSON
+   - **No runner in the project** — `no-behavioral-coverage` because a changed language
+     has no test runner here at all (React files in a repo with no JS runner) is the one
+     red verdict with a recorded exit: run
+     `bash ${CLAUDE_PLUGIN_ROOT}/scripts/reduction-record.sh --kind coverage --id bg-<first 12 chars of HEAD> --reason "<which files, why no runner>"`
+     for the HEAD the gate ran on, then record the gate pass below as for a green gate.
+     candor's Stop gate accepts that verdict only with that record for that HEAD. Code
+     whose runner exists but has no tests is not this case: write the tests.
+   On BOTH green (or the recorded no-runner exit), record the pass to `.claude/task-runner/gate-pass.json` as ONE JSON
    object — `{"head":"<git rev-parse HEAD>"}` for a plain run; for a taskmaster-index
    run the SAME single object also carries
    `"index_path":"<00-INDEX.md>","cards_total":N,"cards_done":N,"cards_parked":N` from
@@ -153,7 +160,10 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    card unaccounted for, is what the Stop hook exists to catch — the sentinel stays
    until the counts prove completeness), then print the
    completion report table (task / status / verify command / evidence), parked tasks
-   with reasons, and the follow-up backlog. If either gate is RED the run is not
+   with reasons, the follow-up backlog, and every recorded reduction by id and reason —
+   `bg-<HEAD12>` when the no-runner exit was taken. When cards touched UI, the report also carries one Screens table (screen · width · before · after · not observed) per `skills/task-execution/references/ui-walk.md`, whose walk is also the `--evidence` for that no-runner record.
+   If either gate is RED, other than
+   that recorded exit, the run is not
    complete — do not print a done report. A run may not report complete while any card
    is neither done nor parked; the completion gate checks the recorded card counts for
    index runs.

@@ -89,11 +89,17 @@ a heavier style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (
 1:1, 0 for the sibling test only) — a project whose own CLAUDE.md demands a docblock on
 every method gets its first over-ceiling `Write` per file denied until it sets that
 variable; the hook does not read CLAUDE.md. `verbosity.sh` applies the same rule to terminal
-prose. Ledgers and markers live under `.claude/comment-discipline/`. Silence any
+prose. Ledgers and markers live under `.claude/comment-discipline/` at the project root
+(the git toplevel, else `CLAUDE_PROJECT_DIR`) — not in whatever directory the shell has
+`cd`'d into, which scattered one state dir per directory until 0.23.0. Silence any
 advisory with `CC_REMIND=off`; the denies are not advisories and do not honour it —
 they have their own switch, `CC_COMMENT_GUARD=off`, set in the session's `env` and
 named in every refusal so the person being blocked can read the remedy off the block.
 Turning the deny off leaves the warnings on: the two lanes are switched separately.
+Neither comment guard sees a file written through a Bash command (`cat > f <<EOF`,
+`tee`, `sed -i`): the deny judges a write's text before it lands, and Bash carries that
+text inside shell syntax. On a host that writes mostly through Bash, these two hooks are
+largely absent — one measured session made 233 of its 238 main-thread writes that way.
 
 A fourth hook ships outside the comment lane, and this README omitted it until 0.20.0:
 `conventions.sh` fires `PostToolUse` on the first code write of a session and emits the
@@ -101,7 +107,39 @@ PATHS of the files that define this project's conventions (`.editorconfig`, form
 linter configs) plus the CI command that actually invokes them — locations, so the model
 opens them, and deliberately never a digest of their contents. Once per context — keyed
 on the transcript, so a subagent writing code gets its own copy rather than being deduped
-against a nudge only its parent saw. `CC_CONVENTIONS=off` silences just this one.
+against a nudge only its parent saw. Since 0.23.0 it also fires when a Bash command
+writes an existing code file under the project root (a redirect, a heredoc, `tee`,
+`sed -i`/`perl -i`; interpreter writes, `cp`/`mv` and a path held in a variable are not
+parsed), and it reads the configs at the project root rather than the shell's cwd.
+`CC_CONVENTIONS=off` silences just this one.
+
+## Review-debt nudge
+
+`review-debt.sh` speaks up when a session has written a lot of code, or security-relevant
+code, and nobody has reviewed it. It was added after one measured session shipped about 40
+items — a second auth guard, impersonation, API tokens — with zero reviews while its tests
+stayed green, and a sibling session's reviewers caught bugs those tests had passed.
+
+- **What.** One line of context for the model on your next prompt: how many files changed
+  since the last review, up to three auth-surface paths, and the exact command,
+  `/code-review:review <base>..HEAD`, "or say in one line why not". It never blocks and
+  never runs a review itself.
+- **When.** In a git repo, when the diff since this session's last review (or since its
+  first prompt) has 8 or more changed files, or at least one path matching an auth-surface
+  pattern (auth, login, password, token, secret, credential, policy, permission, role,
+  guard, middleware, impersonation, session, oauth, webhook, payment, crypt, `migrations/`).
+  Markdown, lockfiles, `.claude/`, `taskmaster-docs/` and vendor/build dirs don't count.
+  Once per commit: it speaks again only after HEAD moves and the count has grown. A reviewer
+  agent, a `code-review:review` / `security:review` call, or typing one of those commands
+  resets the count. It stays silent during a task-runner run, which has its own reviewers,
+  and the run's changes are not counted afterwards.
+- **Limits.** It checks the diff once per new commit, so uncommitted work alone doesn't
+  trigger it until the next commit. It recognises a review by its name, not by what the
+  review covered.
+- **Off switch.** `CC_REVIEW_NUDGE=off` silences this nudge; `CC_REMIND=off` silences it
+  along with every other advisory.
+- **Standing: advisory.** Nothing enforces the review. Whether a suggested review was worth
+  running is agent-graded.
 
 ## Pairs well with
 

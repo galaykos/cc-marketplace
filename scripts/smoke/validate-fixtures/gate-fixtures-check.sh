@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Fixture harness for the three checks the 2026-09-22 specialist panel added to
+# Fixture harness for the checks the 2026-09-22 specialist panel added to
 # scripts/lib/plugin-checks.sh — pc_cwd_validated (#2), pc_offswitch_named (#5) and
-# pc_version_stamp_tail (#21). Each gets BOTH arms: a planted violation that must be
+# pc_version_stamp_tail (#21) — plus pc_state_root and pc_shared_blocks from the
+# 2026-09-25 session review. Each gets BOTH arms: a planted violation that must be
 # named, and a clean twin that must not be. A check that only ever runs against the live
 # tree proves nothing on the day the tree is clean, which is the day it lands.
 #
@@ -73,6 +74,70 @@ out=$(pc_cwd_validated "$T") || true
 case "$out" in
   *badcwd*) fail "cwd: '# cwd-mkdir-ok:' silences it" "still flagged: $out" ;;
   *) pass "cwd: '# cwd-mkdir-ok:' silences it" ;;
+esac
+
+# ---- pc_state_root (2026-09-25 session review, finding 2) -----------------------
+mkhook rawroot raw.sh <<'SH'
+#!/bin/bash
+input=$(cat)
+cwd=$(printf '%s' "$input" | jq -r '.cwd // empty')
+[ -d "$cwd" ] || exit 0
+mkdir -p "$cwd/.claude/fixture" 2>/dev/null
+exit 0
+SH
+mkhook braceroot brace.sh <<'SH'
+#!/bin/bash
+cwd=$(jq -r '.cwd // empty')
+[ -d "$cwd" ] || exit 0
+f="${cwd}/.claude/task-runner/active-run.json"
+exit 0
+SH
+mkhook okroot resolved.sh <<'SH'
+#!/bin/bash
+# the old shape, discussed in a comment: "$cwd/.claude/fixture" is not code
+cwd=$(jq -r '.cwd // empty')
+root=$(cc_state_root "$cwd") || exit 0
+mkdir -p "$root/.claude/fixture" 2>/dev/null
+exit 0
+SH
+out=$(pc_state_root "$T") || true
+case "$out" in
+  *"state-root-raw rawroot:raw.sh"*) pass "state-root: \$cwd/.claude is named" ;;
+  *) fail "state-root: \$cwd/.claude is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"state-root-raw braceroot:brace.sh"*) pass "state-root: \${cwd}/.claude is named" ;;
+  *) fail "state-root: \${cwd}/.claude is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *okroot*) fail "state-root: cc_state_root + a comment stays clean" "flagged: $out" ;;
+  *) pass "state-root: cc_state_root + a comment stays clean" ;;
+esac
+printf '# state-root-ok: fixture\n' >> "$T/rawroot/hooks/raw.sh"
+out=$(pc_state_root "$T") || true
+case "$out" in
+  *rawroot*) fail "state-root: '# state-root-ok:' silences it" "still flagged: $out" ;;
+  *) pass "state-root: '# state-root-ok:' silences it" ;;
+esac
+
+# ---- pc_shared_blocks ------------------------------------------------------------
+B="$T/_blocks"; mkdir -p "$B" "$T/blk/hooks"
+cp templates/blocks/state-root.md templates/blocks/bash-write-targets.md "$B/"
+{ echo '#!/bin/bash'; cat "$B/state-root.md"; echo 'exit 0'; } > "$T/blk/hooks/good.sh"
+{ echo '#!/bin/bash'; sed 's/return 1$/return 2/' "$B/state-root.md"; echo 'exit 0'; } > "$T/blk/hooks/edited.sh"
+{ echo '#!/bin/bash'; echo 'cc_bash_write_targets() { :; }'; } > "$T/blk/hooks/reimpl.sh"
+out=$(pc_shared_blocks "$T" "$B") || true
+case "$out" in
+  *"blk/hooks/edited.sh state-root.md"*) pass "shared-blocks: an edited copy is named" ;;
+  *) fail "shared-blocks: an edited copy is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/reimpl.sh bash-write-targets.md"*) pass "shared-blocks: a same-name reimplementation is named" ;;
+  *) fail "shared-blocks: a same-name reimplementation is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *good.sh*) fail "shared-blocks: a verbatim copy stays clean" "flagged: $out" ;;
+  *) pass "shared-blocks: a verbatim copy stays clean" ;;
 esac
 
 # ---- pc_offswitch_named --------------------------------------------------------

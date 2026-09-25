@@ -1,9 +1,11 @@
 #!/bin/bash
 # Absolute-path shebang, as mode.sh: fail-open must hold under a stripped PATH.
 #
-# Two events, one job: inject the five working moves BEFORE the first edit. On
+# Two events. The job: inject the five working moves BEFORE the first edit. On
 # UserPromptSubmit, once per session, on the FIRST work-shaped prompt. On SubagentStart,
 # once per agent_id, unconditionally — a spawn is work by construction. ~800 chars.
+# SubagentStart also records the worker as in flight for the Stop gate (IN-FLIGHT RECORD
+# below) — silent bookkeeping, no output of its own.
 #
 # WHY MOVE 1 HAS NO "NOTHING LESS" HALF (0.4.7). 0.4.4 added one — averting part of what
 # the user named is a question before the first edit — after the orchestrating session
@@ -47,14 +49,41 @@
 #   - CC_PREAMBLE=off is the off switch. It does not answer to CC_REMIND: this is not a
 #     tool-routing nudge and claims no rank marker, so on the first work prompt it can
 #     print alongside one reminder line — bounded, once.
+#
+# IN-FLIGHT RECORD (0.5.0) — the second job, bookkeeping for hooks/gate.sh. Every
+# SubagentStart writes ${TMPDIR}/cc-candor-inflight-<hashed session_id>/<hashed agent_id>
+# holding the raw agent_id; gate.sh deletes it on SubagentStop and, on a main-thread Stop
+# with a registered run and no gate pass, does not block while one younger than 180
+# minutes exists and the payload carries no background_tasks array (gate.sh header, IN-
+# FLIGHT WORKERS: 47 blocks in one run landed while workers were in flight). Written
+# BEFORE the CC_PREAMBLE check: switching the text off must not blind the gate. Keyed on
+# session_id, which SubagentStart, SubagentStop and the parent's Stop share (probed on CLI
+# 2.1.282), and kept out of the project tree because a worker's cwd need not be the
+# parent's. Each SubagentStart also sweeps records older than 180 minutes from every
+# session's dir — the only cleanup a worker killed without a SubagentStop gets.
 {
   command -v jq >/dev/null 2>&1 || exit 0
-  [ "${CC_PREAMBLE:-}" = "off" ] && exit 0
 
   input=$(cat)
   event=$(printf '%s' "$input" | jq -r '.hook_event_name // "UserPromptSubmit"' 2>/dev/null) || exit 0
   if [ "$event" = "SubagentStart" ]; then
-    ctx=$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)
+    aid=$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)
+    sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
+    for d in "${TMPDIR:-/tmp}"/cc-candor-inflight-*; do
+      [ -d "$d" ] && [ -O "$d" ] || continue
+      find "$d" -type f -mmin +180 -delete 2>/dev/null
+      rmdir "$d" 2>/dev/null
+    done
+    if [ -n "$aid" ] && [ -n "$sid" ]; then
+      d="${TMPDIR:-/tmp}/cc-candor-inflight-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
+      mkdir -p -m 700 "$d" 2>/dev/null \
+        && printf '%s\n' "$aid" > "$d/$(printf '%s' "$aid" | cksum | cut -d' ' -f1)" 2>/dev/null
+    fi
+  fi
+
+  [ "${CC_PREAMBLE:-}" = "off" ] && exit 0
+  if [ "$event" = "SubagentStart" ]; then
+    ctx="$aid"
   else
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
   [ -n "$prompt" ] || exit 0

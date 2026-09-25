@@ -15,7 +15,8 @@
 # a COMPACTION (matcher `compact`); this covers the cold session, and the two matchers
 # do not overlap, so a project with both installed hears it once.
 #
-# WHAT IT READS, all three pure reads, nothing is written:
+# WHAT IT READS, all three pure reads, nothing is written, from the project root (the
+# state-root block below; a session started in a subdirectory still finds the run):
 #   .claude/task-runner/active-run.json  slug, branch, index_path (run.md step 1)
 #   .claude/cc-phase.json                phase and owner, when a phase is declared
 #   <index_path>                         the card table's status column, for the count
@@ -40,6 +41,30 @@
 #
 # Off switch: CC_REMIND=off (every reminder in this marketplace). Fail-open on missing
 # jq, malformed payload, an unreadable sentinel or an unreadable index.
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
 {
   case "${CC_REMIND:-on}" in off) exit 0 ;; esac
   command -v jq >/dev/null 2>&1 || exit 0
@@ -48,8 +73,9 @@
   case "$src" in startup|resume|clear|'') ;; *) exit 0 ;; esac
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
+  root=$(cc_state_root "$cwd") || exit 0
 
-  sentinel="$cwd/.claude/task-runner/active-run.json"
+  sentinel="$root/.claude/task-runner/active-run.json"
   [ -r "$sentinel" ] || exit 0
   slug=$(jq -r '.slug // empty' "$sentinel" 2>/dev/null) || exit 0
   branch=$(jq -r '.branch // empty' "$sentinel" 2>/dev/null)
@@ -58,7 +84,7 @@
   cards=""
   if [ -n "$index" ]; then
     abs="$index"
-    case "$abs" in /*) ;; *) abs="$cwd/$abs" ;; esac
+    case "$abs" in /*) ;; *) abs="$root/$abs" ;; esac
     if [ -r "$abs" ]; then
       cards=$(awk -F'|' '
         /^[[:space:]]*\|[[:space:]]*[0-9][0-9][[:space:]]*\|/ {
@@ -73,7 +99,7 @@
   fi
 
   phase=""
-  f="$cwd/.claude/cc-phase.json"
+  f="$root/.claude/cc-phase.json"
   if [ -r "$f" ]; then
     p=$(jq -r '.phase // empty' "$f" 2>/dev/null)
     o=$(jq -r '.owner // empty' "$f" 2>/dev/null)
@@ -83,7 +109,7 @@
   # `HEAD` is what rev-parse prints for a detached or unborn head — not a branch name,
   # so it is never compared: a repo with no commits would otherwise be told it is "on
   # HEAD" and the line would look wrong at exactly the moment it should say nothing.
-  here=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  here=$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)
   elsewhere=""
   [ -n "$branch" ] && [ -n "$here" ] && [ "$here" != "HEAD" ] && [ "$branch" != "$here" ] \
     && elsewhere=" (you are on \`$here\`)"

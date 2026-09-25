@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
-# Fixtures for ONE property shared by all three state-writing hooks in this plugin:
-# a payload `cwd` that no longer exists must not be rebuilt.
+# Fixtures for TWO properties shared by the three state-writing hooks in this plugin
+# (verbosity.sh, density.sh, scan.sh), which share one state address.
 #
-# WHY A HARNESS AND NOT A COMMENT. The payload's cwd is where the session STARTED, and a
-# session outlives the directory — `git worktree remove`, `rm -rf`, a branch switch that
-# deletes a generated tree. Each hook then ran `mkdir -p "$cwd/.claude/comment-discipline"`,
-# which recreates every missing parent: a deleted project came back three levels deep in a
-# live repo, holding nothing but hook state. The trend audit named it (H6), the 2026-09-22
-# panel found it still open (AR 1), so the fix ships with the probe that reproduces it.
+# 1. A payload `cwd` that no longer exists must not be rebuilt. A session outlives its
+#    directories — `git worktree remove`, `rm -rf`, a branch switch that deletes a generated
+#    tree — and each hook ran `mkdir -p` on its state dir under that cwd, which recreates
+#    every missing parent: a deleted project came back three levels deep in a live repo,
+#    holding nothing but hook state. The trend audit named it (H6), the 2026-09-22 panel
+#    found it still open (AR 1), so the fix ships with the probe that reproduces it.
+#
+# 2. A payload `cwd` in a SUBDIRECTORY must put state at the project root. The payload cwd
+#    is the shell's cwd and follows the model's `cd` — not "where the session STARTED", as
+#    these hooks' headers said until 0.23.0. Measured 2026-09-25
+#    (rationale/2026-09-25-session-plugin-usage-review.md, finding 2): app/Enums, then
+#    app/Models, then the repo root in one session; verbosity.sh's "once per session"
+#    warning fired three times and each directory kept its own `.claude/`. The cases below
+#    replay that walk and assert one warning, one deny budget, and no subdirectory state.
 #
 # WHAT THIS DOES NOT CATCH: a cwd that exists but is the wrong checkout (a stale session
 # left in a sibling clone). Nothing in the payload distinguishes those, so the state lands
@@ -18,6 +26,10 @@ rc=0
 FX=$(mktemp -d); trap 'rm -rf "$FX"' EXIT
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not found"; exit 0; }
 command -v python3 >/dev/null 2>&1 || { echo "SKIP: python3 not found"; exit 0; }
+# This session exports CLAUDE_PROJECT_DIR (the marketplace repo), and verbosity.sh and
+# density.sh append to a ledger under $HOME once they get far enough — keep both out.
+unset CLAUDE_PROJECT_DIR CC_REMIND CC_COMMENT_GUARD
+export HOME="$FX/home"; mkdir -p "$HOME"
 
 GONE="$FX/work/acme/design-studio"
 
@@ -80,6 +92,66 @@ esac
 [ -d "$FX/live/.claude/comment-discipline" ] \
   && echo "PASS: the bound is still recorded under an existing cwd" \
   || { echo "FAIL: the bound was not recorded under an existing cwd"; rc=1; }
+
+# ---- property 2: a subdirectory cwd writes state at the repo root ---------------------
+command -v git >/dev/null 2>&1 || { echo "SKIP: git not found — subdirectory cases"; exit "$rc"; }
+R="$FX/repo"
+mkdir -p "$R/app/Enums" "$R/app/Models" "$R/src"
+git -C "$R" init -q
+cp "$FX/real/a.ts" "$R/src/a.ts"
+
+# Over verbosity.sh's threshold: 80 assistant records, each 700 chars of text and one tool
+# call, so the cumulative ratio is 700 against a threshold of 600.
+python3 - "$FX/verbose.jsonl" <<'PY'
+import json, sys
+with open(sys.argv[1], "w") as fh:
+    for _ in range(80):
+        fh.write(json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "y" * 700},
+            {"type": "tool_use", "id": "t", "name": "Bash", "input": {}}]}}) + "\n")
+PY
+verbose() { # cwd -> additionalContext
+  jq -nc --arg c "$1" --arg t "$FX/verbose.jsonl" \
+    '{hook_event_name:"PostToolUse",tool_name:"Bash",cwd:$c,session_id:"walk",transcript_path:$t,tool_input:{command:"ls"}}' \
+    | bash plugins/code-review/hooks/verbosity.sh 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
+}
+w1=$(verbose "$R/app/Enums"); w2=$(verbose "$R/app/Models"); w3=$(verbose "$R")
+if [ -n "$w1" ] && [ -z "$w2" ] && [ -z "$w3" ]; then
+  echo "PASS: verbosity.sh warns once across app/Enums → app/Models → root"
+else
+  echo "FAIL: verbosity.sh across three cwds — got [${w1:+warn}] [${w2:+warn}] [${w3:+warn}], want [warn] [] []"; rc=1
+fi
+
+# 60 code lines: past density.sh's size floors, so it records the file in its state.
+for i in $(seq 1 60); do printf 'export const v%s = %s\n' "$i" "$i"; done > "$R/src/big.ts"
+density() { # cwd
+  jq -nc --arg c "$1" --arg f "$R/src/big.ts" --arg t "/t/density-walk.jsonl" \
+    '{hook_event_name:"PostToolUse",tool_name:"Edit",cwd:$c,session_id:"walk",transcript_path:$t,tool_input:{file_path:$f}}' \
+    | bash plugins/code-review/hooks/density.sh >/dev/null 2>&1
+}
+density "$R/app/Enums"
+dstate="$R/.claude/comment-discipline/density-$(printf '%s' /t/density-walk.jsonl | cksum | cut -d' ' -f1)"
+grep -qF "file $R/src/big.ts" "$dstate" 2>/dev/null && echo "PASS: density.sh keeps its state at the repo root" \
+  || { echo "FAIL: density.sh wrote no state at the repo root"; rc=1; }
+
+deny() { # cwd -> 1 when denied
+  python3 - "$1" "$FX/real/a.ts" "$R/src/b.ts" <<'PY' | bash plugins/code-review/hooks/scan.sh 2>/dev/null | grep -c '"permissionDecision":"deny"'
+import json, sys
+print(json.dumps({"hook_event_name": "PreToolUse", "tool_name": "Write", "cwd": sys.argv[1],
+                  "session_id": "walk", "transcript_path": "/t/scan-walk.jsonl",
+                  "tool_input": {"file_path": sys.argv[3], "content": open(sys.argv[2]).read()}}))
+PY
+}
+d1=$(deny "$R/app/Enums"); d2=$(deny "$R/app/Enums"); d3=$(deny "$R/app/Models")
+if [ "$d1" = 1 ] && [ "$d2" = 1 ] && [ "$d3" = 0 ]; then
+  echo "PASS: scan.sh spends ONE deny budget across a cd (2 denies, then through)"
+else
+  echo "FAIL: scan.sh deny budget across a cd — got $d1 $d2 $d3, want 1 1 0"; rc=1
+fi
+
+strays=$(find "$R/app" "$R/src" -name .claude 2>/dev/null)
+[ -z "$strays" ] && echo "PASS: no .claude/ in any subdirectory" \
+  || { echo "FAIL: stray state dirs: $strays"; rc=1; }
 
 printf '\n'
 [ "$rc" -eq 0 ] && echo "cwd-guard.test: all cases passed" || echo "cwd-guard.test: FAILURES above"

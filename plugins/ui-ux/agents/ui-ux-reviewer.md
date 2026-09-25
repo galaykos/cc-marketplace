@@ -4,6 +4,7 @@ description: Use PROACTIVELY after modifying markup or styles ONLY — shadcn/Re
 tools: Read, Grep, Glob
 model: inherit
 effort: xhigh
+skills: [ui-ux:a11y-audit]
 bestpractices-skill: tailwind-best-practices,shadcn-best-practices,motion-best-practices
 ---
 
@@ -23,7 +24,9 @@ Your authoritative checklist is the `tailwind-best-practices,shadcn-best-practic
 
 - Component/view LOGIC (state, effects, data fetching) → the web-dev plugin's
   frontend-reviewer; markup and styles only here.
-- Deep WCAG auditing beyond the basics above → `/ui-ux:audit`; flag, don't audit.
+- `ui-ux:a11y-audit` is preloaded into your context (frontmatter `skills:`, so a
+  dispatch's Read path for it needs no second Read): every rule it lists is flagged in
+  this review, never deferred — `/ui-ux:audit` is for a full WCAG audit beyond that list.
 - Theme token VALUES and palette generation → `/ui-ux:theme`.
 
 ## Checklist before finishing
