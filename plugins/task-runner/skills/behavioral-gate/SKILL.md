@@ -85,8 +85,26 @@ run's live tree.
 | Exit | Meaning | Completion action |
 |------|---------|-------------------|
 | 0 | covered, or honest `no-executable-surface` | gate passes |
-| 2 | `empty-suite` / `no-behavioral-coverage` / `unverifiable-suite` / `entrypoint-error` / `dead-affordance` | block completion |
+| 2 | `empty-suite` / `no-behavioral-coverage` / `unverifiable-suite` / `entrypoint-error` / `dead-affordance` | block completion (one recorded exit, below) |
 | 3 | usage | fix the invocation |
+
+## No runner in the project: the recorded exit
+
+`no-behavioral-coverage` has one exit that is not "write the tests": a changed language has
+**no test runner in the project at all** — React files in a repo with no JS runner, say. A
+measured run with ~40 such files could close only by deleting `active-run.json`. Record it
+instead, against the HEAD the gate ran on:
+
+1. `${CLAUDE_PLUGIN_ROOT}/scripts/reduction-record.sh --kind coverage --id bg-$(git rev-parse HEAD | cut -c1-12) --reason "<which files, why no runner>"`
+   — in an interactive session a PreToolUse hook asks the user before the record exists.
+2. Write the gate pass to `gate-pass.json` as for a green gate.
+3. Name `bg-<HEAD12>` and its reason in the closing report.
+
+candor's completion gate accepts `no-behavioral-coverage` only with that record for that
+HEAD. It is a disclosed reduction, not a pass: the new code never ran. A project that HAS
+a runner, and changed code with no tests for it, is not this case — write the tests, or
+declare `--runner`. Standing: gate (with candor installed) for the record; the reason is
+model-authored and unchecked.
 
 ## Worked example
 

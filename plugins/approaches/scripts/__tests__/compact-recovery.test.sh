@@ -14,6 +14,7 @@
 # a deliberation that did not happen is worse than saying nothing: it would tell the
 # model to skip a deliberation it actually owes.
 set -u
+unset CLAUDE_PROJECT_DIR   # a live session exports it; the state root would resolve there
 cd "$(dirname "$0")/../../../.." || exit 1
 H=plugins/approaches/hooks/compact-recovery.sh
 rc=0
@@ -95,5 +96,18 @@ case "$out" in
   *widget-rewrite*) echo "PASS: a 60-minute-old marker is still inside the TTL" ;;
   *) echo "FAIL: TTL expired a live marker ($out)"; rc=1 ;;
 esac
+
+# --- 9. SUBDIRECTORY cwd (finding 2, rationale/2026-09-25-session-plugin-usage-review.md):
+# the payload cwd follows the model's `cd`. A marker at the repo root must be announced
+# from app/Models, by its absolute path, and nothing may appear under the subdirectory.
+G="$FX/repo"; mkdir -p "$G/app/Models" "$G/.claude/approaches"; git -C "$G" init -q
+printf '{"task":"root-task","by":"approach-deliberation"}\n' > "$G/.claude/approaches/deliberated.json"
+out=$(fire compact "$G/app/Models")
+case "$out" in
+  *root-task*"$G/.claude/approaches/deliberated.json"*) echo "PASS: root marker announced from a subdirectory cwd, by absolute path" ;;
+  *) echo "FAIL: subdirectory cwd missed the root marker ($out)"; rc=1 ;;
+esac
+if [ ! -e "$G/app/Models/.claude" ]; then echo "PASS: no .claude/ appears under the subdirectory"
+else echo "FAIL: a .claude/ dir appeared under the subdirectory"; rc=1; fi
 
 exit $rc

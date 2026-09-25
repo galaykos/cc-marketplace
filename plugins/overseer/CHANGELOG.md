@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.4 — 2026-09-25
+
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
+- `references/acceptance.md`'s list of other plugins' scratch directories names
+  `.claude/code-review/`, the self-ignoring state dir code-review 0.23.0's review-debt nudge
+  writes at the repo root — so an acceptance walk explains it instead of chasing it.
+
 ## 0.5.3 — 2026-09-23
 
 ### Changed

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Fixture harness for the three checks the 2026-09-22 specialist panel added to
+# Fixture harness for the checks the 2026-09-22 specialist panel added to
 # scripts/lib/plugin-checks.sh — pc_cwd_validated (#2), pc_offswitch_named (#5) and
-# pc_version_stamp_tail (#21). Each gets BOTH arms: a planted violation that must be
+# pc_version_stamp_tail (#21) — plus pc_state_root and pc_shared_blocks from the
+# 2026-09-25 session review. Each gets BOTH arms: a planted violation that must be
 # named, and a clean twin that must not be. A check that only ever runs against the live
 # tree proves nothing on the day the tree is clean, which is the day it lands.
 #
@@ -73,6 +74,126 @@ out=$(pc_cwd_validated "$T") || true
 case "$out" in
   *badcwd*) fail "cwd: '# cwd-mkdir-ok:' silences it" "still flagged: $out" ;;
   *) pass "cwd: '# cwd-mkdir-ok:' silences it" ;;
+esac
+
+# ---- pc_state_root (2026-09-25 session review, finding 2) -----------------------
+mkhook rawroot raw.sh <<'SH'
+#!/bin/bash
+input=$(cat)
+cwd=$(printf '%s' "$input" | jq -r '.cwd // empty')
+[ -d "$cwd" ] || exit 0
+mkdir -p "$cwd/.claude/fixture" 2>/dev/null
+exit 0
+SH
+mkhook braceroot brace.sh <<'SH'
+#!/bin/bash
+cwd=$(jq -r '.cwd // empty')
+[ -d "$cwd" ] || exit 0
+f="${cwd}/.claude/task-runner/active-run.json"
+exit 0
+SH
+mkhook okroot resolved.sh <<'SH'
+#!/bin/bash
+# the old shape, discussed in a comment: "$cwd/.claude/fixture" is not code
+cwd=$(jq -r '.cwd // empty')
+root=$(cc_state_root "$cwd") || exit 0
+mkdir -p "$root/.claude/fixture" 2>/dev/null
+exit 0
+SH
+out=$(pc_state_root "$T") || true
+case "$out" in
+  *"state-root-raw rawroot:raw.sh"*) pass "state-root: \$cwd/.claude is named" ;;
+  *) fail "state-root: \$cwd/.claude is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"state-root-raw braceroot:brace.sh"*) pass "state-root: \${cwd}/.claude is named" ;;
+  *) fail "state-root: \${cwd}/.claude is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *okroot*) fail "state-root: cc_state_root + a comment stays clean" "flagged: $out" ;;
+  *) pass "state-root: cc_state_root + a comment stays clean" ;;
+esac
+printf '# state-root-ok: fixture\n' >> "$T/rawroot/hooks/raw.sh"
+out=$(pc_state_root "$T") || true
+case "$out" in
+  *rawroot*) fail "state-root: '# state-root-ok:' silences it" "still flagged: $out" ;;
+  *) pass "state-root: '# state-root-ok:' silences it" ;;
+esac
+
+# A QUOTED command ("\"${CLAUDE_PLUGIN_ROOT}/hooks/x.sh\"", the form the host validator
+# requires from CLI 2.1.282) must still be resolved: a check that silently skipped every
+# quoted hook would read green on a tree it no longer sees.
+mkdir -p "$T/quoted/hooks"
+printf '#!/bin/bash\ncwd=$(jq -r .cwd)\nmkdir -p "$cwd/.claude/x"\n' > "$T/quoted/hooks/q.sh"
+jq -n --arg c "\"\${CLAUDE_PLUGIN_ROOT}/hooks/q.sh\"" \
+  '{hooks:{Stop:[{hooks:[{type:"command",command:$c}]}]}}' > "$T/quoted/hooks/hooks.json"
+out=$(pc_state_root "$T") || true
+case "$out" in
+  *"state-root-raw quoted:q.sh"*) pass "quoted command: pc_state_root still resolves it" ;;
+  *) fail "quoted command: pc_state_root still resolves it" "got: ${out:-<empty>}" ;;
+esac
+out=$(pc_cwd_validated "$T") || true
+case "$out" in
+  *"cwd-unvalidated quoted:q.sh"*) pass "quoted command: pc_cwd_validated still resolves it" ;;
+  *) fail "quoted command: pc_cwd_validated still resolves it" "got: ${out:-<empty>}" ;;
+esac
+rm -rf "$T/quoted"
+
+# ---- quoted vs unquoted hook commands: every hooks.json reader must agree ------------
+# 2026-09-25: hook commands moved to the quoted form the host validator requires from CLI
+# 2.1.282. Two readers matched the unquoted shape with a `case` pattern and one took the
+# last path segment, so pc_lanes_coverage silently stopped seeing every hook — green on a
+# tree it no longer read. The invariant: the same fixture, quoted and unquoted, draws the
+# SAME findings from every check that reads hooks.json, and the findings are not empty.
+QR="$T/_quoting"; mkdir -p "$QR/qfix/hooks"
+printf '#!/usr/bin/env bash\ninput=$(cat)\ncwd=$(printf %%s "$input" | jq -r .cwd)\nmkdir -p "$cwd/.claude/x"\nexit 0\n' > "$QR/qfix/hooks/remind.sh"
+printf '#!/bin/bash\nexit 0\n' > "$QR/qfix/hooks/gate.sh"
+printf '#!/bin/bash\necho %s\nexit 0\n' "'{\"hookSpecificOutput\":{\"permissionDecision\":\"deny\"}}'" > "$QR/qfix/hooks/deny.sh"
+chmod +x "$QR"/qfix/hooks/*.sh
+printf '# artifact\tkind\tphase\towns\tdefinite_trigger\tyields_to\n' > "$QR/qfix/lane.tsv"
+qhooks() { # $1 = command prefix/suffix quote character ('' or '"')
+  jq -n --arg q "$1" '{hooks:{
+    UserPromptSubmit:[{hooks:[{type:"command",command:($q+"${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh"+$q)}]}],
+    Stop:[{hooks:[{type:"command",command:($q+"${CLAUDE_PLUGIN_ROOT}/hooks/gate.sh"+$q),timeout:5}]}],
+    PreToolUse:[{matcher:"Edit",hooks:[{type:"command",command:($q+"${CLAUDE_PLUGIN_ROOT}/hooks/deny.sh"+$q),timeout:5}]}]}}' \
+    > "$QR/qfix/hooks/hooks.json"
+}
+qrun() {
+  for fn in pc_hook_timeout pc_hook_shebang pc_state_root pc_cwd_validated pc_lanes_coverage \
+            pc_phase_guard pc_offswitch_named pc_marker_key pc_context_key; do
+    printf '== %s\n' "$fn"; "$fn" "$QR" 2>/dev/null | sed 's/"//g'
+  done
+}
+qhooks ''; unq=$(qrun)
+qhooks '"'; quo=$(qrun)
+if [ "$unq" = "$quo" ]; then pass "quoting: every hooks.json reader agrees on quoted and unquoted commands"
+else fail "quoting: every hooks.json reader agrees on quoted and unquoted commands" "$(diff <(printf '%s\n' "$unq") <(printf '%s\n' "$quo") | head -8)"; fi
+for want in "hook-timeout qfix:UserPromptSubmit:remind.sh" "hook-shebang qfix:remind.sh" \
+            "state-root-raw qfix:remind.sh" "cwd-unvalidated qfix:remind.sh" \
+            "lane-missing hook qfix:remind" "lane-missing hook qfix:gate" "lane-missing hook qfix:deny"; do
+  case "$quo" in *"$want"*) pass "quoting: quoted form still draws '$want'" ;;
+    *) fail "quoting: quoted form still draws '$want'" "got: $(printf '%s' "$quo" | grep -v '^==' | head -6)" ;; esac
+done
+rm -rf "$QR"
+
+# ---- pc_shared_blocks ------------------------------------------------------------
+B="$T/_blocks"; mkdir -p "$B" "$T/blk/hooks"
+cp templates/blocks/state-root.md templates/blocks/bash-write-targets.md "$B/"
+{ echo '#!/bin/bash'; cat "$B/state-root.md"; echo 'exit 0'; } > "$T/blk/hooks/good.sh"
+{ echo '#!/bin/bash'; sed 's/return 1$/return 2/' "$B/state-root.md"; echo 'exit 0'; } > "$T/blk/hooks/edited.sh"
+{ echo '#!/bin/bash'; echo 'cc_bash_write_targets() { :; }'; } > "$T/blk/hooks/reimpl.sh"
+out=$(pc_shared_blocks "$T" "$B") || true
+case "$out" in
+  *"blk/hooks/edited.sh state-root.md"*) pass "shared-blocks: an edited copy is named" ;;
+  *) fail "shared-blocks: an edited copy is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/reimpl.sh bash-write-targets.md"*) pass "shared-blocks: a same-name reimplementation is named" ;;
+  *) fail "shared-blocks: a same-name reimplementation is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *good.sh*) fail "shared-blocks: a verbatim copy stays clean" "flagged: $out" ;;
+  *) pass "shared-blocks: a verbatim copy stays clean" ;;
 esac
 
 # ---- pc_offswitch_named --------------------------------------------------------

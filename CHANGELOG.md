@@ -4,6 +4,54 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.114.0] - 2026-09-25
+
+Session plugin-usage review: four real sessions registered in `~/.claude/sessions/` were
+reduced to digests and every Skill/Agent call, hook injection and Stop block was checked
+against the plugin that should have fired. The findings, their evidence and what shipped
+for each are in `rationale/2026-09-25-session-plugin-usage-review.md`.
+
+- **Bash writes are visible to the per-edit hooks.** The host steers file writes through
+  Bash heredocs; one session wrote 233 of 238 main-thread files that way, and every
+  Edit/Write-matched hook missed them, including the only secret-denying write guard.
+  A shared `cc_bash_write_targets` block (`templates/blocks/bash-write-targets.md`) now feeds
+  skill-router's routing, task-runner's scope-lock, code-review's conventions one-shot,
+  secret-scanning's write guard (heredoc and echo/printf bodies) and its unicode scan.
+- **Hook state lives at the project root.** The payload `cwd` follows the model's `cd`; one
+  session re-fired a "once per session" warning three times and left a `.claude/` dir in
+  every directory it visited, one committed to a work repo. A shared `cc_state_root` block
+  (`templates/blocks/state-root.md`) replaces every `$cwd/.claude` in 13 plugins, the
+  phase-sentinel writer and the reminder template. New gates: `pc_state_root` (no raw
+  `$cwd/.claude` in a hook; escape `# state-root-ok:`) and `pc_shared_blocks` (every copy
+  of a shared block byte-identical), each with both fixture arms.
+- **ask-ledger 0.2.2** stops ledgering subagent hand-backs; **candor 0.5.0** stops blocking
+  an orchestrator that is correctly waiting on background workers (47 forced turns in one
+  run) and gives a run with no JS test runner an honest, disclosed exit.
+- **code-review 0.23.0** adds an advisory review-debt nudge: an inline session that ships
+  8+ files, or any auth-surface file, with no reviewer since gets one line naming
+  `/code-review:review <base>..HEAD` (`CC_REVIEW_NUDGE=off`).
+- **UI output.** task-runner 0.41.0: an orchestrator browser walk when a UI card group
+  closes (1280/375, overflow probe, keyboard and Escape focus return, console, reduced
+  motion) and a Screens table in the closing report. taskmaster 0.45.2: the grill settles
+  walk access and a narrow-width field per screen, and UI cards carry a `<walk>` line; a
+  `ui-static-only` WARN marks type-check-and-grep verifies on UI cards. ui-ux 0.26.3 and
+  web-dev 0.9.3 preload `ui-ux:a11y-audit` into the UI reviewers and worker (`skills:`
+  frontmatter, probed live), about 1.8k tokens per spawn.
+- task-runner's skill prose stayed under the 160,000 B corpus ratchet by moving dated
+  derivations to `rationale/2026-09-25-task-runner-prose-derivations.md`; no rule changed.
+- **Hook commands quote `${CLAUDE_PLUGIN_ROOT}`** in all 22 plugins with hooks; the CI pin
+  for `official-validate.sh` moved to CLI 2.1.282, whose `--strict` rejects the bare form.
+  Every hooks.json reader in `scripts/lib/plugin-checks.sh` strips the quotes, and a new
+  fixture proves each draws the same findings either way (quoting first blinded
+  `pc_lanes_coverage`, caught before merge).
+- **skill-router** injects stack-filtered skill Read paths into plugin subagents on
+  SubagentStart and primes from the project root; **design-kit 0.6.0** anchors
+  `.design-kit/` at the root and shoots behind a login with `snapshot.sh --storage-state`;
+  **toolchain-experts 0.3.2** reports `react/button-has-type`; code-redteam's dedup rule
+  matches verification-panels'.
+- **Unmeasured:** no control arm shows any of this changes an outcome; the walk, the
+  walk-access row and the nudge are `recorded`/advisory, not gates.
+
 ## [0.113.3] - 2026-09-22
 
 Session review: eight specialised agents mined 44 Claude Code session transcripts

@@ -11,9 +11,137 @@
 # (same channel doctrine as task-runner/hooks/scope.sh and
 # comment-discipline/hooks/scan.sh). Fail-open: any error, or a
 # missing jq, exits silently and never blocks the edit.
+#
+# BASH WRITES ROUTE TOO (0.20.0) — the matcher carries `Bash`. Measured 2026-09-25
+# (rationale/2026-09-25-session-plugin-usage-review.md, finding 1): with the host's
+# `bashFirst` steering, one session wrote 233 of 238 main-thread files through
+# `cat > f <<EOF`, and this hook, matched on Edit|Write only, routed ONE edit across
+# ~40 items of auth, token and HTTP-client work — the "Signals from recent edits"
+# digest fired zero times there. A Bash payload is now routed exactly as if each
+# target the command names had been Edited: `cc_bash_write_targets` (shared block
+# below) lists them, the first 8 are examined, and only one that is an EXISTING
+# REGULAR FILE UNDER THE PROJECT ROOT routes — a `>` into /tmp, into a log outside the
+# repo, or onto a path the command then deleted routes nothing. Same one-shot, same
+# single envelope per call, however many files one command wrote.
+# COST, because this now runs after EVERY Bash call: a call with no write target exits
+# after two jq reads and at most one awk — before rules.tsv, plugins-dir.sh or any
+# state is touched. The `case` prefilter drops `git status` before awk even starts.
+# NOT CAUGHT (the block's own list): interpreter writes (python open(), php
+# file_put_contents), cp/mv/install destinations, `{ …; } > f` groups, a path held in a
+# variable. The
+# dynamic budget probe (scripts/context-budget.sh) sends Edit payloads only, so a Bash
+# call's output is unmetered there; per target it is the text an Edit of that file gets.
+#
 # Honest limitation: state writes are read-modify-write with no lock — two
 # concurrent invocations in one session can drop a pending_low entry (tool
 # calls are serialized in practice; not worth a lock).
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+# --- bash write targets --------------------------------------------------------
+# Canonical copy: templates/blocks/bash-write-targets.md. Every hook defining
+# cc_bash_write_targets must carry this block byte-for-byte (pc_shared_blocks).
+# The host steers file writes through Bash (auto mode `bashFirst`); in one measured session
+# 233 of 238 main-thread writes were `cat > file <<EOF`, invisible to a hook matching
+# Write|Edit.
+# Prints one target path per line, as spelled in the command (relative or absolute).
+# Heredoc BODIES are dropped and quoted text is masked before matching, so PHP `->`/`=>`,
+# HTML `>` and a sed script's `s|a|b|` never read as redirects or pipes; a here-string
+# (`<<<`) is not a heredoc. Catches `>`/`>>` onto a path (cat, echo, printf, any command),
+# `[sudo] tee [-a] <paths>`, and the last operand of `sed -i` / `perl -i`. Does NOT catch:
+# interpreter writes (python open(), php file_put_contents), cp/mv/install destinations,
+# `{ …; } > f` groups, a path held in a variable (`> "$f"` is skipped, never guessed).
+# The caller filters to existing files under its root.
+cc_bash_write_targets() {
+  printf '%s\n' "$1" | awk '
+    function emit(p) {
+      gsub(/^["\047]|["\047]$/, "", p)
+      if (p == "" || p ~ /^\/dev\// || p ~ /[$`*?]/ || p ~ /^[&0-9-]/ && p !~ /[\/.]/) return
+      print p
+    }
+    function mask(s,   i, c, q, out, esc) {
+      q = ""; out = ""; esc = 0
+      for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+        if (esc) { out = out "_"; esc = 0; continue }
+        if (q == "") {
+          if (c == "\\") { esc = 1; out = out "_"; continue }
+          if (c == "\047" || c == "\"") q = c
+          out = out c
+        } else if (c == q) { q = ""; out = out c }
+        else { if (q == "\"" && c == "\\") esc = 1; out = out "_" }
+      }
+      return out
+    }
+    function segment(ms, os,   rest, off, tok, w, k, j, st, en, word, n, ws, we, last) {
+      rest = ms; off = 0
+      while (match(rest, /(^|[^0-9&=<>-])>>?[ \t]*("[^"]*"|\047[^\047]*\047|[^ \t&|;<>()"\047]+)/)) {
+        tok = substr(os, off + RSTART, RLENGTH)
+        off += RSTART + RLENGTH - 1; rest = substr(ms, off + 1)
+        sub(/^[^>]*>>?[ \t]*/, "", tok)
+        emit(tok)
+      }
+      n = 0; j = 1
+      while (j <= length(ms)) {
+        while (j <= length(ms) && substr(ms, j, 1) ~ /[ \t]/) j++
+        if (j > length(ms)) break
+        st = j; while (j <= length(ms) && substr(ms, j, 1) !~ /[ \t]/) j++
+        n++; ws[n] = st; we[n] = j - 1
+      }
+      if (n == 0) return
+      k = 1; word = substr(os, ws[1], we[1] - ws[1] + 1)
+      if (word == "sudo" && n > 1) { k = 2; word = substr(os, ws[2], we[2] - ws[2] + 1) }
+      if (word == "tee") {
+        for (k = k + 1; k <= n; k++) {
+          w = substr(os, ws[k], we[k] - ws[k] + 1)
+          if (w == "<" || w == "<<<") { k++; continue }
+          if (w !~ /^-/ && w !~ /^[<>0-9]/) emit(w)
+        }
+      } else if ((word == "sed" || word == "perl") && ms ~ /[ \t]-[a-zA-Z0-9]*i/) {
+        last = substr(os, ws[n], we[n] - ws[n] + 1)
+        if (n > 2 && last !~ /^-/ && substr(ms, ws[n], 1) !~ /["\047]/) emit(last)
+      }
+    }
+    skip { t = $0; sub(/^[ \t]+/, "", t); sub(/[ \t]+$/, "", t); if (t == term) skip = 0; next }
+    {
+      line = $0; m = mask(line)
+      if (match(m, /(^|[^<])<<-?[ \t]*["\047]?[A-Za-z_][A-Za-z0-9_]*/)) {
+        if (substr(m, RSTART, 1) != "<") { RSTART++; RLENGTH-- }
+        term = substr(line, RSTART, RLENGTH + 1)
+        sub(/^<<-?[ \t]*["\047]?/, "", term); sub(/[^A-Za-z0-9_].*$/, "", term)
+        skip = 1
+      }
+      st = 1
+      for (i = 1; i <= length(m) + 1; i++) {
+        c = substr(m, i, 1); c2 = substr(m, i, 2)
+        if (i > length(m) || c == ";" || c == "|" || c2 == "&&") {
+          if (i > st) segment(substr(m, st, i - st), substr(line, st, i - st))
+          if (c2 == "&&" || c2 == "||") i++
+          st = i + 1
+        }
+      }
+    }' | awk '!seen[$0]++'
+}
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -29,6 +157,17 @@
   # no file-routing-only switch, and the README says so.
   case "${CC_REMIND:-on}" in off) exit 0 ;; esac
 
+  # BASH, no-target exit first (header: COST). The `case` is a superset of every
+  # shape the block can return (`>`, tee, sed/perl -i), so it is safe to skip awk on.
+  tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
+  bash_targets=""
+  if [ "$tool" = Bash ]; then
+    bash_cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
+    case "$bash_cmd" in *'>'*|*tee*|*sed*|*perl*) ;; *) exit 0 ;; esac
+    bash_targets=$(cc_bash_write_targets "$bash_cmd" | head -n 8)
+    [ -n "$bash_targets" ] || exit 0
+  fi
+
   # CONTEXT KEY, not session key. PostToolUse is the only hook channel that reaches
   # subagents at all, and a subagent shares its parent's session_id while getting its
   # own transcript. Keying a one-shot on session_id therefore dedups the worker against
@@ -36,21 +175,60 @@
   # is the one context this never speaks in. Pattern and rationale: code-review/hooks/conventions.sh (context-key one-shot).
   session_id=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null) || exit 0
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
-  # `pathInProject` is the JetBrains-MCP create_new_file key (schema read 2026-09-14);
-  # an IDE-driven session writes every file through it and would otherwise route nothing.
-  # apply_patch carries no single path, so it stays unrouted — stated, not hidden.
-  file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null) || exit 0
-  [ -n "$file_path" ] || exit 0
+  file_path=""
+  if [ "$tool" != Bash ]; then
+    # `pathInProject` is the JetBrains-MCP create_new_file key (schema read 2026-09-14);
+    # an IDE-driven session writes every file through it and would otherwise route nothing.
+    # apply_patch carries no single path, so it stays unrouted — stated, not hidden.
+    file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null) || exit 0
+    [ -n "$file_path" ] || exit 0
+  fi
   [ -n "$session_id" ] || exit 0
   [ -n "$cwd" ] || exit 0
-  # `-d`, not just `-n`: the state write below is `mkdir -p "$cwd/.claude/skill-router"`,
+  # `-d`, not just `-n`: the state write below is `mkdir -p` under the project root,
   # which RECREATES a project directory the session has deleted — reproduced live three
   # levels deep (2026-09-22 panel, architecture #1). A payload naming a directory that no
   # longer exists has no state worth keeping and no file worth routing. Same guard as
   # plugins/overseer/hooks/track-read.sh:30. LIMITATION: it proves the path EXISTS, not
-  # that it is the project — a payload whose cwd is `/` or `$HOME` still passes, and the
-  # state dir is created there. Nothing available to a hook can tell those apart.
+  # that it is the project — a payload whose cwd is `/` or `$HOME` outside any git repo
+  # still passes, and the state dir is created there. Nothing available to a hook can
+  # tell those apart.
   [ -d "$cwd" ] || exit 0
+  # STATE ROOT (finding 2 of the review named in the header). The payload cwd follows
+  # the model's `cd`; state, manifests and the repo-relative path all key on the
+  # project root instead, so one session keeps one state file however often it moves.
+  root=$(cc_state_root "$cwd") || exit 0
+
+  # TARGETS, as two parallel arrays: the spelling recorded in pending_low, and the file
+  # on disk. An Edit is one target, spelled as its payload spelled it (unchanged). A Bash
+  # target resolves against the payload `$cwd` (the Bash tool's cwd), is canonicalised
+  # through its directory (so `../x` cannot slip out of the root test), and must already
+  # exist as a regular file under the root (PostToolUse runs after the command, so a
+  # target that is absent now was never written or was removed again). LIMITATION: a `cd`
+  # INSIDE the same command (`cd app && cat > f`) moves the base the shell really used;
+  # whether the host samples cwd before or after the command is unverified here, so such
+  # a relative target may resolve wrong — it then usually fails the existence test and
+  # stays silent, and at worst routes a same-named file.
+  rec=(); abs=()
+  if [ "$tool" = Bash ]; then
+    while IFS= read -r t; do
+      [ -n "$t" ] || continue
+      case "$t" in /*) p="$t" ;; *) p="$cwd/$t" ;; esac
+      pd="${p%/*}"; [ -n "$pd" ] || pd=/
+      pd=$(CDPATH= cd -- "$pd" 2>/dev/null && pwd) || continue
+      p="${pd%/}/${p##*/}"
+      [ -f "$p" ] || continue
+      case "$p" in "$root"/*) ;; *) continue ;; esac
+      rec+=("$p"); abs+=("$p")
+    done <<EOF_TARGETS
+$bash_targets
+EOF_TARGETS
+    [ "${#abs[@]}" -gt 0 ] || exit 0
+  else
+    p="$cwd/$file_path"
+    case "$file_path" in /*) p="$file_path" ;; esac
+    rec+=("$file_path"); abs+=("$p")
+  fi
 
   rules="${CLAUDE_PLUGIN_ROOT}/rules.tsv"
   [ -f "$rules" ] || exit 0
@@ -64,19 +242,32 @@
   . "$(dirname "$0")/plugins-dir.sh" 2>/dev/null
   command -v pr_resolve_plugins_dir >/dev/null 2>&1 && pr_resolve_plugins_dir
 
-  state_dir="$cwd/.claude/skill-router"
-  # Hashed, not raw: line 28 reads `.transcript_path` first and that is an absolute path,
-  # so `fired-$session_id.json` names a nested file whose parents are never created. The
-  # write fails, `fired` is empty on every call, and the "same skill is not re-nudged on
-  # later edits" property at :118 never holds — every edit re-injects directives the model
-  # already has. Same idiom as code-review/hooks/conventions.sh (hashed state key).
+  state_dir="$root/.claude/skill-router"
+  # Hashed, not raw: the CONTEXT KEY read above takes `.transcript_path` first and that is
+  # an absolute path, so `fired-$session_id.json` names a nested file whose parents are
+  # never created. The write fails, `fired` is empty on every call, and the "same skill is
+  # not re-nudged on later edits" property (`already_fired`) never holds — every edit
+  # re-injects directives the model already has. Same idiom as
+  # code-review/hooks/conventions.sh (hashed state key).
   ctx=$(printf '%s' "$session_id" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0
   state_file="$state_dir/fired-$ctx.json"
   fired=""
   [ -r "$state_file" ] && fired=$(jq -r '.fired[]? // empty' "$state_file" 2>/dev/null)
 
-  base=$(basename "$file_path")
+  # set_target <i> — the globals every matcher below reads, for target i.
+  # `rel` is the path RELATIVE TO THE PROJECT ROOT when the file sits under it, so a
+  # `**/dir/**` row and an `@path` marker see `app/Enums/Status.php` whether the write
+  # came from the root, from `cd app/Enums`, or as an absolute path — and a checkout
+  # that merely lives under a directory named `tests/` or `app/` no longer matches those
+  # rows on every file. A file outside the root keeps the payload's spelling (the
+  # pre-0.20.0 behaviour for every file).
+  set_target() {
+    file_path="${rec[$1]}"; target="${abs[$1]}"
+    base=$(basename "$file_path")
+    rel="$file_path"
+    case "$target" in "$root"/*) rel="${target#"$root"/}" ;; esac
+  }
 
   plugin_installed() { # $1 owning_plugin — fire-if-uncertain
     command -v pr_plugin_installed >/dev/null 2>&1 || return 0
@@ -103,7 +294,7 @@
     case "$pat" in
       '**/'*'/**')
         local mid="${pat#**/}"; mid="${mid%/**}"
-        case "/$file_path" in *"/$mid/"*) rc=0 ;; esac ;;
+        case "/$rel" in *"/$mid/"*) rc=0 ;; esac ;;
       *)
         case "$base" in $pat) rc=0 ;; esac ;;
     esac
@@ -131,14 +322,14 @@
     # carrying one is safe under an older route.sh: it simply fires.
     #
     # `@path` is the same device one level up: the ERE runs against the edited
-    # file's PATH as the tool payload reported it, so a row can exclude a
+    # file's PATH (`rel`, see set_target), so a row can exclude a
     # DIRECTORY. `!@path~(^|/)dist/` keeps the markup a11y rows off built output —
     # a bundled `dist/index.html` has the same BASENAME as its source, so `@base`
     # cannot tell them apart, and match_glob's one path-aware form (`**/dir/**`)
     # can only say "inside", never "not inside". LIMITATION (honest scope): the
-    # value is whatever the payload carried — relative in most sessions, absolute
-    # in some — so an exclusion must anchor on `(^|/)`, never on `^` alone, and a
-    # build directory under a name nobody listed is still routed. Unknown to an
+    # value is root-relative only for a file under the project root — outside it,
+    # whatever the payload carried — so an exclusion must anchor on `(^|/)`, never
+    # on `^` alone, and a build directory under a name nobody listed is still routed. Unknown to an
     # older route.sh, where `@path` is just a manifest that does not exist and the
     # alternative is skipped: the row fires, the same safe fallback as `@base`.
     # `?` PREFIX — `?package.json~"next"` — makes the alternative REQUIRE its manifest:
@@ -150,9 +341,15 @@
     # first when negating too (`?!composer.json~laravel/framework`).
     # LIMITATION: absent/unreadable manifest is the ONLY indecisiveness it converts. A
     # malformed ERE (grep exit >= 2) still skips the alternative, so a row with a broken
-    # regex and a present manifest keeps firing; and marker_ok reads `$cwd/<manifest>`
+    # regex and a present manifest keeps firing; and marker_ok reads `$root/<manifest>`
     # only, so a monorepo whose package.json sits in a workspace subdirectory is "absent"
-    # here and a `?` row suppresses there. Unknown to an older route.sh, where
+    # here and a `?` row suppresses there. Until 0.20.0 it read the payload cwd, which
+    # followed the model's `cd` (a write after `cd app/Enums` read app/Enums/composer.json)
+    # and, as a side effect, served a session STARTED inside a workspace that workspace's
+    # manifest; that session now reads the repo root's. Walking up from the file to the
+    # nearest manifest was rejected: a Laravel app's per-module composer.json (nwidart
+    # modules, local packages/) would then suppress laravel-best-practices on the very
+    # files it is for. Unknown to an older route.sh, where
     # `?package.json` is a manifest name that does not exist: the alternative is skipped
     # and the row fires — the same safe fallback `@base` and `@path` have.
     local list="$1" alt m neg req manifest regex mcontent rc
@@ -170,9 +367,9 @@
       if [ "$manifest" = "@base" ]; then
         mcontent="$base"
       elif [ "$manifest" = "@path" ]; then
-        mcontent="$file_path"
-      elif [ -f "$cwd/$manifest" ] && [ -r "$cwd/$manifest" ] \
-           && mcontent=$(head -c 65536 "$cwd/$manifest" 2>/dev/null); then
+        mcontent="$rel"
+      elif [ -f "$root/$manifest" ] && [ -r "$root/$manifest" ] \
+           && mcontent=$(head -c 65536 "$root/$manifest" 2>/dev/null); then
         :
       else
         [ "$req" -eq 1 ] && return 1
@@ -203,22 +400,26 @@
   # All relevant skills for THIS edit fire (e.g. a11y alongside ui-ux, and the
   # stack skill, on a single .tsx) — no break after the first. Session dedup via
   # `fired` still prevents re-nudging the same skill on later edits; emitted_now
-  # dedups two rules that map to one skill within this single edit.
+  # dedups two rules — or two files of one Bash call — that map to one skill.
   fired_now=""
   emitted_now=""
-  while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
-    case "$stype" in ''|'#'*) continue ;; esac
-    conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
-    [ "$stype" = glob ] && [ "$conf" = high ] || continue
-    match_glob "$pattern" || continue
-    plugin_installed "$plugin" || continue
-    marker_ok "$marker" || continue
-    already_fired "$skill" && continue
-    printf '%s\n' "$emitted_now" | grep -qxF "$skill" && continue
-    emit_nudge "$skill" "$plugin"
-    emitted_now="${emitted_now}${skill}"$'\n'
-    fired_now="${fired_now}${skill}"$'\n'
-  done < "$rules"
+  i=0
+  while [ "$i" -lt "${#abs[@]}" ]; do
+    set_target "$i"; i=$((i + 1))
+    while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
+      case "$stype" in ''|'#'*) continue ;; esac
+      conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
+      [ "$stype" = glob ] && [ "$conf" = high ] || continue
+      match_glob "$pattern" || continue
+      plugin_installed "$plugin" || continue
+      marker_ok "$marker" || continue
+      already_fired "$skill" && continue
+      printf '%s\n' "$emitted_now" | grep -qxF "$skill" && continue
+      emit_nudge "$skill" "$plugin"
+      emitted_now="${emitted_now}${skill}"$'\n'
+      fired_now="${fired_now}${skill}"$'\n'
+    done < "$rules"
+  done
 
   # ---- deliver: ONE envelope per invocation, before state persistence so an
   # unwritable state dir cannot swallow a nudge the model should have seen ----
@@ -228,12 +429,15 @@
   fi
 
   # ---- low-confidence pass: accumulate content matches (no inline output) ----
-  target="$cwd/$file_path"
-  case "$file_path" in /*) target="$file_path" ;; esac
-  content=""
-  [ -r "$target" ] && content=$(head -c 65536 "$target" 2>/dev/null)
+  # Read from the file ON DISK, so a Bash heredoc's body is judged exactly as an
+  # Edit's result would be. One `skill<TAB>file` line per hit.
   pending_adds=""
-  if [ -n "$content" ]; then
+  i=0
+  while [ "$i" -lt "${#abs[@]}" ]; do
+    set_target "$i"; i=$((i + 1))
+    content=""
+    [ -r "$target" ] && content=$(head -c 65536 "$target" 2>/dev/null)
+    [ -n "$content" ] || continue
     while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
       case "$stype" in ''|'#'*) continue ;; esac
       conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
@@ -241,10 +445,10 @@
       plugin_installed "$plugin" || continue
       marker_ok "$marker" || continue
       if printf '%s' "$content" | grep -qE "$pattern" 2>/dev/null; then
-        pending_adds="${pending_adds}${skill}"$'\n'
+        pending_adds="${pending_adds}${skill}"$'\t'"${file_path}"$'\n'
       fi
     done < "$rules"
-  fi
+  done
 
   # ---- persist state only if something changed ----
   if [ -n "$fired_now" ] || [ -n "$pending_adds" ]; then
@@ -268,9 +472,9 @@ $fired_now
 EOF_FIRED
     fi
     if [ -n "$pending_adds" ]; then
-      while IFS= read -r pskill; do
+      while IFS=$'\t' read -r pskill pfile; do
         [ -n "$pskill" ] || continue
-        json=$(printf '%s' "$json" | jq --arg sk "$pskill" --arg f "$file_path" \
+        json=$(printf '%s' "$json" | jq --arg sk "$pskill" --arg f "$pfile" \
           'if (.pending_low | any(.skill==$sk and .file==$f)) then . else .pending_low += [{skill:$sk,file:$f}] end' 2>/dev/null) || break
       done <<EOF
 $pending_adds

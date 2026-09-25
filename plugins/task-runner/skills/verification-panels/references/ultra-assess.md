@@ -1,34 +1,17 @@
 # ultra-assess — the Extreme Boost contract for assessment-shaped runs
 
-Read when the `ultra-assess` boost hook (`hooks/ultra-assess.sh`) has printed its
-banner — a prompt carried "ultra-assess" / "ultraassess" / "ultra-assessment" —
-for inventory, audit, gap-analysis, survey or review-at-scale work. Output is
-findings/backlog, never task cards.
-
-# Ultra-assess — Extreme Boost for an assessment run
-
-Ultra-assess is a per-run intensity mode for assessment-shaped work: inventory,
-audit, gap-analysis, survey, or review-at-scale — anything whose output is
-*findings*, not a build. It is the assessment sibling of taskmaster's `ultra`
-(which boosts a build pipeline into spec + cards). This skill is the canonical
-owner of the `ULTRA-ASSESS ACTIVE` directive, the banner, and the assessment
-recipe; the trigger hook injects the directive and this skill drives the run.
+Read when the `hooks/ultra-assess.sh` `UserPromptSubmit` hook matched "ultra-assess" /
+"ultraassess" / "ultra-assessment" in the prompt and injected the directive — a per-run
+intensity mode for inventory, audit, gap-analysis, survey or review-at-scale work, whose
+output is *findings*, not a build (taskmaster's `ultra` is the build sibling). This file owns
+the `ULTRA-ASSESS ACTIVE` directive, the banner, and the assessment recipe.
 
 ## When ultra-assess is active
 
-Ultra-assess is active for THIS run when the `hooks/ultra-assess.sh`
-`UserPromptSubmit` hook matched `ultra-assess`/`ultraassess`/`ultra-assessment` in
-the prompt and injected the directive.
-
-A stray mention of the phrase in unrelated chat is inert — the directive changes
-nothing unless the turn is an actual assessment. Ultra-assess is single-run and
-stateless: no persistent flag, no `stop` command. It lasts for the assessment run
-that triggered it and no longer. It never fires from a slash command — those own
-their own flag path.
-
-It is deliberately distinct from `ultra-task`: a build run and an audit run are
-different shapes, so neither auto-triggers the other. Each already applies boosted
-orchestration discipline within its own lane.
+A stray mention in unrelated chat is inert — nothing changes unless the turn is an actual
+assessment. Single-run and stateless: no persistent flag, no `stop` or "off" command (re-type
+the phrase); it lasts for the run that triggered it. It never fires from a slash command.
+Distinct from `ultra-task`: neither auto-triggers the other.
 
 ## Announce it — the banner
 
@@ -119,8 +102,7 @@ all** — neither `Workflow` `agent()` nor the Agent tool (`verification-panels`
 § A panel verdict is a claim about process owns that condition). A missing `Workflow`
 tool alone is NOT it: the Agent tool is a real dispatch path, so with it present every
 phase still fans out for real — `model:` only, no `effort:` — and the words below stay
-earned. Keying degradation on `Workflow` alone would downgrade the ordinary interactive
-session, which is where `ultra-assess` is usually typed.
+earned.
 
 With neither mechanism — headless, cron, or a refused budget — every fan-out phase falls back to a
 single inline agent at the selected model: one inline scout+reader pass, one inline
@@ -141,12 +123,8 @@ half. Rules, including the workflow-size ceiling and the interactive-phase rule:
 
 ## What ultra-assess does NOT do
 
-- It does not change the user's main-thread session model — the user sets that.
-- It does not fan out an interactive phase (a consent gate, a user pick): subagents have
-  no user I/O, so those stay in the main thread whatever a harness default says.
-- It does not persist across runs or expose an "off" command; re-type the phrase.
-- It does not write build artifacts — no spec, no cards, no execution marker.
-- It does not auto-trigger `ultra-task`, and `ultra-task` does not auto-trigger it.
+Change the main-thread session model (the user sets that), or fan out an interactive phase
+(a consent gate, a user pick — subagents have no user I/O, so it stays in the main thread).
 
 ## Residual: no cross-plugin activation guard
 

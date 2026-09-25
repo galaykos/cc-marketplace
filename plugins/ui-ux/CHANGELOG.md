@@ -4,6 +4,38 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.26.3 — 2026-09-25
+
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
+### Fixed
+- **`palette-default` nudges once per session again, not once per directory.** Its
+  one-shot state lived under the hook payload's `cwd`, which follows the model's `cd`
+  (finding 2 of `rationale/2026-09-25-session-plugin-usage-review.md`, in the marketplace
+  repository), so every `cd` started a fresh one-shot and left a `.claude/ui-ux/` dir in
+  that subdirectory. State now lives at the project root: the git root, else
+  `CLAUDE_PROJECT_DIR` when the cwd is under it, else the cwd. The harness gained a
+  subdirectory-cwd case.
+
+### Changed
+- **`ui-ux-reviewer` and `ui-ux-engineer` preload `a11y-audit` (`skills: [ui-ux:a11y-audit]`).**
+  Their `bestpractices-skill:` key does nothing unless a dispatcher injects a Read path, so
+  three reviewers spawned outside task-runner made 95–101 tool calls each and read no
+  SKILL.md (finding 6 of `rationale/2026-09-25-session-plugin-usage-review.md`, in the
+  marketplace repository). The host now injects the skill body at spawn. **Cost per spawn:
+  the body is 7,140 bytes, about 1.8k tokens at 4 bytes/token (about 2.4k at 3), paid on
+  every spawn and re-read from cache on each of the agent's turns.** `context-budget.sh`
+  does not meter it. Only a11y-audit is preloaded, because it applies to every stack. The
+  per-stack lists stay dispatcher-injected so that React Native or Next.js rules never
+  land in a Laravel/Inertia project. A `/ui-ux:audit` deferral now covers only a full
+  audit: a rule a11y-audit lists is flagged (reviewer) or applied (engineer) in the same
+  pass. The engineer's line comes from a new optional `preloadSkills` chassis key, so no
+  other generated agent changed. Measured on CLI 2.1.282, one haiku run per arm: both
+  agents quoted the injected body verbatim with no tool calls, and `a11y-engineer`
+  (no `skills:` line) did not. `claude plugin validate --strict` does not parse agent
+  frontmatter, so it proves nothing here. Untested: whether reviews catch more with the
+  skill preloaded (no with/without arm). Standing of the flag-don't-defer rule: recorded.
+
 ## 0.26.2 — 2026-09-23
 
 ### Changed

@@ -1,6 +1,6 @@
 {
   "name": "ask-ledger",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Catches the silent avert — work that quietly does less than the ask named, with no reason written anywhere. On the first work-shaped prompt a hook destructures the ask into its named things (proper nouns, quoted terms, 2D/3D-style tokens) and keeps them as a session ledger; a Stop gate refuses a final message that does not account for each one — `<name>: as named | substituted → what, why | omitted → why`. The script proves the accounting exists; whether it is true is the model's word and the reader's eye. Off with CC_ASK_LEDGER=off.",
   "author": {
     "name": "Ivan-WG",

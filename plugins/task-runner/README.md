@@ -82,14 +82,34 @@ content warrants them. Blocker/major findings re-enter the bounded fix loop.
 The run only completes when every task is done or parked AND the project's
 full check suite passes — including api-design's doc-drift check when installed.
 
+When a milestone's cards touch UI, the orchestrator walks the changed screens in a real
+browser before the milestone closes. Workers never do it: they share one browser and
+have no MCP tools. The walk serves the built assets and signs in as a walk user the spec
+set up, never with your credentials. Each changed screen is shot at 1280 and 375 px with
+a horizontal-overflow probe. The walk also tabs through the new controls, checks that
+Escape returns focus to the trigger, reads the console, and emulates reduced motion
+where motion changed. The closing message then carries a Screens table: screen, width,
+before and after shot paths, and what was **not observed** (surfaces that need data or
+keys the project does not have). The shots use design-kit's layout, so its
+`snapshot.sh review` can pair them on one page. Why: in one measured run, 34 UI
+subagents made no browser calls, and eight UI defects surfaced only after the build.
+Another run's walk caught a 375 px overflow and a reduced-motion bug that seven reviews
+had missed. **Standing: recorded.** Nothing checks that a walk happened. A skipped walk
+recorded with `reduction-record.sh` must be named in the report, and the checklist
+itself lives in `skills/task-execution/references/ui-walk.md`.
+
 Status lives in the task index and the conversation — no HTML dashboards.
 HTML/preview artifacts are reserved for content that needs them: mockups,
 interactive walkthroughs, demos.
 
 ## Staying near the ask when there is no card
 
-`scope.sh` warns, once per edit outside the set, when a card has declared its file
-list — it never blocks. Most turns have no card, and there its first line exits — so
+`scope.sh` warns, once per written file outside the set, while a registered run's cards
+have declared their file lists — it never blocks. It sees Edit/Write and the files a Bash
+command writes by redirect, heredoc, `tee` or `sed -i` (at most 8 per call; interpreter
+writes and `cp`/`mv` stay invisible). It reads the scope files at the project root in
+whatever directory the shell sits, and ignores any left over from an earlier run. Most
+turns have no registered run, and there it exits at once — so
 `drift.sh` asks one question, once per request, when a narrow ask has produced a wide
 change: **12+** files edited (p90 of 169 measured local edit-turns), no breadth word in
 the request, half of them never named in it.
@@ -154,7 +174,9 @@ Skips stay possible and stop being silent. `scripts/review-skip.sh` (per card) a
 `scripts/reduction-record.sh` (`--kind redteam|dispatch|suite|coverage|other` — a degraded
 panel, a downgraded dispatch, a narrowed suite, a dropped coverage pass, anything
 else) record the cut with its reason and print it to the transcript at the moment of the
-decision; in an interactive session a PreToolUse hook asks you to approve it first. The
+decision. `--evidence <path>` records what was observed instead, for example the UI walk's
+shot dir; it must exist inside the repo. In an interactive session a PreToolUse hook asks
+you to approve it first. The
 completion gate then refuses a clean stop unless the closing report names each recorded
 id. Design carve-outs — a track leaf, a reviewer plugin that is not installed — record an
 exemption and never prompt.
@@ -178,5 +200,8 @@ reminder everywhere.
 
 - **taskmaster** — produces the task cards this plugin executes
 - **code-architecture** — its work-verification discipline applies to the whole run
-- **code-review / ui-ux / security** — power the per-task reviewer pass when installed
+- **code-review / ui-ux / security** — power the per-task reviewer pass when installed; ui-ux's
+  a11y-engineer fixes the accessibility items reviewers defer, inside the run
+- **design-kit / overseer** — design-kit pairs the UI walk's shots into a before/after page;
+  overseer's acceptance protocol is the fuller walk checklist
 - **api-design** — its doc-drift check (`/api-design:drift`) joins the completion gate when installed

@@ -1,12 +1,23 @@
 {
   "hooks": {
-    "PostToolUse": [
+    "UserPromptSubmit": [
       {
-        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/conventions.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/review-debt.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/conventions.sh\"",
             "timeout": 15
           }
         ]
@@ -16,13 +27,23 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scan.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scan.sh\"",
             "timeout": 15
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/density.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/density.sh\"",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task|Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/review-debt.sh\"",
+            "timeout": 5
           }
         ]
       },
@@ -31,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/verbosity.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/verbosity.sh\"",
             "timeout": 5
           }
         ]
@@ -43,12 +64,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scan.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scan.sh\"",
             "timeout": 15
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/density.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/density.sh\"",
             "timeout": 10
           }
         ]

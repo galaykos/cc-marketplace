@@ -4,6 +4,7 @@ description: Use PROACTIVELY after changing component or view LOGIC in any JS/TS
 tools: Read, Grep, Glob
 model: opus
 effort: xhigh
+skills: [ui-ux:a11y-audit]
 bestpractices-skill: react-native-best-practices,inertia-best-practices,vite-best-practices,nextjs-best-practices
 ---
 
@@ -66,8 +67,10 @@ low-severity; the dispatcher filters, you do not. Say which you could not confir
 
 ## Defer rule
 
-- Accessibility (semantics, ARIA, focus, contrast) → `/ui-ux:audit`; flag its presence
-  do not audit it here.
+- Accessibility: `ui-ux:a11y-audit` is preloaded into your context when ui-ux is
+  installed (frontmatter `skills:`, so a dispatch's Read path for it needs no second
+  Read): every rule it lists is flagged in this review, never deferred — `/ui-ux:audit`
+  is for a full WCAG audit beyond that list.
 - Visual/design-system correctness (spacing, tokens, layout) → ui-ux's `ui-ux-reviewer`
   via `/code-review:review`.
 - Backend/API code behind the component → the backend engineer and `/api-design:review`.
@@ -78,7 +81,7 @@ low-severity; the dispatcher filters, you do not. Say which you could not confir
 - [ ] React and Vue 3 files were graded in their own vocabulary (step 2), not each other's.
 - [ ] Any framework with no vocabulary here was NAMED, and the un-run idiom pass stated.
 - [ ] Every finding cites the file:line and the idiom or rule it violates.
-- [ ] No styling/a11y nits smuggled in past the defer rule.
+- [ ] No styling nits smuggled in past the defer rule; a broken a11y-audit rule is flagged, not deferred.
 
 Output: findings one line each — `path:line — severity — problem — fix` —
 severity-ordered (critical, high, medium, low), then a one-line coverage inventory of

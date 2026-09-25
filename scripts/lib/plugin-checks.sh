@@ -149,7 +149,7 @@ pc_hook_timeout() {
     done < <(jq -r '.hooks | to_entries[] as $e
                     | $e.value[].hooks[]
                     | select(has("timeout") | not)
-                    | "\($e.key):\(.command | split("/") | last)"' "$hj" 2>/dev/null)
+                    | "\($e.key):\(.command | gsub("\""; "") | split("/") | last)"' "$hj" 2>/dev/null)
   done < <(find "$root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
   return $bad
 }
@@ -198,7 +198,7 @@ pc_hook_shebang() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       IFS= read -r first < "$sh" || true
@@ -208,7 +208,7 @@ pc_hook_shebang() {
       bad=1
     done <<EOF
 $(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
-         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+         | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
@@ -221,8 +221,9 @@ EOF
 # `cwd` without first proving that directory still exists. Prints one
 # "cwd-unvalidated <plugin>:<script> <line>:<statement>" per offender; returns 1.
 #
-# WHY THIS EXISTS. The Stop/PostToolUse payload's `cwd` is where the SESSION STARTED,
-# and a session outlives the directory. `mkdir -p "$cwd/.claude/<state>"` then does not
+# WHY THIS EXISTS. The Stop/PostToolUse payload's `cwd` is a directory the session was
+# in — the shell's cwd, which follows the model's `cd` (measured 2026-09-25, see
+# pc_state_root) — and a session outlives the directory. `mkdir -p "$cwd/.claude/<state>"` then does not
 # fail on a deleted project — it REBUILDS it, three levels deep, holding nothing but the
 # hook's own state dir. Measured live on a deleted `work/acme/design-studio`
 # (rationale/specialist-panel-2026-09-22.md #2, AR 1; first reported as trend-audit H6
@@ -262,7 +263,7 @@ pc_cwd_validated() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       grep -qF 'cwd-mkdir-ok:' "$sh" 2>/dev/null && continue
       rel=$(basename "$sh")
@@ -294,11 +295,95 @@ pc_cwd_validated() {
       bad=1
     done <<EOF
 $(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
-         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+         | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
 EOF
+  return $bad
+}
+
+# pc_state_root <plugins_root>
+# A registered hook may not build a path from `$cwd/.claude` — state and project-root
+# reads go through the shared `cc_state_root` block (templates/blocks/state-root.md).
+# Prints one "state-root-raw <plugin>:<script> <line>:<statement>" per offender; returns 1.
+#
+# WHY THIS EXISTS. The payload's `cwd` is the SHELL's cwd and follows the model's `cd`.
+# Measured 2026-09-25 (rationale/2026-09-25-session-plugin-usage-review.md, finding 2):
+# one session's payload cwd was app/Enums, then app/Models, then the repo root; a "shown
+# once per session" warning fired three times, one `.claude/` state dir landed in each
+# directory (nine in another project, one COMMITTED to a work repo), and task-runner's
+# scope-lock silently disarmed because its scope files sat at the root it was not
+# looking in. 22 hook files had the shape. The comment that justified it said the cwd was
+# "whatever the session STARTED in" — the premise this check exists to keep dead.
+#
+# WHAT IT DOES NOT CATCH: a state path built through another variable that merely holds
+# the cwd (`d=$cwd; mkdir "$d/.claude"`), a state path under `$PWD` in a script the model
+# runs (only hooks.json commands are resolved, like its siblings), and a hook that calls
+# cc_state_root and then ignores the result. Comment lines are skipped — headers DISCUSS
+# the old shape.
+#
+# ESCAPE: `# state-root-ok: <reason>` anywhere in the hook — a reason that earns it says
+# why this state is genuinely per-directory, not per-project.
+pc_state_root() {
+  local root="${1:-plugins}" bad=0 hj d p sh out
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh#bash }
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      grep -qF 'state-root-ok:' "$sh" 2>/dev/null && continue
+      out=$(awk '
+        { t = $0; sub(/^[ \t]+/, "", t); if (t ~ /^#/) next
+          if ($0 ~ /\$\{?cwd\}?"?\/\.claude/) { printf "%d:%s", FNR, t; exit } }' "$sh")
+      [ -z "$out" ] && continue
+      printf 'state-root-raw %s:%s %s\n' "$p" "$(basename "$sh")" "$out"
+      bad=1
+    done <<HOOKS
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
+         | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
+HOOKS
+  done <<FILES
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+FILES
+  return $bad
+}
+
+# pc_shared_blocks <plugins_root> <blocks_dir>
+# Every shell file under <plugins_root> that DEFINES a function owned by a shared block
+# must carry that block byte-for-byte. Prints one "shared-block-drift <path> <block>" per
+# offender; returns 1. Owned today: cc_state_root (state-root.md) and
+# cc_bash_write_targets (bash-write-targets.md).
+#
+# WHY THIS EXISTS. Plugins install alone, so a helper two plugins need is COPIED, not
+# sourced — and a copy edited in one plugin is a fix the other five never got. Generated
+# hooks include the block through the template engine; hand-written hooks paste it, and
+# this is what keeps the paste honest. Both blocks landed 2026-09-25 across several
+# plugins at once (rationale/2026-09-25-session-plugin-usage-review.md, findings 1-2).
+#
+# WHAT IT DOES NOT CATCH: a hook that needs the helper and reimplements it under another
+# name, or calls it without defining it (a runtime `command not found` that a fail-open
+# hook swallows — each plugin's own harness is what catches that).
+pc_shared_blocks() {
+  local root="${1:-plugins}" bdir="${2:-templates/blocks}" bad=0 f blk content fn name pair
+  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets; do
+    name=${pair%%:*}; fn=${pair#*:}
+    [ -r "$bdir/$name.md" ] || continue
+    blk=$(cat "$bdir/$name.md")
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      content=$(cat "$f")
+      [[ "$content" == *"$blk"* ]] && continue
+      printf 'shared-block-drift %s %s\n' "$f" "$name.md"
+      bad=1
+    done <<DEFS
+$(grep -rlE "^[[:space:]]*$fn\(\)[[:space:]]*\{" "$root" --include='*.sh' 2>/dev/null | sort)
+DEFS
+  done
   return $bad
 }
 
@@ -355,7 +440,7 @@ pc_offswitch_named() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       grep -qF 'offswitch-ok:' "$sh" 2>/dev/null && continue
       # Refusal-capable? Either channel counts. Comments are stripped so a header that
@@ -383,7 +468,7 @@ EOF
       bad=1
     done <<EOF
 $(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
-         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+         | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
@@ -1833,7 +1918,7 @@ pc_lanes_coverage() {
         esac
       done < <(jq -r '.hooks | to_entries[]
                       | select(.key=="UserPromptSubmit" or .key=="Stop")
-                      | .value[].hooks[].command // empty' "$hj" 2>/dev/null | sort -u)
+                      | (.value[].hooks[].command // empty) | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
       # DENY-CAPABLE TOOL-CHANNEL HOOKS ARE GATED TOO (2026-09-15). The two events above
       # were the whole hook half of this check, which left the most contended surface in
       # the marketplace undeclared: 14 hooks can return a permissionDecision on one tool
@@ -1865,7 +1950,7 @@ pc_lanes_coverage() {
         esac
       done < <(jq -r '.hooks | to_entries[]
                       | select(.key=="PreToolUse" or .key=="PostToolUse")
-                      | .value[].hooks[].command // empty' "$hj" 2>/dev/null | sort -u)
+                      | (.value[].hooks[].command // empty) | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
     fi
     while IFS= read -r a; do
       [ -n "$a" ] || continue
@@ -2048,7 +2133,7 @@ pc_phase_guard() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       grep -qF 'cc-phase.json' "$sh" 2>/dev/null && continue
@@ -2068,7 +2153,7 @@ pc_phase_guard() {
     done <<EOF
 $(jq -r '((.hooks.UserPromptSubmit // []) + (.hooks.Stop // [])
           + (.hooks.PreToolUse // []) + (.hooks.PostToolUse // []))
-         | .[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+         | .[]? | .hooks[]? | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
@@ -2102,7 +2187,7 @@ pc_context_key() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       grep -q 'session_id' "$sh" 2>/dev/null || continue
@@ -2111,7 +2196,7 @@ pc_context_key() {
       printf 'context-keyed-on-session %s:%s\n' "$p" "$rel"
       bad=1
     done <<EOF
-$(jq -r '(.hooks.PostToolUse // []) | .[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+$(jq -r '(.hooks.PostToolUse // []) | .[]? | .hooks[]? | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
@@ -2189,7 +2274,7 @@ pc_marker_key() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       grep -q 'marker-key-ok:' "$sh" 2>/dev/null && continue
@@ -2212,7 +2297,7 @@ $(grep -nE "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[\"']?[^\"']*/[^\"']*\\\$\{?$v\}
 EOF
       done
     done <<EOF
-$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]? | select(.type=="command") | .command | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)

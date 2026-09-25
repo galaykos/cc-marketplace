@@ -64,6 +64,17 @@ second=$(printf '%s' "$SID" | "$BASH_BIN" "$HOOK" 2>/dev/null)
 [ -n "$first" ] && [ -z "$second" ] && ok "warns once per file per session" \
   || bad "warns once per file per session" "first=${first:0:40} second=${second:0:40}"
 
+# a clean touch does NOT spend the file's one warning (0.9.1): created clean, then an
+# invisible character appended — the second touch must still warn.
+printf 'const a = 1;\n' > "$T/later.ts"
+LATER='{"session_id":"later","transcript_path":"/tmp/later","tool_name":"Write","tool_input":{"file_path":"'"$T"'/later.ts"}}'
+first=$(printf '%s' "$LATER" | "$BASH_BIN" "$HOOK" 2>/dev/null)
+printf 'const b\xe2\x80\x8b = 2;\n' >> "$T/later.ts"
+second=$(printf '%s' "$LATER" | "$BASH_BIN" "$HOOK" 2>/dev/null)
+[ -z "$first" ] && case "$second" in *additionalContext*) true ;; *) false ;; esac \
+  && ok "a clean first touch does not use up the file's warning" \
+  || bad "a clean first touch does not use up the file's warning" "first=${first:0:40} second=${second:0:40}"
+
 # off switches
 out=$(printf '{"session_id":"o1","transcript_path":"/tmp/o1","tool_name":"Read","tool_input":{"file_path":"'"$T"'/zw.ts"}}' \
       | CC_UNICODE_SCAN=off "$BASH_BIN" "$HOOK" 2>/dev/null)
@@ -76,8 +87,38 @@ out=$(printf '{"session_id":"o2","transcript_path":"/tmp/o2","tool_name":"Read",
 out=$(printf 'garbage' | "$BASH_BIN" "$HOOK" 2>/dev/null); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && ok "fail-open on malformed input" || bad "fail-open on malformed input" "rc=$rc"
 silent "$T/missing.ts" "a file that does not exist is silent"
-out=$(fire "$T/zw.ts" Bash)
+out=$(fire "$T/zw.ts" Glob)
 [ -z "$out" ] && ok "silent on a tool it does not match" || bad "silent on a tool it does not match" "$out"
+
+# 0.9.0 BASH WRITES. A file written by a heredoc never reached this hook
+# (rationale/2026-09-25-session-plugin-usage-review.md, finding 1). The hook runs AFTER the
+# command, so each fixture file is created first and the payload carries the command that
+# wrote it. The cwd is a SUBDIRECTORY of a temp git repo, as after the model's `cd`.
+unset CLAUDE_PROJECT_DIR
+R="$T/repo"; mkdir -p "$R/app/sub" "$T/outside"; git -C "$R" init -q 2>/dev/null
+cp "$T/zw.ts" "$R/app/sub/zw.ts"; cp "$T/bidi.ts" "$R/app/up.ts"; cp "$T/clean.ts" "$R/app/sub/clean.ts"
+cp "$T/zw.ts" "$T/outside/zw.ts"
+bashfire() { # command [cwd]
+  jq -cn --arg c "$1" --arg d "${2:-$R/app/sub}" --arg s "b$RANDOM$RANDOM" \
+    '{session_id:$s, transcript_path:("/tmp/"+$s), tool_name:"Bash", cwd:$d, tool_input:{command:$c}}' \
+    | "$BASH_BIN" "$HOOK" 2>/dev/null
+}
+out=$(bashfire "$(printf "cat > zw.ts <<'EOF'\nbody\nEOF")")
+case "$out" in *"ZERO-WIDTH"*"zw.ts"*|*"zw.ts"*"ZERO-WIDTH"*) ok "a heredoc-written file is scanned" ;; *) bad "a heredoc-written file is scanned" "got: ${out:-<silent>}" ;; esac
+out=$(bashfire "echo x > ../up.ts")
+case "$out" in *"BIDIRECTIONAL OVERRIDE"*) ok "a ../ target from a subdirectory cwd resolves under the repo root" ;; *) bad "a ../ target from a subdirectory cwd resolves under the repo root" "got: ${out:-<silent>}" ;; esac
+out=$(bashfire "echo x > zw.ts && echo y >> ../up.ts")
+case "$out" in *"zw.ts"*"up.ts"*) ok "two written files are both reported" ;; *) bad "two written files are both reported" "got: ${out:-<silent>}" ;; esac
+out=$(bashfire "echo x > clean.ts"); [ -z "$out" ] && ok "a clean Bash-written file is silent" || bad "a clean Bash-written file is silent" "$out"
+out=$(bashfire "echo x > $T/outside/zw.ts"); [ -z "$out" ] && ok "a target outside the project root is skipped" || bad "a target outside the project root is skipped" "$out"
+out=$(bashfire "cat zw.ts | grep x"); [ -z "$out" ] && ok "a Bash call with no write target is silent" || bad "a Bash call with no write target is silent" "$out"
+out=$(bashfire "echo x > missing.ts"); [ -z "$out" ] && ok "a target that does not exist is silent" || bad "a target that does not exist is silent" "$out"
+# The cap: nine targets, only the ninth carries a hit, so the 8-target bound shows as silence.
+cmd9=""; for i in 1 2 3 4 5 6 7 8; do cp "$T/clean.ts" "$R/app/sub/c$i.ts"; cmd9="${cmd9}echo x > c$i.ts; "; done
+out=$(bashfire "${cmd9}echo x > zw.ts"); [ -z "$out" ] && ok "at most 8 targets are handled per call" || bad "at most 8 targets are handled per call" "$out"
+out=$(bashfire "echo x > zw.ts" "$T/gone"); [ -z "$out" ] && ok "a cwd that no longer exists fails open" || bad "a cwd that no longer exists fails open" "$out"
+[ -z "$(find "$R" -name .claude 2>/dev/null)" ] && ok "no .claude/ state under the repo root or the subdirectory" \
+  || bad "no .claude/ state under the repo root or the subdirectory" "$(find "$R" -name .claude)"
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

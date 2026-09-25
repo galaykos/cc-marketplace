@@ -68,6 +68,22 @@ def fail(msg, code=2):
     sys.exit(code)
 
 
+def dk_dir():
+    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit
+    at the git root — never under a subdirectory the shell had cd'd into, which scattered
+    a second .design-kit/ (finding 2 of the marketplace's
+    rationale/2026-09-25-session-plugin-usage-review.md)."""
+    import subprocess
+    if os.environ.get("DESIGN_KIT_DIR"):
+        return os.environ["DESIGN_KIT_DIR"]
+    try:
+        r = subprocess.run(["git", "rev-parse", "--show-cdup"], capture_output=True, text=True, timeout=5)
+        up = r.stdout.strip() if r.returncode == 0 else ""
+    except (OSError, subprocess.SubprocessError):
+        up = ""
+    return os.path.join(up, ".design-kit")
+
+
 def read_utf8(path):
     raw = open(path, "rb").read()
     try:
@@ -371,7 +387,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="make one self-contained HTML artifact")
     ap.add_argument("input")
     ap.add_argument("--name")
-    ap.add_argument("--out-dir", default=os.path.join(".design-kit", "artifacts"))
+    ap.add_argument("--out-dir", default=os.path.join(dk_dir(), "artifacts"))
     ap.add_argument("--shell", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "skills", "artifact", "assets", "page-shell.html"))
     ap.add_argument("--zip", action="store_true")
     ap.add_argument("--json", action="store_true")

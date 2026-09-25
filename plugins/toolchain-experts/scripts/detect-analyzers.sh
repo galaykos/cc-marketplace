@@ -166,6 +166,17 @@ if [ -f "$root/package.json" ]; then
         printf 'strictness eslint react-hooks/exhaustive-deps %s\n' "${sev:-unparsed}"
       fi
       grep -qE 'react-hooks' "$root/$cfg" 2>/dev/null && printf 'strictness eslint react-hooks-plugin present\n'
+      # A typeless <button> inside a <form> submits it. Measured 2026-09-25: a "Try with …"
+      # button in a composer also saved the post, found only by a reviewer reading code.
+      # Reported only where eslint-plugin-react is configured — `absent` there is the gap.
+      if grep -qE 'eslint-plugin-react[^-]|plugin:react/|pluginReact|"react/' "$root/$cfg" 2>/dev/null; then
+        if grep -qE 'button-has-type' "$root/$cfg" 2>/dev/null; then
+          sev=$(grep -oE 'button-has-type"?[^,}]*' "$root/$cfg" 2>/dev/null | grep -oE '(error|warn|off|[012])' | head -1)
+          printf 'strictness eslint react/button-has-type %s\n' "${sev:-unparsed}"
+        else
+          printf 'strictness eslint react/button-has-type absent\n'
+        fi
+      fi
       grep -qE 'plugin:vue|eslint-plugin-vue|pluginVue' "$root/$cfg" 2>/dev/null && printf 'strictness eslint vue-plugin present\n'
     fi
   fi

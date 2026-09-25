@@ -2,6 +2,17 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.16.5 — 2026-09-25
+
+### Fixed
+- **`/code-architecture:coding-task`'s by-hand phase-sentinel fallback names the repo
+  root.** The readers now resolve `.claude/cc-phase.json` at the project root rather than
+  the hook payload's `cwd`, which follows the model's `cd` (finding 2 of
+  `rationale/2026-09-25-session-plugin-usage-review.md`, in the marketplace repository);
+  taskmaster's `phase-sentinel.sh` writes there too. The fallback for when taskmaster is
+  not installed said only "write the JSON yourself", so a shell sitting in a subdirectory
+  could put the sentinel where no reader looks.
+
 ## 0.16.4 — 2026-09-23
 
 ### Changed

@@ -114,5 +114,76 @@ run_case "card: tagged strong <verify>"        0 ""                --card "$tmp_
 run_case "card: tagged element beats legacy"   0 ""                --card "$tmp_tag_both"
 run_case "card: no element, no line -> usage"  3 "no <verify> element" --card "$tmp_tag_none"
 
+# --- ui-static-only WARN (exit stays 0). The fixture is the shape of card 39 from a run
+#     reviewed 2026-09-25: a React component verified by types + lint + a data-test grep.
+#     The lint exited 0 on it and the UI shipped with no browser check. ---
+ui_dir=$(mktemp -d)
+trap 'rm -f "$tmp_weak" "$tmp_strong" "$tmp_tag_weak" "$tmp_tag_strong" "$tmp_tag_both" "$tmp_tag_none"; rm -rf "$ui_dir"' EXIT
+cat > "$ui_dir/39-ai-controls.md" <<'CARD'
+# 39 — Add AI caption controls to the approval row
+
+<card id="39">
+<goal>Approvers regenerate or reject an AI caption from the approval row without leaving the queue.</goal>
+
+<facts>
+<file path="resources/js/components/approvals/approval-row.tsx" line="42" mode="edit">row renders the caption text only</file>
+<file path="resources/js/components/approvals/approval-ai-controls.tsx" mode="create"/>
+<convention>interactive hooks carry data-test="…" attributes</convention>
+</facts>
+
+<must>
+<change>render ApprovalAiControls (Regenerate caption, Reject) inside approval-row, posting to the existing endpoints</change>
+<skill name="inertia-best-practices"/>
+</must>
+
+<must-not>
+<file path="resources/js/pages/approvals/index.tsx" reason="card 40 owns the page layout"/>
+</must-not>
+
+<proof>
+<criterion>an approver sees Regenerate caption and Reject on a row with an AI caption</criterion>
+<verify>npm run types:check && npm run check && grep -c 'data-test="approval-ai-controls"' resources/js/components/approvals/approval-row.tsx</verify>
+</proof>
+
+<depends-on>38</depends-on>
+<agent>frontend</agent>
+</card>
+CARD
+p1="$ui_dir/39-ai-controls.md"
+p1_line=$(sed -n 's|^<verify>\(.*\)</verify>$|\1|p' "$p1")
+sed 's|^<verify>.*</verify>$|<verify>npm run types:check \&\& npx vitest run resources/js/components/approvals/approval-row.test.tsx -t "reject returns focus to the row"</verify>|' "$p1" > "$ui_dir/twin-runner.md"
+sed 's|^<verify>.*</verify>$|<verify>npx playwright test tests/e2e/approvals.spec.ts -g "regenerate caption"</verify>|' "$p1" > "$ui_dir/twin-browser.md"
+awk '{ print } /^<verify>/ { print "<walk surface=\"/approvals\" widths=\"1280,375\">a row with an AI caption: both controls visible; at 375 they sit under the caption</walk>" }' "$p1" > "$ui_dir/with-walk.md"
+sed 's|resources/js/components/approvals/|resources/js/Pages/Approvals/|' "$p1" > "$ui_dir/inertia-pages.md"
+sed -e 's|path="resources/js/components/approvals/approval-row.tsx"|path="app/Services/CaptionService.php"|' \
+    -e 's|path="resources/js/components/approvals/approval-ai-controls.tsx"|path="app/Services/CaptionPrompt.php"|' "$p1" > "$ui_dir/backend-only.md"
+sed 's|path="resources/js/components/approvals/approval-ai-controls.tsx"|path="resources/js/components/approvals/approval-row.test.tsx"|; s|path="resources/js/components/approvals/approval-row.tsx"|path="app/Services/CaptionService.php"|' "$p1" > "$ui_dir/test-file-only.md"
+
+run_case "ui-static-only: P1 card 39 WARNs, exit 0"     0 "WARN ui-static-only: resources/js/components/approvals/approval-row.tsx" --card "$p1"
+run_case "ui-static-only: names the missing <walk>"    0 "this card has none"     --card "$p1"
+run_case "ui-static-only: with <walk>, says so"         0 "<walk> line is the only look" --card "$ui_dir/with-walk.md"
+run_case "ui-static-only: Inertia Pages/ (any case)"    0 "WARN ui-static-only"    --card "$ui_dir/inertia-pages.md"
+
+# run_quiet <desc> <lint args...> : exit 0 AND no ui-static-only line. run_case cannot
+# assert an ABSENT string, and a twin that passes only because the lint says nothing
+# is the load-bearing half of this pair.
+run_quiet() {
+  desc="$1"; shift
+  set +e; out=$("$lint" "$@" 2>&1); rc=$?; set -e
+  if [ "$rc" = 0 ] && ! printf '%s' "$out" | grep -q 'ui-static-only'; then
+    printf 'PASS: %s (rc=%s, no WARN)\n' "$desc" "$rc"; pass=$((pass + 1))
+  else
+    printf 'FAIL: %s (rc=%s out=<%s>)\n' "$desc" "$rc" "$out"; fail=$((fail + 1))
+  fi
+}
+run_quiet "ui-static-only: twin with a named vitest test"   --card "$ui_dir/twin-runner.md"
+run_quiet "ui-static-only: twin with a Playwright test"     --card "$ui_dir/twin-browser.md"
+run_quiet "ui-static-only: same verify, backend files only" --card "$ui_dir/backend-only.md"
+run_quiet "ui-static-only: a test file is not a UI file"    --card "$ui_dir/test-file-only.md"
+run_quiet "ui-static-only: --line mode has no files"        --line "$p1_line"
+if grep -q "$(printf '\tverify-teeth\twarn\t39-ai-controls.md')" "$ui_dir/.lint-records/39-ai-controls.md.log" 2>/dev/null; then
+  printf 'PASS: ui-static-only: run record verdict is warn\n'; pass=$((pass + 1))
+else printf 'FAIL: ui-static-only: no warn record under %s\n' "$ui_dir/.lint-records"; fail=$((fail + 1)); fi
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

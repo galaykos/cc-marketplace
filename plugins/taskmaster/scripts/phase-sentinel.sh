@@ -1,6 +1,6 @@
 #!/bin/bash
 # phase-sentinel.sh — the one SCRIPT writer of the arc phase sentinel,
-# `<cwd>/.claude/cc-phase.json`.
+# `<project root>/.claude/cc-phase.json`.
 #
 # WHY THIS EXISTS. The sentinel had four PROSE writers (taskmaster:task,
 # task-runner:run, code-architecture:coding-task, git-workflow:finish), no script
@@ -15,6 +15,15 @@
 # still cheap. `write` refuses an unknown phase with exit 3 instead of leaving a file
 # that reads as absence.
 #
+# ANCHORED AT THE PROJECT ROOT, not $PWD (2026-09-25). The model's shell follows its
+# `cd`, and so does every hook payload's cwd (finding 2 of
+# rationale/2026-09-25-session-plugin-usage-review.md). Written under $PWD, a command run
+# from app/Models put the sentinel where no reader at the root looked; read from the
+# payload cwd, a sentinel at the root was invisible to a hook fired from app/Models —
+# both read as "no sentinel", which silently means every voice is eligible.
+# Writer and readers now resolve the same root through the shared state-root block
+# (pasted below, byte-identical to templates/blocks/state-root.md — pc_shared_blocks).
+#
 # USAGE
 #   phase-sentinel.sh write <phase> --owner <plugin:command> [--session <id>] [--cwd <dir>]
 #   phase-sentinel.sh clear [--cwd <dir>]
@@ -27,7 +36,9 @@
 #               Omitting it draws a warning on stderr rather than a failure, because a
 #               caller that genuinely cannot resolve its session id is better off with a
 #               session-blind sentinel than with none.
-#   --cwd       project root (default: $PWD). Must already be a directory.
+#   --cwd       any directory of the project (default: $PWD); must already exist. The
+#               sentinel lands at its root: the git toplevel, else CLAUDE_PROJECT_DIR
+#               when the directory is under it, else the directory itself.
 #
 # Exit: 0 wrote/cleared (clearing an absent sentinel is success), 3 usage.
 #
@@ -43,6 +54,30 @@
 #     **Standing: recorded.**
 #   - The reader-side half — whether a hook that reads the sentinel actually honours the
 #     verdict on every branch — is agent-graded, as `pc_phase_guard`'s header says.
+
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
 
 PROG=phase-sentinel
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
@@ -83,7 +118,8 @@ while [ $# -gt 0 ]; do
 done
 
 [ -d "$cwd" ] || usage "--cwd is not a directory: $cwd"
-sentinel="$cwd/.claude/cc-phase.json"
+root=$(cc_state_root "$cwd") || usage "cannot resolve a project root from: $cwd"
+sentinel="$root/.claude/cc-phase.json"
 
 if [ "$cmd" = clear ]; then
   rm -f "$sentinel" 2>/dev/null
@@ -98,9 +134,9 @@ for p in $PHASES; do [ "$phase" = "$p" ] && ok=1; done
 [ "$ok" = 1 ] || usage "unknown phase '$phase' (want one of: $PHASES)"
 [ -n "$owner" ] || usage "write requires --owner <plugin:command>"
 
-[ -n "$session" ] || printf '%s: no --session given; the sentinel will apply to every session sharing %s/.claude/\n' "$PROG" "$cwd" >&2
+[ -n "$session" ] || printf '%s: no --session given; the sentinel will apply to every session sharing %s/.claude/\n' "$PROG" "$root" >&2
 
-mkdir -p "$cwd/.claude" 2>/dev/null || usage "cannot create $cwd/.claude"
+mkdir -p "$root/.claude" 2>/dev/null || usage "cannot create $root/.claude"
 
 started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || started_at=""
 

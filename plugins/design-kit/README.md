@@ -67,6 +67,11 @@ scratch, artifacts, deck) so a command with no argument offers the natural next 
 appends one line per verb to `.design-kit/usage.jsonl` — the record the Measured section
 reads. `dk status` prints the flow; the gallery shows it as a strip, and stamps each page
 green or amber ("tokens moved since build") against the current `design-system/tokens.json`.
+`.design-kit/` lives at the project root (the git toplevel), whichever directory the shell
+has `cd`'d into; until 0.6.0 a verb run from `src/` built a second one there, with its own
+board and decisions. `DESIGN_KIT_DIR` moves it and is used exactly as given.
+`design-system/` is not anchored: `dk check` and `dk decision --record` read the shell's
+directory.
 
 The board talks back. "Pick this", a knob move or a text edit posts to the server's one
 write route, `/_decision`: loopback only, header-gated, append-only into
@@ -282,10 +287,64 @@ with Pillow; without it the page shows the pair alone and every row reads
 each: `0` shot or rendered, `1` bad arguments, `2` the browser or the server was
 unreachable, printed as `NOT MEASURED` and never as "no change" — a shot nobody took is
 not a screen that did not change. Reading the pair is **agent-graded**: nothing here
-asserts a pixel, so there is no threshold and no failing build. Also not here: auth flows
-(a route behind a login shoots the login page), per-component crops, scroll or animation
-settling past one 3 s budget, and device emulation beyond the viewport size — no touch,
-no mobile UA, no DPR change. Two machines' antialiasing counts as changed pixels.
+asserts a pixel, so there is no threshold and no failing build. Also not here: signing in
+(a route behind a login shoots the login page unless `--storage-state` replays a session,
+below), per-component crops, scroll or animation settling past one 3 s budget, and device
+emulation beyond the viewport size — no touch, no mobile UA, no DPR change. Two machines'
+antialiasing counts as changed pixels.
+
+### Behind a login
+
+```bash
+dk snapshot --routes /dashboard --device both --storage-state .design-kit/auth/walk.json
+```
+
+The file is a Playwright `storageState` JSON: cookies, plus localStorage per origin. Sign in
+once through the project's walk access, meaning a self-registered or seeded test user with a
+password the agent set, or an env-guarded local-only login. **Never use the user's own
+account.** Then save the state from that same Playwright MCP browser in one
+`browser_run_code_unsafe` call:
+
+```js
+async (page) => {
+  const file = '/ABSOLUTE/PATH/TO/REPO/.design-kit/auth/walk.json';
+  const { origin, localStorage } = await page.evaluate(() => ({ origin: location.origin,
+    localStorage: Object.entries(window.localStorage).map(([name, value]) => ({ name, value })) }));
+  const state = { cookies: await page.context().cookies(page.url()), origins: [{ origin, localStorage }] };
+  const browser = page.context().browser();
+  if (!browser) { await page.context().storageState({ path: file }); return 'saved (whole context)'; }
+  const ctx = await browser.newContext({ storageState: state });
+  await ctx.storageState({ path: file }); await ctx.close(); return 'saved';
+}
+```
+
+Why not a plain `page.context().storageState({ path })`? A Playwright MCP attached to a real
+Chrome profile saves every site's cookies. Measured 2026-09-25: 48 of 49 cookies were the
+user's own (Google, LinkedIn, YouTube and others) and one was the app's. The call above keeps
+only the cookies the browser would send to the app's URL. It writes through Playwright because
+the tool's sandbox has no `fs`, `require` or `URL`. `browser()` is null when the MCP launched its
+own profile, which holds only what the agent browsed; then the whole context is saved. A project
+with its own Playwright setup can write the same file with `context.storageState({ path })` from
+an isolated context.
+
+**The file holds a live session token.** Inside a git work tree `snapshot` refuses it with
+exit 1 unless git ignores it, and a tracked file never counts as ignored. Keep it under
+`.design-kit/`, which `dk` keeps ignored, or outside the repo. Delete it when the walk user goes.
+
+What it carries: cookies and localStorage. It does not carry sessionStorage, IndexedDB or an HTTP
+auth header. The browser's `--screenshot` CLI cannot take a cookie, so this path drives the same
+browser over the DevTools protocol (python3 stdlib, no Node). It settles in real time: the load
+event, then 500 ms without a request in flight, at most 3 s. The plain path uses a 3 s
+virtual-time budget instead, so do not pair a signed-in set with a plain one. A route that ends
+on another URL (a sign-in redirect, an expired session) is still shot, with a `WARN` naming
+where it landed. A file that holds cookies for other hosts draws a `WARN` too. Nothing tells a
+signed-in page from a login page that keeps its URL, so read the shot.
+
+Standing: **gate** for the refusals. `snapshot.test.sh` drives a missing, a malformed, an
+un-ignored and a tracked file. When a browser is installed it also shoots a cookie-guarded route
+where the server logs the cookie and a localStorage beacon, plus an expired session that must
+`WARN`. That the save call above produces a file which replays here was run by hand once
+(CHANGELOG 0.6.0), not in CI.
 
 ## Boundary with the host
 

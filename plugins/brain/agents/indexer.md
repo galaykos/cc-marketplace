@@ -143,7 +143,7 @@ refresh the `built:` hash. Do not touch other areas.
 Independent of the changed-file diff — `.claude` is dropped as noise above on purpose — so
 it runs even when the map is "already current".
 
-Source: `<cwd>/.claude/approaches/deliberated.json`, the approaches plugin's double-run
+Source: `<repo root>/.claude/approaches/deliberated.json`, the approaches plugin's double-run
 marker. ONE JSON object, overwritten per task, exactly these fields:
 `{"task": "<short slug>", "by": "approach-deliberation", "at": "<ISO-8601>"}`. Read it with
 `jq`. Absent, unparsable, or missing `task`/`at` → skip this step silently and leave any

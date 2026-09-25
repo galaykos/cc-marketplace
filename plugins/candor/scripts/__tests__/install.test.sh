@@ -36,6 +36,7 @@ pass=0; fail=0
 # Resolve the hook command the way the host does. A hard-coded path here would
 # test nothing that the sibling harnesses do not already cover.
 HOOK_RAW=$(jq -r '.hooks.Stop[0].hooks[0].command' "$CLAUDE_PLUGIN_ROOT/hooks/hooks.json")
+HOOK_RAW="${HOOK_RAW//\"/}"
 HOOK="${HOOK_RAW//\$\{CLAUDE_PLUGIN_ROOT\}/$CLAUDE_PLUGIN_ROOT}"
 [ -x "$HOOK" ] || { echo "FAIL: resolved hook not executable: $HOOK"; exit 1; }
 case "$HOOK" in "$SRC"/*) echo "FAIL: hook resolved back into the source tree"; exit 1 ;; esac

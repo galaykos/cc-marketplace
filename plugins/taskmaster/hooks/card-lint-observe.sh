@@ -52,6 +52,36 @@
 #
 # Off switches: CC_CARDLINT=off (this hook) or CC_REMIND=off (every reminder in the
 # marketplace). Fail-open on missing jq, malformed input, or an unwritable TMPDIR.
+#
+# WHERE IT LOOKS: active-run.json and a relative index_path resolve at the project root
+# (state-root block below), not the payload cwd, which follows the model's `cd`
+# (finding 2, rationale/2026-09-25-session-plugin-usage-review.md). Read from the cwd,
+# the check went silent for every edit made after a `cd` into a subdirectory.
+
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
 {
   case "${CC_CARDLINT:-on}" in off) exit 0 ;; esac
   case "${CC_REMIND:-on}" in off) exit 0 ;; esac
@@ -60,14 +90,16 @@
   input=$(cat)
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] || exit 0
+  root=$(cc_state_root "$cwd") || exit 0
 
   # HANDOFF, cheapest test first: this is a per-edit hook and the overwhelming case
-  # is a session with no registered run, which must cost one stat and stop.
-  sentinel="$cwd/.claude/task-runner/active-run.json"
+  # is a session with no registered run, which must cost one git rev-parse (the root)
+  # and one stat, and stop.
+  sentinel="$root/.claude/task-runner/active-run.json"
   [ -r "$sentinel" ] || exit 0
   index=$(jq -r '.index_path // empty' "$sentinel" 2>/dev/null) || exit 0
   [ -n "$index" ] || exit 0                      # a non-index run has no card set
-  case "$index" in /*) ;; *) index="$cwd/$index" ;; esac
+  case "$index" in /*) ;; *) index="$root/$index" ;; esac
   [ -r "$index" ] || exit 0
 
   # Shared identity with the writers. CLAUDE_PLUGIN_ROOT when installed; the

@@ -87,7 +87,17 @@ malformed-marker fallback, the run-start announcement, and what Goal never suppr
 
 Blocker/major findings send the task back into the fix loop; each such round counts toward the SAME three-cycle ceiling as verify failures (under `--crew`, the crew loop
 uses its own fresh budget) — so the reviewer pass cannot loop unboundedly. Minor findings go to the follow-up backlog, not the current diff; after a reviewer-driven fix,
-re-run the verify command before re-review.
+re-run the verify command before re-review. Accessibility findings and `/ui-ux:audit` deferrals are the exception: they
+close in the run, fixed or recorded (`references/reviewer-routing.md` § UI diffs).
+
+## UI card groups: walk at close
+
+When a milestone (else the run) whose diff touches UI closes, the ORCHESTRATOR walks the changed screens in a browser.
+Never a worker does this: workers share one browser and hold no MCP tools. The walk serves built assets and signs in
+through the spec's walk access, never the user's credentials. It covers 1280 and 375 with an overflow probe, the keyboard
+(Escape returns focus to the trigger), the console, and reduced motion. Its closing message carries one Screens table
+(screen · width · before · after · not observed), and a skipped walk is recorded. Procedure, shot layout, and the
+`--evidence` for a no-runner record: `references/ui-walk.md`. Standing: recorded.
 
 ## No unbounded outer loop
 
@@ -152,7 +162,7 @@ The run is complete only when:
    --isolate --changed <run's files>`, never a hand-built checkout) — the repo suite may be a static linter that never runs new code.
    If installed, api-design's drift check (`/api-design:drift`) joins, and code-architecture's **drift-review** reads the whole-run diff against what was ASKED — no suite checks that.
 3. The final report is a table: task / status / verify command / evidence line, plus the
-   parked list with reasons and the follow-up backlog collected by the scope lock.
+   parked list with reasons and the follow-up backlog collected by the scope lock, plus every UI group's Screens table.
 
 Claiming completion without the full-suite run is asserting, not verifying —
 work-verification (code-architecture plugin) applies to the whole run.

@@ -25,8 +25,8 @@ Tag → the domain reviewer the card's `Agent:` tag ADDS. The vocab-sync parser 
 the **tag key** (the field before `->`); the RHS is descriptive.
 
 ```
-frontend      -> web-dev:frontend-reviewer + prime {card Skills-to-apply} + ui-ux:a11y-audit
-ui-ux         -> ui-ux:ui-ux-reviewer + prime {card Skills-to-apply} + ui-ux:a11y-audit
+frontend      -> web-dev:frontend-reviewer + prime {card Skills-to-apply}
+ui-ux         -> ui-ux:ui-ux-reviewer + prime {card Skills-to-apply}
 devops        -> devops:devops-reviewer + prime {card Skills-to-apply} + devops:devops-practices
 generic       -> code-review:code-reviewer
 database      -> code-review:code-reviewer + prime {card Skills-to-apply} + database:sql-best-practices
@@ -37,6 +37,9 @@ testing       -> code-review:code-reviewer + prime {card Skills-to-apply} + test
 performance   -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:performance-tuning
 observability -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:observability-design
 ```
+
+`ui-ux:a11y-audit` is preloaded by those two agents (ui-ux ≥0.26.3, web-dev ≥0.9.3); prime it
+only for other reviewers — a `frontend`/`ui-ux` card falling back to `code-reviewer`, or an older install.
 
 ## Priming (the orchestrator primes every routed reviewer)
 
@@ -113,19 +116,34 @@ Runs after the card's verification passes — a command OR a recorded manual che
    orchestrator after the batch joins.
 6. **Severity normalization** (routed reviewers use varying scales): **critical/high** or
    **blocker/major** → re-enter the existing **3-cycle fix loop** (`SKILL.md`'s fix-loop rule);
-   **medium/low** or **minor** → the backlog. In the fix loop the runner applies fixes
+   **medium/low** or **minor** → the backlog, except accessibility findings and deferrals
+   to `/ui-ux:audit`, which close in the run (§ UI diffs). In the fix loop the runner applies fixes
    (or re-dispatches the builder), re-runs verify, then re-reviews.
 7. **Ultra:** routed reviewers inherit the `Ultra:` marker model override (`SKILL.md` § Extreme Boost).
-8. **Role-tier floor — unboosted too:** a routed reviewer with a row in delegation-contracts
-   `references/role-floors.md` (that registry is the source of truth for which reviewers
-   floor — do not restate the list here) dispatches at `max(marker tier if present ELSE the
-   session model, its floor)`. Item 7 covers the boosted half; this covers the case with no
-   marker, where a pinned reviewer would otherwise run BELOW a stronger session. Reviewers
-   with no row are unfloored and unchanged. Registry unresolved → omit `model:` and log it.
+8. **Role-tier floor — unboosted too:** § Role-tier floor below (boosted half: item 7).
 
 A card whose `<agent>` tag and `<skill>` names imply different stacks is **not** a
 conflict — inject both the tag's agnostic domain skill and the card's stack skills; they
 are complementary.
+
+## UI diffs: nothing deferred leaves the run
+
+Measured 2026-09-25: reviewers deferred focus-loss items "→ /ui-ux:audit" or to the
+backlog. The audit never ran, no `ui-ux-reviewer` or `a11y-engineer` was spawned, and the
+items were never fixed. On a UI diff:
+
+- **An accessibility deferral closes IN the run, whatever its severity.** At group close,
+  send the group's deferrals to ONE `ui-ux:a11y-engineer` dispatch (else the card's
+  worker), routed per `routing.md`, before the UI walk (`ui-walk.md`). The alternative is
+  `review-skip.sh --card <id> --reason "a11y deferred: <item> — <why>"`. A card holds one
+  record, and a second call replaces the first.
+- **`ui-ux-reviewer` is on every directly-dispatched UI card** (gate 2). No other reviewer
+  stands in for it. The observer counts any `RV-CARD` dispatch, so it cannot see this gap.
+  A UI card reviewed without it gets `--exempt no-reviewer-installed` or
+  `--reason "<why>"`.
+
+Standing: **recorded**. These rules use the existing recorder, and no gate checks which
+reviewer ran.
 
 ## Tracks
 
@@ -137,27 +155,18 @@ tracks.
 
 **Record every such card**: `scripts/review-skip.sh --card <id> --exempt leaf`. The
 completion gate counts reviewer records against done cards, so a leaf card with neither a
-dispatch nor an exemption blocks the stop. The record costs one command and keeps the
-count honest; without it the gate would refuse a run that did nothing wrong, which is a
-worse failure than the silence it replaced.
+dispatch nor an exemption blocks the stop.
 
 ## Batch carve-out
 
-A **batch** (bundled same-worker S-cards, `references/routing.md` § Batch dispatch) is
-**exempt from the leaf rule above**: unlike a live track leaf, a batch *returns* to the
-main runner, which then processes each member per-card. So the main runner runs the full
-augmented reviewer pass (baseline `code-reviewer` + diff-content gates + tag route) on
-**each batched card's diff** on return — a batched S-card receives exactly the review its
-inline counterpart would. Batching moves where the code is written, never the review it gets.
+A **batch** (`references/routing.md` § Batch dispatch, item 6) is **exempt from the leaf
+rule above**: it *returns* to the main runner, which runs the full augmented reviewer pass on
+**each batched card's diff** — exactly the review its inline counterpart would get.
 
 ## Role-tier floor
 
 **Role-tier floor — applies boosted or NOT:** an agent with a row in delegation-contracts
 `references/role-floors.md` dispatches at `max(marker tier if present ELSE the session model,
-its floor)` — never below the session model; agents with no row are unfloored and unchanged
-(omit `model:`). A registry miss → omit `model:` and log `role-floors.md unresolved — floors
-not applied` in the run report.
-
-The floor is a MINIMUM, not an override: an agent already dispatching above its
-floor keeps its tier. Unfloored agents are the common case and stay untouched, so
-a registry miss degrades to frontmatter tiers rather than to a guess.
+its floor)` — never below the session model; a floor is a MINIMUM, so an agent already above
+it keeps its tier. Agents with no row are unfloored and unchanged (omit `model:`). A registry
+miss → omit `model:` and log `role-floors.md unresolved — floors not applied` in the run report.

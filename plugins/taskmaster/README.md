@@ -53,7 +53,10 @@ Without arguments it asks for a description first. The pipeline then:
 7. Emits single-prompt task cards to `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a
    `00-INDEX.md` — each card stamped with the stack skills it needs (from the
    stack-scan inventory), sized S/M/L/XL against task-cards' anchor rule, and
-   grouped into independently shippable milestones on big runs
+   grouped into independently shippable milestones on big runs. On UI work the
+   first UI card builds how an agent signs in and the seeded states the grill
+   settled, and each UI card names the screen, widths and state the browser walk
+   at group close must see
 8. When task-runner is installed, asks "Start execution now?" — one approval and
    it hands the index straight to the task-execution discipline, no manual
    `/task-runner:run` needed (still printed as the fallback if you decline)

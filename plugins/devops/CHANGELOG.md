@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.8.1 — 2026-09-25
+
+### Changed
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
 ## 0.8.0 — 2026-09-22
 
 ### Added

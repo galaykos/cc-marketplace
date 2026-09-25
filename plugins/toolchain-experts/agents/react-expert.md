@@ -38,6 +38,10 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
 - **Bare `eslint-disable-next-line react-hooks/exhaustive-deps` in the diff.** The
   most common way a real dependency bug is silenced. Quote each one; a disable with a
   stated reason is a decision, a bare one is not.
+- **`react/button-has-type` (eslint-plugin-react).** The detector prints its severity, or
+  `absent`. Absent or off means a `<button>` with no `type` inside a `<form>` submits
+  it — a class no type checker sees and code review catches only by luck. Report it
+  when eslint-plugin-react is configured; no plugin, no line.
 - **React Compiler.** If the project enables it, the dependency rules are enforced by
   the compiler and a demoted lint rule matters less — check before making the headline
   finding, and say which regime applies.

@@ -8,6 +8,9 @@
 # regressing. Every fixture lives under a mktemp -d workspace; the hook is driven
 # with canned PostToolUse stdin JSON and judged on rc + stdout + stderr.
 set -u
+# This session may export CLAUDE_PROJECT_DIR (pointing at the marketplace repo); the
+# hook's state-root resolver reads it, so the fixtures must not inherit it.
+unset CLAUDE_PROJECT_DIR
 
 here=$(cd "$(dirname "$0")" && pwd)
 HOOK="$here/../../hooks/scope.sh"
@@ -19,7 +22,12 @@ pass=0; fail=0
 WS=$(mktemp -d); trap 'rm -rf "$WS"' EXIT
 
 CWD="$WS/repo"; mkdir -p "$CWD/.claude/task-runner"
+git init -q "$CWD" 2>/dev/null
 SCOPE="$CWD/.claude/task-runner/scope.json"
+# A REGISTERED run (0.41.0): scope files are read only while active-run.json exists, and
+# only when not older than it. Back-dated so every scope file written below is newer.
+ACTIVE="$CWD/.claude/task-runner/active-run.json"
+printf '{"slug":"t"}' > "$ACTIVE"; touch -t 202601010000 "$ACTIVE"
 
 stdin_for() { # <file_path> -> canned PostToolUse stdin
   jq -cn --arg cwd "$CWD" --arg f "$1" \
@@ -174,6 +182,79 @@ case "$err" in *"scope-03.json is malformed"*)
 esac
 rm -f "$CWD/.claude/task-runner/scope-03.json" "$CWD/.claude/task-runner/scope-01.json" \
       "$CWD/.claude/task-runner/scope-02.json"
+
+# ---- 0.41.0: finding 8 (stale scope), finding 2 (state root), finding 1 (Bash writes)
+#      of rationale/2026-09-25-session-plugin-usage-review.md.
+ctx_of() { printf '%s' "$1" | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
+lacks() { # <desc> <ctx> <substr>: the envelope must NOT mention substr
+  case "$2" in *"$3"*) printf 'FAIL: %s (ctx mentions <%s>)\n' "$1" "$3"; fail=$((fail+1)) ;;
+    *) printf 'PASS: %s\n' "$1"; pass=$((pass+1)) ;; esac
+}
+stdin_bash() { # <command> [cwd] -> canned PostToolUse stdin for a Bash call
+  jq -cn --arg cwd "${2:-$CWD}" --arg c "$1" '{cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}'
+}
+printf '{"allow":["src/allowed.js","lib/"],"task":"card 07"}' > "$SCOPE"
+
+# 14) STALE SCOPE, NO RUN. A finished run's scope-*.json flagged the next task's spec edit
+#     as scope creep: the old hook read scope files whether or not a run was live.
+mv "$ACTIVE" "$ACTIVE.bak"
+run_case "stale scope.json with no registered run -> silent" \
+  "$(stdin_for "$CWD/other/file.js")" 0 silent
+mv "$ACTIVE.bak" "$ACTIVE"
+run_case "same scope.json once a run is registered -> warns again" \
+  "$(stdin_for "$CWD/other/file.js")" 0 envelope "other/file.js"
+
+# 15) a scope file OLDER than active-run.json belongs to an earlier registration: its
+#     allow list and its task name both drop out of the union.
+OLD="$CWD/.claude/task-runner/scope-99.json"
+printf '{"allow":["src/old.js"],"task":"card 99"}' > "$OLD"; touch -t 202501010000 "$OLD"
+ctx=$(ctx_of "$(stdin_for "$CWD/src/old.js")")
+case "$ctx" in *"src/old.js"*"card 07"*)
+  printf 'PASS: scope file older than active-run.json -> its allow list is ignored\n'; pass=$((pass+1)) ;;
+  *) printf 'FAIL: older scope file still honoured (ctx=<%s>)\n' "$ctx"; fail=$((fail+1)) ;; esac
+lacks "older scope file's task is not named" "$ctx" "card 99"
+rm -f "$OLD"
+
+# 16) BASH WRITES. PostToolUse, so a target counts only if it exists after the call.
+mkdir -p "$CWD/other" "$CWD/src"
+echo x > "$CWD/other/out.js"; echo x > "$CWD/src/allowed.js"; echo '{}' > "$CWD/.claude/task-runner/gate-pass.json"
+run_case "Bash heredoc write outside scope -> envelope" \
+  "$(stdin_bash "cat > other/out.js <<'EOF'
+const big = 1 > 0 ? 'a' : 'b';
+EOF")" 0 envelope "other/out.js" "card 07" "scope creep"
+run_case "Bash write inside scope -> silent" \
+  "$(stdin_bash "printf 'x' > src/allowed.js")" 0 silent
+run_case "Bash with no write targets -> silent" \
+  "$(stdin_bash "ls -la && git status --short | head -5")" 0 silent
+run_case "Bash target that does not exist after the call -> silent" \
+  "$(stdin_bash "echo x > other/never-written.js")" 0 silent
+run_case "Bash write to the run's own state (.claude/task-runner/) -> silent" \
+  "$(stdin_bash "echo '{\"head\":\"x\"}' > .claude/task-runner/gate-pass.json")" 0 silent
+ctx=$(ctx_of "$(stdin_bash "echo x | tee src/allowed.js other/out.js")")
+case "$ctx" in *"other/out.js was edited"*)
+  printf 'PASS: Bash tee to two paths -> the out-of-scope one warns\n'; pass=$((pass+1)) ;;
+  *) printf 'FAIL: tee out-of-scope target not flagged (ctx=<%s>)\n' "$ctx"; fail=$((fail+1)) ;; esac
+lacks "Bash tee to two paths -> the in-scope one does not" "$ctx" "src/allowed.js"
+
+# 17) STATE ROOT. The payload cwd follows the model's `cd`; the scope files live at the
+#     project root. The old hook looked under the subdirectory, found none, and was silent.
+SUB="$CWD/app/Models"; mkdir -p "$SUB"
+run_case "subdirectory cwd -> reads the ROOT scope (Edit outside scope warns)" \
+  "$(jq -cn --arg cwd "$SUB" --arg f "$CWD/other/file.js" '{cwd:$cwd, tool_name:"Edit", tool_input:{file_path:$f}}')" \
+  0 envelope "other/file.js"
+run_case "subdirectory cwd -> in-scope Edit stays silent" \
+  "$(jq -cn --arg cwd "$SUB" --arg f "$CWD/src/allowed.js" '{cwd:$cwd, tool_name:"Edit", tool_input:{file_path:$f}}')" 0 silent
+echo x > "$SUB/Local.php"
+run_case "subdirectory cwd -> Bash relative target named repo-relative" \
+  "$(stdin_bash "echo x > Local.php" "$SUB")" 0 envelope "app/Models/Local.php"
+run_case "subdirectory cwd -> Bash ../ target normalized, in scope -> silent" \
+  "$(stdin_bash "echo x > ../../src/allowed.js" "$SUB")" 0 silent
+if [ -e "$SUB/.claude" ] || [ -e "$CWD/app/.claude" ]; then
+  printf 'FAIL: a .claude/ dir appeared under the subdirectory\n'; fail=$((fail+1))
+else
+  printf 'PASS: no .claude/ dir created under the subdirectory\n'; pass=$((pass+1))
+fi
+rm -f "$CWD/.claude/task-runner/gate-pass.json"
 
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

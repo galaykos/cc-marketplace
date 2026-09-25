@@ -2,6 +2,102 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.41.0 — 2026-09-25
+
+- `code-redteam` dedups each round against every finding SEEN, refuted ones included, matching verification-panels' loop-until-dry rule and the harness's own `--dedup <seen-file>`; its prose said "confirmed findings", the shape verification-panels names as the non-converging anti-pattern. `crew.md`'s pointer names reviewer-routing's batch rule 5 (it cited a heading that does not exist).
+
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
+Source for every change here: the review of four real sessions in
+`rationale/2026-09-25-session-plugin-usage-review.md`, which is in the marketplace repo.
+
+### Added
+- **The scope-lock hook now sees Bash writes.** `hooks.json` adds `Bash` to the `scope.sh`
+  matcher. For a Bash call the hook parses the command with the shared
+  `cc_bash_write_targets` block, which finds `>`/`>>`, heredocs, `tee` and `sed -i`/`perl -i`.
+  It resolves relative targets against the call's cwd and keeps only existing regular files
+  under the project root, up to 8 per call. Each out-of-scope path gets the same warning an
+  Edit gets. A Bash call with no targets stays silent. Files under `.claude/task-runner/`
+  are the run's own state and are never checked, on either path.
+  **Why:** finding 1. With the host's `bashFirst` auto mode, 233 of 238 main-thread writes
+  in one session were `cat > file`, and those never reached the tripwire.
+- **The honest exit for `no-behavioral-coverage` is now documented.** This covers a changed
+  language that has no test runner in the project at all, such as React files in a repo
+  with no JS runner. `skills/behavioral-gate/SKILL.md`, `run.md` step 4 and the
+  `reduction-record.sh` usage all give the same steps. Record
+  `reduction-record.sh --kind coverage --id bg-<HEAD12> --reason "…"`, write the gate pass,
+  then name `bg-<HEAD12>` in the closing report. candor's completion gate accepts that
+  verdict only when that record exists; that side of the change ships in candor.
+  **Why:** finding 5. A run with ~40 changed React files and no JS runner could only close
+  by deleting `active-run.json`.
+- **A UI walk when a group of UI cards closes.** The new
+  `skills/task-execution/references/ui-walk.md` sets out a browser walk that the
+  ORCHESTRATOR runs when a milestone (or a run) whose diff touches UI closes. It never runs
+  in a worker. The walk serves the built assets and signs in through the walk access the
+  spec settled; it never types the user's credentials, and if no access exists it asks or
+  records the gap. It walks each changed surface at 1280 and 375 with an overflow probe
+  (`scrollWidth > clientWidth` plus a scan for wide elements), tabs through the new
+  controls (Escape must return focus to the trigger), reads the console, and emulates
+  reduced motion where motion changed. Shots go to
+  `.claude/task-runner/walk/<group>/{desktop,mobile}/<route>.png`, the layout design-kit's
+  `snapshot.sh review` pairs. Surfaces the walk could not see are listed as not observed,
+  never left out. The group's closing message and the completion report carry one Screens
+  table (screen · width · before · after · not observed). The reference cites overseer's
+  `acceptance.md` for the fuller checklist and states the minimum inline.
+  `task-execution/SKILL.md` gains a short section, and `run.md` step 4 a line.
+  **Why:** the same four sessions' UI output, reviewed the same day. In one session, 34 UI
+  worker subagents made 0 browser calls. Eight UI defects surfaced after the build: six through
+  code-reading reviewers, two through the one 2-minute browser check. Another session used
+  the same tools and walked in the main thread. Its walk caught a 375 px overflow and a
+  reduced-motion bug that six card reviews and a whole-diff review had missed.
+- **`reduction-record.sh --evidence <path>`.** Records what was observed in place of the
+  reduced step, such as the walk dir behind a `bg-<HEAD12>` no-runner coverage record.
+  The path must exist and sit inside the repo root; otherwise it is a usage error (exit 3)
+  and no record is written. It is stored repo-relative. The new
+  `scripts/__tests__/reduction-record.test.sh` is the first harness for this script. It
+  covers a plain record, `--evidence`, missing and outside-the-repo evidence, the bad-kind
+  usage error, and a call from a subdirectory landing at the repo root.
+- **Accessibility deferrals close in the run.** `reviewer-routing.md` no longer sends a
+  reviewer's "→ /ui-ux:audit" or "a11y minor, to the backlog" to the follow-up backlog. At
+  group close they go to ONE `ui-ux:a11y-engineer` dispatch (or to the card's worker when
+  ui-ux is absent), or `review-skip.sh --reason` records them. A UI card reviewed without
+  `ui-ux-reviewer` needs a skip or exemption record, because the observer counts any
+  reviewer and cannot see which one is missing.
+  **Why:** in that first session the deferred focus-loss items became a backlog entry
+  that was never fixed. `ui-ux-reviewer` was never spawned across 27 UI worker spawns, and nothing
+  recorded why.
+
+### Changed
+- **Skill prose trimmed under the 160,000 B corpus cap (167,709 → 157,982 B), no rule changed.** `ui-walk.md` cites overseer's `acceptance.md` instead of restating it; restated rules across task-execution, track-orchestration, verification-panels, code-redteam and tree-wide-gates became one line plus a pointer; dated derivations moved to `rationale/2026-09-25-task-runner-prose-derivations.md`.
+- The UI walk's surface list is the union of the group's cards' `<walk>` lines plus any changed surface without one, and it signs in through the spec's Walk access row. `reviewer-routing.md` no longer primes `ui-ux:a11y-audit` for `frontend-reviewer`/`ui-ux-reviewer`, which preload it (ui-ux ≥0.26.3, web-dev ≥0.9.3); a `frontend`/`ui-ux` card falling back to `code-reviewer`, or an older install, still gets it.
+
+### Fixed
+- **Hook state follows the project root, not the shell's cwd.** `scope.sh`, `drift.sh`,
+  `announce.sh`, `rv-observe.sh` and `rv-consent.sh` carry the shared `cc_state_root` block.
+  They read `active-run.json`, the scope files, `cc-phase.json` and the index, and write
+  their records, at the git toplevel. `behavioral-gate.sh` (without `--record-dir`) and
+  `sweep-residual.sh` anchor their state the same way.
+  **Why:** finding 2. The payload `cwd` follows the model's `cd`. After a `cd app/Models`,
+  the scope lock found no scope files, the observer recorded no reviewer dispatch, and
+  `sweep-residual.sh --dir src` left a `src/.claude/` behind.
+- **Stale scope files no longer flag the next task.** `scope.sh` ignores every scope file
+  while no `active-run.json` exists. It also ignores any scope file older than
+  `active-run.json`, so a new registration retires the last run's files.
+  **Why:** finding 8. A finished phase's `scope-*.json` flagged the next phase's spec edit
+  as scope creep.
+- **`drift.sh` yields to a registered run, not to a bare `scope.json`.** Now that `scope.sh`
+  ignores leftover scope files, yielding to one would mute both hooks. `lane.tsv` updated.
+
+### Residual
+- Bash writes the parser cannot name are still invisible: `python open()`, `cp`/`mv`
+  destinations, a path held in a variable, and any target past the eighth. mtimes compare
+  at whole seconds under macOS's bash 3.2, so a stale scope file written in the same second
+  as the registration still counts as live.
+- The UI walk is `recorded`. No hook sees whether it ran, which reviewer ran, or what a
+  shot shows. `--evidence` proves only that the path exists. A one-user walk cannot reach
+  a second actor's state (a stale-row 403), so that state needs a named test. A browser
+  tool that cannot save a PNG leaves `seen, not saved` in the table.
+
 ## 0.40.0 — 2026-09-24
 
 ### Added

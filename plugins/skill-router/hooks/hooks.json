@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/prime.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/prime.sh\"",
             "timeout": 10
           }
         ]
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/compact-capsule.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/compact-capsule.sh\"",
             "timeout": 5
           }
         ]
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/route-prompt.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/route-prompt.sh\"",
             "timeout": 15
           }
         ]
@@ -34,11 +34,23 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit|.*create_new_file",
+        "matcher": "Edit|Write|MultiEdit|.*create_new_file|Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/route.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/route.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "^[a-z0-9-]+:",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-skills.sh\"",
             "timeout": 5
           }
         ]
@@ -49,7 +61,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/summary.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/summary.sh\"",
             "timeout": 5
           }
         ]

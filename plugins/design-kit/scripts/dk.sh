@@ -10,7 +10,8 @@
 #   dk drift [PATHS|--staged|--diff REF] [--ci]   literal colours + named Tailwind palette
 #                                           utilities in components that reach no token
 #   dk snapshot [--routes R] [--device desktop|mobile|both] [--base-url U] [--out DIR]
-#                                           one PNG per route per device off the running app
+#               [--storage-state FILE]      one PNG per route per device off the running app;
+#                                           FILE replays a signed-in session (snapshot.sh)
 #   dk review --base <dir|git-ref>          before / after / pixel-diff page for the
 #                                           last two shot sets, served, with a table
 #   dk slides <outline.md> [--theme FILE]   build a deck, record it, print its URL
@@ -30,6 +31,19 @@
 # exactly the prose the board's "Copy edits as prompt" button produces; --consume
 # marks that row read; --record appends one human line to design-system/DECISIONS.md.
 #
+# WHERE .design-kit/ LIVES. At the project root (cc_state_root below: the git toplevel,
+# else CLAUDE_PROJECT_DIR when the shell sits under it), not under the shell's cwd. It
+# was `./.design-kit` until 0.5.1, so a verb run after the model had cd'd into src/
+# built a second .design-kit/ there — its own board, decisions and usage log, invisible
+# to the unread-pick hook and to a `dk decision` run from the root (the cwd drift is
+# finding 2 of the marketplace's rationale/2026-09-25-session-plugin-usage-review.md).
+# At the root $DK stays the relative `.design-kit`, so every path printed there is what
+# it always was; from a subdirectory it is absolute. An explicit DESIGN_KIT_DIR is used
+# exactly as given. Either way it is EXPORTED, so the scripts dk runs (deck-build,
+# board-build, artifact-bundle, deck-export, snapshot) write where dk reads; run on their
+# own they fall back to .design-kit at the git toplevel. design-system/ is NOT anchored:
+# `dk check`, `--record` and the extractor's default --out still read the shell's cwd.
+#
 # WHAT IT DOES NOT DO. It asks no questions — every consent (write into the tree,
 # share, install pptxgenjs, push) stays in the command that calls it. It never
 # assembles a URL from a literal port: the URL is what preview.sh wrote to
@@ -37,10 +51,40 @@
 # verb against a temp project; the wrapped scripts keep their own harnesses.
 set -euo pipefail
 
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
 here="$(cd "$(dirname "$0")" && pwd)"
-DK="${DESIGN_KIT_DIR:-.design-kit}"
+ROOT="$(cc_state_root "$PWD")" || ROOT="$PWD"
+if [ -n "${DESIGN_KIT_DIR:-}" ]; then DK="$DESIGN_KIT_DIR"
+elif [ "$ROOT" = "$PWD" ]; then DK=".design-kit"
+else DK="$ROOT/.design-kit"; fi
+export DESIGN_KIT_DIR="$DK"
 WS="$DK/workshop.json"; USAGE="$DK/usage.jsonl"; DEC="$DK/decisions.jsonl"
 verb="${1:-}"; [ $# -gt 0 ] && shift
+# help writes nothing — it used to run after ensure_ignored, so `dk --help` edited .gitignore
+case "$verb" in -h|--help|"") sed -n '2,51p' "$0"; exit 0 ;; esac
 
 # ensure_ignored — the plugin's scratch paths never reach a commit by accident.
 # Once per repo: inside a git work tree, when .design-kit/ or __design-kit__/ is not
@@ -51,11 +95,13 @@ verb="${1:-}"; [ $# -gt 0 ] && shift
 ensure_ignored() {
   [ "${DESIGN_KIT_IGNORE:-on}" = "off" ] && return 0
   git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
-  local root; root="$(git rev-parse --show-toplevel)"
-  if git -C "$root" check-ignore -q "$DK/x" 2>/dev/null && git -C "$root" check-ignore -q "__design-kit__/x" 2>/dev/null; then return 0; fi
+  local root rel; root="$(git rev-parse --show-toplevel)"
+  # root-relative: $DK is absolute from a subdirectory, and .gitignore takes no absolute path
+  rel="${DK#"$ROOT"/}"
+  if git -C "$root" check-ignore -q "$rel/x" 2>/dev/null && git -C "$root" check-ignore -q "__design-kit__/x" 2>/dev/null; then return 0; fi
   # tracked on purpose (a repo that commits its evidence): say nothing, touch nothing
-  [ -n "$(git -C "$root" ls-files -- "$DK" "__design-kit__" 2>/dev/null)" ] && return 0
-  python3 - "$root/.gitignore" "$DK/" "__design-kit__/" <<'PY'
+  [ -n "$(git -C "$root" ls-files -- "$rel" "__design-kit__" 2>/dev/null)" ] && return 0
+  python3 - "$root/.gitignore" "$rel/" "__design-kit__/" <<'PY'
 import sys, re
 p, *pats = sys.argv[1:]
 start, end = "# >>> design-kit scratch (managed by design-kit dk.sh) >>>", "# <<< design-kit scratch <<<"
@@ -68,7 +114,7 @@ else:
     s = s + ("" if s.endswith("\n") or not s else "\n") + block
 open(p, "w", encoding="utf-8").write(s)
 PY
-  echo "design-kit: added $DK/ and __design-kit__/ to .gitignore (managed block; DESIGN_KIT_IGNORE=off to skip)"
+  echo "design-kit: added $rel/ and __design-kit__/ to .gitignore (managed block; DESIGN_KIT_IGNORE=off to skip)"
 }
 ensure_ignored
 mkdir -p "$DK"
@@ -324,6 +370,5 @@ print("server: " + (u or "not running"))
 PY
     log ok ;;
 
-  -h|--help|"") sed -n '2,37p' "$0"; exit 0 ;;
-  *) echo "dk: unknown verb $verb" >&2; sed -n '7,23p' "$0" >&2; exit 2 ;;
+  *) echo "dk: unknown verb $verb" >&2; sed -n '7,24p' "$0" >&2; exit 2 ;;
 esac

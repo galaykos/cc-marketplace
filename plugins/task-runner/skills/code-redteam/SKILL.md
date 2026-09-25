@@ -11,12 +11,10 @@ subtle defect the per-card verify never exercised. This skill closes that gap: i
 an independent adversarial panel at the produced diff, the same way `task-runner:ultra-assess`
 red-teams its own findings before returning them.
 
-It is deliberately thin. All panel mechanics live in `task-runner:verification-panels` —
-this skill only supplies the target (the code diff), the lenses, and the reopen rule.
-
 ## What this skill composes — do not reimplement
 
-Read `task-runner:verification-panels` and reuse it wholesale:
+This skill only supplies the target (the code diff), the lenses, and the reopen rule. Read
+`task-runner:verification-panels` and reuse it wholesale:
 
 - **Refuter voting** — N independent skeptics, each told to REFUTE, diverse lenses.
 - **Completeness-critic** — a closing pass asking only "what defect was never looked for?"
@@ -93,15 +91,16 @@ This is a DISCOVERY task, so the arithmetic is different from a single contested
 - **Majority voting applies only to adjudicating one contested claim** — when refuters
   disagree about whether a specific named defect is real, spawn a refuter round on THAT
   claim and let the majority-refute rule from verification-panels settle it.
-- **Dedup against confirmed findings** every round, via the harness:
+- **Dedup against everything SEEN** every round, via the harness:
 
   ```
-  ... | code-redteam-diff.sh --dedup <confirmed-findings-file>
+  ... | code-redteam-diff.sh --dedup <seen-findings-file>
   ```
 
   It removes any finding whose `file:line` plus normalized title already appears in the
-  seen file, printing only novel findings. SEEN means seen — carry every confirmed finding
-  forward so the loop converges instead of resurfacing the same defect each round.
+  seen file, printing only novel findings. SEEN means seen, not accepted — carry every
+  finding forward, refuted ones included, or a refuted defect resurfaces each round and the
+  loop never converges (verification-panels § loop-until-dry).
 
 ## Confirmed findings reopen cards — fresh budget
 
@@ -123,8 +122,7 @@ the Agent tool (`verification-panels` § A panel verdict is a claim about proces
 do not re-derive it). A missing `Workflow` tool is NOT the trigger: the Agent tool is a real
 dispatch path, so with it present the three refuters and the critic spawn as separate agents
 and the panel is real — `model:` only, no `effort:` (`verification-panels`
-`references/dispatch-tier.md`). Keying the fallback on `Workflow` alone downgrades the
-ordinary interactive session, which is the case a boosted run is most often invoked from.
+`references/dispatch-tier.md`).
 
 With no mechanism at all (headless, cron, a refused budget), do NOT skip the red-team. Run one inline
 single-agent code-redteam pass over the same diff from the harness: one agent walks the
@@ -151,13 +149,6 @@ non-boosted run it is a deliberate no-op — there is no marker, so no code red-
 
 ## Anti-patterns
 
-- **Red-teaming the spec, shipping the code.** The input-side boost already attacks the
-  spec; examining it again while the produced code goes unexamined repeats the exact gap.
-- **Majority-voting a discovery finding away.** A 1-of-3 evidence-backed defect is a
-  finding; only a single contested claim gets the majority-refute rule.
-- **Dedup against confirmed only in memory.** Use the harness `--dedup` against the seen
-  file so rejected-then-resurfaced defects don't spin the loop forever.
-- **Reopening a card at zero budget.** A finding that reopens a card must grant a fresh
-  bounded 3-cycle budget, not inherit the spent ceiling.
-- **Silent skip on missing panels.** Fall back to the inline pass; never let "panels
-  unavailable" mean "no red-team ran".
+Each breaks a rule above: red-teaming the spec while the code ships unexamined; majority-voting
+a 1-of-3 evidence-backed defect away; deduping in memory instead of via `--dedup` against the
+seen file; reopening a card at zero budget; letting "panels unavailable" mean no red-team ran.

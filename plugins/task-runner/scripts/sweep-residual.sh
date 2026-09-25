@@ -14,8 +14,10 @@
 #   sweep-residual.sh --measure --id <id> [--dir DIR]
 #   sweep-residual.sh --allow   --id <id> --file PATH --reason "why"
 #
-# State: .claude/task-runner/sweep-<id>.json — the frozen file list, its git tree
-# hash, the original count, the allowlist, and every measurement taken.
+# State: <repo root>/.claude/task-runner/sweep-<id>.json — the frozen file list, its git
+# tree hash, the original count, the allowlist, and every measurement taken. The root is
+# the git toplevel of --dir (else --dir itself), like reduction-record.sh: `--dir src` or a
+# run from a subdirectory used to leave a stray src/.claude/ state dir beside the code.
 #
 # Exit codes, mirroring negative-control.sh's vocabulary:
 #   0  clean — zero unallowlisted residual
@@ -58,7 +60,8 @@ done
 command -v jq >/dev/null 2>&1 || halt "jq required"
 [ -d "$dir" ] || halt "no such directory: $dir"
 
-STATE_DIR="$dir/.claude/task-runner"
+STATE_ROOT=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || STATE_ROOT="$dir"
+STATE_DIR="$STATE_ROOT/.claude/task-runner"
 STATE="$STATE_DIR/sweep-$id.json"
 
 # Non-code carriers are IN SCOPE on purpose. A migration that leaves the old name

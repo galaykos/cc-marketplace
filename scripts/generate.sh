@@ -6,7 +6,10 @@
 # (scripts/lib/template-engine.sh, overridable with TEMPLATE_ENGINE). Var derivation:
 # booleans lang/concern come from the manifest `variant` string, applyExtraBlock from
 # the `applyExtra` array, worker-agent vars are the six frontmatter fields verbatim
-# plus an optional `floor` frontmatter slot and three optional domain-content slots —
+# plus an optional `floor` frontmatter slot, an optional `preloadSkills` slot (renders a
+# `skills: [...]` frontmatter line — Claude Code preloads those bodies at spawn; set only
+# where the cost per spawn is earned, see ui-ux's .chassis.json), and three optional
+# domain-content slots —
 # operatingProcedure, domainChecklist, deferRule (each a markdown string or an array of
 # lines, joined with "\n"; absent fields default to "" so the template's {{#if}} guards
 # render nothing — so a chassis agent that pins a non-`inherit` model can emit its own

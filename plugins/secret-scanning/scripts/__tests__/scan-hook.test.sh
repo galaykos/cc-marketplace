@@ -70,7 +70,7 @@ allow "lowercased AIza"  Write 'g = "aiza""sya1234567890abcdefghijklmnopqrstuv"'
 # a longer identifier is not an assignment of that secret. Guards the widening.
 allow "camelCase prefix" Write 'tokenizerConfig = "aVeryLongConfigValue1234567890"'
 allow "secretive prose"  Write 'const secretiveNote = "aVeryLongCommentValue123456"'
-allow "non-write tool"  Bash  "$AWS"
+allow "non-write tool"  Glob  "$AWS"
 allow "empty content"   Write ''
 
 # 0.5.0 PLACEHOLDER EXEMPTION. A matched VALUE that announces itself as fake is
@@ -128,6 +128,54 @@ else echo "FAIL fail-open: rc=$rc out=$out"; fail=$((fail+1)); fi
 out=$(jq -cn --arg s "$AWS" '{tool_name:"Edit", tool_input:{file_path:"/tmp/x", old_string:"a", new_string:$s}}' | bash "$HOOK")
 if grep -q '"permissionDecision":"deny"' <<<"$out"; then pass=$((pass+1));
 else echo "FAIL edit-shape: expected deny, got: ${out:-<empty>}"; fail=$((fail+1)); fi
+
+# 0.9.0 BASH WRITES. The host steers file writes through Bash heredocs; in the measured
+# session 233 of 238 main-thread writes went that way and never met this guard
+# (rationale/2026-09-25-session-plugin-usage-review.md, finding 1). The Bash path scans
+# heredoc bodies and echo/printf arguments whose pipeline writes a file, with the Write
+# path's patterns and placeholder exemption. Payloads carry a real `cwd` inside a temp
+# git repo so the last case can prove the hook leaves no state behind.
+unset CLAUDE_PROJECT_DIR
+REPO=$(mktemp -d); trap 'rm -rf "$REPO"' EXIT
+git -C "$REPO" init -q 2>/dev/null; mkdir -p "$REPO/app/sub"
+bash_run() { # bash_run <command> [env...] -> hook stdout
+  local c=$1; shift
+  jq -cn --arg c "$c" --arg d "$REPO/app/sub" \
+    '{tool_name:"Bash", cwd:$d, tool_input:{command:$c}}' | env "$@" bash "$HOOK"
+}
+bash_deny() { # bash_deny <name> <command> [expected file]
+  out=$(bash_run "$2")
+  if grep -q '"permissionDecision":"deny"' <<<"$out" && grep -qF "(file: ${3:-})" <<<"$out" \
+     && grep -qF 'CC_SECRET_SCAN=off' <<<"$out"; then pass=$((pass+1));
+  else echo "FAIL $1: expected deny naming ${3:-a file} and the off switch, got: ${out:-<empty>}"; fail=$((fail+1)); fi
+}
+bash_allow() { # bash_allow <name> <command> [env...]
+  local n=$1; shift
+  out=$(bash_run "$@")
+  if [[ -z "$out" ]]; then pass=$((pass+1));
+  else echo "FAIL $n: expected silence, got: $out"; fail=$((fail+1)); fi
+}
+php_heredoc() { # php_heredoc <aws key> -> a `cat > config/aws.php <<'PHP'` command
+  printf "cat > config/aws.php <<'PHP'\n<?php\nreturn [\n    'key' => '%s',\n    'region' => env('AWS_REGION'),\n];\nPHP" "$1"
+}
+STRIPE_REAL="sk_live""_$LONGVAL"
+STRIPE_FAKE="sk_live""_xxxxxxxxxxxxxxxxxxxxxxxx"
+bash_deny  "heredoc cat > config/aws.php, real AKIA"  "$(php_heredoc "$AWS")" config/aws.php
+bash_allow "heredoc cat > config/aws.php, doc key"    "$(php_heredoc "$AWS_DOC")"
+bash_deny  "echo >> .env.example, real sk_live"       "echo \"STRIPE_SECRET=$STRIPE_REAL\" >> .env.example" .env.example
+bash_allow "echo >> .env.example, placeholder"        "echo \"STRIPE_SECRET=$STRIPE_FAKE\" >> .env.example"
+bash_allow "curl -H bearer, no write target"          "curl -H \"Authorization: Bearer $GH\" https://x"
+bash_allow "PHP -> and => in a body, no secret"       "$(printf "cat > app/Svc.php <<'PHP'\n<?php\n\$this->client->post(\$url, ['json' => \$body]);\n\$map = fn(\$x) => \$x->id;\nPHP")"
+bash_allow "CC_SECRET_SCAN=off"                       "$(php_heredoc "$AWS")" CC_SECRET_SCAN=off
+# Routes the extractor claims beyond the brief's list, each pinned once.
+bash_deny  "heredoc | tee -a"                         "$(printf "cat <<'EOF' | tee -a deploy.env\nK=%s\nEOF" "$AWS")" deploy.env
+bash_deny  "printf > file"                            "printf '%s\\n' '$GH' > token.txt" token.txt
+bash_deny  "second heredoc names ITS file"            "$(printf "cat > a.txt <<'A'\nclean\nA\ncat > b.php <<'B'\nk = '%s'\nB" "$AWS")" b.php
+bash_allow "heredoc to stdout only"                   "$(printf "cat <<'EOF'\n%s\nEOF" "$AWS")"
+bash_allow "echo of a \$VAR into .env"                'echo "API_KEY=$API_KEY" >> .env'
+# The guard writes no state: nothing may appear under the payload's cwd or the repo root.
+if [ -z "$(find "$REPO" -name .claude 2>/dev/null)" ]; then pass=$((pass+1));
+else echo "FAIL no state: a .claude/ dir appeared under $REPO"; fail=$((fail+1)); fi
 
 echo "secret-scan hook tests: $pass passed, $fail failed"
 exit $((fail > 0))

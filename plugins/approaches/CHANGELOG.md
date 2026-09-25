@@ -3,6 +3,24 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.10.3 — 2026-09-25
+
+- The approach-deliberation skill names the double-run marker's place, `.claude/approaches/deliberated.json` at the repo root, where `hooks/compact-recovery.sh` now reads it; a marker written from a subdirectory was invisible to the hook.
+
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
+### Fixed
+- **Hooks read their state at the project root, not wherever the shell had `cd`'d to.**
+  A hook payload's `cwd` follows the model's `cd` (finding 2 of
+  `rationale/2026-09-25-session-plugin-usage-review.md`, in the marketplace repository).
+  `compact-recovery` looked for `.claude/approaches/deliberated.json` under that cwd, so a
+  compaction after `cd app/Models` announced nothing; it now reads the marker at the root
+  (the git root, else `CLAUDE_PROJECT_DIR` when the cwd is under it, else the cwd) and
+  names its absolute path. The two reminder hooks (`remind.sh`, `consult-remind.sh`,
+  regenerated from the shared template) read the phase sentinel `.claude/cc-phase.json`
+  at the same root, so a phase declared at the root is honoured from a subdirectory.
+  The compact-recovery harness gained a subdirectory-cwd case.
+
 ## 0.10.2 — 2026-09-23
 
 ### Changed

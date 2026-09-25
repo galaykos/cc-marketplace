@@ -36,7 +36,7 @@ Scaffold a new hook from $ARGUMENTS. Steps:
            "hooks": [
              {
                "type": "command",
-               "command": "${CLAUDE_PLUGIN_ROOT}/hooks/<name>.sh"
+               "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/<name>.sh\""
              }
            ]
          }

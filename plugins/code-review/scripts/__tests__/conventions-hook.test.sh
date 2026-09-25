@@ -24,6 +24,9 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not found"; exit 0; }
 # context-budget dynamic meter hit.
 mkdir -p "$FX/tmp"
 export TMPDIR="$FX/tmp"
+# This session exports CLAUDE_PROJECT_DIR (the marketplace repo); a fixture outside git
+# must resolve to its own directory, not to that.
+unset CLAUDE_PROJECT_DIR CC_REMIND CC_CONVENTIONS
 
 mkdir -p "$FX/repo/.github/workflows" "$FX/repo/src" "$FX/bare"
 printf 'root = true\n[*]\nindent_style = tab\nquote_type = double\nmax_line_length = 120\n' > "$FX/repo/.editorconfig"
@@ -162,6 +165,57 @@ else echo "FAIL: transcript_path present — the hook went silent"; rc=1; fi
 second=$(tpfire "$FX/repo/src/tp2.ts" "$FX/repo")
 if [ -z "$second" ]; then echo "PASS: transcript_path present — the one-shot still bounds the context"
 else echo "FAIL: transcript_path present — fired twice in one context: $second"; rc=1; fi
+
+# ---- Bash writes, and configs read at the project root (0.23.0) ---------------------
+# The host steers writes through Bash — 233 of 238 main-thread writes in one measured
+# session were `cat > file <<EOF` (rationale/2026-09-25-session-plugin-usage-review.md,
+# finding 1) — and the payload cwd follows the model's `cd` (finding 2). A git repo, so the
+# project root and the cwd can differ.
+command -v git >/dev/null 2>&1 || { echo "SKIP: git not found — Bash/root cases"; exit "$rc"; }
+G="$FX/grepo"
+mkdir -p "$G/src" "$G/app/Enums" "$FX/outside"
+git -C "$G" init -q
+printf 'root = true\n' > "$G/.editorconfig"
+printf '{}\n' > "$G/biome.json"
+bfire() { # command cwd session -> additionalContext
+  jq -nc --arg x "$1" --arg c "$2" --arg s "$3" --arg t "/t/$3.jsonl" \
+    '{hook_event_name:"PostToolUse",tool_name:"Bash",session_id:$s,transcript_path:$t,cwd:$c,tool_input:{command:$x}}' \
+    | bash "$H" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
+}
+
+printf 'export const a = 1\n' > "$G/src/made.ts"
+o=$(bfire "cat > src/made.ts <<'EOF'
+export const a = 1
+EOF" "$G" b1)
+printf '%s' "$o" | grep -qF '.editorconfig' && echo "PASS: a Bash heredoc write of a code file fires" \
+  || { echo "FAIL: a Bash heredoc write of a code file stayed silent"; rc=1; }
+o=$(jq -nc --arg f "$G/src/next.ts" --arg c "$G" \
+      '{tool_name:"Edit",session_id:"b1",transcript_path:"/t/b1.jsonl",cwd:$c,tool_input:{file_path:$f}}' \
+    | bash "$H" 2>/dev/null)
+[ -z "$o" ] && echo "PASS: the one-shot spent on Bash also covers a later Edit (silent)" \
+  || { echo "FAIL: fired again after a Bash write spent the one-shot"; rc=1; }
+
+quiet() { # label output
+  if [ -z "$2" ]; then echo "PASS: $1 (silent)"; else echo "FAIL: $1 — fired"; rc=1; fi
+}
+printf 'x\n' > "$G/notes.txt"
+quiet "Bash write of a non-code file"         "$(bfire 'echo x > notes.txt' "$G" b2)"
+quiet "Bash command with no write"            "$(bfire 'ls -la && git status' "$G" b3)"
+quiet "Bash write target that does not exist" "$(bfire 'cat > src/never.ts <<EOF
+x
+EOF' "$G/app" b4)"
+printf 'x\n' > "$FX/outside/o.ts"
+quiet "Bash write outside the project root"   "$(bfire "echo x > $FX/outside/o.ts" "$G" b5)"
+
+# From a subdirectory: a relative target resolves against the Bash cwd, and the configs
+# are found at the root. Before 0.23.0 this looked for .editorconfig in app/Enums.
+printf '<?php\n' > "$G/app/Enums/Status.php"
+o=$(bfire "printf '<?php' > Status.php" "$G/app/Enums" b6)
+printf '%s' "$o" | grep -qF 'biome.json' && echo "PASS: Bash write from a subdirectory names the root configs" \
+  || { echo "FAIL: Bash write from a subdirectory: ${o:-<silent>}"; rc=1; }
+o=$(fire "$G/app/Enums/Kind.php" "$G/app/Enums" e7)
+printf '%s' "$o" | grep -qF '.editorconfig' && echo "PASS: Edit with a subdirectory cwd names the root configs" \
+  || { echo "FAIL: Edit with a subdirectory cwd: ${o:-<silent>}"; rc=1; }
 
 [ "$rc" -eq 0 ] && echo "All conventions-hook fixtures passed."
 exit "$rc"

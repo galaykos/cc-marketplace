@@ -14,6 +14,7 @@
 # asserts the hook stands down. A writer whose output its reader cannot parse would
 # pass every shape assertion and fail the only thing that matters.
 set -u
+unset CLAUDE_PROJECT_DIR   # a live session exports it; the state root would resolve there
 here=$(cd "$(dirname "$0")" && pwd)
 S="$here/../phase-sentinel.sh"
 PLUGIN_ROOT=$(cd "$here/../.." && pwd)
@@ -110,6 +111,35 @@ if command -v jq >/dev/null 2>&1 && [ -f "$H" ]; then
   "$S" clear --cwd "$P" >/dev/null 2>&1
 else
   printf 'SKIP: jq or remind.sh absent — reader round trip skipped\n'
+fi
+
+# ---- 9. SUBDIRECTORY: writer and reader agree on the project ROOT --------------------
+# The model's shell follows its `cd`, and every hook payload's cwd with it (finding 2 of
+# rationale/2026-09-25-session-plugin-usage-review.md). A writer run from app/Models must
+# write at the repo root, and a generated reader fired with cwd=app/Models must honour it.
+G="$T/repo"; mkdir -p "$G/app/Models"; git -C "$G" init -q
+GS="$G/.claude/cc-phase.json"
+OUT=$(cd "$G/app/Models" && "$S" write build --owner task-runner:run --session S1 2>&1); RC=$?
+if [ "$RC" = 0 ] && [ -f "$GS" ]; then ok "writer run from a subdirectory (default \$PWD) writes at the repo root"
+else bad "writer from a subdirectory lands at the root" "rc=$RC ($OUT)"; fi
+[ ! -e "$G/app/Models/.claude" ] && ok "no .claude/ under the subdirectory" \
+  || bad "no .claude/ under the subdirectory" "one appeared"
+OUT=$("$S" clear --cwd "$G/app/Models" 2>&1); RC=$?
+[ "$RC" = 0 ] && [ ! -e "$GS" ] && ok "clear --cwd <subdir> removes the root's sentinel" || bad "clear from a subdirectory" "rc=$RC ($OUT)"
+if command -v jq >/dev/null 2>&1 && [ -f "$H" ]; then
+  subfire() {
+    printf '{"hook_event_name":"UserPromptSubmit","prompt":"build a login page","cwd":"%s","session_id":"S1"}' "$G/app/Models" \
+      | CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$H" 2>/dev/null
+  }
+  [ -n "$(subfire)" ] && ok "generated reader, subdirectory cwd: speaks with no sentinel (control arm)" \
+    || bad "generated reader speaks from a subdirectory with no sentinel" "silent — later cases are vacuous"
+  (cd "$G/app/Models" && "$S" write build --owner task-runner:run --session S1 >/dev/null 2>&1)
+  [ -z "$(subfire)" ] && ok "generated reader, subdirectory cwd: stands down at a root 'build' sentinel" \
+    || bad "generated reader honours the root sentinel from a subdirectory" "it spoke"
+  "$S" write understand --owner taskmaster:task --session S1 --cwd "$G/app/Models" >/dev/null 2>&1
+  [ -n "$(subfire)" ] && ok "generated reader, subdirectory cwd: eligible at a root 'understand' sentinel" \
+    || bad "generated reader eligible at an earlier phase from a subdirectory" "it stood down"
+  "$S" clear --cwd "$G" >/dev/null 2>&1
 fi
 
 printf -- '---- phase-sentinel: %s passed, %s failed ----\n' "$pass" "$fail"

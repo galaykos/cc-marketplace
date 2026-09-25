@@ -50,6 +50,31 @@
 #     over-claim this plugin's own review flagged in `hindsight`.
 #
 # FAIL-OPEN: missing jq/awk, unreadable transcript, or any error exits 0.
+
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
 {
   command -v jq  >/dev/null 2>&1 || exit 0
   command -v awk >/dev/null 2>&1 || exit 0
@@ -64,16 +89,22 @@
   # Subagent transcripts are exempt (see header). Match the path, not the content.
   case "$tp" in */subagents/*) exit 0 ;; esac
 
-  # `-d`, not just `-n`: the payload's cwd is whatever the session STARTED in, and a session
-  # outlives the directory. `mkdir -p` below is happy to rebuild three levels of a project
-  # tree the user has just deleted — measured on a deleted `work/acme/design-studio`, which
-  # came back holding nothing but this hook's state dir. `-d` is the whole fix: the state
-  # address `$cwd/.claude/comment-discipline` is SHARED with density.sh, scan.sh and
-  # conventions.sh, so resolving it through `git rev-parse --show-toplevel` here (the other
-  # half of overseer/hooks/track-read.sh:30-31's shape) would move this hook's bound off the
-  # path its three siblings still write, and a one-shot split across two addresses is no
-  # one-shot at all. Does NOT catch: a cwd that exists but is not the project (a stale
-  # session left in a sibling checkout) — nothing in the payload distinguishes those.
+  # `-d`, not just `-n`: a session outlives the directory, and `mkdir -p` below is happy to
+  # rebuild three levels of a project tree the user has just deleted — measured on a deleted
+  # `work/acme/design-studio`, which came back holding nothing but this hook's state dir.
+  #
+  # THE PAYLOAD cwd IS THE SHELL'S cwd, and it follows the model's `cd`. This header said it
+  # was "whatever the session STARTED in" until 0.23.0, and used that to keep state at
+  # `<cwd>/.claude/comment-discipline`. Measured false 2026-09-25
+  # (rationale/2026-09-25-session-plugin-usage-review.md, finding 2): one session's cwd was
+  # app/Enums, then app/Models, then the repo root; this "shown once per session" warning
+  # fired three times, one state dir per directory, and another repo had one COMMITTED.
+  # So state lives at cc_state_root (the block above: git toplevel, else CLAUDE_PROJECT_DIR,
+  # else cwd). The address `<root>/.claude/comment-discipline` is SHARED with density.sh and
+  # scan.sh, and all three moved in one change — a one-shot split across two addresses is no
+  # one-shot at all. (conventions.sh keys its one-shot under $TMPDIR and never shared it.)
+  # Does NOT catch: a cwd that exists but is not the project (a stale session left in a
+  # sibling checkout) — nothing in the payload distinguishes those.
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
   sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
@@ -96,7 +127,9 @@
   case "$lines" in ''|*[!0-9]*) exit 0 ;; esac
   [ "$lines" -ge "$MIN_LINES" ] || exit 0
 
-  dir="$cwd/.claude/comment-discipline"
+  # Resolved here, after the line-count exit, so a short session never pays the git call.
+  root=$(cc_state_root "$cwd") || exit 0
+  dir="$root/.claude/comment-discipline"
   state="$dir/verbosity-$sid"
 
   # BOTH BOUNDS BELOW LIVE IN THAT STATE FILE — "at most one warning per session" and

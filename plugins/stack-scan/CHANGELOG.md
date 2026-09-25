@@ -4,6 +4,13 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.9.3 — 2026-09-25
+
+### Changed
+- **Scout catalog regenerated** for secret-scanning 0.9.0's new description (its write
+  guard now also reads Bash heredoc/echo writes). The catalog has no hand edits:
+  `scripts/generate.sh --write` produced this change.
+
 ## 0.9.2 — 2026-09-24
 
 ### Changed

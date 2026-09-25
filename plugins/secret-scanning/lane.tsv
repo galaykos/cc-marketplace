@@ -6,7 +6,7 @@
 # The hook and the command share the artifact id `scan` (hooks/scan.sh, commands/scan.md);
 # they resolve by kind and own different territories — the hook denies a secret on its
 # way to disk, the command sweeps for one already committed.
-secret-scanning:scan	hook	any	secret-write-denial	PreToolUse Write/Edit/MultiEdit whose new text matches a high-confidence secret shape (AWS key id, private-key block, GitHub/Slack token, Google API key, Stripe live key, assigned secret literal)	-
+secret-scanning:scan	hook	any	secret-write-denial	PreToolUse Write/Edit/MultiEdit, or Bash with a write target (heredoc body, echo/printf argument), whose new text matches a high-confidence secret shape (AWS key id, private-key block, GitHub/Slack token, Google API key, Stripe live key, assigned secret literal)	-
 secret-scanning:scan	command	review	committed-secret-sweep	invoked as /secret-scanning:scan [path-or-diff]; the user asks whether a secret is already in the tree or a diff	-
 secret-scanning:secret-scanning	skill	build	secret-handling-discipline	writing config or .env, wiring an API client, pasting a key, or reading a diff for leaked credentials	-
-secret-scanning:unicode-scan	hook	any	invisible-character-report	PostToolUse on a Write/Edit/Read whose file carries zero-width, bidi-override or tag-block codepoints	-
+secret-scanning:unicode-scan	hook	any	invisible-character-report	PostToolUse on a Write/Edit/Read, or a Bash command writing up to 8 files under the project root, whose file carries zero-width, bidi-override or tag-block codepoints	-

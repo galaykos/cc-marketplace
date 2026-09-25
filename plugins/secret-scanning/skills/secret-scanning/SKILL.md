@@ -8,7 +8,10 @@ description: Use when a secret may be entering the codebase — writing config o
 ## What the guard blocks
 
 The hook denies a write when the incoming text matches a **high-confidence** provider
-pattern — chosen so real secrets trip it and placeholders do not:
+pattern — chosen so real secrets trip it and placeholders do not. It sees the `Write`/
+`Edit` family and, since 0.9.0, `Bash`: a heredoc body or `echo`/`printf` arguments whose
+pipeline writes a file (`cat > f <<EOF`, `cat <<EOF | tee f`, `echo "K=…" >> .env.example`),
+denied with the same patterns and the same placeholder escape:
 
 - **AWS access key ID** — `AKIA` + 16 base32 chars.
 - **Private key block** — `-----BEGIN … PRIVATE KEY-----`.
@@ -104,9 +107,12 @@ is tuned for precision, a human review can afford suspicion:
 
 - **Regex, not entropy** — a novel token format the patterns do not cover slips
   through. The guard is a high-value backstop, not a proof of absence.
-- **Write-time only** — it cannot catch a secret introduced outside the Write/Edit
-  tools (a shell heredoc, a downloaded file). The on-demand scan and a real pre-commit
-  scanner (gitleaks, trufflehog) complement it; the hook does not replace them.
+- **Write-time only, and only the writes it can read** — the Write/Edit tools, and
+  Bash heredoc bodies and echo/printf arguments that land in a file. It cannot see an
+  interpreter write (`python open()`), a `cp`/`mv`, `sed -i` replacement text, a
+  downloaded file, or a key in a command that writes no file (`curl -H`). The on-demand
+  scan and a real pre-commit scanner (gitleaks, trufflehog) complement it; the hook does
+  not replace them.
 - **High-confidence by design** — tuned to avoid false denials, so it under-flags
   rather than over-blocks. Pair with a full scanner in CI for coverage.
 
@@ -118,4 +124,7 @@ is tuned for precision, a human review can afford suspicion:
   `API_KEY=<real value>_sample`. The exemption exists for fixtures; spent on a live
   credential it is the one bypass this guard cannot see, and it is deliberate, not
   an accident the hook can forgive.
+- **Rerouting a denied write** through a route the guard cannot read — `python3 -c
+  "open(…).write(…)"`, a `cp` from a scratch file, a `sed -i` — is the same smuggle as
+  splitting the literal. A deny means move the value out or make it announce itself.
 - **Treating a pass as proof of no secrets** — it is a backstop, not a guarantee.

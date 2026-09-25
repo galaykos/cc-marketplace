@@ -245,6 +245,22 @@ def tokens_stamp(tokens_path):
     return '<meta name="design-kit-tokens" content="%s %s">' % (sha, short)
 
 
+def dk_dir():
+    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit
+    at the git root — never under a subdirectory the shell had cd'd into, which scattered
+    a second .design-kit/ (finding 2 of the marketplace's
+    rationale/2026-09-25-session-plugin-usage-review.md)."""
+    import subprocess
+    if os.environ.get("DESIGN_KIT_DIR"):
+        return os.environ["DESIGN_KIT_DIR"]
+    try:
+        r = subprocess.run(["git", "rev-parse", "--show-cdup"], capture_output=True, text=True, timeout=5)
+        up = r.stdout.strip() if r.returncode == 0 else ""
+    except (OSError, subprocess.SubprocessError):
+        up = ""
+    return os.path.join(up, ".design-kit")
+
+
 def with_stamp(page, tokens_path):
     meta = tokens_stamp(tokens_path)
     page = re.sub(r'<meta\s+name="design-kit-tokens"[^>]*>\s*', "", page, flags=re.I)
@@ -258,7 +274,7 @@ def main(argv=None):
     ap.add_argument("--out", help="output .html (default .design-kit/boards/YYYY-MM-DD-<slug>.html)")
     ap.add_argument("--tokens", default=None, help="DTCG tokens.json (default design-system/tokens.json if present)")
     ap.add_argument("--device", choices=sorted(DEVICES), default=None, help="frame for artboards that name none")
-    ap.add_argument("--docroot", default=".design-kit")
+    ap.add_argument("--docroot", default=dk_dir())
     args = ap.parse_args(argv)
 
     spec = load_spec(args.spec)

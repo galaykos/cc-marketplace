@@ -26,15 +26,10 @@ After the card's build verify passes:
 
 ## Reviewer pass
 
-The reviewer set (baseline `code-reviewer` + diff-content-gated `ui-ux` /
-`architecture` reviewers + the tag-routed reviewer) resolves, primes, AND dispatches
-exactly as the BASELINE pass does (`reviewer-routing.md` § Concurrent dispatch) — this file
-does not duplicate that map. Concurrency is baseline behavior, NOT crew's: every run already
-dispatches the read-only reviewers as one concurrent batch over the live card diff, keeps
-any `Bash`-holding reviewer (e.g. `devops:devops-reviewer`) out of the batch and serial, and
-runs the `security:security-review` **skill** (no agent) inline after the batch joins. Crew
-adds no dispatch mechanics of its own — it runs that same baseline pass as step 1 of the
-crew sequence.
+The reviewer set resolves, primes, AND dispatches exactly as the BASELINE pass does
+(`reviewer-routing.md`, batch rule 5 "Concurrent dispatch": one concurrent read-only batch, `Bash`-holding
+reviewers serial, the `security:security-review` skill inline after the join). Crew adds no
+dispatch mechanics of its own; it runs that pass as step 1 of the crew sequence.
 
 ## Authoring — test files only
 

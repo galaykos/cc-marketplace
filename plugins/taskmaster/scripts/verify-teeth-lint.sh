@@ -47,6 +47,27 @@
 # Anything else (a line naming a specific new test / assertion / observable)
 # passes with exit 0.
 #
+# Non-blocking WARN (exit stays 0, `verify-teeth: WARN <reason>` on stderr, run record
+# verdict `warn`), --card mode only, checked only on a line that cleared every block:
+#   ui-static-only  : a <file mode="edit|create"> in the card is a UI component or view
+#                     (.tsx/.jsx/.vue/.svelte/.blade.php under a views/, pages/ or
+#                     components/ directory, any case; *.test.* / *.spec.* / __tests__/
+#                     excluded), and every command segment of the line (split on && || ; |
+#                     after quoted strings are dropped) is a type-check, lint, build, grep
+#                     or existence command, with no test runner and no browser test.
+#                     MEASURED 2026-09-25 (a session review, UI cards): card 39 verified with
+#                     `npm run types:check && npm run check && grep -c 'data-test="…"' <tsx>`,
+#                     this lint exited 0 on it, and the UI shipped with no browser check.
+#                     WHY A WARN, NOT A BLOCK: the lint reads line text and cannot know whether
+#                     the repo HAS a JS or browser test runner. That run's repo had none, so a
+#                     static line plus the card's <walk> line (the orchestrator's walk at group
+#                     close) was the best a card there could carry. The message says whether
+#                     the card has a <walk> line.
+#                     RESIDUAL: the static-command list is a closed heuristic. A script named
+#                     like a runner (`npm run test:types`) reads as a runner and is not warned;
+#                     an unlisted static tool reads as behavioral and is not warned either.
+#                     Legacy **Verify:** cards carry no <file> elements and are never checked.
+#
 # CLI:
 #   verify-teeth-lint.sh --line "<verify text>"
 #   verify-teeth-lint.sh --card <card.md>     # lints the card's <verify> element, or its legacy **Verify:** line
@@ -195,6 +216,35 @@ fi
 migrate_re='artisan[[:space:]]+migrate|alembic[[:space:]]+upgrade|db:migrate|migrate[[:space:]]+up|goose[[:space:]]+up|flyway[[:space:]]+migrate|knex[[:space:]]+migrate|prisma[[:space:]]+migrate[[:space:]]+deploy'
 if has "$migrate_re" && ! has "$named_re" && ! has "$clause_re"; then
   weak "migration-run-only: migration command with no assertion about the resulting schema or data"
+fi
+
+# 7) ui-static-only — WARN, never a block (the header says why). The card edits or
+#    creates a UI component/view, and every segment of the line is static.
+if [ "$mode" = "card" ]; then
+  ui_path_re='(^|/)(views|pages|components)/(.*/)?[^/]+\.(tsx|jsx|vue|svelte|blade\.php)$'
+  ui_file=$(grep -E '^[[:space:]]*<file[[:space:]].*mode="(edit|create)"' "$value" 2>/dev/null \
+    | grep -Eo 'path="[^"]*"' | sed -e 's/^path="//' -e 's/"$//' \
+    | grep -Eiv '(\.test|\.spec)\.|(^|/)__tests__/' | grep -Ei -- "$ui_path_re" | head -1 || true)
+  browser_re='playwright|cypress|artisan[[:space:]]+dusk|webdriverio|(^|[^a-z])wdio|testcafe|nightwatch|test-storybook|--browser'
+  if [ -n "$ui_file" ] && ! has "$runner_re" && ! has "$browser_re"; then
+    static_head='^(cd|grep|egrep|rg|wc|test|\[|ls|cat|head|tail|echo|stat|find|diff|tsc|vue-tsc|svelte-check|eslint|biome|oxlint|stylelint|prettier|phpstan|psalm|pint|php-cs-fixer|rector)([[:space:]]|$)'
+    static_framework='^(npx[[:space:]]+)?(vite|next|nuxt|nuxi|astro)[[:space:]]+(build|lint|typecheck|check)([[:space:]]|$)'
+    static_script='^(npx|bunx|pnpm([[:space:]]+(exec|dlx|run))?|yarn([[:space:]]+run)?|npm[[:space:]]+run(-script)?|bun[[:space:]]+(run|x)|composer([[:space:]]+(run|run-script|exec))?|(\./)?vendor/bin/|(\./)?node_modules/\.bin/)[[:space:]]*[a-z0-9:_./-]*(type|lint|check|build|format|tsc|stan|psalm|pint|prettier|eslint|biome)[a-z0-9:_./-]*([[:space:]]|$)'
+    all_static=1; segs=0
+    while IFS= read -r seg; do
+      seg=$(printf '%s' "$seg" | sed -e 's/^[[:space:](]*//' -e 's/[[:space:])]*$//')
+      [ -n "$seg" ] || continue
+      segs=$((segs + 1))
+      printf '%s' "$seg" | grep -Eiq -- "$static_head|$static_framework|$static_script" || { all_static=0; break; }
+    done < <(printf '%s' "$line" | sed -e "s/'[^']*'//g" -e 's/"[^"]*"//g' | awk '{ gsub(/&&|\|\||;|\|/, "\n"); print }')
+    if [ "$all_static" = 1 ] && [ "$segs" -gt 0 ]; then
+      walk_note="the card's <walk> line is the only look at it"
+      grep -Eq '<walk([[:space:]>]|$)' "$value" 2>/dev/null || walk_note="add a <walk> line (surface, 1280/375, state) — this card has none"
+      printf 'verify-teeth: WARN ui-static-only: %s is UI and this verify is type-check/lint/build/grep only — it proves the markup exists, not that it renders or behaves. Name a component or browser test if the repo has a runner; otherwise %s\n' "$ui_file" "$walk_note" >&2
+      record_run warn
+      exit 0
+    fi
+  fi
 fi
 
 # No known-weak form matched: the line names something specific enough to pass.

@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.113.3"
+    "version": "0.114.0"
   },
   "plugins": [
     {
@@ -162,7 +162,7 @@
     {
       "name": "secret-scanning",
       "source": "./plugins/secret-scanning",
-      "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape and CC_SECRET_SCAN=off. A PostToolUse unicode-scan warns on invisible and bidi characters (zero-width, U+202A-E, tag block) in text just written or read."
+      "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit, or a Bash heredoc/echo written to a file, introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape and CC_SECRET_SCAN=off. A PostToolUse unicode-scan warns on invisible and bidi characters (zero-width, U+202A-E, tag block) in text just written or read."
     },
     {
       "name": "ultra-deep-research",

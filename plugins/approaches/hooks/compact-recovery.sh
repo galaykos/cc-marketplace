@@ -41,6 +41,37 @@
 #     nothing at all ever deleted it (AR 11, 2026-09-22).
 #   - Marker-shaped only. A deliberation that ran and never wrote the marker is
 #     invisible here, the same blind spot the skill already carries.
+#
+# WHERE IT LOOKS: the project root (state-root block below), not the payload cwd. The
+# cwd follows the model's `cd` (finding 2, rationale/2026-09-25-session-plugin-usage-
+# review.md), so a compaction after `cd app/Models` looked for the marker in
+# app/Models/.claude/ and announced nothing. The message names the absolute path it
+# found, for the same reason.
+
+# --- state root ----------------------------------------------------------------
+# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
+# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
+# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
+# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
+# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
+# the caller's spelling and path-prefix comparisons still hold); outside git,
+# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
+# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
 {
   command -v jq >/dev/null 2>&1 || exit 0
 
@@ -52,8 +83,9 @@
 
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
+  root=$(cc_state_root "$cwd") || exit 0
 
-  marker="$cwd/.claude/approaches/deliberated.json"
+  marker="$root/.claude/approaches/deliberated.json"
   [ -f "$marker" ] || exit 0
 
   # TTL, mtime, 120 minutes — the same number and the same mechanism as the shared
@@ -83,6 +115,6 @@
   [ -n "$by" ] && printf ', decided by %s' "$by"
   [ -n "$at" ] && printf ' at %s' "$at"
   printf '.\n'
-  printf 'The SHAPE of this change is already settled — do not re-run approach-deliberation or an opinion panel for it. Read %s and continue from the decision. If the task in hand is a DIFFERENT one, the marker does not apply and a fresh deliberation is correct.\n' ".claude/approaches/deliberated.json"
+  printf 'The SHAPE of this change is already settled — do not re-run approach-deliberation or an opinion panel for it. Read %s and continue from the decision. If the task in hand is a DIFFERENT one, the marker does not apply and a fresh deliberation is correct.\n' "$marker"
 } 2>/dev/null || exit 0
 exit 0

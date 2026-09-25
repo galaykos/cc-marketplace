@@ -6,8 +6,13 @@
 # (session_id, cwd, source) and asserts: silent on every non-compact source,
 # silent when no ledger exists, names each ledger it knows with its file path,
 # says whether the phase sentinel was written by this session, appends one
-# measurement line per firing, and fails open on malformed ledgers.
+# measurement line per firing, fails open on malformed ledgers, and — with the payload
+# cwd in a SUBDIRECTORY of a git repo — still reads the ledgers at the repo root and
+# writes nothing into the subdirectory.
 set -u
+# This session exports it (pointing at the marketplace repo); cc_state_root honours it
+# outside git, so the harness must not inherit it.
+unset CLAUDE_PROJECT_DIR
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 HOOK="$ROOT/plugins/skill-router/hooks/compact-capsule.sh"
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open without it)"; exit 0; }
@@ -88,6 +93,24 @@ out=$(printf '{}' | bash "$HOOK" 2>/dev/null); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && pass=$((pass+1)) || { echo "FAIL empty payload: rc=$rc out=$out"; fail=$((fail+1)); }
 out=$(printf '{"source":"compact","cwd":"/nonexistent/x"}' | bash "$HOOK" 2>/dev/null); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && pass=$((pass+1)) || { echo "FAIL missing cwd: rc=$rc out=$out"; fail=$((fail+1)); }
+
+# 7. payload cwd = a subdirectory of a git repo (the model `cd`-ed before compaction):
+#    ledgers at the repo root are still named, the measurement line lands at the root,
+#    and no `.claude/` appears in the subdirectory.
+if command -v git >/dev/null 2>&1; then
+  G="$WS/gitproj"; mkdir -p "$G/app/Enums" "$G/.claude/task-runner"; git -C "$G" init -q
+  printf '{"phase":"build","owner":"task-runner:run","session_id":"S1"}' > "$G/.claude/cc-phase.json"
+  printf '{"slug":"sub"}' > "$G/.claude/task-runner/active-run.json"
+  out=$(jq -cn --arg c "$G/app/Enums" '{hook_event_name:"SessionStart",source:"compact",cwd:$c,session_id:"S1"}' | bash "$HOOK" 2>/dev/null)
+  grep -qF 'arc phase `build`' <<<"$out" && grep -qF 'registered task-runner run `sub`' <<<"$out" && pass=$((pass+1)) \
+    || { echo "FAIL subdir cwd: root ledgers not named: ${out:0:200}"; fail=$((fail+1)); }
+  [ -s "$G/.claude/skill-router/compact-log.jsonl" ] && pass=$((pass+1)) \
+    || { echo "FAIL subdir cwd: measurement line not at the repo root"; fail=$((fail+1)); }
+  [ ! -e "$G/app/Enums/.claude" ] && pass=$((pass+1)) \
+    || { echo "FAIL subdir cwd: stray .claude/ created in app/Enums"; fail=$((fail+1)); }
+else
+  echo "SKIP subdir cwd: git not available"
+fi
 
 echo "compact-capsule: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

@@ -101,6 +101,8 @@ dimension left unwalked is a section left empty:
   never stand one up with the built-in Artifact tool, which skips both skills.
 - Data models — switch to the `erd` skill when the ledger touches persistent data (two-plus
   entities, any relation change); the approved model lands in the spec's Data Model section.
+- UI behind sign-in or data → a **Walk access** row (agent sign-in, seeded states):
+  `references/visual-contract.md` § Walk access; no staged pick needed.
 - "You decide" / "whatever you think": convert the row to ASSUMED with your named
   default and move on — but never silently. The user approves the assumption list
   at the end even if they delegated every call.
@@ -131,7 +133,7 @@ assumption list, or the user says "enough". Then:
    strangler) and the task is not mechanical. approaches plugin installed → run its blind
    panel per `approaches:approach-deliberation` `references/blind-panel.md` — it owns the
    persona roster, the dispatch contract, and the proceed rule (surface the pick for
-   approval; never self-approve it). WRITE its marker `.claude/approaches/deliberated.json`
+   approval; never self-approve it). WRITE its marker `<repo root>/.claude/approaches/deliberated.json`
    after: unwritten, the double-run guard is unarmed and `/approaches:opinions` re-litigates
    the settled pick. Absent → 2–3 inline and pick. Skip mechanical or single-approach tasks,
    or when an upstream brainstorm design already recorded the approach.

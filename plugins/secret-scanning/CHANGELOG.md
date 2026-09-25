@@ -3,6 +3,49 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.9.0 - 2026-09-25
+
+- `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
+
+### Added
+- **The write guard now reads Bash writes.** `hooks/scan.sh` matched the host write tools
+  only, and its own header named a heredoc as the way around it. Measured 2026-09-25
+  (`rationale/2026-09-25-session-plugin-usage-review.md`, finding 1): the host steers file
+  writes through Bash, and in one session 233 of the main thread's 238 file writes went
+  through `cat > file <<EOF`. The only deny guard on that path never ran. `Bash` is now in the
+  PreToolUse matcher. When a command has a write target (the shared
+  `cc_bash_write_targets` block), the guard scans two things: heredoc bodies whose
+  pipeline redirects or tees to a file, and the arguments of `echo`/`printf` segments
+  whose pipeline does. The deny names the file. The patterns and the placeholder escape
+  are the Write path's, through one scanner function (`scan_for_secret`), not a copy.
+  `echo "STRIPE_SECRET=<live key>" >> .env.example` denies. The documented AWS example key
+  in a PHP heredoc passes. PHP `->`/`=>` in a body is not read as a redirect.
+- Stated as NOT caught: a command with no write target (a live key in a `curl -H`
+  header), interpreter writes, `cp`/`mv` of a file that already holds a secret, `sed -i`
+  replacement text, a here-string, a `{ echo …; } > f` group. command-guard still owns
+  destroying a live `.env`. This guard owns a secret entering any file.
+- **`unicode-scan` checks Bash-written files too.** It scans up to 8 write targets per
+  `Bash` call that now exist as regular files under the project root. A relative target
+  resolves against the payload `cwd`, so a `../file` written from a subdirectory is found.
+  A Bash call with no write target exits after one awk pass. Neither hook writes
+  `.claude/` state (the one-shot marker lives in `$TMPDIR`), so no state-root conversion
+  was needed.
+
+### Fixed
+- **A clean first touch no longer spends a file's one warning.** `unicode-scan` claimed
+  its once-per-file-per-session marker before scanning, so a file read or written clean
+  first was never checked again that session, and invisible characters written into it
+  later went unreported — "warns once" behaved as "checks once". Bash coverage made that
+  the common path (a file created by one heredoc, appended by the next). The marker is now
+  claimed only when a warning is printed (atomic `mkdir`, so two concurrent hooks on one
+  file still report once). A harness case pins it and fails against 0.8.0.
+
+### Changed
+- The skill's "what the guard blocks" and "Limits" sections, the README standing table, and
+  `lane.tsv` now say the guard sees Bash, and they list what it still cannot see. The skill
+  gains one anti-pattern: after a deny, do not reroute the write through `python open()`,
+  `cp` or `sed -i`.
+
 ## 0.8.0
 
 ### Added

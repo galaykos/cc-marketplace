@@ -24,10 +24,9 @@ The tell is a count that reads clean because it is empty: **zero findings over z
 checked is not a clean result, it is an unchecked one.** A green scoped check is evidence
 about a subset the reader cannot see the boundary of.
 
-Observed shape: one agent ran a banned-register grep over its own files, reported green,
-and then flagged in PROSE that it had no idea about the rest of the tree because siblings
-had written most of it. That prose flag is the only reason the tree was ever checked. The
-warning was prudent; the mechanism was not — the next agent will not write the paragraph.
+Observed: one agent's green scoped grep came with a PROSE caveat about the rest of the
+tree, and that caveat was the only reason the tree was ever checked — the next agent will
+not write it.
 
 ## Failure mode 2 — a tree-wide command is not evidence about your own diff
 
@@ -100,16 +99,6 @@ result finds it.
 
 ## Anti-patterns
 
-- **Summing scoped greens.** Five agents report clean over their own files; the
-  orchestrator writes "verified". Nothing verified the union.
-- **A report that omits its scope.** "Grep clean" with no file count and no boundary. The
-  orchestrator cannot tell a tree-wide result from a two-file one.
-- **Retry-until-green during a fan-out.** A tree-wide command that fails, is retried, and
-  passes has told you about timing, not about correctness — and the habit hides real
-  breakage.
-- **Declaring the property in prose only.** A rule with no literal terms, pattern, or
-  command behind it cannot be a gate at any scope; it is a hope shared with five agents.
-- **Broadcasting the fix.** A tree-wide finding sent to all N writers gets fixed N times or
-  zero. Scope the follow-up to the cited files.
-- **Running the gate before the last writer returns.** Then it is failure mode 2 wearing
-  the gate's clothes.
+Each breaks a rule above: summing scoped greens into "verified"; a report that omits its
+scope; retry-until-green during a fan-out; a property declared in prose only; broadcasting a
+tree-wide fix to all N writers; running the gate before the last writer returns.

@@ -24,7 +24,7 @@
 # Standing: gate (a named, fail-capable CI step) — and a local pre-push check.
 set -u
 cd "$(dirname "$0")/.." || exit 2
-PIN="2.1.273"
+PIN="2.1.282"
 
 command -v claude >/dev/null 2>&1 || { echo "FAIL: claude CLI not on PATH (CI installs @anthropic-ai/claude-code@$PIN)"; exit 1; }
 export HOME; HOME="$(mktemp -d)" || exit 2

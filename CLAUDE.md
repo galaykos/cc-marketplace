@@ -171,6 +171,7 @@ or restating a check's header here; do not add the story back to this file.
   | `<!-- scout-name-ok: -->` | a scout catalog row naming a plugin on purpose that the name check rejects |
   | `# env-shebang-ok:` | a registered hook that deliberately keeps `#!/usr/bin/env bash` |
   | `# cwd-mkdir-ok:` | a hook that deliberately `mkdir`s under a payload `cwd` it did not `-d`-test |
+  | `# state-root-ok:` | a hook whose `.claude/` state is deliberately per-directory, built from the raw payload `cwd` instead of `cc_state_root` |
   | `# offswitch-ok:` | a hook that reads an off-switch and deliberately omits it from a blocking reason |
   | `<!-- version-tail-ok: -->` | a version-pinning skill whose `Last verified` stamp deliberately carries no `npm:`/`composer:` tail |
 
