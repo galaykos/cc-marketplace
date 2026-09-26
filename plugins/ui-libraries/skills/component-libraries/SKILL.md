@@ -1,6 +1,6 @@
 ---
 name: component-libraries
-description: Use when building or reviewing UI on any React or Vue component library — headless (Base UI, Radix, Reka UI, React Aria, Ark, Headless UI), styled (Mantine, Chakra, Ant Design, HeroUI, PrimeVue, Vuetify, Element Plus), or one with no sibling skill here — library-agnostic rules plus a per-library map to the sibling skill or docs URL.
+description: Use when building or reviewing UI on any React or Vue component library — headless (Base UI, Radix, Reka UI, React Aria, Ark, Headless UI), styled (Mantine, Chakra, Ant Design, HeroUI, PrimeReact, PrimeVue, Vuetify, Element Plus), or any without a sibling skill — library-agnostic rules plus a per-library map to sibling skill or docs URL.
 ---
 
 # Component libraries — the library-agnostic floor
@@ -37,7 +37,7 @@ fetched. Record source and date in the file header — nothing else does.
 ## 3. Tokens through the library's own mechanism
 
 - Every library has exactly one theme channel and `references/library-map.md`
-  names it per library. Put the project's `design-tokens` values THERE — once —
+  names it per library. Put the project's `ui-ux:design-tokens` values THERE — once —
   and consume them.
 - A hardcoded hex, pixel radius or font-size on a component is a token fork.
   Fix at the theme, not at the instance.
@@ -55,10 +55,10 @@ fetched. Record source and date in the file header — nothing else does.
   `component`; `as-child`/`as` on Vue) over nesting two interactive elements.
 - Never re-implement a primitive the library ships (menu, dialog, combobox,
   tooltip, tabs). Hand-rolled twins are where the WCAG failures live;
-  `a11y-audit` (this plugin) is the checklist.
+  `ui-ux:a11y-audit` is the checklist.
 - RTL is the same failure one layer out: the library's components usually mirror,
   YOUR wrapper classes do not. Use logical utilities (`ms-`/`ps-`/`start-`,
-  `tailwind-best-practices`) and set `dir` on `<html>`.
+  `ui-ux:tailwind-best-practices`) and set `dir` on `<html>`.
 
 ## 5. Composition over configuration
 
@@ -76,7 +76,7 @@ fetched. Record source and date in the file header — nothing else does.
 
 - Resolve the installed major and read that major's docs. Headless libraries in
   particular renamed APIs between 0.x and 1.0 — the map's Notes say which.
-- When a registry MCP is connected (shadcn's `npx shadcn@latest mcp init`, ReUI's
+- When a registry MCP is connected (shadcn's `npx shadcn@latest mcp init --client claude`, ReUI's
   hosted `mcp.reui.io`) or a library ships its own MCP/JSON manifest, query it before
   writing a component. Unavailable → say so and cite the docs URL from
   `references/library-map.md`.
@@ -84,15 +84,15 @@ fetched. Record source and date in the file header — nothing else does.
 ## Routing: which sibling owns what
 
 `references/library-map.md` names the sibling skill in the Notes column of every
-row that has one (shadcn, ReUI, Aceternity, Astryx, MUI, daisyUI→Tailwind).
-Everything else — every Vue and Svelte library, every unlisted one — is this skill
-plus the docs URL there.
+row that has one: ReUI, Aceternity, Astryx, MUI and PrimeReact in this plugin; shadcn and
+daisyUI→Tailwind in `ui-ux`. Everything else — every Vue and Svelte library, every
+unlisted one — is this skill plus the docs URL there.
 
 ## Defer rule
 
-- Scale VALUES (spacing, type, radius) → `design-tokens`; palette generation → `/ui-ux:theme`.
+- Scale VALUES (spacing, type, radius) → `ui-ux:design-tokens`; palette generation → `/ui-ux:theme`.
 - WCAG audit → `/ui-ux:audit`; React logic → web-dev's `frontend-reviewer`.
-- Motion → `motion-best-practices`; dense data surfaces → craft-layer `information-design`.
+- Motion → `ui-ux:motion-best-practices`; dense data surfaces → `craft-layer:information-design`.
 
 ## Anti-patterns
 

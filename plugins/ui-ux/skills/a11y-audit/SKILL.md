@@ -3,6 +3,8 @@ name: a11y-audit
 description: Use when writing or reviewing UI markup, styles, or interactions — a WCAG 2.2 AA checklist: semantics, contrast, keyboard access, focus, forms, media, and the ARIA rules that prevent well-meant attributes from making things worse.
 ---
 
+> Last verified: 2026-09-26 — https://www.w3.org/WAI/WCAG22/Understanding/
+
 # Accessibility Audit (WCAG 2.2 AA)
 
 ## Core rule
@@ -123,6 +125,11 @@ alone.
 - Captions for video with speech; no autoplaying audio.
 - Respect `prefers-reduced-motion`: gate non-essential animation,
   parallax, and auto-advancing carousels behind the media query.
+- **Pause, stop, hide (SC 2.2.2, Level A).** Anything that starts on its own, moves, blinks or scrolls
+  for more than 5 s beside other content — carousel autoplay, a logo marquee, a looping hero animation,
+  rotating words — needs a visible pause or stop control for EVERY user, independent of
+  `prefers-reduced-motion`. Pausing only while hovered or focused does not count: it restarts when
+  focus leaves. Standing: recorded.
 
 ## Touch and pointer
 
@@ -133,6 +140,34 @@ alone.
   has a single-pointer alternative — visible controls doing the same job
   without dragging or tracing a path (SC 2.5.7). Keyboard access alone
   does not satisfy this; pointer users need the non-dragging route too.
+
+## App widgets a mouse walk and axe both pass
+
+Standing: recorded — each is a contract the default build breaks while axe and a mouse walk stay
+green; `/ui-ux:audit` grades it, no script does.
+
+- **Keyboard drag-and-drop.** Space picks up, arrows move, Space drops, Escape cancels and restores.
+  Announce each step with the item's visible label and position ("Acme moved to Won, 2 of 5"), never
+  an internal id — library defaults read the id. Focus stays on the moved item. SC 2.5.7 still wants
+  the pointer route above: a visible "Move to…" control.
+- **Tree and treegrid.** Parent rows carry `aria-expanded`; when the whole set is not in the DOM (lazy
+  children, virtualized), every row carries `aria-level`, `aria-setsize`, `aria-posinset`. One tab stop.
+- **Virtualized grids.** `aria-rowcount` on the grid is the true total (`-1` if unknown) and
+  `aria-rowindex` on each rendered row its real position. Keep the focused row mounted when it scrolls
+  out of the render window, or focus falls to `body`.
+- **Sortable columns.** `aria-sort` on the sorted column's `th` only, with the sort a `button` inside it.
+- **Matrix cells** (permission grids, rating scales): each control is named from its row AND column
+  header, e.g. `aria-labelledby="row-id col-id"` — a `th scope` alone does not name a checkbox in a cell.
+- **Custom slider handles.** `role="slider"` with `aria-valuenow`/`-min`/`-max`, a name, and
+  `aria-valuetext` whenever the number is not what a person reads ("$1,200 a month", "Tuesday").
+- **Drop zones.** The drop target is also a real `button` or labelled `input type="file"`; a `div`
+  that only accepts drops has no keyboard and no non-drag route.
+- **Single-key shortcuts (SC 2.1.4).** A shortcut on a bare letter, number or symbol (`j`/`k`, `e` to
+  archive) can be turned off, remapped to add a modifier, or is active only while its component has focus.
+- **Time limits and holds (SC 2.2.1).** A session timeout, seat hold or reservation warns before expiry
+  and allows at least 20 s to extend with one action, unless real-time or essential. A visible
+  countdown is never a ticking live region: `role="timer"` (implicitly `aria-live="off"`) and a
+  status message only at thresholds.
 
 ## Boundaries
 

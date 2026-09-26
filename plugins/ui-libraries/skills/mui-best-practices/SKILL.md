@@ -45,7 +45,7 @@ never answered from the digest. Before writing any MUI code:
 - One `createTheme` at the app root, passed through `ThemeProvider`, with
   `CssBaseline` under it. Extend `palette`, `typography`, `shape`, `spacing`
   and `components` (default props, `styleOverrides`, `variants`) there — that
-  is where the project's design tokens live, so `design-tokens` values map onto
+  is where the project's design tokens live, so `ui-ux:design-tokens` values map onto
   the theme, not onto per-component `sx` literals.
 - Enable CSS variables: `createTheme({ cssVariables: true, colorSchemes: { light: …, dark: … } })`.
   In styles reference `theme.vars.palette.*`; use `theme.applyStyles('dark', {…})`
@@ -81,8 +81,8 @@ never answered from the digest. Before writing any MUI code:
   a known pattern; Tailwind for MUI colours and type is a token fork.
 - Base UI (`@base-ui/react`) is MUI's headless sibling, not "MUI without
   styles": no theme, render-prop API, and the primitive shadcn/ui now defaults
-  to. A project on Base UI is governed by `component-libraries` and
-  `shadcn-best-practices`, not by this skill.
+  to. A project on Base UI is governed by `component-libraries` (this plugin) and
+  `ui-ux:shadcn-best-practices`, not by this skill.
 - Migrating: introduce MUI per route or per feature under its own
   `ThemeProvider` boundary, not component-by-component inside a shared view.
 
@@ -100,10 +100,10 @@ never answered from the digest. Before writing any MUI code:
 ## Defer rule
 
 - General React correctness (state, effects, keys) → web-dev's `frontend-reviewer`.
-- Palette generation and colour VALUES → `/ui-ux:theme`; scale values → `design-tokens`.
+- Palette generation and colour VALUES → `/ui-ux:theme`; scale values → `ui-ux:design-tokens`.
 - Full WCAG audit → `/ui-ux:audit`.
-- shadcn/ReUI/Aceternity/Astryx surfaces → their sibling skills; any other
-  library → `component-libraries` (this plugin).
+- shadcn surfaces → `ui-ux:shadcn-best-practices`; ReUI/Aceternity/Astryx → their
+  sibling skills in this plugin; any other library → `component-libraries`.
 
 ## Anti-patterns
 
@@ -116,3 +116,13 @@ never answered from the digest. Before writing any MUI code:
 - **Class-selector surgery** — `.MuiInputBase-root` overrides where `slotProps`
   reaches the same element with a typed API.
 - **Two design systems, one view** — MUI + shadcn mixed without a boundary.
+- **MUI X v7 from memory on v8/v9** — an array `rowSelectionModel`,
+  `slots={{ toolbar: GridToolbar }}`, `AdapterDateFnsV3`, `ChartContainer`: each
+  changed; `references/mui.md` "MUI X per major" has the table.
+- **One licence key across majors** — a v8 Pro/Premium key on v9 shows a
+  watermark in production; regenerate it with the upgrade.
+- **New work on Joy UI** — removed from the repo in v9 and on hold; build on
+  Material UI, and bridge an existing Joy app per route.
+
+Standing: **agent-graded** — no script reads a lockfile against these; the
+`ui-ux:ui-ux-reviewer` pass and `/code-review:review` apply them.

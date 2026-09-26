@@ -3,6 +3,8 @@ name: shadcn-best-practices
 description: Use when building or reviewing shadcn/ui components — CLI installs, composition over config, CSS-variable theming, accessibility defaults.
 ---
 
+> Last verified: 2026-09-26 — https://ui.shadcn.com/docs/components/data-table — npm:@tanstack/react-table@9
+
 ## You own the code, it isn't a dependency
 
 shadcn/ui components are copied into your repo via the CLI (`npx shadcn add button`), not
@@ -51,14 +53,30 @@ those variables in one place, not by hardcoding colors into individual component
 <Button className="bg-[#1a2b3c] rounded-[3px]">Save</Button>
 ```
 
-## Keep the primitive layer's accessibility intact
+## Name the primitive base, then keep its accessibility intact
 
 Interactive shadcn/ui components (Dialog, Dropdown, Select, Popover) wrap a headless primitive
-base that manages focus trapping, `aria-*` attributes, and keyboard navigation. Since July 2026
-the default base is **Base UI**, with Radix and React Aria selectable at init — check which one
-the project uses before editing. Whatever the base, preserve its structural parts (`Root`,
-`Trigger`, `Content`, `Portal`) and pass through `...props` so consumers can still set
-`aria-label`, `aria-describedby`, etc.
+base that manages focus trapping, `aria-*` attributes, and keyboard navigation. Three bases
+ship. **Base UI** has been the `init` default since July 2026, and **Radix** and **React Aria**
+are the alternatives. Their APIs differ in ways that compile and then silently do nothing.
+
+- **Name the base before editing.** In `components.json`, a `style` prefix of `base-`, `radix-`
+  or `aria-` names it, and a legacy `new-york` or `default` style means Radix.
+- **Base UI rejects Radix habits.** `asChild` becomes `render` (plus `nativeButton={false}` for
+  a non-button element), `data-[state=open]:` becomes `data-open:`, and the primitive parts
+  `Content` / `Overlay` become `Popup` / `Backdrop`.
+- **The plumbing moved on every base.** `cn` now comes from the `cn` package,
+  `shadcn/tailwind.css` and `tw-animate-css` are imported in the stylesheet, and the base
+  decides the Drawer (vaul is gone on Base UI) and the Toast (Toast vs sonner).
+
+All of that, with the migrate commands, is in `references/bases.md`. Read it before editing a
+Base UI project or a mixed one. It matters: in a 2026-09-25 scan of 428 likely-shadcn live
+sites, 60 ran Base UI only and 67 ran both bases, so a Radix answer from memory is wrong for
+about one project in three. Standing: recorded. No gate reads the base.
+
+Whatever the base, preserve its structural parts (`Root`, `Trigger`, `Portal`, and the popup
+part) and pass through `...props` so consumers can still set `aria-label`,
+`aria-describedby`, etc.
 
 - Good: `<DialogContent aria-describedby={descId}>{children}</DialogContent>`
 - Bad: replacing `DialogContent` with a plain `<div>` because "it's simpler," losing focus trap
@@ -95,20 +113,55 @@ file. Inconsistent one-offs are how design systems rot.
 
 The CLI adds one component (and whatever primitive its configured base needs — Base UI,
 Radix or React Aria; see above) at a time. Don't bulk-copy the entire
-registry "just in case." If you want to pull in upstream fixes later, re-run
-`npx shadcn add <component> --overwrite` deliberately and diff the result — don't silently
-overwrite local customizations.
+registry "just in case." To pull in upstream fixes later, look before you overwrite: run
+`npx shadcn view <item>`, then `add <item> --dry-run` or `--diff <path>`, and only then
+`--overwrite`. Never silently overwrite local customizations.
+
+Third-party registries have their own hazards. That covers any `@namespace/item`, a
+`components.json` `registries` entry, or a registry URL. `references/registries.md` covers them:
+the CLI's built-in directory and its health status, the auth object form, `{style}`, the
+last-write-wins file dedupe, duplicate packages, and the registries that break the generic
+rule. Read it before the first third-party `add`. Standing: recorded.
 
 ## Product screens start from the official recipes
 
-Data tables start from shadcn's official Data Table guide
-(https://ui.shadcn.com/docs/components/data-table) — a TanStack Table composition (toolbar
-filtering, column visibility, pagination, row actions) built on v9's API. Check the installed
-`@tanstack/react-table` major before writing table code: v9 changed the hook API — consult the
-TanStack Table docs for the installed major before wiring columns or state. App shells and dashboards check
-https://ui.shadcn.com/blocks before hand-building — free copy-paste scaffolds (`dashboard-01`
-ships sidebar + charts + data table). Either way the recipe is a starting file you own, so both
-paths then follow this skill's owned-code and CSS-variable rules above.
+App shells and dashboards check https://ui.shadcn.com/blocks before hand-building. These are
+free copy-paste scaffolds; `dashboard-01` ships a sidebar, charts and a data table. Each recipe
+is a starting file you own, so the owned-code and CSS-variable rules above still apply. Both
+recipes below were checked against the live docs on the stamp date (recharts 3.10 and
+@tanstack/react-table 9.2 on npm). Standing: recorded. No gate reads the installed major, so
+read the lockfile first.
+
+**Charts** (https://ui.shadcn.com/docs/components/chart) are Recharts v3 composed inside
+`ChartContainer`. shadcn does not wrap Recharts.
+
+- Series colours live in a `ChartConfig` object (`satisfies ChartConfig`) as
+  `var(--chart-1)` … `var(--chart-5)`. Never write `hsl(var(--chart-1))`: that older form is
+  invalid once the token already holds a full `oklch()` or `hsl()` colour.
+- `ChartContainer` needs a height, a `min-h-*` or an `aspect-*`. Without one,
+  `ResponsiveContainer` measures zero on first render.
+- `accessibilityLayer` (keyboard and screen-reader support) is ON by default in v3. Never pass
+  `accessibilityLayer={false}` to get rid of a focus ring.
+- Recharts 2 props that no longer exist:
+  - `activeIndex` on Bar, Pie and Scatter. Use `ChartTooltip`'s `defaultIndex` for the initial
+    tooltip only, and keep persistent active shapes in your own state.
+  - chart state passed to `<Customized>`. It no longer receives any.
+  - `layout` on `<Bar>` when `<BarChart>` already sets it.
+
+**Data tables** (https://ui.shadcn.com/docs/components/data-table) use TanStack Table v9, which
+is stable.
+
+- Build the table with `useTable({ features, data, columns })`, where `features =
+  tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: {…} })`.
+  v8's `useReactTable({ getCoreRowModel: getCoreRowModel() })` is gone: the core row model is
+  automatic, and every other row model is a `create*RowModel()` registered on `features`.
+- Register what you use. Unregistered features are tree-shaken away. A string
+  `filterFn`/`sortFn` key, including `'auto'`, resolves only against the functions registered
+  in `filterFns`/`sortFns`, so an unregistered one gives a sort that silently does nothing.
+- Call row, cell and column methods on the instance (`row.getValue("x")`). Destructuring them
+  loses `this` in v9.
+- On a v8 lockfile, `useLegacyTable` from `@tanstack/react-table/legacy` is a deprecated bridge
+  for migrating, not a place to stop.
 
 ## Common mistakes
 
@@ -123,7 +176,7 @@ are NOT stated above and live here:
 
 ## Component APIs from the registry, never from memory
 
-shadcn ships its own MCP server — `npx shadcn@latest mcp init` wires it into this
+shadcn ships its own MCP server — `npx shadcn@latest mcp init --client claude` wires it into this
 project. When its tools are connected, read a component's actual
 props/variants/dependencies from them BEFORE writing usage code: a component API
 written from recall is the failure that server exists to stop. Without it, the fallback

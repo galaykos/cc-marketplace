@@ -21,7 +21,8 @@ convention.
 1. Detect the stack from the repo (shadcn, ReUI, Aceternity, Astryx, Material UI, Tailwind,
    Bootstrap, plain CSS3, Grid/Flexbox, React/Vue) so the right best-practice skill and
    token conventions apply. Any other component library — headless or styled — is governed
-   by `component-libraries` and its `references/library-map.md`. A component library or
+   by `ui-libraries:component-libraries` and its `references/library-map.md` (the `ui-libraries`
+   plugin; not installed → say so and work from the library's docs URL). A component library or
    registry already present in the tree is a detection signal, not a suggestion — build in
    the one the project has rather than beside it; the UI layer is library-agnostic and no
    skill here gets to pick a second one.
@@ -32,17 +33,25 @@ convention.
    names, props, and install commands come from the registry, never from memory —
    reciting a remembered component API is the exact failure a registry MCP exists to
    stop. No server connected: the fallback is the library's own docs URL in
-   `component-libraries/references/library-map.md`, never recall.
+   `ui-libraries:component-libraries` (`references/library-map.md`), never recall.
    Unavailable → say so and verify against the live docs URL instead.
+   **Any** registry block follows `skills/shadcn-best-practices/references/registries.md`,
+   not only a ReUI or Aceternity one. That covers an `@namespace/item` from the CLI's
+   directory, a `components.json` `registries` entry, or a registry URL. The reference
+   supplies `view`/`--dry-run` before `add`, `{style}` matched to the base, keys through env
+   headers, and the duplicate-package check. Inject its Read path into the step 3 dispatch.
+   Standing: recorded. No gate checks that the dispatch carries it.
 
 3. Dispatch the `ui-ux-engineer` worker with the request, instructing it to apply this
-   plugin's relevant skills: the matching stack best-practice skill (shadcn/reui/
-   aceternity/astryx/mui/tailwind, or `component-libraries` for any other), `design-tokens` for
+   plugin's relevant skills: the matching stack best-practice skill (shadcn/tailwind here;
+   reui/aceternity/astryx/mui, or `component-libraries` for any other, from the `ui-libraries`
+   plugin as `ui-libraries:<skill>`), `design-tokens` for
    spacing/type/radius/elevation/motion
    from the scale (no magic numbers), and `shadcn-theming` when colors are in play.
-   When the request names a registry block to adapt, that registry's best-practice skill is
-   the one that governs it, and the block is restyled to the project's own tokens rather
-   than shipped in the registry's defaults.
+   When the request names a registry block to adapt, `references/registries.md` (step 2)
+   governs the install. That registry's best-practice skill governs the block too when one
+   exists (ReUI, Aceternity). Either way the block is restyled to the project's own tokens
+   rather than shipped in the registry's defaults.
    Layout, responsive breakpoints, spacing rhythm, and element hierarchy are its job.
 
    **No decided lines → name the defaults to leave out.** With no art direction the
@@ -71,8 +80,9 @@ convention.
    - **Data-dense surfaces.** When the target is a dashboard, data table, admin/CRM
      screen, or settings surface and the craft-layer plugin is installed, inject the
      Read path to its `information-design` skill (SKILL.md +
-     `references/dense-ui-patterns.md`); when craft-layer is absent, say so in the
-     result rather than silently building without the dense-UI floor.
+     `references/dense-ui-patterns.md` + `references/product-packages.md`, the package
+     selector for grids, charts and the other product-layer libraries); when craft-layer is
+     absent, say so in the result rather than silently building without the dense-UI floor.
 
 4. Keep accessibility in view while building: semantic elements, labels, focus order —
    then recommend `/ui-ux:audit` on the result for a thorough pass (a11y remediation is

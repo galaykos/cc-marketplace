@@ -1,9 +1,9 @@
 # Status + chart palette — reserved roles and a theme-derived chart family
 
-This reference owns two things: the reserved STATUS palette — its meat, genuinely net-new,
-owned by no neighbouring skill — and the single SEAM that ties the chart palette to the
-theme. It emits no colour value: the status entries below are ROLES, never colours, and the
-chart half CITES its neighbours rather than restating them.
+This reference owns the reserved STATUS palette — its meat, genuinely net-new, owned by no
+neighbouring skill — the LIFECYCLE axis beside it, the categorical TAG family, and the single
+SEAM that ties the chart palette to the theme. It emits no colour value: every entry below is
+a ROLE, never a colour, and the chart half CITES its neighbours rather than restating them.
 
 ## The reserved status palette
 
@@ -36,6 +36,48 @@ Three rules make the palette RESERVED rather than decorative:
 Because status is net-new, its roles, their reservation, and the icon-plus-label rule live here
 in full — this is where the palette is owned.
 
+## The lifecycle axis — beside the ladder, not on it
+
+Work that moves through states — a build, a deploy, a job, an import, a sync — has a LIFECYCLE,
+which answers a different question from severity. Its roles:
+
+- **queued** — accepted, not started.
+- **in progress** — building, deploying, running.
+- **live** — finished and serving.
+- **idle** — healthy but asleep or scaled to zero.
+- **cancelled** — stopped by a person; not a failure.
+- **failed** — ended in failure.
+
+Two rules keep the axis from polluting the ladder:
+
+- **In progress is never `warn`.** It takes a NEUTRAL role plus an indeterminate cue (a spinner,
+  a moving stripe) that becomes TEXT ("Building…") under reduced motion. `warn` would tell the
+  reader something is wrong while nothing is.
+- **Only terminal failure reaches the ladder.** `failed` maps to `critical`; queued, idle and
+  cancelled stay neutral, told apart by icon and label. A live service that is also degraded
+  carries two facts — `live`, plus a `warn` status — not one blended role.
+
+Standing: recorded — no check reads which role a lifecycle state was given.
+
+## The categorical tag family — user labels, not conditions
+
+Tags, pipeline stages, labels and segments a user names ("Won", "Enterprise") are a third family,
+held apart from both status and the chart series:
+
+- **Pairing.** Each entry is a tint fill with a same-hue darker ink, and the ink clears the
+  small-text rule (`≥4.5:1`) on its own tint.
+- **Hue set.** N hues drawn from the theme's own ramps, plus one neutral default, so a board full
+  of tags still reads as this theme.
+- **User-assignable.** The user picks the hue per tag; the system offers only legal pairings, so a
+  pick can never produce an unreadable chip.
+- **Held apart from status.** A pipeline stage "Won" is a category, not `good`; a "Churn risk" flag
+  is a status, not a tag. A tag hue that sits near a status hue still never takes the status role.
+- **Dark mode.** The tint drops chroma and the ink lightens so the pair holds on a dark ground;
+  `light-dark-duality.md` owns the stepping.
+
+Standing: recorded — the pairing is a text-contrast pair, so an axe run over the rendered chip
+measures its ratio; nothing checks the family's separation from status.
+
 ## The chart palette — derived, not bolted on
 
 The one seam this file owns for charts: the chart palette DERIVES from the theme's ramps — it is
@@ -60,8 +102,8 @@ Everything else about charts belongs to a neighbour, cited not restated:
 ## What this file does not do
 
 - It does not emit a colour value — no hex, no functional-colour scalar, no named colour used as
-  a value. good / warn / serious / critical are ROLES; the values they map to are generated
-  downstream by `/ui-ux:theme`.
+  a value. good / warn / serious / critical, the lifecycle states and the tag family are ROLES;
+  the values they map to are generated downstream by `/ui-ux:theme`.
 - It does not restate `dataviz`'s categorical/sequential rules or its validator — it cites the
   skill by name and defers to it.
 - It does not restate `shadcn-theming`'s chart-family coherence mechanics — it cites that skill's

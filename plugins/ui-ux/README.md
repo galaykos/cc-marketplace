@@ -1,15 +1,18 @@
 # ui-ux
 
-UI/UX best practices with per-stack skills — shadcn/ui, ReUI, Aceternity UI,
-Astryx (Meta's agent-ready design system), Material UI, and Tailwind — and a
-library-agnostic `component-libraries` skill for every other React or Vue component
-library (Base UI, Radix, Reka UI, React Aria, Ark, Mantine, Chakra, Ant Design,
-HeroUI, PrimeVue, Vuetify…)
-with a per-library map of signals, theme channels and docs — plus a theme builder
-(shadcn/ReUI/Aceternity, Tailwind, Astryx, or Bootstrap) with a live colour-preview URL
-and a ui-ux-reviewer agent. Generic CSS3/Grid/Flexbox/Bootstrap skills were
-removed after baseline tests showed the model covers them unaided — see
-rationale/stack-skill-baselines.md.
+UI/UX foundations: per-stack skills for **shadcn/ui** and **Tailwind**, design tokens,
+a theming system, motion best practices, a theme builder (shadcn/ReUI/Aceternity,
+Tailwind, Astryx, or Bootstrap) with a live colour-preview URL, `/ui-ux:build`, the
+WCAG 2.2 AA audit, and the ui-ux-reviewer / ui-ux-engineer / a11y-engineer agents.
+Generic CSS3/Grid/Flexbox/Bootstrap skills were removed after baseline tests showed the
+model covers them unaided — see rationale/stack-skill-baselines.md.
+
+**The component-library skills moved to `ui-libraries` on 2026-09-26** — Material UI,
+Astryx, ReUI, Aceternity, and the library-agnostic `component-libraries` floor with its
+per-library map. ui-ux had reached the marketplace's per-plugin prose cap. Every suite that
+carries ui-ux carries ui-libraries; a standalone ui-ux install should add it:
+`/plugin install ui-libraries@cc-plugins-marketplace`. This plugin's commands and agents
+name those skills as `ui-libraries:<skill>` and say so when it is not installed.
 
 Registry libraries (shadcn, [ReUI](https://reui.io/docs),
 [Aceternity](https://ui.aceternity.com/components)) get docs-first treatment:
@@ -20,8 +23,8 @@ project, everything themed through the same CSS-variable tokens.
 
 The UI layer is library-agnostic on purpose: the skills detect the library the
 project already has from its manifest and build in that one. A library without
-a sibling skill is governed by `component-libraries` plus its docs URL, never
-by a second library installed beside it.
+a sibling skill is governed by `ui-libraries:component-libraries` plus its docs URL,
+never by a second library installed beside it.
 
 ## Install
 
@@ -63,10 +66,8 @@ that looks great as a swatch can fail hard as a button.
 
 ## Contents
 
-- **Skills**: shadcn-best-practices, shadcn-theming, reui-best-practices,
-  aceternity-best-practices, astryx-best-practices, mui-best-practices,
-  component-libraries (the library-agnostic floor plus `references/library-map.md`),
-  tailwind-best-practices, design-tokens, theming-system, motion-best-practices, a11y-audit (the WCAG 2.2 AA
+- **Skills**: shadcn-best-practices, shadcn-theming, tailwind-best-practices,
+  design-tokens, theming-system, motion-best-practices, a11y-audit (the WCAG 2.2 AA
   checklist, so accessibility rules apply while writing markup, not only under the
   audit command)
 - **Agents**: ui-ux-reviewer, ui-ux-engineer, a11y-engineer (applies an audit's fix
@@ -157,7 +158,7 @@ do not state the number.
 - **taskmaster** — its visual-decisions skill uses the same always-live mockup
   pattern for layout/flow choices
 - **A live component registry** — the stack skills here read component APIs from a
-  registry MCP rather than from memory: shadcn's own server (`npx shadcn@latest mcp init`)
+  registry MCP rather than from memory: shadcn's own server (`npx shadcn@latest mcp init --client claude`)
   and ReUI's hosted one (`https://mcp.reui.io`, one-time browser sign-in). Neither is
   shipped by this marketplace; `/stack-scan:suggest` prints the install line when the
   manifests show the stack. <!-- removed-ok --> (design-studio, retired 2026-09-14,

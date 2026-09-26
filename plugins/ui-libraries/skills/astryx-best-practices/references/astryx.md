@@ -1,11 +1,13 @@
 # Astryx structure digest — packages, imports, CLI, themes, templates
 
-> Last verified: 2026-09-22 — https://astryx.atmeta.com/docs/getting-started — npm:@astryxdesign/core@0.6
+> Last verified: 2026-09-26 — https://astryx.atmeta.com/docs/getting-started — npm:@astryxdesign/core@0.6
 
 Read on demand from astryx-best-practices: structure only — packages, install,
 CSS and theme wiring, the CLI, the theme and template inventories. Astryx is
-**beta** (0.x, `0.6.2` on npm at the stamp above, `canary` publishing several
-times a day) — nothing here answers a props question, and a 0.x MINOR is where
+**beta** (0.x, `0.6.3` on npm at the stamp above, `canary` publishing several
+times a day; the 2026-09-26 re-read was the 0.6.1–0.6.3 changelog against this file,
+which changed no package, CSS import, layer order, `defineTheme` key, CLI command or
+peer — the full structure read is 2026-09-22's) — nothing here answers a props question, and a 0.x MINOR is where
 this file goes stale: 0.3 → 0.5 split the package, renamed a category and added
 the agent surface; 0.5 → 0.6 changed the CSS selector contract, added
 `adaptations` to `defineTheme`, and shipped 7 more templates.

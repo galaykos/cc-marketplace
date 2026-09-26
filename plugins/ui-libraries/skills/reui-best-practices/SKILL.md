@@ -15,10 +15,12 @@ or plain-CSS project as a shortcut — it drags the whole shadcn stack with it.
 
 ## Latest docs before any assertion
 
-Registry MECHANICS — what ReUI is, the install flow, `components.json`
-expectations, top-level catalog groups, pairing guidance — are digested in
-`references/reui.md`; read that first and skip the network for those
-questions.
+ReUI's registry specifics — what it is, its namespace and style, item types
+and paywall, licence header, extra tokens, catalog groups, pairing guidance —
+are digested in `references/reui.md`; read that first and skip the network for
+those questions. Generic shadcn registry mechanics (namespaces, object form,
+`{style}`, `--dry-run`/`--diff`) live in `ui-ux:shadcn-best-practices`, its
+`references/registries.md`.
 
 The registry churns: components get added, renamed, and their props change
 without a package version to pin (there is no `reui` npm dependency to read).
@@ -42,13 +44,13 @@ fails silently at runtime, not at install.
 ## Owned code, same as shadcn
 
 Installed files are first-party source from the moment they land. Owned-code and
-re-add rules are identical to `shadcn-best-practices` §"You own the code" and
+re-add rules are identical to `ui-ux:shadcn-best-practices` §"You own the code" and
 §"Install only what you use" — read those; nothing ReUI-specific changes them.
 
 ## Theme through the project's tokens
 
 ReUI components are built for shadcn CSS variables — which means the project's
-existing theme (see the shadcn-theming skill) should style them for free:
+existing theme (see `ui-ux:shadcn-theming`) should style them for free:
 
 - A freshly added component that looks off-brand signals a token mismatch, not
   a need for inline overrides — check which variables it consumes vs which the

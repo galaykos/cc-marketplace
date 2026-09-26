@@ -1,6 +1,6 @@
 ---
 name: aceternity-best-practices
-description: Use when building or reviewing Aceternity UI (ui.aceternity.com) motion-heavy marketing/landing components — placement limits, framer-motion deps, perf budgets, reduced-motion, theming.
+description: Use when building or reviewing Aceternity UI (ui.aceternity.com) motion-heavy marketing/landing components — placement limits, motion deps, perf budgets, reduced-motion, theming.
 ---
 
 ## What Aceternity is — and where it belongs
@@ -13,12 +13,19 @@ CRUD screens) the same components read as noise and cost real frames; the
 correct amount of Aceternity in an admin panel is usually zero. Pairing is the
 norm: shadcn/ReUI for the app, Aceternity for the pitch.
 
+A `motion/react` import alone does not make a file Aceternity. Other registries
+(Magic UI, Animate UI) and hand-written animation use the same package; they are
+`ui-ux:motion-best-practices` territory, and the placement limit above does not
+apply to an app-primitive registry built on `motion`. Standing: agent-graded —
+only a reader of the file's imports and origin can tell the two apart.
+
 ## Latest docs before any assertion
 
-Library shape — what Aceternity is, where it belongs, install discipline, the
-component category inventory — is answered locally by
-`references/aceternity.md`; read that first, no network needed. Everything
-per-component stays live:
+Library shape — what Aceternity is, where it belongs, its registry specifics,
+dependency expectations, the component category inventory — is answered locally
+by `references/aceternity.md`; read that first, no network needed. Generic
+shadcn registry mechanics live in `ui-ux:shadcn-best-practices`, its
+`references/registries.md`. Everything per-component stays live:
 
 Copy-paste libraries have no package version to read — the component page IS
 the version. Before asserting a component's name, props, dependencies, or
@@ -93,7 +100,7 @@ Next.js/SSR:
 ## Theming: keep effects on the token system
 
 Aceternity snippets frequently ship with hardcoded palettes (dark heroes,
-neon accents). On a project with a shadcn theme (see shadcn-theming skill):
+neon accents). On a project with a shadcn theme (see `ui-ux:shadcn-theming`):
 
 - Rewire snippet colors to the project tokens where the effect is meant to
   match the brand; leave literal values only where the effect IS the specific

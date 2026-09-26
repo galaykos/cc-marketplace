@@ -3,7 +3,7 @@ name: astryx-best-practices
 description: Use when building or reviewing UI with Astryx, Meta's open-source React design system — a project importing from `@astryxdesign/*` (core, cli, theme-* packages, StyleX xstyle) or running `astryx init|template|theme|component`. BETA 0.x: pin the installed version before advising.
 ---
 
-> Last verified: 2026-09-22 — https://astryx.atmeta.com/docs/getting-started — npm:@astryxdesign/core@0.6
+> Last verified: 2026-09-26 — https://astryx.atmeta.com/docs/getting-started — npm:@astryxdesign/core@0.6
 
 # Astryx best practices
 
@@ -85,7 +85,7 @@ the digest. Before writing any Astryx code:
   stylesheet, and never a `palette.mode`-style branch in components.
 - Verify both modes render for every screen touched; token symmetry is not
   guaranteed for custom tuples.
-- `/ui-ux:theme` and `shadcn-theming` write CSS-variable themes; on an
+- `/ui-ux:theme` and `ui-ux:shadcn-theming` write CSS-variable themes; on an
   Astryx project the preview may still decide the colours, but the write
   target is the `defineTheme()` file, not `globals.css`.
 
@@ -139,10 +139,11 @@ deprecated until 0.7.0 removes them. No hardcoded colours or spacing, no
 ## Defer rule
 
 - General React correctness (state, effects, keys) → web-dev's `frontend-reviewer`.
-- Tailwind mechanics of overrides → the tailwind skill (this plugin); plain CSS is baseline.
-- Colour derivation for a brand theme → `theming-system`; the VALUES land in `defineTheme()`, not CSS variables.
+- Tailwind mechanics of overrides → `ui-ux:tailwind-best-practices`; plain CSS is baseline.
+- Colour derivation for a brand theme → `ui-ux:theming-system`; the VALUES land in `defineTheme()`, not CSS variables.
 - Full WCAG audit → `/ui-ux:audit`.
-- shadcn/ReUI/Aceternity/MUI surfaces → their sibling skills (this plugin).
+- shadcn surfaces → `ui-ux:shadcn-best-practices`; ReUI/Aceternity/MUI → their
+  sibling skills in this plugin; any other library → `component-libraries`.
 
 ## Anti-patterns
 

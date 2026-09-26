@@ -1,40 +1,51 @@
-# ReUI registry mechanics — the stable layer under a churning catalog
+# ReUI registry specifics — the stable layer under a churning catalog
 
-> Last verified: 2026-07-22 — https://reui.io/docs
+> Last verified: 2026-09-26 — https://reui.io/docs/get-started
 
-Read on demand from reui-best-practices. Only STABLE registry mechanics
-live here: what ReUI is, the install flow, `components.json` expectations,
-top-level catalog groups. Per-component names, props, and exact install
-commands are deliberately absent — fetch the component's page under
-https://reui.io/docs for those; the pages ARE the version, no npm to pin.
+Read on demand from reui-best-practices. Only what is SPECIFIC to ReUI lives
+here: what it is, its namespace and style, its item types and paywall, its
+licence header, its extra tokens, its catalog groups. Per-component names,
+props, and exact install commands are deliberately absent — fetch the
+component's page under https://reui.io/docs for those; the pages ARE the
+version, no npm to pin.
+
+Generic shadcn registry mechanics — the `registries` string and object forms,
+the `{style}`/`{name}` placeholders, `${ENV}` headers, the CLI's built-in
+directory, `aliases`, `view`/`add --dry-run`/`--diff` before `--overwrite` — are
+stated once in `ui-ux:shadcn-best-practices`, `references/registries.md`. Read
+them there; nothing below restates them.
 
 ## What ReUI is
 
-- A shadcn registry serving components, a large free example catalog,
-  premium blocks, icons, and multi-page templates through the shadcn CLI;
-  an MCP server for agents runs at mcp.reui.io.
+- A shadcn registry serving primitives the core registry lacks, a large free
+  example catalog, premium blocks, icons, and downloadable templates; an MCP
+  server for agents runs at mcp.reui.io.
 - Built on the shadcn/ui foundations: React 19, Tailwind CSS v4,
-  CSS-variable theming. Primitive-agnostic — registry entries ship in both
-  Base UI and Radix UI versions; pick the one the project already uses.
-- Ladder of abstraction: free primitives at the bottom, 1,000+ free
-  open-source examples above them, paid blocks and templates on top.
+  CSS-variable theming. Primitive-agnostic — every registry entry ships a Base UI
+  version and a Radix UI version; pick the one the project already uses.
+- Ladder of abstraction: free primitives at the bottom, free open-source
+  examples above them, paid blocks, icons and templates on top.
 
-## Install flow (shadcn CLI against ReUI's registry)
+## ReUI-specific install facts
 
 1. Start from a working shadcn/ui project (React 19, Tailwind v4) — ReUI
    does not bootstrap that layer.
-2. Declare the namespace in `components.json`:
-   `"registries": { "@reui": "https://reui.io/r/{style}/{name}.json" }` —
-   the CLI fills `{style}` from the project's `style` field and `{name}`
-   from the item being added.
-3. Add items via the shadcn CLI: `npx shadcn@latest add @reui/<name>`.
+2. The namespace is `@reui` → `https://reui.io/r/{style}/{name}.json`. It is
+   also in the shadcn CLI's built-in directory. ReUI's own docs set `style`
+   to `base-nova`; the value must be a style ReUI publishes, because it fills
+   the `{style}` segment of that URL.
+3. Items install as `npx shadcn@latest add @reui/<name>`. Stock shadcn
+   components are NOT ReUI items and keep their bare name (`add button`).
+   Templates are not registry items at all: download each from its page.
 
    **`c-*` marks an example, not a free component.** The registry's own server
    distinguishes four types: `component` (plain names — `alert`, `badge`,
    `data-grid`), `example` (`c-badge-22`, `c-alert-3`), `block`, and `icon`.
    Components and examples are free; blocks and icons are premium. So `c-*`
    marks an EXAMPLE, free or not, and a plain name marks a component — neither
-   is a paywall prefix.
+   is a paywall prefix. Some free `c-*` installs pull shared `@reui/*`
+   primitives as dependencies; those stay public so the free flow needs no
+   licence.
 
    The gate is per-type and it composes: **an example is only as free as the
    component under it.** A `badge` example search returns free `c-badge-*`
@@ -47,29 +58,25 @@ https://reui.io/docs for those; the pages ARE the version, no npm to pin.
    including this one. Ask the registry: ReUI ships its own MCP server
    (`mcp.reui.io` — add it with `claude mcp add --transport http reui
    https://mcp.reui.io`, then unlock it with the one-time browser sign-in under
-   `/mcp`), and `list_components` / `search` / `get_component`
-   answer with the type named beside every number.
-4. Premium items: put `REUI_LICENSE_KEY=...` in `.env.local`, switch the
-   registry entry to the object form with an `Authorization: Bearer
-   ${REUI_LICENSE_KEY}` header — one namespace serves free and paid alike.
+   `/mcp`; a free ReUI account, with a daily request allowance), and
+   `list_components` / `search` / `get_component` answer with the type named
+   beside every number.
+4. Premium items: the key is `REUI_LICENSE_KEY` in `.env.local`, sent as
+   `Authorization: Bearer ${REUI_LICENSE_KEY}` from the `@reui` entry's object
+   form — one namespace serves free and paid alike. Pro adds the blocks;
+   Ultimate adds icons and templates on top.
 
-## components.json expectations
+## Tokens ReUI adds
 
-- `registries.@reui` as above — without it, every `@reui/...` add fails.
-- `style` must be a style ReUI publishes (e.g. `base-nova` at the stamp
-  date); it feeds the `{style}` URL placeholder.
-- The standard shadcn `aliases` decide where installed files land — check
-  they match the project layout BEFORE adding.
-- ReUI layers extra semantic tokens onto the shadcn variable set (info /
-  success / warning families and invert variants) — a theme that never
-  defines them yields off-brand components, not errors.
+ReUI layers extra semantic tokens onto the shadcn variable set —
+`--info`, `--success`, `--warning` and `--invert`, each with a `-foreground`
+pair. A theme that never defines them yields off-brand components, not errors.
 
 ## Catalog groups (top-level, as fetched at the stamp date)
 
-Docs sections: Introduction, Get Started, License Setup, Styling, Registry,
-MCP Server, Agent Skills, Changelog. Library groups: Base components,
-Application blocks, Solutions, eCommerce, Data Grid, Marketing. Members of
-every group churn — never cite one without fetching its page first.
+Primitives, component examples, Pro blocks (Application, Data Grid, Solutions,
+eCommerce, Marketing, AI & Agents), icons, templates. Members of every group
+churn — never cite one without fetching its page first.
 
 ## Pairing guidance
 
@@ -78,3 +85,7 @@ every group churn — never cite one without fetching its page first.
   it onto Bootstrap or plain-CSS projects as a shortcut.
 - One primitive layer per repo: choose the Base UI or Radix variant that
   matches the existing shadcn install — mixing both duplicates foundations.
+
+Standing: **recorded** — no script checks a project's `components.json` or
+lockfile against these facts; the reviewer applying `reui-best-practices` is
+the only reader (agent-graded).

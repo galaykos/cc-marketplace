@@ -1,12 +1,16 @@
 # Token vocabularies per stack
 
+> Last verified: 2026-09-26 — https://ui.shadcn.com/docs/theming — npm:shadcn@4
+
 The preview is stack-agnostic; the OUTPUT is not. `theme-shell.html` always
 reads the same internal names (`--background`, `--primary`, …) because the
 skeleton is written against them. What changes per stack is **where the accepted
 values get written and under what names** — and, for Bootstrap, *whether CSS
 variables are even the right target*.
 
-Read this after the stack gate in the skill body has resolved.
+Read this after the stack gate in the skill body has resolved. Every rule here is
+**recorded**: it was checked against the cited docs on the stamp date, and no script
+reads a project's vocabulary.
 
 ## What the preview does and does not decide
 
@@ -29,11 +33,62 @@ both consume shadcn's CSS variables, so a theme built here applies unchanged —
 there is nothing stack-specific to translate.
 
 - Target: `globals.css`, a `:root` block plus a `.dark` block.
-- Names: exactly the skeleton's — `background`, `foreground`, `card`,
-  `popover`, `primary`, `secondary`, `muted`, `accent`, `destructive`, each
-  with its `-foreground` partner, plus `border`, `input`, `ring`, `radius`,
-  `chart-1`…`chart-5`, and the optional `sidebar-*` group.
+- Names: the skeleton's. That is `background`, `foreground`, `card`,
+  `popover`, `primary`, `secondary`, `muted` and `accent`, each with its
+  `-foreground` partner; `destructive` (no partner in the current default
+  theme — see the skill's inventory); `border`, `input`, `ring`, `radius`,
+  `chart-1`…`chart-5`; and the optional `sidebar-*` group.
 - Dark selector: `.dark`.
+
+### tweakcn and other `registry:style` themes: source and output
+
+A tweakcn theme installs with `npx shadcn@latest add
+https://tweakcn.com/r/themes/<name>.json`. It is a `registry:style` item whose
+`cssVars` has three groups, `theme`, `light` and `dark`, and it writes more than
+colour:
+
+- `font-sans`, `font-serif` and `font-mono`;
+- the `shadow-*` inputs;
+- tracking values;
+- a `destructive-foreground`;
+- a `body` letter-spacing rule.
+
+As a SOURCE, load its light and dark values into the preview as one candidate and
+run the contrast pairs. Then diff the non-colour keys against the project before
+`add`, because installing it overwrites fonts and shadows as well. As an OUTPUT, the
+accepted tokens can ship as a `registry:style` or `registry:theme` item with
+`cssVars.light` / `cssVars.dark`, installable with `npx shadcn add <url>`. The
+install mechanics are in `shadcn-best-practices/references/registries.md`.
+
+### PrimeReact Tailwind mode: a `components.json` that is not shadcn
+
+PrimeReact's Tailwind components install through the shadcn CLI
+(`npx shadcn@latest init -t next https://primereact.dev/r/theme.json`). A
+`components.json` exists, but the components read PrimeUI tokens through the
+`tailwindcss-primeui` plugin, not shadcn names.
+
+- **Signals:** `@import 'tailwindcss-primeui'` or `--p-primary-*` / `--p-surface-*`
+  variables in the global stylesheet, and `primereact` in dependencies.
+- **Shape:** these are ramps, not single values. `--p-primary-50` … `-950` and
+  `--p-surface-0` … `-950` hold the colours, and semantic tokens point at ramp
+  steps. `--p-primary-color` is `-500` in light mode and `-400` in dark mode.
+  Expand the preview's accepted `primary` into a full ramp, not one variable.
+  The registry also has presets:
+  `npx shadcn add https://primereact.dev/r/primary-<colour>.json` and
+  `surface-<tone>.json`.
+- **Mapping:**
+  - `primary` → `--p-primary-color`
+  - `primary-foreground` → `--p-primary-contrast-color`
+  - `foreground` → `--p-text-color`
+  - `muted-foreground` → `--p-text-muted-color`
+  - `border` → `--p-content-border-color`
+  - `accent` (hover) → `--p-content-hover-background`
+  - `radius` → `--p-content-border-radius`
+  - background and card → `--p-surface-*` steps
+  - `destructive` and `chart-*` have no default semantic token, so keep them as
+    project-local variables.
+- **Dark:** `.dark`, the same selector `darkModeSelector` on `PrimeReactProvider`
+  must name.
 
 ## Tailwind (semantic tokens)
 
@@ -41,8 +96,11 @@ Same semantic names as above — this is the model shadcn itself uses. What
 differs is the value FORMAT and the mapping layer, and getting it wrong
 produces a theme that silently does nothing:
 
-- **v4**: values in `oklch()`, mapped via `@theme inline` in the CSS file. No
-  colour block in a config file.
+- **v4**: mapped via `@theme inline` in the CSS file, with no colour block in
+  a config file. New projects write `oklch()`. A project upgraded along shadcn's
+  v4 path keeps full `hsl(…)` values under the same `@theme inline`, so detect v4
+  by `@theme inline` and `@import "tailwindcss"`, never by the colour function.
+  Keep the function the file already uses.
 - **v3**: values as bare HSL triplets (`--primary: 222 47% 11%`), consumed by
   `hsl(var(--primary))` mappings in `tailwind.config`. Emit any missing
   mappings alongside the token block.
@@ -112,12 +170,14 @@ Ask only what the repo cannot answer. Collect EVERY signal before deciding —
 this is not a first-match cascade. Stopping at the first hit is what silently
 mis-targets a migration, where two stacks are present by definition:
 
-- **shadcn** — `components.json` present with `cssVariables: true`.
+- **shadcn** — `components.json` present with `cssVariables: true`, UNLESS the
+  global stylesheet carries `--p-*` tokens or `tailwindcss-primeui`. That is
+  PrimeReact Tailwind mode (above), a different vocabulary behind the same file.
 - **Bootstrap** — `bootstrap` in `package.json` dependencies, or any `.scss`
   importing `bootstrap/scss/bootstrap`.
 - **Astryx** — `@astryxdesign/core` in dependencies. Not a CSS-variable target:
   the write is `defineTheme({tokens: {'--name': [light, dark]}})` in an owned
-  theme file, compiled by `astryx theme build`; the `astryx-best-practices`
+  theme file, compiled by `astryx theme build`; the `ui-libraries:astryx-best-practices`
   skill owns that write. StyleX/Tailwind alongside it is not a second signal.
 - **Tailwind** — `tailwindcss` in dependencies. On its own (no
   `components.json`) it means the semantic layer does not exist yet. Alongside

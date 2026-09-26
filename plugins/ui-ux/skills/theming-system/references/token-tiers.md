@@ -67,6 +67,17 @@ This file NAMES those three accent roles and states that steps between them exis
 derive the steps, their direction, or how the ratios resolve — `accent-system.md` owns the
 accent derivation. Naming here, deriving there, keeps one owner for the split.
 
+### Signal roles — named here, derived in `status-and-chart-palette.md`
+
+Outside the three families sit four signal families, each with its own job:
+
+- **status** — the reserved severity ladder: good, warn, serious, critical.
+- **lifecycle** — where a piece of work is: queued, in progress, live, idle, cancelled, failed.
+- **tag** — user-assigned categories and stages: tag-fill and tag-ink pairs, N hues plus a neutral.
+- **chart** — the data-series family derived from the theme's ramps.
+
+None of the four borrows another's role; `status-and-chart-palette.md` derives them.
+
 ## Mapping mood to tier relationships
 
 The concept's mood (mined by `design-research`, shaped by `creative-direction`) does not
@@ -90,6 +101,25 @@ These levers describe the SYSTEM's internal relationships. `/ui-ux:theme` resolv
 actual values along the `design-tokens` ramps; this file only says how the tiers should
 relate so that whatever values are generated stay a coherent, contrast-correct family.
 
+### The console register — relationships, not a preset
+
+A console, dashboard or developer-tool surface (logs, deploys, resources) sets the levers this
+way:
+
+- **The line tier separates** where elevation would: panels sit on base, divided by hairlines,
+  not stacked shadows.
+- **Surface steps are small.** Base, raised and sunken sit close; structure comes from line and
+  alignment.
+- **ink-tertiary carries machine strings** — IDs, hashes, timestamps, commands — in the mono face,
+  and still clears the small-text rule.
+- **accent-display appears on at most two elements per viewport.**
+- **Accent chroma stays low, because status is the loudest role**: a failed deploy must outshout
+  the brand.
+
+This is NOT a "dev-tool dark" value preset. The register holds in either polarity, and the
+strongest console references behind it were mostly light, 13 of 20; a dark preset would encode
+the dev-tool category's average, not its best. Standing: recorded.
+
 ## What this file does not do
 
 - It does not emit a colour, a hex, a functional-colour scalar, or a named colour — that is
@@ -97,4 +127,5 @@ relate so that whatever values are generated stay a coherent, contrast-correct f
 - It does not derive the accent split or its contrast steps — `accent-system.md` owns that.
 - It does not step the light/dark modes or express elevation as tone-vs-shadow —
   `light-dark-duality.md` and `shadcn-theming` own the mode mechanics.
-- It does not define the status or chart tiers — `status-and-chart-palette.md` owns those.
+- It does not derive the status, lifecycle, tag or chart roles — `status-and-chart-palette.md`
+  owns those; this file only names them.

@@ -4,6 +4,33 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.27.0 — 2026-09-26
+
+- **Split: the component-library skills moved to the new `ui-libraries` plugin** — `mui-best-practices`,
+  `astryx-best-practices`, `reui-best-practices`, `aceternity-best-practices`, `component-libraries`.
+  ui-ux had reached the 160,000-byte per-plugin prose cap. Every suite carrying ui-ux now carries
+  ui-libraries; a standalone ui-ux install should add it by name. This plugin's commands and agents
+  name the moved skills as `ui-libraries:<skill>`.
+- `shadcn-best-practices`: the Radix vs Base UI base (`references/bases.md` — style-prefix detection,
+  `render`/`nativeButton` vs `asChild`, `data-open:` variants, part names; `nativeButton={false}` never
+  styles a link), a shared `references/registries.md` (the CLI's 382-entry directory with health,
+  namespaced installs, auth headers, `view`/`--dry-run`/`--diff`), Recharts v3 and TanStack Table v9
+  recipes, and `mcp init --client claude`.
+- `shadcn-theming`: `destructive-foreground` no longer a required pair; `@theme inline` is the v4 signal;
+  PrimeReact `--p-*` detection; tweakcn / `registry:style` as a theme source.
+- `a11y-audit`: nine app-widget contracts a mouse walk and axe both pass (keyboard drag-and-drop with
+  label-and-position announcements and a non-drag route, tree/treegrid, virtualized grids, SC 2.1.4,
+  SC 2.2.1 holds, drop zones, slider `aria-valuetext`, matrix cells, `aria-sort`) and an SC 2.2.2 pause
+  control for anything moving > 5 s. A control-arm probe (`evals/marquee-carousel-pause`, deterministic
+  re-grade of the written files) measured the base model at 3/5 on the marquee pause control and the
+  arm carrying this rule at 5/5 (`rationale/2026-09-26-design-corpus-probes.md`).
+- `tailwind-best-practices` / `design-tokens`: v4's quiet defaults and a v3 → v4 migration block.
+- `theming-system`: a categorical tag/stage role held apart from status, a lifecycle axis, a console
+  register (relationships, not values), and the light/dark rule scoped to apps.
+- `motion-best-practices`: `MotionConfig reducedMotion` does not stop scroll-linked motion; paid Motion+
+  parts named; GSAP `ScrollTrigger.batch()` and its licence stated correctly.
+- `/ui-ux:build` also injects craft-layer's `product-packages.md` and cites the registries reference.
+
 ## 0.26.3 — 2026-09-25
 
 - `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.

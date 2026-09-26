@@ -1,6 +1,6 @@
 # Motion depth — motion.dev recipes the SKILL body has no room for
 
-> Last verified: 2026-08-11 — https://motion.dev/docs — npm:motion@13
+> Last verified: 2026-09-26 — https://motion.dev/docs — npm:motion@13
 
 Read on demand from motion-best-practices. Everything here assumes the `motion`
 npm package (v13 line); `framer-motion` is a legacy alias — never import it.
@@ -100,5 +100,29 @@ everything below applies as written.
 - Event callbacks: `onHoverStart`/`onHoverEnd`, `onTapStart`/`onTap`/
   `onTapCancel`, `onPan` (pan has no `while-` prop).
 
+## Reduced motion: what `MotionConfig` does NOT cover
+
 Reduced motion: the SKILL body's `prefers-reduced-motion` rule applies
 unchanged — every Motion usage ships a reduced-motion branch.
+
+- `<MotionConfig reducedMotion="user">` disables transform and layout
+  animations on `motion` components and keeps animating `opacity` and
+  `backgroundColor`. It is not a tree-wide kill switch.
+- Scroll-linked motion is not an animation it can stop: a `useScroll` →
+  `useTransform` value bound to `style` keeps moving. Branch on
+  `useReducedMotion()` and pass a static value instead of the motion value
+  (Motion's own parallax recipe does this).
+- An opacity pulse or a vanilla `animate()` / `scroll()` call is outside it
+  too; gate those with the same hook or the subscribed media query.
+
+Standing: recorded — no check reads a Motion tree for this.
+
+## Motion+ is paid, and not in `motion`
+
+Ticker, Carousel, AnimateNumber, splitText, ScrambleText, Cursor and
+Typewriter are Motion+ components (https://motion.dev/plus): a paid
+membership, installed from a private registry with a token. None of them
+ships in the open-source `motion` package, so importing one from `motion` or
+`motion/react` fails. Without a membership, build the marquee, carousel or
+number roll by hand (and give it the SC 2.2.2 pause control `a11y-audit`
+names), or use GSAP's free SplitText. Standing: recorded.

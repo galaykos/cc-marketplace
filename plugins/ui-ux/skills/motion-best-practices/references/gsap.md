@@ -1,11 +1,15 @@
 # GSAP depth — recipes the SKILL body has no room for
 
-> Last verified: 2026-07-22 — https://gsap.com/docs — npm:gsap@3
+> Last verified: 2026-09-26 — https://gsap.com/docs — npm:gsap@3.15
 
 Read on demand from motion-best-practices. Everything here assumes GSAP 3.13+
 (all plugins free on npm since 3.13, single `gsap` package, React hook in
 `@gsap/react`; current line 3.15). Verify current APIs at gsap.com/docs —
 v3.13.0 rewrote SplitText (half the size, 14 new features).
+
+Licence: the "Standard no-charge" licence (https://gsap.com/standard-license/),
+not MIT. Commercial use and every plugin are free; the headline prohibited use
+is a no-code visual animation builder that competes with Webflow's.
 
 ## Timeline architecture
 
@@ -33,6 +37,18 @@ v3.13.0 rewrote SplitText (half the size, 14 new features).
   (images, fonts, async lists); stale measurements are the #1 ScrollTrigger bug.
 - Kill triggers on unmount: `useGSAP()` (React) or `gsap.context()` scoping
   handles this; a manually-created trigger needs `st.kill()`.
+- Many similar reveals (cards, list rows, a Webflow-style "fade in on scroll"
+  attribute): `ScrollTrigger.batch(".card", { onEnter: (els) => gsap.to(els,
+  { opacity: 1, y: 0, stagger: 0.1 }) })` — one trigger per element, callbacks
+  grouped per `interval`, so rows entering together stagger as one group
+  (`batchMax` caps it). A per-element loop fires N separate tweens instead.
+  Build it inside the SKILL's `gsap.matchMedia()` gate. Standing: recorded.
+- Mobile address bar: on a touch-only device ScrollTrigger already skips the
+  refresh when only the height changes, by under 25% (`ignoreMobileResize`, on
+  by default there). Do not set it `false`, and do not add your own `resize` →
+  `refresh()` listener — either brings back the pin jump as the bar shows and
+  hides. If pins still jump, `ScrollTrigger.normalizeScroll(true)` stops the
+  bar from toggling on most mobile browsers. Standing: recorded.
 
 ## SplitText (v3.13 rewrite)
 
