@@ -1,9 +1,11 @@
 # Physics patterns — matter.js world, sync, and constraints
 
-> **Last verified: partially, 2026-07-25.** matter.js was confirmed active. The
-> `@dimforge/rapier2d` note below was NOT re-checked in that pass — treat it as a
-> lead and verify before choosing it. A date on an unverified fact is worse than
-> no date, so this file states which half it covers.
+> Last verified: 2026-09-26 — https://github.com/liabru/matter-js — npm:matter-js@0.20
+>
+> npm facts only. `matter-js` last published 0.20.0 on 2024-06-23 — over two years
+> without a release: stable, not active. Pin it; fine for small craft surfaces; for a
+> long-lived or heavy simulation prefer rapier. `@dimforge/rapier2d` published 0.21.0 on
+> 2026-09-25 — active. The API notes below were not re-read in this pass.
 
 Read on demand from the physics-motion SKILL. The spring/tween alternative (when NOT to
 use physics) lives in `plugins/ui-ux/skills/motion-best-practices/SKILL.md`; the

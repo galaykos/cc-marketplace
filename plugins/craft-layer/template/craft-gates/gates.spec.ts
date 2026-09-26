@@ -42,7 +42,9 @@
  *                      This trigger writes IMAGES, not a verdict: nothing in
  *                      this file can see that class, so something has to open
  *                      them.
- *   - reduced motion → transitions surviving the media query.
+ *   - reduced motion → transitions surviving the media query, and the JS,
+ *                      canvas, smooth-scroll and video motion a stylesheet
+ *                      never shows (GSAP, Motion, Lenis, three.js, Lottie).
  *   - forced colours → content vanishing under Windows High Contrast.
  *   - axe            → the machine-testable ~30% of WCAG, on every commit.
  *
@@ -58,7 +60,7 @@
  * in this plugin's `scripts/__tests__/fixtures/`, are the pair that proves they
  * fail for the right reason.
  */
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdirSync, rmSync } from 'node:fs'
 
@@ -428,7 +430,346 @@ test.describe('prefers-reduced-motion: reduce', () => {
     })
     expect(moving, 'these still MOVE under reduced motion').toEqual([])
   })
+
+  /* WHY THE FOUR TESTS BELOW EXIST. The one above reads computed CSS, and
+     GSAP, Motion's JS path, anime.js, Lenis and every canvas runtime write
+     nothing a stylesheet shows: a build ignoring the preference in all of them
+     passed it. Each test below watches one channel the CSS read cannot, and
+     names what moved. `scripts/__tests__/fixtures/fixture-motion-{js,canvas,clean}.html`
+     are the controls — the two defective pages must fail here, the clean twin
+     (same page, preference honoured) must not.
+
+     What none of them sees, stated so a green is not read as more than it is:
+     motion that starts only after an interaction (hover, click, drag, a
+     carousel arrow); a scroll container other than the window; a small
+     scrubbed element on a page past ~8 viewports, where the 32-stop walk
+     stretches its step and may see it at fewer than three stops;
+     `top`/`left`/`margin` animated by JS; tweens shorter than ~250ms; visible
+     canvases past the first four, or changing under 0.1% of their pixels in 400ms;
+     closed shadow roots, and OPEN ones for the transform walk (the video walk and
+     the canvas locator pierce them); anything inside an iframe; elements past the
+     first 1,500 on screen at a scroll stop; a pause button the video heuristic
+     cannot name;
+     opacity-only change, which is ALLOWED (see above). Whether the reduced
+     state is a GOOD still frame is a judgement, not a sample — that stays with
+     the reviewer and the shots. */
+
+  test('JS motion: nothing moves on its own or tracks the scroll', async ({ page }) => {
+    await page.addInitScript(recordWaapi)
+    await openReduced(page)
+    const r = await page.evaluate(sampleMotion, { maxSteps: 32, gapMs: 90, maxEls: 1500 })
+    expect.soft(r.waapi,
+      'WAAPI (Element.animate — Motion, anime.js waapi, hand-rolled) still MOVES under reduced motion').toEqual([])
+    expect.soft(r.selfMoving,
+      'these elements MOVE ON THEIR OWN under reduced motion (a JS tween or loop — GSAP, Motion, a marquee)').toEqual([])
+    expect.soft(r.scrollTracking,
+      'these elements TRACK THE SCROLL under reduced motion (scrub, parallax, scroll-driven)').toEqual([])
+  })
+
+  test('canvas: no <canvas> keeps animating', async ({ page }) => {
+    await openReduced(page)
+    const canvases = page.locator('canvas')          // pierces open shadow roots (<spline-viewer>)
+    const total = await canvases.count()
+    const moving: string[] = []
+    // Visible and at least 16x16 first, THEN the cap: hidden or tiny canvases ahead in the
+    // DOM must not use up the four. Short timeouts: a canvas removed mid-run is a note, not a hang.
+    const picked: { c: Locator; label: string }[] = []
+    for (let i = 0; i < total && picked.length < 4; i++) {
+      const c = canvases.nth(i)
+      try {
+        if (!(await c.isVisible())) continue
+        const box = await c.boundingBox({ timeout: 2000 })
+        if (!box || box.width < 16 || box.height < 16) continue
+        const label = await c.evaluate((el) => {
+          const cv = el as HTMLCanvasElement
+          return `canvas[${cv.id ? '#' + cv.id : ''}${cv.className ? '.' + String(cv.className).split(' ')[0] : ''}] ${cv.width}x${cv.height}`
+        }, undefined, { timeout: 2000 })
+        picked.push({ c, label })
+      } catch (e) {
+        test.info().annotations.push({ type: 'not measured', description: `canvas ${i + 1} of ${total}: ${String(e).split('\n')[0]}` })
+      }
+    }
+    const scratch = await page.context().newPage()   // decode off the page under test: its CSP, its main thread
+    try {
+      for (const { c, label } of picked) {
+        try {
+          await c.scrollIntoViewIfNeeded({ timeout: 3000 })
+          await page.waitForTimeout(300)             // let an on-screen-only loop wake up
+          const shots: string[] = []
+          for (let k = 0; k < 3; k++) {
+            if (k) await page.waitForTimeout(400)
+            shots.push((await c.screenshot({ timeout: 5000 })).toString('base64'))
+          }
+          const changed = await scratch.evaluate(pixelChange, shots)
+          // BOTH gaps must change: one change is a late first frame or a resize settling.
+          if (changed.every((f) => f > 0.001)) {
+            moving.push(`${label}: ${changed.map((f) => (f * 100).toFixed(1) + '%').join(' then ')} of pixels changed 400ms apart`)
+          }
+        } catch (e) {
+          test.info().annotations.push({ type: 'not measured', description: `${label}: ${String(e).split('\n')[0]}` })
+        }
+      }
+    } finally {
+      await scratch.close()
+    }
+    expect(moving, 'these canvases still ANIMATE under reduced motion — render one settled frame instead').toEqual([])
+  })
+
+  test('smooth-scroll: wheel scrolling stays native', async ({ page }) => {
+    await openReduced(page)
+    const found: string[] = await page.evaluate(() =>
+      [document.documentElement, document.body]
+        .filter((el) => el && getComputedStyle(el).scrollBehavior === 'smooth')
+        .map((el) => `<${el.tagName.toLowerCase()}> computes scroll-behavior: smooth — gate it behind (prefers-reduced-motion: no-preference)`))
+    /* Lenis marks its root `lenis` while alive and `lenis-smooth` only while it
+       is animating a scroll itself, so the second class after a real wheel is
+       the proof — presence alone would fail an instance started with
+       smoothWheel off, which is instant. */
+    const lenis = await page.evaluate(() => {
+      const w = window as unknown as { lenisVersion?: string; __craftSmooth?: boolean }
+      const alive = !!(document.querySelector('.lenis, [data-lenis-prevent], [data-lenis-prevent-wheel]') || w.lenisVersion)
+      if (alive) {
+        w.__craftSmooth = false
+        const mark = () => { if (document.querySelector('.lenis-smooth')) w.__craftSmooth = true }
+        new MutationObserver(mark).observe(document.documentElement, { attributes: true, attributeFilter: ['class'], subtree: true })
+        mark()
+      }
+      return alive
+    })
+    if (lenis) {
+      const vp = page.viewportSize() ?? { width: 1280, height: 720 }
+      await page.mouse.move(vp.width / 2, vp.height / 2)
+      await page.mouse.wheel(0, 600)
+      await page.waitForTimeout(500)
+      if (await page.evaluate(() => (window as unknown as { __craftSmooth?: boolean }).__craftSmooth)) {
+        found.push('Lenis smooth-scrolled a wheel event (.lenis-smooth appeared) — do not start Lenis when the preference is reduce')
+      }
+    }
+    expect(found, 'smooth scrolling survives reduced motion').toEqual([])
+  })
+
+  test('video: nothing autoplays in a loop without a pause control', async ({ page }) => {
+    await openReduced(page)
+    const looping = await page.evaluate(async () => {
+      // Open shadow roots too: a web-component player keeps its <video> in one.
+      const vids: HTMLVideoElement[] = []
+      const walk = (root: Document | ShadowRoot) => {
+        vids.push(...root.querySelectorAll('video'))
+        for (const el of root.querySelectorAll('*')) if (el.shadowRoot) walk(el.shadowRoot)
+      }
+      walk(document)
+      if (!vids.length) return []
+      const t0 = vids.map((v) => v.currentTime)
+      await new Promise((r) => setTimeout(r, 800))
+      // "Display", "Replay" and "Google Play" say play and stop nothing: a bare "play"
+      // counts only on a toggle (aria-pressed).
+      const named = (el: Element) => {
+        const text = `${el.getAttribute('aria-label') ?? ''} ${el.getAttribute('title') ?? ''} ${el.textContent ?? ''}`
+        return /\b(pause|stop)\b/i.test(text) || (el.hasAttribute('aria-pressed') && /\bplay\b/i.test(text))
+      }
+      const ctl = 'button, [role="button"], input[type="button"]'
+      const up = (n: Node): Element | ShadowRoot | null =>
+        n instanceof ShadowRoot ? n.host : n.parentElement ?? (n.parentNode instanceof ShadowRoot ? n.parentNode : null)
+      return vids.flatMap((v, i) => {
+        const playing = !v.paused && !v.ended && v.currentTime !== t0[i]
+        // WCAG 2.2.2's line is five seconds; a loop or a live stream never ends.
+        const long = v.loop || !Number.isFinite(v.duration) || v.duration > 5
+        if (!playing || !long || v.controls) return []
+        // Climb at most three levels, and never into a box holding another video:
+        // a pause button there belongs to its neighbour.
+        let scope = up(v)
+        for (let k = 0; scope && k < 3; k++, scope = up(scope)) {
+          if (scope.querySelectorAll('video').length > 1) break
+          if ([...scope.querySelectorAll(ctl)].some(named)) return []
+        }
+        const root = v.getRootNode() as Document | ShadowRoot
+        if (v.id && root.querySelector(`[aria-controls~="${CSS.escape(v.id)}"]`)) return []
+        const where = root instanceof ShadowRoot ? ` inside <${root.host.tagName.toLowerCase()}>` : ''
+        const src = (v.currentSrc || v.getAttribute('src') || 'stream').split('/').pop()
+        return [`video${v.id ? '#' + v.id : ''}${where} (${src}) keeps playing${v.loop ? ' in a loop' : ''} with no controls and no pause button nearby`]
+      })
+    })
+    expect(looping, 'autoplaying video survives reduced motion with no way to stop it').toEqual([])
+  })
 })
+
+/** Open BASE_URL and wait for a rendered heading when one comes — not asserting
+    it: the CSS test above owns that failure, and five copies of it help nobody. */
+async function openReduced(page: Page) {
+  await page.goto(URL)
+  await page.getByRole('heading', { level: 1 }).first().waitFor({ timeout: 5000 }).catch(() => {})
+}
+
+/** Init script: record every Element.animate() from before the first page
+    script runs, so a Motion entrance that finished before anyone looked is
+    still on the record. `document.getAnimations()` only lists live ones. */
+function recordWaapi() {
+  const w = window as unknown as { __craftWaapi: Animation[]; __craftWaapiQuiet: WeakSet<Animation> }
+  w.__craftWaapi = []
+  const quiet = (w.__craftWaapiQuiet = new WeakSet<Animation>())
+  const original = Element.prototype.animate
+  Element.prototype.animate = function (this: Element, ...args: Parameters<Element['animate']>) {
+    const a = original.apply(this, args)
+    w.__craftWaapi.push(a)
+    return a
+  }
+  /* Cancelled, or jumped to its end, before 50ms of its active phase had played: nothing
+     moved on screen. Read BEFORE the call, marked only if the call succeeds (finish() on an
+     endless animation throws and leaves it running). One cancelled after it ran — Motion
+     cancels on finish — is not marked. */
+  for (const m of ['cancel', 'finish'] as const) {
+    const call = Animation.prototype[m]
+    Animation.prototype[m] = function (this: Animation) {
+      const t = this.currentTime
+      const played = typeof t === 'number' ? t - Number(this.effect?.getTiming().delay ?? 0) : t === null ? 0 : Infinity
+      call.call(this)
+      if (played < 50) quiet.add(this)
+    }
+  }
+}
+
+/** One in-page pass: WAAPI, then a stepped scroll walk sampling computed
+    transforms three times per stop. Transforms only — layout shift from a lazy
+    image moves boxes without being motion, and opacity is the allowed fade. */
+async function sampleMotion(o: { maxSteps: number; gapMs: number; maxEls: number }) {
+  const frame = () => new Promise((r) => requestAnimationFrame(() => r(null)))
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+  const name = (el: Element | null | undefined) => {
+    if (!el) return '(no target)'
+    const cls = (typeof el.className === 'string' ? el.className : el.getAttribute('class') || '').trim().split(/\s+/)[0]
+    return `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${cls ? '.' + cls : ''}`
+  }
+  const cap = (xs: string[]) => xs.length > 6 ? [...xs.slice(0, 6), `…and ${xs.length - 6} more`] : xs
+
+  // WAAPI: recorded calls plus whatever is live now (new Animation(...) is not a .animate() call).
+  const MOTION = /^(transform|translate|rotate|scale|top|left|right|bottom|offsetDistance|offsetPath)$|^margin|^inset/i
+  const META = new Set(['offset', 'computedOffset', 'easing', 'composite'])
+  const seen = new Set<Animation>()
+  const waapi: string[] = []
+  const w = window as unknown as { __craftWaapi?: Animation[]; __craftWaapiQuiet?: WeakSet<Animation> }
+  const recorded = w.__craftWaapi ?? []
+  for (const a of [...recorded, ...document.getAnimations()]) {
+    if (seen.has(a)) continue
+    seen.add(a)
+    if (a instanceof CSSAnimation || a instanceof CSSTransition) continue   // the CSS test's
+    const eff = a.effect as KeyframeEffect | null
+    if (!eff || typeof eff.getKeyframes !== 'function') continue
+    // A feature test on a node never attached, or one removed since, moved nothing on screen.
+    if (!eff.target?.isConnected) continue
+    // Idle or finished having never played (recordWaapi's quiet set); running again counts.
+    if ((a.playState === 'idle' || a.playState === 'finished') && w.__craftWaapiQuiet?.has(a)) continue
+    const dur = eff.getComputedTiming().duration
+    const scrollLinked = !!a.timeline && !(a.timeline instanceof DocumentTimeline)
+    if (!scrollLinked && !(typeof dur === 'number' && dur > 50)) continue
+    const kfs = eff.getKeyframes()
+    const moved = new Set<string>()
+    const vals = new Map<string, Set<string>>()
+    const hits = new Map<string, number>()
+    for (const k of kfs) {
+      for (const [p, v] of Object.entries(k)) {
+        if (META.has(p) || !MOTION.test(p)) continue
+        if (!vals.has(p)) vals.set(p, new Set())
+        vals.get(p)!.add(String(v))
+        hits.set(p, (hits.get(p) ?? 0) + 1)
+      }
+    }
+    // One keyframe animates FROM the current value; a property missing from a
+    // frame is implicit — both move. Identical values in every frame do not.
+    for (const [p, vs] of vals) if (kfs.length === 1 || vs.size > 1 || hits.get(p)! < kfs.length) moved.add(p)
+    if (moved.size) {
+      waapi.push(`${name(eff.target)}: ${[...moved].join(', ')} over ${scrollLinked ? 'a scroll timeline' : Math.round(dur as number) + 'ms'}${eff.getComputedTiming().iterations === Infinity ? ', looping' : ''}`)
+    }
+  }
+
+  const snap = () => {
+    const out = new Map<Element, string>()
+    for (const el of document.querySelectorAll('body *')) {
+      if (out.size >= o.maxEls) break
+      const r = el.getBoundingClientRect()
+      if (r.width <= 0 || r.height <= 0 || r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) continue
+      const cs = getComputedStyle(el)
+      out.set(el, `${cs.transform}|${cs.translate}|${cs.rotate}|${cs.scale}`)
+    }
+    return out
+  }
+  const selfMoving = new Map<Element, string>()
+  const track = new Map<Element, string[]>()
+  const room = document.documentElement.scrollHeight - innerHeight
+  const step = Math.max(Math.round(innerHeight / 4), Math.ceil(room / o.maxSteps))
+  const stops = [0]
+  for (let y = step; y < room; y += step) stops.push(y)
+  if (room > 0 && stops[stops.length - 1] !== room) stops.push(room)
+  for (const y of stops.slice(0, o.maxSteps + 1)) {
+    // 'instant' overrides a page's `scroll-behavior: smooth`, which would
+    // otherwise animate the walk itself and file scroll-linked motion as a tween.
+    window.scrollTo({ top: y, behavior: 'instant' })
+    await frame(); await frame()
+    const a = snap(); await wait(o.gapMs)
+    const b = snap(); await wait(o.gapMs)
+    const c = snap()
+    for (const [el, vc] of c) {
+      const va = a.get(el), vb = b.get(el)
+      // Changed across BOTH gaps with the page at rest: still moving, not a one-off jump.
+      if (va !== undefined && vb !== undefined && va !== vb && vb !== vc && !selfMoving.has(el)) {
+        selfMoving.set(el, `${va.split('|')[0]} → ${vc.split('|')[0]}`)
+      }
+      if (!track.has(el)) track.set(el, [])
+      track.get(el)!.push(vc)
+    }
+  }
+  window.scrollTo({ top: 0, behavior: 'instant' })
+
+  /* Tracks the scroll = its settled transform changed at two-plus stops. One
+     change is an instant reveal snapping into place, which is what a correct
+     reduced path LOOKS like. A one-axis scale is a progress meter filling, not
+     the scene moving, and is left alone — as a `transform` matrix or as the
+     `scale` property. A one-axis TRANSLATE is not exempt on either path: it is
+     also what a scroll-linked parallax or marquee looks like. */
+  const meter = (v: string) =>
+    /^matrix\((?:[-\d.e]+, 0, 0, 1|1, 0, 0, [-\d.e]+), 0, 0\)\|/.test(v) ||
+    /^none\|none\|none\|(?:[-\d.e]+ 1|1 [-\d.e]+|1)$/.test(v)          // `scale: 1 1` computes to "1"
+  const PROPS = ['transform', 'translate', 'rotate', 'scale']
+  const scrollTracking: string[] = []
+  for (const [el, vs] of track) {
+    if (selfMoving.has(el)) continue
+    let changes = 0
+    for (let i = 1; i < vs.length; i++) if (vs[i] !== vs[i - 1]) changes++
+    if (changes >= 2 && !vs.every((v) => v.startsWith('none|none|none|none') || meter(v))) {
+      const parts = vs.map((v) => v.split('|'))
+      const first = parts[0], last = parts[parts.length - 1]
+      const moved = PROPS.map((p, k) => [p, k] as const).filter(([, k]) => parts.some((q) => q[k] !== first[k]))
+      scrollTracking.push(`${name(el)}: ${changes} ${moved.map(([p]) => p).join('/')} changes across ${vs.length} scroll stops (${moved.map(([p, k]) => `${p} ${first[k]} … ${last[k]}`).join('; ')})`)
+    }
+  }
+  return {
+    waapi: cap(waapi),
+    selfMoving: cap([...selfMoving].map(([el, d]) => `${name(el)}: ${d}`)),
+    scrollTracking: cap(scrollTracking),
+  }
+}
+
+/** Fraction of pixels (any channel off by more than 8/255) that changed
+    between each consecutive pair of PNG frames. Runs in a scratch page. */
+async function pixelChange(shots: string[]) {
+  const imgs = await Promise.all(shots.map((b64) =>
+    createImageBitmap(new Blob([Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0))], { type: 'image/png' }))))
+  const w = Math.min(...imgs.map((i) => i.width)), h = Math.min(...imgs.map((i) => i.height))
+  const px = imgs.map((img) => {
+    const g = new OffscreenCanvas(w, h).getContext('2d')!
+    g.drawImage(img, 0, 0)
+    return g.getImageData(0, 0, w, h).data
+  })
+  const out: number[] = []
+  for (let k = 1; k < px.length; k++) {
+    const a = px[k - 1], b = px[k]
+    let changed = 0
+    for (let i = 0; i < a.length; i += 4) {
+      if (Math.abs(a[i] - b[i]) > 8 || Math.abs(a[i + 1] - b[i + 1]) > 8 || Math.abs(a[i + 2] - b[i + 2]) > 8) changed++
+    }
+    out.push(changed / (w * h))
+  }
+  return out
+}
 
 /* ----------------------------------------------------- trigger: forced colours */
 test.describe('forced-colors: active', () => {

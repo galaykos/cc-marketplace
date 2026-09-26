@@ -80,7 +80,7 @@ is the field a build most often defaults into. This layer derives a typeface SPE
 strategy, required axes and features, coverage, licence class, KB ceiling, and what the
 anti-corpus disqualifies — which the theme brief carries and the audit reads back. It
 NEVER names a family: naming answers is a catalog, naming families to diverge from is the
-fingerprint's job. Seven filters, hardest-cutting first, in
+fingerprint's job. Eight filters, hardest-cutting first, in
 `references/type-strategy.md`. Scales stay `design-tokens`; the static contract
 (fluid sizing, `text-wrap`, loading, licence tiers) stays `kinetic-typography`.
 
@@ -139,10 +139,12 @@ Concept and DIRECTION belong here; values, mining, and generation belong to thos
   seed + recency window + release-cadence upkeep.
 - `references/palette-strategy.md` — archetype→mood + don't-repeat nudge; defers colour to
   design-research.
-- `references/type-strategy.md` — the typeface SELECTOR: seven filters deriving a spec,
+- `references/type-strategy.md` — the typeface SELECTOR: eight filters deriving a spec,
   the archetype→strategy table, and the never-name-a-family rule.
 - `references/moves-taxonomy.md` — MOVE categories + when-to-use; the opt-in live pass and
   its probe→degrade fallback.
+- `references/archetype-recipes.md` — each hero shape → its mechanism, the skills that build
+  it, and its budget anchor; names no sites.
 - `references/voice-contract.md` — the four voice dimensions, the build task's `Voice:` line,
   and which half of it a script grades.
 

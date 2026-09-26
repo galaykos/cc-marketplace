@@ -25,6 +25,7 @@ Run the decision top-down and stop at the first row that fits:
   idle. Fixed resolution, deterministic playback, zero runtime math.
 - **Video** (`<video muted autoplay loop playsinline>`, WebM/AV1) — long footage,
   photographic content, or any clip past a few seconds where a sheet blows the budget.
+  Its playback contract (poster, preload, pause control, reduced motion) is `video.md`.
 
 The sprite sits between Lottie and video: choose it only when the frames are raster AND
 the sequence is short. If either premise breaks — the art is really vector, or the clip

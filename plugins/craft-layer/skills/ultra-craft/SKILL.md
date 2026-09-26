@@ -115,6 +115,15 @@ dated sources that clear the mandate's minimums; a section ledger (guided was bi
 its absence is a miss, not a one-shot); and a red-team record naming what it attacked. No
 `Boost` row → `not checked`, never a pass and never a fail.
 
+## Studio-grade 3D
+
+A boosted run that reaches for a loader-first scene or a site whose canvas IS the page
+takes the architecture, not an exemption. Scene-first arrival only under the arrival
+contract (recorded, real progress, a time cap, text in the served HTML, reduced motion
+honoured): `../motion-tiers/references/webgl-3d.md`. Persistent canvas, DOM↔GL sync,
+scroll-to-camera, quality ladder, context loss:
+`../threejs-best-practices/references/webgl-first-site.md`. Standing: recorded.
+
 ## What never moves
 
 Every ceiling in `ambition-tiers.md` holds unchanged: `prefers-reduced-motion` per tier,

@@ -24,7 +24,10 @@ Answer in order; take the first that fits the surface:
 
 1. Looping frame-by-frame character / mascot / pixel motion? → **Sprites** (tier 4).
 2. Real 3D, a WebGL background, or a product viewer? → **3D / WebGL** (tier 3) —
-   budget-gated, lazy-loaded, static fallback (see `references/webgl-3d.md`).
+   budget-gated, lazy-loaded, static fallback (see `references/webgl-3d.md`). An ambient
+   background or hero with no data and no app state takes a shader preset or hosted embed
+   (Paper Shaders, Unicorn Studio, Spline) BEFORE hand-built three.js — same tier-3 contract
+   plus a third-party host: `references/hosted-runtimes.md`.
 3. Have (or want) a designer-authored `.lottie` / `.riv` asset, or an interactive
    state-machine vector? → **Vector** (tier 5) — a shipped Lottie/Rive beats
    hand-coding the same motion (see `references/vector.md`).
@@ -66,11 +69,11 @@ are **gate** (`pc_source_of_truth`); prose agreement is **recorded** — nothing
   — compositor-cheap. reduced-motion: pause on a single poster frame. reduced-bundle:
   ship the static poster frame and defer the sheet. Authoring detail: `references/sprite.md`.
 - **Tier 5 — Vector** (Lottie / Rive): designer-authored vector motion. Lottie
-  (`@lottiefiles/dotlottie-react`) = timeline playback; Rive (`@rive-app/react-canvas`)
-  = interactive state-machine. Budget ≈ the `.lottie`/`.riv` asset size + player
-  runtime; lazy-load the asset and player. reduced-motion: render a static poster
-  frame. reduced-bundle: ship a poster image and lazy-load the asset. Lottie-vs-Rive,
-  budget, and both fallbacks: `references/vector.md`.
+  (`@lottiefiles/dotlottie-react`) = timeline playback; Rive (`@rive-app/react-webgl2`, or
+  `react-canvas` for many instances) = interactive, driven by data binding. Budget ≈ the
+  `.lottie`/`.riv` asset size + player runtime; lazy-load the asset and player.
+  reduced-motion: render a static poster frame. reduced-bundle: ship a poster image and
+  lazy-load the asset. Lottie-vs-Rive, budget, and both fallbacks: `references/vector.md`.
 
 ## Framework binding (one line)
 
@@ -93,6 +96,15 @@ Every surface answers both, or it does not ship:
   or to a static image. Tiers 3 and 4 make this the DEFAULT initial render and upgrade
   progressively once the heavy chunk is affordable. Measure the fallback path too — a
   fallback that still ships the full tier bundle is not a reduced-bundle path.
+
+**Plus a visible pause for anything continuous.** Motion that starts on its own, runs
+longer than five seconds and sits beside other content — a 3D hero loop, a shader
+background, a marquee, a rotating word, a background video — needs an on-page control to
+pause, stop or hide it (WCAG 2.2.2, Level A). This is independent of
+`prefers-reduced-motion`: a user with no OS setting is still owed it, and a hover or focus
+pause gives a touch user nothing. Ending the motion within five seconds also satisfies it.
+Standing: recorded for canvases, marquees and rotators; the craft-gates reduced-motion
+pass checks only a looping `<video>` for a nearby pause control (`references/video.md`).
 
 ## Cross-cutting decisions
 
@@ -131,8 +143,14 @@ picking a per-surface tier. Two sibling craft skills layer on top of a chosen ti
 - `references/sprite.md` — Tier-4 authoring: sheet layout, `steps()` and rAF loops, poster fallback, size budget.
 - `references/framework-bindings.md` — the tool→framework binding matrix for every
   named stack (React, Next, Vue, Nuxt, Laravel via Inertia or Livewire).
-- `references/webgl-3d.md` — the 3D lazy-load + static-fallback rules; cites
+- `references/webgl-3d.md` — the 3D lazy-load + static-fallback rules and the arrival
+  contract (poster-first; scene-first only as a recorded exception); cites
   `plugins/craft-layer/skills/threejs-best-practices/SKILL.md` for R3F correctness.
+- `references/hosted-runtimes.md` — Spline, Unicorn Studio and Paper Shaders on tier 3: when
+  they beat three.js, poster-first arrival, the reduced-motion stop no vendor documents, the
+  WebGL context count, vendor hosting, plan terms, CSP, pinning, measured weight.
+- `references/video.md` — background and decorative video: poster, `muted playsinline`,
+  preload policy, pause control, reduced motion, LCP. The one owner of that contract.
 - `references/gotchas.md` — tool-usage traps that break real builds: gradient-clip on
   split text, whileInView with no fallback, split-text aria, one-writer, scroll-link.
 - `references/rtl-bidi.md` — the RTL/BiDi decision: which effects mirror vs the

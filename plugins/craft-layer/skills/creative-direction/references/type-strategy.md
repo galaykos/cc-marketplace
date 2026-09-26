@@ -37,20 +37,27 @@ The test is mechanical: **if this file would need editing when a new typeface is
 released, it has become a catalog.** Constraints survive new releases; answers
 do not.
 
-## Derive the spec — seven filters, hardest-cutting first
+## Derive the spec — eight filters, hardest-cutting first
 
 Each is a filter, not a preference. Run them in order; most briefs are fully
-determined by the first three.
+determined by the first four.
 
 1. **Are numbers read down a column?** Any table, ledger, dashboard, price list
    or spec sheet → **tabular figures are REQUIRED**, and proportional-only faces
    are out. Ask first: it is the cheapest question and it eliminates most
    display faces immediately.
-2. **Is there text below roughly 14px in a dense region?** → the face needs a
+2. **Are machine strings shown?** Commands, IDs, hashes, API paths, log lines →
+   **a monospace cut metrically compatible with the text face is REQUIRED** —
+   matched x-height and cap height, so a command set inside a sentence does not
+   jump. It points at the superfamily strategy in filter 4. Machine strings are
+   the data argument the fingerprint's mono-label row asks for, not that default.
+   Standing: `agent-graded` — the audit reads the spec line, no script measures
+   metrics.
+3. **Is there text below roughly 14px in a dense region?** → the face needs a
    text-optimised cut, or an `opsz` axis so one family covers display and text
    without shipping two. A display cut set small is the most common typographic
    failure in dense UI.
-3. **Does the voice need display-vs-text contrast, and how much?** Resolves to
+4. **Does the voice need display-vs-text contrast, and how much?** Resolves to
    one of three STRATEGIES — this is the decision, not the family:
    - **one variable family, weight-driven** — hierarchy from `wght` and size
      alone. Cheapest, most coherent, reads civic/documentary. The right default
@@ -59,18 +66,18 @@ determined by the first three.
      proportions. Buys classification contrast without the metric clash.
    - **two contrasting families** — most expressive, most expensive, and the one
      most often chosen from habit rather than derivation. Requires an argument.
-4. **Script and glyph coverage** — Latin-ext, Cyrillic, Greek, CJK, Arabic;
+5. **Script and glyph coverage** — Latin-ext, Cyrillic, Greek, CJK, Arabic;
    plus any symbol set the content actually needs. Hard filter, and the one
    discovered too late most often. Check it against real content, not lorem.
-5. **Licence class reachable** — an open licence (with its obligations: ship the
+6. **Licence class reachable** — an open licence (with its obligations: ship the
    licence text, honour a Reserved Font Name) or a commercial **web** tier.
    Never a desktop licence: the provenance manifest records the class and cannot
    see the tier, so a desktop-only purchase reads as compliant and is not.
-6. **KB budget** — decides family count and axis subsetting, and it binds. Two
+7. **KB budget** — decides family count and axis subsetting, and it binds. Two
    families is a decision; three is usually an accident. A second family bought
    for one block is the classic overspend — price it per block before shipping
    it, and subset axes rather than shipping every axis a variable font offers.
-7. **Anti-corpus** — read the type-family list in `sameness-fingerprint.md`.
+8. **Anti-corpus** — read the type-family list in `sameness-fingerprint.md`.
    Those families and that pairing SHAPE are disqualified unless the brief
    argues for one on the merits; "it is what the template shipped with" is not
    an argument. Note in the spec what was avoided, as `palette-strategy.md` does
@@ -88,6 +95,16 @@ Directional, not prescriptive; the concept may override any row.
 | editorial/content | reading-first; long-form measure and rhythm dominate |
 | app/CRM | single family, weight-driven; tabular figures non-negotiable |
 | general (fallback) | single variable family until something argues otherwise |
+
+**Vertical register** — where the brief's vertical carries one, it is the starting
+strategy instead, stated as adjectives (the colour half is `palette-strategy.md`'s):
+
+| Vertical | Starting strategy |
+| --- | --- |
+| legal | serif authority: a text-capable serif carries display and body, contrast from weight and size |
+| industrial / field operations | wide caps for display, a text face that stays legible small |
+
+Standing: `recorded`, like the table above — the concept may override either.
 
 ## What reaches the theme brief
 
@@ -113,7 +130,7 @@ answer. The gate is never "did you ship a webfont".
   like design, without an argument the single-family route could not serve.
 - **Adjectives instead of a spec** — "a modern sans" is not derivable and not
   checkable; it is what this layer exists to replace.
-- **Deferring coverage and licence** — filters 4 and 5 are cheap before the
+- **Deferring coverage and licence** — filters 5 and 6 are cheap before the
   choice and expensive after it.
 - **Pricing the face but not the axes** — shipping every axis of a variable font
   when the spec needs one, or every subset when the content is one script.

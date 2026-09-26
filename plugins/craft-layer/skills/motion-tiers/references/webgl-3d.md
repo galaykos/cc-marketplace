@@ -57,6 +57,33 @@ fallback is the source of truth for the surface, the scene is the enhancement.
 - Budget the fallback like any hero image (compressed WebP/AVIF) — it ships to everyone,
   so it must itself be cheap; it is also the reduced-bundle path for this tier.
 
+## Arrival contract — poster-first, scene-first only as a recorded exception
+
+Poster-first (the two-render contract above) is the default arrival for every tier-3
+surface. A **scene-first** arrival — the page waits behind a loader until the scene is
+ready — is an exception, allowed only when every rule below holds:
+
+- **Recorded.** On a craft build it is written on the build task's `Motion:` line as
+  `<surface>: tier 3 scene-first (escalated ← <reason>)`, the mark defined in
+  `plugins/craft-layer/skills/creative-direction/references/ambition-tiers.md`. Unrecorded
+  scene-first is a finding.
+- **Real progress.** The loader reads actual loading — `THREE.LoadingManager`'s
+  `onProgress`, or drei's `useProgress` — never a timer counting to 100.
+- **A time cap with a fallback.** After a hard cap the content shows whatever has
+  loaded, and the scene attaches when ready; a failed load lands on the poster behind the
+  error boundary above.
+- **Text in the served HTML.** Headline, nav and copy are in the server response under
+  the loader, so the LCP element is text and a crawler, a no-JS reader and a screen
+  reader get the page. A loader over an empty document fails.
+- **The loader honours reduced motion.** Under `prefers-reduced-motion: reduce` (and
+  `Save-Data`) there is no animated loader or scene-first wait — go straight to the
+  poster. Skip the loader on a repeat visit in the same session.
+
+Standing: the served-HTML rule is checked by `/craft-layer:audit`'s served-HTML step,
+agent-run; the rest is recorded. A page whose canvas IS the page — persistent across
+routes, DOM synced to GL — follows
+`plugins/craft-layer/skills/threejs-best-practices/references/webgl-first-site.md`.
+
 ## prefers-reduced-motion within the scene
 
 If a reduced-motion user does opt into the 3D (explicit interaction), the scene must not
@@ -77,3 +104,5 @@ static fallback; the frozen scene is only for an explicit opt-in.
       loss falls back to the poster, not a blank/unmounted tree (a `Suspense` fallback does
       not catch a render-time throw).
 - [ ] Renderer reused and disposed on unmount (per `threejs-best-practices`).
+- [ ] Scene-first arrival, if any, is recorded and meets the arrival contract; a loop
+      running past five seconds has a visible pause control (`../SKILL.md`).

@@ -126,6 +126,19 @@ that sub-block and let the region stand on the slots that CAN render finished �
 quotes attributed by ROLE and SEGMENT rather than by an invented name. A region reduced this way
 still satisfies its presence requirement; a grid of empty placeholders does not.
 
+**Carve-out: sample data INSIDE a product mock.** The cut above governs CLAIM slots — what the
+page asserts about the world. The rows of a framed product screen (an interface specimen, a
+working instrument) are app data, not claims, and cutting them empties the very table the hero
+exists to show. Inside the mock, render fictional-but-specific data: invented organisations
+with a mark, people with avatars and roles, sums that add up, relative dates, a realistic
+spread of statuses. The frame is the illustrative marker, so no per-cell chip. Three things
+stay banned even there: a real organisation's or person's name or logo (a customer claim
+wearing a table row); the placeholder register — "John Doe", "Acme", "Lorem", "Project 1" —
+which reads fake at a glance; and a company-level aggregate ("trusted by 10,000 teams"), which
+stays a `{{metric:*}}` slot wherever it is drawn. Scope it: the mock is one findable region, a
+`figure` whose text alternative calls it an illustration of the product, never the page's own
+copy. Standing: `agent-graded`, read with the checks below.
+
 ## What the audit checks (agent-graded)
 
 **Standing: `agent-graded`.** No assertion in `template/craft-gates/divergence.mjs` reads
@@ -139,7 +152,9 @@ file (injected as a Read path) and:
 - greps each block for a numeral or a `{{slot}}`;
 - counts distinct typed slots per page against N (entity/claim-bearing sections);
 - flags any **claim/aggregate metric written as a literal** — GMV, user/creator counts,
-  ratings, durations — that should be a `{{metric:*}}` slot;
+  ratings, durations — that should be a `{{metric:*}}` slot; values inside a marked product
+  mock are app data under the carve-out above, unless a real organisation, the placeholder
+  register or a company-level aggregate appears there;
 - flags any **capability claim written as a literal** — geographic/market coverage, named
   integrations, supported platforms, SLA/uptime figures, compliance certifications, retention
   windows, support hours — that should be a `{{capability:*}}` slot;
@@ -173,7 +188,7 @@ against the range as context for the reviewer's judgement; do not convert it to 
 - **Word-floor filler** — hitting the copy volume with generic prose and no numerals or
   slots; the specificity rule exists to fail exactly this.
 - **Fabricated specifics** — inventing a metric or customer to satisfy specificity; ship a
-  typed slot instead.
+  typed slot instead. (Fictional rows inside a product mock are the carve-out, not this.)
 - **Invented capability** — a coverage, integration, certification, or SLA claim written as a
   literal because it sounded like an offer term; only the business knows it, so it is a slot.
 - **Raw mustache shipped** — leaving `{{metric:*}}` visible in the rendered UI; render a

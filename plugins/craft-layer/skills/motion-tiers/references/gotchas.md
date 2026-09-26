@@ -43,9 +43,24 @@ hidden state. The content must be readable with the animation stripped out.
 
 ## Split-text headings → screen-reader letter soup
 
-Splitting a heading into per-letter or per-word spans makes assistive tech announce it
-character-by-character ("B u i l d"). Fix: put the real phrase on the container's
-`aria-label` and mark every split span `aria-hidden="true"`.
+Splitting text into per-letter or per-word spans makes assistive tech announce it piece by
+piece ("B u i l d"). The fix depends on what was split:
+
+- **Plain text inside a heading (`h1`–`h6`)** — `aria-label` with the phrase on the heading
+  and `aria-hidden="true"` on every split piece is valid. GSAP SplitText's default
+  `aria: "auto"` does exactly this, on whatever element you split.
+- **A plain `div` or `span`** — ARIA 1.2 says authors MUST NOT name the generic role, so
+  `aria-label` there is invalid (and SplitText's default puts it there). Keep a visually
+  hidden copy of the text beside the animated one and mark the animated element and all
+  its pieces `aria-hidden="true"` (SplitText `aria: "hidden"`).
+- **Nested links, `<em>`, `<strong>`** — any `aria-label` flattens them and the link
+  becomes unreachable. Use the visually hidden copy here too, even inside a heading.
+- With the copy approach inside a heading, split an INNER wrapper
+  (`<h2><span class="sr-only">…</span><span aria-hidden="true">…split…</span></h2>`) —
+  hiding the heading element itself removes it from the page outline.
+
+Split with SplitText. `split-type`, the old non-GSAP option, last published in October
+2023 (npm, checked 2026-09-26) — treat it as unmaintained. Standing: recorded.
 
 ## One writer per property
 

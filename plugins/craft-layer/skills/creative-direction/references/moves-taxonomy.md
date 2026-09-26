@@ -13,8 +13,29 @@ move is available and when it fits; the concrete move is brief-derived.
 ## The categories
 
 - **Hero archetype** — the organizing shape of the first screen (editorial statement /
-  living system / product-in-motion / spatial scene / typographic). When: the hero must
-  carry the concept's metaphor, not just a headline over an image.
+  living system / product-in-motion / spatial scene / typographic, plus the four below).
+  When: the hero must carry the concept's metaphor, not just a headline over an image. What
+  builds each shape, and its budget: `archetype-recipes.md`. Added 2026-09-26 from the
+  design corpus, each with when it earns its cost:
+  - **interface specimen** — the product's own UI, rebuilt as an authored specimen under a
+    staging rule (crop, scale, fixed polarity, fictional-but-specific data, operable or
+    inert). When: the product IS a screen and the audience checks for it first. Its
+    generic executions are `sameness-fingerprint.md` chrome rows.
+  - **working instrument** — an operable slice of the product above the fold: a query, a
+    calculator, a prompt with domain chips, a copy-the-command chip. When: the product's
+    first action is the pitch. It passes signature test 3 below by construction — the
+    visitor operates it — and still owes tests 1 and 2: a prompt that plays one canned
+    answer is fired, not driven.
+  - **project index** — the work list itself is the first screen, an index the visitor
+    scans, filters or previews rather than a thumbnail grid below a statement. When: the
+    WORK is the proof. It owes a static list in document order.
+  - **library / registry / dev-tool front door** — the hero IS the component: a live,
+    operable component (or a bento of real ones) above the fold, the install command as the
+    primary action, preview and code as the unit. When: the product is code other builders
+    install; the proof slot is the live component, not a logo wall.
+
+  Standing: `agent-graded` — the creative-director weighs the pick against the brief; no
+  script reads this list.
 - **Scroll device** — how scroll drives meaning (pinned scrollytelling / horizontal act /
   scrub-reveal / parallax depth / section morph). When: the sequence itself is part of the
   argument; never for decoration (see `scroll-orchestration`, and
@@ -32,7 +53,9 @@ move is available and when it fits; the concrete move is brief-derived.
   masked build-in / counterweighted preloader / none-by-design). When: the brand's first
   impression is the load itself. Never at the cost of LCP or the first read, always
   honouring reduced-motion — and none-by-design is the legitimate default; execution
-  belongs to `motion-tiers` and `kinetic-typography`.
+  belongs to `motion-tiers` and `kinetic-typography`. A counterweighted preloader's loader
+  contract — progress from real loading, a hard cap, the words in the served HTML — is owned
+  by `plugins/craft-layer/skills/threejs-best-practices/references/webgl-first-site.md`.
 
 Each category points at the craft skill that OWNS its execution — this taxonomy chooses
 the KIND of move; the tier/engine skills build it.

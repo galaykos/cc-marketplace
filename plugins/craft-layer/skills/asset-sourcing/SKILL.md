@@ -10,8 +10,9 @@ source an open one, or commission it — and pins the format, bundle cost, and l
 of that choice. It does not author the asset, re-teach a runtime, or theme it. Those
 jobs belong to neighbours:
 
-- Sprite-sheet / raster-frame authoring, and background video motion:
-  `plugins/craft-layer/skills/motion-tiers/references/sprite.md`.
+- Sprite-sheet / raster-frame authoring:
+  `plugins/craft-layer/skills/motion-tiers/references/sprite.md`; background video
+  playback: `plugins/craft-layer/skills/motion-tiers/references/video.md`.
 - Lottie-vs-Rive vector-motion playback + budget:
   `plugins/craft-layer/skills/motion-tiers/references/vector.md`.
 - Three.js / R3F 3D correctness and the Tier-3 poly/texture budget:
@@ -65,10 +66,9 @@ Every kind then passes the two cross-cutting gates before it ships.
   Lottie / `.riv` / video); reduced-motion + no-jank enter/exit are mandatory.
 - **Font** — selection defers to kinetic-typography; the gate carries its licence
   (SIL-OFL obliges shipping the licence text + Reserved-Font-Name).
-- **Video** — no motion tier owns a video encode/poster contract; `motion-tiers`
-  `references/sprite.md` covers only the sheet-vs-video crossover (WebM/AV1 beats a raster
-  sheet past ~500KB). Decide encode, poster and fallback on the surface; the gate carries
-  its licence.
+- **Video** — playback, poster, preload, pause control and encode are owned by
+  `motion-tiers` `references/video.md`; this skill decides the source, and the gate
+  carries its licence.
 
 ## The source decision (six axes)
 
@@ -138,7 +138,11 @@ unchecked. Both apply on top of the routed kind, on every asset:
 - **Naming a vendor** — a commercial asset vendor, marketplace, stock site, or a named
   icon pack. Open formats / standards (glTF, GLB, AVIF, WebP, SVG, USDZ) and open tools
   / runtimes (SVGO, Draco, meshopt, Lottie, Rive) ARE fine to name; a vendor is the
-  kill-trigger.
+  kill-trigger. Carve-out: a **hosted 3D scene or shader runtime** — a scene file and player
+  served from the authoring tool's origin — is a SOURCED asset even when the team built the
+  scene, with plan and licence terms (watermark tier, commercial-use clause, who hosts the
+  file); its record names host, plan and watermark. Name it here only by that category; the
+  named runtimes live in `plugins/craft-layer/skills/motion-tiers/references/hosted-runtimes.md`.
 - **Shipping an asset** — this skill decides sourcing; it NEVER ships an actual icon
   set, model, or image. Ship an asset and it has become a catalog — stop and re-scope
   to categories + selection criteria.

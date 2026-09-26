@@ -65,7 +65,9 @@ smoothed position the animation engine reads, without hijacking the scrollbar or
 breaking anchor links and keyboard scroll.
 
 - Instantiate once per app and drive its `raf(time)` from a single loop (or GSAP's
-  `ticker`) — never two loops.
+  `ticker`) — never two loops. React's `ReactLenis` (`lenis/react`) turns `autoRaf` on by
+  default: pass `autoRaf: false` when GSAP drives it. Import `lenis/dist/lenis.css`; mark
+  nested scrollers `data-lenis-prevent` (`references/lenis-substrate.md`).
 - Tune feel with `lerp` (≈ 0.1) OR `duration`, not both; higher lerp = snappier.
 - Feed ScrollTrigger from the same loop so both read one position — this IS the
   contract above.
@@ -126,8 +128,9 @@ Every scroll surface answers this or it does not ship:
 
 ## References
 
-- `references/lenis-substrate.md` — Lenis setup, `lerp`/`duration`, sticky-safety,
-  the ScrollTrigger feed, and the reduced-motion disable path.
+- `references/lenis-substrate.md` — Lenis setup (vanilla and `lenis/react`), the
+  stylesheet, `autoRaf` vs the ticker, nested scrollers, anchors, sticky-safety, the
+  ScrollTrigger feed, the reduced-motion disable path, and the virtual-scroll rule.
 - `references/css-scroll-driven.md` — native `animation-timeline: scroll()` / `view()`
   as the no-JS reduced-bundle path, support/fallback, and reduced-motion gating.
 - `references/orchestration-decision.md` — scrub vs trigger vs parallax: the three
@@ -145,6 +148,10 @@ Every scroll surface answers this or it does not ship:
   once; drift and jitter. One contract only.
 - **Transformed page wrapper** — faking smoothing by translating a container; breaks
   `position: sticky` and every pinned ScrollTrigger.
+- **Virtual scroller** — `overflow: hidden` on the page plus a wheel/touch listener
+  moving a content layer: breaks find-in-page, anchors, keyboard and assistive-tech
+  scrolling, the scrollbar and scroll restoration. The same feel is Lenis over native
+  scroll with a lower `lerp` (`references/lenis-substrate.md`). Standing: recorded.
 - **Reveal with no fallback** — `opacity: 0` gated only on an observer; invisible with
   JS off (see gotchas.md).
 - **No reduced-motion path** — scrub or parallax with no `prefers-reduced-motion`

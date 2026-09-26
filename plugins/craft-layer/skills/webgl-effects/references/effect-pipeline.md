@@ -1,19 +1,28 @@
 # Effect pipeline — postprocessing, uniforms, and the GLSL→TSL port
 
+> Last verified: 2026-09-26 — https://threejs.org/docs/pages/RenderPipeline.html — npm:three@0.186
+
 Read on demand from the webgl-effects SKILL. Renderer/scene/R3F setup is NOT re-taught
 here — it lives in `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`; lazy-load
 and static-fallback rules live in
 `plugins/craft-layer/skills/motion-tiers/references/webgl-3d.md`. This file is only the
 effect-layer how-to.
 
-## Postprocessing pipeline (no third-party dep)
+## Postprocessing pipeline — one per renderer
 
-- Use Three's built-in postprocessing. On the WebGPU renderer that is the TSL
-  `PostProcessing` node graph; on the WebGL fallback it is the `three/addons`
-  `EffectComposer` + passes. One pipeline instance per renderer, created after the scene,
-  disposed with it.
+| Renderer | Pipeline | Dependency |
+| --- | --- | --- |
+| `WebGPURenderer` (WebGPU or its WebGL 2 backend) | TSL `RenderPipeline` from `three/webgpu`: `new RenderPipeline(renderer)`, `outputNode = pass(scene, camera)` plus effect nodes, `renderPipeline.render()` in the loop. Named `PostProcessing` before r183; that name is a deprecated wrapper. | none |
+| Plain three on `WebGLRenderer` | `EffectComposer` from `three/addons/postprocessing/EffectComposer.js` + passes | none |
+| R3F on `WebGLRenderer` | `@react-three/postprocessing` `<EffectComposer>` over pmndrs `postprocessing`; its effects merge into one `EffectPass` | pmndrs, WebGL only |
+
+- Each row runs on its own renderer only: `EffectComposer` "can only be used with
+  WebGLRenderer", `RenderPipeline` "can only be used with WebGPURenderer" (three.js docs).
+  pmndrs `postprocessing` names no WebGPU support.
+- One pipeline instance per renderer, created after the scene, disposed with it.
 - Compose passes cheapest-first; every full-screen pass re-reads the framebuffer, so each
-  one is real fill-rate. Cap the count (≈2–3 as a ceiling).
+  one is real fill-rate. Cap the count (≈2–3 as a ceiling). pmndrs merging counts as one
+  pass for this cap; chained addons passes each count.
 - Downsample the expensive passes: run bloom/blur at half resolution and upsample, rather
   than at full device pixel ratio. Clamp pixel ratio ≤2 (webgl-3d.md).
 
@@ -30,6 +39,9 @@ effect-layer how-to.
   is absent.
 - `uTime`: only advance it when not reduced-motion; gate the increment behind
   `matchMedia('(prefers-reduced-motion: reduce)')`.
+- `uVelocity` (scroll speed for smear or distortion): read from the same scroll loop as
+  `uProgress`. DOM-synced planes on one fixed canvas — measure, sync, scroll — are in
+  `plugins/craft-layer/skills/threejs-best-practices/references/webgl-first-site.md`.
 
 ## GLSL → TSL port checklist
 

@@ -27,6 +27,20 @@ A starting mood per archetype the concept can push against (directional, not pre
 The mood is one adjective phrase handed to the theme brief; the concept's metaphor may
 override it (a "midnight observatory" SaaS concept can pull product/SaaS toward deep-dark).
 
+**Vertical register — a second starting position.** Some verticals carry a register their
+buyers read as competence, and the archetype row alone misses it. Where the brief's vertical
+is one of these, the mood phrase starts here instead, still as adjectives the concept may
+push against:
+
+| Vertical | Palette mood (direction) |
+| --- | --- |
+| legal | sober, low-chroma, paper-toned; authority from restraint, type carries the voice |
+| industrial / field operations | neutral ground with one high-visibility accent used as signage, never as decoration |
+| consumer money | one saturated ground carrying the brand, neutral marks on top |
+
+The product/SaaS row above fits institutional money; consumer money is the exception.
+Standing: `recorded` — the concept may override a row, and no script reads this table.
+
 ## Don't-repeat-recent nudge
 
 Read the recent-hue list in `sameness-fingerprint.md` (last 5 palettes). The brief should
