@@ -41,6 +41,9 @@ a full-page screenshot, then:
    squeezed column that does not overflow shows only in the 375 shot.
 2. Keyboard: click a blank area, Tab to each new control (visible focus ring), Enter/Space
    activates; a dialog or menu closes on Escape with `document.activeElement` back on the trigger.
+   A composite (grid, tree, tabs, listbox, board) is one tab stop and arrows move inside it.
+   Finish every drag through its non-drag route (keys or a move control, SC 2.5.7): a
+   mouse-only board is a finding. A live region announces a summary, never each tick or row.
 3. Motion changed: `browser_run_code_unsafe` `await page.emulateMedia({ reducedMotion: 'reduce' })`,
    repeat; nothing moves beyond a fade.
 4. Console after the walk, since the last navigation: name or fix every error.

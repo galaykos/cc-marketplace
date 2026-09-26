@@ -105,7 +105,7 @@ No extra questions, no promotion to tier 1, never `--yes`; zero beats padding.
 **Beyond this marketplace.** After tier 3, print one block from
 `references/official-complements.md`: vendor-agnostic `claude-plugins-official` plugins
 carrying a mechanism no plugin here ships (Stop-time security review, rule-file hooks,
-language servers, a browser MCP, live docs). A row prints when its Signal fires under the
+language servers, a browser MCP, live docs) and vendor agent tooling (Laravel Boost, Next's bundled docs, Astro/Nuxt MCPs). A row prints when its Signal fires under the
 tier-1 evidence rule or is `core`, with its overlap sentence. Installs there are **printed,
 never run** (`claude plugin install <name>@claude-plugins-official`); `--yes` never touches
 the block; the file's exclusions (official duplicates of plugins here) are never suggested.

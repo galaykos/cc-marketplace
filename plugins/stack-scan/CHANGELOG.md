@@ -4,6 +4,17 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.10.0 — 2026-09-26
+
+- plugin-scout: a "Framework-native tooling" block in `official-complements.md` (Laravel Boost incl.
+  Filament's skill, Next.js bundled docs and `AGENTS.md`, the Astro and Nuxt docs MCPs), printed for
+  stacks no marketplace plugin covers.
+- `signals.md`: `gsap`/`lenis` → craft-layer (an Astro + GSAP + Lenis repo earned only ui-ux before);
+  "no plugin covers this" rows for Astro, Nuxt, React Router framework mode, Livewire/Flux, Filament
+  and headless CMS routing to the vendor tooling or `api-design:api-docs-first`; component libraries
+  (incl. PrimeReact, PrimeVue, Vuetify, Element Plus) now suggest the new `ui-libraries` plugin.
+- The generated catalog carries the new `ui-libraries` entry.
+
 ## 0.9.3 — 2026-09-25
 
 ### Changed

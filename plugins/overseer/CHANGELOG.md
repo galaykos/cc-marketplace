@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.5 — 2026-09-26
+
+- `references/capability-map.md`: `board` (drag, reorder, kanban, calendar) now pins
+  `craft-layer:information-design` plus `ui-ux:a11y-audit` instead of `interaction-fx` (cursor
+  effects); a new "App surfaces" table maps console, CRM, AI, live, spatial, scheduling and
+  product-on-the-front-door capabilities to the new `information-design` references. `kinds.tsv`'s
+  `board` row requires `information-design` to match, and names `ui-libraries:component-libraries`
+  after the ui-ux split. Standing: recorded (no gate reads the pins' fit).
+- `references/product-judgment.md`: the two rules that contradicted craft-layer's app-craft floors now
+  agree with them — no decorative table motion but one brief transition on a re-sort; undo for
+  reversible actions, confirmation only for irreversible ones.
+
 ## 0.5.4 — 2026-09-25
 
 - `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.

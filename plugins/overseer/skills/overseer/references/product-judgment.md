@@ -50,17 +50,20 @@ and the `*-best-practices` skills own the how; you own the which.
 
 | Animate | Do not animate |
 | --- | --- |
-| state transitions the user caused: open/close, add/remove, success, upload progress | data tables, form fields, page loads, anything on every render |
+| state transitions the user caused: open/close, add/remove, success, upload progress | decoration in data tables (a re-sort or filter may carry one brief layout move, instant under reduced motion), form fields, page loads, anything on every render |
 | micro-feedback ≤ 200 ms: hover, press, focus rings | anything that delays the first interaction |
 | skeletons for loads > 300 ms | decorative loops on product screens |
 
 Every animation respects `prefers-reduced-motion`. The `ui-ux` motion skill carries the
-techniques; this table is the product rule a brief quotes.
+techniques; this table is the product rule a brief quotes. The table exception and the
+undo-vs-confirm rule below are reconciled in `craft-layer:information-design`
+(`references/app-craft-floors.md` §4 and §6); when craft-layer is installed, cite it there.
 
 ## Clarity rules that every brief inherits
 
-- One primary action per screen, visibly primary. Destructive actions confirm, and the
-  confirm names the object ("Delete photo?").
+- One primary action per screen, visibly primary. A destructive action names its object.
+  A reversible one runs at once with an undo ("Photo deleted · Undo"); only an irreversible
+  one confirms, naming the object and the consequence ("Delete photo permanently?").
 - Empty, loading, error and success states are designed, not defaulted: an empty state
   says what to do next; an error names the fix; success is confirmed once, not thrice.
 - Forms validate inline on blur and on submit, keep the user's input on failure, and

@@ -4,8 +4,8 @@ Invoked from `grill/SKILL.md` step 2 when visual or creative options were staged
 and a pick was made (brainstorm's staging area or grill's visual-decisions): it
 binds the picks into a `## Visual contract` spec section the cards must conform
 to — the visuals counterpart to erd's `## Data Model`. Fires only on a staged
-pick; a backend spec gets no section and no nag. Exception: § Walk access, a
-ledger row for any UI behind sign-in or data.
+pick; a backend spec gets no section and no nag. Exceptions: § Walk access, a
+ledger row for any UI behind sign-in or data, and the Interaction contract field.
 
 ## Collect from both sources
 
@@ -35,6 +35,11 @@ One entry per decision, embedded in the spec:
 - **Narrow (375)** — each screen entry: what stacks, what hides (and where to),
   what scrolls in its own container at 375 px. A decision, never "responsive";
   the 375 walk checks it.
+- **Interaction contract** — any screen with a composite widget (grid, tree, tabs,
+  listbox, board), a drag, or a live region, staged or not (unstaged: an entry of this
+  field alone): the keyboard model (one tab stop, arrows inside), the non-drag route
+  for each drag (SC 2.5.7), and live updates (what announces, how often, what pauses
+  them). The UI walk exercises it.
 - **Motion** — only when motion WAS the decided axis: entrance direction, duration
   tier (fast/base/slow), easing family, hover/press feedback.
 - **Theme** — only when theme WAS the decided axis: the token bundle (radius, space,
@@ -97,9 +102,8 @@ outside local. **Data**: a seeder or factory per walked state, failure and empty
 a state needing a key or a second actor is named not walked, with its covering test. The
 row is also a success criterion, so coverage-check expects the access card. Milestone
 form: overseer's `skills/overseer/references/acceptance.md` Protocol step 2; cite, do not
-copy. Measured 2026-09-25: a run with no walk access shipped UI unwalked; one that
-self-registered caught a 375 overflow six reviews missed. **Standing:** agent-graded; an
-UNKNOWN value blocks the spec (`spec-ledger-lint.sh`, gate).
+copy (why: `rationale/2026-09-26-taskmaster-prose-derivations.md`). **Standing:**
+agent-graded; an UNKNOWN value blocks the spec (`spec-ledger-lint.sh`, gate).
 
 ## Approval
 

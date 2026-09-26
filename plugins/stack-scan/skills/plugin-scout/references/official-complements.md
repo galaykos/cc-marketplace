@@ -54,6 +54,29 @@ nothing local replaces it (`context7`).
 | `mcp-server-dev`, `agent-sdk-dev` | dep `@modelcontextprotocol/sdk` / dep `@anthropic-ai/claude-agent-sdk` or `claude-agent-sdk` | Build guidance for MCP servers (transport choice, auth, MCPB) and a scaffolder plus verifier agents for Agent SDK apps | none — nothing here covers the SDK surface |
 | `session-report` | opt-in, never by signal | An HTML report of token, cache and subagent spend from local transcripts | none user-facing; the marketplace's `scripts/turn-cost.sh` is a maintainer instrument |
 
+## Framework-native tooling
+
+> Last verified: 2026-09-26 — https://laravel.com/docs/13.x/boost
+
+Some framework vendors now ship their own version-matched agent layer. It is not a
+`claude-plugins-official` plugin, and the vendor-agnostic filter above does not apply: the
+vendor is the framework the repo already depends on. A row prints in the same `Beyond this
+marketplace` block under the same evidence rule, with its overlap sentence. Every command
+is **printed, never run**: the Boost row runs a package manager, which Detection forbids.
+The two hosted rows are flagged, as `context7` is.
+
+| Tooling | Signal | What it carries that nothing here does | Overlap here |
+|---|---|---|---|
+| Laravel Boost: `composer require laravel/boost --dev`, then `php artisan boost:install` | composer require `laravel/framework` | Version-matched guidelines (Laravel 10–13, Livewire 2–4, Inertia 1–3, Tailwind 3–4) and on-demand skills picked from `composer.json`: `livewire-development`, `fluxui-development`, `inertia-{react,vue,svelte}-development`, and Filament's own `filament-development` when `filament/filament` is present. An MCP server (`php artisan boost:mcp`): app info, schema, logs, and a docs search that also covers Filament 2–5 | `inertia-*-development` co-fires with `laravel:inertia-best-practices`, `tailwindcss-development` with `ui-ux:tailwind-best-practices`, `pest-testing` with `testing:testing-best-practices`; expect two doctrines on those files. Boost writes `CLAUDE.md`/`AGENTS.md` guideline files loaded every session, an always-on cost this marketplace's budget gate does not meter |
+| Next.js bundled docs, `node_modules/next/dist/docs/` | dep `next` | Docs matching the installed version, read locally. On ≥16.3 `next dev` writes the `nextjs-agent-rules` block into `AGENTS.md` and `CLAUDE.md` when it detects an agent (`grep nextjs-agent-rules AGENTS.md` hits → `✓`); on 16.2 add that `AGENTS.md` line by hand; on ≤16.1 `npx @next/codemod@canary agents-md` downloads a copy | `web-dev:nextjs-best-practices` keeps house judgment and the inversions; the bundled docs are the version truth, so read them first on ≥16.2 |
+| Astro Docs MCP (hosted, kapa.ai index): `claude mcp add --transport http astro-docs https://mcp.docs.astro.build/mcp` | dep `astro` | Current Astro docs over a remote MCP | none, no plugin here covers Astro |
+| Nuxt MCP (hosted): `claude mcp add --transport http nuxt https://nuxt.com/mcp` | dep `nuxt` | Nuxt docs over a remote MCP | none, the Nuxt one here was removed 2026-08-26 |
+
+Livewire, Flux and Filament have no row of their own: Boost is their vendor layer, and
+`references/signals.md` routes their keys here. React Router framework mode and the
+headless CMS SDKs have no vendor row verified; `signals.md` routes them to
+`api-design:api-docs-first`.
+
 ## Deliberate exclusions — official plugins that overlap what is installed here
 
 Print these only when the user asks what else the official directory has; never
@@ -104,3 +127,7 @@ curl -s https://raw.githubusercontent.com/anthropics/claude-plugins-official/mai
 
 Verified against that file on 2026-09-02; the host built-in `code-review` entry was
 verified against the Claude Code 2.1.259 skill listing on 2026-09-03, not the directory.
+The Framework-native rows were verified on 2026-09-26 against the vendors' own pages,
+which no script re-reads: laravel.com/docs/13.x/boost, filamentphp.com/docs/5.x/introduction/ai,
+nextjs.org/docs/app/guides/ai-agents, docs.astro.build/en/guides/build-with-ai,
+nuxt.com/docs/4.x/guide/ai/mcp.

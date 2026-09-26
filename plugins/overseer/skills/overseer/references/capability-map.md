@@ -71,7 +71,7 @@ laravel/web-dev skill really is).
 | feature | a stack skill · testing | anything no row below fits (the default) |
 | marketing-page | craft-layer direction · a motion skill · a11y-audit · a styling skill | a page whose job is to sell |
 | crud | stack · testing · a11y-audit · a styling skill | list/create/edit/delete of one resource |
-| board | crud's set + motion or interaction-fx | drag, reorder, kanban, calendar |
+| board | stack · testing · a11y-audit · information-design · a styling skill | drag, reorder, kanban, calendar — pointer AND keyboard paths; `interaction-fx` is cursor effects, not this |
 | auth | stack · testing · security-review or api-auth | login, roles, permissions, tokens |
 | form | stack · testing · a11y-audit · security-review or api-auth | a form collecting user data — contact, application, sign-up; never `feature` |
 | api | stack · testing · api-design · api-auth or security-review | an HTTP or GraphQL surface |
@@ -85,3 +85,24 @@ laravel/web-dev skill really is).
 "stack" is any project skill under `.claude/skills/` or any `laravel`/`web-dev` plugin skill.
 A kind the table lacks is `feature`
 plus a decision row naming what you pinned and why — and a row to add here.
+
+## App surfaces: the reference to pin beside the kind
+
+A kind pins skills; the screen rules a builder gets wrong from memory sit one hop further,
+in `craft-layer:information-design`'s references. When a milestone's screens include a
+surface below, pin that reference by absolute path (the directory of the skill's
+`skill-path.sh` result, plus `references/<file>`) in every worker prompt that builds it,
+whatever the kind. Not installed: say so in the charter and pin nothing in its place.
+
+| surface | pin | covers |
+| --- | --- | --- |
+| console / ops | `console-patterns.md` | log stream, deploy history and pipeline, resource meters, uptime strip, environment switcher, time-range control |
+| CRM record | `crm-screens.md` | typed cells, view switcher, board column header, record page with activity timeline, three-pane inbox |
+| AI | `ai-surfaces.md` | prompt composer, agent status, run log, agent ledger, citation panel |
+| live | `live-surfaces.md` | live lists, timers, live charts, logs, chat: buffering, pause, one polite summary |
+| spatial | `spatial-surfaces.md` | maps, canvas, node graphs, SVG plans, pins: each object also a focusable list row |
+| scheduling | `scheduling-surfaces.md` | calendar, scheduler, Gantt: time zones, recurrence, drag-resize with a keyboard route |
+| product on a sales page | `product-mock.md` | the product's own screen in a hero or section: which screen, frame, data |
+
+**Standing: `recorded`.** `dispatch check` and `accept` read `kinds.tsv` only, so nothing
+refuses a milestone that skipped these pins.

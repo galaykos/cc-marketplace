@@ -101,8 +101,9 @@ dimension left unwalked is a section left empty:
   never stand one up with the built-in Artifact tool, which skips both skills.
 - Data models — switch to the `erd` skill when the ledger touches persistent data (two-plus
   entities, any relation change); the approved model lands in the spec's Data Model section.
-- UI behind sign-in or data → a **Walk access** row (agent sign-in, seeded states):
-  `references/visual-contract.md` § Walk access; no staged pick needed.
+- UI behind sign-in or data → a **Walk access** row (agent sign-in, seeded states); a
+  composite widget, drag or live region → an **Interaction contract**. Both:
+  `references/visual-contract.md`, no staged pick needed.
 - "You decide" / "whatever you think": convert the row to ASSUMED with your named
   default and move on — but never silently. The user approves the assumption list
   at the end even if they delegated every call.

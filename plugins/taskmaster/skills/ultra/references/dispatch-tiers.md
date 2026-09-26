@@ -5,15 +5,11 @@ lines: *reasoning roles get the boost, mechanical/breadth roles stay native*
 (Lever 1), and *the fan-out counts are ceilings, not quotas* (Lever 2).
 
 The boost tier (`model:<model>`, and `effort:<effort>` on the Workflow path) is
-an **override you apply to the depth stages**, not a blanket the whole run wears.
-This is not a new policy — it is `task-runner:delegation-contracts`' own rule:
-tiering is *per-stage, not per-run* (one pipeline dispatches a cheap scout,
-mid workers, an expensive judge), and one of its named anti-patterns is
-"**Uniform model for every stage.** Judge-tier for a rename sweep, or
-scout-tier on the final review." Flat-escalating every ultra subagent to
-`fable` is the first half of that; declining to raise a reasoning role is
-the second, which is why the ladder below is a FLOOR in one direction and a
-refusal in the other. Ultra defers to it.
+an **override you apply to the depth stages**, not a blanket the whole run wears:
+`task-runner:delegation-contracts` tiers *per stage, not per run*, and ultra defers to
+it. Flat-escalating every ultra subagent to `fable` breaks that, and so does declining
+to raise a reasoning role — so the ladder below is a FLOOR in one direction and a
+refusal in the other (derivation: `rationale/2026-09-26-taskmaster-prose-derivations.md`).
 
 ## Role → tier ladder
 
@@ -23,10 +19,9 @@ refusal in the other. Ultra defers to it.
 | **Mechanical** (stay native) | recon / readers (`context-scout`, one dispatch per lens — § Fan-out sizing defines the lenses), `coverage-check`'s read-only matrix build (Read/Grep/Glob), file locators, grep-and-list, extraction passes | the agent's own frontmatter tier — **no override** | location and gathering; the top tier buys nothing a mid model does not already do. `context-scout` ships `model: inherit`, so native = the session model, never the `fable` premium |
 | **Breadth** (stay native) | `opinion-lens` | native (`sonnet`/low) — never overridden | four persona takes, low-effort by design; escalating multiplies cost for no depth |
 
-Mechanical/breadth roles are handled exactly the way `opinion-lens` already was
-— given **no** model override, so they run at their shipped frontmatter tier.
-Lever 1 just widens that existing treatment from one agent to a class. It never
-*downgrades* an agent below its frontmatter; it only declines to *raise* it.
+Mechanical/breadth roles get **no** model override, so they run at their shipped
+frontmatter tier. Lever 1 never *downgrades* an agent below its frontmatter; it only
+declines to *raise* it.
 
 `coverage-check` shows the split cleanly: it dispatches **only** a read-only matrix build
 (mechanical → native), and the gap-judgment it feeds runs in the **main thread** at the
