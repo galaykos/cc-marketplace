@@ -46,7 +46,8 @@
 # Off with CC_CONFIG_GUARD=off. Fail-open on every error path.
 {
   [ "${CC_CONFIG_GUARD:-on}" = "off" ] && exit 0
-  # HONOUR THE SIBLING'S SWITCH. core-suite/README.md tells an installer that
+  # HONOUR THE SIBLING'S SWITCH. The core-suite README (the suites were retired
+  # 2026-09-26) told an installer that
   # CLAUDE_DESTRUCTIVE_GUARD=deny-only buys "the free half" — no clicks — but this
   # guard is the plugin's OTHER ask tier and read only its own variable, so the
   # documented setting did not deliver what it promised. Both values that mean

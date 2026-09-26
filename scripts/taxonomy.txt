@@ -16,7 +16,6 @@ process
 pipeline
 hooks
 governance
-suite
 product
 tooling
 research

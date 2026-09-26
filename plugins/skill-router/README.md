@@ -8,7 +8,9 @@ File-aware skill auto-routing. The marketplace ships the marketplace's best-prac
 claude plugin install skill-router@cc-plugins-marketplace
 ```
 
-Installed automatically by three of the four bundles (`core-suite`, `workflow-suite`, `frontend-suite`; `craft-suite` does not carry it).
+Install it by name: nothing brings it in automatically since the suites that did were
+retired on 2026-09-26. `/stack-scan:suggest` offers it with the rest of the remainder, and
+`craft-layer`'s README names it as a recommended companion.
 
 ## Two axes
 

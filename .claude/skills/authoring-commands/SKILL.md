@@ -100,9 +100,8 @@ invent a command that does not exist yet.
 
 A new command changes its plugin: **bump the `plugin.json` version** (CI gates on it)
 and keep the plugin.json and marketplace descriptions telling the same story. A
-command is not new-plugin scope, so no bundle-membership change — but a whole new
-plugin that ships a command still follows authoring-plugins' registration + bundle
-rules.
+command is not new-plugin scope — but a whole new plugin that ships a command still
+follows authoring-plugins' registration and companion rules.
 
 ## A minimal real command
 

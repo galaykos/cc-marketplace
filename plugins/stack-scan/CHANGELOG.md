@@ -4,6 +4,13 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.11.0 — 2026-09-26
+
+- The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. plugin-scout no longer suggests bundles: the picker's "Suites as shortcuts" section is gone, and
+  a new Companions table prints the install line for a missing companion (ui-ux ↔ ui-libraries,
+  craft-layer → ui-ux + ui-libraries) — companions are not declared as `dependencies`, because an update
+  that adds a dependency leaves the plugin failing to load (measured 2026-09-26).
+
 ## 0.10.0 — 2026-09-26
 
 - plugin-scout: a "Framework-native tooling" block in `official-complements.md` (Laravel Boost incl.
@@ -76,7 +83,7 @@ recorded; plugin-scout, which was merged into this plugin, kept its own changelo
 ## 0.8.2
 
 ### Changed
-- **The scout catalog re-rendered for the frontend-suite description fix (audit G3).** `frontend-suite`'s marketplace description claimed its uninstall "prunes its auto-installed plugins" while the command keeps them unless picked; the fix in `.claude-plugin/marketplace.json` re-rendered the one row here by `generate.sh --write`, which does not bump this plugin — the exact case CLAUDE.md's 2026-09-15 note describes (`rationale/marketplace-trend-audit-2026-09-16.md`). No behaviour change.
+- **The scout catalog re-rendered for the frontend-suite description fix (audit G3).** `frontend-suite`'s marketplace description claimed its uninstall "prunes its auto-installed plugins" while the command keeps them unless picked; the fix in `.claude-plugin/marketplace.json` re-rendered the one row here by `generate.sh --write`, which does not bump this plugin — the exact case CLAUDE.md's 2026-09-15 note describes (`rationale/marketplace-trend-audit-2026-09-16.md`). No behaviour change. <!-- removed-ok -->
 
 ## 0.8.1
 
@@ -168,7 +175,7 @@ recorded; plugin-scout, which was merged into this plugin, kept its own changelo
   carry no per-package `license` field. It now names the lockfile it found and points at
   `npm install --package-lock-only` or the package manager's own licence tooling.
   Harness case added. (Shipped in 0.7.6 with no entry; added by a second branch review.)
-- `plugin-scout` catalog regenerated for the corrected `candor` and `core-suite`
+- `plugin-scout` catalog regenerated for the corrected `candor` and `core-suite` <!-- removed-ok -->
   descriptions (five-clause gate). Generated file, no behaviour change in the scan.
 
 ## 0.7.5
@@ -190,8 +197,8 @@ recorded; plugin-scout, which was merged into this plugin, kept its own changelo
 
 ### Changed
 - The bundles were rebuilt 2026-09-14 (eight → four): `picker.md`'s bundle examples and
-  `any-core.md`'s global-scope pointer name `core-suite`, `workflow-suite` and
-  `frontend-suite`; the README's pipeline-bundle row names workflow-suite. `catalog.md`
+  `any-core.md`'s global-scope pointer name `core-suite`, `workflow-suite` and <!-- removed-ok -->
+  `frontend-suite`; the README's pipeline-bundle row names workflow-suite. `catalog.md` <!-- removed-ok -->
   regenerated. No behaviour change.
 
 ## 0.7.2

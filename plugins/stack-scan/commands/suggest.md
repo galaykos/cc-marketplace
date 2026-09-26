@@ -39,8 +39,8 @@ Steps:
    tier, tier 1 signal-backed with cited evidence, tier 2 the any-project
    core (`references/any-core.md`), tier 3 the universal remainder grouped
    by keyword, including unfired tier-1 candidates from either signal source
-   marked "no signal detected". Every catalog leaf except bundles and
-   stack-scan itself appears exactly once, untruncated; if a
+   marked "no signal detected". Every catalog plugin except stack-scan
+   itself appears exactly once, untruncated; if a
    `references/signals.md` `—` row fired, lead with its routing line. Then run
    the tier-3 relevance pass per `references/relevance.md`: lift 3-5 remainder
    rows that fit THIS repo into a `worth a look here` group leading the tier-3
@@ -50,11 +50,14 @@ Steps:
    block from `references/official-complements.md`: the vendor-agnostic
    `claude-plugins-official` rows whose signal fired or that are `core`, each
    with its overlap sentence and its install command printed, never run.
+   Before that block, print the companion install line for every recommended,
+   picked or installed `ui-ux` / `craft-layer` whose partner is not installed
+   (`references/signals.md` Companions) — printed, never run.
    Under `--full` this step prints only the header line and any fired `—`
    routing line — the plan in step 4 replaces the inventory.
 4. With `--full`: skip the inventory, the relevance pass and the picker. Print
    the plan block per `references/flags.md` `--full` — install list, installed
-   count (project-filtered list ∪ settings files ∪ installed suites' members),
+   count (project-filtered list ∪ settings files),
    each exclusion with its reason and the `--stack` token that includes it, the
    by-construction count, classes restored by `--stack`, overlap pairs, hooks by
    event, MCP servers local/remote, and the listing-cap cost per skill and
@@ -72,10 +75,9 @@ Steps:
    everything else (browse the rest of the marketplace / print its install
    commands / just these / stop). With `--all`, page every eligible row as an explicit option
    instead, 15 per call with one "Stop — skip remaining" slot. Installed
-   rows (including leaves an installed suite provides) are never options;
+   rows are never options;
    deprioritize only on the named overlap pairs, never on keyword overlap.
-   A suite covering 3+ suggested rows earns one shortcut option naming at
-   most 4 of them (never under `--yes`; an all-in bundle never). Other takes
+   Other takes
    numbers/names/ranges as bulk picks; >30 rows, offer the
    `scripts/pick.sh` TTY picker per the contract and read back its
    `PICKED:` line — an empty one means "picked nothing", not an error.

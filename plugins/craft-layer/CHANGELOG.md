@@ -431,8 +431,8 @@ than an honest starting point.
   tweens and names `LazyMotion` + `m.*` as the React path. Two files, opposite
   advice, one of them labelled the truth. The SKILL now matches the reference.
 - `motion-tiers/references/rtl-bidi.md` pointed at `plugins/i18n` for the general <!-- removed-ok -->
-  RTL rules and said "do not re-teach them here" — but `craft-suite` does not ship
-  i18n, so a craft-suite reader got a pointer to nothing. The file now carries a
+  RTL rules and said "do not re-teach them here" — but `craft-suite` does not ship <!-- removed-ok -->
+  i18n, so a craft-suite reader got a pointer to nothing. The file now carries a <!-- removed-ok -->
   four-rule floor (logical properties, `dir`, which icons mirror, LTR runs inside
   RTL) and defers to i18n when it IS installed.
 

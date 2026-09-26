@@ -59,6 +59,33 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | composer require `filament/filament` | — | **no plugin covers Filament**, and `laravel-best-practices`' controller and FormRequest rules do not fit its resources. Print Laravel Boost: Filament ships its own `filament-development` Boost skill |
 | dep `sanity`, `next-sanity`, `@sanity/client`, `contentful`, or `@storyblok/*` | — | **no plugin covers headless CMS SDKs.** Route to `api-design:api-docs-first` (`/api-design:check` before integration code); the `context7` row in `references/official-complements.md` supplies the docs |
 
+## Companions — print the missing half
+
+No plugin here declares `dependencies`: an update that adds one leaves it uninstalled and
+the plugin then fails to load (measured on CLI 2.1.283, 2026-09-26), so nothing pulls a
+companion in. The scout says it instead. When a plugin in the first column is
+**recommended** (tier 1, tier 2, or lifted into `worth a look here`), **picked**, or
+**already installed**, and the plugin beside it is not installed, print one line under
+the report (after the install summary for a pick), with this run's scope:
+
+`craft-layer needs ui-ux — claude plugin install ui-ux@cc-plugins-marketplace --scope local`
+
+| Recommended, picked or installed | Plugin | Why it is needed |
+|---|---|---|
+| `ui-ux` | `ui-libraries` | ui-ux's component-library skills (MUI, PrimeReact, Astryx, ReUI, Aceternity, `component-libraries`) live there since 2026-09-26; `/ui-ux:build` and the ui-ux agents name them as `ui-libraries:<skill>` |
+| `craft-layer` | `ui-ux` | craft-layer themes and builds through `/ui-ux:theme` and `/ui-ux:build` |
+| `craft-layer` | `ui-libraries` | the component-library layer those builds reach |
+| `ui-libraries` | `ui-ux` | the foundations, and the agents that load its skills |
+
+- **Printed, never run** — the companion is already a numbered report row, pickable like
+  any other; the line only makes the pairing impossible to miss. `--yes` still never
+  installs a tier-3 row: it prints the line after its summary instead.
+- **`--full` rarely needs it**: `ui-ux` and `ui-libraries` are any-stack there
+  (`references/stack-relevance.md`), so they install whenever `craft-layer` does. Print
+  the line only for a companion whose install failed.
+- Optional partners (`design-kit`, `skill-router` beside `craft-layer`) get no line —
+  the plugin works without them.
+
 ## The uncovered-stack rows are the point
 
 A scout that opens with "here are dozens of universally useful plugins" to a
@@ -84,8 +111,9 @@ a `—` row routed onward instead of padding tier 3 — the same standing tier-1
 carries.
 
 The one mechanical check is `pc_scout_names` (`scripts/lib/plugin-checks.sh`):
-it fails the build when a name in the Suggest column is not a live
-`marketplace.json` entry. That gate exists because this table shipped a row
+it fails the build when a name in the Suggest column — or the Companions table's
+`Plugin` column — is not a live `marketplace.json` entry. Whether the companion line was
+printed, and whether the pairing is still true, is agent-graded like the rest. That gate exists because this table shipped a row
 suggesting `i18n` for two days after the plugin was deleted, and `pc_removed_refs`
 returned 0 on it — a bare backticked table cell matches none of its reference
 shapes. **It gates the NAME only.** Whether the signal pattern is correct, whether

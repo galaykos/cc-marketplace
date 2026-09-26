@@ -4,6 +4,12 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.27.1 — 2026-09-26
+
+- The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. The README now says, at the top, that the component-library skills live in `ui-libraries` and
+  gives the install command; the preview guard's twin rationale no longer depends on a bundle; lane rows,
+  `/ui-ux:theme` and `contrast.mjs` comments updated. No behaviour changed.
+
 ## 0.27.0 — 2026-09-26
 
 - **Split: the component-library skills moved to the new `ui-libraries` plugin** — `mui-best-practices`,
@@ -89,7 +95,7 @@ rather than invented ones.
   `plugins/craft-layer/template/craft-gates/contrast.mjs`, declared with the
   marketplace's twin marker and held in step by `pc_twin_files` (**gate** — it checks sameness, not
   correctness). craft-layer depends on ui-ux and not the reverse, so a bare `ui-ux`,
-  `frontend-suite` or `workflow-suite` install reached NO contrast checker while this
+  `frontend-suite` or `workflow-suite` install reached NO contrast checker while this <!-- removed-ok -->
   command's description, the README and `shadcn-theming` all promised one. `/ui-ux:theme`
   step 5 now runs it on the accepted token set before offering the diff, and
   `/ui-ux:audit` runs it whenever a token source exists, folding each FAIL in as an
@@ -168,8 +174,8 @@ rather than invented ones.
   other row still carries its 2026-09-02 reading and the stamp says so.
 - **`/ui-ux:theme` and `shadcn-theming` drop a `.gitignore` holding `*` into
   `taskmaster-docs/mockups/`** when they create it. The preview page is scratch, and
-  the only artifact that dropped that file was taskmaster's grill — which craft-suite
-  and frontend-suite do not ship.
+  the only artifact that dropped that file was taskmaster's grill — which craft-suite <!-- removed-ok -->
+  and frontend-suite do not ship. <!-- removed-ok -->
 - **`design-tokens` points at the static type contract** (fluid `clamp()`,
   `text-wrap`, WOFF2 subsetting, metric-compatible fallbacks, the licence trap) at
   `plugins/craft-layer/skills/kinetic-typography/references/type-system.md` — until now

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.2 — 2026-09-26
+
+- The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. `config-guard.sh`'s comment and its test fixture no longer name a retired bundle; no behaviour changed.
+
 ## 0.7.1 — 2026-09-25
 
 ### Changed

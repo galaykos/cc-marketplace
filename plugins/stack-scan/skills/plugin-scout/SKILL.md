@@ -90,12 +90,11 @@ it against `references/catalog.md` when plugins land or leave.
 
 Read `references/catalog.md` (generated — one `name — [keywords] — description` row per
 marketplace plugin). Tier 3 is **every catalog plugin not already in tier 1 or 2**, excluding
-the bundles (any `*-suite`) and `stack-scan` itself, plus every unfired tier-1 candidate
+`stack-scan` itself, plus every unfired tier-1 candidate
 from **either** the table above or `references/signals.md` (evidence: "no signal detected" —
 a missed signal demotes, never drops). Suggest all of it, "universal" as the evidence for the
 rest, reading each row's keywords and description to phrase the suggestion. Do not hard-code
-a plugin list here — the catalog is the source of truth. The bundle filter is a name test
-(catalog rows carry no `dependencies` key), so a bundle named otherwise is offered as a leaf.
+a plugin list here — the catalog is the source of truth.
 
 **Then judge, once.** Tier 3 is defined by subtraction, so nothing enters it because of
 this project — read `references/relevance.md` and lift 3-5 rows that fit THIS repo into a
@@ -121,12 +120,12 @@ sample, layout, and why that table is the wrong rendering: `references/picker.md
   a line number when the scan produced one. Tier 2 is "core" and tier 3 "universal" by
   definition; neither needs a repeated cell. A lifted row prints its reason instead.
 - Installed rows carry `✓` inline and are not pickable; the header count replaces a column.
-- **Completeness rule:** every catalog plugin except the bundles and stack-scan itself
+- **Completeness rule:** every catalog plugin except stack-scan itself
   appears exactly once — no leaf omitted, no group truncated with "and N more". Recount
   from `references/catalog.md`, never from a number written here.
-- Under the inventory, list each not-installed suite whose dependencies cover 3+
-  suggested not-installed rows — rules: `references/picker.md` — then the
-  `Beyond this marketplace` block, official rows with `✓` where already installed.
+- Under the inventory, print the **companion** install line for every recommended, picked or
+  installed `ui-ux` / `craft-layer` whose partner is missing (`references/signals.md` Companions),
+  then the `Beyond this marketplace` block, official rows with `✓` where already installed.
 - Zero stack signals → note "no stack signals found"; tiers 2 and 3 still print in full,
   and the relevance pass matters most there. A fired `references/signals.md` `—` row leads.
 
@@ -148,9 +147,7 @@ suggestion, then stop. With `--yes`: skip the picker — see Flags.
    ```
 
 That is the only install command this scout RUNS (official-directory rows are printed,
-never run); a suite picked from the under-report shortcut list (`references/picker.md`)
-installs by the same command and scope rules, and only `--yes` and `--full` never install a bundle.
-`--scope local` keeps installs repo-only (`.claude/settings.local.json`); `--persist` →
+never run). `--scope local` keeps installs repo-only (`.claude/settings.local.json`); `--persist` →
 `--scope project`, `--global` → `--scope user` (Flags). Always pass `--scope`: the CLI's
 own default is `user`.
 

@@ -61,8 +61,8 @@ row shape is identical to a reader and the distinction matters only when editing
 
 The consult nudge only suggests the command; it may repeat on later matching
 prompts, and ignoring it is always legitimate. The consult itself dispatches a
-stronger-model subagent — a spend decision, which is why this plugin is not in
-core-suite.
+stronger-model subagent — a spend decision, which is why this plugin is installed by
+name rather than in any any-project default.
 
 ## Pairs well with
 

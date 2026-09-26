@@ -76,10 +76,9 @@ rule and the typed-token rule; this section does not restate them.
   `--full` is the flag that bullet does not bind) and the research/tooling group
   (brain, toolchain-experts and ultra-deep-research
   when their signal has not fired — they are tier 1 when it has).
-  Leaves only, never a suite.
 - What it excludes: stack-mismatched leaves (a class whose manifest evidence is
-  absent and whose `--stack` token was not typed); the
-  bundles, `stack-scan` and `all-plugins` by construction (an installer of
+  absent and whose `--stack` token was not typed); `stack-scan` and `all-plugins` by
+  construction (an installer of
   everything inside a curated plan defeats the plan — name it instead, once, as
   the door for a user who wants everything); already-installed leaves.
 - What prints, in this order: the report header line (eligible count, installed
@@ -91,13 +90,11 @@ rule and the typed-token rule; this section does not restate them.
 - The plan block, one labelled line each, nothing omitted:
   - `Install (N):` the leaves that will install, sorted.
   - `Already installed (K):` skipped leaves — the installed set is the SKILL's
-    Preflight set (project-filtered `claude plugin list` ∪ the three settings files)
-    ∪ the `dependencies` of every installed suite, so a `--full` run never re-issues
-    installs for a bundle's members (`references/picker.md` "installed in effect").
+    Preflight set (project-filtered `claude plugin list` ∪ the three settings files).
   - `Excluded:` one line per excluded leaf — the class's evidence negated plus the
     token that would include it, e.g. `laravel — PHP / Laravel evidence absent (no
     laravel/framework, no @inertiajs/*); --stack laravel includes`.
-  - One count line for the bundles, `stack-scan` and `all-plugins` (by construction),
+  - One count line for `stack-scan` and `all-plugins` (by construction),
     ending with the everything-door: `want everything, no plan: /all-plugins:install`.
   - `Restored by --stack:` one line per class a typed token restored (see `--stack`).
   - `Overlap pairs installed together:` the pairs `references/picker.md` names

@@ -1,6 +1,6 @@
 {
   "name": "stack-scan",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Know what is installed, keep it healthy, find what to add. /stack-scan:report inventories manifests, lockfiles (composer, npm/yarn/pnpm/bun), runtimes and docker images into a required-vs-installed table with drift, missing locks and EOL majors flagged. /stack-scan:audit runs the composer/npm vulnerability, outdated and licence checks — report-only. /stack-scan:suggest suggests every marketplace plugin in three tiers with cited evidence (--yes auto-installs tiers 1-2, --full the stack-relevant set after one confirm, --persist/--global set scope); --skills searches skills.sh for third-party skills — explicit picks only. Add-at-all is approaches' build-vs-buy.",
   "author": {
     "name": "Ivan-WG",

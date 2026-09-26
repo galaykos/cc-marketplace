@@ -10,6 +10,23 @@ creative direction, an optional guided section-decision loop, a research→brief
 an asset-sourcing + licence gate, a concept→token-system derivation, a tiered motion
 **decision** system, sprite guidance, information design, and a craft **audit**.
 
+> **craft-layer needs `ui-ux` and `ui-libraries` installed beside it — nothing installs
+> them for you.** It themes through `/ui-ux:theme` and builds through `/ui-ux:build`, which
+> loads the component-library skills (Aceternity, ReUI, MUI, PrimeReact, Astryx,
+> `component-libraries`) from `ui-libraries`. No plugin here may declare `dependencies`
+> (an update that adds one leaves it uninstalled and the plugin fails to load), and the
+> craft suite that used to bring all three was retired on 2026-09-26. Install them now:
+>
+> ```bash
+> /plugin install ui-ux@cc-plugins-marketplace
+> /plugin install ui-libraries@cc-plugins-marketplace
+> ```
+>
+> It also gets better with `design-kit` (pre-build artboards and an extracted token record)
+> and `skill-router` (the matching skill loads per file) — optional, see [Install](#install):
+> `/plugin install design-kit@cc-plugins-marketplace`,
+> `/plugin install skill-router@cc-plugins-marketplace`.
+
 ## Vocabulary
 
 Eight words below carry load in every section that follows, and none of them means
@@ -259,12 +276,17 @@ craft-layer **references, never re-teaches**, these existing skills:
 | Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/ui-ux:audit` |
 | Performance / Lighthouse (optional external delegation) | `/resilience:review --concern performance` requires the `resilience` plugin; skipped if not installed |
 | Chart form / color | the `dataviz` skill (external host skill, not in this repo) |
-| Pre-build artboards a user picks a direction from, and the project's extracted `design-system/` token record a run should start from | `plugins/design-kit` — `/design-kit:design` and `/design-kit:system`; bundled in craft-suite, skipped if not installed |
+| Pre-build artboards a user picks a direction from, and the project's extracted `design-system/` token record a run should start from | `plugins/design-kit` — `/design-kit:design` and `/design-kit:system`; install it by name, skipped if not installed |
 
 ## Install
 
-Ships in the **craft-suite** bundle alongside `ui-ux` — which is the recommended
-install, because it is not optional in practice:
+Install it with its companions — no plugin pulls another in (see the notice at the top):
+
+```bash
+/plugin install craft-layer@cc-plugins-marketplace
+/plugin install ui-ux@cc-plugins-marketplace
+/plugin install ui-libraries@cc-plugins-marketplace
+```
 
 - **`ui-ux` — required.** craft-layer writes no build logic itself; `/ui-ux:theme` owns token
   generation (step 2) and `/ui-ux:build` owns the build (step 6). Without it the chain has no
@@ -272,6 +294,12 @@ install, because it is not optional in practice:
 - **`ui-ux` — required for the audit, too.** `/craft-layer:audit` delegates the full
   accessibility pass to `/ui-ux:audit` unconditionally; craft-layer checks only
   accent-vs-surface contrast itself.
+- **`ui-libraries` — required with ui-ux.** `/ui-ux:build` names the component-library
+  skills as `ui-libraries:<skill>`; without the plugin a build on Aceternity, ReUI, MUI,
+  PrimeReact, Astryx or any other library runs without its rules.
+- **`design-kit`, `skill-router` — recommended, not required.** design-kit supplies the
+  artboards and `design-system/` record above; skill-router loads the matching stack
+  skill per file. Every step runs without them.
 - **`resilience` (performance review) — genuinely optional.** `/resilience:review --concern performance` is explicitly skipped when the
   plugin is absent.
 - **`taskmaster` — optional.** It stages guided-mode options at higher fidelity (and

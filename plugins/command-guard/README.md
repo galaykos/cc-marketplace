@@ -124,7 +124,8 @@ string cannot reach the hook's environment, so
 
 `CLAUDE_DESTRUCTIVE_GUARD=deny-only` and `=off` silence **config-guard** too, since
 both mean "no ask tier". Until 0.6.3 they did not: config-guard read only its own
-variable, so the setting core-suite's README recommends for a global install left an
+variable, so the setting recommended for a global install (by the core-suite README,
+retired with the suites on 2026-09-26) left an
 ask running on every `tsconfig.json`, `pyproject.toml` or `hooks.json` write.
 
 ### Running headless / in CI

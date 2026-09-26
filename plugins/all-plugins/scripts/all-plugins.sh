@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
-# all-plugins.sh — install every LEAF plugin of this marketplace at one scope with
-# zero prompts, uninstall them again, or list their state. A mechanism, not prose:
+# all-plugins.sh — install every plugin of this marketplace at one scope with
+# zero prompts, uninstall them again, or list their state. A "leaf" is every plugin in
+# the marketplace.json: since 2026-09-26 no plugin here may declare `dependencies`
+# (the repo's validate.sh fails the key), so there is no bundle to skip. all-plugins
+# itself is on the list — `install` covers it (normally already there: `skip`),
+# `uninstall` keeps it unless --self, and removes it LAST with --self.
+#
+# It installs what the marketplace holds WHEN IT RUNS. A plugin added later is not
+# installed by a marketplace update; run `install` again — installed ones are skipped. A mechanism, not prose:
 # the exit code is the contract. 0 = done (including nothing to do); 1 = at least
 # one per-plugin command failed — the list is still walked to the end and every
 # failure is reported; 2 = usage error or a missing prerequisite.
@@ -22,8 +29,7 @@
 # the key again, but only when it still holds the value this script would set; any
 # other value is somebody's and is left alone. --no-budget skips both.
 #
-# What it does NOT do: never touches another marketplace; never installs a bundle
-# (a plugin.json with `dependencies` — the rule scripts/validate.sh applies); never
+# What it does NOT do: never touches another marketplace; never
 # prompts — this marketplace declares no install commands, so nothing asks and `-y`
 # is never passed; does not reload the session (the hint names /reload-plugins).
 #
@@ -122,18 +128,15 @@ marketplace_root() { # stdout: the marketplace clone dir
   printf '%s' "$loc"
 }
 
-leaves() { # leaves <root> — stdout: one leaf name per line, sorted
-  local root="$1" mj name src
+leaves() { # leaves <root> — stdout: every plugin name in marketplace.json, sorted
+  local root="$1" mj
   mj="$root/.claude-plugin/marketplace.json"
   [ -r "$mj" ] || die 2 "cannot read $mj — fix: claude plugin marketplace update $MARKETPLACE"
   jq -e '.plugins | type == "array"' "$mj" >/dev/null 2>&1 \
     || die 2 "$mj has no .plugins array — fix: claude plugin marketplace update $MARKETPLACE"
-  jq -r '.plugins[] | "\(.name)\t\(.source | if type == "string" then . else "" end)"' "$mj" \
-  | while IFS=$'\t' read -r name src; do
-      # A non-path source cannot be inspected, so it is in scope; a bundle is not.
-      [ -n "$src" ] && jq -e 'has("dependencies")' "$root/$src/.claude-plugin/plugin.json" >/dev/null 2>&1 && continue
-      printf '%s\n' "$name"
-    done | LC_ALL=C sort
+  # No `dependencies` filter: the bundles it skipped were retired 2026-09-26 and the
+  # repo's validate.sh now fails any plugin.json that declares the key.
+  jq -r '.plugins[].name' "$mj" | LC_ALL=C sort
 }
 
 installed_states() { # stdout: "<name>\t<installed|disabled>" for every leaf installed at SCOPE here

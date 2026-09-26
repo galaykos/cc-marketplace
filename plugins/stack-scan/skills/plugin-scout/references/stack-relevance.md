@@ -39,8 +39,9 @@ leaf except the three in the table above. Count them from `references/catalog.md
 time (leaves, minus `stack-scan` and `all-plugins`) — never from a number written down.
 That includes `ui-ux`: its a11y-audit, design-tokens and
 theming-system skills are stack-agnostic, so a server-rendered app with no
-JavaScript framework still gets it. The four `*-suite` bundles, `stack-scan`
-itself and `all-plugins` are excluded by construction and never listed one by one —
+JavaScript framework still gets it — and `ui-libraries` with it, so the companions of
+`craft-layer` (`references/signals.md` Companions) always install when it does.
+`stack-scan` itself and `all-plugins` are excluded by construction and never listed one by one —
 `all-plugins` because an installer of everything inside a curated plan defeats the
 plan; a user who wants everything is pointed at `/all-plugins:install` instead. Already-installed
 leaves are skipped and counted in the plan's `Already installed (K)` line.
@@ -79,7 +80,7 @@ count of what `--full` will install.
 **Laravel + Inertia + React** — composer.json requires `laravel/framework`,
 package.json declares `@inertiajs/react` and `vite`, no Stripe or LLM signal:
 
-- Excluded by construction: the four bundles, `stack-scan`.
+- Excluded by construction: `stack-scan`, `all-plugins`.
 - **No stack-mismatched leaf.** Both stack classes are satisfied, so every
   eligible leaf installs.
 - `web-dev` brings the Next.js and React Native skill descriptions into the

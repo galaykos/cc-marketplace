@@ -27,7 +27,8 @@
 # working discipline into this marketplace, and every clause of it lives where a plain
 # session never reads it: the delegation preamble and the worker template are
 # worker-only by design, the skill-router nudges AFTER a file is edited, and the
-# discipline skills are command-gated or absent from core-suite. Measured 2026-09-17
+# discipline skills are command-gated or were absent from the baseline bundle (retired
+# with the other suites 2026-09-26). Measured 2026-09-17
 # on the prompt "fix this bug in the checkout total": zero discipline rules reached the
 # main session (rationale/fable-distillation-2026-09-17.md §3). The Stop gate is the
 # after-half; this is the before-half.

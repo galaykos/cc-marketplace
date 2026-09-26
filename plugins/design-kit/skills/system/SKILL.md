@@ -14,8 +14,8 @@ read what comes back, and what never to add by hand.
 found` list says the source has no palette, no dark mode or no scale, that is the
 deliverable — and the next move is `/ui-ux:theme`, which derives a contrast-checked
 light/dark token set with a live preview, written into the project's stylesheet. Re-run
-the extraction afterwards and the record catches up. (`ui-ux` ships in craft-suite and
-frontend-suite; skipped if not installed.)
+the extraction afterwards and the record catches up. (`ui-ux` is a separate plugin,
+installed by name; skipped if not installed.)
 
 ## The rule the model gets wrong
 
