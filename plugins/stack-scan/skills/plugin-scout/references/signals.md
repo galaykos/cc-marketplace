@@ -33,9 +33,10 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `openapi*.y{a,}ml`, `swagger*.json`, `*.proto`, `*.graphql` | `api-design` | mirrors rules.tsv, forked both ways: `swagger*.json` is only here, `api.php` is only there |
 | `.env` / `.env.example` key matching `STRIPE_`, `PADDLE_`, `BRAINTREE_`; or dep `stripe`, `@stripe/stripe-js`, `braintree`, `@paddle/*`; or composer require `stripe/stripe-php`, `laravel/cashier` | — | **no plugin covers this** — `security` and `resilience` skills co-fire on provider calls. Key name only — never read the value |
 | dep `three` or `@react-three/fiber` | `craft-layer` | |
+| dep `gsap`, `lenis` or `@studio-freight/lenis` | `craft-layer` | its `scroll-orchestration` skill owns GSAP ScrollTrigger + Lenis; without this row an Astro + GSAP + Lenis site earned only `ui-ux` |
 | `tailwind.config.*`, `components.json`, or dep `tailwindcss` | `ui-ux` | |
-| `components.json` carrying a `registries` or `aliases` key | `ui-ux` | a configured registry is what its stack skills read component APIs from; print shadcn's own MCP install line (`npx shadcn@latest mcp init`) with it — this marketplace ships no registry server |
-| dep `@mui/material`, `@mantine/core`, `@chakra-ui/react`, `antd`, `@heroui/react`, `@base-ui/react`, `radix-ui`/`@radix-ui/*`, `react-aria-components`, `@ark-ui/react`, `@headlessui/react`, `@ariakit/react`, `@astryxdesign/core` | `ui-ux` | a React component library in the manifest; MUI and Astryx have sibling skills, the rest route to `component-libraries` |
+| `components.json` carrying a `registries` or `aliases` key | `ui-ux` | a configured registry is what its stack skills read component APIs from; print shadcn's own MCP install line (`npx shadcn@latest mcp init --client claude`) with it — this marketplace ships no registry server |
+| dep `@mui/material`, `@mantine/core`, `@chakra-ui/react`, `antd`, `@heroui/react`, `@base-ui/react`, `radix-ui`/`@radix-ui/*`, `react-aria-components`, `@ark-ui/react`, `@headlessui/react`, `@ariakit/react`, `@astryxdesign/core`, `primereact`, `@primereact/ui`, `primevue`, `vuetify`, `element-plus` | `ui-libraries` | a React or Vue component library in the manifest; MUI, Astryx and PrimeReact have sibling skills, the rest route to `component-libraries` (split out of `ui-ux` 2026-09-26 — suggest `ui-ux` too when it is not installed) |
 | devDep `eslint-plugin-jsx-a11y` or `@axe-core/*` | `ui-ux` | the dep, not the presence of `.tsx` — every React repo has those |
 | `*.sql`, `**/migrations/**`, `prisma/schema.prisma`, `knexfile.*`, `alembic.ini` | `database` | engine-agnostic floor; mirrors rules.tsv `*.sql` + `**/migrations/**`, which make it the decisive DB fallback |
 | composer require `laravel/sanctum` or `laravel/passport`; or dep `next-auth`, `@auth/core`, `jsonwebtoken`, `passport` | `security` | an auth dependency is the app-shaped evidence its OWASP review wants |
@@ -51,6 +52,12 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | any of the above **plus** no tier-1 hit | — | say so explicitly: this marketplace has no plugin for that stack, and `/stack-scan:suggest --skills` (third-party skills on skills.sh) is the intended next step |
 | `*.tf`, `*.tofu`, `.terraform/` | — | **no plugin covers this.** Do not pad the list; route to `/stack-scan:suggest --skills terraform` |
 | `locales/`, `lang/`, `*.po`, `messages/*.json`, `i18n` dep | — | **no plugin covers this.** Route to `/stack-scan:suggest --skills i18n` <!-- removed-ok --> |
+| dep `astro` | — | **no plugin covers Astro.** Print the Astro Docs MCP from `references/official-complements.md` § Framework-native tooling; route API questions to `api-design:api-docs-first` |
+| dep `nuxt` | — | **no plugin covers Nuxt** (the one here was removed 2026-08-26). Print the Nuxt MCP from § Framework-native tooling; route to `api-design:api-docs-first` |
+| dep `@react-router/dev` | — | **no plugin covers React Router framework mode**: the Vite row's `web-dev` fits the build layer only. Route loaders, actions and route modules to `api-design:api-docs-first` |
+| composer require `livewire/livewire` or `livewire/flux` | — | **no plugin covers Livewire or Flux** (the Livewire one was removed 2026-08-26); `laravel` fires on the same repo and carries none of it. Print Laravel Boost from § Framework-native tooling: the vendor's version-matched `livewire-development` and `fluxui-development` skills |
+| composer require `filament/filament` | — | **no plugin covers Filament**, and `laravel-best-practices`' controller and FormRequest rules do not fit its resources. Print Laravel Boost: Filament ships its own `filament-development` Boost skill |
+| dep `sanity`, `next-sanity`, `@sanity/client`, `contentful`, or `@storyblok/*` | — | **no plugin covers headless CMS SDKs.** Route to `api-design:api-docs-first` (`/api-design:check` before integration code); the `context7` row in `references/official-complements.md` supplies the docs |
 
 ## The uncovered-stack rows are the point
 
@@ -63,6 +70,11 @@ the headline, and under the default picker it is one door rather than four pages
 
 A `—` in the Suggest column is a real answer, not a gap: it means the signal
 fired and this marketplace has nothing for it. Say so and route onward.
+
+The framework rows (Astro, Nuxt, React Router, Livewire/Flux, Filament, headless CMS) print
+whenever their key is present, **even beside tier-1 hits**. The "no tier-1 hit" row above
+does not gate them. A Tailwind or `laravel/framework` hit does not make the framework
+covered, and silencing the row there is how an Astro repo never heard it was uncovered.
 
 ## Standing
 

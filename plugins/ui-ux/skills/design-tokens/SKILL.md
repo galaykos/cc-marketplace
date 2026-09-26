@@ -67,7 +67,10 @@ A component using `blue-500` directly has broken the tier boundary; it should us
 ## Wiring tokens to the stack
 
 - **Tailwind** — scales as tokens (`@theme` on v4, `theme.extend` on v3), consumed
-  through the utilities that read them (`p-4`, `text-lg`).
+  through the utilities that read them (`p-4`, `text-lg`). On v4 `--spacing` is a single
+  multiplier, so an off-scale `p-13` compiles and looks like a step: review spacing by value, or
+  lock the namespace — `--spacing-*: initial` (whole theme: `--*: initial`) inside `@theme`, then
+  declare only the named steps, and `p-13` stops compiling. Standing: recorded.
 - **CSS variables** — semantic tokens as custom properties (`--background`) so runtime
   theming works; the shadcn convention.
 
@@ -89,7 +92,8 @@ the stack. The system exists the moment arbitrary values stop appearing.
 
 ## Anti-patterns
 
-- **Off-scale values** — `margin: 13px`, `p-[13px]`, a font size picked per component.
+- **Off-scale values** — `margin: 13px`, `p-[13px]`, v4's bracketless `p-13`, a font size picked
+  per component.
 - **Primitive colors in components** — `blue-500` instead of `primary`; theming now means
   find-and-replace.
 - **Per-element shadows** — a new box-shadow per card instead of an elevation token.

@@ -209,6 +209,43 @@ the cases where a chart is decoration.
 - 2–3 tiles read as a cluster; 6+ equal tiles read as undifferentiated — rank
   them or move the long tail into a table.
 
+## Numbers on marketing and product surfaces
+
+On a front door, a number carries trust as well as data. A model mixes the two registers below
+and drops the provenance. Each rule is `recorded` unless it cites a success criterion, which
+makes it `agent-graded` by `/ui-ux:audit`.
+
+- **Two registers, never mixed.**
+  - A claim outside the product is rounded and carries a "+" ("70,000+ teams"), and a real
+    source fills it (`../../creative-direction/references/content-depth.md`).
+  - A value inside a product mock is exact, to the cent ("$17,560.45").
+  - A rounded value in a mock looks fake. A cent-exact claim looks invented.
+- **Tabular figures wherever a number changes or is compared.** That covers columns, tiles,
+  counters, countdowns and a live figure in a hero, so digits never jitter.
+  - Shrink the fraction ("320.63" with the cents smaller) only at display size, never in a
+    column.
+  - A live counter under reduced motion shows a static value plus its timestamp.
+- **Currency.** The code or symbol is secondary: a muted suffix or prefix ("1,725.01 AUD"), one
+  convention per surface. Format with `Intl.NumberFormat` from minor units, never with float
+  maths.
+- **Provenance.** A modelled figure carries its tag ("Estimated", "Projected") beside the
+  number, and every delta names its period ("vs prior month"). Direction is shown with a glyph,
+  a sign and a colour, as the stat-tile rule above requires (SC 1.4.1).
+- **Regulated products.** This covers banking, lending, investing, payroll, insurance and health
+  data.
+  - The regulatory status line sits in the first viewport, as an eyebrow chip or a line under
+    the call to action. Never put it behind an accordion.
+  - Every rate, fee or speed claim carries a footnote marker linked to a numbered notes block.
+  - Rates are dated ("as of 18 Sep 2026").
+  - Slot wording lives in `../../creative-direction/references/offer-contract.md`.
+
+## 3D as a data view
+
+When a 3D scene carries data (seat holds, defect points, rooms), the static-poster fallback is
+not an equivalent. Picking, labels, a DOM list synced to the selection, and render-on-demand
+are in `../../threejs-best-practices/references/data-3d.md`. The list-twin rule is the one in
+`spatial-surfaces.md`. `recorded`
+
 ## Settings
 
 - Sectioned sub-nav (Profile, Workspace, Billing, …), not one endless form —

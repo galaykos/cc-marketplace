@@ -3,6 +3,8 @@ name: page-transitions
 description: Use when adding motion between routes or pages — a shared element persisting across a nav, a full-page crossfade, an SPA route change (View Transitions API) — or when a review flags a transition with no reduced-motion or unsupported-browser fallback.
 ---
 
+> Last verified: 2026-09-26 — https://nextjs.org/docs/app/guides/view-transitions — npm:react@19.3
+
 ## What this decides
 
 This skill decides WHETHER a route or page change earns a transition and HOW to
@@ -19,8 +21,9 @@ correct. Different jobs — pick the API there, pick the transition here.
 
 **Arrival is not a transition:** first-load arrival choreography — how the first screen
 assembles on load — is a creative-direction move (Arrival choreography in
-`../creative-direction/references/moves-taxonomy.md`); this skill owns motion BETWEEN
-documents and routes only.
+`../creative-direction/references/moves-taxonomy.md`; a 3D loader follows the arrival
+contract in `../motion-tiers/references/webgl-3d.md`); this skill owns motion BETWEEN
+documents and routes, and state changes within one.
 
 ## Decide: does a page transition earn its cost?
 
@@ -46,7 +49,8 @@ The whole trick is one persistent name, assigned for the duration of the nav onl
   (e.g. `view-transition-name: card-42`). The browser matches the two snapshots by name
   and tweens position/size between them.
 - The name must be **unique while live** — two elements sharing a name at snapshot time
-  breaks the capture. Derive it from a stable id (`card-${id}`), not a constant.
+  breaks the capture. Derive it from a stable id (`card-${id}`), not a constant; for
+  same-document lists `view-transition-name: match-element` names by element identity.
 - Assign it late and clear it after: set the name just before navigating, remove it once
   the transition settles, so an off-screen list of 50 cards never holds 50 live names.
 - Only the ONE continuous element gets a name; everything else rides the default
@@ -55,17 +59,36 @@ The whole trick is one persistent name, assigned for the duration of the nav onl
 ## Framework seams
 
 Each router commits the DOM differently; the transition must wrap the commit, not race
-it. The per-framework wiring (React `startViewTransition` + `flushSync`, the Next.js App
-Router hook, Nuxt/Vue Router `useRouter` guard, Astro's native cross-document path) and
-the name-lifecycle helper live in `references/framework-seams.md`. The rule they share:
-the snapshot must be taken with the OLD DOM present and released with the NEW DOM
-committed — never call the transition around an async commit that has not landed yet.
+it. The per-framework wiring — React 19.3's stable `<ViewTransition>` (a plain `setState`
+does not animate), Next's App Router (built in, no configuration), Nuxt/Vue Router, and
+Astro, where native cross-document transitions need no `<ClientRouter />` — plus
+`pageswap` / `pagereveal`, `match-element` and `view-transition-class` live in
+`references/framework-seams.md`. The shared rule: the snapshot is taken with the OLD DOM
+present and released with the NEW DOM committed — never around an async commit that has
+not landed yet.
 
 When the app also runs a smooth-scroll substrate (Lenis) with pinned ScrollTriggers, a
 route change desyncs native scroll from the smooth-scroll position (the collapsing
 pin-spacer) — reset both in a rAF and refresh triggers per the SPA-route-change gotcha in
 `plugins/craft-layer/skills/motion-tiers/references/gotchas.md`. Reference it; do not
 re-bake it here.
+
+A WebGL canvas, audio or video that must SURVIVE the navigation is not a view transition
+but a persistent layer:
+`plugins/craft-layer/skills/threejs-best-practices/references/webgl-first-site.md`.
+
+## In-page state transitions
+
+The same API animates a state change inside one route — a list re-sort, a filter, a tab
+swap, a drag-reorder. Same reduced-motion and fallback rules; a reorder is the one place
+many names are right — each moved item via `match-element`, on a short visible list,
+since snapshot cost scales with named elements. One trap routes do not have:
+**frequency**. Starting a view transition while one runs
+SKIPS the running one with an `AbortError`, and the spec warns the two update callbacks
+may then run out of sequence. A live list re-sorting several times a second never
+finishes a transition and can commit out of order. Coalesce updates to at most one
+transition per duration, or animate the list with Motion `layout` or AutoAnimate instead
+(`../motion-tiers/references/framework-bindings.md`). Standing: recorded.
 
 ## Unsupported browsers — feature-detect and fall through
 
@@ -98,9 +121,10 @@ No page transition ships without this:
 
 ## References
 
-- `references/framework-seams.md` — React (`startViewTransition` + `flushSync`), Next.js
-  App Router, Nuxt/Vue Router, Astro cross-document; the `view-transition-name` lifecycle
-  helper (assign-before / clear-after).
+- `references/framework-seams.md` — React 19.3 `<ViewTransition>` (and the
+  `startViewTransition` + `flushSync` fallback), Next.js App Router, Nuxt/Vue Router,
+  Astro native vs `<ClientRouter />`, `pageswap` / `pagereveal`, `match-element` /
+  `view-transition-class`; the name lifecycle helper (assign-before / clear-after).
 - View Transitions API, `@view-transition`, feature-detection, the reduced-motion
   snippet, and Motion `animateView`:
   `plugins/ui-ux/skills/motion-best-practices/SKILL.md`.
@@ -113,9 +137,12 @@ No page transition ships without this:
   time; the capture breaks and the transition no-ops or flickers.
 - **Blocking the nav** — awaiting the API on a browser that lacks it, or wrapping an
   async commit that has not landed, so navigation stalls.
-- **Naming everything** — a `view-transition-name` on every card; the transitions fight
-  and jank. One continuous element only.
+- **Naming everything** — a `view-transition-name` on every card of a route transition;
+  the transitions fight and jank. One continuous element only (an in-page reorder is the
+  exception above).
 - **No reduced-motion / no fallback** — a transition with no `prefers-reduced-motion`
   branch or no instant-navigation path for unsupported browsers.
 - **Re-teaching the API** — restating `startViewTransition` / `@view-transition` here
   instead of referencing motion-best-practices.
+- **A transition per tick** — wrapping a high-frequency live update in a view transition;
+  each start skips the last, so nothing ever animates.

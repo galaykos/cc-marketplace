@@ -114,3 +114,19 @@ once the skip-clause holds. Standing: **recorded** — no script reads the marke
 - **ui-ux** also carries `/ui-ux:audit`, the full WCAG pass; the agents only enforce a semantic baseline
 - **resilience** — `/resilience:review --concern performance` for bundle size and Core Web Vitals beyond the framework defaults
 - **stack-scan** — supplies the locked versions the advice pins against
+
+## Evals
+
+`evals/` holds control-arm probes from the 2026-09-25 design-capability corpus
+(`rationale/2026-09-25-design-capability-corpus/`): each case names a rule the base model
+is expected to get wrong from memory, and a new artifact for that rule ships only if the
+no-plugin arm fails it. Run them with the write grant — the cases write files, and
+`Write`/`Edit` are gated tools the runner will not hand a plugin without it:
+
+```bash
+claude plugin eval ./plugins/web-dev --ablation with-without --runs 5 \
+  --allow-tools Write Edit --no-publish --trust-plugin
+```
+
+Without the grant the suite still loads and then declines the case, so a clean-looking run
+has measured nothing. State the run count and vote spread with any delta.

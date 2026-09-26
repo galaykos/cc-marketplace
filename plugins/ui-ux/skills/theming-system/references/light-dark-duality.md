@@ -1,8 +1,8 @@
 # Light/dark duality — both modes designed, stepped from the ramps
 
-This reference owns ONE requirement: a theme ships TWO modes and BOTH are DESIGNED, each
-stepped from the same token ramps the system is built on — neither mode is an automatic
-flip of the other. It emits no colour value; it states a rule, a WHEN, and a seam.
+This reference owns ONE requirement, scoped below: a theme ships TWO modes and BOTH are
+DESIGNED, each stepped from the same token ramps the system is built on — neither mode is an
+automatic flip of the other. It emits no colour value; it states a rule, a WHEN, and a seam.
 
 The generation MECHANICS of dark mode — accent lightening, the elevation shadow↔border
 flip, `card` sitting a step above `background` — are already owned by
@@ -23,6 +23,19 @@ HOW that requirement enters the token-system direction.
   accent, status, chart — along the ramps FOR THAT MODE, keeping the tier RELATIONSHIPS
   legible in both modes: the elevation order, the ink hierarchy, and the accent split all
   survive the mode change.
+
+## Where the requirement applies
+
+- **App surfaces owe both modes** — shells, dashboards, settings, anything a user works in.
+- **A marketing front door may declare ONE polarity.** It is decided with the concept's colour
+  behaviour (Axis 2 of `plugins/craft-layer/skills/creative-direction/references/concept-deck.md`),
+  and the direction records "light only" or "dark only" with its reason. A declared single polarity is a
+  decision; a dark mode that is merely missing is not. With craft-layer absent, record the
+  declaration in the theme brief.
+- **A product mock embedded in marketing keeps a fixed polarity by design.** It is staged in
+  one mode, built from the app's own tokens for that mode, and does not flip with the page.
+
+Standing: recorded — nothing reads a direction for a polarity declaration.
 
 ## When both modes are derived
 

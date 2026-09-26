@@ -78,6 +78,30 @@ delay the first read, and everything here must survive `prefers-reduced-motion`
 by becoming instant — never by becoming absent, since the information the motion
 carried has to arrive some other way.
 
+**Tables: informative motion only.** This is the reconciled rule behind "do not animate data
+tables" (the overseer's product judgment cites it here).
+- **Never decorate a table.** No entrance stagger on rows, no animation on every render or
+  poll, no hover flourish.
+- **A change may move once.** A re-sort, a narrowing filter, a column change, or a row entering
+  or leaving may carry ONE brief shared-layout transition, because it tells the reader where
+  the row went.
+- **Reduced motion.** That transition becomes instant.
+- **Live data.** A table fed by a stream follows `live-surfaces.md`: it never re-sorts under the
+  user.
+
+`agent-graded`: the craft-reviewer runs these floors on app builds.
+
+**Bindings for this floor.** Package facts live in
+`../../motion-tiers/references/framework-bindings.md`. The rows below say which data-motion
+job each one does.
+
+| Binding | The job on a data surface | Reduced motion | Pick it when |
+| --- | --- | --- | --- |
+| AutoAnimate (`@formkit/auto-animate`, 0.x) | children added, removed or reordered inside ONE parent, from one ref or directive: the cheapest "where a thing went" | turns itself off, unless `disrespectUserMotionPreference` is set | a list or a single board column. It cannot move a card between parents, so a cross-column move needs a shared-layout tool |
+| react-spring (`@react-spring/web` 10) | spring interpolation of a changed value (a KPI moving to its new number), and enter or leave via `useTransition` | NOT automatic: read `useReducedMotion()` and set `Globals.assign({ skipAnimation: true })` | the project already uses it. Never beside Motion on one element's transform |
+
+`recorded`
+
 ## 5. Density is offered
 
 Comfortable / cozy / compact is a user choice, not a designer's (see
@@ -91,6 +115,22 @@ modal. A confirm dialog interrupts every user to prevent the mistakes of a few
 and is routinely click-throughed; an undo affordance costs the mistaken user
 seconds and everyone else nothing. Reserve confirmation for the genuinely
 irreversible, and say plainly what will be destroyed when you do.
+
+This is the reconciled form of "destructive actions confirm" (the overseer's product judgment
+cites it here). Both halves NAME THE OBJECT.
+
+- **Reversible actions run at once, with an undo.** This covers archive, move to trash, and
+  remove from a list. The undo names the object: "Deleted 'Halden Freight renewal' · Undo".
+  - The undo stays reachable until the user dismisses it or moves on, or it also lives in a
+    trash or history view. A toast that expires before the user can act is a time limit
+    (SC 2.2.1).
+- **Irreversible actions confirm.** This covers a permanent delete, a purge, sending, charging,
+  and revoking a key. The confirmation names the object and the consequence: "Delete 'Halden
+  Freight renewal' permanently? Its 14 activities go too."
+  - The confirming button repeats the verb ("Delete permanently"), never "OK".
+  - Where the blast radius is a workspace or production, the user types the name to confirm.
+
+`agent-graded`: the craft-reviewer runs this floor, and `/ui-ux:audit` judges SC 2.2.1.
 
 ## What this file is not
 

@@ -111,6 +111,23 @@ forms, charts, server state, dates), each with a when-to-use, a cost, and the
 question unique to this layer — *what accessibility do I get free, and what am I
 signing up to write myself?* — are in `references/product-packages.md`.
 
+## Screen grammar by surface: read the one you are building
+
+- `references/product-mock.md`: the product's own UI shown on a marketing page or hero. Covers
+  which screen to show, frame, crop, mock data, plate, motion and LCP.
+- `references/console-patterns.md`: a hosting, deploy or observability console. Covers log
+  stream, deploys, meters, uptime, topology, environment switcher and command chip.
+- `references/crm-screens.md`: a record-centric product. Covers typed cells, views, board,
+  record page, three-pane inbox and planner.
+- `references/ai-surfaces.md`: agents or assistants in the app. Covers composer, status chip,
+  run log, ledger and citations.
+- `references/live-surfaces.md`: data that changes while the user reads. Covers live lists,
+  timers, live charts, logs and chat.
+- `references/spatial-surfaces.md`: maps, canvases, graphs, flows, SVG plans and pins. Every
+  object on these also needs a list twin.
+- `references/scheduling-surfaces.md`: calendars, schedulers and booking. Covers time zones,
+  DST, recurrence, and drag with keyboard and dialog routes.
+
 ## The floors behind the login
 
 craft-layer's positive gates are shaped like a marketing page: the signature
@@ -119,7 +136,8 @@ interaction wants a hero, content-depth counts sections. An app surface answers
 grey, sluggish, mouse-only panel passes perfectly. `references/app-craft-floors.md`
 is the floor set for `app/CRM` (and the logged-in half of `product/SaaS`):
 perceived speed, keyboard reach, state completeness, data motion, offered
-density, and undo over confirm.
+density, and undo over confirm. It also settles when a table may move and when
+a destructive action confirms.
 
 ## Motion serves the reading, never the data
 

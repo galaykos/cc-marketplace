@@ -128,9 +128,7 @@ are complementary.
 
 ## UI diffs: nothing deferred leaves the run
 
-Measured 2026-09-25: reviewers deferred focus-loss items "→ /ui-ux:audit" or to the
-backlog. The audit never ran, no `ui-ux-reviewer` or `a11y-engineer` was spawned, and the
-items were never fixed. On a UI diff:
+On a UI diff (why: `rationale/2026-09-26-task-runner-prose-derivations.md`):
 
 - **An accessibility deferral closes IN the run, whatever its severity.** At group close,
   send the group's deferrals to ONE `ui-ux:a11y-engineer` dispatch (else the card's

@@ -1,0 +1,132 @@
+<!doctype html>
+<!-- Reduced-motion controls. fixture-motion-{clean,js,canvas}.html are ONE page that
+     differs in ONE line — the IGNORE line in the script — so a verdict that differs
+     between them is about that line and nothing else. Clean: every mover asks the
+     preference and stops. The false-positive controls ride along in all three: a
+     WAAPI opacity fade, a reveal that SNAPS into place once, a one-axis progress meter on
+     `transform` and another on the `scale` property, an animate() on a node never attached
+     and two cancelled or jumped to their end at once, and four hidden or tiny canvases
+     ahead of #scene that must not use up the canvas test's cap of four. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tidewater tide tables</title>
+<style>
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #102030; background: #f6f8fa; }
+  section { min-height: 90vh; padding: 48px; }
+  .card { width: 240px; height: 96px; margin: 24px 0; padding: 12px; background: #cfe0ee; }
+  #progress { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #0a6;
+              transform-origin: 0 0; transform: scaleX(0); }
+  #meter { position: fixed; bottom: 0; left: 0; width: 100%; height: 4px; background: #06a;
+           transform-origin: 0 0; scale: 0 1; }
+  canvas { display: block; width: 320px; height: 160px; background: #fff; }
+  canvas.gone { display: none; }
+  canvas.tiny { width: 10px; height: 10px; }
+</style>
+</head>
+<body>
+<div id="progress" aria-hidden="true"></div>
+<div id="meter" aria-hidden="true"></div>
+<main>
+  <section id="hero">
+    <h1>Tidewater tide tables</h1>
+    <p>High and low water for forty harbours, a week ahead.</p>
+    <div id="waapi" class="card">Next high water: 06:12</div>
+  </section>
+  <section id="middle">
+    <div id="parallax" class="card">Spring tides this week</div>
+    <div id="tween" class="card" style="transform: translateY(80px)">Neap tides next week</div>
+    <div id="drift" class="card">Harbour closures</div>
+    <canvas class="gone" width="320" height="160"></canvas>
+    <canvas class="gone" width="320" height="160"></canvas>
+    <canvas class="tiny" width="10" height="10"></canvas>
+    <canvas class="tiny" width="10" height="10"></canvas>
+    <canvas id="scene" width="320" height="160" aria-label="Tide curve"></canvas>
+  </section>
+  <section id="end"><p>Tables are published every Monday.</p></section>
+</main>
+<script>
+  const IGNORE = { js: false, canvas: true }    // DEFECTIVE: the canvas loop ignores the preference
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+  const moveJs = !reduce || IGNORE.js
+  const moveCanvas = !reduce || IGNORE.canvas
+
+  // Motion-style: an Element.animate() loop on transform. Honoured → an opacity fade, which is allowed.
+  const waapi = document.getElementById('waapi')
+  if (moveJs) waapi.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(60px)' }],
+                            { duration: 1200, iterations: Infinity, direction: 'alternate' })
+  else waapi.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 600, fill: 'both' })
+
+  // Not motion: a feature test on a node never attached, and two animations cancelled or
+  // jumped to their end before a frame of them played.
+  document.createElement('div').animate([{ transform: 'scale(0)' }, { transform: 'scale(1)' }], { duration: 300 })
+  const h1 = document.querySelector('h1')
+  h1.animate([{ transform: 'translateY(40px)' }, { transform: 'none' }], { duration: 500 }).cancel()
+  h1.animate([{ transform: 'translateY(40px)' }, { transform: 'none' }], { duration: 500 }).finish()
+
+  // GSAP ScrollTrigger-style: a rAF tween that plays when the card enters view.
+  // Honoured → it snaps to its end state once, which is what a correct reduced path looks like.
+  const tween = document.getElementById('tween')
+  new IntersectionObserver((entries, io) => {
+    if (!entries.some((e) => e.isIntersecting)) return
+    io.disconnect()
+    if (!moveJs) { tween.style.transform = 'none'; return }
+    const t0 = performance.now()
+    const tick = (t) => {
+      const p = Math.min(1, (t - t0) / 1500)
+      tween.style.transform = `translateY(${(80 * (1 - p) ** 3).toFixed(2)}px)`
+      if (p < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }).observe(tween)
+
+  // Scrubbed parallax (on `transform`, and on the `translate` property), plus two
+  // reading-progress meters (a one-axis scale, on `transform` and on `scale` — not motion).
+  const parallax = document.getElementById('parallax')
+  const drift = document.getElementById('drift')
+  const progress = document.getElementById('progress')
+  const meter = document.getElementById('meter')
+  addEventListener('scroll', () => {
+    const room = document.documentElement.scrollHeight - innerHeight
+    const p = room > 0 ? (scrollY / room).toFixed(4) : 0
+    progress.style.transform = `scaleX(${p})`
+    meter.style.scale = `${p} 1`
+    if (moveJs) parallax.style.transform = `translateY(${(scrollY * -0.3).toFixed(1)}px)`
+    if (moveJs) drift.style.translate = `0 ${(scrollY * -0.2).toFixed(1)}px`
+  }, { passive: true })
+
+  // A Lenis stand-in: same class contract as the library — `lenis` while alive,
+  // `lenis-smooth` only while it animates a wheel scroll itself. Honoured → never started.
+  if (moveJs) {
+    window.lenisVersion = 'fixture'
+    const root = document.documentElement
+    root.classList.add('lenis')
+    let target = scrollY
+    addEventListener('wheel', (e) => {
+      e.preventDefault()
+      target = Math.max(0, Math.min(root.scrollHeight - innerHeight, target + e.deltaY))
+      root.classList.add('lenis-scrolling', 'lenis-smooth')
+      const from = scrollY, t0 = performance.now()
+      const tick = (t) => {
+        const p = Math.min(1, (t - t0) / 400)
+        scrollTo(0, from + (target - from) * p)
+        if (p < 1) requestAnimationFrame(tick)
+        else root.classList.remove('lenis-scrolling', 'lenis-smooth')
+      }
+      requestAnimationFrame(tick)
+    }, { passive: false })
+  }
+
+  // three.js / Lottie-canvas-style render loop. Honoured → one settled frame.
+  const g = document.getElementById('scene').getContext('2d')
+  const draw = (t) => {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, 320, 160)
+    g.save(); g.translate(160, 80); g.rotate(t / 400)
+    g.fillStyle = '#0a6'; g.fillRect(-70, -12, 140, 24)
+    g.restore()
+  }
+  if (moveCanvas) { const loop = (t) => { draw(t); requestAnimationFrame(loop) }; requestAnimationFrame(loop) }
+  else draw(0)
+</script>
+</body>
+</html>

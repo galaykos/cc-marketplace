@@ -7,6 +7,38 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.54.0 — 2026-09-26
+
+- Seven app-surface references in `information-design`: product-mock (the product on the front
+  door), console-patterns, crm-screens, ai-surfaces, live-surfaces, spatial-surfaces,
+  scheduling-surfaces; nine selector rows in `product-packages.md`; numbers and disclosures in
+  `dense-ui-patterns.md`; two contradictions with overseer resolved.
+- creative-direction: the interface-specimen hero allowed as a proof convention with its generic
+  executions flagged; fictional-but-specific mock data allowed; four new hero categories and
+  "Interface specimen" on the concept deck; `archetype-recipes.md`; vertical registers and a
+  mono-face filter; a dated sameness-fingerprint refresh. design-research: proof and disclosure
+  exceptions, read-only viewing of public references, and `scripts/technique-fingerprint.py`
+  (detects a reference site's stack and motion techniques).
+- Motion and 3D: R3F-on-WebGPU trap and the post pipeline split by renderer (`RenderPipeline` since
+  r183); new `data-3d.md`, `webgl-first-site.md`, `video.md` (single owner) and `hosted-runtimes.md`
+  (Spline / Unicorn Studio / Paper Shaders — a control-arm probe found the base model already defers
+  the runtime and honours reduced motion 5/5, but ships no static poster 0/5; the arm carrying this
+  reference reached 1/5, so the poster rule is admitted but not yet effective — see
+  `rationale/2026-09-26-design-corpus-probes.md`); the 3D arrival contract (poster-first, scene-first
+  as a recorded exception); SC 2.2.2 pause controls; Lenis, CSS scroll-driven, page-transition (Astro
+  native vs `<ClientRouter />`, React 19.3 `<ViewTransition>`), split-text and vector fixes.
+- `/craft-layer:audit`'s reduced-motion gate now sees JS (WAAPI, scroll-sampled transforms), canvas,
+  Lenis and video motion, not only CSS; fixtures prove each channel. It still skips where no
+  Playwright is available (CI), and `audit.md` names what it cannot see.
+- Livewire: `wire:ignore`, bundled Alpine, `livewire:navigated`; the README no longer overstates it.
+- Review fixes before release: the video pause-control match uses word boundaries (a "Google Play"
+  badge no longer counts as a pause button); detached or instantly cancelled WAAPI animations are
+  ignored; a `scale`-property progress bar is exempt; visible canvases are chosen before the cap of
+  four; open shadow roots are walked for video; `technique-fingerprint.py` reads unquoted attributes,
+  skips malformed asset URLs, ignores library names in visible text, enforces a per-fetch deadline,
+  holds `--max-bytes` exactly, and treats a malformed URL argument as a usage error (exit 2).
+  Residual: a one-axis `translate`-driven progress bar is still reported (it looks like parallax).
+
 ## 0.53.3 — 2026-09-25
 
 ### Changed

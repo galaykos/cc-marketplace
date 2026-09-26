@@ -11,12 +11,13 @@ split text into lines/words/chars, and it does NOT re-bake the invisibility and
 screen-reader traps; both live elsewhere and are referenced by path:
 
 - Split-text mechanics (SplitText per-line/word/char, mask reveals, revert):
-  `plugins/ui-ux/skills/motion-best-practices/references/gsap.md`. The non-GSAP
-  option is the `split-type` package + your own CSS / tween. Do not re-implement.
+  `plugins/ui-ux/skills/motion-best-practices/references/gsap.md`. Do not
+  re-implement. `split-type`, the old non-GSAP option, last published in 2023 —
+  treat it as unmaintained.
 - Two traps, referenced not copied, in
   `plugins/craft-layer/skills/motion-tiers/references/gotchas.md`: gotcha A
-  (gradient-clip on split letters → invisible) and gotcha C (aria-label the
-  phrase, aria-hidden the spans).
+  (gradient-clip on split letters → invisible) and gotcha C (`aria-label` only on
+  a heading; on a `div`/`span`, a screen-reader-only copy plus `aria-hidden` pieces).
 
 The net-new value here is the decision, variable-font axis animation, phrase
 cross-fade, and the mandatory reduced-motion path on every one of them.
@@ -78,22 +79,26 @@ A fixed lead-in with one rotating slot ("We build ___" cycling real synonyms):
   widest — so rotation never reflows the line around it.
 - The first word must be real, static, meaningful text in the DOM (not an empty
   animated slot) so no-JS and first paint show a complete headline.
+- Rotation that runs past five seconds needs a visible pause control for every user
+  (WCAG 2.2.2) — a hover or focus pause gives a touch user nothing — or it stops on
+  its final word within five seconds. Standing: recorded.
 - Full pattern, timing, and the aria-live handling: `references/text-reveals.md`.
 
 ## Split reveals — reference, do not re-implement
 
 Per-line / word / char reveals are a mechanics problem already solved:
 
-- Recipes: SplitText (`type`, `mask`, `autoSplit`, `revert`) in
-  `plugins/ui-ux/skills/motion-best-practices/references/gsap.md`; the
-  dependency-light alternative is the `split-type` package driving your own CSS
-  or tween. Pick one owner per element; revert on resize / unmount.
+- Recipes: SplitText (`type`, `mask`, `autoSplit`, `revert`, `aria`) in
+  `plugins/ui-ux/skills/motion-best-practices/references/gsap.md`. Pick one owner
+  per element; revert on resize / unmount.
 - Two traps you MUST honour, held in
   `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` — reference,
   never re-bake: gotcha A — a `background-clip:text` gradient word split into
   transparent child spans paints nothing; keep the accent word ONE gradient
-  unit. Gotcha C — split spans make screen readers spell the word out; put the
-  phrase on the container `aria-label` and mark the spans `aria-hidden`.
+  unit. Gotcha C — split spans make screen readers spell the word out. SplitText's
+  default puts `aria-label` on the split element, valid on a heading but forbidden
+  on a plain `div`/`span`; there, and around nested links, split an `aria-hidden`
+  wrapper beside a screen-reader-only copy.
 
 ## RTL / BiDi
 
@@ -128,8 +133,8 @@ polish.
   `font-variation-settings` with registered `@property` axes, animating axes on
   scroll + hover, and the flash-of-unstyled / wrong-weight payload caveat.
 - `references/text-reveals.md` — split-reveal and phrase cross-fade patterns;
-  defers split mechanics to `gsap.md` / `split-type` and the invisibility + aria
-  traps to `motion-tiers/references/gotchas.md`.
+  defers split mechanics to `gsap.md` and the invisibility + aria traps to
+  `motion-tiers/references/gotchas.md`.
 
 ## Anti-patterns
 
@@ -144,4 +149,4 @@ polish.
 - **Re-baking references** — copying SplitText recipes from `gsap.md` or the
   gradient / aria traps from `gotchas.md` into this skill instead of pointing.
 - **Unguarded rotation** — a phrase interval or scroll axis tween with no
-  `prefers-reduced-motion` gate.
+  `prefers-reduced-motion` gate; or an endless rotator with no pause control.

@@ -3,7 +3,18 @@ name: nextjs-best-practices
 description: Use when writing or reviewing Next.js App Router code — server vs client component boundaries, opt-in caching (fetch, revalidate, use cache), server actions, route handlers, streaming with Suspense, next/image and next/font, version leverage 14 through 16.
 ---
 
-> Last verified: 2026-08-02 — https://nextjs.org/blog — npm:next@16
+> Last verified: 2026-09-26 — https://nextjs.org/blog — npm:next@16.3
+
+## Read the installed version's docs first
+
+Caching defaults, request APIs and `use cache` shifted across 14 → 15 → 16 **and within 16.x
+minors**: pin advice to the `next` version in the lockfile and read that version's docs. On
+16.2+ they ship in `node_modules/next/dist/docs/` (the nextjs.org/docs tree, whose default path
+documents only the newest release); on 16.1 and earlier, `npx @next/codemod@canary agents-md`
+downloads a matching copy to `.next-docs/`. On 16.3+, `next dev` writes a managed block
+(`<!-- BEGIN:nextjs-agent-rules -->` … `END`) into `AGENTS.md`, plus a `CLAUDE.md` importing
+it, when it detects a coding agent. Do not delete it from a diff — `next dev` re-adds it; commit
+it and keep project rules outside the markers (`agentRules: false` opts out). Standing: recorded.
 
 ## Server Components by default — place client boundaries deliberately
 
@@ -47,11 +58,11 @@ data only. Same-render `fetch` calls are deduplicated automatically; wrap non-fe
 loaders (ORM calls) in React's `cache()` to get the same per-request memoization.
 
 `'use cache'` (Cache Components) is opt-in behind `cacheComponents: true` in
-`next.config.ts` — still not the default as of 16.2. It caches a file, component, or
-async function with compiler-generated keys, tuned via `cacheLife()`/`cacheTag()`, and
-completes the PPR story (`experimental.ppr`/`dynamicIO` flags are gone). Runtime values
-are banned inside a cached scope: read `cookies()`/`headers()` in an uncached parent
-and pass results in as arguments.
+`next.config.ts` — still not the default as of 16.3 (a future major will flip it). It
+caches a file, component, or async function with compiler-generated keys, tuned via
+`cacheLife()`/`cacheTag()`, and completes the PPR story (`experimental.ppr`/`dynamicIO`
+flags are gone). Runtime values are banned inside a cached scope: read `cookies()`/`headers()`
+in an uncached parent and pass results in as arguments.
 
 ## Request APIs are async — await everything (sync access removed in 16)
 
@@ -84,6 +95,25 @@ static). Route handlers are for external consumers — webhooks, mobile clients.
 Component fetching your own route handler adds an HTTP hop to your own server; call the
 shared data-access function directly instead.
 
+## Live data: server-sent events, never a socket server in a handler
+
+Push updates with server-sent events: a `GET` route handler returning a `ReadableStream`
+as `text/event-stream`, read by an `EventSource` opened in a client effect and closed in
+its cleanup. Never host a WebSocket server in a route handler — on serverless hosts the
+connection closes on timeout or once the response is generated; use a managed realtime
+service or a separate long-lived server. Streams get cut, so give each event an `id:`
+(the browser resends `Last-Event-ID`) and refetch current state on every reconnect before
+applying new events — anything sent while disconnected is otherwise lost. Standing: recorded.
+
+## Maps, rich-text editors, charts: client-only, destroyed on unmount
+
+They own their DOM: create the instance in an effect inside a `'use client'` component and
+destroy it in the cleanup. `'use client'` still prerenders on the server, so a library that
+reads `window` at import (Leaflet 1.9) needs `next/dynamic(..., { ssr: false })`, called from
+a Client Component (it throws in a Server Component). Tiptap wants `immediatelyRender: false`;
+MapLibre 6 has no default export. The cross-stack rules (Livewire, Inertia) and the editor-HTML
+XSS rule: `references/client-widgets.md`. Standing: recorded.
+
 ## Streaming: loading.tsx and Suspense
 
 `loading.tsx` wraps its segment in an automatic Suspense boundary; explicit
@@ -103,17 +133,23 @@ hand-rolled `<head>` tags. On 16, metadata image routes receive async `params`.
 ## Image and font optimization
 
 `next/image` needs `width`/`height` or `fill` (CLS protection); `fill` without `sizes`
-downloads desktop-size images on phones; the LCP hero gets `priority`. Next 16
-tightened defaults: `qualities` is `[75]`, `minimumCacheTTL` is 4 hours, remote sources
-use `images.remotePatterns` (`domains` is deprecated), local-IP optimization is blocked,
-and local `src` with query strings needs `images.localPatterns`. `next/font` self-hosts
-fonts with zero layout shift — use it instead of `<link>` to Google Fonts, and subset.
+downloads desktop-size images on phones; the LCP hero loads eagerly — `priority` on 14/15,
+but 16 deprecates `priority` for `preload` and its docs prefer `loading="eager"` or
+`fetchPriority="high"` (standing: recorded). Next 16 tightened defaults: `qualities` is
+`[75]`, `minimumCacheTTL` is 4 hours, remote sources use `images.remotePatterns` (`domains`
+is deprecated), local-IP optimization is blocked, and local `src` with query strings needs
+`images.localPatterns`. `next/font` self-hosts fonts with zero layout shift — use it instead
+of `<link>` to Google Fonts, and subset.
 
 ## proxy.ts (formerly middleware.ts)
 
 Next 16 renames `middleware.ts` to `proxy.ts` (exported function `proxy`), running on
-the Node.js runtime; the old filename is deprecated. Keep it thin — redirects,
-rewrites, auth *checks* — not data fetching or heavy work on every request.
+the Node.js runtime; the old filename is deprecated. Keep it thin — redirects, rewrites,
+and *optimistic* auth checks that read the session cookie only, with no database call (it
+runs on every route, prefetches included). It is never the only line of defence: a matcher
+change or a Server Function moved to another route silently drops its coverage, so verify
+auth again in the data access layer, every server action and every route handler.
+Standing: recorded — the docs' own rule; no script here reads a `proxy.ts`.
 
 ## Per-version leverage (advise at or below the floor)
 
@@ -124,13 +160,16 @@ Advising above the installed version is a finding; confirm boundaries against th
 - **15** — caching flipped to opt-in (fetch `no-store`, GET handlers and client router
   cache uncached); async request APIs introduced with sync access deprecated; React 19
   pairing; Turbopack dev stable; `after()` for post-response work.
-- **16** (current stable line; 16.2 as of 2026-07) — Turbopack is the default bundler
+- **16** (current stable line; 16.3 as of 2026-09) — Turbopack is the default bundler
   (webpack via `--webpack`); sync request-API access removed; `proxy.ts` replaces
   `middleware.ts`; Cache Components/`'use cache'` available behind `cacheComponents`;
   `revalidateTag(tag, profile)` + `updateTag()`/`refresh()`; React Compiler support
   stable (off by default); parallel route slots require explicit `default.js`; AMP and
-  `next lint` removed; needs React 19.2+/Node 20.9+. Per-change operational detail
-  (what breaks, escape hatches, 16.1/16.2 minors): read `references/next16.md`.
+  `next lint` removed; needs React 19.2+/Node 20.9+. 16.3 adds `catchError` (an error
+  boundary that lets `notFound()`/`redirect()` through), `next/root-params` (no prop-drilling
+  `[lang]`), and `partialPrefetching` and `export const instant`, both needing
+  `cacheComponents`. Per-change operational detail (what breaks, escape hatches,
+  16.1–16.3 minors): read `references/next16.md`.
 
 ## Scope by model tier
 
@@ -151,13 +190,9 @@ to every file in scope; a Fable-class session may compress it once the lockfile 
 - `try/catch` around `redirect()` in an action, swallowing the navigation throw.
 - Awaiting all data in a layout, serializing what Suspense would stream in parallel.
 - Server Components fetching the app's own route handlers over HTTP.
-- `fill` images without `sizes`; LCP hero without `priority`.
+- `fill` images without `sizes`; an LCP hero loaded lazily, or given the deprecated `priority` on 16.
 - Sync `params`/`searchParams` access left in after a 16 upgrade — it throws.
 - Missing `default.js` in a parallel route slot — a build failure on 16.
-
-## Verify against current docs
-
-Caching defaults, request-API asynchrony, and `use cache`/`cacheComponents` shifted
-across 14 → 15 → 16 **and within 16.x minors** — check https://nextjs.org/docs before
-relying on memory for version-sensitive behavior, and pin advice to the `next` version
-actually installed in `package.json` and the lockfile, not to the newest release.
+- Proxy as the only auth check, or a database call inside it.
+- A WebSocket server in a route handler; an event stream with no resync on reconnect.
+- Deleting the `nextjs-agent-rules` block from `AGENTS.md` in a diff.

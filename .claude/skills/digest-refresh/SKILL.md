@@ -54,7 +54,7 @@ For each row in scope, with the digest open beside the live page:
   (imports, theming, anti-patterns). A digest refreshed under a stale SKILL
   is the drift this repo already shipped once.
 - Check the neighbours that name the library: `lane.tsv`, the router's
-  `rules.tsv`, `component-libraries/references/library-map.md`, commands
+  `rules.tsv`, `ui-libraries/skills/component-libraries/references/library-map.md`, commands
   that detect the stack, the plugin-scout skill's `signals.md` (in stack-scan). `grep -rn <pkg>` is
   the list; each hit is a claim too.
 

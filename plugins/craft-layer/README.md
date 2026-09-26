@@ -2,7 +2,8 @@
 
 Create unique, high-craft, animated, **informative** web apps — CRMs, SaaS dashboards,
 landing pages — on real projects across **React, Tailwind, Vite, Vue, Next, Nuxt, and
-Laravel** (Inertia / Livewire). `craft-layer` is the orchestration layer that turns an
+Laravel** (Inertia; on Livewire it covers mounting motion only, not Livewire itself).
+`craft-layer` is the orchestration layer that turns an
 idea into a crafted app by composing the marketplace's existing UI/motion skills, adding
 only what they lack: an offer contract that pins what the page sells, concept-first
 creative direction, an optional guided section-decision loop, a research→brief playbook,
@@ -276,3 +277,19 @@ install, because it is not optional in practice:
 - **`taskmaster` — optional.** It stages guided-mode options at higher fidelity (and
   the real-component rung of `taskmaster:visual-decisions` above it, when the project has a runnable host); without them
   decisions degrade to written multiple-choice and every gate still runs.
+
+## Evals
+
+`evals/` holds control-arm probes from the 2026-09-25 design-capability corpus
+(`rationale/2026-09-25-design-capability-corpus/`): each case names a rule the base model
+is expected to get wrong from memory, and a new artifact for that rule ships only if the
+no-plugin arm fails it. Run them with the write grant — the cases write files, and
+`Write`/`Edit` are gated tools the runner will not hand a plugin without it:
+
+```bash
+claude plugin eval ./plugins/craft-layer --ablation with-without --runs 5 \
+  --allow-tools Write Edit --no-publish --trust-plugin
+```
+
+Without the grant the suite still loads and then declines the case, so a clean-looking run
+has measured nothing. State the run count and vote spread with any delta.

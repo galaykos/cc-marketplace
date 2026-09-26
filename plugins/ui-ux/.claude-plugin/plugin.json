@@ -1,7 +1,7 @@
 {
   "name": "ui-ux",
-  "version": "0.26.3",
-  "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Material UI, Tailwind, plus a library-agnostic component-libraries skill (headless and styled React libraries, owned-code vs dependency rules, a per-library map) — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, theme creation with a live colour preview, a /ui-ux:build entry point, a WCAG 2.2 AA accessibility audit (/ui-ux:audit, the a11y-audit skill, and an a11y-engineer worker that applies the fix list with native semantics over ARIA patches), and ui-ux-reviewer + ui-ux-engineer agents.",
+  "version": "0.27.0",
+  "description": "UI/UX foundations with per-stack skills for shadcn/ui and Tailwind, a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, motion best practices, theme creation with a live colour preview, a /ui-ux:build entry point, a WCAG 2.2 AA accessibility audit (/ui-ux:audit, the a11y-audit skill, and an a11y-engineer worker), and ui-ux-reviewer + ui-ux-engineer agents. Component-library skills (MUI, Astryx, ReUI, Aceternity, PrimeReact, component-libraries) live in the ui-libraries plugin — install both.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

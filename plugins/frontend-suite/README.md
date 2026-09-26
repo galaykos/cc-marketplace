@@ -54,10 +54,11 @@ One bullet per bundled plugin, in dependency order (4):
 
 - **skill-router** — file-aware skill auto-routing: hooks load the matching
   best-practice skill(s) as files are edited
-- **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Astryx, Material UI,
-  Tailwind) and the library-agnostic `component-libraries` floor for any other
-  React or Vue component library — headless or styled — plus `/ui-ux:build`,
-  `/ui-ux:audit`, `/ui-ux:theme`
+- **ui-ux** — shadcn/ui and Tailwind skills, theming, design tokens, motion, plus
+  `/ui-ux:build`, `/ui-ux:audit`, `/ui-ux:theme`
+- **ui-libraries** — the component-library skills split out of ui-ux on 2026-09-26:
+  ReUI, Aceternity, Astryx, Material UI, and the library-agnostic `component-libraries`
+  floor for any other React or Vue component library — headless or styled
 - **web-dev** — Next.js (App Router boundaries, opt-in caching, server
   actions), React Native (lists, navigation, Expo inversions) and Vite (env
   security, chunking, `base`) skills, plus the generalist web-developer worker

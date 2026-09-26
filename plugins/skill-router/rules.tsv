@@ -29,7 +29,7 @@
 # co-fire-ok: *.py low-cognitive-load solid-principles
 # Content-row co-fires, verified against scripts/smoke/router-corpus (pc_rules_cofire).
 # These seven rows are all `low` confidence: they do NOT emit an inline nudge, they
-# accumulate into one session digest (route.sh:6). Several firing on one file is the
+# accumulate into one session digest (route.sh header). Several firing on one file is the
 # designed behaviour, not a collision — an ordinary React component with await, catch,
 # fetch( and a token legitimately touches all four concerns. Blessed so that a NEW
 # content row must be considered against the corpus rather than added blind.
@@ -39,8 +39,14 @@
 # co-fire-ok: content error-handling-design security-review
 # co-fire-ok: content error-handling-design observability-design
 # co-fire-ok: content security-review observability-design
-# 2026-08-12 additions (same digest channel, same rationale as the seven above):
+# 2026-08-12 addition. Both rows are `high` since 2026-09-26 (inline, not the digest);
+# pc_rules_cofire pairs content rows whatever their confidence, and a GSAP timeline
+# driving a three.js scene legitimately wants the animation skill and the scene skill.
 # co-fire-ok: content threejs-best-practices motion-best-practices
+# 2026-09-26, precautionary like the pair above: `ScrollTrigger` sits in BOTH rows on
+# purpose — motion-best-practices owns the GSAP API, scroll-orchestration owns the
+# pin/scrub/smooth-scroll contract (routing review fixture M2 names both owners).
+# co-fire-ok: content motion-best-practices scroll-orchestration
 # Engine-specific DB rows co-fire with the generic ones by design: sql-best-practices
 # owns portable SQL, the engine skill owns what only that engine does (MVCC/vacuum,
 # lock-aware migrations, engine-specific index types). Both are wanted on one file;
@@ -81,16 +87,17 @@
 #      Laravel used the mysql driver for MariaDB for years. It misses the mariadb skill.
 #   2. A database running outside the compose file: the compose file is decisive-no and
 #      suppresses before `DB_CONNECTION` is ever read.
-# Of craft-layer's 14 skills exactly TWO are routed: information-design
-# (**/dashboard/** + **/admin/**) and threejs-best-practices (the `new THREE.` /
-# WebGPU content row, last line of this file). This comment claimed
-# "only information-design" for as long as the threejs row has existed, one screen
-# below a blessing that names it. The other twelve (creative-direction,
-# motion-tiers, …) deliberately reach sessions via /craft-layer:craft and the
+# Of craft-layer's 14 skills exactly FOUR are routed (recount:
+# `awk -F'\t' '$4=="craft-layer"{print $3}' rules.tsv | sort -u`): information-design
+# (**/dashboard/** + **/admin/**, plus chart/grid and interaction-library imports),
+# threejs-best-practices (three / R3F / WebGPU imports), scroll-orchestration (Lenis,
+# ScrollTrigger) and motion-tiers (Rive, Lottie, Spline) — the last three by content row
+# near the end of this file. Until 2026-09-26 it was two, and R3F and Lenis routed to
+# motion-best-practices, which mentions neither. The other ten (creative-direction,
+# page-transitions, …) deliberately reach sessions via /craft-layer:craft and the
 # catalog channel, not per-file rules — their triggers are prompt-shaped, not
-# file-shaped. Motion CODE routes via the motion-best-practices content row below;
-# re-measured 2026-09-15, no file in scripts/smoke/router-corpus matches it, so
-# the threejs/motion blessing above is precautionary, not observed.
+# file-shaped. Re-measured 2026-09-15, no file in scripts/smoke/router-corpus matches
+# the motion row, so the threejs/motion blessing above is precautionary, not observed.
 glob	*.sql	sql-best-practices	database	high
 glob	**/migrations/**	sql-best-practices	database	high
 glob	*.sql	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
@@ -119,20 +126,42 @@ glob	**/components/**	tailwind-best-practices	ui-ux	high	?package.json~"tailwind
 glob	*.tsx	shadcn-best-practices	ui-ux	high	?components.json~"(ui|components)"
 glob	*.jsx	shadcn-best-practices	ui-ux	high	?components.json~"(ui|components)"
 glob	*.vue	shadcn-best-practices	ui-ux	high	?components.json~"(ui|components)"
-content	(@reui/|\breui\.io|\bfrom ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-ux	low
-content	\b(aceternity|ui\.aceternity\.com|motion/react|framer-motion)\b	aceternity-best-practices	ui-ux	low
+# Editing the registry file itself (aliases, style, a `registries` map) routed nothing.
+glob	components.json	shadcn-best-practices	ui-ux	high
+# `command` rows match a Bash call's COMMAND STRING (route.sh header, COMMAND ROWS): a
+# registry install writes its files itself and names no target any file row can see.
+# `-ui` is the retired CLI name a model still recites; `-vue` is shadcn-vue, which the
+# `*.vue` row above already sends here. LIMITATION: `shadcn init` also writes files
+# unseen and has no row; `components.json` routes on its first later edit.
+command	\bshadcn(-ui|-vue)?(@[^[:space:]]+)?[[:space:]]+add\b	shadcn-best-practices	ui-ux	high
+content	(@reui/|\breui\.io|\bfrom ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-libraries	low
+# Narrowed 2026-09-26: `motion/react|framer-motion` drew Aceternity on EVERY Motion file.
+content	(\baceternity\b|ui\.aceternity\.com|@aceternity/)	aceternity-best-practices	ui-libraries	low
 # The library-agnostic fallback. shadcn, ReUI, Aceternity, MUI and Astryx each have a
 # sibling skill and a row of their own; a project on Mantine, Chakra, Ant Design,
 # PrimeVue, Vuetify, Base UI, Ark, Reka or Nuxt UI matched nothing at all, so the one
 # skill written for exactly that case never loaded. The alternatives are the package
 # signals in the Signal column of
-# plugins/ui-ux/skills/component-libraries/references/library-map.md — keep the two in
-# step; nothing reads that file back, so this is `recorded`, not a gate. `low` because
-# an import line is weaker evidence than a file extension: it lands in the session
-# digest, not an inline nudge. LIMITATION: it keys on a QUOTED module specifier, so a
-# library reached only through an auto-import plugin or a framework config is missed,
-# and a lockfile or a docs page quoting the name matches.
-content	['"](@(base-ui|ark-ui|headlessui|ariakit|mantine|chakra-ui|heroui|fluentui|primer|blueprintjs|untitledui|radix-ui)/|@nuxt/ui|(radix-ui|antd|primevue|vuetify|element-plus|naive-ui|quasar|reka-ui|radix-vue)['"/])	component-libraries	ui-ux	low
+# plugins/ui-libraries/skills/component-libraries/references/library-map.md — keep the two in
+# step; nothing reads that file back, so this is `recorded`, not a gate. `primereact`
+# left this row 2026-09-26 for its own sibling skill (primereact-best-practices, rows
+# beside MUI's below), so the two never co-fire on one import;
+# `@base-ui-components/` is Base UI's pre-1.0 package name. `high` since 2026-09-26: an
+# import line is weaker evidence than a file extension, but as `low` it reached the
+# model only on the next prompt, after the screen was built (route.sh high pass).
+# LIMITATION: it keys on a QUOTED module specifier, so a library reached only through
+# an auto-import plugin or a framework config is missed — the `*.vue` manifest row
+# below covers the Vue kits that auto-import; a React one has no such row — and a
+# lockfile or a docs page quoting the name matches.
+content	['"](@(base-ui|base-ui-components|ark-ui|headlessui|ariakit|mantine|chakra-ui|heroui|fluentui|primer|blueprintjs|untitledui|radix-ui)/|@nuxt/ui|(radix-ui|antd|react-aria-components|primevue|vuetify|element-plus|naive-ui|quasar|reka-ui|radix-vue)['"/])	component-libraries	ui-libraries	high
+# AUTO-IMPORTED Vue kits: PrimeVue's Nuxt module, Vuetify's plugin and unplugin-vue-components
+# resolvers put `<DataTable>` / `<v-data-table>` in an SFC with no import line, so the
+# row above saw nothing. Keyed on the manifest instead, like the shadcn rows.
+# `reka-ui`/`radix-vue` are left out on purpose: shadcn-vue repos carry them, and the
+# shadcn row owns those. LIMITATION: a monorepo whose package.json sits in a workspace
+# reads as absent and suppresses (the `?` prefix), as every `?package.json` row does.
+# co-fire-ok: *.vue a11y-audit component-libraries
+glob	*.vue	component-libraries	ui-libraries	high	?package.json~"(primevue|vuetify|element-plus|naive-ui|quasar|@nuxt/ui)"
 glob	**/dashboard/**	information-design	craft-layer	high
 glob	**/admin/**	information-design	craft-layer	high
 glob	*.tsx	a11y-audit	ui-ux	high
@@ -198,10 +227,14 @@ glob	vite.config.*	vite-best-practices	web-dev	high
 # `*.config.*`, so a tool config routes ONLY via its own row — next and vite had one,
 # tailwind did not, and tailwind-best-practices' own description names "config tokens".
 # prime.sh already sniffs `tailwind.config.*` for the SessionStart index, so the two
-# signals now agree. LIMITATION: Tailwind v4 is CSS-first and a v4 project may ship no
-# config file at all; there its only route stays the **/components/** row above, which
-# now carries a `package.json~"tailwindcss"` marker a v4 project still satisfies.
+# signals now agree. Tailwind v4 is CSS-first and a v4 project may ship no config file
+# at all, so the row after it routes the v4 directives themselves, in any `.css` file
+# (before 2026-09-26 a Vite `src/index.css` or a `src/styles/theme.css` routed nothing).
+# Content, not `*.css` + a `package.json` marker: it fires on the directive, not on every
+# stylesheet of a Tailwind repo, and a workspace manifest cannot suppress it.
+# LIMITATION: v3 `@tailwind base;` files are not matched; they route via the config row.
 glob	tailwind.config.*	tailwind-best-practices	ui-ux	high
+content	(@import[[:space:]]+['"]tailwindcss|@theme\b|@custom-variant\b|@source[[:space:]])	tailwind-best-practices	ui-ux	high	@base~\.css$
 # STYLESHEETS. Four theming skills — shadcn-theming, design-tokens, theming-system,
 # component-libraries — were reachable from no file rule at all, while the tailwind
 # CONFIG had a row: the router could see a project declare its theme and not see
@@ -210,7 +243,8 @@ glob	tailwind.config.*	tailwind-best-practices	ui-ux	high
 # component-libraries stay prompt-shaped and content-shaped respectively — no file
 # extension identifies them. LIMITATION: these are the CONVENTIONAL entry-point
 # filenames, not a proof that the project theme lives there; a project whose tokens
-# sit in `src/styles/theme.css` routes nothing, and every `*.scss` in a Bootstrap or
+# sit in `src/styles/theme.css` routes no colour skill (only the Tailwind v4 row above,
+# when the file carries a v4 directive), and every `*.scss` in a Bootstrap or
 # legacy Sass app draws the colour skill whether or not it touches colour.
 glob	globals.css	shadcn-theming	ui-ux	high
 glob	app.css	shadcn-theming	ui-ux	high
@@ -227,11 +261,39 @@ content	\b(catch|throw|rescue)\b	error-handling-design	resilience	low
 content	\b(password|token|secret|jwt|api[_-]?key|authenticate)\b	security-review	security	low
 content	\b(Stripe-Signature|constructEvent|stripe\.webhooks|paddle|braintree)\b	security-review	security	low
 content	\b(fetch\(|axios|http\.(get|post)|HttpClient)\b	resilience-design	resilience	low
-content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|OpenTelemetry|correlation[_-]?id|trace_id|\bspan\b)\b	observability-design	resilience	low
-content	@mui/(material|icons-material|x-[a-z-]+|lab)\b	mui-best-practices	ui-ux	low
-content	@astryxdesign/(core|cli|theme-[a-z0-9-]+)\b	astryx-best-practices	ui-ux	low
-content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|lenis|react-three|keyframes|animation-timeline|starting-style|startViewTransition)\b	motion-best-practices	ui-ux	low
-content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.)	threejs-best-practices	craft-layer	low
+# Span API calls, not the word: `\bspan\b` matched JSX `<span>`, so nearly every component
+# put observability-design in the digest (routing review 2026-09-26, fixture S2).
+content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|OpenTelemetry|correlation[_-]?id|trace_id|startSpan|startActiveSpan|span\.(end|setAttribute|setStatus|recordException))\b	observability-design	resilience	low
+# LIBRARY ROWS — `high` since 2026-09-26: a content row marked `high` fires INLINE at the
+# first file whose contents match, once per signal per context, and never enters the
+# digest (route.sh high pass). As `low` rows every one of them reached the model on the
+# next user prompt, after the build turn, and inside a subagent never.
+content	@mui/(material|icons-material|x-[a-z-]+|lab)\b	mui-best-practices	ui-libraries	high
+content	@astryxdesign/(core|cli|theme-[a-z0-9-]+)\b	astryx-best-practices	ui-libraries	high
+# PrimeReact: `primereact` (v10 whole library, v11 unstyled primitives) and `@primereact/*`
+# (v11's ui/core/headless/hooks) are unambiguous. `@primeuix/*` is NOT: PrimeVue imports the
+# same `@primeuix/themes` presets, so that row requires a package.json naming PrimeReact.
+# LIMITATION: a monorepo whose package.json sits in a workspace reads as absent and the
+# `@primeuix/` row stays silent there, while the first row still fires on any file that
+# imports `primereact` or `@primereact/*` directly.
+content	['"](primereact['"/]|@primereact/)	primereact-best-practices	ui-libraries	high
+content	['"]@primeuix/	primereact-best-practices	ui-libraries	high	?package.json~"(primereact|@primereact/[a-z-]+)"
+# `lenis` and `react-three` left this row 2026-09-26: the skill mentions neither, and
+# they now route to scroll-orchestration and threejs-best-practices below.
+content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|keyframes|animation-timeline|starting-style|startViewTransition)\b	motion-best-practices	ui-ux	high
+content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.|@react-three/|from ['"]three['"/])	threejs-best-practices	craft-layer	high
+content	(['"]lenis(/react)?['"]|@studio-freight/(lenis|react-lenis)|\bScrollTrigger\b|\bScrollSmoother\b)	scroll-orchestration	craft-layer	high
+# Spline routes here because motion-tiers owns it: references/hosted-runtimes.md holds its
+# tier-3 arrival (poster first, deferred import), reduced-motion stop, pinning and plan terms.
+content	(@rive-app/|@lottiefiles/|\bdotlottie|['"](lottie-web|lottie-react|react-lottie)['"/]|@splinetool/)	motion-tiers	craft-layer	high
+# Chart and grid packages outside a `dashboard/`/`admin/` path. information-design owns
+# the chart-vs-table-vs-stat-tile and density decision only; chart FORM and colour it
+# defers to a `dataviz` skill this marketplace does not ship, so no row can route that.
+content	['"](recharts|echarts|echarts-for-react|chart\.js|react-chartjs-2|@tremor/react|@nivo/[a-z-]+|@visx/[a-z-]+|apexcharts|react-apexcharts|highcharts|ag-grid-(react|community|enterprise|vue3)|@tanstack/(react|vue|svelte|solid)-table)['"/]	information-design	craft-layer	high
+# Interaction surfaces by IMPORT (interactions review 2026-09-26, §6): boards, schedulers,
+# maps, node graphs, editors and virtualised lists live in `Pages/Deals/Board.tsx` as
+# often as under `dashboard/`, and the path rows miss them.
+content	['"](@(dnd-kit|fullcalendar|schedule-x|xyflow|tiptap|lexical)/|(react-big-calendar|maplibre-gl|leaflet|mapbox-gl|lexical|@tanstack/react-virtual)['"/])	information-design	craft-layer	high
 # design-kit rows (2026-09-22). Every one is a `**/dir/**` form — the only path-aware
 # glob route.sh implements — keyed on the directories design-kit itself creates, so a
 # row fires only where the plugin has already been used. The point is not the nudge:

@@ -61,15 +61,22 @@ live pages; walk them.
 
 ### When a gallery blocks the fetch
 
-Awwwards and dribbble are heavily client-rendered and may refuse retrieval outright. Falling
-back to the search layer — a `site:` query whose result titles and snippets are all that came
-back — discharges the SEARCH and yields no source, and the board records it as
-`search-layer only, fetch blocked <date>`. That is an honest half-result. Recording the
-gallery as searched while presenting recalled entries as findings is not.
+Awwwards and dribbble are heavily client-rendered, and two different things come back from
+them. A `200` whose body is near-empty is a **JS-rendered page, not a refusal**: nothing was
+refused, the page has to run to be seen. Open it read-only in the browser the environment
+already has — that is observation, allowed on any public page whoever owns it, under the
+bounds in `craft-layer/skills/design-research/references/mining-method.md` §2a (no forms,
+sign-ins, paywalls or bot challenges) — and record the row as `browser (observed, …)`.
 
-A gallery is a THIRD-PARTY origin, so the browser escalation below does NOT apply to it:
-the ownership condition is exactly what separates the two cases, and the search layer is
-the whole remedy here.
+A real refusal — `403`, a `5xx`, a challenge page, or a shell that still renders nothing in the
+browser — is different. Falling back to the search layer — a `site:` query whose result titles
+and snippets are all that came back — discharges the SEARCH and yields no source, and the board
+records it as `search-layer only, fetch blocked <date>`. That is an honest half-result.
+Recording the gallery as searched while presenting recalled entries as findings is not.
+
+A gallery is a THIRD-PARTY origin, so the browser ESCALATION below does NOT apply to its
+refusals: the ownership condition is exactly what separates the two cases, and the search
+layer is the whole remedy for a refused gallery.
 
 ## Dating, because trends decay
 
@@ -101,11 +108,16 @@ the mandate is `ultra-craft`-only; a refused retrieval is not, because the sourc
 The order is the rule:
 
 1. **Escalate to a real browser** when the failure is `403`, any `5xx`, or an empty /
-   shell document — the three shapes that mean *this client was refused*, not *there
+   shell document — the shapes that mean *this client got nothing usable*, not *there
    is nothing here*. A page that is PUBLIC is public to a browser: **rendering one in
    a browser is the same access, not a circumvention.** Drive whatever the environment
    ALREADY has — a Playwright/Puppeteer install in the target project, a connected
    browser extension, the project's own e2e runner.
+   **A near-empty `200` that renders fully in the browser was never a refusal** — it is a
+   JS-rendered page. Record it as `browser (observed, …)`, not as an escalation; on a
+   third-party origin that read-only view is observation and is allowed
+   (`craft-layer/skills/design-research/references/mining-method.md` §2a). Only a `403`, a
+   `5xx`, a challenge page, or a shell that stays empty in the browser is a refusal.
 2. **Only then substitute.** If the escalation also fails, or no browser path exists,
    record the attempt AND the escalation outcome, then substitute another source in
    that lane. Never silently drop it — an unexplained gap in a lane reads as a lane
@@ -121,7 +133,8 @@ is indistinguishable from one nobody tried.
   property — their marketing site, their docs, their repo, the URL in their brief. It
   does NOT apply to a third-party origin that refused a request: a gallery, a
   competitor, a paywalled publication. There the refusal IS the answer, and the
-  search-layer fallback above is what discharges it.
+  search-layer fallback above is what discharges it. A JS-rendered `200` from one of them
+  refused nothing, so the bound does not reach it — viewing it is observation (move 1).
 - **`when-available`, NEVER mandatory.** Browser paths are absent in headless runs, and
   nothing here makes installing one a precondition for a source, a lane, or a step. No
   browser reachable → record `browser unavailable` on the row and go straight to move 2.
@@ -196,9 +209,10 @@ exchanges on treatment.
 **`Method` is the retrieval column**, and it is APPENDED at the end of the row so a board
 written before it existed still reads positionally. Its vocabulary: `fetch` (a plain
 retrieval), `browser (escalated ← <status>)` (the escalation above succeeded),
+`browser (observed, …)` (a JS-rendered public page viewed read-only — no refusal to escalate),
 `search-layer` (the search discharged, no page retrieved), `fetch-failed` (both the fetch
-and the escalation failed, or no browser was available). `browser` rows are FETCHED
-sources and count as such — the column exists so an escalation is visible, not so it is
+and the escalation failed, or no browser was available). `browser` rows of either kind are
+FETCHED sources and count as such — the column exists so an escalation is visible, not so it is
 discounted. `search-layer` and `fetch-failed` rows are not sources and count toward no
 floor; they are the record that the lane was tried. `craft/content-source.md` uses the
 same vocabulary, so one glance answers "how did this actually get here?" on both
@@ -223,5 +237,8 @@ artifacts.
 - **Refusal read as absence** — a `403` on the client's own public page recorded as a
   finding, the run carrying on without the content, with a browser in the project the
   whole time. The obstacle was logged; it was never cleared.
+- **Shell read as refusal** — a near-empty `200` from a public gallery or competitor logged as
+  `fetch blocked` and replaced by the search layer, when the page renders fully in the browser
+  the run already has. Nothing was refused; it had to run to be seen.
 - **Escalation as a requirement** — treating a browser as a precondition, so a headless
   run reports a lane it could have filled from the search layer as impossible.

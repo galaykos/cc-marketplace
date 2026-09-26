@@ -43,6 +43,12 @@ foreach (Post::with('author')->get() as $post) { echo $post->author->name; }
 
 ## Validation belongs in FormRequest classes
 
+Scope: this rule and the thin-controller rule below are for HTTP controllers. Livewire components validate with `#[Validate]`, `rules()`,
+`$this->validate()` or Form objects, and Filament resources with field rules (`->required()`, `->rules([...])`) — don't push FormRequests or
+controller doctrine into either. For their idioms use the vendors' own guidance: Laravel Boost (`composer require laravel/boost --dev`, then
+`php artisan boost:install`) installs the `livewire-development` skill and, when selected, Filament's `filament-development` skill (Boost and
+Filament docs, checked 2026-09-26). Standing: **recorded** — nothing checks which kind of class a rule was applied to.
+
 Controllers should not call `$request->validate()` inline or hand-roll rules. Extract a `FormRequest` per action: it centralizes rules, keeps `authorize()` next to validation, and is testable independent of the controller.
 
 ```php

@@ -213,6 +213,9 @@ What kind of AUTHORED graphic the build owns.
 - **Dimensional system** — modelled or rendered objects under a stated staging rule.
 - **Document artefact** — forms, tickets, scans, plots treated as authored objects rather
   than decoration.
+- **Interface specimen** — the product's own screens rebuilt as authored specimens under a
+  stated staging rule (crop, scale, fixed polarity, fictional-but-specific data, operable or
+  inert); never a raw screenshot.
 - **Declared none** — the build ships no graphic system and says so; layout and type carry
   everything, and the absence must be argued.
 

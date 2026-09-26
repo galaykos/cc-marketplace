@@ -53,7 +53,7 @@ text that was previously being evicted.
 **Why 0.05 and not 0.04:** headroom. 0.04 is 24,000 chars and this bundle measured
 22,929 on 2026-09-16, after its members' side-effect commands left the listing —
 4% under, and it sat 165 chars OVER the day before. The next description edit in any
-of the fifteen members could cross it again, and the symptom is silent eviction, not
+of the sixteen members could cross it again, and the symptom is silent eviction, not
 an error. Recount before trusting any number on this page.
 
 ## What's included
@@ -86,6 +86,7 @@ The pipeline:
 - **testing** — TDD discipline, the test-engineer agent cards dispatch to, and `/testing:flake-hunt`, its only command: test review rides the code-review fan-in, not a per-plugin review entry
 - **debugging** — `/debugging:debug`, root cause with evidence before any fix
 - **ui-ux** — the engineer and reviewer agents the pipeline's visual cards route to, `/ui-ux:theme`, the WCAG audit
+- **ui-libraries** — the component-library skills (MUI, Astryx, ReUI, Aceternity, `component-libraries`) split out of ui-ux on 2026-09-26, so a card on a non-shadcn stack still gets its library's rules
 - **security** — `/security:review`, threat modeling, the engineer the pipeline's security cards dispatch to
 
 ## What's excluded, and why
@@ -103,7 +104,7 @@ listing by the formula above — **6,000 chars on the default 200k window, 30,00
 1M** — and past it the host drops descriptions, leaving names only. The overflow
 is never a token cost (dropped text is never sent) — it is **reachability**, paid
 by every member including the pipeline core. At fifteen members (22,929
-entry-chars) the bundle fits at 1M outright and at 200k with the settings line
+entry-chars, 2026-09-16; the sixteenth, ui-libraries, is skills moved out of ui-ux, not new ones) the bundle fits at 1M outright and at 200k with the settings line
 above; the measurement and the cost model are in
 `rationale/2026-08-31-token-cost-review.md`.
 

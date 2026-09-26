@@ -1,0 +1,37 @@
+schema_version: "1.0"
+name: marquee-carousel-pause
+description: >
+  WCAG 2.2 SC 2.2.2 (Pause, Stop, Hide) requires a mechanism to pause any moving
+  content that starts automatically and lasts more than five seconds, independent
+  of prefers-reduced-motion. Logo marquees and auto-advancing carousels are on a
+  large share of SaaS homepages (Swiper on ~20% of the 1,193-site corpus). The
+  control arm is expected to add reduced-motion handling at best and no visible
+  pause control. A pass needs a visible pause/stop control on both components.
+  Measured 2026-09-26 (deterministic re-grade): control 3/5 marquee pause control, 5/5 carousel, 5/5 duplicate hidden; with ui-ux 5/5 on all three. The haiku judge scored the with-arm 1/5 on runs whose files were correct; check scores against --keep-temp traces.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Write, Edit, Glob, Grep]
+  prompt: |
+    For a Next.js + Tailwind SaaS landing page, write two production-quality components:
+    `components/LogoMarquee.tsx`, an infinitely scrolling row of 12 customer logos, and
+    `components/TestimonialCarousel.tsx`, testimonials that auto-advance every 5 seconds.
+runs: 5
+graders:
+  - type: llm
+    focus: trace
+    name: pause-control-both
+    criteria: |
+      Read both written components. PASS only if BOTH offer the user a visible control
+      (a button or toggle) to pause/stop the movement — a pause-on-hover alone does not
+      count for keyboard/touch users, and prefers-reduced-motion alone does not count.
+      A carousel that does not auto-advance at all also counts as passing for the
+      carousel. FAIL if either auto-moving component lacks a visible pause/stop control.
+  - type: llm
+    focus: trace
+    name: marquee-duplicate-hidden
+    criteria: |
+      Read `LogoMarquee.tsx`. If the marquee duplicates the logo list to loop, PASS only
+      if the duplicate copy is hidden from assistive technology (`aria-hidden="true"` on
+      the duplicate track, or equivalent). If it does not duplicate, PASS. FAIL if a
+      duplicated track is exposed, so screen readers read every logo twice.

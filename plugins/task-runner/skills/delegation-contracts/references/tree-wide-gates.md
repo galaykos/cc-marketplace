@@ -5,7 +5,8 @@ two agents never clobber one file. The lock does its job. What nobody notices is
 lock **also scopes every verify command the agent runs** — and for a property that spans
 the whole tree, a scoped check is not a weaker check. It is a check that cannot fail. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
-Two failure modes come out of this, they look nothing alike, and one gate fixes both.
+Two failure modes come out of this, they look nothing alike, and one gate fixes both
+(observed cases: `rationale/2026-09-26-task-runner-prose-derivations.md`).
 
 ## Failure mode 1 — N green reports for a property verified nowhere
 
@@ -24,20 +25,13 @@ The tell is a count that reads clean because it is empty: **zero findings over z
 checked is not a clean result, it is an unchecked one.** A green scoped check is evidence
 about a subset the reader cannot see the boundary of.
 
-Observed: one agent's green scoped grep came with a PROSE caveat about the rest of the
-tree, and that caveat was the only reason the tree was ever checked — the next agent will
-not write it.
-
 ## Failure mode 2 — a tree-wide command is not evidence about your own diff
 
 The mirror image. `tsc -b`, a build, a full test run, a lint over `src/` are inherently
 tree-wide: they read files the running agent does not own and did not write.
 
 Run one WHILE siblings are writing and the result is about the tree's momentary state, not
-about the runner's diff. Observed: one agent's typecheck failed on a sibling's transient
-mid-save file (`'project' is declared but its value is never read`) and cleared on retry.
-The scope lock held perfectly — the file sets were disjoint — but the verify command was
-never scoped, so it reported on somebody else's half-written work.
+about the runner's diff.
 
 Both directions are wrong and both are silent:
 

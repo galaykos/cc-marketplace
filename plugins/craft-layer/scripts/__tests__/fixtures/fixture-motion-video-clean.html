@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- Reduced-motion video controls. fixture-motion-video{,-clean}.html are ONE page that
+     differs in ONE line — the PAUSE_CONTROLS line in the script. Both loop a muted clip in
+     the light DOM and a second one inside an OPEN shadow root (<clip-player>). Beside the
+     light clip sit "Display captions", "Get it on Google Play" and "Replay intro": each
+     contains "play" and none stops anything. The clean twin adds a Pause button beside the
+     light clip and an aria-pressed Play toggle beside the shadow one. The clips are silent
+     WAV built in the page, so the fixture carries no media file and plays offline. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Harbour webcam</title>
+<style>
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #102030; background: #f6f8fa; }
+  section { padding: 48px; }
+  video { display: block; width: 320px; height: 180px; background: #123; }
+</style>
+</head>
+<body>
+<main>
+  <section id="hero">
+    <h1>Harbour webcam</h1>
+    <div class="player">
+      <video id="hero-loop" muted loop playsinline aria-label="The harbour at dawn"></video>
+      <button type="button">Display captions</button>
+      <a role="button" href="#store">Get it on Google Play</a>
+      <button type="button">Replay intro</button>
+    </div>
+  </section>
+  <section id="more">
+    <p>The breakwater camera:</p>
+    <clip-player></clip-player>
+  </section>
+</main>
+<script>
+  const PAUSE_CONTROLS = true     // the one line the defective twin changes
+
+  const wav = (secs) => {
+    const rate = 8000, n = rate * secs, b = new ArrayBuffer(44 + n), d = new DataView(b)
+    const put = (o, t) => [...t].forEach((ch, k) => d.setUint8(o + k, ch.charCodeAt(0)))
+    put(0, 'RIFF'); d.setUint32(4, 36 + n, true); put(8, 'WAVE'); put(12, 'fmt ')
+    d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true)
+    d.setUint32(24, rate, true); d.setUint32(28, rate, true); d.setUint16(32, 1, true)
+    d.setUint16(34, 8, true); put(36, 'data'); d.setUint32(40, n, true)
+    new Uint8Array(b, 44).fill(128)
+    return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }))
+  }
+  const start = (v) => { v.src = wav(1); v.play().catch(() => {}) }
+
+  customElements.define('clip-player', class extends HTMLElement {
+    connectedCallback() {
+      const root = this.attachShadow({ mode: 'open' })
+      root.innerHTML = '<div class="frame"><video id="shadow-loop" muted loop playsinline aria-label="The breakwater"></video></div>'
+      if (PAUSE_CONTROLS) root.querySelector('.frame').insertAdjacentHTML('beforeend', '<button type="button" aria-pressed="true">Play</button>')
+      start(root.querySelector('video'))
+    }
+  })
+  if (PAUSE_CONTROLS) document.querySelector('.player').insertAdjacentHTML('beforeend', '<button type="button">Pause</button>')
+  start(document.getElementById('hero-loop'))
+</script>
+</body>
+</html>

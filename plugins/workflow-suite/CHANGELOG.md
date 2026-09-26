@@ -5,6 +5,12 @@ taskmaster-suite became on 2026-09-14; the entries below 0.1.0 are taskmaster-su
 own, with its version numbers (started at 0.17.0; earlier versions have no entries
 rather than invented ones).
 
+## 0.3.0 — 2026-09-26
+
+- Adds `ui-libraries`, the component-library skills split out of `ui-ux` on 2026-09-26 (MUI,
+  Astryx, ReUI, Aceternity, PrimeReact, `component-libraries`), so a card on a non-shadcn stack still
+  gets its library's rules. Sixteen members; the skill count is unchanged by the split.
+
 ## 0.2.7 — 2026-09-16
 
 ### Changed

@@ -89,8 +89,9 @@ are ROLE rules — relationships, not steps — so they are derived here:
   reads as competent and forgettable. A hero, section opener or statement moment takes its
   largest step from a separate DISPLAY tier, set tight (line-height ~0.9–1.05) with
   negative tracking and fluid via `clamp()` so it holds at phone width. Marketing and
-  editorial surfaces owe one; app shells and dense data surfaces legitimately do not —
-  say which this is.
+  editorial surfaces owe one unless the concept drew *Type recedes* or *Documentary
+  plainness* (the concept deck's type-role axis); app shells and dense data surfaces
+  legitimately do not — say which this is.
 - **Scale membership is not hierarchy.** Every size being a legal step makes a page
   internally consistent and visually flat. Consistency is the floor; CONTRAST between
   steps is what the reader sees. State the display-to-body ratio the brief asked for, as
@@ -117,13 +118,16 @@ theme-BUILDER and its rules, never a built theme.
 ## References
 
 - `references/token-tiers.md` — the token-system SHAPE: surface/ink/accent tiers as ROLES,
-  and how the concept's mood maps to the tier relationships. NAMES the accent roles.
+  and how the concept's mood maps to the tier relationships (incl. the console register).
+  NAMES the accent and signal roles.
 - `references/accent-system.md` — the accent HUE constraints (status separation) + the three-role DERIVATION,
   the single owner of the darker-text-step / accent-fill split and its contrast steps.
 - `references/light-dark-duality.md` — the DUALITY requirement: both modes stepped from the
-  ramps (never auto-flip), when to derive them, how it enters the direction; cites shadcn.
-- `references/status-and-chart-palette.md` — the reserved status palette (net-new) plus the
-  theme-derived chart palette; cites `dataviz` for categorical rules + the validator.
+  ramps (never auto-flip), where it applies, when to derive them, how it enters the direction;
+  cites shadcn.
+- `references/status-and-chart-palette.md` — the reserved status palette (net-new), the
+  lifecycle axis, the categorical tag family, and the theme-derived chart palette; cites
+  `dataviz` for categorical rules + the validator.
 - `references/concept-to-tokens.md` — the handoff CONTRACT: the token-system-direction
   payload the theme brief carries into `/ui-ux:theme` so the system expresses the concept.
 - `references/token-interchange.md` — the W3C DTCG serialization decision: what the format

@@ -1,0 +1,32 @@
+schema_version: "1.0"
+name: spline-hero-arrival
+description: >
+  Spline, Unicorn Studio and Paper Shaders are how many SaaS homepages in the
+  1,530-site corpus ship ambient 3D, but craft-layer's motion tiers only cover
+  hand-built three.js. A hosted runtime is heavy (a WebGL runtime plus a remote
+  scene), so it must be deferred, show a poster first, pause off-screen and honour
+  reduced motion. The control arm is expected to import the Spline React component
+  eagerly with no poster. A pass needs deferral + a poster + a reduced-motion path.
+  Measured 2026-09-26 (deterministic re-grade): control defers the runtime 5/5 and honours reduced motion 5/5 but shows a static poster 0/5 (CSS gradients instead); with craft-layer 1/5 on the poster. Check scores against --keep-temp traces.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Write, Edit, Glob, Grep]
+  prompt: |
+    Our Next.js 16 marketing site should show our Spline 3D scene
+    (https://prod.spline.design/Xq2fJ9ExampleScene/scene.splinecode) behind the hero
+    headline. Write `components/Hero.tsx`. We care about Core Web Vitals.
+runs: 5
+graders:
+  - type: llm
+    focus: trace
+    name: deferred-poster-reduced-motion
+    criteria: |
+      Read the written files. PASS only if ALL three hold:
+      1. The Spline runtime/component is not in the initial bundle: loaded via
+         `next/dynamic` / dynamic `import()` / after idle or when in view.
+      2. A static poster or fallback image (or equivalent static visual) is shown
+         before the scene is ready, so the hero is not blank.
+      3. Under `prefers-reduced-motion: reduce` the animated scene is not started
+         (the poster stays) or its animation is stopped.
+      FAIL if any of the three is missing.

@@ -1,6 +1,6 @@
 # Native CSS scroll-driven animations — the reduced-bundle path
 
-> Last verified: 2026-07-24 — https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timeline
+> Last verified: 2026-09-26 — https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timeline
 
 Read on demand from scroll-orchestration. This is the ≈ 0KB-JS alternative to
 Lenis + ScrollTrigger: the browser drives the animation off the main thread from
@@ -25,6 +25,13 @@ Example — a per-element reveal, no JS:
       animation-timeline: view();
       animation-range: entry 0% cover 30%;
     }
+
+**Order trap:** `animation-timeline` is a reset-only part of the `animation` shorthand.
+Any `animation` declaration resets a timeline declared before it to `auto`, and the
+reveal silently becomes a time-based animation — it snaps to its end state (no duration)
+or plays once on load, never on scroll. Declare
+`animation-timeline` AFTER the shorthand (MDN), and keep `animation-range` after it too,
+as every example here does. Standing: recorded.
 
 ## Support and fallback (this IS the fallback, so it must degrade)
 

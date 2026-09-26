@@ -1,0 +1,13 @@
+{
+  "name": "ui-libraries",
+  "version": "0.1.0",
+  "description": "Component-library skills split out of ui-ux: Material UI (with MUI X), PrimeReact (v11 rewrite and licence), Astryx, ReUI, Aceternity UI, and a library-agnostic component-libraries skill with a per-library map of signals, theme channels and docs for every other React or Vue library (Base UI, Radix, React Aria, Ark, Mantine, Chakra, Ant Design, HeroUI, PrimeVue, Vuetify…). Install alongside ui-ux, which owns shadcn, Tailwind, theming, tokens, motion and the WCAG audit.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "ui-ux",
+    "frontend"
+  ]
+}

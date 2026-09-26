@@ -292,5 +292,19 @@ case "$out" in
   *) pass "stamp-tail: '<!-- version-tail-ok: -->' silences it" ;;
 esac
 
+# ---- pc_rules_reachable: `command` rows (routing review 2026-09-26) --------------
+# route.sh matches a `command` row's ERE against the Bash command string; a malformed one
+# makes grep exit 2 on every call and the row can never fire, exactly like a content row.
+printf 'command\t\\bzzprobe(@[^[:space:]]+\tzz-probe\tzz\thigh\n' > "$T/rules-cmd-bad.tsv"
+printf 'command\t\\bzzprobe(@[^[:space:]]+)?[[:space:]]+add\\b\tzz-probe\tzz\thigh\n' > "$T/rules-cmd-ok.tsv"
+out=$(pc_rules_reachable "$T/rules-cmd-bad.tsv") && r=0 || r=$?
+case "$r:$out" in
+  1:*"unreachable command "*zz-probe*) pass "reachable: a command row with a malformed ERE is named" ;;
+  *) fail "reachable: a command row with a malformed ERE is named" "rc=$r got: ${out:-<empty>}" ;;
+esac
+out=$(pc_rules_reachable "$T/rules-cmd-ok.tsv") && r=0 || r=$?
+[ "$r" -eq 0 ] && [ -z "$out" ] && pass "reachable: a well-formed command row stays clean" \
+  || fail "reachable: a well-formed command row stays clean" "rc=$r got: $out"
+
 [ "$rc" -eq 0 ] && echo "All panel gate-fixture asserts passed."
 exit "$rc"

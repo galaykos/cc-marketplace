@@ -38,6 +38,9 @@ not just `auth` middleware:
   scopes it. Route model binding does not scope by itself — `scopeBindings()` or a policy does.
 - Hiding a button is not authorization — `v-if="isAdmin"` and `@can` in Blade gate
   pixels, not requests; anyone with curl skips the frontend. Authorize server-side, always.
+- Livewire: public properties are user input — validate and authorize them, lock IDs with
+  `#[Locked]`; every public method is client-callable, `wire:click` or not — authorize inside
+  each one and keep helpers `protected`/`private`.
 - Check the whole object graph: updating a comment must verify the comment's owner,
   not merely the parent post's visibility.
 - Multi-tenant: tenant scoping IS authorization — where global scopes silently fail,

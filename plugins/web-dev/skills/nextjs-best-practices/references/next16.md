@@ -1,7 +1,8 @@
 # Next.js 16 — the operational detail behind the body's one bullet
 
-> Last verified: 2026-08-12 — https://nextjs.org/blog/next-16-2
-> (16 GA 2025-10; 16.1 2025-12; 16.2 2026-03 — current as of this stamp.)
+> Last verified: 2026-09-26 — https://nextjs.org/blog/next-16-3 — npm:next@16.3
+> (16 GA 2025-10; 16.1 2025-12; 16.2 2026-03; 16.3 2026-08 — 16.3.6 current as of this stamp.
+> Cross-read against the docs bundled in next@16.3.6 at `node_modules/next/dist/docs/`.)
 
 The SKILL body compresses Next 16 into one bullet; this file is the per-change
 operational detail — what breaks, what the escape hatch is, what an agent should
@@ -20,9 +21,15 @@ NOT do by default.
 ## proxy.ts replaces middleware.ts
 
 - Same request-interception role, renamed and clarified: `middleware.ts` → `proxy.ts`
-  (`export default function proxy(...)`). Keep auth CHECKS out of it — it runs before
-  the request reaches a route, but it is an optimization/routing layer, not the authz
-  boundary; verify again server-side (the body's server-actions rule applies).
+  (`export default function proxy(...)`). The docs endorse OPTIMISTIC auth checks here —
+  read the session from the cookie and redirect, no database call, since it runs on every
+  route including prefetches — and say it "should not be your only line of defense". A
+  matcher change, or a Server Function moved to another route, silently drops its
+  coverage: verify again in the data access layer, each server action and each route
+  handler (the body's server-actions rule applies). Source: nextjs.org/docs/app/guides/
+  authentication, "Optimistic checks with Proxy"; the bundled `proxy` file-convention page.
+- The `runtime` segment option is not available in `proxy.ts` — setting it throws; Proxy
+  runs on Node.js.
 - Migration is mechanical (`npx @next/codemod` handles the rename); having BOTH files
   is an error.
 
@@ -31,7 +38,8 @@ NOT do by default.
 - Cache Components (`cacheComponents: true`) + `'use cache'` directives are the 16
   caching model; `revalidateTag(tag, profile)` takes a cache-life profile, plus
   `updateTag()` (read-your-writes within the request) and `refresh()` (client refresh
-  of uncached data). Root params are usable inside `'use cache'` since 16.2.
+  of uncached data). Root params (`next/root-params`, 16.3) are readable inside
+  `'use cache'`.
 - Do not retrofit `'use cache'` onto a 15.x app without the flag — the directive
   errors when `cacheComponents` is off.
 
@@ -41,6 +49,28 @@ NOT do by default.
   the right tool when an issue reproduces only in prod builds.
 - 16.2: the Adapters API is stable — deployment platforms hook the build officially;
   bespoke output-directory surgery in CI is now the wrong layer.
+
+## 16.3 additions (2026-08-03) an agent will not know
+
+- `catchError` from `next/error` (stable; `unstable_catchError` in 16.2) builds a component-
+  level error boundary in a Client Component that lets `notFound()`/`redirect()` through and
+  hands the fallback a `retry()` that re-fetches Server Components. Do not hand-roll a React
+  error boundary that swallows those throws. `error.tsx`'s `unstable_retry` is now `retry`.
+- `next/root-params`: `import { lang } from 'next/root-params'; await lang()` reads a param
+  defined above the root layout from any Server Component — not in Client Components, Server
+  Actions or route handlers yet. Replaces prop-drilling `[lang]`.
+- Instant Navigations, opt-in and both requiring `cacheComponents: true`:
+  `partialPrefetching: true` (links prefetch the static shell; `prefetch={true}` fetches
+  more), and the `instant` segment export — `true` validates that navigation into the
+  segment renders instantly, `false` opts out. `export const instant = false` is the
+  `[block]` fix Next prints for "uncached data during prerendering"; `[stream]` (a
+  `<Suspense>` fallback) and `[cache]` (`'use cache'`) are the other two. Do not add either
+  without the flag.
+- `next dev` writes the `nextjs-agent-rules` block into `AGENTS.md` and a `CLAUDE.md` that
+  imports it; `agentRules: false` opts out. The body's first section covers what to do with it.
+- Turbopack supports `import.meta.glob`; `next build` type-checks with TypeScript 7 once the
+  project's own TypeScript dependency is bumped to 7; the Turbopack disk cache now also
+  speeds up `next build`, on by default.
 
 ## Smaller 16.x facts an agent gets wrong from 15-era memory
 
@@ -56,6 +86,8 @@ NOT do by default.
   wrappers around router pushes.
 - `icon.png` and `icon.svg` side by side both emit `<link>` tags (16.2) — SVG for
   modern browsers, PNG fallback; no config needed.
+- `next/image`'s `priority` prop is deprecated for `preload`; the docs prefer
+  `loading="eager"` or `fetchPriority="high"` for the LCP image in most cases.
 - Removed outright: AMP support, `next lint` (run ESLint/Biome directly). Floors:
   React 19.2+, Node 20.9+.
 

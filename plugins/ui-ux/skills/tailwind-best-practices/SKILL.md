@@ -3,7 +3,7 @@ name: tailwind-best-practices
 description: Use when writing or reviewing Tailwind CSS — utility classes, class order, `@apply`, arbitrary values, dark mode, `tailwind.config.js` vs v4's CSS-first `@theme`/`@custom-variant`/`@source`, and the v4 utility renames (`shadow-sm`, `rounded`, `outline-none`, `ring`, `bg-opacity-*`). Colour values are shadcn-theming; scales are design-tokens.
 ---
 
-> Last verified: 2026-09-15 — https://tailwindcss.com/docs/upgrade-guide
+> Last verified: 2026-09-26 — https://tailwindcss.com/docs/upgrade-guide — npm:tailwindcss@4.3
 
 ## Resolve the major from the CSS, not from `package.json` alone
 
@@ -29,6 +29,9 @@ one produces a confident edit that changes nothing — the expensive failure her
 | `safelist: [...]` in the config | unsupported key; use `@source inline("underline")`, with variants as `@source inline("{hover:,focus:,}underline")` |
 | `corePlugins` / `separator` | unsupported keys — no replacement, drop the requirement |
 | `theme('screens.xl')` in CSS | `theme(--breakpoint-xl)`, or read the variable directly: `var(--color-red-500)` |
+| `.btn` under `@layer components`/`utilities`, used as `hover:btn` | `@utility btn { … }` — v4 uses native cascade layers, so a class under `@layer` is plain CSS and takes no variants |
+| `plugins: [require("@tailwindcss/typography")]` in the config | `@plugin "@tailwindcss/typography";` in CSS (a package name or a local path) |
+| `bg-[--brand]` variable shorthand | `bg-(--brand)` — brackets no longer imply `var()` |
 
 **`@apply` in a second file silently produces nothing on v4.** A CSS module, a
 `<style>` block in a `.vue`/`.svelte` file, or any stylesheet other than the entry one
@@ -65,6 +68,29 @@ So `shadow-sm` copied from a v3 answer into a v4 file is not an error, it is a
 one-step-lighter shadow, and `ring` is a third of the width it used to be. Flag these
 by NAME when a diff mixes eras; no build output will.
 
+Three more defaults changed without a rename, so v3 markup compiles and behaves differently:
+
+- **`border` and `ring` default to `currentColor`** (v3: a light gray border, a blue ring). A bare
+  `border` now draws in the text colour. Pair every `border-*`, `divide-*` and `ring-*` with a colour
+  utility, or add the upgrade guide's base-layer rule that restores the v3 border colour.
+- **`hover:` applies only under `@media (hover: hover)`.** On a touch-only device a hover-revealed
+  control (row actions, a card's menu) never appears on tap; give it a visible or `focus-within:` route.
+- **Stacked variants read left to right**: v3's `first:*:pt-0` is v4's `*:first:pt-0`.
+
+Standing: recorded — no check reads a class string for these.
+
+## Migrating v3 → v4
+
+1. **Decide the browser floor first.** v4 targets Safari 16.4+, Chrome 111+ and Firefox 128+. A product
+   that must support older browsers stays on v3.4 (the `v3-lts` npm tag).
+2. **Run `npx @tailwindcss/upgrade` on a new branch** (it needs Node 20+). It updates dependencies,
+   moves the config into CSS and rewrites template classes; then review the diff and the rendered
+   pages for the quiet rows above, which compile clean either way.
+3. **Check the second stylesheets**: every CSS module and `<style>` block using `@apply` needs its
+   `@reference` line.
+
+Standing: recorded — the order is advice; the upgrade tool is the only automated step.
+
 ## What holds on both majors
 
 - **Complete class strings only.** The compiler scans source text, so
@@ -91,7 +117,7 @@ mirrors. Physical utilities stay only where the direction is physical.
   vs v4 oklch split; do not restate it here).
 - Spacing, type, radius, elevation and motion SCALES → `design-tokens`.
 - Component structure in `components/ui/` → `shadcn-best-practices`; any other
-  library → `component-libraries`.
+  library → `ui-libraries:component-libraries`.
 - Contrast, focus visibility and target size → `/ui-ux:audit`.
 
 ## Anti-patterns
@@ -102,6 +128,7 @@ Named for citing in a review; each rule is stated once above.
   with no `@config` line in the CSS.
 - **Unreferenced `@apply`** — in a `<style>` block or CSS module, silently producing nothing.
 - **Mixed-era scale names** — v3 `shadow`/`rounded`/`ring` left in a v4 file.
+- **Colourless `border`** — a bare `border` or `ring` on v4, drawn in the text colour.
 - **`@apply` clusters** standing in for a component.
 - **Physical-direction utilities** — `ml-`/`left-`/`text-left` in an RTL-capable app.
 

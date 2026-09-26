@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Tests plugins/craft-layer/template/craft-gates/divergence.mjs and contrast.mjs.
+# Tests plugins/craft-layer/template/craft-gates/divergence.mjs and contrast.mjs,
+# and gates.spec.ts's reduced-motion block when a local Playwright can run it.
 #
 # Picked up automatically by the repo's "Plugin author-time lint + harness tests"
 # CI step, which globs plugins/*/scripts/__tests__/*.test.sh.
@@ -11,7 +12,7 @@
 # was authored as a control (defective / clean, same copy, one variable changed)
 # and then verified BY HAND, once, by whoever wrote it. This makes them execute.
 #
-# Four sections:
+# Six sections:
 # The fixtures live HERE, beside this harness, not in template/craft-gates/. They
 # are this file's inputs and nothing else reads them, so shipping 64K of them to
 # every installer inside the directory commands/audit.md says to run from — and
@@ -29,6 +30,11 @@
 #      zero pairings.
 #   4. FAIL-OPEN / HYGIENE — the gates must not write into the project they
 #      measure, and must not crash on absent optional artifacts.
+#   5. REDUCED-MOTION RUNTIME — the JS/canvas/smooth-scroll/video half of the
+#      reduced-motion trigger, run through Playwright against fixture-motion-*.
+#      Needs a local Playwright; without one it prints SKIP and runs nothing.
+#   6. TYPE CHECK — gates.spec.ts under `tsc --strict`, when a local typescript and
+#      Playwright's types are found; SKIP otherwise.
 #
 # The harness snapshots `git status --porcelain` before and after and asserts it
 # is byte-identical: these gates read a build tree, and proving they only read is
@@ -339,6 +345,29 @@ if [ "$got_rows" = "$want_rows" ] && [ "$want_rows" -gt 6 ]; then ok; else
       "$(printf '%s\n' "$out" | grep -E '^copy lexicon:' | head -2 | tr '\n' ' ')"
 fi
 
+# The live-only rows (added to the registry after the frozen snapshot) are graded by
+# nothing above: run_divergence runs without the plugin root, so every other fixture
+# reads the snapshot. This pair runs LIVE. The defective page must name all three
+# corpus rows; the clean twin carries each row's false positive — "Agentic" opening a
+# long sentence, humans and agents in one line but not the formula, design engineers
+# outside the registry headline — and must PASS.
+for pair in "fixture-agent-copy.html:FAIL" "fixture-agent-copy-clean.html:PASS"; do
+  fx=${pair%%:*}; want=${pair##*:}
+  [ -f "$FIXTURES/$fx" ] || { bad "agent-copy fixture missing" "$fx"; continue; }
+  d="$WS/live-${fx%%.html}"; mkdir -p "$d"; write_tokens "$d"; cp "$FIXTURES/$fx" "$d/page.html"
+  out=$( cd "$d" && CLAUDE_PLUGIN_ROOT="$here/../.." node "$DIVERGENCE" 2>&1; printf 'EXIT=%s\n' "$?" )
+  got=$(state_of "$out" copy-register)
+  if [ "$got" = "$want" ]; then ok; else
+    bad "copy-register (live) on $fx expected $want, got $got" \
+        "$(printf '%s\n' "$out" | grep -E 'copy-register' | head -1)"
+  fi
+  [ "$want" = FAIL ] || continue
+  for row in "agentic headline" "for humans and agents" "for design engineers"; do
+    printf '%s\n' "$out" | grep -q "\[$row\]" && ok || \
+      bad "copy-register (live) did not report the '$row' row on $fx" "$(printf '%s\n' "$out" | grep -E 'copy-register' | head -1)"
+  done
+done
+
 # font-anti-corpus must see the family however the project declares it. The two
 # forms below are the ones the check was blind to: Tailwind v4 emits no
 # `font-family` line at all, and `font-family: var(--font-sans)` hides the name
@@ -623,6 +652,161 @@ run_divergence "$d" >/dev/null
 after=$( cd "$d" && find . -type f | sort )
 if [ "$before" = "$after" ]; then ok; else
   bad "divergence.mjs wrote into the project it measured" "$(diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | head -5)"
+fi
+
+# ---------------------------------------------------------------------------
+# 5. REDUCED-MOTION RUNTIME CONTROLS (needs a browser; SKIPs without one)
+# ---------------------------------------------------------------------------
+
+# gates.spec.ts's reduced-motion block, run for real — the shipped spec, the
+# shipped config, Playwright's own runner — against three fixtures that are ONE
+# page differing in ONE line. The JS twin must fail the JS and smooth-scroll
+# tests, the canvas twin the canvas test, the clean twin nothing, and each
+# failure must NAME the element that moved: a red for the wrong reason proves
+# as little as a green.
+#
+# No network, so nothing is installed. A Playwright is looked for where one
+# already lives — $CRAFT_GATES_PLAYWRIGHT (a node_modules dir holding
+# `playwright`), then the npx cache `npx playwright …` leaves behind — and the
+# first whose Chromium actually LAUNCHES wins. None → one SKIP line naming what
+# is missing, and the sections above still count. CI installs no Playwright, so
+# there this section SKIPs: the proof is local, and the line says so.
+pw_launches() { # node_modules-dir -> exit 0 when its chromium starts
+  node -e '
+    const t = setTimeout(() => process.exit(3), 20000)
+    require(process.argv[1] + "/playwright").chromium.launch()
+      .then((b) => b.close()).then(() => { clearTimeout(t); process.exit(0) }, () => process.exit(1))
+  ' "$1" >/dev/null 2>&1
+}
+PW=""
+for nm in ${CRAFT_GATES_PLAYWRIGHT:-} $(ls -dt "$HOME"/.npm/_npx/*/node_modules 2>/dev/null); do
+  [ -f "$nm/playwright/cli.js" ] || continue
+  if pw_launches "$nm"; then PW="$nm"; break; fi
+done
+
+if [ -z "$PW" ]; then
+  printf 'SKIP  reduced-motion runtime controls: no Playwright whose Chromium launches (looked in $CRAFT_GATES_PLAYWRIGHT and ~/.npm/_npx) — the three fixture-motion-* controls did NOT run\n'
+else
+  # The spec imports @playwright/test and @axe-core/playwright by bare name, so
+  # hand it a NODE_PATH holding both. The runner and the spec must share ONE
+  # Playwright instance, hence the shim onto the same package the CLI is from.
+  # axe never runs under --grep, so a stub that refuses construction stands in.
+  shim="$WS/pw/node_modules"; mkdir -p "$shim/@playwright/test" "$shim/@axe-core/playwright"
+  if [ -d "$PW/@playwright/test" ]; then
+    rm -rf "$shim/@playwright/test"; ln -s "$PW/@playwright/test" "$shim/@playwright/test"
+  else
+    printf '{"name":"@playwright/test","main":"index.js"}\n' > "$shim/@playwright/test/package.json"
+    printf 'module.exports = require(%s)\n' "\"$PW/playwright/test\"" > "$shim/@playwright/test/index.js"
+  fi
+  if [ -d "$PW/@axe-core/playwright" ]; then
+    rm -rf "$shim/@axe-core/playwright"; ln -s "$PW/@axe-core/playwright" "$shim/@axe-core/playwright"
+  else
+    printf '{"name":"@axe-core/playwright","main":"index.js"}\n' > "$shim/@axe-core/playwright/package.json"
+    printf 'class AxeBuilder { constructor() { throw new Error("axe stub: the reduced-motion controls never run axe") } }\nmodule.exports = AxeBuilder\nmodule.exports.default = AxeBuilder\n' \
+      > "$shim/@axe-core/playwright/index.js"
+  fi
+
+  # rm_verdicts <fixture> -> one "<key> <passed|failed|…> <error text>" line per test.
+  rm_verdicts() {
+    local run="$WS/rm-${1%%.html}"; mkdir -p "$run"
+    local url; url=$(node -p 'require("url").pathToFileURL(process.argv[1]).href' "$FIXTURES/$1")
+    ( cd "$run" && BASE_URL="$url" NODE_PATH="$shim" PLAYWRIGHT_JSON_OUTPUT_NAME="$run/report.json" \
+        node "$PW/playwright/cli.js" test --config "$GATES/playwright.config.ts" \
+        --grep 'prefers-reduced-motion' --reporter=json >/dev/null 2>"$run/stderr" )
+    node -e '
+      const keys = [["page renders", "css"], ["JS motion", "js"], ["canvas:", "canvas"],
+                    ["smooth-scroll:", "smooth"], ["video:", "video"]]
+      let r; try { r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")) } catch { process.exit(0) }
+      const walk = (s) => [...(s.specs || []), ...(s.suites || []).flatMap(walk)]
+      for (const spec of (r.suites || []).flatMap(walk)) {
+        const k = keys.find(([p]) => spec.title.startsWith(p))
+        const res = spec.tests?.[0]?.results?.at(-1)
+        if (!k || !res) continue
+        const err = (res.errors || []).map((e) => e.message || "").join(" ").replace(/\x1b\[[0-9;]*m/g, "").replace(/\s+/g, " ")
+        console.log(`${k[1]} ${res.status} ${err}`)
+      }
+    ' "$run/report.json"
+  }
+
+  for pair in \
+    "fixture-motion-js.html:css=passed js=failed canvas=passed smooth=failed video=passed" \
+    "fixture-motion-canvas.html:css=passed js=passed canvas=failed smooth=passed video=passed" \
+    "fixture-motion-clean.html:css=passed js=passed canvas=passed smooth=passed video=passed" \
+    "fixture-motion-video.html:video=failed" \
+    "fixture-motion-video-clean.html:video=passed"
+  do
+    fx=${pair%%:*}; want=${pair#*:}
+    [ -f "$FIXTURES/$fx" ] || { bad "reduced-motion fixture missing" "$fx"; continue; }
+    out=$(rm_verdicts "$fx")
+    if [ -z "$out" ]; then
+      bad "reduced-motion suite produced no verdicts on $fx" "$(tail -3 "$WS/rm-${fx%%.html}/stderr" 2>/dev/null)"
+      continue
+    fi
+    for kv in $want; do
+      k=${kv%%=*}; exp=${kv#*=}
+      got=$(printf '%s\n' "$out" | awk -v k="$k" '$1 == k { print $2; exit }')
+      if [ "$got" = "$exp" ]; then ok; else
+        bad "reduced-motion '$k' on $fx expected $exp, got ${got:-missing}" \
+            "$(printf '%s\n' "$out" | awk -v k="$k" '$1 == k' | cut -c1-240)"
+      fi
+    done
+    # ...and for the RIGHT reason: each defective twin's failure names its mover
+    # IN THE CHANNEL THAT SHOULD SEE IT. `#waapi` also moves its computed
+    # transform, so a bare name match would stay green with the WAAPI channel
+    # switched off — each pattern below is that channel's own line shape.
+    # The video twin's "Display", "Google Play" and "Replay" buttons must not read as a
+    # pause control, and the clip inside the open shadow root must be found at all.
+    case "$fx" in
+      fixture-motion-js.html)     need='js|div#waapi\.card: transform over
+js|div#tween\.card: matrix\(
+js|div#parallax\.card: [0-9]+ transform changes across
+js|div#drift\.card: [0-9]+ translate changes across [0-9]+ scroll stops \(translate
+smooth|Lenis smooth-scrolled a wheel event' ;;
+      fixture-motion-canvas.html) need='canvas|canvas\[#scene\] 320x160: [0-9.]+% then' ;;
+      fixture-motion-video.html)  need='video|video#hero-loop \(
+video|video#shadow-loop inside <clip-player> \(' ;;
+      *)                          need="" ;;
+    esac
+    while IFS= read -r n; do
+      [ -n "$n" ] || continue
+      k=${n%%|*}; what=${n#*|}
+      if printf '%s\n' "$out" | awk -v k="$k" '$1 == k' | grep -qE "$what"; then ok; else
+        bad "reduced-motion '$k' on $fx did not name $what" \
+            "$(printf '%s\n' "$out" | awk -v k="$k" '$1 == k' | cut -c1-240)"
+      fi
+    done <<EOF
+$need
+EOF
+  done
+fi
+
+# ---------------------------------------------------------------------------
+# 6. TYPE CHECK (needs typescript locally; SKIPs without it)
+# ---------------------------------------------------------------------------
+
+# gates.spec.ts runs inside the crafted project, whose tsconfig is often `strict`; a spec
+# that fails there is a gate the project's own typecheck step reports as broken. Same
+# lookup as section 5, for a node_modules holding typescript, @playwright/test and
+# @types/node. axe is stubbed to the three calls the spec makes.
+TSNM=""
+for nm in ${CRAFT_GATES_PLAYWRIGHT:-} $(ls -dt "$HOME"/.npm/_npx/*/node_modules 2>/dev/null); do
+  if [ -f "$nm/typescript/bin/tsc" ] && [ -d "$nm/@playwright/test" ] && [ -d "$nm/@types/node" ]; then TSNM="$nm"; break; fi
+done
+if [ -z "$TSNM" ]; then
+  printf 'SKIP  type check: no node_modules holding typescript, @playwright/test and @types/node (looked in $CRAFT_GATES_PLAYWRIGHT and ~/.npm/_npx) — gates.spec.ts was NOT compiled\n'
+else
+  tc="$WS/tsc"; mkdir -p "$tc/node_modules/@axe-core/playwright" "$tc/node_modules/@types"
+  ln -s "$TSNM/@playwright" "$tc/node_modules/@playwright"
+  ln -s "$TSNM/@types/node" "$tc/node_modules/@types/node"
+  printf '{"name":"@axe-core/playwright","types":"index.d.ts"}\n' > "$tc/node_modules/@axe-core/playwright/package.json"
+  printf '%s\n' 'export default class AxeBuilder {' '  constructor(o: unknown)' \
+    '  withTags(t: string[]): this' '  disableRules(r: string[]): this' \
+    '  analyze(): Promise<{ violations: { id: string; impact?: string | null; help: string; nodes: { target: unknown }[] }[] }>' '}' \
+    > "$tc/node_modules/@axe-core/playwright/index.d.ts"
+  cp "$GATES/gates.spec.ts" "$tc/gates.spec.ts"
+  if out=$(cd "$tc" && node "$TSNM/typescript/bin/tsc" --noEmit --strict --skipLibCheck --target es2022 \
+      --module esnext --moduleResolution bundler --lib es2023,dom,dom.iterable gates.spec.ts 2>&1); then ok
+  else bad "gates.spec.ts does not compile under tsc --strict" "$(printf '%s\n' "$out" | head -4)"; fi
 fi
 
 # ---------------------------------------------------------------------------

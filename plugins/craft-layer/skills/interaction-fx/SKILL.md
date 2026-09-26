@@ -24,22 +24,36 @@ Answer before adding anything; take the first that fits:
 
 1. The control already reads as interactive (a button looks like a button) → **no cursor
    FX.** Do not add motion that competes with a clear affordance.
-2. A single primary CTA needs pull → a **magnetic button** (bounded).
-3. A card or media needs depth on hover → a **bounded tilt** (small `rotateX/Y`).
-4. A bespoke pointer signature is genuinely the brand → a **custom cursor** — only with
+2. A list of work or items whose rows need a glimpse → an **index hover preview**.
+3. A canvas or shader scene the visitor should play with → **scene steering**.
+4. A single primary CTA needs pull → a **magnetic button** (bounded).
+5. A card or media needs depth on hover → a **bounded tilt** (small `rotateX/Y`).
+6. A bespoke pointer signature is genuinely the brand → a **custom cursor** — only with
    the accessibility rules below satisfied.
-5. Touch, reduced-motion, or keyboard → **native affordances only**, no pointer FX.
+7. Touch, reduced-motion, or keyboard → **native affordances only**, no pointer FX.
 
 Pointer FX earns its cost when it strengthens an affordance or a brand signature; a
-cursor trail that says nothing is decoration competing with the content.
+cursor trail that says nothing is decoration competing with the content. Magnetic
+buttons and tilt cards are on the sameness-fingerprint list
+(`../creative-direction/references/sameness-fingerprint.md`): the overused default
+pointer signature. Pick them because the brief earned them, never as the default.
+Standing: agent-graded — the fingerprint list is what the craft reviewer grades against.
 
 ## The patterns
 
-All four are transform/opacity only, spring-smoothed via Framer/Motion (idioms
+All are transform/opacity only, spring-smoothed via Framer/Motion (idioms
 referenced, not restated), and driven from ONE page-wide pointer loop. Keep the feel
 subtle — a small displacement that trails the pointer reads as craft; a large one reads
 as a toy and fights the click target underneath.
 
+- **Index hover preview** — rows of a list (projects, articles) reveal a preview image
+  that trails the pointer. The list is the content: real links in document order. The
+  preview is decoration (`alt=""`), appears on `:focus-visible` too (pinned beside the
+  row), preloads on intent, and is off under `pointer: coarse`, where a tap opens the link.
+- **Scene steering** — the pointer (or visible controls) steers a parameter of a canvas
+  scene: camera orbit, a field's direction, a shader's distortion. It writes a uniform
+  from the one pointer loop (`../webgl-effects/SKILL.md`); anything that changes meaning
+  also gets a keyboard or control route; pause it off-screen.
 - **Custom cursor** — an element that follows the pointer (lerped toward the target each
   frame, never snapped), with hover states for interactive targets driven by one
   delegated listener. The real cursor stays visible unless the rule below is met.
@@ -85,8 +99,9 @@ as a toy and fights the click target underneath.
 
 ## References
 
-- `references/pointer-patterns.md` — custom cursor, magnetic, tilt, and drag mechanics;
-  the single shared pointer loop; the `(hover: hover)` / `pointer: coarse` gate.
+- `references/pointer-patterns.md` — index preview, scene steering, custom cursor,
+  magnetic, tilt, and drag mechanics; the single shared pointer loop; the
+  `(hover: hover)` / `pointer: coarse` gate.
 - Framer/Motion springs, gestures, `useSpring`, drag:
   `plugins/ui-ux/skills/motion-best-practices/SKILL.md` + `plugins/ui-ux/skills/motion-best-practices/references/motion.md`.
 - One writer per property: `plugins/craft-layer/skills/motion-tiers/references/gotchas.md`.

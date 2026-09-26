@@ -105,6 +105,11 @@ SSR/CSR, a11y) that no single framework skill owns; keep applying it.
   first-paint favor SSR, interactivity-heavy views tolerate CSR; follow
   the project's existing rendering mode unless the task demands
   otherwise, and say why if it does.
+- DOM-owning widgets (maps, rich-text editors, charts): create on the
+  client only, destroy on unmount, `wire:ignore` under Livewire, and
+  sanitise editor HTML before rendering it — per
+  `skills/nextjs-best-practices/references/client-widgets.md`, which
+  applies on every stack, not only Next.
 - Accessibility baseline: semantic HTML elements over div soup, every
   input labeled, focus order follows the visual order, interactive
   elements reachable by keyboard.

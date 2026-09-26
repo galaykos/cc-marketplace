@@ -8,19 +8,19 @@ Mechanics and traps are NOT duplicated here — they are referenced:
 
 - Split-text mechanics (SplitText `type` / `mask` / `autoSplit` / `revert`,
   ScrollTrigger, stagger): `plugins/ui-ux/skills/motion-best-practices/references/gsap.md`.
-  The dependency-light, non-GSAP option is the `split-type` package driving your
-  own CSS or tween.
+  `split-type`, once the non-GSAP option, last published 0.3.4 in October 2023 (npm,
+  checked 2026-09-26) — unmaintained; do not add it.
 - Invisibility + screen-reader traps:
   `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` — gotcha A
-  (gradient-clip on split letters → invisible) and gotcha C (aria-label the
-  phrase, aria-hidden the spans).
+  (gradient-clip on split letters → invisible) and gotcha C (which element may
+  carry `aria-label`, and the screen-reader-only copy).
 
 ## Split reveal
 
 A headline that resolves as the eye lands on it — per line for a calm reveal,
 per word for punch, per char only for a short accent (chars multiply DOM nodes).
 
-- Get the spans from SplitText or `split-type`; do not hand-wrap. Animate
+- Get the spans from SplitText; do not hand-wrap. Animate
   `transform` + `opacity` (compositor-cheap), stagger by line/word, and drive it
   from an on-enter trigger (`toggleActions`) or a scrub — see `gsap.md`.
 - Revert the split on resize and on unmount so the DOM returns to the real
@@ -28,8 +28,11 @@ per word for punch, per char only for a short accent (chars multiply DOM nodes).
 - Trap A (do NOT re-solve here, honour it): if the accent word uses
   `background-clip:text` + `color:transparent`, keep it as ONE element — split
   children inherit `transparent` and paint nothing. Detail in `gotchas.md`.
-- Trap C: split spans make assistive tech spell the word; put the phrase on the
-  container `aria-label`, mark spans `aria-hidden="true"`. Detail in `gotchas.md`.
+- Trap C: split spans make assistive tech spell the word. `aria-label` plus
+  `aria-hidden` pieces is valid only on a heading with plain text (SplitText's default
+  `aria: "auto"`); on a plain `div`/`span`, or with a link or `<em>` inside, keep a
+  screen-reader-only copy and split an `aria-hidden` wrapper (`aria: "hidden"`).
+  Detail in `gotchas.md`.
 - No-JS / crawler safety: the real text must be present and readable before the
   split runs; reveal from a visible state or add a JS-ready gate so a failed
   observer never leaves the headline blank (see `gotchas.md` whileInView trap).
@@ -50,6 +53,9 @@ per word for punch, per char only for a short accent (chars multiply DOM nodes).
   keep the full phrase reachable to assistive tech. Do not wrap the slot in an
   `aria-live` region that announces every rotation — expose the canonical phrase
   once and let the rotation be decorative.
+- Hover / focus pause is not enough: a rotation running past five seconds needs a
+  visible pause button that works by tap (WCAG 2.2.2, Level A), whatever the
+  reduced-motion setting — or it stops on its final word within five seconds.
 
 ## reduced-motion
 

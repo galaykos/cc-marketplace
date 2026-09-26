@@ -105,6 +105,40 @@ carries orientation in a fixed spine, not a sidebar" is a finding.
 | Motion — what animates; entrance vs micro-interaction; energy (calm→lively) | | |
 | Responsive — how the layout reflows at phone / tablet / full | | |
 
+#### Motion is judged from the running page, never guessed from a still
+
+A first-paint screenshot of a WebGL or scroll-driven page is a blank frame or one static
+state, and a model naming the technique from it is guessing. So for every source whose
+Motion row matters, record three things in that row's second column:
+
+1. **Its technique fingerprint** — `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/technique-fingerprint.py <url>`
+   (stdlib only; `--json` for a board row; `--file page.html` reads a saved page offline).
+   It fetches the homepage plus capped first-party JS and CSS and names the stack and motion
+   libraries it can see, so the row reads "GSAP + ScrollTrigger + Lenis" rather than "smooth
+   scroll, probably". A match is evidence; no match is NOT absence — lazy chunks, bot walls
+   and server-only markup hide libraries. Exit 1 is a refused or shell homepage: record it.
+2. **A reduced-motion capture** — the page loaded with `prefers-reduced-motion: reduce`,
+   screenshotted after load, so the brief knows what the reference owes a user who opted out.
+3. **A short scroll clip** — a few seconds from load through the hero, so choreography,
+   pinning and scrub are seen moving.
+
+Items 2 and 3 need a browser, and the rule is research-mandate's: drive the one the
+environment already has, never install one for this. No browser → write `browser
+unavailable` and mark the Motion row unobserved. Standing: `recorded` — no script checks
+that a Motion row carries the three; the script's own output is tested
+(`scripts/__tests__/technique-fingerprint.test.sh`).
+
+**Watching a PUBLIC third-party reference is observation, not escalation.** Research may
+load, scroll, hover and record any public page a lane names, whoever owns it — a competitor,
+a gallery pick, a studio — because a page served with a 200 that renders on the client
+refused nothing; it has to run to be seen. Read-only, and these bounds are binding: never
+submit a form, sign in, create an account, cross a paywall or login wall, or solve or bypass
+a bot challenge; decline a consent banner rather than accept it. A third-party REFUSAL
+(403, 5xx, a challenge page) is still the answer — the ownership bound on escalation in
+`craft-layer/skills/ultra-craft/references/research-mandate.md` is unchanged. Record the
+method as `browser (observed, scrolled)`. Standing: `recorded` — no script sees what a
+browser session did.
+
 ### 2b. Token DIRECTION (→ the `/ui-ux:theme` string)
 
 Record as adjectives and references — NOT hex or px. Values are generated downstream.
@@ -122,8 +156,14 @@ Record as adjectives and references — NOT hex or px. Values are generated down
 
 - Cluster findings, then read the clusters the right way round. **Where sources AGREE
   is where the category is most predictable — convergence is a flag to diverge from,
-  not a convention to adopt.** Adopt an agreed pattern only where it is load-bearing
-  for comprehension or accessibility, and say in the brief why it earns the exception.
+  not a convention to adopt.** Adopt an agreed pattern only where it is load-bearing —
+  for comprehension or accessibility; for a **proof convention the audience checks for**
+  (the real product shown on the front door when the product is a screen, a runnable start
+  command for a developer audience); or for **trust or regulatory load** (a disclosure, a
+  regulator or partner line, a logo band only when real logos are supplied) — and say in
+  the brief which convergent element is load-bearing and why. The concept's departures then
+  land on other axes (type, graphic system, colour behaviour), never on that element.
+  Standing: `recorded` — neither the audit nor a script reads the brief's reason back.
   Where they diverge, that is a genuine decision to make (and a candidate to
   the real-component rung of `taskmaster:visual-decisions`).
 - Separate the two payloads: colour/type/spacing/radius/motion-feel adjectives go to the

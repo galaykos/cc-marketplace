@@ -76,6 +76,7 @@ nextjs-idioms
 performance-optimization
 php-laravel-backend-implementation
 pipeline-and-infra-implementation
+primereact-idioms
 react-native-idioms
 real-component-design-render
 relational-schema-and-query-implementation

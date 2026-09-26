@@ -79,8 +79,9 @@ Prefer the mini `animate()` from `motion/mini` for simple vanilla tweens (smalle
 reserve full `motion` components for gestures, layout animation, and exit transitions.
 
 Reduced-motion fallback: wrap the tree in `<MotionConfig reducedMotion="user">` so transform
-animations are disabled system-wide automatically, or branch on `useReducedMotion()` for
-per-component crossfade substitutes.
+and layout animations on `motion` components are disabled automatically, or branch on
+`useReducedMotion()` for per-component crossfade substitutes. It does not stop scroll-linked
+`useScroll` values or opacity — `references/motion.md` says what does.
 
 2026 additions (verify on motion.dev before use): `animateView` (12.41+) for JS-driven
 view transitions — prefer over hand-rolled `startViewTransition`; official `motion-v` for
@@ -141,7 +142,9 @@ branching to `utils.set(target, finalState)` when it matches.
   failure, not a style choice.
 - Animating layout properties (`width`, `top`, `margin`) instead of `transform`.
 - Permanent `will-change` on many elements "for performance".
-- Infinite or autoplaying decorative loops with no pause affordance.
+- Infinite or autoplaying decorative loops with no pause affordance — anything that moves on its own
+  for more than 5 s owes a visible pause control to every user, not only a reduced-motion gate
+  (SC 2.2.2, stated once in `a11y-audit`). Standing: recorded.
 - JS scroll listeners restyling per scroll event where `animation-timeline` or an
   `IntersectionObserver` toggle would do.
 - Importing `framer-motion` in new code instead of `motion` / `motion/react`; calling

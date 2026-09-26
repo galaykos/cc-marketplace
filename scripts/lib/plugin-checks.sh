@@ -1117,8 +1117,8 @@ pc_rules_overlap() {
 #
 # LIMITATION (honest scope). This is a STRUCTURAL check, not a corpus check: it
 # proves a glob CAN match some path, never that any file in a real project does.
-# For content rows it only compiles the regex (an invalid ERE can never match
-# either); asserting that each content regex matches a real fixture would need a
+# For content and command rows it only compiles the regex (an invalid ERE can never
+# match either); asserting that each content regex matches a real fixture would need a
 # corpus covering all 31 glob rows, and expanding scripts/smoke/router-corpus
 # re-runs pc_rules_cofire's O(n^2) pairing over every added file. Accepted, not
 # covered — the dead-pattern class above is the one that actually shipped.
@@ -1136,9 +1136,10 @@ pc_rules_reachable() {
         case "$pattern" in
           */*) printf 'unreachable glob %s %s\n' "$pattern" "$skill"; bad=1 ;;
         esac ;;
-      content)
+      content|command)
+        # A `command` row's ERE runs against the Bash command string; same compile test.
         printf '' | grep -qE "$pattern" 2>/dev/null
-        [ $? -gt 1 ] && { printf 'unreachable content %s %s\n' "$pattern" "$skill"; bad=1; } ;;
+        [ $? -gt 1 ] && { printf 'unreachable %s %s %s\n' "$kind" "$pattern" "$skill"; bad=1; } ;;
     esac
   done < "$tsv"
   return $bad

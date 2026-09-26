@@ -1,0 +1,40 @@
+schema_version: "1.0"
+name: tiptap-next-ssr
+description: >
+  Tiptap 3 under the Next.js App Router needs a client component with
+  `immediatelyRender: false` (or a client-only dynamic import), or the first render
+  mismatches hydration; and rendering saved editor HTML is an XSS sink unless it is
+  sanitised or rendered through Tiptap itself. The control arm is expected to miss
+  `immediatelyRender: false` and render raw HTML with dangerouslySetInnerHTML.
+  Measured 2026-09-26 (deterministic re-grade): control 5/5 SSR-safe, 3/5 saved-HTML safe; with web-dev (client-widgets.md) 5/5, 5/5. Check scores against --keep-temp traces.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Write, Edit, Glob, Grep]
+  prompt: |
+    Next.js App Router project; `package.json` has `"next": "^16.3.0"`, `"react": "^19.2.0"`,
+    `"@tiptap/react": "^3.0.0"`, `"@tiptap/starter-kit": "^3.0.0"`. Write
+    `app/notes/[id]/editor.tsx`, a rich-text note editor with a bold / italic / bullet
+    list toolbar that saves the HTML through a server action, and
+    `app/notes/[id]/page.tsx`, which shows the saved note read-only above the editor.
+runs: 5
+graders:
+  - type: llm
+    focus: trace
+    name: ssr-safe-editor
+    criteria: |
+      Judge the FINAL content of the editor file (the last Write/Edit of
+      `app/notes/[id]/editor.tsx`, or wherever the `useEditor` call ends up). PASS if that
+      file starts with `'use client'` AND either passes `immediatelyRender: false` to
+      `useEditor` or the editor is loaded client-only (`next/dynamic` with `ssr: false`).
+      FAIL otherwise. Quote the lines you based the verdict on. (Measured 2026-09-26: a
+      looser wording failed 2 of 5 runs whose file carried both markers.)
+  - type: llm
+    focus: trace
+    name: saved-html-safe
+    criteria: |
+      Read the files written. PASS if the saved HTML is shown either through Tiptap
+      (a read-only editor or `generateHTML` from JSON) or through
+      `dangerouslySetInnerHTML` only after sanitising it (DOMPurify, sanitize-html or
+      equivalent), or on the server with a sanitiser. FAIL if raw stored HTML goes into
+      `dangerouslySetInnerHTML` unsanitised.

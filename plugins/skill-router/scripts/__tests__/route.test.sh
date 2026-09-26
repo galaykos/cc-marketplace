@@ -184,6 +184,187 @@ H="$WS/h"; mkrepo "$H"
 out=$(bashw "$H" "printf 'select 1;\\n' > q.sql" "$WS/t-h.jsonl" CC_REMIND=off)
 [ -z "$out" ] && [ ! -e "$H/.claude" ] && ok || bad "CC_REMIND=off: Bash write still routed: ${out:0:120}"
 
+# ---- routing review 2026-09-26: content+high inline, wrong-route fixes, new rows, and the
+#      Bash `command` signal. Every case uses its own transcript unless it tests the
+#      one-shot, so a skill fired by an earlier case cannot mask a later one.
+bashc() { # cwd command transcript [env...] — the hook only; the command is NOT run
+  local c="$1" cmd="$2" t="$3"; shift 3
+  jq -cn --arg c "$c" --arg cmd "$cmd" --arg tp "$t" \
+    '{hook_event_name:"PostToolUse",tool_name:"Bash",session_id:"sess",transcript_path:$tp,cwd:$c,
+      tool_input:{command:$cmd,description:"run"},tool_response:{stdout:"",stderr:"",interrupted:false}}' \
+    | hook "$HOOK" "$@"
+}
+pend() { jq -e --arg s "$2" '.pending_low | any(.skill == $s)' "$1" >/dev/null 2>&1; }
+mkui() { # $1 dir, $2 package.json body — a front-end git repo
+  mkdir -p "$1/src/pages/Deals"; git -C "$1" init -q; printf '%s\n' "$2" > "$1/package.json"
+}
+fresh() { mktemp "$WS/t-XXXXXX"; }   # a unique transcript path; `$(…)` is a subshell, so no counter
+routes() { # dir relpath content skill [not-skill] — write the file, Edit it in a fresh context
+  local d="$1" f="$2" body="$3" want="$4" avoid="${5:-}" o
+  mkdir -p "$(dirname "$d/$f")"; printf '%s\n' "$body" > "$d/$f"
+  o=$(edit "$d" "$d/$f" "$(fresh)")
+  has_skill "$o" "$want" && ok || bad "$f: $want not routed inline; got: ${o:0:200}"
+  if [ -n "$avoid" ]; then has_skill "$o" "$avoid" && bad "$f: $avoid routed (wrong route)" || ok; fi
+}
+
+# 10. a content row marked `high` fires INLINE, once per context, and never enters the digest
+U="$WS/u"; mkui "$U" '{"dependencies":{"react":"19.0.0","@mui/material":"7.0.0","@mui/x-data-grid":"8.0.0"}}'
+TU="$WS/t-u.jsonl"; mkdir -p "$U/src/features/orders"
+printf '%s\n' "import { DataGrid } from '@mui/x-data-grid'" \
+  'export function OrdersGrid() { return <span className="total">{rows.length}</span> }' > "$U/src/features/orders/OrdersGrid.tsx"
+out=$(edit "$U" "$U/src/features/orders/OrdersGrid.tsx" "$TU")
+has_skill "$out" mui-best-practices && ok || bad "content+high: mui-best-practices not inline on first import; got: ${out:0:200}"
+[ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && ok || bad "content+high: expected one envelope line"
+grep -qF 'This edit touches OrdersGrid.tsx' <<<"$out" && ok || bad "content+high: file-row subject text changed: ${out:0:200}"
+sf=$(statef "$U" "$TU")
+jq -e '.fired | index("mui-best-practices")' "$sf" >/dev/null 2>&1 && ok || bad "content+high: mui-best-practices not recorded in fired"
+pend "$sf" mui-best-practices && bad "content+high: mui-best-practices also landed in pending_low" || ok
+pend "$sf" observability-design && bad "observability: a JSX <span> still draws observability-design" || ok
+printf '%s\n' "import Button from '@mui/material/Button'" 'const token = session.token' > "$U/src/features/orders/OrderRow.tsx"
+out=$(edit "$U" "$U/src/features/orders/OrderRow.tsx" "$TU")
+has_skill "$out" mui-best-practices && bad "content+high: re-nudged mui-best-practices in the same context" || ok
+pend "$sf" mui-best-practices && bad "content+high: second file put mui-best-practices in pending_low" || ok
+pend "$sf" security-review && ok || bad "content+low: security-review (token) did not reach pending_low next to a high row"
+has_skill "$out" security-review && bad "content+low: security-review fired inline" || ok
+out=$(edit "$U" "$U/src/features/orders/OrderRow.tsx" "$WS/t-u-subagent.jsonl")
+has_skill "$out" mui-best-practices && ok || bad "content+high: a second context (subagent transcript) did not get it inline"
+fl=$(jq -cn --arg c "$U" --arg tp "$TU" '{hook_event_name:"UserPromptSubmit",prompt:"ok",session_id:"sess",transcript_path:$tp,cwd:$c}' \
+  | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
+grep -qF 'security-review' <<<"$fl" && ok || bad "digest: the low row did not flush; got: ${fl:0:200}"
+grep -qF 'mui-best-practices' <<<"$fl" && bad "digest: a high content row was flushed in the digest" || ok
+out=$(bashw "$U" "cat > src/pages/Scene.tsx <<'TSX'
+import { Canvas } from '@react-three/fiber'
+export const Scene = () => <Canvas />
+TSX" "$(fresh)")
+has_skill "$out" threejs-best-practices && ok || bad "content+high via Bash heredoc: threejs-best-practices not inline; got: ${out:0:200}"
+
+# 11. wrong routes fixed: R3F → threejs, Lenis → scroll-orchestration, Motion ↛ aceternity,
+#     observability on span API calls
+M="$WS/m"; mkui "$M" '{"dependencies":{"react":"19.0.0"}}'
+routes "$M" src/scene/Product.tsx "import { Canvas } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'" threejs-best-practices motion-best-practices
+routes "$M" src/scene/globe.ts "import * as THREE from 'three'" threejs-best-practices
+routes "$M" src/scroll/Smooth.tsx "import { ReactLenis } from 'lenis/react'" scroll-orchestration motion-best-practices
+routes "$M" src/scroll/Pinned.tsx "import { ScrollTrigger } from 'gsap/ScrollTrigger'
+ScrollTrigger.create({ pin: true, scrub: 1 })" scroll-orchestration
+routes "$M" src/hero/Hero.tsx "import { motion } from 'motion/react'" motion-best-practices
+TM=$(fresh); printf '%s\n' "import { motion } from 'motion/react'" > "$M/src/hero/Hero2.tsx"; edit "$M" "$M/src/hero/Hero2.tsx" "$TM" >/dev/null
+pend "$(statef "$M" "$TM")" aceternity-best-practices && bad "aceternity: a Motion import still draws aceternity-best-practices" || ok
+TM=$(fresh); mkdir -p "$M/src/lib"; printf '%s\n' "const span = tracer.startSpan('checkout')" 'span.end()' > "$M/src/lib/trace.ts"; edit "$M" "$M/src/lib/trace.ts" "$TM" >/dev/null
+pend "$(statef "$M" "$TM")" observability-design && ok || bad "observability: startSpan/span.end() no longer reach the digest"
+
+# 12. skills that existed but were never reached
+routes "$M" src/mascot/Mascot.tsx "import { useRive } from '@rive-app/react-canvas'" motion-tiers
+routes "$M" src/mascot/Loader.tsx "import { DotLottieReact } from '@lottiefiles/dotlottie-react'" motion-tiers
+routes "$M" src/charts/Pipeline.tsx "import { BarChart, Bar } from 'recharts'" information-design
+routes "$M" src/grid/Orders.tsx "import { AgGridReact } from 'ag-grid-react'" information-design
+routes "$M" src/grid/Table.tsx "import { useReactTable } from '@tanstack/react-table'" information-design
+routes "$M" src/index.css '@import "tailwindcss";
+@theme { --color-brand: oklch(0.6 0.2 250); }' tailwind-best-practices
+routes "$M" resources/css/app.css '@import "tailwindcss";
+@source "../views";' tailwind-best-practices
+TM=$(fresh); printf '.card { color: red; }\n' > "$M/src/plain.css"; out=$(edit "$M" "$M/src/plain.css" "$TM")
+has_skill "$out" tailwind-best-practices && bad "tailwind v4 row: a plain stylesheet drew tailwind-best-practices" || ok
+TM=$(fresh); printf '%s\n' '// uses @theme tokens from index.css' 'export const x = 1' > "$M/src/tokens.ts"; out=$(edit "$M" "$M/src/tokens.ts" "$TM")
+has_skill "$out" tailwind-best-practices && bad "tailwind v4 row: fired outside a .css file" || ok
+routes "$M" components.json '{"style":"new-york","registries":{"@magicui":"https://magicui.design/r/{name}.json"}}' shadcn-best-practices
+routes "$M" src/pages/Claims.tsx "import { DataTable } from 'primereact/datatable'" primereact-best-practices component-libraries
+routes "$M" src/pages/Customers.tsx "import { Select } from '@primereact/ui/select'" primereact-best-practices component-libraries
+# `@primeuix/` routes PrimeReact only when package.json names it: PrimeVue imports the same presets.
+P="$WS/p"; mkui "$P" '{"dependencies":{"react":"19.1.0","@primereact/ui":"11.1.0","@primeuix/themes":"3.0.1"}}'
+routes "$P" src/main.tsx "import Aura from '@primeuix/themes/aura'" primereact-best-practices
+PV="$WS/pv"; mkui "$PV" '{"dependencies":{"vue":"3.5.0","primevue":"5.0.1","@primeuix/themes":"3.0.1"}}'
+TM=$(fresh); printf '%s\n' "import Aura from '@primeuix/themes/aura'" > "$PV/src/main.ts"; out=$(edit "$PV" "$PV/src/main.ts" "$TM")
+has_skill "$out" primereact-best-practices && bad "primereact @primeuix row: fired in a PrimeVue repo" || ok
+routes "$M" src/ui/Select.tsx "import { Select } from '@base-ui-components/react/select'" component-libraries
+routes "$M" src/ui/Menu.tsx "import { Menu, MenuItem } from 'react-aria-components'" component-libraries
+V="$WS/v"; mkui "$V" '{"dependencies":{"vue":"3.5.0","vuetify":"3.7.0"}}'
+routes "$V" src/pages/Tickets.vue '<template><v-data-table :items="tickets" /></template>' component-libraries
+V2="$WS/v2"; mkui "$V2" '{"dependencies":{"vue":"3.5.0"}}'
+TM=$(fresh); printf '<template><div /></template>\n' > "$V2/src/pages/Plain.vue"; out=$(edit "$V2" "$V2/src/pages/Plain.vue" "$TM")
+has_skill "$out" component-libraries && bad "vue manifest row: fired in a repo whose package.json names no kit" || ok
+has_skill "$out" a11y-audit && ok || bad "vue manifest row: the co-firing a11y-audit row stopped firing on *.vue"
+
+# 13. interaction libraries route by IMPORT, outside any dashboard/ or admin/ path
+for imp in "@dnd-kit/core" "@fullcalendar/react" "@schedule-x/react" "react-big-calendar" "maplibre-gl" \
+           "leaflet" "mapbox-gl" "@xyflow/react" "@tiptap/react" "lexical" "@lexical/react/LexicalComposer" \
+           "@tanstack/react-virtual"; do
+  routes "$M" src/pages/Deals/Board.tsx "import X from '$imp'" information-design
+done
+
+# 14. the Bash `command` signal: a registry install routes shadcn, once per context
+S="$WS/s"; mkui "$S" '{"dependencies":{"react":"19.0.0"}}'; TS="$WS/t-s.jsonl"
+out=$(bashc "$S" 'npx shadcn@latest add @magicui/marquee' "$TS")
+has_skill "$out" shadcn-best-practices && ok || bad "command row: shadcn add did not route shadcn-best-practices; got: ${out:0:200}"
+[ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' >/dev/null 2>&1 \
+  && ok || bad "command row: not exactly one PostToolUse envelope: ${out:0:200}"
+grep -qF 'This command runs `shadcn@latest add`' <<<"$out" && ok || bad "command row: subject does not quote the matched command: ${out:0:200}"
+jq -e '.fired | index("shadcn-best-practices")' "$(statef "$S" "$TS")" >/dev/null 2>&1 && ok || bad "command row: not recorded in fired"
+out=$(bashc "$S" 'pnpm dlx shadcn@latest add button' "$TS")
+[ -z "$out" ] && ok || bad "command row: re-nudged in the same context: ${out:0:160}"
+for cmd in 'cd web && bunx --bun shadcn@latest add dialog' 'npx shadcn-ui@latest add card' 'npx shadcn add table'; do
+  out=$(bashc "$S" "$cmd" "$(fresh)")
+  has_skill "$out" shadcn-best-practices && ok || bad "command row [$cmd]: did not route; got: ${out:0:160}"
+done
+S2="$WS/s2"; mkui "$S2" '{}'
+for cmd in 'npm view shadcn version' 'npx shadcn@latest init' 'echo add shadcn later'; do
+  out=$(bashc "$S2" "$cmd" "$(fresh)")
+  [ -z "$out" ] && ok || bad "command row [$cmd]: expected silence, got: ${out:0:160}"
+done
+[ ! -e "$S2/.claude" ] && ok || bad "command row: a non-matching command created state at $S2/.claude"
+out=$(bashc "$S2" 'npx shadcn@latest add button' "$(fresh)" CC_REMIND=off)
+[ -z "$out" ] && [ ! -e "$S2/.claude" ] && ok || bad "CC_REMIND=off: the command row still routed: ${out:0:120}"
+printf 'npx shadcn@latest add button\n' > "$S2/NOTES.txt"
+out=$(edit "$S2" "$S2/NOTES.txt" "$(fresh)")
+has_skill "$out" shadcn-best-practices && bad "command row: matched a FILE's contents on an Edit" || ok
+
+# 14b. command rows match the command with quoted strings and heredoc bodies masked: a
+#      commit message, a grep pattern or a doc heredoc that MENTIONS the install neither
+#      routes nor spends the one-shot, and a quoted install argument still routes.
+S3="$WS/s3"; mkui "$S3" '{}'; TS3="$WS/t-s3.jsonl"
+for cmd in 'git commit -m "document the shadcn add flow"' 'grep -rn "shadcn add" docs/' \
+           'echo "run shadcn add now"' "echo 'npx shadcn@latest add button'" \
+           "cat > docs/setup.md <<'MD'
+Run npx shadcn@latest add button first.
+MD" \
+           "git commit -m \"\$(cat <<'EOF'
+Explain the \"shadcn add\" flow
+EOF
+)\""; do
+  out=$(bashc "$S3" "$cmd" "$TS3")
+  [ -z "$out" ] && ok || bad "command row: quoted or heredoc text routed [${cmd%%$'\n'*}]: ${out:0:160}"
+done
+[ ! -e "$S3/.claude" ] && ok || bad "command row: a mention spent the one-shot (state created at $S3/.claude)"
+out=$(bashc "$S3" 'npx shadcn@latest add "@magicui/marquee"' "$TS3")
+has_skill "$out" shadcn-best-practices && ok || bad "command row: a quoted install argument did not route after the mentions; got: ${out:0:160}"
+out=$(bashc "$S3" 'echo "$(npx shadcn@latest add button)"' "$(fresh)")
+has_skill "$out" shadcn-best-practices && ok || bad "command row: \$(…) inside double quotes is live code and did not route; got: ${out:0:160}"
+
+# 15. content+high fires inline only on code and style files; any other file keeps its
+#     match in the digest and does not spend the one-shot
+N="$WS/n"; mkui "$N" '{"dependencies":{"react":"19.0.0"}}'; TN="$WS/t-n.jsonl"
+printf 'Hero timeline: port it to gsap next sprint.\n' > "$N/NOTES.md"
+out=$(edit "$N" "$N/NOTES.md" "$TN")
+has_skill "$out" motion-best-practices && bad "content+high: NOTES.md mentioning gsap fired inline" || ok
+pend "$(statef "$N" "$TN")" motion-best-practices && ok || bad "content+high: NOTES.md's match did not fall through to the digest"
+mkdir -p "$N/tools"; printf 'SNIPPET = "const r = new THREE.WebGLRenderer()"\n' > "$N/tools/gen.py"
+out=$(edit "$N" "$N/tools/gen.py" "$TN")
+has_skill "$out" threejs-best-practices && bad "content+high: a .py containing 'new THREE.' fired inline" || ok
+printf "import gsap from 'gsap'\n" > "$N/src/pages/Hero.tsx"
+out=$(edit "$N" "$N/src/pages/Hero.tsx" "$TN")
+has_skill "$out" motion-best-practices && ok || bad "content+high: the one-shot was spent by NOTES.md — Hero.tsx did not fire; got: ${out:0:160}"
+mkdir -p "$N/resources/views"; printf '<div x-data>{{ $title }}</div>\n<script>gsap.to(".hero", { y: 0 })</script>\n' > "$N/resources/views/hero.blade.php"
+out=$(edit "$N" "$N/resources/views/hero.blade.php" "$(fresh)")
+has_skill "$out" motion-best-practices && ok || bad "content+high: a .blade.php template did not fire inline; got: ${out:0:160}"
+
+# 16. each target is read once per call: the digest pass reuses the inline pass's read
+HS="$WS/shim"; mkdir -p "$HS"
+printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$HEAD_LOG"\nexec %s "$@"\n' "$(command -v head)" > "$HS/head"; chmod +x "$HS/head"
+printf "import gsap from 'gsap'\nconst token = session.token\n" > "$N/src/pages/Reads.tsx"
+edit "$N" "$N/src/pages/Reads.tsx" "$(fresh)" PATH="$HS:$PATH" HEAD_LOG="$WS/head.log" >/dev/null
+reads=$(grep -c 'Reads\.tsx' "$WS/head.log" 2>/dev/null)
+[ "$reads" = 1 ] && ok || bad "one read per target: Reads.tsx was read ${reads:-0} times in one call"
+
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }
 

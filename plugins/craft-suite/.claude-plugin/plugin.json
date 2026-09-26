@@ -1,7 +1,7 @@
 {
   "name": "craft-suite",
-  "version": "0.8.0",
-  "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer), plus ui-ux: per-library stack skills (shadcn, ReUI, Aceternity, Astryx, MUI, Tailwind), the WCAG audit, CSS-variable theming with a live colour preview, and the accessibility engineer that applies an audit's fix list. Live component-registry lookups route to the registries' own MCP servers — shadcn's and ReUI's — named in ui-ux's stack skills; this marketplace ships none. Uninstall with /craft-suite:uninstall.",
+  "version": "0.9.0",
+  "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer), plus ui-ux (shadcn and Tailwind skills, the WCAG audit) and ui-libraries (ReUI, Aceternity, Astryx, MUI and the library-agnostic floor), CSS-variable theming with a live colour preview, and the accessibility engineer that applies an audit's fix list. Live component-registry lookups route to the registries' own MCP servers — shadcn's and ReUI's — named in the stack skills; this marketplace ships none. plus skill-router, so craft-layer's three.js, scroll, motion-tier and information-design skills load when their libraries are imported. Uninstall with /craft-suite:uninstall.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
@@ -9,7 +9,9 @@
   "dependencies": [
     "craft-layer",
     "ui-ux",
-    "design-kit"
+    "ui-libraries",
+    "design-kit",
+    "skill-router"
   ],
   "keywords": [
     "suite",

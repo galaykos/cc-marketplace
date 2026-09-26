@@ -32,7 +32,14 @@ without exception:
 1. **Identify what shipped.** Grep imports and entry points for every tier (Framer Motion,
    anime.js, Three.js/R3F, sprites, Vector) and sibling engine (scroll-orchestration,
    page-transitions, interaction-fx, physics-motion, webgl-effects), and
-   name the surface each drives. The checklist below is graded against that list.
+   name the surface each drives. Then the motion no tier owns, graded as the row named:
+   Spline (`@splinetool/*`, `<spline-viewer>`), Unicorn Studio (`unicornstudio`,
+   `data-us-project`), Paper Shaders (`@paper-design/shaders*`), OGL and Pixi (`ogl`, `pixi.js`,
+   `@pixi/*`) as the 3D/WebGL row; react-spring (`@react-spring/*`) and AutoAnimate
+   (`@formkit/auto-animate`) as the reduced-motion row; Swiper, Embla and Splide carousels
+   (`swiper`, `embla-carousel*`, `@splidejs/*`) and autoplaying or looping `<video>` as the
+   reduced-motion row plus a visible pause control; Barba and Swup (`@barba/core`, `swup`) as
+   page-transitions. The checklist below is graded against that list.
 2. **Read the injected references before judging against them** — `motion-tiers` for budgets,
    and each reference the dispatch names for the gate that cites it. Do not restate their
    numbers here or work from memory of them.
@@ -86,7 +93,9 @@ without exception:
       rows above: `page-transitions` § Unsupported browsers (feature-detect and fall through) plus
       § Shared-element choreography (one live `view-transition-name`, not one per card),
       `webgl-effects` § WebGPU/TSL default, WebGL fallback (a GLSL-only effect that never runs
-      on WebGPU is a finding), `interaction-fx`
+      on WebGPU is a finding — EXCEPT an R3F stack using drei shader materials or
+      `@react-three/postprocessing`, which stays on WebGL by design; its GLSL effects pass when
+      the renderer choice is recorded, per `threejs-best-practices` § R3F on WebGPU), `interaction-fx`
       § Accessibility (real cursor kept, `pointer: coarse` off, `:focus-visible` parity), and
       `physics-motion` § Accessibility (a non-dragging route to the same outcome).
 - [ ] The concept's divergence record breaks K sameness-fingerprint defaults on K DIFFERENT
@@ -139,8 +148,9 @@ without exception:
 - [ ] The pinned BOOST left its receipts — at `ultra-craft`, a reference board with ≥6 dated
       fetched sources AND a recorded query at each of land-book / awwwards / dribbble
       (searches and sources counted separately), a section ledger, and a red-team record
-      (no `Boost` row or `none` → gate `not checked`). A `browser (escalated ← …)` row in the
-      board's `Method` column counts as a fetched source like any other; `search-layer` and
+      (no `Boost` row or `none` → gate `not checked`). A `browser (escalated ← …)` or
+      `browser (observed, …)` row in the board's `Method` column counts as a fetched source like
+      any other; `search-layer` and
       `fetch-failed` rows count toward no source floor, and a refusal on a user-owned origin
       with no escalation outcome recorded is a finding of its own.
 - [ ] Ingested copy was REPRODUCED, not rewritten — claims/prices/names verbatim, legal

@@ -46,7 +46,11 @@ Every source yields two kinds of finding; capture BOTH or the brief is colour-on
 - Layout skeleton — grid columns, hero composition, nav shape, content density.
 - Component patterns — card anatomy, table/list density, form rhythm, empty states.
 - Interaction — hover/focus affordances, disclosure, scroll behaviour, transitions.
-- Motion — what animates, entrance vs micro-interaction, the overall energy.
+- Motion — what animates, entrance vs micro-interaction, the overall energy. Judge it from
+  the running page: fingerprint each motion reference's stack, capture it under reduced
+  motion, record a short scroll clip. Watching a PUBLIC third-party page read-only is
+  allowed; forms, sign-ins, paywalls and bot challenges stay off-limits
+  (`references/mining-method.md` §2a).
 
 **Token direction** (adjectives handed to generation, not values decided here):
 

@@ -53,12 +53,20 @@ last 5 palettes**. Seeded and refreshed from evidence gathered across craft-laye
 - scrollytelling as the default page STRUCTURE — scroll driving the sequence because that is
   what pages do now, rather than because the sequence is the argument
 - the generated-web composition: gradient hero + one geometric sans + a four-card grid
-- **the data-artefact hero** — a chart, plot, board, or live data widget standing in as the
-  hero image. It is a legitimate move and it is also where a build lands when it cannot
-  commission imagery, so it arrives by default rather than by argument. Two consecutive
-  craft-layer builds reached it independently, which is what put it on this list. A brief
-  that genuinely sells its data has earned it; a brief that simply had no other option has
-  not, and should say so in the divergence record rather than claiming it as a departure.
+- **the data-artefact hero** — a chart, plot or board that depicts no screen the product
+  has, standing in as the hero image. It is where a build lands when it cannot commission
+  imagery, so it arrives by default rather than by argument. Two consecutive craft-layer
+  builds reached it independently, which is what put it on this list. A brief that genuinely
+  sells its data has earned it; a brief that simply had no other option has not, and should
+  say so in the divergence record rather than claiming it as a departure.
+  **Split 2026-09-26 — the interface specimen is NOT this entry.** When the product IS a
+  screen (a console, an app, a CRM), its own UI on the front door is the category's PROOF
+  CONVENTION: the audience checks for the real product before anything else, and the design
+  corpus refresh found it leading a third to two-fifths of infrastructure and business-software
+  front doors, strongest tier included (counts and sites: `rationale/2026-09-25-design-capability-corpus/`).
+  Diverging from it pushes those briefs off the one premium hero the flow can build in code.
+  The divergence moves to its EXECUTION: the generic executions are catalogued under
+  Category-default chrome below, and `moves-taxonomy.md` carries the category.
 - (a build leaning only on these has no brief-specific signature move)
 
 ### Type families the category defaults to (avoid unless argued for)
@@ -94,6 +102,11 @@ last 5 palettes**. Seeded and refreshed from evidence gathered across craft-laye
   the official `frontend-design` skill's calibration list.
 - **near-black + one acid-green or vermilion accent** (dark) — the other category
   default the same source names; same standing, same entry date.
+- **tinted-navy near-black + a radial blue glow + a dotted grid** (dark), often with a
+  diagonal light beam — the developer-infrastructure category default. Entered 2026-09-26
+  from the design corpus: about a third of that group's dark heroes sit on it, stacked on the
+  weaker pages, while the group's strongest front doors are mostly light. Agent-graded — the
+  hue band in `divergence.mjs` covers violet, not this.
 
 ### Category-default chrome (the small tells)
 
@@ -104,7 +117,12 @@ exception; the craft-reviewer reads shipped markup against this list:
 
 - a tracked-out ALL-CAPS eyebrow label above every heading
 - meta strings joined with middle dots (`A · B · C`) and labels shaped `WORD — fragment`
-- one word of a headline accented in italic, bold, or a second colour
+- one word of a headline accented by a gradient fill, or accented at all while stacked with a
+  "New" pill above it and an underline or glow on it. **Narrowed 2026-09-26:** about a fifth
+  of the corpus's business-software heroes accent a word, its premium tier included, so
+  presence is not the tell — execution is. A tonal step, a weight or classification swap, or
+  the product's own UI set into the line reads argued; the gradient and the stack read
+  generated. An italic accent word still owes its argument: the playbook row below names it.
 - numbered markers (`01 / 02 / 03`) on content that is not a sequence
 - `→` appended to every link and button label
 - a monospace face for small data labels with no data argument
@@ -128,6 +146,23 @@ arrow are mechanical, and since 0.16.0 they ride the `copy-register` assertion i
 `template/craft-gates/divergence.mjs` through the lexicon block below — read LIVE from this
 file. Every other row here is the craft-reviewer reading shipped markup, and no script fails
 a build over it.
+
+**Added 2026-09-26 from the design corpus** (1,530 scanned sites; counts and sites stay in
+`rationale/2026-09-25-design-capability-corpus/`). Each is a default the corpus found stacked
+on its weaker pages and absent from its strongest. Agent-graded, like the rows above:
+
+- the interface specimen's generic execution — a traffic-light browser frame as the default
+  wrapper, floating toast chips over it, a glow puddle under it, a tilted perspective on the
+  data, lorem or "Project 1" rows, an upscaled raster screenshot. The argued execution is a
+  crisp specimen built from the product's own components, fictional-but-specific data
+  (`content-depth.md`'s mock carve-out), fixed polarity, cropped with intent — execution
+  rules in `plugins/craft-layer/skills/information-design/references/product-mock.md`
+- an announcement chip ("New", "Introducing X ›") or a rating/award badge row above the
+  headline, carrying no real news
+- floating stat tiles with no referent — a figure with no source, period or subject
+- AI signified only by a sparkle glyph, an orb or a glow, where the product could show a
+  receipt instead: a run log, a status chip, an outcome
+- support signified by headset stock photography
 - (the don't-repeat-recent nudge in `palette-strategy.md` reads this list)
 
 ### Recurring copy register (category default)
@@ -142,6 +177,12 @@ these has authored nothing:
 - "Take X to the next level"
 - "not just X, it's Y"
 - "game-changing" / "revolutionary" intensifiers
+- the "for humans and agents" formula, and a headline that is just "Agentic ___" — entered
+  2026-09-26: a quarter of the corpus's infrastructure sites name agents in their title or
+  meta, against a sixth corpus-wide, and the formula repeats verbatim across them
+- the registry headline "UI library for design engineers" — entered 2026-09-26: component
+  registries lead with it word for word, over the category-default spine's centred pill and
+  two buttons
 
 A category default, so it ages on category movement, never the recency window. Standing:
 agent-graded — the craft-reviewer reads shipped copy against this list — and, where the
@@ -155,7 +196,10 @@ phrase list is mechanical, gated: the `copy-register` assertion in
 set and falls back to a frozen snapshot otherwise, printing which one it used and its date
 on every run — the same contract as `register-corpus.md`. It is the mechanical subset of the
 two sections above: the multi-word phrases from the copy register, plus the three
-category-default chrome rows a machine can see.
+category-default chrome rows a machine can see. The last three rows are the 2026-09-26 corpus
+entries; the `agentic headline` row matches only a WHOLE copy chunk of at most six words
+starting "Agentic", so a sentence using the word in running text never fires, and a nav item
+or card title reading "Agentic X" does — waive that with its reason.
 
 <!-- copy-lexicon:start -->
 ```
@@ -168,6 +212,9 @@ game-changing :: gi :: 1 :: \bgame-chang(?:ing|ers?)\b
 all-caps eyebrow :: g :: 3 :: ^\s*[A-Z][A-Z0-9&'’]*(?:\s+[A-Z0-9&'’]+){1,4}\s*$
 middle-dot meta string :: g :: 1 :: ·[^·\n]{1,60}·
 trailing arrow :: g :: 3 :: [^→\n]{0,40}[^\s→]\s*→\s*$
+for humans and agents :: gi :: 1 :: \bfor\s+(?:both\s+)?(?:humans\s+and\s+(?:ai\s+)?agents|(?:ai\s+)?agents\s+and\s+humans)\b
+agentic headline :: gi :: 1 :: ^\s*(?:the\s+)?agentic\s+[\w'’-]+(?:\s+[\w'’-]+){0,4}\s*[.!]?\s*$
+for design engineers :: gi :: 1 :: \b(?:ui\s+library|components?)\s+for\s+design\s+engineers\b
 ```
 <!-- copy-lexicon:end -->
 

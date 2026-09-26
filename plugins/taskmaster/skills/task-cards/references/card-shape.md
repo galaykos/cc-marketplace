@@ -2,10 +2,9 @@
 
 The template is in the SKILL body. Tags name what the author DECIDED about each
 sentence; attributes carry the decision's evidence — a forbidden file names why, an
-interface names its consumer, an edited file names the line. Measured before shipping
-(8 fresh-model runs, 4 per shape; `rationale/card-shape-ablation-2026-09-23.md` in the
-marketplace repository): the READING side showed zero delta. The shape earns its place
-at authoring time only, and only because the **gate** rows below are a script.
+interface names its consumer, an edited file names the line. The shape earns its place
+at authoring time only, through the **gate** rows below (why:
+`rationale/2026-09-26-taskmaster-prose-derivations.md`).
 
 ## What has teeth
 

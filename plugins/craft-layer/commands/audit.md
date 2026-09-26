@@ -16,6 +16,15 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    `data:`/oversized `<svg>`, URL-fetched `.lottie`/`.riv`/`.glb`/font) — every `component-source:`
    marker, and the provenance manifest.
 
+   Then the motion no tier owns, each with the checks it owes: hosted and shader canvases (Spline
+   `@splinetool/*`/`<spline-viewer>`, Unicorn Studio `unicornstudio`/`data-us-project`, Paper Shaders
+   `@paper-design/shaders*`, OGL `ogl`, Pixi `pixi.js`/`@pixi/*`) owe the 3D row's lazy load, static
+   fallback and reduced-motion still; springs and auto-animation (`@react-spring/*`/`react-spring`,
+   `@formkit/auto-animate`) owe a reduced-motion path; carousels (`swiper`, `embla-carousel*`,
+   `@splidejs/*`) owe a pause control and no auto-advance under reduce; route swappers (`@barba/core`,
+   `swup`/`@swup/*`) owe the page-transitions checks; an autoplaying or looping `<video>` owes a pause
+   control and a stop under reduce.
+
    If nothing animates but assets shipped, still run the asset/licence gates. Only when there is neither
    motion nor a shipped asset do you stop — and that stop covers the motion CEILING gates and asset gates
    ONLY. The offer-contract, content-depth and anti-sameness gates read page CONTENT, and the SIGNATURE
@@ -120,6 +129,27 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    MODULE_NOT_FOUND before the first test — `NODE_PATH` is what points it back at the project. Both
    symptoms, for diagnosis: bare → `Error: No tests found`; `--config` alone → MODULE_NOT_FOUND;
    both set → the suite runs and writes shots into `<project>/.craft-layer/shots/`.
+
+   **What the suite's reduced-motion trigger sees — standing `gate` for what it samples, and only that.**
+   Under `prefers-reduced-motion: reduce` it fails the build on: CSS transitions/keyframes that move ·
+   any `Element.animate()`/WAAPI animation whose keyframes move (Motion's accelerated path), recorded
+   from before the first page script, so a finished entrance still counts · an element whose computed
+   transform keeps changing with the page at rest (a rAF tween or loop — GSAP, Motion's JS path,
+   anime.js, SVG-DOM Lottie, a JS marquee) or changes at two-plus stops of a stepped scroll walk
+   (ScrollTrigger scrub, parallax, CSS scroll-driven) · a `<canvas>` still changing across three frames
+   400ms apart (three.js/R3F, Lottie/Rive canvas, Spline, shader presets) · Lenis smoothing a wheel
+   scroll, or `scroll-behavior: smooth` · a looping or >5s `<video>` still playing with no `controls`
+   and no pause button beside it. It does NOT see: motion that starts only after an interaction
+   (hover, click, drag, a carousel arrow — an auto-advancing carousel is caught only when a slide
+   change lands inside a sample window); a scroll container other than the window; `top`/`left`/
+   `margin` animated by JS; tweens under ~250ms; canvases past the first four; closed shadow roots,
+   and open ones for the transform walk (the video and canvas checks pierce them); anything inside an
+   iframe; elements past the first 1,500 on screen at a scroll stop;
+   a pause button the heuristic cannot name; and whether the reduced state is a GOOD still frame — that
+   stays with the reviewer and the opened shots. Opacity-only change passes by design: a fade is the
+   recommended substitute. The fixture proof (`scripts/__tests__/fixtures/fixture-motion-{js,canvas,clean}.html`,
+   driven by `craft-gates.test.sh`) runs only where a local Playwright can launch Chromium; CI installs
+   none, so in CI that proof SKIPs and the JS/canvas half is `recorded` there.
 
    Carry the verdicts into the table: **exit 1 is a FINDING** to resolve or waive in
    `<project>/.craft-layer/waivers.json` with a reason · **exit 2 is `not measured`, EXCEPT from

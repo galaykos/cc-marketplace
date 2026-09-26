@@ -2,6 +2,25 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.21.0 — 2026-09-26
+
+- Library skills now arrive at the first file that uses them: a `content` row marked `high` fires
+  inline once per context (previously every library row waited for the next user prompt, and never
+  reached a subagent). mui, astryx, primereact, component-libraries, motion, threejs,
+  scroll-orchestration, motion-tiers and information-design rows are `high`.
+- Fixed wrong routes: R3F → `threejs-best-practices`, Lenis/ScrollTrigger → `scroll-orchestration`
+  (both previously went to `motion-best-practices`, which names neither); the Aceternity row no
+  longer fires on every `motion/react` import; the observability row no longer fires on JSX `<span>`.
+- New routes: Rive/Lottie/dotLottie/Spline → `motion-tiers`; chart and grid packages and interaction
+  libraries (dnd-kit, schedulers, maps, xyflow, Tiptap/Lexical, virtualizers) → `information-design`;
+  Tailwind v4 CSS; `components.json`; auto-imported Vue libraries; PrimeReact →
+  `ui-libraries:primereact-best-practices`; a new `command` row type routes `shadcn add`.
+- The moved component-library skills are owned by `ui-libraries`. `route.test.sh`: 108 cases.
+- Review fixes before release: `command` rows match the command with quoted strings and heredoc
+  bodies masked (a commit message mentioning `shadcn add` no longer spends the one-shot);
+  `content`+`high` rows fire inline only on code and style files (prose falls through to the digest);
+  each target file is read once; `pc_rules_reachable` now compiles `command` rows. `route.test.sh`: 123.
+
 ## 0.20.0 — 2026-09-25
 
 - `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.

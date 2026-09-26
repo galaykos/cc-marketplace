@@ -3,6 +3,8 @@ name: shadcn-theming
 description: Use when creating or restyling a UI colour theme — shadcn/ReUI/Aceternity CSS variables, Tailwind semantic tokens, Astryx `defineTheme()` tuples, or Bootstrap Sass variables: light + dark, contrast checks, live preview on one localhost URL.
 ---
 
+> Last verified: 2026-09-26 — https://ui.shadcn.com/docs/theming — npm:tailwindcss@4
+
 ## A theme is a token set, not sprinkled colors
 
 Colour pipeline here: `design-tokens` (SCALES) → `theming-system` (ROLES) → this skill (VALUES).
@@ -20,8 +22,16 @@ spine of the system:
 
 - Surfaces: `background`, `card`, `popover`, `secondary`, `muted`, `accent` —
   each with its `-foreground`.
-- Action: `primary` / `primary-foreground` (the brand carrier),
-  `destructive` / `destructive-foreground`.
+- Action: `primary` / `primary-foreground` (the brand carrier), and `destructive`.
+  - shadcn's current default theme has no `destructive-foreground`. Every current
+    style draws destructive actions as `destructive` text on a 10% tint of itself.
+  - So the pair to check is `destructive` against `background` and `card`, in both
+    modes. The preview's alert renders exactly that.
+  - The preview still reads `destructive-foreground` for its solid button, so fill it
+    there. Write it to the project only when the project's CSS or components already
+    read it. Legacy `new-york` puts `text-white` on a solid `bg-destructive`, and
+    v3-era themes and tweakcn ship the token.
+  - Standing: recorded.
 - Chrome: `border`, `input`, `ring` (usually follows primary), `radius`.
 - Data: `chart-1` … `chart-5` — hues spread around the wheel, same perceived
   lightness, so any subset still reads as one family.
@@ -36,7 +46,13 @@ DETECT first, ask only what the repo cannot answer — a theme aimed at the wron
 vocabulary is written to a file the project never reads:
 
 - `components.json` with `cssVariables: true` → shadcn names (ReUI and
-  Aceternity ride the same variables — nothing extra to do).
+  Aceternity ride the same variables — nothing extra to do). The exception is when
+  the global stylesheet holds `--p-primary-*` / `--p-surface-*` tokens or imports
+  `tailwindcss-primeui`. That is PrimeReact's Tailwind mode, installed through the
+  shadcn CLI, and it reads `--p-*` names. Writing `--primary` there does nothing.
+- A tweakcn theme or any `registry:style` item is a theme SOURCE, not a stack. Put
+  its values into the preview as a candidate and check them like any other.
+  `references/token-vocabularies.md` says what it writes beyond colour.
 - `bootstrap` in package.json, or a `.scss` importing `bootstrap/scss/bootstrap`
   → Bootstrap: Sass `$variables`, `[data-bs-theme="dark"]`, no `-foreground`
   pairing. Read `references/token-vocabularies.md` before emitting anything.
@@ -44,9 +60,12 @@ vocabulary is written to a file the project never reads:
   the theme creates it, so say that rather than implying you are editing it.
 - `@astryxdesign/core` in dependencies → Astryx: the preview decides colour,
   but the values land in a `defineTheme()` file as light/dark tuples, per
-  `astryx-best-practices` — do not write `globals.css` variables it never reads.
+  `ui-libraries:astryx-best-practices` — do not write `globals.css` variables it never reads.
 - Signals for two stacks at once (a live migration) is the one case to ask
   outright which target this theme is for.
+
+Standing: recorded. No script reads these signals; the `--p-*` and tweakcn rows
+were checked against primereact.dev and tweakcn's registry on the stamp date.
 
 The preview is the same in every case — it decides COLOUR, not component look.
 Never present it as "how your app will look"; the skeleton is generic HTML, not
@@ -58,13 +77,17 @@ Read before generating — lock beats memory (stack-scan doctrine):
 
 - `components.json`: `cssVariables` must be true for token theming;
   `baseColor` names the neutral scale the project started from.
-- Tailwind v4 (package.json/lockfile): tokens in `oklch()`, mapped via
-  `@theme inline` in globals.css — no tailwind.config color block.
-- Tailwind v3: tokens as HSL triplets (`--primary: 222 47% 11%`) consumed by
+- Tailwind v4 (package.json/lockfile): tokens mapped via `@theme inline` in
+  globals.css, with no tailwind.config colour block. New projects write `oklch()`.
+  A project upgraded along shadcn's v4 path keeps full `hsl(…)` values, so the v4
+  signal is `@theme inline`, not the colour function. Write new values in the
+  function the file already uses.
+- Tailwind v3: tokens as bare HSL triplets (`--primary: 222 47% 11%`) consumed by
   `hsl(var(--primary))` mappings in `tailwind.config`.
 
 Suggesting oklch to a v3 project (or config edits to a v4 one) produces a theme
-that silently does nothing.
+that silently does nothing. Standing: recorded. These are the model's own
+detection rules, checked against the shadcn theming and Tailwind v4 docs.
 
 ## Building the palette
 
@@ -134,7 +157,8 @@ as variable names:
 
 - Read the project's current `globals.css` FIRST; show the token diff and get a
   yes before writing — never clobber a hand-tuned theme wholesale.
-- Emit the full `:root` + `.dark` blocks (v4: oklch + `@theme inline` mapping
+- Emit the full `:root` + `.dark` blocks (v4: the file's own colour function —
+  oklch unless it already holds `hsl(…)` — with the `@theme inline` mapping
   already present; v3: HSL triplets, plus any missing `tailwind.config`
   mappings). Bootstrap instead takes Sass `$variables` BEFORE the import — a
   `--bs-*`-only theme leaves Sass-compiled components uncoloured.

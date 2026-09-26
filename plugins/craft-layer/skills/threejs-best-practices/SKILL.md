@@ -3,29 +3,44 @@ name: threejs-best-practices
 description: Use when building or reviewing Three.js or R3F code — scenes, renderers, TSL/GLSL shaders, react-three-fiber and drei, WebGPU vs WebGL choice, glTF/GLB asset loading, disposal and GPU leaks, render-loop performance.
 ---
 
-> Last verified: 2026-08-02 — https://web.dev/blog/webgpu-supported-major-browsers
+> Last verified: 2026-09-26 — https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API — npm:three@0.186
 
 # Three.js best practices
 
 Three.js releases on a ~6–10-week `rXXX` cadence with real API movement between
 revisions. Resolve the installed revision from the lockfile (`three` — e.g.
-r185 mid-2026) and check the migration guide for anything you touch:
+r186 in September 2026) and check the migration guide for anything you touch:
 threejs.org/docs + the per-release migration notes. Never advise from a
 remembered API level.
 
 ## Renderer choice (2026 floor)
 
-- **WebGPURenderer is the default for new work** — production-ready, with
-  automatic WebGL2 fallback built in; WebGPU itself is Baseline in all major
-  browsers since Jan 2026. `import { WebGPURenderer } from 'three/webgpu'`.
-- Keep `WebGLRenderer` only for legacy codebases pinned below the stable
-  WebGPU line — do not start new scenes on it.
-- Shaders for WebGPURenderer are written in **TSL** (Three Shading Language,
-  `three/tsl`), which compiles to WGSL or GLSL per backend. Porting raw
-  GLSL `ShaderMaterial`s: rewrite as TSL node materials rather than pinning
-  the renderer to WebGL for one material.
+- **WebGPURenderer is the default for new plain-three work** —
+  `import { WebGPURenderer } from 'three/webgpu'`, with a WebGL 2 backend it falls back
+  to automatically. WebGPU itself is **not Baseline**: MDN lists it as limited
+  availability, secure contexts only — a dev server on `http://<LAN-IP>` silently gets
+  the WebGL 2 backend. Test both (`forceWebGL: true`).
+- WebGPURenderer does not run `ShaderMaterial`, `RawShaderMaterial`, `onBeforeCompile`
+  or `EffectComposer`, on either backend. Write shaders in **TSL** (`three/tsl`, compiles
+  to WGSL or GLSL) and post in the TSL pipeline (`webgl-effects`); port a raw GLSL
+  material to TSL rather than pinning the renderer to WebGL for one material.
+- Keep `WebGLRenderer` for legacy code pinned below the WebGPU line, and for the R3F
+  stacks named in the next section.
 - One renderer, one canvas, reused — creating renderers per view or per
   route change leaks GPU contexts (browsers cap them).
+
+## R3F on WebGPU
+
+R3F's `<Canvas>` creates a `WebGLRenderer` by default. WebGPU needs the `gl` prop to return a
+promise (`new WebGPURenderer(props)`, then `await renderer.init()`), and R3F's docs call
+that renderer "still a work in progress". R3F 10, the WebGPU-first line, is alpha (September 2026).
+
+- drei materials built on `ShaderMaterial` (`MeshTransmissionMaterial`, the
+  `shaderMaterial` helper) and `@react-three/postprocessing` (on pmndrs `postprocessing`,
+  WebGLRenderer only) do NOT run on WebGPU. A stack using any of them stays on R3F's
+  default WebGL renderer — the correct choice, not legacy.
+- Want WebGPU in R3F → TSL node materials and `RenderPipeline` for post; check every drei
+  import against its docs first. Decide once per canvas, record why. Standing: recorded.
 
 ## Scene and render-loop discipline
 
@@ -73,7 +88,8 @@ scene keeps its geometry, material, and textures alive on the GPU:
 
 - Draw calls dominate: merge static geometry (`BufferGeometryUtils`), use
   `InstancedMesh` for repeated objects (grass, particles, crowds) — thousands
-  of individual meshes is the classic scene-graph mistake.
+  of individual meshes is the classic scene-graph mistake. Picking and labelling
+  thousands of data marks: `references/data-3d.md`.
 - Frustum culling is on by default — do not disable it globally to fix a
   skinned-mesh popping bug; fix the bounding sphere instead.
 - Lights are per-fragment cost: prefer environment maps / baked lighting for
@@ -98,6 +114,13 @@ scene keeps its geometry, material, and textures alive on the GPU:
 - Objects created in JSX are auto-disposed on unmount; objects created in
   effects/loaders follow the manual disposal rules above.
 
+## When the scene is data, or the page
+
+- `references/data-3d.md` — 3D as a data view inside an app: instanced picking with a
+  BVH, labels, controls vs render-on-demand, and the DOM list/table twin it owes.
+- `references/webgl-first-site.md` — the canvas IS the page: persistent across routes,
+  DOM↔GL rect sync, scroll-to-camera, loader, GPU quality ladder, context loss.
+
 ## Defer rule
 
 - Bundler mechanics (code-splitting the three chunk, import.meta.glob asset
@@ -112,7 +135,9 @@ scene keeps its geometry, material, and textures alive on the GPU:
 
 - **Remembered-API advice** — rXXX moved it; check the migration guide for
   the locked revision.
-- **New scenes on WebGLRenderer** — starting 2026 work on the legacy path.
+- **New plain-three scenes on WebGLRenderer** — starting 2026 work on the legacy path.
+- **WebGPU under drei GLSL materials or `@react-three/postprocessing`** — they only run
+  on WebGL; the scene breaks or silently drops the effect.
 - **Remove-without-dispose** — GPU leaks that profile as "memory grows per
   route visit".
 - **Allocation in the render loop** — `new Vector3()` per frame; hoist and

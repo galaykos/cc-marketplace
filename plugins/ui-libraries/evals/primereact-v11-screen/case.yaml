@@ -1,0 +1,60 @@
+schema_version: "1.0"
+name: primereact-v11-screen
+description: >
+  PrimeReact 11 (GA 2026-07-15) is a rewrite: the themed layer is `@primereact/ui`,
+  Dropdown became Select, DataTable's props and `<Column>` became compound parts,
+  CSS theme files and primeflex no longer resolve (themes are `@primeuix/themes`
+  presets on `PrimeReactProvider`), and the licence changed from MIT to the PrimeUI
+  licence with a key. The package.json pins v11. The control arm is expected to write
+  v10 from memory (`primereact/dropdown`, `primereact/column`,
+  `primereact/resources/themes/...`). A pass needs v11 imports and v11 theming.
+  Measured 2026-09-26 (5 runs/arm, deterministic re-grade of the written files, rationale/2026-09-26-design-corpus-probes.md): control 1/5 v11 API, 0/5 licence; with primereact-best-practices 5/5, 5/5. The haiku judge is unreliable on build cases; check scores against --keep-temp traces.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Write, Edit, Glob, Grep]
+  prompt: |
+    This React 19 app's `package.json` dependencies:
+
+    ```json
+    {
+      "react": "^19.1.0",
+      "react-dom": "^19.1.0",
+      "primereact": "^11.1.0",
+      "@primereact/ui": "^11.1.0",
+      "@primeuix/themes": "^3.0.0"
+    }
+    ```
+
+    Write `src/Customers.tsx`: a customers screen with a single-select country filter
+    dropdown above a sortable, paginated data table of customers (name, company,
+    status, MRR). Also write `src/main.tsx`, which sets up PrimeReact theming with a
+    dark mode. Use the PrimeReact version in this package.json and no other UI library.
+runs: 5
+graders:
+  - type: llm
+    focus: trace
+    name: v11-api-and-theming
+    criteria: |
+      Read the files written. This project pins PrimeReact 11.
+
+      FAIL if any written file imports a v10-only path or API: `primereact/dropdown`,
+      `primereact/column`, `primereact/resources/` (any theme or core CSS),
+      `primereact.min.css`, `primeflex`, or a `<Dropdown` component; or if theming is
+      done by importing a theme CSS file instead of a preset.
+
+      PASS if the dropdown is a v11 `Select` (e.g. from `@primereact/ui/select` or
+      `primereact/select`), the table uses the v11 DataTable (compound parts such as
+      `DataTable.Root` or the v11 API; no `<Column>` import from `primereact/column`),
+      and theming goes through `PrimeReactProvider` with a preset from
+      `@primeuix/themes` (e.g. Aura) or `definePreset`.
+
+      Not graded: styling quality, data source, or whether it compiles.
+  - type: llm
+    focus: trace
+    name: licence-key-handled
+    criteria: |
+      Read the files written and the final assistant message. PASS if the code passes a
+      `license` prop/key to `PrimeReactProvider` (from an env variable or placeholder),
+      or the final message tells the user that PrimeReact 11 needs a PrimeUI licence
+      key. FAIL if neither appears, or if the message calls PrimeReact 11 MIT-licensed.
