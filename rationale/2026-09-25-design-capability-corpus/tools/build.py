@@ -222,10 +222,10 @@ def idea_axes(i):
         for k in ('Headless UI', 'Base UI', 'React Aria'):
             if k in a: ax.append(('UI', k))
     elif s == 'MUI': ax.append(('UI', 'MUI'))
-    elif s == 'PrimeReact': ax.append(('UI', 'PrimeReact/PrimeVue'))
+    elif s == 'PrimeReact': ax.append(('UI', 'PrimeReact'))
     elif s == 'Astryx': ax.append(('UI', 'Astryx'))
     else:
-        ax.append(('UI', {'HeroUI': 'HeroUI/NextUI', 'PrimeVue': 'PrimeReact/PrimeVue'}.get(a, a)))
+        ax.append(('UI', {'HeroUI': 'HeroUI/NextUI'}.get(a, a)))
     m = i['motion_3d']
     if m != 'none':
         for t in ({'three.js / R3F': ['three.js', 'React Three Fiber'], 'GSAP + ScrollTrigger': ['GSAP', 'GSAP ScrollTrigger'],
@@ -240,7 +240,7 @@ def idea_axes(i):
                            'Nuxt': 'Nuxt'}.get(b, b)))
     return list(dict.fromkeys(ax))
 
-TERMS.update({'Magic UI': r'Magic UI', 'Aceternity UI': r'Aceternity', 'Vite': r'\bVite\b', 'TanStack Table': r'TanStack Table|@tanstack/react-table', 'visx': r'\bvisx\b', 'Nivo': r'\bNivo\b',
+TERMS.update({'PrimeReact': r'PrimeReact|primereact', 'PrimeVue': r'PrimeVue|primevue', 'Magic UI': r'Magic UI', 'Aceternity UI': r'Aceternity', 'Vite': r'\bVite\b', 'TanStack Table': r'TanStack Table|@tanstack/react-table', 'visx': r'\bvisx\b', 'Nivo': r'\bNivo\b',
               'Origin UI': r'Origin UI', 'ReUI': r'ReUI', 'Kokonut UI': r'Kokonut', 'Animate UI': r'Animate UI', 'Motion Primitives': r'Motion Primitives',
               'Cult UI': r'Cult UI', 'shadcnblocks': r'shadcnblocks', '21st.dev': r'21st\.dev', 'tweakcn theme': r'tweakcn', 'Eldora UI': r'Eldora',
               'Skiper UI': r'Skiper', 'Smooth UI': r'Smooth UI', 'React Bits': r'React Bits', 'Vuetify': r'Vuetify', 'Element Plus': r'Element Plus',

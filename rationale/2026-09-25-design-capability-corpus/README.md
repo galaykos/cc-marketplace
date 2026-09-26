@@ -108,7 +108,7 @@ Prevalence is over the **1,193 non-registry sites**; the 337 registries are 82% 
 | three.js / R3F | 41 / 17 | 3% / 1% | `craft-layer:threejs-best-practices` |
 | MUI | 31 | 3% | `ui-ux:mui-best-practices` |
 | Spline / Unicorn Studio / Paper Shaders | 7 / 6 / 9 | <1% each | **none** |
-| PrimeReact / PrimeVue | 5 | <1% | grouped in `ui-ux:component-libraries` |
+| PrimeReact / PrimeVue | 5 | <1% | PrimeVue grouped in `ui-ux:component-libraries`; PrimeReact none |
 | Astryx | 1 (its own site) | — | `ui-ux:astryx-best-practices` |
 
 Motion tier over the 1,193 non-registry sites:
@@ -148,10 +148,14 @@ shipped `SKILL.md`. The tiers:
 - **Mention only:** the technology appears in some skill body.
 - **None.**
 
-**258 of the 500 ideas have every axis covered** at the dedicated or grouped tier. The other 242 have at least one axis
-with a mention-only or no-skill tier.
+**215 of the 500 ideas have every axis covered** at the dedicated or grouped tier. The other 285 have at least one axis
+with a mention-only or no-skill tier. (The first commit of this file said 258: `tools/build.py` credited PrimeReact to
+`component-libraries` because its regex `PrimeReact|PrimeVue` matched a PrimeVue mention. Nothing under `plugins/`
+named PrimeReact on 2026-09-25; the 60 PrimeReact ideas are a gap. Corrected 2026-09-26, found by the review in
+`taskmaster-docs/design-corpus-2026-09-25/review/ui-systems.md` Q4.)
 - **Covered well:** shadcn/ui, Tailwind, MUI (including MUI X Charts), Astryx, ReUI, Aceternity, Motion, GSAP/ScrollTrigger/Lenis, three.js/R3F, Rive/Lottie, anime.js, Matter.js, View Transitions, CSS scroll-driven, Laravel + Inertia, Next.js and Vite.
-- **Grouped only:** PrimeReact, Mantine, Ant Design, HeroUI, Chakra, PrimeVue, Vuetify, Element Plus and Park UI. These rest on `ui-ux:component-libraries`: library-agnostic rules plus a docs link per library.
+- **Grouped only:** Mantine, Ant Design, HeroUI, Chakra, PrimeVue, Vuetify, Element Plus and Park UI. These rest on `ui-ux:component-libraries`: library-agnostic rules plus a docs link per library.
+- **No skill at all:** PrimeReact (60 ideas). Nothing under `plugins/` named it.
 - **Mention only:** Radix Themes, daisyUI, Flowbite and Nuxt UI.
 
 **Where the marketplace has nothing, ranked by how many ideas need it:**
@@ -166,8 +170,8 @@ with a mention-only or no-skill tier.
    - By idea count: Tremor 13, Origin UI 8, Magic UI 8, shadcnblocks 8, 21st.dev 5, Cult UI 5, Skiper UI 5, Animate UI 5, Kokonut UI 5, Motion Primitives 5, Eldora UI 5, React Bits 4, Smooth UI 4, tweakcn 3.
    - Fourteen skills would fail the Admission law.
    - One reference covering namespaced `@registry/item` installs from the 382-entry directory, inside `shadcn-best-practices`, would cover all of them.
-3. **PrimeReact: 60 ideas, grouped only.**
-   - It is named in `component-libraries`, which gives library-agnostic rules plus a docs link.
+3. **PrimeReact: 60 ideas, no coverage.**
+   - Nothing under `plugins/` names it; the first version of this file wrongly said `component-libraries` covered it.
    - The scan saw PrimeReact 11 emitting `data-scope`/`data-part` markup, a different architecture from the `p-component` classes a v10 memory recites.
    - That is the version-churn pattern that justified `mui-best-practices`. It is worth a dedicated skill **if** a control run shows the base model getting v11 wrong.
 4. **Frameworks: Nuxt (14 ideas, mention only), React Router framework mode (11, none), Astro (10, mention only).** These are `web-dev` territory.
