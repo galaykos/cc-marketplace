@@ -8,14 +8,11 @@
   "code-architecture": 0,
   "code-review": 0,
   "command-guard": 0,
-  "core-suite": 870,
   "craft-layer": 0,
-  "craft-suite": 651,
   "database": 0,
   "debugging": 0,
   "design-kit": 0,
   "devops": 0,
-  "frontend-suite": 651,
   "git-workflow": 0,
   "hindsight": 0,
   "laravel": 0,
@@ -32,6 +29,5 @@
   "ui-libraries": 0,
   "ui-ux": 0,
   "ultra-deep-research": 0,
-  "web-dev": 0,
-  "workflow-suite": 1060
+  "web-dev": 0
 }

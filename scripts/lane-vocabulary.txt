@@ -127,14 +127,10 @@ vue-sfc-analysis-run
 wcag-audit
 
 # --- ship ---
-core-suite-uninstall
-craft-suite-uninstall
 development-branch-completion
-frontend-suite-uninstall
 marketplace-wide-install
 marketplace-wide-uninstall
 self-contained-artifact-bundle
-workflow-suite-uninstall
 
 # --- any ---
 ad-hoc-breadth-question

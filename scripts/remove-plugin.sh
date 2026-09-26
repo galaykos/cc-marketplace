@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # Remove a plugin (or fold its skills into a host plugin) and update every shared
-# touchpoint: marketplace.json, everything-bundle deps, plugin-scout catalog,
-# context-budget baseline, README counts + table rows. Dry-run by default; edits
-# only with --apply. Prints a residual-reference report either way; validate.sh
-# is the recovery gate after a partial failure.
+# touchpoint: marketplace.json, plugin-scout catalog, context-budget baseline, README
+# counts + table rows. Dry-run by default; edits only with --apply. Prints a
+# residual-reference report either way; validate.sh is the recovery gate after a
+# partial failure.
+#
+# No bundle branches. The all-in bundle went 2026-08-31 and the four themed suites
+# 2026-09-26, the day pc_plugin_dependencies started failing any plugin.json that
+# declares `dependencies` — so every plugin is a leaf and there is no bundle's dep
+# list, README row or member count left for this script to maintain.
 #
 #   bash scripts/remove-plugin.sh <name> [--merge-into <host>] [--apply]
 set -euo pipefail
@@ -25,12 +30,6 @@ while [ $# -gt 0 ]; do
 done
 
 MP=.claude-plugin/marketplace.json
-# The all-in bundle was REMOVED 2026-08-31 (rationale/2026-08-31-token-cost-review.md).
-# Every branch below that touches it is `[ -f ]`-guarded or matches nothing, so this
-# script still runs correctly with no such bundle present — the branches are INERT,
-# not broken, and stay only so that reintroducing an aggregate bundle does not need
-# them rewritten. If you are sure that will never happen, they are safe to delete.
-EV=plugins/everything/.claude-plugin/plugin.json
 CAT=plugins/stack-scan/skills/plugin-scout/references/catalog.md
 BASELINE=scripts/context-budget-baseline.json
 
@@ -44,9 +43,6 @@ if [ -n "$host" ]; then
       && { echo "FAIL: plugins/$host/skills/$(basename "$sd") already exists" >&2; exit 2; }
   done
 fi
-
-is_bundle=0
-jq -e 'has("dependencies")' "$pdir/.claude-plugin/plugin.json" >/dev/null 2>&1 && is_bundle=1
 
 say() { if [ "$apply" -eq 1 ]; then echo "edit: $1"; else echo "would: $1"; fi; }
 
@@ -74,33 +70,30 @@ if jq -e --arg n "$name" '.plugins[] | select(.name==$n)' "$MP" >/dev/null; then
   fi
 fi
 
-# 3. everything-bundle dependency (leaves only; bundles are never deps)
-if [ "$is_bundle" -eq 0 ] && [ -f "$EV" ] && jq -e --arg n "$name" '.dependencies | index($n)' "$EV" >/dev/null 2>&1; then
-  say "$EV: remove dependency '$name'"
-  if [ "$apply" -eq 1 ]; then
-    tmp=$(mktemp); jq --arg n "$name" '.dependencies |= map(select(. != $n))' "$EV" > "$tmp"; mv "$tmp" "$EV"
-  fi
-fi
-
-# 4. the scout catalog is GENERATED from marketplace.json (generate.sh catalog
+# 3. the scout catalog is GENERATED from marketplace.json (generate.sh catalog
 # step) — regenerate it instead of grep-editing a "do not edit" file.
 if [ -f "$CAT" ] && grep -qw "$name" "$CAT"; then
   say "$CAT: regenerate via scripts/generate.sh --write (catalog step)"
   if [ "$apply" -eq 1 ]; then bash scripts/generate.sh --write >/dev/null; fi
 fi
 
-# 5. context-budget baseline key
-if [ -f "$BASELINE" ] && jq -e --arg n "$name" 'has($n)' "$BASELINE" >/dev/null; then
-  say "$BASELINE: remove key '$name'"
-  if [ "$apply" -eq 1 ]; then
-    tmp=$(mktemp); jq --arg n "$name" 'del(.[$n])' "$BASELINE" > "$tmp"; mv "$tmp" "$BASELINE"
+# 4. context-budget baseline keys — all three channels. Only the always-on file was
+# edited until 2026-09-26; the suite retirement had to strip the dynamic and activated
+# baselines by hand, and a stale key there is dead weight --update-baseline would
+# silently drop anyway.
+for bl in "$BASELINE" scripts/context-budget-dynamic-baseline.json scripts/context-budget-activated-baseline.json; do
+  if [ -f "$bl" ] && jq -e --arg n "$name" 'has($n)' "$bl" >/dev/null; then
+    say "$bl: remove key '$name'"
+    if [ "$apply" -eq 1 ]; then
+      tmp=$(mktemp); jq --arg n "$name" 'del(.[$n])' "$bl" > "$tmp"; mv "$tmp" "$bl"
+    fi
   fi
-fi
+done
 
-# 6. README table rows naming the plugin as first cell (backtick, bold, or
+# 5. README table rows naming the plugin as first cell (backtick, bold, or
 # linked-bold **[name](path)** forms)
 row_re="^\| *(\`$name\`|\*\*$name\*\*|\*\*\[$name\]\([^)]*\)\*\*) *\|"
-for rd in README.md plugins/everything/README.md; do
+for rd in README.md; do
   [ -f "$rd" ] || continue
   if grep -qE "$row_re" "$rd"; then
     say "$rd: remove table row for '$name'"
@@ -110,47 +103,25 @@ for rd in README.md plugins/everything/README.md; do
   fi
 done
 
-# 7. README leaf-count integers ("all N plugins" prose + the everything bundle-table
-# row) — leaves only. Other bundles listing the leaf get a warning, not an edit.
-if [ "$is_bundle" -eq 0 ]; then
-  leaves=0
-  for pj in plugins/*/.claude-plugin/plugin.json; do
-    jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 && continue
-    leaves=$((leaves + 1))
-  done
-  [ "$apply" -eq 1 ] || leaves=$((leaves - 1))   # dry-run: dir still present
-  # Same regex shape as scripts/validate.sh's leaf-count gate — both must see
-  # "all N plugins" AND "all N leaf plugins", or this script stops maintaining
-  # the very line that gate depends on. Two expressions because the bare one
-  # cannot match the leaf wording: `all [0-9]+ plugins` requires " plugins" to
-  # follow the digits, so it skips "all 72 leaf plugins" entirely — which is the
-  # exact miss that let the count go stale under a gate written to catch it.
-  if grep -qE "all [0-9]+ (leaf )?plugins" README.md; then
-    say "README.md: set 'all N [leaf] plugins' counts to $leaves"
-    if [ "$apply" -eq 1 ]; then
-      tmp=$(mktemp)
-      sed -E "s/all [0-9]+ leaf plugins/all $leaves leaf plugins/g; s/all [0-9]+ plugins/all $leaves plugins/g" README.md > "$tmp"
-      mv "$tmp" README.md
-    fi
-  fi
-  if grep -qE '^\| *`everything` *\| *[0-9]+ *\|' README.md; then
-    say "README.md: set everything bundle-table count to $leaves"
-    if [ "$apply" -eq 1 ]; then
-      tmp=$(mktemp); sed -E "s/^(\| *\`everything\` *\| *)[0-9]+( *\|)/\1$leaves\2/" README.md > "$tmp"; mv "$tmp" README.md
-    fi
-  fi
-  for pj in plugins/*/.claude-plugin/plugin.json; do
-    jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
-    bn=$(jq -r .name "$pj")
-    [ "$bn" = "everything" ] && continue
-    jq -e --arg n "$name" '.dependencies | index($n)' "$pj" >/dev/null 2>&1 \
-      && echo "WARN: bundle '$bn' lists '$name' — update its deps + README suite-table count manually"
-  done
-  if grep -qE '\([0-9]+ today\)' plugins/everything/README.md 2>/dev/null; then
-    say "plugins/everything/README.md: set '(N today)' count to $leaves"
-    if [ "$apply" -eq 1 ]; then
-      tmp=$(mktemp); sed -E "s/\([0-9]+ today\)/($leaves today)/" plugins/everything/README.md > "$tmp"; mv "$tmp" plugins/everything/README.md
-    fi
+# 6. README leaf-count integers ("all N plugins" / "N leaf plugins" prose). Every
+# plugin is a leaf, so the count is every plugin dir.
+leaves=0
+for pj in plugins/*/.claude-plugin/plugin.json; do
+  [ -f "$pj" ] || continue
+  leaves=$((leaves + 1))
+done
+[ "$apply" -eq 1 ] || leaves=$((leaves - 1))   # dry-run: dir still present
+# Same regex shape as scripts/validate.sh's leaf-count gate — both must see "all N
+# plugins", "all N leaf plugins" AND "N leaf plugins", or this script stops maintaining
+# the very lines that gate checks. The bare "all N plugins" expression cannot match the
+# leaf wording (" plugins" must follow the digits), which is the exact miss that once let
+# the count go stale under a gate written to catch it.
+if grep -qE "(all [0-9]+ (leaf )?plugins|[0-9]+ leaf plugins)" README.md; then
+  say "README.md: set '[all] N [leaf] plugins' counts to $leaves"
+  if [ "$apply" -eq 1 ]; then
+    tmp=$(mktemp)
+    sed -E "s/(all )?[0-9]+ leaf plugins/\1$leaves leaf plugins/g; s/all [0-9]+ plugins/all $leaves plugins/g" README.md > "$tmp"
+    mv "$tmp" README.md
   fi
 fi
 

@@ -16,7 +16,7 @@
    produces a stale snapshot that passes builds the current gate fails. Reading
    from the working directory is what lets one copy of this file, in the plugin,
    grade any project — and it matches how `divergence.mjs` has always resolved
-# TWIN: plugins/craft-layer/template/craft-gates/contrast.mjs is an identical copy save this line. craft-layer owns the original; ui-ux ships this copy because craft-layer DEPENDS on ui-ux and not the reverse, so a bare ui-ux / frontend-suite / workflow-suite install reaches no contrast checker at all. Invoke it here as ${CLAUDE_PLUGIN_ROOT}/scripts/contrast.mjs.
+# TWIN: plugins/craft-layer/template/craft-gates/contrast.mjs is an identical copy save this line. craft-layer owns the original; ui-ux ships this copy because craft-layer NEEDS ui-ux and not the reverse, so a ui-ux install without craft-layer would reach no contrast checker at all. Invoke it here as ${CLAUDE_PLUGIN_ROOT}/scripts/contrast.mjs.
    its token source, including the same env override and candidate list. */
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'

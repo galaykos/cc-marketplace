@@ -7,12 +7,21 @@ WCAG 2.2 AA audit, and the ui-ux-reviewer / ui-ux-engineer / a11y-engineer agent
 Generic CSS3/Grid/Flexbox/Bootstrap skills were removed after baseline tests showed the
 model covers them unaided — see rationale/stack-skill-baselines.md.
 
-**The component-library skills moved to `ui-libraries` on 2026-09-26** — Material UI,
-Astryx, ReUI, Aceternity, and the library-agnostic `component-libraries` floor with its
-per-library map. ui-ux had reached the marketplace's per-plugin prose cap. Every suite that
-carries ui-ux carries ui-libraries; a standalone ui-ux install should add it:
-`/plugin install ui-libraries@cc-plugins-marketplace`. This plugin's commands and agents
-name those skills as `ui-libraries:<skill>` and say so when it is not installed.
+> **Install `ui-libraries` with this plugin — nothing does it for you.** The
+> component-library skills — Material UI, PrimeReact, Astryx, ReUI, Aceternity, and the
+> library-agnostic `component-libraries` floor with its per-library map — moved to
+> `ui-libraries` on 2026-09-26, when ui-ux reached the marketplace's per-plugin prose cap.
+> No plugin here may declare `dependencies` (an update that adds one leaves it uninstalled
+> and the plugin fails to load), and the suites that used to bring both were retired the
+> same day. So run:
+>
+> ```bash
+> /plugin install ui-libraries@cc-plugins-marketplace
+> ```
+>
+> This plugin's commands and agents name those skills as `ui-libraries:<skill>` and say
+> so when it is not installed; `/stack-scan:suggest` prints the same line when it sees
+> ui-ux without it.
 
 Registry libraries (shadcn, [ReUI](https://reui.io/docs),
 [Aceternity](https://ui.aceternity.com/components)) get docs-first treatment:
@@ -114,8 +123,8 @@ SC 1.4.3 / 1.4.11 violation.
 **It is a byte-identical twin of `plugins/craft-layer/template/craft-gates/contrast.mjs`**,
 held in step by `pc_twin_files` in `scripts/lib/plugin-checks.sh` (**gate** — it
 checks SAMENESS, not correctness; two identically wrong copies pass). craft-layer
-owns the original and depends on ui-ux, never the reverse, so before this copy
-existed a bare `ui-ux`, `frontend-suite` or `workflow-suite` install reached no
+owns the original and needs ui-ux, never the reverse, so before this copy
+existed a ui-ux install without craft-layer reached no
 contrast checker at all while three documents promised one.
 
 **Two honest limits.** It parses `oklch()` values under `:root` and `.dark` only:

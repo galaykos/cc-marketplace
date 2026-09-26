@@ -12,12 +12,11 @@
 # because craft step 7 calls that command, which is one call site, not two. A plain
 # "build me an app" turn runs neither. Measured, not assumed: in a control/treatment run
 # on 2026-08-17, a Laravel build shipped 23 indigo utilities across 5 Blade views with
-# every gate green, because none of them was on that path. The reach asymmetry is
-# structural, not a count that can drift: craft-layer DEPENDS on ui-ux, so every
-# craft-layer install already carries this hook while the reverse does not hold, and
-# ui-ux additionally ships in bundles craft-layer is absent from. Recount rather than
-# trusting a number here:
-#   grep -l '"ui-ux"' plugins/*/.claude-plugin/plugin.json | grep -v '/ui-ux/'
+# every gate green, because none of them was on that path. The reach asymmetry:
+# craft-layer NEEDS ui-ux — a README notice and a plugin-scout companion line, not a
+# manifest key, since no plugin may declare `dependencies` (retired with the suites,
+# 2026-09-26) — so a craft-layer install that followed its README carries this hook,
+# while ui-ux is routinely installed where craft-layer is not.
 # PostToolUse fires on any write, so this is the reach half of a rule craft-layer
 # already owns the depth of.
 #

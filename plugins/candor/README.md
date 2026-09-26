@@ -254,8 +254,9 @@ Stated because a gate reads stronger than it is:
 /plugin install candor@cc-plugins-marketplace
 ```
 
-Also arrives with `core-suite` and `workflow-suite` — the second because the runs
-and the verification skill it ships rely on clauses 3 and 4. Always-on cost: the descriptions of two
+Install it by name — nothing brings it in for you since the suites were retired on
+2026-09-26. It matters most beside `task-runner` and `code-architecture`, whose runs and
+`work-verification` skill rely on clauses 3 and 4. Always-on cost: the descriptions of two
 commands and two skills; the terse hooks inject nothing until a level is set.
 
 ## Author-time checks

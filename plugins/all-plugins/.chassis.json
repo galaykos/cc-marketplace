@@ -1,5 +1,5 @@
 {
   "chassis": "optout",
   "file": "commands/uninstall.md",
-  "reason": "Not the suite-uninstall chassis (which computes a bundle's removal set from its own dependencies array and a provenance split of installed_plugins.json, then confirms). This plugin has no dependencies key — it is a leaf — and its uninstall is a thin relay over scripts/all-plugins.sh, which removes every leaf of the marketplace from one scope with no confirmation and reports an exit code; the marketplace manifest, not a bundle manifest, is the list."
+  "reason": "Hand-written by design. commands/uninstall.md is a chassis-shaped name (validate.sh's generated-header gate), but its only renderer, the suite-uninstall chassis, was retired 2026-09-26 with the suites it served. This uninstall is a thin relay over scripts/all-plugins.sh, which removes every plugin of the marketplace from one scope with no confirmation and reports an exit code; the marketplace manifest is the list."
 }

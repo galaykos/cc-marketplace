@@ -139,7 +139,8 @@ went wrong is `rationale/claude-md-incident-log.md` — read it before adding a 
 or restating a check's header here; do not add the story back to this file.
 
 - **`scripts/validate.sh`** — structure, frontmatter, reference resolution, README
-  structure, routing reachability, the doc-location rule above, and the `pc_*`
+  structure, routing reachability, the doc-location rule above, the no-`dependencies`
+  rule (`pc_plugin_dependencies`; the measurement that made it is in its header), and the `pc_*`
   battery in `scripts/lib/plugin-checks.sh` (one source shared with the smoke
   fixtures).
 
@@ -162,12 +163,11 @@ or restating a check's header here; do not add the story back to this file.
   | `# marker-key-ok:` | a context key deliberately used raw in a path |
   | `# harness-payload-ok:` | a harness deliberately sending no `transcript_path` |
   | `# lane-cofire-ok:` | two artifacts deliberately sharing one `owns` in one phase |
-  | `<!-- listing-floor-ok: -->` | a bundle over the floor skill-listing budget that will not declare it |
   | `<!-- false-standing-ok: -->` | a paragraph that names a gate's standing in a way the standing check misreads |
   | `# co-fire-ok: content <a> <b>` | two skills deliberately sharing a body-content trigger |
   | `# prime-ok: <skill>` | a stack skill deliberately primed by more than one entry |
   | `<!-- dispatch-ok -->` | a chassis sample that deliberately dispatches the generic subagent |
-  | `<!-- handoff-ok -->` | a line that deliberately hands off to a command outside its bundle |
+  | `<!-- handoff-ok -->` | a line whose `plugin:name` token deliberately resolves to no artifact (a Blade tag, a quoted bad name) |
   | `<!-- scout-name-ok: -->` | a scout catalog row naming a plugin on purpose that the name check rejects |
   | `# env-shebang-ok:` | a registered hook that deliberately keeps `#!/usr/bin/env bash` |
   | `# cwd-mkdir-ok:` | a hook that deliberately `mkdir`s under a payload `cwd` it did not `-d`-test |
@@ -214,15 +214,16 @@ or restating a check's header here; do not add the story back to this file.
   `rationale/2026-08-31-token-cost-review.md`.
 
 - **`scripts/generate.sh --check`** — BLOCKING chassis-drift gate: every
-  chassis-generated file (worker agents, suite uninstalls,
-  reminder hooks, boost hooks) must byte-match its template output. Regenerate with `--write`
-  after editing anything under `templates/` or a `.chassis.json`. Four repo-level
+  chassis-generated file (worker agents, reminder hooks, boost hooks) must byte-match
+  its template output. Regenerate with `--write`
+  after editing anything under `templates/` or a `.chassis.json`. Two repo-level
   steps ride the same gate and are NOT chassis files: stack-scan's scout `catalog.md`,
-  and three README blocks — the **bundle table**, the **"Turning things off"** table and
-  the **no-suite leaf list** — each between `<!-- generated:<name> -->` and
-  `<!-- end:<name> -->` markers; edit those rows by hand and `--check` fails. The
-  review-command template was retired 2026-09-22 (it rendered one file); the four
-  surviving renderers are worker agents, reminder hooks, boost hooks, suite uninstalls.
+  and one README block — the **"Turning things off"** table, between
+  `<!-- generated:offswitch-table -->` and `<!-- end:offswitch-table -->`; edit those
+  rows by hand and `--check` fails. The review-command template was retired
+  2026-09-22 (it rendered one file) and the suite-uninstall template 2026-09-26 with the
+  suites, taking the README bundle table and no-suite leaf list with it; the three
+  surviving renderers are worker agents, reminder hooks, boost hooks.
 
 ## Lanes: who owns what, and when (convention + gate)
 
@@ -233,7 +234,7 @@ separate cleanly: collision detection happens at author time, where `validate.sh
 reads the whole repo, while turn-taking happens at runtime, where an artifact must
 resolve its OWN lane from `${CLAUDE_PLUGIN_ROOT}/lane.tsv` even when its plugin is
 installed alone. A central file would have privileged `skill-router`, which not every
-bundle includes.
+install includes.
 
 `phase` is the arc: `understand shape decide plan build verify review ship`, or
 **`any`** for a guard that must fire at every point (a Stop gate, an irreversible-
@@ -399,18 +400,13 @@ python3 -c "import glob,os;s={os.path.basename(os.path.dirname(p)) for p in glob
 ```
 
 **Maintainer path, not a gate.** `scripts/remove-plugin.sh` — the sanctioned
-plugin-removal script; dry-run by default, edits with `--apply`. It rewrites
-leaf-derived numbers only. Removing a *leaf* changes every suite that listed it,
-and those suites' member counts get a `WARN`, not an edit.
-
-The README bundle table **is** gated, by inheritance rather than directly:
-`remove-plugin.sh` deletes the `marketplace.json` entry, so a suite still listing
-the removed leaf hard-fails `validate.sh`'s all-bundle dependency gate; fixing
-that dep changes the member count, which `generate.sh --check` then forces into
-the table. One residual is real: the table is not *self*-gating, so immediately
-post-removal it shows stale counts while `--check` reports no drift — the failure
-surfaces as a red build rather than as table drift, which is why the WARN above
-matters.
+plugin-removal script; dry-run by default, edits with `--apply`. It deletes the
+plugin's dir, marketplace entry and README table row, rewrites the README leaf counts
+`validate.sh` checks, strips the plugin's key from all three context-budget baselines
+and regenerates the scout catalog. It has no bundle
+branches: the suites were retired 2026-09-26 and no plugin may declare
+`dependencies`. Prose that names the removed plugin is its residual report, not an
+edit — a person rewrites it.
 
 A gate can be mis-tiered as toothless as easily as a habit can be mis-tiered as a
 gate, and the toothless direction is more expensive — it makes someone build what

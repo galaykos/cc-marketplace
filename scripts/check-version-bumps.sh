@@ -76,8 +76,8 @@ for dir in $changed; do
     # history. It hardens per plugin: once a plugin HAS a CHANGELOG.md, an entry
     # for the new version is required, so adopting the file opts that plugin in.
     if [ -f "$dir/CHANGELOG.md" ]; then
-      # Anchored to a `##` heading, not a substring: a bundle that inherited its
-      # predecessor's changelog (core-suite, workflow-suite) carries the OLD
+      # Anchored to a `##` heading, not a substring: a plugin that inherited its
+      # predecessor's changelog (two bundles did, both retired 2026-09-26) carries the OLD
       # numbering below a seam, so `grep -F 0.6.0` matched history — and prose
       # such as "against taskmaster-suite 0.19.0" — and passed six unreleased
       # versions vacuously (measured 2026-09-22).

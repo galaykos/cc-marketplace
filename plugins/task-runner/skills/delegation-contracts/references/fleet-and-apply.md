@@ -39,15 +39,11 @@ idioms a generic executor lacks (backend dialects, instrumentation, a11y remedia
 everything else is the shared executor's job.
 
 
-## Standing rider: bundle membership + version
+## Standing rider: version
 
-A new agent is not done when its file is written. It must also:
-
-1. **Bump** its plugin's `plugin.json` version (`check-version-bumps.sh` gates CI).
-2. **Join the bundles** that advertise it — any `*-suite` whose
-   description claims "all worker agents" or the agent's domain — plus that suite's
-   uninstall prune list. A bundle promising a set it no longer contains is a silent
-   lie the validator cannot catch.
+A new agent is not done when its file is written. It must also **bump** its plugin's
+`plugin.json` version (`check-version-bumps.sh` gates CI). There is no bundle to join:
+the suites that advertised worker agents were retired 2026-09-26.
 
 ## Fan-out doctrine — who owns which rule
 

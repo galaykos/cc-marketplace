@@ -85,7 +85,7 @@ adds no questions, never auto-installs, and says "nothing stands out" rather tha
 padding.
 
 **Everything for a stack.** `--full` installs every marketplace leaf that is any-stack
-or matches the detected stack — leaves only, never a suite — and skips just what is
+or matches the detected stack and skips just what is
 bound to a stack the repo does not have. The stack→plugin table is
 `skills/plugin-scout/references/stack-relevance.md`. Nothing installs until you
 confirm: the flag prints a plan first — the install list, what is already installed,
@@ -157,6 +157,7 @@ picker's parser), `scan.test.sh` (the report's mechanical pass) and
 - **devops** — `/devops:init` reuses the report instead of re-scanning
 - **approaches** (build-vs-buy skill) — decides whether a dependency should be added at all
 - **security** — broader security review beyond the dependency audit surface
-- **workflow-suite** — pipeline bundle, NOT a shortcut past the scout: it ships the
-  clarify→spec→cards→execute workflow and the core-suite baseline, but no stack
-  leaf — `/stack-scan:suggest` names those per project
+- **all-plugins** — the other install path: every plugin, no picker, no stack filter.
+  The suites that sat between the two were retired 2026-09-26; where two plugins must
+  travel together (`craft-layer` with `ui-ux` and `ui-libraries`), the scout prints the
+  companion's install line under its report

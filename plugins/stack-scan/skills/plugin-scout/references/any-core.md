@@ -53,15 +53,14 @@ A row belongs here only if it passes both:
 - `candor`, `skill-router`, `hindsight` — these change how the model
   talks or routes across every session rather than how this
   project's code is checked, so per-project installation is the wrong unit for
-  them. Point at the core-suite bundle or a `--global` run. Under `--full` they install
+  them. Point at a `--global` run, or at installing each with `--scope user`. Under `--full` they install
   at the run's scope anyway — the user asked for everything; that is the one flag
   this bullet does not bind.
 
-Note what that last bullet is NOT: "member of core-suite". `git-workflow` and
-`secret-scanning` are members of that bundle, `command-guard` is not, and all three are
-in the core list, because the two write-time guards it ships are exactly the kind
-of floor test 1 and 2 select for. The criterion is the membership test above, not
-bundle membership.
+Note what the core list is NOT: a copy of any bundle's membership (the suites were
+retired 2026-09-26). `git-workflow`, `secret-scanning` and `command-guard` are all in
+it because the write-time guards they ship are exactly the kind of floor tests 1 and 2
+select for. The criterion is the membership test above.
 
 ## Rules
 

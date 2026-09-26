@@ -283,15 +283,15 @@ done < <(find plugins -name '*.md')
 # with it, silently. It did not, because it was rehomed here first. Deleting an
 # artifact can delete a gate riding on it, and nothing warns you.
 #
-# What was LOST and is not replaced: nothing now asserts that a new leaf plugin
-# joins any bundle. There is no aggregate install to omit it from, so the old
-# failure mode is gone rather than unguarded — but a leaf that belongs in a
-# themed suite and is left out of it is now a WARN nobody writes. Stated, not
-# hidden.
-nonsuite=0
+# Every plugin is a leaf since 2026-09-26: the themed suites were retired and no
+# plugin may declare `dependencies` (pc_plugin_dependencies, below), so the count is
+# every plugin.json. It used to skip any manifest with a `dependencies` key — the
+# bundles — and that skip is gone rather than kept as dead code, because a skip for a
+# shape the build now rejects would be a second place to disagree about what a leaf is.
+leafcount=0
 for pj in plugins/*/.claude-plugin/plugin.json; do
-  jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 && continue  # skip bundles
-  nonsuite=$((nonsuite + 1))
+  [ -f "$pj" ] || continue
+  leafcount=$((leafcount + 1))
 done
 # Matches "all N plugins" AND "all N leaf plugins". The optional-word form is
 # the point: the narrow original regex could not see README.md's actual wording
@@ -309,8 +309,8 @@ if [ -z "$rc_all" ]; then
 else
   while IFS= read -r rc; do
     [ -n "$rc" ] || continue
-    [ "$rc" = "$nonsuite" ] \
-      || err "README.md's leaf count says $rc but there are $nonsuite non-suite plugins"
+    [ "$rc" = "$leafcount" ] \
+      || err "README.md's leaf count says $rc but there are $leafcount plugins"
   done <<< "$rc_all"
 fi
 
@@ -545,20 +545,17 @@ EOF_COFIRES
   fi
 fi
 
-# All-bundle dependency gate (hard): generalizes the everything-only completeness
-# check above — every plugin.json that declares .dependencies (the bundles) must
-# list only real marketplace plugin names, so no bundle silently ships a dangling
-# or misspelled dependency.
-mp_names=$(jq -r '.plugins[].name' "$MP")
-for pj in plugins/*/.claude-plugin/plugin.json; do
-  jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
-  bname=$(jq -r .name "$pj")
-  while IFS= read -r dep; do
-    [ -n "$dep" ] || continue
-    printf '%s\n' "$mp_names" | grep -qx "$dep" \
-      || err "bundle '$bname': dependency '$dep' is not a marketplace plugin name"
-  done < <(jq -r '.dependencies[]?' "$pj")
-done
+# No plugin may declare `dependencies` (hard). Replaces the all-bundle dependency gate,
+# which proved every bundle's deps resolved: an update that ADDS a dependency does not
+# install it, and the plugin then fails to load — measured on CLI 2.1.283, 2026-09-26.
+# The measurement and the residuals are in pc_plugin_dependencies' header.
+deps_gap=$(pc_plugin_dependencies plugins) || true
+while IFS= read -r l; do
+  [ -n "$l" ] || continue
+  err "$l — no plugin may declare dependencies: an update that adds one leaves it uninstalled and the plugin fails to load; express a companion as a README notice and a plugin-scout row instead"
+done <<EOF_DEPS
+$deps_gap
+EOF_DEPS
 
 # CHANGELOG-parity gate (hard): the first `## [X.Y.Z]` heading in CHANGELOG.md must
 # equal the marketplace metadata.version — a released version with no matching
@@ -927,21 +924,6 @@ crowd_gap=$(pc_budget_crowding plugins scripts/skill-crowding-baseline.json) || 
 # 70,664 against a real 36,037. Ratchet, not ceiling — reasoning in the header.
 corpus_gap=$(pc_plugin_corpus plugins scripts/plugin-corpus-baseline.json) || true
 [ -n "$corpus_gap" ] && lane_err "$corpus_gap" "more plugins now exceed the per-plugin on-invoke prose corpus cap than the committed baseline — cut or split a plugin's skills, do not raise scripts/plugin-corpus-baseline.json"
-
-# A bundle that overflows the FLOOR skill-listing budget (200k window, 3 B/tok,
-# 1% = 6,000 chars) must tell the installer, because the failure is silent on
-# their machine and invisible on a 1M maintainer's. Gates that the declaration
-# STRING exists, not that its numbers are right — pc_listing_declaration's header
-# carries the formula and the residuals.
-listing_decl_gap=$(pc_listing_declaration plugins) || true
-[ -n "$listing_decl_gap" ] && lane_err "$listing_decl_gap" "bundle overflows the 6,000-char floor listing budget without declaring it — mention skillListingBudgetFraction in its README (or bless with <!-- listing-floor-ok: why -->)"
-
-# A bundle's README must name every plugin it installs. Two commits added a
-# dependency to four bundles and updated zero READMEs; the all-bundle dependency
-# gate above proved the deps RESOLVED and said nothing about whether a user could
-# discover them. Presence only — nothing here gates that the description is true.
-bundle_readme_gap=$(pc_bundle_readme_members plugins) || true
-[ -n "$bundle_readme_gap" ] && lane_err "$bundle_readme_gap" "bundle README does not name a plugin its plugin.json installs — add a line for each name listed"
 
 # An `owns` noun must be declared in scripts/lane-vocabulary.txt, so inventing one is a
 # reviewed act rather than the invisible default. pc_lanes_vocabulary's header is candid

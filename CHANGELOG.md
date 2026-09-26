@@ -4,6 +4,27 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.116.0] - 2026-09-26
+
+The four meta-bundles are retired: `core-suite`, `frontend-suite`, `craft-suite`, `workflow-suite`. Two install
+paths remain — `all-plugins` (every plugin; re-run it after a marketplace update, it installs what exists when
+it runs) and `/stack-scan:suggest` (a set picked from the repo's own manifests).
+
+- **Why.** On this maintainer's machine the current suites had 1 install across every project against 7 for
+  `all-plugins`; their original reason, staying under the skill-listing budget, measured zero delta
+  (`rationale/2026-09-15-listing-eviction-probe.md`); and every leaf change rippled into suite manifests,
+  READMEs, budgets and generated tables.
+- **New gate `pc_plugin_dependencies`:** no plugin may declare `dependencies`. Measured on CLI 2.1.283 with a
+  throwaway marketplace: a fresh install pulls declared dependencies in, but an update that ADDS one does not
+  install it, and the plugin then fails to load (`Dependency "…" is not installed`). Companions (ui-ux ↔
+  ui-libraries, craft-layer → ui-ux + ui-libraries) are loud README notices and a plugin-scout Companions table
+  instead.
+- Bundle-only machinery removed from `validate.sh`, `plugin-checks.sh`, `generate.sh` (bundle table, no-suite
+  list, suite-uninstall chassis and template), `context-budget.sh` and `remove-plugin.sh`; one harness that rode
+  on the suite template was rehomed. The retired names join the removed-reference check.
+- Existing suite installs: the suite plugins stop updating; their members stay installed and keep working.
+  `claude plugin uninstall <suite>@cc-plugins-marketplace` (without `--prune`) removes the leftover record.
+
 ## [0.115.0] - 2026-09-26
 
 Design capability corpus → plugin capability. A 1,530-site corpus (detected stack, rendered

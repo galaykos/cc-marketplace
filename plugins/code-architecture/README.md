@@ -81,7 +81,7 @@ actually do it." The escape is honesty: prose that names what is unverified
 Until 2026-09-14 that hook shipped here as `hooks/evidence-gate.sh`. It is now
 clause 3 of `candor`'s one Stop gate (`plugins/candor/hooks/gate.sh`), so this
 plugin ships no hook and the rule has teeth only with candor installed —
-`workflow-suite` carries both. Honest limits, unchanged:
+install both by name (the suite that carried them was retired 2026-09-26). Honest limits, unchanged:
 silence evades it, and any post-edit execution satisfies it. `CC_EVIDENCE_GATE=warn|off`
 still downgrades that clause alone.
 

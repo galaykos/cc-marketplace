@@ -58,8 +58,8 @@
 #     median 35 usable extra lines, identical.
 #     Anthropic's own guidance is "under 5k tokens" for a body
 #     (https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices);
-#     14,000 B is still stricter than that, deliberately, because ours load in
-#     bundles. Skill BODIES are not always-on — they load on invocation — so the
+#     14,000 B is still stricter than that, deliberately, because several of ours
+#     load together on one task. Skill BODIES are not always-on — they load on invocation — so the
 #     cost of this raise is paid per fire, not per session.
 #   - LINE LENGTH 300 is unchanged. It fails five files, every one of them prose
 #     that a reflow fixes without losing a word. Prose in this repo wraps at ~90;
@@ -850,7 +850,7 @@ pc_removed_refs() {
   # file, env var and skill are still named terse-mode / CC_TERSE / terse-output, so it
   # is SAFE here only because $shapes matches reference forms; those tokens carry a
   # hyphen or underscore boundary and match no shape.
-  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring|payments|llm-app|terse|php-suite|dev-env|design-studio'
+  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring|payments|llm-app|terse|php-suite|dev-env|design-studio|core-suite|frontend-suite|craft-suite|workflow-suite'
   # dev-env and design-studio were ABSORBED/RETIRED (2026-08, 2026-09-14). Both are
   # hyphenated, so they match no bare-English shape and are safe in the $plug list —
   # unlike `observability`, `lean` and `a11y`, which are ordinary words this check
@@ -884,7 +884,11 @@ pc_removed_refs() {
   # MOVED into core-suite; taskmaster-suite + process-suite + quality-principles-suite
   # MOVED into workflow-suite. php-suite is in `plug` (removed outright — its three
   # members are install-by-name). Every retired name is a hyphenated token, so the
-  # hyphen boundary keeps the live `-suite` bundles out of every shape.
+  # hyphen boundary keeps any other `-suite` name out of every shape.
+  # core-suite, frontend-suite, craft-suite, workflow-suite RETIRED 2026-09-26 (no plugin
+  # may declare `dependencies` — pc_plugin_dependencies' header has the measurement) and
+  # added to $plug in the same change; the CHANGELOG history lines that name them in a
+  # reference shape carry <!-- removed-ok -->.
   moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout|theme-design|design-lab|fresh-take|orchestration|always-on-suite|quality-suite|process-suite|taskmaster-suite|quality-principles-suite'
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # `\`($moved):[a-z][a-z0-9-]*` added 2026-09-02: three craft-layer files cited
@@ -952,7 +956,7 @@ pc_removed_refs() {
   # marker. Every phrase below is quoted from a shipped disclosure:
   #   "it was removed after baseline testing"          (plugin-scout flags.md)
   #   "`error-handling` and `concurrency` plugins were / merged into this one"
-  #   "**vue2** (Vue 2 is EOL) is no longer bundled"   (frontend-suite README)
+  #   "**vue2** (Vue 2 is EOL) is no longer bundled"   (the retired frontend-suite README)
   rescue="(was|were|been|are|is) (removed|merged|retired)|merged into|no longer|plugins? (were|was)($b|\$)"
   # NPM TAIL OF A `Last verified` STAMP, blanked before matching. `$bm` excludes
   # `/@.-` so a package path cannot be mistaken for a plugin reference, but NOT `:`
@@ -1290,8 +1294,8 @@ pc_lanes_vocabulary() {
 #
 # WHAT IT CATCHES. `plugins/taskmaster/hooks/preview-guard.sh` and
 # `plugins/ui-ux/hooks/preview-guard.sh` are one guard shipped twice: ${CLAUDE_PLUGIN_ROOT}
-# is per-plugin so the file cannot be shared, and ui-ux is installed alone by
-# frontend-suite, so without its own copy that path has no guard at all. Their
+# is per-plugin so the file cannot be shared, and a user may install ui-ux without
+# taskmaster, so without its own copy that path has no guard at all. Their
 # correctness as a PAIR depends on byte-identity: both hash the same session_id to the
 # same marker, and that shared key is what leaves exactly one asker on the weak tier.
 # Let them drift and the marker keys diverge, so both ask — silently, on every call, with
@@ -1436,7 +1440,6 @@ pc_version_stamp() {
   local pdir="$1" pj="$1/.claude-plugin/plugin.json" desc name
   [ -f "$pj" ] || return 0
   command -v jq >/dev/null 2>&1 || return 0
-  jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 && return 0
   name=$(jq -r '.name // empty' "$pj" 2>/dev/null)
   desc=$(jq -r '.description // empty' "$pj" 2>/dev/null)
   # `lockfile` was in this list and was WRONG: `packages` describes lockfile
@@ -1478,9 +1481,9 @@ pc_version_stamp() {
 # statements ship in those plugins' descriptions today; the columns record them
 # without inventing a winner neither plugin claims.
 #
-# WHY PER-PLUGIN AND NOT A CENTRAL REGISTRY. skill-router ships in 5 of 10
-# bundles, so a registry under it would leave five bundles' artifacts with no
-# lane at runtime. Collision detection needs every claim visible at once and
+# WHY PER-PLUGIN AND NOT A CENTRAL REGISTRY. skill-router is not in every install
+# (it shipped in 5 of 10 bundles when this was written; the bundles are retired), so a
+# registry under it would leave every install without it with no lane at runtime. Collision detection needs every claim visible at once and
 # runs HERE, at author time, over the repo — where every plugin is present
 # regardless of what any user installed. Turn-taking needs only the artifact's
 # OWN lane and reads `${CLAUDE_PLUGIN_ROOT}/lane.tsv` at runtime. Separating the
@@ -2632,46 +2635,44 @@ EOF
   return $bad
 }
 
-# pc_bundle_readme_members <plugins_root>
+# pc_plugin_dependencies [plugins-root] — no plugin may declare `dependencies`.
 #
-# A bundle's README must name every plugin in its own plugin.json `dependencies`.
+# WHAT IT CATCHES. Any `<root>/*/.claude-plugin/plugin.json` carrying a `dependencies`
+# key — any value, an empty array included, because `has("dependencies")` was the one
+# test every bundle branch in this repo keyed on. Prints `plugin-dependencies <name>
+# <deps…>` per offender and returns 1.
 #
-# WHY THIS EXISTS. Two commits (`6d0a9d0` candor, `582dc81` lean) added a
-# dependency to four bundles and updated zero bundle READMEs, and `validate.sh`
-# exited 0 on all of it for weeks. Measured 2026-08-20 before the fix: `candor`
-# missing from everything + quality-suite, `lean` missing from all four. `lean`
-# was a plugin you installed in three bundles and could read about in none of
-# them. The all-bundle dependency gate above proves a dep RESOLVES; nothing
-# proved a human could find out it was there.
+# WHY — MEASURED, NOT ASSUMED. CLI 2.1.283, 2026-09-26, against a throwaway marketplace:
+#   - a FRESH install of a plugin with `dependencies` auto-installs them
+#     ("(+ 1 dependency: dep-a)");
+#   - an UPDATE that ADDS a dependency does not: `claude plugin update` leaves it
+#     uninstalled, and the plugin then FAILS TO LOAD with
+#     `Dependency "dep-c@…" is not installed`.
+# So declaring a new companion on a shipped plugin disables every existing install of it
+# on its next update, silently for anyone who does not read the load error. The four
+# meta-bundles (core-, frontend-, craft-, workflow-suite) were retired the same day for
+# that reason; companion relationships (craft-layer needs ui-ux and ui-libraries, ui-ux's
+# component-library skills live in ui-libraries) are loud README notices and plugin-scout
+# rows now, never a manifest key. Install paths are `all-plugins` and
+# `/stack-scan:suggest`.
 #
-# LIMITATION — this gates the PRESENCE OF A NAME and nothing about truth. A
-# member listed with a wrong description, under the wrong theme heading, or
-# describing capability the plugin no longer ships all pass. Standing: gate for
-# presence, unenforceable for accuracy, and saying so is the point.
-#
-# Prints `bundle-readme <bundle> <missing…>` per offender; returns 1 if any.
-pc_bundle_readme_members() {
-  local root="${1:-plugins}" bad=0 pj bname readme dep missing
+# WHAT IT DOES NOT CATCH. A companion notice that is wrong or missing — prose, recorded or
+# agent-graded, never read by a script. A plugin that needs another at runtime and
+# degrades silently without it. A `dependencies` field placed on a marketplace.json entry
+# instead of the plugin.json (not modelled; whether the host honours it there was not
+# measured). And the host behaviour itself was measured once, on one CLI version: a later
+# CLI that installs an added dependency on update would make this gate stricter than it
+# needs to be — re-measure before relaxing it, do not relax it on a changelog line.
+pc_plugin_dependencies() {
+  local root="${1:-plugins}" bad=0 pj name deps
   for pj in "$root"/*/.claude-plugin/plugin.json; do
     [ -f "$pj" ] || continue
     jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
-    bname=$(jq -r .name "$pj")
-    readme="${pj%/.claude-plugin/plugin.json}/README.md"
-    [ -f "$readme" ] || continue
-    missing=""
-    while IFS= read -r dep; do
-      [ -n "$dep" ] || continue
-      # `-wF`, not a bracket-class regex: a bare substring test passes `lean` on
-      # the word "clean" — the exact reason this drift stayed invisible to a
-      # grep — while the obvious `(^|[^A-Za-z0-9_-])` guard silently matches
-      # NOTHING under BSD grep on a line carrying an em dash. Verified both ways
-      # on plugins/quality-suite/README.md before this line was kept.
-      grep -qwF "$dep" "$readme" 2>/dev/null || missing="$missing $dep"
-    done < <(jq -r '.dependencies[]?' "$pj")
-    if [ -n "$missing" ]; then
-      printf 'bundle-readme %s%s\n' "$bname" "$missing"
-      bad=1
-    fi
+    name=$(jq -r '.name // empty' "$pj" 2>/dev/null)
+    [ -n "$name" ] || name=$(basename "$(dirname "$(dirname "$pj")")")
+    deps=$(jq -r '[.dependencies | if type == "array" then .[] | tostring elif type == "object" then keys[] else tostring end] | join(" ")' "$pj" 2>/dev/null)
+    printf 'plugin-dependencies %s %s\n' "$name" "${deps:-(empty)}"
+    bad=1
   done
   return $bad
 }
@@ -2714,8 +2715,8 @@ pc_bundle_readme_members() {
 #   1. It validates the NAME COLUMN and nothing else. Whether the signal pattern
 #      is correct, and whether that plugin is the right SUGGESTION for it, are
 #      both invisible here: `| Gemfile | laravel |` passes clean.
-#   2. Liveness, not fitness. A name that exists but is wrong — a bundle in the
-#      tier-1 table, a plugin whose capability moved elsewhere — passes.
+#   2. Liveness, not fitness. A name that exists but is wrong — a companion row naming
+#      the wrong partner, a plugin whose capability moved elsewhere — passes.
 #   3. Tables only, and only tables whose header carries a `Plugin`/`Suggest`
 #      cell. A plugin named in prose (any-core.md's "Deliberate exclusions"
 #      bullets, the SKILL's Boundaries section) is out of scope. Conversely it
@@ -2828,11 +2829,12 @@ pc_listing_fields() {
 # walk undercounts by name + 4 per flagged entry. `when_to_use:` rides with the
 # description: the CLI renders `${description} - ${whenToUse}` (`wWe`, read out of the 2.1.273
 # binary 2026-09-17) and truncates that JOINED string at 1,536 — so the 3-char " - " is
-# charged too, and the cap applies to the sum. Two callers:
-# pc_listing_declaration below and context-budget.sh's listing channel. They previously
-# carried the walk twice by value and disagreed by the separator model (9 chars on
+# charged too, and the cap applies to the sum. One caller now: context-budget.sh's
+# listing channel. There were two — the bundle floor-declaration gate
+# (pc_listing_declaration) went with the bundles on 2026-09-26 — and while there were,
+# they carried the walk twice by value and disagreed by the separator model (9 chars on
 # taskmaster-suite), so every bundle README's "recompute with context-budget.sh" step
-# failed its own verification. One function ends the class.
+# failed its own verification. Keep it one function if a second caller returns.
 #
 # LC_ALL=C is pinned: `wc -m` is locale-dependent (chars under UTF-8, bytes under C) and
 # the verdict near a floor must not depend on the machine's locale. C counts BYTES — a
@@ -2859,61 +2861,4 @@ pc_listing_entry_cost() {
     total=$(( total + ${#name} + 4 + dl )); n=$((n+1))
   done
   printf '%s %s' "$total" "$n"
-}
-
-# pc_listing_declaration [plugins-root] — a bundle that overflows the FLOOR skill-listing
-# budget must say so where an installer will read it.
-#
-# THE FLOOR: Claude Code budgets its skill listing at contextWindowTokens x bytesPerToken
-# x skillListingBudgetFraction (defaults 0.01; read out of CLI 2.1.251, not docs). The
-# worst realistic case is a 3-bytes-per-token model at the default 200k window: 6,000
-# chars. Over budget the CLI reduces entries to name-only and buys descriptions back in
-# priority order — no error, no log. Whether that makes a skill stop FIRING was measured
-# on 2026-09-15 and it does not: 47/50 vs 47/50 name-only
-# (rationale/2026-09-15-listing-eviction-probe.md). This gate is kept anyway — one
-# measurement at n=50 on one model is not grounds to delete a gate, and this repo has
-# already withdrawn a delta that three runs agreed on. Treat the README declaration it
-# forces as a disclosure, not as a fix for a proven defect. Four shipped
-# bundles overflow that floor while fitting comfortably at 1M, so whether an install is
-# broken depends on which tier the USER runs — a fact only the bundle can warn about,
-# and on 2026-08-31 none did.
-#
-# THE RULE: a bundle whose entry cost (name + 4 + min(description + " - " + when_to_use, 1536)
-# per skill/command, members + the bundle's own, plus separators) exceeds 6,000 chars
-# must mention `skillListingBudgetFraction` in its README — the settings.json lever that
-# fixes it — or carry `<!-- listing-floor-ok: <why> -->`.
-#
-# HONEST LIMITATION: gates that the STRING appears, not that the declared numbers are
-# right — a README recommending 0.02 where the bundle needs 0.03 passes identically.
-# The entry-cost walk is pc_listing_entry_cost above — ONE implementation shared with
-# context-budget.sh's listing channel, so the figures agree by construction. The floor
-# CONSTANT (6000) still duplicates context-budget.sh's 200k default by value; if the CLI
-# changes its formula both go stale together and this comment is the pointer. Agents are
-# excluded because they render in a separate system-prompt section.
-pc_listing_declaration() {
-  local root="${1:-plugins}" floor=6000 bad=0
-  local pj bname mdir total n readme
-  for pj in "$root"/*/.claude-plugin/plugin.json; do
-    [ -f "$pj" ] || continue
-    jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
-    bname=$(jq -r '.name' "$pj" 2>/dev/null); [ -n "$bname" ] || continue
-    total=0; n=0
-    while IFS= read -r mdir; do
-      # A dangling dependency is skipped SILENTLY here, and that is safe only
-      # because validate.sh's all-bundle dependency gate already hard-fails any
-      # dep that is not a marketplace plugin name — in CI the undercount can
-      # never be the only symptom.
-      [ -d "$mdir" ] || continue
-      set -- $(pc_listing_entry_cost "$mdir")
-      total=$(( total + $1 )); n=$(( n + $2 ))
-    done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null | sed "s|^|$root/|; s|@.*||"; printf '%s\n' "$root/$bname")
-    [ "$n" -gt 1 ] && total=$(( total + n - 1 ))
-    [ "$total" -le "$floor" ] && continue
-    readme="$root/$bname/README.md"
-    grep -q 'listing-floor-ok:' "$readme" 2>/dev/null && continue
-    grep -q 'skillListingBudgetFraction' "$readme" 2>/dev/null && continue
-    printf 'listing-floor-undeclared %s (%s chars > %s floor)\n' "$bname" "$total" "$floor"
-    bad=1
-  done
-  return $bad
 }

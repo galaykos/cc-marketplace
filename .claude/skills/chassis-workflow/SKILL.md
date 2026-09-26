@@ -1,6 +1,6 @@
 ---
 name: chassis-workflow
-description: How this repo's chassis generator works — .chassis.json manifests, scripts/generate.sh --check/--write, templates/, gates. Use when creating or editing any chassis-generated file (worker agents, suite uninstalls, reminder hooks, boost hooks), when a file carries a "generated from templates/..." header, when adding a .chassis.json, or when validate.sh complains about chassis headers or drift.
+description: How this repo's chassis generator works — .chassis.json manifests, scripts/generate.sh --check/--write, templates/, gates. Use when creating or editing any chassis-generated file (worker agents, reminder hooks, boost hooks), when a file carries a "generated from templates/..." header, when adding a .chassis.json, or when validate.sh complains about chassis headers or drift.
 ---
 
 # Chassis workflow (cc-marketplace)
@@ -12,9 +12,8 @@ the plugin's `.chassis.json`, then regenerate.
 ## The pieces
 
 - `plugins/<name>/.chassis.json` — ONE chassis object or an ARRAY of them.
-  Four renderers survive: `worker-agent` (stamps the agent file declared in
-  `agentFile`), `suite-uninstall` (stamps `commands/uninstall.md`),
-  `reminder-hook` (stamps `hooks/remind.sh`, or the `file` it names),
+  Three renderers survive: `worker-agent` (stamps the agent file declared in
+  `agentFile`), `reminder-hook` (stamps `hooks/remind.sh`, or the `file` it names),
   `boost-hook` (stamps the `hooks/<name>.sh` named in `file` — the ultra-*
   injectors; `regex2`/`message2` add an elif branch). Plus `optout`, which
   renders nothing and declares a chassis-shaped file intentionally
@@ -23,13 +22,16 @@ the plugin's `.chassis.json`, then regenerate.
   **retired 2026-09-22** — panel finding 64: one rendered file behind a
   template, four partials and nine justifications. `commands/review.md` is
   still a chassis-shaped NAME, so the files that kept it are `optout` entries
-  now; `generate.sh` dies on `"chassis":"stack-review"`.
+  now; `generate.sh` dies on `"chassis":"stack-review"`. `suite-uninstall` (with
+  `templates/suite-uninstall.md.tmpl`) was **retired 2026-09-26** with the four
+  suites it rendered for — no plugin may declare `dependencies`
+  (`pc_plugin_dependencies`), so no bundle is left to uninstall; `generate.sh` dies on
+  that kind too.
 - Every artifact-rendering object also carries **`lane`** —
   `{"owns", "trigger", "yieldsTo"[, "phase"]}` — and generate.sh renders the
   plugin's lane.tsv row for that artifact into a `# generated:start` …
-  `# generated:end` block. A missing `lane` key is a hard error. The uninstall
-  command is the one kind with a default phase (`ship`); **hooks and agents
-  must declare `phase` explicitly** (a hook's phase is what `pc_phase_guard` reads;
+  `# generated:end` block. A missing `lane` key is a hard error. No surviving
+  kind has a default phase: **hooks and agents must declare `phase` explicitly** (a hook's phase is what `pc_phase_guard` reads;
   `any` exempts it). Never hand-write a lane row for a generated artifact — the
   generator dies on the duplicate.
 - `templates/*.tmpl` + `templates/blocks/` — the sources. Engine:

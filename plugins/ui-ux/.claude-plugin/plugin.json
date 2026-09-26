@@ -1,6 +1,6 @@
 {
   "name": "ui-ux",
-  "version": "0.27.0",
+  "version": "0.27.1",
   "description": "UI/UX foundations with per-stack skills for shadcn/ui and Tailwind, a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, motion best practices, theme creation with a live colour preview, a /ui-ux:build entry point, a WCAG 2.2 AA accessibility audit (/ui-ux:audit, the a11y-audit skill, and an a11y-engineer worker), and ui-ux-reviewer + ui-ux-engineer agents. Component-library skills (MUI, Astryx, ReUI, Aceternity, PrimeReact, component-libraries) live in the ui-libraries plugin — install both.",
   "author": {
     "name": "Ivan-WG",

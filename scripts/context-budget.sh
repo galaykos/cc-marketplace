@@ -4,8 +4,8 @@
 #
 #   ALWAYS-ON (scripts/context-budget-baseline.json) — surface every session
 #   pays before a single file is read: the frontmatter `description:` byte
-#   length of skills/*/SKILL.md, commands/*.md, agents/*.md (a bundle sums its
-#   member plugins instead), PLUS the stdout of its SessionStart hooks, PLUS
+#   length of skills/*/SKILL.md, commands/*.md, agents/*.md, PLUS the stdout of
+#   its SessionStart hooks, PLUS
 #   the `tools/list` payload of any local MCP server the plugin declares.
 #
 #   ACTIVATED (scripts/context-budget-activated-baseline.json) — the always-on
@@ -101,8 +101,8 @@ plugin_desc_bytes() {
 # or over with confidence on either measure, and the channel says so when it lands
 # in that band rather than printing a verdict it has not earned.
 # Listing entry cost: delegated to pc_listing_entry_cost in scripts/lib/plugin-checks.sh
-# — the SINGLE implementation, shared with the pc_listing_declaration gate, after the
-# two by-value copies were measured disagreeing by their separator models (9 chars on
+# — the SINGLE implementation (shared with the pc_listing_declaration gate until that
+# went with the bundles, 2026-09-26), after the two by-value copies were measured disagreeing by their separator models (9 chars on
 # taskmaster-suite) while every bundle README told readers to reconcile one against the
 # other. This wrapper returns chars-without-separators and stashes the entry count in
 # The call sites read "chars entries" via `set --` and add the CLI's n-1
@@ -476,7 +476,7 @@ fail=0
 LISTING_CTX_TOKENS=${LISTING_CTX_TOKENS:-$HOST_LISTING_CTX_TOKENS}
 LISTING_BYTES_PER_TOKEN=${LISTING_BYTES_PER_TOKEN:-3}
 # LISTING_FRACTION takes the same unit as the CLI's skillListingBudgetFraction
-# (0.01, 0.02, ...) — the unit every bundle README teaches. awk, not $(( )): the
+# (0.01, 0.02, ...) — the unit all-plugins' README and script teach. awk, not $(( )): the
 # first version read an undocumented integer-percent variable and crashed on
 # exactly the values the READMEs recommend.
 LISTING_FRACTION=${LISTING_FRACTION:-$HOST_LISTING_FRACTION}
@@ -497,53 +497,17 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
   bname=$(jq -r '.name' "$pj" 2>/dev/null)
   [ -n "$bname" ] || continue
 
-  if jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1; then
-    # Bundle: sum member plugins' always-on and dynamic bytes, PLUS the bundle's
-    # own surface. That last clause was missing and it is not a rounding error: a
-    # bundle ships its own `commands/uninstall.md`, whose description loads like
-    # any other command's. Ten bundles × ~69 tok were metered in no channel at
-    # all — 0.6% of `everything`, but 25% of product-suite, 16% of db-suite,
-    # 12% of php-suite. The script's own closing notes name three unmetered
-    # surfaces by name; this one was not among them, so the residual was not
-    # stated anywhere either.
-    total_bytes=$(plugin_desc_bytes "plugins/$bname")
-    dyn_bytes=0
-    act_bytes=$(plugin_desc_bytes "plugins/$bname")
-    set -- $(pc_listing_entry_cost "plugins/$bname")
-    listing_chars=$1; listing_n=$2
-    while IFS= read -r member; do
-      [ -n "$member" ] || continue
-      mdir="plugins/$member"
-      [ -d "$mdir" ] || continue
-      bytes=$(( $(plugin_desc_bytes "$mdir") + $(plugin_sessionstart_bytes "$mdir") + $(plugin_mcp_bytes "$mdir") ))
-      total_bytes=$((total_bytes + bytes))
-      dyn_bytes=$((dyn_bytes + $(plugin_dynamic_hook_bytes "$mdir") ))
-      act_bytes=$((act_bytes + $(plugin_desc_bytes "$mdir") + $(plugin_sessionstart_activated_bytes "$mdir") + $(plugin_mcp_bytes "$mdir") ))
-      set -- $(pc_listing_entry_cost "$mdir")
-      listing_chars=$((listing_chars + $1)); listing_n=$((listing_n + $2))
-    done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null)
-    is_leaf=0
-    members=$(jq -r '.dependencies | length' "$pj" 2>/dev/null || echo 1)
-  else
-    # Leaf: measure the plugin's own dir.
-    pdir="${pj%/.claude-plugin/plugin.json}"
-    total_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_bytes "$pdir") + $(plugin_mcp_bytes "$pdir") ))
-    dyn_bytes=$(plugin_dynamic_hook_bytes "$pdir")
-    act_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_activated_bytes "$pdir") + $(plugin_mcp_bytes "$pdir") ))
-    set -- $(pc_listing_entry_cost "$pdir")
-    listing_chars=$1; listing_n=$2
-    is_leaf=1
-    members=1
-  fi
-  # This plugin's OWN artifacts, for the union row. The leaf branch already walked them
-  # into listing_chars/listing_n; only a bundle (whose row counts its MEMBERS) needs a
-  # second walk. Calling unconditionally re-walked every file of every leaf.
-  if [ "$is_leaf" -eq 1 ]; then
-    own_chars=$listing_chars; own_n=$listing_n
-  else
-    set -- $(pc_listing_entry_cost "${pj%/.claude-plugin/plugin.json}")
-    own_chars=$1; own_n=$2
-  fi
+  # Every plugin is measured from its own dir. A `dependencies` branch summed a bundle's
+  # members (plus its own uninstall command) until 2026-09-26, when the suites were
+  # retired and pc_plugin_dependencies started failing any plugin.json that declares one;
+  # a branch for a shape validate.sh rejects would be dead code with a vote.
+  pdir="${pj%/.claude-plugin/plugin.json}"
+  total_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_bytes "$pdir") + $(plugin_mcp_bytes "$pdir") ))
+  dyn_bytes=$(plugin_dynamic_hook_bytes "$pdir")
+  act_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_activated_bytes "$pdir") + $(plugin_mcp_bytes "$pdir") ))
+  set -- $(pc_listing_entry_cost "$pdir")
+  listing_chars=$1; listing_n=$2
+  own_chars=$listing_chars; own_n=$listing_n
   tokens=$(( (total_bytes + 2) / 4 ))
   dyn_tokens=$(( (dyn_bytes + 2) / 4 ))
   act_tokens=$(( (act_bytes + 2) / 4 ))
@@ -568,19 +532,16 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
     listing_rows="${listing_rows}$(printf '%-24s %9s  NEAR (%s%% of cap, no headroom)' "$bname" "$listing_chars" "$(awk -v a="$listing_chars" -v c="$LISTING_CAP" 'BEGIN{printf "%.0f", 100*a/c}')")
 "
   fi
-  # UNION (all-31). Every row above answers "if you installed only this one thing",
-  # which is the question nobody asks of a marketplace they install whole. The
+  # UNION (every plugin). Every row above answers "if you installed only this one
+  # thing", which is the question nobody asks of a marketplace they install whole. The
   # all-plugins-installed figure appeared in NO tooling here until 2026-09-15, so two
   # independent audits each had to recompute it by hand. The number is deliberately NOT
   # written down here or in any README: this line is the one place that computes it.
-  # Walk plugins/ directly rather than summing the rows: a bundle's row already
-  # includes its members, so summing rows double-counts every multi-owned leaf.
   union_chars=$((union_chars + own_chars)); union_n=$((union_n + own_n))
   union_plugins=$((union_plugins + 1))
-  # TOTAL sums leaves only — bundles would double-count their members.
-  [ "$is_leaf" -eq 1 ] && leaf_tokens_total=$((leaf_tokens_total + tokens))
-  [ "$is_leaf" -eq 1 ] && leaf_dyn_total=$((leaf_dyn_total + dyn_tokens))
-  [ "$is_leaf" -eq 1 ] && leaf_act_total=$((leaf_act_total + act_tokens))
+  leaf_tokens_total=$((leaf_tokens_total + tokens))
+  leaf_dyn_total=$((leaf_dyn_total + dyn_tokens))
+  leaf_act_total=$((leaf_act_total + act_tokens))
 
   # Activated channel: only reported when the state actually changes what a
   # plugin emits. A plugin whose activated figure equals its always-on figure has
@@ -592,8 +553,8 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       act_delta=$((act_tokens - act_b))
       act_rows="${act_rows}$(printf '%-20s %8s %10s %10s' "$bname" "$act_tokens" "$act_b" "$act_delta")
 "
-      if [ "$act_delta" -gt $((2 * members)) ]; then
-        warn_lines="${warn_lines}FAIL: $bname +$act_delta activated tok over baseline (tolerance $((2 * members)); intentional? re-baseline via --update-baseline)
+      if [ "$act_delta" -gt 2 ]; then
+        warn_lines="${warn_lines}FAIL: $bname +$act_delta activated tok over baseline (tolerance 2; intentional? re-baseline via --update-baseline)
 "
         fail=1
       fi
@@ -619,8 +580,8 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       dyn_delta=$((dyn_tokens - dyn_b))
       dyn_rows="${dyn_rows}$(printf '%-20s %8s %10s %10s' "$bname" "$dyn_tokens" "$dyn_b" "$dyn_delta")
 "
-      if [ "$dyn_delta" -gt $((2 * members)) ]; then
-        warn_lines="${warn_lines}FAIL: $bname +$dyn_delta dynamic tok over baseline (tolerance $((2 * members)); intentional? re-baseline via --update-baseline)
+      if [ "$dyn_delta" -gt 2 ]; then
+        warn_lines="${warn_lines}FAIL: $bname +$dyn_delta dynamic tok over baseline (tolerance 2; intentional? re-baseline via --update-baseline)
 "
         fail=1
       fi
@@ -646,7 +607,8 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       baseline_tok="$b"
       delta=$((tokens - b))
       delta_str="$delta"
-      # Tolerance: 2 tokens for a leaf, 2 x member-count for a bundle.
+      # Tolerance: 2 tokens per plugin. (A bundle got 2 x member-count while bundles
+      # existed; they were retired 2026-09-26 and the scaling went with them.)
       #
       # BASIS (a number with no stated basis is theater). The metric is bytes/4,
       # so 2 tokens is an 8-byte edit — one short word. Every meaningful
@@ -655,23 +617,16 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       # i18n from 116 to 117 tokens and exited 1, freezing every description in
       # the marketplace at its current byte length.
       #
-      # A bundle SUMS its members, so a flat 2 would re-create the friction this
-      # removes: three +1 leaf typos all pass, then `everything` fails at +3
-      # naming plugins nobody edited. The bundle allowance is therefore the sum
-      # of its members' allowances.
-      #
       # LIMITATION (honest scope): this converts "any typo is a blocking budget
       # failure" into "only real surface growth is". It does NOT bound aggregate
       # drift — every leaf drifting its full +2 is ~150 tokens across the
-      # marketplace that no run reports, and a bundle's scaled allowance widens
-      # in proportion. Accepted, not covered; the ratchet is per-plugin, and
-      # that is exactly what it means.
-      tolerance=$((2 * members))
-      # Exempt a plugin (or a bundle containing one) whose MCP runtime is absent.
+      # marketplace that no run reports. Accepted, not covered; the ratchet is
+      # per-plugin, and that is exactly what it means.
+      tolerance=2
+      # Exempt a plugin whose MCP runtime is absent.
       mcp_exempt=0
       for mu in $MCP_UNMEASURABLE; do
         [ "$bname" = "$mu" ] && mcp_exempt=1
-        [ "$is_leaf" -eq 0 ] && jq -e --arg m "$mu" '.dependencies | index($m)' "$pj" >/dev/null 2>&1 && mcp_exempt=1
       done
       [ "$mcp_exempt" -eq 1 ] && delta=0 && delta_str="exempt"
       if [ "$delta" -gt "$tolerance" ]; then
@@ -745,8 +700,7 @@ awk -v a="$union_chars" -v c="$LISTING_CAP" -v c1="$LISTING_CAP_1M" -v f="$LISTI
   printf "    to fit WITHOUT eviction set skillListingBudgetFraction to %.3f here, or %.3f at 1M\n", ceil3((a/c)*f), ceil3((a/c1)*f);
   printf "    cost of doing so: about %d system-prompt tokens every turn\n", a/b }
   function ceil3(v,  t){ t = int(v * 1000); return (v * 1000 > t + 1e-9 ? t + 1 : t) / 1000 }'
-echo "    this is the union of every plugin dir, counted once each — NOT the sum of the rows"
-echo "    above, which double-counts any leaf that several bundles list."
+echo "    this is the union of every plugin dir, counted once each."
 if [ -n "${listing_had_rows:-}" ]; then
   echo "  every install not listed above is under the cap and loses nothing to eviction"
   echo "  OVER = a LOADING warning, never a cost one: over budget the CLI reduces entries"
@@ -873,7 +827,6 @@ if [ "$reconcile" -eq 1 ]; then
     recon_json='{}'
     recon_ours=0; recon_off=0; recon_missing=""
     for rpj in plugins/*/.claude-plugin/plugin.json; do
-      jq -e 'has("dependencies")' "$rpj" >/dev/null 2>&1 && continue   # leaves only
       rname=$(jq -r '.name' "$rpj" 2>/dev/null); [ -n "$rname" ] || continue
       rours=$(jq -r --arg b "$rname" '.[$b] // empty' "$BASELINE" 2>/dev/null)
       [ -n "$rours" ] || continue
@@ -960,23 +913,15 @@ if [ "$update" -eq 1 ]; then
   # check above exempts it, so a baseline zeroed here passes locally and then
   # fails CI by the full tool-surface amount (+475 on registry-source,
   # 2026-08-26, written by an --update-baseline run on a node-less machine).
-  # Preserve the old value for the plugin and add the deficit back into every
-  # bundle that sums it, in both the always-on and activated channels.
+  # Preserve the old value for the plugin. (The deficit was also added back into every
+  # bundle that summed it, in both channels, until the bundles were retired 2026-09-26.)
   for mu in $MCP_UNMEASURABLE; do
     old_val=$(jq -r --arg p "$mu" '.[$p] // empty' "$BASELINE" 2>/dev/null)
     new_val=$(printf '%s\n' "$new_baseline" | jq -r --arg p "$mu" '.[$p] // empty')
     [ -n "$old_val" ] && [ -n "$new_val" ] && [ "$old_val" -gt "$new_val" ] 2>/dev/null || continue
     deficit=$((old_val - new_val))
-    echo "WARN: --update-baseline keeping '$mu' at $old_val (measured $new_val without its MCP runtime; +$deficit restored to containing bundles)" >&2
+    echo "WARN: --update-baseline keeping '$mu' at $old_val (measured $new_val without its MCP runtime; +$deficit not written)" >&2
     new_baseline=$(printf '%s\n' "$new_baseline" | jq --arg p "$mu" --argjson v "$old_val" '.[$p] = $v')
-    for bj in plugins/*/.claude-plugin/plugin.json; do
-      jq -e --arg p "$mu" '(.dependencies // []) | index($p)' "$bj" >/dev/null 2>&1 || continue
-      bnm=$(basename "$(dirname "$(dirname "$bj")")")
-      new_baseline=$(printf '%s\n' "$new_baseline" | jq --arg b "$bnm" --argjson d "$deficit" \
-        'if has($b) then .[$b] += $d else . end')
-      new_act_baseline=$(printf '%s\n' "$new_act_baseline" | jq --arg b "$bnm" --argjson d "$deficit" \
-        'if has($b) then .[$b] += $d else . end')
-    done
   done
   printf '%s\n' "$new_baseline" | jq '.' > "$BASELINE" 2>/dev/null
   printf '%s\n' "$new_dyn_baseline" | jq '.' > "$DYN_BASELINE" 2>/dev/null

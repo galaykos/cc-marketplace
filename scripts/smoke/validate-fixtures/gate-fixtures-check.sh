@@ -2,7 +2,8 @@
 # Fixture harness for the checks the 2026-09-22 specialist panel added to
 # scripts/lib/plugin-checks.sh — pc_cwd_validated (#2), pc_offswitch_named (#5) and
 # pc_version_stamp_tail (#21) — plus pc_state_root and pc_shared_blocks from the
-# 2026-09-25 session review. Each gets BOTH arms: a planted violation that must be
+# 2026-09-25 session review, and pc_plugin_dependencies from the 2026-09-26 suite
+# retirement. Each gets BOTH arms: a planted violation that must be
 # named, and a clean twin that must not be. A check that only ever runs against the live
 # tree proves nothing on the day the tree is clean, which is the day it lands.
 #
@@ -305,6 +306,33 @@ esac
 out=$(pc_rules_reachable "$T/rules-cmd-ok.tsv") && r=0 || r=$?
 [ "$r" -eq 0 ] && [ -z "$out" ] && pass "reachable: a well-formed command row stays clean" \
   || fail "reachable: a well-formed command row stays clean" "rc=$r got: $out"
+
+# ---- pc_plugin_dependencies (suite retirement 2026-09-26) ------------------------
+# No plugin may declare `dependencies`: an update that ADDS one leaves it uninstalled
+# and the plugin fails to load (CLI 2.1.283). Its own root, so no other fixture's
+# plugin.json can make an arm pass or fail by accident.
+D="$T/deps"
+mkpj() { mkdir -p "$D/$1/.claude-plugin"; printf '%s\n' "$2" > "$D/$1/.claude-plugin/plugin.json"; }
+mkpj withdeps '{"name":"withdeps","version":"0.1.0","description":"d","dependencies":["dep-a","dep-b"]}'
+mkpj emptydeps '{"name":"emptydeps","version":"0.1.0","description":"d","dependencies":[]}'
+mkpj nodeps '{"name":"nodeps","version":"0.1.0","description":"d"}'
+out=$(pc_plugin_dependencies "$D") && r=0 || r=$?
+case "$r:$out" in
+  1:*"plugin-dependencies withdeps dep-a dep-b"*) pass "deps: a plugin.json declaring dependencies is named, with its deps" ;;
+  *) fail "deps: a plugin.json declaring dependencies is named, with its deps" "rc=$r got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"plugin-dependencies emptydeps"*) pass "deps: an empty dependencies array still counts as declaring one" ;;
+  *) fail "deps: an empty dependencies array still counts as declaring one" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *nodeps*) fail "deps: a plugin.json with no dependencies key stays clean" "flagged: $out" ;;
+  *) pass "deps: a plugin.json with no dependencies key stays clean" ;;
+esac
+rm -rf "$D/withdeps" "$D/emptydeps"
+out=$(pc_plugin_dependencies "$D") && r=0 || r=$?
+[ "$r" -eq 0 ] && [ -z "$out" ] && pass "deps: a tree with no dependencies key anywhere returns 0 and prints nothing" \
+  || fail "deps: a tree with no dependencies key anywhere returns 0 and prints nothing" "rc=$r got: $out"
 
 [ "$rc" -eq 0 ] && echo "All panel gate-fixture asserts passed."
 exit "$rc"

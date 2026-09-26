@@ -8,14 +8,11 @@
   "code-architecture": 725,
   "code-review": 384,
   "command-guard": 151,
-  "core-suite": 1519,
   "craft-layer": 1085,
-  "craft-suite": 2870,
   "database": 205,
   "debugging": 144,
   "design-kit": 700,
   "devops": 381,
-  "frontend-suite": 1805,
   "git-workflow": 211,
   "hindsight": 159,
   "laravel": 170,
@@ -32,6 +29,5 @@
   "ui-libraries": 408,
   "ui-ux": 677,
   "ultra-deep-research": 220,
-  "web-dev": 336,
-  "workflow-suite": 5835
+  "web-dev": 336
 }

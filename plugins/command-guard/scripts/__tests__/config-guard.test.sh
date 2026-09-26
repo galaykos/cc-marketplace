@@ -66,7 +66,8 @@ print(json.dumps({'session_id':'cg','cwd':'$T','tool_name':'Edit','tool_input':{
 " | CC_CONFIG_GUARD=off "$BASH_BIN" "$HOOK" 2>/dev/null)
 [ -z "$out" ] && ok "CC_CONFIG_GUARD=off silences it" || bad "CC_CONFIG_GUARD=off silences it" "$out"
 
-# The SIBLING's switch, added 0.6.3. core-suite's README sells
+# The SIBLING's switch, added 0.6.3. The core-suite README (the suites were retired
+# 2026-09-26) sold
 # CLAUDE_DESTRUCTIVE_GUARD=deny-only as buying the click-free half of this plugin; this
 # hook is its other ask tier and read only its own variable, so the documented setting
 # left an ask on every config write. Both values that mean "no ask tier" must silence it,

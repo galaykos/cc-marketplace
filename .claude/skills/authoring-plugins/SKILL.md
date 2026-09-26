@@ -34,12 +34,14 @@ Four core keys — name, version, description, author:
   entry name — the validator cross-checks all three
   (scripts/validate.sh, the marketplace-entry check).
 - New plugins start at 0.1.0.
-- One optional key earns its place: dependencies — an array of plugin
-  names (or { "name", "version" } objects) auto-installed with this
-  plugin. Use it for hard couplings and meta-bundles; never to force
-  optional companions on the user.
-- Beyond that, add no extra keys; the manifest is a registration
-  record, not a feature surface.
+- Never declare `dependencies`. Measured on CLI 2.1.283 (2026-09-26): a
+  fresh install pulls them in, but an update that ADDS one leaves it
+  uninstalled and the plugin then fails to load — so a companion added
+  later disables every existing install. `validate.sh` fails the key
+  (`pc_plugin_dependencies`, which carries the measurement); the four
+  meta-bundles were retired for it.
+- Add no extra keys; the manifest is a registration record, not a
+  feature surface.
 
 ## Registration
 
@@ -59,28 +61,25 @@ validation immediately, and a "register it later" plan leaves the tree
 broken for everyone in between. Creation and registration are one
 atomic step.
 
-## Bundle membership (the rider validation cannot catch)
+## Companions and install paths (the rider validation cannot catch)
 
-A new plugin — and a new **agent** inside an existing plugin — is not done when its
-files pass validation. Bundles advertise a set; adding to the set without updating
-the bundle makes the bundle lie, and no gate flags it:
+There are no bundles: the all-in one went 2026-08-31, the four themed suites
+2026-09-26. Users install through `all-plugins` (every plugin, at the time they run
+it) or `/stack-scan:suggest` (a picked set from repo evidence). So a new plugin is
+not done when its files pass validation:
 
-- **There is no all-in bundle.** The one that existed was removed: the host
-  budgets its skill listing at contextWindow x bytesPerToken x 1% (6,000 chars on
-  a default 200k window, 30,000 at 1M — a formula, not a constant), and at 224
-  description-bearing artifacts about three quarters of that bundle arrived
-  name-only, varying per reload. A new leaf plugin therefore joins a THEMED
-  bundle or none — and a bundle over the 6,000-char floor must declare it
-  (`pc_listing_declaration` gates the declaration). The README's leaf count is
-  still gated; keep it in step.
-- **`*-suite` bundles** (`core-suite`, `workflow-suite`, `frontend-suite`,
-  `craft-suite` — every plugin with a `dependencies` array) depend on a themed subset and drive an
-  uninstall prune list. A new plugin or agent in a suite's domain joins that suite's
-  `dependencies` AND its prune list — a suite that claims "all worker agents" must
-  actually contain them.
+- **The README leaf count** is gated (`validate.sh`); keep it in step.
+- **A companion is prose, never a manifest key.** If the plugin needs another to
+  work (craft-layer needs ui-ux and ui-libraries), say so near the top of its README
+  with the exact `claude plugin install <name>@cc-plugins-marketplace` line, and add
+  the pair to plugin-scout's companion rows
+  (`plugins/stack-scan/skills/plugin-scout/references/signals.md`). Nothing checks
+  the prose is true; `pc_scout_names` checks only that the names are live.
+- **Scout reachability.** A plugin earned by a manifest signal needs a
+  `signals.md` row, or it only ever appears in tier 3.
 
-Do this in the same change as the addition. "Register the bundle later" is the same
-broken-tree trap as skipping marketplace registration.
+Do this in the same change as the addition. "Add the companion notice later" is the
+same broken-tree trap as skipping marketplace registration.
 
 ## Composition: pick the smallest artifact
 

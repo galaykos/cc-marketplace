@@ -13,7 +13,7 @@
 # nothing anywhere re-reading the binary they claim to mirror. The 2026-09-22 panel
 # (AR 8, rationale/specialist-panel-2026-09-22.md #59) found them all still correct and
 # entirely unverifiable: a host release that moved one would leave every gate, README
-# paragraph and bundle recommendation in this repo quietly wrong. One definition plus a
+# paragraph and fraction recommendation in this repo quietly wrong. One definition plus a
 # re-read is the smallest thing that makes the claim falsifiable.
 #
 # TWO USES:
@@ -78,5 +78,5 @@ fi
 echo "WARN: host-constants: CLI $pin does NOT declare the constants this repo assumes"
 echo "      declared here: fraction=$HOST_LISTING_FRACTION bytesPerToken=$HOST_LISTING_BYTES_PER_TOKEN ctxTokens=$HOST_LISTING_CTX_TOKENS maxDesc=$HOST_LISTING_MAX_DESC"
 echo "      read from $pin: fraction=$1 bytesPerToken=$2 ctxTokens=$3 maxDesc=$4"
-echo "      fix scripts/host-constants.sh, then re-check every doc that quotes these (README bundle-table paragraph, bundle READMEs, plugins/all-plugins/scripts/all-plugins.sh)"
+echo "      fix scripts/host-constants.sh, then re-check every doc that quotes these (plugins/all-plugins/README.md, plugins/all-plugins/scripts/all-plugins.sh)"
 exit 1
