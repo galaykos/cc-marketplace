@@ -1,0 +1,37 @@
+schema_version: "1.0"
+name: astro-removed-apis
+description: >
+  Astro 6 and 7 removed APIs a mid-2025 memory still writes: `Astro.glob()`,
+  `<ViewTransitions />` (replaced by `<ClientRouter />` or native cross-document view
+  transitions), legacy `src/content/config.ts` collections (now `src/content.config.ts`
+  with loaders), and Zod 4 deprecates `z.string().email()` in favour of `z.email()` (it still works). The package.json
+  pins astro 7. The control arm was expected to write at least one removed API; it did not.
+  Measured 2026-09-26 (deterministic re-grade): control 5/5 with no removed API, so no Astro skill was built; the haiku judge reported 0/5, 4/5 and 1/5 on three passes. Check scores against --keep-temp traces.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Write, Edit, Glob, Grep]
+  prompt: |
+    This Astro project's `package.json` has `"astro": "^7.0.0"`. Add a blog: a `blog`
+    content collection with a schema (title, pubDate, author email, draft flag), a page
+    listing the non-draft posts, a page per post, and smooth page transitions between the
+    list and each post. Write the files.
+runs: 5
+graders:
+  - type: llm
+    focus: trace
+    name: no-removed-apis
+    criteria: |
+      Read the files written. FAIL if any of these REMOVED APIs appear: `Astro.glob(`; an
+      import or use of `ViewTransitions` from `astro:transitions`; the collection defined
+      in `src/content/config.ts` (the legacy location) rather than `src/content.config.ts`;
+      a collection with no `loader` (the legacy type-based API). PASS if none of them
+      appear and a collection, a list page, a post page and a page-transition mechanism
+      exist. `z.string().email()` is DEPRECATED in Zod 4, not removed: do not fail on it here.
+  - type: llm
+    focus: trace
+    name: zod4-current-forms
+    criteria: |
+      Read the files written. PASS if the email field uses Zod 4's top-level `z.email()`
+      (or there is no email validation at all). FAIL if it uses the deprecated
+      `z.string().email()`. Informational: deprecated still works in Zod 4.
