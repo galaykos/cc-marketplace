@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.41.2 — 2026-09-26
+
+- The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. `delegation-contracts/references/fleet-and-apply.md` no longer routes through a bundle; no rule changed.
+
 ## 0.41.1 — 2026-09-26
 
 - `task-execution/references/ui-walk.md`: the walk now checks that a composite widget is one tab stop

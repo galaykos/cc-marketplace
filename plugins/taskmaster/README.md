@@ -206,8 +206,9 @@ in the spec instead of assumptions buried in code.
 
 taskmaster works standalone but reaches full potential alongside
 [stack-scan](../stack-scan/), [task-runner](../task-runner/), and
-code-architecture — see the [marketplace README](../../README.md#bundles)
-for the workflow-suite bundle.
+code-architecture — install each by name (nothing pulls them in; the suite that did was
+retired 2026-09-26), or see the [marketplace README](../../README.md#choosing-in-one-page)
+for the whole-pipeline set.
 
 A spec whose surface is a landing page or marketing site is craft-layer's input:
 `/craft-layer:craft` consumes the spec and its section-decisions never re-interrogates

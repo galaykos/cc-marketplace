@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Renders the four chassis templates (templates/*.tmpl) with the hand-built sample
+# Renders the three chassis templates (templates/*.tmpl) with the hand-built sample
 # manifests (templates/samples/*.json) through card 01's template engine and asserts
 # each one's contract: frontmatter fence at line 1, generated header after it,
 # worker-agent carries all six frontmatter fields plus the three-strikes kill-trigger
 # and renders a host `skills:` line only when the manifest sets `preloadSkills`,
-# suite-uninstall carries its scope discovery and manifest-derived removal set,
 # reminder-hook has shebang line 1 + guards + optional extraGuard, boost-hook gates both
 # branches and behaves, and no {{token}} survives. Engine path overridable via
 # TEMPLATE_ENGINE (default scripts/lib/template-engine.sh).
@@ -14,9 +13,13 @@
 # with it, and so did the injected-key-parity assert — that assert read the enrichment
 # `. + {…}` jq expression, which existed only in the stack-review renderer, and covered
 # only stack-review samples. The failure class it guarded (generate.sh computing a key
-# the frozen samples do not carry) has no live instance left: the four surviving
+# the frozen samples do not carry) has no live instance left: the three surviving
 # renderers pass `{defaults} + .`, so a sample missing a key renders with the default
 # rather than diverging from the tree.
+#
+# suite-uninstall.md.tmpl and its sample were RETIRED 2026-09-26 with the four suites it
+# rendered for: no plugin may declare `dependencies` (pc_plugin_dependencies), so there is
+# no bundle left to uninstall. Its section here went with it.
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -83,20 +86,6 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
     if grep -v '^skills: ' "$W" | diff - "$WN" >/dev/null; then pass "worker: preloadSkills changes that one line only"
     else fail "worker: preloadSkills changes that one line only" "$(grep -v '^skills: ' "$W" | diff - "$WN" | head -5)"; fi
   fi
-fi
-
-# ---- suite uninstall ----------------------------------------------------------
-U="$WORK/uninstall.md"
-if render "$TPL/suite-uninstall.md.tmpl" "$SAMPLES/suite-uninstall.json" "$U"; then
-  [[ "$(line1 "$U")" == "---" ]] && pass "uninstall: line 1 is ---" || fail "uninstall: line 1 is ---" "got [$(line1 "$U")]"
-  expect_has "$U" "<!-- generated from templates/suite-uninstall.md.tmpl" "uninstall: generated header after fence"
-  expect_has "$U" "claude plugin uninstall quality-suite -s <scope> --prune -y" "uninstall: bundle param rendered with explicit scope"
-  # list --json was once a per-plugin divergence to keep OUT; since 2026-08-11 it
-  # is the designed discovery step (scope-aware uninstall — bundles are commonly
-  # installed at project/local scope while the CLI defaults to user).
-  expect_has "$U" "claude plugin list --json" "uninstall: scope discovery present"
-  expect_has "$U" '.dependencies[]?' "uninstall: manifest-derived removal set present"
-  expect_has "$U" "prune --dry-run -s <scope>" "uninstall: honesty check scoped"
 fi
 
 # ---- reminder hook: plain -----------------------------------------------------
@@ -185,7 +174,7 @@ if [ -f "$H" ]; then
 fi
 
 # ---- global invariant: no unrendered {{token}} in any output ------------------
-for f in "$W" "$U" "$H" "$HE" "$HX" "$B" "$BS"; do
+for f in "$W" "$H" "$HE" "$HX" "$B" "$BS"; do
   [[ -f "$f" ]] || continue
   if grep -q '{{' "$f"; then fail "no unrendered token in $(basename "$f")" "$(grep -n '{{' "$f")"; else pass "no unrendered token in $(basename "$f")"; fi
 done

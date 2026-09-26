@@ -6,7 +6,7 @@
 # WHAT IS ASSERTED. The script's whole contract is the sequence of `claude plugin`
 # calls it makes and its exit code, so every case reads both: a shim `claude` on
 # PATH answers the two read commands from fixtures and appends every mutating call
-# to a log. Asserted: only leaves are touched (never a bundle), in sorted order, at
+# to a log. Asserted: every plugin in marketplace.json is touched, in sorted order, at
 # the requested scope; installed/disabled/absent each take their own branch;
 # projectPath must match this project (an entry for another project is NOT
 # installed here); one failing plugin never stops the walk and still exits 1;
@@ -43,15 +43,16 @@ mkdir -p "$BIN" "$MK/.claude-plugin" "$PROJ/sub"
 git -C "$PROJ" init -q 2>/dev/null || true
 PROJ_PHYS="$(cd "$PROJ" && pwd -P)"
 
-# ---- the fixture marketplace: three leaves, one bundle, deliberately unsorted ----------
-for p in beta some-suite all-plugins alpha; do
+# ---- the fixture marketplace: three plugins, deliberately unsorted ----------------------
+# It carried a fourth, a bundle with a `dependencies` array, until 2026-09-26: the script
+# skipped any such plugin, and that filter went when the suites were retired and the
+# repo's validate.sh started failing the key. Every plugin listed is now in scope.
+for p in beta all-plugins alpha; do
   mkdir -p "$MK/plugins/$p/.claude-plugin"
   printf '{"name":"%s","version":"1.0.0"}\n' "$p" > "$MK/plugins/$p/.claude-plugin/plugin.json"
 done
-jq -n '{name:"some-suite",version:"1.0.0",dependencies:["alpha","beta"]}' > "$MK/plugins/some-suite/.claude-plugin/plugin.json"
 jq -n '{name:"cc-plugins-marketplace",plugins:[
   {name:"beta",source:"./plugins/beta"},
-  {name:"some-suite",source:"./plugins/some-suite"},
   {name:"all-plugins",source:"./plugins/all-plugins"},
   {name:"alpha",source:"./plugins/alpha"}]}' > "$MK/.claude-plugin/marketplace.json"
 
@@ -114,13 +115,12 @@ calls_are() { # calls_are <label> <expected log, newline-separated>
 installed
 run -- install
 rc_is "fresh install exits 0" 0
-calls_are "installs every leaf in sorted order, never the bundle" \
+calls_are "installs every listed plugin in sorted order" \
 "plugin install all-plugins@$MK_NAME -s local
 plugin install alpha@$MK_NAME -s local
 plugin install beta@$MK_NAME -s local"
 out_has "summary counts a fresh install" "installed 3, enabled 0, skipped 0, failed 0 of 3 leaves at scope local"
 out_has "reload hint after an install" "Run /reload-plugins — nothing installed this run is active until you do."
-out_not "the bundle is not even listed" "some-suite"
 
 # ---- 2. mixed state: skip the installed, enable the disabled, install the absent --------
 installed "$(entry alpha local true "$PROJ")" "$(entry beta local false "$PROJ")"

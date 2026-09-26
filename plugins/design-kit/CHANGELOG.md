@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.1 — 2026-09-26
+
+- The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. The `system` skill's install hint names design-kit directly instead of the retired `craft-suite`.
+
 ## 0.6.0 — 2026-09-25
 
 - `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.
@@ -124,7 +128,7 @@ Consumer-facing changes only. Newest first.
   → the hook speaks again and the stale file is unlinked.
 
 ### Added
-- **design-kit is in a bundle.** It joined `craft-suite` (0.8.0) alongside craft-layer and
+- **design-kit is in a bundle.** It joined `craft-suite` (0.8.0) alongside craft-layer and <!-- removed-ok -->
   ui-ux, which had zero references to it between them, and craft-layer's Reuse map now names
   the two moves it owns: pre-build artboards, and the extracted `design-system/` record.
 - **A DTCG interop paragraph in the README.** Names the Format Module 2025.10 draft, the two

@@ -52,12 +52,6 @@ trap 'rm -rf "$WORK"' EXIT
 
 die() { printf 'generate.sh: %s\n' "$1" >&2; exit 1; }
 
-# The README steps below cost the skill listing and quote the host's constants. Both
-# come from the SINGLE implementations — pc_listing_entry_cost (shared with
-# context-budget.sh's listing channel and the pc_listing_declaration gate) and
-# scripts/host-constants.sh (re-read out of the pinned CLI by its own --check).
-# Sourcing is read-only; nothing here runs context-budget.sh.
-. "$SCRIPT_DIR/lib/plugin-checks.sh" || die "cannot source scripts/lib/plugin-checks.sh"
 
 # --- template engine (loaded lazily; only rendering needs it) ---------------------
 ENGINE_LOADED=0
@@ -122,8 +116,8 @@ bump_plugin() { # plugin-dir : patch-bump plugin.json once
 }
 
 # --- lane rows: the generated block in <plugin>/lane.tsv ---------------------------
-# Every chassis object that renders an ARTIFACT (review command, suite uninstall,
-# reminder hook, boost hook, worker agent) also declares its lane in a `lane` key —
+# Every chassis object that renders an ARTIFACT (reminder hook, boost hook, worker
+# agent) also declares its lane in a `lane` key —
 #   {"owns": "<territory>", "trigger": "<definite trigger>", "yieldsTo": "a:b,c:d" | "-",
 #    "phase": "<optional override>"}
 # — and generate.sh renders one six-field lane.tsv row per artifact into a block
@@ -137,8 +131,9 @@ bump_plugin() { # plugin-dir : patch-bump plugin.json once
 # hand-edited file — exactly the drift the chassis exists to prevent
 # (collective-taskforce-backlog #8). A missing `lane` key is a hard error in both
 # modes: every manifest has carried one since the 2026-09-03 sweep.
-# Phase: commands default (review command → review, suite uninstall → ship);
-# hooks and agents MUST declare `lane.phase` explicitly — a hook's phase is what
+# Phase: no surviving renderer supplies a default — the two command kinds that did
+# (review command → review, suite uninstall → ship) were retired 2026-09-22 and
+# 2026-09-26 — so hooks and agents MUST declare `lane.phase` explicitly — a hook's phase is what
 # pc_phase_guard reads (`any` exempts it from the sentinel), and the shipped rows
 # disagree with any default (api-design:remind build, taskmaster:remind shape,
 # testing:test-engineer verify), so a default there would silently disarm a gate.
@@ -215,14 +210,6 @@ write_lane_block() { # plugin-dir — called once per manifest after its objects
 }
 
 # --- per-chassis renderers --------------------------------------------------------
-render_suite_uninstall() { # obj plugin-dir
-  local obj="$1" pdir="$2" dfile="$WORK/m.json" rfile="$WORK/r.out"
-  printf '%s' "$obj" > "$dfile"; ensure_engine
-  render_template "$TEMPLATES/suite-uninstall.md.tmpl" "$dfile" > "$rfile" || die "render failed: ${2#$ROOT/} uninstall.md"
-  emit "$rfile" "$pdir/commands/uninstall.md" 0 "$pdir"
-  lane_row "$obj" "$pdir" "$(basename "$pdir"):uninstall" command ship
-}
-
 render_reminder_hook() { # obj plugin-dir
   local obj="$1" pdir="$2" dfile="$WORK/m.json" rfile="$WORK/r.out"
   # budgetShared/budgetExempt are GONE. They were derived complements standing in
@@ -299,7 +286,6 @@ render_chassis() { # obj plugin-dir
       reason="$(printf '%s' "$obj" | jq -r '.reason // "(no justification)"')"
       OPTOUT_REPORT="$OPTOUT_REPORT
   $rel: $reason" ;;
-    suite-uninstall) render_suite_uninstall "$obj" "$pdir" ;;
     reminder-hook)   render_reminder_hook   "$obj" "$pdir" ;;
     boost-hook)      render_boost_hook      "$obj" "$pdir" ;;
     worker-agent)    render_worker_agent    "$obj" "$pdir" ;;
@@ -346,10 +332,11 @@ render_catalog() {
 }
 
 # --- repo-level README block applier ----------------------------------------------
-# Three README regions are generated now, not one, so the substitute-and-diff that was
-# inlined in the bundle-table step is a helper. Each block owns a marker pair and
-# rewrites only its own region; applying them in sequence against the file on disk is
-# safe because the regions do not overlap and --check never writes.
+# One README region is generated now: the off-switch table. The bundle-table and
+# no-suite-leaves blocks went with the suites on 2026-09-26 (no plugin may declare
+# `dependencies`, so there is no bundle to tabulate and no leaf outside one). The
+# helper stays a helper: each block owns a marker pair and rewrites only its own
+# region, and a second block needs nothing but a second call.
 #
 # A fixture root (CHASSIS_ROOT pointed at a smoke harness tree) has no root README —
 # every caller returns early rather than dying, or each harness that overrides
@@ -439,179 +426,6 @@ how you tell those apart.'
   readme_apply '<!-- generated:offswitch-table -->' '<!-- end:offswitch-table -->' "$block"
 }
 
-# --- repo-level no-suite-leaves step -----------------------------------------------
-# The leaves that belong to no bundle, derived from marketplace.json and each
-# plugin.json's `dependencies`. The hand-written paragraph this replaces warned in its
-# own last sentence that the list goes stale, and it had: design-kit was named in no
-# bundle and in no list (UX 6, rationale/specialist-panel-2026-09-22.md #39). A list
-# that carries its own staleness warning is a list that should be generated.
-render_no_suite_leaves() {
-  local block="$WORK/nosuite.md" mp="$ROOT/.claude-plugin/marketplace.json"
-  local deps names lp n
-  [ -f "$ROOT/README.md" ] || return 0
-  [ -f "$mp" ] || die "no-suite-leaves step: marketplace.json not found: $mp"
-  deps=$(for lp in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
-           [ -f "$lp" ] && jq -r '.dependencies[]?' "$lp" 2>/dev/null
-         done | sed 's/@.*//' | LC_ALL=C sort -u)
-  names=""
-  for n in $(jq -r '.plugins[].name' "$mp" 2>/dev/null | LC_ALL=C sort); do
-    [ -f "$ROOT/plugins/$n/.claude-plugin/plugin.json" ] || continue
-    jq -e 'has("dependencies")' "$ROOT/plugins/$n/.claude-plugin/plugin.json" >/dev/null 2>&1 && continue
-    printf '%s\n' "$deps" | grep -qxF "$n" && continue
-    names="$names, \`$n\`"
-  done
-  names="${names#, }"
-  [ -n "$names" ] || names="none — every leaf is in a bundle"
-  {
-    printf '%s' '<!-- generated:no-suite-leaves -->'
-    printf '%s\n\n' '<!-- generated by scripts/generate.sh (no-suite-leaves step) from .claude-plugin/marketplace.json and each plugin.json'"'"'s dependencies — do not edit this list by hand -->'
-    printf 'Suites are curated starting points, not coverage. These leaves belong to no bundle:\n\n%s.\n\n' "$names"
-    printf '%s\n' 'The stack and domain ones are named by `/stack-scan:suggest` when the project'"'"'s
-manifests earn them; the rest are per-project or per-user opt-ins. Install them by name.'
-    printf '\n%s\n' '<!-- end:no-suite-leaves -->'
-  } > "$block"
-  readme_apply '<!-- generated:no-suite-leaves -->' '<!-- end:no-suite-leaves -->' "$block"
-}
-
-# --- repo-level bundle-table step -------------------------------------------------
-# Rewrites the README region between <!-- generated:bundle-table --> and its closing
-# marker from two committed sources: each bundle's plugin.json .dependencies length,
-# and scripts/context-budget-{,dynamic-}baseline.json. Before this step the table was
-# hand-maintained and wrong: it read `everything | 57 | ~10.6k tokens` against 58
-# dependencies and a measured 11,998 + 2,399, and validate.sh's leaf-count grep
-# matched the correct prose elsewhere in the file and never reached the row. The
-# token column is not catalog trivia — it is the product's cost warning, and a cost
-# warning nobody generates is a cost warning nobody updates. Enforced by the same
-# blocking --check drift pass as every other generated file.
-render_bundle_table() {
-  local target="$ROOT/README.md" block="$WORK/bundle-table.md"
-  local base="$ROOT/scripts/context-budget-baseline.json"
-  local dyn="$ROOT/scripts/context-budget-dynamic-baseline.json"
-  local act="$ROOT/scripts/context-budget-activated-baseline.json"
-  # A fixture root (CHASSIS_ROOT pointed at a smoke harness tree) has no root
-  # README — skip rather than die, or every harness that overrides CHASSIS_ROOT
-  # reads this step's abort as chassis drift. A REAL repo losing its README is
-  # caught by validate.sh's leaf-count gate, which cannot pass without one.
-  [ -f "$target" ] || return 0
-
-  # THE LISTING FLOOR, computed rather than typed: the host's own context window and
-  # budget fraction (scripts/host-constants.sh) against the 3-bytes-per-token tokenizer,
-  # which is the worst realistic case and the one context-budget.sh's listing channel
-  # reports. Derivation and the NEAR band are in that script's LISTING_* header.
-  local floor near_lo near_hi
-  floor=$(awk -v t="$HOST_LISTING_CTX_TOKENS" -v f="$HOST_LISTING_FRACTION" 'BEGIN{printf "%d", t*3*f}')
-  case "$floor" in ''|*[!0-9]*|0) floor=6000 ;; esac
-  near_lo=$((floor * 97 / 100)); near_hi=$((floor * 103 / 100))
-
-  # k-tokens, one decimal, from a raw token count. 0 renders as an em dash so an
-  # empty cell reads as "measured zero", not "not measured".
-  # k-tokens, one decimal, from a raw token count. 0 renders as an em dash so an
-  # empty cell reads as "measured zero", not "not measured". Under 1k renders in
-  # raw tokens: the first activated column produced `~0.0k tokens` for a real
-  # 37-token cost, which reads as nothing and is worse than the number.
-  fmt_k() {
-    [ "$1" -eq 0 ] && { printf '%s' '—'; return; }
-    [ "$1" -lt 1000 ] && { printf '~%s tokens' "$1"; return; }
-    printf '~%s.%sk tokens' $(( ($1 + 50) / 1000 )) $(( ((($1 + 50) / 100) % 10) ))
-  }
-
-  {
-    printf '%s' '<!-- generated:bundle-table -->'
-    printf '%s\n\n' '<!-- generated by scripts/generate.sh (bundle-table step) from each bundle'"'"'s plugin.json dependencies + scripts/context-budget-*baseline.json — do not edit these rows by hand -->'
-    printf '| Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt | Skill listing vs the %s-char floor | Fraction its README names |\n' "$floor"
-    printf '|--------|---------|-------------------|--------------------|----------------------------|------------------------------------|---------------------------|\n'
-    for pj in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
-      [ -f "$pj" ] || continue
-      jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
-      bn=$(jq -r '.name' "$pj"); dc=$(jq -r '.dependencies | length' "$pj")
-      at=$(jq -r --arg b "$bn" '.[$b] // 0' "$base" 2>/dev/null); at=${at:-0}
-      dt=$(jq -r --arg b "$bn" '.[$b] // 0' "$dyn" 2>/dev/null); dt=${dt:-0}
-      # Activated = the same always-on surface once the state its hooks wait for
-      # exists (a terse level set, a brain map present). Shown as the DELTA over
-      # always-on, because that is the part no baseline saw before 2026-08-20 and
-      # the part a user cannot predict from the install alone.
-      ac=$(jq -r --arg b "$bn" '.[$b] // 0' "$act" 2>/dev/null); ac=${ac:-0}
-      ad=0; [ "$ac" -gt "$at" ] && ad=$((ac - at))
-      # LISTING COLUMN. Same walk the context-budget listing channel and the
-      # pc_listing_declaration gate use — pc_listing_entry_cost, one implementation —
-      # so the three figures agree by construction rather than by reconciliation.
-      # Members plus the bundle's OWN uninstall command, plus the CLI's n-1 joins.
-      lc=0; ln=0
-      while IFS= read -r member; do
-        [ -n "$member" ] && [ -d "$ROOT/plugins/$member" ] || continue
-        set -- $(pc_listing_entry_cost "$ROOT/plugins/$member")
-        lc=$((lc + $1)); ln=$((ln + $2))
-      done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null)
-      set -- $(pc_listing_entry_cost "$ROOT/plugins/$bn")
-      lc=$((lc + $1)); ln=$((ln + $2))
-      [ "$ln" -gt 1 ] && lc=$((lc + ln - 1))
-      if   [ "$lc" -gt "$near_hi" ]; then ls_col="OVER ($(awk -v a="$lc" -v c="$floor" 'BEGIN{printf "%.1f", a/c}')x, $lc chars)"
-      elif [ "$lc" -ge "$near_lo" ]; then ls_col="NEAR ($(awk -v a="$lc" -v c="$floor" 'BEGIN{printf "%.0f", 100*a/c}')%, $lc chars)"
-      else                                ls_col="OK ($(awk -v a="$lc" -v c="$floor" 'BEGIN{printf "%.0f", 100*a/c}')%, $lc chars)"
-      fi
-      # The fraction that bundle's OWN README recommends, read out of it. Two of the
-      # four were missing from the hand-written prose; a column cannot skip a row.
-      fr=$(grep -oE '"skillListingBudgetFraction"[[:space:]]*:[[:space:]]*[0-9.]+' "$ROOT/plugins/$bn/README.md" 2>/dev/null \
-           | head -1 | grep -oE '[0-9.]+$')
-      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$at" "$bn" "$dc" "$dt" "$ad" "$ls_col" "${fr:-—}"
-    done | sort -rn -k1,1 | while IFS=$'\t' read -r at bn dc dt ad ls_col fr; do
-      printf '| `%s` | %s | %s | %s | %s | %s | %s |\n' "$bn" "$dc" "$(fmt_k "$at")" "$(fmt_k "$ad")" "$(fmt_k "$dt")" "$ls_col" "$fr"
-    done
-    nonsuite=0
-    for lp in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
-      [ -f "$lp" ] || continue
-      jq -e 'has("dependencies")' "$lp" >/dev/null 2>&1 || nonsuite=$((nonsuite+1))
-    done
-    printf '\nEvery row is a curated subset. The marketplace ships all %s leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and it also raises `skillListingBudgetFraction` in the scope it installs to, so the listing is sent whole — its README carries the arithmetic and the one measurement (2026-09-15, n=50) that found the overflow changes nothing detectable.\n' "$nonsuite"
-    # The fraction each OVER bundle's own README names, READ OUT of those READMEs
-    # rather than typed here. Two of the four were missing from the hand-written list
-    # (craft-suite and frontend-suite, found 2026-09-22) — a reader who installed
-    # either was told to use "the value that bundle's README names" and then shown a
-    # parenthesis that did not name it. Deriving it means the sentence cannot go stale
-    # when a bundle crosses the floor.
-    frac_list=""
-    for bp in "$ROOT"/plugins/*/README.md; do
-      bj="$(dirname "$bp")/.claude-plugin/plugin.json"
-      [ -f "$bj" ] || continue
-      jq -e 'has("dependencies")' "$bj" >/dev/null 2>&1 || continue
-      fv=$(grep -oE '"skillListingBudgetFraction"[[:space:]]*:[[:space:]]*[0-9.]+' "$bp" \
-           | head -1 | grep -oE '[0-9.]+$')
-      [ -n "$fv" ] || continue
-      frac_list="$frac_list, $fv for $(jq -r '.name' "$bj")"
-    done
-    frac_list="${frac_list#, }"
-    [ -n "$frac_list" ] || frac_list="no bundle currently declares one"
-
-    # The budget these numbers are measured AGAINST, stated once, with its source.
-    # Claude Code budgets the skill listing at 1%% of the model context window and,
-    # on overflow, drops descriptions starting with the skills you invoke least —
-    # names survive, trigger keywords do not. So a bundle above that line does not
-    # error; it silently loses the tail's discoverability, per user, by invocation
-    # history. Our figures also read LOW: `claude plugin details` charges a
-    # per-component floor our bytes/4 estimate does not, measured at 1.54x across
-    # the 61 leaves on 2026-08-20 (scripts/context-budget-official.json).
-    printf '\nThe budget these are measured against is the host'"'"'s skill listing, and it is a FORMULA,\nnot a constant — read out of the shipped CLI, not from documentation, and re-read on every\nCI run by `scripts/host-constants.sh --check` against the pinned build:\n\n    budget_chars = contextWindowTokens x bytesPerToken x skillListingBudgetFraction\n\n`skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.\nIf you install a bundle flagged over the 200k floor, set it to the value that bundle'"'"'s README\nnames (%s) in the settings.json of the PROJECT where you use it — the fraction is a\nceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the\ndescriptions being evicted.\n`bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including\nopus-5. So the budget spans 6.7x by where you run: **6,000 chars** on opus-5 at 200k,\n**30,000** at 1M, 8,000 / 40,000 on a 4-byte model. A second cap truncates any single\ndescription past **1,536** chars (`skillListingMaxDescChars`); this repo lints at 500, so it\nnever binds. Over budget the CLI reduces entries to name-only and buys descriptions back in\npriority order — text past the budget is never sent, so it costs reachability, never tokens.\nThe cost is per ENTRY, `name + 4 + description`, so artifact COUNT is charged directly: that\nis the mechanical reason fewer artifacts beats shorter descriptions.\nUnit note: the token columns above are estimated at 4 bytes/token; on the 3-bytes-per-token\nmodels this paragraph calls current, add ~33%%. The host also charges a per-component floor\nthis estimate does not — a 2026-08-20 snapshot measured ~1.5x on a now-changed tree; treat\nthat as an order-of-magnitude correction, never as a coefficient\n(`scripts/context-budget-official.json` header has the derivation and the staleness).\n' "$frac_list"
-    # THE HOST'S OWN REMEDIES, ordered as the host orders them (`/skills` first) and
-    # placed as the LAST word on the subject so it is what a reader leaves with: they
-    # are the only lever that reduces the CHARGE rather than buying more ceiling.
-    # Added 2026-09-22 — `/skills` and `/skill-doctor` appeared in zero shipped docs
-    # while every bundle README taught the fraction, and the 2026-09-15 probe measured
-    # the byte framing as the wrong first move.
-    printf '\n%s\n' 'Before raising the fraction, use what the host already ships, in the order it names them:
-**`/skills`** lists every skill the session can see with its source, and lets you turn off the
-ones this project does not need — the cost is charged per ENTRY (`name + 4 + description`), so
-fewer entries is the only lever that reduces it rather than buying more ceiling.
-**`/skill-doctor`** then reports what is reachable and what is being evicted, which is how you
-find out whether anything you rely on sits in the tail. Raise the fraction third.
-And do not trim descriptions to fit: measured 2026-09-15, n=50 per arm
-(`rationale/2026-09-15-listing-eviction-probe.md`), stripping a description changed firing by
-nothing (47/50 both arms), while OVERLAP between skills contesting one territory dropped firing
-from 100% to ~75%. What costs a marketplace is two skills that sound alike, not long text.'
-    printf '\n%s\n' '<!-- end:bundle-table -->'
-  } > "$block"
-  readme_apply '<!-- generated:bundle-table -->' '<!-- end:bundle-table -->' "$block"
-}
-
 # --- main -------------------------------------------------------------------------
 shopt -s nullglob
 for manifest in "$ROOT"/plugins/*/.chassis.json; do
@@ -630,9 +444,7 @@ for manifest in "$ROOT"/plugins/*/.chassis.json; do
 done
 
 render_catalog
-render_bundle_table
 render_offswitch_table
-render_no_suite_leaves
 
 if [ "$MODE" = write ]; then
   for pdir in $CHANGED_PLUGINS; do bump_plugin "$pdir"; done

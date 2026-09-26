@@ -2,7 +2,17 @@
 
 Installs every leaf plugin of this marketplace at one scope, with zero prompts, raises
 the host's skill-listing budget so every description is actually sent, and undoes both.
-One script, one exit code; the two commands only relay it.
+One script, one exit code; the two commands only relay it. "Every leaf" means every
+plugin in the marketplace's `marketplace.json` — there are no bundles to skip (the suites
+were retired 2026-09-26) — and that includes `all-plugins` itself, which `install` covers
+(normally a `skip`) and `uninstall` keeps unless `--self`.
+
+> **Re-run it after every marketplace update.** `install` installs what the marketplace
+> holds **when you run it**. `/plugin marketplace update` updates the plugins you have;
+> it installs none that were added since. Run `/all-plugins:install` again after each
+> update — installed plugins are skipped, new ones install. `ui-libraries`, split out of
+> `ui-ux` on 2026-09-26, is one such plugin: an install from before that date lacks it
+> until you re-run.
 
 ## Three ways to run it
 
@@ -45,9 +55,8 @@ disk before any plugin is installed.
 
 ## What it does not do
 
-- **Never installs a bundle.** Leaves only — every plugin whose manifest has no
-  `dependencies` key, the same rule `scripts/validate.sh` counts leaves by. A bundle
-  is a curated subset of those same leaves, so beside the full set it adds nothing.
+- **Does not follow the marketplace.** The list is read when the script runs; a plugin
+  added later arrives only when you run `install` again (the notice at the top).
 - **Never touches another marketplace.** The plugin list is read from one added
   marketplace's `marketplace.json` (this one unless `--marketplace` says otherwise),
   never from what happens to be installed.
@@ -63,7 +72,7 @@ disk before any plugin is installed.
 
 | Rule | Standing |
 |---|---|
-| The exit codes, the leaves-only list, the scope flag, zero prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
+| The exit codes, the every-listed-plugin list, the scope flag, zero prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
 | The commands relay the script instead of running `claude plugin install` themselves | **agent-graded** — it is instruction text in `commands/*.md`; nothing detects a substituted loop |
 | The budget step: the fraction written, never lowered, foreign values kept, invalid JSON untouched, removed only when it is the script's own value | **gate** — the same harness drives it against fixture settings files |
 | The overflow arithmetic | **recorded** — reproduced by `scripts/context-budget.sh`; the 0.07 figure moves as the marketplace grows, and the script recomputes it on every run |
@@ -100,6 +109,6 @@ buying nothing; it exists because sending every description is the one way to ma
 question moot, and it costs one settings key you can see and remove.
 
 The `everything` bundle that once existed served this same want and was removed on the
-"unreachable" reading, before the probe. This plugin is a script, not a bundle: it has no `dependencies` key, so
-the bundle listing gates (`pc_listing_declaration`, the README member check) do not
-apply to it — which is why the cost is stated here instead of enforced by one.
+"unreachable" reading, before the probe. This plugin is a script, not a bundle, and no
+gate enforces the cost stated here — it is recorded (see "What has teeth") and
+recomputed by `scripts/context-budget.sh` on every run.

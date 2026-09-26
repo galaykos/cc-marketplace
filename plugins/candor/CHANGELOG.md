@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.5.1 — 2026-09-26
+
+- The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. Wording that named the retired bundles in this plugin's hook text and README now describes the plugin standing alone; no behaviour changed.
+
 ## 0.5.0 — 2026-09-25
 
 - `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.

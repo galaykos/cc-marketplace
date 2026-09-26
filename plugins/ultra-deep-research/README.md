@@ -125,7 +125,7 @@ Two plugins call this one; neither is required by it:
 
 ## Suite membership
 
-None — standalone by design (recorded; nothing enforces this). A research run
-fans out parallel web searches and can escalate to a Workflow-driven
-loop-until-dry sweep — a token cost that should be chosen per install, not
-ride in silently with a bundle (workflow-suite leaves it out for that reason).
+None — there are no suites (retired 2026-09-26), and it was standalone by design before
+that. A research run fans out parallel web searches and can escalate to a
+Workflow-driven loop-until-dry sweep — a token cost that should be chosen per install,
+not ride in silently with anything else.

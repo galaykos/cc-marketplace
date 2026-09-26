@@ -29,7 +29,7 @@ ok()   { echo "PASS: $1"; }
 bad()  { echo "FAIL: $1"; rc=1; }
 
 mkdir -p "$FX/templates/blocks" "$FX/root/.claude-plugin" \
-         "$FX/root/plugins/fixture/.claude-plugin" "$FX/root/plugins/fixture/commands" \
+         "$FX/root/plugins/fixture/.claude-plugin" "$FX/root/plugins/fixture/agents" \
          "$FX/root/plugins/stack-scan/skills/plugin-scout/references"
 
 # generate.sh always runs its repo-level catalog step, which reads marketplace.json
@@ -44,27 +44,30 @@ EOF
 cat > "$FX/root/plugins/fixture/.claude-plugin/plugin.json" <<'EOF'
 { "name": "fixture", "version": "0.1.0", "description": "fixture", "keywords": ["fixture"] }
 EOF
+# The vehicle is the worker-agent chassis. It was suite-uninstall until that renderer
+# was retired with the suites on 2026-09-26; the preserve-block merge lives in emit(),
+# which every renderer shares, so the chassis kind is incidental to what is tested.
 cat > "$FX/root/plugins/fixture/.chassis.json" <<'EOF'
-{ "chassis": "suite-uninstall", "bundle": "fixture",
-  "lane": { "owns": "fixture-uninstall", "trigger": "invoked as /fixture:uninstall", "yieldsTo": "-" } }
+{ "chassis": "worker-agent", "agentFile": "agents/fixture.md",
+  "lane": { "owns": "fixture-work", "trigger": "spawned as fixture:fixture", "yieldsTo": "-", "phase": "build" } }
 EOF
 
 write_tmpl() { # $1 = the line that lives OUTSIDE the preserve block
-  cat > "$FX/templates/suite-uninstall.md.tmpl" <<EOF
-<!-- generated from templates/suite-uninstall.md.tmpl -->
+  cat > "$FX/templates/worker-agent.md.tmpl" <<EOF
+<!-- generated from templates/worker-agent.md.tmpl -->
 $1
 
 <!-- preserve:notes -->
 default note from the template
 <!-- /preserve:notes -->
 
-trailing line for {{bundle}}
+trailing line for {{agentFile}}
 EOF
 }
 write_tmpl "shared line v1"
 
 gen() { CHASSIS_ROOT="$FX/root" CHASSIS_TEMPLATES="$FX/templates" bash scripts/generate.sh "$1" 2>&1; }
-TARGET="$FX/root/plugins/fixture/commands/uninstall.md"
+TARGET="$FX/root/plugins/fixture/agents/fixture.md"
 
 gen --write >/dev/null 2>&1
 # A SKIP here would hide an untested mechanism behind a green run. Hard-fail.

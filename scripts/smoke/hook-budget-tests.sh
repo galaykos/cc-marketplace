@@ -160,42 +160,6 @@ clean "a 170,000 B runtime .html does not count"
 run pc_plugin_corpus "$FIX/pcx" "$FIX/does-not-exist.json"
 clean "missing baseline file is not a violation"
 
-# --------------------------------------------------- pc_listing_declaration
-# A bundle over the 6,000-char floor without a README mention of
-# skillListingBudgetFraction must FAIL; the mention or the bless marker clears
-# it; an under-floor bundle needs nothing. The over-floor fixture is one skill
-# with a 1,536-char (capped) description repeated across five members — cheap to
-# build and safely past the floor. This gate previously had NO harness
-# (gate-coverage.sh reported NONE): a regression in its dependency-resolution
-# sed would have passed CI silently.
-LD="$FIX/ld"; mkdir -p "$LD"
-bigdesc=$(printf 'x%.0s' $(seq 1 1600))
-for m in m1 m2 m3 m4 m5; do
-  mkdir -p "$LD/$m/.claude-plugin" "$LD/$m/skills/big"
-  printf '{"name":"%s","version":"0.0.1","description":"d"}\n' "$m" > "$LD/$m/.claude-plugin/plugin.json"
-  printf -- '---\ndescription: %s\n---\nbody\n' "$bigdesc" > "$LD/$m/skills/big/SKILL.md"
-done
-mkdir -p "$LD/bigbundle/.claude-plugin"
-printf '{"name":"bigbundle","version":"0.0.1","description":"d","dependencies":["m1","m2","m3","m4","m5"]}\n' \
-  > "$LD/bigbundle/.claude-plugin/plugin.json"
-printf '# bigbundle\n' > "$LD/bigbundle/README.md"
-run pc_listing_declaration "$LD"
-fails "over-floor bundle without a declaration fails" "listing-floor-undeclared bigbundle"
-printf 'Set skillListingBudgetFraction in settings.json.\n' >> "$LD/bigbundle/README.md"
-run pc_listing_declaration "$LD"
-clean "the skillListingBudgetFraction mention clears it"
-printf '# bigbundle\n<!-- listing-floor-ok: test fixture -->\n' > "$LD/bigbundle/README.md"
-run pc_listing_declaration "$LD"
-clean "the bless marker clears it"
-LD2="$FIX/ld2"; mkdir -p "$LD2/smallbundle/.claude-plugin" "$LD2/m1/.claude-plugin" "$LD2/m1/skills/s"
-printf '{"name":"m1","version":"0.0.1","description":"d"}\n' > "$LD2/m1/.claude-plugin/plugin.json"
-printf -- '---\ndescription: tiny\n---\nbody\n' > "$LD2/m1/skills/s/SKILL.md"
-printf '{"name":"smallbundle","version":"0.0.1","description":"d","dependencies":["m1"]}\n' \
-  > "$LD2/smallbundle/.claude-plugin/plugin.json"
-printf '# smallbundle\n' > "$LD2/smallbundle/README.md"
-run pc_listing_declaration "$LD2"
-clean "an under-floor bundle needs no declaration"
-
 # --------------------------------------------------------------- pc_hook_shebang
 # Only a script a hooks.json REGISTERS is in scope, so the fixtures must go through
 # a real hooks.json — a loose .sh in hooks/ must not be read at all.
@@ -253,8 +217,6 @@ run pc_command_arg_hint plugins
 clean "shipped tree: every \$ARGUMENTS command declares an argument-hint"
 run pc_budget_crowding plugins scripts/skill-crowding-baseline.json
 clean "shipped tree: crowding at or below the committed baseline"
-run pc_listing_declaration plugins
-clean "shipped tree: every over-floor bundle declares the requirement"
 
 
 run pc_plugin_corpus plugins scripts/plugin-corpus-baseline.json

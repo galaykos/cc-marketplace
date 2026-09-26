@@ -13,7 +13,7 @@ which tier it is: `Your stack` (tier 1, signal-earned), `Any project 1/2`
 (tier 2, the curated core), `Everything else` (tier 3, the remainder). A header
 reading `Tier 1` is a number the user has no way to decode in the picker.
 
-The eligible set is every catalog leaf minus the bundles and stack-scan itself
+The eligible set is every catalog plugin minus stack-scan itself
 — recount it, never write the number down. At 15 per call the bill is **one call
 and four blocking questions per 15 eligible rows**, on every run, in every repo,
 including a Django repo being asked to consider `laravel` and `database` two pages
@@ -68,9 +68,9 @@ TIER 3 — no signal in this repo
   quality/review:     13 toolchain-experts  14 resilience  15 security  16 api-design
   process/planning:   17 taskmaster  18 task-runner  19 overseer
   session-wide:       20 candor  21 hindsight  22 skill-router
-  ui:                 23 ui-ux  24 craft-layer
+  ui:                 23 ui-ux ✓  24 craft-layer
   ...
-  bundles:  frontend-suite (#2,#23,+2) · workflow-suite (#4,#17,#18,+3)
+  companion: ui-ux (#23 ✓) needs ui-libraries — claude plugin install ui-libraries@cc-plugins-marketplace --scope local
 ```
 
 - Header line: eligible count, installed count, detected stack. The installed
@@ -107,9 +107,7 @@ TIER 3 — no signal in this repo
 - **Installed is not a choice.** Before the first question, validate the
   suggestion list against the project-filtered installed set (`SKILL.md`
   Preflight — the raw `claude plugin list` is machine-wide and will wrongly
-  filter rows installed in an unrelated repo) AND the dependency lists of any
-  installed suite bundle (a leaf an installed suite provides is installed in
-  effect). Filtered rows keep their ✓ in the report for inventory but never
+  filter rows installed in an unrelated repo). Filtered rows keep their ✓ in the report for inventory but never
   appear as an option; picked via Other anyway, they are skipped and counted as
   "skipped (already installed)".
 - **Overlap deprioritizes, never hides — and only on a named pair.** Overlap
@@ -142,39 +140,23 @@ tier-3 rows are picked without opening the door, and it takes bulk picks like
 - A token matching nothing in the report: install every token that did match,
   list the unmatched tokens, and ask once more for just those — never guess a
   fuzzy match into an install, and never install anything that is not a report
-  row or a suite named in the under-report shortcut list.
+  row.
 - Already-installed rows picked via Other: skip, count as "skipped (already
   installed)" in the summary.
 - Under `--all`, "Stop — skip remaining" combined with row picks on the same
   page: the row picks install, the stop ends further paging — both honored, say
   so in one line.
 
-## Suites as shortcuts
+## Companions, not shortcuts
 
-Leaves do not depend on each other; a `*-suite` is a convenience bundle that
-installs its members as dependencies. The picker treats a suite as a shortcut,
-never a default:
-
-- A not-installed suite whose `plugin.json` dependencies cover 3+ suggested
-  not-installed rows is listed by name under the report and earns one explicit
-  option on the first page it fits. Its description names **at most 4** covered
-  rows plus a count ("frontend-suite — installs #12, #16 and 2 more as
-  dependencies; clean removal via /frontend-suite:uninstall").
-- An all-in bundle is never offered as a shortcut option. A bundle covering the
-  entire remainder is not a shortcut, it is the opposite of a pick — name it in
-  one line under the report and leave it there.
-- Suites never enter the numbered report. They are pickable by the name shown in
-  that under-report list, which is the one exception to "never install anything
-  that is not a report row".
-- Picking a suite is one explicit pick for the bundle: install it with the same
-  scope rules; its members then count as installed for every later page
-  (eligibility filters them out) and dedupe against individual picks of the same
-  members. Within a single call a suite picked in question 1 cannot filter
-  questions 2-4 — dedupe at install time covers that residual.
-- `--yes` never auto-installs a suite — the auto-select set stays tier-1 and
-  tier-2 core leaves only; a mass install of the remaining leaves is `--full`'s
-  job, behind its own confirm (`--full --yes` skips it) and never as a bundle,
-  never `--yes`'s.
+There are no suites to offer: the four were retired 2026-09-26, and no plugin may declare
+`dependencies` (an update that adds one leaves it uninstalled and the plugin fails to
+load). A pair that must travel together — `craft-layer` with `ui-ux` and `ui-libraries`,
+`ui-ux` with `ui-libraries` — is a **companion line** under the report
+(`references/signals.md` Companions), never an extra option: the companion is already a
+numbered row, so the user picks it by number like any other. `--yes` never installs a
+companion that is not itself in tier 1 or 2; it prints the line instead. A mass install of
+the remaining rows is `--full`'s job, behind its own confirm (`--full --yes` skips it).
 
 ## TTY picker escape hatch
 

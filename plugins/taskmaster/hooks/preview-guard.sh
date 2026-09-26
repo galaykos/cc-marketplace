@@ -44,8 +44,8 @@
 # blocked tool call.
 #
 # TWIN: plugins/ui-ux/hooks/preview-guard.sh is an identical copy save this line. ui-ux
-# ships the theme flow but declares no taskmaster dependency, and bundles like
-# frontend-suite install it alone — without its own copy that path would have
+# ships the theme flow but declares no taskmaster dependency, and a user may
+# install ui-ux without taskmaster — without its own copy that path would have
 # no mechanical guard at all. ${CLAUDE_PLUGIN_ROOT} is per-plugin so the file
 # cannot be shared; change one, change both. With BOTH plugins installed the
 # guard fires twice on the same call — an extra line in one prompt, which is
