@@ -2,9 +2,10 @@
 # Absolute-path shebang (not `/usr/bin/env bash`): the fail-open guarantee must
 # hold even under a stripped/broken PATH, where `env bash` itself exits 127.
 # PostToolUse router. Given the edited file, match rules.tsv and inject one
-# directive to load the relevant skill — high-confidence path/ext matches fire
-# inline once per signal per session; low-confidence content matches accumulate
-# into the session-state digest. All inline nudges for one edit are delivered as
+# directive to load the relevant skill — every `high` row fires inline once per
+# signal per session (a `glob` row on the path, a `content` row on the file's
+# contents, a `command` row on a Bash command string); `low` content matches
+# accumulate into the session-state digest. All inline nudges for one edit are delivered as
 # a SINGLE {"hookSpecificOutput":{"hookEventName":"PostToolUse",
 # "additionalContext":...}} envelope — the one non-blocking channel the
 # executing model actually receives; plain stdout with exit 0 never reaches it
@@ -23,9 +24,26 @@
 # REGULAR FILE UNDER THE PROJECT ROOT routes — a `>` into /tmp, into a log outside the
 # repo, or onto a path the command then deleted routes nothing. Same one-shot, same
 # single envelope per call, however many files one command wrote.
-# COST, because this now runs after EVERY Bash call: a call with no write target exits
-# after two jq reads and at most one awk — before rules.tsv, plugins-dir.sh or any
-# state is touched. The `case` prefilter drops `git status` before awk even starts.
+# COST, because this now runs after EVERY Bash call: a call with no write target and no
+# `command` row match exits after two jq reads, at most one awk, one grep selecting
+# rules.tsv's `command` rows and one `grep -E` per such row — before plugins-dir.sh or
+# any state is touched. The `case` prefilter drops `git status` before awk even starts.
+# Only a raw `command` row hit pays one more awk (route_cmd_mask) and a second grep.
+#
+# COMMAND ROWS (routing review 2026-09-26, S8): a CLI that writes its own files —
+# `npx shadcn@latest add @magicui/marquee` — names no redirect target, so no file row
+# could ever see it; the installed component routed only on its first LATER edit. A
+# `command` row matches its ERE against the Bash command string and fires inline, once
+# per signal per context, like a `high` glob row. `high` only: a `low` command row is
+# ignored (there is no file to list in the digest). The ERE runs against the command with
+# single- and double-quoted text masked and heredoc bodies blanked (route_cmd_mask), so a
+# commit message, a grep pattern, an echoed string or a heredoc writing a doc that MENTIONS
+# the command neither routes nor spends the one-shot; `$(…)` inside double quotes is live
+# code and still routes. LIMITATION: an unquoted mention (`echo run shadcn add`, `\"`
+# escapes) still routes; a quoted CLI name (`npx "shadcn" add`) is masked and does not;
+# backtick substitution inside double quotes is masked; a CLI invoked through a script or
+# an npm `scripts` alias names nothing the row can see. `@base`/`@path` markers see an
+# empty string on a command row.
 # NOT CAUGHT (the block's own list): interpreter writes (python open(), php
 # file_put_contents), cp/mv/install destinations, `{ …; } > f` groups, a path held in a
 # variable. The
@@ -142,6 +160,48 @@ cc_bash_write_targets() {
       }
     }' | awk '!seen[$0]++'
 }
+# route_cmd_mask <command> — the command as COMMAND rows see it (header: COMMAND ROWS):
+# single- and double-quoted text replaced by `_`, heredoc bodies blanked. A stack of
+# U(nquoted)/S/D/C states tracks nesting, so `$(…)` inside double quotes stays live code
+# and a heredoc opened there (`git commit -m "$(cat <<'EOF'`) is still recognised.
+route_cmd_mask() {
+  printf '%s\n' "$1" | awk '
+    BEGIN { st = "U"; nq = 0; qh = 1 }
+    qh <= nq {
+      t = $0; sub(/^[ \t]+/, "", t); sub(/[ \t]+$/, "", t)
+      if (t == hq[qh]) qh++
+      print ""; next
+    }
+    {
+      line = $0; out = ""; n = length(line)
+      for (i = 1; i <= n; i++) {
+        c = substr(line, i, 1); two = substr(line, i, 2); top = substr(st, length(st), 1)
+        if (top == "S") {
+          if (c == "\047") { st = substr(st, 1, length(st) - 1); out = out c } else out = out "_"
+          continue
+        }
+        if (top == "D") {
+          if (c == "\\") { out = out "__"; i++ }
+          else if (c == "\"") { st = substr(st, 1, length(st) - 1); out = out c }
+          else if (two == "$(") { st = st "C"; out = out two; i++ }
+          else out = out "_"
+          continue
+        }
+        if (c == "\\") { out = out "__"; i++; continue }
+        if (c == "\047") { st = st "S"; out = out c; continue }
+        if (c == "\"") { st = st "D"; out = out c; continue }
+        if (top == "C" && c == ")") { st = substr(st, 1, length(st) - 1); out = out c; continue }
+        if (two == "$(") { st = st "C"; out = out two; i++; continue }
+        if (substr(line, i, 3) == "<<<") { out = out "<<<"; i += 2; continue }
+        if (two == "<<" && match(substr(line, i + 2), /^-?[ \t]*["\047\\]?[A-Za-z_][A-Za-z0-9_]*["\047]?/)) {
+          w = substr(line, i + 2, RLENGTH); sub(/^-?[ \t]*["\047\\]?/, "", w); sub(/["\047]$/, "", w)
+          hq[++nq] = w; out = out substr(line, i, RLENGTH + 2); i += RLENGTH + 1; continue
+        }
+        out = out c
+      }
+      print out
+    }'
+}
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -160,12 +220,29 @@ cc_bash_write_targets() {
   # BASH, no-target exit first (header: COST). The `case` is a superset of every
   # shape the block can return (`>`, tee, sed/perl -i), so it is safe to skip awk on.
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
-  bash_targets=""
+  rules="${CLAUDE_PLUGIN_ROOT}/rules.tsv"
+  [ -f "$rules" ] || exit 0
+  bash_targets=""; cmd_hits=""
   if [ "$tool" = Bash ]; then
     bash_cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
-    case "$bash_cmd" in *'>'*|*tee*|*sed*|*perl*) ;; *) exit 0 ;; esac
-    bash_targets=$(cc_bash_write_targets "$bash_cmd" | head -n 8)
-    [ -n "$bash_targets" ] || exit 0
+    [ -n "$bash_cmd" ] || exit 0
+    case "$bash_cmd" in
+      *'>'*|*tee*|*sed*|*perl*) bash_targets=$(cc_bash_write_targets "$bash_cmd" | head -n 8) ;;
+    esac
+    # COMMAND rows (header). One `skill<TAB>plugin<TAB>marker<TAB>matched text` line per
+    # hit; the installed, marker and one-shot filters run in the high pass below, once
+    # the project root is known. An empty marker is spelled `-`: `read` with a tab IFS
+    # collapses an empty field and would shift the matched text into its place.
+    cmd_masked=""; masked=0
+    while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
+      [ "${conf%$'\r'}" = high ] || continue
+      printf '%s' "$bash_cmd" | grep -qE "$pattern" 2>/dev/null || continue
+      [ "$masked" = 1 ] || { cmd_masked=$(route_cmd_mask "$bash_cmd"); masked=1; }
+      m=$(printf '%s' "$cmd_masked" | grep -m1 -oE "$pattern" 2>/dev/null) || continue
+      m="${m%%$'\n'*}"; marker="${marker%$'\r'}"; [ -n "$marker" ] || marker=-
+      cmd_hits="${cmd_hits}${skill}"$'\t'"${plugin}"$'\t'"${marker}"$'\t'"${m}"$'\n'
+    done < <(grep "^command"$'\t' "$rules" 2>/dev/null)
+    [ -n "$bash_targets" ] || [ -n "$cmd_hits" ] || exit 0
   fi
 
   # CONTEXT KEY, not session key. PostToolUse is the only hook channel that reaches
@@ -223,15 +300,12 @@ cc_bash_write_targets() {
     done <<EOF_TARGETS
 $bash_targets
 EOF_TARGETS
-    [ "${#abs[@]}" -gt 0 ] || exit 0
+    [ "${#abs[@]}" -gt 0 ] || [ -n "$cmd_hits" ] || exit 0
   else
     p="$cwd/$file_path"
     case "$file_path" in /*) p="$file_path" ;; esac
     rec+=("$file_path"); abs+=("$p")
   fi
-
-  rules="${CLAUDE_PLUGIN_ROOT}/rules.tsv"
-  [ -f "$rules" ] || exit 0
 
   # Sibling plugins directory, for the installed-plugin filter. Resolved by
   # hooks/plugins-dir.sh, which handles both the flat and the versioned-cache
@@ -267,6 +341,14 @@ EOF_TARGETS
     base=$(basename "$file_path")
     rel="$file_path"
     case "$target" in "$root"/*) rel="${target#"$root"/}" ;; esac
+  }
+
+  # A code or style file, the only kind a `content`+`high` row fires inline on (high pass).
+  inline_ext() {
+    case "$base" in
+      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.vue|*.svelte|*.astro|*.css|*.scss|*.sass|*.less|*.html|*.php|*.twig|*.erb) return 0 ;;
+    esac
+    return 1
   }
 
   plugin_installed() { # $1 owning_plugin — fire-if-uncertain
@@ -385,15 +467,17 @@ EOF_TARGETS
   }
 
   nudges=""
-  emit_nudge() { # $1 skill, $2 owning_plugin — accumulates; delivered once below.
+  emit_nudge() { # $1 skill, $2 owning_plugin, [$3 subject] — accumulates; delivered once below.
     # When the SKILL.md is locatable, name its path: a subagent context has no
     # Skill tool, so "load the skill" is only actionable there as a Read.
     # Under a versioned cache the SKILL.md sits one level below the plugin dir, so
     # the path comes from pr_plugin_root rather than a join onto the plugins root.
-    local sp="" proot=""
+    # $3 replaces the "This edit touches <file>" subject for a command row, which has
+    # no file; every file row omits it, so their text is unchanged.
+    local sp="" proot="" subj="${3:-This edit touches $base}"
     command -v pr_plugin_root >/dev/null 2>&1 && proot=$(pr_plugin_root "$2")
     [ -n "$proot" ] && [ -f "$proot/skills/$1/SKILL.md" ] && sp=" — Read $proot/skills/$1/SKILL.md"
-    nudges="${nudges}$(printf '[skill-router] This edit touches %s — load the `%s` skill (%s plugin) and review your change against it before continuing.%s' "$base" "$1" "$2" "$sp")"$'\n'
+    nudges="${nudges}$(printf '[skill-router] %s — load the `%s` skill (%s plugin) and review your change against it before continuing.%s' "$subj" "$1" "$2" "$sp")"$'\n'
   }
 
   # ---- high-confidence pass: EVERY surviving, not-yet-fired match nudges ----
@@ -401,16 +485,38 @@ EOF_TARGETS
   # stack skill, on a single .tsx) — no break after the first. Session dedup via
   # `fired` still prevents re-nudging the same skill on later edits; emitted_now
   # dedups two rules — or two files of one Bash call — that map to one skill.
+  #
+  # CONTENT + HIGH (routing review 2026-09-26, finding 1): a `content` row marked `high`
+  # fires here on a code or style file (inline_ext), from the file ON DISK, and never
+  # enters the digest below. Every library row (MUI, component libraries, motion,
+  # three.js …) used to be `content`+`low`, so its skill surfaced on the NEXT user prompt
+  # — in a build turn, after the last file was written — and in a subagent never, because
+  # UserPromptSubmit does not fire there and only the main thread's digest is flushed.
+  # Inline PostToolUse context reaches both. On any other file (a NOTES.md mentioning
+  # gsap, a .py holding `new THREE.`, which used to fire and spend the one-shot) the match
+  # goes to the digest below, as a `low` row's does. The digest pass reuses this pass's
+  # one read per target (`hcs`).
   fired_now=""
   emitted_now=""
+  hcs=()
   i=0
   while [ "$i" -lt "${#abs[@]}" ]; do
     set_target "$i"; i=$((i + 1))
+    hc=""; [ -r "$target" ] && hc=$(head -c 65536 "$target" 2>/dev/null)
+    hcs+=("$hc")
+    inline=0; inline_ext && inline=1
     while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
       case "$stype" in ''|'#'*) continue ;; esac
       conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
-      [ "$stype" = glob ] && [ "$conf" = high ] || continue
-      match_glob "$pattern" || continue
+      [ "$conf" = high ] || continue
+      case "$stype" in
+        glob) match_glob "$pattern" || continue ;;
+        content)
+          [ "$inline" = 1 ] && [ -n "$hc" ] || continue
+          already_fired "$skill" && continue
+          printf '%s' "$hc" | grep -qE "$pattern" 2>/dev/null || continue ;;
+        *) continue ;;
+      esac
       plugin_installed "$plugin" || continue
       marker_ok "$marker" || continue
       already_fired "$skill" && continue
@@ -420,6 +526,20 @@ EOF_TARGETS
       fired_now="${fired_now}${skill}"$'\n'
     done < "$rules"
   done
+  # COMMAND rows matched in the Bash block above. No file, so `@base`/`@path` see "".
+  base=""; rel=""
+  while IFS=$'\t' read -r skill plugin marker frag; do
+    [ -n "$skill" ] || continue
+    plugin_installed "$plugin" || continue
+    marker_ok "$marker" || continue
+    already_fired "$skill" && continue
+    printf '%s\n' "$emitted_now" | grep -qxF "$skill" && continue
+    emit_nudge "$skill" "$plugin" "This command runs \`${frag}\`"
+    emitted_now="${emitted_now}${skill}"$'\n'
+    fired_now="${fired_now}${skill}"$'\n'
+  done <<EOF_CMD
+$cmd_hits
+EOF_CMD
 
   # ---- deliver: ONE envelope per invocation, before state persistence so an
   # unwritable state dir cannot swallow a nudge the model should have seen ----
@@ -430,18 +550,20 @@ EOF_TARGETS
 
   # ---- low-confidence pass: accumulate content matches (no inline output) ----
   # Read from the file ON DISK, so a Bash heredoc's body is judged exactly as an
-  # Edit's result would be. One `skill<TAB>file` line per hit.
+  # Edit's result would be. One `skill<TAB>file` line per hit. A `high` content row
+  # on a code or style file was handled inline above and is skipped here, so it never
+  # reaches the digest; on any other file it lands here like a `low` row.
   pending_adds=""
   i=0
   while [ "$i" -lt "${#abs[@]}" ]; do
-    set_target "$i"; i=$((i + 1))
-    content=""
-    [ -r "$target" ] && content=$(head -c 65536 "$target" 2>/dev/null)
+    set_target "$i"; content="${hcs[$i]}"; i=$((i + 1))
     [ -n "$content" ] || continue
+    inline=0; inline_ext && inline=1
     while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
       case "$stype" in ''|'#'*) continue ;; esac
       conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
       [ "$stype" = content ] || continue
+      [ "$conf" = high ] && [ "$inline" = 1 ] && continue
       plugin_installed "$plugin" || continue
       marker_ok "$marker" || continue
       if printf '%s' "$content" | grep -qE "$pattern" 2>/dev/null; then
