@@ -52,9 +52,11 @@ One bullet per bundled plugin, in dependency order (3):
 
 - **craft-layer** — creative direction, section decisions, asset sourcing,
   and tiered motion for distinctive builds, via `/craft-layer:craft`
-- **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Astryx, Material UI,
-  Tailwind) and the library-agnostic `component-libraries` floor for any other React or
-  Vue component library, plus `/ui-ux:build`, `/ui-ux:audit` and `/ui-ux:theme`.
+- **ui-ux** — shadcn/ui and Tailwind skills, theming, design tokens, motion, plus
+  `/ui-ux:build`, `/ui-ux:audit` and `/ui-ux:theme`.
+- **ui-libraries** — the component-library skills split out of ui-ux on 2026-09-26: ReUI,
+  Aceternity, Astryx, Material UI, and the library-agnostic `component-libraries` floor for
+  any other React or Vue component library.
   design-studio was retired 2026-09-14: its browser design session
   measured one real use, its real-component preview became a rung of
   `taskmaster:visual-decisions`, and live registry lookups now go to shadcn's own MCP
@@ -69,6 +71,17 @@ ui-ux is listed here AND in frontend-suite on purpose: craft-layer
 delegates theming to ui-ux and auditing to `/ui-ux:audit`, so a standalone
 craft-suite install must carry both. Installing both suites installs each
 companion once.
+
+skill-router joined on 2026-09-26. Without it a craft-suite install had no file routing at
+all: a routing review ran 52 fixture files through the real hooks and craft-layer's
+three.js, scroll-orchestration, motion-tiers and information-design skills reached the
+model only when something else loaded them
+(`taskmaster-docs/design-corpus-2026-09-25/review/routing.md`, summarised in
+`rationale/2026-09-25-design-capability-corpus/README.md`). It is the same router
+frontend-suite carries, so installing both suites installs it once.
+
+- **skill-router** — loads the matching craft-layer and ui-ux skills when a file imports
+  their library (three.js, GSAP/Lenis, Rive/Lottie, chart and grid packages, MUI, …)
 
 design-kit is in no other bundle. It joined this one on 2026-09-22 because it was
 reachable from nothing: craft-layer and ui-ux between them had zero references to it,

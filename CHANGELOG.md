@@ -4,6 +4,37 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.115.0] - 2026-09-26
+
+Design capability corpus → plugin capability. A 1,530-site corpus (detected stack, rendered
+light/dark look, 3,068 screenshots) and 500 stack-pinned web-app ideas
+(`rationale/2026-09-25-design-capability-corpus/`) were reviewed in nine tracks, turned into a
+69-step plan, and executed. Five new artifacts were probed first against a no-plugin control arm;
+two were built, three were not (`rationale/2026-09-26-design-corpus-probes.md`).
+
+- **New plugin `ui-libraries`** — ui-ux had reached the 160,000-byte per-plugin prose cap, so MUI,
+  Astryx, ReUI, Aceternity and `component-libraries` moved there (skill names now
+  `ui-libraries:<skill>`), plus a new **`primereact-best-practices`** for the PrimeReact 11 rewrite and
+  licence (probe: control 1/5 → 5/5). Every suite carrying ui-ux carries it; a standalone ui-ux install
+  should add it.
+- **Reach (skill-router 0.21.0).** Library skills fire inline at the first file that uses them,
+  subagents included; R3F and Lenis route to their real owners; new routes for Rive/Lottie/Spline,
+  charts and grids, interaction libraries, Tailwind v4 CSS, `components.json` and `shadcn add`.
+  craft-suite now carries skill-router — it had no file routing at all.
+- **Currency.** three.js/R3F on WebGPU, shadcn's Base UI base and registries, Tailwind v4, MUI X
+  majors, Inertia v3 and starter kits, Next.js 16.3, Lenis, CSS scroll-driven, page transitions,
+  Motion and GSAP — each checked against live docs.
+- **App surfaces (craft-layer 0.54.0).** Product-on-the-front-door, console, CRM, AI, live, spatial and
+  scheduling references; the product-in-hero proof convention allowed with its clichés flagged; new
+  hero categories; `hosted-runtimes.md`; `webgl-first-site.md`; `data-3d.md`; a reduced-motion gate that
+  sees JS, canvas and video motion.
+- **Accessibility (ui-ux 0.27.0).** Keyboard drag-and-drop, tree/grid, timer and SC 2.2.2 pause
+  contracts in `a11y-audit` (probe: marquee pause control 3/5 → 5/5); interaction contracts carried into
+  taskmaster cards and the task-runner UI walk.
+- **Not built, measured:** an Astro skill (control 5/5), a rich-text skill (control 5/5 SSR-safe), a
+  carousels reference (the one-line rule covers it). LLM-judge scores disagreed with the written files
+  on three cases; the recorded numbers are a deterministic re-grade of the files.
+
 ## [0.114.0] - 2026-09-25
 
 Session plugin-usage review: four real sessions registered in `~/.claude/sessions/` were

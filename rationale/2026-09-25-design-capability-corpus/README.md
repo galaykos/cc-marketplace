@@ -217,3 +217,37 @@ python3 tools/gallery.py results.jsonl shots
 
 `tools/candidates.json` is the exact 1,659-entry input: `{site: category code}`, covering the seed list, the gallery harvest and the
 registry directory. The idea shards were model-generated, so the `ideas_*.tsv` inputs are the committed `ideas.tsv` minus its last three columns.
+
+## After the 2026-09-26 changes
+
+The plan built from this corpus shipped in marketplace 0.115.0. It is recorded in `taskmaster-docs/design-corpus-2026-09-25/plan.md` (gitignored). The probes are in `rationale/2026-09-26-design-corpus-probes.md`, and per-plugin detail is in each plugin's CHANGELOG. `ideas.md` / `ideas.tsv` now show coverage against the changed tree; the pre-change files are at commit `bb662287`.
+
+| | before (tree `97b8bb02`) | after |
+|---|---|---|
+| ideas with every axis covered at the dedicated or grouped tier | 215 / 500 | 258 / 500 |
+| PrimeReact (60 ideas) | no skill | `ui-libraries:primereact-best-practices` (probe: control 1/5 → 5/5) |
+| Tremor, AutoAnimate, React Router, the named registries | no skill | frontmatter or grouped coverage, or taught in a reference (`registries.md`, `framework-bindings.md`) |
+| Chart.js, Spline, Paper Shaders, Magic UI and five other registries | no skill | **mention only**: taught in reference bodies (`product-packages.md`, `hosted-runtimes.md`, `registries.md`) that this frontmatter metric does not credit |
+| Recharts (49), ECharts (22), D3 (15), Nuxt (14), Astro (10) | mention only | unchanged. Recharts v3 is now a recipe in `shadcn-best-practices`, and ECharts/D3 are rows in `product-packages.md`. The probe showed the base model does not need an Astro skill. |
+
+**Read the metric for what it is.** "Covered" means a skill's frontmatter names the technology. It undercounts what reference files teach, and it cannot say whether any of it changes a build. Only the probes measure that, and only for the five artifacts they covered.
+
+What changed beyond libraries:
+- **Interaction references.** Seven new `information-design` references cover the app-surface interactions the ideas need (live, spatial, scheduling, CRM, AI, console, product mock).
+- **Accessibility contracts** in `a11y-audit`.
+- **Reach.** Library skills now fire at the first file that imports them, including inside subagents.
+- **Reduced-motion gate.** The craft gate now sees JS, canvas and video motion.
+
+## Upkeep
+
+The corpus ages. Tailwind v4's share, Base UI's share, and the Motion vs GSAP split moved within months of the last memory cutoff. Re-scan roughly quarterly and diff the prevalence tables before trusting them:
+
+```bash
+python3 tools/detect.py tools/candidates.json results.jsonl 32
+python3 tools/shots.py results.jsonl shots/light looks_light.json light
+python3 tools/shots.py results.jsonl shots/dark  looks_dark.json  dark
+LOOKS=looks_light.json LOOKS_DARK=looks_dark.json CORPUS_DATE=<date> \
+  python3 tools/build.py results.jsonl <ideas_dir> <out_dir> <repo_root>
+```
+
+Feed drift in library versions to the `digest-refresh` project skill. Re-audit the signature precision (the three-pass method in § How "uses X" was decided) whenever `detect.py`'s `SIG` table changes. Known residual: bare-word signatures (Leaflet, Lexical, Embla, Highcharts, Swiper) can match homepage prose. `technique-fingerprint.py` was fixed for this on 2026-09-26; `detect.py` was not, so treat those rows as upper bounds.

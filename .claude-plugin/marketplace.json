@@ -6,13 +6,18 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.114.0"
+    "version": "0.115.0"
   },
   "plugins": [
     {
       "name": "ui-ux",
       "source": "./plugins/ui-ux",
-      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Material UI, Tailwind, plus a library-agnostic component-libraries skill (headless and styled React libraries, owned-code vs dependency rules, a per-library map) — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, theme creation with a live colour preview, a /ui-ux:build entry point, a WCAG 2.2 AA accessibility audit (/ui-ux:audit, the a11y-audit skill, and an a11y-engineer worker that applies the fix list with native semantics over ARIA patches), and ui-ux-reviewer + ui-ux-engineer agents."
+      "description": "UI/UX foundations with per-stack skills for shadcn/ui and Tailwind, a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, motion best practices, theme creation with a live colour preview, a /ui-ux:build entry point, a WCAG 2.2 AA accessibility audit (/ui-ux:audit, the a11y-audit skill, and an a11y-engineer worker), and ui-ux-reviewer + ui-ux-engineer agents. Component-library skills (MUI, Astryx, ReUI, Aceternity, PrimeReact, component-libraries) live in the ui-libraries plugin — install both."
+    },
+    {
+      "name": "ui-libraries",
+      "source": "./plugins/ui-libraries",
+      "description": "Component-library skills split out of ui-ux: Material UI (with MUI X), PrimeReact (v11 rewrite and licence), Astryx, ReUI, Aceternity UI, and a library-agnostic component-libraries skill with a per-library map of signals, theme channels and docs for every other React or Vue library (Base UI, Radix, React Aria, Ark, Mantine, Chakra, Ant Design, HeroUI, PrimeVue, Vuetify…). Install alongside ui-ux, which owns shadcn, Tailwind, theming, tokens, motion and the WCAG audit."
     },
     {
       "name": "craft-layer",
@@ -142,12 +147,12 @@
     {
       "name": "workflow-suite",
       "source": "./plugins/workflow-suite",
-      "description": "Meta-bundle: the whole idea-to-shipped pipeline in one install — the core-suite baseline (candor, code-review, git-workflow, hindsight, secret-scanning, skill-router, stack-scan) plus taskmaster clarification and cards, task-runner execution with delegation contracts, approaches deliberation, code-architecture plan-before-code and verification, testing, debugging, and the ui-ux and security lanes the cards dispatch into. Replaces taskmaster-suite, process-suite and quality-principles-suite (2026-09-14). Fifteen members: over the host's 200k skill-listing floor by design — the README names the settings line. Uninstall cleanly with /workflow-suite:uninstall."
+      "description": "Meta-bundle: the whole idea-to-shipped pipeline in one install — the core-suite baseline (candor, code-review, git-workflow, hindsight, secret-scanning, skill-router, stack-scan) plus taskmaster clarification and cards, task-runner execution with delegation contracts, approaches deliberation, code-architecture plan-before-code and verification, testing, debugging, and the ui-ux and security lanes the cards dispatch into. Replaces taskmaster-suite, process-suite and quality-principles-suite (2026-09-14). Sixteen members: over the host's 200k skill-listing floor by design — the README names the settings line. Uninstall cleanly with /workflow-suite:uninstall."
     },
     {
       "name": "craft-suite",
       "source": "./plugins/craft-suite",
-      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer), plus ui-ux: per-library stack skills (shadcn, ReUI, Aceternity, Astryx, MUI, Tailwind), the WCAG audit, CSS-variable theming with a live colour preview, and the accessibility engineer that applies an audit's fix list. Live component-registry lookups route to the registries' own MCP servers — shadcn's and ReUI's — named in ui-ux's stack skills; this marketplace ships none. Uninstall with /craft-suite:uninstall."
+      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer), plus ui-ux (shadcn and Tailwind skills, the WCAG audit) and ui-libraries (ReUI, Aceternity, Astryx, MUI and the library-agnostic floor), CSS-variable theming with a live colour preview, and the accessibility engineer that applies an audit's fix list. Live component-registry lookups route to the registries' own MCP servers — shadcn's and ReUI's — named in the stack skills; this marketplace ships none. plus skill-router, so craft-layer's three.js, scroll, motion-tier and information-design skills load when their libraries are imported. Uninstall with /craft-suite:uninstall."
     },
     {
       "name": "skill-router",
