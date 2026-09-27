@@ -127,8 +127,10 @@ are **agent-graded**. Nothing here measures contrast — **recorded**.
 
 Limits: the artboard HTML is a decision aid, never a starting point for implementation (the pick
 goes to `/design-kit:in-codebase` or the project's UI build command); knobs restyle the shell's
-primitives only; the hue knob rotates the accent and cannot express a near-neutral brand accent
-(use `design-system/tokens.json`); localStorage means edits do not travel to another browser.
+primitives only; the hue knob rotates the accent and its 170° partner `--dk-accent-2` together
+and cannot express a near-neutral brand accent (use `design-system/tokens.json`); no font loads
+through the offline gate, so a display face is named in a note and decided in the token file;
+localStorage means edits do not travel to another browser.
 Claude Code's own `/design` publishes artboards to claude.ai and needs a signed-in session; this
 one stays on disk.
 

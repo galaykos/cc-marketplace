@@ -11,8 +11,8 @@ exactly; the rules below are the entry sequence, not a substitute for the skill.
 script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"`.
 
 1. `dk.sh check` first; repeat its one line. Then parse `--screens` (default 3, clamp
-   2–4), `--device` (default `desktop`; a brief that says mobile, app, or phone →
-   `phone`), `--theme` (default `design-system/tokens.json` when it exists, else the
+   2–4), `--device` (default `desktop`; a brief that says mobile, app, phone, game or
+   play → `phone`), `--theme` (default `design-system/tokens.json` when it exists, else the
    shell's neutral defaults). With an empty brief, read `.design-kit/workshop.json`:
    if it holds a `brief`, offer it; otherwise ask in a single round what is being
    designed, for whom, and the one thing it must make easy.
