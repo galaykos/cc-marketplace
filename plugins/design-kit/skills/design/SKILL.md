@@ -29,6 +29,11 @@ pasting the artboard's HTML into the tree.
    for free, and two artboards that differ only by palette waste the reader's comparison).
    Write each artboard's `tradeoff` line first; if you cannot state what a direction
    costs, it is not a direction.
+   Those are a tool's axes. A game, a toy, or anything built around characters diverges
+   on what the first screen is (the board, or a pick), where turn and result feedback
+   lives (a banner, the pieces themselves, the surface), and how a result is announced
+   (in place, or a sheet). A nav bar, sidebar, stat tile or data table on such a brief
+   is the primitive set leaking in, not a direction.
 3. **Write the spec** (`references/spec-format.md`) to `.design-kit/boards/<slug>.spec.json`
    using the primitives in `references/primitives.md`. Real names, real numbers, real
    copy in the product's voice. Every artboard shows the populated state; at most one
@@ -69,6 +74,21 @@ pasting the artboard's HTML into the tree.
   `aria-current` on the active nav item, labels bound to inputs. A hand-written body can
   undo all of it; check yours. *Standing: recorded — nothing here measures contrast; the
   craft-layer audit does when it is installed.*
+- **A sprite is a character, not a glyph.** A brief that says sprite, mascot or character
+  wants a drawn thing with states (idle, placed, win, lose) built from a small shape
+  vocabulary, in `dk-cells`; a stroked X in the accent is a glyph. Two sides need two
+  colours a colour-blind reader can separate: `--dk-accent` and `--dk-accent-2` sit 170°
+  apart and rotate together, and the marks still differ by silhouette and weight.
+- **Motion has to read on a still frame.** Freeze one element mid-state (a cell at scale
+  1.08, the win line half drawn) and put the numbers beside it in a `dk-note`: duration,
+  easing, stagger, the reduced-motion swap. Inline `@keyframes` pass the gate; Lottie,
+  Rive and sprite sheets cannot load, so name the runtime in the note instead.
+- **Real content for a game** is the players' names, the score, the round, the winning
+  line and who starts next. A move timer, a rating, a lobby or a series that the brief
+  never asked for is invented mechanics, not content, and the lorem gate cannot see it.
+- **The board cannot show a display face.** No `@font-face` survives the offline gate, so
+  a named face renders only where it is installed. Name it in a `dk-note` and decide it
+  in `design-system/tokens.json`; a bold system stack on the artboard is not the design.
 - **Copy is design.** Buttons name their consequence; empty states invite an action;
   errors say what happened and what to do. Sentence case, no filler.
 - **Do not ship the board.** Artboard HTML is a decision aid; its classes and CSS
@@ -81,7 +101,8 @@ Spacing base (6–14px), corner radius (0–24px), accent hue (0–360°), type 
 (×0.85–1.25), density (×0.85–1.2), light/dark — global or per artboard, persisted in the
 browser's localStorage per board file, so a reload keeps them and a different browser
 does not. They restyle the shell's primitives only; a body's inline styles ignore them.
-The hue knob rotates the accent and keeps its saturation and lightness, so a brand whose
+The hue knob rotates `--dk-accent` and the derived `--dk-accent-2` together and keeps
+saturation and lightness, so a brand whose
 accent is a near-neutral needs the token file (`design-system/tokens.json`) rather than the
 knob. Text edits persist the same way and are reported as `was → now` pairs; an edit that
 restores the original text drops out of the report.

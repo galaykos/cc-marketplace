@@ -2,6 +2,38 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.7.0 — 2026-09-26
+
+### Fixed
+- **A `dk-dialog` no longer escapes its artboard.** `.dk-frame` had no `position`, so the
+  dialog's `position:absolute; inset:0` resolved against the canvas and the overlay landed
+  outside the frame. Found by a headless `/design-kit:design` run on a game brief, which
+  patched it in the spec's `css` and reported it (`rationale/2026-09-26-design-kit-game-sim/`).
+  The frame is now `position:relative`; `board-build.test.sh` asserts it. Standing: **gate**.
+
+### Added
+- **Play primitives and a second accent.** `dk-cells` (a grid of square 44px-floor buttons on
+  the radius and spacing knobs), `dk-note` (a designer's annotation inside the frame, for a
+  duration, a runtime, a face the board cannot load) and `--dk-accent-2`, 170° from the first
+  accent so both follow the hue knob and a colour-blind reader can still tell two sides apart.
+  Two headless runs on a tic-tac-toe brief hand-wrote all three; the shell now carries them.
+  `board-build.test.sh` asserts they render. Standing: **gate** for presence, **recorded** for use.
+- **The design skill says what a game brief diverges on.** First screen (board or pick), where
+  turn and result feedback lives (banner, the pieces, the surface), how a result is announced;
+  a nav, sidebar, stat tile or data table on such a brief is the primitive set leaking in. Four
+  rules the raw-brief run got wrong: a sprite is a character with states, not a glyph; motion
+  must read on a still frame (`dk-note` beside a frozen element; Lottie/Rive cannot load); a
+  game's real content is names, score, round, winning line and who starts next, not an invented
+  timer or lobby; the board cannot show a display face, so name it in a note and decide it in
+  the token file. `/design-kit:design` reads "game" and "play" as `phone`. Standing:
+  **agent-graded**. Measured n=1 per arm: with the raw ten-word brief the drafter produced a
+  CRM with a board in it; with a research-derived brief it produced two drawn characters with
+  states on phone frames — and so did the base model with no plugin at all. The brief carried
+  the design; the plugin carries the mechanism (knobs, pick channel, gates) and, now, the
+  brief-shaped rules a user would otherwise have to type. Re-run once with these rules in a
+  clean fixture, the raw brief drew two characters with states on phone frames using the new
+  primitives — one run, so a landing, not a delta.
+
 ## 0.6.1 — 2026-09-26
 
 - The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. The `system` skill's install hint names design-kit directly instead of the retired `craft-suite`.

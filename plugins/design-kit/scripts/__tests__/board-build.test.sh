@@ -26,6 +26,8 @@ grep -q '<option value="3">' "$out" || { echo "FAIL: scope options"; exit 1; }
 grep -q 'contenteditable' "$out" || { echo "FAIL: shell lacks the contenteditable wiring"; exit 1; }
 if grep -qE '(src|href)="https?://|@import|<link ' "$out"; then echo "FAIL: external reference in output"; exit 1; fi
 grep -q '{{' "$out" && { echo "FAIL: unfilled slot"; exit 1; }
+grep -q -- '--dk-accent-2:hsl(calc(var(--dk-accent-h) + 170)' "$out" && grep -q '\.dk-cells{' "$out" && grep -q '\.dk-note{' "$out" || { echo "FAIL: play primitives (dk-cells, dk-note, --dk-accent-2) missing from the shell"; exit 1; }
+grep -q '\.dk-frame{position:relative' "$out" || { echo "FAIL: .dk-frame must be positioned or a dk-dialog (absolute, inset:0) escapes its artboard onto the canvas (seen 2026-09-26)"; exit 1; }
 
 mkdir -p design-system
 cat > design-system/tokens.json <<'JSON'

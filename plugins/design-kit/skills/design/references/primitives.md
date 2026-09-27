@@ -70,6 +70,21 @@ An empty state invites an action; an error names what went wrong and what to do;
 dialog's confirm button repeats the consequence. `dk-dialog` overlays the frame — put it
 last in the body, and only in one artboard per board or every direction reads the same.
 
+## Play, and notes on the frame
+
+```html
+<div class="dk-cells" style="--cols:3"><button class="dk-cell win" aria-label="Row 1, column 1, Mara"><svg viewBox="0 0 48 48">…</svg></button><button class="dk-cell p2" aria-label="Row 1, column 2, Tomasz">…</button><button class="dk-cell" aria-label="Row 1, column 3, empty"></button>…</div>
+<p class="dk-note">Place-in 280 ms spring, bounce 0.25 · reduced motion: 180 ms fade · transform and opacity only.</p>
+```
+
+`dk-cells` is a grid of square cells (`--cols`, default 3), each a button with the 44px
+floor that takes the radius and spacing knobs; a cell's `color` is the first accent, `p2`
+switches it to `--dk-accent-2`, `win` tints the cell with whichever it is. `--dk-accent-2`
+is the shell's second accent, 170° from the first, so both follow the hue knob and stay apart
+for a colour-blind reader. `dk-note` is the designer's annotation inside the frame — muted,
+dashed left rule — for a duration, a runtime, a face the board cannot load. It is not
+product copy; a reader can edit it like any text, and the report shows the edit.
+
 ## Type and helpers
 
 `h1` 1.9em, `h2` 1.35em, `h3` 1.05em, all scaled by the type knob; `.muted` for secondary
