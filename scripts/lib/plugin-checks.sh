@@ -1,14 +1,48 @@
 #!/usr/bin/env bash
 # Shared per-plugin checks, sourced by validate.sh (full sweep), context-budget.sh,
 # done-gate.sh (changed plugins) and authoring-guard.sh (single edited file). Pure: sourcing assigns the host listing
-# constants (scripts/host-constants.sh — variable definitions only) and runs nothing
+# constants (scripts/host-constants.sh — variable definitions only) and the removed-plugin
+# lists (read from scripts/removed-plugins.tsv) and runs nothing
 # else; functions close over no caller globals (no err/fail/allow_md), and take all
-# inputs as args.
+# inputs as args — except pc_removed_refs, which reads those lists and PC_REMOVED_PLUGINS_TSV.
 
 # The `1536` per-entry description cap below is the host's, not ours. One definition,
 # re-read out of the pinned CLI by `scripts/host-constants.sh --check`.
 . "$(dirname "${BASH_SOURCE[0]}")/../host-constants.sh" \
   || echo "plugin-checks.sh: cannot source scripts/host-constants.sh — the per-entry description cap is unset" >&2
+
+_PC_REMOVED_TSV_DEFAULT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/removed-plugins.tsv"
+
+# _pc_removed_lists
+# Sets _PC_RR_PLUG (prose_match plug|both) and _PC_RR_MOVED (moved|both), `|`-joined names
+# from ${PC_REMOVED_PLUGINS_TSV:-$_PC_REMOVED_TSV_DEFAULT}, cached by the path read
+# (_PC_RR_SRC). Returns 1 when the file is unreadable, a data row is malformed (fewer than
+# five fields, a name outside [a-z0-9-], a prose_match outside plug|moved|both|no) or either
+# list is empty: a stray `(` makes grep -E exit 2 with no output, a silent pass on every
+# file, and an empty alternation `()` would match every " plugin" in the repo.
+_pc_removed_lists() {
+  local src="${PC_REMOVED_PLUGINS_TSV:-$_PC_REMOVED_TSV_DEFAULT}" lists plug moved
+  [ "$src" = "${_PC_RR_SRC:-}" ] && return 0
+  _PC_RR_BAD=$src
+  [ -r "$src" ] || return 1
+  lists=$(awk -F'\t' '
+    /^#/ { next }
+    { sub(/\r$/, "") }
+    /^[ \t]*$/ { next }
+    NF < 5 || $1 !~ /^[a-z0-9][a-z0-9-]*$/ || $4 !~ /^(plug|moved|both|no)$/ { if (!bad) at = FNR; bad = 1; next }
+    $4 == "plug" || $4 == "both" { p = p (p == "" ? "" : "|") $1 }
+    $4 == "moved" || $4 == "both" { m = m (m == "" ? "" : "|") $1 }
+    END { print p "\t" m "\t" at; exit bad }' "$src") || { _PC_RR_BAD="$src:${lists##*$'\t'}"; return 1; }
+  plug=${lists%%$'\t'*}
+  lists=${lists#*$'\t'}
+  moved=${lists%%$'\t'*}
+  [ -n "$plug" ] && [ -n "$moved" ] || return 1
+  _PC_RR_PLUG=$plug _PC_RR_MOVED=$moved _PC_RR_SRC=$src
+}
+# Primed at source time: every caller runs pc_removed_refs in a `$(…)` subshell, where a
+# cache first filled inside the call dies with it.
+_pc_removed_lists \
+  || echo "plugin-checks.sh: removed-plugins ledger unreadable, empty or malformed: ${_PC_RR_BAD:-${PC_REMOVED_PLUGINS_TSV:-$_PC_REMOVED_TSV_DEFAULT}} — pc_removed_refs fails every file until it is restored" >&2
 
 # pc_skill_budget <skill_md_path>
 # On a violation: prints "budget <path> <kind> <n>" and returns 1, where kind is
@@ -778,18 +812,22 @@ pc_jargon() {
 }
 
 # pc_removed_refs <md_path>
-# Removed-artifact reference denylist (ground truth: rationale/stack-skill-
-# baselines.md, 2026-07-27). The typescript/javascript/vue2 plugins and the
-# react/css-family best-practices skills were removed; design-patterns,
-# intent-guard, rollout, error-handling and concurrency were merged away as
-# plugins. simplicity-principles and surgical-coding (code-architecture,
+# Removed-artifact reference denylist. Removed PLUGIN names come from
+# scripts/removed-plugins.tsv — prose_match plug|both feeds $plug, moved|both feeds
+# $moved, `no` rows are recorded and never matched — read once per shell by
+# _pc_removed_lists; PC_REMOVED_PLUGINS_TSV points it at another file (fixtures). A
+# removal is recorded by adding its row, in the same commit as the removal. Removed SKILL
+# and COMMAND names stay in $skills and $cmds below (ground truth: rationale/stack-skill-
+# baselines.md, 2026-07-27): the react/css-family best-practices skills were removed;
+# simplicity-principles and surgical-coding (code-architecture,
 # 2026-07-28) were merged into low-cognitive-load and plan-before-code as
 # references — the material survives, the always-on trigger does not, so a doc
 # still routing a reader to them by name is the same dangling pointer. A shipped doc still routing to one of them is a dangling pointer no
 # other gate sees — validate.sh's reference check reads only the
 # /plugin:command slash form. On a hit: prints the comma-joined matches and
-# returns 1. Clean: prints nothing, returns 0. Lives here so validate.sh and
-# the smoke fixtures share ONE source, same as pc_jargon.
+# returns 1. Clean: prints nothing, returns 0. An unreadable, empty or malformed ledger
+# prints `removed-plugins ledger unreadable, empty or malformed: <path> — …` and returns 1:
+# fail closed, never a silent pass. Lives here so validate.sh and the smoke fixtures share ONE source, same as pc_jargon.
 #
 # SHAPE-BOUNDED BY DESIGN: rollout, concurrency, error-handling, typescript
 # and javascript are ordinary technical English as bare words ("migrations, or
@@ -812,84 +850,23 @@ pc_jargon() {
 # capitalized stale row would slip; capability-breadth staleness ("react
 # reviews components") names no removed artifact and is invisible here. The
 # rescue list frees lines DISCUSSING a removal; anything else needs the
-# <!-- removed-ok --> marker.
+# <!-- removed-ok --> marker. A malformed ledger row — a name outside [a-z0-9-], a
+# prose_match outside plug|moved|both|no, fewer than five fields — fails closed like an
+# unreadable file.
 pc_removed_refs() {
   local f="$1" b plug skills cmds shapes rescue hit capi
   [ -f "$f" ] || return 0
+  _pc_removed_lists || {
+    printf 'removed-plugins ledger unreadable, empty or malformed: %s — not this file; restore scripts/removed-plugins.tsv or unset PC_REMOVED_PLUGINS_TSV\n' \
+      "${_PC_RR_BAD:-${PC_REMOVED_PLUGINS_TSV:-$_PC_REMOVED_TSV_DEFAULT}}"
+    return 1
+  }
   b='[^[:alnum:]-]'
-  # Nine stack plugins removed 2026-08-26 (cfef9c1, marketplace-necessity-review):
-  # react, php, mysql, postgresql, vue3, nuxt, livewire, node-backend, i18n. All
-  # are safe here BECAUSE plugin names match only in reference shapes (below):
-  # react-native survives via the hyphen boundary, "php -S" and docker image tags
-  # match no shape, TitleCase prose (React, MySQL) is skipped by design. The
-  # removal shipped a day of dangling references precisely because this list was
-  # not fed — extend it in the SAME commit as any future removal.
-  # `everything` added 2026-08-31 (the all-in bundle, removed). Bare "everything"
-  # is ordinary English and appears ~200 times in shipped prose — it is SAFE here
-  # only because $shapes matches reference forms (`**everything**`, `everything@`,
-  # `plugins/everything`, `/everything:`, "everything plugin"), never the bare
-  # word. Verified at removal: every shape-match in plugins/ was inside the
-  # deleted directory or the generated catalog. Do not move it to $skills, which
-  # word-matches.
-  # `claude-authoring` added 2026-09-03: demoted to the tracked project skills under
-  # .claude/skills/ (marketplace-standard-review-2026-09-03). Safe here because the
-  # ~45 shipped citations were rewritten to `.claude/skills/authoring-*/…` paths,
-  # which carry no `claude-authoring` token; only a live reference shape trips it.
-  # History lines in CHANGELOGs keep the name behind "Removed:" or <!-- removed-ok -->.
-  # payments, llm-app added 2026-09-14 (marketplace-consolidation-plan): removed
-  # outright, no skill moved. Both are ordinary English in prose ("a payments
-  # webhook", "3 of them in payments") and are SAFE here for the same reason as
-  # `everything`: only the reference shapes match. lean was removed the same day
-  # and is deliberately NOT listed: `lean` is overseer's rigour tier
-  # (`lean|standard|adversarial`, "→ `lean`") and taskmaster's `goal-lean` token,
-  # so the backtick and arrow shapes would fire on live vocabulary. Its residual
-  # is real: a doc naming the removed lean PLUGIN in a reference shape slips through.
-  # terse added 2026-09-14: merged into candor (the mode, the skill, /candor:level and
-  # /candor:check --brevity survive; the crew agents and commit/compress commands do not).
-  # Bare "terse" is ordinary English ("a terse table", brain's README) and the level
-  # file, env var and skill are still named terse-mode / CC_TERSE / terse-output, so it
-  # is SAFE here only because $shapes matches reference forms; those tokens carry a
-  # hyphen or underscore boundary and match no shape.
-  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring|payments|llm-app|terse|php-suite|dev-env|design-studio|core-suite|frontend-suite|craft-suite|workflow-suite'
-  # dev-env and design-studio were ABSORBED/RETIRED (2026-08, 2026-09-14). Both are
-  # hyphenated, so they match no bare-English shape and are safe in the $plug list —
-  # unlike `observability`, `lean` and `a11y`, which are ordinary words this check
-  # cannot tell from a plugin name, and which is why two of them sat wrong in shipped
-  # listing bytes for weeks (devops' skill description, security's README).
-  # nextjs, react-native, vite MOVED 2026-09-02: their skills live in web-dev now and
-  # keep their skill names, so only the PLUGIN forms are stale — `/vite:review`,
-  # `plugins/vite`, `vite@`, `**vite**`, "vite plugin". The bare-backtick and arrow
-  # shapes in $shapes are deliberately NOT applied: `vite` and `react-native` are npm
-  # package names the surviving skills must keep naming in prose.
-  # system-design MOVED 2026-09-14: its skills keep their names inside code-architecture
-  # (system-design, domain-modeling) and resilience (event-driven); only the PLUGIN forms
-  # are stale, and `code-architecture:system-design` stays legal for the same reason
-  # `web-dev:react-native-best-practices` does.
-  # plugin-scout, vercel-skills-scout MOVED 2026-09-14 into stack-scan as skills of the
-  # same names behind one /stack-scan:suggest command; only the PLUGIN forms are stale.
-  # theme-design, design-lab MOVED 2026-09-14 into design-studio, which was itself
-  # RETIRED the same day. Nothing survives under those three names except the
-  # real-component preview, now a reference of taskmaster's visual-decisions skill
-  # (references/real-components.md) with preview-cleanup.sh beside it. `design-studio`
-  # is in the $plug list above; `.theme-design/` and `.design-studio/` in an old
-  # changelog line match no shape and stay legal.
-  # fresh-take MOVED 2026-09-14 into approaches: the consult skill, the consultant agent
-  # and the reminder keep their names; /approaches:consult is the command.
-  # orchestration MOVED 2026-09-14 into task-runner: delegation-contracts and
-  # verification-panels keep their names, ultra-assess became a reference of the
-  # latter, /orchestration:review was retired. Bare "orchestration" is ordinary
-  # English (scroll orchestration, track-orchestration) and the hyphen boundary
-  # keeps those skill names out of every shape.
-  # Bundles rebuilt 2026-09-14 (consolidation plan §3.3): always-on-suite + quality-suite
-  # MOVED into core-suite; taskmaster-suite + process-suite + quality-principles-suite
-  # MOVED into workflow-suite. php-suite is in `plug` (removed outright — its three
-  # members are install-by-name). Every retired name is a hyphenated token, so the
-  # hyphen boundary keeps any other `-suite` name out of every shape.
-  # core-suite, frontend-suite, craft-suite, workflow-suite RETIRED 2026-09-26 (no plugin
-  # may declare `dependencies` — pc_plugin_dependencies' header has the measurement) and
-  # added to $plug in the same change; the CHANGELOG history lines that name them in a
-  # reference shape carry <!-- removed-ok -->.
-  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout|theme-design|design-lab|fresh-take|orchestration|always-on-suite|quality-suite|process-suite|taskmaster-suite|quality-principles-suite'
+  # Why each name sits in $plug, $moved or neither: its reason column in scripts/removed-plugins.tsv.
+  plug=$_PC_RR_PLUG
+  # $shapes gives $moved only the plugin-reference forms, not $plug's bare-backtick or arrow
+  # shape: most of those names live on as skill names, npm packages or ordinary words.
+  moved=$_PC_RR_MOVED
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # `\`($moved):[a-z][a-z0-9-]*` added 2026-09-02: three craft-layer files cited
   # `a11y:a11y-audit` / `performance:performance-engineer` — the backtick
@@ -911,7 +888,7 @@ pc_removed_refs() {
   # migrations, short transactions) at the same level of generality while the file
   # claimed to defer where both could speak. The `database` PLUGIN survives — it
   # ships the destructive-SQL PreToolUse guard and the database-engineer worker.
-  # 2026-08-26 skill names ride the same removal. The i18n plugin's skill was
+  # 2026-08-26 skill names ride the nine-plugin removal of that day. The i18n plugin's skill was
   # also named bare "i18n" — deliberately NOT listed: word-bounded "i18n" is
   # ordinary technical English everywhere, so its coverage rides the plugin
   # shapes only. That residual is real: a doc naming the removed SKILL as bare
@@ -1214,7 +1191,8 @@ pc_rules_owner() {
 # LIMITATION (honest scope). Name equality only. A skill called `chart-styling`
 # that silently restates dataviz trips nothing, and the roster is a hardcoded list
 # that goes stale when the harness ships a new built-in — the same standing
-# pc_removed_refs' hardcoded removal list already carries. Accepted, not covered.
+# pc_removed_refs' plugin lists carry: they come from scripts/removed-plugins.tsv, current
+# only as of its last row. Accepted, not covered.
 pc_host_overlap() {
   local f="$1" bad=0 name host
   [ -f "$f" ] || return 0
@@ -1244,6 +1222,46 @@ pc_host_overlap() {
     if [ "$name" = "$host" ]; then
       printf 'hostoverlap %s %s\n' "$f" "$name"; bad=1
     fi
+  done
+  return $bad
+}
+
+# pc_cmd_skill_shadow [plugins-root] — one plugin must not ship `commands/<n>.md` AND
+# `skills/<n>/SKILL.md`. Prints `shadow <plugin>:<n>` per unmarked pair and returns 1.
+#
+# WHY IT EXISTS. The host lists a plugin's commands and skills in one listing under one
+# `<plugin>:<n>` name, and a same-name pair keeps only one description. Measured
+# 2026-09-29: `claude plugin details design-kit` printed `Skills (10)  artifact, artifact,
+# design, design, …`, and a live session's listing carried each COMMAND's description —
+# the skill's "Use when" trigger never reached the model. Six pairs shipped that way
+# (design-kit artifact, design, in-codebase, slides, system; taskmaster brainstorm) with
+# every gate green, because each file was valid on its own.
+#
+# CATCHES. A same-name pair inside one plugin's default `commands/` and `skills/` dirs.
+# Escape: `<!-- shadow-ok: <why> -->` anywhere in the command file. The reason must be
+# non-empty and not whitespace — `<!-- shadow-ok -->`, `<!-- shadow-ok: -->` and a
+# tab-only reason still fail — and cannot contain `>`.
+#
+# WHAT IT DOES NOT CATCH. A differently-named command that restates a skill. A pair
+# across two plugins (namespaced, so no shadow). Commands or skills declared through
+# plugin.json `commands`/`skills` paths outside the default dirs, or nested
+# `commands/<dir>/<n>.md`. `.claude/skills` project skills. A skill whose frontmatter `name:`
+# differs from its directory (the host lists the `name:`; the dir is only the fallback).
+# Whether a marker's reason is true. Names match case-sensitively on every filesystem,
+# so macOS and Linux CI agree.
+#
+# Standing: gate. validate.sh feeds it to lane_err.
+pc_cmd_skill_shadow() {
+  local root="${1:-plugins}" bad=0 cmd pdir name
+  for cmd in "$root"/*/commands/*.md; do
+    [ -f "$cmd" ] || continue
+    pdir=${cmd%/commands/*}
+    name=$(basename "$cmd" .md)
+    ls "$pdir/skills" 2>/dev/null | grep -qxF "$name" || continue
+    [ -f "$pdir/skills/$name/SKILL.md" ] || continue
+    grep -qE '<!-- shadow-ok:[[:space:]]*[^[:space:]>-][^>]*-->' "$cmd" && continue
+    printf 'shadow %s:%s\n' "${pdir##*/}" "$name"
+    bad=1
   done
   return $bad
 }
@@ -1341,8 +1359,8 @@ pc_twin_files() {
 # reference and returns 1; clean returns 0.
 #
 # WHY THIS EXISTS. validate.sh has always gated the SLASH form `/plugin:command`
-# globally, and pc_removed_refs knows a hardcoded list of plugins deleted from
-# this marketplace. Neither sees the bare `plugin:agent` form — the one the
+# globally, and pc_removed_refs reads the plugins deleted from this marketplace
+# from scripts/removed-plugins.tsv. Neither sees the bare `plugin:agent` form — the one the
 # routing chains, reviewer maps and worker handoffs are actually written in. So
 # `ui-ux:ui-ux-enginer` (typo), `taskrunner:task-executor` (wrong plugin name) and
 # a rename that missed one call site all shipped green, and the failure is silent
@@ -2796,6 +2814,96 @@ function emit(tok, cellv) {
 EOF
   done
   return $bad
+}
+
+# pc_renames_ledger [repo_root] — scripts/removed-plugins.tsv and marketplace.json's top-level
+# `renames` must record the same removals. Prints one line per defect and returns 1:
+#   renames-missing <name>                       a TSV row with no renames key
+#   renames-mismatch <name> <successor> <value>  the value is not the row's successor (JSON
+#                                                null compares as the string null)
+#   renames-live-key <name>                      a renames key still in .plugins[].name
+#   renames-dangling <name> <target>             the chain from <name> reaches a name that is
+#                                                neither listed nor a renames key
+#   renames-cycle <name>                         the chain from <name> revisits a name
+#   renames-orphan <name>                        a renames key with no TSV row
+#   renames-ledger-unreadable <path>[:<line>]    a TSV that is not a readable file, a row
+#                                                _pc_removed_lists would reject, or an awk
+#                                                failure; a marketplace.json that is not JSON
+#                                                with an object .renames of null or string
+#                                                values and a .plugins array of objects
+#
+# The string "null" is refused as unreadable: jq renders it exactly like JSON null, and the
+# host reads it as a plugin name — `{"old": "null"}` fails `claude plugin validate --strict`
+# with `chain does not resolve (target-missing)` (measured 2.1.284, 2026-09-29).
+#
+# WHY IT EXISTS. One fact, two hand-edited copies. The TSV feeds pc_removed_refs; `renames` is
+# what the host acts on for every install: a name maps to its successor (enabledPlugins
+# rewritten, successor installed) or to null (uninstalled under forceRemoveDeletedPlugins), and
+# a removed name with neither fails to load and is uninstalled with no successor — measured on
+# 2.1.282, rationale/host-features-2026-09-29.md. A drifted pair is a wrong migration on every
+# install, and nothing else compares the two.
+#
+# THE HOST'S RULES, followed here (https://code.claude.com/docs/en/plugins/host-marketplace,
+# accessed 2026-09-29; user decision 2026-09-29): `renames` is "append-only history" and Claude
+# Code "follows the chain from the oldest name". A target may be a current plugin, null, or
+# another renames key; every chain must end at a current plugin or null, with no cycle. So
+# removing a plugin that is some entry's target (web-dev, the target of nextjs, react-native
+# and vite) rewrites none of those entries: the new row's own renames entry extends their chains.
+#
+# CATCHES what the host validator does not: TSV/renames agreement (missing, mismatch, orphan)
+# and a renamed key still listed — `{"a": "b"}` with `a` in plugins[] passes `claude plugin
+# validate --strict` (measured 2.1.282). The cycle and dangling arms repeat the host's own
+# `chain does not resolve (cycle|target-missing)` rejection on purpose: validate.sh runs with
+# no CLI, official-validate.sh only on the pinned one.
+#
+# WHAT IT DOES NOT CATCH. Whether a successor is RIGHT: the TSV header's blocking-hook rule is
+# prose. An old entry retargeted or deleted together with its TSV row — neither file enforces
+# append-only; git history is the only record. A duplicate TSV row that agrees with renames, or
+# a duplicate JSON key (jq keeps the last). Whether a validated migration runs.
+#
+# Standing: gate. validate.sh feeds it to lane_err.
+pc_renames_ledger() {
+  local root="${1:-.}" mp tsv bad=0 rc
+  mp="$root/.claude-plugin/marketplace.json"
+  tsv="$root/scripts/removed-plugins.tsv"
+  [ -f "$tsv" ] && [ -r "$tsv" ] || { printf 'renames-ledger-unreadable %s\n' "${tsv#$root/}"; bad=1; }
+  jq -e 'type == "object" and (.plugins | type == "array") and all(.plugins[]; type == "object")
+    and (.renames | type == "object") and all(.renames[]; . == null or (type == "string" and . != "null"))' "$mp" >/dev/null 2>&1 \
+    || { printf 'renames-ledger-unreadable %s\n' "${mp#$root/}"; bad=1; }
+  [ "$bad" -eq 0 ] || return 1
+  awk -F'\t' -v src="${tsv#$root/}" '
+    FILENAME == ARGV[1] {
+      if ($1 == "L") live[$2] = 1
+      else { ren[$2] = $3; key[++n] = $2 }
+      next
+    }
+    /^#/ { next }
+    { sub(/\r$/, "") }
+    /^[ \t]*$/ { next }
+    NF < 5 || $1 !~ /^[a-z0-9][a-z0-9-]*$/ || $4 !~ /^(plug|moved|both|no)$/ {
+      print "renames-ledger-unreadable " src ":" FNR; bad = 1; next
+    }
+    { row[$1] = 1 }
+    !($1 in ren) { print "renames-missing " $1; bad = 1; next }
+    ren[$1] != $2 { print "renames-mismatch " $1 " " $2 " " ren[$1]; bad = 1 }
+    END {
+      for (i = 1; i <= n; i++) {
+        k = key[i]
+        if (k in live) { print "renames-live-key " k; bad = 1 }
+        if (!(k in row)) { print "renames-orphan " k; bad = 1 }
+        split("", seen); seen[k] = 1; t = ren[k]; hops = 0
+        while (t != "null" && !(t in live)) {
+          if ((t in seen) || ++hops > n) { print "renames-cycle " k; bad = 1; break }
+          if (!(t in ren)) { print "renames-dangling " k " " t; bad = 1; break }
+          seen[t] = 1; t = ren[t]
+        }
+      }
+      exit bad
+    }' <(jq -r '(.plugins[].name | strings | "L\t\(.)"), (.renames | to_entries[] | "R\t\(.key)\t\(.value)")' "$mp") "$tsv"
+  rc=$?
+  [ "$rc" -le 1 ] && return "$rc"
+  printf 'renames-ledger-unreadable %s\n' "${tsv#$root/}"
+  return 1
 }
 
 # pc_listing_fields <md_path> — the three frontmatter fields the skill listing is priced

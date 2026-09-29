@@ -4,6 +4,73 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.117.0] - 2026-09-29
+
+On Claude Code 2.1.193 or later, stale installs of removed or merged plugins now clean themselves up.
+`marketplace.json` gains a `renames` map and `forceRemoveDeletedPlugins: true`: at the next session start Claude
+Code moves an install of a merged plugin to the plugin that absorbed it and uninstalls one whose plugin is gone,
+with no command to run. The flag is a standing policy: any plugin this marketplace drops later is uninstalled at
+its users' next session start.
+
+- **Update Claude Code to 2.1.193 or later before your next session.** `renames` needs 2.1.193 (documented);
+  2.1.191 ignores the map but honours the flag. Measured on 2.1.191: a plugin mapped to a successor is uninstalled
+  and the successor is **not** installed, so you end with neither; a `null` one is uninstalled. If you cannot
+  update, install each successor yourself — the 20 non-`null` pairs in `renames`. Where a removed plugin still
+  shows `failed to load` on a CLI whose flag did not fire (2.1.81 did not, in an unauthenticated session),
+  0.116.0's `claude plugin uninstall <name>@cc-plugins-marketplace` still applies.
+- **What happens to an old install on 2.1.193 or later.** `renames` has 81 entries. 20 name the plugin that
+  absorbed the old one (`nextjs` → `web-dev`, `fresh-take` → `approaches`, …): the install is replaced by its
+  successor, and if the successor is already installed you keep one copy, not two. 61 are `null`: no successor is
+  installed for you, and the old install is uninstalled. Measured on 2.1.282 in user scope, unauthenticated `-p`
+  sessions (project, local and managed: documented, not measured). The old cache directory is left on disk.
+- **Some `null` plugins have a home you install yourself:** `/plugin install <home>@cc-plugins-marketplace`. It is
+  not automatic because a successor is installed without asking, and these homes register a blocking hook (a Stop
+  gate or a PreToolUse deny/ask) the old plugin lacked — `a11y` → `ui-ux`, `comment-discipline` → `code-review`,
+  `dev-env` → `devops`, `mariadb` and `sql` → `database`, `orchestration` → `task-runner`, `terse` → `candor`,
+  `taskman` → `taskmaster` — or because the move went through a chain: `grill-me` → `taskmaster`, `docs-upkeep` →
+  `api-design`. The reason column of `scripts/removed-plugins.tsv` says where every other removed plugin went.
+- **Retired suites (0.116.0).** Measured on 2.1.282, including a replay with the real `core-suite`: the flag
+  uninstalls the suite at session start and keeps the members it installed, installed and enabled. But `claude
+  plugin prune --dry-run` lists those auto-installed members as no longer needed, so a later `claude plugin prune
+  -y` would remove them. Run `claude plugin install <member>@cc-plugins-marketplace` once for each member you want
+  to keep; it marks the member manually installed and prune leaves it alone.
+- **If a session reports `Plugin "<name>" not cached`,** run `/plugin install <successor>@cc-plugins-marketplace`
+  once. The docs give that advice for git-hosted marketplaces such as this GitHub one; measured on a local git
+  server with 2.1.282, the window closed at the next session start. GitHub hosting was not measured.
+- **One ledger for removals: `scripts/removed-plugins.tsv`.** One row per plugin git history deleted — name,
+  successor or `null`, date, which removed-reference list holds the name, and why. The `renames` map is generated
+  from it, and `pc_removed_refs` now reads its name lists from it instead of two hardcoded lists. A successor is
+  named only when one plugin absorbed the removed one and registers no blocking hook the removed one lacked,
+  because the host installs a successor without asking. Standing: chain resolution is **gate** — `claude plugin
+  validate --strict` at the pinned 2.1.282 fails a `renames` chain that does not resolve; the map matching the
+  ledger and no `renames` key naming a still-listed plugin are **gate** too (the renames-ledger check below). The
+  successor rule is **recorded**.
+- **design-kit 0.8.0 — the five slash entries are now the skills themselves.** `slides`, `design`, `in-codebase`,
+  `system` and `artifact` each shipped as a command and a skill of one name, and the command hid the skill's
+  description. The command files are gone; `/design-kit:<name> <args>` works unchanged and the listing shows each
+  skill's own "Use when" line. A skill's Entry section is for starting a new deck, board, render, extraction or
+  artifact, and tells the model to skip it on a mid-task load (**agent-graded**).
+- **taskmaster 0.45.5 — `/taskmaster:brainstorm` is the command alone.** The brainstorm skill was folded into its
+  command, which now carries every section; the hand-off still runs `/taskmaster:task` with the design doc. The
+  plugin no longer lists two brainstorm entries.
+- **`pc_removed_refs` reads the ledger.** Its two plugin-name lists now come from `scripts/removed-plugins.tsv`
+  (prose_match `plug`, `moved`, `both` or `no`); a before/after run over 1,160 probe files flagged exactly the same
+  lines. An unreadable, empty or malformed ledger fails closed, naming its path and line. Standing: **gate**
+  (parity-check.sh).
+- **Command/skill shadow gate.** validate.sh fails when one plugin ships `commands/<n>.md` and
+  `skills/<n>/SKILL.md` — the listing keeps only the command's description, which is how six pairs shipped with the
+  skills' triggers invisible. Escape: `<!-- shadow-ok: <why> -->` in the command, with a real reason. Standing:
+  **gate**.
+- **`remove-plugin.sh` records every removal.** It appends the ledger row (prose_match `no`) and the `renames`
+  entry, names a successor only under `--merge-into` when the host adds no blocking hook, never rewrites existing
+  entries, and validates `marketplace.json` before deleting anything. Standing: **recorded** (maintainer script, no
+  harness).
+- **README: stale installs migrate on their own.** The hand-uninstall paragraph is replaced by what happens on
+  2.1.193+, what to do on an older CLI, where absorbed plugins went, and how to keep retired-suite members.
+- **Renames-ledger gate.** validate.sh fails when the ledger and `renames` disagree, a key names a live plugin, a
+  chain dangles or cycles, or either file is unreadable; the string `"null"` is rejected. Standing: **gate**
+  (renames-ledger-tests.sh, parity-check.sh).
+
 ## [0.116.0] - 2026-09-26
 
 The four meta-bundles are retired: `core-suite`, `frontend-suite`, `craft-suite`, `workflow-suite`. Two install

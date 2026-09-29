@@ -1,7 +1,47 @@
 ---
 name: in-codebase
 description: Use when a design must be rendered with the project's OWN components on its OWN dev server — from a brief, a board, or a Claude Design handoff bundle (a folder of exported .html plus a README) — instead of restyled from a screenshot or export. Detects the stack, stands up a marked scratch entry, imports real components, measures token drift, and removes every trace after the pick.
+argument-hint: "[brief | board.html#board=N | <handoff-bundle-dir>]"
 ---
+
+## Entry: /design-kit:in-codebase
+
+Run this section only when a new render starts — the user typed `/design-kit:in-codebase`
+or asked for a new one; when loaded mid-task (after an edit, or to review a change), skip
+to the next section.
+
+Render the input — `$ARGUMENTS` when typed, else the user's request in this conversation —
+in this codebase. The rules and the procedure below govern components, consent, drift and
+cleanup; this section is only the order. Every script call goes through
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"`; run `dk.sh check` first and repeat its line.
+
+Resolve the argument first:
+
+- **Typed with nothing** (`/design-kit:in-codebase` alone) → the latest unread pick:
+  `dk.sh decision --latest --consume`. Its prose names the board, the artboard, the knob values and the text edits — every line is a
+  requirement. Exit 3 means no pick is waiting: say so and ask for a brief or a board.
+- A path to a directory holding at least one `.html` and a README or chat file →
+  **handoff bundle**: run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/handoff-drift.py" <dir>`
+  before anything else and put the table in front of the user.
+- `<file>.html#board=N` → a board from `/design-kit:design`: read that artboard
+  for structure and copy (`dk.sh decision --board <file>` reads its recorded edits too).
+- Loaded by the model on a request, or anything else typed → a brief.
+
+Then, in order: `dk.sh scratch --detect`; consent via AskUserQuestion once per session —
+say what the choice buys before offering it: the scratch entry is a few throwaway files
+written into the project tree under `__design-kit__/` paths and removed after the pick, so
+the design renders on the project's own dev server with its own components. Labels:
+"Write the scratch entry (Recommended)" / "Show me the plan only". No write before the
+first is chosen. Then
+`dk.sh scratch --create <slug> --brief "<one line>"` (the brief seeds the variant strip; omitted, the workshop's brief is used); fill only the printed files with real components;
+`dk.sh drift <the files the scratch page added>`, fixing each hit with its token; open the
+printed URL; iterate, re-running drift after each change; after the pick `dk.sh scratch --cleanup` then
+`dk.sh scratch --verify`, unless the user says keep — then say in one line that
+`__design-kit__` paths remain. Record what rendered the pick:
+`dk.sh decision --record "<board/brief>, artboard N, components: …, gaps: …"`.
+
+Reply with: the stack detected, the components and variants used, the drift table
+(bundle mode) with each `no token` row's resolution, gap rows, the cleanup verdict.
 
 ## What this decides
 
@@ -50,7 +90,7 @@ Two entry shapes, one procedure:
    rendering and act on every row: `match` uses that token; `near` uses the nearest
    token and says so; `no token` is a question — adopt it as a new token via
    `/design-kit:system` or map it to the nearest — never a literal in the tree.
-   Standing: **gate** for the table's existence (the script runs or the command
+   Standing: **gate** for the table's existence (the script runs or this skill
    stops); the mapping decision is the user's.
 7. **A named palette utility is drift too.** `bg-indigo-500` reaches a colour without
    passing the token layer at all, so it never appears in a stylesheet and every

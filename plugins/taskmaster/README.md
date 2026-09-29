@@ -216,8 +216,7 @@ it (recorded; the router is the only nudge).
 
 ## Contents
 
-- **Skills**: brainstorm (fuzzy idea → approved design doc, upstream of
-  everything), grill (interrogation + ambiguity ledger + big-task slicing),
+- **Skills**: grill (interrogation + ambiguity ledger + big-task slicing),
   visual-decisions (theme-aware shell mockups — `assets/shell.html` — with
   compare modes, callouts, and motion passes on a live preview URL; variety across
   theme/density/type axes and dark/viewport/RTL/print modes, a
@@ -232,7 +231,8 @@ it (recorded; the router is the only nudge).
 - **Agents**: context-scout — read-only codebase reconnaissance before questioning;
   spec-adversary — the blind attacker spec-redteam fans out
 - **Commands**: `/taskmaster:task` (and its `/taskmaster:taskmaster` alias),
-  `:brainstorm`, `:coverage`, `:redteam`
+  `:brainstorm` (fuzzy idea → approved design doc, upstream of everything),
+  `:coverage`, `:redteam`
 - **Hooks**, five: the clarify-first directive and the boost detector on
   UserPromptSubmit; the artifact preview guard (ask) and the opt-in clarify gate
   (`CC_CLARIFY_GATE=block`, deny once) on PreToolUse; the card-shape observer

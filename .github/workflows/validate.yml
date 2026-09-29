@@ -114,6 +114,10 @@ jobs:
         run: bash scripts/smoke/source-of-truth-tests.sh
       - name: scout-name gate smoke tests (a dead plugin name fails the build)
         run: bash scripts/smoke/scout-names-tests.sh
+      - name: command/skill shadow gate smoke tests (a same-name pair fails the build)
+        run: bash scripts/smoke/cmd-skill-shadow-tests.sh
+      - name: renames ledger gate smoke tests (TSV and renames must agree)
+        run: bash scripts/smoke/renames-ledger-tests.sh
       - name: eval-case gate smoke tests
         run: bash scripts/smoke/eval-case-tests.sh
       # The host's own validator, pinned to the CLI this repo was measured against —

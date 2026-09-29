@@ -1,7 +1,44 @@
 ---
 name: system
 description: Use when a project needs its design system written down from what actually exists — extract tokens, typefaces and a component inventory from the repo, a live URL, or a folder of brand assets into design-system/ (DTCG tokens.json, DESIGN-SYSTEM.md, a UI-kit page) — or when a design, artifact or deck must start from the project's real palette instead of a remembered one.
+argument-hint: "[repo | https://url | brand-dir] [--out design-system]"
 ---
+
+## Entry: /design-kit:system
+
+Run this section only when a new extraction starts — the user typed `/design-kit:system`
+or asked for a new one; when loaded mid-task (after an edit, or to review a change), skip
+to the next section.
+
+Every script call below goes through `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"` (one
+permission rule; it records the workshop state the other skills read).
+
+1. Resolve the target from `$ARGUMENTS`: a URL, a directory, or nothing (= the
+   current repo). Do not guess a URL from the project name. `--out` overrides the
+   output directory; default `design-system/` at the project root.
+2. Dry-run first on a repo you have not seen:
+   `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/system-extract.py" <target> --dry-run`
+   and read the table. If two sources disagree on one token (two `primary`
+   rows with different sources), ask the user which is canonical BEFORE the
+   full run, one question, and record the answer for step 5.
+3. Full run + kit + server in one call: `dk.sh system <target> [--out DIR]`. It
+   prints the summary line (tokens, components, sources), every `note:` line — the
+   URL-mode "without running JavaScript" caveat is part of the answer, not noise —
+   and `url=…/previews/kit.html`. Give the user that URL; the gallery at the base
+   URL lists it too. If `.design-kit/` is not in `.gitignore`, say so once; do not
+   edit `.gitignore` unasked.
+4. Offer, with AskUserQuestion, exactly two options: "Append the `## Design system`
+   block to CLAUDE.md so every artifact, design and deck starts from it" /
+   "Leave CLAUDE.md alone — the block stays in design-system/DESIGN-SYSTEM.md
+   (Recommended)". Append only on the first; if CLAUDE.md already has a
+   `## Design system` heading, replace that section rather than adding a second.
+5. Close with the `## Not found` list from `DESIGN-SYSTEM.md` in one line each, so
+   the user knows what the source does not define. Never fill a gap by hand.
+
+The other four skills run `dk.sh check` before they build and repeat its one line
+(`design-system: current` / one `check:` line per moved token / none); this skill
+is where a moved token gets re-extracted. Untested claims stay untested: `kit.html`
+proves the inventory, not the look of a component — that is `/design-kit:in-codebase`.
 
 ## What this decides
 
@@ -82,10 +119,10 @@ repo; the full run writes `design-system/tokens.json`, `DESIGN-SYSTEM.md`, `kit.
 Claude Code's built-in artifact design skill "looks for an existing design system in
 your project before choosing its own", in the plain form `DESIGN-SYSTEM.md`'s
 `## Design system` block uses, and ranks it: **prompt > your design system > its own
-defaults**. The command offers to append that block to `CLAUDE.md`; the default is to
+defaults**. Entry step 4 offers to append that block to `CLAUDE.md`; the default is to
 leave `CLAUDE.md` alone and point at `design-system/DESIGN-SYSTEM.md` instead. Either
 way, `/design-kit:design`, `/design-kit:slides` and `/design-kit:artifact` read the
-block first (agent-graded — nothing proves a sibling command read it).
+block first (agent-graded — nothing proves a sibling skill read it).
 
 `tokens.json` is DTCG-shaped (`$type`, `$value`, `{alias}`, `$extensions`) but keeps
 colours and dimensions as the strings the source wrote, which the 2025.10 draft no
@@ -97,7 +134,7 @@ are in `references/tokens-format.md`.
 The output is deterministic: the same source gives byte-identical files (gate — the
 harness runs twice and compares). So `git diff design-system/` after a re-run is a
 real change in the source, and a clean diff means nothing moved. Re-run after any
-edit to a stylesheet, Tailwind config or component directory; the command does not
+edit to a stylesheet, Tailwind config or component directory; this skill does not
 watch for it.
 
 ## Anti-patterns

@@ -174,6 +174,7 @@ or restating a check's header here; do not add the story back to this file.
   | `# state-root-ok:` | a hook whose `.claude/` state is deliberately per-directory, built from the raw payload `cwd` instead of `cc_state_root` |
   | `# offswitch-ok:` | a hook that reads an off-switch and deliberately omits it from a blocking reason |
   | `<!-- version-tail-ok: -->` | a version-pinning skill whose `Last verified` stamp deliberately carries no `npm:`/`composer:` tail |
+  | `<!-- shadow-ok: <why> -->` | a command and a skill of the same name in one plugin, kept on purpose (the command's description shadows the skill's in the listing) |
 
   `claude-api` must be described as Claude Code's built-in skill, never as a
   marketplace artifact.
@@ -321,8 +322,8 @@ Those four are the ones you invoke. They are **not** all the enforcement. Named
 by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **40 named steps;
-38 can fail the build**, and on a push to `master` only **37** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **42 named steps;
+40 can fail the build**, and on a push to `master` only **39** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
 This is the one count deliberately carried here and nowhere else
 (`scripts/done-gate.sh:7` says why); **recount it, do not copy it**:
@@ -403,7 +404,10 @@ python3 -c "import glob,os;s={os.path.basename(os.path.dirname(p)) for p in glob
 plugin-removal script; dry-run by default, edits with `--apply`. It deletes the
 plugin's dir, marketplace entry and README table row, rewrites the README leaf counts
 `validate.sh` checks, strips the plugin's key from all three context-budget baselines
-and regenerates the scout catalog. It has no bundle
+and regenerates the scout catalog. It also appends a `scripts/removed-plugins.tsv` row
+(prose_match `no`) and a `renames` entry, naming a successor only under `--merge-into` when
+the host adds no blocking hook, else `null`; `pc_renames_ledger` fails the build when the two
+disagree. It has no bundle
 branches: the suites were retired 2026-09-26 and no plugin may declare
 `dependencies`. Prose that names the removed plugin is its residual report, not an
 edit — a person rewrites it.

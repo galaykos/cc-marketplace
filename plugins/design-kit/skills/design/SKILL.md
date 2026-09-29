@@ -1,13 +1,51 @@
 ---
 name: design
 description: Use when drafting UI directions for a screen, flow, landing page or feature before any code — 2-4 artboards on one local canvas with editable text and adjustment knobs, the pick and edits pasted back as a prompt. Structural divergence, real content, one signature element, a11y floor. Reached by /design-kit:design.
+argument-hint: "[brief] [--screens 2-4] [--device phone|tablet|desktop] [--theme design-system/tokens.json]"
 ---
 
 <!-- host-ok --> The host's own `/design` publishes artboards to claude.ai as an artifact and
 needs a signed-in session. This skill draws the same kind of board into local files under
-`.design-kit/boards/`, served on your own machine, and never uploads. Use the host's when
-you want the claude.ai canvas; use this when the board must stay on disk, work offline, or
-feed the rest of this plugin.
+`.design-kit/boards/`, served on your own machine, never uploads, and needs no sign-in. Use
+the host's when you want the claude.ai canvas; use this when the board must stay on disk,
+work offline, or feed the rest of this plugin.
+
+## Entry: /design-kit:design
+
+Run this section only when a new board starts — the user typed `/design-kit:design` or
+asked for a new one; when loaded mid-task (after an edit, or to review a change), skip to
+the next section.
+
+Draft a design board for the input — `$ARGUMENTS` when typed, else the user's request in
+this conversation. The steps below are the entry sequence, not a substitute for the rest
+of this skill. Every script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"`.
+
+1. `dk.sh check` first; repeat its one line. Then parse `--screens` (default 3, clamp
+   2–4), `--device` (default `desktop`; a brief that says mobile, app, phone, game or
+   play → `phone`), `--theme` (default `design-system/tokens.json` when it exists, else the
+   shell's neutral defaults). Typed with no brief (`/design-kit:design` alone), read `.design-kit/workshop.json`:
+   if it holds a `brief`, offer it; otherwise ask in a single round what is being
+   designed, for whom, and the one thing it must make easy.
+2. Consent, once per session, via AskUserQuestion — the FIRST option is the read-back
+   when `.design-kit/decisions.jsonl` holds an unread row: "I picked on the board —
+   read it" (run `dk.sh decision --latest --consume`, treat every line as a requirement,
+   go to step 5) / "Draft the board (Recommended)" / "ASCII sketches in chat instead" /
+   "Stop". ASCII → wireframes in chat and skip the rest.
+3. Write the spec to `.design-kit/boards/<slug>.spec.json`, then `dk.sh board <spec>
+   [--device D]`. It builds, starts or reuses the server, and prints `board=` and
+   `url=`. Give the user the URL plus one line per artboard: number, title, trade-off.
+   If the builder exits 2, fix the spec it names and rebuild; never bypass it.
+4. Ask for the pick (AskUserQuestion): "Read my pick from the board" · pick artboard N
+   · revise N · add a direction · done for now. The board records every pick, knob
+   move and text edit to the server as it happens; "Read my pick" runs
+   `dk.sh decision --board <board> --consume` and prints the same prose the board's
+   "Copy edits as prompt" button gives — either path, every line is a requirement.
+   On revise/add, edit the spec, rebuild in place (the open tab reloads itself), ask again.
+5. On a pick: `dk.sh decision --record "board <title>, artboard N (<name>), <knobs>,
+   text edits: <n>"` so `design-system/DECISIONS.md` carries it; then offer
+   `/design-kit:in-codebase` with no arguments (it reads the same pick — Recommended),
+   or the project's UI build command, or `dk.sh export <board> --png|--pdf` for someone
+   outside the session. Stop the server only if this skill started it.
 
 ## What a board is
 
@@ -20,9 +58,9 @@ pasting the artboard's HTML into the tree.
 
 ## Procedure
 
-1. **Read the brief for the job, the audience, and the one metric.** If the brief names
-   none, propose all three in one line and continue; do not draft against a subject you
-   have not named.
+1. **Read the brief for the job, the audience, and the one metric.** No brief at all is
+   Entry step 1's case. If the brief names none, propose all three in one line and
+   continue; do not draft against a subject you have not named.
 2. **Choose the axis of divergence** before writing any HTML. Directions differ on
    structure — navigation model, information hierarchy, density, primary action
    placement, what is on the first screen — never on colour or radius (the knobs do that
@@ -53,7 +91,7 @@ pasting the artboard's HTML into the tree.
    read it literally — knob values and text edits are requirements now, a global knob
    applies to every artboard, a scoped one to its artboard only.
 7. **Hand off**: with a pick, `dk.sh decision --record "…"` writes one line to
-   `design-system/DECISIONS.md`; then run `/design-kit:in-codebase` with no arguments
+   `design-system/DECISIONS.md`; then offer `/design-kit:in-codebase` with no arguments
    (it reads the same pick) or the project's UI plugin's build command. Export PNG or
    PDF (`dk.sh export <board> --png|--pdf`) only when someone outside the session needs it.
 
