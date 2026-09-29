@@ -2,7 +2,8 @@
 # Deference-gate harness: proves pc_deference_edges (scripts/lib/plugin-checks.sh)
 # fires on an unbacked "defers X to <plugin>" claim, passes the shipped tree, SKIPS
 # a claim whose target is a host built-in or a plugin class (no directory to
-# resolve), and that validate.sh's call site carries the FAIL string to the build.
+# resolve), and that validate.sh calls it and hands its output to lane_err with its
+# hint. The FAIL string reaching the build end-to-end is parity-check.sh's assertion.
 # CI step: .github/workflows/validate.yml "deference gate harness".
 #
 # RUN AGAINST A MIRROR, NEVER THE LIVE TREE (the rule role-floors-check.sh learned
@@ -88,23 +89,14 @@ case "$g:$out" in
   *) echo "FAIL: no-lane.tsv passive claim not flagged (rc=$g; out=$out)"; rc=1 ;;
 esac
 
-# 6. validate.sh wiring — the call site's FAIL string reaches the build. Mirror the
-#    tree the way role-floors-check.sh does, break the same edge as case 2, run the
-#    real validate.sh there, and assert the lane_err hint verbatim.
-MIRROR="$T/mirror"; mkdir -p "$MIRROR"
-for _d in plugins scripts templates .claude-plugin; do
-  [ -e "$LIVE/$_d" ] && cp -R "$LIVE/$_d" "$MIRROR/" 2>/dev/null
-done
-for _f in CLAUDE.md README.md skills-lock.json; do
-  [ -f "$LIVE/$_f" ] && cp "$LIVE/$_f" "$MIRROR/" 2>/dev/null
-done
-jq '.description = "Fixture: defers pipeline topology to the devops plugin."' \
-  "$MIRROR/plugins/code-architecture/.claude-plugin/plugin.json" > "$T/pj.tmp" && mv "$T/pj.tmp" "$MIRROR/plugins/code-architecture/.claude-plugin/plugin.json"
-vout=$( cd "$MIRROR" && bash scripts/validate.sh 2>&1 ) && vrc=0 || vrc=$?
-if [ "$vrc" -ne 0 ] && printf '%s\n' "$vout" | grep -qF 'deference code-architecture -> devops — plugin.json promises deference to a plugin that no lane row yields to'; then
-  echo "PASS: validate.sh wiring — the deference FAIL string reaches the build"
+# 6. validate.sh wiring — the call runs over plugins/ and its output reaches lane_err
+#    with the hint, not an empty message.
+DEF_HINT='plugin.json promises deference to a plugin that no lane row yields to — add the yields_to edge or reword the description'
+if grep -v '^[[:space:]]*#' scripts/validate.sh | grep -A1 -F 'def_gap=$(pc_deference_edges plugins)' \
+   | grep -qF "lane_err \"\$def_gap\" \"$DEF_HINT\""; then
+  echo "PASS: validate.sh wiring — pc_deference_edges output reaches lane_err with its hint"
 else
-  echo "FAIL: validate.sh did not surface the deference string (rc=$vrc)"; printf '%s\n' "$vout" | grep -i 'deference' | head -3; rc=1
+  echo "FAIL: validate.sh no longer calls pc_deference_edges plugins with the hint: $DEF_HINT"; rc=1
 fi
 
 [ "$rc" -eq 0 ] && echo "deference-check: all PASS"

@@ -19,7 +19,9 @@
 # produce is 0 or 100 and never exercises a partial-page change. That a state file
 # SAVED by Playwright replays here — the fixture is hand-written in its shape; the
 # save was run by hand once (CHANGELOG 0.5.1). With no browser installed both shoots
-# are skipped and this file says so on stdout.
+# are skipped and this file says so on stdout. Every server start retries on a fresh
+# port, but the two dead-URL picks ($port_dead, $port_free) still trust bind-then-close:
+# they misfire only if another process binds that exact port AND answers HTTP in the run.
 set -euo pipefail
 unset CLAUDE_PROJECT_DIR DESIGN_KIT_DIR   # a live session exports the first
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -36,6 +38,31 @@ free_port() { python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0)
 proj="$tmp/proj"; mkdir -p "$proj"
 run() { ( cd "$proj" && bash "$snap" "$@" ); }
 rc_of() { set +e; out="$( "$@" 2>&1 )"; rc=$?; set -e; }
+# review_fresh <cmd>...: rc_of on a fresh DESIGN_KIT_PORT; rc 2 with "busy?" is preview.sh's exit 4, a lost port
+review_fresh() {
+  local try
+  for try in 1 2 3 4 5; do
+    export DESIGN_KIT_PORT="$(free_port)"
+    rc_of "$@"
+    [ "$rc" = 2 ] && grep -q 'busy?' <<<"$out" || return 0
+  done
+  fail "the preview server lost its port on 5 tries, last output: $out"
+}
+# serve_bg <pid-var> <port-var> <start-fn>: a server dead after the readiness poll lost its bind, so retry on a new port
+serve_bg() {
+  local try
+  for try in 1 2 3 4 5; do
+    printf -v "$2" '%s' "$(free_port)"
+    "$3" "${!2}"; printf -v "$1" '%s' "$!"; disown "${!1}" 2>/dev/null || true
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+      kill -0 "${!1}" 2>/dev/null || break
+      python3 -c 'import sys,urllib.request;urllib.request.urlopen(sys.argv[1],timeout=1)' "http://127.0.0.1:${!2}/" 2>/dev/null && break
+      python3 -c 'import time;time.sleep(0.3)'
+    done
+    kill -0 "${!1}" 2>/dev/null && return 0
+  done
+  fail "$3 lost its port on 5 tries, last port ${!2}"
+}
 
 # --- arguments: every one of these is a 1, never a 2 (2 means "unmeasured") ------
 rc_of run bogus;                          [ "$rc" = 1 ] || fail "unknown mode should exit 1, got $rc: $out"
@@ -76,7 +103,7 @@ rc_of bash -c "cd '$repo' && bash '$snap' snapshot --storage-state .design-kit/a
 git -C "$repo" rm -q --cached .design-kit/auth/walk.json
 
 # --- unreachable: the browser or the server, both NOT MEASURED, both exit 2 ------
-port_free="$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')"
+port_free="$(free_port)"
 rc_of run snapshot --base-url "http://127.0.0.1:$port_free" --routes /
 [ "$rc" = 2 ] || fail "an unreachable base URL should exit 2, got $rc: $out"
 grep -q 'NOT MEASURED' <<<"$out" || fail "the unreachable exit must say NOT MEASURED: $out"
@@ -118,7 +145,7 @@ cp "$tmp/red/desktop/new-route.png" "$sets/bbb222/desktop/new-route.png"
 touch "$sets/bbb222"   # newest → the default --current
 
 has_pillow=0; python3 -c 'import PIL' >/dev/null 2>&1 && has_pillow=1
-rc_of run review --base "$sets/aaa111"
+review_fresh run review --base "$sets/aaa111"
 [ "$rc" = 0 ] || fail "review over two fixture sets should exit 0, got $rc: $out"
 grep -q '| index | desktop | .* | same |' <<<"$out" || fail "the identical route should read same:
 $out"
@@ -165,8 +192,7 @@ grep -q 'no diff engine: install Pillow' "$proj/$page" || fail "the no-engine pa
 rsets="$repo/.design-kit/shots"
 mkfix "$rsets/aaa111" "255,255,255" desktop:index
 mkfix "$rsets/bbb222" "255,0,0" desktop:index; touch "$rsets/bbb222"
-export DESIGN_KIT_PORT="$(free_port)"
-rc_of bash -c "cd '$repo/app/Models' && bash '$snap' review --base '$rsets/aaa111'"
+review_fresh bash -c "cd '$repo/app/Models' && bash '$snap' review --base '$rsets/aaa111'"
 [ "$rc" = 0 ] || fail "review from a subdirectory should exit 0, got $rc: $out"
 rpage="$(sed -n 's/^review=//p' <<<"$out")"
 case "$rpage" in "../../.design-kit/reviews/"*) ;; *) fail "the review page is not under the root's .design-kit/: $rpage" ;; esac
@@ -184,15 +210,10 @@ else
   site="$tmp/site"; mkdir -p "$site"
   printf '<!doctype html><title>a</title><body style="background:#123456">A</body>\n' > "$site/index.html"
   printf '<!doctype html><title>b</title><body style="background:#abcdef">B</body>\n' > "$site/b.html"
-  sport="$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')"
-  ( cd "$site" && exec python3 -m http.server "$sport" --bind 127.0.0.1 >/dev/null 2>&1 ) &
-  site_pid=$!; disown "$site_pid" 2>/dev/null || true
-  guard_pid=""
-  trap 'kill "$site_pid" $guard_pid 2>/dev/null || true; stop_all; rm -rf "$tmp"' EXIT
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    python3 -c 'import sys,urllib.request;urllib.request.urlopen(sys.argv[1],timeout=1)' "http://127.0.0.1:$sport/" 2>/dev/null && break
-    python3 -c 'import time;time.sleep(0.3)'
-  done
+  start_site() { ( cd "$site" && exec python3 -m http.server "$1" --bind 127.0.0.1 >/dev/null 2>&1 ) & }
+  site_pid=""; guard_pid=""
+  trap 'kill $site_pid $guard_pid 2>/dev/null || true; stop_all; rm -rf "$tmp"' EXIT
+  serve_bg site_pid sport start_site
   rc_of run snapshot --routes /,/b.html --device both --base-url "http://127.0.0.1:$sport" --out "$tmp/shot1"
   [ "$rc" = 0 ] || fail "a real shoot should exit 0, got $rc: $out"
   for f in desktop/index desktop/b-html mobile/index mobile/b-html; do
@@ -228,13 +249,8 @@ class H(http.server.BaseHTTPRequestHandler):
         self.send_response(200); self.send_header("Content-Type", "text/html"); self.end_headers(); self.wfile.write(body)
 http.server.ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()
 PY
-  gport="$(free_port)"
-  ( exec python3 "$tmp/guard.py" "$gport" "$tmp/guard.log" >/dev/null 2>&1 ) &
-  guard_pid=$!; disown "$guard_pid" 2>/dev/null || true
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    python3 -c 'import sys,urllib.request;urllib.request.urlopen(sys.argv[1],timeout=1)' "http://127.0.0.1:$gport/" 2>/dev/null && break
-    python3 -c 'import time;time.sleep(0.3)'
-  done
+  start_guard() { ( exec python3 "$tmp/guard.py" "$1" "$tmp/guard.log" >/dev/null 2>&1 ) & }
+  serve_bg guard_pid gport start_guard
   printf '{"cookies":[{"name":"dk_session","value":"ok123","domain":"127.0.0.1","path":"/","expires":-1,"httpOnly":true,"secure":false,"sameSite":"Lax"}],"origins":[{"origin":"http://127.0.0.1:%s","localStorage":[{"name":"tok","value":"ls-ok"}]}]}' \
     "$gport" > "$repo/.design-kit/auth/walk.json"
   rc_of bash -c "cd '$repo/app/Models' && bash '$snap' snapshot --routes /secret --device both --base-url http://127.0.0.1:$gport --storage-state ../../.design-kit/auth/walk.json --out '$tmp/authshot'"

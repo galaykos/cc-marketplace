@@ -321,38 +321,32 @@ gaps=$(printf '%s\n' "$cov" | grep '^lane-missing ' | grep -v "$PENDING" || true
 printf '%s\n' "$cov" | grep "$PENDING" | sed 's/^/  pending (sibling card): /'
 
 # ---- validate.sh wiring ------------------------------------------------------
-# The functions above can all be correct while the call site interpolates an
-# empty message or never runs. Plant one real violation, assert the exact FAIL
-# line, restore byte-identically. PRESENCE ONLY, never exit code: validate.sh
-# has other reasons to be red mid-change and this must not read them as a pass.
-# PLANT INTO A COPY, NEVER THE LIVE TREE. An earlier version appended the bad row
-# to the real plugins/testing/lane.tsv and restored it afterwards. That holds only
-# while nothing interrupts: a killed run or two overlapping runs leave the malformed
-# row on disk, and the next validate.sh then fails on a file nobody edited. It
-# happened during this gate's own development. validate.sh cds to its own repo root
-# (validate.sh:4), so running the COPY's copy of it scopes everything to the mirror.
-# .claude-plugin is required — without it validate.sh exits early on
-# "marketplace.json missing" and the assertion below would never fire.
+# The planted-row run through validate.sh itself lives in
+# scripts/smoke/validate-fixtures/parity-check.sh, the one harness that pays for a
+# full validate.sh run (~50 s in CI). Here: the gate fails a planted copy of a
+# live file, and the call site hands that output to lane_err with its hint.
 VT=plugins/testing/lane.tsv
-VLIVE=$(mktemp) || exit 2
+VLIVE="$FIX/live-snapshot.tsv"
+VCOPY="$FIX/planted-lane.tsv"
 cp "$VT" "$VLIVE" || exit 2
-
-VMIR="$(mktemp -d)" || exit 2
-for _d in plugins scripts templates .claude-plugin; do cp -R "$_d" "$VMIR/" 2>/dev/null; done
-for _f in CLAUDE.md README.md skills-lock.json; do [ -f "$_f" ] && cp "$_f" "$VMIR/" 2>/dev/null; done
-
-printf 'testing:test-engineer\tagent\tverify\tno-yields-column\ta checkable condition\n' >> "$VMIR/$VT"
-vout=$( cd "$VMIR" && bash scripts/validate.sh 2>&1 )
-rm -rf "$VMIR"
-
-if printf '%s\n' "$vout" | grep -qF "FAIL: lane-schema $VT:"; then
-  pass "[wiring] validate.sh reports a planted lane-schema violation with its own message"
+cp "$VT" "$VCOPY" || exit 2
+printf 'testing:test-engineer\tagent\tverify\tno-yields-column\ta checkable condition\n' >> "$VCOPY"
+run pc_lanes_schema "$VCOPY"
+if [ "$grc" -eq 1 ] && printf '%s\n' "$out" | grep -F "lane-schema $VCOPY:" | grep -qF '5 fields (want 6)'; then
+  pass "[wiring] a five-field row planted in a copy of the live $VT fails the schema gate"
 else
-  bad "[wiring] validate.sh did not report the planted lane-schema violation"
+  bad "[wiring] the planted five-field row was not reported (rc=$grc, output: $out)"
+fi
+
+LANE_HINT='a lane row is 6 tab-separated fields (artifact kind phase owns definite_trigger yields_to)'
+if sed -n '/^while IFS= read -r lf; do$/,/^done <<EOF_LANE_FILES$/p' scripts/validate.sh \
+     | grep -v '^[[:space:]]*#' | grep -F 'lo=$(pc_lanes_schema "$lf")' | grep -qF "|| lane_err \"\$lo\" \"$LANE_HINT\""; then
+  pass "[wiring] validate.sh's lane loop routes pc_lanes_schema output to lane_err with its hint"
+else
+  bad "[wiring] validate.sh's lane loop no longer calls pc_lanes_schema \"\$lf\" with the hint: $LANE_HINT"
 fi
 cmp -s "$VLIVE" "$VT" && pass "[wiring] the live $VT was never written to" \
                       || bad "[wiring] the harness mutated the real tree"
-rm -f "$VLIVE"
 
 # ---------------------------------------------------------------- pc_lanes_vocabulary
 # Both gates below were added 2026-09-15 and shipped with NO harness, in a repo whose CI

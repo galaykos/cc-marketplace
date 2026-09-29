@@ -24,23 +24,22 @@ while IFS=$'\t' read -r name source; do
   [ "$jname" = "$name" ] || err "plugin '$name': plugin.json name is '$jname'"
 done < <(jq -r '.plugins[] | [.name, .source] | @tsv' "$MP")
 
-# A plugins/<x>/ with no manifest, no tracked file and no *.md / *.json outside its
-# dot-directories is not a plugin that forgot its paperwork — it is scratch.
-# plugins/design-studio/ held only a hook's marker files (code-review/hooks/verbosity.sh
-# writes under the payload cwd) and drew three FAILs about a plugin that never existed,
-# on a clean checkout of master, while CI stayed green because it checks out only
-# tracked files. One message, and the README and plugin-table loops below skip it. A
-# half-scaffolded plugin — untracked, but carrying a README or a manifest-shaped file —
-# is NOT scratch: it falls through to those three FAILs, which are its checklist.
+# Scratch under plugins/ (plugins/design-studio/ once held only a hook's marker files and
+# drew three FAILs about a plugin that never existed): one message, and the listing,
+# README and plugin-table checks below skip it. Rule and misses: pc_stray_dirs' header.
+# A heredoc, not a pipe, so fail=1 and STRAY_DIRS survive.
 STRAY_DIRS=""
-for dir in plugins/*/; do
-  name=$(basename "$dir")
-  [ -f "${dir}.claude-plugin/plugin.json" ] && continue
-  [ "$(git ls-files "$dir" 2>/dev/null | wc -l | tr -d ' ')" = 0 ] || continue
-  find "$dir" -path '*/.*' -prune -o -type f \( -name '*.md' -o -name '*.json' \) -print 2>/dev/null | grep -q . && continue
-  err "stray directory plugins/$name has no tracked files — delete it (a hook or editor left scratch here)"
-  STRAY_DIRS="$STRAY_DIRS $name "
-done
+stray_out=$(pc_stray_dirs plugins) || true
+while IFS= read -r l; do
+  case "$l" in
+    'stray '*)
+      name="${l#stray }"
+      err "stray directory plugins/$name has no tracked files — delete it (a hook or editor left scratch here)"
+      STRAY_DIRS="$STRAY_DIRS $name " ;;
+  esac
+done <<EOF
+$stray_out
+EOF
 is_stray() { case "$STRAY_DIRS" in *" $1 "*) return 0 ;; esac; return 1; }
 
 # Every plugin directory must be listed in the marketplace
@@ -61,11 +60,58 @@ done
 jq -e ".owner | $author_ok" "$MP" >/dev/null 2>&1 \
   || err "$MP: owner must be an object with a string .name"
 
+# The frontmatter checks in the next three loops are pc_frontmatter's, the same
+# function done-gate.sh runs per file. It prints a file's structural lines, then its
+# description-linter lines; validate.sh prints every file's structural lines before
+# any file's linter lines, so the structural loops park linter lines in FM_LINT for
+# the linter loop rather than calling it twice per file. A line fm_is_linter does not
+# recognise counts as structural: a reworded linter message moves earlier, never drops.
+# The skill budget skip also keys on the exact "missing frontmatter opener" and
+# "frontmatter not terminated" wording; rewording either re-enables the budget check.
+FM_LINT=""
+fm_is_linter() { # $1 file, $2 one pc_frontmatter line
+  case "${2#"$1: "}" in
+    'description or when_to_use uses a YAML block scalar — keep it a single line' \
+    | 'description '[0-9]*' chars (max 500)' \
+    | 'description + when_to_use '[0-9]*' chars (max 500)' \
+    | "description carries a 'Trigger words:' list — fold terms into the trigger sentence" \
+    | "description or when_to_use carries a 'Trigger words:' list — fold terms into the trigger sentence") return 0 ;;
+  esac
+  return 1
+}
+# Returns 1 when the file is missing, has no opener or is unterminated — the skill
+# loop skips the budget check then.
+fm_structural() {
+  local f="$1" m stop=0
+  while IFS= read -r m; do
+    if fm_is_linter "$f" "$m"; then FM_LINT="$FM_LINT$f"$'\t'"$m"$'\n'; continue; fi
+    err "$m"
+    case "$m" in "$f: missing frontmatter opener"|"$f: frontmatter not terminated") stop=1 ;; esac
+  done < <(pc_frontmatter "$f")
+  [ -f "$f" ] || stop=1
+  return $stop
+}
+fm_linter() {
+  local f="$1" m
+  # A symlinked skill dir is skipped by the skill loop, so nothing was parked for it.
+  if [ "${f##*/}" = SKILL.md ] && [ -L "${f%/SKILL.md}" ]; then
+    while IFS= read -r m; do err "$m"; done < <(pc_frontmatter "$f")
+    return
+  fi
+  while IFS= read -r m; do
+    [ "${m%%$'\t'*}" = "$f" ] && err "${m#*$'\t'}"
+  done <<<"$FM_LINT"
+}
+
 # Every skills/<name>/ directory must contain SKILL.md with terminated frontmatter,
 # name: + description:, and a body within the 200-line ceiling (no floor).
 # `.claude/skills/*/` — the repo's tracked PROJECT skills, where the authoring
 # doctrine has lived since 2026-09-03 — is held to the same rules: a doctrine home
 # outside every gate would be the "recorded" tier pretending to be "gate".
+# Trigger phrasing is for skills the MODEL picks from a listing. A skill carrying
+# `disable-model-invocation: true` is invoked only by name (`/name`), never
+# matched on its description, so an imperative description ("Scaffold a …") is
+# its correct shape — the rule is kind-level, never plugin-level.
 for d in plugins/*/skills/*/ .claude/skills/*/; do
   [ -d "$d" ] || continue
   # A symlinked project skill is somebody else's file mounted here, not authored
@@ -74,21 +120,7 @@ for d in plugins/*/skills/*/ .claude/skills/*/; do
   # 476-line plugin-structure skill, duplicated authoring-plugins and was removed.
   [ -L "${d%/}" ] && continue
   f="${d}SKILL.md"
-  [ -f "$f" ] || { err "$d: SKILL.md missing"; continue; }
-  head -1 "$f" | grep -q '^---$' || { err "$f: missing frontmatter opener"; continue; }
-  awk '/^---$/{c++} END{exit !(c>=2)}' "$f" || { err "$f: frontmatter not terminated"; continue; }
-  fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
-  echo "$fm" | grep -q '^name:' || err "$f: frontmatter missing name:"
-  sname=$(echo "$fm" | sed -n 's/^name:[[:space:]]*//p' | head -1)
-  [ "$sname" = "$(basename "$d")" ] || err "$f: name '$sname' does not match directory '$(basename "$d")'"
-  echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
-  # Trigger phrasing is for skills the MODEL picks from a listing. A skill carrying
-  # `disable-model-invocation: true` is invoked only by name (`/name`), never
-  # matched on its description, so an imperative description ("Scaffold a …") is
-  # its correct shape — the rule is kind-level, never plugin-level.
-  if ! echo "$fm" | grep -q '^disable-model-invocation:[[:space:]]*true'; then
-    echo "$fm" | grep -q '^description:.*Use \(when\|before\|after\|during\)' || err "$f: description lacks trigger phrasing (Use when/before/after/during) — a user-invoked skill sets disable-model-invocation: true instead"
-  fi
+  fm_structural "$f" || continue
   if bud=$(pc_skill_budget "$f"); then :; else
     # "budget <path> <kind> <n> [:line]" -> one sentence naming the measure that
     # bit, since there are now three and "over the ceiling" no longer says which.
@@ -106,18 +138,7 @@ done
 # Commands need frontmatter with description:; agents additionally need name:
 for f in plugins/*/commands/*.md plugins/*/agents/*.md; do
   [ -f "$f" ] || continue
-  head -1 "$f" | grep -q '^---$' || { err "$f: missing frontmatter opener"; continue; }
-  awk '/^---$/{c++} END{exit !(c>=2)}' "$f" || { err "$f: frontmatter not terminated"; continue; }
-  fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
-  echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
-  case "$f" in
-    */agents/*)
-      echo "$fm" | grep -q '^name:' || err "$f: frontmatter missing name:"
-      echo "$fm" | grep -q '^model:' || err "$f: frontmatter missing model: (pin a tier or use 'inherit')"
-      echo "$fm" | grep -q '^effort:' || err "$f: frontmatter missing effort: (agents default to xhigh)"
-      echo "$fm" | grep -q '^description:.*\(PROACTIVELY\|Spawned by\)' || err "$f: agent description needs PROACTIVELY or a sub-dispatch marker (Spawned by)"
-      ;;
-  esac
+  fm_structural "$f"
 done
 
 # Description linter (hard): a frontmatter description over 500 chars bloats the
@@ -129,21 +150,12 @@ done
 # 1,024. Both count the pair, so this does too — a `when_to_use:` line is added to the
 # measured length when present (rationale/marketplace-trend-audit-2026-09-16.md D3).
 # The pair is read through pc_listing_fields, the same walk context-budget.sh meters
-# with, so what this caps is exactly what that charges.
+# with, so what this caps is exactly what that charges. Block-scalar (>/|) values would
+# evade both this cap and the token accounting (each reads the first line only), so the
+# form is rejected outright.
 for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.md; do
   [ -f "$f" ] || continue
-  fields=$(pc_listing_fields "$f")
-  dsc=${fields%%$'\t'*}
-  wtu=${fields#*$'\t'}; wtu=${wtu%%$'\t'*}
-  # Block-scalar (>/|) descriptions would evade both this cap and the token
-  # accounting (each reads the first line only) — reject the form outright.
-  printf '%s\n%s\n' "$dsc" "$wtu" | grep -qE '^[>|]' \
-    && err "$f: description or when_to_use uses a YAML block scalar — keep it a single line"
-  [ -n "$dsc" ] || continue
-  dlen=$(printf '%s%s' "$dsc" "${wtu:+ - $wtu}" | wc -c | tr -d ' ')
-  [ "$dlen" -le 500 ] || err "$f: description${wtu:+ + when_to_use} $dlen chars (max 500)"
-  printf '%s\n%s\n' "$dsc" "$wtu" | grep -qE 'Trigger( words)?:' \
-    && err "$f: description${wtu:+ or when_to_use} carries a 'Trigger words:' list — fold terms into the trigger sentence"
+  fm_linter "$f"
 done
 
 # plugin.json description linter (WARN, not err): the frontmatter cap above never
@@ -249,15 +261,9 @@ done < <(grep -roEH '/[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' README.md plugins/*/READM
          # (<!-- /preserve:NAME -->), not a plugin reference — see
          # scripts/lib/template-engine.sh merge_preserve_blocks.
 
-# hooks.json files must parse and referenced scripts must be executable
-while IFS= read -r f; do
-  jq empty "$f" 2>/dev/null || { err "$f: invalid JSON"; continue; }
-  plugroot=$(dirname "$(dirname "$f")")
-  while IFS= read -r cmd; do
-    script="${cmd/\$\{CLAUDE_PLUGIN_ROOT\}/$plugroot}"
-    [ -x "$script" ] || err "$f: hook script $script missing or not executable"
-  done < <(jq -r '.. | .command? // empty' "$f" | tr -d '"' | grep '^\${CLAUDE_PLUGIN_ROOT}')
-done < <(find plugins -path '*/hooks/hooks.json')
+# hooks.json files must parse and referenced scripts must be executable. One
+# pc_hook_exec call on plugins/, not one per plugin, so these FAILs keep find's order.
+while IFS= read -r m; do err "$m"; done < <(pc_hook_exec plugins)
 
 # Plugins ship ONLY functional files. Task documentation, specs, and design/task
 # history live in taskmaster-docs/ (or a repo-level location outside plugins/) —
@@ -523,24 +529,19 @@ EOF_COFIRES
   #
   #   1. No literal command token in the hook. A hardcoded `/plugin:command` is a route
   #      the catalog never shows and nobody can audit — the same rule route.sh carries.
-  #   2. No per-tool routing patterns. The hook is allowed exactly ONE prompt-matching
-  #      grep (the work-shaped gate); a second would be a routing table growing back in
-  #      shell, which is the mechanism this deliberately replaced.
+  #   2. No per-tool routing patterns. At most four prompt-matching greps (three
+  #      narrowing refusals + the work-shaped gate); a fifth is a routing table growing
+  #      back in shell, the mechanism this deliberately replaced.
   #
   # What is NOT gated, stated plainly: which command the model picks. That is a
   # judgment with real variance — agent-graded, not gated. See the has-teeth
   # convention in CLAUDE.md; do not describe this check as guaranteeing a route.
+  # Created by 7fc492d0; rule and misses: the pc_route_prompt_literals/_greps headers.
   RP="$SR/hooks/route-prompt.sh"
   if [ -f "$RP" ]; then
-    prompt_lits=$(grep -v '^[[:space:]]*#' "$RP" 2>/dev/null \
-      | grep -oE '/[a-z][a-z0-9-]+:[a-z][a-z0-9-]+' | sort -u || true)
-    [ -z "$prompt_lits" ] \
-      || err "skill-router route-prompt.sh carries literal command token(s): $(echo $prompt_lits) — the catalog is built from installed plugins, never hardcoded"
-    # Count prompt-matching greps: `$head` is the scrubbed prompt, so every grep over it
-    # is a prompt pattern. The narrowing refusals and the single work-shaped gate are the
-    # budget; anything past it is a routing rule.
-    head_greps=$(grep -c 'printf .%s. "\$head" | grep' "$RP" 2>/dev/null || echo 0)
-    [ "$head_greps" -le 4 ] \
+    prompt_lits=$(pc_route_prompt_literals "$RP") \
+      || err "skill-router route-prompt.sh carries literal command token(s): $prompt_lits — the catalog is built from installed plugins, never hardcoded"
+    head_greps=$(pc_route_prompt_greps "$RP") \
       || err "skill-router route-prompt.sh matches the prompt $head_greps times — at most 4 (three narrowing refusals + one work-shaped gate); a fifth is a routing table regrowing in shell"
   fi
 fi
@@ -959,94 +960,22 @@ done
 # ---- Role-floor registry gate ------------------------------------------------
 # role-floors.md rows must agree with agent frontmatter, and every agent pinning a
 # real tier must be CLASSIFIED: either a registry row (floored) or `floor: none`
-# plus a `floor-reason:` (deliberately unfloored). The nine FAIL strings below are
-# frozen — scripts/smoke/validate-fixtures/role-floors-check.sh asserts each one.
-# House rules obeyed on purpose: err() only (never exit; $fail governs :380+),
-# `done < <(...)` not `| while read` (a subshell would discard fail=1), grep -qxF
-# not `case` (a key containing * would glob-match in pattern position), and bash
-# 3.2 / BSD-safe constructs only.
+# plus a `floor-reason:` (deliberately unfloored). The nine FAIL strings pc_role_floors
+# emits are frozen — scripts/smoke/validate-fixtures/role-floors-check.sh asserts each one.
+# err() only, never exit ($fail governs the tail); a heredoc, not a pipe, so fail=1
+# survives the loop. Parse rules live in pc_role_floors' header.
 RF=plugins/task-runner/skills/delegation-contracts/references/role-floors.md
-rf_rows=""; rf_keys=""; rf_ok=1; rf_exempt=""
-if [ -f "$RF" ]; then
-  rf_rows=$(awk '/^```/{f=!f; next} f' "$RF" | grep -v '^[[:space:]]*$' || true)
-fi
-if [ -z "$rf_rows" ]; then
-  err "role-floors registry: $RF missing, empty, or has no parseable rows"
-  rf_ok=0
-fi
-if [ "$rf_ok" -eq 1 ]; then
-  rf_seen=""; rf_dup=""
-  while IFS= read -r row; do
-    [ -n "$row" ] || continue
-    nf=$(printf '%s\n' "$row" | awk '{print NF}')
-    key=$(printf '%s\n' "$row" | awk '{print $1}')
-    tier=$(printf '%s\n' "$row" | awk '{print $2}')
-    if printf '%s\n' "$rf_seen" | grep -qxF "$key"; then
-      printf '%s\n' "$rf_dup" | grep -qxF "$key" \
-        || { err "role-floors registry: $key appears more than once"; rf_dup="$rf_dup
-$key"; }
-    else
-      rf_seen="$rf_seen
-$key"
-    fi
-    if [ "$nf" -ne 2 ] || ! printf '%s' "$key" | grep -qE '^[a-z0-9-]+:[a-z0-9-]+$'; then
-      err "role-floors registry: $key tier '$tier' is not one of haiku|sonnet|opus|fable"
-      continue
-    fi
-    case "$tier" in
-      haiku|sonnet|opus|fable) ;;
-      *) err "role-floors registry: $key tier '$tier' is not one of haiku|sonnet|opus|fable"
-         continue ;;
-    esac
-    rf_pl="${key%%:*}"; rf_nm="${key##*:}"; rf_ap="plugins/$rf_pl/agents/$rf_nm.md"
-    if [ ! -f "$rf_ap" ]; then
-      err "role-floors registry: $key resolves to no agent file ($rf_ap)"
-      continue
-    fi
-    rf_fm=$(awk '/^---$/{c++; next} c==1' "$rf_ap" \
-            | sed -n 's/^model:[[:space:]]*//p' | head -1 \
-            | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
-    [ "$tier" = "$rf_fm" ] \
-      || err "role-floors registry: $key tier '$tier' != $rf_ap frontmatter model '$rf_fm'"
-    rf_keys="$rf_keys
-$key"
-  done < <(printf '%s\n' "$rf_rows")
-fi
-while IFS= read -r af; do
-  [ -f "$af" ] || continue
-  rf_fmb=$(awk '/^---$/{c++; next} c==1' "$af")
-  rf_m=$(printf '%s\n' "$rf_fmb" | sed -n 's/^model:[[:space:]]*//p' | head -1 \
-         | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
-  [ -n "$rf_m" ] || continue          # a missing model: is validate.sh's own check, above
-  [ "$rf_m" = "inherit" ] && continue # inherit is never floored and never needs a row
-  rf_key="$(printf '%s' "$af" | cut -d/ -f2):$(basename "$af" .md)"
-  rf_fl=$(printf '%s\n' "$rf_fmb" | sed -n 's/^floor:[[:space:]]*//p' | head -1 \
-          | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
-  rf_fr=$(printf '%s\n' "$rf_fmb" | sed -n 's/^floor-reason:[[:space:]]*//p' | head -1 \
-          | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
-  rf_has=0
-  printf '%s\n' "$rf_keys" | grep -qxF "$rf_key" && rf_has=1
-  if [ "$rf_has" -eq 1 ] && [ "$rf_fl" = "none" ]; then
-    err "$af: has a role-floors row AND 'floor: none' - a row means floored"
-    continue
-  fi
-  if [ "$rf_fl" = "none" ]; then
-    if [ -z "$(printf '%s' "$rf_fr" | tr -d '[:space:]')" ]; then
-      err "$af: 'floor: none' requires a non-empty floor-reason:"
-    else
-      rf_exempt="$rf_exempt
-  $af: $rf_fr"
-    fi
-    continue
-  fi
-  case "$rf_m" in
-    haiku|sonnet|opus|fable) ;;
-    *) err "$af: frontmatter model '$rf_m' is not inherit or one of haiku|sonnet|opus|fable"
-       continue ;;
+rf_out=$(pc_role_floors "$RF" plugins) || true
+rf_exempt=""
+while IFS= read -r l; do
+  case "$l" in
+    'fail '*)   err "${l#fail }" ;;
+    'exempt '*) rf_exempt="$rf_exempt
+  ${l#exempt }" ;;
   esac
-  [ "$rf_has" -eq 1 ] \
-    || err "$af: pins model '$rf_m' but has neither a role-floors row nor 'floor: none'"
-done < <(find plugins -path '*/agents/*.md' -type f | sort)
+done <<EOF
+$rf_out
+EOF
 printf '== role-floor exemptions ==\n'
 if [ -n "$(printf '%s' "$rf_exempt" | tr -d '[:space:]')" ]; then
   printf '%s\n' "$rf_exempt" | grep -v '^[[:space:]]*$'
@@ -1101,12 +1030,5 @@ else
   done < <(grep -rliE 'last verified' --include='*.md' plugins 2>/dev/null | sort)
   [ "$stale_n" -eq 0 ] && printf '  (none stale)\n'
 fi
-
-# ---- Context-budget report ---------------------------------------------------
-# Per-plugin session-start description-token surface vs committed baseline.
-# The BLOCKING gate runs as its own CI step (Context-budget gate in
-# validate.yml); here it is informational only — `|| true` keeps this script's
-# exit governed solely by $fail.
-bash scripts/context-budget.sh || true
 
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1

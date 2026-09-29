@@ -2,6 +2,16 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.7.1 — 2026-09-29
+
+### Fixed
+- **The snapshot harness no longer fails on a busy port.** Its first review silently used the
+  default preview port 8124, so a running design-kit preview or a second copy of the test made
+  it exit with `server did not start (port 8124 busy?)`; a port picked free could also be taken
+  before the server bound it. Every server start now takes a fresh port and retries up to five
+  times. Test-only: nothing users run changed. Standing: **recorded** — 10/10 by hand with 8124
+  held and a second copy running; CI runs the harness but never collides a port.
+
 ## 0.7.0 — 2026-09-26
 
 ### Fixed

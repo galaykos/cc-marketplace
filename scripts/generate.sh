@@ -77,7 +77,9 @@ emit() { # rendered-file target-path is_exec(0|1) plugin-dir
   # sanctioned local divergence is not drift in --check and is not clobbered by
   # --write. Everything outside those markers still refreshes from the template.
   # Both modes go through here, so they cannot disagree about what "the render"
-  # is. No-op for the files that carry no markers, which today is all of them.
+  # is. Runs for every render carrying a marker — today the worker agents'
+  # rubric-source block — and is a no-op for the rest; recount with
+  # `grep -rl '^<!--[[:space:]]*preserve:' plugins templates`.
   if grep -q '^<!--[[:space:]]*preserve:' "$rendered" 2>/dev/null; then
     ensure_engine
     local merged="$WORK/merged.$$"

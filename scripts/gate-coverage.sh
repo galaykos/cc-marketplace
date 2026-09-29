@@ -19,7 +19,9 @@
 # HONEST LIMITATION: coverage here means "a harness mentions this function by name". It
 # cannot tell an assertion that watches the check fail from one that merely calls it, and
 # it cannot see a harness that exercises a check through validate.sh without naming it.
-# So this over-reports coverage; treat a NONE as certain and a hit as probable.
+# So this over-reports coverage; treat a NONE as certain and a hit as probable. WIRED
+# counts mentions in validate.sh and context-budget.sh, the two scripts that source the
+# lib to gate — a mention there is likewise not proof of a call.
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT" || exit 0
@@ -33,14 +35,14 @@ printf '%-26s %-6s %s\n' '-----' '-----' '-------'
 for fn in $(grep -oE '^pc_[a-z_]+\(\)' "$LIB" | tr -d '()' | sort); do
   h=$(grep -rl "$fn" scripts/smoke/ plugins/*/scripts/__tests__/ 2>/dev/null \
       | sed 's|scripts/smoke/||; s|plugins/||; s|/scripts/__tests__/|:|' | tr '\n' ' ')
-  w=$(grep -c "$fn" scripts/validate.sh 2>/dev/null || echo 0)
+  w=$(cat scripts/validate.sh scripts/context-budget.sh 2>/dev/null | grep -c "$fn")
   [ "$w" -eq 0 ] && { unwired=$((unwired + 1)); w="NOT-WIRED"; }
   if [ -n "$h" ]; then covered=$((covered + 1)); else uncovered=$((uncovered + 1)); h='NONE'; fi
   printf '%-26s %-6s %s\n' "$fn" "$w" "$h"
 done
 
 printf '\n%s checks: %s with a harness, %s with NONE' "$((covered + uncovered))" "$covered" "$uncovered"
-[ "$unwired" -gt 0 ] && printf ', %s never called from validate.sh' "$unwired"
+[ "$unwired" -gt 0 ] && printf ', %s never called from validate.sh or context-budget.sh' "$unwired"
 printf '\n'
 [ "$uncovered" -gt 0 ] && printf 'A check with NONE has never been watched fail. That is a decision to make, not a bug.\n'
 exit 0

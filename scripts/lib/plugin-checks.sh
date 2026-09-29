@@ -2862,3 +2862,321 @@ pc_listing_entry_cost() {
   done
   printf '%s %s' "$total" "$n"
 }
+
+# pc_frontmatter <md_path>
+# The frontmatter FAILs validate.sh raises for one SKILL.md, command or agent file,
+# printed one per line as the exact text it `err`s (no "FAIL: " prefix); returns 1 if
+# any. Kind comes from the path: `*/skills/*/SKILL.md`, `*/commands/*.md`,
+# `*/agents/*.md`; anything else returns 0. A SKILL.md whose skill dir exists but whose
+# file does not prints `<dir>/: SKILL.md missing`. Covers validate.sh's skill loop
+# (minus pc_skill_budget), its commands/agents loop and its description linter — a
+# structural failure (no opener, not terminated) skips the key checks and not the
+# linter, as validate.sh's separate loops do; a symlinked skill dir skips the skill
+# loop's checks, and a `.claude/skills/` path skips the linter, whose glob is plugins/.
+#
+# WHY IT EXISTS: done-gate.sh needed a per-file frontmatter check and none existed —
+# the logic was inline in validate.sh, which only walks the whole tree. Both now call
+# this one function, so the fast Stop gate and CI cannot drift apart on it.
+#
+# WHAT IT DOES NOT CATCH: an invented key, a wrong `model:` value. RESIDUAL:
+# validate.sh prints every file's structural lines before any file's linter lines, so
+# it splits this output by matching the linter messages' text (fm_is_linter there).
+# Reword a linter message and that line prints with the structural ones — out of
+# order, never dropped.
+pc_frontmatter() {
+  local f="$1" d="" fm sname fields dsc wtu dlen bad=0
+  case "$f" in
+    */skills/*/SKILL.md) d="${f%SKILL.md}" ;;
+    */commands/*.md|*/agents/*.md) ;;
+    *) return 0 ;;
+  esac
+  if [ -n "$d" ] && [ ! -d "$d" ]; then
+    return 0
+  elif [ -n "$d" ] && [ -L "${d%/}" ]; then
+    :
+  elif [ ! -f "$f" ]; then
+    [ -n "$d" ] || return 0
+    printf '%s\n' "$d: SKILL.md missing"
+    return 1
+  elif ! head -1 "$f" | grep -q '^---$'; then
+    printf '%s\n' "$f: missing frontmatter opener"; bad=1
+  elif ! awk '/^---$/{c++} END{exit !(c>=2)}' "$f"; then
+    printf '%s\n' "$f: frontmatter not terminated"; bad=1
+  else
+    fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
+    if [ -n "$d" ]; then
+      grep -q '^name:' <<<"$fm" || { printf '%s\n' "$f: frontmatter missing name:"; bad=1; }
+      sname=$(sed -n 's/^name:[[:space:]]*//p' <<<"$fm" | head -1)
+      [ "$sname" = "$(basename "$d")" ] \
+        || { printf '%s\n' "$f: name '$sname' does not match directory '$(basename "$d")'"; bad=1; }
+      grep -q '^description:' <<<"$fm" || { printf '%s\n' "$f: frontmatter missing description:"; bad=1; }
+      if ! grep -q '^disable-model-invocation:[[:space:]]*true' <<<"$fm"; then
+        grep -q '^description:.*Use \(when\|before\|after\|during\)' <<<"$fm" \
+          || { printf '%s\n' "$f: description lacks trigger phrasing (Use when/before/after/during) — a user-invoked skill sets disable-model-invocation: true instead"; bad=1; }
+      fi
+    else
+      grep -q '^description:' <<<"$fm" || { printf '%s\n' "$f: frontmatter missing description:"; bad=1; }
+      case "$f" in
+        */agents/*)
+          grep -q '^name:' <<<"$fm" || { printf '%s\n' "$f: frontmatter missing name:"; bad=1; }
+          grep -q '^model:' <<<"$fm" || { printf '%s\n' "$f: frontmatter missing model: (pin a tier or use 'inherit')"; bad=1; }
+          grep -q '^effort:' <<<"$fm" || { printf '%s\n' "$f: frontmatter missing effort: (agents default to xhigh)"; bad=1; }
+          grep -q '^description:.*\(PROACTIVELY\|Spawned by\)' <<<"$fm" \
+            || { printf '%s\n' "$f: agent description needs PROACTIVELY or a sub-dispatch marker (Spawned by)"; bad=1; }
+          ;;
+      esac
+    fi
+  fi
+  case "$f" in .claude/skills/*|*/.claude/skills/*) return $bad ;; esac
+  [ -f "$f" ] || return $bad
+  fields=$(pc_listing_fields "$f")
+  dsc=${fields%%$'\t'*}
+  wtu=${fields#*$'\t'}; wtu=${wtu%%$'\t'*}
+  grep -qE '^[>|]' <<<"$dsc"$'\n'"$wtu" \
+    && { printf '%s\n' "$f: description or when_to_use uses a YAML block scalar — keep it a single line"; bad=1; }
+  [ -n "$dsc" ] || return $bad
+  dlen=$(printf '%s%s' "$dsc" "${wtu:+ - $wtu}" | wc -c | tr -d ' ')
+  [ "$dlen" -le 500 ] || { printf '%s\n' "$f: description${wtu:+ + when_to_use} $dlen chars (max 500)"; bad=1; }
+  grep -qE 'Trigger( words)?:' <<<"$dsc"$'\n'"$wtu" \
+    && { printf '%s\n' "$f: description${wtu:+ or when_to_use} carries a 'Trigger words:' list — fold terms into the trigger sentence"; bad=1; }
+  return $bad
+}
+
+# pc_hook_exec <plugin_dir>
+# For every hooks/hooks.json under the dir: prints `<f>: invalid JSON`, or one
+# `<f>: hook script <script> missing or not executable` per `${CLAUDE_PLUGIN_ROOT}`
+# command that does not resolve to an executable file — validate.sh's text exactly.
+# Returns 1 if any; 0 when clean, when the dir is missing, or when jq is missing.
+#
+# WHY IT EXISTS: done-gate.sh needed a per-plugin hook check and none existed — the
+# logic was inline in validate.sh's tree-wide hooks.json loop. Both now call this one
+# function: done-gate.sh per changed plugin, validate.sh once on `plugins`, which
+# keeps the tree-wide `find` order its FAIL lines have always printed in.
+#
+# WHAT IT DOES NOT CATCH: a command not written as `${CLAUDE_PLUGIN_ROOT}…` (it is
+# never resolved), a script that is executable but broken, and a missing `timeout`
+# (pc_hook_timeout's job).
+pc_hook_exec() {
+  local root="${1%/}" bad=0 f plugroot cmd script
+  command -v jq >/dev/null 2>&1 || return 0
+  [ -d "$root" ] || return 0
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    jq empty "$f" 2>/dev/null || { printf '%s\n' "$f: invalid JSON"; bad=1; continue; }
+    plugroot=$(dirname "$(dirname "$f")")
+    while IFS= read -r cmd; do
+      script="${cmd/\$\{CLAUDE_PLUGIN_ROOT\}/$plugroot}"
+      [ -x "$script" ] || { printf '%s\n' "$f: hook script $script missing or not executable"; bad=1; }
+    done < <(jq -r '.. | .command? // empty' "$f" | tr -d '"' | grep '^\${CLAUDE_PLUGIN_ROOT}')
+  done < <(find "$root" -path '*/hooks/hooks.json')
+  return $bad
+}
+
+# pc_role_floors <registry_md> <plugins_root>
+# The role-floor registry gate. Prints `fail <message>` per violation, <message> being
+# the exact text validate.sh err()s, and `exempt <agent_path>: <floor-reason>` per agent
+# deliberately unfloored; returns 1 if any `fail` line. Agent paths are
+# `<root>/<plugin>/agents/<name>.md`, and a key's plugin is read from the path relative
+# to <root>, so with root `plugins` every string matches the gate's inline original.
+#
+# CATCHES nine violations. Registry side: missing, empty or no parseable rows; a key
+# listed twice; a row off the `<plugin>:<agent> <tier>` shape or off
+# haiku|sonnet|opus|fable; a key resolving to no agent file; a row tier that disagrees
+# with the agent's `model:`. Agent side: a row AND `floor: none`; `floor: none` with an
+# empty `floor-reason:`; a `model:` that is neither inherit nor a tier; a pinned tier
+# with neither a row nor `floor: none`.
+#
+# WHAT IT DOES NOT CATCH: it reads frontmatter `model:`, `floor:` and `floor-reason:`
+# only. An agent with no `model:` is skipped — validate.sh's own agent check owns that —
+# and a floor-reason is checked for presence, never for truth. A `floor:` value other
+# than `none` is ignored (a row plus `floor: nonee` passes; a `floor-reason:` without
+# `floor: none` is dropped), and `*/agents/*.md` also matches nested agent dirs, keyed
+# as `<plugin>:<basename>`.
+#
+# WHY IT EXISTS: role-floors.md was prose, so nothing checked its rows against agent
+# frontmatter and unclassified `model:` pins shipped (CHANGELOG 0.63.0). A row AND
+# `floor: none` is an error because nine consumer sites read "has a row" as "is floored".
+# Moved out of validate.sh 2026-09-29: inline, role-floors-check.sh could prove the nine
+# strings only by running all of validate.sh four times — 202 s of CI on master run
+# 36299461261. House rules kept from the inline block: `done < <(...)`, never
+# `| while read`; grep -qxF, never `case` (a key holding * would glob-match); bash 3.2.
+pc_role_floors() {
+  local rf="$1" root="${2%/}" rows="" keys="" seen="" dup="" bad=0
+  local row nf key tier ap fm af fmb m k fl fr rel has
+  [ -f "$rf" ] && rows=$(awk '/^```/{f=!f; next} f' "$rf" | grep -v '^[[:space:]]*$' || true)
+  if [ -z "$rows" ]; then
+    printf 'fail %s\n' "role-floors registry: $rf missing, empty, or has no parseable rows"
+    bad=1
+  else
+    while IFS= read -r row; do
+      [ -n "$row" ] || continue
+      nf=$(printf '%s\n' "$row" | awk '{print NF}')
+      key=$(printf '%s\n' "$row" | awk '{print $1}')
+      tier=$(printf '%s\n' "$row" | awk '{print $2}')
+      if printf '%s\n' "$seen" | grep -qxF "$key"; then
+        printf '%s\n' "$dup" | grep -qxF "$key" \
+          || { printf 'fail %s\n' "role-floors registry: $key appears more than once"; bad=1; dup="$dup
+$key"; }
+      else
+        seen="$seen
+$key"
+      fi
+      if [ "$nf" -ne 2 ] || ! printf '%s' "$key" | grep -qE '^[a-z0-9-]+:[a-z0-9-]+$'; then
+        printf 'fail %s\n' "role-floors registry: $key tier '$tier' is not one of haiku|sonnet|opus|fable"
+        bad=1; continue
+      fi
+      case "$tier" in
+        haiku|sonnet|opus|fable) ;;
+        *) printf 'fail %s\n' "role-floors registry: $key tier '$tier' is not one of haiku|sonnet|opus|fable"
+           bad=1; continue ;;
+      esac
+      ap="$root/${key%%:*}/agents/${key##*:}.md"
+      if [ ! -f "$ap" ]; then
+        printf 'fail %s\n' "role-floors registry: $key resolves to no agent file ($ap)"
+        bad=1; continue
+      fi
+      fm=$(awk '/^---$/{c++; next} c==1' "$ap" \
+           | sed -n 's/^model:[[:space:]]*//p' | head -1 \
+           | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
+      [ "$tier" = "$fm" ] \
+        || { printf 'fail %s\n' "role-floors registry: $key tier '$tier' != $ap frontmatter model '$fm'"; bad=1; }
+      keys="$keys
+$key"
+    done < <(printf '%s\n' "$rows")
+  fi
+  while IFS= read -r af; do
+    [ -f "$af" ] || continue
+    fmb=$(awk '/^---$/{c++; next} c==1' "$af")
+    m=$(printf '%s\n' "$fmb" | sed -n 's/^model:[[:space:]]*//p' | head -1 \
+        | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
+    [ -n "$m" ] || continue
+    [ "$m" = "inherit" ] && continue
+    rel="${af#"$root"/}"
+    k="${rel%%/*}:$(basename "$af" .md)"
+    fl=$(printf '%s\n' "$fmb" | sed -n 's/^floor:[[:space:]]*//p' | head -1 \
+         | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
+    fr=$(printf '%s\n' "$fmb" | sed -n 's/^floor-reason:[[:space:]]*//p' | head -1 \
+         | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
+    has=0
+    printf '%s\n' "$keys" | grep -qxF "$k" && has=1
+    if [ "$has" -eq 1 ] && [ "$fl" = "none" ]; then
+      printf 'fail %s\n' "$af: has a role-floors row AND 'floor: none' - a row means floored"
+      bad=1; continue
+    fi
+    if [ "$fl" = "none" ]; then
+      if [ -z "$(printf '%s' "$fr" | tr -d '[:space:]')" ]; then
+        printf 'fail %s\n' "$af: 'floor: none' requires a non-empty floor-reason:"
+        bad=1
+      else
+        printf 'exempt %s: %s\n' "$af" "$fr"
+      fi
+      continue
+    fi
+    case "$m" in
+      haiku|sonnet|opus|fable) ;;
+      *) printf 'fail %s\n' "$af: frontmatter model '$m' is not inherit or one of haiku|sonnet|opus|fable"
+         bad=1; continue ;;
+    esac
+    [ "$has" -eq 1 ] \
+      || { printf 'fail %s\n' "$af: pins model '$m' but has neither a role-floors row nor 'floor: none'"; bad=1; }
+  done < <(find "$root" -path '*/agents/*.md' -type f | sort)
+  return $bad
+}
+
+# pc_stray_dirs <plugins_root>
+# Prints `stray <name>` per <root>/*/ dir that is scratch, not a plugin; returns 1 if
+# any. validate.sh err()s each as `stray directory plugins/<name> has no tracked files
+# — delete it (a hook or editor left scratch here)` and skips it in its
+# marketplace-listing, README-presence and plugin-table checks.
+#
+# CATCHES a dir with all three of: no .claude-plugin/plugin.json, no file tracked by the
+# enclosing git repo (outside any repo that counts as none), and no *.md or *.json outside
+# its dot-directories — a hook's marker files under .claude/ and nothing else.
+#
+# WHAT IT DOES NOT CATCH, on purpose: an untracked dir holding any *.md/*.json outside a
+# dot-dir is treated as a half-scaffolded plugin and falls through to validate.sh's three
+# checklist FAILs (audit H7: the first version told such a dir to delete itself), so
+# scratch that happens to be a stray notes.md is reported as a half-made plugin. A dir
+# with even one tracked file is never stray, scratch or not.
+#
+# WHY IT EXISTS: plugins/design-studio/ held only code-review/hooks/verbosity.sh's marker
+# files (it writes under the payload cwd) and drew three FAILs about a plugin that never
+# existed on a clean master checkout, while CI stayed green because it checks out only
+# tracked files (marketplace 0.113.0; rationale/marketplace-trend-audit-2026-09-16.md E1,
+# H7). Moved out of validate.sh 2026-09-29 so stray-dir-check.sh stops paying three full
+# validate.sh runs (151 s of CI on master run 36299461261). Dot-entries are pruned by
+# `-mindepth 1 -name '.*'`, not `-path '*/.*'`, which prunes the start point itself when
+# the root sits under a dot-dir (this repo's .claude/worktrees/) and calls every
+# half-made plugin stray; no `cd`, which prints under an exported CDPATH.
+pc_stray_dirs() {
+  local root="${1%/}" bad=0 dir
+  for dir in "$root"/*/; do
+    [ -d "$dir" ] || continue
+    [ -f "${dir}.claude-plugin/plugin.json" ] && continue
+    [ "$(git -C "$dir" ls-files -- . 2>/dev/null | wc -l | tr -d ' ')" = 0 ] || continue
+    find "$dir" -mindepth 1 -name '.*' -prune -o -type f \( -name '*.md' -o -name '*.json' \) -print 2>/dev/null \
+      | grep -q . && continue
+    printf 'stray %s\n' "$(basename "$dir")"
+    bad=1
+  done
+  return $bad
+}
+
+# pc_route_prompt_literals <hook_path>
+# Prints the sorted unique `/plugin:command` tokens on the hook's non-comment lines, joined
+# by single spaces on one line; returns 1 if any. A missing file returns 0. validate.sh
+# err()s the list as `skill-router route-prompt.sh carries literal command token(s): …`.
+#
+# CATCHES a `/<plugin>:<command>` token (lowercase, digits, hyphens) written literally
+# anywhere on a line not starting with `#`: an echo, a case arm, a heredoc, a string.
+#
+# WHAT IT DOES NOT CATCH: a token built at run time (`"/$p:$c"`, printf with a format), a
+# token with an uppercase letter or underscore, a one-letter plugin or command name, or
+# a heredoc body line beginning with `#` (a markdown heading) — it reads as a comment.
+# Which command the model then picks is agent-graded, never gated. It over-reports on
+# anything `/ab:cd`-shaped that is not a command, and on a token in a trailing `# comment`
+# on a code line — only a whole-line comment is skipped.
+#
+# WHY IT EXISTS: 7fc492d0 (2026-07-28) replaced a prompt routing table — it routed only the
+# phrasings someone wrote down and needed a row per new plugin — with a catalog built from
+# installed plugins and a model judgment; a hardcoded token is a route that catalog never
+# shows. Moved out of validate.sh 2026-09-29 so prompt-route-tests.sh stops paying three
+# validate.sh runs (155 s of CI on master run 36299461261).
+pc_route_prompt_literals() {
+  local hook="$1" lits
+  [ -f "$hook" ] || return 0
+  lits=$(grep -v '^[[:space:]]*#' "$hook" 2>/dev/null \
+    | grep -oE '/[a-z][a-z0-9-]+:[a-z][a-z0-9-]+' | sort -u | tr '\n' ' ')
+  [ -n "$lits" ] || return 0
+  printf '%s\n' "${lits% }"
+  return 1
+}
+
+# pc_route_prompt_greps <hook_path>
+# Counts lines matching `printf .%s. "\$head" | grep` — a grep over the scrubbed prompt;
+# over 4, prints the count and returns 1. A zero count and a missing or unreadable file
+# return 0. validate.sh err()s it as `… matches the prompt <n> times — at most 4 …`.
+#
+# CATCHES a fifth prompt-matching line: the budget is three narrowing refusals plus the one
+# work-shaped gate, so a fifth is a routing rule regrowing in shell.
+#
+# WHAT IT DOES NOT CATCH: a grep spelled any other way (`grep … <<<"$head"`, `echo "$head" |`,
+# a `case "$head"` arm, `[[ $head =~ … ]]`, a copy of `$head` under another name), and a
+# widened alternation inside an existing grep — which is how symptom phrasing was added
+# without spending budget (skill-router CHANGELOG 0.13.0). It counts LINES: two greps on one
+# line count once, and a commented-out grep line counts. Which command the model picks is
+# agent-graded, never gated.
+#
+# WHY IT EXISTS: the same 7fc492d0 replacement as pc_route_prompt_literals — one routing
+# pattern per phrasing is the table that commit deleted. Moved out of validate.sh
+# 2026-09-29 with it. Not carried over: inline, `grep -c … || echo 0` yielded "0\n0" on a
+# zero-grep hook, `[ -le 4 ]` then errored, and the gate drew a false FAIL; a zero count is
+# now clean. No string changes for a real violation.
+pc_route_prompt_greps() {
+  local hook="$1" n
+  [ -f "$hook" ] || return 0
+  n=$(grep -c 'printf .%s. "\$head" | grep' "$hook" 2>/dev/null)
+  [ "${n:-0}" -le 4 ] && return 0
+  printf '%s\n' "$n"
+  return 1
+}

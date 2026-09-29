@@ -83,6 +83,8 @@ jobs:
         run: bash scripts/smoke/completion-gate-hook-tests.sh
       - name: Evidence-gate hook smoke tests
         run: bash scripts/smoke/evidence-gate-hook-tests.sh
+      - name: done-gate Stop hook smoke tests (a silent turn on a red per-plugin check is blocked)
+        run: bash scripts/smoke/done-gate-tests.sh
       # Every plugin-shipped test harness, not a hardcoded two. A plugin that
       # ships a script gate and a scripts/__tests__/ directory is enforced by
       # this step the moment it lands; before this glob widened, a third

@@ -16,8 +16,9 @@
 # it (row count, entries resolving, installed-scoping, per-repo stack filtering) were
 # removed with it — see the two paragraphs below marking where they stood.
 #
-# Half B covers the two validate.sh gates that keep the mechanism honest: no literal
-# command token in the hook, and no second routing pattern growing back in shell.
+# Half B calls the two gates that keep the mechanism honest — pc_route_prompt_literals
+# (no literal command token in the hook) and pc_route_prompt_greps (no fifth routing
+# pattern growing back in shell) — on planted copies, and checks validate.sh's wiring.
 #
 # Half C is the reminder hooks, not this one, and is here because it is the other
 # half of a single change: the work-shaped gate was widened to let symptom phrasing
@@ -238,55 +239,70 @@ else
   fail "incident-moment hooks present" "missing $DBG or $FT"
 fi
 
-printf '== half B: validate.sh gates ==\n'
-want_err() { printf '%s\n' "$vout" | grep -qF "$2" && pass "$1" || fail "$1 did not fire" "wanted: $2"; }
+printf '== half B: the route-prompt gates ==\n'
+# PLANT INTO A COPY, NEVER THE LIVE TREE. The previous version appended to the real
+# plugins/skill-router/hooks/route-prompt.sh and restored it with cp; a killed run, a
+# timeout or two overlapping runs left the plant on disk, and the restore once silently
+# reverted a completed feature. The two gates are pc_route_prompt_literals and
+# pc_route_prompt_greps (scripts/lib/plugin-checks.sh), called here on copies under
+# $WORK; validate.sh's wiring of them is checked by text. The end-to-end run — validate.sh
+# printing both FAIL strings on a planted mirror — is scripts/smoke/validate-fixtures/parity-check.sh.
+. "$ROOT/scripts/lib/plugin-checks.sh" || exit 2
 
-# PLANT INTO A COPY, NEVER THE LIVE TREE.
-# These cases need validate.sh to SEE a broken hook, and the previous version appended to
-# the real plugins/skill-router/hooks/route-prompt.sh and restored it with cp. That
-# works exactly as long as nothing interrupts: a killed run, a timeout, or two runs
-# overlapping leaves the plant on disk, and the next gate then fails on a file nobody
-# edited. It also silently reverted a completed feature once, because the restore
-# copied a backup taken before that feature landed. validate.sh cds to its own repo
-# root (validate.sh:4), so running the COPY's validate.sh scopes everything to the
-# copy — the live tree is never written to at all.
-MIRROR="$WORK/mirror"
-mkdir -p "$MIRROR"
-# .claude-plugin is not optional: validate.sh exits early with
-# "marketplace.json missing" without it, so the mirror would report a DIFFERENT
-# failure and every want_err below would silently never fire.
-for d in plugins scripts templates .claude-plugin; do cp -R "$ROOT/$d" "$MIRROR/" 2>/dev/null; done
-for f in CLAUDE.md README.md skills-lock.json; do [ -f "$ROOT/$f" ] && cp "$ROOT/$f" "$MIRROR/" 2>/dev/null; done
-MHOOK="$MIRROR/$SR/hooks/route-prompt.sh"
-mvalidate() { ( cd "$MIRROR" && bash scripts/validate.sh 2>&1 ); }
+LIT="$WORK/route-prompt-literal.sh"
+cp "$HOOK" "$LIT" && printf 'echo /taskmaster:task\n' >> "$LIT"
+out=$(pc_route_prompt_literals "$LIT"); grc=$?
+[ "$grc" -eq 1 ] && [ "$out" = "/taskmaster:task" ] && pass "literal command token" \
+  || fail "literal command token did not fire" "wanted rc 1 and /taskmaster:task, got rc $grc: $out"
 
-if [ -f "$MHOOK" ]; then
-  MHB="$WORK/mirror-route-prompt.bak"; cp "$MHOOK" "$MHB"
+# The FAIL string embeds this list; the inline gate joined it with `$(echo $prompt_lits)`.
+printf 'echo /zeta:run /alpha:go\n' >> "$LIT"
+out=$(pc_route_prompt_literals "$LIT"); grc=$?
+[ "$grc" -eq 1 ] && [ "$out" = "/alpha:go /taskmaster:task /zeta:run" ] && pass "several tokens: sorted, one line, single spaces" \
+  || fail "several tokens: sorted, one line, single spaces" "wanted rc 1 and '/alpha:go /taskmaster:task /zeta:run', got rc $grc: $out"
 
-  printf 'echo /taskmaster:task\n' >> "$MHOOK"
-  vout=$(mvalidate)
-  cp "$MHB" "$MHOOK"
-  want_err "literal command token" "carries literal command token(s)"
+# a fifth prompt-matching grep = a routing table regrowing in shell
+FIFTH="$WORK/route-prompt-fifth.sh"
+cp "$HOOK" "$FIFTH" \
+  && printf '%s\n' 'printf '"'"'%s'"'"' "$head" | grep -qiE "landing page" && exit 0' >> "$FIFTH"
+out=$(pc_route_prompt_greps "$FIFTH"); grc=$?
+[ "$grc" -eq 1 ] && [ "$out" = "5" ] && pass "extra prompt pattern" \
+  || fail "extra prompt pattern did not fire" "wanted rc 1 and 5, got rc $grc: $out"
 
-  # a fifth prompt-matching grep = a routing table regrowing in shell
-  printf '%s\n' 'printf '"'"'%s'"'"' "$head" | grep -qiE "landing page" && exit 0' >> "$MHOOK"
-  vout=$(mvalidate)
-  cp "$MHB" "$MHOOK"
-  want_err "extra prompt pattern" "a fifth is a routing table regrowing in shell"
+lout=$(pc_route_prompt_literals "$HOOK"); lrc=$?
+gout=$(pc_route_prompt_greps "$HOOK"); grc=$?
+[ "$lrc" -eq 0 ] && [ -z "$lout" ] && [ "$grc" -eq 0 ] && [ -z "$gout" ] && pass "clean hook is clean" \
+  || fail "clean hook is clean" "literals rc $lrc: $lout; greps rc $grc: $gout"
 
-  vout=$(mvalidate)
-  printf '%s\n' "$vout" | grep -qF 'route-prompt.sh' \
-    && fail "clean tree is clean" "validate still reports route-prompt problems after restore" \
-    || pass "clean tree is clean"
-
-  # The live tree must be untouched by any of the above.
-  if cmp -s "$HOOK" "$HB"; then
-    pass "live route-prompt.sh was never written to"
-  else
-    fail "live route-prompt.sh was never written to" "the harness mutated the real tree"
-  fi
+# The inline gate's `grep -c … || echo 0` turned a zero count into "0\n0" and a false FAIL.
+NOGREP="$WORK/route-prompt-nogrep.sh"
+grep -v 'printf .%s. "\$head" | grep' "$HOOK" > "$NOGREP"
+if grep -qF '"$head" | grep' "$NOGREP"; then
+  fail "a hook with no prompt grep is clean" "the copy still greps \$head; the plant is the clean case again"
 else
-  fail "mirror tree built" "missing $MHOOK"
+  out=$(pc_route_prompt_greps "$NOGREP"); grc=$?
+  [ "$grc" -eq 0 ] && [ -z "$out" ] && pass "a hook with no prompt grep is clean" \
+    || fail "a hook with no prompt grep is clean" "wanted rc 0 and no output, got rc $grc: $out"
+fi
+
+# Joined across `\` continuations, so each call's own exit status must feed the err()
+# carrying its unchanged message, with the variable that call assigned.
+wiring=$(grep -v '^[[:space:]]*#' "$ROOT/scripts/validate.sh" \
+  | awk '{ l = $0; if (buf != "") sub(/^[[:space:]]+/, "", l)
+           if (sub(/[[:space:]]*\\$/, "", l)) { buf = buf l " "; next }
+           print buf l; buf = "" }')
+if printf '%s\n' "$wiring" | grep -qF 'prompt_lits=$(pc_route_prompt_literals "$RP") || err "skill-router route-prompt.sh carries literal command token(s): $prompt_lits — the catalog is built from installed plugins, never hardcoded"' \
+   && printf '%s\n' "$wiring" | grep -qF 'head_greps=$(pc_route_prompt_greps "$RP") || err "skill-router route-prompt.sh matches the prompt $head_greps times — at most 4 (three narrowing refusals + one work-shaped gate); a fifth is a routing table regrowing in shell"'; then
+  pass "validate.sh wiring carries both messages"
+else
+  fail "validate.sh wiring carries both messages" "a call is missing, commented out, or no longer feeds its unchanged err() message"
+fi
+
+# The live tree must be untouched by any of the above.
+if cmp -s "$HOOK" "$HB"; then
+  pass "live route-prompt.sh was never written to"
+else
+  fail "live route-prompt.sh was never written to" "the harness mutated the real tree"
 fi
 
 # ---- STACK RELEVANCE: retired with the catalog ------------------------------
