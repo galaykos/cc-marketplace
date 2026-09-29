@@ -20,6 +20,8 @@ LT="$P/lane.tsv"
 RFA="$P/agents/_parity_rf.md"
 RFX="$P/agents/_parity_rf_exempt.md"
 RFX_REASON="parity fixture proving the exemption report is wired"
+FMA="$P/agents/_parity_fm.md"
+HK="$P/hooks/remind.sh"
 CA=plugins/code-architecture/.claude-plugin/plugin.json
 RP=plugins/skill-router/hooks/route-prompt.sh
 STRAY=plugins/_parity_stray
@@ -78,6 +80,11 @@ mkagent() {  # mkagent <path> <name> [extra frontmatter lines]
 }
 mkagent "$RFA" _parity_rf
 mkagent "$RFX" _parity_rf_exempt 'floor: none' "floor-reason: $RFX_REASON"
+# No effort: and a 610-char description: one structural FAIL, one linter FAIL, which
+# validate.sh must print in that order (card 10b parks linter lines for its later loop).
+printf -- '---\nname: _parity_fm\ndescription: Spawned by the parity harness %s\nmodel: inherit\n---\n\nscratch\n' \
+  "$(printf 'x%.0s' $(seq 1 580))" > "$MIRROR/$FMA"
+chmod -x "$MIRROR/$HK"
 mkdir -p "$MIRROR/$STRAY/.claude/scratch" && : > "$MIRROR/$STRAY/.claude/scratch/marker"
 {
   printf 'echo /taskmaster:task\n'
@@ -133,6 +140,16 @@ printf '%s\n' "$out" | grep -qF 'FAIL: skill-router route-prompt.sh carries lite
 printf '%s\n' "$out" | grep -qF 'FAIL: skill-router route-prompt.sh matches the prompt 5 times — at most 4 (three narrowing refusals + one work-shaped gate); a fifth is a routing table regrowing in shell' \
   && echo "PASS: e2e route-prompt fifth-grep FAIL reaches the build" \
   || { echo "FAIL: e2e route-prompt fifth-grep FAIL did not reach the build"; rc=1; }
+fm_s=$(printf '%s\n' "$out" | grep -nxF "FAIL: $FMA: frontmatter missing effort: (agents default to xhigh)" | cut -d: -f1)
+fm_l=$(printf '%s\n' "$out" | grep -nxE "FAIL: $FMA: description [0-9]+ chars \(max 500\)" | cut -d: -f1)
+if [ -n "$fm_s" ] && [ -n "$fm_l" ] && [ "$fm_l" -gt "$fm_s" ]; then
+  echo "PASS: e2e frontmatter structural and linter FAILs reach the build, structural first"
+else
+  echo "FAIL: e2e frontmatter FAILs missing or out of order (structural line ${fm_s:-none}, linter line ${fm_l:-none})"; rc=1
+fi
+printf '%s\n' "$out" | grep -qxF "FAIL: $P/hooks/hooks.json: hook script $HK missing or not executable" \
+  && echo "PASS: e2e hook-exec FAIL reaches the build" \
+  || { echo "FAIL: e2e hook-exec FAIL did not reach the build"; rc=1; }
 
 # ---------------------------------------------------------------------------
 # Jargon gate: both directions, plus the escape hatch.

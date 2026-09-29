@@ -20,8 +20,9 @@
 # cannot tell an assertion that watches the check fail from one that merely calls it, and
 # it cannot see a harness that exercises a check through validate.sh without naming it.
 # So this over-reports coverage; treat a NONE as certain and a hit as probable. WIRED
-# counts mentions in validate.sh and context-budget.sh, the two scripts that source the
-# lib to gate — a mention there is likewise not proof of a call.
+# counts mentions in validate.sh and context-budget.sh only; done-gate.sh and
+# authoring-guard.sh also source the lib and are not counted. A mention is likewise not
+# proof of a call.
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT" || exit 0

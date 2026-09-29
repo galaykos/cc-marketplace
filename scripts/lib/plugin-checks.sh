@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Shared per-plugin checks, sourced by validate.sh (full sweep) and
-# authoring-guard.sh (single edited file). Pure: sourcing assigns the host listing
+# Shared per-plugin checks, sourced by validate.sh (full sweep), context-budget.sh,
+# done-gate.sh (changed plugins) and authoring-guard.sh (single edited file). Pure: sourcing assigns the host listing
 # constants (scripts/host-constants.sh — variable definitions only) and runs nothing
 # else; functions close over no caller globals (no err/fail/allow_md), and take all
 # inputs as args.
@@ -1375,7 +1375,7 @@ pc_twin_files() {
 #
 # SINGLE PASS, deliberately. The first implementation looped over every line and
 # spawned grep+sed+sort per line; across ~400 shipped docs that took validate.sh
-# from 30s to 110s, and role-floors-check — which runs validate.sh nine times —
+# from 30s to 110s, and role-floors-check — which then ran validate.sh nine times —
 # to seven minutes. A gate slow enough to discourage running it locally is a gate
 # that only fires in CI. Two greps per file, then one filesystem probe per
 # DISTINCT token.
