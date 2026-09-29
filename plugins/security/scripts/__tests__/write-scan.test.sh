@@ -226,5 +226,12 @@ out=$(runb b4 "sed -i '' 's/a/b/' b.js")
 if grep -q 'raw-html-sink' <<<"$out" && grep -q 'b\.js' <<<"$out"; then pass=$((pass+1)); echo "PASS sed-i: a sed -i write to a file with a sink warns"
 else echo "FAIL sed-i: a sed -i write to a file with a sink warns, got: ${out:-<empty>}"; fail=$((fail+1)); fi
 
+mkdir -p "$W/sub" && printf '%s\n' 'const ok = 1' > "$W/sub/app.js"
+out=$(runb b5 "cd sub && cat > app.js <<'EOF'
+const ok = 1
+EOF")
+if [ -z "$out" ]; then pass=$((pass+1)); echo "PASS cd: a relative target after an in-command cd is not read from the payload cwd"
+else echo "FAIL cd: a relative target after an in-command cd is not read from the payload cwd, got: $out"; fail=$((fail+1)); fi
+
 echo "write-scan tests: $pass passed, $fail failed"
 exit $((fail > 0))

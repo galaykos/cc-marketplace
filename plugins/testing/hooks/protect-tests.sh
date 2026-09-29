@@ -344,8 +344,13 @@ $(cc_bash_write_chunks "$cmd")
 EOF_C
     # A relative target after an in-command `cd` would resolve against the wrong directory
     # and read a kept marker as new: skip relative targets then (a miss, never a false deny).
+    # Only a `cd` outside heredoc bodies counts; a body line is text and moves nothing.
     hascd=0
-    printf '%s' "$cmd" | grep -qE '(^|[;&|(])[[:space:]]*(cd|pushd)[[:space:]]' && hascd=1
+    printf '%s\n' "$cmd" | awk '
+      inh { if ($0 ~ ("^[\t]*" term "[ \t]*$")) inh = 0; next }
+      { print; l = $0; gsub(/<<</, "", l); o = "<<-?[ \t]*[\"\047\\\\]?"
+        if (match(l, o "[A-Za-z_][A-Za-z0-9_]*")) { term = substr(l, RSTART, RLENGTH); sub(o, "", term); inh = 1 } }' \
+      | grep -qE '(^|[;&|(])[[:space:]]*(cd|pushd)[[:space:]]' && hascd=1
     # Chunks of one command compose per target (`> f` then `>> f`), and each target is
     # judged once on its final text, so a clear-then-append is not read as emptying f.
     m=0; i=1

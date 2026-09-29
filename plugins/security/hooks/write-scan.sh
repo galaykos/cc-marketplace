@@ -32,9 +32,10 @@
 # warns on its pre-existing content too; after that the per-(context, file, slug) dedup
 # keeps an already-warned finding quiet. A Bash call that writes nothing exits before the
 # lock sweep. NOT caught: interpreter writes (python open(), php file_put_contents),
-# cp/mv/install destinations, `{ …; } > f` groups, a path held in a variable, a quoted
-# string or `\` continuation spanning lines, a second heredoc on one line, the 9th target
-# on, and bytes past 256 KiB.
+# cp/mv/install destinations, `{ …; } > f` groups, a path held in a variable, a relative
+# target in a command holding a `cd`/`pushd` (skipped, not misattributed), a quoted string
+# or `\` continuation spanning lines, a second heredoc on one line, the 9th target on, and
+# bytes past 256 KiB.
 
 # --- bash write targets --------------------------------------------------------
 # Canonical copy: templates/blocks/bash-write-targets.md. Every hook defining
@@ -137,6 +138,14 @@ cc_bash_write_targets() {
     [ -n "$targets" ] || exit 0
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
     [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
+    # A relative target after an in-command `cd` names a file in another directory: skip
+    # it rather than warn about the payload cwd's same-named file. Heredoc bodies ignored.
+    hascd=0
+    printf '%s\n' "$cmd" | awk '
+      inh { if ($0 ~ ("^[\t]*" term "[ \t]*$")) inh = 0; next }
+      { print; l = $0; gsub(/<<</, "", l); o = "<<-?[ \t]*[\"\047\\\\]?"
+        if (match(l, o "[A-Za-z_][A-Za-z0-9_]*")) { term = substr(l, RSTART, RLENGTH); sub(o, "", term); inh = 1 } }' \
+      | grep -qE '(^|[;&|(])[[:space:]]*(cd|pushd)[[:space:]]' && hascd=1
   else
     text=$(printf '%s' "$input" | jq -r '
       [ .tool_input.content // empty,
@@ -289,7 +298,7 @@ cc_bash_write_targets() {
       case "$p" in
         /*) ;;
         "~/"*) [ -n "${HOME:-}" ] || continue; p="$HOME/${p#??}" ;;
-        *) p="$cwd/$p" ;;
+        *) [ "$hascd" = 0 ] || continue; p="$cwd/$p" ;;
       esac
       # One spelling per file, so `./app.js` and `app.js` share a dedup key.
       d=$(CDPATH= cd -- "$(dirname -- "$p")" 2>/dev/null && pwd) || continue

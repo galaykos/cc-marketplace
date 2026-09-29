@@ -37,8 +37,13 @@ forking them. Standing of each rule is in brackets.
 3. **Cheap exit first:** `[ -n "$(cc_bash_write_targets "$cmd")" ] || exit 0` before
    reading anything else. A non-write Bash call is the common case and must cost
    ≤ 50 ms median (measure 20 runs; record median and max in the CHANGELOG).
-4. Cap targets (`| head -n 8`) and say so in the header.
-5. Resolve a relative target against the payload `.cwd`, never the hook's own cwd.
+4. A path or disk guard (it reads the targets) caps them (`| head -n 8`) and says so in
+   the header. A content guard judges every chunk, one target per writer (`head -n 1`),
+   bounded by the command text itself.
+5. Resolve a relative target against the payload `.cwd`, never the hook's own cwd. When
+   the command holds a `cd`/`pushd` OUTSIDE heredoc bodies, skip relative targets — a
+   miss, never a wrong file. The body-stripping awk in `plugins/testing/hooks/protect-tests.sh`
+   (the `hascd` lines) is the reference; a `cd` inside a body moves nothing.
    Reference: `plugins/secret-scanning/hooks/unicode-scan.sh`, the Bash branch.
 6. Content guards read chunks with the canonical loop from
    `plugins/secret-scanning/hooks/scan.sh` (its `if [ "$tool" = Bash ]` branch):
@@ -70,6 +75,7 @@ EOF_C
 - `{ …; } > f` groups, here-strings `<<<`, printf format substitution;
 - a path held in a variable (`> "$out"`);
 - a quoted string or `\` continuation spanning lines, a second heredoc on one line;
+- a relative target after an in-command `cd` (skipped per step 5);
 - targets past your cap.
 
 Deletion (`rm` of a hook or config) is command-guard's `destructive-guard.sh`, not a

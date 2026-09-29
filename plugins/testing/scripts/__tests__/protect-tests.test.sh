@@ -168,6 +168,9 @@ mkf
 bash_allows "tee -i -a: append of a comment is allowed" \
   "echo '// note' | tee -i -a a.test.ts"
 mkdir -p "$T/tests" && printf "it.skip('b',()=>{});\nit('c',()=>{});\n" > "$T/tests/kept.test.ts"  # skip: pre-existing marker fixture
+mkf
+bash_denies "cd in body: a heredoc body line starting with cd does not silence the guard" \
+  $'cat > a.test.ts <<\'EOF\'\ncd /tmp\nit.skip(\'a\',()=>{});\nit(\'b\',()=>{});\nEOF'  # skip: the fixture this case must deny
 bash_allows "cd: a kept marker under an in-command cd is not read as new" \
   $'cd tests && cat > kept.test.ts <<\'EOF\'\nit.skip(\'b\',()=>{});\nit(\'c\',()=>{});\nit(\'d\',()=>{});\nEOF'  # skip: kept marker fixture
 
