@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
-# Remove a plugin (or fold its skills into a host plugin) and update every shared
-# touchpoint: marketplace.json, plugin-scout catalog, context-budget baseline, README
-# counts + table rows. Dry-run by default; edits only with --apply. Prints a
-# residual-reference report either way; validate.sh is the recovery gate after a
-# partial failure.
+# Remove a plugin (or fold its skills into a host plugin). Edits: the plugin dir, its
+# marketplace.json entry, the plugin's key in all three context-budget baselines, its
+# README table row and leaf counts, and — through one full generate.sh --write run —
+# the plugin-scout catalog and the README off-switch table. Under --merge-into it moves
+# the skill dirs to the host and drops the rest.
+# Does NOT extend the pc_removed_refs denylist in scripts/lib/plugin-checks.sh: add the
+# name there by hand, because the residual report greps for existing mentions and cannot
+# show a line that does not exist yet. Nor does it edit skill-router's rules.tsv, other
+# plugins' lane.tsv edges or smoke fixtures (the report prints the first 40 word-match
+# lines, which may name them), or, under --merge-into, bump the host's plugin.json and
+# CHANGELOG or re-baseline its context budget. Dry-run by default; edits only with
+# --apply. validate.sh is the recovery gate after a partial failure.
 #
 # No bundle branches. The all-in bundle went 2026-08-31 and the four themed suites
 # 2026-09-26, the day pc_plugin_dependencies started failing any plugin.json that

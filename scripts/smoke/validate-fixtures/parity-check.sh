@@ -1,45 +1,56 @@
 #!/usr/bin/env bash
-# Parity harness: proves validate.sh — now sourcing scripts/lib/plugin-checks.sh —
-# still fires the SKILL-budget, doc-location, jargon and removed-artifact FAIL
-# paths with its exact messages. Plants throwaway violations in a listed plugin
-# (including its plugin-root README, backed up and byte-verified on restore),
-# runs validate, asserts, cleans up.
-# Runnable in CI on every lib change (guards the shared-lib refactor against drift).
+# Parity harness: the ONE smoke harness that runs validate.sh end to end; every other
+# validate.sh harness calls its pc_* function directly. One run proves each check's FAIL
+# string survives validate.sh's call site to the build: SKILL budget, doc-location, jargon
+# and removed-artifact (a skill and a plugin-root README), lane schema, deference (and a
+# non-zero exit), role-floor unclassified pin and exemption report, stray dir (the only
+# line naming it), and both route-prompt checks.
+# Plants go into a git mirror, never the live tree: two of them edit shipped files (a
+# plugin.json, skill-router's route-prompt.sh), and live plants have both reached a commit
+# after a killed run and reverted a completed feature on restore. validate.sh cds to its
+# own root, so the mirror's copy validates the mirror. The direct pc_* cases after the run
+# only read live fixture files.
 set -u
 cd "$(dirname "$0")/../../.." || exit 2   # repo root
 P=plugins/debugging
 SK="$P/skills/_parity_scratch"
 DOC="$P/_parity_scratch.md"
 RM="$P/README.md"
-RBAK=$(mktemp) || exit 2
-# SELF-HEAL BEFORE BACKUP. This harness plants two lines into the LIVE README and
-# restores them from $RBAK on exit. `trap ... EXIT` does not run on SIGKILL, which is
-# exactly what a test-runner timeout sends — so a killed run leaves the planted lines
-# in a shipped file, and the next `git add -A` commits them. That happened on
-# 2026-09-14: both lines reached a commit and were caught by validate.sh's own jargon
-# and removed-refs checks, one wave later. Stripping known debris before taking the
-# backup means a killed run costs a re-run, never a bad commit. SIGKILL still cannot be
-# trapped; this is the mitigation, not a fix for that.
-if grep -qE '^Track cards 03 and 05 here\.$|^- \*\*typescript\*\* — planted stale member row$' "$RM" 2>/dev/null; then
-  grep -vE '^Track cards 03 and 05 here\.$|^- \*\*typescript\*\* — planted stale member row$' "$RM" > "$RM.heal" \
-    && mv "$RM.heal" "$RM" \
-    && echo "NOTE: removed planted lines left by an earlier killed run of this harness"
-fi
-cp "$RM" "$RBAK" || exit 2
+LT="$P/lane.tsv"
+RFA="$P/agents/_parity_rf.md"
+RFX="$P/agents/_parity_rf_exempt.md"
+RFX_REASON="parity fixture proving the exemption report is wired"
+FMA="$P/agents/_parity_fm.md"
+HK="$P/hooks/remind.sh"
+CA=plugins/code-architecture/.claude-plugin/plugin.json
+RP=plugins/skill-router/hooks/route-prompt.sh
+STRAY=plugins/_parity_stray
+EDITED="$RM $LT $CA $RP"
+EDITED_SUMS=$(cksum $EDITED) || exit 2
+MIRROR=$(mktemp -d) || exit 2
 cleanup() {
-  rm -rf "$SK" "$DOC"
+  rm -rf "$MIRROR"
+  [ -n "${JTMP:-}" ] && rm -f "$JTMP"
   bad=0
-  if [ -f "$RBAK" ]; then
-    cp "$RBAK" "$RM"
-    cmp -s "$RBAK" "$RM" || { echo "FAIL: $RM not restored"; bad=1; }
-    rm -f "$RBAK"
+  for f in "$SK" "$DOC" "$P"/agents/_parity_* plugins/_parity_*; do
+    [ -e "$f" ] && { echo "FAIL: parity debris in the live tree: $f"; bad=1; }
+  done
+  if grep -qE '^Track cards 03 and 05 here\.$|^- \*\*typescript\*\* — planted stale member row$' "$RM" 2>/dev/null; then
+    echo "FAIL: planted README lines in the live $RM"; bad=1
   fi
+  [ "$(cksum $EDITED)" = "$EDITED_SUMS" ] \
+    || { echo "FAIL: a live file the mirror plants edit changed during the run: $EDITED"; bad=1; }
   [ "$bad" -eq 0 ] || exit 1
 }
-# INT/TERM/HUP as well as EXIT: a Ctrl-C or a `kill` during the run must restore the
-# README. SIGKILL remains untrappable — the self-heal above is what covers it.
 trap cleanup EXIT INT TERM HUP
-mkdir -p "$SK"
+
+for d in plugins scripts templates .claude-plugin; do cp -R "$d" "$MIRROR/" || exit 2; done
+for f in CLAUDE.md README.md skills-lock.json .gitignore; do cp "$f" "$MIRROR/" || exit 2; done
+# The stray check reads git's index, so the index is built before any plant lands.
+{ git -C "$MIRROR" init -q && git -C "$MIRROR" add -A; } \
+  || { echo "FAIL: could not build the mirror's git index"; exit 1; }
+
+mkdir -p "$MIRROR/$SK"
 {
   echo '---'; echo 'name: _parity_scratch'
   echo 'description: Use when proving the budget check fires on an over-length body.'
@@ -47,17 +58,40 @@ mkdir -p "$SK"
   echo "Resolve card 07 before continuing."
   echo "Then install the vue2 plugin for the legacy apps."
   for i in $(seq 3 220); do echo "line $i"; done
-} > "$SK/SKILL.md"
-echo "# stray" > "$DOC"
-# Plugin-root docs joined the jargon/removed-artifact scan (they escaped it
-# entirely before): plant a plural-jargon line and a stale bolded member row in
-# the live README — restored byte-identical by cleanup.
+} > "$MIRROR/$SK/SKILL.md"
+echo "# stray" > "$MIRROR/$DOC"
 {
   echo "Track cards 03 and 05 here."
   echo "- **typescript** — planted stale member row"
-} >> "$RM"
+} >> "$MIRROR/$RM"
+printf 'debugging:debugger\tagent\tverify\tno-yields-column\ta checkable condition\n' >> "$MIRROR/$LT"
+jq '.description = "Fixture: defers pipeline topology to the devops plugin."' "$MIRROR/$CA" > "$MIRROR/$CA.tmp" \
+  && mv "$MIRROR/$CA.tmp" "$MIRROR/$CA" || exit 2
+mkagent() {  # mkagent <path> <name> [extra frontmatter lines]
+  { printf -- '---\n'
+    printf 'name: %s\n' "$2"
+    printf 'description: Spawned by the parity harness to prove a role-floor path reaches the build.\n'
+    printf 'model: sonnet\n'
+    printf 'effort: low\n'
+    shift 2
+    for line in "$@"; do printf '%s\n' "$line"; done
+    printf -- '---\n\nscratch\n'
+  } > "$MIRROR/$1"
+}
+mkagent "$RFA" _parity_rf
+mkagent "$RFX" _parity_rf_exempt 'floor: none' "floor-reason: $RFX_REASON"
+# No effort: and a 610-char description: one structural FAIL, one linter FAIL, which
+# validate.sh must print in that order (card 10b parks linter lines for its later loop).
+printf -- '---\nname: _parity_fm\ndescription: Spawned by the parity harness %s\nmodel: inherit\n---\n\nscratch\n' \
+  "$(printf 'x%.0s' $(seq 1 580))" > "$MIRROR/$FMA"
+chmod -x "$MIRROR/$HK"
+mkdir -p "$MIRROR/$STRAY/.claude/scratch" && : > "$MIRROR/$STRAY/.claude/scratch/marker"
+{
+  printf 'echo /taskmaster:task\n'
+  printf '%s\n' 'printf '"'"'%s'"'"' "$head" | grep -qiE "landing page" && exit 0'
+} >> "$MIRROR/$RP"
 
-out=$(bash scripts/validate.sh 2>&1)
+out=$( cd "$MIRROR" && bash scripts/validate.sh 2>&1 ) && vrc=0 || vrc=$?
 rc=0
 printf '%s\n' "$out" | grep -qF "$SK/SKILL.md: body is 221 lines, over the 200-line ceiling" \
   && echo "PASS: budget FAIL fires" || { echo "FAIL: budget check did not fire"; rc=1; }
@@ -80,6 +114,42 @@ printf '%s\n' "$out" | grep -qF "$RM: leaked internal taskmaster jargon [cards 0
 printf '%s\n' "$out" | grep -qF "$RM: references removed marketplace artifact [**typescript**]" \
   && echo "PASS: removed-refs wiring reaches plugin-root README" \
   || { echo "FAIL: removed-refs wiring did not fire on $RM with [**typescript**]"; rc=1; }
+printf '%s\n' "$out" | grep -F "FAIL: lane-schema $LT:" \
+  | grep -qF '5 fields (want 6) — a lane row is 6 tab-separated fields (artifact kind phase owns definite_trigger yields_to)' \
+  && echo "PASS: e2e lane-schema FAIL reaches the build" \
+  || { echo "FAIL: e2e lane-schema FAIL for the 5-field row in $LT did not reach the build"; rc=1; }
+[ "$vrc" -ne 0 ] && printf '%s\n' "$out" | grep -qF 'FAIL: deference code-architecture -> devops — plugin.json promises deference to a plugin that no lane row yields to — add the yields_to edge or reword the description' \
+  && echo "PASS: e2e deference FAIL reaches the build" \
+  || { echo "FAIL: e2e deference FAIL did not reach the build (validate.sh rc=$vrc, want non-zero)"; rc=1; }
+printf '%s\n' "$out" | grep -qF "FAIL: $RFA: pins model 'sonnet' but has neither a role-floors row nor 'floor: none'" \
+  && echo "PASS: e2e role-floor FAIL reaches the build" \
+  || { echo "FAIL: e2e role-floor unclassified-pin FAIL for $RFA did not reach the build"; rc=1; }
+printf '%s\n' "$out" | grep -qxF "  $RFX: $RFX_REASON" \
+  && echo "PASS: role-floor exemption reaches the build's exemption report" \
+  || { echo "FAIL: $RFX's floor-reason is missing from the '== role-floor exemptions ==' report"; rc=1; }
+stray_lines=$(printf '%s\n' "$out" | grep -cF "${STRAY#plugins/}")
+if printf '%s\n' "$out" | grep -qxF "FAIL: stray directory $STRAY has no tracked files — delete it (a hook or editor left scratch here)" \
+   && [ "$stray_lines" -eq 1 ]; then
+  echo "PASS: e2e stray-dir FAIL reaches the build and is the only line naming it"
+else
+  echo "FAIL: e2e stray-dir FAIL missing, or $STRAY named on $stray_lines lines (want exactly 1)"; rc=1
+fi
+printf '%s\n' "$out" | grep -qF 'FAIL: skill-router route-prompt.sh carries literal command token(s): /taskmaster:task — the catalog is built from installed plugins, never hardcoded' \
+  && echo "PASS: e2e route-prompt literal-token FAIL reaches the build" \
+  || { echo "FAIL: e2e route-prompt literal-token FAIL did not reach the build"; rc=1; }
+printf '%s\n' "$out" | grep -qF 'FAIL: skill-router route-prompt.sh matches the prompt 5 times — at most 4 (three narrowing refusals + one work-shaped gate); a fifth is a routing table regrowing in shell' \
+  && echo "PASS: e2e route-prompt fifth-grep FAIL reaches the build" \
+  || { echo "FAIL: e2e route-prompt fifth-grep FAIL did not reach the build"; rc=1; }
+fm_s=$(printf '%s\n' "$out" | grep -nxF "FAIL: $FMA: frontmatter missing effort: (agents default to xhigh)" | cut -d: -f1)
+fm_l=$(printf '%s\n' "$out" | grep -nxE "FAIL: $FMA: description [0-9]+ chars \(max 500\)" | cut -d: -f1)
+if [ -n "$fm_s" ] && [ -n "$fm_l" ] && [ "$fm_l" -gt "$fm_s" ]; then
+  echo "PASS: e2e frontmatter structural and linter FAILs reach the build, structural first"
+else
+  echo "FAIL: e2e frontmatter FAILs missing or out of order (structural line ${fm_s:-none}, linter line ${fm_l:-none})"; rc=1
+fi
+printf '%s\n' "$out" | grep -qxF "FAIL: $P/hooks/hooks.json: hook script $HK missing or not executable" \
+  && echo "PASS: e2e hook-exec FAIL reaches the build" \
+  || { echo "FAIL: e2e hook-exec FAIL did not reach the build"; rc=1; }
 
 # ---------------------------------------------------------------------------
 # Jargon gate: both directions, plus the escape hatch.
@@ -94,8 +164,6 @@ printf '%s\n' "$out" | grep -qF "$RM: references removed marketplace artifact [*
 # ---------------------------------------------------------------------------
 . scripts/lib/plugin-checks.sh
 JTMP=$(mktemp)
-cleanup_j() { rm -f "$JTMP"; }
-trap 'cleanup; cleanup_j' EXIT INT TERM HUP
 
 jseed() { printf '%s\n' "$1" > "$JTMP"; }
 

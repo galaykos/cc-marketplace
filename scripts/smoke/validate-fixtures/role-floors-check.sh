@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Role-floor gate harness: proves each of the nine frozen FAIL strings in
-# scripts/validate.sh's role-floor registry gate actually fires. Plants throwaway
-# violations across four runs, asserts by EXACT STRING PRESENCE, restores, and
-# verifies the paths it touched are byte-identical to where it started.
+# Role-floor gate harness: proves each of the nine frozen FAIL strings that
+# pc_role_floors (scripts/lib/plugin-checks.sh) emits actually fires. Plants throwaway
+# violations across four runs in a mirror and asserts by EXACT STRING PRESENCE on the
+# function's output — validate.sh err()s each `fail` line verbatim, and the end-to-end
+# run through validate.sh lives in parity-check.sh. The wiring check at the end greps
+# the live validate.sh for the call and the exemptions header; it does not run either.
 #
-# Assert by presence only, never by FAIL count or absence-of-FAIL: validate.sh
-# runs context-budget.sh with `|| true`, and a planted agent pushes its host
-# plugin over baseline, so an unrelated budget FAIL is always in the capture.
+# Assert by presence only, never by FAIL count: a plant trips lines it did not aim at
+# (Run B's four-row registry leaves every other floored agent unclassified), so a
+# count would couple this harness to the live agent inventory.
 #
 # Runs A-D are separate because the violations are mutually exclusive: one agent
 # cannot be both unclassified (string 6) and carry `floor: none` (string 7), and
@@ -24,13 +26,11 @@ LIVE="$(cd "$(dirname "$0")/../../.." && pwd)" || exit 2
 # never exist, so an interrupted test run turns into a build failure in a file nobody
 # edited. Copying first makes the blast radius a temp directory.
 MIRROR="$(mktemp -d)" || exit 2
-for _d in plugins scripts templates .claude-plugin; do
+for _d in plugins scripts; do
   [ -e "$LIVE/$_d" ] && cp -R "$LIVE/$_d" "$MIRROR/" 2>/dev/null
 done
-for _f in CLAUDE.md README.md skills-lock.json; do
-  [ -f "$LIVE/$_f" ] && cp "$LIVE/$_f" "$MIRROR/" 2>/dev/null
-done
 cd "$MIRROR" || exit 2
+. scripts/lib/plugin-checks.sh || exit 2
 
 RF=plugins/task-runner/skills/delegation-contracts/references/role-floors.md
 CR=plugins/code-review/agents/code-reviewer.md
@@ -66,10 +66,8 @@ want() {   # want <label> <exact string>
     && echo "PASS: $1" || { echo "FAIL: $1 did not fire"; rc=1; }
 }
 
-# Planted agents must satisfy every other agent check or we grep the wrong
-# failure: opener, terminated frontmatter, name/description/model/effort, a
-# PROACTIVELY|Spawned by marker, no block scalar, <=500 chars, no "Trigger
-# words:", and no /word:word token (validate.sh recurses plugins/*/agents).
+# A plant carries a complete agent frontmatter so it differs from a shipped agent
+# only in the model/floor keys under test.
 mkagent() {  # mkagent <path> <name> <model> [extra frontmatter lines]
   { printf -- '---\n'
     printf 'name: %s\n' "$2"
@@ -86,7 +84,7 @@ mkagent() {  # mkagent <path> <name> <model> [extra frontmatter lines]
 mkagent "$SX" _rf_scratch_x sonnet
 mkagent "$SY" _rf_scratch_y sonnet 'floor: none' 'floor-reason:'
 mkagent "$SZ" _rf_scratch_z auto
-out=$(bash scripts/validate.sh 2>&1)
+out=$(pc_role_floors "$RF" plugins 2>&1)
 want "6 unclassified pin"  "$SX: pins model 'sonnet' but has neither a role-floors row nor 'floor: none'"
 want "7 empty reason"      "$SY: 'floor: none' requires a non-empty floor-reason:"
 want "8 bad model value"   "$SZ: frontmatter model 'auto' is not inherit or one of haiku|sonnet|opus|fable"
@@ -101,7 +99,7 @@ rm -f "$SX" "$SY" "$SZ"
 awk -v rows="$BAK/rows" '
   /^```/ { n++; print; if (n==1) { while ((getline l < rows) > 0) print l; skip=1 } else skip=0; next }
   skip { next } { print }' "$BAK/rf" > "$RF"
-out=$(bash scripts/validate.sh 2>&1)
+out=$(pc_role_floors "$RF" plugins 2>&1)
 want "1 tier mismatch"     "role-floors registry: code-review:code-reviewer tier 'sonnet' != $CR frontmatter model 'opus'"
 want "2 unresolvable key"  "role-floors registry: nosuch:agent resolves to no agent file (plugins/nosuch/agents/agent.md)"
 want "3 duplicate key"     "role-floors registry: code-architecture:architecture-reviewer appears more than once"
@@ -111,15 +109,22 @@ cp "$BAK/rf" "$RF"
 # ---- Run C: string 9 (row AND floor: none) -----------------------------------
 awk '/^effort:/ && !d { print; print "floor: none"; print "floor-reason: harness"; d=1; next } { print }' \
   "$BAK/cr" > "$CR"
-out=$(bash scripts/validate.sh 2>&1)
+out=$(pc_role_floors "$RF" plugins 2>&1)
 want "9 row + floor:none"  "$CR: has a role-floors row AND 'floor: none' - a row means floored"
 cp "$BAK/cr" "$CR"
 
 # ---- Run D: string 5 (registry unparseable) ----------------------------------
 awk '/^```/ { n++; print; if (n==1) skip=1; else skip=0; next } skip { next } { print }' \
   "$BAK/rf" > "$RF"
-out=$(bash scripts/validate.sh 2>&1)
+out=$(pc_role_floors "$RF" plugins 2>&1)
 want "5 empty registry"    "role-floors registry: $RF missing, empty, or has no parseable rows"
 cp "$BAK/rf" "$RF"
+
+if grep -qF 'pc_role_floors "$RF" plugins' "$LIVE/scripts/validate.sh" \
+   && grep -qF '== role-floor exemptions ==' "$LIVE/scripts/validate.sh"; then
+  echo "PASS: wiring — validate.sh calls pc_role_floors and prints the exemptions header"
+else
+  echo "FAIL: wiring — validate.sh lacks 'pc_role_floors \"\$RF\" plugins' or the '== role-floor exemptions ==' header"; rc=1
+fi
 
 exit $rc
