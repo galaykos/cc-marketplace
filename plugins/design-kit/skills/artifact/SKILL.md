@@ -1,7 +1,44 @@
 ---
 name: artifact
 description: Use when session output is easier to look at than to read — an annotated diff, options side by side, a dashboard from data already pulled, a live checklist — or the user asks for an artifact, a shareable page, or to bundle a page. One self-contained HTML file, versioned in a local gallery, shared only on explicit consent (LAN, a pages branch, or a zip). Owns the bundling and share rules; page content is yours.
+argument-hint: "[file.html | file.md | dir | brief] [--name slug] [--zip]"
 ---
+
+## Entry: /design-kit:artifact
+
+Run this section only when a new artifact starts — the user typed `/design-kit:artifact`
+or asked for a new one; when loaded mid-task (after an edit, or to review a change), skip
+to the next section.
+
+Every script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"`; run
+`dk.sh check` first and repeat its one line. Then act on `$ARGUMENTS`:
+
+1. **Resolve the input.** A path to `.html`, `.md`, or a directory holding `index.html`
+   is the source as-is. Typed with NO argument (`/design-kit:artifact` alone), read
+   `.design-kit/workshop.json` and offer (AskUserQuestion): "A bring-back page of the
+   last pick (board, artboard, knobs, text edits, with a Copy-as-prompt control)" when a
+   `board` entry exists / "Share the last deck as an artifact" when a `deck` entry exists /
+   "A page of this session's output" when there is output to page / "A page from a brief".
+   Loaded by the model with content already in hand (a diff, a report, a table), that
+   content is the brief — go to Building one.
+   Anything else is a brief: pick a pattern from this skill's `references/patterns.md`
+   and write the page from `assets/page-shell.html` into
+   `.design-kit/artifacts/.src/<slug>/index.html` with real content from this session.
+   `--name <slug>` names the artifact; otherwise the file's basename or a slug of the
+   brief's first words. If `design-system/DESIGN-SYSTEM.md` exists, apply its tokens.
+2. **Bundle + serve:** `dk.sh bundle <source> [--name <slug>] [--zip]`. It prints
+   `network:`, `unresolved-link:` and `WARN:` lines, then `artifact=… vN` and `url=`.
+   Read the findings back to the user in one short list; fix unresolved links before
+   continuing. Give the URL and the gallery base URL; say the page reloads on re-bundle.
+3. **Offer sharing once**, via AskUserQuestion, in this order: "Keep it local
+   (Recommended)" · "Open to my network (LAN)" · "Publish to a pages branch" · "Zip it".
+   LAN: `dk.sh share <artifact> --lan`, print the URL and say any device on the network
+   can open it while the server runs (a pick made from there is not recorded). Pages:
+   `dk.sh share <artifact> --pages` without `--push`, read back the branch, remote and
+   expected URL, ask "Push it?" as a second question, and only on yes re-run with
+   `--pages --push`. Zip: `dk.sh share <artifact> --zip` and name the file.
+4. **Report**: path, version, URL, what was inlined, what still needs the network,
+   what was shared and where. Nothing left the machine unless step 3 said so.
 
 ## What an artifact is here
 
@@ -54,12 +91,11 @@ especially images — so leave out interactivity nobody asked for.
    Pick a pattern from `references/patterns.md` — walkthrough, compare, dashboard,
    checklist, bring-back — or combine two, never five.
 2. Write the page to a scratch path (`.design-kit/artifacts/.src/<slug>/index.html`
-   with any local assets beside it), then run
-   `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/artifact-bundle.py <path> --name <slug>`.
-   Read its lines: `inlined:`, `network:`, `unresolved-link:`, `WARN:`. Fix every
-   unresolved link; decide each network line on purpose.
-3. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh bundle <source> [--name slug]` bundles,
-   starts or reuses the preview and prints `url=`; give the user that URL and the
+   with any local assets beside it).
+3. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh bundle <source> [--name slug]` bundles once,
+   starts or reuses the preview and prints the bundler's `network:`, `unresolved-link:`
+   and `WARN:` lines, then `url=`. Fix every unresolved link and decide each network line
+   on purpose, re-bundling after a fix; give the user that URL and the
    gallery base URL. The page reloads itself when re-bundled.
 4. Revising means re-bundling: the bundler keeps `v1`, `v2`… under
    `.design-kit/artifacts/.versions/<slug>/` and appends to `<slug>.versions.json`.

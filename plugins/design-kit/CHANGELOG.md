@@ -2,6 +2,27 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.8.0 — 2026-09-29
+
+### Changed
+- **The five slash entries are now the skills themselves.** `slides`, `design`,
+  `in-codebase`, `system` and `artifact` each shipped as a command and a skill of one name,
+  and the command hid the skill: `claude plugin details` listed ten skills, and a session
+  asked to quote its listing returned the commands' descriptions, never the skills' "Use
+  when" lines. The five command files are gone. Each skill now carries the command's
+  `argument-hint` and its entry steps as a first `## Entry: /design-kit:<name>` section, so
+  `/design-kit:<name> <args>` works unchanged and the listing shows each skill's own "Use
+  when" description. Standing: **gate** — validate.sh's `pc_cmd_skill_shadow` fails a
+  same-name `commands/<n>.md` + `skills/<n>/SKILL.md` pair (escape `<!-- shadow-ok: <why> -->`).
+- **An Entry section runs only when a new deck, board, render, extraction or artifact
+  starts.** The model and routing rules now load these skills mid-task with no arguments;
+  a mid-task load skips to the next section instead of consuming an unread pick or opening
+  a question. Standing: **recorded** — prose the model follows; nothing checks it.
+- The design command's "Local twin of the host's `/design`" line was not carried: the
+  skill's opening paragraph already said it and now adds "needs no sign-in". That paragraph
+  keeps the `<!-- host-ok -->` marker it already had; the command's own marker is gone.
+  `design` is not a name the host-overlap check knows, so neither marker silenced anything.
+
 ## 0.7.1 — 2026-09-29
 
 ### Fixed

@@ -4,7 +4,7 @@
 # string survives validate.sh's call site to the build: SKILL budget, doc-location, jargon
 # and removed-artifact (a skill and a plugin-root README), lane schema, deference (and a
 # non-zero exit), role-floor unclassified pin and exemption report, stray dir (the only
-# line naming it), and both route-prompt checks.
+# line naming it), both route-prompt checks, and the renames ledger.
 # Plants go into a git mirror, never the live tree: two of them edit shipped files (a
 # plugin.json, skill-router's route-prompt.sh), and live plants have both reached a commit
 # after a killed run and reverted a completed feature on restore. validate.sh cds to its
@@ -24,8 +24,9 @@ FMA="$P/agents/_parity_fm.md"
 HK="$P/hooks/remind.sh"
 CA=plugins/code-architecture/.claude-plugin/plugin.json
 RP=plugins/skill-router/hooks/route-prompt.sh
+MPJ=.claude-plugin/marketplace.json
 STRAY=plugins/_parity_stray
-EDITED="$RM $LT $CA $RP"
+EDITED="$RM $LT $CA $RP $MPJ"
 EDITED_SUMS=$(cksum $EDITED) || exit 2
 MIRROR=$(mktemp -d) || exit 2
 cleanup() {
@@ -90,6 +91,7 @@ mkdir -p "$MIRROR/$STRAY/.claude/scratch" && : > "$MIRROR/$STRAY/.claude/scratch
   printf 'echo /taskmaster:task\n'
   printf '%s\n' 'printf '"'"'%s'"'"' "$head" | grep -qiE "landing page" && exit 0'
 } >> "$MIRROR/$RP"
+jq 'del(.renames.a11y)' "$MIRROR/$MPJ" > "$MIRROR/$MPJ.tmp" && mv "$MIRROR/$MPJ.tmp" "$MIRROR/$MPJ" || exit 2
 
 out=$( cd "$MIRROR" && bash scripts/validate.sh 2>&1 ) && vrc=0 || vrc=$?
 rc=0
@@ -150,6 +152,9 @@ fi
 printf '%s\n' "$out" | grep -qxF "FAIL: $P/hooks/hooks.json: hook script $HK missing or not executable" \
   && echo "PASS: e2e hook-exec FAIL reaches the build" \
   || { echo "FAIL: e2e hook-exec FAIL did not reach the build"; rc=1; }
+printf '%s\n' "$out" | grep -qF 'FAIL: renames-missing a11y — ' \
+  && echo "PASS: e2e renames-ledger FAIL reaches the build" \
+  || { echo "FAIL: e2e renames-ledger FAIL for the deleted renames.a11y did not reach the build"; rc=1; }
 
 # ---------------------------------------------------------------------------
 # Jargon gate: both directions, plus the escape hatch.
@@ -207,10 +212,10 @@ jassert_clean "<!-- jargon-ok --> suppresses plural" 'Track cards 03 and 05 here
 # already proved the call site and the "[$rhit]" interpolation.
 # ---------------------------------------------------------------------------
 FIXD=scripts/smoke/validate-fixtures/removed-refs
-rassert_hit() { # $1 fixture file
+rassert_hit() { # $1 fixture file  [$2 label, default $1]  [$3 text the hit must contain]
   out_r=$(pc_removed_refs "$FIXD/$1"); st=$?
-  if [ "$st" -eq 1 ] && [ -n "$out_r" ]; then echo "PASS: removed-refs hit: $1"
-  else echo "FAIL: removed-refs $1 (status=$st hit='$out_r'; want status 1 + non-empty)"; rc=1; fi
+  if [ "$st" -eq 1 ] && [ -n "$out_r" ] && [[ $out_r == *"${3:-}"* ]]; then echo "PASS: removed-refs hit: ${2:-$1}"
+  else echo "FAIL: removed-refs ${2:-$1} (status=$st hit='$out_r'; want status 1 + non-empty${3:+ containing '$3'})"; rc=1; fi
 }
 rassert_clean() { # $1 fixture file
   out_r=$(pc_removed_refs "$FIXD/$1"); st=$?
@@ -237,6 +242,38 @@ rassert_clean rescued-npm-version-stamp.md     # npm:<pkg>@<ver> in a Last-verif
 
 # ESCAPE HATCH — <!-- removed-ok --> suppresses a would-be hit.
 rassert_clean rescued-removed-ok-marker.md
+
+# TSV-DRIVEN — a plugin name is flagged only because its removed-plugins.tsv row says so,
+# and an unreadable, empty or malformed ledger fails closed, naming itself. The good ledger
+# is CRLF with a blank line, which must still parse.
+RR_CLOSED='removed-plugins ledger unreadable, empty or malformed'
+RR_GOOD=$(mktemp "$MIRROR/removed-plugins.XXXXXX") || exit 2
+{ printf '%s\t%s\t%s\t%s\t%s\r\n' \
+    zz-probe-plug null 2026-09-29 plug probe \
+    zz-probe-off null 2026-09-29 no probe \
+    zz-probe-moved null 2026-09-29 moved probe \
+    zz-probe-both null 2026-09-29 both probe
+  printf '\r\n'; } > "$RR_GOOD"
+PC_REMOVED_PLUGINS_TSV=$RR_GOOD
+rassert_hit   tsv-probe.md                     # prose_match plug
+rassert_clean tsv-probe-off.md                 # prose_match no: recorded, never matched
+RR_PROBES=$(mktemp -d "$MIRROR/removed-refs.XXXXXX") || exit 2
+printf 'See → zz-probe-both here.\n' > "$RR_PROBES/both-arrow.md"
+printf 'See `zz-probe-both:x` here.\n' > "$RR_PROBES/both-artifact.md"
+FIXD=$RR_PROBES rassert_hit both-arrow.md both-reaches-plug      # the arrow is a $plug-only shape
+FIXD=$RR_PROBES rassert_hit both-artifact.md both-reaches-moved  # `name:x` is a $moved-only shape
+rr_closed() { # $1 label; stdin is the ledger tsv-probe-off.md is checked against
+  PC_REMOVED_PLUGINS_TSV=$(mktemp "$MIRROR/removed-plugins.XXXXXX") || exit 2
+  cat > "$PC_REMOVED_PLUGINS_TSV"
+  rassert_hit tsv-probe-off.md "$1" "$RR_CLOSED: $PC_REMOVED_PLUGINS_TSV"
+}
+rr_closed empty-moved-list      < <(grep -vE '	(moved|both)	' "$RR_GOOD")  # refused, not interpolated as ()
+rr_closed malformed-name        < <(cat "$RR_GOOD"; printf 'zz-probe(\tnull\t2026-09-29\tplug\tprobe\n')
+rr_closed malformed-prose-match < <(cat "$RR_GOOD"; printf 'zz-probe-x\tnull\t2026-09-29\tPlug\tprobe\n')
+rr_closed malformed-short-row   < <(cat "$RR_GOOD"; printf 'zz-probe-x\tnull\t2026-09-29\tplug\n')
+PC_REMOVED_PLUGINS_TSV=/nonexistent
+rassert_hit   tsv-probe-off.md tsv-unreadable "$RR_CLOSED: /nonexistent"  # clean above, a hit once the ledger is gone
+unset PC_REMOVED_PLUGINS_TSV
 
 # ---------------------------------------------------------------------------
 # Dispatch-binding gate: both directions, both structural guards, the escape.

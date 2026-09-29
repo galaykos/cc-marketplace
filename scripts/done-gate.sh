@@ -39,7 +39,8 @@
 # the role-floor registry, the context budget, the host's official validator, the
 # smoke harnesses, and validate.sh's per-file checks not named above (plugin.json
 # validity and fields, dependencies, hook timeouts, command argument hints, host
-# overlap, handoff refs, dispatch binding, the hook-state checks). A change confined
+# overlap, handoff refs, dispatch binding, the hook-state checks, the command/skill
+# shadow check, the renames ledger). A change confined
 # to templates/, scripts/ or .claude/skills/ never triggers it.
 #
 # RESIDUAL: the doc allow-list, the jargon exemption, the jargon/removed-refs file
@@ -62,7 +63,9 @@
 #     read-only. The state marker below means it says so once, not repeatedly.
 #
 # FAIL-OPEN on every missing tool or unreadable input, matching the sibling hooks
-# (candor/hooks/gate.sh, hindsight/hooks/collect.sh).
+# (candor/hooks/gate.sh, hindsight/hooks/collect.sh) — with one exception:
+# pc_removed_refs fails CLOSED on a missing or malformed scripts/removed-plugins.tsv,
+# so a broken ledger blocks every changed plugin .md until it is restored.
 #
 # A Stop hook can reach the model two ways: stdout {"decision":"block",…} with
 # exit 0, or exit 2 with the reason on stderr. This uses exit 2. Exit 0 with no

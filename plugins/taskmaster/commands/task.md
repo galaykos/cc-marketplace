@@ -7,8 +7,8 @@ argument-hint: [task-description]
 
 Run the full taskmaster pipeline on $ARGUMENTS (if empty, ask for a one-paragraph task
 description first). Do not write implementation code at any step. If $ARGUMENTS is
-still an idea without a concrete capability list, run the brainstorm skill first
-(/taskmaster:brainstorm) — its approved design doc becomes this pipeline's input and
+still an idea without a concrete capability list, run `/taskmaster:brainstorm` first —
+its approved design doc becomes this pipeline's input and
 pre-seeds the ledger.
 
 <!-- boost-preamble:start — byte-identical across the four full taskmaster commands (taskmaster.md is a thin alias, gated separately); scripts/validate.sh enforces parity and hook-token agreement -->

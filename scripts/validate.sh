@@ -944,6 +944,16 @@ twin_gap=$(pc_twin_files plugins) || true
 scout_name_gap=$(pc_scout_names .) || true
 [ -n "$scout_name_gap" ] && lane_err "$scout_name_gap" "the plugin-scout skill suggests a plugin marketplace.json does not list — retarget the row, use the '—' no-plugin idiom, or mark the line '<!-- scout-name-ok: <why> -->'"
 
+# A same-name command/skill pair: the listing keeps only the command's description.
+# Residuals live in pc_cmd_skill_shadow's header.
+shadow_gap=$(pc_cmd_skill_shadow plugins) || true
+[ -n "$shadow_gap" ] && lane_err "$shadow_gap" "a plugin ships commands/<name>.md and skills/<name>/SKILL.md — the command's description shadows the skill's in the listing; fold one into the other, or mark the command '<!-- shadow-ok: <why> -->'"
+
+# The host migrates installs from renames alone; the TSV is the same fact kept for the repo's
+# own checks. Residuals live in pc_renames_ledger's header.
+renames_gap=$(pc_renames_ledger .) || true
+[ -n "$renames_gap" ] && lane_err "$renames_gap" "scripts/removed-plugins.tsv and marketplace.json renames disagree — every removed name needs a renames entry equal to its TSV successor, every chain must end at a current plugin or null without a cycle, and no renames key may be a live plugin; for renames-missing, add the entry (the jq command in scripts/removed-plugins.tsv's header rewrites the whole map, so run it only when every finding is renames-missing); for renames-orphan or renames-mismatch, add or correct the TSV row — never drop or retarget a committed renames key"
+
 # Handoff resolution over plugin.json DESCRIPTIONS. Ten of them carry "Defers X to Y"
 # claims — the densest ownership statements the marketplace ships, and the only ones a
 # USER reads before installing. They were the one surface pc_handoff_refs never scanned,

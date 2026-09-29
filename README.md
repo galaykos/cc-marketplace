@@ -44,12 +44,31 @@ Not sure what you need? Install one plugin and let it tell you:
 `/plugin marketplace update`, run it again to pick up plugins added since (`ui-libraries`
 arrived 2026-09-26) — installed ones are skipped.
 
-After `/plugin marketplace update`, a `N plugins failed to update` line is expected when
-this marketplace has removed or merged plugins since your last update (four waves so
-far: 2026-08-26, 2026-09-02, 2026-09-14, and 2026-09-26, which retired the four
-`*-suite` bundles). The names are stale entries in your local
-`~/.claude/plugins/installed_plugins.json`; uninstall each named plugin once and the
-message stops. Nothing that still exists is affected.
+On Claude Code v2.1.193 or later (per the docs), removed and merged plugins migrate at
+session start (measured on 2.1.282 in user scope; project and local scope per the docs): a
+merged plugin becomes its successor (if it says `not cached`, run
+`/plugin install <successor>@cc-plugins-marketplace` once), and `forceRemoveDeletedPlugins`
+uninstalls a removed one, listed per the docs under **Flagged** in `/plugin`. On an older
+CLI, update Claude Code before your next session: 2.1.191 uninstalls a merged plugin without
+installing its successor, so you end with neither. If you cannot update, run
+`claude plugin install <successor>@cc-plugins-marketplace` for each old plugin you had that
+`renames` in [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json) maps to a
+successor, and `claude plugin uninstall <name>@cc-plugins-marketplace` only for a name
+`claude plugin list` still shows as `failed to load`; add `-s <scope>` matching where you
+installed it (`/all-plugins:install` uses local). A project-scope install lives in your
+repo's `.claude/settings.json`: per the docs, the session-start migration rewrites or drops its
+`enabledPlugins` key there too, so expect that diff and commit it.
+
+Some removed plugins moved into one you install yourself with
+`/plugin install <home>@cc-plugins-marketplace` — not automatic, because most add a blocking
+hook the old plugin lacked (grill-me and docs-upkeep came through a chain): a11y → ui-ux,
+comment-discipline → code-review, dev-env → devops, mariadb and sql → database,
+orchestration → task-runner, reuse-guard → code-review, terse → candor, taskman and grill-me →
+taskmaster, docs-upkeep → api-design. The reason column of `scripts/removed-plugins.tsv` says where every other
+removed plugin went. Nothing that still exists is uninstalled, including members a retired
+suite pulled in: `claude plugin prune --dry-run` lists the members a later `prune -y` (or an
+uninstall with `--prune`) would remove; run
+`claude plugin install <member>@cc-plugins-marketplace` once for each you keep. Detail: [CHANGELOG](CHANGELOG.md), 0.117.0.
 
 What the scout prints, in order:
 
