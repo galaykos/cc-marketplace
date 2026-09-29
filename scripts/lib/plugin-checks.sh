@@ -874,7 +874,9 @@ pc_removed_refs() {
   # every shape above missed it. Residual: the same citation unbackticked in
   # prose still passes; `web-dev:react-native-best-practices` is legal because
   # the moved name is not the plugin half, and `mariadb:11` (a docker tag) is
-  # legal because the artifact half must start with a letter.
+  # legal because the artifact half must start with a letter. Until 2026-09-29 this
+  # shape was written `\\\``, which hands grep `\``: a literal backtick to BSD grep,
+  # GNU grep's start-of-buffer anchor — so it fired on macOS and never on Linux CI.
   # task-orchestration added 2026-08-21: merged into plan-before-code, which
   # already produced the file map its dependency edges were derived from. Its
   # parallel-safety rule was stated in four places across three plugins; the
@@ -928,7 +930,7 @@ pc_removed_refs() {
   # the first version of that addition REPLACED the skills clause instead of
   # appending, silently un-guarding every removed skill name; parity-check.sh's
   # violation-skill-name fixture is what caught it.
-  shapes="/($moved):|\\\`($moved):[a-z][a-z0-9-]*|(^|$b)plugins/($moved)($b|\$)|(^|$bm)($moved)@|\\*\\*($moved)\\*\\*|(^|$bm)($moved)\`? plugins?($b|\$)|\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)|(^|$b)($cmds)($b|\$)"
+  shapes="/($moved):|\`($moved):[a-z][a-z0-9-]*|(^|$b)plugins/($moved)($b|\$)|(^|$bm)($moved)@|\\*\\*($moved)\\*\\*|(^|$bm)($moved)\`? plugins?($b|\$)|\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)|(^|$b)($cmds)($b|\$)"
   # Lines legitimately discussing the removal itself stay legal without a
   # marker. Every phrase below is quoted from a shipped disclosure:
   #   "it was removed after baseline testing"          (plugin-scout flags.md)
