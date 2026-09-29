@@ -54,10 +54,10 @@ page — **recorded**.
 
 Every command's MAIN path runs through `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh <verb>`,
 so `Bash(bash */design-kit/scripts/dk.sh*)` is the one rule that covers ordinary use.
-**It is not the only rule you will be asked for.** Four steps deliberately call a script
+**It is not the only rule you will be asked for.** Three steps deliberately call a script
 directly, because `dk` has no verb that does only what they need: the deck build alone
 (`deck-build.py`, so a long-slide exit 2 can be fixed before anything is served), the
-artifact bundle alone (`artifact-bundle.py`), the handoff-drift table
+handoff-drift table
 (`handoff-drift.py`), and the system extraction's dry run (`system-extract.py --dry-run`,
 which `dk system` only ever runs as the first half of a full extraction). Those draw a
 second prompt, or a second rule — `Bash(python3 */design-kit/scripts/*)` — and saying

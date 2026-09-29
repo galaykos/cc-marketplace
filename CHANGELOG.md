@@ -22,13 +22,15 @@ its users' next session start.
   absorbed the old one (`nextjs` → `web-dev`, `fresh-take` → `approaches`, …): the install is replaced by its
   successor, and if the successor is already installed you keep one copy, not two. 61 are `null`: no successor is
   installed for you, and the old install is uninstalled. Measured on 2.1.282 in user scope, unauthenticated `-p`
-  sessions (project, local and managed: documented, not measured). The old cache directory is left on disk.
+  sessions (project, local and managed: documented, not measured). The old cache directory is left on disk. Per
+  the docs the rewrite and the uninstall also edit project settings, so a team's committed `.claude/settings.json`
+  `enabledPlugins` changes at its first session start on 2.1.193 or later: commit that diff.
 - **Some `null` plugins have a home you install yourself:** `/plugin install <home>@cc-plugins-marketplace`. It is
   not automatic because a successor is installed without asking, and these homes register a blocking hook (a Stop
   gate or a PreToolUse deny/ask) the old plugin lacked — `a11y` → `ui-ux`, `comment-discipline` → `code-review`,
-  `dev-env` → `devops`, `mariadb` and `sql` → `database`, `orchestration` → `task-runner`, `terse` → `candor`,
-  `taskman` → `taskmaster` — or because the move went through a chain: `grill-me` → `taskmaster`, `docs-upkeep` →
-  `api-design`. The reason column of `scripts/removed-plugins.tsv` says where every other removed plugin went.
+  `dev-env` → `devops`, `mariadb` and `sql` → `database`, `orchestration` → `task-runner`, `reuse-guard` →
+  `code-review`, `terse` → `candor`, `taskman` → `taskmaster` — or because the move went through a chain:
+  `grill-me` → `taskmaster`, `docs-upkeep` → `api-design`. The reason column of `scripts/removed-plugins.tsv` says where every other removed plugin went.
 - **Retired suites (0.116.0).** Measured on 2.1.282, including a replay with the real `core-suite`: the flag
   uninstalls the suite at session start and keeps the members it installed, installed and enabled. But `claude
   plugin prune --dry-run` lists those auto-installed members as no longer needed, so a later `claude plugin prune
@@ -49,7 +51,7 @@ its users' next session start.
   `system` and `artifact` each shipped as a command and a skill of one name, and the command hid the skill's
   description. The command files are gone; `/design-kit:<name> <args>` works unchanged and the listing shows each
   skill's own "Use when" line. A skill's Entry section is for starting a new deck, board, render, extraction or
-  artifact, and tells the model to skip it on a mid-task load (**agent-graded**).
+  artifact, and tells the model to skip it on a mid-task load (**recorded** — nothing checks it).
 - **taskmaster 0.45.5 — `/taskmaster:brainstorm` is the command alone.** The brainstorm skill was folded into its
   command, which now carries every section; the hand-off still runs `/taskmaster:task` with the design doc. The
   plugin no longer lists two brainstorm entries.

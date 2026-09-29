@@ -12,8 +12,8 @@ Consumer-facing changes only. Newest first.
   when" lines. The five command files are gone. Each skill now carries the command's
   `argument-hint` and its entry steps as a first `## Entry: /design-kit:<name>` section, so
   `/design-kit:<name> <args>` works unchanged and the listing shows each skill's own "Use
-  when" description. Standing: **recorded** — no check yet fails a plugin that ships a
-  command and a skill under one name.
+  when" description. Standing: **gate** — validate.sh's `pc_cmd_skill_shadow` fails a
+  same-name `commands/<n>.md` + `skills/<n>/SKILL.md` pair (escape `<!-- shadow-ok: <why> -->`).
 - **An Entry section runs only when a new deck, board, render, extraction or artifact
   starts.** The model and routing rules now load these skills mid-task with no arguments;
   a mid-task load skips to the next section instead of consuming an unread pick or opening
