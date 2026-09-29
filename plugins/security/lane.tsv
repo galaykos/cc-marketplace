@@ -8,3 +8,4 @@ security:security-engineer	agent	build	defensive-security-remediation	work appli
 # generated:end
 security:review	command	review	owasp-diff-security-review	invoked on a diff or path, or a change touches auth, input handling, uploads, secrets or session transport	security:security-review
 security:security-review	skill	review	owasp-diff-security-review	web application code is being security-reviewed: authz/authn, injection, XSS, mass assignment, uploads, CSRF, secrets, session transport	secret-scanning:secret-scanning
+security:write-scan	hook	any	security-sink-write-warning	PostToolUse on a Write/Edit/MultiEdit, or a Bash command writing up to 8 files (redirect, tee, sed -i), whose text carries a mechanically detectable security sink (empty $guarded, unescaped Blade, public-bundle secret, whereRaw interpolation, raw HTML sink, eval, shell-string exec, unsafe deserialization, TLS-off, ECB, script without SRI, LLM sinks)	-

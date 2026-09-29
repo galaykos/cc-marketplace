@@ -390,13 +390,13 @@ FILES
 # pc_shared_blocks <plugins_root> <blocks_dir>
 # Every shell file under <plugins_root> that DEFINES a function owned by a shared block
 # must carry that block byte-for-byte. Prints one "shared-block-drift <path> <block>" per
-# offender; returns 1. Owned today: cc_state_root (state-root.md) and
-# cc_bash_write_targets (bash-write-targets.md).
+# offender; returns 1. Owned today: cc_state_root (state-root.md),
+# cc_bash_write_targets (bash-write-targets.md) and cc_bash_write_chunks (bash-write-chunks.md).
 #
 # WHY THIS EXISTS. Plugins install alone, so a helper two plugins need is COPIED, not
 # sourced — and a copy edited in one plugin is a fix the other five never got. Generated
 # hooks include the block through the template engine; hand-written hooks paste it, and
-# this is what keeps the paste honest. Both blocks landed 2026-09-25 across several
+# this is what keeps the paste honest. The first two landed 2026-09-25 across several
 # plugins at once (rationale/2026-09-25-session-plugin-usage-review.md, findings 1-2).
 #
 # WHAT IT DOES NOT CATCH: a hook that needs the helper and reimplements it under another
@@ -404,7 +404,7 @@ FILES
 # hook swallows — each plugin's own harness is what catches that).
 pc_shared_blocks() {
   local root="${1:-plugins}" bdir="${2:-templates/blocks}" bad=0 f blk content fn name pair
-  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets; do
+  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks; do
     name=${pair%%:*}; fn=${pair#*:}
     [ -r "$bdir/$name.md" ] || continue
     blk=$(cat "$bdir/$name.md")

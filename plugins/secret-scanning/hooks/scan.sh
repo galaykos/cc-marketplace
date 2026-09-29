@@ -34,7 +34,7 @@
 # the default write path never ran. On `Bash`, when cc_bash_write_targets (shared block
 # below) finds at least one write target, the guard scans the text that will land in a
 # file — heredoc bodies and echo/printf arguments whose pipeline writes a file, read by
-# cc_secret_bash_chunks below — with the SAME patterns and placeholder exemption as the
+# cc_bash_write_chunks (shared block below) — with the SAME patterns and placeholder exemption as the
 # Write path, through one scanner (scan_for_secret). The deny names the file the
 # offending chunk writes. Every target counts, inside the project or not: the Write
 # path never filtered by location, and a key in /tmp/deploy.env is a key on disk. No
@@ -45,7 +45,7 @@
 # `curl -H` header is a different problem — it leaves the machine, not lands on disk);
 # interpreter writes (python open(), php file_put_contents); `cp`/`mv` of a file that
 # already holds a secret; sed/perl -i replacement text; and the gaps
-# cc_secret_bash_chunks lists. command-guard owns DESTROYING a live `.env` (truncation,
+# cc_bash_write_chunks lists. command-guard owns DESTROYING a live `.env` (truncation,
 # overwrite); this guard owns a secret ENTERING any file, `.env.example` included, and
 # never asks whether the target exists.
 
@@ -134,30 +134,34 @@ cc_bash_write_targets() {
     }' | awk '!seen[$0]++'
 }
 
-# --- bash written text (local to this hook; NOT a shared block) ------------------------
-# cc_secret_bash_chunks <command> — what a Bash command puts INTO files, which is what the
-# Bash path scans (the Write path scans tool_input.content). Prints chunks: a line that
+# --- bash write chunks --------------------------------------------------------
+# Canonical copy: templates/blocks/bash-write-chunks.md. Every hook defining
+# cc_bash_write_chunks must carry this block byte-for-byte (pc_shared_blocks).
+# cc_bash_write_chunks <command> — what a Bash command puts INTO files: the text a content
+# guard reads on Bash where its Write path reads tool_input.content. Prints chunks: a line that
 # starts with \036 and carries the WRITER — the pipeline (split on ; && ||, never inside
 # quotes) whose targets the caller resolves with cc_bash_write_targets — then the
 # chunk's text lines. Two sources, and only two:
 #   - a heredoc BODY: the lines between `<<TERM` (`<<-`, quoted or `\`-escaped TERM too)
 #     and TERM; writer = the pipeline holding the `<<` (`cat > f <<EOF`,
 #     `cat <<EOF | tee -a f`);
-#   - the ARGUMENTS of an `echo`/`printf` segment; writer = its pipeline
+#   - the ARGUMENTS of an `echo`/`printf` segment, as written: the rest of the segment after
+#     the command word, quotes, escapes and any `> file` redirect kept (so match inside the
+#     text, never anchored at its start); writer = its pipeline
 #     (`echo "K=v" >> .env.example`, `printf '%s\n' v | tee f`).
 # A chunk whose writer names no file is dropped by the caller, so `git commit -F - <<EOF`
-# and `echo x | grep y` scan nothing. The body of ANY heredoc whose pipeline writes a file
-# is scanned, whatever reads it — `python3 - <<PY > out.txt` included, where the script is
-# not what lands in out.txt. Accepted: the literal sits in a file-writing command either
-# way, and the placeholder escape still applies.
+# and `echo x | grep y` yield nothing. The body of ANY heredoc whose pipeline writes a file
+# is read, whatever consumes it — `python3 - <<PY > out.txt` included, where the script is
+# not what lands in out.txt. Accepted: the text sits in a file-writing command either
+# way.
 # NOT read, stated: a `{ echo …; } > f` group (the redirect sits on the closer, not on
 # the echo's pipeline); a here-string `<<<`; printf's format substitution (`printf
-# 'K=%s' v` is scanned as written, so the assigned-literal rule cannot pair the name with
-# the value — a provider-shaped value still matches alone); a quoted string or a `\`
-# continuation spanning lines; a second heredoc opened on one line.
+# 'K=%s' v` is read as written: the format and the argument, never the substituted
+# line); a quoted string or a `\` continuation spanning lines; a second heredoc opened
+# on one line.
 # mask() copies the one inside cc_bash_write_targets: the block is byte-locked and its
 # awk functions are not reachable from outside it.
-cc_secret_bash_chunks() {
+cc_bash_write_chunks() {
   printf '%s\n' "$1" | awk '
     function mask(s,   i, c, q, out, esc) {
       q = ""; out = ""; esc = 0
@@ -342,7 +346,7 @@ EOF_M
 " ;;
       esac
     done <<EOF_C
-$(cc_secret_bash_chunks "$cmd")
+$(cc_bash_write_chunks "$cmd")
 EOF_C
     i=1
     while [ "$i" -le "$n" ] && [ -z "$hit" ]; do

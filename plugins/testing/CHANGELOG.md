@@ -6,6 +6,15 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.11.2 - 2026-09-29
+
+### Fixed
+- **`protect-tests` never saw a test file written through Bash.** The host steers writes through Bash (`cat > f <<EOF`), and the matcher named only the write tools, so a heredoc adding `it.skip(` to a test file was never judged. The matcher now includes `Bash`: each heredoc body or `echo`/`printf` argument text whose pipeline writes a test path is judged exactly as a Write of that path. Old text is the file on disk; new text is the written text for `>`, and the file on disk plus the written text for `>>`/`tee -a`, so an append never reads as emptying the file. Text fed to a command that writes no file (`node - <<EOF`, `pytest <<EOF`) is not read. The two extractors are the shared blocks `templates/blocks/bash-write-targets.md` and `bash-write-chunks.md`, pasted verbatim.
+- Chunks of one command compose per target, so `echo "// generated" > a.test.ts && cat >> a.test.ts <<EOF` is judged on the file it leaves, not as an emptying. A `~/` target expands to `$HOME`.
+- NOT caught on Bash, also listed in the hook header: interpreter writes (python `open()`, php `file_put_contents`), `cp`/`mv`/`install` of a prepared test file, `{ …; } > f` groups, a path held in a variable, a here-string, printf format substitution, `sed -i`/`perl -i` edits, a second heredoc opened on one line, any target after a pipeline's first, emptying with no chunk text (`: > a.test.ts`, `truncate -s0`), a file written across several calls, a relative target in a command holding a `cd` (skipped rather than resolved wrongly), and a `>>` inside a quoted echo string. `rm` of a test file stays command-guard's.
+- Latency, measured on `git status && ls -la src | grep foo`: non-write Bash: 16.6 ms median, 19.5 ms max (20 runs). A Bash call with no write target exits before any chunk is read.
+- The README's assertion count went stale (24 stated, 30 real) and is replaced by a pointer to the harness.
+
 ## 0.11.1 - 2026-09-25
 
 ### Changed

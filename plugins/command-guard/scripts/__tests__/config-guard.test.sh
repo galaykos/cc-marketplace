@@ -51,6 +51,27 @@ allows "$T/.claude/settings.json.new" "a path that only resembles a target is si
 rm -f "$T/.flake8"
 allows "$T/.flake8" "a config that does not exist yet is silent (nothing to weaken)"
 
+# --- Bash writes -------------------------------------------------------------
+fire_bash() { # command
+  python3 -c "
+import json,sys
+print(json.dumps({'session_id':'cg','cwd':sys.argv[2],'tool_name':'Bash','tool_input':{'command':sys.argv[1]}}))
+" "$1" "$T" | "$BASH_BIN" "$HOOK" 2>/dev/null
+}
+bash_asks()   { out=$(fire_bash "$1"); case "$out" in *'"permissionDecision":"ask"'*"(\`$3\`)"*) ok "$2" ;; *) bad "$2" "expected ask naming $3, got: ${out:-<silent>}" ;; esac; }
+bash_allows() { out=$(fire_bash "$1"); [ -z "$out" ] && ok "$2" || bad "$2" "expected silence, got: $out"; }
+
+printf 'x\n' > "$T/notes.txt"
+bash_asks $'cat > tsconfig.json <<\'EOF\'\n{}\nEOF' "bash: heredoc overwrite of an existing tsconfig asks" tsconfig.json
+bash_asks "sed -i '' 's/a/b/' .eslintrc.json" "bash: sed -i on an existing eslint config asks" .eslintrc.json
+bash_allows "ls -la && git status" "bash: non-write command is silent"
+bash_allows $'cat > notes.txt <<\'EOF\'\necho {} > tsconfig.json\nEOF' "bash: a config path only inside a heredoc body is silent"
+rm -f "$T/.flake8"
+bash_allows "echo '[flake8]' > .flake8" "a Bash write creating a config is silent (nothing to weaken)"
+bash_asks "echo x > .flake8; sed -i '' s/a/b/ tsconfig.json" "a missing config target does not hide a later existing one" tsconfig.json
+mkdir -p "$T/home/.claude" && printf '{}\n' > "$T/home/.claude/settings.json"
+HOME="$T/home" bash_asks "echo '{}' > ~/.claude/settings.json" "a ~/ target expands to HOME" settings.json
+
 # --- self-exemption ----------------------------------------------------------
 printf '{}\n' > "$T/.claude-plugin-marker-absent"
 mkdir -p "$T/.claude-plugin" && printf '{"plugins":[]}\n' > "$T/.claude-plugin/marketplace.json"
@@ -91,7 +112,7 @@ print(json.dumps({'session_id':'cg','cwd':'$T','tool_name':'Edit','tool_input':{
 out=$(printf 'garbage' | "$BASH_BIN" "$HOOK" 2>/dev/null); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && ok "fail-open on malformed input" || bad "fail-open on malformed input" "rc=$rc"
 out=$(fire "$T/.claude/settings.json" Bash)
-[ -z "$out" ] && ok "silent on a tool it does not match" || bad "silent on a tool it does not match" "$out"
+[ -z "$out" ] && ok "a Bash payload with no command is silent" || bad "a Bash payload with no command is silent" "$out"
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

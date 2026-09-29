@@ -156,7 +156,7 @@ out=$(jq -cn --arg c 'protected $guarded = [];' \
   '{tool_name:"Write", session_id:"son", tool_input:{file_path:"/tmp/f.php", content:$c}}' | bash "$HOOK")
 if grep -q "mass-assignment-open" <<<"$out"; then pass=$((pass+1));
 else echo "FAIL on-control: ${out:-<empty>}"; fail=$((fail+1)); fi
-silent "non-write tool"  sn Bash  'protected $guarded = [];'
+silent "non-write tool"  sn Read  'protected $guarded = [];'
 out=$(printf 'not json' | bash "$HOOK"); rc=$?
 if [[ $rc -eq 0 && -z "$out" ]]; then pass=$((pass+1));
 else echo "FAIL fail-open: rc=$rc out=$out"; fail=$((fail+1)); fi
@@ -191,6 +191,40 @@ TPKEY=$(printf '%s' "$TP" | cksum | cut -d' ' -f1)
 if [ -d "$TMPDIR/cc-security-scan/$TPKEY" ] && [ ! -d "$TMPDIR/cc-security-scan/Users" ]; then
   pass=$((pass+1)); echo "PASS transcript_path: flat cksum key, no mirrored path"
 else echo "FAIL transcript_path: expected a flat cc-security-scan/$TPKEY and no mirrored path"; fail=$((fail+1)); fi
+
+# ---- Bash writes: PostToolUse fires AFTER the command, so each case plants the file the
+# command would have written and the hook reads it back from disk. ---------------------
+W=$(mktemp -d "$TMPDIR/w.XXXXXX")
+runb() { # runb <session> <command>
+  jq -cn --arg s "$1" --arg c "$2" --arg d "$W" \
+    '{tool_name:"Bash", session_id:$s, cwd:$d, tool_input:{command:$c}}' | bash "$HOOK"
+}
+printf '%s\n' 'el.innerHTML = user.bio' > "$W/app.js"
+out=$(runb b1 "cat > app.js <<'EOF'
+el.innerHTML = user.bio
+EOF")
+if grep -q 'raw-html-sink' <<<"$out" && grep -q 'app\.js' <<<"$out"; then
+  pass=$((pass+1)); echo "PASS bash: heredoc-written file with a raw HTML sink warns"
+else echo "FAIL bash: heredoc-written file with a raw HTML sink warns, got: ${out:-<empty>}"; fail=$((fail+1)); fi
+
+out=$(runb b2 'git status && ls -la')
+if [ -z "$out" ]; then pass=$((pass+1)); echo "PASS bash: non-write command is silent"
+else echo "FAIL bash: non-write command is silent, got: $out"; fail=$((fail+1)); fi
+
+out=$(runb b3 "cat > missing.js <<'EOF'
+eval(x)
+EOF")
+if [ -z "$out" ]; then pass=$((pass+1)); echo "PASS bash: write target that does not exist is silent"
+else echo "FAIL bash: write target that does not exist is silent, got: $out"; fail=$((fail+1)); fi
+
+out=$(runb b1 "echo '//' >> ./app.js")
+if [ -z "$out" ]; then pass=$((pass+1)); echo "PASS dedup: re-append to an already-warned file under another spelling is silent"
+else echo "FAIL dedup: re-append to an already-warned file under another spelling is silent, got: $out"; fail=$((fail+1)); fi
+
+printf '%s\n' 'el.innerHTML = a' > "$W/b.js"
+out=$(runb b4 "sed -i '' 's/a/b/' b.js")
+if grep -q 'raw-html-sink' <<<"$out" && grep -q 'b\.js' <<<"$out"; then pass=$((pass+1)); echo "PASS sed-i: a sed -i write to a file with a sink warns"
+else echo "FAIL sed-i: a sed -i write to a file with a sink warns, got: ${out:-<empty>}"; fail=$((fail+1)); fi
 
 echo "write-scan tests: $pass passed, $fail failed"
 exit $((fail > 0))

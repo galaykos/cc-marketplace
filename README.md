@@ -269,7 +269,7 @@ the version the model happens to remember.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[database](plugins/database)** | the engine-agnostic `sql` skill and the `mariadb` dialect skill (the fan-in detects the engine first), a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks when a Write/Edit puts a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` into a migration or script (the same statement typed at the shell is `command-guard`'s) | Any SQL, migration, or schema work — and a seatbelt on destructive statements |
+| **[database](plugins/database)** | the engine-agnostic `sql` skill and the `mariadb` dialect skill (the fan-in detects the engine first), a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks when a Write/Edit or a Bash heredoc written to a file puts a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` into a migration or script (the same statement typed at the shell is `command-guard`'s) | Any SQL, migration, or schema work — and a seatbelt on destructive statements |
 
 **Using them.** On SQL or a migration `/code-review:review` detects the engine first,
 runs the engine-agnostic pass over statements and the shape that persists them, and

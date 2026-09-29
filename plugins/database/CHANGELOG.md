@@ -3,6 +3,30 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.10.2 — 2026-09-29
+
+### Fixed
+- **The destructive-SQL guard was blind to files written through Bash.** Its matcher was
+  `Write|Edit|MultiEdit`, so `cat > db/migrations/0003.sql <<'SQL'` carrying a `DROP TABLE`
+  was never read, while the same text through Write asked. The matcher now includes
+  `Bash`: a heredoc body or echo/printf text whose pipeline writes a file is judged by the
+  same patterns as a Write (now one `judge_sql` function both paths call), with the same
+  doc-surface exemption applied to the written path, and the ask names that file. The
+  shared `cc_bash_write_targets` and `cc_bash_write_chunks` blocks are pasted verbatim.
+- **Boundary:** SQL fed to a SQL client is not scanned, whether the client writes no file
+  (`psql <<EOF`, `mysql -e`) or its output is logged (`psql <<EOF > run.log`) — it stays
+  `command-guard`'s, the `yields_to` edge in `lane.tsv`, so one `psql` call never asks
+  twice. A relative Bash target is joined to the payload `cwd` before the doc-surface and
+  script-path tests, so it is classified as a Write of the same file would be.
+- **Not caught on Bash**, named in the hook header: interpreter writes (python `open()`,
+  php `file_put_contents`), `cp`/`mv`/`install` of a file already holding the statement,
+  `sed -i`/`perl -i` substitution text, a relative target after an in-command `cd`, a
+  doc surface listed first in a multi-target `tee`, `{ …; } > f` groups, a path held in a
+  variable, here-strings, printf format
+  substitution, a quoted string or `\` continuation spanning lines, and a second heredoc
+  opened on one line.
+- Latency, non-write Bash: 17.4 ms median, 18.7 ms max (20 runs).
+
 ## 0.10.1 — 2026-09-25
 
 ### Changed

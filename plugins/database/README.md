@@ -42,8 +42,9 @@ because its rules diverge from what the model assumes is MySQL.
 
 ## Destructive-SQL guard
 
-A PreToolUse hook on Write/Edit inspects new file content and pauses for your
-confirmation when it introduces data loss or a lock hazard:
+A PreToolUse hook on Write/Edit, and on a Bash heredoc or echo written to a file,
+inspects new file content and pauses for your confirmation when it introduces data
+loss or a lock hazard:
 
 | Tier | Shapes | Standing |
 |---|---|---|
@@ -61,9 +62,13 @@ interactive prompt to answer — `claude -p`, a headless agent, a `dontAsk` sess
 `ask` is **auto-denied**, not held open: one quoted migration would fail the turn.
 (Standing: **recorded**. No hook payload field says whether a prompt can be shown, so
 nothing here detects headless mode; see command-guard's README, *Running headless / in
-CI*.) A destructive statement typed at a shell
-rather than written to a file is `command-guard`'s territory, which is the
-`yields_to` edge in `lane.tsv`.
+CI*.) A statement run at a shell with no file written (`psql <<EOF`, `mysql -e`), or
+fed to a SQL client whose output is logged (`psql <<EOF > run.log`), stays
+`command-guard`'s territory, which is the `yields_to` edge in `lane.tsv`. On
+Bash, only a heredoc body or echo/printf text whose pipeline writes a file is read;
+interpreter writes (python `open()`, php `file_put_contents`), `cp`/`mv`/`install`
+of a file already holding the statement, `{ …; } > f` groups, a path held in a
+variable and here-strings pass unread — the full list is in `hooks/guard.sh`'s header.
 
 ## Agent
 

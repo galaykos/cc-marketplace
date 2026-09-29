@@ -2,6 +2,15 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.8.2 — 2026-09-29
+
+### Changed
+- **`hooks/workflow-guard.sh` now reads Bash writes.** The matcher adds `Bash`: a heredoc body or echo/printf arguments whose pipeline writes `.github/workflows/*.yml` or `.github/actions/*/action.yml` are denied on the same two shapes as a Write/Edit, with the same reason and the same `CC_WORKFLOW_GUARD=off` switch. Until now `cat > .github/workflows/ci.yml <<'EOF'` carrying a PR body in a `run:` step was never read, while the same text through Write was denied.
+- Text fed to a command that writes no file (`yq eval - <<EOF`, `gh api --input - <<EOF`) is not read, and a heredoc to any other path is not judged. An append (`>>`) is judged on the appended text alone, as an Edit is on its `new_string`.
+- An echo/printf line is judged with its leading quote stripped, so `echo '  - run: echo "${{ github.event.pull_request.body }}"' >> .github/workflows/ci.yml` is denied like the same line through Write. An echo is one line, so it only ever meets the `run:` rule.
+- NOT caught, and named in the hook header: an echo with a flag or extra space before the quote (`echo -n '…'`), `printf '%s\n' '…'`, a run line holding `<<`, an escaped multi-line echo (`echo -e '…\n…'`, `$'…'`), which is not unescaped, a quoted string spanning lines, `sed -i`/`perl -i` edits, a second heredoc on one line, a relative target under a session cwd already inside `.github/`, interpreter writes, cp/mv/install of a prepared file, `{ …; } > f` groups, a path held in a variable or relative to an earlier `cd`, a here-string, printf format substitution, a target after the first on one writer, and a rule-1 trigger already in the file whose `ref:` arrives by append.
+- non-write Bash: 16.9 ms median, 17.5 ms max (20 runs)
+
 ## 0.8.1 — 2026-09-25
 
 ### Changed

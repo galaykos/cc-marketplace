@@ -3,6 +3,14 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.9.1 - 2026-09-29
+
+- The Bash chunk extractor in `hooks/scan.sh` moved to the shared block
+  `templates/blocks/bash-write-chunks.md` as `cc_bash_write_chunks` (formerly the hook-local
+  `cc_secret_bash_chunks`), so other content guards reuse one byte-locked copy instead of
+  forking it. No behaviour change: the function body is byte-identical and its output for the
+  same commands is unchanged.
+
 ## 0.9.0 - 2026-09-25
 
 - `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.

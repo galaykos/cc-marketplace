@@ -12,13 +12,19 @@ instrumentation to **resilience** (its observability skill).
 
 | Rule | Standing |
 |---|---|
-| A write to `.github/workflows/` that triggers on `pull_request_target`/`workflow_run` **and** checks out the untrusted head ref | **gate** — PreToolUse deny; GitHub's own documented critical anti-pattern |
-| A write to `.github/workflows/` **or `.github/actions/*/action.yml`** interpolating a `${{ github.event.* }}` field an author can type directly into a `run:` block | **gate** — PreToolUse deny; the shell substitution happens before the shell runs, and a composite runs with the calling workflow's token |
+| A write to `.github/workflows/` (Write/Edit, or a Bash heredoc into the file) that triggers on `pull_request_target`/`workflow_run` **and** checks out the untrusted head ref | **gate** — PreToolUse deny; GitHub's own documented critical anti-pattern |
+| A write to `.github/workflows/` **or `.github/actions/*/action.yml`** (Write/Edit, or a Bash heredoc/echo into the file) interpolating a `${{ github.event.* }}` field an author can type directly into a `run:` block | **gate** — PreToolUse deny; the shell substitution happens before the shell runs, and a composite runs with the calling workflow's token |
 | A Terraform/OpenTofu plan that deletes or replaces a resource whose type holds data, or a `lifecycle.prevent_destroy = true` removed from the source since `--base` | **gate** — `scripts/plan-audit.sh` exits **2**; **1** means it could not read the input, so nothing was checked; **0** means none of those shapes. You run it (`/devops:review` does when `*.tf`/`*.tofu` or a plan JSON is in scope) — no hook fires, because a plan arrives as a file, not as a tool call |
 | Every other CI/CD, Kubernetes, deploy and secrets rule in `devops-practices` | **agent-graded** — a reviewer applies them; no script does |
 | The warn-level workflow findings (unpinned action tag, no top-level `permissions:`, self-hosted runner on a fork trigger, secrets in a `pull_request_target` workflow) | **recorded** — `scripts/workflow-audit.sh` prints them and **exits 0**; only a CRITICAL finding exits 2, and 3 means it could not read (bad argument, missing dir, no workflow files). Reached through the mechanical-check table in `devops-practices`, which `/devops:review` loads — never by a hook |
 
-The guard blocks two shapes and nothing else. Everything the audit script finds
+The guard blocks two shapes and nothing else. A Bash heredoc or echo/printf written to
+those paths is judged like a Write; text piped to a command that writes no file
+(`yq eval - <<EOF`) is not read, an append is judged on the appended lines alone, and an
+echo line is judged with its leading quote stripped (an escaped multi-line echo is not
+unescaped). It does not see
+cp/mv of a prepared file, interpreter writes, `{ …; } > f` groups or a path held in a
+variable; the hook's header lists every gap. Everything the audit script finds
 beyond them is a report you have to run — and a clean run means "none of the
 shapes it knows are present in these files", not "this pipeline is safe": it is a
 line scan, not a YAML parser. Composite actions under `.github/actions/` are read

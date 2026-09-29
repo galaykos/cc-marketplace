@@ -71,7 +71,12 @@ completion / `choices[0]` / `.content` value on the same line as `eval`, `exec`,
 `new Function`, `child_process`, `subprocess` or a PHP shell call) and
 `tool-result-unfenced` (a `tool_result` / `retrieved*` / `chunks` / `documents` name
 interpolated into a `prompt` / `messages` string with no delimiter token on that
-line). Warn — never deny — because each has a legitimate
+line). Since 0.11.4 it warns on files a Bash command writes as well (a `>`/`>>` redirect,
+`tee`, `sed -i`), read from disk after the call, at most 8 files and 256 KiB of each; it
+does not see interpreter writes (python `open()`, php `file_put_contents`), `cp`/`mv`/`install`
+destinations, `{ …; } > f` groups or a path held in a variable. The whole file is read, so
+the first Bash write to an existing or downloaded file also warns on what was already
+there. Warn — never deny — because each has a legitimate
 form; `CC_SECURITY_SCAN=off` disables it, and `CC_REMIND=off` silences it along with
 every other advisory nudge in this marketplace. Single-line matching only: a `SafeLoader` on
 the next line still warns, a system prompt assembled across lines never does. GitHub Actions expression injection is deliberately not

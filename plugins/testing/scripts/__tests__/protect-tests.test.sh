@@ -27,6 +27,21 @@ allows() {
   case "$out" in *deny*) bad "$1" "expected allow, got a deny" ;; *) ok "$1" ;; esac
 }
 
+fire_bash() { # command
+  python3 - "$1" <<'PY' | "${BASH:-bash}" "$HOOK" 2>/dev/null
+import json,sys,os
+print(json.dumps({"session_id":"pt","cwd":os.environ.get("T",""),"tool_name":"Bash","tool_input":{"command":sys.argv[1]}}))
+PY
+}
+bash_denies() { # name command
+  out=$(fire_bash "$2")
+  case "$out" in *'"permissionDecision":"deny"'*) ok "$1" ;; *) bad "$1" "expected deny, got: ${out:-<silent>}" ;; esac
+}
+bash_allows() {
+  out=$(fire_bash "$2")
+  case "$out" in *deny*) bad "$1" "expected allow, got a deny" ;; *) ok "$1" ;; esac
+}
+
 mkf() { printf "it('a',()=>{expect(1).toBe(1)});\nit('b',()=>{expect(2).toBe(2)});\n" > "$T/a.test.ts"; }
 mkf
 
@@ -119,7 +134,42 @@ out=$(printf 'not json at all' | "${BASH:-bash}" "$HOOK" 2>/dev/null); rc=$?
 out=$(printf '{}' | "${BASH:-bash}" "$HOOK" 2>/dev/null); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && ok "fail-open on empty payload" || bad "fail-open on empty payload" "rc=$rc out=$out"
 out=$(fire Bash "{\"command\":\"rm -rf tests\"}")
-[ -z "$out" ] && ok "silent on a tool it does not match" || bad "silent on a tool it does not match" "$out"
+[ -z "$out" ] && ok "bash: rm of a test dir is not a write (command-guard's)" || bad "bash: rm of a test dir is not a write (command-guard's)" "$out"
+
+# --- Bash writes: judged as a Write of the target, old text = the file on disk -------
+mkf
+bash_denies "bash: heredoc overwrite adding it.skip denies" \
+  $'cat > a.test.ts <<\'EOF\'\nit.skip(\'a\',()=>{});\nit(\'b\',()=>{});\nEOF'  # skip: the fixture this case must deny
+mkf
+bash_denies "bash: echo append adding .only denies" \
+  "echo \"it.only('c',()=>{});\" >> a.test.ts"  # skip: the fixture this case must deny
+mkf
+bash_denies "bash: heredoc emptying a test file denies" \
+  $'cat > a.test.ts <<\'EOF\'\n// rewrite\nEOF'
+mkf
+bash_allows "bash: append of a reasoned skip is allowed" \
+  "echo \"it.skip('c',()=>{}); // skip: flaky on CI\" >> a.test.ts"
+mkf
+bash_allows "bash: non-write command is allowed" \
+  "npx vitest run a.test.ts"
+mkf
+bash_allows "bash: heredoc into a command that writes no file is allowed" \
+  $'node - <<\'EOF\'\nit.skip(\'a\')\nEOF'  # skip: fixture fed to a command that writes no file
+mkf
+bash_allows "production file: heredoc skip into a non-test file is allowed" \
+  $'cat > src/app.ts <<\'EOF\'\nit.skip(\'x\')\nEOF'  # skip: fixture written to a non-test path
+mkf
+bash_allows "sequence: clear then append in one command is judged on the result" \
+  $'echo "// generated" > a.test.ts && cat >> a.test.ts <<\'EOF\'\nit(\'a\',()=>{});\nEOF'
+mkf
+bash_allows "tee -a: append of a comment is allowed" \
+  "echo '// note' | tee -a a.test.ts"
+mkf
+bash_allows "tee -i -a: append of a comment is allowed" \
+  "echo '// note' | tee -i -a a.test.ts"
+mkdir -p "$T/tests" && printf "it.skip('b',()=>{});\nit('c',()=>{});\n" > "$T/tests/kept.test.ts"  # skip: pre-existing marker fixture
+bash_allows "cd: a kept marker under an in-command cd is not read as new" \
+  $'cd tests && cat > kept.test.ts <<\'EOF\'\nit.skip(\'b\',()=>{});\nit(\'c\',()=>{});\nit(\'d\',()=>{});\nEOF'  # skip: kept marker fixture
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
