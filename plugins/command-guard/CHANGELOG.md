@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.3 — 2026-09-29
+
+- **config-guard sees Bash writes.** Its matcher was the write tools only, so `cat > tsconfig.json <<EOF`, `tee`, `>>` or `sed -i` onto an existing settings, hooks, manifest or lint/test config never reached it. `hooks.json` now matches `Bash` too. The hook reads up to 8 write targets through the shared `cc_bash_write_targets` block (redirect, `tee`, `sed -i`, `perl -i`), resolves a relative one against the payload `cwd` (a `~/` one against `$HOME`), and asks on the first that is a guarded file and already exists, with the same reason text as a Write. destructive-guard still runs on Bash beside it; each emits its own verdict.
+- Not caught on Bash: interpreter writes (python `open()`, php `file_put_contents`), `cp`/`mv`/`install` destinations, `{ …; } > f` groups, a path held in a variable, a `sed -i` whose config is not its last word (another file after it, or a trailing redirect such as `2>/dev/null`), a `\` continuation, a relative target after an in-command `cd`, the 9th target on, and `rm` of a config or hook (a deletion, still destructive-guard's).
+- non-write Bash: 20.4 ms median, 21.3 ms max (20 runs)
+
 ## 0.7.2 — 2026-09-26
 
 - The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. `config-guard.sh`'s comment and its test fixture no longer name a retired bundle; no behaviour changed.

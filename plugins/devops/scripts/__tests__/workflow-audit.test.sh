@@ -200,6 +200,41 @@ hook_case "a clean composite action is allowed" allow \
 hook_case "a non-workflow file is out of scope" allow \
   "src/app.ts" 'const x = "${{ github.event.pull_request.title }}"'
 
+hook_bash_case() { # label want command
+  local label="$1" want="$2" cmd="$3" out got
+  out=$(jq -nc --arg c "$cmd" '{tool_name:"Bash",cwd:"/tmp",tool_input:{command:$c}}' \
+        | bash "$HOOK" 2>/dev/null)
+  if printf '%s' "$out" | grep -q '"permissionDecision":"deny"'; then got=deny; else got=allow; fi
+  if [ "$got" = "$want" ]; then echo "PASS[hook]: bash: $label ($got)"
+  else echo "FAIL[hook]: bash: $label — want $want, got $got"; rc=1; fi
+}
+
+BODY='jobs:
+  b:
+    steps:
+      - run: echo "${{ github.event.pull_request.body }}"'
+
+hook_bash_case "heredoc writing a PR body into a run: block is denied" deny \
+  "$(printf '%s\n%s\n%s' "cat > .github/workflows/ci.yml <<'EOF'" "$BODY" 'EOF')"
+
+hook_bash_case "non-write command is allowed" allow \
+  'git status && gh run list'
+
+hook_bash_case "heredoc into a command that writes no file is allowed" allow \
+  "$(printf '%s\n%s\n%s' "yq eval - <<'EOF'" "$BODY" 'EOF')"
+
+hook_bash_case "heredoc to a non-workflow path is allowed" allow \
+  "$(printf '%s\n%s\n%s' "cat > notes/ci.yml <<'EOF'" "$BODY" 'EOF')"
+
+out=$(jq -nc --arg c "echo '      - run: echo \"\${{ github.event.pull_request.body }}\"' >> .github/workflows/ci.yml" '{tool_name:"Bash",cwd:"/tmp",tool_input:{command:$c}}' | bash "$HOOK" 2>/dev/null)
+if printf '%s' "$out" | grep -q '"permissionDecision":"deny"'; then echo "PASS[hook]: echo: a quoted run: line appended to a workflow is denied (deny)"
+else echo "FAIL[hook]: echo: a quoted run: line appended to a workflow is denied — want deny, got allow"; rc=1; fi
+
+MIXED=$(printf '%s\n%s\n%s\n%s\n%s\n%s' "cat > .github/workflows/ci.yml <<'EOF'" 'jobs: {}' 'EOF' "yq eval - <<'EOF'" "$BODY" 'EOF')
+out=$(jq -nc --arg c "$MIXED" '{tool_name:"Bash",cwd:"/tmp",tool_input:{command:$c}}' | bash "$HOOK" 2>/dev/null)
+if printf '%s' "$out" | grep -q '"permissionDecision":"deny"'; then echo "FAIL[hook]: mixed: a yq heredoc beside a clean workflow write is not judged — want allow, got deny"; rc=1
+else echo "PASS[hook]: mixed: a yq heredoc beside a clean workflow write is not judged (allow)"; fi
+
 # 0.7.0: the deny reason used to name plugins/devops/scripts/workflow-audit.sh, a path
 # that exists only in this marketplace's own tree. It must resolve the plugin root the
 # host hands the hook.

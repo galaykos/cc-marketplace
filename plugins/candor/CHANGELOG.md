@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.5.2 — 2026-09-29
+
+- **The SubagentStop citation check now reads the report a subagent actually hands back.** A probe on Claude Code 2.1.284 (`rationale/candor-subagent-probe-2026-09-29.md`) found the report in the last `SubagentHandback` tool_use of the agent's own transcript, as `input.message`, already written when the hook fires. `last_assistant_message` held only the closing text written after it, so the gate checked that text and never the report. This is branch B of the change: `hooks/gate.sh` reads that tool_use first, and only on `SubagentStop`. If it is missing or empty, the gate falls back to `last_assistant_message` and then to the transcript's last assistant text, the order it used before. A subagent on an older CLI, or one that never hands back, is still checked. Refusal text is unchanged.
+
 ## 0.5.1 — 2026-09-26
 
 - The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. Wording that named the retired bundles in this plugin's hook text and README now describes the plugin standing alone; no behaviour changed.

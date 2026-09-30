@@ -58,7 +58,8 @@
 #   - CLAUSE 2's pushback test is a regex over one message. Pushback phrased
 #     outside the list is invisible; a user message carrying its OWN correction
 #     deliberately disarms the clause. ANY tool call after the pushback counts.
-#   - CLAUSES 1 and 2 judge the FINAL assistant message only; clause 3 matches
+#   - CLAUSES 1 and 2 judge the FINAL assistant message only (on SubagentStop,
+#     clause 1 judges the hand-back first — SUBAGENT REPORTS below); clause 3 matches
 #     CLAIM and ACK over the last 30 lines of assistant text, and that window
 #     bleeds in BOTH directions (measured; documented in the clause).
 #   - CLAUSE 3: saying nothing evades it; ANY post-edit execution satisfies it
@@ -95,8 +96,18 @@
 #
 # SUBAGENT REPORTS (SubagentStop, 0.2.0). The same script is wired to
 # SubagentStop; a subagent's final report goes through CLAUSE 1 before the main
-# thread quotes it as fact (payload: agent_transcript_path, last_assistant_message,
-# measured live on 2.1.267; exit 2 blocks the subagent as it blocks a Stop).
+# thread quotes it as fact (exit 2 blocks the subagent as it blocks a Stop). On
+# 2.1.284 (two general-purpose subagents, headless; other agent types and interactive
+# sessions not measured) the report is a SubagentHandback tool_use in the agent's own
+# transcript (input.message), already written when the hook fires, and last_assistant_message
+# holds only the closing text after it (rationale/candor-subagent-probe-2026-09-29.md;
+# 2.1.267 put the report in last_assistant_message). So CLAUSE 1 reads, first
+# non-empty wins: the last SubagentHandback input.message in agent_transcript_path,
+# then last_assistant_message, then the last assistant text block of the transcript.
+# Unmeasured: whether that exit 2 withholds a hand-back the tool call already delivered.
+# Residual: the read takes the LAST hand-back in the tail, so a resumed agent whose later
+# turn ends without one is judged on the earlier, already-checked hand-back and its
+# last_assistant_message is never read.
 # CLAUSES 2-4 disarm for a subagent: it has no user turn to push back, and its
 # transcript is not the session that edited files or registered a run. Markers
 # are suffixed per agent so a subagent block never spends the main thread's disarm.
@@ -537,10 +548,21 @@ if [ -n "$tp" ] && [ -r "$tp" ]; then
   tail_jsonl=$(tail -n 4000 "$tp" 2>/dev/null)
 fi
 
-# The FINAL assistant text message, whole and alone. `-s` slurps the JSONL into
+# Only a subagent hands back; the main thread's Stop has no report of its own there.
+handback=""
+if [ "$evt" = "SubagentStop" ]; then
+  [ -n "$tail_jsonl" ] && handback=$(printf '%s' "$tail_jsonl" | jq -rs --arg n "SubagentHandback" '
+    [ .[] | select(.type=="assistant") | (.message.content // [])[]
+          | select(.type=="tool_use" and .name==$n) | .input.message // empty
+          | select(type=="string" and length>0) ] | last // empty' 2>/dev/null)
+fi
+
+# The text CLAUSE 1 judges: the hand-back, else the FINAL assistant text message, whole and
+# alone. `-s` slurps the JSONL into
 # an array so "last" is expressible; a malformed line collapses the slurp, which
 # is a fail-open path and is why the result is tested for emptiness below.
-last_msg=$(printf '%s' "$input" | jq -r '.last_assistant_message // empty' 2>/dev/null)
+last_msg=$handback
+[ -n "$last_msg" ] || last_msg=$(printf '%s' "$input" | jq -r '.last_assistant_message // empty' 2>/dev/null)
 [ -n "$last_msg" ] || [ -z "$tail_jsonl" ] || last_msg=$(printf '%s' "$tail_jsonl" | jq -rs '
   [ .[] | select(.type=="assistant")
         | ((.message.content // []) | map(select(.type=="text") | .text) | join("\n"))

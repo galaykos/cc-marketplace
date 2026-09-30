@@ -179,10 +179,11 @@ rm -rf "$QR"
 
 # ---- pc_shared_blocks ------------------------------------------------------------
 B="$T/_blocks"; mkdir -p "$B" "$T/blk/hooks"
-cp templates/blocks/state-root.md templates/blocks/bash-write-targets.md "$B/"
+cp templates/blocks/state-root.md templates/blocks/bash-write-targets.md templates/blocks/bash-write-chunks.md "$B/"
 { echo '#!/bin/bash'; cat "$B/state-root.md"; echo 'exit 0'; } > "$T/blk/hooks/good.sh"
 { echo '#!/bin/bash'; sed 's/return 1$/return 2/' "$B/state-root.md"; echo 'exit 0'; } > "$T/blk/hooks/edited.sh"
 { echo '#!/bin/bash'; echo 'cc_bash_write_targets() { :; }'; } > "$T/blk/hooks/reimpl.sh"
+{ echo '#!/bin/bash'; echo 'cc_bash_write_chunks() { :; }'; } > "$T/blk/hooks/reimpl-chunks.sh"
 out=$(pc_shared_blocks "$T" "$B") || true
 case "$out" in
   *"blk/hooks/edited.sh state-root.md"*) pass "shared-blocks: an edited copy is named" ;;
@@ -191,6 +192,10 @@ esac
 case "$out" in
   *"blk/hooks/reimpl.sh bash-write-targets.md"*) pass "shared-blocks: a same-name reimplementation is named" ;;
   *) fail "shared-blocks: a same-name reimplementation is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/reimpl-chunks.sh bash-write-chunks.md"*) pass "shared-blocks: a cc_bash_write_chunks reimplementation is named" ;;
+  *) fail "shared-blocks: a cc_bash_write_chunks reimplementation is named" "got: ${out:-<empty>}" ;;
 esac
 case "$out" in
   *good.sh*) fail "shared-blocks: a verbatim copy stays clean" "flagged: $out" ;;

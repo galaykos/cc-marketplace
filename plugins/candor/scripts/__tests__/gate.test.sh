@@ -241,6 +241,18 @@ sub_payload "$A" "Found it at src/ghost.ts:12." | bash "$HOOK" >/dev/null 2>&1; 
 if [ "$rc" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  subagent: same report re-stop passes (one-shot)\n'
 else fail=$((fail+1)); printf 'FAIL  subagent: same report re-stop passes (rc=%s)\n' "$rc"; fi
 
+# 2.1.284 hand-back shape (rationale/candor-subagent-probe-2026-09-29.md): the report is the
+# last SubagentHandback tool_use's input.message; last_assistant_message is closing text.
+handback() { jq -cn --arg m "$1" --arg n "SubagentHandback" '{type:"assistant",message:{content:[{type:"tool_use",name:$n,input:{message:$m}}]}}'; }
+A="$WS/agent-hb1.jsonl"; { user "find the bug"; handback "Found it at src/ghost.ts:12."; } > "$A"
+sub_check "subagent handback: fabricated citation in the handed-back report blocks" "Report delivered." 2 "this report cites a location that does not exist"
+A="$WS/agent-hb2.jsonl"; { user "find the bug"; handback "Found it at src/real.ts:3."; } > "$A"
+sub_check "subagent handback: resolving citation in the handed-back report passes"  "Report delivered." 0 "__NONE__"
+A="$WS/agent-hb3.jsonl"; { user "find the bug"; tools Read; tres; } > "$A"
+sub_check "subagent handback: no handback falls back to last_assistant_message"     "Found it at src/ghost.ts:12." 2 "$CITE_SUB"
+T="$WS/hb-main.jsonl"; { user "where"; handback "Found it at src/ghost.ts:12."; asst "All set."; } > "$T"
+check "a hand-back in a main-thread Stop transcript is not read" "" "$T" 0 "__NONE__"
+
 
 # ---------------------------------------------------------------------------
 # CLAUSE INDEPENDENCE — a bounded clause 4 does not silence clauses 1-3

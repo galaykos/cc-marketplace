@@ -163,6 +163,7 @@ reply-shape-contract
 reply-verbosity-level
 reply-verbosity-mode
 secret-write-denial
+security-sink-write-warning
 stop-turn-honesty
 stuck-loop-signal
 subagent-dispatch-contract

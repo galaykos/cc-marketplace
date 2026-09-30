@@ -60,9 +60,9 @@ Full rule list, the reading algorithm, and the guard's stated limits:
 
 ## The second hook: an ask before the agent edits its own guardrails
 
-`hooks/config-guard.sh` is a separate `PreToolUse` hook on file writes, not on
-commands. It returns **`ask`** — never a deny — when a `Write`/`Edit` (or an MCP
-`apply_patch` / `create_new_file`) targets an **existing** file that decides what the
+`hooks/config-guard.sh` is a separate `PreToolUse` hook on file writes; on a Bash
+command it reads only the files the command writes. It returns **`ask`** — never a
+deny — when a `Write`/`Edit` (or an MCP `apply_patch` / `create_new_file`) targets an **existing** file that decides what the
 agent may do: `.claude/settings.json` and its variants, any `hooks.json`, any hook
 script under a `hooks/` dir, `plugin.json` / `marketplace.json`, and the lint,
 type-check and test configs a build fails on (`.eslintrc*`, `eslint.config.*`,
@@ -78,8 +78,9 @@ task; the point is that it becomes a decision someone made.
 What it does not do, stated because an ask reads stronger than it is: it reads the
 **path, not the diff**, so adding a rule and deleting one look identical to it and the
 prompt says so. A file that does not exist yet is allowed through — creating a config
-is not relaxing one. A weakening applied through Bash (`sed -i` on `.eslintrc`, `rm` of
-a hook script) is the command guard's matcher, not this one's. And it self-exempts
+is not relaxing one. A Bash write onto one of these files (a redirect, `tee`, `sed -i`)
+is asked about too — not a python or php write, a `cp`/`mv` destination or a path held
+in a variable — while `rm` of a hook script is the command guard's. And it self-exempts
 inside a marketplace repository — one with `.claude-plugin/marketplace.json` at the git
 root — which edits these files as its product.
 

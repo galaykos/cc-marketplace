@@ -14,11 +14,23 @@ rc=0
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not found"; exit 0; }
 
 payload() { jq -nc --arg f "$1" --arg c "$2" '{tool_name:"Edit",tool_input:{file_path:$f,new_string:$c}}'; }
+bpayload() { jq -nc --arg c "$1" '{tool_name:"Bash",cwd:"/tmp",tool_input:{command:$c}}'; }
 
 # want=ask | allow
 check() {
   local label="$1" want="$2" file="$3" content="$4" out got
   out=$(payload "$file" "$content" | bash "$HOOK" 2>/dev/null)
+  if printf '%s' "$out" | grep -q '"permissionDecision":"ask"'; then got=ask; else got=allow; fi
+  if [ "$got" = "$want" ]; then
+    echo "PASS: $label ($got)"
+  else
+    echo "FAIL: $label — want $want, got $got"; rc=1
+  fi
+}
+
+check_bash() {
+  local label="$1" want="$2" cmd="$3" out got
+  out=$(bpayload "$cmd" | bash "$HOOK" 2>/dev/null)
   if printf '%s' "$out" | grep -q '"permissionDecision":"ask"'; then got=ask; else got=allow; fi
   if [ "$got" = "$want" ]; then
     echo "PASS: $label ($got)"
@@ -73,6 +85,28 @@ check "ScanCommand in a test"         allow src/a.test.ts    'const r = await dd
 # --- doc surfaces execute nothing
 check "markdown quoting a drop"       allow docs/runbook.md  'await col.deleteMany({})'
 check "markdown quoting SQL"          allow docs/runbook.md  'DROP TABLE users;'
+
+# --- 0.10.2: Bash writes. A statement written to a file asks like a Write; one fed to
+#     a command that writes no file is command-guard's and stays silent here.
+check_bash "bash: heredoc DROP TABLE into a .sql file asks" ask \
+  "$(printf '%s\n' "cat > db/migrate.sql <<'SQL'" 'DROP TABLE users;' 'SQL')"
+check_bash "bash: echo appending an unqualified DELETE asks" ask \
+  "echo 'DELETE FROM orders;' >> db/seed.sql"
+check_bash "bash: non-write command is silent" allow \
+  'git status && ls db'
+check_bash "bash: heredoc into psql writes no file and is silent" allow \
+  "$(printf '%s\n' "psql \"\$DATABASE_URL\" <<'SQL'" 'DROP TABLE users;' 'SQL')"
+# The case above exits before any chunk is read; this one passes the cheap exit.
+check_bash "bash: psql heredoc beside a file write is still not scanned" allow \
+  "$(printf '%s\n' "psql \"\$DATABASE_URL\" <<'SQL'" 'DROP TABLE users;' 'SQL' 'echo done > status.log')"
+check_bash "bash: heredoc into a markdown file is a doc surface" allow \
+  "$(printf '%s\n' "cat > notes.md <<'EOF'" 'DROP TABLE users;' 'EOF')"
+check_bash "logged psql: SQL fed to psql whose output is logged is not scanned" allow \
+  "$(printf '%s\n' "psql \"\$DATABASE_URL\" <<'SQL' > migrate.log" 'DROP TABLE users;' 'SQL')"
+check_bash "walk: a markdown chunk does not exempt a later .sql chunk" ask \
+  "$(printf '%s\n' "cat > notes.md <<'EOF'" 'plain notes' 'EOF' "cat > db/x.sql <<'SQL'" 'DROP TABLE users;' 'SQL')"
+check_bash "relative doc: a relative taskmaster-docs target is a doc surface" allow \
+  "$(printf '%s\n' "cat > taskmaster-docs/specs/seed.sql <<'SQL'" 'DROP TABLE users;' 'SQL')"
 
 # --- fail-open contract
 if printf 'not json' | bash "$HOOK" >/dev/null 2>&1; then
