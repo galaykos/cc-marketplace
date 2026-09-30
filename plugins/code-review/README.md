@@ -89,8 +89,11 @@ a heavier style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (
 1:1, 0 for the sibling test only) — a project whose own CLAUDE.md demands a docblock on
 every method gets its first over-ceiling `Write` per file denied until it sets that
 variable; the hook does not read CLAUDE.md. `verbosity.sh` applies the same rule to terminal
-prose. Ledgers and markers live under `.claude/comment-discipline/` at the project root
-(the git toplevel, else `CLAUDE_PROJECT_DIR`) — not in whatever directory the shell has
+prose. Markers live in the plugin's data directory,
+`${CLAUDE_PLUGIN_DATA}/<project-key>/comment-discipline/`, when the host provides one, else
+under `.claude/comment-discipline/` at the project root; the ledgers are
+`$HOME/.claude/comment-discipline/*-ledger.jsonl`. The project root is the git toplevel,
+else `CLAUDE_PROJECT_DIR` — not whatever directory the shell has
 `cd`'d into, which scattered one state dir per directory until 0.23.0. Silence any
 advisory with `CC_REMIND=off`; the denies are not advisories and do not honour it —
 they have their own switch, `CC_COMMENT_GUARD=off`, set in the session's `env` and

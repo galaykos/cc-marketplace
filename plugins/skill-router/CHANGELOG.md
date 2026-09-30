@@ -2,6 +2,12 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.22.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_remind`, `cc_route`, `cc_subagent_skills`, `cc_surfaced_log`, under `/config` (or `/plugin configure skill-router`), each with today's default. The environment variable (`CC_REMIND`, `CC_ROUTE`, `CC_SUBAGENT_SKILLS`, `CC_SURFACED_LOG`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+- **Hook state moved out of your repo.** When the host sets `CLAUDE_PLUGIN_DATA`, `fired-<ctx>.json` and `compact-log.jsonl` live under `${CLAUDE_PLUGIN_DATA}/<project-key>/skill-router/` instead of `.claude/skill-router/`. An existing in-repo dir is left in place and stays ignored (it carries its own `.gitignore`); delete it by hand if you like. Without the variable, nothing moves.
+- `compact-log.jsonl` moved with the rest; the README says where to grep it.
+
 ## 0.21.0 — 2026-09-26
 
 - Library skills now arrive at the first file that uses them: a `content` row marked `high` fires

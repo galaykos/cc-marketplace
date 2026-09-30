@@ -120,6 +120,10 @@ jobs:
         run: bash scripts/smoke/renames-ledger-tests.sh
       - name: eval-case gate smoke tests
         run: bash scripts/smoke/eval-case-tests.sh
+      - name: Option-resolver smoke tests
+        run: bash scripts/smoke/option-resolver-tests.sh
+      - name: Plugin-data state harness (no .claude/<plugin>/ dir for moved state)
+        run: bash scripts/smoke/plugin-data-state-tests.sh
       # The host's own validator, pinned to the CLI this repo was measured against —
       # scripts/official-validate.sh is the local twin and carries the derivation.
       # LAST among the fail-capable steps that do not need the binary, on purpose: the
@@ -134,6 +138,10 @@ jobs:
         run: |
           npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.282
           bash scripts/official-validate.sh
+      # After the validator step, where `claude` reaches PATH: arm (d) loads a real suite at
+      # --max-cost-usd 0, which launches nothing; every other arm drives a stub claude.
+      - name: run-evals plumbing (refusal, flags, summary; a zero-cost real load)
+        run: bash scripts/smoke/run-evals-tests.sh
       # An eval suite that loads ZERO cases is indistinguishable from a passing one
       # when nothing executes it — two suites sat dead for weeks that way. This LOADS
       # every case (case.yaml, or prompt.md + typed graders) and never runs a model:

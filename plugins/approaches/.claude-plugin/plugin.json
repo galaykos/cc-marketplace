@@ -1,6 +1,6 @@
 {
   "name": "approaches",
-  "version": "0.10.3",
+  "version": "0.11.0",
   "description": "Solution-approach deliberation before non-trivial implementation: 2-3 structurally different approaches with trade-offs and a kill-trigger, a strategy catalog mapped to the risk each beats, a four-persona blind opinion round for refactor-shaped tasks — plus the merged pre-code disciplines: build-vs-buy checks, rollout planning, design-pattern selection, and /approaches:consult, a blind stronger-model second opinion when a session is stuck or about to do something irreversible (fresh-take merged in). Includes /approaches:compare, /approaches:opinions, /approaches:build-vs-buy, /approaches:rollout, /approaches:pattern.",
   "author": {
     "name": "Ivan-WG",
@@ -9,5 +9,13 @@
   "keywords": [
     "process",
     "planning"
-  ]
+  ],
+  "userConfig": {
+    "cc_remind": {
+      "type": "boolean",
+      "title": "Reminder hooks (CC_REMIND)",
+      "description": "Reminder hooks that add guidance to the session: on or off. The environment variable CC_REMIND overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    }
+  }
 }

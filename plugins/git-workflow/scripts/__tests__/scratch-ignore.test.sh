@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Drives scratch-ignore.sh: --check names an unignored scratch dir (exit 1), --apply
 # writes one managed block that ignores it and leaves tracked/state paths alone,
-# a second --apply does not duplicate, an empty repo and a non-repo exit 0.
+# keeps legacy plugin-data patterns and keeps home rows out, a second --apply does
+# not duplicate, an empty repo and a non-repo exit 0.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"; s="$here/scratch-ignore.sh"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -17,11 +18,14 @@ set +e; out="$(bash "$s" --check)"; rc=$?; set -e
 grep -q "NEEDS IGNORE" <<<"$out" || fail "no NEEDS IGNORE row: $out"
 grep -qE '^\.design-kit/ .*NEEDS IGNORE' <<<"$out" || fail ".design-kit/ not named: $out"
 grep -qE '^brain/ .*state.*left to you' <<<"$out" || fail "brain/ should be left to you: $out"
+grep -q '^~/' <<<"$out" && fail "home row reported by --check: $out"
 
 bash "$s" --apply >/dev/null
 [ -f .gitignore ] || fail "no .gitignore written"
 git check-ignore -q .design-kit/decks/a.html || fail ".design-kit not ignored after --apply"
 git check-ignore -q __design-kit__/x.html || fail "cleaned pattern should be in the block too"
+git check-ignore -q .claude/skill-router/x || fail "legacy plugin-data pattern not in the block"
+grep -q '^~/' .gitignore && fail "home row leaked into .gitignore"
 grep -q '^brain/$' .gitignore && fail "brain/ (state) must not be in the block"
 grep -q '^design-system/$' .gitignore && fail "design-system/ (state) must not be in the block"
 [ "$(grep -c 'cc-plugins-marketplace scratch (managed' .gitignore)" -eq 1 ] || fail "block header count"
@@ -47,7 +51,8 @@ out="$(bash "$s" --check)"; grep -q "clean" <<<"$out" || fail "empty repo should
 nongit="$tmp/nongit"; mkdir -p "$nongit"; cd "$nongit"
 out="$(bash "$s" --check)"; grep -q "not a git repository" <<<"$out" || fail "non-repo: $out"
 
-# every inventory row has four tab-separated fields and a known kind
-awk -F'\t' '!/^#/ && NF {if (NF!=4 || $3!~/^(scratch|cleaned|state)$/) {print "bad row: " $0; bad=1}} END {exit bad}' \
+# every inventory row has five tab-separated fields, a known kind and location, and
+# a pattern starting ~/ exactly when its location is home
+awk -F'\t' '!/^#/ && NF {if (NF!=5 || $3!~/^(scratch|cleaned|state)$/ || $4!~/^(project|plugin-data|home)$/ || ($4=="home") != ($1~/^~\//)) {print "bad row: " $0; bad=1}} END {exit bad}' \
   "$here/../skills/branch-completion/references/marketplace-scratch.tsv" || fail "inventory shape"
 echo "PASS scratch-ignore.test.sh"

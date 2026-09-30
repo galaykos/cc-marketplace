@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "0.45.5",
+  "version": "0.46.0",
   "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach with a blind four-persona round (via the approaches plugin when installed; inline 2-3 approaches otherwise), decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under taskmaster-docs/ (no collision with a project's own docs/).",
   "author": {
     "name": "Ivan-WG",
@@ -9,5 +9,43 @@
   "keywords": [
     "planning",
     "process"
-  ]
+  ],
+  "userConfig": {
+    "cc_boost": {
+      "type": "boolean",
+      "title": "Boost hooks (CC_BOOST)",
+      "description": "Boost hooks that raise model and effort when a prompt carries an ultra- token: on or off. The environment variable CC_BOOST overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    },
+    "cc_cardlint": {
+      "type": "boolean",
+      "title": "Unlinted card-set notice (CC_CARDLINT)",
+      "description": "Say when a card set reaches execution without its author-time linters having run: on or off. The environment variable CC_CARDLINT overrides this.",
+      "default": true
+    },
+    "cc_clarify_gate": {
+      "type": "string",
+      "title": "Clarify gate (CC_CLARIFY_GATE)",
+      "description": "Refuse the first code write after a work-shaped prompt, once per session: block or off. The environment variable CC_CLARIFY_GATE overrides this.",
+      "default": "off"
+    },
+    "cc_preview_guard": {
+      "type": "boolean",
+      "title": "Preview guard (CC_PREVIEW_GUARD)",
+      "description": "Ask before an HTML page is published as a remote artifact instead of served locally: on or off. The environment variable CC_PREVIEW_GUARD overrides this.",
+      "default": true
+    },
+    "cc_remind": {
+      "type": "boolean",
+      "title": "Reminder hooks (CC_REMIND)",
+      "description": "Reminder hooks that add guidance to the session: on or off. The environment variable CC_REMIND overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    },
+    "taskmaster_boost": {
+      "type": "boolean",
+      "title": "ultra-task and ultra-goal boost (TASKMASTER_BOOST)",
+      "description": "The ultra-task and ultra-goal prompt boosts that raise model and effort: on or off. The environment variable TASKMASTER_BOOST overrides this.",
+      "default": true
+    }
+  }
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_config_guard`, `claude_destructive_guard`, under `/config` (or `/plugin configure command-guard`), each with today's default. The environment variable (`CC_CONFIG_GUARD`, `CLAUDE_DESTRUCTIVE_GUARD`) still overrides its option. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+- `claude_destructive_guard` keeps the variable's values (`deny`, `deny-only`, `off`).
+
 ## 0.7.3 — 2026-09-29
 
 - **config-guard sees Bash writes.** Its matcher was the write tools only, so `cat > tsconfig.json <<EOF`, `tee`, `>>` or `sed -i` onto an existing settings, hooks, manifest or lint/test config never reached it. `hooks.json` now matches `Bash` too. The hook reads up to 8 write targets through the shared `cc_bash_write_targets` block (redirect, `tee`, `sed -i`, `perl -i`), resolves a relative one against the payload `cwd` (a `~/` one against `$HOME`), and asks on the first that is a guarded file and already exists, with the same reason text as a Write. destructive-guard still runs on Bash beside it; each emits its own verdict.

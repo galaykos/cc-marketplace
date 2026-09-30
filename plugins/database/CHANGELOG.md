@@ -3,6 +3,10 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.11.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_db_guard`, under `/config` (or `/plugin configure database`), each with today's default. The environment variable (`CC_DB_GUARD`) still overrides its option. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+
 ## 0.10.2 — 2026-09-29
 
 ### Fixed

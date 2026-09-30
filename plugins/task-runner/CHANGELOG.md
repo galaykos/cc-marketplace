@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.42.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_boost`, `cc_drift`, `cc_remind`, `cc_spawn_cap`, `orchestration_boost`, under `/config` (or `/plugin configure task-runner`), each with today's default. The environment variable (`CC_BOOST`, `CC_DRIFT`, `CC_REMIND`, `CC_SPAWN_CAP`, `ORCHESTRATION_BOOST`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+
 ## 0.41.2 — 2026-09-26
 
 - The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. `delegation-contracts/references/fleet-and-apply.md` no longer routes through a bundle; no rule changed.

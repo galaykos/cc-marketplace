@@ -103,7 +103,8 @@ if render "$TPL/reminder-hook.sh.tmpl" "$SAMPLES/reminder-hook.json" "$H"; then
   expect_has "$H" "\"\$head\" | grep -qiE '$re_plain'; then" "hook(plain): no extraGuard when null"
   expect_has "$H" 'cc_state_root() {' "hook: state-root block included (defines cc_state_root)"
   expect_has "$H" 'sentinel="$root/.claude/cc-phase.json"' "hook: phase sentinel read at the state root, not the payload cwd"
-  expect_has "$H" 'CC_REMIND:-on' "hook: CC_REMIND off switch present"
+  expect_has "$H" 'cc_option CC_REMIND on' "hook: CC_REMIND read through the resolver"
+  expect_has "$H" 'cc_option() {' "hook: option-resolver block included"
   expect_has "$H" 'cut -c1-400' "hook: head-window narrowing present"
   expect_has "$H" 'task-notification|SYSTEM NOTIFICATION' "hook: machinery guard present"
   expect_has "$H" 'grep -qF' "hook: own-command echo guard present"
@@ -143,7 +144,8 @@ if render "$TPL/boost-hook.sh.tmpl" "$SAMPLES/boost-hook.json" "$B"; then
   case "$(line_n "$B" 2)" in "# generated"*) pass "boost: line 2 is # generated header" ;; *) fail "boost: line 2 is # generated header" "got [$(line_n "$B" 2)]" ;; esac
   expect_has "$B" 'case "$prompt" in "/"*) exit 0' "boost: slash-prompt guard"
   expect_has "$B" 'plugin_switch=TASKMASTER_BOOST' "boost: per-plugin off switch envVar substituted"
-  expect_has "$B" 'CC_BOOST:-on}${!plugin_switch:-on}' "boost: global + per-plugin off switch"
+  expect_has "$B" '$(cc_option CC_BOOST on)$(cc_option "$plugin_switch" on)' "boost: global + per-plugin off switch via resolver"
+  expect_has "$B" 'cc_option() {' "boost: option-resolver block included"
   expect_has "$B" 'cut -c1-200' "boost: 200-char head narrowing"
   expect_has "$B" "(do not|don't|never|without|avoid|not) +" "boost: negation guard"
   expect_has "$B" 'ultra-?(task|goal|assess(ment)?|craft) +active' "boost: enumerated self-echo guard (shared list)"
@@ -157,6 +159,13 @@ if render "$TPL/boost-hook.sh.tmpl" "$SAMPLES/boost-hook.json" "$B"; then
   [[ "$out" == "ULTRA-TASK ACTIVE"* ]] && pass "boost: rendered hook speaks on invocation" || fail "boost: rendered hook speaks on invocation" "got [${out:0:40}]"
   out="$(printf '%s' '{"prompt":"ULTRA-TASK ACTIVE (model=auto) — ultra-task"}' | bash "$B" 2>/dev/null)"
   [[ -z "$out" ]] && pass "boost: rendered hook silent on own banner" || fail "boost: rendered hook silent on own banner" "spoke: ${out:0:40}"
+  boost_env() { printf '%s' '{"prompt":"ultra-task build the thing"}' | env -u CC_BOOST -u TASKMASTER_BOOST -u CLAUDE_PLUGIN_OPTION_CC_BOOST -u CLAUDE_PLUGIN_OPTION_TASKMASTER_BOOST "$@" bash "$B" 2>/dev/null; }
+  out="$(boost_env CLAUDE_PLUGIN_OPTION_TASKMASTER_BOOST=off)"
+  [[ -z "$out" ]] && pass "boost: option off silences the rendered hook" || fail "boost: option off silences the rendered hook" "spoke: ${out:0:40}"
+  out="$(boost_env TASKMASTER_BOOST=on CLAUDE_PLUGIN_OPTION_TASKMASTER_BOOST=off)"
+  [[ "$out" == "ULTRA-TASK ACTIVE"* ]] && pass "boost: env on beats option off" || fail "boost: env on beats option off" "got [${out:0:40}]"
+  out="$(boost_env CLAUDE_PLUGIN_OPTION_CC_BOOST=false)"
+  [[ -z "$out" ]] && pass "boost: boolean option false silences the rendered hook" || fail "boost: boolean option false silences the rendered hook" "spoke: ${out:0:40}"
 fi
 
 # ---- boost hook: single branch (regex2 empty → no elif) -------------------------

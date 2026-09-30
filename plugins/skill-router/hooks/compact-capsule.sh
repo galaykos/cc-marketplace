@@ -32,6 +32,7 @@
 # .claude/skill-router/compact-log.jsonl saying whether they matched. Standing:
 # recorded — nothing reads it yet; it exists so the answer accrues on real
 # sessions instead of waiting for a probe that has not been run in 25 days.
+# The log lives per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/skill-router/ is only the fallback.
 #
 # LIMITATION (honest scope):
 #   - Advisory. SessionStart stdout informs a turn; it cannot block one.
@@ -64,6 +65,38 @@ cc_state_root() {
     case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
   fi
   printf '%s\n' "$1"
+}
+
+# --- plugin state --------------------------------------------------------------
+# Canonical copy: templates/blocks/plugin-state.md. Every hook defining cc_plugin_state must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# cc_plugin_state <root> <name> prints the directory holding a plugin's own per-project hook
+# state, <root> being the hook's cc_state_root result: ${CLAUDE_PLUGIN_DATA}/<key>/<name> when
+# the host sets that variable, else <root>/.claude/<name>, the path hooks used before it.
+# <key> is the root's basename with every character outside [A-Za-z0-9_-] turned into -, a -,
+# and the root's cksum: the host gives one data dir per plugin id, not per project (measured
+# 2.1.282), and a raw path inside a filename names parents that never exist. tr runs under
+# LC_ALL=C because a UTF-8 tr stops at the first invalid byte. Status 0, no stderr; it
+# creates nothing, so the caller keeps its own mkdir -p.
+# WHY: state read by no one but the plugin's own hooks does not belong in the user's repo —
+# the 2026-09-29 review found .claude/code-review/ and .claude/skill-router/ created by one
+# prompt and one edit in a fresh repo.
+# WHAT IT DOES NOT CATCH: state another plugin, a skill or the user reads must not use it; the
+# fallback path is still in the repo; the data dir is keyed by plugin id, so install scopes of
+# one plugin share it (inferred from the docs' id rule), while a --plugin-dir copy gets its
+# own `-inline` directory and never sees the installed copy's state. The variable was measured
+# only in a SessionStart hook; other events are doc-stated. An event that lacks it falls back
+# to the repo path, which splits a writer from a reader running on another event.
+cc_plugin_state() {
+  local key sum
+  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+    key=$(printf '%s' "$(basename -- "$1")" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-')
+    sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
+    printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
+  else
+    printf '%s/.claude/%s\n' "$1" "$2"
+  fi
+  return 0
 }
 {
   command -v jq >/dev/null 2>&1 || exit 0
@@ -129,7 +162,7 @@ cc_state_root() {
 
   if [ -n "$sentinel_sid" ] && [ -n "$sid" ]; then
     match=false; [ "$sentinel_sid" = "$sid" ] && match=true
-    dir="$root/.claude/skill-router"
+    dir=$(cc_plugin_state "$root" skill-router)
     mkdir -p "$dir" 2>/dev/null && { [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null; } && printf '{"event":"compact","sentinel_session_matches_payload":%s}\n' "$match" >> "$dir/compact-log.jsonl" 2>/dev/null
   fi
 } 2>/dev/null || exit 0

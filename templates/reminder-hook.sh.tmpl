@@ -5,14 +5,16 @@
 command -v jq >/dev/null 2>&1 || exit 0
 {{> state-root}}
 {{> phase-guard}}
+{{> option-resolver}}
 {
   input=$(cat)
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
   case "$prompt" in "" | "/"*) exit 0 ;; esac # empty, or slash commands manage their own flow
   # OFF SWITCH. CC_REMIND=off silences every reminder hook in the marketplace —
   # the reminder twin of the boost hooks' CC_BOOST. Environment is the one state
-  # independently-installed plugins genuinely share.
-  case "${CC_REMIND:-on}" in off) exit 0 ;; esac
+  # independently-installed plugins genuinely share. The cc_remind option in /config
+  # silences only this plugin's reminder hooks; a set CC_REMIND still wins over it.
+  case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
   # TRIGGER NARROWING (the boost hooks' C17 pattern, applied to reminders). The
   # keyword used to be grepped from the WHOLE prompt, so a pasted transcript, a
   # task notification, or a request to change the hook itself fired the nudge.

@@ -7,6 +7,8 @@
 # transcript residue covering only entries the flush never surfaced. The real
 # jobs are the surfaced.jsonl ledger append and removing the state file.
 # Fail-open: any error exits silently.
+# CC_SURFACED_LOG unset: the /config option cc_surfaced_log decides.
+# State: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/skill-router/ is only the fallback.
 # --- state root ----------------------------------------------------------------
 # Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
 # carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
@@ -30,6 +32,67 @@ cc_state_root() {
   fi
   printf '%s\n' "$1"
 }
+
+# --- plugin state --------------------------------------------------------------
+# Canonical copy: templates/blocks/plugin-state.md. Every hook defining cc_plugin_state must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# cc_plugin_state <root> <name> prints the directory holding a plugin's own per-project hook
+# state, <root> being the hook's cc_state_root result: ${CLAUDE_PLUGIN_DATA}/<key>/<name> when
+# the host sets that variable, else <root>/.claude/<name>, the path hooks used before it.
+# <key> is the root's basename with every character outside [A-Za-z0-9_-] turned into -, a -,
+# and the root's cksum: the host gives one data dir per plugin id, not per project (measured
+# 2.1.282), and a raw path inside a filename names parents that never exist. tr runs under
+# LC_ALL=C because a UTF-8 tr stops at the first invalid byte. Status 0, no stderr; it
+# creates nothing, so the caller keeps its own mkdir -p.
+# WHY: state read by no one but the plugin's own hooks does not belong in the user's repo —
+# the 2026-09-29 review found .claude/code-review/ and .claude/skill-router/ created by one
+# prompt and one edit in a fresh repo.
+# WHAT IT DOES NOT CATCH: state another plugin, a skill or the user reads must not use it; the
+# fallback path is still in the repo; the data dir is keyed by plugin id, so install scopes of
+# one plugin share it (inferred from the docs' id rule), while a --plugin-dir copy gets its
+# own `-inline` directory and never sees the installed copy's state. The variable was measured
+# only in a SessionStart hook; other events are doc-stated. An event that lacks it falls back
+# to the repo path, which splits a writer from a reader running on another event.
+cc_plugin_state() {
+  local key sum
+  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+    key=$(printf '%s' "$(basename -- "$1")" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-')
+    sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
+    printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
+  else
+    printf '%s/.claude/%s\n' "$1" "$2"
+  fi
+  return 0
+}
+
+# --- option resolver -----------------------------------------------------------
+# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
+# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
+# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
+# because the environment is the one state independently installed plugins share (CC_REMIND
+# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# The host exports only SAVED options, so <default> must equal the manifest's default.
+# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
+# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
+# outside the switch's vocabulary — each hook still validates the value it gets.
+cc_option() {
+  local v="" opt
+  case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
+  v="${!1:-}"
+  if [ -z "$v" ] && [ -n "${3:-}" ] && [ -f "$3" ] && [ -r "$3" ]; then
+    read -r v _ 2>/dev/null < "$3" || :
+  fi
+  if [ -z "$v" ]; then
+    opt="CLAUDE_PLUGIN_OPTION_$1"; v="${!opt:-}"
+    case "$v" in true) v=on ;; false) v=off ;; esac
+  fi
+  [ -n "$v" ] || v="${2:-}"
+  printf '%s\n' "$v"
+  return 0
+}
+
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -59,7 +122,7 @@ cc_state_root() {
 
   ctx=$(printf '%s' "$ctx_src" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0
-  state_file="$root/.claude/skill-router/fired-$ctx.json"
+  state_file="$(cc_plugin_state "$root" skill-router)/fired-$ctx.json"
   [ -r "$state_file" ] || exit 0
 
   line=$(jq -r '
@@ -92,7 +155,7 @@ cc_state_root() {
   # so one project could split into one ledger per directory the model ended in. The only
   # reader (turn-cost.sh --skills) globs every slug, so the rows it already has stay
   # counted; they just stop multiplying.
-  case "${CC_SURFACED_LOG:-on}" in
+  case "$(cc_option CC_SURFACED_LOG on)" in
     off) : ;;
     *)
       slug=$(printf '%s' "$root" | tr -c '[:alnum:]' '-' 2>/dev/null) || slug=""

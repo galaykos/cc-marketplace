@@ -6,6 +6,11 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.12.0 - 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_protect_tests`, `cc_remind`, `cc_test_shape`, under `/config` (or `/plugin configure testing`), each with today's default. The environment variable (`CC_PROTECT_TESTS`, `CC_REMIND`, `CC_TEST_SHAPE`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+- **Hook state moved out of your repo.** When the host sets `CLAUDE_PLUGIN_DATA`, the test-shape one-shot markers live under `${CLAUDE_PLUGIN_DATA}/<project-key>/testing/` instead of `.claude/testing/`. An existing in-repo dir is left in place and stays ignored (it carries its own `.gitignore`); delete it by hand if you like. Without the variable, nothing moves.
+
 ## 0.11.2 - 2026-09-29
 
 ### Fixed

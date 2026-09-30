@@ -28,7 +28,7 @@ execution:
     default — add `cache: 'no-store'`". Is the reviewer right? Answer, then say what this
     page's caching behaviour actually is on the installed version and what you would
     change, if anything.
-runs: 1
+runs: 3
 graders:
   - type: llm
     name: inversion-known

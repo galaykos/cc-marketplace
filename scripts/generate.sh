@@ -44,6 +44,8 @@ esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="${CHASSIS_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+# pc_switch_reads: one switch-discovery source shared with pc_offswitch_named.
+. "$SCRIPT_DIR/lib/plugin-checks.sh"
 TEMPLATES="${CHASSIS_TEMPLATES:-$(cd "$SCRIPT_DIR/../templates" 2>/dev/null && pwd || printf '%s' "$SCRIPT_DIR/../templates")}"
 ENGINE="${TEMPLATE_ENGINE:-$SCRIPT_DIR/lib/template-engine.sh}"
 
@@ -362,64 +364,90 @@ readme_apply() { # start-marker end-marker block-file
 }
 
 # --- repo-level off-switch table step ---------------------------------------------
-# Every guard in this marketplace fails open and every one of them can be switched off
-# with an environment variable — and on 2026-09-22 the root README named ZERO of them
-# (UX 1, rationale/specialist-panel-2026-09-22.md #5). A user whose turn was just
-# refused had no list to read. Generated rather than typed because the set moves with
-# every hook added: the names are grepped out of plugins/*/hooks/*.sh in the two shapes
-# the hooks actually use (a `${NAME:-default}` read, and the boost chassis' indirect
-# `plugin_switch=NAME`), minus the four host-supplied CLAUDE_* path/session variables,
-# which are not switches.
+# Every guard in this marketplace fails open and every one of them can be switched off —
+# and on 2026-09-22 the root README named ZERO of the switches (UX 1,
+# rationale/specialist-panel-2026-09-22.md #5). A user whose turn was just refused had
+# no list to read. Generated rather than typed because the set moves with every hook.
 #
-# THE THIRD COLUMN is the hook's OWN sentence about the variable — the first comment
-# line in the file that writes `NAME=`, cut at its first sentence end. That is a
-# deterministic read of prose somebody else wrote, so it is sometimes a fragment and
-# says `…` when it was cut mid-sentence; a hook whose header never writes `NAME=` gets
-# "see hook header", which is the honest answer rather than an invented one.
+# THE SOURCE is each plugin's userConfig in plugins/*/.claude-plugin/plugin.json: one
+# row per distinct upper-cased key, which is the environment variable overriding that
+# option. It is not the hooks, because a hook reading its switch through cc_option
+# (templates/blocks/option-resolver.md) leaves no `${NAME:-` for a grep to find. A
+# switch a hook still reads — `${NAME:-`, `cc_option NAME` on a non-comment line, or the
+# boost chassis' `plugin_switch=NAME` — that no plugin declares gets a row as well, so
+# the deliberately undeclared CLAUDE_AI_TRAILER keeps its name in front of a refused
+# user. The host-supplied CLAUDE_* path, session and data variables are not switches.
 #
-# WHAT THIS TABLE DOES NOT ESTABLISH: that a variable still works, that `off` is the
-# value it takes (several take block/warn/off or a number), or that the hook prints the
-# name when it refuses you — that last one is pc_offswitch_named's job and it is a WARN.
+# THE COLUMNS: Variable, the env override; Plugins, every plugin declaring it, sorted;
+# Default, the declared default with true/false shown as on/off — plugins that disagree
+# are all listed, and an undeclared read shows `—`; What it does, the description's first
+# sentence, or for an undeclared read the first hook comment line writing `NAME=` ("see
+# hook header" when none does). Cut at 104 characters with ` …`, `|` escaped.
+#
+# WHAT THIS TABLE DOES NOT ESTABLISH: that a switch works, that any hook reads a declared
+# key, that the hook's cc_option default equals the Default column, or that the hook
+# names the variable when it refuses you — that last one is pc_offswitch_named's job and
+# it is a WARN.
 render_offswitch_table() {
-  local block="$WORK/offswitch.md" f p v note
+  local block="$WORK/offswitch.md" rows="$WORK/offswitch.tsv" pj f p v note
   [ -f "$ROOT/README.md" ] || return 0
+  : > "$rows"
+  for pj in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
+    [ -f "$pj" ] || continue
+    p=$(basename "$(dirname "$(dirname "$pj")")")
+    jq -r --arg p "$p" '(.userConfig // {}) | to_entries[]
+      | [(.key | ascii_upcase), "d", $p,
+         (.value.default | if . == true then "on" elif . == false then "off" elif . == null then "—" else tostring end),
+         (.value.description // "" | gsub("\\s+"; " ") | sub("\\. .*$"; "") | sub("\\.$"; ""))]
+      | @tsv' "$pj" >> "$rows" || die "invalid JSON: ${pj#$ROOT/}"
+  done
+  for f in "$ROOT"/plugins/*/hooks/*.sh; do
+    [ -f "$f" ] || continue
+    p=$(basename "$(dirname "$(dirname "$f")")")
+    pc_switch_reads "$f" | while IFS= read -r v; do
+        [ -n "$v" ] || continue
+        note=$(grep -m1 -E "^[[:space:]]*#.*$v=" "$f" \
+               | sed -E "s/.*($v=)/\1/; s/[[:space:]]+/ /g; s/(\. | — ).*$//; s/[[:space:]]*[-—.;,]*[[:space:]]*$//")
+        [ -n "$note" ] || note="see hook header"
+        printf '%s\th\t%s\t—\t%s\n' "$v" "$p" "$note"
+      done
+  done >> "$rows"
   {
     printf '%s' '<!-- generated:offswitch-table -->'
-    printf '%s\n\n' '<!-- generated by scripts/generate.sh (off-switch step) from the env reads in plugins/*/hooks/*.sh — do not edit these rows by hand -->'
-    printf '| Variable | Plugins | What the hook says it does |\n'
-    printf '|----------|---------|----------------------------|\n'
-    for f in "$ROOT"/plugins/*/hooks/*.sh; do
-      [ -f "$f" ] || continue
-      p=$(basename "$(dirname "$(dirname "$f")")")
-      {
-        grep -ohE '\$\{(CC_[A-Z0-9_]+|CLAUDE_[A-Z0-9_]+|[A-Z0-9_]+_BOOST|[A-Z0-9_]+_STOP_GATE):-' "$f" | sed -E 's/^\$\{//; s/:-$//'
-        grep -ohE '^[[:space:]]*plugin_switch=[A-Z0-9_]+' "$f" | sed -E 's/.*=//'
-      } 2>/dev/null \
-      | grep -vxE 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR|CLAUDE_CONFIG_DIR|CLAUDE_CODE_SESSION_ID' \
-      | LC_ALL=C sort -u | while IFS= read -r v; do
-          [ -n "$v" ] || continue
-          note=$(grep -m1 -E "^[[:space:]]*#.*$v=" "$f" \
-                 | sed -E "s/.*($v=)/\1/; s/[[:space:]]+/ /g; s/(\. | — ).*$//; s/[[:space:]]*[-—.;,]*[[:space:]]*$//")
-          [ -n "$note" ] || note="see hook header"
-          printf '%s\t%s\t%s\n' "$v" "$p" "$note"
-        done
-    done | LC_ALL=C sort -u | awk -F'\t' '
+    printf '%s\n\n' '<!-- generated by scripts/generate.sh (off-switch step) from userConfig in plugins/*/.claude-plugin/plugin.json plus the undeclared env reads in plugins/*/hooks/*.sh — do not edit these rows by hand -->'
+    printf '| Variable | Plugins | Default | What it does |\n'
+    printf '|----------|---------|---------|--------------|\n'
+    LC_ALL=C sort -u "$rows" | awk -F'\t' '
       function esc(x) { gsub(/\|/, "\\|", x); return x }
-      { if (!($1 in seen)) { seen[$1]=1; order[++n]=$1 }
-        if (!(($1 SUBSEP $2) in pseen)) { pseen[$1,$2]=1
-          plugins[$1] = (plugins[$1] == "" ? $2 : plugins[$1] ", " $2) }
-        if (note[$1] == "" || note[$1] == "see hook header") note[$1] = $3 }
+      function add(l, x, sep) { return l == "" ? x : l sep x }
+      { v = $1; k = $2
+        if (!(v in seen)) { seen[v]=1; order[++n]=v }
+        if (k == "d") declared[v]=1
+        if (!((v SUBSEP k SUBSEP $3) in pseen)) { pseen[v,k,$3]=1; plugins[v,k] = add(plugins[v,k], $3, ", ") }
+        if (!((v SUBSEP k SUBSEP $4) in dseen)) { dseen[v,k,$4]=1; dflt[v,k] = add(dflt[v,k], $4, " / ") }
+        if (note[v,k] == "" || note[v,k] == "see hook header") note[v,k] = $5 }
       END { for (i = 1; i <= n; i++) {
-              t = note[order[i]]
+              v = order[i]; k = (v in declared) ? "d" : "h"; t = note[v,k]
+              # A plugin reading a declared switch it does not declare gets no option: env only.
+              if (k == "d" && plugins[v,"h"] != "") {
+                m = split(plugins[v,"h"], hp, ", ")
+                for (j = 1; j <= m; j++)
+                  if (index(", " plugins[v,"d"] ", ", ", " hp[j] ", ") == 0 && index(plugins[v,"d"], hp[j] " (env only)") == 0)
+                    plugins[v,"d"] = plugins[v,"d"] ", " hp[j] " (env only)" }
               if (length(t) > 104) t = substr(t, 1, 104) " …"
-              printf "| `%s` | %s | %s |\n", order[i], plugins[order[i]], esc(t) } }'
-    printf '\n%s\n' 'Set one in your shell, or in the `env` block of the settings.json for the project or
-user scope you want it to apply to. `CC_REMIND=off` and `CC_BOOST=off` are the two
-marketplace-wide mutes — every reminder and every boost injector respectively; the rest
-silence one hook each. Several take `block` / `warn` / `off` rather than a bare `off`,
-and the sentence in the third column is the hook'"'"'s own, read out of its header and cut
-at the first sentence end — some rows are therefore a clause, not a sentence.
-Turning a guard off is a session-scoped act, not a fix: the guards that can refuse a
+              printf "| `%s` | %s | %s | %s |\n", v, plugins[v,k], dflt[v,k], esc(t) } }'
+    printf '\n%s\n' 'Each switch has two handles. The variable — set in your shell, or in the `env` block of
+the settings.json for the project or user scope you want — overrides everything, and
+`CC_REMIND` or `CC_BOOST` set that way mutes every reminder or every boost injector in
+every plugin at once. The plugin'"'"'s own option under `/config` (or `/plugin configure
+<plugin>`) scopes a switch to that one plugin; a plugin marked `(env only)` reads the
+variable but declares no option. A hook resolves each switch as environment → `/config` option → the Default
+column; `CC_TERSE` also reads the level file `/candor:level` writes, between the two. A
+row whose Default is `—` is a variable no plugin declares: it has no `/config` option,
+and its sentence is the hook'"'"'s own, read out of its header.
+Turning a guard off is not a fix, and it lasts as long as the handle you used — a shell
+export for that shell, a settings.json `env` entry or a `/config` option until you remove
+it. The guards that can refuse a
 tool call fail open on every error path already, so silence is what a clean install and
 a broken one both look like — `/skill-doctor` and the three read-only checks above are
 how you tell those apart.'

@@ -40,8 +40,10 @@ Four core keys — name, version, description, author:
   later disables every existing install. `validate.sh` fails the key
   (`pc_plugin_dependencies`, which carries the measurement); the four
   meta-bundles were retired for it.
-- Add no extra keys; the manifest is a registration record, not a
-  feature surface.
+- Add no extra keys beyond `userConfig`; the manifest is a registration record.
+  `userConfig` declares a plugin's off-switches as `/config` options — each one
+  mirrors an env var the hooks read through `cc_option`, carries today's default,
+  and is never `required` (a required option forces a prompt at install).
 
 ## Registration
 

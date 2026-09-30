@@ -22,6 +22,7 @@
 #     settles that. This is the denominator, not the verdict.
 #   - Machine-local and single-user. It is not telemetry about anyone else, it
 #     never leaves the machine, and CC_SKILL_LOG=off disables it outright.
+#     CC_SKILL_LOG unset: the /config option cc_skill_log decides.
 #   - It depends on the harness naming this tool `Skill`. If that changes, the
 #     matcher silently records nothing — the failure mode is an empty file, which
 #     reads identically to "nothing was used". Check the file exists before
@@ -29,10 +30,39 @@
 #   - Nothing reads it automatically. /hindsight:harvest reports it on request,
 #     which keeps hindsight's collect → harvest → apply-on-approval contract
 #     intact: no file in a user's repo is ever written from this data.
+
+# --- option resolver -----------------------------------------------------------
+# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
+# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
+# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
+# because the environment is the one state independently installed plugins share (CC_REMIND
+# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# The host exports only SAVED options, so <default> must equal the manifest's default.
+# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
+# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
+# outside the switch's vocabulary — each hook still validates the value it gets.
+cc_option() {
+  local v="" opt
+  case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
+  v="${!1:-}"
+  if [ -z "$v" ] && [ -n "${3:-}" ] && [ -f "$3" ] && [ -r "$3" ]; then
+    read -r v _ 2>/dev/null < "$3" || :
+  fi
+  if [ -z "$v" ]; then
+    opt="CLAUDE_PLUGIN_OPTION_$1"; v="${!opt:-}"
+    case "$v" in true) v=on ;; false) v=off ;; esac
+  fi
+  [ -n "$v" ] || v="${2:-}"
+  printf '%s\n' "$v"
+  return 0
+}
+
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
-  case "${CC_SKILL_LOG:-on}" in off) exit 0 ;; esac
+  case "$(cc_option CC_SKILL_LOG on)" in off) exit 0 ;; esac
 
   # context-key-ok: session_id is RECORDED as a ledger field, never used to key a
   # one-shot marker. The harvest reads these rows to group what a session invoked, so

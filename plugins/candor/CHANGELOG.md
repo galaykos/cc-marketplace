@@ -2,6 +2,12 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.6.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_avert`, `cc_candor_gate`, `cc_evidence_gate`, `cc_lockfile_gate`, `cc_preamble`, `cc_terse`, `task_runner_stop_gate`, under `/config` (or `/plugin configure candor`), each with today's default. The environment variable (`CC_AVERT`, `CC_CANDOR_GATE`, `CC_EVIDENCE_GATE`, `CC_LOCKFILE_GATE`, `CC_PREAMBLE`, `CC_TERSE`, `TASK_RUNNER_STOP_GATE`) still overrides its option. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+- **Hook state moved out of your repo.** When the host sets `CLAUDE_PLUGIN_DATA`, the gate's one-block and which-clause markers live under `${CLAUDE_PLUGIN_DATA}/<project-key>/candor/` instead of `.claude/candor/`. An existing in-repo dir is left in place and stays ignored (it carries its own `.gitignore`); delete it by hand if you like. Without the variable, nothing moves.
+- `cc_terse` sits below the level file: `CC_TERSE` in the environment, then a level set with `/candor:level`, then the option. `/candor:level off` deletes the level file, so a saved `cc_terse` level shows through, and the hook says so.
+
 ## 0.5.2 — 2026-09-29
 
 - **The SubagentStop citation check now reads the report a subagent actually hands back.** A probe on Claude Code 2.1.284 (`rationale/candor-subagent-probe-2026-09-29.md`) found the report in the last `SubagentHandback` tool_use of the agent's own transcript, as `input.message`, already written when the hook fires. `last_assistant_message` held only the closing text written after it, so the gate checked that text and never the report. This is branch B of the change: `hooks/gate.sh` reads that tool_use first, and only on `SubagentStop`. If it is missing or empty, the gate falls back to `last_assistant_message` and then to the transcript's last assistant text, the order it used before. A subagent on an older CLI, or one that never hands back, is still checked. Refusal text is unchanged.

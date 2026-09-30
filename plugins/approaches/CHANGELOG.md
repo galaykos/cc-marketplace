@@ -3,6 +3,10 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.11.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_remind`, under `/config` (or `/plugin configure approaches`), each with today's default. The environment variable (`CC_REMIND`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+
 ## 0.10.3 — 2026-09-25
 
 - The approach-deliberation skill names the double-run marker's place, `.claude/approaches/deliberated.json` at the repo root, where `hooks/compact-recovery.sh` now reads it; a marker written from a subdirectory was invisible to the hook.

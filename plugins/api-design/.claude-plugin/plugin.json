@@ -1,6 +1,6 @@
 {
   "name": "api-design",
-  "version": "0.10.2",
+  "version": "0.11.0",
   "description": "APIs in both directions: design your own (resource naming, status-code discipline, pagination/filtering/sorting, versioning, RFC 9457 errors, idempotency, Laravel API Resources, plus a graphql-grpc skill for non-REST surfaces; /api-design:review and spec-first /api-design:scaffold) and consume others' honestly — verify current official API/SDK docs before writing integration code (UserPromptSubmit reminder + /api-design:check, the api-docs-first skill) and keep your own docs true after a change with the docs-upkeep drift scan: README claims, changelog gaps, stale examples, dead links (/api-design:drift).",
   "author": {
     "name": "Ivan-WG",
@@ -11,5 +11,13 @@
     "backend",
     "review",
     "docs"
-  ]
+  ],
+  "userConfig": {
+    "cc_remind": {
+      "type": "boolean",
+      "title": "Reminder hooks (CC_REMIND)",
+      "description": "Reminder hooks that add guidance to the session: on or off. The environment variable CC_REMIND overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    }
+  }
 }

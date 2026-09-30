@@ -25,6 +25,10 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available"; exit 0; }
 
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 rc=0
+# The level file lives under CLAUDE_CONFIG_DIR; unpinned, this harness rewrote and deleted
+# the runner's real ~/.claude/terse-mode. A saved /config option must not leak in either.
+export CLAUDE_CONFIG_DIR="$TMP/cfg"; mkdir -p "$CLAUDE_CONFIG_DIR"
+unset CLAUDE_PLUGIN_OPTION_CC_TERSE
 
 run() { # $1 prompt, $2 cwd  — CC_TERSE unset so the level FILE is what decides
   jq -n --arg pr "$1" --arg c "$2" \
@@ -80,6 +84,21 @@ check "plain 'terse mode off' still switches"   "$(run 'terse mode off' "$E")" "
 check "level off reinforces nothing"            "$(run 'add an endpoint' "$E")" ""
 F=$(box)
 check "no level set at all is silent"           "$(run 'add an endpoint' "$F")" ""
+
+# ---- 10b. the /config option (cc_terse) sits below the level file --------------
+run_opt() { # $1 prompt, $2 cwd, $3 option value, [$4 CC_TERSE]
+  jq -n --arg pr "$1" --arg c "$2" \
+    '{hook_event_name:"UserPromptSubmit",session_id:"t1",cwd:$c,prompt:$pr}' \
+    | if [ -n "${4:-}" ]; then env CC_TERSE="$4" CLAUDE_PLUGIN_OPTION_CC_TERSE="$3" CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null
+      else env -u CC_TERSE CLAUDE_PLUGIN_OPTION_CC_TERSE="$3" CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null; fi
+}
+rm -f "$CLAUDE_CONFIG_DIR/terse-mode"
+G=$(box)
+check "option alone sets the level"             "$(run_opt 'add an endpoint' "$G" full)" "TERSE full"
+printf 'lite\n' > "$CLAUDE_CONFIG_DIR/terse-mode"
+check "level file beats the option"             "$(run_opt 'add an endpoint' "$G" full)" "TERSE lite"
+check "level off names the option still holding it" "$(run_opt '/candor:level off' "$G" full)" "cc_terse keeps it active at full"
+check "level off names CC_TERSE before the option" "$(run_opt '/candor:level off' "$G" full ultra)" "CC_TERSE=ultra"
 
 # ---- 11. fail-open ------------------------------------------------------------
 out=$(printf '' | env -u CC_TERSE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null); e=$?

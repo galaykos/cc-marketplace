@@ -1,6 +1,6 @@
 {
   "name": "secret-scanning",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit, or a Bash heredoc/echo written to a file, introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape and CC_SECRET_SCAN=off. A PostToolUse unicode-scan warns on invisible and bidi characters (zero-width, U+202A-E, tag block) in text just written or read.",
   "author": {
     "name": "Ivan-WG",
@@ -9,5 +9,25 @@
   "keywords": [
     "security",
     "hooks"
-  ]
+  ],
+  "userConfig": {
+    "cc_remind": {
+      "type": "boolean",
+      "title": "Reminder hooks (CC_REMIND)",
+      "description": "Reminder hooks that add guidance to the session: on or off. The environment variable CC_REMIND overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    },
+    "cc_secret_scan": {
+      "type": "boolean",
+      "title": "Secret guard (CC_SECRET_SCAN)",
+      "description": "Refuse a write or shell command that puts a high-confidence secret on disk: on or off. The environment variable CC_SECRET_SCAN overrides this.",
+      "default": true
+    },
+    "cc_unicode_scan": {
+      "type": "boolean",
+      "title": "Invisible-character scan (CC_UNICODE_SCAN)",
+      "description": "Warn when written or read text carries zero-width or bidirectional-override characters: on or off. The environment variable CC_UNICODE_SCAN overrides this.",
+      "default": true
+    }
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "craft-layer",
-  "version": "0.54.0",
+  "version": "0.55.0",
   "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel. /craft-layer:craft runs the studio pipeline end to end — creative direction, design research, asset sourcing with a licence gate, theming and component build via ui-ux, and a tiered motion system (Framer, anime.js, Three.js/R3F, Lottie/Rive, sprites) with reduced-motion and reduced-bundle fallbacks. /craft-layer:sections guides per-section decisions, /craft-layer:audit reviews a shipped tree, ultra-craft adds web research and a red-team. Ships the Three.js/R3F skill; its review arrives through /code-review:review. Requires ui-ux, which carries the WCAG audit.",
   "author": {
     "name": "Ivan-WG",
@@ -10,5 +10,19 @@
     "ui-ux",
     "frontend",
     "review"
-  ]
+  ],
+  "userConfig": {
+    "cc_boost": {
+      "type": "boolean",
+      "title": "Boost hooks (CC_BOOST)",
+      "description": "Boost hooks that raise model and effort when a prompt carries an ultra- token: on or off. The environment variable CC_BOOST overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    },
+    "craft_boost": {
+      "type": "boolean",
+      "title": "ultra-craft boost (CRAFT_BOOST)",
+      "description": "The ultra-craft prompt boost that raises model and effort: on or off. The environment variable CRAFT_BOOST overrides this.",
+      "default": true
+    }
+  }
 }

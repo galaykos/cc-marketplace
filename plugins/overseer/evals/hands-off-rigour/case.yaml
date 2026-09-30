@@ -16,7 +16,7 @@ execution:
 
     Which exact command do you hand this brief to, and what would each alternative buy or
     cost compared with your pick? Answer in under 200 words.
-runs: 1
+runs: 3
 graders:
   - type: tool_used
     name: overseer-skill-fired

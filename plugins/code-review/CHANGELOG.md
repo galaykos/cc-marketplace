@@ -3,6 +3,11 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.24.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_comment_guard`, `cc_conventions`, `cc_remind`, `cc_review_nudge`, under `/config` (or `/plugin configure code-review`), each with today's default. The environment variable (`CC_COMMENT_GUARD`, `CC_CONVENTIONS`, `CC_REMIND`, `CC_REVIEW_NUDGE`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+- **Hook state moved out of your repo.** When the host sets `CLAUDE_PLUGIN_DATA`, the comment-discipline and review-debt markers (the `$HOME` ledgers are unchanged) live under `${CLAUDE_PLUGIN_DATA}/<project-key>/comment-discipline/` and `code-review/` instead of `.claude/comment-discipline/` and `code-review/`. An existing in-repo dir is left in place and stays ignored (it carries its own `.gitignore`); delete it by hand if you like. Without the variable, nothing moves.
+
 ## 0.23.0 — 2026-09-25
 
 - `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.

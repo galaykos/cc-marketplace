@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_workflow_guard`, under `/config` (or `/plugin configure devops`), each with today's default. The environment variable (`CC_WORKFLOW_GUARD`) still overrides its option. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+
 ## 0.8.2 — 2026-09-29
 
 ### Changed

@@ -31,8 +31,10 @@ that clause on its own continuation.
 | **5 Lockfile drift** | a dependency manifest's dependency map changed in the working tree and the lockfile that governs it did not — npm/pnpm/yarn/bun, Composer, Bundler, Poetry/uv/pdm, Cargo, Go. For JSON manifests the parsed dependency maps are compared, not diff lines, so a `version` bump never arms it; the other four test dependency-shaped lines and exclude metadata keys by name | run the installer and commit the lockfile with the manifest, or say plainly that the lockfile is deliberately unchanged and why |
 
 The gate's own state — the one-block-per-text marker and the which-clause-blocked
-record — lives in `.claude/candor/`, which carries a self-ignoring `.gitignore`, so
-it never appears in `git status`. Since 0.5.0 every state path and every read of the
+record — lives in the plugin's data directory, `${CLAUDE_PLUGIN_DATA}/<project-key>/candor/`
+(`<project-key>` is the repo folder's name plus a checksum of its path), when the host
+provides one, else in `<repo>/.claude/candor/`, which carries a self-ignoring `.gitignore`,
+so it never appears in `git status`. Since 0.5.0 every state path and every read of the
 run's records (`active-run.json`, `gate-pass.json`, `nc/`, `rv/`, `bg/`, `rt/`,
 `reductions/`) resolves at the **project root** — the git toplevel above the payload
 `cwd`, else `CLAUDE_PROJECT_DIR` when `cwd` sits under it, else `cwd`. The payload

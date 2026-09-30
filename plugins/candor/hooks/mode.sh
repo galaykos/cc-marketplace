@@ -26,6 +26,36 @@
 #     That is the price of persistence; `/candor:level off` stops paying it.
 #   - Natural-language switching is a narrow heuristic, not parsing. The slash
 #     command is the reliable path and the one the docs name.
+# The level: CC_TERSE, then the level file, then the /config option cc_terse.
+
+# --- option resolver -----------------------------------------------------------
+# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
+# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
+# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
+# because the environment is the one state independently installed plugins share (CC_REMIND
+# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# The host exports only SAVED options, so <default> must equal the manifest's default.
+# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
+# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
+# outside the switch's vocabulary — each hook still validates the value it gets.
+cc_option() {
+  local v="" opt
+  case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
+  v="${!1:-}"
+  if [ -z "$v" ] && [ -n "${3:-}" ] && [ -f "$3" ] && [ -r "$3" ]; then
+    read -r v _ 2>/dev/null < "$3" || :
+  fi
+  if [ -z "$v" ]; then
+    opt="CLAUDE_PLUGIN_OPTION_$1"; v="${!opt:-}"
+    case "$v" in true) v=on ;; false) v=off ;; esac
+  fi
+  [ -n "$v" ] || v="${2:-}"
+  printf '%s\n' "$v"
+  return 0
+}
+
 {
   command -v jq >/dev/null 2>&1 || exit 0
 
@@ -62,11 +92,13 @@
 
   confirm() { # confirm <level> — level just changed, so re-state the whole contract
     if [ "$1" = "off" ]; then
-      # CC_TERSE beats the file (see the resolution below), so "off" cannot promise
-      # silence while the environment still sets a level — say which one wins.
-      case "${CC_TERSE:-}" in
+      # CC_TERSE and the cc_terse option outlive the removed file (see the resolution
+      # below), so "off" cannot promise silence while either still sets a level — say which.
+      lvl=$(cc_option CC_TERSE off)
+      case "$lvl" in
         lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra)
-          emit "TERSE MODE: level file cleared, but CC_TERSE=$CC_TERSE is set in the environment and overrides it — still active at $CC_TERSE. Unset CC_TERSE to stop." ;;
+          [ -n "$CC_TERSE" ] && emit "TERSE MODE: level file cleared, but CC_TERSE=$CC_TERSE is set in the environment and overrides it — still active at $CC_TERSE. Unset CC_TERSE to stop."
+          emit "TERSE MODE: level file cleared, but the candor /config option cc_terse keeps it active at $lvl. Set cc_terse to off in /config to stop." ;;
       esac
       emit 'TERSE MODE OFF. Normal response length resumes; no further reminders this session.'
     fi
@@ -159,10 +191,7 @@
   fi
 
   # ---- 3. per-turn reinforcement -----------------------------------------------
-  level="${CC_TERSE:-}"
-  if [ -z "$level" ] && [ -r "$state" ]; then
-    read -r level _ < "$state" 2>/dev/null || level=""
-  fi
+  level=$(cc_option CC_TERSE off "$state")
 
   # wenyan levels share their latin counterpart's budgets; only the word layer
   # differs (skills/terse-output/references/wenyan.md).

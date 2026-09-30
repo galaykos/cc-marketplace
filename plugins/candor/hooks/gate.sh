@@ -93,6 +93,7 @@
 #   CC_CANDOR_GATE=block (default) | warn (print, never block) | off — the whole gate
 #   CC_EVIDENCE_GATE=block | warn | off          — clause 3 only (kept from evidence-gate)
 #   TASK_RUNNER_STOP_GATE=block | warn | off     — clause 4 only (kept from completion-gate)
+#   Unset, each of these and CC_LOCKFILE_GATE read the /config option of its lower-cased name.
 #
 # SUBAGENT REPORTS (SubagentStop, 0.2.0). The same script is wired to
 # SubagentStop; a subagent's final report goes through CLAUSE 1 before the main
@@ -159,6 +160,7 @@
 # manifest at `$cwd/package.json` against `git status` paths that are repo-relative.
 # Clause 1 still tries a citation against the shell cwd first (a relative path the model
 # just used there), then against the root, and walks the tree from the root.
+# Markers: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/candor/ is only the fallback.
 
 # --- state root ----------------------------------------------------------------
 # Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
@@ -184,6 +186,66 @@ cc_state_root() {
   printf '%s\n' "$1"
 }
 
+# --- plugin state --------------------------------------------------------------
+# Canonical copy: templates/blocks/plugin-state.md. Every hook defining cc_plugin_state must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# cc_plugin_state <root> <name> prints the directory holding a plugin's own per-project hook
+# state, <root> being the hook's cc_state_root result: ${CLAUDE_PLUGIN_DATA}/<key>/<name> when
+# the host sets that variable, else <root>/.claude/<name>, the path hooks used before it.
+# <key> is the root's basename with every character outside [A-Za-z0-9_-] turned into -, a -,
+# and the root's cksum: the host gives one data dir per plugin id, not per project (measured
+# 2.1.282), and a raw path inside a filename names parents that never exist. tr runs under
+# LC_ALL=C because a UTF-8 tr stops at the first invalid byte. Status 0, no stderr; it
+# creates nothing, so the caller keeps its own mkdir -p.
+# WHY: state read by no one but the plugin's own hooks does not belong in the user's repo —
+# the 2026-09-29 review found .claude/code-review/ and .claude/skill-router/ created by one
+# prompt and one edit in a fresh repo.
+# WHAT IT DOES NOT CATCH: state another plugin, a skill or the user reads must not use it; the
+# fallback path is still in the repo; the data dir is keyed by plugin id, so install scopes of
+# one plugin share it (inferred from the docs' id rule), while a --plugin-dir copy gets its
+# own `-inline` directory and never sees the installed copy's state. The variable was measured
+# only in a SessionStart hook; other events are doc-stated. An event that lacks it falls back
+# to the repo path, which splits a writer from a reader running on another event.
+cc_plugin_state() {
+  local key sum
+  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+    key=$(printf '%s' "$(basename -- "$1")" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-')
+    sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
+    printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
+  else
+    printf '%s/.claude/%s\n' "$1" "$2"
+  fi
+  return 0
+}
+
+# --- option resolver -----------------------------------------------------------
+# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
+# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
+# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
+# because the environment is the one state independently installed plugins share (CC_REMIND
+# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# The host exports only SAVED options, so <default> must equal the manifest's default.
+# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
+# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
+# outside the switch's vocabulary — each hook still validates the value it gets.
+cc_option() {
+  local v="" opt
+  case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
+  v="${!1:-}"
+  if [ -z "$v" ] && [ -n "${3:-}" ] && [ -f "$3" ] && [ -r "$3" ]; then
+    read -r v _ 2>/dev/null < "$3" || :
+  fi
+  if [ -z "$v" ]; then
+    opt="CLAUDE_PLUGIN_OPTION_$1"; v="${!opt:-}"
+    case "$v" in true) v=on ;; false) v=off ;; esac
+  fi
+  [ -n "$v" ] || v="${2:-}"
+  printf '%s\n' "$v"
+  return 0
+}
+
 input=$(cat)
 
 have_jq=0; command -v jq >/dev/null 2>&1 && have_jq=1
@@ -204,7 +266,7 @@ if [ "$evt" = "SubagentStop" ] && [ -n "$inflight_dir" ] && [ -n "$agent_id" ]; 
   if [ -f "$inflight_rec" ]; then rm -f "$inflight_rec" 2>/dev/null; else inflight_rec=""; fi
 fi
 
-gate_mode="${CC_CANDOR_GATE:-block}"
+gate_mode=$(cc_option CC_CANDOR_GATE block)
 case "$gate_mode" in off) exit 0 ;; esac
 
 [ "$have_jq" = 1 ] || { echo "[candor] gate: jq not found — gate not enforced" >&2; exit 0; }
@@ -217,7 +279,7 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 # directory degrades to the process cwd, which by construction exists. Residual: a cwd
 # that IS a directory but not this project's still gets a .claude/candor/ — the check
 # proves existence, never identity.
-[ -n "$cwd" ] && [ -d "$cwd" ] || cwd="."
+[ -n "$cwd" ] && [ -d "$cwd" ] || cwd="$PWD"
 root=$(cc_state_root "$cwd") || exit 0
 # Per-agent marker suffix: hashed, so the id never lands raw in a path.
 agent_sfx=""
@@ -231,7 +293,8 @@ agent_sfx=""
 # the record names the CLAUSE that blocked, and only that clause stands down on
 # the continuation — the others still run. Clause 4 never stands down this way:
 # its bound is the per-HEAD nudge, which is stable across turns.
-# STATE DIR. Both markers live under .claude/candor/, which carries a self-ignoring
+# STATE DIR. Both markers live in cc_plugin_state "$root" candor (the plugin data dir, else
+# .claude/candor/), which carries a self-ignoring
 # .gitignore the first time it is created. Until 0.3.2 they were bare files at
 # .claude/candor-last and .claude/candor-blocked — and showed up as untracked in
 # every user's `git status` (observed in a live repo, and named as "other plugins'
@@ -240,7 +303,7 @@ agent_sfx=""
 # Anchored at the state root, so a stop taken from a subdirectory does not scatter a
 # second .claude/candor/ beside it. Until 0.5.0 this line resolved --show-toplevel on its
 # own while every clause-4 read used the raw cwd (STATE ROOT in the header).
-state_dir="$root/.claude/candor"
+state_dir=$(cc_plugin_state "$root" candor)
 claimed="$state_dir/blocked$agent_sfx"
 skip=""
 if [ "$sha_active" = "true" ] && [ -f "$claimed" ]; then
@@ -281,7 +344,7 @@ inflight_count() {
 run_clause() {
   local sentinel="$root/.claude/task-runner/active-run.json"
   [ "$evt" != "SubagentStop" ] || return 0
-  case "${TASK_RUNNER_STOP_GATE:-block}" in off) return 0 ;; esac
+  case "$(cc_option TASK_RUNNER_STOP_GATE block)" in off) return 0 ;; esac
   [ -r "$sentinel" ] || return 0                     # no registered run → nothing to enforce
   jq empty "$sentinel" 2>/dev/null || { echo "[candor] completion-gate: active-run.json malformed — not enforced" >&2; return 0; }
   command -v git >/dev/null 2>&1 || { echo "[candor] completion-gate: git not found — not enforced" >&2; return 0; }
@@ -504,7 +567,7 @@ run_clause
 if [ "$verdict" = "run" ]; then
   # Clause-specific mode kept from the script this clause came from.
   run_mode="$gate_mode"
-  case "${TASK_RUNNER_STOP_GATE:-block}" in warn) run_mode=warn ;; esac
+  case "$(cc_option TASK_RUNNER_STOP_GATE block)" in warn) run_mode=warn ;; esac
   # ONE BLOCK PER HEAD. The last HEAD blocked on is recorded, and a second stop at the
   # SAME commit prints without blocking, so a real run is held at every card boundary
   # (every commit re-arms) while a stale sentinel costs one extra turn per commit. The
@@ -725,7 +788,7 @@ fi
 # Narrowing ACK to the final message alone was considered and rejected: it would
 # block honest reports that state the caveat before the summary, and it fixes no
 # measured escape — those were all same-sentence.
-ev_mode="${CC_EVIDENCE_GATE:-block}"
+ev_mode=$(cc_option CC_EVIDENCE_GATE block)
 if [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "evidence" ] && [ "$ev_mode" != "off" ]; then
   # 1. CLAIM (cheap): does the assistant tail claim completion? Whole-word via
   # grep -w (BSD grep has no \b; unanchored 'done' would match 'abandoned').
@@ -807,7 +870,7 @@ fi
 # this clause's own message offers ("say plainly that the lockfile is deliberately
 # unchanged and why") could never be taken, and the turn was unblockable. Found by a
 # branch review before merge; clauses 1-3 each carry the same term at :387, :470, :537.
-if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" ] && [ "${CC_LOCKFILE_GATE:-on}" != "off" ]; then
+if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" ] && [ "$(cc_option CC_LOCKFILE_GATE on)" != "off" ]; then
   if command -v git >/dev/null 2>&1 && git -C "$root" rev-parse --git-dir >/dev/null 2>&1; then
     changed=$(git -C "$root" status --porcelain 2>/dev/null | awk '{print $NF}')
     if [ -n "$changed" ]; then

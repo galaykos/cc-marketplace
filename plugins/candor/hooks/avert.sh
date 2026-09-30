@@ -35,9 +35,39 @@
 # (the call proceeds, the user and the model both see the line). Vocabulary-bound, so a
 # guard, not a proof. Off switch: CC_AVERT=off. Fail-open on missing jq, missing
 # transcript, bad payload.
+# CC_AVERT unset: the /config option cc_avert decides (on, notify or off).
+
+# --- option resolver -----------------------------------------------------------
+# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
+# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
+# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
+# because the environment is the one state independently installed plugins share (CC_REMIND
+# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# The host exports only SAVED options, so <default> must equal the manifest's default.
+# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
+# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
+# outside the switch's vocabulary — each hook still validates the value it gets.
+cc_option() {
+  local v="" opt
+  case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
+  v="${!1:-}"
+  if [ -z "$v" ] && [ -n "${3:-}" ] && [ -f "$3" ] && [ -r "$3" ]; then
+    read -r v _ 2>/dev/null < "$3" || :
+  fi
+  if [ -z "$v" ]; then
+    opt="CLAUDE_PLUGIN_OPTION_$1"; v="${!opt:-}"
+    case "$v" in true) v=on ;; false) v=off ;; esac
+  fi
+  [ -n "$v" ] || v="${2:-}"
+  printf '%s\n' "$v"
+  return 0
+}
+
 {
   command -v jq >/dev/null 2>&1 || exit 0
-  [ "${CC_AVERT:-}" = "off" ] && exit 0
+  [ "$(cc_option CC_AVERT on)" = "off" ] && exit 0
 
   input=$(cat)
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
@@ -80,7 +110,7 @@
   mkdir "${TMPDIR:-/tmp}/cc-avert-$key" 2>/dev/null || exit 0
 
   reason="candor: this $what adds a hedge the user never raised (\"$term\") — doing less than what they named is their call, not yours. Ask them first, or proceed only if they already decided it; the next call with this term is not asked again. CC_AVERT=off disables this guard for the session; CC_AVERT=notify downgrades it to a notification."
-  if [ "${CC_AVERT:-}" = "notify" ]; then
+  if [ "$(cc_option CC_AVERT on)" = "notify" ]; then
     jq -cn --arg r "$reason" '{systemMessage:$r,hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$r}}' 2>/dev/null
   else
     jq -cn --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}' 2>/dev/null
