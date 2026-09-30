@@ -144,11 +144,13 @@ unasked; it edits committed files.
 
 Plugins of this marketplace write into the project — mockups, preview state,
 scratch entries, run markers. `scripts/scratch-ignore.sh --check` reads the
-inventory in `references/marketplace-scratch.tsv` (pattern, plugin, kind, the file
-that writes it) and exits 1 when a `scratch` or `cleaned` path is on disk and
+inventory in `references/marketplace-scratch.tsv` (pattern, plugin, kind, location,
+the file that writes it) and exits 1 when a `scratch` or `cleaned` path is on disk and
 neither ignored nor tracked; `--apply` writes one managed block into `.gitignore`,
 rewritten in place, never a tracked path (that is warned, not ignored). `state` rows
 — `brain/`, `design-system/`, `research/` — are listed and left to the team.
+`plugin-data` rows are legacy in-repo paths of hook state now under `${CLAUDE_PLUGIN_DATA}`,
+kept in the block so old dirs stay ignored; `home` rows (`~/…`) are never touched.
 Standing: the check is a **gate** inside `/git-workflow:finish`; the inventory is
 **recorded** — a plugin that starts writing a new directory must add its row, and
 nothing proves the list complete.

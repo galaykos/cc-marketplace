@@ -4,6 +4,7 @@
 {{#if intro}}# {{intro}}
 {{/if}}# No suffix grammar — bare tokens only, fixed tier model=auto effort=xhigh
 # (auto = session model or opus, whichever is higher on haiku<sonnet<opus<fable).
+{{> option-resolver}}
 {
   input=$(cat)
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
@@ -12,8 +13,10 @@
   # {{envVar}}=off disables this one. Environment is the only state three
   # independently-installed plugins genuinely share, so this works cross-plugin
   # even though a co-activation GUARD does not (see the skill's residual note).
+  # Either switch's option in /config silences only this plugin's boost hook; a set
+  # environment variable still wins over the option.
   plugin_switch={{envVar}}
-  case "${CC_BOOST:-on}${!plugin_switch:-on}" in *off*) exit 0 ;; esac
+  case "$(cc_option CC_BOOST on)$(cc_option "$plugin_switch" on)" in *off*) exit 0 ;; esac
 
   # TRIGGER NARROWING. The token used to be grepped from the WHOLE prompt, so a
   # pasted log, a quoted transcript, or the sentence "don't use <token> here"

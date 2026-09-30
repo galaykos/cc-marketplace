@@ -1,6 +1,6 @@
 {
   "name": "security",
-  "version": "0.11.4",
+  "version": "0.12.0",
   "description": "Security for web apps: OWASP-aligned code review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, PLUS design-phase threat-modeling (STRIDE, trust boundaries), a data-privacy (GDPR/CCPA) regulatory lens, and an api-auth lens (token model, OAuth2+PKCE, scopes). Includes /security:review and a security-engineer worker agent.",
   "author": {
     "name": "Ivan-WG",
@@ -10,5 +10,19 @@
     "security",
     "review",
     "worker"
-  ]
+  ],
+  "userConfig": {
+    "cc_remind": {
+      "type": "boolean",
+      "title": "Reminder hooks (CC_REMIND)",
+      "description": "Reminder hooks that add guidance to the session: on or off. The environment variable CC_REMIND overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    },
+    "cc_security_scan": {
+      "type": "boolean",
+      "title": "Security write scan (CC_SECURITY_SCAN)",
+      "description": "Warn when a write introduces a known-dangerous sink such as eval or shell-string exec: on or off. The environment variable CC_SECURITY_SCAN overrides this.",
+      "default": true
+    }
+  }
 }

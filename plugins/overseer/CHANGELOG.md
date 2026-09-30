@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.6 — 2026-09-30
+
+- Eval cases with an `llm` grader now declare `runs: 3` (was 1). Three runs are the fewest that can tell a regression from a flake, and the marketplace's eval load gate now fails a case with fewer.
+
 ## 0.5.5 — 2026-09-26
 
 - `references/capability-map.md`: `board` (drag, reorder, kanban, calendar) now pins

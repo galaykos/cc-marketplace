@@ -1,6 +1,6 @@
 {
   "name": "ui-ux",
-  "version": "0.27.1",
+  "version": "0.28.0",
   "description": "UI/UX foundations with per-stack skills for shadcn/ui and Tailwind, a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, motion best practices, theme creation with a live colour preview, a /ui-ux:build entry point, a WCAG 2.2 AA accessibility audit (/ui-ux:audit, the a11y-audit skill, and an a11y-engineer worker), and ui-ux-reviewer + ui-ux-engineer agents. Component-library skills (MUI, Astryx, ReUI, Aceternity, PrimeReact, component-libraries) live in the ui-libraries plugin — install both.",
   "author": {
     "name": "Ivan-WG",
@@ -11,5 +11,25 @@
     "frontend",
     "review",
     "worker"
-  ]
+  ],
+  "userConfig": {
+    "cc_palette": {
+      "type": "boolean",
+      "title": "Default-palette check (CC_PALETTE)",
+      "description": "Name the category-default indigo, violet or purple accent when a UI write uses it: on or off. The environment variable CC_PALETTE overrides this.",
+      "default": true
+    },
+    "cc_preview_guard": {
+      "type": "boolean",
+      "title": "Preview guard (CC_PREVIEW_GUARD)",
+      "description": "Ask before an HTML page is published as a remote artifact instead of served locally: on or off. The environment variable CC_PREVIEW_GUARD overrides this.",
+      "default": true
+    },
+    "cc_remind": {
+      "type": "boolean",
+      "title": "Reminder hooks (CC_REMIND)",
+      "description": "Reminder hooks that add guidance to the session: on or off. The environment variable CC_REMIND overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    }
+  }
 }

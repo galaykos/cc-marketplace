@@ -256,20 +256,49 @@ case "$st:$out" in
 esac
 rm -rf "$T/plugins/beta"
 
-# --- runs below 3 with an llm grader (WARN) -------------------------------------------
-# CLAUDE.md's rule: three runs cannot separate a regression from a flake. A case that
-# asks for fewer still LOADS, so this warns and never fails.
+# --- an llm grader needs runs >= 3, declared ------------------------------------------
+# CLAUDE.md's rule: three runs cannot separate a regression from a flake.
 good_case "$T/plugins/beta/evals/c"
 python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
 import sys
 p=sys.argv[1]; t=open(p).read().replace("runs: 3","runs: 1")
 open(p,'w').write(t)
 PY
+expect_fail "runs: 1 with an llm grader fails" "cannot separate a regression from a flake"
+rm -rf "$T/plugins/beta"
+
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; t=open(p).read().replace("runs: 3\n","")
+open(p,'w').write(t)
+PY
+expect_fail "an llm grader with no runs key fails" "no \`runs\` key"
+rm -rf "$T/plugins/beta"
+
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys,re
+p=sys.argv[1]; t=open(p).read().replace("runs: 3\n","")
+open(p,'w').write(re.sub(r'graders:.*', 'graders:\n  - type: regex\n    name: g\n    pattern: hello\n', t, flags=re.S))
+PY
 out=$(run_gate); st=$?
-case "$st:$out" in
-  0:*"cannot separate a regression from a flake"*) ok "runs: 1 with an llm grader warns and still passes" ;;
-  *) bad "runs: 1 with an llm grader warns and still passes" "$out" ;;
-esac
+[ "$st" -eq 0 ] && ok "a case with no llm grader needs no runs key" || bad "a case with no llm grader needs no runs key" "$out"
+rm -rf "$T/plugins/beta"
+
+# The prompt.md shape: frontmatter `runs` first, a sibling case.yaml second.
+prompt_case "$T/plugins/beta/evals/p"
+printf -- '---\ntype: llm\n---\nPASS if the answer says hello.\n' > "$T/plugins/beta/evals/p/graders/x.md"
+expect_fail "a prompt.md case with an llm grader and no runs key fails" "no \`runs\` key"
+
+printf 'schema_version: "1.0"\nname: p\nruns: 3\n' > "$T/plugins/beta/evals/p/case.yaml"
+out=$(run_gate); st=$?
+[ "$st" -eq 0 ] && ok "a prompt.md case reads runs from a sibling case.yaml" || bad "a prompt.md case reads runs from a sibling case.yaml" "$out"
+
+printf -- '---\nruns: 1\n---\nSay hello.\n' > "$T/plugins/beta/evals/p/prompt.md"
+expect_fail "a prompt.md case with an llm grader and runs: 1 fails" "cannot separate a regression from a flake"
+printf -- '---\nruns: "1"\n---\nSay hello.\n' > "$T/plugins/beta/evals/p/prompt.md"
+expect_fail "a prompt.md case with a quoted runs fails" "is not a positive integer"
 rm -rf "$T/plugins/beta"
 
 printf '\n%s assertion(s) passed\n' "$pass"

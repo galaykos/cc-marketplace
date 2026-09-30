@@ -1,6 +1,6 @@
 {
   "name": "candor",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, five clauses a script can prove: a file:line citation resolving to no file or past its end; a position retracted after bare pushback with no tool call in between; a completion claim after edits with nothing executed since; a task-runner run stopping without its recorded gate pass; a dependency map changed with an untouched lockfile. Flattery, apologies and defensive phrasing are counted by /candor:check and blocked by nothing, on purpose. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn.",
   "author": {
     "name": "Ivan-WG",
@@ -10,5 +10,49 @@
     "generic",
     "quality",
     "hooks"
-  ]
+  ],
+  "userConfig": {
+    "cc_avert": {
+      "type": "string",
+      "title": "Hedge guard mode (CC_AVERT)",
+      "description": "Ask before a write or dispatch that carries a hedge the user never raised: on, notify or off. The environment variable CC_AVERT overrides this.",
+      "default": "on"
+    },
+    "cc_candor_gate": {
+      "type": "string",
+      "title": "Candor Stop gate mode (CC_CANDOR_GATE)",
+      "description": "The whole candor Stop gate: block, warn (print, never block) or off. The environment variable CC_CANDOR_GATE overrides this.",
+      "default": "block"
+    },
+    "cc_evidence_gate": {
+      "type": "string",
+      "title": "Completion-claim clause mode (CC_EVIDENCE_GATE)",
+      "description": "Stop-gate clause for a completion claim with nothing run since the last edit: block, warn or off. The environment variable CC_EVIDENCE_GATE overrides this.",
+      "default": "block"
+    },
+    "cc_lockfile_gate": {
+      "type": "boolean",
+      "title": "Lockfile clause (CC_LOCKFILE_GATE)",
+      "description": "Stop-gate clause for a dependency manifest changed with its lockfile untouched: on or off. The environment variable CC_LOCKFILE_GATE overrides this.",
+      "default": true
+    },
+    "cc_preamble": {
+      "type": "boolean",
+      "title": "Working-moves preamble (CC_PREAMBLE)",
+      "description": "Inject the five working moves before the first edit of a session and of each subagent: on or off. The environment variable CC_PREAMBLE overrides this.",
+      "default": true
+    },
+    "cc_terse": {
+      "type": "string",
+      "title": "Terse reply level (CC_TERSE)",
+      "description": "Terse reply level: off, lite, full, ultra, wenyan-lite, wenyan-full or wenyan-ultra. The environment variable CC_TERSE overrides this. A level other than off set with /candor:level also overrides this; /candor:level off clears only that level.",
+      "default": "off"
+    },
+    "task_runner_stop_gate": {
+      "type": "string",
+      "title": "Run-completion clause mode (TASK_RUNNER_STOP_GATE)",
+      "description": "Stop-gate clause for a task-runner run stopping without its recorded gate pass: block, warn or off. The environment variable TASK_RUNNER_STOP_GATE overrides this.",
+      "default": "block"
+    }
+  }
 }

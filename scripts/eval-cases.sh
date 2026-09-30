@@ -46,8 +46,12 @@
 #     `--scaffold` is OFF by default; on 2026-09-22 five of fourteen cases declared a
 #     scaffold and only `overseer`'s README said so, so candor's three ran against
 #     whatever happened to be in the operator's unstaged workspace and scored it.
-#   - (WARN) `runs` below 3 on a case carrying an `llm` grader. CLAUDE.md's own rule:
-#     three runs cannot separate a regression from a flake — fewer cannot even try.
+#   - `runs` below 3, or no `runs` key at all, on a case carrying an `llm` grader, in
+#     either shape — a prompt.md case reads `runs` from its own frontmatter first and a
+#     sibling case.yaml second (a directory holding BOTH files is judged on the yaml's
+#     `runs` alone in the case.yaml branch). CLAUDE.md's own rule: three runs cannot separate a
+#     regression from a flake — fewer cannot even try. A WARN until 2026-09-30, under
+#     which four shipped cases sat at `runs: 1`. A case with no `llm` grader is exempt.
 #   - (FREE LOAD) per suite, the documented zero-cost invocation
 #     `claude plugin eval ./plugins/<p> --max-cost-usd 0 --no-publish --trust-plugin`,
 #     failing on the runner's `not granted` and `cannot pass with the granted tools`
@@ -67,6 +71,9 @@
 #   - whether a grader's criteria are any good, or whether the prompt elicits the
 #     behaviour the grader scores. Both are agent-graded at best.
 #   - whether the suite would PASS. This never runs a model and never spends a cent.
+#   - the run count a suite actually gets. `claude plugin eval --runs <n>` overrides every
+#     case's `runs` on the command line, so the three this gate demands can still be
+#     lowered at run time; it reads the files, not the invocation.
 #   - drift between the runner's schema and this checker's idea of it. The runner is the
 #     authority; this asserts the subset whose absence has actually broken a suite here.
 #   - a `schema_version` MAJOR the installed CLI is too old for. The runner rejects one
@@ -112,28 +119,66 @@ python3 -c 'import yaml' 2>/dev/null || {
   exit 1
 }
 
-grader_type_ok() { # grader_type_ok <graders/x.md> — stdout: the defect, exit 1, when its frontmatter has no usable type
-  python3 - "$1" <<'PY'
-import sys, yaml
-path = sys.argv[1]
-raw = open(path, "rb").read()
-if raw.startswith(b"\xef\xbb\xbf"):
-    raw = raw[3:]
-lines = raw.decode("utf-8", "replace").replace("\r\n", "\n").split("\n")
-if not lines or lines[0] != "---":
-    print("no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"); sys.exit(1)
-try:
-    end = lines.index("---", 1)
-except ValueError:
-    print("frontmatter opened on line 1 and never closed"); sys.exit(1)
-try:
-    fm = yaml.safe_load("\n".join(lines[1:end]))
-except Exception as e:
-    print(f"frontmatter is not valid YAML: {e}"); sys.exit(1)
-if not isinstance(fm, dict) or not str(fm.get("type") or "").strip():
-    print("no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"); sys.exit(1)
+frontmatter_check() { # frontmatter_check type <graders/x.md> | frontmatter_check runs <prompt.md> <newline-separated graders/*.md> — stdout: the defect, exit 1
+  python3 - "$@" <<'PY'
+import sys, os, yaml
+def frontmatter(path):
+    # (mapping-or-None, defect-or-None); (None, None) when line 1 is not `---`.
+    raw = open(path, "rb").read()
+    if raw.startswith(b"\xef\xbb\xbf"):
+        raw = raw[3:]
+    lines = raw.decode("utf-8", "replace").replace("\r\n", "\n").split("\n")
+    if not lines or lines[0] != "---":
+        return None, None
+    try:
+        end = lines.index("---", 1)
+    except ValueError:
+        return None, "frontmatter opened on line 1 and never closed"
+    try:
+        return yaml.safe_load("\n".join(lines[1:end])), None
+    except Exception as e:
+        return None, f"frontmatter is not valid YAML: {e}"
+
+mode, path = sys.argv[1], sys.argv[2]
+if mode == "type":
+    fm, defect = frontmatter(path)
+    if defect:
+        print(defect); sys.exit(1)
+    if not isinstance(fm, dict) or not str(fm.get("type") or "").strip():
+        print("no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"); sys.exit(1)
+    sys.exit(0)
+
+graders = [g for g in sys.argv[3].split("\n") if g]
+if not any(isinstance(fm, dict) and fm.get("type") == "llm"
+           for fm in (frontmatter(g)[0] for g in graders)):
+    sys.exit(0)
+# The runner's precedence: prompt.md frontmatter overrides a sibling case.yaml.
+fm = frontmatter(path)[0]
+if isinstance(fm, dict) and "runs" in fm:
+    r = fm["runs"]
+else:
+    side = os.path.join(os.path.dirname(path), "case.yaml")
+    r = None
+    if os.path.isfile(side):
+        try:
+            with open(side) as fh:
+                d = yaml.safe_load(fh)
+        except Exception:
+            d = None
+        if not isinstance(d, dict):
+            sys.exit(0)  # the case.yaml branch fails an unreadable or non-mapping sibling
+        r = d.get("runs")
+if r is None:
+    print("an `llm` grader and no `runs` key — declare `runs: 3` or more; "
+          "the runner's default is a CLI constant, not a property of this case"); sys.exit(1)
+if not isinstance(r, int) or isinstance(r, bool) or r < 1:
+    print(f"`runs: {r!r}` is not a positive integer"); sys.exit(1)
+if r < 3:
+    print(f"`runs: {r}` with an `llm` grader — three runs cannot separate a "
+          "regression from a flake; fewer cannot try (CLAUDE.md)"); sys.exit(1)
 PY
 }
+grader_type_ok() { frontmatter_check type "$1"; }
 
 case_dirs() { # case_dirs <evals dir> — one `case<TAB><dir>` or `dead<TAB><dir>` line per directory
   # A case dir is the first directory on a branch carrying a case definition; the walk
@@ -230,6 +275,7 @@ for dir in plugins/*/evals; do
           [ -n "$g" ] || continue
           gmsg=$(grader_type_ok "$g") || fail "$g: $gmsg"
         done <<< "$graders"
+        rmsg=$(frontmatter_check runs "$cdir/prompt.md" "$graders") || fail "$cdir/prompt.md: $rmsg"
       fi
     fi
 
@@ -312,15 +358,14 @@ if isinstance(ctx, dict):
     if ss and not os.path.isfile(os.path.join(os.path.dirname(path), ss)):
         errs.append(f"`context.scaffold_script: {ss}` is not a file in this case directory")
 
-# WARNs go to stderr and never set the exit status: neither stops the suite loading,
-# which is this gate's subject. They are here because both were counted by hand on
-# 2026-09-22 and nothing re-counts them.
 has_llm = isinstance(g, list) and any(
     isinstance(one, dict) and one.get("type") == "llm" for one in g)
-if has_llm and isinstance(r, int) and not isinstance(r, bool) and r < 3:
-    print(f"WARN: {path}: `runs: {r}` with an `llm` grader — CLAUDE.md's rule is that "
-          "three runs cannot separate a regression from a flake; fewer cannot try",
-          file=sys.stderr)
+if has_llm and r is None:
+    errs.append("an `llm` grader and no `runs` key — declare `runs: 3` or more; "
+                "the runner's default is a CLI constant, not a property of this case")
+elif has_llm and isinstance(r, int) and not isinstance(r, bool) and r < 3:
+    errs.append(f"`runs: {r}` with an `llm` grader — three runs cannot separate a "
+                "regression from a flake; fewer cannot try (CLAUDE.md)")
 
 if errs:
     print("; ".join(errs)); sys.exit(1)

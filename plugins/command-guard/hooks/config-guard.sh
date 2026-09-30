@@ -53,6 +53,36 @@
 #     which is why a missing target is allowed through.
 #
 # Off with CC_CONFIG_GUARD=off. Fail-open on every error path.
+# CC_CONFIG_GUARD / CLAUDE_DESTRUCTIVE_GUARD unset: their /config options (lower-cased) decide.
+
+# --- option resolver -----------------------------------------------------------
+# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
+# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
+# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
+# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
+# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
+# because the environment is the one state independently installed plugins share (CC_REMIND
+# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# The host exports only SAVED options, so <default> must equal the manifest's default.
+# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
+# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
+# outside the switch's vocabulary — each hook still validates the value it gets.
+cc_option() {
+  local v="" opt
+  case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
+  v="${!1:-}"
+  if [ -z "$v" ] && [ -n "${3:-}" ] && [ -f "$3" ] && [ -r "$3" ]; then
+    read -r v _ 2>/dev/null < "$3" || :
+  fi
+  if [ -z "$v" ]; then
+    opt="CLAUDE_PLUGIN_OPTION_$1"; v="${!opt:-}"
+    case "$v" in true) v=on ;; false) v=off ;; esac
+  fi
+  [ -n "$v" ] || v="${2:-}"
+  printf '%s\n' "$v"
+  return 0
+}
+
 # --- bash write targets --------------------------------------------------------
 # Canonical copy: templates/blocks/bash-write-targets.md. Every hook defining
 # cc_bash_write_targets must carry this block byte-for-byte (pc_shared_blocks).
@@ -159,14 +189,14 @@ config_kind() {
 }
 
 {
-  [ "${CC_CONFIG_GUARD:-on}" = "off" ] && exit 0
+  [ "$(cc_option CC_CONFIG_GUARD on)" = "off" ] && exit 0
   # HONOUR THE SIBLING'S SWITCH. The core-suite README (the suites were retired
   # 2026-09-26) told an installer that
   # CLAUDE_DESTRUCTIVE_GUARD=deny-only buys "the free half" — no clicks — but this
   # guard is the plugin's OTHER ask tier and read only its own variable, so the
   # documented setting did not deliver what it promised. Both values that mean
   # "no ask tier" now silence this hook too. Measured 2026-09-15.
-  case "$(printf '%s' "${CLAUDE_DESTRUCTIVE_GUARD:-}" | tr '[:upper:]' '[:lower:]')" in
+  case "$(printf '%s' "$(cc_option CLAUDE_DESTRUCTIVE_GUARD "")" | tr '[:upper:]' '[:lower:]')" in
     off | deny-only) exit 0 ;;
   esac
   input=$(cat)

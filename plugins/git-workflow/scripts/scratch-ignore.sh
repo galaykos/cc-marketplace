@@ -2,9 +2,9 @@
 # scratch-ignore.sh — keep plugin scratch out of a branch.
 #
 # WHAT IT CATCHES. Every plugin of this marketplace that writes into a user's
-# project is listed, with the file that writes it, in
+# project is listed, with the file that writes it and a `location`, in
 # skills/branch-completion/references/marketplace-scratch.tsv. For the current git
-# repo this prints one row per pattern — on disk? ignored? tracked files? kind —
+# repo this prints one row per repo pattern — on disk? ignored? tracked files? kind —
 # and, with --check (the default), exits 1 when a `scratch` or `cleaned` path
 # exists on disk and is neither ignored nor tracked: the untracked mockup dir,
 # preview server state or scratch entry that would otherwise ride into a commit
@@ -16,6 +16,12 @@
 # exactly the one the next command creates, and an ignore rule for an absent
 # path costs nothing. `state` rows (brain/, design-system/, research/, …) are
 # printed as "left to you" and never written: a team may want them tracked.
+# `plugin-data` rows are the legacy in-repo paths of hook state now kept under
+# ${CLAUDE_PLUGIN_DATA}: checked like any scratch row, and written after a
+# `# legacy` comment line inside the block so a directory an older version left
+# in the repo stays ignored; the data dir itself is outside the repo and gets no
+# line. `home` rows (~/…) are per-user state outside the repo: never probed,
+# reported or written.
 #
 # WHAT IT DOES NOT CATCH. A path already TRACKED is never added to the block —
 # ignoring a tracked path is a trap (git keeps tracking it, the rule looks like
@@ -36,7 +42,7 @@ while [ $# -gt 0 ]; do
     --check) mode=check ;;
     --apply) mode=apply ;;
     --root) root="${2:-}"; shift ;;
-    -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,31p' "$0"; exit 0 ;;
     *) echo "scratch-ignore.sh: unknown argument $1" >&2; exit 2 ;;
   esac
   shift
@@ -50,8 +56,9 @@ fi
 cd "$top"
 
 need=(); tracked_warn=(); rows=()
-while IFS=$'\t' read -r pattern plugin kind why; do
+while IFS=$'\t' read -r pattern plugin kind location why; do
   case "$pattern" in ''|'#'*) continue ;; esac
+  [ "$location" = home ] && continue
   probe="$pattern"; [ "${pattern%/}" != "$pattern" ] && probe="${pattern}.scratch-ignore-probe"
   present=no; [ -e "$pattern" ] && present=yes
   ignored=no; git check-ignore -q "$probe" 2>/dev/null && ignored=yes
@@ -80,14 +87,16 @@ if [ "$mode" = check ]; then
 fi
 
 # --apply: rebuild the managed block from every scratch/cleaned row, skipping tracked ones
-block="$OPEN"$'\n'
-while IFS=$'\t' read -r pattern plugin kind why; do
+block="$OPEN"$'\n'; legacy=""
+while IFS=$'\t' read -r pattern plugin kind location why; do
   case "$pattern" in ''|'#'*) continue ;; esac
+  [ "$location" = home ] && continue
   case "$kind" in scratch|cleaned) ;; *) continue ;; esac
   skip=no; for t in "${tracked_warn[@]:-}"; do [ "$t" = "$pattern" ] && skip=yes; done
   [ "$skip" = yes ] && continue
-  block+="${pattern}"$'\n'
+  if [ "$location" = plugin-data ]; then legacy+="${pattern}"$'\n'; else block+="${pattern}"$'\n'; fi
 done < "$TSV"
+[ -n "$legacy" ] && block+="# legacy — plugin state now lives in the plugin's data dir; kept so existing directories stay ignored"$'\n'"$legacy"
 block+="$CLOSE"
 
 gi=".gitignore"; tmp="$(mktemp)"; blockfile="$(mktemp)"; printf '%s\n' "$block" > "$blockfile"

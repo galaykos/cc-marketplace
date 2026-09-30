@@ -7,6 +7,10 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.55.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_boost`, `craft_boost`, under `/config` (or `/plugin configure craft-layer`), each with today's default. The environment variable (`CC_BOOST`, `CRAFT_BOOST`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+
 ## 0.54.0 — 2026-09-26
 
 - Seven app-surface references in `information-design`: product-mock (the product on the front

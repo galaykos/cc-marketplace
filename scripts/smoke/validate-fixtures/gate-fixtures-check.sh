@@ -179,11 +179,12 @@ rm -rf "$QR"
 
 # ---- pc_shared_blocks ------------------------------------------------------------
 B="$T/_blocks"; mkdir -p "$B" "$T/blk/hooks"
-cp templates/blocks/state-root.md templates/blocks/bash-write-targets.md templates/blocks/bash-write-chunks.md "$B/"
+cp templates/blocks/state-root.md templates/blocks/bash-write-targets.md templates/blocks/bash-write-chunks.md templates/blocks/plugin-state.md "$B/"
 { echo '#!/bin/bash'; cat "$B/state-root.md"; echo 'exit 0'; } > "$T/blk/hooks/good.sh"
 { echo '#!/bin/bash'; sed 's/return 1$/return 2/' "$B/state-root.md"; echo 'exit 0'; } > "$T/blk/hooks/edited.sh"
 { echo '#!/bin/bash'; echo 'cc_bash_write_targets() { :; }'; } > "$T/blk/hooks/reimpl.sh"
 { echo '#!/bin/bash'; echo 'cc_bash_write_chunks() { :; }'; } > "$T/blk/hooks/reimpl-chunks.sh"
+{ echo '#!/bin/bash'; sed 's/local key sum$/local key sun/' "$B/plugin-state.md"; echo 'exit 0'; } > "$T/blk/hooks/pstate-edited.sh"
 out=$(pc_shared_blocks "$T" "$B") || true
 case "$out" in
   *"blk/hooks/edited.sh state-root.md"*) pass "shared-blocks: an edited copy is named" ;;
@@ -196,6 +197,10 @@ esac
 case "$out" in
   *"blk/hooks/reimpl-chunks.sh bash-write-chunks.md"*) pass "shared-blocks: a cc_bash_write_chunks reimplementation is named" ;;
   *) fail "shared-blocks: a cc_bash_write_chunks reimplementation is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/pstate-edited.sh plugin-state.md"*) pass "shared-blocks: an edited plugin-state copy is named" ;;
+  *) fail "shared-blocks: an edited plugin-state copy is named" "got: ${out:-<empty>}" ;;
 esac
 case "$out" in
   *good.sh*) fail "shared-blocks: a verbatim copy stays clean" "flagged: $out" ;;
@@ -240,6 +245,45 @@ esac
 case "$out" in
   *advisorysw*) fail "offswitch: an advisory hook is out of scope" "flagged: $out" ;;
   *) pass "offswitch: an advisory hook is out of scope" ;;
+esac
+mkhook resolvedsw quiet-resolved.sh <<'SH'
+#!/bin/bash
+# CC_FIXTURE_RESOLVED=off turns this off — said here, where a refused user never looks.
+# [ "$(cc_option CC_FIXTURE_GHOST on)" = off ]
+input=$(cat)
+d="${CLAUDE_PLUGIN_DATA:-}"
+[ "$(cc_option CC_FIXTURE_RESOLVED on)" = off ] && exit 0
+[ "$(cc_option "CC_FIXTURE_QUOTED" on)" = off ] && exit 0
+[ "$(cc_option 'CC_FIXTURE_SQ' on)" = off ] && exit 0
+[ "$(cc_option FIX_BOOST_MODE on)" = off ] && exit 0
+jq -cn --arg r 'fixture: refused.' \
+  '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+exit 0
+SH
+mkhook resolvedok loud-resolved.sh <<'SH'
+#!/bin/bash
+# CC_FIXTURE_RESOLVED=off turns this off — said here, where a refused user never looks.
+input=$(cat)
+[ "$(cc_option CC_FIXTURE_RESOLVED on)" = off ] && exit 0
+jq -cn --arg r 'fixture: refused. CC_FIXTURE_RESOLVED=off disables this for the session.' \
+  '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+exit 0
+SH
+out=$(pc_offswitch_named "$T") || true
+case "$out" in
+  *"offswitch-unnamed resolvedsw:quiet-resolved.sh "*CC_FIXTURE_RESOLVED*) pass "offswitch: a resolver-read switch named nowhere is flagged" ;;
+  *) fail "offswitch: a resolver-read switch named nowhere is flagged" "got: ${out:-<empty>}" ;;
+esac
+# The whole line: a commented call and CLAUDE_PLUGIN_DATA are not switches, both quote forms
+# are read, and FIX_BOOST_MODE is read whole (no switch shape), never cut to FIX_BOOST.
+if printf '%s\n' "$out" | grep -qxF 'offswitch-unnamed resolvedsw:quiet-resolved.sh CC_FIXTURE_QUOTED CC_FIXTURE_RESOLVED CC_FIXTURE_SQ'; then
+  pass "offswitch: resolver reads are found exactly — quotes, comments, host vars, whole names"
+else
+  fail "offswitch: resolver reads are found exactly — quotes, comments, host vars, whole names" "got: ${out:-<empty>}"
+fi
+case "$out" in
+  *resolvedok*) fail "offswitch: a resolver-read switch named in the reason is clean" "flagged: $out" ;;
+  *) pass "offswitch: a resolver-read switch named in the reason is clean" ;;
 esac
 printf '# offswitch-ok: fixture\n' >> "$T/badsw/hooks/quiet-deny.sh"
 out=$(pc_offswitch_named "$T") || true

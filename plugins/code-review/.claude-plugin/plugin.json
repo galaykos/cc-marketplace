@@ -1,6 +1,6 @@
 {
   "name": "code-review",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "description": "Stack-agnostic code review: correctness bugs, code smells, convention drift on any diff or PR — severity-sorted one-line findings — plus comment discipline (default: no comment; write-time hooks warn, and deny the strictest patterns and any file over a 0.4:1 comment ceiling, at most twice per file per session; /code-review:comment-review). Defers structure/YAGNI to code-architecture, security depth to security, stack idioms to the per-framework review plugins. Includes /code-review:review, a code-reviewer agent, the code-smells, reuse-hygiene and comment-discipline skills; the fan-in loads every installed matching stack skill in one pass.",
   "author": {
     "name": "Ivan-WG",
@@ -9,5 +9,31 @@
   "keywords": [
     "review",
     "quality"
-  ]
+  ],
+  "userConfig": {
+    "cc_comment_guard": {
+      "type": "boolean",
+      "title": "Comment guard deny lane (CC_COMMENT_GUARD)",
+      "description": "Refuse a write whose comments restate the code or pass the density ceiling: on or off. The environment variable CC_COMMENT_GUARD overrides this.",
+      "default": true
+    },
+    "cc_conventions": {
+      "type": "boolean",
+      "title": "Conventions pointer (CC_CONVENTIONS)",
+      "description": "Name the convention configs and the CI command enforcing them at the first code write: on or off. The environment variable CC_CONVENTIONS overrides this.",
+      "default": true
+    },
+    "cc_remind": {
+      "type": "boolean",
+      "title": "Reminder hooks (CC_REMIND)",
+      "description": "Reminder hooks that add guidance to the session: on or off. The environment variable CC_REMIND overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    },
+    "cc_review_nudge": {
+      "type": "boolean",
+      "title": "Review-debt nudge (CC_REVIEW_NUDGE)",
+      "description": "Suggest an independent review once enough unreviewed or sensitive code has changed: on or off. The environment variable CC_REVIEW_NUDGE overrides this.",
+      "default": true
+    }
+  }
 }

@@ -39,7 +39,7 @@ execution:
     ```
 
     This runs inside a queued job. Review it.
-runs: 1
+runs: 3
 graders:
   - type: llm
     name: retry-idempotency

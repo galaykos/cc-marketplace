@@ -3,6 +3,10 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.10.0 - 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_remind`, `cc_secret_scan`, `cc_unicode_scan`, under `/config` (or `/plugin configure secret-scanning`), each with today's default. The environment variable (`CC_REMIND`, `CC_SECRET_SCAN`, `CC_UNICODE_SCAN`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+
 ## 0.9.1 - 2026-09-29
 
 - The Bash chunk extractor in `hooks/scan.sh` moved to the shared block

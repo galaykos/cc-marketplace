@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_design_kit_pick`, `cc_remind`, under `/config` (or `/plugin configure design-kit`), each with today's default. The environment variable (`CC_DESIGN_KIT_PICK`, `CC_REMIND`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+
 ## 0.8.0 — 2026-09-29
 
 ### Changed

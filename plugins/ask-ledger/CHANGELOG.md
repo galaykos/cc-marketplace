@@ -2,6 +2,10 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.3.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_ask_ledger`, under `/config` (or `/plugin configure ask-ledger`), each with today's default. The environment variable (`CC_ASK_LEDGER`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+
 ## 0.2.2 — 2026-09-25
 
 - `hooks/hooks.json` quotes `${CLAUDE_PLUGIN_ROOT}` in every hook command. Claude Code 2.1.282's `plugin validate --strict` rejects the unquoted form (an install path with a space splits into several words); the marketplace's CI pin moved to 2.1.282 with it.

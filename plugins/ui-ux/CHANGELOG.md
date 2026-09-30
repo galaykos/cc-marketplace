@@ -4,6 +4,11 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.28.0 — 2026-09-30
+
+- **Off-switches are now `/config` options:** `cc_palette`, `cc_preview_guard`, `cc_remind`, under `/config` (or `/plugin configure ui-ux`), each with today's default. The environment variable (`CC_PALETTE`, `CC_PREVIEW_GUARD`, `CC_REMIND`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+- **Hook state moved out of your repo.** When the host sets `CLAUDE_PLUGIN_DATA`, the palette-default markers live under `${CLAUDE_PLUGIN_DATA}/<project-key>/ui-ux/` instead of `.claude/ui-ux/`. An existing in-repo dir is left in place and stays ignored (it carries its own `.gitignore`); delete it by hand if you like. Without the variable, nothing moves.
+
 ## 0.27.1 — 2026-09-26
 
 - The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. The README now says, at the top, that the component-library skills live in `ui-libraries` and

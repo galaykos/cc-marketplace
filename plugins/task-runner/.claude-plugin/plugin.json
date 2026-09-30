@@ -1,6 +1,6 @@
 {
   "name": "task-runner",
-  "version": "0.41.2",
+  "version": "0.42.0",
   "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence — held at Stop by candor's gate (clause 4) when candor is installed; without it a run can end by narration. Ships the shared task-executor agent — the delegatable 'apply the fixes' sink every review routes to — a PostToolUse scope-lock tripwire, parallel-planning (/task-runner:plan), and the subagent discipline (the orchestration plugin was merged in on 2026-09-14): delegation contracts, verification panels, scripts/dispatch-lint.sh, and the ultra-assess boost hook.",
   "author": {
     "name": "Ivan-WG",
@@ -10,5 +10,37 @@
     "worker",
     "process",
     "generic"
-  ]
+  ],
+  "userConfig": {
+    "cc_boost": {
+      "type": "boolean",
+      "title": "Boost hooks (CC_BOOST)",
+      "description": "Boost hooks that raise model and effort when a prompt carries an ultra- token: on or off. The environment variable CC_BOOST overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    },
+    "cc_drift": {
+      "type": "boolean",
+      "title": "Ad-hoc drift nudge (CC_DRIFT)",
+      "description": "Nudge when a turn touches files well beyond the request, outside a task-runner run: on or off. The environment variable CC_DRIFT overrides this.",
+      "default": true
+    },
+    "cc_remind": {
+      "type": "boolean",
+      "title": "Reminder hooks (CC_REMIND)",
+      "description": "Reminder hooks that add guidance to the session: on or off. The environment variable CC_REMIND overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    },
+    "cc_spawn_cap": {
+      "type": "string",
+      "title": "Subagent spawn cap (CC_SPAWN_CAP)",
+      "description": "Ask once a session's subagent dispatches pass this count, then at every doubling: a number or off. The environment variable CC_SPAWN_CAP overrides this.",
+      "default": "20"
+    },
+    "orchestration_boost": {
+      "type": "boolean",
+      "title": "ultra-assess boost (ORCHESTRATION_BOOST)",
+      "description": "The ultra-assess prompt boost that raises model and effort: on or off. The environment variable ORCHESTRATION_BOOST overrides this.",
+      "default": true
+    }
+  }
 }

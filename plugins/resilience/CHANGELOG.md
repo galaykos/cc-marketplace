@@ -8,6 +8,10 @@ whose job is history would be worse than the gap. Adding this file opts the plug
 `scripts/check-version-bumps.sh`'s changelog gate permanently — every bump from here on
 must carry an entry.
 
+## 0.7.6 — 2026-09-30
+
+- Eval cases with an `llm` grader now declare `runs: 3` (was 1). Three runs are the fewest that can tell a regression from a flake, and the marketplace's eval load gate now fails a case with fewer.
+
 ## 0.7.5 — 2026-09-23
 
 ### Changed

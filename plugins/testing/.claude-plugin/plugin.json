@@ -1,6 +1,6 @@
 {
   "name": "testing",
-  "version": "0.11.2",
+  "version": "0.12.0",
   "description": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps — plus the TDD workflow (red-green-refactor, red-green regression proof for bug fixes). Includes /testing:flake-hunt and a test-engineer worker agent; the test rubric reaches any diff through /code-review:review.",
   "author": {
     "name": "Ivan-WG",
@@ -10,5 +10,25 @@
     "testing",
     "review",
     "worker"
-  ]
+  ],
+  "userConfig": {
+    "cc_protect_tests": {
+      "type": "boolean",
+      "title": "Fake-green guard (CC_PROTECT_TESTS)",
+      "description": "Refuse an edit that adds a skip or only marker to a test, or empties a test file: on or off. The environment variable CC_PROTECT_TESTS overrides this.",
+      "default": true
+    },
+    "cc_remind": {
+      "type": "boolean",
+      "title": "Reminder hooks (CC_REMIND)",
+      "description": "Reminder hooks that add guidance to the session: on or off. The environment variable CC_REMIND overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
+      "default": true
+    },
+    "cc_test_shape": {
+      "type": "boolean",
+      "title": "Test-shape check (CC_TEST_SHAPE)",
+      "description": "Name the blocks in a written test file that do not earn their place: on or off. The environment variable CC_TEST_SHAPE overrides this.",
+      "default": true
+    }
+  }
 }

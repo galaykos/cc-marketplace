@@ -391,7 +391,8 @@ FILES
 # Every shell file under <plugins_root> that DEFINES a function owned by a shared block
 # must carry that block byte-for-byte. Prints one "shared-block-drift <path> <block>" per
 # offender; returns 1. Owned today: cc_state_root (state-root.md),
-# cc_bash_write_targets (bash-write-targets.md) and cc_bash_write_chunks (bash-write-chunks.md).
+# cc_bash_write_targets (bash-write-targets.md), cc_bash_write_chunks (bash-write-chunks.md),
+# cc_option (option-resolver.md) and cc_plugin_state (plugin-state.md).
 #
 # WHY THIS EXISTS. Plugins install alone, so a helper two plugins need is COPIED, not
 # sourced — and a copy edited in one plugin is a fix the other five never got. Generated
@@ -404,7 +405,7 @@ FILES
 # hook swallows — each plugin's own harness is what catches that).
 pc_shared_blocks() {
   local root="${1:-plugins}" bdir="${2:-templates/blocks}" bad=0 f blk content fn name pair
-  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks; do
+  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks option-resolver:cc_option plugin-state:cc_plugin_state; do
     name=${pair%%:*}; fn=${pair#*:}
     [ -r "$bdir/$name.md" ] || continue
     blk=$(cat "$bdir/$name.md")
@@ -439,10 +440,14 @@ DEFS
 #
 # THE RULE, precisely: a hook is in scope when it emits `permissionDecision` deny/ask or
 # `exit 2` (the two channels that reach the model as a refusal). Its switches are the
-# names read as `${NAME:-…}` matching `CC_*`, `CLAUDE_*`, `*_BOOST` or `*_STOP_GATE`,
-# minus the host-supplied path/session variables, plus the indirect `plugin_switch=NAME`
-# form the boost chassis uses. At least ONE of those names must also appear in prose —
-# an occurrence that is neither `$NAME`/`${NAME}` nor a line-leading assignment.
+# names read as `${NAME:-…}` or through the resolver as `cc_option NAME …` (a literal
+# name, optionally quoted) matching `CC_*`, `CLAUDE_*`, `*_BOOST` or `*_STOP_GATE`, minus
+# the host-supplied path/session/data variables (`CLAUDE_PLUGIN_ROOT`, `CLAUDE_PROJECT_DIR`,
+# `CLAUDE_CONFIG_DIR`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_PLUGIN_DATA`), plus the indirect
+# `plugin_switch=NAME` form the boost chassis uses. At least ONE of those names must also
+# appear in prose — an occurrence that is neither `$NAME`/`${NAME}`, a `cc_option NAME`
+# call, nor a line-leading assignment. The resolver call is removed before that test
+# because the space before NAME would otherwise count as prose and pass every such hook.
 #
 # WHAT IT DOES NOT CATCH, and this is the gap that matters:
 #   - WHICH message names it. The contract is per-message ("every reason that blocks");
@@ -455,6 +460,9 @@ DEFS
 #     their PostToolUse branch only, so their DENY branch has no off switch at all — this
 #     check reports them as "switch not named", which understates it.
 #   - a hook whose off switch is read some other way (a settings file, a marker file).
+#   - a resolver called with a variable (`cc_option "$x" on`): the name is not in the text,
+#     so the switch is not discovered — except through the `plugin_switch=NAME` form the
+#     boost chassis keeps.
 #   - jq-dependent, hooks.json-registered scripts only, like its siblings here.
 #
 # ESCAPE: `# offswitch-ok: <reason>` in the hook. A reason that earns it explains why a
@@ -466,6 +474,25 @@ DEFS
 # no-ai-trailer.sh (CLAUDE_AI_TRAILER) — every one of them naming the switch in a
 # comment and in none of its reasons. Promoting this to err() is the follow-up, owed
 # once those five messages carry the name; the rule is not soft, the tree is.
+# pc_switch_reads <hook> — the off-switch names one hook script reads, one per line, sorted:
+# `${NAME:-`, `plugin_switch=NAME`, and `cc_option NAME` (bare, "NAME" or 'NAME'; comment lines
+# skipped; the whole identifier is read, then kept only if it has a switch shape, so
+# `FOO_BOOST_MODE` is never cut to `FOO_BOOST`). Host variables are dropped. ONE source for
+# pc_offswitch_named and generate.sh's off-switch table: two copies of this could disagree
+# about which switches exist, and nothing else would notice.
+pc_switch_reads() {
+  local shape='CC_[A-Z0-9_]+|CLAUDE_[A-Z0-9_]+|[A-Z0-9_]+_BOOST|[A-Z0-9_]+_STOP_GATE'
+  { grep -ohE "\\\$\\{($shape):-" "$1" | sed -E 's/^\$\{//; s/:-$//'
+    grep -ohE '^[[:space:]]*plugin_switch=[A-Z0-9_]+' "$1" | sed -E 's/.*=//'
+    grep -v '^[[:space:]]*#' "$1" \
+      | grep -oE "cc_option[[:space:]]+[\"']?[A-Za-z0-9_]+" \
+      | sed -E "s/^cc_option[[:space:]]+[\"']?//" | grep -xE "$shape"
+  } 2>/dev/null \
+    | grep -vxE 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR|CLAUDE_CONFIG_DIR|CLAUDE_CODE_SESSION_ID|CLAUDE_PLUGIN_DATA' \
+    | LC_ALL=C sort -u
+  return 0
+}
+
 pc_offswitch_named() {
   local root="${1:-plugins}" bad=0 hj d p sh rel sw named
   command -v jq >/dev/null 2>&1 || return 0
@@ -481,17 +508,13 @@ pc_offswitch_named() {
       # merely DISCUSSES exit 2 (every one of them does) does not put a hook in scope.
       grep -v '^[[:space:]]*#' "$sh" \
         | grep -qE 'permissionDecision[^,}]*(deny|ask)|permissionDecision:[[:space:]]*\$|exit 2' || continue
-      sw=$( { grep -ohE '\$\{(CC_[A-Z0-9_]+|CLAUDE_[A-Z0-9_]+|[A-Z0-9_]+_BOOST|[A-Z0-9_]+_STOP_GATE):-' "$sh" \
-                | sed -E 's/^\$\{//; s/:-$//'
-              grep -ohE '^[[:space:]]*plugin_switch=[A-Z0-9_]+' "$sh" | sed -E 's/.*=//'
-            } 2>/dev/null \
-            | grep -vxE 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR|CLAUDE_CONFIG_DIR|CLAUDE_CODE_SESSION_ID' \
-            | sort -u )
+      sw=$(pc_switch_reads "$sh")
       [ -n "$sw" ] || continue
       named=0
       while IFS= read -r v; do
         [ -n "$v" ] || continue
         grep -v '^[[:space:]]*#' "$sh" \
+          | sed -E "s/cc_option[[:space:]]+[\"']?[A-Za-z0-9_]+//g" \
           | grep -qE "[^A-Z_$\{]$v" && { named=1; break; }
       done <<EOF
 $sw
