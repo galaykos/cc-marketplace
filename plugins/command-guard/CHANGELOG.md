@@ -2,7 +2,7 @@
 
 ## 0.8.0 — 2026-09-30
 
-- **Off-switches are now `/config` options:** `cc_config_guard`, `claude_destructive_guard`, under `/config` (or `/plugin configure command-guard`), each with today's default. The environment variable (`CC_CONFIG_GUARD`, `CLAUDE_DESTRUCTIVE_GUARD`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+- **Off-switches are now `/config` options:** `cc_config_guard`, `claude_destructive_guard`, under `/config` (or `/plugin configure command-guard`), each with today's default. The environment variable (`CC_CONFIG_GUARD`, `CLAUDE_DESTRUCTIVE_GUARD`) still overrides its option. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
 - `claude_destructive_guard` keeps the variable's values (`deny`, `deny-only`, `off`).
 
 ## 0.7.3 — 2026-09-29

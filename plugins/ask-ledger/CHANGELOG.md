@@ -4,7 +4,7 @@ All notable changes to the `ask-ledger` plugin.
 
 ## 0.3.0 — 2026-09-30
 
-- **Off-switches are now `/config` options:** `cc_ask_ledger`, under `/config` (or `/plugin configure ask-ledger`), each with today's default. The environment variable (`CC_ASK_LEDGER`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
+- **Off-switches are now `/config` options:** `cc_ask_ledger`, under `/config` (or `/plugin configure ask-ledger`), each with today's default. The environment variable (`CC_ASK_LEDGER`) still overrides its option. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
 
 ## 0.2.2 — 2026-09-25
 

@@ -196,7 +196,7 @@ config_kind() {
   # guard is the plugin's OTHER ask tier and read only its own variable, so the
   # documented setting did not deliver what it promised. Both values that mean
   # "no ask tier" now silence this hook too. Measured 2026-09-15.
-  case "$(printf '%s' "$(cc_option CLAUDE_DESTRUCTIVE_GUARD "")" | tr '[:upper:]' '[:lower:]')" in
+  case "$(printf '%s' "$(cc_option CLAUDE_DESTRUCTIVE_GUARD deny)" | tr '[:upper:]' '[:lower:]')" in
     off | deny-only) exit 0 ;;
   esac
   input=$(cat)
