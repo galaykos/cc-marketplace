@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.118.0"
+    "version": "0.119.0"
   },
   "plugins": [
     {
@@ -27,7 +27,7 @@
     {
       "name": "design-kit",
       "source": "./plugins/design-kit",
-      "description": "The Claude Desktop design picker as local, own-your-files commands: /design-kit:slides (self-contained HTML deck with notes; PDF and PPTX by script), /design-kit:design (artboard canvas of 2-4 directions with editable text and knobs; PNG/PDF), /design-kit:in-codebase (the design rendered with the project's OWN components on its dev server, plus handoff-bundle intake with a token-drift table), /design-kit:system (tokens, typefaces and a component inventory extracted from the repo or a URL into design-system/), /design-kit:artifact (one self-contained HTML page in a local gallery; LAN, pages-branch or zip sharing on consent). One localhost URL under .design-kit/; nothing leaves the machine unless you say yes."
+      "description": "The Claude Desktop design picker as local, own-your-files skills: /design-kit:slides (self-contained HTML deck with notes; PDF and PPTX by script), /design-kit:design (artboard canvas of 2-4 directions with editable text and knobs; PNG/PDF), /design-kit:in-codebase (the design rendered with the project's OWN components on its dev server, plus handoff-bundle intake with a token-drift table), /design-kit:system (tokens, typefaces and a component inventory extracted from the repo or a URL into design-system/), /design-kit:artifact (one self-contained HTML page in a local gallery; LAN, pages-branch or zip sharing on consent). One localhost URL under .design-kit/; nothing leaves the machine unless you say yes."
     },
     {
       "name": "laravel",
@@ -142,7 +142,7 @@
     {
       "name": "command-guard",
       "source": "./plugins/command-guard",
-      "description": "Destructive-command prevention: a PreToolUse hook that classifies every Bash (and MCP shell/SQL) command before it runs — denying irreversible data loss (migrate:fresh, DROP DATABASE, rm -rf /, docker compose down -v, terraform destroy, cloud deletes, overwriting a live .env, a cd into a missing dir) and prompting on scoped-but-destructive ones (git reset --hard, rm -rf on a path git cannot restore, kubectl delete pod). Reads through quotes, wrappers and heredocs; skips read-only commands; fail-open. A second PreToolUse config-guard asks before a write weakens settings, hooks, manifests or lint/test config. Ships /command-guard:check and a user-owned allow-file the agent cannot edit."
+      "description": "Destructive-command prevention: a PreToolUse hook that classifies every Bash (and MCP shell/SQL) command before it runs — denying irreversible data loss (migrate:fresh, DROP DATABASE, rm -rf /, docker compose down -v, terraform destroy, cloud deletes, overwriting a live .env, a cd into a missing dir) and prompting on scoped-but-destructive ones (git reset --hard, rm -rf on a path git cannot restore, kubectl delete pod). Reads through quotes, wrappers and heredocs; skips read-only commands; fail-open. A second PreToolUse config-guard asks before a write weakens settings, hooks, manifests or lint/test config. Ships /command-guard:check and a user-owned allow-file guarded from agent writes."
     },
     {
       "name": "secret-scanning",

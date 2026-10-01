@@ -32,7 +32,11 @@
 # and less on it are blocked — use cat/grep. WHAT IT DOES NOT CATCH: a path built from a
 # variable or a glob, a script file that writes it, and any program git config names (a diff
 # driver, textconv, clean filter, pager, core.fsmonitor, gpg.program via --show-signature),
-# set before the command runs.
+# set before the command runs. The name is matched in any ASCII letter case, in a command, a
+# Write/Edit path, an *apply_patch body and a *create_new_file path: a case-insensitive
+# filesystem opens one file under each such spelling (on a case-sensitive one a differently-cased
+# sibling is over-denied — harmless). NOT caught on the write path: any other MCP write tool,
+# NotebookEdit's notebook_path, and a non-ASCII spelling the filesystem folds to the name.
 #
 # CLAUDE_DESTRUCTIVE_GUARD, read from the hook's own environment:
 #   unset      deny + ask, as above
@@ -508,7 +512,7 @@ allow_file_pure_read() { # raw command -> 0 when every segment is a pure read
       }
       gsub(/[\t\n]/, " ", seg); print seg
     }')
-  # no segment judged means the split itself failed: unsure is not pure
+  # defensive: no input reaches this with seen=0 (the basename must sit in a non-empty segment); seen=0 means the split itself failed, and unsure is not pure
   [ "$seen" -eq 1 ]
 }
 
@@ -969,9 +973,10 @@ if [ "${1:-}" = "--version" ]; then printf 'command-guard %s\n' "$GUARD_VERSION"
       f=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null)
       if [ -z "$f" ]; then
         patch=$(printf '%s' "$input" | jq -r '.tool_input.input // .tool_input.patch // empty' 2>/dev/null)
+        patch=$(printf '%s' "$patch" | LC_ALL=C tr '[:upper:]' '[:lower:]' 2>/dev/null || printf '%s' "$patch")
         case "$patch" in *"$ALLOW_BASENAME"*) f="$ALLOW_BASENAME" ;; esac
       fi
-      case "$f" in
+      case "$(printf '%s' "$f" | LC_ALL=C tr '[:upper:]' '[:lower:]' 2>/dev/null || printf '%s' "$f")" in
         *"$ALLOW_BASENAME") emit deny "BLOCKED by command-guard — ${ALLOW_BASENAME} is the user's standing exemption list for destructive commands. An agent that can edit it can exempt itself. Ask the user to add the line; tell them the exact regex you want." ;;
       esac
       # A whole-file Write onto an existing .env replaces every credential in it,

@@ -3,6 +3,11 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.11.2 — 2026-10-01
+
+- The shared Bash-write parsers end a command at a lone `&`. Text echoed before one is no longer judged as the content of a file a later command writes (`echo "<text>" & sed -i … x.sql` was attributed to `x.sql`), and text a command writes after a backgrounded one is now read (`sleep 1 & echo "<text>" > f`). The destructive-SQL guard carries both updated blocks.
+- Not read: text in a command that a `&` inside `$(( ))` or `${ }` ends early.
+
 ## 0.11.1 — 2026-10-01
 
 - The destructive-SQL guard carries the updated shared Bash-write parser: the shared `cc_bash_write_targets` block now returns every file a `sed -i` / `perl -i` command edits instead of its last word, never a trailing redirect (`sed -i … tsconfig.json 2>/dev/null` used to yield `2>/dev/null`), and recognises GNU `--in-place[=SUF]` and BSD `-I`.

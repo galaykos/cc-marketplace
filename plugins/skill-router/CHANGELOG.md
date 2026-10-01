@@ -2,6 +2,11 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.22.2 — 2026-10-01
+
+- **A file written after a lone `&` routes:** the shared `cc_bash_write_targets` block now ends a command at a lone `&`, so a write after one is read (`echo x & sed -i s/a/b/ f.json` used to return nothing) and words after one are no longer taken for `sed`/`perl`/`tee` operands; `cmd |& tee f` is read; a `-`-led file after `sed … --` or `perl -i` is returned. So `route.sh` routes on the file the second command writes, and no longer on words that only follow a `&`.
+- Still not read: a `>& file` redirect, a bare `-x` operand with no `/` or `.` in it, and operands before a `&` inside `$(( ))` or `${ }` (that `&` ends the command). Over-read, harmless: a `-`-led argument to a perl script that contains `/` or `.`.
+
 ## 0.22.1 — 2026-10-01
 
 - **`sed -i` edits route to the file they edit:** the shared `cc_bash_write_targets` block now returns every file a `sed -i` / `perl -i` command edits instead of its last word, never a trailing redirect (`sed -i … tsconfig.json 2>/dev/null` used to yield `2>/dev/null`), and recognises GNU `--in-place[=SUF]` and BSD `-I`. So `route.sh` routes on each edited file rather than on a redirect word or only the last operand.

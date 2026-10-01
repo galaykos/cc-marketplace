@@ -2,7 +2,7 @@
 # user's project and every path a marketplace hook keeps state in, where that state
 # lives, and whether a branch may carry it.
 #
-# > Last verified: 2026-09-30 — https://github.com/galaykos/cc-marketplace
+# > Last verified: 2026-10-01 — https://github.com/galaykos/cc-marketplace
 #
 # kind: scratch  = previews, exports, caches, run logs, mockups, markers — ignore it
 #       cleaned  = the plugin removes it itself; ignored anyway as a safety net
@@ -16,10 +16,10 @@
 # `why` cites the file that writes the path. A plugin that starts writing a new
 # directory adds its row here; nothing proves this list complete (standing: recorded).
 # Read by scripts/scratch-ignore.sh. Tab-separated: pattern	plugin	kind	location	why
-.design-kit/	design-kit	scratch	project	design-kit/scripts/dk.sh:35 — decks, boards, artifacts, previews, exports, workshop.json, usage.jsonl, decisions.jsonl, .cache/
+.design-kit/	design-kit	scratch	project	design-kit/scripts/dk.sh:34 — decks, boards, artifacts, previews, exports, workshop.json, usage.jsonl, decisions.jsonl, .cache/
 __design-kit__/	design-kit	cleaned	project	design-kit/scripts/codebase-scaffold.sh:31 — scratch entry on the project's dev server; codebase-cleanup.sh removes it after the pick
 .claude/design-kit/	design-kit	scratch	plugin-data	legacy — no current writer (design-kit/hooks/unread-pick.sh once kept once-per-session markers here); kept so existing dirs stay ignored
-taskmaster-docs/	taskmaster, ui-ux	scratch	project	taskmaster/skills/grill/SKILL.md:58 — specs, cards, mockups (and craft-layer's craft/ run records, craft-layer/commands/craft.md:60); the skill drops a .gitignore holding * on creation, and ui-ux/commands/theme.md:38 drops its own .gitignore holding * in mockups/
+taskmaster-docs/	taskmaster, ui-ux	scratch	project	taskmaster/skills/grill/SKILL.md:141 — specs, cards (taskmaster/commands/task.md:98), mockups (and craft-layer's craft/ run records, craft-layer/commands/craft.md:60); ui-ux/commands/theme.md:38 drops a .gitignore holding * in mockups/
 .craft-layer/	craft-layer	scratch	project	craft-layer/commands/craft.md:41 — run-log.md and shots/ (template/craft-gates/gates.spec.ts:192); created with a .gitignore holding *
 .playwright-mcp/	overseer	scratch	project	overseer/skills/overseer/references/acceptance.md:93 — the Playwright MCP's capture dir under the session cwd
 .claude/task-runner/	task-runner	scratch	project	task-runner/hooks/drift.sh:121 — active-run.json, rv/, bg/, gate-pass.json; the first hook to see it drops a .gitignore holding *
@@ -35,7 +35,7 @@ taskmaster-docs/	taskmaster, ui-ux	scratch	project	taskmaster/skills/grill/SKILL
 .claude/cc-phase.json	taskmaster, git-workflow, task-runner, code-architecture	scratch	project	taskmaster/commands/task.md:40 — the arc-phase sentinel every phase-owning command writes and must remove
 .claude/worktrees/	git-workflow	scratch	project	git-workflow/skills/worktree-isolation/SKILL.md:40 — where EnterWorktree puts feature worktrees; a checkout inside a checkout must never be committed
 .claude/hindsight/	hindsight	state	project	hindsight/skills/harvest/SKILL.md:141 — anti-patterns.md holds the failed-approach warnings the user approved; a team may want them
-.claude/destructive-guard-allow	command-guard	state	project	command-guard/hooks/destructive-guard.sh:450 — the project's allow-list of regexes; a config the team maintains
+.claude/destructive-guard-allow	command-guard	state	project	command-guard/hooks/destructive-guard.sh:454 — the project's allow-list of regexes; a config the team maintains
 brain/	brain	state	project	brain/README.md:3 — "A committed, Obsidian-style codebase map"; tracked by design
 design-system/	design-kit	state	project	design-kit/README.md:406 — "design-system/ is yours"; tokens.json, DESIGN-SYSTEM.md, components.json, DECISIONS.md are the record
 research/	ultra-deep-research	state	project	ultra-deep-research/README.md:6 — the cited report is the deliverable
@@ -43,4 +43,4 @@ research/	ultra-deep-research	state	project	ultra-deep-research/README.md:6 — 
 ~/.claude/hindsight/	hindsight	state	home	hindsight/hooks/collect.sh:96, skill-use.sh:86 — <slug>/ledger.jsonl, skills.jsonl; read by hindsight/scripts/outcome.sh:23 and scripts/turn-cost.sh:321
 ~/.claude/comment-discipline/	code-review	state	home	code-review/hooks/density.sh:433, verbosity.sh:245 — density- and verbosity-ledger.jsonl; read by nothing automatically, kept to revisit the thresholds
 ~/.claude/terse-mode	candor	state	home	candor/hooks/mode.sh:90 via /candor:level — the brevity level, at ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode; read by mode.sh:194 and activate.sh:64
-~/.claude/destructive-guard-allow	command-guard	state	home	written by the user — the per-user allow-list of regexes; read by command-guard/hooks/destructive-guard.sh:885
+~/.claude/destructive-guard-allow	command-guard	state	home	written by the user — the per-user allow-list of regexes; read by command-guard/hooks/destructive-guard.sh:889

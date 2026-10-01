@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.42.2 — 2026-10-01
+
+- **The scope-lock hook reads a write after a lone `&`:** the shared `cc_bash_write_targets` block now ends a command at a lone `&`, so a write after one is read (`echo x & sed -i s/a/b/ f.json` used to return nothing) and words after one are no longer taken for `sed`/`perl`/`tee` operands; `cmd |& tee f` is read; a `-`-led file after `sed … --` or `perl -i` is returned. So a file the second command writes is checked against the card's declared files.
+- Still not read: a `>& file` redirect, a bare `-x` operand with no `/` or `.` in it, and operands before a `&` inside `$(( ))` or `${ }` (that `&` ends the command). Over-read, harmless: a `-`-led argument to a perl script that contains `/` or `.`.
+
 ## 0.42.1 — 2026-10-01
 
 - **The scope-lock hook reads `sed -i` edits correctly:** the shared `cc_bash_write_targets` block now returns every file a `sed -i` / `perl -i` command edits instead of its last word, never a trailing redirect (`sed -i … tsconfig.json 2>/dev/null` used to yield `2>/dev/null`), and recognises GNU `--in-place[=SUF]` and BSD `-I`. So every file such a command edits is checked against the card's declared files.
