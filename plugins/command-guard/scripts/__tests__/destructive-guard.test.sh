@@ -598,6 +598,49 @@ for v in \
 done
 
 # ---------------------------------------------------------------------------
+# 6. SEGMENT SPLITTER -- two bypasses, each hiding a second command behind a
+# reader-led segment. Closed in 0.8.1.
+#
+# (a) A backslash inside '…' is literal in bash. The walk took it as an escape,
+#     so `'x\'` never closed and the `;` after it was read as quoted.
+# (b) BWK awk (macOS /usr/bin/awk) reads RS = "\0" as paragraph mode: a blank
+#     line started a new record, and the per-record loop reset the quote state
+#     but not `seg`, so the next line was glued onto the reader before it.
+#     mawk and gawk do not do this, so CI (Ubuntu) cannot see a regression of
+#     (b) -- only a run of this file on macOS can.
+#
+# check_cd_chain carries a copy of the same walk; the cd rows are its cover.
+# ---------------------------------------------------------------------------
+printf '== segment splitter\n'
+expect deny  "grep 'x\\' f; php artisan migrate:fresh"
+expect deny  "grep 'x\\' f && php artisan migrate:fresh"
+expect deny  "grep 'x\\' f; cd /tmp/cg-absent-dir; ls"
+expect allow "grep 'a\\;b' f"                                    # the ; is still quoted
+expect allow 'grep "x\"; php artisan migrate:fresh" f'           # inside "…" a backslash does escape
+expect allow 'echo a\;b'
+# $'…' is the one single-quoted form where \' IS an escape: the literal-backslash
+# rule alone would read $'x\'' as reopened and hide what follows.
+expect deny  "grep \$'x\\'' f; php artisan migrate:fresh"
+expect deny  "grep \$'x\\'' f; cd /tmp/cg-absent-dir; ls"
+expect allow "grep \$'a\\'; php artisan migrate:fresh' f"         # the ; sits inside the \$'…' string
+# after \$\$ bash opens a plain quote and zsh an ANSI one (measured on bash 3.2 and
+# zsh); neither reading may hide the next command
+expect deny  "grep \$\$'x\\' f; php artisan migrate:fresh"
+expect deny  "grep \$\$'x\\'' f; php artisan migrate:fresh"
+expect deny  $'ls a\n\nphp artisan migrate:fresh'
+expect deny  $'ls a\n\n\nphp artisan migrate:fresh'
+expect deny  $'echo "a\n\nb"; php artisan migrate:fresh'          # a quote spanning the blank line
+expect deny  $'cd /tmp/cg-absent-dir\n\nls'
+expect deny  $'ls # don\'t\n\nphp artisan migrate:fresh'          # an apostrophe in a comment, same desync
+expect allow $'ls a\n\nls b'
+# and through the real PreToolUse entry point, where the command arrives JSON-decoded
+for v in "grep 'x\\' f; php artisan migrate:fresh" $'ls a\n\nphp artisan migrate:fresh'; do
+  out=$(printf '%s' "$(bash_json "$v")" | "$BASH_BIN" "$GUARD" 2>/dev/null)
+  d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+  [ "$d" = "deny" ] && ok || bad "hook mode must judge the command hidden behind a reader" "verdict=${d:-<silent>} cmd=$v"
+done
+
+# ---------------------------------------------------------------------------
 SNAP_AFTER=$(git_snap)
 [ "$SNAP_BEFORE" = "$SNAP_AFTER" ] && ok || bad "the guard mutated plugins/command-guard" "git status --porcelain -- plugins/command-guard changed"
 
