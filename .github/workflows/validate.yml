@@ -126,6 +126,8 @@ jobs:
         run: bash scripts/smoke/bash-write-targets-tests.sh
       - name: Plugin-data state harness (no .claude/<plugin>/ dir for moved state)
         run: bash scripts/smoke/plugin-data-state-tests.sh
+      - name: remove-plugin.sh harness (merge preflight, prose_match hint, dry run — on a mirror)
+        run: bash scripts/smoke/remove-plugin-tests.sh
       # The host's own validator, pinned to the CLI this repo was measured against —
       # scripts/official-validate.sh is the local twin and carries the derivation.
       # LAST among the fail-capable steps that do not need the binary, on purpose: the

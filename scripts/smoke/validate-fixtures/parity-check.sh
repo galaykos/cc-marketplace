@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Parity harness: the ONE smoke harness that runs validate.sh end to end; every other
-# validate.sh harness calls its pc_* function directly. One run proves each check's FAIL
-# string survives validate.sh's call site to the build: SKILL budget, doc-location, jargon
-# and removed-artifact (a skill and a plugin-root README), lane schema, deference (and a
-# non-zero exit), role-floor unclassified pin and exemption report, stray dir (the only
-# line naming it), both route-prompt checks, and the renames ledger.
+# validate.sh harness calls its pc_* function directly. One run proves the build exits
+# non-zero and each check's FAIL string survives validate.sh's call site to the build:
+# SKILL budget, doc-location, jargon and removed-artifact (a skill and a plugin-root
+# README), lane schema, deference, role-floor unclassified pin and exemption report, stray
+# dir (the only line naming it), both route-prompt checks, and the renames ledger.
 # Plants go into a git mirror, never the live tree: two of them edit shipped files (a
 # plugin.json, skill-router's route-prompt.sh), and live plants have both reached a commit
 # after a killed run and reverted a completed feature on restore. validate.sh cds to its
@@ -39,14 +39,19 @@ cleanup() {
   if grep -qE '^Track cards 03 and 05 here\.$|^- \*\*typescript\*\* — planted stale member row$' "$RM" 2>/dev/null; then
     echo "FAIL: planted README lines in the live $RM"; bad=1
   fi
-  [ "$(cksum $EDITED)" = "$EDITED_SUMS" ] \
-    || { echo "FAIL: a live file the mirror plants edit changed during the run: $EDITED"; bad=1; }
+  for f in $EDITED; do
+    sum=$(cksum "$f" 2>/dev/null)
+    [ -n "$sum" ] && printf '%s\n' "$EDITED_SUMS" | grep -qxF "$sum" \
+      || { echo "FAIL: a live file the mirror plants edit changed during the run: $f"; bad=1; }
+  done
   [ "$bad" -eq 0 ] || exit 1
 }
-trap cleanup EXIT INT TERM HUP
+trap cleanup EXIT; trap 'exit 130' INT TERM HUP
 
 for d in plugins scripts templates .claude-plugin; do cp -R "$d" "$MIRROR/" || exit 2; done
-for f in CLAUDE.md README.md skills-lock.json .gitignore; do cp "$f" "$MIRROR/" || exit 2; done
+for f in CLAUDE.md README.md .gitignore; do cp "$f" "$MIRROR/" || exit 2; done
+# A git hook exports these naming the live repo; init, add and validate.sh would follow them.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 # The stray check reads git's index, so the index is built before any plant lands.
 { git -C "$MIRROR" init -q && git -C "$MIRROR" add -A; } \
   || { echo "FAIL: could not build the mirror's git index"; exit 1; }
@@ -87,14 +92,24 @@ printf -- '---\nname: _parity_fm\ndescription: Spawned by the parity harness %s\
   "$(printf 'x%.0s' $(seq 1 580))" > "$MIRROR/$FMA"
 chmod -x "$MIRROR/$HK"
 mkdir -p "$MIRROR/$STRAY/.claude/scratch" && : > "$MIRROR/$STRAY/.claude/scratch/marker"
+# The pattern is pc_route_prompt_greps' own; the plant tops the hook up to five greps.
+rp_n=$(grep -c 'printf .%s. "\$head" | grep' "$MIRROR/$RP")
+rp_n=${rp_n:-0}
 {
   printf 'echo /taskmaster:task\n'
-  printf '%s\n' 'printf '"'"'%s'"'"' "$head" | grep -qiE "landing page" && exit 0'
+  i=$rp_n
+  while [ "$i" -lt 5 ]; do
+    printf '%s\n' 'printf '"'"'%s'"'"' "$head" | grep -qiE "landing page" && exit 0'
+    i=$((i + 1))
+  done
 } >> "$MIRROR/$RP"
 jq 'del(.renames.a11y)' "$MIRROR/$MPJ" > "$MIRROR/$MPJ.tmp" && mv "$MIRROR/$MPJ.tmp" "$MIRROR/$MPJ" || exit 2
 
 out=$( cd "$MIRROR" && bash scripts/validate.sh 2>&1 ) && vrc=0 || vrc=$?
 rc=0
+[ "$vrc" -ne 0 ] \
+  && echo "PASS: e2e planted mirror fails the build (validate.sh rc=$vrc)" \
+  || { echo "FAIL: e2e validate.sh exited 0 on the planted mirror (want non-zero)"; rc=1; }
 printf '%s\n' "$out" | grep -qF "$SK/SKILL.md: body is 221 lines, over the 200-line ceiling" \
   && echo "PASS: budget FAIL fires" || { echo "FAIL: budget check did not fire"; rc=1; }
 printf '%s\n' "$out" | grep -qF "$DOC: non-functional doc inside a plugin" \
@@ -120,14 +135,14 @@ printf '%s\n' "$out" | grep -F "FAIL: lane-schema $LT:" \
   | grep -qF '5 fields (want 6) — a lane row is 6 tab-separated fields (artifact kind phase owns definite_trigger yields_to)' \
   && echo "PASS: e2e lane-schema FAIL reaches the build" \
   || { echo "FAIL: e2e lane-schema FAIL for the 5-field row in $LT did not reach the build"; rc=1; }
-[ "$vrc" -ne 0 ] && printf '%s\n' "$out" | grep -qF 'FAIL: deference code-architecture -> devops — plugin.json promises deference to a plugin that no lane row yields to — add the yields_to edge or reword the description' \
+printf '%s\n' "$out" | grep -qF 'FAIL: deference code-architecture -> devops — plugin.json promises deference to a plugin that no lane row yields to — add the yields_to edge or reword the description' \
   && echo "PASS: e2e deference FAIL reaches the build" \
-  || { echo "FAIL: e2e deference FAIL did not reach the build (validate.sh rc=$vrc, want non-zero)"; rc=1; }
+  || { echo "FAIL: e2e deference FAIL did not reach the build"; rc=1; }
 printf '%s\n' "$out" | grep -qF "FAIL: $RFA: pins model 'sonnet' but has neither a role-floors row nor 'floor: none'" \
   && echo "PASS: e2e role-floor FAIL reaches the build" \
   || { echo "FAIL: e2e role-floor unclassified-pin FAIL for $RFA did not reach the build"; rc=1; }
 printf '%s\n' "$out" | grep -qxF "  $RFX: $RFX_REASON" \
-  && echo "PASS: role-floor exemption reaches the build's exemption report" \
+  && echo "PASS: e2e role-floor exemption reaches the build's exemption report" \
   || { echo "FAIL: $RFX's floor-reason is missing from the '== role-floor exemptions ==' report"; rc=1; }
 stray_lines=$(printf '%s\n' "$out" | grep -cF "${STRAY#plugins/}")
 if printf '%s\n' "$out" | grep -qxF "FAIL: stray directory $STRAY has no tracked files — delete it (a hook or editor left scratch here)" \
@@ -139,9 +154,13 @@ fi
 printf '%s\n' "$out" | grep -qF 'FAIL: skill-router route-prompt.sh carries literal command token(s): /taskmaster:task — the catalog is built from installed plugins, never hardcoded' \
   && echo "PASS: e2e route-prompt literal-token FAIL reaches the build" \
   || { echo "FAIL: e2e route-prompt literal-token FAIL did not reach the build"; rc=1; }
-printf '%s\n' "$out" | grep -qF 'FAIL: skill-router route-prompt.sh matches the prompt 5 times — at most 4 (three narrowing refusals + one work-shaped gate); a fifth is a routing table regrowing in shell' \
-  && echo "PASS: e2e route-prompt fifth-grep FAIL reaches the build" \
-  || { echo "FAIL: e2e route-prompt fifth-grep FAIL did not reach the build"; rc=1; }
+if [ "$rp_n" -ge 5 ]; then
+  echo "FAIL: e2e route-prompt fifth-grep plant had nothing to add — the live $RP already matches the prompt $rp_n times (budget 4)"; rc=1
+elif printf '%s\n' "$out" | grep -qF 'FAIL: skill-router route-prompt.sh matches the prompt 5 times — at most 4 (three narrowing refusals + one work-shaped gate); a fifth is a routing table regrowing in shell'; then
+  echo "PASS: e2e route-prompt fifth-grep FAIL reaches the build"
+else
+  echo "FAIL: e2e route-prompt fifth-grep FAIL did not reach the build"; rc=1
+fi
 fm_s=$(printf '%s\n' "$out" | grep -nxF "FAIL: $FMA: frontmatter missing effort: (agents default to xhigh)" | cut -d: -f1)
 fm_l=$(printf '%s\n' "$out" | grep -nxE "FAIL: $FMA: description [0-9]+ chars \(max 500\)" | cut -d: -f1)
 if [ -n "$fm_s" ] && [ -n "$fm_l" ] && [ "$fm_l" -gt "$fm_s" ]; then

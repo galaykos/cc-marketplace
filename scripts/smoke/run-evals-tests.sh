@@ -20,7 +20,8 @@
 # it prints a SKIP, never a PASS.
 #
 # WHAT IT DOES NOT PROVE: any score, that a real paid run's document still has the shape
-# the canned one assumes (only the empty-cases shape is checked against the real CLI), that
+# the canned one assumes (only the empty-cases shape is checked against the real CLI; an
+# errored run's non-null `error` is the docs' field table, no real one was ever recorded), that
 # the CLI still filters `--case`/`--tag` the way the filter arms assume (measured by hand on
 # 2.1.285; the stub filters nothing, so those arms check the script's copy of the rules), that
 # the CLI keeps treating a 0 ceiling as "launch nothing" — arm (d) trusts that — or that an
@@ -264,9 +265,9 @@ else
   msg=$(check "$sb" '
 by = {c["name"]: c for c in s["cases"]}
 assert sorted(by) == ["alpha", "beta"], sorted(by)
-assert by["alpha"]["spread"] == {"with": "2/3", "without": "1/3"}, by["alpha"]["spread"]
+assert by["alpha"]["spread"] == {"with": "2/3", "without": "1/2"}, by["alpha"]["spread"]
 assert by["beta"]["spread"] == {"with": "3/3", "without": "2/3"}, by["beta"]["spread"]
-assert by["alpha"]["scores"] == {"with": [1, 0.5, 1], "without": [0, 0, 1]}, by["alpha"]["scores"]
+assert by["alpha"]["scores"] == {"with": [1, 0.5, 1], "without": [0, 1]}, by["alpha"]["scores"]
 for c in s["cases"]:
     assert c["completed"] == {"with": 3, "without": 3}, c["completed"]
     assert c["planned"] == {"with": 3, "without": 3}, c["planned"]
@@ -274,7 +275,7 @@ assert by["alpha"]["delta"] == 0.5 and by["beta"]["delta"] == 0.1667
 assert s["plannedRuns"] == 12 and s["completedRuns"] == 12, (s["plannedRuns"], s["completedRuns"])
 assert s["exitCode"] == 1 and s["partial"] is False and s["partialReason"] is None
 assert s["arms"] == ["with", "without"] and s["maxCostUsd"] == 5 and s["costUsd"] == 1.25
-assert s["runsPerCaseOverride"] is None and s["schema"] == 1 and s["plugin"] == "duo"
+assert s["runsPerCaseOverride"] is None and s["schema"] == 2 and s["plugin"] == "duo"
 ')
   [ -z "$msg" ] && ok "summary records vote spread per arm" || bad "summary records vote spread per arm" "$msg"
 
@@ -283,7 +284,7 @@ top = {"schema", "plugin", "startedAt", "claudeVersion", "maxCostUsd", "costUsd"
        "partialReason", "arms", "runsPerCaseOverride", "plannedRuns", "completedRuns", "cases"}
 assert set(s) == top, set(s) ^ top
 for c in s["cases"]:
-    assert set(c) == {"name", "planned", "completed", "scores", "spread", "delta"}, set(c)
+    assert set(c) == {"name", "planned", "completed", "scores", "spread", "errors", "erroredScores", "delta"}, set(c)
 assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", s["startedAt"]), s["startedAt"]
 for bad in ("/Users/", "/home/", "timed out", "login bug", "names the file", "0f8fad5b"):
     assert bad not in t, bad
@@ -312,6 +313,37 @@ assert all(c["planned"] == {"with": 4, "without": 4} for c in s["cases"]), [c["p
       || bad "extra arguments pass through verbatim after the fixed ones" "$msg" ;;
   *) bad "extra arguments pass through verbatim after the fixed ones" "argv=$args" ;;
 esac
+
+# a run with a non-null error, whether it scored 0 or 1, is counted in errors and leaves the spread;
+# its score is kept in erroredScores. A run with no error and no score stays in the denominator.
+python3 - "$T/doc.json" "$T/doc-err.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+d["cases"][1]["arms"]["with"][2] = {"score": 1, "passed": True, "error": "max turns reached"}
+d["cases"][1]["arms"]["without"][0]["score"] = None
+json.dump(d, open(sys.argv[2], "w"))
+PY
+stub RUN_EVALS=1 RUN_EVALS_OUT_DIR="$T/out-x" STUB_ARGV="$T/argv-x" STUB_DOC="$T/doc-err.json" STUB_RC=1 \
+  bash "$R/scripts/run-evals.sh" duo >/dev/null 2>&1; st=$?
+sx=$(only_summary "$T/out-x" duo)
+msg=$([ -n "$sx" ] && check "$sx" '
+by = {c["name"]: c for c in s["cases"]}
+assert by["alpha"]["errors"] == {"with": 0, "without": 1}, by["alpha"]["errors"]
+assert by["alpha"]["spread"] == {"with": "2/3", "without": "1/2"}, by["alpha"]["spread"]
+assert by["beta"]["errors"] == {"with": 1, "without": 0}, by["beta"]["errors"]
+assert by["beta"]["spread"]["with"] == "2/2", by["beta"]["spread"]
+assert by["alpha"]["scores"]["without"] == [0, 1] and by["beta"]["scores"]["with"] == [1, 1], [c["scores"] for c in s["cases"]]
+assert by["alpha"]["erroredScores"] == {"with": [], "without": [0]}, by["alpha"]["erroredScores"]
+assert by["beta"]["erroredScores"] == {"with": [1], "without": []}, by["beta"]["erroredScores"]
+b = by["beta"]
+assert len(b["scores"]["without"]) == 2 and b["spread"]["without"].endswith("/3") and b["errors"]["without"] == 0, b
+assert all(c["completed"] == {"with": 3, "without": 3} for c in s["cases"]), [c["completed"] for c in s["cases"]]
+' || echo "no summary written")
+if [ "$st" -eq 1 ] && [ -z "$msg" ]; then
+  ok "an errored run is counted as an error, not a failed vote"
+else
+  bad "an errored run is counted as an error, not a failed vote" "exit=$st (want 1) $msg"
+fi
 
 # a document whose case name is session-id shaped: the summary is refused, not written
 python3 - "$T/doc.json" "$T/doc-leak.json" <<'PY'
@@ -363,6 +395,8 @@ planned = {n: by[n]["planned"]["with"] for n in by}
 assert planned == {"alpha": 3, "beta": 3, "gamma": 4, "delta": 3, "epsilon": 5}, planned
 assert all(c["planned"]["with"] == c["planned"]["without"] for c in s["cases"])
 assert by["alpha"]["completed"] == {"with": 3, "without": 1}, by["alpha"]["completed"]
+aw = {k: by["alpha"][k]["without"] for k in ("spread", "errors", "scores", "erroredScores")}
+assert aw == {"spread": "0/0", "errors": 1, "scores": [], "erroredScores": [0]}, aw
 assert by["beta"]["completed"] == {"with": 1, "without": 0}, by["beta"]["completed"]
 for n in ("gamma", "delta", "epsilon"):
     c = by[n]

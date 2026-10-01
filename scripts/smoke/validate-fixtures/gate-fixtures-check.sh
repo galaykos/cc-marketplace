@@ -383,5 +383,35 @@ out=$(pc_plugin_dependencies "$D") && r=0 || r=$?
 [ "$r" -eq 0 ] && [ -z "$out" ] && pass "deps: a tree with no dependencies key anywhere returns 0 and prints nothing" \
   || fail "deps: a tree with no dependencies key anywhere returns 0 and prints nothing" "rc=$r got: $out"
 
+# ---- pc_frontmatter: kind is the path's position, not a directory's name ----------
+# One body at both paths: description-only frontmatter passes as a command and fails as
+# an agent, so the agent-only FAIL line is what shows which kind a path was read as.
+F="$T/fm"; deep=plugins/x/skills/y/references/agents/n.md; real=plugins/x/agents/n.md
+mkdir -p "$F/${deep%/*}" "$F/${real%/*}"
+printf -- '---\ndescription: A note.\n---\n\nBody.\n' | tee "$F/$deep" > "$F/$real"
+fm_both() { # <path under $F>: the repo-relative form validate.sh passes, then the absolute one
+  local a
+  (cd "$F" && pc_frontmatter "$1"); a=$?
+  pc_frontmatter "$F/$1"; return $((a + $?))
+}
+out=$(fm_both "$deep") && r=0 || r=$?
+[ "$r" -eq 0 ] && [ -z "$out" ] && pass "frontmatter: a deep references/agents path is not an agent" \
+  || fail "frontmatter: a deep references/agents path is not an agent" "rc=$r got: $out"
+out=$(fm_both "$real") && r=0 || r=$?
+case "$r:$out" in
+  2:*"$real: frontmatter missing model:"*"$F/$real: frontmatter missing model:"*) pass "frontmatter: plugins/<p>/agents/<n>.md is still an agent" ;;
+  *) fail "frontmatter: plugins/<p>/agents/<n>.md is still an agent" "rc=$r got: ${out:-<empty>}" ;;
+esac
+# The header's two residuals, pinned: a plugin-shaped tail under a deep path is skipped in
+# the relative form (the anchor) and linted in the absolute one (matched from its end).
+tail=plugins/x/skills/y/references/plugins/z/agents/n.md
+mkdir -p "$F/${tail%/*}"; cp "$F/$real" "$F/$tail"
+out=$(cd "$F" && pc_frontmatter "$tail") && r=0 || r=$?
+out2=$(pc_frontmatter "$F/$tail") && r2=0 || r2=$?
+case "$r:$out:$r2:$out2" in
+  "0::1:"*"$F/$tail: frontmatter missing model:"*) pass "frontmatter: a plugin-shaped tail is skipped relative, linted absolute" ;;
+  *) fail "frontmatter: a plugin-shaped tail is skipped relative, linted absolute" "rc=$r got: ${out:-<empty>} / rc=$r2 got: ${out2:-<empty>}" ;;
+esac
+
 [ "$rc" -eq 0 ] && echo "All panel gate-fixture asserts passed."
 exit "$rc"

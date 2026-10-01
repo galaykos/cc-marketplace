@@ -58,6 +58,8 @@ Fixture roots for experiments: `CHASSIS_ROOT=<dir>` and `CHASSIS_TEMPLATES=<dir>
    migrations, confirm no domain-checklist content was lost.
 3. Gates before push:
    `bash scripts/generate.sh --check && bash scripts/validate.sh && bash scripts/check-version-bumps.sh master`.
+4. Then `bash scripts/context-budget.sh`, alone — `validate.sh` does not run it, and
+   it failed once beside a concurrent smoke run (both mutate scratch state).
 
 ## Preserve blocks — the per-region escape
 

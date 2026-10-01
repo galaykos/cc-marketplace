@@ -35,14 +35,16 @@ cleanup() {
   rm -rf "$T"
   [ "$bad" -eq 0 ] || exit 1
 }
-trap cleanup EXIT INT TERM HUP
+trap cleanup EXIT
+trap 'exit 130' INT TERM HUP
 
 FX="$T/fixture"
 mkdir -p "$FX/plugins/good/.claude-plugin" "$FX/plugins/zz-half" || exit 2
 printf '{"name":"good"}\n' > "$FX/plugins/good/.claude-plugin/plugin.json"
 printf '# good\n' > "$FX/plugins/good/README.md"
 : > "$FX/plugins/zz-half/notes.txt"
-{ git -C "$FX" init -q && git -C "$FX" add plugins; } || { echo "FAIL: could not build the fixture index"; exit 1; }
+# -f: a global gitignore can hide notes.txt or README.md, and add skips an ignored file silently.
+{ git -C "$FX" init -q && git -C "$FX" add -f plugins; } || { echo "FAIL: could not build the fixture index"; exit 1; }
 mkdir -p "$FX/plugins/zz-stray/.claude/scratch" "$FX/plugins/zz-new/.claude/scratch" \
   "$FX/plugins/zz-manifest/.claude-plugin" || exit 2
 printf '{"name":"zz-manifest"}\n' > "$FX/plugins/zz-manifest/.claude-plugin/plugin.json"

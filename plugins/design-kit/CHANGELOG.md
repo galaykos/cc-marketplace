@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.2 — 2026-10-01
+
+- Test harnesses only; nothing an installer runs changed. The local server the system-extract harness starts is now stopped when the harness ends, and the snapshot harness's two server-start failures name a crashed server where they blamed a busy port. The background-server one prints that server's last stderr lines; the review one cannot, because `preview.sh` discards its server's stderr.
+
 ## 0.9.1 — 2026-10-01
 
 - The plugin description calls the five entries skills, as the README has since 0.9.0. No behaviour change.

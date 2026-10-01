@@ -46,14 +46,14 @@ review_fresh() {
     rc_of "$@"
     [ "$rc" = 2 ] && grep -q 'busy?' <<<"$out" || return 0
   done
-  fail "the preview server lost its port on 5 tries, last output: $out"
+  fail "the preview server failed to start 5 times in a row, each on a fresh port — that points to a crashed server, not a busy port (preview.sh discards its stderr); last output: $out"
 }
 # serve_bg <pid-var> <port-var> <start-fn>: a server dead after the readiness poll lost its bind, so retry on a new port
 serve_bg() {
-  local try
+  local try err="$tmp/$3.err"
   for try in 1 2 3 4 5; do
     printf -v "$2" '%s' "$(free_port)"
-    "$3" "${!2}"; printf -v "$1" '%s' "$!"; disown "${!1}" 2>/dev/null || true
+    "$3" "${!2}" 2>"$err"; printf -v "$1" '%s' "$!"; disown "${!1}" 2>/dev/null || true
     for _ in 1 2 3 4 5 6 7 8 9 10; do
       kill -0 "${!1}" 2>/dev/null || break
       python3 -c 'import sys,urllib.request;urllib.request.urlopen(sys.argv[1],timeout=1)' "http://127.0.0.1:${!2}/" 2>/dev/null && break
@@ -61,7 +61,7 @@ serve_bg() {
     done
     kill -0 "${!1}" 2>/dev/null && return 0
   done
-  fail "$3 lost its port on 5 tries, last port ${!2}"
+  fail "$3 failed to start 5 times in a row, each on a fresh port (last ${!2}) — that points to a crashed server, not a busy port; its last stderr:"$'\n'"$(tail -n 5 "$err")"
 }
 
 # --- arguments: every one of these is a 1, never a 2 (2 means "unmeasured") ------
@@ -210,7 +210,7 @@ else
   site="$tmp/site"; mkdir -p "$site"
   printf '<!doctype html><title>a</title><body style="background:#123456">A</body>\n' > "$site/index.html"
   printf '<!doctype html><title>b</title><body style="background:#abcdef">B</body>\n' > "$site/b.html"
-  start_site() { ( cd "$site" && exec python3 -m http.server "$1" --bind 127.0.0.1 >/dev/null 2>&1 ) & }
+  start_site() { ( cd "$site" && exec python3 -m http.server "$1" --bind 127.0.0.1 >/dev/null ) & }
   site_pid=""; guard_pid=""
   trap 'kill $site_pid $guard_pid 2>/dev/null || true; stop_all; rm -rf "$tmp"' EXIT
   serve_bg site_pid sport start_site
@@ -249,7 +249,7 @@ class H(http.server.BaseHTTPRequestHandler):
         self.send_response(200); self.send_header("Content-Type", "text/html"); self.end_headers(); self.wfile.write(body)
 http.server.ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()
 PY
-  start_guard() { ( exec python3 "$tmp/guard.py" "$1" "$tmp/guard.log" >/dev/null 2>&1 ) & }
+  start_guard() { ( exec python3 "$tmp/guard.py" "$1" "$tmp/guard.log" >/dev/null ) & }
   serve_bg guard_pid gport start_guard
   printf '{"cookies":[{"name":"dk_session","value":"ok123","domain":"127.0.0.1","path":"/","expires":-1,"httpOnly":true,"secure":false,"sameSite":"Lax"}],"origins":[{"origin":"http://127.0.0.1:%s","localStorage":[{"name":"tok","value":"ls-ok"}]}]}' \
     "$gport" > "$repo/.design-kit/auth/walk.json"

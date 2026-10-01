@@ -37,7 +37,14 @@
 # `partial: true`, `partialReason: "cost_ceiling"`; completed documents from CLI 2.1.283
 # carry `cases[].runsPerCase` and a numeric `cases[].arms.{with,without}[].score`, neither
 # in the docs' field table. Read: `claudeVersion`, `costUsd`, `partial`, `partialReason`,
-# `cases[].name`, `cases[].runsPerCase`, `cases[].arms.*[].score`, `cases[].aggregates.delta`.
+# `cases[].name`, `cases[].runsPerCase`, `cases[].arms.*[].score`, `cases[].arms.*[].error`,
+# `cases[].aggregates.delta`. A run whose `error` is non-empty (the docs' field table: "why a
+# run ended abnormally, such as `timed out after 300s`") is counted in `errors` and
+# `completed` and left out of `scores` and `spread`; its numeric score, when it has one, is
+# kept apart in `erroredScores`. The spread's denominator is every run with no error, scored
+# or not; its numerator is the runs scoring 1 or more, whatever `--threshold` or `passed`
+# say, so an unscored run counts against the arm and shows as `scores` shorter than the
+# denominator. No document holding an errored run has been read: that shape is the docs', assumed.
 # Case files (plugins/<p>/evals/**/case.yaml: `name`, else the directory; `runs`; `tags`) are
 # read with PyYAML before the paid call. The summary's cases are the document's `cases[]`;
 # only a partial document, or one listing no cases, gains the case files it omits, 0
@@ -54,6 +61,12 @@
 #     regression guard and can never measure the skill (CLAUDE.md's ceiling rule).
 #   - separate a regression from a flake at fewer than three runs per arm. The summary
 #     carries the counts and per-arm spread so a delta quoted from it can carry them too.
+#   - tell an infrastructure error from one the plugin caused. The docs grade an errored run
+#     on what it produced and record a `max_turns` overrun as an error, so a run dropped from
+#     the spread may have earned its score: `erroredScores` holds it, and a reader who wants
+#     the spread over every graded run recomputes it from `scores` plus `erroredScores`.
+#     `delta` is the CLI's own figure, copied as written, so it can cover runs the spread
+#     beside it leaves out.
 #   - meter spend. `costUsd` is the CLI's list-price estimate, not plan usage, and the cap
 #     is checked before each run launches, so runs already in flight can pass it.
 #   - keep the HTML report or the full document after a summary is written; both leave with
@@ -233,21 +246,25 @@ for name in names:
     n = runs_override or pos_int(c.get("runsPerCase")) or pos_int(file_runs.get(name)) or 3
     arms = c.get("arms") if isinstance(c.get("arms"), dict) else {}
     runs = {a: [r for r in (arms.get(a) or []) if isinstance(r, dict)] for a in ("with", "without")}
-    scores = {a: [s for s in (num(r.get("score")) for r in runs[a]) if s is not None] for a in runs}
+    voted = {a: [r for r in runs[a] if not r.get("error")] for a in runs}
+    scores = {a: [s for s in (num(r.get("score")) for r in voted[a]) if s is not None] for a in runs}
+    errored = {a: [s for s in (num(r.get("score")) for r in runs[a] if r.get("error")) if s is not None] for a in runs}
     agg = c.get("aggregates") if isinstance(c.get("aggregates"), dict) else {}
     cases.append({
         "name": name,
         "planned": {"with": n, "without": n},
         "completed": {a: len(runs[a]) for a in runs},
         "scores": scores,
-        "spread": {a: "%d/%d" % (sum(1 for s in scores[a] if s >= 1), len(runs[a])) for a in runs},
+        "spread": {a: "%d/%d" % (sum(1 for s in scores[a] if s >= 1), len(voted[a])) for a in runs},
+        "errors": {a: len(runs[a]) - len(voted[a]) for a in runs},
+        "erroredScores": errored,
         "delta": num(agg.get("delta")),
     })
 
 cap_n = float(cap)
 reason = doc.get("partialReason")
 out = {
-    "schema": 1,
+    "schema": 2,
     "plugin": plugin,
     "startedAt": started,
     "claudeVersion": doc.get("claudeVersion") if isinstance(doc.get("claudeVersion"), str) else None,

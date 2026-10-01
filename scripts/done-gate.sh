@@ -25,10 +25,12 @@
 # earlier in the turn count.
 #
 # WHAT RUNS: `generate.sh --check`, then for each changed plugin validate.sh's
-# FAIL-tier per-file checks — frontmatter (pc_frontmatter), skill budget, doc
-# location, jargon (not for taskmaster/task-runner), removed refs, hook
-# executability (pc_hook_exec), hook shebangs — plus check-version-bumps.sh when
-# committed history differs from the base. No WARN-tier check runs. validate.sh and
+# FAIL-tier per-file checks — plugin.json JSON validity (`jq empty`), frontmatter
+# (pc_frontmatter), skill budget, doc location, jargon (not for
+# taskmaster/task-runner), removed refs, hook executability (pc_hook_exec), hook
+# shebangs, hook timeouts (pc_hook_timeout), the no-dependencies rule
+# (pc_plugin_dependencies) — plus check-version-bumps.sh when committed history
+# differs from the base. No WARN-tier check runs. validate.sh and
 # context-budget.sh are NOT invoked: measured 2026-09-29, the gate that ran them
 # took 93 s against the 60 s Stop timeout, so the host killed it before it blocked.
 #
@@ -38,16 +40,17 @@
 # counts and the plugin table, marketplace.json parity, CHANGELOG/metadata parity,
 # the role-floor registry, the context budget, the host's official validator, the
 # smoke harnesses, and validate.sh's per-file checks not named above (plugin.json
-# validity and fields, dependencies, hook timeouts, command argument hints, host
-# overlap, handoff refs, dispatch binding, the hook-state checks, the command/skill
-# shadow check, the renames ledger). A change confined
-# to templates/, scripts/ or .claude/skills/ never triggers it.
+# fields, command argument hints, host overlap, handoff refs, dispatch binding, the
+# hook-state checks, the command/skill shadow check, the renames ledger). A change
+# confined to templates/, scripts/ or .claude/skills/ never triggers it.
 #
 # RESIDUAL: the doc allow-list, the jargon exemption, the jargon/removed-refs file
-# set and the symlinked-skill budget skip are COPIES of validate.sh's inline logic;
+# set, the symlinked-skill budget skip and the plugin.json validity test (one label
+# here for a missing and an invalid file) are COPIES of validate.sh's inline logic;
 # frontmatter and hook-exec are not — both scripts call pc_frontmatter and pc_hook_exec.
 # validate.sh stays the authority; the allow_md copy is asserted byte-identical by
-# scripts/smoke/done-gate-tests.sh.
+# scripts/smoke/done-gate-tests.sh. pc_plugin_dependencies prints the manifest's
+# `.name`, so a changed plugin whose name differs from its directory is not matched.
 #
 # LIMITATION (honest scope). This converts "stop silently while a gate is red"
 # into "stop having said so, or be blocked". Residuals, all accepted:
@@ -92,6 +95,7 @@ fi
 # this turn is untracked. Docs-only, research and read-only sessions stop here.
 changed=()
 while IFS= read -r p; do
+  case "$p" in plugins/.*) continue ;; esac  # validate.sh's plugins/*/ globs skip dot-dirs too
   [ -d "$p" ] && changed+=("$p")
 done < <( { git diff --name-only -z -- plugins
             git diff --cached --name-only -z -- plugins
@@ -131,10 +135,11 @@ each() { # $1 label prefix; one finding per stdin line
 bash scripts/generate.sh --check >/dev/null 2>&1 || finding "generate.sh --check"
 
 allow_md='^(README|CHANGELOG|ROADMAP)\.md$|^skills/[^/]+/SKILL\.md$|^skills/[^/]+/references/.+\.md$|^commands/[^/]+\.md$|^agents/[^/]+\.md$|^evals/.+\.md$'
-# pc_hook_shebang takes a plugins ROOT, not one plugin: run it once, filter by name.
-shebang=$(pc_hook_shebang plugins 2>/dev/null) || true
+# These three take a plugins ROOT, not one plugin: run each once, filter by name.
+rootwide=$( { pc_hook_shebang plugins; pc_hook_timeout plugins; pc_plugin_dependencies plugins; } 2>/dev/null ) || true
 for p in "${changed[@]}"; do
   name=${p#plugins/}
+  jq empty "$p/.claude-plugin/plugin.json" 2>/dev/null || finding "plugin-json: $p/.claude-plugin/plugin.json"
   for d in "$p"/skills/*/; do
     [ -d "$d" ] || continue
     each "frontmatter: " < <(pc_frontmatter "${d}SKILL.md")
@@ -160,8 +165,12 @@ for p in "${changed[@]}"; do
   )
   each "hook-exec: " < <(pc_hook_exec "$p")
   while IFS= read -r line; do
-    case "$line" in "hook-shebang $name:"*) finding "hook-shebang: $line" ;; esac
-  done <<<"$shebang"
+    case "$line" in
+      "hook-shebang $name:"*) finding "hook-shebang: $line" ;;
+      "hook-timeout $name:"*) finding "hook-timeout: ${line#hook-timeout }" ;;
+      "plugin-dependencies $name "*) finding "dependencies: ${line#plugin-dependencies }" ;;
+    esac
+  done <<<"$rootwide"
 done
 
 # check-version-bumps.sh reads COMMITTED history while this hook fires on an
@@ -196,7 +205,7 @@ mkdir -p .claude 2>/dev/null && printf '%s' "$state" > "$marker" 2>/dev/null
 total=$(printf '%s\n' "$findings" | wc -l | tr -d ' ')
 shown=$(printf '%s\n' "$findings" | head -10 | awk 'NR > 1 { printf "; " } { printf "%s", $0 }')
 [ "$total" -gt 10 ] && shown="$shown (+$((total - 10)) more)"
-ran="generate.sh --check and the per-plugin frontmatter, skill-budget, doc-location, jargon, removed-refs, hook-exec and hook-shebang checks"
+ran="generate.sh --check and the per-plugin plugin-json, frontmatter, skill-budget, doc-location, jargon, removed-refs, hook-exec, hook-shebang, hook-timeout and dependencies checks"
 [ "$ran_bumps" -eq 1 ] && ran="$ran, check-version-bumps.sh $base"
 
 # jq, not a heredoc: findings carry paths and script lines that may hold a quote.

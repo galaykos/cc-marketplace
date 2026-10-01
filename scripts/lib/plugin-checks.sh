@@ -1929,11 +1929,11 @@ EOF_LANE_ADJ_FILES
 #      not counted — it draws no failure and no warning.
 #   2. Coverage is existence, not agreement: a row may name the wrong phase or a
 #      territory the agent does not work in, and this passes.
-#   3. A scratch agent planted by another harness (role-floors-check.sh writes
-#      three) is a real agent file with no row, so it draws a lane-missing line
-#      during that harness's runs. Those harnesses assert by string presence and
-#      never on exit code, so it costs nothing — but a future harness that
-#      asserts "no FAILs" would trip on it.
+#   3. A scratch agent planted by another harness (parity-check.sh plants three
+#      in the mirror it runs validate.sh in) is a real agent file with no row, so
+#      it draws a lane-missing line during that harness's run. That harness asserts
+#      by string presence and wants a non-zero exit, so it costs nothing — but a
+#      future harness that asserts "no FAILs" would trip on it.
 pc_lanes_coverage() {
   local root="${1:-plugins}" bad=0 d p lane rows a n hj cmd TAB NL
   TAB=$(printf '\t'); NL='
@@ -2999,9 +2999,16 @@ pc_listing_entry_cost() {
 # pc_frontmatter <md_path>
 # The frontmatter FAILs validate.sh raises for one SKILL.md, command or agent file,
 # printed one per line as the exact text it `err`s (no "FAIL: " prefix); returns 1 if
-# any. Kind comes from the path: `*/skills/*/SKILL.md`, `*/commands/*.md`,
-# `*/agents/*.md`; anything else returns 0. A SKILL.md whose skill dir exists but whose
-# file does not prints `<dir>/: SKILL.md missing`. Covers validate.sh's skill loop
+# any. Kind comes from the path's POSITION: `<root>/skills/<name>/SKILL.md`,
+# `<root>/commands/<name>.md`, `<root>/agents/<name>.md`, `<name>` one path segment and
+# `<root>` `plugins/<plugin>` or `.claude`; anything else returns 0, so
+# `plugins/x/skills/y/references/agents/n.md` is no agent. PRECONDITION: the path is
+# repo-relative (starts at `plugins/` or `.claude/`) or absolute; any other relative form
+# (`./plugins/…`) returns 0 unlinted. An absolute path is matched from its END — the
+# function cannot know where the repo starts — so a deep absolute file whose own tail has
+# the shape (`/…/references/plugins/x/agents/n.md`) is still linted as an agent.
+# A SKILL.md whose skill dir exists but whose file does not prints
+# `<dir>/: SKILL.md missing`. Covers validate.sh's skill loop
 # (minus pc_skill_budget), its commands/agents loop and its description linter — a
 # structural failure (no opener, not terminated) skips the key checks and not the
 # linter, as validate.sh's separate loops do; a symlinked skill dir skips the skill
@@ -3011,6 +3018,24 @@ pc_listing_entry_cost() {
 # the logic was inline in validate.sh, which only walks the whole tree. Both now call
 # this one function, so the fast Stop gate and CI cannot drift apart on it.
 #
+# WHY THE TRIGGER RULE SKIPS SOME SKILLS: trigger phrasing is for skills the MODEL picks
+# from a listing. A skill carrying `disable-model-invocation: true` is invoked only by
+# name (`/name`), never matched on its description, so an imperative description
+# ("Scaffold a …") is its correct shape — the rule is kind-level, never plugin-level.
+#
+# WHY THE DESCRIPTION LINTER IS HARD: a frontmatter description over 500 chars bloats the
+# always-on context surface every session pays for; a literal "Trigger words:" list
+# restates in-sentence terms. Both fail the build — trim, don't grandfather. 500 is a
+# HOUSE budget, not a host limit. The two host caps it sits under: the CLI truncates
+# `description` + `when_to_use` together at 1,536 chars in the skill listing
+# (code.claude.com/docs/en/skills), and the Agent Skills API rejects a description over
+# 1,024. Both count the pair, so this does too — a `when_to_use:` line is added to the
+# measured length when present (rationale/marketplace-trend-audit-2026-09-16.md D3). The
+# pair is read through pc_listing_fields, the same walk context-budget.sh meters with, so
+# what this caps is exactly what that charges. Block-scalar (>/|) values would evade both
+# this cap and the token accounting (each reads the first line only), so the form is
+# rejected outright.
+#
 # WHAT IT DOES NOT CATCH: an invented key, a wrong `model:` value. RESIDUAL:
 # validate.sh prints every file's structural lines before any file's linter lines, so
 # it splits this output by matching the linter messages' text (fm_is_linter there).
@@ -3018,11 +3043,12 @@ pc_listing_entry_cost() {
 # order, never dropped.
 pc_frontmatter() {
   local f="$1" d="" fm sname fields dsc wtu dlen bad=0
-  case "$f" in
-    */skills/*/SKILL.md) d="${f%SKILL.md}" ;;
-    */commands/*.md|*/agents/*.md) ;;
-    *) return 0 ;;
-  esac
+  local root='^(/|/.*/)?(plugins/[^/]+|\.claude)'
+  local skill_re="$root/skills/[^/]+/SKILL\\.md\$" other_re="$root/(commands|agents)/[^/]+\\.md\$"
+  if [[ $f =~ $skill_re ]]; then d="${f%SKILL.md}"
+  elif [[ $f =~ $other_re ]]; then :
+  else return 0
+  fi
   if [ -n "$d" ] && [ ! -d "$d" ]; then
     return 0
   elif [ -n "$d" ] && [ -L "${d%/}" ]; then
@@ -3049,8 +3075,8 @@ pc_frontmatter() {
       fi
     else
       grep -q '^description:' <<<"$fm" || { printf '%s\n' "$f: frontmatter missing description:"; bad=1; }
-      case "$f" in
-        */agents/*)
+      case "${f%/*}" in
+        */agents)
           grep -q '^name:' <<<"$fm" || { printf '%s\n' "$f: frontmatter missing name:"; bad=1; }
           grep -q '^model:' <<<"$fm" || { printf '%s\n' "$f: frontmatter missing model: (pin a tier or use 'inherit')"; bad=1; }
           grep -q '^effort:' <<<"$fm" || { printf '%s\n' "$f: frontmatter missing effort: (agents default to xhigh)"; bad=1; }
