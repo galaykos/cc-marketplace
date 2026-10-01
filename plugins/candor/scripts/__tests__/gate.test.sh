@@ -252,6 +252,18 @@ A="$WS/agent-hb3.jsonl"; { user "find the bug"; tools Read; tres; } > "$A"
 sub_check "subagent handback: no handback falls back to last_assistant_message"     "Found it at src/ghost.ts:12." 2 "$CITE_SUB"
 T="$WS/hb-main.jsonl"; { user "where"; handback "Found it at src/ghost.ts:12."; asst "All set."; } > "$T"
 check "a hand-back in a main-thread Stop transcript is not read" "" "$T" 0 "__NONE__"
+# 2.1.286 resume shape (rationale/candor-resumed-subagent-probe-2026-09-30.md): the SendMessage
+# boundary is a user entry with isMeta true; injected context after a hand-back is not a boundary.
+meta() { jq -cn --arg t "$1" '{type:"user",isMeta:true,message:{content:$t}}'; }
+A="$WS/agent-resumed.jsonl"
+{ user "find the bug"; handback "Found it at src/real.ts:3."; tres; meta "The coordinator sent a follow-up."; asst "Second look: src/ghost.ts:12."; } > "$A"
+sub_check "resumed: closing text after the resume boundary is judged, not the earlier hand-back" "Second look: src/ghost.ts:12." 2 "$CITE_SUB"
+A="$WS/agent-injected.jsonl"
+{ user "find the bug"; handback "Found it at src/ghost.ts:12."; tres; meta "<system-reminder>ctx</system-reminder>"
+  jq -cn '{type:"user",message:{content:[{type:"text",text:"<task-notification>done</task-notification>"}]}}'
+  meta "Stop hook feedback: ctx"; meta $'\n[SYSTEM NOTIFICATION] ctx'
+  jq -cn '{type:"user",isCompactSummary:true,message:{content:"This session is being continued."}}'; asst "Report delivered."; } > "$A"
+sub_check "resumed: injected context after a hand-back is no boundary, the hand-back is judged" "Report delivered." 2 "$CITE_SUB"
 
 
 # ---------------------------------------------------------------------------

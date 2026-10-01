@@ -106,9 +106,18 @@
 # non-empty wins: the last SubagentHandback input.message in agent_transcript_path,
 # then last_assistant_message, then the last assistant text block of the transcript.
 # Unmeasured: whether that exit 2 withholds a hand-back the tool call already delivered.
-# Residual: the read takes the LAST hand-back in the tail, so a resumed agent whose later
-# turn ends without one is judged on the earlier, already-checked hand-back and its
-# last_assistant_message is never read.
+# Only a hand-back after the tail's last user-text entry counts: on 2.1.286 a resumed agent
+# appends to the same transcript after one, and none followed a hand-back within a turn
+# (one run, one post-hand-back window on 2.1.286; the 2.1.284 probe recorded no entry order —
+# rationale/candor-resumed-subagent-probe-2026-09-30.md). User-text = type "user", string
+# content or its first text block, no tool_result, not an isCompactSummary entry, and not
+# starting (after any leading whitespace) <system-reminder>, <task-notification>,
+# "[SYSTEM NOTIFICATION" or "Stop hook feedback:". isMeta is not consulted — the resume
+# boundary carries it too. Hook additionalContext has no prefix and was not observed there: it
+# is excluded only if it lands as a non-"user" entry. Residuals: a type "user" additionalContext
+# entry after a hand-back reads as user-text, so that hand-back goes unread; and the file can
+# lag the payload, so a resume whose boundary entry is not yet written is still judged on the
+# earlier hand-back.
 # CLAUSES 2-4 disarm for a subagent: it has no user turn to push back, and its
 # transcript is not the session that edited files or registered a run. Markers
 # are suffixed per agent so a subagent block never spends the main thread's disarm.
@@ -615,7 +624,13 @@ fi
 handback=""
 if [ "$evt" = "SubagentStop" ]; then
   [ -n "$tail_jsonl" ] && handback=$(printf '%s' "$tail_jsonl" | jq -rs --arg n "SubagentHandback" '
-    [ .[] | select(.type=="assistant") | (.message.content // [])[]
+    def usertext: .type=="user" and (.isCompactSummary|not) and ((.message.content // null) as $c
+      | if ($c|type)=="string" then $c
+        elif ($c|type)=="array" and (any($c[]; .type=="tool_result")|not) then [$c[] | select(.type=="text") | .text][0]
+        else null end
+      | type=="string" and (test("^\\s*(<system-reminder>|<task-notification>|\\[SYSTEM NOTIFICATION|Stop hook feedback:)")|not));
+    . as $e | ([range(0; length) | select($e[.] | usertext)] | last // -1) as $b
+    | [ $e[$b+1:][] | select(.type=="assistant") | (.message.content // [])[]
           | select(.type=="tool_use" and .name==$n) | .input.message // empty
           | select(type=="string" and length>0) ] | last // empty' 2>/dev/null)
 fi

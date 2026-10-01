@@ -4,6 +4,59 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.118.0] - 2026-10-01
+
+Hook work since 0.117.0. Each plugin named below that keeps a
+CHANGELOG carries its own entry with the detail (security and git-workflow keep none); this is what an
+installer notices.
+
+- **Write guards see files written through Bash (PR #185).** The host steers file writes through Bash
+  (`cat > f <<EOF`, `tee`, `>>`, `sed -i`), and five guards matched the write tools only: command-guard's
+  config-guard, security's write-scan, database's destructive-SQL guard, devops' workflow-guard and testing's
+  protect-tests. Each now also matches `Bash` and judges the files or text such a command writes. Not caught, in
+  every one: interpreter writes (python `open()`, php `file_put_contents`), `cp`/`mv`/`install` destinations,
+  `{ …; } > f` groups and a path held in a variable.
+- **candor judges a subagent's hand-back (PR #185).** A subagent's report is its `SubagentHandback` call, not its
+  closing text; the SubagentStop gate now reads that report.
+- **Every declared off-switch is a `/config` option (PR #186).** Each off-switch a plugin declares is also a
+  plugin option under `/config` (or `/plugin configure <plugin>`), with the same default. The environment variable still
+  overrides its option. **An interactive `/plugin install` now shows a Configure dialog for these options. It is
+  optional and does not block the install: Esc keeps the defaults. `claude plugin install` from a shell never
+  prompts.**
+- **Hook state moved out of your repo (PR #186).** When the host sets `CLAUDE_PLUGIN_DATA`, candor, code-review,
+  skill-router, testing and ui-ux keep their markers under `${CLAUDE_PLUGIN_DATA}/<project-key>/<plugin>/`
+  instead of `.claude/<plugin>/`. An existing in-repo directory is left in place; without the variable nothing
+  moves.
+- **`scripts/run-evals.sh` (PR #186)** runs one plugin's eval suite against a no-plugin control arm under a cost
+  cap, behind `RUN_EVALS=1`. Maintainer path: no CI step runs an eval with it; its plumbing harness is a CI step.
+- **`sed -i` and `perl -i` through Bash are read correctly.** The shared parser ten hooks carry took the LAST word
+  of such a command as the file, so `sed -i 's/a/b/' tsconfig.json 2>/dev/null` named `2>/dev/null`. It now
+  returns every file the command edits, never a redirect word, and recognises GNU `--in-place[=SUF]` and BSD
+  `-I`. Patch releases: code-review, command-guard, database, devops, secret-scanning, security, skill-router,
+  task-runner, testing. Still not read: a globbed operand, a `\` line continuation, sed or perl reached through
+  another word (`gsed`, `xargs`, `find -exec`), and a dot-named file right after a bare `-i` when another file
+  follows. Standing: **gate** — `scripts/smoke/bash-write-targets-tests.sh` runs one case table against the
+  template and every copy, as its own CI step.
+- **command-guard 0.8.1 — two splitter bypasses closed (PR #187).** A backslash inside single quotes, on every
+  platform, and a blank line under macOS's awk each let a command run unjudged behind a segment led by a reader.
+  Its own CHANGELOG entry has the detail.
+- **command-guard 0.8.2 — reading its allow-file is no longer blocked.** A Bash command that names the allow-file
+  passes when every part of it is a pure read (`cat`, `head`, `tail`, `wc`, `grep`, `stat`, `ls`, `file`, `diff`,
+  `cmp`, or a read-only `git log`/`show`/`diff`/`blame`/`grep`/`ls-files`/`cat-file`), redirecting only to
+  `/dev/null` or a descriptor. Everything else naming it is denied. Two rules got stricter: the reader list is
+  closed, so `less`, `more`, `jq`, `yq`, `rg`, `sort`, `uniq`, `tree`, `echo` and `printf` naming the file used
+  to pass and are now denied (use `cat` or `grep`); and a chained step that is not itself a pure read
+  (`cat <file> || echo none`) now denies the whole command.
+- **candor 0.6.1 — the level commands and the badge see the `cc_terse` option.** `/candor:level`, `/candor:check`,
+  `scripts/measure.sh` and the statusline reported a level set only through `/config` as unset while the hooks
+  applied it. They now resolve it the way the hooks do. Not seen by them: an option saved through a `--settings`
+  file, a managed drop-in, or a symlinked settings file. A resumed subagent that ends without a new hand-back is
+  now judged on its closing text instead of the earlier hand-back.
+- **git-workflow 0.9.1** re-points the line citations in branch-completion's scratch inventory to where these
+  edits moved them. No behaviour change.
+- **design-kit's README calls its five entries skills** (they stopped being commands in 0.8.0). Doc-only, no
+  release.
+
 ## [0.117.0] - 2026-09-29
 
 On Claude Code 2.1.193 or later, stale installs of removed or merged plugins now clean themselves up.

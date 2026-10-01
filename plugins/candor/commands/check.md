@@ -19,9 +19,15 @@ Report the table verbatim, then the examples for any axis with a non-zero count.
 Read the examples before saying anything about a number — several axes match
 quoted text, so a hit is a candidate, not a verdict.
 
-Then, **if a terse level is active** (`CC_TERSE` set, or
-`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode` exists) **or `--brevity` was
-passed**, run the brevity measurement and report that too:
+Then read the terse level — `CC_TERSE`, the level file, then the `cc_terse` /config
+option, resolved as the hooks resolve it:
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/level.sh"
+```
+
+**If it prints a level other than `off`, or `--brevity` was passed**, run the brevity
+measurement and report that too:
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/measure.sh" $ARGUMENTS

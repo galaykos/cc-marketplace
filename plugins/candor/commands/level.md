@@ -14,14 +14,21 @@ confirm anything**; announcing a level that was never written is worse than the
 switch not happening:
 
 ```bash
-cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode" 2>/dev/null || echo none
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/level.sh" --sources
 ```
+
+It prints each layer the hooks read — `CC_TERSE`, the level file, the `cc_terse` /config
+option — then `active: <level> <source>`. The first non-empty layer wins, in that order, and a
+value that is not a level below counts as `off` rather than falling through to the next layer.
 
 Parse the first token of `$ARGUMENTS`:
 
 ## `lite` / `full` / `ultra` (and the `wenyan-*` variants)
 
-The hook wrote the level and re-injected the contract. Confirm in **one line**:
+The hook wrote the level and re-injected the contract. If the level-file line does
+not show the level asked for (`wenyan` is written as `wenyan-full`), say the switch
+failed. If `active` names another level, say which source overrides it (`CC_TERSE`:
+unset it). Otherwise confirm in **one line**:
 name the level and its two budget numbers (answer / work-done report, in prose
 lines of ~100 rendered characters each).
 
@@ -41,20 +48,27 @@ contract is not already in context.
 
 ## `off`
 
-The hook removed the level file. Confirm in one line that normal length resumes.
+The hook removed the level file, and its context this turn says whether `CC_TERSE` or
+the `cc_terse` option still keeps a level active. If it says so, report that, whatever
+`active` shows; when `active` is `off` anyway, add that the option sits where `level.sh`
+cannot read it — a `--settings` file, a managed drop-in or policy, a symlinked
+settings file, or any settings file when `jq` is missing (the option line says so).
+Otherwise read `active`: if it is `off`, confirm in one line that normal
+length resumes. If it still names a level, do not say that — name the source holding it
+instead: `env` is `CC_TERSE` (unset it); `option` is the `cc_terse` option in the
+settings file printed — set it to `off` in `/config`, unless that file is
+`managed-settings.json`: administrator policy, which `/config` cannot override; `file`
+means the file was not removed (a symlink the hook will not touch, or an unwritable
+config dir).
 
 ## `status` or no argument
 
-Report the active level and where it came from, without changing anything:
-
-```bash
-printf 'env CC_TERSE=%s\nfile %s: %s\n' "${CC_TERSE:-unset}" \
-  "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode" \
-  "$(cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode" 2>/dev/null || echo none)"
-```
-
-`CC_TERSE` wins over the file when both are set. The level is machine-local and
-persists across sessions until changed.
+Report, without changing anything, every source the block above printed and which one
+wins (`active`). The level file and the option persist across sessions until changed;
+`CC_TERSE` lasts as long as the environment that set it. Not seen by this command or the
+badge, though the hooks apply it: a `cc_terse` saved only through a `--settings` file,
+managed drop-ins or policy, in a symlinked settings file, or in any settings file when
+`jq` is missing — say so when `active` is `off` and the user reports terse replies.
 
 Then print the reference card (display only, change nothing):
 

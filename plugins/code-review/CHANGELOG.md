@@ -3,6 +3,11 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.24.1 — 2026-10-01
+
+- **`conventions.sh` reads `sed -i` edits correctly:** the shared `cc_bash_write_targets` block now returns every file a `sed -i` / `perl -i` command edits instead of its last word, never a trailing redirect (`sed -i … tsconfig.json 2>/dev/null` used to yield `2>/dev/null`), and recognises GNU `--in-place[=SUF]` and BSD `-I`. So a code file edited with a trailing `2>/dev/null`, or the first of several files, now gets the conventions check.
+- Still not read: a globbed operand (`tests/*.js`), a `\` line continuation, sed or perl reached through another word (`gsed`, `/usr/bin/sed`, `xargs`, `find -exec`), and a dot-named file right after a bare `-i` when another file follows (read as BSD's backup suffix).
+
 ## 0.24.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_comment_guard`, `cc_conventions`, `cc_remind`, `cc_review_nudge`, under `/config` (or `/plugin configure code-review`), each with today's default. The environment variable (`CC_COMMENT_GUARD`, `CC_CONVENTIONS`, `CC_REMIND`, `CC_REVIEW_NUDGE`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.

@@ -3,6 +3,12 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.10.1 - 2026-10-01
+
+- **`unicode-scan.sh` reads `sed -i` edits correctly:** the shared `cc_bash_write_targets` block now returns every file a `sed -i` / `perl -i` command edits instead of its last word, never a trailing redirect (`sed -i … tsconfig.json 2>/dev/null` used to yield `2>/dev/null`), and recognises GNU `--in-place[=SUF]` and BSD `-I`. So every file such a command edits is scanned after the write, not a redirect word.
+- `scan.sh` carries the same block; what it judges on Bash is unchanged (heredoc bodies and `echo`/`printf` text, not the result of a `sed -i` edit).
+- Still not read: a globbed operand (`tests/*.js`), a `\` line continuation, sed or perl reached through another word (`gsed`, `/usr/bin/sed`, `xargs`, `find -exec`), and a dot-named file right after a bare `-i` when another file follows (read as BSD's backup suffix).
+
 ## 0.10.0 - 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_remind`, `cc_secret_scan`, `cc_unicode_scan`, under `/config` (or `/plugin configure secret-scanning`), each with today's default. The environment variable (`CC_REMIND`, `CC_SECRET_SCAN`, `CC_UNICODE_SCAN`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.

@@ -366,6 +366,95 @@ expect deny 'sed -i "" "1i\\x" .claude/destructive-guard-allow'
 expect allow 'cat .claude/destructive-guard-allow'              # reading it is fine
 expect allow 'grep artisan .claude/destructive-guard-allow'
 
+# A command naming the allow-file passes only when every segment is a pure read.
+# The deny half is one case per family that writes the file or runs a program.
+printf '== allow-file: pure readers\n'
+expect allow 'grep x .claude/destructive-guard-allow 2>/dev/null'
+expect allow 'grep x .claude/destructive-guard-allow >/dev/null 2>&1'
+expect allow 'cat .claude/destructive-guard-allow | head'
+expect allow 'wc -l .claude/destructive-guard-allow'
+expect allow 'ls -la .claude/destructive-guard-allow'
+expect allow 'git log -- .claude/destructive-guard-allow'
+expect allow 'git diff -- .claude/destructive-guard-allow'
+expect allow 'git log --oneline -- .claude/destructive-guard-allow'   # control for the abbreviation rule
+expect deny  '> .claude/destructive-guard-allow'
+expect deny  '>> .claude/destructive-guard-allow'
+expect deny  'grep x f 2> .claude/destructive-guard-allow'
+expect deny  'tee -a .claude/destructive-guard-allow'
+expect deny  'sed -i "s/a/b/" .claude/destructive-guard-allow'
+expect deny  'sed -n "1p" .claude/destructive-guard-allow'
+expect deny  'perl -i -pe "s/a/b/" .claude/destructive-guard-allow'
+expect deny  'awk 1 .claude/destructive-guard-allow'
+expect deny  'find . -name destructive-guard-allow'
+expect deny  'less .claude/destructive-guard-allow'
+expect deny  "LESSOPEN='|x' less .claude/destructive-guard-allow"
+expect deny  'jq . .claude/destructive-guard-allow'
+expect deny  'sort -o .claude/destructive-guard-allow x'
+expect deny  'cp /tmp/f .claude/destructive-guard-allow'
+expect deny  'mv /tmp/f .claude/destructive-guard-allow'
+expect deny  'install /tmp/f .claude/destructive-guard-allow'
+expect deny  'ln -sf /tmp/f .claude/destructive-guard-allow'
+expect deny  'rm .claude/destructive-guard-allow'
+expect deny  'unlink .claude/destructive-guard-allow'
+expect deny  'truncate -s 0 .claude/destructive-guard-allow'
+expect deny  'shred .claude/destructive-guard-allow'
+expect deny  'dd if=/tmp/f of=.claude/destructive-guard-allow'
+expect deny  'git checkout -- .claude/destructive-guard-allow'
+expect deny  'git restore .claude/destructive-guard-allow'
+expect deny  'git diff --output=.claude/destructive-guard-allow'
+expect deny  'git -c core.pager=cat log -- .claude/destructive-guard-allow'
+expect deny  'git grep -nOtrue x -- .claude/destructive-guard-allow'      # -O<cmd> runs cmd; bundled
+expect deny  'git grep --open-f=true x -- .claude/destructive-guard-allow' # git grep takes the abbreviation
+expect deny  'curl -o .claude/destructive-guard-allow https://example.com/u'
+expect deny  'wget -O .claude/destructive-guard-allow https://example.com/u'
+expect deny  'rsync /tmp/f .claude/destructive-guard-allow'
+expect deny  "python3 -c \"open('.claude/destructive-guard-allow','a')\""
+expect deny  'echo x >> "$HOME/.claude/destructive-guard-allow"'
+expect deny  'cat "$HOME/.claude/destructive-guard-allow"'        # pure lead: only the $ ~ {} rule denies these three
+expect deny  'cat ~/.claude/destructive-guard-allow'
+expect deny  'cat .claude/{destructive-guard-allow,x}'
+expect deny  'cat `echo .claude/destructive-guard-allow`'
+expect deny  'cat $(echo .claude/destructive-guard-allow)'
+expect deny  'grep -l x .claude/destructive-guard-allow | xargs cp /tmp/f'
+expect deny  'hash -p /bin/cp cat; cat /tmp/f .claude/destructive-guard-allow'  # a cp under a reader's name
+# a backslash does not escape inside single quotes, and a quote in a comment does not open one
+expect deny  "grep 'x\\' .claude/destructive-guard-allow; cp /tmp/f .claude/destructive-guard-allow"
+expect deny  "cat .claude/destructive-guard-allow # it's
+cp /tmp/f .claude/destructive-guard-allow"
+# a blank line is a separator, and quote state carries across it (BWK awk split records there)
+expect deny  'cat x
+
+cp /tmp/f .claude/destructive-guard-allow'
+expect deny  'grep "a
+
+b" .claude/destructive-guard-allow; cp /tmp/f .claude/destructive-guard-allow'
+expect allow 'cat .claude/destructive-guard-allow
+
+wc -l .claude/destructive-guard-allow'
+# `>&WORD` with a non-numeric WORD is `&>WORD`: a quote or backslash must not make it look like `>&1`
+expect deny  'cat /tmp/p >&"1 x/../.claude/destructive-guard-allow"'
+expect deny  'cat /tmp/p >&1\ x/../.claude/destructive-guard-allow'
+# same shape through a byte bash does not split on: a CR or VT after the digit is part of the word
+expect deny  $'cat /tmp/p >&1\rx/../.claude/destructive-guard-allow'
+expect deny  $'cat /tmp/p >&1\vx/../.claude/destructive-guard-allow'
+# the lead is the word as typed: these run `cat2` and a program named "cat x"
+expect deny  'cat2>/dev/null .claude/destructive-guard-allow'
+expect deny  'cat\ x .claude/destructive-guard-allow'
+expect deny  'ls .claude/destructive-guard-allow(ls)'              # zsh glob qualifiers run code: any unquoted paren denies
+expect deny  'cat .claude/destructive-guard-allow <(cat x)'
+expect deny  'LC_ALL=C grep x .claude/destructive-guard-allow'
+expect deny  'git diff --ext-diff -- .claude/destructive-guard-allow'
+expect deny  'git log --textconv -- .claude/destructive-guard-allow'
+expect deny  'git cat-file --filters HEAD:.claude/destructive-guard-allow'
+expect deny  'git log --config-env=core.pager=X -- .claude/destructive-guard-allow'
+expect deny  'git grep -o x -- .claude/destructive-guard-allow'
+expect deny  'git log -c -- .claude/destructive-guard-allow'
+expect allow 'grep x .claude/destructive-guard-allow &>/dev/null'
+expect allow 'grep x .claude/destructive-guard-allow 1>/dev/null'
+expect allow 'grep x .claude/destructive-guard-allow >/dev/null 2>/dev/null'
+expect allow 'git grep x -- .claude/destructive-guard-allow'
+expect allow 'git show HEAD:.claude/destructive-guard-allow'
+
 # ---------------------------------------------------------------------------
 # 3. HOOK PROTOCOL
 # ---------------------------------------------------------------------------

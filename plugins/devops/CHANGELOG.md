@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.1 — 2026-10-01
+
+- `workflow-guard.sh` carries the updated shared Bash-write parser: the shared `cc_bash_write_targets` block now returns every file a `sed -i` / `perl -i` command edits instead of its last word, never a trailing redirect (`sed -i … tsconfig.json 2>/dev/null` used to yield `2>/dev/null`), and recognises GNU `--in-place[=SUF]` and BSD `-I`.
+- What the guard judges on Bash is unchanged: heredoc bodies and `echo`/`printf` text. The result of a `sed -i` edit is still not read.
+
 ## 0.9.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_workflow_guard`, under `/config` (or `/plugin configure devops`), each with today's default. The environment variable (`CC_WORKFLOW_GUARD`) still overrides its option. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.

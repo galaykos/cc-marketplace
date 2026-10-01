@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.42.1 — 2026-10-01
+
+- **The scope-lock hook reads `sed -i` edits correctly:** the shared `cc_bash_write_targets` block now returns every file a `sed -i` / `perl -i` command edits instead of its last word, never a trailing redirect (`sed -i … tsconfig.json 2>/dev/null` used to yield `2>/dev/null`), and recognises GNU `--in-place[=SUF]` and BSD `-I`. So every file such a command edits is checked against the card's declared files.
+- Still not read: a globbed operand (`tests/*.js`), a `\` line continuation, sed or perl reached through another word (`gsed`, `/usr/bin/sed`, `xargs`, `find -exec`), and a dot-named file right after a bare `-i` when another file follows (read as BSD's backup suffix).
+
 ## 0.42.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_boost`, `cc_drift`, `cc_remind`, `cc_spawn_cap`, `orchestration_boost`, under `/config` (or `/plugin configure task-runner`), each with today's default. The environment variable (`CC_BOOST`, `CC_DRIFT`, `CC_REMIND`, `CC_SPAWN_CAP`, `ORCHESTRATION_BOOST`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.

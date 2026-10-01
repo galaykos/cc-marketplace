@@ -64,6 +64,7 @@ bash_allows() { out=$(fire_bash "$1"); [ -z "$out" ] && ok "$2" || bad "$2" "exp
 printf 'x\n' > "$T/notes.txt"
 bash_asks $'cat > tsconfig.json <<\'EOF\'\n{}\nEOF' "bash: heredoc overwrite of an existing tsconfig asks" tsconfig.json
 bash_asks "sed -i '' 's/a/b/' .eslintrc.json" "bash: sed -i on an existing eslint config asks" .eslintrc.json
+bash_asks "sed -i 's/a/b/' .eslintrc.json 2>/dev/null" "bash: sed -i with a trailing 2>/dev/null onto an existing eslint config asks" .eslintrc.json
 bash_allows "ls -la && git status" "bash: non-write command is silent"
 bash_allows $'cat > notes.txt <<\'EOF\'\necho {} > tsconfig.json\nEOF' "bash: a config path only inside a heredoc body is silent"
 rm -f "$T/.flake8"

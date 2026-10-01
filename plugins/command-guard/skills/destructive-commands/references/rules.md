@@ -127,11 +127,28 @@ command is safe". The guard raises the cost of an accident; it does not make
 one impossible.
 
 **On the allow-file.** `.claude/destructive-guard-allow` is the user's opt-out,
-and the guard blocks the agent from writing it — through `Write`/`Edit` and
-through a shell redirect or `sed -i`. That closes the obvious loop, not every
-loop: a command that builds the path from a variable, or a script that writes
-the file, would not be recognised. The real protection is that a denied command
-is visible to the user, not that the bypass is impossible.
+and the guard blocks the agent from writing it — through `Write`/`Edit`, and
+through any Bash command that names it unless every segment of that command is a
+pure read: `cat`, `head`, `tail`, `wc`, `grep`/`egrep`/`fgrep`, `stat`, `ls`,
+`file`, `diff`, `cmp`, or `git log`/`show`/`diff`/`blame`/`grep`/`ls-files`/
+`cat-file` with the subcommand first and no `--output`, `-o`/`-O`, pager,
+`--ext-diff`, `--textconv`, `--filters` or `-c` option. The reader's name must
+be typed bare — a quote or backslash in it denies. A redirect may only target
+`/dev/null` or a descriptor (`2>/dev/null`, `>/dev/null 2>&1`), with nothing
+quoted or escaped beside the target. A backtick, `$`, `~` or `{}` anywhere in
+the command denies it, and so do an unquoted `#` or parenthesis, a leading env
+assignment (`LC_ALL=C grep …`), and a chained or piped step that is not itself a
+pure read (`|| echo none`, `| xargs cp`). The list is closed on purpose, so
+inspecting the file with `awk`, `sed -n`, `find`, `jq` or `less` is blocked —
+each can write or run a program; use `cat` or `grep`.
+**Standing: gate** — the hook denies; pinned by the harness section
+`== allow-file: pure readers`.
+That closes the obvious loop, not every loop: a command that builds the path from
+a variable or a glob, a script that writes the file, or any program git config
+names (a diff driver, textconv, clean filter, pager, `core.fsmonitor`,
+`gpg.program` via `--show-signature`), set before the command runs, would not be
+recognised. The real protection is that a denied command is visible to the user,
+not that the bypass is impossible.
 
 **On layering.** This guard is one control, not the control. Backups, a
 non-production database URL in the development environment, and least-privilege
