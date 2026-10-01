@@ -449,6 +449,10 @@ expect deny  'git cat-file --filters HEAD:.claude/destructive-guard-allow'
 expect deny  'git log --config-env=core.pager=X -- .claude/destructive-guard-allow'
 expect deny  'git grep -o x -- .claude/destructive-guard-allow'
 expect deny  'git log -c -- .claude/destructive-guard-allow'
+# known over-denial a later fix may relax: with `--` in end-of-options position git reads the next word as a pattern or pathspec, but the option scan runs past it
+expect deny  'git grep -- --output=x .claude/destructive-guard-allow'
+# NOT an over-denial, and any relaxation must keep it denied: here `--` is -e's argument, so -O is a live option that runs a program
+expect deny  'git grep -e -- -Otrue .claude/destructive-guard-allow'
 expect allow 'grep x .claude/destructive-guard-allow &>/dev/null'
 expect allow 'grep x .claude/destructive-guard-allow 1>/dev/null'
 expect allow 'grep x .claude/destructive-guard-allow >/dev/null 2>/dev/null'
@@ -608,6 +612,27 @@ out=$(hook_in "$WENV" "$(file_json Write .env)" CLAUDE_DESTRUCTIVE_GUARD=deny-on
 printf 'APP_KEY=\n' > "$WENV/.env.example"
 out=$(hook_in "$WENV" "$(file_json Write .env.example)")
 [ -z "$out" ] && ok || bad "Write to .env.example must be silent" "$out"
+
+# On a case-insensitive filesystem (the macOS default) every spelling of the name opens the same file.
+printf '== allow-file: case-variant write\n'
+out=$(hook "$(file_json Write /p/.claude/Destructive-Guard-Allow)")
+[ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision' 2>/dev/null)" = "deny" ] \
+  && ok || bad "Write to a case-variant of the allow-file must be denied" "${out:-<silent>}"
+out=$(hook "$(file_json Edit /p/.claude/DESTRUCTIVE-GUARD-ALLOW)")
+[ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision' 2>/dev/null)" = "deny" ] \
+  && ok || bad "Edit of a case-variant of the allow-file must be denied" "${out:-<silent>}"
+out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"mcp__phpstorm__apply_patch","tool_input":{"input":"*** Update File: .claude/destructive-GUARD-allow\n+^rm -rf .*"}}')
+[ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision' 2>/dev/null)" = "deny" ] \
+  && ok || bad "MCP apply_patch naming a case-variant of the allow-file must be denied" "${out:-<silent>}"
+out=$(hook "$(file_json Write /p/.claude/Notes.md)")
+[ -z "$out" ] && ok || bad "Write to an unrelated file beside the allow-file must be untouched" "$out"
+NOTR="$WS/notr"; mkdir -p "$NOTR"
+for u in cat grep sed awk head cut env sh printf sort uniq jq; do
+  p="$(command -v "$u" 2>/dev/null)" && ln -s "$p" "$NOTR/$u" 2>/dev/null
+done
+out=$(printf '%s' "$(file_json Write /p/.claude/destructive-guard-allow)" | PATH="$NOTR" "$BASH_BIN" "$GUARD" 2>/dev/null)
+[ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision' 2>/dev/null)" = "deny" ] \
+  && ok || bad "no tr on PATH: an exact-name Write must still be denied" "${out:-<silent>}"
 
 # ---------------------------------------------------------------------------
 # 4. FAIL-OPEN

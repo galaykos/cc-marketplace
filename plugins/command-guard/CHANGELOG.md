@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.3 — 2026-10-01
+
+- **A write to the allow-file through a differently-cased path is denied.** The Write/Edit check matched the file's name case-sensitively, while a case-insensitive filesystem (the macOS default) opens the same file under any ASCII letter case. The path, and an `apply_patch` body, are now lowercased before the match, as the Bash-command check already did. On a case-sensitive filesystem this over-denies a differently-cased sibling file. If `tr` is missing the check falls back to the exact-case match it had before.
+- Not caught on the write path, stated in the hook header: an MCP write tool other than `*apply_patch` and `*create_new_file`, `NotebookEdit`'s `notebook_path`, and a non-ASCII spelling the filesystem folds to the name.
+- **config-guard reads a write after a lone `&`.** The shared `cc_bash_write_targets` block now ends a command at a lone `&`: `echo x & sed -i s/a/b/ tsconfig.json` used to return no target, so no ask; it asks now. `sed -i s/a/b/ notes.txt & cat tsconfig.json` used to read `tsconfig.json` as a `sed` operand and ask; it no longer does. `cmd |& tee <config>` is read, and a `-`-led file after `sed … --` or `perl -i` is returned. Still not read: a `>& file` redirect, a bare `-x` operand with no `/` or `.` in it, and operands after a `&` inside `$(( ))` or `${ }`.
+- The description no longer says the agent "cannot edit" the allow-file; it says the file is guarded from agent writes. The README made the same change in 0.8.2.
+- The allow-file harness pins two more shapes as denied: `git grep -- --output=x <file>` (a known over-denial a later change may relax) and `git grep -e -- -O<cmd> <file>` (not an over-denial: there `--` is `-e`'s argument and `-O` runs a program).
+
 ## 0.8.2 — 2026-10-01
 
 - **Reading the allow-file is no longer blocked.** destructive-guard denied any Bash command whose text named `.claude/destructive-guard-allow` unless it was a bare reader with no redirect, so `grep x .claude/destructive-guard-allow 2>/dev/null` and `git log -- .claude/destructive-guard-allow` were refused. A command naming the file now passes when every part of it, piped or chained, is a pure read: `cat`, `head`, `tail`, `wc`, `grep`/`egrep`/`fgrep`, `stat`, `ls`, `file`, `diff`, `cmp`, or `git log`/`show`/`diff`/`blame`/`grep`/`ls-files`/`cat-file` with the subcommand first and no `--output`, `-o`/`-O`, pager, `--ext-diff`, `--textconv`, `--filters` or `-c` option, redirecting only to an unquoted `/dev/null` or a descriptor.

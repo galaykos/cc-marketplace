@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.6.2 — 2026-10-01
+
+- No behaviour change. The SubagentStop gate's header now states a measurement instead of an unknown: on 2.1.286 (one run) a hook's `additionalContext` lands in a subagent's transcript as attachment entries, never as a user entry — from SubagentStart and PostToolUse, before and after the hand-back — so the scoped hand-back read cannot take it for a turn boundary. The residual is narrowed to a host or hook event that writes it as a user entry.
+
 ## 0.6.1 — 2026-10-01
 
 - **`/candor:level`, `/candor:check`, `scripts/measure.sh` and the statusline badge now see a level set only through the `cc_terse` /config option.** A new `scripts/level.sh` resolves the level the way the hooks do — `CC_TERSE`, then the level file, then the option, an invalid value counting as off — and prints the layer that won. `/candor:level status` names every layer; `/candor:level off` names the source still holding a level instead of saying normal length resumes, and trusts the hook's own "keeps it active" line over `level.sh`.

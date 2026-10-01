@@ -123,7 +123,10 @@ or `grep`. An opt-out an agent can grant itself is not an opt-out. Add lines
 yourself, and narrowly. What it does NOT catch: a path built from a variable or a
 glob, a script that writes the file, or any program git config names (a diff
 driver, textconv, clean filter, pager, `core.fsmonitor`, `gpg.program` via
-`--show-signature`), set before the command runs — the protection is that a
+`--show-signature`), set before the command runs; and on the write path, an MCP
+write tool other than `*apply_patch` and `*create_new_file`, `NotebookEdit`'s
+`notebook_path`, and a non-ASCII spelling the filesystem folds to the name (the
+match is case-insensitive for ASCII letters only). The protection is that a
 denied command is visible to you, not that a bypass is impossible.
 
 Whole-guard switches, set in your shell before starting the session (a command
