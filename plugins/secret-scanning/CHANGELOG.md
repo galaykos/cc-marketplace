@@ -5,9 +5,9 @@ releases were not recorded here and are not reconstructed.
 
 ## 0.10.2 - 2026-10-01
 
-- The shared Bash-write parsers end a command at a lone `&`. Text echoed before one is no longer judged as the content of a file a later command writes (`echo "<text>" & sed -i … x.sql` was attributed to `x.sql`), and text a command writes after a backgrounded one is now read (`sleep 1 & echo "<text>" > f`). `scan.sh` carries both updated blocks.
+- The shared Bash-write parsers end a command at a lone `&`. Text a command writes after a backgrounded one is now read (`sleep 1 & echo "<text>" > f` was skipped), and a heredoc body is no longer judged as the content of a file a later command on the same line writes (in `cat <<EOF & echo done > log.txt` the body was attributed to `log.txt`). `scan.sh` carries both updated blocks.
 - **`unicode-scan.sh` reads a write after a lone `&`:** the shared `cc_bash_write_targets` block now ends a command at a lone `&`, so a write after one is read (`echo x & sed -i s/a/b/ f.json` used to return nothing) and words after one are no longer taken for `sed`/`perl`/`tee` operands; `cmd |& tee f` is read; a `-`-led file after `sed … --` or `perl -i` is returned.
-- Not read: text in a command that a `&` inside `$(( ))` or `${ }` ends early. Still not read: a `>& file` redirect, a bare `-x` operand with no `/` or `.` in it, and operands before a `&` inside `$(( ))` or `${ }` (that `&` ends the command). Over-read, harmless: a `-`-led argument to a perl script that contains `/` or `.`.
+- Not read by `scan.sh`: text in a command that a `&` inside `$(( ))` or `${ }` ends early. Not read by `unicode-scan.sh`: a `>& file` redirect, a bare `-x` operand with no `/` or `.` in it, and operands after a `&` inside `$(( ))` or `${ }` (that `&` ends the command). Over-read, harmless: a `-`-led argument to a perl script that contains `/` or `.`.
 
 ## 0.10.1 - 2026-10-01
 

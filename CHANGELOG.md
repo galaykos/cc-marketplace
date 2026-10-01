@@ -6,21 +6,22 @@ version in their `plugin.json`.
 
 ## [0.119.0] - 2026-10-01
 
-Follow-ups from the five-tier review. Each plugin named below that keeps a CHANGELOG carries its own entry
+Follow-ups to 0.118.0's hook work. Each plugin named below that keeps a CHANGELOG carries its own entry
 (security and git-workflow keep none).
 
 - **A write after a lone `&` is read.** The shared Bash-write parsers did not end a command at a lone `&`, so
   `echo x & sed -i s/a/b/ f.json` returned no written file and the guards stayed silent, while words after a `&`
-  could be read as `sed`/`tee` operands and draw a false ask. Both blocks now end a command there (never at
-  `&&`, `&>`, `>&`, `<&` or inside quotes), `cmd |& tee f` is read, and a `-`-led file after `sed … --` or
-  `perl -i` is returned. The content guards no longer judge text echoed before a `&` as the content of a file a
-  later command writes. Patch releases: code-review, command-guard, database, devops, secret-scanning, security,
-  skill-router, task-runner, testing. Still not read: a `>& file` redirect, a bare `-x` operand, and a command a
-  `&` inside `$(( ))` or `${ }` ends early. Standing: **gate** — `scripts/smoke/bash-write-targets-tests.sh`
-  runs both case tables against each template and every copy.
-- **command-guard 0.8.3 — a differently-cased path no longer reaches the allow-file.** The Write/Edit check
-  matched the file's name case-sensitively; on a case-insensitive filesystem a differently-cased path names the
-  same file. The match is now case-insensitive for ASCII letters. Found by reading, not seen exploited. Not
+  could be read as `sed`/`tee` operands and draw a false ask. Both blocks now end a command there; a `&` that is
+  part of `&&`, `&>`, `>&`, `<&` or `|&`, or quoted, is not a lone one. `cmd |& tee f` is read, and a `-`-led
+  file after `sed … --` or `perl -i` is returned. The content guards now read text written after a backgrounded
+  command, and no longer judge a heredoc body as the content of a file a later command on the same line writes.
+  Patch releases: code-review, command-guard, database, devops, secret-scanning, security, skill-router,
+  task-runner, testing. Still not read: a `>& file` redirect, a bare `-x` operand, and a command a `&` inside
+  `$(( ))` or `${ }` ends early. Standing: **gate** — `scripts/smoke/bash-write-targets-tests.sh` runs both case
+  tables against each template and every copy.
+- **command-guard 0.8.3 — a write to its allow-file through a differently-cased Write/Edit path is denied.** The
+  check matched the file's name case-sensitively; on a case-insensitive filesystem a differently-cased path names
+  the same file. The match is now case-insensitive for ASCII letters. Found by reading, not seen exploited. Not
   caught on the write path: an MCP write tool other than the two matched by name, `NotebookEdit`'s
   `notebook_path`, and a non-ASCII spelling the filesystem folds to the name.
 - **Two descriptions say what is true.** design-kit's calls its five entries skills (0.9.1). command-guard's

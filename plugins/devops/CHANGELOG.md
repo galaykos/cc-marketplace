@@ -4,7 +4,7 @@ Consumer-facing changes only. Newest first.
 
 ## 0.9.2 — 2026-10-01
 
-- The shared Bash-write parsers end a command at a lone `&`. Text echoed before one is no longer judged as the content of a file a later command writes (`echo "<text>" & sed -i … x.sql` was attributed to `x.sql`), and text a command writes after a backgrounded one is now read (`sleep 1 & echo "<text>" > f`). `workflow-guard.sh` carries both updated blocks.
+- The shared Bash-write parsers end a command at a lone `&`. Text a command writes after a backgrounded one is now read (`sleep 1 & echo "<text>" > f` was skipped), and a heredoc body is no longer judged as the content of a file a later command on the same line writes (in `cat <<EOF & echo done > log.txt` the body was attributed to `log.txt`). `workflow-guard.sh` carries both updated blocks.
 - Not read: text in a command that a `&` inside `$(( ))` or `${ }` ends early.
 
 ## 0.9.1 — 2026-10-01

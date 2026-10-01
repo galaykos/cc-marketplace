@@ -147,8 +147,11 @@ That closes the obvious loop, not every loop: a command that builds the path fro
 a variable or a glob, a script that writes the file, or any program git config
 names (a diff driver, textconv, clean filter, pager, `core.fsmonitor`,
 `gpg.program` via `--show-signature`), set before the command runs, would not be
-recognised. The real protection is that a denied command is visible to the user,
-not that the bypass is impossible.
+recognised. Nor, on the write path, would an MCP write tool other than
+`*apply_patch` and `*create_new_file`, `NotebookEdit`'s `notebook_path`, or a
+non-ASCII spelling the filesystem folds to the name: the Write/Edit match is
+case-insensitive for ASCII letters only. The real protection is that a denied
+command is visible to the user, not that the bypass is impossible.
 
 **On layering.** This guard is one control, not the control. Backups, a
 non-production database URL in the development environment, and least-privilege
