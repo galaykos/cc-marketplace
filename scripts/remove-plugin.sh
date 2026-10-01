@@ -68,8 +68,9 @@ if [ -n "$host" ]; then
   [ -d "plugins/$host" ] || { echo "FAIL: merge host plugins/$host does not exist" >&2; exit 2; }
   for sd in "$pdir"/skills/*/; do
     [ -d "$sd" ] || continue
-    [ -e "plugins/$host/skills/$(basename "$sd")" ] \
-      && { echo "FAIL: plugins/$host/skills/$(basename "$sd") already exists" >&2; exit 2; }
+    for clash in "plugins/$host/skills/$(basename "$sd")" "plugins/$host/commands/$(basename "$sd").md"; do
+      if [ -e "$clash" ]; then echo "FAIL: $clash already exists" >&2; exit 2; fi
+    done
   done
 fi
 
@@ -231,5 +232,10 @@ else
   n=$(printf '%s\n' "$res" | wc -l | tr -d ' ')
   if [ "$n" -gt 40 ]; then echo "... ($n total)"; fi
 fi
-if [ "$apply" -eq 1 ]; then echo "applied. run: bash scripts/validate.sh"; else echo "dry-run only. re-run with --apply to edit."; fi
+if [ "$apply" -eq 1 ]; then
+  echo "applied. run: bash scripts/validate.sh"
+  echo "next: review prose_match in the new $LEDGER row for '$name' — it is 'no', so pc_removed_refs ignores the name; plug, moved or both makes it fail the name in reference shapes only (see that file's header)"
+else
+  echo "dry-run only. re-run with --apply to edit."
+fi
 exit 0

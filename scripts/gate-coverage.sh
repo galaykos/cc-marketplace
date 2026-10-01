@@ -34,9 +34,10 @@ covered=0; uncovered=0; unwired=0
 printf '%-26s %-6s %s\n' CHECK WIRED HARNESS
 printf '%-26s %-6s %s\n' '-----' '-----' '-------'
 for fn in $(grep -oE '^pc_[a-z_]+\(\)' "$LIB" | tr -d '()' | sort); do
-  h=$(grep -rl "$fn" scripts/smoke/ plugins/*/scripts/__tests__/ 2>/dev/null \
+  # -w: `_` is a word character, so pc_x is not credited with pc_x_tail's mentions.
+  h=$(grep -rlw "$fn" scripts/smoke/ plugins/*/scripts/__tests__/ 2>/dev/null \
       | sed 's|scripts/smoke/||; s|plugins/||; s|/scripts/__tests__/|:|' | tr '\n' ' ')
-  w=$(cat scripts/validate.sh scripts/context-budget.sh 2>/dev/null | grep -c "$fn")
+  w=$(cat scripts/validate.sh scripts/context-budget.sh 2>/dev/null | grep -cw "$fn")
   [ "$w" -eq 0 ] && { unwired=$((unwired + 1)); w="NOT-WIRED"; }
   if [ -n "$h" ]; then covered=$((covered + 1)); else uncovered=$((uncovered + 1)); h='NONE'; fi
   printf '%-26s %-6s %s\n' "$fn" "$w" "$h"

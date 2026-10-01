@@ -213,7 +213,7 @@ h1 { font-family: "Space Grotesk", sans-serif; color: #ff4d00; }
 a { color: #ff4d00; }
 EOF
 port=$(( 20000 + RANDOM % 10000 ))
-( cd "$site" && python3 -m http.server "$port" --bind 127.0.0.1 >/dev/null 2>&1 ) & srv=$!
+( cd "$site" && exec python3 -m http.server "$port" --bind 127.0.0.1 >/dev/null 2>&1 ) & srv=$!
 sleep 0.6
 outu="$tmp/outu"
 python3 "$ex" "http://127.0.0.1:$port/" --out "$outu" >/dev/null || fail "url run exited non-zero"

@@ -106,6 +106,13 @@ printf 'bad\tnull\n' >> "$WORK/root/scripts/removed-plugins.tsv"
 expect 1 "renames-ledger-unreadable scripts/removed-plugins.tsv:3
 renames-orphan bad" "malformed TSV row is a finding, not a pass"
 
+mk '{"nextjs":"web-dev","old":null}' nextjs:web-dev old:null
+# The stub drains its operands: under an ignored SIGPIPE, jq writing to a closed pipe prints an error expect would capture.
+mkdir "$WORK/bin"; printf '#!/bin/sh\ncat -- "$@" >/dev/null 2>&1\nexit 2\n' > "$WORK/bin/awk"; chmod +x "$WORK/bin/awk"
+SAVED_PATH="$PATH"; PATH="$WORK/bin:$PATH"
+expect 1 "renames-ledger-unreadable scripts/removed-plugins.tsv" "an unreadable ledger (awk exit 2) fails closed"
+PATH="$SAVED_PATH"
+
 out=$(pc_renames_ledger "$ROOT" 2>&1); rc=$?
 [ "$rc" = 0 ] && [ -z "$out" ] \
   && ok "live repo ledger is consistent" \
