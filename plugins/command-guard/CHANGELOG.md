@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.1 — 2026-10-01
+
+Security fix: two bypasses in destructive-guard's command splitter, each letting a deny-tier command run unjudged behind a segment led by a reader (`ls`, `cat`, `grep` …). Both are closed in `split_segments` and in `check_cd_chain`'s copy of the same walk.
+
+- **Closed: a backslash inside single quotes (every platform).** The walk treated `\` as an escape inside `'…'`, where the shell reads it literally. `grep 'x\' f; <command>` came back as one `grep` segment, so the command after the `;` was never judged. A backslash in `'…'` is now literal.
+- **Closed: a blank line (macOS only).** The awk program set `RS = "\0"`, which the awk macOS ships (BWK, `20200816`) reads as paragraph mode. A blank line started a new record without clearing the segment in progress: `ls a`, a blank line, then `<command>` produced the segment `ls a<command>`. A double quote opened before the blank line and closed after it desynchronised the same way. The walk now runs once over the whole input with the default `RS`. mawk and gawk were not affected.
+- `$'…'` keeps `\'` as an escape, as the shell does; making every single-quoted backslash literal would have hidden the command after `grep $'x\'' f;`. After two or more `$` bash opens a plain quote and zsh an ANSI one, so from that quote on the walk splits on every separator, quoted or not. That can deny a command that only quotes a destructive string after `$$'`; it cannot hide one.
+- Not changed: a newline inside quotes still ends a segment.
+- CI runs Ubuntu only, so it cannot see a regression of the blank-line fix. The harness rows that cover it fail only under BWK awk; run `scripts/__tests__/destructive-guard.test.sh` on macOS after touching either walk.
+
 ## 0.8.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_config_guard`, `claude_destructive_guard`, under `/config` (or `/plugin configure command-guard`), each with today's default. The environment variable (`CC_CONFIG_GUARD`, `CLAUDE_DESTRUCTIVE_GUARD`) still overrides its option. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
