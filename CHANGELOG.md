@@ -6,8 +6,9 @@ version in their `plugin.json`.
 
 ## [0.118.0] - 2026-10-01
 
-Three rounds of hook work since 0.117.0, in the order they landed. Each plugin named below carries its own
-CHANGELOG entry with the detail; this is what an installer notices.
+Three rounds of hook work since 0.117.0, in the order they landed. Each plugin named below that keeps a
+CHANGELOG carries its own entry with the detail (security and git-workflow keep none); this is what an
+installer notices.
 
 - **Write guards see files written through Bash (PR #185).** The host steers file writes through Bash
   (`cat > f <<EOF`, `tee`, `>>`, `sed -i`), and five guards matched the write tools only: command-guard's
@@ -17,8 +18,8 @@ CHANGELOG entry with the detail; this is what an installer notices.
   `{ …; } > f` groups and a path held in a variable.
 - **candor judges a subagent's hand-back (PR #185).** A subagent's report is its `SubagentHandback` call, not its
   closing text; the SubagentStop gate now reads that report.
-- **Every off-switch is a `/config` option (PR #186).** Each off-switch environment variable is also a plugin
-  option under `/config` (or `/plugin configure <plugin>`), with the same default. The environment variable still
+- **Every declared off-switch is a `/config` option (PR #186).** Each off-switch a plugin declares is also a
+  plugin option under `/config` (or `/plugin configure <plugin>`), with the same default. The environment variable still
   overrides its option. **An interactive `/plugin install` now shows a Configure dialog for these options. It is
   optional and does not block the install: Esc keeps the defaults. `claude plugin install` from a shell never
   prompts.**
@@ -27,7 +28,7 @@ CHANGELOG entry with the detail; this is what an installer notices.
   instead of `.claude/<plugin>/`. An existing in-repo directory is left in place; without the variable nothing
   moves.
 - **`scripts/run-evals.sh` (PR #186)** runs one plugin's eval suite against a no-plugin control arm under a cost
-  cap, behind `RUN_EVALS=1`. Maintainer path; nothing runs it in CI.
+  cap, behind `RUN_EVALS=1`. Maintainer path: no CI step runs an eval with it; its plumbing harness is a CI step.
 - **`sed -i` and `perl -i` through Bash are read correctly.** The shared parser ten hooks carry took the LAST word
   of such a command as the file, so `sed -i 's/a/b/' tsconfig.json 2>/dev/null` named `2>/dev/null`. It now
   returns every file the command edits, never a redirect word, and recognises GNU `--in-place[=SUF]` and BSD
@@ -39,14 +40,17 @@ CHANGELOG entry with the detail; this is what an installer notices.
 - **command-guard 0.8.1 — reading its allow-file is no longer blocked.** A Bash command that names the allow-file
   passes when every part of it is a pure read (`cat`, `head`, `tail`, `wc`, `grep`, `stat`, `ls`, `file`, `diff`,
   `cmp`, or a read-only `git log`/`show`/`diff`/`blame`/`grep`/`ls-files`/`cat-file`), redirecting only to
-  `/dev/null` or a descriptor. Everything else naming it is still denied, including `awk`, `sed -n`, `find`, `jq`
-  and `less`. One rule got stricter: a chained step that is not itself a pure read (`cat <file> || echo none`) now
-  denies the whole command.
+  `/dev/null` or a descriptor. Everything else naming it is denied. Two rules got stricter: the reader list is
+  closed, so `less`, `more`, `jq`, `yq`, `rg`, `sort`, `uniq`, `tree`, `echo` and `printf` naming the file used
+  to pass and are now denied (use `cat` or `grep`); and a chained step that is not itself a pure read
+  (`cat <file> || echo none`) now denies the whole command.
 - **candor 0.6.1 — the level commands and the badge see the `cc_terse` option.** `/candor:level`, `/candor:check`,
   `scripts/measure.sh` and the statusline reported a level set only through `/config` as unset while the hooks
   applied it. They now resolve it the way the hooks do. Not seen by them: an option saved through a `--settings`
   file, a managed drop-in, or a symlinked settings file. A resumed subagent that ends without a new hand-back is
   now judged on its closing text instead of the earlier hand-back.
+- **git-workflow 0.9.1** re-points the line citations in branch-completion's scratch inventory to where these
+  edits moved them. No behaviour change.
 - **design-kit's README calls its five entries skills** (they stopped being commands in 0.8.0). Doc-only, no
   release.
 

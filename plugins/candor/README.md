@@ -148,8 +148,9 @@ this gate's clause 3 greps the assistant's own words.
 prompts on the same turn are not designed to coexist.
 
 Optional, wire them yourself: `scripts/statusline.sh` (or `.ps1`) renders
-`[TERSE:ULTRA]` in a `statusLine` setting, from the same `scripts/level.sh` the commands run —
-`CC_TERSE`, the level file, the option — except that a symlinked level file blanks the badge.
+`[TERSE:ULTRA]` in a `statusLine` setting. The `.sh` badge runs the same `scripts/level.sh` the
+commands run — `CC_TERSE`, the level file, the option — and the `.ps1` twin re-implements that
+order; in both a symlinked level file blanks the badge.
 They read the option from user and managed settings only: a `cc_terse` saved through a
 `--settings` file, managed drop-ins or policy, or in a symlinked settings file is applied by the
 hooks but unseen by the badge and `/candor:level status`, and with `jq` missing the `.sh` badge

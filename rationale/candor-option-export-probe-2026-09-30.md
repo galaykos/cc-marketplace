@@ -2,8 +2,8 @@
 
 Measured on Claude Code **2.1.286**. Reader affected: candor's `/candor:level`, `/candor:check`,
 `plugins/candor/scripts/measure.sh` and the statusline, which cannot see a level set only through the `cc_terse`
-/config option (Tier 5 spec 2026-09-30, D2). Standing of this note: **recorded** — no script reads it
-back; card 05 of the Tier 5 run reads the Verdict by hand.
+/config option. Standing of this note: **recorded** — no script reads it back;
+`plugins/candor/scripts/level.sh` was written from its Verdict.
 
 ## Method
 
@@ -28,7 +28,7 @@ reply with that word. The scratch directory was deleted afterwards.
   in the same session.
 
 So a command (run through the model's Bash tool) cannot rely on the variable; it must read the
-option from settings, as card 05 does. Scope measured: one `-p` session, a `--plugin-dir` load, the
+option from settings, as `plugins/candor/scripts/level.sh` does. Scope measured: one `-p` session, a `--plugin-dir` load, the
 option saved through `--settings`. Not probed: a statusLine process, an interactive session, and a
 marketplace-installed plugin with the option saved in user settings.
 

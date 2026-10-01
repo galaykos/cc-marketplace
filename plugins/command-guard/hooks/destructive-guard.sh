@@ -29,7 +29,7 @@
 # first and no output, pager, ext-diff, textconv, filters or -c option; redirects only to
 # /dev/null or a descriptor; no backtick, $, ~, {}, unquoted # or paren, or env assignment;
 # the reader's name typed bare. Everything else naming it is denied, so awk, sed -n, find, jq
-# and less on it stay blocked — use cat/grep. WHAT IT DOES NOT CATCH: a path built from a
+# and less on it are blocked — use cat/grep. WHAT IT DOES NOT CATCH: a path built from a
 # variable or a glob, a script file that writes it, and any program git config names (a diff
 # driver, textconv, clean filter, pager, core.fsmonitor, gpg.program via --show-signature),
 # set before the command runs.

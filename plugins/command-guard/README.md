@@ -118,7 +118,7 @@ option. The reader's name must be typed bare, a redirect may only target
 (`>"/dev/null"` is denied), and a backtick, `$`, `~`, `{}`, an unquoted `#` or
 parenthesis, or a leading env assignment (`LC_ALL=C grep …`) denies the command.
 So `grep x <file> 2>/dev/null` passes, while `awk`, `sed -n`, `find`, `jq` and
-`less` on the file stay blocked: each can write or run a program, so use `cat`
+`less` on the file are blocked: each can write or run a program, so use `cat`
 or `grep`. An opt-out an agent can grant itself is not an opt-out. Add lines
 yourself, and narrowly. What it does NOT catch: a path built from a variable or a
 glob, a script that writes the file, or any program git config names (a diff

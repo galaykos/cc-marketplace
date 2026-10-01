@@ -5,7 +5,7 @@ Measured on Claude Code **2.1.286**. Reader affected: candor's SubagentStop hand
 `SubagentHandback` `input.message` in the last 4000 lines of `agent_transcript_path`
 (`plugins/candor/hooks/gate.sh:608-621` at commit `a743bd33`), and the `# Residual:` comment
 above it (`plugins/candor/hooks/gate.sh:109-111` at the same commit). Standing of this note:
-**recorded** — no script reads it back; card 06 of the Tier 5 run reads the Verdict by hand.
+**recorded** — no script reads it back; the scoped read in that hook was written from its Verdict.
 Extends `rationale/candor-subagent-probe-2026-09-29.md`, which recorded field names and tool
 names for a single turn but no entry sequence and no resume.
 
@@ -26,8 +26,8 @@ afterwards. One run: every shape below is one sample.
 
 Three SubagentStop payloads fired, all for the **same `agent_id`: yes**. The transcript file grew
 across them (12, 15, then 20 lines): a resumed turn is appended to the same file, not a new one.
-"User-text entry" follows the spec's definition (A5): `type:"user"` with string content or a
-`text` block, not a `tool_result`, not injected context — and injected context is exactly A5's
+A "user-text entry" here is `type:"user"` with string content or a
+`text` block, not a `tool_result`, not injected context — and injected context is exactly
 four forms (hook additionalContext, `<task-notification>`, `<system-reminder>`,
 `Stop hook feedback:`), nothing else.
 
@@ -49,7 +49,7 @@ header of `plugins/candor/hooks/gate.sh:99-105` (at commit `a743bd33`) — "alre
 the hook fires" — held here for the hand-back itself and not for what follows it.
 
 After the hand-back, the payload-3 copy shows: user entry (`tool_result`); attachment; then the next
-turn. **Neither an injected-context entry nor closing text followed hand-back #1.** Card 06's
+turn. **Neither an injected-context entry nor closing text followed hand-back #1.** The harness's
 non-resumed case (hand-back, `tool_result`, injected context, closing text) is therefore an
 extrapolation built from the 2.1.284 shape, not a shape this probe saw.
 
@@ -57,7 +57,7 @@ extrapolation built from the 2.1.284 shape, not a shape this probe saw.
 
 Entries after the first turn's `tool_result` and attachment: user entry (string, `isMeta: true`
 — the SendMessage text inside a host-written frame whose first characters are
-`The coordinator se`; not one of A5's four injected-context forms, so **user-text**); assistant
+`The coordinator se`; not one of the four injected-context forms, so **user-text**); assistant
 thinking; assistant text carrying the second marker.
 
 The second payload fired here, with `last_assistant_message` holding that closing text. Its
@@ -68,7 +68,7 @@ that copy, so its verdict there is not recorded, and nor is what the parent rece
 
 The host did not let the turn end there. It appended a user entry (string, `isMeta: true`, a
 host-written frame whose first characters are `[handback-send-enf`, asking for a hand-back — not
-one of A5's four forms, so **user-text**), then assistant thinking, then hand-back #2 carrying the
+one of the four forms, so **user-text**), then assistant thinking, then hand-back #2 carrying the
 second marker. The third payload fired with `stop_hook_active: true` — whether set by that host
 enforcement or by an installed Stop/SubagentStop hook is not recorded — and no
 `last_assistant_message` key. Its copy ended at hand-back #2, so the entries after hand-back #2
@@ -80,7 +80,7 @@ were not captured; the Verdict's third line rests on hand-back #1.
   host's hand-back nudge all carry `isMeta: true`; the original task prompt carries none. A rule
   that skips `isMeta` entries would skip the resume boundary itself. Classify by content prefix:
   a string (or first text block) starting `<task-notification>`, `<system-reminder>` or
-  `Stop hook feedback:` is injected context. A5's fourth form, hook additionalContext, has no
+  `Stop hook feedback:` is injected context. The fourth form, hook additionalContext, has no
   prefix of its own and its shape in a subagent transcript was not observed: it is excluded only
   if it lands as a non-`type:"user"` entry (such as an attachment), and a `type:"user"`
   additionalContext entry would read as user-text — a residual the scoped read's header must

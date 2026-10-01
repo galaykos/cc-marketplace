@@ -139,7 +139,7 @@ quoted or escaped beside the target. A backtick, `$`, `~` or `{}` anywhere in
 the command denies it, and so do an unquoted `#` or parenthesis, a leading env
 assignment (`LC_ALL=C grep …`), and a chained or piped step that is not itself a
 pure read (`|| echo none`, `| xargs cp`). The list is closed on purpose, so
-inspecting the file with `awk`, `sed -n`, `find`, `jq` or `less` stays blocked —
+inspecting the file with `awk`, `sed -n`, `find`, `jq` or `less` is blocked —
 each can write or run a program; use `cat` or `grep`.
 **Standing: gate** — the hook denies; pinned by the harness section
 `== allow-file: pure readers`.

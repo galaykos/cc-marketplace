@@ -51,8 +51,9 @@ contract is not already in context.
 The hook removed the level file, and its context this turn says whether `CC_TERSE` or
 the `cc_terse` option still keeps a level active. If it says so, report that, whatever
 `active` shows; when `active` is `off` anyway, add that the option sits where `level.sh`
-cannot read it — a `--settings` file, a managed drop-in or policy, or a symlinked
-settings file. Otherwise read `active`: if it is `off`, confirm in one line that normal
+cannot read it — a `--settings` file, a managed drop-in or policy, a symlinked
+settings file, or any settings file when `jq` is missing (the option line says so).
+Otherwise read `active`: if it is `off`, confirm in one line that normal
 length resumes. If it still names a level, do not say that — name the source holding it
 instead: `env` is `CC_TERSE` (unset it); `option` is the `cc_terse` option in the
 settings file printed — set it to `off` in `/config`, unless that file is
@@ -66,8 +67,8 @@ Report, without changing anything, every source the block above printed and whic
 wins (`active`). The level file and the option persist across sessions until changed;
 `CC_TERSE` lasts as long as the environment that set it. Not seen by this command or the
 badge, though the hooks apply it: a `cc_terse` saved only through a `--settings` file,
-managed drop-ins or policy, or in a symlinked settings file — say so when `active` is
-`off` and the user reports terse replies.
+managed drop-ins or policy, in a symlinked settings file, or in any settings file when
+`jq` is missing — say so when `active` is `off` and the user reports terse replies.
 
 Then print the reference card (display only, change nothing):
 
