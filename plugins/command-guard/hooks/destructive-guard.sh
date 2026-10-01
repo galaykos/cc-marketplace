@@ -96,16 +96,31 @@ norm_cmd() {
 # the segment that would EXECUTE the match, not on a segment that merely quotes
 # it. Splitting is quote-aware on the RAW string — dequoting first would split
 # `grep -E "a|rm -rf /"` into a fake `rm -rf /` segment.
+#
+# The walk runs ONCE, in END, over the whole input. It used to run per record
+# under RS = "\0", which BWK awk (macOS) reads as paragraph mode: a blank line
+# started a new record with `seg` still holding the previous one, so
+# `ls a` + blank line + X came back as a single reader-led segment `ls aX`.
+# And a backslash escapes nothing inside '…' — treating it as an escape there
+# left `'x\'` open, swallowing the `;` after it. The exception is $'…', where
+# \' IS an escape (`ans`). After two or more `$` the shells disagree — bash opens
+# a plain quote, zsh an ANSI one — so the walk stops trusting quotes and escapes
+# for the rest of the command (`raw`) and splits on every separator: too many
+# segments can only add a verdict, never hide one. check_cd_chain copies this walk.
 split_segments() {
   printf '%s' "$1" | awk '
-    BEGIN { RS = "\0"; seg = "" }
-    {
-      n = length($0); sq = 0; dq = 0
+    { buf = (NR == 1 ? $0 : buf "\n" $0) }
+    END {
+      n = length(buf); sq = 0; dq = 0; ans = 0; raw = 0; dl = 0; seg = ""
       for (i = 1; i <= n; i++) {
-        c = substr($0, i, 1); nx = substr($0, i + 1, 1)
-        if (c == "\\" ) { seg = seg c nx; i++; continue }
-        if (c == "'"'"'" && !dq) { sq = !sq; seg = seg c; continue }
-        if (c == "\"" && !sq) { dq = !dq; seg = seg c; continue }
+        c = substr(buf, i, 1); nx = substr(buf, i + 1, 1)
+        d = dl; dl = (c == "$" && !sq && !dq ? d + 1 : 0)
+        if (c == "\\" && !raw && (!sq || ans)) { seg = seg c nx; i++; continue }
+        if (c == "'"'"'" && !dq && !raw) {
+          if (!sq && d > 1) raw = 1; else { if (!sq) ans = (d == 1); sq = !sq }
+          seg = seg c; continue
+        }
+        if (c == "\"" && !sq && !raw) { dq = !dq; seg = seg c; continue }
         if (!sq && !dq) {
           if (c == ";" || c == "\n" || c == "|" || c == "&") {
             if ((c == "|" && nx == "|") || (c == "&" && nx == "&")) i++
@@ -660,14 +675,18 @@ check_cd_chain() { # raw command
   # quote-aware walk as split_segments, keeping the separator it cut on.
   local lines
   lines=$(printf '%s' "$raw" | awk '
-    BEGIN { RS = "\0"; seg = "" }
-    {
-      n = length($0); sq = 0; dq = 0
+    { buf = (NR == 1 ? $0 : buf "\n" $0) }
+    END {
+      n = length(buf); sq = 0; dq = 0; ans = 0; raw = 0; dl = 0; seg = ""
       for (i = 1; i <= n; i++) {
-        c = substr($0, i, 1); nx = substr($0, i + 1, 1)
-        if (c == "\\") { seg = seg c nx; i++; continue }
-        if (c == "'"'"'" && !dq) { sq = !sq; seg = seg c; continue }
-        if (c == "\"" && !sq) { dq = !dq; seg = seg c; continue }
+        c = substr(buf, i, 1); nx = substr(buf, i + 1, 1)
+        d = dl; dl = (c == "$" && !sq && !dq ? d + 1 : 0)
+        if (c == "\\" && !raw && (!sq || ans)) { seg = seg c nx; i++; continue }
+        if (c == "'"'"'" && !dq && !raw) {
+          if (!sq && d > 1) raw = 1; else { if (!sq) ans = (d == 1); sq = !sq }
+          seg = seg c; continue
+        }
+        if (c == "\"" && !sq && !raw) { dq = !dq; seg = seg c; continue }
         if (!sq && !dq) {
           sep = ""
           if (c == ";" || c == "\n") sep = ";"

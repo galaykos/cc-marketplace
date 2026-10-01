@@ -35,7 +35,7 @@ taskmaster-docs/	taskmaster, ui-ux	scratch	project	taskmaster/skills/grill/SKILL
 .claude/cc-phase.json	taskmaster, git-workflow, task-runner, code-architecture	scratch	project	taskmaster/commands/task.md:40 — the arc-phase sentinel every phase-owning command writes and must remove
 .claude/worktrees/	git-workflow	scratch	project	git-workflow/skills/worktree-isolation/SKILL.md:40 — where EnterWorktree puts feature worktrees; a checkout inside a checkout must never be committed
 .claude/hindsight/	hindsight	state	project	hindsight/skills/harvest/SKILL.md:141 — anti-patterns.md holds the failed-approach warnings the user approved; a team may want them
-.claude/destructive-guard-allow	command-guard	state	project	command-guard/hooks/destructive-guard.sh:435 — the project's allow-list of regexes; a config the team maintains
+.claude/destructive-guard-allow	command-guard	state	project	command-guard/hooks/destructive-guard.sh:450 — the project's allow-list of regexes; a config the team maintains
 brain/	brain	state	project	brain/README.md:3 — "A committed, Obsidian-style codebase map"; tracked by design
 design-system/	design-kit	state	project	design-kit/README.md:406 — "design-system/ is yours"; tokens.json, DESIGN-SYSTEM.md, components.json, DECISIONS.md are the record
 research/	ultra-deep-research	state	project	ultra-deep-research/README.md:6 — the cited report is the deliverable
@@ -43,4 +43,4 @@ research/	ultra-deep-research	state	project	ultra-deep-research/README.md:6 — 
 ~/.claude/hindsight/	hindsight	state	home	hindsight/hooks/collect.sh:96, skill-use.sh:86 — <slug>/ledger.jsonl, skills.jsonl; read by hindsight/scripts/outcome.sh:23 and scripts/turn-cost.sh:321
 ~/.claude/comment-discipline/	code-review	state	home	code-review/hooks/density.sh:433, verbosity.sh:245 — density- and verbosity-ledger.jsonl; read by nothing automatically, kept to revisit the thresholds
 ~/.claude/terse-mode	candor	state	home	candor/hooks/mode.sh:90 via /candor:level — the brevity level, at ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode; read by mode.sh:194 and activate.sh:64
-~/.claude/destructive-guard-allow	command-guard	state	home	written by the user — the per-user allow-list of regexes; read by command-guard/hooks/destructive-guard.sh:866
+~/.claude/destructive-guard-allow	command-guard	state	home	written by the user — the per-user allow-list of regexes; read by command-guard/hooks/destructive-guard.sh:885

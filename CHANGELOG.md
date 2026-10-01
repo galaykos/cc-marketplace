@@ -6,7 +6,7 @@ version in their `plugin.json`.
 
 ## [0.118.0] - 2026-10-01
 
-Three rounds of hook work since 0.117.0, in the order they landed. Each plugin named below that keeps a
+Hook work since 0.117.0. Each plugin named below that keeps a
 CHANGELOG carries its own entry with the detail (security and git-workflow keep none); this is what an
 installer notices.
 
@@ -37,7 +37,10 @@ installer notices.
   another word (`gsed`, `xargs`, `find -exec`), and a dot-named file right after a bare `-i` when another file
   follows. Standing: **gate** — `scripts/smoke/bash-write-targets-tests.sh` runs one case table against the
   template and every copy, as its own CI step.
-- **command-guard 0.8.1 — reading its allow-file is no longer blocked.** A Bash command that names the allow-file
+- **command-guard 0.8.1 — two splitter bypasses closed (PR #187).** A backslash inside single quotes, on every
+  platform, and a blank line under macOS's awk each let a command run unjudged behind a segment led by a reader.
+  Its own CHANGELOG entry has the detail.
+- **command-guard 0.8.2 — reading its allow-file is no longer blocked.** A Bash command that names the allow-file
   passes when every part of it is a pure read (`cat`, `head`, `tail`, `wc`, `grep`, `stat`, `ls`, `file`, `diff`,
   `cmp`, or a read-only `git log`/`show`/`diff`/`blame`/`grep`/`ls-files`/`cat-file`), redirecting only to
   `/dev/null` or a descriptor. Everything else naming it is denied. Two rules got stricter: the reader list is

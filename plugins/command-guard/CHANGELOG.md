@@ -1,11 +1,21 @@
 # Changelog
 
-## 0.8.1 — 2026-10-01
+## 0.8.2 — 2026-10-01
 
 - **Reading the allow-file is no longer blocked.** destructive-guard denied any Bash command whose text named `.claude/destructive-guard-allow` unless it was a bare reader with no redirect, so `grep x .claude/destructive-guard-allow 2>/dev/null` and `git log -- .claude/destructive-guard-allow` were refused. A command naming the file now passes when every part of it, piped or chained, is a pure read: `cat`, `head`, `tail`, `wc`, `grep`/`egrep`/`fgrep`, `stat`, `ls`, `file`, `diff`, `cmp`, or `git log`/`show`/`diff`/`blame`/`grep`/`ls-files`/`cat-file` with the subcommand first and no `--output`, `-o`/`-O`, pager, `--ext-diff`, `--textconv`, `--filters` or `-c` option, redirecting only to an unquoted `/dev/null` or a descriptor.
 - Everything else naming the file is denied: `awk`, `sed -n` and `find` as before, and any backtick, `$`, `~`, `{}`, unquoted `#` or parenthesis, a leading env assignment, a reader typed with a quote or a path, and a chained step that is not itself a pure read. Two rules are stricter than before. The reader list is closed: `less`, `more`, `jq`, `yq`, `rg`, `ag`, `ack`, `sort`, `uniq`, `tree`, `column`, `comm`, `echo` and `printf` naming the file used to pass and are now denied, because each can write or run a program or is not a reader at all — use `cat` or `grep`. And every chained step is judged: `cat .claude/destructive-guard-allow || echo none` and `cd x && grep y .claude/destructive-guard-allow` used to pass and are now denied.
 - Not caught, as before: a path built from a variable or a glob, a script that writes the file, and any program git config names (a diff driver, textconv, clean filter, pager, `core.fsmonitor`, `gpg.program`), set before the command runs. The README no longer says the agent "cannot" write the file.
 - **config-guard: the `sed -i` gap listed under 0.7.3 is closed.** The shared `cc_bash_write_targets` block now returns every file a `sed -i` / `perl -i` command edits instead of its last word, never a trailing redirect, and recognises GNU `--in-place[=SUF]` and BSD `-I`. So `sed -i 's/a/b/' tsconfig.json 2>/dev/null`, `sed --in-place … .eslintrc.json` and a config that is not the last operand now ask. Still not read: a globbed operand, a `\` line continuation, sed or perl reached through another word (`gsed`, `/usr/bin/sed`, `xargs`, `find -exec`), and a dot-named file right after a bare `-i` when another file follows (read as BSD's backup suffix). A lone `&` does not split a command, so a config named after one can draw an ask it should not.
+
+## 0.8.1 — 2026-10-01
+
+Security fix: two bypasses in destructive-guard's command splitter, each letting a deny-tier command run unjudged behind a segment led by a reader (`ls`, `cat`, `grep` …). Both are closed in `split_segments` and in `check_cd_chain`'s copy of the same walk.
+
+- **Closed: a backslash inside single quotes (every platform).** The walk treated `\` as an escape inside `'…'`, where the shell reads it literally. `grep 'x\' f; <command>` came back as one `grep` segment, so the command after the `;` was never judged. A backslash in `'…'` is now literal.
+- **Closed: a blank line (macOS only).** The awk program set `RS = "\0"`, which the awk macOS ships (BWK, `20200816`) reads as paragraph mode. A blank line started a new record without clearing the segment in progress: `ls a`, a blank line, then `<command>` produced the segment `ls a<command>`. A double quote opened before the blank line and closed after it desynchronised the same way. The walk now runs once over the whole input with the default `RS`. mawk and gawk were not affected.
+- `$'…'` keeps `\'` as an escape, as the shell does; making every single-quoted backslash literal would have hidden the command after `grep $'x\'' f;`. After two or more `$` bash opens a plain quote and zsh an ANSI one, so from that quote on the walk splits on every separator, quoted or not. That can deny a command that only quotes a destructive string after `$$'`; it cannot hide one.
+- Not changed: a newline inside quotes still ends a segment.
+- CI runs Ubuntu only, so it cannot see a regression of the blank-line fix. The harness rows that cover it fail only under BWK awk; run `scripts/__tests__/destructive-guard.test.sh` on macOS after touching either walk.
 
 ## 0.8.0 — 2026-09-30
 
