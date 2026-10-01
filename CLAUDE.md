@@ -322,8 +322,8 @@ Those four are the ones you invoke. They are **not** all the enforcement. Named
 by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **45 named steps;
-43 can fail the build**, and on a push to `master` only **42** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **46 named steps;
+44 can fail the build**, and on a push to `master` only **43** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
 This is the one count deliberately carried here and nowhere else
 (`scripts/done-gate.sh:7` says why); **recount it, do not copy it**:

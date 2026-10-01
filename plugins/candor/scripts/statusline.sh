@@ -7,18 +7,19 @@
 #   "statusLine": { "type": "command",
 #                   "command": "bash ~/.claude/plugins/.../candor/scripts/statusline.sh" }
 #
+# The level is level.sh's: CC_TERSE, then the level file, then the cc_terse /config option.
+#
 # SECURITY. The level file is user-writable state rendered into a terminal on every
-# keystroke, which makes it an injection surface: refuse symlinks (a link pointed at
-# a private key would render its bytes), cap the read, strip everything outside a
-# tiny character class, and whitelist the result. Anything unrecognized renders
-# nothing rather than echoing bytes from a file this script does not control.
+# keystroke, which makes it an injection surface: a symlinked level file blanks the
+# badge (a link pointed at a private key would render its bytes) although the hooks
+# follow it; level.sh caps the read, and only a whitelisted level renders. Anything
+# unrecognized renders nothing rather than echoing bytes from a file this script does
+# not control.
 FLAG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode"
 
 [ -L "$FLAG" ] && exit 0
-[ -f "$FLAG" ] || exit 0
 
-MODE=$(head -c 32 "$FLAG" 2>/dev/null | tr -d '\n\r' | tr '[:upper:]' '[:lower:]')
-MODE=$(printf '%s' "$MODE" | tr -cd 'a-z-')
+read -r MODE _ <<< "$("${BASH:-bash}" "$(dirname "$0" 2>/dev/null)/level.sh" 2>/dev/null)"
 
 case "$MODE" in
   lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra) ;;

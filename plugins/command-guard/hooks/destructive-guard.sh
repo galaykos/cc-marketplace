@@ -23,6 +23,17 @@
 # the call. A guard that breaks the session gets uninstalled, and then it guards
 # nothing.
 #
+# The allow-file (.claude/destructive-guard-allow) disarms every deny, so a Bash command
+# naming it passes only when EVERY segment is a pure read: cat head tail wc grep egrep fgrep
+# stat ls file diff cmp, or git log/show/diff/blame/grep/ls-files/cat-file with the subcommand
+# first and no output, pager, ext-diff, textconv, filters or -c option; redirects only to
+# /dev/null or a descriptor; no backtick, $, ~, {}, unquoted # or paren, or env assignment;
+# the reader's name typed bare. Everything else naming it is denied, so awk, sed -n, find, jq
+# and less on it stay blocked — use cat/grep. WHAT IT DOES NOT CATCH: a path built from a
+# variable or a glob, a script file that writes it, and any program git config names (a diff
+# driver, textconv, clean filter, pager, core.fsmonitor, gpg.program via --show-signature),
+# set before the command runs.
+#
 # CLAUDE_DESTRUCTIVE_GUARD, read from the hook's own environment:
 #   unset      deny + ask, as above
 #   deny-only  the hard stops only; the ask tier falls through silently to
@@ -426,20 +437,73 @@ EOF
 # check for Bash, the tool_name branch below for Write/Edit).
 ALLOW_BASENAME=destructive-guard-allow
 
-# Runs on EVERY segment, reader or not: `echo … >> allow-file` is an echo by
-# lead word and a write by effect, and exempting it would have left the opt-out
-# self-editable — the one hole that turns the whole gate into a formality.
-# Reading the file stays fine.
-check_self_protection() { # normalised segment, lead word
-  local seg="$1" lead="$2"
-  case "$seg" in *"$ALLOW_BASENAME"*) ;; *) return 0 ;; esac
-  case "$seg" in
-    *' > '*) ;;                       # a redirect at any position is a write
-    *) is_reader "$lead" && return 0 ;;  # cat/grep/less on the file: allowed
-  esac
+# Closed on purpose and not READERS: less, sort, jq, env and echo can each write or run a program.
+ALLOW_FILE_READERS=' cat head tail wc grep egrep fgrep stat ls file diff cmp '
+
+# Every segment, not only the one naming the file: `hash -p /bin/cp cat; cat x <allow-file>`
+# is a cp wearing a reader's name. The split keeps `2>&1` and `&>` whole, unlike split_segments.
+allow_file_pure_read() { # raw command -> 0 when every segment is a pure read
+  local s r d x n bad w seen=0
+  case "$1" in *'`'*|*'$'*|*'~'*|*'{'*|*'}'*) return 1 ;; esac
+  while IFS= read -r s; do
+    # stripped BEFORE dequoting, on a literal space: `>&"1 x/f"` and `>&1<CR>x/f` are `&>` onto a file
+    r=$(printf ' %s ' "$s" | LC_ALL=C sed -E -e 's# #  #g' \
+      -e 's#( [0-9]+)?(>>?|&>>?|>&) */dev/null # #g' \
+      -e 's#( [0-9]+)?>& *([0-9]+|-) # #g')
+    case "$r" in ''|*'<'*|*'>'*) return 1 ;; esac
+    read -ra w <<< "$r"
+    [ "${#w[@]}" -gt 0 ] || continue
+    seen=1
+    # lead and subcommand are judged as typed: `cat\ x` runs a program named "cat x"
+    case "$ALLOW_FILE_READERS" in *" ${w[0]} "*) continue ;; esac
+    [ "${w[0]}" = git ] || return 1
+    case " ${w[1]:-} " in ' log '|' show '|' diff '|' blame '|' grep '|' ls-files '|' cat-file ') ;; *) return 1 ;; esac
+    d=${r//\"/}; d=${d//\'/}; d=${d//\\/}
+    read -ra w <<< "$d"
+    for x in "${w[@]}"; do
+      case "$x" in
+        --) ;;
+        --*) n=${x#--}; n=${n%%=*}
+             # both directions: git grep takes an abbreviation (`--open-f=<cmd>`)
+             for bad in output open-files-in-pager ext-diff textconv config-env paginate filters; do
+               case "$bad" in "$n"*) return 1 ;; esac
+               case "$n" in "$bad"*) return 1 ;; esac
+             done ;;
+        -*[oOc]*) return 1 ;;
+      esac
+    done
+  done < <(printf '%s' "$1" | awk '
+    # one walk over the whole input: BWK awk reads RS = "\0" as paragraph mode, splitting at blank lines
+    { buf = (NR == 1 ? $0 : buf "\n" $0) }
+    END {
+      n = length(buf); sq = 0; dq = 0; pr = ""; seg = ""
+      for (i = 1; i <= n; i++) {
+        c = substr(buf, i, 1); nx = substr(buf, i + 1, 1)
+        if (c == "\\" && !sq) { seg = seg c nx; i++; pr = ""; continue }
+        if (c == "'"'"'" && !dq) { sq = !sq; seg = seg c; pr = ""; continue }
+        if (c == "\"" && !sq) { dq = !dq; seg = seg c; pr = ""; continue }
+        if (sq || dq) { seg = seg c; continue }
+        # "#" and a paren each lead their own segment, so it is denied: comment quotes, zsh `f(e:cmd:)`
+        if (c == "#" || c == "(" || c == ")") { gsub(/[\t\n]/, " ", seg); print seg; seg = c; pr = c; continue }
+        if (c == "&" && (pr == ">" || pr == "<" || nx == ">")) { seg = seg c; pr = c; continue }
+        if (c == ";" || c == "\n" || c == "|" || c == "&") {
+          gsub(/[\t\n]/, " ", seg); print seg; seg = ""; pr = c; continue
+        }
+        seg = seg c; pr = c
+      }
+      gsub(/[\t\n]/, " ", seg); print seg
+    }')
+  # no segment judged means the split itself failed: unsure is not pure
+  [ "$seen" -eq 1 ]
+}
+
+# Once per command, before the git global-option strip, which would hide `git -C <file>`.
+check_self_protection() { # normalised command (lowercased, padded), raw command
+  case "$1" in *"$ALLOW_BASENAME"*) ;; *) return 0 ;; esac
+  allow_file_pure_read "$2" && return 0
   set_verdict deny \
     "writes to the guard's own allow-file, which would let the next command through unchecked" \
-    "ask the user to add the exemption themselves; the file is theirs by design" "$seg"
+    "ask the user to add the exemption themselves; the file is theirs by design" "$1"
 }
 
 # Whole-command rules: shapes the segment splitter would cut in half, because
@@ -666,6 +730,7 @@ classify() {
   full=$(norm_cmd "$raw")
   full_lc=$(printf '%s' "$full" | tr '[:upper:]' '[:lower:]')
   check_whole " $full_lc "
+  check_self_protection " $full_lc " "$raw"
 
   case " $full_lc " in *' cd '*|*' pushd '*) CWD_MOVED=1 ;; *) CWD_MOVED=0 ;; esac
 
@@ -700,8 +765,6 @@ classify() {
     segn=" $segn "
 
     lead=$(lead_word "$segn")
-    check_self_protection "$segn_lc" "$lead"
-    [ "$VERDICT" = "deny" ] && break
     check_env_overwrite "$segn" "$lead"
     [ "$VERDICT" = "deny" ] && break
 

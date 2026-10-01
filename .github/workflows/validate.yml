@@ -122,6 +122,8 @@ jobs:
         run: bash scripts/smoke/eval-case-tests.sh
       - name: Option-resolver smoke tests
         run: bash scripts/smoke/option-resolver-tests.sh
+      - name: bash-write-targets block (every copy parses sed -i/perl -i operands)
+        run: bash scripts/smoke/bash-write-targets-tests.sh
       - name: Plugin-data state harness (no .claude/<plugin>/ dir for moved state)
         run: bash scripts/smoke/plugin-data-state-tests.sh
       # The host's own validator, pinned to the CLI this repo was measured against —

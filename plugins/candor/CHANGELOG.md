@@ -2,6 +2,12 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.6.1 — 2026-10-01
+
+- **`/candor:level`, `/candor:check`, `scripts/measure.sh` and the statusline badge now see a level set only through the `cc_terse` /config option.** A new `scripts/level.sh` resolves the level the way the hooks do — `CC_TERSE`, then the level file, then the option, an invalid value counting as off — and prints the layer that won. `/candor:level status` names every layer; `/candor:level off` names the source still holding a level instead of saying normal length resumes, and trusts the hook's own "keeps it active" line over `level.sh`.
+- The option is read from managed settings, then user settings: measured on 2.1.286, the host exports it to candor's hooks and not to the Bash tool the commands run in. Not read by the badge or the commands, though the hooks apply it: a `cc_terse` saved through a `--settings` file, a managed drop-in or policy, a symlinked settings file (`--sources` names it as not read), and any settings file when `jq` is missing. `statusline.ps1` mirrors the rule and has not been run (agent-graded).
+- **A resumed subagent is judged on its own closing text.** The SubagentStop gate read the last `SubagentHandback` in the transcript tail, so a subagent resumed with SendMessage that ended without a new hand-back was judged again on the earlier one. It now reads only hand-backs after the tail's last user-text entry (measured on 2.1.286, one run). Residuals, in the hook header: hook-injected context written as a user entry after a hand-back hides that hand-back, and a resume message the transcript has not recorded yet leaves the earlier hand-back judged.
+
 ## 0.6.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_avert`, `cc_candor_gate`, `cc_evidence_gate`, `cc_lockfile_gate`, `cc_preamble`, `cc_terse`, `task_runner_stop_gate`, under `/config` (or `/plugin configure candor`), each with today's default. The environment variable (`CC_AVERT`, `CC_CANDOR_GATE`, `CC_EVIDENCE_GATE`, `CC_LOCKFILE_GATE`, `CC_PREAMBLE`, `CC_TERSE`, `TASK_RUNNER_STOP_GATE`) still overrides its option. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.

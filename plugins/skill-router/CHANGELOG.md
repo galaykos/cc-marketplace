@@ -2,6 +2,11 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.22.1 — 2026-10-01
+
+- **`sed -i` edits route to the file they edit:** the shared `cc_bash_write_targets` block now returns every file a `sed -i` / `perl -i` command edits instead of its last word, never a trailing redirect (`sed -i … tsconfig.json 2>/dev/null` used to yield `2>/dev/null`), and recognises GNU `--in-place[=SUF]` and BSD `-I`. So `route.sh` routes on each edited file rather than on a redirect word or only the last operand.
+- Still not read: a globbed operand (`tests/*.js`), a `\` line continuation, sed or perl reached through another word (`gsed`, `/usr/bin/sed`, `xargs`, `find -exec`), and a dot-named file right after a bare `-i` when another file follows (read as BSD's backup suffix).
+
 ## 0.22.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_remind`, `cc_route`, `cc_subagent_skills`, `cc_surfaced_log`, under `/config` (or `/plugin configure skill-router`), each with today's default. The environment variable (`CC_REMIND`, `CC_ROUTE`, `CC_SUBAGENT_SKILLS`, `CC_SURFACED_LOG`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.

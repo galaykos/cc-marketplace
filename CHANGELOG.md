@@ -4,6 +4,52 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.118.0] - 2026-10-01
+
+Three rounds of hook work since 0.117.0, in the order they landed. Each plugin named below carries its own
+CHANGELOG entry with the detail; this is what an installer notices.
+
+- **Write guards see files written through Bash (PR #185).** The host steers file writes through Bash
+  (`cat > f <<EOF`, `tee`, `>>`, `sed -i`), and five guards matched the write tools only: command-guard's
+  config-guard, security's write-scan, database's destructive-SQL guard, devops' workflow-guard and testing's
+  protect-tests. Each now also matches `Bash` and judges the files or text such a command writes. Not caught, in
+  every one: interpreter writes (python `open()`, php `file_put_contents`), `cp`/`mv`/`install` destinations,
+  `{ …; } > f` groups and a path held in a variable.
+- **candor judges a subagent's hand-back (PR #185).** A subagent's report is its `SubagentHandback` call, not its
+  closing text; the SubagentStop gate now reads that report.
+- **Every off-switch is a `/config` option (PR #186).** Each off-switch environment variable is also a plugin
+  option under `/config` (or `/plugin configure <plugin>`), with the same default. The environment variable still
+  overrides its option. **An interactive `/plugin install` now shows a Configure dialog for these options. It is
+  optional and does not block the install: Esc keeps the defaults. `claude plugin install` from a shell never
+  prompts.**
+- **Hook state moved out of your repo (PR #186).** When the host sets `CLAUDE_PLUGIN_DATA`, candor, code-review,
+  skill-router, testing and ui-ux keep their markers under `${CLAUDE_PLUGIN_DATA}/<project-key>/<plugin>/`
+  instead of `.claude/<plugin>/`. An existing in-repo directory is left in place; without the variable nothing
+  moves.
+- **`scripts/run-evals.sh` (PR #186)** runs one plugin's eval suite against a no-plugin control arm under a cost
+  cap, behind `RUN_EVALS=1`. Maintainer path; nothing runs it in CI.
+- **`sed -i` and `perl -i` through Bash are read correctly.** The shared parser ten hooks carry took the LAST word
+  of such a command as the file, so `sed -i 's/a/b/' tsconfig.json 2>/dev/null` named `2>/dev/null`. It now
+  returns every file the command edits, never a redirect word, and recognises GNU `--in-place[=SUF]` and BSD
+  `-I`. Patch releases: code-review, command-guard, database, devops, secret-scanning, security, skill-router,
+  task-runner, testing. Still not read: a globbed operand, a `\` line continuation, sed or perl reached through
+  another word (`gsed`, `xargs`, `find -exec`), and a dot-named file right after a bare `-i` when another file
+  follows. Standing: **gate** — `scripts/smoke/bash-write-targets-tests.sh` runs one case table against the
+  template and every copy, as its own CI step.
+- **command-guard 0.8.1 — reading its allow-file is no longer blocked.** A Bash command that names the allow-file
+  passes when every part of it is a pure read (`cat`, `head`, `tail`, `wc`, `grep`, `stat`, `ls`, `file`, `diff`,
+  `cmp`, or a read-only `git log`/`show`/`diff`/`blame`/`grep`/`ls-files`/`cat-file`), redirecting only to
+  `/dev/null` or a descriptor. Everything else naming it is still denied, including `awk`, `sed -n`, `find`, `jq`
+  and `less`. One rule got stricter: a chained step that is not itself a pure read (`cat <file> || echo none`) now
+  denies the whole command.
+- **candor 0.6.1 — the level commands and the badge see the `cc_terse` option.** `/candor:level`, `/candor:check`,
+  `scripts/measure.sh` and the statusline reported a level set only through `/config` as unset while the hooks
+  applied it. They now resolve it the way the hooks do. Not seen by them: an option saved through a `--settings`
+  file, a managed drop-in, or a symlinked settings file. A resumed subagent that ends without a new hand-back is
+  now judged on its closing text instead of the earlier hand-back.
+- **design-kit's README calls its five entries skills** (they stopped being commands in 0.8.0). Doc-only, no
+  release.
+
 ## [0.117.0] - 2026-09-29
 
 On Claude Code 2.1.193 or later, stale installs of removed or merged plugins now clean themselves up.

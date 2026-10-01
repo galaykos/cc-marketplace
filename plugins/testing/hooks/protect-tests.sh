@@ -110,9 +110,18 @@ cc_option() {
 # Heredoc BODIES are dropped and quoted text is masked before matching, so PHP `->`/`=>`,
 # HTML `>` and a sed script's `s|a|b|` never read as redirects or pipes; a here-string
 # (`<<<`) is not a heredoc. Catches `>`/`>>` onto a path (cat, echo, printf, any command),
-# `[sudo] tee [-a] <paths>`, and the last operand of `sed -i` / `perl -i`. Does NOT catch:
+# `[sudo] tee [-a] <paths>`, and every file operand of `sed -i`/`-I`/`--in-place` / `perl -i`
+# after the script or its `-e`/`-f` arguments, never a redirect word or its target. BSD's
+# `-I` always takes the next word as its backup suffix; a `''` or a `.`-led word with no `/`
+# right after sed's bare `-i` is read as one too, unless it would be the only file.
+# Does NOT catch:
 # interpreter writes (python open(), php file_put_contents), cp/mv/install destinations,
-# `{ …; } > f` groups, a path held in a variable (`> "$f"` is skipped, never guessed).
+# `{ …; } > f` groups, a path held in a variable (`> "$f"` is skipped, never guessed),
+# a globbed operand (`sed -i … tests/*.js`: a word with `*`/`?` is dropped), a `\` line
+# continuation, sed/perl behind another command word (`gsed`, `/usr/bin/sed`, `env`,
+# `xargs`, `command`, `sudo -u x`, `find … -exec sed -i`), a digit- or `&`-led redirect onto
+# a file (`2> f`, `&> f`). A lone `&` does not end a command, so words after it can read as
+# sed/perl/tee operands.
 # The caller filters to existing files under its root.
 cc_bash_write_targets() {
   printf '%s\n' "$1" | awk '
@@ -135,7 +144,7 @@ cc_bash_write_targets() {
       }
       return out
     }
-    function segment(ms, os,   rest, off, tok, w, k, j, st, en, word, n, ws, we, last) {
+    function segment(ms, os,   rest, off, tok, w, k, j, st, en, word, n, ws, we, x, c, a, inp, scr, eo, sfx, nf, f) {
       rest = ms; off = 0
       while (match(rest, /(^|[^0-9&=<>-])>>?[ \t]*("[^"]*"|\047[^\047]*\047|[^ \t&|;<>()"\047]+)/)) {
         tok = substr(os, off + RSTART, RLENGTH)
@@ -159,9 +168,43 @@ cc_bash_write_targets() {
           if (w == "<" || w == "<<<") { k++; continue }
           if (w !~ /^-/ && w !~ /^[<>0-9]/) emit(w)
         }
-      } else if ((word == "sed" || word == "perl") && ms ~ /[ \t]-[a-zA-Z0-9]*i/) {
-        last = substr(os, ws[n], we[n] - ws[n] + 1)
-        if (n > 2 && last !~ /^-/ && substr(ms, ws[n], 1) !~ /["\047]/) emit(last)
+      } else if (word == "sed" || word == "perl") {
+        inp = 0; scr = 0; eo = 0; sfx = ""; nf = 0
+        for (k = k + 1; k <= n; k++) {
+          w = substr(os, ws[k], we[k] - ws[k] + 1); x = substr(ms, ws[k], we[k] - ws[k] + 1)
+          if (x ~ /[<>]/) {
+            a = substr(w, 1, match(x, /[<>]/) - 1)
+            if (a !~ /^[0-9&]*$/) f[++nf] = a
+            if (x ~ /[<>][&|]?$/) k++
+            continue
+          }
+          if (eo || x !~ /^-./) { f[++nf] = w; if (word == "perl") eo = 1; continue }
+          if (x == "--") { eo = 1; continue }
+          if (x ~ /^--/) {
+            if (word == "sed" && x ~ /^--in-place(=|$)/) inp = 1
+            if (word == "sed" && x ~ /^--(expression|file)(=|$)/) { scr = 1; if (x !~ /=/) k++ }
+            continue
+          }
+          for (j = 2; j <= length(x); j++) {
+            c = substr(x, j, 1)
+            if (c == "i" || word == "sed" && c == "I") {
+              inp = 1
+              if (word == "sed" && j == length(x) && k < n) {
+                a = substr(os, ws[k + 1], we[k + 1] - ws[k + 1] + 1); gsub(/^["\047]|["\047]$/, "", a)
+                if (c == "I") k++
+                else if (a == "" || a ~ /^\.[^\/<>]*$/) { k++; sfx = a }
+              }
+              break
+            }
+            if (c == "e" || c == (word == "sed" ? "f" : "E")) { scr = 1; if (j == length(x)) k++; break }
+            if (c == (word == "sed" ? "l" : "I")) { if (j == length(x)) k++; break }
+            if (word == "perl" && c ~ /[MmFxdDVC]/) break
+            if (word == "perl" && c ~ /[l0]/) while (substr(x, j + 1, 1) ~ /[0-7]/) j++
+          }
+        }
+        if (!inp) return
+        for (j = scr ? 1 : 2; j <= nf; j++) if (f[j] !~ /^-/) { emit(f[j]); sfx = "" }
+        if (sfx != "") emit(sfx)
       }
     }
     skip { t = $0; sub(/^[ \t]+/, "", t); sub(/[ \t]+$/, "", t); if (t == term) skip = 0; next }

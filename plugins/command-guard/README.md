@@ -107,9 +107,24 @@ matched against the normalised command:
 artisan migrate:fresh --env=testing
 ```
 
-**The agent cannot write this file.** Writes to it are denied through
-`Write`/`Edit` and through a shell redirect or `sed -i` — an opt-out an agent
-can grant itself is not an opt-out. Add lines yourself, and narrowly.
+**The agent is blocked from writing this file directly.** Writes to it are denied through
+`Write`/`Edit`, and a Bash command that names it is denied unless every part of
+it, piped or chained, is a pure read: `cat`, `head`, `tail`, `wc`,
+`grep`/`egrep`/`fgrep`, `stat`, `ls`, `file`, `diff`, `cmp`, or `git log`/`show`/
+`diff`/`blame`/`grep`/`ls-files`/`cat-file` with the subcommand first and no
+`--output`, `-o`/`-O`, pager, `--ext-diff`, `--textconv`, `--filters` or `-c`
+option. The reader's name must be typed bare, a redirect may only target
+`/dev/null` or a descriptor with nothing quoted or escaped beside the target
+(`>"/dev/null"` is denied), and a backtick, `$`, `~`, `{}`, an unquoted `#` or
+parenthesis, or a leading env assignment (`LC_ALL=C grep …`) denies the command.
+So `grep x <file> 2>/dev/null` passes, while `awk`, `sed -n`, `find`, `jq` and
+`less` on the file stay blocked: each can write or run a program, so use `cat`
+or `grep`. An opt-out an agent can grant itself is not an opt-out. Add lines
+yourself, and narrowly. What it does NOT catch: a path built from a variable or a
+glob, a script that writes the file, or any program git config names (a diff
+driver, textconv, clean filter, pager, `core.fsmonitor`, `gpg.program` via
+`--show-signature`), set before the command runs — the protection is that a
+denied command is visible to you, not that a bypass is impossible.
 
 Whole-guard switches, set in your shell before starting the session (a command
 string cannot reach the hook's environment, so
@@ -231,9 +246,9 @@ Standing markers per the marketplace convention (see
 |---|---|---|
 | deny tier on `Bash` | **gate** — blocks the tool call | the hook returns `permissionDecision: deny`; the command does not run |
 | ask tier on `Bash` | **gate**, with a human in it | a permission prompt; the user decides |
-| agent writes to the allow-file | **gate** | denied on `Write`/`Edit` and on shell redirects/`sed -i` |
+| agent writes to the allow-file | **gate** | denied on `Write`/`Edit`; a Bash command naming it passes only when every segment is a pure read (`cat`, `grep`, `git log`, …) |
 | agent writes to a settings / hooks / lint config file | **gate**, with a human in it — `config-guard.sh` | a permission prompt on an existing listed file; it reads the path, so whether the edit *weakens* anything is **agent-graded** |
-| the classification rules themselves | **gate**, tested | 261 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
+| the classification rules themselves | **gate**, tested | the assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness — recount: `bash plugins/command-guard/scripts/__tests__/destructive-guard.test.sh \| tail -1` |
 | `rm -rf` recoverability | **gate**, tested | asserted against a throwaway git repo fixture, not a mock; fails closed to `ask` on any git error |
 | "do not rephrase a denied command" | **recorded** | it is instruction text in the deny reason and in the skill; nothing detects a rephrase attempt |
 | coverage of destructive shapes | **unenforceable** | the rule table matches known shapes; a command inside a script, a Makefile target, an npm script, or application code is invisible to it |

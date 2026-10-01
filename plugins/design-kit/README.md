@@ -1,14 +1,14 @@
 # design-kit
 
 The Claude Desktop design picker — **Slides, Design, Design in codebase, Design
-System, Artifacts** — as five local, own-your-files plugin commands. Every surface is a
+System, Artifacts** — as five local, own-your-files plugin skills. Every surface is a
 plain HTML file under `.design-kit/` in your project, served on one localhost URL by
 this plugin's own preview server, exported by scripts you can read. Nothing leaves the
-machine unless a command names the path and you say yes.
+machine unless a skill names the path and you say yes.
 
 ## What it does
 
-| Desktop option | Command | Produces |
+| Desktop option | Skill | Produces |
 |---|---|---|
 | Slides | `/design-kit:slides` | a self-contained HTML deck with speaker notes; PDF and PPTX by script |
 | Design | `/design-kit:design` | an artboard canvas of 2–4 directions with editable text, adjustment knobs, PNG/PDF export, and a "copy edits as prompt" bring-back |
@@ -40,7 +40,7 @@ needs Node and installs `pptxgenjs` into `.design-kit/.cache/` after asking.
 `http://127.0.0.1:8124/`: a gallery of every deck, board, preview and artifact at `/`,
 live reload over Server-Sent Events injected into each page, `/_index.json` for
 scripts. `--lan` binds every interface so a phone on your network can open it — that
-is the only way a page leaves the machine through the server, and every command says
+is the only way a page leaves the machine through the server, and every skill says
 so before using it. Port 8123 belongs to the taskmaster/ui-ux mockup server and is
 never used here. One write route exists, `/_decision` — loopback only, header-gated,
 append-only (see the next section); export and publish stay scripts.
@@ -52,7 +52,7 @@ page — **recorded**.
 
 ## One entry point: dk
 
-Every command's MAIN path runs through `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh <verb>`,
+Every skill's MAIN path runs through `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh <verb>`,
 so `Bash(bash */design-kit/scripts/dk.sh*)` is the one rule that covers ordinary use.
 **It is not the only rule you will be asked for.** Three steps deliberately call a script
 directly, because `dk` has no verb that does only what they need: the deck build alone
@@ -63,7 +63,7 @@ which `dk system` only ever runs as the first half of a full extraction). Those 
 second prompt, or a second rule — `Bash(python3 */design-kit/scripts/*)` — and saying
 "one permission rule" full stop was wrong.
 `dk` keeps `.design-kit/workshop.json` (brief, device, theme, the last system stamp, board,
-scratch, artifacts, deck) so a command with no argument offers the natural next step, and
+scratch, artifacts, deck) so a skill with no argument offers the natural next step, and
 appends one line per verb to `.design-kit/usage.jsonl` — the record the Measured section
 reads. `dk status` prints the flow; the gallery shows it as a strip, and stamps each page
 green or amber ("tokens moved since build") against the current `design-system/tokens.json`.
@@ -79,13 +79,13 @@ write route, `/_decision`: loopback only, header-gated, append-only into
 --consume` prints exactly the prose the "Copy edits as prompt" button gives, and
 `/design-kit:in-codebase` with no arguments renders that pick. A UserPromptSubmit hook
 says one line when a pick is waiting and nothing otherwise (`CC_DESIGN_KIT_PICK=off`).
-Every pick a command acts on lands as one line in tracked `design-system/DECISIONS.md`.
+Every pick a skill acts on lands as one line in tracked `design-system/DECISIONS.md`.
 
 Standing: `dk.test.sh` drives every verb, `serve.test.sh` the route's accept and three
 reject paths and both badge states, `unread-pick.test.sh` the hook — **gate**. That the
 model reads the prose as requirements is **agent-graded**.
 
-## Commands
+## Skills
 
 ### `/design-kit:slides` — a deck you own
 
@@ -100,7 +100,7 @@ Exports on request: `scripts/deck-export.sh <deck> --pdf` prints one 1280×720 p
 slide with a Chromium-family browser found on the machine (exit 3 names what to
 install; pressing `P` in any browser is the same output); `--pptx` writes native text
 boxes, notes and pictures with pptxgenjs, which the script downloads into
-`.design-kit/.cache/` only after the command asked you (`DESIGN_KIT_PPTX_INSTALL=1`).
+`.design-kit/.cache/` only after the skill asked you (`DESIGN_KIT_PPTX_INSTALL=1`).
 
 What has teeth: the builder FAILS a slide over 6 visible lines, an outline without a
 title or slides, and any external `src`/`href` — **gate**. Headline-states-a-claim,
@@ -165,9 +165,10 @@ is the output and the exit is 0; with `--ci` any hit exits 1. No token source an
 (`not measured`) — a drift check that cannot find the tokens has not cleared anything, and an
 empty `--staged`/`--diff` selection scans nothing rather than the whole tree.
 
-**Standing: `gate` only where you wire it.** Nothing in this plugin runs `dk drift` for you —
-no hook, no command step. It is a script with a harness (`scripts/__tests__/drift.test.sh`,
-run by CI's plugin-harness step), and `--ci` is what makes it block, in a CI step or a
+**Standing: `gate` only where you wire it.** Nothing in this plugin runs `dk drift` over your
+components — no hook, and `/design-kit:in-codebase` runs it only on the scratch files it adds.
+It is a script with a harness (`scripts/__tests__/drift.test.sh`, run by CI's plugin-harness
+step), and `--ci` is what makes it block, in a CI step or a
 pre-commit hook you add. Not run is not clean. What it does NOT catch: spacing, radius, shadow
 and font drift; a colour computed at runtime; the right token used in the wrong role. The
 script's own header carries the full residual list.
@@ -234,8 +235,9 @@ standing: **recorded**, nothing here has been run against either tool.
 
 Since 0.2.0 it also writes `components.json` (props with types, defaults, required flags;
 variants; stories; honest `gaps`) and gains `--check`: against the committed `tokens.json` it
-prints one `check:` line per moved token and exits 1, writing nothing — every command runs it
-first through `dk check`. Every deck, board and artifact carries `<meta name="design-kit-tokens">`,
+prints one `check:` line per moved token and exits 1, writing nothing — the other four skills
+run it first through `dk check`. Every deck, board and artifact carries
+`<meta name="design-kit-tokens">`,
 the sha of the tokens file it read (or `none`) plus the git revision, which the gallery badge
 reads. Determinism, `--check` and the stamps are **gate** (harness-driven).
 

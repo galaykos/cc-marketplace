@@ -73,9 +73,7 @@ if [ -z "$tp" ] && [ "$across" -eq 0 ]; then
   fi
 fi
 
-level="${CC_TERSE:-}"
-state="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode"
-if [ -z "$level" ] && [ -r "$state" ]; then read -r level _ < "$state" 2>/dev/null; fi
+read -r level _ <<< "$("${BASH:-bash}" "$(dirname "$0")/level.sh" 2>/dev/null)"
 case "$level" in
   lite | wenyan-lite) budget=18 ;;
   full | wenyan-full) budget=12 ;;

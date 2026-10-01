@@ -28,19 +28,19 @@ taskmaster-docs/	taskmaster, ui-ux	scratch	project	taskmaster/skills/grill/SKILL
 .claude/approaches/	approaches	scratch	project	approaches/skills/approach-deliberation/SKILL.md:43, taskmaster/commands/brainstorm.md:129, taskmaster/skills/grill/SKILL.md:137 — deliberated.json double-run marker, one object overwritten per task
 .claude/comment-discipline/	code-review	scratch	plugin-data	legacy — code-review/hooks/density.sh:244, scan.sh:491, verbosity.sh:194: per-project density scratch and blocked markers, read only by those hooks
 .claude/code-review/	code-review	scratch	plugin-data	legacy — code-review/hooks/review-debt.sh:204: review-base and once-per-HEAD markers of the review-debt nudge, read only by that hook
-.claude/skill-router/	skill-router	scratch	plugin-data	legacy — skill-router/hooks/route.sh:382, summary.sh:125, route-prompt.sh:142, compact-capsule.sh:165: fired-<ctx>.json read only by skill-router hooks; compact-log.jsonl read by no hook, grepped by hand (skill-router/README.md:139)
-.claude/candor/	candor	scratch	plugin-data	legacy — candor/hooks/gate.sh:306: blocked and last markers of the completion gate, read only by that hook
+.claude/skill-router/	skill-router	scratch	plugin-data	legacy — skill-router/hooks/route.sh:425, summary.sh:125, route-prompt.sh:142, compact-capsule.sh:165: fired-<ctx>.json read only by skill-router hooks; compact-log.jsonl read by no hook, grepped by hand (skill-router/README.md:139)
+.claude/candor/	candor	scratch	plugin-data	legacy — candor/hooks/gate.sh:315: blocked and last markers of the completion gate, read only by that hook
 .claude/testing/	testing	scratch	plugin-data	legacy — testing/hooks/test-shape.sh:189: shape-<ctx> one-shot markers, read only by that hook
 .claude/ui-ux/	ui-ux	scratch	plugin-data	legacy — ui-ux/hooks/palette-default.sh:186: palette-<ctx> one-shot markers, read only by that hook
 .claude/cc-phase.json	taskmaster, git-workflow, task-runner, code-architecture	scratch	project	taskmaster/commands/task.md:40 — the arc-phase sentinel every phase-owning command writes and must remove
 .claude/worktrees/	git-workflow	scratch	project	git-workflow/skills/worktree-isolation/SKILL.md:40 — where EnterWorktree puts feature worktrees; a checkout inside a checkout must never be committed
 .claude/hindsight/	hindsight	state	project	hindsight/skills/harvest/SKILL.md:141 — anti-patterns.md holds the failed-approach warnings the user approved; a team may want them
-.claude/destructive-guard-allow	command-guard	state	project	command-guard/hooks/destructive-guard.sh:424 — the project's allow-list of regexes; a config the team maintains
+.claude/destructive-guard-allow	command-guard	state	project	command-guard/hooks/destructive-guard.sh:435 — the project's allow-list of regexes; a config the team maintains
 brain/	brain	state	project	brain/README.md:3 — "A committed, Obsidian-style codebase map"; tracked by design
-design-system/	design-kit	state	project	design-kit/README.md:404 — "design-system/ is yours"; tokens.json, DESIGN-SYSTEM.md, components.json, DECISIONS.md are the record
+design-system/	design-kit	state	project	design-kit/README.md:406 — "design-system/ is yours"; tokens.json, DESIGN-SYSTEM.md, components.json, DECISIONS.md are the record
 research/	ultra-deep-research	state	project	ultra-deep-research/README.md:6 — the cited report is the deliverable
 ~/.claude/skill-router/	skill-router	state	home	skill-router/hooks/summary.sh:163 — <slug>/surfaced.jsonl; read by scripts/turn-cost.sh:313
 ~/.claude/hindsight/	hindsight	state	home	hindsight/hooks/collect.sh:96, skill-use.sh:86 — <slug>/ledger.jsonl, skills.jsonl; read by hindsight/scripts/outcome.sh:23 and scripts/turn-cost.sh:321
 ~/.claude/comment-discipline/	code-review	state	home	code-review/hooks/density.sh:433, verbosity.sh:245 — density- and verbosity-ledger.jsonl; read by nothing automatically, kept to revisit the thresholds
 ~/.claude/terse-mode	candor	state	home	candor/hooks/mode.sh:90 via /candor:level — the brevity level, at ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode; read by mode.sh:194 and activate.sh:64
-~/.claude/destructive-guard-allow	command-guard	state	home	written by the user — the per-user allow-list of regexes; read by command-guard/hooks/destructive-guard.sh:803
+~/.claude/destructive-guard-allow	command-guard	state	home	written by the user — the per-user allow-list of regexes; read by command-guard/hooks/destructive-guard.sh:866

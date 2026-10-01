@@ -115,16 +115,19 @@ file and gets cited by path.
 ```bash
 /candor:level full      # the default working level
 /candor:level ultra     # answers in 3 prose lines, reports in 6
-/candor:level off       # normal length resumes
-/candor:level status    # what is active, and where it came from
+/candor:level off       # clears the level file; names CC_TERSE or the option if either still sets one
+/candor:level status    # every source, and which one wins
 /candor:check           # candour axes, plus the brevity measurement while a level is on
 ```
 
 Installed, the mode does nothing until switched on; there is no ambient mode.
 The level persists across every session on this machine
 (`~/.claude/terse-mode`; `CC_TERSE=off|lite|full|ultra|wenyan-*` overrides it
-for a headless run). Budgets count prose lines only — code blocks, tables and
-trees are free:
+for a headless run), and the `cc_terse` /config option sets one when neither does —
+that order holds in the hooks, the badge and both commands. **Standing:** the `.sh`
+badge and `scripts/level.sh` — `gate` (`level-sources.test.sh`); the `.ps1` badge and
+the commands — `agent-graded`. Budgets count prose lines only — code blocks, tables
+and trees are free:
 
 | Turn kind | lite | full | ultra |
 |---|---|---|---|
@@ -145,8 +148,12 @@ this gate's clause 3 greps the assistant's own words.
 prompts on the same turn are not designed to coexist.
 
 Optional, wire them yourself: `scripts/statusline.sh` (or `.ps1`) renders
-`[TERSE:ULTRA]` in a `statusLine` setting — it reads the level **file** only, so a
-level set purely through `CC_TERSE` is active but unbadged; `scripts/shrink.mjs` is a stdio proxy
+`[TERSE:ULTRA]` in a `statusLine` setting, from the same `scripts/level.sh` the commands run —
+`CC_TERSE`, the level file, the option — except that a symlinked level file blanks the badge.
+They read the option from user and managed settings only: a `cc_terse` saved through a
+`--settings` file, managed drop-ins or policy, or in a symlinked settings file is applied by the
+hooks but unseen by the badge and `/candor:level status`, and with `jq` missing the `.sh` badge
+and the commands read no settings file at all; `scripts/shrink.mjs` is a stdio proxy
 that trims prose out of an MCP server's tool descriptions (`node shrink.mjs
 <command> [args…]`), leaving names, schemas and every request untouched.
 
@@ -177,7 +184,8 @@ so the injected card and the skill body cannot drift.
 
 `mode.sh` is **not** a `CC_REMIND` reminder hook: a user-selected mode is not a
 nudge, so it neither claims the one-nudge-per-prompt marker nor answers to that
-switch. Its off switches are the level itself and `CC_TERSE=off`.
+switch. Its off switches are the level itself (the level file and the `cc_terse`
+option) and `CC_TERSE=off`.
 
 ## What fires before the first edit
 
@@ -270,6 +278,7 @@ bash scripts/smoke/completion-gate-hook-tests.sh            # clause 4 (drives t
 bash plugins/candor/scripts/__tests__/candor-scan.test.sh   # the six axes
 bash plugins/candor/scripts/__tests__/install.test.sh       # install shape, non-git consumer project
 bash plugins/candor/scripts/__tests__/mode-hook.test.sh     # level switching and per-turn reinforcement
+bash plugins/candor/scripts/__tests__/level-sources.test.sh # level.sh's layer order, the sh badge, measure.sh's level
 ```
 
 All run in CI: the plugin harnesses through the shared
