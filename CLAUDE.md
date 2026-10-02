@@ -300,6 +300,8 @@ that breaks can read different inputs.** So:
 
 - Touched anything under `templates/` or a `.chassis.json`? Also run
   `bash scripts/smoke/chassis-template-tests.sh`.
+- Touched a hooks module (a mod: hooks.json `modules`)? Run `bash scripts/mod-tests.sh`
+  (CLI 2.1.287+); its header says what the test kit does not prove.
 - Touched a hook, or a script a harness drives? Run that harness. `bash scripts/gate-coverage.sh`
   maps checks to harnesses that MENTION them by name — its own header says a hit
   is a mention, not proof of exercise, so it over-reports.
@@ -322,8 +324,8 @@ Those four are the ones you invoke. They are **not** all the enforcement. Named
 by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **47 named steps;
-45 can fail the build**, and on a push to `master` only **44** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **48 named steps;
+46 can fail the build**, and on a push to `master` only **45** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
 This is the one count deliberately carried here and nowhere else
 (`scripts/done-gate.sh:7` says why); **recount it, do not copy it**:

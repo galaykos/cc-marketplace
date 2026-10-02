@@ -1,4 +1,7 @@
 {
+  "modules": [
+    "./board-bridge.tsx"
+  ],
   "hooks": {
     "UserPromptSubmit": [
       {

@@ -271,6 +271,29 @@ run pc_lanes_coverage "$DC"
 fails "[coverage] an exit-2 denier counts as a verdict channel too" "lane-missing hook foo:scan"
 rm -rf "$DC"
 
+# ---- pc_lanes_coverage / pc_lanes_resolve: the hooks-module arm ---------------
+# A mod (hooks.json `modules`, CLI 2.1.287+) is no command string, so before
+# 2026-10-02 it escaped coverage and a row naming it could not resolve. Watched failing
+# both ways, then clean once declared.
+MD=$(mktemp -d) || exit 2
+mkdir -p "$MD/foo/hooks"
+printf '{"modules":["./bridge.tsx"]}\n' > "$MD/foo/hooks/hooks.json"
+: > "$MD/foo/hooks/bridge.tsx"
+: > "$MD/foo/lane.tsv"
+run pc_lanes_coverage "$MD"
+fails "[coverage] a hooks module with no row fails" "lane-missing hook foo:bridge (a hooks module)"
+
+printf 'foo:bridge\thook\tany\tbridge-territory\ta checkable condition\t-\n' > "$MD/foo/lane.tsv"
+run pc_lanes_coverage "$MD"
+clean "[coverage] declaring the module's row clears it"
+run pc_lanes_resolve "$MD/foo/lane.tsv" "$MD"
+clean "[resolve] a hook row resolves to a hooks module (hooks/<name>.tsx)"
+
+rm -f "$MD/foo/hooks/bridge.tsx"
+run pc_lanes_resolve "$MD/foo/lane.tsv" "$MD"
+fails "[resolve] a hook row naming a module that is gone fails" "foo:bridge names no hook in the tree"
+rm -rf "$MD"
+
 # ---- the real tree -----------------------------------------------------------
 LANES=$(find plugins -maxdepth 2 -name lane.tsv | sort)
 lrc=0

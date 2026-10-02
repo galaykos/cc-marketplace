@@ -148,7 +148,8 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_CONFIG_GUARD` | command-guard | on | Ask before a write that would weaken settings, hooks, manifests or lint and test config: on or off |
 | `CC_CONVENTIONS` | code-review | on | Name the convention configs and the CI command enforcing them at the first code write: on or off |
 | `CC_DB_GUARD` | database | on | Ask before a write that drops, truncates or mass-deletes data or takes a risky lock: on or off |
-| `CC_DESIGN_KIT_PICK` | design-kit | on | Tell the session when an artboard picked on a design-kit board is waiting: on or off |
+| `CC_DESIGN_KIT_PICK` | design-kit | on | Tell you and the session when a design-kit board pick is waiting: on or off |
+| `CC_DESIGN_KIT_WAKE` | design-kit | off | Start a turn by itself when a design-kit board pick lands and the session is idle: on or off |
 | `CC_DRIFT` | task-runner | on | Nudge when a turn touches files well beyond the request, outside a task-runner run: on or off |
 | `CC_EVIDENCE_GATE` | candor | block | Stop-gate clause for a completion claim with nothing run since the last edit: block, warn or off |
 | `CC_LOCKFILE_GATE` | candor | on | Stop-gate clause for a dependency manifest changed with its lockfile untouched: on or off |

@@ -2,6 +2,16 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.10.0 — 2026-10-02
+
+- **A board pick now reaches you without typing — design-kit's first mod (Claude Code 2.1.287+).**
+  - `hooks/board-bridge.tsx` watches `.design-kit/decisions.jsonl`. When "Pick this" lands it shows a toast, and above the prompt a band with **Read it now**, which submits one prompt to run `dk decision --board <board> --consume`, and **Dismiss**.
+  - The new option `cc_design_kit_wake` (`CC_DESIGN_KIT_WAKE`, default off) sends that prompt by itself once the board has been quiet for 5 s and the session is idle.
+  - It draws in the terminal and the desktop Code tab only. Elsewhere, and wherever mods are refused, the UserPromptSubmit hook still tells Claude on your next prompt.
+  - It never writes the decisions file, starts no server, and never puts the board's own text into the prompt.
+  - `CC_DESIGN_KIT_PICK=off` silences it with the hook.
+  - Standing: **gate** — ten `claude plugin test` cases, run in CI by `scripts/mod-tests.sh`.
+
 ## 0.9.2 — 2026-10-01
 
 - Test harnesses only; nothing an installer runs changed. The local server the system-extract harness starts is now stopped when the harness ends, and the snapshot harness's two server-start failures name a crashed server where they blamed a busy port. The background-server one prints that server's last stderr lines; the review one cannot, because `preview.sh` discards its server's stderr.

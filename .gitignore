@@ -22,3 +22,8 @@ __pycache__/
 
 # `claude plugin eval` writes its run artifacts into the plugin by default; never tracked
 plugins/*/evals/results/
+# Loading a plugin that ships a mod (hooks.json `modules`) from a folder — `claude
+# --plugin-dir plugins/<name>` — makes the engine write type declarations into
+# .claude-plugin/types/ (which ignores itself) and, when the plugin has none, a
+# tsconfig.json at its root extending them. Measured on CLI 2.1.287 loading design-kit.
+plugins/*/tsconfig.json

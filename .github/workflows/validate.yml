@@ -132,16 +132,22 @@ jobs:
       # scripts/official-validate.sh is the local twin and carries the derivation.
       # LAST among the fail-capable steps that do not need the binary, on purpose: the
       # install is a ~217 MB native download, and every sub-second repo-owned harness
-      # above should report before a registry blip can. The one step that follows it,
-      # the eval-suite load gate, is there because it drives the binary this installs.
+      # above should report before a registry blip can. The steps that follow it (mod
+      # tests, run-evals plumbing, the eval-suite load gate) are there because they drive
+      # the binary this installs.
       # Supply-chain residual, stated: the wrapper and its
       # platform binary are exact-pinned, but their tarball hashes are registry-TOFU —
       # committed nowhere in this repo. Egress: auto-updater and non-essential traffic
       # are disabled inside the script so the verdict cannot depend on network.
       - name: Official plugin validator (--strict)
         run: |
-          npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.282
+          npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.287
           bash scripts/official-validate.sh
+      # A mod (hooks.json `modules`) is TypeScript the engine runs in-process; the step
+      # above only reads it. This runs each one's *.test.ts through `claude plugin test`
+      # and fails a mod that ships none. After the validator step, where `claude` is on PATH.
+      - name: Mod tests (claude plugin test, every plugin whose hooks.json names a module)
+        run: bash scripts/mod-tests.sh
       # After the validator step, where `claude` reaches PATH: arm (d) loads a real suite at
       # --max-cost-usd 0, which launches nothing; every other arm drives a stub claude.
       - name: run-evals plumbing (refusal, flags, summary; a zero-cost real load)

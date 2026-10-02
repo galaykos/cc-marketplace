@@ -4,6 +4,34 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.120.0] - 2026-10-02
+
+The first mod in the marketplace. Claude Code 2.1.287 shipped mods, TypeScript hooks modules a plugin names under
+`modules` in `hooks/hooks.json`, which run inside Claude Code and can draw. design-kit's own CHANGELOG has the
+detail.
+
+- **design-kit 0.10.0 — a board pick reaches you without typing.**
+  - `hooks/board-bridge.tsx` watches `.design-kit/decisions.jsonl`. When a pick lands it shows a toast and a band
+    above the prompt, with a button that submits one prompt to read it. The new option `cc_design_kit_wake`
+    (default off) sends that prompt by itself once the board is quiet and the session is idle.
+  - Nothing is drawn in the VS Code panel, `claude -p` or cloud sessions. Wherever mods do not load, the existing
+    pick hook still tells Claude on the next prompt.
+- **Gates learn about mods.**
+  - `scripts/mod-tests.sh`, a new CI step, runs `claude plugin test` for every plugin whose `hooks.json` names a
+    module. It fails a module that ships no `*.test.ts`, and refuses a CLI older than 2.1.287.
+  - `pc_lanes_coverage` now requires a lane row for every hooks module, and a `hook` lane row resolves to
+    `hooks/<name>.{ts,tsx,js,…}` as well as `.sh`. Before this, a module escaped every lane gate.
+  - The CI and `official-validate.sh` pin moved from 2.1.282 to 2.1.287. 2.1.282 rejects the mods event
+    `prompt.compose` ("not an event"), and its test kit ignores per-test `options`. All 31 plugins and the manifest
+    pass 2.1.287 `--strict` (measured 2026-10-02).
+  - `.gitignore` ignores `plugins/*/tsconfig.json`, which the engine writes when it loads a mod with
+    `--plugin-dir`.
+- **Not gated, stated.**
+  - `context-budget.sh` cannot meter a mod: it runs `bash -c` hook commands only, so anything a module adds to a
+    prompt reads 0. design-kit's mod adds nothing until its button is pressed.
+  - Nothing records a mod's reach (`claude plugin validate`'s `calls:` line) against a baseline, so a later
+    change that adds `$.process.run` or `$.http.fetch` would pass every gate.
+
 ## [0.119.0] - 2026-10-01
 
 Follow-ups to 0.118.0's hook work. Each plugin named below that keeps a CHANGELOG carries its own entry

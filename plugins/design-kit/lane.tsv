@@ -9,3 +9,9 @@ design-kit:artifact	skill	ship	self-contained-artifact-bundle	the user asks for 
 design-kit:design	skill	decide	ui-direction-artboards	/design-kit:design <brief> typed; drafts 2-4 artboard directions into .design-kit/boards/ and asks for the pick	-
 design-kit:system	skill	understand	design-system-extraction	invoked as /design-kit:system, or a design/deck/artifact must start from the project's real tokens rather than a remembered palette	-
 design-kit:unread-pick	hook	decide	unread-board-pick-notice	.design-kit/decisions.jsonl holds a row with consumed:false and the phase sentinel is absent or at understand/shape/decide	-
+# board-bridge shares unread-pick's territory on purpose: the hook tells the MODEL on the
+# person's next prompt, the mod tells the PERSON now (toast, band, a button that submits one
+# prompt). `any`, not `decide`: it reports the person's own click back to them at any phase
+# and reaches the model only on that button or the opt-in cc_design_kit_wake, so it reads no
+# phase sentinel — no gate checks a module for one (pc_phase_guard reads .sh hooks only).
+design-kit:board-bridge	hook	any	unread-board-pick-notice	a new row lands in .design-kit/decisions.jsonl (a board pick, knob or text edit posted to serve.py /_decision) while the session runs, or an unread row is waiting when it starts	-

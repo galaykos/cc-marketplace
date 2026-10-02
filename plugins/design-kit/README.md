@@ -85,6 +85,52 @@ Standing: `dk.test.sh` drives every verb, `serve.test.sh` the route's accept and
 reject paths and both badge states, `unread-pick.test.sh` the hook — **gate**. That the
 model reads the prose as requirements is **agent-graded**.
 
+**The pick comes back to you — a mod (Claude Code 2.1.287+, terminal and desktop Code
+tab).** design-kit ships `hooks/board-bridge.tsx`, TypeScript that Claude Code runs in its
+own process. It checks `decisions.jsonl` every 2 seconds. When a pick lands you get a toast,
+and above the prompt the board, the artboard and two buttons:
+
+- **Read it now** (`r` while the band has focus) submits one prompt telling Claude to run
+  `dk decision --board <board> --consume`. While Claude is working, it waits for the turn
+  to end.
+- **Dismiss** (`d`) hides the band until the board posts again.
+
+With `cc_design_kit_wake` on (or `CC_DESIGN_KIT_WAKE=on`), that prompt is sent by itself
+once the board has been quiet for 5 seconds and the session is idle. It is off by default
+because it starts a turn you did not type. A pick already waiting when a session starts
+never starts one.
+
+The mod reads the file and never writes it, and it starts no server: `dk serve` still owns
+the gallery. The board's own text never goes into the prompt. The prompt carries only the
+artboard number and a board name made of letters, digits, `.`, `_` and `-`; any other name
+becomes `--latest`.
+
+What it can reach, as `claude plugin validate` lists it: `$.fs.stat`, `$.fs.read` and
+`$.fs.exists`, `$.session.root`, `$.clock`, `$.env.get` (`CC_DESIGN_KIT_PICK`,
+`CC_DESIGN_KIT_WAKE`), `$.ui.toast`, `$.ui.resolve` and `$.ui.invalidate`, and
+`$.prompt.submit`. No process, no network, no file write.
+
+Where nothing draws (the VS Code panel, `claude -p`, cloud sessions) the mod's hooks still
+run, so auto-wake still works if you turned it on. Where mods do not load at all
+(`--safe-mode`, an organization that allows only its own mods, a build before 2.1.287) the
+UserPromptSubmit hook above still tells Claude on your next prompt.
+
+Standing: `hooks/__tests__/board-bridge.test.ts` runs under `claude plugin test`, in CI
+through `scripts/mod-tests.sh` — **gate**. Its ten cases cover:
+
+- no file, so nothing shows;
+- a pick mid-session: one toast, and the band on terminal and desktop;
+- the button, and the band clearing when the rows are consumed;
+- a board name that could inject text;
+- auto-wake: off by default; when on, it holds while a turn runs and survives a subagent's
+  turn ending;
+- a pick waiting at session start, which never wakes the session;
+- both off-switches.
+
+Whether a surface paints the band, and whether Claude acts on the prompt, is
+**agent-graded**. One headless load on 2.1.287 showed the module loading and its session
+start settling in 56 ms, nothing more.
+
 ## Skills
 
 ### `/design-kit:slides` — a deck you own
@@ -402,8 +448,10 @@ every plugin's scratch paths lives in git-workflow (`scratch-ignore.sh`, run by
 
 ## Disabling
 
-Uninstall the plugin. `DESIGN_KIT_PORT` moves the server. `.design-kit/` is safe to
-delete at any time; `design-system/` is yours and is not.
+Uninstall the plugin. `CC_DESIGN_KIT_PICK=off` (or the `cc_design_kit_pick` option) silences
+both the pick hook and the mod's toast and band. `cc_design_kit_wake` stays off unless you
+turn it on. `DESIGN_KIT_PORT` moves the server. `.design-kit/` is safe to delete at any
+time; `design-system/` is yours and is not.
 
 ## Not in this release
 

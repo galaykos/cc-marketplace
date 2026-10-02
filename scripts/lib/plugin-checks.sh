@@ -1557,10 +1557,23 @@ _pc_lane_resolves() {
     agent)   [ -f "$root/$p/agents/$n.md" ] ;;
     command) [ -f "$root/$p/commands/$n.md" ] ;;
     skill)   [ -f "$root/$p/skills/$n/SKILL.md" ] ;;
-    hook)    [ -f "$root/$p/hooks/$n.sh" ] ;;
+    hook)    _pc_hook_file "$root/$p/hooks/$n" ;;
     *)       [ -f "$root/$p/agents/$n.md" ] || [ -f "$root/$p/commands/$n.md" ] \
-             || [ -f "$root/$p/skills/$n/SKILL.md" ] || [ -f "$root/$p/hooks/$n.sh" ] ;;
+             || [ -f "$root/$p/skills/$n/SKILL.md" ] || _pc_hook_file "$root/$p/hooks/$n" ;;
   esac
+}
+
+# _pc_hook_file <plugin>/hooks/<name>
+# A `hook` artifact is a script, hooks/<name>.sh, or — since CLI 2.1.287 — a hooks
+# module (a mod) that hooks.json names under `modules`, in any suffix the engine loads.
+# Status 0 when one exists. It does not check that hooks.json actually names the file:
+# pc_lanes_coverage reads hooks.json, this only answers "is there such an artifact".
+_pc_hook_file() {
+  local x
+  for x in sh ts tsx mts cts js jsx mjs cjs; do
+    [ -f "$1.$x" ] && return 0
+  done
+  return 1
 }
 
 # pc_lanes_schema <lane_tsv>
@@ -1924,9 +1937,10 @@ EOF_LANE_ADJ_FILES
 # nothing yet arbitrates.
 #
 # LIMITATION (honest scope), three residuals:
-#   1. The hook half reads hooks.json with jq and understands one command shape,
-#      `${CLAUDE_PLUGIN_ROOT}/hooks/<name>.sh`. A hook invoked any other way is
-#      not counted — it draws no failure and no warning.
+#   1. The hook half reads hooks.json with jq and understands two shapes: the command
+#      `${CLAUDE_PLUGIN_ROOT}/hooks/<name>.sh`, and a `modules` entry (a mod, CLI
+#      2.1.287+) whose file's basename less its suffix is the artifact name. A hook
+#      invoked any other way is not counted — it draws no failure and no warning.
 #   2. Coverage is existence, not agreement: a row may name the wrong phase or a
 #      territory the agent does not work in, and this passes.
 #   3. A scratch agent planted by another harness (parity-check.sh plants three
@@ -1998,6 +2012,19 @@ pc_lanes_coverage() {
       done < <(jq -r '.hooks | to_entries[]
                       | select(.key=="PreToolUse" or .key=="PostToolUse")
                       | (.value[].hooks[].command // empty) | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
+      # HOOKS MODULES ARE GATE TIER FROM THE FIRST ONE (2026-10-02). A mod (hooks.json
+      # `modules`, CLI 2.1.287+) can do everything the two tiers above gate — rewrite or
+      # drop a prompt, deny a tool call, start a turn with $.prompt.submit — so it gets a
+      # row unconditionally rather than by a grep of its source. Before this arm a module
+      # escaped every lane gate: none of the shapes above is a command string.
+      while IFS= read -r cmd; do
+        [ -n "$cmd" ] || continue
+        n=$(basename "$cmd"); n=${n%.*}
+        case "$NL$rows$NL" in
+          *"$NL$p:$n${TAB}hook$NL"*) ;;
+          *) printf 'lane-missing hook %s:%s (a hooks module)\n' "$p" "$n"; bad=1 ;;
+        esac
+      done < <(jq -r '(.modules // [])[] | strings' "$hj" 2>/dev/null | sort -u)
     fi
     while IFS= read -r a; do
       [ -n "$a" ] || continue
