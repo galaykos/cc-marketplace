@@ -143,9 +143,9 @@ section, so a fan-out cannot re-import the surrounding file's habits.
   `Write` whose comment-to-code ratio is over the ceiling (0.4:1 by default). Both
   judge a Bash heredoc that `cat` or `tee` carries to a file (`cat > f <<EOF`,
   `tee f <<EOF`) as a `Write` of its body; `density.sh` denies it only when it
-  replaces the file (`>`, `tee` without `-a`) — an append is a fragment. Both are
-  bounded: at most two denies per file per session, shared by a `Write` and a heredoc
-  to that file, so a false positive costs at most two turns and never wedges a run.
+  replaces the file (`>`, `tee` without `-a`) — an append is a fragment. Each hook
+  is bounded: at most two denies per file per session, shared by a `Write` and a heredoc
+  to that file, so a false positive costs at most two turns per hook and never wedges a run.
 - **gate, by path** — `node_modules/`, `vendor/`, `dist/`, `.git/` and `.claude/` are
   exempt anywhere; `build/` only at the project root; `scripts/*.sh`, `templates/`
   and `plugins/*/hooks/` only inside a plugin-marketplace repository (its root holds

@@ -106,8 +106,8 @@ session made 233 of its 238 main-thread writes that way. A heredoc that `cat` or
 carries to a file (`cat > f <<EOF`, `cat >> f <<EOF`, `tee f <<EOF`, `cat <<EOF | tee f`,
 also behind `sudo`, and for `cat` behind a `VAR=value`) is judged as a `Write` of its
 body to that file: the same detectors, the same message followed by ` Written by a Bash
-command: <file>.`, and the same two denies per file — a `Write` and a heredoc to one
-file share them. A relative target is resolved against the shell's working directory
+command: <file>.`, and the same two denies per file per hook — a `Write` and a heredoc
+to one file share them. A relative target is resolved against the shell's working directory
 and `~/x` against `$HOME`. `scan.sh` judges an append like any other added text. `density.sh`
 denies only a heredoc that replaces the file (`>`, `tee` without `-a`), because an
 append is a fragment with no ratio of its own; after the command it measures the first
