@@ -79,7 +79,7 @@ the default; a heavily commented neighbour does not.
 
 **The write-time hooks.** `scan.sh` inspects the text each `Edit` / `Write` /
 `MultiEdit` adds, and the text a Bash heredoc writes, on two lanes. `PostToolUse` warns,
-at most one line, for any of the seven categories. `PreToolUse` denies the three
+at most one line, for any of the six categories. `PreToolUse` denies the three
 strictest — a comment restating the next line, commented-out code, and a docblock tag
 repeating the signature — at most twice per file per session, then stands down.
 `density.sh` denies a whole `Write`, or a Bash heredoc that replaces a file, over
@@ -112,7 +112,8 @@ and `~/x` against `$HOME`. `scan.sh` judges an append like any other added text.
 denies only a heredoc that replaces the file (`>`, `tee` without `-a`), because an
 append is a fragment with no ratio of its own; after the command it measures the first
 three targets that exist on disk, whatever wrote them (`sed -i`, `echo >`, a generator),
-and prints the first warning. A command with several heredocs draws one verdict, for the
+and prints the first warning. The cap counts any existing file, whatever its extension,
+so three log redirects ahead of a source file leave it unmeasured. A command with several heredocs draws one verdict, for the
 first file that trips; the retry reaches the next.
 
 **Which files are judged.** `node_modules/`, `vendor/`, `dist/`, `.git/` and `.claude/`
@@ -149,14 +150,17 @@ it. A miss is preferred to judging the wrong file, so an uncertain shape is skip
   (`/bin/cat`, `command cat`, `env X=1 cat`, `(cat`, `{ cat`, `then cat` on one line,
   `sudo -E tee`); a `cat` stage with a file operand or an option (`cat a > f <<EOF`,
   `cat -n > f <<EOF`); a heredoc piped on to a stage that is not `tee`; process
-  substitution (`cat > >(filter > f)`); a target followed by a quote, holding a
-  backslash, or led by `~user`; a target whose `..` steps out of a symlinked directory;
-  a relative target whenever the command holds a `cd`, `chdir`, `pushd` or `popd` word
-  outside quoted strings and heredoc bodies (inside quotes too when the command holds
-  `eval`, `sh -c` or `bash -c`) — an absolute target is still judged.
+  substitution (`cat > >(filter > f)`); a quote glued onto the target (`f.js'.bak'`),
+  a target holding a backslash, or one led by `~user`; a target whose `..` steps out of
+  a symlinked directory; a relative target whenever the command holds a `cd`, `chdir`,
+  `pushd` or `popd` word outside quoted strings and heredoc bodies (inside quotes too
+  when the command holds `eval`, `sh -c` or `bash -c`; inside a heredoc body too when a
+  `<<` sits inside a quoted string, after a backslash or inside `$((`) — an absolute
+  target is still judged.
 - **Skipped by `density.sh`'s deny only:** an append; a heredoc whose target the same
-  command writes again (the after-command measurement covers it); on-disk targets past
-  the first three.
+  command writes again (the after-command measurement covers it).
+- **Skipped by `density.sh`'s after-command warning:** targets past the first three
+  that exist on disk, whatever their extension.
 - **Too large:** a command over 32 kB that holds a line over 8 kB, or whose lines over
   2,000 characters sum past 32 kB, is not judged by either hook.
 - **Read wrongly — text judged that the shell would not write there:** a heredoc in a
