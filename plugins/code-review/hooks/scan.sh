@@ -1,7 +1,7 @@
 #!/bin/bash
 # Absolute-path shebang not `/usr/bin/env bash`: the fail-open guarantee must hold
 # even under a stripped PATH where `env bash` exits 127.
-# comment-discipline guard. On an Edit/Write/MultiEdit it inspects only the *added* text
+# comment-discipline guard. On an Edit/Write/MultiEdit or a Bash cat/tee heredoc it inspects only the *added* text
 # and reports the high-confidence noise patterns. Silence is the common case.
 #
 # ONE DETECTOR, TWO LANES — the event decides which:
@@ -32,14 +32,14 @@
 # edit` marker in the first five added lines) are exempt, as are the paths and extensions
 # already excluded below.
 #
-# WRITE|EDIT ONLY — a file written through Bash is out of reach, stated rather than hidden.
-# Both lanes read the ADDED text from `tool_input` (content / new_string / edits); a Bash
-# command carries its file content inside shell syntax (a heredoc, `echo >`, `sed -i`), and
-# the deny lane must judge that content before it lands. Measured 2026-09-25
-# (rationale/2026-09-25-session-plugin-usage-review.md, finding 1): 233 of 238 main-thread
-# writes in one session were `cat > file <<EOF`, so on the host's bash-first path this
-# guard never ran. Left on Write|Edit on purpose in 0.23.0; conventions.sh, which only needs
-# to know that a code file was written, reads Bash writes through cc_bash_write_targets.
+# BASH LANE — a `cat`/`tee` heredoc body is judged as a Write of that text to that path
+# (cc_bash_write_chunks, cd_bash_target in hooks/paths.sh), chunks in command order, first verdict
+# printed. Measured: rationale/2026-09-25-session-plugin-usage-review.md finding 1, 233 of 238 writes.
+# NOT SEEN on Bash: interpreter writes (python open()), a heredoc fed to anything but cat/tee,
+# echo/printf content, sed -i / perl -i content, cp/mv, a path held in a variable, a relative
+# target after an in-command cd, the second operand of `tee a b`, `VAR=x tee f`, cat/tee behind a
+# wrapper, brace or keyword (`/bin/cat`, `command cat`, `env X=1 cat`, `(cat`, `{ cat`, `then cat`,
+# `sudo -E tee`); plus what the two blocks below say they miss.
 #
 # Fail-open throughout: a missing jq/awk, or any error, exits 0 and denies nothing.
 # CC_REMIND / CC_COMMENT_GUARD unset: the /config options cc_remind / cc_comment_guard decide.
@@ -129,6 +129,213 @@ cc_option() {
   return 0
 }
 
+# --- bash write targets --------------------------------------------------------
+# Canonical copy: templates/blocks/bash-write-targets.md. Every hook defining
+# cc_bash_write_targets must carry this block byte-for-byte (pc_shared_blocks).
+# The host steers file writes through Bash (auto mode `bashFirst`); in one measured session
+# 233 of 238 main-thread writes were `cat > file <<EOF`, invisible to a hook matching
+# Write|Edit.
+# Prints one target path per line, as spelled in the command (relative or absolute).
+# Heredoc BODIES are dropped and quoted text is masked before matching, so PHP `->`/`=>`,
+# HTML `>` and a sed script's `s|a|b|` never read as redirects or pipes; a here-string
+# (`<<<`) is not a heredoc. Catches `>`/`>>` onto a path (cat, echo, printf, any command),
+# `[sudo] tee [-a] <paths>`, and every file operand of `sed -i`/`-I`/`--in-place` / `perl -i`
+# after the script or its `-e`/`-f` arguments, never a redirect word or its target. BSD's
+# `-I` always takes the next word as its backup suffix; a `''` or a `.`-led word with no `/`
+# right after sed's bare `-i` is read as one too, unless it would be the only file.
+# Does NOT catch:
+# interpreter writes (python open(), php file_put_contents), cp/mv/install destinations,
+# `{ …; } > f` groups, a path held in a variable (`> "$f"` is skipped, never guessed),
+# a globbed operand (`sed -i … tests/*.js`: a word with `*`/`?` is dropped), a `\` line
+# continuation, sed/perl behind another command word (`gsed`, `/usr/bin/sed`, `env`,
+# `xargs`, `command`, `sudo -u x`, `find … -exec sed -i`), a digit- or `&`-led redirect onto
+# a file (`2> f`, `&> f`). A lone `&` does not end a command, so words after it can read as
+# sed/perl/tee operands.
+# The caller filters to existing files under its root.
+cc_bash_write_targets() {
+  printf '%s\n' "$1" | awk '
+    function emit(p) {
+      gsub(/^["\047]|["\047]$/, "", p)
+      if (p == "" || p ~ /^\/dev\// || p ~ /[$`*?]/ || p ~ /^[&0-9-]/ && p !~ /[\/.]/) return
+      print p
+    }
+    function mask(s,   i, c, q, out, esc) {
+      q = ""; out = ""; esc = 0
+      for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+        if (esc) { out = out "_"; esc = 0; continue }
+        if (q == "") {
+          if (c == "\\") { esc = 1; out = out "_"; continue }
+          if (c == "\047" || c == "\"") q = c
+          out = out c
+        } else if (c == q) { q = ""; out = out c }
+        else { if (q == "\"" && c == "\\") esc = 1; out = out "_" }
+      }
+      return out
+    }
+    function segment(ms, os,   rest, off, tok, w, k, j, st, en, word, n, ws, we, x, c, a, inp, scr, eo, sfx, nf, f) {
+      rest = ms; off = 0
+      while (match(rest, /(^|[^0-9&=<>-])>>?[ \t]*("[^"]*"|\047[^\047]*\047|[^ \t&|;<>()"\047]+)/)) {
+        tok = substr(os, off + RSTART, RLENGTH)
+        off += RSTART + RLENGTH - 1; rest = substr(ms, off + 1)
+        sub(/^[^>]*>>?[ \t]*/, "", tok)
+        emit(tok)
+      }
+      n = 0; j = 1
+      while (j <= length(ms)) {
+        while (j <= length(ms) && substr(ms, j, 1) ~ /[ \t]/) j++
+        if (j > length(ms)) break
+        st = j; while (j <= length(ms) && substr(ms, j, 1) !~ /[ \t]/) j++
+        n++; ws[n] = st; we[n] = j - 1
+      }
+      if (n == 0) return
+      k = 1; word = substr(os, ws[1], we[1] - ws[1] + 1)
+      if (word == "sudo" && n > 1) { k = 2; word = substr(os, ws[2], we[2] - ws[2] + 1) }
+      if (word == "tee") {
+        for (k = k + 1; k <= n; k++) {
+          w = substr(os, ws[k], we[k] - ws[k] + 1)
+          if (w == "<" || w == "<<<") { k++; continue }
+          if (w !~ /^-/ && w !~ /^[<>0-9]/) emit(w)
+        }
+      } else if (word == "sed" || word == "perl") {
+        inp = 0; scr = 0; eo = 0; sfx = ""; nf = 0
+        for (k = k + 1; k <= n; k++) {
+          w = substr(os, ws[k], we[k] - ws[k] + 1); x = substr(ms, ws[k], we[k] - ws[k] + 1)
+          if (x ~ /[<>]/) {
+            a = substr(w, 1, match(x, /[<>]/) - 1)
+            if (a !~ /^[0-9&]*$/) f[++nf] = a
+            if (x ~ /[<>][&|]?$/) k++
+            continue
+          }
+          if (eo || x !~ /^-./) { f[++nf] = w; if (word == "perl") eo = 1; continue }
+          if (x == "--") { eo = 1; continue }
+          if (x ~ /^--/) {
+            if (word == "sed" && x ~ /^--in-place(=|$)/) inp = 1
+            if (word == "sed" && x ~ /^--(expression|file)(=|$)/) { scr = 1; if (x !~ /=/) k++ }
+            continue
+          }
+          for (j = 2; j <= length(x); j++) {
+            c = substr(x, j, 1)
+            if (c == "i" || word == "sed" && c == "I") {
+              inp = 1
+              if (word == "sed" && j == length(x) && k < n) {
+                a = substr(os, ws[k + 1], we[k + 1] - ws[k + 1] + 1); gsub(/^["\047]|["\047]$/, "", a)
+                if (c == "I") k++
+                else if (a == "" || a ~ /^\.[^\/<>]*$/) { k++; sfx = a }
+              }
+              break
+            }
+            if (c == "e" || c == (word == "sed" ? "f" : "E")) { scr = 1; if (j == length(x)) k++; break }
+            if (c == (word == "sed" ? "l" : "I")) { if (j == length(x)) k++; break }
+            if (word == "perl" && c ~ /[MmFxdDVC]/) break
+            if (word == "perl" && c ~ /[l0]/) while (substr(x, j + 1, 1) ~ /[0-7]/) j++
+          }
+        }
+        if (!inp) return
+        for (j = scr ? 1 : 2; j <= nf; j++) if (f[j] !~ /^-/) { emit(f[j]); sfx = "" }
+        if (sfx != "") emit(sfx)
+      }
+    }
+    skip { t = $0; sub(/^[ \t]+/, "", t); sub(/[ \t]+$/, "", t); if (t == term) skip = 0; next }
+    {
+      line = $0; m = mask(line)
+      if (match(m, /(^|[^<])<<-?[ \t]*["\047]?[A-Za-z_][A-Za-z0-9_]*/)) {
+        if (substr(m, RSTART, 1) != "<") { RSTART++; RLENGTH-- }
+        term = substr(line, RSTART, RLENGTH + 1)
+        sub(/^<<-?[ \t]*["\047]?/, "", term); sub(/[^A-Za-z0-9_].*$/, "", term)
+        skip = 1
+      }
+      st = 1
+      for (i = 1; i <= length(m) + 1; i++) {
+        c = substr(m, i, 1); c2 = substr(m, i, 2)
+        if (i > length(m) || c == ";" || c == "|" || c2 == "&&") {
+          if (i > st) segment(substr(m, st, i - st), substr(line, st, i - st))
+          if (c2 == "&&" || c2 == "||") i++
+          st = i + 1
+        }
+      }
+    }' | awk '!seen[$0]++'
+}
+
+# --- bash write chunks --------------------------------------------------------
+# Canonical copy: templates/blocks/bash-write-chunks.md. Every hook defining
+# cc_bash_write_chunks must carry this block byte-for-byte (pc_shared_blocks).
+# cc_bash_write_chunks <command> — what a Bash command puts INTO files: the text a content
+# guard reads on Bash where its Write path reads tool_input.content. Prints chunks: a line that
+# starts with \036 and carries the WRITER — the pipeline (split on ; && ||, never inside
+# quotes) whose targets the caller resolves with cc_bash_write_targets — then the
+# chunk's text lines. Two sources, and only two:
+#   - a heredoc BODY: the lines between `<<TERM` (`<<-`, quoted or `\`-escaped TERM too)
+#     and TERM; writer = the pipeline holding the `<<` (`cat > f <<EOF`,
+#     `cat <<EOF | tee -a f`);
+#   - the ARGUMENTS of an `echo`/`printf` segment, as written: the rest of the segment after
+#     the command word, quotes, escapes and any `> file` redirect kept (so match inside the
+#     text, never anchored at its start); writer = its pipeline
+#     (`echo "K=v" >> .env.example`, `printf '%s\n' v | tee f`).
+# A chunk whose writer names no file is dropped by the caller, so `git commit -F - <<EOF`
+# and `echo x | grep y` yield nothing. The body of ANY heredoc whose pipeline writes a file
+# is read, whatever consumes it — `python3 - <<PY > out.txt` included, where the script is
+# not what lands in out.txt. Accepted: the text sits in a file-writing command either
+# way.
+# NOT read, stated: a `{ echo …; } > f` group (the redirect sits on the closer, not on
+# the echo's pipeline); a here-string `<<<`; printf's format substitution (`printf
+# 'K=%s' v` is read as written: the format and the argument, never the substituted
+# line); a quoted string or a `\` continuation spanning lines; a second heredoc opened
+# on one line.
+# mask() copies the one inside cc_bash_write_targets: the block is byte-locked and its
+# awk functions are not reachable from outside it.
+cc_bash_write_chunks() {
+  printf '%s\n' "$1" | awk '
+    function mask(s,   i, c, q, out, esc) {
+      q = ""; out = ""; esc = 0
+      for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+        if (esc) { out = out "_"; esc = 0; continue }
+        if (q == "") {
+          if (c == "\\") { esc = 1; out = out "_"; continue }
+          if (c == "\047" || c == "\"") q = c
+          out = out c
+        } else if (c == q) { q = ""; out = out c }
+        else { if (q == "\"" && c == "\\") esc = 1; out = out "_" }
+      }
+      return out
+    }
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    function echo_args(p, mp,   i, st, seg, out) {
+      out = ""; st = 1
+      for (i = 1; i <= length(mp) + 1; i++) {
+        if (i > length(mp) || substr(mp, i, 1) == "|") {
+          seg = substr(mp, st, i - st)
+          if (match(seg, /^[ \t]*(echo|printf)[ \t]/)) out = out substr(p, st + RLENGTH, i - st - RLENGTH) "\n"
+          st = i + 1
+        }
+      }
+      return out
+    }
+    inbody { if (trim($0) == term) inbody = 0; else print; next }
+    {
+      line = $0; m = mask(line); st = 1; opener = ""
+      for (i = 1; i <= length(m) + 1; i++) {
+        c = substr(m, i, 1); c2 = substr(m, i, 2)
+        if (i > length(m) || c == ";" || c2 == "&&" || c2 == "||") {
+          if (i > st) {
+            p = substr(line, st, i - st); mp = substr(m, st, i - st)
+            a = echo_args(p, mp)
+            if (a != "") printf "\036%s\n%s", p, a
+            if (opener == "" && match(mp, /(^|[^<])<<-?[ \t]*["\047]?[A-Za-z_][A-Za-z0-9_]*/)) {
+              t = substr(p, RSTART, RLENGTH)
+              sub(/^[^<]*<<-?[ \t]*["\047]?/, "", t); sub(/^\\/, "", t); sub(/[^A-Za-z0-9_].*$/, "", t)
+              if (t != "") { opener = p; term = t }
+            }
+          }
+          if (c2 == "&&" || c2 == "||") i++
+          st = i + 1
+        }
+      }
+      if (opener != "") { printf "\036%s\n", opener; inbody = 1 }
+    }'
+}
+
 {
   command -v jq  >/dev/null 2>&1 || exit 0
   command -v awk >/dev/null 2>&1 || exit 0
@@ -136,9 +343,17 @@ cc_option() {
   input=$(cat)
   # One detector, two lanes. Absent event name = PostToolUse, the original behavior.
   event=$(printf '%s' "$input" | jq -r '.hook_event_name // "PostToolUse"' 2>/dev/null) || exit 0
-  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
-  case "$tool" in Edit|Write|MultiEdit) ;; *) exit 0 ;; esac
+  case "$tool" in
+    Edit|Write|MultiEdit) ;;
+    Bash)
+      cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
+      # The blocks mask a line character by character, quadratic in its length: a 200 kB line, or 100 lines of 8 kB, outlasts the timeout, so such a command is not judged.
+      [ "${#cmd}" -gt 32768 ] && printf '%s\n' "$cmd" | awk 'length($0) > 2000 { s += length($0) } length($0) > 8192 || s > 32768 { f = 1; exit } END { exit !f }' && exit 0
+      [ -n "$(cc_bash_write_targets "$cmd")" ] || exit 0 ;;
+    *) exit 0 ;;
+  esac
+  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   # CC_REMIND is the marketplace-wide advisory switch, and the README promised it here
   # for two releases while nothing read it. It silences the WARN lane only: a PreToolUse
   # deny is not an advisory, so an env var must not be able to turn a block into a pass.
@@ -149,24 +364,6 @@ cc_option() {
   # pc_offswitch_named reports. Read from the hook's environment, which the edit text
   # cannot reach. Two lanes, two switches: silencing the block keeps the finding visible.
   [ "$event" = "PreToolUse" ] && [ "$(cc_option CC_COMMENT_GUARD on)" = "off" ] && exit 0
-
-  fp=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
-  [ -n "$fp" ] || exit 0
-
-  # Generated, vendored, and tooling paths are exempt: their header banners and usage
-  # blocks are deliberate, and nobody edits them by hand for readability.
-  #
-  # Tested against the LOGICAL path — a worktree prefix stripped — because this
-  # marketplace places worktrees at `.claude/worktrees/<branch>`, and `*/.claude/*`
-  # was therefore exempting every source file written by a track run. See
-  # hooks/paths.sh. A missing lib leaves lp = fp, i.e. the old behaviour.
-  lp="$fp"
-  . "$(dirname "$0")/paths.sh" 2>/dev/null
-  command -v cd_logical_path >/dev/null 2>&1 && lp=$(cd_logical_path "$fp")
-  case "$lp" in
-    */.claude/*|*/node_modules/*|*/vendor/*|*/dist/*|*/build/*|*/.git/*) exit 0 ;;
-    */scripts/*.sh|*/templates/*|*/plugins/*/hooks/*|*/migrations/*) exit 0 ;;
-  esac
 
   # Code only. Config and prose formats use comments for navigation, which this rule
   # does not govern — so YAML stays OUT deliberately, including docker-compose.yml,
@@ -179,26 +376,40 @@ cc_option() {
   # counter` does above `counter++`, and *.sh has always been governed for that reason.
   # Extensionless names are matched by basename, so the worktree-stripped path is not
   # enough on its own — see the `base` case below.
-  case "$fp" in
-    *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.vue|*.svelte) ;;
-    *.php|*.py|*.rb|*.go|*.rs|*.java|*.kt|*.kts|*.swift|*.scala|*.dart) ;;
-    *.c|*.h|*.cpp|*.hpp|*.cc|*.cs|*.m|*.mm) ;;
-    *.sh|*.bash|*.zsh|*.pl|*.lua|*.ex|*.exs|*.jl|*.r|*.groovy) ;;
-    *.sql|*.css|*.scss|*.less|*.graphql|*.tf) ;;
-    *.dockerfile|*.mk) ;;
-    *)
-      case "$(basename "$fp")" in
-        Dockerfile|Dockerfile.*|Containerfile|Containerfile.*|Makefile|GNUmakefile) ;;
-        *) exit 0 ;;
-      esac ;;
-  esac
+  scan_governed() {
+    case "$1" in
+      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.vue|*.svelte) ;;
+      *.php|*.py|*.rb|*.go|*.rs|*.java|*.kt|*.kts|*.swift|*.scala|*.dart) ;;
+      *.c|*.h|*.cpp|*.hpp|*.cc|*.cs|*.m|*.mm) ;;
+      *.sh|*.bash|*.zsh|*.pl|*.lua|*.ex|*.exs|*.jl|*.r|*.groovy) ;;
+      *.sql|*.css|*.scss|*.less|*.graphql|*.tf) ;;
+      *.dockerfile|*.mk) ;;
+      *)
+        case "$(basename "$1")" in
+          Dockerfile|Dockerfile.*|Containerfile|Containerfile.*|Makefile|GNUmakefile) ;;
+          *) return 1 ;;
+        esac ;;
+    esac
+  }
 
-  added=$(printf '%s' "$input" | jq -r '
-    [ .tool_input.content    // empty,
-      .tool_input.new_string // empty,
-      ( .tool_input.edits // [] | map(.new_string // empty) | join("\n") )
-    ] | join("\n")' 2>/dev/null) || exit 0
-  [ -n "$added" ] || exit 0
+  scan_judge() {
+  fp=$1 added=$2 msg=""
+  [ -n "$fp" ] || return 1
+  scan_governed "$fp" || return 1
+
+  # Generated, vendored, and marketplace tooling paths are exempt: their header banners and
+  # usage blocks are deliberate, and nobody edits them by hand for readability.
+  #
+  # Tested against the LOGICAL path — a worktree prefix stripped — because this
+  # marketplace places worktrees at `.claude/worktrees/<branch>`, and `*/.claude/*`
+  # was therefore exempting every source file written by a track run. See
+  # hooks/paths.sh. A missing lib exits 0: a path it cannot classify is not judged.
+  root=$(cc_state_root "$cwd") || root=""   # no root is not a marketplace: the file is still judged
+  . "$(dirname "$0")/paths.sh" 2>/dev/null
+  command -v cd_path_exempt >/dev/null 2>&1 || return 1
+  cd_path_exempt "$fp" "$root" && return 1
+
+  [ -n "$added" ] || return 1
 
   raw=$(printf '%s\n' "$added" | awk '
   function add_tok(set, w,   x) {
@@ -410,21 +621,17 @@ cc_option() {
     }
     printf "comment-discipline: %d added %s (%s) — check the routing table in the comment-discipline skill for where those facts belong.\n", total, (total == 1 ? "comment looks like noise" : "comments look like noise"), parts
   }')
-  [ -n "$raw" ] || exit 0
+  [ -n "$raw" ] || return 1
   blockable=$(printf '%s\n' "$raw" | head -1)
   warn=$(printf '%s\n' "$raw" | tail -n +2)
-  [ -n "$warn" ] || exit 0
+  [ -n "$warn" ] || return 1
   case "$blockable" in ''|*[!0-9]*) blockable=0 ;; esac
 
-  # jq builds the envelope so the message stays valid JSON whatever the comment text
-  # contains. jq presence is guaranteed by the guard at the top of the block.
   if [ "$event" != "PreToolUse" ]; then
     # The switch is named HERE and not in "$warn": the deny below reuses that text, and
     # CC_REMIND does not silence a deny — naming it there would send the blocked reader
     # to a variable that changes nothing.
-    jq -cn --arg ctx "$warn CC_REMIND=off silences these." \
-      '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
-    exit 0
+    msg="$warn CC_REMIND=off silences these."; return 0
   fi
 
   # ---- PreToolUse lane: deny the three blockable categories, at most TWICE per file ----
@@ -452,10 +659,10 @@ cc_option() {
   # nothing recording that it had fired: precisely the unwedgeable loop this comment
   # promised could not happen. Blocking is only defensible while it is bounded, so a
   # bound that cannot be recorded means no block at all.
-  [ "$blockable" -gt 0 ] || exit 0
+  [ "$blockable" -gt 0 ] || return 1
 
   # Generated output declares itself in its own header; its banners are deliberate.
-  printf '%s\n' "$added" | head -5 | grep -qiE '@generated|generated by|do not edit' && exit 0
+  printf '%s\n' "$added" | cd_generated && return 1
 
   # CONTEXT KEY, not session key. PostToolUse is the only hook channel that reaches
   # subagents at all, and a subagent shares its parent's session_id while getting its
@@ -463,7 +670,7 @@ cc_option() {
   # nudges only the PARENT ever saw, so the context where most fan-out code is written
   # is the one context this never speaks in. Pattern and rationale: hooks/conventions.sh (context-key one-shot).
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
-  [ -n "$sid" ] || exit 0                     # cannot bound the deny → do not block
+  [ -n "$sid" ] || return 1                   # cannot bound the deny → do not block
   # `-d` as well as `-n`: a deleted project dir came back three levels deep holding only
   # the `mkdir -p` of this hook's state dir below. A cwd that is gone is also nowhere to
   # record the bound, so it withholds the deny on the same rule as the rest of this block.
@@ -475,10 +682,10 @@ cc_option() {
   # with density.sh and verbosity.sh; all three moved to cc_state_root in one change
   # (0.23.0), because re-rooting one alone splits the bound. Does NOT catch a cwd that
   # exists but belongs to another checkout.
-  [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0    # no cwd, or a cwd that is gone → nowhere to record the bound
-  root=$(cc_state_root "$cwd") || exit 0
+  [ -n "$cwd" ] && [ -d "$cwd" ] || return 1  # no cwd, or a cwd that is gone → nowhere to record the bound
+  [ -n "$root" ] || return 1
   key=$(printf '%s' "$fp" | (command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
-  [ -n "$key" ] || exit 0
+  [ -n "$key" ] || return 1
   # THE KEY IS A PATH, SO IT MUST BE HASHED BEFORE IT CAN BE A FILENAME. `.transcript_path`
   # is an absolute path; interpolating it raw builds `…/blocked-/Users/…/x.jsonl-<key>`,
   # whose parents `mkdir -p "<root>/.claude/comment-discipline"` never creates. Every write
@@ -487,7 +694,7 @@ cc_option() {
   # Hashed with the same cksum idiom as hooks/conventions.sh (its `seen=` line), which got
   # this right.
   ctx=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
-  [ -n "$ctx" ] || exit 0
+  [ -n "$ctx" ] || return 1
   dir=$(cc_plugin_state "$root" comment-discipline)
   marker="$dir/blocked-$ctx-$key"
   # BOUNDED RETRIES, not a one-shot. The bound is spent when this hook DENIES, but a
@@ -508,12 +715,12 @@ cc_option() {
   [ -e "$marker" ] && tries=1
   i=1
   while [ "$i" -le "$DENY_CAP" ]; do [ -d "$marker.d$i" ] && tries=$i; i=$((i + 1)); done
-  [ "$tries" -ge "$DENY_CAP" ] && exit 0
-  mkdir -p "$dir" 2>/dev/null || exit 0
+  [ "$tries" -ge "$DENY_CAP" ] && return 1
+  mkdir -p "$dir" 2>/dev/null || return 1
   # The state dir ignores itself (0.18.3): a marker per denied file showed up as
   # untracked in every repo without a hand-written ignore line.
   [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null
-  mkdir "$marker.d$((tries + 1))" 2>/dev/null || exit 0   # lost the race → a sibling instance denied
+  mkdir "$marker.d$((tries + 1))" 2>/dev/null || return 1 # lost the race → a sibling instance denied
   # RESIDUAL, stated rather than hidden: the bound is spent when this hook DENIES, and a
   # deny does not prove the write landed. Two co-firing siblings can still exhaust both
   # tries on writes that never happened, and the third edit then ships unchecked. Spending
@@ -521,7 +728,52 @@ cc_option() {
   # change to a guard with 55 assertions; two tries survives the measured single-sibling
   # case, which is the one reproduced with all 31 plugins installed.
   reason=$(printf '%s Write the edit again without them: a comment restating the next line, a line of commented-out code, or a docblock tag that only repeats the signature has no fact to carry — delete it or move the fact to a name, a type, or a test. The default is no comment; a docblock earns a line only for what the signature cannot state. Blocked at most twice per file; after that an edit goes through with a warning instead. CC_COMMENT_GUARD=off disables this block for the session (CC_REMIND=off silences the warning it falls back to).' "$warn")
-  jq -cn --arg r "$reason" \
-    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+  msg=$reason; return 0
+  }
+
+  # jq builds the envelope so the message stays valid JSON whatever the comment text
+  # contains. jq presence is guaranteed by the guard at the top of the block.
+  emit() {
+    if [ "$event" = "PreToolUse" ]; then
+      jq -cn --arg r "$msg$1" \
+        '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+    else
+      jq -cn --arg ctx "$msg$1" \
+        '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
+    fi
+  }
+
+  if [ "$tool" = Bash ]; then
+    chunks=$(cc_bash_write_chunks "$cmd")
+    [ -n "$chunks" ] || exit 0
+    n=0; k=0
+    while IFS= read -r l; do
+      k=$((k + 1)); tgt=$(cc_bash_write_targets "${l#?}" | head -n 1)
+      if [ -n "$tgt" ] && scan_governed "$tgt"; then n=$((n + 1)); ctgt[$n]=$tgt; chdr[$n]=${l#?}; cnum[$n]=$k; fi
+    done <<EOF_C
+$(printf '%s\n' "$chunks" | awk 'substr($0, 1, 1) == "\036"')
+EOF_C
+    [ "$n" -gt 0 ] || exit 0
+    . "$(dirname "$0")/paths.sh" 2>/dev/null
+    hascd=0; cd_has_cd "$cmd" && hascd=1
+    c=1   # not `i`: scan_judge counts its deny markers with that name
+    while [ "$c" -le "$n" ]; do
+      if cd_chunk_mode "${chdr[$c]}" >/dev/null && cd_target_whole "${chdr[$c]}" "${ctgt[$c]}" \
+         && fp=$(cd_bash_target "${ctgt[$c]}" "$cwd" "$hascd") \
+         && scan_judge "$fp" "$(cd_chunk_text "$chunks" "${cnum[$c]}")"; then
+        emit " Written by a Bash command: $(basename "$fp")."
+        exit 0
+      fi
+      c=$((c + 1))
+    done
+  else
+    fp=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
+    added=$(printf '%s' "$input" | jq -r '
+      [ .tool_input.content    // empty,
+        .tool_input.new_string // empty,
+        ( .tool_input.edits // [] | map(.new_string // empty) | join("\n") )
+      ] | join("\n")' 2>/dev/null) || exit 0
+    scan_judge "$fp" "$added" && emit ""
+  fi
 } 2>/dev/null
 exit 0
