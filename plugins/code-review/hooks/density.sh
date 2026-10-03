@@ -53,7 +53,7 @@
 #     a generated marker, and prints the first warning. NOT SEEN on Bash: interpreter writes (python
 #     open()), cp/mv, a path held in a variable, a relative target after an in-command cd, targets past
 #     the first 3; pre-write also a heredoc fed to anything but cat/tee, a heredoc whose file the
-#     command writes again, heredocs past the 40th to a governed file, echo/printf and sed -i / perl -i content, the second
+#     command writes again, truncating heredocs past the 40th to a governed file (judged by neither lane), echo/printf and sed -i / perl -i content, the second
 #     operand of `tee a b`, `VAR=x tee f`, cat/tee behind a wrapper, brace or keyword; plus what the two blocks below miss.
 #   - A ratio is not a judgment. A file legitimately denser than its siblings (the one
 #     driver full of vendor workarounds) trips this, and that is a false positive the
@@ -418,7 +418,11 @@ EOF_G
     while IFS= read -r l; do
       [ "$nc" -lt 40 ] || break   # 400 one-line heredocs to .sh files took 11 s against a 10 s timeout
       k=$((k + 1)); tgt=$(cc_bash_write_targets "${l#?}" | head -n 1)
-      if [ -n "$tgt" ] && cd_governed "$tgt"; then nc=$((nc + 1)); ctgt[$nc]=$tgt; chdr[$nc]=${l#?}; cnum[$nc]=$k; fi
+      [ -n "$tgt" ] && cd_governed "$tgt" && cd_lang "$tgt" || continue
+      # Only a chunk the judge below could refuse is kept, so the cap counts no echo, append or build file.
+      case "$cd_lang_key" in dockerfile|make) continue ;; esac
+      [ "$(cd_chunk_mode "${l#?}")" = truncate ] || continue
+      nc=$((nc + 1)); ctgt[$nc]=$tgt; chdr[$nc]=${l#?}; cnum[$nc]=$k
     done <<EOF_C
 $(printf '%s\n' "$chunks" | awk 'substr($0, 1, 1) == "\036"')
 EOF_C
@@ -459,7 +463,9 @@ EOF_C
   FLOOR=3            # 0.3, in tenths — absolute lower bound on "outlier"
   CEIL=${COMMENT_DISCIPLINE_CEILING_TENTHS:-3}   # 0.3, in tenths; 0 switches the ceiling off
   case "$CEIL" in ''|*[!0-9]*) CEIL=3 ;; esac
-  CEIL=$((10#$CEIL))   # a leading zero would read as octal
+  CEIL=${CEIL#"${CEIL%%[!0]*}"}   # leading zeros dropped: $(( )) would read them as octal
+  [ "${#CEIL}" -le 4 ] || CEIL=10000   # past 1000:1 there is no limit, and a longer value overflows the compare
+  CEIL=$((10#${CEIL:-0}))
   SHORT_LIMIT=$CEIL; [ "$SHORT_LIMIT" -ge 10 ] || SHORT_LIMIT=10   # 1:1, or the ceiling once a project raised it past that
   MAX_WARN=3
 
@@ -606,7 +612,7 @@ EOF
       else
         find "$d" -maxdepth "$depth" -type f -name "$1" 2>/dev/null
       fi | while IFS= read -r rel; do
-        cd_lang "$rel" && [ "$cd_lang_key" = "$lang" ] && printf '%s\n' "$rel"
+        cd_lang "$rel" && [ "$cd_lang_key" = "$lang" ] && [ -f "$rel" ] && printf '%s\n' "$rel"   # a name holding a newline splits into pieces that are no file
       done
     }
     pick() { # $1 dir, $2 maxdepth — tracked siblings minus this file minus this run's writes
@@ -660,12 +666,12 @@ EOF
 $sibs
 EOS
              [ "$#" -gt 0 ] || exit 0
-             # One find for the whole set: 25 siblings of 7.7 MB took the classifier 8 s against a 10 s timeout.
-             kept=$(find "$@" -size -262145c 2>/dev/null); set --
+             # One find for the whole set, -L so a tracked symlink is sized by its target: 25 siblings of 7.7 MB took the classifier 8 s against a 10 s timeout.
+             kept=$(find -L "$@" -size -262145c 2>/dev/null); set --
              while IFS= read -r s; do [ -n "$s" ] && set -- "$@" "$s"; done <<EOS
 $kept
 EOS
-             [ "$#" -gt 0 ] || exit 0
+             [ "$#" -ge "$MIN_SIBLINGS" ] || exit 0
              cd_classify "$lang" "$@" | awk '$3 >= 10 { print int(($1 * 10 + $3 - 1) / $3) }' |
                sort -n | awk '{v[NR]=$1} END{ if (NR==0) exit; print v[int((NR+1)/2)] }')
       case "${base:-}" in ''|*[!0-9]*) base="" ;; esac
@@ -762,7 +768,7 @@ $(printf '%s' "$all" | awk 'seen[$0]++ == 1')
       case "$twice" in *"
 $fp
 "*) fp="" ;; esac
-      if [ -n "$fp" ] && [ "$(cd_chunk_mode "${chdr[$c]}")" = truncate ] && cd_target_whole "${chdr[$c]}" "${ctgt[$c]}" \
+      if [ -n "$fp" ] && cd_target_whole "${chdr[$c]}" "${ctgt[$c]}" \
          && density_judge "$fp" "$(cd_chunk_text "$chunks" "${cnum[$c]}")" truncate; then
         emit " Written by a Bash command: $(basename "$fp")."
         exit 0

@@ -449,7 +449,7 @@ each() { # $1 fixture file, then language keys -> "key=triple" per key
 printf '// a%200000sb\n' '' > "$TMP/r01a.js"
 same "review: 01 js a line comment holding 200,000 blanks within 5 s" "$(timed "$TMP/r01a.js")" "0 0 1"
 printf '/*\n a%200000sb\n*/\n' '' > "$TMP/r01b.js"
-same "review: 01 js a block comment line holding 200,000 blanks within 5 s" "$(timed "$TMP/r01b.js")" "0 2 1"
+same "review: 01 js a block comment line holding 200,000 blanks within 5 s" "$(timed "$TMP/r01b.js")" "0 0 3"
 printf 'import os\ndef f(\n    a,%200000s\n):\n    """Doc."""\n    return 1\n' '' > "$TMP/r01c.py"
 same "review: 01 py a def header holding 200,000 blanks within 5 s, its docstring still found" "$(timed "$TMP/r01c.py" py)" "1 1 5"
 
@@ -667,8 +667,8 @@ same "rt: py a 2 MB run of double quotes is one code line, within 5 s" "$(timed 
 same "rt: go a 2 MB run of backquotes is one code line, within 5 s" "$(timed "$TMP/rt-long4.go" go)" "0 0 1"
 { printf 'def f'; run '('; echo; } > "$TMP/rt-long5.py"
 same "rt: py def f followed by 2 MB of ( is one code line, within 5 s" "$(timed "$TMP/rt-long5.py" py)" "0 0 1"
-{ printf '// '; run x 19997; echo; } > "$TMP/rt-edge-at.js"; { printf '// '; run x 19998; echo; } > "$TMP/rt-edge-over.js"
-same "rt: js a comment line of 20,000 bytes is still read as prose, and one of 20,001 bytes is code" \
+{ printf '// '; run x 3997; echo; } > "$TMP/rt-edge-at.js"; { printf '// '; run x 3998; echo; } > "$TMP/rt-edge-over.js"
+same "rt: js a comment line of 4,000 bytes is still read as prose, and one of 4,001 bytes is code" \
   "$(cd_classify js "$TMP/rt-edge-at.js" "$TMP/rt-edge-over.js" | tr '\n' ' ')" "1 1 0 0 0 1 "
 
 { echo 'class A {'; for i in $(seq 1 58); do echo "  #f$i = $i;"; done; echo '}'; } > "$TMP/rt-private.txt"
@@ -761,6 +761,66 @@ void g() {}
  */
 void h() {}
 FIX
+
+# ---- 0e. FIX 2: what a line over 4,000 bytes leaves behind, and directives in their whole shape ----
+wide=$(run x 5000)
+rest() { # $1 label, $2 language key, $3 expected triple; fixture on stdin
+  cat > "$TMP/fix2.$2"; same "$1" "$(cd_classify "$2" "$TMP/fix2.$2")" "$3"
+}
+{ echo '/*!'; echo ' * why the bundle is vendored'; echo " */ var lib=\"$wide\";"; printf 'var a%s = 1;\n' $(seq 1 30); echo '/* end */'; } |
+  rest "fix2: js a banner closed on a line over 4,000 bytes leaves the rest of the file code, never prose" js "0 0 34"
+{ echo "<?php \$cfg = json_decode('$wide'); ?>"; printf '#item%s { color: red; }\n' $(seq 1 20); } |
+  rest "fix2: php CSS after a ?> on a line over 4,000 bytes is code, never prose" php "0 0 21"
+{ echo "TEMPLATE = \"\"\"$wide"; printf '# line %s of the template\n' $(seq 1 10); echo '"""'; echo 'x = 1'; } |
+  rest "fix2: py a string opened on a line over 4,000 bytes leaves its # lines code" py "0 0 13"
+{ echo 'package a'; echo "var data = \`$wide"; printf '// line %s\n' $(seq 1 10); echo '`'; echo 'var y = 1'; } |
+  rest "fix2: go a raw string opened on a line over 4,000 bytes leaves its // lines code" go "0 0 14"
+{ echo "X=\"$wide\"; cat <<EOF"; printf '# body %s\n' $(seq 1 10); echo 'EOF'; echo 'echo ok'; } |
+  rest "fix2: sh a heredoc opened on a line over 4,000 bytes leaves its # lines code" sh "0 0 13"
+{ echo "DATA = \"$wide\""; echo '"""'; printf 'text %s\n' $(seq 1 6); echo '"""'; } |
+  rest "fix2: py a line over 4,000 bytes ends the module top: a string after it is no docstring" py "0 0 9"
+{ echo '// Copyright 2026 Example'; echo "var big = \"$wide\";"; printf '// why %s\n' $(seq 1 6); echo 'var z = 1;'; } |
+  rest "fix2: js a line over 4,000 bytes ends a licence run: the comments after it are prose" js "6 7 2"
+
+got=
+for spec in 'php||x| ?>' 'php|<?php |?|' 'js|// x| |' 'py||"|' 'go||`|' 'py|def f|(|'; do # key|head|filler byte|tail
+  IFS='|' read -r key head pad tail <<< "$spec"
+  printf '%s%s%s\n' "$head" "$(run "$pad" $((3999 - ${#head} - ${#tail})))" "$tail" | awk '{ for (n = 0; n < 500; n++) print }' > "$TMP/fix2-2mb"
+  got="$got$key=$(timed "$TMP/fix2-2mb" "$key") "
+done
+same "fix2: 2 MB of 3,999-byte lines of each pathological shape is classified within 5 s" "$got" \
+  "php=0 0 500 php=0 0 500 js=500 500 0 py=0 0 500 go=0 0 500 py=0 0 500 "
+
+gold "fix2: php a { opens a shape only in the tag's type operand, after the alias name of a -type tag, and the shape ends with its block" php "3 11 1" <<'FIX'
+/**
+ * @param string $fmt the format, e.g. "{name"
+ * why one
+ * @phpstan-type Row array{
+ *   id: int,
+ * }
+ * why two
+ * @return array{
+ *   id: int,
+ */
+// why three
+$a = 1;
+FIX
+printf '<?PHP\n// a\n// b\n// c\n// d\n// e\n?>\n' > "$TMP/fix2-upper.php"; printf '# a\n# b\n<?PHP $x = 1;\n' > "$TMP/fix2-html.php"
+same "fix2: php an open tag in capitals is an open tag: a comment-only file has no code line, and text before it is code" \
+  "$(cd_classify php "$TMP/fix2-upper.php" "$TMP/fix2-html.php" | tr '\n' ' ')" "5 7 0 0 0 3 "
+gold "fix2: rb sentences that begin with \$Id\$, vi:, @(#) or :nodoc:, or end in -*-, are prose" rb "5 5 1" <<'FIX'
+# $Id$ is expanded by CVS on checkout
+# vi: is the editor this file was tuned for
+# @(#) strings are printed by what(1)
+# :nodoc: hides this helper because it is internal
+# the emacs header line ends with -*-
+x = 1
+FIX
+printf '%s\n' '# encoding: utf-8' '# coding: utf-8' '# coding: utf-8' 'x = 1' > "$TMP/fix2-enc.rb"
+printf '%s\n' '#!/usr/bin/env python3' '# coding=latin-1' 'x = 1' > "$TMP/fix2-enc.py"
+printf '%s\n' '// clang-format off' '/* clang-format on */' '// clang-format runs in CI' 'int a;' > "$TMP/fix2-clang.c"
+same "fix2: an encoding comment on line 1 or 2 of rb or py and a clang-format switch are not prose; the same encoding comment on line 3 is" \
+  "$(each "$TMP/fix2-enc.rb" rb) $(each "$TMP/fix2-enc.py" py) $(each "$TMP/fix2-clang.c" c)" "rb=1 3 1 py=0 2 1 c=1 3 1"
 
 command -v jq  >/dev/null 2>&1 || { echo "SKIP: jq not available";  exit "$rc"; }
 command -v git >/dev/null 2>&1 || { echo "SKIP: git not available"; exit "$rc"; }
@@ -1494,6 +1554,46 @@ build_and_scan() { # $1 file name, $2 comment format, $3 code format, $4 a comme
 }
 build_and_scan Dockerfile "# $WHY" 'RUN echo %s' '# install curl' 'RUN apt-get install -y curl'
 build_and_scan Makefile "# $WHY" 'V%s = 1' '# build the app' 'build: app'
+
+FU="$TMP/fix2-cap"; mkdir -p "$FU/src"; missed=""; s=0
+for unjudged in "echo 'const e = 1;' > src/e%s.js" "python3 - > src/p%s.js <<'PY'\nprint(1)\nPY" \
+  "cat >> src/a%s.js <<'EOF'\nconst a = 1;\nEOF" "cat > d%s/Dockerfile <<'EOF'\nRUN true\nEOF"; do
+  s=$((s + 1)); out=$(bash_hook PreToolUse "$FU" "cap$s" "$(rep 40 "$unjudged"; heredoc 'cat > src/d41.js')")
+  denied "$out" && names "$out" d41.js || missed="$missed [${unjudged%%%*}: $out]"
+done
+[ -z "$missed" ]
+verdict $? "fix2: 40 echo, python3, append or Dockerfile chunks do not fill the 40-chunk cap: a dense 41st heredoc is still refused" "missed:$missed"
+
+SY="$TMP/fix2-links"; mkdir -p "$SY/src" "$SY/data"; cp "$TMP/rt-1mb.js" "$SY/data/big.txt"
+for n in 1 2 3; do half "$SY/src/a$n.js" "// $WHY" 'const a%s = 1;'; done
+for n in $(seq 10 34); do ln -s ../data/big.txt "$SY/src/b$n.js"; done
+commit_all "$SY"; { rep 60 "// $WHY"; rep 20 'const a%s = 1;'; } > "$SY/src/new.js"
+t0=$SECONDS; out=$(fire "$SY" "$SY/src/new.js" links Edit); took=$((SECONDS - t0))
+[ "$took" -le 5 ] && case "$out" in *"its siblings run 0.5:1"*) true ;; *) false ;; esac
+verdict $? "fix2: 25 tracked symlinks to a 1 MB file are over the byte cap like the file: within 5 s only the three small siblings set the baseline" \
+  "took $took s, out=[$out]"
+
+SC="$TMP/fix2-count"; mkdir -p "$SC/src"; { rep 1 "// $WHY"; rep 20 'const a%s = 1;'; } > "$SC/src/a.js"
+cp "$TMP/rt-1mb.js" "$SC/src/b1.js"; cp "$TMP/rt-1mb.js" "$SC/src/b2.js"
+commit_all "$SC"; { rep 60 "// $WHY"; rep 20 'const a%s = 1;'; } > "$SC/src/new.js"
+expect "fix2: siblings the byte cap drops do not count toward the three a baseline needs: one small sibling left sets none" \
+  "$(fire "$SC" "$SC/src/new.js" count Edit)" "no committed siblings to compare against, so the ceiling of 0.3:1 applies."
+
+SV="$TMP/fix2-clamp"; mkdir -p "$SV/src"; mix 200 100 > "$SV/src/c.js"; got=""
+for v in 9223372036854775807 99999999999999999999 18446744073709551619; do
+  w=$(COMMENT_DISCIPLINE_CEILING_TENTHS=$v pre "$SV" "$SV/src/c.js" "cw$v" "$SV/src/c.js")
+  COMMENT_DISCIPLINE_CEILING_TENTHS=$v fire "$SV" "$SV/src/c.js" "cd$v" Edit >/dev/null
+  got="$got $v:write=[${w:+deny}] limit=$(tail -n 1 "$HOME/.claude/comment-discipline/density-ledger.jsonl" 2>/dev/null | jq -r '.limit_tenths' 2>/dev/null)"
+done
+[ "$got" = " 9223372036854775807:write=[] limit=10000 99999999999999999999:write=[] limit=10000 18446744073709551619:write=[] limit=10000" ]
+verdict $? "fix2: a ceiling of 19 or 20 digits is clamped to 1000:1: a 2:1 Write passes and the disk lane applies 10000 tenths" "got:$got"
+
+SW="$TMP/fix2-newline"; mkdir -p "$SW/src" "$SW/lib"
+for n in a b "$(printf 'x\nc')"; do half "$SW/src/$n.js" "// $WHY" 'const a%s = 1;'; done
+for n in 1 2 3; do { rep 10 "// $WHY"; rep 10 'const c%s = 1;'; } > "$SW/lib/c$n.js"; done
+commit_all "$SW"; { rep 60 "// $WHY"; rep 20 'const a%s = 1;'; } > "$SW/src/new.js"
+expect "fix2: a sibling name holding a newline adds no fragment to the count: two real siblings beside it send the walk up a level" \
+  "$(fire "$SW" "$SW/src/new.js" newline Edit)" "its siblings run 1.0:1"
 
 [ "$rc" -eq 0 ] && echo "comment-density-tests: all assertions passed"
 exit "$rc"

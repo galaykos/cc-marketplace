@@ -89,17 +89,19 @@ judged against the ceiling alone. The ceiling is **0.3 prose comment lines per c
 by default, compared exactly: 30 prose lines over 100 code lines pass, 31 are refused. A
 file under 50 lines, or with fewer than 8 code lines, is judged by the **short rule**
 instead: it is over the limit with at least 5 prose lines, a code line, and more prose
-than code, and the message reads "the ceiling is 1.0:1"; a file with no code line is never
-over. The sibling test keeps its 0.3 floor, equal to the default ceiling, so siblings
+than code (or than the ceiling, once a project raises it past 1:1), and the refusal reads
+"the ceiling is 1.0:1"; a file with no code line is never over. The sibling test keeps its 0.3 floor, equal to the default ceiling, so siblings
 decide only where a project raised the ceiling. The counter knows each judged language's
 comment syntax: a Python docstring, `<!-- -->`, Blade `{{-- --}}`, JSX `{/* */}` and the
 bare lines of a `/* */` block are comments; Rust `#[derive]`, C `#include`, PHP
 `#[Attribute]` and a JS `#private` field are code. A comment line is **not prose** when it
 is a delimiter alone (`/**`, `*/`, `"""`) or has no letter or digit (`// -----`); a tool
 directive (`eslint-disable`, `@ts-expect-error`, `# noqa`, `# shellcheck`, Go's `go:build`,
-`pragma`, a region marker); a doc tag whose operand is a type (`@param int $x`,
-`@return Foo<Bar>`, `@param {string} id`, `@throws RuntimeException`) or a tag with no text
-of its own; a `:type:` / `:rtype:` line or a bare `Args:` / `Returns:` heading; a line of
+`pragma`, a region marker, `clang-format off`); an editor or encoding line in its whole
+shape (`-*- coding: utf-8 -*-`, a `vim:` modeline, `$Id$`, `# encoding: utf-8` in the first
+two lines of a Python or Ruby file); a doc tag whose operand is a type (`@param int $x`,
+`@return Foo<Bar>`, `@param {string} id`, `@throws RuntimeException`, a shape such as
+`array{id: int}` until it closes or its block ends) or a tag with no text of its own; a `:type:` / `:rtype:` line or a bare `Args:` / `Returns:` heading; a line of
 the file's first comment block when that block names a copyright, an SPDX identifier or a
 licence; or a `|`-led line inside a `/* */` block (a Laravel config stub). Dockerfiles and
 Makefiles are judged by `scan.sh` only: a comment per instruction is idiomatic there.
@@ -107,8 +109,10 @@ Makefiles are judged by `scan.sh` only: a comment per instruction is idiomatic t
 A project that specifies a heavier style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in its
 settings `env`: **5 for a project that documents every public API** (PEP 257 docstrings,
 Javadoc — at 0.3 a third or more of the Python, Ruby and Java standard-library files of 50
-lines or more are refused), 4 for the 0.25.0 ceiling, 10 for 1:1, and 0 to switch the
-ceiling and the short rule off and keep only the sibling test. Setting 4 restores the
+lines or more are refused, and at 0.5 still 13% of Python's, 22% of Ruby's and 30% of the
+JDK's), 4 for the 0.25.0 ceiling, 10 for 1:1, and 0 to switch the ceiling and the short
+rule off and keep only the sibling test; a value over 10000 is read as 10000 (1000.0:1).
+Setting 4 restores the
 number only: the file types judged since 0.26.0 (shell, SQL, CSS, SCSS, Less, Lua, Elixir,
 Perl, Julia, R, Groovy, Terraform, GraphQL), the short rule, the exact compare and the
 prose-only count stay. A project whose own CLAUDE.md demands a docblock on every method
@@ -163,27 +167,32 @@ tree, and a line it is unsure of counts as code: a missed comment is preferred t
 refusal.
 
 - **Every language:** a trailing comment after code, and a block opened mid-line
-  (`x = 1; /* why`), count as code; an unclosed `/*` inside a string turns the code after
-  it into comment up to the next `*/`; a directive the list does not know counts as prose
-  (`sourceMappingURL`, `svelte-ignore`, `deno-lint-ignore`); a line over 20,000 bytes is one
-  code line and a form-feed-only line is code; NUL bytes give counts that differ between
-  awk builds; an upper-case extension (`.SQL`, `.R`) or a build file named `Dockerfile-dev`
+  (`x = 1; /* why`), count as code; a line inside a string that begins with an unclosed
+  `/*` turns the code after it into comment up to the next `*/`; a directive the list does
+  not know counts as prose (`sourceMappingURL`, `svelte-ignore`, `deno-lint-ignore`); a line
+  over 4,000 bytes is one code line, and when it sits inside an open comment block, string
+  or heredoc, or holds a token that may open or close one (a triple quote, a Go backquote,
+  `<<`, a PHP tag), the rest of the file counts as code; a form-feed-only line is code; NUL
+  bytes give counts that differ between awk builds; an upper-case extension (`.SQL`, `.R`) or a build file named `Dockerfile-dev`
   or `makefile` is judged by neither hook.
 - **Comment-looking lines inside strings** count as comments: JS template literals and JSX
-  text nodes beginning `//` or `*`; PHP heredocs and multi-line strings; multi-line strings
+  text nodes beginning `//` or `/*`; PHP heredocs and multi-line strings; multi-line strings
   in shell, Rust, C# and Lua, and a single-quoted program passed to `awk`; Ruby regex
   literals and `%{}` bodies; a `\`-continued C or Python string; a Go cgo preamble.
 - **Python:** a triple-quoted string that is not a docstring (assigned, or after the first
-  statement) is code, and so is a docstring in single quotes or on the `def` line.
-- **Go, Kotlin, Java, Swift, Scala, Dart, Groovy:** an odd number of backquotes (Go) or of
-  `"""` on one line toggles string mode, which can only turn comments into code.
-- **PHP:** everything before the first `<?php` and after a `?>` is code.
+  statement) is code, and so is a docstring in plain, non-triple quotes (`"Doc."`) or on
+  the `def` line.
+- **Go, Kotlin, Java, Swift, Scala, Dart, Groovy:** a line with an odd number of backquotes
+  (Go) or of `"""` toggles string mode, so a stray one (`` r := '`' ``) inverts it until the
+  next such line, and a raw string's body can then count as comment.
+- **PHP:** everything before the first `<?php` (in any letter case) and after a `?>` is code.
 - **Ruby, Perl, Terraform, shell:** a `<<` with no space after it (`class <<self`,
   `1<<BITS`) opens a heredoc that never closes, so the rest of the file is code; only the
   first four heredocs on one shell line are tracked.
 - **Doc tags:** an untyped tag with a description (Javadoc, KDoc, TSDoc
   `@param name text`) counts as prose; a description that starts with a capital
-  (`@returns The sum`) reads as a type and does not.
+  (`@returns The sum`) reads as a type and does not; a type operand that opens a `{` and
+  never closes it keeps the rest of its docblock out of prose.
 - **The licence block** is the file's first run of comment lines, exempt as a whole: a
   licence header followed directly by a docstring exempts both, and a licence block that
   is not the first comment block counts as prose.
@@ -193,8 +202,9 @@ refusal.
 - **Refused by design:** a short single-purpose file (an enum, a constants file, an
   exception) under a why-docblock, by the short rule; compiled CSS that keeps its source
   partials' section headers and carries no generated marker.
-- **Siblings:** a sibling over 256 kB is left out of the median; eight hook runs at once in
-  one session can each print "Warning 1 of 3".
+- **Siblings:** a sibling over 256 kB (a tracked symlink by its target's size) is left out
+  of the median and does not count toward the three needed; eight hook runs at once in one
+  session can each print "Warning 1 of 3".
 - Go and Rust are proven on test fixtures only. Python, Ruby, Java, C and shell were also
   checked line by line against reference tokenizers and scanners on standard-library and
   system code; the CHANGELOG's 0.26.0 entry has the numbers.
@@ -223,8 +233,10 @@ it. A miss is preferred to judging the wrong file, so an uncertain shape is skip
   `<<` sits inside a quoted string, after a backslash or inside `$((`) — an absolute
   target is still judged.
 - **Skipped by `density.sh`'s deny only:** an append; a heredoc whose target the same
-  command writes again (the after-command measurement covers it); heredocs past the 40th
-  to a judged file in one command.
+  command writes again (the after-command measurement covers it).
+- **Judged by neither of `density.sh`'s lanes:** truncating heredocs past the 40th to a
+  judged file in one command — the after-command measurement reads only the first three
+  targets. `scan.sh` still judges them.
 - **Skipped by `density.sh`'s after-command warning:** targets past the first three
   that exist on disk, whatever their extension.
 - **Too large:** a command over 32 kB that holds a line over 8 kB, or whose lines over

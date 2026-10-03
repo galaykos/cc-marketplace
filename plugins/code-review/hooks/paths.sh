@@ -209,7 +209,7 @@ cd_classify() {
     }
     function reset() {
       prose_lines = comment_lines = code_lines = pending_lines = pending_prose = held_prose = licence = shape_depth = 0
-      in_header = after_header = in_raw_string = heredoc_count = 0; module_top = 1; heredoc_at = 1
+      in_header = after_header = in_raw_string = heredoc_count = rest_is_code = 0; module_top = 1; heredoc_at = 1
       first_run = "none"; php_mode = "untagged"; block_end = block_end_line = py_string = ""
     }
     function end_first_run() {
@@ -229,16 +229,25 @@ cd_classify() {
       return ""
     }
     function brace_balance(t) { return gsub(/\{/, "", t) - gsub(/\}/, "", t) }
-    function is_prose(body, in_star_block,   lower, word, next_word) {
-      sub(/^[ \t\/!*#\047-]+/, "", body)
+    # The depth a tag line leaves open; its type operand follows the alias name in a type-alias tag.
+    function shape_opened(body,   word, n, i, depth) {
+      n = split(body, word, " ")
+      i = (word[1] ~ /^@(phpstan|psalm)-type$/) ? ((word[3] == "=") ? 4 : 3) : 2
+      if (!index(word[i], "{")) return 0
+      for (depth = 0; i <= n; i++) if ((depth += brace_balance(word[i])) <= 0) return 0
+      return depth
+    }
+    function is_prose(body, in_star_block,   lower, word, next_word, raw) {
+      raw = body; sub(/^[ \t\/!*#\047-]+/, "", body)
       if (shape_depth > 0) { shape_depth += brace_balance(body); return 0 }
-      if (body ~ /^@[A-Za-z]/ && index(body, "{")) shape_depth = brace_balance(body)
+      if (body ~ /^@[A-Za-z]/ && index(body, "{")) shape_depth = shape_opened(body)
       if (body ~ /[ \t]$/) body = rtrim(body)
       if (body !~ /[A-Za-z0-9\200-\377]/) return 0
       lower = tolower(body)
       if (lower ~ DIRECTIVE) return 0
       if (lower ~ /(^|[^a-z])pragma([^a-z]|$)|noinspection|frozen_string_literal:|hadolint|^(go:|(end)?region([^a-z]|$)|mark:|(syntax|escape|check)=)/) return 0
-      if (lower ~ /-\*-$|^(vim?:|\$id(\$|:)|@\(#\)|:(stopdoc|startdoc|nodoc):|[{]@inheritdoc[}]$)/) return 0
+      if (raw ~ /^[ \t\/!*#\047]*-\*-.*-\*-[ \t]*$/ || FNR <= 2 && (python || lang == "rb") && lower ~ /^(en)?coding[:=][ \t]*[-_.a-z0-9]+$/) return 0
+      if (lower ~ /^(vim?:(.*[ \t:]set?[ \t].*|.*:)|\$id(\$|:[^$]*\$)|@\(#\)[^ \t].*|:(stopdoc|startdoc|nodoc):( all)?|[{]@inheritdoc[}]|clang-format (off|on))$/) return 0
       if (in_star_block && substr(body, 1, 1) == "|") return 0
       if (body ~ /^:type[ \t]/ || body ~ /^:rtype:/ || body == "Args:" || body == "Returns:" || body ~ /^<\/?[A-Za-z][^<>]*>$/) return 0
       if (body !~ /^@[A-Za-z]/) return 1
@@ -266,7 +275,7 @@ cd_classify() {
       for (i = 1; i <= n; i++) {
         c = substr(t, i, 1); two = substr(t, i, 2)
         if (php_mode != "php") {
-          if (two == "<?" && (substr(t, i, 5) == "<?php" || substr(t, i, 3) == "<?=")) {
+          if (two == "<?" && (tolower(substr(t, i, 5)) == "<?php" || substr(t, i, 3) == "<?=")) {
             if (php_mode == "untagged") {
               code_lines += comment_lines; comment_lines = prose_lines = held_prose = licence = 0
               first_run = "none"; outside = 1
@@ -321,8 +330,18 @@ cd_classify() {
       }
       rest = substr(t, at + length(closer))
       if (rest ~ tail) comment_line(substr(t, 1, at - 1), in_star_block); else code_line(rest)
+      shape_depth = 0
     }
     function open_line_block(end_line) { block_end_line = end_line; pending_lines = 1; pending_prose = 0; hold(0) }
+    # A line this long is code and is not read: if a block or string is open, or the line holds a token that may open or close one, nothing after it can be trusted.
+    function long_line() {
+      code_lines++; end_first_run(); shape_depth = module_top = after_header = 0
+      if (block_end != "" || block_end_line != "" || heredoc_at <= heredoc_count || py_string != "" || in_raw_string) rest_is_code = 1
+      else if (python && (index($0, "\"\"\"") || index($0, "\047\047\047"))) rest_is_code = 1
+      else if (raw_quote != "" && index($0, raw_quote)) rest_is_code = 1
+      else if (heredoc_lang && index($0, "<<")) rest_is_code = 1
+      else if (php && (index($0, "<?") || index($0, "?>"))) rest_is_code = 1
+    }
     BEGIN {
       BLANK = "^[ \t]*$"
       DIRECTIVE = "eslint-|tslint|jshint|ts-expect-error|ts-ignore|@ts-|type: *ignore|noqa|phpcs:|phpstan-|psalm-|prettier-ignore|biome-ignore|stylelint-|pylint:|rubocop:|nolint|golangci|istanbul ignore|c8 ignore|codecoverageignore|shellcheck|coverage:"
@@ -336,8 +355,9 @@ cd_classify() {
       HEREDOC = "<<[-~]?" (shell ? "[ \t]*" : "") "(\"[^\"]+\"|\047[^\047]+\047|" (shell ? "\\\\?[A-Za-z_!][^ \t;&|<>()\"\047]*" : "[A-Za-z_][A-Za-z0-9_]*") ")"
     }
     FNR == 1 { if (seen_file) emit(); seen_file = 1; reset(); sub(/^\357\273\277/, "") }
-    # Not scanned: the per-character loops below are quadratic in line length under BSD awk and busybox awk.
-    length($0) > 20000 { code_lines++; next }
+    rest_is_code { if ($0 ~ /[^ \t\r]/) code_lines++; next }
+    # 4,000 bytes: the per-character loops below are quadratic in line length under BSD awk and busybox awk.
+    length($0) > 4000 { long_line(); next }
     {
       line = $0; sub(/\r$/, "", line)
       text = line; sub(/^[ \t]+/, "", text)
@@ -345,7 +365,7 @@ cd_classify() {
       if (block_end_line != "") {
         if (line ~ block_end_line) {
           comment_lines += pending_lines + 1; prose_lines += hold(pending_prose)
-          pending_lines = pending_prose = 0; block_end_line = ""
+          pending_lines = pending_prose = shape_depth = 0; block_end_line = ""
         } else { pending_lines++; pending_prose += (line ~ /^=[A-Za-z]/) ? 0 : is_prose(text, 0); hold(0) }
         next
       }
@@ -356,6 +376,7 @@ cd_classify() {
         rest = substr(text, at + length(block_end)); block_end = ""
         if (rest ~ block_tail) comment_line(substr(text, 1, at - 1), block_star)
         else { if (php && index(rest, "?>")) php_began_outside(rest); code_line(rest) }
+        shape_depth = 0
         next
       }
       if (heredoc_at <= heredoc_count) {
@@ -366,7 +387,7 @@ cd_classify() {
       }
       if (py_string != "") { code_lines++; if (index(text, py_string)) py_string = py_scan(text, py_string); next }
       if (in_raw_string) { code_lines++; if (index(text, raw_quote) && gsub(raw_quote, "", text) % 2) in_raw_string = 0; next }
-      if (php && text ~ /^(<\?(php)?|\?>)[ \t]*$/) { php_began_outside(text); comment_lines++; next }
+      if (php && tolower(text) ~ /^(<\?(php)?|\?>)[ \t]*$/) { php_began_outside(text); comment_lines++; next }
       if (php && ((index(text, "<?") || index(text, "?>")) ? php_began_outside(text) : php_mode == "html")) { code_line(text); next }
       two = substr(text, 1, 2); four = substr(text, 1, 4)
       if (two == "//" && slash_lang) comment_line(text, 0)

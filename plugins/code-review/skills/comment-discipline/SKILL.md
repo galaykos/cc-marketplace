@@ -139,8 +139,8 @@ section, so a fan-out cannot re-import the surrounding file's habits.
 
 - **gate** — three kill-cases are **denied before the write** by the `PreToolUse`
   lane of `hooks/scan.sh`: a comment restating the next line, commented-out code, and
-  a docblock tag repeating the signature. And `hooks/density.sh` denies a whole `Write` over 0.3 prose comment lines
-  per code line, compared exactly; under 50 lines or 8 code lines, at 5+ prose lines and more prose than code ("the ceiling is 1.0:1"). Both
+  a docblock tag repeating the signature. And `hooks/density.sh` denies a whole `Write` over 0.3 prose comment lines per code line,
+  compared exactly; under 50 lines or 8 code lines, at 5+ prose lines and more prose than code, or than a ceiling raised past 1:1 ("the ceiling is 1.0:1"). Both
   judge a Bash heredoc that `cat` or `tee` carries to a file (`cat > f <<EOF`,
   `tee f <<EOF`) as a `Write` of its body; `density.sh` denies it only when it
   replaces the file (`>`, `tee` without `-a`) — an append is a fragment. Each hook
@@ -169,23 +169,24 @@ section, so a fan-out cannot re-import the surrounding file's habits.
   is not `tee`; a relative target in a command holding `cd`, `chdir`, `pushd` or
   `popd`; a quote glued onto the target (`f.js'.bak'`); a target with a backslash,
   `~user`, or a `..` out of a symlinked directory; a command over 32 kB made of very
-  long lines. For `density.sh`'s deny
-  also a heredoc whose file the command writes again, and after the command any
-  target past the first three on disk. One file reached through a symlink keeps a
-  second budget; a hand-typed generated marker exempts a file; a deny co-firing with
-  another plugin's spends a try on a write that never happened. The plugin README has
-  the thresholds, the shapes the hooks misread (a heredoc in a function never called, a
-  quoted `"cd"`, a `> f` in a shell comment) and what the comment counter cannot tell apart.
+  long lines. For `density.sh`'s deny also a heredoc whose file the command writes again, and after the command
+  any target past the first three on disk; truncating heredocs past the 40th in one command, by neither lane. One
+  file reached through a symlink keeps a second budget; a hand-typed generated marker exempts a file; a deny
+  co-firing with another plugin's spends a try on a write that never happened. The plugin README has the
+  thresholds, the shapes the hooks misread (a heredoc in a function never called, a quoted `"cd"`, a `> f` in a
+  shell comment) and what the comment counter cannot tell apart.
 
 `hooks/density.sh` also warns after any edit when the file is over min(2x its committed siblings' median, the
 ceiling), or, with no committed siblings, over the ceiling alone; after a Bash command it measures the first three
 targets on disk. A file with no code line is never over. Not prose: delimiter-only lines, tool directives, typed doc
-tags, a first comment block naming a licence, `|`-boxed config blocks; an untyped `@param name text` is prose.
-Dockerfiles and Makefiles are left to `scan.sh`. A heavier house style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in the
-project's settings `env`: 5 where every public API is documented (PEP 257, Javadoc), 4 for the 0.25.0 ceiling — the
-number only; the newer file types, the short rule and the exact compare stay — 10 for 1:1, 0 for the sibling test alone.
-That is the "unless specified" escape hatch, per project on purpose, and the ONLY one the hooks read: neither hook
-parses CLAUDE.md, so a house style written only there is recorded, not enforced.
+tags, a first comment block naming a licence, `|`-boxed config blocks; an untyped `@param name text` is prose. Not
+told apart: a triple-quoted string that is no docstring and a mid-line `/*` count as code; a directive the hook does
+not know and comment-looking lines in JS template literals and PHP heredocs count as prose. Dockerfiles and Makefiles
+are left to `scan.sh`. A heavier house style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in the project's settings `env`:
+5 where every public API is documented (PEP 257, Javadoc), 4 for the 0.25.0 ceiling — the number only; the newer file
+types, the short rule and the exact compare stay — 10 for 1:1, 0 for the sibling test alone. That is the "unless
+specified" escape hatch, per project on purpose, and the ONLY one the hooks read: neither hook parses CLAUDE.md, so a
+house style written only there is recorded, not enforced.
 
 ## Anti-patterns
 

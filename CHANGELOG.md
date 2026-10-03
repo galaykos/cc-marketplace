@@ -18,7 +18,8 @@ version in their `plugin.json`.
   Unmeasured: whether these rules change what the model writes; no eval with a control arm covers them.
 - **code-review 0.26.0 — a stricter comment ceiling, 0.3 prose comment lines per code line, counted per language and compared
   exactly, now also on short files and on shell, SQL and CSS; stack-scan 0.11.1 carries the new figure in plugin-scout's catalog.**
-  `COMMENT_DISCIPLINE_CEILING_TENTHS=5` suits a project that documents every public API; 4 restores only the old number.
+  A project that documents every public API raises it with `COMMENT_DISCIPLINE_CEILING_TENTHS` (at 5, still 13% to 30% of the
+  Python, Ruby and JDK library files measured are refused); 4 restores only the old number.
 
 ## [0.118.0] - 2026-10-01
 
