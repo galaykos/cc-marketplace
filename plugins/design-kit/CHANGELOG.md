@@ -2,6 +2,14 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.2 — 2026-10-01
+
+- Test harnesses only; nothing an installer runs changed. The local server the system-extract harness starts is now stopped when the harness ends, and the snapshot harness's two server-start failures name a crashed server where they blamed a busy port. The background-server one prints that server's last stderr lines; the review one cannot, because `preview.sh` discards its server's stderr.
+
+## 0.9.1 — 2026-10-01
+
+- The plugin description calls the five entries skills, as the README has since 0.9.0. No behaviour change.
+
 ## 0.9.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_design_kit_pick`, `cc_remind`, under `/config` (or `/plugin configure design-kit`), each with today's default. The environment variable (`CC_DESIGN_KIT_PICK`, `CC_REMIND`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.

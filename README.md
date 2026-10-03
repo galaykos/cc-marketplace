@@ -298,7 +298,7 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 |--------|-----------------|-------------------|
 | **[ui-ux](plugins/ui-ux)** | shadcn/ui and Tailwind rules, design tokens, a theming system, motion best practices, the WCAG audit, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface — install `ui-libraries` with it ([companions](#companions-install-these-together)) |
 | **[ui-libraries](plugins/ui-libraries)** | component-library rules split out of ui-ux: Material UI (MUI X), Astryx, ReUI, Aceternity, and any other React or Vue library via `component-libraries` | The project already uses a component library other than shadcn |
-| **[design-kit](plugins/design-kit)** | the Claude Desktop design picker as local, own-your-files commands: an HTML deck with PDF/PPTX export, an artboard canvas with knobs and PNG export, designs rendered with the project's own components plus handoff-bundle intake, a design system extracted from the repo or a URL (DTCG tokens, a record the host reads, a UI kit), and self-contained artifacts in a local gallery | Slides, mockups, a design system or a shareable page without leaving the repo |
+| **[design-kit](plugins/design-kit)** | the Claude Desktop design picker as local, own-your-files skills: an HTML deck with PDF/PPTX export, an artboard canvas with knobs and PNG export, designs rendered with the project's own components plus handoff-bundle intake, a design system extracted from the repo or a URL (DTCG tokens, a record the host reads, a UI kit), and self-contained artifacts in a local gallery | Slides, mockups, a design system or a shareable page without leaving the repo |
 | **[craft-layer](plugins/craft-layer)** | the studio pipeline: creative direction, design research, asset sourcing with a licence gate, information design, and a five-tier motion catalogue with mandatory reduced-motion and reduced-bundle fallbacks | The result has to look designed, not generated — needs `ui-ux` and `ui-libraries` installed too ([companions](#companions-install-these-together)) |
 
 **Using them.**
@@ -396,8 +396,8 @@ to retype findings as instructions.
 ```
 
 The two hook-based plugins are the ones you install and forget. `command-guard`
-also ships a user-owned allow-file the agent cannot edit — so an exception you
-grant stays granted on your terms.
+also ships a user-owned allow-file that its guard blocks the agent from writing
+directly — so an attempt to grant itself an exception is denied where you can see it.
 
 ---
 

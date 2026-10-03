@@ -108,10 +108,7 @@ fm_linter() {
 # `.claude/skills/*/` — the repo's tracked PROJECT skills, where the authoring
 # doctrine has lived since 2026-09-03 — is held to the same rules: a doctrine home
 # outside every gate would be the "recorded" tier pretending to be "gate".
-# Trigger phrasing is for skills the MODEL picks from a listing. A skill carrying
-# `disable-model-invocation: true` is invoked only by name (`/name`), never
-# matched on its description, so an imperative description ("Scaffold a …") is
-# its correct shape — the rule is kind-level, never plugin-level.
+# Why trigger phrasing skips a `disable-model-invocation: true` skill: pc_frontmatter's header.
 for d in plugins/*/skills/*/ .claude/skills/*/; do
   [ -d "$d" ] || continue
   # A symlinked project skill is somebody else's file mounted here, not authored
@@ -141,18 +138,7 @@ for f in plugins/*/commands/*.md plugins/*/agents/*.md; do
   fm_structural "$f"
 done
 
-# Description linter (hard): a frontmatter description over 500 chars bloats the
-# always-on context surface every session pays for; a literal "Trigger words:"
-# list restates in-sentence terms. Both fail the build — trim, don't grandfather.
-# 500 is a HOUSE budget, not a host limit. The two host caps it sits under: the CLI
-# truncates `description` + `when_to_use` together at 1,536 chars in the skill listing
-# (code.claude.com/docs/en/skills), and the Agent Skills API rejects a description over
-# 1,024. Both count the pair, so this does too — a `when_to_use:` line is added to the
-# measured length when present (rationale/marketplace-trend-audit-2026-09-16.md D3).
-# The pair is read through pc_listing_fields, the same walk context-budget.sh meters
-# with, so what this caps is exactly what that charges. Block-scalar (>/|) values would
-# evade both this cap and the token accounting (each reads the first line only), so the
-# form is rejected outright.
+# Description linter (hard). Why 500, why the pair, why no block scalar: pc_frontmatter's header.
 for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.md; do
   [ -f "$f" ] || continue
   fm_linter "$f"

@@ -36,7 +36,7 @@ HOOKS=$(for hj in plugins/*/hooks/hooks.json; do
   d="$ROOT/${hj%/hooks/hooks.json}"
   jq -r --arg p "${d##*/}" --arg d "$d" '.hooks // {} | to_entries[] | .key as $e | .value[]?
     | (.matcher // "") as $m | .hooks[]? | select(.type=="command")
-    | [$p, $d, $e, $m, (.command | gsub("\""; "")), ((.timeout // 60) | tostring)] | join("\u001f")' "$hj"
+    | [$p, $d, $e, $m, .command, ((.timeout // 60) | tostring)] | join("\u001f")' "$hj"
 done)
 
 fits() { # <matcher> <tool>
@@ -54,8 +54,10 @@ fire() { # <repo> <event> <tool, empty for a tool-less event> <payload>
     [ -z "$3" ] || fits "$m" "$3" || continue
     extra=()
     [ -n "$DATA" ] && extra=(CLAUDE_PLUGIN_DATA="$DATA/$p")
+    # The alarm kills the whole process group: a signal to the shell alone leaves whatever it forked running (dash, ubuntu:24.04).
     printf '%s' "$4" | (cd "$1" && iso CLAUDE_PLUGIN_ROOT="$d" ${extra[@]+"${extra[@]}"} \
-      perl -e 'alarm shift; exec @ARGV' "$to" "${cmd//\$\{CLAUDE_PLUGIN_ROOT\}/$d}") >/dev/null 2>&1 || :
+      perl -e 'setpgrp; $SIG{ALRM} = sub { kill KILL => -$$ }; alarm shift; fork or exec @ARGV; wait' \
+      "$to" /bin/sh -c "${cmd//\$\{CLAUDE_PLUGIN_ROOT\}/$d}") >/dev/null 2>&1 || :
   done <<EOF
 $HOOKS
 EOF

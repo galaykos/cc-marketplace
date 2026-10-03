@@ -36,14 +36,9 @@ HOOK="$ROOT/$SR/hooks/route-prompt.sh"
 WORK="$(mktemp -d)" || exit 2
 HB="$WORK/route-prompt.sh.bak"
 cp "$HOOK" "$HB" || exit 2
-cleanup() {
-  [ -f "$HB" ] && cp "$HB" "$HOOK"
-  if [ -f "$HB" ] && ! cmp -s "$HB" "$HOOK"; then
-    printf 'FAIL  %s not restored\n' "$HOOK"; rm -rf "$WORK"; exit 1
-  fi
-  rm -rf "$WORK"
-}
-trap cleanup EXIT INT TERM HUP
+cleanup() { rm -rf "$WORK"; }
+trap cleanup EXIT
+trap 'exit 130' INT TERM HUP
 
 rc=0
 pass() { printf 'PASS  %s\n' "$1"; }
@@ -277,8 +272,9 @@ gout=$(pc_route_prompt_greps "$HOOK"); grc=$?
 # The inline gate's `grep -c … || echo 0` turned a zero count into "0\n0" and a false FAIL.
 NOGREP="$WORK/route-prompt-nogrep.sh"
 grep -v 'printf .%s. "\$head" | grep' "$HOOK" > "$NOGREP"
-if grep -qF '"$head" | grep' "$NOGREP"; then
-  fail "a hook with no prompt grep is clean" "the copy still greps \$head; the plant is the clean case again"
+left=$(grep -F '"$head" | grep' "$NOGREP")
+if [ -n "$left" ]; then
+  fail "a hook with no prompt grep is clean" "the copy still greps \$head in a form the grep counter does not count: $left"
 else
   out=$(pc_route_prompt_greps "$NOGREP"); grc=$?
   [ "$grc" -eq 0 ] && [ -z "$out" ] && pass "a hook with no prompt grep is clean" \

@@ -3,6 +3,12 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.10.2 - 2026-10-01
+
+- The shared Bash-write parsers end a command at a lone `&`. Text a command writes after a backgrounded one is now read (`sleep 1 & echo "<text>" > f` was skipped), and a heredoc body is no longer judged as the content of a file a later command on the same line writes (in `cat <<EOF & echo done > log.txt` the body was attributed to `log.txt`). `scan.sh` carries both updated blocks.
+- **`unicode-scan.sh` reads a write after a lone `&`:** the shared `cc_bash_write_targets` block now ends a command at a lone `&`, so a write after one is read (`echo x & sed -i s/a/b/ f.json` used to return nothing) and words after one are no longer taken for `sed`/`perl`/`tee` operands; `cmd |& tee f` is read; a `-`-led file after `sed … --` or `perl -i` is returned.
+- Not read by `scan.sh`: text in a command that a `&` inside `$(( ))` or `${ }` ends early. Not read by `unicode-scan.sh`: a `>& file` redirect, a bare `-x` operand with no `/` or `.` in it, and operands after a `&` inside `$(( ))` or `${ }` (that `&` ends the command). Over-read, harmless: a `-`-led argument to a perl script that contains `/` or `.`.
+
 ## 0.10.1 - 2026-10-01
 
 - **`unicode-scan.sh` reads `sed -i` edits correctly:** the shared `cc_bash_write_targets` block now returns every file a `sed -i` / `perl -i` command edits instead of its last word, never a trailing redirect (`sed -i … tsconfig.json 2>/dev/null` used to yield `2>/dev/null`), and recognises GNU `--in-place[=SUF]` and BSD `-I`. So every file such a command edits is scanned after the write, not a redirect word.

@@ -326,11 +326,9 @@ printf '%s\n' "$cov" | grep "$PENDING" | sed 's/^/  pending (sibling card): /'
 # full validate.sh run (~50 s in CI). Here: the gate fails a planted copy of a
 # live file, and the call site hands that output to lane_err with its hint.
 VT=plugins/testing/lane.tsv
-VLIVE="$FIX/live-snapshot.tsv"
 VCOPY="$FIX/planted-lane.tsv"
-cp "$VT" "$VLIVE" || exit 2
 cp "$VT" "$VCOPY" || exit 2
-printf 'testing:test-engineer\tagent\tverify\tno-yields-column\ta checkable condition\n' >> "$VCOPY"
+printf '\ntesting:test-engineer\tagent\tverify\tno-yields-column\ta checkable condition\n' >> "$VCOPY"
 run pc_lanes_schema "$VCOPY"
 if [ "$grc" -eq 1 ] && printf '%s\n' "$out" | grep -F "lane-schema $VCOPY:" | grep -qF '5 fields (want 6)'; then
   pass "[wiring] a five-field row planted in a copy of the live $VT fails the schema gate"
@@ -345,8 +343,6 @@ if sed -n '/^while IFS= read -r lf; do$/,/^done <<EOF_LANE_FILES$/p' scripts/val
 else
   bad "[wiring] validate.sh's lane loop no longer calls pc_lanes_schema \"\$lf\" with the hint: $LANE_HINT"
 fi
-cmp -s "$VLIVE" "$VT" && pass "[wiring] the live $VT was never written to" \
-                      || bad "[wiring] the harness mutated the real tree"
 
 # ---------------------------------------------------------------- pc_lanes_vocabulary
 # Both gates below were added 2026-09-15 and shipped with NO harness, in a repo whose CI

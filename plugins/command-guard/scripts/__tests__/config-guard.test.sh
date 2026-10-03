@@ -70,6 +70,8 @@ bash_allows $'cat > notes.txt <<\'EOF\'\necho {} > tsconfig.json\nEOF' "bash: a 
 rm -f "$T/.flake8"
 bash_allows "echo '[flake8]' > .flake8" "a Bash write creating a config is silent (nothing to weaken)"
 bash_asks "echo x > .flake8; sed -i '' s/a/b/ tsconfig.json" "a missing config target does not hide a later existing one" tsconfig.json
+bash_asks "echo x & sed -i s/a/b/ tsconfig.json" "bash: a config written after a lone & asks" tsconfig.json
+bash_allows "sed -i s/a/b/ notes.txt & cat tsconfig.json" "bash: a config only named after a lone & is allowed"
 mkdir -p "$T/home/.claude" && printf '{}\n' > "$T/home/.claude/settings.json"
 HOME="$T/home" bash_asks "echo '{}' > ~/.claude/settings.json" "a ~/ target expands to HOME" settings.json
 

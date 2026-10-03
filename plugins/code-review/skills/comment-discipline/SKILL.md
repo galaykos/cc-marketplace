@@ -162,7 +162,7 @@ section, so a fan-out cannot re-import the surrounding file's habits.
   (python `open()`, php `file_put_contents`); a heredoc fed to anything but `cat` or
   `tee`; `echo` / `printf` and `sed -i` / `perl -i` content (the after-command warning
   below still measures the file); `cp`, `mv`, `install`; `{ …; } > f`; here-strings; a
-  path held in a variable; a globbed operand; `2>` and `&>` targets; a quoted string
+  path held in a variable; a globbed operand; `2>`, `&>` and `>&` targets; a quoted string
   or `\` continuation spanning lines; a second heredoc on one line; the second operand
   of `tee a b`; `VAR=value tee f <<EOF`; `cat` with a file operand or an option, or
   behind a wrapper or keyword (`/bin/cat`, `then cat`); a heredoc piped to a stage that

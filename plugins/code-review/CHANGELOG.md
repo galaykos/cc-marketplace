@@ -118,6 +118,11 @@ env -i PATH="$PATH" HOME="$tmp/home" perl -MTime::HiRes=time -e 'open STDIN, "<"
 
 `payload.json` is `{"hook_event_name":"PreToolUse","tool_name":"Bash","session_id":"lat","cwd":"<a git project>","tool_input":{"command":"ls -la && git status"}}`, with the event and the command swapped per row. Standing: these figures are **recorded**. The marketplace's CI holds both hooks on both events under 5 s for three large shapes — a 12,000-line heredoc, a 200 kB single line, and 100 command lines of 8,000 characters (`scripts/smoke/comment-discipline-hook-tests.sh`, **gate**). On the 120-heredoc shape it holds `density.sh` on `PreToolUse` only (`scripts/smoke/comment-density-tests.sh`); no case holds `scan.sh`, the slowest hook there, or `density.sh` after the call, so those figures stay **recorded**. Nothing holds the 50 ms bar.
 
+## 0.24.2 — 2026-10-01
+
+- **`conventions.sh` reads a write after a lone `&`:** the shared `cc_bash_write_targets` block now ends a command at a lone `&`, so a write after one is read (`echo x & sed -i s/a/b/ f.json` used to return nothing) and words after one are no longer taken for `sed`/`perl`/`tee` operands; `cmd |& tee f` is read; a `-`-led file after `sed … --` or `perl -i` is returned. So a code file edited by the command after a backgrounded one now gets the conventions check.
+- Still not read: a `>& file` redirect, a bare `-x` operand with no `/` or `.` in it, and operands after a `&` inside `$(( ))` or `${ }` (that `&` ends the command). Over-read, harmless: a `-`-led argument to a perl script that contains `/` or `.`.
+
 ## 0.24.1 — 2026-10-01
 
 - **`conventions.sh` reads `sed -i` edits correctly:** the shared `cc_bash_write_targets` block now returns every file a `sed -i` / `perl -i` command edits instead of its last word, never a trailing redirect (`sed -i … tsconfig.json 2>/dev/null` used to yield `2>/dev/null`), and recognises GNU `--in-place[=SUF]` and BSD `-I`. So a code file edited with a trailing `2>/dev/null`, or the first of several files, now gets the conventions check.

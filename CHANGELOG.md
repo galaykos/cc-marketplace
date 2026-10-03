@@ -4,7 +4,7 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
-## [0.119.0] - 2026-10-02
+## [0.120.0] - 2026-10-03
 
 - **code-review 0.25.0 — the comment hooks judge Bash heredocs and installers' own scripts.** `scan.sh` and
   `density.sh` now run on `Bash` and judge a `cat` / `tee` heredoc as a `Write` of its body: two denies per file
@@ -17,9 +17,41 @@ version in their `plugin.json`.
   Standing: **gate** — `scripts/smoke/comment-discipline-hook-tests.sh` and `comment-density-tests.sh` are CI steps.
   Unmeasured: whether these rules change what the model writes; no eval with a control arm covers them.
 - **code-review 0.26.0 — a stricter comment ceiling, 0.3 prose comment lines per code line, counted per language and compared
-  exactly, now also on short files and on shell, SQL and CSS; stack-scan 0.11.1 carries the new figure in plugin-scout's catalog.**
+  exactly, now also on short files and on shell, SQL and CSS; stack-scan 0.11.2 carries the new figure in plugin-scout's catalog.**
   A project that documents every public API raises it with `COMMENT_DISCIPLINE_CEILING_TENTHS` (at 5, still 13% to 30% of the
   Python, Ruby and JDK library files measured are refused); 4 restores only the old number.
+
+## [0.119.0] - 2026-10-01
+
+Follow-ups to 0.118.0's hook work. Each plugin named below that keeps a CHANGELOG carries its own entry
+(security and git-workflow keep none).
+
+- **A write after a lone `&` is read.** The shared Bash-write parsers did not end a command at a lone `&`, so
+  `echo x & sed -i s/a/b/ f.json` returned no written file and the guards stayed silent, while words after a `&`
+  could be read as `sed`/`tee` operands and draw a false ask. Both blocks now end a command there; a `&` that is
+  part of `&&`, `&>`, `>&`, `<&` or `|&`, or quoted, is not a lone one. `cmd |& tee f` is read, and a `-`-led
+  file after `sed … --` or `perl -i` is returned. The content guards now read text written after a backgrounded
+  command, and no longer judge a heredoc body as the content of a file a later command on the same line writes.
+  Patch releases: code-review, command-guard, database, devops, secret-scanning, security, skill-router,
+  task-runner, testing. Still not read: a `>& file` redirect, a bare `-x` operand, and a command a `&` inside
+  `$(( ))` or `${ }` ends early. Standing: **gate** — `scripts/smoke/bash-write-targets-tests.sh` runs both case
+  tables against each template and every copy.
+- **command-guard 0.8.3 — a write to its allow-file through a differently-cased Write/Edit path is denied.** The
+  check matched the file's name case-sensitively; on a case-insensitive filesystem a differently-cased path names
+  the same file. The match is now case-insensitive for ASCII letters. Found by reading, not seen exploited. Not
+  caught on the write path: an MCP write tool other than the two matched by name, `NotebookEdit`'s
+  `notebook_path`, and a non-ASCII spelling the filesystem folds to the name.
+- **Two descriptions say what is true.** design-kit's calls its five entries skills (0.9.1). command-guard's
+  says its allow-file is "guarded from agent writes" where it said the agent "cannot edit" it. The marketplace
+  manifest, the root README and stack-scan's scout catalog (0.11.1) carry the same strings.
+- **candor 0.6.2** — no behaviour change: the SubagentStop gate's header states what a probe measured about
+  hook-injected context in a subagent's transcript (it lands as attachments, never as a user entry; 2.1.286, one
+  run), in place of an unknown.
+- **git-workflow 0.9.2** — branch-completion's scratch inventory no longer claims a `.gitignore` drop for
+  `taskmaster-docs/` that no skill makes, and its line citations follow the edits above.
+- Not in this release: design-kit's hand-off from a chat pick to the in-codebase skill still leaves the board's
+  text edits unread. Three attempts each exposed a further problem; it needs a design pass across both skills,
+  the unread-pick notice and `dk.sh`.
 
 ## [0.118.0] - 2026-10-01
 

@@ -220,7 +220,7 @@ it. A miss is preferred to judging the wrong file, so an uncertain shape is skip
   still measures the resulting file afterwards when the command names it as a redirect,
   `tee` or `sed -i` / `perl -i` target.
 - **Target not resolved, so the heredoc is skipped:** a path held in a variable; a
-  globbed operand; `2>` and `&>` targets; the second operand of `tee a b`;
+  globbed operand; `2>`, `&>` and `>&` targets; the second operand of `tee a b`;
   `VAR=value tee f <<EOF`; `cat` or `tee` behind a path, wrapper, brace or keyword
   (`/bin/cat`, `command cat`, `env X=1 cat`, `(cat`, `{ cat`, `then cat` on one line,
   `sudo -E tee`); a `cat` stage with a file operand or an option (`cat a > f <<EOF`,

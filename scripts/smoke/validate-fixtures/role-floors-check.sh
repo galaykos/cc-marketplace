@@ -58,7 +58,8 @@ cleanup() {
   rm -rf "$MIRROR" "$BAK"
   [ "$bad" -eq 0 ] || exit 1
 }
-trap cleanup EXIT INT TERM HUP
+trap cleanup EXIT
+trap 'exit 130' INT TERM HUP
 
 rc=0
 want() {   # want <label> <exact string>

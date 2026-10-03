@@ -29,7 +29,8 @@ cleanup() {
   rm -rf "$T"
   [ "$bad" -eq 0 ] || exit 1
 }
-trap cleanup EXIT INT TERM HUP
+trap cleanup EXIT
+trap 'exit 130' INT TERM HUP
 
 # 1. the shipped tree is clean — every plugin-named deference has an edge
 out=$(pc_deference_edges plugins) && g=0 || g=$?

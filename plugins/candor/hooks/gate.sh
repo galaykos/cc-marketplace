@@ -113,11 +113,11 @@
 # content or its first text block, no tool_result, not an isCompactSummary entry, and not
 # starting (after any leading whitespace) <system-reminder>, <task-notification>,
 # "[SYSTEM NOTIFICATION" or "Stop hook feedback:". isMeta is not consulted — the resume
-# boundary carries it too. Hook additionalContext has no prefix and was not observed there: it
-# is excluded only if it lands as a non-"user" entry. Residuals: a type "user" additionalContext
-# entry after a hand-back reads as user-text, so that hand-back goes unread; and the file can
-# lag the payload, so a resume whose boundary entry is not yet written is still judged on the
-# earlier hand-back.
+# boundary carries it too. Hook additionalContext lands as "attachment" entries, never "user"
+# (SubagentStart and PostToolUse, before and after a hand-back; 2.1.286, one run —
+# rationale/candor-subagent-context-probe-2026-10-01.md), so the type test excludes it.
+# Residuals: a host or event writing it as a "user" entry after a hand-back would hide it; the file
+# can lag the payload, so a resume whose boundary is unwritten is judged on the earlier hand-back.
 # CLAUSES 2-4 disarm for a subagent: it has no user turn to push back, and its
 # transcript is not the session that edited files or registered a run. Markers
 # are suffixed per agent so a subagent block never spends the main thread's disarm.

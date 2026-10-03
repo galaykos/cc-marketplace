@@ -179,14 +179,14 @@ cc_option() {
 # after the script or its `-e`/`-f` arguments, never a redirect word or its target. BSD's
 # `-I` always takes the next word as its backup suffix; a `''` or a `.`-led word with no `/`
 # right after sed's bare `-i` is read as one too, unless it would be the only file.
-# Does NOT catch:
+# Does NOT catch: sed/perl/tee operands after a `&` in `$(( ))` or `${ }` (it ends the command),
 # interpreter writes (python open(), php file_put_contents), cp/mv/install destinations,
 # `{ …; } > f` groups, a path held in a variable (`> "$f"` is skipped, never guessed),
 # a globbed operand (`sed -i … tests/*.js`: a word with `*`/`?` is dropped), a `\` line
 # continuation, sed/perl behind another command word (`gsed`, `/usr/bin/sed`, `env`,
 # `xargs`, `command`, `sudo -u x`, `find … -exec sed -i`), a digit- or `&`-led redirect onto
-# a file (`2> f`, `&> f`). A lone `&` does not end a command, so words after it can read as
-# sed/perl/tee operands.
+# a file (`2> f`, `&> f`) and `>&` onto one (`cmd >& f.json`), a `-`-led sed/perl operand
+# with no `/` or `.` in it. Reads too much: a `-`-led perl script argument that has one.
 # The caller filters to existing files under its root.
 cc_bash_write_targets() {
   printf '%s\n' "$1" | awk '
@@ -268,7 +268,7 @@ cc_bash_write_targets() {
           }
         }
         if (!inp) return
-        for (j = scr ? 1 : 2; j <= nf; j++) if (f[j] !~ /^-/) { emit(f[j]); sfx = "" }
+        for (j = scr ? 1 : 2; j <= nf; j++) if (f[j] !~ /^-/ || eo) { emit(f[j]); sfx = "" }
         if (sfx != "") emit(sfx)
       }
     }
@@ -284,9 +284,9 @@ cc_bash_write_targets() {
       st = 1
       for (i = 1; i <= length(m) + 1; i++) {
         c = substr(m, i, 1); c2 = substr(m, i, 2)
-        if (i > length(m) || c == ";" || c == "|" || c2 == "&&") {
+        if (i > length(m) || c == ";" || c == "|" || c == "&" && c2 != "&>" && substr(m, i - 1, 1) !~ /[<>]/) {
           if (i > st) segment(substr(m, st, i - st), substr(line, st, i - st))
-          if (c2 == "&&" || c2 == "||") i++
+          if (c2 == "&&" || c2 == "||" || c2 == "|&") i++
           st = i + 1
         }
       }
@@ -298,9 +298,9 @@ cc_bash_write_targets() {
 # cc_bash_write_chunks must carry this block byte-for-byte (pc_shared_blocks).
 # cc_bash_write_chunks <command> — what a Bash command puts INTO files: the text a content
 # guard reads on Bash where its Write path reads tool_input.content. Prints chunks: a line that
-# starts with \036 and carries the WRITER — the pipeline (split on ; && ||, never inside
-# quotes) whose targets the caller resolves with cc_bash_write_targets — then the
-# chunk's text lines. Two sources, and only two:
+# starts with \036 and carries the WRITER — the pipeline (split on ; && || and a `&` outside
+# `&>` `>&` `<&` `|&`, never inside quotes) whose targets the caller resolves with
+# cc_bash_write_targets — then the chunk's text lines. Two sources, and only two:
 #   - a heredoc BODY: the lines between `<<TERM` (`<<-`, quoted or `\`-escaped TERM too)
 #     and TERM; writer = the pipeline holding the `<<` (`cat > f <<EOF`,
 #     `cat <<EOF | tee -a f`);
@@ -317,7 +317,7 @@ cc_bash_write_targets() {
 # the echo's pipeline); a here-string `<<<`; printf's format substitution (`printf
 # 'K=%s' v` is read as written: the format and the argument, never the substituted
 # line); a quoted string or a `\` continuation spanning lines; a second heredoc opened
-# on one line.
+# on one line; text in a command that a `&` inside `$(( ))` or `${ }` ends early.
 # mask() copies the one inside cc_bash_write_targets: the block is byte-locked and its
 # awk functions are not reachable from outside it.
 cc_bash_write_chunks() {
@@ -353,7 +353,7 @@ cc_bash_write_chunks() {
       line = $0; m = mask(line); st = 1; opener = ""
       for (i = 1; i <= length(m) + 1; i++) {
         c = substr(m, i, 1); c2 = substr(m, i, 2)
-        if (i > length(m) || c == ";" || c2 == "&&" || c2 == "||") {
+        if (i > length(m) || c == ";" || c2 == "||" || c == "&" && c2 != "&>" && substr(m, i - 1, 1) !~ /[<>|]/) {
           if (i > st) {
             p = substr(line, st, i - st); mp = substr(m, st, i - st)
             a = echo_args(p, mp)

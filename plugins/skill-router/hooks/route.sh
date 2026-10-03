@@ -153,14 +153,14 @@ cc_option() {
 # after the script or its `-e`/`-f` arguments, never a redirect word or its target. BSD's
 # `-I` always takes the next word as its backup suffix; a `''` or a `.`-led word with no `/`
 # right after sed's bare `-i` is read as one too, unless it would be the only file.
-# Does NOT catch:
+# Does NOT catch: sed/perl/tee operands after a `&` in `$(( ))` or `${ }` (it ends the command),
 # interpreter writes (python open(), php file_put_contents), cp/mv/install destinations,
 # `{ …; } > f` groups, a path held in a variable (`> "$f"` is skipped, never guessed),
 # a globbed operand (`sed -i … tests/*.js`: a word with `*`/`?` is dropped), a `\` line
 # continuation, sed/perl behind another command word (`gsed`, `/usr/bin/sed`, `env`,
 # `xargs`, `command`, `sudo -u x`, `find … -exec sed -i`), a digit- or `&`-led redirect onto
-# a file (`2> f`, `&> f`). A lone `&` does not end a command, so words after it can read as
-# sed/perl/tee operands.
+# a file (`2> f`, `&> f`) and `>&` onto one (`cmd >& f.json`), a `-`-led sed/perl operand
+# with no `/` or `.` in it. Reads too much: a `-`-led perl script argument that has one.
 # The caller filters to existing files under its root.
 cc_bash_write_targets() {
   printf '%s\n' "$1" | awk '
@@ -242,7 +242,7 @@ cc_bash_write_targets() {
           }
         }
         if (!inp) return
-        for (j = scr ? 1 : 2; j <= nf; j++) if (f[j] !~ /^-/) { emit(f[j]); sfx = "" }
+        for (j = scr ? 1 : 2; j <= nf; j++) if (f[j] !~ /^-/ || eo) { emit(f[j]); sfx = "" }
         if (sfx != "") emit(sfx)
       }
     }
@@ -258,9 +258,9 @@ cc_bash_write_targets() {
       st = 1
       for (i = 1; i <= length(m) + 1; i++) {
         c = substr(m, i, 1); c2 = substr(m, i, 2)
-        if (i > length(m) || c == ";" || c == "|" || c2 == "&&") {
+        if (i > length(m) || c == ";" || c == "|" || c == "&" && c2 != "&>" && substr(m, i - 1, 1) !~ /[<>]/) {
           if (i > st) segment(substr(m, st, i - st), substr(line, st, i - st))
-          if (c2 == "&&" || c2 == "||") i++
+          if (c2 == "&&" || c2 == "||" || c2 == "|&") i++
           st = i + 1
         }
       }
