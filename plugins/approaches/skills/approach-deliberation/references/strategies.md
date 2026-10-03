@@ -78,9 +78,10 @@ when misapplied.
 
 - Beats: fuzzy-understanding risk — code written before the author can state
   what it must do.
-- How: write the README section, docstring, or commit message BEFORE the
-  implementation. Where the explanation stalls is exactly where understanding
-  is missing.
+- How: write the README section, the public contract (types, and the one-line
+  facts a signature cannot state), or the commit message BEFORE the
+  implementation — never a docstring that restates the behaviour. Where the
+  explanation stalls is exactly where understanding is missing.
 - Fails when: it balloons into speculative documentation of unbuilt features.
 
 ## Selection table

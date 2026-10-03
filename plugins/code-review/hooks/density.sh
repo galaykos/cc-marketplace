@@ -552,7 +552,7 @@ EOF
     [ "$tries" -ge "$DENY_CAP" ] && return 1
     # The name goes through the environment: macOS awk refuses a -v value holding a newline.
     msg=$(file_name="${fp##*/}" LC_ALL=C awk -v c="$pprose" -v cd="$pcode" -v r="$d_ratio" -v l="$limit" \
-      'BEGIN { f = ENVIRON["file_name"]; printf "comment-discipline: %s would be %.1f:1 comment-to-code (%d comment lines, %d code); the ceiling is %.1f:1. Write it again with the code carrying the meaning: keep only a why-this-not-the-obvious, an external constraint with a link, a deliberate no-op, or a contract fact the signature cannot state (units, ownership, what throws) — and move the rest to a name, a type, or a test. Blocked at most twice per file; after that a write goes through with a warning instead. CC_COMMENT_GUARD=off disables this block for the session (CC_REMIND=off silences the warning it falls back to).", f, r/10, c, cd, l/10 }')
+      'BEGIN { f = ENVIRON["file_name"]; printf "comment-discipline: %s would be %.1f:1 comment-to-code (%d comment lines, %d code); the ceiling is %.1f:1. Write it again with the code carrying the meaning: keep only a why-this-not-the-obvious, an external constraint with a link, a deliberate no-op, or a contract fact the signature cannot state (units, ownership, what throws, required call order) — and move the rest to a name, a type, or a test. Blocked at most twice per file; after that a write goes through with a warning instead. CC_COMMENT_GUARD=off disables this block for the session (CC_REMIND=off silences the warning it falls back to).", f, r/10, c, cd, l/10 }')
     [ -n "$msg" ] || return 1
     mkdir "$marker.d$((tries + 1))" 2>/dev/null || return 1
     return 0

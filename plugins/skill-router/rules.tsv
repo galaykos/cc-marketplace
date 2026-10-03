@@ -57,6 +57,17 @@
 # co-fire-ok: *.go low-cognitive-load solid-principles
 # co-fire-ok: *.rb low-cognitive-load solid-principles
 # co-fire-ok: *.rs low-cognitive-load solid-principles
+# low-cognitive-load judges code shape; the accessibility, framework and library skills on the same file judge other things, so both fire.
+# co-fire-ok: *.tsx low-cognitive-load a11y-audit
+# co-fire-ok: *.tsx low-cognitive-load shadcn-best-practices
+# co-fire-ok: *.tsx low-cognitive-load nextjs-best-practices
+# co-fire-ok: *.tsx low-cognitive-load react-native-best-practices
+# co-fire-ok: *.jsx low-cognitive-load a11y-audit
+# co-fire-ok: *.jsx low-cognitive-load shadcn-best-practices
+# co-fire-ok: *.vue low-cognitive-load a11y-audit
+# co-fire-ok: *.vue low-cognitive-load shadcn-best-practices
+# co-fire-ok: *.vue low-cognitive-load component-libraries
+# co-fire-ok: *.php low-cognitive-load laravel-best-practices
 #
 # LIMITATION (honest scope): NOT routed by any rule — code-smells, reuse-hygiene,
 # yagni-check, plan-before-code, and the rest of code-architecture beyond the two
@@ -64,8 +75,12 @@
 # PreToolUse/PostToolUse hook is the delivery channel, and a routing row would be
 # redundant — do not "fix" that. Plain source
 # edits (*.ts / *.js / *.py / *.go / *.rb / *.rs) route to low-cognitive-load +
-# solid-principles, once per skill per session; **/migrations/** routes to
-# sql-best-practices plus the detected engine skill (blessed pairs above).
+# solid-principles, once per skill per session. *.tsx / *.jsx / *.vue / *.php edits
+# route to low-cognitive-load ONLY, no solid-principles: the first three skip
+# dotfiles, *.php skips a .blade.php view and dotfiles. PHP config, routes and lang array files
+# keep the route on purpose — they are code, and the nudge is once per session.
+# **/migrations/** routes to sql-best-practices plus the detected engine skill
+# (blessed pairs above).
 #
 # ENGINE DETECTION IS BEST-EFFORT. The chain is compose file → `.env.example`
 # `DB_CONNECTION` → composer.json → package.json, and marker_ok takes the FIRST
@@ -114,6 +129,10 @@ glob	*.rb	low-cognitive-load	code-architecture	high
 glob	*.rb	solid-principles	code-architecture	high
 glob	*.rs	low-cognitive-load	code-architecture	high
 glob	*.rs	solid-principles	code-architecture	high
+glob	*.tsx	low-cognitive-load	code-architecture	high	!@base~^\.
+glob	*.jsx	low-cognitive-load	code-architecture	high	!@base~^\.
+glob	*.vue	low-cognitive-load	code-architecture	high	!@base~^\.
+glob	*.php	low-cognitive-load	code-architecture	high	!@base~(\.blade\.php$|^\.)
 # The only stack row that carried no marker at all: a Go module with `components/`,
 # and a Blade app with no Tailwind in it, both drew the Tailwind skill. The `?` prefix
 # is what makes "no package.json" mean no, instead of maybe.

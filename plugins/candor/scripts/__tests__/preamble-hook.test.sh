@@ -47,6 +47,8 @@ out=$(printf 'not json' | CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK"
 check "11 malformed payload fails open with exit 0" "$out" 'rc=0'
 n=$(run 'implement the export' s9 | wc -c | tr -d ' ')
 [ "$n" -gt 0 ] && [ "$n" -lt 1000 ] && echo "PASS: 12 payload stays under 1000 chars ($n)" || { echo "FAIL: 12 payload size $n"; rc=1; }
+clause='is not a trigger. Add no code comment unless it states what the code cannot; a CLAUDE.md house style wins. (2) '
+check "19 the comment clause ends move (1) on UserPromptSubmit" "$(run 'build the importer' s10)" "$clause"
 runsub() { # $1 agent_id, $2 agent_type — the SubagentStart payload the host sends (no prompt)
   jq -n --arg a "$1" --arg t "$2" \
     '{hook_event_name:"SubagentStart",session_id:"s-sub",transcript_path:"/nowhere/s-sub.jsonl",cwd:"/tmp",prompt_id:"p1",agent_id:$a,agent_type:$t}' \
@@ -55,10 +57,14 @@ runsub() { # $1 agent_id, $2 agent_type — the SubagentStart payload the host s
 out=$(runsub ag1 general-purpose)
 check "14 SubagentStart speaks with no prompt field" "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty')" 'five moves'
 check "15 SubagentStart names its own event" "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.hookEventName // empty')" 'SubagentStart'
+check "20 the comment clause ends move (1) on SubagentStart" "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty')" "$clause"
 check "16 same agent_id is silent the second time" "$(runsub ag1 general-purpose)" ''
 check "17 a second agent in the same session speaks" "$(runsub ag2 laravel:backend-engineer | jq -r '.hookSpecificOutput.additionalContext // empty')" 'five moves'
 out=$(jq -n '{hook_event_name:"SubagentStart",session_id:"s-sub"}' | CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null; echo "rc=$?")
 check "18 SubagentStart without agent_id fails open, silent" "$out" 'rc=0'
+out=$(jq -n '{hook_event_name:"SubagentStart",session_id:"s-sub",transcript_path:"/nowhere/s-sub.jsonl",cwd:"/tmp",prompt_id:"p1",agent_id:"ag3",agent_type:"general-purpose"}' \
+  | CC_PREAMBLE=off CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null)
+check "21 CC_PREAMBLE=off is silent on SubagentStart" "$out" ''
 m=$(ls -d "$TMP"/cc-preamble-* 2>/dev/null | wc -l | tr -d ' ')
 [ "$m" -ge 1 ] && echo "PASS: 13 marker is written under TMPDIR ($m)" || { echo "FAIL: 13 no marker written"; rc=1; }
 

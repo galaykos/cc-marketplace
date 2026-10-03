@@ -365,6 +365,19 @@ edit "$N" "$N/src/pages/Reads.tsx" "$(fresh)" PATH="$HS:$PATH" HEAD_LOG="$WS/hea
 reads=$(grep -c 'Reads\.tsx' "$WS/head.log" 2>/dev/null)
 [ "$reads" = 1 ] && ok || bad "one read per target: Reads.tsx was read ${reads:-0} times in one call"
 
+# 17. low-cognitive-load on .php/.tsx/.jsx/.vue; a negative also asserts a skill that proves the edit routed
+K="$WS/k"; mkrepo "$K"
+routes "$K" app/Models/Invoice.php '<?php class Invoice {}' low-cognitive-load
+routes "$K" resources/js/Card.tsx 'export const Card = () => <div />' low-cognitive-load
+routes "$K" resources/js/Row.jsx 'export const Row = () => <tr />' low-cognitive-load
+routes "$K" resources/js/Panel.vue '<template><section /></template>' low-cognitive-load
+routes "$K" resources/js/.scratch.tsx 'export const x = <div />' a11y-audit low-cognitive-load
+routes "$K" resources/views/invoice.blade.php '<div>{{ $total }}</div>' laravel-best-practices low-cognitive-load
+routes "$K" resources/js/.scratch.jsx 'export const y = <div />' a11y-audit low-cognitive-load
+routes "$K" resources/js/.scratch.vue '<template><i /></template>' a11y-audit low-cognitive-load
+routes "$K" .php-cs-fixer.php '<?php return [];' laravel-best-practices low-cognitive-load
+routes "$K" config/app.php '<?php return [];' low-cognitive-load
+
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }
 

@@ -21,6 +21,18 @@ All three adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), 
 marketplace's voice; nothing upstream is copied. Their effect is unmeasured — no eval runs them
 with a control arm.
 
+### Changed
+- **`system-architect` writes code under the comment default, and `low-cognitive-load` names its
+  new routes.** The agent gains a "Code shape" section: match the file's naming and idiom, not its
+  comment density; no comment by default; a kept comment is one line for a fact the code cannot
+  show — why this and not the obvious, a linked external constraint, a deliberate no-op, or a
+  contract fact (units, ownership, what throws, required call order); design rationale goes in
+  the output, never above the code; only the project's CLAUDE.md overrides. It is this plugin's
+  only code-writing agent and carried no such section. The skill's reach sentence now lists
+  the routes skill-router (when installed) adds: .tsx, .jsx and .vue (not dotfiles) and .php (not
+  Blade views), beside the six it had; .java still has none. Standing: recorded in this plugin;
+  with code-review installed, its write hooks deny three of the kill-cases in this agent's writes too.
+
 ## 0.17.0 — 2026-10-03
 
 ### Added

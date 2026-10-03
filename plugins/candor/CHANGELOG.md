@@ -2,6 +2,11 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.6.3 — 2026-10-03
+
+- **The preamble's move (1) now ends with one sentence about comments:** `Add no code comment unless it states what the code cannot; a CLAUDE.md house style wins.` It goes out with the five moves, on the first work prompt of each session and on every subagent start. So the comment rule reaches the model before its first edit in every subagent (whose prompt carries no comment rule of its own) and in a main session whose host prompt lacks one, including on an install without `code-review`, whose hooks judge a comment only as it is written. Still five moves. The message is now 878 chars (886 bytes), within the test's 1,000-byte bound. **Effect unmeasured:** the measurement behind the five moves predates this sentence, and no eval case covers it.
+- `scripts/__tests__/preamble-hook.test.sh` gains three cases: the exact sentence at the end of move (1) on `UserPromptSubmit` (19) and on `SubagentStart` (20), and `CC_PREAMBLE=off` silencing `SubagentStart` (21), which no case covered before. The size claims in the hook header and README (~800 and ~640 chars) now state the measured 878.
+
 ## 0.6.2 — 2026-10-01
 
 - No behaviour change. The SubagentStop gate's header now states a measurement instead of an unknown: on 2.1.286 (one run) a hook's `additionalContext` lands in a subagent's transcript as attachment entries, never as a user entry — from SubagentStart and PostToolUse, before and after the hand-back — so the scoped hand-back read cannot take it for a turn boundary. The residual is narrowed to a host or hook event that writes it as a user entry.

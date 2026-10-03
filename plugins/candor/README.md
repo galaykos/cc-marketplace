@@ -181,7 +181,7 @@ so the injected card and the skill body cannot drift.
 | `SessionStart` | `hooks/activate.sh` | injects the terse contract once, only when a level is active; silent otherwise |
 | `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton (~150 tokens per prompt — measured 596 chars at `lite`/`full`/`ultra`, 693 at a `wenyan-*` level — and nothing when off) |
 | `UserPromptSubmit` | `hooks/preamble.sh` | once per session, on the first prompt whose head carries a making verb in an imperative clause: injects the five working moves before the first edit (under 1,000 chars, bounded by the hook's own test); silent on every later prompt, on questions, on slash commands, and under `CC_PREAMBLE=off` |
-| `SubagentStart` | `hooks/preamble.sh` | the same five moves, once per `agent_id`, for every subagent the Agent tool spawns — `UserPromptSubmit` never fires inside a subagent, and on 2026-09-18 the text reached 0 of 3 workers building an app; no matcher, so read-only spawns pay the ~640 chars too. Also writes the worker's in-flight record for clause 4 (under `$TMPDIR`, keyed on the hashed `session_id`), even under `CC_PREAMBLE=off` |
+| `SubagentStart` | `hooks/preamble.sh` | the same five moves, once per `agent_id`, for every subagent the Agent tool spawns — `UserPromptSubmit` never fires inside a subagent, and on 2026-09-18 the text reached 0 of 3 workers building an app; no matcher, so read-only spawns pay the 878 chars as of 0.6.3, under 1,000 bytes too. Also writes the worker's in-flight record for clause 4 (under `$TMPDIR`, keyed on the hashed `session_id`), even under `CC_PREAMBLE=off` |
 
 `mode.sh` is **not** a `CC_REMIND` reminder hook: a user-selected mode is not a
 nudge, so it neither claims the one-nudge-per-prompt marker nor answers to that
@@ -206,6 +206,10 @@ runs of one build task moved three observable process moves from 0/3 to 6/6 with
 counts on nine runs, not a replicated delta; the cases under `evals/` are the fixtures
 that would measure it — one for the whole preamble, the rest one per move; recount them
 with `ls -d plugins/candor/evals/*/ | grep -v results` — and nothing runs them in CI.
+Move (1)'s last sentence, *add no code comment unless it states what the code cannot; a CLAUDE.md house style wins*
+(0.6.3), is outside that measured set and no case covers it: its effect is unmeasured. It
+is there for reach — into every subagent, and into sessions without `code-review`, whose
+hooks judge a comment only as it is written.
 
 Running them takes two operator grants the case files cannot give themselves:
 

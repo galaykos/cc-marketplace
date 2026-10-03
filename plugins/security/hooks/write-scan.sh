@@ -301,7 +301,7 @@ cc_bash_write_targets() {
     # mentions eval() stays quiet.
     detect "code-eval" \
       '(^|[^[:alnum:]_.$>])eval[[:space:]]*\(|new[[:space:]]+Function[[:space:]]*\(' \
-      "eval()/new Function() executes a string as code — parse data with JSON/literal parsers; if input is truly static, say so in a comment" \
+      "eval()/new Function() executes a string as code — parse data with JSON/literal parsers; a static string wants the literal, not eval. When eval is genuinely required, a one-line comment at the call saying why" \
       "$CODE"
     detect "shell-string-exec" \
       'child_process\.exec(Sync)?[[:space:]]*\(|(^|[^[:alnum:]_.])execSync[[:space:]]*\(|(^|[^[:alnum:]_.$>])(shell_exec|passthru|popen|proc_open)[[:space:]]*\(|(^|[^[:alnum:]_.$>])(exec|system)[[:space:]]*\([[:space:]]*["'"'"'$]|os\.system[[:space:]]*\(|subprocess\.[A-Za-z_]+\(.*shell[[:space:]]*=[[:space:]]*True' \

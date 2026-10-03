@@ -32,6 +32,13 @@ version in their `plugin.json`.
   line; a proposed lint/CI check as a harvest destination; expand–migrate–contract cards; a contradicted prompt, a background
   lookup and a third-party questionnaire in grill; a done-when in every dispatch. Each plugin's README credits the source; the
   effect on what the model writes is unmeasured.
+- **The comment rule reaches further — candor 0.6.3, skill-router 0.23.0, approaches 0.11.1, design-kit 0.9.3, security 0.12.3;
+  code-review 0.28.0 and code-architecture 0.18.0 amended:** candor's first move ends "Add no code comment unless it states
+  what the code cannot; a CLAUDE.md house style wins", reaching every subagent; the system-architect agent gets a Code shape;
+  `.php`, `.tsx`, `.jsx` and `.vue` edits route `low-cognitive-load`; `/code-review:review` and the `code-reviewer` agent grade
+  the comments a diff adds; `density.sh`'s deny names call order; five places in approaches, design-kit and security stop asking
+  for a comment the rule forbids. Only candor's dynamic token baseline moved (+22). The effect on what the model writes is
+  unmeasured.
 
 ## [0.119.0] - 2026-10-01
 

@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.3 — 2026-10-03
+
+- in-codebase says where the scaffold's comments belong: the prop signatures, `gap:` lines and commented-out renders live only on the throwaway `__design-kit__/` page that cleanup removes, and none is copied into the real component. With code-review installed, a full rewrite of that page can be denied for its comment volume (mostly the prop-signature blocks), so the skill tells the model to change it with Edit around them. The scaffold itself is unchanged.
+
 ## 0.9.2 — 2026-10-01
 
 - Test harnesses only; nothing an installer runs changed. The local server the system-extract harness starts is now stopped when the harness ends, and the snapshot harness's two server-start failures name a crashed server where they blamed a busy port. The background-server one prints that server's last stderr lines; the review one cannot, because `preview.sh` discards its server's stderr.

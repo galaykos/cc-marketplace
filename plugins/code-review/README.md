@@ -12,8 +12,8 @@ Claude Code ships its own `code-review` skill, and the names collide: `/code-rev
 is the built-in, `/code-review:review` is this plugin. They are not substitutes —
 since 0.17.0 this command **wraps** the built-in: when the session has it, the
 generic correctness/smell/convention pass is delegated to it (report-only, through
-the Skill tool) and this command keeps the hunk read, the history pass, the stack
-fan-in, the merge and the single `ReportFindings` emission; without it, the
+the Skill tool) and this command keeps the hunk read, the history pass, the comment
+pass, the stack fan-in, the merge and the single `ReportFindings` emission; without it, the
 generic pass runs inline as before.
 
 The built-in is deeper on one diff — it carries effort levels from low to max, an
@@ -59,13 +59,18 @@ the stack fan-in over it, and runs the generic pass itself only when the
 built-in is absent. The plugin also ships a `code-reviewer` agent — the
 dispatchable reviewer task-runner and the per-stack review commands
 route to (a built-in skill cannot be dispatched as a subagent, which is why the
-agent stays) — and two skills: `code-smells`
+agent stays) — and, besides `comment-discipline`, two review skills: `code-smells`
 — the smell catalog, with when-it-is-NOT-a-smell judgment — and
 `reuse-hygiene`, the pre-reuse check that a symbol you are about to build on
 is not deprecated or orphaned, plus the deep pass (dead-code tool shellout,
 export-aware orphan detection, deprecated-reference report) when a quick read
 cannot settle it. The two split cleanly: `code-smells` catalogs dead code as a
 **review finding**; `reuse-hygiene` is the check you run **before** reusing.
+Both the command and the agent run a **comment pass** over the comments a diff adds,
+judged against `comment-discipline`'s keep-cases and kill-cases and reported at `low`;
+the agent, which loads no skill, carries the list inline. Both skip the pass on a path
+with no diff, except that the command judges every comment in scope on a hand-up from
+`/code-review:comment-review`. Standing: agent-graded.
 
 Credit: the "Reinvented shelf" smell, the `shortcut: <the limit>; revisit when <trigger>` comment form and the debt lane's `shortcuts` count adapt rules from [dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) v4.10.0 (MIT), rewritten here rather than copied.
 The "Mysterious name" smell, the decision-record test and required call order in `comment-discipline`, and a repo's contributing or coding-standards doc as a convention source (the review's convention pass, `conventions.sh`'s `standards:` line) adapt rules from [mattpocock/skills](https://github.com/mattpocock/skills) v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied; their effect on what the model writes is unmeasured.

@@ -2,6 +2,12 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.23.0 — 2026-10-03
+
+- **`.php`, `.tsx`, `.jsx` and `.vue` edits route `low-cognitive-load`** when code-architecture is installed, as `.ts`/`.js`/`.py`/`.go`/`.rb`/`.rs` edits already did, so the skill that states the no-comment default in one line reaches PHP, React and Vue files. Once per session, beside the framework, library and accessibility skills those files already drew. `solid-principles` is not added for them.
+- `low-cognitive-load` is not routed on a `.blade.php` view or on a `.php`/`.tsx`/`.jsx`/`.vue` file whose name starts with a dot (`.php-cs-fixer.php`); those files still draw their other skills. PHP config, routes and lang array files do route, on purpose — they are code.
+- Cost: the first such edit in a context carries one more nudge — about +84 tokens on the largest probe shape. The dynamic meter does not see it (its probe spends the one-shot on a `.ts` edit first), so skill-router's baseline stays 651.
+
 ## 0.22.2 — 2026-10-01
 
 - **A file written after a lone `&` routes:** the shared `cc_bash_write_targets` block now ends a command at a lone `&`, so a write after one is read (`echo x & sed -i s/a/b/ f.json` used to return nothing) and words after one are no longer taken for `sed`/`perl`/`tee` operands; `cmd |& tee f` is read; a `-`-led file after `sed … --` or `perl -i` is returned. So `route.sh` routes on the file the second command writes, and no longer on words that only follow a `&`.

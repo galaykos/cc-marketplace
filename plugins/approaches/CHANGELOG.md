@@ -3,6 +3,10 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.11.1 — 2026-10-03
+
+- Two instructions stop asking for comments the comment rule forbids. pattern-selection puts the why for keeping the simple version in the PR or commit message, with a one-line comment only where a reader would otherwise "fix" it back into the pattern (code-review's comment-discipline keep-case, when code-review is installed). approach-deliberation's explain-first strategy writes the README section, the public contract or the commit message first — never a docstring that restates the behaviour.
+
 ## 0.11.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_remind`, under `/config` (or `/plugin configure approaches`), each with today's default. The environment variable (`CC_REMIND`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.
