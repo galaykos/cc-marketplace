@@ -39,6 +39,14 @@ version in their `plugin.json`.
   the comments a diff adds; `density.sh`'s deny names call order; five places in approaches, design-kit and security stop asking
   for a comment the rule forbids. Only candor's dynamic token baseline moved (+22). The effect on what the model writes is
   unmeasured.
+- **code-review 0.29.0 — the comment hook reads leaders per language, stops refusing code it misread, runs in one pass, warns
+  on six more shapes.** `//`, `/* */`, `#` and `-- ` count only where the file's language has them, and a `*`-led line only
+  inside a `/*` block, so shell `*)` arms, C pointer statements, Python's `**kwargs):` and example code in doc comments are no
+  longer refused. Written whole, 889 of 14,584 files from the author's repositories are refused instead of 1,376, and 501
+  of 1,992 system and standard-library files instead of 576, with no file newly refused in either. A write holding a run of 4,000
+  comments takes 0.25 s instead of 9.64 s. Padded tags, restating docstrings, commented-out markup, comment paragraphs, region
+  markers and authorship stamps warn and never deny; the deny categories and every message string are unchanged. code-review's
+  CHANGELOG has the tables and what is still missed; the effect on what the model writes is unmeasured.
 
 ## [0.119.0] - 2026-10-01
 

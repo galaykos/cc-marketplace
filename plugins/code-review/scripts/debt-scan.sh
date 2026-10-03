@@ -65,7 +65,7 @@ files() {
 }
 
 scan() { # extended-regex -> count
-  files | xargs -0 grep -cEh "$1" 2>/dev/null \
+  files | xargs -0 grep -caEh "$1" 2>/dev/null \
   | awk '{s+=$1} END {print s+0}'
 }
 

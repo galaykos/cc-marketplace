@@ -3,6 +3,58 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.29.0 — 2026-10-03
+
+- **`scan.sh` stops refusing code it read as a comment.** Its comment leaders were the same for every file type, so any line starting `*`, `#`, `//` or `-- ` was a comment: a shell `*)` case arm, C's `**pp = 0;`, `* sizeof(int));` or `#  endif`, Python's `**kwargs):` or `// count)`, and a Markdown `* item` in a heredoc were refused as commented-out code or as a restatement. A leader now counts only where the file's language has it (the README has the table), and a `*`-led line only inside a block opened by a line starting `/*`; the block closes at its `*/` and at the end of each `MultiEdit` edit and each heredoc. Allowed now: `*)`, `*.blade.php) key=blade ;;` and `*/.claude/worktrees/*/*)` in shell; `**pp = 0;`, `*++p = c;` and `* sizeof(int));` in C; `**pp = nil` in Go; `**r = 5;` in Rust; `**kwargs):` and `// count)` in Python; `* foo=bar` in a heredoc; `/*!40101 SET @A=@@B */;` in SQL; a `/* … */` or a `*/` followed by code on the same line. Still refused: `// const old = compute(counter);`, ` * const old = compute(x);` inside `/** */` with no `@example`, `# install curl` in a Dockerfile and `# build the app` in a Makefile. A comment is compared with the same line 0.28.0 compared it with.
+- **Example code in a doc comment is not commented-out code.** Inside `/** */` the lines after `@example` up to the next tag, the lines of a fenced code block in any doc comment, and Rust `///` / `//!` lines are judged neither as commented-out code nor as a restatement.
+- **Three refusals of docblock tags that carry a fact, removed.** A tag whose type the signature may not state (`@param list<User> $users`, `@param non-empty-string $name`, a class) is not dead. A typed tag that only repeats its name (`@param int $id`) is dead only when the signature below it types the parameter too; above `function f($id)` it is the one place the type is written. A bare `@return` or `@param` whose description wraps onto the next docblock line, the JDK's style, is not empty.
+- **A TODO with an owner, ticket or URL is left alone.** `TODO(ana):` now rescues a TODO the way a ticket or URL does, and a rescued TODO is not judged any further: `// TODO #1: sort todos by date` above the line it names was refused as a restatement. Dockerfile parser directives (`# syntax=`, `# escape=`, `# check=`) are exempt.
+- **Six new warnings, and no new refusal.** `PostToolUse` names twelve categories instead of six: `docblock tag padding (restates its name or type)`, `docstring restating the signature` (Python), `commented-out markup` (one-line `<!-- -->`, `{{-- --}}` and `{/* */}` in Vue, Svelte, PHP, Blade, JSX and TSX), `comment paragraph (one line is the budget)` (three or more `//` or `#` prose lines in a row), `section marker` (`//region`, `// MARK:`, `// Step 1:`) and `authorship stamp (git blame holds this)`. Lowercase `todo` / `fixme` at a comment's start join `bare TODO`; `updated:`, `new:` and `changed:` join change-narration. The deny lane refuses only the three categories it named before, every existing message string is unchanged, and the keep-cases and the `shortcut:` form stay silent. The README lists what each warning catches and spares.
+- **One pass instead of a re-scan per comment.** Each comment walked forward to its restatement target, so a run of comments cost the square of its length; one backward pass now finds every target, and each target line is tokenised once.
+- **`debt-scan.sh` counts a line holding a NUL byte once.** GNU grep, as on Linux, read a mid-line NUL as a line break and counted the line twice; every category now greps with `-a`, as the trigger-less `shortcut:` list already did. The five older rows are unchanged on every existing fixture, and `--age` reads git, not files.
+- **Unmeasured: whether any of this changes what the model writes.** No eval with a control arm covers it.
+
+### Measured on real code
+
+Each sampled file was written whole, as one `PreToolUse` `Write`, through 0.28.0's `scan.sh` and through this release's, on 2026-10-04.
+
+| sample | files | refused by 0.28.0 | refused now | allow → deny | deny → allow |
+|---|---|---|---|---|---|
+| the plugin author's repositories | 14,584 | 1,376 | 889 | **0** | 487 |
+| system and standard-library code | 1,992 | 576 | 501 | **0** | 75 |
+
+The author's repositories: 96 of them, at most 400 files each in a seeded random order (seed 1), counted only — no file was read by a person, so how many of the 487 were false refusals is unknown. Deny → allow by file type: PHP 425, JS/TS 50, Blade 6, shell 3, Dockerfiles and Makefiles 2, Vue/Svelte 1; CSS, Kotlin, Python and SQL unchanged.
+
+System code: the Python and Ruby standard libraries, the JDK sources and the macOS SDK's C headers (400 files each), Homebrew packages' C sources (253) and system shell scripts (139). Deny → allow: shell 41, C headers 19, C sources 8, Java 4, Python 3, Ruby 0. A reviewer read the 72 files the run before the last fixes freed: 66 were false refusals — shell `*)` and glob case arms (35 files), C `#  endif`-style directives (18), C dereference statements (5), wrapped doc tags (4), bullets in Python docstrings (3), a `/* */` followed by code (1) — and 6 were true refusals lost, all comments of a DTrace program held in a shell string. Across those 72 files 0.28.0 flagged 203 lines: 188 were misread code, 15 real comments. The final run, after the last fixes, freed 3 more Java files.
+
+Files drawing each new warning (a whole-file `Write` is the warning's worst case; an `Edit` is judged on the text it adds):
+
+| warning | author's repositories | system code |
+|---|---|---|
+| comment paragraph | 1,030 (7.1%) | 560 (28.1%): Python 186 of 400, Ruby 166 of 400, shell 50 of 139 |
+| docblock tag padding | 15 (0.1%) | 44 (2.2%): Java 41 of 400 |
+| docstring restating the signature | 0 | 13 (0.7%) |
+| commented-out markup | 21 (0.1%) | 0 (no markup file in the sample) |
+| section marker | 12 (0.1%) | 11 (0.6%) |
+| authorship stamp | 0 | 0 |
+| any warning, 0.28.0 → now | 1,590 → 1,919 | 897 → 1,076 |
+
+No run reached the hook's 15 s timeout in either release.
+
+### Cost
+
+| `PreToolUse` `Write` of a `.ts` file | verdict in both releases | 0.28.0 | 0.29.0 |
+|---|---|---|---|
+| 4,000 code lines, a run of 4,000 `//` comments, 4,000 code lines | refused: 1,500 restating, 500 banners, 500 bare TODOs | 9.64 s | 0.25 s |
+| 12,000 lines alternating a comment and the line it restates | refused: 6,000 restating | 0.54 s | 0.53 s |
+| one 200 kB line (`// ` and 200,000 `x`) | allowed | 0.11 s | 0.10 s |
+
+Wall clock of one `/bin/bash` hook run, median of 3 runs per release, on one macOS machine; 0.29.0 also adds one `comment paragraph` warning to the first row. Standing: these figures are **recorded**.
+
+### Still missed
+
+The README lists each: an `Edit` that starts inside a docblock; the comments of a program embedded in a heredoc or a shell string in a `.sh` file (the 6 lost refusals above); restatement in Rust `///` lines; the `*` lines of a block opened mid-line; MySQL `#` comments in `.sql`; multi-line markup comments; Ruby `=begin` blocks; a Python docstring that is not the first statement after a `def` or `class`; `.html`, `.erb`, `.twig` and `.astro` files, still judged by neither hook; a typed tag whose signature is not in the added text. `// new: set the total` above `total = 0` is now a change-narration warning, no longer a restatement refusal. A tag a linter requires (doclint, checkstyle, eslint-plugin-jsdoc, darglint) can draw the padding warning. Still refused as in 0.28.0: example code in a Javadoc `<pre>{@code …}`, a Doxygen `\code` block or a Go tab-indented doc example. Still warned as before: `# -*- coding: utf-8 -*-` as a `section banner`. BusyBox awk gives different output from the other awk builds on 5 test inputs.
+
 ## 0.28.0 — 2026-10-03
 
 - **A smell for names that hide what a unit does.** `code-smells` gains "Mysterious name": the body must be opened to learn what a symbol holds or does (`obj`, `info2`, `doStuff`); the fix is a rename, and when no truthful name exists, the unit does two jobs — split it, then name the halves. Standing: agent-graded, like the rest of the catalog. Where the host's built-in review runs the smell pass, the catalog only filters its findings, so this row adds none there.

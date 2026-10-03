@@ -40,13 +40,13 @@ expect "check with no baseline exits 3" 3 --dir "$FX" --baseline "$FX/none.json"
 
 expect "update-baseline succeeds" 0 --dir "$FX" --baseline "$FX/base.json" --update-baseline
 
-# all six categories must be present and non-zero for the seeded fixture
+# the seeded fixture holds exactly one marker per category
 for k in suppressions skipped_tests bare_markers deprecated_refs feature_flags shortcuts; do
   v=$(jq -r --arg k "$k" '.[$k] // "missing"' "$FX/base.json")
-  if [ "$v" != "missing" ] && [ "$v" -gt 0 ] 2>/dev/null; then
-    echo "PASS: category $k detected ($v)"
+  if [ "$v" = 1 ]; then
+    echo "PASS: category $k counted once ($v)"
   else
-    echo "FAIL: category $k not detected (got $v)"; rc=1
+    echo "FAIL: category $k — want 1, got $v"; rc=1
   fi
 done
 
@@ -133,6 +133,12 @@ out=$(bash "$SCAN" --dir "$ED" --baseline "$ED/b.json" 2>&1)
 is "no-trigger list keeps a path holding :12: whole" "$(printf '%s\n' "$out" | grep -c '/sub:12:dir/a.ts:1  shortcut: c$')" 1
 is "no-trigger list reads a file holding a NUL byte" "$(printf '%s\n' "$out" | grep -c '/nul.ts:1  shortcut: d$')" 1
 is "trigger check starts at the comment-led marker, not a string before it" "$(printf '%s\n' "$out" | grep -c '/str.ts:1  shortcut: e$')" 1
+is "shortcuts count includes the marker in a file holding a NUL byte" "$(shortcuts_in "$ED")" 3
+
+MN="$FX/midnul"; mkdir -p "$MN"
+printf '// shortcut: f\000 // shortcut: g\n' > "$MN/a.ts"
+# GNU grep splits a line at a NUL unless -a is given; BSD grep does not, so only CI catches a lost -a here.
+is "shortcuts count keeps a NUL mid-line as one line" "$(shortcuts_in "$MN")" 1
 
 LG="$FX/long"; mkdir -p "$LG"
 awk 'BEGIN { for (i = 0; i < 41; i++) { printf "// shortcut: "; for (j = 0; j < 130; j++) printf "x"; print "" } }' > "$LG/a.ts"

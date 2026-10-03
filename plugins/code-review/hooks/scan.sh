@@ -396,7 +396,8 @@ cc_bash_write_chunks() {
 
   [ -n "$added" ] || return 1
 
-  raw=$(printf '%s\n' "$added" | awk '
+  cd_lang "$fp"
+  raw=$(printf '%s\n' "$added" | awk -v lang="${cd_lang_key:-}" '
   function add_tok(set, w,   x) {
     if (w == "") return
     x = tolower(w)
@@ -460,7 +461,26 @@ cc_bash_write_chunks() {
     if (l ~ /[<>]/) { add_tok(set, "compare"); add_tok(set, "greater"); add_tok(set, "less"); add_tok(set, "than"); add_tok(set, "exceeds") }
     if (l ~ /(\?\?|\|\|)/) { add_tok(set, "default"); add_tok(set, "fallback") }
   }
-  function cbody(l,   s) {
+  # Outside a block opened by a line starting /*, a *-led line is C, a shell case arm or a Markdown list.
+  function cbody(l,   s, was, k) {
+    s = l
+    sub(/^[ \t]+/, "", s)
+    was = blk; indoc = blk && dblk; dl = 0; opened = 0; cl = 0
+    if (blk && (k = index(s, "*/"))) { blk = 0; if (substr(s, k + 2) ~ /[^ \t\r]/) { cl = 1; return "" } }
+    if (s ~ /^#!/) return ""
+    if (LS && s ~ /^\/\//)  { dl = (s ~ /^\/\/[\/!]/ && s !~ /^\/\/\/\//); sub(/^\/\/+[ \t]*/, "", s); return s }
+    if (LB && s ~ /^\/\*/ && !(lang == "sql" && s ~ /^\/\*[+!]/)) {
+      if (!was && (k = index(substr(s, 3), "*/")) && substr(s, k + 4) ~ /[^ \t\r]/) return ""
+      if (!was) { blk = !k; dblk = (s ~ /^\/\*\*/ && s !~ /^\/\*\*\//); indoc = dblk; opened = 1 }
+      sub(/^\/\*+[ \t]*/, "", s); sub(/[ \t]*\*\/[ \t]*$/, "", s); return s
+    }
+    if (was && s ~ /^\*/ && s !~ /^\*[A-Za-z0-9_(]/) { sub(/^\*+[ \t]*/, "", s); sub(/[ \t]*\*\/[ \t]*$/, "", s); return s }
+    if (LH && (s ~ /^#[ \t]/ || s ~ /^##/)) { sub(/^#+[ \t]*/, "", s); return s }
+    if (LD && s ~ /^-- /)   { sub(/^--[ \t]*/, "", s); return s }
+    return ""
+  }
+  # The language-blind leaders of f55e7ab4: a line they read as a comment is never a restatement target.
+  function obody(l,   s) {
     s = l
     sub(/^[ \t]+/, "", s)
     if (s ~ /^#!/) return ""
@@ -477,6 +497,7 @@ cc_bash_write_chunks() {
     x = tolower(b)
     if (x ~ /spdx|copyright|all rights reserved|licensed under|license:|licence:/) return 1
     if (x ~ /eslint-|tslint|jshint|ts-expect-error|ts-ignore|@ts-|type: *ignore|noqa|phpcs:|phpstan-|psalm-|prettier-ignore|biome-ignore|stylelint-|pylint:|rubocop:|nolint|golangci|istanbul ignore|c8 ignore|codecoverageignore|shellcheck|coverage:/) return 1
+    if (lang == "dockerfile" && x ~ /^(syntax|escape|check)=/) return 1
     return 0
   }
   function is_banner(b,   c) {
@@ -504,6 +525,7 @@ cc_bash_write_chunks() {
     if (b ~ /#[0-9]/ || b ~ /[A-Z][A-Z0-9]+-[0-9]/ || b ~ /https?:\/\//) return 0
     x = tolower(b)
     if (x ~ /^now that /) return 0
+    if (x ~ /^(updated|new|changed):/) return 1
     if (x ~ /^(now|it now|this now|we now) /) return 1
     if (x ~ /(^| )now (correctly|properly) /) return 1
     if (x ~ /^(this|the) (fix|change|update|patch|refactor) (is|was|also|now|makes|ensures|addresses|fixes|resolves|prevents|handles|corrects|improves|adds|removes) /) return 1
@@ -517,25 +539,58 @@ cc_bash_write_chunks() {
     if (x ~ /used to (be|return|use)/) return 1
     return 0
   }
+  # -1: an owner in the leading marker is the keep-case form, so the rest of the line is not judged.
   function is_bare_todo(b) {
-    if (b !~ /TODO|FIXME|XXX|HACK/) return 0
-    if (b ~ /#[0-9]/) return 0
-    if (b ~ /[A-Z][A-Z0-9]+-[0-9]/) return 0
-    if (b ~ /https?:\/\//) return 0
+    if (b ~ /^(TODO|FIXME|XXX|HACK|todo|fixme)\([^()]*[A-Za-z][^()]*\)/) return -1
+    if (b !~ /TODO|FIXME|XXX|HACK/ && b !~ /^(todo|fixme)([: ]|$)/) return 0
+    if (b ~ /#[0-9]/) return -1
+    if (b ~ /[A-Z][A-Z0-9]+-[0-9]/) return -1
+    if (b ~ /https?:\/\//) return -1
     return 1
   }
-  function is_dead_tag(b,   t, n, arr, i, name, desc, seen, d) {
+  function is_marker(b, l) { return (l ~ /^[ \t]*\/\/([ \t]*#)?region([ \t]|$)/ || b ~ /^MARK:|^[Ss]tep[ \t]+[0-9]+:/) }
+  # A stamp names a person: `Deprecated 2024-01-01` and `Since 2024-01-01` name an event.
+  function is_stamp(b,   n, w, k) {
+    if (tolower(b) ~ ("^modified by [^ \t].*" DATE)) return 1
+    if (b !~ ("^[A-Za-z][A-Za-z.-]*([ \t]+[A-Za-z][A-Za-z.-]*)?,?[ \t]+" DATE "[ \t]*$")) return 0
+    n = split(tolower(b), w, /[ \t,]+/)
+    for (k = 1; k <= n; k++) { sub(/[.-]+$/, "", w[k]); if (w[k] ~ /^[a-z]/ && w[k] !~ DATECUE) return 1 }
+    return 0
+  }
+  function mbody(s,   c, k) {
+    sub(/^[ \t]+/, "", s)
+    if (MH && substr(s, 1, 4) == "<!--") c = "-->"
+    else if (lang == "blade" && substr(s, 1, 4) == "{{--") c = "--}}"
+    else if (MJ && substr(s, 1, 3) == "{/*") c = "*/"
+    else return ""
+    s = substr(s, (c == "*/") ? 4 : 5)
+    if (!(k = index(s, c))) return ""
+    s = substr(s, 1, k - 1); sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s)
+    return s
+  }
+  # Block grammar, conditional comments and template directives are read by a machine, not a person.
+  function is_markup(b) {
+    if (exempt(b) || b ~ /^\/?wp:|^\[if |<!\[endif\]|^#include|svelte-ignore|^\/?ko([ \t]|$)|@vite/) return 0
+    return (b ~ /^<\/?[A-Za-z]/ || is_code(b))
+  }
+  function is_dead_tag(b, li,   t, n, arr, i, name, desc, seen, d, ty, tl, dead) {
     if (b ~ /^@returns?[ \t]+void[ \t.]*$/) return 1
-    if (b ~ /^@returns?[ \t]*$/) return 1
+    if (b ~ /^@returns?[ \t]*$/) return !cont(li, "")
     if (b ~ /^:param[ \t]/) { t = b; sub(/^:param[ \t]+/, "", t); sub(/:/, " ", t) }
     else if (b ~ /^@param[ \t]/) { t = b; sub(/^@param[ \t]+/, "", t) }
     else return 0
     n = split(t, arr, /[ \t]+/)
-    name = ""
-    for (i = 1; i <= n && i <= 2; i++) if (arr[i] ~ /^\$/) { name = substr(arr[i], 2); break }
-    if (name == "" && n >= 2 && arr[1] ~ /^[A-Za-z_|\\{<]/ && arr[2] ~ /^[A-Za-z_]/) name = arr[2]
+    name = ""; ty = 0; tl = (arr[1] ~ /[<{|?-]|\[/ || index(arr[1], "\\") > 0)
+    for (i = 1; i <= n && i <= 2; i++) if (arr[i] ~ /^\$/) { name = substr(arr[i], 2); ty = (i == 2); break }
+    if (name == "" && n >= 2 && arr[1] ~ /^[A-Za-z_|\\{<]/ && arr[2] ~ /^[A-Za-z_]/) {
+      # Two plain words are a name and its one-word description: `@param value Value.`.
+      if (n == 2 && !tl) name = arr[1]
+      else { name = arr[2]; ty = 1 }
+    }
     if (name == "" && n == 1) name = arr[1]
     if (name == "") return 0
+    # A type the signature may not state (list<User>, non-empty-string, a class) is a fact, so the tag is not dead.
+    if (ty && (arr[2] ~ /^\$/ || tl) && arr[1] !~ /^(int|float|string|bool|array|object|mixed|void|null|callable|iterable|self|static|number|boolean|any|unknown|never)$/) return 0
     seen = 0; desc = ""
     for (i = 1; i <= n; i++) {
       if (!seen && (arr[i] == name || arr[i] == ("$" name))) { seen = 1; continue }
@@ -546,16 +601,16 @@ cc_bash_write_chunks() {
     gsub(/[.,:]/, "", d)
     gsub(/^[ \t]+|[ \t]+$/, "", d)
     sub(/^(the|a|an)[ \t]+/, "", d)
-    if (d == "") return 1
-    gsub(/[ \t]/, "", d)
-    return (d == tolower(name))
+    # A JDK tag wraps its description onto the next block line.
+    if (d == "") dead = !cont(li, "")
+    else { gsub(/[ \t]/, "", d); dead = (d == tolower(name)) }
+    # A typed tag is the only place the type is stated unless the signature below types the parameter too.
+    return dead && (!ty || typed(NC[li], name))
   }
   # Every content word of the comment must already be recoverable from the code line.
   # Requiring ALL of them, not a ratio, is what keeps this warning credible.
-  function restates(b, code,   set, n, arr, i, w, ct, sing) {
-    split("", set)
-    code_tokens(code, set)
-    op_tokens(code, set)
+  function restates(b, j,   n, arr, i, w, ct, sing) {
+    if (j != CJ) { split("", CS); code_tokens(L[j], CS); op_tokens(L[j], CS); CJ = j }
     n = split(b, arr, /[^A-Za-z0-9_]+/)
     ct = 0
     for (i = 1; i <= n; i++) {
@@ -563,31 +618,273 @@ cc_bash_write_chunks() {
       if (w == "" || length(w) < 2) continue
       if (w in SW) continue
       ct++
-      if (w in set) continue
+      if (w in CS) continue
       sing = (length(w) > 3 && substr(w, length(w)) == "s") ? substr(w, 1, length(w) - 1) : ""
-      if (sing != "" && (sing in set)) continue
+      if (sing != "" && (sing in CS)) continue
       return 0
     }
     return (ct > 0)
   }
+  function covered(d, set,   n, arr, i, w, ct, sing) {
+    n = split(d, arr, /[^A-Za-z0-9_]+/)
+    ct = 0
+    for (i = 1; i <= n; i++) {
+      w = tolower(arr[i])
+      if (w == "" || length(w) < 2 || (w in SW)) continue
+      ct++
+      sing = (length(w) > 3 && substr(w, length(w)) == "s") ? substr(w, 1, length(w) - 1) : ""
+      if (!(w in set) && !(sing != "" && (sing in set))) return 0
+    }
+    return (ct > 0)
+  }
+  function padded(d, set) {
+    sub(/^[ \t]*[-:][ \t]*/, "", d)
+    if (d ~ /[0-9]/ || tolower(d) ~ FACT) return 0
+    return covered(d, set)
+  }
+  function cont(i, kind) {
+    if (kind != "") return ((i + 1) in DX) && DX[i + 1] && DI[i + 1] > DI[i]
+    return OPEN[i] && B[i + 1] != "" && B[i + 1] != "/" && B[i + 1] !~ /^@/
+  }
+  # Every @return and typed tag above one long line asks for its signature, so each line is parsed once.
+  function sig_of(c) {
+    if (!(c in SV)) { SV[c] = sig_parse(c); SF[c] = FN; SR[c] = RT; SP[c] = PA }
+    FN = SF[c]; RT = SR[c]; PA = SP[c]
+    return SV[c]
+  }
+  # A signature whose parentheses are still open reads on: at most 50 lines and 4,000 bytes, and never into a comment, so each line is read for one signature.
+  function sig_parse(c,   l, pre, s, i, ch, d, e) {
+    FN = RT = PA = ""; l = L[c]
+    if (!match(l, /[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/)) return 0
+    FN = substr(l, RSTART, RLENGTH); sub(/[ \t]*\($/, "", FN)
+    if (FN ~ /^(if|for|foreach|while|switch|catch|return|new|function|fn|func|fun|def|array|list|isset)$/) { FN = ""; return 0 }
+    pre = substr(l, 1, RSTART - 1); s = substr(l, RSTART + RLENGTH); d = 1; i = 1; e = 0
+    while (1) {
+      for (; i <= length(s) && d > 0; i++) { ch = substr(s, i, 1); if (ch == "(") d++; else if (ch == ")") d-- }
+      if (d <= 0 || e >= 50 || c + e >= T || length(s) > 4000 || B[c + e + 1] != "" || INB[c + e + 1]) break
+      e++; s = s " " L[c + e]
+    }
+    if (d > 0) { PA = s; return 1 }
+    PA = substr(s, 1, i - 2); s = substr(s, i)
+    if (match(s, /^[ \t]*(:|->)[ \t]*\??[A-Za-z_\\][A-Za-z0-9_\\]*/)) { RT = substr(s, RSTART, RLENGTH); sub(/^[ \t]*(:|->)[ \t]*/, "", RT) }
+    else if (match(pre, /[A-Za-z_][A-Za-z0-9_<>]*[ \t]+$/)) { RT = substr(pre, RSTART, RLENGTH); sub(/[ \t]+$/, "", RT) }
+    if (RT ~ /^(public|private|protected|static|final|abstract|async|function|fn|func|fun|def|override|virtual|internal|open|export|default|synchronized|const|inline|suspend)$/) RT = ""
+    return 1
+  }
+  # Typed: a type word stands before the parameter name, or a `:` type follows it.
+  function typed(c, nm) {
+    if (c > T || nm !~ /^[A-Za-z_][A-Za-z0-9_]*$/ || !sig_of(c)) return 0
+    if (!(c in TM)) type_map(c)
+    return ((c, nm) in TY) && TY[c, nm]
+  }
+  # Each tag above a signature asks about it, so it is read once, left to right; q: a word before the name is a type (a letter, not a bare modifier).
+  function type_map(c,   n, a, k, x, len, i, s, j, nm, pre, q) {
+    TM[c] = 1; n = split(PA, a, ",")
+    for (k = 1; k <= n; k++) {
+      x = a[k]; sub(/=.*$/, "", x); x = " " x " "; len = length(x); q = 0
+      for (i = 2; i <= len; i++) {
+        if (substr(x, i, 1) !~ /[A-Za-z0-9_]/) continue
+        for (s = i; substr(x, i, 1) ~ /[A-Za-z0-9_]/; i++) ;
+        nm = substr(x, s, i - s); pre = substr(x, s - 1, 1)
+        if (nm ~ /^[A-Za-z_]/ && !((c, nm) in TY) && (pre != "$" || substr(x, s - 2, 1) !~ /[A-Za-z0-9_$]/)) {
+          for (j = i; substr(x, j, 1) ~ /[ \t]/; j++) ;
+          if (substr(x, j, 1) == "?") for (j++; substr(x, j, 1) ~ /[ \t]/; j++) ;
+          TY[c, nm] = (q || substr(x, j, 1) == ":")
+        }
+        if (nm ~ /[A-Za-z_]/ && !(nm ~ /^(public|private|protected|readonly|final|var|val|const|mut|ref|out|in|params|this)$/ && pre ~ /[ \t.&*]/ && substr(x, i, 1) ~ /[ \t.&*]/)) q = 1
+      }
+    }
+  }
+  function pyparam(p, set) {
+    sub(/^[ \t*]+/, "", p)
+    if (match(p, /^[A-Za-z_][A-Za-z0-9_]*/)) { p = substr(p, 1, RLENGTH); add_tok(set, p); split_ident(p, set) }
+  }
+  function sig_tokens(h, set,   s, i, c, d, cur) {
+    if (!match(h, /(def|class)[ \t]+[A-Za-z_][A-Za-z0-9_]*/)) return
+    s = substr(h, RSTART, RLENGTH)
+    if (s ~ /^class/) { sub(/^class[ \t]+/, "", s); add_tok(set, s); split_ident(s, set); return }
+    sub(/^def[ \t]+/, "", s); add_tok(set, s); split_ident(s, set)
+    s = substr(h, RSTART + RLENGTH); d = 0; cur = ""
+    for (i = 1; i <= length(s); i++) {
+      c = substr(s, i, 1)
+      if (c == "(" || c == "[" || c == "{") { if (++d == 1) continue }
+      else if (c == ")" || c == "]" || c == "}") { if (d == 1) pyparam(cur, set); if (--d <= 0) break; continue }
+      else if (d == 1 && c == ",") { pyparam(cur, set); cur = ""; continue }
+      if (d == 1) cur = cur c
+    }
+  }
+  # An operator in the summary (`self + other`, a grammar rule) says what the name cannot.
+  function sig_echo(i) { if (DB[i] ~ /[-+*%<>=&|^~;"]/ || index(DB[i], "/")) return 0; split("", PS); sig_tokens(DEFS[DG[i]], PS); return padded(DB[i], PS) }
+  # Warn-only. A tag is padding when its words come back from its own name and native type (or, for
+  # @return and @var, the declaration below it); a non-native type, a fact word or a continued line spares it.
+  function pads(b, i, kind,   x, w, n, k, j, nm, ty, c, s) {
+    if (JSF || cont(i, kind)) return 0
+    split("", PS); nm = ty = ""
+    if (b ~ /^@returns?([ \t]|$)/) {
+      c = NC[i]
+      if (c > T || !sig_of(c)) return 0
+      x = b; sub(/^@returns?[ \t]*/, "", x)
+      if (x ~ /^\{/) return 0
+      if (PHPF) { ty = x; sub(/[ \t].*$/, "", ty); x = substr(x, length(ty) + 1); if (tolower(ty) != tolower(RT)) return 0 }
+      add_tok(PS, FN); split_ident(FN, PS); add_tok(PS, RT); split_ident(RT, PS)
+      return padded(x, PS)
+    }
+    if (b ~ /^@var[ \t]/) {
+      c = NC[i]
+      for (j = i + 1; j < c; j++) if (L[j] ~ /^[ \t]*$/) return 0
+      if (c > T || !match(L[c], /^[ \t]*((public|protected|private|readonly|static|var)[ \t]+)+\??[A-Za-z_\\][A-Za-z0-9_\\]*[ \t]+\$[A-Za-z_][A-Za-z0-9_]*/)) return 0
+      s = substr(L[c], RSTART, RLENGTH); nm = s; sub(/^.*\$/, "", nm); sub(/[ \t]+\$[A-Za-z0-9_]*$/, "", s); sub(/^.*[ \t]/, "", s)
+      x = b; sub(/^@var[ \t]+/, "", x); ty = x; sub(/[ \t].*$/, "", ty); x = substr(x, length(ty) + 1)
+      if (index(x, "$") || tolower(ty) != tolower(s)) return 0
+      add_tok(PS, nm); split_ident(nm, PS); add_tok(PS, ty)
+      return padded(x, PS)
+    }
+    if (kind == "a") {
+      match(b, /^[A-Za-z_][A-Za-z0-9_]*/); nm = substr(b, 1, RLENGTH); x = substr(b, RLENGTH + 1)
+      if (match(x, /^[ \t]*\([^)]*\)/)) { ty = substr(x, 1, RLENGTH); x = substr(x, RLENGTH + 1); gsub(/^[ \t]*\(|\)$/, "", ty) }
+      x = substr(x, 2)
+    } else if (b ~ /^:param[ \t]/) {
+      x = b; sub(/^:param[ \t]+/, "", x)
+      if (!(k = index(x, ":"))) return 0
+      n = split(substr(x, 1, k - 1), w, /[ \t]+/); x = substr(x, k + 1)
+      if (n == 2) ty = w[1]; else if (n != 1) return 0
+      nm = w[n]
+    } else if (b ~ /^@param[ \t]/) {
+      x = b; sub(/^@param[ \t]+/, "", x)
+      n = split(x, w, /[ \t]+/); k = 1
+      for (j = 1; j <= n; j++) if (index(w[j], "$")) { k = j; break }
+      nm = w[k]; sub(/^\$/, "", nm)
+      for (j = 1; j < k; j++) ty = ty (j > 1 ? " " : "") w[j]
+      x = ""; for (j = k + 1; j <= n; j++) x = x " " w[j]
+      if (ty != "" && !typed(NC[i], nm)) return 0
+    } else return 0
+    if (nm !~ /^[A-Za-z_][A-Za-z0-9_]*$/ || ty != "" && ty !~ NATIVE) return 0
+    add_tok(PS, nm); split_ident(nm, PS); if (ty != "") add_tok(PS, ty)
+    return padded(x, PS)
+  }
+  # py_scan and the header rule in py_line copy cd_classify in hooks/paths.sh: its awk is not reachable from here.
+  function py_scan(t, open_quote,   i, n, c, inner) {
+    comment_at = 0; n = length(t)
+    for (i = 1; i <= n; i++) {
+      c = substr(t, i, 1)
+      if (open_quote != "") { if (substr(t, i, 3) == open_quote) { open_quote = ""; i += 2 } }
+      else if (c == "#") { comment_at = i; break }
+      else if (c == "\"" || c == "\047") {
+        if (substr(t, i, 3) == c c c) { open_quote = c c c; i += 2 }
+        else for (i++; i <= n && (inner = substr(t, i, 1)) != c; i++) if (inner == "\\") i++
+      }
+    }
+    return open_quote
+  }
+  # Only the docstring that is the first statement after a def or class header is read.
+  function py_line(t,   x, at, q, k, ind, colon) {
+    x = t; sub(/^[ \t]+/, "", x); ind = length(t) - length(x); sub(/[ \t\r]+$/, "", x)
+    if (pq != "") {
+      if ((k = index(x, pq))) { x = substr(x, 1, k - 1); sub(/[ \t]+$/, "", x); pq = "" }
+      DX[T] = (x != ""); DI[T] = ind
+      if (pend) { if (x == "") DS[pend] = "s"; pend = 0 }
+      if (x ~ /^(Args|Arguments):$/) { pargs = ind; pent = -1 }
+      else {
+        if (pargs >= 0 && (x == "" || ind <= pargs)) pargs = -1
+        if (pargs >= 0 && (pent < 0 || ind == pent) && x ~ /^[A-Za-z_][A-Za-z0-9_]*([ \t]*\([^)]*\))?:([ \t]|$)/) { DS[T] = "a"; DB[T] = x; pent = ind }
+        else if (x ~ /^:param[ \t]/) { DS[T] = "p"; DB[T] = x }
+      }
+      if (pq == "") pargs = -1
+      return
+    }
+    if (x == "") return
+    if (ps != "") { if (index(x, ps)) ps = py_scan(x, ps); return }
+    if (x ~ /^#/) return
+    if (!pyh && pya && x ~ /^[rRuU]?("""|\047\047\047)/) {
+      at = (x ~ /^[rRuU]/) ? 2 : 1; q = substr(x, at, 3); x = substr(x, at + 3); pya = 0
+      if ((k = index(x, q))) x = substr(x, 1, k - 1); else pq = q
+      sub(/^[ \t]+/, "", x); sub(/[ \t]+$/, "", x)
+      if (x != "") { DB[T] = x; DG[T] = nd; if (k) DS[T] = "s"; else pend = T }
+      return
+    }
+    pya = 0
+    if (index(x, "\"\"\"") || index(x, "\047\047\047")) ps = py_scan(x, "")
+    if (ps != "") { pyh = 0; return }
+    if (!pyh && x ~ /^(async[ \t]+def|def|class)[ \t]/) { pyh = 1; pyd = 0; hdr = "" }
+    if (!pyh) return
+    if (index(x, "#")) { py_scan(x, ""); if (comment_at) x = substr(x, 1, comment_at - 1) }
+    sub(/[ \t]+$/, "", x); hdr = hdr " " x; colon = (substr(x, length(x)) == ":")
+    pyd += gsub(/\(/, "", x) + gsub(/\[/, "", x) + gsub(/\{/, "", x) - gsub(/\)/, "", x) - gsub(/\]/, "", x) - gsub(/\}/, "", x)
+    if (pyd <= 0) { pyh = 0; pya = colon; if (colon) DEFS[++nd] = hdr }
+  }
   BEGIN {
     split("the a an to to of for and or is are was were be being been this that these those it its we you i they he she then now here there in on on at by with from as into each all any some if so do does did not no our your their and but when while where which who what how new old up down out off over under again very can will would should could may might must has have had", swl, " ")
     for (i in swl) SW[swl[i]] = 1
-    split("restating the next line|section banner|commented-out code|bare TODO|docblock tag repeating the signature|change-narration (describes the edit, not the code)", CATS, "|")
+    split("restating the next line|section banner|commented-out code|bare TODO|docblock tag repeating the signature|change-narration (describes the edit, not the code)|docblock tag padding (restates its name or type)|docstring restating the signature|commented-out markup|comment paragraph (one line is the budget)|section marker|authorship stamp (git blame holds this)", CATS, "|")
+    DATECUE = "^(since|until|till|before|after|from|through|between|starting|deprecated|expires?|expired|expiry|expiration|valid|effective|released?|added|removed|updated|created|modified|changed|fixed|last|due|deadline|sunset|eol|ends?|starts?|date|dated|today|version|revision|rev|build|built|introduced|scheduled|planned|retired|available|published|generated|tested|verified|checked|reviewed|accessed|retrieved|snapshot|cutoff|as|of|on|at|in|to|the)$"
+    # JSDoc types are the only types a .js file has, so its tags are never padding.
+    JSF = (lang ~ /^(js|mjs|cjs|jsx)$/); PHPF = (lang == "php" || lang == "blade"); pargs = -1
+    MH = (lang ~ /^(vue|svelte|blade|php)$/); MJ = (lang ~ /^(jsx|tsx)$/)
+    DATE = "[0-9][0-9][0-9][0-9][-/][0-9][0-9]?[-/][0-9][0-9]?"
+    NATIVE = "^(int|integer|string|str|bool|boolean|float|double|array|object|mixed|void|null|self|static|callable|iterable|never|true|false|number|any|unknown|bytes|list|dict|tuple|set)$"
+    FACT = "(^|[^a-z])(null|none|nil|no|not|only|unless|until|when|if|must|may|default|defaults|optional|otherwise|fallback|throws?|thrown|raises?|exceptions?|errors?|example|e\\.g|i\\.e|ms|milliseconds?|seconds?|secs?|minutes?|hours?|days?|bytes?|kb|mb|gb|percent|pixels?|px|utc|caller|owns|owned|ownership|borrowed|lifetime|ttl|expires?|range|min|max|minimum|maximum|between|least|most|positive|negative|inclusive|exclusive|empty|this|new|old|same|fresh|copy)([^a-z]|$)"
+    # A leader the language lacks is code there: `// count)` in Python, `# Usage` in a template literal.
+    lead = "sbhd"; split("sb sbh b bd d h", FL, " ")
+    nr = split("js jsx ts tsx mjs cjs vue svelte blade go rs java kt kts swift scala dart groovy c h cpp hpp cc cs m mm scss less|php tf|css|sql|lua|py rb sh bash zsh pl r jl ex exs graphql dockerfile make", ROW, "|")
+    for (r = 1; r <= nr; r++) { nk = split(ROW[r], KEY, " "); for (k = 1; k <= nk; k++) if (KEY[k] == lang) lead = FL[r] }
+    LS = index(lead, "s"); LB = index(lead, "b"); LH = index(lead, "h"); LD = index(lead, "d")
   }
-  { L[++T] = $0 }
+  $0 == "\037" { blk = fence = exm = pyh = pya = pend = 0; pq = ps = ""; pargs = -1; next }
+  {
+    wb = blk; L[++T] = $0; B[T] = b = cbody($0); OB[T] = (b != "" ? b : obody($0)); DOC[T] = indoc; OPEN[T] = blk; INB[T] = (wb || opened) && !cl
+    if ((MH || MJ) && b == "" && (mk = mbody($0)) != "") MK[T] = mk
+    t = $0; sub(/^[ \t]+/, "", t); sub(/\r$/, "", t); PK[T] = (LS && !dl && t ~ /^\/\//) || (LH && t ~ /^#([ \t#]|$)/)
+    if (lang == "py") py_line($0)
+    # Example code in a doc comment is not commented-out code.
+    if (opened) fence = exm = 0
+    if (indoc || dl) {
+      if (b ~ /^```/) { fence = !fence; EX[T] = 1 }
+      else if (fence) EX[T] = 1
+      else if (indoc && b ~ /^@/) EX[T] = exm = (b ~ /^@example/)
+      else if (indoc && exm) EX[T] = 1
+      if (dl && lang == "rs") EX[T] = 1
+    } else fence = exm = 0
+  }
   END {
+    # One backward pass: a forward re-scan per comment is quadratic in a run of comments.
+    nx = nc = T + 1
+    for (i = T; i >= 1; i--) {
+      N[i] = nx; NC[i] = nc
+      if (L[i] ~ /^[ \t]*$/) continue
+      if (OB[i] == "") nx = i
+      if (B[i] == "" && !INB[i]) nc = i
+    }
     for (i = 1; i <= T; i++) {
-      b = cbody(L[i])
+      if (i in DS) {
+        if (DS[i] == "s") { if (sig_echo(i)) { H[8]++; total++ } }
+        else if (pads(DB[i], i, DS[i])) { H[7]++; total++ }
+        continue
+      }
+      if ((i in MK) && is_markup(MK[i])) { H[9]++; total++; continue }
+      b = B[i]
       if (b == "" || exempt(b)) continue
       if (is_banner(b))       { H[2]++; total++; continue }
-      if (is_code(b))         { H[3]++; total++; continue }
-      if (is_bare_todo(b))    { H[4]++; total++; continue }
-      if (is_dead_tag(b))     { H[5]++; total++; continue }
+      if (!EX[i] && is_code(b)) { H[3]++; total++; continue }
+      if ((td = is_bare_todo(b)) > 0) { H[4]++; total++; continue }
+      if (td < 0) continue
+      if (is_dead_tag(b, i))  { H[5]++; total++; continue }
       if (is_narration(b))    { H[6]++; total++; continue }
-      j = i + 1
-      while (j <= T && (L[j] ~ /^[ \t]*$/ || cbody(L[j]) != "")) j++
-      if (j <= T && restates(b, L[j])) { H[1]++; total++ }
+      # A docblock tag names what the signature names; is_dead_tag and pads judge it.
+      if (!EX[i] && !(DOC[i] && b ~ /^@/) && N[i] <= T && restates(b, N[i])) { H[1]++; total++; continue }
+      if (is_marker(b, L[i])) { H[11]++; total++; continue }
+      if (is_stamp(b))        { H[12]++; total++; continue }
+      if (DOC[i] && pads(b, i, "")) { H[7]++; total++ }
+    }
+    # A licence, a Go doc comment and RDoc above a Ruby definition are documentation, not a paragraph.
+    for (i = 1; i <= T + 1; i++) {
+      if (i <= T && PK[i]) {
+        b = B[i]; sub(/\r$/, "", b)
+        if (tolower(b) ~ /copyright|spdx-|licen[sc]e|all rights reserved/) lic = 1
+        if (b ~ /[A-Za-z0-9]/ && b !~ /^@/ && tolower(b) !~ /^shortcut:/ && !exempt(b) && (EX[i] || !is_code(b))) pc++
+        continue
+      }
+      if (pc >= 3 && !lic && !(lang == "go" && L[i] ~ /[^ \t\r]/) && !(lang == "rb" && L[i] ~ /^[ \t]*((def|class|module)[ \t]|attr_)/)) { H[10]++; total++ }
+      pc = lic = 0
     }
     if (total == 0) exit 0
     # Line 1 is machine-read by the shell: how many findings are in the three
@@ -600,7 +897,7 @@ cc_bash_write_chunks() {
     # mid-task marker, and narration cues are phrase matches.
     printf "%d\n", (1 in H ? H[1] : 0) + (3 in H ? H[3] : 0) + (5 in H ? H[5] : 0)
     parts = ""
-    for (k = 1; k <= 6; k++) {
+    for (k = 1; k <= 12; k++) {
       if (!(k in H)) continue
       parts = parts (parts == "" ? "" : ", ") H[k] " " CATS[k]
     }
@@ -647,7 +944,7 @@ cc_bash_write_chunks() {
   [ "$blockable" -gt 0 ] || return 1
 
   # Generated output declares itself in its own header; its banners are deliberate.
-  printf '%s\n' "$added" | cd_generated && return 1
+  printf '%s\n' "$added" | awk '$0 != "\037"' | cd_generated && return 1
 
   # CONTEXT KEY, not session key. PostToolUse is the only hook channel that reaches
   # subagents at all, and a subagent shares its parent's session_id while getting its
@@ -752,10 +1049,11 @@ EOF_C
     done
   else
     fp=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
+    # A \037 line between edits: a /* left open in one edit must not reach the next.
     added=$(printf '%s' "$input" | jq -r '
       [ .tool_input.content    // empty,
         .tool_input.new_string // empty,
-        ( .tool_input.edits // [] | map(.new_string // empty) | join("\n") )
+        ( .tool_input.edits // [] | map(.new_string // empty) | join("\n\u001f\n") )
       ] | join("\n")' 2>/dev/null) || exit 0
     scan_judge "$fp" "$added" && emit ""
   fi

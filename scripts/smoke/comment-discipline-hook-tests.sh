@@ -759,6 +759,745 @@ if [ -z "$big_slow$big_loud" ]; then pass "retest: 100 command lines of 8,000 ch
 else fail "retest: 100 command lines of 8,000 characters plus a noisy heredoc return within 5 s, unjudged, both hooks, both events" "past 5 s:[$big_slow] spoke:[$big_loud]"; fi
 rm -rf "$RT" "$BW" "$BH"
 
+# ---- 10. comment recognition: code a language-blind leader read as a comment ----------
+# Every allow here was denied before leaders followed the file's language and a *-led line
+# needed an open /* block; the denies are the shapes that must stay judged.
+STATE_DIR="$(mktemp -d)"
+assert_allows "leaders: a shell case arm *) on its own line is code" lr1 /tmp/proj/lr1.sh 'case "$1" in
+  start) run ;;
+  *)
+    usage
+    ;;
+esac'
+assert_allows "leaders: /*) and *.blade.php) case arms are code" lr2 /tmp/proj/lr2.sh 'case "$f" in
+  /*) abs=1 ;;
+  *.blade.php) key=blade ;;
+esac'
+assert_allows "leaders: */.claude/worktrees/*/*) above an assignment is code" lr3 /tmp/proj/lr3.sh 'case "$p" in
+  */.claude/worktrees/*/*)
+    rel="${p#*/.claude/worktrees/*/}" ;;
+esac'
+assert_allows "leaders: C pointer writes **pp = 0; and *++p = c; are code" lr4 /tmp/proj/lr4.c 'void put(char **pp, char *p, char c) {
+  **pp = 0;
+  *++p = c;
+}'
+assert_allows "leaders: a * sizeof(int)); continuation line in C is code" lr5 /tmp/proj/lr5.c 'int *buf = malloc(n
+                 * sizeof(int));'
+assert_allows "leaders: **pp = nil in Go is code" lr6 /tmp/proj/lr6.go 'func reset(pp **[]int) {
+	**pp = nil
+}'
+assert_allows "leaders: **r = 5; in Rust is code" lr7 /tmp/proj/lr7.rs 'fn set(r: &mut &mut i32) {
+    **r = 5;
+}'
+assert_allows "leaders: a Python **kwargs): continuation is code" lr8 /tmp/proj/lr8.py 'class Child(Base):
+    def __init__(self, *args,
+                 **kwargs):
+        super().__init__(**kwargs)'
+assert_allows "leaders: a * foo=bar Markdown list in a shell heredoc is code" lr9 /tmp/proj/lr9.sh 'cat > NOTES.md <<EOF
+* foo=bar
+EOF'
+assert_allows "leaders: a MySQL /*!40101 … */ version comment is code" lr10 /tmp/proj/lr10.sql '/*!40101 SET @A=@@B */;
+SELECT 1;'
+assert_allows "leaders: a Python // floor-division continuation is code" lr11 /tmp/proj/lr11.py 'def pages(total, size):
+    full = (total
+            // size)
+    return full + (1 if total % size else 0)'
+assert_allows "leaders: a # Usage heading in a TS template literal is text" lr12 /tmp/proj/lr12.ts 'const help = `
+# Usage
+usage: deploy <env>
+`;'
+assert_allows "leaders: /* flag */ foo(); closes its comment and continues as code" lr13 /tmp/proj/lr13.js '/* flag */ foo();'
+assert_silent "leaders: /* flag */ foo(); draws no warning either" "$(envelope Write /tmp/proj/lr13.js '/* flag */ foo();')"
+assert_denies "leaders: a typed @param int \$id The ID inside /** */ is still denied" ld1 /tmp/proj/ld1.php '/**
+ * @param int $id The ID
+ */
+function find(int $id) {}'
+assert_denies "leaders: commented-out code inside /** */ with no @example is still denied" ld2 /tmp/proj/ld2.ts '/**
+ * const old = compute(x);
+ */
+export function compute(x: number) { return x * 2; }'
+assert_denies "leaders: // const old = compute(counter); is still denied" ld3 /tmp/proj/ld3.ts '// const old = compute(counter);
+const next = compute(counter + 1);'
+assert_allows "leaders: a # Features heading over * fast features in a .sh heredoc is allowed" ld4 /tmp/proj/ld4.sh 'cat > NOTES.md <<EOF
+# Features
+* fast features
+EOF'
+# The restatement target is still found with the language-blind leaders, so a line that became code is not a new target.
+assert_allows "target: # Usage over * usage: run it in a Python string" rt1 /tmp/proj/rt1.py 'HELP = """
+# Usage
+* usage: run it
+"""'
+assert_allows "target: # Options over * options are read from ENV in a Ruby heredoc" rt2 /tmp/proj/rt2.rb 'HELP = <<~TXT
+  # Options
+  * options are read from ENV
+TXT'
+assert_allows "target: # show help over a *) show_help ;; case arm" rt3 /tmp/proj/rt3.sh 'case "$1" in
+  # show help
+  *) show_help ;;
+esac'
+assert_allows "target: // buffer size over # define BUFFER_SIZE in C" rt4 /tmp/proj/rt4.c '// buffer size
+# define BUFFER_SIZE 4096'
+assert_allows "target: /* margin */ over a * { margin: 0; } rule" rt5 /tmp/proj/rt5.css '/* margin */
+* { margin: 0; }'
+assert_allows "target: # divide over a // 2) continuation in Python" rt6 /tmp/proj/rt6.py 'half = (total
+        # divide
+        // 2)'
+assert_allows "target: -- index over a /*+ INDEX(...) */ hint" rt7 /tmp/proj/rt7.sql '-- index
+/*+ INDEX(users idx_users_email) */'
+assert_denies "target: /* box sizing */ over a *, *::before rule is judged against box-sizing" rt8 /tmp/proj/rt8.css '/* box sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+}'
+assert_denies "examples: //// in Rust is a plain comment, so its code is judged" rt9 /tmp/proj/rt9.rs '//// let old = compute(x);
+let next = compute(x + 1);'
+assert_allows "exempt: Dockerfile parser directives syntax=, escape= and check=" rt10 /tmp/proj/Dockerfile '# syntax=docker/dockerfile:1
+# escape=`
+# check=skip=JSONArgsRecommended
+FROM alpine:3.20'
+assert_allows "target: a blank * line in a docblock still ends the restatement scan" lt1 /tmp/proj/lt1.ts '/**
+ * Get the user.
+ *
+ * @return User
+ */
+function getUser(): User {}'
+assert_denies "target: each comment is judged against its own next line" lt2 /tmp/proj/lt2.ts '// Sorted before hashing: the vendor compares digests, not sets.
+hash(sorted(items));
+// increment the counter
+counter++;'
+assert_allows "examples: JSDoc @example code is not commented-out code" le1 /tmp/proj/le1.ts '/**
+ * Adds without overflow checks.
+ * @example
+ * const x = add(1, 2);
+ * add(1, 2) // => 3
+ */
+export function add(a: number, b: number): number { return a + b; }'
+assert_allows "examples: code on the @example line itself is example code" le8 /tmp/proj/le8.ts '/**
+ * @example const x = add(1, 2);
+ */
+export const add = (a: number, b: number) => a + b;'
+assert_allows "examples: code in a fence inside a doc comment is not commented-out code" le2 /tmp/proj/le2.ts '/**
+ * Parses a duration such as 2s or 150ms.
+ * ```ts
+ * const ms = parse("2s");
+ * ```
+ */
+export function parse(s: string): number { return 0; }'
+assert_allows "examples: a Rust /// doc line is not commented-out code" le3 /tmp/proj/le3.rs '/// assert_eq!(add(1, 2), 3);
+pub fn add(a: i32, b: i32) -> i32 { a + b }'
+assert_allows "examples: code in a fence inside Swift /// doc lines is not commented-out code" le7 /tmp/proj/le7.swift '/// ```
+/// let x = add(1, 2)
+/// ```
+func add(_ a: Int, _ b: Int) -> Int { a + b }'
+assert_denies "examples: an @example ends with its docblock, so the next docblock is judged" le6 /tmp/proj/le6.ts '/**
+ * @example
+ * add(1, 2);
+ */
+/**
+ * const old = compute(x);
+ */
+export const add = (a: number, b: number) => a + b;'
+assert_denies "examples: a plain // const old = compute(x); after an @example block is denied" le4 /tmp/proj/le4.ts '/**
+ * @example
+ * const x = add(1, 2);
+ */
+// const old = compute(x);
+export const add = (a: number, b: number) => a + b;'
+assert_denies "examples: the next tag ends the example, so code after it is judged" le5 /tmp/proj/le5.ts '/**
+ * @example
+ * const x = add(1, 2);
+ * @deprecated
+ * const old = compute(x);
+ */
+export const add = (a: number, b: number) => a + b;'
+me_out="$(jq -cn --arg c "$STATE_DIR" --arg a '/* Cache the parsed header so the second lookup is free.' --arg b '**pp = 0;' \
+  '{hook_event_name: "PreToolUse", cwd: $c, session_id: "me1", tool_name: "MultiEdit",
+    tool_input: {file_path: "/tmp/proj/me1.c", edits: [{old_string: "x", new_string: $a}, {old_string: "y", new_string: $b}]}}' \
+  | "$BASH_BIN" "$HOOK" 2>/dev/null)"
+if [ -z "$me_out" ]; then pass "multiedit: a /* left open by one edit does not make the next edit's **pp = 0; a comment"
+else fail "multiedit: a /* left open by one edit does not make the next edit's **pp = 0; a comment" "wanted silence, got: $me_out"; fi
+me_out="$(jq -cn --arg c "$STATE_DIR" --arg a 'a = 1;
+b = 2;
+c = 3;
+d = 4;' --arg b '// @generated by tool
+// increment the counter
+counter++;' \
+  '{hook_event_name: "PreToolUse", cwd: $c, session_id: "me2", tool_name: "MultiEdit",
+    tool_input: {file_path: "/tmp/proj/me2.js", edits: [{old_string: "x", new_string: $a}, {old_string: "y", new_string: $b}]}}' \
+  | "$BASH_BIN" "$HOOK" 2>/dev/null)"
+if [ -z "$me_out" ]; then pass "multiedit: the edit boundary is not a line, so a generated marker on line 5 still exempts"
+else fail "multiedit: the edit boundary is not a line, so a generated marker on line 5 still exempts" "wanted silence, got: $me_out"; fi
+
+# Fixture (a) of the m22 timings: 4,000 contiguous comments cost a re-scan each before the single pass.
+FIX_A="$(awk 'BEGIN {
+  for (i = 0; i < 4000; i++) printf "const v%d = compute(%d);\n", i, i
+  for (i = 0; i < 4000; i++) {
+    k = i % 8
+    if (k == 6) print "// TODO: revisit"
+    else if (k == 7) print "// ===== HELPERS ====="
+    else if (k % 2) print "// Sequential, not Promise.all: the vendor rate-limits concurrent calls."
+    else print "// increment the retry counter for the upstream billing gateway client"
+  }
+  print "upstreamBillingGatewayClient.retryCounter++;"
+  for (i = 1; i < 4000; i++) printf "const w%d = compute(%d);\n", i, i
+}')"
+t0=$SECONDS
+fa_out="$(printf '%s' "$FIX_A" | jq -Rsc --arg c "$STATE_DIR" \
+  '{hook_event_name: "PreToolUse", cwd: $c, session_id: "fa", tool_name: "Write", tool_input: {file_path: "/tmp/proj/fa.ts", content: .}}' \
+  | "$BASH_BIN" "$HOOK" 2>/dev/null)"
+fa_s=$((SECONDS - t0))
+case "$(reason_of "$fa_out")" in
+  *"1500 restating the next line"*"500 section banner"*"500 bare TODO"*) fa_counts=1 ;;
+  *) fa_counts=0 ;;
+esac
+if [ "$fa_s" -le 5 ] && [ "$fa_counts" = 1 ]; then pass "large: 8,000 code and 4,000 contiguous comment lines are judged within 5 s, counts unchanged"
+else fail "large: 8,000 code and 4,000 contiguous comment lines are judged within 5 s, counts unchanged" "${fa_s}s, reason: $(reason_of "$fa_out" | cut -c1-200)"; fi
+rm -rf "$STATE_DIR"
+
+# ---- 11. padded tags and restating docstrings: a warning, never a deny ----------------
+STATE_DIR="$(mktemp -d)"
+PAD='docblock tag padding (restates its name or type)'
+DOCSTR='docstring restating the signature'
+RUN_PHP='function run($x) {}'
+docblock() { printf '/**\n * %s\n */\n%s' "$1" "$2"; }   # tag-line  code-line
+pad_fires() { # desc  session  path  text  category
+  assert_fires "padding: $1" "$(envelope Write "$3" "$4")" "$5"
+  assert_allows "padding: $1 — allowed on PreToolUse" "$2" "$3" "$4"
+}
+pad_silent() { assert_silent "padding: $1 is silent" "$(envelope Write "$2" "$3")"; }   # desc  path  text
+
+pad_fires "@param id the id" pd1 /tmp/proj/pd1.ts "$(docblock '@param id the id' 'export function load(id: string): void {}')" "$PAD"
+pad_fires "@param id - the id" pd2 /tmp/proj/pd2.ts "$(docblock '@param id - the id' 'export function load(id: string): void {}')" "$PAD"
+pad_fires "@param int \$userId The ID of the user" pd3 /tmp/proj/pd3.php "$(docblock '@param int $userId The ID of the user' 'function load(int $userId): void {}')" "$PAD"
+pad_fires "@return User the user above getUser(): User" pd4 /tmp/proj/pd4.php "$(docblock '@return User the user' 'function getUser(): User
+{
+    return $this->user;
+}')" "$PAD"
+pad_fires "@var string The table directly above a string property" pd5 /tmp/proj/pd5.php 'class Account
+{
+    /** @var string The table */
+    protected string $table = "accounts";
+}' "$PAD"
+pad_fires ":param user_id: user id in a docstring" pd6 /tmp/proj/pd6.py 'def get_user(user_id):
+    """Fetch the row for this key.
+
+    :param user_id: user id
+    """
+    return db.find(user_id)' "$PAD"
+pad_fires "a Google Args: entry user_id: User id." pd7 /tmp/proj/pd7.py 'def get_user(user_id):
+    """Fetch the row for this key.
+
+    Args:
+        user_id: User id.
+    """
+    return db.find(user_id)' "$PAD"
+pad_fires "\"\"\"Get the user.\"\"\" under def get_user(user_id):" pd8 /tmp/proj/pd8.py 'def get_user(user_id):
+    """Get the user."""
+    return db.find(user_id)' "$DOCSTR"
+pad_fires "a docstring under a decorator and a three-line header" pd9 /tmp/proj/pd9.py '@lru_cache
+def get_user(
+    user_id,
+):
+    """Get the user."""
+    return db.find(user_id)' "$DOCSTR"
+pad_fires "a summary line followed by a blank docstring line" pd10 /tmp/proj/pd10.py 'def get_user(user_id):
+    """Get the user.
+
+    Reads the replica; writes go through save_user.
+    """
+    return db.find(user_id)' "$DOCSTR"
+
+pad_silent "list<User> \$users List of users" /tmp/proj/ps1.php "$(docblock '@param list<User> $users List of users' "$RUN_PHP")"
+pad_silent "array<string, mixed> \$options The options array" /tmp/proj/ps2.php "$(docblock '@param array<string, mixed> $options The options array' "$RUN_PHP")"
+pad_silent "non-empty-string \$userId The ID of the user" /tmp/proj/ps3.php "$(docblock '@param non-empty-string $userId The ID of the user' "$RUN_PHP")"
+pad_silent "int|null \$limit Null for no limit" /tmp/proj/ps4.php "$(docblock '@param int|null $limit Null for no limit' "$RUN_PHP")"
+pad_silent "int \$n 0 or 1" /tmp/proj/ps5.php "$(docblock '@param int $n 0 or 1' "$RUN_PHP")"
+pad_silent "int \$timeout Timeout in milliseconds" /tmp/proj/ps6.php "$(docblock '@param int $timeout Timeout in milliseconds' "$RUN_PHP")"
+pad_silent "int \$level The level (1-5)" /tmp/proj/ps7.php "$(docblock '@param int $level The level (1-5)' "$RUN_PHP")"
+pad_silent "string \$name The name, if any" /tmp/proj/ps8.php "$(docblock '@param string $name The name, if any' "$RUN_PHP")"
+pad_silent "bool \$enabled On or off" /tmp/proj/ps9.php "$(docblock '@param bool $enabled On or off' "$RUN_PHP")"
+pad_silent "a description continued on the next line" /tmp/proj/ps10.php '/**
+ * @param int $userId The ID of the user,
+ *     or 0 for a guest.
+ */
+function load(int $userId): void {}'
+pad_silent "@return BelongsTo<Workspace, \$this>" /tmp/proj/ps11.php "$(docblock '@return BelongsTo<Workspace, $this>' 'public function workspace(): BelongsTo
+{
+    return $this->belongsTo(Workspace::class);
+}')"
+pad_silent "@return User|null the user above getUser(): ?User" /tmp/proj/ps12.php "$(docblock '@return User|null the user' 'function getUser(): ?User
+{
+    return $this->user;
+}')"
+pad_silent "a .js @param {string} opts.name - the name" /tmp/proj/ps13.js "$(docblock '@param {string} opts.name - the name' 'export function greet(opts) {}')"
+pad_silent "a .js @param {number} [opts.limit=10] - the limit" /tmp/proj/ps14.js "$(docblock '@param {number} [opts.limit=10] - the limit' 'export function page(opts) {}')"
+pad_silent "a .js untyped @param id the id" /tmp/proj/ps15.js "$(docblock '@param id the id' 'export function load(id) {}')"
+pad_silent "a dotted @param opts.userName - the name" /tmp/proj/ps16.ts "$(docblock '@param opts.userName - the name' 'export function greet(opts: Opts): void {}')"
+pad_silent "/** @var User \$user */ \$user = \$request->user();" /tmp/proj/ps17.php '/** @var User $user */ $user = $request->user();'
+pad_silent "/** @var string */ above an untyped protected \$table" /tmp/proj/ps18.php 'class User extends Model
+{
+    /** @var string */
+    protected $table = "users";
+}'
+pad_silent "/** @var positive-int */ above an int property" /tmp/proj/ps21.php 'class Job
+{
+    /** @var positive-int */
+    protected int $retries = 3;
+}'
+pad_silent "a summary that continues on the next line" /tmp/proj/ps22.py 'def get_user(user_id):
+    """Get the user
+    from the replica, never the primary.
+    """
+    return db.find(user_id)'
+pad_silent "a :param description continued on the next line" /tmp/proj/ps23.py 'def get_user(user_id):
+    """Fetch the row for this key.
+
+    :param user_id: user id,
+        or None for the caller.
+    """
+    return db.find(user_id)'
+pad_silent "a module docstring" /tmp/proj/ps19.py '"""Get the user."""
+def get_user(user_id):
+    return db.find(user_id)'
+pad_silent "a docstring that is not the first statement" /tmp/proj/ps20.py 'def get_user(user_id):
+    user = db.find(user_id)
+    """Get the user."""
+    return user'
+pad_silent "non-empty-string \$name The name" /tmp/proj/pl1.php "$(docblock '@param non-empty-string $name The name' "$RUN_PHP")"
+pad_silent "class-string<T> \$class The class" /tmp/proj/pl2.php "$(docblock '@param class-string<T> $class The class' "$RUN_PHP")"
+PL3='/**
+ * @param  name
+ *         the display name of the account
+ */
+public void rename(String name) {}'
+pad_silent "a JDK @param  name with its description on the next line" /tmp/proj/pl3.java "$PL3"
+assert_allows "padding: a JDK @param  name with its description on the next line — allowed on PreToolUse" pl3 /tmp/proj/pl3.java "$PL3"
+# A non-native type is a fact the signature may not state, so the tag rule leaves it alone.
+assert_allows "dead tag: @param list<User> \$users with no description is allowed" dt1 /tmp/proj/dt1.php "$(docblock '@param list<User> $users' 'function notify(array $users): void {}')"
+assert_allows "dead tag: @param non-empty-string \$name with no description is allowed" dt2 /tmp/proj/dt2.php "$(docblock '@param non-empty-string $name' 'function rename(string $name): void {}')"
+assert_denies "dead tag: @param int \$id with no description is still denied" dt3 /tmp/proj/dt3.php "$(docblock '@param int $id' 'function find(int $id): void {}')"
+assert_denies "dead tag: @return void is still denied" dt4 /tmp/proj/dt4.php "$(docblock '@return void' 'function flush(): void {}')"
+assert_allows "dead tag: a JDK @param  name whose description wraps onto the next line is allowed" dt5 /tmp/proj/dt5.java '/**
+ * @param  name
+ *         the display name of the account
+ */
+public void rename(String name) {}'
+assert_denies "dead tag: @param int \$id followed by another tag is still denied" dt6 /tmp/proj/dt6.php '/**
+ * @param int $id
+ * @throws NotFound when no row matches
+ */
+function find(int $id): void {}'
+rm -rf "$STATE_DIR"
+
+# ---- 12. markup, paragraph, marker, stamp and lowercase-todo cues: a warning, never a deny ----
+STATE_DIR="$(mktemp -d)"
+MARKUP='commented-out markup'
+PARA='comment paragraph (one line is the budget)'
+MARKER='section marker'
+STAMP='authorship stamp (git blame holds this)'
+cue_fires() { # desc  session  path  text  category
+  assert_fires "cue: $1" "$(envelope Write "$3" "$4")" "$5"
+  assert_allows "cue: $1 — allowed on PreToolUse" "$2" "$3" "$4"
+}
+cue_silent() { assert_silent "cue: $1 is silent" "$(envelope Write "$2" "$3")"; }   # desc  path  text
+WHY='// Sequential, not Promise.all: the vendor rate-limits concurrent calls.'
+QUOTA='// One request per id keeps the account under its quota.
+for (const id of ids) await fetchOne(id);'
+
+cue_fires "<!-- <Chart :data=\"d\" /> --> in .vue" cu1 /tmp/proj/cu1.vue '<template>
+  <!-- <Chart :data="d" /> -->
+  <Table :rows="rows" />
+</template>' "$MARKUP"
+cue_fires "{{-- <x-alert /> --}} in .blade.php" cu2 /tmp/proj/cu2.blade.php '{{-- <x-alert /> --}}
+<x-banner :message="$message" />' "$MARKUP"
+cue_fires "{/* <Card /> */} in .tsx" cu3 /tmp/proj/cu3.tsx 'export const Panel = () => (
+  <div>
+    {/* <Card /> */}
+    <List items={items} />
+  </div>
+);' "$MARKUP"
+cue_fires "{/* setOpen(true); */} in .tsx" cu4 /tmp/proj/cu4.tsx 'export const Panel = () => (
+  <div>
+    {/* setOpen(true); */}
+    <List items={items} />
+  </div>
+);' "$MARKUP"
+cue_fires "a three-line // why-paragraph in .ts" cu5 /tmp/proj/cu5.ts '// The vendor caps concurrent requests per account, and a burst past the cap
+// returns 429s that the client retries with a fixed delay, which stalls the queue
+// for every tenant sharing the key, so the calls run one at a time.
+for (const id of ids) await fetchOne(id);' "$PARA"
+cue_fires "// MARK: - Helpers in .swift" cu6 /tmp/proj/cu6.swift '// MARK: - Helpers
+private func clamp(_ v: Int) -> Int { max(0, v) }' "$MARKER"
+cue_fires "//region Helpers in .ts" cu7 /tmp/proj/cu7.ts '//region Helpers
+function clamp(v: number) { return Math.max(0, v); }' "$MARKER"
+cue_fires "// #region Helpers in .ts" cu8 /tmp/proj/cu8.ts '// #region Helpers
+function clamp(v: number) { return Math.max(0, v); }' "$MARKER"
+cue_fires "// Step 1: validate in .ts" cu9 /tmp/proj/cu9.ts '// Step 1: validate
+const parsed = schema.parse(input);' "$MARKER"
+cue_fires "// modified by A. 2024-03-11 in .ts" cu10 /tmp/proj/cu10.ts '// modified by A. 2024-03-11
+const limit = 10;' "$STAMP"
+cue_fires "// ivan 2024-03-11 in .ts" cu11 /tmp/proj/cu11.ts '// ivan 2024-03-11
+const limit = 10;' "$STAMP"
+cue_fires "// todo handle errors later in .ts" cu12 /tmp/proj/cu12.ts '// todo handle errors later
+const res = await fetch(url);' "bare TODO"
+cue_fires "// Updated: use the new client in .ts" cu13 /tmp/proj/cu13.ts '// Updated: use the new client
+const client = createClient();' "change-narration"
+
+cue_silent "<!-- wp:heading --> block grammar" /tmp/proj/cs1.php '<!-- wp:heading -->
+<h2>Pricing</h2>
+<!-- /wp:heading -->'
+cue_silent "an IE conditional comment holding a script tag" /tmp/proj/cs2.php '<!--[if lt IE 9]><script src="x.js"></script><![endif]-->
+<p>Hello</p>'
+cue_silent "<!-- prettier-ignore -->" /tmp/proj/cs3.vue '<template>
+  <!-- prettier-ignore -->
+  <div   class="a"  >x</div>
+</template>'
+cue_silent "<!-- svelte-ignore a11y-click-events-have-key-events -->" /tmp/proj/cs4.svelte '<!-- svelte-ignore a11y-click-events-have-key-events -->
+<div on:click={toggle}>x</div>'
+cue_silent "an MIT licence header as the first comment block" /tmp/proj/cs5.ts '// Copyright (c) 2026 Acme Corp
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software.
+export const VERSION = "1.0.0";'
+cue_silent "a licence header under a shebang" /tmp/proj/cs16.sh '#!/bin/bash
+# Copyright 2026 Acme Corp
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at the address in the LICENSE file.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS.
+set -eu'
+cue_silent "a four-line Rust //! crate doc" /tmp/proj/cs6.rs '//! Token bucket rate limiting for outbound HTTP calls.
+//! Buckets refill continuously rather than once per tick,
+//! so a burst after an idle period is bounded by the bucket
+//! size and never by the time that has elapsed.
+pub mod bucket;'
+cue_silent "a four-line Go doc comment above func Run()" /tmp/proj/cs7.go 'package worker
+
+// Run drains the queue until the context is cancelled. It returns the first
+// error a job reports and leaves the remaining jobs queued, so a caller that
+// retries resumes where this call stopped instead of replaying finished work.
+// Run is safe to call from one goroutine at a time only.
+func Run(ctx context.Context, q *Queue) error {
+	return nil
+}'
+cue_silent "a four-line JSDoc block" /tmp/proj/cs8.ts '/**
+ * Retries the request with exponential backoff, starting at 100 ms.
+ * Gives up after five attempts and rethrows the last error to the caller.
+ * The caller owns the abort signal and must cancel it on unmount.
+ */
+export async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  return fn();
+}'
+cue_silent "// TODO(ivan): drop after v2" /tmp/proj/cs9.ts '// TODO(ivan): drop after v2
+const legacy = true;'
+cue_silent "// render each todo item" /tmp/proj/cs10.ts '// render each todo item
+items.forEach(renderItem);'
+cue_silent "@param Todo \$todo The todo" /tmp/proj/cs11.php '/**
+ * @param Todo $todo The todo
+ */
+public function store(Todo $todo): void {}'
+cue_silent "a directive line inside a two-line why" /tmp/proj/cs12.ts "$WHY
+// eslint-disable-next-line no-await-in-loop
+$QUOTA"
+cue_silent "a tag line above a two-line why" /tmp/proj/cs13.ts '// @vitest-environment jsdom
+// The widget reads layout from the DOM, so it needs a browser-like environment
+// rather than the default node one, which has no window object at all.
+import { render } from "@testing-library/react";'
+cue_silent "an empty // line inside a two-line why" /tmp/proj/cs14.ts "$WHY
+//
+$QUOTA"
+cue_silent "a shortcut: line inside a two-line why" /tmp/proj/cs15.ts "$WHY
+// shortcut: one global queue; revisit when tenants need isolation
+$QUOTA"
+rm -rf "$STATE_DIR"
+
+# ---- 13. what the adversarial review of 11 and 12 found: false refusals, noise, a stall ----
+STATE_DIR="$(mktemp -d)"
+JSET='public void set(int value) {}'
+assert_denies "dead tag: an untyped @param value Value. is denied" fx1 /tmp/proj/fx1.java "$(docblock '@param value Value.' "$JSET")"
+assert_allows "dead tag: an untyped @param value ignored is allowed" fx2 /tmp/proj/fx2.java "$(docblock '@param value ignored' "$JSET")"
+# The tag is the only place the type is stated when the signature leaves the parameter untyped.
+assert_allows "dead tag: @param  string  \$driver above an untyped callCustomCreator(\$driver) is allowed" fx3 /tmp/proj/fx3.php "$(docblock '@param  string  $driver' 'protected function callCustomCreator($driver) {}')"
+assert_allows "dead tag: @param string \$driver with no signature in the added text is allowed" fx4 /tmp/proj/fx4.php '/**
+ * @param string $driver
+ */'
+assert_denies "dead tag: @param string \$driver above f(string \$driver) is still denied" fx5 /tmp/proj/fx5.php "$(docblock '@param string $driver' 'function f(string $driver) {}')"
+assert_allows "dead tag: a bare @return whose description wraps onto the next line is allowed" fx6 /tmp/proj/fx6.java '/**
+ * @return
+ *         the display name of the account
+ */
+public String displayName() {}'
+assert_denies "dead tag: a bare @return followed by */ is still denied" fx7 /tmp/proj/fx7.java "$(docblock '@return' 'public String displayName() {}')"
+CLOSE='/* the base value, before the discount applies
+ */ const b = compute(a);'
+assert_allows "leaders: */ const b = compute(a); closes its block and continues as code" fx8 /tmp/proj/fx8.ts "$CLOSE"
+assert_silent "leaders: */ const b = compute(a); draws no warning either" "$(envelope Write /tmp/proj/fx8.ts "$CLOSE")"
+assert_denies "leaders: code before the */ that closes a block is still denied" fx9 /tmp/proj/fx9.ts '/*
+ * const old = compute(x); */
+export const y = 1;'
+pad_silent "@return this builder" /tmp/proj/fx10.java "$(docblock '@return this builder' 'public Builder withName(String name) {}')"
+pad_silent "@return This matcher" /tmp/proj/fx11.java "$(docblock '@return This matcher' 'public Matcher matcher(CharSequence input) {}')"
+pad_silent "@return the new stream" /tmp/proj/fx12.java "$(docblock '@return the new stream' 'public Stream<T> stream() {}')"
+pad_silent "@return a new list" /tmp/proj/fx13.java "$(docblock '@return a new list' 'public static List<String> newList() {}')"
+assert_silent "docstring: \"\"\"self + other\"\"\" under def __add__ is silent" "$(envelope Write /tmp/proj/fx14.py 'class V:
+    def __add__(self, other):
+        """self + other"""
+        return V()')"
+assert_silent "docstring: \"\"\"base ** self\"\"\" under def __rpow__ is silent" "$(envelope Write /tmp/proj/fx15.py 'class V:
+    def __rpow__(self, base):
+        """base ** self"""
+        return V()')"
+assert_silent "docstring: \"\"\"~self\"\"\" under def __invert__ is silent" "$(envelope Write /tmp/proj/fx16.py 'class V:
+    def __invert__(self):
+        """~self"""
+        return V()')"
+assert_silent "docstring: a grammar rule \"\"\"stmt : stmt ;\"\"\" is silent" "$(envelope Write /tmp/proj/fx17.py 'def p_stmt(p):
+    """stmt : stmt ;"""
+    p[0] = p[1]')"
+pad_silent "a more-indented word: line inside an Args: entry" /tmp/proj/fx18.py 'def read(mode, path):
+    """Read a file in one of two modes.
+
+    Args:
+        mode: One of the modes below.
+            fast: Fast.
+        path: Where the bytes come from.
+    """
+    return open(path)'
+pad_fires "a second Args: entry at the first entry's indent" fx19 /tmp/proj/fx19.py 'def read(path, mode):
+    """Read a file in one of two modes.
+
+    Args:
+        path: Where the bytes come from.
+        mode: Mode.
+    """
+    return open(path)' "$PAD"
+pad_silent "/** @var string */ with no description above a string property" /tmp/proj/fx20.php 'class Account
+{
+    /** @var string */
+    protected string $table = "accounts";
+}'
+pad_silent "@param int \$userId The ID of the user above an untyped load(\$userId)" /tmp/proj/fx21.php "$(docblock '@param int $userId The ID of the user' 'function load($userId): void {}')"
+RET_FX="$(awk 'BEGIN { print "/**"; for (i = 0; i < 4000; i++) print " * @returns the value"; print " */"
+  printf "export const table = build("; for (i = 0; i < 10000; i++) printf "a, "; print "z);"
+  print "// increment the counter"; print "counter++;" }')"
+t0=$SECONDS
+rt_out="$(printf '%s' "$RET_FX" | jq -Rsc --arg c "$STATE_DIR" \
+  '{hook_event_name: "PreToolUse", cwd: $c, session_id: "rt", tool_name: "Write", tool_input: {file_path: "/tmp/proj/ret.ts", content: .}}' \
+  | "$BASH_BIN" "$HOOK" 2>/dev/null)"
+rt_s=$((SECONDS - t0))
+if [ "$rt_s" -le 5 ] && is_deny "$rt_out"; then pass "large: 4,000 @returns lines above one 30 kB line are judged within 5 s"
+else fail "large: 4,000 @returns lines above one 30 kB line are judged within 5 s" "${rt_s}s, output: $(printf '%s' "$rt_out" | cut -c1-200)"; fi
+rm -rf "$STATE_DIR"
+
+# ---- 14. what the second adversarial review found: a new false refusal, noise, a stall ----
+STATE_DIR="$(mktemp -d)"
+assert_allows "todo: TODO(api): above the line it names is allowed and silent" fy1 /tmp/proj/fy1.ts 'export function f(api: Api) {
+  // TODO(api): sort todos by date
+  const todos = api.todos.sort(byDate);
+  return todos;
+}'
+assert_allows "todo: a ticketed TODO #1: above the line it names is allowed" fy1t /tmp/proj/fy1t.ts 'export function f(api: Api) {
+  // TODO #1: sort todos by date
+  const todos = api.todos.sort(byDate);
+  return todos;
+}'
+assert_allows "todo: a TODO with a URL above the line it names is allowed" fy1u /tmp/proj/fy1u.ts '// TODO https://example.com/i/3 sort todos by date
+const todos = api.todos.sort(byDate);'
+assert_allows "todo: XXX(xxx): set xxx above xxx = 1; is allowed and silent" fy2 /tmp/proj/fy2.ts '// XXX(xxx): set xxx
+xxx = 1;'
+assert_fires "todo: // TODO handle errors still warns bare" "$(envelope Write /tmp/proj/fy3.ts '// TODO handle errors
+const res = await fetch(url);')" "bare TODO"
+assert_fires "todo: an owner after the leading marker does not rescue // TODO: remove todo(item)" "$(envelope Write /tmp/proj/fy4.ts '// TODO: remove todo(item)
+const items = [];')" "bare TODO"
+assert_allows "restating: a bare @return wrapped onto the next line above a one-line getter is allowed" fy5 /tmp/proj/fy5.java 'class T {
+    /**
+     * @return
+     *         the display name
+     */
+    public String getName() { return name; }
+}'
+assert_allows "restating: a bare @returns wrapped above a one-line get name() is allowed" fy6 /tmp/proj/fy6.ts 'class T {
+  /**
+   * @returns
+   *   the display name, never empty
+   */
+  get name(): string { return this._name; }
+}'
+assert_allows "restating: @return \$this above { return \$this; } is allowed" fy7 /tmp/proj/fy7.php '<?php
+class B {
+    /**
+     * @return $this
+     */
+    public function withX(): static { return $this; }
+}'
+assert_denies "restating: // get the name above getName() is still denied" fy8 /tmp/proj/fy8.java '// get the name
+public String getName() { return name; }'
+cue_silent "a Go doc comment above a var" /tmp/proj/fy9.go 'package store
+
+import "errors"
+
+// ErrNotFound is returned when a key is absent from the store.
+// Callers should treat it as a cache miss and fall through to the
+// backing database rather than surfacing it to the user.
+var ErrNotFound = errors.New("not found")'
+cue_silent "a Go doc comment above a struct field" /tmp/proj/fy10.go 'package store
+
+// Options configures a Store.
+type Options struct {
+	// TTL is how long an entry lives. Zero means entries never
+	// expire, which is only safe for bounded key spaces because
+	// nothing else evicts.
+	TTL time.Duration
+}'
+assert_fires "cue: a Go paragraph followed by a blank line still warns" "$(envelope Write /tmp/proj/fy11.go 'package store
+
+func f() {
+	// The vendor caps concurrent requests per account, and a burst past
+	// the cap returns 429s that the client retries with a fixed delay,
+	// which stalls the queue for every tenant sharing the key.
+
+	run()
+}')" "$PARA"
+cue_silent "a licence header after <?php" /tmp/proj/fy12.php '<?php
+
+// Copyright (c) 2026 Acme Corp
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights.
+
+namespace App;'
+cue_silent "a licence header after a module docstring" /tmp/proj/fy13.py '"""Token bucket helpers."""
+
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.
+import os'
+cue_silent "a licence header after a coding line and a blank" /tmp/proj/fy14.py '# coding: utf-8
+
+# Copyright 2026 Acme Corp
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# notice appears in all copies.
+import os'
+cue_silent "a licence header framed by #---" /tmp/proj/fy15.py '#---------------------------------------------------------------------
+# Licensed to PSF under a Contributor Agreement.
+# See the PSF website for licensing details.
+# This module carries no warranty of any kind, express or implied,
+# and is distributed in the hope that it will be useful.
+#---------------------------------------------------------------------
+import os'
+cue_silent "a CRLF licence header whose blank # lines end in CR" /tmp/proj/fy16.py "$(printf '# Copyright (c) 2020 Example\r\n#\r\n# Redistribution and use in source and binary forms, with or without\r\n# modification, are permitted provided that the following conditions\r\n# are met and the notice below is kept in every distributed copy.\r\nimport os\r\n')"
+assert_fires "cue: a why-paragraph after <?php still warns" "$(envelope Write /tmp/proj/fy30.php '<?php
+
+// The vendor caps concurrent requests per account, and a burst past the cap
+// returns 429s that the client retries with a fixed delay, which stalls the
+// queue for every tenant sharing the key, so the calls run one at a time.
+foreach ($ids as $id) { fetchOne($id); }')" "$PARA"
+cue_silent "RDoc above a Ruby def" /tmp/proj/fy17.rb 'class User
+  # Returns the full name of the user, joined with a single
+  # space and stripped of surrounding whitespace. Nil parts
+  # are skipped, so a user with no last name gets no trailing space.
+  def full_name
+    [first, last].compact.join(" ")
+  end
+end'
+cue_silent "YARD above a Ruby attr_reader" /tmp/proj/fy18.rb 'class Job
+  # The number of attempts left before the job is parked. It counts
+  # down on every failure and resets only when an operator requeues
+  # the job by hand, never on a deploy.
+  attr_reader :retries
+end'
+assert_fires "cue: a Ruby paragraph above a statement still warns" "$(envelope Write /tmp/proj/fy19.rb 'def run
+  # The vendor caps concurrent requests per account, and a burst past
+  # the cap returns 429s that the client retries with a fixed delay,
+  # which stalls the queue for every tenant sharing the key.
+  ids.each { |id| fetch_one(id) }
+end')" "$PARA"
+assert_denies "dead tag: @param string \$name above a multi-line __construct(string \$name, …) is denied" fy20 /tmp/proj/fy20.php '<?php
+class M {
+    /**
+     * @param string $name
+     */
+    public function __construct(
+        string $name,
+        int $count
+    ) {}
+}'
+assert_allows "dead tag: the same tag above a multi-line __construct(\$name, …) is allowed" fy21 /tmp/proj/fy21.php '<?php
+class M {
+    /**
+     * @param string $name
+     */
+    public function __construct(
+        $name,
+        $count
+    ) {}
+}'
+assert_allows "blade: a markdown mail heading # Order Shipped is text, not a comment" fy22 /tmp/proj/fy22.blade.php '<x-mail::message>
+# Order Shipped
+
+Your order has been shipped!
+</x-mail::message>'
+assert_silent "blade: {{-- @include(...) --}} stays silent" "$(envelope Write /tmp/proj/fy23.blade.php "{{-- @include('partials.nav') --}}
+<div>{{ \$title }}</div>")"
+assert_denies "blade: // const old = compute(\$x); inside @php is still denied" fy24 /tmp/proj/fy24.blade.php '@php
+    // const old = compute($x);
+    $next = compute($x + 1);
+@endphp'
+TYPED_FX="$(awk 'BEGIN { print "<?php"; print "/**"; for (i = 0; i < 4000; i++) printf " * @param string $p%d\n", i; print " */"
+  printf "function build("; for (i = 0; i < 4000; i++) printf "%sstring $p%d", (i ? ", " : ""), i; print ") {}" }')"
+t0=$SECONDS
+ty_out="$(printf '%s' "$TYPED_FX" | jq -Rsc --arg c "$STATE_DIR" \
+  '{hook_event_name: "PreToolUse", cwd: $c, session_id: "ty", tool_name: "Write", tool_input: {file_path: "/tmp/proj/typed.php", content: .}}' \
+  | "$BASH_BIN" "$HOOK" 2>/dev/null)"
+ty_s=$((SECONDS - t0))
+case "$(reason_of "$ty_out")" in *"4000 docblock tag repeating the signature"*) ty_n=1 ;; *) ty_n=0 ;; esac
+if [ "$ty_s" -le 3 ] && [ "$ty_n" = 1 ]; then pass "large: 4,000 typed @param tags over a 4,000-parameter signature are judged within 3 s"
+else fail "large: 4,000 typed @param tags over a 4,000-parameter signature are judged within 3 s" "${ty_s}s, reason: $(reason_of "$ty_out" | cut -c1-200)"; fi
+# An open signature reads on, so 8,000 of them back to back and one over fifty 12 kB lines bound that read.
+OPEN_FX="$(awk 'BEGIN { print "<?php"; for (i = 0; i < 8000; i++) { print "/** @param string $a" i " */"; print "$v" i " = foo(string $a" i "," }
+  print "/** @param string $b */"; print "$w = foo(string $b,"; for (k = 0; k < 50; k++) { for (j = 0; j < 2000; j++) printf "c%d, ", j; print "" } }')"
+t0=$SECONDS
+op_out="$(printf '%s' "$OPEN_FX" | jq -Rsc --arg c "$STATE_DIR" \
+  '{hook_event_name: "PreToolUse", cwd: $c, session_id: "op", tool_name: "Write", tool_input: {file_path: "/tmp/proj/open.php", content: .}}' \
+  | "$BASH_BIN" "$HOOK" 2>/dev/null)"
+op_s=$((SECONDS - t0))
+case "$(reason_of "$op_out")" in *"8001 docblock tag repeating the signature"*) op_n=1 ;; *) op_n=0 ;; esac
+if [ "$op_s" -le 2 ] && [ "$op_n" = 1 ]; then pass "large: 8,001 open signatures, one over fifty 12 kB lines, are judged within 2 s"
+else fail "large: 8,001 open signatures, one over fifty 12 kB lines, are judged within 2 s" "${op_s}s, reason: $(reason_of "$op_out" | cut -c1-200)"; fi
+cue_silent "event dates are not authorship stamps" /tmp/proj/fy25.ts '// Deprecated 2024-01-01
+export const a = 1;
+// Since 2024-01-01
+export const b = 2;
+// Expires 2025-01-01
+export const c = 3;'
+cue_silent "// region codes follow ISO 3166 is prose, not a marker" /tmp/proj/fy26.ts '// region codes follow ISO 3166
+export const codes = load();'
+cue_silent "todo.done and todo-list are not lowercase TODOs" /tmp/proj/fy27.ts '// todo.done is set by the reducer
+export const reducer = r;
+// todo-list rows render in creation order
+export const rows = [];'
+cue_silent "a markup comment of prose naming a tag" /tmp/proj/fy28.vue '<template>
+  <!-- Uses <code>v-model</code> so the parent owns the value -->
+  <input v-model="value" />
+</template>'
+co_out="$(run "$(envelope Write /tmp/proj/fy29.ts '// const a = load(x);
+// const b = parse(a);
+// save(b);
+export const run = () => 1;')")"
+case "$co_out" in
+  *"$PARA"*) fail "cue: a three-line commented-out block draws only commented-out code" "got: $co_out" ;;
+  *"3 commented-out code"*) pass "cue: a three-line commented-out block draws only commented-out code" ;;
+  *) fail "cue: a three-line commented-out block draws only commented-out code" "got: $co_out" ;;
+esac
+rm -rf "$STATE_DIR"
+
 printf '\n'
 [ "$rc" -eq 0 ] && printf 'comment-discipline-hook-tests: all cases passed\n' \
                || printf 'comment-discipline-hook-tests: FAILURES above\n'
