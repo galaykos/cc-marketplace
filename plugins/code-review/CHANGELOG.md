@@ -3,6 +3,82 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.26.0 — 2026-10-02
+
+- **A stricter comment limit: `density.sh` refuses a file over 0.3 prose comment lines per code line, compared exactly, now also on short files and on more file types — expect refusals 0.25.0 did not give.** Until this release the limit was 0.4:1 over every line starting `//`, `/*`, `*`, `#` or `--`, the compare truncated (0.49 passed), files under 50 lines were never judged, and shell, SQL, CSS, SCSS, Less, Lua, Elixir, Perl, Julia, R, Groovy, Terraform and GraphQL files were not judged at all. Who is affected: a project that writes its why-comments as paragraphs, and most of all one that documents every public API in prose (PEP 257 docstrings, Javadoc), where a third or more of existing files of 50+ lines measure over the limit (tables below). Such a project sets `COMMENT_DISCIPLINE_CEILING_TENTHS=5` in its settings `env`.
+- **What the override restores, and what it does not.** `COMMENT_DISCIPLINE_CEILING_TENTHS=4` brings back the 0.4:1 number only: the newly judged file types, the short-file rule, the exact compare and the prose-only count stay. `0` switches off the ceiling, the short rule and the deny, and keeps the sibling warning for files of 50+ lines. `CC_COMMENT_GUARD=off` switches the denies off for the session and leaves the warnings on; `CC_REMIND=off` silences the warnings.
+- **The count is prose lines, per language.** A Python docstring, `<!-- -->` in Vue, Svelte and Blade, Blade `{{-- --}}`, JSX `{/* */}`, the bare lines of a `/* */` block, Ruby `=begin`, Perl POD and Elixir `@doc` now count; Rust `#[derive]`, C `#include` / `#define`, PHP `#[Attribute]`, a JS `#private` field and C# `#region` no longer do. A comment line is not prose when it is a delimiter alone, a tool directive, a doc tag whose operand is a type (`@param int $x`, `@throws RuntimeException`), a line of the file's first comment block when that block names a licence, or a `|`-led line of a Laravel-style config box; an untyped `@param name text` is prose. The README lists every rule and what the counter cannot tell apart.
+- **Short files.** Under 50 lines, or with fewer than 8 code lines, a file is over the limit with at least 5 prose lines, a code line and more prose than code; the message reads "the ceiling is 1.0:1". A file with no code line is never over. The rule holds on every lane: the `Write` deny, the heredoc deny and the warning after an edit.
+- **Unchanged:** every message format, two denies per file per hook, three warnings per session, and the sibling test, whose 0.3 floor now equals the default ceiling, so siblings decide only where a project raised it. In a message the first count is now the prose count, and a printed ratio is rounded up to the next tenth, so a refusal never prints the limit's own number. Dockerfiles and Makefiles are left to `scan.sh`: a comment per instruction is idiomatic there.
+- **Fixed:** a ceiling with a leading zero was read as octal (`010` applied 0.8 and printed 1.0; `08` silenced the hook) and is decimal now. Siblings are matched by language, so a Blade view is compared with Blade views and a PHP class with PHP files; a sibling whose name holds a non-ASCII byte, a quote or a backslash is read; a sibling over 256 kB is skipped. A comma-decimal locale no longer prints `0,7:1`. `scan.sh` and `density.sh` read one list of judged file types.
+- **New limit:** at most 40 heredocs of one Bash command are judged before it runs, so a command of hundreds stays inside the hook's 10 s timeout.
+
+### How many existing files the new limit refuses
+
+Files of 50 lines or more, one denominator per row; the 0.3 column is the shipped default.
+
+| files | of 50+ lines | 0.25.0 rule | at 0.2 | **at 0.3 (default)** | at 0.4 |
+|---|---|---|---|---|---|
+| all | 9,528 | 8.4% | 9.4% | **5.1%** | 3.2% |
+| PHP | 4,423 | 14.5% | 13.4% | **7.5%** | 4.8% |
+| JS / TS | 4,277 | 3.6% | 6.1% | **3.2%** | 1.8% |
+| Vue / Svelte | 261 | 0.8% | 1.9% | **0.8%** | 0.8% |
+| Blade | 315 | 0.0% | 0.3% | **0.3%** | 0.3% |
+| CSS / SCSS | 189 | not judged | 8.5% | **6.9%** | 5.8% |
+| Kotlin | 27 | 18.5% | 48.1% | **18.5%** | 14.8% |
+| shell | 7 | not judged | 28.6% | **0.0%** | 0.0% |
+| SQL | 5 | not judged | 20.0% | **0.0%** | 0.0% |
+| other (Swift, Python, Ruby, Less) | 24 | 0.0% | 0.0% | **0.0%** | 0.0% |
+
+"Not judged": 0.25.0 did not measure that file type, so it has no share to compare. Per repository (the 71 with 20 or more such files) the median share refused is 2.8% under 0.25.0, 1.8% at 0.2, 0.5% at 0.3 and 0.0% at 0.4. The short rule refuses 40 of all 19,496 files (0.2%). The Kotlin, shell and SQL rows are too small to generalise from.
+
+Sample: 95 of the plugin author's git repositories (108 found; 8 clones of another, matched by root commit, and 4 without a commit left out; this marketplace excluded), at most 400 tracked files per repository in a seeded random order (seed 1), of the file types the hooks judge, without `node_modules/`, `vendor/`, `dist/`, `.claude/`, a root `build/`, files over 2 MB or holding a line over 5,000 characters, 20 files carrying a generated marker, and 28 Dockerfiles and Makefiles (neither release judges their volume). 19,496 files, measured 2026-10-03 with the counter this release ships: PHP 9,527, TSX 5,450, TS 2,055, Blade 786, JS 570, Vue 358, CSS 335, Svelte 204, shell 41, Kotlin 36, SCSS 28, Swift 28, MJS 22, JSX 20, SQL 20, CJS 9, Python 4, Less 2, Ruby 1. The sample holds almost no Python or Ruby, and no Go, Rust, Java or C. The measuring scripts are not shipped.
+
+### Other stacks
+
+The default was set at 0.3, not 0.2, after code in languages the author's repositories lack was measured: up to 400 files per row in a seeded random order (seed 1), on macOS, 2026-10-03, refused among files of 50 lines or more.
+
+| code | files | of 50+ lines | at 0.2 | **at 0.3 (default)** | at 0.4 |
+|---|---|---|---|---|---|
+| Python standard library | 400 | 307 | 50.5% | **34.2%** | 21.2% |
+| Ruby standard library | 400 | 264 | 53.0% | **35.2%** | 27.3% |
+| JDK sources (`src.zip`) | 400 | 353 | 49.3% | **39.1%** | 32.6% |
+| C headers (macOS SDK) | 400 | 223 | 35.0% | **26.9%** | 23.3% |
+| C sources (Homebrew packages) | 253 | 240 | 26.7% | **12.9%** | 5.0% |
+| system shell scripts | 139 | 99 | 21.2% | **15.2%** | 6.1% |
+
+Each count was checked line by line against a reference reader over the same files:
+
+- **Python** (`tokenize` and `ast`): none of the 32,130 lines counted as comments is anything else; 457 of 19,945 docstring lines are missed (408 in single-quoted docstrings, 17 on the `def` line, 32 more in triple-quoted ones).
+- **Ruby** (Ripper): 50 of 23,953 lines counted as comments are not (41 inside regex literals, 9 inside `%{}` strings), in 4 files; none missed.
+- **Java** (a comment scanner): identical on all 41,778 comment lines.
+- **C** (a comment scanner): no false comment line; 38 of 27,590 header comment lines and 4 of 18,578 source comment lines are missed.
+- **Shell** (the shell's own parser): 28 of 8,358 lines counted as comments sit inside a string or heredoc (26 in single-quoted programs passed to another tool), in 18 files; 2 scripts that do not parse were left out.
+- **Go and Rust** are proven on test fixtures only.
+
+### The false-refusal risk
+
+In a reading of 126 real refusals at 0.2, about 58% were why-explanations written as paragraphs. That is the rule's target — a why-comment is one line — but it means most refusals land on comments their author meant to keep, and the model is asked to cut them down. The rest were vendored or compiled files, tutorial-style comments, docblocks and config explanations. At the shipped 0.3 the share of the author's existing files refused falls to about 5%. Of the 31 short-file refusals in the same sample, 24 were why-docblocks on single-purpose files (an enum, a constants file, an exception); the README lists them as refused by design.
+
+- **Unmeasured: whether the stricter limit changes what the model writes.** No eval with a control arm covers it.
+
+### Cost
+
+Medians of 20 runs per row, interleaved with the 0.25.0 hooks on the same payload, each hook executed directly with the payload on stdin; the whole difference is the per-language counter. The bounds held: +25 ms for a 12,000-line file, +2 ms for a Bash call that writes nothing.
+
+| call (`density.sh` unless named) | 0.26.0 against 0.25.0 |
+|---|---|
+| Bash call that writes nothing | +0.4 ms (26.0 against 25.6 ms) |
+| 80-line `Write` (10 prose, 70 code) | +1.4 ms |
+| 12,000-line `Write` that passes (2,000 prose, 10,000 code) | +17.0 to +17.1 ms |
+| 12,000-line `Write` that is refused (4,000 prose, 8,000 code) | +20.0 to +20.4 ms |
+| 12,000-line heredoc that passes | +12.6 ms |
+| 12,000-line heredoc that is refused | +14.0 ms |
+| `Edit` of a Markdown file (not judged), `density.sh` before / after the call | 14.6 / 20.4 ms against 15.2 / 36.0 ms |
+| the same `Edit`, `scan.sh` before / after the call | +0.6 / +0.4 ms |
+
+Host: Apple M4 Pro, macOS 27.0.1, `/bin/bash` 3.2.57, awk version 20200816, jq 1.8.1, load average 3 to 5. Standing: these figures are **recorded**; the 5-second bounds the marketplace's CI holds on large shapes are unchanged.
+
 ## 0.25.0 — 2026-10-02
 
 - **The comment denies now reach files they used to skip, so expect refusals you did not get before.** `scan.sh` and `density.sh` judge a heredoc written through Bash (`cat > f <<EOF`, `cat >> f <<EOF`, `tee f <<EOF`, `cat <<EOF | tee f`) as a `Write` of its body. They judge `migrations/` in every project, and `scripts/*.sh`, `templates/` and `plugins/*/hooks/` in any project that is not a plugin-marketplace repository (one whose root holds `.claude-plugin/marketplace.json`) — a shell script by `scan.sh` only; `density.sh` does not measure `.sh`. `build/` is exempt only at the project root, no longer at any depth. Until now a heredoc write, a deploy script, a template component, a WordPress plugin's hook file and a migration all landed with no comment check. The switches are unchanged: `CC_COMMENT_GUARD=off` for the denies, `CC_REMIND=off` for the warnings.

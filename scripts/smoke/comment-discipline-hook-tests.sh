@@ -17,6 +17,7 @@ BASH_BIN="$(command -v bash)"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
+unset CLAUDE_PLUGIN_DATA   # the cases read hook state under <root>/.claude
 rc=0
 pass() { printf 'PASS  %s\n' "$1"; }
 fail() { printf 'FAIL  %s\n      %s\n' "$1" "${2:-}"; rc=1; }

@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.11.1 — 2026-10-02
+
+- plugin-scout's catalog row for code-review now states its 0.3:1 comment ceiling (code-review 0.26.0).
+
 ## 0.11.0 — 2026-09-26
 
 - The four meta-bundles (core-, frontend-, craft-, workflow-suite) were retired on 2026-09-26; install through `all-plugins` or `/stack-scan:suggest`. plugin-scout no longer suggests bundles: the picker's "Suites as shortcuts" section is gone, and

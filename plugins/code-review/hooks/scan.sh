@@ -375,27 +375,13 @@ cc_bash_write_chunks() {
   # `RUN apt-get install -y …` restates its next line exactly the way `// increment the
   # counter` does above `counter++`, and *.sh has always been governed for that reason.
   # Extensionless names are matched by basename, so the worktree-stripped path is not
-  # enough on its own — see the `base` case below.
-  scan_governed() {
-    case "$1" in
-      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.vue|*.svelte) ;;
-      *.php|*.py|*.rb|*.go|*.rs|*.java|*.kt|*.kts|*.swift|*.scala|*.dart) ;;
-      *.c|*.h|*.cpp|*.hpp|*.cc|*.cs|*.m|*.mm) ;;
-      *.sh|*.bash|*.zsh|*.pl|*.lua|*.ex|*.exs|*.jl|*.r|*.groovy) ;;
-      *.sql|*.css|*.scss|*.less|*.graphql|*.tf) ;;
-      *.dockerfile|*.mk) ;;
-      *)
-        case "$(basename "$1")" in
-          Dockerfile|Dockerfile.*|Containerfile|Containerfile.*|Makefile|GNUmakefile) ;;
-          *) return 1 ;;
-        esac ;;
-    esac
-  }
+  # enough on its own — see cd_governed in hooks/paths.sh, which holds the list.
+  . "$(dirname "$0")/paths.sh" 2>/dev/null
 
   scan_judge() {
   fp=$1 added=$2 msg=""
   [ -n "$fp" ] || return 1
-  scan_governed "$fp" || return 1
+  cd_governed "$fp" || return 1
 
   # Generated, vendored, and marketplace tooling paths are exempt: their header banners and
   # usage blocks are deliberate, and nobody edits them by hand for readability.
@@ -405,7 +391,6 @@ cc_bash_write_chunks() {
   # was therefore exempting every source file written by a track run. See
   # hooks/paths.sh. A missing lib exits 0: a path it cannot classify is not judged.
   root=$(cc_state_root "$cwd") || root=""   # no root is not a marketplace: the file is still judged
-  . "$(dirname "$0")/paths.sh" 2>/dev/null
   command -v cd_path_exempt >/dev/null 2>&1 || return 1
   cd_path_exempt "$fp" "$root" && return 1
 
@@ -749,12 +734,11 @@ cc_bash_write_chunks() {
     n=0; k=0
     while IFS= read -r l; do
       k=$((k + 1)); tgt=$(cc_bash_write_targets "${l#?}" | head -n 1)
-      if [ -n "$tgt" ] && scan_governed "$tgt"; then n=$((n + 1)); ctgt[$n]=$tgt; chdr[$n]=${l#?}; cnum[$n]=$k; fi
+      if [ -n "$tgt" ] && cd_governed "$tgt"; then n=$((n + 1)); ctgt[$n]=$tgt; chdr[$n]=${l#?}; cnum[$n]=$k; fi
     done <<EOF_C
 $(printf '%s\n' "$chunks" | awk 'substr($0, 1, 1) == "\036"')
 EOF_C
     [ "$n" -gt 0 ] || exit 0
-    . "$(dirname "$0")/paths.sh" 2>/dev/null
     hascd=0; cd_has_cd "$cmd" && hascd=1
     c=1   # not `i`: scan_judge counts its deny markers with that name
     while [ "$c" -le "$n" ]; do

@@ -31,7 +31,7 @@
 # already heavy certified more of the same. The marketplace's stated default is code
 # that speaks for itself — minimal comments, a docblock only for what the signature
 # cannot state — so the limit is now min(2x the sibling median, CEIL), and a file with
-# no siblings is judged against CEIL alone. CEIL is 0.4:1 by default and is the one
+# no siblings is judged against CEIL alone. CEIL is 0.3:1 on prose lines by default, the one
 # constant here; a project with a deliberately heavier style overrides it per project
 # via `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (e.g. 10 for 1:1, 0 to
 # switch the ceiling off and keep the sibling test). The deny lane uses the same CEIL.
@@ -53,7 +53,7 @@
 #     a generated marker, and prints the first warning. NOT SEEN on Bash: interpreter writes (python
 #     open()), cp/mv, a path held in a variable, a relative target after an in-command cd, targets past
 #     the first 3; pre-write also a heredoc fed to anything but cat/tee, a heredoc whose file the
-#     command writes again, echo/printf and sed -i / perl -i content, the second
+#     command writes again, heredocs past the 40th to a governed file, echo/printf and sed -i / perl -i content, the second
 #     operand of `tee a b`, `VAR=x tee f`, cat/tee behind a wrapper, brace or keyword; plus what the two blocks below miss.
 #   - A ratio is not a judgment. A file legitimately denser than its siblings (the one
 #     driver full of vendor workarounds) trips this, and that is a false positive the
@@ -63,19 +63,19 @@
 #     repo". The ledger below exists so that question can be answered later from data,
 #     but nothing reads it back today and calling it a feedback loop would be the
 #     over-claim this plugin has been pulled up on before.
-#   - The comment/code split is line-shaped (a line starting with //, /*, *, #, --),
-#     not a parser. A trailing comment on a code line counts as code; a string
-#     containing `//` counts as a comment. Both are rare enough not to move a ratio
-#     computed over 50+ lines, and the same rule is applied to the file and to its
-#     siblings, so a systematic error cancels.
+#   - The counter is cd_classify in hooks/paths.sh: a per-language line classifier, not a
+#     parser. The numerator is PROSE lines: delimiters, typed doc tags, tool directives, a
+#     licence first block and `|`-boxed config blocks are comments but not prose. A trailing
+#     comment, a mid-line `/*` and a triple-quoted string that is no docstring count as
+#     code; a directive it does not know counts as prose. A line it is unsure of is code. Dockerfiles and Makefiles are not judged.
 #   - Thresholds are a starting point, not a constant: 2.0x the sibling MEDIAN, with an
 #     absolute floor of 0.3 so a repo that comments almost nothing cannot make a single
-#     why-comment an outlier, then capped at CEIL. The floor was 0.8 while the sibling
-#     test was the only test; it dropped with the ceiling, since a floor above the
-#     ceiling would have made the sibling test dead code. Calibrated against one
-#     observed failure (house 0.85-1.26, produced 1.71-1.85) and one repo, and the
-#     ledger records every measurement so that can be revisited against real data
-#     instead of re-argued.
+#     why-comment an outlier, then capped at CEIL. The floor EQUALS the default ceiling,
+#     so the sibling test decides only where a project raised CEIL past 0.3 or set it to 0.
+#     A file under 50 lines, or under 8 code lines, gets the SHORT rule instead: over the
+#     limit with 5+ prose lines, a code line, and more prose than code (or than CEIL allows,
+#     once CEIL is past 1:1); CEIL=0 switches it off. The ledger records every measurement
+#     so the thresholds can be revisited against real data instead of re-argued.
 #
 # FAIL-OPEN: missing jq/awk, unreadable file, too few siblings, or any error exits 0.
 # CC_REMIND / CC_COMMENT_GUARD unset: the /config options cc_remind / cc_comment_guard decide.
@@ -380,45 +380,45 @@ cc_bash_write_chunks() {
   event=$(printf '%s' "$input" | jq -r '.hook_event_name // "PostToolUse"' 2>/dev/null) || exit 0
   case "$event" in PostToolUse|PreToolUse) ;; *) exit 0 ;; esac
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
-  density_governed() {
-    case "$1" in
-      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.vue|*.svelte) ;;
-      *.php|*.py|*.rb|*.go|*.rs|*.java|*.kt|*.kts|*.swift|*.scala|*.dart) ;;
-      *.c|*.h|*.cpp|*.hpp|*.cc|*.cs|*.m|*.mm) ;;
-      *) return 1 ;;
-    esac
-  }
+  # Only a whole file has a ratio: a Write carries one, and so does a truncating Bash heredoc.
+  [ "$event" = "PreToolUse" ] && [ "$tool" != "Write" ] && [ "$tool" != "Bash" ] && exit 0
   case "$tool" in
-    Edit|Write|MultiEdit) ;;
+    Edit|Write|MultiEdit)
+      fp=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0 ;;
     Bash)
       cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
       # Same guard as scan.sh: the blocks are quadratic in the length of one line.
       [ "${#cmd}" -gt 32768 ] && printf '%s\n' "$cmd" | awk 'length($0) > 2000 { s += length($0) } length($0) > 8192 || s > 32768 { f = 1; exit } END { exit !f }' && exit 0
       tgts=$(cc_bash_write_targets "$cmd")
-      [ -n "$tgts" ] || exit 0
-      gov=0
-      while IFS= read -r t; do density_governed "$t" && gov=1; done <<EOF_G
-$tgts
-EOF_G
-      [ "$gov" = 1 ] || exit 0 ;;
+      [ -n "$tgts" ] || exit 0 ;;
     *) exit 0 ;;
   esac
+  # Sourced only here, below the exit of a Bash call that writes nothing; without the file nothing is governed.
+  . "$(dirname "$0")/paths.sh" 2>/dev/null
+  if [ "$tool" = Bash ]; then
+    gov=0
+    while IFS= read -r t; do cd_governed "$t" && gov=1; done <<EOF_G
+$tgts
+EOF_G
+    [ "$gov" = 1 ] || exit 0
+  else
+    cd_governed "$fp" || exit 0
+  fi
   # WARN lane only — see scan.sh's note; the PreToolUse deny ignores this switch.
   [ "$event" = "PostToolUse" ] && [ "$(cc_option CC_REMIND on)" = "off" ] && exit 0
   # CC_COMMENT_GUARD=off disables the DENY lane and leaves the advisory lane on.
   # Added 2026-09-22 (UX 1), same reasoning as scan.sh's: the block had no off switch,
   # so its refusal could name none. Read from the hook's environment.
   [ "$event" = "PreToolUse" ] && [ "$(cc_option CC_COMMENT_GUARD on)" = "off" ] && exit 0
-  # Only a whole file has a ratio: a Write carries one, and so does a truncating Bash heredoc.
-  [ "$event" = "PreToolUse" ] && [ "$tool" != "Write" ] && [ "$tool" != "Bash" ] && exit 0
 
   if [ "$tool" = Bash ] && [ "$event" = "PreToolUse" ]; then
     chunks=$(cc_bash_write_chunks "$cmd")
     [ -n "$chunks" ] || exit 0
     nc=0; k=0
     while IFS= read -r l; do
+      [ "$nc" -lt 40 ] || break   # 400 one-line heredocs to .sh files took 11 s against a 10 s timeout
       k=$((k + 1)); tgt=$(cc_bash_write_targets "${l#?}" | head -n 1)
-      if [ -n "$tgt" ] && density_governed "$tgt"; then nc=$((nc + 1)); ctgt[$nc]=$tgt; chdr[$nc]=${l#?}; cnum[$nc]=$k; fi
+      if [ -n "$tgt" ] && cd_governed "$tgt"; then nc=$((nc + 1)); ctgt[$nc]=$tgt; chdr[$nc]=${l#?}; cnum[$nc]=$k; fi
     done <<EOF_C
 $(printf '%s\n' "$chunks" | awk 'substr($0, 1, 1) == "\036"')
 EOF_C
@@ -451,29 +451,45 @@ EOF_C
   # so it had ~43 code lines and a code-shaped floor would have waved through the
   # single densest file in the run. A few code lines are still needed for the ratio to
   # mean anything, hence MIN_CODE — set low, as a divide-by-noise guard, not a filter.
-  MIN_LINES=50       # comment + code; below this a ratio is noise, not a signal
+  MIN_LINES=50       # comment + code; a file under this, or under MIN_CODE, gets the short rule
   MIN_CODE=8         # enough denominator for a ratio to carry information
   MIN_SIBLINGS=3     # a median of two files is not a house style
   SAMPLE_CAP=25      # bounded cost: this runs after every edit
   MULT=20            # 2.0x, in tenths (integer arithmetic only)
   FLOOR=3            # 0.3, in tenths — absolute lower bound on "outlier"
-  CEIL=${COMMENT_DISCIPLINE_CEILING_TENTHS:-4}   # 0.4, in tenths; 0 switches the ceiling off
-  case "$CEIL" in ''|*[!0-9]*) CEIL=4 ;; esac
+  CEIL=${COMMENT_DISCIPLINE_CEILING_TENTHS:-3}   # 0.3, in tenths; 0 switches the ceiling off
+  case "$CEIL" in ''|*[!0-9]*) CEIL=3 ;; esac
+  CEIL=$((10#$CEIL))   # a leading zero would read as octal
+  SHORT_LIMIT=$CEIL; [ "$SHORT_LIMIT" -ge 10 ] || SHORT_LIMIT=10   # 1:1, or the ceiling once a project raised it past that
   MAX_WARN=3
+
+  density_regime() { # <prose> <comment> <code>
+    d_regime=ratio
+    [ "$(( $2 + $3 ))" -ge "$MIN_LINES" ] && [ "$3" -ge "$MIN_CODE" ] && return 0
+    d_regime=short
+    [ "$1" -ge 5 ] && [ "$3" -ge 1 ] && [ "$CEIL" -gt 0 ]
+  }
+  # The printed ratio is rounded up, so a file over its limit never prints the limit's own number.
+  density_over() { # <prose> <code> <limit, in tenths>
+    d_ratio=$(( ($1 * 10 + $2 - 1) / $2 ))
+    [ "$3" -gt 0 ] && [ "$(( $1 * 10 ))" -gt "$(( $3 * $2 ))" ]
+  }
 
   density_judge() {
   fp=$1 text=$2 mode=$3 msg=""
   [ -n "$fp" ] || return 1
-  density_governed "$fp" || return 1
+  cd_governed "$fp" || return 1
   if [ "$event" = "PostToolUse" ]; then [ -f "$fp" ] && [ -r "$fp" ] || return 1; fi
   # Same PATH exclusions as scan.sh, decided by hooks/paths.sh against the same LOGICAL
   # path (worktree prefix stripped): generated, vendored and marketplace tooling trees
   # have deliberate header blocks. A missing paths.sh judges nothing. Config/prose formats
   # use comments for navigation, which this rule does not govern.
-  . "$(dirname "$0")/paths.sh" 2>/dev/null
   command -v cd_path_exempt >/dev/null 2>&1 || return 1
   cd_path_exempt "$fp" "$root" && return 1
-  ext="${fp##*.}"
+  cd_lang "$fp" || return 1
+  lang=$cd_lang_key
+  # A comment per instruction is idiomatic in a build file (owner decision 2026-10-02); scan.sh still reads them.
+  case "$lang" in dockerfile|make) return 1 ;; esac
   # A generator redirected to a file (`gen > src/api.ts`) leaves its marker on disk, not in the command.
   [ "$event" = "PostToolUse" ] && [ "$tool" = Bash ] && cd_generated < "$fp" && return 1
 
@@ -493,16 +509,6 @@ EOF_C
   mkdir -p "$dir" 2>/dev/null || return 1
   [ -w "$dir" ] || return 1
   [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null   # the state dir ignores itself
-  # ---- one shared counter, applied identically to the file and to its siblings ----
-  ratio_of() { # $@ files (none = stdin) -> "<comment> <code>"
-    awk '
-      FNR==1 { }
-      { s=$0; sub(/^[ \t]+/,"",s)
-        if (s == "") next
-        if (s ~ /^(\/\/|\/\*|\*|#|--)/) { c++; next }
-        code++ }
-      END { printf "%d %d\n", c+0, code+0 }' "$@" 2>/dev/null
-  }
 
   # ---- PreToolUse lane: deny a whole new file over CEIL, at most TWICE per file ----
   # Same bound and the same reasoning as scan.sh's deny: the model wrote it, so the
@@ -514,14 +520,13 @@ EOF_C
     content=$text
     [ -n "$content" ] || return 1
     printf '%s\n' "$content" | cd_generated && return 1
-    read -r pc pcode <<EOF
-$(printf '%s\n' "$content" | ratio_of)
+    read -r pprose pc pcode <<EOF
+$(printf '%s\n' "$content" | cd_classify "$lang")
 EOF
-    case "${pc:-}${pcode:-}" in ''|*[!0-9]*) return 1 ;; esac
-    [ "$pcode" -ge "$MIN_CODE" ] || return 1
-    [ "$(( pc + pcode ))" -ge "$MIN_LINES" ] || return 1
-    pratio=$(( pc * 10 / pcode ))
-    [ "$pratio" -gt "$CEIL" ] || return 1
+    case "${pprose:-x} ${pc:-x} ${pcode:-x}" in *[!0-9\ ]*) return 1 ;; esac
+    density_regime "$pprose" "$pc" "$pcode" || return 1
+    limit=$CEIL; [ "$d_regime" = short ] && limit=$SHORT_LIMIT
+    density_over "$pprose" "$pcode" "$limit" || return 1
     key=$(printf '%s' "$fp" | (command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
     [ -n "$key" ] || return 1
     marker="$dir/density-blocked-$ctx-$key"
@@ -539,9 +544,11 @@ EOF
     i=1
     while [ "$i" -le "$DENY_CAP" ]; do [ -d "$marker.d$i" ] && tries=$i; i=$((i + 1)); done
     [ "$tries" -ge "$DENY_CAP" ] && return 1
+    # The name goes through the environment: macOS awk refuses a -v value holding a newline.
+    msg=$(file_name="${fp##*/}" LC_ALL=C awk -v c="$pprose" -v cd="$pcode" -v r="$d_ratio" -v l="$limit" \
+      'BEGIN { f = ENVIRON["file_name"]; printf "comment-discipline: %s would be %.1f:1 comment-to-code (%d comment lines, %d code); the ceiling is %.1f:1. Write it again with the code carrying the meaning: keep only a why-this-not-the-obvious, an external constraint with a link, a deliberate no-op, or a contract fact the signature cannot state (units, ownership, what throws) — and move the rest to a name, a type, or a test. Blocked at most twice per file; after that a write goes through with a warning instead. CC_COMMENT_GUARD=off disables this block for the session (CC_REMIND=off silences the warning it falls back to).", f, r/10, c, cd, l/10 }')
+    [ -n "$msg" ] || return 1
     mkdir "$marker.d$((tries + 1))" 2>/dev/null || return 1
-    msg=$(awk -v f="$(basename "$fp")" -v c="$pc" -v cd="$pcode" -v r="$pratio" -v l="$CEIL" \
-      'BEGIN { printf "comment-discipline: %s would be %.1f:1 comment-to-code (%d comment lines, %d code); the ceiling is %.1f:1. Write it again with the code carrying the meaning: keep only a why-this-not-the-obvious, an external constraint with a link, a deliberate no-op, or a contract fact the signature cannot state (units, ownership, what throws) — and move the rest to a name, a type, or a test. Blocked at most twice per file; after that a write goes through with a warning instead. CC_COMMENT_GUARD=off disables this block for the session (CC_REMIND=off silences the warning it falls back to).", f, r/10, c, cd, l/10 }')
     return 0
   fi
 
@@ -553,14 +560,14 @@ EOF
     grep -qxF "file $fp" "$state" 2>/dev/null && return 1   # already reported this file
   fi
 
-  read -r fc fcode <<EOF
-$(ratio_of "$fp")
+  read -r fprose fc fcode <<EOF
+$(cd_classify "$lang" "$fp")
 EOF
-  case "${fc:-}${fcode:-}" in ''|*[!0-9]*) return 1 ;; esac
-  [ "$fcode" -ge "$MIN_CODE" ] || return 1
-  [ "$(( fc + fcode ))" -ge "$MIN_LINES" ] || return 1
+  case "${fprose:-x} ${fc:-x} ${fcode:-x}" in *[!0-9\ ]*) return 1 ;; esac
+  density_regime "$fprose" "$fc" "$fcode" || return 1
+  if [ "$d_regime" = short ]; then density_over "$fprose" "$fcode" "$SHORT_LIMIT" || return 1; fi
 
-  # ---- baseline: same-extension siblings, nearest directory first ----
+  # ---- baseline: same-language siblings, nearest directory first ----
   # Cached per directory per session — a fan-out writing 30 files into one package
   # must not re-scan that package 30 times.
   fdir=$(dirname "$fp")
@@ -569,7 +576,7 @@ EOF
   # ledger — git reports symlink-free paths and the edited path usually is not one.
   rdir=$(cd "$fdir" 2>/dev/null && pwd -P) || rdir="$fdir"
   rfp="$rdir/$(basename "$fp")"
-  key=$(printf '%s' "$fdir/$ext" | (command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
+  key=$(printf '%s' "$fdir/$lang" |(command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
   base=""
   [ -n "$key" ] && base=$(awk -v k="$key" '$1=="base" && $2==k {print $3}' "$state" 2>/dev/null | tail -1)
 
@@ -584,14 +591,23 @@ EOF
     # rewrote. Not a git repo, or git absent: fall back to `find`, and say so in the
     # ledger by way of the baseline it produces.
     sibs_from() { # $1 dir, $2 maxdepth
-      if command -v git >/dev/null 2>&1 && git -C "$1" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        git -C "$1" ls-files -- "*.$ext" 2>/dev/null | while IFS= read -r rel; do
-          case "$rel" in */*/*) [ "$2" -ge 2 ] || continue ;; esac
-          printf '%s/%s\n' "$1" "$rel"
+      local d="$1" depth="$2" rel
+      # A superset by name, then cd_lang decides: `*.php` also lists Blade files.
+      case "$lang" in
+        blade) set -- '*.blade.php' ;;
+        *) set -- "*.$lang" ;;
+      esac
+      if command -v git >/dev/null 2>&1 && git -C "$d" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        # -z: without it git C-quotes a name holding a quote, a backslash or a non-ASCII byte.
+        git -C "$d" ls-files -z -- "$@" 2>/dev/null | while IFS= read -r -d '' rel; do
+          case "$rel" in */*/*) [ "$depth" -ge 2 ] || continue ;; esac
+          printf '%s/%s\n' "$d" "$rel"
         done
       else
-        find "$1" -maxdepth "$2" -type f -name "*.$ext" 2>/dev/null
-      fi
+        find "$d" -maxdepth "$depth" -type f -name "$1" 2>/dev/null
+      fi | while IFS= read -r rel; do
+        cd_lang "$rel" && [ "$cd_lang_key" = "$lang" ] && printf '%s\n' "$rel"
+      done
     }
     pick() { # $1 dir, $2 maxdepth — tracked siblings minus this file minus this run's writes
       sibs_from "$1" "$2" | while IFS= read -r s; do
@@ -638,21 +654,28 @@ EOF
     # interface file in the sample must not redefine the house style by itself.
     # No usable siblings leaves base empty, and the ceiling alone judges the file.
     if [ "$n" -ge "$MIN_SIBLINGS" ]; then
-      base=$(printf '%s\n' "$sibs" | while IFS= read -r s; do
-               [ -f "$s" ] && [ -r "$s" ] || continue
-               read -r sc scode <<EOS
-$(ratio_of "$s")
+      # One awk for every sibling; a tracked file that is gone from disk would make awk exit with nothing read.
+      base=$(set --
+             while IFS= read -r s; do [ -f "$s" ] && [ -r "$s" ] && set -- "$@" "$s"; done <<EOS
+$sibs
 EOS
-               [ "${scode:-0}" -ge 10 ] 2>/dev/null || continue
-               printf '%d\n' $(( sc * 10 / scode ))
-             done | sort -n | awk '{v[NR]=$1} END{ if (NR==0) exit; print v[int((NR+1)/2)] }')
+             [ "$#" -gt 0 ] || exit 0
+             # One find for the whole set: 25 siblings of 7.7 MB took the classifier 8 s against a 10 s timeout.
+             kept=$(find "$@" -size -262145c 2>/dev/null); set --
+             while IFS= read -r s; do [ -n "$s" ] && set -- "$@" "$s"; done <<EOS
+$kept
+EOS
+             [ "$#" -gt 0 ] || exit 0
+             cd_classify "$lang" "$@" | awk '$3 >= 10 { print int(($1 * 10 + $3 - 1) / $3) }' |
+               sort -n | awk '{v[NR]=$1} END{ if (NR==0) exit; print v[int((NR+1)/2)] }')
       case "${base:-}" in ''|*[!0-9]*) base="" ;; esac
       [ -n "$base" ] && [ -n "$key" ] && printf 'base %s %s\n' "$key" "$base" >> "$state" 2>/dev/null
     fi
   fi
 
-  fratio=$(( fc * 10 / fcode ))
-  if [ -n "$base" ]; then
+  if [ "$d_regime" = short ]; then
+    limit="$SHORT_LIMIT"
+  elif [ -n "$base" ]; then
     limit=$(( base * MULT / 10 ))
     [ "$limit" -lt "$FLOOR" ] && limit="$FLOOR"
     [ "$CEIL" -gt 0 ] && [ "$limit" -gt "$CEIL" ] && limit="$CEIL"
@@ -660,6 +683,7 @@ EOS
     [ "$CEIL" -gt 0 ] || return 1
     limit="$CEIL"
   fi
+  density_over "$fprose" "$fcode" "$limit"; over=$?
 
   # LEDGER. Every measurement, warned or not — machine-local, never in the project
   # tree, capped, and read by nothing automatically. Same placement and same honest
@@ -668,22 +692,24 @@ EOS
   ledger="${HOME:-/tmp}/.claude/comment-discipline/density-ledger.jsonl"
   if [ "$(wc -c < "$ledger" 2>/dev/null || echo 0)" -lt 1048576 ]; then
     mkdir -p "${ledger%/*}" 2>/dev/null &&
-      jq -cn --arg s "$sid" --arg f "$fp" --arg e "$ext" --argjson c "$fc" \
-             --argjson cd "$fcode" --argjson r "$fratio" --argjson b "${base:--1}" --argjson l "$limit" \
+      jq -cn --arg s "$sid" --arg f "$fp" --arg e "$lang" --argjson c "$fprose" \
+             --argjson cd "$fcode" --argjson r "$d_ratio" --argjson b "${base:--1}" --argjson l "$limit" \
         '{session:$s,file:$f,ext:$e,comment:$c,code:$cd,ratio_tenths:$r,baseline_tenths:$b,limit_tenths:$l,warned:($r>$l)}' \
         >> "$ledger" 2>/dev/null
   fi
 
   printf 'file %s\n' "$fp" >> "$state" 2>/dev/null
   [ "$rfp" = "$fp" ] || printf 'file %s\n' "$rfp" >> "$state" 2>/dev/null
-  [ "$fratio" -gt "$limit" ] || return 1
-  printf 'warn %s\n' "$fp" >> "$state" 2>/dev/null
+  [ "$over" = 0 ] || return 1
 
-  msg=$(awk -v f="$(basename "$fp")" -v c="$fc" -v cd="$fcode" -v r="$fratio" -v b="${base:--1}" -v l="$limit" -v n="$((warned + 1))" -v m="$MAX_WARN" \
+  msg=$(file_name="${fp##*/}" LC_ALL=C awk -v c="$fprose" -v cd="$fcode" -v r="$d_ratio" -v b="${base:--1}" -v l="$limit" -v n="$((warned + 1))" -v m="$MAX_WARN" \
     'BEGIN {
+      f = ENVIRON["file_name"]
       if (b >= 0) printf "comment-discipline: %s is %.1f:1 comment-to-code (%d comment lines, %d code); its siblings run %.1f:1 and the limit here is %.1f:1.", f, r/10, c, cd, b/10, l/10
       else        printf "comment-discipline: %s is %.1f:1 comment-to-code (%d comment lines, %d code); no committed siblings to compare against, so the ceiling of %.1f:1 applies.", f, r/10, c, cd, l/10
       printf " The default is code that needs no comment. If this file genuinely needs the prose (vendor quirks, a protocol the code cannot show), keep it and move on; otherwise keep only why-comments, linked constraints, deliberate no-ops and contract facts the signature cannot state, and move the rest to a name, a type, or a test. Warning %d of %d this session. CC_REMIND=off silences these.", n, m }')
+  [ -n "$msg" ] || return 1
+  printf 'warn %s\n' "$fp" >> "$state" 2>/dev/null
   return 0
   }
 
@@ -698,15 +724,12 @@ EOS
   }
 
   if [ "$tool" != Bash ]; then
-    fp=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
     content=""
     if [ "$event" = "PreToolUse" ]; then
-      density_governed "$fp" || exit 0
       content=$(printf '%s' "$input" | jq -r '.tool_input.content // empty' 2>/dev/null) || exit 0
     fi
     density_judge "$fp" "$content" truncate && emit ""
   elif [ "$event" = "PreToolUse" ]; then
-    . "$(dirname "$0")/paths.sh" 2>/dev/null
     hascd=0; cd_has_cd "$cmd" && hascd=1
     # A file the command writes twice is not one chunk alone. The block de-duplicates its targets, so each kept header's own target is pointed at /dev/null, the rest read once, and a path met twice goes to the disk lane.
     c=1; all=""; pairs=$nc   # c and nc, not `i` and `n`: density_judge assigns both of those
@@ -747,7 +770,6 @@ $fp
       c=$((c + 1))
     done
   else
-    . "$(dirname "$0")/paths.sh" 2>/dev/null
     hascd=0; cd_has_cd "$cmd" && hascd=1
     nt=0
     while IFS= read -r tgt; do

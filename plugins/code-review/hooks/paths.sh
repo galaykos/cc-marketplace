@@ -1,4 +1,4 @@
-# Shared path scoping for comment-discipline's two file guards (scan.sh, density.sh).
+# Shared path scoping and the comment classifier for comment-discipline's two file guards (scan.sh, density.sh).
 # Not executable and has no shebang: it is only ever sourced.
 #
 # WHY THIS EXISTS. Both guards skip `*/.claude/*` — meant to exempt the Claude
@@ -182,4 +182,232 @@ cd_target_whole() {
 # One awk pass per chunk: appending body lines to a bash string is quadratic.
 cd_chunk_text() {
   printf '%s\n' "$1" | awk -v k="$2" 'substr($0, 1, 1) == "\036" { n++; next } n == k'
+}
+
+# The key is left in cd_lang_key, not printed: a sibling loop asks once per file and must not fork.
+cd_lang() {
+  local b="${1##*/}"
+  cd_lang_key=
+  case "$b" in
+    *.blade.php) cd_lang_key=blade ;;
+    Dockerfile|Containerfile|*.dockerfile) cd_lang_key=dockerfile ;;
+    Makefile|GNUmakefile|*.mk) cd_lang_key=make ;;
+    Dockerfile.*|Containerfile.*) if cd_governed_extension "$b"; then cd_lang_key="${b##*.}"; else cd_lang_key=dockerfile; fi ;;
+    *.*) cd_lang_key="${b##*.}" ;;
+  esac
+  [ -n "$cd_lang_key" ]
+}
+
+# A miss is acceptable and a false deny is not: a line that is not certainly a comment is code, and so is a block still open at end of file.
+cd_classify() {
+  local lang="$1"; shift
+  LC_ALL=C awk -v lang="$lang" '
+    function has(list,   keys, n, i) {
+      n = split(list, keys, " ")
+      for (i = 1; i <= n; i++) if (keys[i] == lang) return 1
+      return 0
+    }
+    function reset() {
+      prose_lines = comment_lines = code_lines = pending_lines = pending_prose = held_prose = licence = shape_depth = 0
+      in_header = after_header = in_raw_string = heredoc_count = 0; module_top = 1; heredoc_at = 1
+      first_run = "none"; php_mode = "untagged"; block_end = block_end_line = py_string = ""
+    }
+    function end_first_run() {
+      if (first_run != "open") return
+      if (!licence) prose_lines += held_prose
+      first_run = "over"
+    }
+    function emit() { end_first_run(); print prose_lines, comment_lines, code_lines + pending_lines }
+    function hold(prose) {
+      if (first_run == "over") return prose
+      first_run = "open"; held_prose += prose
+      if (tolower(text) ~ /copyright|spdx-|licen[sc]e|all rights reserved/) licence = 1
+      return 0
+    }
+    function rtrim(t,   n, c) {
+      for (n = length(t); n > 0; n--) { c = substr(t, n, 1); if (c != " " && c != "\t") return substr(t, 1, n) }
+      return ""
+    }
+    function brace_balance(t) { return gsub(/\{/, "", t) - gsub(/\}/, "", t) }
+    function is_prose(body, in_star_block,   lower, word, next_word) {
+      sub(/^[ \t\/!*#\047-]+/, "", body)
+      if (shape_depth > 0) { shape_depth += brace_balance(body); return 0 }
+      if (body ~ /^@[A-Za-z]/ && index(body, "{")) shape_depth = brace_balance(body)
+      if (body ~ /[ \t]$/) body = rtrim(body)
+      if (body !~ /[A-Za-z0-9\200-\377]/) return 0
+      lower = tolower(body)
+      if (lower ~ DIRECTIVE) return 0
+      if (lower ~ /(^|[^a-z])pragma([^a-z]|$)|noinspection|frozen_string_literal:|hadolint|^(go:|(end)?region([^a-z]|$)|mark:|(syntax|escape|check)=)/) return 0
+      if (lower ~ /-\*-$|^(vim?:|\$id(\$|:)|@\(#\)|:(stopdoc|startdoc|nodoc):|[{]@inheritdoc[}]$)/) return 0
+      if (in_star_block && substr(body, 1, 1) == "|") return 0
+      if (body ~ /^:type[ \t]/ || body ~ /^:rtype:/ || body == "Args:" || body == "Returns:" || body ~ /^<\/?[A-Za-z][^<>]*>$/) return 0
+      if (body !~ /^@[A-Za-z]/) return 1
+      if (split(body, word, " ") < 3 || word[1] ~ /^@(template|extends|method|property)$/) return 0
+      next_word = substr(word[3], 1, 1)
+      if (next_word == "$" || next_word == "[" || word[2] ~ /^[{A-Z\\]/ || word[2] ~ /[|<>?{(]/ || index(word[2], "[") || index(word[2], "]")) return 0
+      return word[2] !~ /^(int|integer|string|bool|boolean|float|double|array|object|mixed|void|null|self|static|callable|iterable|never|true|false|number|any|unknown)$/
+    }
+    function comment_line(body, in_star_block) { comment_lines++; prose_lines += hold(is_prose(body, in_star_block)) }
+    function py_scan(t, open_quote,   i, n, c, inner) {
+      comment_at = 0; n = length(t)
+      for (i = 1; i <= n; i++) {
+        c = substr(t, i, 1)
+        if (open_quote != "") { if (substr(t, i, 3) == open_quote) { open_quote = ""; i += 2 } }
+        else if (c == "#") { comment_at = i; break }
+        else if (c == "\"" || c == "\047") {
+          if (substr(t, i, 3) == c c c) { open_quote = c c c; i += 2 }
+          else for (i++; i <= n && (inner = substr(t, i, 1)) != c; i++) if (inner == "\\") i++
+        }
+      }
+      return open_quote
+    }
+    function php_began_outside(t,   outside, i, n, c, two, inside) {
+      outside = (php_mode == "html"); n = length(t); inside = ""
+      for (i = 1; i <= n; i++) {
+        c = substr(t, i, 1); two = substr(t, i, 2)
+        if (php_mode != "php") {
+          if (two == "<?" && (substr(t, i, 5) == "<?php" || substr(t, i, 3) == "<?=")) {
+            if (php_mode == "untagged") {
+              code_lines += comment_lines; comment_lines = prose_lines = held_prose = licence = 0
+              first_run = "none"; outside = 1
+            }
+            php_mode = "php"; i += 2
+          } else if (php_mode == "untagged" && two == "?>") { php_mode = "html"; i++ }
+        }
+        else if (inside == "block comment") { if (two == "*/") { inside = ""; i++ } }
+        else if (inside == "line comment") { if (two == "?>") { php_mode = "html"; inside = ""; i++ } }
+        else if (inside != "") { if (c == "\\") i++; else if (c == inside) inside = "" }
+        else if (two == "?>") { php_mode = "html"; i++ }
+        else if (two == "//" || (c == "#" && two != "#[")) inside = "line comment"
+        else if (two == "/*") { inside = "block comment"; i++ }
+        else if (c == "\"" || c == "\047") inside = c
+      }
+      return outside
+    }
+    function queue_heredocs(t,   found, word) {
+      heredoc_count = 0; heredoc_at = 1
+      if (shell) { gsub(/<<</, "", t); gsub(/\(\([^()]*\)\)/, "", t) }
+      # Four per line: each match copies the rest of the line, so an uncapped loop is quadratic on a line of openers.
+      for (found = 0; found < 4 && match(t, HEREDOC); found++) {
+        word = substr(t, RSTART + 2, RLENGTH - 2); t = substr(t, RSTART + RLENGTH)
+        heredoc_indented[++heredoc_count] = (word ~ /^[-~]/)
+        sub(/^[-~]?[ \t]*\\?/, "", word)
+        if (word ~ /^["\047]/) word = substr(word, 2, length(word) - 2)
+        heredoc_end[heredoc_count] = word
+      }
+    }
+    function code_line(t,   ends_with_colon) {
+      code_lines++; end_first_run(); shape_depth = 0
+      if (python) {
+        module_top = after_header = 0
+        if (index(t, "\"\"\"") || index(t, "\047\047\047")) py_string = py_scan(t, "")
+        if (py_string != "") { in_header = 0; return }
+        if (!in_header && t ~ /^[ \t]*(async[ \t]+def|def|class)[ \t]/) { in_header = 1; header_depth = 0 }
+        if (!in_header) return
+        if (index(t, "#")) { py_scan(t, ""); if (comment_at) t = substr(t, 1, comment_at - 1) }
+        t = rtrim(t); ends_with_colon = (substr(t, length(t)) == ":")
+        header_depth += gsub(/\(/, "", t) + gsub(/\[/, "", t) + gsub(/\{/, "", t) - gsub(/\)/, "", t) - gsub(/\]/, "", t) - gsub(/\}/, "", t)
+        if (header_depth <= 0) { in_header = 0; after_header = ends_with_colon }
+      }
+      else if (heredoc_lang) { if (index(t, "<<")) queue_heredocs(t) }
+      else if (raw_quote != "" && index(t, raw_quote) && gsub(raw_quote, "", t) % 2) in_raw_string = 1
+    }
+    function open_block(t, closer, in_star_block, tail,   at, rest) {
+      at = index(t, closer)
+      if (!at) {
+        block_end = closer; block_star = in_star_block; block_tail = tail
+        pending_lines = 1; pending_prose = is_prose(t, in_star_block); hold(0)
+        return
+      }
+      rest = substr(t, at + length(closer))
+      if (rest ~ tail) comment_line(substr(t, 1, at - 1), in_star_block); else code_line(rest)
+    }
+    function open_line_block(end_line) { block_end_line = end_line; pending_lines = 1; pending_prose = 0; hold(0) }
+    BEGIN {
+      BLANK = "^[ \t]*$"
+      DIRECTIVE = "eslint-|tslint|jshint|ts-expect-error|ts-ignore|@ts-|type: *ignore|noqa|phpcs:|phpstan-|psalm-|prettier-ignore|biome-ignore|stylelint-|pylint:|rubocop:|nolint|golangci|istanbul ignore|c8 ignore|codecoverageignore|shellcheck|coverage:"
+      slash_lang = has("js jsx ts tsx mjs cjs vue svelte php go rs java kt kts swift scala dart c h cpp hpp cc cs m mm groovy scss less tf")
+      star_lang = slash_lang || has("css sql")
+      hash_lang = has("py rb sh bash zsh pl ex exs jl r tf graphql php dockerfile make")
+      dash_lang = has("sql lua"); html_lang = has("vue svelte blade"); jsx_lang = has("js jsx ts tsx")
+      shell = has("sh bash zsh"); heredoc_lang = shell || has("rb pl tf"); elixir = has("ex exs")
+      python = (lang == "py"); php = (lang == "php"); interpolating = (elixir || lang == "rb")
+      raw_quote = (lang == "go") ? "`" : (has("kt kts java swift scala dart groovy") ? "\"\"\"" : "")
+      HEREDOC = "<<[-~]?" (shell ? "[ \t]*" : "") "(\"[^\"]+\"|\047[^\047]+\047|" (shell ? "\\\\?[A-Za-z_!][^ \t;&|<>()\"\047]*" : "[A-Za-z_][A-Za-z0-9_]*") ")"
+    }
+    FNR == 1 { if (seen_file) emit(); seen_file = 1; reset(); sub(/^\357\273\277/, "") }
+    # Not scanned: the per-character loops below are quadratic in line length under BSD awk and busybox awk.
+    length($0) > 20000 { code_lines++; next }
+    {
+      line = $0; sub(/\r$/, "", line)
+      text = line; sub(/^[ \t]+/, "", text)
+      if (text == "") next
+      if (block_end_line != "") {
+        if (line ~ block_end_line) {
+          comment_lines += pending_lines + 1; prose_lines += hold(pending_prose)
+          pending_lines = pending_prose = 0; block_end_line = ""
+        } else { pending_lines++; pending_prose += (line ~ /^=[A-Za-z]/) ? 0 : is_prose(text, 0); hold(0) }
+        next
+      }
+      if (block_end != "") {
+        at = index(text, block_end)
+        if (!at) { pending_lines++; pending_prose += is_prose(text, block_star); hold(0); next }
+        comment_lines += pending_lines; prose_lines += hold(pending_prose); pending_lines = pending_prose = 0
+        rest = substr(text, at + length(block_end)); block_end = ""
+        if (rest ~ block_tail) comment_line(substr(text, 1, at - 1), block_star)
+        else { if (php && index(rest, "?>")) php_began_outside(rest); code_line(rest) }
+        next
+      }
+      if (heredoc_at <= heredoc_count) {
+        code_lines++; candidate = line
+        if (heredoc_indented[heredoc_at]) { if (shell) sub(/^\t+/, "", candidate); else candidate = text }
+        if (candidate == heredoc_end[heredoc_at]) heredoc_at++
+        next
+      }
+      if (py_string != "") { code_lines++; if (index(text, py_string)) py_string = py_scan(text, py_string); next }
+      if (in_raw_string) { code_lines++; if (index(text, raw_quote) && gsub(raw_quote, "", text) % 2) in_raw_string = 0; next }
+      if (php && text ~ /^(<\?(php)?|\?>)[ \t]*$/) { php_began_outside(text); comment_lines++; next }
+      if (php && ((index(text, "<?") || index(text, "?>")) ? php_began_outside(text) : php_mode == "html")) { code_line(text); next }
+      two = substr(text, 1, 2); four = substr(text, 1, 4)
+      if (two == "//" && slash_lang) comment_line(text, 0)
+      else if (two == "/*" && star_lang && !(lang == "sql" && substr(text, 3, 1) ~ /[+!]/)) open_block(substr(text, 3), "*/", 1, BLANK)
+      else if (substr(text, 1, 1) == "#" && hash_lang && !(php && two == "#[") && !(interpolating && two == "#{")) comment_line((FNR > 1 || two != "#!") ? text : "", 0)
+      else if (four == "--[[" && lang == "lua") open_block(substr(text, 5), "]]", 0, BLANK)
+      else if (two == "--" && dash_lang) comment_line(text, 0)
+      else if (four == "<!--" && html_lang) open_block(substr(text, 5), "-->", 0, BLANK)
+      else if (four == "{{--" && lang == "blade") open_block(substr(text, 5), "--}}", 0, BLANK)
+      else if (substr(text, 1, 3) == "{/*" && jsx_lang) open_block(substr(text, 4), "*/", 1, "^[ \t]*[}][ \t]*$")
+      # line, not text: =begin and POD open at column 0 only, and an indented =word continues an assignment.
+      else if (lang == "rb" && line ~ /^=begin([ \t]|$)/) open_line_block("^=end([ \t]|$)")
+      else if (lang == "pl" && line ~ /^=[A-Za-z]/ && line !~ /^=cut([^A-Za-z]|$)/) open_line_block("^=cut([^A-Za-z]|$)")
+      else if (elixir && text ~ /^@(doc|moduledoc)[ \t]+"""[ \t]*$/) open_block("", "\"\"\"", 0, BLANK)
+      else if (python && !in_header && (module_top || after_header) && text ~ /^[rRuU]?("""|\047\047\047)/) {
+        at = (text ~ /^[rRuU]/) ? 2 : 1; module_top = after_header = 0
+        open_block(substr(text, at + 3), substr(text, at, 3), 0, BLANK)
+      }
+      else code_line(text)
+    }
+    END { if (seen_file) emit(); else if (ARGC < 2) print "0 0 0" }
+  ' "$@" 2>/dev/null
+}
+
+cd_governed_extension() {
+  case "$1" in
+    *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.vue|*.svelte) ;;
+    *.php|*.py|*.rb|*.go|*.rs|*.java|*.kt|*.kts|*.swift|*.scala|*.dart) ;;
+    *.c|*.h|*.cpp|*.hpp|*.cc|*.cs|*.m|*.mm) ;;
+    *.sh|*.bash|*.zsh|*.pl|*.lua|*.ex|*.exs|*.jl|*.r|*.groovy) ;;
+    *.sql|*.css|*.scss|*.less|*.graphql|*.tf) ;;
+    *.dockerfile|*.mk) ;;
+    *) return 1 ;;
+  esac
+}
+
+# One list for both guards; a build file has no extension, so it is matched by basename.
+cd_governed() {
+  cd_governed_extension "$1" && return 0
+  case "${1##*/}" in
+    Dockerfile|Dockerfile.*|Containerfile|Containerfile.*|Makefile|GNUmakefile) ;;
+    *) return 1 ;;
+  esac
 }
