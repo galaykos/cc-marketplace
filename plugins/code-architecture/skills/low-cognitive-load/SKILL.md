@@ -75,6 +75,41 @@ Narrow variable lifetime: declare as close to first use as possible, and let var
 of scope (return early, use a block) as soon as they're no longer needed rather than keeping
 a wide, long-lived set of mutable locals that all interact by the end of the function.
 
+## Before new code: the reach order
+
+Read the code the change touches first, then build on the first step below that covers the
+need; the order picks what to build on and never excuses skipping the read.
+
+1. **Nothing** — the need is not real yet; `yagni-check` decides.
+2. **This repository** — search for a function, type or pattern that already does it, then
+   confirm it is alive (`reuse-hygiene`, when code-review is installed).
+3. **The standard library, then the platform under it** — what the browser, the database or
+   the OS already does.
+4. **An already-installed dependency** — adding a new one is a build-vs-buy decision, which
+   the `approaches` plugin covers when installed.
+5. **New code** — the least that satisfies the ask (`plan-before-code`'s surgical-edits reference).
+
+A step covers the need only when it is right on the edge cases the requirement has. The order
+never cuts a trust-boundary check, handling that guards against data loss, a security control,
+a baseline accessibility behaviour, or a thing the user named. Shorter is not a step: a plain
+longer version beats a terse one (`references/kiss-dry.md`).
+
+```
+// Hand-rolled: two concurrent sign-ups both pass the check
+if (await users.findByEmail(email)) throw new EmailTaken();
+await users.insert({ email });
+
+// Step 3, the database — needs a unique index on users.email, which holds under the race
+try { await users.insert({ email }); }
+catch (e) { throw isUniqueViolation(e) ? new EmailTaken() : e; }
+```
+
+Standing: **recorded** — nothing checks that the order was walked (adapted from
+dietrichgebert/ponytail v4.10.0, MIT). Reach: before code exists, only `coding-entry` loads this
+section, beside the description's own match; after an edit, skill-router (when installed)
+suggests it on .ts and .js source files (not config, .d.ts, .min.js or dotfiles), .py, .go, .rb
+and .rs files, not .php, .tsx, .vue or .java.
+
 ## KISS and DRY
 
 Read `references/kiss-dry.md` when the specific question is duplication or over-design:

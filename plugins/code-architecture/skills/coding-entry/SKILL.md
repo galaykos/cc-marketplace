@@ -21,7 +21,7 @@ regardless of stack or surface. Five:
 - `code-review:comment-discipline` — where each fact belongs
 - `testing:testing-best-practices` — what to test, and its `proportionality.md` for how much
 - `code-architecture:plan-before-code` — which files change, before they do
-- `code-architecture:low-cognitive-load` — the destinations a comment's content moves to
+- `code-architecture:low-cognitive-load` — the destinations a comment's content moves to, and the reach order before new code
 - `code-review:code-smells` — the catalogue
 
 **Prime** means emit the resolved absolute path as an instruction to read it when that

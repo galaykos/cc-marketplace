@@ -20,6 +20,10 @@ version in their `plugin.json`.
   exactly, now also on short files and on shell, SQL and CSS; stack-scan 0.11.2 carries the new figure in plugin-scout's catalog.**
   A project that documents every public API raises it with `COMMENT_DISCIPLINE_CEILING_TENTHS` (at 5, still 13% to 30% of the
   Python, Ruby and JDK library files measured are refused); 4 restores only the old number.
+- **code-architecture 0.17.0, code-review 0.27.0, debugging 0.6.0 — rules folded from dietrichgebert/ponytail v4.10.0 (MIT), rewritten,
+  nothing pasted:** a reach order before new code, ranked proposals and a `net:` close for `/code-architecture:yagni`, a
+  "Reinvented shelf" smell, a counted `shortcut:` comment form, and a bug fix that weighs every caller of the function it touches. code-architecture's and
+  code-review's CHANGELOGs have the detail; the effect on what the model writes is unmeasured.
 
 ## [0.119.0] - 2026-10-01
 

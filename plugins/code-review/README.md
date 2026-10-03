@@ -67,6 +67,8 @@ export-aware orphan detection, deprecated-reference report) when a quick read
 cannot settle it. The two split cleanly: `code-smells` catalogs dead code as a
 **review finding**; `reuse-hygiene` is the check you run **before** reusing.
 
+Credit: the "Reinvented shelf" smell, the `shortcut: <the limit>; revisit when <trigger>` comment form and the debt lane's `shortcuts` count adapt rules from [dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) v4.10.0 (MIT), rewritten here rather than copied.
+
 ## Comment discipline (merged in on 2026-09-02) <!-- removed-ok -->
 
 **The default is no comment.** The `comment-discipline` skill routes every fact to the

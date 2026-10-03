@@ -30,6 +30,8 @@ suite is green; the reproduction graduates into a regression test. Three
 failed fix cycles stop the run and question the diagnosis instead of
 attempting a fourth.
 
+Credit: the caller rule in `systematic-debugging`'s fix section adapts a rule from [dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) v4.10.0 (MIT), rewritten here rather than copied.
+
 ## Hooks
 
 | Event | Script | What it does |

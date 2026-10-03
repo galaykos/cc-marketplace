@@ -13,7 +13,12 @@ description), or the current uncommitted diff if no argument is given. Steps:
    speculative rather than serving a real current caller.
 3. List each violation found as `path:line — what — why it's speculative`.
 4. For each violation, propose a concrete deletion or simplification (what to remove or inline,
-   and what the resulting simpler code looks like).
+   and what the resulting simpler code looks like). On a directory scope, rank the proposals by
+   lines removed, largest first; when code-review is installed, its `reuse-hygiene` deep pass
+   supplies dead-symbol evidence. Always, even with no violation, close with
+   `net: −N lines, −M dependencies` summed over the proposals, where M counts only a dependency
+   every use of which a proposal removes; print
+   `net: −0 lines` when nothing was found, and omit the dependency half for a design description.
 5. Do not flag genuine handling of current, real requirements (error handling, validation,
    tests) — only flag flexibility with no current caller or need. (Admission law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 

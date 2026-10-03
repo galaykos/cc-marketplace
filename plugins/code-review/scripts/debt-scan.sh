@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Technical-debt ratchet. Counts five language-agnostic debt categories, compares
+# Technical-debt ratchet. Counts six language-agnostic debt categories, compares
 # them against a committed baseline, and exits non-zero when any category GREW.
 #
 # The ratchet is the whole value. Asked to "inventory our technical debt", a model
@@ -56,13 +56,16 @@ command -v jq >/dev/null 2>&1 || { printf 'debt-scan: jq required\n' >&2; exit 3
 # cannot tolerate.
 PRUNE='-name node_modules -o -name vendor -o -name .git -o -name dist -o -name build -o -name .venv -o -name target -o -name __pycache__'
 
-scan() { # extended-regex -> count
+files() {
   find "$dir" \( $PRUNE \) -prune -o -type f \
     \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -o -name '*.mjs' \
        -o -name '*.php' -o -name '*.py' -o -name '*.go' -o -name '*.rb' -o -name '*.java' \
        -o -name '*.kt' -o -name '*.rs' -o -name '*.cs' -o -name '*.vue' -o -name '*.svelte' \) \
-    -print0 2>/dev/null \
-  | xargs -0 grep -cEh "$1" 2>/dev/null \
+    -print0 2>/dev/null
+}
+
+scan() { # extended-regex -> count
+  files | xargs -0 grep -cEh "$1" 2>/dev/null \
   | awk '{s+=$1} END {print s+0}'
 }
 
@@ -86,12 +89,15 @@ P_DEPRECATED='@deprecated|Deprecated\(|DeprecationWarning'
 #    read one back. This counts the flags that carry one at all; the date check is
 #    reported separately below.
 P_FLAG='(feature_?flag|isEnabled\(|featureEnabled\(|flags?\.[a-zA-Z_]+ *(===|==) *true|LaunchDarkly|unleash)'
+# 6. DELIBERATE SHORTCUTS — comment-led, so prose that merely says "shortcut:" is not one.
+P_SHORTCUT='(#|//|--|/\*)[[:space:]]*shortcut:'
 
 suppress=$(scan "$P_SUPPRESS")
 skipped=$(scan "$P_SKIP")
 todo=$(scan "$P_TODO")
 deprecated=$(scan "$P_DEPRECATED")
 flags=$(scan "$P_FLAG")
+shortcuts=$(scan "$P_SHORTCUT")
 
 current=$(jq -nc \
   --argjson suppressions "$suppress" \
@@ -99,14 +105,15 @@ current=$(jq -nc \
   --argjson bare_markers "$todo" \
   --argjson deprecated_refs "$deprecated" \
   --argjson feature_flags "$flags" \
-  '{suppressions:$suppressions,skipped_tests:$skipped_tests,bare_markers:$bare_markers,deprecated_refs:$deprecated_refs,feature_flags:$feature_flags}')
+  --argjson shortcuts "$shortcuts" \
+  '{suppressions:$suppressions,skipped_tests:$skipped_tests,bare_markers:$bare_markers,deprecated_refs:$deprecated_refs,feature_flags:$feature_flags,shortcuts:$shortcuts}')
 
 printf '%-18s %8s %10s %8s\n' category current baseline delta
 have_baseline=0
 [ -f "$baseline" ] && jq empty "$baseline" 2>/dev/null && have_baseline=1
 
 grew=0
-for k in suppressions skipped_tests bare_markers deprecated_refs feature_flags; do
+for k in suppressions skipped_tests bare_markers deprecated_refs feature_flags shortcuts; do
   cur=$(printf '%s' "$current" | jq -r --arg k "$k" '.[$k]')
   if [ "$have_baseline" -eq 1 ]; then
     base=$(jq -r --arg k "$k" '.[$k] // empty' "$baseline")
@@ -121,6 +128,20 @@ for k in suppressions skipped_tests bare_markers deprecated_refs feature_flags; 
     printf '%-18s %8s %10s %8s\n' "$k" "$cur" "-" "-"
   fi
 done
+
+# Reported, never ratcheted, like --age: a shortcut nobody set a trigger for is the one to read.
+# A NUL ends the path, as a path may hold ":12:"; tr turns it into \001 because awk cannot read a NUL.
+files | xargs -0 grep -anHE --null "$P_SHORTCUT" 2>/dev/null | tr '\000' '\001' | awk '
+  {
+    i = index($0, "\001"); p = substr($0, 1, i - 1); r = substr($0, i + 1)
+    j = index(r, ":"); l = substr(r, 1, j - 1); r = substr(r, j + 1)
+    if (match(r, /(#|\/\/|--|\/\*)[ \t]*shortcut:/)) r = substr(r, RSTART)
+    m = substr(r, index(r, "shortcut:"))
+    if (index(tolower(m), "; revisit when ")) next
+    if (++n == 1) print "\nshortcut markers with no \"; revisit when\" trigger:"
+    if (n <= 40) printf "  %s:%s  %s\n", p, l, substr(m, 1, 120)
+  }
+  END { if (n > 40) printf "  +%d more\n", n - 40 }'
 
 # Age is reported, never ratcheted: "340 TODOs" is a number nobody acts on;
 # "11 of them are older than two years, 3 in payments" is a decision.

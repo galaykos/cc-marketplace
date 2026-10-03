@@ -83,6 +83,12 @@ fix is an opinion; do not report opinions.
   nobody sets, hooks nobody calls. Risk: cognitive tax on every reader.
   Fix: inline to the concrete case (the yagni-check skill in
   code-architecture owns the deep version of this call).
+- Reinvented shelf. Cue: hand-rolled code, or a dependency imported for one
+  call, doing what the standard library, the platform (browser, database, OS)
+  or an already-installed dependency ships. Risk: the copy misses edge cases
+  the shelf version handles, and every fix to it is yours. Fix: name the
+  function or feature that replaces it. Standing: agent-graded, like the
+  rest of this catalog — the review's smell pass applies it.
 - Comment as deodorant. Cue: a comment explaining WHAT confusing code does.
   Risk: comment rots, confusion stays. Fix: rename and extract until the
   comment is redundant; keep only constraint-comments (the WHY). The

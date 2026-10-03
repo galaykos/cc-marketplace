@@ -13,14 +13,20 @@ Review the code change in $ARGUMENTS. Resolve scope in this order:
 
 **Debt lane** (`/code-review:review --debt`, or on request): instead of the diff
 review, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/debt-scan.sh --dir . --age` and
-report the table it prints. Five categories — suppressions, skipped tests, bare
-markers, deprecated-symbol references, feature flags — counted, compared against
-`.claude/debt-baseline.json`, with `--age` resolving first-seen dates by git
-pickaxe. Two things to say and neither is the count: which categories GREW, and
-which markers are oldest. "340 TODOs" is a number nobody acts on; "11 older than
-two years, 3 of them in payments" is a decision. If no baseline exists, say that
-`--update-baseline` starts the ratchet and that the first run only establishes a
-line to hold — do not present the initial numbers as findings.
+report the table it prints. Six categories — suppressions, skipped tests, bare
+markers, deprecated-symbol references, feature flags, `shortcut:` markers — counted,
+compared against `.claude/debt-baseline.json`, with `--age` resolving first-seen dates
+by git pickaxe. Below the table it lists each `shortcut:` marker with no `; revisit when`
+trigger — reported, never ratcheted; a baseline written before the sixth category shows
+`-` for it and cannot fail. The shortcut count misses a ` * shortcut:` docblock line
+and a capitalised `Shortcut:` or `SHORTCUT:` (the form is lowercase), counts a string
+holding `// shortcut:`, and never reads file types outside the scan's extension list
+(`.sh`, `.sql`, `.css` among them). Three things to say and none is the count: which
+categories GREW, which markers are oldest, and which `shortcut:` markers carry no
+trigger. "340 TODOs" is a number nobody acts on; "11 older than two years, 3 of them
+in payments" is a decision. If no baseline exists, say that `--update-baseline`
+starts the ratchet and that the first run only establishes a line to hold — do not
+present the initial numbers as findings.
 
 Standing of the ratchet: `unenforceable` as a gate against the model itself —
 `--update-baseline` is runnable by any session, so the line can be reset by the

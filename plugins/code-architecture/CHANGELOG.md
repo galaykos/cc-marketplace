@@ -2,6 +2,29 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.17.0 — 2026-10-03
+
+### Added
+- **`low-cognitive-load` gains "Before new code: the reach order".** Read the code the change
+  touches, then build on the first step that covers the need: nothing, this repository (search,
+  then confirm the symbol is alive), the standard library and then the platform under it, an
+  already-installed dependency, and only then new code. A step counts only when it is right on
+  the requirement's edge cases; the order never cuts a trust-boundary check, data-loss
+  handling, a security control, baseline accessibility, or a thing the user named; shorter is
+  not a step. Nothing ordered these steps before, and "search this repository first" and "the
+  platform after the standard library" were carried nowhere. Standing: recorded. Reach: before
+  code exists only `coding-entry` loads the section (its gloss now names it); after an edit
+  skill-router, when installed, suggests the skill on six globs — not .php, .tsx, .vue or .java.
+- **`/code-architecture:yagni` ranks and nets.** A directory scope ranks proposals by lines
+  removed, largest first, with code-review's `reuse-hygiene` deep pass as dead-symbol evidence
+  when code-review is installed; the report closes with `net: −N lines, −M dependencies`
+  (`net: −0 lines` when nothing was found), M counting only dependencies a proposal removes
+  every use of, and omitted for a design description.
+
+Both adapt rules from dietrichgebert/ponytail v4.10.0 (MIT), rewritten in this marketplace's
+voice; nothing upstream is copied. Their effect on what the model writes is unmeasured — no eval
+runs them with a control arm.
+
 ## 0.16.5 — 2026-09-25
 
 ### Fixed

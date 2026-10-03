@@ -5,7 +5,9 @@ SOLID applied with judgment, task orchestration, work verification, and
 low-cognitive-load code. KISS/DRY and the surgical-edit discipline (surface
 assumptions, every changed line traces to the request, clean up your own
 orphans — after Karpathy's LLM-coding guidelines) travel as references of the
-two skills that own them, not as separate always-on triggers.
+two skills that own them, not as separate always-on triggers. The reach order in
+`low-cognitive-load` and the ranked `net:` close of `/code-architecture:yagni` adapt
+rules from dietrichgebert/ponytail (MIT, v4.10.0).
 
 Owns structure at both levels. Code: units, interfaces, file placement. System:
 service boundaries drawn on data ownership, scaling paths, cache placement, sync vs

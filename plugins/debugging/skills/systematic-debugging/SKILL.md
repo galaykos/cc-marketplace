@@ -104,7 +104,15 @@ The fix must follow FROM the diagnosis: "the root cause is A, therefore the
 change is B", stated so a reviewer nods. If the fix does not obviously follow,
 the diagnosis is not finished.
 
-Verification is two-part, both mandatory:
+List every caller of the function the fix touches: a guard at the reported call site
+repairs one path. When every listed caller wants the corrected behavior, fix the function
+they share; otherwise fix the reported path and name the callers left unfixed. When the
+callers cannot be listed (an exported API, dynamic dispatch), fix the reported path and
+say so in the report. Listing is reading, not fixing: the change stays minimal, and a
+shared fix that needs a decision you were not given is reported with its options, not made.
+Standing: recorded.
+
+Verification is three-part, all mandatory:
 
 1. The ORIGINAL Phase 1 reproduction now passes — not a related test, not a
    re-description of it, the exact one.
@@ -142,7 +150,8 @@ root-cause fix they are camouflage — the bug remains, now harder to see.
 Name which kind of fix shipped; never let one impersonate the other:
 
 - **Cause fix**: root cause stated, with the evidence chain — repro →
-  experiments → diagnosis → fix → verification output.
+  experiments → diagnosis → fix → verification output — and the callers left
+  unfixed or unlistable.
 - **Symptom fix**: pressure relieved, cause still at large — list what was
   ruled out and what investigation remains. Legitimate under fire, dishonest
   when unlabeled.

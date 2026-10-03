@@ -9,8 +9,7 @@
 # no-op on every repo that never ran --update-baseline, which is all of them on
 # day one.
 set -u
-cd "$(dirname "$0")/../../../.." || exit 1
-SCAN=plugins/code-review/scripts/debt-scan.sh
+SCAN="$(cd "$(dirname "$0")/.." && pwd)/debt-scan.sh"
 rc=0
 FX=$(mktemp -d); trap 'rm -rf "$FX"' EXIT
 mkdir -p "$FX/src"
@@ -32,6 +31,7 @@ it.skip('broken', () => {})
 /** @deprecated use b() */
 export function a() {}
 if (flags.newCheckout === true) {}
+// shortcut: global lock; revisit when throughput matters
 EOF
 
 # --check with no baseline must NOT pass — a ratchet with nothing to compare
@@ -40,8 +40,8 @@ expect "check with no baseline exits 3" 3 --dir "$FX" --baseline "$FX/none.json"
 
 expect "update-baseline succeeds" 0 --dir "$FX" --baseline "$FX/base.json" --update-baseline
 
-# all five categories must be present and non-zero for the seeded fixture
-for k in suppressions skipped_tests bare_markers deprecated_refs feature_flags; do
+# all six categories must be present and non-zero for the seeded fixture
+for k in suppressions skipped_tests bare_markers deprecated_refs feature_flags shortcuts; do
   v=$(jq -r --arg k "$k" '.[$k] // "missing"' "$FX/base.json")
   if [ "$v" != "missing" ] && [ "$v" -gt 0 ] 2>/dev/null; then
     echo "PASS: category $k detected ($v)"
@@ -92,6 +92,53 @@ printf '// TODO vendored\n// @ts-ignore\n' > "$FX/node_modules/pkg/index.ts"
 expect "node_modules excluded" 0 --dir "$FX" --baseline "$FX/base.json" --check
 
 expect "missing directory exits 3" 3 --dir "$FX/nope" --check
+
+# Shortcut cases run after every scan of $FX itself, so their trees stay out of its counts.
+is() { # label got want
+  if [ "$2" = "$3" ]; then echo "PASS: $1 ($2)"
+  else echo "FAIL: $1 — want $3, got $2"; rc=1; fi
+}
+shortcuts_in() { # dir -> the shortcuts count its fresh baseline records
+  bash "$SCAN" --dir "$1" --baseline "$1/b.json" --update-baseline >/dev/null 2>&1
+  jq -r '.shortcuts // "missing"' "$1/b.json" 2>/dev/null
+}
+
+SC="$FX/sc"; mkdir -p "$SC"
+printf '%s\n' '// shortcut: global lock; revisit when throughput matters' '// shortcut: no pool; REVISIT WHEN load grows' > "$SC/a.ts"
+echo 'retries = 0  # shortcut: no backoff' > "$SC/b.py"
+printf '%s\n' '/* shortcut: a */' '<!-- shortcut: b -->' > "$SC/c.vue"
+is "shortcut markers counted" "$(shortcuts_in "$SC")" 5
+
+out=$(bash "$SCAN" --dir "$SC" --baseline "$SC/b.json" 2>&1)
+is "no-trigger list names a marker without '; revisit when'" "$(printf '%s\n' "$out" | grep -c 'b.py:1  shortcut: no backoff$')" 1
+is "no-trigger list leaves out a marker with '; revisit when', in any case" "$(printf '%s\n' "$out" | grep -cE 'global lock|no pool')" 0
+
+jq 'del(.shortcuts)' "$SC/b.json" > "$SC/old.json"
+out=$(bash "$SCAN" --dir "$SC" --baseline "$SC/old.json" --check 2>&1); got=$?
+is "baseline without shortcuts passes --check and prints -" \
+  "$got $(printf '%s\n' "$out" | grep -cE '^shortcuts +5 +- +-$')" "0 1"
+
+echo '// shortcut: skip the cache' >> "$SC/a.ts"
+expect "growth in shortcuts fails --check" 2 --dir "$SC" --baseline "$SC/b.json" --check
+
+PR="$FX/prose"; mkdir -p "$PR"
+echo 'const tip = "Press the shortcut: Ctrl+K";' > "$PR/a.ts"
+is "shortcut: in prose outside a comment not counted" "$(shortcuts_in "$PR")" 0
+
+ED="$FX/edge"; mkdir -p "$ED/sub:12:dir"
+echo '// shortcut: c' > "$ED/sub:12:dir/a.ts"
+printf '// shortcut: d\n\000\n' > "$ED/nul.ts"
+echo 'const s = "shortcut: a; revisit when b"; // shortcut: e' > "$ED/str.ts"
+out=$(bash "$SCAN" --dir "$ED" --baseline "$ED/b.json" 2>&1)
+is "no-trigger list keeps a path holding :12: whole" "$(printf '%s\n' "$out" | grep -c '/sub:12:dir/a.ts:1  shortcut: c$')" 1
+is "no-trigger list reads a file holding a NUL byte" "$(printf '%s\n' "$out" | grep -c '/nul.ts:1  shortcut: d$')" 1
+is "trigger check starts at the comment-led marker, not a string before it" "$(printf '%s\n' "$out" | grep -c '/str.ts:1  shortcut: e$')" 1
+
+LG="$FX/long"; mkdir -p "$LG"
+awk 'BEGIN { for (i = 0; i < 41; i++) { printf "// shortcut: "; for (j = 0; j < 130; j++) printf "x"; print "" } }' > "$LG/a.ts"
+out=$(bash "$SCAN" --dir "$LG" --baseline "$LG/b.json" 2>&1)
+is "no-trigger list keeps 40 entries cut at 120 characters" "$(printf '%s\n' "$out" | grep -cE 'shortcut: x{110}$')" 40
+is "no-trigger list counts the rest as +N more" "$(printf '%s\n' "$out" | grep -c '^  +1 more$')" 1
 
 [ "$rc" -eq 0 ] && echo "All debt-scan fixtures passed."
 exit "$rc"
