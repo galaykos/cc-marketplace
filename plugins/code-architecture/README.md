@@ -7,7 +7,10 @@ assumptions, every changed line traces to the request, clean up your own
 orphans — after Karpathy's LLM-coding guidelines) travel as references of the
 two skills that own them, not as separate always-on triggers. The reach order in
 `low-cognitive-load` and the ranked `net:` close of `/code-architecture:yagni` adapt
-rules from dietrichgebert/ponytail (MIT, v4.10.0).
+rules from dietrichgebert/ponytail (MIT, v4.10.0). Depth as the measure of a split and the
+glossary's canonical term in `low-cognitive-load`, and the written glossary in
+`domain-modeling`, adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock);
+their effect is unmeasured.
 
 Owns structure at both levels. Code: units, interfaces, file placement. System:
 service boundaries drawn on data ownership, scaling paths, cache placement, sync vs

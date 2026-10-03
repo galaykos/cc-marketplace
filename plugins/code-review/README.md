@@ -68,6 +68,7 @@ cannot settle it. The two split cleanly: `code-smells` catalogs dead code as a
 **review finding**; `reuse-hygiene` is the check you run **before** reusing.
 
 Credit: the "Reinvented shelf" smell, the `shortcut: <the limit>; revisit when <trigger>` comment form and the debt lane's `shortcuts` count adapt rules from [dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) v4.10.0 (MIT), rewritten here rather than copied.
+The "Mysterious name" smell, the decision-record test and required call order in `comment-discipline`, and a repo's contributing or coding-standards doc as a convention source (the review's convention pass, `conventions.sh`'s `standards:` line) adapt rules from [mattpocock/skills](https://github.com/mattpocock/skills) v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied; their effect on what the model writes is unmeasured.
 
 ## Comment discipline (merged in on 2026-09-02) <!-- removed-ok -->
 
@@ -75,7 +76,7 @@ Credit: the "Reinvented shelf" smell, the `shortcut: <the limit>; revisit when <
 artifact that cannot lie about it — a name, a type, a test, an extracted function — and
 spends a one-line comment only on what has nowhere else to live: why-not-the-obvious-way,
 external constraints with a link, intentional-silence markers, and docblock facts a
-signature cannot express (units, ownership, what throws). A docblock that repeats the
+signature cannot express (units, ownership, what throws, required call order). A docblock that repeats the
 signature is deleted. Only a house style the project states in its `CLAUDE.md` overrides
 the default; a heavily commented neighbour does not.
 
@@ -272,7 +273,17 @@ against a nudge only its parent saw. Since 0.23.0 it also fires when a Bash comm
 writes an existing code file under the project root (a redirect, a heredoc, `tee`,
 `sed -i`/`perl -i`; interpreter writes, `cp`/`mv` and a path held in a variable are not
 parsed), and it reads the configs at the project root rather than the shell's cwd.
-`CC_CONVENTIONS=off` silences just this one.
+Since 0.28.0 it also names a repo's prose standards doc on its own `standards:` line —
+`CONTRIBUTING.md`, `.github/CONTRIBUTING.md`, `docs/CONTRIBUTING.md`, `CODING_STANDARDS.md`,
+`docs/CODING_STANDARDS.md` or `STYLEGUIDE.md`, the path only — as a source for naming,
+structure and idiom, never for comment volume or docblock style. A repo with only such a
+doc now gets the hint, without the CI paragraph. Other names and lowercase variants
+(`contributing.md`) are not detected, except on a case-insensitive filesystem (macOS's
+default), where a lowercase file matches and is printed under the upper-case name.
+Standing: the line is a **gate** through the plugin's harness
+(`scripts/__tests__/conventions-hook.test.sh`) for `CONTRIBUTING.md` and
+`docs/CODING_STANDARDS.md`; the other four paths share that code untested; whether a review applies the doc is
+**agent-graded**. `CC_CONVENTIONS=off` silences just this one.
 
 ## Review-debt nudge
 

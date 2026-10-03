@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.43.0 — 2026-10-03
+
+- **Every dispatch states its done-when:** delegation-contracts' prompt contract gains a bullet — a bar the agent can check and cannot meet early ("every caller of parse() listed with path and line", not "find the callers"), because a vague bar is where a worker stops short. Standing: recorded; `scripts/dispatch-lint.sh` does not check for it.
+- The rule adapts one from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied. Its effect is unmeasured: no run compared dispatches with and without it.
+
 ## 0.42.2 — 2026-10-01
 
 - **The scope-lock hook reads a write after a lone `&`:** the shared `cc_bash_write_targets` block now ends a command at a lone `&`, so a write after one is read (`echo x & sed -i s/a/b/ f.json` used to return nothing) and words after one are no longer taken for `sed`/`perl`/`tee` operands; `cmd |& tee f` is read; a `-`-led file after `sed … --` or `perl -i` is returned. So a file the second command writes is checked against the card's declared files.

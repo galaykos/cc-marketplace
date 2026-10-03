@@ -43,6 +43,11 @@ A reader shouldn't have to keep a private lookup table in their head ("`d` is th
 the count of active sessions"). Name things for what they hold or do, in the vocabulary of the
 problem domain, not the vocabulary of the implementation ("`temp`", "`data2`", "`flag`").
 
+When the code's bounded context keeps a glossary (a `GLOSSARY.md` at the context's root, or the
+repo root for a single context), take its canonical term over any synonym it retires, and over
+a neighbour's naming too: that neighbour is a local convention that is itself the problem, so
+flag it for a deliberate rename, as the next paragraph says. Standing: **recorded**.
+
 Names also read against their neighbors: match the surrounding file's naming and idiom
 rather than importing a house style of your own. A file where one function speaks a
 different dialect makes the reader ask what the difference MEANS — and the answer
@@ -63,7 +68,12 @@ integration work the code should have done for them.
 - Prefer a slightly longer function with the logic visible over scattering it across
   many tiny one-line wrapper functions that exist only to satisfy a style rule.
   If the reader has to open several other files just to trace one call, the split has
-  gone past the point of paying for itself.
+  gone past the point of paying for itself. Weigh a split by its depth: what a caller must
+  learn to use the unit — its signature, the call order it requires, its error modes, the
+  config it needs — against what the unit gets done for them. A unit whose interface is as
+  wide as its body is a pass-through: inline it — unless it is the seam at a genuine boundary
+  (a vendor, a process edge, a slot a test fills), which solid-principles keeps. Standing:
+  **recorded**.
 - Keep configuration/constants near where they're used unless they're genuinely shared
   across many call sites — a single-use constant defined 300 lines away from its one usage
   costs a lookup for no benefit.

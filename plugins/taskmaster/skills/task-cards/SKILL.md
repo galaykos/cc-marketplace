@@ -62,7 +62,14 @@ files span >1 domain. `<contract>` only when the spec has that binding section.
 - One card = one prompt = one sitting. When in doubt, split.
 - Split when: more than ~5 files touched, more than ~300 changed lines expected,
   or the title needs "and". Exception: purely mechanical sweeps (a rename across
-  40 files) stay one card — mechanical breadth is not complexity.
+  40 files) stay one card while the whole sweep lands green in one commit —
+  mechanical breadth is not complexity. When it cannot, sequence it: an expand card
+  adds the new form while the old one still works (Verify: the new form's own test); one
+  card per batch (package, directory), each depending on the expand card, moves callers
+  (Verify: the moved callers' named tests plus a zero count of the old form in that
+  batch); a contract card depending on every batch deletes the old form (Verify: a zero
+  count repo-wide plus the named tests). Batches obey the parallel-group and milestone
+  rules below. Recorded: no lint or reviewer reads ordering intent.
 - Every card ends verifiable. "Part 1: types only" is valid ONLY if something
   checks it (compiles, tests pass); a split whose first half cannot be verified
   is one card pretending to be two.
@@ -113,7 +120,11 @@ files span >1 domain. `<contract>` only when the spec has that binding section.
 - Mark parallel groups — cards with no mutual dependency that touch disjoint
   files. Within a group, put the riskiest card first so failures surface early.
 - Cards coupled through shared work-in-progress state are ordering bugs: merge
-  them or move the shared piece into its own earlier card. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+  them or move the shared piece into its own earlier card. A prefactor gets the same: a
+  behaviour-preserving refactor that makes a later card smaller is its own earlier card.
+  Its Verify names the existing tests that cover the moved code AND one assertion only
+  the refactor makes true — a zero count at the old site, or a named test importing the
+  new location — never a bare suite run (recorded, as the sweep sequencing above). (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## Milestones for big runs
 

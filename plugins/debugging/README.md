@@ -26,11 +26,15 @@ fixes.
 ```
 
 The fix only ships after the original reproduction passes again AND the full
-suite is green; the reproduction graduates into a regression test. Three
+suite is green; the reproduction graduates into a regression test, and one
+that can only sit at a seam shallower than the bug's real call pattern ships with
+that missing seam reported as a structural finding. Three
 failed fix cycles stop the run and question the diagnosis instead of
 attempting a fourth.
 
 Credit: the caller rule in `systematic-debugging`'s fix section adapts a rule from [dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) v4.10.0 (MIT), rewritten here rather than copied.
+
+Credit: the symptom-asserting repro and its failure-rate step, the shrink step, rival explanations before the one hypothesis and the regression-test seam adapt rules from [mattpocock/skills](https://github.com/mattpocock/skills) v1.2.3 (MIT, © 2026 Matt Pocock); the probe tags and the credential redaction came from an earlier (2026-09-02) read of mattpocock/skills. Rewritten here rather than copied; effect unmeasured.
 
 ## Hooks
 

@@ -9,8 +9,7 @@
 # blind control found by opening the file. A summary substitutes for a read, so the
 # fixture below asserts that no setting VALUE appears in the output.
 set -u
-cd "$(dirname "$0")/../../../.." || exit 1
-H=plugins/code-review/hooks/conventions.sh
+H="$(cd "$(dirname "$0")/../.." && pwd)/hooks/conventions.sh"
 rc=0
 FX=$(mktemp -d); trap 'rm -rf "$FX"' EXIT
 
@@ -32,6 +31,9 @@ mkdir -p "$FX/repo/.github/workflows" "$FX/repo/src" "$FX/bare"
 printf 'root = true\n[*]\nindent_style = tab\nquote_type = double\nmax_line_length = 120\n' > "$FX/repo/.editorconfig"
 printf '{"formatter":{"enabled":true}}\n' > "$FX/repo/biome.json"
 printf 'jobs:\n  ci:\n    steps:\n      - run: npx biome check .\n' > "$FX/repo/.github/workflows/ci.yml"
+mkdir -p "$FX/repo/docs"
+printf '# Contributing\n\nZebrafinch rule: every service class ends in Svc.\n' > "$FX/repo/CONTRIBUTING.md"
+printf 'Name modules after the noun they own.\n' > "$FX/repo/docs/CODING_STANDARDS.md"
 
 fire() { # file cwd session -> additionalContext (empty when silent)
   jq -nc --arg f "$1" --arg c "$2" --arg s "$3" \
@@ -57,6 +59,27 @@ done
 if printf '%s' "$out" | grep -q 'CI actually invokes'; then
   echo "PASS: states that CI is authoritative"
 else echo "FAIL: CI-authoritative rule missing"; rc=1; fi
+
+# ---- prose standards docs (0.28.0) --------------------------------------------------
+if printf '%s\n' "$out" | awk '/^  configs:/{c=NR} /^  standards: CONTRIBUTING.md docs\/CODING_STANDARDS.md /{s=NR} END{exit !(c && s == c + 1)}'; then
+  echo "PASS: names present standards docs on their own standards: line after configs:"
+else echo "FAIL: standards docs not on their own line after configs: $out"; rc=1; fi
+if printf '%s' "$out" | grep -qF 'standards: CONTRIBUTING.md' && ! printf '%s' "$out" | grep -qF 'Zebrafinch'; then
+  echo "PASS: a named standards doc's content never appears in the output"
+else echo "FAIL: standards doc unnamed or its content leaked: $out"; rc=1; fi
+
+mkdir -p "$FX/nodoc/src" "$FX/doconly/src"
+printf 'root = true\n' > "$FX/nodoc/.editorconfig"
+o=$(fire "$FX/nodoc/src/a.ts" "$FX/nodoc" std1)
+if [ -n "$o" ] && ! printf '%s' "$o" | grep -qF 'standards:'; then echo "PASS: no standards doc, no standards: line"
+else echo "FAIL: no standards doc: ${o:-<silent>}"; rc=1; fi
+
+printf 'Prefer early returns.\n' > "$FX/doconly/CONTRIBUTING.md"
+o=$(fire "$FX/doconly/src/a.ts" "$FX/doconly" std2)
+printf '%s' "$o" | grep -qF '  standards: CONTRIBUTING.md' && echo "PASS: a repo with only CONTRIBUTING.md fires" \
+  || { echo "FAIL: a repo with only CONTRIBUTING.md: ${o:-<silent>}"; rc=1; }
+if [ -n "$o" ] && ! printf '%s' "$o" | grep -qF 'CI actually invokes'; then echo "PASS: a doc-only repo gets no CI paragraph"
+else echo "FAIL: a doc-only repo: ${o:-<silent>}"; rc=1; fi
 
 # ---- the five non-GitHub CI formats ------------------------------------------------
 # The message tells the reader that whatever CI invokes is the standard. On every GitLab,

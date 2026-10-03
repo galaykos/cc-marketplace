@@ -49,6 +49,11 @@ scope stays agent-graded. Orchestration's review command, which used to wrap
 the lint, was retired with the merge: it reviewed prompts, not code, and the
 lint plus the skill's own checklist are what it ran.
 
+Credit: delegation-contracts' done-when bullet (every dispatch states a bar the worker can
+check and cannot meet early) adapts a rule from
+mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied; its
+effect is unmeasured.
+
 ## Which model runs your cards
 
 - **Workers inherit the session model.** Every worker agent ships `model: inherit`, so a card

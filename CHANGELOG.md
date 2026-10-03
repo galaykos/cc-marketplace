@@ -24,6 +24,14 @@ version in their `plugin.json`.
   nothing pasted:** a reach order before new code, ranked proposals and a `net:` close for `/code-architecture:yagni`, a
   "Reinvented shelf" smell, a counted `shortcut:` comment form, and a bug fix that weighs every caller of the function it touches. code-architecture's and
   code-review's CHANGELOGs have the detail; the effect on what the model writes is unmeasured.
+- **code-review 0.28.0, code-architecture 0.18.0, debugging 0.7.0, git-workflow 0.10.0, hindsight 0.12.0, taskmaster 0.47.0,
+  task-runner 0.43.0 — rules folded from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten, nothing pasted:** a
+  mysterious-name smell; a three-condition test before a decision record; a repo's CONTRIBUTING or coding-standards doc named
+  as a convention source (naming, structure, idiom — never comment volume); depth and a written glossary; a repro that asserts
+  the reported symptom, is shrunk, weighs rival explanations and lands at a replaying seam; PR evidence and a reversibility
+  line; a proposed lint/CI check as a harvest destination; expand–migrate–contract cards; a contradicted prompt, a background
+  lookup and a third-party questionnaire in grill; a done-when in every dispatch. Each plugin's README credits the source; the
+  effect on what the model writes is unmeasured.
 
 ## [0.119.0] - 2026-10-01
 

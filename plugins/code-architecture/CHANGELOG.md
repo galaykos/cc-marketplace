@@ -2,6 +2,25 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.18.0 — 2026-10-03
+
+### Added
+- **`low-cognitive-load` measures a split by depth.** The one-line-wrapper bullet of "Locality
+  of behavior" now weighs what a caller must learn — signature, required call order, error
+  modes, needed config — against what the unit gets done; a unit whose interface is as wide as
+  its body is a pass-through, to be inlined. Standing: recorded.
+- **`low-cognitive-load` takes a glossary's canonical term.** When the repo keeps a glossary,
+  its canonical term wins over a synonym it retires and over a neighbour's naming; renaming the
+  neighbour is the section's existing deliberate-rename rule. Standing: recorded.
+- **`domain-modeling` writes the language down.** A `GLOSSARY.md` at each bounded context's root
+  (the repo root for a single context); an entry is the canonical term, one or two sentences on
+  what it IS, and the synonyms it retires; project terms only, added when the term settles. A
+  class, test title or task using a retired synonym is a finding. Standing: recorded.
+
+All three adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten in this
+marketplace's voice; nothing upstream is copied. Their effect is unmeasured — no eval runs them
+with a control arm.
+
 ## 0.17.0 — 2026-10-03
 
 ### Added

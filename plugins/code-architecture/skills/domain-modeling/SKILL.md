@@ -20,6 +20,14 @@ bugs hide in the gap. Name classes, methods, and events in the domain's words. W
 experts disagree on a word's meaning, that is not a naming quibble — it is two
 bounded contexts arguing to be born.
 
+Write the language down where code can be checked against it: a `GLOSSARY.md` at each
+bounded context's root, or at the repo root when there is one context. An entry is the
+canonical term, one or two sentences on what it IS, and the synonyms it retires. Project
+terms only — general programming vocabulary stays out — and an entry is added when the term
+settles, not while it is still argued. A class, test title or task that uses a retired
+synonym is a finding. Standing: **recorded** — nothing checks code against it; the
+architecture-reviewer applies it only when auditing a design doc.
+
 ## Bounded contexts
 
 A bounded context is the boundary within which a model and its language are

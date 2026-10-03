@@ -79,7 +79,10 @@ read (item 1) and the history pass (item 5) yourself — the built-in does not r
 blame — then the stack fan-in and the merge. The built-in applies neither the
 `code-smells` catalog nor the concern-axis owner rules further down, so the merge
 filters its findings through both before anything is reported, and pre-existing
-smells it raises outside the diff collapse to the one summary note. Everything
+smells it raises outside the diff collapse to the one summary note. Its convention
+findings are judged against CLAUDE.md, the linters and the repo's contributing or
+coding-standards doc when present — that doc for naming, structure and idiom only
+(item 4) — and one drawn from a stated rule names its file and the rule. Everything
 after the pass — fan-in merge, self-refute, `Checked:`, verdict, apply offer — is
 this command's, and **this command emits `ReportFindings` once**; the built-in's
 own emission, if any, is consumed as input, never forwarded. When the skill is
@@ -94,7 +97,12 @@ names which branch ran. Standing: recorded — nothing checks which branch ran.
 3. Smell pass: apply the code-smells skill catalog to the changed code only —
    pre-existing smells outside the diff get one summary note, not findings.
 4. Convention pass: naming, structure, and idiom drift versus the surrounding
-   file and the project's stated conventions (CLAUDE.md, linters, existing code).
+   file and the project's stated conventions (CLAUDE.md, linters, existing code, and
+   the repo's contributing or coding-standards doc when present — `CONTRIBUTING.md`,
+   `CODING_STANDARDS.md` or `STYLEGUIDE.md`, at the root, in `.github/` or in `docs/`).
+   That doc is a source for naming, structure and idiom only, never for comment volume
+   or docblock style, which stay with CLAUDE.md and `comment-discipline`. A finding
+   drawn from a stated rule names its file and the rule.
 5. History pass, when the change edits or removes existing lines: `git log -L` or
    `git blame` on the touched hunks. A line added by a commit whose subject names a
    bug, a workaround, or an incident is a line the diff must not undo without saying

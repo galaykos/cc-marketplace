@@ -306,6 +306,10 @@ EOF
   # pyproject/package.json only count when they actually carry tool config
   [ -f "$root/pyproject.toml" ] && grep -qE '^\[tool\.(ruff|black|isort|mypy)' "$root/pyproject.toml" 2>/dev/null \
     && found="$found pyproject.toml"
+  # Kept apart from $found: a prose doc is not a tool, so it never earns the CI paragraph.
+  std=""
+  for f in CONTRIBUTING.md .github/CONTRIBUTING.md docs/CONTRIBUTING.md CODING_STANDARDS.md \
+           docs/CODING_STANDARDS.md STYLEGUIDE.md; do [ -f "$root/$f" ] && std="$std $f"; done
 
   # The CI lint invocation — authoritative, and not derivable from any config file.
   #
@@ -342,12 +346,13 @@ EOF
   ci_try "$root/azure-pipelines.yaml"    '-?[[:space:]]*script:[[:space:]]*'
   ci_try "$root/bitbucket-pipelines.yml" '-[[:space:]]*'
 
-  [ -n "$found" ] || [ -n "$ci" ] || exit 0
+  [ -n "$found" ] || [ -n "$ci" ] || [ -n "$std" ] || exit 0
 
   msg="[code-review] This project defines its own conventions. Read these before writing more code — the files, not a summary of them:"
   [ -n "$found" ] && msg="$msg$(printf '\n  configs:%s' "$found")"
+  [ -n "$std" ] && msg="$msg$(printf '\n  standards:%s (a source for naming, structure and idiom only, never for comment volume or docblock style)' "$std")"
   [ -n "$ci" ] && msg="$msg$(printf '\n  CI runs: %s' "$ci")"
-  msg="$msg$(printf '\n  Whatever CI actually invokes is the standard; a configured tool CI never runs is decoration. If two formatters are configured, exactly one owns formatting — do not add a third, and never add a second linter to a repo that already has one.')"
+  [ -n "$found$ci" ] && msg="$msg$(printf '\n  Whatever CI actually invokes is the tooling standard; a configured tool CI never runs is decoration. If two formatters are configured, exactly one owns formatting — do not add a third, and never add a second linter to a repo that already has one.')"
 
   jq -cn --arg m "$msg" \
     '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$m}}' 2>/dev/null

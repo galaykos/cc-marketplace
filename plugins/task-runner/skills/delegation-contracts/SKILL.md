@@ -25,6 +25,11 @@ needs must travel inside the prompt itself:
   must say so — the agent cannot infer house rules it has never seen.
 - **The required return shape.** Say exactly what the final message
   must contain: format, per-item structure, length cap.
+- **The done-when.** A bar the agent can check and cannot meet early:
+  "every caller of parse() listed with path and line, past the length cap
+  a count of the rest", not "find the callers". A vague bar is where a
+  worker stops short. Standing: recorded — this plugin's
+  `scripts/dispatch-lint.sh` does not look for one.
 - **The closing instruction.** The final message is data for the
   orchestrator, not prose for a human. Say so explicitly, or you get
   an essay.

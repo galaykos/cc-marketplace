@@ -64,7 +64,9 @@ does not abort the harvest; record the failure and continue.
   when the cluster has evidence from ≥2 distinct sessions.
 - Existing-coverage check, before any proposal reaches the report: grep
   the project's CLAUDE.md, the installed skills' descriptions, and `brain/`
-  when it exists for the rule the candidate states. Already covered → report it as a routing or
+  when it exists for the rule the candidate states — and, for a fixed pattern,
+  the lint config and CI workflows for a check that already enforces it.
+  Already covered → report it as a routing or
   compliance gap ("the rule exists at X and was not followed"), never as
   a new rule — the approving user otherwise sees evidence FOR the rule
   and no evidence it already exists, which is how duplicates accumulate.
@@ -87,7 +89,8 @@ Produce exactly five sections:
    skipped or failed transcripts. When agent rows were mined, add a
    per-`agent_type` line (rows, mean friction, mean errors) — attribution
    of WHERE friction landed, not proof of what caused it.
-2. **CLAUDE.md rule candidates** — one proposed rule line each, backed
+2. **CLAUDE.md rule and check candidates** — one proposed rule line each,
+   or the proposed check for a fixed pattern (apply gate, Rules), backed
    by evidence quotes from ≥2 sessions with session ids.
 3. **Skill/plugin ideas** — recurring chores or missing capabilities
    worth capturing, each with its cross-session evidence. When a cluster's
@@ -114,7 +117,7 @@ Ask via AskUserQuestion with multiSelect, one question per non-empty
 category, each proposal a separate option and every question carrying a
 "Skip this category" option. On approval only:
 
-- Rules → **three destinations, and the pick names which.** A rule that binds the
+- Rules → **four destinations, and the pick names which.** A rule that binds the
   REPO — a convention, a command to run, a constraint any contributor inherits —
   is appended to the project's CLAUDE.md, where it is committed and reviewed in a
   PR. A rule that binds how THIS USER wants to be worked with — a correction they
@@ -131,9 +134,17 @@ category, each proposal a separate option and every question carrying a
   (`brain/decisions.md` for a settled choice; the area's `INDEX.md` line names it
   when unsure). It is committed and shared like the map; the indexer carries
   `## Notes` over verbatim, so tell the user no `/brain index` is needed after a
-  note. Offer the destination as part of the option's label; when the memory
-  directory or `brain/INDEX.md` is not present, fall back to CLAUDE.md and say
-  that is what happened. The recurrence gate applies to all three alike.
+  note. When the correction is mechanical — the same call, import or path every
+  time — prose asks the model to remember what a machine can refuse: propose the
+  **check** instead, in the tool the repo already runs (its linter, its pre-commit
+  hooks, its CI). When the existing-coverage check found that check configured
+  but never invoked, wiring it is the proposal. On a pick, print the exact
+  change — file and lines — for the user to apply, and write nothing. Standing:
+  recorded — no script tells a fixed pattern from a judgement call. Offer the
+  destination as part of the
+  option's label; when the memory directory or `brain/INDEX.md` is not present,
+  fall back to CLAUDE.md and say that is what happened. The recurrence gate
+  applies to all four alike.
 - Ideas → hand each pick to a `/new-skill` or `/new-plugin` project skill
   (whichever fits the idea's size) when the project has one — the marketplace
   repository keeps both under `.claude/skills/`; else write the idea as a
@@ -153,7 +164,10 @@ harvest's outcome check can grade it: append one line per pick to
 `$HOME/.claude/hindsight/<slug>/applied.jsonl` —
 `{"v":1,"ts":"<now, ISO-8601 UTC>","kind":"rule|note|idea|warning","text":"<the
 applied line>","sessions":[<source session ids>]}`. A pick applied but not
-recorded is invisible to the loop — record at the moment of the write.
+recorded is invisible to the loop — record at the moment of the write. A
+proposed check is not recorded: it may never be wired, and the outcome check would
+then grade a rule that never ran. The next harvest's existing-coverage check reads
+the lint config and CI, so a check the user wired is not proposed again.
 
 ## Mark mined
 
@@ -172,6 +186,7 @@ application code: outputs are CLAUDE.md lines, `feedback` memory files under
 `~/.claude/projects/<slug>/memory/`, brain notes under `brain/` (only when the brain
 plugin's map exists), files under
 `$HOME/.claude/hindsight/<slug>/`, the project's `.claude/hindsight/anti-patterns.md`,
-and the scaffold handoffs above. No auto-apply — every write passes the apply gate
-above. Transcript JSONL is officially unstable: skip malformed lines, tolerate
-missing fields, never hard-fail on format drift.
+and the scaffold handoffs above. Never writes a lint config, pre-commit hook or CI
+file: a proposed check is printed for the user to apply. No auto-apply — every write
+passes the apply gate above. Transcript JSONL is officially unstable: skip malformed
+lines, tolerate missing fields, never hard-fail on format drift.

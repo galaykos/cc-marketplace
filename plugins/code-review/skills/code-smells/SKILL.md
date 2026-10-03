@@ -89,6 +89,12 @@ fix is an opinion; do not report opinions.
   the shelf version handles, and every fix to it is yours. Fix: name the
   function or feature that replaces it. Standing: agent-graded, like the
   rest of this catalog — the review's smell pass applies it.
+- Mysterious name. Cue: the body must be opened to learn what a symbol holds
+  or does (`obj`, `info2`, `doStuff`). Risk: every caller re-reads the body,
+  and the one who guesses instead ships the wrong assumption. Fix: rename;
+  when no truthful name exists, the unit does two jobs — split it, then name
+  the halves (code-architecture's low-cognitive-load owns naming depth, when
+  installed). Standing: agent-graded, like the rest of this catalog.
 - Comment as deodorant. Cue: a comment explaining WHAT confusing code does.
   Risk: comment rots, confusion stays. Fix: rename and extract until the
   comment is redundant; keep only constraint-comments (the WHY). The

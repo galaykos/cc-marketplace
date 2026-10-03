@@ -29,11 +29,11 @@ is not a specification — it is the drift this rule exists to stop.
 | Shape of data | types, signatures | no |
 | Expected behavior, edge cases | tests | no |
 | Sequence of steps | extracted, named functions | no |
-| Architecture, specs, decisions | ADRs and project docs | no |
+| Architecture, specs, decisions | the PR; a decision record (ADR) only past the three-part test under "Reasoning narration" | no |
 | Why this way and not the obvious way | one-line comment | **yes** |
 | External constraint, upstream bug, perf measurement | one-line comment + link or ticket | **yes** |
 | Deliberate no-op — empty catch, fallthrough, unused-but-required param | one-line comment | **yes** |
-| Units, ownership, lifetime, thrown conditions the signature cannot express | one-line docblock | **yes** |
+| Units, ownership, lifetime, thrown conditions, required call order the signature cannot express | one-line docblock | **yes** |
 
 The left column is what people usually comment; the right column is why most of
 those comments should not exist — the fact was already recordable somewhere better.
@@ -70,7 +70,8 @@ above `const list = ...`. Cue: the comment is a better name than the name.
 
 **Reasoning narration.** Three lines above a method explaining the design decision at
 length. Cue: it reads like the pull request description. One line for the why; the
-rest belongs in the PR, the ADR, or nowhere.
+rest belongs in the PR or nowhere — or in a decision record (ADR), and only when all three
+hold: costly to reverse, a surprise to a reader who lacks the history, a real alternative rejected.
 
 ## Keep-cases
 
@@ -86,8 +87,8 @@ outside it is first tried as a rename, a type, a test, or an extraction.
   unused-but-required parameter. Absence cannot be named or typed; say why it is safe.
 - **TODO carrying a ticket ID.** `// TODO(BILL-412): drop once v2 rollout completes`.
 - **Contract facts a signature cannot express.** Units (`milliseconds`), ownership
-  and lifetime ("caller must close"), which conditions throw, shapes the type system
-  cannot state. One line, in the docblock form the language uses.
+  and lifetime ("caller must close"), which conditions throw, required call order
+  (`open()` before `read()`), shapes the type system cannot state. One line, in the docblock form the language uses.
 
 ## A comment that asserts behavior is a claim
 
@@ -123,7 +124,7 @@ checked, an `@param` is not, and when they disagree the comment is what people b
 
 Same test for TSDoc, a Python docstring, godoc, a `///` in Rust: strip everything the
 signature already states, keep whatever survives — usually units, ownership, throw
-conditions, or an example for a genuinely non-obvious call. Usually nothing survives,
+conditions, required call order, or an example for a genuinely non-obvious call. Usually nothing survives,
 and no docblock is the correct outcome. Public-API docs generated for external
 consumers are a product surface with their own audience; that is a docs decision the
 project states in its `CLAUDE.md`, not this rule's.

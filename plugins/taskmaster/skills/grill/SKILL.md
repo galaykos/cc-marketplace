@@ -26,10 +26,15 @@ per `references/prompt-upgrade.md` — sharpen the objective, name implied const
 reinterpret scope. Boosted runs bind this step differently: `../ultra/references/dispatch-tiers.md`.
 
 - "Already answered by code" entries become CLEAR rows with evidence. Never ask the
-  user something the codebase answers — it burns trust and attention.
+  user something the codebase answers (a prompt the code contradicts excepted, below)
+  — it burns trust and attention.
 - "Only the user can answer" entries seed the first question round.
 - Hard constraints (versions, configs, CI gates) become CLEAR rows that bound the
   option sets you offer.
+- A user statement the code contradicts is CLEAR neither way: one UNKNOWN row quoting
+  both — the prompt's words and the file:line — asked in the first question round, never
+  resolved silently. With no user to ask (headless, Goal, at the cap) it becomes ASSUMED
+  naming the side taken and both quotes (recorded: no lint compares prompt and code).
 - Task tool unavailable (subagent, non-interactive)? Run the scan inline yourself, then
   derive the statement from it — never from the raw words alone. Only fresh eyes are lost.
 
@@ -44,7 +49,7 @@ round so the user always sees what is settled and what still blocks:
 | 2 | Who can delete | Assumed: owner only | ASSUMED | default, round 2 |
 | 3 | Bulk-action UX | ? | UNKNOWN | — |
 
-Statuses: **CLEAR** (user said it, or code proves it), **ASSUMED** (a default was
+Statuses: **CLEAR** (user said it, or code proves it, and neither contradicts the other), **ASSUMED** (a default was
 chosen and named, awaiting confirmation), **UNKNOWN** (blocks implementation).
 A volunteered starting point — expertise, how settled the thinking is, code
 familiarity — becomes a ledger row; calibrate: an expert's silence is a
@@ -60,7 +65,8 @@ into it if one is not there — this is scratch and belongs in no commit, and on
 THIS repo's .gitignore covers it otherwise. At grill start, an unfinished
 `.claude/taskmaster/ledger-*.md` offers Resume / Start fresh; Resume reuses the
 stored statement (never re-derived), loads the table, continues from the first
-UNKNOWN row — no re-scout, no re-asking resolved rows. Delete when the spec is written.
+UNKNOWN row — no re-scout (a "lookup pending" row's one lookup excepted), no re-asking
+resolved rows. Delete when the spec is written.
 
 ## Question dimensions
 
@@ -87,6 +93,12 @@ dimension left unwalked is a section left empty:
   "(Recommended)", and use `multiSelect` when choices are not mutually exclusive.
 - Offer concrete options, never "flexible/it depends" filler. Wrong-but-concrete
   options provoke corrections; vague options provoke shrugs.
+- A code fact found missing mid-round is a lookup, not a question: brief `context-scout`
+  with that one question in the background and read its answer from the report, hold
+  back only the rows that wait on it, and keep asking the others. A fact outside the code
+  (an installed version, a service's state), or no Task tool → read it inline before the
+  next round. A row whose lookup was cut off reads "lookup pending" in its Source, and
+  Resume re-dispatches it (recorded: the Source names what the lookup read).
 - Example-driven disambiguation: when words stay ambiguous, fabricate 2–3 concrete
   input → output examples ("user submits X, sees Y / sees Z — which?") and ask
   which is correct. One picked example beats three paragraphs of requirements.
@@ -107,6 +119,15 @@ dimension left unwalked is a section left empty:
 - "You decide" / "whatever you think": convert the row to ASSUMED with your named
   default and move on — but never silently. The user approves the assumption list
   at the end even if they delegated every call.
+- "Not mine to answer" and a named third party holds it (another team, a vendor,
+  legal): ask for the recipient and what the answers must settle, write the
+  questionnaire per `references/questionnaire.md`, and convert the row to ASSUMED with
+  a named default whose Source is that file. The spec's Accepted assumptions lists it
+  as `awaiting <recipient> — <file>`. When the answers return: update that one row in
+  the spec's `## Ambiguity ledger (final)`, edit the spec in place, re-run
+  `spec-ledger-lint.sh`, and re-cut the cards the row reaches. With no user (headless,
+  Goal, at the cap) no file is written; the default names the third party who holds
+  the answer (recorded: the lint accepts the ASSUMED row and never opens the file).
 - Converge, don't loop: 2–4 rounds scaled to blast radius, broad then narrow. At the
   cap, or the first round that closes no new UNKNOWN, stop asking — convert remaining
   UNKNOWNs to ASSUMED with named defaults and route to Stopping (assumption list for veto). (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)

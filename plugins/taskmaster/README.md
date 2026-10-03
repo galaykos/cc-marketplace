@@ -214,6 +214,8 @@ A spec whose surface is a landing page or marketing site is craft-layer's input:
 `/craft-layer:craft` consumes the spec and its section-decisions never re-interrogates
 it (recorded; the router is the only nudge).
 
+Credit: grill's frontier rule adapts one from an earlier (2026-09-02) read of [mattpocock/skills](https://github.com/mattpocock/skills). grill's contradicted-statement row, mid-round background lookup and third-party questionnaire (`references/questionnaire.md`), and task-cards' expand–migrate–contract sequencing and prefactor cards, adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied.
+
 ## Contents
 
 - **Skills**: grill (interrogation + ambiguity ledger + big-task slicing),
