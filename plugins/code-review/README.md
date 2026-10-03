@@ -192,7 +192,8 @@ only when the signature below it, in the same added text, types the parameter to
 bare `@return` or `@param` whose description wraps onto the next docblock line is not empty.
 A TODO carrying an owner (`TODO(ana):`), a ticket (`#123`, `BILL-412`) or a URL is not
 judged any further, so `// TODO #1: sort todos by date` above the line it names is no longer
-refused as a restatement.
+refused as a restatement, nor `// TODO(BILL-412): drop once v2 rollout completes (see ADR-7)`
+as commented-out code.
 
 **The twelve categories.** Denied before the write, and warned when such a write lands
 anyway: `restating the next line`, `commented-out code`,

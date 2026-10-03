@@ -864,9 +864,9 @@ cc_bash_write_chunks() {
       b = B[i]
       if (b == "" || exempt(b)) continue
       if (is_banner(b))       { H[2]++; total++; continue }
+      if ((td = is_bare_todo(b)) < 0) continue
       if (!EX[i] && is_code(b)) { H[3]++; total++; continue }
-      if ((td = is_bare_todo(b)) > 0) { H[4]++; total++; continue }
-      if (td < 0) continue
+      if (td > 0)             { H[4]++; total++; continue }
       if (is_dead_tag(b, i))  { H[5]++; total++; continue }
       if (is_narration(b))    { H[6]++; total++; continue }
       # A docblock tag names what the signature names; is_dead_tag and pads judge it.

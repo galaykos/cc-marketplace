@@ -1307,6 +1307,12 @@ assert_allows "todo: a ticketed TODO #1: above the line it names is allowed" fy1
 }'
 assert_allows "todo: a TODO with a URL above the line it names is allowed" fy1u /tmp/proj/fy1u.ts '// TODO https://example.com/i/3 sort todos by date
 const todos = api.todos.sort(byDate);'
+assert_allows "todo: an owner TODO ending in a parenthetical is not commented-out code" fy1p /tmp/proj/fy1p.ts '// TODO(BILL-412): drop once v2 rollout completes (see ADR-7)
+const v2 = rollout();'
+assert_allows "todo: an owner TODO whose text ends in ) is allowed" fy1q /tmp/proj/fy1q.ts '// TODO(ana): retry once the gateway recovers (BILL outage)
+gateway.connect();'
+assert_denies "todo: a bare commented-out call is still denied" fy1r /tmp/proj/fy1r.ts '// gateway.connect(retry);
+const g = 1;'
 assert_allows "todo: XXX(xxx): set xxx above xxx = 1; is allowed and silent" fy2 /tmp/proj/fy2.ts '// XXX(xxx): set xxx
 xxx = 1;'
 assert_fires "todo: // TODO handle errors still warns bare" "$(envelope Write /tmp/proj/fy3.ts '// TODO handle errors
