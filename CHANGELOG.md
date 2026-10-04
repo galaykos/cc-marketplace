@@ -51,15 +51,19 @@ version in their `plugin.json`.
   approaches 0.11.1, ask-ledger 0.3.1, brain 0.4.3, candor 0.6.3, code-review 0.29.0, command-guard 0.8.4, craft-layer 0.55.1,
   database 0.11.3, debugging 0.7.0, design-kit 0.9.3, devops 0.9.3, git-workflow 0.10.0, hindsight 0.12.0, laravel 0.10.1,
   resilience 0.7.7, secret-scanning 0.10.3, security 0.12.3, skill-router 0.23.0, task-runner 0.43.0, taskmaster 0.47.0,
-  testing 0.12.3, ui-ux 0.28.1, web-dev 0.10.2.** The six `templates/blocks` files and the reminder and boost hook templates
-  keep one source line, one pointer and, per function, a contract, its limits and any off-switch it reads; every cut line moved
-  verbatim to `rationale/derivations/templates-and-blocks.md`. A scripted literal swap re-pasted the blocks into 44 hand
-  carriers and `generate.sh --write` regenerated 8 hooks and 10 agents. bash's own parser, comments ignored, reads the 44
-  carriers and the 3 boost hooks as the same code as before. The reminder template names its seven steps as functions;
-  `scripts/smoke/hook-guard-tests.sh` pinned their off-switch, refusal and stale-marker paths first and passes on the 5
-  regenerated reminder hooks. The worker template and its 10 agents add required call order to the docblock facts a
-  signature cannot state, a prompt change whose effect is unmeasured. git-workflow's branch-completion scratch table cites
-  carriers by name, not line. No context baseline moved.
+  testing 0.12.3, ui-ux 0.28.1, web-dev 0.10.2.** Each source file keeps one source line and one pointer. The six
+  `templates/blocks` files keep, per function, a contract, a constraint and (in five of the six) a `Misses:` line; the
+  reminder and boost hook templates keep their fail-open line, off-switch lines and at most one why-line per step. Every cut
+  line moved verbatim to `rationale/derivations/templates-and-blocks.md`. A scripted literal swap re-pasted the blocks into 44
+  hand carriers and `generate.sh --write` regenerated 8 hooks and 10 agents. bash's own parser, comments ignored, reads the 44
+  carriers and the 3 boost hooks as the same code as before (bash 3.2; a pure reformat would also read SAME — a line diff of
+  those 47 files shows every changed line is a full-line comment or blank). The reminder template names its seven steps as
+  functions; `scripts/smoke/hook-guard-tests.sh` pinned their off-switch, refusal and stale-marker paths first and passes on
+  the 5 regenerated reminder hooks, and a differential run of the old against the new hooks over CC_REMIND × phase-sentinel ×
+  TMPDIR-marker matrices found 0 divergences in 263,500 old/new pairs (stdout, exit status and marker state compared); bash 5
+  and hooks firing in parallel were not tested. The worker template and its 10 agents add required call order to the
+  docblock facts a signature cannot state, a prompt change whose effect is unmeasured. git-workflow's branch-completion
+  scratch table cites carriers by name, not line. No context baseline moved.
 
 ## [0.119.0] - 2026-10-01
 
