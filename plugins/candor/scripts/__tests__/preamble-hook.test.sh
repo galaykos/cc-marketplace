@@ -1,13 +1,7 @@
 #!/usr/bin/env bash
-# Smoke tests for candor/hooks/preamble.sh — the UserPromptSubmit (once per session) and
-# SubagentStart (once per agent_id) hook that injects the five working moves before the
-# first edit.
-#
-# WHY THIS FILE EXISTS. The hook's whole value is its trigger discipline: speak once
-# on the first imperative work prompt, never again, never on a question, a slash
-# command, or under CC_PREAMBLE=off. Each of those is a branch a one-character edit
-# could remove while the happy path stays green. Picked up by the CI step that globs
-# plugins/*/scripts/__tests__/*.test.sh.
+# preamble-hook.test.sh — drives hooks/preamble.sh with UserPromptSubmit and SubagentStart payloads under a sandboxed TMPDIR and asserts when it
+#   speaks (the first imperative work prompt, each new agent_id) and when it stays silent, its size bound, the off switch and fail-open.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/preamble-hook.test.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 HOOK="$ROOT/plugins/candor/hooks/preamble.sh"

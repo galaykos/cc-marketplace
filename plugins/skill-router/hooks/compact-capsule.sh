@@ -1,48 +1,10 @@
 #!/bin/bash
-# Absolute-path shebang (not `/usr/bin/env bash`): the fail-open guarantee must
-# hold even under a stripped/broken PATH.
-#
-# SessionStart, matcher `compact` ONLY. After a compaction, re-states the task
-# state that lives on disk and that the summary may have dropped: the arc phase
-# sentinel, a registered task-runner run and its scope lock, and any open
-# taskmaster ledgers. Every one of those files survives compaction; what does not
-# survive is the model's knowledge that they exist, so it never thinks to look.
-# approaches/hooks/compact-recovery.sh solves this for ONE ledger (its own
-# deliberation marker) and this hook covers the rest; it deliberately does not
-# mention that marker, so a session with both installed hears each once.
-#
-# WHY SessionStart AND NOT PreCompact. PreCompact stdout goes to the debug log and
-# never reaches the model — the documented context-injecting events are
-# UserPromptSubmit, UserPromptExpansion, SessionStart and PostModelSwitch. So the
-# capsule cannot be planted before the summary; it is re-asserted after it, once.
-#
-# WHY skill-router. It already owns the SessionStart catalog and the per-session
-# routing state, and it is the plugin most bundles share, so the capsule fires in
-# the most installs for the fewest declarations.
-#
-# COST. Matcher `compact` — silent on startup, resume, clear and fork, so the
-# always-on budget reads 0 (context-budget.sh drives SessionStart with
-# source=startup). A session that compacts pays one short block per compaction,
-# and only when at least one ledger exists.
-#
-# MEASUREMENT RIDER. The phase sentinel records the session_id that wrote it and
-# the payload carries the session_id after compaction. Whether those match is the
-# open question in rationale/collective-taskforce-backlog.md #6 (two shipped
-# mechanisms key on it). Each firing appends one line to
-# .claude/skill-router/compact-log.jsonl saying whether they matched. Standing:
-# recorded — nothing reads it yet; it exists so the answer accrues on real
-# sessions instead of waiting for a probe that has not been run in 25 days.
-# The log lives per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/skill-router/ is only the fallback.
-#
-# LIMITATION (honest scope):
-#   - Advisory. SessionStart stdout informs a turn; it cannot block one.
-#   - Names the files and their headline fields; the reasoning behind a phase or a
-#     card lives in the summarized transcript and no hook can pull it back.
-#   - Cannot tell a live ledger from a stale one. It prints the sentinel's own
-#     started_at and defers to each owner's TTL (taskmaster's reminder hook
-#     unlinks a sentinel older than its cc_phase_ttl_min).
-#   - Knows the ledgers it names. A plugin that keeps state elsewhere is invisible
-#     here — add its path to this file, which is why the list is short and literal.
+# compact-capsule.sh — SessionStart (matcher compact), fails open: lists the task state on disk at the project root a compaction summary
+#   may drop (phase sentinel, task-runner run and scope lock, taskmaster ledgers) and logs whether the sentinel's session_id is the payload's.
+# Misses: whether a ledger is still live (it prints the sentinel's started_at; each owner's TTL decides); state a plugin keeps outside the
+#   paths named here; the reasoning behind a phase or a card. Advisory: it cannot block a turn.
+# Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/compact-capsule.sh
+
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
 # cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
@@ -85,10 +47,7 @@ cc_plugin_state() {
   [ "$src" = "compact" ] || exit 0
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
-  # Every ledger below lives at the PROJECT root. Read under the payload cwd, a
-  # compaction after `cd app/Models` would find none of them and stay silent while a
-  # run, a scope lock and a phase sentinel sat two levels up (review finding 2 measured
-  # that drift, rationale/2026-09-25-session-plugin-usage-review.md).
+  # The ledgers live at the project root: under the payload cwd, a compaction after `cd app/Models` would find none of them.
   root=$(cc_state_root "$cwd") || exit 0
   sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 

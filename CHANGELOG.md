@@ -64,6 +64,20 @@ version in their `plugin.json`.
   and hooks firing in parallel were not tested. The worker template and its 10 agents add required call order to the
   docblock facts a signature cannot state, a prompt change whose effect is unmeasured. git-workflow's branch-completion
   scratch table cites carriers by name, not line. No context baseline moved.
+- **Plugin code wave 1 — skill-router 0.23.0, ui-ux 0.28.1, craft-layer 0.55.1, candor 0.6.3, command-guard 0.8.4,
+  secret-scanning 0.10.3, security 0.12.3, taskmaster 0.47.0: comments cut to contract and limits, derivations to `rationale/`,
+  banners named behind pins.** 45 shell files (hooks, scripts, tests, eval scaffolds; taskmaster only its preview-guard twin)
+  keep a contract line, their off-switch lines and a `Misses:` line; every cut line moved verbatim to
+  `rationale/derivations/plugin-<name>.md`, seven new files an install does not contain. 11 hooks now name what a comment
+  explained: `MARKER_TTL_MIN` and `MAX_BASH_TARGETS` where they swept markers or capped Bash targets, candor `gate.sh`'s clause
+  functions and six constants, skill-router `route.sh`'s steps, command-guard `destructive-guard.sh`'s families. Each path was
+  pinned first by new tests (10 `*-pins.test.sh` files) that passed on the old and the new code, and a run of the old against
+  the new hooks found 0 divergences in 1,807 input pairs across the 11 (output, exit status and every file left behind
+  compared). The other 34 changed files parse to the same code as before (bash 3.2's parser, comments ignored). Limits now
+  written down, behaviour unchanged: command-guard's `env`, `git clean … -e -n`, unanchored allow-file lines, a plain `rm` of
+  a config and an MCP `apply_patch`; secret-scanning never scanned a `NotebookEdit`; skill-router's `CC_ROUTE=off` also stops
+  the next-prompt flush. Not tested: bash 5, and hooks firing in parallel. The JS, TS, Python and PowerShell files in these
+  plugins are untouched. No version and no context baseline moved.
 
 ## [0.119.0] - 2026-10-01
 

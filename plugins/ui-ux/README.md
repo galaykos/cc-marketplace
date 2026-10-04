@@ -103,7 +103,7 @@ that looks great as a swatch can fail hard as a button.
   two. A plain "build me an app" turn runs neither: in a measured run on 2026-08-17 a
   Laravel build shipped 23 indigo utilities across 5 Blade views with every gate
   green. This is the reach half of a rule craft-layer owns the depth of; the hook's
-  own header carries the derivation.
+  derivation is in the marketplace repository's `rationale/derivations/plugin-ui-ux.md` § `plugins/ui-ux/hooks/palette-default.sh`.
 
 ## The contrast checker
 

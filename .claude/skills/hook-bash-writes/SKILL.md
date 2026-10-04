@@ -37,9 +37,10 @@ forking them. Standing of each rule is in brackets.
 3. **Cheap exit first:** `[ -n "$(cc_bash_write_targets "$cmd")" ] || exit 0` before
    reading anything else. A non-write Bash call is the common case and must cost
    ≤ 50 ms median (measure 20 runs; record median and max in the CHANGELOG).
-4. A path or disk guard (it reads the targets) caps them (`| head -n 8`) and says so in
-   the header. A content guard judges every chunk, one target per writer (`head -n 1`),
-   bounded by the command text itself.
+4. A path or disk guard (it reads the targets) caps them with a named constant
+   (`MAX_BASH_TARGETS=8` … `| head -n "$MAX_BASH_TARGETS"`) and says so in the header.
+   A content guard judges every chunk, one target per writer (`head -n 1`), bounded by
+   the command text itself.
 5. Resolve a relative target against the payload `.cwd`, never the hook's own cwd. When
    the command holds a `cd`/`pushd` OUTSIDE heredoc bodies, skip relative targets — a
    miss, never a wrong file. The body-stripping awk in `plugins/testing/hooks/protect-tests.sh`

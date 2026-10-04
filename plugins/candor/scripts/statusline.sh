@@ -1,20 +1,8 @@
 #!/bin/bash
-# Statusline badge showing the active terse level, e.g. [TERSE:ULTRA].
-#
-# Opt-in, and deliberately not offered by any hook — a plugin that nags to edit
-# settings.json on first run is a plugin that edits settings.json. Wire it yourself:
-#
-#   "statusLine": { "type": "command",
-#                   "command": "bash ~/.claude/plugins/.../candor/scripts/statusline.sh" }
-#
+# statusline.sh — prints the active terse level as a badge, e.g. [TERSE:ULTRA]; nothing when off, for a symlinked level file or for any
+#   value outside the level vocabulary. Opt-in: wire it yourself as a "statusLine" command in settings.json.
 # The level is level.sh's: CC_TERSE, then the level file, then the cc_terse /config option.
-#
-# SECURITY. The level file is user-writable state rendered into a terminal on every
-# keystroke, which makes it an injection surface: a symlinked level file blanks the
-# badge (a link pointed at a private key would render its bytes) although the hooks
-# follow it; level.sh caps the read, and only a whitelisted level renders. Anything
-# unrecognized renders nothing rather than echoing bytes from a file this script does
-# not control.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/statusline.sh
 FLAG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode"
 
 [ -L "$FLAG" ] && exit 0

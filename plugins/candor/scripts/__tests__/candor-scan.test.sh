@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
-# Author-time tests for candor-scan.sh — the report-only transcript measurement
-# behind /candor:check.
-#
-# Two properties matter and both are asserted: the counts are right, and the exit
-# code is 0 on every path including the ones with hits. A measurement that can
-# fail a build is a gate wearing a report's name, and this repo's has-teeth
-# convention makes that the over-claim it forbids.
+# candor-scan.test.sh — runs scripts/candor-scan.sh over synthetic transcripts and asserts each axis count, the --last window, the resolution
+#   root, the standing column, and exit 0 on every path, hits included.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/candor-scan.test.sh
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
@@ -66,8 +62,6 @@ T="$WS/cite.jsonl"
   asst "And src/real.ts:900 past the end."; } > "$T"
 axis_is "unresolved citations counted, resolving ones not" "$T" unresolved-citation 2
 
-# Citations resolve against the transcript's recorded cwd, not the shell's. A
-# session that ran elsewhere must not report every one of its real paths missing.
 OTHER="$WS/other"; mkdir -p "$OTHER/lib"; printf 'p\nq\n' > "$OTHER/lib/other.ts"
 T="$WS/cwd.jsonl"
 { jq -cn --arg c "$OTHER" '{type:"assistant",cwd:$c,message:{content:[{type:"text",text:"See lib/other.ts:1 in the other project."}]}}'; } > "$T"
@@ -98,7 +92,6 @@ got=$(printf '%s\n' "$out" | awk '$1=="flattery-opener" {print $2; exit}')
 if [ "$rc" -eq 0 ] && [ "$got" = "0" ]; then pass=$((pass+1)); printf 'PASS  --last 1 sees only the final message\n'
 else fail=$((fail+1)); printf 'FAIL  --last 1 sees only the final message (got %s rc=%s)\n' "${got:-<none>}" "$rc"; fi
 
-# Exit code is 0 on every path, including a transcript full of hits.
 out=$(cd "$PROJ" && bash "$SCAN" --session-file "$WS/apol.jsonl" 2>&1); rc=$?
 if [ "$rc" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  exits 0 with hits present\n'
 else fail=$((fail+1)); printf 'FAIL  exits 0 with hits present (rc=%s)\n' "$rc"; fi
@@ -113,7 +106,6 @@ out=$(cd "$PROJ" && bash "$SCAN" --session-file "$T" 2>&1); rc=$?
 if [ "$rc" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  malformed transcript exits 0\n'
 else fail=$((fail+1)); printf 'FAIL  malformed transcript exits 0 (rc=%s)\n' "$rc"; fi
 
-# The standing column is part of the contract: two axes gated, four recorded.
 out=$(cd "$PROJ" && bash "$SCAN" --session-file "$WS/apol.jsonl" 2>&1)
 g=$(printf '%s\n' "$out" | grep -c 'GATED'); r=$(printf '%s\n' "$out" | grep -c 'recorded only')
 if [ "$g" -eq 2 ] && [ "$r" -eq 4 ]; then pass=$((pass+1)); printf 'PASS  standing column: 2 gated, 4 recorded\n'

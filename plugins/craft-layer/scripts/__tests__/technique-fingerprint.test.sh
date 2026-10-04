@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
-# Offline tests for technique-fingerprint.py — the stack and motion detector the
-# design-research method runs per motion reference (mining-method.md §2a).
-#
-# Every fixture is a saved page written into a temp dir and read through --file,
-# so nothing here touches the network. --file resolves each asset URL by PATH
-# under the page's directory and ignores the host, which is what makes the
-# first-party rule testable: a third-party asset sits on disk beside the page,
-# and the only thing keeping it out of the report is the rule under test.
-#
-# Picked up by the repo's "Plugin author-time lint + harness tests" CI step,
-# which globs plugins/*/scripts/__tests__/*.test.sh.
+# technique-fingerprint.test.sh — what technique-fingerprint.py reports, refuses, caps and never reads, run on saved pages and local sockets only.
+# --file resolves assets by path under the page's directory and ignores the host, so only the first-party rule keeps a third-party asset out.
+# Why, limits, history: rationale/derivations/plugin-craft-layer.md § plugins/craft-layer/scripts/__tests__/technique-fingerprint.test.sh
 set -u
 FP="$(cd "$(dirname "$0")/.." && pwd)/technique-fingerprint.py"
 command -v python3 >/dev/null 2>&1 || { echo 'SKIP: python3 not installed'; exit 0; }
@@ -19,8 +11,6 @@ pass=0; fail=0
 ok()  { pass=$((pass + 1)); }
 bad() { fail=$((fail + 1)); printf 'FAIL  %s\n      %s\n' "$1" "$2"; }
 
-# The homepage must clear the 500-byte shell threshold, so every page carries
-# this paragraph of real-looking copy.
 FILL='<p>Fieldnote keeps every survey crew on one sheet: jobs, owners and slipping dates, synced at the van and read by both shifts. Each crew lead opens the same page at the depot, marks what moved, and the office sees it before the kettle boils. The handover note is the page itself, so nobody rewrites it at shift change. Nothing here is a claim; it is filler long enough to be a page.</p>'
 
 page() { # dir body-html
@@ -167,8 +157,7 @@ for n in 'Swiper=h' 'Mapbox/MapLibre/Leaflet=h' 'Highcharts=h'; do
 done
 
 # --- 12. One fetch stops at its wall-clock deadline, however slowly the bytes drip ---
-#     A local server drips a byte-sized chunk every 0.1 s for 6 s; urllib's timeout is per
-#     socket read and never fires, so only the deadline can end the read at ~1 s.
+# urllib's timeout is per socket read, so a drip never trips it and only the deadline can end the read.
 out=$(python3 - "$FP" <<'PY' 2>&1
 import importlib.util, socket, sys, threading, time
 spec = importlib.util.spec_from_file_location('tf', sys.argv[1]); tf = importlib.util.module_from_spec(spec); spec.loader.exec_module(tf)
@@ -192,8 +181,7 @@ sys.exit(0 if el < 3 and code == 200 and body.startswith('<p>drip</p>') and 'dea
 PY
 ); rc=$?
 [ "$rc" -eq 0 ] && ok || bad "a dripping response was not cut at the per-fetch deadline" "$out"
-# ...and an ordinary Content-Length body still reads whole: http.client closes the socket
-# the moment the length is consumed, so the deadline loop must not touch it again.
+# http.client closes the socket once Content-Length is consumed, so the deadline loop must not read it again.
 out=$(python3 - "$FP" <<'PY' 2>&1
 import importlib.util, socket, sys, threading
 spec = importlib.util.spec_from_file_location('tf', sys.argv[1]); tf = importlib.util.module_from_spec(spec); spec.loader.exec_module(tf)

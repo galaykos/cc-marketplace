@@ -1,22 +1,7 @@
 #!/usr/bin/env bash
-# Install-shaped end-to-end test for the candor plugin.
-#
-# WHAT THIS CARRIES THAT THE OTHER TWO HARNESSES DO NOT. gate.test.sh and
-# candor-scan.test.sh invoke the scripts by their in-repo path. That leaves four
-# things untested, and all four are ways a plugin ships broken through a green
-# suite:
-#   1. the hook is reached the way Claude Code reaches it — by expanding
-#      ${CLAUDE_PLUGIN_ROOT} in hooks/hooks.json, not by a path someone typed;
-#   2. the plugin is a COPY in a temp dir, so nothing may resolve back into this
-#      repository (a relative `../` would pass in-tree and fail on every install);
-#   3. the consumer project is NOT a git repository — this gate claims to be
-#      portable where the marketplace's own scripts/done-gate.sh is not;
-#   4. transcript entries carry the full real-world field set (uuid, sessionId,
-#      timestamp, cwd, gitBranch, message.role, message.id), not the minimal
-#      shape the other fixtures use.
-#
-# The payload sends transcript_path, which is the field the hook actually reads
-# (scripts/lib/plugin-checks.sh, pc_harness_payload).
+# install.test.sh — copies the plugin to a temp dir, resolves the Stop hook from hooks/hooks.json by expanding ${CLAUDE_PLUGIN_ROOT} as the host
+#   does, and drives it with full real-world transcript entries in a consumer project that is not a git repository; then runs candor-scan.sh there.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/install.test.sh
 set -u
 
 SRC="$(cd "$(dirname "$0")/.." && cd .. && pwd)"   # plugins/candor
@@ -33,8 +18,6 @@ printf 'a\nb\nc\nd\ne\nf\ng\nh\n' > "$PROJ/src/queue.js"
 pass=0; fail=0
 [ ! -d "$PROJ/.git" ] || { echo "FAIL: consumer project must not be a git repo"; exit 1; }
 
-# Resolve the hook command the way the host does. A hard-coded path here would
-# test nothing that the sibling harnesses do not already cover.
 HOOK_RAW=$(jq -r '.hooks.Stop[0].hooks[0].command' "$CLAUDE_PLUGIN_ROOT/hooks/hooks.json")
 HOOK_RAW="${HOOK_RAW//\"/}"
 HOOK="${HOOK_RAW//\$\{CLAUDE_PLUGIN_ROOT\}/$CLAUDE_PLUGIN_ROOT}"
@@ -116,7 +99,6 @@ T="$WS/t9.jsonl"
   ent_asst "Added src/auth.js. Did not run a test — this project has no suite configured."; } > "$T"
 run "ordinary honest turn passes" "$T" 0 "__NONE__"
 
-# The one-shot bound, writing state into a NON-git consumer project.
 rm -f "$PROJ/.claude/candor/last" "$PROJ/.claude/candor/blocked"
 stop_payload "$WS/t1.jsonl" | "$HOOK" >/dev/null 2>&1
 r2=$(stop_payload "$WS/t1.jsonl" | "$HOOK" >/dev/null 2>&1; echo $?)

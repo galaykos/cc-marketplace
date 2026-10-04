@@ -1,58 +1,13 @@
 #!/bin/bash
-# Absolute-path shebang not `/usr/bin/env bash`: the fail-open guarantee must hold
-# even under a stripped PATH where `env bash` exits 127.
-#
-# PostToolUse scan for INVISIBLE characters in text the model just wrote or read.
-# Warns — never blocks — naming the codepoint and the line, on:
-#
-#   U+200B-U+200D  zero-width space / non-joiner / joiner
-#   U+2060         word joiner
-#   U+FEFF         zero-width no-break space (BOM), mid-file only
-#   U+202A-U+202E  bidirectional overrides (the "Trojan Source" class, CVE-2021-42574)
-#   U+2066-U+2069  bidi isolates
-#   U+00AD         soft hyphen
-#   U+E0000-U+E007F  Unicode tag block — the "invisible instruction" carrier
-#
-# WHY A SCRIPT AND NOT PROSE. The model cannot see these characters. They do not render,
-# they survive copy-paste, and in the bidi class they make source code display in an
-# order different from the order it executes — a reviewer reads one program and the
-# compiler reads another. No amount of instruction helps with a byte that is not shown;
-# only a scanner reports it. This is the one rule in this plugin whose subject is
-# invisible by definition.
-#
-# WHY PostToolUse AND WARN, NOT PreToolUse AND DENY. Two reasons, both measured rather
-# than assumed: legitimate zero-width joiners appear in emoji sequences and in Arabic,
-# Persian and Indic text, so a deny would break writing those languages; and the
-# interesting case is usually a file being READ — content arriving from outside the
-# session, where blocking the read helps nobody and knowing what is in it does.
-#
-# WHAT IT DOES NOT CATCH, stated because the README tiers it:
-#   - Homoglyphs (Cyrillic а in an ASCII word). Those are visible, just not distinct;
-#     a different check with a different false-positive profile.
-#   - Anything in a file the session never touched, and a file Bash wrote in a way
-#     cc_bash_write_targets cannot see (see BASH WRITES below).
-#   - The hostile case specifically: it reports presence, not intent. A zero-width run
-#     inside a prompt-shaped sentence and one inside a CJK string look identical here.
-#
-# BASH WRITES (0.9.0). The host steers file writes through Bash heredocs, and in one
-# measured session the main thread wrote 233 files through Bash against 5 through
-# Edit/Write (rationale/2026-09-25-session-plugin-usage-review.md, finding 1), so a file
-# written that way was never scanned. On `Bash` the hook takes the command's write
-# targets from cc_bash_write_targets (shared block below), resolves a relative one
-# against the payload `cwd` — the Bash tool's own cwd, which is what the shell resolved
-# it against — keeps those under the project root (cc_state_root) that now exist as
-# regular files, and scans each exactly as a Write. Cheap by construction: a Bash call
-# with no write target costs one awk pass and exits before any root lookup, and at most
-# 8 targets are handled per call, so a mass-write command cannot make one call slow.
-# Residual, stated: the 9th target on, cp/mv destinations, interpreter writes, and a
-# path held in a variable are not scanned.
-#
-# STATE. None under the project: the one-shot marker lives in $TMPDIR, so the
-# state-root conversion has nothing to move; cc_state_root is here only to bound WHICH
-# Bash targets count.
-#
-# CC_UNICODE_SCAN=off disables it. Fail-open on every error path.
+# unicode-scan.sh (PostToolUse on file writes and reads, Bash included; payload on stdin) — warns once per file per session, never blocks,
+#   naming line and codepoint, when a file the call wrote or read holds a zero-width, bidi, soft-hyphen, mid-file BOM or Unicode tag character.
+# Off: CC_UNICODE_SCAN=off or CC_REMIND=off. Fails open on every error path; its one-shot markers live in $TMPDIR, none under the project.
 # CC_UNICODE_SCAN / CC_REMIND unset: the /config options cc_unicode_scan / cc_remind decide.
+# Misses: homoglyphs; intent (it reports presence only); a file over 2 MB or not valid UTF-8; hits past the sixth in a file; a file the session
+#   never touched; a NotebookEdit (notebook_path is not read); an MCP apply_patch (no single path); on Bash, targets past the eighth, outside the
+#   project root or not an existing regular file, a relative target after an in-command cd, and writes cc_bash_write_targets does not see.
+# Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/unicode-scan.sh
+
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
 # cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
@@ -208,6 +163,9 @@ cc_bash_write_targets() {
       }
     }' | awk '!seen[$0]++'
 }
+
+MARKER_TTL_MIN=1440
+MAX_BASH_TARGETS=8
 {
   [ "$(cc_option CC_UNICODE_SCAN on)" = "off" ] && exit 0
   [ "$(cc_option CC_REMIND on)" = "off" ] && exit 0
@@ -224,31 +182,21 @@ cc_bash_write_targets() {
 
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
 
-  # report_file <path> — prints this file's warning (lead sentence, then one line per
-  # hit), or nothing when the file is clean, too big, unreadable or already reported.
+  # report_file <path> — prints the file's warning, or nothing when it is clean, too big, unreadable or already reported.
   report_file() {
     local file=$1 bytes key mark report kind body base
     [ -f "$file" ] || return 0
-    # Bound the read: a scanner that stalls on a 2 GB file is a latency bug, not a guard.
-    # `tr -d` is load-bearing: BSD wc pads its output ("      26"), and the numeric
-    # guard below would reject that as non-numeric and silently disable the whole hook.
+    # tr -d: BSD wc pads its count, which the numeric test below would reject, disabling the hook.
     bytes=$(wc -c < "$file" 2>/dev/null | tr -d '[:space:]' || echo 0)
     case "$bytes" in ''|*[!0-9]*) return 0 ;; esac
     [ "$bytes" -gt 2000000 ] && return 0
 
-    # One-shot per file per session: the same file is read and written repeatedly, and a
-    # warning repeated on every touch is a warning nobody reads. The shot is SPENT only
-    # by a warning (below, after the scan found something). Until 0.9.1 the marker was
-    # claimed before the scan, so a clean first touch used up the file's one warning and
-    # invisible characters written into it later went unreported — "warns once" read as
-    # "checks once". Bash-written files made that the common path: a file is created by
-    # one heredoc and appended by the next.
     mark=""
     if [ -n "$sid" ]; then
       key=$(printf '%s|%s' "$sid" "$file" | cksum 2>/dev/null | cut -d' ' -f1)
       mark="${TMPDIR:-/tmp}/cc-unicode-$key"
       [ -d "$mark" ] && return 0
-      find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-unicode-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
+      find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-unicode-*' -type d -mmin +"$MARKER_TTL_MIN" -exec rmdir {} + 2>/dev/null
     fi
 
     report=$(python3 - "$file" <<'PY' 2>/dev/null
@@ -294,8 +242,7 @@ print(("BIDI\n" if bidi else "PLAIN\n") + "\n".join(out))
 PY
     )
     [ -n "$report" ] || return 0
-    # Claim the shot now. mkdir is atomic: of two concurrent hooks on the same file,
-    # exactly one reports.
+    # Claimed only after a hit, so a clean touch keeps the file's one warning; mkdir is atomic, so one of two racing hooks reports.
     if [ -n "$mark" ]; then mkdir "$mark" 2>/dev/null || return 0; fi
 
     kind=$(printf '%s' "$report" | head -1)
@@ -313,7 +260,7 @@ PY
   if [ "$tool" = Bash ]; then
     cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
     [ -n "$cmd" ] || exit 0
-    targets=$(cc_bash_write_targets "$cmd" | head -n 8)
+    targets=$(cc_bash_write_targets "$cmd" | head -n "$MAX_BASH_TARGETS")
     [ -n "$targets" ] || exit 0
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
     [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
@@ -321,10 +268,9 @@ PY
     files=""
     while IFS= read -r p; do
       [ -n "$p" ] || continue
-      # A relative target resolves against the payload cwd: that IS the shell's cwd.
+      # A relative target resolves against the payload cwd: the shell's cwd when the command starts.
       case "$p" in /*) ;; *) p="$cwd/$p" ;; esac
-      # Logical `cd && pwd` folds `..` without resolving symlinks, so the result keeps
-      # the spelling cc_state_root used and the prefix test compares like with like.
+      # Logical cd && pwd, not pwd -P: the prefix test must compare in cc_state_root's spelling.
       d=$(CDPATH= cd -- "$(dirname -- "$p")" 2>/dev/null && pwd) || continue
       p="$d/$(basename -- "$p")"
       case "$p" in "$root"/*) ;; *) continue ;; esac

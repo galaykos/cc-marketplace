@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Fixture tests for hooks/write-scan.sh — each warn pattern proven to warn once,
-# dedup proven, clean/off/malformed inputs proven silent.
+# write-scan.test.sh — fixture cases for hooks/write-scan.sh: each pattern's warn shape and most patterns' silent shapes, dedup, the off switch, fail-open, the
+#   host's transcript_path payload and its flat marker key, and Bash writes read back from disk.
+# Why, limits, history: rationale/derivations/plugin-security.md § plugins/security/scripts/__tests__/write-scan.test.sh
 set -u
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/write-scan.sh"
 export TMPDIR="$(mktemp -d)"; trap 'rm -rf "$TMPDIR"' EXIT
@@ -29,8 +30,6 @@ warns "vite secret"        'VITE_STRIPE_SECRET=sk_test_x'                    "cl
 warns "whereRaw interp"    '->whereRaw("id = {$id}")'                        "raw-sql-interpolation"
 warns "whereRaw concat"    "->whereRaw('id = ' . \$id)"                      "raw-sql-interpolation"
 warns "raw html sink"      '<div dangerouslySetInnerHTML={{__html: bio}} />' "raw-html-sink"
-# One public-bundle prefix per bundler: the rule used to know VITE_ only, so a Next,
-# Nuxt, Expo, SvelteKit/Astro, CRA, Gatsby or Vue-CLI secret was written in silence.
 warns "next public"        'NEXT_PUBLIC_STRIPE_SECRET_KEY=sk_live_1'         "client-bundle-secret"
 warns "expo public"        'EXPO_PUBLIC_API_KEY=abc123'                      "client-bundle-secret"
 warns "nuxt public"        'NUXT_PUBLIC_API_TOKEN=abc123'                    "client-bundle-secret"
@@ -38,11 +37,8 @@ warns "bare public"        'PUBLIC_DATABASE_PASSWORD=hunter2'                "cl
 warns "react app"          'REACT_APP_AUTH_TOKEN=abc123'                     "client-bundle-secret"
 warns "gatsby"             'GATSBY_ADMIN_SECRET=abc123'                      "client-bundle-secret"
 warns "vue app"            'VUE_APP_PRIVATE_KEY=abc123'                      "client-bundle-secret"
-# A server-side name with no public prefix must stay silent, or the widening has
-# turned the rule into "any variable whose name contains SECRET".
 silent "unprefixed secret" sp Write 'STRIPE_SECRET_KEY=sk_live_1'
 
-# ---- ported stack-agnostic sinks, each gated to its language --------------------------
 runf() { # runf <session> <file_path> <content>
   jq -cn --arg s "$1" --arg f "$2" --arg c "$3" \
     '{tool_name:"Write", session_id:$s, tool_input:{file_path:$f, content:$c}}' | bash "$HOOK"
@@ -95,7 +91,6 @@ warnsf "script no sri"      /tmp/a.html '<script src="https://cdn.x/lib.js"></sc
 silentf "script with sri"   /tmp/a.html '<script src="https://cdn.x/lib.js" integrity="sha384-abc" crossorigin="anonymous"></script>'
 silentf "script in .md"     /tmp/a.md   '<script src="https://cdn.x/lib.js"></script>'
 
-# ---- LLM sinks, ported from llm-app's prompt-injection rule; JS/TS/PY/PHP gated ------
 warnsf "sys interp ts"      /tmp/a.ts  '{ role: "system", content: `You are a helper for ${user.name}` }' "prompt-interpolation"
 warnsf "sys key ts"         /tmp/a.ts  'system: `You are ${persona}. Answer briefly.`,'            "prompt-interpolation"
 warnsf "sys fstring py"     /tmp/a.py  'system=f"You are {persona}. Answer briefly."'              "prompt-interpolation"
@@ -118,7 +113,7 @@ silentf "exec in .md"       /tmp/a.md  'never eval(completion.choices[0].message
 silentf "log completion"    /tmp/a.ts  'console.log(completion.choices[0].message.content)'
 silentf "parse content py"  /tmp/a.py  'data = json.loads(response.choices[0].message.content)'
 silentf "regex exec ts"     /tmp/a.ts  'const m = pattern.exec(message.content)'
-notslug() { # notslug <name> <file_path> <content> <slug-that-must-NOT-fire> — a sibling may
+notslug() { # notslug <name> <file_path> <content> <slug-that-must-NOT-fire>
   n=$((n+1)); out=$(runf "z$n" "$2" "$3")
   if ! grep -q "$4" <<<"$out"; then pass=$((pass+1));
   else echo "FAIL $1: [$4] must not fire, got: $out"; fail=$((fail+1)); fi
@@ -140,7 +135,6 @@ silentf "chunks no prompt"  /tmp/a.ts  'const context = chunks.map(c => c.text).
 silentf "chunks as arg"     /tmp/a.py  'prompt = build_prompt(chunks, question)'
 silentf "content is var"    /tmp/a.ts  'messages.push({ role: "user", content: chunks })'
 
-# Dedup: same session + file + finding warns once.
 out1=$(run dedup Write 'protected $guarded = [];')
 out2=$(run dedup Write 'protected $guarded = [];')
 if [[ -n "$out1" && -z "$out2" ]]; then pass=$((pass+1));
@@ -151,7 +145,6 @@ out=$(jq -cn --arg c 'protected $guarded = [];' \
   '{tool_name:"Write", session_id:"soff", tool_input:{file_path:"/tmp/f.php", content:$c}}' \
   | CC_SECURITY_SCAN=off bash "$HOOK")
 if [[ -z "$out" ]]; then pass=$((pass+1)); else echo "FAIL off-switch: $out"; fail=$((fail+1)); fi
-# Same payload with the switch ON must warn — proves the off test tested the switch.
 out=$(jq -cn --arg c 'protected $guarded = [];' \
   '{tool_name:"Write", session_id:"son", tool_input:{file_path:"/tmp/f.php", content:$c}}' | bash "$HOOK")
 if grep -q "mass-assignment-open" <<<"$out"; then pass=$((pass+1));
@@ -161,13 +154,6 @@ out=$(printf 'not json' | bash "$HOOK"); rc=$?
 if [[ $rc -eq 0 && -z "$out" ]]; then pass=$((pass+1));
 else echo "FAIL fail-open: rc=$rc out=$out"; fail=$((fail+1)); fi
 
-# ---- the payload the host actually sends ---------------------------------------------
-# Every case above sends session_id only, so they graded the FALLBACK branch of
-# `.transcript_path // .session_id`. This hook puts that value in the lock path as a
-# DIRECTORY component, and an absolute transcript path is only survivable there because
-# of the `mkdir -p "$(dirname "$lock")"` on the next line. That one line is the whole
-# safety margin and nothing exercised it. Three sibling hooks that lacked the equivalent
-# shipped broken behind a green suite. Gated by pc_harness_payload.
 TP='/Users/x/.claude/projects/-Users-x-proj/abcdef01-2345-6789.jsonl'
 tprun() { # tprun <content>
   jq -cn --arg c "$1" --arg t "$TP" \
@@ -183,17 +169,12 @@ out2=$(tprun "$DIRTY")
 if [ -z "$out2" ]; then pass=$((pass+1)); echo "PASS transcript_path: dedup still holds on the second write"
 else echo "FAIL transcript_path: warned twice, dedup dead: $out2"; fail=$((fail+1)); fi
 
-# Scoped to THIS run's key, not any lock dir: the marker dir is the cksum of the
-# transcript path, ONE level under cc-security-scan. Assert both directions — the keyed
-# dir exists AND the absolute path's own segments do not — because the old shape mirrored
-# `/Users/x/.claude/projects/...` into $TMPDIR, seven dirs per session, swept by nothing.
 TPKEY=$(printf '%s' "$TP" | cksum | cut -d' ' -f1)
 if [ -d "$TMPDIR/cc-security-scan/$TPKEY" ] && [ ! -d "$TMPDIR/cc-security-scan/Users" ]; then
   pass=$((pass+1)); echo "PASS transcript_path: flat cksum key, no mirrored path"
 else echo "FAIL transcript_path: expected a flat cc-security-scan/$TPKEY and no mirrored path"; fail=$((fail+1)); fi
 
-# ---- Bash writes: PostToolUse fires AFTER the command, so each case plants the file the
-# command would have written and the hook reads it back from disk. ---------------------
+# PostToolUse runs after the command, so each case plants the file its command would have written.
 W=$(mktemp -d "$TMPDIR/w.XXXXXX")
 runb() { # runb <session> <command>
   jq -cn --arg s "$1" --arg c "$2" --arg d "$W" \

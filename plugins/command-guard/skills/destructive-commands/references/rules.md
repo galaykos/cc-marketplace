@@ -1,6 +1,6 @@
 # The rule set, and where it ends
 
-Rules live in one place — the `rules()` table and the two special cases inside
+Rules live in one place — the `rules()` table and the `check_*` functions inside
 `hooks/destructive-guard.sh`. This file explains what is in there and, more
 importantly, what is not.
 
@@ -98,7 +98,10 @@ shapes. It cannot see:
 - a **shape nobody has written a rule for** — a new framework's reset command,
   a CLI released next month;
 - **which database a connection points at** — `DROP TABLE` through an MCP SQL
-  tool is gated the same whether the session is on localhost or production.
+  tool is gated the same whether the session is on localhost or production;
+- a command run through **`env`** (`env rm -rf /` passes), **`git clean … -e -n`**
+  (read as a dry run, though `-n` is the exclude pattern there), and a git
+  subcommand behind an **unlisted global option or a `-C`/`-c` value holding a space**.
 
 Three limits are deliberate rather than accidental. `$TMPDIR` is read from the
 **hook's own environment**, so `rm -rf $TMPDIR/build` is silent when that
@@ -165,12 +168,12 @@ than one.
 bash "${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh" --check 'php artisan migrate:fresh'
 ```
 
-Project opt-out — one extended regex per line, matched against the normalised
-command, `#` comments allowed:
+Project opt-out — one extended regex per line, matched unanchored against the whole normalised, lowercased
+command, trailing comment included, `#` comments allowed:
 
 ```
 # .claude/destructive-guard-allow
-artisan migrate:fresh --env=testing
+^php artisan migrate:fresh --env=testing$
 ^docker compose down -v$
 ```
 

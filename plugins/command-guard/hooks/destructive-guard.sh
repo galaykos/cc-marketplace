@@ -1,57 +1,12 @@
 #!/bin/bash
-# Absolute-path shebang (not `env bash`): the fail-open guarantee has to hold even
-# under a stripped or broken PATH, where `env bash` itself exits 127.
-#
-# PreToolUse guard on COMMAND EXECUTION — the Bash tool plus any MCP tool that
-# shells out or runs SQL. It classifies the command about to run:
-#
-#   deny  — irreversible data loss whose blast radius cannot be read off the
-#           command line (`php artisan migrate:fresh`, `DROP DATABASE`,
-#           `docker compose down -v`, `aws s3 rb`, `terraform destroy`). The
-#           model is stopped; only a human can run these.
-#   ask   — destructive but commonly intended and scoped (`git reset --hard`,
-#           `kubectl delete pod`, and `rm -rf ./some-dir` only when git cannot
-#           restore the path — see the recoverability check). The user answers.
-#   allow — everything else. The hook stays silent and normal permissions apply.
-#
-# The failure it exists for: an agent runs a schema-reset command mid-task
-# because a migration looked stuck, and the data is gone before anyone reads the
-# transcript. Nothing asks, because `php artisan migrate:fresh` is an ordinary
-# command that happens to be terminal.
-#
-# Fail-open by construction: any error, missing jq, or unparseable input allows
-# the call. A guard that breaks the session gets uninstalled, and then it guards
-# nothing.
-#
-# The allow-file (.claude/destructive-guard-allow) disarms every deny, so a Bash command
-# naming it passes only when EVERY segment is a pure read: cat head tail wc grep egrep fgrep
-# stat ls file diff cmp, or git log/show/diff/blame/grep/ls-files/cat-file with the subcommand
-# first and no output, pager, ext-diff, textconv, filters or -c option; redirects only to
-# /dev/null or a descriptor; no backtick, $, ~, {}, unquoted # or paren, or env assignment;
-# the reader's name typed bare. Everything else naming it is denied, so awk, sed -n, find, jq
-# and less on it are blocked — use cat/grep. WHAT IT DOES NOT CATCH: a path built from a
-# variable or a glob, a script file that writes it, and any program git config names (a diff
-# driver, textconv, clean filter, pager, core.fsmonitor, gpg.program via --show-signature),
-# set before the command runs. The name is matched in any ASCII letter case, in a command, a
-# Write/Edit path, an *apply_patch body and a *create_new_file path: a case-insensitive
-# filesystem opens one file under each such spelling (on a case-sensitive one a differently-cased
-# sibling is over-denied — harmless). NOT caught on the write path: any other MCP write tool,
-# NotebookEdit's notebook_path, and a non-ASCII spelling the filesystem folds to the name.
-#
-# CLAUDE_DESTRUCTIVE_GUARD, read from the hook's own environment:
-#   unset      deny + ask, as above
-#   deny-only  the hard stops only; the ask tier falls through silently to
-#              whatever the host does next. Worth it when the host runs a
-#              permission classifier of its own: a hook `ask` OVERRIDES that
-#              classifier, so the ask tier turns a silent host judgement into a
-#              human click. Outside auto mode nothing replaces it — see README.
-#   ask        every deny becomes a prompt instead of a block
-#   off        disabled
-# Unset in the environment, the /config option claude_destructive_guard decides.
-#
-# CLI mode for testing and for /command-guard:check — always reports the true
-# tier, including an ask that deny-only would suppress:
-#   destructive-guard.sh --check '<command>'   exit 0 allow | 1 ask | 2 deny
+# destructive-guard.sh [--check '<command>' | --version] — PreToolUse on Bash and MCP shell/SQL tools: deny irreversible data loss, ask on scoped
+# destruction, allow the rest; deny a write to the allow-file; ask before a Write replaces a live .env. Fails open. --check ignores the mode: exit 0/1/2 = allow/ask/deny.
+# CLAUDE_DESTRUCTIVE_GUARD, else /config claude_destructive_guard: deny-only drops the ask tier, ask turns a command deny into a prompt, off disables.
+# Allow-file .claude/destructive-guard-allow, project then ~: a line's regex matched unanchored on the whole command, trailing comment too, releases it; a command naming the file must be a pure read.
+# Misses: an allow-file path built from a variable or glob, a script or a program git config names writing it, an MCP write tool other than apply_patch
+# and create_new_file, NotebookEdit's notebook_path, a non-ASCII spelling the filesystem folds to the name; a failing cd to a relative target;
+# a command run through `env`; `git clean … -e -n`, read as a dry run; an unlisted git global option or a -C/-c value holding a space before a git subcommand.
+# Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/destructive-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
@@ -79,34 +34,20 @@ cc_option() {
 
 GUARD_VERSION=0.7.0
 
-# ---------------------------------------------------------------------------
-# Normalisation. Every rule matches against a canonical form, because the raw
-# string has too many ways to say the same thing: extra whitespace, quotes
-# around a subcommand (`artisan "migrate:fresh"`), backslash escapes, a leading
-# `sudo`. Quote stripping is what makes the quoted-evasion forms match the same
-# rule as the plain one.
-# ---------------------------------------------------------------------------
+# Quotes and backslashes go so a quoted evasion (artisan "migrate:fresh") meets the rule the plain form does.
 norm_cmd() {
   printf '%s' "$1" \
     | tr '\n\t' '  ' \
     | sed -e "s/[\"'\\\\]//g" -e 's/>/ > /g' -e 's/  */ /g' -e 's/^ //' -e 's/ $//'
 }
 
-# Segment a command on shell separators (; && || | newline) so a rule fires on
-# the segment that would EXECUTE the match, not on a segment that merely quotes
-# it. Splitting is quote-aware on the RAW string — dequoting first would split
-# `grep -E "a|rm -rf /"` into a fake `rm -rf /` segment.
-#
-# The walk runs ONCE, in END, over the whole input. It used to run per record
-# under RS = "\0", which BWK awk (macOS) reads as paragraph mode: a blank line
-# started a new record with `seg` still holding the previous one, so
-# `ls a` + blank line + X came back as a single reader-led segment `ls aX`.
-# And a backslash escapes nothing inside '…' — treating it as an escape there
-# left `'x\'` open, swallowing the `;` after it. The exception is $'…', where
-# \' IS an escape (`ans`). After two or more `$` the shells disagree — bash opens
-# a plain quote, zsh an ANSI one — so the walk stops trusting quotes and escapes
-# for the rest of the command (`raw`) and splits on every separator: too many
-# segments can only add a verdict, never hide one. check_cd_chain copies this walk.
+# Git rules are written ` git <subcommand>`, so the global options before it (-C, -c, --git-dir …) are dropped; an unknown one stays.
+strip_git_global_options() { # normalised segment
+  printf '%s' "$1" | sed -E 's/(^|[[:space:]])git([[:space:]]+(-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space:]]+|--(git-dir|work-tree|namespace)(=[^[:space:]]+|[[:space:]]+[^[:space:]]+)|--no-pager|--no-optional-locks|--literal-pathspecs|--bare))+([[:space:]])/\1git\6/g'
+}
+
+# Quote-aware on the RAW string: dequoting first splits grep -E "a|rm -rf /" into a fake rm segment. check_cd_chain copies this walk.
+# One walk in END, not per record: BWK awk reads RS = "\0" as paragraph mode. After $$' bash and zsh disagree, so `raw` splits on every separator.
 split_segments() {
   printf '%s' "$1" | awk '
     { buf = (NR == 1 ? $0 : buf "\n" $0) }
@@ -134,8 +75,6 @@ split_segments() {
     }'
 }
 
-# First real word of a segment, with the wrappers that carry no semantics of
-# their own stripped: sudo, env assignments, time, nohup, xargs -I{} …
 lead_word() {
   printf '%s' "$1" | awk '
     { for (i = 1; i <= NF; i++) {
@@ -148,10 +87,6 @@ lead_word() {
       } }'
 }
 
-# Segments whose lead word only READS are skipped: `grep -r "migrate:fresh" .`
-# is a search, not a migration. The exemption is dropped for the whole command
-# when its output is piped into a shell — there the reader's output IS the
-# program.
 READERS=' echo printf cat grep egrep fgrep rg ag ack less more head tail wc sort uniq jq yq column ls tree stat file diff comm man which type printenv env true false date basename dirname pwd '
 
 is_reader() {
@@ -164,12 +99,7 @@ is_reader() {
   return 1
 }
 
-# git subcommands that cannot lose committed or working-tree data. `commit` is
-# on the list for a reason beyond safety: a commit MESSAGE is prose, and prose
-# about a migration ("remove the drop table step") would otherwise trip the SQL
-# rules. The destructive subcommands — reset, clean, push --force, branch -D,
-# checkout/restore, stash, gc, reflog, filter-branch, update-ref — are absent by
-# design and stay subject to the table.
+# commit can lose nothing, and its message is prose: "remove the drop table step" would otherwise trip the SQL rules.
 git_safe_subcmd() {
   case "$1" in
     log|show|diff|status|blame|ls-files|ls-remote|rev-parse|describe|config|remote|fetch|shortlog|grep|cat-file|whatchanged) return 0 ;;
@@ -178,24 +108,10 @@ git_safe_subcmd() {
   return 1
 }
 
-# Anything that speaks SQL, including the wrappers people reach it through
-# (`docker compose exec db psql …`, `ssh host mysql …`, `php artisan tinker`).
-# Tested against the WHOLE command, not the segment, because a heredoc body
-# (`mysql <<SQL` / `DROP TABLE x;` / `SQL`) splits into segments that no longer
-# name the client.
+# Matched against the whole command: a heredoc body (mysql <<SQL, DROP TABLE x;) splits into segments that no longer name the client.
 SQL_CLIENT_RE=' (mysql|mysqldump|mariadb|psql|pgcli|sqlite3|sqlcmd|mongosh|mongo|redis-cli|clickhouse-client|cockroach|snowsql|usql|sqlplus|dbmate|tinker|artisan|rails|sequelize|knex|prisma|wrangler|supabase|pscale|planetscale|bq|duckdb|influx|cqlsh|turso|libsql|flyway|liquibase|doctrine|alembic|typeorm) '
 
-# ---------------------------------------------------------------------------
-# Rule table. TAB-separated: TIER \t REGEX \t WHAT \t ALTERNATIVE
-#
-# Regexes are POSIX ERE matched against the normalised segment, which is padded
-# with a leading and trailing space — so ` rm ` matches a bare `rm` at either
-# end. A regex containing an uppercase letter is matched CASE-SENSITIVELY
-# against the case-preserving form (that is the only way `git branch -D` can be
-# told from `git branch -d`); every other rule matches the lowercased form.
-#
-# deny rules are listed first and win: the loop takes the first hit.
-# ---------------------------------------------------------------------------
+# TAB-separated: tier (deny or ask; +sql fires only in SQL context), ERE over the space-padded segment, what it does, the alternative.
 rules() {
   cat <<'RULES'
 deny	[ /]artisan (migrate:(fresh|reset|refresh)|db:wipe)	drops every table in the configured database and re-runs migrations	`php artisan migrate` applies pending migrations without touching existing rows
@@ -275,18 +191,31 @@ ask	 chmod -[a-z]*r[a-z]* (777|666) 	recursively makes a tree world-writable	set
 RULES
 }
 
-# ---------------------------------------------------------------------------
-# Verdict state, set by classify()
-# ---------------------------------------------------------------------------
+# An uppercase letter makes a rule case-sensitive, matched on the case-preserved form: git branch -D is not -d.
+match_rule_table() { # padded segment, the same lowercased, sql_ctx 0|1
+  local segn="$1" segn_lc="$2" sql_ctx="$3" tier re what alt
+  while IFS=$'\t' read -r tier re what alt; do
+    [ -n "$tier" ] || continue
+    case "$tier" in
+      *sql) [ "$sql_ctx" -eq 1 ] || continue
+            tier="${tier%sql}" ;;
+    esac
+    if printf '%s' "$re" | grep -q '[A-Z]'; then
+      [[ $segn =~ $re ]] && set_verdict "$tier" "$what" "$alt" "$segn"
+    else
+      [[ $segn_lc =~ $re ]] && set_verdict "$tier" "$what" "$alt" "$segn_lc"
+    fi
+    [ "$VERDICT" = "deny" ] && break
+  done < <(rules)
+}
+
 VERDICT=allow   # allow | ask | deny
-CWD_MOVED=0     # the command changes directory, so this process's cwd is not
-                # the one the rm will resolve against — see git_recoverable
+CWD_MOVED=0     # 1 when the command cds: its relative paths do not resolve against this process's cwd
 V_WHAT=""       # what the command does
 V_ALT=""        # the non-destructive alternative
 V_MATCH=""      # the segment that matched
 
-V_KIND=""      # "cd" when the deny is a failing-cd chain: its reason differs
-                # because re-issuing the FIXED command is the expected next move
+V_KIND=""      # "cd" for a failing-cd deny, whose reason invites the corrected retry
 
 set_verdict() { # tier what alt match [kind]
   # deny wins over ask; the first deny wins over later denies.
@@ -295,21 +224,10 @@ set_verdict() { # tier what alt match [kind]
   VERDICT="$1"; V_WHAT="$2"; V_ALT="$3"; V_MATCH="$4"; V_KIND="${5:-}"
 }
 
-# Build artifacts: regenerated by a build, so `rm -rf` on them is ordinary work
-# and prompting on it would train the user to click through the prompt.
+# Regenerated by a build, so rm -rf on them is ordinary work; a prompt here trains the user to click through prompts.
 ARTIFACT_RE='^(\./)?(node_modules|vendor|dist|build|out|target|coverage|\.next|\.nuxt|\.turbo|\.cache|\.parcel-cache|__pycache__|\.pytest_cache|\.venv|venv|tmp|temp|\.tmp|storage/framework/(cache|views|sessions)|bootstrap/cache)/?\*?$'
 
-# The OS temp directory. A path INSIDE it is scratch by definition — the system
-# clears it on boot and every `mktemp -d` on the machine lands there — so
-# deleting one is ordinary work, the same call ARTIFACT_RE already makes for
-# node_modules. Before this, every absolute path was "outside the project" and
-# asked; a prompt the user always clicks through is a prompt they stop reading,
-# which costs the prompts that matter.
-#
-# INSIDE is the whole rule. The roots themselves stay denied, because emptying
-# /tmp destroys state belonging to every other process on the machine and not
-# just this session's. So a token must name a root PLUS a component under it.
-#
+# A path inside the OS temp dir is scratch, so deleting it is ordinary work; the roots themselves stay denied.
 # Prints what sits under the temp root; prints nothing when the path is not one.
 temp_remainder() { # lowercased token
   local p="$1"
@@ -317,9 +235,7 @@ temp_remainder() { # lowercased token
   case "$p" in
     /tmp/*)     printf '%s' "${p#/tmp/}" ;;
     /var/tmp/*) printf '%s' "${p#/var/tmp/}" ;;
-    # macOS per-user temp: /var/folders/<ab>/<hash>/<T|C>/… — the three
-    # components under /var/folders ARE the root, so anything shallower than
-    # that is the root itself or a sibling, not a path inside it.
+    # /var/folders/<ab>/<hash>/<T|C> is the macOS per-user root itself: only awk's field 7 onward is inside it.
     /var/folders/*)
       printf '%s' "$p" | awk -F/ '{ if (NF >= 7 && $7 != "") { s = $7; for (i = 8; i <= NF; i++) s = s "/" $i; print s } }' ;;
   esac
@@ -329,11 +245,7 @@ is_temp_path() { # lowercased token -> 0 scratch, 1 not
   local p="$1" root="" rest="" first
   # `..` can walk back out of the root, so the prefix stops proving containment.
   case "$p" in *..*) return 1 ;; esac
-  # $TMPDIR / $TMP are read from the HOOK's own environment — the environment
-  # the Bash tool's shell inherits, same process tree — so this is the real
-  # value, not a guess. Unset means unresolvable and returns 1, dropping the
-  # token to the variable-collapse ask below: `rm -rf $TMPDIR/build` with
-  # TMPDIR unset is `rm -rf /build`, which is not a temp path at all.
+  # The hook's own TMPDIR/TMP is the Bash tool shell's; unset means unresolvable, so rm -rf $TMPDIR/build falls to the variable ask.
   case "$p" in
     '$tmpdir/'*|'${tmpdir}/'*) root="${TMPDIR:-}"; rest="${p#*/}" ;;
     '$tmp/'*|'${tmp}/'*)       root="${TMP:-}";    rest="${p#*/}" ;;
@@ -345,30 +257,15 @@ is_temp_path() { # lowercased token -> 0 scratch, 1 not
   case "$p" in *'$'*) return 1 ;; esac   # any other variable: expansion unknown
   rest=$(temp_remainder "$p")
   [ -n "$rest" ] || return 1
-  # A glob may sit inside the scratch directory, but it must not BE the first
-  # component: `/tmp/*` is the root emptied under a different spelling.
+  # A glob as the first component is the root emptied under another spelling (/tmp/*).
   first="${rest%%/*}"
   case "$first" in ''|'*'|'?'|'.'|'..') return 1 ;; esac
   return 0
 }
 
-# Can git hand this path back? Either it is not there (deleting it is a no-op)
-# or every byte under it is committed and `git restore` returns it. Deleting
-# such a path is not a loss, and prompting on it is how a user learns to click
-# through prompts — including the ones that matter.
-#
-# Fails CLOSED: no git, not a repo, untracked or modified or IGNORED content
-# under the path, a glob whose expansion is unknown — all return 1, and the
-# caller asks. Ignored files count as a loss precisely because git has no copy:
-# a `.env` under the directory is the case this guard exists for.
-#
-# Called ONLY from the branch that was about to ask a human, so it adds no git
-# call to an ordinary Bash tool call.
+# Fails closed: a moved cwd, a glob, no git or repo, or untracked, modified or IGNORED content (a .env git has no copy of) asks.
 git_recoverable() { # path -> 0 recoverable, 1 ask
   local p="$1" st
-  # `cd /elsewhere && rm -rf src` resolves src somewhere this process is not.
-  # The segment splitter judges the rm alone, so the only safe answer is to
-  # stop trusting cwd for the whole command.
   [ "$CWD_MOVED" -eq 1 ] && return 1
   case "$p" in *'*'*|*'?'*|*'['*) return 1 ;; esac
   [ -e "$p" ] || return 0
@@ -379,13 +276,11 @@ git_recoverable() { # path -> 0 recoverable, 1 ask
   [ -z "$st" ]
 }
 
-# `rm -rf` is the one rule that cannot be a regex: whether it is catastrophic
-# depends on the TARGET, and the targets live in the same string as the flags.
+# Not a table rule: whether rm -rf is catastrophic depends on each target, not on the flags.
 check_rm() { # normalised segment (lowercased, padded)
   local seg="$1" flags="" targets="" tok recursive=0 t
   case "$seg" in *" rm "*) ;; *) return 0 ;; esac
 
-  # tokens after the rm word
   targets=$(printf '%s' "$seg" | awk '{ seen=0; for (i=1;i<=NF;i++) { if (!seen) { if ($i=="rm") seen=1; continue } ; print $i } }')
   flags=$(printf '%s\n' "$targets" | grep '^-' | tr -d '\n')
   case "$flags" in *r*|*R*) recursive=1 ;; esac
@@ -401,18 +296,13 @@ check_rm() { # normalised segment (lowercased, padded)
           "name the specific directory to delete" "$seg"
         return 0 ;;
     esac
-    # A single-component absolute path (/etc, /var, /usr) is a system directory.
-    # This has to be a regex: a shell `case` glob cannot say "no slash after the
-    # first one" — `/[a-z]*` matches /opt/app/releases/12 too, which silently
-    # made every absolute path a deny.
+    # A system directory is one component (/etc); a regex, since the case glob /[a-z]* also matches /opt/app/releases/12.
     if printf '%s' "$tok" | grep -qE '^/[a-z0-9_.-]+/?\*?$'; then
       set_verdict deny "recursively deletes the system directory ${tok}" \
         "work inside the project directory" "$seg"
       return 0
     fi
-    # The temp roots in their multi-component spellings. `/tmp` is already a deny
-    # by the rule above; these name the same directories and must agree with it,
-    # or the exemption below becomes the way to spell the root.
+    # The temp roots' longer spellings must agree with the /tmp deny, or the scratch exemption spells the root.
     case "$tok" in
       /private/tmp|/private/tmp/|/private/tmp/\*|/var/tmp|/var/tmp/|/var/tmp/\*|/private/var/tmp|/private/var/tmp/|/private/var/tmp/\*)
         set_verdict deny "recursively deletes ${tok}, the machine's shared temp directory, which holds other processes' state" \
@@ -428,9 +318,8 @@ check_rm() { # normalised segment (lowercased, padded)
         continue ;;
     esac
     t="$tok"
-    printf '%s' "$t" | grep -qE "$ARTIFACT_RE" && continue   # build artifact: fine
-    # In-project path git can restore: not a loss, so not a prompt. `..` and
-    # absolute paths are excluded — they can leave the repo the check consults.
+    printf '%s' "$t" | grep -qE "$ARTIFACT_RE" && continue
+    # A path git can restore is no loss; .. and absolute paths are not asked of git, as they can leave its repo.
     case "$tok" in
       /*|*..*) ;;
       *) git_recoverable "$tok" && continue ;;
@@ -447,16 +336,13 @@ EOF
   return 0
 }
 
-# The allow-file is the human's opt-out. It is only an opt-out if the model
-# cannot write it — so writing it is itself blocked, in both directions (this
-# check for Bash, the tool_name branch below for Write/Edit).
+# The human's opt-out, so the model may not write it: check_self_protection on Bash, guard_file_write on the write tools.
 ALLOW_BASENAME=destructive-guard-allow
 
 # Closed on purpose and not READERS: less, sort, jq, env and echo can each write or run a program.
 ALLOW_FILE_READERS=' cat head tail wc grep egrep fgrep stat ls file diff cmp '
 
-# Every segment, not only the one naming the file: `hash -p /bin/cp cat; cat x <allow-file>`
-# is a cp wearing a reader's name. The split keeps `2>&1` and `&>` whole, unlike split_segments.
+# Judges every segment, not only the one naming the file: hash -p /bin/cp cat makes a later cat a cp. Keeps 2>&1 and &> whole.
 allow_file_pure_read() { # raw command -> 0 when every segment is a pure read
   local s r d x n bad w seen=0
   case "$1" in *'`'*|*'$'*|*'~'*|*'{'*|*'}'*) return 1 ;; esac
@@ -521,8 +407,7 @@ check_self_protection() { # normalised command (lowercased, padded), raw command
     "ask the user to add the exemption themselves; the file is theirs by design" "$1"
 }
 
-# Whole-command rules: shapes the segment splitter would cut in half, because
-# the separator IS the hazard.
+# Shapes the segment splitter would cut in half, because the separator is the hazard.
 check_whole() { # normalised full command (lowercased, padded)
   case "$1" in
     *':(){ :|:& };:'*|*':() { :|:& };:'*)
@@ -535,26 +420,6 @@ check_whole() { # normalised full command (lowercased, padded)
   return 0
 }
 
-# ---------------------------------------------------------------------------
-# .env OVERWRITE. The rule table already denies `rm .env` and `> .env`; this
-# covers the writers that replace the file under another name — cp/mv/install/
-# ln/rsync onto it, tee into it, and `artisan key:generate`, which rewrites
-# APP_KEY in place.
-#
-# WHY (2026-09-24). An agent building a throwaway checkout ran
-#   cd /tmp/dq-bg && …; cp .env.example .env && php artisan key:generate
-# The worktree had never been created, the cd failed, the `;` carried on, and
-# both writes landed in the live repo: every credential gone, and everything
-# encrypted with the old APP_KEY unreadable. Nothing asked, because each command
-# is an ordinary setup step in a fresh clone.
-#
-# That is also why this is decided by STATE, not spelling: `cp .env.example .env`
-# in a clone with no .env is the setup step, and denying it would teach the user
-# to switch the guard off. A target is AT RISK when it exists and git has no
-# clean copy of it — or when the command moves directory, because then the guard
-# cannot tell which .env the relative path lands on (the incident exactly). An
-# absolute path inside the OS temp directory is scratch and never at risk.
-# ---------------------------------------------------------------------------
 is_env_secret() { # path token -> 0 when its basename is a local secrets file
   local b="${1##*/}"
   case "$b" in
@@ -565,6 +430,7 @@ is_env_secret() { # path token -> 0 when its basename is a local secrets file
   return 1
 }
 
+# By state, not spelling: cp .env.example .env in a clone with no .env is the setup step, not a loss.
 env_target_at_risk() { # case-preserved path token -> 0 at risk, 1 safe
   local t="$1" lc dir base st
   lc=$(printf '%s' "$t" | tr '[:upper:]' '[:lower:]')
@@ -597,8 +463,7 @@ deny_env_overwrite() { # target seg
 
 check_env_overwrite() { # case-preserved normalised segment (padded), lead word
   local seg="$1" lead="$2" toks tok dest last src f ef
-  # Tokens after the lead word, flags dropped. A flag that takes a value (-t DIR,
-  # -S suffix) is a residual: the directory form is not resolved.
+  # Flags are dropped, so a flag's value (-t DIR, -S suffix) reads as an operand: the -t directory form is not resolved.
   toks=$(printf '%s' "$seg" | awk -v L="$lead" '{ s=0; for (i=1;i<=NF;i++) { w=$i; if (!s) { b=w; sub(/^.*\//,"",b); if (b==L) s=1; continue } if (w ~ /^-/) continue; print w } }')
 
   case "$lead" in
@@ -629,9 +494,7 @@ EOF
       ;;
   esac
 
-  # A truncating `> .env.local` (the rule table already owns a bare `.env`).
-  # norm_cmd spaces every `>`, so an append arrives as `> >` and is skipped:
-  # appending a line loses nothing.
+  # A truncating > onto .env.*; norm_cmd spaces every >, so an append arrives as > > and is skipped.
   while IFS= read -r tok; do
     [ -n "$tok" ] || continue
     is_env_secret "$tok" && env_target_at_risk "$tok" && { deny_env_overwrite "$tok" "$seg"; return 0; }
@@ -654,25 +517,11 @@ EOF
     "\`php artisan key:generate --show\` prints a key without writing it; for a test run, export APP_KEY for that process instead of writing any env file" "$seg"
 }
 
-# ---------------------------------------------------------------------------
-# FAILING cd IN A ;-CHAIN. `cd X; step` runs `step` whether or not the cd
-# worked, and the Bash tool's shell keeps its working directory between calls,
-# so a failed cd drops every later step into the live project. That is the
-# second half of the incident above: `cd /tmp/dq-bg && …; cp .env.example .env`
-# with /tmp/dq-bg never created.
-#
-# Fires only when it is certain the cd fails: the target is an ABSOLUTE (or ~)
-# path that does not exist right now, no earlier segment of the same command
-# names it (so `mkdir -p X; cd X; …` passes), the cd's &&-chain ends in `;` or a
-# newline rather than || (`cd X || exit`), something follows that `;`, and no
-# `set -e` precedes it. A relative target is not judged: the hook cannot be sure which directory
-# the Bash tool's shell is in, and a false deny here costs a turn every time.
-# ---------------------------------------------------------------------------
+# Denies only a cd certain to fail: a missing absolute or ~ target no earlier step names, its chain ended by ; before more steps, no set -e.
 check_cd_chain() { # raw command
   local raw="$1"
   case "$raw" in *cd*) ;; *) return 0 ;; esac
-  # awk emits one line per segment: <separator-after>\t<segment text>. Same
-  # quote-aware walk as split_segments, keeping the separator it cut on.
+  # One line per segment, <separator after>\t<text>: split_segments' walk, keeping the separator.
   local lines
   lines=$(printf '%s' "$raw" | awk '
     { buf = (NR == 1 ? $0 : buf "\n" $0) }
@@ -708,9 +557,7 @@ check_cd_chain() { # raw command
     words=$(printf '%s' "$seg" | sed -e "s/[\"']//g" -e 's/^ *//')
     case " $words " in *' set -e'*|*' set -o errexit'*|*' set -'[a-z]*e[a-z]*' '*) return 0 ;; esac
     lead=${words%% *}
-    # `cd X && a && b; c` fails the same way the incident did: a failed cd skips
-    # the && chain, then the `;` hands c to the live directory. So follow the
-    # chain (&& and |) to the first separator that ends it; only `;` is a hazard.
+    # A failed cd skips its && / | chain, so the separator that ends the chain decides: only ; hands the rest to the live directory.
     chain_end=$(printf '%s\n' "$lines" | tail -n +"$i" | awk -F'\t' '$1 != "&&" && $1 != "|" { print NR - 1 + '"$i"' "\t" $1; exit }')
     end_at=${chain_end%%$'\t'*}; end_sep=${chain_end#*$'\t'}
     if [ "$lead" = "cd" ] && [ "$end_sep" = ";" ] && [ "${end_at:-$total}" -lt "$total" ]; then
@@ -740,11 +587,9 @@ EOF
   return 0
 }
 
-# ---------------------------------------------------------------------------
 # classify: raw command string -> VERDICT / V_WHAT / V_ALT / V_MATCH
-# ---------------------------------------------------------------------------
 classify() {
-  local raw="$1" full full_lc seg segn segn_lc lead sub tier re what alt pipe_to_shell=0 sql_ctx=0 redirects=0
+  local raw="$1" full full_lc seg segn segn_lc lead sub pipe_to_shell=0 sql_ctx=0 redirects=0
 
   full=$(norm_cmd "$raw")
   full_lc=$(printf '%s' "$full" | tr '[:upper:]' '[:lower:]')
@@ -753,33 +598,19 @@ classify() {
 
   case " $full_lc " in *' cd '*|*' pushd '*) CWD_MOVED=1 ;; *) CWD_MOVED=0 ;; esac
 
-  # SQL rules only fire when something in the command speaks SQL. Without this
-  # gate, `git commit -m "remove the drop table step"` and
-  # `npm test -- --grep "delete from users"` both read as executed SQL.
+  # SQL rules need a SQL client in the command, or git commit -m "remove the drop table step" reads as executed SQL.
   printf '%s' " $full_lc " | grep -qE "$SQL_CLIENT_RE" && sql_ctx=1
-  # An MCP SQL tool's payload IS the statement — there is no client name in it
-  # to sniff, so sniffing was gating every SQL rule off for exactly the tool the
-  # plugin claims to cover. The hook sets this from tool_name/field instead.
-  # Env-set, so it can only ever turn SQL rules ON.
+  # The hook sets this for an MCP SQL tool, whose payload names no client; it can only turn SQL rules on.
   [ "${GUARD_SQL_CTX:-0}" = "1" ] && sql_ctx=1
 
-  # Output piped into a shell: the reader exemption is off for this command,
-  # because `echo "rm -rf /" | sh` is not an echo.
+  # Output piped into a shell turns the reader exemption off: echo "rm -rf /" | sh is not an echo.
   printf '%s' " $full_lc " | grep -qE ' \| *(sudo )?[a-z]*sh( |$)| \| *xargs ' && pipe_to_shell=1
 
   while IFS= read -r seg; do
     [ -n "$seg" ] || continue
     segn=$(norm_cmd "$seg")
     [ -n "$segn" ] || continue
-    # git GLOBAL OPTIONS sit between `git` and the subcommand, and every git rule
-    # below is written as ` git <subcommand> …`. `git -C /path push --force`,
-    # `git -c core.pager=cat reset --hard` and `git --git-dir=… clean -fd` therefore
-    # matched nothing and were allowed — measured 2026-09-14 — even though `-C` is
-    # the form an agent reaches for whenever it works outside its cwd. Strip the
-    # option words so the rules see `git push --force`. Only options that take
-    # their value inline or as the next word are handled; an unknown option is
-    # left alone and falls to the old behaviour.
-    segn=$(printf '%s' "$segn" | sed -E 's/(^|[[:space:]])git([[:space:]]+(-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space:]]+|--(git-dir|work-tree|namespace)(=[^[:space:]]+|[[:space:]]+[^[:space:]]+)|--no-pager|--no-optional-locks|--literal-pathspecs|--bare))+([[:space:]])/\1git\6/g')
+    segn=$(strip_git_global_options "$segn")
     segn_lc=" $(printf '%s' "$segn" | tr '[:upper:]' '[:lower:]') "
     segn=" $segn "
 
@@ -787,62 +618,16 @@ classify() {
     check_env_overwrite "$segn" "$lead"
     [ "$VERDICT" = "deny" ] && break
 
-    # A segment that REDIRECTS is a write, whatever its lead word claims:
-    # `echo x > .env` truncates the credentials it says it is only printing to,
-    # and `cat /dev/null > app.sqlite` empties a database. Same reasoning as
-    # check_self_protection, generalised — the redirect is the effect — so such
-    # a segment skips BOTH the reader and the git-safe exemption and goes to the
-    # rule table. norm_cmd spaces every `>`, so this catches `>>` too.
-    #
-    # This is also the third of the three vectors that killed the self-exemption
-    # below (`… --check foo > /dev/<rawdisk>`): a redirect is evaluated by the
-    # shell whatever argv claims, which is exactly why no lead word may buy a
-    # segment its way past classification.
+    # A redirecting segment is a write whatever its lead word claims (echo x > .env), so it skips both exemptions; >> too.
     case "$segn_lc" in *' > '*) redirects=1 ;; *) redirects=0 ;; esac
 
     if [ "$pipe_to_shell" -eq 0 ] && [ "$redirects" -eq 0 ]; then
-      # NO SELF-EXEMPTION. THIS IS DELIBERATE, AND IT WAS TRIED TWICE.
-      #
-      # The problem it tried to solve is real: this guard denies the exact command
-      # its own /command-guard:check tells the model to type, because that command
-      # carries the deny-tier target as an argument and arrives through the Bash
-      # tool. See commands/check.md, which now states the limitation instead.
-      #
-      # Attempt 1 (0.2.0) matched `bash … destructive-guard.sh … --check` as
-      # substrings anywhere in the segment. Bypassed by `bash -c PAYLOAD name arg…`,
-      # which runs PAYLOAD and demotes the appended magic words to $0/$1.
-      #
-      # Attempt 2 (0.2.1) matched by ARGV POSITION — word 1 bash/sh, word 2 the
-      # guard's own path, word 3 --check. That closed the arg-shifting wrapper and
-      # was still bypassed three ways, because the exemption's `continue` skips
-      # classification of the WHOLE segment while a shell segment carries side
-      # effects the shell evaluates independently of argv:
-      #     …guard.sh --check "$( <destructive> )"    command substitution
-      #     …guard.sh --check ` <destructive> `       backticks
-      #     …guard.sh --check foo > /dev/<rawdisk>    redirection
-      # In each, the payload runs before or beside the classifier that argv says
-      # is all that happens.
-      #
-      # The lesson generalises past this plugin: an exemption keyed on what a
-      # command LOOKS like cannot be safe when the shell will evaluate parts of
-      # that same string on its own terms. Any third attempt has to classify the
-      # segment anyway and suppress only the verdict arising from the --check
-      # ARGUMENT — which means parsing shell grammar, which this guard
-      # deliberately does not do. A convenience command is not worth a hole in a
-      # deny gate, so the convenience loses.
-      #
-      # The bypass vectors are pinned as DENY assertions in
-      # scripts/__tests__/destructive-guard.test.sh § self-exemption. If someone
-      # adds an exemption again, those assertions are what should stop it.
+      # No self-exemption for this guard's own --check: the shell runs a segment's $( ), backticks and redirects whatever argv says.
       if is_reader "$lead"; then continue; fi
       if [ "$lead" = "git" ]; then
         sub=$(printf '%s' "$segn_lc" | awk '{ for (i=1;i<=NF;i++) if ($i=="git") { print $(i+1); exit } }')
         git_safe_subcmd "$sub" && continue
-        # `git clean -n` / `--dry-run` deletes nothing — it is the preview the
-        # ask-tier's own alternative text tells the model to run first. Asking on
-        # the preview trained a click-through on the exact command that makes the
-        # real one safe. `-f` alongside `-n` is still a dry run (git ignores the
-        # force), so the test is for the n flag, not for the absence of f.
+        # A token with an n flag (-n, -fn) or --dry-run is taken for a dry run, the preview the ask tier tells the model to run.
         if [ "$sub" = "clean" ]; then
           printf '%s' "$segn_lc" | grep -qE ' (--dry-run|-[a-z]*n[a-z]*)( |$)' && continue
         fi
@@ -850,30 +635,14 @@ classify() {
     fi
 
     check_rm "$segn_lc"
-
-    while IFS=$'\t' read -r tier re what alt; do
-      [ -n "$tier" ] || continue
-      case "$tier" in
-        *sql) [ "$sql_ctx" -eq 1 ] || continue
-              tier="${tier%sql}" ;;
-      esac
-      # A rule carrying an uppercase letter is case-sensitive by convention —
-      # `git branch -D` must not match `git branch -d`.
-      if printf '%s' "$re" | grep -q '[A-Z]'; then
-        [[ $segn =~ $re ]] && set_verdict "$tier" "$what" "$alt" "$segn"
-      else
-        [[ $segn_lc =~ $re ]] && set_verdict "$tier" "$what" "$alt" "$segn_lc"
-      fi
-      [ "$VERDICT" = "deny" ] && break
-    done < <(rules)
+    match_rule_table "$segn" "$segn_lc" "$sql_ctx"
 
     [ "$VERDICT" = "deny" ] && break
   done < <(split_segments "$raw")
 
   [ "$VERDICT" = "deny" ] || check_cd_chain "$raw"
 
-  # Human opt-out, checked last so it can release a deny. Regex per line,
-  # matched against the whole normalised command.
+  # The human opt-out comes last so it can release a deny.
   if [ "$VERDICT" != "allow" ] && allow_listed "$full_lc"; then
     VERDICT=allow
   fi
@@ -892,11 +661,7 @@ allow_listed() { # normalised lowercased command
   return 1
 }
 
-# ---------------------------------------------------------------------------
-# Reason text. It has one job beyond explaining: stop the retry loop. A model
-# that reads "blocked" without reading "do not rephrase" will try the same
-# command with different quoting, and each attempt costs a turn.
-# ---------------------------------------------------------------------------
+# A deny reason also has to stop the retry loop: without "do not retry" the next turn is the same command requoted.
 deny_reason() {
   if [ "$V_KIND" = "cd" ]; then
     printf '%s' "BLOCKED by command-guard — \`cd ${V_WHAT}\` will fail: that directory does not exist, nothing earlier in this command creates it, and its chain ends in a \`;\`, so every step after that \`;\` would run in the shell's CURRENT directory — the live project — instead. If an earlier call was meant to create ${V_WHAT}, it did not: a denied or failed call means nothing in it ran. Fix: ${V_ALT}. This is not a destructive-command stop; re-issuing the corrected command is the expected next step."
@@ -905,12 +670,7 @@ deny_reason() {
   printf '%s' "BLOCKED by command-guard — this command ${V_WHAT}. The guard cannot tell a local database from production from the command line, so it does not ask; this is a hard stop. Do NOT retry it with different quoting, a wrapper (bash -c, eval), a script file, or a split-up form — the guard reads those too, and working around a safety gate is not the task. Non-destructive path: ${V_ALT}. If the destructive command is genuinely what the task needs, stop and tell the user exactly which command you want run and why, and let them run it. Standing opt-out (the user's call, not yours): a regex line in .claude/${ALLOW_BASENAME}, or CLAUDE_DESTRUCTIVE_GUARD=off in the SESSION's env (=ask downgrades every hard stop to a prompt) — the env is read from this hook's own process, so putting it in front of the command does nothing."
 }
 
-# An `ask` is only worth the interruption if the person answering can find out what
-# the command would do. For a terraform/tofu apply they can: the devops plugin ships a
-# plan reader that exits 2 when the plan destroys a stateful resource. devops is a
-# SIBLING plugin, so the path is resolved from this hook's own root and named only when
-# the file is actually there — naming a path the reader does not have on disk is the
-# defect ops finding 3 fixed elsewhere in this marketplace. Panel finding 43.
+# Silent unless devops' plan reader exists at that path: a hint naming a file the reader does not have is worse than none.
 plan_audit_hint() {
   case "$V_MATCH" in *"terraform apply"*|*"tofu apply"*) ;; *) return 0 ;; esac
   [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] || return 0
@@ -930,22 +690,65 @@ emit() {
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$d,permissionDecisionReason:$r}}' 2>/dev/null
 }
 
-# ---------------------------------------------------------------------------
-# CLI mode
-# ---------------------------------------------------------------------------
-if [ "${1:-}" = "--check" ]; then
-  classify "${2:-}"
+check_cli() { # command -> prints its tier whatever the mode; exits 0 allow, 1 ask, 2 deny
+  classify "$1"
   case "$VERDICT" in
     deny) printf 'DENY  %s\n      %s\n' "$V_MATCH" "$(deny_reason)"; exit 2 ;;
     ask)  printf 'ASK   %s\n      %s\n' "$V_MATCH" "$(ask_reason)"; exit 1 ;;
-    *)    printf 'ALLOW %s\n' "${2:-}"; exit 0 ;;
+    *)    printf 'ALLOW %s\n' "$1"; exit 0 ;;
   esac
-fi
+}
+
+# Write/Edit and the MCP write tools an IDE session uses; apply_patch names no single path, so its body is searched for the allow-file.
+guard_file_write() { # tool, payload, mode
+  local tool="$1" input="$2" mode="$3" f patch
+  f=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null)
+  if [ -z "$f" ]; then
+    patch=$(printf '%s' "$input" | jq -r '.tool_input.input // .tool_input.patch // empty' 2>/dev/null)
+    patch=$(printf '%s' "$patch" | LC_ALL=C tr '[:upper:]' '[:lower:]' 2>/dev/null || printf '%s' "$patch")
+    case "$patch" in *"$ALLOW_BASENAME"*) f="$ALLOW_BASENAME" ;; esac
+  fi
+  case "$(printf '%s' "$f" | LC_ALL=C tr '[:upper:]' '[:lower:]' 2>/dev/null || printf '%s' "$f")" in
+    *"$ALLOW_BASENAME") emit deny "BLOCKED by command-guard — ${ALLOW_BASENAME} is the user's standing exemption list for destructive commands. An agent that can edit it can exempt itself. Ask the user to add the line; tell them the exact regex you want." ;;
+  esac
+  # Ask, not deny: a whole-file Write over a live .env may be meant. Edit is targeted, and creating the file loses nothing.
+  if [ "$tool" = "Write" ] && is_env_secret "$f" && [ "$mode" != "deny-only" ]; then
+    CWD_MOVED=0
+    env_target_at_risk "$f" && emit ask "command-guard: this Write replaces the whole of ${f}, a local secrets file git has no copy of — every value not in the new content is lost. Confirm that is intended; an Edit changes only the lines named. CLAUDE_DESTRUCTIVE_GUARD=off in the session's env disables this guard; =deny-only drops this prompt tier."
+  fi
+}
+
+guard_command() { # tool, payload, mode
+  local tool="$1" input="$2" mode="$3" cmd
+  cmd=$(printf '%s' "$input" | jq -r '
+    [ .tool_input.command // empty,
+      .tool_input.query // empty,
+      .tool_input.sql // empty,
+      .tool_input.script // empty,
+      .tool_input.cmd // empty ] | map(select(. != "")) | join(" ; ")' 2>/dev/null) || return 0
+  [ -n "$cmd" ] || return 0
+
+  # SQL by declaration, a query or sql field or an execute_sql_query tool, the one SQL name the dispatcher sends here: a bare DROP DATABASE x names no client to sniff.
+  export GUARD_SQL_CTX=0
+  case "$tool" in *execute_sql_query|*run_sql|*query) GUARD_SQL_CTX=1 ;; esac
+  printf '%s' "$input" | jq -e '(.tool_input.query // "") != "" or (.tool_input.sql // "") != ""' \
+    >/dev/null 2>&1 && GUARD_SQL_CTX=1
+
+  classify "$cmd"
+  case "$VERDICT" in
+    deny)
+      # The mode is read from the hook's own env, which no command string reaches: CLAUDE_DESTRUCTIVE_GUARD=off rm -rf / is denied.
+      if [ "$mode" = "ask" ]; then emit ask "$(deny_reason)"; else emit deny "$(deny_reason)"; fi ;;
+    ask)
+      # deny-only leaves the ask tier to the host: a hook ask overrides the host's auto-mode classifier with a human click.
+      [ "$mode" = "deny-only" ] && return 0
+      emit ask "$(ask_reason)" ;;
+  esac
+}
+
+if [ "${1:-}" = "--check" ]; then check_cli "${2:-}"; fi
 if [ "${1:-}" = "--version" ]; then printf 'command-guard %s\n' "$GUARD_VERSION"; exit 0; fi
 
-# ---------------------------------------------------------------------------
-# Hook mode. Everything below fails open.
-# ---------------------------------------------------------------------------
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -956,77 +759,20 @@ if [ "${1:-}" = "--version" ]; then printf 'command-guard %s\n' "$GUARD_VERSION"
 
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
 
-  # Write/Edit branch: the allow-file is a human artefact. Denying the model's
-  # edit is what makes it an opt-out rather than a formality.
-  # `*apply_patch|*create_new_file` are the MCP file-write tools an IDE-driven session
-  # uses instead of the four host names. Without them the allow-file — the one file that
-  # disarms this guard — was editable through any MCP server while the host tools were
-  # blocked, which is the protection inverted. `pathInProject` is create_new_file's key;
-  # apply_patch carries no single path, so the patch BODY is checked for the basename
-  # instead (a patch that rewrites the allow-file must name it in its header).
   case "$tool" in
     Write|Edit|MultiEdit|NotebookEdit|*apply_patch|*create_new_file)
-      f=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null)
-      if [ -z "$f" ]; then
-        patch=$(printf '%s' "$input" | jq -r '.tool_input.input // .tool_input.patch // empty' 2>/dev/null)
-        patch=$(printf '%s' "$patch" | LC_ALL=C tr '[:upper:]' '[:lower:]' 2>/dev/null || printf '%s' "$patch")
-        case "$patch" in *"$ALLOW_BASENAME"*) f="$ALLOW_BASENAME" ;; esac
-      fi
-      case "$(printf '%s' "$f" | LC_ALL=C tr '[:upper:]' '[:lower:]' 2>/dev/null || printf '%s' "$f")" in
-        *"$ALLOW_BASENAME") emit deny "BLOCKED by command-guard — ${ALLOW_BASENAME} is the user's standing exemption list for destructive commands. An agent that can edit it can exempt itself. Ask the user to add the line; tell them the exact regex you want." ;;
-      esac
-      # A whole-file Write onto an existing .env replaces every credential in it,
-      # and git has no copy. Edit is a targeted change and stays silent; so does a
-      # Write that creates the file. Ask, not deny: the user may mean it.
-      if [ "$tool" = "Write" ] && is_env_secret "$f" && [ "$mode" != "deny-only" ]; then
-        CWD_MOVED=0
-        env_target_at_risk "$f" && emit ask "command-guard: this Write replaces the whole of ${f}, a local secrets file git has no copy of — every value not in the new content is lost. Confirm that is intended; an Edit changes only the lines named. CLAUDE_DESTRUCTIVE_GUARD=off in the session's env disables this guard; =deny-only drops this prompt tier."
-      fi
+      guard_file_write "$tool" "$input" "$mode"
       exit 0 ;;
   esac
 
-  # Command-execution tools: the Bash tool, plus MCP tools that shell out or run
-  # SQL. Named explicitly rather than by wildcard so an unrelated MCP tool whose
-  # arguments happen to contain "drop table" is not gated.
+  # Named, not wildcarded, so an unrelated MCP tool whose arguments mention "drop table" is not gated.
   case "$tool" in
     Bash) ;;
     *execute_terminal_command|*execute_sql_query|*run_command|*shell_command|*run_in_terminal) ;;
     *) exit 0 ;;
   esac
 
-  cmd=$(printf '%s' "$input" | jq -r '
-    [ .tool_input.command // empty,
-      .tool_input.query // empty,
-      .tool_input.sql // empty,
-      .tool_input.script // empty,
-      .tool_input.cmd // empty ] | map(select(. != "")) | join(" ; ")' 2>/dev/null) || exit 0
-  [ -n "$cmd" ] || exit 0
-
-  # SQL context, told rather than sniffed. A `query`/`sql` field, or a tool
-  # named for SQL, is a SQL statement by declaration — bare `DROP DATABASE x`
-  # carries no client name for SQL_CLIENT_RE to find.
-  export GUARD_SQL_CTX=0
-  case "$tool" in *execute_sql_query|*run_sql|*query) GUARD_SQL_CTX=1 ;; esac
-  printf '%s' "$input" | jq -e '(.tool_input.query // "") != "" or (.tool_input.sql // "") != ""' \
-    >/dev/null 2>&1 && GUARD_SQL_CTX=1
-
-  classify "$cmd"
-  case "$VERDICT" in
-    deny)
-      # CLAUDE_DESTRUCTIVE_GUARD=ask downgrades every deny to a prompt. It is
-      # read from the hook's own environment, which a command string cannot
-      # reach — `CLAUDE_DESTRUCTIVE_GUARD=off rm -rf /` does not disable it.
-      if [ "$mode" = "ask" ]; then emit ask "$(deny_reason)"; else emit deny "$(deny_reason)"; fi ;;
-    ask)
-      # deny-only: stay silent on the ask tier. That tier is where this guard
-      # overlaps the host's own auto-mode classifier, and a hook `ask` OVERRIDES
-      # that classifier — it converts a judgement the host would have made
-      # silently into a human click. Under deny-only the hard stops stay and the
-      # host decides the rest. Costs: nothing gates the ask tier when the host is
-      # NOT in auto mode, so this trades coverage for interruptions knowingly.
-      [ "$mode" = "deny-only" ] && exit 0
-      emit ask "$(ask_reason)" ;;
-  esac
+  guard_command "$tool" "$input" "$mode"
   exit 0
 } 2>/dev/null
 exit 0

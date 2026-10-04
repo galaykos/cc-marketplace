@@ -1,17 +1,8 @@
 #!/usr/bin/env bash
-# Author-time tests for hooks/compact-capsule.sh — the SessionStart(compact)
-# capsule that re-states on-disk task state after a compaction.
-#
-# Drives the hook with the payload shape the host sends on SessionStart
-# (session_id, cwd, source) and asserts: silent on every non-compact source,
-# silent when no ledger exists, names each ledger it knows with its file path,
-# says whether the phase sentinel was written by this session, appends one
-# measurement line per firing, fails open on malformed ledgers, and — with the payload
-# cwd in a SUBDIRECTORY of a git repo — still reads the ledgers at the repo root and
-# writes nothing into the subdirectory.
+# compact-capsule.test.sh — runs hooks/compact-capsule.sh on host-shaped SessionStart payloads; each numbered case names what it asserts.
+# Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/scripts/__tests__/compact-capsule.test.sh
 set -u
-# This session exports it (pointing at the marketplace repo); cc_state_root honours it
-# outside git, so the harness must not inherit it.
+# A live session exports it; cc_state_root takes it as the root of any non-git cwd beneath it.
 unset CLAUDE_PROJECT_DIR
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 HOOK="$ROOT/plugins/skill-router/hooks/compact-capsule.sh"

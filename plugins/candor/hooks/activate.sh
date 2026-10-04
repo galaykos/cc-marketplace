@@ -1,30 +1,9 @@
 #!/bin/bash
-# Absolute-path shebang not `/usr/bin/env bash`: the fail-open guarantee must hold
-# even under a stripped PATH where `env bash` exits 127.
-#
-# SessionStart: inject the terse contract when — and only when — a level is active.
-#
-# ONE SOURCE OF TRUTH. The contract text is extracted at runtime from the marked
-# block in skills/terse-output/SKILL.md, so the skill body and the injected card
-# can never drift. The path comes from ${CLAUDE_PLUGIN_ROOT}, which Claude Code
-# exports for hook commands — NOT from a $0-relative guess. That guess is exactly
-# how the plugin this one replaces silently fell back to a stub ruleset that had
-# no intensity levels in it at all, in every install where the hook did not sit
-# one directory below the skills dir.
-#
-# LIMITATION (honest scope — the four laws, see
-# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
-#   - This injects a contract; it cannot enforce one. Nothing can rewrite a message
-#     after the model emits it. Per-turn reinforcement lives in mode.sh, and
-#     after-the-fact measurement in /candor:check. Both are advisory.
-#   - Level state is machine-local (one file under the Claude config dir), so it
-#     is shared by every project on this machine and not by a team. Deliberate:
-#     how terse the user wants their own terminal is a user preference, not a
-#     repo policy.
-#   - If the SKILL.md block cannot be read, the hook emits one line naming the
-#     level instead of a second copy of the rules. A duplicate ruleset is how the
-#     two copies drift, so the degraded path stays deliberately thin.
+# activate.sh (SessionStart) — while a terse level is active, prints the contract block of skills/terse-output/SKILL.md, read at runtime
+#   under ${CLAUDE_PLUGIN_ROOT}, or one line naming the level when that block is unreadable; nothing otherwise. Always exits 0.
 # The level: CC_TERSE, then the level file, then the /config option cc_terse.
+# Misses: enforcement (nothing rewrites a message once emitted); a per-project level (the level file is one per machine).
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/activate.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
@@ -54,9 +33,6 @@ cc_option() {
   cfg="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
   state="$cfg/terse-mode"
 
-  # Env beats file, the CC_BOOST / CC_REMIND convention: environment is the one
-  # state independently-installed plugins genuinely share, and the only control a
-  # headless run can set.
   level=$(cc_option CC_TERSE off "$state")
 
   case "$level" in

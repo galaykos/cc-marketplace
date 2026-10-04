@@ -10,6 +10,7 @@ than an honest starting point.
 ## 0.55.1 — 2026-10-04
 
 - **`hooks/ultra-craft.sh` comments cut to contract and limits; behaviour unchanged.** Its comments keep the tier, the off-switch and one line per step, and its shared block keeps its function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. The hook parses to the same code as before, compared by bash's own parser with comments ignored.
+- **`scripts/__tests__/craft-gates.test.sh` and `technique-fingerprint.test.sh` comments cut to a contract and, where a residual existed, a `Misses:` line per file (neither reads an off-switch); behaviour unchanged.** The derivations and history moved to the marketplace repository's `rationale/derivations/plugin-craft-layer.md`, which an install does not contain. No code was refactored: both files parse to the same code as before, compared by bash's own parser with comments ignored. Not tested: bash 5.
 
 ## 0.55.0 — 2026-09-30
 

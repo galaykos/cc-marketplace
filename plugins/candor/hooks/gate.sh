@@ -1,175 +1,12 @@
 #!/bin/bash
-# Absolute-path shebang, not `/usr/bin/env bash`: the fail-open guarantee must
-# hold under a stripped PATH where `env bash` exits 127.
-#
-# candor-gate — THE Stop gate of this marketplace: five clauses, each falsifiable
-# on disk or in the transcript, none a tone judgement (tone is measured by
-# /candor:check and blocked by nothing). Until 2026-09-14 clauses 3 and 4 were two
-# sibling scripts, code-architecture/hooks/evidence-gate.sh and
-# task-runner/hooks/completion-gate.sh; each had grown a namespaced disarm so the
-# others could not spend its enforcement through the SHARED stop_hook_active
-# flag. One script needs no such protocol: it records WHICH clause blocked and
-# skips only that clause on its own continuation.
-#
-#   CLAUSE 1 — FABRICATED CITATION. The final assistant message contains a
-#   `path/to/file.ext:NNN` reference that does not resolve: no such file under
-#   cwd or the state root, or the file has fewer lines than the number cited. A file:line citation
-#   asserts "I read this"; when it resolves to nothing, that assertion is false
-#   and a script can prove it.
-#
-#   CLAUSE 2 — UNEVIDENCED REVERSAL. The last user message is BARE pushback —
-#   challenge-shaped ("are you sure?", "that's wrong", "nope"), carrying no
-#   correction of its own — and the final assistant message retracts ("you're
-#   right", "my mistake") while NO tool ran after that pushback and the message
-#   states no basis for the change. Sycophancy with the evidence step skipped.
-#
-#   CLAUSE 3 — NAKED COMPLETION CLAIM (was code-architecture's evidence-gate).
-#   The assistant tail claims completion (done, fixed, implemented, verified,
-#   passes …), files were mutated this session, and NOTHING was executed after
-#   the last mutation — no test, no build, no lint, not even running the code.
-#   The exact shape of the later apology "you're right, I didn't actually do it".
-#   The escape is honesty: prose naming what is unverified passes.
-#
-#   CLAUSE 4 — REGISTERED RUN NOT COMPLETE (was task-runner's completion-gate).
-#   A task-runner run REGISTERED itself (<root>/.claude/task-runner/active-run.json,
-#   <root> per STATE ROOT below) and is stopping without a recorded behavioral-gate
-#   pass for the current HEAD, with cards neither done nor parked, with per-card
-#   negative-control or reviewer records short, with a red-team panel short on a
-#   boosted run, or with a recorded reduction its closing report never names.
-#   Dormant outside a registered run, on another branch, and without git — exactly
-#   as before. The no-gate-pass branch alone also stands down while a worker is in
-#   flight (IN-FLIGHT WORKERS below).
-#
-# WHAT NO OTHER GATE CARRIES (Admission law — .claude/skills/authoring-skills/SKILL.md
-# in the marketplace repository, "The four laws"): this repo's scripts/done-gate.sh
-# is marketplace-specific and gate-status based; this hook ships with the plugin
-# and works in any project, git or not (clause 4 alone needs git, and stands down
-# without it).
-#
-# LIMITATION (honest scope — the four laws, "Honest limitation"):
-#   - CLAUSE 1 checks `file:line` ONLY, never a bare path — a bare path is
-#     routinely a file the turn PROPOSES to create. An invented API name,
-#     package, flag or function is NOT caught; only an invented location is.
-#   - CLAUSE 1 fires on an invented FILENAME, not a wrong directory (see the
-#     ladder in resolve() for the measurement that forced that scope).
-#   - CLAUSE 1 cannot see intent: a citation into a file the turn itself just
-#     shortened, deleted or renamed blocks though the model did read it. An
-#     elided path (`plugins/x/.../SKILL.md:74`) is skipped, never resolved.
-#   - CLAUSE 2's pushback test is a regex over one message. Pushback phrased
-#     outside the list is invisible; a user message carrying its OWN correction
-#     deliberately disarms the clause. ANY tool call after the pushback counts.
-#   - CLAUSES 1 and 2 judge the FINAL assistant message only (on SubagentStop,
-#     clause 1 judges the hand-back first — SUBAGENT REPORTS below); clause 3 matches
-#     CLAIM and ACK over the last 30 lines of assistant text, and that window
-#     bleeds in BOTH directions (measured; documented in the clause).
-#   - CLAUSE 3: saying nothing evades it; ANY post-edit execution satisfies it
-#     (a `git status` counts — it proves something ran, not the right thing); an
-#     Agent/Task call counts as execution. Edits to PROSE files (.md, .txt, .rst,
-#     .adoc) do not arm it — nothing executable proves a README right — so a
-#     docs-only turn that says "done" passes on the claim alone.
-#   - CLAUSE 4 enforces only a run that REGISTERED itself. A run that never
-#     writes active-run.json is not enforced (fail-open) — the same residual the
-#     behavioral-gate skill names. It never executes tests: it is a records check.
-#   - CLAUSE 4's record counts (nc/, rv/, rt/ lenses and critic, reductions) count
-#     only files NEWER than active-run.json, so a record left by a previous run
-#     cannot cover this one — card ids repeat across runs and those dirs are never
-#     cleared. nc/ was the one count missing that bound until 0.3.7. The residual
-#     runs the other way: a legitimate record written BEFORE the run registered
-#     itself is invisible, which blocks rather than passes.
-#   - Tone — flattery, defensiveness, apology spirals — is NOT gated. No regex
-#     separates "you're right" said because it is true from the same words said
-#     to please. /candor:check measures it; the straight-talk skill is where the
-#     rule lives.
-#   - Transcript tail only (last 4000 entries).
-#   - One block per distinct final text (clauses 1-3, state marker) or per HEAD
-#     (clause 4, nudge marker newer than the sentinel), so no disagreement loops.
-#
-# FAIL-OPEN on missing jq, an unreadable transcript, or empty text.
-#
-# A Stop hook reaches the model only via exit 2 with the reason on stderr; this
-# uses exit 2. Exit 0 prints into a turn that has already ended.
-#
-# MODES:
-#   CC_CANDOR_GATE=block (default) | warn (print, never block) | off — the whole gate
-#   CC_EVIDENCE_GATE=block | warn | off          — clause 3 only (kept from evidence-gate)
-#   TASK_RUNNER_STOP_GATE=block | warn | off     — clause 4 only (kept from completion-gate)
-#   Unset, each of these and CC_LOCKFILE_GATE read the /config option of its lower-cased name.
-#
-# SUBAGENT REPORTS (SubagentStop, 0.2.0). The same script is wired to
-# SubagentStop; a subagent's final report goes through CLAUSE 1 before the main
-# thread quotes it as fact (exit 2 blocks the subagent as it blocks a Stop). On
-# 2.1.284 (two general-purpose subagents, headless; other agent types and interactive
-# sessions not measured) the report is a SubagentHandback tool_use in the agent's own
-# transcript (input.message), already written when the hook fires, and last_assistant_message
-# holds only the closing text after it (rationale/candor-subagent-probe-2026-09-29.md;
-# 2.1.267 put the report in last_assistant_message). So CLAUSE 1 reads, first
-# non-empty wins: the last SubagentHandback input.message in agent_transcript_path,
-# then last_assistant_message, then the last assistant text block of the transcript.
-# Unmeasured: whether that exit 2 withholds a hand-back the tool call already delivered.
-# Only a hand-back after the tail's last user-text entry counts: on 2.1.286 a resumed agent
-# appends to the same transcript after one, and none followed a hand-back within a turn
-# (one run, one post-hand-back window on 2.1.286; the 2.1.284 probe recorded no entry order —
-# rationale/candor-resumed-subagent-probe-2026-09-30.md). User-text = type "user", string
-# content or its first text block, no tool_result, not an isCompactSummary entry, and not
-# starting (after any leading whitespace) <system-reminder>, <task-notification>,
-# "[SYSTEM NOTIFICATION" or "Stop hook feedback:". isMeta is not consulted — the resume
-# boundary carries it too. Hook additionalContext lands as "attachment" entries, never "user"
-# (SubagentStart and PostToolUse, before and after a hand-back; 2.1.286, one run —
-# rationale/candor-subagent-context-probe-2026-10-01.md), so the type test excludes it.
-# Residuals: a host or event writing it as a "user" entry after a hand-back would hide it; the file
-# can lag the payload, so a resume whose boundary is unwritten is judged on the earlier hand-back.
-# CLAUSES 2-4 disarm for a subagent: it has no user turn to push back, and its
-# transcript is not the session that edited files or registered a run. Markers
-# are suffixed per agent so a subagent block never spends the main thread's disarm.
-#
-# ORDER: 4, 1, 2, 3. Clause 4 first because it is the most specific context (a
-# live run) and needs no transcript, so a run that stops with no transcript_path
-# in the payload is still held. Only one verdict BLOCKS per stop — but a clause
-# that has spoken without blocking does not silence the others. Clause 4 bounded
-# at this HEAD (or in warn mode) prints its nudge and clauses 1-3 still run: on
-# master these were three independent Stop hooks, each evaluated on every stop,
-# and the first merge (0.3.0) let clause 4's verdict occupy the only slot for the
-# rest of a HEAD — every card of a live run went uncovered for fabricated
-# citations, bare reversals and naked completion claims after its first block.
-#
-# IN-FLIGHT WORKERS (0.5.0). Clause 4's no-gate-pass branch does not block while this
-# session has a background worker running. Measured 2026-09-25
-# (rationale/2026-09-25-session-plugin-usage-review.md, finding 4): 47 completion-gate
-# blocks in one orchestrated run, almost every one while workers were in flight, each
-# answered "No card can start yet…" — a turn that bought nothing, and the pressure the
-# model named ("a hook kept pressing me to close it") before the 2026-09-24 .env
-# overwrite. A worker's hand-back wakes the orchestrator anyway. Two sources:
-#   - The host's `background_tasks` array on the Stop payload, entries of type subagent
-#     or teammate. Probed live on CLI 2.1.282: a Stop taken while a background agent ran
-#     listed {"id":<agent_id>,"type":"subagent","status":"running",…}; the Stop after its
-#     hand-back no longer did. When the array is PRESENT it is authoritative — a worker
-#     killed without a SubagentStop (usage limits killed three in one measured session)
-#     leaves it at once.
-#   - Records, when the array is absent (an older CLI; the hooks reference says it is
-#     present only "when the task registry is reachable"): hooks/preamble.sh writes one
-#     per SubagentStart, this script removes it on SubagentStop and puts it back when it
-#     BLOCKS the subagent, which then keeps running. A record older than 180 minutes is
-#     swept and not counted; the cutoff is what bounds a worker that died silently.
-# The records are keyed on the hashed session_id under $TMPDIR, not under the state root.
-# The same probe showed SubagentStart, SubagentStop and Stop carrying ONE session_id and
-# ONE transcript_path — the parent's. A subagent's cwd need not be the parent's, though
-# (not measured; a worktree-isolated worker is the obvious case), and a state root
-# resolved from it would put its SubagentStop's delete where the parent's Stop never reads.
-# RESIDUAL: on an older CLI a worker running past 180 minutes expires and the gate blocks
-# once per HEAD as before; a session resumed under a new session_id cannot see the old
-# records; background shell tasks and workflows are not workers here. Only the no-gate-
-# pass branch consults any of this: a claimed pass with short nc/rv/bg records, a short
-# red-team panel or an undisclosed reduction still blocks with workers in flight.
-#
-# STATE ROOT (0.5.0). Every state path and project-root read goes through cc_state_root
-# (the shared block below). The payload cwd follows the model's `cd` (finding 2 of the
-# same review). The state dir already anchored at the git toplevel, but clause 4 read
-# active-run.json from the raw cwd — so, by construction, a stop taken from a
-# subdirectory found no registered run and enforced nothing — and clause 5 read the
-# manifest at `$cwd/package.json` against `git status` paths that are repo-relative.
-# Clause 1 still tries a citation against the shell cwd first (a relative path the model
-# just used there), then against the root, and walks the tree from the root.
-# Markers: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/candor/ is only the fallback.
+# gate.sh (Stop, SubagentStop; payload on stdin) — exit 2 refuses a turn end for one clause per stop, tried 4, 1, 2, 3, 5: an incomplete
+#   registered task-runner run, a file:line resolving to nothing, a reversal after bare pushback, a naked completion claim, lockfile drift.
+# Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5);
+#   unset, each reads the /config option of its lower-cased name. Fails open: no jq, no enforcement; a clause lacking its input stands down.
+# Misses: a wrong API, flag or directory; an elided path; pushback outside its list; entries before the transcript tail; a hand-back
+#   hidden by a later user-shaped entry; a resumed agent's text whose boundary is not on disk yet; dependency lines no pattern matches.
+#   Blocks anyway: a citation into a file the turn shortened, deleted or renamed; a run record written before the run registered.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
@@ -231,6 +68,13 @@ cc_option() {
   return 0
 }
 
+INFLIGHT_TTL_MIN=180
+DISCLOSURE_TAIL_LINES=200
+TRANSCRIPT_TAIL_LINES=4000
+MAX_CITATIONS_CHECKED=25
+BARE_PUSHBACK_MAX_BYTES=400
+CLAIM_WINDOW_LINES=30
+
 input=$(cat)
 
 have_jq=0; command -v jq >/dev/null 2>&1 && have_jq=1
@@ -240,14 +84,11 @@ if [ "$have_jq" = 1 ]; then
   agent_id=$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)
   sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 fi
-# IN-FLIGHT bookkeeping runs BEFORE the off switch: it is not enforcement, and a record
-# left behind while the gate was off would hold the no-gate-pass branch silent for up to
-# 180 minutes after it is switched back on. Hashed names — neither id lands raw in a path.
+# Not enforcement, so before the off switch: a record kept while the gate was off would hold clause 4's no-gate-pass block silent.
 inflight_dir=""; inflight_rec=""
 [ -n "$sid" ] && inflight_dir="${TMPDIR:-/tmp}/cc-candor-inflight-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
 if [ "$evt" = "SubagentStop" ] && [ -n "$inflight_dir" ] && [ -n "$agent_id" ]; then
   inflight_rec="$inflight_dir/$(printf '%s' "$agent_id" | cksum | cut -d' ' -f1)"
-  # Only a record that existed is restored if the gate then blocks this subagent (bottom).
   if [ -f "$inflight_rec" ]; then rm -f "$inflight_rec" 2>/dev/null; else inflight_rec=""; fi
 fi
 
@@ -258,36 +99,14 @@ case "$gate_mode" in off) exit 0 ;; esac
 
 sha_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-# `-d`, not just `-n`. The payload cwd is a STRING the host supplies and the mkdir that
-# creates the state dir below recreated a project directory the user had just deleted,
-# three levels deep (live repro, AR 1 of the 2026-09-22 panel). A cwd that is not a
-# directory degrades to the process cwd, which by construction exists. Residual: a cwd
-# that IS a directory but not this project's still gets a .claude/candor/ — the check
-# proves existence, never identity.
+# -d, not -n: the payload cwd is a host string, and the state mkdir below must never recreate a project the user deleted.
 [ -n "$cwd" ] && [ -d "$cwd" ] || cwd="$PWD"
 root=$(cc_state_root "$cwd") || exit 0
 # Per-agent marker suffix: hashed, so the id never lands raw in a path.
 agent_sfx=""
 [ -n "$agent_id" ] && agent_sfx="-$(printf '%s' "$agent_id" | cksum | cut -d' ' -f1)"
 
-# PER-CLAUSE DISARM. stop_hook_active is SHARED across every Stop hook: the host
-# sets it on the continuation after ANY blocking one. A bare exit on it let a
-# sibling gate spend this one's enforcement (the old completion-gate header records
-# that exact bug); deleting the exit wedges the session, because clauses 1-3 bound
-# on a sha of the final text and a continuation is new prose by construction. So
-# the record names the CLAUSE that blocked, and only that clause stands down on
-# the continuation — the others still run. Clause 4 never stands down this way:
-# its bound is the per-HEAD nudge, which is stable across turns.
-# STATE DIR. Both markers live in cc_plugin_state "$root" candor (the plugin data dir, else
-# .claude/candor/), which carries a self-ignoring
-# .gitignore the first time it is created. Until 0.3.2 they were bare files at
-# .claude/candor-last and .claude/candor-blocked — and showed up as untracked in
-# every user's `git status` (observed in a live repo, and named as "other plugins'
-# scratch" by overseer's own acceptance protocol), one `git add -A` away from being
-# committed. A directory can ignore itself; a bare file cannot.
-# Anchored at the state root, so a stop taken from a subdirectory does not scatter a
-# second .claude/candor/ beside it. Until 0.5.0 this line resolved --show-toplevel on its
-# own while every clause-4 read used the raw cwd (STATE ROOT in the header).
+# The host's stop_hook_active is shared by every Stop hook: only the clause this gate recorded as blocking stands down on its continuation.
 state_dir=$(cc_plugin_state "$root" candor)
 claimed="$state_dir/blocked$agent_sfx"
 skip=""
@@ -296,31 +115,20 @@ if [ "$sha_active" = "true" ] && [ -f "$claimed" ]; then
   rm -f "$claimed" 2>/dev/null
 fi
 
-verdict=""   # citation | reversal | evidence | run — set by whichever clause fires first
+verdict=""
 detail=""
 run_msg=""
 
-# ---------------------------------------------------------------------------
-# CLAUSE 4 — a registered task-runner run that is not complete
-# ---------------------------------------------------------------------------
-# Everything here is a RECORDS check: it never executes the produced tests (the
-# completion protocol runs behavioral-gate.sh in isolation and records the pass;
-# this only verifies that record exists for the final commit). It never mutates
-# the tree; the nudge marker under .claude/task-runner/ is the only thing written.
-
-# inflight_count — background workers this session is waiting on (IN-FLIGHT WORKERS in
-# the header): the host's background_tasks when the payload carries the array, else the
-# SubagentStart records younger than 180 minutes. Older records are swept here. `-O`: a
-# records dir another user created under a shared /tmp is not evidence.
 inflight_count() {
   local n
   n=$(printf '%s' "$input" | jq -r 'if (.background_tasks | type) == "array"
         then [.background_tasks[] | select(.type == "subagent" or .type == "teammate")] | length
         else "absent" end' 2>/dev/null)
   case "$n" in '' | absent | *[!0-9]*) ;; *) printf '%s' "$n"; return 0 ;; esac
+  # -O: a records dir another user created under a shared /tmp is not evidence.
   if [ -n "$inflight_dir" ] && [ -d "$inflight_dir" ] && [ -O "$inflight_dir" ]; then
-    find "$inflight_dir" -type f -mmin +180 -delete 2>/dev/null
-    find "$inflight_dir" -type f ! -mmin +180 2>/dev/null | wc -l | tr -d ' '
+    find "$inflight_dir" -type f -mmin +"$INFLIGHT_TTL_MIN" -delete 2>/dev/null
+    find "$inflight_dir" -type f ! -mmin +"$INFLIGHT_TTL_MIN" 2>/dev/null | wc -l | tr -d ' '
   else
     printf '0'
   fi
@@ -330,17 +138,13 @@ run_clause() {
   local sentinel="$root/.claude/task-runner/active-run.json"
   [ "$evt" != "SubagentStop" ] || return 0
   case "$(cc_option TASK_RUNNER_STOP_GATE block)" in off) return 0 ;; esac
-  [ -r "$sentinel" ] || return 0                     # no registered run → nothing to enforce
+  [ -r "$sentinel" ] || return 0
   jq empty "$sentinel" 2>/dev/null || { echo "[candor] completion-gate: active-run.json malformed — not enforced" >&2; return 0; }
   command -v git >/dev/null 2>&1 || { echo "[candor] completion-gate: git not found — not enforced" >&2; return 0; }
   local head run_branch cur_branch slug
   head=$(git -C "$root" rev-parse HEAD 2>/dev/null) || { echo "[candor] completion-gate: not a git repo — not enforced" >&2; return 0; }
 
-  # BRANCH GUARD: a sentinel is cleared only on clean completion, so an abandoned run
-  # leaves one behind indefinitely. Enforcing it from a different branch would turn a
-  # dead run into a repo-wide trap. A run registered with a "branch" is enforced only
-  # on that branch; a sentinel without one (pre-0.17 registration) keeps the old
-  # unconditional behaviour.
+  # An abandoned run leaves its sentinel behind: a run that names its branch is enforced only on that branch.
   run_branch=$(jq -r '.branch // empty' "$sentinel" 2>/dev/null)
   cur_branch=$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)
   if [ -n "$run_branch" ] && [ -n "$cur_branch" ] && [ "$run_branch" != "$cur_branch" ]; then
@@ -353,10 +157,6 @@ run_clause() {
 
   local gatepass="$root/.claude/task-runner/gate-pass.json" v ct cdone cpark
   if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" = "$head" ]; then
-    # Gate pass recorded for THIS commit. For an index run, run.md also records card
-    # counts; when those numeric fields are present, refuse a clean stop while any
-    # card is neither done nor parked. ALL fields absent → legacy (allow). Partially
-    # present, non-numeric or inconsistent counts are MALFORMED — never a silent allow.
     v=$(jq -r '
       if ((.cards_total|type)=="number" and (.cards_done|type)=="number" and (.cards_parked|type)=="number")
       then (if (.cards_done + .cards_parked) < .cards_total then "incomplete"
@@ -364,8 +164,6 @@ run_clause() {
             else "complete" end)
       elif ((has("cards_total") or has("cards_done") or has("cards_parked")) | not) then "absent"
       else "malformed" end' "$gatepass" 2>/dev/null)
-    # A run REGISTERED as an index run must record counts: counts-absent is a
-    # bookkeeping failure, not legacy.
     if [ "$v" = "absent" ] && [ "$(jq -r 'has("index_path")' "$sentinel" 2>/dev/null)" = "true" ]; then
       v="malformed"
     fi
@@ -376,13 +174,7 @@ run_clause() {
       run_msg=$(printf '[candor] completion-gate: %s recorded a gate pass but its card counts are %s: done=%s parked=%s total=%s.\n  A run may not report complete while any card is neither done nor parked.' "$slug" "$v" "$cdone" "$cpark" "$ct")
       verdict="run"; return 0
     fi
-    # PER-CARD NEGATIVE-CONTROL COVERAGE (opt-in by presence of nc/): a complete run
-    # must have one nc-pass or nc-skip record per DONE card. No nc/ dir → legacy allow.
-    # Bounded the same way as rv/ and rt/ below — only records newer than THIS
-    # registration count, and distinct ids (nc-pass-01 + nc-skip-01 is one card).
-    # Until 0.3.7 this count was unbounded while its three siblings were not, so a
-    # record left in nc/ by a PREVIOUS run (card ids repeat across runs, and the dir
-    # is never cleared) satisfied this run's gate for a card that never had a control.
+    # Only records newer than this registration count: card ids repeat across runs, and these dirs are never cleared.
     local ncdir="$root/.claude/task-runner/nc" nc_count
     if [ "$v" = "complete" ] && [ -d "$ncdir" ]; then
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
@@ -393,10 +185,6 @@ run_clause() {
         verdict="run"; return 0
       fi
     fi
-    # PER-CARD REVIEWER COVERAGE (rv/): records are written by hooks/rv-observe.sh
-    # when it OBSERVES a reviewer dispatch carrying the RV-CARD marker, so the count is
-    # not model-authored. Only records newer than THIS registration count (card ids
-    # repeat across runs), and distinct ids (rv-seen-01 + rv-skip-01 is one card).
     local rvdir="$root/.claude/task-runner/rv" rv_count
     if [ "$v" = "complete" ] && [ -d "$rvdir" ]; then
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
@@ -407,21 +195,7 @@ run_clause() {
         verdict="run"; return 0
       fi
     fi
-    # BEHAVIORAL-GATE EVIDENCE. gate-pass.json is written by the MODEL; bg-<head>.json
-    # is written by behavioral-gate.sh with the verdict it actually reached. With bg/
-    # present (created at registration) a complete verdict must be backed by a matching
-    # record. `covered` and `no-executable-surface` are BOTH passing verdicts — the
-    # second is an honest doc/lint-only change with nothing runnable to prove.
-    # `no-behavioral-coverage` passes ONLY beside a recorded coverage reduction for THIS
-    # HEAD — reductions/coverage-bg-<HEAD12>.json, newer than the sentinel, which is the
-    # exact file task-runner's `reduction-record.sh --kind coverage --id bg-<HEAD12>`
-    # writes. Measured 2026-09-25 (same review, finding 5): a run whose ~40 changed React
-    # files had no JS runner in the project reached this verdict and could not close; the
-    # user's only exit was deleting active-run.json, after which nothing blocked at all.
-    # The reduction keeps the gap visible instead: the DISCLOSURE step below strips the
-    # `coverage-` prefix and requires `bg-<HEAD12>` in the closing report. empty-suite,
-    # unverifiable-suite and any other verdict still block — a runner that exists and
-    # proved nothing is not the same gap as no runner at all.
+    # Of the red verdicts only no-behavioral-coverage may pass, beside this HEAD's coverage reduction, which the report must then name.
     local bgdir="$root/.claude/task-runner/bg" bgv covred
     if [ "$v" = "complete" ] && [ -d "$bgdir" ]; then
       if [ ! -r "$bgdir/bg-$head.json" ]; then
@@ -443,11 +217,7 @@ run_clause() {
         verdict="run"; return 0
       fi
     fi
-    # RED-TEAM PANEL WIDTH (boosted runs that shipped code). Refuter dispatches carry
-    # RT-LENS markers, the critic RT-CRITIC; rv-observe.sh records them. The degraded
-    # inline fallback is legitimate but must be RECORDED (reduction-record.sh --kind
-    # redteam). A boosted run that touched no code owes no panel; unknown diff → do
-    # not enforce (a missed check costs a check, a false block costs the run).
+    # A boosted run owes the panel unless its diff since the run's base is docs and data only; a missing or unknown base counts as code.
     local rtdir="$root/.claude/task-runner/rt" idx idxp boosted run_base code_touched lenses critic degraded
     if [ "$v" = "complete" ] && [ -d "$rtdir" ]; then
       idx=$(jq -r '.index_path // empty' "$sentinel" 2>/dev/null)
@@ -480,10 +250,6 @@ run_clause() {
         fi
       fi
     fi
-    # DISCLOSURE of every recorded reduction: the ID of each one must appear in the
-    # closing report. Presence only — this cannot judge whether the disclosure is
-    # honest. What it removes is a cut that happened, was recorded, and never reached
-    # the person reading the report.
     local ids tp said missing id
     if [ "$v" = "complete" ]; then
       ids=$(find "$rvdir" -maxdepth 1 -name 'rv-skip-*.json' -newer "$sentinel" 2>/dev/null |
@@ -494,7 +260,7 @@ run_clause() {
       if [ -n "$ids" ]; then
         tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
         if [ -n "$tp" ] && [ -r "$tp" ]; then
-          said=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' "$tp" 2>/dev/null | tail -200)
+          said=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' "$tp" 2>/dev/null | tail -"$DISCLOSURE_TAIL_LINES")
           missing=""
           for id in $ids; do
             printf '%s' "$said" | grep -qF "$id" || missing="$missing $id"
@@ -506,23 +272,11 @@ run_clause() {
         fi
       fi
     fi
-    return 0                                      # gate pass for THIS commit → allow
+    return 0
   fi
 
-  # No gate pass for HEAD → the run is not complete. Mid-run and end-of-run both land
-  # here and the hook cannot tell them apart cheaply, so it names BOTH branches.
-  #
-  # The gate branch names the exact command and a pace rule. Until 0.4.11 it said
-  # "run behavioral-gate.sh (isolated)" under a "continue NOW" that read as applying to
-  # both branches. On 2026-09-24 an agent at the end of a 44-card run hand-built the
-  # "isolated" checkout in a rush of chained commands. Its worktree call was denied
-  # whole, it read that as "only the cp failed", and its next `cd /tmp/… && …; cp
-  # .env.example .env && php artisan key:generate` ran in the live repo, overwriting the
-  # developer's .env and APP_KEY. Urgency belongs to the cards branch; the gate branch
-  # has no deadline, and a setup step that fails must stop the sequence.
-  #
-  # Workers in flight → print, do not block, and write no nudge: the one block this HEAD
-  # owes is kept for the stop after the last worker hands back (IN-FLIGHT WORKERS).
+  # Mid-run and end-of-run both land here and cannot be told apart cheaply, so the message names both branches.
+  # Workers in flight: print, block nothing and write no nudge, keeping this HEAD's one block for after the last hand-back.
   local waiting
   waiting=$(inflight_count)
   if [ "${waiting:-0}" -gt 0 ] 2>/dev/null; then
@@ -550,85 +304,62 @@ RUN_HEAD=""; RUN_SENTINEL=""
 run_clause
 
 if [ "$verdict" = "run" ]; then
-  # Clause-specific mode kept from the script this clause came from.
   run_mode="$gate_mode"
   case "$(cc_option TASK_RUNNER_STOP_GATE block)" in warn) run_mode=warn ;; esac
-  # ONE BLOCK PER HEAD. The last HEAD blocked on is recorded, and a second stop at the
-  # SAME commit prints without blocking, so a real run is held at every card boundary
-  # (every commit re-arms) while a stale sentinel costs one extra turn per commit. The
-  # marker counts only while NEWER than the sentinel it was written under: nothing
-  # clears it (the run clears active-run.json, not this), so a marker left by run A
-  # must not eat run B's first block at the same HEAD. A same-tick tie fails toward
-  # blocking, never toward silence. Warn mode never writes it.
-  # NAME THE OFF SWITCH IN THE MESSAGE. A Stop gate reaches the reader only through
-  # this stderr, so a var documented anywhere else is a var the person being blocked
-  # cannot find (UX 1 of the 2026-09-22 panel: every PreToolUse guard here names its
-  # own switch, every Stop gate omitted it). One line at the single print site covers
-  # all eight completion-gate reasons, which is why it is here and not in each printf.
+  # The switch is printed here, the one print site of every clause-4 reason: a blocked reader sees only this stderr.
   printf '%s\n' "$run_msg" >&2
   printf '  TASK_RUNNER_STOP_GATE=off disables this clause for the session; =warn prints without blocking.\n' >&2
   if [ "$run_mode" = "block" ]; then
+    # One block per HEAD: the nudge counts only while newer than the sentinel, so an earlier run's marker cannot eat this one's block.
     nudge="$root/.claude/task-runner/gate-nudge"
     if [ -r "$nudge" ] && [ "$nudge" -nt "$RUN_SENTINEL" ] && [ "$(cat "$nudge" 2>/dev/null)" = "$RUN_HEAD" ]; then
       :                                   # bounded at this HEAD — printed, not blocked
     elif printf '%s' "$RUN_HEAD" > "$nudge" 2>/dev/null; then
       exit 2
     elif [ "$sha_active" != "true" ]; then
-      # No writable marker → no per-HEAD bound this turn. The shared flag is honoured
-      # only here, so an unwritable state dir cannot block the same stop forever.
+      # No writable marker, so no per-HEAD bound: honour the shared flag here only, or an unwritable state dir blocks forever.
       exit 2
     fi
   fi
-  # Bounded or warn: clause 4 has spoken without blocking. Clauses 1-3 still run —
-  # a run held once at this HEAD does not license an invented citation on the next
-  # stop (see ORDER in the header).
+  # Clause 4 spoke without blocking; a run held once at this HEAD still gets clauses 1-3 and 5 on every stop.
   verdict=""; run_msg=""
 fi
 
-# ---------------------------------------------------------------------------
-# Transcript — clauses 1-3 read it; without one they stand down.
-# ---------------------------------------------------------------------------
-# A subagent's report lives in ITS transcript, not the parent's; fall back to the
-# parent path only when the host sent no agent path (a pre-2.1 payload).
-tp=$(printf '%s' "$input" | jq -r '.agent_transcript_path // .transcript_path // empty' 2>/dev/null)
-tail_jsonl=""
-if [ -n "$tp" ] && [ -r "$tp" ]; then
-  tail_jsonl=$(tail -n 4000 "$tp" 2>/dev/null)
-fi
+read_transcript() {
+  # A subagent's report lives in its own transcript; the parent's path is the fallback for a payload without one.
+  tp=$(printf '%s' "$input" | jq -r '.agent_transcript_path // .transcript_path // empty' 2>/dev/null)
+  tail_jsonl=""
+  if [ -n "$tp" ] && [ -r "$tp" ]; then
+    tail_jsonl=$(tail -n "$TRANSCRIPT_TAIL_LINES" "$tp" 2>/dev/null)
+  fi
 
-# Only a subagent hands back; the main thread's Stop has no report of its own there.
-handback=""
-if [ "$evt" = "SubagentStop" ]; then
-  [ -n "$tail_jsonl" ] && handback=$(printf '%s' "$tail_jsonl" | jq -rs --arg n "SubagentHandback" '
-    def usertext: .type=="user" and (.isCompactSummary|not) and ((.message.content // null) as $c
-      | if ($c|type)=="string" then $c
-        elif ($c|type)=="array" and (any($c[]; .type=="tool_result")|not) then [$c[] | select(.type=="text") | .text][0]
-        else null end
-      | type=="string" and (test("^\\s*(<system-reminder>|<task-notification>|\\[SYSTEM NOTIFICATION|Stop hook feedback:)")|not));
-    . as $e | ([range(0; length) | select($e[.] | usertext)] | last // -1) as $b
-    | [ $e[$b+1:][] | select(.type=="assistant") | (.message.content // [])[]
-          | select(.type=="tool_use" and .name==$n) | .input.message // empty
-          | select(type=="string" and length>0) ] | last // empty' 2>/dev/null)
-fi
+  handback=""
+  if [ "$evt" = "SubagentStop" ]; then
+    [ -n "$tail_jsonl" ] && handback=$(printf '%s' "$tail_jsonl" | jq -rs --arg n "SubagentHandback" '
+      def usertext: .type=="user" and (.isCompactSummary|not) and ((.message.content // null) as $c
+        | if ($c|type)=="string" then $c
+          elif ($c|type)=="array" and (any($c[]; .type=="tool_result")|not) then [$c[] | select(.type=="text") | .text][0]
+          else null end
+        | type=="string" and (test("^\\s*(<system-reminder>|<task-notification>|\\[SYSTEM NOTIFICATION|Stop hook feedback:)")|not));
+      . as $e | ([range(0; length) | select($e[.] | usertext)] | last // -1) as $b
+      | [ $e[$b+1:][] | select(.type=="assistant") | (.message.content // [])[]
+            | select(.type=="tool_use" and .name==$n) | .input.message // empty
+            | select(type=="string" and length>0) ] | last // empty' 2>/dev/null)
+  fi
 
-# The text CLAUSE 1 judges: the hand-back, else the FINAL assistant text message, whole and
-# alone. `-s` slurps the JSONL into
-# an array so "last" is expressible; a malformed line collapses the slurp, which
-# is a fail-open path and is why the result is tested for emptiness below.
-last_msg=$handback
-[ -n "$last_msg" ] || last_msg=$(printf '%s' "$input" | jq -r '.last_assistant_message // empty' 2>/dev/null)
-[ -n "$last_msg" ] || [ -z "$tail_jsonl" ] || last_msg=$(printf '%s' "$tail_jsonl" | jq -rs '
-  [ .[] | select(.type=="assistant")
-        | ((.message.content // []) | map(select(.type=="text") | .text) | join("\n"))
-        | select(length > 0) ] | last // empty' 2>/dev/null)
+  # A malformed JSONL line empties the -s slurp, which fails open: hence each fallback tests for empty.
+  last_msg=$handback
+  [ -n "$last_msg" ] || last_msg=$(printf '%s' "$input" | jq -r '.last_assistant_message // empty' 2>/dev/null)
+  [ -n "$last_msg" ] || [ -z "$tail_jsonl" ] || last_msg=$(printf '%s' "$tail_jsonl" | jq -rs '
+    [ .[] | select(.type=="assistant")
+          | ((.message.content // []) | map(select(.type=="text") | .text) | join("\n"))
+          | select(length > 0) ] | last // empty' 2>/dev/null)
+}
+read_transcript
 
-# ---------------------------------------------------------------------------
-# CLAUSE 1 — citations that do not resolve
-# ---------------------------------------------------------------------------
-# URLs are stripped BEFORE extraction: `https://host/a.php:80` is a port, not a
-# line. The extension must START with a letter, so `v1.2.3:4` and `10:30` never
-# match, and a short deny-list drops bare host:port forms (`example.com:8080`).
-if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ]; then
+clause_fabricated_citation() {
+  [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ] || return 0
+  # URLs go before extraction (a.php:80 in one is a port); the extension starts with a letter, so v1.2.3:4 and 10:30 never match.
   cites=$(printf '%s' "$last_msg" \
     | sed -E 's#[a-zA-Z][a-zA-Z0-9+.-]*://[^[:space:])"]*##g' \
     | grep -oE '[A-Za-z0-9_.~][A-Za-z0-9_./-]*\.[A-Za-z][A-Za-z0-9]{0,9}:[0-9]+' 2>/dev/null \
@@ -636,33 +367,15 @@ if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ]; then
     | grep -vF '...' \
     | sort -u)
 
-  # _find <predicate…> — one pruned, depth-capped tree walk. Bounded so a Stop hook
-  # stays cheap on a large repo.
+  # Pruned and depth-capped: a Stop hook must stay cheap on a large repo.
   _find() { find "$root" -maxdepth 8 \
     \( -name node_modules -o -name .git -o -name vendor -o -name dist -o -name build -o -name .venv \) -prune \
     -o "$@" -type f -print 2>/dev/null; }
 
-  # resolve <relpath> — prints one of:
-  #   FILE <path>   the citation identifies exactly one file on disk
-  #   MISSING       no file anywhere in the tree carries that BASENAME
-  #   AMBIGUOUS     the path does not resolve, but the basename is not unique
-  #
-  # A FOUR-STEP LADDER, and the last two steps exist because of a measurement, not a
-  # theory. Run over 47 real session transcripts (~3.3k assistant messages), the
-  # earlier two-step version — cwd-relative, then a full-suffix match — reported 98
-  # unresolved citations, and the overwhelming majority were ABBREVIATED paths, not
-  # invented ones: `craft-layer/asset-sourcing/SKILL.md:10` for a file that really
-  # lives at `plugins/craft-layer/skills/asset-sourcing/SKILL.md`. Blocking those is
-  # the false-positive class that gets a gate switched off. So the ladder falls back
-  # to the basename, and only a basename that exists NOWHERE is treated as
-  # fabrication. A real filename under a wrong directory now passes silently, and
-  # that residual is deliberate.
+  # resolve <relpath> prints FILE <path>, MISSING (the basename exists nowhere) or AMBIGUOUS (unresolved, basename not unique).
+  # Abbreviated paths outnumber invented ones (measured), so only a basename found nowhere is fabricated; a wrong directory passes.
   resolve() {
     local p="$1" m b n
-    # `~/.claude/settings.json:12` is a real location in the user's home. Before
-    # 0.3.2 the `~` was outside the extraction class, so the citation was read as
-    # the absolute path `/.claude/settings.json`, resolved to nothing, and blocked —
-    # on the exact file a settings question is answered from.
     case "$p" in "~/"*) p="${HOME:-}/${p#\~/}" ;; esac
     case "$p" in
       /*) [ -f "$p" ] && { printf 'FILE %s' "$p"; return 0; } ;;
@@ -685,7 +398,7 @@ if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ]; then
   misses=""
   checked=0
   for c in $cites; do
-    [ "$checked" -ge 25 ] && break
+    [ "$checked" -ge "$MAX_CITATIONS_CHECKED" ] && break
     checked=$((checked + 1))
     path="${c%:*}"; line="${c##*:}"
     r=$(resolve "$path")
@@ -708,14 +421,12 @@ if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ]; then
     verdict="citation"
     detail="$misses"
   fi
-fi
+}
+clause_fabricated_citation
 
-# ---------------------------------------------------------------------------
-# CLAUSE 2 — a position reversed after bare pushback, with nothing re-checked
-# ---------------------------------------------------------------------------
-if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "reversal" ]; then
-  # Last real user message. Tool results also arrive as type "user"; they carry
-  # tool_result blocks and no text blocks, so selecting text blocks excludes them.
+clause_unevidenced_reversal() {
+  [ -z "$verdict" ] && [ -n "$last_msg" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "reversal" ] || return 0
+  # Tool results arrive as type "user" with no text block, so selecting text excludes them.
   last_user=$(printf '%s' "$tail_jsonl" | jq -rs '
     [ .[] | select(.type=="user")
           | (if (.message.content | type) == "string" then .message.content
@@ -724,32 +435,24 @@ if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ -n "$tail_jsonl" ] && [ "$evt" !
 
   PUSHBACK='are you sure|you sure|are you certain|is that (right|true|correct|actually)|that.?s (not right|wrong|incorrect|false|not true)|that is (not right|wrong|incorrect|false)|you.?re (wrong|mistaken)|you are (wrong|mistaken)|i don.?t think (so|that|it)|i disagree|doesn.?t (seem|sound|look) right|does not (seem|sound|look) right|check (it )?again|double.?check|really\?|no,? (it|that|this|they|you) |nope|prove it|where did you (get|see|find) that|you (made|just made) (that|it) up|hallucinat|that.?s not (how|what|where)'
 
-  # A pushback that ARRIVES WITH ITS OWN EVIDENCE is not the sycophancy setup —
-  # a user who quotes a path, pastes a snippet, or writes a paragraph of reasoning
-  # has supplied the new information, and agreeing with it is reading, not
-  # flattery. Disarm on any of: a backtick, a path-shaped token, a file:line, or
-  # a message long enough to be an argument rather than a challenge.
+  # Pushback that brings its own evidence (a backtick, a path, a file:line, an argued paragraph) is new information, not a bare challenge.
   user_has_evidence=0
   if [ -n "$last_user" ]; then
     printf '%s' "$last_user" | grep -q '`' && user_has_evidence=1
     printf '%s' "$last_user" | grep -qE '[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+' && user_has_evidence=1
     printf '%s' "$last_user" | grep -qE '\.[A-Za-z][A-Za-z0-9]{0,9}:[0-9]+' && user_has_evidence=1
-    [ "$(printf '%s' "$last_user" | wc -c | tr -d ' ')" -gt 400 ] && user_has_evidence=1
+    [ "$(printf '%s' "$last_user" | wc -c | tr -d ' ')" -gt "$BARE_PUSHBACK_MAX_BYTES" ] && user_has_evidence=1
   fi
 
   CAVE='you.?re (absolutely |completely |totally |quite |entirely )?right|you are (absolutely |completely |totally |quite |entirely )?right|you.?re correct|you are correct|my (mistake|apologies|bad|error)|i (was|am) wrong|i apologi[sz]e|apologies|good catch|i stand corrected|i (was|got) (confused|mistaken)|that was (wrong|my (mistake|error))|let me correct'
 
-  # HOLD — the message did more than fold. Either it names what it re-checked, or
-  # it keeps part of the position. Both are candour; neither is what this blocks.
+  # HOLD: the message names what it re-checked, or keeps part of its position — candour either way.
   HOLD='i still (think|believe|maintain)|i do (think|believe)|i.?m not (changing|reversing)|re-?read|re-?ran|re-?checked|i (checked|verified|confirmed)|after (checking|re-?reading|running|re-?running)|the (file|output|test|error|transcript) (shows|says)|i disagree|on (that|this) (one|point) i|partly|only partly|to be clear, i'
 
   if [ -n "$last_user" ] && [ "$user_has_evidence" -eq 0 ] \
      && printf '%s' "$last_user" | grep -qiE "$PUSHBACK" \
      && printf '%s' "$last_msg" | grep -qiE "$CAVE" \
      && ! printf '%s' "$last_msg" | grep -qiE "$HOLD"; then
-    # Did anything run AFTER that user message? One row per entry keeps order
-    # without line numbers: "USER" for a real user turn, the tool names for an
-    # assistant turn, empty otherwise.
     ran=$(printf '%s' "$tail_jsonl" | jq -r '
       if .type=="user" then
         (if ((.message.content | type) == "string")
@@ -764,55 +467,21 @@ if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ -n "$tail_jsonl" ] && [ "$evt" !
       detail="$last_user"
     fi
   fi
-fi
+}
+clause_unevidenced_reversal
 
-# ---------------------------------------------------------------------------
-# CLAUSE 3 — a completion claim with nothing executed after the last edit
-# ---------------------------------------------------------------------------
-# CLAIM and ACK are matched over the SAME window (the last 30 lines of assistant
-# text), and the window bleeds in BOTH directions. Measured:
-#   * ACK bleed — "not tested yet" two messages back licenses a fresh naked
-#     "Everything is implemented and verified. Done." in this turn.
-#   * CLAIM bleed — a previous turn's legitimate "All tests pass, done." still
-#     sits in the window, so a later small edit ending in text that claims
-#     nothing can be blocked for a claim it never made.
-# Narrowing ACK to the final message alone was considered and rejected: it would
-# block honest reports that state the caveat before the summary, and it fixes no
-# measured escape — those were all same-sentence.
 ev_mode=$(cc_option CC_EVIDENCE_GATE block)
-if [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "evidence" ] && [ "$ev_mode" != "off" ]; then
-  # 1. CLAIM (cheap): does the assistant tail claim completion? Whole-word via
-  # grep -w (BSD grep has no \b; unanchored 'done' would match 'abandoned').
+clause_naked_completion() {
+  [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "evidence" ] && [ "$ev_mode" != "off" ] || return 0
+  # grep -w, not \b: BSD grep has no \b, and an unanchored 'done' would match 'abandoned'.
   said=$(printf '%s' "$tail_jsonl" \
     | jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' 2>/dev/null \
-    | tail -30)
+    | tail -"$CLAIM_WINDOW_LINES")
   CLAIM='done|complete|completed|finished|implemented|fixed|resolved|verified|passes|passing|works now|working now|should work|all set|good to go'
-  # HONESTY ESCAPE: a turn that names what is unverified or failing is a status
-  # report, not a false claim. The escape must assert something about THIS turn's
-  # verification state. Bare failure nouns (fail/failing/failed) used to be listed
-  # and disarmed the gate on the most common bug-fix shape: "Fixed the failing
-  # test — should work now". A failure named as the thing that was FIXED is part
-  # of the claim. So the failure vocabulary is phrase-scoped — the subject must be
-  # the check ("tests still fail", "the build failed", "two tests are failing") or
-  # a present-tense failure must carry its cause ("fails with ENOENT").
-  # WHAT THIS DOES NOT CLOSE: a completion claim naming a PAST failure with the
-  # check as its subject still escapes ("The build failed earlier; after my fix it
-  # is all good now. Done.") — the same string is how a genuinely red suite gets
-  # reported, and no pattern separates them. This closes the bare-noun class, not
-  # the tense problem.
+  # ACK must state this turn's verification state: a failure named as the thing fixed stays part of the claim.
   ACK='not tested|untested|unverified|not verified|did not (run|rerun)|didn.t (run|rerun)|have not (run|rerun)|haven.t (run|rerun)|not (run|rerun) yet|cannot verify|could not verify|not green|still fail(ing|s)?|currently fail(ing|s)?|(tests?|suite|build|lint|checks?|it) (is|are|was|were) (still |currently )?fail(ing|ed|s)?|(tests?|suite|build|lint|checks?|it) (still |currently )?fail(ing|ed|s)?|fail(ing|s) (with|on|because|due)|in progress|still working|wip|not done|incomplete|halt|halting|halted|blocked|parked|known issue|please verify|verify manually|left to do|remains to'
   if [ -n "$said" ] && printf '%s' "$said" | grep -qiwE "$CLAIM" && ! printf '%s' "$said" | grep -qiwE "$ACK"; then
-    # 2+3. MUTATION AND EVIDENCE ORDER: one row of tool names per assistant entry
-    # (blank when none) preserves order without line numbers; awk finds whether an
-    # execution tool ran after the LAST file mutation.
-    # Each mutation token carries the edited file's extension (`Edit@md`), and a
-    # mutation of a PROSE file — .md/.mdx/.markdown/.txt/.rst/.adoc — does not arm
-    # the clause. There is no command whose failure would prove a README typo fix
-    # wrong, so "run something" bought a `git diff` and a turn, never a check; the
-    # same reasoning clause 4 already applies as its `no-executable-surface` verdict.
-    # A mutation with no file_path, no extension, or any other extension (json,
-    # yaml, sh, code) still arms it. RESIDUAL: a prose edit that lies about content
-    # ("documented and verified") passes — there was nothing to execute either way.
+    # An edit to a prose file (.md, .txt, .rst, .adoc and kin) does not arm the clause: no command's failure proves a README wrong.
     ev=$(printf '%s' "$tail_jsonl" \
       | jq -r 'select(.type=="assistant")
                | [.message.content[]? | select(.type=="tool_use")
@@ -833,56 +502,26 @@ if [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && 
       detail="$said"
     fi
   fi
-fi
+}
+clause_naked_completion
 
-# ---------------------------------------------------------------------------
-# CLAUSE 5 — LOCKFILE DRIFT. A dependency manifest was edited in this turn and the
-# lockfile it governs is not in the working tree's changes. The install step was
-# skipped, and the next person to clone gets a tree whose manifest and lockfile
-# disagree — a CI failure attributed to them, not to the turn that caused it.
-#
-# WHY A CLAUSE AND NOT PROSE. `stack-scan:package-hygiene` states the rule already:
-# hand-editing a manifest without running the installer is a defect. The model
-# agrees and then does it anyway, because adding a dependency line LOOKS complete —
-# nothing in the edit's own result says a second step is owed. This clause is the
-# only thing in the tree that reads the pair.
-#
-# WHY IT CANNOT FALSELY FIRE ON A DELIBERATE MANIFEST-ONLY EDIT: it requires a
-# dependency-shaped change. Bumping a `version` field, editing `scripts`, or
-# rewriting a description never touches a lockfile and never arms this.
-#
-# Last of the clauses because it is the cheapest to satisfy and the least severe:
-# a citation or a naked completion claim is a false report, this is an unfinished
-# step.
-#
-# `$skip` is LOAD-BEARING and was missing in the first version of this clause: without
-# it the clause re-fires on its own continuation, and because the loop guard keys on the
-# final assistant TEXT, a second turn with different text blocks again — so the escape
-# this clause's own message offers ("say plainly that the lockfile is deliberately
-# unchanged and why") could never be taken, and the turn was unblockable. Found by a
-# branch review before merge; clauses 1-3 each carry the same term at :387, :470, :537.
-if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" ] && [ "$(cc_option CC_LOCKFILE_GATE on)" != "off" ]; then
+# Only a dependency-shaped change arms it: a version, scripts or description edit never touches a lockfile.
+# The $skip test is load-bearing, as in clauses 1-3: without it this clause re-fires on its own continuation and its escape never works.
+clause_lockfile_drift() {
+  [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" ] && [ "$(cc_option CC_LOCKFILE_GATE on)" != "off" ] || return 0
   if command -v git >/dev/null 2>&1 && git -C "$root" rev-parse --git-dir >/dev/null 2>&1; then
     changed=$(git -C "$root" status --porcelain 2>/dev/null | awk '{print $NF}')
     if [ -n "$changed" ]; then
       lock_detail=""
-      # manifest -> the lockfile(s) that satisfy it. First match wins per manifest.
       while IFS='|' read -r man locks; do
         printf '%s\n' "$changed" | grep -qx "$man" || continue
-        # A DEPENDENCY-shaped change only. For a JSON manifest this compares the parsed
-        # dependency maps at HEAD against the working tree, because a line diff cannot:
-        # package.json is frequently one line, so bumping `version` rewrites the same
-        # line that holds `dependencies` and every version bump would block. (The
-        # harness caught exactly that; a hand test missed it because the loop guard was
-        # still holding the previous verdict.) Non-JSON manifests keep the line-diff
-        # heuristic — their dependency sections are line-oriented by construction.
+        # JSON manifests compare parsed dependency maps: a one-line package.json puts version and dependencies on one diff line.
         case "$man" in
           package.json|composer.json)
             head_deps=$(git -C "$root" show "HEAD:$man" 2>/dev/null \
               | jq -cS '{d:(.dependencies//{}),dd:(.devDependencies//{}),p:(.peerDependencies//{}),o:(.optionalDependencies//{}),r:(.require//{}),rd:(."require-dev"//{})}' 2>/dev/null)
             work_deps=$(jq -cS '{d:(.dependencies//{}),dd:(.devDependencies//{}),p:(.peerDependencies//{}),o:(.optionalDependencies//{}),r:(.require//{}),rd:(."require-dev"//{})}' "$root/$man" 2>/dev/null)
-            # Unparseable either side → fall through to the line heuristic rather than
-            # silently allowing: a manifest mid-edit is exactly when this matters.
+            # Unparseable on either side: fall through to the line test, never a silent allow.
             if [ -n "$head_deps" ] && [ -n "$work_deps" ]; then
               [ "$head_deps" = "$work_deps" ] && continue
             else
@@ -890,18 +529,7 @@ if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" 
             fi
             ;;
           *)
-            # A DEPENDENCY line, not any line. The first version armed on `^[+-]`, so a
-            # version bump in pyproject.toml, a `[tool.ruff]` edit, or a comment added to
-            # a Gemfile all blocked a Stop — measured in a branch review before merge,
-            # and the exact false fire the header above promises cannot happen. Each
-            # manifest's dependency grammar is line-oriented, so a line test is the right
-            # shape; it just has to test the right lines. Residual, stated: a dependency
-            # written in a form none of these patterns matches arms nothing, which is the
-            # safe direction for a Stop-tier block.
-            # TOML's `key = "value"` is ambiguous at line level: `requests = "^2.28"` is a
-            # poetry dependency and `version = "2.0.0"` is metadata, and a line regex
-            # cannot see which table it sits in. So the metadata keys are excluded by
-            # name — a short, closed list — rather than guessed at.
+            # A dependency line, not any line; TOML metadata keys are excluded by name because a line cannot see its table.
             meta_re='^[+-][[:space:]]*(version|name|description|readme|license|authors|maintainers|homepage|repository|documentation|keywords|classifiers|requires-python|edition|rust-version|publish|include|exclude|packages|scripts|urls)[[:space:]]*='
             case "$man" in
               pyproject.toml)
@@ -941,75 +569,70 @@ MANIFESTS
       fi
     fi
   fi
-fi
+}
+clause_lockfile_drift
 
 [ -n "$verdict" ] || exit 0
 
-# ---------------------------------------------------------------------------
-# Bound, record, report.
-# ---------------------------------------------------------------------------
-# Effective mode for the clause that fired: the whole-gate mode, then the
-# clause-specific override kept from the script that clause came from.
-mode="$gate_mode"
-case "$verdict" in
-  evidence) case "$ev_mode" in warn) mode=warn ;; esac ;;
-esac
+report_verdict() {
+  mode="$gate_mode"
+  case "$verdict" in
+    evidence) case "$ev_mode" in warn) mode=warn ;; esac ;;
+  esac
 
-# LOOP GUARD for clauses 1-3: block once per distinct final text. The marker is
-# state a mid-work turn cannot fake — a genuinely new turn produces new text.
-marker="$state_dir/last$agent_sfx"
-state=$(printf '%s|%s' "$verdict" "$detail$last_msg" | (command -v shasum >/dev/null 2>&1 && shasum | cut -d' ' -f1 || cksum | cut -d' ' -f1))
-if [ -r "$marker" ] && [ "$(cat "$marker" 2>/dev/null)" = "$state" ]; then
-  exit 0
-fi
-if ! { mkdir -p "$state_dir" 2>/dev/null && { [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null || :; } && printf '%s' "$state" > "$marker" 2>/dev/null; }; then
-  # No marker means no per-text bound this turn. THIS is where the shared flag
-  # earns its keep: without both, a gate that blocks on unwritable state blocks
-  # the same turn forever. Honouring it only here costs at most one unenforced
-  # stop on an already-degraded setup.
-  [ "$sha_active" = "true" ] && exit 0
-fi
+  # Loop guard: one block per distinct verdict and final text; a genuinely new turn produces new text.
+  marker="$state_dir/last$agent_sfx"
+  state=$(printf '%s|%s' "$verdict" "$detail$last_msg" | (command -v shasum >/dev/null 2>&1 && shasum | cut -d' ' -f1 || cksum | cut -d' ' -f1))
+  if [ -r "$marker" ] && [ "$(cat "$marker" 2>/dev/null)" = "$state" ]; then
+    exit 0
+  fi
+  if ! { mkdir -p "$state_dir" 2>/dev/null && { [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null || :; } && printf '%s' "$state" > "$marker" 2>/dev/null; }; then
+    # No marker, no per-text bound: honour the shared flag here only, so unwritable state cannot block the same turn forever.
+    [ "$sha_active" = "true" ] && exit 0
+  fi
 
-# Record which clause blocked, so only that clause stands down on the continuation.
-if [ "$mode" = "block" ]; then
-  mkdir -p "$state_dir" 2>/dev/null && printf '%s' "$verdict" > "$claimed" 2>/dev/null
-fi
+  # Record which clause blocked, so only that clause stands down on the continuation.
+  if [ "$mode" = "block" ]; then
+    mkdir -p "$state_dir" 2>/dev/null && printf '%s' "$verdict" > "$claimed" 2>/dev/null
+  fi
 
-case "$verdict" in
-  citation)
-    what="this turn"; [ "$evt" = "SubagentStop" ] && what="this report"
-    printf '[candor] gate: %s cites a location that does not exist.%s\n' "$what" "$detail" >&2
-    printf '  A file:line citation asserts you read that line. Open the file, cite what is actually\n' >&2
-    printf '  there, or drop the number and say plainly that you are inferring rather than quoting.\n' >&2
-    printf '  Inventing a location is the failure this clause exists to stop.\n' >&2
-    printf '  CC_CANDOR_GATE=off disables this gate for the session; =warn prints without blocking.\n' >&2 ;;
-  reversal)
-    printf '[candor] gate: the user pushed back without giving you new information, and this turn\n' >&2
-    printf '  retracts your position anyway — nothing was re-checked between the challenge and the\n' >&2
-    printf '  retraction.\n' >&2
-    printf '  Do one of two things. Re-check: run the command or read the file that would settle it,\n' >&2
-    printf '  then report what it showed. Or hold: say you still believe what you said, and why.\n' >&2
-    printf '  "You are right" is a finding. It needs the same evidence as any other finding.\n' >&2
-    printf '  CC_CANDOR_GATE=off disables this gate for the session; =warn prints without blocking.\n' >&2 ;;
-  lockfile)
-    printf '[candor] gate: a dependency manifest changed and its lockfile did not — %s.\n' "$detail" >&2
-    printf '  The install step was skipped, so the tree you are leaving has a manifest and a lockfile\n' >&2
-    printf '  that disagree. The next clone resolves different versions, and CI blames whoever ran it.\n' >&2
-    printf '  Run the installer (npm/pnpm/yarn install, composer update <pkg>, bundle install, cargo\n' >&2
-    printf '  build, go mod tidy) and commit the lockfile with the manifest — or say plainly that the\n' >&2
-    printf '  lockfile is deliberately unchanged and why. CC_LOCKFILE_GATE=off disables this clause.\n' >&2 ;;
-  evidence)
-    printf '[candor] evidence-gate: this turn claims completion, files were edited, and no command ran after the last edit — nothing verified the change.\n' >&2
-    printf '  Either run the check that would FAIL if the change were broken (test, build, lint, or execute\n' >&2
-    printf '  the changed code) and show its output — or restate honestly: what changed, what was NOT\n' >&2
-    printf '  verified, and the exact command the user can run to verify it.\n' >&2
-    printf '  A claim with no execution behind it is the failure this gate exists to stop.\n' >&2
-    printf '  CC_EVIDENCE_GATE=off disables this clause for the session; =warn prints without blocking.\n' >&2 ;;
-esac
+  case "$verdict" in
+    citation)
+      what="this turn"; [ "$evt" = "SubagentStop" ] && what="this report"
+      printf '[candor] gate: %s cites a location that does not exist.%s\n' "$what" "$detail" >&2
+      printf '  A file:line citation asserts you read that line. Open the file, cite what is actually\n' >&2
+      printf '  there, or drop the number and say plainly that you are inferring rather than quoting.\n' >&2
+      printf '  Inventing a location is the failure this clause exists to stop.\n' >&2
+      printf '  CC_CANDOR_GATE=off disables this gate for the session; =warn prints without blocking.\n' >&2 ;;
+    reversal)
+      printf '[candor] gate: the user pushed back without giving you new information, and this turn\n' >&2
+      printf '  retracts your position anyway — nothing was re-checked between the challenge and the\n' >&2
+      printf '  retraction.\n' >&2
+      printf '  Do one of two things. Re-check: run the command or read the file that would settle it,\n' >&2
+      printf '  then report what it showed. Or hold: say you still believe what you said, and why.\n' >&2
+      printf '  "You are right" is a finding. It needs the same evidence as any other finding.\n' >&2
+      printf '  CC_CANDOR_GATE=off disables this gate for the session; =warn prints without blocking.\n' >&2 ;;
+    lockfile)
+      printf '[candor] gate: a dependency manifest changed and its lockfile did not — %s.\n' "$detail" >&2
+      printf '  The install step was skipped, so the tree you are leaving has a manifest and a lockfile\n' >&2
+      printf '  that disagree. The next clone resolves different versions, and CI blames whoever ran it.\n' >&2
+      printf '  Run the installer (npm/pnpm/yarn install, composer update <pkg>, bundle install, cargo\n' >&2
+      printf '  build, go mod tidy) and commit the lockfile with the manifest — or say plainly that the\n' >&2
+      printf '  lockfile is deliberately unchanged and why. CC_LOCKFILE_GATE=off disables this clause.\n' >&2 ;;
+    evidence)
+      printf '[candor] evidence-gate: this turn claims completion, files were edited, and no command ran after the last edit — nothing verified the change.\n' >&2
+      printf '  Either run the check that would FAIL if the change were broken (test, build, lint, or execute\n' >&2
+      printf '  the changed code) and show its output — or restate honestly: what changed, what was NOT\n' >&2
+      printf '  verified, and the exact command the user can run to verify it.\n' >&2
+      printf '  A claim with no execution behind it is the failure this gate exists to stop.\n' >&2
+      printf '  CC_EVIDENCE_GATE=off disables this clause for the session; =warn prints without blocking.\n' >&2 ;;
+  esac
 
-[ "$mode" = "block" ] || exit 0
-# A blocked subagent keeps running: put back the in-flight record removed above.
-if [ -n "$inflight_rec" ]; then
-  printf '%s\n' "$agent_id" > "$inflight_rec" 2>/dev/null
-fi
-exit 2
+  [ "$mode" = "block" ] || exit 0
+  # A blocked subagent keeps running: put back the in-flight record removed above.
+  if [ -n "$inflight_rec" ]; then
+    printf '%s\n' "$agent_id" > "$inflight_rec" 2>/dev/null
+  fi
+  exit 2
+}
+report_verdict

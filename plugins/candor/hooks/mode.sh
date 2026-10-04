@@ -1,32 +1,10 @@
 #!/bin/bash
-# Absolute-path shebang not `/usr/bin/env bash`: the fail-open guarantee must hold
-# even under a stripped PATH where `env bash` exits 127.
-#
-# UserPromptSubmit, two jobs:
-#   1. Level switching — `/candor:level <lite|full|ultra|off>` and the few natural
-#      phrasings for it. The hook owns the state write, not the model: a mode that
-#      depends on the model remembering to run a command is not a mode.
-#   2. Per-turn reinforcement — one compact line while a level is active.
-#
-# WHY REINFORCE THE SHAPE AND NOT THE WORDING. The mode this replaces re-injected
-# "drop articles/filler/pleasantries/hedging" on every prompt: the one layer that
-# already worked. Measured over three long sessions of it, mid-turn lines held at
-# 17-265 characters while turn-final messages ran 1,194-4,447 — the drift is in
-# message SHAPE, so the reminder carries budgets and the report skeleton instead.
-#
-# LIMITATION (honest scope):
-#   - Advisory. `additionalContext` is not a blocking key; this can inform a turn,
-#     never stop one.
-#   - Costs ~150 tokens of input per prompt while active — measured 2026-09-15 by
-#     driving this hook: 596-597 chars at lite/full/ultra, 693 at a wenyan level
-#     (~173 tok), and nothing when off. It read "~120 tokens (476 chars)" until the
-#     findings-cap waiver and the wenyan clause were added to the emitted line and
-#     the figure was not re-measured; a stated cost is a claim, so re-run the hook
-#     rather than editing the number by eye.
-#     That is the price of persistence; `/candor:level off` stops paying it.
-#   - Natural-language switching is a narrow heuristic, not parsing. The slash
-#     command is the reliable path and the one the docs name.
+# mode.sh (UserPromptSubmit; payload on stdin) — switches the terse level on `/candor:level <level>` or a narrow natural-language request,
+#   writing the level file; while a level is active, adds one budget line to each other prompt. Advisory; fails open; always exits 0.
 # The level: CC_TERSE, then the level file, then the /config option cc_terse.
+# Misses: a switch phrased outside its few patterns (the slash command is the reliable path); the budget line after a prompt its
+#   negation or question guard stops.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/mode.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
@@ -70,7 +48,7 @@ cc_option() {
     exit 0
   }
 
-  card() { # the contract block, from the skill body — see activate.sh on why runtime
+  card() { # the skill body's marked contract block, read at runtime so the injected card cannot drift from it
     [ -n "$root" ] && [ -r "$skill" ] || return 0
     awk '/<!-- terse-contract:start -->/{f=1; next} /<!-- terse-contract:end -->/{f=0} f' "$skill" 2>/dev/null
   }
@@ -88,8 +66,7 @@ cc_option() {
 
   confirm() { # confirm <level> — level just changed, so re-state the whole contract
     if [ "$1" = "off" ]; then
-      # CC_TERSE and the cc_terse option outlive the removed file (see the resolution
-      # below), so "off" cannot promise silence while either still sets a level — say which.
+      # CC_TERSE and the cc_terse option outlive the removed file, so "off" names whichever still sets a level.
       lvl=$(cc_option CC_TERSE off)
       case "$lvl" in
         lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra)
@@ -105,14 +82,6 @@ cc_option() {
     emit "TERSE MODE — level: $1. Applies to chat messages only."
   }
 
-  # ---- 1. slash commands -------------------------------------------------------
-  # A slash command suppresses § 2 (natural-language SWITCHING) and nothing else.
-  # It used to `exit 0` outright, which also swallowed § 3 — so every slash-command
-  # turn silently lost the budget reminder. That matters most where it is least
-  # visible: an entry command like /code-architecture:coding-task is exactly what
-  # you type at the START of long work, and § 3 is what refreshes the budget after
-  # the SessionStart block has been summarised out of context. The level itself was
-  # never lost (it is session state, set by activate.sh), only its restatement.
   slash=0
   case "$prompt" in
     /candor:level* | /candor\ * | /candor)
@@ -126,51 +95,20 @@ cc_option() {
       esac
       exit 0
       ;;
-    /*) slash=1 ;; # manages its own flow — for switching. § 3 still reinforces.
+    /*) slash=1 ;; # another command's arguments describe a task: they never switch the level, but the budget line still prints
   esac
 
-  # ---- 2. natural-language switching -------------------------------------------
-  # TRIGGER NARROWING, the reminder hooks' pattern: drop fenced blocks and
-  # backticked spans, read only the head (a pasted transcript buries its keywords
-  # deep), and refuse prompts that are ABOUT this machinery rather than using it.
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400 | tr 'A-Z' 'a-z')
-  # A slash command starts here already disqualified: its ARGUMENTS are a task
-  # description, not a request to change the mode, and "/coding-task stop being
-  # terse about the docs" must not switch anything.
   about=$slash
   printf '%s' "$head" | grep -qE '(delete|remove|uninstall|disable|install|list|which|audit|fix|write|edit|test)[a-z -]{0,40}(plugin|hook|reminder|skill|command)' && about=1
-  # This hook's own output, echoed back in a pasted transcript. Every shape it
-  # emits must be listed — the confirmation ("TERSE MODE — level: x") and the
-  # far more common per-turn line ("TERSE ultra — chat message only").
-  #
-  # Each pattern carries enough context to stay distinct from a user typing the
-  # same words. A previous version guarded on bare `terse mode off`, which is the
-  # documented way to ASK for off — the guard swallowed the request and the off
-  # trigger below became unreachable. The emitted line is always `TERSE MODE OFF.
-  # Normal response…`, so the sentence tail is what separates echo from intent.
+  # This hook's own lines, echoed back in a pasted transcript, are not a request.
   printf '%s' "$head" | grep -qE 'terse mode (active|—)|terse mode off\. normal|terse (lite|full|ultra|wenyan-[a-z]+) —' && about=1
 
   if [ "$about" -eq 0 ]; then
-    # OFF. Not a bare noun phrase in any form: "normal mode" belongs to vim and to an
-    # app's boot state, and even "normal length" appears mid-sentence about CSS
-    # line-height. The trigger is a REQUEST shape — back to / resume / return to — or an
-    # explicit terse-off. The reliable switch stays /candor:level off.
     if printf '%s' "$head" | grep -qE '\b(stop|disable|turn off|exit|end) (the )?terse\b|\bterse (mode )?off\b|\b(back to|resume|return to|go back to) normal (length|verbosity|replies)\b|\bbe more verbose\b|\bstop being terse\b'; then
       write_level off && confirm off
     fi
-    # ON, in two shapes. `terse on` is deliberately NOT one of them: "a bit terse
-    # on occasion" is prose about tone, and switching a persistent mode from it
-    # turns an opt-in plugin into an ambient one.
-    #
-    # The level form REQUIRES the level word to end the clause — punctuation or
-    # end of prompt. Without that boundary "terse ultra vires doctrine" switched
-    # to ultra and "I prefer terse full sentences" switched to full: the level
-    # word was being read out of the middle of an ordinary sentence.
-    # NEGATION GUARD. "do not enable terse mode, I hate it" and "never turn on terse"
-    # both switched it ON: the trigger saw its own keywords and never looked left. A
-    # negator anywhere in the clause before them disqualifies the whole prompt — a user
-    # arguing about the mode is not asking for it.
     printf '%s' "$head" | grep -qE "(do ?n.?t|don't|never|no need to|without|avoid|stop|rather not|hate|dislike)[a-z ,'’-]{0,30}(terse|enable|activate|turn on)" && exit 0
     # "is that terse full?" is a question about the mode, not a request for it.
     case "$head" in \?*|*\?) printf '%s' "$head" | grep -qE '^(is|are|was|does|did|what|why|how)\b' && exit 0 ;; esac
@@ -186,11 +124,9 @@ cc_option() {
     fi
   fi
 
-  # ---- 3. per-turn reinforcement -----------------------------------------------
   level=$(cc_option CC_TERSE off "$state")
 
-  # wenyan levels share their latin counterpart's budgets; only the word layer
-  # differs (skills/terse-output/references/wenyan.md).
+  # wenyan levels share their latin counterpart's budgets (skills/terse-output/references/wenyan.md).
   case "$level" in
     lite | wenyan-lite)   b='answer 10, report 18' ;;
     full | wenyan-full)   b='answer 6, report 12' ;;

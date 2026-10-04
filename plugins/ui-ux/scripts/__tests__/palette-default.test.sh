@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
-# Fixture tests for hooks/palette-default.sh. Picked up by the shared CI step globbing
-# plugins/*/scripts/__tests__/*.test.sh.
-#
-# The FIRST fixture is the real regression this hook was written for: on 2026-08-17 a
-# control/treatment run shipped 23 indigo utilities across 5 Blade views of a Laravel
-# build, with every gate in this marketplace green, because craft-layer's equivalent gate
-# runs only inside a craft run. If that fixture ever stops firing, the hook has lost the
-# only failure it is known to catch.
-#
-# The silence cases carry equal weight. An advisory that fires on a deliberate palette is
-# noise, and a reader who learns to skip it has lost the signal too.
+# palette-default.test.sh — fixture cases for hooks/palette-default.sh: the Blade regression it was written for, the swatch hex, its
+#   silences, the one-shot and where its state lands, fail-open, the off switch and a deleted cwd.
+# Why, limits, history: rationale/derivations/plugin-ui-ux.md § plugins/ui-ux/scripts/__tests__/palette-default.test.sh
 set -u
 unset CLAUDE_PROJECT_DIR   # a live session exports it; the state root would resolve there
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -21,9 +13,7 @@ rc=0
 pass() { printf 'PASS  %s\n' "$1"; }
 fail() { printf 'FAIL  %s\n      %s\n' "$1" "$2"; rc=1; }
 
-# Each call gets a fresh cwd so the one-shot never masks an unrelated case. The payload
-# carries a path-shaped transcript_path — the shape the host actually sends, which is what
-# pc_harness_payload exists to require after three hooks shipped broken without it.
+# A fresh cwd per call, so the one-shot never masks an unrelated case.
 fire() { # $1 file  [$2 cwd]
   local cwd="${2:-$(mktemp -d "$TMP/cwd.XXXXXX")}"
   python3 -c 'import json,sys
@@ -65,7 +55,6 @@ out=$(fire "$f"); [ -z "$out" ] && pass "silent on a deliberate non-default pale
 
 # ---- 4. SILENCE: a neighbouring hue OUTSIDE the default band ---------------------------
 # blue-500 (~259.8 oklch) and fuchsia-500 (~322.1) sit outside craft-layer's 275-315 band.
-# Flagging them would make the family list taste rather than a derivation.
 f=$(mk src/Blue.tsx <<'TSX'
 export const B = () => <div className="bg-blue-500 text-fuchsia-400" />
 TSX
@@ -100,18 +89,12 @@ off=$(CC_PALETTE=off bash -c 'cat | bash "$0"' "$HOOK" <<<'{"tool_name":"Write"}
 [ -z "$off" ] && pass "CC_PALETTE=off silences it" || fail "CC_PALETTE=off silences it" "got: $off"
 
 # ---- 8. a cwd that no longer exists must not be RECREATED --------------------------------
-# The hook `mkdir -p "$cwd/.claude/ui-ux"`. With only `-n` on the payload field, a session
-# whose project directory was deleted got it resurrected three levels deep — the live
-# repro in the 2026-09-22 panel (architecture finding 1).
 gone="$(mktemp -d "$TMP/gone.XXXXXX")"; rm -rf "$gone"
 out=$(fire "$TMP/views/login.blade.php" "$gone")
 if [ -z "$out" ] && [ ! -e "$gone" ]; then pass "a deleted cwd is neither used nor recreated"
 else fail "a deleted cwd is neither used nor recreated" "output='${out:0:40}' exists=$([ -e "$gone" ] && echo yes || echo no)"; fi
 
 # ---- 9. SUBDIRECTORY cwd: one nudge per session, not per directory ---------------------
-# The payload cwd follows the model's `cd` (measured 2026-09-25, finding 2 of
-# rationale/2026-09-25-session-plugin-usage-review.md). State must land at the repo root,
-# never under the subdirectory, and a later edit from the root must see the same one-shot.
 repo="$(mktemp -d "$TMP/repo.XXXXXX")"; mkdir -p "$repo/app/Models"; git -C "$repo" init -q
 a=$(fire "$TMP/views/login.blade.php" "$repo/app/Models")
 b=$(fire "$TMP/src/Hero.tsx" "$repo")
