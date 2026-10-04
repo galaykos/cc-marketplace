@@ -45,17 +45,11 @@
 # CC_REMIND / CC_COMMENT_GUARD unset: the /config options cc_remind / cc_comment_guard decide.
 # Deny markers: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/comment-discipline/ is only the fallback.
 
-# --- state root ----------------------------------------------------------------
-# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
-# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
-# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
-# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
-# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
-# the caller's spelling and path-prefix comparisons still hold); outside git,
-# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
-# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
 cc_state_root() {
   [ -n "$1" ] && [ -d "$1" ] || return 1
   local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
@@ -69,26 +63,12 @@ cc_state_root() {
   printf '%s\n' "$1"
 }
 
-# --- plugin state --------------------------------------------------------------
-# Canonical copy: templates/blocks/plugin-state.md. Every hook defining cc_plugin_state must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_plugin_state <root> <name> prints the directory holding a plugin's own per-project hook
-# state, <root> being the hook's cc_state_root result: ${CLAUDE_PLUGIN_DATA}/<key>/<name> when
-# the host sets that variable, else <root>/.claude/<name>, the path hooks used before it.
-# <key> is the root's basename with every character outside [A-Za-z0-9_-] turned into -, a -,
-# and the root's cksum: the host gives one data dir per plugin id, not per project (measured
-# 2.1.282), and a raw path inside a filename names parents that never exist. tr runs under
-# LC_ALL=C because a UTF-8 tr stops at the first invalid byte. Status 0, no stderr; it
-# creates nothing, so the caller keeps its own mkdir -p.
-# WHY: state read by no one but the plugin's own hooks does not belong in the user's repo —
-# the 2026-09-29 review found .claude/code-review/ and .claude/skill-router/ created by one
-# prompt and one edit in a fresh repo.
-# WHAT IT DOES NOT CATCH: state another plugin, a skill or the user reads must not use it; the
-# fallback path is still in the repo; the data dir is keyed by plugin id, so install scopes of
-# one plugin share it (inferred from the docs' id rule), while a --plugin-dir copy gets its
-# own `-inline` directory and never sees the installed copy's state. The variable was measured
-# only in a SessionStart hook; other events are doc-stated. An event that lacks it falls back
-# to the repo path, which splits a writer from a reader running on another event.
+# Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
+# cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
+# Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
 cc_plugin_state() {
   local key sum
   if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
@@ -101,18 +81,14 @@ cc_plugin_state() {
   return 0
 }
 
-# --- option resolver -----------------------------------------------------------
-# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
-# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
-# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
-# because the environment is the one state independently installed plugins share (CC_REMIND
-# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
+# cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
+# <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
-# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
-# outside the switch's vocabulary — each hook still validates the value it gets.
+# A non-empty variable beats the option: the environment is shared, so one export before launch
+# switches every plugin that reads it.
+# Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
   case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
@@ -129,29 +105,15 @@ cc_option() {
   return 0
 }
 
-# --- bash write targets --------------------------------------------------------
-# Canonical copy: templates/blocks/bash-write-targets.md. Every hook defining
-# cc_bash_write_targets must carry this block byte-for-byte (pc_shared_blocks).
-# The host steers file writes through Bash (auto mode `bashFirst`); in one measured session
-# 233 of 238 main-thread writes were `cat > file <<EOF`, invisible to a hook matching
-# Write|Edit.
-# Prints one target path per line, as spelled in the command (relative or absolute).
-# Heredoc BODIES are dropped and quoted text is masked before matching, so PHP `->`/`=>`,
-# HTML `>` and a sed script's `s|a|b|` never read as redirects or pipes; a here-string
-# (`<<<`) is not a heredoc. Catches `>`/`>>` onto a path (cat, echo, printf, any command),
-# `[sudo] tee [-a] <paths>`, and every file operand of `sed -i`/`-I`/`--in-place` / `perl -i`
-# after the script or its `-e`/`-f` arguments, never a redirect word or its target. BSD's
-# `-I` always takes the next word as its backup suffix; a `''` or a `.`-led word with no `/`
-# right after sed's bare `-i` is read as one too, unless it would be the only file.
-# Does NOT catch: sed/perl/tee operands after a `&` in `$(( ))` or `${ }` (it ends the command),
-# interpreter writes (python open(), php file_put_contents), cp/mv/install destinations,
-# `{ …; } > f` groups, a path held in a variable (`> "$f"` is skipped, never guessed),
-# a globbed operand (`sed -i … tests/*.js`: a word with `*`/`?` is dropped), a `\` line
-# continuation, sed/perl behind another command word (`gsed`, `/usr/bin/sed`, `env`,
-# `xargs`, `command`, `sudo -u x`, `find … -exec sed -i`), a digit- or `&`-led redirect onto
-# a file (`2> f`, `&> f`) and `>&` onto one (`cmd >& f.json`), a `-`-led sed/perl operand
-# with no `/` or `.` in it. Reads too much: a `-`-led perl script argument that has one.
-# The caller filters to existing files under its root.
+# Shared block templates/blocks/bash-write-targets.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
+# cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
+# one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
+# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
+# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
+# redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
+# operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
 cc_bash_write_targets() {
   printf '%s\n' "$1" | awk '
     function emit(p) {
@@ -257,33 +219,13 @@ cc_bash_write_targets() {
     }' | awk '!seen[$0]++'
 }
 
-# --- bash write chunks --------------------------------------------------------
-# Canonical copy: templates/blocks/bash-write-chunks.md. Every hook defining
-# cc_bash_write_chunks must carry this block byte-for-byte (pc_shared_blocks).
-# cc_bash_write_chunks <command> — what a Bash command puts INTO files: the text a content
-# guard reads on Bash where its Write path reads tool_input.content. Prints chunks: a line that
-# starts with \036 and carries the WRITER — the pipeline (split on ; && || and a `&` outside
-# `&>` `>&` `<&` `|&`, never inside quotes) whose targets the caller resolves with
-# cc_bash_write_targets — then the chunk's text lines. Two sources, and only two:
-#   - a heredoc BODY: the lines between `<<TERM` (`<<-`, quoted or `\`-escaped TERM too)
-#     and TERM; writer = the pipeline holding the `<<` (`cat > f <<EOF`,
-#     `cat <<EOF | tee -a f`);
-#   - the ARGUMENTS of an `echo`/`printf` segment, as written: the rest of the segment after
-#     the command word, quotes, escapes and any `> file` redirect kept (so match inside the
-#     text, never anchored at its start); writer = its pipeline
-#     (`echo "K=v" >> .env.example`, `printf '%s\n' v | tee f`).
-# A chunk whose writer names no file is dropped by the caller, so `git commit -F - <<EOF`
-# and `echo x | grep y` yield nothing. The body of ANY heredoc whose pipeline writes a file
-# is read, whatever consumes it — `python3 - <<PY > out.txt` included, where the script is
-# not what lands in out.txt. Accepted: the text sits in a file-writing command either
-# way.
-# NOT read, stated: a `{ echo …; } > f` group (the redirect sits on the closer, not on
-# the echo's pipeline); a here-string `<<<`; printf's format substitution (`printf
-# 'K=%s' v` is read as written: the format and the argument, never the substituted
-# line); a quoted string or a `\` continuation spanning lines; a second heredoc opened
-# on one line; text in a command that a `&` inside `$(( ))` or `${ }` ends early.
-# mask() copies the one inside cc_bash_write_targets: the block is byte-locked and its
-# awk functions are not reachable from outside it.
+# Shared block templates/blocks/bash-write-chunks.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-chunks.md
+# cc_bash_write_chunks <command> prints a \036 + WRITER line, then the text as written, per heredoc body and echo/printf
+# argument list, any `> file` redirect kept (never anchor a match); the caller resolves WRITER with cc_bash_write_targets.
+# mask() repeats the one in cc_bash_write_targets: a byte-locked block's awk program cannot call another block's functions.
+# Misses: `{ echo …; } > f`, here-strings, printf's substituted output, a string or `\` continuation spanning lines,
+# two heredocs on one line, text after a `&` inside `$(( ))`/`${ }`.
 cc_bash_write_chunks() {
   printf '%s\n' "$1" | awk '
     function mask(s,   i, c, q, out, esc) {

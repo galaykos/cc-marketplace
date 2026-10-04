@@ -37,17 +37,11 @@
 # (agent-graded), and nothing here proves the guard is honoured on a branch the
 # harness does not drive.
 
-# --- state root ----------------------------------------------------------------
-# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
-# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
-# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
-# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
-# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
-# the caller's spelling and path-prefix comparisons still hold); outside git,
-# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
-# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
 cc_state_root() {
   [ -n "$1" ] && [ -d "$1" ] || return 1
   local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
@@ -61,18 +55,14 @@ cc_state_root() {
   printf '%s\n' "$1"
 }
 
-# --- option resolver -----------------------------------------------------------
-# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
-# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
-# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
-# because the environment is the one state independently installed plugins share (CC_REMIND
-# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
+# cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
+# <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
-# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
-# outside the switch's vocabulary — each hook still validates the value it gets.
+# A non-empty variable beats the option: the environment is shared, so one export before launch
+# switches every plugin that reads it.
+# Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
   case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
@@ -104,75 +94,16 @@ root=$(cc_state_root "$cwd") || exit 0
 dec="$root/.design-kit/decisions.jsonl"
 [ -s "$dec" ] || exit 0
 
-# --- phase guard -------------------------------------------------------------
-# NOTE ON THE EXTENSION: this block is shell, not markdown. It is named .md because
-# template-engine.sh:50 hardcodes `<blocksdir>/<name>.md` for every include directive.
-# Teaching the engine other extensions is a change to a gated shared component and
-# is not worth it for one file — the engine only ever copies raw bytes.
-# Do NOT write a literal include or substitution directive in this file's comments:
-# includes are expanded once and not rescanned, but substitution runs over the whole
-# rendered text afterwards, so a directive quoted here becomes a missing-key error.
-# Stand down when the arc is in a phase this artifact does not own. The sentinel
-# only ever NARROWS: absent, foreign, stale or malformed all mean "everyone is
-# eligible", which is byte-for-byte today's behaviour. That is deliberate — the
-# plain-prompt path is the overwhelming case and must not change, so turn-taking
-# engages only once an entry command has actually declared a phase.
-#
-# WHERE IT LIVES: <state root>/.claude/cc-phase.json, the root cc_state_root resolves
-# from the payload cwd. That function comes from the state-root block
-# (templates/blocks/state-root.md), which the reminder template includes just above
-# this one; a hand copy of this guard must paste it too, or the call fails and the
-# guard proceeds as if no sentinel existed. It read `<payload cwd>/.claude/` until
-# 2026-09-25, and the payload cwd follows the model's `cd` (finding 2 of
-# rationale/2026-09-25-session-plugin-usage-review.md): a sentinel written at the root
-# was absent to a hook whose cwd had drifted into a subdirectory, and absent means
-# proceed. taskmaster/scripts/phase-sentinel.sh writes at the same root, so writer and
-# reader agree from any directory of the project.
-#
-# Reader contract, in order:
-#   absent .............. proceed (no sentinel, no turns)
-#   jq missing .......... proceed (fail open, as every hook here does)
-#   unparseable ......... proceed
-#   session_id differs .. proceed (several sessions share one .claude/ dir)
-#   older than TTL ...... proceed, and unlink — a run that died mid-way must not
-#                         mute this project's channel in every future session.
-#                         The cited precedent .claude/task-runner/active-run.json
-#                         is cleared by a MODEL INSTRUCTION, which is why
-#                         candor's gate.sh (clause 4) says of it "Nothing clears it";
-#                         that gate survives only because it SPEAKS when it
-#                         blocks. A silent reader has no such remedy, so the TTL
-#                         is the whole of this one's safety.
-#   phase == our lane ... proceed
-#   lane is `any` ....... proceed (guards are not phase steps)
-#   otherwise ........... stand down, silently
-#
-# TTL is deliberately SHORT. Expiring early degrades to the status quo (the nudge
-# fires when it maybe should not); expiring late mutes a real channel. Those costs
-# are not symmetric, so this errs toward speaking.
-#
-# HOW OFTEN THIS ACTUALLY ENGAGES — state it plainly, because the answer is "less
-# often than the word turn-taking suggests". Four commands write a sentinel:
-# taskmaster:task (shape), task-runner:run (build), git-workflow:finish (ship), and
-# code-architecture:coding-task on its `trivial` verdict (build). A BARE PROMPT writes
-# none. So on the plain-prompt path — which this design's own notes call the
-# overwhelming case — no phase exists, every voice stays eligible, and what arbitrates
-# is the rank tiebreak, not the arc. That is collision-avoidance, not turn-taking.
-# Turn-taking engages once work enters through a command that declares a phase.
-#
-# This is a real limit, not a defect to route around: nothing can observe "the arc"
-# without something declaring it, and inferring a phase from prompt text would be the
-# routing-table-in-shell that route-prompt.sh's own header refuses. The honest claim is
-# the narrow one — say the guard engages on the pipeline path, never that the
-# marketplace takes turns everywhere.
-#
-# Standing: the GATE (pc_phase_guard) proves a hook READS the sentinel. No gate
-# can prove an artifact HONOURS it in every branch — that half is agent-graded.
-#
-# Also publishes cc_phase_now — the phase in force, or empty. The rank marker key
-# includes it, which is what lets a voice that stood down at one phase
-# claim a FRESH key and speak when its own phase arrives. Without it a rank claim
-# written on turn 1 outlives the eligibility that produced it and permanently gags
-# whichever hook is later the highest ELIGIBLE one.
+# Shared block templates/blocks/phase-guard.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-guard.md
+# No template directive of any kind in these comments: _expand_includes copies this file raw, then conditionals and
+# substitution run over the whole text.
+# cc_phase_guard returns 1 only when <cc_state_root>/.claude/cc-phase.json, unexpired (one older than cc_phase_ttl_min is deleted)
+# and not another session's, names a phase past $1's phase in this plugin's own lane.tsv; else 0.
+# cc_phase_now: the phase any unexpired sentinel names, whichever session wrote it, or empty.
+# Set $cwd, or $input (the hook payload; an empty $cwd is then assigned its .cwd), and $sid before the call: with
+# neither $cwd nor $input it always proceeds; without $sid another session's sentinel counts.
+# Misses: a bare prompt writes no phase, so nothing stands down outside a run a command declared; without jq or cc_state_root it proceeds.
 cc_phase_ttl_min=120
 cc_phase_now=""
 cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = proceed.
@@ -184,8 +115,6 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   sentinel="$root/.claude/cc-phase.json"
   [ -r "$sentinel" ] || return 0
 
-  # Stale? mtime, not started_at — no ISO-8601 parsing in portable shell, and the
-  # file is rewritten whenever the phase changes, so mtime IS the phase's age.
   if [ -n "$(find "$sentinel" -maxdepth 0 -mmin +"$cc_phase_ttl_min" 2>/dev/null)" ]; then
     rm -f "$sentinel" 2>/dev/null
     return 0
@@ -195,11 +124,6 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   [ -n "$have" ] || return 0
   cc_phase_now="$have"
 
-  # Nested ifs: a conjunction of two bracket tests here once tripped
-  # chassis-template-tests.sh's "hook(plain): no extraGuard when null" assertion,
-  # then a substring match over the whole rendered file. Since 2026-09-25 it pins the
-  # trigger line instead — the state-root block carries that shape legitimately — so
-  # the nesting is no longer load-bearing. It stays; it reads the same either way.
   ssid=$(jq -r '.session_id // empty' "$sentinel" 2>/dev/null)
   if [ -n "$ssid" ]; then
     if [ -n "${sid:-}" ]; then
@@ -207,25 +131,12 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
     fi
   fi
 
-  # Our own lane, read from the plugin's OWN lane.tsv — never a sibling's, so this
-  # works when the plugin is installed alone (spec S2b).
   lane="${CLAUDE_PLUGIN_ROOT:-}/lane.tsv"
   [ -r "$lane" ] || return 0
   want=$(awk -F'\t' -v a="$1" '$1==a {print $3; exit}' "$lane" 2>/dev/null)
   [ -n "$want" ] || return 0
   [ "$want" = any ] && return 0
 
-  # ORDERED, not equal. Exact equality was the first cut and it was a global mute: the
-  # phases COMMANDS write (shape, build, ship) and the phases ADVISORIES declare
-  # (understand, decide) are disjoint sets, so `want = have` was unreachable and every
-  # phase-owning voice stood down whenever any sentinel existed. Only `any` lanes spoke.
-  # The two vocabularies are disjoint for a real reason — "what phase is this command"
-  # and "what phase does this advice belong to" are different questions — so the fix is
-  # to compare position, not string.
-  #
-  # An advisory speaks while the arc is AT or BEFORE its phase, and stands down once the
-  # arc has moved PAST it. Clarify-the-requirements is useful at understand and shape; on
-  # turn 40 of an executing build it is the defect this guard exists to kill.
   cc_phase_ix() { case "$1" in
     understand) echo 1 ;; shape) echo 2 ;; decide) echo 3 ;; plan) echo 4 ;;
     build) echo 5 ;; verify) echo 6 ;; review) echo 7 ;; ship) echo 8 ;; *) echo 0 ;;
@@ -235,7 +146,6 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   [ "$hi" -gt "$wi" ] && return 1
   return 0
 }
-# --- end phase guard ---------------------------------------------------------
 
 sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
 cc_phase_guard 'design-kit:unread-pick' || exit 0

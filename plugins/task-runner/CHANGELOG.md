@@ -6,6 +6,7 @@ All notable changes to the task-runner plugin.
 
 - **Every dispatch states its done-when:** delegation-contracts' prompt contract gains a bullet — a bar the agent can check and cannot meet early ("every caller of parse() listed with path and line", not "find the callers"), because a vague bar is where a worker stops short. Standing: recorded; `scripts/dispatch-lint.sh` does not check for it.
 - The rule adapts one from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied. Its effect is unmeasured: no run compared dispatches with and without it.
+- **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/scope.sh`, `drift.sh`, `announce.sh`, `rv-consent.sh`, `rv-observe.sh`, `spawn-cap.sh` and `ultra-assess.sh` keep each function's contract and limits in a few lines, and `ultra-assess.sh`'s own comments keep its tier, off-switch and one line per step; the derivations and history moved to the marketplace repository's `rationale/`. Each hook parses to the same code as before, compared by bash's own parser with comments ignored.
 
 ## 0.42.2 — 2026-10-01
 

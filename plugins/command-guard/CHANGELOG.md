@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.4 — 2026-10-04
+
+- **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/destructive-guard.sh` and `hooks/config-guard.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. Both hooks parse to the same code as before, compared by bash's own parser with comments ignored.
+
 ## 0.8.3 — 2026-10-01
 
 - **A write to the allow-file through a differently-cased path is denied.** The Write/Edit check matched the file's name case-sensitively, while a case-insensitive filesystem (the macOS default) opens the same file under any ASCII letter case. The path, and an `apply_patch` body, are now lowercased before the match, as the Bash-command check already did. On a case-sensitive filesystem this over-denies a differently-cased sibling file. If `tr` is missing the check falls back to the exact-case match it had before.

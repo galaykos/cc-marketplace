@@ -47,6 +47,19 @@ version in their `plugin.json`.
   comments takes 0.25 s instead of 9.64 s. Padded tags, restating docstrings, commented-out markup, comment paragraphs, region
   markers and authorship stamps warn and never deny; the deny categories and every message string are unchanged. code-review's
   CHANGELOG has the tables and what is still missed; the effect on what the model writes is unmeasured.
+- **Shared blocks and chassis templates: comments cut to contract and limits, reminder steps named — api-design 0.11.1,
+  approaches 0.11.1, ask-ledger 0.3.1, brain 0.4.3, candor 0.6.3, code-review 0.29.0, command-guard 0.8.4, craft-layer 0.55.1,
+  database 0.11.3, debugging 0.7.0, design-kit 0.9.3, devops 0.9.3, git-workflow 0.10.0, hindsight 0.12.0, laravel 0.10.1,
+  resilience 0.7.7, secret-scanning 0.10.3, security 0.12.3, skill-router 0.23.0, task-runner 0.43.0, taskmaster 0.47.0,
+  testing 0.12.3, ui-ux 0.28.1, web-dev 0.10.2.** The six `templates/blocks` files and the reminder and boost hook templates
+  keep one source line, one pointer and, per function, a contract, its limits and any off-switch it reads; every cut line moved
+  verbatim to `rationale/derivations/templates-and-blocks.md`. A scripted literal swap re-pasted the blocks into 44 hand
+  carriers and `generate.sh --write` regenerated 8 hooks and 10 agents. bash's own parser, comments ignored, reads the 44
+  carriers and the 3 boost hooks as the same code as before. The reminder template names its seven steps as functions;
+  `scripts/smoke/hook-guard-tests.sh` pinned their off-switch, refusal and stale-marker paths first and passes on the 5
+  regenerated reminder hooks. The worker template and its 10 agents add required call order to the docblock facts a
+  signature cannot state, a prompt change whose effect is unmeasured. git-workflow's branch-completion scratch table cites
+  carriers by name, not line. No context baseline moved.
 
 ## [0.119.0] - 2026-10-01
 

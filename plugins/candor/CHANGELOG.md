@@ -6,6 +6,7 @@ All notable changes to the `candor` plugin.
 
 - **The preamble's move (1) now ends with one sentence about comments:** `Add no code comment unless it states what the code cannot; a CLAUDE.md house style wins.` It goes out with the five moves, on the first work prompt of each session and on every subagent start. So the comment rule reaches the model before its first edit in every subagent (whose prompt carries no comment rule of its own) and in a main session whose host prompt lacks one, including on an install without `code-review`, whose hooks judge a comment only as it is written. Still five moves. The message is now 878 chars (886 bytes), within the test's 1,000-byte bound. **Effect unmeasured:** the measurement behind the five moves predates this sentence, and no eval case covers it.
 - `scripts/__tests__/preamble-hook.test.sh` gains three cases: the exact sentence at the end of move (1) on `UserPromptSubmit` (19) and on `SubagentStart` (20), and `CC_PREAMBLE=off` silencing `SubagentStart` (21), which no case covered before. The size claims in the hook header and README (~800 and ~640 chars) now state the measured 878.
+- **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/activate.sh`, `avert.sh`, `gate.sh`, `mode.sh` and `preamble.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. Each hook parses to the same code as before, compared by bash's own parser with comments ignored.
 
 ## 0.6.2 — 2026-10-01
 

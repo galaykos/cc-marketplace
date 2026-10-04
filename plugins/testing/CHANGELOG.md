@@ -6,6 +6,11 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.12.3 - 2026-10-04
+
+- **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/protect-tests.sh` and `hooks/test-shape.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. Both hooks parse to the same code as before, compared by bash's own parser with comments ignored.
+- The `test-engineer` agent's code-shape rule adds required call order to the docblock facts a signature cannot state (units, ownership, what throws). Its effect on what the agent writes is unmeasured.
+
 ## 0.12.2 - 2026-10-01
 
 - The shared Bash-write parsers end a command at a lone `&`. Text a command writes after a backgrounded one is now read (`sleep 1 & echo "<text>" > f` was skipped), and a heredoc body is no longer judged as the content of a file a later command on the same line writes (in `cat <<EOF & echo done > log.txt` the body was attributed to `log.txt`). `protect-tests` carries both updated blocks.

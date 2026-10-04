@@ -13,6 +13,7 @@ file is what makes an upgrade readable. Newest first.
 - **One pass instead of a re-scan per comment.** Each comment walked forward to its restatement target, so a run of comments cost the square of its length; one backward pass now finds every target, and each target line is tokenised once.
 - **`debt-scan.sh` counts a line holding a NUL byte once.** GNU grep, as on Linux, read a mid-line NUL as a line break and counted the line twice; every category now greps with `-a`, as the trigger-less `shortcut:` list already did. The five older rows are unchanged on every existing fixture, and `--age` reads git, not files.
 - **Unmeasured: whether any of this changes what the model writes.** No eval with a control arm covers it.
+- **Shared-block comments cut to contract and limits; behaviour unchanged.** The shared blocks in `scan.sh`, `density.sh`, `verbosity.sh`, `review-debt.sh` and `conventions.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. Each hook parses to the same code as before, compared by bash's own parser with comments ignored.
 
 ### Measured on real code
 

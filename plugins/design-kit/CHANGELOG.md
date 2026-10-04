@@ -5,6 +5,7 @@ Consumer-facing changes only. Newest first.
 ## 0.9.3 — 2026-10-03
 
 - in-codebase says where the scaffold's comments belong: the prop signatures, `gap:` lines and commented-out renders live only on the throwaway `__design-kit__/` page that cleanup removes, and none is copied into the real component. With code-review installed, a full rewrite of that page can be denied for its comment volume (mostly the prop-signature blocks), so the skill tells the model to change it with Edit around them. The scaffold itself is unchanged.
+- **Shared-block comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/unread-pick.sh` and `scripts/dk.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. Both scripts parse to the same code as before, compared by bash's own parser with comments ignored.
 
 ## 0.9.2 — 2026-10-01
 

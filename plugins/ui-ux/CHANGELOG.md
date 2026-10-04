@@ -4,6 +4,11 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.28.1 — 2026-10-04
+
+- **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/palette-default.sh` and `hooks/preview-guard.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. Both hooks parse to the same code as before, compared by bash's own parser with comments ignored.
+- The `ui-ux-engineer` and `a11y-engineer` agents' code-shape rule adds required call order to the docblock facts a signature cannot state (units, ownership, what throws). Its effect on what the agents write is unmeasured.
+
 ## 0.28.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_palette`, `cc_preview_guard`, `cc_remind`, under `/config` (or `/plugin configure ui-ux`), each with today's default. The environment variable (`CC_PALETTE`, `CC_PREVIEW_GUARD`, `CC_REMIND`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.

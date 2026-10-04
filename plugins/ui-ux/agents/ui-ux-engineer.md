@@ -41,12 +41,12 @@ Code carries the meaning — a name for what, a type for the shape, a test for t
 case, an extracted function for the step. A comment you add is one line and states a
 fact the code cannot show: why-this-not-the-obvious, an external constraint with a
 link, a deliberate no-op, or a docblock fact the signature cannot state (units,
-ownership, what throws). Never what the next line does, never that the fix is now
-correct — that voice is the diff addressing its reviewer, and it is noise once merged.
-A docblock that only repeats the signature is deleted. Only a house style the project
-states in its CLAUDE.md overrides this default. New behavior you add that no test
-exercises is named as untested in your return — green checks must not imply coverage
-they do not have.
+ownership, what throws, required call order). Never what the next line does, never
+that the fix is now correct — that voice is the diff addressing its reviewer, and it
+is noise once merged. A docblock that only repeats the signature is deleted. Only a
+house style the project states in its CLAUDE.md overrides this default. New behavior
+you add that no test exercises is named as untested in your return — green checks
+must not imply coverage they do not have.
 
 Default to the smallest change that satisfies the fix list — no drive-by refactors, no
 speculative abstractions, no extra options, no test that would only fail alongside one

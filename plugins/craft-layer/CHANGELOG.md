@@ -7,6 +7,10 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.55.1 — 2026-10-04
+
+- **`hooks/ultra-craft.sh` comments cut to contract and limits; behaviour unchanged.** Its comments keep the tier, the off-switch and one line per step, and its shared block keeps its function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. The hook parses to the same code as before, compared by bash's own parser with comments ignored.
+
 ## 0.55.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_boost`, `craft_boost`, under `/config` (or `/plugin configure craft-layer`), each with today's default. The environment variable (`CC_BOOST`, `CRAFT_BOOST`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.

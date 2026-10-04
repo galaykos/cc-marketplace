@@ -22,8 +22,8 @@ forking them. Standing of each rule is in brackets.
   exact block text]
 - Need only paths (a path guard)? Paste targets alone. Need the written text (a content
   guard)? Paste targets THEN chunks — the caller resolves each chunk's file through
-  `cc_bash_write_targets`. Chunks carries its own copy of `mask()`: a byte-locked
-  block's awk functions are not reachable from outside it, so the duplicate is intended.
+  `cc_bash_write_targets`. Why chunks carries its own `mask()`:
+  `rationale/derivations/templates-and-blocks.md` § `templates/blocks/bash-write-chunks.md`.
 - Never edit a block in a hook. A fix goes into `templates/blocks/`, then every hook
   that carries it is re-pasted in the same change. Recount the copies:
   `grep -rl 'cc_bash_write_targets() {' plugins/`.

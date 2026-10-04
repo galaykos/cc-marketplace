@@ -7,6 +7,7 @@ All notable changes to the skill-router plugin.
 - **`.php`, `.tsx`, `.jsx` and `.vue` edits route `low-cognitive-load`** when code-architecture is installed, as `.ts`/`.js`/`.py`/`.go`/`.rb`/`.rs` edits already did, so the skill that states the no-comment default in one line reaches PHP, React and Vue files. Once per session, beside the framework, library and accessibility skills those files already drew. `solid-principles` is not added for them.
 - `low-cognitive-load` is not routed on a `.blade.php` view or on a `.php`/`.tsx`/`.jsx`/`.vue` file whose name starts with a dot (`.php-cs-fixer.php`); those files still draw their other skills. PHP config, routes and lang array files do route, on purpose — they are code.
 - Cost: the first such edit in a context carries one more nudge — about +84 tokens on the largest probe shape. The dynamic meter does not see it (its probe spends the one-shot on a `.ts` edit first), so skill-router's baseline stays 651.
+- **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/route.sh`, `route-prompt.sh`, `prime.sh`, `summary.sh`, `compact-capsule.sh` and `subagent-skills.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. Each hook parses to the same code as before, compared by bash's own parser with comments ignored.
 
 ## 0.22.2 — 2026-10-01
 

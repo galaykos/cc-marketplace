@@ -6,6 +6,7 @@ have no entries rather than invented ones.
 ## 0.11.1 — 2026-10-03
 
 - Two instructions stop asking for comments the comment rule forbids. pattern-selection puts the why for keeping the simple version in the PR or commit message, with a one-line comment only where a reader would otherwise "fix" it back into the pattern (code-review's comment-discipline keep-case, when code-review is installed). approach-deliberation's explain-first strategy writes the README section, the public contract or the commit message first — never a docstring that restates the behaviour.
+- **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/compact-recovery.sh`, `hooks/remind.sh` and `hooks/consult-remind.sh` keep each function's contract and limits in a few lines, and the reminder hooks their off-switch; the derivations and history moved to the marketplace repository's `rationale/`. `compact-recovery.sh` parses to the same code as before, compared by bash's own parser with comments ignored. The two reminder hooks name their steps as functions where comments stood (`is_machinery_prompt`, `is_about_hooks`, `is_own_echo`, `is_question_only`, `claim_rank`, `best_rank`, `sweep_stale_markers`), so their code did change and the parse comparison does not cover them: their off-switch, refusal and stale-marker paths are pinned by harness cases that passed before the change and pass after it.
 
 ## 0.11.0 — 2026-09-30
 
