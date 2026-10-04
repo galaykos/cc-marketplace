@@ -16,5 +16,6 @@ ui-ux:preview-guard	hook	any	mockup-preview-consent	an Artifact call carries moc
 # cannot be shared, and a user may install ui-ux WITHOUT taskmaster — without its
 # own copy that path has no mockup guard at all. Both copies hash the same session_id
 # to the same marker, so on the weak tier exactly one asks; on the strong tier both ask,
-# which their shared header calls the cheap side of the trade. Byte-identity is gated by
+# which the marketplace repository's rationale/derivations/plugin-ui-ux.md § plugins/ui-ux/hooks/preview-guard.sh
+# calls the cheap side of the trade. Byte-identity is gated by
 # pc_twin_files, so this blessing cannot outlive the pair drifting apart.

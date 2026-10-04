@@ -1,7 +1,7 @@
 #!/bin/bash
 # route.sh — PostToolUse, fails open: matches the edited file, each existing file a Bash command wrote under the project root, and the
 # command itself against rules.tsv; prints one additionalContext envelope of `high` nudges, each skill once per context; queues other content matches as pending_low.
-# Off: CC_REMIND=off, or unset with the /config option cc_remind off. CC_ROUTE is not read: it names the prompt-level check only.
+# Off: CC_REMIND=off, or unset with the /config option cc_remind off. CC_ROUTE is not read here: it silences route-prompt.sh, the tool-fit check and the flush of what this hook queues.
 # Misses: two concurrent calls can drop a pending_low entry; a payload cwd of `/` or `$HOME` outside git is taken for the project root;
 # a directory row matches only the directory name it spells (in any case); a command row routes an unquoted mention of its CLI
 # and misses a CLI run through a script or an npm alias; a Bash command's write targets past the eighth (MAX_BASH_TARGETS) are not read.

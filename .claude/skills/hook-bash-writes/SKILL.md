@@ -73,14 +73,15 @@ EOF_C
 
 - interpreter writes: python `open()`, php `file_put_contents`;
 - `cp` / `mv` / `install` destinations;
-- `{ …; } > f` groups, here-strings `<<<`, printf format substitution;
+- `{ …; } > f` groups (chunks only; `cc_bash_write_targets` reports the target), here-strings `<<<`, printf format substitution;
 - a path held in a variable (`> "$out"`);
 - a quoted string or `\` continuation spanning lines, a second heredoc on one line;
 - a relative target after an in-command `cd` (skipped per step 5);
 - targets past your cap.
 
-Deletion (`rm` of a hook or config) is command-guard's `destructive-guard.sh`, not a
-write guard's business.
+Deletion is not a write guard's business, and no guard here stops a plain `rm` of a hook or
+config: command-guard's `destructive-guard.sh` judges a recursive `rm` by its target, an `rm`
+naming a `.env`, and a command naming its own allow-file.
 
 ## Harness traps
 

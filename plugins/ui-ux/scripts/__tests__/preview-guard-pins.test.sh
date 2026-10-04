@@ -21,23 +21,23 @@ verdict() { # label status
   else fail=$((fail+1)); printf 'FAIL  %s\n' "$1"; fi
 }
 
-age_minutes() { # path minutes
+age_seconds() { # path seconds
   local e s
-  e=$(( $(date +%s) - $2 * 60 ))
+  e=$(( $(date +%s) - $2 ))
   s=$(date -r "$e" +%Y%m%d%H%M.%S 2>/dev/null) || s=$(date -d "@$e" +%Y%m%d%H%M.%S)
   touch -t "$s" "$1"
 }
 
-# GNU find compares the exact age, BSD rounds it up to whole minutes; one minute either side of 1440 holds under both.
+# Half a minute either side of 1440: BSD find rounds an age up to whole minutes once a second has passed, GNU compares it exactly.
 for g in "${guards[@]}"; do
   copy=$(basename "$(dirname "$(dirname "$g")")")
-  tmp="$WS/tmp-$copy"; mkdir -p "$tmp/cc-preview-weak-1439" "$tmp/cc-preview-weak-1441"
-  age_minutes "$tmp/cc-preview-weak-1439" 1439
-  age_minutes "$tmp/cc-preview-weak-1441" 1441
+  tmp="$WS/tmp-$copy"; mkdir -p "$tmp/cc-preview-weak-1439m30s" "$tmp/cc-preview-weak-1440m30s"
+  age_seconds "$tmp/cc-preview-weak-1439m30s" 86370
+  age_seconds "$tmp/cc-preview-weak-1440m30s" 86430
   printf '{"tool_input":{"file_path":"%s"},"cwd":"%s","session_id":"pins-%s"}' "$WS/cwd/page.html" "$WS/cwd" "$copy" \
     | TMPDIR="$tmp" bash "$g" >/dev/null 2>&1
-  [ -d "$tmp/cc-preview-weak-1439" ]; verdict "$copy: a weak marker 1439 minutes old survives the first weak ask's sweep" $?
-  [ ! -e "$tmp/cc-preview-weak-1441" ]; verdict "$copy: a weak marker 1441 minutes old is swept by the first weak ask" $?
+  [ -d "$tmp/cc-preview-weak-1439m30s" ]; verdict "$copy: a weak marker 1439.5 minutes old survives the first weak ask's sweep" $?
+  [ ! -e "$tmp/cc-preview-weak-1440m30s" ]; verdict "$copy: a weak marker 1440.5 minutes old is swept by the first weak ask" $?
 done
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"

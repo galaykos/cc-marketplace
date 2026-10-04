@@ -2,7 +2,7 @@
 # destructive-guard.sh [--check '<command>' | --version] — PreToolUse on Bash and MCP shell/SQL tools: deny irreversible data loss, ask on scoped
 # destruction, allow the rest; deny a write to the allow-file; ask before a Write replaces a live .env. Fails open. --check ignores the mode: exit 0/1/2 = allow/ask/deny.
 # CLAUDE_DESTRUCTIVE_GUARD, else /config claude_destructive_guard: deny-only drops the ask tier, ask turns a command deny into a prompt, off disables.
-# Allow-file .claude/destructive-guard-allow, project then ~: a line's regex matched unanchored on the whole command, trailing comment too, releases it; a command naming the file must be a pure read.
+# Allow-file .claude/destructive-guard-allow, project then ~: a line's regex matched unanchored on the whole lowercased command, trailing comment too, releases it; a command naming the file must be a pure read.
 # Misses: an allow-file path built from a variable or glob, a script or a program git config names writing it, an MCP write tool other than apply_patch
 # and create_new_file, NotebookEdit's notebook_path, a non-ASCII spelling the filesystem folds to the name; a failing cd to a relative target;
 # a command run through `env`; `git clean … -e -n`, read as a dry run; an unlisted git global option or a -C/-c value holding a space before a git subcommand.

@@ -71,7 +71,9 @@ suffixed per agent, so a subagent block never spends the main thread's disarm.
 
 Clauses 1 and 2 judge the **final assistant message only**. Clause 3 matches its
 claim and its honesty escape over the last 30 lines of assistant text, and that
-window bleeds in both directions (measured, documented in the script); narrowing
+window bleeds in both directions (measured, documented in the marketplace repository's
+`rationale/derivations/plugin-candor.md` § `plugins/candor/hooks/gate.sh`, which an
+install does not contain); narrowing
 it to the final message was rejected because it blocks honest reports that state
 the caveat before the summary.
 

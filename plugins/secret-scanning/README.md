@@ -15,7 +15,7 @@ Blocks secrets before they reach disk.
 | Secrets already committed before this plugin was installed | **out of scope** — that is `/secret-scanning:scan`, a command you run, not a hook |
 
 There is no allow-file: a refused write is refused on every retry (history: the marketplace repository's
-`rationale/derivations/plugin-secret-scanning.md` § Header: PLACEHOLDER EXEMPTION). The escapes it does have
+`rationale/derivations/plugin-secret-scanning.md` § Header: PLACEHOLDER EXEMPTION (0.5.0)). The escapes it does have
 are a value that announces itself as a placeholder (below) and, since 0.6.1,
 `CC_SECRET_SCAN=off` for a session — named in the deny message itself, because an
 off-switch documented only in a changelog is not reachable by the person it exists for.
@@ -29,8 +29,8 @@ off-switch documented only in a changelog is not reachable by the person it exis
 
 ## What's included
 
-- **PreToolUse hook** (`hooks/scan.sh`) — denies any `Write`/`Edit`/`MultiEdit`/
-  `NotebookEdit`, an MCP `apply_patch`/`create_new_file`, or (since 0.9.0) a `Bash`
+- **PreToolUse hook** (`hooks/scan.sh`) — denies any `Write`/`Edit`/`MultiEdit`,
+  an MCP `apply_patch`/`create_new_file`, or (since 0.9.0) a `Bash`
   command whose heredoc body or `echo`/`printf` arguments land in a file, whose incoming
   text carries a high-confidence secret (cloud keys, private-key blocks, provider tokens,
   assigned secret literals, a credential embedded in a `postgres://`/`mysql://`/

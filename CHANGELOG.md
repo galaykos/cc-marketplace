@@ -56,9 +56,9 @@ version in their `plugin.json`.
   reminder and boost hook templates keep their fail-open line, off-switch lines and at most one why-line per step. Every cut
   line moved verbatim to `rationale/derivations/templates-and-blocks.md`. A scripted literal swap re-pasted the blocks into 44
   hand carriers and `generate.sh --write` regenerated 8 hooks and 10 agents. bash's own parser, comments ignored, reads the 44
-  carriers and the 3 boost hooks as the same code as before (bash 3.2; a pure reformat would also read SAME — a line diff of
-  those 47 files shows every changed line is a full-line comment or blank). The reminder template names its seven steps as
-  functions; `scripts/smoke/hook-guard-tests.sh` pinned their off-switch, refusal and stale-marker paths first and passes on
+  carriers and the 3 boost hooks as the same code as before at that step (the wave-1 bullet below then refactored 11 of them;
+  bash 3.2; a pure reformat would also read SAME — a line diff of those 47 files shows every changed line is a full-line
+  comment or blank). The reminder template names its seven steps as functions; `scripts/smoke/hook-guard-tests.sh` pinned their off-switch, refusal and stale-marker paths first and passes on
   the 5 regenerated reminder hooks, and a differential run of the old against the new hooks over CC_REMIND × phase-sentinel ×
   TMPDIR-marker matrices found 0 divergences in 263,500 old/new pairs (stdout, exit status and marker state compared); bash 5
   and hooks firing in parallel were not tested. The worker template and its 10 agents add required call order to the
@@ -67,7 +67,8 @@ version in their `plugin.json`.
 - **Plugin code wave 1 — skill-router 0.23.0, ui-ux 0.28.1, craft-layer 0.55.1, candor 0.6.3, command-guard 0.8.4,
   secret-scanning 0.10.3, security 0.12.3, taskmaster 0.47.0: comments cut to contract and limits, derivations to `rationale/`,
   banners named behind pins.** 45 shell files (hooks, scripts, tests, eval scaffolds; taskmaster only its preview-guard twin)
-  keep a contract line, their off-switch lines and a `Misses:` line; every cut line moved verbatim to
+  keep a contract line per file, plus off-switch and `Misses:` lines where it reads one or had a residual; every cut line
+  moved verbatim to
   `rationale/derivations/plugin-<name>.md`, seven new files an install does not contain. 11 hooks now name what a comment
   explained: `MARKER_TTL_MIN` and `MAX_BASH_TARGETS` where they swept markers or capped Bash targets, candor `gate.sh`'s clause
   functions and six constants, skill-router `route.sh`'s steps, command-guard `destructive-guard.sh`'s families. Each path was
