@@ -191,11 +191,11 @@ than 1.6 (no `--rawfile`), the second comparison decides alone. The refusal star
 says to re-read the file and write it whole or use `Edit`, and ends by naming its switch,
 `CC_ELISION_GUARD=off` (plus the Bash suffix on a heredoc).
 
-A placeholder is a short, phrase-first comment body, in any letter case and after any
-brackets enclosing the whole body: at most six words once its ellipses are removed, and
-either an ellipsis (`...` or `…`) opens it, with no name glued to it, and one of these
-phrases follows directly (a `the` allowed first), or it starts with a code noun from the
-first five and an ellipsis closes it:
+A placeholder is a comment body, in any letter case and after any brackets enclosing the
+whole body, that an ellipsis (`...` or `…`) opens, with no name glued to it, or closes,
+and that holds nothing but a listed phrase and then filler once every ellipsis, bracket,
+`,`, `;` and `:` is set aside. After an opening ellipsis the phrase is any of these, a
+`the` allowed first; otherwise it is a code noun from the first five and starts the body:
 
 - `existing code`, `implementation`, `jsx`, `markup`, `template` or `html`;
 - `rest of (the) code`, `file`, `class`, `function`, `method`, `component`,
@@ -205,12 +205,19 @@ first five and an ellipsis closes it:
   or `logic`;
 - `other methods`, `functions`, `code` or `fields`;
 - opening only: `same as above` or `before`, `omitted`, `previous code` or
-  `implementation`, `keep (the) existing`.
+  `implementation`, `keep (the) existing` with or without `code`, `implementation` or
+  `logic`.
 
-So `// ... existing code ...`, `// (... existing code ...)` and `// rest of the file
-unchanged ...` count; `// omitted ...`, `// keep ... existing code`, `// ... and the rest of
-the file`, `// TODO: handle the remaining cases...` and the seven-word `// ... rest of the
-file is parsed lazily` do not. Markup
+Filler is `unchanged`, `remain(s)` or `stay(s)` followed by `(the) same` or `unchanged`,
+`as before`, `as above`, `as is`, `here`, `goes here`, `omitted`, `elided`, `kept`,
+`for brevity`, `intact`, `if needed` and `as needed`, in any number and order, bracketed or
+not — nothing else.
+
+So `// ... existing code ...`, `// ...existing code...`, `// (... existing code ...)`,
+`// rest of the code remains the same ...` and `// ... rest of the file (unchanged) ...`
+count; `// omitted ...`, `// keep ... existing code`, `// ... and the rest of the file`,
+`// TODO: handle the remaining cases...`, `// Other fields are omitted...`,
+`// ... remaining cases return null` and `// ... rest of the file is unchanged ...` do not. Markup
 comments count: `{/* ... existing JSX ... */}` in a `.tsx`, `<!-- ... rest of the template
 -->` in a `.vue`. A doc comment (`/** */`, `///`, `//!`, a docstring) never counts.
 
@@ -231,12 +238,14 @@ comments count: `{/* ... existing JSX ... */}` in a `.tsx`, `<!-- ... rest of th
   elision reason alone and spends only this budget, so one file can draw up to four
   refusals across the two.
 - **Missed:** placeholder wording outside the list above; a placeholder trailing code on
-  its line; a markup comment spanning lines; an ellipsis glued to a name (`// ...existing
-  code`, `...$rest`); an ellipsis neither opening nor closing the body (`// keep ...
-  existing code`, `// existing code ...;`) or bracketed (`// [...] existing code`,
-  `// existing code (...)`); one closing it after no code noun (`// omitted ...`); a listed
-  phrase not at the body start (`// ... and the rest of the file`, `// TODO: handle the
-  remaining cases...`); a body over six words; any line of a doc comment; a placeholder inside a multi-line string; every line after an
+  its line; a markup comment spanning lines; an ellipsis glued to a name with no closing
+  ellipsis (`// ...existing code`, `...$rest`); an ellipsis neither opening nor closing the
+  body (`// keep ... existing code`, `// existing code ...;`) or bracketed (`// [...]
+  existing code`, `// existing code (...)`); one closing it after no code noun
+  (`// omitted ...`) or after a `the` (`// The rest of the code remains the same...`); a
+  listed phrase not at the body start (`// ... and the rest of the file`) or followed by
+  anything but filler (`// ... rest of the file is unchanged ...`); any line of a doc
+  comment; a placeholder inside a multi-line string; every line after an
   unbalanced backtick (a regex such as `` /`/g ``, JSX text) or a `$(( 1 << y ))` up to
   the next one, or after a `/\/*` regex read as an opening block comment; a placeholder
   added where no line is removed; an `Edit` adding a placeholder line the file already
@@ -256,19 +265,21 @@ comments count: `{/* ... existing JSX ... */}` in a `.tsx`, `<!-- ... rest of th
 Measured on real code on 2026-10-05 with `scan.sh`'s own counter, on the grammar this
 release ships: the plugin author's repositories (14,584 files) held 3 matches, all genuine
 placeholders, and system and standard-library code (1,992 files) held 0 — 0 false positives
-in either. Its one committed placeholder, a nine-word "rest of the file" comment in a
-Homebrew package's C source with the phrase inside parentheses, matched until the body had
-to be short and phrase-first; it is missed now.
+in either. Its one committed placeholder, a "(rest of the file remains the same until …)" comment
+in a Homebrew package's C source, matched until the phrase
+had to start the body and only filler could follow it; it is missed now.
 Files holding an ellipsis-only comment, which only warns: 2 and 8. Replaying 4,758 pairs of
 consecutive real git revisions across 80 of those repositories, each revision written as a
 `Write` over its predecessor under default settings, drew 0 elision denies. An independent
 review replayed 13,182 real `Edit`s and 5,326 `Write`s from session transcripts across 69
 repositories with 0 allow → deny under default settings; it ran on the grammar before the
 last three tightenings (an unquoted ellipsis at the start or end of the body; doc-comment lines
-and closing ellipses; a short, phrase-first body), and they only removed matches.
+and closing ellipses; a listed phrase first and only filler after it), and they only removed
+matches.
 
-Added hook time against 0.29.0, measured on the build before the final phrase-first rule (file
-cksum 3895726106; that rule adds a word count per counted comment and was not re-timed), median of 20 runs on one macOS machine, against a 15 s timeout: +1 ms
+Added hook time against 0.29.0, measured on the build before the final rule (file cksum
+3895726106; the phrase-then-filler rule was not re-timed), median of 20 runs on one macOS
+machine, against a 15 s timeout: +1 ms
 for a Bash call that writes nothing (19 ms); +22 ms for a `PostToolUse` `Write` with no
 warning pending (64 ms); over a 1 MiB plain `.ts` at the cap, +255 ms for a short `Write`
 adding a placeholder (297 ms), +349 ms for a full-file one (671 ms) and +768 ms for an

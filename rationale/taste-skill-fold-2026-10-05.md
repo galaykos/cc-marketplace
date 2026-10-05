@@ -52,20 +52,22 @@ the hook: a miss is acceptable, a false refusal is not.
 Quoted, not rounded: `corpus-owner: files=14584 matches=3 genuine=3 false-positives=0`;
 `corpus-system: files=1992 matches=0 genuine=0 false-positives=0`;
 `replay: pairs=4758 denies=0 denies-unexplained=0`; `ellipsis-only: owner=2 system=8 (warn only;
-4 and 15 before doc-comment lines stopped counting)`. Grammar checksum 1618130685 over `scan.sh`
-file cksum 1087914531, after the phrase-first rule (below). The one genuine system match before that
-rule — a committed nine-word "rest of the file" placeholder with its phrase inside parentheses, in
-Homebrew sbcl 2.6.9 `src/runtime/arm64-win32-os.c` — is now missed, the rule's measured cost. The
+4 and 15 before doc-comment lines stopped counting)`. Grammar checksum 3617991351 over `scan.sh`
+file cksum 3919806934, after the phrase-then-filler rule (below). The one genuine system match before
+that rule — a committed `// ... (rest of the file remains the same until …) ...` placeholder in
+Homebrew sbcl 2.6.9 `src/runtime/arm64-win32-os.c` — is now missed, the rule's measured cost; the
+three owner matches stay. The
 replay drivers were rebuilt from the method lines for the final run (80 repos, 4,758 pairs, against
 the earlier 85 and 4,783). Each replay sent the newest 100 governed-file modifications per
 repository (the earlier run: 4,828 listed, 45 skipped as over 2 MB or holding a
 5,000-character line) as `Write`s over their predecessors; a synthetic positive control was
 denied. A separate review replayed 13,182 `Edit`s and 5,326 `Write`s from 69 repositories'
-transcripts with 0 allow → deny under default settings, on the grammar before the last two
+transcripts with 0 allow → deny under default settings, on the grammar before the last three
 tightenings (an unquoted ellipsis at the start or end of the body; doc-comment lines and closing
-ellipses), and they only removed matches.
+ellipses; a listed phrase first and only filler after it), and they only removed matches.
 
-Timing (`evidence/elision-timing.txt`, master `e50113f3` vs this release, median of 20, macOS
+Timing (`evidence/elision-timing.txt`, master `e50113f3` vs the build with `scan.sh` file cksum
+3895726106 — the final phrase-then-filler rule was not re-timed — median of 20, macOS
 bash 3.2.57 + BSD awk): a Bash call that writes nothing 19 → 19 ms (+1 ms); `PostToolUse`
 `Write` with no marker 43 → 64 ms (+22 ms); short `Write` over a 1 MiB plain `.ts` 42 → 297 ms
 (+255 ms); full-file `Write` 322 → 671 ms (+349 ms); `Edit` on it 43 → 812 ms (+768 ms); short
@@ -98,9 +100,13 @@ unquoted at the start or end of the comment body (its 20 elision denies were all
 described ellipsis, each already a comment deny on master), doc-comment lines never count, and a
 closing ellipsis counts only after a code noun. The fresh pre-merge reviews (Opus and Fable)
 then reproduced a TODO with a closing ellipsis after a code noun (`// TODO: handle the remaining
-cases...`) refused while a line changed, so the phrase must now START the body and the body hold at
-most six words — which also removed the prose an ellipsis opens with. One stated refusal remains:
-placeholder-shaped text inside a string the tracker misreads, with a line removed.
+cases...`) refused while a line changed, so the phrase had to START the body and the body hold at
+most six words. Re-review: short prose starting with a phrase (`// Other fields are omitted...`,
+`// ... remaining cases return null`) was still refused, so the cap gave way to the final rule —
+after the listed phrase only filler may follow (`unchanged`, `remain(s) the same`, `remain(s)
+unchanged`, `goes here`, …; the README lists it), with every ellipsis, bracket, `,`, `;` and `:` set aside, which also brings
+back the glued `// ...existing code...`. One stated refusal remains: placeholder-shaped text
+inside a string the tracker misreads, with a line removed.
 
 ## Design-system facts, verified 2026-10-05 against npm and the official docs
 

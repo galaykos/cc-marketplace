@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Pins scan.sh's elision deny: a PreToolUse write that replaces existing code with a placeholder
-# comment (`// ... existing code ...`) is refused at most twice per file, and nothing benign is except one
-# stated refusal, with a line removed: placeholder text in a string the tracker misreads. A placeholder the deny
-# lets through draws one PostToolUse warning, and a kept one draws none.
+# comment (`// ... existing code ...`) is refused at most twice per file — a comment body an ellipsis opens or
+# closes that holds a listed phrase and then only filler (`unchanged`, `remains the same`, `goes here`) — and nothing
+# benign is except one stated refusal, with a line removed: placeholder text in a string the tracker misreads. A
+# placeholder the deny lets through draws one PostToolUse warning, and a kept one draws none.
 # Misses: the host's userConfig export itself — CLAUDE_PLUGIN_OPTION_* is set by hand here.
 set -u
 PLUGIN=$(cd "$(dirname "$0")/../.." && pwd) || exit 1
@@ -357,33 +358,74 @@ prose "long prose sentence holding a placeholder phrase is never judged: seven w
 prose "long prose sentence holding a placeholder phrase is never judged: closing" \
   "$(noted '  // existing code paths keep working as they did before ...')"
 
-# Contract: a placeholder is short and phrase-first — at most six words, the phrase right after an opening ellipsis or first.
-sn=0
-short() { sn=$((sn + 1)); put "src/short$sn.ts" "$TOT"; denies "$1" "$(write "src/short$sn.ts" "$(noted "  $2")")" "$2"; }
-short "short phrase-first placeholders are still denied" '// ... existing code ...'
-short "short phrase-first placeholders are still denied: rest of the file unchanged" '// ... rest of the file unchanged ...'
-short "short phrase-first placeholders are still denied: closing ellipsis" '// rest of the implementation ...'
-short "short phrase-first placeholders are still denied: block comment" '/* ... other methods ... */'
-short "short phrase-first placeholders are still denied: six words" '// ... rest of the file is unchanged ...'
-put src/Short.tsx 'export function Short({ title }: ShortProps) {
+prose "prose after a listed phrase is never judged" "$(noted '  // Remaining cases fall through to default...')"
+prose "prose after a listed phrase is never judged: are omitted" "$(noted '  // Other fields are omitted...')"
+prose "prose after a listed phrase is never judged: throw" "$(noted '  // Other methods throw...')"
+prose "prose after a listed phrase is never judged: opening ellipsis" "$(noted '  // ... remaining cases return null')"
+prose "prose after a listed phrase is never judged: stay" "$(noted '  // Existing code paths stay...')"
+prose "prose after a listed phrase is never judged: stay unchanged for now" \
+  "$(noted '  // Remaining cases stay unchanged for now...')"
+put src/cases.py 'def kind(x):
+    if x < 0:
+        return "negative"
+    return "positive"'
+silent "prose after a listed phrase is never judged: python" "$(write src/cases.py 'def kind(x):
+    if x < 0:
+        return "negative"
+    # Remaining cases are errors...
+    raise ValueError(x)')"
+prose "a word between the phrase and its filler is a stated miss" "$(noted '  // ... rest of the file is unchanged ...')"
+
+# Contract: a placeholder holds a listed phrase and then only filler, ellipses and brackets aside.
+cn=0
+common() { cn=$((cn + 1)); put "src/common$cn.ts" "$TOT"; denies "$1" "$(write "src/common$cn.ts" "$(noted "  $2")")" "$2"; }
+common "common placeholders are still denied" '// ... existing code ...'
+common "common placeholders are still denied: glued" '// ...existing code...'
+common "common placeholders are still denied: rest of the file unchanged" '// ... rest of the file unchanged ...'
+common "common placeholders are still denied: block comment" '/* ... other methods ... */'
+common "common placeholders are still denied: remains the same" '// rest of the code remains the same ...'
+common "common placeholders are still denied: keep existing implementation" '// ... keep existing implementation ...'
+common "common placeholders are still denied: closing ellipsis" '// rest of the implementation ...'
+common "common placeholders are still denied: if needed" '// ... remaining fields if needed'
+common "common placeholders are still denied: remains unchanged" '// ... rest of the code remains unchanged ...'
+common "common placeholders are still denied: existing code remains unchanged" '// ... existing code remains unchanged ...'
+common "common placeholders are still denied: remain unchanged" '// ... other methods remain unchanged ...'
+common "common placeholders are still denied: remain the same" '// ... other methods remain the same ...'
+put src/Common.tsx 'export function Common({ title }: CommonProps) {
   return (
     <section>
       <h2>{title}</h2>
     </section>
   );
 }'
-denies "short phrase-first placeholders are still denied: jsx" "$(write src/Short.tsx 'export function Short({ title }: ShortProps) {
+denies "common placeholders are still denied: jsx" "$(write src/Common.tsx 'export function Common({ title }: CommonProps) {
   return (
     <section>
       {/* ... existing JSX ... */}
     </section>
   );
 }')" "{/* ... existing JSX ... */}"
-put src/short.py 'def kind(x):
+put src/Common.vue '<template>
+  <ul class="list">
+    <li v-for="item in items" :key="item.id">{{ item.name }}</li>
+  </ul>
+</template>'
+denies "common placeholders are still denied: vue" "$(write src/Common.vue '<template>
+  <ul class="list">
+    <!-- ... rest of the template -->
+  </ul>
+</template>')" "<!-- ... rest of the template -->"
+put src/common.py 'def kind(x):
     if x < 0:
         return "negative"
     return "positive"'
-denies "short phrase-first placeholders are still denied: hash comment" "$(write src/short.py 'def kind(x):
+denies "common placeholders are still denied: hash comment" "$(write src/common.py 'def kind(x):
+    # ... rest of the implementation')" "# ... rest of the implementation"
+put src/remaining.py 'def kind(x):
+    if x < 0:
+        return "negative"
+    return "positive"'
+denies "common placeholders are still denied: remaining cases" "$(write src/remaining.py 'def kind(x):
     if x < 0:
         return "negative"
     # ... remaining cases ...')" "# ... remaining cases ..."
