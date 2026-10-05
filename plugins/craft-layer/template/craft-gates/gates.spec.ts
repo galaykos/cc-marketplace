@@ -62,7 +62,7 @@
  */
 import { test, expect, type Locator, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { mkdirSync, rmSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 
 const URL = process.env.BASE_URL ?? 'http://localhost:5173'
 
@@ -273,6 +273,175 @@ test.describe('capture: the shipped design, at the widths people read it', () =>
     }
   }
 })
+
+/* Layout floors, report-only: craft-reviewer judges these values against the concept's argument, and no value
+   may fail this test — it fails only when the page does not load or answers to another title.
+   Contract, `<project>/.craft-layer/layout-floors.json`:
+   {"stamp":{"started","baseUrl","title"},"breakpoints":{"<width>":{"headlineLines",
+   "ctaInFirstViewport","navLines" (1280 only),"pagePolarity","sections":[{"index","polarity"}],
+   "emptyGridCells"}}}
+   Any value not found is the string "not found". Deleted when this test starts, so a floors test that
+   dies leaves no file; `commands/audit.md` step 8 reads a stamp older than its run or naming another
+   BASE_URL as `not measured`, which covers a run that died before reaching this test.
+   Misses: a section painted only by a background image or gradient (its polarity is the colour
+   beneath); a hero outside `main`; a primary action that is neither a link nor a button; an empty
+   cell is still counted when only a pseudo-element icon or a plain background colour (a swatch) fills
+   it, and an unfilled track (fewer items than columns) is not counted at all. */
+const FLOORS_FILE = '.craft-layer/layout-floors.json'
+const PRIMARY_ACTION = process.env.CRAFT_PRIMARY_ACTION?.trim()
+const NOT_FOUND = 'not found' as const
+
+test('layout floors: measured at the capture widths, never a verdict', async ({ page }) => {
+  test.setTimeout(120_000)   // three settled loads; the 30s default fits one
+  const started = new Date().toISOString()
+  rmSync(FLOORS_FILE, { force: true })
+  const breakpoints: Record<string, unknown> = {}
+  for (const [, width, height] of BREAKPOINTS) {
+    await page.setViewportSize({ width, height })
+    await page.goto(URL)
+    await assertIdentity(page)
+    await settle(page)
+    const inFirstViewport = (b: { x: number; y: number; width: number; height: number } | null) =>
+      !!b && b.width > 0 && b.height > 0 && b.x >= 0 && b.y >= 0 &&
+      b.x + b.width <= width && b.y + b.height <= height
+    let cta: boolean | typeof NOT_FOUND = NOT_FOUND
+    if (PRIMARY_ACTION) {
+      const named = await page.getByRole('link', { name: PRIMARY_ACTION })
+        .or(page.getByRole('button', { name: PRIMARY_ACTION })).all()
+      if (named.length) {
+        const boxes = await Promise.all(named.map((l) => l.boundingBox({ timeout: 2000 }).catch(() => null)))
+        cta = boxes.some(inFirstViewport)
+      }
+    }
+    const { heroAction, ...floors } = await page.evaluate(measureFloors, { wide: width === 1280 })
+    if (cta === NOT_FOUND && heroAction) cta = inFirstViewport(heroAction)
+    breakpoints[String(width)] = { ...floors, ctaInFirstViewport: cta }
+  }
+  mkdirSync('.craft-layer', { recursive: true })
+  writeFileSync(FLOORS_FILE, JSON.stringify({
+    stamp: { started, baseUrl: URL, title: EXPECT_TITLE || NOT_FOUND },
+    breakpoints,
+  }, null, 2) + '\n')
+})
+
+/** In-page, at the top of the page: every floor but the named primary action, plus the box of
+    the hero's first link or button for the fallback. Headline and nav are the first RENDERED
+    ones — a visually hidden h1 wraps a word per line and is not the headline a reader meets. */
+function measureFloors(o: { wide: boolean }) {
+  const NF = 'not found'
+  const shown = (el: Element) => {
+    const r = el.getBoundingClientRect()
+    return r.width > 2 && r.height > 2 && getComputedStyle(el).visibility !== 'hidden'
+  }
+  const rows = (rects: DOMRect[]) => {
+    const bands: [number, number][] = []
+    for (const r of rects) {
+      if (r.width < 1 || r.height < 1) continue
+      const mid = (r.top + r.bottom) / 2
+      const same = ([t, b]: [number, number]) =>
+        (mid >= t && mid <= b) || ((t + b) / 2 >= r.top && (t + b) / 2 <= r.bottom)
+      if (!bands.some(same)) bands.push([r.top, r.bottom])
+    }
+    return bands.length
+  }
+  const textRects = (el: Element) => {
+    const out: DOMRect[] = []
+    const range = document.createRange()
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      if (!n.textContent?.trim()) continue
+      range.selectNodeContents(n)
+      out.push(...range.getClientRects())
+    }
+    return out
+  }
+  const HEADINGS = 'h1, h2, h3, h4, h5, h6'
+  const main = document.querySelector('main')
+  const hero = main?.firstElementChild ?? null
+  const headline = [...document.querySelectorAll('h1')].find(shown) ??
+    (hero ? [hero, ...hero.querySelectorAll(HEADINGS)].find((h) => h.matches(HEADINGS) && shown(h)) : undefined)
+  const headlineLines = headline ? rows(textRects(headline)) || NF : NF
+
+  const action = hero ? [...hero.querySelectorAll('a[href], button')].find(shown) : undefined
+  const ar = action?.getBoundingClientRect()
+  const heroAction = ar ? { x: ar.x, y: ar.y, width: ar.width, height: ar.height } : null
+
+  const nav = [...document.querySelectorAll('nav')].find(shown)
+  const nr = nav?.getBoundingClientRect()
+  const navLines = nav && nr
+    ? rows([...nav.querySelectorAll('a[href], button')]
+        .filter((a) => shown(a) && a.checkVisibility({ opacityProperty: true, visibilityProperty: true }))
+        .map((a) => a.getBoundingClientRect())
+        .filter((r) => r.bottom > nr.top && r.top < nr.bottom)) || NF
+    : NF
+
+  const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true })
+  // Canvas resolves every CSS colour syntax (oklch, color-mix, …) to sRGB bytes.
+  const rgba = (c: string) => {
+    if (!ctx) return [255, 255, 255, 0]
+    ctx.clearRect(0, 0, 1, 1)
+    ctx.fillStyle = c
+    ctx.fillRect(0, 0, 1, 1)
+    const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data
+    return [r, g, b, a / 255]
+  }
+  const backdrop = (el: Element) => {
+    const layers: number[][] = []
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const c = rgba(getComputedStyle(n).backgroundColor)
+      if (c[3] > 0) layers.push(c)
+      if (c[3] >= 1) break
+    }
+    let rgb = [255, 255, 255]
+    for (const [r, g, b, a] of layers.reverse()) rgb = [r * a + rgb[0] * (1 - a), g * a + rgb[1] * (1 - a), b * a + rgb[2] * (1 - a)]
+    return rgb
+  }
+  const luminance = ([r, g, b]: number[]) => {
+    const lin = (byte: number) => {
+      const v = byte / 255
+      return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+    }
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+  }
+  // The luminance at which black and white text contrast equally.
+  const MIDPOINT = Math.sqrt(1.05 * 0.05) - 0.05
+  const polarity = (rgb: number[]) => luminance(rgb) < MIDPOINT ? 'dark' : 'light'
+  const sections = main
+    ? [...main.children].flatMap((el, index) => shown(el) ? [{ index, polarity: polarity(backdrop(el)) }] : [])
+    : NF
+  // With no `main`, the canvas paints the root's background, else the body's.
+  const canvas = [document.documentElement, document.body]
+    .map((el) => el ? rgba(getComputedStyle(el).backgroundColor) : [0, 0, 0, 0])
+    .find((c) => c[3] > 0)
+  const pagePolarity = main
+    ? polarity(backdrop(main))
+    : canvas ? polarity(canvas.slice(0, 3).map((v) => v * canvas[3] + 255 * (1 - canvas[3]))) : NF
+
+  const CONTENT = 'img, svg, video, canvas, picture, iframe, object, embed, input:not([type=hidden]), select, textarea, [role=img], [aria-label]'
+  const painted = (el: Element) => shown(el) && getComputedStyle(el).backgroundImage !== 'none'
+  let empty = 0
+  for (const grid of main ? [main, ...main.querySelectorAll('*')] : []) {
+    const d = getComputedStyle(grid).display
+    if (d !== 'grid' && d !== 'inline-grid') continue
+    for (const cell of grid.children) {
+      if (!shown(cell)) continue
+      if (['absolute', 'fixed'].includes(getComputedStyle(cell).position)) continue
+      if ((cell as HTMLElement).innerText?.trim()) continue
+      if ([cell, ...cell.querySelectorAll(CONTENT)].some((m) => m.matches(CONTENT) && shown(m))) continue
+      if ([cell, ...cell.querySelectorAll('*')].some(painted)) continue
+      empty++
+    }
+  }
+
+  return {
+    headlineLines,
+    ...(o.wide ? { navLines } : {}),
+    pagePolarity,
+    sections,
+    emptyGridCells: main ? empty : NF,
+    heroAction,
+  }
+}
 
 /* ---------------------------------------------- sight: the machine-gradable half */
 /* The capture trigger writes images because most of this defect class needs an

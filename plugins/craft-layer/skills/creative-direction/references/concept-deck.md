@@ -233,7 +233,8 @@ which one the build runs on with a single `AskUserQuestion`.
 a `one-shot` run: does copy for this page already EXIST (the live site, a doc, a deck), or
 does the build ship visible `{{lorem}}` slots? A URL or path the brief ALREADY named is a
 supplied input, not a question — read it without asking. The rules binding ingested copy
-are in `content-source.md`.
+are in `content-source.md`. On a redesign the same call also carries the mode question
+(`redesign-preservation.md`) — up to three questions, still one call.
 
 **The fork forks on CONCEPT** — the spine and the signature move — never on three shades of
 one accent. `/ui-ux:theme` already forks on colour at its own step, and a second colour fork

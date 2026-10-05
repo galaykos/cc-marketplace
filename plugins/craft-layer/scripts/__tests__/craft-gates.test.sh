@@ -265,6 +265,27 @@ for pair in "fixture-agent-copy.html:FAIL" "fixture-agent-copy-clean.html:PASS";
   done
 done
 
+d="$WS/live-scrollcue"; mkdir -p "$d"; write_tokens "$d"; cp "$FIXTURES/fixture-scrollcue.html" "$d/page.html"
+out=$( cd "$d" && CLAUDE_PLUGIN_ROOT="$here/../.." node "$DIVERGENCE" 2>&1 )
+if [ "$(state_of "$out" copy-register)" = FAIL ] && printf '%s\n' "$out" | grep -q '\[scroll cue\]'; then ok; else
+  bad "scroll cue fires: copy-register (live) on fixture-scrollcue.html did not report [scroll cue]" \
+      "$(printf '%s\n' "$out" | grep -E 'copy-register' | head -1)"
+fi
+
+# Each control pin needs a graded live run, so an unloaded lexicon cannot pass it by silence.
+d="$WS/live-scrollcue-clean"; mkdir -p "$d"; write_tokens "$d"; cp "$FIXTURES/fixture-scrollcue-clean.html" "$d/page.html"
+out=$( cd "$d" && CLAUDE_PLUGIN_ROOT="$here/../.." node "$DIVERGENCE" 2>&1 )
+line=$(printf '%s\n' "$out" | grep -E '^ +[A-Z]+ +copy-register ' | head -1)
+for pin in 'real photo credit stays silent:Photo by|Unsplash|Ines Faria' 'prose using scroll stays silent:Scroll back|scrolls sideways|Scroll to top' \
+           'functional scroll hint stays silent:Scroll to see more'; do
+  label=${pin%%:*}; marker=${pin#*:}
+  case $(state_of "$out" copy-register) in PASS|FAIL) graded=1 ;; *) graded=0 ;; esac
+  if [ "$graded" = 1 ] && printf '%s\n' "$out" | grep -q '^copy lexicon: *live registry' \
+     && ! printf '%s\n' "$line" | grep -qiE "\"[^\"]*($marker)[^\"]*\" \["; then ok; else
+    bad "$label: copy-register (live) on fixture-scrollcue-clean.html fired on it or did not grade" "$line"
+  fi
+done
+
 i=0
 for decl in \
   '@theme { --font-sans: Inter, ui-sans-serif, system-ui; --primary: oklch(0.55 0.17 145); }' \
@@ -293,6 +314,48 @@ out=$(run_divergence "$d")
 [ "$(state_of "$out" font-anti-corpus)" = "SKIP" ] && ok || \
   bad "undeclared typeface should SKIP font-anti-corpus, not grade it" \
       "$(printf '%s\n' "$out" | grep -E 'font-anti-corpus' | head -1)"
+
+# Both runs ship violet and Inter in the stylesheet and the utility layer; each echo names one of them (the hex in another notation) and leaves the other judged.
+for run in 'violet|accent #7c3aed, type Fraunces' 'inter|accent #0f766e, type Inter'; do
+  k=${run%%|*}; d="$WS/echo-$k"; mkdir -p "$d/craft"
+  write_tokens "$d" 'oklch(0.55 0.22 295)'
+  printf 'body { font-family: Inter, sans-serif; }\n' >> "$d/src/index.css"
+  printf 'Brand echo: %s\n' "${run#*|}" > "$d/craft/offer-contract.md"
+  cat > "$d/src/page.tsx" <<'TSX'
+import { Inter } from 'next/font/google'
+
+export default function Page() {
+  return <main><h1 className="text-violet-700">Aubergine Coffee Roasters</h1><a className="bg-[#7c3aed] text-white" href="/shop">Buy beans</a></main>
+}
+TSX
+  out=$(run_divergence "$d")
+  case $k in
+    violet) p1='echoed violet accent passes:accent-default-band:PASS'; p2='unechoed Inter still fails:font-anti-corpus:FAIL'
+            p3='echoed violet utility palette passes:utility-palette:PASS'; p4='unechoed utility font still fails:utility-font:FAIL' ;;
+    *)      p1='unechoed violet accent still fails:accent-default-band:FAIL'; p2='echoed Inter passes:font-anti-corpus:PASS'
+            p3='unechoed utility palette still fails:utility-palette:FAIL'; p4='echoed Inter via utility font passes:utility-font:PASS' ;;
+  esac
+  for pin in "$p1" "$p2" "$p3" "$p4"; do
+    label=${pin%%:*}; rest=${pin#*:}; chk=${rest%%:*}; want=${rest#*:}
+    got=$(state_of "$out" "$chk")
+    if [ "$got" = "$want" ]; then ok; else
+      bad "$label: $chk expected $want, got $got" "$(printf '%s\n' "$out" | grep -E "$chk" | head -1)"
+    fi
+  done
+done
+
+# The accent at 280° sits within 15° of both inks' hues, so only the chroma floor keeps it judged.
+d="$WS/echo-edge"; mkdir -p "$d/craft"
+write_tokens "$d" 'oklch(0.55 0.2 280)'
+printf 'body { font-family: Inter, sans-serif; }\n' >> "$d/src/index.css"
+printf 'Brand echo: ink #18181b and #0f172a, type S\xc3\xb6hne (not Inter, which the old site dropped)\n' > "$d/craft/offer-contract.md"
+out=$(run_divergence "$d")
+for pin in 'neutral ink in the echo does not exempt an accent:accent-default-band' 'parenthetical family is not echoed:font-anti-corpus'; do
+  label=${pin%%:*}; chk=${pin#*:}; got=$(state_of "$out" "$chk")
+  if [ "$got" = FAIL ]; then ok; else
+    bad "$label: $chk expected FAIL, got $got" "$(printf '%s\n' "$out" | grep -E "$chk" | head -1)"
+  fi
+done
 
 # accent-default-band PASS and font-anti-corpus SKIP are asserted on purpose: a second check reporting this page would double-count it.
 d="$WS/util-defective"; mkdir -p "$d/src"

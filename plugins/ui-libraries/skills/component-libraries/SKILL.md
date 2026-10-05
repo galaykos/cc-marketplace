@@ -1,6 +1,6 @@
 ---
 name: component-libraries
-description: Use when building or reviewing UI on any React or Vue component library — headless (Base UI, Radix, Reka UI, React Aria, Ark, Headless UI), styled (Mantine, Chakra, Ant Design, HeroUI, PrimeReact, PrimeVue, Vuetify, Element Plus), or any without a sibling skill — library-agnostic rules plus a per-library map to sibling skill or docs URL.
+description: Use when building or reviewing UI on any React or Vue component library — headless (Base UI, Radix, Reka UI, React Aria, Ark, Headless UI), styled (Mantine, Chakra, Ant Design, HeroUI, PrimeReact, PrimeVue, Vuetify, Element Plus), or any without a sibling skill — or a UK government, US federal, Shopify, IBM or Atlassian product owed its official design system (GOV.UK, USWDS, Polaris, Carbon, Atlassian) — library-agnostic rules plus a per-library map to sibling skill or docs URL.
 ---
 
 # Component libraries — the library-agnostic floor
@@ -21,6 +21,20 @@ to go for the rest.
 - No library and no design system? Say so and build with Tailwind or plain CSS
   under the project's tokens — do not install one unasked. A decided
   `Stack:`/`Locks:` line in the dispatch outranks this rule.
+- The project IS an organisation's own service or platform app — said in the brief or
+  evident in the repo: a GOV.UK domain (`gov.uk/myservice`, `myservice.service.gov.uk`,
+  `myblog.blog.gov.uk` — not every `*.gov.uk` site), a `.gov` site, a Shopify app, an IBM
+  product, an Atlassian app? Its official package (GOV.UK Frontend, USWDS, Polaris, Carbon,
+  Atlassian — the map's Organisation design systems rows) is the required library. That
+  ranks above "do not install one unasked": the system is the requirement. Against "build
+  in the library the project has", a repo already on a different library makes it a
+  migration to raise with the user, never a second library added silently; a decided
+  `Stack:`/`Locks:` line still outranks it. Never recreate its CSS by hand; never import
+  its tokens and override most of them. A lookalike brief — the look, not the
+  organisation — never installs a restricted system (GOV.UK, the USWDS banner, Polaris,
+  Atlassian); another UK public-sector site may use GOV.UK's patterns, never its crown,
+  GDS Transport or brand colours. Standing: **agent-graded**. Credit: taste-skill
+  (ce26fc25, MIT).
 
 ## 2. Owned code versus a dependency
 

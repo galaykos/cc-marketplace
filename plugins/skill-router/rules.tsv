@@ -156,23 +156,23 @@ command	\bshadcn(-ui|-vue)?(@[^[:space:]]+)?[[:space:]]+add\b	shadcn-best-practi
 content	(@reui/|\breui\.io|\bfrom ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-libraries	low
 # Narrowed 2026-09-26: `motion/react|framer-motion` drew Aceternity on EVERY Motion file.
 content	(\baceternity\b|ui\.aceternity\.com|@aceternity/)	aceternity-best-practices	ui-libraries	low
-# The library-agnostic fallback. shadcn, ReUI, Aceternity, MUI and Astryx each have a
-# sibling skill and a row of their own; a project on Mantine, Chakra, Ant Design,
-# PrimeVue, Vuetify, Base UI, Ark, Reka or Nuxt UI matched nothing at all, so the one
-# skill written for exactly that case never loaded. The alternatives are the package
-# signals in the Signal column of
-# plugins/ui-libraries/skills/component-libraries/references/library-map.md — keep the two in
-# step; nothing reads that file back, so this is `recorded`, not a gate. `primereact`
-# left this row 2026-09-26 for its own sibling skill (primereact-best-practices, rows
-# beside MUI's below), so the two never co-fire on one import;
-# `@base-ui-components/` is Base UI's pre-1.0 package name. `high` since 2026-09-26: an
-# import line is weaker evidence than a file extension, but as `low` it reached the
-# model only on the next prompt, after the screen was built (route.sh nudge_high_matches).
-# LIMITATION: it keys on a QUOTED module specifier, so a library reached only through
-# an auto-import plugin or a framework config is missed — the `*.vue` manifest row
-# below covers the Vue kits that auto-import; a React one has no such row — and a
-# lockfile or a docs page quoting the name matches.
-content	['"](@(base-ui|base-ui-components|ark-ui|headlessui|ariakit|mantine|chakra-ui|heroui|fluentui|primer|blueprintjs|untitledui|radix-ui)/|@nuxt/ui|(radix-ui|antd|react-aria-components|primevue|vuetify|element-plus|naive-ui|quasar|reka-ui|radix-vue)['"/])	component-libraries	ui-libraries	high
+# The library-agnostic fallback. shadcn, ReUI, Aceternity, MUI and Astryx each have a sibling skill
+# and a row of their own; a project on Mantine, Chakra, Ant Design, PrimeVue, Vuetify, Base UI, Ark,
+# Reka or Nuxt UI matched nothing, so the one skill written for that case never loaded. The
+# alternatives are the package signals in the Signal column of
+# plugins/ui-libraries/skills/component-libraries/references/library-map.md — keep the two in step;
+# nothing reads that file back, so this is `recorded`, not a gate. `primereact` left 2026-09-26 for
+# its own sibling skill (primereact-best-practices, rows beside MUI's below), so the two never
+# co-fire; `@base-ui-components/` is Base UI's pre-1.0 package name. Organisation design systems
+# joined 2026-10-05: `govuk-frontend`, `uswds`, `@uswds/`, `@shopify/polaris` (and `-types`),
+# `@carbon/`, and `@atlaskit/` minus `pragmatic-*`, an Apache-2.0 drag-and-drop library apps outside
+# Atlassian use (information-design recommends it). `high` since 2026-09-26: an import is weaker
+# evidence than a file extension, but as `low` it reached the model only on the next prompt, after
+# the screen was built (route.sh nudge_high_matches). LIMITATION: keyed on a QUOTED specifier, it
+# misses a library reached only through an auto-import plugin or framework config (the `*.vue` row
+# below covers Vue kits; React has none) and GOV.UK's Nunjucks templates and Polaris's CDN <script>,
+# which name no package; a lockfile, a docs page or a code comment quoting the name matches.
+content	['"](@(base-ui|base-ui-components|ark-ui|headlessui|ariakit|mantine|chakra-ui|heroui|fluentui|primer|blueprintjs|untitledui|radix-ui|uswds|carbon)/|@atlaskit/([^p'"/]|p[^r]|pr[^a])|@nuxt/ui|(radix-ui|antd|react-aria-components|primevue|vuetify|element-plus|naive-ui|quasar|reka-ui|radix-vue|govuk-frontend|uswds|@shopify/polaris(-types)?)['"/])	component-libraries	ui-libraries	high
 # AUTO-IMPORTED Vue kits: PrimeVue's Nuxt module, Vuetify's plugin and unplugin-vue-components
 # resolvers put `<DataTable>` / `<v-data-table>` in an SFC with no import line, so the
 # row above saw nothing. Keyed on the manifest instead, like the shadcn rows.

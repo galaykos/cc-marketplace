@@ -54,6 +54,13 @@ convention.
    rather than shipped in the registry's defaults.
    Layout, responsive breakpoints, spacing rhythm, and element hierarchy are its job.
 
+   **An existing target keeps what users and systems rely on.** On a page or component
+   that already exists, do not change its URL slugs or anchors, primary nav labels,
+   form field names or their order, analytics event IDs, the logo/wordmark, or legal
+   and consent copy unless the request asks; name any such change in the step 5 return.
+   Standing: agent-graded on a craft run (craft-reviewer against `preserve.json`);
+   recorded on a standalone build — no reviewer here reads it back.
+
    **No decided lines → name the defaults to leave out.** With no art direction the
    model falls back on a few house styles, and "avoid a generic look" only swaps one
    default for another; a list of named patterns works. When $ARGUMENTS carries no

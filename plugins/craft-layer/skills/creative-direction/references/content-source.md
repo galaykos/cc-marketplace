@@ -20,7 +20,8 @@ scratch) — never in the shipped tree. The audit globs for it by that exact nam
 - **The question rides the fork.** The content-source question is an ADDITIONAL question
   inside the fork's existing single `AskUserQuestion` call, never a call of its own:
   *"is there copy for this page already?"* — the live site named in the brief, a doc or
-  deck the user can paste, or none. One exchange, two questions.
+  deck the user can paste, or none. One exchange, two questions — three on a redesign, whose
+  mode rides the same call (`redesign-preservation.md`).
 - **A brief-named URL or path is not a question at all.** It is a SUPPLIED INPUT: read it,
   do not ask permission to. The ask exists for the case where the brief names no source.
 

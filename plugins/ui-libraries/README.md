@@ -4,8 +4,9 @@ Component-library skills: **Material UI** (with MUI X Data Grid, Pickers and Cha
 **Astryx** (Meta's design system), **ReUI** and **Aceternity UI** (shadcn-compatible
 registries), and a library-agnostic **component-libraries** skill for every other React
 or Vue component library — headless (Base UI, Radix, React Aria, Ark, Headless UI) or
-styled (Mantine, Chakra, Ant Design, HeroUI, PrimeVue, Vuetify, Element Plus) — with a
-per-library map of detection signals, theme channels and docs URLs.
+styled (Mantine, Chakra, Ant Design, HeroUI, PrimeVue, Vuetify, Element Plus) — and for an
+organisation's own service owed its official design system (GOV.UK Frontend, USWDS, Polaris,
+Carbon, Atlassian), with a per-library map of detection signals, theme channels and docs URLs.
 
 These skills lived in `ui-ux` until 2026-09-26. They moved because `ui-ux` had reached
 the marketplace's per-plugin prose cap, and the split keeps the foundations (shadcn,
@@ -34,10 +35,20 @@ layer each under it.
 | `primereact-best-practices` | The project imports `primereact`, `@primereact/*` or `@primeuix/*` — v10 or v11 from the lockfile first, v11's PrimeUI licence key, token presets on `PrimeReactProvider`, compound parts, the renames and the Tailwind registry |
 | `reui-best-practices` | ReUI registry components or blocks — shadcn-compatible installs, owned-code discipline |
 | `aceternity-best-practices` | Aceternity UI motion-heavy marketing components — placement limits, motion deps, reduced motion |
-| `component-libraries` | Any other React or Vue component library, or two libraries on one surface — library-agnostic rules plus `references/library-map.md` |
+| `component-libraries` | Any other React or Vue component library, two libraries on one surface, or an organisation's own service that must use its official design system (GOV.UK, USWDS, Polaris, Carbon, Atlassian) — library-agnostic rules plus `references/library-map.md` |
 
 With `skill-router` installed, the skills load on their own when a matching import or
 manifest appears. `/ui-ux:build` and the `ui-ux` agents name them as `ui-libraries:<skill>`.
+
+The router keys on quoted package imports, so organisation design systems reach a page in
+forms it does not match: GOV.UK Frontend's Nunjucks templates
+(`{% from "govuk/components/button/macro.njk" import govukButton %}`), Sass entry points
+(`@use "node_modules/govuk-frontend/dist/govuk"`, USWDS's `@use "uswds-core" with (…)`) and
+Polaris's CDN script tag (`<script src="https://cdn.shopify.com/shopifycloud/polaris.js">`). Those, and a
+brief for a UK government service, US federal site, Shopify app, IBM product or Atlassian
+app before any import exists, reach `component-libraries` through its description alone.
+
+Credit: the official-design-system rule in `component-libraries` is adapted from [leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill) at ce26fc25 (MIT, © 2026 Leonxlnx), rewritten here rather than copied; the package names and use restrictions were re-read from each system's official docs and npm on 2026-10-05, and the rule's effect on what the model installs is unmeasured.
 
 ## Pairs well with
 

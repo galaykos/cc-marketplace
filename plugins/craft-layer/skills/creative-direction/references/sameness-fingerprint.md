@@ -123,7 +123,8 @@ exception; the craft-reviewer reads shipped markup against this list:
   presence is not the tell — execution is. A tonal step, a weight or classification swap, or
   the product's own UI set into the line reads argued; the gradient and the stack read
   generated. An italic accent word still owes its argument: the playbook row below names it.
-- numbered markers (`01 / 02 / 03`) on content that is not a sequence
+- numbered markers (`01 / 02 / 03`) on content that is not a sequence, and generic step labels
+  ("Step 1", "Phase 01", "Stage 2") where the step's own name ("Install", "Ship") would do
 - `→` appended to every link and button label
 - a monospace face for small data labels with no data argument
 - pill-shaped (fully rounded) buttons as the one button silhouette, with no radius
@@ -141,11 +142,12 @@ exception; the craft-reviewer reads shipped markup against this list:
 
 Source: the official `frontend-design` skill's calibration list, 2026-09-03, cross-checked
 against the vocabulary above so nothing is listed twice. Standing: **agent-graded for the
-list, `gate` for three rows.** The eyebrow, the middle-dot meta string and the trailing
+list, `gate` for four rows.** The eyebrow, the middle-dot meta string and the trailing
 arrow are mechanical, and since 0.16.0 they ride the `copy-register` assertion in
 `template/craft-gates/divergence.mjs` through the lexicon block below — read LIVE from this
-file. Every other row here is the craft-reviewer reading shipped markup, and no script fails
-a build over it.
+file. The fourth is the copy-shaped scroll cue from the 2026-10-05 rows below, on the same
+lexicon. Every other row here is the craft-reviewer reading shipped markup, and no script
+fails a build over it.
 
 **Added 2026-09-26 from the design corpus** (1,530 scanned sites; counts and sites stay in
 `rationale/2026-09-25-design-capability-corpus/`). Each is a default the corpus found stacked
@@ -164,6 +166,30 @@ on its weaker pages and absent from its strongest. Agent-graded, like the rows a
   receipt instead: a run log, a status chip, an outcome
 - support signified by headset stock photography
 - (the don't-repeat-recent nudge in `palette-strategy.md` reads this list)
+
+**Added 2026-10-05 from leonxlnx/taste-skill ce26fc25 (MIT), rewritten; figures unverified.**
+Its tells list, cross-checked against everything above so nothing is listed twice; its step
+labels joined the `01 / 02 / 03` row. Agent-graded, except the scroll cue's copy-shaped form:
+
+- a decorative scroll cue, most often under the hero — "Scroll to explore", "↓ scroll", an
+  animated mouse wheel — telling a reader who has not scrolled yet what scrolling is. The
+  worded form is the `scroll cue` lexicon row below, which reads every page chunk, not only
+  the hero; an icon-only cue stays the craft-reviewer's. A functional hint ("Scroll to see
+  more" over a wide table, "Scroll to continue" in a consent box) is not this
+- decorative status dots before nav links, list rows or badges that report no live state; a
+  dot on a real status (a service up, a seat free) is not this
+- a version label or build footer (`v2.0`, `BETA`, `Build 0048`, "last sync 4s ago") on a
+  marketing page whose subject is not a release
+- a city, local-time or weather strip ("Lisbon 14:23 · 18°C") worn as atmosphere by a brief
+  with no place or time-zone argument; one contact address in the footer is not this
+- pills, tags or index labels laid over a photograph where a caption beside it would serve
+- invented photo credits — "Plate 03 · House archive" under a stock or placeholder image; a
+  real photo credit for a real photographer ("Photo by … on Unsplash") is not this
+- a hairline under every row of a long list or spec table, where one rule per group would do
+- progress bars or score bars on a filled grey track as a marketing-page comparison, where
+  the number alone carries it
+- poetic section labels ("Field notes", "From the field", "On the bench") where a plain one
+  ("Testimonials", "Latest writing") names the section
 
 ### Recurring copy register (category default)
 
@@ -195,11 +221,15 @@ phrase list is mechanical, gated: the `copy-register` assertion in
 `divergence.mjs`'s `copy-register` assertion reads THIS block when `CLAUDE_PLUGIN_ROOT` is
 set and falls back to a frozen snapshot otherwise, printing which one it used and its date
 on every run — the same contract as `register-corpus.md`. It is the mechanical subset of the
-two sections above: the multi-word phrases from the copy register, plus the three
+two sections above: the multi-word phrases from the copy register, plus the four
 category-default chrome rows a machine can see. The last three rows are the 2026-09-26 corpus
 entries; the `agentic headline` row matches only a WHOLE copy chunk of at most six words
 starting "Agentic", so a sentence using the word in running text never fires, and a nav item
-or card title reading "Agentic X" does — waive that with its reason.
+or card title reading "Agentic X" does — waive that with its reason. The `scroll cue` row is
+whole-chunk too: the chunk must BE a decorative cue ("Scroll to explore", "Scroll down",
+"↓ scroll", "Keep scrolling"), so prose using the word, a "Scroll to top" link, a bare "Scroll"
+and the functional hints ("Scroll to see more", "Scroll to continue", "Scroll to start") never
+fire.
 
 <!-- copy-lexicon:start -->
 ```
@@ -212,6 +242,7 @@ game-changing :: gi :: 1 :: \bgame-chang(?:ing|ers?)\b
 all-caps eyebrow :: g :: 3 :: ^\s*[A-Z][A-Z0-9&'’]*(?:\s+[A-Z0-9&'’]+){1,4}\s*$
 middle-dot meta string :: g :: 1 :: ·[^·\n]{1,60}·
 trailing arrow :: g :: 3 :: [^→\n]{0,40}[^\s→]\s*→\s*$
+scroll cue :: gi :: 1 :: ^\s*[↓⇣]?\s*(?:scroll\s+(?:down|to\s+(?:explore|discover|walk\s+through(?:\s+it)?))|keep\s+scrolling)\s*[.!…]?\s*[↓⇣]?\s*$|^\s*[↓⇣]\s*scroll\s*$|^\s*scroll\s*[↓⇣]\s*$
 for humans and agents :: gi :: 1 :: \bfor\s+(?:both\s+)?(?:humans\s+and\s+(?:ai\s+)?agents|(?:ai\s+)?agents\s+and\s+humans)\b
 agentic headline :: gi :: 1 :: ^\s*(?:the\s+)?agentic\s+[\w'’-]+(?:\s+[\w'’-]+){0,4}\s*[.!]?\s*$
 for design engineers :: gi :: 1 :: \b(?:ui\s+library|components?)\s+for\s+design\s+engineers\b
@@ -222,19 +253,24 @@ Format: `label :: flags :: min :: pattern`, one per line, JavaScript regular-exp
 source, matched against reader-visible copy one text chunk at a time. A pattern that will
 not compile is reported and DROPPED rather than silently ignored.
 
-**`min` is why the three chrome rows do not fire on honest pages.** Their registry entries
+**`min` is why the first three chrome rows do not fire on honest pages.** Their registry entries
 say "above EVERY heading" and "appended to EVERY link" — repetition is the tell, and one
 `Read more →` is a choice. So the eyebrow and the arrow need **three** distinct chunks
 before either is a finding, while a meta string needs two middle dots in ONE chunk (`A · B · C`)
 because a single ` · ` between a copyright line and a phone number is the shape every real
 footer ships. A row that fires on correct pages is waived into silence within one run, which
-is the anti-pattern `register-corpus.md` names.
+is the anti-pattern `register-corpus.md` names. The scroll cue takes `min` 1: one cue is the
+whole tell, and its whole-chunk anchor carries the precision instead.
 
 **Declared limits.** The eyebrow row sees ALL-CAPS text, not letter-spacing, so an eyebrow
 set in small-caps or `text-transform: uppercase` over mixed-case source is invisible here —
 that half stays the craft-reviewer's. Three all-caps labels that are not eyebrows (a
 data-table header row rendered as text) fire it, and the waiver lane is the answer. The
-arrow row reads `→` only, never an SVG chevron or an `::after` pseudo-element.
+arrow row reads `→` only, never an SVG chevron or an `::after` pseudo-element. The scroll-cue
+row reads words only, anywhere on the page and never by position: an animated mouse-wheel
+icon, a lone chevron and a decorative cue worded like a functional hint ("Scroll to see more"
+under the hero) are missed, and a "Scroll down" or "Keep scrolling" placed as a real
+instruction fires it — waive that with its reason.
 
 ### Two sources of sameness, and they age differently
 

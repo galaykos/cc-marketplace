@@ -30,30 +30,49 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    **Upgrade the brief first**, then pin the contract, per `references/offer-contract.md`: Part 1a
    holds the `Raw brief:` / `Upgraded brief:` pair and the inference marks, Parts 5–7 hold page
    length, mode and ambition + route horizon, and Part 8 holds the RUN STAMP. Sharpening is not
-   rewriting: where an upgrade and the raw line disagree, the raw line wins. Echo the contract before
-   any file is written. If the brief admits several products or directions, ASK which one — building
-   all of them is the failure this step exists to stop, and a boosted brief that also asks for
-   conventional or cheap is two orders, so ASK which wins there too. Mode and ambition words are
+   rewriting: where an upgrade and the raw line disagree, the raw line wins. **Detect an existing
+   site** for the `Redesign` row: routes, pages or content already in the target make this a
+   redesign, `keep-brand` unless the brief asks for a new look (`references/redesign-preservation.md`
+   owns the modes) — `new-look` when that site is an earlier craft run's own output (a run log or
+   stamped `craft/` artifacts in the target), so this run still differs from the log, unless its
+   `preserve.json` records `keep-brand`, which carries forward. Generator output is not a site: a
+   starter page or kit, demo routes, auth scaffolding (Breeze or Jetstream's `/login` and
+   `/register`, create-next-app's layout). Echo the contract before any file is written. If the
+   brief admits several products or directions, ASK which one — building all of them is the
+   failure this step exists to stop, and a boosted brief that also asks for conventional or cheap
+   is two orders, so ASK which wins there too. Mode and ambition words are
    SCOPE: strip them from the idea before step 1. Carry the pinned ambition tier onto the build task
    and into the audit — a tier living only in a scope sentence binds nothing.
 
    **Then read the project memory** — `<project>/.craft-layer/run-log.md`; its last 5 rows are what
    this run must differ from. Create `<project>/.craft-layer/` with a `.gitignore` holding only `*`
    when absent; it holds what must OUTLIVE the session (run log, `waivers.json`, `shots/`) and is not
-   the `craft/` working area. **Then DRAW the starting constraint** per `references/concept-deck.md`:
+   the `craft/` working area. **On a `keep-brand` or `new-look` redesign, write
+   `<project>/.craft-layer/preserve.json`** before the draw: the concrete values the target ships now
+   (`routes`, `anchors`, `nav`, `forms` with fields in order, `analytics`, `logo`, `legal`), stamped
+   with the date and the target's HEAD or file hashes, plus `approved` — one
+   `{"item","change","approvedAt"}` per value the user agrees to change, `item` as
+   `<key>:<recorded value>`, `[]` until one is — shape and sources in `redesign-preservation.md`. **Then DRAW the starting constraint** per `references/concept-deck.md`:
    one option per axis, seeded by the log and excluding the options its last 5 rows used. The deck is
    drawn from, never chosen from. An absent, empty or malformed log is EMPTY — warn, seed from a hash
    of the brief plus today's date, carry on.
 
    **Then dispatch `creative-director`** for the DIVERGENT fork set — 2–3 ranked candidates, each a
    central metaphor, an editorial voice, one signature interaction — breaking the
-   sameness-fingerprint defaults and clearing the usability floor. The agent ranks; the CONCEPT FORK
+   sameness-fingerprint defaults and clearing the usability floor. On a redesign the dispatch carries
+   the contract's `Redesign:` and `Brand echo:` lines. The agent ranks; the CONCEPT FORK
    below is where the user picks. Carry the picked concept and its divergence record into step 1, with the archetype's
    content-depth target and the palette-strategy mood. The metaphor is a design LANGUAGE, not a
    rebrand. **What it rules OUT goes into `craft/divergence-record.md`** on the three fixed
    `Banned genus:` / `Banned register:` / `Banned vocabulary:` keys, whose format and match semantics
    `concept-deck.md` owns — a ban left in the record's narrative reaches no builder and no gate.
-   **Then run the CONCEPT FORK**, at every tier including `one-shot`, per that same reference.
+   **Then run the CONCEPT FORK**, at every tier including `one-shot`, per that same reference. On a
+   redesign its one call also confirms or changes the mode and asks approval for any never-change
+   value a candidate would change — questions inside that call, never an added exchange (a `guided`
+   run may ask the approval in a section round); each approval lands in `preserve.json`'s
+   `approved`. A changed mode is written back to `preserve.json` and the contract, `Brand echo:`
+   added on entering `keep-brand` and removed on leaving it. Headless, or with no fork, the default
+   stands, nothing is approved, and every recorded value is kept.
 
    **Finally, persist** the contract, divergence record and content source at
    `craft/offer-contract.md`, `craft/divergence-record.md` and `craft/content-source.md`, under the

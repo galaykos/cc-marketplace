@@ -35,6 +35,8 @@ project already has from its manifest and build in that one. A library without
 a sibling skill is governed by `ui-libraries:component-libraries` plus its docs URL,
 never by a second library installed beside it.
 
+Credit: the rule in `/ui-ux:build` and `ui-ux-engineer` that work on an existing page keeps its URL slugs, nav labels, form fields, analytics IDs, logo and legal copy is adapted from [leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill) at ce26fc25 (MIT, © 2026 Leonxlnx), rewritten here rather than copied; its effect on what the model builds is unmeasured.
+
 ## Install
 
 ```bash

@@ -118,6 +118,12 @@ applying it (WCAG contrast and touch-target rules stay here).
 - Typography: sizes from the scale's steps; line-height suits the size; measure
   stays readable for BODY copy — the bound is `design-tokens`' (Type — a modular
   scale); a display line is not body copy and the measure rule does not cap it.
+- Existing target: on a page or component that already exists, keep URL slugs
+  and anchors, primary nav labels, form field names and their order, analytics
+  event IDs, the logo/wordmark, and legal and consent copy unless the dispatch
+  asks to change them; name any such change in the rationale. A decided line
+  (`Copy voice:`, `Banned vocabulary:`) is not that ask, and step 5 does not
+  outrank this bullet.
 
 - Note which breakpoints were checked and how (a code-level presence check,
   not a rendered verification).

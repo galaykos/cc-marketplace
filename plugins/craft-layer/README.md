@@ -27,6 +27,8 @@ an asset-sourcing + licence gate, a concept→token-system derivation, a tiered 
 > `/plugin install design-kit@cc-plugins-marketplace`,
 > `/plugin install skill-router@cc-plugins-marketplace`.
 
+Credit: the redesign modes and never-change list (`creative-direction/references/redesign-preservation.md`), the category-default tells added to `sameness-fingerprint.md` on 2026-10-05 and the layout floors `craft-reviewer` judges are adapted from [leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill) at ce26fc25 (MIT, © 2026 Leonxlnx), rewritten here rather than copied; upstream's figures are unverified, and their effect on what the model builds is unmeasured.
+
 ## Vocabulary
 
 Eight words below carry load in every section that follows, and none of them means

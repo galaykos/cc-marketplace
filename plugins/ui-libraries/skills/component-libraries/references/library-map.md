@@ -1,9 +1,10 @@
 # Component library map (React, Vue, Svelte) — signals, ownership, theme channel, docs
 
-> Last verified: 2026-09-26 — the Base UI, HeroUI, PrimeVue and Vuetify rows re-read
-> against their own docs and npm that day, and the PrimeReact, Catalyst and Tremor rows
-> added from theirs; the Radix, Park UI, Flowbite and Svelte rows carry their 2026-09-22
-> reading; every other row its 2026-09-02 reading.
+> Last verified: 2026-10-05 — the Organisation design systems rows (GOV.UK Frontend, USWDS,
+> Shopify Polaris, IBM Carbon, Atlassian) added from npm and their official docs that day;
+> the Base UI, HeroUI, PrimeVue and Vuetify rows carry their 2026-09-26 re-read and the
+> PrimeReact, Catalyst and Tremor rows their 2026-09-26 reading; the Radix, Park UI,
+> Flowbite and Svelte rows their 2026-09-22 reading; every other row its 2026-09-02 reading.
 
 Read on demand from `component-libraries`. A row with no sibling skill is governed
 by the SKILL.md rules plus its docs URL.
@@ -88,6 +89,23 @@ reviewer applying `component-libraries` is its only reader (agent-graded).
 | shadcn-svelte | `components.json`, `$lib/components/ui/*.svelte` | shadcn CSS variables | https://www.shadcn-svelte.com/docs | copy-in; Bits UI + Tailwind; `ui-ux:shadcn-theming`'s tokens apply unchanged |
 | Melt UI | `@melt-ui/svelte` (builders) OR `melt` (the runes rewrite) | none — builder props spread onto your elements | https://melt-ui.com, https://next.melt-ui.com | TWO packages, not one version: read which the manifest has. Both pre-1.0 |
 | Skeleton | `@skeletonlabs/skeleton` + `@skeletonlabs/skeleton-svelte` | Tailwind `@import` of a theme file, then `data-theme` on `<html>` | https://www.skeleton.dev/docs | Tailwind design system; also ships a React build |
+
+## Organisation design systems (the organisation's own service only)
+
+When the project IS that organisation's service or platform app, the package is required,
+not chosen — SKILL.md §1. The restriction column is the official source's rule; a brief
+that only wants the look installs no restricted row.
+
+| System | Signal (brief or repo) | Package(s) | Theme channel | Docs | Use restriction |
+|---|---|---|---|---|---|
+| GOV.UK Frontend | a site on one of the service manual's three domain forms — `gov.uk/myservice`, `myservice.service.gov.uk`, `myblog.blog.gov.uk` — not every `*.gov.uk` site (a council's own domain is not GOV.UK); `govuk-frontend` in the manifest; `{% from "govuk/components/…/macro.njk" %}` in templates | `govuk-frontend` (`6.5.1` at the stamp; MIT, docs OGL 3.0) | none for the brand — Sass `$govuk-*` settings (asset and font paths); components ship as Nunjucks macros (`govukButton`) and HTML | https://design-system.service.gov.uk, https://frontend.design-system.service.gov.uk | a site on those three forms must look like GOV.UK. Any other — other UK public-sector sites included — "can use the patterns" but must not "identify itself as being part of GOV.UK", "use the crown or GOV.UK logotype in the header", "use the GDS Transport typeface", "suggest that it's an official UK government website if it's not" or "use the GOV.UK brand colours" — https://www.gov.uk/service-manual/design/making-your-service-look-like-govuk |
+| USWDS | a US federal site on a `.gov` domain; `@uswds/uswds` in the manifest | `@uswds/uswds` (`3.14.0` at the stamp); `uswds` is the 2.x name | Sass settings: `@use "uswds-core" with ($theme-color-primary: …)` | https://designsystem.digital.gov/documentation/settings/ | the official-government-site banner: "Do NOT use the banner on non-government domains such as a .com or .org." — https://designsystem.digital.gov/components/banner/ |
+| Shopify Polaris | a Shopify app (`shopify.app.toml`) whose UI is its App Home in Shopify admin | Polaris web components from `<script src="https://cdn.shopify.com/shopifycloud/polaris.js">`, types `@shopify/polaris-types` (`1.1.0`). `@shopify/polaris` (React, `13.9.5`) is DEPRECATED — npm: "use Polaris web components" | none to override — `<s-page>` and the other `<s-*>` custom elements render in shadow DOM | https://shopify.dev/docs/api/polaris | the `@shopify/polaris` LICENSE.md (13.9.5): its rights "may only be exercised to develop and distribute applications that integrate or interoperate with Shopify software or services", and a stand-alone app not embedded in Shopify must be "dissimilar and visually distinct from Shopify products and services". App Home "is the area in the Shopify admin where your apps open" — https://shopify.dev/docs/api/app-home |
+| IBM Carbon | an IBM product, said in the brief; `@carbon/*` in the manifest | `@carbon/react` (`1.117.0`) + `@carbon/styles` (`1.116.0`); `@carbon/web-components` (`2.64.0`) without React | `<Theme theme="g100">` (`white`, `g10`, `g90`, `g100`) in React; the same themes as Sass from `@carbon/styles` | https://carbondesignsystem.com | none found — Apache-2.0. Outside IBM it is an ordinary library under §1's install-asked rule |
+| Atlassian | an Atlassian app for Jira, Confluence or another Atlassian product: Forge Custom UI (an iframe; its docs point to the Atlassian Design System) or Connect (`atlassian-connect.json`) → `@atlaskit/*`; Forge UI Kit (`manifest.yml`, `@forge/react` in the manifest) → `@forge/react` components instead — "UI Kit relies only on the `@forge/react` components and does not directly rely on React DOM" | Custom UI / Connect: `@atlaskit/*` — `@atlaskit/tokens` (`20.2.0`), `@atlaskit/primitives` (`22.5.4`), one package per component (`@atlaskit/button`). UI Kit: `@forge/react` | `@atlaskit/tokens`: `token('color.text')` in styles, `setGlobalTheme({…})` at the root | https://atlassian.design, https://developer.atlassian.com/platform/forge/ui-kit/overview/ | the Atlassian Design System License: for software "that interoperate[s] or [is] integrated with Atlassian's software and cloud products" — https://atlassian.design/license (npm metadata reads Apache-2.0; the licence page is the use term). Not `@atlaskit/pragmatic-drag-and-drop` and its `-hitbox`, `-auto-scroll` and other `pragmatic-drag-and-drop-*` siblings: a general-purpose Apache-2.0 drag-and-drop library ("any experience on any tech stack", npm), not the design system — the restriction and the lookalike rule do not apply to it |
+
+Standing: **recorded** — no script re-reads these restrictions; SKILL.md §1, which applies
+them, is agent-graded.
 
 ## Landscape notes
 

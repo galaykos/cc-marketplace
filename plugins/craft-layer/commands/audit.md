@@ -90,7 +90,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    cd <project> && CRAFT_TOKEN_SOURCE=<the CSS holding the tokens> \
      node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/contrast.mjs
    cd <project> && BASE_URL=<the dev server> CRAFT_EXPECT_TITLE=<the contract's product name> \
-     NODE_PATH=<project>/node_modules \
+     CRAFT_PRIMARY_ACTION=<the contract's primary action text> NODE_PATH=<project>/node_modules \
      npx playwright test --config "${CLAUDE_PLUGIN_ROOT}/template/craft-gates/playwright.config.ts"
    ```
 
@@ -120,6 +120,10 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    stand. `CRAFT_EXPECT_TITLE` is the only thing proving the server on that port is THIS build; the
    suite runs inside the target and cannot read the contract, and without it reports `IDENTITY NOT
    MEASURED` and captures anyway — carry that phrase into the `Visual:` line rather than dropping it.
+   `CRAFT_PRIMARY_ACTION` names the CTA whose position the suite's layout-floors test measures; unset or
+   unmatched, it falls back to the hero's first link or button. That test writes
+   `<project>/.craft-layer/layout-floors.json` and never fails on a value — the floors are judged, not
+   gated. Note the instant you start the suite: step 8 dates the file against it.
    **Neither `--config` nor `NODE_PATH` is optional, and both fail in opposite directions.** Playwright
    has no `--spec` flag, so a bare `npx playwright test` scans the PROJECT's own testDir, finds no
    craft gate and exits 0 having run nothing — a `not checked` wearing a green. `--config` points at
@@ -174,7 +178,9 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    paths, and Read paths to the references its checks cite: `motion-tiers/references/tier-budgets.md` ·
    `creative-direction/references/` `sameness-fingerprint.md`, `content-depth.md`, `offer-contract.md`,
    `ambition-tiers.md`, `content-source.md`, `concept-deck.md`, `moves-taxonomy.md`, `type-strategy.md`,
-   `register-corpus.md`, `voice-contract.md` · `scroll-orchestration/references/scroll-acts.md` ·
+   `register-corpus.md`, `voice-contract.md`, `redesign-preservation.md` · `<project>/.craft-layer/preserve.json`
+   and `<project>/.craft-layer/layout-floors.json` — each named absent when missing, and a floors file
+   step 8's stamp rule rejects passed as `not measured`, never as a path · `scroll-orchestration/references/scroll-acts.md` ·
    `asset-sourcing/references/` `licence-discipline.md`, `component-sourcing.md` ·
    `section-decisions/references/section-ledger.md` plus the ledger when one exists · and, when the
    contract's archetype is `app/CRM` or the target has a logged-in data-dense half,
@@ -183,6 +189,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    The agent's prompt carries what it checks and what each missing input makes `not checked`. Two things
    this step still tells it: which artifacts resolved and which are absent with the reason, and that a
    missing input is `not checked` — never a pass, never a fail, never inferred from how the page reads.
+   The floors file is the one exception: absent or rejected, its rows are `not measured`, not `not checked`.
    Collect its `path:line — severity — problem — fix` lines.
 
 7. **Delegate what craft-layer does not own** — do not re-implement: full accessibility →
@@ -196,7 +203,14 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    Gates: <n> checked · <n> not checked · <n> not measured
    Triggers fired: <list> · not fired: <list>
    Visual: <n> shots opened          (or: Visual: NOT CAPTURED (<reason>))
+   Floors: measured <stamp.started>  (or: Floors: not measured (<reason>))
    ```
+
+   The floors file is `not measured` when it is absent, when its `stamp.started` is earlier than the
+   instant this run started the suite, or when its `stamp.baseUrl` is not this run's `BASE_URL` — a file
+   an earlier run or another server left behind reads as this build's floors and is neither. Standing:
+   agent-graded — this audit applies the rule; `scripts/__tests__/layout-floors.test.sh` restates it and
+   proves the stamp carries what it needs, and no gate reads the audit's verdict.
 
    A GATE is a defect type — wrong contrast, missing spine slot, absent signature. A TRIGGER is the
    condition that SURFACES a fault: viewport, motion preference, colour mode, zoom, input device. Gate

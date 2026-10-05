@@ -261,6 +261,22 @@ TM=$(fresh); printf '%s\n' "import Aura from '@primeuix/themes/aura'" > "$PV/src
 has_skill "$out" primereact-best-practices && bad "primereact @primeuix row: fired in a PrimeVue repo" || ok
 routes "$M" src/ui/Select.tsx "import { Select } from '@base-ui-components/react/select'" component-libraries
 routes "$M" src/ui/Menu.tsx "import { Menu, MenuItem } from 'react-aria-components'" component-libraries
+TM=$(fresh); mkdir -p "$M/src/gov"; printf '%s\n' "import { initAll } from 'govuk-frontend'" 'initAll()' > "$M/src/gov/boot.js"; out=$(edit "$M" "$M/src/gov/boot.js" "$TM")
+has_skill "$out" component-libraries && ok || bad "govuk-frontend import routes component-libraries; got: ${out:0:200}"
+TM=$(fresh); printf '%s\n' "import { DataTable } from '@carbon/react'" > "$M/src/ui/Grid.tsx"; out=$(edit "$M" "$M/src/ui/Grid.tsx" "$TM")
+has_skill "$out" component-libraries && ok || bad "carbon import routes component-libraries; got: ${out:0:200}"
+TM=$(fresh); printf '%s\n' "import Button from '@atlaskit/button/new'" > "$M/src/ui/Action.tsx"; out=$(edit "$M" "$M/src/ui/Action.tsx" "$TM")
+has_skill "$out" component-libraries && ok || bad "atlaskit import routes component-libraries; got: ${out:0:200}"
+for imp in "@uswds/uswds" "uswds" "@shopify/polaris" "@shopify/polaris-types" "@atlaskit/primitives" "@atlaskit/page-header"; do
+  routes "$M" "src/org/${imp//[^a-z]/}.tsx" "import '$imp'" component-libraries
+done
+TM=$(fresh); printf '%s\n' "import { draggable } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'" \
+  "import { attachClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge'" > "$M/src/ui/Board.tsx"; out=$(edit "$M" "$M/src/ui/Board.tsx" "$TM")
+has_skill "$out" component-libraries && bad "pragmatic-drag-and-drop does not route component-libraries; got: ${out:0:200}" || ok
+TM=$(fresh); printf '%s\n' '// Spacing follows the GOV.UK Design System (`govuk-frontend`), not USWDS.' 'export const gap = 4' > "$M/src/ui/spacing.ts"; out=$(edit "$M" "$M/src/ui/spacing.ts" "$TM")
+has_skill "$out" component-libraries && bad "govuk text in prose does not route: a backticked name in a comment drew component-libraries" || ok
+TM=$(fresh); mkdir -p "$M/docs"; printf '%s\n' '# Forms' 'We compared `govuk-frontend`, `@carbon/react` and USWDS before building our own.' > "$M/docs/forms.md"; edit "$M" "$M/docs/forms.md" "$TM" >/dev/null
+pend "$(statef "$M" "$TM")" component-libraries && bad "govuk text in prose does not route: a backticked name in markdown queued component-libraries" || ok
 V="$WS/v"; mkui "$V" '{"dependencies":{"vue":"3.5.0","vuetify":"3.7.0"}}'
 routes "$V" src/pages/Tickets.vue '<template><v-data-table :items="tickets" /></template>' component-libraries
 V2="$WS/v2"; mkui "$V2" '{"dependencies":{"vue":"3.5.0"}}'

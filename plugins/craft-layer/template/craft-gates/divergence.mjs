@@ -167,6 +167,38 @@ function toChroma(value) {
   return 0
 }
 
+/** oklch() / hsl() / #rrggbb -> { c, h } in OKLCH, h null when achromatic; null when unparsed.
+    Unlike toHue, one space for every notation, so a hex brand echo and an oklch token compare. */
+function toOklch(value) {
+  const v = value.trim()
+  let m = v.match(/^oklch\(\s*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,)/]+)/i)
+  if (m) {
+    const c = /%$/.test(m[2]) ? num(m[2]) * 0.004 : num(m[2])   // CSS maps 100% chroma to 0.4
+    return { c, h: c === 0 ? null : norm(num(m[3])) }
+  }
+  let rgb = null
+  m = v.match(/^#([0-9a-f]{6})\b/i)
+  if (m) rgb = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255)
+  m = v.match(/^hsla?\(\s*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,)/]+)/i)
+  if (m) {
+    const h = norm(num(m[1])), s = num(m[2]) / 100, l = num(m[3]) / 100
+    const k = (n) => (n + h / 30) % 12
+    const a = s * Math.min(l, 1 - l)
+    rgb = [0, 8, 4].map((n) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1)))
+  }
+  if (!rgb) return null
+  const [r, g, b] = rgb.map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+  const L = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+  const M = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+  const S = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+  const A = 1.9779984951 * L - 2.428592205 * M + 0.4505937099 * S
+  const B = 0.0259040371 * L + 0.7827717662 * M - 0.808675766 * S
+  const c = Math.hypot(A, B)
+  return { c, h: c < 1e-3 ? null : norm((Math.atan2(B, A) * 180) / Math.PI) }
+}
+
+const oklchHue = (value) => toOklch(value)?.h ?? null
+
 /** Accent-ish custom properties, in declaration order. */
 function readAccents(css) {
   const out = []
@@ -357,6 +389,33 @@ function brandEcho() {
   }
   return null
 }
+
+const ECHO_COLOUR = /oklch\([^)]*\)|hsla?\([^)]*\)|#[0-9a-f]{6}\b/gi
+
+/* Under 0.05 OKLCH chroma an echoed colour is a tinted neutral ink, not an accent: Tailwind's
+   slate-900 #0f172a measures 0.040 and gray-900 0.032, a muted brand violet #6b5b95 0.091. */
+const ECHO_CHROMA_FLOOR = 0.05
+
+/** What a `Brand echo:` value names: its accent colours as OKLCH hues, and the text outside
+    parentheses as where a shipped family must appear whole-word. Misses: 3-digit hex and named
+    colours are not read; a family that is a whole word of a longer named one ("Inter" in
+    "Inter Display") counts as named, and so does one named outside parentheses in a negation
+    ("not Inter"); and a Tailwind colour utility is read at its family's 500-step hue, so a
+    violet echo also covers `purple-*`, 11° away. */
+function echoNames(echo) {
+  if (!echo) return null
+  const hues = [...echo.value.matchAll(ECHO_COLOUR)].map((m) => toOklch(m[0]))
+    .filter((o) => o && o.h !== null && o.c >= ECHO_CHROMA_FLOOR).map((o) => o.h)
+  return { path: echo.path, hues, text: echo.value.replace(ECHO_COLOUR, ' ').replace(/\([^()]*\)/g, ' ') }
+}
+
+/* 15°, the hue-repeat window, because a kept brand ships as a ramp of tokens around one hue.
+   Takes an OKLCH hue. */
+const echoesHue = (names, h) =>
+  !!names && h !== null && names.hues.some((e) => Math.min(Math.abs(e - h), 360 - Math.abs(e - h)) <= 15)
+
+const echoesFamily = (names, f) => !!names
+  && new RegExp(`(^|[^A-Za-z])${f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z]|$)`, 'i').test(names.text)
 
 /** The five recorded axis options, keyed by lowercase axis name. */
 function readDraw() {
@@ -1107,7 +1166,8 @@ function copyRegister(files, lexicon, voice) {
  *    grades a measure rather than an arrangement.
  *  - THEY CANNOT TELL A CHOICE FROM A DEFAULT. A legitimately violet brand and a
  *    third-party logo's own hex are indistinguishable from a hue reached for by
- *    not choosing. That is what the waiver REASON is for.
+ *    not choosing, unless the contract's `Brand echo:` names that value. Otherwise
+ *    that is what the waiver REASON is for.
  *  - THEY SAY NOTHING ABOUT COPY DEPTH OR PROP VALIDITY. Prop validity is a
  *    compiler's job — `tsc --noEmit` for a typed registry, `validate_usage` for
  *    ReUI — and copy depth is the craft-reviewer's, agent-graded.
@@ -1164,10 +1224,12 @@ const DEFAULT_SWATCHES = new Set([
   'a855f7', 'c084fc', '9333ea',   // purple
 ])
 const isDefaultSwatch = (hex) => DEFAULT_SWATCHES.has(String(hex).toLowerCase())
+/* The 500-step oklch angles from the derivation note above, so a named utility can meet a Brand echo. */
+const UTIL_FAMILY_OKLCH = { indigo: 277.1, violet: 292.7, purple: 303.9 }
 
-function utilityPalette(files) {
+function utilityPalette(files, kept) {
   if (!files.length) return record('utility-palette', 'SKIP', 'no shipped page source found to carry class strings')
-  const hits = []
+  const all = []
   let classStrings = 0
   for (const { file, src } of files) {
     for (const m of src.matchAll(CLASS_RE)) {
@@ -1175,7 +1237,8 @@ function utilityPalette(files) {
       classStrings++
       const at = lineAt(src, m.index)
       for (const u of cls.matchAll(UTIL_COLOR_RE)) {
-        hits.push({ how: 'named utility', marker: u[0], file: rel(file), line: at })
+        all.push({ how: 'named utility', marker: u[0], file: rel(file), line: at,
+          hue: UTIL_FAMILY_OKLCH[u[0].match(new RegExp(`-(${UTIL_FAMILY})-`))[1]] })
       }
       /* A hex literal inside a class attribute is BY CONSTRUCTION not a token —
          the token layer is where a derived accent lives, and an arbitrary value
@@ -1184,11 +1247,11 @@ function utilityPalette(files) {
          which is the anti-pattern register-corpus.md names. */
       for (const h of cls.matchAll(CLASS_HEX_RE)) {
         if (isDefaultSwatch(h[1])) {
-          hits.push({ how: 'default swatch as hex', marker: `#${h[1]}`, file: rel(file), line: at })
+          all.push({ how: 'default swatch as hex', marker: `#${h[1]}`, file: rel(file), line: at, hue: oklchHue(`#${h[1]}`) })
           continue
         }
         const hue = toHue(`#${h[1]}`)
-        if (inBand(hue)) hits.push({ how: `arbitrary value, ${hue.toFixed(1)}° ${hueFamily(hue)}, not a token`, marker: h[0], file: rel(file), line: at })
+        if (inBand(hue)) all.push({ how: `arbitrary value, ${hue.toFixed(1)}° ${hueFamily(hue)}, not a token`, marker: h[0], file: rel(file), line: at, hue: oklchHue(`#${h[1]}`) })
       }
     }
     for (const s of src.matchAll(STYLE_RE)) {
@@ -1196,10 +1259,13 @@ function utilityPalette(files) {
       const at = lineAt(src, s.index)
       for (const h of decl.matchAll(HEX_RE)) {
         const hue = toHue(`#${h[1]}`)
-        if (inBand(hue)) hits.push({ how: `inline style, ${hue.toFixed(1)}° ${hueFamily(hue)}, not a token`, marker: `#${h[1]}`, file: rel(file), line: at })
+        if (inBand(hue)) all.push({ how: `inline style, ${hue.toFixed(1)}° ${hueFamily(hue)}, not a token`, marker: `#${h[1]}`, file: rel(file), line: at, hue: oklchHue(`#${h[1]}`) })
       }
     }
   }
+  const echoed = [...new Set(all.filter((h) => echoesHue(kept, h.hue)).map((h) => h.marker))]
+  const hits = all.filter((h) => !echoed.includes(h.marker))
+  if (echoed.length) notes.push(`utility-palette: [${echoed.join(', ')}] echo the kept brand named in ${kept.path} — not a finding`)
   const seen = new Set()
   const uniq = hits.filter((h) => {
     const k = `${h.file}|${h.marker}`
@@ -1217,7 +1283,9 @@ function utilityPalette(files) {
       + `still clears it. Derive the accent and then use it — or, when the brand genuinely is violet or a `
       + `third-party mark owns that hex, waive this with that reason. `
       + `Reproduce: grep -rn ${JSON.stringify(uniq[0]?.marker ?? '')} ${uniq[0]?.file ?? ''}`,
-    `no indigo/violet/purple utility, no default swatch and no in-band arbitrary hex across ${classStrings} class string(s) in `
+    (echoed.length ? `no indigo/violet/purple utility, default swatch or in-band arbitrary hex but the kept brand's [${echoed.join(', ')}] across `
+      : 'no indigo/violet/purple utility, no default swatch and no in-band arbitrary hex across ')
+      + `${classStrings} class string(s) in `
       + `${files.length} page file(s); families derived from the ${DEFAULT_BAND[0]}-${DEFAULT_BAND[1]}° band, not listed by taste`)
 }
 
@@ -1230,7 +1298,7 @@ const NEXT_FONT_RE = /import\s*\{([^}]*)\}\s*from\s*['"]next\/font\/google['"]/g
 const GOOGLE_FAMILY_RE = /fonts\.googleapis\.com\/css2\?[^"'`\s>]*/g
 const FAMILY_PARAM_RE = /family=([^&:"'`\s>]+)/g
 
-function utilityFont(files, corpus) {
+function utilityFont(files, corpus, kept) {
   if (!files.length) return record('utility-font', 'SKIP', 'no shipped page source found to declare a family')
   const found = []
   const add = (name, file, line, how) => {
@@ -1257,8 +1325,10 @@ function utilityFont(files, corpus) {
       'no family named by an arbitrary `font-[…]` utility, a next/font/google import or a fonts.googleapis.com '
       + `link across ${files.length} page file(s) — nothing to grade at the utility layer`)
   }
-  const hits = found.filter((f) =>
-    new RegExp(`(^|[^A-Za-z])${esc(f.name)}([^A-Za-z]|$)`, 'i').test(corpus.familyText))
+  const echoed = [...new Set(found.filter((f) => echoesFamily(kept, f.name)).map((f) => f.name))]
+  if (echoed.length) notes.push(`utility-font: [${echoed.join(', ')}] echo the kept brand named in ${kept.path} — not a finding`)
+  const hits = found.filter((f) => !echoed.includes(f.name)
+    && new RegExp(`(^|[^A-Za-z])${esc(f.name)}([^A-Za-z]|$)`, 'i').test(corpus.familyText))
   const seen = new Set()
   const uniq = hits.filter((h) => {
     const k = `${h.file}|${h.name.toLowerCase()}`
@@ -1275,7 +1345,7 @@ function utilityFont(files, corpus) {
       + `exactly the stack this plugin ships guidance for. Pick a face with an argument behind it, or waive this `
       + `with the reason. Reproduce: grep -rn ${JSON.stringify(uniq[0]?.name ?? '')} ${uniq[0]?.file ?? ''}`,
     `families reaching the page through the utility layer [${names.join(', ')}] are not anti-corpus entries in the `
-      + `${corpus.kind} (${corpus.date})`)
+      + `${corpus.kind} (${corpus.date})` + (echoed.length ? ` or echo the kept brand (${echoed.join(', ')})` : ''))
 }
 
 /* ------------------------------------------------------------------ run */
@@ -1538,8 +1608,10 @@ copyRegister(shippedCopy, copyLexicon, voice)
 /* Same walk, same reason: the utility-layer pair reads SOURCE only, so its
    verdicts survive the exit-2 path below. A build that ships its palette in
    class strings is the one most likely to have no token stylesheet at all. */
-utilityPalette(shippedCopy)
-utilityFont(shippedCopy, anti)
+const echo = brandEcho()
+const kept = echoNames(echo)
+utilityPalette(shippedCopy, kept)
+utilityFont(shippedCopy, anti, kept)
 
 /** Print what IS measured before a not-measured exit, so the register verdict is
     never swallowed by a missing token source. */
@@ -1591,7 +1663,6 @@ const families = [...new Set(cssFiles.flatMap((f) => {
   try { return readFamilies(readFileSync(f, 'utf8')) } catch { return [] }
 }))]
 
-const echo = brandEcho()
 const drawn = readDraw()
 
 /* THE RUN MUST NOT BE COMPARED AGAINST ITSELF.
@@ -1634,13 +1705,20 @@ if (echo) notes.push(`brand-echo row found in ${echo.path} ("${echo.value}") —
 
 /* (i) accent hue inside the category-default band ------------------------- */
 {
-  const hit = accents.find((a) => a.hue >= DEFAULT_BAND[0] && a.hue <= DEFAULT_BAND[1])
+  const inBand = accents.filter((a) => a.hue >= DEFAULT_BAND[0] && a.hue <= DEFAULT_BAND[1])
+  const echoed = inBand.filter((a) => echoesHue(kept, oklchHue(a.value)))
+  const hit = inBand.find((a) => !echoed.includes(a))
+  const echoedNames = [...new Set(echoed.map((a) => a.name))]
+  if (echoed.length) {
+    notes.push(`accent-default-band: ${echoedNames.join(', ')} echo the kept brand named in ${echo.path} — not a finding`)
+  }
   settle('accent-default-band', !!hit, hit ? Math.round(hit.hue) : '',
     hit ? `${hit.name}: ${hit.value} — hue ${hit.hue.toFixed(1)}° (${hit.family}) is inside the `
       + `${DEFAULT_BAND[0]}-${DEFAULT_BAND[1]}° category-default band. Reproduce: `
       + `grep -n '${hit.name}' ${tokenPath}` : '',
     `accents at ${accents.map((a) => `${Math.round(a.hue)}° ${a.family}`).join(', ')} clear the `
-      + `${DEFAULT_BAND[0]}-${DEFAULT_BAND[1]}° band`)
+      + `${DEFAULT_BAND[0]}-${DEFAULT_BAND[1]}° band`
+      + (echoed.length ? ` or echo the kept brand (${echoedNames.join(', ')})` : ''))
 }
 
 /* (ii) accent hue repeats one of the last 5 runs -------------------------- */
@@ -1686,9 +1764,14 @@ const NOTO_DEFAULT = /^\s*Noto\s+(?:Sans|Serif|Naskh|Nastaliq|Kufi|Rashi)\b/i
 
 if (!families.length) record('font-anti-corpus', 'SKIP', `no non-generic font-family declared in ${cssFiles.join(', ')}`)
 else {
-  const listed = families.find((f) =>
+  const echoed = families.filter((f) => echoesFamily(kept, f))
+  const judged = families.filter((f) => !echoed.includes(f))
+  if (echoed.length) {
+    notes.push(`font-anti-corpus: [${echoed.join(', ')}] echo the kept brand named in ${echo.path} — not a finding`)
+  }
+  const listed = judged.find((f) =>
     new RegExp(`(^|[^A-Za-z])${f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z]|$)`, 'i').test(anti.familyText))
-  const noto = families.find((f) => NOTO_DEFAULT.test(f))
+  const noto = judged.find((f) => NOTO_DEFAULT.test(f))
   const hit = listed ?? noto
   settle('font-anti-corpus', !!hit, hit ?? '',
     listed
@@ -1701,7 +1784,10 @@ else {
         + `Pick a face with a real argument behind it, or waive this with the reason (for some `
         + `scripts the alternatives are genuinely few, and that is a decision worth recording). `
         + `Reproduce: grep -rn "font-family" ${cssFiles.join(' ')}`,
-    `shipped families [${families.join(', ')}] are not anti-corpus entries and none is a Noto per-script default`)
+    echoed.length
+      ? `[${echoed.join(', ')}] echo the kept brand${judged.length
+        ? `; [${judged.join(', ')}] are not anti-corpus entries and none is a Noto per-script default` : ''}`
+      : `shipped families [${families.join(', ')}] are not anti-corpus entries and none is a Noto per-script default`)
 }
 
 /* (iv) a shipped family repeats one of the last 5 runs -------------------- */

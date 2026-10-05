@@ -4,6 +4,59 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.121.0] - 2026-10-05
+
+Four pieces of [leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill) at ce26fc25 (MIT, © 2026 Leonxlnx),
+rewritten here rather than copied and credited in the READMEs of code-review, craft-layer, ui-ux and ui-libraries, plus
+the review fixes from #192. The skill-by-skill mapping, the conflicts left on this marketplace's side and the
+measurements are in `rationale/taste-skill-fold-2026-10-05.md`.
+
+- **code-review 0.30.0, stack-scan 0.11.3 — a write that would lose code to a placeholder comment is refused.** `scan.sh`
+  denies a `Write`, an `Edit`/`MultiEdit` or an overwriting Bash heredoc (`cat > f`, `tee f` without `-a`) over an existing
+  file only when both hold: a non-blank line of the replaced text (the file on disk, or the `old_string`s) is gone from the
+  new text, AND a new placeholder comment appears (`// ... existing code ...`, `{/* ... existing JSX ... */}`,
+  `<!-- ... rest of the template -->`). For an `Edit` two comparisons must agree that the placeholder is new — the whole file
+  after the edits against the file on disk, and the `new_string`s against the `old_string`s. A pure addition, a new file,
+  an appending heredoc and a `Write` over a file over 1 MiB are never refused; a placeholder in a new or empty file and an
+  ellipsis-only comment warn. Its own switch, `CC_ELISION_GUARD=off` or the `/config` option `cc_elision_guard`, turns
+  off the deny only — the warning stays — and `CC_COMMENT_GUARD=off` leaves it on; two denies per file per session on a budget of its own. Measured on
+  2026-10-05 with the hook's own counter: owner corpus files=14584 matches=3 genuine=3 false-positives=0, system corpus
+  files=1992 matches=1 genuine=1 false-positives=0, a replay of 4,783 pairs of consecutive real git revisions drew 0
+  denies, and ellipsis-only comments warned in 2 owner and 8 system files. Added time, median of 20 runs: +1 ms on a Bash
+  call that writes nothing (19 ms → 19 ms), +22 ms on a `PostToolUse` `Write` with no warning pending, and +1,381 ms
+  (252 ms → 1,633 ms) on the worst case measured, a full-file `Write` over a 1 MiB backtick-dense `.ts`. Still missed, as
+  stated in code-review's CHANGELOG: wording outside the pinned list, an ellipsis glued to a name or bracketed, a
+  placeholder trailing code, a doc-comment line, a placeholder inside a multi-line string, an `Edit` whose `new_string`
+  opens by closing a template literal; and after two denies per file the write lands with only a warning, so code can
+  still be lost. Two stated refusals, pinned and seen in neither sample: placeholder-shaped text inside a string the
+  tracker misreads, and prose an ellipsis opens with a listed phrase, each in a write that removes a line. Standing:
+  **gate** — `plugins/code-review/scripts/__tests__/elision-guard.test.sh` runs in CI's plugin-harness step. stack-scan's scout catalog carries code-review's new description.
+- **craft-layer 0.56.0, ui-ux 0.29.0 — a redesign keeps what users and systems rely on.** `/craft-layer:craft` detects an
+  existing site and defaults to `keep-brand` unless the brief asks for a new look, records the concrete URL slugs, anchors,
+  nav labels, form fields, analytics IDs, logo and legal copy in `<project>/.craft-layer/preserve.json`, and asks before
+  changing any of them inside the concept fork's existing call; `craft-reviewer` checks the build against the file. A
+  kept brand's echoed accent and families no longer fail the accent and font gates. `/ui-ux:build` and `ui-ux-engineer`
+  carry the never-change rule for any existing page. Standing: agent-graded, except the `Brand echo:` exemption (gate).
+- **craft-layer 0.56.0 — nine more category-default tells and seven layout floors.** Scroll cues, decorative status dots,
+  version footers, city/time/weather strips, pills over photographs, invented photo credits, a hairline under every list
+  row, grey-track progress bars and poetic section labels join the sameness fingerprint (agent-graded; the worded scroll
+  cue is a copy-lexicon gate row). The craft audit measures headline lines, CTA position, nav lines, section polarity and
+  empty grid cells into `layout-floors.json`, and `craft-reviewer` judges seven floors against the concept's argument —
+  report-only, never failing the audit alone; the fixture proof runs locally and SKIPs in CI, which has no Chromium.
+- **ui-libraries 0.2.0, skill-router 0.23.1 — an organisation's own service uses its official design system.** For a
+  GOV.UK service, a US federal `.gov` site, a Shopify app, an IBM product or an Atlassian app, `component-libraries` makes
+  the official package required, above "do not install one unasked"; a lookalike brief never installs a restricted
+  system. `library-map.md` gains GOV.UK Frontend, USWDS, Polaris, Carbon and Atlassian rows with versions and use
+  restrictions read from the official sources on 2026-10-05; skill-router routes their quoted imports. ui-libraries'
+  always-on baseline moved +37 tokens (408 → 445), the only baseline this release moved.
+- **Review fixes from #192 — code-review 0.30.0; candor and command-guard doc-only, not bumped.** `density.sh`'s refusal
+  names `COMMENT_DISCIPLINE_CEILING_TENTHS` for a heavier house style, its ending unchanged; the 50-line short rule says
+  non-blank lines everywhere it is stated; `comment-discipline`'s keep list names an example for a genuinely non-obvious
+  call; candor's README says the preamble is bounded in bytes; command-guard's 0.8.4 notes claim only verdicts that
+  differ between 0.8.3 and 0.8.4; `scripts/smoke/hook-guard-tests.sh` runs its no-jq case on all five reminder hooks.
+- **Unmeasured:** whether any of these rules changes what the model writes, builds or installs. No eval with a control
+  arm covers them.
+
 ## [0.120.0] - 2026-10-05
 
 - **code-review 0.25.0 — the comment hooks judge Bash heredocs and installers' own scripts.** `scan.sh` and
