@@ -50,12 +50,15 @@ the hook: a miss is acceptable, a false refusal is not.
 ## The elision measurement (`evidence/elision-measure.txt`, final grammar)
 
 Quoted, not rounded: `corpus-owner: files=14584 matches=3 genuine=3 false-positives=0`;
-`corpus-system: files=1992 matches=1 genuine=1 false-positives=0`;
-`replay: pairs=4783 denies=0 denies-unexplained=0`; `ellipsis-only: owner=2 system=8 (warn only;
-4 and 15 before doc-comment lines stopped counting)`. Grammar checksum 1938131961 over `scan.sh`
-file cksum 3895726106. The system match is a committed "rest of the file" placeholder in Homebrew
-sbcl 2.6.9 `src/runtime/arm64-win32-os.c`. The replay sent the newest 100 governed-file
-modifications per repository (85 repos; 4,828 listed, 45 skipped as over 2 MB or holding a
+`corpus-system: files=1992 matches=0 genuine=0 false-positives=0`;
+`replay: pairs=4758 denies=0 denies-unexplained=0`; `ellipsis-only: owner=2 system=8 (warn only;
+4 and 15 before doc-comment lines stopped counting)`. Grammar checksum 1618130685 over `scan.sh`
+file cksum 1087914531, after the phrase-first rule (below). The one genuine system match before that
+rule — a committed nine-word "rest of the file" placeholder with its phrase inside parentheses, in
+Homebrew sbcl 2.6.9 `src/runtime/arm64-win32-os.c` — is now missed, the rule's measured cost. The
+replay drivers were rebuilt from the method lines for the final run (80 repos, 4,758 pairs, against
+the earlier 85 and 4,783). Each replay sent the newest 100 governed-file modifications per
+repository (the earlier run: 4,828 listed, 45 skipped as over 2 MB or holding a
 5,000-character line) as `Write`s over their predecessors; a synthetic positive control was
 denied. A separate review replayed 13,182 `Edit`s and 5,326 `Write`s from 69 repositories'
 transcripts with 0 allow → deny under default settings, on the grammar before the last two
@@ -93,7 +96,11 @@ Each step was forced by a false refusal a review reproduced (the run's reviews, 
 The grammar then tightened twice on the transcript replay's findings: an ellipsis counts only
 unquoted at the start or end of the comment body (its 20 elision denies were all a quoted or
 described ellipsis, each already a comment deny on master), doc-comment lines never count, and a
-closing ellipsis counts only after a code noun.
+closing ellipsis counts only after a code noun. The fresh pre-merge reviews (Opus and Fable)
+then reproduced a TODO with a closing ellipsis after a code noun (`// TODO: handle the remaining
+cases...`) refused while a line changed, so the phrase must now START the body and the body hold at
+most six words — which also removed the prose an ellipsis opens with. One stated refusal remains:
+placeholder-shaped text inside a string the tracker misreads, with a line removed.
 
 ## Design-system facts, verified 2026-10-05 against npm and the official docs
 

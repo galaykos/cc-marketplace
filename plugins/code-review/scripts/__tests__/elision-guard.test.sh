@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Pins scan.sh's elision deny: a PreToolUse write that replaces existing code with a placeholder
-# comment (`// ... existing code ...`) is refused at most twice per file, and nothing benign is except two
-# stated refusals, each with a line removed: placeholder text in a string the tracker misreads, and prose an
-# ellipsis opens with a listed phrase. A placeholder the deny lets through draws one PostToolUse warning, and a
-# kept one draws none.
+# comment (`// ... existing code ...`) is refused at most twice per file, and nothing benign is except one
+# stated refusal, with a line removed: placeholder text in a string the tracker misreads. A placeholder the deny
+# lets through draws one PostToolUse warning, and a kept one draws none.
 # Misses: the host's userConfig export itself — CLAUDE_PLUGIN_OPTION_* is set by hand here.
 set -u
 PLUGIN=$(cd "$(dirname "$0")/../.." && pwd) || exit 1
@@ -340,10 +339,54 @@ prose "prose ending in an ellipsis is never judged: doc example label" "/**
 $(noted '')"
 prose "bracketed placeholder is a stated miss" "$(noted '  // [...] existing code')"
 prose "bracketed placeholder is a stated miss: closing" "$(noted '  // existing code (...)')"
-put src/lazy.ts "$TOT"
-denies "prose opening with an ellipsis and a listed phrase is a stated refusal" \
-  "$(write src/lazy.ts "$(noted '  // ... and the rest of the file is parsed lazily')")" \
-  "// ... and the rest of the file is parsed lazily"
+prose "prose opening with an ellipsis and a later phrase is never judged" \
+  "$(noted '  // ... and the rest of the file is parsed lazily')"
+prose "prose opening with an ellipsis and a later phrase is never judged: short" "$(noted '  // ... and the rest of the file')"
+prose "prose opening with an ellipsis and a later phrase is never judged: closing after a code noun" \
+  "$(noted '  // e.g. // ... existing code ...')"
+prose "todo with a closing ellipsis after a code noun is never judged" "$(noted '  // TODO: handle the remaining cases...')"
+put src/port.py 'def total(items):
+    return sum(items)'
+silent "todo with a closing ellipsis after a code noun is never judged: python" "$(write src/port.py 'def total(items):
+    # TODO: port the remaining methods ...
+    return sum(item for item in items)')"
+prose "long prose sentence holding a placeholder phrase is never judged" \
+  "$(noted '  // ... rest of the file is parsed lazily on first access')"
+prose "long prose sentence holding a placeholder phrase is never judged: seven words" \
+  "$(noted '  // ... rest of the file is parsed lazily')"
+prose "long prose sentence holding a placeholder phrase is never judged: closing" \
+  "$(noted '  // existing code paths keep working as they did before ...')"
+
+# Contract: a placeholder is short and phrase-first — at most six words, the phrase right after an opening ellipsis or first.
+sn=0
+short() { sn=$((sn + 1)); put "src/short$sn.ts" "$TOT"; denies "$1" "$(write "src/short$sn.ts" "$(noted "  $2")")" "$2"; }
+short "short phrase-first placeholders are still denied" '// ... existing code ...'
+short "short phrase-first placeholders are still denied: rest of the file unchanged" '// ... rest of the file unchanged ...'
+short "short phrase-first placeholders are still denied: closing ellipsis" '// rest of the implementation ...'
+short "short phrase-first placeholders are still denied: block comment" '/* ... other methods ... */'
+short "short phrase-first placeholders are still denied: six words" '// ... rest of the file is unchanged ...'
+put src/Short.tsx 'export function Short({ title }: ShortProps) {
+  return (
+    <section>
+      <h2>{title}</h2>
+    </section>
+  );
+}'
+denies "short phrase-first placeholders are still denied: jsx" "$(write src/Short.tsx 'export function Short({ title }: ShortProps) {
+  return (
+    <section>
+      {/* ... existing JSX ... */}
+    </section>
+  );
+}')" "{/* ... existing JSX ... */}"
+put src/short.py 'def kind(x):
+    if x < 0:
+        return "negative"
+    return "positive"'
+denies "short phrase-first placeholders are still denied: hash comment" "$(write src/short.py 'def kind(x):
+    if x < 0:
+        return "negative"
+    # ... remaining cases ...')" "# ... remaining cases ..."
 
 fresh; put NOTES.md '# Notes
 

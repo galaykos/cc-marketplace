@@ -22,15 +22,16 @@ measurements are in `rationale/taste-skill-fold-2026-10-05.md`.
   ellipsis-only comment warn. Its own switch, `CC_ELISION_GUARD=off` or the `/config` option `cc_elision_guard`, turns
   off the deny only — the warning stays — and `CC_COMMENT_GUARD=off` leaves it on; two denies per file per session on a budget of its own. Measured on
   2026-10-05 with the hook's own counter: owner corpus files=14584 matches=3 genuine=3 false-positives=0, system corpus
-  files=1992 matches=1 genuine=1 false-positives=0, a replay of 4,783 pairs of consecutive real git revisions drew 0
+  files=1992 matches=0 genuine=0 false-positives=0 (its one committed placeholder, nine words with the phrase in
+  parentheses, is a miss), a replay of 4,758 pairs of consecutive real git revisions drew 0
   denies, and ellipsis-only comments warned in 2 owner and 8 system files. Added time, median of 20 runs: +1 ms on a Bash
   call that writes nothing (19 ms → 19 ms), +22 ms on a `PostToolUse` `Write` with no warning pending, and +1,381 ms
   (252 ms → 1,633 ms) on the worst case measured, a full-file `Write` over a 1 MiB backtick-dense `.ts`. Still missed, as
-  stated in code-review's CHANGELOG: wording outside the pinned list, an ellipsis glued to a name or bracketed, a
-  placeholder trailing code, a doc-comment line, a placeholder inside a multi-line string, an `Edit` whose `new_string`
-  opens by closing a template literal; and after two denies per file the write lands with only a warning, so code can
-  still be lost. Two stated refusals, pinned and seen in neither sample: placeholder-shaped text inside a string the
-  tracker misreads, and prose an ellipsis opens with a listed phrase, each in a write that removes a line. Standing:
+  stated in code-review's CHANGELOG: wording outside the pinned list, an ellipsis glued to a name or bracketed, a listed
+  phrase not at the body start, a body over six words, a placeholder trailing code, a doc-comment line, a placeholder
+  inside a multi-line string, an `Edit` whose `new_string` opens by closing a template literal; and after two denies per
+  file the write lands with only a warning, so code can still be lost. One stated refusal, pinned and seen in neither
+  sample: placeholder-shaped text inside a string the tracker misreads, in a write that removes a line. Standing:
   **gate** — `plugins/code-review/scripts/__tests__/elision-guard.test.sh` runs in CI's plugin-harness step. stack-scan's scout catalog carries code-review's new description.
 - **craft-layer 0.56.0, ui-ux 0.29.0 — a redesign keeps what users and systems rely on.** `/craft-layer:craft` detects an
   existing site and defaults to `keep-brand` unless the brief asks for a new look, records the concrete URL slugs, anchors,

@@ -23,8 +23,9 @@ to go for the rest.
   `Stack:`/`Locks:` line in the dispatch outranks this rule.
 - The project IS an organisation's own service or platform app — said in the brief or
   evident in the repo: a GOV.UK domain (`gov.uk/myservice`, `myservice.service.gov.uk`,
-  `myblog.blog.gov.uk` — not every `*.gov.uk` site), a `.gov` site, a Shopify app, an IBM
-  product, an Atlassian app? Its official package (GOV.UK Frontend, USWDS, Polaris, Carbon,
+  `myblog.blog.gov.uk` — not every `*.gov.uk` site), a US federal `.gov` site, a Shopify app's
+  embedded admin UI (App Home), an IBM product, an Atlassian app? Its official package (GOV.UK
+  Frontend, USWDS, Polaris, Carbon,
   Atlassian — the map's Organisation design systems rows) is the required library. That
   ranks above "do not install one unasked": the system is the requirement. Against "build
   in the library the project has", a repo already on a different library makes it a

@@ -186,15 +186,16 @@ the new text holds more placeholder comments than the replaced text. Over such a
 pure addition is never refused or warned. An `Edit` needs two comparisons to agree that it adds one: the
 whole file after the edits against the file on disk (CRLF line ends normalised), and the
 `new_string`s against the `old_string`s; when they disagree it is neither refused nor
-warned, and when the file is over 1 MiB or holds no copy of an `old_string` the second
-comparison decides alone. The refusal starts `elision-guard:`, names the placeholder line,
+warned, and when the file is over 1 MiB, holds no copy of an `old_string`, or `jq` is older
+than 1.6 (no `--rawfile`), the second comparison decides alone. The refusal starts `elision-guard:`, names the placeholder line,
 says to re-read the file and write it whole or use `Edit`, and ends by naming its switch,
 `CC_ELISION_GUARD=off` (plus the Bash suffix on a heredoc).
 
-A placeholder is a comment body, in any letter case and after any brackets enclosing the
-whole body, that an ellipsis (`...` or `…`) either opens, with no name glued to it, or
-closes. An opening ellipsis counts with any of these phrases; a closing one only with a
-code noun from the first five:
+A placeholder is a short, phrase-first comment body, in any letter case and after any
+brackets enclosing the whole body: at most six words once its ellipses are removed, and
+either an ellipsis (`...` or `…`) opens it, with no name glued to it, and one of these
+phrases follows directly (a `the` allowed first), or it starts with a code noun from the
+first five and an ellipsis closes it:
 
 - `existing code`, `implementation`, `jsx`, `markup`, `template` or `html`;
 - `rest of (the) code`, `file`, `class`, `function`, `method`, `component`,
@@ -207,7 +208,9 @@ code noun from the first five:
   `implementation`, `keep (the) existing`.
 
 So `// ... existing code ...`, `// (... existing code ...)` and `// rest of the file
-unchanged ...` count; `// omitted ...` and `// keep ... existing code` do not. Markup
+unchanged ...` count; `// omitted ...`, `// keep ... existing code`, `// ... and the rest of
+the file`, `// TODO: handle the remaining cases...` and the seven-word `// ... rest of the
+file is parsed lazily` do not. Markup
 comments count: `{/* ... existing JSX ... */}` in a `.tsx`, `<!-- ... rest of the template
 -->` in a `.vue`. A doc comment (`/** */`, `///`, `//!`, a docstring) never counts.
 
@@ -231,40 +234,41 @@ comments count: `{/* ... existing JSX ... */}` in a `.tsx`, `<!-- ... rest of th
   its line; a markup comment spanning lines; an ellipsis glued to a name (`// ...existing
   code`, `...$rest`); an ellipsis neither opening nor closing the body (`// keep ...
   existing code`, `// existing code ...;`) or bracketed (`// [...] existing code`,
-  `// existing code (...)`); one closing it after no code noun (`// omitted ...`); any line
-  of a doc comment; a placeholder inside a multi-line string; every line after an
+  `// existing code (...)`); one closing it after no code noun (`// omitted ...`); a listed
+  phrase not at the body start (`// ... and the rest of the file`, `// TODO: handle the
+  remaining cases...`); a body over six words; any line of a doc comment; a placeholder inside a multi-line string; every line after an
   unbalanced backtick (a regex such as `` /`/g ``, JSX text) or a `$(( 1 << y ))` up to
   the next one, or after a `/\/*` regex read as an opening block comment; a placeholder
   added where no line is removed; an `Edit` adding a placeholder line the file already
   holds; an `Edit` whose `new_string` opens by closing a template literal and then adds a
   placeholder; a `Write` over a file over 1 MiB. After two denies the write goes through
   with only a warning, so code can still be lost.
-- **Two stated refusals**, each pinned by a harness case and seen 0 times in the samples
-  and the replay below. A write that removes a line is refused for (1) placeholder-shaped
-  text inside a string the tracker misreads — a PHP `<<<` body, a template literal after
-  a `/\/*` regex — and (2) prose that an ellipsis opens with a listed phrase
-  (`// ... and the rest of the file is parsed lazily`) or closes after a code noun
-  (`// e.g. // ... existing code ...`, a usage line in a plain `/* */` block).
+- **One stated refusal**, pinned by a harness case and seen 0 times in the samples and
+  the replay below. A write that removes a line is refused for placeholder-shaped text
+  inside a string the tracker misreads — a PHP `<<<` body, a template literal after a
+  `/\/*` regex.
 - **Read as comments, so their text can be refused or warned:** PHP `<<<` and Ruby `<<~`
   heredocs, Rust raw and C# verbatim strings, Elixir and Julia `"""`, Perl `<<EOT`, Lua
   `[[ ]]`, C++ `R"(`, plain multi-line strings in Rust, PHP and Ruby, and an `Edit` whose
   `new_string` starts inside a string its unchanged text opened, when the file is missing,
-  over 1 MiB or holds no copy of an `old_string`.
+  over 1 MiB or holds no copy of an `old_string`, or when the host's `jq` is older than 1.6.
 
 Measured on real code on 2026-10-05 with `scan.sh`'s own counter, on the grammar this
 release ships: the plugin author's repositories (14,584 files) held 3 matches, all genuine
-placeholders, and system and standard-library code (1,992 files) held 1, a committed "rest
-of the file" placeholder in a Homebrew package's C source — 0 false positives in either.
-Files holding an ellipsis-only comment, which only warns: 2 and 8. Replaying 4,783 pairs of
-consecutive real git revisions across 85 of those repositories, each revision written as a
+placeholders, and system and standard-library code (1,992 files) held 0 — 0 false positives
+in either. Its one committed placeholder, a nine-word "rest of the file" comment in a
+Homebrew package's C source with the phrase inside parentheses, matched until the body had
+to be short and phrase-first; it is missed now.
+Files holding an ellipsis-only comment, which only warns: 2 and 8. Replaying 4,758 pairs of
+consecutive real git revisions across 80 of those repositories, each revision written as a
 `Write` over its predecessor under default settings, drew 0 elision denies. An independent
 review replayed 13,182 real `Edit`s and 5,326 `Write`s from session transcripts across 69
 repositories with 0 allow → deny under default settings; it ran on the grammar before the
-last two tightenings (an unquoted ellipsis at the start or end of the body; doc-comment lines
-and closing ellipses), and they only removed matches.
+last three tightenings (an unquoted ellipsis at the start or end of the body; doc-comment lines
+and closing ellipses; a short, phrase-first body), and they only removed matches.
 
-Added hook time against 0.29.0, measured on this release's `scan.sh` as shipped (file
-cksum 3895726106), median of 20 runs on one macOS machine, against a 15 s timeout: +1 ms
+Added hook time against 0.29.0, measured on the build before the final phrase-first rule (file
+cksum 3895726106; that rule adds a word count per counted comment and was not re-timed), median of 20 runs on one macOS machine, against a 15 s timeout: +1 ms
 for a Bash call that writes nothing (19 ms); +22 ms for a `PostToolUse` `Write` with no
 warning pending (64 ms); over a 1 MiB plain `.ts` at the cap, +255 ms for a short `Write`
 adding a placeholder (297 ms), +349 ms for a full-file one (671 ms) and +768 ms for an

@@ -195,7 +195,9 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
 6. **Build.** Pass the build task — the section ledger's choices when step 3 ran, step 4's
    `Assets / provenance:` and `Components / provenance:` lines, and step 5's six lines — to
    `/ui-ux:build`, applying `design-tokens` and, for data-dense CRM/SaaS surfaces,
-   `information-design`. ONE pass: layout and motion land together, because the signature and the
+   `information-design`. When step 0 wrote `preserve.json`, the dispatch also carries its `approved`
+   entries, each `item` → `change`, as the explicit asks: `ui-ux-engineer` applies those and keeps every
+   other recorded value. ONE pass: layout and motion land together, because the signature and the
    scroll device are structural, not decoration applied afterwards. A section assigned to a registry
    block is restyled to this build's tokens IN THAT SAME PASS and ships its `component-source:` marker.
 

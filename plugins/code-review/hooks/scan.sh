@@ -534,9 +534,10 @@ cc_bash_write_chunks() {
     s = substr(s, 1, k - 1); sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s)
     return s
   }
-  # Counts non-doc bodies an ellipsis opens (no name after it) with an ELIDE phrase, or closes with an ELIDN code noun, enclosing brackets aside,
-  # so never a quoted one: a placeholder is never documentation. EO counts ellipsis-only bodies, EL is the first such line.
-  function elision_n(   i, b, x, u, re, k, n, f, e) {
+  # Counts non-doc bodies of at most six words, ellipses and enclosing brackets aside, that an ellipsis opens (no name after it)
+  # with an ELIDE phrase next, "the" allowed first, or closes after an ELIDN code noun that starts the body: a placeholder is
+  # short and phrase-first, and never documentation. EO counts ellipsis-only bodies, EL is the first such line.
+  function elision_n(   i, b, x, u, w, W, re, j, c, k, n, f, e) {
     n = EO = f = e = 0; EL = ""
     for (i = 1; i <= T; i++) {
       if (EX[i] || STR[i] || DOC[i] || DL[i]) continue
@@ -546,11 +547,12 @@ cc_bash_write_chunks() {
       while ((k = index(x, "…"))) x = substr(x, 1, k - 1) "..." substr(x, k + length("…"))
       u = x; sub(/[ \t\r]+$/, "", u)
       while (u ~ /^([(].*[)]|[[].*[]]|[{].*[}])$/) { u = substr(u, 2, length(u) - 2); sub(/^[ \t]+/, "", u); sub(/[ \t]+$/, "", u) }
-      if (u ~ /^\.\.\.([^a-z0-9_$]|$)/) re = ELIDE
-      else if (u ~ /\.\.\.$/) re = ELIDN
+      if (u ~ /^\.\.\.([^a-z0-9_$]|$)/) { re = ELIDE; w = substr(u, 4) }
+      else if (u ~ /\.\.\.$/) { re = ELIDN; w = u }
       else continue
-      gsub(/[ \t]+/, " ", x)
-      if (x ~ re) { if (!n++) f = i }
+      gsub(/[ \t]+/, " ", x); gsub(/[ \t]+/, " ", w); sub(/^ /, "", w)
+      c = 0; k = split(w, W, /\.\.\.| /); for (j = 1; j <= k; j++) if (W[j] ~ /[a-z0-9]/) c++
+      if (w ~ re && c <= 6) { if (!n++) f = i }
       else if (x ~ /^[ .\r]*$/) { if (!EO++) e = i }
     }
     if ((k = f ? f : e)) { EL = L[k]; sub(/^[ \t]+/, "", EL); sub(/[ \t\r]+$/, "", EL); EL = substr(EL, 1, 120) }
@@ -868,8 +870,8 @@ cc_bash_write_chunks() {
       "|rest of (the )?(code|file|class|function|method|component|implementation|template|markup|jsx|html)" \
       "|remaining (code|methods|functions|fields|cases)|(code|implementation|logic) unchanged|unchanged (code|implementation|logic)" \
       "|other (methods|functions|code|fields)"
-    ELIDE = "(^|[^a-z0-9_])(" ELIDN "|same as (above|before)|omitted|previous (code|implementation)|keep (the )?existing)([^a-z0-9_]|$)"
-    ELIDN = "(^|[^a-z0-9_])(" ELIDN ")([^a-z0-9_]|$)"
+    ELIDE = "^(the )?(" ELIDN "|same as (above|before)|omitted|previous (code|implementation)|keep (the )?existing)([^a-z0-9_]|$)"
+    ELIDN = "^(" ELIDN ")([^a-z0-9_]|$)"
     DATE = "[0-9][0-9][0-9][0-9][-/][0-9][0-9]?[-/][0-9][0-9]?"
     NATIVE = "^(int|integer|string|str|bool|boolean|float|double|array|object|mixed|void|null|self|static|callable|iterable|never|true|false|number|any|unknown|bytes|list|dict|tuple|set)$"
     FACT = "(^|[^a-z])(null|none|nil|no|not|only|unless|until|when|if|must|may|default|defaults|optional|otherwise|fallback|throws?|thrown|raises?|exceptions?|errors?|example|e\\.g|i\\.e|ms|milliseconds?|seconds?|secs?|minutes?|hours?|days?|bytes?|kb|mb|gb|percent|pixels?|px|utc|caller|owns|owned|ownership|borrowed|lifetime|ttl|expires?|range|min|max|minimum|maximum|between|least|most|positive|negative|inclusive|exclusive|empty|this|new|old|same|fresh|copy)([^a-z]|$)"
@@ -1117,15 +1119,15 @@ cc_bash_write_chunks() {
   # Misses: a placeholder trailing code on its line, a markup comment spanning lines, `// ...existing code` or `...$rest`
   # (glued), an ellipsis neither opening nor closing the body (`// keep ... existing code`, `// existing code ...;`) or
   # bracketed (`// [...] existing code`, `// existing code (...)`), one closing it after no code noun (`// omitted ...`),
+  # a phrase not at the body start (`// ... and the rest of the file`, `// TODO: handle the remaining cases...`), a body over
+  # six words (`// ... rest of the file is parsed lazily`),
   # any line of a doc comment (`/** */`, `///`, a docstring), a placeholder line inside a multi-line string (str_line),
   # an appending heredoc (never judged, so never warned),
   # and every line after an unbalanced backtick (a regex such as /`/g, JSX text) or a `$(( 1 << y ))` up to the next one,
   # or after a `/\/*` regex read as an opening block comment; a placeholder added where no line is removed; an Edit
   # adding a placeholder line the file already holds, and one whose new_string opens by closing a template literal, then
   # adds a placeholder. A replacement that removes a line can still be denied for adding placeholder-shaped text inside
-  # a string the tracker misreads (a PHP `<<<` body, a template after `/\/*`), or prose an ellipsis opens with an ELIDE
-  # phrase (`// ... and the rest of the file is parsed lazily`) or closes after a code noun (`// e.g. // ... existing
-  # code ...`, a usage line in a plain `/* */` block).
+  # a string the tracker misreads (a PHP `<<<` body, a template after `/\/*`).
   # Still read as comments: lines of PHP `<<<` and Ruby `<<~` heredocs, Rust raw and C# verbatim strings, Elixir and Julia
   # `"""`, Perl `<<EOT`, Lua `[[ ]]`, C++ `R"(`, plain multi-line strings in Rust, PHP and Ruby, and of an Edit whose
   # new_string starts inside a string its unchanged text opened when the file is missing, over ELISION_MAX or lacks an old_string.
