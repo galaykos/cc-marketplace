@@ -2,7 +2,7 @@
 
 All notable changes to the skill-router plugin.
 
-## 0.23.0 — 2026-10-03
+## 0.23.0 — 2026-10-05
 
 - **`.php`, `.tsx`, `.jsx` and `.vue` edits route `low-cognitive-load`** when code-architecture is installed, as `.ts`/`.js`/`.py`/`.go`/`.rb`/`.rs` edits already did, so the skill that states the no-comment default in one line reaches PHP, React and Vue files. Once per session, beside the framework, library and accessibility skills those files already drew. `solid-principles` is not added for them.
 - `low-cognitive-load` is not routed on a `.blade.php` view or on a `.php`/`.tsx`/`.jsx`/`.vue` file whose name starts with a dot (`.php-cs-fixer.php`); those files still draw their other skills. PHP config, routes and lang array files do route, on purpose — they are code.

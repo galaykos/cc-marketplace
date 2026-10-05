@@ -3,7 +3,7 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
-## 0.10.3 - 2026-10-04
+## 0.10.3 - 2026-10-05
 
 - **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/scan.sh` and `hooks/unicode-scan.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. After this cut both hooks parsed to the same code as before (bash's own parser, comments ignored); `unicode-scan.sh` was then refactored (next entry).
 - **The rest of the hook and test comments are cut to a contract line per file, plus off-switch and `Misses:` lines where it reads one or had a residual; behaviour unchanged.** The derivations and history, including the argument for the non-provider patterns and the placeholder exemption, moved to the marketplace repository's `rationale/derivations/plugin-secret-scanning.md`, which an install does not contain. `unicode-scan.sh` names its marker age `MARKER_TTL_MIN=1440` and its Bash-target cap `MAX_BASH_TARGETS=8`, so its code differs and instead of a parse comparison: 6 new pins in `unicode-scan-pins.test.sh` passed on the old and the new code, and a run of the old against the new hook found 0 divergences in 58 input pairs (output, exit status and every file left behind compared). `scan.sh` and both existing tests parse to the same code as before. Limits now written down, behaviour unchanged: `unicode-scan.sh`'s header names an MCP `apply_patch` and a file that is not valid UTF-8 as unread. Not tested: bash 5, and hooks firing in parallel.

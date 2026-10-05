@@ -2,7 +2,7 @@
 
 All notable changes to the code-architecture plugin.
 
-## 0.18.0 — 2026-10-03
+## 0.18.0 — 2026-10-05
 
 ### Added
 - **`low-cognitive-load` measures a split by depth.** The one-line-wrapper bullet of "Locality

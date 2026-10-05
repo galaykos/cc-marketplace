@@ -93,8 +93,8 @@ version in their `plugin.json`.
   unlisted wrapper option whose value names a reader, and `bash -c "git -P push"`; command-guard's CHANGELOG has the list.
   Standing: **gate** — `destructive-guard-pins.test.sh`, `scan-hook.test.sh` and `unicode-scan.test.sh` run in CI's
   plugin-harness step. No context baseline moved.
-- **Gap fixes before merge:** code-review's generated-file check strips a BOM under a UTF-8 locale and `debt-scan.sh --age` reads what its counts read; testing's protect-tests skips relative targets after any `cd`;
-  command-guard reads `--e`/`--ex` as `--exclude`, prints its own `--version` and finds devops's `plan-audit.sh` on an install; candor and skill-router pins run from an install; `/task-runner:run` deletes stale gate passes; docs corrected in code-architecture, secret-scanning, web-dev and git-workflow.
+- **Gap fixes before merge:** code-review's generated-file check strips a BOM under a UTF-8 locale and `debt-scan.sh --age` reads what its counts read; testing's protect-tests skips relative targets in any command holding a `cd` word, quoted included;
+  command-guard reads `--e`/`--ex` as `--exclude`, prints its own `--version` and finds devops's `plan-audit.sh` on an install; candor and skill-router pins run from an install; `/task-runner:run` deletes stale gate passes (recorded); docs corrected in candor, skill-router, code-review, code-architecture, secret-scanning, web-dev and git-workflow.
 
 ## [0.119.0] - 2026-10-01
 

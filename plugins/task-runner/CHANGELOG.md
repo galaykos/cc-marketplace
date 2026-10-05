@@ -2,7 +2,7 @@
 
 All notable changes to the task-runner plugin.
 
-## 0.43.0 — 2026-10-03
+## 0.43.0 — 2026-10-05
 
 - **Every dispatch states its done-when:** delegation-contracts' prompt contract gains a bullet — a bar the agent can check and cannot meet early ("every caller of parse() listed with path and line", not "find the callers"), because a vague bar is where a worker stops short. Standing: recorded; `scripts/dispatch-lint.sh` does not check for it.
 - The rule adapts one from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied. Its effect is unmeasured: no run compared dispatches with and without it.

@@ -32,8 +32,8 @@
 #   - A skip that was ALREADY in the file: only a newly introduced marker denies, so
 #     editing a legitimately-skipped test is never blocked.
 #   - Deleting a test file with `rm`: no guard stops a plain `rm` of a test file
-#     (destructive-guard denies only dangerous `rm` targets such as `~`, `.` and `.env`,
-#     so a plain or recursive `rm` of tests/ passes every guard).
+#     (destructive-guard denies only dangerous `rm` targets such as `~`, `.` and `.env`;
+#     a plain `rm` passes; a recursive one asks when git cannot restore the dir).
 #   - A marker inside a STRING LITERAL rather than in code — a meta-test asserting
 #     `expect(src).toContain("it.skip(")` denies. Deliberately not fixed: telling code
 #     from a string with a line regex is guesswork, and guessing wrong in the permissive
