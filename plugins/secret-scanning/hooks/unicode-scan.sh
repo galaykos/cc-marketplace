@@ -3,9 +3,9 @@
 #   naming line and codepoint, when a file the call wrote or read holds a zero-width, bidi, soft-hyphen, mid-file BOM or Unicode tag character.
 # Off: CC_UNICODE_SCAN=off or CC_REMIND=off. Fails open on every error path; its one-shot markers live in $TMPDIR, none under the project.
 # CC_UNICODE_SCAN / CC_REMIND unset: the /config options cc_unicode_scan / cc_remind decide.
-# Misses: homoglyphs; intent (it reports presence only); a file over 2 MB or not valid UTF-8; hits past the sixth in a file; a file the session
-#   never touched; a NotebookEdit (notebook_path is not read); an MCP apply_patch (no single path); on Bash, targets past the eighth, outside the
-#   project root or not an existing regular file, a relative target after an in-command cd, and writes cc_bash_write_targets does not see.
+# Misses: homoglyphs; intent (presence only); a file over 2 MB or not valid UTF-8; hits past the sixth in a file; a file the session never touched;
+#   a character stored as a JSON backslash-u escape (a .ipynb or .json the session only read); an MCP apply_patch (no single path); on Bash, a
+#   target past the eighth, outside the project root, not an existing regular file or relative after an in-command cd, and cc_bash_write_targets' misses.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/unicode-scan.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -280,7 +280,7 @@ PY
 $targets
 EOF_T
   else
-    files=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null)
+    files=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // .tool_input.notebook_path // empty' 2>/dev/null)
   fi
   [ -n "$files" ] || exit 0
 

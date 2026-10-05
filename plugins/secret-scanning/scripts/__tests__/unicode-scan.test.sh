@@ -82,6 +82,19 @@ silent "$T/missing.ts" "a file that does not exist is silent"
 out=$(fire "$T/zw.ts" Glob)
 [ -z "$out" ] && ok "silent on a tool it does not match" || bad "silent on a tool it does not match" "$out"
 
+printf '{"cells":[{"source":["x = 1  # \xe2\x80\xae\\n"]}]}\n' > "$T/bidi.ipynb"   # U+202E in a cell
+printf '{"cells":[{"source":["x = 1\\n"]}]}\n'                  > "$T/clean.ipynb"
+nbfire() { # notebook session
+  printf '{"session_id":"%s","transcript_path":"/tmp/%s","tool_name":"NotebookEdit","tool_input":{"notebook_path":"%s","cell_id":"c1","new_source":"x = 1"}}' \
+    "$2" "$2" "$1" | "$BASH_BIN" "$HOOK" 2>/dev/null
+}
+first=$(nbfire "$T/bidi.ipynb" nb-once); second=$(nbfire "$T/bidi.ipynb" nb-once)
+case "$first" in *"bidi.ipynb"*"BIDIRECTIONAL OVERRIDE"*) [ -z "$second" ] ;; *) false ;; esac \
+  && ok "a NotebookEdit notebook with a bidi control warns once, like a Write" \
+  || bad "a NotebookEdit notebook with a bidi control warns once, like a Write" "first=${first:0:60} second=${second:0:40}"
+out=$(nbfire "$T/clean.ipynb" nb-clean)
+[ -z "$out" ] && ok "a NotebookEdit on a clean notebook is silent" || bad "a NotebookEdit on a clean notebook is silent" "$out"
+
 unset CLAUDE_PROJECT_DIR
 R="$T/repo"; mkdir -p "$R/app/sub" "$T/outside"; git -C "$R" init -q 2>/dev/null
 cp "$T/zw.ts" "$R/app/sub/zw.ts"; cp "$T/bidi.ts" "$R/app/up.ts"; cp "$T/clean.ts" "$R/app/sub/clean.ts"

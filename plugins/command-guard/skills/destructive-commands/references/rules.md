@@ -17,9 +17,22 @@ importantly, what is not.
    `rg`, `ls`, `git log`, …) is skipped, so searching for `migrate:fresh` is not
    running it. The exemption is dropped for the whole command when output is
    piped into a shell or `xargs` — there the reader's output is the program.
-   git's global options (`-C <dir>`, `-c k=v`, `--git-dir`, `--work-tree`,
-   `--no-pager`) are stripped first, so `git -C /x push --force` is judged as
-   `git push --force`; `git clean` with `-n`/`--dry-run` is a reader and skipped.
+   A wrapper (`sudo`, `doas`, `env`, `nice`, `ionice`, `time`, `exec`) with its
+   options, and `VAR=` assignments, are skipped to find the leading word. Only the
+   listed value-taking options have their value skipped too (`sudo -u bob`,
+   `nice -n 10`; the list is in `lead_word`, the rest are under **Limits**); when
+   skipping a value leaves no word, the value itself is read as the command. git's
+   global options (`-C <dir>`, `-c k=v`, `--git-dir`, `--work-tree`, `-p`/`-P`,
+   `--exec-path=…`, `--config-env`, … every documented option that still runs the
+   subcommand, and `--shallow-file`) are stripped first where git leads the segment,
+   so `git -C /x push --force` is judged as `git push --force`; inside another
+   command's text only `-C`, `-c`, `--git-dir`, `--work-tree`, `--namespace`,
+   `--no-pager`, `--no-optional-locks`, `--literal-pathspecs` and `--bare` are.
+   `git clean` with `-n`/`--dry-run` is a reader and skipped, unless that `-n` is
+   the pattern `-e`/`--exclude` (or an `--exc…` abbreviation) takes, a path after
+   `--`, or cancelled by a later `--no-dry-run`. The `-x` deny reads only a
+   short-flag cluster holding `x` or `X` as a flag, so `--exclude=foo` and an `-e`
+   pattern are not `-x`.
 4. **Match.** First hit wins, `deny` before `ask`. Rules containing an uppercase
    letter match case-sensitively; that is the only way `git branch -D` can be
    distinguished from `git branch -d`.
@@ -99,9 +112,18 @@ shapes. It cannot see:
   a CLI released next month;
 - **which database a connection points at** — `DROP TABLE` through an MCP SQL
   tool is gated the same whether the session is on localhost or production;
-- a command run through **`env`** (`env rm -rf /` passes), **`git clean … -e -n`**
-  (read as a dry run, though `-n` is the exclude pattern there), and a git
-  subcommand behind an **unlisted global option or a `-C`/`-c` value holding a space**.
+- a git subcommand behind a **`-C`/`-c` value holding a space** — once the quotes
+  are stripped the value's end cannot be told from the subcommand — or behind
+  `-P`, `--exec-path=…` or any other option outside the short list when git does
+  not lead the segment (`bash -c "git -P push --force"` passes): a miss;
+- **wrapper options outside the list**. An unlisted value-taking option (sudo
+  `-R`/`-c`/`-a`, `--chroot`, `--login-class`; ionice `-P`/`-u`; FreeBSD env
+  `-L`) or a spaced long form not listed (`ionice --class 3`) has its value read
+  as the command: a refusal when the real command is a reader (`sudo -R /x grep
+  "rm -rf /" f`), a miss when the value names one (`sudo -R cat rm -rf /`). A
+  wrapper named by path other than env (`/usr/bin/sudo`) is read as the command
+  itself and never exempted: a refusal. `env -S'…'` or `--split-string=…` with
+  the string glued on is not read as a command: a miss.
 
 Three limits are deliberate rather than accidental. `$TMPDIR` is read from the
 **hook's own environment**, so `rm -rf $TMPDIR/build` is silent when that

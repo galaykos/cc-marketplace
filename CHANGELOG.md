@@ -75,10 +75,22 @@ version in their `plugin.json`.
   pinned first by new tests (10 `*-pins.test.sh` files) that passed on the old and the new code, and a run of the old against
   the new hooks found 0 divergences in 1,807 input pairs across the 11 (output, exit status and every file left behind
   compared). The other 34 changed files parse to the same code as before (bash 3.2's parser, comments ignored). Limits now
-  written down, behaviour unchanged: command-guard's `env`, `git clean … -e -n`, unanchored allow-file lines, a plain `rm` of
-  a config and an MCP `apply_patch`; secret-scanning never scanned a `NotebookEdit`; skill-router's `CC_ROUTE=off` also stops
-  the next-prompt flush. Not tested: bash 5, and hooks firing in parallel. The JS, TS, Python and PowerShell files in these
-  plugins are untouched. No version and no context baseline moved.
+  written down, behaviour unchanged: command-guard's unanchored allow-file lines, a plain `rm` of a config and an MCP
+  `apply_patch`; skill-router's `CC_ROUTE=off` also stops the next-prompt flush. Not tested: bash 5, and hooks firing in
+  parallel. The JS, TS, Python and PowerShell files in these plugins are untouched. No version and no context baseline moved.
+- **command-guard 0.8.4, secret-scanning 0.10.3 — guard gaps closed: destructive-guard judges a command run through `env`,
+  behind any git global option, and a `git clean` whose `-n` is `-e`'s argument; secret-scanning scans `NotebookEdit`
+  cells.** `env rm -rf /`, `env -i terraform destroy`, `git -P push --force` and `git clean -fdx -e -n` used to pass and now
+  get their bare form's verdict. `scan.sh` denies a secret in a notebook cell as it denies one in a `Write` (a cell delete is
+  not scanned), and `unicode-scan.sh` reads the notebook a `NotebookEdit` wrote. False refusals removed on the way:
+  `sudo -u bob grep "rm -rf /" f` was denied and passes, `git clean --exclude=foo -f` was denied and asks, and
+  `git clean -fdx --dry` was denied and is read as the dry run it is. Stricter on the way: `git clean -f -x` and
+  `git clean --force -x` are denied where they asked, `sudo -n git clean -fdx` where it passed, quoted prose that spells the
+  `-x` form (`gh pr create --body "run git clean -f -x to reset"`) where it asked, and `env -i bash -c 'echo "rm -rf /"'`,
+  as `bash -c 'echo "rm -rf /"'` already was. Still missed: a `-C`/`-c` value holding a space, `env -S'…'`, a wrapper option
+  outside the listed ones, a wrapper named by path and `bash -c "git -P push"`; command-guard's CHANGELOG has the list.
+  Standing: **gate** — `destructive-guard-pins.test.sh`, `scan-hook.test.sh` and `unicode-scan.test.sh` run in CI's
+  plugin-harness step. No context baseline moved.
 
 ## [0.119.0] - 2026-10-01
 

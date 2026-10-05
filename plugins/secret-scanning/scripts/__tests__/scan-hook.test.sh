@@ -102,6 +102,30 @@ out=$(jq -cn --arg s "$AWS" '{tool_name:"Edit", tool_input:{file_path:"/tmp/x", 
 if grep -q '"permissionDecision":"deny"' <<<"$out"; then pass=$((pass+1));
 else echo "FAIL edit-shape: expected deny, got: ${out:-<empty>}"; fail=$((fail+1)); fi
 
+nb_run() { # nb_run <new_source> [edit_mode] -> hook stdout; the host requires new_source on a delete too, and ignores it there
+  jq -cn --arg s "$1" --arg m "${2-}" \
+    '{tool_name:"NotebookEdit", tool_input:({notebook_path:"/tmp/n.ipynb", cell_id:"c1", new_source:$s}
+      + if $m == "" then {} else {edit_mode:$m} end)}' | bash "$HOOK"
+}
+nb_allow() { # nb_allow <name> <new_source> [edit_mode]
+  local n=$1; shift
+  out=$(nb_run "$@")
+  if [[ -z "$out" ]]; then pass=$((pass+1));
+  else echo "FAIL $n: expected silence, got: $out"; fail=$((fail+1)); fi
+}
+out=$(nb_run "key = '$AWS'")
+if grep -q '"permissionDecision":"deny"' <<<"$out" && grep -qF '(file: /tmp/n.ipynb)' <<<"$out"; then pass=$((pass+1));
+else echo "FAIL notebook cell, real AKIA: expected deny naming /tmp/n.ipynb, got: ${out:-<empty>}"; fail=$((fail+1)); fi
+nb_allow "notebook cell, AWS doc key"          "key = '$AWS_DOC'"
+nb_allow "notebook cell, no secret"            'import pandas as pd'
+nb_allow "notebook cell delete repeating the old key"  "key = '$AWS'" delete
+out=$(jq -cn --arg s "key = '$AWS'" '{tool_name:"Write", tool_input:{file_path:"/tmp/x.py", content:"print(1)", new_source:$s}}' | bash "$HOOK")
+if [[ -z "$out" ]]; then pass=$((pass+1));
+else echo "FAIL Write with a stray key-bearing new_source: expected silence, got: $out"; fail=$((fail+1)); fi
+out=$(jq -cn --arg s "key = '$AWS'" '{tool_name:"Write", tool_input:{file_path:"/tmp/x.py", content:$s, new_source:["x"]}}' | bash "$HOOK")
+if grep -q '"permissionDecision":"deny"' <<<"$out"; then pass=$((pass+1));
+else echo "FAIL Write key beside an array new_source: expected deny, got: ${out:-<empty>}"; fail=$((fail+1)); fi
+
 unset CLAUDE_PROJECT_DIR
 REPO=$(mktemp -d); trap 'rm -rf "$REPO"' EXIT
 git -C "$REPO" init -q 2>/dev/null; mkdir -p "$REPO/app/sub"

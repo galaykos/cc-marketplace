@@ -3,9 +3,9 @@
 # destruction, allow the rest; deny a write to the allow-file; ask before a Write replaces a live .env. Fails open. --check ignores the mode: exit 0/1/2 = allow/ask/deny.
 # CLAUDE_DESTRUCTIVE_GUARD, else /config claude_destructive_guard: deny-only drops the ask tier, ask turns a command deny into a prompt, off disables.
 # Allow-file .claude/destructive-guard-allow, project then ~: a line's regex matched unanchored on the whole lowercased command, trailing comment too, releases it; a command naming the file must be a pure read.
-# Misses: an allow-file path built from a variable or glob, a script or a program git config names writing it, an MCP write tool other than apply_patch
-# and create_new_file, NotebookEdit's notebook_path, a non-ASCII spelling the filesystem folds to the name; a failing cd to a relative target;
-# a command run through `env`; `git clean … -e -n`, read as a dry run; an unlisted git global option or a -C/-c value holding a space before a git subcommand.
+# Misses: an allow-file path built from a variable or glob, a script or a program git config names writing it, an MCP write tool other than apply_patch and create_new_file,
+# NotebookEdit's notebook_path, a non-ASCII spelling the filesystem folds to the name; a failing cd to a relative target; env -S'…' or --split-string=… with the string glued on;
+# a -C/-c value holding a space, or a git option past the -C/-c/--git-dir set where git does not lead (bash -c "git -P push"); an unlisted wrapper option value or spaced long form (sudo -R x): a refusal, or a miss if it names a reader; a wrapper by path but env (/usr/bin/sudo): a refusal.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/destructive-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -42,8 +42,11 @@ norm_cmd() {
 }
 
 # Git rules are written ` git <subcommand>`, so the global options before it (-C, -c, --git-dir …) are dropped; an unknown one stays.
-strip_git_global_options() { # normalised segment
-  printf '%s' "$1" | sed -E 's/(^|[[:space:]])git([[:space:]]+(-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space:]]+|--(git-dir|work-tree|namespace)(=[^[:space:]]+|[[:space:]]+[^[:space:]]+)|--no-pager|--no-optional-locks|--literal-pathspecs|--bare))+([[:space:]])/\1git\6/g'
+# Where git does not lead the segment only the short list is dropped, so quoted prose (gh pr create --title "git -P push --force") is not read as git.
+strip_git_global_options() { # normalised segment, lead word
+  local o='-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space:]]+|--(git-dir|work-tree|namespace)(=[^[:space:]]+|[[:space:]]+[^[:space:]]+)|--no-pager|--no-optional-locks|--literal-pathspecs|--bare' n=6
+  [ "$2" = git ] && { o='-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space:]]+|--(git-dir|work-tree|namespace|config-env|attr-source|super-prefix|shallow-file)(=[^[:space:]]+|[[:space:]]+[^[:space:]]+)|--exec-path=[^[:space:]]+|-p|-P|--paginate|--no-pager|--no-optional-locks|--no-replace-objects|--no-lazy-fetch|--no-advice|--(literal|glob|noglob|icase)-pathspecs|--bare'; n=7; }
+  printf '%s' "$1" | sed -E "s/(^|[[:space:]])git([[:space:]]+($o))+([[:space:]])/\\1git\\$n/g"
 }
 
 # Quote-aware on the RAW string: dequoting first splits grep -E "a|rm -rf /" into a fake rm segment. check_cd_chain copies this walk.
@@ -77,17 +80,37 @@ split_segments() {
 
 lead_word() {
   printf '%s' "$1" | awk '
-    { for (i = 1; i <= NF; i++) {
+    # 1 when w is a wrapper option whose value is the next word; env -S is absent: it splits its string into the utility and its arguments.
+    function takes(wr, w,   l, s, x) {
+      if (wr == "env") { l = "unset|chdir|argv0"; s = "uCPa"; x = "uCPSa" }
+      else if (wr == "sudo") { l = "user|group|host|prompt|chdir"; s = "ughpCDrtUT"; x = s }
+      else if (wr == "doas") { l = ""; s = "aCu"; x = s }
+      else if (wr == "nice") { l = "adjustment"; s = "n"; x = s }
+      else if (wr == "ionice") { l = ""; s = "cnp"; x = s }
+      else if (wr == "time") { l = ""; s = "fo"; x = s }
+      else if (wr == "exec") { l = ""; s = "a"; x = s }
+      else return 0
+      if (l != "" && w ~ ("^--(" l ")$")) return 1
+      return w ~ ("^-[^-" x "]*[" s "]$")
+    }
+    function lead(vals,   i, w, wr) {
+      wr = ""
+      for (i = 1; i <= NF; i++) {
         w = $i
-        if (w ~ /^(sudo|nohup|time|command|builtin|exec|nice|ionice)$/) continue
+        if (w ~ /^(sudo|doas|nohup|time|command|builtin|exec|nice|ionice)$/) { wr = w; continue }
+        if (w ~ /^(.*\/)?env$/) { wr = "env"; continue }
         if (w ~ /^[A-Za-z_][A-Za-z0-9_]*=/) continue
-        if (w ~ /^-/) continue
+        if (w ~ /^-/) { if ((vals || wr == "env") && takes(wr, w)) i++; continue }
         sub(/^.*\//, "", w)
-        print w; exit
-      } }'
+        return w
+      }
+      return ""
+    }
+    # A value skip that leaves no command word (sudo -u rm -rf /) falls back to the unskipped reading, so a misread value keeps the old verdict.
+    { l = lead(1); if (l == "") l = lead(0); print l }'
 }
 
-READERS=' echo printf cat grep egrep fgrep rg ag ack less more head tail wc sort uniq jq yq column ls tree stat file diff comm man which type printenv env true false date basename dirname pwd '
+READERS=' echo printf cat grep egrep fgrep rg ag ack less more head tail wc sort uniq jq yq column ls tree stat file diff comm man which type printenv true false date basename dirname pwd '
 
 is_reader() {
   local w="$1"
@@ -145,7 +168,7 @@ deny	 git push( [^ ]+)* (--force|-[a-eg-z]*f[a-z]*)( |$)	overwrites remote histo
 deny	 git push .* [+][a-z0-9_./*-]+( |$|:)	a leading + on the refspec is a force push under another name	`--force-with-lease`, and only on a branch you own
 deny	 git push .*(--delete|--mirror)	deletes remote refs	delete the branch in the host UI where it is reviewable
 deny	 git update-ref -d	deletes a ref directly, bypassing the reflog protections	`git branch -d`
-deny	 git clean [^ ]*x	-x also removes IGNORED files: .env, local configs, credentials	`git clean -fd` (leaves ignored files), or `git stash -u`
+deny	 git clean ((([^ -][^ ]*|-|-[^ -][^ ]*|--[^ ]+) )*(--force|--interactive|--[^ =]+=[^ ]*|[^ -][^ ]*|-([^ e-]|[^ -][^ ]*[^ e-])|--([^ e-]|[^ e-][^ ]*[^ e-])) )?-[a-df-z]*x[a-z]*( |$)	-x also removes IGNORED files: .env, local configs, credentials	`git clean -fd` (leaves ignored files), or `git stash -u`
 deny	 rm ([^ ]+ )*\.env( |$|\.)	.env holds the only copy of local credentials; it is not in git	copy it aside first
 deny	 > \.env( |$)	truncates .env to empty; the credentials are gone	write to a temp file and move it into place
 deny	docker(-| )compose .*down .*(-v( |$)|--volumes)	removes named volumes, which is where the database lives	`docker compose down` keeps volumes
@@ -610,11 +633,12 @@ classify() {
     [ -n "$seg" ] || continue
     segn=$(norm_cmd "$seg")
     [ -n "$segn" ] || continue
-    segn=$(strip_git_global_options "$segn")
+    segn=$(strip_git_global_options "$segn" "")
+    lead=$(lead_word "$segn")
+    [ "$lead" = git ] && segn=$(strip_git_global_options "$segn" git)
     segn_lc=" $(printf '%s' "$segn" | tr '[:upper:]' '[:lower:]') "
     segn=" $segn "
 
-    lead=$(lead_word "$segn")
     check_env_overwrite "$segn" "$lead"
     [ "$VERDICT" = "deny" ] && break
 
@@ -628,8 +652,23 @@ classify() {
         sub=$(printf '%s' "$segn_lc" | awk '{ for (i=1;i<=NF;i++) if ($i=="git") { print $(i+1); exit } }')
         git_safe_subcmd "$sub" && continue
         # A token with an n flag (-n, -fn) or --dry-run is taken for a dry run, the preview the ask tier tells the model to run.
+        # -e (and --exclude, abbreviated or not) takes the rest of its cluster or the next word as a pattern, so an n there is no flag;
+        # after -- every word is a path; the last of --dry-run/-n and --no-dry-run wins, each also as git's abbreviation (--d…, --no-d…).
         if [ "$sub" = "clean" ]; then
-          printf '%s' "$segn_lc" | grep -qE ' (--dry-run|-[a-z]*n[a-z]*)( |$)' && continue
+          printf '%s' "$segn_lc" | awk '{ for (i = 1; i <= NF && $i != "git"; i++) ;
+            d = 0
+            for (i += 2; i <= NF; i++) {
+              t = $i
+              if (t == "--") break
+              if (length(t) >= 3 && index("--dry-run", t) == 1) { d = 1; continue }
+              if (length(t) >= 6 && index("--no-dry-run", t) == 1) { d = 0; continue }
+              if (t ~ /^--exc[a-z]*$/) { i++; continue }
+              if (t !~ /^-[a-z]+$/) continue
+              f = t; sub(/e.*/, "", f)
+              if (f ~ /n/) d = 1
+              if (t ~ /^-[^e]*e$/) i++
+            }
+            exit !d }' && continue
         fi
       fi
     fi

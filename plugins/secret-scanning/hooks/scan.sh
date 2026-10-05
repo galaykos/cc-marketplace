@@ -3,9 +3,9 @@
 #   (for apply_patch, the whole patch), Bash heredoc body or echo/printf argument landing in a file carries a high-confidence, non-placeholder secret.
 # Off: CC_SECRET_SCAN=off. Fails open: any error, a timeout or a missing jq allows the write.
 # CC_SECRET_SCAN unset: the /config option cc_secret_scan decides.
-# Misses: a NotebookEdit cell (its new_source is not read); a URL password under 6 characters or led by `$` or `{`, a URL scheme not listed, a
-#   webhook URL other than Slack's; a real value holding a placeholder word; an MCP write tool with other key names; on Bash, a command with no
-#   write target, interpreter writes, cp/mv, sed/perl -i text and what cc_bash_write_chunks misses; a command that outruns the hook timeout (no per-call cap).
+# Misses: a URL password under 6 characters or led by `$` or `{`, a URL scheme not listed, a webhook URL other than Slack's; a real value holding a
+#   placeholder word; an MCP write tool with other key names; on Bash, a command with no write target, interpreter writes, cp/mv, sed/perl -i text
+#   and what cc_bash_write_chunks misses; a command that outruns the hook timeout (no per-call cap).
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/scan.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -297,9 +297,10 @@ EOF_C
         .tool_input.text // empty,
         .tool_input.input // empty,
         .tool_input.patch // empty,
+        ( select(.tool_name == "NotebookEdit" and .tool_input.edit_mode != "delete") | .tool_input.new_source | strings ),
         ( .tool_input.edits // [] | map(.new_string // empty) | join("\n") )
       ] | join("\n")' 2>/dev/null) || exit 0
-    file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null)
+    file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // .tool_input.notebook_path // empty' 2>/dev/null)
     scan_for_secret "$text"
   fi
   [ -n "$hit" ] || exit 0

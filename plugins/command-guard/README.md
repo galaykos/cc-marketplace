@@ -53,10 +53,11 @@ It reads through the usual disguises — quotes (`artisan "migrate:fresh"`),
 wrappers (`bash -c`, `eval`, `docker compose exec`), extra whitespace, `&&`
 chains, heredocs — and skips read-only commands, so searching for a string is
 never confused with running it. It also covers MCP tools that shell out or run
-SQL, which are the same hole under a different tool name. It does not read through
-`env` (`env rm -rf /` passes), takes `git clean … -e -n` for a dry run (`-n` is the
-exclude pattern there), and misses a git subcommand behind an unlisted global option
-or a `-C`/`-c` value holding a space.
+SQL, which are the same hole under a different tool name. It reads through `env` and
+every documented git global option before the subcommand, and does not take
+`git clean … -e -n` for a dry run (`-n` is the exclude pattern there). It misses a git
+subcommand behind a `-C`/`-c` value holding a space; the wrapper and git-option limits
+are listed in rules.md.
 
 Full rule list, the reading algorithm, and the guard's stated limits:
 [`skills/destructive-commands/references/rules.md`](skills/destructive-commands/references/rules.md).
