@@ -260,7 +260,8 @@ consecutive real git revisions across 85 of those repositories, each revision wr
 `Write` over its predecessor under default settings, drew 0 elision denies. An independent
 review replayed 13,182 real `Edit`s and 5,326 `Write`s from session transcripts across 69
 repositories with 0 allow → deny under default settings; it ran on the grammar before the
-last tightening (doc comments and closing ellipses), which only removed matches.
+last two tightenings (an unquoted ellipsis at the start or end of the body; doc-comment lines
+and closing ellipses), and they only removed matches.
 
 Added hook time against 0.29.0, measured on this release's `scan.sh` as shipped (file
 cksum 3895726106), median of 20 runs on one macOS machine, against a 15 s timeout: +1 ms

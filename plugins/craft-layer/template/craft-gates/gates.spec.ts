@@ -7,6 +7,7 @@
  *
  *     npm i -D @playwright/test @axe-core/playwright && npx playwright install chromium
  *     CRAFT_EXPECT_TITLE='<a string only THIS build serves>' \
+ *       CRAFT_PRIMARY_ACTION='<the primary action text from the contract>' \
  *       BASE_URL=http://localhost:5173 NODE_PATH="$PWD/node_modules" \
  *       npx playwright test --config "$CLAUDE_PLUGIN_ROOT/template/craft-gates/playwright.config.ts"
  *     node "$CLAUDE_PLUGIN_ROOT/template/craft-gates/contrast.mjs"

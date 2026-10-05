@@ -16,7 +16,8 @@ measurements are in `rationale/taste-skill-fold-2026-10-05.md`.
   file only when both hold: a non-blank line of the replaced text (the file on disk, or the `old_string`s) is gone from the
   new text, AND a new placeholder comment appears (`// ... existing code ...`, `{/* ... existing JSX ... */}`,
   `<!-- ... rest of the template -->`). For an `Edit` two comparisons must agree that the placeholder is new — the whole file
-  after the edits against the file on disk, and the `new_string`s against the `old_string`s. A pure addition, a new file,
+  after the edits against the file on disk, and the `new_string`s against the `old_string`s; over 1 MiB, or when the file
+  holds no copy of an `old_string`, the old/new comparison decides alone. A pure addition, a new file,
   an appending heredoc and a `Write` over a file over 1 MiB are never refused; a placeholder in a new or empty file and an
   ellipsis-only comment warn. Its own switch, `CC_ELISION_GUARD=off` or the `/config` option `cc_elision_guard`, turns
   off the deny only — the warning stays — and `CC_COMMENT_GUARD=off` leaves it on; two denies per file per session on a budget of its own. Measured on
@@ -48,7 +49,8 @@ measurements are in `rationale/taste-skill-fold-2026-10-05.md`.
   the official package required, above "do not install one unasked"; a lookalike brief never installs a restricted
   system. `library-map.md` gains GOV.UK Frontend, USWDS, Polaris, Carbon and Atlassian rows with versions and use
   restrictions read from the official sources on 2026-10-05; skill-router routes their quoted imports. ui-libraries'
-  always-on baseline moved +37 tokens (408 → 445), the only baseline this release moved.
+  always-on baseline moved +37 tokens (408 → 445), the only baseline this release moved. Standing: agent-graded
+  (`component-libraries` §1); the library-map restrictions recorded; the router row pinned by `route.test.sh`.
 - **Review fixes from #192 — code-review 0.30.0; candor and command-guard doc-only, not bumped.** `density.sh`'s refusal
   names `COMMENT_DISCIPLINE_CEILING_TENTHS` for a heavier house style, its ending unchanged; the 50-line short rule says
   non-blank lines everywhere it is stated; `comment-discipline`'s keep list names an example for a genuinely non-obvious

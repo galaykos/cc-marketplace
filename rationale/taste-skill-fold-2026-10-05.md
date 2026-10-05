@@ -58,8 +58,9 @@ sbcl 2.6.9 `src/runtime/arm64-win32-os.c`. The replay sent the newest 100 govern
 modifications per repository (85 repos; 4,828 listed, 45 skipped as over 2 MB or holding a
 5,000-character line) as `Write`s over their predecessors; a synthetic positive control was
 denied. A separate review replayed 13,182 `Edit`s and 5,326 `Write`s from 69 repositories'
-transcripts with 0 allow → deny under default settings, on the grammar before the last
-tightening, which only removed matches.
+transcripts with 0 allow → deny under default settings, on the grammar before the last two
+tightenings (an unquoted ellipsis at the start or end of the body; doc-comment lines and closing
+ellipses), and they only removed matches.
 
 Timing (`evidence/elision-timing.txt`, master `e50113f3` vs this release, median of 20, macOS
 bash 3.2.57 + BSD awk): a Bash call that writes nothing 19 → 19 ms (+1 ms); `PostToolUse`

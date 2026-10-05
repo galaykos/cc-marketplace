@@ -46,7 +46,8 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
 
    **Then read the project memory** — `<project>/.craft-layer/run-log.md`; its last 5 rows are what
    this run must differ from. Create `<project>/.craft-layer/` with a `.gitignore` holding only `*`
-   when absent; it holds what must OUTLIVE the session (run log, `waivers.json`, `shots/`) and is not
+   when absent; it holds what must OUTLIVE the session (run log, `waivers.json`, `shots/`,
+   `preserve.json`, `layout-floors.json`) and is not
    the `craft/` working area. **On a `keep-brand` or `new-look` redesign, write
    `<project>/.craft-layer/preserve.json`** before the draw: the concrete values the target ships now
    (`routes`, `anchors`, `nav`, `forms` with fields in order, `analytics`, `logo`, `legal`), stamped

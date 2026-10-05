@@ -108,7 +108,7 @@ without exception:
       fingerprint's "Recurring copy register" section
       (`skills/creative-direction/references/sameness-fingerprint.md`) — `divergence.mjs`'s
       `copy-register` and `emoji-as-icon` verdicts reported as the scripted half (multi-word
-      phrases, pictograph icons, and the three mechanical chrome rows: the ALL-CAPS eyebrow,
+      phrases, pictograph icons, and the four mechanical chrome rows: the ALL-CAPS eyebrow,
       the middle-dot meta string and the trailing arrow, and the worded scroll cue), plus this
       agent's own half: the verb
       family, intensifiers and fragment-headline shapes the mechanical patterns cannot see,
