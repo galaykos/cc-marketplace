@@ -87,8 +87,11 @@ version in their `plugin.json`.
   `git clean -fdx --dry` was denied and is read as the dry run it is. Stricter on the way: `git clean -f -x` and
   `git clean --force -x` are denied where they asked, `sudo -n git clean -fdx` where it passed, quoted prose that spells the
   `-x` form (`gh pr create --body "run git clean -f -x to reset"`) where it asked, and `env -i bash -c 'echo "rm -rf /"'`,
-  as `bash -c 'echo "rm -rf /"'` already was. Still missed: a `-C`/`-c` value holding a space, `env -S'…'`, a wrapper option
-  outside the listed ones, a wrapper named by path and `bash -c "git -P push"`; command-guard's CHANGELOG has the list.
+  as `bash -c 'echo "rm -rf /"'` already was; command-guard's CHANGELOG has the full list. Still refused, as before: a wrapper
+  named by path other than `env` (`/usr/bin/sudo -u bob grep "rm -rf /" f`) and a reader behind an unlisted wrapper option
+  (`sudo -R /x grep "rm -rf /" f`). Still missed: a `-C`/`-c` value holding a space, `env -S'…'` with the string glued on, an
+  unlisted wrapper option whose value names a reader, `bash -c "git -P push"`, and `git clean … --e`/`--ex` before `-n`, read
+  as a dry run; command-guard's CHANGELOG has the list.
   Standing: **gate** — `destructive-guard-pins.test.sh`, `scan-hook.test.sh` and `unicode-scan.test.sh` run in CI's
   plugin-harness step. No context baseline moved.
 

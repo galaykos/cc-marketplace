@@ -116,6 +116,10 @@ shapes. It cannot see:
   are stripped the value's end cannot be told from the subcommand — or behind
   `-P`, `--exec-path=…` or any other option outside the short list when git does
   not lead the segment (`bash -c "git -P push --force"` passes): a miss;
+- a `git clean` whose `--exclude` is spelled **`--e` or `--ex`**, abbreviations git
+  accepts: a `-n` after it is the pattern, but the guard reads it as a dry run, so
+  `git clean -fdx --ex -n` removes ignored files and passes (`-e`, `--exc…` and
+  `--exclude` are read right): a miss;
 - **wrapper options outside the list**. An unlisted value-taking option (sudo
   `-R`/`-c`/`-a`, `--chroot`, `--login-class`; ionice `-P`/`-u`; FreeBSD env
   `-L`) or a spaced long form not listed (`ionice --class 3`) has its value read
