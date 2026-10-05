@@ -1,59 +1,15 @@
 #!/bin/bash
-# Absolute-path shebang (not `/usr/bin/env bash`): the fail-open guarantee must
-# hold even under a stripped/broken PATH.
-#
-# SessionStart, matcher `compact` ONLY. After a compaction, re-states the task
-# state that lives on disk and that the summary may have dropped: the arc phase
-# sentinel, a registered task-runner run and its scope lock, and any open
-# taskmaster ledgers. Every one of those files survives compaction; what does not
-# survive is the model's knowledge that they exist, so it never thinks to look.
-# approaches/hooks/compact-recovery.sh solves this for ONE ledger (its own
-# deliberation marker) and this hook covers the rest; it deliberately does not
-# mention that marker, so a session with both installed hears each once.
-#
-# WHY SessionStart AND NOT PreCompact. PreCompact stdout goes to the debug log and
-# never reaches the model — the documented context-injecting events are
-# UserPromptSubmit, UserPromptExpansion, SessionStart and PostModelSwitch. So the
-# capsule cannot be planted before the summary; it is re-asserted after it, once.
-#
-# WHY skill-router. It already owns the SessionStart catalog and the per-session
-# routing state, and it is the plugin most bundles share, so the capsule fires in
-# the most installs for the fewest declarations.
-#
-# COST. Matcher `compact` — silent on startup, resume, clear and fork, so the
-# always-on budget reads 0 (context-budget.sh drives SessionStart with
-# source=startup). A session that compacts pays one short block per compaction,
-# and only when at least one ledger exists.
-#
-# MEASUREMENT RIDER. The phase sentinel records the session_id that wrote it and
-# the payload carries the session_id after compaction. Whether those match is the
-# open question in rationale/collective-taskforce-backlog.md #6 (two shipped
-# mechanisms key on it). Each firing appends one line to
-# .claude/skill-router/compact-log.jsonl saying whether they matched. Standing:
-# recorded — nothing reads it yet; it exists so the answer accrues on real
-# sessions instead of waiting for a probe that has not been run in 25 days.
-# The log lives per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/skill-router/ is only the fallback.
-#
-# LIMITATION (honest scope):
-#   - Advisory. SessionStart stdout informs a turn; it cannot block one.
-#   - Names the files and their headline fields; the reasoning behind a phase or a
-#     card lives in the summarized transcript and no hook can pull it back.
-#   - Cannot tell a live ledger from a stale one. It prints the sentinel's own
-#     started_at and defers to each owner's TTL (taskmaster's reminder hook
-#     unlinks a sentinel older than its cc_phase_ttl_min).
-#   - Knows the ledgers it names. A plugin that keeps state elsewhere is invisible
-#     here — add its path to this file, which is why the list is short and literal.
-# --- state root ----------------------------------------------------------------
-# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
-# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
-# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
-# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
-# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
-# the caller's spelling and path-prefix comparisons still hold); outside git,
-# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
-# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+# compact-capsule.sh — SessionStart (matcher compact), fails open: lists the task state on disk at the project root a compaction summary
+#   may drop (phase sentinel, task-runner run and scope lock, taskmaster ledgers) and logs whether the sentinel's session_id is the payload's.
+# Misses: whether a ledger is still live (it prints the sentinel's started_at; each owner's TTL decides); state a plugin keeps outside the
+#   paths named here; the reasoning behind a phase or a card. Advisory: it cannot block a turn.
+# Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/compact-capsule.sh
+
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
 cc_state_root() {
   [ -n "$1" ] && [ -d "$1" ] || return 1
   local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
@@ -67,26 +23,12 @@ cc_state_root() {
   printf '%s\n' "$1"
 }
 
-# --- plugin state --------------------------------------------------------------
-# Canonical copy: templates/blocks/plugin-state.md. Every hook defining cc_plugin_state must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_plugin_state <root> <name> prints the directory holding a plugin's own per-project hook
-# state, <root> being the hook's cc_state_root result: ${CLAUDE_PLUGIN_DATA}/<key>/<name> when
-# the host sets that variable, else <root>/.claude/<name>, the path hooks used before it.
-# <key> is the root's basename with every character outside [A-Za-z0-9_-] turned into -, a -,
-# and the root's cksum: the host gives one data dir per plugin id, not per project (measured
-# 2.1.282), and a raw path inside a filename names parents that never exist. tr runs under
-# LC_ALL=C because a UTF-8 tr stops at the first invalid byte. Status 0, no stderr; it
-# creates nothing, so the caller keeps its own mkdir -p.
-# WHY: state read by no one but the plugin's own hooks does not belong in the user's repo —
-# the 2026-09-29 review found .claude/code-review/ and .claude/skill-router/ created by one
-# prompt and one edit in a fresh repo.
-# WHAT IT DOES NOT CATCH: state another plugin, a skill or the user reads must not use it; the
-# fallback path is still in the repo; the data dir is keyed by plugin id, so install scopes of
-# one plugin share it (inferred from the docs' id rule), while a --plugin-dir copy gets its
-# own `-inline` directory and never sees the installed copy's state. The variable was measured
-# only in a SessionStart hook; other events are doc-stated. An event that lacks it falls back
-# to the repo path, which splits a writer from a reader running on another event.
+# Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
+# cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
+# Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
 cc_plugin_state() {
   local key sum
   if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
@@ -105,10 +47,7 @@ cc_plugin_state() {
   [ "$src" = "compact" ] || exit 0
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
-  # Every ledger below lives at the PROJECT root. Read under the payload cwd, a
-  # compaction after `cd app/Models` would find none of them and stay silent while a
-  # run, a scope lock and a phase sentinel sat two levels up (review finding 2 measured
-  # that drift, rationale/2026-09-25-session-plugin-usage-review.md).
+  # The ledgers live at the project root: under the payload cwd, a compaction after `cd app/Models` would find none of them.
   root=$(cc_state_root "$cwd") || exit 0
   sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 

@@ -13,14 +13,20 @@ Review the code change in $ARGUMENTS. Resolve scope in this order:
 
 **Debt lane** (`/code-review:review --debt`, or on request): instead of the diff
 review, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/debt-scan.sh --dir . --age` and
-report the table it prints. Five categories — suppressions, skipped tests, bare
-markers, deprecated-symbol references, feature flags — counted, compared against
-`.claude/debt-baseline.json`, with `--age` resolving first-seen dates by git
-pickaxe. Two things to say and neither is the count: which categories GREW, and
-which markers are oldest. "340 TODOs" is a number nobody acts on; "11 older than
-two years, 3 of them in payments" is a decision. If no baseline exists, say that
-`--update-baseline` starts the ratchet and that the first run only establishes a
-line to hold — do not present the initial numbers as findings.
+report the table it prints. Six categories — suppressions, skipped tests, bare
+markers, deprecated-symbol references, feature flags, `shortcut:` markers — counted,
+compared against `.claude/debt-baseline.json`, with `--age` resolving first-seen dates
+by git pickaxe. Below the table it lists each `shortcut:` marker with no `; revisit when`
+trigger — reported, never ratcheted; a baseline written before the sixth category shows
+`-` for it and cannot fail. The shortcut count misses a ` * shortcut:` docblock line
+and a capitalised `Shortcut:` or `SHORTCUT:` (the form is lowercase), counts a string
+holding `// shortcut:`, and never reads file types outside the scan's extension list
+(`.sh`, `.sql`, `.css` among them). Three things to say and none is the count: which
+categories GREW, which markers are oldest, and which `shortcut:` markers carry no
+trigger. "340 TODOs" is a number nobody acts on; "11 older than two years, 3 of them
+in payments" is a decision. If no baseline exists, say that `--update-baseline`
+starts the ratchet and that the first run only establishes a line to hold — do not
+present the initial numbers as findings.
 
 Standing of the ratchet: `unenforceable` as a gate against the model itself —
 `--update-baseline` is runnable by any session, so the line can be reset by the
@@ -69,11 +75,15 @@ is, invoke it through the Skill tool — never the bare `/code-review` slash for
 which collides with this plugin's namespace — on the scope resolved in items 1–4
 above, report-only: no `--fix`, no `--comment`. Take its findings as the
 correctness, smell and convention passes (the pass's items 2–4 below); do the hunk
-read (item 1) and the history pass (item 5) yourself — the built-in does not read
-blame — then the stack fan-in and the merge. The built-in applies neither the
+read (item 1), the comment pass (item 4a) and the history pass (item 5) yourself — the
+built-in reads neither blame nor this plugin's comment rule — then the stack fan-in and
+the merge. The built-in applies neither the
 `code-smells` catalog nor the concern-axis owner rules further down, so the merge
 filters its findings through both before anything is reported, and pre-existing
-smells it raises outside the diff collapse to the one summary note. Everything
+smells it raises outside the diff collapse to the one summary note. Its convention
+findings are judged against CLAUDE.md, the linters and the repo's contributing or
+coding-standards doc when present — that doc for naming, structure and idiom only
+(item 4) — and one drawn from a stated rule names its file and the rule. Everything
 after the pass — fan-in merge, self-refute, `Checked:`, verdict, apply offer — is
 this command's, and **this command emits `ReportFindings` once**; the built-in's
 own emission, if any, is consumed as input, never forwarded. When the skill is
@@ -88,7 +98,23 @@ names which branch ran. Standing: recorded — nothing checks which branch ran.
 3. Smell pass: apply the code-smells skill catalog to the changed code only —
    pre-existing smells outside the diff get one summary note, not findings.
 4. Convention pass: naming, structure, and idiom drift versus the surrounding
-   file and the project's stated conventions (CLAUDE.md, linters, existing code).
+   file and the project's stated conventions (CLAUDE.md, linters, existing code, and
+   the repo's contributing or coding-standards doc when present — `CONTRIBUTING.md`,
+   `CODING_STANDARDS.md` or `STYLEGUIDE.md`, at the root, in `.github/` or in `docs/`).
+   That doc is a source for naming, structure and idiom only, never for comment volume
+   or docblock style, which stay with CLAUDE.md and `comment-discipline`. A finding
+   drawn from a stated rule names its file and the rule.
+4a. Comment pass over the comments the diff ADDS: load the `comment-discipline` skill
+   (through the Skill tool when it is available, else Read
+   `${CLAUDE_PLUGIN_ROOT}/skills/comment-discipline/SKILL.md`) and judge each against its
+   keep-cases and kill-cases. A finding quotes the comment and names the kill-case it
+   matches, or the fact the code already shows; comment findings are `low` (a comment
+   claiming behaviour the code lacks: `high`), and a comment item 3 or the built-in also
+   flagged is reported once, here. A house style the project's CLAUDE.md states overrides
+   the skill; volume and ratio stay with this plugin's hooks. A path with no diff skips
+   the pass, named under `Not checked:` — except on a hand-up from
+   `/code-review:comment-review`, where every comment in scope is judged.
+   Standing: agent-graded.
 5. History pass, when the change edits or removes existing lines: `git log -L` or
    `git blame` on the touched hunks. A line added by a commit whose subject names a
    bug, a workaround, or an incident is a line the diff must not undo without saying
@@ -122,13 +148,13 @@ Output rules:
   - **Stack axis** — idiom detail is already loaded inline when the plugin is
     installed; when absent, name the plugin in the closing line rather than
     guessing its idioms.
-  - **Concern axis** — two plugins claim things step 2 also claims: `resilience`
+  - **Concern axis** — two owners claim things step 2 also claims: `resilience`
     (missing timeouts, unsafe retries, absent degradation paths; empty/over-broad
     catches, swallowed exceptions, missing cause chains; check-then-act races, retry
     idempotency, unguarded parallel writes; silent catch blocks, correlation IDs,
     secrets in logs; performance hotspots; at-least-once delivery, idempotent
     consumers, ordering and poison messages on a broker or queue) and this plugin's own `comment-discipline`
-    skill (comment volume and placement). When `resilience` is installed, LOAD its
+    skill (added comments, judged in item 4a; volume stays with the hooks). When `resilience` is installed, LOAD its
     matching skills (resilience-design, error-handling-design, concurrency-safety,
     observability-design, performance-tuning, and event-driven when the diff touches a
     broker, queue, consumer or event schema — all six) in this same pass and report each such

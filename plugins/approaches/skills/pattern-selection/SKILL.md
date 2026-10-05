@@ -25,8 +25,10 @@ stop and ship the plain version. Do not skim to the table first.
 3. **Problem stated in one sentence without a pattern name?** If the only justification is
    "cleaner" or "more professional," that's pattern-for-pattern's-sake. Stop.
 
-Three yeses → open the map. Otherwise the simple version *is* the answer; record why in a comment
-and move on.
+Three yeses → open the map. Otherwise the simple version *is* the answer; the why goes in the PR
+or commit message. Add a one-line comment only where a reader would otherwise "fix" the simple
+version back into the pattern — the why-this-not-the-obvious keep-case of code-review's
+comment-discipline skill, when code-review is installed.
 
 ## How to use the map
 

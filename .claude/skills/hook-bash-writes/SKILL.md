@@ -22,8 +22,8 @@ forking them. Standing of each rule is in brackets.
   exact block text]
 - Need only paths (a path guard)? Paste targets alone. Need the written text (a content
   guard)? Paste targets THEN chunks — the caller resolves each chunk's file through
-  `cc_bash_write_targets`. Chunks carries its own copy of `mask()`: a byte-locked
-  block's awk functions are not reachable from outside it, so the duplicate is intended.
+  `cc_bash_write_targets`. Why chunks carries its own `mask()`:
+  `rationale/derivations/templates-and-blocks.md` § `templates/blocks/bash-write-chunks.md`.
 - Never edit a block in a hook. A fix goes into `templates/blocks/`, then every hook
   that carries it is re-pasted in the same change. Recount the copies:
   `grep -rl 'cc_bash_write_targets() {' plugins/`.
@@ -37,9 +37,10 @@ forking them. Standing of each rule is in brackets.
 3. **Cheap exit first:** `[ -n "$(cc_bash_write_targets "$cmd")" ] || exit 0` before
    reading anything else. A non-write Bash call is the common case and must cost
    ≤ 50 ms median (measure 20 runs; record median and max in the CHANGELOG).
-4. A path or disk guard (it reads the targets) caps them (`| head -n 8`) and says so in
-   the header. A content guard judges every chunk, one target per writer (`head -n 1`),
-   bounded by the command text itself.
+4. A path or disk guard (it reads the targets) caps them with a named constant
+   (`MAX_BASH_TARGETS=8` … `| head -n "$MAX_BASH_TARGETS"`) and says so in the header.
+   A content guard judges every chunk, one target per writer (`head -n 1`), bounded by
+   the command text itself.
 5. Resolve a relative target against the payload `.cwd`, never the hook's own cwd. When
    the command holds a `cd`/`pushd` OUTSIDE heredoc bodies, skip relative targets — a
    miss, never a wrong file. The body-stripping awk in `plugins/testing/hooks/protect-tests.sh`
@@ -72,14 +73,15 @@ EOF_C
 
 - interpreter writes: python `open()`, php `file_put_contents`;
 - `cp` / `mv` / `install` destinations;
-- `{ …; } > f` groups, here-strings `<<<`, printf format substitution;
+- `{ …; } > f` groups (chunks only; `cc_bash_write_targets` reports the target), here-strings `<<<`, printf format substitution;
 - a path held in a variable (`> "$out"`);
 - a quoted string or `\` continuation spanning lines, a second heredoc on one line;
 - a relative target after an in-command `cd` (skipped per step 5);
 - targets past your cap.
 
-Deletion (`rm` of a hook or config) is command-guard's `destructive-guard.sh`, not a
-write guard's business.
+Deletion is not a write guard's business, and no guard here stops a plain `rm` of a hook or
+config: command-guard's `destructive-guard.sh` judges a recursive `rm` by its target, an `rm`
+naming a `.env`, and a command naming its own allow-file.
 
 ## Harness traps
 

@@ -29,11 +29,11 @@ is not a specification — it is the drift this rule exists to stop.
 | Shape of data | types, signatures | no |
 | Expected behavior, edge cases | tests | no |
 | Sequence of steps | extracted, named functions | no |
-| Architecture, specs, decisions | ADRs and project docs | no |
+| Architecture, specs, decisions | the PR; a decision record (ADR) only past the three-part test under "Reasoning narration" | no |
 | Why this way and not the obvious way | one-line comment | **yes** |
 | External constraint, upstream bug, perf measurement | one-line comment + link or ticket | **yes** |
 | Deliberate no-op — empty catch, fallthrough, unused-but-required param | one-line comment | **yes** |
-| Units, ownership, lifetime, thrown conditions the signature cannot express | one-line docblock | **yes** |
+| Units, ownership, lifetime, thrown conditions, required call order the signature cannot express | one-line docblock | **yes** |
 
 The left column is what people usually comment; the right column is why most of
 those comments should not exist — the fact was already recordable somewhere better.
@@ -70,7 +70,8 @@ above `const list = ...`. Cue: the comment is a better name than the name.
 
 **Reasoning narration.** Three lines above a method explaining the design decision at
 length. Cue: it reads like the pull request description. One line for the why; the
-rest belongs in the PR, the ADR, or nowhere.
+rest belongs in the PR or nowhere — or in a decision record (ADR), and only when all three
+hold: costly to reverse, a surprise to a reader who lacks the history, a real alternative rejected.
 
 ## Keep-cases
 
@@ -78,15 +79,16 @@ These are the comments worth defending in review. The list is closed — anythin
 outside it is first tried as a rename, a type, a test, or an extraction.
 
 - **Why this and not the obvious thing.** The alternative you rejected and the
-  reason. This is the one fact genuinely unrecoverable from code.
+  reason — the one fact genuinely unrecoverable from code. A deliberate shortcut takes one fixed form, both halves
+  on one line: `shortcut: <the limit>; revisit when <trigger>`. Without the trigger it is a bare TODO.
 - **External constraint or upstream bug**, with a link or ticket. The link is what
   lets a future reader check whether the constraint still holds and delete the workaround.
 - **Intentional-silence markers.** An empty catch, a deliberate fallthrough, an
   unused-but-required parameter. Absence cannot be named or typed; say why it is safe.
 - **TODO carrying a ticket ID.** `// TODO(BILL-412): drop once v2 rollout completes`.
 - **Contract facts a signature cannot express.** Units (`milliseconds`), ownership
-  and lifetime ("caller must close"), which conditions throw, shapes the type system
-  cannot state. One line, in the docblock form the language uses.
+  and lifetime ("caller must close"), which conditions throw, required call order
+  (`open()` before `read()`), shapes the type system cannot state. One line, in the docblock form the language uses.
 
 ## A comment that asserts behavior is a claim
 
@@ -122,7 +124,7 @@ checked, an `@param` is not, and when they disagree the comment is what people b
 
 Same test for TSDoc, a Python docstring, godoc, a `///` in Rust: strip everything the
 signature already states, keep whatever survives — usually units, ownership, throw
-conditions, or an example for a genuinely non-obvious call. Usually nothing survives,
+conditions, required call order, or an example for a genuinely non-obvious call. Usually nothing survives,
 and no docblock is the correct outcome. Public-API docs generated for external
 consumers are a product surface with their own audience; that is a docs decision the
 project states in its `CLAUDE.md`, not this rule's.
@@ -137,25 +139,57 @@ section, so a fan-out cannot re-import the surrounding file's habits.
 
 ## What is enforced, and what is advice
 
-- **gate** — three kill-cases are **denied before the write** by the `PreToolUse`
-  lane of `hooks/scan.sh`: a comment restating the next line, commented-out code, and
-  a docblock tag repeating the signature. And `hooks/density.sh` denies a whole
-  `Write` whose comment-to-code ratio is over the ceiling (0.4:1 by default). Both
-  are bounded: at most two denies per file per session, so a false positive costs at
-  most two turns and never wedges a run.
-- **agent-graded** — banners, bare TODOs, change-narration and missing why-comments
-  are `PostToolUse` warnings. Whether a kept why-comment was necessary is a reviewer's
-  judgment; the `code-reviewer` agent makes it.
+- **gate** — three kill-cases are **denied before the write** by the `PreToolUse` lane of `hooks/scan.sh`: a comment restating the next line, commented-out code,
+  and a docblock tag repeating the signature (a typed tag only when the signature below types the parameter too). It reads `//`, `/* */`, `#` and `-- ` only where
+  the file's language has them, and a `*`-led line only inside a block opened by a line starting `/*`, so a shell `*)`, C's `**pp = 0;` and Python's `**kwargs):`
+  are code, never refused; example code in a doc comment (after `@example`, in a fence, a Rust `///` line) is not commented-out code. And `hooks/density.sh`
+  denies a whole `Write` over 0.3 prose comment lines per code line, compared exactly; under 50 lines or 8 code lines, at 5+ prose lines and more prose than code,
+  or than a ceiling raised past 1:1 ("the ceiling is 1.0:1"). Both judge a Bash heredoc that `cat` or `tee` carries to a file (`cat > f <<EOF`, `tee f <<EOF`) as
+  a `Write` of its body; `density.sh` denies it only when it replaces the file (`>`, `tee` without `-a`) — an append is a fragment. Each hook is bounded: at most
+  two denies per file per session, shared by a `Write` and a heredoc to that file, so a false positive costs at most two turns per hook and never wedges a run.
+- **gate, by path** — `node_modules/`, `vendor/`, `dist/`, `.git/` and `.claude/` are
+  exempt anywhere; `build/` only at the project root; `scripts/*.sh`, `templates/`
+  and `plugins/*/hooks/` only inside a plugin-marketplace repository (its root holds
+  `.claude-plugin/marketplace.json`); `migrations/` is judged everywhere. Generated
+  text is exempt from the denies only through an anchored marker in its first five
+  lines — `@generated`, `<auto-generated`, or a line beginning `Code generated`,
+  `Generated by`, `Auto-generated`, `Do not edit` or a sibling form — never through a
+  sentence that merely mentions a generator.
+- **agent-graded** — `PostToolUse` warns, never denies, on banners, bare TODOs (lowercase `todo` too; an owner, ticket or URL rescues one), change-narration, docblock tags
+  padded with their own name or type, a Python docstring summary echoing its `def`, commented-out markup, three or more comment lines in a row, region, `MARK:` and `Step 1:`
+  markers, and author-date stamps; whether a kept why-comment was necessary is the `code-reviewer` agent's call. The shortcut form is graded by the review comment passes,
+  recorded otherwise: `scan.sh` neither denies nor validates it, and the `shortcut:` prefix defeats the restatement detector unless the next line already holds the word, so
+  `/code-review:review --debt`'s `shortcuts` count is the only mechanical counter-pressure.
 - **recorded** — everything else here. Nothing reads it back.
+- **recorded — what a Bash write still escapes.** Not judged: interpreter writes
+  (python `open()`, php `file_put_contents`); a heredoc fed to anything but `cat` or
+  `tee`; `echo` / `printf` and `sed -i` / `perl -i` content (the after-command warning
+  below still measures the file); `cp`, `mv`, `install`; `{ …; } > f`; here-strings; a
+  path held in a variable; a globbed operand; `2>`, `&>` and `>&` targets; a quoted string
+  or `\` continuation spanning lines; a second heredoc on one line; the second operand
+  of `tee a b`; `VAR=value tee f <<EOF`; `cat` with a file operand or an option, or
+  behind a wrapper or keyword (`/bin/cat`, `then cat`); a heredoc piped to a stage that
+  is not `tee`; a relative target in a command holding `cd`, `chdir`, `pushd` or
+  `popd`; a quote glued onto the target (`f.js'.bak'`); a target with a backslash,
+  `~user`, or a `..` out of a symlinked directory; a command over 32 kB made of very
+  long lines. For `density.sh`'s deny also a heredoc whose file the command writes again, and after the command
+  any target past the first three on disk; truncating heredocs past the 40th in one command, by neither lane. One
+  file reached through a symlink keeps a second budget; a hand-typed generated marker exempts a file; a deny
+  co-firing with another plugin's spends a try on a write that never happened. The plugin README has the
+  thresholds, the shapes the hooks misread (a heredoc in a function never called, a quoted `"cd"`, a `> f` in a
+  shell comment), what the comment counter cannot tell apart and what `scan.sh` still misses.
 
-`hooks/density.sh` also warns after any edit when the file is over
-min(2x its committed siblings' median, the ceiling), and judges a file with no
-committed siblings against the ceiling alone. A project that specifies a heavier
-style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (10 for 1:1;
-0 keeps only the sibling test). That is the "unless specified" escape hatch, and it
-is per project on purpose. It is also the ONLY one the hooks read: neither
-`scan.sh` nor `density.sh` parses CLAUDE.md, so a house style written only in prose
-there is recorded, not enforced, and its first tag-carrying write is still denied.
+`hooks/density.sh` also warns after any edit when the file is over min(2x its committed siblings' median, the
+ceiling), or, with no committed siblings, over the ceiling alone; after a Bash command it measures the first three
+targets on disk. A file with no code line is never over. Not prose: delimiter-only lines, tool directives, typed doc
+tags, a first comment block naming a licence, `|`-boxed config blocks; an untyped `@param name text` is prose. Not
+told apart: a triple-quoted string that is no docstring and a mid-line `/*` count as code; a directive the hook does
+not know and comment-looking lines in JS template literals and PHP heredocs count as prose. Dockerfiles and Makefiles
+are left to `scan.sh`. A heavier house style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in the project's settings `env`:
+5 where every public API is documented (PEP 257, Javadoc), 4 for the 0.25.0 ceiling — the number only; the newer file
+types, the short rule and the exact compare stay — 10 for 1:1, 0 for the sibling test alone. That is the "unless
+specified" escape hatch, per project on purpose, and the ONLY one the hooks read: neither hook parses CLAUDE.md, so a
+house style written only there is recorded, not enforced.
 
 ## Anti-patterns
 

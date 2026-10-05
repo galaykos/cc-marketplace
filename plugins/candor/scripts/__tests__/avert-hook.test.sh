@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
-# Smoke tests for candor/hooks/avert.sh — the PreToolUse guard that turns a dispatch,
-# file, edit or command carrying a hedge the user never raised into a permission
-# question. Each branch below is one a one-character edit could remove while the happy
-# path stays green: the user-raised exemption, the once-per-term marker, the tool
-# routing, the off switch, fail-open. Picked up by the CI step that globs
-# plugins/*/scripts/__tests__/*.test.sh.
+# avert-hook.test.sh — drives hooks/avert.sh with PreToolUse payloads and synthetic transcripts under a sandboxed TMPDIR and asserts each ask or
+#   silence: the user-raised exemption, the once-per-term marker, the tool routing, notify, the off switch and fail-open.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/avert-hook.test.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 HOOK="$ROOT/plugins/candor/hooks/avert.sh"

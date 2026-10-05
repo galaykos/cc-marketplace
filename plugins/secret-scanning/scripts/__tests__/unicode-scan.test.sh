@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Fixture tests for hooks/unicode-scan.sh — the invisible-character scanner.
-# Bytes are written with printf escapes, never with literal invisible characters in
-# this file: a fixture whose point is an unreadable byte must not depend on that byte
-# surviving an editor, a copy-paste, or this repo's own review.
+# unicode-scan.test.sh — fixture cases for hooks/unicode-scan.sh: each invisible class, the bidi message, the one-shot, the off switches,
+#   fail-open and the Bash write path. Bytes come from printf escapes: a literal invisible byte would not survive an editor or a paste.
+# Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/scripts/__tests__/unicode-scan.test.sh
 set -u
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/unicode-scan.sh"
 BASH_BIN="${BASH:-bash}"
@@ -38,7 +37,6 @@ warns  "$T/midbom.ts" "a BOM in the middle of a file warns"
 silent "$T/clean.ts"  "clean ASCII is silent"
 silent "$T/bom.ts"    "a LEADING BOM is an encoding, not a hider"
 
-# the bidi class gets its own message, because the consequence is different
 out=$(fire "$T/bidi.ts")
 case "$out" in
   *"BIDIRECTIONAL OVERRIDE"*) ok "bidi overrides get the Trojan Source message" ;;
@@ -50,22 +48,18 @@ case "$out" in
   *) bad "non-bidi gets the zero-width message" "got: ${out:-<silent>}" ;;
 esac
 
-# the report names a location, not just a fact
 out=$(fire "$T/zw.ts")
 case "$out" in
   *"line 2"*"U+200B"*) ok "the report names line and codepoint" ;;
   *) bad "the report names line and codepoint" "got: $out" ;;
 esac
 
-# one-shot per file per session
 SID='{"session_id":"once","transcript_path":"/tmp/once","tool_name":"Read","tool_input":{"file_path":"'"$T"'/zw.ts"}}'
 first=$(printf '%s' "$SID" | "$BASH_BIN" "$HOOK" 2>/dev/null)
 second=$(printf '%s' "$SID" | "$BASH_BIN" "$HOOK" 2>/dev/null)
 [ -n "$first" ] && [ -z "$second" ] && ok "warns once per file per session" \
   || bad "warns once per file per session" "first=${first:0:40} second=${second:0:40}"
 
-# a clean touch does NOT spend the file's one warning (0.9.1): created clean, then an
-# invisible character appended — the second touch must still warn.
 printf 'const a = 1;\n' > "$T/later.ts"
 LATER='{"session_id":"later","transcript_path":"/tmp/later","tool_name":"Write","tool_input":{"file_path":"'"$T"'/later.ts"}}'
 first=$(printf '%s' "$LATER" | "$BASH_BIN" "$HOOK" 2>/dev/null)
@@ -75,7 +69,6 @@ second=$(printf '%s' "$LATER" | "$BASH_BIN" "$HOOK" 2>/dev/null)
   && ok "a clean first touch does not use up the file's warning" \
   || bad "a clean first touch does not use up the file's warning" "first=${first:0:40} second=${second:0:40}"
 
-# off switches
 out=$(printf '{"session_id":"o1","transcript_path":"/tmp/o1","tool_name":"Read","tool_input":{"file_path":"'"$T"'/zw.ts"}}' \
       | CC_UNICODE_SCAN=off "$BASH_BIN" "$HOOK" 2>/dev/null)
 [ -z "$out" ] && ok "CC_UNICODE_SCAN=off silences it" || bad "CC_UNICODE_SCAN=off silences it" "$out"
@@ -83,17 +76,25 @@ out=$(printf '{"session_id":"o2","transcript_path":"/tmp/o2","tool_name":"Read",
       | CC_REMIND=off "$BASH_BIN" "$HOOK" 2>/dev/null)
 [ -z "$out" ] && ok "CC_REMIND=off silences it (it is an advisory)" || bad "CC_REMIND=off silences it" "$out"
 
-# fail-open
 out=$(printf 'garbage' | "$BASH_BIN" "$HOOK" 2>/dev/null); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && ok "fail-open on malformed input" || bad "fail-open on malformed input" "rc=$rc"
 silent "$T/missing.ts" "a file that does not exist is silent"
 out=$(fire "$T/zw.ts" Glob)
 [ -z "$out" ] && ok "silent on a tool it does not match" || bad "silent on a tool it does not match" "$out"
 
-# 0.9.0 BASH WRITES. A file written by a heredoc never reached this hook
-# (rationale/2026-09-25-session-plugin-usage-review.md, finding 1). The hook runs AFTER the
-# command, so each fixture file is created first and the payload carries the command that
-# wrote it. The cwd is a SUBDIRECTORY of a temp git repo, as after the model's `cd`.
+printf '{"cells":[{"source":["x = 1  # \xe2\x80\xae\\n"]}]}\n' > "$T/bidi.ipynb"   # U+202E in a cell
+printf '{"cells":[{"source":["x = 1\\n"]}]}\n'                  > "$T/clean.ipynb"
+nbfire() { # notebook session
+  printf '{"session_id":"%s","transcript_path":"/tmp/%s","tool_name":"NotebookEdit","tool_input":{"notebook_path":"%s","cell_id":"c1","new_source":"x = 1"}}' \
+    "$2" "$2" "$1" | "$BASH_BIN" "$HOOK" 2>/dev/null
+}
+first=$(nbfire "$T/bidi.ipynb" nb-once); second=$(nbfire "$T/bidi.ipynb" nb-once)
+case "$first" in *"bidi.ipynb"*"BIDIRECTIONAL OVERRIDE"*) [ -z "$second" ] ;; *) false ;; esac \
+  && ok "a NotebookEdit notebook with a bidi control warns once, like a Write" \
+  || bad "a NotebookEdit notebook with a bidi control warns once, like a Write" "first=${first:0:60} second=${second:0:40}"
+out=$(nbfire "$T/clean.ipynb" nb-clean)
+[ -z "$out" ] && ok "a NotebookEdit on a clean notebook is silent" || bad "a NotebookEdit on a clean notebook is silent" "$out"
+
 unset CLAUDE_PROJECT_DIR
 R="$T/repo"; mkdir -p "$R/app/sub" "$T/outside"; git -C "$R" init -q 2>/dev/null
 cp "$T/zw.ts" "$R/app/sub/zw.ts"; cp "$T/bidi.ts" "$R/app/up.ts"; cp "$T/clean.ts" "$R/app/sub/clean.ts"

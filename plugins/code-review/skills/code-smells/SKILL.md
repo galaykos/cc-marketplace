@@ -83,10 +83,22 @@ fix is an opinion; do not report opinions.
   nobody sets, hooks nobody calls. Risk: cognitive tax on every reader.
   Fix: inline to the concrete case (the yagni-check skill in
   code-architecture owns the deep version of this call).
+- Reinvented shelf. Cue: hand-rolled code, or a dependency imported for one
+  call, doing what the standard library, the platform (browser, database, OS)
+  or an already-installed dependency ships. Risk: the copy misses edge cases
+  the shelf version handles, and every fix to it is yours. Fix: name the
+  function or feature that replaces it. Standing: agent-graded, like the
+  rest of this catalog — the review's smell pass applies it.
+- Mysterious name. Cue: the body must be opened to learn what a symbol holds
+  or does (`obj`, `info2`, `doStuff`). Risk: every caller re-reads the body,
+  and the one who guesses instead ships the wrong assumption. Fix: rename;
+  when no truthful name exists, the unit does two jobs — split it, then name
+  the halves (code-architecture's low-cognitive-load owns naming depth, when
+  installed). Standing: agent-graded, like the rest of this catalog.
 - Comment as deodorant. Cue: a comment explaining WHAT confusing code does.
   Risk: comment rots, confusion stays. Fix: rename and extract until the
   comment is redundant; keep only constraint-comments (the WHY). The
-  sibling `comment-discipline` skill owns comment volume and placement in depth. (Admission law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+  sibling `comment-discipline` skill owns comment volume and placement in depth. (Admission law: an artifact earns its place only by carrying a rule nothing else carries.)
 
 ## When it is NOT a smell
 

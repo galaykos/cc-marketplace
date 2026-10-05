@@ -1,22 +1,7 @@
 #!/usr/bin/env bash
-# Smoke tests for candor/hooks/mode.sh (terse until 2026-09-14) — the UserPromptSubmit hook that owns both level
-# SWITCHING and the per-turn budget reinforcement.
-#
-# WHY THIS FILE EXISTS. The hook shipped with zero coverage and its own comments record
-# at least three past regressions in the trigger logic: a guard that swallowed the
-# documented `terse mode off` request, a level word matched out of the middle of an
-# ordinary sentence ("I prefer terse full sentences"), and a negated prompt ("never turn
-# on terse") switching the mode ON. Each was found by hand. A 168-line hook with that
-# history and no fixtures is the recorded-masquerading-as-gate shape CLAUDE.md's
-# has-teeth convention warns about.
-#
-# The immediate cause is the slash-command branch: `/*) exit 0` disqualified a slash
-# prompt from switching AND from reinforcement, so every slash-command turn silently
-# lost the budget line. Both halves are asserted here, in both directions — the fix
-# would be trivially "achieved" by deleting the branch, which cases 4 and 5 then fail.
-#
-# Picked up by the CI step that globs plugins/*/scripts/__tests__/*.test.sh, so it is
-# enforced from the moment it lands.
+# mode-hook.test.sh — drives hooks/mode.sh with UserPromptSubmit payloads under a sandboxed CLAUDE_CONFIG_DIR and asserts its level switching,
+#   the budget line (slash-command turns included), the guards against a false switch, the /config option's rank and fail-open.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/mode-hook.test.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 HOOK="$ROOT/plugins/candor/hooks/mode.sh"
@@ -25,8 +10,7 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available"; exit 0; }
 
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 rc=0
-# The level file lives under CLAUDE_CONFIG_DIR; unpinned, this harness rewrote and deleted
-# the runner's real ~/.claude/terse-mode. A saved /config option must not leak in either.
+# Unpinned, this harness rewrote the runner's real level file; a saved /config option must not leak in either.
 export CLAUDE_CONFIG_DIR="$TMP/cfg"; mkdir -p "$CLAUDE_CONFIG_DIR"
 unset CLAUDE_PLUGIN_OPTION_CC_TERSE
 
@@ -47,18 +31,13 @@ check(){ # $1 label, $2 out, $3 want-substring ('' = must be silent)
 BUDGET='chat message only'
 CONFIRM='TERSE MODE — level'
 
-# A level must be active for § 3 to have anything to reinforce.
 B=$(box); run "/candor:level full" "$B" >/dev/null
 
-# ---- 1-3. the fix: reinforcement survives a slash command ---------------------
 check "plain work prompt reinforces"            "$(run 'add a google endpoint' "$B")"                 "$BUDGET"
 check "/coding-task reinforces"                 "$(run '/coding-task add a google endpoint' "$B")"    "$BUDGET"
 check "namespaced slash command reinforces"     "$(run '/code-architecture:coding-task add it' "$B")" "$BUDGET"
 check "another plugin's command reinforces"     "$(run '/ui-ux:build a card' "$B")"                   "$BUDGET"
 
-# ---- 4-5. and switching is still disqualified inside a slash command ----------
-# These are what stop the fix from being "delete the branch". A slash command's
-# ARGUMENTS are a task description; they must never move the mode.
 C=$(box); run "/candor:level full" "$C" >/dev/null
 out=$(run '/coding-task please stop being terse and go back to normal length' "$C")
 check "slash args do NOT switch the level off"  "$out" "$BUDGET"
@@ -66,13 +45,11 @@ check "  …and emit no switch confirmation"      "$(printf '%s' "$out" | grep "
 out=$(run '/coding-task make it terse ultra.' "$C")
 check "slash args do NOT switch the level up"   "$(printf '%s' "$out" | grep "$CONFIRM" || true)" ""
 
-# ---- 6. an explicit /candor:level still switches, and does NOT also reinforce --
 D=$(box)
 out=$(run '/candor:level ultra' "$D")
 check "/candor:level switches"                   "$out" "$CONFIRM"
 check "  …without doubling the budget line"     "$(printf '%s' "$out" | grep "$BUDGET" || true)" ""
 
-# ---- 7-9. the guards the hook's own comments say regressed before ------------
 E=$(box); run "/candor:level full" "$E" >/dev/null
 check "negation does not switch on"             "$(printf '%s' "$(run 'never turn on terse mode' "$E")" | grep "$CONFIRM" || true)" ""
 check "level word mid-sentence does not switch" "$(printf '%s' "$(run 'I prefer terse full sentences in docs' "$E")" | grep "$CONFIRM" || true)" ""
@@ -80,12 +57,10 @@ check "the hook's own line echoed back is inert" \
   "$(printf '%s' "$(run 'TERSE full — chat message only; full depth in the work.' "$E")" | grep "$CONFIRM" || true)" ""
 check "plain 'terse mode off' still switches"   "$(run 'terse mode off' "$E")" "TERSE MODE OFF"
 
-# ---- 10. off / unset means silence -------------------------------------------
 check "level off reinforces nothing"            "$(run 'add an endpoint' "$E")" ""
 F=$(box)
 check "no level set at all is silent"           "$(run 'add an endpoint' "$F")" ""
 
-# ---- 10b. the /config option (cc_terse) sits below the level file --------------
 run_opt() { # $1 prompt, $2 cwd, $3 option value, [$4 CC_TERSE]
   jq -n --arg pr "$1" --arg c "$2" \
     '{hook_event_name:"UserPromptSubmit",session_id:"t1",cwd:$c,prompt:$pr}' \
@@ -100,7 +75,6 @@ check "level file beats the option"             "$(run_opt 'add an endpoint' "$G
 check "level off names the option still holding it" "$(run_opt '/candor:level off' "$G" full)" "cc_terse keeps it active at full"
 check "level off names CC_TERSE before the option" "$(run_opt '/candor:level off' "$G" full ultra)" "CC_TERSE=ultra"
 
-# ---- 11. fail-open ------------------------------------------------------------
 out=$(printf '' | env -u CC_TERSE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null); e=$?
 [ "$e" -eq 0 ] && echo "PASS: empty stdin exits 0" || { echo "FAIL: empty stdin exit $e"; rc=1; }
 out=$(printf '{}' | env -u CC_TERSE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null); e=$?

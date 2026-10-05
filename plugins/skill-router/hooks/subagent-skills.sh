@@ -1,78 +1,20 @@
 #!/bin/bash
-# Absolute-path shebang (not `/usr/bin/env bash`): the fail-open guarantee must
-# hold even under a stripped/broken PATH.
-# SubagentStart: hand a plugin subagent the Read paths of the skills its own frontmatter
-# declares in `bestpractices-skill:`, kept to the ones THIS project's stack uses. One
-# `hookSpecificOutput.additionalContext`, a few hundred characters: an instruction line and
-# one absolute SKILL.md path per kept skill. The body is NOT injected — the agent Reads it.
-#
-# WHY. `bestpractices-skill:` is this marketplace's own frontmatter key; Claude Code does
-# nothing with it. Only task-runner's dispatcher turns it into Read paths, so an agent
-# spawned any other way starts with no rubric. Measured 2026-09-25
-# (rationale/2026-09-25-session-plugin-usage-review.md, finding 6): three ad-hoc
-# `ui-ux:ui-ux-reviewer` spawns made 95-101 Read/Grep/Glob calls each and read ZERO
-# SKILL.md files, while task-runner-dispatched workers in another session read them 156+
-# times. The host's `skills:` preload was the other fix and was rejected for these lists:
-# it is stack-blind, so frontend-reviewer in a Laravel/Inertia repo would carry the React
-# Native and Next.js bodies (~4.4k tokens) on every spawn. Only the stack-independent
-# `ui-ux:a11y-audit` is preloaded that way.
-#
-# THE FILTER is prime.sh's own evidence table (`sr_repo_skills`, sourced from that file so
-# the SessionStart index and this hook cannot disagree about what the stack is), read at
-# the project root through `cc_state_root` — which prime.sh defines — so a spawn from a
-# model `cd`-ed into a subdirectory sees the same stack. A declared skill is kept only when
-# a row there finds its evidence AND its owning plugin is installed AND its SKILL.md exists.
-# Declared order is kept. A skill the agent already preloads through the host's `skills:`
-# key is dropped — its body is in context before this line arrives.
-#
-# OFF SWITCHES: CC_SUBAGENT_SKILLS=off silences this hook alone; CC_REMIND=off does too.
-# CC_SUBAGENT_SKILLS / CC_REMIND unset: the /config options cc_subagent_skills / cc_remind decide.
-# SILENT also when: the agent type is not plugin-scoped (`Explore`, `general-purpose`, a
-# project agent), its plugin is not in this marketplace's install root or is disabled, the
-# definition has no `bestpractices-skill:`, nothing declared matches the stack, or jq is
-# missing. No marker file: the host itself re-injects a SubagentStart context only when
-# the subagent's context no longer holds the earlier copy (docs, hooks § SubagentStart,
-# read 2026-09-25), so a resumed agent does not pay twice.
-#
-# COST. Every plugin-scoped spawn (the hooks.json matcher keeps built-in agents out) runs
-# one jq read, one awk over the agent file and, when a list exists, prime.sh's evidence
-# rows: manifest greps plus up to ten `find -maxdepth 3 -print -quit` calls — measured
-# 200-265 ms per spawn on two real Laravel/Inertia repos with 282 MB and 422 MB of
-# node_modules (2026-09-25). The output is capped at CAP characters, about 600 in practice;
-# a path past the cap is dropped whole, never cut mid-path.
-# `scripts/context-budget.sh` executes SessionStart, UserPromptSubmit and Pre/PostToolUse
-# hooks only, so this channel is NOT metered there.
-#
-# LIMITATIONS, stated rather than implied:
-#   - A declared skill prime.sh has NO evidence row for (motion-best-practices,
-#     security-review, performance-tuning, observability-design) is never injected: no
-#     manifest can say it applies, and an unconditional Read is the stack-blind cost this
-#     hook exists to avoid. Those agents get what their own body text tells them, as before.
-#   - The filter inherits prime.sh's misses: a11y-audit is evidenced by a .tsx/.jsx file
-#     within three levels of the root, so a11y-engineer in a Vue- or Blade-only repo is
-#     told nothing; devops-practices needs `.github/workflows/`; a monorepo whose manifests
-#     sit in a workspace below the root reads as having none.
-#   - Advisory: additionalContext cannot make the agent Read. Probed ONCE live (CLI
-#     2.1.282, haiku, --plugin-dir, a Laravel/Inertia repo): web-dev:frontend-reviewer
-#     received exactly the inertia and vite paths, as "SubagentStart hook additional
-#     context" in its own transcript, and quoted them back. Whether an agent then READS
-#     them on a real task is unmeasured.
-#   - "This marketplace" means the plugins root resolved from this hook's own
-#     CLAUDE_PLUGIN_ROOT (hooks/plugins-dir.sh). Another marketplace's plugin with the
-#     same name as one here is resolved against this one's definition.
+# subagent-skills.sh — SubagentStart for a plugin-scoped agent, fails open: hands it the absolute SKILL.md Read paths of the skills its
+#   bestpractices-skill: frontmatter declares and prime.sh's rows find at the project root, owner installed, minus its skills: preloads.
+# Off: CC_SUBAGENT_SKILLS=off (this hook) or CC_REMIND=off (every advisory nudge); unset, the /config options cc_subagent_skills / cc_remind decide.
+# Misses: a declared skill with no prime.sh row (motion-best-practices, security-review, performance-tuning, observability-design) and
+#   prime.sh's own misses; a path past the CAP-character output. Advisory: it cannot make the agent Read. Another marketplace's plugin of
+#   the same name resolves against this one's definition.
+# Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/subagent-skills.sh
 
-# --- option resolver -----------------------------------------------------------
-# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
-# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
-# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
-# because the environment is the one state independently installed plugins share (CC_REMIND
-# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
+# cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
+# <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
-# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
-# outside the switch's vocabulary — each hook still validates the value it gets.
+# A non-empty variable beats the option: the environment is shared, so one export before launch
+# switches every plugin that reads it.
+# Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
   case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
@@ -108,15 +50,13 @@ cc_option() {
   PLUGINS_DIR=""; PLUGIN_LAYOUT="flat"
   . "$here/plugins-dir.sh" 2>/dev/null || exit 0
   pr_resolve_plugins_dir
-  # No root, no path to name: unlike route.sh's fire-if-uncertain, silence is the only
-  # honest output here.
+  # No plugins root, no path to name: silence here, unlike route.sh's fire-if-uncertain.
   [ -n "$PLUGINS_DIR" ] || exit 0
   pr_plugin_installed "$plugin" || exit 0
   proot=$(pr_plugin_root "$plugin")
   [ -n "$proot" ] || exit 0
 
-  # The host reports the frontmatter `name`, not the filename; they agree across this
-  # marketplace today, and the scan covers the day one does not.
+  # The host reports the frontmatter `name`, not the filename; the scan finds an agent file named otherwise.
   def="$proot/agents/$name.md"
   if [ ! -f "$def" ]; then
     def=""
@@ -129,8 +69,7 @@ cc_option() {
     [ -n "$def" ] || exit 0
   fi
 
-  # Frontmatter only — the same read validate.sh's stack-authoring guard uses. `skills:`
-  # is read inline (`[a, b]` or `a, b`) and as a block list; a plugin prefix is dropped.
+  # Frontmatter only: `skills:` inline (`[a, b]`, `a, b`) or as a block list, its plugin prefix dropped.
   declared=$(awk '/^---[[:space:]]*$/{c++; if (c == 2) exit; next}
     c == 1 && /^bestpractices-skill:/ {sub(/^bestpractices-skill:[[:space:]]*/, ""); gsub(/[[:space:]]/, ""); print; exit}' "$def" \
     | tr ',' '\n' | grep -v '^$')

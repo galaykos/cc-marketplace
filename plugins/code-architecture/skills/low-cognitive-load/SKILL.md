@@ -43,6 +43,11 @@ A reader shouldn't have to keep a private lookup table in their head ("`d` is th
 the count of active sessions"). Name things for what they hold or do, in the vocabulary of the
 problem domain, not the vocabulary of the implementation ("`temp`", "`data2`", "`flag`").
 
+When the code's bounded context keeps a glossary (a `GLOSSARY.md` at the context's root, or the
+repo root for a single context), take its canonical term over any synonym it retires, and over
+a neighbour's naming too: that neighbour is a local convention that is itself the problem, so
+flag it for a deliberate rename, as the next paragraph says. Standing: **recorded**.
+
 Names also read against their neighbors: match the surrounding file's naming and idiom
 rather than importing a house style of your own. A file where one function speaks a
 different dialect makes the reader ask what the difference MEANS — and the answer
@@ -63,7 +68,12 @@ integration work the code should have done for them.
 - Prefer a slightly longer function with the logic visible over scattering it across
   many tiny one-line wrapper functions that exist only to satisfy a style rule.
   If the reader has to open several other files just to trace one call, the split has
-  gone past the point of paying for itself.
+  gone past the point of paying for itself. Weigh a split by its depth: what a caller must
+  learn to use the unit — its signature, the call order it requires, its error modes, the
+  config it needs — against what the unit gets done for them. A unit whose interface is as
+  wide as its body is a pass-through: inline it — unless it is the seam at a genuine boundary
+  (a vendor, a process edge, a slot a test fills), which solid-principles keeps. Standing:
+  **recorded**.
 - Keep configuration/constants near where they're used unless they're genuinely shared
   across many call sites — a single-use constant defined 300 lines away from its one usage
   costs a lookup for no benefit.
@@ -74,6 +84,41 @@ Every variable alive in a scope is something the reader must track for the rest 
 Narrow variable lifetime: declare as close to first use as possible, and let variables go out
 of scope (return early, use a block) as soon as they're no longer needed rather than keeping
 a wide, long-lived set of mutable locals that all interact by the end of the function.
+
+## Before new code: the reach order
+
+Read the code the change touches first, then build on the first step below that covers the
+need; the order picks what to build on and never excuses skipping the read.
+
+1. **Nothing** — the need is not real yet; `yagni-check` decides.
+2. **This repository** — search for a function, type or pattern that already does it, then
+   confirm it is alive (`reuse-hygiene`, when code-review is installed).
+3. **The standard library, then the platform under it** — what the browser, the database or
+   the OS already does.
+4. **An already-installed dependency** — adding a new one is a build-vs-buy decision, which
+   the `approaches` plugin covers when installed.
+5. **New code** — the least that satisfies the ask (`plan-before-code`'s surgical-edits reference).
+
+A step covers the need only when it is right on the edge cases the requirement has. The order
+never cuts a trust-boundary check, handling that guards against data loss, a security control,
+a baseline accessibility behaviour, or a thing the user named. Shorter is not a step: a plain
+longer version beats a terse one (`references/kiss-dry.md`).
+
+```
+// Hand-rolled: two concurrent sign-ups both pass the check
+if (await users.findByEmail(email)) throw new EmailTaken();
+await users.insert({ email });
+
+// Step 3, the database — needs a unique index on users.email, which holds under the race
+try { await users.insert({ email }); }
+catch (e) { throw isUniqueViolation(e) ? new EmailTaken() : e; }
+```
+
+Standing: **recorded** — nothing checks that the order was walked (adapted from
+dietrichgebert/ponytail v4.10.0, MIT). Reach: before code exists, only `coding-entry` loads this
+section, beside the description's own match; after an edit, skill-router (when installed)
+suggests it on .ts and .js source files (not config, .d.ts, .min.js or dotfiles), .tsx, .jsx and
+.vue files (not dotfiles), .php files (not Blade views or dotfiles), and .py, .go, .rb and .rs files — not .java.
 
 ## KISS and DRY
 

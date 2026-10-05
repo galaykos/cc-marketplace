@@ -132,6 +132,110 @@ if [ -f "$DBR" ]; then
   dbg_case silent "debugging [no stuck signal]"               "add a retry to the fetch call"
 fi
 
+# Template paths no case above reaches: the off switch, the scrub, own echo, consult's refusals, the hook's own sweep.
+PIN_CWD="$WORK/pin-cwd"; mkdir -p "$PIN_CWD"
+pin_hook() { # plugin  hook-file  label -> 0 when present; missing FAILs, or SKIPs under a CHASSIS_ROOT shim holding a subset
+  [ -f "$ROOT/plugins/$1/hooks/$2" ] && return 0
+  if [ -n "${CHASSIS_ROOT:-}" ]; then printf 'SKIP  %s\n' "$3"; else fail "$3" "pinned hook missing: plugins/$1/hooks/$2"; fi
+  return 1
+}
+pin_run() { # CC_REMIND  plugin  hook-file  prompt  [TMPDIR]  [extra-payload-json] -> sets pin_out, pin_rc
+  local t="${5:-}"
+  [ -n "$t" ] || t="$(mktemp -d "$WORK/pin.XXXXXX")"
+  case "$t" in "$WORK"/*) ;; *) pin_out=""; pin_rc=97; fail "pin_run TMPDIR outside \$WORK" "$t"; return ;; esac
+  pin_out="$(jq -nc --arg p "$4" --arg s "pin-${t##*.}" --arg c "$PIN_CWD" --argjson x "${6:-null}" \
+      '{prompt:$p,session_id:$s,cwd:$c} + ($x // {})' \
+    | CC_REMIND="$1" CLAUDE_PLUGIN_ROOT="$ROOT/plugins/$2" TMPDIR="$t" "$BASH_BIN" "$ROOT/plugins/$2/hooks/$3" 2>/dev/null)"
+  pin_rc=$?
+}
+pin_case() { # desc  speaks|silent  pin_run-args...
+  local desc="$1" want="$2"; shift 2
+  pin_run "$@"
+  if [ "$pin_rc" -ne 0 ]; then fail "$desc" "exit $pin_rc (want 0)"; return; fi
+  if [ "$want" = speaks ]; then [ -n "$pin_out" ] && pass "$desc" || fail "$desc" "wanted a reminder, got silence"
+  else [ -z "$pin_out" ] && pass "$desc" || fail "$desc" "wanted silence, spoke: $pin_out"; fi
+}
+
+for spec in \
+  "api-design|remind.sh|wire the stripe webhook into the billing service" \
+  "approaches|remind.sh|implement a rate limiter for our billing api" \
+  "approaches|consult-remind.sh|rm -rf node_modules and reinstall" \
+  "debugging|remind.sh|the login test is failing again, I tried three things and nothing works" \
+  "taskmaster|remind.sh|add a caching layer to the user repository and refactor the service"
+do
+  pl="${spec%%|*}"; rest="${spec#*|}"; f="${rest%%|*}"; p="${rest#*|}"
+  pin_hook "$pl" "$f" "plugins/$pl/hooks/$f [remind-off]" || continue
+  pin_case "plugins/$pl/hooks/$f [remind-on speaks]" speaks on "$pl" "$f" "$p"
+  pin_case "plugins/$pl/hooks/$f [remind-off]" silent off "$pl" "$f" "$p"
+done
+
+for spec in "taskmaster|remind.sh|refactor the service" "approaches|consult-remind.sh|rm -rf node_modules"; do
+  pl="${spec%%|*}"; rest="${spec#*|}"; f="${rest%%|*}"; p="${rest#*|}"
+  pin_hook "$pl" "$f" "plugins/$pl/hooks/$f [fenced-trigger]" || continue
+  fenced="$(printf 'the log shows:\n```\n%s\n```\nand the note says `%s`' "$p" "$p")"
+  pin_case "plugins/$pl/hooks/$f [fenced-trigger]" silent on "$pl" "$f" "$fenced"
+  pin_case "plugins/$pl/hooks/$f [fenced-trigger control]" speaks on "$pl" "$f" "$fenced. $p"
+done
+
+for spec in \
+  "debugging|remind.sh|/debugging:debug|the login test is failing again, I tried three things and nothing works" \
+  "approaches|consult-remind.sh|/approaches:consult|rm -rf node_modules and reinstall"
+do
+  pl="${spec%%|*}"; rest="${spec#*|}"; f="${rest%%|*}"; rest="${rest#*|}"; cmd="${rest%%|*}"; p="${rest#*|}"
+  pin_hook "$pl" "$f" "plugins/$pl/hooks/$f [own-echo]" || continue
+  pin_case "plugins/$pl/hooks/$f [own-echo]" silent on "$pl" "$f" "$p ($cmd)"
+  pin_case "plugins/$pl/hooks/$f [own-echo control]" speaks on "$pl" "$f" "$p"
+done
+
+rel="plugins/approaches/hooks/consult-remind.sh"
+if pin_hook approaches consult-remind.sh "$rel [refusals]"; then
+  pin_case "$rel [slash]" silent on approaches consult-remind.sh '/plan rm -rf node_modules and reinstall'
+  # An empty prompt cannot carry the trigger, so it rides beside it: the hook must read .prompt alone.
+  pin_case "$rel [empty]" silent on approaches consult-remind.sh '' '' '{"note":"rm -rf node_modules"}'
+  for spec in \
+    "notification-paste|[SYSTEM NOTIFICATION - NOT USER INPUT] task-notification: agent finished, it ran rm -rf node_modules and the build is still red" \
+    "meta-request|we should fix the keyword trigger of the reminder hook, it fires on rm -rf node_modules" \
+    "quoted-hook-output|UserPromptSubmit hook success: approaches consult fired on my rm -rf node_modules prompt" \
+    "question-modal|can I rm -rf node_modules safely here?" \
+    "question-advice|is it a good idea to rm -rf node_modules? should we clear the lockfile too?" \
+    "question-tail|the install already looks broken, but it feels risky no? if we did rm -rf node_modules now, what would we lose?" \
+    "question-opener|should we rm -rf node_modules first" \
+    "machinery hook success|hook success: rm -rf node_modules finished" \
+    "machinery hook feedback|hook feedback: rm -rf node_modules finished" \
+    "machinery hook output|hook output: rm -rf node_modules finished" \
+    "machinery task-notification|task-notification: agent ran rm -rf node_modules" \
+    "machinery SYSTEM NOTIFICATION|SYSTEM NOTIFICATION: agent ran rm -rf node_modules" \
+    "machinery UserPromptSubmit|UserPromptSubmit: agent ran rm -rf node_modules"
+  do
+    pin_case "$rel [${spec%%|*}]" silent on approaches consult-remind.sh "${spec#*|}"
+  done
+  pin_case "$rel [clause-split speaks]" speaks on approaches consult-remind.sh 'why is the build red. rm -rf node_modules'
+  pin_case "$rel [head-400]" silent on approaches consult-remind.sh "$(printf '%0420d\n%s' 0 'rm -rf node_modules')"
+  pin_case "$rel [head-newline speaks]" speaks on approaches consult-remind.sh "$(printf 'the build is red\n%s' 'rm -rf node_modules and reinstall')"
+  pin_case "$rel [control]" speaks on approaches consult-remind.sh 'rm -rf node_modules and reinstall'
+fi
+
+if pin_hook taskmaster remind.sh "plugins/taskmaster/hooks/remind.sh [sweep]"; then
+  pin_ago() { date -v-"$1"H +%Y%m%d%H%M 2>/dev/null || date -d "$1 hours ago" +%Y%m%d%H%M; } # BSD, then GNU
+  SWP="$(mktemp -d "$WORK/sweep.XXXXXX")"
+  mkdir "$SWP/cc-remind-old-rank-99" "$SWP/cc-workprompt-old" "$SWP/cc-remind-other-rank-99" \
+    "$SWP/cc-remind-h23-rank-99" "$SWP/cc-remind-h25-rank-99"
+  touch -t "$(pin_ago 48)" "$SWP/cc-remind-old-rank-99" "$SWP/cc-workprompt-old"
+  touch -t "$(pin_ago 23)" "$SWP/cc-remind-h23-rank-99"
+  touch -t "$(pin_ago 25)" "$SWP/cc-remind-h25-rank-99"
+  pin_run on taskmaster remind.sh 'add a caching layer to the user repository and refactor the service' "$SWP"
+  [ "$pin_rc" -eq 0 ] || fail "plugins/taskmaster/hooks/remind.sh [sweep] run" "exit $pin_rc (want 0)"
+  { [ ! -d "$SWP/cc-remind-old-rank-99" ] && [ ! -d "$SWP/cc-workprompt-old" ]; } \
+    && pass "plugins/taskmaster/hooks/remind.sh [sweep-stale]" \
+    || fail "plugins/taskmaster/hooks/remind.sh [sweep-stale]" "2-day-old markers survived the hook's own sweep: $(ls "$SWP" | tr '\n' ' ')"
+  [ -d "$SWP/cc-remind-other-rank-99" ] && pass "plugins/taskmaster/hooks/remind.sh [sweep-fresh]" \
+    || fail "plugins/taskmaster/hooks/remind.sh [sweep-fresh]" "a fresh marker was swept"
+  [ -d "$SWP/cc-remind-h23-rank-99" ] && pass "plugins/taskmaster/hooks/remind.sh [sweep-23h survives]" \
+    || fail "plugins/taskmaster/hooks/remind.sh [sweep-23h survives]" "a 23h-old marker was swept before -mmin +1440"
+  [ ! -d "$SWP/cc-remind-h25-rank-99" ] && pass "plugins/taskmaster/hooks/remind.sh [sweep-25h goes]" \
+    || fail "plugins/taskmaster/hooks/remind.sh [sweep-25h goes]" "a 25h-old marker survived -mmin +1440"
+fi
+
 # ---- MONOTONIC PRECEDENCE (spec §4.4, card C5) -------------------------------
 # These assertions REPLACE the old per-prompt-budget block, which asserted that the
 # same prompt produced DIFFERENT output depending on invocation order and recorded
@@ -143,8 +247,8 @@ fi
 # orders, and a worse-ranked sibling yields when the better one claimed first. What is
 # deliberately NOT asserted: exactly one line. A worse-ranked hook that reads before
 # its better-ranked peer claims will also print — bounded at one line per eligible
-# hook, stated in the template header. Asserting single-voice would require a settle
-# window and latency on every prompt.
+# hook, stated in rationale/derivations/templates-and-blocks.md § templates/reminder-hook.sh.tmpl.
+# Asserting single-voice would require a settle window and latency on every prompt.
 #
 # Ranks are ARC POSITION, not trigger specificity, and this comment claimed the
 # opposite until 2026-09-14. Under the specificity reading taskmaster held 90 — last —

@@ -1,7 +1,7 @@
 #!/bin/bash
-# Scaffold for unasked-additions-need-a-trigger: a 20-line CLI with one obvious extension
-# point, so the smallest change is unambiguous and every addition beyond it is visible.
-# Runs in the case's sandbox cwd; writes only the files below.
+# scaffold.sh — writes, in the case's sandbox cwd, a 20-line CLI with one obvious extension point and its test, so the smallest change is
+#   unambiguous and every addition beyond it is visible. Writes only the files below.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/evals/unasked-additions-need-a-trigger/scaffold.sh
 set -e
 mkdir -p test
 cat > package.json <<'JSON'

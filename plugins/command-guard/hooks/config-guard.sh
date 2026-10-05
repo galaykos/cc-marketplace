@@ -1,75 +1,21 @@
 #!/bin/bash
-# Absolute-path shebang not `/usr/bin/env bash`: the fail-open guarantee must hold
-# even under a stripped PATH where `env bash` exits 127.
-#
-# PreToolUse guard on the agent's OWN guardrails. Returns `ask` — never a bare deny —
-# on a write that would weaken the configuration deciding what the agent may do:
-#
-#   settings           .claude/settings.json, settings.local.json, ~/.claude/settings.json
-#   hooks              any hooks.json, any plugins/*/hooks/*.sh
-#   plugin manifests   .claude-plugin/plugin.json, marketplace.json
-#   lint/test config   .eslintrc*, eslint.config.*, .rubocop.yml, ruff.toml, pyproject.toml,
-#                      phpstan.neon[.dist], psalm.xml[.dist], .php-cs-fixer[.dist].php,
-#                      tsconfig.json, .golangci.y[a]ml, pytest.ini, setup.cfg, .flake8,
-#                      biome.json, clippy.toml
-#
-# The list above is the `case` below, spelled out: the two must be read together, because
-# a file named here and absent there is a promise nothing keeps. pyproject.toml was in
-# the code and missing from this list for its first four releases.
-#
-# WHY. Given a gate it cannot satisfy, the cheapest path out is to edit the gate — turn
-# off the rule, lower `strict`, add the file to an ignore list, delete the hook. It is
-# not malice, it is gradient descent, and it is invisible in a diff summary that reads
-# "updated config". Prose cannot reach it: the model is not violating an instruction it
-# remembers, it is solving the problem in front of it. A guard that fires at the moment
-# of the write is the only thing that turns the move into a decision the user makes.
-# (`karanb192/claude-code-hooks`'s `config-guard` is prior art and cites CVE-2026-25725;
-# this one is narrower — ask, not deny — because a legitimate config edit is common.)
-#
-# WHY `ask` AND NOT `deny`. Editing these files is often exactly the task ("add a
-# permission", "wire a hook", "bump the plugin version"). A deny would be wrong most of
-# the time it fired. An ask costs one keystroke on a legitimate edit and is the whole
-# mechanism on an illegitimate one, because the illegitimate case is precisely the one
-# the user would not have approved had they been asked.
-#
-# BASH WRITES (0.7.3). On Bash the guard reads the command's write targets through
-# cc_bash_write_targets (the block below): a `>`/`>>` redirect, `tee`, `sed -i`, `perl -i`.
-# At most 8 targets per call; a relative one resolves against the payload cwd, and the
-# first that classifies AND exists gets the same ask as a Write; a `~/` target expands to
-# $HOME. NOT caught on Bash: interpreter writes (python open(), php file_put_contents),
-# cp/mv/install destinations, `{ …; } > f` groups, a path held in a variable, a globbed
-# target, a dot-named config right after a bare `sed -i` with another file after it (read
-# as BSD's backup suffix), sed/perl behind another command word (`gsed`, `/usr/bin/sed`,
-# `env`, `xargs`, `command`, `find … -exec sed -i`), a digit- or `&`-led redirect onto a
-# config (`2> tsconfig.json`, `&> .eslintrc.json`) and `>&` onto one (`cmd >& tsconfig.json`),
-# a `\` continuation, a relative target after an in-command `cd` (it resolves against the
-# payload cwd), the 9th target on, and `rm` of a config or hook — a deletion, which stays
-# destructive-guard.sh's.
-# Both hooks now run on Bash, and each emits its own verdict.
-#
-# WHAT IT DOES NOT CATCH, stated because the README tiers this:
-#   - A weakening in a file this list does not name. The list is literal, not clever.
-#   - Any judgment about WHETHER the edit weakens anything: it does not parse the file,
-#     it asks about the path. Adding a rule and deleting one look identical here.
-#     That half is agent-graded and the ask text says so.
-#   - The first write that CREATES one of these files (there is nothing to weaken yet),
-#     which is why a missing target is allowed through.
-#
-# Off with CC_CONFIG_GUARD=off. Fail-open on every error path.
-# CC_CONFIG_GUARD / CLAUDE_DESTRUCTIVE_GUARD unset: their /config options (lower-cased) decide.
+# config-guard.sh (PreToolUse on file writes and Bash; payload on stdin) — asks, never denies, before a write to an existing settings, hooks,
+#   hook-script, plugin-manifest or lint/test config file (config_kind); on Bash, the first such target of the first eight. Silent in a marketplace repository.
+# Off: CC_CONFIG_GUARD=off, or CLAUDE_DESTRUCTIVE_GUARD=off or deny-only (this hook is the plugin's other ask tier). Fails open on every error path.
+# CC_CONFIG_GUARD / CLAUDE_DESTRUCTIVE_GUARD unset: the /config options cc_config_guard / claude_destructive_guard decide.
+# Misses: a file config_kind does not name; whether an edit weakens anything (it reads the path, not the diff); a file that does not exist yet;
+#   an MCP apply_patch (no single path); on Bash, writes the bash-write-targets block below does not report, targets past the eighth, a relative
+#   target after an in-command cd (resolved against the payload cwd instead), and `rm` of a config (destructive-guard judges only `rm -r` and `.env`, so a plain `rm` passes both).
+# Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/config-guard.sh
 
-# --- option resolver -----------------------------------------------------------
-# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
-# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
-# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
-# because the environment is the one state independently installed plugins share (CC_REMIND
-# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
+# cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
+# <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
-# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
-# outside the switch's vocabulary — each hook still validates the value it gets.
+# A non-empty variable beats the option: the environment is shared, so one export before launch
+# switches every plugin that reads it.
+# Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
   case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
@@ -86,29 +32,15 @@ cc_option() {
   return 0
 }
 
-# --- bash write targets --------------------------------------------------------
-# Canonical copy: templates/blocks/bash-write-targets.md. Every hook defining
-# cc_bash_write_targets must carry this block byte-for-byte (pc_shared_blocks).
-# The host steers file writes through Bash (auto mode `bashFirst`); in one measured session
-# 233 of 238 main-thread writes were `cat > file <<EOF`, invisible to a hook matching
-# Write|Edit.
-# Prints one target path per line, as spelled in the command (relative or absolute).
-# Heredoc BODIES are dropped and quoted text is masked before matching, so PHP `->`/`=>`,
-# HTML `>` and a sed script's `s|a|b|` never read as redirects or pipes; a here-string
-# (`<<<`) is not a heredoc. Catches `>`/`>>` onto a path (cat, echo, printf, any command),
-# `[sudo] tee [-a] <paths>`, and every file operand of `sed -i`/`-I`/`--in-place` / `perl -i`
-# after the script or its `-e`/`-f` arguments, never a redirect word or its target. BSD's
-# `-I` always takes the next word as its backup suffix; a `''` or a `.`-led word with no `/`
-# right after sed's bare `-i` is read as one too, unless it would be the only file.
-# Does NOT catch: sed/perl/tee operands after a `&` in `$(( ))` or `${ }` (it ends the command),
-# interpreter writes (python open(), php file_put_contents), cp/mv/install destinations,
-# `{ …; } > f` groups, a path held in a variable (`> "$f"` is skipped, never guessed),
-# a globbed operand (`sed -i … tests/*.js`: a word with `*`/`?` is dropped), a `\` line
-# continuation, sed/perl behind another command word (`gsed`, `/usr/bin/sed`, `env`,
-# `xargs`, `command`, `sudo -u x`, `find … -exec sed -i`), a digit- or `&`-led redirect onto
-# a file (`2> f`, `&> f`) and `>&` onto one (`cmd >& f.json`), a `-`-led sed/perl operand
-# with no `/` or `.` in it. Reads too much: a `-`-led perl script argument that has one.
-# The caller filters to existing files under its root.
+# Shared block templates/blocks/bash-write-targets.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
+# cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
+# one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
+# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
+# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
+# redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
+# operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
 cc_bash_write_targets() {
   printf '%s\n' "$1" | awk '
     function emit(p) {
@@ -228,20 +160,15 @@ config_kind() {
     .eslintrc|.eslintrc.*|eslint.config.*|biome.json|.rubocop.yml|ruff.toml|.flake8|setup.cfg|pytest.ini|pyproject.toml|phpstan.neon|phpstan.neon.dist|psalm.xml|psalm.xml.dist|.php-cs-fixer.php|.php-cs-fixer.dist.php|.golangci.yml|.golangci.yaml|clippy.toml|tsconfig.json)
                            echo "a lint, type-check or test configuration — the rules a build fails on"; return ;;
   esac
-  # A hook SCRIPT, not just its manifest.
   case "/$1" in
     */hooks/*.sh|*/hooks/*.py|*/hooks/*.mjs|*/hooks/*.js) echo "a hook script — the code a guard runs" ;;
   esac
 }
 
+MAX_BASH_TARGETS=8
+
 {
   [ "$(cc_option CC_CONFIG_GUARD on)" = "off" ] && exit 0
-  # HONOUR THE SIBLING'S SWITCH. The core-suite README (the suites were retired
-  # 2026-09-26) told an installer that
-  # CLAUDE_DESTRUCTIVE_GUARD=deny-only buys "the free half" — no clicks — but this
-  # guard is the plugin's OTHER ask tier and read only its own variable, so the
-  # documented setting did not deliver what it promised. Both values that mean
-  # "no ask tier" now silence this hook too. Measured 2026-09-15.
   case "$(printf '%s' "$(cc_option CLAUDE_DESTRUCTIVE_GUARD deny)" | tr '[:upper:]' '[:lower:]')" in
     off | deny-only) exit 0 ;;
   esac
@@ -258,7 +185,7 @@ config_kind() {
 
   if [ "$tool" = Bash ]; then
     cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
-    targets=$(cc_bash_write_targets "$cmd" | head -n 8)
+    targets=$(cc_bash_write_targets "$cmd" | head -n "$MAX_BASH_TARGETS")
     [ -n "$targets" ] || exit 0
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
     file=""
@@ -285,13 +212,10 @@ EOF_T
     [ -n "$kind" ] || exit 0
 
     # Nothing to weaken if it does not exist yet: creating a config is not relaxing one.
-    # (A brand-new hooks.json is how a guard gets INSTALLED.)
     [ -f "$file" ] || exit 0
   fi
 
-  # Self-exemption: this marketplace's own repository edits these files as its product.
-  # Keyed on the marketplace manifest at the repo root, not on a plugin name, so a
-  # consumer repo that happens to vendor a plugin is still guarded.
+  # Exempt: a marketplace repository (manifest at its git root) edits these files as its product.
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   if [ -n "$cwd" ]; then
     root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || root="$cwd"

@@ -1,74 +1,22 @@
 #!/bin/bash
-# PreToolUse guard on the Artifact tool.
-#
-# The failure this exists for: a visual decision gets published as a remote
-# artifact instead of served from the local preview server. The skills that
-# route to that server (visual-decisions, ui-ux:theme) load by JUDGMENT, so a
-# run where they never load never sees their rule — that is exactly how it goes
-# wrong. This fires on the tool call instead.
-#
-# TIERED, because the strong signal is absent in precisely the population that
-# needs guarding. An earlier version keyed solely on taskmaster-docs/mockups/
-# existing; that directory is only ever created by the flows whose non-loading
-# IS the root cause, so the guard was silent exactly when it mattered and noisy
-# afterwards (one server start arms it for the life of the checkout).
-#
-#   STRONG — a per-purpose preview basename, or a path under a mockups docroot,
-#            or a mockups docroot present in this project: ask EVERY time, with
-#            the mockup rule.
-#   WEAK   — any other .html artifact: ask ONCE PER SESSION to confirm the remote
-#            publish is intended — a note proved ignorable, and a for-you page
-#            must not slip out.
-#   NONE   — not .html (a markdown report is not a mockup): silent.
-#
-# WHY WEAK IS BOUNDED AND STRONG IS NOT. Every Artifact .html is a remote
-# publish, so the weak signal never clears: the tier asked on every HTML
-# artifact for the life of the session, which is a standing veto in the name of
-# a CONVENTION (render it on the local preview server) rather than a blast
-# radius. One deliberate answer is what a convention is worth; the rest is noise
-# the user learns to click through, which costs the STRONG asks their weight
-# too. Bound pattern: comment-discipline/hooks/scan.sh and
-# taskmaster/hooks/clarify-gate.sh, once-per-session for the same reason.
-# STRONG stays unbounded — unreleased design work leaving the machine is blast
-# radius, not convention.
-#
-# HONEST LIMITATION. After the session's first plain-.html publish, the next one
-# goes unasked: a different for-you page, or a retry of the one just denied. The
-# tier buys one deliberate answer per session and is not a standing veto; the
-# population the guard exists for (STRONG) is unaffected. With no session_id in
-# the hook input the bound cannot be recorded, so the tier falls back to asking
-# every time — an ask can never wedge a session, so failing toward the question
-# is safe here, the mirror of a deny gate, which must fail toward allowing.
-#
-# Fails open on any error: a broken guard degrades to a no-op, never to a
-# blocked tool call.
-#
-# TWIN: plugins/taskmaster/hooks/preview-guard.sh is an identical copy save this line. ui-ux
-# ships the theme flow but declares no taskmaster dependency, and a user may
-# install ui-ux without taskmaster — without its own copy that path would have
-# no mechanical guard at all. ${CLAUDE_PLUGIN_ROOT} is per-plugin so the file
-# cannot be shared; change one, change both. With BOTH plugins installed the
-# guard fires twice on the same call — an extra line in one prompt, which is
-# the cheap side of the trade against leaving ui-ux unguarded. On the WEAK tier
-# not even that: both copies hash the same session_id to the same marker, so the
-# mkdir race leaves exactly one asker.
-# OFF-SWITCH. Until 2026-09-15 this guard had none: the only way out was
-# uninstalling the plugin. With BOTH twins installed it asks twice on a strong
-# signal (see TWIN above), which makes "turn it off here" a real need.
+# preview-guard.sh (PreToolUse on Artifact; payload on stdin) — asks before an .html or .htm artifact is published remotely: every time for
+#   a mockup (a preview basename, a path under taskmaster-docs/mockups, or such a docroot at or above cwd), once per session for any other.
+# Off: CC_PREVIEW_GUARD=off. Fails open: without jq it never asks, and it always exits 0.
 # CC_PREVIEW_GUARD unset: the /config option cc_preview_guard decides.
+# Misses: a session's later plain-.html publishes after its first ask, a retry of a denied one included.
+#   Asks anyway: every plain .html when the payload has no session_id; a mockup twice with ui-ux and taskmaster both installed (a plain
+#   page once: the two copies share one marker).
+# Why, limits, history: rationale/derivations/plugin-ui-ux.md § plugins/ui-ux/hooks/preview-guard.sh
+# TWIN: plugins/taskmaster/hooks/preview-guard.sh is an identical copy save this line.
 
-# --- option resolver -----------------------------------------------------------
-# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
-# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
-# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
-# because the environment is the one state independently installed plugins share (CC_REMIND
-# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
+# cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
+# <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
-# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
-# outside the switch's vocabulary — each hook still validates the value it gets.
+# A non-empty variable beats the option: the environment is shared, so one export before launch
+# switches every plugin that reads it.
+# Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
   case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
@@ -85,6 +33,8 @@ cc_option() {
   return 0
 }
 
+MARKER_TTL_MIN=1440
+
 [ "$(cc_option CC_PREVIEW_GUARD on)" = "off" ] && exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 {
@@ -96,14 +46,10 @@ command -v jq >/dev/null 2>&1 || exit 0
     *) exit 0 ;;
   esac
 
-  # .cwd is the session root; $PWD is only this script's cwd, so prefer it.
+  # Prefer the payload .cwd (the session's working directory, which follows cd); $PWD, this script's own, is only the fallback.
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] || cwd="$PWD"
 
-  # Walk UP looking for the docroot. A git worktree or a session started in a
-  # subdirectory would otherwise miss it — taskmaster-docs is untracked wherever the
-  # project ignores it (as this marketplace does), so a worktree may not carry one
-  # even while the shared server is live. The walk does not depend on that either way.
   docroot=""
   d="$cwd"
   while [ -n "$d" ] && [ "$d" != "/" ]; do
@@ -111,7 +57,6 @@ command -v jq >/dev/null 2>&1 || exit 0
     d=$(dirname "$d")
   done
 
-  # The artifact itself is the more reliable signal than project state.
   base=${path##*/}
   strong=""
   case "$base" in
@@ -122,25 +67,19 @@ command -v jq >/dev/null 2>&1 || exit 0
   esac
   [ -n "$strong" ] || { [ -n "$docroot" ] && strong=docroot; }
 
-  # WEAK only: one ask per session (see header). Keyed by session and NOT by
-  # path — the convention is answered once, not once per page. Recording it is
-  # what makes this the session's one weak ask, so the mkdir comes first; a
-  # marker that cannot be recorded at all leaves the old unbounded behaviour.
   if [ -z "$strong" ]; then
     sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
     if [ -n "$sid" ]; then
       marker="${TMPDIR:-/tmp}/cc-preview-weak-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
       if mkdir "$marker" 2>/dev/null; then
-        find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-preview-weak-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
+        find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-preview-weak-*' -type d -mmin +"$MARKER_TTL_MIN" -exec rmdir {} + 2>/dev/null
       elif [ -d "$marker" ]; then
         exit 0
       fi
     fi
   fi
 
-  # Never interpolate an unvalidated env value into text shown at a permission
-  # decision: jq keeps the JSON well-formed, but a crafted PREVIEW_PORT would
-  # still read as prose in the guard's own authoritative voice.
+  # Digits only: jq keeps the JSON valid, but a crafted PREVIEW_PORT would still read as prose in the guard's own voice.
   port="${PREVIEW_PORT:-8123}"
   case "$port" in '' | *[!0-9]*) port=8123 ;; esac
 

@@ -1,33 +1,8 @@
 #!/usr/bin/env bash
-# Tests plugins/command-guard/hooks/destructive-guard.sh.
-#
-# Picked up automatically by the repo's "Plugin author-time lint + harness tests"
-# CI step, which globs plugins/*/scripts/__tests__/*.test.sh.
-#
-# Four sections, in the order the guard can fail a user:
-#   1. CLASSIFICATION — a corpus of commands with the tier each must get. The
-#      ALLOW rows are the important half: a guard that fires on `git commit -m
-#      "remove the drop table step"` gets switched off within a day, and then it
-#      guards nothing.
-#   2. EVASION — the same destructive command wearing quotes, a wrapper, extra
-#      whitespace, a heredoc. Each must land on the same verdict as the plain
-#      form, or the deny is decorative.
-#   3. HOOK PROTOCOL — real PreToolUse stdin: the JSON shape, the tool_name
-#      filter, the allow-file branch on Write/Edit, the env modes.
-#   4. FAIL-OPEN — no jq, malformed JSON, empty input. The guard must stay
-#      silent and exit 0; a guard that breaks the session is uninstalled.
-#
-# The harness snapshots `git status --porcelain -- plugins/command-guard` before
-# and after and asserts it is byte-identical: these tests drive a script whose
-# entire subject matter is destroying things, so proving it touched nothing is
-# part of the test. SCOPED to this plugin's own directory on purpose — an
-# unscoped snapshot reads the WHOLE working tree, so any concurrent editor
-# anywhere in the repo (a parallel worker, an open editor, a generator run)
-# failed this assert with "git status changed" while the guard had done nothing.
-# Honest residual: a write the guard made outside plugins/command-guard is now
-# invisible here. That is a real narrowing, taken because the guard's only
-# filesystem reach is READING `.claude/<allowfile>` (hooks/destructive-guard.sh
-# :566) and the assert's false positives were costing more than the coverage.
+# destructive-guard.test.sh — asserts hooks/destructive-guard.sh's verdict per command through --check and PreToolUse stdin, allow-tier
+#   false-positive controls and evasions included, and its fail-open; fails if plugins/command-guard's git status changed during the run.
+# Misses: a write the guard makes outside plugins/command-guard (the status snapshot is scoped to that directory).
+# Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/scripts/__tests__/destructive-guard.test.sh
 set -u
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -47,7 +22,6 @@ SNAP_BEFORE=$(git_snap)
 ok()  { pass=$((pass + 1)); }
 bad() { fail=$((fail + 1)); printf 'FAIL  %s\n      %s\n' "$1" "$2"; }
 
-# tier of a command via CLI mode: exit 0 allow, 1 ask, 2 deny
 tier_of() { "$BASH_BIN" "$GUARD" --check "$1" >/dev/null 2>&1; case $? in 0) echo allow ;; 1) echo ask ;; 2) echo deny ;; *) echo error ;; esac; }
 
 expect() { # expected-tier command
@@ -56,9 +30,6 @@ expect() { # expected-tier command
   [ "$got" = "$want" ] && ok || bad "want $want, got $got" "$cmd"
 }
 
-# ---------------------------------------------------------------------------
-# 1. CLASSIFICATION
-# ---------------------------------------------------------------------------
 printf '== classification: deny\n'
 expect deny 'php artisan migrate:fresh'                         # the incident this plugin exists for
 expect deny 'php artisan migrate:fresh --seed --force'
@@ -88,16 +59,10 @@ expect deny 'rm .env'
 expect deny 'rm -f .env.local'
 expect deny 'git clean -fdx'
 expect deny 'git push --force origin main'
-# 0.6.0: the short flag. ` git push .*(--force| -f)` could not match `-f` as the
-# FIRST word after push (the pattern's own literal space consumed the only space),
-# so `git push -f origin main` — the commonest spelling — was allowed.
 expect deny 'git push -f origin main'
 expect deny 'git push -f'
 expect deny 'git push -uf origin main'
 expect deny 'git push -fu origin main'
-# 0.6.0: git GLOBAL OPTIONS between `git` and the subcommand. Every git rule is
-# written ` git <sub>`, so `git -C <dir> push --force` matched nothing and was
-# allowed — and `-C` is how an agent addresses a repo outside its cwd.
 expect deny 'git -C /tmp/x push --force origin main'
 expect deny 'git --git-dir /x/.git push -f'
 expect deny 'git push origin --delete feature'
@@ -143,9 +108,6 @@ expect ask 'git branch -D feature/old'
 expect ask 'git stash clear'
 expect ask 'git push --force-with-lease origin feature'
 expect ask 'git checkout -- .'
-# `rm -rf <relative path>` is no longer decidable from the string alone — its
-# tier depends on whether git can restore the path. Those cases live in the
-# recoverability section below, against a fixture whose state is controlled.
 expect ask 'rm -rf $BUILD_DIR/'
 expect ask 'rm -rf /opt/app/releases/12'
 expect ask 'php artisan migrate --force'
@@ -206,12 +168,7 @@ expect allow 'sed -i "s/foo/bar/" src/app.ts'
 expect allow 'pytest tests/ -k "test_flush"'
 expect allow 'php artisan test --filter=UserTest'
 
-# ---------------------------------------------------------------------------
-# 1b. rm -rf RECOVERABILITY — the ask tier's biggest source of prompts. A path
-# git can restore is not a loss; one with untracked or ignored content under it
-# is. Driven against a real throwaway repo because the check shells out to git,
-# and a mocked git would be testing the mock.
-# ---------------------------------------------------------------------------
+# A real throwaway repo, not a mocked git: the recoverability check shells out to git.
 printf '== rm -rf recoverability\n'
 FIX="$WS/repo"
 mkdir -p "$FIX/src" "$FIX/keep"
@@ -221,7 +178,6 @@ printf 'x\n' > "$FIX/src/a.txt"; printf 'y\n' > "$FIX/keep/b.txt"
   && git -c user.email=t@t -c user.name=t add -A \
   && git -c user.email=t@t -c user.name=t commit -qm init ) >/dev/null 2>&1
 
-# tier of a command as evaluated from inside $FIX
 tier_in() { ( cd "$FIX" && "$BASH_BIN" "$GUARD" --check "$1" >/dev/null 2>&1; case $? in 0) echo allow ;; 1) echo ask ;; 2) echo deny ;; *) echo error ;; esac ); }
 expect_in() { local want="$1" cmd="$2" got; got=$(tier_in "$cmd"); [ "$got" = "$want" ] && ok || bad "want $want, got $got (in fixture repo)" "$cmd"; }
 
@@ -258,12 +214,6 @@ else
   bad "recoverability fixture" "could not create a git repo in $FIX"
 fi
 
-# ---------------------------------------------------------------------------
-# 1c. OS TEMP DIRECTORY — scratch by definition, so deleting a path inside it is
-# not a loss. The PAIRS are what matter here, not the singles: a path under the
-# root must be silent while the root itself stays denied, or "inside /tmp"
-# becomes just another way to spell /tmp.
-# ---------------------------------------------------------------------------
 printf '== temp directory\n'
 expect allow 'rm -rf /tmp/pintcheck && echo cleaned'    # the false positive this exists for
 expect allow 'rm -rf /tmp/build-1/*'                    # a glob INSIDE the scratch dir
@@ -278,21 +228,12 @@ expect deny  'rm -rf /var/tmp'
 expect ask   'rm -rf /tmp/../etc'                       # .. walks back out of the root
 expect ask   'rm -rf /var/folders/k1/abc123xyz/T'       # the per-user root, not a path in it
 
-# $TMPDIR is resolved from the hook's OWN environment and only from there: unset
-# means `rm -rf $TMPDIR/build` is `rm -rf /build`, which must not go silent.
 tier_tmpdir() { ( export TMPDIR="$1"; "$BASH_BIN" "$GUARD" --check "$2" >/dev/null 2>&1; case $? in 0) echo allow ;; 1) echo ask ;; 2) echo deny ;; *) echo error ;; esac ); }
 t=$(tier_tmpdir /var/folders/k1/abc123xyz/T/ 'rm -rf $TMPDIR/build')
 [ "$t" = allow ] && ok || bad "want allow, got $t (TMPDIR set to a temp root)" 'rm -rf $TMPDIR/build'
 env -u TMPDIR "$BASH_BIN" "$GUARD" --check 'rm -rf $TMPDIR/build' >/dev/null 2>&1
 [ $? -eq 1 ] && ok || bad "want ask, got a different tier (TMPDIR unset)" 'rm -rf $TMPDIR/build'
 
-# ---------------------------------------------------------------------------
-# 1d. .env OVERWRITE + FAILING cd CHAIN — the 2026-09-24 incident: a hand-built
-# worktree was never created, `cd /tmp/dq-bg` failed, the `;` carried on, and
-# `cp .env.example .env && php artisan key:generate` replaced the live .env. The
-# PAIRS matter: the same cp is the ordinary setup step in a clone with no .env
-# and must stay silent there, or the guard gets switched off.
-# ---------------------------------------------------------------------------
 printf '== .env overwrite and failing cd chain\n'
 ENVFIX="$WS/envapp"
 mkdir -p "$ENVFIX"
@@ -344,9 +285,6 @@ out=$("$BASH_BIN" "$GUARD" --check 'cd /tmp/cg-absent-dir; ls' 2>/dev/null)
 case "$out" in *"re-issuing the corrected command is the expected next step"*) ok ;;
   *) bad "the cd deny must invite the corrected retry, not forbid retrying" "$out" ;; esac
 
-# ---------------------------------------------------------------------------
-# 2. EVASION — same command, different clothes. Each must stay deny.
-# ---------------------------------------------------------------------------
 printf '== evasion\n'
 expect deny 'php artisan "migrate:fresh"'
 expect deny "php artisan mig'rate:fresh'"
@@ -367,7 +305,6 @@ expect allow 'cat .claude/destructive-guard-allow'              # reading it is 
 expect allow 'grep artisan .claude/destructive-guard-allow'
 
 # A command naming the allow-file passes only when every segment is a pure read.
-# The deny half is one case per family that writes the file or runs a program.
 printf '== allow-file: pure readers\n'
 expect allow 'grep x .claude/destructive-guard-allow 2>/dev/null'
 expect allow 'grep x .claude/destructive-guard-allow >/dev/null 2>&1'
@@ -459,9 +396,6 @@ expect allow 'grep x .claude/destructive-guard-allow >/dev/null 2>/dev/null'
 expect allow 'git grep x -- .claude/destructive-guard-allow'
 expect allow 'git show HEAD:.claude/destructive-guard-allow'
 
-# ---------------------------------------------------------------------------
-# 3. HOOK PROTOCOL
-# ---------------------------------------------------------------------------
 printf '== hook protocol\n'
 hook() { # json [env-assignments...]  -> stdout
   local json="$1"; shift
@@ -484,9 +418,6 @@ out=$(hook "$(bash_json 'git reset --hard')")
 [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "ask" ] \
   && ok || bad "Bash ask: wrong decision" "$out"
 
-# The ask reason names devops' plan reader when devops is installed beside this
-# plugin, and stays quiet when it is not — a reason naming a path that is not on the
-# reader's disk is worse than no reason (panel finding 43).
 SIB="$WS/plugins"; mkdir -p "$SIB/command-guard" "$SIB/devops/scripts"
 printf '#!/bin/bash\nexit 0\n' > "$SIB/devops/scripts/plan-audit.sh"
 out=$(hook "$(bash_json 'terraform apply -auto-approve')" "CLAUDE_PLUGIN_ROOT=$SIB/command-guard")
@@ -524,10 +455,6 @@ out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"Write","tool_input":{"f
 out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"Write","tool_input":{"file_path":"/p/src/app.ts","content":"rm -rf /"}}')
 [ -z "$out" ] && ok || bad "ordinary Write must be untouched" "$out"
 
-# An IDE-driven session writes every file through an MCP server, not through the four
-# host tool names. Until 2026-09-14 the allow-file — the one file that disarms this
-# guard — was editable that way while the host tools were blocked: the protection
-# inverted. apply_patch carries no single path, so the patch BODY is what names it.
 out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"mcp__phpstorm__create_new_file","tool_input":{"pathInProject":"/p/.claude/destructive-guard-allow","text":"x"}}')
 [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "deny" ] \
   && ok || bad "MCP create_new_file to allow-file must be denied" "$out"
@@ -539,15 +466,13 @@ out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"mcp__phpstorm__create_n
 out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"mcp__phpstorm__apply_patch","tool_input":{"input":"*** Update File: src/app.ts\n+const a = 1;"}}')
 [ -z "$out" ] && ok || bad "ordinary MCP patch must be untouched" "$out"
 
-# env modes
 out=$(hook "$(bash_json 'php artisan migrate:fresh')" CLAUDE_DESTRUCTIVE_GUARD=off)
 [ -z "$out" ] && ok || bad "CLAUDE_DESTRUCTIVE_GUARD=off must disable the guard" "$out"
 out=$(hook "$(bash_json 'php artisan migrate:fresh')" CLAUDE_DESTRUCTIVE_GUARD=ask)
 [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "ask" ] \
   && ok || bad "CLAUDE_DESTRUCTIVE_GUARD=ask must downgrade deny to ask" "$out"
 
-# deny-only: hard stops stay, the ask tier goes quiet. The pairing is the test —
-# asserting only the silence would pass on a guard that had stopped working.
+# Paired: the deny-only silence alone would pass on a guard that had stopped working.
 out=$(hook "$(bash_json 'php artisan migrate:fresh')" CLAUDE_DESTRUCTIVE_GUARD=deny-only)
 [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "deny" ] \
   && ok || bad "deny-only must keep denying" "$out"
@@ -590,10 +515,7 @@ out=$(hook "$(bash_json 'php artisan migrate:fresh')" "CLAUDE_PROJECT_DIR=$PROJ"
 [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "deny" ] \
   && ok || bad "allow-file must not release commands it does not name" "$out"
 
-# A whole-file Write onto an existing, untracked .env asks; creating one, an
-# Edit, and deny-only stay silent. Driven by a RELATIVE path from inside the
-# fixture: the fixture lives under $TMPDIR, and an absolute path there is
-# scratch to the guard by design (section 1c).
+# Relative paths: the fixture lives under $TMPDIR, where an absolute path is scratch to the guard.
 file_json() { jq -cn --arg t "$1" --arg f "$2" '{hook_event_name:"PreToolUse",tool_name:$t,tool_input:{file_path:$f,content:"A=1"}}'; }
 hook_in() { local d="$1"; shift; ( cd "$d" && hook "$@" ); }
 WENV="$WS/wenv"; mkdir -p "$WENV"
@@ -634,9 +556,6 @@ out=$(printf '%s' "$(file_json Write /p/.claude/destructive-guard-allow)" | PATH
 [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision' 2>/dev/null)" = "deny" ] \
   && ok || bad "no tr on PATH: an exact-name Write must still be denied" "${out:-<silent>}"
 
-# ---------------------------------------------------------------------------
-# 4. FAIL-OPEN
-# ---------------------------------------------------------------------------
 printf '== fail-open\n'
 NOJQ="$WS/nojq"; mkdir -p "$NOJQ"
 for u in cat grep sed awk tr head cut env sh printf sort uniq; do
@@ -653,25 +572,7 @@ for junk in '' 'not json at all' '{"tool_name":' '{}' '{"tool_name":"Bash"}' '{"
   { [ -z "$out" ] && [ "$rc" -eq 0 ]; } && ok || bad "malformed input must fail open" "input=<$junk> rc=$rc out=$out"
 done
 
-# ---------------------------------------------------------------------------
-# 5. NO SELF-EXEMPTION -- the guard must not carve a hole for its own CLI
-# ---------------------------------------------------------------------------
-# A self-exemption was added twice and reverted twice. The motivating problem is
-# real and is now stated as a limitation in commands/check.md instead: this guard
-# denies the exact invocation /command-guard:check tells the model to type,
-# because that invocation carries the deny-tier target as an argument.
-#
-# Both attempts leaked. 0.2.0 matched the three tokens as substrings anywhere in
-# the segment, and `bash -c PAYLOAD name arg...` runs PAYLOAD while demoting the
-# appended magic words to $0/$1. 0.2.1 matched by argv POSITION, which closed
-# that, and was still bypassed three ways: an exemption that `continue`s past
-# classification skips the WHOLE segment, and a shell segment carries side
-# effects the shell evaluates independently of argv -- command substitution,
-# backticks, and redirection.
-#
-# These assertions pin every known vector as DENY. They pass with no exemption
-# present; they FAIL against 0.2.0 and 0.2.1. If someone adds a third exemption,
-# this section is what should stop it.
+# Every vector that bypassed the two reverted self-exemptions for the guard's own --check, pinned as deny.
 printf '== no self-exemption\n'
 
 # The plain invocation the CLI documents: denied, and that IS the limitation.
@@ -682,9 +583,6 @@ expect deny 'sh -c "php artisan migrate:fresh" hooks/destructive-guard.sh --chec
 expect deny 'bash -c "php artisan migrate:fresh" /opt/hooks/destructive-guard.sh --check y'
 expect deny 'eval "php artisan migrate:fresh" destructive-guard.sh --check y'
 
-# Shell-evaluated side effects inside an otherwise exemption-shaped segment
-# (bypassed 0.2.1). The payload runs before or beside the classifier that
-# argv says is all that happens.
 expect deny 'bash "/x/hooks/destructive-guard.sh" --check "$(php artisan migrate:fresh)"'
 expect deny 'sh destructive-guard.sh --check `php artisan migrate:fresh`'
 expect deny 'bash /x/hooks/destructive-guard.sh --check foo > /dev/sda'
@@ -693,14 +591,7 @@ expect deny 'bash /x/hooks/destructive-guard.sh --check foo > /dev/sda'
 expect deny 'php artisan migrate:fresh'
 expect deny 'bash -c "php artisan migrate:fresh"'
 
-# HOOK MODE, not just CLI mode. Everything above drives `--check`, which reaches
-# classify() directly. An exemption added in the HOOK path instead — a `case` on
-# the raw command string before classify() is ever called — is invisible to all
-# of it: a reviewer built exactly that (the 0.2.0 substring bug, relocated one
-# layer up) and this section still passed clean while the hole was live. That is
-# the same CLI-mode/hook-mode composition gap that let the original defect ship,
-# reappearing in the tests written to close it. These drive the real PreToolUse
-# entry point, so a third exemption is caught wherever it is placed.
+# Hook mode too: an exemption placed before classify() in the hook path is invisible to --check.
 for v in \
   "bash /x/hooks/destructive-guard.sh --check 'php artisan migrate:fresh'" \
   'bash -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y' \
@@ -711,20 +602,8 @@ for v in \
   [ "$d" = "deny" ] && ok || bad "hook mode must deny an exemption-shaped payload" "verdict=${d:-<silent>} cmd=$v"
 done
 
-# ---------------------------------------------------------------------------
-# 6. SEGMENT SPLITTER -- two bypasses, each hiding a second command behind a
-# reader-led segment. Closed in 0.8.1.
-#
-# (a) A backslash inside '…' is literal in bash. The walk took it as an escape,
-#     so `'x\'` never closed and the `;` after it was read as quoted.
-# (b) BWK awk (macOS /usr/bin/awk) reads RS = "\0" as paragraph mode: a blank
-#     line started a new record, and the per-record loop reset the quote state
-#     but not `seg`, so the next line was glued onto the reader before it.
-#     mawk and gawk do not do this, so CI (Ubuntu) cannot see a regression of
-#     (b) -- only a run of this file on macOS can.
-#
+# The blank-line rows catch a regression only on macOS: BWK awk splits records there, mawk and gawk do not.
 # check_cd_chain carries a copy of the same walk; the cd rows are its cover.
-# ---------------------------------------------------------------------------
 printf '== segment splitter\n'
 expect deny  "grep 'x\\' f; php artisan migrate:fresh"
 expect deny  "grep 'x\\' f && php artisan migrate:fresh"
@@ -732,13 +611,11 @@ expect deny  "grep 'x\\' f; cd /tmp/cg-absent-dir; ls"
 expect allow "grep 'a\\;b' f"                                    # the ; is still quoted
 expect allow 'grep "x\"; php artisan migrate:fresh" f'           # inside "…" a backslash does escape
 expect allow 'echo a\;b'
-# $'…' is the one single-quoted form where \' IS an escape: the literal-backslash
-# rule alone would read $'x\'' as reopened and hide what follows.
+# $'…' is the one single-quoted form where \' is an escape.
 expect deny  "grep \$'x\\'' f; php artisan migrate:fresh"
 expect deny  "grep \$'x\\'' f; cd /tmp/cg-absent-dir; ls"
 expect allow "grep \$'a\\'; php artisan migrate:fresh' f"         # the ; sits inside the \$'…' string
-# after \$\$ bash opens a plain quote and zsh an ANSI one (measured on bash 3.2 and
-# zsh); neither reading may hide the next command
+# After $$ bash opens a plain quote and zsh an ANSI one; neither reading may hide the next command.
 expect deny  "grep \$\$'x\\' f; php artisan migrate:fresh"
 expect deny  "grep \$\$'x\\'' f; php artisan migrate:fresh"
 expect deny  $'ls a\n\nphp artisan migrate:fresh'
@@ -754,7 +631,6 @@ for v in "grep 'x\\' f; php artisan migrate:fresh" $'ls a\n\nphp artisan migrate
   [ "$d" = "deny" ] && ok || bad "hook mode must judge the command hidden behind a reader" "verdict=${d:-<silent>} cmd=$v"
 done
 
-# ---------------------------------------------------------------------------
 SNAP_AFTER=$(git_snap)
 [ "$SNAP_BEFORE" = "$SNAP_AFTER" ] && ok || bad "the guard mutated plugins/command-guard" "git status --porcelain -- plugins/command-guard changed"
 

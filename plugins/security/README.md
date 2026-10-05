@@ -74,8 +74,8 @@ interpolated into a `prompt` / `messages` string with no delimiter token on that
 line). Since 0.11.4 it warns on files a Bash command writes as well (a `>`/`>>` redirect,
 `tee`, `sed -i`), read from disk after the call, at most 8 files and 256 KiB of each; it
 does not see interpreter writes (python `open()`, php `file_put_contents`), `cp`/`mv`/`install`
-destinations, `{ …; } > f` groups, a path held in a variable, or a relative target after
-an in-command `cd` (skipped). The whole file is read, so
+destinations, a path held in a variable, or a relative target in
+a command holding a `cd`/`pushd` (skipped). The whole file is read, so
 the first Bash write to an existing or downloaded file also warns on what was already
 there. Warn — never deny — because each has a legitimate
 form; `CC_SECURITY_SCAN=off` disables it, and `CC_REMIND=off` silences it along with

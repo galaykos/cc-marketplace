@@ -53,7 +53,11 @@ It reads through the usual disguises — quotes (`artisan "migrate:fresh"`),
 wrappers (`bash -c`, `eval`, `docker compose exec`), extra whitespace, `&&`
 chains, heredocs — and skips read-only commands, so searching for a string is
 never confused with running it. It also covers MCP tools that shell out or run
-SQL, which are the same hole under a different tool name.
+SQL, which are the same hole under a different tool name. It reads through `env` and
+every documented git global option before the subcommand, and does not take
+`git clean … -e -n` for a dry run (`-n` is the exclude pattern there). It misses a git
+subcommand behind a `-C`/`-c` value holding a space; the wrapper and git-option limits
+are listed in rules.md.
 
 Full rule list, the reading algorithm, and the guard's stated limits:
 [`skills/destructive-commands/references/rules.md`](skills/destructive-commands/references/rules.md).
@@ -62,7 +66,7 @@ Full rule list, the reading algorithm, and the guard's stated limits:
 
 `hooks/config-guard.sh` is a separate `PreToolUse` hook on file writes; on a Bash
 command it reads only the files the command writes. It returns **`ask`** — never a
-deny — when a `Write`/`Edit` (or an MCP `apply_patch` / `create_new_file`) targets an **existing** file that decides what the
+deny — when a `Write`/`Edit` (or an MCP `create_new_file`) targets an **existing** file that decides what the
 agent may do: `.claude/settings.json` and its variants, any `hooks.json`, any hook
 script under a `hooks/` dir, `plugin.json` / `marketplace.json`, and the lint,
 type-check and test configs a build fails on (`.eslintrc*`, `eslint.config.*`,
@@ -78,9 +82,11 @@ task; the point is that it becomes a decision someone made.
 What it does not do, stated because an ask reads stronger than it is: it reads the
 **path, not the diff**, so adding a rule and deleting one look identical to it and the
 prompt says so. A file that does not exist yet is allowed through — creating a config
-is not relaxing one. A Bash write onto one of these files (a redirect, `tee`, `sed -i`)
+is not relaxing one. An MCP `apply_patch` names no single path and passes silently.
+A Bash write onto one of these files (a redirect, `tee`, `sed -i`)
 is asked about too — not a python or php write, a `cp`/`mv` destination or a path held
-in a variable — while `rm` of a hook script is the command guard's. And it self-exempts
+in a variable — and a plain `rm` of a config passes both hooks: the command guard
+judges only `rm -r` and `.env`. And it self-exempts
 inside a marketplace repository — one with `.claude-plugin/marketplace.json` at the git
 root — which edits these files as its product.
 
@@ -100,11 +106,16 @@ always-on context, and prints only when it fires.
 ## Opting out of a specific command
 
 `.claude/destructive-guard-allow` in the project — one extended regex per line,
-matched against the normalised command:
+matched unanchored against the whole normalised, lowercased command, every chained
+part and a trailing comment included: a line releases any command that contains it, so
+`artisan migrate:fresh --env=testing` would also release
+`rm -rf /; php artisan migrate:fresh --env=testing`. Anchor a line (`^…$`) to release
+only that command, and write lines in lowercase — one with an uppercase letter never
+matches:
 
 ```
 # a scratch database this project resets constantly
-artisan migrate:fresh --env=testing
+^php artisan migrate:fresh --env=testing$
 ```
 
 **The agent is blocked from writing this file directly.** Writes to it are denied through

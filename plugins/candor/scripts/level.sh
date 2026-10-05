@@ -1,17 +1,10 @@
 #!/usr/bin/env bash
-# Prints the terse level in force and the layer that set it, "<level> <source>" with source one
-# of env|file|option|off, by the hooks' rule (cc_option CC_TERSE off <level-file>, hooks/mode.sh):
-# the first non-empty of CC_TERSE, the level file's first word, the cc_terse option, else off.
-# A value outside the vocabulary is off; it never falls through to the next layer.
-#
-# The option is CLAUDE_PLUGIN_OPTION_CC_TERSE where the host exports it — to hooks, not to the
-# Bash tool (measured on 2.1.286) — else a saved pluginConfigs["candor@*"].options.cc_terse in
-# managed-settings.json, then in the user settings.json; managed wins, as on the host.
-# NOT READ: --settings files, managed-settings.d drop-ins, MDM or server-managed policy, and a
-# symlinked settings file; without jq, no settings file at all.
+# level.sh [--sources] — prints "<level> <source>", source env|file|option|off, by the hooks' rule: the first non-empty of CC_TERSE, the level
+#   file's first word, the cc_terse option, else off; out of vocabulary is off. --sources prints each layer first. Exits 0, silent on stderr.
+# The option is CLAUDE_PLUGIN_OPTION_CC_TERSE where the host exports it, else one saved in managed-settings.json, then in the user settings.json.
+# Misses: --settings files, managed-settings.d drop-ins, MDM or server-managed policy, a symlinked settings file; without jq, every settings file.
 # CANDOR_MANAGED_SETTINGS replaces the managed-settings path; test-only, for the harness.
-#
-# --sources prints each layer's raw value before the winner. Exits 0, silent on stderr.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/level.sh
 {
   cfg="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
   state="$cfg/terse-mode"

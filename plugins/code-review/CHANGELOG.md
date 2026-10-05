@@ -3,6 +3,192 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.29.0 — 2026-10-05
+
+- **`scan.sh` stops refusing code it read as a comment.** Its comment leaders were the same for every file type, so any line starting `*`, `#`, `//` or `-- ` was a comment: a shell `*)` case arm, C's `**pp = 0;`, `* sizeof(int));` or `#  endif`, Python's `**kwargs):` or `// count)`, and a Markdown `* item` in a heredoc were refused as commented-out code or as a restatement. A leader now counts only where the file's language has it (the README has the table), and a `*`-led line only inside a block opened by a line starting `/*`; the block closes at its `*/` and at the end of each `MultiEdit` edit and each heredoc. Allowed now: `*)`, `*.blade.php) key=blade ;;` and `*/.claude/worktrees/*/*)` in shell; `**pp = 0;`, `*++p = c;` and `* sizeof(int));` in C; `**pp = nil` in Go; `**r = 5;` in Rust; `**kwargs):` and `// count)` in Python; `* foo=bar` in a heredoc; `/*!40101 SET @A=@@B */;` in SQL; a `/* … */` or a `*/` followed by code on the same line. Still refused: `// const old = compute(counter);`, ` * const old = compute(x);` inside `/** */` with no `@example`, `# install curl` in a Dockerfile and `# build the app` in a Makefile. A comment is compared with the same line 0.28.0 compared it with.
+- **Example code in a doc comment is not commented-out code.** Inside `/** */` the lines after `@example` up to the next tag, the lines of a fenced code block in any doc comment, and Rust `///` / `//!` lines are judged neither as commented-out code nor as a restatement.
+- **Three refusals of docblock tags that carry a fact, removed.** A tag whose type the signature may not state (`@param list<User> $users`, `@param non-empty-string $name`, a class) is not dead. A typed tag that only repeats its name (`@param int $id`) is dead only when the signature below it types the parameter too; above `function f($id)` it is the one place the type is written. A bare `@return` or `@param` whose description wraps onto the next docblock line, the JDK's style, is not empty.
+- **A TODO with an owner, ticket or URL is left alone.** `TODO(ana):` now rescues a TODO the way a ticket or URL does, and a rescued TODO is not judged any further: `// TODO #1: sort todos by date` above the line it names was refused as a restatement, and `// TODO(BILL-412): drop once v2 rollout completes (see ADR-7)` as commented-out code — the rescue now runs before the code check. Dockerfile parser directives (`# syntax=`, `# escape=`, `# check=`) are exempt.
+- **Six new warnings, and no new refusal.** `PostToolUse` names twelve categories instead of six: `docblock tag padding (restates its name or type)`, `docstring restating the signature` (Python), `commented-out markup` (one-line `<!-- -->`, `{{-- --}}` and `{/* */}` in Vue, Svelte, PHP, Blade, JSX and TSX), `comment paragraph (one line is the budget)` (three or more `//` or `#` prose lines in a row), `section marker` (`//region`, `// MARK:`, `// Step 1:`) and `authorship stamp (git blame holds this)`. Lowercase `todo` / `fixme` at a comment's start join `bare TODO`; `updated:`, `new:` and `changed:` join change-narration. The deny lane refuses only the three categories it named before, every existing message string is unchanged, and the keep-cases and the `shortcut:` form stay silent. The README lists what each warning catches and spares.
+- **One pass instead of a re-scan per comment.** Each comment walked forward to its restatement target, so a run of comments cost the square of its length; one backward pass now finds every target, and each target line is tokenised once.
+- **`debt-scan.sh` counts a line holding a NUL byte once.** GNU grep, as on Linux, read a mid-line NUL as a line break and counted the line twice; every category now greps with `-a`, as the trigger-less `shortcut:` list already did. The five older rows are unchanged on every existing fixture.
+- **Three fixes found before release.** Under a UTF-8 locale such as `en_US.UTF-8` the generated-file check did not strip a byte-order mark, so a generated file opening with one had its comments judged by both hooks and could be refused; `debt-scan.sh --age` skipped the markers of a file holding a NUL byte, and now reads only the source files the counts read, so a binary file adds no row; and the `code-smells` and `reuse-hygiene` skills pointed at a file only the marketplace repository holds.
+- **Unmeasured: whether any of this changes what the model writes.** No eval with a control arm covers it.
+- **Shared-block comments cut to contract and limits; behaviour unchanged.** The shared blocks in `scan.sh`, `density.sh`, `verbosity.sh`, `review-debt.sh` and `conventions.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. Each hook parses to the same code as before, compared by bash's own parser with comments ignored.
+
+### Measured on real code
+
+Each sampled file was written whole, as one `PreToolUse` and one `PostToolUse` `Write`, through 0.28.0's `scan.sh` and through this release's, on 2026-10-04.
+
+| sample | files | refused by 0.28.0 | refused now | allow → deny | deny → allow |
+|---|---|---|---|---|---|
+| the plugin author's repositories | 14,584 | 1,376 | 889 | **0** | 487 |
+| system and standard-library code | 1,992 | 576 | 501 | **0** | 75 |
+
+The author's repositories: 96 of them, at most 400 files each in a seeded random order (seed 1), counted only — no file was read by a person, so how many of the 487 were false refusals is unknown. Deny → allow by file type: PHP 425, JS/TS 50, Blade 6, shell 3, Dockerfiles and Makefiles 2, Vue/Svelte 1; CSS, Kotlin, Python and SQL unchanged.
+
+System code: the Python and Ruby standard libraries, the JDK sources and the macOS SDK's C headers (400 files each), Homebrew packages' C sources (253) and system shell scripts (139). Deny → allow: shell 41, C headers 19, C sources 8, Java 4, Python 3, Ruby 0. A reviewer read the 72 files the run before the last fixes freed: 66 were false refusals — shell `*)` and glob case arms (35 files), C `#  endif`-style directives (18), C dereference statements (5), wrapped doc tags (4), bullets in Python docstrings (3), a `/* */` followed by code (1) — and 6 were true refusals lost, all comments of a DTrace program held in a shell string. Across those 72 files 0.28.0 flagged 203 lines: 188 were misread code, 15 real comments. The final run, after the last fixes, freed 3 more Java files.
+
+Files drawing each new warning (a whole-file `Write` is the warning's worst case; an `Edit` is judged on the text it adds):
+
+| warning | author's repositories | system code |
+|---|---|---|
+| comment paragraph | 1,030 (7.1%) | 560 (28.1%): Python 186 of 400, Ruby 166 of 400, shell 50 of 139 |
+| docblock tag padding | 15 (0.1%) | 44 (2.2%): Java 41 of 400 |
+| docstring restating the signature | 0 | 13 (0.7%) |
+| commented-out markup | 21 (0.1%) | 0 (no markup file in the sample) |
+| section marker | 12 (0.1%) | 11 (0.6%) |
+| authorship stamp | 0 | 0 |
+| any warning, 0.28.0 → now | 1,590 → 1,919 | 897 → 1,076 |
+
+No run reached the hook's 15 s timeout in either release.
+
+### Cost
+
+| `PreToolUse` `Write` of a `.ts` file | verdict in both releases | 0.28.0 | 0.29.0 |
+|---|---|---|---|
+| 4,000 code lines, a run of 4,000 `//` comments, 4,000 code lines | refused: 1,500 restating, 500 banners, 500 bare TODOs | 9.64 s | 0.25 s |
+| 12,000 lines alternating a comment and the line it restates | refused: 6,000 restating | 0.54 s | 0.53 s |
+| one 200 kB line (`// ` and 200,000 `x`) | allowed | 0.11 s | 0.10 s |
+
+Wall clock of one `/bin/bash` hook run, median of 3 runs per release, on one macOS machine; 0.29.0 also adds one `comment paragraph` warning to the first row. Standing: these figures are **recorded**.
+
+### Still missed
+
+The README lists each: an `Edit` that starts inside a docblock; the comments of a program embedded in a heredoc or a shell string in a `.sh` file (the 6 lost refusals above); restatement in Rust `///` lines; the `*` lines of a block opened mid-line; MySQL `#` comments in `.sql`; multi-line markup comments; Ruby `=begin` blocks; a Python docstring that is not the first statement after a `def` or `class`; `.html`, `.erb`, `.twig` and `.astro` files, still judged by neither hook; a typed tag whose signature is not in the added text. `// new: set the total` above `total = 0` is now a change-narration warning, no longer a restatement refusal. A tag a linter requires (doclint, checkstyle, eslint-plugin-jsdoc, darglint) can draw the padding warning. Still refused as in 0.28.0: example code in a Javadoc `<pre>{@code …}`, a Doxygen `\code` block or a Go tab-indented doc example. Still warned as before: `# -*- coding: utf-8 -*-` as a `section banner`. BusyBox awk gives different output from the other awk builds on 5 test inputs; a comment run split across `MultiEdit` edits can warn as one paragraph; a `#` line inside a heredoc or a Python string counts toward a paragraph; a markup comment that restates its neighbour is not judged.
+
+## 0.28.0 — 2026-10-03
+
+- **A smell for names that hide what a unit does.** `code-smells` gains "Mysterious name": the body must be opened to learn what a symbol holds or does (`obj`, `info2`, `doStuff`); the fix is a rename, and when no truthful name exists, the unit does two jobs — split it, then name the halves. Standing: agent-graded, like the rest of the catalog. Where the host's built-in review runs the smell pass, the catalog only filters its findings, so this row adds none there.
+- **A test before reasoning moves into a decision record.** `comment-discipline` no longer routes every displaced design rationale to "the ADR": a decision record is earned only when all three hold — costly to reverse, a surprise to a reader who lacks the history, a real alternative rejected — otherwise the PR or nowhere. The routing table defers to the same test. Standing: recorded.
+- **Required call order is a contract fact.** It joins units, ownership and thrown conditions wherever the skill and this README list what a one-line docblock may state, and in the list `density.sh`'s refusal gives.
+- **A repo's prose standards doc is a convention source.** `conventions.sh` names `CONTRIBUTING.md`, `.github/CONTRIBUTING.md`, `docs/CONTRIBUTING.md`, `CODING_STANDARDS.md`, `docs/CODING_STANDARDS.md` and `STYLEGUIDE.md` when present, on their own `standards:` line after any `configs:` line — paths only, never their contents. A repo with only such a doc now gets the hint, without the CI paragraph. `/code-review:review`'s convention pass (inline, and the filter over the built-in's findings) and the `code-reviewer` agent read the doc, and a finding drawn from a stated rule names its file and the rule. On the built-in branch the doc only filters the built-in's convention findings, so it adds none there. The doc is a source for naming, structure and idiom only; comment volume and docblock style stay with CLAUDE.md and the hook env. Not detected: other names, and lowercase variants on a case-sensitive filesystem. Standing: the hook line is gated by its harness; the review half is agent-graded.
+- **The conventions harness runs from an installed copy.** `scripts/__tests__/conventions-hook.test.sh` finds the hook relative to itself instead of from the repository root.
+- **Credit and effect.** These rules adapt mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten, nothing pasted. Their effect on what the model writes is unmeasured: no eval with a control arm covers them.
+- **The review grades the comments a diff adds.** `/code-review:review` and the `code-reviewer` agent gain a comment pass: each added comment is judged against `comment-discipline`'s keep-cases and kill-cases, a finding quotes the comment and names its kill-case, and comment findings are `low`. The command runs the pass on both branches, itself on the built-in one, which does not read this plugin's comment rule, and loads the skill. The agent loads no skill, so it carries a closed list inline — kept, one line each: why-not-the-obvious, an external constraint or upstream bug with a link or ticket, a deliberate no-op, a contract fact the signature cannot state, an example for a non-obvious call, a TODO carrying a ticket ID, the `shortcut:` form; killed: what the next line does, a signature-restating docblock, change narration, a why longer than one line, commented-out code, banners; a comment claiming behaviour the code lacks is `high` — and, handed a path or branch rather than a diff, skips the pass and says so in its closing line. A house style the project's CLAUDE.md states overrides either; volume and ratio stay with the hooks. The agent no longer defers comment volume to a `comment-discipline` plugin that no longer exists, and the skill's "the `code-reviewer` agent's call" is now true. Standing: agent-graded; no eval measures the pass.
+
+## 0.27.0 — 2026-10-03
+
+- **A smell for hand-rolled code the shelf already ships.** `code-smells` gains "Reinvented shelf": hand-rolled code, or a dependency imported for one call, doing what the standard library, the platform or an already-installed dependency ships; the fix names the function or feature that replaces it. Reach: the catalog is applied when `/code-review:review` runs its smell pass inline, and loaded by code-architecture's `coding-entry` when that plugin is installed. Where Claude Code's built-in review runs the smell pass, the catalog only filters its findings, so this row adds none there.
+- **One form for a deliberate shortcut.** `comment-discipline`'s first keep-case states it: `shortcut: <the limit>; revisit when <trigger>`, both halves on one line; without the trigger it is a bare TODO. Standing: graded by `/code-review:comment-review`, recorded otherwise. `scan.sh` neither denies nor validates the form, and the `shortcut:` prefix defeats its restatement check unless the next line holds the word, so a restatement written as a shortcut escapes the deny.
+- **`debt-scan.sh` counts a sixth category, `shortcuts`:** comment-led `shortcut:` markers (`#`, `//`, `--`, `/*`) in the same file types as the other five. Below the table, every run lists the markers without a `; revisit when` trigger (path:line and the marker cut at 120 characters, at most 40, then `+N more`); the list is reported, never ratcheted. A baseline written by 0.26.0 or earlier has no `shortcuts` key: the row prints `-` and cannot fail until `--update-baseline` records it. Not counted: a ` * shortcut:` docblock line, a capitalised `Shortcut:` or `SHORTCUT:` (the form is lowercase), and file types the scan does not read (`.sh`, `.sql`, `.css`); counted: a string literal holding `// shortcut:`.
+- **Credit and effect.** The smell, the shortcut form and its count adapt rules from dietrichgebert/ponytail v4.10.0 (MIT), rewritten, nothing pasted. Their effect on what the model writes is unmeasured: no eval with a control arm covers them.
+
+## 0.26.0 — 2026-10-03
+
+- **A stricter comment limit: `density.sh` refuses a file over 0.3 prose comment lines per code line, compared exactly, now also on short files and on more file types — expect refusals 0.25.0 did not give.** Until this release the limit was 0.4:1 over every line starting `//`, `/*`, `*`, `#` or `--`, the compare truncated (0.49 passed), files under 50 lines were never judged, and shell, SQL, CSS, SCSS, Less, Lua, Elixir, Perl, Julia, R, Groovy, Terraform and GraphQL files were not judged at all. Who is affected: a project that writes its why-comments as paragraphs, and most of all one that documents every public API in prose (PEP 257 docstrings, Javadoc), where a third or more of existing files of 50+ lines measure over the limit (tables below). Such a project sets `COMMENT_DISCIPLINE_CEILING_TENTHS=5` in its settings `env`; at 0.5 still 13% of the Python, 22% of the Ruby and 30% of the JDK files measured are refused.
+- **What the override restores, and what it does not.** `COMMENT_DISCIPLINE_CEILING_TENTHS=4` brings back the 0.4:1 number only: the newly judged file types, the short-file rule, the exact compare and the prose-only count stay. `0` switches off the ceiling, the short rule and the deny, and keeps the sibling warning for files of 50+ lines. `CC_COMMENT_GUARD=off` switches the denies off for the session and leaves the warnings on; `CC_REMIND=off` silences the warnings.
+- **The count is prose lines, per language.** A Python docstring, `<!-- -->` in Vue, Svelte and Blade, Blade `{{-- --}}`, JSX `{/* */}`, the bare lines of a `/* */` block, Ruby `=begin`, Perl POD and Elixir `@doc` now count; Rust `#[derive]`, C `#include` / `#define`, PHP `#[Attribute]`, a JS `#private` field and C# `#region` no longer do. A comment line is not prose when it is a delimiter alone, a tool directive, an editor or encoding line in its whole shape (`-*- coding: utf-8 -*-`, a `vim:` modeline, `# encoding: utf-8` in the first two lines of a Python or Ruby file), `clang-format off` / `on`, a doc tag whose operand is a type (`@param int $x`, `@throws RuntimeException`, a shape such as `array{id: int}` until it closes or its block ends), a line of the file's first comment block when that block names a licence, or a `|`-led line of a Laravel-style config box; an untyped `@param name text` is prose. A line holding only a PHP open or close tag, in any letter case, is neither code nor prose, so a PHP file of comments alone is never refused. The README lists every rule and what the counter cannot tell apart.
+- **Short files.** Under 50 lines, or with fewer than 8 code lines, a file is over the limit with at least 5 prose lines, a code line and more prose than code (or than the ceiling, once a project raises it past 1:1); the refusal reads "the ceiling is 1.0:1", and the warning after an edit names the same 1.0:1 limit. A file with no code line is never over. The rule holds on every lane: the `Write` deny, the heredoc deny and the warning after an edit.
+- **Unchanged:** every message format, two denies per file per hook, three warnings per session, and the sibling test, whose 0.3 floor now equals the default ceiling, so siblings decide only where a project raised it. In a message the first count is now the prose count, and a printed ratio is rounded up to the next tenth, so a refusal never prints the limit's own number. Dockerfiles and Makefiles are left to `scan.sh`: a comment per instruction is idiomatic there.
+- **Fixed:** siblings are matched by language, so a Blade view is compared with Blade views and a PHP class with PHP files; a sibling whose name holds a non-ASCII byte, a quote or a backslash is read; a file name holding a newline no longer gets an empty refusal. A comma-decimal locale no longer prints `0,7:1`. `scan.sh` and `density.sh` read one list of judged file types.
+- **New limits, each keeping the hook inside its 10 s timeout:** `density.sh` judges at most 40 truncating heredocs to judged files per Bash command before it runs; any past the 40th is judged by neither of its lanes, as the after-command measurement reads only the first three targets (`scan.sh` still judges them). A line over 4,000 bytes is one code line, unread; when it sits inside an open comment block, string or heredoc, or holds a token that may open or close one, the rest of the file counts as code — a missed comment, never a false refusal. A sibling over 256 kB (a tracked symlink by its target's size) is left out of the median and does not count toward the three siblings needed. The ceiling is read as at most 10000 tenths (1000.0:1).
+
+### How many existing files the new limit refuses
+
+Files of 50 lines or more, one denominator per row; the 0.3 column is the shipped default.
+
+| files | of 50+ lines | 0.25.0 rule | at 0.2 | **at 0.3 (default)** | at 0.4 | at 0.5 |
+|---|---|---|---|---|---|---|
+| all | 9,528 | 8.4% | 9.4% | **5.2%** | 3.2% | 2.3% |
+| PHP | 4,423 | 14.5% | 13.5% | **7.5%** | 4.9% | 3.6% |
+| JS / TS | 4,277 | 3.6% | 6.1% | **3.2%** | 1.8% | 1.2% |
+| Vue / Svelte | 261 | 0.8% | 1.9% | **1.1%** | 0.8% | 0.4% |
+| Blade | 315 | 0.0% | 0.3% | **0.3%** | 0.3% | 0.0% |
+| CSS / SCSS / Less | 191 | not judged | 8.4% | **6.8%** | 5.8% | 4.7% |
+| Kotlin | 27 | 18.5% | 48.1% | **18.5%** | 14.8% | 7.4% |
+| shell | 7 | not judged | 28.6% | **0.0%** | 0.0% | 0.0% |
+| SQL | 5 | not judged | 20.0% | **0.0%** | 0.0% | 0.0% |
+| other (Swift, Python, Ruby) | 22 | 0.0% | 0.0% | **0.0%** | 0.0% | 0.0% |
+
+"Not judged": 0.25.0 did not measure that file type, so it has no share to compare. The 0.2 to 0.5 columns include the short rule's 2 refusals among files of 50+ lines (those with fewer than 8 code lines). Per repository (the 71 with 20 or more such files) the median share refused is 2.8% under 0.25.0, 1.8% at 0.2, 0.5% at 0.3 and 0.0% at 0.4 and 0.5. The short rule refuses 40 of all 19,496 files (0.2%). The Kotlin, shell and SQL rows are too small to generalise from.
+
+Sample: 95 of the plugin author's git repositories (108 found; 8 left out for sharing a root commit with this marketplace or an earlier repository, 4 without a commit, 1 with no judged file), at most 400 tracked files per repository in a seeded random order (seed 1), of the file types the hooks judge, without `node_modules/`, `vendor/`, `dist/`, `.claude/`, a root `build/`, files over 2 MB or holding a line over 5,000 characters, 20 files carrying a generated marker, and 28 Dockerfiles and Makefiles (neither release judges their volume). 19,496 files, measured 2026-10-03 with the counter this release ships: PHP 9,527, TSX 5,450, TS 2,055, Blade 786, JS 570, Vue 358, CSS 335, Svelte 204, shell 41, Kotlin 36, SCSS 28, Swift 28, MJS 22, JSX 20, SQL 20, CJS 9, Python 4, Less 2, Ruby 1. The sample holds almost no Python or Ruby, and no Go, Rust, Java or C. The measuring scripts are not shipped.
+
+### Other stacks
+
+The default was set at 0.3, not 0.2, after code in languages the author's repositories lack was measured: up to 400 files per row in a seeded random order (seed 1), on macOS, 2026-10-03, refused by the ratio rule among files of 50 lines or more.
+
+| code | files | of 50+ lines | at 0.2 | **at 0.3 (default)** | at 0.4 | at 0.5 |
+|---|---|---|---|---|---|---|
+| Python standard library | 400 | 307 | 50.5% | **34.2%** | 21.2% | 13.0% |
+| Ruby standard library | 400 | 264 | 53.0% | **35.2%** | 27.3% | 21.6% |
+| JDK sources (`src.zip`) | 400 | 353 | 49.3% | **39.1%** | 32.6% | 29.5% |
+| C headers (macOS SDK) | 400 | 223 | 35.0% | **26.9%** | 23.3% | 20.6% |
+| C sources (Homebrew packages) | 253 | 240 | 26.7% | **12.9%** | 5.0% | 2.5% |
+| system shell scripts | 139 | 99 | 21.2% | **15.2%** | 6.1% | 5.1% |
+
+Each count was checked line by line against a reference reader over the same files:
+
+- **Python** (`tokenize` and `ast`): none of the 32,130 lines counted as comments is anything else; 457 of 19,945 docstring lines are missed (408 in docstrings in plain, non-triple quotes such as `"Doc."`, 17 on the `def` line, 32 more in triple-quoted ones).
+- **Ruby** (Ripper): 50 of 23,953 lines counted as comments are not (41 inside regex literals, 9 inside `%{}` strings), in 4 files, and no comment line is missed. Taking every such line as prose, at most one file's verdict at 0.3 changes.
+- **Java** (a comment scanner): identical on all 41,778 comment lines.
+- **C** (a comment scanner): no false comment line; 38 of 27,590 header comment lines and 4 of 18,578 source comment lines are missed.
+- **Shell** (the shell's own parser): 28 of 8,358 lines counted as comments sit inside a string or heredoc (26 in single-quoted programs passed to another tool), in 18 files, and no verdict at 0.3 changes; 2 scripts that do not parse were left out.
+- **Go and Rust** are proven on test fixtures only.
+
+### The false-refusal risk
+
+A reviewer read 126 refusals at 0.2 from a separate sample — 10,324 files from 112 repositories, counted by an earlier version of the counter, not the sample behind the table above — and about 58% were why-explanations written as paragraphs. That is the rule's target — a why-comment is one line — but it means most refusals land on comments their author meant to keep, and the model is asked to cut them down. The rest were vendored or compiled files, tutorial-style comments, docblocks and config explanations. At the shipped 0.3 the share of the author's existing files refused falls to about 5%. Of the 31 short-file refusals in that separate sample, 24 were why-docblocks on single-purpose files (an enum, a constants file, an exception); the README lists them as refused by design.
+
+- **Unmeasured: whether the stricter limit changes what the model writes.** No eval with a control arm covers it.
+
+### Cost
+
+Medians of 20 runs per row, interleaved with the 0.25.0 hooks on the same payload, each hook executed directly with the payload on stdin. On a judged file the difference is the per-language counter; on a file the hooks do not judge, `density.sh` now checks the file type before anything else, which is why the Markdown `Edit` got faster. The bounds held: +25 ms for a 12,000-line file, +2 ms for a Bash call that writes nothing. The refused 12,000-line `Write` was measured again on the shipped hooks after the last counter fixes; the other rows were measured before them.
+
+| call (`density.sh` unless named) | 0.26.0 against 0.25.0 |
+|---|---|
+| Bash call that writes nothing | +0.4 ms (26.0 against 25.6 ms) |
+| 80-line `Write` (10 prose, 70 code) | +1.4 ms |
+| 12,000-line `Write` that passes (2,000 prose, 10,000 code) | +17.0 to +17.1 ms |
+| 12,000-line `Write` that is refused (4,000 prose, 8,000 code) | +20.0 to +20.4 ms; +22 ms on the shipped hooks |
+| 12,000-line heredoc that passes | +12.6 ms |
+| 12,000-line heredoc that is refused | +14.0 ms |
+| `Edit` of a Markdown file (not judged), `density.sh` before / after the call | 14.6 / 20.4 ms against 15.2 / 36.0 ms |
+| the same `Edit`, `scan.sh` before / after the call | +0.6 / +0.4 ms |
+
+Host: Apple M4 Pro, macOS 27.0.1, `/bin/bash` 3.2.57, awk version 20200816, jq 1.8.1, load average 3 to 5. Standing: these figures are **recorded**; the 5-second bounds the marketplace's CI holds on large shapes are unchanged.
+
+## 0.25.0 — 2026-10-02
+
+- **The comment denies now reach files they used to skip, so expect refusals you did not get before.** `scan.sh` and `density.sh` judge a heredoc written through Bash (`cat > f <<EOF`, `cat >> f <<EOF`, `tee f <<EOF`, `cat <<EOF | tee f`) as a `Write` of its body. They judge `migrations/` in every project, and `scripts/*.sh`, `templates/` and `plugins/*/hooks/` in any project that is not a plugin-marketplace repository (one whose root holds `.claude-plugin/marketplace.json`) — a shell script by `scan.sh` only; `density.sh` does not measure `.sh`. `build/` is exempt only at the project root, no longer at any depth. Until now a heredoc write, a deploy script, a template component, a WordPress plugin's hook file and a migration all landed with no comment check. The switches are unchanged: `CC_COMMENT_GUARD=off` for the denies, `CC_REMIND=off` for the warnings.
+- **What each hook does on Bash.** `scan.sh` judges every `cat` / `tee` heredoc, append or not, and the first file that trips draws the one verdict. `density.sh` denies only a heredoc that replaces the file (`>`, `tee` without `-a`); after the command it warns on the first of up to three on-disk targets over the limit, whatever wrote them (`sed -i`, `echo >`, a generator). A Bash verdict is the existing message followed by ` Written by a Bash command: <file>.`; the messages for `Write`, `Edit` and `MultiEdit` are unchanged.
+- **Generated-file markers are anchored.** Any "generated by" substring in the first five lines used to switch both denies off, so `// This is not generated by a tool` exempted a file. A line must now hold `@generated` or `<auto-generated`, or begin, after its comment leader, with a marker form (`Code generated`, `Generated by`, `Auto-generated`, `This file was generated`, `Do not edit` and their variants; the README lists them).
+- **Two denies per file per hook, shared by a `Write` and a heredoc.** `scan.sh` and `density.sh` each keep their own count, so one file can draw four refusals in a session. A relative Bash target is resolved to the absolute path a `Write` would name before the count is keyed, so a `Write` and a heredoc to one file spend the same two.
+- **Still escapes (the README has the full list):** interpreter writes, a heredoc fed to anything but `cat` / `tee`, `echo` / `printf` and `sed -i` / `perl -i` content, `cp` / `mv`, a path held in a variable, a relative target in a command holding `cd`, `cat` behind a wrapper or with a file operand, on-disk targets past `density.sh`'s first three, a command over 32 kB made of very long lines; and a heredoc in a function never called is judged as if it ran.
+- **Unmeasured: whether these rules change what the model writes.** No eval with a control arm covers them. The harnesses show the hooks fire on the shapes above, not that the code a session produces carries fewer comments.
+
+### Cost on every Bash call
+
+Both hooks now start on every Bash call, before and after it. A call that writes no file exits at the first check. `ls -la && git status`, 20 runs per row, against a 50 ms bar:
+
+| hook | event | median | max |
+|---|---|---|---|
+| scan.sh | PreToolUse | 18.4 ms | 19.7 ms |
+| scan.sh | PostToolUse | 18.3 ms | 19.2 ms |
+| density.sh | PreToolUse | 18.4 ms | 19.9 ms |
+| density.sh | PostToolUse | 18.4 ms | 19.3 ms |
+
+Worst case as specified: one command of 3,004 lines (155 kB) holding a 3,000-line `cat > src/a/one.ts <<'EOF'` heredoc and two `sed -i` edits, all three targets on disk in directories of 25 committed siblings, a fresh session per run so no sibling baseline is cached. Nothing in it trips, so every line is read. Slowest of 5 runs:
+
+| hook | event | wall time | timeout |
+|---|---|---|---|
+| scan.sh | PreToolUse | 163 ms | 15 s |
+| scan.sh | PostToolUse | 128 ms | 15 s |
+| density.sh | PreToolUse | 126 ms | 10 s |
+| density.sh | PostToolUse | 550 ms | 10 s |
+
+The slowest shape found is a different one: 120 one-line `cat` heredocs in one 6.5 kB command took 2.7 s in `scan.sh` on each event and 2.5 s in `density.sh` before the call (0.13 s after it), three runs each. That is inside the timeouts and far over the 50 ms bar.
+
+Host: `Darwin 27.0.0 arm64` (`uname -srm`), Apple M4 Pro, `/bin/bash` 3.2.57, jq 1.8.1, load average about 4.8. Each run executes the hook directly with the payload on stdin:
+
+```bash
+env -i PATH="$PATH" HOME="$tmp/home" perl -MTime::HiRes=time -e 'open STDIN, "<", shift or die; open my $o, ">&", \*STDOUT; open STDOUT, ">", "/dev/null"; my $t = time; system(shift); printf $o "%.1f\n", (time - $t) * 1000' payload.json hooks/scan.sh
+```
+
+`payload.json` is `{"hook_event_name":"PreToolUse","tool_name":"Bash","session_id":"lat","cwd":"<a git project>","tool_input":{"command":"ls -la && git status"}}`, with the event and the command swapped per row. Standing: these figures are **recorded**. The marketplace's CI holds both hooks on both events under 5 s for three large shapes — a 12,000-line heredoc, a 200 kB single line, and 100 command lines of 8,000 characters (`scripts/smoke/comment-discipline-hook-tests.sh`, **gate**). On the 120-heredoc shape it holds `density.sh` on `PreToolUse` only (`scripts/smoke/comment-density-tests.sh`); no case holds `scan.sh`, the slowest hook there, or `density.sh` after the call, so those figures stay **recorded**. Nothing holds the 50 ms bar.
+
 ## 0.24.2 — 2026-10-01
 
 - **`conventions.sh` reads a write after a lone `&`:** the shared `cc_bash_write_targets` block now ends a command at a lone `&`, so a write after one is read (`echo x & sed -i s/a/b/ f.json` used to return nothing) and words after one are no longer taken for `sed`/`perl`/`tee` operands; `cmd |& tee f` is read; a `-`-led file after `sed … --` or `perl -i` is returned. So a code file edited by the command after a backgrounded one now gets the conventions check.

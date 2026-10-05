@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Fixture tests for hooks/config-guard.sh — the guard on the agent's own guardrails.
-# Asserts every ask path, every allow path, the self-exemption, and fail-open.
+# config-guard.test.sh — asserts hooks/config-guard.sh asks on Edit and Bash writes to existing listed configs and stays silent on the rest,
+#   and checks its marketplace self-exemption, both off-switches and fail-open.
+# Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/scripts/__tests__/config-guard.test.sh
 set -u
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/config-guard.sh"
 BASH_BIN="${BASH:-bash}"
@@ -27,7 +28,6 @@ for f in .claude/settings.json .claude/settings.local.json hooks/hooks.json .esl
   printf '{}\n' > "$T/$f"
 done
 
-# --- ask paths ---------------------------------------------------------------
 asks "$T/.claude/settings.json"        "settings.json asks"
 asks "$T/.claude/settings.local.json"  "settings.local.json asks"
 asks "$T/hooks/hooks.json"             "a hooks manifest asks"
@@ -41,7 +41,6 @@ asks "$T/.golangci.yml"                "golangci config asks"
 asks "$T/pytest.ini"                   "pytest config asks"
 asks "$T/biome.json"                   "biome config asks"
 
-# --- allow paths -------------------------------------------------------------
 allows "$T/src/app.ts"      "ordinary source is silent"
 allows "$T/README.md"       "a README is silent"
 allows "$T/.prettierrc"     "an unlisted config is silent (the list is literal)"
@@ -51,7 +50,6 @@ allows "$T/.claude/settings.json.new" "a path that only resembles a target is si
 rm -f "$T/.flake8"
 allows "$T/.flake8" "a config that does not exist yet is silent (nothing to weaken)"
 
-# --- Bash writes -------------------------------------------------------------
 fire_bash() { # command
   python3 -c "
 import json,sys
@@ -75,7 +73,6 @@ bash_allows "sed -i s/a/b/ notes.txt & cat tsconfig.json" "bash: a config only n
 mkdir -p "$T/home/.claude" && printf '{}\n' > "$T/home/.claude/settings.json"
 HOME="$T/home" bash_asks "echo '{}' > ~/.claude/settings.json" "a ~/ target expands to HOME" settings.json
 
-# --- self-exemption ----------------------------------------------------------
 printf '{}\n' > "$T/.claude-plugin-marker-absent"
 mkdir -p "$T/.claude-plugin" && printf '{"plugins":[]}\n' > "$T/.claude-plugin/marketplace.json"
 out=$(fire "$T/.claude/settings.json")
@@ -83,19 +80,12 @@ out=$(fire "$T/.claude/settings.json")
   || bad "silent inside a marketplace repo" "asked anyway: $out"
 rm -rf "$T/.claude-plugin"
 
-# --- off switch --------------------------------------------------------------
 out=$(python3 -c "
 import json
 print(json.dumps({'session_id':'cg','cwd':'$T','tool_name':'Edit','tool_input':{'file_path':'$T/.claude/settings.json','old_string':'a','new_string':'b'}}))
 " | CC_CONFIG_GUARD=off "$BASH_BIN" "$HOOK" 2>/dev/null)
 [ -z "$out" ] && ok "CC_CONFIG_GUARD=off silences it" || bad "CC_CONFIG_GUARD=off silences it" "$out"
 
-# The SIBLING's switch, added 0.6.3. The core-suite README (the suites were retired
-# 2026-09-26) sold
-# CLAUDE_DESTRUCTIVE_GUARD=deny-only as buying the click-free half of this plugin; this
-# hook is its other ask tier and read only its own variable, so the documented setting
-# left an ask on every config write. Both values that mean "no ask tier" must silence it,
-# and the value that does NOT mean that (`ask`) must leave it running.
 for v in off deny-only DENY-ONLY Off; do
   out=$(python3 -c "
 import json
@@ -111,7 +101,6 @@ print(json.dumps({'session_id':'cg','cwd':'$T','tool_name':'Edit','tool_input':{
 [ -n "$out" ] && ok "CLAUDE_DESTRUCTIVE_GUARD=ask leaves config-guard running" \
   || bad "CLAUDE_DESTRUCTIVE_GUARD=ask leaves config-guard running" "silenced"
 
-# --- fail-open ---------------------------------------------------------------
 out=$(printf 'garbage' | "$BASH_BIN" "$HOOK" 2>/dev/null); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && ok "fail-open on malformed input" || bad "fail-open on malformed input" "rc=$rc"
 out=$(fire "$T/.claude/settings.json" Bash)

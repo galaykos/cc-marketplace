@@ -1,27 +1,9 @@
 #!/usr/bin/env bash
-# Author-time tests for hooks/subagent-skills.sh — the SubagentStart hook that hands a
-# plugin subagent the Read paths of its declared `bestpractices-skill:` list, filtered to
-# this project's stack by prime.sh's evidence rows — and for prime.sh reading manifests
-# at the project root rather than the payload cwd (0.20.0).
-#
-# Runs the REAL hooks against a FAKE installed marketplace: the versioned cache layout a
-# real install uses (`<cache>/<marketplace>/<plugin>/<version>/`), holding the real agent
-# files of web-dev, laravel, ui-ux and code-review (their frontmatter is what is under
-# test) and a stub SKILL.md for every skill those plugins ship. CLAUDE_PLUGIN_ROOT points
-# into that cache, which is all hooks/plugins-dir.sh reads to find the siblings.
-# Payload shape per the hooks docs § SubagentStart (session_id, transcript_path, cwd,
-# hook_event_name, agent_id, agent_type), agent_type plugin-scoped (`web-dev:frontend-reviewer`).
-#
-# Asserts: a Laravel/Inertia repo gives frontend-reviewer inertia (plus vite when
-# package.json declares it) and never react-native or nextjs; a Next.js repo gives it
-# nextjs; a declared skill whose plugin is absent is dropped; a skill the agent preloads
-# via `skills:` is dropped; an agent without the field, a built-in or unknown agent type,
-# and both off switches are silent; a subdirectory cwd gives the same output as the root;
-# the output is one SubagentStart envelope under the byte cap, paths whole; and prime.sh
-# primes the same line from a subdirectory as from the root.
+# subagent-skills.test.sh — runs hooks/subagent-skills.sh, and prime.sh's project-root read, against a fake versioned install holding the
+#   real agent files of web-dev, laravel, ui-ux and code-review with stub skills; each numbered case names what it asserts.
+# Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/scripts/__tests__/subagent-skills.test.sh
 set -u
-# This session exports it, pointing at the marketplace repo; cc_state_root honours it
-# outside git, so a stray value would make a fixture look like part of this repo.
+# A live session exports it; cc_state_root takes it as the root of any non-git cwd beneath it.
 unset CLAUDE_PROJECT_DIR
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 SR="$ROOT/plugins/skill-router"
@@ -36,7 +18,6 @@ WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
 ok()  { pass=$((pass+1)); }
 bad() { echo "FAIL $1"; fail=$((fail+1)); }
 
-# --- fake installed marketplace ------------------------------------------------------
 fake_plugin() { # $1 cache root, $2 plugin, $3 version — real agents, stub skills
   local d="$1/$2/$3" s
   mkdir -p "$d/agents" "$d/skills"
@@ -61,7 +42,6 @@ printf -- '---\nname: dual-inline\ndescription: x\nskills: [ui-ux:tailwind-best-
   > "$MKT/fixture/1.0.0/agents/dual-inline.md"
 PR_ROOT="$MKT/skill-router/0.20.0"
 
-# --- fixture repos -------------------------------------------------------------------
 laravel_repo() { # $1 dir, $2 with-vite (1|0)
   mkdir -p "$1/app/Enums" "$1/resources/js/pages" "$1/database/migrations"
   git -C "$1" init -q
@@ -77,7 +57,6 @@ LN="$WS/laravel-novite"; laravel_repo "$LN" 0
 N="$WS/next"; mkdir -p "$N/app/api"; git -C "$N" init -q
 printf '{"dependencies":{"next":"^16.0","react":"^19.0","react-dom":"^19.0"}}\n' > "$N/package.json"
 
-# --- drivers ---------------------------------------------------------------------------
 spawn() { # cwd agent_type [env...] — prints hook stdout; a non-zero exit is a failure
   local c="$1" a="$2"; shift 2
   local out rc

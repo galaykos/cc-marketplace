@@ -4,6 +4,12 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.28.1 — 2026-10-04
+
+- **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/palette-default.sh` and `hooks/preview-guard.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. After this cut both hooks parsed to the same code as before (bash's own parser, comments ignored); `preview-guard.sh` was then refactored (next entry).
+- **The rest of the hook and test comments are cut to a contract line per file, plus off-switch and `Misses:` lines where it reads one or had a residual; behaviour unchanged.** The derivations and history moved to the marketplace repository's `rationale/derivations/plugin-ui-ux.md`, which an install does not contain. `preview-guard.sh` names its marker age `MARKER_TTL_MIN=1440`, so its code differs and instead of a parse comparison: 2 new pins for this copy in `scripts/__tests__/preview-guard-pins.test.sh` passed on the old and the new code, and a run of the old against the new hook found 0 divergences in 70 input pairs (output, exit status and every file left behind compared). `palette-default.sh` and its test parse to the same code as before. Not tested: bash 5, and hooks firing in parallel.
+- The `ui-ux-engineer` and `a11y-engineer` agents' code-shape rule adds required call order to the docblock facts a signature cannot state (units, ownership, what throws). Its effect on what the agents write is unmeasured.
+
 ## 0.28.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_palette`, `cc_preview_guard`, `cc_remind`, under `/config` (or `/plugin configure ui-ux`), each with today's default. The environment variable (`CC_PALETTE`, `CC_PREVIEW_GUARD`, `CC_REMIND`) still overrides its option, and `CC_REMIND` / `CC_BOOST` set in the shell still mute every plugin at once. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.

@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
-# Author-time tests for the candor Stop gate.
-#
-# The hook reads the Stop payload's transcript_path (session JSONL) and blocks a
-# turn on either of two clauses: a file:line citation that does not resolve, or a
-# position retracted after bare pushback with nothing re-checked. These cases
-# drive it with synthetic transcripts plus canned Stop-hook stdin and assert rc +
-# stderr — including every fail-open, escape and mode the header promises.
-#
-# The payload carries transcript_path, not session_id: this hook's entire input is
-# the transcript, and a harness that sent only session_id would grade a branch the
-# host never takes (scripts/lib/plugin-checks.sh, pc_harness_payload).
+# gate.test.sh — drives hooks/gate.sh with synthetic transcripts and Stop/SubagentStop payloads carrying transcript_path, asserting exit status
+#   and stderr: clauses 1, 2 and 5, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/gate.test.sh
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
@@ -20,8 +12,7 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open
 
 pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
-# This session exports CLAUDE_PROJECT_DIR (the marketplace repo); cc_state_root would read
-# it for a non-git cwd under it. In-flight records land under TMPDIR — kept in the sandbox.
+# Unset, CLAUDE_PROJECT_DIR cannot pull cc_state_root into the runner's repository; in-flight records land under this sandboxed TMPDIR.
 unset CLAUDE_PROJECT_DIR
 export TMPDIR="$WS/tmp"; mkdir -p "$TMPDIR"
 PREAMBLE="$ROOT/plugins/candor/hooks/preamble.sh"
@@ -29,11 +20,9 @@ CWD="$WS/proj"; mkdir -p "$CWD/src" "$CWD/deep/nested"
 MARKER="$CWD/.claude/candor/last"
 CLAIMED="$CWD/.claude/candor/blocked"
 
-# Real files the citations can resolve against.
 printf 'a\nb\nc\nd\ne\n' > "$CWD/src/real.ts"           # 5 lines
 printf 'x\ny\n'          > "$CWD/deep/nested/deep.ts"   # 2 lines
 
-# Transcript builders: one JSONL line per entry.
 asst()  { jq -cn --arg t "$1" '{type:"assistant",message:{content:[{type:"text",text:$t}]}}'; }
 user()  { jq -cn --arg t "$1" '{type:"user",message:{content:$t}}'; }
 tools() { jq -cn '$ARGS.positional | {type:"assistant",message:{content:[.[] | {type:"tool_use",name:.}]}}' --args "$@"; }
@@ -59,9 +48,6 @@ check_keep() {
 CITE_SUB='cites a location that does not exist'
 REV_SUB='retracts your position anyway'
 
-# ---------------------------------------------------------------------------
-# CLAUSE 1 — citations
-# ---------------------------------------------------------------------------
 T="$WS/c1.jsonl"; { user "where is the bug"; asst "The bug is at src/ghost.ts:12 — fix it there."; } > "$T"
 check "nonexistent file:line blocks"                  "" "$T" 2 "$CITE_SUB"
 check_keep "same message re-stop passes (one-shot)"   "" "$T" 0 "__NONE__"
@@ -72,14 +58,9 @@ check "resolving citation passes"                     "" "$T" 0 "__NONE__"
 T="$WS/c3.jsonl"; { user "where"; asst "See src/real.ts:900 for the guard."; } > "$T"
 check "citation past EOF blocks"                      "" "$T" 2 "$CITE_SUB"
 
-# 0.3.2: the block above created the state dir; it must carry a self-ignoring
-# .gitignore so the markers never appear in the user's `git status`.
 if [ "$(cat "$CWD/.claude/candor/.gitignore" 2>/dev/null)" = "*" ]; then pass=$((pass+1)); printf 'PASS  state dir ignores itself\n'
 else fail=$((fail+1)); printf 'FAIL  state dir ignores itself (.claude/candor/.gitignore missing or not "*")\n'; fi
 
-# 0.3.2: a `~/` citation is a real location in the user's home, not the absolute
-# path `/.claude/...` the old extraction class made of it. HOME is pointed at a
-# scratch dir so the case is hermetic either way.
 FAKEHOME="$WS/home"; mkdir -p "$FAKEHOME/.claude"; printf '{\n  "model": "x"\n}\n' > "$FAKEHOME/.claude/settings.json"
 T="$WS/c3b.jsonl"; { user "where is my model set"; asst "Your model is set in ~/.claude/settings.json:2."; } > "$T"
 check "~/ citation into a real home file passes"     "HOME=$FAKEHOME" "$T" 0 "__NONE__"
@@ -112,8 +93,6 @@ check "absolute path citation resolves"               "" "$T" 0 "__NONE__"
 T="$WS/c11.jsonl"; { user "when"; asst "The job ran at 10:30 and took v1.2.3:4 seconds."; } > "$T"
 check "clock times and version strings are not citations" "" "$T" 0 "__NONE__"
 
-# The resolver ladder. Measured on 47 real transcripts, an abbreviated path is far
-# more common than an invented one, so only a basename that exists NOWHERE blocks.
 T="$WS/c12.jsonl"; { user "where"; asst "See src/wrong/dir/deep.ts:1 — abbreviated path, real filename."; } > "$T"
 check "unique basename under a wrong directory resolves" "" "$T" 0 "__NONE__"
 
@@ -130,9 +109,6 @@ check "elided path (...) is prose, not a citation"   "" "$T" 0 "__NONE__"
 T="$WS/c16.jsonl"; { user "where"; asst "See src/ghost.ts:12 — invented filename."; } > "$T"
 check "invented basename blocks with the name in the reason" "" "$T" 2 "no file named ghost.ts exists anywhere"
 
-# ---------------------------------------------------------------------------
-# CLAUSE 2 — unevidenced reversal
-# ---------------------------------------------------------------------------
 T="$WS/r1.jsonl"; { asst "The retry is disabled."; user "Are you sure?"; asst "You're absolutely right, my mistake — it is enabled."; } > "$T"
 check "bare pushback + retraction + no tool blocks"   "" "$T" 2 "$REV_SUB"
 check_keep "same reversal re-stop passes (one-shot)"  "" "$T" 0 "__NONE__"
@@ -162,13 +138,9 @@ check "retraction language without pushback passes"   "" "$T" 0 "__NONE__"
 T="$WS/r9.jsonl"; { asst "Deleting the branch now."; user "No, don't do that."; asst "Understood — leaving it in place."; } > "$T"
 check "an instruction (not a challenge) passes"       "" "$T" 0 "__NONE__"
 
-# Clause priority: a turn that trips both reports the citation.
 T="$WS/p1.jsonl"; { asst "It is fine."; user "Are you sure?"; asst "You're right, my mistake — see src/ghost.ts:9."; } > "$T"
 check "citation clause reported first when both trip" "" "$T" 2 "$CITE_SUB"
 
-# ---------------------------------------------------------------------------
-# Modes and fail-open
-# ---------------------------------------------------------------------------
 T="$WS/m1.jsonl"; { user "where"; asst "The bug is at src/ghost.ts:12."; } > "$T"
 check "warn mode prints but does not block" "CC_CANDOR_GATE=warn" "$T" 0 "$CITE_SUB"
 check "off mode is silent"                  "CC_CANDOR_GATE=off"  "$T" 0 "__NONE__"
@@ -184,8 +156,6 @@ check "malformed transcript fails open"     "" "$T" 0 "__NONE__"
 T="$WS/f3.jsonl"; { tools Read; } > "$T"
 check "no assistant prose fails open"       "" "$T" 0 "__NONE__"
 
-# Namespaced disarm: this gate's OWN continuation releases the turn; a sibling
-# gate's block (shared flag set, no record of ours) does not.
 T="$WS/d1.jsonl"; { user "where"; asst "The bug is at src/ghost.ts:12."; } > "$T"
 rm -f "$MARKER" "$CLAIMED"
 payload "$T" | bash "$HOOK" >/dev/null 2>&1
@@ -199,11 +169,6 @@ payload_active "$T" | bash "$HOOK" >/dev/null 2>&1; rc=$?
 if [ "$rc" -eq 2 ]; then pass=$((pass+1)); printf 'PASS  sibling block does not disarm this gate\n'
 else fail=$((fail+1)); printf 'FAIL  sibling block does not disarm this gate (rc=%s)\n' "$rc"; fi
 
-# ---------------------------------------------------------------------------
-# SubagentStop — the same gate over a subagent's final report (payload shape
-# measured live on 2.1.267: agent_id, agent_type, agent_transcript_path,
-# last_assistant_message, stop_hook_active, plus the PARENT transcript_path).
-# ---------------------------------------------------------------------------
 sub_payload() { # agent-transcript  last-msg  [stop_hook_active]
   jq -cn --arg tp "$WS/parent.jsonl" --arg atp "$1" --arg m "$2" --arg cwd "$CWD" --argjson a "${3:-false}" \
     '{hook_event_name:"SubagentStop",transcript_path:$tp,agent_transcript_path:$atp,agent_id:"aac4725192b90da07",agent_type:"Explore",last_assistant_message:$m,cwd:$cwd,stop_hook_active:$a}'
@@ -224,10 +189,8 @@ sub_check() { # desc  last-msg  exp_rc  exp_sub
 sub_check "subagent: fabricated citation in last_assistant_message blocks" "Found it at src/ghost.ts:12." 2 "this report cites a location that does not exist"
 sub_check "subagent: resolving citation passes"                            "Found it at src/real.ts:3."   0 "__NONE__"
 sub_check "subagent: reversal clause disarmed (no user turn to push back)" "You're right, my mistake."   0 "__NONE__"
-# last_assistant_message wins over the transcript: the transcript says src/real.ts:3 (clean) but the payload text fabricates.
 { user "find the bug"; asst "See src/real.ts:3."; } > "$A"
 sub_check "subagent: payload text is judged, not the transcript tail"      "Found it at src/ghost.ts:12." 2 "this report"
-# Markers are per agent: a subagent block must not consume the main thread's disarm, and vice versa.
 rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"
 sub_payload "$A" "Found it at src/ghost.ts:12." | bash "$HOOK" >/dev/null 2>&1
 if [ -f "$SUB_CLAIMED" ] && [ ! -f "$CLAIMED" ]; then pass=$((pass+1)); printf 'PASS  subagent block writes its own claim, not the main thread'"'"'s\n'
@@ -241,8 +204,7 @@ sub_payload "$A" "Found it at src/ghost.ts:12." | bash "$HOOK" >/dev/null 2>&1; 
 if [ "$rc" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  subagent: same report re-stop passes (one-shot)\n'
 else fail=$((fail+1)); printf 'FAIL  subagent: same report re-stop passes (rc=%s)\n' "$rc"; fi
 
-# 2.1.284 hand-back shape (rationale/candor-subagent-probe-2026-09-29.md): the report is the
-# last SubagentHandback tool_use's input.message; last_assistant_message is closing text.
+# CLI 2.1.284 hands a report back as the last SubagentHandback tool_use's input.message (rationale/candor-subagent-probe-2026-09-29.md).
 handback() { jq -cn --arg m "$1" --arg n "SubagentHandback" '{type:"assistant",message:{content:[{type:"tool_use",name:$n,input:{message:$m}}]}}'; }
 A="$WS/agent-hb1.jsonl"; { user "find the bug"; handback "Found it at src/ghost.ts:12."; } > "$A"
 sub_check "subagent handback: fabricated citation in the handed-back report blocks" "Report delivered." 2 "this report cites a location that does not exist"
@@ -252,8 +214,7 @@ A="$WS/agent-hb3.jsonl"; { user "find the bug"; tools Read; tres; } > "$A"
 sub_check "subagent handback: no handback falls back to last_assistant_message"     "Found it at src/ghost.ts:12." 2 "$CITE_SUB"
 T="$WS/hb-main.jsonl"; { user "where"; handback "Found it at src/ghost.ts:12."; asst "All set."; } > "$T"
 check "a hand-back in a main-thread Stop transcript is not read" "" "$T" 0 "__NONE__"
-# 2.1.286 resume shape (rationale/candor-resumed-subagent-probe-2026-09-30.md): the SendMessage
-# boundary is a user entry with isMeta true; injected context after a hand-back is not a boundary.
+# CLI 2.1.286 marks a resume boundary with an isMeta user entry (rationale/candor-resumed-subagent-probe-2026-09-30.md).
 meta() { jq -cn --arg t "$1" '{type:"user",isMeta:true,message:{content:$t}}'; }
 A="$WS/agent-resumed.jsonl"
 { user "find the bug"; handback "Found it at src/real.ts:3."; tres; meta "The coordinator sent a follow-up."; asst "Second look: src/ghost.ts:12."; } > "$A"
@@ -266,15 +227,6 @@ A="$WS/agent-injected.jsonl"
 sub_check "resumed: injected context after a hand-back is no boundary, the hand-back is judged" "Report delivered." 2 "$CITE_SUB"
 
 
-# ---------------------------------------------------------------------------
-# CLAUSE INDEPENDENCE — a bounded clause 4 does not silence clauses 1-3
-# ---------------------------------------------------------------------------
-# On master these were three Stop hooks, each evaluated on every stop. The 0.3.0
-# merge let clause 4 (a registered run with no gate pass) take the only verdict
-# slot and exit 0 on its per-HEAD bound, so from the second stop at a HEAD until
-# the next commit an invented citation or a naked completion claim passed. A live
-# run is exactly where those happen. These cases pin: clause 4 blocks first and
-# alone; once bounded (or in warn mode) it prints and the other clauses still bite.
 if command -v git >/dev/null 2>&1; then
   rm -f "$MARKER" "$CLAIMED"
   git -C "$CWD" init -q && git -C "$CWD" config user.email t@t.t && git -C "$CWD" config user.name t
@@ -326,11 +278,6 @@ else
   printf 'SKIP  clause-independence cases (git not available)\n'
 fi
 
-# ---------------------------------------------------------------------------
-# CLAUSE 5 — lockfile drift. Needs a real git worktree: the clause reads
-# `git status --porcelain` and `git diff -U0` on the manifest, so a fixture that
-# faked either would grade a branch the hook never takes.
-# ---------------------------------------------------------------------------
 if command -v git >/dev/null 2>&1; then
   LW="$WS/lockproj"; mkdir -p "$LW"
   ( cd "$LW" && git init -q . && git config user.email t@t && git config user.name t \
@@ -375,8 +322,6 @@ if command -v git >/dev/null 2>&1; then
     pass=$((pass+1)); printf 'PASS  clause 5: disarmed for a subagent (no user turn to answer it)\n'
   else fail=$((fail+1)); printf 'FAIL  clause 5 subagent disarm (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
-  # 0.5.0 state root: porcelain paths are repo-relative, so a stop taken from a
-  # subdirectory used to read `sub/package.json`, find nothing and pass silently.
   mkdir -p "$LW/sub/dir"
   ( cd "$LW" && printf '{"name":"x","dependencies":{"a":"^1.0.0","d":"^4.0.0"}}\n' > package.json )
   clear_lock_state
@@ -390,11 +335,6 @@ else
   printf 'SKIP  clause 5 cases (git not available)\n'
 fi
 
-# ---------------------------------------------------------------------------
-# 0.5.0 — state root, in-flight workers, the no-behavioral-coverage exit.
-# One throwaway repo, driven through the real hooks: preamble.sh writes the in-flight
-# record on SubagentStart, gate.sh removes it on SubagentStop and reads it on Stop.
-# ---------------------------------------------------------------------------
 if command -v git >/dev/null 2>&1; then
   RR="$WS/run"; mkdir -p "$RR/src/deep"
   printf 'a\nb\nc\nd\n' > "$RR/src/real.ts"
@@ -435,7 +375,6 @@ if command -v git >/dev/null 2>&1; then
   { user "run the cards"; } > "$WS/rparent.jsonl"
   { user "card 01"; asst "placeholder"; } > "$WS/ragent.jsonl"
 
-  # --- state root: a subdirectory cwd reads and writes at the repo root -----------------
   T="$WS/rsub1.jsonl"; { user "where"; asst "The guard is at src/real.ts:3."; } > "$T"
   clear_rr; run_hook "$HOOK" "$(stop_json "$SUBD" "$T")"
   verdict_is "state root: a repo-relative citation resolves from a subdirectory cwd" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
@@ -449,7 +388,6 @@ if command -v git >/dev/null 2>&1; then
   verdict_is "state root: a subdirectory cwd reads the run registered at the repo root" \
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && [ -r "$RNUDGE" ] && [ ! -e "$SUBD/.claude" ]; echo $?)"
 
-  # --- in-flight workers -----------------------------------------------------------------
   rm -rf "$IDIR"
   run_hook "$PREAMBLE" "$(start_json agentA)"
   verdict_is "in flight: SubagentStart writes a record holding the agent_id" \
@@ -489,14 +427,12 @@ if command -v git >/dev/null 2>&1; then
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
   rm -f "$(rec_of agentKilled)"
 
-  # Only the no-gate-pass branch stands down: a claimed pass short of its records still blocks.
   mkdir -p "$TRD/bg"
   printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$RHEAD" > "$TRD/gate-pass.json"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" "$BT_RUNNING")"
   verdict_is "in flight: a claimed pass with no bg verdict record still blocks" \
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'left no verdict record'; echo $?)"
 
-  # --- no-behavioral-coverage + a recorded coverage reduction -------------------------------
   printf '{"head":"%s","verdict":"no-behavioral-coverage"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
   COVRED="$TRD/reductions/coverage-bg-$H12.json"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"

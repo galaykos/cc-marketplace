@@ -2,6 +2,10 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.3.1 — 2026-10-04
+
+- **Hook comments cut to contract and limits; behaviour unchanged.** The shared block in `hooks/ledger.sh` and `hooks/gate.sh` keeps its function's contract and limits in a few lines; the derivation and history moved to the marketplace repository's `rationale/`. Both hooks parse to the same code as before, compared by bash's own parser with comments ignored.
+
 ## 0.3.0 — 2026-09-30
 
 - **Off-switches are now `/config` options:** `cc_ask_ledger`, under `/config` (or `/plugin configure ask-ledger`), each with today's default. The environment variable (`CC_ASK_LEDGER`) still overrides its option. An interactive `/plugin install` now shows a Configure dialog for these options; it is optional — Esc keeps the defaults.

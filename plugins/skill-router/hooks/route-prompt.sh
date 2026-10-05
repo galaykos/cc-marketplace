@@ -1,35 +1,17 @@
 #!/bin/bash
-# Absolute-path shebang (not `/usr/bin/env bash`): the fail-open guarantee must
-# hold even under a stripped/broken PATH, where `env bash` itself exits 127.
-#
-# UserPromptSubmit tool-fit check. This hook does NOT decide which command fits —
-# it hands the model the rules for judging and points at the command list the HOST
-# already put in this session. A previous version matched prompt patterns to
-# commands in a table; a table only ever routes the phrasings its author thought
-# of, and every new plugin needed a new row. The judgment belongs to the model,
-# which reads meaning; the hook's job is the discipline around that judgment.
-#
-# It used to rebuild the list too — one truncated frontmatter line per installed
-# command — which cost ~5.2 kB per session to restate what the model could already
-# read, and grew with every plugin. See the block above the heredoc for what that
-# removal gave up (the repo-evidence filter went with it).
-#
-# Fires once per session, on the first work-shaped prompt: a chat-only session
-# pays nothing, and once injected the catalog stays in context for later prompts.
-# Fail-open: any error, or a missing jq, exits silently and never blocks.
-# CC_REMIND / CC_ROUTE unset: the /config options cc_remind / cc_route decide.
-# State: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/skill-router/ is only the fallback.
-# --- state root ----------------------------------------------------------------
-# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
-# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
-# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
-# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
-# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
-# the caller's spelling and path-prefix comparisons still hold); outside git,
-# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
-# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+# route-prompt.sh — UserPromptSubmit, fails open: on any prompt, prints once each the low-confidence signals route.sh queued for this context;
+#   then, on the session's first work-shaped prompt, the rules for judging the host's own command listing. It picks no command.
+# Off: CC_REMIND=off (every advisory nudge in this marketplace) or CC_ROUTE=off (this hook); unset, the /config options cc_remind / cc_route decide.
+# Misses: a symptom phrased without a state verb (`payment failures spiking`, `memory leak in the worker`); fires anyway on a chat sentence
+#   carrying one (`the build is slow to watch`). Repeats a signal on the next prompt when its state file cannot be rewritten.
+# Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route-prompt.sh
+MARKER_TTL_MIN=1440
+
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
 cc_state_root() {
   [ -n "$1" ] && [ -d "$1" ] || return 1
   local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
@@ -43,26 +25,12 @@ cc_state_root() {
   printf '%s\n' "$1"
 }
 
-# --- plugin state --------------------------------------------------------------
-# Canonical copy: templates/blocks/plugin-state.md. Every hook defining cc_plugin_state must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_plugin_state <root> <name> prints the directory holding a plugin's own per-project hook
-# state, <root> being the hook's cc_state_root result: ${CLAUDE_PLUGIN_DATA}/<key>/<name> when
-# the host sets that variable, else <root>/.claude/<name>, the path hooks used before it.
-# <key> is the root's basename with every character outside [A-Za-z0-9_-] turned into -, a -,
-# and the root's cksum: the host gives one data dir per plugin id, not per project (measured
-# 2.1.282), and a raw path inside a filename names parents that never exist. tr runs under
-# LC_ALL=C because a UTF-8 tr stops at the first invalid byte. Status 0, no stderr; it
-# creates nothing, so the caller keeps its own mkdir -p.
-# WHY: state read by no one but the plugin's own hooks does not belong in the user's repo —
-# the 2026-09-29 review found .claude/code-review/ and .claude/skill-router/ created by one
-# prompt and one edit in a fresh repo.
-# WHAT IT DOES NOT CATCH: state another plugin, a skill or the user reads must not use it; the
-# fallback path is still in the repo; the data dir is keyed by plugin id, so install scopes of
-# one plugin share it (inferred from the docs' id rule), while a --plugin-dir copy gets its
-# own `-inline` directory and never sees the installed copy's state. The variable was measured
-# only in a SessionStart hook; other events are doc-stated. An event that lacks it falls back
-# to the repo path, which splits a writer from a reader running on another event.
+# Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
+# cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
+# Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
 cc_plugin_state() {
   local key sum
   if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
@@ -75,18 +43,14 @@ cc_plugin_state() {
   return 0
 }
 
-# --- option resolver -----------------------------------------------------------
-# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
-# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
-# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
-# because the environment is the one state independently installed plugins share (CC_REMIND
-# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
+# cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
+# <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
-# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
-# outside the switch's vocabulary — each hook still validates the value it gets.
+# A non-empty variable beats the option: the environment is shared, so one export before launch
+# switches every plugin that reads it.
+# Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
   case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
@@ -109,30 +73,10 @@ cc_option() {
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
   case "$prompt" in "") exit 0 ;; esac
 
-  # OFF SWITCHES. CC_REMIND=off silences every advisory nudge in the marketplace
-  # (this is one); CC_ROUTE=off silences only this check. Environment is the one
-  # state independently-installed plugins genuinely share.
   case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
   case "$(cc_option CC_ROUTE on)" in off) exit 0 ;; esac
 
-  # ---- pending-signal flush. Low-confidence signals route.sh accumulated are
-  # surfaced on the NEXT prompt — a channel the model receives in time to act —
-  # instead of only at SessionEnd, an event after which no model turn exists.
-  # Each entry surfaces once (marked flushed in the state file); summary.sh's
-  # SessionEnd ledger still records everything. Runs before every later exit —
-  # slash-command prompts included (a /task-runner:run session must still see a
-  # pending security signal), and "looks good, continue" is exactly the prompt
-  # where one must not stay buried. Honest limitation: if the state file is
-  # unwritable the flushed flag cannot persist and entries re-surface next
-  # prompt — fail-open toward repetition, never toward losing a signal.
-  # CONTEXT KEY — must match route.sh's CONTEXT KEY block exactly, field order
-  # included: read `.transcript_path // .session_id`, then hash. Reading the raw
-  # `.session_id` here named a file route.sh never writes, so this flush found nothing
-  # on every prompt and the whole low-confidence channel was dead. The cksum applies to
-  # the fallback branch too, so no payload shape makes the two spellings coincide.
-  # STATE ROOT — the same rule, one level up: route.sh writes under cc_state_root of
-  # ITS payload cwd, so this reads under cc_state_root of this one. Reading the raw cwd
-  # after the model had `cd`-ed would look in a directory the writer never used.
+  # Key and root as route.sh spells them (`.transcript_path // .session_id`, hashed; cc_state_root): any other spelling misses its file.
   sid_f=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
   cwd_f=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   ctx_f=$(printf '%s' "$sid_f" | cksum 2>/dev/null | cut -d' ' -f1)
@@ -157,102 +101,25 @@ cc_option() {
   # Slash commands manage their own flow — but only AFTER the flush above ran.
   case "$prompt" in "/"*) exit 0 ;; esac
 
-  # TRIGGER NARROWING, identical in shape to the reminder hooks': drop fenced and
-  # backticked spans, read only the head, refuse prompts ABOUT this machinery, and
-  # refuse this hook's own output echoed back. LIMITATION (honest scope): heuristic,
-  # not parsing — CC_ROUTE=off is the reliable control, this is the cheap one.
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
   printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
   printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|router|route|trigger|catalog)' && exit 0
   printf '%s' "$head" | grep -qF '[skill-router]' && exit 0
 
-  # WORK-SHAPED GATE. The one pattern left, and deliberately not a routing table:
-  # it asks "is this a request to do work?", never "which tool". Everything about
-  # WHICH is the model's, downstream. A miss here costs a check, not a wrong route.
-  #
-  # ONE grep, three tiers: validate.sh budgets four prompt-matching greps here and
-  # calls a fifth a routing table regrowing in shell, so the tiers are alternations
-  # inside this pattern rather than lines of their own.
-  #
-  #   MAKING VERBS — build, refactor, deploy … : match bare. Unchanged.
-  #   STRONG symptom — error, crash, 500s, regressed, why is, investigate, not
-  #     working: match bare. A prompt carrying one of these is about a defect
-  #     whatever the surrounding grammar.
-  #   WEAK symptom — down, slow, broken, failing, fails, leak, stuck: match ONLY
-  #     after a state verb (is/are/went/keeps/got/…), with at most one word
-  #     between. These are ordinary English before they are incident vocabulary.
-  #
-  # WHY THE WEAK TIER IS BOUND AND THE STRONG ONE IS NOT. Symptom phrasing was
-  # added because `production is down` and `why is the checkout page broken`
-  # reached this gate and were dropped, while `fix …` sailed through — an incident
-  # is reported by its effect, not by a verb, so the one moment where tool choice
-  # matters most was the moment the catalog never reached. But bare `down` also
-  # matches `scroll down and tell me what you see`, and bare `slow` matches `the
-  # meeting ran slow today`. Each false positive injects the ~2.6k-token catalog
-  # into a session that would otherwise pay nothing, and no gate can see it:
-  # context-budget.sh measures one fixed making-verb prompt in an empty sandbox,
-  # so this cost is real and structurally unmeasurable. The state verb is what
-  # separates a system in a bad state from an ordinary sentence. Bound pattern:
-  # taskmaster/hooks/preview-guard.sh, whose weak .html tier is bounded for the
-  # same reason — a weak signal that never clears is noise wearing a gate's name.
-  #
-  # HONEST LIMITATION. The bound is grammatical, not semantic. A symptom phrased
-  # without a state verb — `payment failures spiking`, `memory leak in the worker`
-  # — is missed, and a chat sentence that happens to carry one (`the build is slow
-  # to watch`) still fires. It trades recall on the weak tier for the silence of
-  # the plain-prompt path, which §1 calls the overwhelming case; the STRONG tier
-  # is what carries recall, and it is unbounded. A miss here costs a check, never
-  # a wrong route.
+  # One grep, three tiers: validate.sh allows four prompt greps here, so a new tier is an alternation in it, never a fifth line.
+  # A weak symptom (down, slow, broken…) counts only after a state verb: bare, it matches `scroll down` and `the meeting ran slow`.
   printf '%s' "$head" | grep -qiE '\b(build|create|make|add|implement|develop|write|rewrite|refactor|migrate|port|fix|debug|review|audit|design|redesign|restyle|theme|style|test|deploy|ship|optimi[sz]e|speed up|scaffold|set ?up|plan|spec|integrate|automate|error|errors|crash|crashing|500s?|regress(ed|ion)?|not working|why is|investigate)\b|\b(is|are|was|were|been|went|going|get(s|ting)?|got|keeps?|kept|still|now|seems?|looks?|am)\b[[:space:]]+([a-z]+[[:space:]]+)?\b(down|slow(er)?|broken|failing|fails|leak(s|ing)?|stuck)\b' || exit 0
 
-  # ONCE PER SESSION. The catalog stays in context after the first injection, so a
-  # second copy buys nothing and costs the same tokens again.
-  #
-  # `.session_id` RAW is correct here and is NOT the pc_context_key defect. That gate
-  # exists because a subagent shares its parent's session_id, so a one-shot keyed on it
-  # dedups the worker against a nudge only the parent saw — but UserPromptSubmit never
-  # fires in a subagent at all (route.sh's CONTEXT KEY block and testing/hooks/test-shape.sh:90
-  # both state PostToolUse is the only channel that reaches one). There is no second context to starve. The flush block above keys on
-  # `.transcript_path // .session_id` for a different reason: it READS the state file
-  # route.sh writes, so it must spell the key exactly as route.sh does.
+  # Raw session_id, not route.sh's context key: UserPromptSubmit never fires in a subagent, so no second context shares this marker.
   sid=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null)
   seen="${TMPDIR:-/tmp}/cc-route-catalog-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
-  # FAIL OPEN on an unwritable TMPDIR. `mkdir || exit 0` conflated two causes with
-  # opposite correct responses: the marker already exists (fired this session —
-  # suppress, the whole point), or TMPDIR is not writable so the marker can never
-  # exist (suppressing costs the catalog on EVERY prompt of EVERY session, silently).
-  # route.sh's deliver block states this plugin's doctrine for exactly this case — "an unwritable
-  # state dir cannot swallow a nudge the model should have seen" — and delivers before
-  # persisting. This is the same rule on the bigger payload. mkdir stays the atomic
-  # first attempt; the existence test only runs once it has already failed.
-  #
-  # `-e`, not `-d`: the first version of this fix tested for a DIRECTORY, so a plain
-  # FILE squatting the marker path fell through both branches and the ~9 KB catalog
-  # injected on every prompt of the session — a worse failure than the one being
-  # fixed. Anything at the path means the marker state is either "fired" or unusable;
-  # suppressing is right in both (one lost catalog beats 9 KB per prompt), and the
-  # fail-open branch stays reachable only when the path is genuinely vacant, i.e. the
-  # parent is unwritable.
+  # mkdir failed: anything at the path (fired, or a squatting file) suppresses; a vacant path means TMPDIR is unwritable, so deliver.
   if ! mkdir "$seen" 2>/dev/null; then
     [ -e "$seen" ] && exit 0
   fi
-  find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-route-catalog-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
+  find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-route-catalog-*' -type d -mmin +"$MARKER_TTL_MIN" -exec rmdir {} + 2>/dev/null
 
-  # ---- the protocol, not a catalog --------------------------------------------
-  # This hook used to rebuild every installed plugin's commands as one truncated line
-  # each: 61 rows, 5,179 of the 6,892 chars it emitted, a second copy of a listing the
-  # host had already sent this session and one row longer per command installed. What
-  # the model does NOT have from that listing is the discipline below, which is the
-  # whole reason this hook exists; the rows were the part it could already read.
-  #
-  # LIMITATION (honest scope), and it is a real trade. The host listing is not filtered
-  # by repo evidence, so a Laravel repo now sees the Next.js review in it where the
-  # built catalog hid that row — the stack-relevance walk went with the rows it filtered.
-  # Step 1 below ("most requests fit none of them") is the only thing left holding that
-  # down, and it is the model's judgment, not a gate. Nothing here can verify the host
-  # actually sent a listing either; if a session has none, step 1 reads as vacuous and
-  # the hook is silent rather than wrong.
   cat <<CATALOG
 [skill-router] Tool-fit check (once this session). Judge against the slash commands already listed in this session — do not rebuild or ask for that list.
 

@@ -4,8 +4,8 @@ Cross-session self-improvement loop: a SessionEnd hook records cheap friction
 stats for every ended session — and, since 0.9.0, for every subagent that session
 spawned — into a machine-local ledger, and `/hindsight:harvest` mines the worst
 offenders' transcripts for recurring friction — proposing CLAUDE.md rules,
-skill/plugin ideas, defects against the plugin artifact that was running, and
-failed-approach warnings. Nothing is applied without your explicit approval.
+lint/CI checks, skill/plugin ideas, defects against the plugin artifact that was
+running, and failed-approach warnings. Nothing is applied without your explicit approval.
 
 ## Install
 
@@ -18,7 +18,7 @@ failed-approach warnings. Nothing is applied without your explicit approval.
 
 | Command | What it does |
 |---------|--------------|
-| `/hindsight:harvest [N\|all]` | Mine the top N unmined sessions (default 5) ranked by friction score; rank raw transcripts from `~/.claude/projects/<slug>/` when no ledger row exists. Reports a friction stats digest, CLAUDE.md rule candidates, skill/plugin ideas, and failed-approach warnings — inline and saved to `$HOME/.claude/hindsight/<slug>/reports/YYYY-MM-DD.md` — then gates every application behind a per-category multiselect |
+| `/hindsight:harvest [N\|all]` | Mine the top N unmined sessions (default 5) ranked by friction score; rank raw transcripts from `~/.claude/projects/<slug>/` when no ledger row exists. Reports the outcome check, a friction stats digest, CLAUDE.md rule and check candidates, skill/plugin ideas, and failed-approach warnings — inline and saved to `$HOME/.claude/hindsight/<slug>/reports/YYYY-MM-DD.md` — then gates every application behind a per-category multiselect |
 | `/hindsight:claude-md [path]` | Audit every CLAUDE.md in the repo: `scripts/claude-md-check.sh` reports stale backticked paths and undeclared `npm`/`pnpm`/`yarn`/`bun run`, `composer` and `make` targets with line numbers (gate-shaped, fixture-tested; a fragment that resolves anywhere in the tree, a bare extension, or a `file:line` suffix is not a stale row), then each file is scored on six weighted criteria (agent-graded) and at most five diffs per file are proposed — applied only on an explicit pick |
 
 ## How it works
@@ -37,16 +37,22 @@ failed-approach warnings. Nothing is applied without your explicit approval.
    agent per session, and synthesizes findings under a two-session recurrence
    gate: proposals need evidence from at least two sessions; single-session
    patterns are parked as candidates until corroborated.
-3. **Apply (on approval)** — approved rules go to one of three homes (a repo-binding
+3. **Apply (on approval)** — approved rules go to one of four homes (a repo-binding
    rule appends to CLAUDE.md; a rule about how *you* want to be worked with becomes
    a `feedback` entry in Claude Code's own memory at
    `~/.claude/projects/<slug>/memory/`, which is machine-local and not imposed on
    teammates; a finding about the codebase itself becomes a note under `## Notes`
-   in the matching `brain/<area>.md` when the brain plugin's map exists), ideas hand off
+   in the matching `brain/<area>.md` when the brain plugin's map exists; a mechanical
+   correction — the same call, import or path every time — becomes a proposed check in
+   the linter, pre-commit hooks or CI the repo already runs, printed for you to apply and
+   never written), ideas hand off
    to a `/new-skill` or `/new-plugin` project skill when the project has one
    (the marketplace repository does), warnings
    land in `.claude/hindsight/anti-patterns.md`. Nothing is written without an
    explicit pick.
+
+Credit: the proposed-check destination in `harvest` adapts a rule from
+mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied.
 
 ## Ledger
 
@@ -99,8 +105,8 @@ still has data to work with. The old directory is safe to delete.
 ## The loop is now closed (0.5.0)
 
 The ledger always held the data to grade an applied rule and nothing read it back.
-Now: every apply-gate pick is recorded to `applied.jsonl`, and each harvest opens by
-running `scripts/outcome.sh` (fixture harness in CI) — mean friction/errors per
+Now: every apply-gate pick harvest writes is recorded to `applied.jsonl`, and each
+harvest opens by running `scripts/outcome.sh` (fixture harness in CI) — mean friction/errors per
 session, before vs after each applied rule, with a hard ≥3-sessions-per-side floor
 before any number is shown. Standing: the computation is mechanical; the attribution
 is correlational and the script prints that caveat with every table — a "worsened"
@@ -128,5 +134,5 @@ row is a retraction candidate, not a verdict.
   (`hooks/skill-use.sh`, `CC_SKILL_LOG=off`); both bash + jq, fail-silent by design
 - **Command**: `/hindsight:claude-md` — the CLAUDE.md audit. There is one command;
   `/hindsight:harvest` in the table above is the SKILL's name, invoked the same way
-- **Skill**: harvest — ranking, recurrence gate, four-section report, apply gate
+- **Skill**: harvest — ranking, recurrence gate, five-section report, apply gate
 - **Agent**: transcript-miner — read-only per-session mining, compressed findings

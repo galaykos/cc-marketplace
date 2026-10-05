@@ -1,24 +1,9 @@
 #!/usr/bin/env bash
-# Author-time tests for hooks/route.sh — the PostToolUse file router — and for the
-# state-root contract it shares with route-prompt.sh (flush) and summary.sh (ledger).
-#
-# Drives the hooks with host-shaped payloads (tool_name, session_id, transcript_path,
-# cwd, tool_input) against temp GIT repos, because both halves of 0.20.0 depend on one:
-# a Bash write routes only under the project root, and the project root is the git
-# toplevel (rationale/2026-09-25-session-plugin-usage-review.md, findings 1 and 2).
-# Every Bash case RUNS its command first, in the payload cwd — PostToolUse fires after
-# the tool, and the hook reads the file the command left on disk.
-#
-# Asserts: a heredoc write routes the same skills an Edit of that file does, and its
-# content signal reaches pending_low; a Bash call with no write target, with a target
-# that is missing afterwards, or with a target outside the root is silent and creates
-# no state; a payload cwd in a subdirectory keeps state at the repo root, leaves no
-# `.claude/` in the subdirectory, and still matches `**/app/**` and reads the root's
-# manifest; directory globs match the ROOT-relative path; the per-signal one-shot holds
-# across an Edit then a Bash write; one envelope per call; the 8-target cap; CC_REMIND.
+# route.test.sh — runs hooks/route.sh, and the route-prompt.sh flush and summary.sh ledger that share its state root, on host-shaped
+#   payloads in temp git repos; each numbered case names the behaviour it asserts.
+# Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/scripts/__tests__/route.test.sh
 set -u
-# This session exports it, pointing at the marketplace repo; cc_state_root honours it
-# outside git, so a stray value would make a fixture look like part of this repo.
+# A live session exports it; cc_state_root takes it as the root of any non-git cwd beneath it.
 unset CLAUDE_PROJECT_DIR
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 SR="$ROOT/plugins/skill-router"
@@ -184,9 +169,7 @@ H="$WS/h"; mkrepo "$H"
 out=$(bashw "$H" "printf 'select 1;\\n' > q.sql" "$WS/t-h.jsonl" CC_REMIND=off)
 [ -z "$out" ] && [ ! -e "$H/.claude" ] && ok || bad "CC_REMIND=off: Bash write still routed: ${out:0:120}"
 
-# ---- routing review 2026-09-26: content+high inline, wrong-route fixes, new rows, and the
-#      Bash `command` signal. Every case uses its own transcript unless it tests the
-#      one-shot, so a skill fired by an earlier case cannot mask a later one.
+# Each case from here uses its own transcript unless it tests the one-shot, so an earlier case's fired skill cannot mask it.
 bashc() { # cwd command transcript [env...] — the hook only; the command is NOT run
   local c="$1" cmd="$2" t="$3"; shift 3
   jq -cn --arg c "$c" --arg cmd "$cmd" --arg tp "$t" \
@@ -364,6 +347,19 @@ printf "import gsap from 'gsap'\nconst token = session.token\n" > "$N/src/pages/
 edit "$N" "$N/src/pages/Reads.tsx" "$(fresh)" PATH="$HS:$PATH" HEAD_LOG="$WS/head.log" >/dev/null
 reads=$(grep -c 'Reads\.tsx' "$WS/head.log" 2>/dev/null)
 [ "$reads" = 1 ] && ok || bad "one read per target: Reads.tsx was read ${reads:-0} times in one call"
+
+# 17. low-cognitive-load on .php/.tsx/.jsx/.vue; a negative also asserts a skill that proves the edit routed
+K="$WS/k"; mkrepo "$K"
+routes "$K" app/Models/Invoice.php '<?php class Invoice {}' low-cognitive-load
+routes "$K" resources/js/Card.tsx 'export const Card = () => <div />' low-cognitive-load
+routes "$K" resources/js/Row.jsx 'export const Row = () => <tr />' low-cognitive-load
+routes "$K" resources/js/Panel.vue '<template><section /></template>' low-cognitive-load
+routes "$K" resources/js/.scratch.tsx 'export const x = <div />' a11y-audit low-cognitive-load
+routes "$K" resources/views/invoice.blade.php '<div>{{ $total }}</div>' laravel-best-practices low-cognitive-load
+routes "$K" resources/js/.scratch.jsx 'export const y = <div />' a11y-audit low-cognitive-load
+routes "$K" resources/js/.scratch.vue '<template><i /></template>' a11y-audit low-cognitive-load
+routes "$K" .php-cs-fixer.php '<?php return [];' laravel-best-practices low-cognitive-load
+routes "$K" config/app.php '<?php return [];' low-cognitive-load
 
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }

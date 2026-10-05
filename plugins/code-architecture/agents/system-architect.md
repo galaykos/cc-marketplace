@@ -19,6 +19,24 @@ system's parts talk to each other, it is yours. Load the `system-design` skill
 (and `domain-modeling` when a domain model is in play) from this plugin; they are
 your rubric.
 
+## Code shape
+
+Do not match the surrounding file's comment density: the default is no comment,
+and a heavily commented neighbour is drift, not a specification. A name, a type,
+a test or an extracted function carries the meaning. A comment you add is one
+line and states a fact the code cannot show: why this and not the obvious
+choice, an external constraint with a link, a deliberate no-op, or a contract
+fact the signature cannot state — units, ownership, what throws, required
+call order. Never what the next line does, never narrate the change (what it
+replaced, that it now works), and never write a docblock that only restates the
+signature. Beyond that one line, design rationale — options, trade-offs,
+rejected alternatives — goes in your output, never above the code, and so does
+any behaviour you added that no test exercises, named as untested. Only a house
+style the project's CLAUDE.md states overrides this. Standing: **recorded** in
+this plugin; with code-review installed, its write hooks deny restating
+comments, commented-out code and signature-repeating docblock tags here as
+anywhere.
+
 ## Operating procedure
 
 1. **Map the current system before proposing anything.** Read the code,

@@ -35,6 +35,12 @@ instead. Merges re-run the full suite on the merged result before any branch or
 worktree is deleted; discards require typing the branch name back; headless runs
 report options and touch nothing.
 
+Credit: in `branch-completion`, the no-template PR body's before/after evidence and
+reversibility line adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock),
+and the merge protocol's conflict rule (resolve from each side's intent, never `--abort`
+to dodge a hunk) comes from an earlier (2026-09-02) read of mattpocock/skills. Both are
+rewritten here rather than copied.
+
 ## No AI attribution in git history
 
 A `PreToolUse` hook, `hooks/no-ai-trailer.sh`, denies any history-writing git or

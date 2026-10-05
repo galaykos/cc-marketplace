@@ -90,7 +90,12 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    (`{"slug":"<tasks-dir-name>","base":"<merge-base with the default branch>",`
    `"branch":"<git rev-parse --abbrev-ref HEAD>"}`; for a taskmaster-index run also
    include `"index_path":"<00-INDEX.md>"` — the hook uses it to require card counts in
-   the gate pass). In the same step write the **arc phase sentinel**
+   the gate pass), and delete `.claude/task-runner/gate-pass.json` and
+   `.claude/task-runner/bg/bg-<git rev-parse HEAD>.json` if an earlier run left them.
+   candor's gate trusts both when they name HEAD, whatever their age: a stale card-run
+   pass blocks the new run's stop for the old run's records, a stale plain-run
+   `{"head"}` pass (or one with no `nc/` or `rv/` dir) lets it through, and an old run's
+   `covered` verdict passes a new run. In the same step write the **arc phase sentinel**
    `.claude/cc-phase.json` with taskmaster's writer, never by hand —
    `bash ${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh write build --owner task-runner:run --session "<this session id>"`.
    It ships in taskmaster, which may not be installed: if that path does not resolve, try
@@ -115,8 +120,10 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    each armed by their directory existing, and arming them lazily would let the context
    pressure that causes a cut also prevent the dir that would have caught it. Records
    from an EARLIER run are ignored automatically (the gate counts only records newer
-   than `active-run.json`), so a re-registration re-arms every check by itself — but
-   deleting the stale files at registration keeps the dirs readable for a human.
+   than `active-run.json`), so a re-registration re-arms every check by itself except
+   two: `gate-pass.json` and `bg/bg-<HEAD>.json` are keyed by HEAD, not by age, which is
+   why registration deletes them. Deleting the other stale files keeps the dirs readable
+   for a human.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking; after
    each task's verify passes, run the reviewer pass per the skill (conditional

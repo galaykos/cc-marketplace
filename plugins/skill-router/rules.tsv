@@ -29,7 +29,7 @@
 # co-fire-ok: *.py low-cognitive-load solid-principles
 # Content-row co-fires, verified against scripts/smoke/router-corpus (pc_rules_cofire).
 # These seven rows are all `low` confidence: they do NOT emit an inline nudge, they
-# accumulate into one session digest (route.sh header). Several firing on one file is the
+# accumulate into one session digest (route.sh queue_low_matches). Several firing on one file is the
 # designed behaviour, not a collision — an ordinary React component with await, catch,
 # fetch( and a token legitimately touches all four concerns. Blessed so that a NEW
 # content row must be considered against the corpus rather than added blind.
@@ -57,6 +57,17 @@
 # co-fire-ok: *.go low-cognitive-load solid-principles
 # co-fire-ok: *.rb low-cognitive-load solid-principles
 # co-fire-ok: *.rs low-cognitive-load solid-principles
+# low-cognitive-load judges code shape; the accessibility, framework and library skills on the same file judge other things, so both fire.
+# co-fire-ok: *.tsx low-cognitive-load a11y-audit
+# co-fire-ok: *.tsx low-cognitive-load shadcn-best-practices
+# co-fire-ok: *.tsx low-cognitive-load nextjs-best-practices
+# co-fire-ok: *.tsx low-cognitive-load react-native-best-practices
+# co-fire-ok: *.jsx low-cognitive-load a11y-audit
+# co-fire-ok: *.jsx low-cognitive-load shadcn-best-practices
+# co-fire-ok: *.vue low-cognitive-load a11y-audit
+# co-fire-ok: *.vue low-cognitive-load shadcn-best-practices
+# co-fire-ok: *.vue low-cognitive-load component-libraries
+# co-fire-ok: *.php low-cognitive-load laravel-best-practices
 #
 # LIMITATION (honest scope): NOT routed by any rule — code-smells, reuse-hygiene,
 # yagni-check, plan-before-code, and the rest of code-architecture beyond the two
@@ -64,8 +75,12 @@
 # PreToolUse/PostToolUse hook is the delivery channel, and a routing row would be
 # redundant — do not "fix" that. Plain source
 # edits (*.ts / *.js / *.py / *.go / *.rb / *.rs) route to low-cognitive-load +
-# solid-principles, once per skill per session; **/migrations/** routes to
-# sql-best-practices plus the detected engine skill (blessed pairs above).
+# solid-principles, once per skill per session. *.tsx / *.jsx / *.vue / *.php edits
+# route to low-cognitive-load ONLY, no solid-principles: the first three skip
+# dotfiles, *.php skips a .blade.php view and dotfiles. PHP config, routes and lang array files
+# keep the route on purpose — they are code, and the nudge is once per session.
+# **/migrations/** routes to sql-best-practices plus the detected engine skill
+# (blessed pairs above).
 #
 # ENGINE DETECTION IS BEST-EFFORT. The chain is compose file → `.env.example`
 # `DB_CONNECTION` → composer.json → package.json, and marker_ok takes the FIRST
@@ -114,6 +129,10 @@ glob	*.rb	low-cognitive-load	code-architecture	high
 glob	*.rb	solid-principles	code-architecture	high
 glob	*.rs	low-cognitive-load	code-architecture	high
 glob	*.rs	solid-principles	code-architecture	high
+glob	*.tsx	low-cognitive-load	code-architecture	high	!@base~^\.
+glob	*.jsx	low-cognitive-load	code-architecture	high	!@base~^\.
+glob	*.vue	low-cognitive-load	code-architecture	high	!@base~^\.
+glob	*.php	low-cognitive-load	code-architecture	high	!@base~(\.blade\.php$|^\.)
 # The only stack row that carried no marker at all: a Go module with `components/`,
 # and a Blade app with no Tailwind in it, both drew the Tailwind skill. The `?` prefix
 # is what makes "no package.json" mean no, instead of maybe.
@@ -128,7 +147,7 @@ glob	*.jsx	shadcn-best-practices	ui-ux	high	?components.json~"(ui|components)"
 glob	*.vue	shadcn-best-practices	ui-ux	high	?components.json~"(ui|components)"
 # Editing the registry file itself (aliases, style, a `registries` map) routed nothing.
 glob	components.json	shadcn-best-practices	ui-ux	high
-# `command` rows match a Bash call's COMMAND STRING (route.sh header, COMMAND ROWS): a
+# `command` rows match a Bash call's COMMAND STRING (route.sh route_cmd_mask and nudge_high_matches): a
 # registry install writes its files itself and names no target any file row can see.
 # `-ui` is the retired CLI name a model still recites; `-vue` is shadcn-vue, which the
 # `*.vue` row above already sends here. LIMITATION: `shadcn init` also writes files
@@ -148,7 +167,7 @@ content	(\baceternity\b|ui\.aceternity\.com|@aceternity/)	aceternity-best-practi
 # beside MUI's below), so the two never co-fire on one import;
 # `@base-ui-components/` is Base UI's pre-1.0 package name. `high` since 2026-09-26: an
 # import line is weaker evidence than a file extension, but as `low` it reached the
-# model only on the next prompt, after the screen was built (route.sh high pass).
+# model only on the next prompt, after the screen was built (route.sh nudge_high_matches).
 # LIMITATION: it keys on a QUOTED module specifier, so a library reached only through
 # an auto-import plugin or a framework config is missed — the `*.vue` manifest row
 # below covers the Vue kits that auto-import; a React one has no such row — and a
@@ -266,7 +285,7 @@ content	\b(fetch\(|axios|http\.(get|post)|HttpClient)\b	resilience-design	resili
 content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|OpenTelemetry|correlation[_-]?id|trace_id|startSpan|startActiveSpan|span\.(end|setAttribute|setStatus|recordException))\b	observability-design	resilience	low
 # LIBRARY ROWS — `high` since 2026-09-26: a content row marked `high` fires INLINE at the
 # first file whose contents match, once per signal per context, and never enters the
-# digest (route.sh high pass). As `low` rows every one of them reached the model on the
+# digest (route.sh nudge_high_matches). As `low` rows every one of them reached the model on the
 # next user prompt, after the build turn, and inside a subagent never.
 content	@mui/(material|icons-material|x-[a-z-]+|lab)\b	mui-best-practices	ui-libraries	high
 content	@astryxdesign/(core|cli|theme-[a-z0-9-]+)\b	astryx-best-practices	ui-libraries	high

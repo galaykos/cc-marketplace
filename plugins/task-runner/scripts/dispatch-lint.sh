@@ -2,13 +2,13 @@
 # dispatch-lint.sh — mechanical contract check over ONE drafted subagent prompt.
 # Usage: dispatch-lint.sh [file]   (reads stdin when no file is given)
 #
-# delegation-contracts § Prompt contract names five elements; four are
+# delegation-contracts § Prompt contract names six elements; four are
 # string-checkable and this lint checks exactly those:
 #   1. an absolute path            (fresh context — relative paths are coin flips)
 #   2. a scope lock                (what NOT to touch, stated)
 #   3. a required return shape     (format/cap stated, not hoped for)
 #   4. the closing data instruction ("final message is data", no-preamble)
-# The fifth (constraints/conventions) is not string-checkable — judgment owns it.
+# The other two (constraints/conventions, the done-when) are not string-checkable — judgment owns them.
 #
 # Exit 0: all four present. Exit 1: each missing element printed.
 # Residual: presence-of-phrase, not quality-of-contract — a scope lock that

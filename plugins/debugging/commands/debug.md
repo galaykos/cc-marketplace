@@ -27,7 +27,9 @@ ends in chat is a diagnosis the user has to re-type.
 
 Report: the root cause with its evidence chain, the fix and why it follows
 from the diagnosis, verification output (the original reproduction passing
-plus the full suite), and the regression test added from the repro. If the
+plus the full suite), and the regression test added from the repro — and, when
+it could only sit at a seam shallower than the bug's real call pattern, that
+missing seam as a structural finding. If the
 root cause was NOT found, say so explicitly, list what was ruled out with
 evidence, and label any mitigation as a symptom fix — never ship a guess
 labeled as a fix.

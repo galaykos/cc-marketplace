@@ -41,17 +41,11 @@
 # CC_REMIND / CC_DRIFT unset: the /config options cc_remind / cc_drift decide.
 #
 # FAIL-OPEN: missing jq, unreadable transcript, unwritable state, or any error exits 0.
-# --- state root ----------------------------------------------------------------
-# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
-# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
-# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
-# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
-# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
-# the caller's spelling and path-prefix comparisons still hold); outside git,
-# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
-# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
 cc_state_root() {
   [ -n "$1" ] && [ -d "$1" ] || return 1
   local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
@@ -65,18 +59,14 @@ cc_state_root() {
   printf '%s\n' "$1"
 }
 
-# --- option resolver -----------------------------------------------------------
-# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
-# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
-# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
-# because the environment is the one state independently installed plugins share (CC_REMIND
-# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
+# cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
+# <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
-# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
-# outside the switch's vocabulary — each hook still validates the value it gets.
+# A non-empty variable beats the option: the environment is shared, so one export before launch
+# switches every plugin that reads it.
+# Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
   case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac

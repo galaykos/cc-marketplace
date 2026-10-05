@@ -1,55 +1,21 @@
 #!/bin/bash
-# Absolute-path shebang, same reasoning as secret-scanning's guard: the fail-open
-# guarantee must hold even under a stripped PATH.
-#
-# PostToolUse WARN (never deny) on the mechanically detectable subset of the
-# security-review skill — the Laravel/Vite shapes that used to be review-time only,
-# plus the stack-agnostic sinks (eval, shell-string exec, unsafe deserialization,
-# XXE, TLS-off, ECB, script-without-SRI) ported from Anthropic's security-guidance
-# pattern set, each gated to the file extensions where the token IS the sink. Warn, not deny, on purpose: each has a legitimate
-# form (a fixture, an admin-only Blade page, an already-sanitized sink), and a
-# deny that fires on ambiguous cases is a deny that gets turned off.
-#
-# One warning per (session, file, finding) — repeat edits stay quiet. Fail-open:
-# any error, or missing jq, exits 0 silently. CC_SECURITY_SCAN=off disables.
+# write-scan.sh (PostToolUse on Write, Edit, MultiEdit and Bash; payload on stdin) — warns, never denies, once per context, file and finding,
+#   on a security sink one written line or Bash-written file shows; the ported and LLM sinks only in their own file types, the Laravel/Vite/raw-HTML ones in any file.
+# Off: CC_SECURITY_SCAN=off or CC_REMIND=off. Fails open on any error, a missing jq included.
 # CC_SECURITY_SCAN / CC_REMIND unset: the /config options cc_security_scan / cc_remind decide.
-#
-# Residual (stated, per the has-teeth convention): shape-only matching on the
-# text being written, single-line — a multi-line yaml.load(...) call with SafeLoader
-# on the next line still warns, and a sink reached through an alias never does.
-# Cross-file flows, authz logic, injection via query builders other than whereRaw —
-# still review-time judgment (/security:review). GitHub Actions expression injection
-# is deliberately NOT here: devops/hooks/workflow-guard.sh denies it pre-write.
-# Three LLM sinks (prompt-interpolation, llm-output-exec, tool-result-unfenced) are
-# ported from llm-app's prompt-injection prose rule and carry the same single-line
-# residual: a system prompt assembled across lines, or a completion executed two
-# statements later, never fires — and no regex detects injection IN the data.
-#
-# BASH WRITES (0.11.4). On `Bash` the hook reads each file the command wrote from disk,
-# after the call: targets come from cc_bash_write_targets (shared block below), at most 8,
-# a relative one resolved against the payload `cwd` (a `~/` one against $HOME) and
-# normalized, and only the first 256 KiB of each is scanned. The whole file is scanned, so
-# the FIRST Bash write to an existing or downloaded file (`>>`, `sed -i`, `curl … > x.js`)
-# warns on its pre-existing content too; after that the per-(context, file, slug) dedup
-# keeps an already-warned finding quiet. A Bash call that writes nothing exits before the
-# lock sweep. NOT caught: interpreter writes (python open(), php file_put_contents),
-# cp/mv/install destinations, `{ …; } > f` groups, a path held in a variable, a relative
-# target in a command holding a `cd`/`pushd` (skipped, not misattributed), a quoted string
-# or `\` continuation spanning lines, a second heredoc on one line, the 9th target on, and
-# bytes past 256 KiB.
+# Misses: a sink split across lines or reached through an alias, and injection inside the data; cross-file flows, authz, raw SQL outside whereRaw;
+#   a client secret with no public-bundle prefix or with no secret word in its name (NEXT_PUBLIC_FOO); on Bash, targets past the eighth, bytes past
+#   256 KiB, writes cc_bash_write_targets misses, a relative target in a command holding a cd/pushd. Warns anyway: a guard on the next line (SafeLoader, weights_only).
+# Why, limits, history: rationale/derivations/plugin-security.md § plugins/security/hooks/write-scan.sh
 
-# --- option resolver -----------------------------------------------------------
-# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
-# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
-# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
-# because the environment is the one state independently installed plugins share (CC_REMIND
-# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
+# cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
+# <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
-# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
-# outside the switch's vocabulary — each hook still validates the value it gets.
+# A non-empty variable beats the option: the environment is shared, so one export before launch
+# switches every plugin that reads it.
+# Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
   case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
@@ -66,29 +32,15 @@ cc_option() {
   return 0
 }
 
-# --- bash write targets --------------------------------------------------------
-# Canonical copy: templates/blocks/bash-write-targets.md. Every hook defining
-# cc_bash_write_targets must carry this block byte-for-byte (pc_shared_blocks).
-# The host steers file writes through Bash (auto mode `bashFirst`); in one measured session
-# 233 of 238 main-thread writes were `cat > file <<EOF`, invisible to a hook matching
-# Write|Edit.
-# Prints one target path per line, as spelled in the command (relative or absolute).
-# Heredoc BODIES are dropped and quoted text is masked before matching, so PHP `->`/`=>`,
-# HTML `>` and a sed script's `s|a|b|` never read as redirects or pipes; a here-string
-# (`<<<`) is not a heredoc. Catches `>`/`>>` onto a path (cat, echo, printf, any command),
-# `[sudo] tee [-a] <paths>`, and every file operand of `sed -i`/`-I`/`--in-place` / `perl -i`
-# after the script or its `-e`/`-f` arguments, never a redirect word or its target. BSD's
-# `-I` always takes the next word as its backup suffix; a `''` or a `.`-led word with no `/`
-# right after sed's bare `-i` is read as one too, unless it would be the only file.
-# Does NOT catch: sed/perl/tee operands after a `&` in `$(( ))` or `${ }` (it ends the command),
-# interpreter writes (python open(), php file_put_contents), cp/mv/install destinations,
-# `{ …; } > f` groups, a path held in a variable (`> "$f"` is skipped, never guessed),
-# a globbed operand (`sed -i … tests/*.js`: a word with `*`/`?` is dropped), a `\` line
-# continuation, sed/perl behind another command word (`gsed`, `/usr/bin/sed`, `env`,
-# `xargs`, `command`, `sudo -u x`, `find … -exec sed -i`), a digit- or `&`-led redirect onto
-# a file (`2> f`, `&> f`) and `>&` onto one (`cmd >& f.json`), a `-`-led sed/perl operand
-# with no `/` or `.` in it. Reads too much: a `-`-led perl script argument that has one.
-# The caller filters to existing files under its root.
+# Shared block templates/blocks/bash-write-targets.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
+# cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
+# one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
+# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
+# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
+# redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
+# operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
 cc_bash_write_targets() {
   printf '%s\n' "$1" | awk '
     function emit(p) {
@@ -193,10 +145,11 @@ cc_bash_write_targets() {
       }
     }' | awk '!seen[$0]++'
 }
+
+MARKER_TTL_MIN=1440
+MAX_BASH_TARGETS=8
 {
   [ "$(cc_option CC_SECURITY_SCAN on)" = "off" ] && exit 0
-  # Also honour the marketplace-wide advisory switch other plugins' READMEs advertise.
-  # This hook is warn-only, so there is no deny lane to protect from it.
   [ "$(cc_option CC_REMIND on)" = "off" ] && exit 0
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -206,12 +159,11 @@ cc_bash_write_targets() {
 
   if [ "$tool" = Bash ]; then
     cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
-    targets=$(cc_bash_write_targets "$cmd" | head -n 8)
+    targets=$(cc_bash_write_targets "$cmd" | head -n "$MAX_BASH_TARGETS")
     [ -n "$targets" ] || exit 0
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
     [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
-    # A relative target after an in-command `cd` names a file in another directory: skip
-    # it rather than warn about the payload cwd's same-named file. Heredoc bodies ignored.
+    # A cd inside a heredoc body moves nothing, so bodies are dropped before the cd test.
     hascd=0
     printf '%s\n' "$cmd" | awk '
       inh { if ($0 ~ ("^[\t]*" term "[ \t]*$")) inh = 0; next }
@@ -227,32 +179,19 @@ cc_bash_write_targets() {
     [ -n "$text" ] || exit 0
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // "unknown"' 2>/dev/null)
   fi
-  # CONTEXT KEY, not session key. PostToolUse is the only hook channel that reaches
-  # subagents at all, and a subagent shares its parent's session_id while getting its
-  # own transcript. Keying a one-shot on session_id therefore dedups the worker against
-  # nudges only the PARENT ever saw, so the context where most fan-out code is written
-  # is the one context this never speaks in. Pattern and rationale: code-review/hooks/conventions.sh (context-key one-shot).
+  # Context key, not session: a subagent shares its parent's session_id but has its own transcript.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // "nosession"' 2>/dev/null)
-  # The context value is usually an ABSOLUTE transcript path. Used raw as a directory
-  # component it mirrored the whole path under $TMPDIR — seven nested dirs per session —
-  # and nothing ever removed them. Hash it, the way every sibling one-shot does
-  # (ask-ledger/hooks/ledger.sh:53), so the marker tree is one flat dir per context, and
-  # sweep keys older than a day. Does NOT catch: a machine where this hook never fires
-  # again keeps its last day of markers — the sweep only runs when the hook runs.
   skey=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$skey" ] || skey=nosession
   lockroot="${TMPDIR:-/tmp}/cc-security-scan"
-  find "$lockroot" -mindepth 1 -maxdepth 1 -type d -mmin +1440 -exec rm -rf {} + 2>/dev/null
+  find "$lockroot" -mindepth 1 -maxdepth 1 -type d -mmin +"$MARKER_TTL_MIN" -exec rm -rf {} + 2>/dev/null
 
   hits=""
-  # Extension gate: a pattern that only means something in one language (eval in a
-  # README, innerHTML in a Python docstring) is a warning that gets turned off.
-  # Groups are ERE alternations over the lowercased basename's suffix.
   JS='js|jsx|ts|tsx|mjs|cjs|mts|cts|vue|svelte'
   PY='py|pyi|ipynb'
   PHP='php'
   MARKUP='html|htm|php|vue|jsx|tsx|twig|erb|ejs|hbs'
-  CODE='[a-z0-9]+'   # any extension; the doc exclusion below still applies
+  CODE='[a-z0-9]+'
   scan_text() {
     lfile=$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')
     case "$lfile" in *.md|*.mdx|*.txt|*.rst|*.json|*.yaml|*.yml|*.lock) isdoc=1 ;; *) isdoc=0 ;; esac
@@ -279,12 +218,6 @@ cc_bash_write_targets() {
     detect "blade-unescaped" \
       '\{!![[:space:]]*\$' \
       "{!! \$var !!} skips Blade escaping — use {{ }} unless this exact value is sanitized HTML"
-    # Every bundler that exposes env to the client does it by PREFIX, and each picked its
-    # own: Vite `VITE_`, Next `NEXT_PUBLIC_`, Nuxt `NUXT_PUBLIC_`, Expo `EXPO_PUBLIC_`,
-    # SvelteKit/Astro `PUBLIC_`, CRA `REACT_APP_`, Gatsby `GATSBY_`, Vue CLI `VUE_APP_`.
-    # The slug is prefix-neutral for the same reason. Does NOT catch: a secret exposed
-    # without a prefix (an explicit `define:`/`envPrefix` override), or a name whose
-    # secret-ness is not in the identifier (`NEXT_PUBLIC_FOO`).
     detect "client-bundle-secret" \
       '(^|[^A-Z0-9_])(VITE|NEXT_PUBLIC|NUXT_PUBLIC|EXPO_PUBLIC|PUBLIC|REACT_APP|GATSBY|VUE_APP)_[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|PRIVATE|API_?KEY)' \
       "a public-bundle env prefix (VITE_, NEXT_PUBLIC_, NUXT_PUBLIC_, EXPO_PUBLIC_, PUBLIC_, REACT_APP_, GATSBY_, VUE_APP_) compiles the value into the client bundle — server secrets must not carry one"
@@ -295,13 +228,9 @@ cc_bash_write_targets() {
       'dangerouslySetInnerHTML|v-html[[:space:]]*=|\{@html[[:space:]]|set:html[[:space:]]*=|\.(innerHTML|outerHTML)[[:space:]]*=|\.insertAdjacentHTML[[:space:]]*\(|document\.write(ln)?[[:space:]]*\(' \
       "raw HTML sink — sanitize upstream or render as text; XSS if any user data reaches it"
 
-    # ---- stack-agnostic sinks, ported from Anthropic's security-guidance pattern set ----
-    # (claude-plugins-official, 2026-09-03). Same warn tier, same one-per-finding dedup.
-    # Each is gated to the language where the token IS the sink, so a README that
-    # mentions eval() stays quiet.
     detect "code-eval" \
       '(^|[^[:alnum:]_.$>])eval[[:space:]]*\(|new[[:space:]]+Function[[:space:]]*\(' \
-      "eval()/new Function() executes a string as code — parse data with JSON/literal parsers; if input is truly static, say so in a comment" \
+      "eval()/new Function() executes a string as code — parse data with JSON/literal parsers; a static string wants the literal, not eval. When eval is genuinely required, a one-line comment at the call saying why" \
       "$CODE"
     detect "shell-string-exec" \
       'child_process\.exec(Sync)?[[:space:]]*\(|(^|[^[:alnum:]_.])execSync[[:space:]]*\(|(^|[^[:alnum:]_.$>])(shell_exec|passthru|popen|proc_open)[[:space:]]*\(|(^|[^[:alnum:]_.$>])(exec|system)[[:space:]]*\([[:space:]]*["'"'"'$]|os\.system[[:space:]]*\(|subprocess\.[A-Za-z_]+\(.*shell[[:space:]]*=[[:space:]]*True' \
@@ -336,12 +265,6 @@ cc_bash_write_targets() {
       "external <script> without integrity= — add an SRI hash and crossorigin, or self-host" \
       "$MARKUP" 'integrity[[:space:]]*='
 
-    # ---- LLM sinks, ported from llm-app's prompt-injection rule (2026-09-10) ----------
-    # Each ERE is composed from named pieces so the shape stays readable; every piece is
-    # still one line and the match is still one line. A `system`/`role: "system"` key
-    # whose value is built by interpolation or concatenation; a completion/message value
-    # on the same line as an exec sink; a tool-result/retrieved-chunk name interpolated
-    # into a prompt/messages string with no delimiter token on that line.
     SYSKEY='role["'"'"']?[[:space:]]*(:|=>|=)[[:space:]]*["'"'"']system["'"'"']|(^|[^[:alnum:]_])["'"'"']?(system|system_?prompt|systemPrompt)["'"'"']?[[:space:]]*(:|=>|=)'
     INTERP='\$\{|\{\$|r?f["'"'"']{1,3}[^"'"'"']*\{|\.format[[:space:]]*\(|%s|["'"'"'`][[:space:]]*\+[[:space:]]*[A-Za-z_$]|[A-Za-z0-9_$][[:space:]]*\+[[:space:]]*["'"'"'`]|["'"'"'][[:space:]]*\.[[:space:]]*\$|\$[A-Za-z0-9_]+[[:space:]]*\.[[:space:]]*["'"'"']'
     detect "prompt-interpolation" \

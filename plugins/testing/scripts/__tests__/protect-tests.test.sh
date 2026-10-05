@@ -134,7 +134,7 @@ out=$(printf 'not json at all' | "${BASH:-bash}" "$HOOK" 2>/dev/null); rc=$?
 out=$(printf '{}' | "${BASH:-bash}" "$HOOK" 2>/dev/null); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && ok "fail-open on empty payload" || bad "fail-open on empty payload" "rc=$rc out=$out"
 out=$(fire Bash "{\"command\":\"rm -rf tests\"}")
-[ -z "$out" ] && ok "bash: rm of a test dir is not a write (command-guard's)" || bad "bash: rm of a test dir is not a write (command-guard's)" "$out"
+[ -z "$out" ] && ok "bash: rm of a test dir is not a write (no guard stops it)" || bad "bash: rm of a test dir is not a write (no guard stops it)" "$out"
 
 # --- Bash writes: judged as a Write of the target, old text = the file on disk -------
 mkf
@@ -173,6 +173,17 @@ bash_denies "cd in body: a heredoc body line starting with cd does not silence t
   $'cat > a.test.ts <<\'EOF\'\ncd /tmp\nit.skip(\'a\',()=>{});\nit(\'b\',()=>{});\nEOF'  # skip: the fixture this case must deny
 bash_allows "cd: a kept marker under an in-command cd is not read as new" \
   $'cd tests && cat > kept.test.ts <<\'EOF\'\nit.skip(\'b\',()=>{});\nit(\'c\',()=>{});\nit(\'d\',()=>{});\nEOF'  # skip: kept marker fixture
+mkdir -p "$T/t" && printf "it.skip('b',()=>{});\nit('c',()=>{});\n" > "$T/t/foo.test.js"  # skip: pre-existing marker fixture
+bash_allows "cd: a kept marker after if cd t; then is not read as new" \
+  $'if cd t; then cat > foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit(\'c\',()=>{});\nEOF\nfi'  # skip: kept marker fixture
+bash_allows "cd: a kept marker after builtin cd is not read as new" \
+  $'builtin cd t && cat > foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit(\'c\',()=>{});\nEOF'  # skip: kept marker fixture
+bash_allows "cd: a kept marker after CDPATH= cd is not read as new" \
+  $'CDPATH= cd t && cat > foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit(\'c\',()=>{});\nEOF'  # skip: kept marker fixture
+bash_allows "cd: a kept marker after zsh's chdir is not read as new" \
+  $'chdir t && cat > foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit(\'c\',()=>{});\nEOF'  # skip: kept marker fixture
+bash_denies "no cd: cat > t/foo.test.js adding an it.skip is still judged" \
+  $'cat > t/foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit.skip(\'n\',()=>{});\nit(\'c\',()=>{});\nEOF'  # skip: the fixture this case must deny
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

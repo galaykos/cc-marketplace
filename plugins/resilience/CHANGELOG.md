@@ -8,6 +8,10 @@ whose job is history would be worse than the gap. Adding this file opts the plug
 `scripts/check-version-bumps.sh`'s changelog gate permanently — every bump from here on
 must carry an entry.
 
+## 0.7.7 — 2026-10-04
+
+- The `observability-engineer` and `performance-engineer` agents' code-shape rule adds required call order to the docblock facts a signature cannot state (units, ownership, what throws). Its effect on what the agents write is unmeasured. No hook or script changed.
+
 ## 0.7.6 — 2026-09-30
 
 - Eval cases with an `llm` grader now declare `runs: 3` (was 1). Three runs are the fewest that can tell a regression from a flake, and the marketplace's eval load gate now fails a case with fewer.

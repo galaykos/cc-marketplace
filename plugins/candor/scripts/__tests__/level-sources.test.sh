@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
-# Author-time tests for candor/scripts/level.sh — the resolver behind the statusline badge,
-# measure.sh, /candor:level and /candor:check — against the hooks' order: CC_TERSE, the level
-# file, the cc_terse /config option, off; an invalid winner is off, never a fall-through.
-#
-# A level set only through the option used to be active (the hooks read it) but reported as
-# unset by every one of those readers. Picked up by the CI step that globs
-# plugins/*/scripts/__tests__/*.test.sh.
+# level-sources.test.sh — asserts scripts/level.sh's order (CC_TERSE, the level file, the cc_terse option, off; an invalid winner is off) and its
+#   settings reads, and that statusline.sh and measure.sh report the level level.sh resolves; HOME and both settings paths sandboxed.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/level-sources.test.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 S="$ROOT/plugins/candor/scripts"
@@ -14,8 +10,7 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available"; exit 0; }
 
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 rc=0
-# Never the runner's real ~/.claude or managed settings: a level or saved option there would
-# decide every case.
+# Never the runner's real ~/.claude or managed settings: a level or option saved there would decide every case.
 export HOME="$TMP/home" CLAUDE_CONFIG_DIR="$TMP/cfg" CANDOR_MANAGED_SETTINGS="$TMP/managed-settings.json"
 mkdir -p "$HOME"
 unset CC_TERSE CLAUDE_PLUGIN_OPTION_CC_TERSE
@@ -36,7 +31,6 @@ eq() { # eq <label> <got> <want>
   else echo "FAIL: $1 — want '$(plain "$3")', got '$(plain "${2:-<empty>}")'"; rc=1; fi
 }
 
-# ---- level.sh: one layer at a time, then the order between them ----------------
 fixture '' '';        eq "nothing set"                            "$(level)" "off off"
 fixture '' full;      eq "option in user settings only"           "$(level)" "full option"
 fixture lite full;    eq "level file beats the option"            "$(level)" "lite file"
@@ -64,14 +58,12 @@ want=$(printf 'CC_TERSE: ultra\nlevel file (%s/terse-mode): lite\ncc_terse optio
   "$CLAUDE_CONFIG_DIR" "$CLAUDE_CONFIG_DIR")
 eq "--sources names every layer and the winner" "$(CC_TERSE=ultra bash "$S/level.sh" --sources 2>&1)" "$want"
 
-# ---- statusline.sh -------------------------------------------------------------
 fixture '' full;  eq "badge shows an option-only level"  "$(badge)" "$(printf '\033[2;36m[TERSE:FULL]\033[0m')"
 fixture '' full;  eq "badge: CC_TERSE beats the option"  "$(badge CC_TERSE=ultra)" "$(printf '\033[2;36m[TERSE:ULTRA]\033[0m')"
 fixture '' '';    eq "badge silent when off"             "$(badge)" ""
 fixture '' full; printf 'lite\n' > "$TMP/elsewhere"; ln -s "$TMP/elsewhere" "$CLAUDE_CONFIG_DIR/terse-mode"
 eq "badge refuses a symlinked level file" "$(badge)" ""
 
-# ---- measure.sh reports the level level.sh resolves --------------------------
 printf '%s\n' '{"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"done"}]}}' > "$TMP/t.jsonl"
 for c in "|" "|full" "lite|full" "|bogus" "full|:CC_TERSE=ultra" "|:CLAUDE_PLUGIN_OPTION_CC_TERSE=lite" "full|:CC_TERSE=bogus"; do
   spec=${c%%:*}; var=""; case "$c" in *:*) var=${c#*:} ;; esac

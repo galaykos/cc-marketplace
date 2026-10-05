@@ -1,67 +1,21 @@
 #!/bin/bash
-# Absolute-path shebang not `/usr/bin/env bash`: the fail-open guarantee must hold
-# even under a stripped PATH where `env bash` exits 127.
-# PreToolUse secret guard. DENIES a Write/Edit/MultiEdit/NotebookEdit, an MCP file
-# write, or (0.9.0) a Bash command whose heredoc or echo/printf lands text in a file,
-# when that text introduces a high-confidence secret, before it reaches disk.
-# Fail-open: any error, or a missing jq, exits 0 (allow) and never blocks legitimate
-# work. Only high-confidence provider patterns deny — matching is shape-only: a fixture
-# that still matches a pattern's shape (an AKIA-shaped fake) is denied; non-matching
-# shapes (sk_live_placeholder, short values) pass.
-#
-# PLACEHOLDER EXEMPTION (0.5.0), the one departure from shape-only. The deny has no
-# bound and no allow-file, so a write it refuses is refused on every retry, and the
-# reason text's own advice — "use an obviously-fake value" — was unfollowable for
-# the two shapes that came up: AWS's documented example key `AKIAIOSFODNN7EXAMPLE`
-# matches the AKIA shape by construction (every AWS doc key ends in EXAMPLE), and
-# an `.env.example` line `STRIPE_SECRET=<test-key prefix + a run of x's>` matches
-# the assigned-literal shape (the literal is not spelled out here: GitHub's own push
-# protection flags the x-run form as a Stripe test key, which is the point). The only
-# exits were a Bash heredoc around the guard (a route 0.9.0 closed, below) or
-# uninstalling it. So a matched VALUE is released when it is a placeholder by
-# its own text: it ends in EXAMPLE (the AWS convention), it is one character
-# repeated (xxxx…, 0000…), or it carries a placeholder word (example, placeholder,
-# changeme, your-/your_, dummy, redacted, sample, fake, todo). A real secret that
-# happens to contain one of those words passes — that residual is stated, small,
-# and smaller than a deny that cannot be satisfied. The check is applied to the
-# VALUE only, never to the variable name, so `EXAMPLE_TOKEN=<real>` still denies.
-#
-# BASH WRITES (0.9.0). Until 0.9.0 this guard matched the host write tools only, and the
-# header above named the heredoc as the way around it. Measured 2026-09-25
-# (rationale/2026-09-25-session-plugin-usage-review.md, finding 1): the host steers file
-# writes through Bash (auto mode `bashFirst`), one session's main thread wrote 233 files
-# through Bash against 5 through Edit/Write, and in that session the one deny guard on
-# the default write path never ran. On `Bash`, when cc_bash_write_targets (shared block
-# below) finds at least one write target, the guard scans the text that will land in a
-# file — heredoc bodies and echo/printf arguments whose pipeline writes a file, read by
-# cc_bash_write_chunks (shared block below) — with the SAME patterns and placeholder exemption as the
-# Write path, through one scanner (scan_for_secret). The deny names the file the
-# offending chunk writes. Every target counts, inside the project or not: the Write
-# path never filtered by location, and a key in /tmp/deploy.env is a key on disk. No
-# per-call cap either — the scan reads command text, never a file, and a cap would let
-# the ninth heredoc through; a pathological command can still outrun the timeout, which
-# fails open, like every other error here.
-# NOT caught on Bash, stated: a command with no write target (a live key in a
-# `curl -H` header is a different problem — it leaves the machine, not lands on disk);
-# interpreter writes (python open(), php file_put_contents); `cp`/`mv` of a file that
-# already holds a secret; sed/perl -i replacement text; and the gaps
-# cc_bash_write_chunks lists. command-guard owns DESTROYING a live `.env` (truncation,
-# overwrite); this guard owns a secret ENTERING any file, `.env.example` included, and
-# never asks whether the target exists.
+# scan.sh (PreToolUse on Write, Edit, MultiEdit, NotebookEdit, MCP apply_patch/create_new_file and Bash; payload on stdin) — denies a write whose new text
+#   (for apply_patch, the whole patch), Bash heredoc body or echo/printf argument landing in a file carries a high-confidence, non-placeholder secret.
+# Off: CC_SECRET_SCAN=off. Fails open: any error, a timeout or a missing jq allows the write.
 # CC_SECRET_SCAN unset: the /config option cc_secret_scan decides.
+# Misses: a URL password under 6 characters or led by `$` or `{`, a URL scheme not listed, a webhook URL other than Slack's; a real value holding a
+#   placeholder word; an MCP write tool with other key names; on Bash, a command with no write target, interpreter writes, cp/mv, sed/perl -i text
+#   and what cc_bash_write_chunks misses; a command that outruns the hook timeout (no per-call cap).
+# Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/scan.sh
 
-# --- option resolver -----------------------------------------------------------
-# Canonical copy: templates/blocks/option-resolver.md. Every hook defining cc_option must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# cc_option <ENV_NAME> <default> [<level-file>] prints one line, the first non-empty of: the
-# variable ENV_NAME; the first word of <level-file>, if given and readable; the userConfig
-# option CLAUDE_PLUGIN_OPTION_<ENV_NAME>, true/false read as on/off; <default>. The shell wins
-# because the environment is the one state independently installed plugins share (CC_REMIND
-# or CC_BOOST there mutes every plugin at once); the option gives one plugin a /config row.
+# Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
+# cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
+# <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yields <default>.
-# WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
-# outside the switch's vocabulary — each hook still validates the value it gets.
+# A non-empty variable beats the option: the environment is shared, so one export before launch
+# switches every plugin that reads it.
+# Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
   case "${1:-}" in '' | [0-9]* | *[!A-Za-z0-9_]*) printf '%s\n' "${2:-}"; return 0 ;; esac
@@ -78,29 +32,15 @@ cc_option() {
   return 0
 }
 
-# --- bash write targets --------------------------------------------------------
-# Canonical copy: templates/blocks/bash-write-targets.md. Every hook defining
-# cc_bash_write_targets must carry this block byte-for-byte (pc_shared_blocks).
-# The host steers file writes through Bash (auto mode `bashFirst`); in one measured session
-# 233 of 238 main-thread writes were `cat > file <<EOF`, invisible to a hook matching
-# Write|Edit.
-# Prints one target path per line, as spelled in the command (relative or absolute).
-# Heredoc BODIES are dropped and quoted text is masked before matching, so PHP `->`/`=>`,
-# HTML `>` and a sed script's `s|a|b|` never read as redirects or pipes; a here-string
-# (`<<<`) is not a heredoc. Catches `>`/`>>` onto a path (cat, echo, printf, any command),
-# `[sudo] tee [-a] <paths>`, and every file operand of `sed -i`/`-I`/`--in-place` / `perl -i`
-# after the script or its `-e`/`-f` arguments, never a redirect word or its target. BSD's
-# `-I` always takes the next word as its backup suffix; a `''` or a `.`-led word with no `/`
-# right after sed's bare `-i` is read as one too, unless it would be the only file.
-# Does NOT catch: sed/perl/tee operands after a `&` in `$(( ))` or `${ }` (it ends the command),
-# interpreter writes (python open(), php file_put_contents), cp/mv/install destinations,
-# `{ …; } > f` groups, a path held in a variable (`> "$f"` is skipped, never guessed),
-# a globbed operand (`sed -i … tests/*.js`: a word with `*`/`?` is dropped), a `\` line
-# continuation, sed/perl behind another command word (`gsed`, `/usr/bin/sed`, `env`,
-# `xargs`, `command`, `sudo -u x`, `find … -exec sed -i`), a digit- or `&`-led redirect onto
-# a file (`2> f`, `&> f`) and `>&` onto one (`cmd >& f.json`), a `-`-led sed/perl operand
-# with no `/` or `.` in it. Reads too much: a `-`-led perl script argument that has one.
-# The caller filters to existing files under its root.
+# Shared block templates/blocks/bash-write-targets.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
+# cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
+# one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
+# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
+# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
+# redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
+# operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
 cc_bash_write_targets() {
   printf '%s\n' "$1" | awk '
     function emit(p) {
@@ -206,33 +146,13 @@ cc_bash_write_targets() {
     }' | awk '!seen[$0]++'
 }
 
-# --- bash write chunks --------------------------------------------------------
-# Canonical copy: templates/blocks/bash-write-chunks.md. Every hook defining
-# cc_bash_write_chunks must carry this block byte-for-byte (pc_shared_blocks).
-# cc_bash_write_chunks <command> — what a Bash command puts INTO files: the text a content
-# guard reads on Bash where its Write path reads tool_input.content. Prints chunks: a line that
-# starts with \036 and carries the WRITER — the pipeline (split on ; && || and a `&` outside
-# `&>` `>&` `<&` `|&`, never inside quotes) whose targets the caller resolves with
-# cc_bash_write_targets — then the chunk's text lines. Two sources, and only two:
-#   - a heredoc BODY: the lines between `<<TERM` (`<<-`, quoted or `\`-escaped TERM too)
-#     and TERM; writer = the pipeline holding the `<<` (`cat > f <<EOF`,
-#     `cat <<EOF | tee -a f`);
-#   - the ARGUMENTS of an `echo`/`printf` segment, as written: the rest of the segment after
-#     the command word, quotes, escapes and any `> file` redirect kept (so match inside the
-#     text, never anchored at its start); writer = its pipeline
-#     (`echo "K=v" >> .env.example`, `printf '%s\n' v | tee f`).
-# A chunk whose writer names no file is dropped by the caller, so `git commit -F - <<EOF`
-# and `echo x | grep y` yield nothing. The body of ANY heredoc whose pipeline writes a file
-# is read, whatever consumes it — `python3 - <<PY > out.txt` included, where the script is
-# not what lands in out.txt. Accepted: the text sits in a file-writing command either
-# way.
-# NOT read, stated: a `{ echo …; } > f` group (the redirect sits on the closer, not on
-# the echo's pipeline); a here-string `<<<`; printf's format substitution (`printf
-# 'K=%s' v` is read as written: the format and the argument, never the substituted
-# line); a quoted string or a `\` continuation spanning lines; a second heredoc opened
-# on one line; text in a command that a `&` inside `$(( ))` or `${ }` ends early.
-# mask() copies the one inside cc_bash_write_targets: the block is byte-locked and its
-# awk functions are not reachable from outside it.
+# Shared block templates/blocks/bash-write-chunks.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-chunks.md
+# cc_bash_write_chunks <command> prints a \036 + WRITER line, then the text as written, per heredoc body and echo/printf
+# argument list, any `> file` redirect kept (never anchor a match); the caller resolves WRITER with cc_bash_write_targets.
+# mask() repeats the one in cc_bash_write_targets: a byte-locked block's awk program cannot call another block's functions.
+# Misses: `{ echo …; } > f`, here-strings, printf's substituted output, a string or `\` continuation spanning lines,
+# two heredocs on one line, text after a `&` inside `$(( ))`/`${ }`.
 cc_bash_write_chunks() {
   printf '%s\n' "$1" | awk '
     function mask(s,   i, c, q, out, esc) {
@@ -286,45 +206,30 @@ cc_bash_write_chunks() {
 }
 {
   input=$(cat)
-  # OFF-SWITCH. Until 2026-09-15 this guard had none: the only way out was
-  # uninstalling the plugin. Every other guard in the marketplace ships one,
-  # and a global install makes "turn it off here" a real need.
   [ "$(cc_option CC_SECRET_SCAN on)" = "off" ] && exit 0
   command -v jq >/dev/null 2>&1 || exit 0
 
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in
     Write|Edit|MultiEdit|NotebookEdit) ;;
-    # An MCP server that writes files bypasses the four host tool names entirely, and
-    # a session driving the IDE writes every file through one. Keys verified against
-    # the shipped tool schemas on 2026-09-14 (JetBrains MCP): create_new_file takes
-    # `pathInProject` + `text`; apply_patch takes `input` (alias `patch`) carrying the
-    # whole patch, whose added lines are what a secret would ride in on, and no single
-    # path — hence the empty `file` below, which only affects the message, not the deny.
-    # Residual, stated: this covers the servers whose key names are listed here. A
-    # server using different keys writes past this guard, as every non-listed tool did
-    # before. The matcher in hooks.json and this case must widen together.
+    # The matcher in hooks.json and this case must widen together.
     *apply_patch|*create_new_file) ;;
     Bash) ;;
     *) exit 0 ;;
   esac
 
   hit=""
-  # `--` is load-bearing: the private-key pattern starts with dashes, and without
-  # it grep parses the pattern as options and the pattern never matches.
   # placeholder <matched-value> — 0 when the value announces itself as fake.
   placeholder() {
     local v="$1" lc
     lc=$(printf '%s' "$v" | tr '[:upper:]' '[:lower:]')
     case "$lc" in *example) return 0 ;; esac
     printf '%s' "$lc" | grep -qE 'example|placeholder|changeme|change-me|your[_-]|dummy|redacted|sample|fake|todo|xxxx' && return 0
-    # one character repeated for the whole value
     [ "$(printf '%s' "$v" | fold -w1 | sort -u | wc -l | tr -d ' ')" -le 1 ] && return 0
     return 1
   }
-  # detect <label> <ERE>: the first pattern whose match survives the placeholder
-  # test sets the hit. Every match of a pattern is checked, not just the first — a
-  # file can carry a placeholder AND a real value.
+  # detect <label> <ERE> — sets hit to <label> when a match of <ERE> in $text is no placeholder; a no-op once hit is set.
+  # grep needs `--`: the private-key pattern starts with dashes, which grep would read as options.
   detect() {
     local m
     [ -z "$hit" ] || return 0
@@ -335,25 +240,20 @@ cc_bash_write_chunks() {
 $(printf '%s' "$text" | grep -oE -- "$2" 2>/dev/null)
 EOF_M
   }
-  # Case-INSENSITIVE twin, for the generic assigned-literal rule only. The provider
-  # patterns below must stay case-sensitive: `AKIA`, `AIza`, `sk_live_` and the PEM
-  # header are literal provider prefixes, and -i would loosen them toward noise
-  # (`aiza`+35 chars matches far more prose than the real key shape does).
+  # Case-insensitive detect, for the assigned-literal rule only: -i would loosen the provider prefixes toward noise.
   detect_i() {
     local m v
     [ -z "$hit" ] || return 0
     while IFS= read -r m; do
       [ -n "$m" ] || continue
-      # the VALUE is the run of value characters at the end of the match; the
-      # placeholder test must not see the variable name
+      # The placeholder test reads the value after the operator, never the variable name.
       v=$(printf '%s' "$m" | sed -E 's/^[^:=]*[:=]["'"'"' ]*//')
       placeholder "${v:-$m}" || { hit="$1"; return 0; }
     done <<EOF_M
 $(printf '%s' "$text" | grep -oiE -- "$2" 2>/dev/null)
 EOF_M
   }
-  # scan_for_secret <text> — THE scanner, one for both paths: resets `hit`, then sets it
-  # to the label of the first pattern whose match survives the placeholder test.
+  # scan_for_secret <text> — the one scanner for both paths: resets hit, then sets it to the first label whose match is no placeholder.
   scan_for_secret() {
     text=$1; hit=""
     [ -n "$text" ] || return 0
@@ -363,39 +263,7 @@ EOF_M
     detect "a Slack token"             'xox[baprs]-[A-Za-z0-9-]{10,}'
     detect "a Google API key"          'AIza[0-9A-Za-z_-]{35}'
     detect "a Stripe live secret key"  'sk_live_[0-9a-zA-Z]{24,}'
-    # Two widenings, both forced by where assigned literals actually live: .env,
-    # compose `environment:`, Actions `env:`, k8s manifests, Dockerfile ENV.
-    #
-    # 1. CASE-INSENSITIVE (detect_i). Those surfaces name variables in UPPERCASE by
-    #    convention. Matched case-sensitively, this catch-all tier — the one that
-    #    exists precisely to cover what the provider patterns miss — let `SECRET=`,
-    #    `API_KEY=`, `TOKEN=` and `PASSWORD=` through while denying their lowercase
-    #    twins on identical values.
-    # 2. SEPARATOR TAIL `([_-][A-Za-z0-9]+)*`. The trigger word used to have to sit
-    #    immediately before the operator, so the canonical `AWS_SECRET_ACCESS_KEY=`
-    #    missed: after `SECRET` comes `_ACCESS_KEY`, not `=`. The tail is restricted
-    #    to `_`/`-` separated segments on purpose — that is the env-var naming shape.
-    #    It deliberately does NOT match camelCase, so `tokenizerConfig = "<long>"`
-    #    stays clean while `AWS_SECRET_ACCESS_KEY=<long>` denies.
-    #
-    # The old harness only exercised `api_key = "..."` — lowercase, no tail — so a
-    # green run never showed either hole.
-    # A credential that lives in a URL rather than in an assignment. `DATABASE_URL=
-    # postgres://admin:<pw>@db/app` in a .env, a tfvars connection string, a compose
-    # `POSTGRES_*` DSN, a Helm values DSN — none of them is a provider key and none of
-    # them has 24 characters after a `secret=`-shaped operator, so the whole file passed.
-    # The password run is bounded at 6+ so `redis://localhost:6379` (no password) and
-    # `https://user:@host` do not match; it excludes `/?#` because RFC 3986 userinfo
-    # cannot contain them, which is what keeps `https://host:8080/mail?to=a@b.com` out;
-    # and it refuses a leading `$`/`{` so the CORRECT shape, `postgres://u:${DB_PASS}@db`,
-    # is not denied on every retry (measured — the first draft denied it). NOT caught,
-    # stated: a real password that itself begins with `$` or `{`, one under 6 characters,
-    # and any credential in a URL whose scheme is not in the list.
     detect "a credential embedded in a URL" '(postgres|postgresql|mysql|mongodb(\+srv)?|redis|rediss|amqp|amqps|https?)://[^:/@[:space:]]+:[^@[:space:]/?#${][^@[:space:]/?#]{5,}@'
-    # A Slack incoming-webhook URL is a bearer credential in URL clothing: anyone holding
-    # it posts as the app, forever, and it matches no `secrets.`-shaped assignment. NOT
-    # caught: any other vendor's webhook URL — each has its own shape and this is the one
-    # that came up.
     detect "a Slack webhook URL" 'hooks\.slack\.com/services/T[^/]+/B[^/]+/.{16,}'
     detect_i "an assigned secret literal" '(api[_-]?key|secret|token|passwd|password)([_-][A-Za-z0-9]+)*["'"'"' ]*[:=]["'"'"' ]*[A-Za-z0-9/+=_-]{24,}'
   }
@@ -404,10 +272,8 @@ EOF_M
   if [ "$tool" = Bash ]; then
     cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
     [ -n "$cmd" ] || exit 0
-    # Cheap exit for the common case — a Bash call that writes no file — before any
-    # chunk is read.
+    # Cheap exit before any chunk is read: most Bash calls write no file.
     [ -n "$(cc_bash_write_targets "$cmd")" ] || exit 0
-    # Keep the chunks whose writer names a file; remember that file for the message.
     n=0; keep=0; sep=$(printf '\036')
     while IFS= read -r l; do
       case "$l" in
@@ -425,24 +291,22 @@ EOF_C
       scan_for_secret "${ctext[$i]}"; file=${ctgt[$i]}; i=$((i + 1))
     done
   else
-    # Collect the text being written across the tool shapes.
     text=$(printf '%s' "$input" | jq -r '
       [ .tool_input.content // empty,
         .tool_input.new_string // empty,
         .tool_input.text // empty,
         .tool_input.input // empty,
         .tool_input.patch // empty,
+        ( select(.tool_name == "NotebookEdit" and .tool_input.edit_mode != "delete") | .tool_input.new_source | strings ),
         ( .tool_input.edits // [] | map(.new_string // empty) | join("\n") )
       ] | join("\n")' 2>/dev/null) || exit 0
-    file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null)
+    file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // .tool_input.notebook_path // empty' 2>/dev/null)
     scan_for_secret "$text"
   fi
   [ -n "$hit" ] || exit 0
 
   reason="secret-scanning: this write appears to contain ${hit}. Blocked before it reaches disk. Move the value to an environment variable or a secret store and reference it by name; if this is a deliberate fixture, make the value announce itself — end it in EXAMPLE, or use a placeholder word (example, placeholder, changeme, dummy, xxxx) — and the guard lets it through."
   [ -n "$file" ] && reason="$reason (file: $file)"
-  # Name the escape in the message that blocks you: an off-switch documented only in a
-  # CHANGELOG is not reachable by the person it exists for.
   reason="$reason CC_SECRET_SCAN=off disables this guard for the session."
 
   jq -cn --arg r "$reason" \

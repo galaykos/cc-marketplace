@@ -11,17 +11,11 @@
 # app/Models/brain/INDEX.md, find none, and size-gate the nudge on that directory's
 # files alone (`git ls-files` is cwd-relative).
 
-# --- state root ----------------------------------------------------------------
-# Canonical copy: templates/blocks/state-root.md. Every hook defining cc_state_root must
-# carry this block byte-for-byte (pc_shared_blocks); generated hooks include it.
-# The payload's `cwd` is the SHELL's cwd and follows the model's `cd` — measured
-# 2026-09-25: app/Enums, then app/Models, then the repo root in one session, each leaving
-# its own `.claude/` state dir and each re-firing a "once per session" nudge. State lives
-# at the project root instead (pc_state_root refuses a raw `$cwd/.claude` path in a hook):
-# the git toplevel reached by walking UP from cwd (`--show-cdup`, so a symlinked /tmp keeps
-# the caller's spelling and path-prefix comparisons still hold); outside git,
-# CLAUDE_PROJECT_DIR when cwd sits under it; else cwd. A cwd that no longer exists yields
-# nothing and status 1 — the caller exits rather than resurrect a deleted project.
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
 cc_state_root() {
   [ -n "$1" ] && [ -d "$1" ] || return 1
   local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"

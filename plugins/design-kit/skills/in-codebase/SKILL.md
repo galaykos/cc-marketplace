@@ -116,9 +116,13 @@ Two entry shapes, one procedure:
    before the first option is chosen.
 4. `dk.sh scratch --create <slug> --brief "<one line>"` → edit ONLY the files it
    printed as `wrote=`. `filled=` means the inventory pre-filled the page: keep the
-   imports and the app stylesheet import, replace the strip with the composition, and
-   keep any commented-out line until its required prop has real data. Start the dev
-   server with `dev_cmd=` if it is not running, open `open=`. With no brief, the pick comes from
+   imports and the app stylesheet import, replace the strip's live renders with the
+   composition, and leave each commented-out render in place until its prop has real data. Those comments —
+   prop signatures, `gap:` lines, commented-out renders — live only on this throwaway
+   `__design-kit__/` page, which cleanup removes; copy none of them into the real component.
+   With code-review installed, a full rewrite of the page can be denied for its comment
+   volume (mostly the prop-signature blocks), so change it with Edit around them.
+   Start the dev server with `dev_cmd=` if it is not running, open `open=`. With no brief, the pick comes from
    `dk.sh decision --latest --consume` — the board's recorded artboard, knobs and edits.
 5. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh drift <the files the scratch page added>`
    before showing the page, and fix each hit by reaching for the token instead. An

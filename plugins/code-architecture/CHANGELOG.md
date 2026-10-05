@@ -2,6 +2,65 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.18.0 — 2026-10-05
+
+### Added
+- **`low-cognitive-load` measures a split by depth.** The one-line-wrapper bullet of "Locality
+  of behavior" now weighs what a caller must learn — signature, required call order, error
+  modes, needed config — against what the unit gets done; a unit whose interface is as wide as
+  its body is a pass-through, to be inlined. Standing: recorded.
+- **`low-cognitive-load` takes a glossary's canonical term.** When the repo keeps a glossary,
+  its canonical term wins over a synonym it retires and over a neighbour's naming; renaming the
+  neighbour is the section's existing deliberate-rename rule. Standing: recorded.
+- **`domain-modeling` writes the language down.** A `GLOSSARY.md` at each bounded context's root
+  (the repo root for a single context); an entry is the canonical term, one or two sentences on
+  what it IS, and the synonyms it retires; project terms only, added when the term settles. A
+  class, test title or task using a retired synonym is a finding. Standing: recorded.
+
+All three adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten in this
+marketplace's voice; nothing upstream is copied. Their effect is unmeasured — no eval runs them
+with a control arm.
+
+### Changed
+- **`system-architect` writes code under the comment default, and `low-cognitive-load` names its
+  new routes.** The agent gains a "Code shape" section: match the file's naming and idiom, not its
+  comment density; no comment by default; a kept comment is one line for a fact the code cannot
+  show — why this and not the obvious, a linked external constraint, a deliberate no-op, or a
+  contract fact (units, ownership, what throws, required call order); design rationale goes in
+  the output, never above the code; only the project's CLAUDE.md overrides. It is this plugin's
+  only code-writing agent and carried no such section. The skill's reach sentence now lists
+  the routes skill-router (when installed) adds: .tsx, .jsx and .vue (not dotfiles) and .php (not
+  Blade views), beside the six it had; .java still has none. Standing: recorded in this plugin;
+  with code-review installed, its write hooks deny three of the kill-cases in this agent's writes too.
+
+### Fixed
+- **Four-laws pointers say they are not installed.** `/code-architecture:yagni`, `yagni-check`,
+  `solid-principles`, `work-verification` and `plan-before-code`'s `surgical-edits.md` cite a
+  path that lives in the marketplace repository; an install does not contain it.
+
+## 0.17.0 — 2026-10-03
+
+### Added
+- **`low-cognitive-load` gains "Before new code: the reach order".** Read the code the change
+  touches, then build on the first step that covers the need: nothing, this repository (search,
+  then confirm the symbol is alive), the standard library and then the platform under it, an
+  already-installed dependency, and only then new code. A step counts only when it is right on
+  the requirement's edge cases; the order never cuts a trust-boundary check, data-loss
+  handling, a security control, baseline accessibility, or a thing the user named; shorter is
+  not a step. Nothing ordered these steps before, and "search this repository first" and "the
+  platform after the standard library" were carried nowhere. Standing: recorded. Reach: before
+  code exists only `coding-entry` loads the section (its gloss now names it); after an edit
+  skill-router, when installed, suggests the skill on six globs — not .php, .tsx, .vue or .java.
+- **`/code-architecture:yagni` ranks and nets.** A directory scope ranks proposals by lines
+  removed, largest first, with code-review's `reuse-hygiene` deep pass as dead-symbol evidence
+  when code-review is installed; the report closes with `net: −N lines, −M dependencies`
+  (`net: −0 lines` when nothing was found), M counting only dependencies a proposal removes
+  every use of, and omitted for a design description.
+
+Both adapt rules from dietrichgebert/ponytail v4.10.0 (MIT), rewritten in this marketplace's
+voice; nothing upstream is copied. Their effect on what the model writes is unmeasured — no eval
+runs them with a control arm.
+
 ## 0.16.5 — 2026-09-25
 
 ### Fixed

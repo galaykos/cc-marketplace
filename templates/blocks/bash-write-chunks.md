@@ -1,30 +1,10 @@
-# --- bash write chunks --------------------------------------------------------
-# Canonical copy: templates/blocks/bash-write-chunks.md. Every hook defining
-# cc_bash_write_chunks must carry this block byte-for-byte (pc_shared_blocks).
-# cc_bash_write_chunks <command> — what a Bash command puts INTO files: the text a content
-# guard reads on Bash where its Write path reads tool_input.content. Prints chunks: a line that
-# starts with \036 and carries the WRITER — the pipeline (split on ; && || and a `&` outside
-# `&>` `>&` `<&` `|&`, never inside quotes) whose targets the caller resolves with
-# cc_bash_write_targets — then the chunk's text lines. Two sources, and only two:
-#   - a heredoc BODY: the lines between `<<TERM` (`<<-`, quoted or `\`-escaped TERM too)
-#     and TERM; writer = the pipeline holding the `<<` (`cat > f <<EOF`,
-#     `cat <<EOF | tee -a f`);
-#   - the ARGUMENTS of an `echo`/`printf` segment, as written: the rest of the segment after
-#     the command word, quotes, escapes and any `> file` redirect kept (so match inside the
-#     text, never anchored at its start); writer = its pipeline
-#     (`echo "K=v" >> .env.example`, `printf '%s\n' v | tee f`).
-# A chunk whose writer names no file is dropped by the caller, so `git commit -F - <<EOF`
-# and `echo x | grep y` yield nothing. The body of ANY heredoc whose pipeline writes a file
-# is read, whatever consumes it — `python3 - <<PY > out.txt` included, where the script is
-# not what lands in out.txt. Accepted: the text sits in a file-writing command either
-# way.
-# NOT read, stated: a `{ echo …; } > f` group (the redirect sits on the closer, not on
-# the echo's pipeline); a here-string `<<<`; printf's format substitution (`printf
-# 'K=%s' v` is read as written: the format and the argument, never the substituted
-# line); a quoted string or a `\` continuation spanning lines; a second heredoc opened
-# on one line; text in a command that a `&` inside `$(( ))` or `${ }` ends early.
-# mask() copies the one inside cc_bash_write_targets: the block is byte-locked and its
-# awk functions are not reachable from outside it.
+# Shared block templates/blocks/bash-write-chunks.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-chunks.md
+# cc_bash_write_chunks <command> prints a \036 + WRITER line, then the text as written, per heredoc body and echo/printf
+# argument list, any `> file` redirect kept (never anchor a match); the caller resolves WRITER with cc_bash_write_targets.
+# mask() repeats the one in cc_bash_write_targets: a byte-locked block's awk program cannot call another block's functions.
+# Misses: `{ echo …; } > f`, here-strings, printf's substituted output, a string or `\` continuation spanning lines,
+# two heredocs on one line, text after a `&` inside `$(( ))`/`${ }`.
 cc_bash_write_chunks() {
   printf '%s\n' "$1" | awk '
     function mask(s,   i, c, q, out, esc) {

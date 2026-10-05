@@ -110,4 +110,4 @@ before assertions, always.
 - Deleting pre-existing dead code inside an unrelated change.
 - Leaving your own orphaned imports for the linter to complain about.
 - Speculative parameters and single-implementation interfaces.
-- Declaring done against "make it work" instead of a runnable check. (Admission law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+- Declaring done against "make it work" instead of a runnable check. (Admission law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository, not installed) "The four laws".)

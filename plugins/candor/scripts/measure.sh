@@ -1,41 +1,8 @@
 #!/bin/bash
-# Absolute-path shebang: same fail-open reasoning as the hooks.
-#
-# Measures the one number this plugin exists to move: prose lines in turn-final
-# messages. Report-only — it never edits, never blocks, and exits 0 on every path
-# except a usage error.
-#
-# WHAT COUNTS AS TURN-FINAL: an assistant MESSAGE — keyed by `.message.id`, not by
-# transcript line — that carries text and no tool_use block anywhere in it.
-#
-# The line-based version of this filter was wrong. Claude Code writes one JSONL
-# line per content block, so a single assistant message routinely spans several
-# lines: on a real transcript, 94 of 261 messages were split, and their `text`
-# block sat alone on a line with no tool_use beside it. Filtering per line scored
-# every one of those mid-turn narration lines as turn-final, which is exactly the
-# short-message population the metric must exclude. Grouping by message id first
-# is the fix; the heuristic itself — text with no tool call is what the user reads
-# at the end of a turn — is unchanged, and still a heuristic.
-#
-# WHAT COUNTS AS A PROSE LINE: a non-blank line that is not inside a fenced code
-# block and does not start with `|`. Tables, code and trees are free by contract,
-# so they are free here too — otherwise the metric would punish the format the
-# contract asks for.
-#
-# Lines are counted at RENDERED width, 100 columns per line: a 300-character
-# paragraph is 3, not 1. Counting source lines instead was the first version of
-# this script, and on real transcripts it scored a 2,708-character message as
-# "11 lines, ok" — one wrapped paragraph per source line is the obvious way to
-# satisfy a line budget while changing nothing the reader sees.
-#
-# NOT A DUPLICATE of comment-discipline's verbosity hook. That one measures
-# characters of assistant text per tool call, cumulatively, and warns once per
-# session while work is happening. This measures prose lines per turn-final
-# message against the active terse budget, after the fact, only when asked.
-#
-# LIMITATION: it cannot tell an answer from a work-done report, so it grades every
-# message against the larger of the two budgets. A long reply the user explicitly
-# asked for counts against the numbers exactly like an unrequested one.
+# measure.sh [--session-file PATH] [--last N] [--tokens] [--all] [--since Nd|Nh] — report-only: per turn-final message (text and no tool_use,
+#   by message id), prose lines (non-blank, unfenced, not `|`-led, one per 100 columns) against the terse budget. Exits 0; 2 on a usage error.
+# Misses: an answer cannot be told from a work-done report, so every message is graded against the larger budget, a requested long reply too.
+# Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/measure.sh
 usage() {
   printf 'usage: measure.sh [--session-file PATH] [--last N] [--tokens] [--all] [--since Nd|Nh]\n' >&2
   exit 2
@@ -56,9 +23,7 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo "measure.sh: jq not found"; exit 0; }
 
-# Locate this project's transcript directory. Claude Code names it after the cwd
-# with separators flattened; two flattening variants are tried before giving up,
-# because guessing wrong silently would measure someone else's sessions.
+# Claude Code names the transcript directory after the cwd with separators flattened; two spellings are tried, as in candor-scan.sh.
 base="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects"
 dir=""
 for slug in "$(pwd | tr '/.' '--')" "$(pwd | tr '/._' '---')"; do
@@ -82,11 +47,7 @@ case "$level" in
 esac
 
 # One row per turn-final message: "<prose-lines> <chars>".
-#
-# Pass 1 collects every message id that used a tool anywhere in it; pass 2 emits
-# the text of the messages left, merging the lines that share an id back into one
-# message. The sentinel is printable on purpose — a control character here works
-# but makes the script itself unreadable to git and to an editor.
+# The @@MSG sentinel is printable on purpose: a control character works but makes this script unreadable to git and to an editor.
 rows_for() {
   toolids=$(jq -rR 'fromjson? // empty
     | select(type == "object" and .type == "assistant")
@@ -119,10 +80,6 @@ rows_for() {
       END { if (have && !S[cur]) print n, chars }'
 }
 
-# ---- cross-session mode ------------------------------------------------------
-# Aggregates every transcript for THIS project, newest first, optionally limited
-# by age. No history file is kept: the transcripts are already the record, and a
-# second ledger would be one more thing to go stale.
 if [ "$across" -eq 1 ]; then
   [ -n "$dir" ] || { echo "measure.sh: no transcript directory for $(pwd)"; exit 0; }
   find_args=""
@@ -147,7 +104,6 @@ if [ "$across" -eq 1 ]; then
   exit 0
 fi
 
-# ---- single-session mode -----------------------------------------------------
 rows=$(rows_for "$tp")
 [ -n "$rows" ] || { echo "measure.sh: no turn-final assistant messages in $tp"; exit 0; }
 
@@ -166,11 +122,7 @@ printf '%s\n' "$rows" | awk -v b="$budget" -v last="$last" '
       printf "  #%-3d %3d lines %6d chars %s\n", i, n[i], c[i], (n[i] > b ? "OVER" : "ok")
   }'
 
-# --tokens: real usage off the transcript, never an estimate. There is deliberately
-# no "tokens saved" and no dollar figure — savings would need the same session run
-# without the mode, which does not exist, and a hardcoded price table goes stale
-# the week a tier changes. Reporting either as a measurement is the thing this
-# plugin's own contract forbids.
+# Deliberately no "tokens saved" or dollar figure: savings need the same session run without the mode, and a price table goes stale.
 if [ "$tokens" -eq 1 ]; then
   printf '\ntokens (from transcript usage fields, this session only):\n'
   jq -rR 'fromjson? // empty

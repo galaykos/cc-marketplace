@@ -6,16 +6,16 @@ Blocks secrets before they reach disk.
 
 | Rule | Standing |
 |---|---|
-| A `Write`/`Edit`/`MultiEdit`/`NotebookEdit`, or an MCP `create_new_file`/`apply_patch`, whose new text matches a high-confidence secret pattern | **gate** — PreToolUse `permissionDecision: "deny"`; the write never happens |
+| A `Write`/`Edit`/`MultiEdit`/`NotebookEdit`, or an MCP `create_new_file`/`apply_patch`, whose new text (for apply_patch, the whole patch; for NotebookEdit, the cell's `new_source`) matches a high-confidence secret pattern | **gate** — PreToolUse `permissionDecision: "deny"`; the write never happens |
 | A `Bash` command that writes a file through a heredoc (`cat > config/aws.php <<'PHP'`, `cat <<EOF \| tee -a f`) or `echo`/`printf` (`echo "K=…" >> .env.example`), whose heredoc body or echo/printf arguments match the same patterns (since 0.9.0) | **gate** — same deny, same patterns, same placeholder escape, naming the file the command writes |
-| The pattern set itself (which shapes count as high-confidence) | **recorded** — `hooks/scan.sh`'s header argues each one; `scripts/__tests__/scan-hook.test.sh` pins the behaviour, nothing pins the coverage |
+| The pattern set itself (which shapes count as high-confidence) | **recorded** — the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` (§ `plugins/secret-scanning/hooks/scan.sh`) argues the non-provider rules and the placeholder exemption; `scripts/__tests__/scan-hook.test.sh` pins the behaviour, nothing pins the coverage |
 | Invisible characters in a file this session wrote or read | **advisory** — `hooks/unicode-scan.sh` is a PostToolUse **warning**; it never blocks, once per file per session |
-| A secret reaching a file through Bash any other way — an interpreter (`python open()`, `php file_put_contents`), `cp`/`mv` of a file that already holds one, `sed -i` replacement text, a here-string `<<<`, a `{ echo …; } > f` group, a `printf 'KEY=%s' value` pair the generic assigned-literal rule cannot join (a provider-shaped value still matches alone) — or a live key in a command that writes no file (`curl -H "Authorization: …"`) | **unenforceable here** — the guard reads only heredoc bodies and echo/printf arguments whose pipeline writes a file; `scan.sh`'s header lists each gap. `command-guard` owns destroying a live `.env`, not what enters a file |
+| A secret reaching a file through Bash any other way — an interpreter (`python open()`, `php file_put_contents`), `cp`/`mv` of a file that already holds one, `sed -i` replacement text, a here-string `<<<`, a `{ echo …; } > f` group, a `printf 'KEY=%s' value` pair the generic assigned-literal rule cannot join (a provider-shaped value still matches alone) — or a live key in a command that writes no file (`curl -H "Authorization: …"`) | **unenforceable here** — the guard reads only heredoc bodies and echo/printf arguments whose pipeline writes a file; `scan.sh`'s header `Misses:` line and its `cc_bash_write_chunks` `Misses:` line name each gap, and the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` keeps why. `command-guard` owns destroying a live `.env`, not what enters a file |
 | A secret introduced by an MCP server whose write tool uses key names this hook does not list | **unenforceable** — the extraction in `scan.sh` names the keys it knows (verified against the JetBrains MCP schema, 2026-09-14); a different server writes past it |
 | Secrets already committed before this plugin was installed | **out of scope** — that is `/secret-scanning:scan`, a command you run, not a hook |
 
-There is no allow-file, deliberately: `hooks/scan.sh` explains why a
-per-repo exception list is the wrong shape for this guard. The escapes it does have
+There is no allow-file: a refused write is refused on every retry (history: the marketplace repository's
+`rationale/derivations/plugin-secret-scanning.md` § Header: PLACEHOLDER EXEMPTION (0.5.0)). The escapes it does have
 are a value that announces itself as a placeholder (below) and, since 0.6.1,
 `CC_SECRET_SCAN=off` for a session — named in the deny message itself, because an
 off-switch documented only in a changelog is not reachable by the person it exists for.
@@ -29,8 +29,8 @@ off-switch documented only in a changelog is not reachable by the person it exis
 
 ## What's included
 
-- **PreToolUse hook** (`hooks/scan.sh`) — denies any `Write`/`Edit`/`MultiEdit`/
-  `NotebookEdit`, an MCP `apply_patch`/`create_new_file`, or (since 0.9.0) a `Bash`
+- **PreToolUse hook** (`hooks/scan.sh`) — denies any `Write`/`Edit`/`MultiEdit`/`NotebookEdit`,
+  an MCP `apply_patch`/`create_new_file`, or (since 0.9.0) a `Bash`
   command whose heredoc body or `echo`/`printf` arguments land in a file, whose incoming
   text carries a high-confidence secret (cloud keys, private-key blocks, provider tokens,
   assigned secret literals, a credential embedded in a `postgres://`/`mysql://`/

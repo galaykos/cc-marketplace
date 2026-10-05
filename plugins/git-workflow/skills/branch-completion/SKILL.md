@@ -108,12 +108,22 @@ tooling parses; three sections of your own discard both. Say which file you fill
 say none existed. Only with none: state what the change does, why, and how it was
 verified, and link the issues it closes.
 
+**Without a template, show the change and its way back.** Add before/after evidence
+copied from a run — the failing output then the passing one when a run can show the
+change, else the passing run alone, said so — quoting only the lines that carry the
+signal, never a token or an env value. For a visual change the user uploads a
+screenshot pair (`gh` cannot attach one) and the body names it. Close with one
+reversibility line: revert-safe, or it moves data or a public contract — and who is hit
+if it is wrong.
+
 **Name the owning teams.** If `CODEOWNERS` exists (`.github/`, repo root, or `docs/`),
 match `git diff --name-only "$BASE...HEAD"` against its patterns — last matching rule
 wins, as GitHub resolves it — and name the owning teams in the finish report. A PR that
 routes past its owners waits on a review request nobody knew to make.
 
-Standing for both: agent-graded. No script reads the template or the ownership map.
+Standing for all three: agent-graded. No script checks the template, the body's evidence
+or reversibility line, or the ownership map; `hooks/no-ai-trailer.sh` reads the body only
+for an AI trailer.
 
 Keep the branch and its worktree alive — review feedback
 lands here, and deleting the workspace under an open PR guarantees a rushed
