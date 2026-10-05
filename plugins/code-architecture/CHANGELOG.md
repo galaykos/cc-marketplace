@@ -33,6 +33,11 @@ with a control arm.
   Blade views), beside the six it had; .java still has none. Standing: recorded in this plugin;
   with code-review installed, its write hooks deny three of the kill-cases in this agent's writes too.
 
+### Fixed
+- **Four-laws pointers say they are not installed.** `/code-architecture:yagni`, `yagni-check`,
+  `solid-principles`, `work-verification` and `plan-before-code`'s `surgical-edits.md` cite a
+  path that lives in the marketplace repository; an install does not contain it.
+
 ## 0.17.0 — 2026-10-03
 
 ### Added

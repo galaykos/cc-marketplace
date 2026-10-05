@@ -104,6 +104,12 @@ done
 for c in 'git clean -fdx --exc -n' 'git clean -fdx -n --no-dry-run' 'git clean -fdx -n --no-dry' 'git clean -fdx -n --no-d'; do
   check_is "an --exc abbreviation takes the -n, and a later --no-dry-run cancels it: $c" 2 "DENY   $c " '' "$c"
 done
+for c in 'git clean -fdx --ex -n' 'git clean -fdx --e -n'; do
+  check_is "--e and --ex abbreviate --exclude too, so they take the -n: $c" 2 "DENY   $c " '' "$c"
+done
+for c in 'git clean -n --ex foo' 'git clean -n --e foo' 'git clean -n --e --no-dry-run'; do
+  check_is "the word after --e or --ex is its pattern, so the dry run stands: $c" 0 "ALLOW $c" '' "$c"
+done
 check_is 'flags before git clean are not its: sudo -n git clean -fd asks' 1 'ASK    sudo -n git clean -fd ' '' 'sudo -n git clean -fd'
 check_is 'flags before git clean are not its: sudo -n git clean -fdx denies' 2 'DENY   sudo -n git clean -fdx ' '' 'sudo -n git clean -fdx'
 
@@ -162,6 +168,36 @@ check_is '--check prints ASK, the match and an indented reason, exit 1' 1 \
   'ASK    git reset --hard ' '      command-guard: this command discards every uncommitted change' 'git reset --hard'
 check_is '--check prints DENY, the match and an indented reason, exit 2' 2 \
   'DENY   php artisan migrate:fresh ' '      BLOCKED by command-guard — this command drops every table' 'php artisan migrate:fresh'
+
+printf '== --version\n'
+v=$("$BASH_BIN" "$GUARD" --version 2>/dev/null)
+want="command-guard $(jq -r .version "$here/../../.claude-plugin/plugin.json")"
+[ "$v" = "$want" ] && ok || bad '--version reports the version plugin.json ships' "got '$v', want '$want'"
+
+printf '== plan_audit_hint\n'
+reason() { # command [env-assignments...] -> the permissionDecisionReason
+  local c="$1"; shift
+  (cd "$WS" && tool_json Bash "$(jq -cn --arg c "$c" '{command:$c}')" | env "$@" "$BASH_BIN" "$GUARD" 2>/dev/null) \
+    | jq -r '.hookSpecificOutput.permissionDecisionReason // empty'
+}
+CACHE="$WS/cache/m"; CG="$CACHE/command-guard/0.8.4"; mkdir -p "$CG"
+bare=$(reason 'terraform apply -auto-approve' CLAUDE_PLUGIN_ROOT="$CG")
+case "$bare" in ''|*plan-audit.sh*) bad 'a versioned install with no devops asks with no plan-reader hint' "$bare" ;; *) ok ;; esac
+for v in 0.9.0 0.10.0; do mkdir -p "$CACHE/devops/$v/scripts"; printf '#!/bin/bash\nexit 0\n' > "$CACHE/devops/$v/scripts/plan-audit.sh"; done
+decision_is 'terraform apply stays ask beside a versioned devops install' ask \
+  "$(tool_json Bash '{"command":"terraform apply -auto-approve"}')" CLAUDE_PLUGIN_ROOT="$CG"
+hint=" Read the plan before answering: \`terraform show -json plan.out | bash $CACHE/devops/0.10.0/scripts/plan-audit.sh\` exits 2 when the plan deletes or replaces a resource that holds data."
+off=' CLAUDE_DESTRUCTIVE_GUARD=off'
+hinted=$(reason 'terraform apply -auto-approve' CLAUDE_PLUGIN_ROOT="$CG")
+[ "$hinted" = "${bare%%"$off"*}$hint$off${bare#*"$off"}" ] && ok \
+  || bad 'a versioned devops install adds only the hint, naming its highest version (0.10.0 over 0.9.0)' "$hinted"
+mkdir -p "$CACHE/devops/0.10.0-rc1/scripts" "$CACHE/devops/0.11.0/scripts"
+printf '#!/bin/bash\nexit 0\n' > "$CACHE/devops/0.10.0-rc1/scripts/plan-audit.sh"
+r=$(reason 'terraform apply -auto-approve' CLAUDE_PLUGIN_ROOT="$CG")
+case "$r" in *"/devops/0.10.0/scripts/plan-audit.sh"*) ok ;; *) bad 'a release beats its pre-release: the hint names 0.10.0, not 0.10.0-rc1' "$r" ;; esac
+printf '#!/bin/bash\nexit 0\n' > "$CACHE/devops/0.11.0/scripts/plan-audit.sh"; : > "$CACHE/devops/0.11.0/.orphaned_at"
+r=$(reason 'terraform apply -auto-approve' CLAUDE_PLUGIN_ROOT="$CG")
+case "$r" in *"/devops/0.10.0/scripts/plan-audit.sh"*) ok ;; *) bad 'a cached version holding .orphaned_at is skipped: the hint names live 0.10.0, not 0.11.0' "$r" ;; esac
 
 printf '== guard_file_write\n'
 decision_is 'MultiEdit on the allow-file is denied' deny \

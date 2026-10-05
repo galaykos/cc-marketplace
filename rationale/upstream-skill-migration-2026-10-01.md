@@ -4,6 +4,8 @@
 follow and is the per-rule provenance for two MIT upstreams. Maintainer-facing only: every rule
 it accepts ships inside a plugin (owner instruction, 2026-10-01), never only here.
 
+**Amended 2026-10-05.** Two statements below did not hold: the density ceiling shipped at 0.3:1, not 0.2 (owner decision 2026-10-03), and the roadmap did not run as listed — m9–m18 were re-registered as m19–m28 in a new order, and of the cleanup only m13 and m14 shipped (as m23, m24); m25–m28 were parked as out of scope on 2026-10-05. Both are recorded in the program's decisions file, `.claude/overseer/decisions.md` (machine-local, not tracked).
+
 Sources: `dietrichgebert/ponytail` v4.10.0 (MIT, © 2026 DietrichGebert) and `mattpocock/skills`
 v1.2.3 (MIT, © 2026 Matt Pocock), both read 2026-10-01 from a tarball of `main` (no SHA
 recorded). Five read-only opus auditors; their returns are Parts A–E, moved here as delivered.

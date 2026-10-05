@@ -98,7 +98,7 @@ fix is an opinion; do not report opinions.
 - Comment as deodorant. Cue: a comment explaining WHAT confusing code does.
   Risk: comment rots, confusion stays. Fix: rename and extract until the
   comment is redundant; keep only constraint-comments (the WHY). The
-  sibling `comment-discipline` skill owns comment volume and placement in depth. (Admission law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+  sibling `comment-discipline` skill owns comment volume and placement in depth. (Admission law: an artifact earns its place only by carrying a rule nothing else carries.)
 
 ## When it is NOT a smell
 

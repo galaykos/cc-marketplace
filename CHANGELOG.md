@@ -4,7 +4,7 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
-## [0.120.0] - 2026-10-03
+## [0.120.0] - 2026-10-05
 
 - **code-review 0.25.0 — the comment hooks judge Bash heredocs and installers' own scripts.** `scan.sh` and
   `density.sh` now run on `Bash` and judge a `cat` / `tee` heredoc as a `Write` of its body: two denies per file
@@ -56,7 +56,7 @@ version in their `plugin.json`.
   reminder and boost hook templates keep their fail-open line, off-switch lines and at most one why-line per step. Every cut
   line moved verbatim to `rationale/derivations/templates-and-blocks.md`. A scripted literal swap re-pasted the blocks into 44
   hand carriers and `generate.sh --write` regenerated 8 hooks and 10 agents. bash's own parser, comments ignored, reads the 44
-  carriers and the 3 boost hooks as the same code as before at that step (the wave-1 bullet below then refactored 11 of them;
+  carriers and the 3 boost hooks as the same code as before at that step (the plugin-code bullet below then refactored 11 of them;
   bash 3.2; a pure reformat would also read SAME — a line diff of those 47 files shows every changed line is a full-line
   comment or blank). The reminder template names its seven steps as functions; `scripts/smoke/hook-guard-tests.sh` pinned their off-switch, refusal and stale-marker paths first and passes on
   the 5 regenerated reminder hooks, and a differential run of the old against the new hooks over CC_REMIND × phase-sentinel ×
@@ -64,9 +64,9 @@ version in their `plugin.json`.
   and hooks firing in parallel were not tested. The worker template and its 10 agents add required call order to the
   docblock facts a signature cannot state, a prompt change whose effect is unmeasured. git-workflow's branch-completion
   scratch table cites carriers by name, not line. No context baseline moved.
-- **Plugin code wave 1 — skill-router 0.23.0, ui-ux 0.28.1, craft-layer 0.55.1, candor 0.6.3, command-guard 0.8.4,
-  secret-scanning 0.10.3, security 0.12.3, taskmaster 0.47.0: comments cut to contract and limits, derivations to `rationale/`,
-  banners named behind pins.** 45 shell files (hooks, scripts, tests, eval scaffolds; taskmaster only its preview-guard twin)
+- **Plugin code: comments cut to contract and limits, derivations to `rationale/`, banners named behind pins (8 plugins) —
+  skill-router 0.23.0, ui-ux 0.28.1, craft-layer 0.55.1, candor 0.6.3, command-guard 0.8.4, secret-scanning 0.10.3,
+  security 0.12.3, taskmaster 0.47.0.** 45 shell files (hooks, scripts, tests, eval scaffolds; taskmaster only its preview-guard twin)
   keep a contract line per file, plus off-switch and `Misses:` lines where it reads one or had a residual; every cut line
   moved verbatim to
   `rationale/derivations/plugin-<name>.md`, seven new files an install does not contain. 11 hooks now name what a comment
@@ -90,10 +90,11 @@ version in their `plugin.json`.
   as `bash -c 'echo "rm -rf /"'` already was; command-guard's CHANGELOG has the full list. Still refused, as before: a wrapper
   named by path other than `env` (`/usr/bin/sudo -u bob grep "rm -rf /" f`) and a reader behind an unlisted wrapper option
   (`sudo -R /x grep "rm -rf /" f`). Still missed: a `-C`/`-c` value holding a space, `env -S'…'` with the string glued on, an
-  unlisted wrapper option whose value names a reader, `bash -c "git -P push"`, and `git clean … --e`/`--ex` before `-n`, read
-  as a dry run; command-guard's CHANGELOG has the list.
+  unlisted wrapper option whose value names a reader, and `bash -c "git -P push"`; command-guard's CHANGELOG has the list.
   Standing: **gate** — `destructive-guard-pins.test.sh`, `scan-hook.test.sh` and `unicode-scan.test.sh` run in CI's
   plugin-harness step. No context baseline moved.
+- **Gap fixes before merge:** code-review's generated-file check strips a BOM under a UTF-8 locale and `debt-scan.sh --age` reads what its counts read; testing's protect-tests skips relative targets after any `cd`;
+  command-guard reads `--e`/`--ex` as `--exclude`, prints its own `--version` and finds devops's `plan-audit.sh` on an install; candor and skill-router pins run from an install; `/task-runner:run` deletes stale gate passes; docs corrected in code-architecture, secret-scanning, web-dev and git-workflow.
 
 ## [0.119.0] - 2026-10-01
 

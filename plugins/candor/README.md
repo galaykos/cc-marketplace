@@ -206,8 +206,10 @@ router nudges after a file is edited, and the skills are command-gated
 runs of one build task moved three observable process moves from 0/3 to 6/6 with a
 535-char preamble, and a 4,362-char catalogue added nothing over it (§2 there). Vote
 counts on nine runs, not a replicated delta; the cases under `evals/` are the fixtures
-that would measure it — one for the whole preamble, the rest one per move; recount them
-with `ls -d plugins/candor/evals/*/ | grep -v results` — and nothing runs them in CI.
+that would measure it — one for the whole preamble, two for move (1) (one of them for a
+"nothing less" half the move no longer carries), one each for moves (4) and (5), none for
+(2) or (3); recount them with `ls -d plugins/candor/evals/*/ | grep -v results` — and
+nothing runs them in CI.
 Move (1)'s last sentence, *add no code comment unless it states what the code cannot; a CLAUDE.md house style wins*
 (0.6.3), is outside that measured set and no case covers it: its effect is unmeasured. It
 is there for reach — into every subagent, and into sessions without `code-review`, whose

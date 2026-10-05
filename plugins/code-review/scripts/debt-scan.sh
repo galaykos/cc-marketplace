@@ -147,13 +147,12 @@ files | xargs -0 grep -anHE --null "$P_SHORTCUT" 2>/dev/null | tr '\000' '\001' 
 # "11 of them are older than two years, 3 in payments" is a decision.
 if [ "$want_age" -eq 1 ] && command -v git >/dev/null 2>&1 && git -C "$dir" rev-parse >/dev/null 2>&1; then
   printf '\noldest bare markers (first seen, via git log -S):\n'
-  find "$dir" \( $PRUNE \) -prune -o -type f -print0 2>/dev/null \
-    | xargs -0 grep -hoE "$P_TODO.{0,60}" 2>/dev/null | sed 's/^[^A-Z]*//' | sort -u | head -40 \
+  files | LC_ALL=C xargs -0 grep -ahoE "$P_TODO.{0,60}" 2>/dev/null | LC_ALL=C sed 's/^[^A-Z]*//' | LC_ALL=C sort -u | head -40 \
     | while IFS= read -r marker; do
         [ -n "$marker" ] || continue
         first=$(git -C "$dir" log -S"$marker" --reverse --format=%as -- . 2>/dev/null | head -1)
         [ -n "$first" ] && printf '  %s  %s\n' "$first" "$marker"
-      done | sort | head -15
+      done | LC_ALL=C sort | head -15
 fi
 
 case "$mode" in

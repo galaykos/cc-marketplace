@@ -63,7 +63,7 @@ Advising above the locked version is a finding; confirm boundaries against the d
   into pre-bundling when the crawl misses it; `exclude` keeps an already-ESM dep out.
   `--force` (or deleting `.vite`) rebuilds the cache after a dependency change.
 - `include`/`exclude` hacks that paper over a broken dep export are debt — fix the
-  export or pin the dep; leave a comment on any entry you keep.
+  export or pin the dep; link the upstream issue in a comment on any entry you keep.
 
 ## Code splitting
 

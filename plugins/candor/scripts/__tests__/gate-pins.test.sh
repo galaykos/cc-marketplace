@@ -3,8 +3,7 @@
 #   the transcript tail, the citation cap, the bare-pushback length and the claim window.
 set -u
 
-ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-HOOK="$ROOT/plugins/candor/hooks/gate.sh"
+HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/gate.sh"
 
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open without it)"; exit 0; }
 command -v git >/dev/null 2>&1 || { echo "SKIP: git not available"; exit 0; }

@@ -113,8 +113,8 @@ and orphan detection on demand, for orphans *your* change creates. Dead code as 
 review finding is `code-smells`; speculative generality is `code-architecture`
 yagni-check; a yanked or deprecated package is stack-scan's package-hygiene;
 pre-existing dead code passed mid-task is `code-architecture` plan-before-code —
-mention it, never delete it in an unrelated diff. (Admission law:
-`.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+mention it, never delete it in an unrelated diff. (Admission law: an artifact earns its
+place only by carrying a rule nothing else carries.)
 
 ## Honest limits
 

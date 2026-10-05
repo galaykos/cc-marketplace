@@ -2,8 +2,8 @@
 # route-prompt-pins.test.sh — pins both sides of the catalog-marker sweep age in hooks/route-prompt.sh.
 set -u
 unset CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_DATA CC_REMIND CC_ROUTE CLAUDE_PLUGIN_OPTION_CC_REMIND CLAUDE_PLUGIN_OPTION_CC_ROUTE
-ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-HOOK="$ROOT/plugins/skill-router/hooks/route-prompt.sh"
+SR="$(cd "$(dirname "$0")/../.." && pwd)"
+HOOK="$SR/hooks/route-prompt.sh"
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (the hook fails open without it)"; exit 0; }
 [ -x "$HOOK" ] || { echo "FAIL: hook not executable at $HOOK"; exit 1; }
 
@@ -26,7 +26,7 @@ age_seconds "$T/cc-route-catalog-1439m30s" 86370
 age_seconds "$T/cc-route-catalog-1440m30s" 86430
 out=$(jq -cn --arg c "$WS/cwd" --arg tp "$WS/transcript.jsonl" \
     '{hook_event_name:"UserPromptSubmit",prompt:"build a landing page",session_id:"pins",transcript_path:$tp,cwd:$c}' \
-  | TMPDIR="$T" CLAUDE_PLUGIN_ROOT="$ROOT/plugins/skill-router" bash "$HOOK" 2>/dev/null); rc=$?
+  | TMPDIR="$T" CLAUDE_PLUGIN_ROOT="$SR" bash "$HOOK" 2>/dev/null); rc=$?
 [ "$rc" -eq 0 ] && [ -n "$out" ] && [ -d "$T/cc-route-catalog-1439m30s" ]
 verdict "a catalog marker 1439.5 minutes old survives the first work-shaped prompt's sweep" $?
 [ ! -e "$T/cc-route-catalog-1440m30s" ]

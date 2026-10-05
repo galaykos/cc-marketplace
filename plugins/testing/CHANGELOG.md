@@ -6,9 +6,10 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
-## 0.12.3 - 2026-10-04
+## 0.12.3 - 2026-10-05
 
-- **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/protect-tests.sh` and `hooks/test-shape.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. Both hooks parse to the same code as before, compared by bash's own parser with comments ignored.
+- **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/protect-tests.sh` and `hooks/test-shape.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. Both hooks parse to the same code as before, compared by bash's own parser with comments ignored, apart from the fix below.
+- **`protect-tests` no longer refuses a test write after a `cd` it did not recognise.** After `if cd t; then`, `builtin cd t`, `CDPATH= cd t` or zsh's `chdir t` it resolved a relative `cat > foo.test.js` against the session's directory and read a skip kept in `t/foo.test.js` as new. Any `cd`, `chdir` or `pushd` word outside a heredoc body, a quoted one included, now skips relative targets: a miss, never a wrong file.
 - The `test-engineer` agent's code-shape rule adds required call order to the docblock facts a signature cannot state (units, ownership, what throws). Its effect on what the agent writes is unmeasured.
 
 ## 0.12.2 - 2026-10-01

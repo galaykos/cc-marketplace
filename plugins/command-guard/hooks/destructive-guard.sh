@@ -32,7 +32,7 @@ cc_option() {
   return 0
 }
 
-GUARD_VERSION=0.7.0
+GUARD_VERSION=0.8.4
 
 # Quotes and backslashes go so a quoted evasion (artisan "migrate:fresh") meets the rule the plain form does.
 norm_cmd() {
@@ -662,7 +662,7 @@ classify() {
               if (t == "--") break
               if (length(t) >= 3 && index("--dry-run", t) == 1) { d = 1; continue }
               if (length(t) >= 6 && index("--no-dry-run", t) == 1) { d = 0; continue }
-              if (t ~ /^--exc[a-z]*$/) { i++; continue }
+              if (t ~ /^--e(x(c[a-z]*)?)?$/) { i++; continue }
               if (t !~ /^-[a-z]+$/) continue
               f = t; sub(/e.*/, "", f)
               if (f ~ /n/) d = 1
@@ -713,8 +713,21 @@ deny_reason() {
 plan_audit_hint() {
   case "$V_MATCH" in *"terraform apply"*|*"tofu apply"*) ;; *) return 0 ;; esac
   [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] || return 0
-  local p
+  local p d v
   p="$(dirname "$CLAUDE_PLUGIN_ROOT")/devops/scripts/plan-audit.sh"
+  if [ ! -f "$p" ]; then
+    # An installed plugin sits at cache/<marketplace>/<plugin>/<version>/, so devops is two levels up, under its own version dir.
+    # The host marks a superseded cached version with .orphaned_at and deletes it later; the 4th sort key ranks a release over its pre-release.
+    d="$(dirname "$(dirname "$CLAUDE_PLUGIN_ROOT")")/devops"
+    v=$(for f in "$d"/*/scripts/plan-audit.sh; do
+          f="${f%/scripts/plan-audit.sh}"; n="${f##*/}"
+          [ -f "$f/scripts/plan-audit.sh" ] && [ ! -e "$f/.orphaned_at" ] || continue
+          r=1; [ "$n" = "${n%%-*}" ] || r=0
+          printf '%s.%s\t%s\n' "${n%%-*}" "$r" "$n"
+        done | LC_ALL=C sort -t. -k1,1n -k2,2n -k3,3n -k4,4n | tail -n 1 | cut -f2)
+    [ -n "$v" ] || return 0
+    p="$d/$v/scripts/plan-audit.sh"
+  fi
   [ -f "$p" ] || return 0
   printf ' Read the plan before answering: `terraform show -json plan.out | bash %s` exits 2 when the plan deletes or replaces a resource that holds data.' "$p"
 }

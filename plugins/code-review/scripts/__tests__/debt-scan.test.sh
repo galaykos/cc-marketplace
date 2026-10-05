@@ -146,5 +146,27 @@ out=$(bash "$SCAN" --dir "$LG" --baseline "$LG/b.json" 2>&1)
 is "no-trigger list keeps 40 entries cut at 120 characters" "$(printf '%s\n' "$out" | grep -cE 'shortcut: x{110}$')" 40
 is "no-trigger list counts the rest as +N more" "$(printf '%s\n' "$out" | grep -c '^  +1 more$')" 1
 
+if command -v git >/dev/null 2>&1; then
+  AG="$FX/age"; mkdir -p "$AG"
+  echo '// TODO: plain marker' > "$AG/a.ts"
+  printf '// TODO: nul marker\n\000\n' > "$AG/nul.ts"
+  printf '\211PNG\000\001 XXX\002\003 junk\n' > "$AG/img.png"
+  git -C "$AG" init -q && git -C "$AG" add . \
+    && git -C "$AG" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -qm f --no-verify
+  out=$(bash "$SCAN" --dir "$AG" --baseline "$AG/b.json" --age 2>&1)
+  is "--age lists the marker in a file holding a NUL byte" "$(printf '%s\n' "$out" | grep -c ' TODO: nul marker$')" 1
+  is "--age adds no row for a binary file whose bytes spell XXX" "$(printf '%s\n' "$out" | grep -c 'XXX')" 0
+  utf8=$(locale -a 2>/dev/null | grep -ixE 'en_US\.utf-?8|C\.utf-?8' | head -n 1)
+  if [ -n "$utf8" ]; then
+    printf '// TODO: bad byte \000\377\n' > "$AG/bad.ts"
+    out=$(LC_ALL=$utf8 bash "$SCAN" --dir "$AG" --baseline "$AG/b.json" --age 2>&1)
+    is "--age under $utf8 still lists markers beside a line holding a NUL and a non-UTF-8 byte" "$(printf '%s\n' "$out" | grep -c ' TODO: plain marker$')" 1
+  else
+    echo "SKIP: --age under a UTF-8 locale — locale -a lists none of en_US.UTF-8, en_US.utf8, C.UTF-8, C.utf8"
+  fi
+else
+  echo "SKIP: git not found — --age cases"
+fi
+
 [ "$rc" -eq 0 ] && echo "All debt-scan fixtures passed."
 exit "$rc"

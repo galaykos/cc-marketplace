@@ -31,8 +31,9 @@
 #     cheaper of the two, and it is a miss, not a false deny.
 #   - A skip that was ALREADY in the file: only a newly introduced marker denies, so
 #     editing a legitimately-skipped test is never blocked.
-#   - Deleting a test file with `rm` — that is a Bash command, and command-guard's
-#     territory, not a write tool's.
+#   - Deleting a test file with `rm`: no guard stops a plain `rm` of a test file
+#     (destructive-guard denies only dangerous `rm` targets such as `~`, `.` and `.env`,
+#     so a plain or recursive `rm` of tests/ passes every guard).
 #   - A marker inside a STRING LITERAL rather than in code — a meta-test asserting
 #     `expect(src).toContain("it.skip(")` denies. Deliberately not fixed: telling code
 #     from a string with a line regex is guesswork, and guessing wrong in the permissive
@@ -50,7 +51,7 @@
 # is judged once on its final text. Text fed to a command that writes no file
 # (`node - <<EOF`, `pytest <<EOF`) is not read, and a Bash call with no write target exits
 # before any chunk is read. A `~/` target expands to $HOME; a relative one needs a payload
-# cwd and is skipped when the command holds a `cd`/`pushd` (it would resolve wrongly).
+# cwd and is skipped when the command holds a `cd`/`chdir`/`pushd` (it would resolve wrongly).
 # NOT caught on Bash: interpreter writes (python `open()`, php `file_put_contents`),
 # `cp`/`mv`/`install` of a prepared test file, `{ …; } > f` groups, a path held in a
 # variable, a here-string `<<<`, printf format substitution, `sed -i`/`perl -i` edits
@@ -61,7 +62,6 @@
 # command holding a `cd`, and a `>>` inside a quoted echo string (read as an append). The
 # body of `python3 - <<PY > tests/test_x.py` is judged as the file's text though the
 # script is not what lands there (the chunks block's own caveat).
-# `rm` of a test file stays command-guard's.
 #
 # ESCAPE HATCH. A skip is sometimes right: a quarantined flake, an unimplemented
 # feature, a platform-specific case. The deny reason names the two ways through —
@@ -384,7 +384,7 @@ EOF_C
       inh { if ($0 ~ ("^[\t]*" term "[ \t]*$")) inh = 0; next }
       { print; l = $0; gsub(/<<</, "", l); o = "<<-?[ \t]*[\"\047\\\\]?"
         if (match(l, o "[A-Za-z_][A-Za-z0-9_]*")) { term = substr(l, RSTART, RLENGTH); sub(o, "", term); inh = 1 } }' \
-      | grep -qE '(^|[;&|(])[[:space:]]*(cd|pushd)[[:space:]]' && hascd=1
+      | grep -qE '(^|[^A-Za-z0-9_./-])(cd|chdir|pushd)([^A-Za-z0-9_./-]|$)' && hascd=1
     # Chunks of one command compose per target (`> f` then `>> f`), and each target is
     # judged once on its final text, so a clear-then-append is not read as emptying f.
     m=0; i=1

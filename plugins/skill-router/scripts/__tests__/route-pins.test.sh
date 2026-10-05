@@ -4,8 +4,7 @@
 # persistence's pending_low dedup) on scratch rules.
 set -u
 unset CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_DATA CC_REMIND CLAUDE_PLUGIN_OPTION_CC_REMIND
-ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-HOOK="$ROOT/plugins/skill-router/hooks/route.sh"
+HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/route.sh"
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available"; exit 0; }
 command -v git >/dev/null 2>&1 || { echo "SKIP: git not available"; exit 0; }
 [ -x "$HOOK" ] || { echo "FAIL: hook not executable at $HOOK"; exit 1; }

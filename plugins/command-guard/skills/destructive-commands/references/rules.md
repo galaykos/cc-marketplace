@@ -29,7 +29,7 @@ importantly, what is not.
    command's text only `-C`, `-c`, `--git-dir`, `--work-tree`, `--namespace`,
    `--no-pager`, `--no-optional-locks`, `--literal-pathspecs` and `--bare` are.
    `git clean` with `-n`/`--dry-run` is a reader and skipped, unless that `-n` is
-   the pattern `-e`/`--exclude` (or an `--exc…` abbreviation) takes, a path after
+   the pattern `-e`/`--exclude` (or any abbreviation, `--e` too) takes, a path after
    `--`, or cancelled by a later `--no-dry-run`. The `-x` deny reads only a
    short-flag cluster holding `x` or `X` as a flag, so `--exclude=foo` and an `-e`
    pattern are not `-x`.
@@ -116,10 +116,6 @@ shapes. It cannot see:
   are stripped the value's end cannot be told from the subcommand — or behind
   `-P`, `--exec-path=…` or any other option outside the short list when git does
   not lead the segment (`bash -c "git -P push --force"` passes): a miss;
-- a `git clean` whose `--exclude` is spelled **`--e` or `--ex`**, abbreviations git
-  accepts: a `-n` after it is the pattern, but the guard reads it as a dry run, so
-  `git clean -fdx --ex -n` removes ignored files and passes (`-e`, `--exc…` and
-  `--exclude` are read right): a miss;
 - **wrapper options outside the list**. An unlisted value-taking option (sudo
   `-R`/`-c`/`-a`, `--chroot`, `--login-class`; ionice `-P`/`-u`; FreeBSD env
   `-L`) or a spaced long form not listed (`ionice --class 3`) has its value read

@@ -249,7 +249,8 @@ declared — adopting them is incremental, not a sweep). The checks live in
 `scripts/lib/plugin-checks.sh` — `pc_lanes_schema`, `pc_lanes_authority` (a plugin
 may declare only its OWN artifacts), `pc_lanes_resolve`, `pc_lanes_territory` (two
 artifacts must not claim one `owns` in one `phase` without a `yields_to` edge or a
-`# lane-cofire-ok:` blessing in either file), `pc_lanes_coverage`, and
+`# lane-cofire-ok:` blessing in either file), `pc_lanes_adjacency` (WARN: too many
+artifacts on one file shape in one phase), `pc_lanes_coverage`, and
 `pc_lanes_vocabulary` (an `owns` noun must be declared in
 `scripts/lane-vocabulary.txt`). Recount rather than copy a number:
 `grep -c '^pc_lanes_[a-z_]*() {' scripts/lib/plugin-checks.sh`. Plus

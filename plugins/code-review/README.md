@@ -244,6 +244,8 @@ anyway: `restating the next line`, `commented-out code`,
   string is judged and counts toward a paragraph.
 - Rust `///` and `//!` lines are judged neither for restatement nor as commented-out code.
 - The `*` lines of a block opened mid-line (`x = 1; /* why`) are code.
+- A comment after code on the same line is not read: `counter++; // increment the counter`
+  draws nothing.
 - MySQL `#` comments in `.sql`; multi-line markup comments, and a markup comment that
   restates its neighbour; Ruby `=begin` / `=end` blocks.
 - A Python docstring that is not the first statement after a `def` or `class`, a module
