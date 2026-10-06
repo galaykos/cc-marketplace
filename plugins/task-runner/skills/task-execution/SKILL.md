@@ -122,6 +122,11 @@ or parked, the run ENDS with a report, no self-restart.
 No status dashboards, run boards, or progress pages — the index is the single
 view; a run-board page goes stale. HTML artifacts are for content that earns
 the medium (mockups, walkthroughs); a table a message can carry is not a file.
+A live view is exempt — one that checks the index at every refresh, re-parsing it whenever its
+modification time moves, and keeps only that parse, as this plugin's status line and
+`/task-board` pane do. It is the index drawn, not a second record, so it cannot drift from the
+index past the next refresh that sees the index change; status is still written only to the
+index. Standing: recorded.
 
 ## Drift tripwires
 

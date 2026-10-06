@@ -102,10 +102,31 @@ agent per claim told to *break* it under ordered provenance rules, the same shap
 `spec-adversary`, so it takes a row. Producer and auditor land in different classes because
 the work differs, not because one was missed.
 
-## Residual — main-thread PROACTIVE dispatch is not covered (Honest limitation law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+## Residual — main-thread PROACTIVE dispatch is covered only where the spawn-floor mod loads (Honest limitation law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 `system-architect` has no dispatcher file anywhere; it is auto-dispatched by the main
 thread from its `Use PROACTIVELY` description, and `code-reviewer` / `architecture-reviewer`
 are likewise auto-dispatchable outside task-runner. No skill mediates those dispatches, so no
-registry read happens and no floor applies. This registry governs **skill-mediated dispatch**.
-Stated rather than silently accepted.
+skill reads this registry for them.
+
+task-runner's spawn-floor mod (`hooks/floors.ts`) closes that gap where it loads. It reads
+this file once, at the first spawn it handles, and keeps that read for the session, so an
+edit made mid-session is not seen. It raises every spawn of a registry agent to at least
+its floor, and a spawn naming no model (or `inherit`) to the session's model when that is a
+higher tier, main-thread dispatches included. It only raises: an explicit model at or above
+the floor, a fork, and a model of unknown family are left as given. It loads on Claude Code
+2.1.291 or later with mods on, while `CC_SPAWN_FLOOR` (or the `/config` option
+`cc_spawn_floor`) is not off, and unless an organization sets `allowManagedModsOnly`, the
+managed policy that loads only the mods it deploys and refuses one a person installed (per
+the CLI's built-in sec-default mod documentation, not measured). Standing: **gate** —
+`tests/floors.test.ts` runs under `claude plugin test` in the marketplace repository's CI
+(`scripts/mod-tests.sh`, the CI `Mod tests` step).
+
+Everywhere else the gap stays open: an older CLI, mods off, the switch off, that policy
+set, or a registry the mod cannot read or parse at its first read (it logs one line and
+passes every spawn through for the rest of the session). It is also open for an agent from
+a plugin the organization installed by policy: sec-default hands that spawn past every
+person-installed module, `allowManagedModsOnly` or not (per sec-default's docs, not
+measured). There a main-thread dispatch reads no registry, the agent's frontmatter pin
+governs, and this registry governs **skill-mediated dispatch** only. Stated rather than
+silently accepted.
