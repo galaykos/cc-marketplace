@@ -11,7 +11,9 @@ The hook denies a write when the incoming text matches a **high-confidence** pro
 pattern — chosen so real secrets trip it and placeholders do not. It sees the `Write`/
 `Edit` family and, since 0.9.0, `Bash`: a heredoc body or `echo`/`printf` arguments whose
 pipeline writes a file (`cat > f <<EOF`, `cat <<EOF | tee f`, `echo "K=…" >> .env.example`),
-denied with the same patterns and the same placeholder escape:
+denied with the same patterns and the same placeholder escape. The source of both is the
+plugin's `hooks/patterns.tsv`; the list below mirrors it, and when that file is missing or
+malformed the guard denies every write it would scan, naming the file:
 
 - **AWS access key ID** — `AKIA` + 16 base32 chars.
 - **Private key block** — `-----BEGIN … PRIVATE KEY-----`.

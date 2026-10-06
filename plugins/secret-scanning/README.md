@@ -37,8 +37,10 @@ off-switch documented only in a changelog is not reachable by the person it exis
   `mongodb://`/`redis://`/`amqp://`/`https://` URL, a Slack incoming-webhook URL).
   The Bash path exists because the host steers file writes through heredocs: in one
   measured session 233 of the main thread's 238 file writes went through Bash, and this
-  guard saw none of them. Fail-open: any error or a missing `jq` allows the write,
-  so the guard never wedges a session. `CC_SECRET_SCAN=off` disables it for a session.
+  guard saw none of them. Fail-open on every error but one: an unusable
+  `hooks/patterns.tsv` (the single pattern source) denies every write it would scan,
+  naming the file, the line and `CC_SECRET_SCAN=off`. `CC_SECRET_SCAN=off` disables it
+  for a session.
 - **PostToolUse hook** (`hooks/unicode-scan.sh`) — **warns**, never blocks, when a file
   this session wrote *or read* carries invisible characters — since 0.9.0 including up to
   8 files per `Bash` command that wrote them (redirect, `tee`, `sed -i`) under the
