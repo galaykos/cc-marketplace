@@ -1,6 +1,6 @@
 # Framework bindings — tool → framework matrix
 
-> Last verified: 2026-09-26 — https://livewire.laravel.com/docs/4.x/wire-ignore — npm:motion@13
+> Last verified: 2026-10-06 — https://livewire.laravel.com/docs/4.x/wire-ignore — npm:motion@14
 >
 > The per-framework package names below, checked on npm the same day. Bindings churn
 > faster than anything else in this plugin: a framework's blessed motion package

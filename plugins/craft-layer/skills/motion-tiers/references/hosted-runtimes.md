@@ -6,6 +6,10 @@
 > 4.1.0, the Unicorn Studio SDK v2.3.0 (GitHub `hiunicornstudio/unicornstudio.js` via jsDelivr — not on npm),
 > `unicornstudio-react` 2.2.13, `@paper-design/shaders-react` 0.0.81. The stamp tails one package because the
 > staleness script reads one; re-read the others before quoting them.
+>
+> Read 2026-10-06 (npm): `@splinetool/runtime` and `@splinetool/viewer` 2.0.71, `react-spline` still
+> 4.1.0, `vanta` 0.5.24. Every line below that names 2.0.58 was read or measured on 2.0.58 and
+> was not redone on 2.0.71.
 
 A hosted runtime is still **Tier 3**. The two-render contract, the error boundary, capability
 gating and the reduced-bundle path in `webgl-3d.md` apply unchanged, and a loop running past five
@@ -29,6 +33,12 @@ the scene, the player, or both belong to a vendor.
   (`plugins/craft-layer/skills/threejs-best-practices/references/webgl-first-site.md`); anything
   that must own the renderer, disposal or the loop — the vendor owns those.
 - For decoration, try them in this order: a preset (no remote host), then a hosted scene, then hand-built three.js.
+- **Not Vanta.js.** `vanta` last published 0.5.24 on 2022-09-16. It takes three from `window.THREE`
+  (or a `THREE` option) and its README loads r134 from cdnjs, while three stopped shipping the
+  `build/three.min.js` script build after r160; its source never reads `prefers-reduced-motion`, and
+  every effect creates its own `WebGLRenderer`, so one WebGL context each. Use a Paper Shaders
+  preset for the same ambient background. A project that already ships Vanta pins three, passes
+  `THREE` explicitly, and never starts an effect under reduced motion.
 
 Standing: recorded — nothing checks which runtime a surface picked; once one ships, the craft
 reviewer detects it by import and grades it as the 3D/WebGL row.
@@ -117,7 +127,9 @@ Pixi canvas on the page. Past the page's cap Chromium force-loses the OLDEST con
 Vendor guidance: Unicorn — "Stay under 10 — WebGL allows a maximum of 16 contexts"; Spline —
 "only use one or two embeds per page", "Avoid using more than 3 embeds per page". The cap is set
 per browser and platform, not by a spec. A grid with a shader per card is how pages hit it: use
-one shared background, not N.
+one shared background, not N. Rive on `webgl2` is the one runtime here with a switch for it:
+`useOffscreenRenderer: true` routes every instance through one shared offscreen WebGL2 context
+(default `false`; Rive's parameters page recommends it when several instances share a page).
 
 Standing: recorded.
 
@@ -149,6 +161,14 @@ Standing: recorded.
   `assets.unicorn.studio` and `storage.googleapis.com/unicornstudio-production` for scene
   assets — allow whichever directive the console's CSP report names. `react-spline/next` also
   needs server egress to `*.spline.design`. A preset library needs none of this.
+  The tier-5 players need the same treatment (read 2026-10-06; `vector.md` has the self-host
+  calls): dotLottie fetches its WASM from `cdn.jsdelivr.net`, falling back to `unpkg.com`, and Rive
+  fetches `rive.wasm` from `unpkg.com`, falling back to `cdn.jsdelivr.net` — `connect-src` for both
+  hosts, plus `'wasm-unsafe-eval'` in `script-src` because both compile WASM. `DotLottieWorker`
+  starts from a `blob:` URL, so it needs `worker-src blob:`. Rive's hosted fonts come from a CDN
+  base URL stored in the `.riv` file and documented nowhere, so allow the host the CSP report names,
+  or set `enableRiveAssetCDN: false` and load the fonts yourself. Self-hosting the WASM moves those
+  fetches to `'self'`.
 
 Standing: agent-graded for the provenance record (the craft reviewer's licence gate); recorded
 for availability and CSP.
@@ -159,7 +179,7 @@ for availability and CSP.
   changes under 0.0.x versioning". 0.0.81 renamed and removed Paper Texture parameters. Install
   with `--save-exact`; a `~0.0.x` range admits breaking releases.
 - **`@splinetool/runtime` shipped 57 releases in 36 days** (2.0.1 on 2026-08-20 to 2.0.58 on
-  2026-09-25), and `@splinetool/react-spline` accepts any runtime (`"*"` peer). Pin the runtime
+  2026-09-25; 2.0.71 by 2026-10-05), and `@splinetool/react-spline` accepts any runtime (`"*"` peer). Pin the runtime
   exactly and upgrade on purpose.
 - **CDN URLs carry the version.** Unicorn's embed guide pins `unicornstudio.js@v2.3.0`.
   `<spline-viewer>`'s quickstart URL is unpinned; its README says "pin a version with
@@ -183,6 +203,7 @@ Record which one shipped. Standing: recorded.
 
 Measured 2026-09-26 with `gzip -9`, over the npm tarballs and an esbuild 0.28.2 minified bundle
 with React external. The scene file is extra and differs per scene — read it in the network panel.
+The Spline rows are runtime and viewer 2.0.58; npm was at 2.0.71 on 2026-10-06, not re-measured.
 
 | what | gzip |
 |---|---|

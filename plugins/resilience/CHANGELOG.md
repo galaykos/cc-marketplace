@@ -8,6 +8,12 @@ whose job is history would be worse than the gap. Adding this file opts the plug
 `scripts/check-version-bumps.sh`'s changelog gate permanently — every bump from here on
 must carry an entry.
 
+## 0.8.0 — 2026-10-06
+
+- **`performance-tuning` states the current web-vitals API.** Its Core Web Vitals line now says INP replaced FID on 2024-03-12, and that field code reads the metrics with `web-vitals`' `on*` functions (`onLCP`, `onCLS`, `onINP`, each taking a callback, since v3 in 2022): `get*` was removed in v4 and `onFID` in v5 (2025-05), so a fix writes neither. Current on npm, 2026-10-06: 6.2.3.
+- **Standing: agent-graded** — `/resilience:review --concern performance` can flag a `get*` or `onFID` call; no script checks the API names. Residual: the version is as of 2026-10-06.
+- **Credit and effect.** Found while reviewing freshtechbro/claudedesignskills @1da73feb (MIT, © 2025 Claude Skills Project); rewritten here, not copied. Unmeasured: whether it changes what the model or the `performance-engineer` agent writes. No eval with a control arm covers it.
+
 ## 0.7.7 — 2026-10-04
 
 - The `observability-engineer` and `performance-engineer` agents' code-shape rule adds required call order to the docblock facts a signature cannot state (units, ownership, what throws). Its effect on what the agents write is unmeasured. No hook or script changed.

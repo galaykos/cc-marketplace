@@ -22,7 +22,9 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    fallback and reduced-motion still; springs and auto-animation (`@react-spring/*`/`react-spring`,
    `@formkit/auto-animate`) owe a reduced-motion path; carousels (`swiper`, `embla-carousel*`,
    `@splidejs/*`) owe a pause control and no auto-advance under reduce; route swappers (`@barba/core`,
-   `swup`/`@swup/*`) owe the page-transitions checks; an autoplaying or looping `<video>` owes a pause
+   `swup`/`@swup/*`) owe the page-transitions checks; AOS (`aos`, `data-aos`) owes content visible
+   without JS — its stylesheet hides the fade, zoom and flip variants until its script runs — and a
+   reduced-motion path, agent-graded by the reviewer; an autoplaying or looping `<video>` owes a pause
    control and a stop under reduce.
 
    If nothing animates but assets shipped, still run the asset/licence gates. Only when there is neither
@@ -175,7 +177,8 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    blocking, never implied by silence.
 
 6. **Dispatch `craft-reviewer`** with the step-2 measurements, the step-3 artifacts, the step-5 shot
-   paths, and Read paths to the references its checks cite: `motion-tiers/references/tier-budgets.md` ·
+   paths, and Read paths to the references its checks cite: `motion-tiers/references/` `tier-budgets.md`,
+   `gotchas.md` ·
    `creative-direction/references/` `sameness-fingerprint.md`, `content-depth.md`, `offer-contract.md`,
    `ambition-tiers.md`, `content-source.md`, `concept-deck.md`, `moves-taxonomy.md`, `type-strategy.md`,
    `register-corpus.md`, `voice-contract.md`, `redesign-preservation.md` · `<project>/.craft-layer/preserve.json`

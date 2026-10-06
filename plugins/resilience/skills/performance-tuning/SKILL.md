@@ -59,7 +59,11 @@ cost you found, not a checklist to apply blind.
   paint; defer, async, or inline the critical minimum.
 - **Images** — modern formats, explicit dimensions (CLS), lazy-load offscreen.
 - **Core Web Vitals** — LCP, CLS, INP measured on realistic devices and networks, not
-  a warm localhost. The lab lies about the tail.
+  a warm localhost. The lab lies about the tail. INP replaced FID on 2024-03-12; field
+  code reads them with `web-vitals`' `on*` functions (`onLCP`, `onCLS`, `onINP`; each
+  takes a callback; added v3, 2022) — `get*` was removed in v4 and `onFID` in v5
+  (2025-05), so write neither (current 6.2.3, npm, 2026-10-06). Standing: agent-graded
+  — no script checks the API names; `/resilience:review --concern performance` can flag them.
 
 ## Cache correctness
 

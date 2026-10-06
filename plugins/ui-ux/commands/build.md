@@ -50,8 +50,9 @@ convention.
    from the scale (no magic numbers), and `shadcn-theming` when colors are in play.
    When the request names a registry block to adapt, `references/registries.md` (step 2)
    governs the install. That registry's best-practice skill governs the block too when one
-   exists (ReUI, Aceternity). Either way the block is restyled to the project's own tokens
-   rather than shipped in the registry's defaults.
+   exists: ReUI's, or Aceternity's, which also covers Magic UI and React Bits blocks. Either
+   way the block is restyled to the project's own tokens rather than shipped in the
+   registry's defaults.
    Layout, responsive breakpoints, spacing rhythm, and element hierarchy are its job.
 
    **An existing target keeps what users and systems rely on.** On a page or component
@@ -75,6 +76,14 @@ convention.
    installed, hand the worker the Read path to its
    `skills/creative-direction/references/sameness-fingerprint.md` instead — the fuller
    registry the five belong to. Standing: recorded — the worker may still pick them.
+
+   **An explicit conventional look is a decided direction.** When the request literally asks
+   for a conventional, standard, default or plain look, says "keep it simple", or names a
+   conventional reference ("like a standard admin template"), build with the project's
+   library defaults on purpose and drop the leave-out list above, the sameness-fingerprint
+   handoff included. "Clean" or "minimal" alone is not that request. With no component library, the
+   defaults are the project's existing styles and tokens; with none of those, plain semantic
+   HTML in the project's CSS approach. Standing: recorded — no reviewer reads it back.
 
    Two conditional injections ride the same dispatch — the worker has no Skill tool, so
    a skill not injected here never reaches it:
@@ -111,4 +120,6 @@ convention.
    on a missing command. Headless: take the decided lines above as binding, resolve what
    they leave open to the most COMMITTED reading consistent with them, and note every
    assumption. The most conventional reading is the wrong default here: it produces the
-   stacked, centred document `craft-layer`'s composition gate exists to fail.
+   stacked, centred document `craft-layer`'s composition gate exists to fail. An explicit
+   conventional-look request (step 3) is not that default but a decided direction: honour it,
+   and apply the committed reading only to what it leaves open.

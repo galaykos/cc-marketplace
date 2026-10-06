@@ -1,6 +1,6 @@
 # Effect pipeline — postprocessing, uniforms, and the GLSL→TSL port
 
-> Last verified: 2026-09-26 — https://threejs.org/docs/pages/RenderPipeline.html — npm:three@0.186
+> Last verified: 2026-10-06 — https://threejs.org/docs/pages/RenderPipeline.html — npm:three@0.186
 
 Read on demand from the webgl-effects SKILL. Renderer/scene/R3F setup is NOT re-taught
 here — it lives in `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`; lazy-load
@@ -19,6 +19,12 @@ effect-layer how-to.
 - Each row runs on its own renderer only: `EffectComposer` "can only be used with
   WebGLRenderer", `RenderPipeline` "can only be used with WebGPURenderer" (three.js docs).
   pmndrs `postprocessing` names no WebGPU support.
+- pmndrs `postprocessing` also caps three with an upper bound that moves with its releases
+  (6.38.0 `< 0.182`, 6.39.0 `< 0.184`, 6.39.5 `< 0.187` against three 0.186.1, read
+  2026-10-06), and `@react-three/postprocessing` 3 peers on it. Read
+  `npm view postprocessing peerDependencies` before a three bump: past the bound, npm stops
+  with `ERESOLVE` and forcing the install runs a pair pmndrs never declared.
+  Standing: recorded.
 - One pipeline instance per renderer, created after the scene, disposed with it.
 - Compose passes cheapest-first; every full-screen pass re-reads the framebuffer, so each
   one is real fill-rate. Cap the count (≈2–3 as a ceiling). pmndrs merging counts as one

@@ -39,7 +39,12 @@ without exception:
    (`@formkit/auto-animate`) as the reduced-motion row; Swiper, Embla and Splide carousels
    (`swiper`, `embla-carousel*`, `@splidejs/*`) and autoplaying or looping `<video>` as the
    reduced-motion row plus a visible pause control; Barba and Swup (`@barba/core`, `swup`) as
-   page-transitions. The checklist below is graded against that list.
+   page-transitions; AOS (`aos`, `data-aos`) as the reduced-motion row plus content visible
+   without JS — its stylesheet sets `[data-aos^=fade]` and `[data-aos^=zoom]` to `opacity:0`
+   and turns `[data-aos^=flip]` 100° onto its hidden back face, with no JS gate and no media
+   query, so a script that never runs leaves them invisible
+   (`skills/motion-tiers/references/gotchas.md` § whileInView / scroll-reveal). The checklist
+   below is graded against that list.
 2. **Read the injected references before judging against them** — `motion-tiers` for budgets,
    and each reference the dispatch names for the gate that cites it. Do not restate their
    numbers here or work from memory of them.
@@ -91,7 +96,9 @@ without exception:
 - [ ] page-transitions / webgl-effects / interaction-fx / physics-motion each meet the sections
       their own SKILL.md marks non-negotiable when used — beyond the reduced-motion and budget
       rows above: `page-transitions` § Unsupported browsers (feature-detect and fall through) plus
-      § Shared-element choreography (one live `view-transition-name`, not one per card),
+      § Shared-element choreography (one live `view-transition-name`, not one per card) and,
+      when Barba or Swup ships, its `references/framework-seams.md` § Route swappers (focus and
+      an announcement reach the new page; no old-page ScrollTrigger survives the swap),
       `webgl-effects` § WebGPU/TSL default, WebGL fallback (a GLSL-only effect that never runs
       on WebGPU is a finding — EXCEPT an R3F stack using drei shader materials or
       `@react-three/postprocessing`, which stays on WebGL by design; its GLSL effects pass when

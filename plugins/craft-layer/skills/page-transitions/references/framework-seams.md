@@ -91,8 +91,47 @@ name the clicked element; in `pagereveal` (the incoming page) name its counterpa
 both after `viewTransition.finished`. Chrome 123/124, Safari 18.2, no Firefox (MDN:
 limited availability) — elsewhere the navigation is a plain load.
 
+## Route swappers: Swup and Barba
+
+Read 2026-10-06 from npm and each package's bundle: `swup` 4.10.0, `@swup/a11y-plugin` 5.2.1,
+`@swup/head-plugin` 2.3.1, `@barba/core` 2.10.3 (last published 2024-08-12),
+`@barba/prefetch` 2.2.0.
+
+- **Native first.** A multi-page site animates with cross-document
+  `@view-transition { navigation: auto; }` (Astro section above): real page loads, no JS, a
+  plain load where unsupported. A JS swapper earns its place only when something must persist
+  across the navigation (a playing audio bar, a live canvas).
+- **Swup over Barba.** Swup core moves no focus either, but its maintained plugins close the
+  gap: `@swup/a11y-plugin` announces the new page (its `h1`, else `<title>`), resets focus to
+  `<body>` and skips the animation under `prefers-reduced-motion` by default;
+  `@swup/head-plugin` syncs meta tags, assets and `lang`/`dir`. Ship Swup with both.
+- **Barba only where it already ships.** `@barba/core` moves no focus, announces nothing and
+  copies only `document.title` from the next page: move focus to the new `h1` or `main` and
+  announce the page in a live region yourself. `@barba/head` does not exist (npm 404), so
+  every other head tag is yours to sync. Prefetch is `@barba/prefetch`; its `root` /
+  `timeout` / `limit` options are the second argument of `barba.use(barbaPrefetch, { … })`.
+- **ScrollTrigger across the swap.** The old page's triggers outlive its container unless
+  killed. Build each page's triggers in a `gsap.context()` scoped to its container;
+  `ctx.kill()` before the old container goes (Barba `beforeLeave`, Swup
+  `swup.hooks.before('content:replace', …)`), then build the new page's once it lands (Barba
+  `afterEnter`, Swup `page:view`) and call `ScrollTrigger.refresh()`. With Lenis, also reset
+  scroll per the SPA-route-change gotcha in
+  `plugins/craft-layer/skills/motion-tiers/references/gotchas.md`.
+- **Never hide the container in CSS.** `[data-barba="container"] { opacity: 0 }` or an
+  unscoped `.transition-fade { opacity: 0 }` leaves the page blank without JS or when the
+  swapper fails; set the hidden state from JS or under the class the swapper adds (Swup's
+  `html.is-animating`).
+- **Reduced motion is zero duration.** The swap still happens, unanimated: Swup through the
+  `@swup/a11y-plugin` default; Barba 2.10.3 has no reduced-motion branch, so each transition checks
+  `matchMedia('(prefers-reduced-motion: reduce)')` and resolves `leave` / `enter` at once,
+  with focus and the announcement still running.
+
+Standing: recorded.
+
 ## Verify the seam
 
 - The shared element tweens between its two positions (not a whole-page fade only).
 - Reduced-motion and unsupported browsers navigate instantly with no error.
 - No element keeps a `view-transition-name` after the transition settles.
+- After a swapper navigation, focus and the screen-reader announcement reach the new page and
+  `ScrollTrigger.getAll()` holds no trigger from the old page.

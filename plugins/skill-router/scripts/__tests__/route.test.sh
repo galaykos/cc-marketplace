@@ -230,6 +230,8 @@ routes "$M" src/scene/globe.ts "import * as THREE from 'three'" threejs-best-pra
 routes "$M" src/scroll/Smooth.tsx "import { ReactLenis } from 'lenis/react'" scroll-orchestration motion-best-practices
 routes "$M" src/scroll/Pinned.tsx "import { ScrollTrigger } from 'gsap/ScrollTrigger'
 ScrollTrigger.create({ pin: true, scrub: 1 })" scroll-orchestration
+TM=$(fresh); printf '%s\n' "import LocomotiveScroll from 'locomotive-scroll'" > "$M/src/scroll/Loco.tsx"; out=$(edit "$M" "$M/src/scroll/Loco.tsx" "$TM")
+has_skill "$out" scroll-orchestration && ok || bad "locomotive-scroll import routes scroll-orchestration; got: ${out:0:200}"
 routes "$M" src/hero/Hero.tsx "import { motion } from 'motion/react'" motion-best-practices
 TM=$(fresh); printf '%s\n' "import { motion } from 'motion/react'" > "$M/src/hero/Hero2.tsx"; edit "$M" "$M/src/hero/Hero2.tsx" "$TM" >/dev/null
 pend "$(statef "$M" "$TM")" aceternity-best-practices && bad "aceternity: a Motion import still draws aceternity-best-practices" || ok
@@ -295,6 +297,7 @@ done
 S="$WS/s"; mkui "$S" '{"dependencies":{"react":"19.0.0"}}'; TS="$WS/t-s.jsonl"
 out=$(bashc "$S" 'npx shadcn@latest add @magicui/marquee' "$TS")
 has_skill "$out" shadcn-best-practices && ok || bad "command row: shadcn add did not route shadcn-best-practices; got: ${out:0:200}"
+has_skill "$out" aceternity-best-practices && ok || bad "magicui install routes aceternity-best-practices; got: ${out:0:200}"
 [ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' >/dev/null 2>&1 \
   && ok || bad "command row: not exactly one PostToolUse envelope: ${out:0:200}"
 grep -qF 'This command runs `shadcn@latest add`' <<<"$out" && ok || bad "command row: subject does not quote the matched command: ${out:0:200}"
@@ -305,8 +308,15 @@ for cmd in 'cd web && bunx --bun shadcn@latest add dialog' 'npx shadcn-ui@latest
   out=$(bashc "$S" "$cmd" "$(fresh)")
   has_skill "$out" shadcn-best-practices && ok || bad "command row [$cmd]: did not route; got: ${out:0:160}"
 done
+for cmd in 'npx shadcn@latest add @react-bits/BlurText-TS-TW' 'npx jsrepo@latest add https://reactbits.dev/r/BlurText-TS-TW'; do
+  out=$(bashc "$S" "$cmd" "$(fresh)")
+  has_skill "$out" aceternity-best-practices && ok || bad "react-bits install routes aceternity-best-practices [$cmd]; got: ${out:0:160}"
+done
+out=$(bashc "$S" 'pnpm dlx jsrepo@latest add github/ieedan/std/utils/math' "$(fresh)")
+has_skill "$out" shadcn-best-practices && ok || bad "jsrepo add routes shadcn-best-practices; got: ${out:0:160}"
+has_skill "$out" aceternity-best-practices && bad "jsrepo add of a non-effect registry routed aceternity-best-practices" || ok
 S2="$WS/s2"; mkui "$S2" '{}'
-for cmd in 'npm view shadcn version' 'npx shadcn@latest init' 'echo add shadcn later'; do
+for cmd in 'npm view shadcn version' 'npx shadcn@latest init' 'npx jsrepo@latest init' 'echo add shadcn later'; do
   out=$(bashc "$S2" "$cmd" "$(fresh)")
   [ -z "$out" ] && ok || bad "command row [$cmd]: expected silence, got: ${out:0:160}"
 done
@@ -336,6 +346,7 @@ done
 [ ! -e "$S3/.claude" ] && ok || bad "command row: a mention spent the one-shot (state created at $S3/.claude)"
 out=$(bashc "$S3" 'npx shadcn@latest add "@magicui/marquee"' "$TS3")
 has_skill "$out" shadcn-best-practices && ok || bad "command row: a quoted install argument did not route after the mentions; got: ${out:0:160}"
+has_skill "$out" aceternity-best-practices && bad "quoted magicui install is a stated miss, yet aceternity-best-practices routed" || ok
 out=$(bashc "$S3" 'echo "$(npx shadcn@latest add button)"' "$(fresh)")
 has_skill "$out" shadcn-best-practices && ok || bad "command row: \$(…) inside double quotes is live code and did not route; got: ${out:0:160}"
 

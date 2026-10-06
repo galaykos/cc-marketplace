@@ -73,15 +73,16 @@ Reduced-motion fallback:
 
 ## Motion (the library formerly Framer Motion)
 
-The npm package is `motion` (v13 line, 2026-08 — v12 recipes and imports carry over unchanged:
-`motion` / `motion/react`). `framer-motion` still mirrors releases but is a legacy alias.
+The npm package is `motion` (14.0.0, released 2026-10-02 — breaking only for internal APIs kept for
+framer-motion 13.0–13.4 compatibility; recipes and imports carry over: `motion` / `motion/react`).
+`framer-motion` still mirrors releases but is a legacy alias.
 Prefer the mini `animate()` from `motion/mini` for simple vanilla tweens (smallest bundle);
 reserve full `motion` components for gestures, layout animation, and exit transitions.
 
 Reduced-motion fallback: wrap the tree in `<MotionConfig reducedMotion="user">` so transform
 and layout animations on `motion` components are disabled automatically, or branch on
 `useReducedMotion()` for per-component crossfade substitutes. It does not stop scroll-linked
-`useScroll` values or opacity — `references/motion.md` says what does.
+`useScroll` values, opacity, or a `useSpring` number counter — `references/motion.md` says what does.
 
 2026 additions (verify on motion.dev before use): `animateView` (12.41+) for JS-driven
 view transitions — prefer over hand-rolled `startViewTransition`; official `motion-v` for
