@@ -24,6 +24,15 @@ the edit is out of scope, and that includes polishing this file. **Standing:
   - `README.md` (and optionally `CHANGELOG.md` / `ROADMAP.md`) at the plugin root
   - `skills/<name>/SKILL.md` (+ a `references/` dir for material the skill reads)
   - `commands/*.md`, `agents/*.md`, `hooks/`
+  - a mod plugin's module: the `hooks/` file its `hooks.json` `modules` entry names (one
+    entry per plugin; `.ts` `.tsx` `.mts` `.cts` `.js` `.mjs`, nested allowed) and the
+    `hooks/` files it imports, its `types/index.d.ts` contract and its `tests/*.test.ts`.
+    **Standing: gate** — `pc_mod_modules` (the entry exists, has an allowed extension,
+    exports `register`), `pc_mod_kit` (every `cc-kit.ts` copy byte-identical),
+    `scripts/mod-tests.sh` (`claude plugin test` on every mod: a red test, no test file
+    or modules turned off fails), and the host validator fails a `$.state` key the
+    `types` contract does not declare. The CLI-generated `.claude-plugin/types/` and root
+    `tsconfig.json` are gitignored, never shipped.
   - `evals/<case>/case.yaml`, or `evals/<case>/prompt.md` + `graders/*.md`, or both
     (+ an optional `scaffold.sh`) — the case definition `claude plugin eval` reads.
     On CLI 2.1.270 the two suites shipping the `prompt.md` shape loaded zero cases
@@ -311,6 +320,7 @@ that breaks can read different inputs.** So:
 ```bash
 for t in scripts/smoke/*.sh scripts/smoke/validate-fixtures/*.sh; do [ "$(basename "$t")" = canary.sh ] && continue; bash "$t" >/dev/null || echo "FAIL $t"; done   # live-model scripts skip themselves; see below
 for t in plugins/*/scripts/__tests__/*.test.sh; do bash "$t" >/dev/null || echo "FAIL $t"; done
+bash scripts/mod-tests.sh
 ```
 
 One measured caveat on running them together: `context-budget.sh` failed once and
@@ -323,8 +333,8 @@ Those four are the ones you invoke. They are **not** all the enforcement. Named
 by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **47 named steps;
-45 can fail the build**, and on a push to `master` only **44** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **49 named steps;
+47 can fail the build**, and on a push to `master` only **46** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
 This is the one count deliberately carried here and nowhere else
 (`scripts/done-gate.sh:7` says why); **recount it, do not copy it**:
