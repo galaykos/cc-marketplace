@@ -1,0 +1,2 @@
+mod-unguarded:watch	mod	build	run-board	a checkable condition	mod-declared:guarded
+mod-unguarded:cc-kit	mod	ship	secret-output-redaction	a checkable condition	-

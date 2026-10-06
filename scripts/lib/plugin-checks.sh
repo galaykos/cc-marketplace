@@ -1546,8 +1546,37 @@ _pc_lane_rows() {
   awk -F'\t' '{ sub(/\r$/, "") } /^#/ { next } NF==6 { print $1 "\t" $2 }' "$1"
 }
 
+# _pc_mod_file <plugins_root> <plugin> <name>
+# Prints <root>/<plugin>/hooks/<name>.<ext> (ext .ts .tsx .mts .cts .js .mjs) and returns 0
+# when that file is a top-level `modules` entry of the plugin's hooks.json, or is imported
+# by one as `from './<name>'` (either quote); returns 1 otherwise and when jq is missing.
+# Private helper. CLI 2.1.291 refuses a second `modules` entry, so one entry imports every
+# feature file and the lane artifact is the feature, not the entry.
+# MISSES: an entry nested below hooks/ (its `./` imports name a different directory), an
+# import with an extension or a path other than `./<name>`, and anything a feature file
+# imports in turn — none of those resolve. Text match only: a commented-out import counts.
+_pc_mod_file() {
+  local d="$1/$2/hooks" n="$3" e x
+  [ -f "$d/hooks.json" ] || return 1
+  command -v jq >/dev/null 2>&1 || return 1
+  while IFS= read -r e; do
+    e=${e#./}
+    case "$e" in ''|*/*) continue ;; esac
+    [ -f "$d/$e" ] || continue
+    for x in ts tsx mts cts js mjs; do
+      [ -f "$d/$n.$x" ] || continue
+      if [ "$e" = "$n.$x" ] \
+         || grep -qF -e "from './$n'" -e "from \"./$n\"" "$d/$e" 2>/dev/null; then
+        printf '%s\n' "$d/$n.$x"; return 0
+      fi
+    done
+  done < <(jq -r '.modules | arrays | .[] | strings' "$d/hooks.json" 2>/dev/null)
+  return 1
+}
+
 # _pc_lane_resolves <plugins_root> <plugin:name> <kind|any>
 # True when the token names a real artifact of the declared kind. Private helper.
+# A `mod` resolves through _pc_mod_file, so a feature file the entry never imports does not.
 _pc_lane_resolves() {
   local root="$1" tok="$2" kind="${3:-any}" p n
   case "$tok" in *:*) ;; *) return 1 ;; esac
@@ -1558,17 +1587,21 @@ _pc_lane_resolves() {
     command) [ -f "$root/$p/commands/$n.md" ] ;;
     skill)   [ -f "$root/$p/skills/$n/SKILL.md" ] ;;
     hook)    [ -f "$root/$p/hooks/$n.sh" ] ;;
+    mod)     _pc_mod_file "$root" "$p" "$n" >/dev/null ;;
     *)       [ -f "$root/$p/agents/$n.md" ] || [ -f "$root/$p/commands/$n.md" ] \
-             || [ -f "$root/$p/skills/$n/SKILL.md" ] || [ -f "$root/$p/hooks/$n.sh" ] ;;
+             || [ -f "$root/$p/skills/$n/SKILL.md" ] || [ -f "$root/$p/hooks/$n.sh" ] \
+             || _pc_mod_file "$root" "$p" "$n" >/dev/null ;;
   esac
 }
 
 # pc_lanes_schema <lane_tsv>
 # Prints one `lane-schema <file>:<line> <reason>` per malformed row and returns
 # 1; clean or missing file returns 0. Four reasons: a row without exactly 6
-# tab-separated fields, an unknown `kind`, an unknown `phase`, and a duplicate
-# artifact+owns pair within one file (the same artifact claiming one territory
-# twice is a merge artifact, not a declaration).
+# tab-separated fields, an unknown `kind` (command hook agent skill mod), an unknown
+# `phase`, and a duplicate artifact+owns pair within one file (the same artifact
+# claiming one territory twice is a merge artifact, not a declaration). `mod` joined
+# the kinds 2026-10-06: a hooks module speaks on the prompt channel like a hook and
+# had no way to declare a lane (spec 2026-10-06-ship-claude-code-mods, SC3).
 pc_lanes_schema() {
   local f="$1"
   [ -f "$f" ] || return 0
@@ -1580,7 +1613,7 @@ pc_lanes_schema() {
       if (NF != 6) {
         printf "lane-schema %s:%d %d fields (want 6)\n", file, FNR, NF; bad=1; next
       }
-      if ($2 !~ /^(command|hook|agent|skill)$/) {
+      if ($2 !~ /^(command|hook|agent|skill|mod)$/) {
         printf "lane-schema %s:%d unknown kind %s\n", file, FNR, $2; bad=1
       }
       if ($3 !~ /^(understand|shape|decide|plan|build|verify|review|ship|any)$/) {
@@ -1906,9 +1939,11 @@ EOF_LANE_ADJ_FILES
 }
 
 # pc_lanes_coverage [plugins_root]
-# Every agent, every UserPromptSubmit/Stop hook script, and every Pre/PostToolUse
-# hook script that can return a DENY verdict, must carry a row in its own plugin's
-# lane.tsv — those are the GATE tier. Commands and skills are WARN this run. Prints `lane-missing agent|hook <plugin>:<name>` (gate) and
+# Every agent, every UserPromptSubmit/Stop hook script, every Pre/PostToolUse
+# hook script that can return a DENY verdict, and every hooks-module feature file that
+# registers a hook, must carry a row in its own plugin's lane.tsv — those are the GATE
+# tier. Commands and skills are WARN this run. Prints `lane-missing agent|hook <plugin>:<name>`
+# and `lane-missing lane-uncovered-mod <plugin>:<name>` (gate) and
 # `lane-warn command|skill <plugin>:<name>` (advisory), and returns 1 only when
 # something at gate tier is missing.
 #
@@ -1934,6 +1969,16 @@ EOF_LANE_ADJ_FILES
 #      it draws a lane-missing line during that harness's run. That harness asserts
 #      by string presence and wants a non-zero exit, so it costs nothing — but a
 #      future harness that asserts "no FAILs" would trip on it.
+#
+# THE MOD ARM (2026-10-06). A module file that _pc_mod_file resolves — the `modules` entry
+# or a `./<name>` file it imports — and that calls `on(` or `registerSuggestion(` needs a
+# `mod` row; cc-kit.ts, the shared kit, never does. Before it, a module spoke on the
+# prompt channel with no lane at all, invisible to pc_lanes_territory. `on(` is matched
+# behind a word boundary because the bare substring also hits `registerRedaction(` and
+# `$.session.version(`, which would demand a row for an entry that only dispatches. The
+# `lane-missing ` prefix is what validate.sh's coverage filter routes to err(). MISSES:
+# what _pc_mod_file misses, a hook registered through any other helper name, and an `on(`
+# inside a comment or string, which is over-reported (the cheap direction).
 pc_lanes_coverage() {
   local root="${1:-plugins}" bad=0 d p lane rows a n hj cmd TAB NL
   TAB=$(printf '\t'); NL='
@@ -1998,6 +2043,17 @@ pc_lanes_coverage() {
       done < <(jq -r '.hooks // {} | to_entries[]
                       | select(.key=="PreToolUse" or .key=="PostToolUse")
                       | (.value[].hooks[].command // empty) | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
+      while IFS= read -r n; do
+        [ -n "$n" ] && [ "$n" != cc-kit ] || continue
+        a=$(_pc_mod_file "$root" "$p" "$n") || continue
+        grep -qE '(^|[^[:alnum:]_$.])on\(|registerSuggestion\(' "$a" 2>/dev/null || continue
+        case "$NL$rows$NL" in
+          *"$NL$p:$n${TAB}mod$NL"*) ;;
+          *) printf 'lane-missing lane-uncovered-mod %s:%s\n' "$p" "$n"; bad=1 ;;
+        esac
+      done < <(find "$d/hooks" -maxdepth 1 -type f \( -name '*.ts' -o -name '*.tsx' \
+                 -o -name '*.mts' -o -name '*.cts' -o -name '*.js' -o -name '*.mjs' \) 2>/dev/null \
+               | sed 's#.*/##; s/\.[^.]*$//' | sort -u)
     fi
     while IFS= read -r a; do
       [ -n "$a" ] || continue
@@ -2171,9 +2227,19 @@ EOF_CLAUSE
 # ignore it. Gate on the read; the behaviour half is agent-graded. Claiming
 # otherwise would be the tier over-claim CLAUDE.md's has-teeth convention forbids.
 #
-# Prints `phase-unguarded <plugin>:<script>` per offender; returns 1 if any.
+# MOD ROWS (2026-10-06), keyed on the lane row rather than on hooks.json: a `mod` row
+# naming a phase other than `any` passes only if the file _pc_mod_file resolves it to
+# contains `liveSentinel(`, `registerSuggestion(` (the kit checks the sentinel when arming
+# and when delivering) or `cc-phase.json`. Only that OWN file is read — every feature file
+# imports the kit, and the kit reads the sentinel, so counting cc-kit.ts would pass every
+# module; a row naming cc-kit itself fails for the same reason. Same limitation as above:
+# a read is proven, never honoured. A row that resolves to no module is skipped —
+# pc_lanes_resolve reports it.
+#
+# Prints `phase-unguarded <plugin>:<script>` and `phase-guard-mod <plugin>:<name>` per
+# offender; returns 1 if any.
 pc_phase_guard() {
-  local root="${1:-plugins}" bad=0 hj d p sh rel lane_phase
+  local root="${1:-plugins}" bad=0 hj d p sh rel lane_phase art mf
   command -v jq >/dev/null 2>&1 || return 0
   while IFS= read -r hj; do
     [ -n "$hj" ] || continue
@@ -2204,6 +2270,20 @@ $(jq -r '((.hooks.UserPromptSubmit // []) + (.hooks.Stop // [])
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
+  while IFS= read -r art; do
+    [ -n "$art" ] || continue
+    mf=$(_pc_mod_file "$root" "${art%%:*}" "${art##*:}") || continue
+    case "${mf##*/}" in
+      cc-kit.*) ;;
+      *) grep -qF -e 'liveSentinel(' -e 'registerSuggestion(' -e 'cc-phase.json' "$mf" 2>/dev/null \
+           && continue ;;
+    esac
+    printf 'phase-guard-mod %s\n' "$art"
+    bad=1
+  done <<EOF
+$(find "$root" -mindepth 2 -maxdepth 2 -name lane.tsv -exec awk -F'\t' '
+    { sub(/\r$/, "") } /^#/ { next } NF==6 && $2=="mod" && $3!="any" { print $1 }' {} + 2>/dev/null | sort -u)
 EOF
   return $bad
 }
