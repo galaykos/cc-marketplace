@@ -28,6 +28,12 @@
       "title": "Invisible-character scan (CC_UNICODE_SCAN)",
       "description": "Warn when written or read text carries zero-width or bidirectional-override characters: on or off. The environment variable CC_UNICODE_SCAN overrides this.",
       "default": true
+    },
+    "cc_secret_redact": {
+      "type": "boolean",
+      "title": "Output redaction (CC_SECRET_REDACT)",
+      "description": "Mask secrets in tool output before the model or the transcript sees them: on or off. The environment variable CC_SECRET_REDACT overrides this.",
+      "default": true
     }
   }
 }
