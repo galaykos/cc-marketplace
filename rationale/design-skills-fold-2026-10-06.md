@@ -8,8 +8,8 @@ Source: [freshtechbro/claudedesignskills](https://github.com/freshtechbro/claude
 commit `1da73feb` (2025-11-19), MIT, © 2025 Claude Skills Project. Its 23 skills were copied with
 the LICENSE into the gitignored `taskmaster-docs/upstream/claudedesignskills-1da73feb/` on
 2026-10-06; nothing was pasted into a plugin (the overlap check below). Upstream's text is about
-eleven months old and often stale, so most of what landed was found while checking it against npm
-and the packages' source; the plugin CHANGELOGs credit it as "found while reviewing", and no README
+eleven months old and often stale, so most of what landed was found while checking it against npm,
+the packages' source and the vendors' docs; the plugin CHANGELOGs credit it as "found while reviewing", and no README
 carries a credit line. Released as marketplace 0.122.0: ui-ux 0.30.0, craft-layer 0.57.0,
 ui-libraries 0.3.0, skill-router 0.24.0, resilience 0.8.0.
 
@@ -161,5 +161,7 @@ first 12-word line of upstream's `gsap-scrolltrigger/SKILL.md`, fed through the 
 
 No eval with a control arm measures whether any folded fact changes what the model writes, builds
 or installs. The skill-router routes are the only gated part (`route.test.sh`); every reference is
-recorded, and the reviewer, audit, Aceternity and web-vitals rules are agent-graded. Not recorded
+recorded except where a reviewer applies it — `ui-ux-reviewer` for the ui-ux motion and registry
+rules, `craft-reviewer` and the audit for the AOS and route-swapper rows — and the Aceternity and
+web-vitals rules are agent-graded too; the conventional-look rule is recorded. Not recorded
 here: the install-alone proof of each bumped plugin, run after this commit.

@@ -7,14 +7,15 @@ version in their `plugin.json`.
 ## [0.122.0] - 2026-10-06
 
 Design and motion facts found while reviewing [freshtechbro/claudedesignskills](https://github.com/freshtechbro/claudedesignskills)
-@1da73feb (MIT, © 2025 Claude Skills Project), each re-verified against npm or the package source on 2026-10-06 and rewritten
+@1da73feb (MIT, © 2025 Claude Skills Project), each re-verified against npm, the package source or the vendor's docs on 2026-10-06 and rewritten
 here, not copied; credited in the plugin CHANGELOGs, not the READMEs. No skill, plugin or description was added. The
 skill-by-skill mapping, every re-verified fact and the phrase-overlap check are in `rationale/design-skills-fold-2026-10-06.md`.
 
 - **ui-ux 0.30.0 — motion 14 and the motion traps.** motion 14.0.0 stamps and `framer-motion-3d`'s replacements; five
   ScrollTrigger traps; anime.js 4.4's breaking changes and its free `splitText()`/`scrambleText()`; an animated counter
   renders its final value; React Bits, Magic UI and jsrepo install facts in `registries.md`; `/ui-ux:build` takes an
-  explicit conventional look as a decided direction. Standing: recorded.
+  explicit conventional look as a decided direction. Standing: agent-graded through `ui-ux-reviewer` for the motion and
+  registry rules; recorded for the conventional-look rule.
 - **craft-layer 0.57.0 — three.js, glTF and runtime facts.** `THREE.Timer`, `PCFSoftShadowMap`, fiber's React-minor cap,
   `invalidate()` under demand rendering, Text3D's `height`/`depth`; a new compressed-glTF reference; postprocessing's moving
   bound on three; dotLottie's and Rive's runtime WASM in the tier-5 budget with self-hosting and CSP; lottie-react 3, Spline
