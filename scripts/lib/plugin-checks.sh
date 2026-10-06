@@ -3257,6 +3257,52 @@ pc_mod_modules() {
   return $bad
 }
 
+# pc_mod_kit <plugins_root> <canonical>
+# <canonical> is templates/mods/cc-kit.ts; host-block.ts and kit-harness/ are read beside it.
+# Prints one line per fault and returns 1 if any:
+#   mod-kit-drift <file>         a <root>/*/hooks/cc-kit.ts or kit-harness/hooks/cc-kit.ts
+#                                that is not byte-identical (cmp) to <canonical>
+#   mod-host-block-drift <file>  <canonical>, or any .ts .tsx .mts .cts .js .mjs file under a
+#                                <root>/*/hooks/ or kit-harness/hooks/ dir except that dir's
+#                                cc-kit.ts, that contains `hostOf(` but not host-block.ts
+#                                verbatim (content-contains, as pc_shared_blocks)
+#
+# WHY IT EXISTS: plugins install alone, so each mod plugin ships its own copy of the kit, and
+# a copy edited in one plugin is a fix the others never got (spec
+# 2026-10-06-ship-claude-code-mods, SC40). `hostOf` is private to the kit, so a module that
+# needs it pastes the block; one `modules` entry imports every feature file, so the paste
+# can sit in any hooks/ file, not only the entry.
+#
+# WHAT IT DOES NOT CATCH: byte identity proves a copy matches the canonical kit, not that the
+# kit is correct — the kit-harness tests do that. `hostOf(` is a text match: one in a comment
+# is over-reported, a call through an alias is missed. An unreadable <canonical> skips the
+# whole check and an unreadable host-block.ts skips the block half, as pc_shared_blocks skips
+# a missing block.
+pc_mod_kit() {
+  local root="${1%/}" canon="$2" kdir blk d f bad=0
+  [ -r "$canon" ] || return 0
+  kdir=$(dirname "$canon")
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    cmp -s "$canon" "$f" || { printf 'mod-kit-drift %s\n' "$f"; bad=1; }
+  done < <(find "$root" -mindepth 3 -maxdepth 3 -path '*/hooks/cc-kit.ts' 2>/dev/null | sort
+           printf '%s\n' "$kdir/kit-harness/hooks/cc-kit.ts")
+  [ -r "$kdir/host-block.ts" ] || return $bad
+  blk=$(cat "$kdir/host-block.ts")
+  [[ "$(cat "$canon")" == *"$blk"* ]] || { printf 'mod-host-block-drift %s\n' "$canon"; bad=1; }
+  while IFS= read -r d; do
+    [ -d "$d" ] || continue
+    while IFS= read -r f; do
+      [ -n "$f" ] && [ "$f" != "$d/cc-kit.ts" ] || continue
+      [[ "$(cat "$f")" == *"$blk"* ]] && continue
+      printf 'mod-host-block-drift %s\n' "$f"; bad=1
+    done < <(grep -rlF 'hostOf(' "$d" --include='*.ts' --include='*.tsx' --include='*.mts' \
+               --include='*.cts' --include='*.js' --include='*.mjs' 2>/dev/null | sort)
+  done < <(find "$root" -mindepth 2 -maxdepth 2 -type d -name hooks 2>/dev/null | sort
+           printf '%s\n' "$kdir/kit-harness/hooks")
+  return $bad
+}
+
 # pc_role_floors <registry_md> <plugins_root>
 # The role-floor registry gate. Prints `fail <message>` per violation, <message> being
 # the exact text validate.sh err()s, and `exempt <agent_path>: <floor-reason>` per agent
