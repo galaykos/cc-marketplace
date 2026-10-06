@@ -123,6 +123,8 @@ Token DIRECTION belongs in the brief; token VALUES belong to those skills.
 - `references/mining-method.md` — the source checklist and extraction worksheet in full.
 - `references/brief-templates.md` — fill-in templates for the theme brief and the build
   task, each annotated with its consuming command.
+- `../creative-direction/references/redesign-preservation.md` — restyling an existing site: the
+  mode, the audit before touching, and what never changes without asking.
 
 ## Anti-patterns
 

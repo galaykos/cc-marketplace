@@ -4,6 +4,11 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.29.0 — 2026-10-05
+
+- **Work on an existing page keeps what users and systems rely on.** `/ui-ux:build` and the generated `ui-ux-engineer` agent now say: on a page or component that already exists, do not change its URL slugs or anchors, primary nav labels, form field names or their order, analytics event IDs, the logo/wordmark, or legal and consent copy unless the request asks, and name any such change in the return. A decided line in the dispatch (`Copy voice:`, `Banned vocabulary:`) is not that ask. There is no mode question here; craft-layer's `/craft-layer:craft` owns the redesign modes. Standing: agent-graded on a craft run, where `craft-reviewer` checks the build against craft-layer's `preserve.json`; recorded on a standalone build — no reviewer here reads it back.
+- **Credit and effect.** The rule is adapted from [leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill) at ce26fc25 (MIT, © 2026 Leonxlnx), rewritten here rather than copied. Unmeasured: whether it changes what the model builds. No eval with a control arm covers it.
+
 ## 0.28.1 — 2026-10-04
 
 - **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/palette-default.sh` and `hooks/preview-guard.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. After this cut both hooks parsed to the same code as before (bash's own parser, comments ignored); `preview-guard.sh` was then refactored (next entry).

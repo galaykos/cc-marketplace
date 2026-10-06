@@ -2,6 +2,11 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.23.1 — 2026-10-05
+
+- **Organisation design systems route `component-libraries`.** The library-agnostic `content` row now also matches quoted imports of `govuk-frontend`, `uswds` and `@uswds/`, `@shopify/polaris` and `@shopify/polaris-types`, `@carbon/`, and `@atlaskit/` except its `pragmatic-*` packages — a general-purpose drag-and-drop library apps outside Atlassian use. Pinned by new cases in `scripts/__tests__/route.test.sh`: GOV.UK, Carbon, Atlassian, USWDS and Polaris imports route; the two pragmatic-drag-and-drop imports and a backticked `govuk-frontend` in a code comment or in Markdown prose do not.
+- Still missed: GOV.UK Frontend's Nunjucks templates and Sass entry points, and Polaris's CDN `<script>`, which name no quoted package (ui-libraries' README says so). Still matched: a lockfile, a docs page or a code comment holding a package name in quotes. The effect on what the model writes is unmeasured.
+
 ## 0.23.0 — 2026-10-05
 
 - **`.php`, `.tsx`, `.jsx` and `.vue` edits route `low-cognitive-load`** when code-architecture is installed, as `.ts`/`.js`/`.py`/`.go`/`.rb`/`.rs` edits already did, so the skill that states the no-comment default in one line reaches PHP, React and Vue files. Once per session, beside the framework, library and accessibility skills those files already drew. `solid-principles` is not added for them.

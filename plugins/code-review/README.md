@@ -74,6 +74,7 @@ with no diff, except that the command judges every comment in scope on a hand-up
 
 Credit: the "Reinvented shelf" smell, the `shortcut: <the limit>; revisit when <trigger>` comment form and the debt lane's `shortcuts` count adapt rules from [dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) v4.10.0 (MIT), rewritten here rather than copied.
 The "Mysterious name" smell, the decision-record test and required call order in `comment-discipline`, and a repo's contributing or coding-standards doc as a convention source (the review's convention pass, `conventions.sh`'s `standards:` line) adapt rules from [mattpocock/skills](https://github.com/mattpocock/skills) v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied; their effect on what the model writes is unmeasured.
+The elision deny in `scan.sh` is adapted from [leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill)'s output-skill (commit ce26fc25, MIT, © 2026 Leonxlnx), rewritten here rather than copied; its effect on what the model writes is unmeasured.
 
 ## Comment discipline (merged in on 2026-09-02) <!-- removed-ok -->
 
@@ -89,13 +90,19 @@ the default; a heavily commented neighbour does not.
 `MultiEdit` adds, and the text a Bash heredoc writes, on two lanes. `PostToolUse` warns,
 at most one line, for any of the twelve categories listed below. `PreToolUse` denies the three
 strictest — a comment restating the next line, commented-out code, and a docblock tag
-repeating the signature — at most twice per file per session, then stands down.
+repeating the signature — at most twice per file per session, then stands down. Since
+0.30.0 it also denies a write that removes existing code and adds a placeholder comment
+(`// ... existing code ...`), on its own two-deny budget and its own switch,
+`CC_ELISION_GUARD`; it reads markup comments too, misses placeholder wording outside its
+grammar, does not compare a `Write` against a file over 1 MiB, and after two denies lets
+the write through with only a warning, so code can still be lost — **The elision deny**
+below has what it reads and the rest it misses.
 `density.sh` denies a whole `Write`, or a Bash heredoc that replaces a file, over
 the comment ceiling, at most twice per file, and after any edit warns when a file is over
 min(2x its committed siblings' median, the ceiling); a file with no committed siblings is
 judged against the ceiling alone. The ceiling is **0.3 prose comment lines per code line**
 by default, compared exactly: 30 prose lines over 100 code lines pass, 31 are refused. A
-file under 50 lines, or with fewer than 8 code lines, is judged by the **short rule**
+file under 50 non-blank lines, or with fewer than 8 code lines, is judged by the **short rule**
 instead: it is over the limit with at least 5 prose lines, a code line, and more prose
 than code (or than the ceiling, once a project raises it past 1:1), and the refusal reads
 "the ceiling is 1.0:1"; a file with no code line is never over. The sibling test keeps its 0.3 floor, equal to the default ceiling, so siblings
@@ -125,8 +132,8 @@ number only: the file types judged since 0.26.0 (shell, SQL, CSS, SCSS, Less, Lu
 Perl, Julia, R, Groovy, Terraform, GraphQL), the short rule, the exact compare and the
 prose-only count stay. A project whose own CLAUDE.md demands a docblock on every method
 gets its first over-ceiling `Write` per file denied until it sets that variable; the hook
-does not read CLAUDE.md. `CC_COMMENT_GUARD=off` (below) switches the denies off and leaves
-the warnings on. `verbosity.sh` applies the same rule to terminal
+does not read CLAUDE.md. `CC_COMMENT_GUARD=off` (below) switches the comment denies off and
+leaves the warnings on; the elision deny keeps running. `verbosity.sh` applies the same rule to terminal
 prose. Markers live in the plugin's data directory,
 `${CLAUDE_PLUGIN_DATA}/<project-key>/comment-discipline/`, when the host provides one, else
 under `.claude/comment-discipline/` at the project root; the ledgers are
@@ -134,8 +141,9 @@ under `.claude/comment-discipline/` at the project root; the ledgers are
 else `CLAUDE_PROJECT_DIR` — not whatever directory the shell has
 `cd`'d into, which scattered one state dir per directory until 0.23.0. Silence any
 advisory with `CC_REMIND=off`; the denies are not advisories and do not honour it —
-they have their own switch, `CC_COMMENT_GUARD=off`, set in the session's `env` and
-named in every refusal so the person being blocked can read the remedy off the block.
+they have their own switches, `CC_COMMENT_GUARD=off` and, for the elision deny,
+`CC_ELISION_GUARD=off`, set in the session's `env` and named in every refusal so the
+person being blocked can read the remedy off the block.
 Turning the deny off leaves the warnings on: the two lanes are switched separately.
 
 **Writes through Bash (since 0.25.0).** Both hooks also run on `Bash` — one measured
@@ -143,7 +151,7 @@ session made 233 of its 238 main-thread writes that way. A heredoc that `cat` or
 carries to a file (`cat > f <<EOF`, `cat >> f <<EOF`, `tee f <<EOF`, `cat <<EOF | tee f`,
 also behind `sudo`, and for `cat` behind a `VAR=value`) is judged as a `Write` of its
 body to that file: the same detectors, the same message followed by ` Written by a Bash
-command: <file>.`, and the same two denies per file per hook — a `Write` and a heredoc
+command: <file>.`, and the same two denies per file per budget — a `Write` and a heredoc
 to one file share them. A relative target is resolved against the shell's working directory
 and `~/x` against `$HOME`. `scan.sh` judges an append like any other added text. `density.sh`
 denies only a heredoc that replaces the file (`>`, `tee` without `-a`), because an
@@ -161,14 +169,129 @@ skipped, `packages/build/index.ts` is judged. `migrations/` is judged everywhere
 plugin-marketplace repository — a project root holding `.claude-plugin/marketplace.json`
 — so in every other project a deploy script, a template component and a WordPress
 plugin's hook file are judged (a shell script by both hooks since 0.26.0). Until 0.25.0
-those three, `migrations/` and a `build/` at any depth were skipped in every project. Text that declares itself generated is exempt from both
-denies and from the after-Bash measurement: one of the first five lines written (of the
+those three, `migrations/` and a `build/` at any depth were skipped in every project. Text that declares itself generated is exempt from every
+deny and from the after-Bash measurement: one of the first five lines written (of the
 file on disk, for that measurement) holds `@generated` or `<auto-generated`, or
 begins, after the comment leader and in any letter case, with `Code generated`,
 `Generated by`, `Generated from`, `Generated code`, `Auto-generated`, `Autogenerated`,
 `Automatically generated`, `This file was generated` (also `is`, `code`, and the three
 auto forms), `Do not edit` or `Do not modify`. A line that only mentions a generator
 (`// This is not generated by a tool`) no longer exempts the file.
+
+**The elision deny (since 0.30.0).** A `PreToolUse` `Write`, an `Edit` or `MultiEdit`, or
+a Bash heredoc that replaces the file (`cat > f`, `tee f` without `-a`), over an existing
+governed file with a non-blank line is refused only when both hold: a non-blank line of
+the replaced text (the file on disk, or the `old_string`s) is gone from the new text, and
+the new text holds more placeholder comments than the replaced text. Over such a file a
+pure addition is never refused or warned. An `Edit` needs two comparisons to agree that it adds one: the
+whole file after the edits against the file on disk (CRLF line ends normalised), and the
+`new_string`s against the `old_string`s; when they disagree it is neither refused nor
+warned, and when the file is over 1 MiB, holds no copy of an `old_string`, or `jq` is older
+than 1.6 (no `--rawfile`), the second comparison decides alone. The refusal starts `elision-guard:`, names the placeholder line,
+says to re-read the file and write it whole or use `Edit`, and ends by naming its switch,
+`CC_ELISION_GUARD=off` (plus the Bash suffix on a heredoc).
+
+A placeholder is a comment body, in any letter case and after any brackets enclosing the
+whole body, that an ellipsis (`...` or `…`) opens, with no name glued to it, or closes,
+and that holds nothing but a listed phrase and then filler once every ellipsis, bracket,
+`,`, `;` and `:` is set aside. After an opening ellipsis the phrase is any of these, a
+`the` allowed first; otherwise it is a code noun from the first five and starts the body:
+
+- `existing code`, `implementation`, `jsx`, `markup`, `template` or `html`;
+- `rest of (the) code`, `file`, `class`, `function`, `method`, `component`,
+  `implementation`, `template`, `markup`, `jsx` or `html`;
+- `remaining code`, `methods`, `functions`, `fields` or `cases`;
+- `code`, `implementation` or `logic unchanged`, and `unchanged code`, `implementation`
+  or `logic`;
+- `other methods`, `functions`, `code` or `fields`;
+- opening only: `same as above` or `before`, `omitted`, `previous code` or
+  `implementation`, `keep (the) existing` with or without `code`, `implementation` or
+  `logic`.
+
+Filler is `unchanged`, `remain(s)` or `stay(s)` followed by `(the) same` or `unchanged`,
+`as before`, `as above`, `as is`, `here`, `goes here`, `omitted`, `elided`, `kept`,
+`for brevity`, `intact`, `if needed` and `as needed`, in any number and order, bracketed or
+not — nothing else.
+
+So `// ... existing code ...`, `// ...existing code...`, `// (... existing code ...)`,
+`// rest of the code remains the same ...` and `// ... rest of the file (unchanged) ...`
+count; `// omitted ...`, `// keep ... existing code`, `// ... and the rest of the file`,
+`// TODO: handle the remaining cases...`, `// Other fields are omitted...`,
+`// ... remaining cases return null` and `// ... rest of the file is unchanged ...` do not. Markup
+comments count: `{/* ... existing JSX ... */}` in a `.tsx`, `<!-- ... rest of the template
+-->` in a `.vue`. A doc comment (`/** */`, `///`, `//!`, a docstring) never counts.
+
+- **Never judged:** an appending heredoc; doc-comment lines; text whose first five lines
+  carry a generated marker; text inside a multi-line string — JS, TS, JSX, TSX, Vue and
+  Svelte template literals, Go raw strings, Python triple quotes, Kotlin, Java, Swift,
+  Scala, Groovy, Dart and C# `"""` strings, and shell quoted strings and heredoc bodies.
+  The path exemptions above do not apply: code lost under `vendor/` or `.claude/` is still
+  lost. A `Write` or heredoc over a file over 1 MiB is not compared, so it is allowed.
+- **Warned once, never refused:** a placeholder in a new or empty file, a comment that is
+  only an ellipsis, a write past the two-deny bound, and any write with the deny off. The
+  warning arrives after the write (`PostToolUse`), driven by a marker the `PreToolUse`
+  lane leaves.
+- **Switches and budget:** `CC_ELISION_GUARD=off`, or `cc_elision_guard` off in
+  `/config`, turns the deny into that warning; `CC_REMIND=off` silences the warning and
+  leaves the deny on; `CC_COMMENT_GUARD=off` leaves it on too. Two denies per file per
+  session, on a budget of its own: a write that trips this and a comment deny prints the
+  elision reason alone and spends only this budget, so one file can draw up to four
+  refusals across the two.
+- **Missed:** placeholder wording outside the list above; a placeholder trailing code on
+  its line; a markup comment spanning lines; an ellipsis glued to a name with no closing
+  ellipsis (`// ...existing code`, `...$rest`); an ellipsis neither opening nor closing the
+  body (`// keep ... existing code`, `// existing code ...;`) or bracketed (`// [...]
+  existing code`, `// existing code (...)`); one closing it after no code noun
+  (`// omitted ...`) or after a `the` (`// The rest of the code remains the same...`); a
+  listed phrase not at the body start (`// ... and the rest of the file`) or followed by
+  anything but filler (`// ... rest of the file is unchanged ...`); any line of a doc
+  comment; a placeholder inside a multi-line string; every line after an
+  unbalanced backtick (a regex such as `` /`/g ``, JSX text) or a `$(( 1 << y ))` up to
+  the next one, or after a `/\/*` regex read as an opening block comment; a placeholder
+  added where no line is removed; an `Edit` adding a placeholder line the file already
+  holds; an `Edit` whose `new_string` opens by closing a template literal and then adds a
+  placeholder; a `Write` over a file over 1 MiB. After two denies the write goes through
+  with only a warning, so code can still be lost.
+- **One stated refusal**, pinned by a harness case and seen 0 times in the samples and
+  the replay below. A write that removes a line is refused for placeholder-shaped text
+  inside a string the tracker misreads — a PHP `<<<` body, a template literal after a
+  `/\/*` regex.
+- **Read as comments, so their text can be refused or warned:** PHP `<<<` and Ruby `<<~`
+  heredocs, Rust raw and C# verbatim strings, Elixir and Julia `"""`, Perl `<<EOT`, Lua
+  `[[ ]]`, C++ `R"(`, plain multi-line strings in Rust, PHP and Ruby, and an `Edit` whose
+  `new_string` starts inside a string its unchanged text opened, when the file is missing,
+  over 1 MiB or holds no copy of an `old_string`, or when the host's `jq` is older than 1.6.
+
+Measured on real code on 2026-10-05 with `scan.sh`'s own counter, on the grammar this
+release ships: the plugin author's repositories (14,584 files) held 3 matches, all genuine
+placeholders, and system and standard-library code (1,992 files) held 0 — 0 false positives
+in either. Its one committed placeholder, a "(rest of the file remains the same until …)" comment
+in a Homebrew package's C source, matched until the phrase
+had to start the body and only filler could follow it; it is missed now.
+Files holding an ellipsis-only comment, which only warns: 2 and 8. Replaying 4,758 pairs of
+consecutive real git revisions across 80 of those repositories, each revision written as a
+`Write` over its predecessor under default settings, drew 0 elision denies. An independent
+review replayed 13,182 real `Edit`s and 5,326 `Write`s from session transcripts across 69
+repositories with 0 allow → deny under default settings; it ran on the grammar before the
+last three tightenings (an unquoted ellipsis at the start or end of the body; doc-comment lines
+and closing ellipses; a listed phrase first and only filler after it), and they only removed
+matches.
+
+Added hook time against 0.29.0, measured on the build before the final rule (file cksum
+3895726106; the phrase-then-filler rule was not re-timed), median of 20 runs on one macOS
+machine, against a 15 s timeout: +1 ms
+for a Bash call that writes nothing (19 ms); +22 ms for a `PostToolUse` `Write` with no
+warning pending (64 ms); over a 1 MiB plain `.ts` at the cap, +255 ms for a short `Write`
+adding a placeholder (297 ms), +349 ms for a full-file one (671 ms) and +768 ms for an
+`Edit` (812 ms); over a 1 MiB backtick-dense `.ts`, +742 ms short (786 ms) and +1,381 ms
+full-file (1,633 ms), the worst case measured. A write holding no ellipsis skips the
+comparison; an `Edit` on a backtick-dense 1 MiB file was not timed.
+
+Standing: the deny is a **gate** on the shapes above — the hook refuses the write. The
+warning's emission is pinned by `scripts/__tests__/elision-guard.test.sh` (a CI step); its
+effect on what the model does next is unmeasured, and so is the deny's on what the model
+writes. The Missed and Read-as-comments lists are **recorded**: nothing judges those shapes
+at write time.
 
 **How `scan.sh` reads a comment (since 0.29.0).** A leader counts only where the file's
 language has it: `//` in JS, TS, Vue, Svelte, Blade, PHP, C, C++, C#, Objective-C, Go, Rust,
@@ -354,11 +477,11 @@ it. A miss is preferred to judging the wrong file, so an uncertain shape is skip
   the body early and the rest is read as commands; a body line beginning with an RS
   byte (0x1E) opens a false chunk; a `> f` inside a shell comment makes `density.sh`
   measure a file the command did not touch.
-- **Budget:** the two denies are keyed on the path, not the file, so one file reached
+- **Budget:** the denies are keyed on the path, not the file, so one file reached
   through a symlink keeps a second budget, and so does a `Write` whose path holds `..`
   (a Bash target has its `..` collapsed, a `Write` path does not); a deny that co-fires
   with another plugin's deny on the same call spends a try on a write that never
-  happened; a hand-typed generated marker exempts a file from both denies.
+  happened; a hand-typed generated marker exempts a file from every deny.
 
 Standing: the denies are a **gate** on the shapes named above — the hook refuses the
 write. This list is **recorded**: nothing judges what is on it at write time, and

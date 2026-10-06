@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Floors fixture: every layout floor broken</title>
+    <!--
+      Breaks all five floors at 390, 768 and 1280: a three-line headline, the primary
+      action ("Start the trial") below the first viewport while a secondary hero link sits
+      above it, a two-row nav at 1280, the second main section inverted, and one empty
+      cell beside a text cell and an image-only cell in a CSS grid.
+    -->
+    <style>
+      body { margin: 0; background: #fafafa; color: #111; font: 16px/1.5 system-ui, sans-serif; }
+      header { padding: 12px 16px; }
+      nav ul { display: flex; flex-wrap: wrap; gap: 8px; max-width: 600px; margin: 0; padding: 0; list-style: none; }
+      nav li { width: 110px; }
+      main > section { padding: 24px 16px; }
+      h1 { font: 700 32px/1.2 system-ui, sans-serif; margin: 0 0 16px; }
+      .fold { height: 1200px; }
+      .inverted { background: #111; color: #fafafa; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .grid > div { min-height: 60px; border: 1px solid #ccc; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav aria-label="Primary">
+        <ul>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#product">Product</a></li>
+          <li><a href="#customers">Customers</a></li>
+          <li><a href="#security">Security</a></li>
+          <li><a href="#docs">Docs</a></li>
+          <li><a href="#changelog">Changelog</a></li>
+          <li><a href="#careers">Careers</a></li>
+          <li><a href="#blog">Blog</a></li>
+          <li><a href="#status">Status</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+    </header>
+    <main>
+      <section>
+        <h1>Ledgers that<br />close themselves<br />every night</h1>
+        <a href="#docs">Read the docs</a>
+        <div class="fold"></div>
+        <a href="#trial">Start the trial</a>
+      </section>
+      <section class="inverted">
+        <h2>Reconciled before you wake</h2>
+        <p>Every account matched against the bank feed overnight.</p>
+      </section>
+      <section>
+        <h2>What closes</h2>
+        <div class="grid">
+          <div>Payables</div>
+          <div><svg width="40" height="40" role="img" aria-label="Receivables"><rect width="40" height="40" fill="#555" /></svg></div>
+          <div></div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

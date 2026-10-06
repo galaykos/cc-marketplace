@@ -72,7 +72,7 @@
 #     absolute floor of 0.3 so a repo that comments almost nothing cannot make a single
 #     why-comment an outlier, then capped at CEIL. The floor EQUALS the default ceiling,
 #     so the sibling test decides only where a project raised CEIL past 0.3 or set it to 0.
-#     A file under 50 lines, or under 8 code lines, gets the SHORT rule instead: over the
+#     A file under 50 non-blank lines, or under 8 code lines, gets the SHORT rule instead: over the
 #     limit with 5+ prose lines, a code line, and more prose than code (or than CEIL allows,
 #     once CEIL is past 1:1); CEIL=0 switches it off. The ledger records every measurement
 #     so the thresholds can be revisited against real data instead of re-argued.
@@ -494,7 +494,7 @@ EOF
     [ "$tries" -ge "$DENY_CAP" ] && return 1
     # The name goes through the environment: macOS awk refuses a -v value holding a newline.
     msg=$(file_name="${fp##*/}" LC_ALL=C awk -v c="$pprose" -v cd="$pcode" -v r="$d_ratio" -v l="$limit" \
-      'BEGIN { f = ENVIRON["file_name"]; printf "comment-discipline: %s would be %.1f:1 comment-to-code (%d comment lines, %d code); the ceiling is %.1f:1. Write it again with the code carrying the meaning: keep only a why-this-not-the-obvious, an external constraint with a link, a deliberate no-op, or a contract fact the signature cannot state (units, ownership, what throws, required call order) — and move the rest to a name, a type, or a test. Blocked at most twice per file; after that a write goes through with a warning instead. CC_COMMENT_GUARD=off disables this block for the session (CC_REMIND=off silences the warning it falls back to).", f, r/10, c, cd, l/10 }')
+      'BEGIN { f = ENVIRON["file_name"]; printf "comment-discipline: %s would be %.1f:1 comment-to-code (%d comment lines, %d code); the ceiling is %.1f:1. Write it again with the code carrying the meaning: keep only a why-this-not-the-obvious, an external constraint with a link, a deliberate no-op, or a contract fact the signature cannot state (units, ownership, what throws, required call order) — and move the rest to a name, a type, or a test. A project that states a heavier house style sets COMMENT_DISCIPLINE_CEILING_TENTHS in its settings env (5 for 0.5:1). Blocked at most twice per file; after that a write goes through with a warning instead. CC_COMMENT_GUARD=off disables this block for the session (CC_REMIND=off silences the warning it falls back to).", f, r/10, c, cd, l/10 }')
     [ -n "$msg" ] || return 1
     mkdir "$marker.d$((tries + 1))" 2>/dev/null || return 1
     return 0

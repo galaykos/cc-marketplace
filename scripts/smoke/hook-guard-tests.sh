@@ -192,6 +192,11 @@ if pin_hook approaches consult-remind.sh "$rel [refusals]"; then
   pin_case "$rel [slash]" silent on approaches consult-remind.sh '/plan rm -rf node_modules and reinstall'
   # An empty prompt cannot carry the trigger, so it rides beside it: the hook must read .prompt alone.
   pin_case "$rel [empty]" silent on approaches consult-remind.sh '' '' '{"note":"rm -rf node_modules"}'
+  # [control] below runs the same prompt with jq on PATH and must speak.
+  CC_REMIND=on TMPDIR="$(mktemp -d "$WORK/pin.XXXXXX")" CLAUDE_PLUGIN_ROOT="$ROOT/plugins/approaches" \
+    assert_silent "$rel [no-jq]" "$ROOT/$rel" \
+    "{\"prompt\":\"rm -rf node_modules and reinstall\",\"session_id\":\"pin-nojq\",\"cwd\":\"$PIN_CWD\"}" "$NOJQ"
+  found=$((found+1))
   for spec in \
     "notification-paste|[SYSTEM NOTIFICATION - NOT USER INPUT] task-notification: agent finished, it ran rm -rf node_modules and the build is still red" \
     "meta-request|we should fix the keyword trigger of the reminder hook, it fires on rm -rf node_modules" \

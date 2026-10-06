@@ -28,6 +28,7 @@ Resolve every row below, echo them to the user, then build:
 | Mode | `one-shot` or `guided` — see Part 6 |
 | Ambition | `restrained`, `standard`, or `maximal` — see Part 7 and `ambition-tiers.md` |
 | Boost | `ultra-craft` or `none` — see Part 7; a boost that was only spoken cannot be checked |
+| Redesign | `keep-brand`, `new-look`, or `greenfield` — see below and `redesign-preservation.md` |
 | Not shipping | what was considered and cut |
 
 **One product per build.** When the brief admits several products, positionings, or
@@ -38,6 +39,17 @@ and each page's proof, pricing, and CTA get half the room they need.
 **Internal artifacts are not routes.** A token/kit/design-system showcase is a useful build
 artifact; it ships as a site route only when the user asked for one. Mounted in the product
 nav it reads as an unfinished demo.
+
+**An existing site is a redesign.** A target already shipping routes, pages or content pins the
+`Redesign` row by `redesign-preservation.md`'s default — `keep-brand` unless the brief asks for a
+new look, `new-look` for an earlier craft run's own output — and that file owns the modes and
+what a redesign never changes without asking. Generator output is not a site: a starter page or
+kit, demo routes, auth scaffolding (Breeze or Jetstream's `/login` and `/register`,
+create-next-app's layout). A `keep-brand` contract also carries a `Brand echo:` line naming the
+kept accent value(s), as a 6-digit hex, `hsl()` or `oklch()`, and font family name(s) as the
+site ships them — `Brand echo: #5b2a86 · <heading family> · <body family>` — because that line
+is how `divergence.mjs` tells a kept brand from a reached-for default. It never names a value
+the generator shipped: create-next-app's Geist is not the client's brand.
 
 ## Part 1a — The brief pair, and marking what was inferred
 
@@ -247,7 +259,8 @@ the build runs on. **That one exchange also carries the CONTENT-SOURCE question*
 does copy for this page already exist? — as a second question inside the same
 `AskUserQuestion` call, never a second call, because the exchange is already open
 and it is the cheapest question in the flow (`content-source.md` owns the rules and
-the `source: none-located` default). ONE exchange, two questions; the cap does not
+the `source: none-located` default). ONE exchange, two questions — three on a redesign,
+whose mode rides the same call (`redesign-preservation.md`); the cap does not
 move. Everything else about `one-shot` is unchanged: no section
 rounds, no per-treatment questions, no colour-by-colour approval; after the fork
 the page arrives finished. The fork binds at every tier, this one included,
@@ -336,8 +349,8 @@ middle dot, space):
 The stamp is computed ONCE, at step 0, and copied BYTE-IDENTICAL onto every artifact the
 run persists — contract, divergence record, content source, build task, section ledger,
 reference board. Identical is the whole mechanism: two artifacts belong to the same run if
-and only if their stamps match exactly, so re-reading the clock per file defeats it. `Run:`
-is deliberately not a deck-axis name and not `Brand echo:` — the same key-collision rule
+and only if their stamps match exactly, so re-reading the clock per file defeats it. `Run:`,
+like Part 1's `Redesign:`, is deliberately not a deck-axis name and not `Brand echo:` — the same key-collision rule
 `concept-deck.md` states for the negative-constraints block applies here, because the
 divergence gate parses every `Key: value` line of the record it reads.
 

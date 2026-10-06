@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Floors fixture probe: a dark site painted by its app wrapper</title>
+    <!-- html and body paint white; the #app wrapper paints the dark page every section sits on. -->
+    <style>
+      html, body { margin: 0; background: #fff; }
+      #app { min-height: 100vh; background: #0a0a0a; color: #eee; font: 16px/1.5 system-ui, sans-serif; }
+      main > section { padding: 24px 16px; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <main>
+        <section>
+          <h1>Night ledger</h1>
+          <p>Every account matched against the bank feed overnight.</p>
+        </section>
+        <section>
+          <h2>What closes</h2>
+          <p>Payables, receivables and payroll.</p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

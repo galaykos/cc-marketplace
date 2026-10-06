@@ -108,8 +108,9 @@ without exception:
       fingerprint's "Recurring copy register" section
       (`skills/creative-direction/references/sameness-fingerprint.md`) — `divergence.mjs`'s
       `copy-register` and `emoji-as-icon` verdicts reported as the scripted half (multi-word
-      phrases, pictograph icons, and the three mechanical chrome rows: the ALL-CAPS eyebrow,
-      the middle-dot meta string and the trailing arrow), plus this agent's own half: the verb
+      phrases, pictograph icons, and the four mechanical chrome rows: the ALL-CAPS eyebrow,
+      the middle-dot meta string and the trailing arrow, and the worded scroll cue), plus this
+      agent's own half: the verb
       family, intensifiers and fragment-headline shapes the mechanical patterns cannot see,
       graded in rendered copy.
 - [ ] The VOICE was honored — `craft/build-task.md`'s `Voice:` line read, then rendered copy
@@ -171,6 +172,15 @@ without exception:
 - [ ] The offer contract holds — routes match the pinned scope, ONE product under its real
       name, every offer-spine slot answered, the what-line clear of the concept's metaphor
       vocabulary, a proof region present as slots not deleted.
+- [ ] A redesign PRESERVED what it found — when the contract's `Redesign:` is `keep-brand` or
+      `new-look`, every value in `<project>/.craft-layer/preserve.json` (routes, anchor ids, nav
+      labels, form fields in order, analytics ids, logo, legal copy) still ships, or its change has
+      a matching `approved` entry (`item` = `<key>:<recorded value>`) and is as asked; a changed
+      value with no entry is one finding, "approval not recorded". `logo` and `legal` are judged by
+      the asset's and the copy's content, not the path — original unreadable → `not checked`. A
+      missing file, or one holding only categories without values → `not checked`, never a pass;
+      no `Redesign:` row → `not checked (no Redesign row)`; `greenfield` → `not applicable`.
+      Agent-graded.
 - [ ] The three BUYER slots were answered in a buyer's REGISTER — `divergence.mjs`'s
       `spine-register` verdict reported as the SCRIPTED half (it reads the build task's
       `Spine regions:` mapping; no line or no mapped anchor → `not checked`, never a pass),
@@ -199,6 +209,29 @@ without exception:
 - [ ] The captured SHOTS were opened — `Visual: <n> shots opened`, with clipped text,
       overlapping labels, truncation and covered content hunted in the images themselves
       (no shots injected → gate `not checked (no shots captured)`, never a look implied).
+- [ ] The LAYOUT FLOORS below (source: taste-skill ce26fc25, MIT — figures unverified) were each
+      judged against the concept's stated argument. Agent-graded; the measured rows read a
+      report-only measurement, not a gate. A break the argument makes on purpose PASSES, the
+      argument cited in the coverage note; only an un-argued break is a finding, and a floor
+      finding never fails the audit on its own. The first four read the injected
+      `<project>/.craft-layer/layout-floors.json` per breakpoint; a `"not found"` value, or an
+      absent or stale file, is `not measured` for that row — never estimated from source or shots.
+      The last three are graded from shots and source; no shots injected → graded from source
+      alone, and said so.
+  - [ ] Hero headline ≤ 2 lines at 1280 (`headlineLines`), and the primary CTA inside the
+        first viewport at every width (`ctaInFirstViewport`).
+  - [ ] Desktop nav on one line (`navLines` at 1280).
+  - [ ] No empty grid cells (`emptyGridCells`), each confirmed in the shot at the width where
+        `layout-floors.json` measured it before it is reported.
+  - [ ] No section whose `polarity` differs from that breakpoint's `pagePolarity` unless the
+        concept's drawn colour-behaviour option was "Polarity flip" or "Sectional environments";
+        either value `"not found"` → `not measured`.
+  - [ ] No layout family used for two sections in a row (image+text splits, mirrored or not, are
+        graded by the zigzag row only).
+  - [ ] The zigzag: at most two consecutive image+text split sections, mirrored or not.
+  - [ ] Each multi-column section states its mobile collapse — a grid that collapses on its own
+        (`auto-fit`/`minmax`, `flex-wrap`) satisfies it; a missing collapse is confirmed in the 390
+        shot before it is reported.
 - [ ] Full a11y and performance were deferred, not re-checked here.
 
 ## Defer
@@ -222,5 +255,5 @@ One line per finding, no praise and no rewrites:
 
     path:line — severity — problem — fix
 
-Close with the two Defer pointers (`/ui-ux:audit`, `/resilience:review --concern performance`) so the
+Close with a coverage note — each argued floor pass with the argument it cites — and the two Defer pointers (`/ui-ux:audit`, `/resilience:review --concern performance`) so the
 caller runs them for the checks you did not.

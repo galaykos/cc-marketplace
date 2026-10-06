@@ -24,6 +24,10 @@ from `creative-direction/references/archetypes.md`), and the sameness-fingerprin
 (`creative-direction/references/moves-taxonomy.md`) for the move CATEGORIES you reason
 from — derive a specific move, never pick a named one off a list.
 
+On a redesign the dispatch also carries the contract's `Redesign:` mode and `Brand echo:` line
+(`creative-direction/references/redesign-preservation.md`). Under `keep-brand` the echoed accent
+hue and type family are kept: no departure may replace them, so K lands on the other axes.
+
 ## Procedure
 
 1. **Generate N ≈ 4 blind candidates.** Each is { central metaphor · editorial voice · ONE

@@ -1295,6 +1295,8 @@ verdict $? "rule: a truncating heredoc of the 5 / 4 file is refused at 1.0:1" "o
 
 expect "rule: 35 prose / 100 code prints its ratio rounded up, 0.4:1 against the 0.3:1 ceiling" "$(reason_of "$(wr 35 100)")" \
   "would be 0.4:1 comment-to-code (35 comment lines, 100 code); the ceiling is 0.3:1"
+expect "rule: the refusal names COMMENT_DISCIPLINE_CEILING_TENTHS for a heavier house style, ahead of its unchanged bound" "$(reason_of "$(wr 36 100)")" \
+  "sets COMMENT_DISCIPLINE_CEILING_TENTHS in its settings env (5 for 0.5:1). Blocked at most twice per file;"
 
 mix 31 100 > "$TMP/m31.txt"
 out=$(bash_hook PreToolUse "$RD" h31 "$(heredoc 'cat > src/h31.js' "$TMP/m31.txt")")

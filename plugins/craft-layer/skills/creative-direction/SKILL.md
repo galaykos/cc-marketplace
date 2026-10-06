@@ -131,6 +131,7 @@ Concept and DIRECTION belong here; values, mining, and generation belong to thos
 
 - `references/offer-contract.md` — deliverable scope, product identity, the offer-spine slots.
 - `references/content-source.md` — ingesting copy that already exists: verbatim claims, legal blocks in full, the `{{lorem}}` default, the dated staleness rule.
+- `references/redesign-preservation.md` — an existing site's redesign mode (`keep-brand` by default) and the values it never changes without asking, recorded in `preserve.json`.
 - `references/ambition-tiers.md` — the reach tiers, their token + prose pinning vocabulary,
   the four `maximal` floors, and the ceilings that never move.
 - `references/archetypes.md` — the work-type dial-set, classification rule, `general` fallback.
