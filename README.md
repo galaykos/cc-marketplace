@@ -153,6 +153,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_ELISION_GUARD` | code-review | on | Refuse, not just warn about, a write replacing code with // … existing code … or similar: on or off |
 | `CC_EVIDENCE_GATE` | candor | block | Stop-gate clause for a completion claim with nothing run since the last edit: block, warn or off |
 | `CC_LOCKFILE_GATE` | candor | on | Stop-gate clause for a dependency manifest changed with its lockfile untouched: on or off |
+| `CC_OVERSEER_STATUS` | overseer | on | Pin the open program's next milestone under the prompt: on or off |
 | `CC_PALETTE` | ui-ux | on | Name the category-default indigo, violet or purple accent when a UI write uses it: on or off |
 | `CC_PREAMBLE` | candor | on | Inject the five working moves before the first edit of a session and of each subagent: on or off |
 | `CC_PREVIEW_GUARD` | taskmaster, ui-ux | on | Ask before an HTML page is published as a remote artifact instead of served locally: on or off |

@@ -9,3 +9,4 @@ overseer:status	command	any	program-board	invoked as /overseer:status	-
 overseer:overseer	skill	any	program-level-delivery-ownership	a program is open under .claude/overseer/ or /overseer:start was just invoked; owns the milestone loop, never a phase inside it	taskmaster:ultra,candor:gate
 overseer:announce	hook	any	open-program-announcement	SessionStart while .claude/overseer/program.json exists with a milestone neither done nor parked	-
 overseer:track-read	hook	any	read-ledger-for-evidence	PostToolUse Read while .claude/overseer/program.json exists in the session project	-
+overseer:status-line	mod	any	program-status-line	.claude/overseer/program.json has an open milestone (program.sh's next-milestone rule); refreshed at session start and after every tool call	-

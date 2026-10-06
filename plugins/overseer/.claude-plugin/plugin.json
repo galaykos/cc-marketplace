@@ -10,5 +10,13 @@
     "pipeline",
     "product",
     "planning"
-  ]
+  ],
+  "userConfig": {
+    "cc_overseer_status": {
+      "type": "boolean",
+      "title": "Program status line (CC_OVERSEER_STATUS)",
+      "description": "Pin the open program's next milestone under the prompt: on or off. The environment variable CC_OVERSEER_STATUS overrides this.",
+      "default": true
+    }
+  }
 }
