@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0 — 2026-10-06
+
+- **The next-milestone rule as a pure function, `hooks/status-core.ts`. Nothing calls it yet.** `nextMilestone` takes a parsed `program.json` and returns the milestone `program.sh`'s `NEXT_FILTER` selects: the first one that is neither done nor parked and whose every `depends` id is done. A parked dependency is never met. The result carries `k`, its 1-based position, and `n`, the milestone count. It returns null when no open milestone has every dependency done (one waiting on a parked milestone included) or the input is malformed. `overseerLine` renders `overseer  milestone <k>/<n>  <id> <title> (<status>)`. `scripts/__tests__/status-core.test.sh` reads `NEXT_FILTER` out of `program.sh` each time it runs and requires jq and the function to name the same milestone on every fixture. CI runs it in the plugin-harness step, so if the two drift apart the build fails.
+
 ## 0.5.6 — 2026-09-30
 
 - Eval cases with an `llm` grader now declare `runs: 3` (was 1). Three runs are the fewest that can tell a regression from a flake, and the marketplace's eval load gate now fails a case with fewer.
