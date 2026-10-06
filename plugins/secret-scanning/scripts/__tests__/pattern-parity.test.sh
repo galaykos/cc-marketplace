@@ -15,6 +15,8 @@ command -v node >/dev/null && command -v jq >/dev/null || { echo "FAIL: node and
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 mismatch=0; offcase=0; slow=0; diverged=0
 BOUND_MS=500
+# A 1 MB line may take at most SCALE_MAX times the 310 kB one; below SCALE_FLOOR_MS a ratio is timer noise.
+SCALE_MAX=4; SCALE_FLOOR_MS=25
 
 AWS="AKIA""ABCDEFGHIJKLMNOP"
 AWS2="AKIA""QRSTUVWXYZ234567"
@@ -256,15 +258,34 @@ import { readFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
 const { parsePatterns, redact } = await import(pathToFileURL(process.argv[1]).href)
 const pats = parsePatterns(readFileSync(process.argv[2], "utf8"))
-const line = "token-".repeat(50000)
-const start = performance.now()
-redact(line, pats)
-console.log(Math.round(performance.now() - start))'
-ms=$(node --input-type=module -e "$CORE_TIME" "$CORE" "$PAT" 2>&1)
-if [[ $ms =~ ^[0-9]+$ ]] && [ "$ms" -lt "$BOUND_MS" ]; then
-  echo "timing: redact on a 300 kB token- line took $ms ms (bound $BOUND_MS ms)"
+const marker = "-----BEGIN RSA PRIVATE " + "KEY-----"
+const best = line => Math.min(...[0, 1, 2].map(() => { const start = performance.now(); redact(line, pats); return performance.now() - start }))
+const lines = [
+  "token-".repeat(50000),
+  marker.repeat(10000),
+  marker.repeat(Math.ceil(1e6 / marker.length)),
+  `${marker}Proc-Type: x`.repeat(5000) + "\nAAAA".repeat(20000),
+]
+console.log(lines.map(line => Math.round(best(line))).join(" "))'
+timed=$(node --input-type=module -e "$CORE_TIME" "$CORE" "$PAT" 2>&1)
+read -r token_ms marker_ms mega_ms header_ms <<<"$timed"
+if [[ "$token_ms $marker_ms $mega_ms $header_ms" =~ ^[0-9]+\ [0-9]+\ [0-9]+\ [0-9]+$ ]]; then
+  for timing in "a 300 kB token- line|$token_ms" "a 310 kB line of repeated private-key BEGIN markers|$marker_ms" \
+                "5000 header-led BEGIN markers on one line, then 20000 body lines|$header_ms"; do
+    if [ "${timing#*|}" -lt "$BOUND_MS" ]; then
+      echo "timing: redact on ${timing%|*} took ${timing#*|} ms (bound $BOUND_MS ms)"
+    else
+      slow=$((slow + 1)); echo "FAIL timing: redact on ${timing%|*} took ${timing#*|} ms, bound $BOUND_MS ms"
+    fi
+  done
+  scale_ms=$(( SCALE_MAX * (marker_ms > SCALE_FLOOR_MS ? marker_ms : SCALE_FLOOR_MS) ))
+  if [ "$mega_ms" -le "$scale_ms" ]; then
+    echo "timing: the repeated BEGIN markers over 1 MB took $mega_ms ms (bound $scale_ms ms, ${SCALE_MAX}x the 310 kB time)"
+  else
+    slow=$((slow + 1)); echo "FAIL timing: the repeated BEGIN markers over 1 MB took $mega_ms ms, bound $scale_ms ms (${SCALE_MAX}x the 310 kB time): not linear"
+  fi
 else
-  slow=1; echo "FAIL timing: redact on a 300 kB token- line took ${ms} ms, bound $BOUND_MS ms"
+  slow=$((slow + 1)); echo "FAIL timing: node could not time redact: $timed"
 fi
 
 T=$'\t'; LAST="line $(( $(wc -l < "$PAT") + 1 ))"

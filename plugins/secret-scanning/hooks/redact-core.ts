@@ -2,6 +2,24 @@ export type Pattern = { kind: 'secret' | 'assigned' | 'placeholder'; label: stri
 
 type Span = { start: number; end: number; ranks: number[]; opensKey: boolean }
 
+// The break-delimited lines of one string, built once when a BEGIN there has no END after it. contentEnd drops trailing
+// blanks and a `\r` escape; lastNonBase64 and lastTerminator are the last content positions holding a non-base64
+// character and one `.` does not match (start - 1 when none). The rest fields describe a scan that starts on the next
+// line: where its last non-blank PEM line ends and where its closing line's quoted base64 run ends (-1 when none), and
+// whether it reaches the end of the string still open.
+type Lines = {
+  start: Int32Array
+  end: Int32Array
+  contentEnd: Int32Array
+  lastNonBase64: Int32Array
+  lastTerminator: Int32Array
+  restEnd: Int32Array
+  restQuoted: Int32Array
+  restOpen: Uint8Array
+}
+
+type Shape = 'blank' | 'filled' | 'closed'
+
 // Key blocks left open at the end of a value, by path inside it: '' the value itself, ."key" a field, [i] an element.
 type Open = Map<string, number[]>
 
@@ -21,9 +39,9 @@ const VALUE_STOPS = { '"': /"/g, "'": /'/g, ' ': /["'`\s]/g }
 const KEY_END = /-----END ([A-Z]+ )?PRIVATE KEY-----/g
 
 const LINE_BREAK = /\n|\\n/g
-const PEM_LINE = /^(?:[A-Za-z0-9+\/=]*|(?:Proc-Type|DEK-Info):.*)$/
-// The last base64 run of a key held in a quoted string literal, cut off by the closing quote rather than a line break.
-const QUOTED_RUN = /^[ \t]*[A-Za-z0-9+\/=]+(?=["'])/
+const BASE64_CHAR = /[A-Za-z0-9+\/=]/
+const TERMINATOR = /[\r\u2028\u2029]/
+const BLANK = /\s/
 
 // The only characters grep -i folds into ASCII letters under C.UTF-8; JavaScript's i without the u flag folds neither.
 const FOLDABLE = /[\u017f\u0131]/g
@@ -188,34 +206,145 @@ function spansOf(text: string, pats: Pattern[]): Span[] {
   return spans
 }
 
-// Where a key block with no END after it in this string stops: after its last PEM-shaped line.
-function pemBlockEnd(text: string, from: number): { end: number; open: boolean } {
-  let end = from
-  let at = from
+// Read from `at`, a line is PEM-shaped when, trimmed, it is base64 only, a Proc-Type: or DEK-Info: header, or blank.
+function shapeOf(text: string, lines: Lines, k: number, at: number): Shape {
+  const contentEnd = lines.contentEnd[k] ?? at
+  let content = at
 
-  for (;;) {
+  while (content < contentEnd && BLANK.test(text.charAt(content))) {
+    content++
+  }
+
+  if (content >= contentEnd) {
+    return 'blank'
+  }
+
+  const header = text.startsWith('Proc-Type:', content) || text.startsWith('DEK-Info:', content)
+  const last = (header ? lines.lastTerminator[k] : lines.lastNonBase64[k]) ?? content
+
+  return last < content ? 'filled' : 'closed'
+}
+
+// Where the last base64 run of a key held in a quoted string literal ends, cut off by the closing quote; -1 when none.
+function quotedRunEnd(text: string, lines: Lines, k: number, at: number): number {
+  const end = lines.end[k] ?? at
+  let run = at
+
+  while (run < end && (text.charAt(run) === ' ' || text.charAt(run) === '\t')) {
+    run++
+  }
+
+  const runStart = run
+
+  while (run < end && BASE64_CHAR.test(text.charAt(run))) {
+    run++
+  }
+
+  return run > runStart && /["']/.test(text.charAt(run)) ? run : -1
+}
+
+function lineIndex(text: string): Lines {
+  let count = 1
+
+  for (LINE_BREAK.lastIndex = 0; LINE_BREAK.exec(text); ) {
+    count++
+  }
+
+  const lines: Lines = {
+    start: new Int32Array(count),
+    end: new Int32Array(count),
+    contentEnd: new Int32Array(count),
+    lastNonBase64: new Int32Array(count),
+    lastTerminator: new Int32Array(count),
+    restEnd: new Int32Array(count),
+    restQuoted: new Int32Array(count),
+    restOpen: new Uint8Array(count),
+  }
+  let at = 0
+
+  for (let k = 0; k < count; k++) {
     LINE_BREAK.lastIndex = at
     const lineBreak = LINE_BREAK.exec(text)
-    const line = text.slice(at, lineBreak ? lineBreak.index : text.length)
-    const kept = line.trimEnd()
-    const content = kept.endsWith('\\r') ? kept.slice(0, -2).trimEnd() : kept
+    const end = lineBreak ? lineBreak.index : text.length
+    const kept = text.slice(at, end).trimEnd()
+    const contentEnd = at + (kept.endsWith('\\r') ? kept.slice(0, -2).trimEnd() : kept).length
+    let lastNonBase64 = contentEnd - 1
+    let lastTerminator = contentEnd - 1
 
-    if (!PEM_LINE.test(content.trimStart())) {
-      const run = QUOTED_RUN.exec(line)
-
-      return { end: run ? at + run[0].length : end, open: false }
+    while (lastNonBase64 >= at && BASE64_CHAR.test(text.charAt(lastNonBase64))) {
+      lastNonBase64--
     }
 
-    if (content.trim() !== '') {
-      end = at + content.length
+    while (lastTerminator >= at && !TERMINATOR.test(text.charAt(lastTerminator))) {
+      lastTerminator--
     }
 
-    if (!lineBreak) {
-      return { end, open: true }
-    }
-
-    at = lineBreak.index + lineBreak[0].length
+    lines.start[k] = at
+    lines.end[k] = end
+    lines.contentEnd[k] = contentEnd
+    lines.lastNonBase64[k] = lastNonBase64
+    lines.lastTerminator[k] = lastTerminator
+    at = lineBreak ? lineBreak.index + lineBreak[0].length : end
   }
+
+  let restEnd = -1
+  let restQuoted = -1
+  let restOpen = 1
+
+  for (let k = count - 1; k >= 0; k--) {
+    const start = lines.start[k] ?? 0
+    const shape = shapeOf(text, lines, k, start)
+
+    lines.restEnd[k] = restEnd
+    lines.restQuoted[k] = restQuoted
+    lines.restOpen[k] = restOpen
+
+    if (shape === 'closed') {
+      restEnd = -1
+      restQuoted = quotedRunEnd(text, lines, k, start)
+      restOpen = 0
+    } else if (shape === 'filled' && restEnd === -1) {
+      restEnd = lines.contentEnd[k] ?? -1
+    }
+  }
+
+  return lines
+}
+
+function lineAt(lines: Lines, at: number): number {
+  let low = 0
+  let high = lines.start.length - 1
+
+  while (low < high) {
+    const mid = (low + high + 1) >> 1
+
+    if ((lines.start[mid] ?? Infinity) <= at) {
+      low = mid
+    } else {
+      high = mid - 1
+    }
+  }
+
+  return low
+}
+
+// Where a key block with no END after it in this string stops: after its last PEM-shaped line. `from` is a line start
+// or the end of a BEGIN marker, never inside a line's trailing blanks; the rest of the scan is read from `lines`.
+function pemBlockEnd(text: string, lines: Lines, from: number): { end: number; open: boolean } {
+  const k = lineAt(lines, from)
+  const shape = shapeOf(text, lines, k, from)
+
+  if (shape === 'closed') {
+    const quoted = quotedRunEnd(text, lines, k, from)
+
+    return { end: quoted === -1 ? from : quoted, open: false }
+  }
+
+  const quoted = lines.restQuoted[k] ?? -1
+  const last = lines.restEnd[k] ?? -1
+  const own = shape === 'filled' ? (lines.contentEnd[k] ?? from) : from
+
+  return { end: quoted !== -1 ? quoted : last !== -1 ? last : own, open: lines.restOpen[k] === 1 }
 }
 
 // `carried` is a key block left open by an earlier value; `open` is one this string leaves open.
@@ -225,6 +354,7 @@ function merged(text: string, spans: Span[], carried: number[] | null): { spans:
   const all = carried ? [{ start: 0, end: 0, ranks: carried, opensKey: true }, ...spans] : spans
   let searchedFrom = Infinity
   let keyEnd: { start: number; end: number } | null = null
+  let lines: Lines | null = null
 
   for (const span of [...all].sort((a, b) => a.start - b.start)) {
     let end = span.end
@@ -238,7 +368,7 @@ function merged(text: string, spans: Span[], carried: number[] | null): { spans:
         keyEnd = found ? { start: found.index, end: found.index + found[0].length } : null
       }
 
-      const block = keyEnd ? { end: keyEnd.end, open: false } : pemBlockEnd(text, span.end)
+      const block = keyEnd ? { end: keyEnd.end, open: false } : pemBlockEnd(text, (lines ??= lineIndex(text)), span.end)
 
       end = block.end
 
