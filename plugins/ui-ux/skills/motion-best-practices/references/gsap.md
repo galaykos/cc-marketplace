@@ -50,6 +50,34 @@ is a no-code visual animation builder that competes with Webflow's.
   hides. If pins still jump, `ScrollTrigger.normalizeScroll(true)` stops the
   bar from toggling on most mobile browsers. Standing: recorded.
 
+Traps that code written from memory falls into — read 2026-10-06 against
+gsap 3.15.0 (https://gsap.com/resources/st-mistakes/ and the ScrollTrigger
+docs; the rest of this file keeps its stamp). Standing: recorded.
+
+- Stacked tweens on one property: a tween with a `scrollTrigger` renders
+  immediately (`immediateRender` defaults to true for it, as for every
+  `from()`/`fromTo()`) and records its start values at creation. Two tweens
+  on the same property of one element, each with its own trigger, fight —
+  the later one's start state overwrites the earlier at load, and the value
+  jumps back between scenes. Put `immediateRender: false` on the later
+  tweens, give them explicit `fromTo()` starts, or run them on one timeline
+  under one trigger.
+- Function-based values: a horizontal-scroll distance such as
+  `x: () => -(track.scrollWidth - innerWidth)` is re-read on refresh only
+  when the trigger sets `invalidateOnRefresh: true`; without it the width
+  measured at load survives every resize.
+- `containerAnimation` (triggers inside a horizontally scrolled section): the
+  container's tween must use `ease: "none"`, and triggers attached to it
+  cannot pin or snap.
+- Creation order: a pinning trigger adds scroll distance that every trigger
+  below it must include, so create triggers in page order. Components that
+  mount out of order (lazy sections, async routes) need `refreshPriority`
+  (higher refreshes first) or `ScrollTrigger.sort()`.
+- `scroll-behavior: smooth` on `html` (Tailwind's `scroll-smooth`, Bootstrap
+  5's default) delays the scroll-to-top that `refresh()` measures from, so
+  start/end land wrong after a resize — override it with
+  `html { scroll-behavior: auto !important; }` where ScrollTrigger runs.
+
 ## SplitText (v3.13 rewrite)
 
 - Split only what you animate (`type: "lines"` beats `"lines,words,chars"` for

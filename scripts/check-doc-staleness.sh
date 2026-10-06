@@ -33,6 +33,17 @@
 # read back. Residual: a URL that still answers 200 with rewritten content is
 # reported as reachable; only a human or model diff catches that, which is
 # what the digest-refresh skill is for.
+#
+# Three more gaps, recorded 2026-10-05 and not built:
+#   - --live runs only by hand. CI runs the age check alone (validate.yml's
+#     "doc staleness" step), so motion 14 (npm, published 2026-10-02) sat
+#     behind two npm:motion@13 stamps until someone ran --live by hand.
+#   - npm: is the only tail read. A composer:/Packagist tail is ignored, so a
+#     Laravel or other PHP major surfaces only through the age warning, even
+#     though validate.sh's pc_version_stamp_tail accepts a composer: tail.
+#   - A versioned docs URL (laravel.com/docs/13.x/...) is HEADed, never probed
+#     for the next version (docs/14.x answering 200), so a new major with no
+#     package tail stays invisible to --live.
 set -u
 cd "$(dirname "$0")/.." || exit 0
 

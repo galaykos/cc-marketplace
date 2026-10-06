@@ -41,6 +41,14 @@ race, or a crawler that does not scroll. Fix: guarantee a visible fallback — s
 or pair `viewport={{ once: true, amount: 0.2 }}` with a safety timeout that clears the
 hidden state. The content must be readable with the animation stripped out.
 
+AOS (`aos`, `data-aos` attributes) ships this trap by default. In 2.3.4 — the `latest` tag,
+published 2018, with `next` a 2018 beta (npm, checked 2026-10-06) — the stylesheet sets every
+`[data-aos^=fade]` element to `opacity: 0` with no JS-ready gate, so the content stays hidden
+whenever the script does not run; neither its CSS nor its JS reads `prefers-reduced-motion`, and
+its `disable` option is evaluated once, at `init`. Prefer the fallback-safe reveal above. A
+project keeping AOS adds both missing halves itself: an override that shows `[data-aos]` without
+JS, and a reduced-motion path that follows the media query. Standing: recorded.
+
 ## Split-text headings → screen-reader letter soup
 
 Splitting text into per-letter or per-word spans makes assistive tech announce it piece by

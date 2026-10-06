@@ -117,7 +117,9 @@ No page transition ships without this:
 - Snapshot cost scales with named elements and painted area; name ONE element, not a
   grid. Large fixed backgrounds captured every nav are a hidden cost.
 - No new runtime dependency: the API is native. Motion's `animateView` is optional and
-  only when you already ship Motion — do not add a library for page transitions.
+  only when you already ship Motion — do not add a library for page transitions, except a
+  route swapper (Swup, or a Barba already shipped) on a multi-page site that is not an SPA:
+  `references/framework-seams.md` § Route swappers.
 
 ## References
 

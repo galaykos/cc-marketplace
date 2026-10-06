@@ -130,7 +130,8 @@ Every scroll surface answers this or it does not ship:
 
 - `references/lenis-substrate.md` — Lenis setup (vanilla and `lenis/react`), the
   stylesheet, `autoRaf` vs the ticker, nested scrollers, anchors, sticky-safety, the
-  ScrollTrigger feed, the reduced-motion disable path, and the virtual-scroll rule.
+  ScrollTrigger feed, the reduced-motion disable path, the virtual-scroll rule, Locomotive
+  Scroll 5 (a Lenis wrapper) and the ScrollSmoother conflict.
 - `references/css-scroll-driven.md` — native `animation-timeline: scroll()` / `view()`
   as the no-JS reduced-bundle path, support/fallback, and reduced-motion gating.
 - `references/orchestration-decision.md` — scrub vs trigger vs parallax: the three
@@ -147,7 +148,10 @@ Every scroll surface answers this or it does not ship:
 - **Two scroll positions** — native scroll + Lenis + CSS scroll-driven all live at
   once; drift and jitter. One contract only.
 - **Transformed page wrapper** — faking smoothing by translating a container; breaks
-  `position: sticky` and every pinned ScrollTrigger.
+  `position: sticky` and every pinned ScrollTrigger. GSAP's ScrollSmoother also transforms
+  its content (`matrix3d()`), yet ScrollTrigger pins still work inside it (GSAP's answer to
+  `position: fixed`); a `position: fixed` element inside its content does not. Prefer Lenis,
+  never both (`references/lenis-substrate.md`). Standing: recorded.
 - **Virtual scroller** — `overflow: hidden` on the page plus a wheel/touch listener
   moving a content layer: breaks find-in-page, anchors, keyboard and assistive-tech
   scrolling, the scrollbar and scroll restoration. The same feel is Lenis over native

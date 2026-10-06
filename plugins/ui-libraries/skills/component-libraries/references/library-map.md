@@ -5,6 +5,9 @@
 > the Base UI, HeroUI, PrimeVue and Vuetify rows carry their 2026-09-26 re-read and the
 > PrimeReact, Catalyst and Tremor rows their 2026-09-26 reading; the Radix, Park UI,
 > Flowbite and Svelte rows their 2026-09-22 reading; every other row its 2026-09-02 reading.
+>
+> Read 2026-10-06: the Magic UI and React Bits rows, from their registry items, licences and a
+> `shadcn add --dry-run` on shadcn 4.21.2.
 
 Read on demand from `component-libraries`. A row with no sibling skill is governed
 by the SKILL.md rules plus its docs URL.
@@ -59,6 +62,8 @@ reviewer applying `component-libraries` is its only reader (agent-graded).
 |---|---|---|---|---|
 | shadcn/ui | `components.json`, `components/ui/*` | CSS variables (`--primary`, …) | https://ui.shadcn.com/docs | `ui-ux:shadcn-best-practices`, `ui-ux:shadcn-theming`; Base UI default from Jul 2026, Radix via `-b radix`, React Aria via `--base aria` |
 | ReUI, Aceternity UI | shadcn-style registries | shadcn CSS vars | https://reui.io/docs, https://ui.aceternity.com/components | sibling skills in this plugin, `reui-best-practices` and `aceternity-best-practices`; no npm version to pin |
+| Magic UI | `npx shadcn@latest add @magicui/<name>` (in shadcn's registry directory — no `components.json` entry needed); files land as `components/ui/<name>.tsx`; motion items (`number-ticker.tsx`, `border-beam.tsx`) import `motion/react`, CSS-only items (`marquee.tsx`, `shimmer-button.tsx`) add keyframes and CSS variables to the theme CSS instead | Tailwind classes plus colour props with hex defaults (BorderBeam `colorFrom`/`colorTo`, ShimmerButton `shimmerColor`) | https://magicui.design/docs | marketing effects, governed by `aceternity-best-practices`; owned code once added, no npm version to pin; MIT |
+| React Bits | `npx shadcn@latest add @react-bits/<Name>-<JS\|TS>-<CSS\|TW>` (`CountUp-TS-TW`), or jsrepo; files land as `components/<Name>.tsx` (`CountUp.tsx`, `Aurora.tsx`) | none — colours and motion through props with hex defaults (Aurora `colorStops`) | https://reactbits.dev/get-started/installation | marketing effects, governed by `aceternity-best-practices`; owned code once added; deps per item (CountUp `motion`, Aurora the WebGL library `ogl`). Licence MIT + Commons Clause: free inside an application, website or product, never sold or redistributed as components |
 | Catalyst | component files (`link.tsx`, `button.tsx` and siblings) importing `@headlessui/react`, `motion` and `clsx` — no Catalyst npm package | Tailwind's default theme (colour palette, spacing, shadows), changed through `@theme`; no variable layer of its own | https://catalyst.tailwindui.com/docs | Tailwind Plus (paid): a zip downloaded from the account, `javascript/` or `typescript/` folder copied in, owned from then on; built for Tailwind v4. Wire `link.tsx` to the router (`Headless.DataInteractive` around the Next.js, Remix or Inertia link) |
 | Tremor | copied files plus its `chartUtils.ts`, `cx`, `focusRing` utilities; deps `recharts`, `@radix-ui/react-*`, `tailwind-variants`, `@remixicon/react` | Tailwind palette NAMES in `chartUtils.ts` `chartColors` (`blue`, `emerald`, …) — not CSS variables | https://www.tremor.so/docs/getting-started/installation | copy-paste charts and dashboard parts on Recharts + Radix; React 18.2+, Tailwind v4; not in the shadcn CLI directory. The npm `@tremor/react` (`3.18.7`, Jan 2025, peer React 18, Tailwind v3 era) is the legacy product: do not install it on React 19 or Tailwind v4. Point `chartColors` at the theme's chart tokens, or the charts fork the palette |
 | Untitled UI React | `@untitledui/*` starter or copied files | Tailwind v4 `@theme` | https://www.untitledui.com/react | Tailwind + React Aria; open core, paid Pro |

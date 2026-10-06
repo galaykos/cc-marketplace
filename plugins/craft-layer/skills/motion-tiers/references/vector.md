@@ -34,9 +34,9 @@ smaller than raw `.json`, and can hold multiple animations + themes.
   small, measure it, and record the KB per surface like every other tier. Optimize the
   export (drop hidden layers, reduce keyframes, avoid huge embedded raster/expressions);
   a bloated Lottie JSON is a common regression.
-- **Runtime** — the player itself is a dependency. `@lottiefiles/dotlottie-react` runs
-  the playback engine; every Rive package ships a WASM runtime, and the `tier-budgets.md`
-  figure is measured on `@rive-app/canvas` — measure the package you install and record
+- **Runtime** — the player itself is a dependency, and both engines are WASM the browser
+  fetches from a public CDN at runtime, outside your bundle (the last section). The
+  `tier-budgets.md` figures are one measurement — measure the package you install and record
   it there. Neither the player
   nor the asset belongs in the initial bundle for below-the-fold or non-critical motion.
 - **Main-thread cost** — Canvas rendering and complex vector scenes cost CPU/GPU each
@@ -64,7 +64,10 @@ mq.addEventListener("change", apply); // remove it on unmount
   properties or fire the triggers that drive the animation. Rive's React docs say to use
   **data binding** for new work (`useViewModelInstance` plus the typed
   `useViewModelInstanceBoolean` / `Number` / `Trigger` hooks); state machine inputs "will
-  be removed in a future major version", so do not build on them. Standing: recorded.
+  be removed in a future major version", so do not build on them. Rive Events follow the
+  same path: the 2.44 runtime types (read 2026-10-06) deprecate subscribing to them at
+  runtime, `automaticallyHandleEvents` included, in favour of data binding — bind a
+  view-model property rather than listening for an event. Standing: recorded.
 - This is an accessibility requirement, not polish. `motion-best-practices` owns the CSS
   kill-switch idioms.
 - A loop running past five seconds also needs a visible pause control, whatever the
@@ -97,3 +100,38 @@ reduced-bundle path — measure it.
 - Framework-neutral cores exist (`@lottiefiles/dotlottie-web`, `@rive-app/webgl2`,
   `@rive-app/canvas`) for non-React stacks; bind per the stack in
   `references/framework-bindings.md`.
+
+## Runtime fetches and renamed packages (read 2026-10-06)
+
+Read from the npm tarballs and Rive's web parameters page on that date; the stamp above is older.
+
+- **dotLottie downloads its engine.** `@lottiefiles/dotlottie-web` 0.80.0 fetches a ≈ 480KB
+  WASM from a version-pinned jsDelivr URL (unpkg as fallback) when the first player is
+  constructed. To self-host, call `setWasmUrl(url)` before any player exists (static on
+  `DotLottie`; `@lottiefiles/dotlottie-react` re-exports it), then `DotLottie.preload()` to start
+  the download early. An explicit URL also switches the CDN fallback off, so a wrong path fails
+  instead of quietly loading from jsDelivr. `DotLottieWorker` starts its worker from a `blob:` URL.
+- **Rive downloads its engine and its fonts.** The web runtimes fetch `rive.wasm` from unpkg
+  (jsDelivr as fallback); `RuntimeLoader.setWasmUrl(url)` points them at your copy, or
+  `@rive-app/canvas-single` ships the WASM inside its JS. Assets a file marks as hosted — fonts,
+  usually — come from Rive's CDN because `enableRiveAssetCDN` defaults to `true`; set it `false`
+  and supply them through `assetLoader` for an offline or strict-CSP build. Hosts and directives:
+  the CSP bullet in `hosted-runtimes.md`.
+- **A Rive canvas can swallow touch scrolling.** `isTouchScrollEnabled` defaults to `false`, so on
+  a touch device a state machine with Listeners may stop a drag on the canvas from scrolling the
+  page. Set it `true` for any canvas that sits in scrolling content.
+- **Several Rive instances on `webgl2`:** `useOffscreenRenderer: true` draws them through one
+  shared offscreen WebGL2 context instead of one context each (default `false`) — see the
+  context ceiling in `hosted-runtimes.md`.
+- **`lottie-react` 3.0.0 (2026-08-15; 3.1.2 current) rewrote the API.** It wraps `lottie-web`,
+  not the dotLottie player above. The default export is gone (`import { Lottie }`), `animationData`
+  became `src`, the ten `on*` props became one `subscriptions` object, `interactivity` /
+  `useLottieInteractivity` became `LottieInteractions` / `useLottieInteractions` (both root
+  exports), and `autoplay` and `loop` now default to `false`. A version bump with no
+  code change breaks at the import.
+- **Renamed or retired packages.** `@dotlottie/player-component` is deprecated on npm for
+  `@lottiefiles/dotlottie-wc`. The unscoped `rive-react` stopped at 4.24.0 (2025-11-10) while
+  `@rive-app/react-*` reached 4.36.0, and `@rive-app/react-webgl` (last 4.27.3) is absent from
+  Rive's renderer table — use `@rive-app/react-webgl2`.
+
+Standing: recorded.

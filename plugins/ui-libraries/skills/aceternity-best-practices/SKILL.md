@@ -13,11 +13,20 @@ CRUD screens) the same components read as noise and cost real frames; the
 correct amount of Aceternity in an admin panel is usually zero. Pairing is the
 norm: shadcn/ReUI for the app, Aceternity for the pitch.
 
-A `motion/react` import alone does not make a file Aceternity. Other registries
-(Magic UI, Animate UI) and hand-written animation use the same package; they are
-`ui-ux:motion-best-practices` territory, and the placement limit above does not
-apply to an app-primitive registry built on `motion`. Standing: agent-graded —
-only a reader of the file's imports and origin can tell the two apart.
+Magic UI (https://magicui.design) and React Bits (https://reactbits.dev) are the
+same class: copy-in marketing effects, added through the shadcn CLI as
+`@magicui/<name>` and `@react-bits/<Name>-<JS|TS>-<CSS|TW>`. Every rule in this
+skill applies to them — placement, one hero effect per view, pausing off-screen,
+reduced motion, SSR randomness, theming — and their docs pages stand in for
+ui.aceternity.com wherever this skill says to fetch one. One exception: an
+animated number (NumberTicker, CountUp) follows the counter rule in
+`ui-ux:motion-best-practices` instead of the first-frame static variant below —
+final value in the markup, no count under reduced motion. A `motion/react`
+import alone does not put a file in this class: Animate UI's app primitives and
+hand-written animation use the same package, stay with
+`ui-ux:motion-best-practices`, and the placement limit does not apply to them.
+Standing: agent-graded — only a reader of the file's imports and origin can tell
+the classes apart.
 
 ## Latest docs before any assertion
 

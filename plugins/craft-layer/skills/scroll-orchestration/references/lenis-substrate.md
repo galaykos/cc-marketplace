@@ -35,6 +35,25 @@ does not replace the scrollbar or reparent the page.
 - Do not also construct `new Lenis()` in a React app — one instance, owned by the
   provider.
 
+## Locomotive Scroll 5 is Lenis underneath
+
+Read 2026-10-06 from npm and the 5.0.1 package: `locomotive-scroll` 5 (stable 2026-01-15)
+depends on `lenis` pinned to exactly 1.3.17 (npm's current is 1.3.26) and constructs its
+own Lenis instance, adding viewport triggers and `data-scroll-speed` parallax on top.
+
+- The v4 API is gone: no `data-scroll-container`, no `smooth: true`, no `data-scroll-sticky`,
+  no public `init()`, and no transformed container, so the `ScrollTrigger.scrollerProxy`
+  bridge v4 needed has nothing to bridge. The constructor takes `lenisOptions`, `autoStart`,
+  `scrollCallback` and `initCustomTicker` / `destroyCustomTicker`. Code or memory from v4
+  is wrong for v5; read the installed version's types.
+- Its Lenis is THE instance. Never add `new Lenis()` or `<ReactLenis>` beside it: two
+  instances are two scroll positions. Tune it through `lenisOptions`, feed ScrollTrigger with
+  `scrollCallback: ScrollTrigger.update`, and pass `initCustomTicker` (with its destroy pair)
+  to run the render on `gsap.ticker` instead of Locomotive's own rAF.
+- 5.0.1 has no reduced-motion branch: gate construction as in the last section.
+
+Standing: recorded.
+
 ## Options that matter
 
 - `lerp` (≈ 0.08–0.12) OR `duration` (≈ 1.0–1.2) — pick one feel model, not both.
@@ -70,6 +89,11 @@ the two positions diverge — the drift/jitter gotcha in
   `position: fixed` keep working. Do not add the legacy `transform: translate3d`
   wrapper some old smooth-scroll libs required — it breaks `sticky` and any pinned
   ScrollTrigger (a transformed ancestor kills `position: fixed`).
+- GSAP's ScrollSmoother transforms its content element (inline `matrix3d()`) but, unlike
+  that wrapper, keeps ScrollTrigger pins working: it compensates for them itself, and GSAP's
+  docs name pinning as the answer to `position: fixed`. A `position: fixed` element inside
+  its content still binds to the content, not the viewport (read 2026-10-06). Prefer Lenis
+  for new work, and never run ScrollSmoother and Lenis together. Standing: recorded.
 - After async content changes layout (images, fonts, lists), call
   `lenis.resize()` and `ScrollTrigger.refresh()` so measurements stay honest.
 - Anchor links: `anchors: true`, or `lenis.scrollTo('#id')` from your own handler, so

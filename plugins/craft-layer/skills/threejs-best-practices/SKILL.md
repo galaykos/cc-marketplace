@@ -3,7 +3,7 @@ name: threejs-best-practices
 description: Use when building or reviewing Three.js or R3F code — scenes, renderers, TSL/GLSL shaders, react-three-fiber and drei, WebGPU vs WebGL choice, glTF/GLB asset loading, disposal and GPU leaks, render-loop performance.
 ---
 
-> Last verified: 2026-09-26 — https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API — npm:three@0.186
+> Last verified: 2026-10-06 — https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API — npm:three@0.186
 
 # Three.js best practices
 
@@ -12,6 +12,10 @@ revisions. Resolve the installed revision from the lockfile (`three` — e.g.
 r186 in September 2026) and check the migration guide for anything you touch:
 threejs.org/docs + the per-release migration notes. Never advise from a
 remembered API level.
+
+Versions read that day (2026-10-06) for the version traps below: three 0.186.1,
+@react-three/fiber 9.8.1, @react-three/drei 10.7.9. Standing: recorded — no gate reads
+this file, and the next three or fiber release can move any of them.
 
 ## Renderer choice (2026 floor)
 
@@ -52,6 +56,11 @@ that renderer "still a work in progress". R3F 10, the WebGPU-first line, is alph
 - Time-step animation with the loop's delta, never per-frame constants —
   frame-rate-independent motion is the difference between 60 and 120 Hz
   displays behaving the same.
+- Take that delta from `THREE.Timer`, not `THREE.Clock` (deprecated since r183; it warns
+  when constructed): `timer.update()` once per frame, then `getDelta()`, and
+  `timer.connect(document)` so a tab coming back from hidden does not return one huge
+  delta. R3F 9.8.1 still builds a Clock itself — that warning in an R3F app is the
+  library's, not yours to fix.
 - Cap `renderer.setPixelRatio(Math.min(devicePixelRatio, 2))` — full 3x DPR
   quadruples fragment work for imperceptible gain.
 
@@ -76,6 +85,11 @@ scene keeps its geometry, material, and textures alive on the GPU:
 - Models: glTF/GLB only (`GLTFLoader`); compress geometry with Draco or
   Meshopt, textures with KTX2/Basis (`KTX2Loader`) — raw PNG textures are the
   most common bundle-size and VRAM offender.
+- The loader decodes only what it was handed a decoder for — Meshopt needs
+  `setMeshoptDecoder`, Draco `setDRACOLoader`, KTX2 `setKTX2Loader`, else GLTFLoader
+  throws. `gltf-transform optimize` emits Meshopt by default, and drei's `useGLTF` fetches
+  the Draco decoder from Google's gstatic host unless given a local path. Decoder wiring and
+  hosting, KTX2 under WebGPU, encoding: `references/compressed-gltf.md`.
 - Load through a shared `LoadingManager` for progress and error routing;
   never fire-and-forget loader promises without an error path.
 - Reuse loaded assets via a cache keyed by URL; loading the same GLB per
@@ -97,6 +111,10 @@ scene keeps its geometry, material, and textures alive on the GPU:
 - Shadows: one shadow-casting light where possible, tight shadow-camera
   bounds, `mapSize` no larger than visibly needed; static scenes can freeze
   shadow maps (`autoUpdate = false`, update once).
+- `PCFSoftShadowMap` is deprecated — r182 removed WebGLRenderer's soft filter and r186
+  WebGPURenderer's; on r186 both swap in `PCFShadowMap` with a warning. R3F's boolean
+  `<Canvas shadows>` still asks for it; write `shadows="percentage"` to get PCF shadows
+  without the warning.
 - Profile with the browser GPU profiler and `renderer.info` (draw calls,
   triangles, GPU memory) before optimizing — guesses about the bottleneck are
   usually wrong.
@@ -105,10 +123,22 @@ scene keeps its geometry, material, and textures alive on the GPU:
 
 - R3F is the React reconciler for three — scene objects as JSX, hooks
   (`useFrame`, `useLoader`, `useThree`) for the loop and context; drei is the
-  helper library (controls, loaders, staging). Match R3F major to React major
-  per its compatibility table.
+  helper library (controls, loaders, staging). Since 9.5, R3F caps React's MINOR, not only
+  the major — 9.8.1 peers `react >=19 <19.4` — so read fiber's peer range before a React
+  minor bump. drei 10 and `@react-three/postprocessing` 3 need React 19; a React 18 app stays on
+  fiber 8 + drei 9.
 - Per-frame state does NOT go through React state — mutate refs in
   `useFrame`; a `setState` per frame re-renders the React tree at 60fps.
+- `frameloop="demand"` renders only when a frame is requested. A prop changed through React
+  requests one, and so does `@react-spring/three`'s `animated.*` (it invalidates itself). A
+  GSAP tween, a spring outside `animated`, or a store subscription that mutates three objects
+  outside `useFrame` does not — call `invalidate()` on every update, or the canvas stops
+  repainting until something else asks.
+- Extrusion depth is named differently per layer (read from source — drei 10.7.9,
+  three-stdlib 2.36.1, three r172/r173 — not rendered): drei's `<Text3D>` takes `height`
+  and passes it to three-stdlib's `TextGeometry` as depth, so a `depth` prop falls through
+  to the mesh and changes nothing; three's own `TextGeometry` reads only `depth` since r173,
+  so a `height` option there is ignored and the text extrudes 50 units.
 - `useLoader` caches by URL and suspends — wrap scenes in `<Suspense>`; do
   not hand-roll loading state around it.
 - Objects created in JSX are auto-disposed on unmount; objects created in

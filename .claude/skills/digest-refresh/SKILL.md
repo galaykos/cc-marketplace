@@ -87,5 +87,16 @@ you did NOT re-read. Zero deltas is a real result; report it as one.
 
 No script reads the prose, so a source that still answers 200 with rewritten
 content passes `--live`. The trigger for this skill is a human asking or a
-date someone noticed — there is no cron, and adding one would move the date
-without the re-read, which is the failure the stamp exists to expose.
+date someone noticed — there is no cron, and one that RE-STAMPS would move the
+date without the re-read, which is the failure the stamp exists to expose.
+
+Three detection gaps, recorded 2026-10-05 and not built:
+
+- `--live` runs only by hand; CI runs the age check alone, so motion 14 (npm,
+  published 2026-10-02) went unseen until a hand run. The recorded proposal is
+  a detect-only scheduled `--live` run: it reports drift and never re-stamps,
+  so the re-read stays here.
+- `npm:` is the only tail the checker reads. A `composer:`/Packagist tail is
+  ignored, so a Laravel or other PHP major surfaces only through the age warning.
+- A versioned docs URL (`docs/13.x/…`) is HEADed, never probed for the next
+  version, so a new major with no package tail stays invisible to `--live`.

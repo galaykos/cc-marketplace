@@ -10,6 +10,15 @@ Mechanics and traps are NOT duplicated here — they are referenced:
   ScrollTrigger, stagger): `plugins/ui-ux/skills/motion-best-practices/references/gsap.md`.
   `split-type`, once the non-GSAP option, last published 0.3.4 in October 2023 (npm,
   checked 2026-09-26) — unmaintained; do not add it.
+- On a project already using anime.js, its own splitter is the path, not a second engine:
+  `splitText()` and `scrambleText()` ship in the MIT package with no paid tier (anime.js
+  4.5.0, npm, checked 2026-10-06) — `splitText()` since 4.2 (4.1 shipped it as
+  `text.split()`, now deprecated with a console warning), `scrambleText()` since 4.4. API:
+  `plugins/ui-ux/skills/motion-best-practices/references/animejs.md`. Its `accessible`
+  option, on by default, inserts a visually hidden copy of the original markup as the
+  element's first child and sets `aria-hidden` on every line, word and char span — read
+  from the 4.5.0 source; what a screen reader announces is unverified. The package reads
+  `prefers-reduced-motion` nowhere, so both get the gate below. Standing: recorded.
 - Invisibility + screen-reader traps:
   `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` — gotcha A
   (gradient-clip on split letters → invisible) and gotcha C (which element may

@@ -2,6 +2,14 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.24.0 — 2026-10-06
+
+- **`jsrepo add` routes `shadcn-best-practices`**, the way `shadcn add` already did: a new `command` row, so the copy-in rules in its `references/registries.md` (now with a jsrepo section, ui-ux 0.30.0) arrive with the install. `jsrepo init` stays silent.
+- **Magic UI and React Bits installs also route `aceternity-best-practices`** (ui-libraries 0.3.0 widened it to them). A `shadcn add` or `jsrepo add` whose arguments include `@magicui/`, `@react-bits/` or a `https://reactbits.dev/r/` URL draws both skills in one envelope; a `jsrepo add` of any other registry draws shadcn's alone. No glob row: read 2026-10-06, 77 of 78 Magic UI items name no install target and React Bits targets only its `-CSS` stylesheets, so there is no fixed directory to match.
+- **A `locomotive-scroll` import routes `scroll-orchestration`**, which now covers Locomotive Scroll 5 (craft-layer 0.57.0). The README's library and registry-install lines say so.
+- **Standing: gate** — `scripts/__tests__/route.test.sh` pins the unquoted `@magicui/`, `@react-bits/` and `reactbits.dev/r/` installs, `jsrepo add` routing shadcn's skill and not Aceternity's, `jsrepo init` silent, the quoted-argument miss, the locomotive import, and the one-envelope assertion on the existing Magic UI case; it runs in CI's plugin-harness step. Residuals: a quoted install argument is masked, so `add "@magicui/x"` routes shadcn's skill alone (pinned as a stated miss); a later edit of an installed Magic UI or React Bits file routes no Aceternity rules; an `ogl` import routes nowhere, by decision. The command rows run on Bash calls, which the budget gate's Edit-only probes do not meter.
+- **Credit and effect.** Found while reviewing freshtechbro/claudedesignskills @1da73feb (MIT, © 2025 Claude Skills Project); rewritten here, not copied. Unmeasured: whether the routed skills change what the model writes. No eval with a control arm covers it.
+
 ## 0.23.1 — 2026-10-05
 
 - **Organisation design systems route `component-libraries`.** The library-agnostic `content` row now also matches quoted imports of `govuk-frontend`, `uswds` and `@uswds/`, `@shopify/polaris` and `@shopify/polaris-types`, `@carbon/`, and `@atlaskit/` except its `pragmatic-*` packages — a general-purpose drag-and-drop library apps outside Atlassian use. Pinned by new cases in `scripts/__tests__/route.test.sh`: GOV.UK, Carbon, Atlassian, USWDS and Polaris imports route; the two pragmatic-drag-and-drop imports and a backticked `govuk-frontend` in a code comment or in Markdown prose do not.

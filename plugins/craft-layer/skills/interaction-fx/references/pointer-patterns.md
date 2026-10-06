@@ -58,6 +58,19 @@ is the pointer-effect mechanics + the single loop.
 - Map the pointer's offset within the element to bounded `rotateX`/`rotateY` (≈±6–10°);
   reset on leave. `transform-style: preserve-3d` on the parent, `perspective` on the
   container. Transform only.
+- **vanilla-tilt** (1.8.1, still latest on npm, source read 2026-10-06) breaks these rules
+  by default: `max` is 15°; `gyroscope` is on, yet it never calls
+  `DeviceOrientationEvent.requestPermission()`, which iOS Safari requires before it sends
+  orientation data, so that path is dead on iOS; it checks neither reduced motion nor a
+  hover pointer; each instance adds its own `mousemove` listener and schedules its own rAF,
+  outside the one shared loop; and importing it auto-inits every `[data-tilt]` element.
+  Safe use: `max` ≤ 10, `gyroscope: false`, a selector other than `data-tilt`, and
+  `VanillaTilt.init()` called only when both matchMedia gates above pass. No setting removes
+  the per-instance `mousemove` listener or the rAF it schedules per event — event-driven, so
+  only the hovered card pays, but still a per-element loop beside the shared one; when many
+  cards tilt, drive them from the shared loop instead of vanilla-tilt. Standing:
+  recorded — the craft reviewer grades the gates (interaction-fx § Accessibility), and
+  nothing reads these option values.
 
 ## Drag affordance
 

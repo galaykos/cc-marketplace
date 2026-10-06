@@ -153,6 +153,11 @@ glob	components.json	shadcn-best-practices	ui-ux	high
 # `*.vue` row above already sends here. LIMITATION: `shadcn init` also writes files
 # unseen and has no row; `components.json` routes on its first later edit.
 command	\bshadcn(-ui|-vue)?(@[^[:space:]]+)?[[:space:]]+add\b	shadcn-best-practices	ui-ux	high
+# jsrepo's install rules live in shadcn-best-practices' references/registries.md.
+command	\bjsrepo(@[^[:space:]]+)?[[:space:]]+add\b	shadcn-best-practices	ui-ux	high
+# No fixed install directory to glob (read 2026-10-06): 77 of 78 Magic UI ui items name no target, and React Bits targets only -CSS stylesheets, at the @components alias.
+# LIMITATION: a quoted argument is masked, so `add "@magicui/x"` routes shadcn alone. React Bits' jsrepo command passes a reactbits.dev/r/ URL.
+command	\b(shadcn|jsrepo)(@[^[:space:]]+)?[[:space:]]+add\b[^;&|]*[[:space:]](@(magicui|react-bits)/|https://reactbits\.dev/r/)	aceternity-best-practices	ui-libraries	high
 content	(@reui/|\breui\.io|\bfrom ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-libraries	low
 # Narrowed 2026-09-26: `motion/react|framer-motion` drew Aceternity on EVERY Motion file.
 content	(\baceternity\b|ui\.aceternity\.com|@aceternity/)	aceternity-best-practices	ui-libraries	low
@@ -301,7 +306,7 @@ content	['"]@primeuix/	primereact-best-practices	ui-libraries	high	?package.json
 # they now route to scroll-orchestration and threejs-best-practices below.
 content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|keyframes|animation-timeline|starting-style|startViewTransition)\b	motion-best-practices	ui-ux	high
 content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.|@react-three/|from ['"]three['"/])	threejs-best-practices	craft-layer	high
-content	(['"]lenis(/react)?['"]|@studio-freight/(lenis|react-lenis)|\bScrollTrigger\b|\bScrollSmoother\b)	scroll-orchestration	craft-layer	high
+content	(['"]lenis(/react)?['"]|['"]locomotive-scroll['"/]|@studio-freight/(lenis|react-lenis)|\bScrollTrigger\b|\bScrollSmoother\b)	scroll-orchestration	craft-layer	high
 # Spline routes here because motion-tiers owns it: references/hosted-runtimes.md holds its
 # tier-3 arrival (poster first, deferred import), reduced-motion stop, pinning and plan terms.
 content	(@rive-app/|@lottiefiles/|\bdotlottie|['"](lottie-web|lottie-react|react-lottie)['"/]|@splinetool/)	motion-tiers	craft-layer	high
