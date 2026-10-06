@@ -169,7 +169,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_SPAWN_FLOOR` | task-runner | on | Run a role-floors.md agent at max(its floor, the dispatch's model or else the session's): on or off |
 | `CC_SUBAGENT_SKILLS` | skill-router | on | Hand a plugin subagent the paths of the best-practice skills its frontmatter declares: on or off |
 | `CC_SURFACED_LOG` | skill-router | on | Append the session's surfaced routing signals to a machine-local ledger at session end: on or off |
-| `CC_TASK_BOARD` | task-runner | on | The status line showing a run's phase and card progress while it is active on this branch: on or off |
+| `CC_TASK_BOARD` | task-runner | on | The status line of a run's phase and card progress on this branch, and the /task-board pane: on or off |
 | `CC_TERSE` | candor | off | Terse reply level: off, lite, full, ultra, wenyan-lite, wenyan-full or wenyan-ultra |
 | `CC_TEST_SHAPE` | testing | on | Name the blocks in a written test file that do not earn their place: on or off |
 | `CC_UNICODE_SCAN` | secret-scanning | on | Warn when written or read text carries zero-width or bidirectional-override characters: on or off |

@@ -46,7 +46,7 @@
     "cc_task_board": {
       "type": "boolean",
       "title": "Run board and status line (CC_TASK_BOARD)",
-      "description": "The status line showing a run's phase and card progress while it is active on this branch: on or off. The environment variable CC_TASK_BOARD overrides this.",
+      "description": "The status line of a run's phase and card progress on this branch, and the /task-board pane: on or off. The environment variable CC_TASK_BOARD overrides this.",
       "default": true
     },
     "orchestration_boost": {
