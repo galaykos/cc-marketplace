@@ -250,6 +250,7 @@ done < <(grep -roEH '/[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' README.md plugins/*/READM
 # hooks.json files must parse and referenced scripts must be executable. One
 # pc_hook_exec call on plugins/, not one per plugin, so these FAILs keep find's order.
 while IFS= read -r m; do err "$m"; done < <(pc_hook_exec plugins)
+while IFS= read -r m; do err "$m"; done < <(pc_mod_modules plugins)
 
 # Plugins ship ONLY functional files. Task documentation, specs, and design/task
 # history live in taskmaster-docs/ (or a repo-level location outside plugins/) —

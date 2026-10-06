@@ -3131,6 +3131,52 @@ pc_hook_exec() {
   return $bad
 }
 
+# pc_mod_modules <plugins_root>
+# For every <root>/<plugin>/hooks/hooks.json carrying a `modules` array, resolves each
+# entry against that hooks/ dir (nested paths allowed) and prints one line per fault:
+#   mod-module-missing <plugin> <entry>       no regular file there
+#   mod-module-ext <plugin> <entry>           extension not .ts .tsx .mts .cts .js .mjs
+#   mod-module-no-register <plugin> <entry>   no `export [async] function register` or
+#                                             `export const register`
+#   mod-module-count <plugin> <n>             more than one entry
+# A missing file draws only the missing line. Returns 1 if any; 0 when clean or no jq.
+#
+# WHY IT EXISTS: every other gate reads only `.hooks`, so a broken `modules` entry passed
+# validate.sh silently (spec 2026-10-06-ship-claude-code-mods, SC1). `claude plugin
+# validate --strict` also FAILs a missing file and a missing register export (measured on
+# 2.1.282 and 2.1.291, 2026-10-06) and a second entry ("names one hooks module per
+# plugin", 2.1.291); this gate mirrors those so the failure lands at author time, in the
+# repo's own words, without the CLI — the host check runs as CI's last step. The host
+# ACCEPTS a `.jsx` module, so the extension list — the module kinds a plugin may ship —
+# is caught here and nowhere else.
+#
+# WHAT IT DOES NOT CATCH: it reads text — it never loads, parses or typechecks a module,
+# so a commented-out `export function register` passes and `export { register }` FAILs.
+# An entry that climbs out of hooks/ (`../x.ts`) is resolved, not refused; a non-string
+# entry is checked as its JSON text and so reads as missing.
+pc_mod_modules() {
+  local root="${1%/}" bad=0 hj d p m n
+  local re='export[[:space:]]+((async[[:space:]]+)?function|const)[[:space:]]+register([^[:alnum:]_$]|$)'
+  command -v jq >/dev/null 2>&1 || return 0
+  for hj in "$root"/*/hooks/hooks.json; do
+    [ -f "$hj" ] || continue
+    d=$(dirname "$hj"); p=$(basename "$(dirname "$d")")
+    n=$(jq '(.modules | arrays | length) // 0' "$hj" 2>/dev/null)
+    [ "${n:-0}" -gt 1 ] && { printf 'mod-module-count %s %s\n' "$p" "$n"; bad=1; }
+    while IFS= read -r m; do
+      if [ ! -f "$d/$m" ]; then
+        printf 'mod-module-missing %s %s\n' "$p" "$m"; bad=1; continue
+      fi
+      case "$m" in
+        *.ts|*.tsx|*.mts|*.cts|*.js|*.mjs) ;;
+        *) printf 'mod-module-ext %s %s\n' "$p" "$m"; bad=1 ;;
+      esac
+      grep -qE "$re" "$d/$m" || { printf 'mod-module-no-register %s %s\n' "$p" "$m"; bad=1; }
+    done < <(jq -r '.modules | arrays | .[] | tostring' "$hj" 2>/dev/null)
+  done
+  return $bad
+}
+
 # pc_role_floors <registry_md> <plugins_root>
 # The role-floor registry gate. Prints `fail <message>` per violation, <message> being
 # the exact text validate.sh err()s, and `exempt <agent_path>: <floor-reason>` per agent
