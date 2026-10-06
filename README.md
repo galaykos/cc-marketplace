@@ -165,6 +165,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_SECURITY_SCAN` | security | on | Warn when a write introduces a known-dangerous sink such as eval or shell-string exec: on or off |
 | `CC_SKILL_LOG` | hindsight | on | Log each skill invocation to a machine-local ledger under ~/.claude/hindsight: on or off |
 | `CC_SPAWN_CAP` | task-runner | 20 | Ask once a session's subagent dispatches pass this count, then at every doubling: a number or off |
+| `CC_SPAWN_FLOOR` | task-runner | on | Run a role-floors.md agent at max(its floor, the dispatch's model or else the session's): on or off |
 | `CC_SUBAGENT_SKILLS` | skill-router | on | Hand a plugin subagent the paths of the best-practice skills its frontmatter declares: on or off |
 | `CC_SURFACED_LOG` | skill-router | on | Append the session's surfaced routing signals to a machine-local ledger at session end: on or off |
 | `CC_TERSE` | candor | off | Terse reply level: off, lite, full, ultra, wenyan-lite, wenyan-full or wenyan-ultra |

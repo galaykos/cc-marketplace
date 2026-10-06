@@ -16,3 +16,4 @@ task-runner:ultra-assess	hook	any	ultra-assess-boost-directive	prompt head match
 task-runner:announce	hook	any	registered-run-announcement	SessionStart with source startup, resume or clear while .claude/task-runner/active-run.json exists in the session project	skill-router:compact-capsule
 task-runner:rv-consent	hook	any	reviewer-verdict-consent	a Write/Edit/Bash runs under a registered task-runner run whose reviewer verdict has not been consented to	task-runner:task-execution
 task-runner:spawn-cap	hook	any	subagent-spawn-cap	an Agent/Task dispatch crosses the session's soft cap (20, then every doubling)	task-runner:parallel-planning
+task-runner:floors	mod	any	subagent-model-floor	agent.spawn of an agent listed in delegation-contracts/references/role-floors.md whose explicit model, or the parent's model when none is given, differs from max(that model, its floor)	-

@@ -36,6 +36,12 @@
       "description": "Ask once a session's subagent dispatches pass this count, then at every doubling: a number or off. The environment variable CC_SPAWN_CAP overrides this.",
       "default": "20"
     },
+    "cc_spawn_floor": {
+      "type": "boolean",
+      "title": "Subagent model floors (CC_SPAWN_FLOOR)",
+      "description": "Run a role-floors.md agent at max(its floor, the dispatch's model or else the session's): on or off. The environment variable CC_SPAWN_FLOOR overrides this.",
+      "default": true
+    },
     "orchestration_boost": {
       "type": "boolean",
       "title": "ultra-assess boost (ORCHESTRATION_BOOST)",
