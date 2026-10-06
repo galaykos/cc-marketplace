@@ -162,7 +162,7 @@ qhooks() { # $1 = command prefix/suffix quote character ('' or '"')
 qrun() {
   for fn in pc_hook_timeout pc_hook_shebang pc_state_root pc_cwd_validated pc_lanes_coverage \
             pc_phase_guard pc_offswitch_named pc_marker_key pc_context_key; do
-    printf '== %s\n' "$fn"; "$fn" "$QR" 2>/dev/null | sed 's/"//g'
+    printf '== %s\n' "$fn"; { "$fn" "$QR" 2>>"${QERR:-/dev/null}"; echo "rc=$?"; } | sed 's/"//g'
   done
 }
 qhooks ''; unq=$(qrun)
@@ -175,6 +175,22 @@ for want in "hook-timeout qfix:UserPromptSubmit:remind.sh" "hook-shebang qfix:re
   case "$quo" in *"$want"*) pass "quoting: quoted form still draws '$want'" ;;
     *) fail "quoting: quoted form still draws '$want'" "got: $(printf '%s' "$quo" | grep -v '^==' | head -6)" ;; esac
 done
+
+# ---- modules-only and hooks+modules hooks.json: every reader must agree --------------
+QERR="$T/qerr"; : > "$QERR"
+# Every pc_* sends jq's stderr to /dev/null, so a reader's jq error is visible only here.
+jq() { command jq "$@" 2>>"$QERR"; }
+printf 'export function register() {}\n' > "$QR/qfix/hooks/m.ts"
+jq '. + {modules:["./m.ts"]}' "$QR/qfix/hooks/hooks.json" > "$QR/m.json" && mv "$QR/m.json" "$QR/qfix/hooks/hooks.json"
+both=$(qrun)
+rm -rf "$QR/qfix"; mkdir -p "$QR/monly/hooks"
+printf 'export function register() {}\n' > "$QR/monly/hooks/m.ts"
+printf '{"modules":["./m.ts"]}\n' > "$QR/monly/hooks/hooks.json"
+monly=$(qrun)
+unset -f jq
+detail=$( { cat "$QERR"; printf '%s\n' "$monly" | grep -vxE '==.*|rc=0'; diff <(printf '%s\n' "$quo") <(printf '%s\n' "$both"); } | head -8)
+if [ -z "$detail" ]; then pass "modules-only: every hooks.json reader agrees"
+else fail "modules-only: every hooks.json reader agrees" "$detail"; fi
 rm -rf "$QR"
 
 # ---- pc_shared_blocks ------------------------------------------------------------

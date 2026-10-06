@@ -180,7 +180,7 @@ pc_hook_timeout() {
       [ -n "$line" ] || continue
       printf 'hook-timeout %s:%s\n' "$p" "$line"
       bad=1
-    done < <(jq -r '.hooks | to_entries[] as $e
+    done < <(jq -r '.hooks // {} | to_entries[] as $e
                     | $e.value[].hooks[]
                     | select(has("timeout") | not)
                     | "\($e.key):\(.command | gsub("\""; "") | split("/") | last)"' "$hj" 2>/dev/null)
@@ -1963,7 +1963,7 @@ pc_lanes_coverage() {
           *"$NL$p:$n${TAB}hook$NL"*) ;;
           *) printf 'lane-missing hook %s:%s\n' "$p" "$n"; bad=1 ;;
         esac
-      done < <(jq -r '.hooks | to_entries[]
+      done < <(jq -r '.hooks // {} | to_entries[]
                       | select(.key=="UserPromptSubmit" or .key=="Stop")
                       | (.value[].hooks[].command // empty) | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
       # DENY-CAPABLE TOOL-CHANNEL HOOKS ARE GATED TOO (2026-09-15). The two events above
@@ -1995,7 +1995,7 @@ pc_lanes_coverage() {
           *"$NL$p:$n${TAB}hook$NL"*) ;;
           *) printf 'lane-missing hook %s:%s (returns a permissionDecision)\n' "$p" "$n"; bad=1 ;;
         esac
-      done < <(jq -r '.hooks | to_entries[]
+      done < <(jq -r '.hooks // {} | to_entries[]
                       | select(.key=="PreToolUse" or .key=="PostToolUse")
                       | (.value[].hooks[].command // empty) | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
     fi
