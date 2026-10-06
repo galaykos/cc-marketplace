@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.44.0 — 2026-10-06
+
+- **The model-floor rule as a pure function, `hooks/floors-core.ts` — nothing calls it yet.** `parseRegistry` reads the floors from delegation-contracts' `references/role-floors.md` (the first fenced block whose every non-blank line is `<plugin>:<agent> <tier>`; one malformed line leaves no floors). `rank` places a model on haiku < sonnet < opus < fable by case-insensitive substring, so an alias and a full id rank alike. `decideModel` returns the model a floored agent's spawn should carry: the floor when the given or inherited model is below it, the parent's model when no model was given and the parent is at or above the floor, and nothing (leave the spawn as is) when an explicit model is at or above the floor or either model is off the ladder. Until a hook uses it, floors are still enforced only on agent frontmatter, and a dispatch with no `model` runs at the agent's pin even under a stronger session. `scripts/__tests__/floors-core.test.sh` runs each branch under node.
+
 ## 0.43.0 — 2026-10-05
 
 - **Every dispatch states its done-when:** delegation-contracts' prompt contract gains a bullet — a bar the agent can check and cannot meet early ("every caller of parse() listed with path and line", not "find the callers"), because a vague bar is where a worker stops short. Standing: recorded; `scripts/dispatch-lint.sh` does not check for it.
