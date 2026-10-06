@@ -1,0 +1,29 @@
+{
+  "name": "cc-kit-harness",
+  "version": "0.0.1",
+  "description": "Test harness for the shared mod kit (templates/mods/cc-kit.ts): one probe module registering a suggestion, run by claude plugin test. Not a marketplace plugin.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "userConfig": {
+    "probe_turn_end": {
+      "type": "boolean",
+      "title": "Probe turn-end key",
+      "description": "Gives the probe an atTurnEnd callback (suggests <cwd>/PROBE.md when it exists). Off by default so the harness can also exercise a suggestion with no atTurnEnd.",
+      "default": false
+    },
+    "probe_tool_key": {
+      "type": "boolean",
+      "title": "Probe tool-call key",
+      "description": "Gives the probe a Write-matched onToolCall (suggests a written .md file). On by default; off leaves the suggestion with no tool.call hook.",
+      "default": true
+    },
+    "probe_board": {
+      "type": "boolean",
+      "title": "Probe board hook",
+      "description": "Registers the probe's own unmatched tool.call hook beside the suggestion's matched one, as a module hosting a board does. Off by default.",
+      "default": false
+    }
+  }
+}
