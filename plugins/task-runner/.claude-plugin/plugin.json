@@ -6,6 +6,7 @@
     "name": "Ivan-WG",
     "email": "public@galayko.com"
   },
+  "types": "./types/index.d.ts",
   "keywords": [
     "worker",
     "process",
@@ -40,6 +41,12 @@
       "type": "boolean",
       "title": "Subagent model floors (CC_SPAWN_FLOOR)",
       "description": "Run a role-floors.md agent at max(its floor, the dispatch's model or else the session's): on or off. The environment variable CC_SPAWN_FLOOR overrides this.",
+      "default": true
+    },
+    "cc_task_board": {
+      "type": "boolean",
+      "title": "Run board and status line (CC_TASK_BOARD)",
+      "description": "The status line showing a run's phase and card progress while it is active on this branch: on or off. The environment variable CC_TASK_BOARD overrides this.",
       "default": true
     },
     "orchestration_boost": {
