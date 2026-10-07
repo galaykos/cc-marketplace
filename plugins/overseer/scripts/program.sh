@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # program.sh — the overseer's state machine. The ONLY writer of .claude/overseer/program.json
-# (serialised by a mkdir lock, so two invocations of this script cannot lose each other's write).
+# (serialised by an O_EXCL lock file, so two invocations of this script cannot lose each other's write).
 #
 # What it gates: a milestone cannot reach `done` without the evidence kinds its KIND's evidence
 # profile requires (kinds.tsv column 4 — `ui`, the default: the nine-kind browser walk; `headless`:
@@ -108,15 +108,19 @@ need_state() {
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 in_list() { local x="$1"; shift; for w in "$@"; do [ "$w" = "$x" ] && return 0; done; return 1; }
 arg() { [ -n "${2:-}" ] || { echo "program.sh: $1 needs a value" >&2; exit 3; }; printf '%s' "$2"; }
-lock() { # mkdir is atomic on every POSIX filesystem; flock is not on macOS
+# lock: bash's noclobber creates the lock file with O_EXCL inside the shell itself. Not mkdir(1): uutils
+# coreutils (Ubuntu 26.04's /usr/bin/mkdir) stats first and exits 0 when its mkdir(2) loses the race, so two
+# writers held the lock at once and 20 concurrent `evidence add` kept 14-19 rows (measured 2026-10-07).
+# Not flock: macOS does not ship it.
+lock() {
   local n=0
-  until mkdir "$state.lock" 2>/dev/null; do
+  until ( set -C; : > "$state.lock" ) 2>/dev/null; do
     n=$((n+1)); [ "$n" -lt 200 ] || { echo "program.sh: state locked by another writer for 10s — remove $state.lock if stale" >&2; exit 5; }
     sleep 0.05
   done
-  trap 'rmdir "$state.lock" 2>/dev/null' EXIT
+  trap 'rm -f "$state.lock"' EXIT
 }
-unlock() { rmdir "$state.lock" 2>/dev/null; trap - EXIT; }
+unlock() { rm -f "$state.lock"; trap - EXIT; }
 write() { # $1.. = jq args + filter; read-modify-write under the lock, atomic replace, failure is fatal
   lock
   local tmp="$state.tmp.$$"

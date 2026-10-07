@@ -276,7 +276,7 @@ cp "$WS/good.json" "$SD/program.json"
 for i in $(seq 1 20); do "$PS" evidence add --id m2 --kind a11y --note "n$i" >/dev/null 2>&1 & done; wait
 n=$(jq '[.milestones[]|select(.id=="m2")|.evidence[]]|length' "$SD/program.json")
 [ "$n" = "20" ] && ok || bad "20 concurrent evidence adds landed (got $n)"
-[ ! -d "$SD/program.json.lock" ] && ok || bad "lock released"
+[ ! -e "$SD/program.json.lock" ] && ok || bad "lock released"
 
 # ---- detached HEAD ----------------------------------------------------------------------------
 W2=$(mktemp -d); git -C "$W2" init -q -b main 2>/dev/null || git -C "$W2" init -q
