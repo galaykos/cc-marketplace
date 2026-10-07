@@ -6,13 +6,20 @@ type Cell = { char: string; fg: number; bg: number }
 export const PALETTE: Readonly<Record<string, number | null>> = {
   '.': null,
   k: 0x1f1a2e,
+  e: 0x1f1a2e,
   c: 0x2f6fd6,
   w: 0xffffff,
   s: 0xf5c9a0,
   m: 0xd9455f,
   g: 0x2fa36b,
-  y: 0xffcc33,
+  y: 0xd97706,
 }
+
+// Raster draws the outline in the terminal's text colour, so the silhouette shows on a dark theme and a light one.
+const OUTLINE = 'k'
+
+// What a Raster half shows: a colour, the terminal's background (null) or its text colour.
+type Ink = number | null | 'text'
 
 const IDLE = [
   '................',
@@ -21,11 +28,11 @@ const IDLE = [
   '...kcwcccccck...',
   '..kcccccccccck..',
   '...kssssssssk...',
-  '...kswksswksk...',
-  '...kskksskksk...',
+  '...kswesswesk...',
+  '...kseesseesk...',
   '...kssssssssk...',
-  '...kssksskssk...',
-  '...kssskksssk...',
+  '...kssessessk...',
+  '...kssseesssk...',
   '....kssssssk....',
   '..kggkkkkkkggk..',
   '.kggggwggwggggk.',
@@ -40,10 +47,10 @@ const THINKING_A = [
   '...kcwcccccck.y.',
   '..kcccccccccck..',
   '...kssssssssk...',
-  '...kskksskksk...',
+  '...kseesseesk...',
   '...kswwsswwsk...',
   '...kssssssssk...',
-  '...ksssskkssk...',
+  '...ksssseessk...',
   '...kssssssssk...',
   '....kssssssk....',
   '..kggkkkkkkggk..',
@@ -59,10 +66,10 @@ const THINKING_B = [
   '...kcwcccccck...',
   '..kcccccccccck..',
   '...kssssssssk...',
-  '...kskksskksk...',
+  '...kseesseesk...',
   '...kswwsswwsk...',
   '...kssssssssk...',
-  '...ksssskkssk...',
+  '...ksssseessk...',
   '...kssssssssk...',
   '....kssssssk....',
   '..kggkkkkkkggk..',
@@ -78,12 +85,12 @@ const TALKING_A = [
   '...kcwcccccck...',
   '..kcccccccccck..',
   '...kssssssssk...',
-  '...kswksswksk...',
-  '...kskksskksk...',
+  '...kswesswesk...',
+  '...kseesseesk...',
   '...kssssssssk...',
-  '...ksskkkkssk...',
-  '...ksskmmkssk...',
-  '....ksskkssk....',
+  '...ksseeeessk...',
+  '...kssemmessk...',
+  '....ksseessk....',
   '..kggkkkkkkggk..',
   '.kggggwggwggggk.',
   '.kgggggyygggggk.',
@@ -97,10 +104,10 @@ const TALKING_B = [
   '...kcwcccccck...',
   '..kcccccccccck..',
   '...kssssssssk...',
-  '...kswksswksk...',
-  '...kskksskksk...',
+  '...kswesswesk...',
+  '...kseesseesk...',
   '...kssssssssk...',
-  '...ksskkkkssk...',
+  '...ksseeeessk...',
   '...kssssssssk...',
   '....kssssssk....',
   '..kggkkkkkkggk..',
@@ -137,16 +144,24 @@ export function toRgba(frame: readonly string[]): Uint8Array {
   return rgba
 }
 
-function cell(top: number | null, bottom: number | null): Cell {
-  if (top !== null) return { char: '▀', fg: top, bg: bottom ?? TERMINAL_DEFAULT }
-  // A default foreground is the terminal's text colour, not its background, so a clear top half needs the lower block.
-  if (bottom !== null) return { char: '▄', fg: bottom, bg: TERMINAL_DEFAULT }
-  return { char: ' ', fg: TERMINAL_DEFAULT, bg: TERMINAL_DEFAULT }
+function inkAt(frame: readonly string[], x: number, y: number): Ink {
+  const color = colorAt(frame, x, y)
+  return frame[y]?.[x] === OUTLINE ? 'text' : color
+}
+
+const slot = (ink: Ink) => (typeof ink === 'number' ? ink : TERMINAL_DEFAULT)
+
+// Text ink can sit only in the glyph's half (a default fg) and a clear half only in the background's: that picks the block.
+function cell(top: Ink, bottom: Ink): Cell {
+  if (top === null && bottom === null) return { char: ' ', fg: TERMINAL_DEFAULT, bg: TERMINAL_DEFAULT }
+  if (top === 'text' && bottom === 'text') return { char: '█', fg: TERMINAL_DEFAULT, bg: TERMINAL_DEFAULT }
+  if (top === null || bottom === 'text') return { char: '▄', fg: slot(bottom), bg: slot(top) }
+  return { char: '▀', fg: slot(top), bg: slot(bottom) }
 }
 
 export function toRaster(frame: readonly string[]): Cell[][] {
   return Array.from({ length: SIZE / 2 }, (_, row) =>
-    Array.from({ length: SIZE }, (_, x) => cell(colorAt(frame, x, row * 2), colorAt(frame, x, row * 2 + 1))))
+    Array.from({ length: SIZE }, (_, x) => cell(inkAt(frame, x, row * 2), inkAt(frame, x, row * 2 + 1))))
 }
 
 // The starting renderer only: the CLI decides whether Image draws pixels, and the caller drops to Raster on a denied blit.

@@ -15,8 +15,12 @@ import {
   runContext,
   shouldHold,
   systemPrompt,
+  textHash,
 } from './coach-core'
 import type { Gate, Label, RunContext, Sensitivity, Verdict } from './coach-core'
+import { coachView, frameOf, markerBlit, poseOf, restOf, spriteBlit, spriteFor } from './coach-view'
+import type { Renderer } from './coach-view'
+import { FRAMES, rendererFor } from './sprite'
 
 // Shared block templates/mods/host-block.ts — re-paste byte-for-byte.
 function hostOf($: EngineInterface): Host {
@@ -41,13 +45,42 @@ const IDLE: CoachView = { mode: 'idle' }
 
 type Coach = {
   view: CoachView
-  // Why the band cannot show a bubble now, set by the band; a confident flag then passes with it as a toast.
-  bandUnavailable: string | null
   isJudging: boolean
 }
 
 // Module memory, never $.state: every plugin can read $.state, and the bubble holds the person's own text.
-export const coach: Coach = { view: IDLE, bandUnavailable: null, isJudging: false }
+export const coach: Coach = { view: IDLE, isJudging: false }
+
+type Drawn = { requestId: string; sprite: Renderer | null }
+
+type Band = {
+  // Where the band last drew the coach, and the sprite it drew there; null while it draws none of the coach.
+  drawn: Drawn | null
+  hasSurvey: boolean
+  isImageDenied: boolean
+  loop: Timer | null
+  ticks: number
+}
+
+const band: Band = { drawn: null, hasSurvey: false, isImageDenied: false, loop: null, ticks: 0 }
+
+const FRAME_MS = 250
+
+// Thinking and talking together stop within 5 s, so the animation needs no pause control (WCAG 2.2.2).
+const ANIMATION_TICKS = 20
+
+// Deny reasons as CLI 2.1.291-2.1.292 word them (rationale/2026-10-07-prompt-coach-probe.md, band-unavailable and image-terminals).
+const ALT = /the Image draws its alt/
+
+const NOT_MOUNTED = /no Raster of its own is mounted/
+
+const COLLAPSED = 'the plugin panel above the prompt is hidden'
+
+const SURVEY = 'a survey holds the plugin panel above the prompt'
+
+const UNDRAWN = 'the plugin panel above the prompt is not showing the coach'
+
+const MUTED_NOTE = 'prompt-coach muted for this session — a new session turns it back on'
 
 const PASS = { plugin: 'prompt-coach', key: 'pass' } as const
 
@@ -103,8 +136,124 @@ function say($: EngineInterface, text: string): void {
   }
 }
 
-// Settles null once the signal aborts: a stalled read must not hold the prompt past the deadline.
+function stopLoop(): void {
+  band.loop?.cancel()
+  band.loop = null
+}
+
+function show($: EngineInterface, view: CoachView): void {
+  coach.view = view
+
+  if (view.mode === 'thinking') {
+    band.ticks = 0
+  }
+
+  if (view.mode === 'idle') {
+    stopLoop()
+    band.drawn = null
+  } else {
+    band.loop ??= $.clock.every(FRAME_MS, () => void tick($))
+  }
+
+  $.ui.invalidate('ui.render')
+}
+
+// An Image the terminal can draw only as its alt falls back to Raster for the session.
+async function blitSprite($: EngineInterface, requestId: string, renderer: Renderer, frame: readonly string[]): Promise<void> {
+  const blitted = await $.ui.blit(spriteBlit(requestId, renderer, frame)).catch(() => null)
+
+  if (renderer === 'image' && ALT.test(blitted?.deny ?? '')) {
+    band.isImageDenied = true
+    $.ui.invalidate('ui.render')
+  }
+}
+
+// Every drawn pose gets one blit, a looping one a frame each tick until the cap, ending on its rest frame.
+async function tick($: EngineInterface): Promise<void> {
+  const pose = poseOf(coach.view)
+
+  band.ticks += 1
+
+  const isLast = FRAMES[pose].length === 1 || band.ticks >= ANIMATION_TICKS
+
+  if (isLast) {
+    stopLoop()
+  }
+
+  const drawn = band.drawn
+
+  if (drawn !== null && drawn.sprite !== null) {
+    await blitSprite($, drawn.requestId, drawn.sprite, isLast ? restOf(pose) : frameOf(pose, band.ticks - 1))
+  }
+}
+
+// Why the bubble would not show if the prompt dropped now, from a blit the band answers now; null when it would.
+async function unshown($: EngineInterface, signal: AbortSignal): Promise<string | null> {
+  const drawn = band.drawn
+
+  if (drawn === null) {
+    return band.hasSurvey ? SURVEY : UNDRAWN
+  }
+
+  // Always the Raster marker: its not-mounted deny is the collapse the probe measured, on every terminal.
+  const blitted = await beforeDeadline($.ui.blit(markerBlit(drawn.requestId)).catch(() => null), signal)
+
+  if (blitted === null) {
+    return UNDRAWN
+  }
+
+  if (blitted.deny === undefined) {
+    return null
+  }
+
+  return NOT_MOUNTED.test(blitted.deny) ? COLLAPSED : UNDRAWN
+}
+
+async function rendererOf($: EngineInterface): Promise<Renderer> {
+  if (band.isImageDenied) {
+    return 'raster'
+  }
+
+  return rendererFor({ TERM: await $.env.get('TERM'), TERM_PROGRAM: await $.env.get('TERM_PROGRAM'), TMUX: await $.env.get('TMUX') })
+}
+
+// Never over a draft the person typed since the drop; a refused fill leaves the bubble up with the text in it.
+async function fill($: EngineInterface, text: string): Promise<void> {
+  if ((await $.prompt.read()).text !== '') {
+    say($, 'Clear the prompt box, then press 1 or 2 again')
+
+    return
+  }
+
+  const filled = await $.prompt.fill({ text, mode: 'replace' })
+
+  if (!filled.isFilled) {
+    return
+  }
+
+  // The box drops the code points a terminal draws as nothing, so Enter sends what it holds, not what was given.
+  const hash = textHash(filled.text === '' ? text : filled.text)
+  const { value: passed = [] } = await $.state.get(PASS)
+
+  if (!passed.includes(hash)) {
+    await $.state.set(PASS, [...passed, hash])
+  }
+
+  show($, IDLE)
+}
+
+async function mute($: EngineInterface): Promise<void> {
+  await $.state.set(MUTED, true)
+  say($, MUTED_NOTE)
+  show($, IDLE)
+}
+
+// Settles null at the deadline, at once when it has passed: no read or blit may hold the prompt past it.
 function beforeDeadline<T>(work: Promise<T>, signal: AbortSignal): Promise<T | null> {
+  if (signal.aborted) {
+    return Promise.resolve(null)
+  }
+
   return new Promise((resolve, reject) => {
     const expire = () => resolve(null)
 
@@ -259,7 +408,7 @@ async function verdictOf($: EngineInterface, text: string, judgment: Judgment, o
     await settle($, judgment.gate, false, null)
 
     if (label !== 'clear') {
-      coach.view = { mode: 'hint', label }
+      show($, { mode: 'hint', label })
     }
 
     return null
@@ -274,7 +423,7 @@ async function verdictOf($: EngineInterface, text: string, judgment: Judgment, o
 
   await settle($, judgment.gate, true, 'failure' in standby ? standby.failure : null)
 
-  const verdict = 'failure' in standby ? null : parseVerdict(standby.text)
+  const verdict = 'failure' in standby ? null : parseVerdict(standby.text, text)
 
   return verdict !== null && shouldHold(verdict) && isOffered(verdict, run) ? verdict : null
 }
@@ -286,7 +435,7 @@ async function heldVerdict($: EngineInterface, prompt: Prompt, options: PluginOp
 
   // Only the person's own next prompt ends the bubble: a notification, a schedule or a peer may arrive while it is read.
   if (prompt.origin === 'composer' && (coach.view.mode === 'speaking' || coach.view.mode === 'hint')) {
-    coach.view = IDLE
+    show($, IDLE)
   }
 
   if (!switchOn(await $.env.get('CC_PROMPT_COACH'), options.cc_prompt_coach !== false) || !(await isTerminalSession($))) {
@@ -307,34 +456,41 @@ async function heldVerdict($: EngineInterface, prompt: Prompt, options: PluginOp
     return null
   }
 
-  coach.view = { mode: 'thinking' }
+  show($, { mode: 'thinking' })
 
   const stop = new AbortController()
-  let timer: Timer | undefined
+  const judged = new AbortController()
+
+  // A sleep refused, failed or cut short is the deadline too: no timer a hook refuses may hold the prompt.
+  void $.clock.sleep(LIMITS.deadlineMs, { signal: judged.signal }).then(
+    () => stop.abort(),
+    () => stop.abort(),
+  )
 
   try {
-    timer = $.clock.after(LIMITS.deadlineMs, () => stop.abort())
-
     const verdict = await verdictOf($, prompt.text, { gate, signal: stop.signal, deadline: startedAt + LIMITS.deadlineMs }, options)
 
-    if (verdict === null) {
+    // The deadline can pass while a late answer is still being counted.
+    if (verdict === null || stop.signal.aborted) {
       return null
     }
 
-    if (coach.bandUnavailable !== null) {
-      say($, `Flagged (${verdict.kind}) but sent: ${coach.bandUnavailable}.`)
+    const unavailable = await unshown($, stop.signal)
+
+    if (unavailable !== null) {
+      say($, `Flagged (${verdict.kind}) but sent: ${unavailable}.`)
 
       return null
     }
 
-    coach.view = { mode: 'speaking', text: prompt.text, verdict }
+    show($, { mode: 'speaking', text: prompt.text, verdict })
 
     return verdict
   } finally {
-    timer?.cancel()
+    judged.abort()
 
     if (coach.view.mode === 'thinking') {
-      coach.view = IDLE
+      show($, IDLE)
     }
   }
 }
@@ -357,5 +513,30 @@ export function register(on: On, options: PluginOptions) {
     }
 
     return verdict === null ? next(e) : { drop: dropReason(verdict) }
+  }).catch(($, e, next) => next(e))
+
+  on('ui.render', { component: 'AbovePrompt', surface: 'terminal' }, async ($, e, next) => {
+    if (!isSupported((await $.session.version()).version)) {
+      return next(e)
+    }
+
+    band.hasSurvey = e.props.hasSurvey
+
+    const view = coach.view
+
+    if (view.mode === 'idle' || e.props.hasSurvey) {
+      band.drawn = null
+
+      return next(e)
+    }
+
+    const bodyRows = e.props.scroll.bodyRows
+    const sprite = spriteFor(await rendererOf($), e.props.bodyColumns, bodyRows)
+
+    band.drawn = { requestId: e.requestId, sprite }
+
+    const kit = { ui: $.ui.resolve(e), sprite, bodyRows, fill: (text: string) => fill($, text), mute: () => mute($) }
+
+    return coachView(kit, view)
   }).catch(($, e, next) => next(e))
 }

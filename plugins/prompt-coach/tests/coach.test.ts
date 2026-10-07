@@ -168,6 +168,10 @@ function seat(on: On, live: Live = {}) {
     return { text: e.text }
   })
 
+  // The engine's own band beneath the coach's, and every blit taken: a drop needs the band to show.
+  on('ui.render', { component: 'AbovePrompt' }, ($, e) => $.ui.resolve(e).Box({}))
+  on('ui.blit', () => ({ value: {} }))
+
   on('model.complete', async ($, e, next) => {
     const stage = e.model === 'haiku' ? 'haiku' : 'standby'
     const asked = world.calls.filter(call => (call.model === 'haiku') === (stage === 'haiku')).length
@@ -199,6 +203,9 @@ function seat(on: On, live: Live = {}) {
 
     if (reply.afterMs !== undefined) {
       await world.clock.sleep(reply.afterMs)
+    } else {
+      // A live judge takes long enough for the band to draw; the kit draws it once the clock settles.
+      await world.clock.settle()
     }
 
     return { value: { isAnswered: true, text: reply.text, usage: ZERO } }
@@ -206,6 +213,10 @@ function seat(on: On, live: Live = {}) {
 
   return world
 }
+
+const BAND = { hasSurvey: false, isWorking: false, maxRows: 17, bodyColumns: 75, scroll: { offset: 0, bodyRows: 16 }, view: {} } as const
+
+const mount = ($: Engine) => $.ui.mount({ plugin: 'prompt-coach', surface: 'terminal', component: 'AbovePrompt', requestId: 'above-prompt', props: BAND })
 
 // Starts the submit, moves the clock past the deadline, then reads its result: how a hanging judge is answered.
 async function pastDeadline($: Engine, world: ReturnType<typeof seat>, prompt = composer(PROMPT)) {
@@ -230,6 +241,8 @@ describe('coach', () => {
   test('drops a confidently unclear prompt and leaves the box empty', async ($, on) => {
     const world = seat(on)
 
+    await mount($)
+
     world.replies.haiku = [answer('unclear')]
 
     const r = await $.prompt.submit(composer(PROMPT))
@@ -245,6 +258,8 @@ describe('coach', () => {
 
   test('names off-card only while a run is active', async ($, on) => {
     const world = seat(on, { files: IN_RUN })
+
+    await mount($)
 
     world.replies = { haiku: [answer('conflict')], standby: [answer(verdict('off-card'))] }
 
@@ -278,6 +293,8 @@ describe('coach', () => {
   test('passes on timeout, error, blocked model and malformed output', async ($, on) => {
     const world = seat(on)
 
+    await mount($)
+
     // Each malformed answer follows two failures: counted as a third, the case after it would be skipped by the back-off.
     const cases: [string, Reply, Reply][] = [
       ['the standby runs past the deadline', answer('unclear'), { hang: true }],
@@ -300,11 +317,14 @@ describe('coach', () => {
 
     expect(world.aborted).toEqual(['sonnet', 'haiku'])
     expect(world.submitted.length).toBe(cases.length)
+    expect(world.toasts.filter(toast => toast.startsWith('Flagged')), 'passed as not flagged, with the band up').toEqual([])
   })
 
   test('skips ineligible prompts without a model call', async ($, on) => {
     const world = seat(on)
     const named = 'rename the parse helper in src/utils.ts'
+
+    await mount($)
 
     world.replies.haiku = [answer('unclear')]
 
@@ -342,6 +362,8 @@ describe('coach', () => {
   test('stops escalating after the cap', async ($, on) => {
     const world = seat(on)
 
+    await mount($)
+
     const results = await flagTwelveTimes($, world)
 
     expect(world.calls.filter(c => c.model === 'haiku').length).toBe(12)
@@ -376,6 +398,8 @@ describe('coach', () => {
   test('passes everything below the floor or when switched off', async ($, on) => {
     const world = seat(on, { version: '2.1.290' })
 
+    await mount($)
+
     world.replies.haiku = [answer('unclear')]
 
     expect(await $.prompt.submit(composer(PROMPT)), 'below the floor').toEqual({ text: PROMPT })
@@ -393,6 +417,8 @@ describe('coach', () => {
 
   test('passes every prompt untouched off the terminal, the desktop included', async ($, on) => {
     const world = seat(on)
+
+    await mount($)
 
     world.replies.haiku = [answer('unclear')]
 
@@ -412,6 +438,8 @@ describe('coach', () => {
   test('uses opus when cc_coach_model is opus', { options: { cc_coach_model: 'opus' } }, async ($, on) => {
     const world = seat(on)
 
+    await mount($)
+
     world.replies.haiku = [answer('unclear')]
 
     expect(await $.prompt.submit(composer(PROMPT))).toEqual(dropOf('unclear'))
@@ -425,6 +453,8 @@ describe('coach', () => {
   test('judges under a live build sentinel', async ($, on) => {
     const world = seat(on, { files: { ...IN_RUN, [SENTINEL]: JSON.stringify({ phase: 'build', owner: 'task-runner:run' }) } })
 
+    await mount($)
+
     world.replies.haiku = [answer('unclear')]
 
     expect(await $.prompt.submit(composer(PROMPT))).toEqual(dropOf('unclear'))
@@ -436,16 +466,20 @@ describe('coach', () => {
     const e = composer(PROMPT, { wait: true, turnId: 'turn-1', context: ['context another plugin attached'] })
 
     world.replies = { haiku: [answer('unclear')], standby: [answer(verdict('unclear', 'low'))] }
+    await mount($)
 
     const r = await $.prompt.submit(e)
 
     expect(world.calls.length, 'judged, and the standby was not confident').toBe(2)
     expect(world.submitted).toEqual([e])
     expect(r).toEqual({ text: PROMPT })
+    expect(world.toasts, 'passed as not confident, with the band up').toEqual([])
   })
 
   test('names reopens and contradicts', async ($, on) => {
     const world = seat(on, { files: IN_RUN, messages: TURNS })
+
+    await mount($)
 
     world.replies = { haiku: [answer('conflict')], standby: [answer(verdict('reopens', 'high', 'D1')), answer(verdict('contradicts'))] }
 
@@ -470,6 +504,7 @@ describe('coach', () => {
     const world = seat(on, { files: { ...IN_RUN, [INDEX]: INDEX_MD.replace('in_progress (delegated)', 'done (def5678)') } })
 
     world.replies = { haiku: [answer('conflict')], standby: [answer(verdict('off-card'))] }
+    await mount($)
 
     expect(await $.prompt.submit(composer(PROMPT)), 'off-card with no card in progress').toEqual({ text: PROMPT })
     expect(world.calls.map(c => [c.system.includes('off-card'), c.system.includes('- reopens:')]), 'nor is off-card offered').toEqual([
@@ -496,10 +531,13 @@ describe('coach', () => {
 
     expect(await $.prompt.submit(composer(PROMPT)), 'reopens a decision the spec does not list').toEqual({ text: PROMPT })
     expect(world.calls.filter(c => c.model === 'sonnet').length, 'every one reached the standby').toBe(4)
+    expect(world.toasts, 'passed as not offered, with the band up').toEqual([])
   })
 
   test('ignores the run of a committed active-run.json', async ($, on) => {
     const world = seat(on, { files: IN_RUN })
+
+    await mount($)
 
     world.replies = { haiku: [answer('conflict')], standby: [answer(verdict('off-card'))] }
 
@@ -582,6 +620,33 @@ describe('coach', () => {
     expect(world.aborted).toEqual(['sonnet'])
   })
 
+  test('a deadline timer a hook refuses still lets the prompt through', async ($, on) => {
+    // Registered above the seat's, so they answer first: the timer is refused, and the run is read after it ended the judgment.
+    on('clock.sleep', { ms: 5000 }, () => ({ deny: 'timers are off here' }))
+    on('env.get', { name: 'CC_COACH_SENSITIVITY' }, async () => {
+      await world.clock.sleep(1)
+
+      return { value: undefined }
+    })
+
+    const world = seat(on)
+
+    world.gitDelayMs = 60_000
+
+    for (let i = 0; i < 3; i += 1) {
+      const held = $.prompt.submit(composer(PROMPT))
+
+      await world.clock.advance(1)
+
+      expect(await held).toEqual({ text: PROMPT })
+    }
+
+    expect(world.calls, 'the stalled read was not waited for').toEqual([])
+    expect(world.toasts, 'each ended as a judgment past the deadline').toEqual([
+      '3 judgments failed in a row (last: the run and recent turns took over 5 s to read); prompts go through unjudged for 10 minutes.',
+    ])
+  })
+
   test('a context read past the deadline passes at 5 s and counts as a failure', async ($, on) => {
     const world = seat(on)
 
@@ -616,6 +681,8 @@ describe('coach', () => {
   test('says once that the cap was reached', async ($, on) => {
     const world = seat(on)
 
+    await mount($)
+
     await flagTwelveTimes($, world)
 
     expect(world.toasts).toEqual(['The standby judge reached its cap of 10 checks this session: a flagged prompt now gets a hint and is sent.'])
@@ -623,6 +690,8 @@ describe('coach', () => {
 
   test('CC_PROMPT_COACH on beats cc_prompt_coach off', { options: { cc_prompt_coach: false } }, async ($, on) => {
     const world = seat(on)
+
+    await mount($)
 
     world.replies.haiku = [answer('unclear')]
 
@@ -691,6 +760,8 @@ describe('coach', () => {
     let isMuted = true
 
     on('state.get', ($, e) => ({ value: { value: e.key === 'muted' ? isMuted : undefined, version: 0 } }))
+
+    await mount($)
 
     world.replies.haiku = [answer('unclear')]
 

@@ -71,6 +71,9 @@ const REPLY_CAPS = { reasonChars: 200, rewriteChars: 600, rewriteWords: 80 } as 
 
 const DECISION_ID = /^D\d{1,3}$/
 
+// The reason is one terminal row: an emoji is two cells wide and breaks it.
+const PICTOGRAPH = /\p{Extended_Pictographic}/u
+
 // C0 and C1 controls but tab and newline, and the bidi marks, embeddings, overrides and isolates.
 const UNSAFE = /[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u200E\u200F\u202A-\u202E\u2066-\u2069]/
 
@@ -217,12 +220,12 @@ export function parseLabel(text: string): Label {
 // The rewrite becomes the person's prompt at one key press and the reason is one bubble line: neither may carry hidden or bulk text.
 function isPlainReply(reason: string, rewrite: string): boolean {
   const words = rewrite.split(/\s+/).filter((word) => word !== '').length
-  const isPlainReason = reason.length <= REPLY_CAPS.reasonChars && !/[\t\n]/.test(reason) && !UNSAFE.test(reason)
+  const isPlainReason = reason.length <= REPLY_CAPS.reasonChars && !/[\t\n]/.test(reason) && !UNSAFE.test(reason) && !PICTOGRAPH.test(reason)
 
   return isPlainReason && rewrite.length <= REPLY_CAPS.rewriteChars && words <= REPLY_CAPS.rewriteWords && !UNSAFE.test(rewrite)
 }
 
-export function parseVerdict(text: string): Verdict | null {
+export function parseVerdict(text: string, prompt = ''): Verdict | null {
   let parsed: unknown
   try {
     parsed = JSON.parse(text)
@@ -238,7 +241,9 @@ export function parseVerdict(text: string): Verdict | null {
   if (verdict !== 'clear' && (verdict === 'unclear') !== (kind === 'unclear')) return null
   // A flag with nothing to show the person cannot be held: the bubble would be empty.
   if (verdict !== 'clear' && (reason.trim() === '' || rewrite.trim() === '')) return null
-  return { verdict, kind, ...(typeof decision === 'string' ? { decision } : {}), confidence, reason, rewrite }
+  // The judge was asked to write each ‹ back as <; one it left is the person's <, unless the prompt held a ‹ of its own.
+  const restored = prompt.includes('‹') ? rewrite : rewrite.replaceAll('‹', '<')
+  return { verdict, kind, ...(typeof decision === 'string' ? { decision } : {}), confidence, reason, rewrite: restored }
 }
 
 export function shouldHold(v: Verdict | null): boolean {

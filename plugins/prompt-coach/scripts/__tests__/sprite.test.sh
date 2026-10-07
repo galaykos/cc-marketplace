@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # sprite.test.sh — hooks/sprite.ts under node: every frame 16x16 in palette, RGBA bytes and Raster half-block cells
-#   against the pixels with transparency honoured, and the starting renderer from TERM/TERM_PROGRAM/TMUX.
+#   against the pixels with transparency and the theme-coloured outline honoured, the thinking dots' contrast, and the
+#   starting renderer from TERM/TERM_PROGRAM/TMUX.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SPRITE="$ROOT/hooks/sprite.ts"
@@ -22,9 +23,16 @@ const throws = (fn) => { try { fn(); return "no throw" } catch { return "throws"
 // What the terminal paints in each half of a cell: a default fg is its text colour, a default bg its background.
 const shown = ({ char, fg, bg }) => {
   const f = fg === DEFAULT ? "terminal text" : fg, b = bg === DEFAULT ? "terminal background" : bg
-  return char === "▀" ? [f, b] : char === "▄" ? [b, f] : char === " " ? [b, b] : ["glyph " + char]
+  return char === "▀" ? [f, b] : char === "▄" ? [b, f] : char === " " ? [b, b] : char === "█" ? [f, f] : ["glyph " + char]
 }
-const seen = (c) => c === null ? "terminal background" : c
+// The outline is drawn in the terminal text colour so it flips with the theme; every other pixel in its own colour.
+const seen = (f, x, y) => f[y][x] === "k" ? "terminal text" : color(f, x, y) === null ? "terminal background" : color(f, x, y)
+const kinds = ".kc"
+const PAIRS = [...kinds].flatMap((top) => [...kinds].map((bottom) => top + bottom))
+const PAIRED = [0, 1].map((half) => PAIRS.map((p) => p[half]).join("").padEnd(16, ".")).concat(Array(14).fill(".".repeat(16)))
+const luminance = (c) => [c >> 16, (c >> 8) & 255, c & 255].map((v) => v / 255).map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
+  .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0)
+const contrast = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((p, q) => q - p); return (hi + 0.05) / (lo + 0.05) }
 const env = (TERM, TERM_PROGRAM, TMUX) => rendererFor({ TERM, TERM_PROGRAM, TMUX })
 const TMUX = "/tmp/tmux-1000/default,4242,0"
 const cases = [
@@ -50,12 +58,13 @@ const cases = [
     frames.map(([, f]) => toRaster(f).map((r) => r.length)), frames.map(() => Array(8).fill(16))],
   ["every Raster cell paints its top pixel above and its bottom pixel below, transparent as the terminal background",
     frames.flatMap(([n, f]) => toRaster(f).flatMap((row, r) => row.map((cell, x) => [x, r, cell]))
-      .filter(([x, r, cell]) => JSON.stringify(shown(cell)) !== JSON.stringify([seen(color(f, x, 2 * r)), seen(color(f, x, 2 * r + 1))]))
+      .filter(([x, r, cell]) => JSON.stringify(shown(cell)) !== JSON.stringify([seen(f, x, 2 * r), seen(f, x, 2 * r + 1)]))
       .map(([x, r]) => n + " cell " + x + "," + r)), []],
-  ["the frames hold cells of all four opaque/transparent pairs, so the sweep above reaches each",
-    [...new Set(frames.flatMap(([, f]) => [...Array(8)].flatMap((_, r) => [...Array(16)].map((_, x) =>
-      [color(f, x, 2 * r) === null, color(f, x, 2 * r + 1) === null].join("/")))))].sort(),
-    ["false/false", "false/true", "true/false", "true/true"]],
+  ["each of the nine pairs of clear, outline and colour halves paints its two pixels, glyph chosen per cell",
+    toRaster(PAIRED)[0].slice(0, 9).map((cell, x) => JSON.stringify(shown(cell)) === JSON.stringify([seen(PAIRED, x, 0), seen(PAIRED, x, 1)]) ? cell.char : "wrong " + PAIRS[x]),
+    [" ", "▄", "▄", "▀", "█", "▀", "▀", "▄", "▀"]],
+  ["the thinking dots reach 3:1 against both a white and a black background",
+    [0xffffff, 0x000000].map((bg) => contrast(PALETTE.y, bg) >= 3), [true, true]],
   ["an out-of-palette or missing pixel throws in both renderers",
     [throws(() => toRgba(FRAMES.idle[0].map((r, y) => y === 3 ? "Z" + r.slice(1) : r))), throws(() => toRaster(FRAMES.idle[0].slice(1)))],
     ["throws", "throws"]],
