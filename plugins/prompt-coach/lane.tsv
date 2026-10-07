@@ -4,4 +4,4 @@
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 # No yields_to taskmaster:remind: remind nudges the model before work begins; the coach judges a submitted prompt and speaks to the person.
-prompt-coach:coach	mod	any	prompt-coaching	prompt.submit of a composer-origin prompt with no attachments, not led by /, ! or #, of at least 4 tokens or 16 non-space characters and not marked to pass, on CLI 2.1.291+ with CC_PROMPT_COACH not off, the coach not muted, not backing off and not already judging; holds it up to 5 s and drops it only on a confident standby flag	-
+prompt-coach:coach	mod	any	prompt-coaching	prompt.submit of a composer-origin prompt with no attachments, not led by /, ! or #, of at least 4 tokens or 16 non-space characters and not marked to pass, on CLI 2.1.291+ in a terminal session the desktop does not draw on, with CC_PROMPT_COACH (or cc_prompt_coach) not off, the coach not muted, not backing off and not already judging; holds it up to 5 s and drops it only on a confident standby flag	-

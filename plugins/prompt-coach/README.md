@@ -9,9 +9,11 @@ prompt box and never submit it. A haiku first pass judges every eligible prompt,
 standby model below confirms a flag, at most 10 times a session. Terminal only; it
 needs Claude Code 2.1.291 or newer with mods allowed.
 
-It installs only when you name it, because it bills a model call per eligible prompt:
-`/all-plugins:install` and `/stack-scan:suggest --full` leave it out, though
-`/all-plugins:uninstall` removes it like any other plugin.
+Bulk installs leave it out, because it bills a model call per eligible prompt:
+`/all-plugins:install` and `/stack-scan:suggest --full` skip it, though
+`/all-plugins:uninstall` removes it like any other plugin. stack-scan's default picker
+still lists it, so a picked range, or "print the install commands for the rest", can
+include it.
 
 ```bash
 claude plugin install prompt-coach@cc-plugins-marketplace -s local
@@ -47,8 +49,10 @@ The plugin is one hooks module, `hooks/coach.ts`, the only entry under `modules`
 - **Everything else passes untouched.** A clear or low-confidence verdict, a timeout, an
   API error, a model your organization refuses, malformed output and any error inside the
   hook all let the prompt through, and every later prompt hook (taskmaster's reminder,
-  candor) sees it as if the coach were absent; a dropped prompt reaches none of them. The
-  coach ignores the phase sentinel and judges in every phase.
+  candor) sees it as if the coach were absent; a dropped prompt reaches none of them.
+  **Recorded** — from the CLI's types, never observed live; `tests/coach.test.ts`, "a
+  passed prompt reaches next unchanged", gates only the hand-off. The coach ignores the
+  phase sentinel and judges in every phase.
 
 ## The bubble
 
@@ -168,6 +172,9 @@ timeout).
 - **Organization policy.** An organization that sets `allowManagedModsOnly` refuses the
   module, and nothing is judged. **Recorded** — from the CLI's own mod documentation, not
   measured.
+- **An early-access API.** The CLI's mods API is early access and may change without
+  notice. Everything here was observed on CLI 2.1.291 and 2.1.292 only, and the version
+  check has a floor but no ceiling, so a newer CLI runs the coach unverified. **Recorded.**
 - **Terminal only.** In a session the desktop app draws on, and in one with no terminal
   (mobile, VS Code), every prompt passes untouched. **Gate** — `tests/coach.test.ts`,
   "passes every prompt untouched off the terminal, the desktop included".
@@ -213,10 +220,16 @@ What the judge sees, and how far to trust it:
 - **A separate model call, on your own account.** Your prompt (its first 4,000
   characters), the last 6 turns with text (2,000 characters) and, during a run, the cards
   in progress (500) and the spec's goal and decisions (1,500) go to the judge model, never
-  over 8,000 characters in all. The coach adds nothing to the main conversation's
-  context, and this marketplace's context-budget gate cannot meter the judge's input.
-  **Gate** for the caps — `scripts/__tests__/coach-core-judge.test.sh`; **unenforceable**
-  for the meter, which sees no call a hook makes.
+  over 8,000 characters in all. **Gate** for the caps —
+  `scripts/__tests__/coach-core-judge.test.sh`.
+- **What the context meter cannot see.** This marketplace's `context-budget.sh` meters no
+  text a mod puts anywhere: not the judge's input, and not a rewrite you send, which
+  reaches the main conversation as your own prompt. **Unenforceable** — the meter runs no
+  mod. A prompt the coach passes reaches the main model with nothing attached: **gate** —
+  `tests/coach.test.ts`, "a passed prompt reaches next unchanged".
+- **The standby only confirms.** The model you configure (sonnet or opus) sees only the
+  prompts the haiku first pass flagged; a prompt haiku calls clear is never shown to it.
+  **Gate** — `tests/coach.test.ts`, "passes a clear prompt untouched".
 - **Judge quality is unmeasured.** Whether the judge flags the right prompts, and obeys
   the rules it is told, is not measured: the plugin tests stub the judge, so they prove
   the plumbing only, and no eval ships. **Unenforceable** without a live eval.
@@ -224,11 +237,19 @@ What the judge sees, and how far to trust it:
   or the spec's decisions can shape the reason and the rewrite: a cloned repository's task
   files, or an assistant reply quoting a web page. Read the rewrite before you press
   Enter. **Unenforceable.**
+- **Whose words the turns are.** Every user row with text goes to the judge as your own
+  instruction. Whether those rows also carry an expanded slash command or the context
+  another plugin's prompt hook attached (candor, taskmaster) was not observed; if they
+  do, that text can draw a `contradicts` flag. **Recorded** as unobserved.
 - **What limits that.** A `.claude/task-runner/active-run.json` that git tracks (one a
   clone brought), or one git cannot vouch for, is ignored. The index and the spec are read
   only as regular files of at most 256 KiB whose real path lies inside the repository.
   **Gate** — `tests/coach.test.ts`, "ignores the run of a committed active-run.json" and
-  "reads run context only from a small regular file under the state root". A reason with
+  "reads run context only from a small regular file under the state root". What this does
+  not stop: a cloned repository's own CLAUDE.md still reaches the main model unguarded,
+  and task-runner and code-review still trust the same `active-run.json` through the
+  shared kit; only the coach distrusts it. The git check runs inside the 5 s hold, capped
+  at 2 s. **Recorded.** A reason with
   a tab or newline, or a reason or rewrite carrying a control or bidi character, discards
   the verdict and the prompt passes. Every `<`, `＜` and `﹤` the judge reads is written
   `‹`, so planted text cannot open or close a section of its input. The judge is asked to
@@ -284,6 +305,13 @@ The band and its buttons:
   toast was not re-walked with the marker (**recorded**).
 - **The marker's column.** The marker is one blank column, column 0: beside the sprite,
   or before the gap where no sprite is drawn. **Recorded** (walk).
+- **One band for every plugin.** The CLI draws one tree above the prompt box. While the
+  coach draws, another plugin's band below it in hook order is not drawn; a plugin above
+  it that draws hides the coach, and every flag then passes with the `not showing the
+  coach` toast. No plugin in this marketplace draws there. **Recorded** (CLI types).
+- **Beside task-runner's board.** The coach was never walked with `/task-board` open,
+  though off-card judgments come during task-runner runs, when the board is most likely
+  open; a docked pane narrows the band. **Recorded** as unobserved.
 - **A band collapsed at idle.** ctrl+x ctrl+a acts only while the coach draws, so a band
   collapsed between prompts stays hidden and every later flag passes with the `hidden`
   toast, until a hold shows the hidden row and you re-expand it. **Recorded** (walk).

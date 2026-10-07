@@ -26,7 +26,7 @@ Not sure what you need? Install one plugin and let it tell you:
 /plugin install stack-scan@cc-plugins-marketplace
 /stack-scan:suggest              # scans your manifests, suggests a set, installs your picks
 /stack-scan:suggest --yes        # installs the stack-matched tier plus the any-project core, without asking
-/stack-scan:suggest --full       # everything relevant to the detected stack, leaves only, after a plan and one confirm
+/stack-scan:suggest --full       # everything relevant to the detected stack but opt-in prompt-coach, leaves only, after a plan and one confirm
 /stack-scan:suggest --full --stack laravel,inertia,react   # greenfield: name the stack the manifests do not show yet
 /stack-scan:suggest --persist    # project scope: teammates who clone get the same set
 /stack-scan:suggest --global     # user scope: every repo on this machine
