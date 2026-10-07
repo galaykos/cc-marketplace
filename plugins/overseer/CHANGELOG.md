@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.7 — 2026-10-07
+
+- `scripts/program.sh` no longer loses concurrent writes to `program.json`. Its state lock was a `mkdir` lock, and on hosts whose `mkdir` is uutils coreutils (Ubuntu 26.04's default) `mkdir` exits 0 even when it loses the race, so two writers held the lock at once. 20 concurrent `evidence add` calls all exited 0 but kept only 14-19 rows. The lock is now a file that bash itself creates exclusively (`set -C`), with no external binary in the race. Standing: gate, but only where `mkdir` is uutils. There, the harness's 20-concurrent-adds assertion fails against the old lock; on a GNU `mkdir` host the old lock held, so the assertion passes either way. The harness now also fails if a lock file of either kind is left behind.
+
 ## 0.5.6 — 2026-09-30
 
 - Eval cases with an `llm` grader now declare `runs: 3` (was 1). Three runs are the fewest that can tell a regression from a flake, and the marketplace's eval load gate now fails a case with fewer.
