@@ -2,7 +2,7 @@ import type { Args, FsStat, On, SessionMessage, UiBlitArgs } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 import type { Engine, Mounted } from 'claude-code/testing'
 
-import { FRAMES, toRaster } from '../hooks/sprite'
+import { BLINK, FRAMES, toRaster } from '../hooks/sprite'
 import type { Pose } from '../hooks/sprite'
 
 const NOW = Date.UTC(2026, 9, 7, 12)
@@ -79,6 +79,7 @@ function seat(on: On, live: Live = {}) {
     isBlitRefused: false,
     passes: [] as unknown[],
     stateWriteMs: 0,
+    opened: [] as unknown[],
   }
 
   on('session.version', () => ({ value: { version: '2.1.291' } }))
@@ -156,6 +157,14 @@ function seat(on: On, live: Live = {}) {
 
   // The engine's own band: what shows while the coach draws nothing.
   on('ui.render', { component: 'AbovePrompt' }, ($, e) => $.ui.resolve(e).Box({}))
+
+  on('ui.render', { component: 'Pane' }, ($, e) => $.ui.resolve(e).Box({}))
+
+  on('ui.open', ($, e) => {
+    world.opened.push(e)
+
+    return { value: { isPlaced: true } }
+  })
 
   on('prompt.read', () => ({ value: { text: world.box, cursor: world.box.length } }))
 
@@ -779,5 +788,157 @@ describe('band', () => {
     await world.clock.advance(250)
 
     expect(await shapeOf(band), 'and Raster takes over at its next frame').toEqual(['Raster', 16, 8])
+  })
+})
+
+const FULLSCREEN = { columns: 200, rows: 50, isFullscreen: true } as const
+
+const PANE = { title: 'coach', isFocused: false, bodyColumns: 18, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} } as const
+
+const mountFullscreen = ($: Engine, viewport: { columns: number; rows: number; isFullscreen?: boolean } = FULLSCREEN) =>
+  $.ui.mount({ plugin: 'prompt-coach', surface: 'terminal', component: 'AbovePrompt', requestId: 'above-prompt', props: BAND, viewport })
+
+const mountPane = ($: Engine, bodyColumns: number = PANE.bodyColumns) =>
+  $.ui.mount({ plugin: 'prompt-coach', surface: 'terminal', component: 'Pane', requestId: 'prompt-coach', props: { ...PANE, bodyColumns } })
+
+const paneBlits = (world: ReturnType<typeof seat>) => world.blits.filter(args => args.requestId === 'prompt-coach').map(blitCells)
+
+const blinkCells = toRaster(BLINK).flat().map(cell => [cell.char, cell.fg, cell.bg])
+
+describe('mascot', () => {
+  test('opens one docked pane a session, only under the fullscreen renderer', async ($, on) => {
+    const world = seat(on)
+
+    world.replies.haiku = [answer('clear', 600)]
+
+    await mountFullscreen($)
+    await world.clock.settle()
+
+    expect(world.opened).toEqual([{ id: 'prompt-coach', title: 'coach', columns: 18 }])
+
+    await judged($, world)
+
+    expect(world.opened, 'a later draw of the band opens nothing more, so a pane the person closed stays closed').toHaveLength(1)
+  })
+
+  test('opens no pane where the renderer would seat it inline', async ($, on) => {
+    const world = seat(on)
+
+    await mountFullscreen($, { columns: 200, rows: 50, isFullscreen: false })
+    await world.clock.settle()
+
+    expect(world.opened).toEqual([])
+  })
+
+  test('CC_COACH_MASCOT=off opens no pane, and the coach still judges', async ($, on) => {
+    const world = seat(on, { env: { CC_COACH_MASCOT: 'off' } })
+
+    await mountFullscreen($)
+    await world.clock.settle()
+
+    expect(world.opened).toEqual([])
+    expect(await judged($, world)).toEqual(dropOf('unclear'))
+  })
+
+  test('CC_PROMPT_COACH=off opens no pane either', async ($, on) => {
+    const world = seat(on, { env: { CC_PROMPT_COACH: 'off' } })
+
+    await mountFullscreen($)
+    await world.clock.settle()
+
+    expect(world.opened).toEqual([])
+  })
+
+  test('the pane shows the idle sprite and follows the judgment', async ($, on) => {
+    const world = seat(on)
+
+    world.replies.haiku = [answer('clear', 1000)]
+
+    const pane = await mountPane($)
+
+    expect(await shapeOf(pane)).toEqual(['Raster', 16, 8])
+    expect(decoded((await spriteOf(pane))?.props.cells)).toEqual(frameCells('idle', 0))
+    expect(await lines(pane), 'no caption at rest, and the Still button').toEqual(['Still'])
+
+    const submitted = $.prompt.submit(composer(PROMPT))
+
+    await world.clock.settle()
+
+    expect(decoded((await spriteOf(pane))?.props.cells), 'thinking while the band holds the prompt').toEqual(frameCells('thinking', 1))
+    expect(await lines(pane)).toEqual(['checking…', 'Still'])
+
+    await world.clock.advance(250)
+
+    expect(paneBlits(world).at(-1), 'animated with the band').toEqual(frameCells('thinking', 0))
+
+    await world.clock.advance(750)
+    await submitted
+
+    expect(decoded((await spriteOf(pane))?.props.cells), 'back at rest once the prompt passes').toEqual(frameCells('idle', 0))
+  })
+
+  test('says flagged while the band shows a bubble', async ($, on) => {
+    const world = seat(on)
+    const pane = await mountPane($)
+
+    await mount($)
+
+    world.replies.haiku = [answer('unclear', 900)]
+
+    expect(await judged($, world)).toEqual(dropOf('unclear'))
+    expect(await lines(pane)).toEqual(['flagged', 'Still'])
+    expect(decoded((await spriteOf(pane))?.props.cells)).toEqual(frameCells('talking', 1))
+  })
+
+  test('blinks every 4 s at rest and opens its eyes again', async ($, on) => {
+    const world = seat(on)
+
+    await mountPane($)
+    await world.clock.advance(4000)
+
+    expect(paneBlits(world)).toEqual([blinkCells])
+
+    await world.clock.advance(150)
+
+    expect(paneBlits(world)).toEqual([blinkCells, frameCells('idle', 0)])
+
+    await world.clock.advance(4000)
+
+    expect(paneBlits(world), 'and again 4 s later').toHaveLength(4)
+  })
+
+  test('Still stops the blink for the session and leaves the sprite', async ($, on) => {
+    const world = seat(on)
+    const pane = await mountPane($)
+
+    await pane.press({ key: 'still' })
+    await world.clock.advance(12_000)
+
+    expect(paneBlits(world)).toEqual([])
+    expect(await lines(pane), 'the button goes once it has done its job').toEqual([])
+    expect(await shapeOf(pane)).toEqual(['Raster', 16, 8])
+  })
+
+  test('a pane that refuses the blink stops blinking until it draws again', async ($, on) => {
+    const world = seat(on)
+
+    await mountPane($)
+
+    world.denyBlit = args => (args.requestId === 'prompt-coach' ? 'no Raster of its own is mounted under key "sprite" in prompt-coach' : undefined)
+
+    await world.clock.advance(12_000)
+
+    expect(paneBlits(world), 'one refused try, then none').toHaveLength(1)
+  })
+
+  test('a pane narrower than the sprite shows no sprite and never blinks', async ($, on) => {
+    const world = seat(on)
+    const pane = await mountPane($, 10)
+
+    await world.clock.advance(8000)
+
+    expect(await spriteOf(pane)).toBeUndefined()
+    expect(await lines(pane)).toEqual([])
+    expect(paneBlits(world)).toEqual([])
   })
 })

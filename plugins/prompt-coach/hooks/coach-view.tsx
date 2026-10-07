@@ -17,7 +17,17 @@ export type CoachKit = {
   mute: () => Promise<void>
 }
 
+type SpriteKit = { ui: Pick<Elements['terminal'], 'Raster' | 'Image'>; sprite: Renderer | null }
+
+export type MascotKit = SpriteKit & {
+  ui: Pick<Elements['terminal'], 'Box' | 'Text' | 'Button'>
+  // Stops the idle blink for the session; null once it is stopped.
+  still: (() => void) | null
+}
+
 const SPRITE = { key: 'sprite', columns: 16, rows: 8, pixels: 16 } as const
+
+const CAPTIONS: Record<Pose, string> = { idle: '', thinking: 'checking…', talking: 'flagged' }
 
 // A blank Raster cell in every drawing of the coach: the one element a blit can test the band with on any terminal.
 const MARKER_KEY = 'marker'
@@ -50,6 +60,11 @@ export function restOf(pose: Pose): readonly string[] {
 
 export function spriteFor(renderer: Renderer, columns: number, bodyRows: number): Renderer | null {
   return columns >= SPRITE_MIN_COLUMNS && bodyRows >= SPRITE.rows ? renderer : null
+}
+
+// The pane holds the sprite alone, so it needs only the sprite's own cells.
+export function mascotSpriteFor(renderer: Renderer, columns: number, bodyRows: number): Renderer | null {
+  return columns >= SPRITE.columns && bodyRows >= SPRITE.rows ? renderer : null
 }
 
 const base64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes))
@@ -101,7 +116,7 @@ function shown(text: string): string {
   return text.length <= LIMITS.promptChars ? text : `${text.slice(0, LIMITS.promptChars).replace(/[\uD800-\uDBFF]$/, '')}…`
 }
 
-function spriteOf(kit: CoachKit, pose: Pose): RenderElement | null {
+function spriteOf(kit: SpriteKit, pose: Pose): RenderElement | null {
   const { Image, Raster } = kit.ui
   const frame = restOf(pose)
 
@@ -174,6 +189,25 @@ export function coachView(kit: CoachKit, view: Exclude<CoachView, { mode: 'idle'
       <Box flexDirection="column" flexGrow={1}>
         {lines}
       </Box>
+    </Box>
+  )
+}
+
+// A blink that runs past 5 s needs a stop control in view (WCAG 2.2.2), so Still shows whenever one is due.
+export function mascotView(kit: MascotKit, view: CoachView): RenderElement {
+  const { Box, Text, Button } = kit.ui
+  const pose = poseOf(view)
+  const still = kit.sprite === null ? null : kit.still
+
+  return (
+    <Box flexDirection="column">
+      {spriteOf(kit, pose)}
+      {CAPTIONS[pose] === '' ? null : <Text>{CAPTIONS[pose]}</Text>}
+      {still === null ? null : (
+        <Button key="still" hotkey="s" plain onPress={still}>
+          Still
+        </Button>
+      )}
     </Box>
   )
 }

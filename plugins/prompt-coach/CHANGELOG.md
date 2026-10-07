@@ -2,6 +2,19 @@
 
 All notable changes to the `prompt-coach` plugin.
 
+## 0.2.0 — 2026-10-07
+
+- **A mascot pane.** In the fullscreen terminal UI (`"tui": "fullscreen"`) the sprite stays
+  on screen in a pane titled `coach`, 18 columns wide, docked beside the transcript and
+  opened once a session. It idles at rest, thinks while a prompt is held and talks while
+  the band shows a bubble; the bubble and its buttons stay in the band. Under the default
+  renderer no pane opens.
+- **A blink.** At rest the mascot blinks every 4 s; `s: Still` in the pane stops it for the
+  session.
+- **Option.** `cc_coach_mascot` (`CC_COACH_MASCOT`, on) turns the mascot pane off without
+  touching the judging; `CC_PROMPT_COACH=off` turns both off.
+- Proven in the test kit only; no live walk has seen the pane.
+
 ## 0.1.0 — 2026-10-07
 
 - **First release: a prompt coach at Enter, as a hooks module (Claude Code ≥ 2.1.291).**

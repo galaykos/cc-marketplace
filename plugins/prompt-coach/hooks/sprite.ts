@@ -122,6 +122,9 @@ export const FRAMES: Record<Pose, readonly (readonly string[])[]> = {
   talking: [TALKING_A, TALKING_B],
 }
 
+// The idle mascot's blink, shown for a moment and never looped: the eyes shut to their lower lid.
+export const BLINK: readonly string[] = IDLE.map((row, y) => (y === 6 ? '...kssssssssk...' : row))
+
 const SIZE = 16
 
 const TERMINAL_DEFAULT = 0x01000000
