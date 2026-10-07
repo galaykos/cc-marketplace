@@ -25,8 +25,8 @@ secret	a Stripe live secret key	-	sk_live_[0-9a-zA-Z]{24,}
 secret	a credential embedded in a URL	-	(postgres|postgresql|mysql|mongodb(\+srv)?|redis|rediss|amqp|amqps|https?)://[^:/@ ]+:[^@ /?#${][^@ /?#]{5,}@
 secret	a Slack webhook URL	-	hooks\.slack\.com/services/T[^/]+/B[^/]+/.{16,}
 # i on the assigned row only: on a provider prefix it would loosen the shape toward noise.
-# {1,40} and {0,6} bound the name's segments: unbounded, JavaScript backtracks quadratically on token- repeated
-#   (scripts/__tests__/pattern-parity.test.sh times it). Missed: a seventh segment after the keyword, or one over 40 characters.
-assigned	an assigned secret literal	i	(api[_-]?key|secret|token|passwd|password)([_-][A-Za-z0-9]{1,40}){0,6}["' ]*[:=]["' ]*[A-Za-z0-9/+=_-]{24,}
+# {1,64} and {0,12} bound the name's segments: unbounded, JavaScript backtracks quadratically on token- repeated
+#   (scripts/__tests__/pattern-parity.test.sh times it). Missed: a thirteenth segment after the keyword, or one over 64 characters.
+assigned	an assigned secret literal	i	(api[_-]?key|secret|token|passwd|password)([_-][A-Za-z0-9]{1,64}){0,12}["' ]*[:=]["' ]*[A-Za-z0-9/+=_-]{24,}
 placeholder	a placeholder word	i	example|placeholder|changeme|change-me|your[_-]|dummy|redacted|sample|fake|todo|xxxx
 placeholder	an EXAMPLE suffix	i	example$

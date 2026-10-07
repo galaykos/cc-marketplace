@@ -33,6 +33,7 @@ WEBHOOK="https://hooks.slack"".com/services/T01ABCD2EF/B09XYZ12345/"
 LONG_S=$(printf '\xc5\xbf'); DOTLESS_I=$(printf '\xc4\xb1'); KELVIN=$(printf '\xe2\x84\xaa'); EMOJI=$(printf '\xf0\x9f\x98\x80')
 CR=$'\r'
 ASSIGNED='[REDACTED:an assigned secret literal]'
+NAME12="A_B_C_D_E_F_G_H_I_J_K_$(printf 'N%.0s' {1..64})"
 
 names=(); wants=(); texts=(); extras=()
 # fx deny|allow|diverge <name> <text> [<extra>] — deny: the exact redacted text; diverge: scan:<label> or core:<label>, the
@@ -52,6 +53,8 @@ fx deny    "assigned literal"                     "$(printf 'api_%s = "%s"' 'key
 fx deny    "assigned literal, mixed case (flag i)" "$(printf 'Api_%s: %s' 'Key' "$LONGVAL")"
 fx deny    "assigned literal, placeholder word in the name only" "$(printf 'SECRET_DUMMY_%s=%s' 'KEY' "$LONGVAL")"
 fx deny    "assigned literal with base64 padding" "$(printf 'PASSWORD=%s==' "$LONGVAL")"
+fx deny    "twelve name segments after the keyword, the last of 64 characters (the stated bound)" \
+           "$(printf 'SECRET_%s=%s' "$NAME12" "$LONGVAL")"
 fx deny    "assigned value masked through its !tail, name kept" "$(printf 'DB_PASS%s=%s!tail rest' 'WORD' "$LONGVAL")" \
            "DB_PASSWORD=$ASSIGNED rest"
 fx deny    "quoted assigned value masked through its closing quote" "$(printf 'PASS%s="%s more words" rest' 'WORD' "$LONGVAL")" \
@@ -128,6 +131,8 @@ fx allow   "changeme password in a URL"           'DATABASE_URL=postgres://user:
 fx allow   "lowercased AKIA (case-sensitive row)" "$(printf 'x = "akia%s"' 'abcdefghijklmnop')"
 fx allow   "GitHub token one character short"     "$(printf 'gh%s_%s' 'p' 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi')"
 fx allow   "camelCase name holding a keyword"     'tokenizerConfig = "aVeryLongConfigValue1234567890"'
+fx allow   "thirteen name segments after the keyword (past the stated bound)" "$(printf 'SECRET_%s_M=%s' "$NAME12" "$LONGVAL")"
+fx allow   "a name segment of 65 characters (past the stated bound)" "$(printf 'SECRET_%s=%s' "$(printf 'N%.0s' {1..65})" "$LONGVAL")"
 fx allow   "short assigned value"                 'pw = "hunter2"'
 fx allow   "URL with a space in the password"     "$(printf 'postgres://admin:%s@db/app' 'Sup3r S3cretVal')"
 fx allow   "URL with a \${VAR} password"          'DATABASE_URL=postgres://admin:${DB_PASS}@db/app'

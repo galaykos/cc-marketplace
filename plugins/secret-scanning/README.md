@@ -143,7 +143,10 @@ Residuals, stated:
   non-text type (a `Bash` `stdout` holding image data is masked as text instead).
 - **Not matched.** The secret-access-key field of an AWS credentials CSV stays visible
   beside its masked key ID: it has no pattern of its own. NUL-interleaved UTF-16 text
-  passes, though `scan.sh` denies writing it.
+  passes, though `scan.sh` denies writing it. An assigned literal whose name carries more
+  than twelve `_`/`-` segments after its last keyword, or a segment over 64 characters
+  between that keyword and the `:`/`=`, passes both the mod and `scan.sh`: the shared pattern bounds the name so JavaScript's
+  regex stays linear.
 - **Not refused.** A `[REDACTED:` token written through `Bash` or an MCP write tool.
 - **Untested.** Subagent calls (the test kit drops `agentId`) and the time-budget-overrun
   path end to end (only its refusal text is tested).

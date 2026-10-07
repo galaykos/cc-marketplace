@@ -28,7 +28,7 @@ malformed the guard denies every write it would scan, naming the file:
 - **Slack webhook URL** — `hooks.slack.com/services/T…/B…/` + 16+ chars.
 - **Assigned secret literal** — `api_key`/`secret`/`token`/`passwd`/`password` set
   to a 24+ char base64-ish value. Matched **case-insensitively**, and the key name
-  may carry up to six `_`- or `-`-separated suffixes of 1-40 characters after the
+  may carry up to twelve `_`- or `-`-separated suffixes of 1-64 characters after the
   keyword: `AWS_SECRET_ACCESS_KEY=…` matches on `SECRET`, even though `SECRET` is not
   the word adjacent to the `=` (the bound keeps the match linear in JavaScript).
 

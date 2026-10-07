@@ -52,8 +52,10 @@ deny "PASSWORD="        "$UP_PASSWORD"
 deny "trigger mid-name" "$UP_MIDNAME"
 deny "mixed case"       "$MIXED_CASE"
 deny "six name segments after the keyword" "$(printf 'SECRET_KEY_BASE_FOR_RAILS_PRODUCTION_%s=%s' 'APP' "$LONGVAL")"
-allow "seven name segments after the last keyword (the stated bound)" Write \
-  "$(printf 'SECRET_KEY_BASE_FOR_RAILS_PRODUCTION_APP_%s=%s' 'V2' "$LONGVAL")"
+deny "twelve name segments after the keyword (the stated bound)" \
+  "$(printf 'SECRET_KEY_BASE_FOR_RAILS_PRODUCTION_APP_V2_EU_WEST_PRIMARY_DB_%s=%s' 'R1' "$LONGVAL")"
+allow "thirteen name segments after the last keyword (past the stated bound)" Write \
+  "$(printf 'SECRET_KEY_BASE_FOR_RAILS_PRODUCTION_APP_V2_EU_WEST_PRIMARY_DB_R1_%s=%s' 'R2' "$LONGVAL")"
 
 allow "clean content"   Write 'const x = 1; // nothing secret here'
 allow "short value"     Write 'pw = "hunter2"'
