@@ -480,6 +480,10 @@ DEFS
 # `FOO_BOOST_MODE` is never cut to `FOO_BOOST`). Host variables are dropped. ONE source for
 # pc_offswitch_named and generate.sh's off-switch table: two copies of this could disagree
 # about which switches exist, and nothing else would notice.
+# A hooks module (.ts .tsx .mts .cts .js .mjs) is read too: a literal `$.env.get('NAME')` (the
+# 2.1.291 module scan forces literal names), and a `registerSuggestion(` call as CC_SUGGEST,
+# which only the shared kit reads; `//` and `*` comment lines skipped. Never pass it cc-kit.ts:
+# every mod plugin carries the kit, and the kit reads CC_SUGGEST whether or not it suggests.
 pc_switch_reads() {
   local shape='CC_[A-Z0-9_]+|CLAUDE_[A-Z0-9_]+|[A-Z0-9_]+_BOOST|[A-Z0-9_]+_STOP_GATE'
   { grep -ohE "\\\$\\{($shape):-" "$1" | sed -E 's/^\$\{//; s/:-$//'
@@ -487,6 +491,15 @@ pc_switch_reads() {
     grep -v '^[[:space:]]*#' "$1" \
       | grep -oE "cc_option[[:space:]]+[\"']?[A-Za-z0-9_]+" \
       | sed -E "s/^cc_option[[:space:]]+[\"']?//" | grep -xE "$shape"
+    case $1 in
+      *.ts|*.tsx|*.mts|*.cts|*.js|*.mjs)
+        grep -vE '^[[:space:]]*(//|/?\*)' "$1" \
+          | grep -oE "\\\$\\.env\\.get\\([\"']($shape)[\"']\\)" | sed -E "s/^.*\\([\"']//; s/[\"']\\)$//"
+        # awk reads to EOF: a piped `grep -q` exits early, and under pipefail SIGPIPE drops the switch.
+        awk '/^[[:space:]]*(\/\/|\/?\*)/ { next }
+             /(^|[^A-Za-z0-9_$])registerSuggestion\(/ { found = 1 }
+             END { if (found) print "CC_SUGGEST" }' "$1" ;;
+    esac
   } 2>/dev/null \
     | grep -vxE 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR|CLAUDE_CONFIG_DIR|CLAUDE_CODE_SESSION_ID|CLAUDE_PLUGIN_DATA' \
     | LC_ALL=C sort -u

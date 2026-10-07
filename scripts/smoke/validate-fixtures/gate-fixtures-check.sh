@@ -308,6 +308,40 @@ case "$out" in
   *) pass "offswitch: '# offswitch-ok:' silences it" ;;
 esac
 
+# ---- pc_switch_reads on hooks modules ------------------------------------------
+mkdir -p "$T/modsw/hooks"
+cat > "$T/modsw/hooks/reads.ts" <<'TS'
+// $.env.get('CC_FX_GHOST')
+ * registerSuggestion(
+const v = await $.env.get("CC_FX_DQ")
+import { registerSuggestion } from './cc-kit'
+TS
+out=$(pc_switch_reads "$T/modsw/hooks/reads.ts")
+if [ "$out" = CC_FX_DQ ]; then
+  pass "switch-reads: a module's comments and import are not reads, a double-quoted env.get is"
+else
+  fail "switch-reads: a module's comments and import are not reads, a double-quoted env.get is" "got: ${out:-<empty>}"
+fi
+# generate.sh runs under pipefail; a piped early-exit match lost the switch past the pipe buffer.
+{ printf 'kit.registerSuggestion(on, {})\n'; yes 'const filler = 1' | head -n 65536; } > "$T/modsw/hooks/big.ts"
+out=$(set -o pipefail; pc_switch_reads "$T/modsw/hooks/big.ts")
+if [ "$out" = CC_SUGGEST ]; then
+  pass "switch-reads: a registerSuggestion( call in a 1 MB module still credits CC_SUGGEST under pipefail"
+else
+  fail "switch-reads: a registerSuggestion( call in a 1 MB module still credits CC_SUGGEST under pipefail" "got: ${out:-<empty>}"
+fi
+cat > "$T/modsw/hooks/mirror.sh" <<'SH'
+#!/bin/bash
+# mirrors the kit: registerSuggestion( and $.env.get('CC_FX_SH')
+exit 0
+SH
+out=$(pc_switch_reads "$T/modsw/hooks/mirror.sh")
+if [ -z "$out" ]; then
+  pass "switch-reads: a .sh comment naming module reads earns no switch"
+else
+  fail "switch-reads: a .sh comment naming module reads earns no switch" "got: $out"
+fi
+
 # ---- pc_version_stamp_tail -----------------------------------------------------
 mkskill() { mkdir -p "$T/$1/skills/$2"; cat > "$T/$1/skills/$2/SKILL.md"; }
 mkskill badstamp pinner <<'MD'
