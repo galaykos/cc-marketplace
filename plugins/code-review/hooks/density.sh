@@ -482,21 +482,22 @@ EOF
     # PreToolUse deny blocks the write too, and the old one-shot was spent on a write
     # that never landed, so the next edit of this file went through unchecked.
     DENY_CAP=2
-    # ATOMIC (0.19.1): `mkdir` either creates or fails, so parallel subagents editing one
-    # file cannot both read the same count and both write it back. A legacy zero-byte
-    # marker counts as one try so an upgrade mid-session does not grant a fresh budget.
+    # ATOMIC, same claim as scan.sh: a noclobber file per try (O_CREAT|O_EXCL), not
+    # mkdir(1), which uutils coreutils makes non-exclusive under a race. A `.dN` directory
+    # from <=0.31.0 or a legacy zero-byte marker counts as a try, so an upgrade
+    # mid-session does not grant a fresh budget.
     # Residual, same as scan.sh: the bound is spent on a DENY, which does not prove the
     # write landed — two co-firing siblings can still exhaust it.
     tries=0
     [ -e "$marker" ] && tries=1
     i=1
-    while [ "$i" -le "$DENY_CAP" ]; do [ -d "$marker.d$i" ] && tries=$i; i=$((i + 1)); done
+    while [ "$i" -le "$DENY_CAP" ]; do [ -e "$marker.d$i" ] && tries=$i; i=$((i + 1)); done
     [ "$tries" -ge "$DENY_CAP" ] && return 1
     # The name goes through the environment: macOS awk refuses a -v value holding a newline.
     msg=$(file_name="${fp##*/}" LC_ALL=C awk -v c="$pprose" -v cd="$pcode" -v r="$d_ratio" -v l="$limit" \
       'BEGIN { f = ENVIRON["file_name"]; printf "comment-discipline: %s would be %.1f:1 comment-to-code (%d comment lines, %d code); the ceiling is %.1f:1. Write it again with the code carrying the meaning: keep only a why-this-not-the-obvious, an external constraint with a link, a deliberate no-op, or a contract fact the signature cannot state (units, ownership, what throws, required call order) — and move the rest to a name, a type, or a test. A project that states a heavier house style sets COMMENT_DISCIPLINE_CEILING_TENTHS in its settings env (5 for 0.5:1). Blocked at most twice per file; after that a write goes through with a warning instead. CC_COMMENT_GUARD=off disables this block for the session (CC_REMIND=off silences the warning it falls back to).", f, r/10, c, cd, l/10 }')
     [ -n "$msg" ] || return 1
-    mkdir "$marker.d$((tries + 1))" 2>/dev/null || return 1
+    ( set -C; : > "$marker.d$((tries + 1))" ) 2>/dev/null || return 1
     return 0
   fi
 

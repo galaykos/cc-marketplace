@@ -525,6 +525,19 @@ case "$(reason "$d1")|$(reason "$d2")" in
   *) fail "third attempt passes and warns" "want two denies first, got [$d1] [$d2]" ;;
 esac
 
+# The claim does not trust mkdir(1): uutils coreutils exits 0 when its mkdir(2) loses a race, so
+# parallel calls could both spend one try (2 of 40 rounds of 20 over the cap, 2026-10-07).
+# This mkdir reports success and creates nothing; a claim that trusts it denies forever.
+FAKE="$FX/fake-mkdir-bin"; mkdir -p "$FAKE"
+printf '#!/bin/sh\ncase "$1" in -p) exec %s "$@" ;; esac\nexit 0\n' "$(command -v mkdir)" > "$FAKE/mkdir"
+chmod +x "$FAKE/mkdir"
+fresh; put src/stats.ts "$BASE"; fk_n=0
+for _ in 1 2 3; do
+  case "$(reason "$(PATH="$FAKE:$PATH" write src/stats.ts "$ELIDED")")" in elision-guard:*) fk_n=$((fk_n + 1)) ;; esac
+done
+if [ "$fk_n" = 2 ]; then pass "a mkdir(1) that reports success without creating cannot unbound the cap"
+else fail "a mkdir(1) that reports success without creating cannot unbound the cap" "three writes denied $fk_n times (want 2)"; fi
+
 fresh; put src/app.ts "$BASE"
 silent "CC_ELISION_GUARD=off -> no elision deny" \
   "$(export CC_ELISION_GUARD=off; run_bash "$(heredoc 'cat > src/app.ts' "$ELIDED")")"

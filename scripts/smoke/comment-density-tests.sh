@@ -1010,6 +1010,16 @@ expect "15 prose / 5 code is refused by the short rule" "$(pre "$R4" "$R4/app/Sh
 out=$(jq -n --arg fp "$R4/app/Fat4.php" --rawfile c "$TMP/dense.txt" \
   '{hook_event_name:"PreToolUse",tool_name:"Write",session_id:"p6",tool_input:{file_path:$fp,content:$c}}' | bash "$HOOK" 2>/dev/null)
 expect "missing cwd withholds the deny (bound cannot be recorded)" "$out" ""
+# The claim does not trust mkdir(1): uutils coreutils exits 0 when its mkdir(2) loses a race,
+# so parallel calls could both spend one try (4 of 40 rounds of 20 over the cap, 2026-10-07).
+# This mkdir reports success and creates nothing; a claim that trusts it denies forever.
+FAKE="$TMP/fake-mkdir-bin"; mkdir -p "$FAKE"
+printf '#!/bin/sh\ncase "$1" in -p) exec %s "$@" ;; esac\nexit 0\n' "$(command -v mkdir)" > "$FAKE/mkdir"
+chmod +x "$FAKE/mkdir"
+fk_n=0
+for _ in 1 2 3; do denied "$(PATH="$FAKE:$PATH" pre "$R4" "$R4/app/Fake.php" p7 "$TMP/dense.txt")" && fk_n=$((fk_n + 1)); done
+[ "$fk_n" = 2 ] && echo "PASS: a mkdir(1) that reports success without creating cannot unbound the cap" \
+  || { echo "FAIL: a mkdir(1) that reports success without creating cannot unbound the cap — three Writes denied $fk_n times (want 2)"; rc=1; }
 
 # ---- 8. WORKTREE SCOPING (paths.sh), both hooks ---------------------------------
 WT="$R/.claude/worktrees/feature-x"; mkdir -p "$WT/app/Svc/New" "$WT/.claude"
