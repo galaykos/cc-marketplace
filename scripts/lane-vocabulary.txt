@@ -81,6 +81,7 @@ react-native-idioms
 real-component-design-render
 relational-schema-and-query-implementation
 reviewer-verdict-consent
+run-board
 secret-handling-discipline
 slide-deck-authoring
 sql-idioms
@@ -150,6 +151,7 @@ first-work-prompt-discipline-preamble
 invisible-character-report
 irreversible-command-or-repeated-attempt
 mockup-preview-consent
+next-step-suggestion
 non-destructive-command-equivalents
 open-program-announcement
 post-compaction-decision-recall
@@ -157,16 +159,19 @@ post-compaction-state-recall
 program-board
 program-level-delivery-ownership
 program-resume
+program-status-line
 read-ledger-for-evidence
 registered-run-announcement
 reply-shape-contract
 reply-verbosity-level
 reply-verbosity-mode
+secret-output-redaction
 secret-write-denial
 security-sink-write-warning
 stop-turn-honesty
 stuck-loop-signal
 subagent-dispatch-contract
+subagent-model-floor
 subagent-spawn-cap
 subagent-stack-skill-paths
 test-weakening-write-block

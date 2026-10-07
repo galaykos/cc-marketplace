@@ -162,7 +162,7 @@ qhooks() { # $1 = command prefix/suffix quote character ('' or '"')
 qrun() {
   for fn in pc_hook_timeout pc_hook_shebang pc_state_root pc_cwd_validated pc_lanes_coverage \
             pc_phase_guard pc_offswitch_named pc_marker_key pc_context_key; do
-    printf '== %s\n' "$fn"; "$fn" "$QR" 2>/dev/null | sed 's/"//g'
+    printf '== %s\n' "$fn"; { "$fn" "$QR" 2>>"${QERR:-/dev/null}"; echo "rc=$?"; } | sed 's/"//g'
   done
 }
 qhooks ''; unq=$(qrun)
@@ -175,6 +175,22 @@ for want in "hook-timeout qfix:UserPromptSubmit:remind.sh" "hook-shebang qfix:re
   case "$quo" in *"$want"*) pass "quoting: quoted form still draws '$want'" ;;
     *) fail "quoting: quoted form still draws '$want'" "got: $(printf '%s' "$quo" | grep -v '^==' | head -6)" ;; esac
 done
+
+# ---- modules-only and hooks+modules hooks.json: every reader must agree --------------
+QERR="$T/qerr"; : > "$QERR"
+# Every pc_* sends jq's stderr to /dev/null, so a reader's jq error is visible only here.
+jq() { command jq "$@" 2>>"$QERR"; }
+printf 'export function register() {}\n' > "$QR/qfix/hooks/m.ts"
+jq '. + {modules:["./m.ts"]}' "$QR/qfix/hooks/hooks.json" > "$QR/m.json" && mv "$QR/m.json" "$QR/qfix/hooks/hooks.json"
+both=$(qrun)
+rm -rf "$QR/qfix"; mkdir -p "$QR/monly/hooks"
+printf 'export function register() {}\n' > "$QR/monly/hooks/m.ts"
+printf '{"modules":["./m.ts"]}\n' > "$QR/monly/hooks/hooks.json"
+monly=$(qrun)
+unset -f jq
+detail=$( { cat "$QERR"; printf '%s\n' "$monly" | grep -vxE '==.*|rc=0'; diff <(printf '%s\n' "$quo") <(printf '%s\n' "$both"); } | head -8)
+if [ -z "$detail" ]; then pass "modules-only: every hooks.json reader agrees"
+else fail "modules-only: every hooks.json reader agrees" "$detail"; fi
 rm -rf "$QR"
 
 # ---- pc_shared_blocks ------------------------------------------------------------
@@ -291,6 +307,40 @@ case "$out" in
   *badsw*) fail "offswitch: '# offswitch-ok:' silences it" "still flagged: $out" ;;
   *) pass "offswitch: '# offswitch-ok:' silences it" ;;
 esac
+
+# ---- pc_switch_reads on hooks modules ------------------------------------------
+mkdir -p "$T/modsw/hooks"
+cat > "$T/modsw/hooks/reads.ts" <<'TS'
+// $.env.get('CC_FX_GHOST')
+ * registerSuggestion(
+const v = await $.env.get("CC_FX_DQ")
+import { registerSuggestion } from './cc-kit'
+TS
+out=$(pc_switch_reads "$T/modsw/hooks/reads.ts")
+if [ "$out" = CC_FX_DQ ]; then
+  pass "switch-reads: a module's comments and import are not reads, a double-quoted env.get is"
+else
+  fail "switch-reads: a module's comments and import are not reads, a double-quoted env.get is" "got: ${out:-<empty>}"
+fi
+# generate.sh runs under pipefail; a piped early-exit match lost the switch past the pipe buffer.
+{ printf 'kit.registerSuggestion(on, {})\n'; yes 'const filler = 1' | head -n 65536; } > "$T/modsw/hooks/big.ts"
+out=$(set -o pipefail; pc_switch_reads "$T/modsw/hooks/big.ts")
+if [ "$out" = CC_SUGGEST ]; then
+  pass "switch-reads: a registerSuggestion( call in a 1 MB module still credits CC_SUGGEST under pipefail"
+else
+  fail "switch-reads: a registerSuggestion( call in a 1 MB module still credits CC_SUGGEST under pipefail" "got: ${out:-<empty>}"
+fi
+cat > "$T/modsw/hooks/mirror.sh" <<'SH'
+#!/bin/bash
+# mirrors the kit: registerSuggestion( and $.env.get('CC_FX_SH')
+exit 0
+SH
+out=$(pc_switch_reads "$T/modsw/hooks/mirror.sh")
+if [ -z "$out" ]; then
+  pass "switch-reads: a .sh comment naming module reads earns no switch"
+else
+  fail "switch-reads: a .sh comment naming module reads earns no switch" "got: $out"
+fi
 
 # ---- pc_version_stamp_tail -----------------------------------------------------
 mkskill() { mkdir -p "$T/$1/skills/$2"; cat > "$T/$1/skills/$2/SKILL.md"; }

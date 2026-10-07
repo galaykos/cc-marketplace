@@ -108,6 +108,8 @@ jobs:
         run: bash scripts/smoke/validate-fixtures/stray-dir-check.sh
       - name: panel gate fixtures (cwd-mkdir, off-switch naming, version-stamp tail)
         run: bash scripts/smoke/validate-fixtures/gate-fixtures-check.sh
+      - name: Mod fixture checks
+        run: bash scripts/smoke/validate-fixtures/mod-checks.sh
       - name: preview-guard twin + tier smoke tests
         run: bash scripts/smoke/preview-guard-tests.sh
       - name: source-of-truth gate smoke tests
@@ -132,15 +134,15 @@ jobs:
       # scripts/official-validate.sh is the local twin and carries the derivation.
       # LAST among the fail-capable steps that do not need the binary, on purpose: the
       # install is a ~217 MB native download, and every sub-second repo-owned harness
-      # above should report before a registry blip can. The one step that follows it,
-      # the eval-suite load gate, is there because it drives the binary this installs.
+      # above should report before a registry blip can. The fail-capable steps that follow
+      # it are there because they drive the binary this installs.
       # Supply-chain residual, stated: the wrapper and its
       # platform binary are exact-pinned, but their tarball hashes are registry-TOFU —
       # committed nowhere in this repo. Egress: auto-updater and non-essential traffic
       # are disabled inside the script so the verdict cannot depend on network.
       - name: Official plugin validator (--strict)
         run: |
-          npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.282
+          npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.291
           bash scripts/official-validate.sh
       # After the validator step, where `claude` reaches PATH: arm (d) loads a real suite at
       # --max-cost-usd 0, which launches nothing; every other arm drives a stub claude.
@@ -156,6 +158,9 @@ jobs:
       # a gate in the only place it is enforced.
       - name: eval suites load (a suite with zero cases fails the build)
         run: bash scripts/eval-cases.sh
+      # After the validator step, where `claude` reaches PATH: `claude plugin test` needs the binary.
+      - name: Mod tests
+        run: bash scripts/mod-tests.sh
       - name: doc staleness (warn-only)
         continue-on-error: true
         run: bash scripts/check-doc-staleness.sh

@@ -12,3 +12,7 @@ taskmaster:ultra	hook	any	ultra-task-boost-directive	prompt head matches ultra-?
 # generated:end
 taskmaster:clarify-gate	hook	any	pre-edit-clarification-gate	off by default; when armed, a Write/Edit lands before the task's ambiguity ledger is resolved	taskmaster:grill
 taskmaster:preview-guard	hook	any	mockup-preview-consent	an Artifact call carries mockup-shaped content, or targets taskmaster-docs/mockups, while a live preview server is the declared route	taskmaster:visual-decisions
+taskmaster:suggest	mod	any	next-step-suggestion	main-loop turn end after a successful Write of a taskmaster-docs/specs/*.md spec (any depth under the state root, *-design.md excluded), with no live phase sentinel and CC_SUGGEST not off	-
+# lane-cofire-ok: taskmaster:suggest task-runner:suggest
+# lane-cofire-ok: taskmaster:suggest code-review:suggest
+# The four next-step suggestion mods fill one prompt slot at main-loop turn end; when two fire in one turn the last caller wins (accepted residual, named in each plugin's README suggestion section). Phase any: no phase triggers them, the shared mod kit silences them under any live phase sentinel, and pc_phase_guard does not check a row at any.

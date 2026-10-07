@@ -16,3 +16,9 @@ task-runner:ultra-assess	hook	any	ultra-assess-boost-directive	prompt head match
 task-runner:announce	hook	any	registered-run-announcement	SessionStart with source startup, resume or clear while .claude/task-runner/active-run.json exists in the session project	skill-router:compact-capsule
 task-runner:rv-consent	hook	any	reviewer-verdict-consent	a Write/Edit/Bash runs under a registered task-runner run whose reviewer verdict has not been consented to	task-runner:task-execution
 task-runner:spawn-cap	hook	any	subagent-spawn-cap	an Agent/Task dispatch crosses the session's soft cap (20, then every doubling)	task-runner:parallel-planning
+task-runner:floors	mod	any	subagent-model-floor	agent.spawn of an agent listed in delegation-contracts/references/role-floors.md whose explicit model, or the parent's model when none is given, differs from max(that model, its floor)	-
+task-runner:suggest	mod	any	next-step-suggestion	first main-loop turn end with no live phase sentinel after a successful Write of taskmaster-docs/tasks/*/00-INDEX.md under the state root, while no run is active on this branch, the index still has an open card and gate-pass.json does not name it; CC_SUGGEST not off	-
+# lane-cofire-ok: task-runner:suggest code-review:suggest
+# lane-cofire-ok: task-runner:suggest git-workflow:suggest
+# The four next-step suggestion mods fill one prompt slot at main-loop turn end; when two fire in one turn the last caller wins (accepted residual, named in each plugin's README suggestion section). Phase any: no phase triggers them, the shared mod kit silences them under any live phase sentinel, and pc_phase_guard does not check a row at any.
+task-runner:board	mod	any	run-board	a task-runner run is active on this branch (.claude/task-runner/active-run.json branch matches), refreshed after every tool call and at session start; /task-board toggles the pane; with the pane open and no run, it shows the newest card index	-

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # scan-hook.test.sh — fixture cases for hooks/scan.sh: every deny pattern denies, placeholders and clean or out-of-scope text pass, the Bash
-#   write path names its file, fail-open stays open. Secret shapes are assembled at runtime: the guard would deny a write of this file.
+#   write path names its file, fail-open stays open, a missing or malformed hooks/patterns.tsv denies (run on a temp copy of the hook).
+#   Secret shapes are assembled at runtime: the guard would deny a write of this file.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/scripts/__tests__/scan-hook.test.sh
 set -u
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/scan.sh"
@@ -50,6 +51,11 @@ deny "TOKEN= (upper)"   "$UP_TOKEN"
 deny "PASSWORD="        "$UP_PASSWORD"
 deny "trigger mid-name" "$UP_MIDNAME"
 deny "mixed case"       "$MIXED_CASE"
+deny "six name segments after the keyword" "$(printf 'SECRET_KEY_BASE_FOR_RAILS_PRODUCTION_%s=%s' 'APP' "$LONGVAL")"
+deny "twelve name segments after the keyword (the stated bound)" \
+  "$(printf 'SECRET_KEY_BASE_FOR_RAILS_PRODUCTION_APP_V2_EU_WEST_PRIMARY_DB_%s=%s' 'R1' "$LONGVAL")"
+allow "thirteen name segments after the last keyword (past the stated bound)" Write \
+  "$(printf 'SECRET_KEY_BASE_FOR_RAILS_PRODUCTION_APP_V2_EU_WEST_PRIMARY_DB_R1_%s=%s' 'R2' "$LONGVAL")"
 
 allow "clean content"   Write 'const x = 1; // nothing secret here'
 allow "short value"     Write 'pw = "hunter2"'
@@ -165,6 +171,57 @@ bash_allow "heredoc to stdout only"                   "$(printf "cat <<'EOF'\n%s
 bash_allow "echo of a \$VAR into .env"                'echo "API_KEY=$API_KEY" >> .env'
 if [ -z "$(find "$REPO" -name .claude 2>/dev/null)" ]; then pass=$((pass+1));
 else echo "FAIL no state: a .claude/ dir appeared under $REPO"; fail=$((fail+1)); fi
+
+PAT="$(dirname "$HOOK")/patterns.tsv"
+PH=$(mktemp -d); trap 'rm -rf "$REPO" "$PH"' EXIT
+cp "$HOOK" "$PH/scan.sh"
+WRITE_CLEAN=$(jq -cn '{tool_name:"Write", tool_input:{file_path:"/tmp/x.txt", content:"const x = 1;"}}')
+BASH_WRITE=$(jq -cn '{tool_name:"Bash", cwd:"/tmp", tool_input:{command:"echo hello > notes.txt"}}')
+BASH_READ=$(jq -cn '{tool_name:"Bash", cwd:"/tmp", tool_input:{command:"ls -la && git status"}}')
+pat_case() { # pat_case <name> deny|allow <payload> <reason text> [env...] — runs the hook copy in $PH; prints "ok <name>" on a pass
+  local n=$1 want=$2 p=$3 x=$4 ok=0; shift 4
+  out=$(printf '%s' "$p" | env "$@" bash "$PH/scan.sh")
+  case $want in
+    allow) [[ -z "$out" ]] && ok=1 ;;
+    deny) grep -q '"permissionDecision":"deny"' <<<"$out" && grep -qF "$PH/patterns.tsv" <<<"$out" \
+            && grep -qF "($x" <<<"$out" && grep -qF 'CC_SECRET_SCAN=off' <<<"$out" && ok=1 ;;
+  esac
+  if [[ $ok -eq 1 ]]; then pass=$((pass+1)); echo "ok $n";
+  else echo "FAIL $n: expected $want naming $PH/patterns.tsv and \"$x\", got: ${out:-<empty>}"; fail=$((fail+1)); fi
+}
+pat_case "missing patterns file denies a clean Write" deny "$WRITE_CLEAN" "missing or unreadable"
+pat_case "missing patterns file denies a Bash write"  deny "$BASH_WRITE"  "missing or unreadable"
+pat_case "missing patterns file passes a Bash command that writes no file" allow "$BASH_READ" ""
+pat_case "missing patterns file passes under CC_SECRET_SCAN=off" allow "$WRITE_CLEAN" "" CC_SECRET_SCAN=off
+T=$'\t'; LAST=$(( $(wc -l < "$PAT") + 1 ))
+for bad in "3 fields|has 3 fields|secret${T}x${T}-" "unknown kind|has kind|secrets${T}x${T}-${T}abc" \
+           "unknown flag|has flags|secret${T}x${T}I${T}abc" "empty pattern|has an empty|secret${T}x${T}-${T}" \
+           "dialect [[:class:]]|uses|secret${T}x${T}-${T}a[[:digit:]]b" "dialect [:class:] later in a bracket|uses|secret${T}x${T}-${T}[^@[:space:]]+" \
+           "dialect [[.|uses|secret${T}x${T}-${T}a[[.-.]]b" "dialect [[=|uses|secret${T}x${T}-${T}a[[=e=]]b" \
+           "dialect backreference|uses|secret${T}x${T}-${T}(ab)\\1" "dialect lookahead|uses|secret${T}x${T}-${T}ab(?=cd)" \
+           "escape \\d|escapes a character|secret${T}x${T}-${T}xapp-\\d-[A-Z0-9]+-\\d+-[a-z0-9]+" \
+           "trailing space|has a pattern that starts or ends with a space|secret${T}x${T}-${T}abc "; do
+  IFS='|' read -r label frag row <<<"$bad"
+  { cat "$PAT"; printf '%s\n' "$row"; } > "$PH/patterns.tsv"
+  pat_case "malformed patterns file denies: $label" deny "$WRITE_CLEAN" "line $LAST $frag"
+done
+grep -v "^secret$T" "$PAT" > "$PH/patterns.tsv"
+pat_case "malformed patterns file denies: no secret row" deny "$WRITE_CLEAN" "no secret row"
+SL=$(grep -n "^secret${T}a Stripe" "$PAT" | cut -d: -f1)
+sed "${SL}s/\\]{24,}\$/{24,}/" "$PAT" > "$PH/patterns.tsv"
+pat_case "malformed patterns file denies: a row that compiles only when joined to the next" deny "$WRITE_CLEAN" \
+  "line $SL has a pattern grep -E cannot compile"
+sed 's/$/\r/' "$PAT" > "$PH/patterns.tsv"
+pat_case "malformed patterns file denies: CRLF line endings" deny "$WRITE_CLEAN" "line 1 carries a carriage return"
+PW=$(grep -n "^placeholder${T}a placeholder word" "$PAT" | cut -d: -f1)
+sed "${PW}s/\$/|/" "$PAT" > "$PH/patterns.tsv"
+pat_case "malformed patterns file denies: a placeholder row matching the empty string" deny "$WRITE_CLEAN" \
+  "line $PW has a pattern that matches the empty string"
+sed "${PW}s/\$/|.../" "$PAT" > "$PH/patterns.tsv"
+pat_case "malformed patterns file denies: a placeholder row ending |..." deny "$WRITE_CLEAN" \
+  "line $PW: a placeholder row matches a secret-shaped value"
+sed "${PW}s/\$/|\\\\b/" "$PAT" > "$PH/patterns.tsv"
+pat_case "malformed patterns file denies: a placeholder row ending |\\b" deny "$WRITE_CLEAN" "line $PW escapes a character"
 
 echo "secret-scan hook tests: $pass passed, $fail failed"
 exit $((fail > 0))

@@ -201,6 +201,105 @@ an abandoned run cannot nag every stop in the repo. That sentinel is
 finish. Set `TASK_RUNNER_STOP_GATE=warn` to downgrade the block to a printed
 reminder everywhere.
 
+## Mods (Claude Code ≥ 2.1.291)
+
+Since 0.44.0 the plugin also ships a hooks module, `hooks/mods.ts`, listed under `modules`
+in `hooks/hooks.json` beside the classic hooks, which fire with or without it. It carries
+four features under three off switches.
+
+- **Subagent model floors** (`hooks/floors.ts`). Every spawn of an agent in
+  `role-floors.md`'s registry runs at no less than its floor, and one naming no model (or
+  `inherit`) runs at the session's model when that is a higher tier, so the main thread's
+  own dispatches are floored too, not only skill-mediated ones. It only raises: a fork, an
+  agent outside the registry, an explicit model at or above the floor and a model of
+  unknown family are left as given, and no spawn is refused. Whenever the tier changes, a
+  toast names the agent, what the dispatch asked for (a model, `inherit` or its pin) and
+  the model it runs on. The registry is read once, at the first spawn, and kept for the
+  session, so an edit to it mid-session is not seen; one that cannot be read or parsed is
+  logged once and every spawn passes through for the rest of the session. A spawn of an
+  agent from a plugin your organization installed by policy skips this module,
+  `allowManagedModsOnly` or not (per sec-default's docs, not measured). Off:
+  `CC_SPAWN_FLOOR=off` or the `/config` option `cc_spawn_floor`; the variable wins.
+- **Run suggestion** (`hooks/suggest.ts`). After the main loop's `Write` tool writes
+  `taskmaster-docs/tasks/<slug>/00-INDEX.md` at the repository root while no run is
+  registered on this branch, the idle prompt box offers `/task-runner:run <that index>` at
+  the first turn end with no live phase sentinel; Tab accepts it and nothing runs until you
+  send it. Not offered for an index whose every card is closed or that `gate-pass.json`
+  names, nor again for an index already shown this session. Off: `CC_SUGGEST=off`,
+  environment only with no `/config` option, which also silences the next-step suggestions
+  of taskmaster, code-review and git-workflow.
+- **Status line** (`hooks/board.ts`). While a run is registered on the current branch, one
+  line is pinned under the prompt:
+  `task-runner  <phase>  card <N>/<total>  <p> parked  <ultra|goal>`, N counting done cards
+  plus the one in progress, empty parts dropped, and `<phase>` the live phase sentinel's,
+  else `build`. A plain run, or an index with no card table, shows `task-runner  <phase>`.
+  It refreshes at session start and after every tool call, main loop and subagents,
+  parsing the index again only when its modification time moves (an index that cannot be
+  statted, read or parsed is read again at every refresh); only the newest of overlapping
+  refreshes paints, so a slow one cannot revive an ended run's line. The line clears when
+  no run is registered on this branch.
+- **Task board** (`hooks/board-view.tsx`, `/task-board`). A pane of the run's cards:
+  `Task board  <slug>  <marker>`, then `<phase>  <done>/<total> done  <p> parked`, then a
+  button row, then one row per card (id, title cut to the pane width, parallel group,
+  marker), with a header row before each milestone's cards. `/task-board` opens or closes
+  it; with no run it shows the newest `taskmaster-docs/tasks/*/00-INDEX.md`, labelled
+  `not running`. It opens itself once per run in a session, the first time a refresh sees
+  that run, when the terminal can place it; a pane you close stays closed for that run.
+  `r: Run next` puts `/task-runner:run <index>` in the prompt box and `t: Red-team` puts
+  `/taskmaster:redteam <spec>` there, replacing what the box held; neither sends anything.
+  Red-team is hidden when taskmaster's red-team command is not installed or the index
+  names no spec. A plain run shows `plain run — no card index`, and an index that cannot
+  be parsed shows `index unreadable: <path>`, both without buttons.
+- **Markers.** `[x]` done, `[>]` in progress, `[ ]` pending, `[-]` parked (a skipped card
+  too), `[!]` blocked. `<NN` names the first unmet dependency and `+N` how many more
+  (`<11+5`); only a done dependency is met, so a parked one counts as unmet.
+- **Off switch for the line and the pane.** `CC_TASK_BOARD=off` (or `0`, `false`), or the
+  `/config` option `cc_task_board` off; the variable wins. Off clears the line at the next
+  refresh and keeps the pane from opening, and a session started with it off has no
+  `/task-board`.
+- **CLI floor.** With mods off in the host or on a CLI below 2.1.287 no module loads; on
+  2.1.288-2.1.290 the module passes every call through; either way the classic hooks work
+  exactly as before. An organization that sets `allowManagedModsOnly` refuses the module
+  and leaves only the classic hooks (per the CLI's built-in sec-default mod documentation,
+  not measured). On 2.1.287 with mods on the module still registers its hooks (the version
+  check runs inside them), and the board's `tool.call` hook matches every tool, not only
+  `Write`. So that CLI's own bug — a plugin's `tool.call` hook breaking Bash and file search
+  in worktree subagents, fixed in 2.1.288 — applies even with all three switches off:
+  upgrade the CLI or turn mods off.
+
+Residuals, stated:
+
+- **One shared suggestion slot.** The prompt box holds one suggestion, so when several
+  plugins offer one at the same turn end the last caller wins, and a suggestion shown and
+  then replaced counts as shown. Claude Code's own suggestion is not suppressed.
+- **`Write` only.** An index written through `Edit`, `MultiEdit` or a Bash command (a
+  redirect, a heredoc) gets no run suggestion.
+- **Terminal only.** The pane was verified live in a terminal on CLI 2.1.292, driven
+  through pexpect. No other surface (desktop, web) has been verified.
+- **Fail-open.** A hook that errors passes the call through as if the module were absent:
+  a spawn runs unfloored, no suggestion is made, the line and the pane skip that refresh.
+- **Ambiguous width.** `…` (a cut title) and `—` (a milestone header, the plain-run note)
+  are ambiguous-width characters; a terminal that draws them double-width, as CJK-wide
+  setups do, misaligns that row.
+- **An open pane with no run** lists `taskmaster-docs/tasks` and checks every index's
+  modification time on each tool call, to find the newest.
+- **A git call per tool call.** With the board on, every tool call waits for a refresh
+  that runs `git` one to three times (once with no run, twice while
+  `.claude/task-runner/active-run.json` names a run, up to three with the pane open and no
+  run on this branch) and reads that file; `CC_TASK_BOARD=off` removes both. No test counts
+  these calls.
+
+Standing: **gate** — `tests/floors.test.ts`, `tests/suggest.test.ts` and
+`tests/board.test.ts` run under `claude plugin test` in CI (the marketplace repository's
+`scripts/mod-tests.sh`), so a regression in a tested case fails the build, and the host's
+validator fails a `$.state` key that `types/index.d.ts` does not declare. A 2.1.291 test
+cannot read `$.state`, so the board state's `runActive` and `phase` are asserted only
+through the pane's rendered text. Untested here: the drawn screen (the test kit records
+text, so the `r:` and `t:` labels were seen only in the live run), whether the host's
+prompt box shows a suggestion, and the board's and the suggestion's error paths. The
+live-view exemption in task-execution's "No status theater", which lets a board exist, is
+**recorded**: nothing checks that a view keeps no status of its own.
+
 ## Pairs well with
 
 - **taskmaster** — produces the task cards this plugin executes
