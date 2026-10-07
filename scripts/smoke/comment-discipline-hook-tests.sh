@@ -484,9 +484,10 @@ if [ -z "$tp3" ]; then pass "third edit of the same file is bounded (no wedge)"
 else fail "third edit of the same file is bounded (no wedge)" "fired a third time: $tp3"; fi
 
 # The bound must be real state on disk, not an accident of the deny path failing earlier.
-# It is a DIRECTORY since 0.19.1: `mkdir` is atomic, a read-modify-write counter file was
-# not, and two parallel subagents editing one file could both read 0 and both write 1.
-if [ -n "$(find "$TP_DIR/.claude/comment-discipline" -name 'blocked-*.d[0-9]' -type d 2>/dev/null)" ]
+# One noclobber FILE per try since 0.31.1 (a mkdir directory 0.19.1-0.31.0): a
+# read-modify-write counter let two parallel subagents both read 0 and both write 1,
+# and uutils mkdir(1) exits 0 when it loses the race.
+if [ -n "$(find "$TP_DIR/.claude/comment-discipline" -name 'blocked-*.d[0-9]' -type f 2>/dev/null)" ]
 then pass "transcript_path present: the marker actually landed on disk"
 else fail "transcript_path present: the marker actually landed on disk" "no marker under $TP_DIR"; fi
 if [ "$(cat "$TP_DIR/.claude/comment-discipline/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
@@ -494,16 +495,16 @@ else fail "the state dir ignores itself" ".claude/comment-discipline/.gitignore 
 # ---- the legacy marker, the <=0.19.0 shape -----------------------------------
 # `[ -e "$marker" ] && tries=1` is the only thing stopping a mid-session UPGRADE from
 # handing an already-denied file a fresh pair of denies: the old hook wrote a zero-byte
-# FILE at the bare marker path, the new one writes `.d1`/`.d2` directories. scan.sh
+# FILE at the bare marker path, the new one writes `.d1`/`.d2` files. scan.sh
 # claims in a comment that the legacy marker counts as one try. Nothing tested it —
 # delete that line and every other assertion in this file stays green.
 LEG_DIR="$(mktemp -d)"
 TP_CWD="$LEG_DIR"
 tp /tmp/proj/leg.js '// increment the counter
 counter++;' >/dev/null
-leg_d1="$(find "$LEG_DIR/.claude/comment-discipline" -name 'blocked-*.d1' -type d 2>/dev/null | head -1)"
+leg_d1="$(find "$LEG_DIR/.claude/comment-discipline" -name 'blocked-*.d1' -type f 2>/dev/null | head -1)"
 if [ -n "$leg_d1" ]; then
-  rmdir "$leg_d1"; : > "${leg_d1%.d1}"      # collapse .d1 back to the pre-0.19.1 shape
+  rm -f "$leg_d1"; : > "${leg_d1%.d1}"      # collapse .d1 back to the pre-0.19.1 shape
   leg1="$(tp /tmp/proj/leg.js '// increment the counter
 counter++;')"
   leg2="$(tp /tmp/proj/leg.js '// increment the counter
@@ -520,6 +521,56 @@ else
 fi
 unset TP_CWD
 rm -rf "$LEG_DIR"
+
+# ---- the 0.19.1-0.31.0 marker: a `.d1` DIRECTORY -----------------------------
+# The tries are counted with `-e`, so a mid-session upgrade from a version that claimed
+# with mkdir keeps its spent try. Narrowed to `-f`, the count skips the directory, every
+# claim of `.d1` collides with it, and the file is never denied again (measured).
+LEG_DIR="$(mktemp -d)"
+TP_CWD="$LEG_DIR"
+tp /tmp/proj/legdir.js '// increment the counter
+counter++;' >/dev/null
+leg_d1="$(find "$LEG_DIR/.claude/comment-discipline" -name 'blocked-*.d1' -type f 2>/dev/null | head -1)"
+if [ -n "$leg_d1" ]; then
+  rm -f "$leg_d1"; mkdir "$leg_d1"          # the 0.31.0 shape of the same spent try
+  leg1="$(tp /tmp/proj/legdir.js '// increment the counter
+counter++;')"
+  leg2="$(tp /tmp/proj/legdir.js '// increment the counter
+counter++;')"
+  leg1_deny=$(printf '%s' "$leg1" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 && echo 1 || echo 0)
+  leg2_deny=$(printf '%s' "$leg2" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 && echo 1 || echo 0)
+  if [ "$leg1_deny" = 1 ] && [ "$leg2_deny" = 0 ]; then
+    pass "a .d1 directory from <=0.31.0 counts as one try"
+  else
+    fail "a .d1 directory from <=0.31.0 counts as one try" "first=$leg1_deny second=$leg2_deny (want 1 then 0)"
+  fi
+else
+  fail "a .d1 directory from <=0.31.0 counts as one try" "no .d1 marker landed under $LEG_DIR to replace"
+fi
+unset TP_CWD
+rm -rf "$LEG_DIR"
+
+# ---- the claim does not trust mkdir(1)'s exit status -------------------------
+# uutils coreutils (Ubuntu 26.04's /usr/bin/mkdir) exits 0 when its mkdir(2) loses a race,
+# so two parallel calls could both claim one try: 20 at once denied 3 times in 8 of 60
+# rounds (measured 2026-10-07). This mkdir reports success and creates nothing, the race
+# made permanent: a claim that trusts it never spends a try and denies forever.
+# Residual: it proves the claim avoids mkdir(1), not that bash's O_EXCL holds under load.
+FAKE="$WORK/fake-mkdir-bin"; mkdir -p "$FAKE"
+printf '#!/bin/sh\ncase "$1" in -p) exec %s "$@" ;; esac\nexit 0\n' "$(command -v mkdir)" > "$FAKE/mkdir"
+chmod +x "$FAKE/mkdir"
+FK_DIR="$(mktemp -d)"
+TP_CWD="$FK_DIR"
+fk_n=0
+for _ in 1 2 3; do
+  fk="$(PATH="$FAKE:$PATH" tp /tmp/proj/fake.js '// increment the counter
+counter++;')"
+  printf '%s' "$fk" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 && fk_n=$((fk_n + 1))
+done
+if [ "$fk_n" = 2 ]; then pass "a mkdir(1) that reports success without creating cannot unbound the cap"
+else fail "a mkdir(1) that reports success without creating cannot unbound the cap" "three edits denied $fk_n times (want 2)"; fi
+unset TP_CWD
+rm -rf "$FK_DIR"
 
 rm -rf "$TP_DIR"
 

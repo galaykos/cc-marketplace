@@ -1053,21 +1053,24 @@ cc_bash_write_chunks() {
   # survived. Two denies per file per session bounds a pathological loop exactly as the
   # one-shot did while surviving one co-firing deny.
   DENY_CAP=2
-  # ATOMIC, because a counter file is not. `mkdir` either creates or fails, so two
-  # parallel subagents editing one file cannot both read 0 and both write 1 — a
-  # read-modify-write counter let the file be denied more than DENY_CAP times.
-  # A legacy zero-byte marker from <=0.19.0 counts as one try, so an upgrade
-  # mid-session does not hand a file a fresh budget.
+  # ATOMIC, because a counter file is not: a read-modify-write counter let two parallel
+  # subagents editing one file both read 0 and both write 1, denying it more than
+  # DENY_CAP times. Each try is a file created by bash's noclobber, which opens with
+  # O_CREAT|O_EXCL in the shell itself. Not mkdir(1): uutils coreutils (Ubuntu 26.04's
+  # /usr/bin/mkdir) stats first and exits 0 when its mkdir(2) loses the race, so 20
+  # parallel calls denied 3 times in 8 of 60 rounds (measured 2026-10-07, 0.31.1).
+  # `-e`, not `-f`: a `.dN` DIRECTORY from <=0.31.0 still counts after a mid-session
+  # upgrade, and so does a legacy zero-byte marker from <=0.19.0, as one try.
   tries=0
   [ -e "$marker" ] && tries=1
   i=1
-  while [ "$i" -le "$DENY_CAP" ]; do [ -d "$marker.d$i" ] && tries=$i; i=$((i + 1)); done
+  while [ "$i" -le "$DENY_CAP" ]; do [ -e "$marker.d$i" ] && tries=$i; i=$((i + 1)); done
   [ "$tries" -ge "$DENY_CAP" ] && return 1
   mkdir -p "$dir" 2>/dev/null || return 1
   # The state dir ignores itself (0.18.3): a marker per denied file showed up as
   # untracked in every repo without a hand-written ignore line.
   [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null
-  mkdir "$marker.d$((tries + 1))" 2>/dev/null || return 1 # lost the race → a sibling instance denied
+  ( set -C; : > "$marker.d$((tries + 1))" ) 2>/dev/null || return 1 # lost the race → a sibling instance denied
   # RESIDUAL, stated rather than hidden: the bound is spent when this hook DENIES, and a
   # deny does not prove the write landed. Two co-firing siblings can still exhaust both
   # tries on writes that never happened, and the third edit then ships unchecked. Spending
@@ -1202,11 +1205,12 @@ cc_bash_write_chunks() {
     elision_state "$1" || return 1
     marker="$edir/elision-blocked-$ekey"
     tries=0; i=1
-    while [ "$i" -le "$cap" ]; do [ -d "$marker.d$i" ] && tries=$i; i=$((i + 1)); done
+    while [ "$i" -le "$cap" ]; do [ -e "$marker.d$i" ] && tries=$i; i=$((i + 1)); done
     mkdir -p "$edir" 2>/dev/null || return 1
     [ -e "$edir/.gitignore" ] || printf '*\n' > "$edir/.gitignore" 2>/dev/null
+    # The noclobber claim of the comment deny above, for the same reason: mkdir(1) is not exclusive on uutils.
     if [ "$elide" != off ] && [ "$n" -gt "$o" ] && [ -f "$1" ] && grep -q '[^[:space:]]' "$1" && [ "$tries" -lt "$cap" ] \
-       && mkdir "$marker.d$((tries + 1))" 2>/dev/null; then
+       && ( set -C; : > "$marker.d$((tries + 1))" ) 2>/dev/null; then
       msg="elision-guard: this write would replace existing code with the placeholder comment \"$line\". Re-read the file and write it whole, or use Edit for a partial change. Blocked at most twice per file. CC_ELISION_GUARD=off disables this block for the session."
       return 0
     fi
