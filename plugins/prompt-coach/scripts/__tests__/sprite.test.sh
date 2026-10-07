@@ -14,9 +14,9 @@ bad() { fail=$((fail+1)); printf 'FAIL  %s\n      %s\n' "$1" "$2"; }
 
 CASES='
 import { pathToFileURL } from "node:url"
-const { PALETTE, FRAMES, toRgba, toRaster, rendererFor } = await import(pathToFileURL(process.argv[1]).href)
+const { PALETTE, FRAMES, BLINK, toRgba, toRaster, rendererFor } = await import(pathToFileURL(process.argv[1]).href)
 const DEFAULT = 0x01000000
-const frames = Object.entries(FRAMES).flatMap(([pose, list]) => list.map((f, i) => [pose + " " + i, f]))
+const frames = Object.entries(FRAMES).flatMap(([pose, list]) => list.map((f, i) => [pose + " " + i, f])).concat([["blink", BLINK]])
 const color = (f, x, y) => PALETTE[f[y][x]]
 const pixels = (f) => f.flatMap((row, y) => [...row].map((_, x) => [x, y, color(f, x, y)]))
 const throws = (fn) => { try { fn(); return "no throw" } catch { return "throws" } }
@@ -47,6 +47,8 @@ const cases = [
     { clear: ["."], bad: [] }],
   ["each two-frame loop changes pixels between its frames",
     ["thinking", "talking"].map((p) => FRAMES[p][0].join("") !== FRAMES[p][1].join("")), [true, true]],
+  ["the blink differs from the idle frame only in its eye row",
+    BLINK.map((row, y) => row === FRAMES.idle[0][y] ? null : y).filter((y) => y !== null), [6]],
   ["toRgba gives a 1024-byte Uint8Array for every frame",
     frames.map(([, f]) => { const b = toRgba(f); return b instanceof Uint8Array && b.length }), frames.map(() => 1024)],
   ["every RGBA pixel is its palette colour at alpha 255, or all zero where transparent",

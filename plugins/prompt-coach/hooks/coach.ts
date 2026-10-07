@@ -18,9 +18,9 @@ import {
   textHash,
 } from './coach-core'
 import type { Gate, Label, RunContext, Sensitivity, Verdict } from './coach-core'
-import { coachView, frameOf, markerBlit, poseOf, restOf, spriteBlit, spriteFor } from './coach-view'
+import { coachView, frameOf, markerBlit, mascotSpriteFor, mascotView, poseOf, restOf, spriteBlit, spriteFor } from './coach-view'
 import type { Renderer } from './coach-view'
-import { FRAMES, rendererFor } from './sprite'
+import { BLINK, FRAMES, rendererFor } from './sprite'
 
 // Shared block templates/mods/host-block.ts — re-paste byte-for-byte.
 function hostOf($: EngineInterface): Host {
@@ -63,6 +63,22 @@ type Band = {
 }
 
 const band: Band = { drawn: null, hasSurvey: false, isImageDenied: false, loop: null, ticks: 0 }
+
+type Mascot = {
+  // Opened at most once a session, so a pane the person closed stays closed.
+  isOpened: boolean
+  drawn: Drawn | null
+  blink: Timer | null
+  isStill: boolean
+}
+
+const mascot: Mascot = { isOpened: false, drawn: null, blink: null, isStill: false }
+
+const MASCOT_PANE = { id: 'prompt-coach', title: 'coach', columns: 18 } as const
+
+const BLINK_EVERY_MS = 4000
+
+const BLINK_SHUT_MS = 150
 
 const FRAME_MS = 250
 
@@ -158,14 +174,16 @@ function show($: EngineInterface, view: CoachView): void {
   $.ui.invalidate('ui.render')
 }
 
-// An Image the terminal can draw only as its alt falls back to Raster for the session.
-async function blitSprite($: EngineInterface, requestId: string, renderer: Renderer, frame: readonly string[]): Promise<void> {
+// An Image the terminal can draw only as its alt falls back to Raster for the session. True when the frame was drawn.
+async function blitSprite($: EngineInterface, requestId: string, renderer: Renderer, frame: readonly string[]): Promise<boolean> {
   const blitted = await $.ui.blit(spriteBlit(requestId, renderer, frame)).catch(() => null)
 
   if (renderer === 'image' && ALT.test(blitted?.deny ?? '')) {
     band.isImageDenied = true
     $.ui.invalidate('ui.render')
   }
+
+  return blitted !== null && blitted.deny === undefined
 }
 
 // Every drawn pose gets one blit, a looping one a frame each tick until the cap, ending on its rest frame.
@@ -180,10 +198,64 @@ async function tick($: EngineInterface): Promise<void> {
     stopLoop()
   }
 
-  const drawn = band.drawn
+  const frame = isLast ? restOf(pose) : frameOf(pose, band.ticks - 1)
 
-  if (drawn !== null && drawn.sprite !== null) {
-    await blitSprite($, drawn.requestId, drawn.sprite, isLast ? restOf(pose) : frameOf(pose, band.ticks - 1))
+  for (const drawn of [band.drawn, mascot.drawn]) {
+    if (drawn !== null && drawn.sprite !== null) {
+      await blitSprite($, drawn.requestId, drawn.sprite, frame)
+    }
+  }
+}
+
+function stopBlink(): void {
+  mascot.blink?.cancel()
+  mascot.blink = null
+}
+
+// Only at rest; a pane that refuses the blit (closed, or behind another tab) stops it until the pane draws again.
+async function blink($: EngineInterface): Promise<void> {
+  const drawn = mascot.drawn
+  const sprite = drawn?.sprite ?? null
+
+  if (drawn === null || sprite === null || poseOf(coach.view) !== 'idle') {
+    return
+  }
+
+  if (!(await blitSprite($, drawn.requestId, sprite, BLINK))) {
+    stopBlink()
+    mascot.drawn = null
+
+    return
+  }
+
+  $.clock.after(BLINK_SHUT_MS, () => {
+    if (poseOf(coach.view) === 'idle') {
+      void blitSprite($, drawn.requestId, sprite, restOf('idle'))
+    }
+  })
+}
+
+function still($: EngineInterface): void {
+  mascot.isStill = true
+  stopBlink()
+  $.ui.invalidate('ui.render')
+}
+
+// Docked beside the transcript only by the fullscreen renderer: anywhere else an unasked pane would take rows above the prompt.
+async function openMascot($: EngineInterface, isFullscreen: boolean | undefined, options: PluginOptions): Promise<void> {
+  if (mascot.isOpened || isFullscreen !== true) {
+    return
+  }
+
+  mascot.isOpened = true
+
+  const isOn =
+    switchOn(await $.env.get('CC_PROMPT_COACH'), options.cc_prompt_coach !== false) &&
+    switchOn(await $.env.get('CC_COACH_MASCOT'), options.cc_coach_mascot !== false)
+
+  // A pane too wide for the terminal now waits unplaced, and the engine seats it once the terminal is widened.
+  if (isOn && (await isTerminalSession($))) {
+    await $.ui.open(MASCOT_PANE)
   }
 }
 
@@ -520,6 +592,9 @@ export function register(on: On, options: PluginOptions) {
       return next(e)
     }
 
+    // Not awaited: the band draws now, whatever the open does to the layout.
+    void openMascot($, e.viewport?.isFullscreen, options).catch(() => undefined)
+
     band.hasSurvey = e.props.hasSurvey
 
     const view = coach.view
@@ -538,5 +613,23 @@ export function register(on: On, options: PluginOptions) {
     const kit = { ui: $.ui.resolve(e), sprite, bodyRows, fill: (text: string) => fill($, text), mute: () => mute($) }
 
     return coachView(kit, view)
+  }).catch(($, e, next) => next(e))
+
+  on('ui.render', { component: 'Pane', requestId: MASCOT_PANE.id }, async ($, e, next) => {
+    if (!isSupported((await $.session.version()).version)) {
+      return next(e)
+    }
+
+    const sprite = mascotSpriteFor(await rendererOf($), e.props.bodyColumns, e.props.scroll.bodyRows)
+
+    mascot.drawn = { requestId: e.requestId, sprite }
+
+    if (sprite !== null && !mascot.isStill) {
+      mascot.blink ??= $.clock.every(BLINK_EVERY_MS, () => void blink($))
+    }
+
+    const kit = { ui: $.ui.resolve(e), sprite, still: mascot.isStill ? null : () => still($) }
+
+    return mascotView(kit, coach.view)
   }).catch(($, e, next) => next(e))
 }
