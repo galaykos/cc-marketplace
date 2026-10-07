@@ -175,7 +175,7 @@ export function judgeInput(p: { prompt: string; run: RunContext | null; turns: r
   let spec = leadingLines(specLines, CONTEXT_CAPS.spec).join('\n')
   let turns = leadingLines(p.turns.slice(-CONTEXT_CAPS.turnCount).map(turnLine).reverse(), CONTEXT_CAPS.turns).reverse()
   const render = () => tagged('cards', cards) + tagged('spec', spec) + tagged('turns', turns.join('\n')) + tagged('prompt', prompt)
-  // A4's trim order: whole turns oldest first, then spec rows; under A4's caps the turns alone always suffice.
+  // Trim order: whole turns oldest first, then spec rows; under these caps the turns alone always suffice.
   while (turns.length > 0 && render().length > LIMITS.totalChars) turns = turns.slice(1)
   const over = render().length - LIMITS.totalChars
   if (over > 0) spec = leadingLines(specLines, Math.max(0, spec.length - over)).join('\n')
