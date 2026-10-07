@@ -254,8 +254,13 @@ describe('redact', () => {
     for (const write of writes) {
       const r = await $.tool.call(write)
 
-      expect(r.deny, write.tool).toEqual(expect.stringContaining('redacted the real value from your view'))
-      expect(r.deny, write.tool).toEqual(expect.stringContaining('CC_SECRET_REDACT=off'))
+      expect(r.deny, write.tool).toBe(
+        `${write.tool} refused: the new text contains the redaction marker ${'[REDACTED' + ':'}…]. It may have come ` +
+          'from a tool result secret-scanning redacted; if so, writing it would replace the real value on disk, so ' +
+          'leave the value out of the edit. If the text quotes the marker on purpose, ask the user to set ' +
+          'CC_SECRET_REDACT=off, which also stops redacting secrets in tool output, then read again any file whose ' +
+          'result was redacted before writing its values.',
+      )
     }
 
     expect(world.ran, 'no refused write ran').toEqual([])

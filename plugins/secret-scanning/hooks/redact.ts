@@ -98,9 +98,10 @@ export function failureReason(failure: HookFailure, pats: Pattern[] | null): str
 
 function refusalOf(tool: string): string {
   return (
-    `${tool} refused: the new text carries a [REDACTED:…] placeholder. secret-scanning redacted the real value from ` +
-    'your view of a tool result, so writing the placeholder would replace the secret on disk. Leave the value out of ' +
-    'the edit, or ask the user to set CC_SECRET_REDACT=off and read the file again.'
+    `${tool} refused: the new text contains the redaction marker ${MASK}…]. It may have come from a tool result ` +
+    'secret-scanning redacted; if so, writing it would replace the real value on disk, so leave the value out of the ' +
+    'edit. If the text quotes the marker on purpose, ask the user to set CC_SECRET_REDACT=off, which also stops ' +
+    'redacting secrets in tool output, then read again any file whose result was redacted before writing its values.'
   )
 }
 

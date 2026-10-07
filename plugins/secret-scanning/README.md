@@ -148,6 +148,12 @@ Residuals, stated:
   between that keyword and the `:`/`=`, passes both the mod and `scan.sh`: the shared pattern bounds the name so JavaScript's
   regex stays linear.
 - **Not refused.** A `[REDACTED:` token written through `Bash` or an MCP write tool.
+- **Refused by mistake.** The same token in a file that quotes it on purpose — a spec, a
+  test, this README — is refused too, even in a session that redacted nothing: the refusal
+  reads the new text, not where it came from. Its reason says the token may have come from
+  a redacted result; `CC_SECRET_REDACT=off` gets past it and also stops output redaction.
+  Standing: **gate** — `tests/redact.test.ts` refuses all four tools with nothing redacted
+  and pins the reason's full wording.
 - **Untested.** Subagent calls (the test kit drops `agentId`) and the time-budget-overrun
   path end to end (only its refusal text is tested).
 - **Signals.** The toast is transient; afterwards only the mask text and the model's note
