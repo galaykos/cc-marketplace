@@ -31,8 +31,8 @@ All notable changes to the `prompt-coach` plugin.
   variable beats the option. Fixed in code: haiku as the first pass, the 5 s deadline, 10
   standby checks a session, a 10-minute back-off after 3 failures in a row.
 - **Cost and install.** A haiku call per eligible prompt and a standby call per flag, at
-  most 10 a session; `/cost` shows none of it. It installs only by name:
-  `/all-plugins:install` and `/stack-scan:suggest --full` leave it out.
+  most 10 a session; `/cost` shows none of it. Bulk installs leave it out:
+  `/all-plugins:install` and `/stack-scan:suggest --full` skip it.
 - **Where it runs, residuals named.** Below CLI 2.1.291, in a session the desktop app
   draws on and in one with no terminal, every prompt passes (both covered by
   `tests/coach.test.ts`); an organization's `allowManagedModsOnly` refuses the module
