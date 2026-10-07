@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **31 leaf plugins** covering stacks, review,
+A Claude Code plugin marketplace: **32 leaf plugins** covering stacks, review,
 architecture, design, and the whole idea-to-shipped workflow. Every one installs on its
 own — there are no bundles (the four suites were retired 2026-09-26; see
 [Companions](#companions-install-these-together)).
@@ -26,7 +26,7 @@ Not sure what you need? Install one plugin and let it tell you:
 /plugin install stack-scan@cc-plugins-marketplace
 /stack-scan:suggest              # scans your manifests, suggests a set, installs your picks
 /stack-scan:suggest --yes        # installs the stack-matched tier plus the any-project core, without asking
-/stack-scan:suggest --full       # everything relevant to the detected stack, leaves only, after a plan and one confirm
+/stack-scan:suggest --full       # everything relevant to the detected stack but opt-in prompt-coach, leaves only, after a plan and one confirm
 /stack-scan:suggest --full --stack laravel,inertia,react   # greenfield: name the stack the manifests do not show yet
 /stack-scan:suggest --persist    # project scope: teammates who clone get the same set
 /stack-scan:suggest --global     # user scope: every repo on this machine
@@ -36,7 +36,7 @@ Not sure what you need? Install one plugin and let it tell you:
 
 # Or everything at once, no questions, local scope:
 /plugin install all-plugins@cc-plugins-marketplace
-/all-plugins:install              # every leaf plugin at local scope; --scope project|user, --dry-run (not found yet? /reload-plugins first)
+/all-plugins:install              # every leaf plugin but opt-in prompt-coach, at local scope; --scope project|user, --dry-run (not found yet? /reload-plugins first)
 /all-plugins:uninstall            # the inverse; --self removes all-plugins too
 ```
 
@@ -144,6 +144,8 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_CANDOR_GATE` | candor | block | The whole candor Stop gate: block, warn (print, never block) or off |
 | `CC_CARDLINT` | taskmaster | on | Say when a card set reaches execution without its author-time linters having run: on or off |
 | `CC_CLARIFY_GATE` | taskmaster | off | Refuse the first code write after a work-shaped prompt, once per session: block or off |
+| `CC_COACH_MODEL` | prompt-coach | sonnet | The model that confirms a haiku first-pass flag before a prompt is dropped: sonnet or opus |
+| `CC_COACH_SENSITIVITY` | prompt-coach | unactionable | What counts as unclear: unactionable (nobody could act on it) or ambiguous (also two readings of scope) |
 | `CC_COMMENT_GUARD` | code-review | on | Refuse a write whose comments restate the code or pass the density ceiling: on or off |
 | `CC_CONFIG_GUARD` | command-guard | on | Ask before a write that would weaken settings, hooks, manifests or lint and test config: on or off |
 | `CC_CONVENTIONS` | code-review | on | Name the convention configs and the CI command enforcing them at the first code write: on or off |
@@ -157,6 +159,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_PALETTE` | ui-ux | on | Name the category-default indigo, violet or purple accent when a UI write uses it: on or off |
 | `CC_PREAMBLE` | candor | on | Inject the five working moves before the first edit of a session and of each subagent: on or off |
 | `CC_PREVIEW_GUARD` | taskmaster, ui-ux | on | Ask before an HTML page is published as a remote artifact instead of served locally: on or off |
+| `CC_PROMPT_COACH` | prompt-coach | on | Judge an eligible prompt at Enter, and hold a flagged one for the sprite's rewrite: on or off |
 | `CC_PROTECT_TESTS` | testing | on | Refuse an edit that adds a skip or only marker to a test, or empties a test file: on or off |
 | `CC_REMIND` | api-design, approaches, code-review, debugging, design-kit, secret-scanning, security, skill-router, task-runner, taskmaster, testing, ui-ux | on | Reminder hooks that add guidance to the session: on or off |
 | `CC_REVIEW_NUDGE` | code-review | on | Suggest an independent review once enough unreviewed or sensitive code has changed: on or off |
@@ -517,7 +520,8 @@ bill you did not agree to.
 | **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
 | **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
 | **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
-| **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace at one scope (local by default) with zero prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
+| **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace but opt-in prompt-coach at one scope (local by default) with zero prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
+| **[prompt-coach](plugins/prompt-coach)** | a hooks module that holds an eligible prompt at Enter for up to 5 s while a haiku first pass, and on a flag a standby sonnet or opus, judges whether nobody could act on it, it contradicts an earlier instruction, or it strays from a running task-runner card; only a confident flag drops it, and an animated pixel-art sprite shows your text, the reason and a rewrite, with buttons that fill the prompt box and never submit. Each eligible prompt bills a haiku call that `/cost` does not show; terminal only, Claude Code 2.1.291 or newer; installs only by name — `/all-plugins:install` and `/stack-scan:suggest --full` skip it | Prompts that keep needing a second round before anyone can act on them, and a model call per prompt is worth catching them |
 
 ```bash
 /brain:brain                # print the map; /brain:brain index refreshes it
@@ -549,7 +553,7 @@ plugin — the authoring doctrine has one user, this repository.)
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |
 | want the whole pipeline | `taskmaster` + `task-runner` + `approaches` + `code-architecture` + `testing` + `debugging` |
-| want everything and accept the listing cost | `all-plugins`, then `/all-plugins:install` (every leaf at local scope, no questions; re-run it after a marketplace update to pick up new plugins; it raises `skillListingBudgetFraction` for that scope so the listing is sent whole; its README carries the arithmetic and the one n=50 measurement that found the overflow changes nothing detectable) |
+| want everything and accept the listing cost | `all-plugins`, then `/all-plugins:install` (every leaf but opt-in prompt-coach at local scope, no questions; re-run it after a marketplace update to pick up new plugins; it raises `skillListingBudgetFraction` for that scope so the listing is sent whole; its README carries the arithmetic and the one n=50 measurement that found the overflow changes nothing detectable) |
 
 ---
 

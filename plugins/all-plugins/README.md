@@ -5,7 +5,12 @@ the host's skill-listing budget so every description is actually sent, and undoe
 One script, one exit code; the two commands only relay it. "Every leaf" means every
 plugin in the marketplace's `marketplace.json` — there are no bundles to skip (the suites
 were retired 2026-09-26) — and that includes `all-plugins` itself, which `install` covers
-(normally a `skip`) and `uninstall` keeps unless `--self`.
+(normally a `skip`) and `uninstall` keeps unless `--self`. One plugin is left out by
+construction: **`prompt-coach`**, which bills a model call per eligible prompt, so it
+installs only when you name it (`claude plugin install prompt-coach@cc-plugins-marketplace -s local`).
+`install` never installs or enables it and prints it as a
+`skip (opt-in: bills a model call per prompt)` row; `uninstall` and `list` treat it like
+any other plugin.
 
 > **Re-run it after every marketplace update.** `install` installs what the marketplace
 > holds **when you run it**. `/plugin marketplace update` updates the plugins you have;
@@ -19,7 +24,7 @@ were retired 2026-09-26) — and that includes `all-plugins` itself, which `inst
 ```bash
 # 1. In a session, after installing this one plugin:
 /plugin install all-plugins@cc-plugins-marketplace
-/all-plugins:install                   # every leaf plugin at local scope (not found yet? /reload-plugins first)
+/all-plugins:install                   # every leaf but opt-in prompt-coach, at local scope (not found yet? /reload-plugins first)
 /all-plugins:uninstall                 # the inverse; --self removes all-plugins too
 /reload-plugins                        # nothing installed this run is active until you do
 
@@ -66,13 +71,13 @@ disk before any plugin is installed.
   reload.
 - **Does not decide what you need.** That is `/stack-scan:suggest`, which reads your
   manifests and installs a picked set with evidence. This plugin is for the case where
-  you have already decided you want everything.
+  you have already decided you want everything but prompt-coach.
 
 ## What has teeth
 
 | Rule | Standing |
 |---|---|
-| The exit codes, the every-listed-plugin list, the scope flag, zero prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
+| The exit codes, the every-listed-plugin list, the `prompt-coach` opt-in skip, the scope flag, zero prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
 | The commands relay the script instead of running `claude plugin install` themselves | **agent-graded** — it is instruction text in `commands/*.md`; nothing detects a substituted loop |
 | The budget step: the fraction written, never lowered, foreign values kept, invalid JSON untouched, removed only when it is the script's own value | **gate** — the same harness drives it against fixture settings files |
 | The overflow arithmetic | **recorded** — reproduced by `scripts/context-budget.sh`; the 0.07 figure moves as the marketplace grows, and the script recomputes it on every run |

@@ -4,6 +4,11 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.11.4 — 2026-10-07
+
+- plugin-scout's catalog gained a row for the new prompt-coach plugin, and all-plugins' row now reads "but opt-in prompt-coach". The catalog has no hand edits; `scripts/generate.sh --write` produced this change. No behaviour change.
+- `--full` (with or without `--yes`) leaves prompt-coach out by construction, beside stack-scan and all-plugins: it bills a model call per eligible prompt, so it installs only when you name it. The plan's by-construction count line names it with that reason and the by-name install command at the run's scope. The rule is model-followed prose (agent-graded); all-plugins 0.2.1 carries the scripted twin for `/all-plugins:install`.
+
 ## 0.11.3 — 2026-10-05
 
 - plugin-scout's catalog row for code-review carries code-review 0.30.0's description: its write-time hooks also deny code replaced by a `// ... existing code ...` placeholder, and the two-deny bound is stated per deny. The catalog has no hand edits; `scripts/generate.sh --write` produced this change. No behaviour change.

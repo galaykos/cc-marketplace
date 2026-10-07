@@ -36,14 +36,17 @@ those rows exist because three tokens share a name with plugins removed on
 
 Every leaf not named above is **any stack** and is always in the plan — every eligible
 leaf except the three in the table above. Count them from `references/catalog.md` at run
-time (leaves, minus `stack-scan` and `all-plugins`) — never from a number written down.
+time (leaves, minus `stack-scan`, `all-plugins` and `prompt-coach`) — never from a number written down.
 That includes `ui-ux`: its a11y-audit, design-tokens and
 theming-system skills are stack-agnostic, so a server-rendered app with no
 JavaScript framework still gets it — and `ui-libraries` with it, so the companions of
 `craft-layer` (`references/signals.md` Companions) always install when it does.
-`stack-scan` itself and `all-plugins` are excluded by construction and never listed one by one —
+`stack-scan` itself, `all-plugins` and `prompt-coach` are excluded by construction and never listed one by one —
 `all-plugins` because an installer of everything inside a curated plan defeats the
-plan; a user who wants everything is pointed at `/all-plugins:install` instead. Already-installed
+plan; a user who wants everything but prompt-coach is pointed at `/all-plugins:install` instead.
+`prompt-coach` because it bills a model call per eligible prompt, which a bulk install
+must not add silently: it installs only when the user names it, and the plan's
+by-construction count line says so (`references/flags.md` `--full`). Already-installed
 leaves are skipped and counted in the plan's `Already installed (K)` line.
 
 ## The domain-bound rule
@@ -80,7 +83,7 @@ count of what `--full` will install.
 **Laravel + Inertia + React** — composer.json requires `laravel/framework`,
 package.json declares `@inertiajs/react` and `vite`, no Stripe or LLM signal:
 
-- Excluded by construction: `stack-scan`, `all-plugins`.
+- Excluded by construction: `stack-scan`, `all-plugins`, `prompt-coach`.
 - **No stack-mismatched leaf.** Both stack classes are satisfied, so every
   eligible leaf installs.
 - `web-dev` brings the Next.js and React Native skill descriptions into the
@@ -96,7 +99,7 @@ package.json declares `@inertiajs/react` and `vite`, no Stripe or LLM signal:
 
 **Agent-graded.** No script checks that the exclusion was applied, that the
 evidence keys were matched exactly rather than by substring, that a domain leaf
-was held back, or that the typed-token line printed. Gated: plugin names in the
+was held back, that `prompt-coach` was left out, or that the typed-token line printed. Gated: plugin names in the
 table above (`pc_scout_names`, which reads this file by name) and catalog
 freshness (`generate.sh --check`). Residual worth naming: a wrong evidence key in
 this table silently installs or skips a plugin on every `--full` run — only a human
