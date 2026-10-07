@@ -160,6 +160,7 @@ program-board
 program-level-delivery-ownership
 program-resume
 program-status-line
+prompt-coaching
 read-ledger-for-evidence
 registered-run-announcement
 reply-shape-contract
