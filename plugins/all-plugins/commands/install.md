@@ -1,5 +1,5 @@
 ---
-description: Install every leaf plugin of this marketplace at one scope with zero prompts — local by default; runs the plugin's script and relays its exit code: 0 run /reload-plugins, 1 lists the plugins that failed, 2 names the missing precondition.
+description: Install every leaf plugin of this marketplace but opt-in prompt-coach at one scope with zero prompts — local by default; runs the plugin's script and relays its exit code: 0 run /reload-plugins, 1 lists the plugins that failed, 2 names the missing precondition.
 argument-hint: [--scope local|project|user] [--dry-run] [--no-budget]
 disable-model-invocation: true
 ---

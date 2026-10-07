@@ -7,6 +7,7 @@ recorded; plugin-scout, which was merged into this plugin, kept its own changelo
 ## 0.11.4 — 2026-10-07
 
 - plugin-scout's catalog gained a row for the new prompt-coach plugin. The catalog has no hand edits; `scripts/generate.sh --write` produced this change. No behaviour change.
+- `--full` (with or without `--yes`) leaves prompt-coach out by construction, beside stack-scan and all-plugins: it bills a model call per eligible prompt, so it installs only when you name it. The plan's by-construction count line names it with that reason and the by-name install command at the run's scope. The rule is model-followed prose (agent-graded); all-plugins 0.2.1 carries the scripted twin for `/all-plugins:install`.
 
 ## 0.11.3 — 2026-10-05
 

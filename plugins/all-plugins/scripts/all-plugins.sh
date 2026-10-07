@@ -4,7 +4,8 @@
 # the marketplace.json: since 2026-09-26 no plugin here may declare `dependencies`
 # (the repo's validate.sh fails the key), so there is no bundle to skip. all-plugins
 # itself is on the list — `install` covers it (normally already there: `skip`),
-# `uninstall` keeps it unless --self, and removes it LAST with --self.
+# `uninstall` keeps it unless --self, and removes it LAST with --self. `install` alone skips
+# what `opt_in` names (installed only when the person names it); `uninstall` and `list` walk it.
 #
 # It installs what the marketplace holds WHEN IT RUNS. A plugin added later is not
 # installed by a marketplace update; run `install` again — installed ones are skipped. A mechanism, not prose:
@@ -165,6 +166,12 @@ state_of() { # state_of <name> — installed | disabled | absent
   printf '%s' "${s:-absent}"
 }
 
+opt_in() { # opt_in <name> — why `install` leaves it out by construction; empty for every other leaf
+  case "$1" in
+    prompt-coach) printf 'opt-in: bills a model call per prompt' ;;
+  esac
+}
+
 name_width() {
   printf '%s\n' "$LEAVES" | awk '{ if (length($0) > w) w = length($0) } END { print w + 0 }'
 }
@@ -298,9 +305,11 @@ budget_revert() { # after uninstall: drop the key only if it still holds the val
 }
 
 do_install() {
-  local name st n_inst=0 n_en=0 n_skip=0 n_fail=0 total=0 failures="" verb done_as
+  local name st n_inst=0 n_en=0 n_skip=0 n_opt=0 n_fail=0 total=0 failures="" verb done_as why
   while read -r name; do
     total=$((total + 1))
+    why=$(opt_in "$name")
+    if [ -n "$why" ]; then row install "$name" "skip ($why)"; n_opt=$((n_opt + 1)); continue; fi
     st=$(state_of "$name")
     case "$st" in
       installed) row install "$name" "skip (installed)"; n_skip=$((n_skip + 1)); continue ;;
@@ -316,11 +325,11 @@ do_install() {
     fi
   done <<<"$LEAVES"
   if [ "$DRY" -eq 1 ]; then
-    printf 'dry-run: would install %s, enable %s, skip %s of %s leaves at scope %s\n' "$n_inst" "$n_en" "$n_skip" "$total" "$SCOPE"
+    printf 'dry-run: would install %s, enable %s, skip %s of %s leaves at scope %s\n' "$n_inst" "$n_en" "$((n_skip + n_opt))" "$total" "$SCOPE"
     budget_raise "$ROOT"
     return 0
   fi
-  printf 'installed %s, enabled %s, skipped %s, failed %s of %s leaves at scope %s\n' "$n_inst" "$n_en" "$n_skip" "$n_fail" "$total" "$SCOPE"
+  printf 'installed %s, enabled %s, skipped %s, failed %s of %s leaves at scope %s\n' "$n_inst" "$n_en" "$((n_skip + n_opt))" "$n_fail" "$total" "$SCOPE"
   # Something from this marketplace is at this scope now (or was already): cover its listing.
   [ $((n_inst + n_en + n_skip)) -eq 0 ] || budget_raise "$ROOT"
   [ $((n_inst + n_en)) -eq 0 ] || printf 'Run /reload-plugins — nothing installed this run is active until you do.\n'
