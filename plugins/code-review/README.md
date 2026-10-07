@@ -538,6 +538,49 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
 - **Standing: advisory.** Nothing enforces the review. Whether a suggested review was worth
   running is agent-graded.
 
+## Mods (Claude Code ≥ 2.1.291)
+
+Since 0.31.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed under
+`modules` in `hooks/hooks.json` beside the classic hooks, which fire with or without it.
+
+- **What.** At the end of a turn in which the main loop (not a subagent) ran a `Write`,
+  `Edit`, `MultiEdit` or `NotebookEdit` on a code file inside the repository, and the tool
+  neither refused nor errored, the prompt box offers `/code-review:review` as a next-step
+  suggestion: Tab accepts it, and nothing runs until you send it. Docs don't count:
+  `.md`, `.mdx`, `.txt` and `.rst` files in any case, and any file under a `docs/`
+  directory inside the repository.
+- **How it differs from the nudge above.** The review-debt nudge is a line for the model on
+  your next prompt, after 8+ changed files or an auth-surface path. This suggestion is for
+  you, in the idle prompt box, after any code edit, and the model never sees it. Both can
+  fire; neither replaces the other.
+- **When it stays silent.** For edits made while a task-runner run is registered on the
+  current branch (a run on another branch does not count), and when such a run registers
+  before the turn ends. While a phase sentinel is live: a `.claude/cc-phase.json` under
+  two hours old that this session holds or that names no session. Outside a git
+  repository and before the first commit, since it keys on HEAD. Once the prompt box has
+  shown it, not again for the same HEAD commit in this session; one the host did not show
+  is offered again at the next turn end.
+- **Off switch.** `CC_SUGGEST=off`, environment only with no `/config` option, silences
+  this and the next-step suggestions of taskmaster, task-runner and git-workflow together.
+  `CC_REVIEW_NUDGE` and `CC_REMIND` do not touch it.
+- **CLI.** With mods off in the host, on a CLI below 2.1.287 (which loads no module), on
+  2.1.288-2.1.290, or with `CC_SUGGEST=off`, the module offers nothing and the classic hooks
+  work as before. On CLI 2.1.287 with mods on, the module still registers its `tool.call`
+  hook (the version check runs inside it), and that CLI's own bug — a plugin's `tool.call`
+  hook breaking Bash and file search in worktree subagents, fixed in 2.1.288 — applies even
+  with `CC_SUGGEST=off`: upgrade the CLI or turn mods off.
+- **Limits.** The prompt box holds one suggestion: when another plugin offers one at the
+  same turn end the later replaces the earlier, one replaced after it was shown counts as
+  shown, and Claude Code's own suggestion is not suppressed. What was shown is kept in
+  memory, so a new session offers the same HEAD again. "Inside the repository" compares
+  path text, so an edit spelled through a different symlink than the session's directory
+  is read as outside it and offers nothing.
+- **Standing.** The conditions above are a **gate**: `tests/suggest.test.ts` runs under
+  `claude plugin test` in CI, except the outside-git and first-commit silences, which no
+  test covers; the sentinel's two-hour and no-session clauses rest on the shared kit's own
+  tests in the marketplace repository. The tests answer the host's "shown" reply themselves; whether the suggestion
+  gets more diffs reviewed is unmeasured.
+
 ## Pairs well with
 
 - **code-architecture** — the structural/YAGNI depth this review defers to, plus

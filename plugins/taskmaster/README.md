@@ -202,6 +202,40 @@ leaves column choice, delivery mechanism, and permissions open. Those come out
 grounded in what context-scout actually found, so the answers become decisions
 in the spec instead of assumptions buried in code.
 
+## Mods (Claude Code ≥ 2.1.291)
+
+Since 0.48.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed under
+`modules` in `hooks/hooks.json` beside the classic hooks, which fire with or without it.
+
+- **Red-team suggestion.** When the main loop `Write`s a spec, a
+  `taskmaster-docs/specs/<name>.md` anywhere under the repository root (a sub-package's
+  own `taskmaster-docs/` included), the prompt box offers `/taskmaster:redteam <spec path>`
+  as a Tab-to-accept suggestion once that turn ends. Each spec is offered once per session,
+  counted only when Claude Code reports the suggestion shown; one not shown is offered
+  again at the next turn end. Nothing is offered for brainstorm's design docs
+  (any `*-design.md`, the name brainstorm gives them, so a spec whose slug ends in
+  `-design` is skipped too; their next step is `/taskmaster:task`), while a pipeline's phase
+  sentinel is live (the pipeline runs the red-team itself), for a subagent's write, for a
+  refused or failed write, or for an `Edit`.
+- **Both fire.** The classic clarify-first reminder still speaks to the model; the
+  suggestion speaks to you. Neither replaces the other.
+- **Off switch.** `CC_SUGGEST=off` silences this marketplace's next-step suggestions
+  (taskmaster, task-runner, code-review, git-workflow); there is no `/config` option.
+- **One shared slot.** The prompt box holds one suggestion, so when several are offered
+  at one turn end the last caller wins, and a suggestion shown and then replaced counts
+  as shown. Claude Code's own suggestion is not suppressed.
+- **CLI floor.** With mods off in the host or on a CLI below 2.1.287 no module loads; on
+  2.1.288-2.1.290 the module passes every call through. On 2.1.287 with mods on the module
+  still registers its `tool.call` hook (the version check runs inside it), and that CLI's
+  own bug — a plugin's `tool.call` hook breaking Bash and file search in worktree
+  subagents, fixed in 2.1.288 — applies even with `CC_SUGGEST=off`: upgrade the CLI or
+  turn mods off.
+
+Standing: **gate** — `tests/suggest.test.ts` runs under `claude plugin test` in CI (the
+marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails
+the build. Untested here: the real prompt box (the test kit answers whether a suggestion
+was shown) and the version floor (the shared kit's own tests cover it).
+
 ## Companion plugins
 
 taskmaster works standalone but reaches full potential alongside
@@ -239,6 +273,8 @@ Credit: grill's frontier rule adapts one from an earlier (2026-09-02) read of [m
   UserPromptSubmit; the artifact preview guard (ask) and the opt-in clarify gate
   (`CC_CLARIFY_GATE=block`, deny once) on PreToolUse; the card-shape observer
   (warn) on PostToolUse
+- **Mod** (Claude Code ≥ 2.1.291): `hooks/suggest.ts`, the `/taskmaster:redteam`
+  suggestion after a spec is written (see Mods, above)
 - **Scripts**: `verify-teeth-lint.sh`, `spec-ledger-lint.sh`, `goal-ledger-check.sh`,
   `skills-stamp-lint.sh`, `card-lint-record.sh`, `preview-cleanup.sh`,
   `theme-axis-check.py` — each with a harness under `scripts/__tests__/`
@@ -248,5 +284,6 @@ Credit: grill's frontier rule adapts one from an earlier (2026-09-02) read of [m
 Every hook fails open and every one has an off switch. `CC_REMIND=off` silences the
 clarify directive, the clarify gate and the card observer; `CC_CARDLINT=off` just the
 observer; `CC_PREVIEW_GUARD=off` the artifact guard; `CC_BOOST=off` (or
-`TASKMASTER_BOOST=off`) the boost detector. The clarify gate is additionally off
+`TASKMASTER_BOOST=off`) the boost detector; `CC_SUGGEST=off` the red-team suggestion.
+The clarify gate is additionally off
 unless `CC_CLARIFY_GATE=block`. `PREVIEW_PORT` moves the preview server off 8123.

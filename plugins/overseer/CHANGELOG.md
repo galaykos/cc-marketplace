@@ -1,8 +1,13 @@
 # Changelog
 
-## 0.5.7 — 2026-10-07
+## 0.6.1 — 2026-10-07
 
 - `scripts/program.sh` no longer loses concurrent writes to `program.json`. Its state lock was a `mkdir` lock, and on hosts whose `mkdir` is uutils coreutils (Ubuntu 26.04's default) `mkdir` exits 0 even when it loses the race, so two writers held the lock at once. 20 concurrent `evidence add` calls all exited 0 but kept only 14-19 rows. The lock is now a file that bash itself creates exclusively (`set -C`), with no external binary in the race. Standing: gate, but only where `mkdir` is uutils. There, the harness's 20-concurrent-adds assertion fails against the old lock; on a GNU `mkdir` host the old lock held, so the assertion passes either way. The harness now also fails if a lock file of either kind is left behind.
+
+## 0.6.0 — 2026-10-06
+
+- **The next-milestone rule as a pure function, `hooks/status-core.ts`.** `nextMilestone` takes a parsed `program.json` and returns the milestone `program.sh`'s `NEXT_FILTER` selects: the first one that is neither done nor parked and whose every `depends` id is done. A parked dependency is never met. The result carries `k`, its 1-based position, and `n`, the milestone count. It returns null when no open milestone has every dependency done (one waiting on a parked milestone included) or the input is malformed. `overseerLine` renders `overseer  milestone <k>/<n>  <id> <title> (<status>)`. `scripts/__tests__/status-core.test.sh` reads `NEXT_FILTER` out of `program.sh` each time it runs and requires jq and the function to name the same milestone on every fixture. CI runs it in the plugin-harness step, so if the two drift apart the build fails.
+- **A program status line, as a hooks module (Claude Code ≥ 2.1.291).** `hooks/status-line.ts`, listed under `modules` in `hooks/hooks.json` beside the classic hooks, pins `overseer  milestone <k>/<n>  <id> <title> (<status>)` under the prompt for the milestone `nextMilestone` names, and clears it when none is open (an open milestone waiting only on a parked one included), when `.claude/overseer/program.json` is gone or unreadable, or when the switch is off. It refreshes at session start and after every tool call, re-reading the file only when its modification time moved; each refresh runs one `git rev-parse` to find the repository root, so every tool call waits on it while the line is on. Off switch: `CC_OVERSEER_STATUS=off`, or the new `/config` option `cc_overseer_status`. With mods off, or on a CLI below 2.1.291, the classic hooks work as before. On CLI 2.1.287 with mods on, the module's `tool.call` hook still registers, and that CLI's bug (a plugin `tool.call` hook breaking Bash and file search in worktree subagents) applies even with the switch off: upgrade the CLI or turn mods off. `tests/status-line.test.ts` runs under `claude plugin test`; `hooks/cc-kit.ts` is a byte copy of the marketplace's shared mod kit.
 
 ## 0.5.6 — 2026-09-30
 

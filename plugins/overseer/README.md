@@ -18,6 +18,7 @@ in a captured run where it has none.
 | `overseer` | skill | the loop, the product-judgment rules, the acceptance protocol, the prompt templates |
 | `hooks/announce.sh` | SessionStart hook | one line when a program is open, silent otherwise |
 | `hooks/track-read.sh` | PostToolUse hook (Read) | while a program is open, ledgers each Read as `epoch, session, path` in `.claude/overseer/.reads`; prints nothing |
+| `hooks/status-line.ts` | hooks module (Claude Code ≥ 2.1.291) | pins the next open milestone as a status line under the prompt; see Mods |
 | `kinds.tsv` | data | milestone kind → the skill groups a gated dispatch must pin before accept, and the evidence profile accept demands (`ui`, the default, or `headless`); read by `program.sh` |
 | `scripts/program.sh` | script | the state machine; the only writer of `.claude/overseer/program.json`; `init --model` (tier), `milestone add --kind --size`, `dispatch check` (prompt gate: preamble, scope, verify, skill path, `MODEL:` line within the tier; kinds worker, reader, reviewer, followup; size WARN), `decision add --assumed`, `suggestion add`, `log`, `close` (divergence gate, plugins-used line, archive with evidence paths rewritten) |
 | `scripts/capability-scan.sh` | script | which installed plugins (user, project, local scope) cover which phase, the fallback for each gap, and the CI workflows with their trigger branches checked against the base branch |
@@ -65,6 +66,42 @@ finish), `task-runner` (delegation contracts), the stack plugins (`laravel`, `we
 `ui-ux`, `testing`, `security`) and the official `playwright` plugin or the Chrome MCP for
 the browser walk. With none of them it still runs: specs, cards and reviews inline, workers
 dispatched directly — weaker, and said so in the charter.
+
+## Mods (Claude Code ≥ 2.1.291)
+
+Since 0.6.0 the plugin also ships a hooks module, `hooks/status-line.ts`, listed under
+`modules` in `hooks/hooks.json` beside the classic hooks (`announce.sh`, `track-read.sh`),
+which fire with or without it. It reads `program.json` and writes nothing.
+
+- **Status line.** While `.claude/overseer/program.json` (at the git toplevel of the
+  session's directory) names a next milestone, one line is pinned under the prompt:
+  `overseer  milestone <k>/<n>  <id> <title> (<status>)` — the milestone `program.sh next`
+  names (every dependency done; a parked one never counts as done), `k` its place in the
+  roadmap, `n` the milestone count. It clears when no milestone is open, when the open ones
+  wait only on a parked one, and when the file is gone (`program.sh close` archives it) or
+  unreadable.
+- **Refresh.** At session start and after every tool call, main loop and subagents: the
+  module checks the file's modification time and re-reads it only when that moved, so a
+  hand edit shows at the next tool call, not at once.
+- **A git call per tool call.** Unless the line is switched off, every tool call waits for
+  a refresh that runs `git rev-parse` once to find the git toplevel;
+  `CC_OVERSEER_STATUS=off` removes it. With task-runner's board also on, each tool call
+  waits on both refreshes.
+- **Off switch.** `CC_OVERSEER_STATUS=off` (or `0`, `false`), or the `/config` option
+  `cc_overseer_status` off; the variable wins over the option. Off clears the line at the
+  next refresh.
+- **CLI floor.** With mods off in the host, on a CLI below 2.1.287 (which loads no module)
+  or on 2.1.288-2.1.290, the module passes every hook through and the classic hooks work
+  exactly as before. On CLI 2.1.287 with mods on the module still registers its `tool.call`
+  hook (the version check runs inside it), and that CLI's own bug — a plugin's `tool.call`
+  hook breaking Bash and file search in worktree subagents, fixed in 2.1.288 — applies even
+  with the switch off: upgrade the CLI or turn mods off.
+
+Standing: **gate** — `tests/status-line.test.ts` runs under `claude plugin test` in CI (the
+marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails
+the build; `scripts/__tests__/status-core.test.sh` holds the milestone rule to
+`program.sh`'s own. Untested here: the drawn line (the test kit records the text, not the
+screen) and the git call per tool call, which no test counts.
 
 ## Standing of the rules
 

@@ -1,11 +1,12 @@
 {
   "name": "task-runner",
-  "version": "0.43.0",
+  "version": "0.44.0",
   "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence — held at Stop by candor's gate (clause 4) when candor is installed; without it a run can end by narration. Ships the shared task-executor agent — the delegatable 'apply the fixes' sink every review routes to — a PostToolUse scope-lock tripwire, parallel-planning (/task-runner:plan), and the subagent discipline (the orchestration plugin was merged in on 2026-09-14): delegation contracts, verification panels, scripts/dispatch-lint.sh, and the ultra-assess boost hook.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
   },
+  "types": "./types/index.d.ts",
   "keywords": [
     "worker",
     "process",
@@ -35,6 +36,18 @@
       "title": "Subagent spawn cap (CC_SPAWN_CAP)",
       "description": "Ask once a session's subagent dispatches pass this count, then at every doubling: a number or off. The environment variable CC_SPAWN_CAP overrides this.",
       "default": "20"
+    },
+    "cc_spawn_floor": {
+      "type": "boolean",
+      "title": "Subagent model floors (CC_SPAWN_FLOOR)",
+      "description": "Run a role-floors.md agent at max(its floor, the dispatch's model or else the session's): on or off. The environment variable CC_SPAWN_FLOOR overrides this.",
+      "default": true
+    },
+    "cc_task_board": {
+      "type": "boolean",
+      "title": "Run board and status line (CC_TASK_BOARD)",
+      "description": "The status line of a run's phase and card progress on this branch, and the /task-board pane: on or off. The environment variable CC_TASK_BOARD overrides this.",
+      "default": true
     },
     "orchestration_boost": {
       "type": "boolean",

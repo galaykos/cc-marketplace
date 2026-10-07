@@ -1,0 +1,32 @@
+# Secret patterns read by hooks/scan.sh. Data rows carry four TAB-separated fields:
+#   kind  label  flags  pattern
+# kind: secret (the whole match is the value), assigned (the value is what follows the first : or =,
+#   past quotes and spaces) or placeholder (a value any placeholder row matches is released, not flagged).
+# label: the deny message names it. flags: - (case-sensitive) or i (case-insensitive).
+# pattern: the subset POSIX ERE (GNU grep -E) and JavaScript RegExp without the u or v flag read identically:
+#   no [[:class:]], no lookaround, no backreferences, a backslash only before ] . [ + * ? ( ) { } | ^ $ / -
+#   (never inside brackets), no space at either end (write an edge space as [ ]). No field may hold a tab.
+# Lines starting with # and blank lines are skipped. Secret and assigned rows are tried in file order;
+#   the first with a non-placeholder match names the deny. A value of one repeated character is also
+#   a placeholder; that rule is code in scan.sh, not a row.
+# scan.sh denies every write it scans when this file is missing, any line carries a carriage return,
+#   a row is not four non-empty fields, a kind or flag is unknown, a pattern starts or ends with a space,
+#   holds [[: [[. [[= a [:class:] (? or \1-\9, escapes a character outside the list above, does not
+#   compile under grep -E or matches the empty string, a placeholder row matches the secret-shaped probe
+#   in scan.sh, or no secret row exists.
+#   Not checked: a backslash inside brackets, a collating element later in a bracket ([a[.x.]]), a
+#   placeholder word a real secret can contain.
+secret	an AWS access key ID	-	AKIA[0-9A-Z]{16}
+secret	a private key block	-	-----BEGIN ([A-Z]+ )?PRIVATE KEY-----
+secret	a GitHub token	-	gh[pousr]_[A-Za-z0-9]{36,}
+secret	a Slack token	-	xox[baprs]-[A-Za-z0-9-]{10,}
+secret	a Google API key	-	AIza[0-9A-Za-z_-]{35}
+secret	a Stripe live secret key	-	sk_live_[0-9a-zA-Z]{24,}
+secret	a credential embedded in a URL	-	(postgres|postgresql|mysql|mongodb(\+srv)?|redis|rediss|amqp|amqps|https?)://[^:/@ ]+:[^@ /?#${][^@ /?#]{5,}@
+secret	a Slack webhook URL	-	hooks\.slack\.com/services/T[^/]+/B[^/]+/.{16,}
+# i on the assigned row only: on a provider prefix it would loosen the shape toward noise.
+# {1,64} and {0,12} bound the name's segments: unbounded, JavaScript backtracks quadratically on token- repeated
+#   (scripts/__tests__/pattern-parity.test.sh times it). Missed: a thirteenth segment after the keyword, or one over 64 characters.
+assigned	an assigned secret literal	i	(api[_-]?key|secret|token|passwd|password)([_-][A-Za-z0-9]{1,64}){0,12}["' ]*[:=]["' ]*[A-Za-z0-9/+=_-]{24,}
+placeholder	a placeholder word	i	example|placeholder|changeme|change-me|your[_-]|dummy|redacted|sample|fake|todo|xxxx
+placeholder	an EXAMPLE suffix	i	example$

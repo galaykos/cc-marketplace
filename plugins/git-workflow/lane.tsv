@@ -6,3 +6,6 @@
 git-workflow:no-ai-trailer	hook	any	ai-attribution-in-git-history	a git commit/merge/tag or gh pr command, or a write into a git message file, carries a Co-Authored-By Claude trailer or a Generated-with-Claude-Code line	-
 git-workflow:finish	command	ship	development-branch-completion	invoked as /git-workflow:finish	git-workflow:branch-completion
 git-workflow:branch-completion	skill	ship	development-branch-completion	implementation on a development branch is finished and the work needs a destination — full-suite verification with state evidence, then merge, PR, keep or discard, executed end to end	-
+git-workflow:suggest	mod	any	next-step-suggestion	main-loop turn end while .claude/task-runner/gate-pass.json records a green gate at HEAD on a non-default branch, no live phase sentinel, CC_SUGGEST not off, once per gate head per session, every card done or parked (or a plain pass), upstream not already at that head	-
+# lane-cofire-ok: git-workflow:suggest taskmaster:suggest
+# The four next-step suggestion mods fill one prompt slot at main-loop turn end; when two fire in one turn the last caller wins (accepted residual, named in each plugin's README suggestion section). Phase any: no phase triggers them, the shared mod kit silences them under any live phase sentinel, and pc_phase_guard does not check a row at any.

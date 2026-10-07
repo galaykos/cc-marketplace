@@ -1,6 +1,6 @@
 {
   "name": "secret-scanning",
-  "version": "0.10.3",
+  "version": "0.11.0",
   "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit, or a Bash heredoc/echo written to a file, introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape and CC_SECRET_SCAN=off. A PostToolUse unicode-scan warns on invisible and bidi characters (zero-width, U+202A-E, tag block) in text just written or read.",
   "author": {
     "name": "Ivan-WG",
@@ -27,6 +27,12 @@
       "type": "boolean",
       "title": "Invisible-character scan (CC_UNICODE_SCAN)",
       "description": "Warn when written or read text carries zero-width or bidirectional-override characters: on or off. The environment variable CC_UNICODE_SCAN overrides this.",
+      "default": true
+    },
+    "cc_secret_redact": {
+      "type": "boolean",
+      "title": "Output redaction (CC_SECRET_REDACT)",
+      "description": "Mask secrets in tool output before the model or the transcript sees them: on or off. The environment variable CC_SECRET_REDACT overrides this.",
       "default": true
     }
   }
