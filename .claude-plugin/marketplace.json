@@ -163,6 +163,11 @@
       "name": "all-plugins",
       "source": "./plugins/all-plugins",
       "description": "Installs every leaf plugin of this marketplace at one scope (local by default) with zero prompts, raises skillListingBudgetFraction in that scope's settings so the whole skill listing is sent instead of overflowing the default budget (~6x at 200k), and undoes both — one script with an exit code (0 done, 1 a plugin failed, 2 marketplace not added), via /all-plugins:install and /all-plugins:uninstall or straight from the marketplace clone. Whether the overflow changes what fires measured once at zero delta (rationale/2026-09-15-listing-eviction-probe.md); the step makes it moot for one visible key. Re-run after marketplace updates. Never prompts, never picks — that is /stack-scan:suggest."
+    },
+    {
+      "name": "prompt-coach",
+      "source": "./plugins/prompt-coach",
+      "description": "A prompt coach for the terminal. At Enter it holds an eligible prompt for up to 5 s while a haiku first pass, and on a flag a standby sonnet or opus, judges whether nobody could act on it, it contradicts an earlier instruction, or it strays from a running task-runner card; only a confidently flagged prompt is dropped, and an animated pixel-art sprite shows your text, the reason and a rewrite, with buttons that fill the prompt box and never submit. Each eligible prompt bills a haiku call (a flagged one a standby call too, at most 10 a session), and /cost shows none of it. Terminal only; needs Claude Code 2.1.291; its own failures always pass the prompt. Off with CC_PROMPT_COACH=off."
     }
   ],
   "forceRemoveDeletedPlugins": true,
