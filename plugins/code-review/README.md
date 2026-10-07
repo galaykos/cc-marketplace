@@ -555,10 +555,11 @@ Since 0.31.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed un
   fire; neither replaces the other.
 - **When it stays silent.** For edits made while a task-runner run is registered on the
   current branch (a run on another branch does not count), and when such a run registers
-  before the turn ends. While this session's phase sentinel (`.claude/cc-phase.json`,
-  under 120 minutes old) is live. Outside a git repository and before the first commit,
-  since it keys on HEAD. Once the prompt box has shown it, not again for the same HEAD
-  commit in this session; one the host did not show is offered again at the next turn end.
+  before the turn ends. While a phase sentinel is live: a `.claude/cc-phase.json` under
+  two hours old that this session holds or that names no session. Outside a git
+  repository and before the first commit, since it keys on HEAD. Once the prompt box has
+  shown it, not again for the same HEAD commit in this session; one the host did not show
+  is offered again at the next turn end.
 - **Off switch.** `CC_SUGGEST=off`, environment only with no `/config` option, silences
   this and the next-step suggestions of taskmaster, task-runner and git-workflow together.
   `CC_REVIEW_NUDGE` and `CC_REMIND` do not touch it.
@@ -576,7 +577,8 @@ Since 0.31.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed un
   is read as outside it and offers nothing.
 - **Standing.** The conditions above are a **gate**: `tests/suggest.test.ts` runs under
   `claude plugin test` in CI, except the outside-git and first-commit silences, which no
-  test covers. The tests answer the host's "shown" reply themselves; whether the suggestion
+  test covers; the sentinel's two-hour and no-session clauses rest on the shared kit's own
+  tests in the marketplace repository. The tests answer the host's "shown" reply themselves; whether the suggestion
   gets more diffs reviewed is unmeasured.
 
 ## Pairs well with

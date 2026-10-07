@@ -103,14 +103,16 @@ without it.
   command; nothing happens until you accept and press Enter.
 - **Once per gate head per session.** Counted only when Claude Code reports the suggestion
   shown; one not shown is offered again at the next turn end while the gate still matches
-  `HEAD`. Nothing is offered while a phase sentinel is live.
+  `HEAD`. Nothing is offered while a phase sentinel is live: a `.claude/cc-phase.json`
+  under two hours old that this session holds or that names no session.
 - **What a finished branch looks like to it.** A pushed upstream at the gate head is read as
   finish's PR path having run. A branch finish kept open (never pushed), or merged locally
   into a non-default base by fast-forward, is still offered once per session; a branch
   pushed by hand without a PR is silenced as if finished.
-- **Off switch.** `CC_SUGGEST=off` silences this and every other plugin's suggestion;
-  there is no `/config` option. Another plugin's suggestion can take the one slot after
-  this one, and a suggestion shown and then replaced counts as shown.
+- **Off switch.** `CC_SUGGEST=off` silences this marketplace's next-step suggestions
+  (taskmaster, task-runner, code-review, git-workflow); there is no `/config` option.
+  Another plugin's suggestion can take the one slot after this one, a suggestion shown and
+  then replaced counts as shown, and Claude Code's own suggestion is not suppressed.
 - **CLI floor.** With mods off in the host or on a CLI below 2.1.287 no module loads; on
   2.1.287-2.1.290 its turn-end hook passes through. It registers no `tool.call` hook when
   it runs (on CLI 2.1.291, `claude plugin validate --strict` still lists the shared kit's
@@ -122,7 +124,8 @@ without it.
 
 Standing: **gate** — `tests/suggest.test.ts` runs under `claude plugin test` in CI (the
 marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails
-the build. Untested here: the real prompt box (the test kit answers whether a suggestion
+the build; the sentinel's two-hour and no-session clauses rest on the shared kit's own
+tests there. Untested here: the real prompt box (the test kit answers whether a suggestion
 was shown), a subagent's turn end, and an unparseable gate record.
 
 ## Pairs well with

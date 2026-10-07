@@ -426,7 +426,7 @@ render_offswitch_table() {
         note=$(grep -m1 -E "^[[:space:]]*(#|//|\*).*$v=" "$f" \
                | sed -E "s/.*($v=)/\1/; s/[[:space:]]+/ /g; s/(\. | — ).*$//; s/[[:space:]]*[-—.;,]*[[:space:]]*$//")
         [ -n "$note" ] || case $v in
-          CC_SUGGEST) note="On unless CC_SUGGEST=off, which silences every plugin's next-step suggestion in the prompt box" ;;
+          CC_SUGGEST) note="On unless CC_SUGGEST=off, which silences these plugins' next-step suggestions, not Claude Code's own" ;;
           *) note="see hook header" ;;
         esac
         printf '%s\th\t%s\t—\t%s\n' "$v" "$p" "$note"

@@ -270,8 +270,8 @@ four features under three off switches.
 Residuals, stated:
 
 - **One shared suggestion slot.** The prompt box holds one suggestion, so when several
-  plugins offer one at the same turn end the last caller wins; Claude Code's own
-  suggestion is not suppressed.
+  plugins offer one at the same turn end the last caller wins, and a suggestion shown and
+  then replaced counts as shown. Claude Code's own suggestion is not suppressed.
 - **`Write` only.** An index written through `Edit`, `MultiEdit` or a Bash command (a
   redirect, a heredoc) gets no run suggestion.
 - **Terminal only.** The pane was verified live in a terminal on CLI 2.1.292, driven
@@ -284,8 +284,10 @@ Residuals, stated:
 - **An open pane with no run** lists `taskmaster-docs/tasks` and checks every index's
   modification time on each tool call, to find the newest.
 - **A git call per tool call.** With the board on, every tool call waits for a refresh
-  that runs `git rev-parse` once (twice while `.claude/task-runner/active-run.json` names a
-  run) and reads that file; `CC_TASK_BOARD=off` removes both.
+  that runs `git` one to three times (once with no run, twice while
+  `.claude/task-runner/active-run.json` names a run, up to three with the pane open and no
+  run on this branch) and reads that file; `CC_TASK_BOARD=off` removes both. No test counts
+  these calls.
 
 Standing: **gate** — `tests/floors.test.ts`, `tests/suggest.test.ts` and
 `tests/board.test.ts` run under `claude plugin test` in CI (the marketplace repository's

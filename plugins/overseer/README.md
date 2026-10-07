@@ -83,6 +83,10 @@ which fire with or without it. It reads `program.json` and writes nothing.
 - **Refresh.** At session start and after every tool call, main loop and subagents: the
   module checks the file's modification time and re-reads it only when that moved, so a
   hand edit shows at the next tool call, not at once.
+- **A git call per tool call.** Unless the line is switched off, every tool call waits for
+  a refresh that runs `git rev-parse` once to find the git toplevel;
+  `CC_OVERSEER_STATUS=off` removes it. With task-runner's board also on, each tool call
+  waits on both refreshes.
 - **Off switch.** `CC_OVERSEER_STATUS=off` (or `0`, `false`), or the `/config` option
   `cc_overseer_status` off; the variable wins over the option. Off clears the line at the
   next refresh.
@@ -97,7 +101,7 @@ Standing: **gate** — `tests/status-line.test.ts` runs under `claude plugin tes
 marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails
 the build; `scripts/__tests__/status-core.test.sh` holds the milestone rule to
 `program.sh`'s own. Untested here: the drawn line (the test kit records the text, not the
-screen).
+screen) and the git call per tool call, which no test counts.
 
 ## Standing of the rules
 
