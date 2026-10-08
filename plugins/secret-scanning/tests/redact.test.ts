@@ -2,7 +2,7 @@ import type { Args, On, ResultOf, ToolCallArgs } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { failureReason } from '../hooks/redact'
-import { parsePatterns } from '../hooks/redact-core'
+import { parsePatterns, secretSpans } from '../hooks/redact-core'
 
 // Assembled at runtime: the write guard denies a file holding these literally.
 const AWS = 'AKIA' + 'ABCDEFGHIJKLMNOP'
@@ -507,3 +507,338 @@ describe('attached files', () => {
   })
 })
 
+
+const MASK_AND_SEND = 'Mask and send'
+const KEPT_BACK = 'secret-scanning kept your prompt back: it holds a GitHub token. Press Up to edit it.'
+const STYLE = { color: 'error', underline: true }
+
+type Asked = { question: string; options: string[] }
+
+// What the person picks in the AskUserQuestion dialog $.ui.ask raises, or null when the dialog is dismissed.
+function seatPrompt(on: On, pick: string | null, live: Live = {}) {
+  const asked: Asked[] = []
+  const sent: Args<'prompt.submit'>[] = []
+
+  const world = seat(
+    on,
+    e => {
+      if (e.tool !== 'AskUserQuestion') {
+        return stdout('')
+      }
+
+      const [q] = (e as unknown as { questions: { question: string; options: { label: string }[] }[] }).questions
+
+      asked.push({ question: q?.question ?? '', options: (q?.options ?? []).map(option => option.label) })
+
+      return pick === null ? { deny: 'dismissed' } : { result: { answers: { [q?.question ?? '']: pick } } }
+    },
+    live,
+  )
+
+  on('session.start', () => ({ cwd: '/work' }))
+
+  on('prompt.edit', ($, e) => {
+    const text = e.text.slice(0, e.start) + e.inputText + e.text.slice(e.end)
+
+    return { text, cursor: e.start + e.inputText.length }
+  })
+
+  on('prompt.submit', ($, e) => {
+    sent.push(e)
+
+    return { text: e.text }
+  })
+
+  return { ...world, asked, sent }
+}
+
+const paste = (text: string, inputText: string) => ({
+  origin: { kind: 'composer' as const },
+  text,
+  cursor: text.length,
+  start: text.length,
+  end: text.length,
+  inputText,
+})
+
+const typed = (text: string, kind: 'composer' | 'sdk' = 'composer') => ({ text, wait: false, origin: { kind } })
+
+const start = { surface: 'terminal' as const, isInteractive: true, cwd: '/work' }
+
+describe('prompt box', () => {
+  test('paints each secret in the draft, and nothing in a clean draft or a placeholder', async ($, on) => {
+    seatPrompt(on, MASK_AND_SEND)
+
+    await $.session.start(start)
+
+    const r = await $.prompt.edit(paste('deploy with ', `${GH} and ${AWS}`))
+    const awsAt = `deploy with ${GH} and `.length
+
+    expect(r.text).toBe(`deploy with ${GH} and ${AWS}`)
+    expect(r.decorations).toEqual([
+      { start: 12, end: 12 + GH.length, ...STYLE },
+      { start: awsAt, end: awsAt + AWS.length, ...STYLE },
+    ])
+    expect((await $.prompt.edit(paste('nothing ', 'here'))).decorations).toBeUndefined()
+    expect((await $.prompt.edit(paste('key ', AWS_DOC))).decorations, 'a placeholder').toBeUndefined()
+  })
+
+  test('paints a draft past the scan cap only up to it', async ($, on) => {
+    seatPrompt(on, MASK_AND_SEND)
+
+    await $.session.start(start)
+
+    const filler = 'x '.repeat(50_005)
+    const r = await $.prompt.edit(paste(`${GH} `, `${filler}${GH}`))
+
+    expect(r.text.length).toBeGreaterThan(100_000)
+    expect(r.decorations, 'the second token starts past 100,000 characters').toEqual([{ start: 0, end: GH.length, ...STYLE }])
+  })
+
+  test('Mask and send replaces each secret with its marker', async ($, on) => {
+    const world = seatPrompt(on, MASK_AND_SEND)
+
+    const r = await $.prompt.submit(typed(`deploy with ${GH} and ${AWS}`))
+
+    expect(world.sent.map(e => e.text)).toEqual([`deploy with ${GH_MASK} and ${AWS_MASK}`])
+    expect(r.text).toBe(`deploy with ${GH_MASK} and ${AWS_MASK}`)
+    expect(world.asked).toEqual([
+      {
+        question:
+          'Your prompt holds an AWS access key ID, a GitHub token. Mask it as [REDACTED:<label>] before it is sent, so Claude never reads the value?',
+        options: ['Mask and send', 'Send as typed', 'Cancel'],
+      },
+    ])
+  })
+
+  test('Send as typed sends the text unchanged', async ($, on) => {
+    const world = seatPrompt(on, 'Send as typed')
+
+    await $.prompt.submit(typed(`token ${GH}`))
+
+    expect(world.sent.map(e => e.text)).toEqual([`token ${GH}`])
+  })
+
+  test('Cancel drops the prompt and sends nothing', async ($, on) => {
+    const world = seatPrompt(on, 'Cancel')
+
+    expect(await $.prompt.submit(typed(`token ${GH}`))).toEqual({ drop: KEPT_BACK })
+    expect(world.sent).toEqual([])
+  })
+
+  test('a dismissed question, free text, or a -p run with nobody to ask sends the masked text', async ($, on) => {
+    const world = seatPrompt(on, null)
+
+    await $.prompt.submit(typed(`token ${GH}`))
+    await $.prompt.submit(typed(`token ${GH}`, 'sdk'))
+
+    expect(world.asked, 'both were asked').toHaveLength(2)
+    expect(world.sent.map(e => e.text)).toEqual([`token ${GH_MASK}`, `token ${GH_MASK}`])
+  })
+
+  test('an answer typed under Other is not a label, so the mask stands', async ($, on) => {
+    const world = seatPrompt(on, 'just send it')
+
+    await $.prompt.submit(typed(`token ${GH}`))
+
+    expect(world.sent.map(e => e.text)).toEqual([`token ${GH_MASK}`])
+  })
+
+  test('a command holding a secret is offered only Send as typed or Cancel, and sent unchanged on Send', async ($, on) => {
+    const world = seatPrompt(on, 'Send as typed')
+
+    await $.prompt.submit(typed(`/deploy --token ${GH}`))
+
+    expect(world.asked).toEqual([
+      {
+        question: "This command's arguments hold a GitHub token, and command arguments cannot be masked. Send it as typed?",
+        options: ['Send as typed', 'Cancel'],
+      },
+    ])
+    expect(world.sent.map(e => e.text)).toEqual([`/deploy --token ${GH}`])
+  })
+
+  test('a command holding a secret is dropped on Cancel, never masked', async ($, on) => {
+    const cancelled = seatPrompt(on, 'Cancel')
+
+    expect(await $.prompt.submit(typed(`/deploy --token ${GH}`))).toEqual({ drop: KEPT_BACK })
+    expect(cancelled.asked[0]?.options, 'no Mask option is offered for a command').toEqual(['Send as typed', 'Cancel'])
+    expect(cancelled.sent).toEqual([])
+  })
+
+  test('a dismissed question drops a command holding a secret', async ($, on) => {
+    const world = seatPrompt(on, null)
+
+    expect(await $.prompt.submit(typed(`/deploy --token ${GH}`, 'sdk'))).toEqual({ drop: KEPT_BACK })
+    expect(world.sent).toEqual([])
+  })
+
+  test('a prompt opening with a path is a plain prompt, so its secret is masked', async ($, on) => {
+    const world = seatPrompt(on, MASK_AND_SEND)
+
+    await $.prompt.submit(typed(`/tmp/notes has ${GH}`))
+
+    expect(world.asked[0]?.options).toEqual(['Mask and send', 'Send as typed', 'Cancel'])
+    expect(world.sent.map(e => e.text)).toEqual([`/tmp/notes has ${GH_MASK}`])
+  })
+
+  test('a Remote Control message is checked like one typed here', async ($, on) => {
+    const world = seatPrompt(on, MASK_AND_SEND)
+
+    await $.prompt.submit({ text: `token ${GH}`, wait: false, origin: { kind: 'bridge' } })
+
+    expect(world.sent.map(e => e.text)).toEqual([`token ${GH_MASK}`])
+  })
+
+  test('a clean prompt is sent without a question', async ($, on) => {
+    const world = seatPrompt(on, 'Cancel')
+
+    await $.prompt.submit(typed(`key ${AWS_DOC}, nothing else`))
+
+    expect([world.asked, world.sent.map(e => e.text)]).toEqual([[], [`key ${AWS_DOC}, nothing else`]])
+  })
+
+  test('a prompt the person did not type passes untouched', async ($, on) => {
+    const world = seatPrompt(on, 'Cancel')
+
+    await $.prompt.submit({ text: `token ${GH}`, wait: false, origin: { kind: 'plugin', name: 'other' } })
+    await $.prompt.submit({ text: `token ${GH}`, wait: false, origin: { kind: 'task-notification' } })
+
+    expect([world.asked, world.sent.map(e => e.text)]).toEqual([[], [`token ${GH}`, `token ${GH}`]])
+  })
+
+  test('CC_SECRET_PROMPT=off leaves the draft and the prompt alone', async ($, on) => {
+    const world = seatPrompt(on, 'Cancel', { env: { CC_SECRET_PROMPT: 'off' } })
+
+    await $.session.start(start)
+
+    expect((await $.prompt.edit(paste('token ', GH))).decorations).toBeUndefined()
+
+    await $.prompt.submit(typed(`token ${GH}`))
+
+    expect([world.asked, world.sent.map(e => e.text)]).toEqual([[], [`token ${GH}`]])
+  })
+
+  test('cc_secret_prompt off in /config leaves the draft and the prompt alone', { options: { cc_secret_prompt: false } }, async ($, on) => {
+    const world = seatPrompt(on, 'Cancel')
+
+    await $.session.start(start)
+
+    expect((await $.prompt.edit(paste('token ', GH))).decorations).toBeUndefined()
+
+    await $.prompt.submit(typed(`token ${GH}`))
+
+    expect([world.asked, world.sent.map(e => e.text)]).toEqual([[], [`token ${GH}`]])
+  })
+
+  test('CC_SECRET_PROMPT=on overrides cc_secret_prompt off', { options: { cc_secret_prompt: false } }, async ($, on) => {
+    const world = seatPrompt(on, 'Cancel', { env: { CC_SECRET_PROMPT: 'on' } })
+
+    expect(await $.prompt.submit(typed(`token ${GH}`))).toEqual({ drop: KEPT_BACK })
+    expect(world.sent).toEqual([])
+  })
+
+  test('below CLI 2.1.291 the prompt box is untouched', async ($, on) => {
+    const world = seatPrompt(on, 'Cancel', { version: '2.1.290' })
+
+    await $.session.start(start)
+
+    expect((await $.prompt.edit(paste('token ', GH))).decorations).toBeUndefined()
+
+    await $.prompt.submit(typed(`token ${GH}`))
+
+    expect([world.asked, world.sent.map(e => e.text), world.reads]).toEqual([[], [`token ${GH}`], []])
+  })
+
+  test('a failed check keeps back a prompt holding a secret and sends a clean one', async ($, on) => {
+    let versions = 0
+
+    const world = seatPrompt(on, MASK_AND_SEND, { version: null })
+
+    on('session.version', () => {
+      versions++
+
+      if (versions > 1) {
+        throw new Error('version unreadable')
+      }
+
+      return { value: { version: '2.1.291' } }
+    })
+
+    await $.session.start(start)
+
+    const r = await $.prompt.submit(typed(`token ${GH}`))
+
+    expect(r.drop).toBe(`${KEPT_BACK} Its secret check failed (throw); CC_SECRET_PROMPT=off sends prompts unchecked.`)
+
+    await $.prompt.submit(typed('nothing secret'))
+
+    expect([world.asked, world.sent.map(e => e.text)]).toEqual([[], ['nothing secret']])
+  })
+
+  test('a failed check with no session start still keeps the secret back, from the patterns a tool call loaded', async ($, on) => {
+    let versions = 0
+
+    const world = seatPrompt(on, MASK_AND_SEND, { version: null })
+
+    on('session.version', () => {
+      versions++
+
+      if (versions > 1) {
+        throw new Error('version unreadable')
+      }
+
+      return { value: { version: '2.1.291' } }
+    })
+
+    await $.tool.call({ tool: 'Bash', command: 'true' })
+
+    const r = await $.prompt.submit(typed(`token ${GH}`))
+
+    expect(r.drop).toBe(`${KEPT_BACK} Its secret check failed (throw); CC_SECRET_PROMPT=off sends prompts unchecked.`)
+    expect(world.sent).toEqual([])
+  })
+})
+
+describe('prompt box cost', () => {
+  test('a 100 KB draft is scanned well inside the 50 ms prompt.edit budget', () => {
+    const pats = parsePatterns(PATTERNS)
+    const kinds = [
+      (i: number) => `const value${i} = compute(${i}, "a string literal", { retries: 3, timeout: 1000 })`,
+      (i: number) => `Paragraph ${i}: the api_key_name, secret_thing and password_field words appear without values.`,
+      (i: number) => `2026-10-08T12:00:00Z INFO id=${'abc123'.repeat(4)} path=/v1/items/${i} status=200`,
+      (i: number) => `export SECRET_${i}=\${SECRET_${i}}  # api-key token password https://user@host.invalid/path`,
+    ]
+    const lines: string[] = []
+
+    for (let i = 0, size = 0; size < 100_000; i++) {
+      const line = kinds[i % kinds.length]?.(i) ?? ''
+
+      lines.push(line)
+      size += line.length + 1
+    }
+
+    lines.splice(lines.length >> 1, 0, `GITHUB_TOKEN=${GH}`)
+
+    const begin = PEM.split('\n')[0] ?? ''
+    const drafts = { mixed: lines.join('\n'), 'key blocks without END': `${begin}\nMIIBOgIBAAJBAKj34GkxFhD9\n`.repeat(2500) }
+
+    for (const [name, draft] of Object.entries(drafts)) {
+      const runs: number[] = []
+
+      for (let run = 0; run < 21; run++) {
+        const at = performance.now()
+
+        secretSpans(draft.slice(0, 100_000), pats)
+        runs.push(performance.now() - at)
+      }
+
+      const median = runs.sort((a, b) => a - b)[10] ?? Infinity
+
+      console.log(`prompt.edit scan, ${name}, ${draft.length} chars: median ${median.toFixed(2)} ms, max ${runs[20]?.toFixed(2)} ms`)
+      expect(median, name).toBeLessThan(50)
+    }
+
+    expect(secretSpans(drafts.mixed, pats)).toHaveLength(1)
+  })
+})
