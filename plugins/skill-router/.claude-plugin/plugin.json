@@ -1,6 +1,6 @@
 {
   "name": "skill-router",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "File-aware skill auto-routing: a PostToolUse hook injects one additionalContext directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia via .tsx/.jsx/.vue, plain .ts/.js/.py/.go/.rb/.rs, SQL and migrations (one engine-agnostic rubric, plus a MariaDB row where that engine is detected), components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals flush as one digest on your next prompt (SessionEnd keeps the ledger). Every relevant skill co-fires per edit; fail-open, once per skill per session.",
   "author": {
     "name": "Ivan-WG",
@@ -33,6 +33,18 @@
       "type": "boolean",
       "title": "Surfaced-signal ledger (CC_SURFACED_LOG)",
       "description": "Append the session's surfaced routing signals to a machine-local ledger at session end: on or off. The environment variable CC_SURFACED_LOG overrides this.",
+      "default": true
+    },
+    "cc_route_scope": {
+      "type": "boolean",
+      "title": "Stack-scoped skill listing (CC_ROUTE_SCOPE)",
+      "description": "Drop the Laravel, Inertia, Next.js, Vite, React Native, Tailwind, shadcn and MariaDB skills from the skill listing when this repository shows no evidence of that stack; their names stay as one line and the Skill tool still loads them: on or off. The environment variable CC_ROUTE_SCOPE overrides this.",
+      "default": false
+    },
+    "cc_compact_steer": {
+      "type": "boolean",
+      "title": "Steer compaction to keep pipeline state (CC_COMPACT_STEER)",
+      "description": "When a phase sentinel, task-runner run or taskmaster ledger is on disk, tell the compaction summarizer to keep the phase, run, card in progress, scope lock and done list: on or off. The environment variable CC_COMPACT_STEER overrides this.",
       "default": true
     }
   }
