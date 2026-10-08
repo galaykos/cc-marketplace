@@ -12,6 +12,7 @@ Blocks secrets before they reach disk.
 | An unusable `hooks/patterns.tsv` (missing, CRLF, a malformed row, a pattern outside the regex dialect its header states) | **gate** — the write guard's one exception to fail-open: `scan.sh` denies every write it would scan, naming the file, the line and `CC_SECRET_SCAN=off`; `scan-hook.test.sh` runs each shape. The redaction mod logs it once and passes output through instead |
 | Secrets in any tool's output, on Claude Code ≥ 2.1.291 — masked as `[REDACTED:<label>]`, or the result withheld (see Mods, below) | **gate** — `hooks/redact.ts`; `tests/redact.test.ts` runs under `claude plugin test` in CI (the marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails the build. A subagent's call is not tested (the test kit drops `agentId`) |
 | A file attached with an `@` mention, or changed outside the session, whose text holds a secret, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses the mention with a toast, and masks what the engine attaches either way; same tests, same CI step. A subagent's mention is not tested |
+| A secret typed or pasted into the prompt box, on Claude Code ≥ 2.1.291 | **gate** for the decision: the mod paints it in the draft, and at submit asks Mask and send / Send as typed / Cancel, masking when nobody can answer. A slash command's arguments cannot be masked, so a command holding a secret is offered only Send as typed / Cancel and dropped otherwise (`tests/redact.test.ts`, "prompt box"). **Recorded**: the masked text, not the secret, is what reached the API in a live probe on 2.1.294 (marketplace repository `rationale/2026-10-08-secret-scanning-prompt-guard-probe.md`) |
 | A `Write`/`Edit`/`MultiEdit`/`NotebookEdit` whose new text carries `[REDACTED:`, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses it, naming `CC_SECRET_REDACT=off`, so a redacted read written back cannot replace the real value; same tests, same CI step. Not refused through `Bash` or an MCP write tool |
 | The mod and the write guard agree on what is a secret (one pattern file, two regex engines) | **gate** — `scripts/__tests__/pattern-parity.test.sh` runs one fixture set through `scan.sh` and the mod's matcher and fails on any disagreement it does not declare; it proves its fixtures, not every input, and its declared divergences (astral characters in a webhook tail, a NUL inside a key) are fixtures of their own |
 | Invisible characters in a file this session wrote or read | **advisory** — `hooks/unicode-scan.sh` is a PostToolUse **warning**; it never blocks, once per file per session |
@@ -145,6 +146,24 @@ standing is in the table at the top.
   record; only the model's copy is masked. A redaction that fails after the file was read
   leaves the attachment out. **Gate** — `tests/redact.test.ts`, "attached files".
 
+- **The prompt box** (since 0.13.0; `cc_secret_prompt` / `CC_SECRET_PROMPT`, default on).
+  - **Painting.** While you type, `prompt.edit` paints each secret-pattern match in the draft
+    red and underlined. It scans the first 100,000 characters, within the 50 ms that hook is
+    allowed; a 100 KB draft measured 16 ms median and 24 ms on the worst input found.
+  - **The question at Enter.** A prompt you typed (origin `composer`), sent from a phone or the
+    web through Remote Control (`bridge`), or run with `claude -p` (`sdk`) that holds a match
+    raises one question: Mask and send, Send as typed, or Cancel.
+    - Mask replaces each match with `[REDACTED:<label>]`.
+    - Cancel drops the prompt; the draft comes back with Up, from your local history.
+    - A dismissed question, a typed answer or a `-p` run with nobody to ask sends the masked
+      text, never the secret.
+  - **Slash commands.** A slash command's arguments are expanded before this check runs, so a
+    rewrite here never reaches the model. A command holding a secret is therefore offered only
+    Send as typed or Cancel, and is dropped on anything else.
+  - **Failure.** A check that fails keeps back a prompt holding a secret, and sends a clean one.
+  - **Standing:** **Gate** — `tests/redact.test.ts`, "prompt box". **Recorded** — the live probe
+    named in the table above.
+
 Residuals, stated:
 
 - **Where it fails open.** A hook failure before the tool runs lets the call through
@@ -167,6 +186,14 @@ Residuals, stated:
   seated above this one attaches (a managed-settings hook, a mod loaded above it); a `Map`, `Set`, `Buffer` or class instance; a
   `base64` or `data` field holding strict base64 of a
   non-text type (a `Bash` `stdout` holding image data is masked as text instead).
+- **The prompt box.**
+  - **Not painted:** a large paste that the prompt box collapses to `[Pasted text #1 +N lines]`,
+    or a draft recalled with Up. Both are still checked at Enter.
+  - **Not checked:** a prompt from a plugin, another session, a background task, a scheduled
+    task or an MCP channel (any origin but `composer`, `bridge` and `sdk`).
+  - **Send as typed sends the secret**, by your choice.
+  - **Cancel's history:** the draft it keeps in history holds the secret, in the local
+    `history.jsonl`.
 - **Not matched.** The secret-access-key field of an AWS credentials CSV stays visible
   beside its masked key ID: it has no pattern of its own. NUL-interleaved UTF-16 text
   passes, though `scan.sh` denies writing it. An assigned literal whose name carries more

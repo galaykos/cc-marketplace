@@ -131,6 +131,57 @@ glob   *.blade.php      laravel-best-practices   laravel   high   composer.json~
 - Fail-open semantics: the manifest is read at the project root (see State), regular files only, capped at 64 KiB. Until 0.20.0 it was read from the session cwd, which follows the model's `cd`. One side effect cuts the other way: a session started inside a monorepo workspace used to read that workspace's `package.json`, and now reads the repo root's. Manifest absent/unreadable → the rule **fires** (undetectable stack keeps today's behavior) — unless the alternative carries the `?` prefix above, which is the one construct that reverses this. `grep -E` exit 0 → satisfied; exit 1 → suppressed; exit ≥ 2 (malformed regex) → fires. `!` inverts only the 0/1 verdict.
 - Complementary same-pattern pairs that should co-fire (e.g. a11y alongside react on `*.tsx`) are declared with a pairwise comment directive so the marketplace's overlap gate allows them: `# co-fire-ok: <pattern> <skillA> <skillB>`.
 
+## Mods (Claude Code ≥ 2.1.291)
+
+One hooks module, `hooks/mods.ts`, is the only `modules` entry. It loads two features.
+
+### Stack-scoped skill listing (opt-in)
+
+- **What it does.** With `cc_route_scope` on (`CC_ROUTE_SCOPE` overrides; default off), the
+  skill listing the model reads leaves out the Laravel, Inertia, Next.js, Vite, React Native,
+  Tailwind, shadcn and MariaDB skills when this repository shows none of that stack's
+  evidence.
+- **Where the evidence comes from.** It is `prime.sh`'s own rows: the module sources the script
+  and runs `sr_repo_skills`, rather than copying them.
+- **What replaces the dropped entries.** One line naming them: "Listed by name only … the Skill
+  tool still loads each: …".
+- **Process skills stay listed.** a11y-audit, testing, sql, docker, devops and package-hygiene are
+  wanted when you create their file shape.
+- **Fail-open.** An unreadable listing format, a failed `prime.sh` or any error passes the
+  listing through unchanged. The output is byte-stable for one listing and one repository,
+  since the engine caches the answer per attachment.
+- **Standing:**
+  - **Gate:** filter, keep, pass-through, the off-switches and the floor
+    (`tests/listing.test.ts`). The shell half, `hooks/stack-evidence.sh` run on real
+    directories against the real `prime.sh`, is `scripts/__tests__/stack-evidence.test.sh`.
+  - **Recorded:** measured once on 2.1.294 against a stand-in API
+    (`rationale/2026-10-08-skill-router-mods-probe.md`).
+    - The filtered listing is what reaches every API request.
+    - A `Skill` call naming a hidden skill still loads it.
+- **Off by default** because nothing has measured that a shorter listing makes the right skill
+  fire more often.
+
+### Compaction steering (on by default)
+
+- **What it does.** On `session.compact` of the main conversation, while pipeline state is on
+  disk, it adds at most 1,200 characters to the summarizer's instructions. That state is the
+  phase sentinel, a task-runner run, its scope lock, or a taskmaster ledger; these are the
+  paths `compact-capsule.sh` reads. The added text asks the summarizer to keep the phase, run,
+  card in progress and its criteria, scope lock and done list word for word, and lists the
+  state found.
+- **How it relates to `compact-capsule.sh`.** That hook still restates the state after
+  compaction. The steer shapes the summary before it is written; the capsule repeats the
+  files afterwards.
+- **No extra message.** Appending a message to the summary was accepted on 2.1.294, but it drew
+  as a `❯` row as though you had typed it, so the steer adds instructions only.
+- **Off-switch:** `cc_compact_steer` / `CC_COMPACT_STEER`.
+- **Standing:**
+  - **Gate:** state found, none found, subagent untouched, the cap, the off-switches
+    (`tests/compact.test.ts`).
+  - **Recorded:** a manual `/compact` carried the text to the summarizer request with state on
+    disk, and carried nothing without it.
+  - **Untested:** an automatic compaction.
+
 ## State
 
 `<repo>` below is the **project root**: the git toplevel above the payload's cwd; outside git, `CLAUDE_PROJECT_DIR` when the cwd sits under it; otherwise the cwd itself. Until 0.20.0 it was the payload cwd, which follows the model's `cd`. In one measured session that meant `app/Enums`, then `app/Models`, then the repo root, and each directory got its own `.claude/` (finding 2 of the review cited above). All four state-touching hooks (`route.sh`, `route-prompt.sh`, `summary.sh`, `compact-capsule.sh`) resolve it the same way, so the file one writes is the file the next reads. `prime.sh` and `subagent-skills.sh` write no state and read their manifests at the same root. A `.claude/` left behind in a subdirectory by an older version is not cleaned up; delete it by hand.

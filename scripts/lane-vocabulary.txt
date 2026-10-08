@@ -171,6 +171,7 @@ secret-output-redaction
 secret-write-denial
 security-sink-write-warning
 session-usage-display
+stack-scoped-skill-listing
 stop-turn-honesty
 stuck-loop-signal
 subagent-dispatch-contract

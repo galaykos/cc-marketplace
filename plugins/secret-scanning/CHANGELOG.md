@@ -3,6 +3,21 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.13.0 — 2026-10-08
+
+- **A secret typed or pasted into the prompt box is caught before it is sent** (`cc_secret_prompt` / `CC_SECRET_PROMPT`, default on). Until now nothing looked at the prompt itself; a classic UserPromptSubmit hook can refuse a prompt but cannot rewrite it.
+  - `prompt.edit` paints each match in the draft.
+  - `prompt.submit` asks Mask and send, Send as typed, or Cancel, and masks when nobody can answer (a dismissed question, a `-p` run).
+  - A slash command holding a secret is offered only Send as typed or Cancel: its arguments are expanded before the check, so a mask could not reach the model.
+- One pattern source, `hooks/patterns.tsv`, as before.
+- **Standing:**
+  - **Gate:** 21 new cases in `tests/redact.test.ts`, each red against a broken copy.
+  - **Remote Control:** a message sent from a phone or the web (`bridge`) is checked like one typed here.
+  - **Recorded:** the live probe on 2.1.294 against a stand-in API.
+    - The masked text reached the request body.
+    - Cancel sent nothing.
+    - A 100 KB draft scanned in 16 ms median and 24 ms worst.
+
 ## 0.12.1 — 2026-10-08
 
 - **An `@` mention starting at line 0 (`@.env#L0`), or with a limit of 0, was scanned on the wrong lines.** The range slice used `offset - 1` unguarded, so offset 0 scanned only the file's last line and a limit of 0 scanned nothing, while the engine could still attach the file. An offset or limit below 1 now widens the scan to the file's start or end. Found by review; two new cases.

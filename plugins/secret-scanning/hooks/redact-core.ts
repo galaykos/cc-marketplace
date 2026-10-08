@@ -419,6 +419,11 @@ function redactedText(
   return { text: spans.length === 0 ? text : out + text.slice(at), open }
 }
 
+/** The `[start, end)` ranges of one string that `redact` would mask, in order and merged. */
+export function secretSpans(text: string, pats: Pattern[]): { start: number; end: number }[] {
+  return merged(text, spansOf(text, pats), null).spans.map(({ start, end }) => ({ start, end }))
+}
+
 function redactedError(error: Error, pats: Pattern[], found: Set<number>): Error {
   const copy: Error = Object.setPrototypeOf(new Error(), Object.getPrototypeOf(error))
 

@@ -2,6 +2,18 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.25.0 — 2026-10-08
+
+- **A hooks module (Claude Code 2.1.291 or newer), `hooks/mods.ts`, with two features.**
+- **Stack-scoped skill listing, opt-in** (`cc_route_scope` / `CC_ROUTE_SCOPE`, default off).
+  - The listing the model reads drops the eight stack skills whose `prime.sh` evidence row does not hold here, naming them on one line.
+  - A hidden skill still loads by name (measured).
+- **Compaction steering** (`cc_compact_steer` / `CC_COMPACT_STEER`, default on). While pipeline state is on disk, the summarizer is told to keep the phase, run, card in progress, scope lock and done list.
+- **Standing:**
+  - **Gate:** `tests/listing.test.ts` and `tests/compact.test.ts`, 24 cases, each red against a stubbed copy, and `scripts/__tests__/stack-evidence.test.sh` for the evidence script on real directories.
+  - **Recorded:** the live probe in `rationale/2026-10-08-skill-router-mods-probe.md`.
+  - **Untested:** automatic compaction.
+
 ## 0.24.0 — 2026-10-06
 
 - **`jsrepo add` routes `shadcn-best-practices`**, the way `shadcn add` already did: a new `command` row, so the copy-in rules in its `references/registries.md` (now with a jsrepo section, ui-ux 0.30.0) arrive with the install. `jsrepo init` stays silent.
