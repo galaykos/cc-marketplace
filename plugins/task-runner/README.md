@@ -244,12 +244,25 @@ four features under three off switches.
   marker), with a header row before each milestone's cards. `/task-board` opens or closes
   it; with no run it shows the newest `taskmaster-docs/tasks/*/00-INDEX.md`, labelled
   `not running`. It opens itself once per run in a session, the first time a refresh sees
-  that run, when the terminal can place it; a pane you close stays closed for that run.
+  that run, when the terminal can place it; a pane you close stays closed for that run
+  unless you pin it (next item).
   `r: Run next` puts `/task-runner:run <index>` in the prompt box and `t: Red-team` puts
   `/taskmaster:redteam <spec>` there, replacing what the box held; neither sends anything.
   Red-team is hidden when taskmaster's red-team command is not installed or the index
   names no spec. A plain run shows `plain run — no card index`, and an index that cannot
   be parsed shows `index unreadable: <path>`, both without buttons.
+- **Pin (opt-in).** `/config` option `cc_task_board_pin`, off by default, or
+  `CC_TASK_BOARD_PIN=on` (`1`, `true`); the variable wins. While a run is active on this
+  branch, closing the board by hand lets it close, then opens it again 100 ms later.
+  `/task-board` still closes it for good. Below 144 terminal columns the reopened board
+  waits undrawn until the terminal is widened or you run `/task-board`, which then shows
+  it instead of closing it. The pin reopens rather than refuses because on CLI 2.1.294 a
+  hook that refuses a person's close does not keep the pane open. Standing: **recorded** —
+  the test kit cannot raise a person's close, so the reopen was measured only with a probe
+  plugin on CLI 2.1.294 (marketplace repository,
+  `rationale/2026-10-08-mods-ui-survey-and-pane-probe.md` §3), not with this one;
+  `tests/board.test.ts` gates the switch's default and override, that `/task-board` closes
+  a pinned board, and that it shows an undrawn one.
 - **Markers.** `[x]` done, `[>]` in progress, `[ ]` pending, `[-]` parked (a skipped card
   too), `[!]` blocked. `<NN` names the first unmet dependency and `+N` how many more
   (`<11+5`); only a done dependency is met, so a parked one counts as unmet.

@@ -2,6 +2,12 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.45.0 — 2026-10-08
+
+- **The task board can be pinned: `/config` option `cc_task_board_pin` (environment variable `CC_TASK_BOARD_PIN`), off by default.** With it on, while a run is active on this branch, a board you close by hand closes and is opened again 100 ms later; `/task-board` still closes it for good. A hook that refuses a person's close does not keep a pane open on CLI 2.1.294, so the pin reopens instead. Below 144 terminal columns the reopened board waits undrawn until the terminal is widened or you run `/task-board`. With the pin off, a board you close stays closed for that run, as before.
+- **`/task-board` shows a board that waits undrawn instead of closing it.** It used to close any listed pane; it now closes only a placed one, and opens (so places) one the engine listed but could not draw.
+- Standing: the reopen is **recorded**. The test kit cannot raise a person's close, so it was measured only with a probe plugin on CLI 2.1.294 (marketplace repository, `rationale/2026-10-08-mods-ui-survey-and-pane-probe.md` §3), not with this plugin. `tests/board.test.ts` gates the switch's default and override, that `/task-board` closes a pinned board, and that it shows an undrawn one. Untested: a person's close through the mouse, the desktop surface.
+
 ## 0.44.0 — 2026-10-06
 
 - **The model-floor rule as a pure function, `hooks/floors-core.ts`, called by the spawn-floor mod below.** `parseRegistry` reads the floors from delegation-contracts' `references/role-floors.md` (the first fenced block whose every non-blank line is `<plugin>:<agent> <tier>`; one malformed line leaves no floors). `rank` places a model on haiku < sonnet < opus < fable by case-insensitive substring, so an alias and a full id rank alike. `decideModel` returns the model a floored agent's spawn should carry: the floor when the given or inherited model is below it, the parent's model when no model was given and the parent is at or above the floor, and nothing (leave the spawn as is) when an explicit model is at or above the floor or either model is off the ladder. Where that mod does not load, floors are still enforced only on agent frontmatter, and a dispatch with no `model` runs at the agent's pin even under a stronger session. `scripts/__tests__/floors-core.test.sh` runs each branch under node.
