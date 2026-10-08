@@ -489,6 +489,17 @@ describe('attached files', () => {
     expect(world.toasts).toEqual([])
   })
 
+  test('leaves the attachment out when its redaction fails after the read', async ($, on) => {
+    const world = seat(on, () => stdout(''), { version: null })
+
+    on('session.version', () => {
+      throw new Error('version unreadable')
+    })
+
+    expect((await $.prompt.attachment(attach(`KEY=${AWS}`))).text).toBeNull()
+    expect(world.toasts).toEqual(['secret-scanning left an attached file out: its redaction failed. CC_SECRET_REDACT=off turns this off.'])
+  })
+
   test('passes attachments through under CC_SECRET_REDACT=off', async ($, on) => {
     seat(on, () => stdout(''), { env: { CC_SECRET_REDACT: 'off' } })
 

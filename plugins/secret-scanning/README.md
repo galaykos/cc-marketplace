@@ -157,6 +157,11 @@ Residuals, stated:
   `Read` with an offset, `tail`, a `Grep` hit inside a `.pem` — is never matched. A
   `BEGIN` literal in source code masks everything up to the next `END` literal in that
   string. A mask can name several labels joined by `, ` and can cover a large region.
+- **Not scanned through `@`.** A mentioned PDF or image, which the engine sends as a
+  document or image with no text to scan (the mention check's raw read of a compressed PDF
+  matches nothing); an MCP resource mention; and text-bearing attachment kinds outside
+  `file`, `already_read_file` and `edited_text_file`, such as `nested_memory` (a nested
+  `CLAUDE.md`, an `@`-import in it included).
 - **Not scanned.** Object keys, so a value under a key such as `password` in a structured
   (non-text) result passes unless a provider pattern matches it alone; context a hook
   seated above this one attaches (a managed-settings hook, a mod loaded above it); a `Map`, `Set`, `Buffer` or class instance; a

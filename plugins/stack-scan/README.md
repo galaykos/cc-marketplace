@@ -169,8 +169,9 @@ Installed in this project, read by stack-scan when this skill loaded:
   directory above it up to the repository root, nearest first, as Node resolves a package;
   for a package none has, `package-lock.json` (lockfile version 2 or 3) in the same places,
   read once each, at its hoisted `node_modules/<pkg>` entry only, and marked `(lockfile;
-  node_modules not read)`. Only a whole semver is taken (`16.3.0`, `16.3.0-rc.1`), so a
-  lockfile from a cloned repository cannot carry text into the skill. A file over the
+  node_modules not read)`. Only a whole semver is taken, and only its `major.minor.patch`
+  is printed (`16.3.0-rc.1` reads `16.3.0`), so a lockfile from a cloned repository cannot
+  carry words into the skill. A file over the
   4 MiB a plugin may read is skipped. A package found nowhere gets no line, and a skill with
   no installed stamped package is left exactly as it was. **Gate** — `tests/pins.test.ts`.
 - **Drift** is judged at the precision the stamp names: a stamp of `16` ignores minors,

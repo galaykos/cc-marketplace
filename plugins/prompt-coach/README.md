@@ -139,11 +139,14 @@ all", "CC_COACH_MASCOT=0 is off", "CC_COACH_MASCOT=statusline beats the pane opt
     — the CLI types say a `ui.close` hook answering without `next` keeps the pane open on
     a person's close; the test kit's engine raises no `ui.close` (its `ui` carries focus,
     input, mount, press, render, scroll and select), so no test exercises it.
-  - **Switching away.** `statusline` or `off` set in `/config` reloads the plugin, and the
-    pane still open from before is closed at the band's next draw; set through
-    `CC_COACH_MASCOT` it takes a new session. Under any display but `pane` the pane draws
-    nothing. **Gate** — "a display other than pane closes the pane a /config change left
-    open", "the pane draws nothing and never blinks unless the display is pane".
+  - **Switching away.** A display set in `/config` reloads the plugin, and at the band's
+    next draw, once, whatever the old display left up is cleared: a pane under any display
+    but `pane`, a status line under any but `statusline`. Set through `CC_COACH_MASCOT` it
+    takes a new session. Under any display but `pane` the pane draws nothing. **Gate** — "a
+    display other than pane closes the pane a /config change left open", "a switch to pane
+    clears the face a statusline display left", "the pane draws nothing and never blinks
+    unless the display is pane". Whether the engine keeps a status line across a reload at
+    all is not known; the clear runs either way. **Recorded.**
 - **`statusline`.** A pinned status line under the prompt, in every renderer: `(^_^) coach`
   at rest, `(-_-) coach  checking…` while a prompt is held, `(O_O) coach  Unclear: <reason>`
   while the band shows a bubble, back at rest on your next prompt. No sprite, no blink, and

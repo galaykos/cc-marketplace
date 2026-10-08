@@ -6,9 +6,9 @@ All notable changes to the `prompt-coach` plugin.
 
 Fixes from a review of 0.2.0-0.3.0:
 
-- **Switching the mascot away in `/config` now closes the pane.** A `/config` change reloads the plugin while its pane stays open, so after choosing `statusline` or `off` the old pane kept drawing, blinking and refusing its close with a toast asking for the setting already made. A display other than `pane` now closes a pane left open at the band's next draw, the pane draws nothing under it, and the close is refused only while the display is `pane`. The toast says `CC_COACH_MASCOT` takes a new session.
+- **Switching the mascot away in `/config` now closes the pane.** A `/config` change reloads the plugin while its pane stays open, so after choosing `statusline` or `off` the old pane kept drawing, blinking and refusing its close with a toast asking for the setting already made. A display other than `pane` now closes a pane left open, and one other than `statusline` clears a status line left pinned, once, at the band's next draw; the pane draws nothing under any display but `pane`, and the close is refused only while the display is `pane`. The toast says `CC_COACH_MASCOT` takes a new session.
 - **A frame still in flight no longer lands on a redrawn pane.** A tick waiting on its band blit when a judgment ended went on to blit the old thinking or talking frame over the pane's rest pose; each blit now re-checks the pose.
-- **Docs:** Esc never closed the pane (it is not opened with `closeOnEscape`), so 0.3.0's "Esc shows the toast" is withdrawn; the blink costs two blits every 4 s, not one; `CC_COACH_MASCOT`'s `0`/`false` rule is stated beside the other variables. Three new tests, and the refused-blink test now proves the blink resumes after a redraw.
+- **Docs:** Esc never closed the pane (it is not opened with `closeOnEscape`), so 0.3.0's "Esc shows the toast" is withdrawn; the blink costs two blits every 4 s, not one; `CC_COACH_MASCOT`'s `0`/`false` rule is stated beside the other variables. Six new tests, and the refused-blink test now proves the blink resumes after a redraw.
 
 ## 0.3.0 — 2026-10-07
 

@@ -70,6 +70,8 @@ type Mascot = {
   // Read once a session, at the first draw of the band.
   display: Display | null
   isStarting: boolean
+  // What an earlier activation of another display left up, cleared once.
+  isTidied: boolean
   // The pane opened or the status line set, once a session.
   isShown: boolean
   drawn: Drawn | null
@@ -77,7 +79,7 @@ type Mascot = {
   isStill: boolean
 }
 
-const mascot: Mascot = { display: null, isStarting: false, isShown: false, drawn: null, blink: null, isStill: false }
+const mascot: Mascot = { display: null, isStarting: false, isTidied: false, isShown: false, drawn: null, blink: null, isStill: false }
 
 const MASCOT_PANE = { id: 'prompt-coach', title: 'coach', columns: 18 } as const
 
@@ -272,9 +274,17 @@ async function mascotDisplay($: EngineInterface, options: PluginOptions): Promis
   return mascot.display
 }
 
-// A /config change reloads the plugin while its pane stays up: a display that is no longer the pane closes it.
-async function closeLeftoverPane($: EngineInterface): Promise<void> {
-  const panes = await $.ui.panes().catch(() => [])
+// A /config change reloads the plugin while its pane, and perhaps its status line, stay up: another display clears them.
+async function tidyLeftovers($: EngineInterface, display: Display): Promise<void> {
+  if (display !== 'statusline') {
+    try {
+      $.ui.status(undefined)
+    } catch {
+      // A refused clear leaves at most a stale face; the mascot still starts.
+    }
+  }
+
+  const panes = display === 'pane' ? [] : await $.ui.panes().catch(() => [])
 
   if (panes.some(pane => pane.id === MASCOT_PANE.id)) {
     await $.ui.close({ id: MASCOT_PANE.id }).catch(() => undefined)
@@ -292,11 +302,18 @@ async function startMascot($: EngineInterface, isFullscreen: boolean | undefined
   try {
     const display = await mascotDisplay($, options)
 
-    if (display !== 'pane') {
-      await closeLeftoverPane($)
+    if (!mascot.isTidied) {
+      mascot.isTidied = true
+      await tidyLeftovers($, display)
     }
 
-    if (display === 'off' || (display === 'pane' && isFullscreen !== true)) {
+    if (display === 'off') {
+      mascot.isShown = true
+
+      return
+    }
+
+    if (display === 'pane' && isFullscreen !== true) {
       return
     }
 

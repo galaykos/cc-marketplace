@@ -83,6 +83,7 @@ function seat(on: On, live: Live = {}) {
     statuses: [] as (string | undefined)[],
     panes: [] as string[],
     closed: [] as string[],
+    paneReads: 0,
   }
 
   on('session.version', () => ({ value: { version: '2.1.291' } }))
@@ -169,7 +170,11 @@ function seat(on: On, live: Live = {}) {
     return { value: undefined }
   })
 
-  on('ui.panes', () => ({ value: world.panes.map(id => ({ id, title: 'coach', isShown: true, isFocused: false, isPlaced: true })) }))
+  on('ui.panes', () => {
+    world.paneReads += 1
+
+    return { value: world.panes.map(id => ({ id, title: 'coach', isShown: true, isFocused: false, isPlaced: true })) }
+  })
 
   on('ui.close', ($, e) => {
     world.closed.push(e.id)
@@ -1006,7 +1011,7 @@ describe('mascot', () => {
     await mountFullscreen($)
     await world.clock.settle()
 
-    expect([world.statuses, world.opened]).toEqual([[], []])
+    expect([world.statuses, world.opened], 'only the clear of a face an earlier display left').toEqual([[undefined], []])
   })
 
   test('CC_COACH_MASCOT=0 is off, as the other switches read it', { options: { cc_coach_mascot: 'statusline' } }, async ($, on) => {
@@ -1015,7 +1020,7 @@ describe('mascot', () => {
     await mountFullscreen($)
     await world.clock.settle()
 
-    expect([world.statuses, world.opened]).toEqual([[], []])
+    expect([world.statuses, world.opened]).toEqual([[undefined], []])
   })
 
   test('a display other than pane closes the pane a /config change left open', { options: { cc_coach_mascot: 'statusline' } }, async ($, on) => {
@@ -1057,6 +1062,37 @@ describe('mascot', () => {
     await world.clock.settle()
 
     expect(paneBlits(world).filter(cells => JSON.stringify(cells) !== JSON.stringify(blinkCells))).toEqual([])
+  })
+
+  test('a switch to pane clears the face a statusline display left', async ($, on) => {
+    const world = seat(on)
+
+    await mountFullscreen($)
+    await world.clock.settle()
+
+    expect([world.statuses, world.opened]).toEqual([[undefined], [{ id: 'prompt-coach', title: 'coach', columns: 18 }]])
+  })
+
+  test('looks for a leftover pane once, however often the band draws', { options: { cc_coach_mascot: 'off' } }, async ($, on) => {
+    const world = seat(on)
+
+    world.replies.haiku = [answer('clear', 600)]
+    await mountFullscreen($)
+    await judged($, world)
+    await judged($, world, OTHER)
+
+    expect(world.paneReads).toBe(1)
+  })
+
+  test('clears a leftover face once while a pane waits for the fullscreen renderer', async ($, on) => {
+    const world = seat(on)
+
+    world.replies.haiku = [answer('clear', 600)]
+    await mountFullscreen($, { columns: 100, rows: 30, isFullscreen: false })
+    await judged($, world)
+    await judged($, world, OTHER)
+
+    expect([world.statuses, world.opened]).toEqual([[undefined], []])
   })
 })
 
