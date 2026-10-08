@@ -1,4 +1,4 @@
-export type Status = 'pending' | 'in_progress' | 'done' | 'parked' | 'blocked'
+export type Status = 'pending' | 'in_progress' | 'done' | 'parked' | 'blocked' | 'unrecognised'
 
 export type Card = { id: string; title: string; dependsOn: string[]; group: string; status: Status; milestone?: string }
 
@@ -24,14 +24,16 @@ const STATUSES: [RegExp, Status][] = [
   [/^(parked|skipped)/, 'parked'],
   [/^in[ _-]?progress/, 'in_progress'],
   [/^blocked/, 'blocked'],
+  [/^pending/, 'pending'],
 ]
 
 const cellsOf = (row: string) => row.split('|').map((c) => c.trim())
 
 // The cell hooks/announce.sh and hooks/suggest.ts count, not the header's: the last, or the one before a trailing pipe.
+// An empty cell is a card not started; any other word outside the vocabulary (a run wrote `committed <sha>`) is shown, not read as pending.
 function statusOf(cells: string[]): Status {
   const s = (cells.at(-1) || cells.at(-2) || '').toLowerCase()
-  return STATUSES.find(([re]) => re.test(s))?.[1] ?? 'pending'
+  return s === '' ? 'pending' : (STATUSES.find(([re]) => re.test(s))?.[1] ?? 'unrecognised')
 }
 
 export function parseIndex(md: string, slug: string): IndexModel | { error: string } {
@@ -81,12 +83,13 @@ export function parseIndex(md: string, slug: string): IndexModel | { error: stri
   return { slug, specPath: SPEC.exec(lines.join('\n'))?.[0] ?? null, marker, cards, milestones }
 }
 
-export function counts(m: IndexModel): { total: number; done: number; parked: number; inProgress: boolean } {
+export function counts(m: IndexModel): { total: number; done: number; parked: number; unrecognised: number; inProgress: boolean } {
   const count = (s: Status) => m.cards.filter((c) => c.status === s).length
   return {
     total: m.cards.length,
     done: count('done'),
     parked: count('parked'),
+    unrecognised: count('unrecognised'),
     inProgress: m.cards.some((c) => c.status === 'in_progress'),
   }
 }
@@ -98,6 +101,7 @@ export function statusLine(m: IndexModel, phase: string): string {
     phase,
     `card ${c.done + (c.inProgress ? 1 : 0)}/${c.total}`,
     c.parked > 0 ? `${c.parked} parked` : '',
+    c.unrecognised > 0 ? `${c.unrecognised} unrecognised` : '',
     m.marker === null ? '' : m.marker === 'ULTRA' ? 'ultra' : 'goal',
   ]
     .filter((part) => part !== '')

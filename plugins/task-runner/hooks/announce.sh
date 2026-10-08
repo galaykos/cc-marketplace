@@ -111,8 +111,12 @@ cc_option() {
           s = $NF; if (s ~ /^[[:space:]]*$/ && NF > 1) s = $(NF - 1)
           gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); s = tolower(s)
           if (s ~ /^(done|parked|skipped)/) closed++
+          else if (s != "" && s !~ /^(pending|in[ _-]?progress|blocked)/) odd++
         }
-        END { if (total > 0) printf "%d of %d cards still open", total - closed, total }
+        END {
+          if (total > 0) printf "%d of %d cards still open", total - closed, total
+          if (odd > 0) printf " (%d with a status outside pending, in_progress, done, parked, blocked: counted open)", odd
+        }
       ' "$abs" 2>/dev/null)
     fi
   fi

@@ -230,16 +230,19 @@ four features under three off switches.
   of taskmaster, code-review, git-workflow, debugging and testing.
 - **Status line** (`hooks/board.ts`). While a run is registered on the current branch, one
   line is pinned under the prompt:
-  `task-runner  <phase>  card <N>/<total>  <p> parked  <ultra|goal>`, N counting done cards
-  plus the one in progress, empty parts dropped, and `<phase>` the live phase sentinel's,
-  else `build`. A plain run, or an index with no card table, shows `task-runner  <phase>`.
+  `task-runner  <phase>  card <N>/<total>  <p> parked  <u> unrecognised  <ultra|goal>`, N
+  counting done cards plus the one in progress, empty parts dropped, and `<phase>` the live
+  phase sentinel's, else `build`. A card's status is the first word of its status cell; a word
+  outside `pending`, `in_progress`, `done`, `parked`, `skipped` and `blocked` (a run that wrote
+  `committed <sha>`) is counted as `unrecognised`, never silently as pending, and stays open
+  for the session-start notice, which names how many there are. A plain run, or an index with no card table, shows `task-runner  <phase>`.
   It refreshes at session start and after every tool call, main loop and subagents,
   parsing the index again only when its modification time moves (an index that cannot be
   statted, read or parsed is read again at every refresh); only the newest of overlapping
   refreshes paints, so a slow one cannot revive an ended run's line. The line clears when
   no run is registered on this branch.
 - **Task board** (`hooks/board-view.tsx`, `/task-board`). A pane of the run's cards:
-  `Task board  <slug>  <marker>`, then `<phase>  <done>/<total> done  <p> parked`, then a
+  `Task board  <slug>  <marker>`, then `<phase>  <done>/<total> done  <p> parked  <u> unrecognised`, then a
   button row, then one row per card (id, title cut to the pane width, parallel group,
   marker), with a header row before each milestone's cards. `/task-board` opens or closes
   it; with no run it shows the newest `taskmaster-docs/tasks/*/00-INDEX.md`, labelled
@@ -264,7 +267,7 @@ four features under three off switches.
   `tests/board.test.ts` gates the switch's default and override, that `/task-board` closes
   a pinned board, and that it shows an undrawn one.
 - **Markers.** `[x]` done, `[>]` in progress, `[ ]` pending, `[-]` parked (a skipped card
-  too), `[!]` blocked. `<NN` names the first unmet dependency and `+N` how many more
+  too), `[!]` blocked, `[?]` a status outside the vocabulary. `<NN` names the first unmet dependency and `+N` how many more
   (`<11+5`); only a done dependency is met, so a parked one counts as unmet.
 - **Off switch for the line and the pane.** `CC_TASK_BOARD=off` (or `0`, `false`), or the
   `/config` option `cc_task_board` off; the variable wins. Off clears the line at the next

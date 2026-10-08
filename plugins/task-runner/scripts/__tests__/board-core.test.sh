@@ -102,7 +102,12 @@ const cases = [
   ["in progress and in-progress read as in_progress, a 1 or 03/04 dependency keeps only two-digit ids",
     parseIndex("| card | title | depends-on | status |\n|---|---|---|---|\n| 01 | a | 1, 03/04 | in progress |\n| 02 | b | #01 | in-progress |\n", "x")
       .cards.map((c) => [c.status, c.dependsOn]), [["in_progress", ["03", "04"]], ["in_progress", ["01"]]]],
-  ["counts on the fixture", counts(b), { total: 7, done: 2, parked: 2, inProgress: true }],
+  ["counts on the fixture", counts(b), { total: 7, done: 2, parked: 2, unrecognised: 0, inProgress: true }],
+  ["a status outside the vocabulary is unrecognised, never pending; an empty or pending cell is pending",
+    parseIndex("| card | title | status |\n|---|---|---|\n| 01 | a | committed e93ffc7 — verify 7/7 |\n| 02 | b |  |\n| 03 | c | pending |\n| 04 | d | done — committed f403ab9 |\n", "x")
+      .cards.map((c) => c.status), ["unrecognised", "pending", "pending", "done"]],
+  ["status line names unrecognised cards after parked ones", statusLine(board(["unrecognised", "unrecognised", "done", "parked"]), "build"),
+    "task-runner  build  card 1/4  1 parked  2 unrecognised"],
   ["status line while a card is in progress counts it", statusLine(board(["done", "done", "in_progress", "pending"]), "build"),
     "task-runner  build  card 3/4"],
   ["status line with two cards in progress counts one", statusLine(board(["done", "in_progress", "in_progress", "pending"]), "build"),

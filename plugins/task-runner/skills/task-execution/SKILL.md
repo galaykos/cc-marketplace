@@ -112,6 +112,7 @@ or parked, the run ENDS with a report, no self-restart.
   same-worker S-card batches) may be delegated ONLY if file sets are disjoint — else serial.
 - Status lives in one place (the task index / todo list, e.g. taskmaster's
   `00-INDEX.md`): pending → in_progress (exactly one) → done | parked(reason). Task definitions stay immutable during the run.
+  The cell starts with that word (`done (<sha>) — note`); readers parse only the first word.
 - A parked task never blocks unrelated tasks; dependency-blocked tasks are marked blocked-by, not attempted anyway.
 - DEVIATION LEDGER: execution departing from the task/plan — different approach, extra
   file, an unmentioned edge case — gets one line at the task's status entry: what

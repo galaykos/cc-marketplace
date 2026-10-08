@@ -2,6 +2,21 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.46.0 — 2026-10-08
+
+- **A card status outside the vocabulary is shown, not read as pending.**
+  - **The incident:** a run wrote `committed <sha> — …` in 14 status cells. The status line read `card 0/25` while 14 cards had landed, and the session-start notice counted all 25 as open.
+  - **What changed:**
+    - The status line now adds `14 unrecognised`.
+    - `/task-board` marks such a card `[?]` and counts it in its summary.
+    - `announce.sh` names how many cards have a status outside `pending, in_progress, done, parked, blocked`, and still counts them open.
+    - An empty cell is still pending.
+- **task-execution states the rule the run broke:** the status cell starts with the word, as in `done (<sha>) — note`, never `committed <sha>`.
+- **Standing: gate.**
+  - `scripts/__tests__/board-core.test.sh` covers the unrecognised parse and the status-line part.
+  - `scripts/__tests__/announce-hook.test.sh` covers the notice's count, and that a vocabulary-only index names none.
+  - Each case is red against the previous code.
+
 ## 0.45.0 — 2026-10-08
 
 - **The task board can be pinned: `/config` option `cc_task_board_pin` (environment variable `CC_TASK_BOARD_PIN`), off by default.** With it on, while a run is active on this branch, a board you close by hand closes and is opened again 100 ms later; `/task-board` still closes it for good. A hook that refuses a person's close does not keep a pane open on CLI 2.1.294, so the pin reopens instead. Below 144 terminal columns the reopened board waits undrawn until the terminal is widened or you run `/task-board`. With the pin off, a board you close stays closed for that run, as before.
