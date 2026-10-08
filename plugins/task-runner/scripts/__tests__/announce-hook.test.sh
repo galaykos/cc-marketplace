@@ -47,6 +47,7 @@ has "3 the line names the slug" "$line" '`2026-09-22-demo`'
 has "4 the line names the branch" "$line" 'branch `feat/orders`'
 has "5 done and parked cards are closed, the rest remain" "$line" '2 of 4 cards still open'
 has "6 the declared arc phase is named" "$line" 'arc phase `build`'
+if printf '%s' "$line" | grep -q 'status outside'; then echo "FAIL: 6b a vocabulary-only index names no unrecognised status"; rc=1; else echo "PASS: 6b a vocabulary-only index names no unrecognised status"; fi
 
 check "7 source=compact is skill-router's lane, not this one" "$(fire "$RUN" compact)" ""
 check "8 source=resume announces" "$(printf '%s' "$(fire "$RUN" resume)" | grep -c .)" "1"
@@ -74,5 +75,12 @@ line=$(fire "$RUN/app/Models")
 has "13 subdirectory cwd: the root's run is announced" "$line" '`2026-09-22-demo`'
 has "14 subdirectory cwd: the root-relative index still resolves" "$line" '2 of 4 cards still open'
 check "15 subdirectory cwd: no .claude/ created there" "$([ -e "$RUN/app/Models/.claude" ] && echo yes)" ""
+
+ODD="$WS/odd"; mkdir -p "$ODD/.claude/task-runner" "$ODD/tasks/odd"
+printf '{"slug":"2026-10-08-odd","index_path":"tasks/odd/00-INDEX.md"}\n' > "$ODD/.claude/task-runner/active-run.json"
+printf '%s\n' '| card | title | status |' '|---|---|---|' '| 01 | a | committed e93ffc7 — verify 7/7 |' \
+  '| 02 | b | Committed 3f6acd7 |' '| 03 | c | done (f403ab9) |' '| 04 | d | pending |' > "$ODD/tasks/odd/00-INDEX.md"
+line=$(fire "$ODD")
+has "20 a status outside the vocabulary is counted open and named" "$line" '3 of 4 cards still open (2 with a status outside pending, in_progress, done, parked, blocked: counted open)'
 
 exit $rc

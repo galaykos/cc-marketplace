@@ -17,6 +17,7 @@ const MARKS: Record<Card['status'], string> = {
   pending: '[ ]',
   parked: '[-]',
   blocked: '[!]',
+  unrecognised: '[?]',
 }
 
 function noteOf(board: Board): string {
@@ -74,7 +75,7 @@ export function boardView(kit: BoardKit, board: Board): RenderElement {
 
   const c = counts(model)
   const header = ['Task board', model.slug, model.marker ?? '', board.runActive ? '' : 'not running']
-  const summary = [board.phase, `${c.done}/${c.total} done`, `${c.parked} parked`]
+  const summary = [board.phase, `${c.done}/${c.total} done`, `${c.parked} parked`, c.unrecognised > 0 ? `${c.unrecognised} unrecognised` : '']
   const specPath = model.specPath
 
   return (
