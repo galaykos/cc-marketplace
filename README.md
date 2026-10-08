@@ -178,6 +178,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_TERSE` | candor | off | Terse reply level: off, lite, full, ultra, wenyan-lite, wenyan-full or wenyan-ultra |
 | `CC_TEST_SHAPE` | testing | on | Name the blocks in a written test file that do not earn their place: on or off |
 | `CC_UNICODE_SCAN` | secret-scanning | on | Warn when written or read text carries zero-width or bidirectional-override characters: on or off |
+| `CC_VERSION_PINS` | stack-scan | on | Prepend the installed npm version to a skill whose Last verified stamp names that package: on or off |
 | `CC_WORKFLOW_GUARD` | devops | on | Refuse a GitHub workflow write that hands secrets or a write token to untrusted code: on or off |
 | `CLAUDE_AI_TRAILER` | git-workflow | — | CLAUDE_AI_TRAILER=allow for that one command |
 | `CLAUDE_DESTRUCTIVE_GUARD` | command-guard | deny | Destructive-command guard: deny (hard stops plus asks), ask (prompt instead), deny-only or off |

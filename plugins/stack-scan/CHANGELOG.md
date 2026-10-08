@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.12.0 — 2026-10-08
+
+- **Skills learn the installed version when they load (Claude Code ≥ 2.1.291).** A hooks module, `hooks/pins.ts`, reads the `Last verified:` stamp of any skill as it loads (`npm:next@16.3`), looks the package up in `node_modules` at the session's directory and the repository root, then in `package-lock.json`, and prepends one line per installed package naming its version and whether it is older or newer than the stamp, at the stamp's precision. Twelve SKILL.md bodies across craft-layer, laravel, ui-libraries, ui-ux and web-dev carry such a stamp today. A skill with no installed stamped package is left as it was. Off: `CC_VERSION_PINS=off` or the new `/config` option `cc_version_pins`. `hooks/cc-kit.ts` is a byte copy of the marketplace's shared mod kit. 11 cases in `tests/pins.test.ts`. Not read: stamps in `references/` files, composer, pnpm and yarn lockfiles. Not seen live.
+
 ## 0.11.4 — 2026-10-07
 
 - plugin-scout's catalog gained a row for the new prompt-coach plugin, and all-plugins' row now reads "but opt-in prompt-coach". The catalog has no hand edits; `scripts/generate.sh --write` produced this change. No behaviour change.
