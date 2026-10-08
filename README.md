@@ -144,7 +144,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_CANDOR_GATE` | candor | block | The whole candor Stop gate: block, warn (print, never block) or off |
 | `CC_CARDLINT` | taskmaster | on | Say when a card set reaches execution without its author-time linters having run: on or off |
 | `CC_CLARIFY_GATE` | taskmaster | off | Refuse the first code write after a work-shaped prompt, once per session: block or off |
-| `CC_COACH_MASCOT` | prompt-coach | on | Dock the coach's pixel-art mascot beside the transcript, in the fullscreen terminal UI only: on or off |
+| `CC_COACH_MASCOT` | prompt-coach | pane | Where the coach's mascot lives: pane (pixel art, fullscreen UI), statusline (a text face) or off |
 | `CC_COACH_MODEL` | prompt-coach | sonnet | The model that confirms a haiku first-pass flag before a prompt is dropped: sonnet or opus |
 | `CC_COACH_SENSITIVITY` | prompt-coach | unactionable | What counts as unclear: unactionable (nobody could act on it) or ambiguous (also two readings of scope) |
 | `CC_COMMENT_GUARD` | code-review | on | Refuse a write whose comments restate the code or pass the density ceiling: on or off |

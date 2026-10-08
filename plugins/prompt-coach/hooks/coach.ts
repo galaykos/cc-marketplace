@@ -18,7 +18,7 @@ import {
   textHash,
 } from './coach-core'
 import type { Gate, Label, RunContext, Sensitivity, Verdict } from './coach-core'
-import { coachView, frameOf, markerBlit, mascotSpriteFor, mascotView, poseOf, restOf, spriteBlit, spriteFor } from './coach-view'
+import { coachView, frameOf, markerBlit, mascotSpriteFor, mascotView, poseOf, restOf, spriteBlit, spriteFor, statusText } from './coach-view'
 import type { Renderer } from './coach-view'
 import { BLINK, FRAMES, rendererFor } from './sprite'
 
@@ -64,17 +64,26 @@ type Band = {
 
 const band: Band = { drawn: null, hasSurvey: false, isImageDenied: false, loop: null, ticks: 0 }
 
+type Display = 'pane' | 'statusline' | 'off'
+
 type Mascot = {
-  // Opened at most once a session, so a pane the person closed stays closed.
-  isOpened: boolean
+  // Read once a session, at the first draw of the band.
+  display: Display | null
+  isStarting: boolean
+  // The pane opened or the status line set, once a session.
+  isShown: boolean
   drawn: Drawn | null
   blink: Timer | null
   isStill: boolean
 }
 
-const mascot: Mascot = { isOpened: false, drawn: null, blink: null, isStill: false }
+const mascot: Mascot = { display: null, isStarting: false, isShown: false, drawn: null, blink: null, isStill: false }
 
 const MASCOT_PANE = { id: 'prompt-coach', title: 'coach', columns: 18 } as const
+
+const DISPLAYS = ['pane', 'statusline', 'off'] as const
+
+const STAYS_NOTE = 'The coach stays: set cc_coach_mascot in /config, or CC_COACH_MASCOT, to statusline or off'
 
 const BLINK_EVERY_MS = 4000
 
@@ -172,6 +181,10 @@ function show($: EngineInterface, view: CoachView): void {
   }
 
   $.ui.invalidate('ui.render')
+
+  if (mascot.isShown && mascot.display === 'statusline') {
+    $.ui.status(statusText(view))
+  }
 }
 
 // An Image the terminal can draw only as its alt falls back to Raster for the session. True when the frame was drawn.
@@ -241,21 +254,46 @@ function still($: EngineInterface): void {
   $.ui.invalidate('ui.render')
 }
 
-// Docked beside the transcript only by the fullscreen renderer: anywhere else an unasked pane would take rows above the prompt.
-async function openMascot($: EngineInterface, isFullscreen: boolean | undefined, options: PluginOptions): Promise<void> {
-  if (mascot.isOpened || isFullscreen !== true) {
+// The variable's 0 and false mean off too, as every switch of this plugin's does.
+async function displayOf($: EngineInterface, options: PluginOptions): Promise<Display> {
+  const value = await $.env.get('CC_COACH_MASCOT')
+
+  if (!switchOn(await $.env.get('CC_PROMPT_COACH'), options.cc_prompt_coach !== false) || !switchOn(value)) {
+    return 'off'
+  }
+
+  return choiceOf(value, options.cc_coach_mascot, DISPLAYS, 'pane')
+}
+
+// The pane docks beside the transcript only under the fullscreen renderer: anywhere else an unasked pane would take rows above the prompt.
+async function startMascot($: EngineInterface, isFullscreen: boolean | undefined, options: PluginOptions): Promise<void> {
+  if (mascot.isShown || mascot.isStarting) {
     return
   }
 
-  mascot.isOpened = true
+  mascot.isStarting = true
 
-  const isOn =
-    switchOn(await $.env.get('CC_PROMPT_COACH'), options.cc_prompt_coach !== false) &&
-    switchOn(await $.env.get('CC_COACH_MASCOT'), options.cc_coach_mascot !== false)
+  try {
+    mascot.display ??= await displayOf($, options)
 
-  // A pane too wide for the terminal now waits unplaced, and the engine seats it once the terminal is widened.
-  if (isOn && (await isTerminalSession($))) {
-    await $.ui.open(MASCOT_PANE)
+    if (mascot.display === 'off' || (mascot.display === 'pane' && isFullscreen !== true)) {
+      return
+    }
+
+    mascot.isShown = true
+
+    if (!(await isTerminalSession($))) {
+      return
+    }
+
+    // A pane too wide for the terminal now waits unplaced, and the engine seats it once the terminal is widened.
+    if (mascot.display === 'pane') {
+      await $.ui.open(MASCOT_PANE)
+    } else {
+      $.ui.status(statusText(coach.view))
+    }
+  } finally {
+    mascot.isStarting = false
   }
 }
 
@@ -593,7 +631,7 @@ export function register(on: On, options: PluginOptions) {
     }
 
     // Not awaited: the band draws now, whatever the open does to the layout.
-    void openMascot($, e.viewport?.isFullscreen, options).catch(() => undefined)
+    void startMascot($, e.viewport?.isFullscreen, options).catch(() => undefined)
 
     band.hasSurvey = e.props.hasSurvey
 
@@ -631,5 +669,14 @@ export function register(on: On, options: PluginOptions) {
     const kit = { ui: $.ui.resolve(e), sprite, still: mascot.isStill ? null : () => still($) }
 
     return mascotView(kit, coach.view)
+  }).catch(($, e, next) => next(e))
+
+  // Answering without next keeps the pane open; an unload still closes it.
+  on('ui.close', async ($, e, next) => {
+    if (e.id !== MASCOT_PANE.id || e.origin.kind !== 'person') {
+      return next(e)
+    }
+
+    say($, STAYS_NOTE)
   }).catch(($, e, next) => next(e))
 }
