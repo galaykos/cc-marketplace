@@ -126,9 +126,9 @@ Installed, the mode does nothing until switched on; there is no ambient mode.
 The level persists across every session on this machine
 (`~/.claude/terse-mode`; `CC_TERSE=off|lite|full|ultra|wenyan-*` overrides it
 for a headless run), and the `cc_terse` /config option sets one when neither does —
-that order holds in the hooks, the badge and both commands. **Standing:** the `.sh`
-badge and `scripts/level.sh` — `gate` (`level-sources.test.sh`); the `.ps1` badge and
-the commands — `agent-graded`. Budgets count prose lines only — code blocks, tables
+that order holds in the hooks, both badges and both commands. **Standing:** the `.sh`
+badge and `scripts/level.sh` — `gate` (`level-sources.test.sh`); the hint-line badge —
+`gate` (`tests/badge.test.ts`); the `.ps1` badge and the commands — `agent-graded`. Budgets count prose lines only — code blocks, tables
 and trees are free:
 
 | Turn kind | lite | full | ultra |
@@ -149,14 +149,29 @@ this gate's clause 3 greps the assistant's own words.
 **Running another brevity mode?** Remove it first; two always-on compression
 prompts on the same turn are not designed to coexist.
 
-Optional, wire them yourself: `scripts/statusline.sh` (or `.ps1`) renders
-`[TERSE:ULTRA]` in a `statusLine` setting. The `.sh` badge runs the same `scripts/level.sh` the
-commands run — `CC_TERSE`, the level file, the option — and the `.ps1` twin re-implements that
-order; in both a symlinked level file blanks the badge.
-They read the option from user and managed settings only: a `cc_terse` saved through a
+**The badge needs no setup.** On Claude Code 2.1.291 or later, the plugin's hooks module
+(`hooks/badge.ts`) appends the active level — `[TERSE:ULTRA]` — dim at the end of the hint line
+under the prompt, and nothing while terse is off. It follows `scripts/statusline.sh`'s rule:
+`CC_TERSE`, then the level file, then the `cc_terse` option; a value outside the vocabulary or a
+symlinked level file shows no badge. The option comes from the plugin configuration the host
+hands the module, so a `cc_terse` saved through `--settings` shows too (measured once on 2.1.294).
+It re-reads at session start, at each turn start (after `/candor:level` wrote the level) and
+after every tool call; a level another session changes shows here at the next of those. Another
+plugin's text on the same line stays, the badge after it. Terminal only — the desktop app does
+not draw the line's tail yet. Off: `cc_terse_badge` in `/config`, or `CC_TERSE_BADGE=off`.
+**Standing:** `gate` for the level order, the tail composition and both switches
+(`tests/badge.test.ts`, run by `claude plugin test`); the drawn line itself is `recorded` — the
+test kit drives the hook, never the terminal's paint, and one live 2.1.294 terminal showed the
+badge from `CC_TERSE` and from the option, and none under `CC_TERSE_BADGE=off`.
+
+Older CLI, or want it in your own status line: wire `scripts/statusline.sh` (or `.ps1`) as a
+`statusLine` command. The `.sh` badge runs the same `scripts/level.sh` the commands run —
+`CC_TERSE`, the level file, the option — and the `.ps1` twin re-implements that order; in both a
+symlinked level file blanks the badge.
+The scripts read the option from user and managed settings only: a `cc_terse` saved through a
 `--settings` file, managed drop-ins or policy, or in a symlinked settings file is applied by the
-hooks but unseen by the badge and `/candor:level status`, and with `jq` missing the `.sh` badge
-and the commands read no settings file at all; `scripts/shrink.mjs` is a stdio proxy
+hooks but unseen by the scripts and `/candor:level status`, and with `jq` missing the `.sh` badge
+and the commands read no settings file at all. `scripts/shrink.mjs` is a stdio proxy
 that trims prose out of an MCP server's tool descriptions (`node shrink.mjs
 <command> [args…]`), leaving names, schemas and every request untouched.
 
@@ -288,11 +303,12 @@ bash plugins/candor/scripts/__tests__/candor-scan.test.sh   # the six axes
 bash plugins/candor/scripts/__tests__/install.test.sh       # install shape, non-git consumer project
 bash plugins/candor/scripts/__tests__/mode-hook.test.sh     # level switching and per-turn reinforcement
 bash plugins/candor/scripts/__tests__/level-sources.test.sh # level.sh's layer order, the sh badge, measure.sh's level
+claude plugin test plugins/candor                           # the hint-line badge: level order, tail composition, switches, CLI floor
 ```
 
 All run in CI: the plugin harnesses through the shared
 `plugins/*/scripts/__tests__/*.test.sh` step, the two smoke harnesses as named
-steps. `install.test.sh` copies the plugin to a temp dir, resolves the hook by
+steps, the module's tests through `scripts/mod-tests.sh`. `install.test.sh` copies the plugin to a temp dir, resolves the hook by
 expanding `${CLAUDE_PLUGIN_ROOT}` the way the host does, refuses a hook that
 resolves back into this repository, and drives it against a consumer project
 that is **not** a git repository.

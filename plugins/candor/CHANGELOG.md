@@ -2,6 +2,13 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.7.0 — 2026-10-08
+
+- **The terse badge shows with no setup.** On Claude Code 2.1.291 or later, a hooks module (`hooks/badge.ts`, the plugin's first) appends the active level, e.g. `[TERSE:ULTRA]`, dim at the end of the hint line under the prompt, and nothing while terse is off. Before this the badge appeared only for people who wired `scripts/statusline.sh` into their own `statusLine` setting, which a plugin cannot do for them. It follows `statusline.sh`'s rule (`CC_TERSE`, then the level file, then `cc_terse`; a value outside the vocabulary or a symlinked level file shows none) and re-reads at session start, at each turn start and after every tool call. Text another plugin adds to the same line stays, the badge after it. It draws on the hint line, not as a `$.ui.status` line, because the host prefixes every status line with `⚠ <plugin>:`, which reads as a warning. Terminal only: the desktop app does not draw the line's tail yet.
+- New option `cc_terse_badge` (default on), overridden by the environment variable `CC_TERSE_BADGE`; off leaves the hint line untouched.
+- `statusline.sh` and `statusline.ps1` are unchanged and still work for an older CLI or a status line of your own.
+- `tests/badge.test.ts` (13 cases, `claude plugin test plugins/candor`) covers the level order, the tail composition, both switches, the CLI floor and a plugin reload. Tested live once on 2.1.294 in a terminal: the badge showed from `CC_TERSE` and from `cc_terse` saved through `--settings` (a source `statusline.sh` cannot read), and showed nothing under `CC_TERSE_BADGE=off` or with no level set. Not tested live: a level read from the level file, a switch mid-session, and another plugin's tail on the same line.
+
 ## 0.6.3 — 2026-10-05
 
 - **The preamble's move (1) now ends with one sentence about comments:** `Add no code comment unless it states what the code cannot; a CLAUDE.md house style wins.` It goes out with the five moves, on the first work prompt of each session and on every subagent start. So the comment rule reaches the model before its first edit in every subagent (whose prompt carries no comment rule of its own) and in a main session whose host prompt lacks one, including on an install without `code-review`, whose hooks judge a comment only as it is written. Still five moves. The message is now 878 chars (886 bytes), within the test's 1,000-byte bound. **Effect unmeasured:** the measurement behind the five moves predates this sentence, and no eval case covers it.
