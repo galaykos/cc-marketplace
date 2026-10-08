@@ -2,6 +2,12 @@
 
 All notable changes to the `prompt-coach` plugin.
 
+## 0.3.2 — 2026-10-08
+
+- **The pane closes, and the coach comes back.** 0.3.0's "the pane can no longer be closed" was wrong on CLI 2.1.294: refusing a person's close (answering `ui.close` without `next`, as the CLI types describe) closed the pane anyway (`rationale/2026-10-08-mods-ui-survey-and-pane-probe.md` §3). A close from the close mark or ctrl+x x now goes through, and while the display is `pane` the coach re-opens the pane 0.1 s later. The CLI seats that re-open only on a terminal 144 columns or wider; narrower, the pane waits undrawn until the terminal is widened. A plugin's close, such as the `/config` display switch, is not undone.
+- **The toast says what happens.** "The coach stays" is now "The coach comes back", or "comes back at 144 columns or wider" when the re-open waits, followed by how to move or hide him in `/config`. It no longer names `CC_COACH_MASCOT`, so that it fits the toast box's three lines.
+- Walked once live on 2.1.294 at 200 and 130 columns. The test kit cannot raise a close of either origin, so no test covers it.
+
 ## 0.3.1 — 2026-10-08
 
 Fixes from a review of 0.2.0-0.3.0:

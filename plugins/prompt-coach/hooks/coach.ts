@@ -85,7 +85,10 @@ const MASCOT_PANE = { id: 'prompt-coach', title: 'coach', columns: 18 } as const
 
 const DISPLAYS = ['pane', 'statusline', 'off'] as const
 
-const STAYS_NOTE = 'The coach stays: set cc_coach_mascot to statusline or off in /config, or CC_COACH_MASCOT for a new session'
+const MOVE_NOTE = 'to move or hide him, set cc_coach_mascot in /config'
+
+// The delay the 2.1.294 probe re-opened a pane after (rationale/2026-10-08-mods-ui-survey-and-pane-probe.md §3); sooner is unmeasured.
+const REOPEN_MS = 100
 
 const BLINK_EVERY_MS = 4000
 
@@ -332,6 +335,13 @@ async function startMascot($: EngineInterface, isFullscreen: boolean | undefined
   } finally {
     mascot.isStarting = false
   }
+}
+
+// An open the person did not ask for: the engine seats it from 144 columns, and narrower it waits undrawn until the terminal widens.
+async function reopen($: EngineInterface): Promise<void> {
+  const opened = await $.ui.open(MASCOT_PANE)
+
+  say($, opened.isPlaced ? `The coach comes back; ${MOVE_NOTE}` : `The coach comes back at 144 columns or wider; ${MOVE_NOTE}`)
 }
 
 // Why the bubble would not show if the prompt dropped now, from a blit the band answers now; null when it would.
@@ -708,12 +718,16 @@ export function register(on: On, options: PluginOptions) {
     return mascotView(kit, coach.view)
   }).catch(($, e, next) => next(e))
 
-  // Answering without next keeps the pane open; an unload still closes it.
+  // Answering a person's close without next closed the pane anyway on 2.1.294 (rationale/2026-10-08-mods-ui-survey-and-pane-probe.md §3): let it close, then come back.
   on('ui.close', async ($, e, next) => {
     if (e.id !== MASCOT_PANE.id || e.origin.kind !== 'person' || (await mascotDisplay($, options)) !== 'pane') {
       return next(e)
     }
 
-    say($, STAYS_NOTE)
+    const closed = await next(e)
+
+    $.clock.after(REOPEN_MS, () => void reopen($).catch(() => undefined))
+
+    return closed
   }).catch(($, e, next) => next(e))
 }
