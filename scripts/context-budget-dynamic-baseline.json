@@ -21,6 +21,7 @@
   "resilience": 0,
   "secret-scanning": 0,
   "security": 0,
+  "session-hud": 0,
   "skill-router": 651,
   "stack-scan": 0,
   "task-runner": 0,

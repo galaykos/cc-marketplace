@@ -133,12 +133,19 @@ all", "CC_COACH_MASCOT=0 is off", "CC_COACH_MASCOT=statusline beats the pane opt
     session. A pane that refuses the blink stops it until the pane draws again, then
     blinks again. **Gate** — "blinks every 4 s at rest", "Still stops the blink", "a pane
     that refuses the blink stops blinking until it draws again".
-  - **He cannot be closed.** The pane's close mark and ctrl+x x raise a close the coach
-    refuses while the display is `pane`, with a toast saying how to move or remove him.
-    Esc only hands the keys back (the pane is not opened with `closeOnEscape`). **Recorded**
-    — the CLI types say a `ui.close` hook answering without `next` keeps the pane open on
-    a person's close; the test kit's engine raises no `ui.close` (its `ui` carries focus,
-    input, mount, press, render, scroll and select), so no test exercises it.
+  - **He comes back.** The pane's close mark and ctrl+x x close the pane. While the
+    display is `pane`, the coach opens it again 0.1 s later, with a toast saying how to move
+    or hide him. You did not ask for that re-open, so the CLI seats it only on a terminal
+    144 columns or wider. Narrower, the pane waits undrawn until the terminal is widened,
+    and the toast says so. A close made by a plugin, such as the display switch below, is
+    not undone. Esc only hands the keys back (the pane is not opened with `closeOnEscape`).
+    **Recorded** — on CLI 2.1.294, refusing a person's close (answering `ui.close` without
+    `next`, which the CLI types say keeps a pane open) closed the pane anyway. Re-opening
+    it was the one pin that held, and only from 144 columns. Both were measured once with a
+    probe plugin (`rationale/2026-10-08-mods-ui-survey-and-pane-probe.md` §3). A walk of
+    this plugin the same day saw the re-open draw at 200 columns, wait at 130 and be seated
+    on widening. The test kit's engine raises no `ui.close` and refuses a test's own
+    `$.ui.close`, so no test exercises any of it.
   - **Switching away.** A display set in `/config` reloads the plugin, and at the band's
     next draw, once, whatever the old display left up is cleared: a pane under any display
     but `pane`, a status line under any but `statusline`. Set through `CC_COACH_MASCOT` it
@@ -394,9 +401,11 @@ The mascot:
 - **Seen live once.** One maintainer screenshot (2026-10-07, 0.2.0, fullscreen, a terminal
   drawing Image pixels) showed the pane open beside the transcript with the idle sprite,
   so the open from the band's render hook works live. `Still` was not visible in it, and
-  the blink, the refused close and the status line have not been seen live. **Recorded.**
-- **The width floor** (144 columns, 110 once asked) is read from the CLI types, not
-  measured. **Recorded.**
+  the blink and the status line have not been seen live. The close and re-open were walked
+  once (2026-10-08, see "He comes back"). **Recorded.**
+- **The width floor.** 144 columns for an open you did not ask for was measured once, at
+  130 columns (`rationale/2026-10-08-mods-ui-survey-and-pane-probe.md` §3). The 110 for a
+  pane you once opened is read from the CLI types, not measured. **Recorded.**
 - **Beside `/task-board`.** Both are panes in one dock, one shown at a time (the CLI's
   pane roster). Whether a blink sent to the hidden coach pane is refused, which stops it
   until the pane is shown again, or drawn unseen was not observed. **Recorded.**

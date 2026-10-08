@@ -2,6 +2,8 @@ import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 import type { Engine, Mounted } from 'claude-code/testing'
 
+import { isPinOn } from '../hooks/board'
+
 const NOW = Date.UTC(2026, 9, 6, 12)
 const INDEX = '/work/taskmaster-docs/tasks/ship-mods/00-INDEX.md'
 const RUN = '/work/.claude/task-runner/active-run.json'
@@ -75,6 +77,7 @@ function seat(on: On, live: Live = {}) {
     gate: undefined as { path: string; enter: () => void; released: Promise<void> } | undefined,
     writeGate: undefined as { enter: () => void; released: Promise<void> } | undefined,
     panes: new Set<string>(),
+    unplaced: new Set<string>(),
     opened: [] as string[],
     closed: [] as string[],
     registered: [] as string[],
@@ -115,7 +118,7 @@ function seat(on: On, live: Live = {}) {
     return { reached, release }
   }
 
-  mock.clock(on, { now: NOW })
+  const clock = mock.clock(on, { now: NOW })
   mock.env(on, live.env ?? {})
 
   on('session.version', () => ({ value: { version: live.version ?? '2.1.291' } }))
@@ -210,6 +213,13 @@ function seat(on: On, live: Live = {}) {
   on('ui.open', async ($, e) => {
     world.opened.push(e.id)
     world.panes.add(e.id)
+
+    if (live.isNarrow) {
+      world.unplaced.add(e.id)
+    } else {
+      world.unplaced.delete(e.id)
+    }
+
     await live.onOpen?.()
 
     return { value: live.isNarrow ? { isPlaced: false, reason: 'unasked panes open from 144 columns' } : { isPlaced: true } }
@@ -218,11 +228,12 @@ function seat(on: On, live: Live = {}) {
   on('ui.close', ($, e) => {
     world.closed.push(e.id)
     world.panes.delete(e.id)
+    world.unplaced.delete(e.id)
 
     return { value: undefined }
   })
 
-  on('ui.panes', () => ({ value: [...world.panes].map(id => ({ id, title: 'Task board', isShown: true, isFocused: false, isPlaced: true })) }))
+  on('ui.panes', () => ({ value: [...world.panes].map(id => ({ id, title: 'Task board', isShown: true, isFocused: false, isPlaced: !world.unplaced.has(id) })) }))
 
   on('command.register', ($, e) => {
     world.registered.push(e.name)
@@ -252,7 +263,7 @@ function seat(on: On, live: Live = {}) {
     return { text: e.text }
   })
 
-  return Object.assign(world, { put, holdNextRead, holdNextRunWrite })
+  return Object.assign(world, { put, holdNextRead, holdNextRunWrite, clock })
 }
 
 const SESSION = { cwd: '/work', surface: 'terminal', isInteractive: true } as const
@@ -764,5 +775,42 @@ describe('board', () => {
 
     expect(world.registered).toEqual([])
     expect(world.opened).toEqual([])
+  })
+
+  // The kit raises no person's ui.close, so the reopen itself is recorded, not tested; this guards the switch it reads.
+  test('the pin is off unless the option or CC_TASK_BOARD_PIN turns it on', () => {
+    expect(isPinOn(undefined, undefined)).toBe(false)
+    expect(isPinOn('', false)).toBe(false)
+    expect(isPinOn(undefined, true)).toBe(true)
+    expect(isPinOn('on', undefined)).toBe(true)
+    expect(isPinOn('1', false)).toBe(true)
+    expect(isPinOn('off', true)).toBe(false)
+    expect(isPinOn('0', true)).toBe(false)
+  })
+
+  test('with the pin on, /task-board still closes the pane for good', { options: { cc_task_board_pin: true } }, async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, LAYOUT)
+    await start($)
+    await $.command.run(TASK_BOARD)
+    await world.clock.advance(1_000)
+
+    expect(world.opened).toEqual(['task-board'])
+    expect(world.closed).toEqual(['task-board'])
+    expect([...world.panes]).toEqual([])
+  })
+
+  test('/task-board places a pane waiting undrawn instead of closing it', async ($, on) => {
+    const world = seat(on)
+
+    await start($)
+    world.panes.add('task-board')
+    world.unplaced.add('task-board')
+    await $.command.run(TASK_BOARD)
+
+    expect(world.opened).toEqual(['task-board'])
+    expect(world.closed).toEqual([])
   })
 })

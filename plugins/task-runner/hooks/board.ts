@@ -28,6 +28,8 @@ const PANE = { id: 'task-board', title: 'Task board' }
 
 const INACTIVE: Board = { indexPath: null, mtimeMs: null, model: null, runActive: false, phase: '', hasRedTeam: false }
 
+const REOPEN_MS = 100
+
 async function isBoardOn($: EngineInterface, option: boolean): Promise<boolean> {
   return isSupported((await $.session.version()).version) && switchOn(await $.env.get('CC_TASK_BOARD'), option)
 }
@@ -35,6 +37,11 @@ async function isBoardOn($: EngineInterface, option: boolean): Promise<boolean> 
 // The pane calls below answer a safe default rather than throw: a throw after the tool ran fails the person's call closed.
 async function isPaneOpen($: EngineInterface): Promise<boolean> {
   return $.ui.panes().then(panes => panes.some(pane => pane.id === PANE.id), () => false)
+}
+
+// A pinned reopen below the width floor is listed but undrawn; /task-board must place it, not close it.
+async function isPanePlaced($: EngineInterface): Promise<boolean> {
+  return $.ui.panes().then(panes => panes.some(pane => pane.id === PANE.id && pane.isPlaced), () => false)
 }
 
 async function isRedTeamListed($: EngineInterface): Promise<boolean> {
@@ -157,6 +164,11 @@ async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean
   }
 }
 
+// switchOn defaults an unset option to on; the pin is off unless /config or the variable turns it on.
+export function isPinOn(env: string | undefined, option: PluginOptions[string] | undefined): boolean {
+  return switchOn(env, option === true)
+}
+
 export function registerBoard(on: On, options: PluginOptions) {
   const refreshes: Refreshes = { latest: 0, opening: 0, paintedRun: '', hasRedTeam: false }
   const option = options.cc_task_board !== false
@@ -191,7 +203,7 @@ export function registerBoard(on: On, options: PluginOptions) {
       return next(e)
     }
 
-    if (await isPaneOpen($)) {
+    if (await isPanePlaced($)) {
       await $.ui.close({ id: PANE.id })
     } else {
       refreshes.hasRedTeam = await isRedTeamListed($)
@@ -207,6 +219,26 @@ export function registerBoard(on: On, options: PluginOptions) {
     }
 
     return {}
+  }).catch(($, e, next) => next(e))
+
+  // On CLI 2.1.294 a hook answering a person's close without next still closes the pane, so the pin lets it close and opens it again.
+  on('ui.close', { id: 'task-board' }, async ($, e, next) => {
+    if (e.origin.kind !== 'person') {
+      return next(e)
+    }
+
+    const r = await next(e)
+
+    const isPinned =
+      isPinOn(await $.env.get('CC_TASK_BOARD_PIN'), options.cc_task_board_pin) &&
+      (await isBoardOn($, option)) &&
+      (await activeRun(hostOf($))) !== null
+
+    if (isPinned) {
+      $.clock.after(REOPEN_MS, () => void $.ui.open(PANE).catch(() => undefined))
+    }
+
+    return r
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: 'task-board' }, async ($, e, next) => {

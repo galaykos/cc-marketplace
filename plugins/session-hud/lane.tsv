@@ -1,0 +1,6 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill|mod · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+session-hud:hud	mod	any	session-usage-display	session.start, a main-agent tool call at most every 2 s, turn.complete and a 30 s timer on CLI 2.1.291+, each surface behind its own cc_hud_* option or CC_HUD_* variable; draws the PromptHint tail, the TurnDuration line, an optional status line and the /hud pane; reopens that pane after a person close when cc_hud_pin is on	-

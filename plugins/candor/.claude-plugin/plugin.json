@@ -1,6 +1,6 @@
 {
   "name": "candor",
-  "version": "0.6.3",
+  "version": "0.7.0",
   "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, five clauses a script can prove: a file:line citation resolving to no file or past its end; a position retracted after bare pushback with no tool call in between; a completion claim after edits with nothing executed since; a task-runner run stopping without its recorded gate pass; a dependency map changed with an untouched lockfile. Flattery, apologies and defensive phrasing are counted by /candor:check and blocked by nothing, on purpose. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn.",
   "author": {
     "name": "Ivan-WG",
@@ -47,6 +47,12 @@
       "title": "Terse reply level (CC_TERSE)",
       "description": "Terse reply level: off, lite, full, ultra, wenyan-lite, wenyan-full or wenyan-ultra. The environment variable CC_TERSE overrides this. A level other than off set with /candor:level also overrides this; /candor:level off clears only that level.",
       "default": "off"
+    },
+    "cc_terse_badge": {
+      "type": "boolean",
+      "title": "Terse badge (CC_TERSE_BADGE)",
+      "description": "Show the active terse level as [TERSE:LEVEL] at the end of the hint line under the prompt (terminal, CLI 2.1.291+): on or off. The environment variable CC_TERSE_BADGE overrides this.",
+      "default": true
     },
     "task_runner_stop_gate": {
       "type": "string",
