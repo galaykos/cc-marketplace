@@ -148,6 +148,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_COACH_MODEL` | prompt-coach | sonnet | The model that confirms a haiku first-pass flag before a prompt is dropped: sonnet or opus |
 | `CC_COACH_SENSITIVITY` | prompt-coach | unactionable | What counts as unclear: unactionable (nobody could act on it) or ambiguous (also two readings of scope) |
 | `CC_COMMENT_GUARD` | code-review | on | Refuse a write whose comments restate the code or pass the density ceiling: on or off |
+| `CC_COMPACT_STEER` | skill-router | on | When a phase sentinel, task-runner run or taskmaster ledger is on disk, tell the compaction summarizer t … |
 | `CC_CONFIG_GUARD` | command-guard | on | Ask before a write that would weaken settings, hooks, manifests or lint and test config: on or off |
 | `CC_CONVENTIONS` | code-review | on | Name the convention configs and the CI command enforcing them at the first code write: on or off |
 | `CC_DB_GUARD` | database | on | Ask before a write that drops, truncates or mass-deletes data or takes a risky lock: on or off |
@@ -171,6 +172,8 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_REMIND` | api-design, approaches, code-review, debugging, design-kit, secret-scanning, security, skill-router, task-runner, taskmaster, testing, ui-ux | on | Reminder hooks that add guidance to the session: on or off |
 | `CC_REVIEW_NUDGE` | code-review | on | Suggest an independent review once enough unreviewed or sensitive code has changed: on or off |
 | `CC_ROUTE` | skill-router | on | Hand the model command-picking rules and flush pending low-confidence skill signals: on or off |
+| `CC_ROUTE_SCOPE` | skill-router | off | Drop the Laravel, Inertia, Next.js, Vite, React Native, Tailwind, shadcn and MariaDB skills from the ski … |
+| `CC_SECRET_PROMPT` | secret-scanning | on | Mark a secret typed or pasted into the prompt box, and ask before sending it (mask, send as typed, or ca … |
 | `CC_SECRET_REDACT` | secret-scanning | on | Mask secrets in tool output before the model or the transcript sees them: on or off |
 | `CC_SECRET_SCAN` | secret-scanning | on | Refuse a write or shell command that puts a high-confidence secret on disk: on or off |
 | `CC_SECURITY_SCAN` | security | on | Warn when a write introduces a known-dangerous sink such as eval or shell-string exec: on or off |
