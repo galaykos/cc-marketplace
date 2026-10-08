@@ -48,6 +48,8 @@ type Hud = {
   base: Snapshot | null
   pending: { durationMs: number; line: string } | null
   turns: Map<string, string>
+  drawn: Set<string>
+  stale: Set<string>
 }
 
 const OFF: Switches = { hint: false, status: false, turn: false, pin: false, segments: [] }
@@ -120,23 +122,25 @@ function snapshotOf(figures: Figures | null): Snapshot {
 }
 
 // Only the newest of overlapping refreshes stores or paints: an older one finishing last would paint stale figures.
-async function refresh($: EngineInterface, hud: Hud, options: PluginOptions): Promise<void> {
+// Returns what it read either way, so a turn's end measures its own reading even when a timer tick superseded it.
+async function refresh($: EngineInterface, hud: Hud, options: PluginOptions): Promise<Figures | null> {
   const mine = ++hud.latest
 
   hud.isSupported = isSupported((await $.session.version()).version)
 
   if (!hud.isSupported) {
-    return
+    return null
   }
 
   const switches = await switchesOf($, options)
   const pane = await hudPane($)
   const isShowing = switches.hint || switches.status
-  const figures = isShowing || pane !== undefined ? await figuresOf($, switches.segments.includes('git') || pane !== undefined) : null
+  const wantsGit = (isShowing && switches.segments.includes('git')) || pane !== undefined
+  const figures = isShowing || switches.turn || pane !== undefined ? await figuresOf($, wantsGit) : null
   const breakdown = pane !== undefined ? await breakdownOf($, 80) : null
 
   if (mine !== hud.latest) {
-    return
+    return figures
   }
 
   const line = figures !== null && isShowing ? hudLine(switches.segments, figures) : ''
@@ -158,6 +162,25 @@ async function refresh($: EngineInterface, hud: Hud, options: PluginOptions): Pr
     hud.isTicking = true
     $.clock.every(TICK_MS, () => refresh($, hud, options).catch(() => undefined))
   }
+
+  return figures
+}
+
+// A /config change reloads the module without a session.start, so the first hook to run after it starts the HUD.
+async function started($: EngineInterface, hud: Hud, options: PluginOptions): Promise<void> {
+  await refresh($, hud, options)
+  hud.base ??= snapshotOf(hud.figures)
+
+  if (hud.isSupported) {
+    await pointRowsHere($)
+    await $.command.register({ name: 'hud', description: 'Show or hide the session HUD pane: context, rate limits, cost' }).catch(() => undefined)
+  }
+}
+
+async function ensureStarted($: EngineInterface, hud: Hud, options: PluginOptions): Promise<void> {
+  if (hud.latest === 0) {
+    await started($, hud, options)
+  }
 }
 
 // The subagentStatusLine command runs with no CLAUDE_PLUGIN_ROOT, substituted or exported (measured on 2.1.294), so it reads this file.
@@ -171,10 +194,28 @@ async function pointRowsHere($: EngineInterface): Promise<void> {
   }
 }
 
+function trimmed<T>(items: { size: number; keys: () => IterableIterator<T>; delete: (key: T) => boolean }): void {
+  for (const key of items.keys()) {
+    if (items.size <= KEPT_TURNS) {
+      break
+    }
+
+    items.delete(key)
+  }
+}
+
 function footerOf(hud: Hud, requestId: string, durationMs: number): string | undefined {
   const bound = hud.turns.get(requestId)
 
-  if (bound !== undefined || hud.pending === null || Math.abs(hud.pending.durationMs - durationMs) > DURATION_SLACK_MS) {
+  hud.drawn.add(requestId)
+  trimmed(hud.drawn)
+
+  if (
+    bound !== undefined ||
+    hud.pending === null ||
+    hud.stale.has(requestId) ||
+    Math.abs(hud.pending.durationMs - durationMs) > DURATION_SLACK_MS
+  ) {
     return bound
   }
 
@@ -182,14 +223,7 @@ function footerOf(hud: Hud, requestId: string, durationMs: number): string | und
 
   hud.pending = null
   hud.turns.set(requestId, line)
-
-  for (const key of hud.turns.keys()) {
-    if (hud.turns.size <= KEPT_TURNS) {
-      break
-    }
-
-    hud.turns.delete(key)
-  }
+  trimmed(hud.turns)
 
   return line
 }
@@ -207,20 +241,17 @@ export function register(on: On, options: PluginOptions) {
     base: null,
     pending: null,
     turns: new Map(),
+    drawn: new Set(),
+    stale: new Set(),
   }
 
   on('session.start', async ($, e, next) => {
-    const started = await next(e)
+    const r = await next(e)
 
-    await refresh($, hud, options)
-    hud.base = snapshotOf(hud.figures)
+    hud.base = null
+    await started($, hud, options)
 
-    if (hud.isSupported) {
-      await pointRowsHere($)
-      await $.command.register({ name: 'hud', description: 'Show or hide the session HUD pane: context, rate limits, cost' })
-    }
-
-    return started
+    return r
   }).catch(($, e, next) => next(e))
 
   on('tool.call', async ($, e, next) => {
@@ -233,8 +264,10 @@ export function register(on: On, options: PluginOptions) {
     return r
   }).catch(($, e, next) => next(e))
 
+  // Every footer drawn so far closes an earlier turn: none of them may take the line of the turn starting now.
   on('turn.start', async ($, e, next) => {
     hud.base = snapshotOf(hud.figures)
+    hud.stale = new Set(hud.drawn)
 
     return next(e)
   }).catch(($, e, next) => next(e))
@@ -247,10 +280,8 @@ export function register(on: On, options: PluginOptions) {
     }
 
     const base = hud.base
-
-    await refresh($, hud, options)
-
-    const after = snapshotOf(hud.figures)
+    const read = await refresh($, hud, options)
+    const after = snapshotOf(read ?? hud.figures)
     const line = turnLine({
       ...(e.usage !== undefined && { outputTokens: e.usage.output_tokens }),
       ...(after.costUsd !== undefined && base?.costUsd !== undefined && { costUsd: after.costUsd - base.costUsd }),
@@ -269,6 +300,10 @@ export function register(on: On, options: PluginOptions) {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
+    if (hud.latest === 0) {
+      void ensureStarted($, hud, options).catch(() => undefined)
+    }
+
     if (!hud.isSupported || !hud.switches.hint || hud.line === '') {
       return next(e)
     }
@@ -277,6 +312,10 @@ export function register(on: On, options: PluginOptions) {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'TurnDuration', surface: 'terminal' }, async ($, e, next) => {
+    if (hud.latest === 0) {
+      void ensureStarted($, hud, options).catch(() => undefined)
+    }
+
     const footer = hud.isSupported && hud.switches.turn ? footerOf(hud, e.requestId, e.props.durationMs) : undefined
 
     if (footer === undefined) {
@@ -295,6 +334,8 @@ export function register(on: On, options: PluginOptions) {
   }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'hud' }, async ($, e, next) => {
+    await ensureStarted($, hud, options)
+
     if (!hud.isSupported) {
       return next(e)
     }
@@ -315,6 +356,10 @@ export function register(on: On, options: PluginOptions) {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: 'hud' }, async ($, e, next) => {
+    if (hud.latest === 0) {
+      void ensureStarted($, hud, options).catch(() => undefined)
+    }
+
     if (!hud.isSupported || hud.figures === null) {
       return next(e)
     }
@@ -325,6 +370,10 @@ export function register(on: On, options: PluginOptions) {
   // Measured on 2.1.294: answering a person's close without next does not keep the pane, so the pin lets it close and reopens it.
   on('ui.close', async ($, e, next) => {
     const r = await next(e)
+
+    if (e.id === PANE.id && e.origin.kind === 'person') {
+      await ensureStarted($, hud, options)
+    }
 
     if (e.id === PANE.id && e.origin.kind === 'person' && hud.isSupported && (await switchesOf($, options)).pin) {
       $.clock.after(REOPEN_DELAY_MS, () => $.ui.open(PANE).then(() => undefined, () => undefined))

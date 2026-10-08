@@ -38,7 +38,7 @@ claude plugin install session-hud@cc-plugins-marketplace -s local
 | `limits` | `5h 61% ↻2h05m`, `7d 12%`: each rate-limit window, with a countdown to its reset | `rateLimits` from the last API response |
 | `cost` | `$1.20`, the session's cost as `/cost` totals it | `cost.usd` |
 | `time` | `42m`, how long the session has run | `startedAt` |
-| `git` | `main*`, the branch, starred when tracked files have changes | `git rev-parse` and `git status --porcelain --untracked-files=no`; only runs when the segment is picked |
+| `git` | `main*`, the branch, starred when tracked files have changes | `git rev-parse` and `git status --porcelain --untracked-files=no`; runs only when the segment is picked for a shown line, or while the `/hud` pane is open |
 
 The figures refresh:
 - at session start;
@@ -111,9 +111,11 @@ for good.
   `CC_HUD_SUBAGENTS`, then from `CLAUDE_PLUGIN_OPTION_CC_HUD_SUBAGENTS` if a host exports it,
   then from the user `settings.json`. An option saved at project or local scope is not read.
   The rows need `jq`; without it the panel keeps its default rows.
-- **A turn line is matched to its turn by duration.** The footer has no turn id, so a footer
-  drawn within 1 s of the last turn's duration gets that turn's line. Footers of earlier
-  turns, including those from before the plugin loaded, are left as the engine draws them.
+- **A turn line is matched to its turn by duration.** The footer has no turn id, so the first
+  footer drawn within 1 s of the last turn's duration gets that turn's line.
+  - Footers already drawn when the turn started never take it.
+  - An earlier turn's footer scrolled into view for the first time after that, with a
+    duration within 1 s, still could.
 - **The cost is the API cost the session reports.** Model calls made by other plugins' mods
   (`$.model.complete`) are not in it, and neither are they in `/cost`.
 - **Not seen live:** the desktop app, a mouse click on the pane's ✕, and the status line

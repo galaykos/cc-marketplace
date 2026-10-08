@@ -321,6 +321,65 @@ describe('session-hud', () => {
     expect(world.writes.map(([path]) => path)).toEqual(['/cfg/plugins/session-hud-root'])
   })
 
+  test('starts after a reload that raises no session.start', async ($, on) => {
+    const world = seat(on)
+    const drawn = await $.ui.mount({ plugin: 'session-hud', surface: 'terminal', component: 'PromptHint', requestId: 'prompt-hint', props: HINT })
+
+    await world.clock.advance(0)
+
+    expect(await texts(drawn)).toEqual([`? for shortcuts|${LINE}`])
+    expect(world.registered).toEqual(['hud'])
+  })
+
+  test('/hud works after a reload that raises no session.start', async ($, on) => {
+    const world = seat(on)
+
+    await $.command.run(HUD)
+
+    expect(world.opened).toEqual(['hud'])
+  })
+
+  test('keeps the turn line whole with every other surface off', { options: { cc_hud_hint: false } }, async ($, on) => {
+    const world = seat(on)
+
+    await start($)
+    await $.turn.start({ text: 'fix it', turnId: 't1' })
+    world.costUsd = 1.28
+    world.percent = 49
+    await $.turn.complete({
+      answer: 'done',
+      durationMs: 4_000,
+      isAborted: false,
+      turnId: 't1',
+      reason: 'answer',
+      usage: { model: 'claude-opus-5-5', input_tokens: 10, output_tokens: 3_200, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+    })
+
+    expect(await footer($, 'm1', 4_000)).toEqual(['Baked for 4s', '  3.2k out · $0.08 · ctx +6%'])
+    expect(world.git, 'no line shows git, so none runs').toEqual([])
+  })
+
+  test("a footer drawn before the turn started never takes that turn's line", async ($, on) => {
+    seat(on)
+    await start($)
+
+    const old = await $.ui.mount({ plugin: 'session-hud', surface: 'terminal', component: 'TurnDuration', requestId: 'old', props: { word: 'Baked', durationMs: 3_000 } })
+
+    await $.turn.start({ text: 'fix it', turnId: 't1' })
+    await $.turn.complete({
+      answer: 'done',
+      durationMs: 3_400,
+      isAborted: false,
+      turnId: 't1',
+      reason: 'answer',
+      usage: { model: 'claude-opus-5-5', input_tokens: 10, output_tokens: 900, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+    })
+    await old.redraw()
+
+    expect(await texts(old)).toEqual(['Baked for 3s'])
+    expect(await footer($, 'new', 3_400)).toEqual(['Baked for 3s', '  900 out'])
+  })
+
   test('/hud registers, opens the pane, and closes it on a second run', async ($, on) => {
     const world = seat(on)
 
