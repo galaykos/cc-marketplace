@@ -227,7 +227,7 @@ four features under three off switches.
   send it. Not offered for an index whose every card is closed or that `gate-pass.json`
   names, nor again for an index already shown this session. Off: `CC_SUGGEST=off`,
   environment only with no `/config` option, which also silences the next-step suggestions
-  of taskmaster, code-review and git-workflow.
+  of taskmaster, code-review, git-workflow, debugging and testing.
 - **Status line** (`hooks/board.ts`). While a run is registered on the current branch, one
   line is pinned under the prompt:
   `task-runner  <phase>  card <N>/<total>  <p> parked  <ultra|goal>`, N counting done cards

@@ -561,7 +561,8 @@ Since 0.31.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed un
   shown it, not again for the same HEAD commit in this session; one the host did not show
   is offered again at the next turn end.
 - **Off switch.** `CC_SUGGEST=off`, environment only with no `/config` option, silences
-  this and the next-step suggestions of taskmaster, task-runner and git-workflow together.
+  this and the next-step suggestions of taskmaster, task-runner, git-workflow, debugging
+  and testing together.
   `CC_REVIEW_NUDGE` and `CC_REMIND` do not touch it.
 - **CLI.** With mods off in the host, on a CLI below 2.1.287 (which loads no module), on
   2.1.288-2.1.290, or with `CC_SUGGEST=off`, the module offers nothing and the classic hooks

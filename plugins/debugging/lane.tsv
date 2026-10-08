@@ -13,3 +13,10 @@ debugging:debugger	agent	understand	reproduce-and-bisect-investigation	dispatche
 debugging:remind	hook	any	stuck-loop-signal	UserPromptSubmit prompt head matches a stuck-loop phrase: still failing/broken/crashing, same error, didn't work, not working, keeps failing/breaking/crashing, failing/broke again, nothing works, or a second/third/fourth time|attempt|try	-
 # generated:end
 debugging:systematic-debugging	skill	understand	incident-diagnosis	an error, failing test or unexpected behaviour needs a root cause before any fix is written	-
+# The next-step suggestion mods (code-review, git-workflow, taskmaster, task-runner, debugging, testing) fill one prompt slot at main-loop turn end; when two fire in one turn the last caller wins (accepted residual, named in each plugin's README). Phase any: the shared mod kit silences them under any live phase sentinel.
+# lane-cofire-ok: debugging:suggest code-review:suggest
+# lane-cofire-ok: debugging:suggest git-workflow:suggest
+# lane-cofire-ok: debugging:suggest taskmaster:suggest
+# lane-cofire-ok: debugging:suggest task-runner:suggest
+# lane-cofire-ok: debugging:suggest testing:suggest
+debugging:suggest	mod	any	next-step-suggestion	main-loop turn end after the same Bash command (whitespace aside) failed a second time in this session with no passing run of it between, not refused or interrupted, no live phase sentinel, CC_SUGGEST not off, once per command per session	-

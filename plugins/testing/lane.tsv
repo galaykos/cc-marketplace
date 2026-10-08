@@ -7,3 +7,9 @@
 testing:test-engineer	agent	verify	test-authoring	changed code has no covering test, or the request names tests, coverage, fixtures, or mocks	-
 # generated:end
 testing:protect-tests	hook	any	test-weakening-write-block	a Write/Edit, or a Bash heredoc/echo whose pipeline writes a test file, skips, deletes or loosens an existing test assertion rather than changing the code under test	testing:testing-best-practices
+# The next-step suggestion mods (code-review, git-workflow, taskmaster, task-runner, debugging, testing) fill one prompt slot at main-loop turn end; when two fire in one turn the last caller wins (accepted residual, named in each plugin's README). Phase any: the shared mod kit silences them under any live phase sentinel.
+# lane-cofire-ok: testing:suggest code-review:suggest
+# lane-cofire-ok: testing:suggest git-workflow:suggest
+# lane-cofire-ok: testing:suggest taskmaster:suggest
+# lane-cofire-ok: testing:suggest task-runner:suggest
+testing:suggest	mod	any	next-step-suggestion	main-loop turn end after one test-runner Bash command (npm/pnpm/yarn/bun test, vitest, jest, pytest, phpunit, pest, artisan test, go test, cargo test, rspec, mocha, playwright test, dotnet test) both passed and failed in this session with no successful Write/Edit/MultiEdit/NotebookEdit between, no live phase sentinel, CC_SUGGEST not off, once per command per session	-

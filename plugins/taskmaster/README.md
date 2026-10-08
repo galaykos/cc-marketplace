@@ -220,7 +220,8 @@ Since 0.48.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed un
 - **Both fire.** The classic clarify-first reminder still speaks to the model; the
   suggestion speaks to you. Neither replaces the other.
 - **Off switch.** `CC_SUGGEST=off` silences this marketplace's next-step suggestions
-  (taskmaster, task-runner, code-review, git-workflow); there is no `/config` option.
+  (taskmaster, task-runner, code-review, git-workflow, debugging, testing); there is no
+  `/config` option.
 - **One shared slot.** The prompt box holds one suggestion, so when several are offered
   at one turn end the last caller wins, and a suggestion shown and then replaced counts
   as shown. Claude Code's own suggestion is not suppressed.
