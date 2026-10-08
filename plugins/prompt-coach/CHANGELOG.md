@@ -2,6 +2,18 @@
 
 All notable changes to the `prompt-coach` plugin.
 
+## 0.3.0 — 2026-10-07
+
+- **Pick where the mascot lives.** `cc_coach_mascot` / `CC_COACH_MASCOT` is now `pane` (the
+  default), `statusline` or `off`. `statusline` pins a text face under the prompt in every
+  renderer: `(^_^) coach` at rest, `checking…` during a hold, the flag's kind and reason
+  while the bubble shows. The variable's `0` and `false` still mean off.
+- **The pane can no longer be closed.** Its close mark, Esc and ctrl+x x show a toast
+  naming the setting instead; the refusal follows the CLI types and is not exercised by a
+  test, since the test kit cannot raise a person's close.
+- **Upgrading from 0.2.0.** A `/config` value of `false` for `cc_coach_mascot` no longer
+  fits the option, and the CLI reads it as the default `pane`: set `off` again.
+
 ## 0.2.0 — 2026-10-07
 
 - **A mascot pane.** In the fullscreen terminal UI (`"tui": "fullscreen"`) the sprite stays

@@ -7,8 +7,8 @@ running card or reopens a decision its spec settled; only a confidently flagged 
 pixel-art sprite shows your text, the reason and a rewrite, with buttons that fill the
 prompt box and never submit it. A haiku first pass judges every eligible prompt, and the
 standby model below confirms a flag, at most 10 times a session. Terminal only; it
-needs Claude Code 2.1.291 or newer with mods allowed. In the fullscreen terminal UI the
-sprite also stays on screen as a mascot, in a pane beside the transcript.
+needs Claude Code 2.1.291 or newer with mods allowed. The coach also stays on screen as a
+mascot: a pixel-art pane beside the transcript, or a text face in the status line.
 
 Bulk installs leave it out, because it bills a model call per eligible prompt:
 `/all-plugins:install` and `/stack-scan:suggest --full` skip it, though
@@ -109,29 +109,41 @@ CLI's own hint.
 
 ## The mascot
 
-- **Where.** A pane titled `coach`, 18 columns wide, docked beside the transcript. It opens
-  once a session, at the first draw of the band in a terminal session whose renderer is
-  fullscreen (`"tui": "fullscreen"` in settings.json, or `CLAUDE_CODE_NO_FLICKER=1`). Under
-  the default renderer it never opens, because the CLI would seat an unasked pane inline
-  above the prompt. A terminal too narrow to place it leaves it waiting; the CLI seats it
-  once you widen the terminal. **Gate** — `tests/coach-view.test.ts`, "opens one docked pane
-  a session, only under the fullscreen renderer" and "opens no pane where the renderer
-  would seat it inline".
-- **What it shows.** The idle sprite at rest, the thinking loop with `checking…` while a
-  prompt is held, and the talking pose with `flagged` while the band shows a bubble. The
-  bubble and its buttons stay in the band above the prompt. A pane narrower than 16 columns
-  or shorter than 8 rows draws no sprite. **Gate** — "the pane shows the idle sprite and
-  follows the judgment", "says flagged while the band shows a bubble".
-- **The blink.** At rest the eyes shut for 0.15 s every 4 s. `s: Still` in the pane stops
-  the blink for the session; the sprite stays. A pane that refuses the blink (closed, or
-  behind another pane's tab) stops it until the pane draws again. **Gate** — "blinks every
-  4 s at rest", "Still stops the blink", "a pane that refuses the blink stops blinking".
-- **Closing it.** Close the pane and it stays closed for the session; a new session opens
-  it again. `CC_COACH_MASCOT=off`, or the `/config` option `cc_coach_mascot` off, keeps it
-  from opening at all and changes nothing about the judging; `CC_PROMPT_COACH=off` turns the
-  mascot off with the coach. **Gate** — "CC_COACH_MASCOT=off opens no pane, and the coach
-  still judges", "CC_PROMPT_COACH=off opens no pane either".
-- **No model calls.** The mascot only draws; it costs a timer and one blit every 4 s.
+`cc_coach_mascot` (or `CC_COACH_MASCOT`) picks where he lives: `pane` (the default),
+`statusline` or `off`. It is read once, at the first draw of the band in a session, and
+changes nothing about the judging. `CC_PROMPT_COACH=off` turns him off with the coach, and
+the variable's `0` and `false` mean off too. **Gate** — `tests/coach-view.test.ts`,
+"CC_COACH_MASCOT=off opens no pane, and the coach still judges", "off shows no mascot at
+all", "CC_COACH_MASCOT=0 is off", "CC_COACH_MASCOT=statusline beats the pane option".
+
+- **`pane`.** A pane titled `coach`, 18 columns wide, docked beside the transcript, opened
+  once a session, only when the renderer is fullscreen (`"tui": "fullscreen"` in
+  settings.json, or `CLAUDE_CODE_NO_FLICKER=1`): under the default renderer the CLI would
+  seat an unasked pane inline above the prompt, so none opens. The CLI 2.1.292 types say an
+  unasked pane waits undrawn below 144 terminal columns (110 once you have opened that pane
+  yourself) and is seated when the terminal is widened. **Gate** — "opens one docked pane a
+  session, only under the fullscreen renderer", "opens no pane where the renderer would seat
+  it inline".
+  - It shows the idle sprite at rest, the thinking loop with `checking…` while a prompt is
+    held and the talking pose with `flagged` while the band shows a bubble; the bubble and
+    its buttons stay in the band. A pane under 16 columns or 8 rows draws no sprite.
+    **Gate** — "the pane shows the idle sprite and follows the judgment", "says flagged
+    while the band shows a bubble".
+  - At rest the eyes shut for 0.15 s every 4 s. `s: Still` stops the blink for the
+    session. A pane that refuses the blink stops it until the pane draws again. **Gate** —
+    "blinks every 4 s at rest", "Still stops the blink", "a pane that refuses the blink
+    stops blinking".
+  - **He cannot be closed.** The pane's close mark, Esc and ctrl+x x raise a close the
+    coach refuses, with a toast saying how to move or remove him; only `off` or
+    `statusline` in a new session does. **Recorded** — the CLI types say a `ui.close` hook
+    answering without `next` keeps the pane open on a person's close; the test kit cannot
+    raise one, so no test exercises it.
+- **`statusline`.** A pinned status line under the prompt, in every renderer: `(^_^) coach`
+  at rest, `(-_-) coach  checking…` while a prompt is held, `(O_O) coach  Unclear: <reason>`
+  while the band shows a bubble, back at rest on your next prompt. No sprite, no blink, and
+  nothing to close. **Gate** — "statusline shows a text face in any renderer, and opens no
+  pane", "the status line follows the judgment".
+- **No model calls.** The mascot only draws: the pane costs a timer and one blit every 4 s.
 
 ## What it flags
 
@@ -161,7 +173,7 @@ run the judge sees no card or spec context.
 | `/config` option | variable | values | default |
 |---|---|---|---|
 | `cc_prompt_coach` | `CC_PROMPT_COACH` | on, off | on |
-| `cc_coach_mascot` | `CC_COACH_MASCOT` | on, off (the mascot pane only) | on |
+| `cc_coach_mascot` | `CC_COACH_MASCOT` | `pane`, `statusline`, `off` (the mascot only) | `pane` |
 | `cc_coach_model` | `CC_COACH_MODEL` | `sonnet`, `opus` (the standby judge) | `sonnet` |
 | `cc_coach_sensitivity` | `CC_COACH_SENSITIVITY` | `unactionable`, `ambiguous` | `unactionable` |
 
@@ -368,11 +380,12 @@ The band and its buttons:
 
 The mascot:
 
-- **Never walked live.** The pane, its blink and `Still` are proven in the test kit only:
-  the kit accepted `$.ui.open` from inside the band's render hook and passed
-  `viewport.isFullscreen` to it, which no live CLI has been seen to do. **Recorded.**
-- **The width floor.** The CLI's minimum terminal width for seating an unasked pane was
-  not measured. **Recorded.**
+- **Seen live once.** One maintainer screenshot (2026-10-07, 0.2.0, fullscreen, a terminal
+  drawing Image pixels) showed the pane open beside the transcript with the idle sprite,
+  so the open from the band's render hook works live. `Still` was not visible in it, and
+  the blink, the refused close and the status line have not been seen live. **Recorded.**
+- **The width floor** (144 columns, 110 once asked) is read from the CLI types, not
+  measured. **Recorded.**
 - **Beside `/task-board`.** Both are panes in one dock, one shown at a time (the CLI's
   pane roster). Whether a blink sent to the hidden coach pane is refused, which stops it
   until the pane is shown again, or drawn unseen was not observed. **Recorded.**
@@ -405,7 +418,7 @@ applies its rubric well, which is judge quality above. **Recorded**: a first liv
 2.1.291 and 2.1.292 passed 8 of 8 screens, and a final one on the shipped code on 2.1.292
 walked the marker-gated drop at 200x50 and 80x24, an opus verdict and `/init` ending the
 bubble; the collapse toast was not re-walked with the marker. Those walks predate the
-mascot pane (0.2.0), which no live walk has seen.
+mascot; one screenshot has seen the pane since (The mascot, residuals).
 
 - **The three rows in the root README's off-switch table: gate.** `scripts/generate.sh
   --check` fails the build when they drift from `userConfig` in `plugin.json`.

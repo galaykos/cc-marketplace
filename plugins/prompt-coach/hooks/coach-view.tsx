@@ -29,6 +29,9 @@ const SPRITE = { key: 'sprite', columns: 16, rows: 8, pixels: 16 } as const
 
 const CAPTIONS: Record<Pose, string> = { idle: '', thinking: 'checking…', talking: 'flagged' }
 
+// ASCII only: a status line has no Raster, and an ambiguous-width face would shift on CJK-wide terminals.
+const FACES: Record<Pose, string> = { idle: '(^_^)', thinking: '(-_-)', talking: '(O_O)' }
+
 // A blank Raster cell in every drawing of the coach: the one element a blit can test the band with on any terminal.
 const MARKER_KEY = 'marker'
 
@@ -191,6 +194,21 @@ export function coachView(kit: CoachKit, view: Exclude<CoachView, { mode: 'idle'
       </Box>
     </Box>
   )
+}
+
+export function statusText(view: CoachView): string {
+  const face = `${FACES[poseOf(view)]} coach`
+
+  switch (view.mode) {
+    case 'idle':
+      return face
+    case 'thinking':
+      return `${face}  checking…`
+    case 'speaking':
+      return `${face}  ${kindOf(view.verdict)}: ${view.verdict.reason}`
+    case 'hint':
+      return `${face}  sent, but a quick check flagged it ${view.label}`
+  }
 }
 
 // A blink that runs past 5 s needs a stop control in view (WCAG 2.2.2), so Still shows whenever one is due.

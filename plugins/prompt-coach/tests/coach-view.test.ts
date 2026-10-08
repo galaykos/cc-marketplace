@@ -80,6 +80,7 @@ function seat(on: On, live: Live = {}) {
     passes: [] as unknown[],
     stateWriteMs: 0,
     opened: [] as unknown[],
+    statuses: [] as (string | undefined)[],
   }
 
   on('session.version', () => ({ value: { version: '2.1.291' } }))
@@ -159,6 +160,12 @@ function seat(on: On, live: Live = {}) {
   on('ui.render', { component: 'AbovePrompt' }, ($, e) => $.ui.resolve(e).Box({}))
 
   on('ui.render', { component: 'Pane' }, ($, e) => $.ui.resolve(e).Box({}))
+
+  on('ui.status', ($, e) => {
+    world.statuses.push(e.text)
+
+    return { value: undefined }
+  })
 
   on('ui.open', ($, e) => {
     world.opened.push(e)
@@ -940,5 +947,59 @@ describe('mascot', () => {
     expect(await spriteOf(pane)).toBeUndefined()
     expect(await lines(pane)).toEqual([])
     expect(paneBlits(world)).toEqual([])
+  })
+
+  test('statusline shows a text face in any renderer, and opens no pane', { options: { cc_coach_mascot: 'statusline' } }, async ($, on) => {
+    const world = seat(on)
+
+    await mountFullscreen($, { columns: 100, rows: 30, isFullscreen: false })
+    await world.clock.settle()
+
+    expect(world.statuses).toEqual(['(^_^) coach'])
+    expect(world.opened).toEqual([])
+  })
+
+  test('the status line follows the judgment', { options: { cc_coach_mascot: 'statusline' } }, async ($, on) => {
+    const world = seat(on)
+
+    await mountFullscreen($)
+    await world.clock.settle()
+
+    world.replies.haiku = [answer('unclear', 900)]
+
+    expect(await judged($, world)).toEqual(dropOf('unclear'))
+    expect(world.statuses).toEqual(['(^_^) coach', '(-_-) coach  checking…', `(O_O) coach  Unclear: ${REASON}`])
+
+    world.replies.haiku = [answer('clear', 600)]
+    await judged($, world, OTHER)
+
+    expect(world.statuses.slice(3), 'the next prompt ends the flag').toEqual(['(^_^) coach', '(-_-) coach  checking…', '(^_^) coach'])
+  })
+
+  test('CC_COACH_MASCOT=statusline beats the pane option', { options: { cc_coach_mascot: 'pane' } }, async ($, on) => {
+    const world = seat(on, { env: { CC_COACH_MASCOT: 'statusline' } })
+
+    await mountFullscreen($)
+    await world.clock.settle()
+
+    expect([world.statuses, world.opened]).toEqual([['(^_^) coach'], []])
+  })
+
+  test('off shows no mascot at all', { options: { cc_coach_mascot: 'off' } }, async ($, on) => {
+    const world = seat(on)
+
+    await mountFullscreen($)
+    await world.clock.settle()
+
+    expect([world.statuses, world.opened]).toEqual([[], []])
+  })
+
+  test('CC_COACH_MASCOT=0 is off, as the other switches read it', { options: { cc_coach_mascot: 'statusline' } }, async ($, on) => {
+    const world = seat(on, { env: { CC_COACH_MASCOT: '0' } })
+
+    await mountFullscreen($)
+    await world.clock.settle()
+
+    expect([world.statuses, world.opened]).toEqual([[], []])
   })
 })
