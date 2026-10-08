@@ -152,6 +152,43 @@ the exception — real harnesses, run on every PR: `scripts/__tests__/pick.test.
 picker's parser), `scan.test.sh` (the report's mechanical pass) and
 `licence-scan.test.sh` (the licence lane, including its exit-3 unresolvable path).
 
+## Mods (Claude Code ≥ 2.1.291)
+
+Since 0.12.0 the plugin ships a hooks module, `hooks/pins.ts`, the only entry under
+`modules` in `hooks/hooks.json`. When any skill loads — this marketplace's or another's —
+and its text carries a `Last verified:` stamp naming an npm package (`npm:next@16.3`), the
+module looks the package up and prepends one line per installed package before the
+model reads the skill:
+
+```text
+Installed in this project, read by stack-scan when this skill loaded:
+- next 15.2.1: older than the 16.3 this skill was checked against, so advice for 16.3 may name APIs this project does not have.
+```
+
+- **Where it looks.** `node_modules/<pkg>/package.json` at the session's directory, then at
+  the repository root; for a package neither has, `package-lock.json` (lockfile version 2
+  or 3) in the same two places, read once each and marked `(lockfile; node_modules not
+  read)`. A package found nowhere gets no line, and a skill with no installed stamped
+  package is left exactly as it was. **Gate** — `tests/pins.test.ts`.
+- **Drift** is judged at the precision the stamp names: a stamp of `16` ignores minors,
+  `16.3` does not. **Gate** — "drift is judged at the precision the stamp names".
+- **Off.** `CC_VERSION_PINS=off` (or `0`, `false`), or the `/config` option
+  `cc_version_pins`. Below CLI 2.1.291, with mods off in the host, or under an
+  organization's `allowManagedModsOnly`, no line is added. A failure while reading leaves
+  the skill's text as it was. **Gate** — the off, floor and failure cases in the same file.
+- **Cost.** One added line per installed stamped package, in a channel this marketplace's
+  `context-budget.sh` cannot meter: the text a mod puts into a skill is never measured.
+  **Unenforceable** — the meter runs no mod.
+
+Residuals, stated:
+
+- **Only what the SKILL.md body says.** A stamp in a skill's `references/` file is read
+  through a tool call later, not when the skill loads, so it gets no line. **Recorded.**
+- **npm only.** No SKILL.md in this marketplace stamps a composer package, so composer,
+  pnpm's and yarn's lockfiles, and Yarn Plug'n'Play installs are not read. **Recorded.**
+- **Never seen live.** Proven in the test kit, with the engine's `skill.prompt` stubbed.
+  **Recorded.**
+
 ## Pairs well with
 
 - **taskmaster** — hard constraints for the interrogation come from this inventory
