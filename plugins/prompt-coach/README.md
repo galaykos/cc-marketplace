@@ -130,20 +130,27 @@ all", "CC_COACH_MASCOT=0 is off", "CC_COACH_MASCOT=statusline beats the pane opt
     **Gate** — "the pane shows the idle sprite and follows the judgment", "says flagged
     while the band shows a bubble".
   - At rest the eyes shut for 0.15 s every 4 s. `s: Still` stops the blink for the
-    session. A pane that refuses the blink stops it until the pane draws again. **Gate** —
-    "blinks every 4 s at rest", "Still stops the blink", "a pane that refuses the blink
-    stops blinking".
-  - **He cannot be closed.** The pane's close mark, Esc and ctrl+x x raise a close the
-    coach refuses, with a toast saying how to move or remove him; only `off` or
-    `statusline` in a new session does. **Recorded** — the CLI types say a `ui.close` hook
-    answering without `next` keeps the pane open on a person's close; the test kit cannot
-    raise one, so no test exercises it.
+    session. A pane that refuses the blink stops it until the pane draws again, then
+    blinks again. **Gate** — "blinks every 4 s at rest", "Still stops the blink", "a pane
+    that refuses the blink stops blinking until it draws again".
+  - **He cannot be closed.** The pane's close mark and ctrl+x x raise a close the coach
+    refuses while the display is `pane`, with a toast saying how to move or remove him.
+    Esc only hands the keys back (the pane is not opened with `closeOnEscape`). **Recorded**
+    — the CLI types say a `ui.close` hook answering without `next` keeps the pane open on
+    a person's close; the test kit's engine raises no `ui.close` (its `ui` carries focus,
+    input, mount, press, render, scroll and select), so no test exercises it.
+  - **Switching away.** `statusline` or `off` set in `/config` reloads the plugin, and the
+    pane still open from before is closed at the band's next draw; set through
+    `CC_COACH_MASCOT` it takes a new session. Under any display but `pane` the pane draws
+    nothing. **Gate** — "a display other than pane closes the pane a /config change left
+    open", "the pane draws nothing and never blinks unless the display is pane".
 - **`statusline`.** A pinned status line under the prompt, in every renderer: `(^_^) coach`
   at rest, `(-_-) coach  checking…` while a prompt is held, `(O_O) coach  Unclear: <reason>`
   while the band shows a bubble, back at rest on your next prompt. No sprite, no blink, and
   nothing to close. **Gate** — "statusline shows a text face in any renderer, and opens no
   pane", "the status line follows the judgment".
-- **No model calls.** The mascot only draws: the pane costs a timer and one blit every 4 s.
+- **No model calls.** The mascot only draws: the pane's blink costs a timer, two blits (shut,
+  then open 0.15 s later) and one more timer dispatch every 4 s.
 
 ## What it flags
 
@@ -181,9 +188,10 @@ Set the option under `/config` or `/plugin configure prompt-coach`; the variable
 your shell or a settings.json `env` block, overrides it. `CC_PROMPT_COACH` turns the coach
 off only at exactly `off`, `0` or `false`, in any case; any other non-empty value (`no`,
 `disabled`, ` off` with a leading space) turns it on, over a `/config` off, and an empty
-or unset variable leaves the option in charge. The other two variables ignore case and
-surrounding spaces, and a value outside the list falls back to the option, then the
-default.
+or unset variable leaves the option in charge. `CC_COACH_MODEL` and `CC_COACH_SENSITIVITY`
+ignore case and surrounding spaces, and a value outside the list falls back to the option,
+then the default. `CC_COACH_MASCOT` reads the same way, except that `0` and `false` (any
+case) mean `off` rather than falling back.
 
 Fixed in code: haiku as the first pass, the 5 s deadline, 10 standby checks a session,
 and a 10-minute back-off after 3 judgments in a row fail (an API error, a refused call, a

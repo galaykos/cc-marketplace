@@ -1,6 +1,6 @@
 {
   "name": "prompt-coach",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A prompt coach for the terminal. At Enter it holds an eligible prompt for up to 5 s while a haiku first pass, and on a flag a standby sonnet or opus, judges whether nobody could act on it, it contradicts an earlier instruction, or it strays from a running task-runner card; only a confidently flagged prompt is dropped, and an animated pixel-art sprite shows your text, the reason and a rewrite, with buttons that fill the prompt box and never submit. Each eligible prompt bills a haiku call (a flagged one a standby call too, at most 10 a session), and /cost shows none of it. Terminal only; needs Claude Code 2.1.291; its own failures always pass the prompt. Off with CC_PROMPT_COACH=off.",
   "author": {
     "name": "Ivan-WG",

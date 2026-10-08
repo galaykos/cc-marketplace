@@ -66,6 +66,8 @@ function seat(on: On, answer: Answer, live: Live = {}) {
     return { type: 'file' }
   })
 
+  on('prompt.attachment', ($, e) => ({ text: e.text }))
+
   on('ui.toast', ($, e) => {
     world.toasts.push(e.text)
 
@@ -425,6 +427,14 @@ describe('@-mentions', () => {
     expect(world.attached).toEqual([ENV])
   })
 
+  test('an offset or limit below 1 widens the scan instead of narrowing it', async ($, on) => {
+    const world = seat(on, () => stdout(''), { files: { [ENV]: [`KEY=${AWS}`, 'REGION=eu-west-1', ''].join('\n') } })
+
+    expect(await $.prompt.mention(mention(ENV, { offset: 0 }))).toEqual({ deny: 'holds an AWS access key ID' })
+    expect(await $.prompt.mention(mention(ENV, { offset: 1, limit: 0 }))).toEqual({ deny: 'holds an AWS access key ID' })
+    expect(world.attached).toEqual([])
+  })
+
   test('leaves a mention to the engine when the file cannot be read', async ($, on) => {
     const world = seat(on, () => stdout(''))
 
@@ -450,3 +460,39 @@ describe('@-mentions', () => {
     expect(world.attached).toEqual([])
   })
 })
+
+const attach = (text: string, type = 'file') => ({ type, text, origin: { kind: 'engine' as const } })
+
+describe('attached files', () => {
+  test('masks a secret in a mentioned file the engine attached', async ($, on) => {
+    const world = seat(on, () => stdout(''))
+    const r = await $.prompt.attachment(attach(`Contents of /work/big.log:\nline 12 token ${GH}\n`))
+
+    expect(r.text).toContain(`line 12 token ${GH_MASK}`)
+    expect(r.text).not.toContain(GH)
+    expect(r.text).toEqual(NOTE)
+    expect(world.toasts).toEqual(['Redacted 1 secret from an attached file: a GitHub token'])
+  })
+
+  test('masks a file changed outside the session', async ($, on) => {
+    seat(on, () => stdout(''))
+
+    expect((await $.prompt.attachment(attach(`+AWS_ACCESS_KEY_ID=${AWS}`, 'edited_text_file'))).text).toContain(AWS_MASK)
+  })
+
+  test('leaves a clean file, a placeholder and other attachment kinds as they are', async ($, on) => {
+    const world = seat(on, () => stdout(''))
+
+    expect((await $.prompt.attachment(attach('export const x = 1'))).text).toBe('export const x = 1')
+    expect((await $.prompt.attachment(attach(`KEY=${AWS_DOC}`))).text).toBe(`KEY=${AWS_DOC}`)
+    expect((await $.prompt.attachment(attach(`echo ${AWS}`, 'todo_reminder'))).text, 'not a file').toBe(`echo ${AWS}`)
+    expect(world.toasts).toEqual([])
+  })
+
+  test('passes attachments through under CC_SECRET_REDACT=off', async ($, on) => {
+    seat(on, () => stdout(''), { env: { CC_SECRET_REDACT: 'off' } })
+
+    expect((await $.prompt.attachment(attach(`KEY=${AWS}`))).text).toBe(`KEY=${AWS}`)
+  })
+})
+

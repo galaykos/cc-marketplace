@@ -11,7 +11,7 @@ Blocks secrets before they reach disk.
 | The pattern set itself (which shapes count as high-confidence), held in `hooks/patterns.tsv`, the one source the write guard and the redaction mod both read | **recorded** — the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` (§ `plugins/secret-scanning/hooks/scan.sh`) argues the non-provider rules and the placeholder exemption; `scripts/__tests__/scan-hook.test.sh` pins the behaviour, nothing pins the coverage |
 | An unusable `hooks/patterns.tsv` (missing, CRLF, a malformed row, a pattern outside the regex dialect its header states) | **gate** — the write guard's one exception to fail-open: `scan.sh` denies every write it would scan, naming the file, the line and `CC_SECRET_SCAN=off`; `scan-hook.test.sh` runs each shape. The redaction mod logs it once and passes output through instead |
 | Secrets in any tool's output, on Claude Code ≥ 2.1.291 — masked as `[REDACTED:<label>]`, or the result withheld (see Mods, below) | **gate** — `hooks/redact.ts`; `tests/redact.test.ts` runs under `claude plugin test` in CI (the marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails the build. A subagent's call is not tested (the test kit drops `agentId`) |
-| A file attached with an `@` mention whose text (or mentioned lines) holds a secret, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses the mention with a toast; same tests, same CI step. A subagent's mention is not tested |
+| A file attached with an `@` mention, or changed outside the session, whose text holds a secret, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses the mention with a toast, and masks what the engine attaches either way; same tests, same CI step. A subagent's mention is not tested |
 | A `Write`/`Edit`/`MultiEdit`/`NotebookEdit` whose new text carries `[REDACTED:`, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses it, naming `CC_SECRET_REDACT=off`, so a redacted read written back cannot replace the real value; same tests, same CI step. Not refused through `Bash` or an MCP write tool |
 | The mod and the write guard agree on what is a secret (one pattern file, two regex engines) | **gate** — `scripts/__tests__/pattern-parity.test.sh` runs one fixture set through `scan.sh` and the mod's matcher and fails on any disagreement it does not declare; it proves its fixtures, not every input, and its declared divergences (astral characters in a webhook tail, a NUL inside a key) are fixtures of their own |
 | Invisible characters in a file this session wrote or read | **advisory** — `hooks/unicode-scan.sh` is a PostToolUse **warning**; it never blocks, once per file per session |
@@ -126,14 +126,24 @@ standing is in the table at the top.
   budget withholds the output with a refusal naming the failure and
   `CC_SECRET_REDACT=off`; the tool's effects stand.
 - **`@` mentions** (since 0.12.0). A file named after an `@` in a prompt is read with no
-  `tool.call`, so the redaction above never sees it, and the CLI gives a hook no way to
-  rewrite what it attaches. The module reads the file itself, only the mentioned lines when
-  the mention names some (`@.env#L3`), and when a pattern matches outside the placeholder
-  escape it refuses the mention: nothing of the file reaches the prompt, and a toast says
-  which file and labels, since the refusal's own reason goes only to the debug log. Claude
-  can still `Read` the file, which the redaction masks. A file the module cannot read is
-  left to the engine; a scan that throws or overruns its budget refuses the mention, with
-  a toast naming `CC_SECRET_REDACT=off`. **Gate** — `tests/redact.test.ts`, "@-mentions".
+  `tool.call`, so the redaction above never sees it. Two checks cover it. First the
+  module reads the file itself, only the mentioned lines when the mention names some
+  (`@.env#L3`; an offset or limit below 1 widens the scan), and when a pattern matches
+  outside the placeholder escape it refuses the mention: nothing of the file reaches the
+  prompt, and a toast names the file and labels, since the refusal's own reason goes only
+  to the debug log. Claude can still `Read` the file, which the redaction masks. A file the
+  module cannot read (missing, or over the 4 MiB a plugin may read) is left to the engine,
+  and so to the second check. A scan that throws or overruns its budget refuses the
+  mention, with a toast naming `CC_SECRET_REDACT=off`. **Gate** — `tests/redact.test.ts`,
+  "@-mentions".
+- **Attached files** (since 0.12.1). The text the engine attaches for a mentioned file
+  (`file`, `already_read_file`) and for a file changed outside the session
+  (`edited_text_file`) passes the same patterns on its way to the model: each match is
+  masked as `[REDACTED:<label>]`, a line for the model names the labels and forbids writing
+  them back, and a toast counts them. This catches what the first check cannot read: a file
+  over 4 MiB, a notebook's decoded cells. The transcript keeps the engine's unmasked
+  record; only the model's copy is masked. A redaction that fails after the file was read
+  leaves the attachment out. **Gate** — `tests/redact.test.ts`, "attached files".
 
 Residuals, stated:
 
@@ -141,7 +151,8 @@ Residuals, stated:
   and its output passes unredacted. An unusable `hooks/patterns.tsv` is logged once and
   every result then passes unredacted (the write guard denies instead). A
   withheld-output refusal that cannot return within the one-second grace of the hook's
-  failure handler lets the result through.
+  failure handler lets the result through. An unusable `hooks/patterns.tsv` also lets every `@` mention and
+  attachment through unscanned.
 - **Private keys.** A key body arriving without its `BEGIN` line in the same string — a
   `Read` with an offset, `tail`, a `Grep` hit inside a `.pem` — is never matched. A
   `BEGIN` literal in source code masks everything up to the next `END` literal in that

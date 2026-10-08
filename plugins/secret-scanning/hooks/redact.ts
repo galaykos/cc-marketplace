@@ -105,15 +105,20 @@ function refusalOf(tool: string): string {
   )
 }
 
-// The lines a mention names (#L10-20), or the whole file.
+// The lines a mention names (#L10-20), or the whole file; an offset below 1 or a limit below 1 widens the scan, never narrows it.
 function mentionedText(text: string, offset: number | undefined, limit: number | undefined): string {
   if (offset === undefined) {
     return text
   }
 
   const lines = text.split('\n')
+  const from = Math.max(1, offset) - 1
 
-  return lines.slice(offset - 1, limit === undefined ? lines.length : offset - 1 + limit).join('\n')
+  return lines.slice(from, limit === undefined || limit < 1 ? lines.length : from + limit).join('\n')
+}
+
+function attachedNoteOf(labels: string[]): string {
+  return `secret-scanning redacted ${labels.join(', ')} from this attached file; each reads [REDACTED:<label>] here and is unchanged at its source. ${WRITE_BACK_BAN}`
 }
 
 function mentionToastOf(mention: string, labels: string[]): string {
@@ -154,7 +159,7 @@ function toastQuietly($: EngineInterface, text: () => string): void {
 }
 
 export function register(on: On, options: PluginOptions) {
-  // An @-mention is read with no tool.call, so the output redaction above never sees it; its text cannot be rewritten, only refused.
+  // An @-mention is read with no tool.call, so the tool.call redaction below never sees it: a secret in the file refuses the mention.
   on('prompt.mention', async ($, e, next) => {
     if (!(await isOn($, options))) {
       return next(e)
@@ -185,6 +190,35 @@ export function register(on: On, options: PluginOptions) {
     toastQuietly($, () => `secret-scanning kept @${e.mention} out of your prompt: its scan failed. CC_SECRET_REDACT=off turns this off.`)
 
     return { deny: 'the secret scan failed' }
+  })
+
+  // The text the engine attached, which the mention check above cannot always read (over 4 MiB, a notebook's decoded cells), and a file changed outside the session.
+  on('prompt.attachment', { type: /^(?:file|already_read_file|edited_text_file)$/ }, async ($, e, next) => {
+    const r = await next(e)
+
+    if (r.text === null || !(await isOn($, options))) {
+      return r
+    }
+
+    const pats = await patternsOf($)
+    const found = pats === null ? null : redact(r.text, pats)
+
+    if (found === null || found.labels.length === 0) {
+      return r
+    }
+
+    toastQuietly($, () => toastOf(maskCount(found.value) - maskCount(r.text), 'an attached file', found.labels))
+
+    return { text: `${String(found.value)}\n${attachedNoteOf(found.labels)}` }
+  }).catch(($, e, next) => {
+    // Once the file was read, an unredacted attachment is worse than none.
+    if (!next.called) {
+      return next(e)
+    }
+
+    toastQuietly($, () => 'secret-scanning left an attached file out: its redaction failed. CC_SECRET_REDACT=off turns this off.')
+
+    return { text: null }
   })
 
   on('tool.call', async ($, e, next) => {

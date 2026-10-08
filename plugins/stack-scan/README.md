@@ -165,11 +165,14 @@ Installed in this project, read by stack-scan when this skill loaded:
 - next 15.2.1: older than the 16.3 this skill was checked against, so advice for 16.3 may name APIs this project does not have.
 ```
 
-- **Where it looks.** `node_modules/<pkg>/package.json` at the session's directory, then at
-  the repository root; for a package neither has, `package-lock.json` (lockfile version 2
-  or 3) in the same two places, read once each and marked `(lockfile; node_modules not
-  read)`. A package found nowhere gets no line, and a skill with no installed stamped
-  package is left exactly as it was. **Gate** — `tests/pins.test.ts`.
+- **Where it looks.** `node_modules/<pkg>/package.json` in the session's directory and each
+  directory above it up to the repository root, nearest first, as Node resolves a package;
+  for a package none has, `package-lock.json` (lockfile version 2 or 3) in the same places,
+  read once each, at its hoisted `node_modules/<pkg>` entry only, and marked `(lockfile;
+  node_modules not read)`. Only a whole semver is taken (`16.3.0`, `16.3.0-rc.1`), so a
+  lockfile from a cloned repository cannot carry text into the skill. A file over the
+  4 MiB a plugin may read is skipped. A package found nowhere gets no line, and a skill with
+  no installed stamped package is left exactly as it was. **Gate** — `tests/pins.test.ts`.
 - **Drift** is judged at the precision the stamp names: a stamp of `16` ignores minors,
   `16.3` does not. **Gate** — "drift is judged at the precision the stamp names".
 - **Off.** `CC_VERSION_PINS=off` (or `0`, `false`), or the `/config` option
@@ -186,6 +189,9 @@ Residuals, stated:
   through a tool call later, not when the skill loads, so it gets no line. **Recorded.**
 - **npm only.** No SKILL.md in this marketplace stamps a composer package, so composer,
   pnpm's and yarn's lockfiles, and Yarn Plug'n'Play installs are not read. **Recorded.**
+- **Monorepos.** A session started at the repository root reads the root's copy, not a
+  workspace's, and a workspace's non-hoisted lockfile entry
+  (`apps/web/node_modules/<pkg>`) is not read. **Recorded.**
 - **Never seen live.** Proven in the test kit, with the engine's `skill.prompt` stubbed.
   **Recorded.**
 

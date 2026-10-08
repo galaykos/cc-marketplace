@@ -2,7 +2,7 @@ import type { EngineInterface, On, PluginOptions } from 'claude-code'
 
 import { isSupported, stateRoot, switchOn } from './cc-kit'
 import type { Host } from './cc-kit'
-import { fromPackageJson, fromPackageLock, pinsNote, stampsOf } from './pins-core'
+import { fromPackageJson, fromPackageLock, lookupDirs, pinsNote, stampsOf } from './pins-core'
 import type { Pin, Stamp } from './pins-core'
 
 // Shared block templates/mods/host-block.ts — re-paste byte-for-byte.
@@ -60,7 +60,7 @@ export function register(on: On, options: PluginOptions) {
       return r
     }
 
-    const dirs = [...new Set([await $.session.cwd(), await stateRoot(hostOf($))])]
+    const dirs = lookupDirs(await $.session.cwd(), await stateRoot(hostOf($)))
     const pins = await pinsOf($, dirs, stamps)
 
     return pins.length === 0 ? r : { ...r, text: `${pinsNote(pins)}\n\n${r.text}` }

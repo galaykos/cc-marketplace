@@ -83,7 +83,7 @@ const MASCOT_PANE = { id: 'prompt-coach', title: 'coach', columns: 18 } as const
 
 const DISPLAYS = ['pane', 'statusline', 'off'] as const
 
-const STAYS_NOTE = 'The coach stays: set cc_coach_mascot in /config, or CC_COACH_MASCOT, to statusline or off'
+const STAYS_NOTE = 'The coach stays: set cc_coach_mascot to statusline or off in /config, or CC_COACH_MASCOT for a new session'
 
 const BLINK_EVERY_MS = 4000
 
@@ -213,8 +213,9 @@ async function tick($: EngineInterface): Promise<void> {
 
   const frame = isLast ? restOf(pose) : frameOf(pose, band.ticks - 1)
 
+  // A view that changed while an earlier blit was answered has been redrawn: its old pose must not be blitted over it.
   for (const drawn of [band.drawn, mascot.drawn]) {
-    if (drawn !== null && drawn.sprite !== null) {
+    if (drawn !== null && drawn.sprite !== null && poseOf(coach.view) === pose) {
       await blitSprite($, drawn.requestId, drawn.sprite, frame)
     }
   }
@@ -265,6 +266,21 @@ async function displayOf($: EngineInterface, options: PluginOptions): Promise<Di
   return choiceOf(value, options.cc_coach_mascot, DISPLAYS, 'pane')
 }
 
+async function mascotDisplay($: EngineInterface, options: PluginOptions): Promise<Display> {
+  mascot.display ??= await displayOf($, options)
+
+  return mascot.display
+}
+
+// A /config change reloads the plugin while its pane stays up: a display that is no longer the pane closes it.
+async function closeLeftoverPane($: EngineInterface): Promise<void> {
+  const panes = await $.ui.panes().catch(() => [])
+
+  if (panes.some(pane => pane.id === MASCOT_PANE.id)) {
+    await $.ui.close({ id: MASCOT_PANE.id }).catch(() => undefined)
+  }
+}
+
 // The pane docks beside the transcript only under the fullscreen renderer: anywhere else an unasked pane would take rows above the prompt.
 async function startMascot($: EngineInterface, isFullscreen: boolean | undefined, options: PluginOptions): Promise<void> {
   if (mascot.isShown || mascot.isStarting) {
@@ -274,9 +290,13 @@ async function startMascot($: EngineInterface, isFullscreen: boolean | undefined
   mascot.isStarting = true
 
   try {
-    mascot.display ??= await displayOf($, options)
+    const display = await mascotDisplay($, options)
 
-    if (mascot.display === 'off' || (mascot.display === 'pane' && isFullscreen !== true)) {
+    if (display !== 'pane') {
+      await closeLeftoverPane($)
+    }
+
+    if (display === 'off' || (display === 'pane' && isFullscreen !== true)) {
       return
     }
 
@@ -654,7 +674,7 @@ export function register(on: On, options: PluginOptions) {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: MASCOT_PANE.id }, async ($, e, next) => {
-    if (!isSupported((await $.session.version()).version)) {
+    if (!isSupported((await $.session.version()).version) || (await mascotDisplay($, options)) !== 'pane') {
       return next(e)
     }
 
@@ -673,7 +693,7 @@ export function register(on: On, options: PluginOptions) {
 
   // Answering without next keeps the pane open; an unload still closes it.
   on('ui.close', async ($, e, next) => {
-    if (e.id !== MASCOT_PANE.id || e.origin.kind !== 'person') {
+    if (e.id !== MASCOT_PANE.id || e.origin.kind !== 'person' || (await mascotDisplay($, options)) !== 'pane') {
       return next(e)
     }
 
