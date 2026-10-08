@@ -50,6 +50,38 @@ Credit: the symptom-asserting repro and its failure-rate step, the shrink step, 
   main thread needs to apply the fix afterwards. It returns the root cause with its
   evidence and the minimal fix; it does not decide whether to ship it.
 
+## Mods (Claude Code ≥ 2.1.291)
+
+Since 0.8.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed under
+`modules` in `hooks/hooks.json` beside the classic reminder, which fires with or without it.
+
+- **What.** At the end of a turn in which the main loop (not a subagent) ran the same `Bash`
+  command a second time and it failed again, with no passing run of that command between,
+  the prompt box offers ``/debugging:debug `<command>` failed twice`` as a next-step
+  suggestion: Tab accepts it, and nothing runs until you send it. Whitespace does not make
+  a command another one; a command over 80 characters is cut with `…`. A refused or
+  interrupted command does not count.
+- **How it differs from the reminder above.** The reminder reads your prompt for a phrase
+  ("still failing"); this reads what the commands did, and speaks to you, not the model.
+- **When it stays silent.** While a phase sentinel is live (a taskmaster or task-runner run
+  owns the turn). Once the prompt box has shown it for a command, not again for that
+  command in this session; one the host did not show is offered again at the next turn end.
+- **Off switch.** `CC_SUGGEST=off`, environment only, silences this and every other
+  next-step suggestion of this marketplace together.
+- **CLI.** With mods off in the host, on a CLI below 2.1.287 (which loads no module), on
+  2.1.288-2.1.290, or with `CC_SUGGEST=off`, the module offers nothing and the classic hooks
+  work as before. On CLI 2.1.287 with mods on, the module still registers its `tool.call`
+  hook (the version check runs inside it), and that CLI's own bug — a plugin's `tool.call`
+  hook breaking Bash and file search in worktree subagents, fixed in 2.1.288 — applies even
+  with `CC_SUGGEST=off`: upgrade the CLI or turn mods off.
+- **Limits.** The prompt box holds one suggestion: when another plugin offers one at the
+  same turn end the later replaces the earlier, and Claude Code's own suggestion is not
+  suppressed. What was shown is kept in memory, so a new session offers it again. A failed
+  command is one the CLI answers as an error; how a non-zero exit reaches a hook was not
+  observed live (**recorded**, from the mods API's result shape).
+- **Standing.** The conditions above are a **gate**: `tests/suggest.test.ts` runs under
+  `claude plugin test` in CI. Whether the suggestion shortens a debugging loop is unmeasured.
+
 ## Pairs well with
 
 - **task-runner** — its three-cycle park rule and this plugin's three-failed-fixes escalation are the same discipline

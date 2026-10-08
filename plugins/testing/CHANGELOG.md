@@ -6,6 +6,10 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.13.0 — 2026-10-08
+
+- **A flake-hunt suggestion (Claude Code ≥ 2.1.291).** A hooks module, `hooks/suggest.ts`, offers `/testing:flake-hunt` in the idle prompt box (Tab accepts, nothing runs until you send it) at the end of a turn in which one test-runner command has both passed and failed in this session with no successful `Write`/`Edit`/`MultiEdit`/`NotebookEdit` between, once per command per session, silent under a live phase sentinel and `CC_SUGGEST=off`. `hooks/cc-kit.ts` is a byte copy of the shared mod kit. Six cases in `tests/suggest.test.ts`. Not seen: an edit made through `Bash`; a non-zero exit as a live CLI reports it.
+
 ## 0.12.3 - 2026-10-05
 
 - **Hook comments cut to contract and limits; behaviour unchanged except `protect-tests`' `cd` fix below.** The shared blocks in `hooks/protect-tests.sh` and `hooks/test-shape.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. Both hooks parse to the same code as before, compared by bash's own parser with comments ignored, apart from the fix below.

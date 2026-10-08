@@ -110,7 +110,8 @@ without it.
   into a non-default base by fast-forward, is still offered once per session; a branch
   pushed by hand without a PR is silenced as if finished.
 - **Off switch.** `CC_SUGGEST=off` silences this marketplace's next-step suggestions
-  (taskmaster, task-runner, code-review, git-workflow); there is no `/config` option.
+  (taskmaster, task-runner, code-review, git-workflow, debugging, testing); there is no
+  `/config` option.
   Another plugin's suggestion can take the one slot after this one, a suggestion shown and
   then replaced counts as shown, and Claude Code's own suggestion is not suppressed.
 - **CLI floor.** With mods off in the host or on a CLI below 2.1.287 no module loads; on
