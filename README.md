@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **32 leaf plugins** covering stacks, review,
+A Claude Code plugin marketplace: **33 leaf plugins** covering stacks, review,
 architecture, design, and the whole idea-to-shipped workflow. Every one installs on its
 own — there are no bundles (the four suites were retired 2026-09-26; see
 [Companions](#companions-install-these-together)).
@@ -155,6 +155,12 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_DRIFT` | task-runner | on | Nudge when a turn touches files well beyond the request, outside a task-runner run: on or off |
 | `CC_ELISION_GUARD` | code-review | on | Refuse, not just warn about, a write replacing code with // … existing code … or similar: on or off |
 | `CC_EVIDENCE_GATE` | candor | block | Stop-gate clause for a completion claim with nothing run since the last edit: block, warn or off |
+| `CC_HUD_HINT` | session-hud | on | Add the HUD segments to the dim hint line under the prompt: on or off |
+| `CC_HUD_PIN` | session-hud | off | Reopen the /hud pane after you close it by hand; under 144 terminal columns it waits until the terminal  … |
+| `CC_HUD_SEGMENTS` | session-hud | context,limits,cost,time,git | Which segments the hint and status lines show, comma-separated, in order: context, limits, cost, time, g … |
+| `CC_HUD_STATUS` | session-hud | off | Also pin the HUD segments as a status line under the prompt, which the engine prefixes with a warning ma … |
+| `CC_HUD_SUBAGENTS` | session-hud | on | Draw each subagent row as its type, model, effort, context use and age instead of the default row: on or … |
+| `CC_HUD_TURN` | session-hud | on | Add a turn's output tokens, cost and context growth to the line that closes it: on or off |
 | `CC_LOCKFILE_GATE` | candor | on | Stop-gate clause for a dependency manifest changed with its lockfile untouched: on or off |
 | `CC_OVERSEER_STATUS` | overseer | on | Pin the open program's next milestone under the prompt: on or off |
 | `CC_PALETTE` | ui-ux | on | Name the category-default indigo, violet or purple accent when a UI write uses it: on or off |
@@ -175,7 +181,9 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_SUGGEST` | code-review, debugging, git-workflow, task-runner, taskmaster, testing | — | On unless CC_SUGGEST=off, which silences these plugins' next-step suggestions, not Claude Code's own |
 | `CC_SURFACED_LOG` | skill-router | on | Append the session's surfaced routing signals to a machine-local ledger at session end: on or off |
 | `CC_TASK_BOARD` | task-runner | on | The status line of a run's phase and card progress on this branch, and the /task-board pane: on or off |
+| `CC_TASK_BOARD_PIN` | task-runner | off | Reopen the task board after you close it while a run is active: on or off |
 | `CC_TERSE` | candor | off | Terse reply level: off, lite, full, ultra, wenyan-lite, wenyan-full or wenyan-ultra |
+| `CC_TERSE_BADGE` | candor | on | Show the active terse level as [TERSE:LEVEL] at the end of the hint line under the prompt (terminal, CLI … |
 | `CC_TEST_SHAPE` | testing | on | Name the blocks in a written test file that do not earn their place: on or off |
 | `CC_UNICODE_SCAN` | secret-scanning | on | Warn when written or read text carries zero-width or bidirectional-override characters: on or off |
 | `CC_VERSION_PINS` | stack-scan | on | Prepend the installed npm version to a skill whose Last verified stamp names that package: on or off |
@@ -524,6 +532,7 @@ bill you did not agree to.
 | **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
 | **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace but opt-in prompt-coach at one scope (local by default) with zero prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
 | **[prompt-coach](plugins/prompt-coach)** | a hooks module that holds an eligible prompt at Enter for up to 5 s while a haiku first pass, and on a flag a standby sonnet or opus, judges whether nobody could act on it, it contradicts an earlier instruction, or it strays from a running task-runner card; only a confident flag drops it, and an animated pixel-art sprite shows your text, the reason and a rewrite, with buttons that fill the prompt box and never submit. Each eligible prompt bills a haiku call that `/cost` does not show; terminal only, Claude Code 2.1.291 or newer; installs only by name — `/all-plugins:install` and `/stack-scan:suggest --full` skip it | Prompts that keep needing a second round before anyone can act on them, and a model call per prompt is worth catching them |
+| **[session-hud](plugins/session-hud)** | a hooks module that adds context %, the 5-hour and 7-day rate-limit windows with reset countdowns, session cost, session time and git branch to the prompt's hint line, what each turn cost under its closing line, and a `/hud` pane with the context breakdown, opt-in pinned so it reopens after you close it; plus a default `subagentStatusLine` with each subagent's type, model, effort, context use and age. No `settings.json` edit (a plugin cannot ship your `statusLine`); terminal only, Claude Code 2.1.291 or newer; no model calls | You want the status-line figures without wiring a status-line tool, or a pane that stays up |
 
 ```bash
 /brain:brain                # print the map; /brain:brain index refreshes it

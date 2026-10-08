@@ -1,0 +1,51 @@
+{
+  "name": "session-hud",
+  "version": "0.1.0",
+  "description": "A zero-setup session HUD for the terminal, as a hooks module: context %, the 5-hour and 7-day rate-limit windows with reset countdowns, session cost, session time and git branch on the prompt's hint line; what each turn cost on its closing line; a /hud pane with the context breakdown, opt-in pinned so it comes back after you close it; and richer subagent rows. Plugins cannot edit your statusLine, so this needs no settings.json edit. Each surface is its own /config option. Terminal only; needs Claude Code 2.1.291.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "tooling",
+    "hooks"
+  ],
+  "userConfig": {
+    "cc_hud_hint": {
+      "type": "boolean",
+      "title": "Usage on the hint line (CC_HUD_HINT)",
+      "description": "Add the HUD segments to the dim hint line under the prompt: on or off. The environment variable CC_HUD_HINT overrides this.",
+      "default": true
+    },
+    "cc_hud_status": {
+      "type": "boolean",
+      "title": "Usage status line (CC_HUD_STATUS)",
+      "description": "Also pin the HUD segments as a status line under the prompt, which the engine prefixes with a warning mark: on or off. The environment variable CC_HUD_STATUS overrides this.",
+      "default": false
+    },
+    "cc_hud_turn": {
+      "type": "boolean",
+      "title": "Per-turn usage (CC_HUD_TURN)",
+      "description": "Add a turn's output tokens, cost and context growth to the line that closes it: on or off. The environment variable CC_HUD_TURN overrides this.",
+      "default": true
+    },
+    "cc_hud_segments": {
+      "type": "string",
+      "title": "HUD segments (CC_HUD_SEGMENTS)",
+      "description": "Which segments the hint and status lines show, comma-separated, in order: context, limits, cost, time, git. Unknown names are ignored. The environment variable CC_HUD_SEGMENTS overrides this.",
+      "default": "context,limits,cost,time,git"
+    },
+    "cc_hud_pin": {
+      "type": "boolean",
+      "title": "Pin the HUD pane (CC_HUD_PIN)",
+      "description": "Reopen the /hud pane after you close it by hand; under 144 terminal columns it waits until the terminal widens or you run /hud: on or off. The environment variable CC_HUD_PIN overrides this.",
+      "default": false
+    },
+    "cc_hud_subagents": {
+      "type": "boolean",
+      "title": "Subagent rows (CC_HUD_SUBAGENTS)",
+      "description": "Draw each subagent row as its type, model, effort, context use and age instead of the default row: on or off. The environment variable CC_HUD_SUBAGENTS overrides this.",
+      "default": true
+    }
+  }
+}

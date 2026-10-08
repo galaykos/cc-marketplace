@@ -170,6 +170,7 @@ reply-verbosity-mode
 secret-output-redaction
 secret-write-denial
 security-sink-write-warning
+session-usage-display
 stop-turn-honesty
 stuck-loop-signal
 subagent-dispatch-contract

@@ -1,0 +1,6 @@
+{
+  "subagentStatusLine": {
+    "type": "command",
+    "command": "r=$(cat \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/session-hud-root\" 2>/dev/null) && [ -f \"$r/scripts/subagent-statusline.sh\" ] && exec bash \"$r/scripts/subagent-statusline.sh\""
+  }
+}
