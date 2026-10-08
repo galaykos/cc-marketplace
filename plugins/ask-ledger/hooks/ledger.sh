@@ -8,8 +8,10 @@
 #   - proper nouns not at a clause start (Laravel, React, Digimon, Stripe)
 #   - digit-letter tokens with their next word (2D sprites, 3D model, i18n)
 # The ledger is appended on every later work prompt (an "also add X" names X), deduped,
-# capped at 12 entries. The hook also tells the model, once per prompt that added
-# entries, what the gate will ask for at the end.
+# capped at 12 entries. It holds the names still OWED: the Stop gate removes a name once
+# a final message accounts for it, so a later prompt that names it again re-ledgers it.
+# The hook also tells the model, once per prompt that added entries, what the gate will
+# ask for at the end.
 #
 # WHY THIS EXISTS (2026-09-19, rationale/fable-distillation-2026-09-18.md §4). Six
 # headless runs asked for "Digimon themed … 2D pixel-art sprites" all drew invented
@@ -118,7 +120,14 @@ cc_option() {
             if (t ~ /^\(?[A-Z][A-Za-z0-9+#.-]{1,}[,)]?$/){ gsub(/[(),]/,"",t); print t } } } }'
   )
   stop='^(I|Claude|OK|Also|Then|Now|Please|Note|The|A|An|And|But|Or|If|It|We|You|They|He|She|This|That|These|Those|My|Our|Your|Its|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December|PR|CI|README|TODO|MVP|API|UI|UX)$'
-  printf '%s\n' "$found" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -vE '^$' | grep -vE "$stop" \
+  # A CAPITAL I GLUED TO THE NEXT WORD is the pronoun missing a space, not a name
+  # (2026-10-07: "lets check if it works,  Iinstalled it" ledgered `Iinstalled`, and the
+  # gate blocked two later turns over it). Dropped: I before a word starting with i, an
+  # apostrophe-less contraction (Im, Ive), or one of the words that most often follow I.
+  # Names that merely start with I (Inertia, Ionic, Iran) keep their shape and still
+  # ledger; so does a glued I before a word not listed here (`Iwrote` goes, `Iforked` stays).
+  glued='^I(i[a-z]+|m|d|ve|ll|am|was|have|had|did|got|saw|see|know|think|guess|mean|want|wanted|need|needed|tried|added|fixed|made|used|changed|updated|created|wrote|just|also|already|like|hope|can|will|would|could|should)$'
+  printf '%s\n' "$found" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -vE '^$' | grep -vE "$stop" | grep -vE "$glued" \
     | awk '{ k=tolower($0); if (!(k in s)) { s[k]=1; print } }' \
     | awk '{ a[NR]=$0 } END { for (i=1;i<=NR;i++){ keep=1; for (j=1;j<=NR;j++) if (i!=j && length(a[j])>length(a[i]) && index(tolower(a[j]), tolower(a[i]))) keep=0; if (keep) print a[i] } }' > "$dir/new" 2>/dev/null
   [ -s "$dir/new" ] || exit 0

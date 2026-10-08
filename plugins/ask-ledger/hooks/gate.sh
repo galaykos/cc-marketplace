@@ -8,6 +8,16 @@
 # twice per session, so a model that will not comply cannot be held forever; after that
 # the missing names are printed as a warning and the turn ends.
 #
+# AN ACCOUNTED NAME LEAVES THE LEDGER (2026-10-08). Every Stop rewrites the ledger to the
+# names its final message did not account for, so a name is owed by the turn that named
+# it (and by the retry a block asks for, which owes only the names the block listed) —
+# not by every turn after. The ledger was session-cumulative before: `Iinstalled`,
+# written `as named` in the turn that named it, was demanded again at the end of
+# "PR + Merge" and "resume the survey" and blocked both. A later prompt that names it
+# again re-ledgers it, and that turn owes it again. The give-up drops its names too: the
+# warning is their record. Residual: a later turn that quietly undoes an accounted name
+# without naming it again is not asked about.
+#
 # STANDING: gate on the SHAPE — the line must exist. Whether "as named" is true is
 # agent-graded: the model's word, and the reader's eye on the lines it was made to
 # write. That is the whole design: a silent substitution has to be written down as
@@ -60,18 +70,22 @@ exec 3>&2
   fi
   [ -n "$final" ] || exit 0
 
-  missing=""
+  missing=""; owed=""
   while IFS= read -r name; do
     [ -n "$name" ] || continue
     esc=$(printf '%s' "$name" | sed 's/[][\.*^$/|+?(){}]/\\&/g')
     printf '%s\n' "$final" | grep -iE "$esc.*\b(as named|substituted|omitted)\b" >/dev/null 2>&1 && continue
     missing="${missing}${missing:+, }$name"
+    owed="${owed}${name}
+"
   done < "$dir/entries"
+  printf '%s' "$owed" > "$dir/entries"
   [ -n "$missing" ] || exit 0
 
   n=$(cat "$dir/blocks" 2>/dev/null || echo 0)
   if [ "$n" -ge 2 ]; then
     printf 'ask-ledger: still unaccounted after two blocks — %s. Ending the turn anyway; the reader should treat those names as unverified.\n' "$missing" >&3
+    : > "$dir/entries"
     exit 0
   fi
   echo $((n+1)) > "$dir/blocks"

@@ -2,6 +2,29 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.4.0 — 2026-10-08
+
+### Fixed
+- **An accounted name is no longer owed by every later turn.** The ledger was
+  session-cumulative: in a measured session the prompt "lets check if it works,
+  Iinstalled it" ledgered `Iinstalled`, the turn's final message wrote
+  `Iinstalled: as named`, and `hooks/gate.sh` still blocked two later turns whose prompts
+  never named it ("resume the survey" among them) — spending the session's two blocks on
+  it, so the model wrote the line at the end of every turn after. Each Stop now rewrites
+  the ledger to the names its final message did not account for. A retry after a block
+  owes only the names the block listed (it had to repeat the lines it already wrote); a
+  later prompt that names an accounted name again owes it again; the give-up after two
+  blocks drops the names it warned about instead of warning about them every turn after.
+  The 12-name cap now counts names still owed, not every name the session ever ledgered.
+  Residual: a later turn that undoes an accounted name without naming it is not asked
+  about. Harness cases 6b and 10-12 in `gate-hook.test.sh` pin it; each fails against
+  0.3.1.
+- **`hooks/ledger.sh` no longer takes a capital `I` glued to the next word for a name.**
+  `I` before a word starting with `i` (`Iinstalled`), an apostrophe-less contraction (`Im`,
+  `Ive`) or a listed word that follows `I` (`Ithink`, `Ineed`) is dropped; names that only
+  start with `I` (`Inertia`, `Ionic`) still ledger, and so does a glued `I` before an
+  unlisted word. Harness cases 13e-13g; 13e and 13f fail against 0.3.1.
+
 ## 0.3.1 — 2026-10-04
 
 - **Hook comments cut to contract and limits; behaviour unchanged.** The shared block in `hooks/ledger.sh` and `hooks/gate.sh` keeps its function's contract and limits in a few lines; the derivation and history moved to the marketplace repository's `rationale/`. Both hooks parse to the same code as before, compared by bash's own parser with comments ignored.

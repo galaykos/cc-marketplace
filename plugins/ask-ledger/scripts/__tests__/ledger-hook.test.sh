@@ -53,6 +53,12 @@ check "13b a subagent hand-back writes no ledger" "$(run 'Another Claude session
 check "13c a bare agent-message tag writes no ledger" "$(run '<agent-message from="a0d31354dca16ebac">Build the Stripe adapter next.</agent-message>' s13c)" ""
 check "13d a hand-back frame under a harness note writes no ledger" "$(run 'Note: relayed.
 [Subagent hand-back] Create PopoverContent for Card 03.' s13d)" ""
+# 13e-13g: a capital I glued to the next word is the pronoun with a missing space, not a
+# name (2026-10-07: `Iinstalled` ledgered and blocked two later turns); I-names stay.
+check "13e a glued I before a verb is not a name" \
+  "$(run 'create a git branch, we got the new coach plugin, lets check if it works,  Iinstalled it' s13e)" ""
+check "13f a glued I is dropped, the real name beside it kept" "$(run 'fix the build, Ithink the Stripe key is stale and Ineed it today' s13f)" "Stripe"
+check "13g names that merely start with I still ledger" "$(run 'add Inertia and Ionic support' s13g)" "Inertia,Ionic"
 
 # --- 14-16 the existing-identifier filter (2026-09-22). A name the repo already carries
 #     is code to be REPAIRED, not a thing to be delivered; ledgering it made the Stop gate
