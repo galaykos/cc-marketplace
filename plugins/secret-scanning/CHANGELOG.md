@@ -3,6 +3,11 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.12.1 — 2026-10-08
+
+- **An `@` mention starting at line 0 (`@.env#L0`), or with a limit of 0, was scanned on the wrong lines.** The range slice used `offset - 1` unguarded, so offset 0 scanned only the file's last line and a limit of 0 scanned nothing, while the engine could still attach the file. An offset or limit below 1 now widens the scan to the file's start or end. Found by review; two new cases.
+- **The text the engine attaches is redacted too.** 0.12.0 said a hook could only refuse a mention, not rewrite it; the CLI's `prompt.attachment` event does rewrite the attached text the model reads. `hooks/redact.ts` now masks secret-pattern matches in `file`, `already_read_file` and `edited_text_file` attachments (a mentioned file, and a file changed outside the session), with a model note and a toast, behind the mention refusal. That covers what the refusal cannot read: a file over the 4 MiB a plugin may read, a notebook's decoded cells. A redaction that fails after the read leaves the attachment out. The transcript keeps the engine's unmasked record. Five new cases. Not scanned: a mentioned PDF or image, an MCP resource mention, and attachment kinds such as `nested_memory`.
+
 ## 0.12.0 — 2026-10-08
 
 - **A file attached with an `@` mention is checked too.** An `@`-mention is read with no `tool.call`, so 0.11.0's output redaction never saw it (its changelog listed this as not redacted), and the CLI lets a hook refuse such a read but not rewrite it. `hooks/redact.ts` now reads the mentioned file, or only the lines a mention names (`@.env#L3`), and refuses the mention when a pattern from `hooks/patterns.tsv` matches outside the placeholder escape: nothing of the file reaches the prompt, and a toast names the file and the labels, because the refusal's reason goes only to the debug log. Claude can still `Read` the file, which the redaction masks. A file the module cannot read is left to the engine; a scan that throws or overruns its budget refuses the mention with a toast naming `CC_SECRET_REDACT=off`. Same switches as the redaction. Six cases in `tests/redact.test.ts`. Not tested: a subagent's mention, and a mention on a live CLI.

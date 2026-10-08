@@ -81,6 +81,9 @@ function seat(on: On, live: Live = {}) {
     stateWriteMs: 0,
     opened: [] as unknown[],
     statuses: [] as (string | undefined)[],
+    panes: [] as string[],
+    closed: [] as string[],
+    paneReads: 0,
   }
 
   on('session.version', () => ({ value: { version: '2.1.291' } }))
@@ -163,6 +166,18 @@ function seat(on: On, live: Live = {}) {
 
   on('ui.status', ($, e) => {
     world.statuses.push(e.text)
+
+    return { value: undefined }
+  })
+
+  on('ui.panes', () => {
+    world.paneReads += 1
+
+    return { value: world.panes.map(id => ({ id, title: 'coach', isShown: true, isFocused: false, isPlaced: true })) }
+  })
+
+  on('ui.close', ($, e) => {
+    world.closed.push(e.id)
 
     return { value: undefined }
   })
@@ -928,14 +943,19 @@ describe('mascot', () => {
 
   test('a pane that refuses the blink stops blinking until it draws again', async ($, on) => {
     const world = seat(on)
-
-    await mountPane($)
+    const pane = await mountPane($)
 
     world.denyBlit = args => (args.requestId === 'prompt-coach' ? 'no Raster of its own is mounted under key "sprite" in prompt-coach' : undefined)
 
     await world.clock.advance(12_000)
 
     expect(paneBlits(world), 'one refused try, then none').toHaveLength(1)
+
+    world.denyBlit = () => undefined
+    await pane.redraw()
+    await world.clock.advance(4000)
+
+    expect(paneBlits(world).at(-1), 'blinking again once the pane draws').toEqual(blinkCells)
   })
 
   test('a pane narrower than the sprite shows no sprite and never blinks', async ($, on) => {
@@ -991,7 +1011,7 @@ describe('mascot', () => {
     await mountFullscreen($)
     await world.clock.settle()
 
-    expect([world.statuses, world.opened]).toEqual([[], []])
+    expect([world.statuses, world.opened], 'only the clear of a face an earlier display left').toEqual([[undefined], []])
   })
 
   test('CC_COACH_MASCOT=0 is off, as the other switches read it', { options: { cc_coach_mascot: 'statusline' } }, async ($, on) => {
@@ -1000,6 +1020,79 @@ describe('mascot', () => {
     await mountFullscreen($)
     await world.clock.settle()
 
-    expect([world.statuses, world.opened]).toEqual([[], []])
+    expect([world.statuses, world.opened]).toEqual([[undefined], []])
+  })
+
+  test('a display other than pane closes the pane a /config change left open', { options: { cc_coach_mascot: 'statusline' } }, async ($, on) => {
+    const world = seat(on)
+
+    world.panes = ['prompt-coach']
+    await mountFullscreen($)
+    await world.clock.settle()
+
+    expect([world.closed, world.statuses]).toEqual([['prompt-coach'], ['(^_^) coach']])
+  })
+
+  test('the pane draws nothing and never blinks unless the display is pane', { options: { cc_coach_mascot: 'off' } }, async ($, on) => {
+    const world = seat(on)
+    const pane = await mountPane($)
+
+    await world.clock.advance(8000)
+
+    expect([await spriteOf(pane), await lines(pane), paneBlits(world)]).toEqual([undefined, [], []])
+  })
+
+  test('a frame still in flight when the judgment ends is not blitted over the redrawn pane', async ($, on) => {
+    const world = seat(on)
+    let release = () => {}
+
+    world.replies.haiku = [answer('clear', 1000)]
+    await mountPane($)
+    await mount($)
+
+    const submitted = $.prompt.submit(composer(PROMPT))
+
+    await world.clock.settle()
+    world.blitGate = new Promise(resolve => {
+      release = resolve
+    })
+    await world.clock.advance(1000)
+    await submitted
+    release()
+    await world.clock.settle()
+
+    expect(paneBlits(world).filter(cells => JSON.stringify(cells) !== JSON.stringify(blinkCells))).toEqual([])
+  })
+
+  test('a switch to pane clears the face a statusline display left', async ($, on) => {
+    const world = seat(on)
+
+    await mountFullscreen($)
+    await world.clock.settle()
+
+    expect([world.statuses, world.opened]).toEqual([[undefined], [{ id: 'prompt-coach', title: 'coach', columns: 18 }]])
+  })
+
+  test('looks for a leftover pane once, however often the band draws', { options: { cc_coach_mascot: 'off' } }, async ($, on) => {
+    const world = seat(on)
+
+    world.replies.haiku = [answer('clear', 600)]
+    await mountFullscreen($)
+    await judged($, world)
+    await judged($, world, OTHER)
+
+    expect(world.paneReads).toBe(1)
+  })
+
+  test('clears a leftover face once while a pane waits for the fullscreen renderer', async ($, on) => {
+    const world = seat(on)
+
+    world.replies.haiku = [answer('clear', 600)]
+    await mountFullscreen($, { columns: 100, rows: 30, isFullscreen: false })
+    await judged($, world)
+    await judged($, world, OTHER)
+
+    expect([world.statuses, world.opened]).toEqual([[undefined], []])
   })
 })
+

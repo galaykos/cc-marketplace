@@ -17,8 +17,27 @@ export function stampsOf(text: string): Stamp[] {
   return [...seen.values()]
 }
 
+// Whole semver or nothing, and only its major.minor.patch is kept: the version is pasted into a skill's text, so a lockfile from a cloned repository must carry no words in.
+const SEMVER = /^(\d+\.\d+\.\d+)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
+
 function versionOf(value: unknown): string | null {
-  return typeof value === 'string' && /^\d+\.\d+/.test(value) ? value : null
+  return typeof value === 'string' ? (SEMVER.exec(value)?.[1] ?? null) : null
+}
+
+// The session's directory up to the repository root, as Node resolves node_modules; a cwd outside the root reads both alone.
+export function lookupDirs(cwd: string, root: string): string[] {
+  if (cwd !== root && !cwd.startsWith(root.endsWith('/') ? root : `${root}/`)) {
+    return [cwd, root]
+  }
+
+  const dirs = [cwd]
+
+  for (let dir = cwd; dir !== root; ) {
+    dir = dir.slice(0, dir.lastIndexOf('/')) || '/'
+    dirs.push(dir)
+  }
+
+  return dirs
 }
 
 function jsonOf(text: string): unknown {

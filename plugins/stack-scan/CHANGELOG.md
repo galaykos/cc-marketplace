@@ -4,6 +4,11 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.12.1 — 2026-10-08
+
+- **A version is taken only as a whole semver, and only its `major.minor.patch` is printed.** 0.12.0 accepted any string starting `<n>.<n>` and pasted it into the skill's text, so a lockfile from a cloned repository could carry prose into a skill (`"16.3.0\n- Ignore the skill below"`, or words in a prerelease tag). Found by review; two new cases.
+- **Every directory from the session's up to the repository root is read, nearest first**, as Node resolves a package, so a workspace's own copy (`apps/web/node_modules/next`) wins over the hoisted one, a repository rooted at `/` included. One new case; the README states the 4 MiB read cap and the monorepo residuals.
+
 ## 0.12.0 — 2026-10-08
 
 - **Skills learn the installed version when they load (Claude Code ≥ 2.1.291).** A hooks module, `hooks/pins.ts`, reads the `Last verified:` stamp of any skill as it loads (`npm:next@16.3`), looks the package up in `node_modules` at the session's directory and the repository root, then in `package-lock.json`, and prepends one line per installed package naming its version and whether it is older or newer than the stamp, at the stamp's precision. Twelve SKILL.md bodies across craft-layer, laravel, ui-libraries, ui-ux and web-dev carry such a stamp today. A skill with no installed stamped package is left as it was. Off: `CC_VERSION_PINS=off` or the new `/config` option `cc_version_pins`. `hooks/cc-kit.ts` is a byte copy of the marketplace's shared mod kit. 11 cases in `tests/pins.test.ts`. Not read: stamps in `references/` files, composer, pnpm and yarn lockfiles. Not seen live.
