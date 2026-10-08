@@ -36,10 +36,11 @@ type Live = {
   env?: Record<string, string>
   patterns?: string
   refuseToast?: boolean
+  files?: Record<string, string>
 }
 
 function seat(on: On, answer: Answer, live: Live = {}) {
-  const world = { ran: [] as string[], reads: [] as string[], toasts: [] as string[], logs: [] as string[] }
+  const world = { ran: [] as string[], reads: [] as string[], toasts: [] as string[], logs: [] as string[], attached: [] as string[] }
 
   mock.env(on, live.env ?? {})
 
@@ -50,7 +51,19 @@ function seat(on: On, answer: Answer, live: Live = {}) {
   on('fs.read', ($, e) => {
     world.reads.push(e.path)
 
-    return { value: live.patterns ?? PATTERNS }
+    if (e.path.endsWith('/hooks/patterns.tsv')) {
+      return { value: live.patterns ?? PATTERNS }
+    }
+
+    const text = live.files?.[e.path]
+
+    return text === undefined ? { deny: `ENOENT: ${e.path}` } : { value: text }
+  })
+
+  on('prompt.mention', ($, e) => {
+    world.attached.push(e.path)
+
+    return { type: 'file' }
   })
 
   on('ui.toast', ($, e) => {
@@ -380,5 +393,60 @@ describe('redact', () => {
 
     expect(await $.tool.call({ tool: 'Bash', command: 'ls' })).toEqual(stdout('ran'))
     expect(world.ran).toEqual(['Bash'])
+  })
+})
+
+const ENV = '/work/.env'
+
+const mention = (path: string, more: { offset?: number; limit?: number } = {}) => ({ mention: path.replace('/work/', ''), path, ...more })
+
+describe('@-mentions', () => {
+  test('refuses a mentioned file holding a secret and says why in a toast', async ($, on) => {
+    const world = seat(on, () => stdout(''), { files: { [ENV]: `AWS_ACCESS_KEY_ID=${AWS}\n` } })
+
+    expect(await $.prompt.mention(mention(ENV))).toEqual({ deny: 'holds an AWS access key ID' })
+    expect(world.attached, 'nothing of the file is read for the prompt').toEqual([])
+    expect(world.toasts).toEqual(['secret-scanning kept @.env out of your prompt: it holds an AWS access key ID. Claude can still Read it, with secrets masked.'])
+  })
+
+  test('attaches a file with no secret, or only a placeholder', async ($, on) => {
+    const world = seat(on, () => stdout(''), { files: { '/work/a.ts': 'export const x = 1\n', '/work/b.env': `KEY=${AWS_DOC}\n` } })
+
+    expect(await $.prompt.mention(mention('/work/a.ts'))).toEqual({ type: 'file' })
+    expect(await $.prompt.mention(mention('/work/b.env'))).toEqual({ type: 'file' })
+    expect([world.attached, world.toasts]).toEqual([['/work/a.ts', '/work/b.env'], []])
+  })
+
+  test('judges only the lines a mention names', async ($, on) => {
+    const world = seat(on, () => stdout(''), { files: { [ENV]: ['# keys', 'REGION=eu-west-1', `TOKEN=${GH}`, ''].join('\n') } })
+
+    expect(await $.prompt.mention(mention(ENV, { offset: 1, limit: 2 })), 'the secret sits on line 3').toEqual({ type: 'file' })
+    expect(await $.prompt.mention(mention(ENV, { offset: 3, limit: 1 }))).toEqual({ deny: 'holds a GitHub token' })
+    expect(world.attached).toEqual([ENV])
+  })
+
+  test('leaves a mention to the engine when the file cannot be read', async ($, on) => {
+    const world = seat(on, () => stdout(''))
+
+    expect(await $.prompt.mention(mention('/work/missing.txt'))).toEqual({ type: 'file' })
+    expect(world.attached).toEqual(['/work/missing.txt'])
+  })
+
+  test('passes every mention through under CC_SECRET_REDACT=off', async ($, on) => {
+    const world = seat(on, () => stdout(''), { env: { CC_SECRET_REDACT: 'off' }, files: { [ENV]: `KEY=${AWS}\n` } })
+
+    expect(await $.prompt.mention(mention(ENV))).toEqual({ type: 'file' })
+    expect(world.toasts).toEqual([])
+  })
+
+  test('refuses the mention when the scan itself fails', async ($, on) => {
+    const world = seat(on, () => stdout(''), { files: { [ENV]: `KEY=${AWS}\n` }, version: null })
+
+    on('session.version', () => {
+      throw new Error('version unreadable')
+    })
+
+    expect(await $.prompt.mention(mention(ENV))).toEqual({ deny: 'the secret scan failed' })
+    expect(world.attached).toEqual([])
   })
 })
