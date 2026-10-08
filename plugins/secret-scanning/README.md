@@ -11,6 +11,7 @@ Blocks secrets before they reach disk.
 | The pattern set itself (which shapes count as high-confidence), held in `hooks/patterns.tsv`, the one source the write guard and the redaction mod both read | **recorded** — the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` (§ `plugins/secret-scanning/hooks/scan.sh`) argues the non-provider rules and the placeholder exemption; `scripts/__tests__/scan-hook.test.sh` pins the behaviour, nothing pins the coverage |
 | An unusable `hooks/patterns.tsv` (missing, CRLF, a malformed row, a pattern outside the regex dialect its header states) | **gate** — the write guard's one exception to fail-open: `scan.sh` denies every write it would scan, naming the file, the line and `CC_SECRET_SCAN=off`; `scan-hook.test.sh` runs each shape. The redaction mod logs it once and passes output through instead |
 | Secrets in any tool's output, on Claude Code ≥ 2.1.291 — masked as `[REDACTED:<label>]`, or the result withheld (see Mods, below) | **gate** — `hooks/redact.ts`; `tests/redact.test.ts` runs under `claude plugin test` in CI (the marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails the build. A subagent's call is not tested (the test kit drops `agentId`) |
+| A file attached with an `@` mention whose text (or mentioned lines) holds a secret, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses the mention with a toast; same tests, same CI step. A subagent's mention is not tested |
 | A `Write`/`Edit`/`MultiEdit`/`NotebookEdit` whose new text carries `[REDACTED:`, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses it, naming `CC_SECRET_REDACT=off`, so a redacted read written back cannot replace the real value; same tests, same CI step. Not refused through `Bash` or an MCP write tool |
 | The mod and the write guard agree on what is a secret (one pattern file, two regex engines) | **gate** — `scripts/__tests__/pattern-parity.test.sh` runs one fixture set through `scan.sh` and the mod's matcher and fails on any disagreement it does not declare; it proves its fixtures, not every input, and its declared divergences (astral characters in a webhook tail, a NUL inside a key) are fixtures of their own |
 | Invisible characters in a file this session wrote or read | **advisory** — `hooks/unicode-scan.sh` is a PostToolUse **warning**; it never blocks, once per file per session |
@@ -124,6 +125,15 @@ standing is in the table at the top.
 - **Failure.** Once the tool has run, a redaction that throws or overruns its time
   budget withholds the output with a refusal naming the failure and
   `CC_SECRET_REDACT=off`; the tool's effects stand.
+- **`@` mentions** (since 0.12.0). A file named after an `@` in a prompt is read with no
+  `tool.call`, so the redaction above never sees it, and the CLI gives a hook no way to
+  rewrite what it attaches. The module reads the file itself, only the mentioned lines when
+  the mention names some (`@.env#L3`), and when a pattern matches outside the placeholder
+  escape it refuses the mention: nothing of the file reaches the prompt, and a toast says
+  which file and labels, since the refusal's own reason goes only to the debug log. Claude
+  can still `Read` the file, which the redaction masks. A file the module cannot read is
+  left to the engine; a scan that throws or overruns its budget refuses the mention, with
+  a toast naming `CC_SECRET_REDACT=off`. **Gate** — `tests/redact.test.ts`, "@-mentions".
 
 Residuals, stated:
 
@@ -138,8 +148,8 @@ Residuals, stated:
   string. A mask can name several labels joined by `, ` and can cover a large region.
 - **Not scanned.** Object keys, so a value under a key such as `password` in a structured
   (non-text) result passes unless a provider pattern matches it alone; context a hook
-  seated above this one attaches (a managed-settings hook, a mod loaded above it); a `Map`, `Set`, `Buffer` or class instance; a file
-  attached with an `@` mention; a `base64` or `data` field holding strict base64 of a
+  seated above this one attaches (a managed-settings hook, a mod loaded above it); a `Map`, `Set`, `Buffer` or class instance; a
+  `base64` or `data` field holding strict base64 of a
   non-text type (a `Bash` `stdout` holding image data is masked as text instead).
 - **Not matched.** The secret-access-key field of an AWS credentials CSV stays visible
   beside its masked key ID: it has no pattern of its own. NUL-interleaved UTF-16 text

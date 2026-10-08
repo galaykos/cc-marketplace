@@ -1,4 +1,4 @@
-import type { HookFailure, On, PluginOptions } from 'claude-code'
+import type { EngineInterface, HookFailure, On, PluginOptions } from 'claude-code'
 
 import { isSupported, switchOn } from './cc-kit'
 import { parsePatterns, redact } from './redact-core'
@@ -105,15 +105,90 @@ function refusalOf(tool: string): string {
   )
 }
 
+// The lines a mention names (#L10-20), or the whole file.
+function mentionedText(text: string, offset: number | undefined, limit: number | undefined): string {
+  if (offset === undefined) {
+    return text
+  }
+
+  const lines = text.split('\n')
+
+  return lines.slice(offset - 1, limit === undefined ? lines.length : offset - 1 + limit).join('\n')
+}
+
+function mentionToastOf(mention: string, labels: string[]): string {
+  return `secret-scanning kept @${mention} out of your prompt: it holds ${labels.join(', ')}. Claude can still Read it, with secrets masked.`
+}
+
+let patterns: Promise<Pattern[] | null> | undefined
+
+async function isOn($: EngineInterface, options: PluginOptions): Promise<boolean> {
+  return isSupported((await $.session.version()).version) && switchOn(await $.env.get('CC_SECRET_REDACT'), options.cc_secret_redact !== false)
+}
+
+function patternsOf($: EngineInterface): Promise<Pattern[] | null> {
+  const path = `${$.plugin.root}/hooks/patterns.tsv`
+
+  patterns ??= $.fs
+    .read(path)
+    .then(parsePatterns)
+    .catch((error: unknown) => {
+      try {
+        $.ui.log(`Output redaction is off: ${path}: ${error instanceof Error ? error.message : String(error)}`)
+      } catch {
+        // A refused log line changes nothing: output already passes through.
+      }
+
+      return null
+    })
+
+  return patterns
+}
+
+function toastQuietly($: EngineInterface, text: () => string): void {
+  try {
+    $.ui.toast(text())
+  } catch {
+    // A failed count or refused toast leaves the redaction standing; the toast is display only.
+  }
+}
+
 export function register(on: On, options: PluginOptions) {
-  let patterns: Promise<Pattern[] | null> | undefined
+  // An @-mention is read with no tool.call, so the output redaction above never sees it; its text cannot be rewritten, only refused.
+  on('prompt.mention', async ($, e, next) => {
+    if (!(await isOn($, options))) {
+      return next(e)
+    }
+
+    const pats = await patternsOf($)
+    const text = pats === null ? null : await $.fs.read(e.path).catch(() => null)
+
+    if (pats === null || text === null) {
+      return next(e)
+    }
+
+    const found = redact(mentionedText(text, e.offset, e.limit), pats)
+
+    if (found.labels.length === 0) {
+      return next(e)
+    }
+
+    // The deny reason reaches only the debug log, so the person learns of the refusal from the toast.
+    toastQuietly($, () => mentionToastOf(e.mention, found.labels))
+
+    return { deny: `holds ${found.labels.join(', ')}` }
+  }).catch(($, e, next) => {
+    if (next.called) {
+      return next(e)
+    }
+
+    toastQuietly($, () => `secret-scanning kept @${e.mention} out of your prompt: its scan failed. CC_SECRET_REDACT=off turns this off.`)
+
+    return { deny: 'the secret scan failed' }
+  })
 
   on('tool.call', async ($, e, next) => {
-    const isOn =
-      isSupported((await $.session.version()).version) &&
-      switchOn(await $.env.get('CC_SECRET_REDACT'), options.cc_secret_redact !== false)
-
-    if (!isOn) {
+    if (!(await isOn($, options))) {
       return next(e)
     }
 
@@ -127,33 +202,10 @@ export function register(on: On, options: PluginOptions) {
       return r
     }
 
-    const path = `${$.plugin.root}/hooks/patterns.tsv`
-
-    patterns ??= $.fs
-      .read(path)
-      .then(parsePatterns)
-      .catch((error: unknown) => {
-        try {
-          $.ui.log(`Output redaction is off: ${path}: ${error instanceof Error ? error.message : String(error)}`)
-        } catch {
-          // A refused log line changes nothing: output already passes through.
-        }
-
-        return null
-      })
-
-    const pats = await patterns
+    const pats = await patternsOf($)
 
     if (!pats) {
       return r
-    }
-
-    const toastQuietly = (text: () => string) => {
-      try {
-        $.ui.toast(text())
-      } catch {
-        // A failed count or refused toast leaves the redaction standing; the toast is display only.
-      }
     }
 
     if (r.isError) {
@@ -168,7 +220,7 @@ export function register(on: On, options: PluginOptions) {
       const maskedIn = (key: keyof typeof before) => maskCount(after[key]) - maskCount(before[key])
 
       // text and result usually carry one error twice, so its masks count once.
-      toastQuietly(() =>
+      toastQuietly($, () =>
         toastOf(Math.max(maskedIn('text'), maskedIn('result')) + maskedIn('context'), e.tool, failure.labels),
       )
 
@@ -193,7 +245,7 @@ export function register(on: On, options: PluginOptions) {
       const shown = { text, context: r.context }
       const withheld = redact(shown, pats)
 
-      toastQuietly(() => toastOf(maskCount(withheld.value) - maskCount(shown), e.tool, withheld.labels))
+      toastQuietly($, () => toastOf(maskCount(withheld.value) - maskCount(shown), e.tool, withheld.labels))
 
       return { deny: `${(withheld.value as typeof shown).text}\n${withheldNoteOf(e.tool, below.labels)}` }
     }
@@ -204,7 +256,7 @@ export function register(on: On, options: PluginOptions) {
       return r
     }
 
-    toastQuietly(() => toastOf(maskCount(found.value) - maskCount(before), e.tool, found.labels))
+    toastQuietly($, () => toastOf(maskCount(found.value) - maskCount(before), e.tool, found.labels))
 
     return {
       result: swappedMedia(found.value, () => media.shift() ?? ''),
