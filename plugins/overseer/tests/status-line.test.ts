@@ -160,6 +160,23 @@ describe('status-line', () => {
     expect(r.result, 'the tool call passes through').toBe('ok')
   })
 
+  test('leaves a subagent’s tool call to the next main-loop one', async ($, on) => {
+    const world = seat(on)
+
+    world.save([m('m1', 'Walking skeleton', 'queued'), m('m2', 'Client list', 'queued', ['m1'])])
+    await start($)
+
+    world.save([m('m1', 'Walking skeleton', 'done'), m('m2', 'Client list', 'queued', ['m1'])])
+    const r = await $.tool.call({ tool: 'Read', file_path: '/work/app/README.md', agentId: 'a1' })
+
+    expect(world.line, 'unchanged after the subagent’s call').toBe('overseer  milestone 1/2  m1 Walking skeleton (queued)')
+    expect(r.result, 'the tool call passes through').toBe('ok')
+
+    await runTool($)
+
+    expect(world.line).toBe('overseer  milestone 2/2  m2 Client list (queued)')
+  })
+
   test('clears when program.json is gone', async ($, on) => {
     const world = seat(on)
 

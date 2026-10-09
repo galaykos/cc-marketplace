@@ -81,10 +81,13 @@ export function register(on: On, options: PluginOptions) {
     return started
   }).catch(($, e, next) => next(e))
 
+  // program.sh, the one writer of program.json, runs in the main loop: a subagent's calls cannot move the line.
   on('tool.call', async ($, e, next) => {
     const r = await next(e)
 
-    await refresh($, refreshes, option)
+    if (e.agentId === undefined) {
+      await refresh($, refreshes, option)
+    }
 
     return r
   }).catch(($, e, next) => next(e))

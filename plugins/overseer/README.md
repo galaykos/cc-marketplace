@@ -80,11 +80,12 @@ which fire with or without it. It reads `program.json` and writes nothing.
   roadmap, `n` the milestone count. It clears when no milestone is open, when the open ones
   wait only on a parked one, and when the file is gone (`program.sh close` archives it) or
   unreadable.
-- **Refresh.** At session start and after every tool call, main loop and subagents: the
-  module checks the file's modification time and re-reads it only when that moved, so a
-  hand edit shows at the next tool call, not at once.
-- **A git call per tool call.** Unless the line is switched off, every tool call waits for
-  a refresh that runs `git rev-parse` once to find the git toplevel;
+- **Refresh.** At session start and after every main-loop tool call: the module checks the
+  file's modification time and re-reads it only when that moved, so a hand edit shows at
+  the next tool call, not at once. A subagent's tool calls do not refresh it (since 0.6.2):
+  `program.sh`, the one writer of the file, runs in the main loop.
+- **A git call per tool call.** Unless the line is switched off, every main-loop tool call
+  waits for a refresh that runs `git rev-parse` once to find the git toplevel;
   `CC_OVERSEER_STATUS=off` removes it. With task-runner's board also on, each tool call
   waits on both refreshes.
 - **Off switch.** `CC_OVERSEER_STATUS=off` (or `0`, `false`), or the `/config` option
@@ -101,7 +102,8 @@ Standing: **gate** — `tests/status-line.test.ts` runs under `claude plugin tes
 marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails
 the build; `scripts/__tests__/status-core.test.sh` holds the milestone rule to
 `program.sh`'s own. Untested here: the drawn line (the test kit records the text, not the
-screen) and the git call per tool call, which no test counts.
+screen) and the git call per tool call, which no test counts. That a subagent's tool call
+leaves the line to the next main-loop one is a gate (`tests/status-line.test.ts`).
 
 ## Standing of the rules
 
