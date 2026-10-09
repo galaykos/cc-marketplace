@@ -2,6 +2,10 @@
 
 All notable changes to the `prompt-coach` plugin.
 
+## 0.4.0 — 2026-10-09
+
+- **Says when a secret would reach the judge unmasked.** At Enter the coach judges a prompt before it passes it on, so with secret-scanning installed beneath it a secret typed into the prompt went to the judge model before secret-scanning masked it, even when you then chose Cancel. At session start the coach now reads the plugin order and toasts once when it runs first; Residuals names the exposure. Four new tests.
+
 ## 0.3.2 — 2026-10-08
 
 - **The pane closes, and the coach comes back.** 0.3.0's "the pane can no longer be closed" was wrong on CLI 2.1.294: refusing a person's close (answering `ui.close` without `next`, as the CLI types describe) closed the pane anyway (`rationale/2026-10-08-mods-ui-survey-and-pane-probe.md` §3). A close from the close mark or ctrl+x x now goes through, and while the display is `pane` the coach re-opens the pane 0.1 s later. The CLI seats that re-open only on a terminal 144 columns or wider; narrower, the pane waits undrawn until the terminal is widened. A plugin's close, such as the `/config` display switch, is not undone.

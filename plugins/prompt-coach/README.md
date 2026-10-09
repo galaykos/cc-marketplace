@@ -280,6 +280,15 @@ What the judge sees, and how far to trust it:
   in progress (500) and the spec's goal and decisions (1,500) go to the judge model, never
   over 8,000 characters in all. **Gate** for the caps —
   `scripts/__tests__/coach-core-judge.test.sh`.
+- **A secret typed into a prompt reaches the judge unmasked when the coach runs first.**
+  secret-scanning masks it on the same Enter, but the coach judges before it passes the
+  prompt on, so the order the two plugins load in decides whether the judge reads the
+  masked text or the raw one; choosing Cancel in secret-scanning's dialog keeps the prompt
+  out of the conversation, not out of the judge's call. At session start the coach reads
+  that order and toasts once when it runs first. **Gate** for the toast —
+  `tests/coach.test.ts`, "warns at start when secret-scanning masks a prompt only after the
+  judge". That one plugin order holds for every event is **recorded** from the CLI's types
+  (`engine.create`: list order, first outermost), not observed live.
 - **What the context meter cannot see.** This marketplace's `context-budget.sh` meters no
   text a mod puts anywhere: not the judge's input, and not a rewrite you send, which
   reaches the main conversation as your own prompt. **Unenforceable** — the meter runs no
