@@ -109,6 +109,13 @@ async function openOnRunStart($: EngineInterface): Promise<void> {
   }
 }
 
+// Every tool call refreshes the board, so a write is skipped when nothing in it changed.
+async function save($: EngineInterface, held: Board | undefined, board: Board): Promise<void> {
+  if (JSON.stringify(held) !== JSON.stringify(board)) {
+    await $.state.set(BOARD, board)
+  }
+}
+
 // Only the newest of overlapping refreshes writes or paints: an older one finishing last would revive an ended run's line.
 async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean): Promise<void> {
   const mine = ++refreshes.latest
@@ -130,7 +137,7 @@ async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean
       return
     }
 
-    await $.state.set(BOARD, board)
+    await save($, held, board)
 
     if (mine === refreshes.latest) {
       $.ui.status(undefined)
@@ -149,7 +156,7 @@ async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean
     return
   }
 
-  await $.state.set(BOARD, board)
+  await save($, held, board)
 
   if (mine === refreshes.latest) {
     $.ui.status(model === null || 'error' in model ? `task-runner  ${phase}` : statusLine(model, phase))
