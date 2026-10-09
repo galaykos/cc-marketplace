@@ -3,6 +3,11 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.14.0 — 2026-10-09
+
+- **A redacted value can no longer be written back through Bash.** The redaction mod masks a secret in tool output as `[REDACTED:<label>]` and refused writing that marker back with `Write`/`Edit`, but a `cat > .env.example <<EOF` or `echo … >> .env.example` carrying it passed both guards and replaced the real value on disk. `scan.sh` now refuses a Bash heredoc body or `echo`/`printf` argument carrying the marker that lands in a file, naming the file and `CC_SECRET_REDACT=off`; with redaction off no marker is ever shown, so the text passes. The check runs after the cheap no-write exit, so a Bash call that writes no file costs what it did. Six new harness cases.
+- **Docs:** the README says what this means for a file holding a masked value: a whole-file rewrite is refused either way, while an `Edit` that leaves the masked line out still works.
+
 ## 0.13.0 — 2026-10-08
 
 - **A secret typed or pasted into the prompt box is caught before it is sent** (`cc_secret_prompt` / `CC_SECRET_PROMPT`, default on). Until now nothing looked at the prompt itself; a classic UserPromptSubmit hook can refuse a prompt but cannot rewrite it.

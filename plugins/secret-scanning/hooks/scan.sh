@@ -1,6 +1,7 @@
 #!/bin/bash
 # scan.sh (PreToolUse on Write, Edit, MultiEdit, NotebookEdit, MCP apply_patch/create_new_file and Bash; payload on stdin) — denies a write whose new text
-#   (for apply_patch, the whole patch), Bash heredoc body or echo/printf argument landing in a file carries a high-confidence, non-placeholder secret.
+#   (for apply_patch, the whole patch), Bash heredoc body or echo/printf argument landing in a file carries a high-confidence, non-placeholder secret,
+#   and a Bash write of redact.ts's [REDACTED: marker unless CC_SECRET_REDACT is off (Write/Edit carrying it are redact.ts's to refuse).
 # Off: CC_SECRET_SCAN=off. Fails open: a timeout, a missing jq or any error but a bad pattern file allows the write.
 # Fails closed: a missing or malformed hooks/patterns.tsv, the pattern source, denies every write with text to scan.
 # CC_SECRET_SCAN unset: the /config option cc_secret_scan decides.
@@ -329,6 +330,17 @@ EOF_M
     done <<EOF_C
 $(cc_bash_write_chunks "$cmd")
 EOF_C
+    # redact.ts masks a secret in tool output as [REDACTED:<label>] and refuses Write/Edit carrying it; through Bash, the
+    # same write-back would replace the real value on disk. With redaction off no mask is ever shown, so the text is quoted.
+    if [ "$(cc_option CC_SECRET_REDACT on)" != "off" ]; then
+      i=1
+      while [ "$i" -le "$n" ]; do
+        case "${ctext[$i]}" in
+          *'[REDACTED:'*) deny "secret-scanning: this command writes the redaction marker [REDACTED:…] to ${ctgt[$i]}. It may have come from a tool result secret-scanning redacted; if so, writing it would replace the real value on disk, so leave the value out of the write, or edit only the lines around it with the Edit tool. If the text quotes the marker on purpose, ask the user to set CC_SECRET_REDACT=off, which also stops redacting secrets in tool output." ;;
+        esac
+        i=$((i + 1))
+      done
+    fi
     i=1
     while [ "$i" -le "$n" ] && [ -z "$hit" ]; do
       scan_for_secret "${ctext[$i]}"; file=${ctgt[$i]}; i=$((i + 1))
