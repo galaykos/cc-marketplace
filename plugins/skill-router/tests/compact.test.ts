@@ -5,6 +5,10 @@ import { CAP } from '../hooks/compact'
 
 const ROOT = '/work'
 
+const NOW = Date.UTC(2026, 9, 9, 12)
+
+const TTL_MS = 120 * 60 * 1000
+
 const ASK = 'Pipeline state is open on disk (skill-router read it).'
 
 const SENTINEL = JSON.stringify({ phase: 'build', owner: 'task-runner', session_id: 's1', started_at: '2026-10-08T10:00:00Z' })
@@ -13,13 +17,21 @@ const RUN = JSON.stringify({ slug: 'mods-round-3', branch: 'feat/mods-round-3', 
 
 const MESSAGES: SessionMessage[] = [{ role: 'user', text: 'card 03 in progress', toolUses: [] }]
 
-type Live = { version?: string; env?: Record<string, string>; files?: Record<string, string>; ledgers?: string[]; failVersion?: boolean }
+type Live = {
+  version?: string
+  env?: Record<string, string>
+  files?: Record<string, string>
+  mtimes?: Record<string, number>
+  ledgers?: string[]
+  failVersion?: boolean
+}
 
 function seat(on: On, live: Live = {}) {
   const world = { told: [] as (string | undefined)[] }
   const files = live.files ?? {}
 
   mock.env(on, live.env ?? {})
+  mock.clock(on, { now: NOW })
   on('session.version', () => (live.failVersion ? { deny: 'no version' } : { value: { version: live.version ?? '2.1.294' } }))
   on('session.cwd', () => ({ value: ROOT }))
   on('session.id', () => ({ value: 's1' }))
@@ -30,6 +42,11 @@ function seat(on: On, live: Live = {}) {
   )
   on('fs.read', ($, e) => (files[e.path] === undefined ? { deny: `ENOENT: ${e.path}` } : { value: files[e.path] }))
   on('fs.exists', ($, e) => ({ value: files[e.path] !== undefined }))
+  on('fs.stat', ($, e) =>
+    files[e.path] === undefined
+      ? { deny: `ENOENT: ${e.path}` }
+      : { value: { kind: 'file' as const, size: files[e.path].length, mtimeMs: live.mtimes?.[e.path] ?? NOW, isLink: false } },
+  )
   on('fs.list', ($, e) =>
     e.path === `${ROOT}/.claude/taskmaster` && live.ledgers !== undefined
       ? { value: live.ledgers.map(name => ({ name, kind: 'file' as const, size: 1, mtimeMs: 0, isLink: false })) }
@@ -70,6 +87,34 @@ describe('compaction steering', () => {
     await compacted($)
 
     expect(world.told[0]).toMatch(/^Pipeline state .*the id of the card in progress and its success criteria; the scope lock; and the list of cards already done\./)
+  })
+
+  test('leaves out a phase sentinel past its writer’s 120-minute TTL, and keeps the run', async ($, on) => {
+    const sentinel = `${ROOT}/.claude/cc-phase.json`
+    const world = seat(on, { files: PIPELINE, mtimes: { [sentinel]: NOW - TTL_MS - 1 } })
+
+    await compacted($)
+
+    expect(world.told[0]).not.toContain('arc phase build')
+    expect(world.told[0]).toContain('task-runner run mods-round-3 on branch feat/mods-round-3')
+  })
+
+  test('keeps a phase sentinel exactly at its TTL', async ($, on) => {
+    const sentinel = `${ROOT}/.claude/cc-phase.json`
+    const world = seat(on, { files: PIPELINE, mtimes: { [sentinel]: NOW - TTL_MS } })
+
+    await compacted($)
+
+    expect(world.told[0]).toContain('arc phase build owned by task-runner')
+  })
+
+  test('leaves a session whose only state is a stale sentinel untouched', async ($, on) => {
+    const sentinel = `${ROOT}/.claude/cc-phase.json`
+    const world = seat(on, { files: { [sentinel]: SENTINEL }, mtimes: { [sentinel]: NOW - TTL_MS - 1 } })
+
+    await compacted($, { instructions: 'keep the API names' })
+
+    expect(world.told).toEqual(['keep the API names'])
   })
 
   test('leaves a session with no pipeline state untouched', async ($, on) => {
