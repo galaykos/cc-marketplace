@@ -544,14 +544,20 @@ Since 0.31.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed un
 `modules` in `hooks/hooks.json` beside the classic hooks, which fire with or without it.
 
 - **What.** At the end of a turn in which the main loop (not a subagent) ran a `Write`,
-  `Edit`, `MultiEdit` or `NotebookEdit` on a code file inside the repository, and the tool
-  neither refused nor errored, the prompt box offers `/code-review:review` as a next-step
-  suggestion: Tab accepts it, and nothing runs until you send it. Docs don't count:
-  `.md`, `.mdx`, `.txt` and `.rst` files in any case, and any file under a `docs/`
-  directory inside the repository.
+  `Edit`, `MultiEdit` or `NotebookEdit` on **three or more different code files** inside
+  the repository, and the tool neither refused nor errored, the prompt box offers
+  `/code-review:review` as a next-step suggestion: Tab accepts it, and nothing runs until
+  you send it. Docs don't count: `.md`, `.mdx`, `.txt` and `.rst` files in any case, and
+  any file under a `docs/` directory inside the repository. Until 0.32.0 one code file was
+  enough.
+- **Why three.** In the real sessions measured on 2026-10-09, 23 turns edited code; the two
+  that a typed `/code-review:review` followed had edited 7 and 5 files, and the 17 turns
+  that edited one or two files drew none. The threshold is fitted to those two reviews,
+  not to a larger sample.
 - **How it differs from the nudge above.** The review-debt nudge is a line for the model on
   your next prompt, after 8+ changed files or an auth-surface path. This suggestion is for
-  you, in the idle prompt box, after any code edit, and the model never sees it. Both can
+  you, in the idle prompt box, after a turn that edited three or more code files, and the
+  model never sees it. Both can
   fire; neither replaces the other.
 - **When it stays silent.** For edits made while a task-runner run is registered on the
   current branch (a run on another branch does not count), and when such a run registers
