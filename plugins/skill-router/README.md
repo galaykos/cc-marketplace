@@ -168,16 +168,19 @@ One hooks module, `hooks/mods.ts`, is the only `modules` entry. It loads two fea
   phase sentinel, a task-runner run, its scope lock, or a taskmaster ledger; these are the
   paths `compact-capsule.sh` reads. The added text asks the summarizer to keep the phase, run,
   card in progress and its criteria, scope lock and done list word for word, and lists the
-  state found.
+  state found. A phase sentinel last written more than 120 minutes ago is left out, the TTL
+  its writer (`taskmaster/scripts/phase-sentinel.sh`) gives every reader; the run file has no
+  TTL and is listed while it exists.
 - **How it relates to `compact-capsule.sh`.** That hook still restates the state after
   compaction. The steer shapes the summary before it is written; the capsule repeats the
-  files afterwards.
+  files afterwards. The capsule still names a stale sentinel, because its notice tells the
+  model to re-read each file before acting on it; a summary keeps what it is told.
 - **No extra message.** Appending a message to the summary was accepted on 2.1.294, but it drew
   as a `❯` row as though you had typed it, so the steer adds instructions only.
 - **Off-switch:** `cc_compact_steer` / `CC_COMPACT_STEER`.
 - **Standing:**
-  - **Gate:** state found, none found, subagent untouched, the cap, the off-switches
-    (`tests/compact.test.ts`).
+  - **Gate:** state found, none found, a stale sentinel left out, subagent untouched, the cap,
+    the off-switches (`tests/compact.test.ts`).
   - **Recorded:** a manual `/compact` carried the text to the summarizer request with state on
     disk, and carried nothing without it.
   - **Untested:** an automatic compaction.

@@ -239,8 +239,10 @@ four features under three off switches.
   It refreshes at session start and after every tool call, main loop and subagents,
   parsing the index again only when its modification time moves (an index that cannot be
   statted, read or parsed is read again at every refresh); only the newest of overlapping
-  refreshes paints, so a slow one cannot revive an ended run's line. The line clears when
-  no run is registered on this branch.
+  refreshes paints, so a slow one cannot revive an ended run's line. The board's saved
+  state is written only when it changed (since 0.46.1). Subagent tool calls refresh it on
+  purpose: a delegated executor marking its card done moves the line mid-turn. The line
+  clears when no run is registered on this branch.
 - **Task board** (`hooks/board-view.tsx`, `/task-board`). A pane of the run's cards:
   `Task board  <slug>  <marker>`, then `<phase>  <done>/<total> done  <p> parked  <u> unrecognised`, then a
   button row, then one row per card (id, title cut to the pane width, parallel group,

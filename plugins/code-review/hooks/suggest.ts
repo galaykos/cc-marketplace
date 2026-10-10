@@ -6,7 +6,19 @@ const DOC_EXT = /\.(md|mdx|txt|rst)$/i
 
 const DOCS_DIR = /(^|\/)docs\//
 
+// The two reviews typed in real sessions followed turns that edited 7 and 5 code files; 1- and 2-file turns drew none.
+const MIN_FILES = 3
+
+// Per session: the code files edited through the edit tools in this main-loop turn (a subagent's run raises no turn.start).
+const edited = new Map<string, Set<string>>()
+
 export function register(on: On) {
+  on('turn.start', async ($, e, next) => {
+    edited.delete(await $.session.id())
+
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
   registerSuggestion(on, {
     transition: 'review',
     tools: 'Write|Edit|MultiEdit|NotebookEdit',
@@ -29,7 +41,12 @@ export function register(on: On) {
         return null
       }
 
-      return gitLine(host, ['rev-parse', 'HEAD'])
+      const session = await host.sessionId()
+      const files = (edited.get(session) ?? new Set<string>()).add(path)
+
+      edited.set(session, files)
+
+      return files.size >= MIN_FILES ? gitLine(host, ['rev-parse', 'HEAD']) : null
     },
     stillDue: async host => (await activeRun(host)) === null,
     text: () => '/code-review:review',

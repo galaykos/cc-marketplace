@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2 — 2026-10-09
+
+- **The status line no longer refreshes on a subagent's tool calls.** Each refresh runs `git rev-parse`, so a subagent fan-out paid one git call per tool call for a line only the main loop's `program.sh` can move. The line now refreshes at session start and after each main-loop tool call. One new test.
+
 ## 0.6.1 — 2026-10-07
 
 - `scripts/program.sh` no longer loses concurrent writes to `program.json`. Its state lock was a `mkdir` lock, and on hosts whose `mkdir` is uutils coreutils (Ubuntu 26.04's default) `mkdir` exits 0 even when it loses the race, so two writers held the lock at once. 20 concurrent `evidence add` calls all exited 0 but kept only 14-19 rows. The lock is now a file that bash itself creates exclusively (`set -C`), with no external binary in the race. Standing: gate, but only where `mkdir` is uutils. There, the harness's 20-concurrent-adds assertion fails against the old lock; on a GNU `mkdir` host the old lock held, so the assertion passes either way. The harness now also fails if a lock file of either kind is left behind.

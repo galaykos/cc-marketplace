@@ -3,6 +3,10 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.32.0 — 2026-10-09
+
+- **The `/code-review:review` suggestion waits for a turn that edited three or more code files.** It used to appear after any single code edit, once per commit. In the real sessions measured on 2026-10-09, the two reviews typed after a suggestion-shaped turn followed turns that edited 7 and 5 files, and the 17 turns that edited one or two files drew none; three keeps both and drops the rest. A file edited twice counts once, and the count starts afresh each turn. The review-debt nudge for the model is unchanged.
+
 ## 0.31.1 — 2026-10-07
 
 - **"Blocked at most twice per file" holds under parallel writes on Ubuntu 26.04.** `scan.sh`'s comment and elision denies and `density.sh`'s ceiling deny claimed each try with `mkdir`, assuming it fails when a sibling call got there first. Ubuntu 26.04's `/usr/bin/mkdir` (uutils coreutils 0.10.0) exits 0 when it loses that race, so two parallel writes to one file could both spend the same try: 20 at once were denied three times in 8 of 60 rounds (comment deny), 4 of 40 (ceiling) and 2 of 40 (elision), against 0 with GNU `mkdir`. Each try is now a file bash creates with noclobber (`O_CREAT|O_EXCL`), and after the change all three measured 0 over the cap. A `.d1`/`.d2` directory left by 0.31.0 in a running session still counts as a spent try. Standing: gate — each harness runs the hook against a `mkdir` that reports success and creates nothing, and fails if a third write is denied; that proves the claim no longer trusts `mkdir`, not that `O_EXCL` holds on every filesystem.

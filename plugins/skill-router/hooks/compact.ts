@@ -18,6 +18,8 @@ function hostOf($: EngineInterface): Host {
 
 export const CAP = 1200
 
+const PHASE_TTL_MS = 120 * 60 * 1000
+
 const ASK =
   'Pipeline state is open on disk (skill-router read it). In the summary keep, word for word where the conversation states them: the current arc phase; the active run slug, branch and card index path; the id of the card in progress and its success criteria; the scope lock; and the list of cards already done. Never mark a card done that the conversation does not show done.'
 
@@ -36,11 +38,23 @@ function fieldOf(text: string | null, key: string): string {
   }
 }
 
-// The paths and conditions hooks/compact-capsule.sh reads, so the steer and the post-compaction restatement agree.
+// A summary keeps what it is told word for word, so a sentinel past its writer's TTL is left out (taskmaster scripts/phase-sentinel.sh).
+async function freshSentinel($: EngineInterface, root: string): Promise<string | null> {
+  const path = `${root}/.claude/cc-phase.json`
+  const stat = await $.fs.stat(path).catch(() => null)
+
+  if (stat === null || (await $.clock.now()) - stat.mtimeMs > PHASE_TTL_MS) {
+    return null
+  }
+
+  return $.fs.read(path).catch(() => null)
+}
+
+// The paths hooks/compact-capsule.sh reads; it still names a stale sentinel, since its notice has the model re-read each file.
 export async function stateLines($: EngineInterface, root: string): Promise<string[]> {
   const read = (path: string) => $.fs.read(`${root}/.claude/${path}`).catch(() => null)
   const [sentinel, run, scope, names] = await Promise.all([
-    read('cc-phase.json'),
+    freshSentinel($, root),
     read('task-runner/active-run.json'),
     $.fs.exists(`${root}/.claude/task-runner/scope.json`).catch(() => false),
     $.fs

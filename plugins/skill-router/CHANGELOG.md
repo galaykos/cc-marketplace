@@ -2,6 +2,10 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.25.1 — 2026-10-09
+
+- **Compaction steering leaves out a stale phase sentinel.** A `.claude/cc-phase.json` last written more than 120 minutes ago, the TTL its writer gives every reader, no longer reaches the summarizer's instructions; before, a sentinel left by a crashed or abandoned run was asked to be kept word for word in every compaction. The task-runner run file has no TTL and is still listed. Three new tests.
+
 ## 0.25.0 — 2026-10-08
 
 - **A hooks module (Claude Code 2.1.291 or newer), `hooks/mods.ts`, with two features.**

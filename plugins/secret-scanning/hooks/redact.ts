@@ -201,6 +201,7 @@ function toastQuietly($: EngineInterface, text: () => string): void {
 }
 
 export function register(on: On, options: PluginOptions) {
+  // prompt-coach finds this hook in its session.start trace to tell whether a prompt is masked before its judge reads it.
   on('session.start', async ($, e, next) => {
     await promptPatterns($, options)
 

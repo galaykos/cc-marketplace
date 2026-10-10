@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.46.1 — 2026-10-09
+
+- **The board writes its saved state only when it changed.** Every tool call, main loop and subagents, refreshed the board and wrote its state even when nothing moved, which outside a run meant the same inactive board on every call. A refresh now compares first. Subagent calls still refresh the board, so a delegated card marked done moves the line mid-turn. One new test.
+
 ## 0.46.0 — 2026-10-08
 
 - **A card status outside the vocabulary is shown, not read as pending.**

@@ -112,6 +112,9 @@ const UNDRAWN = 'the plugin panel above the prompt is not showing the coach'
 
 const MUTED_NOTE = 'prompt-coach muted for this session — a new session turns it back on'
 
+const UNMASKED_NOTE =
+  'prompt-coach runs before secret-scanning, so a secret typed into a prompt reaches the judge before it is masked. CC_PROMPT_COACH=off turns the coach off.'
+
 const PASS = { plugin: 'prompt-coach', key: 'pass' } as const
 
 const MUTED = { plugin: 'prompt-coach', key: 'muted' } as const
@@ -653,6 +656,26 @@ async function heldVerdict($: EngineInterface, prompt: Prompt, options: PluginOp
 }
 
 export function register(on: On, options: PluginOptions) {
+  // Plugins nest in one list order for every event: secret-scanning beneath the coach here is beneath it on prompt.submit too.
+  on('session.start', async ($, e, next) => {
+    const started = await next(e)
+
+    if (!next.trace.some(link => link.plugin === 'secret-scanning')) {
+      return started
+    }
+
+    const isOn =
+      isSupported((await $.session.version()).version) &&
+      switchOn(await $.env.get('CC_PROMPT_COACH'), options.cc_prompt_coach !== false) &&
+      (await isTerminalSession($))
+
+    if (isOn) {
+      say($, UNMASKED_NOTE)
+    }
+
+    return started
+  }).catch(($, e, next) => next(e))
+
   on('prompt.submit', async ($, e, next) => {
     // Claimed before any await: a submit during a judgment passes at once, and never reads state that judgment will write.
     if (coach.isJudging) {

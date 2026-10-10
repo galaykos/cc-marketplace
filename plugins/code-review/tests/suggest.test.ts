@@ -77,6 +77,7 @@ function seat(on: On, live: Live = {}) {
     return { result: 'ok' }
   })
 
+  on('turn.start', ($, e) => ({ turnId: e.turnId }))
   on('turn.complete', ($, e) => ({ text: e.answer }))
 
   on('prompt.suggest', ($, e) => {
@@ -94,35 +95,62 @@ const runOn = (branch: string) =>
 const edit = ($: Engine, file_path = '/work/src/app.ts') =>
   $.tool.call({ tool: 'Edit', file_path, old_string: 'a', new_string: 'b' })
 
+const THREE = ['/work/src/app.ts', '/work/src/util.ts', '/work/src/api.ts']
+
+async function editAll($: Engine, paths: readonly string[] = THREE) {
+  for (const path of paths) {
+    await edit($, path)
+  }
+}
+
+const startTurn = ($: Engine, turnId: string) => $.turn.start({ text: 'go on', turnId })
+
 const endTurn = ($: Engine) =>
   $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
 
 describe('suggest', () => {
-  test('offers review after a code edit', async ($, on) => {
+  test('offers review after a turn that edited three code files', async ($, on) => {
     const world = seat(on)
 
-    await edit($)
+    await editAll($)
     await endTurn($)
 
     expect(world.proposed).toEqual([REVIEW])
   })
 
-  test('counts a write and a multi-edit of code', async ($, on) => {
+  test('stays silent after a turn that edited two code files, one of them twice', async ($, on) => {
+    const world = seat(on)
+
+    await editAll($, ['/work/src/app.ts', '/work/src/util.ts', '/work/src/app.ts'])
+    await endTurn($)
+
+    expect(world.proposed).toEqual([])
+  })
+
+  test('counts each turn afresh', async ($, on) => {
+    const world = seat(on)
+
+    await startTurn($, 't1')
+    await editAll($, ['/work/src/app.ts', '/work/src/util.ts'])
+    await endTurn($)
+    await startTurn($, 't2')
+    await edit($, '/work/src/api.ts')
+    await endTurn($)
+
+    expect(world.proposed, 'two files, then one').toEqual([])
+
+    await startTurn($, 't3')
+    await editAll($)
+    await endTurn($)
+
+    expect(world.proposed, 'three in one turn').toEqual([REVIEW])
+  })
+
+  test('counts a write, a multi-edit and a notebook edit of code', async ($, on) => {
     const world = seat(on)
 
     await $.tool.call({ tool: 'Write', file_path: '/work/src/new.ts', content: 'x' })
-    await endTurn($)
-
-    world.head = 'bbb222'
     await $.tool.call({ tool: 'MultiEdit', file_path: '/work/src/app.ts', edits: [{ old_string: 'a', new_string: 'b' }] })
-    await endTurn($)
-
-    expect(world.proposed).toEqual([REVIEW, REVIEW])
-  })
-
-  test('counts a notebook edit as code', async ($, on) => {
-    const world = seat(on)
-
     await $.tool.call({ tool: 'NotebookEdit', notebook_path: '/work/analysis.ipynb', new_source: 'x = 1' })
     await endTurn($)
 
@@ -146,7 +174,7 @@ describe('suggest', () => {
   test('counts code in a repository that sits beneath a docs directory', async ($, on) => {
     const world = seat(on, { cwd: '/home/me/docs/app' })
 
-    await edit($, '/home/me/docs/app/src/app.ts')
+    await editAll($, ['/home/me/docs/app/src/app.ts', '/home/me/docs/app/src/util.ts', '/home/me/docs/app/src/api.ts'])
     await endTurn($)
 
     expect(world.proposed).toEqual([REVIEW])
@@ -155,7 +183,7 @@ describe('suggest', () => {
   test('reads docs paths from the repository root when the cwd is a subdirectory', async ($, on) => {
     const world = seat(on, { cwd: '/home/me/docs/app/src', cdup: '../' })
 
-    await edit($, '/home/me/docs/app/lib/util.ts')
+    await editAll($, ['/home/me/docs/app/lib/util.ts', '/home/me/docs/app/lib/app.ts', '/home/me/docs/app/src/api.ts'])
     await endTurn($)
 
     expect(world.proposed).toEqual([REVIEW])
@@ -166,6 +194,7 @@ describe('suggest', () => {
 
     await edit($, '/tmp/scratch.py')
     await edit($, '/home/me/.claude/settings.json')
+    await editAll($, ['/work/src/app.ts', '/work/src/util.ts'])
     await endTurn($)
 
     expect(world.proposed).toEqual([])
@@ -174,7 +203,7 @@ describe('suggest', () => {
   test('stays silent after a refused edit', async ($, on) => {
     const world = seat(on, { refused: '/work/src/app.ts' })
 
-    await edit($)
+    await editAll($)
     await endTurn($)
 
     expect(world.proposed).toEqual([])
@@ -183,7 +212,7 @@ describe('suggest', () => {
   test('stays silent after an edit that errored', async ($, on) => {
     const world = seat(on, { errored: '/work/src/app.ts' })
 
-    await edit($)
+    await editAll($)
     await endTurn($)
 
     expect(world.proposed).toEqual([])
@@ -193,7 +222,7 @@ describe('suggest', () => {
     const world = seat(on)
 
     world.disk.set('/work/.claude/task-runner/active-run.json', runOn('feat/x'))
-    await edit($)
+    await editAll($)
     world.disk.delete('/work/.claude/task-runner/active-run.json')
     await endTurn($)
 
@@ -203,7 +232,7 @@ describe('suggest', () => {
   test('drops the offer when a run starts on this branch before the turn ends', async ($, on) => {
     const world = seat(on)
 
-    await edit($)
+    await editAll($)
     world.disk.set('/work/.claude/task-runner/active-run.json', runOn('feat/x'))
     await endTurn($)
 
@@ -214,7 +243,7 @@ describe('suggest', () => {
     const world = seat(on)
 
     world.disk.set('/work/.claude/task-runner/active-run.json', runOn('master'))
-    await edit($)
+    await editAll($)
     await endTurn($)
 
     expect(world.proposed).toEqual([REVIEW])
@@ -223,15 +252,15 @@ describe('suggest', () => {
   test('offers review once per HEAD once shown', async ($, on) => {
     const world = seat(on)
 
-    await edit($)
+    await editAll($)
     await endTurn($)
-    await edit($)
+    await editAll($)
     await endTurn($)
 
     expect(world.proposed, 'not re-offered on the same HEAD').toEqual([REVIEW])
 
     world.head = 'bbb222'
-    await edit($)
+    await editAll($)
     await endTurn($)
 
     expect(world.proposed, 'offered again after HEAD moves').toEqual([REVIEW, REVIEW])
@@ -240,7 +269,7 @@ describe('suggest', () => {
   test('re-offers at the next turn end after a not-shown answer', async ($, on) => {
     const world = seat(on, { shownAnswers: [false, true] })
 
-    await edit($)
+    await editAll($)
     await endTurn($)
     await endTurn($)
     await endTurn($)
@@ -252,7 +281,7 @@ describe('suggest', () => {
     const world = seat(on)
 
     world.disk.set('/work/.claude/cc-phase.json', JSON.stringify({ phase: 'build', session_id: 'S1' }))
-    await edit($)
+    await editAll($)
     await endTurn($)
 
     expect(world.proposed).toEqual([])
@@ -261,7 +290,7 @@ describe('suggest', () => {
   test('stays silent under CC_SUGGEST=off', async ($, on) => {
     const world = seat(on, { suggest: 'off' })
 
-    await edit($)
+    await editAll($)
     await endTurn($)
 
     expect(world.proposed).toEqual([])
@@ -270,7 +299,7 @@ describe('suggest', () => {
   test('stays silent below CLI 2.1.291', async ($, on) => {
     const world = seat(on, { version: '2.1.290' })
 
-    await edit($)
+    await editAll($)
     await endTurn($)
 
     expect(world.proposed).toEqual([])

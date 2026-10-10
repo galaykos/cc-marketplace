@@ -71,6 +71,7 @@ function seat(on: On, live: Live = {}) {
   const world = {
     disk: new Map<string, { text: string; mtimeMs: number }>(),
     statuses: [] as (string | undefined)[],
+    writes: 0,
     reads: [] as string[],
     failedReads: 0,
     unstatted: new Set<string>(),
@@ -192,6 +193,8 @@ function seat(on: On, live: Live = {}) {
   })
 
   on('state.set', async ($, e, next) => {
+    world.writes += 1
+
     const gate = world.writeGate
 
     if (gate !== undefined && e.value.runActive) {
@@ -413,6 +416,24 @@ describe('board', () => {
     await older
 
     expect(world.statuses).toEqual(['task-runner  build  card 5/12  1 parked  goal'])
+  })
+
+  test('writes the board state only when it changed', async ($, on) => {
+    const world = seat(on)
+
+    world.put(INDEX, BOARD)
+    await start($)
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+
+    expect(world.writes, 'no run: written once').toBe(1)
+
+    world.put(RUN, RUN_HERE)
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+
+    expect(world.writes, 'the run started: written once more').toBe(2)
+    expect(world.statuses.at(-1)).toBe('task-runner  build  card 5/12  1 parked  goal')
   })
 
   test('clears the line when the run ends', async ($, on) => {

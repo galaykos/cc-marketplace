@@ -169,6 +169,21 @@ bash_deny  "printf > file"                            "printf '%s\\n' '$GH' > to
 bash_deny  "second heredoc names ITS file"            "$(printf "cat > a.txt <<'A'\nclean\nA\ncat > b.php <<'B'\nk = '%s'\nB" "$AWS")" b.php
 bash_allow "heredoc to stdout only"                   "$(printf "cat <<'EOF'\n%s\nEOF" "$AWS")"
 bash_allow "echo of a \$VAR into .env"                'echo "API_KEY=$API_KEY" >> .env'
+marker_deny() { # marker_deny <name> <command> <expected file>
+  out=$(bash_run "$2")
+  if grep -q '"permissionDecision":"deny"' <<<"$out" && grep -qF "redaction marker [REDACTED:…] to $3." <<<"$out" \
+     && grep -qF 'CC_SECRET_REDACT=off' <<<"$out"; then pass=$((pass+1));
+  else echo "FAIL $1: expected the marker deny naming $3 and CC_SECRET_REDACT=off, got: ${out:-<empty>}"; fail=$((fail+1)); fi
+}
+MASKED='STRIPE_SECRET=[REDACTED:a Stripe live secret key]'
+marker_deny "redaction marker written back through a heredoc" "$(printf "cat > .env.example <<'EOF'\n%s\nEOF" "$MASKED")" .env.example
+marker_deny "redaction marker appended with echo >>"          "echo '$MASKED' >> .env.example" .env.example
+bash_allow  "redaction marker in a command that writes no file" "grep -rn '[REDACTED:' storage/logs"
+bash_allow  "redaction marker in a heredoc to stdout only"    "$(printf "cat <<'EOF'\n%s\nEOF" "$MASKED")"
+bash_allow  "redaction marker written with CC_SECRET_REDACT=off" "echo '$MASKED' >> notes.txt" CC_SECRET_REDACT=off
+bash_allow  "redaction marker written with CC_SECRET_REDACT=False" "echo '$MASKED' >> notes.txt" CC_SECRET_REDACT=False
+bash_allow  "redaction marker written with CC_SECRET_REDACT=0" "echo '$MASKED' >> notes.txt" CC_SECRET_REDACT=0
+bash_allow  "redaction marker written with cc_secret_redact off in /config" "echo '$MASKED' >> notes.txt" CLAUDE_PLUGIN_OPTION_CC_SECRET_REDACT=false
 if [ -z "$(find "$REPO" -name .claude 2>/dev/null)" ]; then pass=$((pass+1));
 else echo "FAIL no state: a .claude/ dir appeared under $REPO"; fail=$((fail+1)); fi
 

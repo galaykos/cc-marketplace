@@ -75,6 +75,20 @@ const UNCLEAR = verdict('unclear')
 
 const dropOf = (kind: string) => ({ drop: `prompt-coach held this prompt (${kind}); set CC_PROMPT_COACH=off to stop` })
 
+const UNMASKED =
+  'prompt-coach runs before secret-scanning, so a secret typed into a prompt reaches the judge before it is masked. CC_PROMPT_COACH=off turns the coach off.'
+
+const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
+
+// prepend sits outside the coach's user tier and append beneath it, as list order places an installed plugin either way.
+const secretScanning = (tier: 'prepend' | 'append') => ({
+  name: 'secret-scanning',
+  tier,
+  register: (on: On) => {
+    on('session.start', ($, e, next) => next(e))
+  },
+})
+
 const composer = (text: string, more: Partial<Args<'prompt.submit'>> = {}): Args<'prompt.submit'> => ({
   text,
   wait: false,
@@ -113,6 +127,7 @@ function seat(on: On, live: Live = {}) {
   on('session.cwd', () => ({ value: ROOT }))
   on('session.surfaces', () => ({ value: world.surfaces }))
   on('session.messages', () => ({ value: live.messages ?? [] }))
+  on('session.start', ($, e) => ({ cwd: e.cwd }))
 
   on('process.run', async ($, e) => {
     if (world.gitDelayMs > 0) {
@@ -811,5 +826,47 @@ describe('coach', () => {
     expect(await $.prompt.submit(composer(PROMPT))).toEqual({ text: PROMPT })
     expect(world.calls.length, "the first judgment's back-off stands").toBe(3)
     expect(world.toasts).toEqual([expect.stringMatching(/^3 judgments failed in a row \(last: haiku gave no answer within 5 s\)/)])
+  })
+
+  test('warns at start when secret-scanning masks a prompt only after the judge', { plugins: [secretScanning('append')] }, async ($, on) => {
+    const world = seat(on)
+
+    await $.session.start(START)
+
+    expect(world.toasts).toEqual([UNMASKED])
+  })
+
+  test('says nothing when secret-scanning masks first', { plugins: [secretScanning('prepend')] }, async ($, on) => {
+    const world = seat(on)
+
+    await $.session.start(START)
+
+    expect(world.toasts).toEqual([])
+  })
+
+  test('says nothing without secret-scanning', async ($, on) => {
+    const world = seat(on)
+
+    await $.session.start(START)
+
+    expect(world.toasts).toEqual([])
+  })
+
+  test('says nothing when the coach is off, below the floor or off the terminal', { plugins: [secretScanning('append')] }, async ($, on) => {
+    const world = seat(on, { env: { CC_PROMPT_COACH: 'off' } })
+
+    await $.session.start(START)
+
+    world.env.CC_PROMPT_COACH = undefined
+    world.version = '2.1.290'
+
+    await $.session.start(START)
+
+    world.version = '2.1.291'
+    world.surfaces = ['desktop']
+
+    await $.session.start(START)
+
+    expect(world.toasts).toEqual([])
   })
 })
