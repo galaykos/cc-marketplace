@@ -14,7 +14,7 @@ Blocks secrets before they reach disk.
 | A file attached with an `@` mention, or changed outside the session, whose text holds a secret, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses the mention with a toast, and masks what the engine attaches either way; same tests, same CI step. A subagent's mention is not tested |
 | A secret typed or pasted into the prompt box, on Claude Code ≥ 2.1.291 | **gate** for the decision: the mod paints it in the draft, and at submit asks Mask and send / Send as typed / Cancel, masking when nobody can answer. A slash command's arguments cannot be masked, so a command holding a secret is offered only Send as typed / Cancel and dropped otherwise (`tests/redact.test.ts`, "prompt box"). **Recorded**: the masked text, not the secret, is what reached the API in a live probe on 2.1.294 (marketplace repository `rationale/2026-10-08-secret-scanning-prompt-guard-probe.md`) |
 | A `Write`/`Edit`/`MultiEdit`/`NotebookEdit` whose new text carries `[REDACTED:`, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses it, naming `CC_SECRET_REDACT=off`, so a redacted read written back cannot replace the real value; same tests, same CI step |
-| A `Bash` heredoc body or `echo`/`printf` argument carrying `[REDACTED:` that lands in a file (since 0.14.0) | **gate** — `scan.sh` refuses it the same way unless `CC_SECRET_REDACT` is off; `scan-hook.test.sh` runs both write shapes, a command writing no file, stdout only and both off switches. Not refused: an MCP write tool, and the Bash writes the guard cannot read (`sed -i` text, interpreters, `cp`/`mv`; the "through Bash any other way" row below) |
+| A `Bash` heredoc body or `echo`/`printf` argument carrying `[REDACTED:` that lands in a file (since 0.14.0), on any CLI, with or without mods | **gate** — `scan.sh` refuses it the same way unless `CC_SECRET_REDACT` is `off`, `0` or `false`; `scan-hook.test.sh` runs both write shapes, a command writing no file, stdout only and the off switches. Not refused: an MCP write tool, and the Bash writes the guard cannot read (`sed -i` text, interpreters, `cp`/`mv`; the "through Bash any other way" row below) |
 | The mod and the write guard agree on what is a secret (one pattern file, two regex engines) | **gate** — `scripts/__tests__/pattern-parity.test.sh` runs one fixture set through `scan.sh` and the mod's matcher and fails on any disagreement it does not declare; it proves its fixtures, not every input, and its declared divergences (astral characters in a webhook tail, a NUL inside a key) are fixtures of their own |
 | Invisible characters in a file this session wrote or read | **advisory** — `hooks/unicode-scan.sh` is a PostToolUse **warning**; it never blocks, once per file per session |
 | A secret reaching a file through Bash any other way — an interpreter (`python open()`, `php file_put_contents`), `cp`/`mv` of a file that already holds one, `sed -i` replacement text, a here-string `<<<`, a `{ echo …; } > f` group, a `printf 'KEY=%s' value` pair the generic assigned-literal rule cannot join (a provider-shaped value still matches alone) — or a live key in a command that writes no file (`curl -H "Authorization: …"`) | **unenforceable here** — the guard reads only heredoc bodies and echo/printf arguments whose pipeline writes a file; `scan.sh`'s header `Misses:` line and its `cc_bash_write_chunks` `Misses:` line name each gap, and the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` keeps why. `command-guard` owns destroying a live `.env`, not what enters a file |
@@ -205,13 +205,16 @@ Residuals, stated:
   than twelve `_`/`-` segments after its last keyword, or a segment over 64 characters
   between that keyword and the `:`/`=`, passes both the mod and `scan.sh`: the shared pattern bounds the name so JavaScript's
   regex stays linear.
-- **Not refused.** A `[REDACTED:` token written through `Bash` or an MCP write tool.
+- **Not refused.** A `[REDACTED:` token written through an MCP write tool, or through a
+  Bash write `scan.sh` cannot read (`sed -i` text, interpreters, `cp`/`mv`). A Bash heredoc
+  or `echo`/`printf` into a file is refused by `scan.sh` since 0.14.0.
 - **Refused by mistake.** The same token in a file that quotes it on purpose — a spec, a
-  test, this README — is refused too, even in a session that redacted nothing: the refusal
-  reads the new text, not where it came from. Its reason says the token may have come from
-  a redacted result; `CC_SECRET_REDACT=off` gets past it and also stops output redaction.
-  Standing: **gate** — `tests/redact.test.ts` refuses all four tools with nothing redacted
-  and pins the reason's full wording.
+  test, this README, a script that greps for it — is refused too, even in a session that
+  redacted nothing: the refusal reads the new text, not where it came from. Its reason says
+  the token may have come from a redacted result; `CC_SECRET_REDACT=off` (or `0`, `false`)
+  gets past it and also stops output redaction. Standing: **gate** — `tests/redact.test.ts`
+  refuses all four tools with nothing redacted and pins the reason's full wording, and
+  `scripts/__tests__/scan-hook.test.sh` the Bash refusal.
 - **Untested.** Subagent calls (the test kit drops `agentId`) and the time-budget-overrun
   path end to end (only its refusal text is tested).
 - **Signals.** The toast is transient; afterwards only the mask text and the model's note

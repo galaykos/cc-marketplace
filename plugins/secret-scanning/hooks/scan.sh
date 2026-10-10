@@ -332,7 +332,9 @@ $(cc_bash_write_chunks "$cmd")
 EOF_C
     # redact.ts masks a secret in tool output as [REDACTED:<label>] and refuses Write/Edit carrying it; through Bash, the
     # same write-back would replace the real value on disk. With redaction off no mask is ever shown, so the text is quoted.
-    if [ "$(cc_option CC_SECRET_REDACT on)" != "off" ]; then
+    # off, 0 and false in any case, as redact.ts's switchOn reads the same variable.
+    redact=$(cc_option CC_SECRET_REDACT on | tr '[:upper:]' '[:lower:]')
+    if [ "$redact" != off ] && [ "$redact" != 0 ] && [ "$redact" != false ]; then
       i=1
       while [ "$i" -le "$n" ]; do
         case "${ctext[$i]}" in
