@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.46.2 — 2026-10-11
+
+- **The phase sentinel is written by the installed taskmaster, not a guess.** The writer path `${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh` resolves only from a source checkout: an installed plugin sits at `<marketplace>/<plugin>/<version>/`, so `task-runner/<version>/../taskmaster` does not exist. The fallback `find ~/.claude/plugins/cache -name phase-sentinel.sh` then listed every cached taskmaster version unordered (three on the machine that measured it), and the model ran whichever it picked. `/task-runner:run` now takes the newest: `find … -path '*/taskmaster/*/scripts/phase-sentinel.sh' | sort -V | tail -1`. Residual: newest is not necessarily the enabled version after a downgrade; no harness drives the command text.
+
 ## 0.46.1 — 2026-10-09
 
 - **The board writes its saved state only when it changed.** Every tool call, main loop and subagents, refreshed the board and wrote its state even when nothing moved, which outside a run meant the same inactive board on every call. A refresh now compares first. Subagent calls still refresh the board, so a delegated card marked done moves the line mid-turn. One new test.
