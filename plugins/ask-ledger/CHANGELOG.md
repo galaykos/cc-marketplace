@@ -2,6 +2,17 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.4.1 — 2026-10-11
+
+### Fixed
+- **A quoted phrase is no longer ledgered as a name.** Any quoted span of 2-40 characters
+  counted, so a review ask quoting the axis "take usage without any result" ledgered the
+  whole description and the Stop gate blocked the turn until the model wrote an
+  accounting line for it — a full extra turn for a name that was never a deliverable. A
+  quoted span now ledgers only at one to three words (`"digimon"`, `'checkout total'`).
+  Residual: a quoted name of four or more words is no longer ledgered. Harness case 1b in
+  `ledger-hook.test.sh` pins it and fails against 0.4.0.
+
 ## 0.4.0 — 2026-10-08
 
 ### Fixed

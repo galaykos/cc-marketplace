@@ -27,6 +27,8 @@ check(){ if [ "$2" = "$3" ]; then echo "PASS: $1"; else echo "FAIL: $1 — got: 
 
 check "1 proper nouns, quoted term, digit token with its word" \
   "$(run 'create a Laravel + React project with 2D Sprites, Digimon themed, and a "digimon" library' s1)" "digimon,2D Sprites,Laravel,React"
+check "1b a quoted phrase of four-plus words is not a name; a short quoted one is" \
+  "$(run 'fix the "checkout total" and review what may "take usage without any result"' s1b)" "checkout total"
 check "2 a clause-start capital is not a name" "$(run 'Build the parser. Then add tests for Stripe webhooks.' s2)" "Stripe"
 check "3 a question with a making verb writes no ledger" "$(run 'how do I add Redis caching?' s3)" ""
 check "4 a slash command writes no ledger" "$(run '/taskmaster:task build a Redis cache' s4)" ""

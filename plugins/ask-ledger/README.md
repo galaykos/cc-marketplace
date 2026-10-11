@@ -15,7 +15,7 @@ own plugin so it can be disabled on its own.
 
 | event | script | does |
 |---|---|---|
-| `UserPromptSubmit` | `hooks/ledger.sh` | on a work-shaped prompt (a making verb in an imperative clause), destructures the ask into the things it **names** — proper nouns not at a clause start (`Laravel`, `Digimon`), quoted terms (`"digimon"`), digit-letter tokens with their word (`2D Sprites`) — drops every name the project's tracked tree already carries, and keeps the rest as a session ledger of names still owed (deduped, later prompts append, 12 max), telling the model the gate shape once per prompt that added entries |
+| `UserPromptSubmit` | `hooks/ledger.sh` | on a work-shaped prompt (a making verb in an imperative clause), destructures the ask into the things it **names** — proper nouns not at a clause start (`Laravel`, `Digimon`), quoted terms of one to three words (`"digimon"`), digit-letter tokens with their word (`2D Sprites`) — drops every name the project's tracked tree already carries, and keeps the rest as a session ledger of names still owed (deduped, later prompts append, 12 max), telling the model the gate shape once per prompt that added entries |
 | `Stop` | `hooks/gate.sh` | refuses the final message (exit 2, reason on stderr) unless it carries one line per name still owed: `<name>: as named` \| `<name>: substituted → what, why` \| `<name>: omitted → why`. A name the final message accounts for leaves the ledger. At most two blocks per session; then it warns, drops the names it warned about, and lets the turn end |
 
 Your original prompt of 2026-09-18 ("create a Laravel + React project … landing page
