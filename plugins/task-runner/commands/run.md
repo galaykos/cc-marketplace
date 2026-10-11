@@ -98,8 +98,11 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    `covered` verdict passes a new run. In the same step write the **arc phase sentinel**
    `.claude/cc-phase.json` with taskmaster's writer, never by hand —
    `bash ${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh write build --owner task-runner:run --session "<this session id>"`.
-   It ships in taskmaster, which may not be installed: if that path does not resolve, try
-   `find ~/.claude/plugins/cache -name phase-sentinel.sh`, and only if that misses too
+   It ships in taskmaster, which may not be installed: if that path does not resolve (an
+   installed plugin sits at `<marketplace>/<plugin>/<version>/`, so the sibling path
+   resolves only from a source checkout), run the newest installed copy —
+   `find ~/.claude/plugins/cache -path '*/taskmaster/*/scripts/phase-sentinel.sh' | sort -V | tail -1`
+   — and only if that misses too
    write the JSON yourself —
    `{"phase":"build","owner":"task-runner:run","session_id":"<this session id>","started_at":"<ISO-8601 UTC>"}`
    — spelling `build` exactly, because the script exists to catch the typo that makes a

@@ -1,6 +1,6 @@
 ---
 description: Install every leaf plugin of this marketplace but opt-in prompt-coach at one scope with zero prompts — local by default; runs the plugin's script and relays its exit code: 0 run /reload-plugins, 1 lists the plugins that failed, 2 names the missing precondition.
-argument-hint: [--scope local|project|user] [--dry-run] [--no-budget]
+argument-hint: [--scope local|project|user] [--dry-run] [--budget]
 disable-model-invocation: true
 ---
 
@@ -23,9 +23,10 @@ Then:
      ends with the `Run /reload-plugins` line, repeat it: nothing installed this run is
      active until they do. The script prints that line only when something was
      installed or enabled — all skips or a dry run need no reload, so say nothing.
-     The `skillListingBudgetFraction` line before it says what the script wrote to the
-     scope's settings file and why (the listing overflows the default budget); relay it
-     as printed, do not explain it further, and never edit that key yourself.
+     Under `--budget`, the `skillListingBudgetFraction` line before it says what the
+     script wrote to the scope's settings file and why (the listing overflows the default
+     budget); relay it as printed, do not explain it further, and never edit that key
+     yourself. Without `--budget` the script leaves the key alone and prints no such line.
    - **1** — at least one plugin failed. List the `FAIL` lines from the output and stop;
      do not retry them.
    - **2** — a precondition is missing. Show the stderr line — it names the fix, usually

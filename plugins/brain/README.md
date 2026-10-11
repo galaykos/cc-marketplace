@@ -66,6 +66,12 @@ instructions on one edit. And when the `built:` hash is no longer reachable in t
 repo — rebased, squashed, a shallow clone, a hand-edited stamp — the drift cannot be
 counted, so the hint names no number rather than claiming `0 files changed`.
 
+Changes under `brain/` never count as drift: committing the map moves HEAD past its own
+stamp, and until 0.4.4 that alone triggered a refresh at every later session start. A
+HEAD whose only changes since the stamp are under `brain/` — or an empty or reverted
+commit — gets no hint. The harness `scripts/__tests__/inject-hook.test.sh` gates the hint
+branches.
+
 ## Pairs with
 
 `brain` is a sink for two ledgers and an orientation prior for three readers. It

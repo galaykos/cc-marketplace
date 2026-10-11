@@ -14,9 +14,9 @@
 # failure is reported; 2 = usage error or a missing prerequisite.
 #
 # Usage: all-plugins.sh <install|uninstall|list> [--scope local|project|user]
-#                       [--dry-run] [--self] [--no-budget] [--marketplace NAME]
+#                       [--dry-run] [--self] [--budget|--no-budget] [--marketplace NAME]
 #
-# The listing budget is part of the job. Claude Code caps the skill+command listing
+# The listing budget is opt-in (--budget). Claude Code caps the skill+command listing
 # it sends the model at contextWindowTokens x bytesPerToken x skillListingBudgetFraction
 # (default 0.01 — 6,000 chars at 200k on a 3-byte model) and past it drops entries to
 # name-only. Every leaf here costs several times that, so `install` computes the
@@ -28,15 +28,18 @@
 # in the SCOPE's settings file to the smallest 0.01 step that covers it at the 200k
 # floor — a cap, not a fill, so a 1M window pays nothing extra. `uninstall` removes
 # the key again, but only when it still holds the value this script would set; any
-# other value is somebody's and is left alone. --no-budget skips both.
+# other value is somebody's and is left alone. --no-budget skips the removal too.
+# `install` raises only under --budget; `uninstall` removes by default, so a value an
+# older install wrote unasked is still cleaned up.
 #
 # What it does NOT do: never touches another marketplace; never
 # prompts — this marketplace declares no install commands, so nothing asks and `-y`
 # is never passed; does not reload the session (the hint names /reload-plugins).
 #
 # Whether an overflowed listing changes what fires was measured once at zero delta,
-# n=50 (rationale/2026-09-15-listing-eviction-probe.md); the budget step exists
-# because sending every description is the only way to make the question moot.
+# n=50 (rationale/2026-09-15-listing-eviction-probe.md), so the raise is not worth
+# about 12,000 system-prompt tokens per turn by default; --budget buys it for whoever
+# wants the question moot (rationale/marketplace-taskforce-review-2026-10-11.md).
 #
 # Discovery is never a hardcoded list: `claude plugin marketplace list --json`
 # locates the clone, its marketplace.json names the plugins, and `claude plugin
@@ -52,7 +55,7 @@ MARKETPLACE="cc-plugins-marketplace"
 SCOPE="local"
 DRY=0
 SELF=0
-BUDGET=1
+BUDGET=""   # unset: install leaves the key alone, uninstall removes its own value
 FLOOR_TOKENS=200000   # the default window; the fraction is a cap, so 1M costs no more
 FLOOR_BYTES_PER_TOKEN=3   # the newer tokenizer set; 4-byte models need a smaller fraction
 BUDGET_KEY=skillListingBudgetFraction
@@ -64,7 +67,7 @@ REASON=""
 ROOT=""
 
 usage() {
-  printf 'usage: all-plugins.sh <install|uninstall|list> [--scope local|project|user] [--dry-run] [--self] [--no-budget] [--marketplace NAME]\n'
+  printf 'usage: all-plugins.sh <install|uninstall|list> [--scope local|project|user] [--dry-run] [--self] [--budget|--no-budget] [--marketplace NAME]\n'
 }
 
 die() { # die <rc> <message> — every error names its fix and goes to stderr
@@ -89,6 +92,7 @@ parse_args() {
       --marketplace=*) MARKETPLACE="${1#--marketplace=}" ;;
       --dry-run) DRY=1 ;;
       --self) SELF=1 ;;
+      --budget) BUDGET=1 ;;
       --no-budget) BUDGET=0 ;;
       -h|--help) usage; exit 0 ;;
       *) usage >&2; die 2 "unknown argument '$1'" ;;
@@ -266,7 +270,7 @@ write_settings() { # write_settings <file> <jq filter> — atomic, creates the f
 
 budget_raise() { # after install: make the scope's settings cover the whole listing
   local root="$1" file cost need cur tokens
-  [ "$BUDGET" -eq 1 ] || return 0
+  [ "${BUDGET:-0}" -eq 1 ] || return 0
   file=$(settings_file); cost=$(listing_cost "$root"); need=$(needed_fraction "$cost")
   cur=$(current_fraction "$file")
   tokens=$(( cost / FLOOR_BYTES_PER_TOKEN ))
@@ -289,7 +293,7 @@ budget_raise() { # after install: make the scope's settings cover the whole list
 
 budget_revert() { # after uninstall: drop the key only if it still holds the value install sets
   local root="$1" file cost need cur
-  [ "$BUDGET" -eq 1 ] || return 0
+  [ "${BUDGET:-1}" -eq 1 ] || return 0
   file=$(settings_file)
   [ -f "$file" ] && jq -e --arg k "$BUDGET_KEY" 'type == "object" and has($k)' "$file" >/dev/null 2>&1 || return 0
   cost=$(listing_cost "$root"); need=$(needed_fraction "$cost"); cur=$(current_fraction "$file")

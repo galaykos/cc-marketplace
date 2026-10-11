@@ -62,7 +62,7 @@ cc_state_root() {
   # explicit offer (a big reindex spends real tokens; the user decides). The hook itself
   # still writes nothing — the model performs the refresh, visibly, in the session.
   built=$(head -1 "$index" | grep -oE 'built: [0-9a-f]+' | awk '{print $2}')
-  hint=""
+  hint=""; built_current=""
   if [ -n "$built" ] && command -v git >/dev/null 2>&1; then
     head_full=$(git -C "$root" rev-parse HEAD 2>/dev/null)
     if [ -n "$head_full" ]; then
@@ -74,9 +74,16 @@ cc_state_root() {
           # repo (rebased, squashed, shallow clone, hand-edited stamp) fell through as
           # drift=0 and the hint read "behind HEAD (built <hash>, 0 files changed)" —
           # a number that contradicts the warning beside it. Unknown drift now prints no
-          # count, and a real 0 (an empty or reverted commit) prints none either.
-          if changed=$(git -C "$root" diff --name-only "$built"..HEAD 2>/dev/null); then
+          # count.
+          # brain/ itself is excluded: committing the map advances HEAD past its own
+          # `built:` stamp, so counting it ordered an unasked refresh every session after,
+          # which the indexer answered "already current" and restamped
+          # (rationale/marketplace-taskforce-review-2026-10-11.md). Zero files changed
+          # outside brain/ — the map's own commit, an empty or a reverted one — means the
+          # map is current: no hint at all.
+          if changed=$(git -C "$root" diff --name-only "$built"..HEAD -- . ':(exclude)brain' 2>/dev/null); then
             drift=$(printf '%s' "$changed" | grep -c . | tr -d ' ')
+            [ "$drift" = 0 ] && built_current=1
           else
             drift=""
           fi
@@ -86,7 +93,9 @@ cc_state_root() {
           # flag a brain/*.md write as out-of-scope and order it reverted. During a run,
           # demote the "refresh now" imperative to the passive offer so the two hooks
           # never issue opposite instructions on the same edit.
-          if [ -n "$count" ] && [ "$drift" -le 5 ] \
+          if [ -n "$built_current" ]; then
+            :
+          elif [ -n "$count" ] && [ "$drift" -le 5 ] \
              && [ ! -f "$root/.claude/task-runner/scope.json" ]; then
             hint="⚠ brain map is behind HEAD (built $built$count) — Claude: run the incremental /brain index refresh now, before other work; no need to ask."
           else

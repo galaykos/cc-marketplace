@@ -19,6 +19,10 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open
 pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
 CWD="$WS/proj"; mkdir -p "$CWD" "$WS/subagents"
+# Every case runs under a scratch HOME: the hook appends a row per scan to
+# ~/.claude/comment-discipline/verbosity-ledger.jsonl, and until 2026-10-11 cases 1-12
+# wrote theirs into the real ledger — fixture sessions s1-s5 were 240 of its 574 rows.
+CASE_HOME="$WS/home-cases"
 
 # build <file> <tool-calls> <chars-per-text> <text-blocks> [total-lines]
 # Pads with user rows so the transcript clears the hook's 60-line cheap gate.
@@ -37,7 +41,7 @@ check() {
   local desc="$1" tf="$2" sid="$3" expect="$4" out rc ok=1
   out=$(jq -cn --arg tp "$tf" --arg cwd "$CWD" --arg sid "$sid" \
           '{transcript_path:$tp,cwd:$cwd,session_id:$sid}' \
-        | bash "$HOOK" 2>/dev/null); rc=$?
+        | env HOME="$CASE_HOME" bash "$HOOK" 2>/dev/null); rc=$?
   [ "$rc" -eq 0 ] || ok=0                       # warn-only: never blocks, ever
   case "$expect" in
     warn)   printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext' >/dev/null 2>&1 || ok=0 ;;
@@ -90,7 +94,7 @@ printf '\n%.0s' $(seq 1 70) >> "$WS/junk.jsonl"
 check "malformed transcript fails open"          "$WS/junk.jsonl" s10 silent
 
 # 12. Missing cwd/session_id in the payload -> fail open, silent.
-out=$(jq -cn --arg tp "$WS/verbose.jsonl" '{transcript_path:$tp}' | bash "$HOOK" 2>/dev/null); rc=$?
+out=$(jq -cn --arg tp "$WS/verbose.jsonl" '{transcript_path:$tp}' | env HOME="$CASE_HOME" bash "$HOOK" 2>/dev/null); rc=$?
 if [ "$rc" -eq 0 ] && [ -z "$out" ]; then pass=$((pass+1)); printf 'PASS  payload without cwd/session_id fails open\n'
 else fail=$((fail+1)); printf 'FAIL  payload without cwd/session_id (rc=%s out=%s)\n' "$rc" "$out"; fi
 
@@ -140,6 +144,11 @@ else
   fail=$((fail+1)); printf 'FAIL  unwritable state dir silences the hook (out=%s rows=%s)\n' "$unw_out" "${unw_rows:-0}"
 fi
 chmod 755 "$UNW/.claude"
+
+# The scratch HOME took cases 1-12's rows — the proof they went nowhere else.
+if [ -s "$CASE_HOME/.claude/comment-discipline/verbosity-ledger.jsonl" ]
+then pass=$((pass+1)); printf 'PASS  cases 1-12 write their ledger rows under the scratch HOME\n'
+else fail=$((fail+1)); printf 'FAIL  cases 1-12 wrote no ledger row under the scratch HOME\n'; fi
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

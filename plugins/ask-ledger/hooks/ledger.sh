@@ -109,8 +109,12 @@ cc_option() {
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-ask-ledger-*' -type d -mmin +1440 -exec rm -rf {} + 2>/dev/null
   mkdir -p "$dir" 2>/dev/null || exit 0
 
+  # A QUOTED SPAN OF FOUR OR MORE WORDS IS A PHRASE, NOT A NAME (2026-10-11: a review ask
+  # quoting "take usage without any result" ledgered the whole description and the gate
+  # blocked the turn over it). Names people quote run one to three words: "digimon",
+  # 'checkout total'.
   found=$(
-    printf '%s\n' "$scrub" | grep -oE '"[^"]{2,40}"|'"'"'[^'"'"']{2,40}'"'" | sed 's/^["'"'"']//; s/["'"'"']$//'
+    printf '%s\n' "$scrub" | grep -oE '"[^"]{2,40}"|'"'"'[^'"'"']{2,40}'"'" | sed 's/^["'"'"']//; s/["'"'"']$//' | awk 'NF <= 3'
     printf '%s\n' "$scrub" | grep -oE '\b[0-9]+[A-Za-z]{1,4}\b( [A-Za-z]{3,})?'
     printf '%s\n' "$scrub" | awk '
       { line=$0; gsub(/[.?!:;]+/, "\n", line); n=split(line, parts, "\n")

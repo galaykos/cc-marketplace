@@ -11,8 +11,11 @@ worktree) before doing anything else.
 Write the arc phase sentinel `.claude/cc-phase.json` first, with taskmaster's writer
 and never by hand —
 `bash ${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh write ship --owner git-workflow:finish --session "<this session id>"`.
-It ships in taskmaster, which may not be installed: if that path does not resolve, try
-`find ~/.claude/plugins/cache -name phase-sentinel.sh`, and only if that misses too
+It ships in taskmaster, which may not be installed: if that path does not resolve (an
+installed plugin sits at `<marketplace>/<plugin>/<version>/`, so the sibling path
+resolves only from a source checkout), run the newest installed copy —
+`find ~/.claude/plugins/cache -path '*/taskmaster/*/scripts/phase-sentinel.sh' | sort -V | tail -1`
+— and only if that misses too
 write the JSON yourself, at the repo root (`git rev-parse --show-toplevel`; outside git,
 the project directory), never under a subdirectory the shell has `cd`'d into — the
 readers look only at the root —

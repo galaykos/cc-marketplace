@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.12.3 — 2026-10-11
+
+- plugin-scout's catalog row for all-plugins follows its new description (the listing-budget raise is opt-in behind `--budget` since all-plugins 0.3.0). The row was synced by hand to the generator's output; `scripts/generate.sh --check` confirms it byte-matches. No behaviour change.
+
 ## 0.12.2 — 2026-10-08
 
 - plugin-scout's catalog gained a row for the new session-hud plugin. The catalog has no hand edits; `scripts/generate.sh --write` produced this change. No behaviour change.

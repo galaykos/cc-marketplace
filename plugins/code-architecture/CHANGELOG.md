@@ -2,6 +2,11 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.18.1 — 2026-10-11
+
+### Fixed
+- **The phase sentinel is written by the installed taskmaster, not a guess.** The writer path `${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh` resolves only from a source checkout: an installed plugin sits at `<marketplace>/<plugin>/<version>/`, so `code-architecture/<version>/../taskmaster` does not exist. The fallback `find ~/.claude/plugins/cache -name phase-sentinel.sh` then listed every cached taskmaster version unordered (three on the machine that measured it), and the model ran whichever it picked. `/code-architecture:coding-task` now takes the newest: `find … -path '*/taskmaster/*/scripts/phase-sentinel.sh' | sort -V | tail -1`. Residual: newest is not necessarily the enabled version after a downgrade; no harness drives the command text.
+
 ## 0.18.0 — 2026-10-05
 
 ### Added
