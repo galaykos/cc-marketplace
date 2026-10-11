@@ -1,7 +1,8 @@
 # all-plugins
 
-Installs every leaf plugin of this marketplace at one scope, with zero prompts, raises
-the host's skill-listing budget so every description is actually sent, and undoes both.
+Installs every leaf plugin of this marketplace at one scope, with zero prompts — under
+`--budget` also raises the host's skill-listing budget so every description is actually
+sent — and undoes both.
 One script, one exit code; the two commands only relay it. "Every leaf" means every
 plugin in the marketplace's `marketplace.json` — there are no bundles to skip (the suites
 were retired 2026-09-26) — and that includes `all-plugins` itself, which `install` covers
@@ -47,7 +48,8 @@ disk before any plugin is installed.
 | `--scope local\|project\|user` | where the install records go; default `local` (this checkout, not committed) |
 | `--dry-run` | print the plan — one `DRY` line per command it would run — and exit 0 without running any |
 | `--self` | `uninstall` only: remove `all-plugins` too, last; without it the plugin stays and the script says how to remove it |
-| `--no-budget` | leave `skillListingBudgetFraction` alone in both directions (see "The listing budget") |
+| `--budget` | `install` only: raise `skillListingBudgetFraction` to cover the whole listing (see "The listing budget"); off by default since 0.3.0 |
+| `--no-budget` | `uninstall` only: leave `skillListingBudgetFraction` alone even when it holds the value `--budget` writes |
 | `--marketplace NAME` | read a different added marketplace's manifest instead of this one; still one marketplace per run |
 
 ## Exit codes
@@ -79,11 +81,11 @@ disk before any plugin is installed.
 |---|---|
 | The exit codes, the every-listed-plugin list, the `prompt-coach` opt-in skip, the scope flag, zero prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
 | The commands relay the script instead of running `claude plugin install` themselves | **agent-graded** — it is instruction text in `commands/*.md`; nothing detects a substituted loop |
-| The budget step: the fraction written, never lowered, foreign values kept, invalid JSON untouched, removed only when it is the script's own value | **gate** — the same harness drives it against fixture settings files |
+| The budget step: nothing written without `--budget`; with it, the fraction written, never lowered, foreign values kept, invalid JSON untouched, removed only when it is the script's own value | **gate** — the same harness drives it against fixture settings files |
 | The overflow arithmetic | **recorded** — reproduced by `scripts/context-budget.sh`; the 0.07 figure moves as the marketplace grows, and the script recomputes it on every run |
 | The zero-delta firing result | **recorded** — one n=50 measurement; nothing re-runs it in CI (`scripts/smoke/listing-eviction-probe.sh` needs a live model and `LISTING_PROBE=1`) |
 
-## The listing budget — what `install` changes besides the install list
+## The listing budget — what `install --budget` changes besides the install list
 
 Claude Code caps the skill+command listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` — default fraction
@@ -94,7 +96,7 @@ skill and command, the walk `scripts/lib/plugin-checks.sh`'s `pc_listing_entry_c
 does): 6.1x the 200k cap, 1.2x the 1M cap. The name+4 floor alone is 67% of the 200k
 cap, so no amount of description trimming makes everything fit there.
 
-So `install` finishes by computing that cost from the marketplace clone and writing
+So `install --budget` finishes by computing that cost from the marketplace clone and writing
 `skillListingBudgetFraction` into the scope's settings file — `.claude/settings.local.json`
 (local), `.claude/settings.json` (project), `~/.claude/settings.json` (user) — at the
 smallest 0.01 step that covers cost x 1.05 at the 200k floor: 0.07 today. The fraction
@@ -103,15 +105,16 @@ lowers a value that already covers, keeps every other key, refuses to touch a fi
 is not valid JSON (stderr names the value to set by hand), and prints what it did. The
 price is the listing itself: about 12,200 system-prompt tokens per turn, almost all of
 it prompt-cache reads. `uninstall` removes the key only when it still holds the value
-`install` would set now — any other value is yours and is left alone, with a line saying
-so. `--no-budget` skips the step in both directions.
+`install --budget` would set now — any other value is yours and is left alone, with a
+line saying so. It does that by default, so a value an install before 0.3.0 wrote
+unasked is cleaned up too; `uninstall --no-budget` keeps it.
 
 Whether an overflowed listing actually changes what fires was measured once
 (`rationale/2026-09-15-listing-eviction-probe.md`): same skill with and without its
 description, at 1, 13, 226 and 205-with-rivals skills — 47/50 against 47/50, zero delta,
-one model, one prompt shape, triggering only. On that evidence the budget step may be
-buying nothing; it exists because sending every description is the one way to make the
-question moot, and it costs one settings key you can see and remove.
+one model, one prompt shape, triggering only. On that evidence the budget step buys
+nothing measured, so since 0.3.0 it is opt-in: `--budget` is for whoever wants the
+question moot at that price, one settings key you can see and remove.
 
 The `everything` bundle that once existed served this same want and was removed on the
 "unreachable" reading, before the probe. This plugin is a script, not a bundle, and no

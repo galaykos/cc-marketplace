@@ -15,7 +15,8 @@
 # `uninstall` keeps all-plugins unless --self, and with --self removes it LAST;
 # --dry-run and list mutate nothing; every usage and prerequisite error exits 2
 # with the fix on stderr; `main "$@"` is the script's last line, which is what
-# makes self-uninstall safe; and the listing-budget step: install raises
+# makes self-uninstall safe; and the listing-budget step: install leaves the key
+# alone unless --budget, and with it raises
 # skillListingBudgetFraction in the SCOPE's settings file to the 0.01 step that
 # covers the leaves' entry cost (pc_listing_entry_cost's rule), never lowers a
 # higher value, keeps every other key, and uninstall removes only the value install
@@ -307,24 +308,28 @@ chmod 644 "$MK/.claude-plugin/marketplace.json"
 rm -rf "$PROJ/.claude"
 installed
 run -- install
+if [ ! -e "$SETTINGS" ]; then ok "install without --budget writes no settings"; else bad "install without --budget writes no settings" "$(cat "$SETTINGS")"; fi
+out_not "install without --budget says nothing about the budget" "skillListingBudgetFraction"
+
+run -- install --budget
 if [ "$(fraction "$SETTINGS")" = "0.02" ]; then ok "install writes the covering fraction to the local settings file"
 else bad "install writes the covering fraction to the local settings file" "got $(fraction "$SETTINGS")"; fi
 out_has "install reports the raise with the listing size" "skillListingBudgetFraction 0.01 -> 0.02 in $SETTINGS: the listing is 9072 chars"
 
 jq -n '{enabledPlugins:{"keep@x":true},skillListingBudgetFraction:0.5}' > "$SETTINGS"
-run -- install
+run -- install --budget
 out_has "a higher value already covers and is not lowered" "skillListingBudgetFraction 0.5 in $SETTINGS already covers the 9072-char listing"
 if [ "$(fraction "$SETTINGS")" = "0.5" ]; then ok "higher value untouched"; else bad "higher value untouched" "got $(fraction "$SETTINGS")"; fi
 
 jq -n '{enabledPlugins:{"keep@x":true},skillListingBudgetFraction:0.015}' > "$SETTINGS"
-run -- install
+run -- install --budget
 if [ "$(fraction "$SETTINGS")" = "0.02" ]; then ok "a lower value is raised"; else bad "a lower value is raised" "got $(fraction "$SETTINGS")"; fi
 if jq -e '.enabledPlugins["keep@x"] == true' "$SETTINGS" >/dev/null; then ok "other settings keys survive the raise"
 else bad "other settings keys survive the raise" "$(cat "$SETTINGS")"; fi
 
 installed "$(entry alpha local true "$PROJ")" "$(entry beta local true "$PROJ")" "$(entry all-plugins local true "$PROJ")"
 jq -n '{}' > "$SETTINGS"
-run -- install
+run -- install --budget
 out_has "an all-skips run still covers the listing" "skillListingBudgetFraction 0.01 -> 0.02"
 
 rm -rf "$PROJ/.claude"; installed
@@ -332,23 +337,23 @@ run -- install --no-budget
 if [ ! -e "$SETTINGS" ]; then ok "--no-budget writes nothing"; else bad "--no-budget writes nothing" "$(cat "$SETTINGS")"; fi
 out_not "--no-budget says nothing about the budget" "skillListingBudgetFraction"
 
-run -- install --dry-run
+run -- install --budget --dry-run
 if [ ! -e "$SETTINGS" ]; then ok "--dry-run writes no settings"; else bad "--dry-run writes no settings" "$(cat "$SETTINGS")"; fi
 out_has "--dry-run prints the raise it would make" "DRY  set skillListingBudgetFraction 0.01 -> 0.02 in $SETTINGS"
 
 mkdir -p "$WS/home"
-HOME="$WS/home" run -- install --scope user
+HOME="$WS/home" run -- install --budget --scope user
 if [ "$(fraction "$WS/home/.claude/settings.json")" = "0.02" ]; then ok "--scope user writes ~/.claude/settings.json"
 else bad "--scope user writes ~/.claude/settings.json" "got $(fraction "$WS/home/.claude/settings.json")"; fi
 if [ ! -e "$SETTINGS" ]; then ok "--scope user leaves the project file alone"; else bad "--scope user leaves the project file alone" "$(cat "$SETTINGS")"; fi
 
-run "$PROJ/sub" -- install --scope project
+run "$PROJ/sub" -- install --budget --scope project
 if [ "$(fraction "$PROJ/.claude/settings.json")" = "0.02" ]; then ok "--scope project from a subdir writes the toplevel .claude/settings.json"
 else bad "--scope project from a subdir writes the toplevel .claude/settings.json" "got $(fraction "$PROJ/.claude/settings.json")"; fi
 rm -f "$PROJ/.claude/settings.json"
 
 mkdir -p "$PROJ/.claude"; printf '{ not json' > "$SETTINGS"
-run -- install
+run -- install --budget
 rc_is "invalid settings JSON does not change the exit code" 0
 err_has "invalid settings JSON is named on stderr with the value to set" "$SETTINGS is not valid JSON — skillListingBudgetFraction left untouched; set it to 0.02 by hand"
 if [ "$(cat "$SETTINGS")" = '{ not json' ]; then ok "invalid settings JSON is not clobbered"; else bad "invalid settings JSON is not clobbered" "$(cat "$SETTINGS")"; fi
