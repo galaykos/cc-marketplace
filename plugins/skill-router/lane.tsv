@@ -10,13 +10,13 @@
 # taskmaster:remind holds arcRank 25, ahead of every other arc voice — where until 2026-09-14
 # it held 90 and lost to all of them. prime.sh (SessionStart), route.sh (PostToolUse) and
 # summary.sh (SessionEnd) are outside the gated channel and carry no row this run.
-# subagent-skills (SubagentStart) is outside it too and declares a row anyway: it speaks inside
-# every plugin subagent, where candor:preamble also speaks, so its territory is written down.
+# subagent-skills (SubagentStart, plus a silent PreToolUse record on Agent calls) is outside it too and declares
+# a row anyway: it speaks inside plugin, general-purpose and claude subagents, where candor:preamble also speaks.
 # Phase `any` because a spawn can come at any point of the arc — a reviewer at review, a
 # worker at build — and the hook reads no phase sentinel.
 skill-router:route-prompt	hook	any	tool-fit-catalog	prompt head passes the work-shaped gate (a making verb, or a symptom token bound by a state verb) AND no catalog marker exists for this session	taskmaster:remind
 skill-router:compact-capsule	hook	any	post-compaction-state-recall	SessionStart fires with source=compact AND at least one of .claude/cc-phase.json, .claude/task-runner/active-run.json, .claude/task-runner/scope.json, .claude/taskmaster/ledger-*.md exists	-
-skill-router:subagent-skills	hook	any	subagent-stack-skill-paths	a SubagentStart for a plugin-scoped agent whose definition declares bestpractices-skill: and at least one declared skill has evidence in prime.sh's manifest rows at the project root, with its owning plugin installed; silent under CC_REMIND=off or CC_SUBAGENT_SKILLS=off	-
+skill-router:subagent-skills	hook	any	subagent-stack-skill-paths	a SubagentStart for a plugin-scoped agent whose definition declares bestpractices-skill:, or for a general-purpose or claude agent whose dispatch (recorded by the same script on PreToolUse of the Agent call, which prints nothing) named a repo file, and at least one such skill has evidence in prime.sh's manifest rows at the project root, with its owning plugin installed; a Vite, SQL, manifest, Docker or CI skill only when the dispatch named that file kind; silent under CC_REMIND=off or CC_SUBAGENT_SKILLS=off	-
 # lane-cofire-ok: skill-router:compact skill-router:compact-capsule
 skill-router:listing	mod	any	stack-scoped-skill-listing	prompt.attachment of the skill_listing on CLI 2.1.291+ with CC_ROUTE_SCOPE (or cc_route_scope, default off) on and prime.sh's evidence readable; drops the listed entries of the eight stack skills whose evidence row does not hold here, naming them on one line the Skill tool still loads from	-
 skill-router:compact	mod	any	post-compaction-state-recall	session.compact of the main conversation on CLI 2.1.291+ while .claude/cc-phase.json, .claude/task-runner/active-run.json, its scope lock or a taskmaster ledger is on disk, with CC_COMPACT_STEER (or cc_compact_steer) not off; adds at most 1,200 characters to the summarizer's instructions, before the summary compact-capsule restates after	-

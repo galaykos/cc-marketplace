@@ -97,7 +97,7 @@ cc_option() {
     digest=$(jq -r '
       [ (.pending_low // [])[] | select(.flushed != true) ]
       | group_by(.skill)
-      | map(.[0].skill + " (" + ([.[].file | split("/") | last] | unique | join(", ")) + ")")
+      | map((if .[0].plugin then .[0].plugin + ":" else "" end) + .[0].skill + " (" + ([.[].file | split("/") | last] | unique | join(", ")) + ")")
       | join("; ")
     ' "$state_f" 2>/dev/null)
     if [ -n "$digest" ]; then

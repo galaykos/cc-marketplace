@@ -12,6 +12,10 @@
 # every shadcn row nudged a `.tsx` in a repo with no components.json. Per-row and opt-in;
 # an unprefixed alternative keeps the fire-if-uncertain default. It replaced the
 # `||!@base~.` default-deny tail 0.18.0 put on four rows — same behaviour, one mechanism.
+# nudge-last: low-cognitive-load solid-principles a11y-audit
+# route.sh sends at most two nudges per edit and ranks these last: each matches every file of
+# its language, so the next such edit draws it again, where a path-specific stack skill may
+# never recur. A skill over the cap is not spent. route.test.sh case 6 fails a name no glob row routes.
 # co-fire-ok: *.tsx a11y-audit react-native-best-practices
 # co-fire-ok: *.tsx a11y-audit nextjs-best-practices
 # Accessibility is orthogonal to every stack skill: the WCAG checklist and a library's

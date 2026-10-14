@@ -43,7 +43,8 @@ bashw() { # cwd command transcript [env...] — runs the command, then the hook
       tool_input:{command:$cmd,description:"write"},tool_response:{stdout:"",stderr:"",interrupted:false}}' \
     | hook "$HOOK" "$@"
 }
-skills()  { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null | grep -oE 'load the `[^`]+`' | sed 's/^load the `//; s/`$//' | sort -u; }
+# Bare names, the plugin prefix dropped: case 19 pins the qualified spelling itself.
+skills()  { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null | grep -oE 'load the `[^`]+`' | sed 's/^load the `//; s/`$//; s/^[a-z0-9._-]*://' | sort -u; }
 ctxof()   { printf '%s' "$1" | cksum | cut -d' ' -f1; }
 statef()  { printf '%s/.claude/skill-router/fired-%s.json' "$1" "$(ctxof "$2")"; }
 has_skill() { skills <<<"$1" | grep -qxF "$2"; }
@@ -145,15 +146,26 @@ has_skill "$out" laravel-best-practices && bad "one-shot: the Bash write re-nudg
 out=$(bashw "$E" "printf 'select 1;\\n' > app/report.sql" "$TE")
 has_skill "$out" sql-best-practices && ok || bad "one-shot: a NEW signal through Bash in the same context did not route; got: ${out:0:200}"
 
-# 6. one command, three files → ONE envelope carrying every skill
-F="$WS/f"; mkrepo "$F"
+# 6. one command, three files → ONE envelope of at most two nudges: the file-shape rows (laravel, sql) beat the language-wide
+#    low-cognitive-load, which is not spent and rides the next edit of that language
+F="$WS/f"; mkrepo "$F"; TF="$WS/t-f.jsonl"
 out=$(bashw "$F" "cat > app/Models/Order.php <<'A'
 <?php
 A
-printf 'select 1;\\n' > app/orders.sql; echo 'package f' > app/f.go" "$WS/t-f.jsonl")
+printf 'select 1;\\n' > app/orders.sql; echo 'package f' > app/f.go" "$TF")
 [ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && ok || bad "multi-file: expected one envelope line, got $(printf '%s\n' "$out" | grep -c .)"
-for s in laravel-best-practices sql-best-practices low-cognitive-load; do
+[ "$(skills <<<"$out" | grep -c .)" = 2 ] && ok || bad "cap: expected 2 nudges on one call, got [$(echo $(skills <<<"$out"))]"
+for s in laravel-best-practices sql-best-practices; do
   has_skill "$out" "$s" && ok || bad "multi-file: $s missing from the envelope"
+done
+has_skill "$out" low-cognitive-load && bad "cap: the language-wide low-cognitive-load took a slot from a file-shape row" || ok
+jq -e '.fired | index("low-cognitive-load") | not' "$(statef "$F" "$TF")" >/dev/null 2>&1 && ok || bad "cap: a skill over the cap was marked fired"
+out=$(edit "$F" "$F/app/f.go" "$TF")
+has_skill "$out" low-cognitive-load && ok || bad "cap: the skill over the cap did not ride the next edit; got: ${out:0:200}"
+last=$(sed -n 's/^# nudge-last:[[:space:]]*//p' "$SR/rules.tsv")
+[ -n "$last" ] && ok || bad "cap: rules.tsv carries no '# nudge-last:' line"
+for s in $last; do
+  awk -F'\t' -v s="$s" '$1 == "glob" && $3 == s {f = 1} END {exit !f}' "$SR/rules.tsv" && ok || bad "cap: nudge-last names $s, which no glob row routes"
 done
 
 # 7. the cap: the first 8 targets are examined, a 9th is not
@@ -419,6 +431,66 @@ fl=$(prompt_d 'what does a <task-notification> prompt carry?' "$TD")
 grep -qF 'Signals from recent edits' <<<"$fl" && grep -qF 'ApiTokenController.php' <<<"$fl" && ok \
   || bad "human prompt quoting a frame marker did not flush; got: ${fl:0:200}"
 grep -qE 'runbook\.md|badge\.css|login\.html|notes\.txt' <<<"$fl" && bad "digest named a doc/style file: ${fl:0:200}" || ok
+
+# 19. names are qualified plugin:skill in the nudge, the digest and the SessionEnd line: a bare name loaded a project's own
+#     .claude/skills copy of the same name (Laravel Boost ships several) instead of the plugin's file
+Q="$WS/q"; mkrepo "$Q"; TQ="$WS/t-q.jsonl"
+printf '<?php\nclass Token { public function show() { return $this->token; } }\n' > "$Q/app/Models/Token.php"
+out=$(edit "$Q" "$Q/app/Models/Token.php" "$TQ")
+jq -r '.hookSpecificOutput.additionalContext' <<<"$out" 2>/dev/null | grep -qF 'load the `laravel:laravel-best-practices` skill and review your change' \
+  && ok || bad "qualified: nudge does not name laravel:laravel-best-practices; got: ${out:0:200}"
+grep -qF 'plugin)' <<<"$out" && bad "qualified: the old '(X plugin)' tail survived" || ok
+fl=$(jq -cn --arg c "$Q" --arg tp "$TQ" '{hook_event_name:"UserPromptSubmit",prompt:"next",session_id:"sess",transcript_path:$tp,cwd:$c}' \
+  | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
+grep -qF 'security:security-review (Token.php)' <<<"$fl" && ok || bad "qualified: digest does not name security:security-review; got: ${fl:0:200}"
+printf '<?php\n$secret = 1;\n' > "$Q/app/Models/Key.php"; edit "$Q" "$Q/app/Models/Key.php" "$TQ" >/dev/null
+sl=$(jq -cn --arg c "$Q" --arg tp "$TQ" '{hook_event_name:"SessionEnd",session_id:"sess",transcript_path:$tp,cwd:$c}' \
+  | hook "$SR/hooks/summary.sh" HOME="$WS/home19")
+grep -qF 'security:security-review (1 file)' <<<"$sl" && ok || bad "qualified: SessionEnd line does not name security:security-review; got: ${sl:0:200}"
+
+# 20. no rubric for a file nobody reviews: gitignored scratch, anything under taskmaster-docs/ or .claude/, and a target outside
+#     the project root stay silent and queue nothing; the same file shape tracked in the repo still routes
+X="$WS/x"; mkrepo "$X"; printf 'scratch/\n' > "$X/.gitignore"
+mkdir -p "$X/scratch" "$X/taskmaster-docs/retro" "$X/.claude/skills/probe" "$WS/outside-x"
+for f in scratch/probe.py taskmaster-docs/retro/quant.py .claude/skills/probe/run.ts; do
+  printf 'import os\ntoken = os.environ["TOKEN"]\n' > "$X/$f"
+  t=$(fresh); out=$(edit "$X" "$X/$f" "$t")
+  [ -z "$out" ] && ok || bad "excluded target [$f]: expected silence, got: ${out:0:160}"
+  [ ! -e "$(statef "$X" "$t")" ] && ok || bad "excluded target [$f]: state written"
+done
+printf 'x = 1\n' > "$WS/outside-x/tool.py"
+for f in "$WS/outside-x/tool.py" "../outside-x/tool.py"; do
+  out=$(edit "$X" "$f" "$(fresh)")
+  [ -z "$out" ] && ok || bad "outside-root Edit [$f]: expected silence, got: ${out:0:160}"
+done
+out=$(bashw "$X" "printf 'select 1;\\n' > scratch/q.sql" "$(fresh)")
+[ -z "$out" ] && ok || bad "gitignored Bash target: expected silence, got: ${out:0:160}"
+printf 'x = 1\n' > "$X/tool.py"
+out=$(edit "$X" "$X/tool.py" "$(fresh)")
+has_skill "$out" low-cognitive-load && ok || bad "tracked .py beside the excluded ones did not route; got: ${out:0:200}"
+
+# 21. a skill this context already loaded is not nudged: its "Base directory for this skill" line, a Read of its SKILL.md, or a
+#     qualified Skill call in the transcript. The PROJECT's copy of the same bare name loaded, read or called bare does not count.
+Y="$WS/y"; mkrepo "$Y"; mkdir -p "$Y/database/migrations"
+sdir() { printf '%s/plugins/%s/skills/%s' "$ROOT" "$1" "$2"; }
+tline_base() { jq -cn --arg t "$(printf 'Base directory for this skill: %s\n\n# Skill' "$1")" '{type:"user",message:{role:"user",content:[{type:"text",text:$t}]}}'; }
+tline_read() { jq -cn --arg f "$1" '{type:"assistant",message:{role:"assistant",content:[{type:"tool_use",id:"toolu_r",name:"Read",input:{file_path:$f}}]}}'; }
+tline_skill() { jq -cn --arg s "$1" '{type:"assistant",message:{role:"assistant",content:[{type:"tool_use",id:"toolu_s",name:"Skill",input:{skill:$s}}]}}'; }
+printf '<?php\n' > "$Y/app/Models/Plan.php"; : > "$Y/database/migrations/2026_01_01_000000_create_plans.php"
+TY="$WS/t-y-loaded.jsonl"; tline_base "$(sdir laravel laravel-best-practices)" > "$TY"
+out=$(edit "$Y" "$Y/app/Models/Plan.php" "$TY")
+has_skill "$out" laravel-best-practices && bad "loaded (Skill base dir): laravel re-nudged; got: ${out:0:200}" || ok
+has_skill "$out" low-cognitive-load && ok || bad "loaded: an unloaded skill on the same edit stopped firing; got: ${out:0:200}"
+TY="$WS/t-y-read.jsonl"; tline_read "$(sdir database sql-best-practices)/SKILL.md" > "$TY"
+out=$(edit "$Y" "$Y/database/migrations/2026_01_01_000000_create_plans.php" "$TY")
+has_skill "$out" sql-best-practices && bad "loaded (SKILL.md Read): sql re-nudged; got: ${out:0:200}" || ok
+TY="$WS/t-y-skill.jsonl"; tline_skill laravel:laravel-best-practices > "$TY"
+out=$(edit "$Y" "$Y/app/Models/Plan.php" "$TY")
+has_skill "$out" laravel-best-practices && bad "loaded (qualified Skill call): laravel re-nudged; got: ${out:0:200}" || ok
+TY="$WS/t-y-shadow.jsonl"
+{ tline_base "$Y/.claude/skills/laravel-best-practices"; tline_read "$Y/.claude/skills/laravel-best-practices/SKILL.md"; tline_skill laravel-best-practices; } > "$TY"
+out=$(edit "$Y" "$Y/app/Models/Plan.php" "$TY")
+has_skill "$out" laravel-best-practices && ok || bad "project copy loaded: the plugin's laravel skill was taken as loaded; got: ${out:0:200}"
 
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }

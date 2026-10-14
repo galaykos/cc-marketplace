@@ -1,6 +1,8 @@
 #!/bin/bash
 # route.sh — PostToolUse, fails open: matches the edited file, each existing file a Bash command wrote under the project root, and the
-# command itself against rules.tsv; prints one additionalContext envelope of `high` nudges, each skill once per context; queues other content matches as pending_low, none from a doc or style file.
+# command itself against rules.tsv; prints one additionalContext envelope of at most NUDGE_CAP `high` nudges naming plugin:skill, each skill
+# once per context and none the context already loaded; queues other content matches as pending_low, none from a doc or style file.
+# Speaks about no target outside the root, under taskmaster-docs/ or .claude/, or ignored by git.
 # Off: CC_REMIND=off, or unset with the /config option cc_remind off. CC_ROUTE is not read here: it silences route-prompt.sh, the tool-fit check and the flush of what this hook queues.
 # Misses: two concurrent calls can drop a pending_low entry; a payload cwd of `/` or `$HOME` outside git is taken for the project root;
 # a directory row matches only the directory name it spells (in any case); a command row routes an unquoted mention of its CLI
@@ -264,6 +266,15 @@ route_cmd_mask() {
   [ -d "$cwd" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
 
+  # route_target_ok <path> — a file worth a rubric: under the project root, outside taskmaster-docs/ and .claude/, not ignored by git.
+  # Nudges fired on gitignored scratch scripts, taskmaster-docs evidence files and vendored copies, where nobody applies one.
+  # Misses: an ignored file outside any git repo routes; a committed vendored tree routes; a path spelled through another symlink than the root's reads as outside.
+  route_target_ok() {
+    case "$1" in "$root"/*) ;; *) return 1 ;; esac
+    case "/${1#"$root"/}" in */taskmaster-docs/*|*/.claude/*) return 1 ;; esac
+    ! git -C "$root" check-ignore -q -- "$1" 2>/dev/null
+  }
+
   # Two parallel arrays per target: rec, the spelling pending_low records; abs, the file on disk.
   rec=(); abs=()
   if [ "$tool" = Bash ]; then
@@ -274,7 +285,7 @@ route_cmd_mask() {
       pd=$(CDPATH= cd -- "$pd" 2>/dev/null && pwd) || continue
       p="${pd%/}/${p##*/}"
       [ -f "$p" ] || continue
-      case "$p" in "$root"/*) ;; *) continue ;; esac
+      route_target_ok "$p" || continue
       rec+=("$p"); abs+=("$p")
     done <<EOF_TARGETS
 $bash_targets
@@ -283,6 +294,9 @@ EOF_TARGETS
   else
     p="$cwd/$file_path"
     case "$file_path" in /*) p="$file_path" ;; esac
+    # Resolved only to test the root prefix (`../`); a directory that does not exist keeps the spelling it was given.
+    pd=$(CDPATH= cd -- "${p%/*}" 2>/dev/null && pwd) && pt="${pd%/}/${p##*/}" || pt="$p"
+    route_target_ok "$pt" || exit 0
     rec+=("$file_path"); abs+=("$p")
   fi
 
@@ -370,17 +384,55 @@ EOF_TARGETS
   }
 
   nudges=""
-  emit_nudge() { # $1 skill, $2 owning_plugin, [$3 subject] — accumulates; delivered once below.
+  emit_nudge() { # $1 skill, $2 owning_plugin, $3 its root or empty, $4 subject — accumulates; delivered once below.
+    # Qualified: a bare name loaded a project's own .claude/skills copy of the same name instead of this plugin's file.
     # A subagent has no Skill tool, so the nudge names the SKILL.md path to Read when one is found.
-    local sp="" proot="" subj="${3:-This edit touches $base}"
-    command -v pr_plugin_root >/dev/null 2>&1 && proot=$(pr_plugin_root "$2")
-    [ -n "$proot" ] && [ -f "$proot/skills/$1/SKILL.md" ] && sp=" — Read $proot/skills/$1/SKILL.md"
-    nudges="${nudges}$(printf '[skill-router] %s — load the `%s` skill (%s plugin) and review your change against it before continuing.%s' "$subj" "$1" "$2" "$sp")"$'\n'
+    local sp=""
+    [ -n "$3" ] && [ -f "$3/skills/$1/SKILL.md" ] && sp=" — Read $3/skills/$1/SKILL.md"
+    nudges="${nudges}$(printf '[skill-router] %s — load the `%s:%s` skill and review your change against it before continuing.%s' "$4" "$2" "$1" "$sp")"$'\n'
+  }
+
+  # At most NUDGE_CAP nudges per call: arriving several at once (seven on one vendored copy) they were almost never followed, 0 of 25
+  # and 0 of 14 in two measured sessions. Rank 0, an import or command row (the edit named that library or CLI), beats rank 1, any other
+  # row, which beats rank 2, the skills rules.tsv's `# nudge-last:` line names: they match every file of their language, so the next
+  # such edit draws them again, where a path-specific skill may not recur. Ties keep target and rules.tsv order. A skill left over is
+  # not marked fired, so a later edit can carry it.
+  NUDGE_CAP=2
+  last_skills=$(sed -n 's/^# nudge-last:[[:space:]]*//p' "$rules" 2>/dev/null | tr -d '\r' | tr ' \t' '\n\n')
+  cands=""; cand_skills=""; seq=0
+  add_cand() { # $1 rank, $2 skill, $3 owning_plugin, $4 subject
+    local pr=""
+    printf '%s\n' "$cand_skills" | grep -qxF "$2" && return 0
+    printf '%s\n' "$last_skills" | grep -qxF "$2" && set -- 2 "$2" "$3" "$4"
+    command -v pr_plugin_root >/dev/null 2>&1 && pr=$(pr_plugin_root "$3")
+    [ -n "$pr" ] || pr=- # a tab-IFS `read` collapses an empty field
+    cand_skills="${cand_skills}$2"$'\n'; seq=$((seq + 1))
+    cands="${cands}$1"$'\t'"$seq"$'\t'"$2"$'\t'"$3"$'\t'"$pr"$'\t'"$4"$'\n'
+  }
+
+  # A skill whose own file is already in this context: the "Base directory for this skill: <dir>" line a Skill call writes, a Read of
+  # its SKILL.md, or a qualified Skill call. One fixed-string grep over the whole transcript, only while a candidate exists: 32 ms on
+  # the largest local transcript (56 MB), about 1 ms at the median (0.7 MB). A tail read would miss a skill loaded at session start,
+  # the common case. A project's copy of the same bare name is another path and never counts. Misses: a load the host has not yet
+  # written to the file; a cache path from before a mid-session plugin update. Counts: a load a compaction has since summarised away.
+  loaded=""
+  scan_loaded() {
+    local pats="" r s sk pl pr subj
+    [ -n "$cands" ] && [ -f "$session_id" ] && [ -r "$session_id" ] || return 0
+    while IFS=$'\t' read -r r s sk pl pr subj; do
+      [ -n "$sk" ] || continue
+      pats="${pats}\"skill\":\"$pl:$sk\""$'\n'
+      [ "$pr" != - ] && pats="${pats}Base directory for this skill: $pr/skills/$sk\\n"$'\n'"\"file_path\":\"$pr/skills/$sk/SKILL.md\""$'\n'
+    done <<< "$cands"
+    loaded=$(printf '%s' "$pats" | grep -oF -f /dev/stdin -- "$session_id" 2>/dev/null | sort -u)
+  }
+  is_loaded() { # $1 skill, $2 owning_plugin, $3 its root or empty
+    [ -n "$loaded" ] || return 1
+    printf '%s\n' "$loaded" | grep -qxF -e "\"skill\":\"$2:$1\"" -e "Base directory for this skill: $3/skills/$1\\n" -e "\"file_path\":\"$3/skills/$1/SKILL.md\""
   }
 
   nudge_high_matches() {
     fired_now=""
-    emitted_now=""
     hcs=()
     i=0
     while [ "$i" -lt "${#abs[@]}" ]; do
@@ -393,20 +445,17 @@ EOF_TARGETS
         conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
         [ "$conf" = high ] || continue
         case "$stype" in
-          glob) match_glob "$pattern" || continue ;;
+          glob) match_glob "$pattern" || continue; rank=1 ;;
           content)
             [ "$inline" = 1 ] && [ -n "$hc" ] || continue
             already_fired "$skill" && continue
-            printf '%s' "$hc" | grep -qE "$pattern" 2>/dev/null || continue ;;
+            printf '%s' "$hc" | grep -qE "$pattern" 2>/dev/null || continue; rank=0 ;;
           *) continue ;;
         esac
         plugin_installed "$plugin" || continue
         marker_ok "$marker" || continue
         already_fired "$skill" && continue
-        printf '%s\n' "$emitted_now" | grep -qxF "$skill" && continue
-        emit_nudge "$skill" "$plugin"
-        emitted_now="${emitted_now}${skill}"$'\n'
-        fired_now="${fired_now}${skill}"$'\n'
+        add_cand "$rank" "$skill" "$plugin" "This edit touches $base"
       done < "$rules"
     done
     # A command row has no file, so `@base` and `@path` markers see an empty string.
@@ -416,13 +465,20 @@ EOF_TARGETS
       plugin_installed "$plugin" || continue
       marker_ok "$marker" || continue
       already_fired "$skill" && continue
-      printf '%s\n' "$emitted_now" | grep -qxF "$skill" && continue
-      emit_nudge "$skill" "$plugin" "This command runs \`${frag}\`"
-      emitted_now="${emitted_now}${skill}"$'\n'
-      fired_now="${fired_now}${skill}"$'\n'
+      add_cand 0 "$skill" "$plugin" "This command runs \`${frag}\`"
     done <<EOF_CMD
 $cmd_hits
 EOF_CMD
+    scan_loaded
+    n=0
+    while IFS=$'\t' read -r r s skill plugin pr subj; do
+      [ -n "$skill" ] || continue
+      [ "$pr" != - ] || pr=""
+      is_loaded "$skill" "$plugin" "$pr" && continue
+      emit_nudge "$skill" "$plugin" "$pr" "$subj"
+      fired_now="${fired_now}${skill}"$'\n'
+      n=$((n + 1)); [ "$n" -lt "$NUDGE_CAP" ] || break
+    done < <(printf '%s' "$cands" | sort -t $'\t' -k1,1n -k2,2n)
   }
 
   deliver_nudges() {
@@ -451,7 +507,7 @@ EOF_CMD
         plugin_installed "$plugin" || continue
         marker_ok "$marker" || continue
         if printf '%s' "$content" | grep -qE "$pattern" 2>/dev/null; then
-          pending_adds="${pending_adds}${skill}"$'\t'"${file_path}"$'\n'
+          pending_adds="${pending_adds}${skill}"$'\t'"${plugin}"$'\t'"${file_path}"$'\n'
         fi
       done < "$rules"
     done
@@ -476,10 +532,10 @@ $fired_now
 EOF_FIRED
       fi
       if [ -n "$pending_adds" ]; then
-        while IFS=$'\t' read -r pskill pfile; do
+        while IFS=$'\t' read -r pskill pplug pfile; do
           [ -n "$pskill" ] || continue
-          json=$(printf '%s' "$json" | jq --arg sk "$pskill" --arg f "$pfile" \
-            'if (.pending_low | any(.skill==$sk and .file==$f)) then . else .pending_low += [{skill:$sk,file:$f}] end' 2>/dev/null) || break
+          json=$(printf '%s' "$json" | jq --arg sk "$pskill" --arg pl "$pplug" --arg f "$pfile" \
+            'if (.pending_low | any(.skill==$sk and .file==$f)) then . else .pending_low += [{skill:$sk,plugin:$pl,file:$f}] end' 2>/dev/null) || break
         done <<EOF
 $pending_adds
 EOF

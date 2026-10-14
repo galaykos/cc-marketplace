@@ -33,6 +33,18 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "^(Agent|Task)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-skills.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit|.*create_new_file|Bash",
@@ -47,7 +59,7 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "^[a-z0-9-]+:",
+        "matcher": "^[a-z0-9-]+:|^(general-purpose|claude)$",
         "hooks": [
           {
             "type": "command",

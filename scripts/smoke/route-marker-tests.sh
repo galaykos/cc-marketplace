@@ -283,6 +283,9 @@ if [ "$e" -eq 0 ] && [ -z "$out" ]; then echo "PASS: empty stdin exits 0 silentl
 # Both assertions must hold: the lowercase path is the regression, the uppercase
 # path proves the fix did not trade one casing for the other.
 mkdir -p "$TMP/casecwd"
+# A package.json naming no vue silences the two *.vue canaries: route.sh sends at most two nudges per edit (NUDGE_CAP),
+# and with both firing the directory row would be the third.
+echo '{}' > "$TMP/casecwd/package.json"
 out=$(route "$TMP/casecwd" "resources/js/pages/Users/Show.vue")
 expect "lowercase dir matches an uppercase **/Dir/** glob" "$out" 'case-canary' ''
 out=$(route "$TMP/casecwd" "resources/js/Pages/Users/Show.vue")
