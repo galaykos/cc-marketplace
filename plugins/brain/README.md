@@ -50,8 +50,9 @@ context-scout and delegation-contracts readers use the map as an **orientation
 prior** — they verify touched areas with their own greps and trust the code over a
 stale map — and git-workflow's branch-finish offers `/brain index` when the stamp is
 behind the merged result. The session-start no-map nudge only appears in repos with
-≥200 tracked files, where a map actually pays; the staleness hint for an existing
-map carries no size gate.
+≥200 tracked files, where a map actually pays, and since 0.4.5 only on a fresh startup —
+not on resume, `/clear` or compaction; the staleness hint for an existing map carries no
+size gate.
 
 Small drift **self-heals**: when ≤5 files changed since the `built:` stamp, the
 session-start hint instructs Claude to run the incremental `/brain index` refresh
