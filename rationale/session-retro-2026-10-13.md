@@ -96,6 +96,30 @@ Tier 1 text there must trim first.
 
 ## Tier 1 — the changes that move results
 
+**Wave 1 applied 2026-10-14: §1, §2 and the first bullet of §3.** Departures from the text
+below:
+
+- §1 V-15: at SubagentStart the dispatch prompt is not on disk yet (probed on CLI 2.1.299),
+  so subagent-skills also runs on PreToolUse(Agent|Task) to record what the dispatch names.
+  Surface skills now also include package-hygiene, docker and CI, which otherwise took the
+  first slot of every generic injection.
+- §1 V-14: the cheap half only. Quoting a rule inline and measuring compliance from the
+  ledger are still open.
+- §2 V-25: a commit after a range review owes a review of only the commits since it,
+  because re-reviewing the whole run on every fix commit costs a full pass each time.
+  run.md now renames `active-run.json` to `closed-run.json` rather than deleting it. Before
+  this, a run that followed run.md lost its sentinel before the closing stop, so clause 4
+  never ran on a correct close.
+- §2 V-39: on a branch change, review-debt moves its base to where the switch landed, not
+  to HEAD, so a `switch -c` plus commits in one turn still counts.
+
+Found while applying, not fixed:
+- testing's protect-tests reads a `pending '<x>'` string as a skip marker.
+- stamp-lint's reachability probe needs `CLAUDE_PLUGIN_ROOT`, which a by-path run likely
+  lacks.
+- git-workflow's marketplace description does not mention the merge-checks hook, because
+  adding it would cost always-on tokens.
+
 ### 1. Skills that actually reach the work (skill-router, taskmaster, laravel, testing, task-runner)
 
 - Print `plugin:skill` in prime.sh, route.sh and the subagent text. At SessionStart, when the
