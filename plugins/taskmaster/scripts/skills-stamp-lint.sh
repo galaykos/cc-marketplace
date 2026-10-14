@@ -79,9 +79,28 @@ if printf '%s' "$files" | grep -Eiq -- "$fw_re"; then
   low=$(printf '%s' "$val" | tr 'A-Z' 'a-z')
   case "$low" in
     ""|none*|"n/a"|"n\a"|"-"|"—")
-      fail "framework-card-no-skill: card touches framework source but names no skill (stamp: \"$val\") — name the relevant best-practice skill (e.g. laravel-best-practices)" ;;
+      fail "framework-card-no-skill: card touches framework source but names no skill (stamp: \"$val\") — name the relevant best-practice skill (e.g. laravel:laravel-best-practices)" ;;
   esac
 fi
+
+# The sibling plugin shipping skills/<name>/SKILL.md, printed by name; status 1 when none.
+# Two layouts: a source checkout keeps plugins side by side (plugins/<p>/), the installed
+# cache one level deeper (<marketplace>/<p>/<version>/), where `../*` lists this plugin's
+# own versions. A cached-but-disabled plugin still counts.
+sibling_plugin() {
+  local r sk
+  r=$(cd "${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}" 2>/dev/null && pwd) || return 1
+  if [ "${r##*/}" = taskmaster ]; then
+    for sk in "$r"/../*/skills/"$1"/SKILL.md; do
+      [ -f "$sk" ] && { sk=${sk%/skills/*}; printf '%s\n' "${sk##*/}"; return 0; }
+    done
+  else
+    for sk in "$r"/../../*/*/skills/"$1"/SKILL.md; do
+      [ -f "$sk" ] && { sk=${sk%/skills/*}; sk=${sk%/*}; printf '%s\n' "${sk##*/}"; return 0; }
+    done
+  fi
+  return 1
+}
 
 # Reachability probe (WARN-only, never blocks): a stamp proves a skill is NAMED,
 # not that its plugin is installed — a named-but-absent skill executes the card
@@ -92,12 +111,30 @@ fi
 if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -d "${CLAUDE_PLUGIN_ROOT}/.." ]; then
   for tok in $(printf '%s' "$val" | tr ',' ' '); do
     case "$tok" in *[!a-z0-9-]*|"") continue ;; esac
-    found=0
-    for sk in "${CLAUDE_PLUGIN_ROOT}"/../*/skills/"$tok"/SKILL.md; do
-      [ -f "$sk" ] && { found=1; break; }
-    done
-    [ "$found" = 1 ] || printf '%s: warn unreachable-skill: "%s" is stamped but no installed sibling plugin ships skills/%s/SKILL.md — the card will run framework-blind unless that plugin is installed\n' "$PROG" "$tok" "$tok" >&2
+    sibling_plugin "$tok" >/dev/null || printf '%s: warn unreachable-skill: "%s" is stamped but no installed sibling plugin ships skills/%s/SKILL.md — the card will run framework-blind unless that plugin is installed\n' "$PROG" "$tok" "$tok" >&2
   done
 fi
+
+# Shadow probe (WARN-only, never blocks): a bare stamp resolves to a same-named PROJECT
+# skill before a plugin's. Laravel Boost writes .claude/skills/laravel-best-practices
+# (and its own inertia/tailwind skills) into a repo; one 61-card run stamped bare names,
+# and its workers read the Boost copies dozens of times and the marketplace skills almost
+# never. Warn when <project>/.claude/skills/<name>/SKILL.md exists and a marketplace plugin
+# ships that name, or the name is a known Boost twin, and print the qualified stamp. The
+# project is the card's git toplevel, else CLAUDE_PROJECT_DIR, else the working directory.
+# Not caught: a shadow from ~/.claude/skills, and Boost twins missing from the case below.
+proj=""
+[ -n "$card" ] && proj=$(git -C "$(dirname "$card")" rev-parse --show-toplevel 2>/dev/null || true)
+[ -n "$proj" ] || proj=${CLAUDE_PROJECT_DIR:-$PWD}
+for tok in $(printf '%s' "$val" | tr ',' ' '); do
+  case "$tok" in *[!a-z0-9-]*|"") continue ;; esac
+  [ -f "$proj/.claude/skills/$tok/SKILL.md" ] || continue
+  case "$tok" in
+    inertia-react-development) want=laravel:inertia-best-practices ;;
+    tailwindcss-development)   want=ui-ux:tailwind-best-practices ;;
+    *) p=$(sibling_plugin "$tok") || continue; want="$p:$tok" ;;
+  esac
+  printf '%s: warn shadowed-skill: "%s" resolves to the project copy .claude/skills/%s/SKILL.md, not the marketplace skill — stamp "%s" to apply that one (keep the bare name only if the project copy is the one you mean)\n' "$PROG" "$tok" "$tok" "$want" >&2
+done
 record_run pass
 exit 0

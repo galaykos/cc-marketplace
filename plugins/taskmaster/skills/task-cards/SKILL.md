@@ -56,9 +56,9 @@ decided about each sentence, attributes carry the evidence. Standing of every ru
 One `<skill>` per skill, `name="none"` when none; the executing session MUST Read each
 before implementing. Stamp a marketplace skill as `plugin:skill`: a bare name loses to a
 same-named project skill (Laravel Boost ships its own `laravel-best-practices`), so workers
-read that copy instead; `skills-stamp-lint.sh` does not check the prefix. `<agent>`: one
-tag from `references/agent-tags.md`, `generic` when files span >1 domain. `<contract>` only
-when the spec has that binding section.
+read that copy instead; `skills-stamp-lint.sh` warns (never blocks) when a project skill
+shadows a bare stamp. `<agent>`: one tag from `references/agent-tags.md`, `generic` when
+files span >1 domain. `<contract>` only when the spec has that binding section.
 
 ## Sizing rules
 
@@ -106,6 +106,7 @@ when the spec has that binding section.
 - Criteria describe observable behavior, never the change itself. "Deleting a
   project soft-deletes its tasks" — not "code for soft-delete is added".
 - Each criterion is binary: passes or fails, no "works well".
+- Prove a limit by lowering it in the test (configure or inject a cap of 3, write 4), never by exceeding a production-sized constant: seeding 100,001 rows to prove a 100,000-row cap ran a workstation out of memory twice.
 - `<verify>` is ONE line, an exact command with **teeth**: a named assertion that fails if the
   feature is absent — verify-teeth blocks compile/existence/require-only, `|| true`, bare "suite passes".
 

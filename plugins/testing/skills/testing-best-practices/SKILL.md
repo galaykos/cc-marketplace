@@ -17,6 +17,9 @@ behavior must not break a test. Corollaries:
   `test_coupon_2`. A red name should say what broke before the body is read.
 - Unhappy paths first in review: validation failures, authorization denials,
   empty collections, boundary values. The happy path was manually run anyway.
+- Prove a limit by lowering it in the test (configure or inject a cap of 3, write 4),
+  never by exceeding a production-sized constant: seeding 100,001 rows to prove a
+  100,000-row cap ran a workstation out of memory twice.
 
 ## Pyramid pragmatics
 

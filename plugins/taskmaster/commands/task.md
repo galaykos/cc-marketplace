@@ -113,11 +113,11 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
      ready. Start execution now?" with options "Run now (Recommended)" and "Stop
      here — I'll run it later". On "Run now", immediately invoke the command itself —
      `/task-runner:run taskmaster-docs/tasks/YYYY-MM-DD-<slug>/00-INDEX.md` (Skill tool,
-     `task-runner:run`) — never the task-execution skill directly. Run registration
-     (`active-run.json`, the `build` sentinel) lives only in that command's step 1; a
-     handoff that went straight to the skill ran unregistered, and the review observer,
-     candor's completion clause and the closing gate stayed silently off. Nothing checks
-     which one you invoked — this line is the whole guard.
+     `task-runner:run`); the command is the handoff. Since task-runner 0.47.0 every
+     task-runner entry point registers the run (`active-run.json`, the `build` sentinel)
+     through `scripts/register-run.sh`, so the skill route no longer skips registration,
+     which once left the review observer, candor's completion clause and the closing
+     gate silently off.
    - On "Stop here", or when AskUserQuestion is unavailable (headless), print
      that exact command as the next step.
    - Without task-runner installed, give the card paths and note each card is

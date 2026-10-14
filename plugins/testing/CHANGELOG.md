@@ -6,6 +6,15 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.13.2 — 2026-10-14
+
+### Changed
+- **`testing-best-practices`: prove a limit by lowering it, never by exceeding a
+  production-sized constant.** A task asked a worker to prove a 100,000-row cap; it seeded
+  100,001 rows, the query ran away and the machine ran out of memory twice. The rule now sits
+  under "What to test": configure or inject a small cap (3) and write one past it (4).
+  Standing: agent-graded, prose the model reads; no hook or harness checks a test's size.
+
 ## 0.13.1 — 2026-10-14
 
 ### Fixed

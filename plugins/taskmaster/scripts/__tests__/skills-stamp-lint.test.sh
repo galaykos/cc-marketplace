@@ -99,5 +99,61 @@ else
   printf 'FAIL: probe skipped without CLAUDE_PLUGIN_ROOT (rc=%s out=<%s>)\n' "$rc" "$out"; fail=$((fail+1))
 fi
 
+# --- framework-card-no-skill names a qualified example ---
+run_case "no-skill message suggests the plugin:skill form" 2 "e.g. laravel:laravel-best-practices" \
+  --line 'none' --files 'app/Models/User.php'
+
+# --- shadow probe (WARN-only): a bare stamp a project skill shadows ---
+check_warn() { # desc present|absent substring cmd...
+  local desc=$1 want=$2 sub=$3 out rc hit=0; shift 3
+  set +e; out=$("$@" 2>&1); rc=$?; set -e
+  printf '%s' "$out" | grep -qF -- "$sub" && hit=1
+  if [ "$rc" = 0 ] && { { [ "$want" = present ] && [ "$hit" = 1 ]; } || { [ "$want" = absent ] && [ "$hit" = 0 ]; }; }; then
+    printf 'PASS: %s (rc=%s)\n' "$desc" "$rc"; pass=$((pass+1))
+  else
+    printf 'FAIL: %s (rc=%s out=<%s>)\n' "$desc" "$rc" "$out"; fail=$((fail+1))
+  fi
+}
+proj="$cache/proj"   # a project carrying Boost-style skills; inside $cache so the trap clears it
+for s in laravel-best-practices inertia-react-development tailwindcss-development house-rules; do
+  mkdir -p "$proj/.claude/skills/$s"; printf -- '---\nname: %s\n---\n' "$s" > "$proj/.claude/skills/$s/SKILL.md"
+done
+bare=(env CLAUDE_PLUGIN_ROOT="$cache/taskmaster" CLAUDE_PROJECT_DIR="$proj" "$lint")
+check_warn "shadowed bare stamp warns with the qualified name" present \
+  'shadowed-skill: "laravel-best-practices" resolves to the project copy .claude/skills/laravel-best-practices/SKILL.md, not the marketplace skill — stamp "laravel:laravel-best-practices"' \
+  "${bare[@]}" --line 'laravel-best-practices' --files 'app/Models/User.php'
+check_warn "qualified stamp is not shadowed" absent shadowed-skill \
+  "${bare[@]}" --line 'laravel:laravel-best-practices' --files 'app/Models/User.php'
+check_warn "known twin maps inertia-react-development" present 'stamp "laravel:inertia-best-practices"' \
+  "${bare[@]}" --line 'inertia-react-development' --files 'resources/js/Pages/Index.tsx'
+check_warn "known twin maps tailwindcss-development" present 'stamp "ui-ux:tailwind-best-practices"' \
+  "${bare[@]}" --line 'laravel:laravel-best-practices, tailwindcss-development' --files 'resources/js/Pages/Index.tsx'
+check_warn "a project-only skill no plugin ships is not a shadow" absent shadowed-skill \
+  "${bare[@]}" --line 'house-rules' --files 'app/Models/User.php'
+check_warn "no project copy, no shadow warning" absent shadowed-skill \
+  env CLAUDE_PLUGIN_ROOT="$cache/taskmaster" CLAUDE_PROJECT_DIR="$cache/taskmaster" "$lint" --line 'laravel-best-practices' --files 'app/Models/User.php'
+
+# the installed cache nests a version dir: <marketplace>/<plugin>/<version>/
+mkdir -p "$cache/mkt/taskmaster/0.48.1" "$cache/mkt/laravel/0.10.1/skills/laravel-best-practices"
+printf -- '---\nname: laravel-best-practices\n---\n' > "$cache/mkt/laravel/0.10.1/skills/laravel-best-practices/SKILL.md"
+check_warn "cache layout: the shadow names the plugin, not a version" present 'stamp "laravel:laravel-best-practices"' \
+  env CLAUDE_PLUGIN_ROOT="$cache/mkt/taskmaster/0.48.1" CLAUDE_PROJECT_DIR="$proj" "$lint" --line 'laravel-best-practices' --files 'app/Models/User.php'
+check_warn "cache layout: a cached sibling skill is reachable" absent unreachable-skill \
+  env CLAUDE_PLUGIN_ROOT="$cache/mkt/taskmaster/0.48.1" CLAUDE_PROJECT_DIR="$proj" "$lint" --line 'laravel-best-practices' --files 'app/Models/User.php'
+
+# --card: the project is the card's git toplevel, wherever the lint runs from
+if command -v git >/dev/null 2>&1; then
+  git init -q "$proj" 2>/dev/null
+  mkdir -p "$proj/taskmaster-docs/tasks/demo"
+  cp "$tmp_t_ok" "$proj/taskmaster-docs/tasks/demo/04-add-policy.md"
+  check_warn "card: shadow found from the card's git toplevel" present 'shadowed-skill: "laravel-best-practices"' \
+    env -u CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_ROOT="$cache/taskmaster" "$lint" --card "$proj/taskmaster-docs/tasks/demo/04-add-policy.md"
+fi
+
+# no CLAUDE_PLUGIN_ROOT (the model runs the script by path): siblings come from the
+# script's own location, so this repo's plugins/laravel answers
+check_warn "no CLAUDE_PLUGIN_ROOT: siblings from the script's location" present 'stamp "laravel:laravel-best-practices"' \
+  env -u CLAUDE_PLUGIN_ROOT CLAUDE_PROJECT_DIR="$proj" "$lint" --line 'laravel-best-practices' --files 'app/Models/User.php'
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

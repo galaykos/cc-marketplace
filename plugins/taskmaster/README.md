@@ -51,8 +51,9 @@ Without arguments it asks for a description first. The pipeline then:
 6. When code-architecture is installed, runs a plan check on the spec before
    card-splitting
 7. Emits single-prompt task cards to `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a
-   `00-INDEX.md` — each card stamped with the stack skills it needs (from the
-   stack-scan inventory), sized S/M/L/XL against task-cards' anchor rule, and
+   `00-INDEX.md` — each card stamped with the stack skills it needs as `plugin:skill`
+   (from the stack-scan inventory; `skills-stamp-lint.sh` warns when a same-named
+   project skill, such as Laravel Boost's, shadows a bare stamp), sized S/M/L/XL against task-cards' anchor rule, and
    grouped into independently shippable milestones on big runs. On UI work the
    first UI card builds how an agent signs in and the seeded states the grill
    settled, and each UI card names the screen, widths and state the browser walk
