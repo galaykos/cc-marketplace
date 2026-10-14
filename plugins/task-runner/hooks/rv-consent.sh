@@ -100,19 +100,25 @@ cc_state_root() {
   # legitimate ones (a Windows path, a regex) inside the reason shown to the user.
   flat=$(printf '%s' "$blob" | sed 's/\\"/"/g')
 
-  card=$(printf '%s' "$flat" | grep -oE -- '--(card|id) *"?[a-zA-Z0-9._-]{1,64}' | head -1 |
+  # The id class takes `$ { } :` so a shell-built id such as `bg-${H:0:12}` is shown as
+  # written; without them the prompt named card `bg-`.
+  card=$(printf '%s' "$flat" | grep -oE -- '--(card|id) *"?[a-zA-Z0-9._{}:$-]{1,64}' | head -1 |
     sed -E 's/^--(card|id) *"?//')
   if [ -z "$card" ]; then
-    card=$(printf '%s' "$flat" | grep -oE 'rv-skip-[a-zA-Z0-9._-]{1,64}' | head -1 |
+    card=$(printf '%s' "$flat" | grep -oE 'rv-skip-[a-zA-Z0-9._{}:$-]{1,64}' | head -1 |
       sed -E 's/^rv-skip-//; s/\.json$//')
   fi
   [ -n "$card" ] || card="(unnamed)"
 
-  # {1,200}, not {1,300}: BSD grep rejects an interval above 255 with "maximum
+  # {1,201}, not {1,300}: BSD grep rejects an interval above 255 with "maximum
   # repetition exceeds 255" — on stderr, which this hook sends to /dev/null, so the
   # reason silently came back empty and every prompt read "no reason given".
-  reason=$(printf '%s' "$flat" | grep -oE -- "--reason *\"[^\"]{1,200}\"|--reason *'[^']{1,200}'" | head -1 |
-    sed -E "s/^--reason *[\"']//; s/[\"']$//" | cut -c1-300)
+  # No closing quote in the pattern: requiring one within the interval made any reason
+  # over 200 characters read "no reason given". The 201st character only marks a cut,
+  # shown as "…". Residual: an unterminated quote shows the rest of the command.
+  reason=$(printf '%s' "$flat" | grep -oE -- "--reason *\"[^\"]{1,201}|--reason *'[^']{1,201}" | head -1 |
+    sed -E "s/^--reason *[\"']//")
+  [ "${#reason}" -le 200 ] || reason="${reason:0:200}…"
   [ -n "$reason" ] || reason="no reason given in the command"
 
   what="the reviewer pass for card"

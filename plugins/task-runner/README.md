@@ -113,7 +113,9 @@ interactive walkthroughs, demos.
 have declared their file lists — it never blocks. It sees Edit/Write and the files a Bash
 command writes by redirect, heredoc, `tee` or `sed -i` (at most 8 per call; interpreter
 writes and `cp`/`mv` stay invisible). It reads the scope files at the project root in
-whatever directory the shell sits, and ignores any left over from an earlier run. Most
+whatever directory the shell sits, and ignores any left over from an earlier run. A scope
+file without an `allow` array (`{"allow":["path","dir/"],"task":"<id>"}`) leaves the call
+unenforced and says so on stderr; writes outside the project root are not checked. Most
 turns have no registered run, and there it exits at once — so
 `drift.sh` asks one question, once per request, when a narrow ask has produced a wide
 change: **12+** files edited (p90 of 169 measured local edit-turns), no breadth word in

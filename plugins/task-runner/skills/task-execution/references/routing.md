@@ -35,9 +35,10 @@ and picks the first present in its available-agent-types list.
    in the runner's available-agent-types list. If none is reachable, use
    `task-runner:task-executor`. Log any downgrade (requested tag → actual worker) in
    the run report.
-3. **Arm scope.** Record the card's declared allowed-files to a per-card artifact,
-   e.g. `<repo root>/.claude/task-runner/scope-<cardId>.json` (the runner's own — NOT the
-   legacy fixed `scope.json`, which stays the inline path's soft tripwire).
+3. **Arm scope.** Write the card's allowed files to
+   `<repo root>/.claude/task-runner/scope-<cardId>.json` as
+   `{"allow":["path","dir/"],"task":"<cardId>"}` (no other shape is read), not the
+   inline path's `scope.json`. The dispatch names it as armed.
 4. **Inject discipline + prime stack skills.** Read
    `${CLAUDE_PLUGIN_ROOT}/skills/delegation-contracts/references/discipline-preamble.md` and
    paste its text **verbatim** into the dispatch prompt, together with the card, its

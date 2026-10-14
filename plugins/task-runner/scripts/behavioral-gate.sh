@@ -265,16 +265,21 @@ if [ "${#runners[@]}" -eq 0 ]; then
 fi
 
 # ---- ZERO-CHECK helpers: is a runnable own-test statically present? ---------
-py_has_tests() { find . -type f \( -name 'test_*.py' -o -name '*_test.py' \) 2>/dev/null | grep -q .; }
+# `-print -quit`, never a bare `-print | grep -q .`: grep -q exits on the first line, and
+# once the path list outgrows the pipe buffer (64 KB) find dies of SIGPIPE, exit 141,
+# which pipefail makes the probe's verdict. Every repo large enough to matter read as
+# "no runnable own-test", so the closing gate could not be earned there. Residual: an
+# unreadable directory find reaches before the first match still exits non-zero.
+py_has_tests() { find . -type f \( -name 'test_*.py' -o -name '*_test.py' \) -print -quit 2>/dev/null | grep -q .; }
 js_has_tests() {
   find . -type d -name node_modules -prune -o -type f \
     \( -name '*.test.js' -o -name '*.test.mjs' -o -name '*.test.cjs' -o -name '*.test.ts' \
-       -o -name '*.spec.js' -o -name '*-test.js' -o -name '*_test.js' \) -print 2>/dev/null | grep -q .
+       -o -name '*.spec.js' -o -name '*-test.js' -o -name '*_test.js' \) -print -quit 2>/dev/null | grep -q .
 }
-go_has_tests() { find . -type f -name '*_test.go' 2>/dev/null | grep -q .; }
+go_has_tests() { find . -type f -name '*_test.go' -print -quit 2>/dev/null | grep -q .; }
 php_has_tests() {
   find . -type d -name vendor -prune -o -type f \
-    \( -name '*Test.php' -o -name '*_test.php' -o -path './tests/*.php' \) -print 2>/dev/null | grep -q .
+    \( -name '*Test.php' -o -name '*_test.php' -o -path './tests/*.php' \) -print -quit 2>/dev/null | grep -q .
 }
 # Rust tests are USUALLY inline `#[test]` fns in the same file, not a separate naming
 # convention, so the static zero-check greps for the attribute as well as tests/. The
@@ -285,14 +290,14 @@ php_has_tests() {
 # verdict. UNDER-matching is the expensive direction, because it reports
 # no-behavioral-coverage for a crate that does have tests.
 rs_has_tests() {
-  { find . -type d -name target -prune -o -type f -path './tests/*.rs' -print 2>/dev/null | grep -q .; } && return 0
-  grep -rl --include='*.rs' --exclude-dir=target -E '#\[[a-z_:]*test' . 2>/dev/null | grep -q .
+  { find . -type d -name target -prune -o -type f -path './tests/*.rs' -print -quit 2>/dev/null | grep -q .; } && return 0
+  grep -rqm1 --include='*.rs' --exclude-dir=target -E '#\[[a-z_:]*test' . 2>/dev/null
 }
-rb_has_tests() { find . -type f \( -name '*_spec.rb' -o -name '*_test.rb' \) 2>/dev/null | grep -q .; }
+rb_has_tests() { find . -type f \( -name '*_spec.rb' -o -name '*_test.rb' \) -print -quit 2>/dev/null | grep -q .; }
 java_has_tests() {
   find . -type d \( -name build -o -name target -o -name .gradle \) -prune -o -type f \
     \( -name '*Test.java'  -o -name '*Tests.java'  -o -name '*TestCase.java' \
-    -o -name '*Test.kt'    -o -name '*Tests.kt'    -o -name '*Spec.kt' \) -print 2>/dev/null | grep -q .
+    -o -name '*Test.kt'    -o -name '*Tests.kt'    -o -name '*Spec.kt' \) -print -quit 2>/dev/null | grep -q .
 }
 
 pkg_test_script() {
@@ -461,6 +466,11 @@ verdict_php() {
   run_capture "$bin"
   log "php: exit=$RUN_RC"
   if [ "$RUN_RC" = 124 ]; then log "php: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  # Colour codes off first: with colors="true" in phpunit.xml, Pest colours output written
+  # to a file too (measured, Pest 5.3.2), so `Tests:` was followed by an escape sequence,
+  # not the count, and a green suite read unverifiable. Only SGR (`ESC[…m`) codes are
+  # stripped, and only here; other runners' captured output is matched as it comes.
+  CAP=$(printf '%s\n' "$CAP" | sed $'s/\033\\[[0-9;]*m//g')
   # PHPUnit's empty signal is "No tests executed!"; Pest's is "No tests found".
   if printf '%s\n' "$CAP" | grep -Eq 'No tests executed|No tests found'; then printf 'empty-suite\n'; return; fi
   # PHPUnit green: "OK (5 tests, 9 assertions)". PHPUnit red and Pest both print a

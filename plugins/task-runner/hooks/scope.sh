@@ -55,8 +55,12 @@
 #   - Bash writes the parser cannot name: interpreter writes (python open(), php
 #     file_put_contents), cp/mv/install destinations, a path held in a variable, and any
 #     target past the eighth. A file that does not exist after the call is skipped.
-#   - Any malformed scope file disarms the whole call, not just its own card: a partial
-#     union would warn about paths a card it could not parse had actually allowed.
+#   - Any malformed scope file — invalid JSON, or no `allow` array — disarms the whole
+#     call, not just its own card: a partial union would warn about paths a card it could
+#     not parse had actually allowed.
+#   - A Write/Edit to an absolute path outside the project root: skipped on purpose, as a
+#     Bash target there always was. The run's own card index under the root is not
+#     exempt, so updating its status column still warns unless a card lists it.
 #
 # fd 3 = the caller's real stderr, saved before the block so the two fail-open
 # warnings below (D7: missing jq / a malformed scope file) reach stderr — the block's
@@ -224,6 +228,9 @@ cc_bash_write_targets() {
   [ "${#scopes[@]}" -gt 0 ] || exit 0
   for s in "${scopes[@]}"; do
     jq empty "$s" 2>/dev/null || { echo "task-runner scope-lock: $(basename "$s") is malformed — scope not enforced this call" >&3; exit 0; }
+    # Valid JSON of the wrong shape is malformed too. Orchestrators wrote {card, allowed};
+    # `.allow // []` read that as an empty list, and every edit of the run was "scope creep".
+    jq -e '.allow | type == "array"' "$s" >/dev/null 2>&1 || { echo "task-runner scope-lock: $(basename "$s") has no \"allow\" array (expected {\"allow\":[\"path\",\"dir/\"],\"task\":\"<id>\"}) — scope not enforced this call" >&3; exit 0; }
   done
 
   # Written paths, repo-relative. The run's own state dir is never in a card's scope and
@@ -252,8 +259,10 @@ EOF
   else
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
     [ -n "$file" ] || exit 0
-    # Normalize the edited path to repo-relative for comparison.
-    rel="$file"; case "$file" in "$root"/*) rel="${file#"$root"/}" ;; esac
+    # Normalize the edited path to repo-relative for comparison. An absolute path outside
+    # the root (/tmp, the user's memory dir) is no card's file and was told to "revert
+    # this edit"; it is skipped, as the Bash branch already skips one.
+    rel="$file"; case "$file" in "$root"/*) rel="${file#"$root"/}" ;; /*) exit 0 ;; esac
     case "$rel" in .claude/task-runner/*) exit 0 ;; esac
     rels+=("$rel")
   fi

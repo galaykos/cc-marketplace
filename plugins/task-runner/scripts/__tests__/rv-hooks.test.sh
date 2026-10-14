@@ -42,6 +42,23 @@ printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "ask"' >/d
   && ok "rv-consent from a subdirectory asks inside the root's run" \
   || bad "rv-consent from a subdirectory asks inside the root's run" "out=<$out>"
 
+# 2b) what the ask SHOWS. A reason over 200 characters read "no reason given" (the pattern
+#     wanted its closing quote inside the interval), and a shell-built id showed as `bg-`.
+consent_msg() { # <command> -> the ask's reason text
+  jq -cn --arg cwd "$SUB" --arg c "$1" '{cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' \
+    | bash "$CONSENT" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null
+}
+r150=$(printf 'r%.0s' $(seq 150)); r250="$(printf 'q%.0s' $(seq 200))$(printf 'z%.0s' $(seq 50))"
+msg=$(consent_msg "bash review-skip.sh --card 03 --reason \"$r150\"")
+case "$msg" in *"Reason: $r150"$'\n'*) ok "rv-consent shows a 150-char reason whole, no ellipsis" ;;
+  *) bad "rv-consent shows a 150-char reason whole, no ellipsis" "msg=<$msg>" ;; esac
+msg=$(consent_msg "bash review-skip.sh --card 03 --reason \"$r250\"")
+case "$msg" in *"Reason: $(printf 'q%.0s' $(seq 200))…"*) ok "rv-consent shows a 250-char reason cut at 200 with …" ;;
+  *) bad "rv-consent shows a 250-char reason cut at 200 with …" "msg=<$msg>" ;; esac
+msg=$(consent_msg 'H=$(git rev-parse HEAD); bash review-skip.sh --card "bg-${H:0:12}" --reason "gate is red"')
+case "$msg" in *'for card bg-${H:0:12}. Reason: gate is red'*) ok "rv-consent names a shell-built id whole" ;;
+  *) bad "rv-consent names a shell-built id whole" "msg=<$msg>" ;; esac
+
 # 3) no registered run → both silent, nothing written
 rm -f "$SENT"
 jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Agent", tool_input:{prompt:"RV-CARD: 06"}}' \

@@ -397,6 +397,36 @@ PH3="$WS/php-nocov"; mkdir -p "$PH3/src"
 printf '<?php class Calc {}\n' > "$PH3/src/Calc.php"
 case_run "php changed, no test file -> no-behavioral-coverage(2)" "$PH3" 2 --label 'no-behavioral-coverage' -- --changed src/Calc.php
 
+# ---- P4. a test-path list past the 64 KB pipe buffer -> covered(0). `find … -print |
+# grep -q .` died of SIGPIPE (141) under pipefail once grep quit, so a large repo read as
+# no-behavioral-coverage. 4,000 synthetic *Test.php paths are ~320 KB of find output.
+PH4="$WS/php-large"; mkdir -p "$PH4/vendor/bin" "$PH4/src" "$PH4/tests/Feature/Synthetic/Generated/Module"
+printf '<?php class Calc {}\n' > "$PH4/src/Calc.php"
+( cd "$PH4/tests/Feature/Synthetic/Generated/Module" && seq -w 1 4000 | sed 's/.*/Case&LongerSyntheticNameTest.php/' | xargs touch )
+mk_stub "$PH4/vendor/bin/phpunit" .phpstub.out .phpstub.rc
+printf 'PHPUnit 13.3.1 by Sebastian Bergmann and contributors.\n\n.  1 / 1 (100%%)\n\nOK (1 test, 1 assertion)\n' > "$PH4/.phpstub.out"
+printf '0\n' > "$PH4/.phpstub.rc"
+case_run "php repo whose test-path list passes 64 KB -> covered(0), not SIGPIPE" "$PH4" 0 --label 'covered' -- --changed src/Calc.php
+
+# ---- P5/P6. Pest with colors="true" in phpunit.xml colours output written to a file:
+# `Tests:` is followed by an SGR code, not the count. Shapes captured from Pest 5.3.2 on
+# a scratch project (2026-10-14). P5 read unverifiable before the strip; P6, the empty
+# run, must stay empty-suite with the colour on.
+PH5="$WS/php-pest-colour"; mkdir -p "$PH5/vendor/bin" "$PH5/tests/Unit" "$PH5/src"
+printf '<?php class Calc {}\n' > "$PH5/src/Calc.php"
+printf '<?php test("adds", fn () => expect(1)->toBe(1));\n' > "$PH5/tests/Unit/CalcTest.php"
+mk_stub "$PH5/vendor/bin/pest" .phpstub.out .phpstub.rc
+printf '\n  \033[30;42;1m PASS \033[39;49;22m\033[39m Tests\\Unit\\CalcTest\033[39m\n\n  \033[90mTests:\033[39m    \033[32;1m1 passed\033[39;22m\033[90m (1 assertions)\033[39m\n  \033[90mDuration:\033[39m \033[39m0.03s\033[39m\n' > "$PH5/.phpstub.out"
+printf '0\n' > "$PH5/.phpstub.rc"
+case_run "pest coloured 'Tests: 1 passed' -> covered(0)" "$PH5" 0 --label 'covered' -- --changed src/Calc.php
+PH6="$WS/php-pest-colour-empty"; mkdir -p "$PH6/vendor/bin" "$PH6/tests/Unit" "$PH6/src"
+printf '<?php class Calc {}\n' > "$PH6/src/Calc.php"
+printf '<?php\n' > "$PH6/tests/Unit/CalcTest.php"
+mk_stub "$PH6/vendor/bin/pest" .phpstub.out .phpstub.rc
+printf '\n  \033[37;44;1m INFO \033[39;49;22m No tests found.\n' > "$PH6/.phpstub.out"
+printf '0\n' > "$PH6/.phpstub.rc"
+case_run "pest coloured 'No tests found.' -> empty-suite(2)" "$PH6" 2 --label 'empty-suite' -- --changed src/Calc.php
+
 # ---- R1. cargo multi-target: lib target passes, doc-tests report 0 -> covered(0).
 # This is the real shape of a green crate (captured verbatim), and it is why COVERED is
 # checked before EMPTY: an empty-first reader calls a healthy crate empty.

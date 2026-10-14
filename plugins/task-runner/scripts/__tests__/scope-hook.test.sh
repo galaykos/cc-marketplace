@@ -183,6 +183,27 @@ esac
 rm -f "$CWD/.claude/task-runner/scope-03.json" "$CWD/.claude/task-runner/scope-01.json" \
       "$CWD/.claude/task-runner/scope-02.json"
 
+# 13b) VALID JSON, WRONG SHAPE. Orchestrators wrote {card, allowed}; `.allow // []` read
+#      it as an empty list and every edit of the run warned. Now it disarms like a
+#      malformed file and names the expected shape.
+printf '{"card":"04","allowed":["src/card-d.js"]}' > "$CWD/.claude/task-runner/scope-04.json"
+run_case "scope file with no allow array -> whole call not enforced, stdout silent" \
+  "$(stdin_for "$CWD/src/card-d.js")" 0 silent
+set +e
+err=$(printf '%s' "$(stdin_for "$CWD/src/card-d.js")" | bash "$HOOK" 2>&1 >/dev/null); set +e
+case "$err" in *'scope-04.json has no "allow" array (expected {"allow":["path","dir/"],"task":"<id>"})'*)
+  printf 'PASS: wrong-shape member named on stderr with the expected shape\n'; pass=$((pass+1)) ;;
+  *) printf 'FAIL: wrong-shape member not named on stderr: <%s>\n' "$err"; fail=$((fail+1)) ;;
+esac
+rm -f "$CWD/.claude/task-runner/scope-04.json"
+
+# 13c) an Edit/Write OUTSIDE the project root (a /tmp probe, the user's memory dir) is no
+#      card's file; it was told to "revert this edit". An in-root stray still warns.
+run_case "Edit to an absolute path outside the root -> silent" \
+  "$(stdin_for "$WS/elsewhere/notes.md")" 0 silent
+run_case "Edit to an in-root path outside scope -> still warns" \
+  "$(stdin_for "$CWD/src/stray.js")" 0 envelope "src/stray.js"
+
 # ---- 0.41.0: finding 8 (stale scope), finding 2 (state root), finding 1 (Bash writes)
 #      of rationale/2026-09-25-session-plugin-usage-review.md.
 ctx_of() { printf '%s' "$1" | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
