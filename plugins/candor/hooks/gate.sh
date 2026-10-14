@@ -360,10 +360,12 @@ read_transcript
 clause_fabricated_citation() {
   [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ] || return 0
   # URLs go before extraction (a.php:80 in one is a port); the extension starts with a letter, so v1.2.3:4 and 10:30 never match.
+  # The leading / is kept (an absolute path into vendor/ lost it and resolved nowhere), and a dev host such as shop.localhost:8080
+  # is a port, not a line. Misses: a file whose extension is one of those host names (.env.local:3, .env.example:12) goes unchecked.
   cites=$(printf '%s' "$last_msg" \
     | sed -E 's#[a-zA-Z][a-zA-Z0-9+.-]*://[^[:space:])"]*##g' \
-    | grep -oE '[A-Za-z0-9_.~][A-Za-z0-9_./-]*\.[A-Za-z][A-Za-z0-9]{0,9}:[0-9]+' 2>/dev/null \
-    | grep -vEi '\.(com|net|org|io|co|ai|app|gg|me):[0-9]+$' \
+    | grep -oE '[/A-Za-z0-9_.~][A-Za-z0-9_./-]*\.[A-Za-z][A-Za-z0-9]{0,9}:[0-9]+' 2>/dev/null \
+    | grep -vEi '\.(com|net|org|io|co|ai|app|gg|me|localhost|test|local|internal|example|invalid|lan):[0-9]+$' \
     | grep -vF '...' \
     | sort -u)
 
@@ -372,8 +374,10 @@ clause_fabricated_citation() {
     \( -name node_modules -o -name .git -o -name vendor -o -name dist -o -name build -o -name .venv \) -prune \
     -o "$@" -type f -print 2>/dev/null; }
 
-  # resolve <relpath> prints FILE <path>, MISSING (the basename exists nowhere) or AMBIGUOUS (unresolved, basename not unique).
+  # resolve <relpath> prints FILE <path>, MISSING (the basename is in no searched dir) or AMBIGUOUS (unresolved, basename not unique).
   # Abbreviated paths outnumber invented ones (measured), so only a basename found nowhere is fabricated; a wrong directory passes.
+  # A basename only under the root's node_modules or vendor (6 deep, first hit) is AMBIGUOUS: subagents citing a dependency were
+  # blocked as inventing it. Misses: a name only under dist, build or .venv, or past either depth cap, still reads as MISSING.
   resolve() {
     local p="$1" m b n
     case "$p" in "~/"*) p="${HOME:-}/${p#\~/}" ;; esac
@@ -388,7 +392,9 @@ clause_fabricated_citation() {
     b=${p##*/}
     m=$(_find -name "$b" | head -2)
     n=$(printf '%s\n' "$m" | grep -c .)
-    if [ "$n" -eq 0 ]; then printf 'MISSING'
+    if [ "$n" -eq 0 ] && [ -n "$(find "$root/node_modules" "$root/vendor" -maxdepth 6 -name "$b" -print -quit 2>/dev/null)" ]; then
+      printf 'AMBIGUOUS'
+    elif [ "$n" -eq 0 ]; then printf 'MISSING'
     elif [ "$n" -eq 1 ]; then printf 'FILE %s' "$m"
     else printf 'AMBIGUOUS'
     fi
@@ -404,7 +410,7 @@ clause_fabricated_citation() {
     r=$(resolve "$path")
     case "$r" in
       MISSING)   misses="$misses
-  - $c — no file named ${path##*/} exists anywhere under $root"; continue ;;
+  - $c — no file named ${path##*/} found under $root (8 deep; node_modules and vendor 6 deep; dist, build, .venv, .git not searched)"; continue ;;
       AMBIGUOUS) continue ;;   # path unresolved but the name is real — not decidable
     esac
     file="${r#FILE }"
@@ -603,6 +609,8 @@ report_verdict() {
       printf '  A file:line citation asserts you read that line. Open the file, cite what is actually\n' >&2
       printf '  there, or drop the number and say plainly that you are inferring rather than quoting.\n' >&2
       printf '  Inventing a location is the failure this clause exists to stop.\n' >&2
+      # A subagent that re-sent only the correction lost its whole report: the caller receives the last hand-back alone.
+      [ "$evt" = "SubagentStop" ] && printf '  Then re-send your COMPLETE report, corrected: only your last message reaches the caller.\n' >&2
       printf '  CC_CANDOR_GATE=off disables this gate for the session; =warn prints without blocking.\n' >&2 ;;
     reversal)
       printf '[candor] gate: the user pushed back without giving you new information, and this turn\n' >&2

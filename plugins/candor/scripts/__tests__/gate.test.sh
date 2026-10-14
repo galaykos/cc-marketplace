@@ -107,7 +107,22 @@ T="$WS/c15.jsonl"; { user "where"; asst "See plugins/x/.../real.ts:900 — an el
 check "elided path (...) is prose, not a citation"   "" "$T" 0 "__NONE__"
 
 T="$WS/c16.jsonl"; { user "where"; asst "See src/ghost.ts:12 — invented filename."; } > "$T"
-check "invented basename blocks with the name in the reason" "" "$T" 2 "no file named ghost.ts exists anywhere"
+check "invented basename blocks with the name in the reason" "" "$T" 2 "no file named ghost.ts found under"
+
+# A dependency cited by a subagent was read as invented: the pruned search never looked in node_modules or vendor.
+mkdir -p "$CWD/node_modules/pkgdemo/dist" "$CWD/vendor/acme/widget/src"
+printf 'l\n%.0s' $(seq 900) > "$CWD/node_modules/pkgdemo/dist/scroller.mjs"
+printf 'l\n%.0s' $(seq 20)  > "$CWD/vendor/acme/widget/src/Gadget.php"
+T="$WS/c17.jsonl"; { user "where"; asst "The easing lives in scroller.mjs:783."; } > "$T"
+check "a basename only under node_modules is not invented, passes" "" "$T" 0 "__NONE__"
+T="$WS/c18.jsonl"; { user "where"; asst "See $CWD/vendor/acme/widget/src/Gadget.php:12 for it."; } > "$T"
+check "an absolute path into vendor/ resolves, passes"   "" "$T" 0 "__NONE__"
+T="$WS/c19.jsonl"; { user "where"; asst "See $CWD/vendor/acme/widget/src/Gadget.php:99 for it."; } > "$T"
+check "an absolute vendor/ path past EOF still blocks"   "" "$T" 2 "Gadget.php has 20 lines"
+T="$WS/c20.jsonl"; { user "where"; asst "The admin panel runs on shop.localhost:8080 and api.test:8000."; } > "$T"
+check "a .localhost / .test host:port is not a citation" "" "$T" 0 "__NONE__"
+T="$WS/c21.jsonl"; { user "where"; asst "The handler is in Invented.php:12."; } > "$T"
+check "an invented basename still blocks beside a vendor/ tree" "" "$T" 2 "no file named Invented.php found under"
 
 T="$WS/r1.jsonl"; { asst "The retry is disabled."; user "Are you sure?"; asst "You're absolutely right, my mistake — it is enabled."; } > "$T"
 check "bare pushback + retraction + no tool blocks"   "" "$T" 2 "$REV_SUB"
@@ -187,6 +202,7 @@ sub_check() { # desc  last-msg  exp_rc  exp_sub
   else fail=$((fail+1)); printf 'FAIL  %s (rc=%s want %s; stderr=%s)\n' "$desc" "$rc" "$exp_rc" "$err"; fi
 }
 sub_check "subagent: fabricated citation in last_assistant_message blocks" "Found it at src/ghost.ts:12." 2 "this report cites a location that does not exist"
+sub_check "subagent: the block asks for the COMPLETE report, not just the fix" "Found it at src/ghost.ts:12." 2 "re-send your COMPLETE report"
 sub_check "subagent: resolving citation passes"                            "Found it at src/real.ts:3."   0 "__NONE__"
 sub_check "subagent: reversal clause disarmed (no user turn to push back)" "You're right, my mistake."   0 "__NONE__"
 { user "find the bug"; asst "See src/real.ts:3."; } > "$A"

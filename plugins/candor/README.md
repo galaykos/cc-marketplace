@@ -255,7 +255,11 @@ Stated because a gate reads stronger than it is:
 - **Only an invented FILENAME is caught, not a wrong directory.** Measured over
   47 real transcripts, an abbreviated path is far more common than an invented
   one, so the resolver falls back to the basename and only a basename that
-  exists nowhere blocks.
+  exists nowhere blocks. A basename found only under `node_modules/` or `vendor/`
+  (6 levels deep) counts as real but is not line-checked; one only under `dist/`,
+  `build/` or `.venv/` still blocks. A `file:line` whose extension is a dev host
+  name (`.localhost`, `.test`, `.local`, `.example`…) is read as `host:port` and
+  not checked.
 - **Any tool call counts as re-checking (clause 2) and any post-edit execution
   counts as verification (clause 3).** A `git status` satisfies both. The gate
   proves something ran, not that the right thing ran.
