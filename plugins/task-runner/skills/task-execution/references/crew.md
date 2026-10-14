@@ -26,10 +26,8 @@ After the card's build verify passes:
 
 ## Reviewer pass
 
-The reviewer set resolves, primes, AND dispatches exactly as the BASELINE pass does
-(`reviewer-routing.md`, batch rule 5 "Concurrent dispatch": one concurrent read-only batch, `Bash`-holding
-reviewers serial, the `security:security-review` skill inline after the join). Crew adds no
-dispatch mechanics of its own; it runs that pass as step 1 of the crew sequence.
+The reviewer set resolves, primes and dispatches exactly as the BASELINE pass does
+(`reviewer-routing.md` item 5, "Concurrent dispatch"); crew adds no dispatch mechanics of its own.
 
 ## Authoring — test files only
 
@@ -47,9 +45,8 @@ procedure — arm scope, inject the discipline preamble, dispatch):
 
 ### Hardened scope check on return
 
-Enforce with the existing diff-vs-declared-files check (routing.md step 6, the
-diff-vs-declared check), hardened for
-the fact that authored tests are **new, untracked** files:
+Enforce with the diff-vs-declared-files check (routing.md step 6), hardened for the fact that
+authored tests are **new, untracked** files:
 
 - Enumerate `test-engineer`'s touched paths **including untracked additions**
   (`git status --porcelain`, not bare `git diff`).

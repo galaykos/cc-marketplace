@@ -350,6 +350,42 @@ PER-CARD REVIEWER COVERAGE (rv/): records are written by hooks/rv-observe.sh
 when it OBSERVES a reviewer dispatch carrying the RV-CARD marker, so the count is
 not model-authored. Only records newer than THIS registration count (card ids
 repeat across runs), and distinct ids (rv-seen-01 + rv-skip-01 is one card).
+A range record (range-*) is excluded from this count: it covers the run, not a card.
+```
+
+### run_clause: UI CARD REVIEWER (0.8.0)
+
+```text
+A card whose rv/diff-<card>.patch (task-runner's review-diff.sh) names a .tsx, .jsx,
+.vue, .svelte, stylesheet or .blade.php file owes a ui-ux-reviewer record
+(rv-agent-<card>@*ui-ux-reviewer.json, written by rv-observe from subagent_type), a
+skip or an exemption. Measured: in one 2026-10 run, 8 of 10 UI cards were reviewed by
+frontend-reviewer alone, asked to "also cover markup", and the per-card count above
+let it stand in. Misses: a UI card with no diff file is not checked.
+```
+
+### run_clause: WHOLE-RANGE REVIEW (0.8.0)
+
+```text
+A run registered by register-run.sh carries start_sha and owes one /code-review:review
+over the run, recorded by rv-observe as range-<sha>.json from an RV-RANGE marker, at
+the closing HEAD. Per-card passes never substitute: in two 2026-10 sessions the
+whole-branch pass found cross-card defects (a stale cache key, a 500 for users with no
+team) that no card's review could see. A commit after a range review owes only the
+commits since the newest reviewed ancestor, and the block names that range; asking for
+the whole run again per fix commit would cost a full pass each time (~22M tokens
+measured for one). Misses: the record proves the marker was in the call, not which
+range was reviewed; a sentinel without start_sha owes none.
+```
+
+### run_clause: CLOSED-RUN SENTINEL (0.8.0)
+
+```text
+run.md step 4 renames active-run.json to closed-run.json instead of deleting it. Until
+0.8.0 a run that followed run.md deleted its sentinel before the closing stop, so the
+records checks above never ran on a correct close — only on an incorrect one. The gate
+reads closed-run.json when active-run.json is absent and deletes it once every check
+passes. Without candor installed, closed-run.json stays until the next registration.
 ```
 
 ### run_clause: BEHAVIORAL-GATE EVIDENCE

@@ -83,7 +83,12 @@ Each task runs its EXACT verify command; three failed fix cycles park the task
 with evidence instead of drifting. After a task's verify passes, a conditional
 reviewer pass runs when the review plugins are installed — code-reviewer on
 every task; ui-ux, architecture, and security reviewers only when the task's
-content warrants them. Blocker/major findings re-enter the bounded fix loop.
+content warrants them (security as a review-only `security-engineer`, which can run probes a
+read-only reviewer cannot). Reviewers have no shell, so each is handed a diff file that
+`scripts/review-diff.sh` writes: the card's diff, its untracked files and the blame of the
+lines it changes. Blocker/major findings re-enter the bounded fix loop. At run close one
+`/code-review:review` covers the whole range since the run started, because per-card passes
+cannot see what changed across cards.
 The run only completes when every task is done or parked AND the project's
 full check suite passes — including api-design's doc-drift check when installed.
 
@@ -142,7 +147,10 @@ and it says nothing about whether the fan-out was a good idea — that is
 
 ## The run cannot end by narration
 
-A run registers itself at start, and a Stop hook — clause 4 of candor's gate since
+A run registers itself at start through `scripts/register-run.sh`, which `/task-runner:run`,
+the task-execution skill's first step and `/task-runner:plan`'s "Run now" all call (until
+0.47.0 only the command registered, and a handoff straight to the skill ran with every check
+below silently off). A Stop hook — clause 4 of candor's gate since
 2026-09-14, this plugin's `hooks/completion-gate.sh` before that; install candor or
 the run can end by narration — refuses to let it end while the work is unfinished — no recorded behavioral-gate pass for the current HEAD, or
 cards neither done nor parked. Ending a turn with "starting card 01 now" and no
@@ -176,6 +184,8 @@ So the mandated passes now leave evidence a run cannot author for itself:
 | per-card reviewer pass | `rv-seen-*` written by a PostToolUse hook that sees the dispatch's `RV-CARD` marker | records ≥ done cards |
 | behavioral gate | `bg-<head>.json` written by `behavioral-gate.sh` itself | must exist for the reported HEAD, and its verdict must be a passing one |
 | red-team panel (boosted runs that shipped code) | `rt-lens-*` / `rt-critic-*` from the same observer | 3 lenses + 1 critic, or a recorded degradation |
+| whole-range review at run close (runs registered by `register-run.sh`) | `range-<sha>` from the same observer, on `RV-RANGE: <HEAD12>` in the `/code-review:review` call | a record for the closing HEAD, or a recorded skip |
+| ui-ux-reviewer on a UI card | `rv-agent-<card>@<reviewer>` from the same observer, for each card whose `rv/diff-<card>.patch` names a `.tsx`, `.jsx`, `.vue`, `.svelte`, stylesheet or `.blade.php` file | a ui-ux-reviewer record, or a recorded skip or exemption |
 
 Skips stay possible and stop being silent. `scripts/review-skip.sh` (per card) and
 `scripts/reduction-record.sh` (`--kind redteam|dispatch|suite|coverage|other` — a degraded
@@ -188,19 +198,25 @@ completion gate then refuses a clean stop unless the closing report names each r
 id. Design carve-outs — a track leaf, a reviewer plugin that is not installed — record an
 exemption and never prompt.
 
-Records written before the current registration are ignored, so a re-registration re-arms
-every check and last week's run cannot satisfy this one.
+Records written before the current registration are ignored, so a fresh registration re-arms
+every check and last week's run cannot satisfy this one. A second registration of the same
+index on the same branch resumes the run instead, keeping the records of its done cards
+(`--fresh` starts over).
 
-What this does NOT prove: that a reviewer read carefully, that a reason is honest, or
-anything at all in a run that never registered. Depth is invisible to a parent hook —
-a subagent's transcript is a separate file.
+What this does NOT prove: that a reviewer read carefully, that a reason is honest, that a
+range review covered the range its marker names, that a UI card with no diff file got its
+ui-ux-reviewer, or anything at all in a run that never registered or was registered by hand
+(no `start_sha`, so no range review is owed). Depth is invisible to a parent hook — a
+subagent's transcript is a separate file.
 
 The block is bounded twice over: it fires only on the branch the run registered
 itself on, and at most once per commit — so a genuine stop costs one extra turn,
 each new commit re-arms the gate for the next card, and a sentinel left behind by
 an abandoned run cannot nag every stop in the repo. That sentinel is
 `.claude/task-runner/active-run.json`; deleting it retires a run that will never
-finish. Set `TASK_RUNNER_STOP_GATE=warn` to downgrade the block to a printed
+finish. A finished run renames it to `closed-run.json` instead, so the stop after the
+closing report is still checked against the run's records; candor's gate removes the file
+once they hold. Set `TASK_RUNNER_STOP_GATE=warn` to downgrade the block to a printed
 reminder everywhere.
 
 ## Mods (Claude Code ≥ 2.1.291)

@@ -62,7 +62,7 @@ cc_state_root() {
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
-  [ -r "$root/.claude/task-runner/active-run.json" ] || exit 0
+  [ -r "$root/.claude/task-runner/active-run.json" ] || [ -r "$root/.claude/task-runner/closed-run.json" ] || exit 0
 
   # TWO WAYS a discretionary skip reaches disk, and the sanctioned one does not
   # mention the filename at all: `review-skip.sh --card X --reason "..."` writes

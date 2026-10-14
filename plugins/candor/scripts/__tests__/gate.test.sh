@@ -489,5 +489,96 @@ else
   printf 'SKIP  0.5.0 state-root / in-flight / coverage cases (git not available)\n'
 fi
 
+# 0.8.0: the whole-range review a register-run.sh run (start_sha) owes at HEAD, the ui-ux-reviewer a UI card owes,
+#   and the closing stop after the sentinel is renamed to closed-run.json. Records are newer than the sentinel.
+if command -v git >/dev/null 2>&1; then
+  RQ="$WS/rq"; mkdir -p "$RQ/src"; echo a > "$RQ/src/a.ts"
+  git -C "$RQ" init -q && git -C "$RQ" config user.email t@t.t && git -C "$RQ" config user.name t
+  git -C "$RQ" add -A >/dev/null 2>&1 && git -C "$RQ" commit -qm start
+  QSTART=$(git -C "$RQ" rev-parse HEAD)
+  echo b >> "$RQ/src/a.ts"; git -C "$RQ" commit -qam card
+  QHEAD=$(git -C "$RQ" rev-parse HEAD); Q12=${QHEAD:0:12}
+  QBR=$(git -C "$RQ" rev-parse --abbrev-ref HEAD)
+  QTR="$RQ/.claude/task-runner"; QRV="$QTR/rv"; QSENT="$QTR/active-run.json"; QCLOSED="$QTR/closed-run.json"
+  mkdir -p "$QRV"
+  qsent() { printf '{"slug":"q","branch":"%s"%s}' "$QBR" "$1" > "$QSENT"; touch -t 200001010000 "$QSENT"; }
+  qrun() { rm -rf "$RQ/.claude/candor" "$QTR/gate-nudge"; err=$(jq -cn --arg cwd "$RQ" --arg tp "$1" \
+    '{hook_event_name:"Stop",session_id:"q",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}' | bash "$HOOK" 2>&1 >/dev/null); rc=$?; }
+  qis() { if [ "$2" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"; else fail=$((fail+1)); printf 'FAIL  %s (rc=%s stderr=%s)\n' "$1" "$rc" "$err"; fi; }
+  QT="$WS/qclean.jsonl"; { user "run the cards"; asst "All cards done, gate recorded."; } > "$QT"
+  RANGE_SUB='no whole-range review recorded for HEAD'
+  UI_SUB='no ui-ux-reviewer dispatch recorded'
+
+  qsent ",\"start_sha\":\"$QSTART\""
+  printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
+  printf '{}' > "$QRV/rv-seen-01.json"; printf '{}' > "$QRV/rv-seen-02.json"
+  qrun "$QT"
+  qis "range: a start_sha run with no range record for HEAD blocks and names RV-RANGE" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && printf '%s' "$err" | grep -qF "RV-RANGE: $Q12" && printf '%s' "$err" | grep -qF "${QSTART:0:12}..HEAD"; echo $?)"
+  printf '{}' > "$QRV/range-${QSTART:0:12}.json"
+  qrun "$QT"
+  qis "range: a record for an earlier HEAD does not count" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
+  printf '{}' > "$QRV/range-${QHEAD:0:7}.json"
+  qrun "$QT"
+  qis "range: a record whose id is a 7-char prefix of HEAD passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  echo c >> "$RQ/src/a.ts"; git -C "$RQ" commit -qam fix; QFIX=$(git -C "$RQ" rev-parse HEAD)
+  printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QFIX" > "$QTR/gate-pass.json"
+  qrun "$QT"
+  qis "range: a commit after a range review owes only the commits since it" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qE "/code-review:review ${QHEAD:0:7}[0-9a-f]*\.\.HEAD"; echo $?)"
+  git -C "$RQ" reset -q --hard "$QHEAD"
+  printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
+  rm -f "$QRV"/range-*.json
+  qsent ""
+  qrun "$QT"
+  qis "range: a sentinel without start_sha (hand-written, pre-0.8.0) owes none" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+
+  qsent ",\"start_sha\":\"$QSTART\""
+  printf '{"card":"range-%s","skipped":true,"reason":"x"}' "$Q12" > "$QRV/rv-skip-range-$Q12.json"
+  printf '{"head":"%s","cards_total":3,"cards_done":3,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
+  qrun "$QT"
+  qis "range: a recorded range skip is not counted as a card's review" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'only 2 per-card reviewer records'; echo $?)"
+  printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
+  qrun "$QT"
+  qis "range: a recorded range skip passes the check, then the report must name it" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "never names" && printf '%s' "$err" | grep -qF "range-$Q12"; echo $?)"
+  T="$WS/qnamed.jsonl"; { user "run the cards"; asst "Done. Skipped: range-$Q12, the range review (no code-review installed)."; } > "$T"
+  qrun "$T"
+  qis "range: a range skip the report names passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  rm -f "$QRV/rv-skip-range-$Q12.json"; printf '{}' > "$QRV/range-$Q12.json"
+
+  printf 'diff --git a/src/api.php b/src/api.php\n' > "$QRV/diff-01.patch"
+  printf 'diff --git a/src/a.ts b/src/a.ts\ndiff --git a/src/Button.tsx b/src/Button.tsx\n' > "$QRV/diff-02.patch"
+  qrun "$QT"
+  qis "ui: a card whose review diff names a .tsx file, with no ui-ux-reviewer record, blocks and names that card only" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 02" && ! printf '%s' "$err" | grep -qF ' 01'; echo $?)"
+  printf '{}' > "$QRV/rv-agent-02@code-review.code-reviewer.json"
+  qrun "$QT"
+  qis "ui: another reviewer's record does not stand in for ui-ux-reviewer" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB"; echo $?)"
+  printf '{}' > "$QRV/rv-agent-02@ui-ux.ui-ux-reviewer.json"
+  qrun "$QT"
+  qis "ui: a ui-ux-reviewer record for the card passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  printf 'diff --git a/resources/views/x.blade.php b/resources/views/x.blade.php\n' > "$QRV/diff-01.patch"
+  qrun "$QT"
+  qis "ui: a .blade.php view is a UI file (the .php neighbour was silent)" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 01"; echo $?)"
+  printf '{"card":"01","exempt":"no-reviewer-installed"}' > "$QRV/rv-exempt-01.json"
+  qrun "$QT"
+  qis "ui: an exemption for the card passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+
+  rm -f "$QRV/range-$Q12.json"
+  mv "$QSENT" "$QCLOSED"
+  qrun "$QT"
+  qis "closed run: the stop after the rename still reads the records and blocks" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && [ -f "$QCLOSED" ]; echo $?)"
+  printf '{}' > "$QRV/range-$Q12.json"
+  qrun "$QT"
+  qis "closed run: a clean closing stop passes and retires closed-run.json" "$([ "$rc" -eq 0 ] && [ -z "$err" ] && [ ! -e "$QCLOSED" ]; echo $?)"
+  rm -f "$QRV/range-$Q12.json"; qrun "$QT"
+  qis "closed run: once retired, later stops are silent" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+else
+  printf 'SKIP  0.8.0 range / ui / closed-run cases (git not available)\n'
+fi
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

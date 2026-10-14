@@ -4,9 +4,7 @@ Only the main `/task-runner:run` orchestrator routes: it can spawn subagents and
 see the available-agent-types list in its own context. A resolved worker is a **leaf**
 that executes and never re-routes. Keep the tag keys below in sync with the vocabulary
 in `taskmaster/skills/task-cards/references/agent-tags.md` — `scripts/validate.sh`
-fails on drift. (The `Ultra:`/`Goal:` tier-marker PARSING lives in
-`task-execution/SKILL.md` § markers — this file only consumes the already-resolved
-tier for the role-floor `max()`.)
+fails on drift.
 
 ## Resolution map (ordered preference — first reachable wins, else `task-executor`)
 
@@ -23,9 +21,6 @@ backend       → [laravel:backend-engineer, web-dev:web-developer]
 api           → [web-dev:web-developer]
 generic       → [task-runner:task-executor]
 ```
-
-A tag's list may gain more-specific specialists over time; the runner walks it in order
-and picks the first present in its available-agent-types list.
 
 ## Per-card dispatch procedure
 
@@ -114,13 +109,8 @@ applied per member. Differences:
    the batch passes no `model:` or `opts.effort` of its own; an agent that DOES carry
    a row dispatches at `max(marker tier if present ELSE the session model, its floor)`, which
    only raises (`dispatch-tiers.md`'s "never downgrades an agent below its frontmatter" holds).
-
-   delegation-contracts' cheap tier does not apply: it is for work *the prompt fully defines*,
-   while **batches are selected by card SIZE and file-disjointness, never by a mechanicalness
-   test** (`parallel-planning/references/dispatch-selection.md` § S-card batching). A cost
-   lever for mechanical work must gate on a mechanicalness signal (a `generic` tag plus a
-   rename/scaffold/sweep `Change` line), not on size — and `effort` binds only on the
-   `Workflow` path (`verification-panels/references/dispatch-tier.md`).
+   delegation-contracts' cheap tier does not apply: batches are picked by card SIZE, never by
+   a mechanicalness test (`parallel-planning/references/dispatch-selection.md` § S-card batching).
 4. **Mid-batch failure is park-one-continue-rest.** A member hitting its 3-cycle halt or a
    park is parked; the worker continues the remaining disjoint members and returns
    **per-card statuses** (done + commit sha, or parked + reason). Members are disjoint, so
@@ -152,5 +142,3 @@ orchestrator, never become a silent follow-up. Three detection points:
 - Every mapped agent is equally privileged (Read/Write/Edit/Bash on the same repo); the
   tag selects **aptitude, not authority**. A mis-tag routes to a competent-but-suboptimal
   worker, still scope-bounded by step 6.
-- Verify-side routing (matching domain reviewer) is out of scope here — deferred to
-  the reviewer pass; the runner's generic re-verify remains the gate.

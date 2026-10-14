@@ -59,6 +59,44 @@ msg=$(consent_msg 'H=$(git rev-parse HEAD); bash review-skip.sh --card "bg-${H:0
 case "$msg" in *'for card bg-${H:0:12}. Reason: gate is red'*) ok "rv-consent names a shell-built id whole" ;;
   *) bad "rv-consent names a shell-built id whole" "msg=<$msg>" ;; esac
 
+# 2c) the reviewer's type per card, so candor can ask for ui-ux-reviewer on a UI card by name,
+#     and the run-close range review's RV-RANGE marker, which arrives through a Skill call.
+RVD="$REPO/.claude/task-runner/rv"
+jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Agent", tool_input:{subagent_type:"ui-ux:ui-ux-reviewer", prompt:"RV-CARD: 07\nreview"}}' \
+  | bash "$OBS" >/dev/null 2>&1
+[ -f "$RVD/rv-agent-07@ui-ux.ui-ux-reviewer.json" ] && [ -f "$RVD/rv-seen-07.json" ] \
+  && ok "rv-observe records the reviewer type beside the card count" \
+  || bad "rv-observe records the reviewer type beside the card count" "$(ls "$RVD" 2>/dev/null | tr '\n' ' ')"
+jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Agent", tool_input:{subagent_type:"x:../../evil", prompt:"RV-CARD: 08"}}' \
+  | bash "$OBS" >/dev/null 2>&1
+[ -f "$RVD/rv-seen-08.json" ] && [ -z "$(find "$REPO" -name '*evil*' 2>/dev/null)" ] \
+  && ok "rv-observe drops a reviewer type carrying path characters, keeps the card record" \
+  || bad "rv-observe drops a reviewer type carrying path characters, keeps the card record" "$(find "$REPO" -name '*evil*')"
+jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Skill", tool_input:{skill:"code-review:review", args:"0123abc..HEAD RV-RANGE: 4567def89abc"}}' \
+  | bash "$OBS" >/dev/null 2>&1
+[ -f "$RVD/range-4567def89abc.json" ] \
+  && ok "rv-observe records RV-RANGE from a Skill call" \
+  || bad "rv-observe records RV-RANGE from a Skill call" "$(ls "$RVD" | tr '\n' ' ')"
+jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Skill", tool_input:{skill:"code-review:review", args:"RV-RANGE: <HEAD12>"}}' \
+  | bash "$OBS" >/dev/null 2>&1
+[ -z "$(find "$RVD" -name 'range-*' ! -name 'range-4567def89abc.json')" ] \
+  && ok "an unfilled RV-RANGE placeholder records nothing" \
+  || bad "an unfilled RV-RANGE placeholder records nothing" "$(ls "$RVD" | tr '\n' ' ')"
+grep -q '"matcher": "Agent|Task|Skill"' "$here/../../hooks/hooks.json" \
+  && ok "hooks.json routes Skill calls to rv-observe" || bad "hooks.json routes Skill calls to rv-observe" "matcher lacks Skill"
+
+# 2d) a closing run: the sentinel renamed to closed-run.json until candor's last read. A review
+#     its block asks for must still be recorded, and a skip must still ask.
+CLOSED="$REPO/.claude/task-runner/closed-run.json"; mv "$SENT" "$CLOSED"
+jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Skill", tool_input:{skill:"code-review:review", args:"RV-RANGE: 89abcdef0123"}}' \
+  | bash "$OBS" >/dev/null 2>&1
+[ -f "$RVD/range-89abcdef0123.json" ] && ok "rv-observe records inside a closing run" || bad "rv-observe records inside a closing run" "no range record"
+out=$(jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Bash", tool_input:{command:"bash review-skip.sh --card range-89abcdef0123 --reason \"x\""}}' \
+  | bash "$CONSENT" 2>/dev/null)
+printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "ask"' >/dev/null 2>&1 \
+  && ok "rv-consent asks inside a closing run" || bad "rv-consent asks inside a closing run" "out=<$out>"
+mv "$CLOSED" "$SENT"
+
 # 3) no registered run → both silent, nothing written
 rm -f "$SENT"
 jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Agent", tool_input:{prompt:"RV-CARD: 06"}}' \

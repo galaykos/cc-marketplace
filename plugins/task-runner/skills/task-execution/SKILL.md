@@ -9,6 +9,13 @@ One task in progress at any moment. Its definition — the files, the change, th
 criteria, the verify command — is the whole world until it passes or is formally parked.
 Starting task N+1 while task N is unverified is the root of "90% done" projects that don't work.
 
+## Step 1: register the run
+
+However this skill was reached, the orchestrator (never a delegated worker) runs, before the
+first task, `bash ${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh --index <00-INDEX.md> --session <this session id>`
+(an inline list: `--slug <name>`). Unregistered, the review observer and candor's completion
+clause are silently off. A second call for the same run resumes it.
+
 ## Scope lock
 
 - Touch only files the task lists (plus files the verify command itself demands, e.g. a
@@ -24,7 +31,7 @@ Starting task N+1 while task N is unverified is the root of "90% done" projects 
 
 Per task, loop — but with a hard ceiling:
 
-1. Implement the change the task describes.
+1. Implement the change the task describes. Inline, first Read every `<skill>` SKILL.md the card names.
 2. Run the task's verify command — the EXACT command, not a cheaper stand-in.
 3. Pass → run the negative-control gate before flipping (`references/negative-control.md`)
    with `--record-dir .claude/task-runner/nc --card <cardId>` — the pass record lands
@@ -50,7 +57,7 @@ After the task's verify command passes — before its status flips — run a con
 - **code-reviewer** (code-review plugin): every task's diff, no condition.
 - **ui-ux-reviewer** (ui-ux plugin): only when the diff touches UI files — components, styles, templates.
 - **architecture-reviewer** (code-architecture plugin): only structural tasks — new modules, boundary or API changes.
-- **security review** (security plugin): only on tasks touching auth, input validation, or dependencies.
+- **security review** (security plugin): only on tasks touching auth, input validation, or dependencies — a review-only `security-engineer`.
 
 Each fires only if its plugin is installed; a missing reviewer is not a failure, but it is
 never silent — record it with `scripts/review-skip.sh --card <id> --exempt
@@ -59,19 +66,16 @@ it needs the user's approval first, then `--reason "<why>"`, and it must appear 
 `Skipped:` in the completion report. The completion gate (candor's clause 4 — with candor
 installed; without it this paragraph is prose) counts reviewer records against done cards and
 refuses a clean stop when they are short or when a recorded skip went undisclosed.
-**Concurrent by default:** the resolved read-only reviewers dispatch as ONE concurrent batch over the card diff; a `Bash`-holding reviewer runs serially outside it; the
-inline security-review skill runs after the batch joins (`references/reviewer-routing.md` § Concurrent dispatch — baseline behavior, not `--crew`-gated). Plus the card's
+**Concurrent by default:** the resolved read-only reviewers dispatch as ONE concurrent batch over the card's diff file; a `Bash`-holding reviewer (security-engineer)
+runs serially outside it (`references/reviewer-routing.md` § Concurrent dispatch, § Diff delivery — baseline behavior, not `--crew`-gated). Plus the card's
 `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate
 it subsumes, e.g. security); the opt-in `--crew` flag additionally runs a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
 
 **Announce the tier once at run start, boosted or not.** Standard:
 `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>`.
-The boosted form and its marker parsing are `references/boost-execution.md` — which
-by its own header does not apply to a standard run, which is why this line lives here.
+The boosted form and its marker parsing: `references/boost-execution.md`.
 
-**Role-tier floor:** an agent with a row in delegation-contracts' `references/role-floors.md` dispatches at
-its floor or the session model, whichever is higher — never below. Resolution rules and
-the registry-miss path: `references/reviewer-routing.md` § Role-tier floor.
+**Role-tier floor:** `references/reviewer-routing.md` § Role-tier floor.
 
 **Upgraded statement:** when `00-INDEX.md` carries a `## Upgraded statement` blockquote
 (the `> `-prefixed section task-cards writes), read it as binding context for every task
@@ -101,9 +105,8 @@ through the spec's walk access, never the user's credentials. It covers 1280 and
 
 ## No unbounded outer loop
 
-The bounded inner loop is the good part of the Ralph pattern; the infinite outer loop is not
-adopted — unbounded self-looping amplifies drift, and token burn scales with confusion, not
-progress. The outer loop is the task list itself: finite, ordered, visible. A halted task stays halted until its definition is fixed — never silently retried. When every task is done
+The infinite outer loop of the Ralph pattern is not adopted: self-looping amplifies drift.
+The outer loop is the task list itself: finite, ordered, visible. A halted task stays halted until its definition is fixed — never silently retried. When every task is done
 or parked, the run ENDS with a report, no self-restart.
 
 ## Sequencing and status
@@ -123,11 +126,9 @@ or parked, the run ENDS with a report, no self-restart.
 No status dashboards, run boards, or progress pages — the index is the single
 view; a run-board page goes stale. HTML artifacts are for content that earns
 the medium (mockups, walkthroughs); a table a message can carry is not a file.
-A live view is exempt — one that checks the index at every refresh, re-parsing it whenever its
-modification time moves, and keeps only that parse, as this plugin's status line and
-`/task-board` pane do. It is the index drawn, not a second record, so it cannot drift from the
-index past the next refresh that sees the index change; status is still written only to the
-index. Standing: recorded.
+A live view is exempt — one that re-parses the index whenever its modification time moves and
+keeps only that parse, as this plugin's status line and `/task-board` pane do: the index drawn,
+not a second record. Status is still written only to the index. Standing: recorded.
 
 ## Drift tripwires
 
@@ -143,13 +144,9 @@ Stop and re-read the current task the moment any of these appears:
 
 Only the main `/task-runner:run` orchestrator routes and delegates; a delegated worker
 is a leaf that executes and never re-routes. Per card the runner follows
-`references/routing.md`: read the card's `Agent:` tag → resolve to the first reachable
-specialist (else `task-executor`) → arm a per-card scope file → Read and paste the
-delegation-contracts discipline preamble verbatim into the dispatch, plus the
-`## Upgraded statement` block when the index carries one → dispatch → on return run the
-diff-vs-declared-files scope check, re-run the task's verify command, then the
-negative-control per returned card (routing.md step 6, standard exemptions).
-A subagent's "done, tests pass" is a claim; the runner's own verify plus that teeth check
+`references/routing.md` steps 1-6: resolve the tag's worker, arm its scope file, paste the
+discipline preamble, dispatch, then on return the scope check, its own re-verify and the
+negative-control. A subagent's "done, tests pass" is a claim; the runner's own verify plus that teeth check
 is the evidence. One failed re-verification sends the task back; a second reclaims it inline.
 
 ## Evidence format
@@ -163,11 +160,14 @@ manual, with what was observed; "Verified ✓" alone is not evidence and closes 
 The run is complete only when:
 
 1. Every task is done or parked-with-reason — none silently skipped.
-2. The project's FULL check suite passes at the end (local passes can compose into a global
+2. One **whole-range review**, before the gates: `/code-review:review <start_sha>..HEAD` with `RV-RANGE: <HEAD12>` in its
+   arguments (`start_sha` is in `active-run.json`; `commands/run.md` step 4). Per-card passes never substitute: they cannot
+   see what changed across cards. A skip is a `review-skip.sh --card range-<HEAD12>` record and a `Skipped:` line.
+3. The project's FULL check suite passes at the end (local passes can compose into a global
    failure) AND the **behavioral-gate** actually runs the produced code (`scripts/behavioral-gate.sh
    --isolate --changed <run's files>`, never a hand-built checkout) — the repo suite may be a static linter that never runs new code.
    If installed, api-design's drift check (`/api-design:drift`) joins, and code-architecture's **drift-review** reads the whole-run diff against what was ASKED — no suite checks that.
-3. The final report is a table: task / status / verify command / evidence line, plus the
+4. The final report is a table: task / status / verify command / evidence line, plus the
    parked list with reasons and the follow-up backlog collected by the scope lock, plus every UI group's Screens table.
 
 Claiming completion without the full-suite run is asserting, not verifying —

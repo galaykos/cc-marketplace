@@ -56,14 +56,16 @@ cc_state_root() {
   root=$(cc_state_root "$cwd") || exit 0
 
   # Only inside a registered run. Outside one there is nothing to be complete about,
-  # and the completion gate is fail-open there for the same reason.
-  [ -r "$root/.claude/task-runner/active-run.json" ] || exit 0
+  # and the completion gate is fail-open there for the same reason. A closed-run.json is a
+  # run between its closing rename and candor's last read: a review that read asks for counts.
+  [ -r "$root/.claude/task-runner/active-run.json" ] || [ -r "$root/.claude/task-runner/closed-run.json" ] || exit 0
 
   # Markers ride in the dispatch prompt. Read the whole tool_input rather than a single
   # field: the Agent tool names it `prompt`, and a future dispatch shape carrying it
   # elsewhere should still count.
   #
   #   RV-CARD: <card>   a card's reviewer pass      (reviewer-routing.md § Coverage marker)
+  #   RV-RANGE: <sha>   the run-close range review  (run.md step 4); a Skill call counts too
   #   RT-LENS: <lens>   one red-team refuter        (code-redteam § The N=3 refuter panel)
   #   RT-CRITIC: <id>   the completeness critic     (same)
   #
@@ -71,18 +73,28 @@ cc_state_root() {
   # copies of this file, and the marketplace's admission law forbids that.
   blob=$(printf '%s' "$input" | jq -r '.tool_input // {} | tostring' 2>/dev/null)
 
-  record() { # record <subdir> <prefix> <id>
+  record() { # record <subdir> <prefix> <id> [<suffix>]
     case "$3" in '' | *[!a-zA-Z0-9._-]*) return 0 ;; esac
+    case "${4:-}" in *[!a-zA-Z0-9._@-]*) return 0 ;; esac
     d="$root/.claude/task-runner/$1"
     mkdir -p "$d" 2>/dev/null || return 0
     [ -w "$d" ] || return 0
     # Idempotent by id: several reviewers dispatch per card (code-reviewer plus the tag
     # route) and one record per card is what the gate counts.
-    printf '{"id":"%s","dispatched":true}\n' "$3" > "$d/$2-$3.json" 2>/dev/null
+    printf '{"id":"%s","dispatched":true}\n' "$3" > "$d/$2-$3${4:-}.json" 2>/dev/null
   }
 
   m=$(printf '%s' "$blob" | grep -oE 'RV-CARD: ?[a-zA-Z0-9._-]{1,64}' | head -1)
-  [ -n "$m" ] && { v=${m#RV-CARD:}; record rv rv-seen "${v# }"; }
+  if [ -n "$m" ]; then
+    v=${m#RV-CARD:}; record rv rv-seen "${v# }"
+    # Also one file per card and reviewer type, beside the count: the completion clause asks
+    # for ui-ux-reviewer by name on a UI card, since the count alone let any reviewer stand in.
+    t=$(printf '%s' "$input" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null | tr ':' '.')
+    [ -z "$t" ] || record rv rv-agent "${v# }" "@$t"
+  fi
+
+  m=$(printf '%s' "$blob" | grep -oE 'RV-RANGE: ?[0-9a-f]{7,40}' | head -1)
+  [ -n "$m" ] && { v=${m#RV-RANGE:}; record rv range "${v# }"; }
 
   m=$(printf '%s' "$blob" | grep -oE 'RT-LENS: ?[a-zA-Z0-9._-]{1,64}' | head -1)
   [ -n "$m" ] && { v=${m#RT-LENS:}; record rt rt-lens "${v# }"; }

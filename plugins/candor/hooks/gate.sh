@@ -6,6 +6,7 @@
 # Misses: a wrong API, flag or directory; an elided path; pushback outside its list; entries before the transcript tail; a hand-back
 #   hidden by a later user-shaped entry; a resumed agent's text whose boundary is not on disk yet; dependency lines no pattern matches.
 #   Blocks anyway: a citation into a file the turn shortened, deleted or renamed; a run record written before the run registered.
+#   Clause 4 misses a UI card with no review diff file and a range review its RV-RANGE marker over-claims; a sentinel with no start_sha owes none.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -138,6 +139,8 @@ run_clause() {
   local sentinel="$root/.claude/task-runner/active-run.json"
   [ "$evt" != "SubagentStop" ] || return 0
   case "$(cc_option TASK_RUNNER_STOP_GATE block)" in off) return 0 ;; esac
+  # A run closes by renaming its sentinel (run.md step 4), so the stop after the report still reads its records; a clean read retires it.
+  [ -r "$sentinel" ] || sentinel="$root/.claude/task-runner/closed-run.json"
   [ -r "$sentinel" ] || return 0
   jq empty "$sentinel" 2>/dev/null || { echo "[candor] completion-gate: active-run.json malformed — not enforced" >&2; return 0; }
   command -v git >/dev/null 2>&1 || { echo "[candor] completion-gate: git not found — not enforced" >&2; return 0; }
@@ -149,7 +152,7 @@ run_clause() {
   cur_branch=$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)
   if [ -n "$run_branch" ] && [ -n "$cur_branch" ] && [ "$run_branch" != "$cur_branch" ]; then
     printf '[candor] completion-gate: run registered on branch %s, now on %s — not enforced here.\n' "$run_branch" "$cur_branch" >&2
-    printf '  If that run is finished or abandoned, delete .claude/task-runner/active-run.json.\n' >&2
+    printf '  If that run is finished or abandoned, delete .claude/task-runner/%s.\n' "${sentinel##*/}" >&2
     return 0
   fi
   RUN_HEAD="$head"; RUN_SENTINEL="$sentinel"
@@ -189,9 +192,41 @@ run_clause() {
     if [ "$v" = "complete" ] && [ -d "$rvdir" ]; then
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
       rv_count=$(find "$rvdir" -maxdepth 1 \( -name 'rv-seen-*.json' -o -name 'rv-skip-*.json' -o -name 'rv-exempt-*.json' \) -newer "$sentinel" 2>/dev/null |
-        sed -E 's#.*/rv-(seen|skip|exempt)-##; s#\.json$##' | sort -u | wc -l | tr -d ' ')
+        sed -E 's#.*/rv-(seen|skip|exempt)-##; s#\.json$##' | grep -v '^range-' | sort -u | wc -l | tr -d ' ')
       if [ "$rv_count" -lt "$cdone" ] 2>/dev/null; then
         run_msg=$(printf '[candor] completion-gate: %s reports %s done cards but only %s per-card reviewer records in .claude/task-runner/rv/.\n  Every done card needs an observed reviewer dispatch (the RV-CARD marker in the prompt), a recorded skip (scripts/review-skip.sh --card --reason) or an exemption (--exempt). Run the missing reviews, then stop.' "$slug" "$cdone" "$rv_count")
+        verdict="run"; return 0
+      fi
+    fi
+    # A card whose review diff (task-runner's review-diff.sh) names a UI file owes ui-ux-reviewer: the count above let any reviewer stand in.
+    local pf card uicards=""
+    if [ "$v" = "complete" ] && [ -d "$rvdir" ]; then
+      while IFS= read -r pf; do
+        grep -qE '^diff --git a/.* b/.*\.(tsx|jsx|vue|svelte|css|scss|sass|less|blade\.php)$' "$pf" 2>/dev/null || continue
+        card=${pf##*/diff-}; card=${card%.patch}
+        [ -n "$(find "$rvdir" -maxdepth 1 \( -name "rv-agent-$card@*ui-ux-reviewer.json" -o -name "rv-skip-$card.json" -o -name "rv-exempt-$card.json" \) -newer "$sentinel" 2>/dev/null)" ] ||
+          uicards="$uicards $card"
+      done < <(find "$rvdir" -maxdepth 1 -name 'diff-*.patch' -newer "$sentinel" 2>/dev/null | sort)
+      if [ -n "$uicards" ]; then
+        run_msg=$(printf '[candor] completion-gate: %s has UI cards with no ui-ux-reviewer dispatch recorded:%s\n  Their rv/diff-<card>.patch names a .tsx, .jsx, .vue, .svelte, stylesheet or .blade.php file, and no other reviewer stands in for ui-ux:ui-ux-reviewer. Dispatch it with the card'"'"'s RV-CARD marker, or record why not (scripts/review-skip.sh --card <id> --reason "<why>", or --exempt no-reviewer-installed). Then stop.' "$slug" "$uicards")
+        verdict="run"; return 0
+      fi
+    fi
+    # A run registered by register-run.sh carries start_sha and owes one whole-range review at this HEAD; rv-observe records it from RV-RANGE.
+    # A commit after a range review owes a review of the commits since it, not the whole run again: `from` is the newest reviewed ancestor.
+    local start_sha rf rid range_ok=0 from
+    start_sha=$(jq -r '.start_sha // empty' "$sentinel" 2>/dev/null); from=$start_sha
+    if [ -n "$start_sha" ] && [ -d "$rvdir" ]; then
+      while IFS= read -r rf; do
+        rid=${rf##*range-}; rid=${rid%.json}
+        case "$rid" in '' | *[!0-9a-f]*) continue ;; esac
+        [ "${#rid}" -ge 7 ] || continue
+        case "$head" in "$rid"*) range_ok=1; break ;; esac
+        case "$rf" in */range-*) git -C "$root" merge-base --is-ancestor "$rid" HEAD 2>/dev/null &&
+          git -C "$root" merge-base --is-ancestor "$from" "$rid" 2>/dev/null && from=$rid ;; esac
+      done < <(find "$rvdir" -maxdepth 1 \( -name 'range-*.json' -o -name 'rv-skip-range-*.json' -o -name 'rv-exempt-range-*.json' \) -newer "$sentinel" 2>/dev/null)
+      if [ "$range_ok" = 0 ]; then
+        run_msg=$(printf '[candor] completion-gate: %s has no whole-range review recorded for HEAD %s.\n  Per-card reviews cannot see what changed across cards, so they never substitute. Invoke /code-review:review %s..HEAD with "RV-RANGE: %s" in its arguments (task-runner'"'"'s run.md step 4), or record why it cannot run: scripts/review-skip.sh --card range-%s --reason "<why>" (or --exempt no-reviewer-installed). A commit after a range review owes only the commits since it, which is the range named here. Then stop.' "$slug" "${head:0:12}" "${from:0:12}" "${head:0:12}" "${head:0:12}")
         verdict="run"; return 0
       fi
     fi
@@ -272,6 +307,7 @@ run_clause() {
         fi
       fi
     fi
+    case "$sentinel" in */closed-run.json) rm -f "$sentinel" 2>/dev/null ;; esac
     return 0
   fi
 
@@ -288,16 +324,18 @@ run_clause() {
   Cards still to execute -> continue with the next card'"'"'s tool call. Do not name the next card
     in prose and yield: that binds nothing, and the user waits on a turn that already ended.
     Need a decision -> ask it with AskUserQuestion (not a stop). Blocked -> park the card with a reason.
-  Every card done or parked -> the gate is the only step left, and it has no deadline. From the
+  Every card done or parked -> the whole-range review and the gate are the steps left (run.md
+    step 4), and neither has a deadline. From the
     repo root run task-runner'"'"'s scripts/behavioral-gate.sh --isolate --changed "<the run'"'"'s touched
     files>" (the path run.md step 4 names). --isolate creates, checks and removes its own worktree
     and writes the verdict record; do not hand-build a checkout, and do not copy, generate or write
     any .env for it. Then record the pass to .claude/task-runner/gate-pass.json as {"head":"%s"}
-    plus the card counts, and clear active-run.json. A green repo suite alone is NOT this gate.
+    plus the card counts, and rename active-run.json to closed-run.json. A green repo suite
+    alone is NOT this gate.
   Any shell setup: one step per call, and read each result before the next. A denied or failed
     call ran NOTHING, not "everything but the part named in the error".
   Not running this task list at all? The sentinel outlived its run — delete
-    .claude/task-runner/active-run.json.' "$slug" "${head:0:12}" "$head")
+    .claude/task-runner/%s.' "$slug" "${head:0:12}" "$head" "${sentinel##*/}")
   verdict="run"
 }
 RUN_HEAD=""; RUN_SENTINEL=""

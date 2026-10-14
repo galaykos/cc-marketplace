@@ -9,7 +9,8 @@ $ARGUMENTS — a taskmaster `00-INDEX.md` path, a tasks directory, a plan's task
 sequence, or an inline list. If no argument, look for the most recent
 `taskmaster-docs/tasks/*/00-INDEX.md`; if none exists, ask for the list.
 
-**`--tracks[=N]`** — if `$ARGUMENTS` includes `--tracks`, run via the
+**`--tracks[=N]`** — if `$ARGUMENTS` includes `--tracks`, register the run (step 1's
+`scripts/register-run.sh`), then run via the
 `track-orchestration` skill from this plugin instead of the serial path below:
 independent milestones run as concurrent git-worktree tracks. `N` is clamped to
 `[1,6]`; `--tracks=1` warns and runs serial; `--tracks=0`, negative, or non-integer is a
@@ -47,7 +48,7 @@ construction, so they are exactly what `--tracks` already consumes.
 **`--crew`** — a bare boolean opt-in (default off; `--crew=<value>` is a usage error). When
 present, after each **directly-dispatched** card's build verify passes, run the per-card
 crew per `skills/task-execution/references/crew.md`: the read-only reviewers concurrently
-(a `Bash`-holding reviewer and the `security-review` skill run serially), then a sequential
+(a `Bash`-holding reviewer, security-engineer included, runs serially), then a sequential
 **test-files-only** `test-engineer` authoring pass (scope-locked by the diff-vs-declared
 check), then an unconditional card-verify re-run and a fresh bounded fix loop. Combos:
 `--crew`; `--tracks[=N] --crew`; `--tracks=1 --crew` — crew applies only to serial cards /
@@ -85,48 +86,19 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    through prose: need a decision → ask it with `AskUserQuestion` (which is not a stop);
    blocked → park the task with a reason. Prose that announces the next task and then
    ends the turn ("starting card 01 now") binds nothing — the run reads live, is dead,
-   and the user waits on a turn that already ended. Register the run for the
-   completion-gate clause of candor's Stop hook: write `.claude/task-runner/active-run.json`
-   (`{"slug":"<tasks-dir-name>","base":"<merge-base with the default branch>",`
-   `"branch":"<git rev-parse --abbrev-ref HEAD>"}`; for a taskmaster-index run also
-   include `"index_path":"<00-INDEX.md>"` — the hook uses it to require card counts in
-   the gate pass), and delete `.claude/task-runner/gate-pass.json` and
-   `.claude/task-runner/bg/bg-<git rev-parse HEAD>.json` if an earlier run left them.
-   candor's gate trusts both when they name HEAD, whatever their age: a stale card-run
-   pass blocks the new run's stop for the old run's records, a stale plain-run
-   `{"head"}` pass (or one with no `nc/` or `rv/` dir) lets it through, and an old run's
-   `covered` verdict passes a new run. In the same step write the **arc phase sentinel**
-   `.claude/cc-phase.json` with taskmaster's writer, never by hand —
-   `bash ${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh write build --owner task-runner:run --session "<this session id>"`.
-   It ships in taskmaster, which may not be installed: if that path does not resolve (an
-   installed plugin sits at `<marketplace>/<plugin>/<version>/`, so the sibling path
-   resolves only from a source checkout), run the newest installed copy —
-   `find ~/.claude/plugins/cache -path '*/taskmaster/*/scripts/phase-sentinel.sh' | sort -V | tail -1`
-   — and only if that misses too
-   write the JSON yourself —
-   `{"phase":"build","owner":"task-runner:run","session_id":"<this session id>","started_at":"<ISO-8601 UTC>"}`
-   — spelling `build` exactly, because the script exists to catch the typo that makes a
-   sentinel read to every hook as no sentinel at all. The sentinel is what
-   tells the prompt-channel reminder hooks the arc has reached `build`, so the ones
-   that own an earlier phase stand down instead of nagging about clarification on
-   turn 40 of a run that is already executing. It is a different file from
-   `active-run.json` on purpose: that one registers a RUN for the Stop gate, this one
-   declares a PHASE for every installed reminder hook, and a plugin that has neither
-   task-runner nor taskmaster installed still reads it. Both are cleared in step 4, and
-   only after its two gates are green and every card is accounted for.
-   Registering the run lets the hook enforce that a behavioral-gate pass is recorded before
-   the run stops clean. `branch` scopes enforcement to the run's own branch, so a
-   sentinel left by an abandoned run never blocks unrelated work elsewhere in the repo. Create `.claude/task-runner/rv/`, `rt/`, `bg/`, `nc/` and `reductions/` in the same
-   step, and a `.claude/task-runner/.gitignore` containing `*` if none exists (the
-   hooks drop the same file on their first write; writing it here means a run that is
-   interrupted before any hook fires still leaves no untracked state behind): reviewer-coverage, red-team-panel, negative-control and behavioral-gate-evidence enforcement are
-   each armed by their directory existing, and arming them lazily would let the context
-   pressure that causes a cut also prevent the dir that would have caught it. Records
-   from an EARLIER run are ignored automatically (the gate counts only records newer
-   than `active-run.json`), so a re-registration re-arms every check by itself except
-   two: `gate-pass.json` and `bg/bg-<HEAD>.json` are keyed by HEAD, not by age, which is
-   why registration deletes them. Deleting the other stale files keeps the dirs readable
-   for a human.
+   and the user waits on a turn that already ended. Register the run first, in the
+   same step: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh --index <00-INDEX.md> --session "<this session id>"`
+   (an inline list: `--slug <name>`). It writes `.claude/task-runner/active-run.json`
+   (`slug`, `base`, `branch`, `start_sha`, `index_path`), which arms candor's Stop-hook
+   completion clause on this branch only; deletes the `gate-pass.json` and
+   `bg/bg-<HEAD>.json` an earlier run left, which that clause would trust for HEAD;
+   creates `rv/`, `rt/`, `bg/`, `nc/` and `reductions/`, each arming one record check by
+   existing; and writes the `build` arc phase sentinel through taskmaster's writer, so the
+   reminder hooks that own an earlier phase stand down. A second call for the same index on
+   the same branch resumes the run rather than discarding its records (`--fresh` starts
+   over). The task-execution skill's step 1 and `/task-runner:plan`'s "Run now" call the
+   same script, so no route runs unregistered. Records older than the registration are
+   ignored by the clause.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking; after
    each task's verify passes, run the reviewer pass per the skill (conditional
@@ -134,7 +106,16 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
 3. Update status in the index only; collect scope-lock follow-ups as a backlog
    list, never as in-run detours. No status HTML — the index and the
    conversation are the run's views (per the task-execution skill).
-4. Finish with BOTH completion gates, never one alone:
+4. First the **whole-range review**: invoke `/code-review:review <start_sha>..HEAD` (Skill
+   tool; `start_sha` is in `active-run.json`) with `RV-RANGE: <first 12 of HEAD>` in its
+   arguments and a lens for knowledge duplicated across cards. The review observer records
+   that marker, and candor's clause 4 requires the record at the closing HEAD. Required:
+   per-card passes never substitute, because they cannot see what changed across cards.
+   Fix its findings through the bounded fix loop; a commit after the review moves HEAD, so
+   mark a pass over `<reviewed head>..HEAD` with the new HEAD. A skip needs the user's
+   approval and `scripts/review-skip.sh --card range-<HEAD12> --reason "<why>"` (no
+   code-review installed: `--exempt no-reviewer-installed`), and appears under `Skipped:`.
+   Then finish with BOTH completion gates, never one alone:
    - the full project check suite (catches lint/type/build regressions), AND
    - the **behavioral-gate** on the run's changed files —
      `${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed "<the run's
@@ -164,14 +145,18 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    `"index_path":"<00-INDEX.md>","cards_total":N,"cards_done":N,"cards_parked":N` from
    the index bookkeeping (JSON integers, all three counts together — never a second
    write that would clobber `head`) — and only THEN, with every card done or parked
-   and the counts recorded, remove `active-run.json` **and clear the phase sentinel**
-   (`phase-sentinel.sh clear`, else delete `.claude/cc-phase.json`)
-   (removing `active-run.json` earlier, or with a
-   card unaccounted for, is what the Stop hook exists to catch — the sentinel stays
-   until the counts prove completeness), then print the
+   and the counts recorded, rename `active-run.json` to `closed-run.json` (`mv`, which
+   keeps its time) **and clear the phase sentinel** (delete `.claude/cc-phase.json` at the
+   repo root), then print the
    completion report table (task / status / verify command / evidence), parked tasks
    with reasons, the follow-up backlog, and every recorded reduction by id and reason —
    `bg-<HEAD12>` when the no-runner exit was taken. When cards touched UI, the report also carries one Screens table (screen · width · before · after · not observed) per `skills/task-execution/references/ui-walk.md`, whose walk is also the `--evidence` for that no-runner record.
+   The rename, not a delete: the stop after the report is where candor's clause 4 reads
+   the records (reviewer, control, range, disclosure), and it retires `closed-run.json`
+   when they hold. The review observer and the skip-consent ask still treat it as the run,
+   so a review that block asks for is recorded; every other hook reads only
+   `active-run.json`, so the run reads as ended at once. Without candor nothing retires
+   the closed file, and the next registration deletes it.
    If either gate is RED, other than
    that recorded exit, the run is not
    complete — do not print a done report. A run may not report complete while any card

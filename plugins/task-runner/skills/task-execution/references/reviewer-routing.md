@@ -1,10 +1,8 @@
 # Verify-side reviewer routing
 
 How the runner picks the reviewer(s) for a card after its verification passes. This
-adds a tag-routed reviewer on top of the baseline pass — it never removes one. Mirror of the
-implement-side `references/routing.md`; reuses the same closed 10-tag vocabulary
-(`taskmaster/skills/task-cards/references/agent-tags.md`). Applies to **serial**
-execution only (see § Tracks).
+adds a tag-routed reviewer on top of the baseline pass — it never removes one. Same closed
+tag vocabulary as `references/routing.md`. Serial execution only (§ Tracks).
 
 ## The baseline reviewer pass
 
@@ -13,11 +11,16 @@ Four baseline reviewers, each condition-gated:
 1. `code-review:code-reviewer` — **always**, on the diff (baseline correctness + smells).
 2. `ui-ux:ui-ux-reviewer` — **diff-content gate:** when the diff touches UI files.
 3. `code-architecture:architecture-reviewer` — **diff-content gate:** structural diffs.
-4. `security:security-review` — **diff-content gate:** auth / input / dependency diffs
-   (a skill, no agent).
+4. `security:security-engineer` under a review-only contract — **diff-content gate:** auth /
+   input / dependency diffs. Probes and scratch only under `$TMPDIR`, no write in the repo,
+   findings in the return format below, `security:security-review` primed. Not code-reviewer
+   told to "also do security": its probes found SSRF and XSS bypasses a read-only review
+   missed. No security-engineer: that skill, inline.
 
 The diff-content gates fire on their **file conditions regardless of the `Agent:` tag** —
-so a `backend` card that adds an auth check still gets the security gate.
+so a `backend` card that adds an auth check still gets the security gate. A markdown-only or
+test-only card diff gets `code-reviewer` alone, at `effort: high` where the dispatch can set
+effort (`Workflow`), and no architecture or ui-ux pass.
 
 ## Resolution map
 
@@ -32,7 +35,7 @@ generic       -> code-review:code-reviewer
 database      -> code-review:code-reviewer + prime {card Skills-to-apply} + database:sql-best-practices
 backend       -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:resilience-design
 api           -> code-review:code-reviewer + prime {card Skills-to-apply} + api-design:api-design + resilience:resilience-design
-security      -> code-review:code-reviewer + prime {card Skills-to-apply} + security:security-review
+security      -> security:security-engineer (review-only) + prime {card Skills-to-apply} + security:security-review
 testing       -> code-review:code-reviewer + prime {card Skills-to-apply} + testing:testing-best-practices
 performance   -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:performance-tuning
 observability -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:observability-design
@@ -63,6 +66,12 @@ For a gap-tag `code-reviewer` dispatch, also inject:
 completion gate counts those records against done cards. A dispatch that omits the marker
 is not counted, so the run blocks at completion rather than passing silently — the failure
 direction is deliberate.
+
+**Diff delivery** — reviewers hold Read, Grep and Glob: never tell one to run git. Before each
+`RV-CARD` dispatch run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/review-diff.sh --card <id> --base
+<HEAD before the card> <card files>`; it writes `.claude/task-runner/rv/diff-<id>.patch` (diff,
+untracked files, blame of the changed lines). Name that path in the prompt, with "cite line
+numbers from the working file, not the patch". Standing: agent-graded.
 
 **Compressed-return contract** — every reviewer dispatch prompt ALSO demands a compressed
 return (delegation-contracts § Compressed returns), injected verbatim:
@@ -103,8 +112,7 @@ Runs after the card's verification passes — a command OR a recorded manual che
 3. **Dedup over (agent + rubric):** never run the same review twice.
    - A real reviewer agent is never dispatched twice (e.g. a `ui-ux` card whose diff also
      trips the ui-ux gate → one `ui-ux-reviewer`).
-   - When the `security` tag primes `security:security-review`, **suppress** the baseline
-     security gate (the tag route subsumes it).
+   - A `security` card's tag route IS the security gate: one review-only `security-engineer`.
 4. **Fallback:** a mapped agent/skill that is absent → plain `code-reviewer`; logged in
    the run report (matching `routing.md`'s downgrade log).
 5. **Concurrent dispatch — BASELINE, not `--crew`-gated:** the deduped read-only reviewer
@@ -112,15 +120,15 @@ Runs after the card's verification passes — a command OR a recorded manual che
    freely). Any reviewer that holds the `Bash` tool (e.g. `devops:devops-reviewer`, tools
    `Read, Grep, Bash`) is **excluded from the batch and run serially** — a Bash reviewer
    can write build artifacts into the shared tree, so it must not run concurrently with
-   anything. The `security:security-review` **skill** (no agent) runs inline in the
-   orchestrator after the batch joins.
+   anything; that includes `security-engineer`. The `security:security-review` skill, when
+   it stands in, runs inline in the orchestrator after the batch joins.
 6. **Severity normalization** (routed reviewers use varying scales): **critical/high** or
    **blocker/major** → re-enter the existing **3-cycle fix loop** (`SKILL.md`'s fix-loop rule);
    **medium/low** or **minor** → the backlog, except accessibility findings and deferrals
    to `/ui-ux:audit`, which close in the run (§ UI diffs). In the fix loop the runner applies fixes
-   (or re-dispatches the builder), re-runs verify, then re-reviews.
+   (or re-dispatches the builder), re-runs verify, then re-reviews. A finding that names a
+   mechanism (a middleware, a cache-key rule) first greps the run's diff for siblings.
 7. **Ultra:** routed reviewers inherit the `Ultra:` marker model override (`SKILL.md` § Extreme Boost).
-8. **Role-tier floor — unboosted too:** § Role-tier floor below (boosted half: item 7).
 
 A card whose `<agent>` tag and `<skill>` names imply different stacks is **not** a
 conflict — inject both the tag's agnostic domain skill and the card's stack skills; they
@@ -136,20 +144,21 @@ On a UI diff (why: `rationale/2026-09-26-task-runner-prose-derivations.md`):
   `review-skip.sh --card <id> --reason "a11y deferred: <item> — <why>"`. A card holds one
   record, and a second call replaces the first.
 - **`ui-ux-reviewer` is on every directly-dispatched UI card** (gate 2). No other reviewer
-  stands in for it. The observer counts any `RV-CARD` dispatch, so it cannot see this gap.
-  A UI card reviewed without it gets `--exempt no-reviewer-installed` or
+  stands in for it. A UI card reviewed without it gets `--exempt no-reviewer-installed` or
   `--reason "<why>"`.
 
-Standing: **recorded**. These rules use the existing recorder, and no gate checks which
-reviewer ran.
+Standing: the ui-ux-reviewer rule is a **gate** with candor installed. `rv-observe.sh` records
+each `RV-CARD` dispatch's agent type, and clause 4 blocks the close while a card whose
+`diff-<card>.patch` names a `.tsx`, `.jsx`, `.vue`, `.svelte`, stylesheet or `.blade.php` file
+has neither that record nor a skip. A card with no patch file is not seen. The a11y rule is
+**recorded**.
 
 ## Tracks
 
 Reviewer routing applies to serial `/task-runner:run` and to the **serial non-eligible
 milestones** of a `--tracks` run. A card executed **inside a parallel-group/track leaf gets no
 reviewer pass** (routed or baseline) — a track-worker is a leaf and cannot dispatch
-reviewers. Accepted MVP limitation, consistent with implement-side routing being off in
-tracks.
+reviewers.
 
 **Record every such card**: `scripts/review-skip.sh --card <id> --exempt leaf`. The
 completion gate counts reviewer records against done cards, so a leaf card with neither a
