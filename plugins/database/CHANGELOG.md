@@ -3,6 +3,18 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.11.4 — 2026-10-14
+
+### Fixed
+- **Tailwind's `truncate` class no longer asks as SQL.** The TRUNCATE rule matched
+  `truncate <word>` in any case, so a component line such as `className="truncate text-xs"`
+  drew the destructive-SQL ask, repeatedly, in background workers and auto mode with nobody
+  to answer it. The rule now fires on an uppercase `TRUNCATE <x>`, or on `truncate table` in
+  any case followed by a table name, so the Tailwind pair `truncate table-cell` stays silent
+  too. Residual: a lowercase `truncate users` without `TABLE` is no longer asked. Harness
+  cases "Tailwind truncate class", "Tailwind truncate table-cell", "TRUNCATE without TABLE"
+  and "lowercase truncate table" in `guard.test.sh` pin it; the first fails against 0.11.3.
+
 ## 0.11.3 — 2026-10-04
 
 - **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/guard.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. The hook parses to the same code as before, compared by bash's own parser with comments ignored.

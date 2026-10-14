@@ -8,7 +8,8 @@
 #
 # WHAT IT MATCHES, in priority order (the first hit wins the message; relational data
 # loss outranks a lock hazard, which outranks the NoSQL analogues):
-#   1. DATA LOSS — DROP TABLE/DATABASE/SCHEMA, TRUNCATE, an unqualified DELETE/UPDATE
+#   1. DATA LOSS — DROP TABLE/DATABASE/SCHEMA, TRUNCATE (uppercase, or any-case
+#      `truncate table`; a lowercase `truncate users` is missed), an unqualified DELETE/UPDATE
 #      with no WHERE on the line; Laravel's `Schema::drop*(`; and the LISTED drop
 #      spellings of the other migration DSLs, matched case-insensitively and followed
 #      by `(` or a Ruby symbol `:` — `dropTable`, `dropTableIfExists`, `drop_table`,
@@ -290,7 +291,13 @@ cc_bash_write_chunks() {
     # file, both measured, neither a migration. A quoted-string argument
     # (`drop_table 'users'`) still passes — stated in the header.
     [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '(\.|->|\b)(dropTable|dropTableIfExists|drop_table|dropSchema|drop_schema|dropAll|drop_all|DeleteModel|RemoveField|DeleteField)([[:space:]]*\(|[[:space:]]+:[A-Za-z_])' && hit="a drop-table call in a migration DSL (Prisma/Drizzle/TypeORM/Doctrine/Knex/Alembic/Rails/GORM/Django)"
-    [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '\btruncate[[:space:]]+(table[[:space:]]+)?[^;]' && hit="TRUNCATE"
+    # TRUNCATE was matched case-insensitively with TABLE optional until 2026-10-14, so
+    # Tailwind's `truncate` class (`className="truncate text-xs"`) asked as SQL in real
+    # sessions, most of them background workers or auto mode with nobody to answer. Now it
+    # fires on an UPPERCASE `TRUNCATE <x>`, or on `truncate table` in any case. Residual: a
+    # lowercase `truncate users` without TABLE passes silently. `table` must be followed by
+    # whitespace and a name, so Tailwind's `truncate table-cell` pair stays silent too.
+    [ -z "$hit" ] && { printf '%s' "$text" | grep -qE '\bTRUNCATE[[:space:]]+[^;]' || printf '%s' "$text" | grep -qiE '\btruncate[[:space:]]+table[[:space:]]+[^;[:space:]]'; } && hit="TRUNCATE"
     # unqualified DELETE/UPDATE: a line with DELETE FROM or UPDATE … SET and no WHERE on it
     if [ -z "$hit" ]; then
       if printf '%s' "$text" | grep -iE '\b(delete[[:space:]]+from|update[[:space:]]+[^;]+[[:space:]]set)\b' \

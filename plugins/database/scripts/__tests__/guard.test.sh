@@ -42,6 +42,12 @@ check_bash() {
 # --- relational hazards (pre-existing behaviour, locked here for the first time)
 check "DROP TABLE"                    ask   db/migrate.sql   'DROP TABLE users;'
 check "TRUNCATE"                      ask   db/migrate.sql   'TRUNCATE TABLE sessions;'
+# 0.11.4: Tailwind's `truncate` class asked as SQL. Uppercase TRUNCATE, or any-case
+# `truncate table`, still asks; lowercase `truncate users` without TABLE is the residual.
+check "TRUNCATE without TABLE"        ask   db/migrate.sql   'TRUNCATE users;'
+check "lowercase truncate table"      ask   db/migrate.sql   'truncate table users'
+check "Tailwind truncate class"       allow src/Card.tsx     '<p className="truncate text-xs">{title}</p>'
+check "Tailwind truncate table-cell"  allow src/Cell.tsx     '<td className="truncate table-cell">{v}</td>'
 check "DELETE with no WHERE"          ask   db/migrate.sql   'DELETE FROM orders;'
 check "DELETE with WHERE"             allow db/migrate.sql   'DELETE FROM orders WHERE id = 1;'
 # 0.8.3: Laravel's schema builder spells DROP TABLE without the keywords.
