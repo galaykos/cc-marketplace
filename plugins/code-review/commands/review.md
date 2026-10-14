@@ -140,10 +140,11 @@ Output rules:
   and dropping it would break every plugin that reads this format. Map the
   marketplace scale onto the tool's fields: `category` takes the kebab-case kind
   (`correctness`, `simplification`, `efficiency`, `test-coverage`), `verdict` is
-  `CONFIRMED` for anything re-read or re-run and `PLAUSIBLE` for the rest, and
-  `failure_scenario` carries the concrete inputs-to-wrong-output line rather than a
-  restatement of the summary. When the tool is absent, prose only — nothing else
-  about this command changes.
+  `CONFIRMED` for anything re-read or re-run and `PLAUSIBLE` for the rest,
+  `short_summary` is at most 60 characters (the tool rejects a longer one with an
+  InputValidationError), and `failure_scenario` carries the concrete
+  inputs-to-wrong-output line rather than a restatement of the summary. When the
+  tool is absent, prose only — nothing else about this command changes.
 - Defer instead of duplicating. The fan-in covers two axes:
   - **Stack axis** — idiom detail is already loaded inline when the plugin is
     installed; when absent, name the plugin in the closing line rather than

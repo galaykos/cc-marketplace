@@ -3,6 +3,10 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.32.1 — 2026-10-14
+
+- **`/code-review:review` states the `ReportFindings` `short_summary` limit: 60 characters.** The field mapping named every other field and left this one out, so in a real session the review wrote a longer summary, the tool rejected the call with an InputValidationError, and the findings had to be emitted again. The mapping now says a `short_summary` is at most 60 characters. Residual: a model can still write a longer one, and nothing re-reads the call before it is sent. Standing: recorded — prose in `commands/review.md`, no harness drives a live review.
+
 ## 0.32.0 — 2026-10-09
 
 - **The `/code-review:review` suggestion waits for a turn that edited three or more code files.** It used to appear after any single code edit, once per commit. In the real sessions measured on 2026-10-09, the two reviews typed after a suggestion-shaped turn followed turns that edited 7 and 5 files, and the 17 turns that edited one or two files drew none; three keeps both and drops the rest. A file edited twice counts once, and the count starts afresh each turn. The review-debt nudge for the model is unchanged.
