@@ -89,7 +89,9 @@ exec 3>&2
     exit 0
   fi
   echo $((n+1)) > "$dir/blocks"
-  printf 'ask-ledger: the ask named %s and the final message does not account for them. Add one line per name — `<name>: as named` | `<name>: substituted → what, why` | `<name>: omitted → why` — and say so truthfully: a substitution you never raised is a substitution, not "as named". Then stop again.\n' "$missing" >&3
+  # The retry is the last thing the user reads; when it held only these lines, users re-asked
+  # the question the turn had already answered above them.
+  printf 'ask-ledger: the ask named %s and the final message does not account for them. Restate the answer'"'"'s one-line verdict first, then one line per name — `<name>: as named` | `<name>: substituted → what, why` | `<name>: omitted → why` — and say so truthfully: a substitution you never raised is a substitution, not "as named". Then stop again.\n' "$missing" >&3
   printf 'ask-ledger: CC_ASK_LEDGER=off disables this gate for the session.\n' >&3
   exit 2
 } 2>/dev/null

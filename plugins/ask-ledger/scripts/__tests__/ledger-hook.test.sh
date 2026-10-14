@@ -61,6 +61,19 @@ check "13e a glued I before a verb is not a name" \
   "$(run 'create a git branch, we got the new coach plugin, lets check if it works,  Iinstalled it' s13e)" ""
 check "13f a glued I is dropped, the real name beside it kept" "$(run 'fix the build, Ithink the Stripe key is stale and Ineed it today' s13f)" "Stripe"
 check "13g names that merely start with I still ledger" "$(run 'add Inertia and Ionic support' s13g)" "Inertia,Ionic"
+# 13h-13m: a paste is reference, not the ask, and an in-word apostrophe is not a quote
+# (2026-10-13: paste ids, log tokens and `t or didn` ledgered; every block a false positive).
+check "13h a paste's id and log body are not names, nor is its verb the ask" "$(run 'moved the base image to the new release <pasted_content id="b7e2">Err:3 http://mirror.example InRelease
+  NO_PUBKEY 9C1D2E3F4A5B6C7D
+Reading package lists... run apt-get update first</pasted_content id="b7e2">' s13h)" ""
+check "13i a question with a pasted dialog writes no ledger" \
+  "$(run "question, which scopes do I add by hand? at <pasted_content id=\"d9a0\">Manually add scopes. Then click 'Add to table'.</pasted_content id=\"d9a0\">" s13i)" ""
+check "13j the span between two contractions is not a quoted name" "$(run "fix the toggle so it says whether it doesn't or didn't save" s13j)" ""
+check "13k ask text on the paste's own line still ledgers, the paste's names do not" "$(run "build a \"pixel\" theme with a Stripe checkout like this <pasted_content id=\"e1f0\">Acme Billing dialog
+Confirm 'Pay now'</pasted_content id=\"e1f0\">" s13k)" "pixel,Stripe"
+check "13l a quoted name beside a contraction ledgers" "$(run "add Stripe's checkout to the 'pro plan' page, it doesn't exist yet" s13l)" "pro plan"
+check "13m an apostrophe inside a quoted name stays as typed; possessives are not names" \
+  "$(run "fix the \"Stripe's checkout\" flow, use Laravel's queue, That's the fix" s13m)" "Stripe's checkout"
 
 # --- 14-16 the existing-identifier filter (2026-09-22). A name the repo already carries
 #     is code to be REPAIRED, not a thing to be delivered; ledgering it made the Stop gate

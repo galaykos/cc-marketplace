@@ -32,7 +32,7 @@
 # WHAT IT DOES NOT SEE (honest scope): lowercase features ("login", "register", "a
 # library") — the ledger sees names, not nouns; a name mentioned in passing ("like
 # Stripe does") is ledgered and must be accounted for, one line, cheap; anything in a
-# fenced or inline code span is ignored. The existence filter carries three residuals of
+# fenced or inline code span, or in a paste, is ignored. The existence filter carries three residuals of
 # its own, each real: it needs a git work tree, so a session opened outside one is
 # unfiltered exactly as before; `git grep` reads TRACKED files, so a name that exists
 # only in an untracked or ignored file still ledgers; and it cannot tell a name the repo
@@ -94,7 +94,21 @@ cc_option() {
     *'[Subagent hand-back]'*) exit 0 ;;
   esac
 
-  scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
+  # A PASTE IS REFERENCE, NOT THE ASK (2026-10-13: a pasted package-manager log and a
+  # pasted console dialog ledgered the host's paste id, log tokens and dialog labels, and
+  # the paste's own `update` made a question work-shaped). Each <pasted_content …> …
+  # </pasted_content …> span is cut before the work-shape test and extraction; the ask
+  # text on the same line as either tag stays. Residual: a name that appears only inside
+  # a paste no longer ledgers.
+  scrub=$(printf '%s' "$prompt" \
+    | awk '{ out = ""; line = $0; cut = p
+        while (1) {
+          if (p) { j = index(line, "</pasted_content"); if (!j) break
+                   line = substr(line, j); k = index(line, ">"); line = k ? substr(line, k + 1) : ""; p = 0 }
+          else { i = index(line, "<pasted_content"); if (!i) { out = out line; break }
+                 out = out substr(line, 1, i - 1) " "; line = substr(line, i); cut = 1; p = 1 } }
+        if (!cut || out ~ /[^[:space:]]/) print out }' \
+    | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-600 | tr 'A-Z' 'a-z')
   verbs='\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write|make|ship|redo|replace)\b'
   clauses=$(printf '%s' "$head" | awk '{gsub(/\?/," __Q__\n"); gsub(/\. /,"\n"); print}')
@@ -113,8 +127,14 @@ cc_option() {
   # quoting "take usage without any result" ledgered the whole description and the gate
   # blocked the turn over it). Names people quote run one to three words: "digimon",
   # 'checkout total'.
+  # AN IN-WORD APOSTROPHE IS NOT A QUOTE (2026-10-13: "doesn't or didn't" ledgered
+  # `t or didn`). It is masked while quoted spans are found and put back inside them, so
+  # "Stripe's checkout" still ledgers as typed. Misses: the second apostrophe of
+  # rock'n'roll still opens a quote.
+  ap=$(printf '\001')
   found=$(
-    printf '%s\n' "$scrub" | grep -oE '"[^"]{2,40}"|'"'"'[^'"'"']{2,40}'"'" | sed 's/^["'"'"']//; s/["'"'"']$//' | awk 'NF <= 3'
+    printf '%s\n' "$scrub" | sed "s/\([A-Za-z]\)'\([A-Za-z]\)/\1$ap\2/g" \
+      | grep -oE '"[^"]{2,40}"|'"'"'[^'"'"']{2,40}'"'" | sed 's/^["'"'"']//; s/["'"'"']$//' | tr "$ap" "'" | awk 'NF <= 3'
     printf '%s\n' "$scrub" | grep -oE '\b[0-9]+[A-Za-z]{1,4}\b( [A-Za-z]{3,})?'
     printf '%s\n' "$scrub" | awk '
       { line=$0; gsub(/[.?!:;]+/, "\n", line); n=split(line, parts, "\n")
