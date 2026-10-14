@@ -519,8 +519,8 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
 
 - **What.** One line of context for the model on your next prompt: how many files changed
   since the last review, up to three auth-surface paths, and the exact command,
-  `/code-review:review <base>..HEAD`, "or say in one line why not". It never blocks and
-  never runs a review itself.
+  `/code-review:review <base>..HEAD`, "or say in one line why not", and that per-card reviews
+  do not cover cross-card changes. It never blocks and never runs a review itself.
 - **When.** In a git repo, when the diff since this session's last review (or since its
   first prompt) has 8 or more changed files, or at least one path matching an auth-surface
   pattern (auth, login, password, token, secret, credential, policy, permission, role,
@@ -530,9 +530,19 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
   agent, a `code-review:review` / `security:review` call, or typing one of those commands
   resets the count. It stays silent during a task-runner run, which has its own reviewers,
   and the run's changes are not counted afterwards.
-- **Limits.** It checks the diff once per new commit, so uncommitted work alone doesn't
-  trigger it until the next commit. It recognises a review by its name, not by what the
-  review covered.
+- **At a ship prompt.** Since 0.33.0, a prompt whose first 400 characters (outside code
+  fences) say commit, push, merge, PR or pull request is checked at once, without waiting
+  for a commit, and untracked files count too. The line opens "Before this ships" and names
+  `/code-review:review <base>`, which covers the working tree. It repeats only when the count
+  has grown since the last such line.
+- **Branch switches.** Since 0.33.0 the base remembers its branch. After a `git switch` the
+  count starts where the switch landed, so a branch's existing commits are not charged to
+  your session; commits made after the switch, including on a branch created in the same
+  turn, still count.
+- **Limits.** Between ship prompts it checks the diff once per new commit, so uncommitted
+  work waits for the next commit or ship prompt. A ship verb is matched as a word ("push
+  notifications" counts; "land it" does not). Switching away from a branch and back drops
+  the earlier count. It recognises a review by its name, not by what the review covered.
 - **Off switch.** `CC_REVIEW_NUDGE=off` silences this nudge; `CC_REMIND=off` silences it
   along with every other advisory.
 - **Standing: advisory.** Nothing enforces the review. Whether a suggested review was worth

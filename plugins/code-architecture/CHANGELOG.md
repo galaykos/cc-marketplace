@@ -2,6 +2,11 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.18.2 — 2026-10-14
+
+### Fixed
+- **`drift-review` hands its independent reviewer the diff as a file.** Step 2 dispatched a read-only reviewer "given the diff", but such a reviewer has Read, Grep and Glob only and cannot run git, so in real sessions reviewers re-read whole files and graded against memory. The step now writes step 1's diff, untracked files and `git blame` for modified hunks to `.claude/code-architecture/rv/diff-<short HEAD>.patch`, names that path in the prompt with "cite line numbers from the working file, not the patch", and never tells the reviewer to run git — the same contract `/code-review:review` states. Residual: nothing checks that the dispatch named the file. Standing: agent-graded; no harness drives the skill.
+
 ## 0.18.1 — 2026-10-11
 
 ### Fixed

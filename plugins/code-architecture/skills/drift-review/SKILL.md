@@ -25,7 +25,7 @@ per Edit.
 ## 0 — Establish a usable X first
 
 X is read from the invoking context, in this order. Nothing is persisted; this skill
-writes no state file.
+writes no state file (step 2's patch is the reviewer's copy of the diff, not a record).
 
 1. **An active task card** — the card currently in progress, or the
    `taskmaster-docs/tasks/*/00-INDEX.md` referenced this session. Its acceptance criteria
@@ -63,7 +63,14 @@ Independence breaks the self-grading loop, but it is **best-effort, not guarante
 - **Independent path — top-level session only.** Dispatch a read-only reviewer subagent
   given `(X + its criteria, the diff)`. It maps each hunk to a criterion it serves, or
   flags the hunk `DRIFT` / `CORNER-CUT`. It authored none of the change, so it grades
-  without the author's bias.
+  without the author's bias. **Diff delivery:** a Read/Grep/Glob reviewer has no shell;
+  told to diff, it re-reads whole files and grades against memory. Write step 1's diff
+  (plus untracked files as `git diff --no-index /dev/null <file>`, plus
+  `git blame -L <a>,+<b> <base> -- <file>` for each modified hunk `@@ -<a>,<b>`) to
+  `.claude/code-architecture/rv/diff-<short HEAD>.patch`, with a `.gitignore` holding `*`
+  in `.claude/code-architecture/`. Name that path in the prompt and state "cite line
+  numbers from the working file, not the patch". Never tell a Read/Grep/Glob agent to run
+  git. Standing: agent-graded.
 - **Self-review fallback — inside a subagent, headless, no budget, or where subagent
   dispatch is unavailable.** A subagent cannot dispatch another subagent, and delegated
   execution is the common case here. Then you review the same diff against the same

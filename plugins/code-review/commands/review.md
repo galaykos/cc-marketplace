@@ -6,6 +6,10 @@ argument-hint: "[path | PR number | branch | --debt]"
 Review the code change in $ARGUMENTS. Resolve scope in this order:
 
 1. If $ARGUMENTS names a path, PR number, branch, or commit range (`<sha>..HEAD`) — review that.
+   A bare commit (`<sha>`, as the review-debt nudge names at a ship prompt) means everything
+   since it: `git diff <sha>` plus untracked files.
+   An `RV-RANGE: <sha>` token is task-runner's run-close marker (its observer records it),
+   not scope — resolve scope from the rest of $ARGUMENTS.
 2. Else if staged changes exist (`git diff --cached --stat`) — review staged.
 3. Else review the working tree against the default branch
    (`git diff $(git merge-base HEAD origin/HEAD 2>/dev/null || echo HEAD~1)`).
@@ -64,6 +68,20 @@ contract behind every per-stack command's hand-up clause ("the aggregator reache
 this plugin's rubric too"): a plugin that ships a review command and is not named
 here is a defect in this file, not in that command. That holds for a plugin shipping
 review AGENTS and no review command too.
+
+**Diff delivery to a dispatched reviewer.** A reviewer agent with `tools: Read, Grep, Glob`
+(`code-reviewer`, `architecture-reviewer`, `frontend-reviewer`, `ui-ux-reviewer`) has no shell:
+told to "review the diff" it re-reads whole files and judges against memory, and it cannot
+read blame. Before the first such dispatch, write `git diff <scope>` (plus each untracked file
+in scope as `git diff --no-index /dev/null <file>`, plus
+`git blame --porcelain -L <a>,+<b> <base> -- <file>` for each modified hunk `@@ -<a>,<b>`;
+porcelain carries each commit's subject, which the history pass reads) to
+`.claude/code-review/rv/diff-<short HEAD>.patch`, with a `.gitignore` holding `*` in
+`.claude/code-review/` so the patch never lists itself as untracked. Name that path in every
+reviewer prompt and state "cite line numbers from the working file, not the patch". Never
+tell a Read/Grep/Glob agent to run git. An agent that runs tools (toolchain-experts' experts,
+`devops-reviewer`) has Bash and gets the scope instead. Standing: agent-graded — nothing
+checks that a dispatch named the file.
 
 Then:
 
