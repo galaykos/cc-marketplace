@@ -7,6 +7,7 @@
 #   hidden by a later user-shaped entry; a resumed agent's text whose boundary is not on disk yet; dependency lines no pattern matches.
 #   Blocks anyway: a citation into a file the turn shortened, deleted or renamed; a run record written before the run registered.
 #   Clause 4 misses a UI card with no review diff file and a range review its RV-RANGE marker over-claims; a sentinel with no start_sha owes none.
+#   It retires a closed run unchecked once HEAD moves past its gate pass, a commit made before the closing stop included.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -146,6 +147,12 @@ run_clause() {
   command -v git >/dev/null 2>&1 || { echo "[candor] completion-gate: git not found — not enforced" >&2; return 0; }
   local head run_branch cur_branch slug
   head=$(git -C "$root" rev-parse HEAD 2>/dev/null) || { echo "[candor] completion-gate: not a git repo — not enforced" >&2; return 0; }
+  # A closed run whose gate pass names an earlier HEAD closed there, and its closing stop never reached this clause.
+  local closed_at
+  case "$sentinel" in */closed-run.json)
+    closed_at=$(jq -r '.head // empty' "$root/.claude/task-runner/gate-pass.json" 2>/dev/null)
+    if [ -n "$closed_at" ] && [ "$closed_at" != "$head" ]; then rm -f "$sentinel" 2>/dev/null; return 0; fi ;;
+  esac
 
   # An abandoned run leaves its sentinel behind: a run that names its branch is enforced only on that branch.
   run_branch=$(jq -r '.branch // empty' "$sentinel" 2>/dev/null)
@@ -202,7 +209,9 @@ run_clause() {
     local pf card uicards=""
     if [ "$v" = "complete" ] && [ -d "$rvdir" ]; then
       while IFS= read -r pf; do
-        grep -qE '^diff --git a/.* b/.*\.(tsx|jsx|vue|svelte|css|scss|sass|less|blade\.php)$' "$pf" 2>/dev/null || continue
+        # Tests and stories are not UI: reviewer-routing sends a test-only card to code-reviewer alone.
+        grep -E '^diff --git a/.* b/.*\.(tsx|jsx|vue|svelte|css|scss|sass|less|blade\.php)$' "$pf" 2>/dev/null |
+          grep -qvE '/(__tests__|tests)/|\.(test|spec|stories)\.[^/]*$' || continue
         card=${pf##*/diff-}; card=${card%.patch}
         [ -n "$(find "$rvdir" -maxdepth 1 \( -name "rv-agent-$card@*ui-ux-reviewer.json" -o -name "rv-skip-$card.json" -o -name "rv-exempt-$card.json" \) -newer "$sentinel" 2>/dev/null)" ] ||
           uicards="$uicards $card"

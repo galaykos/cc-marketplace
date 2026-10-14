@@ -294,10 +294,12 @@ cc_bash_write_chunks() {
     # TRUNCATE was matched case-insensitively with TABLE optional until 2026-10-14, so
     # Tailwind's `truncate` class (`className="truncate text-xs"`) asked as SQL in real
     # sessions, most of them background workers or auto mode with nobody to answer. Now it
-    # fires on an UPPERCASE `TRUNCATE <x>`, or on `truncate table` in any case. Residual: a
-    # lowercase `truncate users` without TABLE passes silently. `table` must be followed by
-    # whitespace and a name, so Tailwind's `truncate table-cell` pair stays silent too.
-    [ -z "$hit" ] && { printf '%s' "$text" | grep -qE '\bTRUNCATE[[:space:]]+[^;]' || printf '%s' "$text" | grep -qiE '\btruncate[[:space:]]+table[[:space:]]+[^;[:space:]]'; } && hit="TRUNCATE"
+    # fires on an UPPERCASE `TRUNCATE <x>`, or on `truncate table` in any case. `table` must be
+    # followed by whitespace and a name, so Tailwind's `truncate table-cell` stays silent, and the
+    # any-case form skips a line carrying a class list (`className="truncate table w-full"`).
+    # Residual: a lowercase `truncate users` without TABLE passes silently, and a class string
+    # built outside an attribute or helper (`const c = "truncate table w-full"`) still asks.
+    [ -z "$hit" ] && { printf '%s' "$text" | grep -qE '\bTRUNCATE[[:space:]]+[^;]' || printf '%s' "$text" | grep -iE '\btruncate[[:space:]]+table[[:space:]]+[^;[:space:]]' | grep -vE '(class(Name)?=|class:|\b(clsx|cn|cva)\(|\btw`)' | grep -q .; } && hit="TRUNCATE"
     # unqualified DELETE/UPDATE: a line with DELETE FROM or UPDATE … SET and no WHERE on it
     if [ -z "$hit" ]; then
       if printf '%s' "$text" | grep -iE '\b(delete[[:space:]]+from|update[[:space:]]+[^;]+[[:space:]]set)\b' \

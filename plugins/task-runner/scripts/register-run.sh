@@ -13,10 +13,12 @@
 # scripts/__tests__/register-run.test.sh pins the three call sites.
 #
 # WHAT IT DOES:
-#   1. RESUME. An active-run.json on this branch with the same slug and index is kept
-#      untouched: its mtime is the cutoff every completion-gate record is counted from, so
+#   1. RESUME. An index run's active-run.json on this branch with the same slug and index is
+#      kept untouched: its mtime is the cutoff every completion-gate record is counted from, so
 #      re-registering a run already under way would discard the records of its done cards.
-#      --fresh registers anew anyway.
+#      --fresh registers anew anyway. An inline run (no --index) always registers anew: its
+#      slug is only a name, `run` when none is given, and a match would adopt an abandoned
+#      run's records.
 #   2. FRESH. Deletes gate-pass.json, bg/bg-<HEAD>.json and closed-run.json (candor's gate
 #      trusts the first two when they name HEAD, whatever their age), creates rv/ rt/ bg/
 #      nc/ reductions/ (each arms one completion-gate check by existing) and a .gitignore of
@@ -68,7 +70,7 @@ mkdir -p "$TR/rv" "$TR/rt" "$TR/bg" "$TR/nc" "$TR/reductions" 2>/dev/null || die
 [ -e "$TR/.gitignore" ] || printf '*\n' > "$TR/.gitignore"
 
 resumed=0
-if [ "$FRESH" = 0 ] && [ -r "$SENT" ] && command -v jq >/dev/null 2>&1; then
+if [ "$FRESH" = 0 ] && [ -n "$IDX_REL" ] && [ -r "$SENT" ] && command -v jq >/dev/null 2>&1; then
   if [ "$(jq -r '[.branch // "", .slug // "", .index_path // ""] | join("\t")' "$SENT" 2>/dev/null)" \
        = "$(printf '%s\t%s\t%s' "$BRANCH" "$SLUG" "$IDX_REL")" ]; then
     resumed=1

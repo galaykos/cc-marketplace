@@ -11,9 +11,15 @@ releases were not recorded here and are not reconstructed.
   drew the destructive-SQL ask, repeatedly, in background workers and auto mode with nobody
   to answer it. The rule now fires on an uppercase `TRUNCATE <x>`, or on `truncate table` in
   any case followed by a table name, so the Tailwind pair `truncate table-cell` stays silent
-  too. Residual: a lowercase `truncate users` without `TABLE` is no longer asked. Harness
-  cases "Tailwind truncate class", "Tailwind truncate table-cell", "TRUNCATE without TABLE"
-  and "lowercase truncate table" in `guard.test.sh` pin it; the first fails against 0.11.3.
+  too. The any-case form also skips a line carrying a class list (`class=`, `className=`,
+  `:class=`, `class:`, `clsx(`, `cn(`, `cva(`, `` tw` ``), so `className="truncate table w-full"`
+  stays silent; an uppercase `TRUNCATE` still asks on such a line. Residual: a lowercase
+  `truncate users` without `TABLE` is no longer asked, and a class string built outside an
+  attribute or helper (`const c = "truncate table w-full"`) still asks. Harness cases
+  "Tailwind truncate class", "Tailwind truncate table-cell", "className truncate table",
+  "Vue :class truncate table", "cn() truncate table", "class string outside a helper",
+  "TRUNCATE without TABLE", "lowercase truncate table" and "lowercase truncate table, .sql"
+  in `guard.test.sh` pin it; the first fails against 0.11.3.
 
 ## 0.11.3 — 2026-10-04
 

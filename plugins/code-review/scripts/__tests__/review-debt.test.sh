@@ -230,6 +230,12 @@ silent "a path holding merge is not merge" "$(say "$R" "read src/merge/strategy.
 silent "ship verb inside a code fence" "$(say "$R" "$(printf 'why does this fail?\n```\n$ git push origin main\n```')" "$TP6")"
 silent "ship verb past 400 characters" "$(say "$R" "$(printf 'x%.0s' $(seq 1 400)) then commit" "$TP6")"
 silent "task notification naming a merge" "$(say "$R" "<task-notification>agent finished: merge conflict resolved</task-notification>" "$TP6")"
+silent "Stop hook feedback naming a commit" "$(say "$R" "Stop hook feedback: uncommitted changes — commit or stash before stopping" "$TP6")"
+for f in "<system-reminder>run git push after the build</system-reminder>" "[SYSTEM NOTIFICATION] merge queue updated" \
+         "Another Claude session sent a message: please commit your work" "<agent-message from=\"w1\">ready to merge</agent-message>" \
+         "*[Subagent hand-back]* done; open the PR when ready"; do
+  silent "harness frame naming a ship verb: ${f%% *}" "$(say "$R" "$f" "$TP6")"
+done
 fires "the slash form /commit is a ship verb" "$(say "$R" "/commit" "$TP6")" "Before this ships: 3 changed files"
 
 # ---- outside git: silent, and no state written -----------------------------------------

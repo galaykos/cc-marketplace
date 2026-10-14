@@ -26,16 +26,17 @@
 # WHAT IT READS: `gh pr merge` at a command position (after `;` `&&` `|` `(` `$(` or a
 # wrapper such as `sudo`, `env`, `bash -c "…"`; the prefix list is no-ai-trailer.sh's),
 # outside heredoc bodies. The PR is the first positional argument (number, `#n`, URL or
-# branch), else the current branch's; `-R/--repo` is passed through; gh runs in the
-# payload's cwd. Silent on purpose: `--help`, `--disable-auto`, and `--auto`, which hands
-# the wait to GitHub (and is what the ask suggests).
+# branch; never a redirection or a quoted value), else the current branch's; `-R/--repo`
+# and a `GH_REPO=`/`GH_HOST=` prefix are passed through; gh runs in the payload's cwd.
+# Silent on purpose: `--help`, `--disable-auto`, and `--auto`, which hands the wait to
+# GitHub (and is what the ask suggests).
 #
 # WHAT IT DOES NOT CATCH, stated: a PR or repo held in a variable or a substitution
 # (`gh pr merge "$n"`); any `gh pr merge` after the first in one command; flags between
 # `pr` and `merge`; a merge through the API, the web UI or a push to the base branch;
 # non-required checks that `--auto` does not wait for. A `cd` inside the command does not
-# move where gh runs, so `cd ../other && gh pr merge 3` reads PR 3 of the session's repo;
-# the ask names the PR, so a wrong one shows.
+# move where gh runs, so `cd ../other && gh pr merge 3` reads PR 3 of the session's repo,
+# and an `export GH_REPO=…` before it is not read; the ask names the PR, so a wrong one shows.
 #
 # CC_MERGE_CHECKS=off disables it for the session, and the ask message says so.
 # CC_MERGE_CHECKS unset: the /config option cc_merge_checks decides.
@@ -71,8 +72,12 @@ CHECKS_TIMEOUT=5
 MAX_NAMES=5
 
 # Command position, the same anchor and wrapper tokens as no-ai-trailer.sh's GIT_WRITE_RE,
-# so the two guards agree on what runs. The tail stops at the next command delimiter.
-MERGE_RE='(^|[;&|`()]|\$\()[[:space:]]*(([a-z_][a-z0-9_]*=[^[:space:]]*|bash|sh|zsh|dash|ksh|eval|exec|command|sudo|doas|env|nohup|timeout|nice|time|xargs|then|do|else|elif|if|while|until|-[-a-z0-9]*|[0-9]+|"|'"'"')[[:space:]]*)*([^[:space:]]*/)?gh[[:space:]]+pr[[:space:]]+merge([[:space:]][^;&|`()]*)?'
+# so the two guards agree on what runs. The tail stops at the next command delimiter
+# outside a quoted span. A span counts only where a word, a `=` or a one-letter flag opens
+# it; any other quote closes a wrapper's string (`bash -c "gh pr merge 12"`) and ends it.
+MERGE_Q='("[^"]*"|'"'"'[^'"'"']*'"'"')'
+MERGE_C='([^[:space:];&|`()"'"'"']|[<>]&|&>)'
+MERGE_RE='(^|[;&|`()]|\$\()[[:space:]]*(([a-z_][a-z0-9_]*=[^[:space:]]*|bash|sh|zsh|dash|ksh|eval|exec|command|sudo|doas|env|nohup|timeout|nice|time|xargs|then|do|else|elif|if|while|until|-[-a-z0-9]*|[0-9]+|"|'"'"')[[:space:]]*)*([^[:space:]]*/)?gh[[:space:]]+pr[[:space:]]+merge'"([[:space:]]+(-[a-z]$MERGE_Q|$MERGE_Q|$MERGE_C)($MERGE_C|=$MERGE_Q)*)*"
 
 # A heredoc body is text, not a command: drop it before matching. Same awk as
 # testing/hooks/protect-tests.sh's in-command `cd` test.
@@ -91,15 +96,21 @@ open_quote() {
   esac
 }
 
-# Sets sel and repo from the words after `gh pr merge`. Returns 1 when the call passes
-# silently: help, --auto, --disable-auto, or a PR or repo this cannot resolve.
+# Sets sel and repo from the words after `gh pr merge`, gh_repo and gh_host from a
+# GH_REPO=/GH_HOST= prefix. Returns 1 when the call passes silently: help, --auto,
+# --disable-auto, or a PR, repo or host this cannot resolve.
 parse_merge() {
-  local w a t i=0 n skip=""
+  local w a t r i=0 n skip=""
   read -r -a w <<< "$1"
   n=${#w[@]}
   while [ "$i" -lt "$n" ]; do
     t=${w[$i]##*[\"\'\(/\`\;\&\|]}
     [ "$t" = gh ] && [ "${w[$((i + 1))]:-}" = pr ] && [ "${w[$((i + 2))]:-}" = merge ] && break
+    t=${w[$i]#"${w[$i]%%[!\"\'\(\`\;\&\|\$]*}"}
+    case "$t" in
+      GH_REPO=*) gh_repo=${t#GH_REPO=} ;;
+      GH_HOST=*) gh_host=${t#GH_HOST=} ;;
+    esac
     i=$((i + 1))
   done
   [ "$i" -lt "$n" ] || return 1
@@ -110,6 +121,12 @@ parse_merge() {
       case "$a" in *"$skip") skip="" ;; esac
       continue
     fi
+    # A redirection is no argument; after a bare operator the target is the next word.
+    r=${a#"${a%%[!0-9]*}"}
+    case "$r" in
+      '<'|'>'|'>>'|'<>'|'<<'|'<<-'|'<<<'|'>&'|'<&'|'&>'|'&>>') i=$((i + 1)); continue ;;
+      [\<\>]*|'&>'*) continue ;;
+    esac
     case "$a" in
       -h|--help|--auto|--disable-auto) return 1 ;;
       -R|--repo) repo=${w[$i]:-}; i=$((i + 1)) ;;
@@ -118,13 +135,16 @@ parse_merge() {
       -b|--body|-F|--body-file|-t|--subject|-A|--author-email|--match-head-commit)
         skip=$(open_quote "${w[$i]:-}"); i=$((i + 1)) ;;
       --*=*) skip=$(open_quote "${a#*=}") ;;
+      -[btFA]?*) skip=$(open_quote "${a#-?}") ;;
       -*) ;;
       *) [ -n "$sel" ] || sel=$a ;;
     esac
   done
   sel=${sel//[\"\']/}; repo=${repo//[\"\']/}
+  gh_repo=${gh_repo//[\"\']/}; gh_host=${gh_host//[\"\']/}
   case "$sel" in *[!A-Za-z0-9._/:#-]*) return 1 ;; esac
-  case "$repo" in *[!A-Za-z0-9._/:-]*) return 1 ;; esac
+  case "$repo$gh_repo" in *[!A-Za-z0-9._/:-]*) return 1 ;; esac
+  case "$gh_host" in *[!A-Za-z0-9._:-]*) return 1 ;; esac
   return 0
 }
 
@@ -134,7 +154,10 @@ run_checks() {
   local dir=$1 out pid i=0
   shift
   out=$(mktemp 2>/dev/null) || return 1
-  ( cd "$dir" 2>/dev/null && exec gh pr checks "$@" ) > "$out" 2>/dev/null < /dev/null &
+  ( cd "$dir" 2>/dev/null || exit 1
+    [ -z "$gh_repo" ] || export GH_REPO="$gh_repo"
+    [ -z "$gh_host" ] || export GH_HOST="$gh_host"
+    exec gh pr checks "$@" ) > "$out" 2>/dev/null < /dev/null &
   pid=$!
   while kill -0 "$pid" 2>/dev/null; do
     if [ "$i" -ge $((CHECKS_TIMEOUT * 10)) ]; then
@@ -158,7 +181,7 @@ main() {
   command -v jq >/dev/null 2>&1 || exit 0
   [ "$(cc_option CC_MERGE_CHECKS on)" = off ] && exit 0
   local input cmd m dir rows failing pending pr reason
-  sel=""; repo=""
+  sel=""; repo=""; gh_repo=""; gh_host=""
   input=$(cat 2>/dev/null) || exit 0
   case "$input" in *merge*) ;; *) exit 0 ;; esac
   cmd=$(printf '%s' "$input" | jq -r '

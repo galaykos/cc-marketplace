@@ -565,6 +565,13 @@ if command -v git >/dev/null 2>&1; then
   printf '{"card":"01","exempt":"no-reviewer-installed"}' > "$QRV/rv-exempt-01.json"
   qrun "$QT"
   qis "ui: an exemption for the card passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  printf 'diff --git a/src/components/__tests__/Button.test.tsx b/src/components/__tests__/Button.test.tsx\n' > "$QRV/diff-03.patch"
+  qrun "$QT"
+  qis "ui: a card whose only UI-extension file is a test owes no ui-ux-reviewer" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  printf 'diff --git a/src/Card.stories.tsx b/src/Card.stories.tsx\ndiff --git a/src/Card.tsx b/src/Card.tsx\n' >> "$QRV/diff-03.patch"
+  qrun "$QT"
+  qis "ui: a component beside its test and story still owes one" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 03"; echo $?)"
+  rm -f "$QRV/diff-03.patch"
 
   rm -f "$QRV/range-$Q12.json"
   mv "$QSENT" "$QCLOSED"
@@ -576,6 +583,16 @@ if command -v git >/dev/null 2>&1; then
   qis "closed run: a clean closing stop passes and retires closed-run.json" "$([ "$rc" -eq 0 ] && [ -z "$err" ] && [ ! -e "$QCLOSED" ]; echo $?)"
   rm -f "$QRV/range-$Q12.json"; qrun "$QT"
   qis "closed run: once retired, later stops are silent" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  qsent ",\"start_sha\":\"$QSTART\""; mv "$QSENT" "$QCLOSED"
+  echo d >> "$RQ/src/a.ts"; git -C "$RQ" commit -qam later; QLATER=$(git -C "$RQ" rev-parse HEAD)
+  qrun "$QT"
+  qis "closed run: left behind with a gate pass for an earlier HEAD, a later commit's stop retires it silently" \
+    "$([ "$rc" -eq 0 ] && [ -z "$err" ] && [ ! -e "$QCLOSED" ]; echo $?)"
+  qsent ",\"start_sha\":\"$QSTART\""; mv "$QSENT" "$QCLOSED"
+  printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QLATER" > "$QTR/gate-pass.json"
+  qrun "$QT"
+  qis "closed run: a gate pass at HEAD with no range record still blocks" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && [ -f "$QCLOSED" ]; echo $?)"
 else
   printf 'SKIP  0.8.0 range / ui / closed-run cases (git not available)\n'
 fi

@@ -155,5 +155,22 @@ fi
 check_warn "no CLAUDE_PLUGIN_ROOT: siblings from the script's location" present 'stamp "laravel:laravel-best-practices"' \
   env -u CLAUDE_PLUGIN_ROOT CLAUDE_PROJECT_DIR="$proj" "$lint" --line 'laravel-best-practices' --files 'app/Models/User.php'
 
+# --- reachability of a qualified plugin:skill stamp: probed in the named plugin alone ---
+repo_tm=$(cd "$here/../.." && pwd)
+check_warn "qualified: an absent plugin warns unreachable-skill" present 'unreachable-skill: "ghost:ghost-best-practices"' \
+  env CLAUDE_PLUGIN_ROOT="$repo_tm" "$lint" --line 'ghost:ghost-best-practices' --files 'app/Models/User.php'
+check_warn "qualified: a plugin in this checkout is reachable" absent unreachable-skill \
+  env CLAUDE_PLUGIN_ROOT="$repo_tm" "$lint" --line 'laravel:laravel-best-practices' --files 'app/Models/User.php'
+check_warn "qualified: another plugin shipping the skill does not count" present 'unreachable-skill: "ghost:laravel-best-practices"' \
+  env CLAUDE_PLUGIN_ROOT="$cache/taskmaster" "$lint" --line 'ghost:laravel-best-practices' --files 'app/Models/User.php'
+check_warn "qualified: the plugin present without that skill warns" present 'unreachable-skill: "laravel:vue3-best-practices"' \
+  env CLAUDE_PLUGIN_ROOT="$cache/taskmaster" "$lint" --line 'laravel:vue3-best-practices' --files 'resources/js/App.vue'
+check_warn "qualified, cache layout: a cached plugin is reachable" absent unreachable-skill \
+  env CLAUDE_PLUGIN_ROOT="$cache/mkt/taskmaster/0.48.1" "$lint" --line 'laravel:laravel-best-practices' --files 'app/Models/User.php'
+check_warn "qualified, cache layout: an absent plugin warns" present 'unreachable-skill: "ghost:ghost-best-practices"' \
+  env CLAUDE_PLUGIN_ROOT="$cache/mkt/taskmaster/0.48.1" "$lint" --line 'ghost:ghost-best-practices' --files 'app/Models/User.php'
+check_warn "qualified: probe skipped without CLAUDE_PLUGIN_ROOT" absent unreachable-skill \
+  env -u CLAUDE_PLUGIN_ROOT "$lint" --line 'ghost:ghost-best-practices' --files 'app/Models/User.php'
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

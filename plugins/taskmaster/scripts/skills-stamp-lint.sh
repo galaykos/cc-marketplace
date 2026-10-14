@@ -84,18 +84,19 @@ if printf '%s' "$files" | grep -Eiq -- "$fw_re"; then
 fi
 
 # The sibling plugin shipping skills/<name>/SKILL.md, printed by name; status 1 when none.
-# Two layouts: a source checkout keeps plugins side by side (plugins/<p>/), the installed
-# cache one level deeper (<marketplace>/<p>/<version>/), where `../*` lists this plugin's
-# own versions. A cached-but-disabled plugin still counts.
+# A second argument narrows the search to that one plugin. Two layouts: a source checkout
+# keeps plugins side by side (plugins/<p>/), the installed cache one level deeper
+# (<marketplace>/<p>/<version>/), where `../*` lists this plugin's own versions. A
+# cached-but-disabled plugin still counts.
 sibling_plugin() {
-  local r sk
+  local r sk p=${2:-*}
   r=$(cd "${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}" 2>/dev/null && pwd) || return 1
   if [ "${r##*/}" = taskmaster ]; then
-    for sk in "$r"/../*/skills/"$1"/SKILL.md; do
+    for sk in "$r"/../$p/skills/"$1"/SKILL.md; do
       [ -f "$sk" ] && { sk=${sk%/skills/*}; printf '%s\n' "${sk##*/}"; return 0; }
     done
   else
-    for sk in "$r"/../../*/*/skills/"$1"/SKILL.md; do
+    for sk in "$r"/../../$p/*/skills/"$1"/SKILL.md; do
       [ -f "$sk" ] && { sk=${sk%/skills/*}; sk=${sk%/*}; printf '%s\n' "${sk##*/}"; return 0; }
     done
   fi
@@ -106,12 +107,15 @@ sibling_plugin() {
 # not that its plugin is installed — a named-but-absent skill executes the card
 # framework-blind while the lint reads green. When CLAUDE_PLUGIN_ROOT is set
 # (running from an installed plugin cache), probe the sibling plugin dirs for
-# each stamped skill's SKILL.md and warn on stderr when none carries it. Exit
-# stays 0: cross-marketplace and project-local skills are legitimate.
+# each stamped skill's SKILL.md and warn on stderr when none carries it; a qualified
+# plugin:skill stamp is probed in that plugin alone. Exit stays 0: cross-marketplace
+# and project-local skills are legitimate.
 if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -d "${CLAUDE_PLUGIN_ROOT}/.." ]; then
   for tok in $(printf '%s' "$val" | tr ',' ' '); do
-    case "$tok" in *[!a-z0-9-]*|"") continue ;; esac
-    sibling_plugin "$tok" >/dev/null || printf '%s: warn unreachable-skill: "%s" is stamped but no installed sibling plugin ships skills/%s/SKILL.md — the card will run framework-blind unless that plugin is installed\n' "$PROG" "$tok" "$tok" >&2
+    case "$tok" in ?*:*) p=${tok%%:*}; s=${tok#*:} ;; *) p=""; s=$tok ;; esac
+    case "$p$s" in *[!a-z0-9-]*|"") continue ;; esac
+    [ -n "$s" ] || continue
+    sibling_plugin "$s" ${p:+"$p"} >/dev/null || printf '%s: warn unreachable-skill: "%s" is stamped but no installed sibling plugin%s ships skills/%s/SKILL.md — the card will run framework-blind unless that plugin is installed\n' "$PROG" "$tok" "${p:+ named $p}" "$s" >&2
   done
 fi
 

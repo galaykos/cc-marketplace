@@ -78,10 +78,11 @@ destinations, a path held in a variable, or a relative target in
 a command holding a `cd`/`pushd` (skipped). The whole file is read, so
 the first Bash write to an existing or downloaded file also warns on what was already
 there. Since 0.12.4 a target outside the project root (the session cwd's git toplevel,
-else the cwd), or under `$TMPDIR` (`/tmp`) while the project is not, is skipped on every
-tool: a scratch probe is not the project. A sibling worktree written by absolute path from
-another checkout is skipped too. Warn — never deny — because each has a legitimate
-form; `CC_SECURITY_SCAN=off` disables it, and `CC_REMIND=off` silences it along with
+else `CLAUDE_PROJECT_DIR` when the cwd is under it, else the cwd), or under `$TMPDIR`
+(`/tmp`) while the project is not, is skipped on every tool: a scratch probe is not the
+project. A sibling worktree written by absolute path from another checkout is skipped
+too. Warn — never deny — because each has a legitimate form; `CC_SECURITY_SCAN=off`
+disables it, and `CC_REMIND=off` silences it along with
 every other advisory nudge in this marketplace. Single-line matching only: a `SafeLoader` on
 the next line still warns, a system prompt assembled across lines never does. GitHub Actions expression injection is deliberately not
 here — `devops` denies it pre-write. Everything else (authz logic, cross-file flows,

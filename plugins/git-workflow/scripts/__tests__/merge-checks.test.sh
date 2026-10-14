@@ -9,8 +9,9 @@
 # Sections:
 #   1. VERDICT: pending, failing, cancelled -> ask naming the checks and the switch;
 #      all green, no checks reported -> silent.
-#   2. WHAT IS A MERGE: wrappers and selectors reach gh; --help, --auto, other gh
-#      verbs, quoted or heredoc text, and a variable PR never call it.
+#   2. WHAT IS A MERGE: wrappers, selectors, redirections, quoted values and a
+#      GH_REPO/GH_HOST prefix reach gh as meant; --help, --auto, other gh verbs, quoted
+#      or heredoc text, and a variable PR or repo never call it.
 #   3. FAIL-OPEN AND SWITCH: no gh, a gh that hangs, no jq, bad input, the off-switch.
 set -u
 
@@ -26,6 +27,7 @@ pass=0; fail=0
 ok()  { pass=$((pass + 1)); }
 bad() { fail=$((fail + 1)); printf 'FAIL  %s\n      %s\n' "$1" "$2"; }
 
+unset GH_REPO GH_HOST
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 stub="$tmp/stub"; nogh="$tmp/nogh"; repo="$tmp/repo"; LOG="$tmp/gh.log"
@@ -35,7 +37,7 @@ mkdir -p "$stub" "$nogh" "$repo"
 # green (pass + skipping), none (gh's no-checks error), slow (hangs).
 cat > "$stub/gh" <<'STUB'
 #!/bin/bash
-printf '%s|%s\n' "$PWD" "$*" >> "$STUB_LOG"
+printf '%s|%s%s\n' "$PWD" "$*" "${GH_REPO:+|GH_REPO=$GH_REPO}${GH_HOST:+|GH_HOST=$GH_HOST}" >> "$STUB_LOG"
 T=$(printf '\t')
 case "${STUB_GH_MODE:-green}" in
   running) printf 'build%spending%s0%shttps://ci.example/1%s\n' "$T" "$T" "$T" "$T"
@@ -107,6 +109,43 @@ grep -qxF "$repo|pr checks 7 -R octo/widgets" "$LOG" && ok || bad "a quoted --bo
 run running 'gh pr merge https://github.com/octo/widgets/pull/9 --merge' >/dev/null
 grep -qxF "$repo|pr checks https://github.com/octo/widgets/pull/9" "$LOG" && ok || bad "a PR URL is passed through" "$(cat "$LOG")"
 
+# A redirection, and the target word after a bare operator, is never the selector.
+for c in 'gh pr merge --squash --delete-branch 2>&1|' \
+         'gh pr merge --squash >merge.log|' \
+         'gh pr merge --squash </dev/null|' \
+         'gh pr merge --squash &>merge.log|' \
+         'gh pr merge --squash 2> err.log|' \
+         'gh pr merge 7 2>/dev/null|7' \
+         'gh pr merge 2>&1 7 --squash|7'; do
+  out=$(run running "${c%|*}"); p=${c##*|}
+  is_ask "$out" && grep -qxF "$repo|pr checks${p:+ $p}" "$LOG" && ok \
+    || bad "a redirection is not the selector" "${c%|*} -> out=$out log=$(cat "$LOG")"
+done
+
+# A quoted --body/--subject value is one word, whatever delimiters it holds.
+out=$(run fail 'gh pr merge -b "fix (scope)" 12')
+case "$(reason "$out")" in *"PR 12 is not green"*"failing: unit tests"*) ok ;; *) bad "a quoted body with parentheses keeps PR 12" "$out" ;; esac
+grep -qxF "$repo|pr checks 12" "$LOG" && ok || bad "gh must get PR 12 past a quoted body" "$(cat "$LOG")"
+for c in "gh pr merge --subject 'a | b; c && d' 12" \
+         'gh pr merge --body="fix (scope)" 12' \
+         'gh pr merge -b"fix (scope)" 12' \
+         'bash -c "gh pr merge 12" && echo "merged (12)"'; do
+  out=$(run running "$c")
+  is_ask "$out" && grep -qxF "$repo|pr checks 12" "$LOG" && ok \
+    || bad "a quoted value must not hide or replace the selector" "$c -> out=$out log=$(cat "$LOG")"
+done
+run running 'bash -c "gh pr merge --squash" && echo "merged 5"' >/dev/null
+grep -qxF "$repo|pr checks" "$LOG" && ok || bad "a wrapper's closing quote does not open a span" "$(cat "$LOG")"
+
+# A GH_REPO/GH_HOST prefix reaches gh; one gh cannot resolve keeps the hook silent.
+run running 'GH_REPO=octo/other gh pr merge 5' >/dev/null
+grep -qxF "$repo|pr checks 5|GH_REPO=octo/other" "$LOG" && ok || bad "a GH_REPO prefix is passed to gh" "$(cat "$LOG")"
+run running 'cd /srv && GH_HOST=ghe.example.com env GH_REPO="octo/other" gh pr merge 5 -R octo/widgets' >/dev/null
+grep -qxF "$repo|pr checks 5 -R octo/widgets|GH_REPO=octo/other|GH_HOST=ghe.example.com" "$LOG" && ok \
+  || bad "GH_HOST and a quoted GH_REPO pass beside -R" "$(cat "$LOG")"
+run running 'bash -c "GH_REPO=octo/other gh pr merge 5"' >/dev/null
+grep -qxF "$repo|pr checks 5|GH_REPO=octo/other" "$LOG" && ok || bad "a GH_REPO prefix inside bash -c is passed" "$(cat "$LOG")"
+
 for c in 'cd /srv/app && gh pr merge 12 --squash' \
          'git push && gh pr merge 12' \
          'git push
@@ -130,6 +169,7 @@ for c in 'gh pr merge --help' \
          'git commit -m "next: gh pr merge 12 once green"' \
          "echo 'gh pr merge 12'" \
          'gh pr merge "$PR" --squash' \
+         'GH_REPO="$R" gh pr merge 5' \
          'for n in 1 2; do gh pr merge $n; done' \
          "cat > notes.md <<'EOF'
 gh pr merge 12 --squash

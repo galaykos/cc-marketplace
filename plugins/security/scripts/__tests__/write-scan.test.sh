@@ -235,6 +235,14 @@ out=$(jq -cn --arg d "$P" --arg c "cat > $S/probe2.py <<'EOF'
 $SINK
 EOF" '{tool_name:"Bash", session_id:"sc4", cwd:$d, tool_input:{command:$c}}' | bash "$HOOK")
 scope "a Bash write outside the project root is silent"           silent "$out"
+# Outside git the root falls back to CLAUDE_PROJECT_DIR before the cwd, so a `cd src` does not hide a sibling dir.
+mkdir -p "$P/src"
+runsub() { # runsub <session> [CLAUDE_PROJECT_DIR]
+  jq -cn --arg s "$1" --arg d "$P/src" --arg f "$P/app/x.php" --arg c 'data = unserialize($blob);' \
+    '{tool_name:"Write", session_id:$s, cwd:$d, tool_input:{file_path:$f, content:$c}}' | CLAUDE_PROJECT_DIR="${2:-}" bash "$HOOK"
+}
+scope "non-git, cwd src/, CLAUDE_PROJECT_DIR set: a sibling app/ write warns" warn   "$(runsub sc5 "$P")"
+scope "non-git, cwd src/, no CLAUDE_PROJECT_DIR: the cwd is the root"         silent "$(runsub sc6)"
 
 echo "write-scan tests: $pass passed, $fail failed"
 exit $((fail > 0))

@@ -48,6 +48,12 @@ check "TRUNCATE without TABLE"        ask   db/migrate.sql   'TRUNCATE users;'
 check "lowercase truncate table"      ask   db/migrate.sql   'truncate table users'
 check "Tailwind truncate class"       allow src/Card.tsx     '<p className="truncate text-xs">{title}</p>'
 check "Tailwind truncate table-cell"  allow src/Cell.tsx     '<td className="truncate table-cell">{v}</td>'
+# `truncate table` in any case skips a line carrying a class list; the uppercase branch does not.
+check "className truncate table"      allow src/Grid.tsx     '<div className="truncate table w-full">{v}</div>'
+check "Vue :class truncate table"     allow src/Grid.vue     "<div :class=\"['truncate table w-full']\">"
+check "cn() truncate table"           allow src/Grid.tsx     'const c = cn("truncate table w-full", active && "font-bold")'
+check "class string outside a helper" ask   src/Grid.tsx     'const c = "truncate table w-full"'
+check "lowercase truncate table, .sql" ask  db/cleanup.sql   'truncate table users;'
 check "DELETE with no WHERE"          ask   db/migrate.sql   'DELETE FROM orders;'
 check "DELETE with WHERE"             allow db/migrate.sql   'DELETE FROM orders WHERE id = 1;'
 # 0.8.3: Laravel's schema builder spells DROP TABLE without the keywords.

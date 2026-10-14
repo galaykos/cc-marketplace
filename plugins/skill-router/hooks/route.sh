@@ -310,7 +310,9 @@ EOF_TARGETS
   [ -n "$ctx" ] || exit 0
   state_file="$state_dir/fired-$ctx.json"
   fired=""
-  [ -r "$state_file" ] && fired=$(jq -r '.fired[]? // empty' "$state_file" 2>/dev/null)
+  # `loaded` holds skills the transcript showed loaded before any nudge: skipped like fired ones, but kept out of `fired`, which the
+  # SessionEnd ledger reports as surfaced by this router.
+  [ -r "$state_file" ] && fired=$(jq -r '((.fired // []) + (.loaded // []))[]' "$state_file" 2>/dev/null)
 
   # set_target <i> — the globals every matcher below reads, for target i.
   set_target() {
@@ -400,13 +402,19 @@ EOF_TARGETS
   NUDGE_CAP=2
   last_skills=$(sed -n 's/^# nudge-last:[[:space:]]*//p' "$rules" 2>/dev/null | tr -d '\r' | tr ' \t' '\n\n')
   cands=""; cand_skills=""; seq=0
-  add_cand() { # $1 rank, $2 skill, $3 owning_plugin, $4 subject
-    local pr=""
-    printf '%s\n' "$cand_skills" | grep -qxF "$2" && return 0
+  add_cand() { # $1 rank, $2 skill, $3 owning_plugin, $4 subject — a skill matched again keeps its lowest rank, with that match's place and subject
+    local pr="" old
     printf '%s\n' "$last_skills" | grep -qxF "$2" && set -- 2 "$2" "$3" "$4"
+    if printf '%s\n' "$cand_skills" | grep -qxF "$2"; then
+      old=$(printf '%s' "$cands" | awk -F'\t' -v s="$2" '$3 == s {print $1; exit}')
+      [ "$1" -lt "${old:-0}" ] || return 0
+      cands=$(printf '%s' "$cands" | awk -F'\t' -v s="$2" '$3 != s'); [ -z "$cands" ] || cands="$cands"$'\n'
+    else
+      cand_skills="${cand_skills}$2"$'\n'
+    fi
     command -v pr_plugin_root >/dev/null 2>&1 && pr=$(pr_plugin_root "$3")
     [ -n "$pr" ] || pr=- # a tab-IFS `read` collapses an empty field
-    cand_skills="${cand_skills}$2"$'\n'; seq=$((seq + 1))
+    seq=$((seq + 1))
     cands="${cands}$1"$'\t'"$seq"$'\t'"$2"$'\t'"$3"$'\t'"$pr"$'\t'"$4"$'\n'
   }
 
@@ -432,7 +440,7 @@ EOF_TARGETS
   }
 
   nudge_high_matches() {
-    fired_now=""
+    fired_now=""; loaded_now=""
     hcs=()
     i=0
     while [ "$i" -lt "${#abs[@]}" ]; do
@@ -474,7 +482,8 @@ EOF_CMD
     while IFS=$'\t' read -r r s skill plugin pr subj; do
       [ -n "$skill" ] || continue
       [ "$pr" != - ] || pr=""
-      is_loaded "$skill" "$plugin" "$pr" && continue
+      # Recorded as loaded: otherwise every later edit routing it greps the whole transcript again.
+      is_loaded "$skill" "$plugin" "$pr" && { loaded_now="${loaded_now}${skill}"$'\n'; continue; }
       emit_nudge "$skill" "$plugin" "$pr" "$subj"
       fired_now="${fired_now}${skill}"$'\n'
       n=$((n + 1)); [ "$n" -lt "$NUDGE_CAP" ] || break
@@ -514,10 +523,10 @@ EOF_CMD
   }
 
   persist_state() {
-    if [ -n "$fired_now" ] || [ -n "$pending_adds" ]; then
+    if [ -n "$fired_now" ] || [ -n "$loaded_now" ] || [ -n "$pending_adds" ]; then
       mkdir -p "$state_dir" 2>/dev/null || exit 0
       [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null
-      json='{"fired":[],"pending_low":[]}'
+      json='{"fired":[],"loaded":[],"pending_low":[]}'
       if [ -r "$state_file" ]; then
         existing=$(cat "$state_file" 2>/dev/null)
         printf '%s' "$existing" | jq empty 2>/dev/null && json="$existing"
@@ -530,6 +539,15 @@ EOF_CMD
         done <<EOF_FIRED
 $fired_now
 EOF_FIRED
+      fi
+      if [ -n "$loaded_now" ]; then
+        while IFS= read -r lskill; do
+          [ -n "$lskill" ] || continue
+          json=$(printf '%s' "$json" | jq --arg s "$lskill" \
+            'if ((.loaded // []) | index($s) | not) then .loaded = ((.loaded // []) + [$s]) else . end' 2>/dev/null) || exit 0
+        done <<EOF_LOADED
+$loaded_now
+EOF_LOADED
       fi
       if [ -n "$pending_adds" ]; then
         while IFS=$'\t' read -r pskill pplug pfile; do

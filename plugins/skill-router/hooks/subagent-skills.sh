@@ -61,7 +61,12 @@ cc_option() {
   case "$(cc_option CC_SUBAGENT_SKILLS on)" in off) exit 0 ;; esac
   command -v jq >/dev/null 2>&1 || exit 0
   input=$(cat)
-  event=$(printf '%s' "$input" | jq -r '.hook_event_name // empty' 2>/dev/null) || exit 0
+  # One read decides a PreToolUse dispatch of an unhandled type (Explore, Plan) before any git or prime.sh work.
+  row=$(printf '%s' "$input" | jq -r '[.hook_event_name // "", .tool_input.subagent_type? // "general-purpose"] | @tsv' 2>/dev/null) || exit 0
+  event="${row%%$'\t'*}"; atype="${row#*$'\t'}"
+  if [ "$event" = PreToolUse ]; then
+    case "$atype" in general-purpose|claude|*:*) ;; *) exit 0 ;; esac
+  fi
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   # The parent's transcript in both events (measured, CLI 2.1.299), hashed as route.sh hashes its context key.
   ctx=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
@@ -74,8 +79,6 @@ cc_option() {
   dfile="$(cc_plugin_state "$root" skill-router)/dispatch-$ctx.tsv"
 
   if [ "$event" = PreToolUse ]; then
-    atype=$(printf '%s' "$input" | jq -r '.tool_input.subagent_type // "general-purpose"' 2>/dev/null)
-    case "$atype" in general-purpose|claude|*:*) ;; *) exit 0 ;; esac
     [ -n "$ctx" ] || exit 0
     # Path-shaped words: a source file, a manifest, a Dockerfile or compose file.
     words=$(printf '%s' "$input" | jq -r '.tool_input.prompt // empty' 2>/dev/null \

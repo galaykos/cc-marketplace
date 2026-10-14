@@ -104,6 +104,7 @@ cc_option() {
             ts: (now | todate),
             session_id: $sid,
             fired: ((.fired // []) | unique),
+            loaded: ((.loaded // []) | unique),
             # SPLIT ON `flushed`, not one bucket. route-prompt.sh marks an entry
             # flushed only when it actually printed the digest to the model, so
             # collapsing both states into `pending_low` made "accumulated but

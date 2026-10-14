@@ -181,7 +181,9 @@ cc_option() {
       case "$prompt" in
         /code-review:review|"/code-review:review "*|/security:review|"/security:review "*) reviewed=1 ;;
         /code-review|"/code-review "*|/security-review|"/security-review "*) reviewed=1 ;;
-        "<task-notification"*) ;;
+        # A harness frame quoting "commit" or "merge" is not the user asking to ship; skill-router's route-prompt.sh prefixes.
+        "<system-reminder>"*|"<task-notification"*|"[SYSTEM NOTIFICATION"*|"Stop hook feedback:"*) ;;
+        "Another Claude session sent a message:"*|"<agent-message"*|*"[Subagent hand-back]"*) ;;
         *) printf '%s' "$prompt" | awk '/^[[:space:]]*```/{f=!f; next} !f' | tr '\n' ' ' | cut -c1-400 \
              | grep -qiE '(^|[^[:alnum:]_./-])/?(commit|push|merge|pr|pull[ -]request)([^[:alnum:]_/-]|$)' && ship=1 ;;
       esac ;;

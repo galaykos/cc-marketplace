@@ -14,7 +14,7 @@ Starting task N+1 while task N is unverified is the root of "90% done" projects 
 However this skill was reached, the orchestrator (never a delegated worker) runs, before the
 first task, `bash ${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh --index <00-INDEX.md> --session <this session id>`
 (an inline list: `--slug <name>`). Unregistered, the review observer and candor's completion
-clause are silently off. A second call for the same run resumes it.
+clause are silently off. A repeat call for one index resumes it.
 
 ## Scope lock
 

@@ -147,6 +147,24 @@ cc_bash_write_targets() {
     }' | awk '!seen[$0]++'
 }
 
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
 MARKER_TTL_MIN=1440
 MAX_BASH_TARGETS=8
 {
@@ -182,13 +200,14 @@ MAX_BASH_TARGETS=8
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   fi
   # Scratch is not the project: probe scripts under /tmp drew sink warnings in real sessions. A target outside the
-  # project root (the payload cwd's git toplevel, else the cwd) or under $TMPDIR while the project is not is skipped,
-  # both sides compared symlink-resolved. Residual: a sibling worktree written by absolute path from another checkout
-  # is skipped too, and a payload with no cwd keeps only the temp-dir rule.
+  # project root (cc_state_root: the payload cwd's git toplevel, else CLAUDE_PROJECT_DIR when the cwd is under it, else
+  # the cwd) or under $TMPDIR while the project is not is skipped, both sides compared symlink-resolved. Residual: a
+  # sibling worktree written by absolute path from another checkout is skipped too, and a payload with no cwd keeps only
+  # the temp-dir rule.
   tmpd=$(CDPATH= cd -- "${TMPDIR:-/tmp}" 2>/dev/null && pwd -P) || tmpd=""
   root=""
   if [ -n "$cwd" ] && [ -d "$cwd" ]; then
-    root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || root=$cwd
+    root=$(cc_state_root "$cwd") || root=$cwd
     root=$(CDPATH= cd -- "$root" 2>/dev/null && pwd -P) || root=""
   fi
   tmpd=${tmpd%/}; root=${root%/}

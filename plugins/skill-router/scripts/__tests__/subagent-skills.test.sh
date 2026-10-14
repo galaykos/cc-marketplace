@@ -266,6 +266,18 @@ jq -cn --arg c "$L" --arg tp "$TP" '{hook_event_name:"SessionEnd",session_id:"se
 [ ! -e "$df" ] && ok || bad "SessionEnd left the dispatch record"
 unset TP; rm -rf "$L/.claude"
 
+# 11. a dispatch of a type this hook does not handle exits after one jq read: no git call, no record; a handled type still records
+SH="$WS/shim"; mkdir -p "$SH"
+for b in jq git; do printf '#!/bin/bash\nprintf "%s\\n" >> "$SHIM_LOG"\nexec %s "$@"\n' "$b" "$(command -v "$b")" > "$SH/$b"; chmod +x "$SH/$b"; done
+TP="$WS/t-11.jsonl"
+dispatch "$L" Explore 'Find app/Models/Order.php' PATH="$SH:$PATH" SHIM_LOG="$WS/shim.log" >/dev/null
+[ "$(grep -cx jq "$WS/shim.log")" = 1 ] && [ "$(grep -cx git "$WS/shim.log")" = 0 ] && ok \
+  || bad "unhandled dispatch: expected 1 jq and 0 git calls; got [$(sort "$WS/shim.log" | uniq -c | tr -s ' \n' ' ')]"
+[ ! -e "$L/.claude" ] && ok || bad "unhandled dispatch: wrote state"
+dispatch "$L" general-purpose 'Fix app/Models/Order.php' PATH="$SH:$PATH" SHIM_LOG="$WS/shim.log" >/dev/null
+[ -s "$L/.claude/skill-router/dispatch-$(printf '%s' "$TP" | cksum | cut -d' ' -f1).tsv" ] && ok || bad "handled dispatch: no record after the early type read"
+unset TP; rm -rf "$L/.claude"
+
 [ -e "$WS/nonzero" ] && bad "a hook exited non-zero: $(tr '\n' ' ' < "$WS/nonzero")" || ok
 
 echo "subagent-skills: $pass passed, $fail failed"

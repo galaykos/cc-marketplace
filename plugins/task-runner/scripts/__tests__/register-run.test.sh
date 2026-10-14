@@ -71,6 +71,16 @@ touch -t 200001010000 "$SENT"
 [ "$(jq -r '.slug + "|" + (.index_path // "none")' "$SENT")" = "inline-fixes|none" ] && ok "another list (an inline one) registers anew, without index_path" \
   || bad "inline list" "$(cat "$SENT")"
 
+# 3b) an inline run never resumes: two flagless calls share the default slug `run`, and a match
+# would hand the second run the first one's card records
+for args in "" "--slug inline-fixes"; do
+  (cd "$REPO" && bash "$RR" $args >/dev/null 2>&1); touch -t 200001010000 "$SENT"
+  out=$(cd "$REPO" && bash "$RR" $args 2>/dev/null)
+  case "$out" in registered*) [ -n "$(find "$SENT" -newer "$REF")" ] && ok "a second inline call (${args:-no flags}) registers anew" \
+      || bad "inline re-register (${args:-no flags})" "sentinel not rewritten" ;;
+    *) bad "inline re-register (${args:-no flags})" "out=<$out>" ;; esac
+done
+
 # 4) refusals
 (cd "$REPO" && bash "$RR" --index nope/00-INDEX.md >/dev/null 2>&1); r=$?
 [ "$r" = 3 ] && ok "an index that does not exist is a usage error (3)" || bad "missing index" "rc=$r"

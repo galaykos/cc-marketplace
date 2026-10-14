@@ -82,7 +82,8 @@ rather than refuses: a known-flaky or non-required check is a legitimate merge, 
 you know which.
 
 - **What it reads.** `gh pr merge` at a command position, with the PR from its first
-  argument (number, `#n`, URL or branch) or the current branch, and `-R/--repo` passed
+  argument (number, `#n`, URL or branch; never a redirection or a quoted `--body` value)
+  or the current branch, and `-R/--repo` or a `GH_REPO=`/`GH_HOST=` prefix passed
   through; `gh` runs in the session's working directory. `--auto` (GitHub then waits for
   the required checks itself), `--disable-auto` and `--help` pass silently.
 - **Fail-open.** No `gh`, not logged in, no network, no PR, no checks reported, or no
@@ -91,8 +92,9 @@ you know which.
   anything.
 - **Not caught.** A PR held in a variable (`gh pr merge "$n"`), any merge after the first
   in one command, a merge from the web UI or the API, and non-required checks that
-  `--auto` does not wait for. A `cd` inside the command does not move where `gh` runs;
-  the ask names the PR, so a wrong one shows.
+  `--auto` does not wait for. A `cd` inside the command does not move where `gh` runs,
+  and an `export GH_REPO=…` before the merge is not read; the ask names the PR, so a
+  wrong one shows.
 - **Off switch.** `CC_MERGE_CHECKS=off`, or the `cc_merge_checks` option under `/config`.
 
 ## What has teeth

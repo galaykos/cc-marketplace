@@ -361,7 +361,11 @@ A card whose rv/diff-<card>.patch (task-runner's review-diff.sh) names a .tsx, .
 (rv-agent-<card>@*ui-ux-reviewer.json, written by rv-observe from subagent_type), a
 skip or an exemption. Measured: in one 2026-10 run, 8 of 10 UI cards were reviewed by
 frontend-reviewer alone, asked to "also cover markup", and the per-card count above
-let it stand in. Misses: a UI card with no diff file is not checked.
+let it stand in. A test or story file (*.test.*, *.spec.*, *.stories.*, under
+__tests__/ or tests/) is not a UI file: reviewer-routing gives a test-only card
+code-reviewer alone, and the first cut blocked such a card for a reviewer the routing
+never dispatches. Misses: a UI card with no diff file is not checked; a test directory
+named otherwise (test/, e2e/) still counts as UI.
 ```
 
 ### run_clause: WHOLE-RANGE REVIEW (0.8.0)
@@ -386,6 +390,12 @@ run.md step 4 renames active-run.json to closed-run.json instead of deleting it.
 records checks above never ran on a correct close — only on an incorrect one. The gate
 reads closed-run.json when active-run.json is absent and deletes it once every check
 passes. Without candor installed, closed-run.json stays until the next registration.
+A closing stop that never reaches the clause (Esc, session end, the clause switched
+off) left the file read as a live run, so the first stop after any later commit on that
+branch blocked for a gate pass at the new HEAD. Now a closed-run.json whose gate-pass.json
+names a HEAD other than the current one is deleted silently: the run closed at that
+earlier commit. Misses: a commit made between the gate pass and the closing stop retires
+the run unchecked too; a closed-run.json with no gate-pass.json still blocks.
 ```
 
 ### run_clause: BEHAVIORAL-GATE EVIDENCE

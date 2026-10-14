@@ -27,10 +27,11 @@ echo changed > "$REPO/src/other.ts"                      # outside the card's pa
 echo '<template/>' > "$REPO/ui/New.vue"                 # untracked, inside the card's paths
 echo scratch > "$REPO/notes.txt"                        # untracked, outside
 
-out=$(cd "$REPO/app/sub" && bash "$RD" --card 03 --base "$CB" ../../src/a.ts ../../ui 2>&1); r=$?
+out=$(cd "$REPO/app/sub" && bash "$RD" --card 03 --base "$CB" src/a.ts ui 2>&1); r=$?
 P="$REPO/.claude/task-runner/rv/diff-03.patch"
 [ "$r" = 0 ] && [ "$out" = "$P" ] && ok "writes rv/diff-<card>.patch at the repo root and prints its path" || bad "path" "rc=$r out=<$out>"
-grep -q '^diff --git a/src/a.ts b/src/a.ts$' "$P" && ok "the card's modified file, with a/ b/ headers despite diff.noprefix" || bad "modified file" "$(head -5 "$P")"
+grep -q '^diff --git a/src/a.ts b/src/a.ts$' "$P" && grep -q '^+TWO$' "$P" \
+  && ok "from a subdirectory, root-relative paths name the card's hunk, with a/ b/ headers despite diff.noprefix" || bad "modified file" "$(head -5 "$P")"
 grep -q '^diff --git a/ui/New.vue b/ui/New.vue$' "$P" && grep -q '^+<template/>' "$P" \
   && ok "an untracked file under the card's paths, as a new-file diff" || bad "untracked" "$(cat "$P")"
 ! grep -q 'other.ts\|notes.txt' "$P" && ok "files outside the card's paths stay out" || bad "scope" "$(grep -n 'other\|notes' "$P")"
@@ -43,5 +44,8 @@ head -1 "$P" | grep -q 'Cite line numbers from the working file' && ok "the file
 [ "$r" = 3 ] && [ ! -e "$REPO/.claude/task-runner/x.patch" ] && ok "a card id with path characters is a usage error" || bad "card id" "rc=$r"
 (cd "$REPO" && bash "$RD" --card 04 --base no-such-ref >/dev/null 2>&1); r=$?
 [ "$r" = 3 ] && ok "a base that is no commit is a usage error" || bad "base" "rc=$r"
+out=$(cd "$REPO" && bash "$RD" --card 05 --base "$CB" app 2>&1 >/dev/null); r=$?
+[ "$r" = 4 ] && [ ! -e "$REPO/.claude/task-runner/rv/diff-05.patch" ] && printf '%s' "$out" | grep -q 'no diff' \
+  && ok "paths with no diff against the base exit 4, say so and leave no patch" || bad "empty diff" "rc=$r out=<$out>"
 
 exit $rc

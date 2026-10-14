@@ -492,6 +492,29 @@ TY="$WS/t-y-shadow.jsonl"
 out=$(edit "$Y" "$Y/app/Models/Plan.php" "$TY")
 has_skill "$out" laravel-best-practices && ok || bad "project copy loaded: the plugin's laravel skill was taken as loaded; got: ${out:0:200}"
 
+# 22. a skill matched by a file row and then an import or command row takes rank 0 and that match's subject: a components/ stylesheet
+#     importing tailwindcss, written after two rank-1 files, keeps tailwind inside the cap; components.json plus `shadcn add` quotes the command
+Z="$WS/z"; mkrepo "$Z"; printf '{"devDependencies":{"tailwindcss":"^4.0.0"}}\n' > "$Z/package.json"; mkdir -p "$Z/resources/js/components"
+out=$(bashw "$Z" "cat > app/Models/Order.php <<'A'
+<?php
+A
+printf 'select 1;\\n' > app/orders.sql; printf '@import \"tailwindcss\";\\n' > resources/js/components/Card.css" "$(fresh)")
+has_skill "$out" tailwind-best-practices && ok || bad "min rank: the @import row did not lift tailwind over two rank-1 rows; got [$(echo $(skills <<<"$out"))]"
+[ "$(skills <<<"$out" | grep -c .)" = 2 ] && ok || bad "min rank: expected 2 nudges, got [$(echo $(skills <<<"$out"))]"
+printf '{"style":"new-york"}\n' > "$Z/components.json"
+out=$(bashc "$Z" 'printf x > components.json; npx shadcn@latest add button' "$(fresh)")
+grep -qF 'This command runs `shadcn@latest add`' <<<"$out" && ok || bad "min rank: the rank-0 command match did not carry its subject; got: ${out:0:200}"
+
+# 23. a skill found loaded is recorded as loaded (not fired, which the ledger reports as surfaced), so the next edit routing it does not grep the transcript again
+TY="$WS/t-y-once.jsonl"; tline_base "$(sdir laravel laravel-best-practices)" > "$TY"
+edit "$Y" "$Y/app/Models/Plan.php" "$TY" >/dev/null
+jq -e '(.loaded | index("laravel-best-practices")) and ((.fired // []) | index("laravel-best-practices") | not)' "$(statef "$Y" "$TY")" >/dev/null 2>&1 && ok || bad "loaded once: laravel-best-practices not recorded in loaded (or also in fired)"
+printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$GREP_LOG"\nexec %s "$@"\n' "$(command -v grep)" > "$HS/grep"; chmod +x "$HS/grep"
+edit "$Y" "$Y/app/Models/Plan.php" "$TY" PATH="$HS:$PATH" GREP_LOG="$WS/grep.log" >/dev/null
+rm -f "$HS/grep"
+scans=$(grep -cF -- "$TY" "$WS/grep.log" 2>/dev/null)
+[ -s "$WS/grep.log" ] && [ "$scans" = 0 ] && ok || bad "loaded once: the second edit grepped the transcript ${scans:-?} time(s)"
+
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }
 
