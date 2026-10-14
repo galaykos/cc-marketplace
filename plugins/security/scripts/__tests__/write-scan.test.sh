@@ -214,5 +214,27 @@ EOF")
 if [ -z "$out" ]; then pass=$((pass+1)); echo "PASS cd: a relative target after an in-command cd is not read from the payload cwd"
 else echo "FAIL cd: a relative target after an in-command cd is not read from the payload cwd, got: $out"; fail=$((fail+1)); fi
 
+# Scope: a scratch probe outside the project, or in a temp dir the project is not in, is skipped. P itself sits under
+# the exported TMPDIR, so the control case also proves a project that lives in the temp dir is still scanned.
+P=$(mktemp -d "$TMPDIR/proj.XXXXXX"); S=$(mktemp -d "$TMPDIR/scratch.XXXXXX"); mkdir -p "$P/app" "$P/tmp"
+SINK='data = pickle.loads(blob)'
+runc() { # runc <session> <file_path> [TMPDIR]
+  jq -cn --arg s "$1" --arg d "$P" --arg f "$2" --arg c "$SINK" \
+    '{tool_name:"Write", session_id:$s, cwd:$d, tool_input:{file_path:$f, content:$c}}' | TMPDIR="${3:-$TMPDIR}" bash "$HOOK"
+}
+scope() { # scope <name> <want warn|silent> <out>
+  if { [ "$2" = warn ] && grep -q 'unsafe-deserialization' <<<"$3"; } || { [ "$2" = silent ] && [ -z "$3" ]; }; then
+    pass=$((pass+1)); echo "PASS scope: $1"
+  else echo "FAIL scope: $1 (want $2), got: ${3:-<empty>}"; fail=$((fail+1)); fi
+}
+scope "a Write outside the project root is silent"                silent "$(runc sc1 "$S/probe.py")"
+scope "a Write inside a project that lives in the temp dir warns" warn   "$(runc sc2 "$P/app/loader.py")"
+scope "a Write under a TMPDIR inside the project is silent"       silent "$(runc sc3 "$P/tmp/probe.py" "$P/tmp")"
+printf '%s\n' "$SINK" > "$S/probe2.py"
+out=$(jq -cn --arg d "$P" --arg c "cat > $S/probe2.py <<'EOF'
+$SINK
+EOF" '{tool_name:"Bash", session_id:"sc4", cwd:$d, tool_input:{command:$c}}' | bash "$HOOK")
+scope "a Bash write outside the project root is silent"           silent "$out"
+
 echo "write-scan tests: $pass passed, $fail failed"
 exit $((fail > 0))

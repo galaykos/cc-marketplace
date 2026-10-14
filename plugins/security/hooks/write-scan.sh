@@ -1,6 +1,7 @@
 #!/bin/bash
 # write-scan.sh (PostToolUse on Write, Edit, MultiEdit and Bash; payload on stdin) — warns, never denies, once per context, file and finding,
 #   on a security sink one written line or Bash-written file shows; the ported and LLM sinks only in their own file types, the Laravel/Vite/raw-HTML ones in any file.
+#   Skips a target outside the project root, or under $TMPDIR (default /tmp) unless the project itself is there.
 # Off: CC_SECURITY_SCAN=off or CC_REMIND=off. Fails open on any error, a missing jq included.
 # CC_SECURITY_SCAN / CC_REMIND unset: the /config options cc_security_scan / cc_remind decide.
 # Misses: a sink split across lines or reached through an alias, and injection inside the data; cross-file flows, authz, raw SQL outside whereRaw;
@@ -178,7 +179,28 @@ MAX_BASH_TARGETS=8
       ] | join("\n")' 2>/dev/null) || exit 0
     [ -n "$text" ] || exit 0
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // "unknown"' 2>/dev/null)
+    cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   fi
+  # Scratch is not the project: probe scripts under /tmp drew sink warnings in real sessions. A target outside the
+  # project root (the payload cwd's git toplevel, else the cwd) or under $TMPDIR while the project is not is skipped,
+  # both sides compared symlink-resolved. Residual: a sibling worktree written by absolute path from another checkout
+  # is skipped too, and a payload with no cwd keeps only the temp-dir rule.
+  tmpd=$(CDPATH= cd -- "${TMPDIR:-/tmp}" 2>/dev/null && pwd -P) || tmpd=""
+  root=""
+  if [ -n "$cwd" ] && [ -d "$cwd" ]; then
+    root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || root=$cwd
+    root=$(CDPATH= cd -- "$root" 2>/dev/null && pwd -P) || root=""
+  fi
+  tmpd=${tmpd%/}; root=${root%/}
+  out_of_scope() { # out_of_scope <path>: status 0 for a target outside the project root, or in a temp dir the project is not in
+    local d
+    d=$(CDPATH= cd -- "$(dirname -- "$1")" 2>/dev/null && pwd -P) || return 1
+    if [ -n "$root" ]; then case "$d/" in "$root"/*) ;; *) return 0 ;; esac; fi
+    [ -n "$tmpd" ] || return 1
+    case "$root/" in "$tmpd"/*) return 1 ;; esac
+    case "$d/" in "$tmpd"/*) return 0 ;; esac
+    return 1
+  }
   # Context key, not session: a subagent shares its parent's session_id but has its own transcript.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // "nosession"' 2>/dev/null)
   skey=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
@@ -299,6 +321,7 @@ MAX_BASH_TARGETS=8
       d=$(CDPATH= cd -- "$(dirname -- "$p")" 2>/dev/null && pwd) || continue
       p="$d/$(basename -- "$p")"
       [ -f "$p" ] || continue
+      out_of_scope "$p" && continue
       file=$p
       text=$(head -c 262144 "$p" 2>/dev/null)
       [ -n "$text" ] || continue
@@ -309,6 +332,7 @@ MAX_BASH_TARGETS=8
 $targets
 EOF_T
   else
+    out_of_scope "$file" && exit 0
     scan_text
     hit_files=$file
   fi
