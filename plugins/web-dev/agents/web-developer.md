@@ -4,7 +4,7 @@ description: Use PROACTIVELY for general web implementation work — routing, RE
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
-bestpractices-skill: laravel-best-practices,nextjs-best-practices,react-native-best-practices,vite-best-practices
+bestpractices-skill: inertia-best-practices,laravel-best-practices,nextjs-best-practices,react-native-best-practices,vite-best-practices
 ---
 <!-- generated from templates/worker-agent.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
