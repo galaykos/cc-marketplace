@@ -306,10 +306,14 @@ print("zip:", z)' "$page" "$z"; log ok "$z" ;;
 
   decision)
     python3 - "$DEC" "$WS" "$@" <<'PY'
-import json, os, sys, time
+import json, os, re, sys, time
 dec, ws_path, *args = sys.argv[1:]
 if args[:1] == ["--record"]:
     line = args[1] if len(args) > 1 else ""
+    # A line written in the file's own `date — …` shape came out dated twice in a real
+    # session, so a leading `YYYY-MM-DD —` (en dash or hyphen too) is dropped and today's
+    # date stands. Residual: a date with no dash after it is kept as text.
+    line = re.sub(r"^\s*\d{4}-\d{2}-\d{2}\s+[—–-]\s+", "", line)
     if not line:
         print("dk decision --record needs a line", file=sys.stderr); sys.exit(2)
     os.makedirs("design-system", exist_ok=True)

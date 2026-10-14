@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.4 — 2026-10-14
+
+- **`dk decision --record` dates a line once.** It put today's date in front of whatever it was given, so a line written in the file's own `YYYY-MM-DD — …` shape landed in `design-system/DECISIONS.md` as `- <date> — <date> — board …`, as it did in a real session. A leading `YYYY-MM-DD` followed by a spaced em dash, en dash or hyphen is now dropped and today's date stands. Residual: a leading date with no dash after it stays in the text, and so does a date-named slug such as `2001-02-03-hero.html`. Standing: gate — `dk.test.sh` records a dated line and a date-named slug; the first fails against 0.9.3.
+
 ## 0.9.3 — 2026-10-03
 
 - in-codebase says where the scaffold's comments belong: the prop signatures, `gap:` lines and commented-out renders live only on the throwaway `__design-kit__/` page that cleanup removes, and none is copied into the real component. With code-review installed, a full rewrite of that page can be denied for its comment volume (mostly the prop-signature blocks), so the skill tells the model to change it with Edit around them. The scaffold itself is unchanged.
