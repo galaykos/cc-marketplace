@@ -1,5 +1,5 @@
 #!/bin/bash
-# route-prompt.sh — UserPromptSubmit, fails open: on any prompt, prints once each the low-confidence signals route.sh queued for this context;
+# route-prompt.sh — UserPromptSubmit, fails open: on any prompt but a harness frame, prints once each the low-confidence signals route.sh queued for this context;
 #   then, on the session's first work-shaped prompt, the rules for judging the host's own command listing. It picks no command.
 # Off: CC_REMIND=off (every advisory nudge in this marketplace) or CC_ROUTE=off (this hook); unset, the /config options cc_remind / cc_route decide.
 # Misses: a symptom phrased without a state verb (`payment failures spiking`, `memory leak in the worker`); fires anyway on a chat sentence
@@ -75,6 +75,15 @@ cc_option() {
 
   case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
   case "$(cc_option CC_ROUTE on)" in off) exit 0 ;; esac
+
+  # A harness frame is not a human turn. The flush below ran on task notifications, hand-backs and Stop hook feedback, spending
+  # the digest where nobody judged it (45 of 65 in one measured session); skipped here, it waits for the next human prompt.
+  # Same prefixes as ask-ledger's ledger.sh. Misses: a frame it does not name, which still flushes.
+  case "$prompt" in
+    '<system-reminder>'*|'<task-notification>'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) exit 0 ;;
+    'Another Claude session sent a message:'*|'<agent-message'*) exit 0 ;;
+    *'[Subagent hand-back]'*) exit 0 ;;
+  esac
 
   # Key and root as route.sh spells them (`.transcript_path // .session_id`, hashed; cc_state_root): any other spelling misses its file.
   sid_f=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)

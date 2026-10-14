@@ -351,15 +351,16 @@ out=$(bashc "$S3" 'echo "$(npx shadcn@latest add button)"' "$(fresh)")
 has_skill "$out" shadcn-best-practices && ok || bad "command row: \$(…) inside double quotes is live code and did not route; got: ${out:0:160}"
 
 # 15. content+high fires inline only on code and style files; any other file keeps its
-#     match in the digest and does not spend the one-shot
+#     match in the digest (a doc file queues nothing, case 18) and does not spend the one-shot
 N="$WS/n"; mkui "$N" '{"dependencies":{"react":"19.0.0"}}'; TN="$WS/t-n.jsonl"
 printf 'Hero timeline: port it to gsap next sprint.\n' > "$N/NOTES.md"
 out=$(edit "$N" "$N/NOTES.md" "$TN")
 has_skill "$out" motion-best-practices && bad "content+high: NOTES.md mentioning gsap fired inline" || ok
-pend "$(statef "$N" "$TN")" motion-best-practices && ok || bad "content+high: NOTES.md's match did not fall through to the digest"
 mkdir -p "$N/tools"; printf 'SNIPPET = "const r = new THREE.WebGLRenderer()"\n' > "$N/tools/gen.py"
 out=$(edit "$N" "$N/tools/gen.py" "$TN")
 has_skill "$out" threejs-best-practices && bad "content+high: a .py containing 'new THREE.' fired inline" || ok
+pend "$(statef "$N" "$TN")" threejs-best-practices && ok || bad "content+high: gen.py's match did not fall through to the digest"
+pend "$(statef "$N" "$TN")" motion-best-practices && bad "doc file: NOTES.md's gsap match reached the digest" || ok
 printf "import gsap from 'gsap'\n" > "$N/src/pages/Hero.tsx"
 out=$(edit "$N" "$N/src/pages/Hero.tsx" "$TN")
 has_skill "$out" motion-best-practices && ok || bad "content+high: the one-shot was spent by NOTES.md — Hero.tsx did not fire; got: ${out:0:160}"
@@ -387,6 +388,37 @@ routes "$K" resources/js/.scratch.jsx 'export const y = <div />' a11y-audit low-
 routes "$K" resources/js/.scratch.vue '<template><i /></template>' a11y-audit low-cognitive-load
 routes "$K" .php-cs-fixer.php '<?php return [];' laravel-best-practices low-cognitive-load
 routes "$K" config/app.php '<?php return [];' low-cognitive-load
+
+# 18. doc and style files queue nothing; a harness frame does not flush the digest, a human prompt does
+D="$WS/d"; mkrepo "$D"; TD="$WS/t-d.jsonl"
+mkdir -p "$D/docs" "$D/resources/css" "$D/taskmaster-docs/mockups"
+printf 'Rotate the api token before the release.\n' > "$D/docs/runbook.md"
+printf '.badge { color: var(--token-fg); }\n' > "$D/resources/css/badge.css"
+printf '<form><input type="password" name="password"></form>\n' > "$D/taskmaster-docs/mockups/login.html"
+printf 'Rotate the secret quarterly.\n' > "$D/docs/notes.txt"
+for f in docs/runbook.md resources/css/badge.css taskmaster-docs/mockups/login.html docs/notes.txt; do
+  edit "$D" "$D/$f" "$TD" >/dev/null
+  pend "$(statef "$D" "$TD")" security-review && bad "doc/style file: $f queued security-review" || ok
+done
+printf '<?php\nclass ApiTokenController { public function show() { return $this->token; } }\n' > "$D/app/Http/Controllers/ApiTokenController.php"
+edit "$D" "$D/app/Http/Controllers/ApiTokenController.php" "$TD" >/dev/null
+pend "$(statef "$D" "$TD")" security-review && ok || bad "code file: a .php edit with token no longer queues security-review"
+prompt_d() { # prompt transcript
+  jq -cn --arg c "$D" --arg tp "$2" --arg p "$1" '{hook_event_name:"UserPromptSubmit",prompt:$p,session_id:"sess",transcript_path:$tp,cwd:$c}' \
+    | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS"; }
+for p in '<task-notification><task-id>t1</task-id><status>completed</status></task-notification>' \
+         'Stop hook feedback: run the suite first' '<system-reminder>a file changed</system-reminder>' \
+         $'Another Claude session sent a message:\n<agent-message from="a1">done</agent-message>' \
+         $'note above the frame\n[Subagent hand-back] all green'; do
+  t=$(fresh); edit "$D" "$D/app/Http/Controllers/ApiTokenController.php" "$t" >/dev/null
+  fl=$(prompt_d "$p" "$t")
+  grep -qF 'Signals from recent edits' <<<"$fl" && bad "harness frame flushed the digest [${p:0:30}]" || ok
+  jq -e '.pending_low | any(.flushed != true)' "$(statef "$D" "$t")" >/dev/null 2>&1 && ok || bad "harness frame marked pending_low flushed [${p:0:30}]"
+done
+fl=$(prompt_d 'what does a <task-notification> prompt carry?' "$TD")
+grep -qF 'Signals from recent edits' <<<"$fl" && grep -qF 'ApiTokenController.php' <<<"$fl" && ok \
+  || bad "human prompt quoting a frame marker did not flush; got: ${fl:0:200}"
+grep -qE 'runbook\.md|badge\.css|login\.html|notes\.txt' <<<"$fl" && bad "digest named a doc/style file: ${fl:0:200}" || ok
 
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }

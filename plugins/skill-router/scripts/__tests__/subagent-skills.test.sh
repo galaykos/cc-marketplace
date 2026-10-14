@@ -88,9 +88,9 @@ ctx "$o" | grep -qF 'Read these before working; a path the dispatcher already ga
 o=$(spawn "$LN" web-dev:frontend-reviewer)
 [ "$(skills "$o")" = "inertia-best-practices" ] && ok || bad "laravel no-vite: expected [inertia] alone; got [$(skills "$o")]"
 
-# 1c. web-developer in the Laravel repo: laravel + vite, never RN or Next
+# 1c. web-developer in the Laravel repo: inertia + laravel + vite, never RN or Next
 o=$(spawn "$L" web-dev:web-developer)
-[ "$(skills "$o")" = "laravel-best-practices vite-best-practices" ] && ok || bad "web-developer laravel: expected [laravel vite]; got [$(skills "$o")]"
+[ "$(skills "$o")" = "inertia-best-practices laravel-best-practices vite-best-practices" ] && ok || bad "web-developer laravel: expected [inertia laravel vite]; got [$(skills "$o")]"
 
 # 2. Next.js repo: frontend-reviewer gets nextjs, and nothing Laravel-side.
 o=$(spawn "$N" web-dev:frontend-reviewer)

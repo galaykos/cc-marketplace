@@ -73,15 +73,15 @@ out=$(edit "$R" "$R/x.pind" "$WS/t-deliver" CLAUDE_PLUGIN_DATA="$WS/datafile")
 [ "$(nudges_for deliver-canary <<<"$out")" = 1 ] && ok "deliver: a nudge survives a state dir that cannot be created" \
   || bad "deliver: a nudge survives a state dir that cannot be created" "got: ${out:-<empty>}"
 
-R="$WS/low"; mkrepo "$R"; printf 'PINLOW\n' > "$R/note.txt"
-edit "$R" "$R/note.txt" "$WS/t-low" >/dev/null
+R="$WS/low"; mkrepo "$R"; printf 'PINLOW\n' > "$R/note.pinl"
+edit "$R" "$R/note.pinl" "$WS/t-low" >/dev/null
 sf=$(statef "$R" "$WS/t-low")
 if jq -e '(.pending_low | any(.skill == "present-canary")) and (.pending_low | any(.skill == "absent-canary") | not)' "$sf" >/dev/null 2>&1
 then ok "low pass: a content row whose plugin is not installed stays out of pending_low"
 else bad "low pass: a content row whose plugin is not installed stays out of pending_low" "state: $(cat "$sf" 2>/dev/null)"; fi
 
-edit "$R" "$R/note.txt" "$WS/t-low" >/dev/null
-if [ "$(jq --arg f "$R/note.txt" '[.pending_low[] | select(.skill == "present-canary" and .file == $f)] | length' "$sf" 2>/dev/null)" = 1 ]
+edit "$R" "$R/note.pinl" "$WS/t-low" >/dev/null
+if [ "$(jq --arg f "$R/note.pinl" '[.pending_low[] | select(.skill == "present-canary" and .file == $f)] | length' "$sf" 2>/dev/null)" = 1 ]
 then ok "persist: a low signal repeated on one file is queued once"
 else bad "persist: a low signal repeated on one file is queued once" "state: $(cat "$sf" 2>/dev/null)"; fi
 

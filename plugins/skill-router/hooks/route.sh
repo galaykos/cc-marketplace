@@ -1,6 +1,6 @@
 #!/bin/bash
 # route.sh — PostToolUse, fails open: matches the edited file, each existing file a Bash command wrote under the project root, and the
-# command itself against rules.tsv; prints one additionalContext envelope of `high` nudges, each skill once per context; queues other content matches as pending_low.
+# command itself against rules.tsv; prints one additionalContext envelope of `high` nudges, each skill once per context; queues other content matches as pending_low, none from a doc or style file.
 # Off: CC_REMIND=off, or unset with the /config option cc_remind off. CC_ROUTE is not read here: it silences route-prompt.sh, the tool-fit check and the flush of what this hook queues.
 # Misses: two concurrent calls can drop a pending_low entry; a payload cwd of `/` or `$HOME` outside git is taken for the project root;
 # a directory row matches only the directory name it spells (in any case); a command row routes an unquoted mention of its CLI
@@ -433,12 +433,15 @@ EOF_CMD
   }
 
   # Reads hcs, the one head per target nudge_high_matches read.
+  # Doc and style files queue nothing: `token` in a spec or a CSS file queued security-review. Same exemption as database's guard.sh;
+  # the cost is a doc that really is about the concern (a security runbook) drawing no signal.
   queue_low_matches() {
     pending_adds=""
     i=0
     while [ "$i" -lt "${#abs[@]}" ]; do
       set_target "$i"; content="${hcs[$i]}"; i=$((i + 1))
       [ -n "$content" ] || continue
+      case "$target" in *.md|*.mdx|*.markdown|*.txt|*.rst|*.css|*/taskmaster-docs/*) continue ;; esac
       inline=0; inline_ext && inline=1
       while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
         case "$stype" in ''|'#'*) continue ;; esac

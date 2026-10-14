@@ -2,6 +2,12 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.25.2 — 2026-10-14
+
+### Fixed
+
+- **The "Signals from recent edits" digest waits for a human prompt, and doc and style files no longer feed it.** `route-prompt.sh` flushed the digest before its harness-prompt filter ran, so it landed on task notifications, subagent hand-backs, Stop hook feedback and system reminders, where nobody judged it: 45 of 65 digests in one measured session. Those frames, on ask-ledger's prefix list, now exit before the flush and the digest stays queued. Separately, `route.sh` queued a low-confidence content match from any file, so `token` or `password` in a spec, a runbook or a stylesheet queued `security-review`; a `.md`, `.mdx`, `.markdown`, `.txt`, `.rst` or `.css` file, or anything under `taskmaster-docs/`, now queues nothing, the exemption database's `guard.sh` already makes. `high` content rows still fire inline on a `.css` file. Residuals: a harness frame not on the list still flushes; a doc that really is about the concern (a security runbook) draws no signal; the "judge each in one line" clause is unchanged and unmeasured. Pinned by `scripts/__tests__/route.test.sh` case 18 (four doc/style files queue nothing and a `.php` edit still queues; five frames leave the digest unflushed, a human prompt quoting a frame marker flushes it), 16 assertions red against 0.25.1, plus case 15, where a `NOTES.md` match no longer reaches the digest and a `.py` match still does. `route-pins.test.sh`'s low-pass fixture moved off `.txt`, and `subagent-skills.test.sh` case 1c now expects web-developer's `inertia-best-practices` (web-dev change).
+
 ## 0.25.1 — 2026-10-09
 
 - **Compaction steering leaves out a stale phase sentinel.** A `.claude/cc-phase.json` last written more than 120 minutes ago, the TTL its writer gives every reader, no longer reaches the summarizer's instructions; before, a sentinel left by a crashed or abandoned run was asked to be kept word for word in every compaction. The task-runner run file has no TTL and is still listed. Three new tests.
