@@ -58,8 +58,8 @@ Without arguments it asks for a description first. The pipeline then:
    settled, and each UI card names the screen, widths and state the browser walk
    at group close must see
 8. When task-runner is installed, asks "Start execution now?" — one approval and
-   it hands the index straight to the task-execution discipline, no manual
-   `/task-runner:run` needed (still printed as the fallback if you decline)
+   it invokes `/task-runner:run` on the index itself, so the run registers for the
+   completion gate, no manual command needed (still printed as the fallback if you decline)
 
 A priority directive fires on work-shaped prompts
 (build/add/implement/fix/update/change/write…): before the first code edit,

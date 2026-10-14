@@ -35,7 +35,7 @@ decided about each sentence, attributes carry the evidence. Standing of every ru
 <change>exact edits at file level — create X, extract Y into Z, wire A to B</change>
 <interface consumer="04">the signature or data shape card 04 reads</interface>
 <contract section="Data Model"/>
-<skill name="laravel-best-practices"/>
+<skill name="laravel:laravel-best-practices"/>
 </must>
 
 <must-not>
@@ -54,8 +54,11 @@ decided about each sentence, attributes carry the evidence. Standing of every ru
 ```
 
 One `<skill>` per skill, `name="none"` when none; the executing session MUST Read each
-before implementing. `<agent>`: one tag from `references/agent-tags.md`, `generic` when
-files span >1 domain. `<contract>` only when the spec has that binding section.
+before implementing. Stamp a marketplace skill as `plugin:skill`: a bare name loses to a
+same-named project skill (Laravel Boost ships its own `laravel-best-practices`), so workers
+read that copy instead; `skills-stamp-lint.sh` does not check the prefix. `<agent>`: one
+tag from `references/agent-tags.md`, `generic` when files span >1 domain. `<contract>` only
+when the spec has that binding section.
 
 ## Sizing rules
 
