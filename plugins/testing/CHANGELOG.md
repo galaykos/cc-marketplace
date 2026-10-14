@@ -6,6 +6,18 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.13.1 — 2026-10-14
+
+### Fixed
+- **Pest's `test()->` helper no longer opens a test block in `test-shape`.** In Pest,
+  `test()` with no argument returns the running test case, so a `test()->account` line in a
+  `beforeEach` or a test body was read as a new test: the file split into hollow blocks and
+  the hook reported assertion-free tests that asserted. A `test(`/`it(`/`describe(`/`context(`
+  opener now needs an argument on the same line. Residual: an opener whose title starts on
+  the next line (`it(` alone on its line) is no longer seen. Harness case 5e in
+  `test-shape.test.sh` pins it ("silent on Pest's test()-> helper" fails against 0.13.0);
+  its sibling keeps `test('…'`, `it("…"` and `test(title,` opening.
+
 ## 0.13.0 — 2026-10-08
 
 - **A flake-hunt suggestion (Claude Code ≥ 2.1.291).** A hooks module, `hooks/suggest.ts`, offers `/testing:flake-hunt` in the idle prompt box (Tab accepts, nothing runs until you send it) at the end of a turn in which one test-runner command has both passed and failed in this session with no successful `Write`/`Edit`/`MultiEdit`/`NotebookEdit` between, once per command per session, silent under a live phase sentinel and `CC_SUGGEST=off`. `hooks/cc-kit.ts` is a byte copy of the shared mod kit. Six cases in `tests/suggest.test.ts`. Not seen: an edit made through `Bash`; a non-zero exit as a live CLI reports it.

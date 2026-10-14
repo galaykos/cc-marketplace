@@ -263,6 +263,34 @@ RB
 out=$(fire "$f"); [ -z "$out" ] && pass "silent on RSpec xit/pending and its paren-less assertion forms" \
   || fail "silent on RSpec xit/pending and its paren-less assertion forms" "flagged: $out"
 
+# ---- 5e. SILENCE: Pest's `test()->` helper is not a test opener -------------------------
+# `test()` with no argument returns the running test case, so a `test()->account` line in
+# a hook or a test body split the file into hollow blocks and both read as assertion-free.
+f=$(mk tests/Feature/AccountPageTest.php <<'PHP'
+<?php
+beforeEach(function () {
+    test()->account = Account::factory()->create();
+});
+
+it('shows the account', function () {
+    $this->get('/accounts/'.test()->account->id)->assertOk();
+});
+PHP
+)
+out=$(fire "$f"); [ -z "$out" ] && pass "silent on Pest's test()-> helper" \
+  || fail "silent on Pest's test()-> helper" "flagged: $out"
+
+# The same rule must still open a block on a quoted title and on a title variable.
+f=$(mk src/titles.test.ts <<'TS'
+test('single-quoted title', () => { add(1, 1) })
+it("double-quoted title", () => { sub(2, 1) })
+test(title, () => { mul(3, 3) })
+TS
+)
+out=$(fire "$f")
+case "$out" in *"L1"*"L2"*"L3"*) pass "test('…', it(\"…\" and test(title, still open blocks" ;;
+  *) fail "test('…', it(\"…\" and test(title, still open blocks" "got: ${out:-<silent>}" ;; esac
+
 # ---- 6. SILENCE: not a test file ---------------------------------------------------------
 f=$(mk src/plain.ts <<'TS'
 export const add = (a: number, b: number) => a + b
