@@ -9,6 +9,11 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/no-ai-trailer.sh\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/merge-checks.sh\"",
+            "timeout": 10
           }
         ]
       },

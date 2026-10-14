@@ -163,6 +163,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_HUD_SUBAGENTS` | session-hud | on | Draw each subagent row as its type, model, effort, context use and age instead of the default row: on or … |
 | `CC_HUD_TURN` | session-hud | on | Add a turn's output tokens, cost and context growth to the line that closes it: on or off |
 | `CC_LOCKFILE_GATE` | candor | on | Stop-gate clause for a dependency manifest changed with its lockfile untouched: on or off |
+| `CC_MERGE_CHECKS` | git-workflow | on | Ask before gh pr merge while the pull request's checks are pending or failing: on or off |
 | `CC_OVERSEER_STATUS` | overseer | on | Pin the open program's next milestone under the prompt: on or off |
 | `CC_PALETTE` | ui-ux | on | Name the category-default indigo, violet or purple accent when a UI write uses it: on or off |
 | `CC_PREAMBLE` | candor | on | Inject the five working moves before the first edit of a session and of each subagent: on or off |

@@ -3,8 +3,9 @@
 Git workflow discipline: an isolated worktree per feature branch (proven-ignored
 location, deps installed, baseline suite run before any change), a structured
 finish protocol for development branches (verify, present options, merge/PR/park,
-clean up), review-exchange rigor on both sides of a code review, and a guard
-that keeps AI attribution out of git history.
+clean up), review-exchange rigor on both sides of a code review, a guard
+that keeps AI attribution out of git history, and a check that asks before
+`gh pr merge` while the pull request's CI is not green.
 
 ## Install
 
@@ -71,6 +72,29 @@ bash hooks/no-ai-trailer.sh --check 'git commit -m "x
 Co-Authored-By: Claude <noreply@anthropic.com>"'   # exit 2 = deny
 ```
 
+## No merge while CI is still out
+
+A second `PreToolUse` hook, `hooks/merge-checks.sh`, runs `gh pr checks` before a
+`gh pr merge` and asks you to confirm when any check is pending, failing or cancelled,
+naming them. It exists because a session merged a pull request while CI was still
+running, CI then failed on the merged commit, and the user had asked to wait. It asks
+rather than refuses: a known-flaky or non-required check is a legitimate merge, and only
+you know which.
+
+- **What it reads.** `gh pr merge` at a command position, with the PR from its first
+  argument (number, `#n`, URL or branch) or the current branch, and `-R/--repo` passed
+  through; `gh` runs in the session's working directory. `--auto` (GitHub then waits for
+  the required checks itself), `--disable-auto` and `--help` pass silently.
+- **Fail-open.** No `gh`, not logged in, no network, no PR, no checks reported, or no
+  answer within 5 s: silent, and the merge runs. It is the one hook here that makes a
+  network call, and only on a `gh pr merge`; every other Bash call exits before reading
+  anything.
+- **Not caught.** A PR held in a variable (`gh pr merge "$n"`), any merge after the first
+  in one command, a merge from the web UI or the API, and non-required checks that
+  `--auto` does not wait for. A `cd` inside the command does not move where `gh` runs;
+  the ask names the PR, so a wrong one shows.
+- **Off switch.** `CC_MERGE_CHECKS=off`, or the `cc_merge_checks` option under `/config`.
+
 ## What has teeth
 
 Standing markers per the marketplace convention (see
@@ -82,11 +106,13 @@ Standing markers per the marketplace convention (see
 | AI trailer written into a git message file | **gate** | denied on `Write`/`Edit` whose path is a git message file |
 | the matching rules | **gate**, tested | `scripts/__tests__/no-ai-trailer.test.sh`, run in CI with every plugin harness (recount the assertions there; none is quoted here) |
 | a human `Co-authored-by:` trailer | **allowed by design** | only trailers naming Claude or Anthropic match |
+| `gh pr merge` while a check is pending, failing or cancelled | **gate** — asks, never blocks | `permissionDecision: ask` naming the checks; `scripts/__tests__/merge-checks.test.sh` drives it with a stub `gh` (verdicts, wrappers, silent shapes, fail-open, the switch) |
+| a merge whose PR is a variable, a second merge in one command, a merge outside `gh pr merge` | **unenforceable** | the PR cannot be read from the command, or no matched tool call carries it |
 | `git commit -F <pre-existing file>`, a repo `prepare-commit-msg` hook, `git config trailer.*`, a commit outside the session | **unenforceable** | the message never crosses a matched tool call; silence means "no known shape matched", not "history is clean" |
 | finish / clean-gone / worktree protocols | **recorded** | prose the model follows; nothing reads it back |
 
-Fail-open, deliberately: missing `jq`, unparseable input, any internal error —
-the hook stays silent, exits 0, and the command proceeds. The harness asserts it.
+Fail-open, deliberately, both hooks: missing `jq`, unparseable input, any internal error —
+the hook stays silent, exits 0, and the command proceeds. Each harness asserts it.
 
 ## Mods (Claude Code ≥ 2.1.291)
 
