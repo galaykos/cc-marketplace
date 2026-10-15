@@ -145,8 +145,8 @@ or stated before the commit. Departures from the text below:
   other reminder hooks have not adopted it.
 - §6 lint: `pc_agent_tool_fit` follows only the `references/` files an agent names, and reads a
   relative-clause subject ("a handler that writes") as description.
-- §7: install and uninstall both ask for the scope. The SessionStart line and `*-lsp`
-  surfacing are not done.
+- §7: install and uninstall both ask for the scope, and install's close names the `*-lsp`
+  complements. The SessionStart line is not done (Tier 2 added it).
 - V-04: candor counts a behavioral gate as in flight through a PID file task-runner writes,
   capped at 240 minutes. Under the sandbox's PID namespace the check can miss.
 - V-02: candor's preamble skips this marketplace's read-only agents by qualified name.
@@ -283,6 +283,60 @@ is the only plugin from this marketplace that is enabled; surface the official c
 (`*-lsp`) that plugin-scout already maps (V-49, H4).
 
 ## Tier 2 — polish (each one session, low)
+
+**Tier 2 applied 2026-10-15.** Eight crews took every row below plus most of the Tier 1
+"found while applying" residuals. Not done: context-scout's overflow file (the scout has no
+Write tool, and granting one costs more than the nit), the `@reui/*` prime (`@reui` is a shadcn
+registry namespace, not an npm package) and the ask-ledger re-measure (it needs fresh sessions
+with this branch installed). Departures from the text below:
+
+- V-20: review-debt's auth-surface words moved into the prompt-shape block as one list both
+  hooks read; `registration` and `sign-up` were added because the observed case used them.
+- /loop: a scheduled re-fire is matched against the ScheduleWakeup or CronCreate call already
+  in the transcript; the reminders, the router and the ledger stay silent on it, review-debt
+  does not. candor's preamble and the approaches, debugging and api-design reminders now
+  use the block.
+- V-55: a log-file BOM is also benign after a tab (CI log lines carry fields before it), and
+  the warning is deduplicated per day, project, file and character set, not per session.
+- V-11: SQLite is read from four config shapes, on the CREATE INDEX path only.
+- V-57: prompt-coach records a hash and a masked excerpt of a held prompt, never its text.
+- V-46: the stock starter kit's `--color-primary: var(--primary)` resolves through `:root`;
+  before, it became an alias to itself and the board fell back to the default blue.
+- §7: the `*-lsp` line already shipped in wave 2's install close; this tier adds only the
+  startup hint.
+
+Residuals fixed in this tier:
+- Branch lookups:
+  - The branch is read with `symbolic-ref` everywhere a run's branch is compared: candor, task-runner and the shared mod kit.
+  - code-architecture's drift-review starts at the run's `start_sha`.
+- task-runner's behavioral gate:
+  - `--runner-for java` needs a test count.
+  - `pytest -qq` progress counts.
+- Pest and rv-consent:
+  - A Pest `->skip()` on the next line is read.
+  - rv-consent reads a piped expansion.
+- Small fixes:
+  - stamp-lint finds its own root.
+  - The craft worked example is gated.
+  - candor's in-flight check survives a PID namespace.
+  - `/candor:check` and the gate share one citation lookup.
+
+Found while applying, not fixed:
+- avert:
+  - A `;`, `&` or `|` inside a quoted commit message leaves the rest of the command scanned.
+  - `-F`/`--body-file` bodies, `gh pr comment` and `git tag -m` are still read.
+- drift.sh: a new file in an existing directory still counts.
+- candor: any process naming behavioral-gate.sh under the root holds the completion gate.
+- unicode-scan: a new session the same day is not re-warned about an unchanged file.
+- design-kit:
+  - An alias to another token maps no colour.
+  - `oklab()`, `lab()`, `lch()` and `color()` are not parsed.
+  - The Svelte adapter gets the Blade path.
+- build-vs-buy: still fires on a brand-only provider.
+- toolchain-experts: a CI job skipped by a path filter reads as passed.
+- all-plugins' hint does not read managed, `--settings` or `--plugin-dir` sources.
+- Reminders: a prompt retyped verbatim while its scheduling call is in the transcript is
+  silenced.
 
 candor preamble skips read-only agents (V-02), skips PR/commit bodies (V-03), honours a stated
 user test plan (V-05), counts an in-flight behavioral-gate as in flight (V-04); database `/tmp`
