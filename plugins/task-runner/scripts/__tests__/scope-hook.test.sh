@@ -9,8 +9,9 @@
 # with canned PostToolUse stdin JSON and judged on rc + stdout + stderr.
 set -u
 # This session may export CLAUDE_PROJECT_DIR (pointing at the marketplace repo); the
-# hook's state-root resolver reads it, so the fixtures must not inherit it.
-unset CLAUDE_PROJECT_DIR
+# hook's state-root resolver reads it, so the fixtures must not inherit it. CLAUDE_PLUGIN_DATA
+# would move the bash-effects marker out of the fixture repo, where case 18 looks for it.
+unset CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_DATA
 
 here=$(cd "$(dirname "$0")" && pwd)
 HOOK="$here/../../hooks/scope.sh"
@@ -276,6 +277,60 @@ else
   printf 'PASS: no .claude/ dir created under the subdirectory\n'; pass=$((pass+1))
 fi
 rm -f "$CWD/.claude/task-runner/gate-pass.json"
+
+# 18) INTERPRETER WRITES (0.47.0, bash-write-effects). A file git reports changed since this
+#     hook's previous call in the run, after an interpreter, cp, mv, install or patch run, is
+#     judged as an Edit of it would be. One repo per shape group: a reused repo carries the
+#     marker. All red against 0.46.3 except the silent ones, which pin what must not change.
+mkrun() { # <dir> -> a git repo with a registered run allowing src/allowed.js and lib/
+  mkdir -p "$1/.claude/task-runner" "$1/src" "$1/lib" "$1/other"; git init -q "$1"
+  printf '{"slug":"t"}' > "$1/.claude/task-runner/active-run.json"; touch -t 202601010000 "$1/.claude/task-runner/active-run.json"
+  printf '{"allow":["src/allowed.js","lib/"],"task":"card 07"}' > "$1/.claude/task-runner/scope.json"
+}
+runb() { (cd "$1" && bash -c "$2") >/dev/null 2>&1; ctx_of "$(stdin_bash "$2" "$1")"; } # <repo> <command>: run it, then the hook
+edit_ctx() { ctx_of "$(jq -cn --arg cwd "$1" --arg f "$2" '{cwd:$cwd, tool_name:"Edit", tool_input:{file_path:$f}}')"; }
+check() { if [ "$2" = 1 ]; then printf 'PASS: %s\n' "$1"; pass=$((pass+1)); else printf 'FAIL: %s\n' "$1"; fail=$((fail+1)); fi; }
+if command -v python3 >/dev/null 2>&1; then
+  R="$WS/fx-effects"; mkrun "$R"; MK="$R/.claude/task-runner/bash-effects.mark"
+  ctx=$(runb "$R" "python3 - <<'PY'
+open('other/first.js', 'w').write('x\n')
+PY")
+  check "effects: the first call of a run in a repo is silent and leaves the marker (ctx=<$ctx>)" \
+    "$([ -z "$ctx" ] && [ -f "$MK" ] && echo 1)"
+  ctx_b=$(runb "$R" "python3 - <<'PY'
+open('other/py.js', 'w').write('x\n')
+PY")
+  ctx_e=$(edit_ctx "$R" "$R/other/py.js")
+  check "effects: a python heredoc write outside scope warns as an Edit of the file does (bash=<$ctx_b>)" \
+    "$([ -n "$ctx_e" ] && [ "$ctx_b" = "$ctx_e" ] && echo 1)"
+  ctx=$(runb "$R" "python3 - <<'PY'
+open('src/allowed.js', 'w').write('x\n'); open('lib/deep.js', 'w').write('x\n')
+PY")
+  check "effects: a python heredoc write inside scope is silent (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+  ctx=$(runb "$R" "python3 -c 'print(1)'")
+  check "effects: a matching run that wrote nothing is silent (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+  echo x > "$R/other/edited.js"; edit_ctx "$R" "$R/other/edited.js" >/dev/null
+  ctx=$(runb "$R" "python3 - <<'PY'
+open('other/py2.js', 'w').write('x\n')
+PY")
+  check "effects: the next interpreter write outside scope warns (ctx=<$ctx>)" \
+    "$(case "$ctx" in *"other/py2.js was edited"*) echo 1 ;; esac)"
+  lacks "effects: a file an Edit changed between two Bash calls is not read again" "$ctx" "other/edited.js"
+  ctx=$(runb "$R" "cp src/allowed.js other/copied.js")
+  check "effects: a cp destination outside scope warns (ctx=<$ctx>)" \
+    "$(case "$ctx" in *"other/copied.js was edited"*) echo 1 ;; esac)"
+  touch -t 202501010000 "$MK"
+  ctx=$(runb "$R" "python3 - <<'PY'
+open('other/late.js', 'w').write('x\n')
+PY")
+  check "effects: a marker older than active-run.json (an earlier run's) reads nothing (ctx=<$ctx>)" \
+    "$([ -z "$ctx" ] && [ "$MK" -nt "$R/.claude/task-runner/active-run.json" ] && echo 1)"
+  N="$WS/fx-norun"; mkdir -p "$N"; git init -q "$N"
+  runb "$N" "python3 -c 'print(1)'" >/dev/null
+  check "effects: no registered run -> no state written into the repo" "$([ ! -e "$N/.claude" ] && echo 1)"
+else
+  echo "SKIP 18: python3 not available"
+fi
 
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -15,10 +15,19 @@
 # WHAT IT SEES (0.41.0). Edit/Write/MultiEdit through `.tool_input.file_path`, AND Bash:
 # the files a command writes by `>`/`>>`, heredoc, `tee` or `sed -i`/`perl -i`, parsed by
 # cc_bash_write_targets below, resolved against the Bash call's cwd, kept only when they
-# are existing regular files under the project root, at most 8 per call. Measured
-# 2026-09-25 (rationale/2026-09-25-session-plugin-usage-review.md, finding 1): with the
-# host's `bashFirst` auto mode, 233 of 238 main-thread writes in one session were
+# are existing regular files under the project root, at most 8 per call (MAX_BASH_TARGETS).
+# Measured 2026-09-25 (rationale/2026-09-25-session-plugin-usage-review.md, finding 1): with
+# the host's `bashFirst` auto mode, 233 of 238 main-thread writes in one session were
 # `cat > file`, so an Edit/Write-only tripwire was blind on the default write path.
+#
+# INTERPRETER WRITES (0.47.0). After a command naming python, node, php, ruby, perl, deno,
+# bun, cp, mv, install or patch, also each file git reports changed or untracked since this
+# hook's previous call in the run (the bash-write-effects block below), at most 8
+# (MAX_BASH_EFFECTS), judged as an Edit of it is. In four sessions of the 2026-10-13 retro,
+# 40-85% of code writes went through interpreter heredocs (python3 - <<'EOF' … open(p,'w')),
+# which the parser cannot name. The marker is dated on every Edit, Write and Bash call of a
+# registered run, so an Edit's file is not read again by the next Bash call; outside a run
+# nothing is written. A marker older than active-run.json reads nothing.
 # Everything under .claude/task-runner/ is the run's own state (active-run.json,
 # gate-pass.json, the scope files) and is never checked — a run commonly writes those
 # with `cat >`, and no card lists them.
@@ -52,9 +61,18 @@
 #     right failure for an advisory tripwire and the wrong one for a gate. This is not a
 #     gate. mtimes compare at whole seconds under macOS's bash 3.2, so a stale file
 #     written in the same second as the registration counts as live.
-#   - Bash writes the parser cannot name: interpreter writes (python open(), php
-#     file_put_contents), cp/mv/install destinations, a path held in a variable, and any
-#     target past the eighth. A file that does not exist after the call is skipped.
+#   - Bash writes neither the parser nor git can name: a path held in a variable, a target
+#     past the eighth; after an interpreter run, a writer the effects block does not name
+#     (make, git apply, npx prettier --write), a gitignored output, a repo with no git, a
+#     file written then reverted, a mv or cp -p destination (it keeps the source's mtime),
+#     files past the eighth, and every write of the first Bash call after a registration
+#     (no marker newer than active-run.json). A file that does not exist after the call is
+#     skipped.
+#   - Writes the command did not make, read as its own: after an interpreter run, any file
+#     changed since this hook's previous call in the run (an IDE save, a cache or test
+#     output git does not ignore) warns as that command's write. Every agent in the tree
+#     shares one marker per root, so a parallel worker's write can be reported to another
+#     agent's call, or dated past by that call and missed.
 #   - Any malformed scope file — invalid JSON, or no `allow` array — disarms the whole
 #     call, not just its own card: a partial union would warn about paths a card it could
 #     not parse had actually allowed.
@@ -66,6 +84,8 @@
 # warnings below (D7: missing jq / a malformed scope file) reach stderr — the block's
 # `2>/dev/null` is there only to silence incidental jq/grep noise and would eat a
 # plain `>&2` warning. (Honest limitation law: .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws".)
+MAX_BASH_TARGETS=8
+MAX_BASH_EFFECTS=8
 exec 3>&2
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -200,6 +220,55 @@ cc_bash_write_targets() {
     }' | awk '!seen[$0]++'
 }
 
+# Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
+# cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
+# Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
+cc_plugin_state() {
+  local key sum
+  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+    key=$(printf '%s' "$(basename -- "$1")" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-')
+    sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
+    printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
+  else
+    printf '%s/.claude/%s\n' "$1" "$2"
+  fi
+  return 0
+}
+
+# Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
+# cc_bash_effects_mark <root> <marker> rewrites <marker> when <root> holds a .git, making its directory with a `*` .gitignore.
+# Call it on EVERY tool call the hook sees (Write, Edit, Bash alike), after cc_bash_write_effects read <marker>: the tool has
+# finished before PostToolUse runs, so <marker> then post-dates every write of the last call this hook saw.
+# cc_bash_write_effects <root> <marker> <command> <max> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked AND newer than <marker>. It runs git only when <command> holds python, node, php,
+# ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, and <marker> exists.
+# Misses: writers it does not name, gitignored files, no git, a file written then reverted, a mv or cp -p destination (it
+# keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a parallel agent, a job.
+cc_bash_effects_mark() {
+  [ -e "$1/.git" ] || return 0
+  local d="${2%/*}"
+  [ -d "$d" ] || { mkdir -p "$d" && printf '*\n' > "$d/.gitignore"; } 2>/dev/null || return 0
+  printf '%s\n' "$$" > "$2" 2>/dev/null
+  return 0
+}
+cc_bash_write_effects() {
+  local re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)[[:space:]<]'
+  local e f n=0
+  local -a c
+  [ -f "$2" ] && [[ $3 =~ $re ]] || return 0
+  while [ "$n" -lt "$4" ] && IFS= read -r -d '' e; do
+    f="$1/${e:3}"
+    [ -f "$f" ] && ! [ "$2" -nt "$f" ] || continue
+    c[n]=$f; n=$((n + 1))
+  done < <(GIT_OPTIONAL_LOCKS=0 git -C "$1" status --porcelain -z --untracked-files=all --no-renames --ignore-submodules=all 2>/dev/null)
+  [ "$n" -gt 0 ] && find "${c[@]}" -prune -newer "$2" -print 2>/dev/null
+  return 0
+}
+
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || { echo "task-runner scope-lock: jq not found — scope not enforced this call" >&3; exit 0; }
@@ -225,6 +294,17 @@ cc_bash_write_targets() {
     [ "$sentinel" -nt "$s" ] && continue
     scopes+=("$s")
   done
+  # Effects are read against the marker the previous call of this run left, then the marker is
+  # dated, on every call from here on. A marker older than active-run.json was dated before
+  # this registration, so the window would span calls between runs: it reads nothing.
+  effects_mark="$(cc_plugin_state "$root" task-runner)/bash-effects.mark"
+  cmd=""; effects=""
+  if [ "$tool" = "Bash" ] && [ "${#scopes[@]}" -gt 0 ]; then
+    cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
+    [ -n "$cmd" ] && [ "$effects_mark" -nt "$sentinel" ] \
+      && effects=$(cc_bash_write_effects "$root" "$effects_mark" "$cmd" "$MAX_BASH_EFFECTS")
+  fi
+  cc_bash_effects_mark "$root" "$effects_mark"
   [ "${#scopes[@]}" -gt 0 ] || exit 0
   for s in "${scopes[@]}"; do
     jq empty "$s" 2>/dev/null || { echo "task-runner scope-lock: $(basename "$s") is malformed — scope not enforced this call" >&3; exit 0; }
@@ -237,24 +317,36 @@ cc_bash_write_targets() {
   # never checked (header, WHAT IT SEES).
   rels=()
   if [ "$tool" = "Bash" ]; then
-    cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
     [ -n "$cmd" ] || exit 0
-    while IFS= read -r t; do
-      [ -n "$t" ] || continue
+    # bash_rel <path>: keep a written path repo-relative when it is an existing regular file
+    # under the root, outside the run's state, and not kept already; status 1 otherwise.
+    bash_rel() {
+      local p d rel q
       # Relative targets resolve against the Bash call's cwd: that is where the shell
       # wrote them, which is the one place the payload cwd is the right anchor.
-      case "$t" in /*) p="$t" ;; *) p="$cwd/$t" ;; esac
-      [ -f "$p" ] || continue
+      case "$1" in /*) p="$1" ;; *) p="$cwd/$1" ;; esac
+      [ -f "$p" ] || return 1
       case "$p" in */./* | */../*)
-        d=$(CDPATH= cd -- "${p%/*}" 2>/dev/null && pwd) || continue
+        d=$(CDPATH= cd -- "${p%/*}" 2>/dev/null && pwd) || return 1
         p="$d/${p##*/}" ;;
       esac
-      case "$p" in "$root"/*) rel="${p#"$root"/}" ;; *) continue ;; esac
-      case "$rel" in .claude/task-runner/*) continue ;; esac
+      case "$p" in "$root"/*) rel="${p#"$root"/}" ;; *) return 1 ;; esac
+      case "$rel" in .claude/task-runner/*) return 1 ;; esac
+      for q in "${rels[@]}"; do [ "$q" = "$rel" ] && return 1; done
       rels+=("$rel")
-      [ "${#rels[@]}" -ge 8 ] && break
+    }
+    n=0
+    while IFS= read -r t; do
+      [ -n "$t" ] || continue
+      bash_rel "$t" && n=$((n + 1))
+      [ "$n" -ge "$MAX_BASH_TARGETS" ] && break
     done <<EOF
 $(cc_bash_write_targets "$cmd")
+EOF
+    while IFS= read -r t; do
+      [ -n "$t" ] && bash_rel "$t"
+    done <<EOF
+$effects
 EOF
   else
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0

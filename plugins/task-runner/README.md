@@ -116,8 +116,13 @@ interactive walkthroughs, demos.
 
 `scope.sh` warns, once per written file outside the set, while a registered run's cards
 have declared their file lists — it never blocks. It sees Edit/Write and the files a Bash
-command writes by redirect, heredoc, `tee` or `sed -i` (at most 8 per call; interpreter
-writes and `cp`/`mv` stay invisible). It reads the scope files at the project root in
+command writes by redirect, heredoc, `tee` or `sed -i` (at most 8 per call), and, after an
+interpreter, `cp`, `mv`, `install` or `patch` run, each file git reports changed since its
+previous call in the run (at most 8): a `python3 - <<'EOF'` write outside the set warns as
+an Edit of it does. That read misses writers it does not name (`make`, `git apply`),
+gitignored outputs, `mv`/`cp -p` destinations and the first Bash call of a run, and takes
+any other change in that window (an IDE save, a parallel worker, an unignored cache) for the
+command's write. It reads the scope files at the project root in
 whatever directory the shell sits, and ignores any left over from an earlier run. A scope
 file without an `allow` array (`{"allow":["path","dir/"],"task":"<id>"}`) leaves the call
 unenforced and says so on stderr; writes outside the project root are not checked. Most
