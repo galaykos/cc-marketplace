@@ -26,6 +26,7 @@ export TMPDIR="$FX/tmp"
 # This session exports CLAUDE_PROJECT_DIR (the marketplace repo); a fixture outside git
 # must resolve to its own directory, not to that.
 unset CLAUDE_PROJECT_DIR CC_REMIND CC_CONVENTIONS
+unset CLAUDE_PLUGIN_DATA   # the effects cases read the marker under <root>/.claude
 
 mkdir -p "$FX/repo/.github/workflows" "$FX/repo/src" "$FX/bare"
 printf 'root = true\n[*]\nindent_style = tab\nquote_type = double\nmax_line_length = 120\n' > "$FX/repo/.editorconfig"
@@ -239,6 +240,50 @@ printf '%s' "$o" | grep -qF 'biome.json' && echo "PASS: Bash write from a subdir
 o=$(fire "$G/app/Enums/Kind.php" "$G/app/Enums" e7)
 printf '%s' "$o" | grep -qF '.editorconfig' && echo "PASS: Edit with a subdirectory cwd names the root configs" \
   || { echo "FAIL: Edit with a subdirectory cwd: ${o:-<silent>}"; rc=1; }
+
+# ---- interpreter writes (bash-write-effects, 0.33.0) -------------------------------------
+# One repo per case: a reused one carries an earlier case's marker. A first call in another
+# context dates the marker, as any earlier call would.
+if command -v python3 >/dev/null 2>&1; then
+  prun() { # repo session python-source -> runs it as a heredoc, then the hook on that command
+    local c="python3 - <<'PY'
+$3
+PY"
+    (cd "$1" && bash -c "$c") >/dev/null 2>&1
+    bfire "$c" "$1" "$2"
+  }
+  efire() { # file repo session -> an Edit's PostToolUse in the context bfire keys
+    jq -nc --arg f "$1" --arg c "$2" --arg s "$3" --arg t "/t/$3.jsonl" \
+      '{hook_event_name:"PostToolUse",tool_name:"Edit",session_id:$s,transcript_path:$t,cwd:$c,tool_input:{file_path:$f}}' \
+      | bash "$H" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
+  }
+  efx() { # name [nomark] -> a git repo with an .editorconfig
+    local d="$FX/eff-$1"; mkdir -p "$d/src"; git -C "$d" init -q; printf 'root = true\n' > "$d/.editorconfig"
+    [ "${2:-}" = nomark ] || bfire 'ls' "$d" "$1-mark" >/dev/null
+    printf '%s\n' "$d"
+  }
+  d=$(efx a)
+  o=$(prun "$d" ea1 "open('src/made.ts', 'w').write('export const a = 1\n')")
+  printf '%s' "$o" | grep -qF '.editorconfig' && echo "PASS: a code file a python heredoc wrote fires" \
+    || { echo "FAIL: a code file a python heredoc wrote stayed silent"; rc=1; }
+  quiet "a python heredoc that wrote only a non-code file" "$(prun "$d" ea2 "open('notes.txt', 'w').write('x\n')")"
+
+  d=$(efx c nomark)
+  o=$(prun "$d" ec1 "open('src/made.ts', 'w').write('export const a = 1\n')")
+  [ -z "$o" ] && [ -f "$d/.claude/code-review/bash-effects-conventions.mark" ] && echo "PASS: the first call in a repo is silent and leaves the marker" \
+    || { echo "FAIL: the first call in a repo — out [${o:+fired}] marker [$(ls "$d/.claude/code-review" 2>&1)]"; rc=1; }
+  quiet "a python run that wrote nothing" "$(prun "$d" ec2 'print(1)')"
+
+  d=$(efx e); printf 'export const e = 1\n' > "$d/src/edited.ts"; efire "$d/src/edited.ts" "$d" ee1 >/dev/null
+  quiet "a code file an Edit wrote before the run" "$(prun "$d" ee2 'print(1)')"
+
+  # A context whose one-shot is spent still dates the marker: the marker is per project, and another context reads it.
+  d=$(efx s); printf 'export const s = 1\n' > "$d/src/first.ts"; efire "$d/src/first.ts" "$d" es1 >/dev/null
+  printf 'export const t = 1\n' > "$d/src/late.ts"; bfire 'ls' "$d" es1 >/dev/null
+  quiet "a code file written before a spent context's last call" "$(prun "$d" es2 'print(1)')"
+else
+  echo "SKIP: python3 not found — interpreter-write cases"
+fi
 
 [ "$rc" -eq 0 ] && echo "All conventions-hook fixtures passed."
 exit "$rc"

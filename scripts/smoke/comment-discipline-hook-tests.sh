@@ -1601,6 +1601,57 @@ case "$co_out" in
 esac
 rm -rf "$STATE_DIR"
 
+# ---- 15. interpreter writes (bash-write-effects): a file a python run changed, judged on what it added ----
+# One git repo per case: a reused one carries an earlier case's marker. `ls` dates the marker, as any earlier call would.
+if command -v git >/dev/null 2>&1; then
+  effrepo() { # name  [nomark] -> a repo whose committed src/kept.js holds a noisy comment, its marker dated
+    local d="$WORK/effects-$1"; mkdir -p "$d/src"; printf 'export const a = 1;\n%s\n' "$JS_NOISE" > "$d/src/kept.js"
+    git -C "$d" init -q; git -C "$d" add -A; git -C "$d" -c user.email=t@t -c user.name=t commit -qm base
+    [ "${2:-}" = nomark ] || run "$(bash_payload PostToolUse "$d" mark ls)" >/dev/null
+    printf '%s\n' "$d"
+  }
+  pyrun() { # cwd  session  python-source -> runs it as a heredoc, then the PostToolUse lane on that command; the warning
+    local c="python3 - <<'PY'
+$3
+PY"
+    (cd "$1" && "$BASH_BIN" -c "$c") >/dev/null 2>&1
+    run "$(bash_payload PostToolUse "$1" "$2" "$c")" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
+  }
+  NOISE_PY="open('src/new.js', 'w').write('''$JS_NOISE
+''')"
+  ctx_of() { run "$1" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
+
+  d=$(effrepo a); b_warn=$(pyrun "$d" ea1 "$NOISE_PY")
+  w_warn=$(ctx_of "$(envelope Write "$d/src/new.js" "$JS_NOISE" | jq -c --arg c "$d" '.hook_event_name = "PostToolUse" | .cwd = $c | .session_id = "ea2"')")
+  case "$w_warn" in
+    *"restating the next line"*) [ "$b_warn" = "$w_warn$SUFFIX new.js." ] && pass "effects: a noisy file a python heredoc wrote draws the Write warning plus the file suffix" \
+      || fail "effects: a noisy file a python heredoc wrote draws the Write warning plus the file suffix" "write=[$w_warn] python=[$b_warn]" ;;
+    *) fail "effects: a noisy file a python heredoc wrote draws the Write warning plus the file suffix" "the Write itself drew no warning: [$w_warn]" ;;
+  esac
+
+  d=$(effrepo b)
+  o=$(pyrun "$d" eb1 "p = 'src/kept.js'; s = open(p).read(); open(p, 'w').write(s.replace('a = 1', 'a = 2'))")
+  [ -z "$o" ] && pass "effects: a committed noisy comment is not judged when a python run changes another line" \
+    || fail "effects: a committed noisy comment is not judged when a python run changes another line" "got: $o"
+  o=$(pyrun "$d" eb2 "open('src/kept.js', 'a').write('''// ===== HELPERS =====
+export const c = 3;
+''')")
+  case "$o" in *"1 section banner"*"$SUFFIX kept.js.") pass "effects: a banner a python run appended to a committed file draws the warning" ;;
+    *) fail "effects: a banner a python run appended to a committed file draws the warning" "got: $o" ;; esac
+
+  d=$(effrepo c nomark); o=$(pyrun "$d" ec1 "$NOISE_PY")
+  [ -z "$o" ] && [ -f "$d/.claude/comment-discipline/bash-effects-scan.mark" ] && pass "effects: the first call in a repo is silent and leaves the marker" \
+    || fail "effects: the first call in a repo is silent and leaves the marker" "out=[$o] marker=$(ls "$d/.claude/comment-discipline" 2>&1)"
+  o=$(pyrun "$d" ec2 'print(1)')
+  [ -z "$o" ] && pass "effects: a python run that wrote nothing is silent" || fail "effects: a python run that wrote nothing is silent" "got: $o"
+
+  d=$(effrepo e); printf '%s\n' "$JS_NOISE" > "$d/src/edited.js"
+  run "$(envelope Edit "$d/src/edited.js" "$JS_NOISE" new_string | jq -c --arg c "$d" '.hook_event_name = "PostToolUse" | .cwd = $c | .session_id = "ee1"')" >/dev/null
+  o=$(pyrun "$d" ee2 'print(1)')
+  [ -z "$o" ] && pass "effects: a file an Edit wrote before the run is not read as the run's write" \
+    || fail "effects: a file an Edit wrote before the run is not read as the run's write" "got: $o"
+fi
+
 printf '\n'
 [ "$rc" -eq 0 ] && printf 'comment-discipline-hook-tests: all cases passed\n' \
                || printf 'comment-discipline-hook-tests: FAILURES above\n'

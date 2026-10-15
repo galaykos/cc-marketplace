@@ -262,6 +262,40 @@ cd_resolve() {
 
 cd_bash_target() { cd_resolve "$@" && printf '%s\n' "$cd_path"; }
 
+# The files an interpreter, cp, mv, install or patch run changed come from cc_bash_write_effects, pasted in each hook because it
+# runs before this file is sourced. cd_effect_files <effects> <targets> <cwd> <hascd> prints each governed one no target resolves to.
+cd_effect_files() {
+  local f t seen="
+"
+  while IFS= read -r t; do
+    [ -n "$t" ] && cd_resolve "$t" "$3" "$4" && seen="$seen$cd_path
+"
+  done <<EOF_T
+$2
+EOF_T
+  while IFS= read -r f; do
+    [ -n "$f" ] && cd_governed "$f" || continue
+    case "$seen" in *"
+$f
+"*) ;; *) printf '%s\n' "$f" ;; esac
+  done <<EOF_F
+$1
+EOF_F
+}
+
+# cd_effect_added <root> <file> prints what a run added to <file>, nothing past 1 MiB: the whole file when HEAD lacks it, else the
+# `+` lines of `git diff -U0 HEAD`, a \037 line between hunks. The text before the run is gone, so any change uncommitted since HEAD reads as added.
+cd_effect_added() {
+  local rel="${2#"$1"/}" size
+  size=$(wc -c < "$2" 2>/dev/null) && [ $((size)) -le 1048576 ] || return 0
+  if git -C "$1" cat-file -e "HEAD:$rel" 2>/dev/null; then
+    GIT_OPTIONAL_LOCKS=0 git -C "$1" diff --no-color --no-ext-diff -U0 HEAD -- ":(literal)$rel" 2>/dev/null \
+      | awk '/^@@/ { if (h++) print "\037"; next } h && /^\+/ { print substr($0, 2) }'
+  else
+    cat -- "$2" 2>/dev/null
+  fi
+}
+
 # Only a heredoc that cat or tee carries to the file lands there as written: cat with an operand ignores it, and every later pipe stage must be tee; a header after `&&` arrives with a leading space.
 cd_chunk_mode() {
   local w head stage n rest="$1|" first=1 sq="'" word redirs re

@@ -1762,5 +1762,42 @@ out=$(AWK_COUNT="$TMP/awk-count-mw" PATH="$TMP/shim:$PATH" fire "$MW" "$MW/src/W
 [ -z "$out" ] && [ "$(grep -c x "$TMP/awk-count-mw")" = 0 ]
 verdict $? "added: a fourth Edit adding prose after three warnings starts no awk" "out=[$out] awk=$(grep -c x "$TMP/awk-count-mw")"
 
+# ---- 18. INTERPRETER WRITES (bash-write-effects): what a python run changed, read after it ----
+# One repo per case: a reused one carries an earlier case's marker. `ls` dates the marker, as any earlier call would.
+if command -v python3 >/dev/null 2>&1; then
+  pyrun() { # $1 cwd, $2 session, $3 python source -> runs it as a heredoc, then the PostToolUse lane on that command
+    local c="python3 - <<'PY'
+$3
+PY"
+    (cd "$1" && bash -c "$c") >/dev/null 2>&1
+    bash_hook PostToolUse "$1" "$2" "$c" | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
+  }
+  effrepo() { mkdir -p "$1/src"; calm "$1/src/Calm.php"; commit_all "$1"; bash_hook PostToolUse "$1" mark 'ls' >/dev/null; }
+  DENSE_PY="open('src/Dense.js', 'w').write(open('$TMP/d6020.txt').read())"
+
+  EA="$TMP/eff-a"; effrepo "$EA"
+  b_warn=$(pyrun "$EA" ea1 "$DENSE_PY"); w_warn=$(fire "$EA" "$EA/src/Dense.js" ea2)
+  [ -n "$w_warn" ] && [ "$b_warn" = "$w_warn$SUFFIX Dense.js." ]
+  verdict $? "effects: a dense file a python heredoc wrote draws the Write warning plus the file suffix" "write=[$w_warn] python=[$b_warn]"
+
+  EB="$TMP/eff-b"; mkdir -p "$EB/src"; cp "$TMP/d6020.txt" "$EB/src/Old.js"; commit_all "$EB"; bash_hook PostToolUse "$EB" mark 'ls' >/dev/null
+  expect "effects: a committed file over the ceiling whose code a python run changed is not judged on its existing density" \
+    "$(pyrun "$EB" eb1 "p = 'src/Old.js'; s = open(p).read(); open(p, 'w').write(s.replace('return 1;', 'return 11;'))")" ""
+  expect "effects: the same file once a python run adds a prose line to it draws the warning" \
+    "$(pyrun "$EB" eb2 "open('src/Old.js', 'a').write('// why: the vendor caps ids at 2^31\n')")" "comment-to-code"
+
+  EC="$TMP/eff-c"; mkdir -p "$EC/src"; calm "$EC/src/Calm.php"; commit_all "$EC"
+  out=$(pyrun "$EC" ec1 "$DENSE_PY")
+  [ -z "$out" ] && [ -f "$EC/.claude/comment-discipline/bash-effects-density.mark" ]
+  verdict $? "effects: the first call in a repo is silent and leaves the marker" "out=[$out]"
+  expect "effects: a python run that wrote nothing is silent" "$(pyrun "$EC" ec2 'print(1)')" ""
+
+  EE="$TMP/eff-e"; effrepo "$EE"
+  cp "$TMP/d6020.txt" "$EE/src/Edited.js"; fire "$EE" "$EE/src/Edited.js" ee1 Edit >/dev/null
+  expect "effects: a file an Edit wrote before the run is not read as the run's write" "$(pyrun "$EE" ee2 'print(1)')" ""
+else
+  echo "SKIP 18: python3 not available"
+fi
+
 [ "$rc" -eq 0 ] && echo "comment-density-tests: all assertions passed"
 exit "$rc"

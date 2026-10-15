@@ -47,8 +47,15 @@
 # BASH LANE — a `cat`/`tee` heredoc body is judged as a Write of that text to that path
 # (cc_bash_write_chunks, cd_bash_target in hooks/paths.sh), chunks in command order, first verdict
 # printed. Measured: rationale/2026-09-25-session-plugin-usage-review.md finding 1, 233 of 238 writes.
-# NOT SEEN on Bash: interpreter writes (python open()), a heredoc fed to anything but cat/tee,
-# echo/printf content, sed -i / perl -i content, cp/mv, a path held in a variable, a relative
+# After a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run the warn lane also reads the files git reports
+# changed since its previous call (the bash-write-effects block, at most MAX_BASH_EFFECTS) and judges each governed one no
+# target names on what it added (cd_effect_added in hooks/paths.sh): the whole file when HEAD lacks it, else its `+` lines
+# against HEAD, so a comment any uncommitted edit added since HEAD is judged again. Never denied: the write has landed.
+# Effects miss a writer the block does not name (npx prettier, make), gitignored files, a repo with no git, a mv or cp -p
+# destination, the first such run in a repo and a file over 1 MiB; any file changed since the lane's previous call (an IDE,
+# a parallel agent) is read as the run's write.
+# NOT SEEN on Bash: interpreter, cp and mv writes before they land (the deny lane), a heredoc fed to anything but cat/tee,
+# echo/printf content, sed -i / perl -i content, a path held in a variable, a relative
 # target after an in-command cd, the second operand of `tee a b`, `VAR=x tee f`, cat/tee behind a
 # wrapper, brace or keyword (`/bin/cat`, `command cat`, `env X=1 cat`, `(cat`, `{ cat`, `then cat`,
 # `sudo -E tee`); plus what the two blocks below say they miss.
@@ -290,29 +297,71 @@ cc_bash_write_chunks() {
     }'
 }
 
+# Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
+# cc_bash_effects_mark <root> <marker> rewrites <marker> when <root> holds a .git, making its directory with a `*` .gitignore.
+# Call it on EVERY tool call the hook sees (Write, Edit, Bash alike), after cc_bash_write_effects read <marker>: the tool has
+# finished before PostToolUse runs, so <marker> then post-dates every write of the last call this hook saw.
+# cc_bash_write_effects <root> <marker> <command> <max> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked AND newer than <marker>. It runs git only when <command> holds python, node, php,
+# ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, and <marker> exists.
+# Misses: writers it does not name, gitignored files, no git, a file written then reverted, a mv or cp -p destination (it
+# keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a parallel agent, a job.
+cc_bash_effects_mark() {
+  [ -e "$1/.git" ] || return 0
+  local d="${2%/*}"
+  [ -d "$d" ] || { mkdir -p "$d" && printf '*\n' > "$d/.gitignore"; } 2>/dev/null || return 0
+  printf '%s\n' "$$" > "$2" 2>/dev/null
+  return 0
+}
+cc_bash_write_effects() {
+  local re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)[[:space:]<]'
+  local e f n=0
+  local -a c
+  [ -f "$2" ] && [[ $3 =~ $re ]] || return 0
+  while [ "$n" -lt "$4" ] && IFS= read -r -d '' e; do
+    f="$1/${e:3}"
+    [ -f "$f" ] && ! [ "$2" -nt "$f" ] || continue
+    c[n]=$f; n=$((n + 1))
+  done < <(GIT_OPTIONAL_LOCKS=0 git -C "$1" status --porcelain -z --untracked-files=all --no-renames --ignore-submodules=all 2>/dev/null)
+  [ "$n" -gt 0 ] && find "${c[@]}" -prune -newer "$2" -print 2>/dev/null
+  return 0
+}
+
 {
   command -v jq  >/dev/null 2>&1 || exit 0
   command -v awk >/dev/null 2>&1 || exit 0
+  MAX_BASH_EFFECTS=8   # changed files read after an interpreter, cp, mv, install or patch run, in git's path order
 
   input=$(cat)
   # One detector, two lanes. Absent event name = PostToolUse, the original behavior.
   event=$(printf '%s' "$input" | jq -r '.hook_event_name // "PostToolUse"' 2>/dev/null) || exit 0
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
-  case "$tool" in
-    Edit|Write|MultiEdit) ;;
-    Bash)
-      cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
-      # The blocks mask a line character by character, quadratic in its length: a 200 kB line, or 100 lines of 8 kB, outlasts the timeout, so such a command is not judged.
-      [ "${#cmd}" -gt 32768 ] && printf '%s\n' "$cmd" | awk 'length($0) > 2000 { s += length($0) } length($0) > 8192 || s > 32768 { f = 1; exit } END { exit !f }' && exit 0
-      [ -n "$(cc_bash_write_targets "$cmd")" ] || exit 0 ;;
-    *) exit 0 ;;
-  esac
-  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  case "$tool" in Edit|Write|MultiEdit|Bash) ;; *) exit 0 ;; esac
+  [ "$tool" = Bash ] && { cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0; }
   # CC_REMIND is the marketplace-wide advisory switch, and the README promised it here
   # for two releases while nothing read it. It silences the WARN lane only: a PreToolUse
   # deny is not an advisory, so an env var must not be able to turn a block into a pass.
   remind=$(cc_option CC_REMIND on)
   [ "$event" = "PostToolUse" ] && [ "$remind" = "off" ] && exit 0
+  # Interpreter writes, through the bash-write-effects block: read with the old marker, then date it, on every call this lane
+  # sees, so an Edit's file or a command that wrote nothing never reads as the next run's write. The marker is this hook's own.
+  effects=""; root=""
+  if [ "$event" = "PostToolUse" ]; then
+    cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+    if [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(cc_state_root "$cwd"); then
+      emark="$(cc_plugin_state "$root" comment-discipline)/bash-effects-scan.mark"
+      [ "$tool" = Bash ] && effects=$(cc_bash_write_effects "$root" "$emark" "$cmd" "$MAX_BASH_EFFECTS")
+      cc_bash_effects_mark "$root" "$emark"
+    fi
+  fi
+  if [ "$tool" = Bash ]; then
+    # The blocks mask a line character by character, quadratic in its length: a 200 kB line, or 100 lines of 8 kB, outlasts the timeout, so such a command is not judged.
+    [ "${#cmd}" -gt 32768 ] && printf '%s\n' "$cmd" | awk 'length($0) > 2000 { s += length($0) } length($0) > 8192 || s > 32768 { f = 1; exit } END { exit !f }' && exit 0
+    tgts=$(cc_bash_write_targets "$cmd")
+    [ -n "$tgts" ] || [ -n "$effects" ] || exit 0
+  fi
+  [ "$event" = "PostToolUse" ] || cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   # CC_COMMENT_GUARD=off disables the DENY lane and leaves the advisory lane on.
   # Added 2026-09-22 (UX 1): until now the block had no off switch at all — CC_REMIND
   # covers the advisory only — so the refusal could name none, which is what
@@ -1259,8 +1308,8 @@ cc_bash_write_chunks() {
   }
 
   if [ "$tool" = Bash ]; then
-    chunks=$(cc_bash_write_chunks "$cmd")
-    [ -n "$chunks" ] || exit 0
+    chunks=""; [ -z "$tgts" ] || chunks=$(cc_bash_write_chunks "$cmd")
+    [ -n "$chunks" ] || [ -n "$effects" ] || exit 0
     n=0; k=0
     while IFS= read -r l; do
       k=$((k + 1)); tgt=$(cc_bash_write_targets "${l#?}" | head -n 1)
@@ -1268,8 +1317,8 @@ cc_bash_write_chunks() {
     done <<EOF_C
 $(printf '%s\n' "$chunks" | awk 'substr($0, 1, 1) == "\036"')
 EOF_C
-    [ "$n" -gt 0 ] || exit 0
-    hascd=0; cd_has_cd "$cmd" && hascd=1
+    [ "$n" -gt 0 ] || [ -n "$effects" ] || exit 0
+    hascd=0; [ -n "$tgts" ] && cd_has_cd "$cmd" && hascd=1
     c=1
     while [ "$event" = PreToolUse ] && [ "$c" -le "$n" ]; do
       if [ "$(cd_chunk_mode "${chdr[$c]}")" = truncate ] && cd_target_whole "${chdr[$c]}" "${ctgt[$c]}" \
@@ -1296,6 +1345,16 @@ EOF_C
       fi
       c=$((c + 1))
     done
+    # A governed file the run changed that no target names: judged on the lines it added (cd_effect_added).
+    while IFS= read -r fp; do
+      [ -n "$fp" ] || continue
+      if scan_judge "$fp" "$(cd_effect_added "$root" "$fp")"; then
+        emit " Written by a Bash command: $(basename "$fp")."
+        exit 0
+      fi
+    done <<EOF_E
+$(cd_effect_files "$effects" "$tgts" "$cwd" "$hascd")
+EOF_E
     [ -n "$ew" ] && { msg="CC_REMIND=off silences this."; emit ""; }
   else
     fp=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0

@@ -161,10 +161,10 @@ section, so a fan-out cannot re-import the surrounding file's habits.
   recorded otherwise: `scan.sh` neither denies nor validates it, and the `shortcut:` prefix defeats the restatement detector unless the next line already holds the word, so
   `/code-review:review --debt`'s `shortcuts` count is the only mechanical counter-pressure.
 - **recorded** — everything else here. Nothing reads it back.
-- **recorded — what a Bash write still escapes.** Not judged: interpreter writes
-  (python `open()`, php `file_put_contents`); a heredoc fed to anything but `cat` or
+- **recorded — what a Bash write still escapes.** Not judged: interpreter, `cp` and `mv`
+  writes before they land (after: README, Interpreter writes); a heredoc fed to anything but `cat` or
   `tee`; `echo` / `printf` and `sed -i` / `perl -i` content (the after-command warning
-  below counts echo's prose, never sed/perl's); `cp`, `mv`, `install`; `{ …; } > f`; here-strings; a
+  below counts echo's prose, never sed/perl's); `{ …; } > f`; here-strings; a
   path held in a variable; a globbed operand; `2>`, `&>` and `>&` targets; a quoted string
   or `\` continuation spanning lines; a second heredoc on one line; the second operand
   of `tee a b`; `VAR=value tee f <<EOF`; `cat` with a file operand or an option, or

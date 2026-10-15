@@ -87,7 +87,8 @@ signature is deleted. Only a house style the project states in its `CLAUDE.md` o
 the default; a heavily commented neighbour does not.
 
 **The write-time hooks.** `scan.sh` inspects the text each `Edit` / `Write` /
-`MultiEdit` adds, and the text a Bash heredoc writes, on two lanes. `PostToolUse` warns,
+`MultiEdit` adds, the text a Bash heredoc writes, and after the command what an interpreter
+run added (**Interpreter writes** below), on two lanes. `PostToolUse` warns,
 at most one line, for any of the twelve categories listed below. `PreToolUse` denies the three
 strictest — a comment restating the next line, commented-out code, and a docblock tag
 repeating the signature — at most twice per file per session, then stands down. Since
@@ -104,7 +105,9 @@ min(2x its committed siblings' median, the ceiling); a file with no committed si
 judged against the ceiling alone. An `Edit` adds prose when the file on disk holds more than
 the same file with its new text swapped back, so a line added inside a Python docstring
 counts; past 256 kB, or when the new text is not on disk, only the edit's own text is read
-and that line is missed. Neither lane judges a file that only declares — an interface or an
+and that line is missed. Since 0.33.0 a file a Bash run of python, node, php, ruby, perl,
+deno, bun, `cp`, `mv`, `install` or `patch` changed is measured the same way, after the
+command — **Interpreter writes** below. Neither lane judges a file that only declares — an interface or an
 all-abstract class beside imports, type aliases and enums, no method body — in a brace
 language: its docblocks are the contract. A component or class beside the interface is
 judged. The ceiling is **0.3 prose comment lines per code line**
@@ -450,13 +453,33 @@ refusal.
   checked line by line against reference tokenizers and scanners on standard-library and
   system code; the CHANGELOG's 0.26.0 entry has the numbers.
 
+**Interpreter writes (0.33.0).** In reviewed sessions 40–85% of code writes went through
+`python3 - <<'EOF' … open(p, 'w')`, which neither hook saw. After a Bash command that runs
+python, node, php, ruby, perl, deno, bun, `cp`, `mv`, `install` or `patch`, both `PostToolUse`
+lanes read the files git reports changed or untracked since that hook's previous call (the
+byte-locked `templates/blocks/bash-write-effects.md`, at most 8) and judge each code file no
+redirect or `tee` target named: `scan.sh` on what it added — the whole file when `HEAD` lacks
+it, else the `+` lines of `git diff -U0 HEAD`; `density.sh` once the file holds more prose
+lines than its `HEAD` copy, within its three files per command. Every call a lane sees, an
+`Edit` or a command that wrote nothing included, dates that hook's marker, so a file an `Edit`
+changed is not read as the next run's write. No deny sees these writes: they land before a
+hook can read them. Misses: a writer named through another word (`npx prettier --write`,
+`make`, `vendor/bin/pint`), gitignored files, a repo with no git, a `mv` or `cp -p`
+destination (it keeps the source's mtime), a file written then reverted, the first such run in
+a repo, files past the eighth, a file over 1 MiB (`scan.sh`) or 256 kB (`density.sh`). Reads
+too much: a file an IDE or a parallel agent changed since the hook's previous call is read as
+the run's write, and every change uncommitted since `HEAD` as what the run added, so a comment
+an earlier `Edit` added can draw a second warning. Each Bash call costs about 6 ms more per
+hook (CHANGELOG 0.33.0). Standing: **gate** — the `effects:` cases of
+`scripts/smoke/comment-density-tests.sh` and `scripts/smoke/comment-discipline-hook-tests.sh`.
+
 **What a Bash write still escapes.** The hooks read the command's text; they never run
 it. A miss is preferred to judging the wrong file, so an uncertain shape is skipped.
 
 - **Never read as file content:** interpreter writes (python `open()`, php
-  `file_put_contents`); a heredoc fed to anything but `cat` or `tee`
+  `file_put_contents`) before they land, and after it only as above; a heredoc fed to anything but `cat` or `tee`
   (`python3 - <<PY > f`); `echo` and `printf` content; `sed -i` and `perl -i` content;
-  `cp`, `mv`, `install`; a `{ …; } > f` group; a here-string (`<<<`); a quoted string or
+  `cp`, `mv`, `install` (after the command, as above); a `{ …; } > f` group; a here-string (`<<<`); a quoted string or
   `\` continuation spanning lines; a second heredoc opened on one line. `density.sh`
   still measures the resulting file afterwards when the command names it as a redirect
   or `tee` target and adds prose to it or writes text it cannot read.
@@ -511,8 +534,11 @@ opens them, and deliberately never a digest of their contents. Once per context 
 on the transcript, so a subagent writing code gets its own copy rather than being deduped
 against a nudge only its parent saw. Since 0.23.0 it also fires when a Bash command
 writes an existing code file under the project root (a redirect, a heredoc, `tee`,
-`sed -i`/`perl -i`; interpreter writes, `cp`/`mv` and a path held in a variable are not
-parsed), and it reads the configs at the project root rather than the shell's cwd.
+`sed -i`/`perl -i`; a path held in a variable is not parsed), and it reads the configs at
+the project root rather than the shell's cwd. Since 0.33.0 a code file git reports changed
+after a python, node, php, ruby, perl, deno, bun, `cp`, `mv`, `install` or `patch` run counts
+too, with the misses and over-read of **Interpreter writes** above; every call dates its
+marker, the one-shot spent or not (`conventions-hook.test.sh`, **gate**).
 Since 0.28.0 it also names a repo's prose standards doc on its own `standards:` line —
 `CONTRIBUTING.md`, `.github/CONTRIBUTING.md`, `docs/CONTRIBUTING.md`, `CODING_STANDARDS.md`,
 `docs/CODING_STANDARDS.md` or `STYLEGUIDE.md`, the path only — as a source for naming,
