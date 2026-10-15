@@ -22,6 +22,15 @@
 # approve reflexively, which is the same as not asking. Thresholds at 20, 40, 80 keep the
 # signal rare enough to read.
 #
+# INSIDE A REGISTERED RUN (.claude/task-runner/active-run.json at the state root, naming
+# the checked-out branch) it NOTIFIES instead (2026-10-14), and its first threshold is
+# max(cap, cards x 3), cards counted from the run's index_path (a worker plus reviewers
+# per card). The run was already authorized, and the ask at #20 left one run idle for 67
+# minutes, then 25 at #40, while its sibling agents finished; neither approval changed
+# the plan. The notice goes to the user (systemMessage) and the model
+# (additionalContext), and names the plan.
+# Residual: a run that dispatches past its plan is told, not stopped.
+#
 # WHAT IT DOES NOT CATCH, stated because the README tiers this:
 #   - Agents a SUBAGENT spawns. The count is keyed on the session, and a nested dispatch
 #     carries the parent's session id, so nesting inflates the same counter rather than
@@ -34,6 +43,24 @@
 # CC_SPAWN_CAP=<n> moves the first threshold; CC_SPAWN_CAP=off disables it.
 # CC_SPAWN_CAP unset: the /config option cc_spawn_cap decides.
 # Fail-open on every error path.
+
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
@@ -97,10 +124,41 @@ cc_option() {
   # Sweep sessions older than a day so /tmp does not accumulate one dir per session.
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-spawn-*' -type d -mtime +1 -exec rm -rf {} + 2>/dev/null
 
-  # Threshold at cap, then every doubling: 20, 40, 80, 160…
-  t="$cap"
+  # No threshold sits below the cap, so the run lookup waits until the count reaches it.
+  [ "$n" -ge "$cap" ] || exit 0
+  first="$cap"; run=""; plan=""
+  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  root=$(cc_state_root "$cwd") || root=""
+  sent="$root/.claude/task-runner/active-run.json"
+  # A sentinel names the branch it was registered on; one left behind on another branch
+  # turned this ask into a notice for unrelated work.
+  if [ -n "$root" ] && [ -r "$sent" ] &&
+     [ "$(jq -r '.branch // empty' "$sent" 2>/dev/null)" = "$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)" ]; then
+    run=$(jq -r '.slug // empty' "$sent" 2>/dev/null); [ -n "$run" ] || run=run
+    idx=$(jq -r '.index_path // empty' "$sent" 2>/dev/null)
+    idxp="$idx"; case "$idx" in '' | /*) ;; *) idxp="$root/$idx" ;; esac
+    cards=0
+    [ -n "$idx" ] && [ -r "$idxp" ] &&
+      cards=$(grep -cE '^[[:space:]]*\|[[:space:]]*[0-9][0-9][[:space:]]*\|' "$idxp" 2>/dev/null)
+    case "$cards" in '' | *[!0-9]*) cards=0 ;; esac
+    if [ "$cards" -gt 0 ]; then
+      plan="$cards cards in $idx, about $((cards * 3)) dispatches at 3 per card"
+      [ $((cards * 3)) -gt "$first" ] && first=$((cards * 3))
+    else
+      plan="no card index to plan from, so the session threshold of $cap applies"
+    fi
+  fi
+
+  # Threshold at the first one, then every doubling: 20, 40, 80, 160…
+  t="$first"
   while [ "$t" -lt "$n" ]; do t=$((t * 2)); done
   [ "$n" -eq "$t" ] || exit 0
+
+  if [ -n "$run" ]; then
+    msg="task-runner: subagent dispatch #$n in this session, inside the registered run $run ($plan). This is a notice, not a question: the run is already authorized, and an approval prompt here once left a run idle for over an hour while its other agents finished. The next notice is at #$((n * 2)). If the count has outrun the plan, the usual causes are a retry loop that re-dispatches instead of reading the last report, or a fan-out sized per file rather than per independent unit. CC_SPAWN_CAP=<n> moves the threshold, CC_SPAWN_CAP=off disables it."
+    jq -cn --arg r "$msg" '{systemMessage:$r,hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$r}}' 2>/dev/null
+    exit 0
+  fi
 
   reason="task-runner: this is subagent dispatch #$n in this session. Subagent turns do not appear in the transcript and they are billed, so a fan-out that grew past its plan is invisible until the invoice — this is the only place it gets counted. If the work genuinely needs this many, approve and carry on; the next prompt is at #$((n * 2)). If it does not, the usual causes are a retry loop that re-dispatches instead of reading the last report, or a fan-out sized per file rather than per independent unit — task-runner's parallel-planning skill sizes it per dependency level. CC_SPAWN_CAP=<n> moves the threshold, CC_SPAWN_CAP=off disables it."
 

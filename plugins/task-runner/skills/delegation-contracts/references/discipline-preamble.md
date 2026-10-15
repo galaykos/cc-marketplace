@@ -22,7 +22,11 @@ worker's own default procedure wherever they differ.
    never edit the out-of-set file. Blaming an out-of-set file for a failed check
    requires the tool-output line that names that file; a failure your own output
    attributes to your own file is yours.
-5. Run the project's full check suite at the end, not only the per-card verify.
+5. Run the project's full check suite at the end, not only the per-card verify. Give
+   every test command a wall-clock timeout and a memory cap where the process runs
+   (inside the container for a shim). Full suites run one at a time, under
+   `flock "$(git rev-parse --git-common-dir)/verify.lock"` (no `flock`, e.g. stock macOS:
+   run unlocked, say so).
 6. Defer rule: a mis-specified card (wrong file, impossible criterion, a decision you
    were not given) is **reported, not reinterpreted**.
 7. Code shape: match the surrounding file's naming and idiom, not its comment

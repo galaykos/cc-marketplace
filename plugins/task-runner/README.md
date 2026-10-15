@@ -139,6 +139,12 @@ counted. `ask` rather than `deny` because a large fan-out is sometimes right —
 not that thirty is wrong, only that thirty should be a decision somebody made. Thresholds
 double instead of firing every time, because asking at 21, 22, 23 trains reflexive approval.
 
+Inside a run registered on the checked-out branch it **notifies** instead — to you and to
+the model — and the first threshold is three dispatches per card in the run's index when
+that is above the cap. The run is already authorized, and an ask there left one run idle
+for 67 minutes while its other agents finished. The notice names the plan; a run that
+dispatches past it is told, not stopped.
+
 It counts dispatches, not cost: twenty haiku calls and twenty opus calls are one number
 here and not one bill. It cannot see an agent a subagent spawns through another mechanism,
 and it says nothing about whether the fan-out was a good idea — that is

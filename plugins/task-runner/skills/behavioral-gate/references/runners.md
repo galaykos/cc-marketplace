@@ -4,7 +4,7 @@ An empty suite that exits 0 is the canonical false-green, and runners signal "no
 differently. `behavioral-gate.sh` is authoritative; this mirrors it. **Fail-closed:** no
 positive "N ran and passed" signal is a failure, not a pass, and unparseable output is exit
 2. All of it runs under a hard timeout (`timeout`/`gtimeout`, else a `perl` alarm+fork
-returning 124), so a hang is a verdict rather than a block.
+returning 124; `BEHAVIORAL_GATE_TIMEOUT`, default 1800 s), so a hang is a verdict rather than a block.
 
 | Runner | Empty signal | Detection |
 |---|---|---|
@@ -19,6 +19,7 @@ returning 124), so a hang is a verdict rather than a block.
 | `bundle exec rspec`, else `rspec` | `0 examples` | empty first — one summary line per run |
 | `./gradlew test --rerun-tasks`, else `./mvnw test`, else system `gradle`/`mvn` (wrappers first) | `Tests run: 0`, `:test NO-SOURCE`, `did not discover any tests` | covered needs `Tests run: N≥1` or `N tests completed`, else the weak row below; `:test UP-TO-DATE` ⇒ `unverifiable-suite` |
 | `--runner '<cmd>::<empty-regex>'` | the caller's regex | escape for a language with no row; the gate still owns not-started (126/127/signal) and timeout (124) |
+| `--runner-for <lang> '<cmd>::<empty-regex>'` | the caller's regex, then the row's | REPLACES the row's runner, e.g. a suite only a container runs; `--runner` only adds one |
 
 **The one weak row.** A green `gradle test` prints no counts, only `BUILD SUCCESSFUL`
 (9.7.1, 2026-09-22), so it falls back to *sources exist and the task did not fail*. Past it:

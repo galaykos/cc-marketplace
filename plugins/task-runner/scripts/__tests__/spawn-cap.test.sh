@@ -64,6 +64,52 @@ asked=""
 for i in $(seq 1 20); do out=$(fire cap-g Task); [ -n "$out" ] && asked="$asked $i"; done
 [ "$asked" = " 20" ] && ok "Task counts alongside Agent" || bad "Task counts alongside Agent" "got '$asked'"
 
+# INSIDE A REGISTERED RUN (2026-10-14): the first threshold is max(cap, cards x 3) and the
+# hook notifies instead of asking. An ask at #20 left an authorized run idle for 67 minutes.
+unset CLAUDE_PROJECT_DIR
+RUN="$T/proj"; mkdir -p "$RUN/.claude/task-runner" "$RUN/docs/tasks/demo" "$RUN/src/deep"
+git init -q -b main "$RUN" 2>/dev/null && git -C "$RUN" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
+{ printf '# Index\n\n| card | title | status |\n|---|---|---|\n'; for c in 01 02 03 04 05 06 07 08 09 10; do printf '| %s | t | pending |\n' "$c"; done; } > "$RUN/docs/tasks/demo/00-INDEX.md"
+printf '{"slug":"demo","branch":"main","index_path":"docs/tasks/demo/00-INDEX.md"}' > "$RUN/.claude/task-runner/active-run.json"
+fire_at() { # session cwd
+  jq -cn --arg s "$1" --arg c "$2" '{session_id:$s,tool_name:"Agent",cwd:$c,tool_input:{}}' | "$BASH_BIN" "$HOOK" 2>/dev/null
+}
+said=""; last=""
+for i in $(seq 1 61); do out=$(fire_at run-a "$RUN/src/deep"); [ -n "$out" ] && { said="$said $i"; last="$out"; }; done
+[ "$said" = " 30 60" ] && ok "a 10-card run moves the first threshold to 30, then doubles (from a subdirectory)" \
+  || bad "a 10-card run moves the first threshold to 30, then doubles" "got '$said'"
+case "$last" in *'"permissionDecision"'*) bad "inside a run it notifies, never asks" "$last" ;;
+  *'"systemMessage"'*'"additionalContext"'*) ok "inside a run it notifies the user and the model, never asks" ;;
+  *) bad "inside a run it notifies the user and the model, never asks" "got: ${last:-<silent>}" ;; esac
+case "$last" in *'registered run demo (10 cards in docs/tasks/demo/00-INDEX.md, about 30 dispatches'*) ok "the notice names the plan" ;;
+  *) bad "the notice names the plan" "$last" ;; esac
+
+# A run whose plan is below the cap keeps the cap, and still notifies.
+{ printf '| card | title | status |\n|---|---|---|\n| 01 | t | done |\n| 02 | t | pending |\n'; } > "$RUN/docs/tasks/demo/00-INDEX.md"
+said=""
+for i in $(seq 1 20); do out=$(fire_at run-b "$RUN"); [ -n "$out" ] && said="$said $i:${out:2:13}"; done
+[ "$said" = ' 20:systemMessage' ] && ok "a 2-card run keeps the cap of 20, as a notice" || bad "a 2-card run keeps the cap of 20, as a notice" "got '$said'"
+
+# A run with no card index notifies at the cap and says so.
+printf '{"slug":"inline","branch":"main"}' > "$RUN/.claude/task-runner/active-run.json"
+out=$(for i in $(seq 1 20); do fire_at run-c "$RUN"; done | tail -1)
+case "$out" in *'"systemMessage"'*'no card index'*) ok "an inline run notifies at the cap and says it has no plan" ;;
+  *) bad "an inline run notifies at the cap and says it has no plan" "got: ${out:-<silent>}" ;; esac
+
+# A sentinel a run left on another branch is not this branch's run: it asks.
+printf '{"slug":"old","branch":"main"}' > "$RUN/.claude/task-runner/active-run.json"
+git -C "$RUN" checkout -q -b other
+out=$(for i in $(seq 1 20); do fire_at run-e "$RUN"; done | tail -1)
+case "$out" in *'"permissionDecision":"ask"'*) ok "a run registered on another branch still asks at 20" ;;
+  *) bad "a run registered on another branch still asks at 20" "got: ${out:-<silent>}" ;; esac
+git -C "$RUN" checkout -q main
+
+# Outside a run, the same cwd still asks.
+rm -f "$RUN/.claude/task-runner/active-run.json"
+out=$(for i in $(seq 1 20); do fire_at run-d "$RUN"; done | tail -1)
+case "$out" in *'"permissionDecision":"ask"'*) ok "with no registered run it still asks at 20" ;;
+  *) bad "with no registered run it still asks at 20" "got: ${out:-<silent>}" ;; esac
+
 # fail-open
 out=$(printf 'garbage' | "$BASH_BIN" "$HOOK" 2>/dev/null); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && ok "fail-open on malformed input" || bad "fail-open on malformed input" "rc=$rc out=$out"

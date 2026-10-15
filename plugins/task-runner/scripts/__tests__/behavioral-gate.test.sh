@@ -25,6 +25,7 @@ command -v node >/dev/null 2>&1 || { printf 'FAIL: node is required to run these
 WS=$(mktemp -d)
 trap 'rm -rf "$WS"' EXIT
 pass=0; fail=0
+unset BEHAVIORAL_GATE_TIMEOUT   # the default-cap case reads the script's own default
 
 git_snap() { ( cd "$repo_root" && git status --porcelain ); }
 
@@ -562,11 +563,55 @@ case_run "--runner naming a missing command -> unverifiable-suite(2)" "$CR2" 2 -
 case_run "--runner without the :: separator -> usage error(3)" "$CR2" 3 --label 'usage error' -- \
   --changed calc.ex --runner 'justacommand'
 
+# ---- RF. --runner-for <lang> REPLACES the built-in runner (2026-10-14). A suite reachable only
+# through a container passed as a --runner while the host phpunit beside it failed, and the gate
+# read unverifiable-suite on a green suite. The fixture's host phpunit prints no count.
+RF="$WS/runner-for"; mkdir -p "$RF/vendor/bin" "$RF/tests" "$RF/src"
+printf '<?php class Calc {}\n' > "$RF/src/Calc.php"
+printf '<?php final class CalcTest {}\n' > "$RF/tests/CalcTest.php"
+mk_stub "$RF/vendor/bin/phpunit" .phpstub.out .phpstub.rc
+printf 'SQLSTATE[HY000] [2002] Connection refused\n' > "$RF/.phpstub.out"; printf '2\n' > "$RF/.phpstub.rc"
+printf '#!/bin/sh\necho "  Tests:    3 passed (5 assertions)"\n' > "$RF/suite.sh"; chmod +x "$RF/suite.sh"
+case_run "--runner-for php replaces the failing host runner -> covered(0)" "$RF" 0 --label 'replaces the built-in runner' -- \
+  --changed src/Calc.php --runner-for php './suite.sh::No tests'
+case_run "--runner on the same fixture only adds one -> the host runner still fails it(2)" "$RF" 2 --label 'unverifiable-suite' -- \
+  --changed src/Calc.php --runner './suite.sh::No tests'
+case_run "--runner-for an unknown language -> usage error(3)" "$RF" 3 --label 'language must be one of' -- \
+  --changed src/Calc.php --runner-for elixir './suite.sh::No tests'
+case_run "--runner-for without the :: separator -> usage error(3)" "$RF" 3 --label 'must be' -- \
+  --changed src/Calc.php --runner-for php './suite.sh'
+case_run "--runner-for a language nothing touched is not run -> no-executable-surface(0)" "$RF" 0 --label 'no-executable-surface' -- \
+  --changed notes.md --runner-for php 'no-such-binary-here::x'
+# The replacement keeps the language's own evidence that tests ran (2026-10-15): a `docker exec`
+# into a stopped container exits 1 with no count, and read covered.
+printf '#!/bin/sh\necho "Error response from daemon: No such container: app" >&2\nexit 1\n' > "$RF/down.sh"; chmod +x "$RF/down.sh"
+case_run "--runner-for php exiting 1 with no test count -> unverifiable-suite(2)" "$RF" 2 --label 'unverifiable-suite' -- \
+  --changed src/Calc.php --runner-for php './down.sh::No tests found'
+case_run "--runner-for py exiting 1 with no pytest summary -> unverifiable-suite(2)" "$RF" 2 --label 'unverifiable-suite' -- \
+  --changed src/calc.py --runner-for py './down.sh::no tests ran'
+printf '#!/bin/sh\necho "1 failed, 2 passed in 0.12s"\nexit 1\n' > "$RF/py-red.sh"; chmod +x "$RF/py-red.sh"
+case_run "--runner-for py, a red suite with a pytest summary -> covered(0)" "$RF" 0 --label 'VERDICT: covered' -- \
+  --changed src/calc.py --runner-for py './py-red.sh::no tests ran'
+# RF_<lang> holds the flag's value and is never read from the environment.
+RF_php='./suite.sh::No tests' case_run "RF_php inherited from the environment is ignored -> the host runner decides(2)" "$RF" 2 --label 'unverifiable-suite' -- \
+  --changed src/Calc.php
+
+# ---- TO. the suite timeout: documented, 1800 s by default, and the variable still moves it.
+# At 60 s a large green suite read TIMED OUT -> unverifiable-suite.
+case_run "--help documents BEHAVIORAL_GATE_TIMEOUT and its 1800 s default" "$RF" 3 --label 'BEHAVIORAL_GATE_TIMEOUT=<seconds> caps each suite run (default 1800' -- --help
+case_run "a suite runs under the 1800 s default cap" "$CR1" 0 --label 'timeout 1800s' -- \
+  --changed calc.ex --runner './suite.sh::^0 tests'
+printf '#!/bin/sh\nsleep 5\necho "3 tests, 0 failures"\n' > "$RF/slow.sh"; chmod +x "$RF/slow.sh"
+BEHAVIORAL_GATE_TIMEOUT=1 case_run "BEHAVIORAL_GATE_TIMEOUT=1 over a 5 s suite -> TIMED OUT, unverifiable(2)" "$RF" 2 --label 'TIMED OUT' -- \
+  --changed calc.ex --runner './slow.sh::^0 tests'
+
 # ---- I. isolation modes (2026-09-24). The fixture is its own git repo standing in for a
 # LIVE project: a committed .env.example and artisan, an untracked .env holding the
 # "credentials", and a test that drops ran.marker in whatever directory it runs in — so
 # "was the live tree touched" is a file check, not an inference. The gate's worktrees go
-# under a TMPDIR private to this harness, so leftovers are countable.
+# under the fixture's own .claude/task-runner/iso/ (2026-10-14: $TMPDIR is invisible to a
+# container that mounts the repo), so leftovers are countable there; TMPDIR stays private
+# to this harness to prove nothing lands in it any more.
 iso_ok()  { printf 'PASS: %s\n' "$1"; pass=$((pass+1)); }
 iso_bad() { printf 'FAIL: %s (%s)\n' "$1" "$2"; fail=$((fail+1)); [ -n "${3:-}" ] && printf '%s\n' "$3" | sed 's/^/    | /'; return 0; }
 iso_gate() { # iso_gate <dir> <args...> -> sets IRC, IOUT
@@ -584,13 +629,15 @@ test('impl', () => {
   if (process.env.BG_EXPECT_ISO) {
     assert.strictEqual(fs.readFileSync('.env', 'utf8'), fs.readFileSync('.env.example', 'utf8'));
     assert.match(process.env.APP_KEY || '', /^base64:/);
+    fs.writeFileSync(process.env.BG_PROBE_OUT, [process.cwd(), process.env.BG_TREE_REL || '', fs.readlinkSync('node_modules')].join('\n'));
   }
   assert.strictEqual(require('./impl.js')(), 42);
 });
 JS
 printf 'APP_KEY=\nAPP_URL=http://localhost\n' > "$LIVE/.env.example"
 printf '#!/usr/bin/env php\n' > "$LIVE/artisan"
-printf '.env\nran.marker\n.claude/\n' > "$LIVE/.gitignore"
+printf '.env\nran.marker\n.claude/\nnode_modules/\n' > "$LIVE/.gitignore"
+mkdir -p "$LIVE/node_modules"
 ( cd "$LIVE" && git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm fixture )
 printf 'APP_KEY=base64:LIVE-SECRET\nAPP_URL=https://live.example\n' > "$LIVE/.env"
 live_env_sum=$(cksum < "$LIVE/.env"); live_status=$(git -C "$LIVE" status --porcelain)
@@ -598,15 +645,65 @@ live_head=$(git -C "$LIVE" rev-parse HEAD)
 
 # I1. --isolate: runs in its own worktree, builds env there, records to the LIVE bg dir,
 #     leaves no worktree and no temp dir behind, and the live tree is byte-identical.
-set +e; IOUT=$( cd "$LIVE" && BG_EXPECT_ISO=1 TMPDIR="$ISO_TMP" "$BG" --isolate --changed impl.js 2>&1 ); IRC=$?; set -e
+PROBE="$WS/iso-probe"; LIVE_P=$(cd "$LIVE" && pwd -P); ISO_DIRS="$LIVE/.claude/task-runner/iso"
+set +e; IOUT=$( cd "$LIVE" && BG_EXPECT_ISO=1 BG_PROBE_OUT="$PROBE" TMPDIR="$ISO_TMP" "$BG" --isolate --changed impl.js 2>&1 ); IRC=$?; set -e
 d="--isolate green suite -> covered(0), live tree untouched, worktree removed"
 if [ "$IRC" != 0 ] || ! printf '%s' "$IOUT" | grep -q 'covered'; then iso_bad "$d" "rc=$IRC" "$IOUT"
 elif [ -e "$LIVE/ran.marker" ]; then iso_bad "$d" "test ran in the LIVE tree"
 elif [ "$(cksum < "$LIVE/.env")" != "$live_env_sum" ]; then iso_bad "$d" "live .env CHANGED"
 elif [ "$(git -C "$LIVE" status --porcelain)" != "$live_status" ]; then iso_bad "$d" "live git status CHANGED"
 elif [ "$(git -C "$LIVE" worktree list | wc -l | tr -d ' ')" != 1 ]; then iso_bad "$d" "worktree left behind" "$(git -C "$LIVE" worktree list)"
-elif [ -n "$(ls -A "$ISO_TMP")" ]; then iso_bad "$d" "temp dir left behind" "$(ls -A "$ISO_TMP")"
+elif [ -n "$(ls -A "$ISO_TMP")" ]; then iso_bad "$d" "temp dir left behind in TMPDIR" "$(ls -A "$ISO_TMP")"
+elif [ "$(ls -A "$ISO_DIRS")" != .gitignore ]; then iso_bad "$d" "iso dir holds more than its .gitignore" "$(ls -A "$ISO_DIRS")"
 elif ! grep -q '"verdict":"covered"' "$LIVE/.claude/task-runner/bg/bg-$live_head.json" 2>/dev/null; then iso_bad "$d" "no bg record in the LIVE bg dir"
+else iso_ok "$d"; fi
+
+# I1b. WHERE it ran (2026-10-14): inside the repo's gitignored .claude/task-runner/iso/, so a
+#      container mounting the repo sees the tree; BG_TREE_REL names it from the repo root; and
+#      the dependency link is relative, because an absolute host path dangles in the container.
+d="--isolate tree lives under .claude/task-runner/iso/, BG_TREE_REL names it, deps linked relatively"
+probe_cwd=$(sed -n 1p "$PROBE" 2>/dev/null || true); probe_rel=$(sed -n 2p "$PROBE" 2>/dev/null || true); probe_link=$(sed -n 3p "$PROBE" 2>/dev/null || true)
+case "$probe_cwd" in
+  "$LIVE_P/.claude/task-runner/iso/bg."*/tree)
+    if [ "$probe_rel" != "${probe_cwd#"$LIVE_P"/}" ]; then iso_bad "$d" "BG_TREE_REL=<$probe_rel> for cwd <$probe_cwd>"
+    elif [ "$probe_link" != ../../../../../node_modules ]; then iso_bad "$d" "node_modules -> <$probe_link>, want ../../../../../node_modules"
+    elif [ "$(cat "$ISO_DIRS/.gitignore")" != '*' ]; then iso_bad "$d" "iso/.gitignore is not '*'"
+    else iso_ok "$d"; fi ;;
+  *) iso_bad "$d" "the suite ran in <$probe_cwd>" "$IOUT" ;;
+esac
+
+# I1c. a tree a killed gate left behind (a real worktree, older than a day) is swept by the next run.
+git -C "$LIVE" worktree add --detach -q "$ISO_DIRS/bg.stale/tree" HEAD >/dev/null 2>&1
+touch -t 202001010000 "$ISO_DIRS/bg.stale"
+iso_gate "$LIVE" --isolate --changed impl.js
+d="--isolate sweeps a day-old leftover worktree under iso/"
+if [ "$IRC" != 0 ]; then iso_bad "$d" "rc=$IRC" "$IOUT"
+elif [ -e "$ISO_DIRS/bg.stale" ]; then iso_bad "$d" "bg.stale still there"
+elif [ "$(git -C "$LIVE" worktree list | wc -l | tr -d ' ')" != 1 ]; then iso_bad "$d" "worktree still registered" "$(git -C "$LIVE" worktree list)"
+else iso_ok "$d"; fi
+
+# I1d. the tree sits inside the live repo, so a loader that walks UP for a .env (python-dotenv's
+#      find_dotenv) reached the live one. With no .env.example to build from, the walk must stop
+#      in the tree. The test does the walk from its cwd and writes what it found.
+LIVE2="$WS/live-noexample"; mkdir -p "$LIVE2"
+cat > "$LIVE2/impl.test.js" <<'JS'
+const test = require('node:test'); const fs = require('node:fs'); const path = require('node:path');
+test('nearest .env', () => {
+  let d = process.cwd(), found = '';
+  for (;;) { const f = path.join(d, '.env'); if (fs.existsSync(f)) { found = f; break; } if (path.dirname(d) === d) break; d = path.dirname(d); }
+  fs.writeFileSync(process.env.BG_PROBE_OUT, found + '\n' + (found ? fs.readFileSync(found, 'utf8') : ''));
+});
+JS
+printf '.env\n.claude/\n' > "$LIVE2/.gitignore"
+( cd "$LIVE2" && git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm fixture )
+printf 'DATABASE_URL=postgres://LIVE-SECRET\n' > "$LIVE2/.env"; live2_sum=$(cksum < "$LIVE2/.env")
+PROBE2="$WS/iso-probe-env"
+set +e; IOUT=$( cd "$LIVE2" && BG_PROBE_OUT="$PROBE2" TMPDIR="$ISO_TMP" "$BG" --isolate --changed impl.test.js 2>&1 ); IRC=$?; set -e
+d="--isolate with no .env.example: a parent-directory .env lookup stops in the tree, not at the live .env"
+if [ "$IRC" != 0 ]; then iso_bad "$d" "rc=$IRC" "$IOUT"
+elif [ ! -s "$PROBE2" ]; then iso_bad "$d" "the suite wrote no probe" "$IOUT"
+elif grep -q LIVE-SECRET "$PROBE2"; then iso_bad "$d" "the tree's nearest .env is the live one: $(head -n 1 "$PROBE2")"
+elif [ "$(cksum < "$LIVE2/.env")" != "$live2_sum" ]; then iso_bad "$d" "live .env CHANGED"
 else iso_ok "$d"; fi
 
 # I2. --isolate when `git worktree add` fails (unborn HEAD) -> refuse(3), nothing ran anywhere.
@@ -616,7 +713,7 @@ iso_gate "$UNBORN" --isolate --changed impl.js
 d="--isolate, worktree add fails -> refuse(3), suite never ran"
 if [ "$IRC" != 3 ] || ! printf '%s' "$IOUT" | grep -q 'nothing was run'; then iso_bad "$d" "rc=$IRC" "$IOUT"
 elif [ -e "$UNBORN/ran.marker" ]; then iso_bad "$d" "suite ran IN PLACE after the setup failed"
-elif [ -n "$(ls -A "$ISO_TMP")" ]; then iso_bad "$d" "temp dir left behind"
+elif [ -n "$(ls -A "$ISO_TMP")" ] || [ -n "$(find "$UNBORN/.claude/task-runner/iso" -name 'bg.*' 2>/dev/null)" ]; then iso_bad "$d" "temp dir left behind"
 else iso_ok "$d"; fi
 
 # I3. --isolate outside any git work tree -> refuse(3).
@@ -653,6 +750,30 @@ if [ "$IRC" != 0 ]; then iso_bad "$d" "rc=$IRC" "$IOUT"
 elif ! grep -q '"verdict":"no-executable-surface"' "$LIVE/.claude/task-runner/bg/bg-$live_head.json" 2>/dev/null; then iso_bad "$d" "root bg record not rewritten"
 elif [ -e "$LIVE/docs/.claude" ]; then iso_bad "$d" "a .claude/ appeared under docs/"
 else iso_ok "$d"; fi
+
+# I8. IN FLIGHT (2026-10-14): while the gate runs, the LIVE bg dir holds running.pid naming the
+#     gate and the HEAD it judges, so candor's Stop gate can tell "running" from "never run";
+#     it is gone after exit. A file a second gate has since rewritten is left alone.
+printf '#!/bin/sh\nsleep 2\necho "3 tests, 0 failures"\n' > "$LIVE/slow-suite.sh"; chmod +x "$LIVE/slow-suite.sh"
+( cd "$LIVE" && git add slow-suite.sh && git -c user.email=t@t -c user.name=t commit -qm slow )
+slow_head=$(git -C "$LIVE" rev-parse HEAD); PIDF="$LIVE/.claude/task-runner/bg/running.pid"; rm -f "$PIDF"
+bg_inflight() { # starts the gate in the background, sets GPID, waits for running.pid
+  ( cd "$LIVE" && TMPDIR="$ISO_TMP" exec "$BG" --isolate --changed calc.ex --runner './slow-suite.sh::^0 tests' ) >"$WS/i8.out" 2>&1 &
+  GPID=$!
+  for _ in $(seq 1 50); do [ -s "$PIDF" ] && break; sleep 0.1; done
+}
+bg_inflight; seen=$(cat "$PIDF" 2>/dev/null || true)
+set +e; wait "$GPID"; grc=$?; set -e
+d="a running gate holds bg/running.pid (its PID, then HEAD); the file is gone after exit"
+if [ "$seen" != "$(printf '%s\n%s' "$GPID" "$slow_head")" ]; then iso_bad "$d" "running.pid held <$seen>, want <$GPID / $slow_head>" "$(cat "$WS/i8.out")"
+elif [ "$grc" != 0 ]; then iso_bad "$d" "rc=$grc" "$(cat "$WS/i8.out")"
+elif [ -e "$PIDF" ]; then iso_bad "$d" "running.pid left after exit"
+else iso_ok "$d"; fi
+bg_inflight; printf '999999\n%s\n' "$slow_head" > "$PIDF"
+set +e; wait "$GPID"; set -e
+d="a running.pid another gate rewrote is not removed by this one's exit"
+[ "$(head -n 1 "$PIDF" 2>/dev/null)" = 999999 ] && iso_ok "$d" || iso_bad "$d" "file: <$(cat "$PIDF" 2>/dev/null)>"
+rm -f "$PIDF"
 
 # ---- tally ----
 printf '\nbehavioral-gate.test: %d passed, %d failed\n' "$pass" "$fail"

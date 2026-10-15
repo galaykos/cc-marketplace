@@ -58,6 +58,21 @@ case "$msg" in *"Reason: $(printf 'q%.0s' $(seq 200))…"*) ok "rv-consent shows
 msg=$(consent_msg 'H=$(git rev-parse HEAD); bash review-skip.sh --card "bg-${H:0:12}" --reason "gate is red"')
 case "$msg" in *'for card bg-${H:0:12}. Reason: gate is red'*) ok "rv-consent names a shell-built id whole" ;;
   *) bad "rv-consent names a shell-built id whole" "msg=<$msg>" ;; esac
+# a REDIRECT into a record named with a shell expansion is a write too; its id class lagged the display's
+msg=$(consent_msg 'H=$(git rev-parse HEAD); echo "{}" > .claude/task-runner/rv/rv-skip-bg-${H:0:12}.json')
+case "$msg" in *'for card bg-${H:0:12}.'*) ok "rv-consent asks on a redirect into rv-skip-bg-\${H:0:12}.json" ;;
+  *) bad "rv-consent asks on a redirect into rv-skip-bg-\${H:0:12}.json" "msg=<$msg>" ;; esac
+msg=$(consent_msg 'cat .claude/task-runner/rv/rv-skip-bg-${H:0:12}.json')
+[ -z "$msg" ] && ok "rv-consent stays silent on reading that record" || bad "rv-consent stays silent on reading that record" "msg=<$msg>"
+# any shell expansion can build the name: a command substitution, a quoted variable, a backtick
+for c in 'echo "{}" > .claude/task-runner/rv/rv-skip-bg-$(git rev-parse --short=12 HEAD).json' \
+         'echo "{}" > .claude/task-runner/rv/rv-skip-"$H".json' \
+         'echo "{}" > .claude/task-runner/rv/rv-skip-`git rev-parse HEAD`.json'; do
+  [ -n "$(consent_msg "$c")" ] && ok "rv-consent asks on a redirect into a record named by: ${c#*rv-skip-}" \
+    || bad "rv-consent asks on a redirect into a record named by: ${c#*rv-skip-}" "silent"
+done
+msg=$(consent_msg 'cat .claude/task-runner/rv/rv-skip-07.json > /tmp/x')
+[ -z "$msg" ] && ok "rv-consent stays silent on copying a record out" || bad "rv-consent stays silent on copying a record out" "msg=<$msg>"
 
 # 2c) the reviewer's type per card, so candor can ask for ui-ux-reviewer on a UI card by name,
 #     and the run-close range review's RV-RANGE marker, which arrives through a Skill call.

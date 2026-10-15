@@ -84,8 +84,10 @@ cc_state_root() {
          printf '%s' "$cmdline" | grep -q -- '--reason'; then
         discretionary=1
       fi
-      # A shell redirect straight into a record file is the same act by another route.
-      printf '%s' "$cmdline" | grep -qE '>[[:space:]]*[^|]*rv-skip-[a-zA-Z0-9._-]+\.json' && discretionary=1
+      # A shell redirect straight into a record file is the same act by another route. Any
+      # expansion can build the name (`${H:0:12}`, `$(git rev-parse …)`, a backtick), so the
+      # name runs to `.json` short of a pipe or command separator; an id class missed each.
+      printf '%s' "$cmdline" | grep -qE '>[[:space:]]*[^|]*rv-skip-[^|;&]*\.json' && discretionary=1
       ;;
   esac
   # An exemption is a design carve-out, never a judgment call: it must not prompt,
