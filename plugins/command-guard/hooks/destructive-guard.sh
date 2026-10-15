@@ -6,7 +6,7 @@
 # Misses: an allow-file path built from a variable or glob, a script or a program git config names writing it, an MCP write tool other than apply_patch and create_new_file,
 # NotebookEdit's notebook_path, a non-ASCII spelling the filesystem folds to the name; a failing cd to a relative target; env -S'…' or --split-string=… with the string glued on;
 # a -C/-c value holding a space, or a git option past the -C/-c/--git-dir set where git does not lead (bash -c "git -P push"); an unlisted wrapper option value or spaced long form (sudo -R x): a refusal, or a miss if it names a reader; a wrapper by path but env (/usr/bin/sudo): a refusal.
-# A heredoc body fed to anything but a shell or SQL client is not read (strip_heredoc_bodies).
+# A heredoc body fed to anything but a shell or SQL client is not read (cc_strip_heredoc_bodies).
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/destructive-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -79,16 +79,20 @@ split_segments() {
     }'
 }
 
-# Before splitting, a heredoc body goes unless its opener's line names a shell, ssh, su, eval, exec, source, `.` or a SQL_CLIENT_RE
-# client: judged line by line, a 21 KB `python3 - <<'EOF'` took 22.6 s against the 15 s hook timeout and failed open. A body is kept
-# where its reader can sit off that line: a `\` continuation, a trailing | ( { do then else, an unquoted $( ) ( ) <( ) around it but
-# x=$( ), an fd number, a $ or quoted command word, a done/fi/esac/}/) lead, a pipe into a shell in the text left. A `<<` the scan
-# cannot place (quoted, after a #, in arithmetic, an odd delimiter, a quote open across its line, a backtick, $$', an unmatched ), a
-# terminator with stray blanks) keeps every later line; so does a missing terminator. Misses: a body fed to anything else (python3 -,
-# node, sudo -s, at, a function, alias or coproc) or written to a script a later line runs; a case pattern's ) inside $( ), which
-# closes it early for the scan; a huge kept body is still slow.
-strip_heredoc_bodies() { # raw command
-  printf '%s\n' "$1" | LC_ALL=C awk -v sql="$SQL_CLIENT_RE" '
+# Shared block templates/blocks/heredoc-bodies.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/heredoc-bodies.md
+# cc_strip_heredoc_bodies <mode> <command> [<reader ERE>] prints the command without the heredoc bodies the scan can place,
+# their terminators dropped with them. Mode all drops every such body. Mode inert keeps a body a reader may run: its opener's line
+# names a shell, ssh, su, eval, exec, source or `.`, or matches <reader ERE> (tested lowercased, unquoted, space-padded), or the
+# reader can sit off that line: a `\` continuation, a trailing | ( { do then else, an unquoted $( ) ( ) <( ) but x=$( ), an fd
+# number, a $ or quoted command word, a done/fi/esac/}/) lead, a pipe into a shell in the text left. Both modes keep every line
+# after a `<<` the scan cannot place (quoted, after a #, in arithmetic, an odd delimiter, a quote open across its line, a backtick,
+# $$', an unmatched ), a terminator with stray blanks) and a body with no terminator. Misses: inert drops a body fed to anything
+# else (python3 -, node, sudo -s, at, a function, alias or coproc) or written to a script a later line runs; a case pattern's )
+# inside $( ) closes it early.
+cc_strip_heredoc_bodies() {
+  printf '%s\n' "$2" | heredoc_readers="${3:-}" LC_ALL=C awk -v how="$1" '
+    BEGIN { rd = ENVIRON["heredoc_readers"] }
     function delim(s, j,   c, q, w) {
       q = ""; w = ""
       for (; j <= length(s); j++) {
@@ -184,14 +188,14 @@ strip_heredoc_bodies() { # raw command
       if (startq || sq || dq) { mode = 2; next }
       t = cc ? substr($0, 1, cc - 1) : $0; sub(/[ \t]+$/, "", t)
       w = tolower(lw); gsub(/["\047\\]/, "", w); gsub(/[<>|;&()]/, " & ", w); gsub(/[ \t]+/, " ", w); w = " " w " "
-      keep = k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ \
-        || w ~ sql || w ~ /[ \/]((ba|z|da|k|c|tc|a)?sh|fish|ssh|su|eval|exec|source|\.) /
+      keep = how != "all" && (k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ \
+        || rd != "" && w ~ rd || w ~ /[ \/]((ba|z|da|k|c|tc|a)?sh|fish|ssh|su|eval|exec|source|\.) /)
       qi = 1; mode = 1; nh = 0
       next
     }
     END {
       if (mode == 1 && !keep) for (k = 1; k <= nh; k++) out[++no] = held[k]
-      for (k = 1; cut && k <= no; k++) {
+      for (k = 1; cut && how != "all" && k <= no; k++) {
         t = out[k]; if (t ~ /[|(]&?[ \t]*$/ && k < no) t = t " " out[k + 1]
         t = tolower(t); gsub(/["\047\\]/, "", t)
         if (t ~ /[|(]&?[ \t]*((sudo|doas|env|command|exec|nohup|time|nice)[ \t]+(-[^ \t]+[ \t]+)*)*([^ \t|;&()]*\/)?((ba|z|da|k|c|tc|a)?sh|fish|ssh|su|eval|source|\.|xargs)([ \t;&|)]|$)/) {
@@ -755,8 +759,10 @@ classify() {
   printf '%s' " $full_lc " | grep -qE ' \| *(sudo )?[a-z]*sh( |$)| \| *xargs ' && pipe_to_shell=1
 
   # The whole-command reads above see heredoc bodies; the segment walk and the cd chain below do not see a stripped body.
+  # Inert mode, SQL clients counted as readers: judged line by line, a 21 KB `python3 - <<'EOF'` took 22.6 s against the
+  # 15 s hook timeout and failed open. A huge kept body is still slow.
   body=$raw
-  case "$raw" in *'<<'*) body=$(strip_heredoc_bodies "$raw"); [ -n "$body" ] || body=$raw ;; esac
+  case "$raw" in *'<<'*) body=$(cc_strip_heredoc_bodies inert "$raw" "$SQL_CLIENT_RE"); [ -n "$body" ] || body=$raw ;; esac
 
   while IFS= read -r seg; do
     [ -n "$seg" ] || continue

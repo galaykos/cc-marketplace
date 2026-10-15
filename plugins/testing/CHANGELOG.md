@@ -38,6 +38,17 @@ file whose job is history is worse than an honest starting point.
   denies", "Pest })->skip(fn () => …) denies", "Pest })->skip(true, …) denies", "Pest
   })->with([…])->skip() chain denies" and "Pest })->group('slow')->only() chain denies" fail
   against the hook before this change.
+- **On Bash, the in-command `cd` test drops heredoc bodies with the shared scan.** The test
+  used a one-line awk, also copied into three other plugins. That awk opened a body at a `<<`
+  inside quotes or after a `#`, read one heredoc per line, cut a delimiter at its first
+  non-word character and dropped an unterminated body to the end. It now calls
+  `cc_strip_heredoc_bodies all` (`templates/blocks/heredoc-bodies.md`, command-guard's
+  scanner). That scan keeps every line after a `<<` it cannot place, and every line of a body
+  whose terminator is indented, blank-padded or missing, so a `cd` there now skips relative
+  targets (a miss, never a wrong file). A `cd` in the body of a second
+  heredoc on one line no longer does. No verdict change on 2,611 distinct `<<` Bash commands
+  from local transcripts. Standing: gate — `pc_shared_blocks` holds the copy byte-identical;
+  `protect-tests.test.sh` (61) and `test-shape.test.sh` pass unchanged.
 
 ## 0.13.1 — 2026-10-14
 

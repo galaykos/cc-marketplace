@@ -470,9 +470,9 @@ it. A miss is preferred to judging the wrong file, so an uncertain shape is skip
   a target holding a backslash, or one led by `~user`; a target whose `..` steps out of
   a symlinked directory; a relative target whenever the command holds a `cd`, `chdir`,
   `pushd` or `popd` word outside quoted strings and heredoc bodies (inside quotes too
-  when the command holds `eval`, `sh -c` or `bash -c`; inside a heredoc body too when a
-  `<<` sits inside a quoted string, after a backslash or inside `$((`) — an absolute
-  target is still judged.
+  when the command holds `eval`, `sh -c` or `bash -c`; every line after a `<<` the body
+  scan cannot place, such as one inside a quoted string, after a `#` or inside `$((`,
+  is read as command text) — an absolute target is still judged.
 - **Skipped by `density.sh`'s deny only:** an append; a heredoc whose target the same
   command writes again (the after-command measurement covers it).
 - **Judged by neither of `density.sh`'s lanes:** truncating heredocs past the 40th to a
