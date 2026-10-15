@@ -140,7 +140,8 @@ or stated before the commit. Departures from the text below:
 - §6 V-10: the rollback cut covers Laravel and Doctrine, Rails and Alembic, per MultiEdit edit.
   Knex, TypeORM and Sequelize rollbacks are not cut, so they still ask.
 - §6 prompt-shape: adopted by skill-router, ask-ledger, code-review's review-debt and
-  taskmaster's reminder; every classifier miss errs toward speaking. candor's preamble and the
+  taskmaster's reminder; every classifier miss errs toward speaking but one stated ship-noun class
+  (`rationale/derivations/templates-and-blocks.md`). candor's preamble and the
   other reminder hooks have not adopted it.
 - §6 lint: `pc_agent_tool_fit` follows only the `references/` files an agent names, and reads a
   relative-clause subject ("a handler that writes") as description.
@@ -155,12 +156,40 @@ Found while applying, not fixed:
 - `--runner-for java` can pass on a build-success line alone; a pytest wrapper run with `-qq`
   reads unverifiable.
 - skill-router misses an error named with no state verb and not opening a sentence.
-- Pest's named skip helpers and a `->skip()` on the line after the closure are not matched.
-- A heredoc fed to a shell function, alias, `coproc` or `xargs` is not read by command-guard.
+- A Pest `->skip()` on the line after the closure is not matched (the named helpers are, since
+  the range review).
+- A heredoc fed to a shell function, alias or `coproc` is not read by command-guard.
 - The craft concept deck's worked example is not gated against an axis gaining an option.
 - An overseer dispatch file written before the new preamble clause fails `dispatch check`
   if it is checked again; files already gated keep their recorded checksum.
 - A `/loop` wakeup prompt is still read as a work prompt by the reminders.
+
+**Wave 3 applied 2026-10-15: §5.** Two byte-locked blocks instead of one:
+`templates/blocks/heredoc-bodies.md` is command-guard's quote-aware scanner, now used by the five
+hooks that each had their own copy and by unicode-scan, and `templates/blocks/bash-write-effects.md` lists the files a
+Bash command changed (`git status` filtered to paths newer than the hook's previous call). All
+eight PostToolUse hooks that carry the write blocks adopt it. The four PreToolUse-only guards
+cannot judge a write that has not happened and name the miss. A whole-range review of
+6c8b00be..HEAD (wave 2 after its fixes, plus wave 3; four readers and the host's pass) found 36
+issues, four high, all fixed or stated before the commit. Departures from §5's text:
+
+- No literal `open(…,'w')` fast path: the effect read covers interpreter writes after the fact,
+  and nothing parses an interpreter body before it runs, so Pre lanes stay blind.
+- The pre-filter runs `git status` only for an interpreter, `cp`, `mv`, `install` or `patch`
+  command. Measured on a 2,786-file repo: about +1.5 ms per hook for any other Bash call, about
+  +5 ms more for a matching call that writes nothing.
+- The marker belongs to one hook, one repo and one session, so a new session's first matching
+  call reads nothing rather than the user's edits since the last session. A Bash call that exits
+  non-zero is read through `PostToolUseFailure`.
+- A file found this way is reported as changed since the previous tool call, never as this
+  command's write: the scope lock never tells a worker to revert it.
+
+Found while applying, not fixed:
+- A writer the pre-filter does not name (`make`, `git apply`, a formatter), gitignored outputs,
+  `mv`/`cp -p` destinations, submodules, a repo with no git and a `run_in_background` command's
+  writes are not read; anything else that changed a file between two calls is read as changed.
+- The cap of 8 counts files before each hook's own filters.
+- The spawn cap asks instead of notifying when a tag shares the run branch's name.
 
 ### 1. Skills that actually reach the work (skill-router, taskmaster, laravel, testing, task-runner)
 
