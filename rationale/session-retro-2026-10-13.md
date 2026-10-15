@@ -114,11 +114,53 @@ below:
   to HEAD, so a `switch -c` plus commits in one turn still counts.
 
 Found while applying, not fixed:
-- testing's protect-tests reads a `pending '<x>'` string as a skip marker.
+- testing's protect-tests reads a `pending '<x>'` string as a skip marker (fixed in wave 2).
 - stamp-lint's reachability probe needs `CLAUDE_PLUGIN_ROOT`, which a by-path run likely
   lacks.
 - git-workflow's marketplace description does not mention the merge-checks hook, because
   adding it would cost always-on tokens.
+
+**Wave 2 applied 2026-10-15: the rest of §3, §4, §6 (except the ask-ledger re-measure),
+§7's scope question, and Tier 2 V-02, V-04, V-44 and the ship-verb half of V-20.** A
+whole-range review of the wave (four readers plus the host's pass) found 47 issues, three
+high: a custom runner that ran nothing graded covered, a quoted `<<WORD` hiding destructive
+lines from command-guard, and the isolated test tree reaching the live `.env`. All were fixed
+or stated before the commit. Departures from the text below:
+
+- §3 V-23: `--runner-for` output must pass the language's own "tests ran" check. The isolated
+  tree moved into the repo so container shims see it. It gets an empty `.env` so a loader
+  walking up cannot reach the live one. Composer projects still load live classes through the
+  linked `vendor`, and the gate's warning says so.
+- §3 V-27: a run sentinel counts only on the branch it was registered on.
+- §4 V-29: the suite lock lives in the git common dir, so worktree tracks share it. Without
+  `flock` (stock macOS) a worker runs unlocked and says so. The two-worker cap is planning
+  prose with no mechanism.
+- §6 V-35: there is no shared heredoc block yet. command-guard has a quote-aware local scanner
+  that keeps any body it cannot place. Consolidation moves to §5.
+- §6 V-10: the rollback cut covers Laravel and Doctrine, Rails and Alembic, per MultiEdit edit.
+  Knex, TypeORM and Sequelize rollbacks are not cut, so they still ask.
+- §6 prompt-shape: adopted by skill-router, ask-ledger, code-review's review-debt and
+  taskmaster's reminder; every classifier miss errs toward speaking. candor's preamble and the
+  other reminder hooks have not adopted it.
+- §6 lint: `pc_agent_tool_fit` follows only the `references/` files an agent names, and reads a
+  relative-clause subject ("a handler that writes") as description.
+- §7: install and uninstall both ask for the scope. The SessionStart line and `*-lsp`
+  surfacing are not done.
+- V-04: candor counts a behavioral gate as in flight through a PID file task-runner writes,
+  capped at 240 minutes. Under the sandbox's PID namespace the check can miss.
+- V-02: candor's preamble skips this marketplace's read-only agents by qualified name.
+- V-20: the auth-surface trivial-escape half is still open.
+
+Found while applying, not fixed:
+- `--runner-for java` can pass on a build-success line alone; a pytest wrapper run with `-qq`
+  reads unverifiable.
+- skill-router misses an error named with no state verb and not opening a sentence.
+- Pest's named skip helpers and a `->skip()` on the line after the closure are not matched.
+- A heredoc fed to a shell function, alias, `coproc` or `xargs` is not read by command-guard.
+- The craft concept deck's worked example is not gated against an axis gaining an option.
+- An overseer dispatch file written before the new preamble clause fails `dispatch check`
+  if it is checked again; files already gated keep their recorded checksum.
+- A `/loop` wakeup prompt is still read as a work prompt by the reminders.
 
 ### 1. Skills that actually reach the work (skill-router, taskmaster, laravel, testing, task-runner)
 
