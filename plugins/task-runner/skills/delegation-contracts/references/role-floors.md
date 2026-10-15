@@ -67,8 +67,7 @@ Worked cases:
 A floor below `opus` is not a weaker floor — it is the same rule at the agent's own level.
 `sonnet` is where `verifier` already sat; the row only stops it capping there.
 
-Effort is **not** floored: the Agent tool has no `effort` parameter, so frontmatter `effort:`
-stands. Effort remains a `Workflow`-path concern.
+Effort is **not** floored: frontmatter `effort:` stands unless a dispatch sets its own.
 
 ## Resolving this file
 
@@ -111,10 +110,11 @@ skill reads this registry for them.
 
 task-runner's spawn-floor mod (`hooks/floors.ts`) closes that gap where it loads. It reads
 this file once, at the first spawn it handles, and keeps that read for the session, so an
-edit made mid-session is not seen. It raises every spawn of a registry agent to at least
+edit made mid-session is not seen. It raises every new spawn of a registry agent to at least
 its floor, and a spawn naming no model (or `inherit`) to the session's model when that is a
 higher tier, main-thread dispatches included. It only raises: an explicit model at or above
-the floor, a fork, and a model of unknown family are left as given. It loads on Claude Code
+the floor, a fork, a resumed agent, a workflow agent below CLI 2.1.300 and a model of unknown
+family are left as given. It loads on Claude Code
 2.1.291 or later with mods on, while `CC_SPAWN_FLOOR` (or the `/config` option
 `cc_spawn_floor`) is not off, and unless an organization sets `allowManagedModsOnly`, the
 managed policy that loads only the mods it deploys and refuses one a person installed (per

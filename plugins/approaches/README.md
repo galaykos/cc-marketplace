@@ -22,6 +22,14 @@ keystroke from something irreversible — and its `hooks/consult-remind.sh` nudg
 on irreversible-command tokens came with it. Both are `decide`-phase blind second
 opinions, the same shape as the opinion panel; the plugin boundary carried nothing.
 
+Claude Code's `/advisor` (extended in 2.1.300) overlaps it: a server-side stronger model
+consulted from inside the session's conversation. Consult keeps three things the advisor
+does not do: a blind, facts-only brief (`scripts/brief-lint.sh` rejects leaning phrasing),
+a read-only investigation of the repo by the consultant itself, and the
+irreversible-command nudge. The Admission question is open, not answered: no control-arm
+run has shown a blind brief beating the anchored advisor on the same stuck moment. If one
+shows it does not, the consult agent is a duplicate and only the nudge earns its place.
+
 ## Install
 
 ```bash

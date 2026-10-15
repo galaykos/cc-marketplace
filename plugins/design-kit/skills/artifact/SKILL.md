@@ -92,7 +92,7 @@ especially images — so leave out interactivity nobody asked for.
    checklist, bring-back — or combine two, never five.
 2. Write the page to a scratch path (`.design-kit/artifacts/.src/<slug>/index.html`
    with any local assets beside it).
-3. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh bundle <source> [--name slug]` bundles once,
+3. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh" bundle <source> [--name slug]` bundles once,
    starts or reuses the preview and prints the bundler's `network:`, `unresolved-link:`
    and `WARN:` lines, then `url=`. Fix every unresolved link and decide each network line
    on purpose, re-bundling after a fix; give the user that URL and the

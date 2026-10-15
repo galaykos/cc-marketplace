@@ -35,7 +35,7 @@ Before reporting, validate mechanically against the artifact where a tool exists
    **Terraform/OpenTofu in scope.** When the scope contains `*.tf`/`*.tofu` files or a
    plan JSON, run the plan reader and report its lines as findings — exit 2 is a critical
    finding, exit 1 means it could not read the input and nothing was checked:
-   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/plan-audit.sh <plan.json> --tf-dir <tf-source-dir> --base <merge-base-ref>`.
+   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/plan-audit.sh" <plan.json> --tf-dir <tf-source-dir> --base <merge-base-ref>`.
    With no plan JSON to hand, do not run `terraform plan` yourself — it needs credentials
    and state; ask the user for `terraform show -json plan.out` (or `tofu show -json`)
    output, and say in the report that the destructive-plan axis went unchecked without it.

@@ -2,6 +2,11 @@
 
 All notable changes to the session-hud plugin.
 
+## 0.1.2 — 2026-10-15
+
+- **The turn line counts the whole turn across a subagent's turn.** Since Claude Code 2.1.299 a subagent's or teammate's turn raises `turn.start` too, and the module took a new cost and context baseline on every one, so a turn whose subagent started midway showed `$0.03` where it had spent `$0.08`. A `turn.start` carrying `agentId` now leaves the baseline and the footers alone. On 2.1.291–2.1.298 a subagent's turn raises no `turn.start`, so nothing changes there. Standing: gate — `tests/hud.test.ts` "counts the whole turn's cost across a subagent's turn start", red against 0.1.1.
+- **The README says the subagent row's type needs 2.1.293.** The host sends `agentType` from 2.1.293; on 2.1.291–2.1.292 the row leaves the type out and shows the rest. Standing: gate — `scripts/__tests__/subagent-statusline.test.sh` "no agentType (CLI below 2.1.293): the row drops the type".
+
 ## 0.1.1 — 2026-10-15
 
 - The shared mod kit (`hooks/cc-kit.ts`) is synced to the copy that reads the branch with `git symbolic-ref -q HEAD`. This plugin does not call the changed function (`activeRun`), so nothing it does changes.

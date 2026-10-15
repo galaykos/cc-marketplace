@@ -426,7 +426,7 @@ identical. Run the shipped checker over the mockup; exit 0 = pass, exit 1 names
 the first frame that differs:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/theme-axis-check.py taskmaster-docs/mockups/<file>.html
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/theme-axis-check.py" taskmaster-docs/mockups/<file>.html
 ```
 
 It extracts each frame's `.vd-content` inner HTML and diffs every frame against

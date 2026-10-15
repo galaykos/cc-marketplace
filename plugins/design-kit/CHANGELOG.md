@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.10.1 — 2026-10-15
+
+- **Runnable `${CLAUDE_PLUGIN_ROOT}` paths are quoted.** The artifact, design, in-codebase and slides skills' `dk.sh`, `handoff-drift.py` and `deck-build.py` lines passed `${CLAUDE_PLUGIN_ROOT}/…` to `bash`, `node` or `python3` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.
+
 ## 0.10.0 — 2026-10-15
 
 - **The board reads oklch, hsl() and rgb() tokens, and says when it maps no colour.** `board-build.py` read a hex accent only, so a Tailwind v4 `@theme` in oklch, which `/design-kit:system` passes through to `tokens.json` as written, drew the board in the default blue without a word, as it did in a real session. The accent now comes from a hex, `rgb()`, `hsl()` or `oklch()` value, and a token file that maps no accent prints `tokens: no colour mapped from <file>` on stderr. The stock Laravel starter kit also needed a `/design-kit:system` fix. Its `@theme inline` sets `--color-primary: var(--primary)` and `:root` sets `--primary` itself; both name the path `color.primary`, so the token came out as the alias `{color.primary}`, pointing at itself. The `:root` value now replaces that self-reference, and `.dark`'s value stays in the token's dark mode. A reference that loops or names an undeclared property is dropped with a `system-extract: … alias dropped` line on stderr, never written as a cycle. Residual: `oklab()`, `lab()`, `lch()`, `color()` and an alias to another token, such as `{color.clay-500}`, still read as no colour on the board. Standing: gate — `board-build.test.sh` runs an oklch `@theme` and a stock-kit-shaped `app.css` through `system-extract.py` into the board, checks sRGB red, green and blue written four ways, and checks the warning. `system-extract.test.sh` checks the dark mode, the dropped cycle and the dropped undefined reference. The oklch and stock-shaped cases fail against 0.9.4.

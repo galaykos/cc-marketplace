@@ -78,7 +78,7 @@ cost-per-token. Drop scouts and locators to `high` or below; xhigh on a
 grep-shaped agent only slows the pipeline.
 
 Frontmatter is the static default; the dispatcher can override per
-invocation (the Agent tool's model parameter). Set frontmatter for the
+invocation (the Agent tool's `model`, and from CLI 2.1.292 its `effort`). Set frontmatter for the
 agent's typical difficulty and let the caller escalate the hard cases.
 
 **Picking a tier.** Default to `inherit` — it tracks the session and needs no

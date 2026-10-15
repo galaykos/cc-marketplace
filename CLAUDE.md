@@ -276,7 +276,7 @@ bash scripts/validate.sh
 bash scripts/check-version-bumps.sh master
 bash scripts/context-budget.sh
 bash scripts/generate.sh --check
-OFFICIAL_VALIDATE_ANY_VERSION=1 bash scripts/official-validate.sh   # the host's validator, --strict; last fail-capable CI step
+OFFICIAL_VALIDATE_ANY_VERSION=1 bash scripts/official-validate.sh   # the host's validator, --strict
 ```
 
 `official-validate.sh` pins the CLI version CI installs and FAILs locally the moment
@@ -348,8 +348,10 @@ named CI step; the author-time lints — one shared CI step globbing `plugins/*/
 ANY plugin shipping a harness is enforced the moment it lands; and the host's own
 validator, `claude plugin validate --strict` over every plugin and the marketplace
 manifest, run through `scripts/official-validate.sh` (pinned CLI version asserted;
-it catches manifest SCHEMA errors `validate.sh` never models, and nothing about
-SKILL.md frontmatter — its header says why). **Do not record the count here**;
+it catches manifest SCHEMA errors and hooks.json, `.mcp.json`, install-name and
+component-path faults `validate.sh` never models, fails a mod gating hook with no
+`.catch`, and checks nothing about SKILL.md frontmatter — its header lists each and
+says why). **Do not record the count here**;
 recount:
 
 ```bash

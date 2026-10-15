@@ -470,6 +470,8 @@ if command -v git >/dev/null 2>&1; then
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
   verdict_is "no gate pass: the block says to run the behavioral gate in the background" \
     "$(printf '%s' "$err" | grep -qF 'repo root, in the background, run task-runner'"'"'s scripts/behavioral-gate.sh'; echo $?)"
+  verdict_is "no gate pass: the block names the 7200000 ms Bash timeout (CLI 2.1.285+ stops a background call at 30 min)" \
+    "$(printf '%s' "$err" | grep -qF 'with a Bash timeout of 7200000'; echo $?)"
   # Sandboxed Bash (bwrap --unshare-pid) records the sandbox's own PID: dead here, or another process. With /proc the gate is
   #   found by its command line and a cwd under the root.
   if [ -d /proc/self ]; then

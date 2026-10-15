@@ -17,6 +17,7 @@ any-project core, tier 3 the universal remainder — then install what the user 
   `claude plugin marketplace add galaykos/cc-marketplace` (add `--scope project` under
   `--persist`) first. Headless: without `--yes` print that command and continue in
   command-printing mode; with `--yes` stop before Detection (flags.md).
+  Not one-step `claude plugin install <name> --marketplace <source>` (2.1.292+): it adds the marketplace to user settings whatever `--scope` says (measured 2.1.300), so a `--persist` install would leave teammates a plugin from a marketplace they lack — and older CLIs reject the flag.
 - Record the installed set — it drives the installed marks and filters the picker.
   `claude plugin list` alone is **machine-wide**: a plugin installed in an unrelated repo
   would be marked installed here and dropped from the picker. Filter to this project, then

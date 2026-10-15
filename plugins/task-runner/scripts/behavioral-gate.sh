@@ -105,14 +105,29 @@ bg_record() { # bg_record <verdict-label> [runners]
 TIMEOUT_SECS="${BEHAVIORAL_GATE_TIMEOUT:-1800}"
 PROBE_SECS=60
 [ "$TIMEOUT_SECS" -lt "$PROBE_SECS" ] 2>/dev/null && PROBE_SECS="$TIMEOUT_SECS"
+# The whole gate, isolate build included (SECONDS counts from start): 6600 s. From CLI
+# 2.1.285 the host stops a background Bash call at its `timeout` (30 min default, 2 h max;
+# from 2.1.288 only in -p, SDK, CI and cloud sessions), and a stopped gate writes no verdict
+# (measured 2026-10-15). Seven suites at 1800 s ran 210 minutes. Each run starts with what
+# is left, so the gate concludes about 10 minutes inside the 2 h; one that finds nothing
+# left reads unverifiable-suite.
+TOTAL_SECS="${BEHAVIORAL_GATE_TOTAL:-6600}"
+case "$TOTAL_SECS" in '' | *[!0-9]*) usage "BEHAVIORAL_GATE_TOTAL must be whole seconds (got: $TOTAL_SECS)" ;; esac
 
 # ---- portable hard-timeout wrapper -----------------------------------------
 # Prefers coreutils `timeout`/`gtimeout`; falls back to a perl alarm+fork (rc 124 on
 # timeout, GNU-compatible); last resort runs uncapped with a logged warning.
 run_with_timeout() {
-  local secs="$1"; shift
-  if command -v timeout  >/dev/null 2>&1; then timeout  "$secs" "$@"; return $?; fi
-  if command -v gtimeout >/dev/null 2>&1; then gtimeout "$secs" "$@"; return $?; fi
+  local secs="$1" bin rc t0=$SECONDS; shift
+  for bin in timeout gtimeout; do
+    command -v "$bin" >/dev/null 2>&1 || continue
+    # -k: a suite that ignores TERM held `timeout` past its cap (a 1 s cap ran 6 s, measured
+    # 2026-10-15), and no total holds then. The KILL exits 137; at the cap that is a timeout.
+    if "$bin" -k 1 1 true >/dev/null 2>&1; then "$bin" -k 10 "$secs" "$@"; else "$bin" "$secs" "$@"; fi
+    rc=$?
+    [ "$rc" = 137 ] && [ $((SECONDS - t0)) -ge "$secs" ] && rc=124
+    return "$rc"
+  done
   if command -v perl >/dev/null 2>&1; then
     perl -e '
       my $s = shift @ARGV;
@@ -174,7 +189,7 @@ while [ $# -gt 0 ]; do
     --isolate)        ISOLATE=1; shift ;;
     --in-place)       IN_PLACE=1; shift ;;
     -h|--help)   printf 'usage: %s (--isolate | --in-place) --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--runner '\''<cmd>::<empty-regex>'\''] [--runner-for <py|js|go|php|rs|rb|java> '\''<cmd>::<empty-regex>'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2
-                 printf '  --runner adds a runner; --runner-for replaces that language'\''s built-in one.\n  BEHAVIORAL_GATE_TIMEOUT=<seconds> caps each suite run (default 1800; entrypoint probes: 60).\n  Run the gate in the background: a foreground Bash call ends by 10 minutes, with no verdict.\n  --isolate works in <repo>/.claude/task-runner/iso/ and exports BG_TREE_REL (its path from the repo root).\n' >&2; exit 3 ;;
+                 printf '  --runner adds a runner; --runner-for replaces that language'\''s built-in one.\n  BEHAVIORAL_GATE_TIMEOUT=<seconds> caps each suite run (default 1800; entrypoint probes: 60).\n  BEHAVIORAL_GATE_TOTAL=<seconds> caps the whole gate (default 6600); a run it cuts short is unverifiable-suite.\n  Run the gate in background Bash with timeout 7200000: a foreground call ends by 10 minutes, a background one\n  by 30 unless its timeout says more (2 h max), with no verdict.\n  --isolate works in <repo>/.claude/task-runner/iso/ and exports BG_TREE_REL (its path from the repo root).\n' >&2; exit 3 ;;
     --*)         usage "unknown flag: $1" ;;
     *)           add_changed "$1"; shift ;;
   esac
@@ -406,12 +421,20 @@ pkg_test_script() {
 # `$(verdict_*)` command-substitution subshells below: those inherit WORKTMP but do
 # NOT fire the parent's EXIT trap, so the dir survives until the parent cleans it —
 # and the trap's `rm -rf` returns 0, so it never clobbers the script's exit code.
-CAP=""; RUN_RC=0; RAW_CAP=""
+CAP=""; RUN_RC=0; RAW_CAP=""; TOTAL_CUT=""
 WORKTMP=$(mktemp -d) || { log "cannot create temp workspace (mktemp -d failed)"; exit 3; }
 trap 'rm -rf "$WORKTMP"; pid_cleanup; iso_cleanup' EXIT INT TERM
 run_capture() {
+  local secs="$TIMEOUT_SECS" left=$((TOTAL_SECS - SECONDS))
+  TOTAL_CUT=""
+  if [ "$left" -lt "$secs" ]; then secs=$left; TOTAL_CUT=1; fi
+  if [ "$secs" -le 0 ]; then
+    log "BEHAVIORAL_GATE_TOTAL (${TOTAL_SECS}s) is spent — not starting: $*"
+    CAP=""; RUN_RC=124; return 0
+  fi
+  [ -z "$TOTAL_CUT" ] || log "cap cut to ${secs}s: what is left of BEHAVIORAL_GATE_TOTAL (${TOTAL_SECS}s)"
   set +e
-  run_with_timeout "$TIMEOUT_SECS" "$@" >"$WORKTMP/cap" 2>&1
+  run_with_timeout "$secs" "$@" >"$WORKTMP/cap" 2>&1
   RUN_RC=$?
   set -e
   # Terminal codes off: Pest (colors="true"), jest (FORCE_COLOR, `docker exec -t`) and vitest
@@ -783,6 +806,12 @@ done
 #      NEVER silently passed, NEVER failed.
 # Reuses the card-06 isolation/timeout helpers (run_capture / run_with_timeout).
 SHELL_EPS=()
+total_spent() { # a probe the gate total cut short proved nothing about the entrypoint: no crash label
+  [ "$RUN_RC" = 124 ] && [ -n "$TOTAL_CUT" ] || return 0
+  log "VERDICT: unverifiable-suite (BEHAVIORAL_GATE_TOTAL spent at $1)"
+  bg_record unverifiable-suite "${verdicts[*]:-}"
+  exit 2
+}
 smoke_entrypoints() {
   local TIMEOUT_SECS="$PROBE_SECS" RAW_CAP=1 # run_capture reads both; probes keep the short cap
   # nothing to smoke; a --differential with no shell entrypoint to run against is usage
@@ -805,6 +834,7 @@ smoke_entrypoints() {
     # (a) SMOKE: non-destructive probe under hard timeout; assert it boots (non-error)
     log "entrypoint[$ep]: smoke probe '--help' (timeout ${TIMEOUT_SECS}s)"
     run_capture "$ep" --help
+    total_spent "entrypoint[$ep]"
     log "entrypoint[$ep]: smoke exit=$RUN_RC"
     if [ "$RUN_RC" != 0 ]; then
       # A hard crash — killed by signal (>=128), not-executable (126), not-found
@@ -844,8 +874,8 @@ smoke_entrypoints() {
     # unwired flag would spuriously read as observable — reject it as a usage error.
     [ -n "$with" ] && [ -n "$without" ] || usage "--differential with/without markers must be non-empty (got: $spec)"
     for ep2 in "${SHELL_EPS[@]}"; do
-      run_capture "$ep2" "$flag"; out_with="$CAP"
-      run_capture "$ep2";         out_without="$CAP"
+      run_capture "$ep2" "$flag"; out_with="$CAP";    total_spent "entrypoint[$ep2] $flag"
+      run_capture "$ep2";         out_without="$CAP"; total_spent "entrypoint[$ep2]"
       ok=1
       # with-marker must appear WITH the flag and NOT without it; without-marker vice-versa
       if ! printf '%s\n' "$out_with"    | grep -qF -- "$with";    then ok=0; fi

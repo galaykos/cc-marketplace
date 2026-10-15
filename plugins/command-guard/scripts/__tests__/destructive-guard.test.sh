@@ -54,6 +54,17 @@ expect deny 'rm -rf /'
 expect deny 'rm -rf ~'
 expect deny 'rm -rf "$HOME"'
 expect deny 'rm -rf .'
+# A target whose shell value is only backslashes: the host's dangerous-rm check flags it too (CLI 2.1.281).
+expect deny 'rm -rf \'
+expect deny "rm -rf '\\'"
+expect deny 'rm -rf \\'
+expect deny 'rm -rf "\\"'
+expect deny 'sudo rm -rf \'
+expect deny 'ls; rm -rf \'
+expect allow $'rm -rf build \\\n  dist'   # a line continuation is no target
+expect allow $'rm -rf \\\nls'             # nor one that joins the next line's word
+expect allow 'rm -rf \ foo'                # an escaped space: the target is " foo"
+expect allow "rm -f '\\'"                  # not recursive
 expect deny 'rm -rf /etc'
 expect deny 'rm .env'
 expect deny 'rm -f .env.local'
@@ -604,6 +615,11 @@ for junk in '' 'not json at all' '{"tool_name":' '{}' '{"tool_name":"Bash"}' '{"
   out=$(printf '%s' "$junk" | "$BASH_BIN" "$GUARD" 2>/dev/null); rc=$?
   { [ -z "$out" ] && [ "$rc" -eq 0 ]; } && ok || bad "malformed input must fail open" "input=<$junk> rc=$rc out=$out"
 done
+# The exits above are the script's own fail-open; a guard the host cannot start, or one past its timeout, blocks (CLI 2.1.295+).
+HJ="$here/../../hooks/hooks.json"
+sel='[.hooks.PreToolUse[].hooks[] | select(.command | test("destructive-guard\\.sh"))]'
+n=$(jq "$sel | length" "$HJ" 2>/dev/null); nb=$(jq "$sel | map(select(.onFailure == \"block\")) | length" "$HJ" 2>/dev/null)
+{ [ "${n:-0}" -gt 0 ] && [ "$nb" = "$n" ]; } && ok || bad "every destructive-guard entry in hooks.json sets onFailure: block" "${nb:-?} of ${n:-?}"
 
 # Every vector that bypassed the two reverted self-exemptions for the guard's own --check, pinned as deny.
 printf '== no self-exemption\n'

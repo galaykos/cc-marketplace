@@ -7,7 +7,7 @@ Hunt flaky tests in this project. Resolve the test command first from what the
 repo actually uses — `package.json` scripts, `composer.json` scripts, a Makefile
 target, `pytest`, `go test ./...` — and say which one you chose and why.
 
-Then run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/flake-hunt.sh --cmd "<that command>"`
+Then run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/flake-hunt.sh" --cmd "<that command>"`
 with $ARGUMENTS appended. Always pass `--shuffle` with the runner's own
 randomize flag — without it the single most common flake class, order dependence,
 is not tested at all:

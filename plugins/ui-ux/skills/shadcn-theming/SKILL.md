@@ -136,11 +136,14 @@ as variable names:
    installed, its visual-decisions `assets/serve.py` is the preferred first
    start (adds SSE push-reload; static rungs below degrade to polling). Else
    start `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d taskmaster-docs/mockups`
-   in the background (no python3 →
+   in background Bash with `timeout: 7200000` (no python3 →
    `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` →
    `npx serve -l tcp://127.0.0.1:${PREVIEW_PORT:-8123} taskmaster-docs/mockups`) —
    the stable URL is `http://localhost:${PREVIEW_PORT:-8123}/theme.html`.
-5. Iterate by rewriting the token blocks in place. When the theme is accepted,
+5. Iterate by rewriting the token blocks in place, re-checking the port before each round:
+   from CLI 2.1.285 a background call stops at its `timeout` (30 minutes by default; from
+   2.1.288 in `-p`, SDK, CI and cloud sessions only), so nothing listening → start it again
+   as in step 4, same port. When the theme is accepted,
    kill the server only if this flow started it — mockups, walkthroughs, and
    diagrams share it. Stale recovery: `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill`.
 

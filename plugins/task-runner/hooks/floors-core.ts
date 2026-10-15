@@ -29,6 +29,15 @@ export function rank(model: string | undefined): number | null {
   return i === -1 ? null : i + 1
 }
 
+export function atLeast(version: string, min: string): boolean {
+  const parts = (v: string) => /^(\d+)\.(\d+)\.(\d+)/.exec(v)?.slice(1).map(Number)
+  const have = parts(version)
+  const want = parts(min)
+  if (!have || !want) return false
+  const i = have.findIndex((n, k) => n !== want[k])
+  return i === -1 || have[i] > want[i]
+}
+
 // undefined leaves the spawn's model as it is.
 export function decideModel(i: { explicit?: string; parentModel: string; floor: string }): string | undefined {
   const base = i.explicit ?? i.parentModel

@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.4 — 2026-10-15
+
+- **Runnable `${CLAUDE_PLUGIN_ROOT}` paths are quoted.** `/devops:review` and the devops-practices skill's `plan-audit.sh` and `workflow-audit.sh` lines passed `${CLAUDE_PLUGIN_ROOT}/…` to `bash`, `node` or `python3` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.
+
 ## 0.9.3 — 2026-10-04
 
 - **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/workflow-guard.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. The hook parses to the same code as before, compared by bash's own parser with comments ignored.

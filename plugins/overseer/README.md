@@ -8,6 +8,13 @@ delivers each milestone on its own branch by briefing the pipeline plugins alrea
 It accepts nothing it has not watched work: in a browser where the milestone has a screen,
 in a captured run where it has none.
 
+## Install
+
+```bash
+/plugin marketplace add galaykos/cc-marketplace
+/plugin install overseer@cc-plugins-marketplace
+```
+
 ## What it ships
 
 | Artifact | Kind | Does |

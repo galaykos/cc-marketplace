@@ -124,7 +124,7 @@ The prompt to each track-worker contains, in order:
    in dependency order (normal per-card execution, the per-card dispatch/routing procedure is available here).
 2. Run **one** full project check suite on the merged run branch, AND the behavioral-gate
    (`${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed <all merged tracks' files>`
-   in the background, see the behavioral-gate skill) — the merged code is exercised here, not just re-linted.
+   in background Bash with `timeout: 7200000`, see the behavioral-gate skill) — the merged code is exercised here, not just re-linted.
    Under an `Ultra:`/`Goal:` marker (not `boost=off`) the code-redteam pass also runs here at the resolved `model`
    and `effort`, passed in as `agent()` parameters (per its skill) — it never reads the index
    itself, so an unpassed tier means it silently runs native.

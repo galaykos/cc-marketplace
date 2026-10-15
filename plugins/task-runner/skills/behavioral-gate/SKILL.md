@@ -40,7 +40,7 @@ Layers 1–2 are per-card and can be skipped; none substitutes for the others.
 - **Tracks merged-branch final gate** — on the merged run branch, so the integrated result
   of all tracks is exercised, not just re-linted (see `track-orchestration`).
 
-Invoke the shipped script in the background (it is the authoritative logic; this skill only drives it):
+Invoke the shipped script (the authoritative logic) in background Bash with `timeout: 7200000`, or CLI 2.1.285+ may stop it at 30 minutes:
 
 ```
 ${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed "<the run's touched files>" \
@@ -67,7 +67,8 @@ run's live tree.
    classifier is objective (runner detection + file type), never author discretion, so a run
    cannot dodge the gate by declaring its untested code "lint-only".
 2. **Own-tests.** Run the resolved runner non-interactively in that worktree, under a hard
-   timeout (`BEHAVIORAL_GATE_TIMEOUT`, default 1800 s). Apply per-runner **empty-detection**
+   timeout (`BEHAVIORAL_GATE_TIMEOUT`, default 1800 s) within `BEHAVIORAL_GATE_TOTAL` (6600 s, inside the
+   host's 2 h; a run it cuts is `unverifiable-suite`). Apply per-runner **empty-detection**
    (see `references/runners.md`): an empty or zero-collected suite is `empty-suite` (exit 2),
    not a pass. A runner that exposes no empty signal **fails closed** for a code-producing
    run — silence is never a pass.
@@ -130,8 +131,7 @@ hook** (clause 4 of candor's `hooks/gate.sh`, so the gate has teeth only with ca
 installed) reads that record: for a run that registered itself
 (`.claude/task-runner/active-run.json`, written at run start per `run.md` step 1), it
 refuses a clean stop unless a gate pass is recorded for the current HEAD — a hard block
-by default (`${TASK_RUNNER_STOP_GATE:-block}`), downgradable to a warning only by
-explicitly setting `TASK_RUNNER_STOP_GATE=warn`. Per-card negative controls (layer 2
+unless `TASK_RUNNER_STOP_GATE=warn` is set. Per-card negative controls (layer 2
 above) are counted there too: with records in `.claude/task-runner/nc/`
 (`negative-control.sh --record-dir` writes `nc-pass-*` mechanically, documented skips
 `nc-skip-*`), fewer records than done cards refuses the clean stop.
@@ -142,8 +142,3 @@ check, never executes the produced tests, and fails open for a run that writes n
 model-authored, and a non-index run records no card counts, so card-completeness never
 fires for it. It closes the honest-but-forgetful skip, not deliberate evasion. (Honest
 limitation law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
-
-## Anti-patterns
-
-- Treating `no-executable-surface` as a failure — a genuinely doc-only run is honestly
-  lint-gated; the gate says so rather than failing it.

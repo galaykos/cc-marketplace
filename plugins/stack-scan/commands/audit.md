@@ -61,7 +61,7 @@ Dependency licences are the third axis of this audit and the only one with a
 script, because it is the only one a read cannot do. Run:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/licence-scan.sh --dir . --distribution <mode>
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/licence-scan.sh" --dir . --distribution <mode>
 ```
 
 `<mode>` is `saas`, `distributed-binary`, `internal`, `oss-permissive` or

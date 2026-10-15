@@ -130,10 +130,13 @@ constant backdrop, never a variant axis — colour decisions belong to `/ui-ux:t
   project's dev script as a `launch.json` configuration if absent, start it by name,
   navigate to `/__design-preview__.html`, and stop it with `preview_stop` in place of the
   PID kill — only if this flow started it. <!-- host-ok -->
-- Otherwise start the dev script in the background, note the PID, wait for the ready
+- Otherwise start the dev script in background Bash with `timeout: 7200000` (CLI 2.1.285+
+  stops a background call at 30 minutes by default; from 2.1.288 in `-p`, SDK, CI and cloud
+  sessions only), note the PID, wait for the ready
   line, and hand over `http://localhost:<port>/__design-preview__.html`.
 - Iteration: edit the entry in place — HMR updates the open tab; no new entries, no
-  new ports, at most two passes.
+  new ports, at most two passes. Re-check the port before the second; a server this flow
+  started that is gone is started again the same way.
 
 ## Cleanup — guaranteed, verified
 
@@ -143,7 +146,7 @@ fixture of every artifact shape. Residual: a scratch file renamed away from
 `__design-preview__` is invisible to it, so never rename one. A preview that leaves
 files behind is a failed run, whatever was picked.
 
-1. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/preview-cleanup.sh <project-root>` at the
+1. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview-cleanup.sh" <project-root>` at the
    pick, on abort, and on fallback alike — it removes every `__design-preview__`
    artifact, strips the marker line from `routes/web.php`, and exits non-zero if
    anything remains. `--verify` is the search-only mode.

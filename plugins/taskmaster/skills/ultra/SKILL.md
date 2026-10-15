@@ -56,7 +56,7 @@ goal banners in one response.
 ## Fixed tier — one rule, stated once
 
 `model=auto, effort=xhigh`, always. What `auto` resolves to, the escalate-never-downgrade
-ladder, and why `effort` binds only on the Workflow `agent()` path are owned by
+ladder, and which dispatch paths take `effort` are owned by
 `task-runner:verification-panels` `references/dispatch-tier.md` — cited, not
 restated (§ Panel width owns panel width N and states none of the three). Taskmaster adds two
 rules of its own: the resolution is a FLOOR (`max(marker, frontmatter)`), so it never lowers
@@ -156,9 +156,9 @@ every fan-out phase falls back to its inline single-agent form, still model-esca
 that fallback is reported as **"inline heuristic pass — single model, uncorroborated"**,
 never as a panel or adversary count. Auto-take, ledger, and markers operate identically inline.
 
-`Workflow` needs the user's own opt-in and `effort` binds only there, so an unpaired boost
-buys model escalation only: say once that **`ultracode` is the half this plugin cannot
-supply**, and that `ultrathink` (main-thread depth) is the orthogonal other half —
+`Workflow` needs the user's own opt-in: say once that **`ultracode` is the half this plugin
+cannot supply** (the fan-out), and that `ultrathink` (main-thread depth) is the orthogonal
+other half —
 `ultrathink ultracode ultra-task <task>` is the loaded form. Rules, including the workflow-size
 ceiling: `task-runner:verification-panels` `references/dispatch-tier.md` § Native harness interop.
 

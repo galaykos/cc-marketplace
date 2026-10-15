@@ -3,7 +3,8 @@
 # scripts/lib/plugin-checks.sh — pc_cwd_validated (#2), pc_offswitch_named (#5) and
 # pc_version_stamp_tail (#21) — plus pc_state_root and pc_shared_blocks from the
 # 2026-09-25 session review, pc_plugin_dependencies from the 2026-09-26 suite
-# retirement, and pc_agent_tool_fit from the 2026-10-13 session retro. Each gets BOTH arms: a planted violation that must be
+# retirement, pc_agent_tool_fit from the 2026-10-13 session retro, and pc_gating_catch and
+# pc_plugin_root_quoting from the 2026-10-15 host review. Each gets BOTH arms: a planted violation that must be
 # named, and a clean twin that must not be. A check that only ever runs against the live
 # tree proves nothing on the day the tree is clean, which is the day it lands.
 #
@@ -670,6 +671,105 @@ grep -v '^[[:space:]]*#' scripts/validate.sh | grep -qF 'toolfit_gap=$(pc_agent_
   && grep -v '^[[:space:]]*#' scripts/validate.sh | grep -qF '[ -n "$toolfit_gap" ] && lane_err "$toolfit_gap"' \
   && pass "tool-fit: wiring — validate.sh calls pc_agent_tool_fit and fails on its output" \
   || fail "tool-fit: wiring" "validate.sh lacks the pc_agent_tool_fit call or its lane_err"
+
+# ---- pc_gating_catch: a mod gating hook with no .catch (host review 2026-10-15) -------
+# The report shape is CLI 2.1.300's `claude plugin validate --strict --json` for a module
+# registering `on('tool.call', …)` with and without `.catch` — the host exits 0 on both.
+G="$T/gating"; mkdir -p "$G"
+cat > "$G/nocatch.json" <<'JSON'
+{"success":true,"strict":true,"manifest":{"type":"plugin","errors":[],"warnings":[],"gatingHooks":[]},
+ "contents":[{"file":"p/hooks/hooks.json","type":"hooks","errors":[],"warnings":[],"gatingHooks":[
+  {"module":"./gate.ts","pattern":"tool.call","hook":"tool.call","hasCatch":false},
+  {"module":"./gate.ts","pattern":"prompt.submit","hook":"prompt.submit","hasCatch":true}]}],"advice":[]}
+JSON
+sed 's/"hasCatch":false/"hasCatch":true/' "$G/nocatch.json" > "$G/caught.json"
+printf '%s\n' '{"success":true,"manifest":{"errors":[],"warnings":[]},"contents":[]}' > "$G/old-cli.json"
+printf 'Validation passed\n' > "$G/human.txt"
+: > "$G/empty.json"
+out=$(pc_gating_catch "$G/nocatch.json") && r=0 || r=$?
+[ "$r" -eq 1 ] && [ "$out" = "./gate.ts tool.call" ] \
+  && pass "gating: a hasCatch:false hook is named, its caught sibling is not" \
+  || fail "gating: a hasCatch:false hook is named, its caught sibling is not" "rc=$r got: ${out:-<empty>}"
+out=$(pc_gating_catch "$G/caught.json") && r=0 || r=$?
+[ "$r" -eq 0 ] && [ -z "$out" ] && pass "gating: every hook caught returns 0 and prints nothing" \
+  || fail "gating: every hook caught returns 0 and prints nothing" "rc=$r got: $out"
+out=$(pc_gating_catch "$G/old-cli.json") && r=0 || r=$?
+[ "$r" -eq 0 ] && pass "gating: a report with no gatingHooks key (CLI < 2.1.290) passes — the residual its header names" \
+  || fail "gating: a report with no gatingHooks key passes" "rc=$r got: $out"
+for g in human.txt empty.json; do
+  out=$(pc_gating_catch "$G/$g") && r=0 || r=$?
+  case "$r:$out" in
+    1:"unreadable report "*) pass "gating: $g is unreadable and fails rather than passing" ;;
+    *) fail "gating: $g is unreadable and fails rather than passing" "rc=$r got: ${out:-<empty>}" ;;
+  esac
+done
+grep -v '^[[:space:]]*#' scripts/official-validate.sh | grep -qF 'nocatch=$(pc_gating_catch "$out")' \
+  && grep -v '^[[:space:]]*#' scripts/official-validate.sh | grep -qF 'claude plugin validate --strict --json "$p"' \
+  && pass "gating: wiring — official-validate.sh runs pc_gating_catch on each plugin's --json report" \
+  || fail "gating: wiring" "official-validate.sh lacks the --json run or the pc_gating_catch call"
+
+# ---- pc_plugin_root_quoting: an unquoted ${CLAUDE_PLUGIN_ROOT} on a runnable line -------
+Q="$T/quoting"
+mkdir -p "$Q/qbad/commands" "$Q/qbad/skills/s/references" "$Q/qbad/agents" "$Q/qok/commands"
+cat > "$Q/qbad/commands/run.md" <<'MD'
+# Run
+
+Inline: run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/a.sh --x` now.
+Prose span: the script lives at `${CLAUDE_PLUGIN_ROOT}/scripts/a.sh`.
+Prose, no span: run bash ${CLAUDE_PLUGIN_ROOT}/scripts/a.sh by hand.
+Quoted: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/a.sh"`.
+Second span: see `x` then `python3 -I ${CLAUDE_PLUGIN_ROOT}/s.py`.
+Injected: !`node $CLAUDE_PLUGIN_ROOT/s.mjs`
+Not an interpreter: `zsh ${CLAUDE_PLUGIN_ROOT}/s.sh`, `npx ${CLAUDE_PLUGIN_ROOT}/s`.
+
+```bash
+out=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/b.sh)
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/b.sh"
+```
+~~~
+sh ${CLAUDE_PLUGIN_ROOT}/c.sh
+~~~
+MD
+printf 'Intro.\n\n```\npython ${CLAUDE_PLUGIN_ROOT}/r.py <dir>\n```\n' > "$Q/qbad/skills/s/references/r.md"
+printf -- '---\nname: a\n---\nRun `bash ${CLAUDE_PLUGIN_ROOT}/x.sh`.\n' > "$Q/qbad/agents/a.md"
+printf 'Run `bash ${CLAUDE_PLUGIN_ROOT}/x.sh`.\n' > "$Q/qbad/README.md"
+printf 'Run `bash "${CLAUDE_PLUGIN_ROOT}/x.sh"` and `node "$CLAUDE_PLUGIN_ROOT/y.mjs"`.\n' > "$Q/qok/commands/ok.md"
+out=$(pc_plugin_root_quoting "$Q") && r=0 || r=$?
+for want in "commands/run.md:3" "commands/run.md:7" "commands/run.md:8" "commands/run.md:12" \
+            "commands/run.md:16" "skills/s/references/r.md:4"; do
+  printf '%s\n' "$out" | grep -qxF "plugin-root-unquoted qbad $want" \
+    && pass "root-quoting: qbad $want is named" || fail "root-quoting: qbad $want is named" "got: ${out:-<empty>}"
+done
+n_q=$(printf '%s\n' "$out" | grep -c '^plugin-root-unquoted ')
+[ "$r" -eq 1 ] && [ "$n_q" -eq 6 ] \
+  && pass "root-quoting: the neighbours stay silent — a prose span, prose without a span, quoted paths, zsh/npx, agents, README, a clean plugin" \
+  || fail "root-quoting: the neighbours stay silent" "rc=$r, $n_q lines, want 6: $out"
+rm -rf "$Q/qbad"
+out=$(pc_plugin_root_quoting "$Q") && r=0 || r=$?
+[ "$r" -eq 0 ] && [ -z "$out" ] && pass "root-quoting: a tree with nothing to name returns 0 and prints nothing" \
+  || fail "root-quoting: a tree with nothing to name returns 0 and prints nothing" "rc=$r got: $out"
+grep -v '^[[:space:]]*#' scripts/validate.sh | grep -qF 'quote_gap=$(pc_plugin_root_quoting plugins)' \
+  && grep -v '^[[:space:]]*#' scripts/validate.sh | grep -qF 'err "plugin-root-unquoted $qp' \
+  && pass "root-quoting: wiring — validate.sh calls pc_plugin_root_quoting at FAIL tier" \
+  || fail "root-quoting: wiring" "validate.sh lacks the pc_plugin_root_quoting call or its err"
+# Run validate.sh's own block, cut from the live script, against a fixture plugins/ tree.
+sed -n '/^quote_gap=\$(pc_plugin_root_quoting plugins)/,/^fi$/p' scripts/validate.sh > "$T/quote-block.sh"
+mkdir -p "$Q/run/plugins/qbad/commands" "$Q/clean/plugins/qok/commands"
+printf 'Run `bash ${CLAUDE_PLUGIN_ROOT}/x.sh`.\n' > "$Q/run/plugins/qbad/commands/run.md"
+printf 'Run `bash "${CLAUDE_PLUGIN_ROOT}/x.sh"`.\n' > "$Q/clean/plugins/qok/commands/ok.md"
+quote_block() { # <fixture root>: prints the block's stderr, then fail=<0|1>
+  ( cd "$1" || exit 2; fail=0
+    err() { echo "FAIL: $1" >&2; fail=1; }; warn() { echo "WARN: $1" >&2; }
+    . "$T/quote-block.sh"; echo "fail=$fail" ) 2>&1
+}
+out=$(quote_block "$Q/run")
+case "$out" in
+  "FAIL: plugin-root-unquoted qbad: commands/run.md:1 "*"fail=1") pass "root-quoting: validate.sh's block FAILs an unquoted path" ;;
+  *) fail "root-quoting: validate.sh's block FAILs an unquoted path" "got: ${out:-<empty>}" ;;
+esac
+out=$(quote_block "$Q/clean")
+[ "$out" = "fail=0" ] && pass "root-quoting: validate.sh's block passes a quoted path silently" \
+  || fail "root-quoting: validate.sh's block passes a quoted path silently" "got: ${out:-<empty>}"
 
 [ "$rc" -eq 0 ] && echo "All panel gate-fixture asserts passed."
 exit "$rc"

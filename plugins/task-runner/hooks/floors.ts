@@ -1,19 +1,22 @@
 import type { On, PluginOptions } from 'claude-code'
 
 import { isSupported, switchOn } from './cc-kit'
-import { decideModel, parseRegistry, rank } from './floors-core'
+import { atLeast, decideModel, parseRegistry, rank } from './floors-core'
 
 const REGISTRY = '/skills/delegation-contracts/references/role-floors.md'
+
+// 2.1.292 to 2.1.299 raise agent.spawn for a workflow agent but drop a hook's model for it.
+const WORKFLOW_MODEL_FROM = '2.1.300'
 
 export function registerFloors(on: On, options: PluginOptions) {
   let registry: Promise<Map<string, string> | null> | undefined
 
   on('agent.spawn', async ($, e, next) => {
-    const isOn =
-      isSupported((await $.session.version()).version) &&
-      switchOn(await $.env.get('CC_SPAWN_FLOOR'), options.cc_spawn_floor !== false)
+    const { version } = await $.session.version()
+    const isOn = isSupported(version) && switchOn(await $.env.get('CC_SPAWN_FLOOR'), options.cc_spawn_floor !== false)
 
-    if (!isOn || e.fork) {
+    // The host ignores a model rewrite on a resume: the agent keeps the model it started on.
+    if (!isOn || e.fork || e.resume || (e.workflow && !atLeast(version, WORKFLOW_MODEL_FROM))) {
       return next(e)
     }
 

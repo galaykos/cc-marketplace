@@ -25,7 +25,7 @@ claude plugin install session-hud@cc-plugins-marketplace -s local
 | `hooks/hud.tsx` | hooks module, the only `modules` entry | reads `$.session.usage()` and git; draws the hint-line tail, the optional status line, the turn line and the `/hud` pane; reopens a pinned pane |
 | `/hud` | command the module registers | shows the pane, or hides it if it is showing |
 | `settings.json` → `subagentStatusLine` | plugin default setting | runs `scripts/subagent-statusline.sh` for the agent panel's rows |
-| `scripts/subagent-statusline.sh` | script | one row per subagent: name, type, model, effort, tokens and context %, age, label; ✓ completed, ✗ failed or killed |
+| `scripts/subagent-statusline.sh` | script | one row per subagent: name, type, model, effort, tokens and context %, age, label; ✓ completed, ✗ failed or killed. The type needs Claude Code 2.1.293 or newer, the first to send `agentType`; on 2.1.291–2.1.292 the row leaves it out and shows the rest |
 
 ## Segments
 

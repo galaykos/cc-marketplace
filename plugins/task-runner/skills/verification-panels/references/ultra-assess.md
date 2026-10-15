@@ -42,8 +42,8 @@ text verbatim. Honor every line:
 
 ```
 ULTRA-ASSESS ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this assessment run.
-- Reachable reasoning subagents dispatched model:<model> (default auto = session model or opus, whichever is higher on haiku<sonnet<opus<fable — escalate, never downgrade). On the Workflow
-  agent() path also effort:<effort> (default xhigh). Inline Agent dispatch escalates model only — the Agent tool has no effort knob, so an inline subagent keeps its own frontmatter effort.
+- Reachable reasoning subagents dispatched model:<model> (default auto = session model or opus, whichever is higher on haiku<sonnet<opus<fable — escalate, never downgrade). Also
+  effort:<effort> (default xhigh): on Workflow agent(), and on the Agent tool from CLI 2.1.292; below that an inline subagent keeps its frontmatter effort.
 - Fan out readers over the assessment units (files, plugins, modules, endpoints),
   one lens each, per delegation-contracts; each returns a compressed structured record.
   TIER each lens by its work (delegation-contracts rule): an enumerate/locate lens is
@@ -101,7 +101,7 @@ Ultra-assess never hard-fails. The degradation trigger is **no dispatch mechanis
 all** — neither `Workflow` `agent()` nor the Agent tool (`verification-panels`
 § A panel verdict is a claim about process owns that condition). A missing `Workflow`
 tool alone is NOT it: the Agent tool is a real dispatch path, so with it present every
-phase still fans out for real — `model:` only, no `effort:` — and the words below stay
+phase still fans out for real, tiered per `dispatch-tier.md`, and the words below stay
 earned.
 
 With neither mechanism — headless, cron, or a refused budget — every fan-out phase falls back to a
@@ -115,9 +115,8 @@ summary states which phases ran degraded. Verdict language must let the reader
 distinguish a real fan-out from an inline walk without trusting tone.
 
 The opt-in gate is the user's to satisfy, not this plugin's: `Workflow` runs on an
-explicit opt-in (`ultracode`, or invoking a skill like this one that directs it), and
-`effort` binds only there — so an unpaired boost escalates the model alone. Say it once
-per run: `ultracode` supplies the fan-out half, `ultrathink` the orthogonal main-thread
+explicit opt-in (`ultracode`, or invoking a skill like this one that directs it). Say it
+once per run: `ultracode` supplies the fan-out half, `ultrathink` the orthogonal main-thread
 half. Rules, including the workflow-size ceiling and the interactive-phase rule:
 `verification-panels` `references/dispatch-tier.md` § Native harness interop.
 

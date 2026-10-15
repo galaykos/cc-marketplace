@@ -6,6 +6,11 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.13.3 — 2026-10-15
+
+### Fixed
+- **Runnable `${CLAUDE_PLUGIN_ROOT}` paths are quoted.** `/testing:flake-hunt`'s `flake-hunt.sh` line passed `${CLAUDE_PLUGIN_ROOT}/…` to `bash`, `node` or `python3` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.
+
 ## 0.13.2 — 2026-10-14
 
 ### Changed

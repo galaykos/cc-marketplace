@@ -3,6 +3,12 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.11.3 — 2026-10-15
+
+### Changed
+- **The consult skill and the README name the overlap with Claude Code's `/advisor`** (extended in 2.1.300). Consult keeps the blind facts-only brief, the consultant's own read-only repo investigation, and the irreversible-command nudge. The Admission question is stated as open: no control-arm run has shown the blind brief beating the anchored advisor, and if it does not, only the nudge earns its place. Standing: recorded. Doc only; no behaviour changed.
+- **Runnable `${CLAUDE_PLUGIN_ROOT}` paths are quoted.** The consult skill's `brief-lint.sh` line passed `${CLAUDE_PLUGIN_ROOT}/…` to `bash`, `node` or `python3` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.
+
 ## 0.11.2 — 2026-10-15
 
 ### Fixed

@@ -109,9 +109,9 @@ reviewers — a leaf cannot dispatch sub-workers.
 ## Ultra
 
 When `00-INDEX.md` carries `Ultra: true (model=<model>, effort=<effort>)`, crew agents
-(reviewers + `test-engineer`) are dispatched with the `model:` override — excluding
-`opinion-lens`, which is not in the crew. The Agent tool has no effort parameter, so inline
-dispatch escalates model only; the inline `security-review` skill runs at session model.
+(reviewers + `test-engineer`) are dispatched at that tier — excluding `opinion-lens`, which
+is not in the crew (`effort` per `verification-panels` `references/dispatch-tier.md`). The
+inline `security-review` skill runs at session model.
 
 ## Accepted risks
 

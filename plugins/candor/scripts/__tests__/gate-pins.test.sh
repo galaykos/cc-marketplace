@@ -74,10 +74,10 @@ RP="$WS/bgpid"; repo "$RP"; mkdir -p "$RP/.claude/task-runner/bg"; PIDF="$RP/.cl
 printf 'sleep 600 & s=$!\ntrap "kill $s; exit 0" TERM\nwait\n' > "$WS/behavioral-gate.sh"
 bash "$WS/behavioral-gate.sh" >/dev/null 2>&1 & LIVE=$!
 [ -d /proc/self ] && for i in 1 2 3 4 5 6 7 8 9 10; do grep -qs 'behavioral-gate' "/proc/$LIVE/cmdline" && break; sleep 0.2; done
-printf '%s\n%s\n' "$LIVE" "$(git -C "$RP" rev-parse HEAD)" > "$PIDF"; age_minutes "$PIDF" 238
-expect "bg PID age: a 238-minute running.pid with a live PID at HEAD still holds the block" "$RP" "$CLEAN" 0 "still in flight"
-age_minutes "$PIDF" 242
-expect "bg PID age: a 242-minute running.pid with a live PID at HEAD is ignored, the stop blocks" "$RP" "$CLEAN" 2 "$RUN_SUB"
+printf '%s\n%s\n' "$LIVE" "$(git -C "$RP" rev-parse HEAD)" > "$PIDF"; age_minutes "$PIDF" 118
+expect "bg PID age: a 118-minute running.pid with a live PID at HEAD still holds the block" "$RP" "$CLEAN" 0 "still in flight"
+age_minutes "$PIDF" 122
+expect "bg PID age: a 122-minute running.pid with a live PID at HEAD is ignored, the stop blocks" "$RP" "$CLEAN" 2 "$RUN_SUB"
 kill "$LIVE" 2>/dev/null; wait "$LIVE" 2>/dev/null
 
 RB="$WS/disclosure"; repo "$RB"

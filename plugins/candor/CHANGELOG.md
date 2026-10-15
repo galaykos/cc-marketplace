@@ -2,6 +2,12 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.9.0 — 2026-10-15
+
+### Changed
+- **Clause 4 holds for a running behavioral gate for 120 minutes, not 240, and its block names the Bash timeout.** From CLI 2.1.285 the host stops a background Bash call by 2 h at most (from 2.1.288 only in `-p`, SDK, CI and cloud sessions), and task-runner 0.48.0's gate ends itself by its 6600 s total, so a `running.pid` past 120 minutes is no gate the host still runs. 240 was sized for seven suites at 1800 s, 210 minutes, which the host now stops first. A stop does not leave a live-looking file: measured on 2.1.300 through TaskStop, the host sends TERM, then KILL about 1.4 s later, to the whole tree, the gate's trap removed `running.pid`, and a file the KILL beats names a dead PID the liveness check already ignores. The no-gate-pass block now says to start the gate with a Bash timeout of 7200000, since the 30-minute default stops it first. Pinned by `gate-pins.test.sh` "bg PID age: a 118-minute …" and "… a 122-minute … is ignored" (the 122 case red against 0.8.0) and `gate.test.sh` "no gate pass: the block names the 7200000 ms Bash timeout" (red against 0.8.0). Residual: a gate with a raised `BEHAVIORAL_GATE_TOTAL` where the host sets no limit, or from a task-runner before 0.48.0, can outlast 120 minutes and draws one block at its HEAD; on macOS a recycled PID now holds for 120 minutes, not 240.
+- **`/candor:level` asks the host for the `cc_terse` option.** `level.sh --sources` runs `claude plugin configure candor@<marketplace> --json` (CLI 2.1.285+) when it runs from an installed copy, and reads the option from its `inputs`. Measured on 2.1.300 in a scratch HOME: it resolves user settings, `managed-settings.json` and `managed-settings.d` drop-ins with managed winning, follows a symlinked settings file, and ignores project and local settings as the host does; it sees a `--settings` file only when passed to its own invocation, so never the session's. About 0.45 s a call, so the badge, `measure.sh` and `/candor:check` stay on the settings files. A CLI without the subcommand (2.1.284 exits 1, `unknown command 'configure'`), no `claude` on PATH, no `jq`, or a `--plugin-dir` copy falls back to the files (`level-sources.test.sh`, three cases red against 0.8.0). Residual: MDM and server-managed policy through `configure` are unmeasured — neither exists in a scratch HOME.
+
 ## 0.8.0 — 2026-10-15
 
 ### Added

@@ -75,8 +75,9 @@ cc_option() {
 . "$(dirname "$0")/cite.sh" 2>/dev/null
 
 INFLIGHT_TTL_MIN=180
-# Seven built-in runners at behavioral-gate.sh's 1800 s cap is 210 minutes; an added --runner or a raised cap outruns it.
-BG_PID_TTL_MIN=240
+# behavioral-gate.sh ends by its 110-minute total, and from CLI 2.1.285 the host stops a background Bash call by 2 h; a
+# raised BEHAVIORAL_GATE_TOTAL run where the host sets no limit (2.1.288+: terminal, desktop, VS Code) outruns it.
+BG_PID_TTL_MIN=120
 DISCLOSURE_TAIL_LINES=200
 TRANSCRIPT_TAIL_LINES=4000
 MAX_CITATIONS_CHECKED=25
@@ -376,7 +377,8 @@ run_clause() {
   Every card done or parked -> the whole-range review and the gate are the steps left (run.md
     step 4), and neither has a deadline. From the
     repo root, in the background, run task-runner'"'"'s scripts/behavioral-gate.sh --isolate --changed "<the run'"'"'s touched
-    files>" (the path run.md step 4 names). --isolate creates, checks and removes its own worktree
+    files>" (the path run.md step 4 names), with a Bash timeout of 7200000: the default stops a
+    background call at 30 minutes in -p, SDK, CI and cloud sessions. --isolate creates, checks and removes its own worktree
     and writes the verdict record; do not hand-build a checkout, and do not copy, generate or write
     any .env for it. Then record the pass to .claude/task-runner/gate-pass.json as {"head":"%s"}
     plus the card counts, and rename active-run.json to closed-run.json. A green repo suite

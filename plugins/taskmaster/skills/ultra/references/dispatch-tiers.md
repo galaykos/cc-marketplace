@@ -4,7 +4,7 @@ Read on demand from the ultra skill. This is the detail behind two contract
 lines: *reasoning roles get the boost, mechanical/breadth roles stay native*
 (Lever 1), and *the fan-out counts are ceilings, not quotas* (Lever 2).
 
-The boost tier (`model:<model>`, and `effort:<effort>` on the Workflow path) is
+The boost tier (`model:<model>` + `effort:<effort>`) is
 an **override you apply to the depth stages**, not a blanket the whole run wears:
 `task-runner:delegation-contracts` tiers *per stage, not per run*, and ultra defers to
 it. Flat-escalating every ultra subagent to `fable` breaks that, and so does declining
@@ -19,9 +19,10 @@ refusal in the other (derivation: `rationale/2026-09-26-taskmaster-prose-derivat
 | **Mechanical** (stay native) | recon / readers (`context-scout`, one dispatch per lens — § Fan-out sizing defines the lenses), `coverage-check`'s read-only matrix build (Read/Grep/Glob), file locators, grep-and-list, extraction passes | the agent's own frontmatter tier — **no override** | location and gathering; the top tier buys nothing a mid model does not already do. `context-scout` ships `model: inherit`, so native = the session model, never the `fable` premium |
 | **Breadth** (stay native) | `opinion-lens` | native (`sonnet`/low) — never overridden | four persona takes, low-effort by design; escalating multiplies cost for no depth |
 
-Mechanical/breadth roles get **no** model override, so they run at their shipped
-frontmatter tier. Lever 1 never *downgrades* an agent below its frontmatter; it only
-declines to *raise* it.
+This ladder is the explicit ask the Agent tool's `effort` parameter waits for (CLI 2.1.292+):
+set it on every Reasoning dispatch, never on the other rows (agent-graded). Mechanical/breadth roles get
+**no** override, so they run at their shipped frontmatter tier. Lever 1 never *downgrades*
+an agent below its frontmatter; it only declines to *raise* it.
 
 `coverage-check` shows the split cleanly: it dispatches **only** a read-only matrix build
 (mechanical → native), and the gap-judgment it feeds runs in the **main thread** at the
@@ -116,8 +117,8 @@ two compatible:
 
 - Red-team and coverage still run **ALWAYS** — Lever 2 sets their N, not whether
   they happen. An ultra run never ships without them.
-- The resolved tier still lands on both the inline `Agent` path (model only) and
-  the `Workflow` `agent()` path (model + effort) — for the reasoning roles.
+- The resolved tier still lands on both the inline `Agent` path and the `Workflow`
+  `agent()` path — for the reasoning roles (inline `effort` from CLI 2.1.292).
 - The `Ultra: true (model=…, effort=…)` marker still carries the boost tier into
   execution verbatim; workers there tier the same way (executor reasoning-tier,
   its scouts native).

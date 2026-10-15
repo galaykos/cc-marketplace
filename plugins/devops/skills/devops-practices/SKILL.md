@@ -69,8 +69,8 @@ Config is code; check it before shipping and paste the output:
 | k8s manifest | `kubectl apply --dry-run=client -f` (or `kubeconform`) |
 | Helm chart | `helm template \| kubeconform`, `helm lint` |
 | CI workflow | the CI system's lint/dry-run (`actionlint`, `gitlab-ci lint`) |
-| GitHub Actions trust boundary | `bash ${CLAUDE_PLUGIN_ROOT}/scripts/workflow-audit.sh` |
-| Terraform/OpenTofu plan | `bash ${CLAUDE_PLUGIN_ROOT}/scripts/plan-audit.sh plan.json` |
+| GitHub Actions trust boundary | `bash "${CLAUDE_PLUGIN_ROOT}/scripts/workflow-audit.sh"` |
+| Terraform/OpenTofu plan | `bash "${CLAUDE_PLUGIN_ROOT}/scripts/plan-audit.sh" plan.json` |
 
 "The manifest looks right" is not evidence; the dry-run's output is. If no mechanical
 check exists for an artifact, say so explicitly rather than implying it was verified.
@@ -88,7 +88,7 @@ switched off and takes the unambiguous ones with it.
 
 ## Terraform / OpenTofu: read the plan, do not advise from memory
 
-Standing: **gate — exit code**. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/plan-audit.sh
+Standing: **gate — exit code**. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/plan-audit.sh"
 plan.json --tf-dir <dir> --base <ref>` (JSON from `terraform show -json plan.out` or
 `tofu show -json`, path or stdin) exits **2** when the plan deletes or replaces a
 resource whose type holds data — RDS, S3, DynamoDB, EFS/EBS, Cloud SQL, GCS, Azure

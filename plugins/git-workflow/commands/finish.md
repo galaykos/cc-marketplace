@@ -10,7 +10,7 @@ worktree) before doing anything else.
 
 Write the arc phase sentinel `.claude/cc-phase.json` first, with taskmaster's writer
 and never by hand —
-`bash ${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh write ship --owner git-workflow:finish --session "<this session id>"`.
+`bash "${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh" write ship --owner git-workflow:finish --session "<this session id>"`.
 It ships in taskmaster, which may not be installed: if that path does not resolve (an
 installed plugin sits at `<marketplace>/<plugin>/<version>/`, so the sibling path
 resolves only from a source checkout), run the newest installed copy —
@@ -28,7 +28,7 @@ being finished; a clarify-the-requirements nudge on a merge decision is noise.
 file — on every path: merge, PR, keep, discard, and the red-suite stop below.** A TTL
 bounds a leaked sentinel, but the clear is this command's responsibility.
 
-Before the gate, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/scratch-ignore.sh --check`.
+Before the gate, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/scratch-ignore.sh" --check`.
 Exit 1 means a marketplace plugin's scratch (a mockup dir, preview state, a scratch
 entry) sits on disk unignored and would ride into the branch as `??` noise. Show the
 rows it printed and ask via AskUserQuestion: "Add the managed block to .gitignore

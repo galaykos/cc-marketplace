@@ -834,6 +834,27 @@ d="a running.pid another gate rewrote is not removed by this one's exit"
 [ "$(head -n 1 "$PIDF" 2>/dev/null)" = 999999 ] && iso_ok "$d" || iso_bad "$d" "file: <$(cat "$PIDF" 2>/dev/null)>"
 rm -f "$PIDF"
 
+# ---- TT. the gate's own total (2026-10-15). From CLI 2.1.285 the host stops a background Bash
+# call at its timeout (2 h max) and the stopped gate writes no verdict; seven suites at 1800 s ran
+# 210 minutes. took_under <secs> <desc> checks the wall time of the case just run.
+took_under() { if [ $((SECONDS - t0)) -lt "$1" ]; then iso_ok "$2"; else iso_bad "$2" "took $((SECONDS - t0)) s"; fi; }
+TT="$WS/total"; mkdir -p "$TT/bin" "$TT/py"; : > "$TT/calc.ex"; : > "$TT/py/impl.py"; : > "$TT/py/test_impl.py"
+printf '#!/bin/sh\nsleep 4\necho "3 tests, 0 failures"\n' > "$TT/slow.sh"
+printf '#!/bin/sh\n[ "$1" = --help ] && sleep 4\necho "usage: tool [--help]"\n' > "$TT/tool"
+printf '#!/bin/sh\ntrap "" TERM\nsleep 20\necho "1 passed"\n' > "$TT/bin/pytest"
+chmod +x "$TT/slow.sh" "$TT/tool" "$TT/bin/pytest"
+case_run "--help documents BEHAVIORAL_GATE_TOTAL and its 6600 s default" "$RF" 3 --label 'BEHAVIORAL_GATE_TOTAL=<seconds> caps the whole gate (default 6600)' -- --help
+t0=$SECONDS
+BEHAVIORAL_GATE_TOTAL=2 case_run "BEHAVIORAL_GATE_TOTAL=2: a 4 s suite is cut and the next runner never starts -> unverifiable(2)" "$TT" 2 \
+  --label 'BEHAVIORAL_GATE_TOTAL (2s) is spent' -- --changed calc.ex --runner './slow.sh::^0 tests' --runner 'echo 3 tests::^0 tests'
+took_under 4 "BEHAVIORAL_GATE_TOTAL=2: the gate ends at its total, not after the 4 s suite"
+BEHAVIORAL_GATE_TOTAL=2 case_run "BEHAVIORAL_GATE_TOTAL=2: a --help probe it cuts short is unverifiable(2), not entrypoint-error" "$TT" 2 \
+  --label 'BEHAVIORAL_GATE_TOTAL spent at entrypoint' -- --changed calc.ex --runner 'echo 3 tests::^0 tests' --entrypoint ./tool
+t0=$SECONDS
+PATH="$TT/bin:$PATH" BEHAVIORAL_GATE_TIMEOUT=1 case_run "a suite ignoring TERM past a 1 s cap is killed -> TIMED OUT, unverifiable(2)" "$TT/py" 2 \
+  --label 'pytest: TIMED OUT' -- --changed impl.py
+took_under 15 "a suite ignoring TERM is killed 10 s after its cap, not waited on for its 20 s"
+
 # ---- tally ----
 printf '\nbehavioral-gate.test: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

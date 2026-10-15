@@ -6,7 +6,7 @@ argument-hint: [path]
 Invoke the installed-versions skill from this plugin against $ARGUMENTS (or the
 repository root if no argument). Steps:
 
-0. Run the mechanical pass FIRST: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/scan.sh
+0. Run the mechanical pass FIRST: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/scan.sh"
    <path>` — it emits the node/php/python/docker table rows and the mechanical
    red flags deterministically. Do not re-derive by hand what it already
    printed; your job starts where it stops (ecosystems it names as not

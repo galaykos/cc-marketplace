@@ -54,8 +54,9 @@ Full-mockups tier: hand-built inline SVG in crow's-foot notation, written to
 the shared preview server's reserved `diagram.html` slot in `taskmaster-docs/mockups/`.
 Server mechanics are visual-decisions' own, reused as-is:
 
-- Server not running? Start `../visual-decisions/assets/serve.py --port "${PREVIEW_PORT:-8123}"`
-  in the background and note the PID. The launch chain, its lower rungs, and the
+- Server not running (check before every pass: `lsof -ti :${PREVIEW_PORT:-8123}`)? Start
+  `../visual-decisions/assets/serve.py --port "${PREVIEW_PORT:-8123}"` in background Bash with
+  `timeout: 7200000` and note the PID. The launch chain, its lower rungs, and the
   port-busy rule are `../visual-decisions/SKILL.md` § Preview — one live URL for the
   whole session; follow it verbatim rather than a copy here, which is how the rungs
   drifted apart before.

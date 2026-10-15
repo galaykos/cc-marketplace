@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # floors-core.test.sh — hooks/floors-core.ts under node: parseRegistry on the shipped role-floors.md and on altered
-#   copies, rank on aliases and full ids, decideModel on each branch of the floor rule.
+#   copies, rank on aliases and full ids, decideModel on each branch of the floor rule, atLeast on version order.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 CORE="$ROOT/hooks/floors-core.ts"; REG="$ROOT/skills/delegation-contracts/references/role-floors.md"
@@ -14,7 +14,7 @@ bad() { fail=$((fail+1)); printf 'FAIL  %s\n      %s\n' "$1" "$2"; }
 CASES='
 import { readFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
-const { parseRegistry, rank, decideModel } = await import(pathToFileURL(process.argv[1]).href)
+const { parseRegistry, rank, decideModel, atLeast } = await import(pathToFileURL(process.argv[1]).href)
 const md = readFileSync(process.argv[2], "utf8")
 const show = (v) => v === undefined ? "undefined" : JSON.stringify(v instanceof Map ? Object.fromEntries(v) : v)
 const floors = {
@@ -55,6 +55,11 @@ const cases = [
      decideModel({ explicit: "inherit", parentModel: "claude-sonnet-5-5", floor: "opus" })], [undefined, undefined]],
   ["an unknown floor tier leaves the spawn alone",
     decideModel({ parentModel: "claude-sonnet-5-5", floor: "premium" }), undefined],
+  ["atLeast compares versions by number, not as text",
+    ["2.1.300", "2.1.1000", "2.2.0", "3.0.0", "2.1.299", "2.0.999"].map((v) => atLeast(v, "2.1.300")),
+    [true, true, true, true, false, false]],
+  ["atLeast reads an unparseable version as too old",
+    [atLeast("", "2.1.300"), atLeast("unknown", "2.1.300")], [false, false]],
 ]
 for (const [name, got, want] of cases) console.log([name, show(got), show(want)].join("\t"))
 '

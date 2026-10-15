@@ -9,12 +9,15 @@ const DOCS_DIR = /(^|\/)docs\//
 // The two reviews typed in real sessions followed turns that edited 7 and 5 code files; 1- and 2-file turns drew none.
 const MIN_FILES = 3
 
-// Per session: the code files edited through the edit tools in this main-loop turn (a subagent's run raises no turn.start).
+// Per session: the code files edited through the edit tools in this main-loop turn.
 const edited = new Map<string, Set<string>>()
 
 export function register(on: On) {
+  // Since 2.1.299 a subagent's or teammate's turn raises turn.start too, inside a main-loop turn whose count it must keep.
   on('turn.start', async ($, e, next) => {
-    edited.delete(await $.session.id())
+    if (e.agentId === undefined) {
+      edited.delete(await $.session.id())
+    }
 
     return next(e)
   }).catch(($, e, next) => next(e))

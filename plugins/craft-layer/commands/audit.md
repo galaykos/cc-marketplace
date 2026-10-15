@@ -88,9 +88,9 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
      CRAFT_CONTRACT=<…/craft/offer-contract.md> CRAFT_DIVERGENCE_RECORD=<…/craft/divergence-record.md> \
      CRAFT_BUILD_TASK=<…/craft/build-task.md> CRAFT_CONTENT_SOURCE=<…/craft/content-source.md> \
      CRAFT_TOKEN_SOURCE=<the CSS holding the tokens> \
-     node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/divergence.mjs
+     node "${CLAUDE_PLUGIN_ROOT}/template/craft-gates/divergence.mjs"
    cd <project> && CRAFT_TOKEN_SOURCE=<the CSS holding the tokens> \
-     node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/contrast.mjs
+     node "${CLAUDE_PLUGIN_ROOT}/template/craft-gates/contrast.mjs"
    cd <project> && BASE_URL=<the dev server> CRAFT_EXPECT_TITLE=<the contract's product name> \
      CRAFT_PRIMARY_ACTION=<the contract's primary action text> NODE_PATH=<project>/node_modules \
      npx playwright test --config "${CLAUDE_PLUGIN_ROOT}/template/craft-gates/playwright.config.ts"

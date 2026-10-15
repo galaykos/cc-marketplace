@@ -107,14 +107,14 @@ Two entry shapes, one procedure:
 
 ## Procedure
 
-1. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh scratch --detect` → read
+1. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh" scratch --detect` → read
    `stack=`, `dev_url=`, `components=`, `lang=`. `stack=unknown` → ask which of
    `vite-react | vite-vue | next | nuxt | laravel | laravel-inertia-react |
    laravel-inertia-vue` and pass `--stack`. Two stacks in one repo resolve to Laravel;
    override when the design belongs to the SPA. An Inertia page names its own bare
    layout so the app's default one stays out; keep that line. Laravel's `dev_url` is
    `.env`'s `APP_URL`; when that is not where the app is served, say so and use the real URL.
-2. Handoff bundle only: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/handoff-drift.py <dir>`
+2. Handoff bundle only: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/handoff-drift.py" <dir>`
    and put the table in front of the user with one AskUserQuestion per `no token`
    row (adopt / map to nearest / leave as a gap). `references/handoff-bundle.md`
    says what to read in the bundle and what to ignore.
@@ -132,7 +132,7 @@ Two entry shapes, one procedure:
    volume (mostly the prop-signature blocks), so change it with Edit around them.
    Start the dev server with `dev_cmd=` if it is not running, open `open=`. With no brief, the pick comes from
    `dk.sh decision --latest --consume` — the board's recorded artboard, knobs and edits.
-5. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh drift <the files the scratch page added>`
+5. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh" drift <the files the scratch page added>`
    before showing the page, and fix each hit by reaching for the token instead. An
    empty design system exits 2 (`not measured`) — say so rather than reading it as
    clean. Then iterate on the scratch page while the user looks: one change per request, the

@@ -90,9 +90,12 @@ as a suggestion, because installing both loads two doctrines for one job.
   in one session contradict each other on layout defaults.
 - `code-review` (official directory plugin) — GitHub-only: reviews a PR through
   `gh` with five parallel lenses and 0-100 confidence scoring. `code-review:review`
-  here reviews the local diff and fans in every installed per-stack review. Both
-  can coexist; `/code-review` vs `/code-review:review` collide at the slash-command
-  surface.
+  here reviews the local diff and fans in every installed per-stack review. Pick
+  one: both are named `code-review`, and Claude Code runs the hooks of only the one
+  that loads first. The other's `hooks.json` hooks do not run and its hooks module does
+  not load; `/plugin` says so from 2.1.296. When ours is the one left out, the user
+  loses the review offer after code edits, the review-debt nudge before a commit or
+  merge, and the write-time comment guard that refuses commented-out code.
 - `code-review` (host built-in skill, Claude Code 2.1.259) — nothing to install:
   reviews the current diff, or a PR number, branch, or path target, at a chosen
   effort level, with `--fix` and `--comment` modes and an `ultra` cloud tier. It

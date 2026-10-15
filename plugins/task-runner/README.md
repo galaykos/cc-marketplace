@@ -240,12 +240,16 @@ Since 0.44.0 the plugin also ships a hooks module, `hooks/mods.ts`, listed under
 in `hooks/hooks.json` beside the classic hooks, which fire with or without it. It carries
 four features under three off switches.
 
-- **Subagent model floors** (`hooks/floors.ts`). Every spawn of an agent in
+- **Subagent model floors** (`hooks/floors.ts`). A new spawn of an agent in
   `role-floors.md`'s registry runs at no less than its floor, and one naming no model (or
   `inherit`) runs at the session's model when that is a higher tier, so the main thread's
-  own dispatches are floored too, not only skill-mediated ones. It only raises: a fork, an
-  agent outside the registry, an explicit model at or above the floor and a model of
-  unknown family are left as given, and no spawn is refused. Whenever the tier changes, a
+  own dispatches are floored too, not only skill-mediated ones. It only raises: a fork, a
+  resumed agent (the host keeps the model it started on), an agent outside the registry, an
+  explicit model at or above the floor and a model of unknown family are left as given, and
+  no spawn is refused. A `Workflow` script's `agent()` is floored from CLI 2.1.300, the first
+  that applies a mod's model to it; 2.1.292 to 2.1.299 pass it through untouched, and older
+  CLIs never show it to the module. For a workflow agent, a model the session forces on
+  every subagent outranks the raise (per the host's 2.1.300 types, not measured). Whenever the tier changes, a
   toast names the agent, what the dispatch asked for (a model, `inherit` or its pin) and
   the model it runs on. The registry is read once, at the first spawn, and kept for the
   session, so an edit to it mid-session is not seen; one that cannot be read or parsed is

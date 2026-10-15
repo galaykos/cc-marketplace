@@ -53,7 +53,7 @@ not counted, which is how an agent that died without a `SubagentStop` stops coun
 Since 0.8.0 task-runner's behavioral gate running in background Bash counts as one
 worker: it writes `.claude/task-runner/bg/running.pid` (its PID, then the HEAD it tests),
 and the gate holds while that PID is live, the sha is the current HEAD and the file is
-under 240 minutes old (seven built-in runners at the gate's 1800 s cap run 210); a dead
+under 120 minutes old (the gate ends itself by 110, inside the 2 h a background call may run); a dead
 PID or another HEAD is ignored. With `/proc` (Linux) live means the PID's command line
 names `behavioral-gate.sh`, or else some live `behavioral-gate.sh` runs from under the
 repo root: a gate in sandboxed Bash (`bwrap --unshare-pid`) records the sandbox's own PID,
@@ -179,8 +179,10 @@ Older CLI, or want it in your own status line: wire `scripts/statusline.sh` (or 
 symlinked level file blanks the badge.
 The scripts read the option from user and managed settings only: a `cc_terse` saved through a
 `--settings` file, managed drop-ins or policy, or in a symlinked settings file is applied by the
-hooks but unseen by the scripts and `/candor:level status`, and with `jq` missing the `.sh` badge
-and the commands read no settings file at all. `scripts/shrink.mjs` is a stdio proxy
+hooks but unseen by the scripts, and with `jq` missing the `.sh` badge and the commands read no
+settings file at all. `/candor:level` asks `claude plugin configure` first (CLI 2.1.285+), which
+also sees drop-ins and symlinked files, never the session's own `--settings` — `gate`
+(`level-sources.test.sh`, against a stub replaying the shapes measured on 2.1.300 and 2.1.284). `scripts/shrink.mjs` is a stdio proxy
 that trims prose out of an MCP server's tool descriptions (`node shrink.mjs
 <command> [args…]`), leaving names, schemas and every request untouched.
 
@@ -287,9 +289,10 @@ Stated because a gate reads stronger than it is:
   A session resumed under a new `session_id` cannot see its earlier records.
   Background shell tasks and workflows do not count as workers, except the behavioral
   gate's `bg/running.pid`; without `/proc` (macOS) a recycled PID at the same HEAD
-  holds the block until that file is 240 minutes old, on Linux any process naming
+  holds the block until that file is 120 minutes old, on Linux any process naming
   `behavioral-gate.sh` from under the repo root holds it while the file is current, and a
-  gate given an extra `--runner` or a raised timeout can outlast the 240 minutes.
+  gate given a raised `BEHAVIORAL_GATE_TOTAL` can outlast the 120 minutes where the host
+  sets no limit (CLI 2.1.288+: terminal, desktop app, VS Code).
 - **Pushback detection is a regex over one message.** Phrasing outside the list
   is invisible, and a user message carrying its own evidence disarms clause 2 on
   purpose.

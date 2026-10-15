@@ -4,6 +4,10 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.30.2 — 2026-10-15
+
+- **The theme preview survives the host's background limit.** From CLI 2.1.285 the host stops a background Bash call at its `timeout`, 30 minutes by default and 2 h at most (from 2.1.288 only in `-p`, SDK, CI and cloud sessions), so a preview server started there could die between rounds. shadcn-theming now starts its fallback server with `timeout: 7200000` and re-checks the port before each round, starting it again on the same port when nothing listens. Measured on 2.1.300 through TaskStop: a stop kills the call's whole tree, a `&`, `nohup` or `setsid` child included; only a process already re-parented (`setsid -f`, a double fork) survives, and that one outlives the session with no owner, so the skill does not detach. Agent-graded: no script reads the call.
+
 ## 0.30.1 — 2026-10-15
 
 - **`ui-ux-engineer`'s code-level responsive check names two mechanical overflow causes.** In a real session the engineer reported a code-only breakpoint check, and the lead's browser sweep then found three views 122 to 573 px too wide at phone and tablet widths, from two causes a read of the markup could have caught. Step 4 now checks for both: a `grid` whose base classes set no `grid-cols-*` (add `grid-cols-1`, or `min-w-0` on long-text children), and an `sr-only` or `absolute` element inside an `overflow-*` wrapper that is not `relative` (make the wrapper `relative`). The browser sweep stays the proof. Standing: agent-graded — the lead's sweep is what catches a miss; no script reads the markup.

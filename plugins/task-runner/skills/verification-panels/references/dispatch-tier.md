@@ -9,9 +9,10 @@ Every Extreme Boost contract in this marketplace uses one tier string, and this 
 agent below the tier its own frontmatter ships. Never edit frontmatter to achieve a
 boost; the override belongs to dispatch.
 
-**`effort`** is settable ONLY on the `Workflow` `agent()` path. The Agent tool has no
-effort knob, so inline dispatch escalates the model only — a contract that promises
-`effort=xhigh` inline is promising something the tool cannot do.
+**`effort`** binds per dispatch: on the `Workflow` `agent()` path, and on the Agent tool
+from CLI 2.1.292. Below 2.1.292 inline dispatch escalates the model only; the agent's
+frontmatter `effort:` is the only lever. The Agent tool sets `effort` only on an explicit
+ask, and this tier string is that ask: pass it wherever the tier applies (agent-graded).
 
 Consumers — `taskmaster:ultra`, `task-runner:ultra-assess`, `craft-layer:ultra-craft`
 — cite this file. Each keeps only what is genuinely its own: taskmaster the goal-mode
@@ -27,14 +28,13 @@ single workflow may fan out. Four rules follow, and every boost consumer inherit
 
 **The `Workflow` path needs an explicit opt-in, not merely a visible tool.** The tool
 can appear in the tool list while the harness still forbids calling it — its own
-contract restricts use to a user opt-in: the `ultracode` keyword, ultracode standing on
-for the session, the user asking for a fan-out in their own words, or *a skill whose
-instructions tell you to call it*. A boost skill is that last clause, so a boosted run
-may fan out — but only because the user invoked the boost. Absent any opt-in, take the
-inline fallback and label it. Practical consequence, worth telling the user once:
-**`ultracode` is the half of the boost this marketplace cannot supply.** Without it
-`effort=xhigh` is unreachable (Agent has no effort knob, above), so an unpaired boost
-buys model escalation only.
+contract restricts use to a user opt-in: the `ultracode` keyword, Ultracode toggled on
+in `/effort` (its own switch since CLI 2.1.284, no longer an effort level), the user asking
+for a fan-out in their own words, or *a skill whose instructions tell you to call it*.
+A boost skill is that last clause, so a boosted run may fan out — but only because the
+user invoked the boost. Absent any opt-in, take the inline fallback and label it.
+Practical consequence, worth telling the user once:
+**`ultracode` is the half of the boost this marketplace cannot supply**: the fan-out.
 
 **`ultrathink` is orthogonal and complementary.** It raises MAIN-THREAD reasoning for a
 turn; the boost raises SUBAGENT tier and never touches the session model. Neither

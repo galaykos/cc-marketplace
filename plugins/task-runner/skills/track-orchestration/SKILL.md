@@ -51,7 +51,7 @@ Each track-worker is a leaf subagent. Its dispatch prompt carries:
   negative-control.md`, same script and standard exemptions). The merged-branch final gate
   (below) is a run-level backstop, not a per-card teeth check, so the control must run
   inside each track,
-- under ultra, the `model` (always) and `effort` (Workflow path only) from the index
+- under ultra, the `model` and `effort` (Agent tool: from CLI 2.1.292) from the index
   marker — read BOTH, tier from `Ultra:` when present ELSE from `Goal:` (a lone `Goal:`
   still escalates; `ultra-goal` stamps no `Ultra:` line; `Goal: true (boost=off)` sets
   no tier and fires no red-team — autonomy only), resolved per

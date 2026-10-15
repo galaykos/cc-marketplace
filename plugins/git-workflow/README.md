@@ -57,6 +57,10 @@ the same command again.
 
 Why a hook and not a sentence: the host setting `attribution.commit: ""` in
 `~/.claude/settings.json` switches off the host's own trailer, and nothing else.
+So does `"attribution": false` (Claude Code 2.1.281+), which hides commit and PR
+attribution together — but a CLI older than 2.1.281 skips the whole settings file
+that holds it, plugins enabled there included (2.1.280 listed this one `disabled`,
+measured 2026-10-15), so keep the object form in a file shared across versions.
 The model still wrote the trailer from habit (observed on Claude Code 2.1.266,
 2026-09-09, setting present since 2026-09-03), and a skill saying "never add AI
 attribution" did not stop it. A rule nothing reads back is `recorded`; this is

@@ -36,7 +36,8 @@ The plugin is one hooks module, `hooks/coach.ts`, the only entry under `modules`
   `checking your prompt…`. Haiku is asked for one word (`clear`, `unclear` or
   `conflict`); the coach reads its first word, ignoring case and any leading spaces, `*`,
   `_`, backtick or quote, and a reply whose first word is none of the three counts as
-  clear. On `clear` the prompt goes on, after about 0.6 s (haiku's median in the probe).
+  clear. On `clear` the prompt goes on, after about 0.6 s (haiku's median in the probe, on
+  Haiku 4.5 — see Residuals for Haiku 5.5).
   On a flag the standby model answers a JSON verdict: a kind, a confidence, a one-line
   reason and a rewrite. Calls still running 5 s into the judgment are aborted, and the
   prompt goes on.
@@ -252,6 +253,19 @@ Each carries its standing. "Probe" is `rationale/2026-10-07-prompt-coach-probe.m
 this marketplace's repository, and "walk" the maintainers' live walks on CLI 2.1.291 and
 2.1.292, which are not published; nothing re-runs either.
 
+The first-pass model:
+
+- **`haiku` is Haiku 5.5 since CLI 2.1.293, and nothing here was measured on it.** The coach
+  sends the alias, not an id: `$.model.complete` takes "an alias (`haiku`) or a full model
+  id", resolved like a `--model` value, so the mod API pins nothing, and its result carries
+  text and usage but no model id, so the coach cannot tell which model answered. The 0.6 s
+  median, and the one-word label read from `maxTokens: 8`, were measured on Haiku 4.5, where
+  `effort: 'low'` was dropped as unsupported. Haiku 5.5 takes effort and thinks adaptively
+  by default; if its thinking spends the 8 tokens, the reply has no text, which the coach
+  counts as malformed and passes the prompt unflagged, so the first pass would fall silent
+  rather than fail loudly. Unverified on 2.1.300: settling it needs a live model call.
+  **Recorded.** `CC_COACH_MODEL` picks the standby model only, never the first pass.
+
 Skipping and spend:
 
 - **What is skipped.** A prompt with fewer than 4 tokens and fewer than 16 non-space
@@ -357,7 +371,7 @@ What the judge sees, and how far to trust it:
 Hold timing and order:
 
 - **Enter can wait up to 5 s** on an eligible prompt; a clear one waits about the first
-  pass's 0.6 s. **Gate** for the deadline — `tests/coach.test.ts`, "aborts calls still
+  pass's 0.6 s (Haiku 4.5; unmeasured on 5.5). **Gate** for the deadline — `tests/coach.test.ts`, "aborts calls still
   running at the deadline".
 - **Concurrent prompts.** A prompt submitted while another is judged passes at once,
   unjudged, and can reach the model before the held one. **Gate** for the pass —

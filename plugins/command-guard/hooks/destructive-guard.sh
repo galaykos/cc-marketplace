@@ -1,6 +1,7 @@
 #!/bin/bash
 # destructive-guard.sh [--check '<command>' | --version] — PreToolUse on Bash and MCP shell/SQL tools: deny irreversible data loss, ask on scoped
-# destruction, allow the rest; deny a write to the allow-file; ask before a Write replaces a live .env. Fails open. --check ignores the mode: exit 0/1/2 = allow/ask/deny.
+# destruction, allow the rest; deny a write to the allow-file; ask before a Write replaces a live .env. --check ignores the mode: exit 0/1/2 = allow/ask/deny.
+# Fails open on its own errors (exit 0); hooks.json's onFailure: block makes the host block a run that cannot start or overruns its timeout (CLI 2.1.295+).
 # CLAUDE_DESTRUCTIVE_GUARD, else /config claude_destructive_guard: deny-only drops the ask tier, ask turns a command deny into a prompt, off disables.
 # Allow-file .claude/destructive-guard-allow, project then ~: a line's regex matched unanchored on the whole lowercased command, trailing comment too, releases it; a command naming the file must be a pure read.
 # Misses: an allow-file path built from a variable or glob, a script or a program git config names writing it, an MCP write tool other than apply_patch and create_new_file,
@@ -33,7 +34,7 @@ cc_option() {
   return 0
 }
 
-GUARD_VERSION=0.8.5
+GUARD_VERSION=0.9.0
 
 # Quotes and backslashes go so a quoted evasion (artisan "migrate:fresh") meets the rule the plain form does.
 norm_cmd() {
@@ -445,8 +446,13 @@ command_cwd() {
   printf '%s' "${d:-.}"
 }
 
+# A word whose shell value is backslashes only: an even bare run, '\…' or "\\…"; an odd bare run only where the command
+# ends (RM_TRAILING_BACKSLASH_RE), since a segment line read off split_segments also ends in one at a \<newline> continuation.
+RM_BACKSLASH_RE='(^|[[:space:]])((\\\\)+|'"'"'\\+'"'"'|"(\\\\)+")([[:space:]]|$)'
+RM_TRAILING_BACKSLASH_RE='(^|[[:space:]])\\+$'
+
 # Not a table rule: whether rm -rf is catastrophic depends on each target, not on the flags.
-check_rm() { # normalised segment (lowercased, padded), the same case-preserved
+check_rm() { # normalised segment (lowercased, padded), the same case-preserved, the raw segment, the command it came from
   local seg="$1" flags="" targets="" tok sp recursive=0 t
   case "$seg" in *" rm "*) ;; *) return 0 ;; esac
 
@@ -457,6 +463,14 @@ check_rm() { # normalised segment (lowercased, padded), the same case-preserved
   flags=$(printf '%s\n' "$targets" | awk -F'\t' '/^-/ { printf "%s", $1 }')
   case "$flags" in *r*|*R*) recursive=1 ;; esac
   [ "$recursive" -eq 1 ] || return 0
+
+  # norm_cmd drops backslashes, so a target that is only backslashes is found on the raw segment.
+  if [ -n "${3:-}" ] && { printf '%s' "$3" | grep -qE "$RM_BACKSLASH_RE" ||
+    { [[ $3 =~ $RM_TRAILING_BACKSLASH_RE ]] && [ "${4%"$3"}" != "${4:-}" ]; }; }; then
+    set_verdict deny "recursively deletes \\, a path of backslashes only, which Git Bash on Windows can take for the root of the current drive" \
+      "name the specific directory to delete" "$seg"
+    return 0
+  fi
 
   while IFS=$'\t' read -r tok sp; do
     [ -n "$tok" ] || continue
@@ -836,7 +850,7 @@ classify() {
       fi
     fi
 
-    check_rm "$segn_lc" "$segn"
+    check_rm "$segn_lc" "$segn" "$seg" "$body"
     match_rule_table "$segn" "$segn_lc" "$sql_ctx"
 
     [ "$VERDICT" = "deny" ] && break

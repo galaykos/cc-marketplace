@@ -58,6 +58,30 @@ want=$(printf 'CC_TERSE: ultra\nlevel file (%s/terse-mode): lite\ncc_terse optio
   "$CLAUDE_CONFIG_DIR" "$CLAUDE_CONFIG_DIR")
 eq "--sources names every layer and the winner" "$(CC_TERSE=ultra bash "$S/level.sh" --sources 2>&1)" "$want"
 
+# --sources asks `claude plugin configure` from an installed path only. The stub replays the two shapes measured on the real CLI:
+# 2.1.300's JSON (.inputs.cc_terse, "" when unset) and 2.1.284's `error: unknown command 'configure'` with exit 1.
+INST="$TMP/plugins/cache/mkt/candor/1.0/scripts"; mkdir -p "$INST" "$TMP/bin"; cp "$S/level.sh" "$INST/level.sh"
+cat > "$TMP/bin/claude" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$STUB_LOG"
+[ -n "${STUB_OLD:-}" ] && { echo "error: unknown command 'configure'" >&2; exit 1; }
+printf '{"pluginId":"%s","inputs":{"cc_terse":"%s"}}\n' "$4" "$STUB_VALUE"
+STUB
+chmod +x "$TMP/bin/claude"
+host() { env PATH="$TMP/bin:$PATH" STUB_LOG="$TMP/stub.log" "$@"; }
+fixture '' full; : > "$TMP/stub.log"
+eq "--sources prefers the host's resolved option" "$(host STUB_VALUE=ultra bash "$INST/level.sh" --sources | sed -n '3p;4p')" \
+  "$(printf "cc_terse option (claude plugin configure candor@mkt: user, managed and drop-ins; not this session's --settings): ultra\nactive: ultra option")"
+eq "configure is asked for the installed id" "$(cat "$TMP/stub.log")" "plugin configure candor@mkt --json"
+eq "an option the host reports unset is unset" "$(host STUB_VALUE= bash "$INST/level.sh" --sources | sed -n 4p)" "active: off off"
+fixture '' full
+eq "CLI without configure (<2.1.285): settings file read" "$(host STUB_OLD=1 bash "$INST/level.sh" --sources 2>&1 | sed -n '3p;4p')" \
+  "$(printf 'cc_terse option (%s/settings.json): full\nactive: full option' "$CLAUDE_CONFIG_DIR")"
+: > "$TMP/stub.log"
+eq "badge path never asks the host" "$(host STUB_VALUE=ultra bash "$INST/level.sh")" "full option"
+eq "a checkout path never asks the host" "$(host STUB_VALUE=ultra bash "$S/level.sh" --sources | sed -n 4p)" "active: full option"
+eq "neither call reached the stub" "$(cat "$TMP/stub.log")" ""
+
 fixture '' full;  eq "badge shows an option-only level"  "$(badge)" "$(printf '\033[2;36m[TERSE:FULL]\033[0m')"
 fixture '' full;  eq "badge: CC_TERSE beats the option"  "$(badge CC_TERSE=ultra)" "$(printf '\033[2;36m[TERSE:ULTRA]\033[0m')"
 fixture '' '';    eq "badge silent when off"             "$(badge)" ""
