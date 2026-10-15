@@ -317,10 +317,16 @@ harness; the over-read and the racy-index cost are recorded here, nothing reads 
 ### Adopters (2026-10-15)
 
 ```text
-skill-router route.sh (MAX_BASH_EFFECTS=8; route.test.sh case 24). Not adopted: the other
-seven PostToolUse hooks carrying cc_bash_write_targets — secret-scanning scan.sh and
-unicode-scan.sh, code-review density.sh, scan.sh and conventions.sh, security
-write-scan.sh, task-runner scope.sh. Recount: grep -rl 'cc_bash_write_effects() {' plugins/
+All eight PostToolUse hooks carrying cc_bash_write_targets: skill-router route.sh
+(route.test.sh case 24), task-runner scope.sh (a marker older than active-run.json reads
+nothing, so a new run does not inherit the gap between runs), code-review density.sh
+(judged only when the file holds more prose than its HEAD copy), scan.sh and
+conventions.sh, security write-scan.sh, secret-scanning unicode-scan.sh and scan.sh (a
+new warn-only PostToolUse lane; its Pre lane cannot see an effect). Content scanners
+judge the `+` lines against HEAD, or the whole file when HEAD lacks it. The four
+PreToolUse-only guards (testing protect-tests, command-guard config-guard, database
+guard, devops workflow-guard) cannot judge an effect before it happens and do not adopt.
+Recount: grep -rl 'cc_bash_write_effects() {' plugins/
 ```
 
 ## templates/blocks/prompt-shape.md

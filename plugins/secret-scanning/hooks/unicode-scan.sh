@@ -1,11 +1,15 @@
 #!/bin/bash
 # unicode-scan.sh (PostToolUse on file writes and reads, Bash included; payload on stdin) — warns once per file per session, never blocks,
-#   naming line and codepoint, when a file the call wrote or read holds a zero-width, bidi, soft-hyphen, mid-file BOM or Unicode tag character.
-# Off: CC_UNICODE_SCAN=off or CC_REMIND=off. Fails open on every error path; its one-shot markers live in $TMPDIR, none under the project.
+#   naming line and codepoint, when a file the call wrote or read holds a zero-width, bidi, soft-hyphen, mid-file BOM or Unicode tag character;
+#   after a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also each file git reports changed since this hook's previous call.
+# Off: CC_UNICODE_SCAN=off or CC_REMIND=off. Fails open on every error path; its one-shot markers live in $TMPDIR, its one bash-effects marker in
+#   the plugin's data dir (CLAUDE_PLUGIN_DATA), else <root>/.claude/secret-scanning/ behind a `*` .gitignore.
 # CC_UNICODE_SCAN / CC_REMIND unset: the /config options cc_unicode_scan / cc_remind decide.
 # Misses: homoglyphs; intent (presence only); a file over 2 MB or not valid UTF-8; hits past the sixth in a file; a file the session never touched;
 #   a character stored as a JSON backslash-u escape (a .ipynb or .json the session only read); an MCP apply_patch (no single path); on Bash, a
-#   target past the eighth, outside the project root, not an existing regular file or relative after an in-command cd, and cc_bash_write_targets' misses.
+#   target past the eighth, outside the project root, not an existing regular file or relative after an in-command cd, and cc_bash_write_targets' misses;
+#   after an interpreter run, changed files past the eighth (MAX_BASH_EFFECTS) and the bash-write-effects block's misses. Reads too much: a file
+#   anything else changed since this hook's previous call (an IDE, a parallel agent) is read as that run's write.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/unicode-scan.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -164,8 +168,58 @@ cc_bash_write_targets() {
     }' | awk '!seen[$0]++'
 }
 
+# Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
+# cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
+# Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
+cc_plugin_state() {
+  local key sum
+  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+    key=$(printf '%s' "$(basename -- "$1")" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-')
+    sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
+    printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
+  else
+    printf '%s/.claude/%s\n' "$1" "$2"
+  fi
+  return 0
+}
+
+# Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
+# cc_bash_effects_mark <root> <marker> rewrites <marker> when <root> holds a .git, making its directory with a `*` .gitignore.
+# Call it on EVERY tool call the hook sees (Write, Edit, Bash alike), after cc_bash_write_effects read <marker>: the tool has
+# finished before PostToolUse runs, so <marker> then post-dates every write of the last call this hook saw.
+# cc_bash_write_effects <root> <marker> <command> <max> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked AND newer than <marker>. It runs git only when <command> holds python, node, php,
+# ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, and <marker> exists.
+# Misses: writers it does not name, gitignored files, no git, a file written then reverted, a mv or cp -p destination (it
+# keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a parallel agent, a job.
+cc_bash_effects_mark() {
+  [ -e "$1/.git" ] || return 0
+  local d="${2%/*}"
+  [ -d "$d" ] || { mkdir -p "$d" && printf '*\n' > "$d/.gitignore"; } 2>/dev/null || return 0
+  printf '%s\n' "$$" > "$2" 2>/dev/null
+  return 0
+}
+cc_bash_write_effects() {
+  local re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)[[:space:]<]'
+  local e f n=0
+  local -a c
+  [ -f "$2" ] && [[ $3 =~ $re ]] || return 0
+  while [ "$n" -lt "$4" ] && IFS= read -r -d '' e; do
+    f="$1/${e:3}"
+    [ -f "$f" ] && ! [ "$2" -nt "$f" ] || continue
+    c[n]=$f; n=$((n + 1))
+  done < <(GIT_OPTIONAL_LOCKS=0 git -C "$1" status --porcelain -z --untracked-files=all --no-renames --ignore-submodules=all 2>/dev/null)
+  [ "$n" -gt 0 ] && find "${c[@]}" -prune -newer "$2" -print 2>/dev/null
+  return 0
+}
+
 MARKER_TTL_MIN=1440
 MAX_BASH_TARGETS=8
+MAX_BASH_EFFECTS=8
 {
   [ "$(cc_option CC_UNICODE_SCAN on)" = "off" ] && exit 0
   [ "$(cc_option CC_REMIND on)" = "off" ] && exit 0
@@ -181,6 +235,19 @@ MAX_BASH_TARGETS=8
   esac
 
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
+
+  # Interpreter writes: read the effects with the old marker, then date it, on EVERY call this hook sees (a Read too), so a
+  # file an Edit changed or a command that wrote nothing is never read as the next run's write.
+  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  root=""; cmd=""; effects=""
+  if [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(cc_state_root "$cwd"); then
+    emark="$(cc_plugin_state "$root" secret-scanning)/bash-effects-unicode.mark"
+    if [ "$tool" = Bash ]; then
+      cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
+      effects=$(cc_bash_write_effects "$root" "$emark" "$cmd" "$MAX_BASH_EFFECTS")
+    fi
+    cc_bash_effects_mark "$root" "$emark"
+  fi
 
   # report_file <path> — prints the file's warning, or nothing when it is clean, too big, unreadable or already reported.
   report_file() {
@@ -258,13 +325,9 @@ PY
   }
 
   if [ "$tool" = Bash ]; then
-    cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
-    [ -n "$cmd" ] || exit 0
+    [ -n "$cmd" ] && [ -n "$root" ] || exit 0
     targets=$(cc_bash_write_targets "$cmd" | head -n "$MAX_BASH_TARGETS")
-    [ -n "$targets" ] || exit 0
-    cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-    [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
-    root=$(cc_state_root "$cwd") || exit 0
+    [ -n "$targets" ] || [ -n "$effects" ] || exit 0
     files=""
     while IFS= read -r p; do
       [ -n "$p" ] || continue
@@ -279,6 +342,18 @@ PY
     done <<EOF_T
 $targets
 EOF_T
+    # A file the run changed that no target names: absolute, under the root, read whole as a Write's file is.
+    while IFS= read -r p; do
+      [ -n "$p" ] || continue
+      case "
+$files" in *"
+$p
+"*) continue ;; esac
+      files="$files$p
+"
+    done <<EOF_E
+$effects
+EOF_E
   else
     files=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // .tool_input.notebook_path // empty' 2>/dev/null)
   fi

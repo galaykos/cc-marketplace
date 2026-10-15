@@ -1,12 +1,17 @@
 #!/bin/bash
 # write-scan.sh (PostToolUse on Write, Edit, MultiEdit and Bash; payload on stdin) — warns, never denies, once per context, file and finding,
 #   on a security sink one written line or Bash-written file shows; the ported and LLM sinks only in their own file types, the Laravel/Vite/raw-HTML ones in any file.
+#   After a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also on what each file git reports changed since this hook's
+#   previous call added: the whole file when HEAD lacks it, else its `+` lines against HEAD (so a line any uncommitted edit added is judged again).
 #   Skips a target outside the project root, or under $TMPDIR (default /tmp) unless the project itself is there.
+#   State: the bash-effects marker in the plugin's data dir (CLAUDE_PLUGIN_DATA), else <root>/.claude/security/ behind a `*` .gitignore.
 # Off: CC_SECURITY_SCAN=off or CC_REMIND=off. Fails open on any error, a missing jq included.
 # CC_SECURITY_SCAN / CC_REMIND unset: the /config options cc_security_scan / cc_remind decide.
 # Misses: a sink split across lines or reached through an alias, and injection inside the data; cross-file flows, authz, raw SQL outside whereRaw;
 #   a client secret with no public-bundle prefix or with no secret word in its name (NEXT_PUBLIC_FOO); on Bash, targets past the eighth, bytes past
-#   256 KiB, writes cc_bash_write_targets misses, a relative target in a command holding a cd/pushd. Warns anyway: a guard on the next line (SafeLoader, weights_only).
+#   256 KiB, writes cc_bash_write_targets misses, a relative target in a command holding a cd/pushd; after an interpreter run, changed files past the
+#   eighth (MAX_BASH_EFFECTS) and the bash-write-effects block's misses. Warns anyway: a guard on the next line (SafeLoader, weights_only); a file
+#   anything else changed since this hook's previous call (an IDE, a parallel agent), read as that run's write.
 # Why, limits, history: rationale/derivations/plugin-security.md § plugins/security/hooks/write-scan.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -293,8 +298,58 @@ cc_strip_heredoc_bodies() {
     }'
 }
 
+# Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
+# cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
+# Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
+cc_plugin_state() {
+  local key sum
+  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+    key=$(printf '%s' "$(basename -- "$1")" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-')
+    sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
+    printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
+  else
+    printf '%s/.claude/%s\n' "$1" "$2"
+  fi
+  return 0
+}
+
+# Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
+# cc_bash_effects_mark <root> <marker> rewrites <marker> when <root> holds a .git, making its directory with a `*` .gitignore.
+# Call it on EVERY tool call the hook sees (Write, Edit, Bash alike), after cc_bash_write_effects read <marker>: the tool has
+# finished before PostToolUse runs, so <marker> then post-dates every write of the last call this hook saw.
+# cc_bash_write_effects <root> <marker> <command> <max> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked AND newer than <marker>. It runs git only when <command> holds python, node, php,
+# ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, and <marker> exists.
+# Misses: writers it does not name, gitignored files, no git, a file written then reverted, a mv or cp -p destination (it
+# keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a parallel agent, a job.
+cc_bash_effects_mark() {
+  [ -e "$1/.git" ] || return 0
+  local d="${2%/*}"
+  [ -d "$d" ] || { mkdir -p "$d" && printf '*\n' > "$d/.gitignore"; } 2>/dev/null || return 0
+  printf '%s\n' "$$" > "$2" 2>/dev/null
+  return 0
+}
+cc_bash_write_effects() {
+  local re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)[[:space:]<]'
+  local e f n=0
+  local -a c
+  [ -f "$2" ] && [[ $3 =~ $re ]] || return 0
+  while [ "$n" -lt "$4" ] && IFS= read -r -d '' e; do
+    f="$1/${e:3}"
+    [ -f "$f" ] && ! [ "$2" -nt "$f" ] || continue
+    c[n]=$f; n=$((n + 1))
+  done < <(GIT_OPTIONAL_LOCKS=0 git -C "$1" status --porcelain -z --untracked-files=all --no-renames --ignore-submodules=all 2>/dev/null)
+  [ "$n" -gt 0 ] && find "${c[@]}" -prune -newer "$2" -print 2>/dev/null
+  return 0
+}
+
 MARKER_TTL_MIN=1440
 MAX_BASH_TARGETS=8
+MAX_BASH_EFFECTS=8
 {
   [ "$(cc_option CC_SECURITY_SCAN on)" = "off" ] && exit 0
   [ "$(cc_option CC_REMIND on)" = "off" ] && exit 0
@@ -304,15 +359,26 @@ MAX_BASH_TARGETS=8
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in Write|Edit|MultiEdit|Bash) ;; *) exit 0 ;; esac
 
+  # Interpreter writes: read the effects with the old marker, then date it, on EVERY call this hook sees, so a file an Edit
+  # changed or a command that wrote nothing is never read as the next run's write.
+  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  sroot=""; effects=""
+  if [ -n "$cwd" ] && [ -d "$cwd" ] && sroot=$(cc_state_root "$cwd"); then
+    emark="$(cc_plugin_state "$sroot" security)/bash-effects.mark"
+    if [ "$tool" = Bash ]; then
+      cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
+      effects=$(cc_bash_write_effects "$sroot" "$emark" "$cmd" "$MAX_BASH_EFFECTS")
+    fi
+    cc_bash_effects_mark "$sroot" "$emark"
+  fi
+
   if [ "$tool" = Bash ]; then
-    cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
+    [ -n "$sroot" ] || exit 0
     targets=$(cc_bash_write_targets "$cmd" | head -n "$MAX_BASH_TARGETS")
-    [ -n "$targets" ] || exit 0
-    cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-    [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
+    [ -n "$targets" ] || [ -n "$effects" ] || exit 0
     # A cd inside a heredoc body moves nothing, so bodies are dropped before the cd test.
     hascd=0
-    cc_strip_heredoc_bodies all "$cmd" | grep -qE '(^|[;&|(])[[:space:]]*(cd|pushd)[[:space:]]' && hascd=1
+    [ -n "$targets" ] && cc_strip_heredoc_bodies all "$cmd" | grep -qE '(^|[;&|(])[[:space:]]*(cd|pushd)[[:space:]]' && hascd=1
   else
     text=$(printf '%s' "$input" | jq -r '
       [ .tool_input.content // empty,
@@ -321,7 +387,6 @@ MAX_BASH_TARGETS=8
       ] | join("\n")' 2>/dev/null) || exit 0
     [ -n "$text" ] || exit 0
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // "unknown"' 2>/dev/null)
-    cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   fi
   # Scratch is not the project: probe scripts under /tmp drew sink warnings in real sessions. A target outside the
   # project root (cc_state_root: the payload cwd's git toplevel, else CLAUDE_PROJECT_DIR when the cwd is under it, else
@@ -330,10 +395,7 @@ MAX_BASH_TARGETS=8
   # the temp-dir rule.
   tmpd=$(CDPATH= cd -- "${TMPDIR:-/tmp}" 2>/dev/null && pwd -P) || tmpd=""
   root=""
-  if [ -n "$cwd" ] && [ -d "$cwd" ]; then
-    root=$(cc_state_root "$cwd") || root=$cwd
-    root=$(CDPATH= cd -- "$root" 2>/dev/null && pwd -P) || root=""
-  fi
+  [ -z "$sroot" ] || root=$(CDPATH= cd -- "$sroot" 2>/dev/null && pwd -P) || root=""
   tmpd=${tmpd%/}; root=${root%/}
   out_of_scope() { # out_of_scope <path>: status 0 for a target outside the project root, or in a temp dir the project is not in
     local d
@@ -451,8 +513,21 @@ MAX_BASH_TARGETS=8
       "$JS|$PY|$PHP" '<<<|"""|'"'''"'|<[a-z_]+>|\[BEGIN|---|```'
   }
 
+  # added_text <file> — what a run added to <file>, at most 256 KiB: the whole file when HEAD lacks it, else the `+` lines of
+  # `git diff -U0 HEAD`. The text before the run is gone, so a line any uncommitted edit added since HEAD is judged again.
+  added_text() {
+    local rel="${1#"$sroot"/}"
+    if git -C "$sroot" cat-file -e "HEAD:$rel" 2>/dev/null; then
+      GIT_OPTIONAL_LOCKS=0 git -C "$sroot" diff --no-color --no-ext-diff -U0 HEAD -- ":(literal)$rel" 2>/dev/null \
+        | awk '/^@@/ { h = 1; next } h && /^\+/ { print substr($0, 2) }'
+    else
+      cat -- "$1" 2>/dev/null
+    fi | head -c 262144
+  }
+
   if [ "$tool" = Bash ]; then
-    hit_files=""
+    hit_files=""; seen="
+"
     while IFS= read -r p; do
       [ -n "$p" ] || continue
       case "$p" in
@@ -464,6 +539,8 @@ MAX_BASH_TARGETS=8
       d=$(CDPATH= cd -- "$(dirname -- "$p")" 2>/dev/null && pwd) || continue
       p="$d/$(basename -- "$p")"
       [ -f "$p" ] || continue
+      seen="$seen$p
+"
       out_of_scope "$p" && continue
       file=$p
       text=$(head -c 262144 "$p" 2>/dev/null)
@@ -474,6 +551,22 @@ MAX_BASH_TARGETS=8
     done <<EOF_T
 $targets
 EOF_T
+    # A file the run changed that no target names: judged on what it added, as a Write or Edit is on its new text.
+    while IFS= read -r p; do
+      [ -n "$p" ] || continue
+      case "$seen" in *"
+$p
+"*) continue ;; esac
+      out_of_scope "$p" && continue
+      file=$p
+      text=$(added_text "$p")
+      [ -n "$text" ] || continue
+      before=$hits
+      scan_text
+      [ "$hits" = "$before" ] || hit_files="${hit_files:+$hit_files }$p"
+    done <<EOF_E
+$effects
+EOF_E
   else
     out_of_scope "$file" && exit 0
     scan_text

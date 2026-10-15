@@ -17,7 +17,8 @@ Blocks secrets before they reach disk.
 | A `Bash` heredoc body or `echo`/`printf` argument carrying `[REDACTED:` that lands in a file (since 0.14.0), on any CLI, with or without mods | **gate** — `scan.sh` refuses it the same way unless `CC_SECRET_REDACT` is `off`, `0` or `false`; `scan-hook.test.sh` runs both write shapes, a command writing no file, stdout only and the off switches. Not refused: an MCP write tool, and the Bash writes the guard cannot read (`sed -i` text, interpreters, `cp`/`mv`; the "through Bash any other way" row below) |
 | The mod and the write guard agree on what is a secret (one pattern file, two regex engines) | **gate** — `scripts/__tests__/pattern-parity.test.sh` runs one fixture set through `scan.sh` and the mod's matcher and fails on any disagreement it does not declare; it proves its fixtures, not every input, and its declared divergences (astral characters in a webhook tail, a NUL inside a key) are fixtures of their own |
 | Invisible characters in a file this session wrote or read | **advisory** — `hooks/unicode-scan.sh` is a PostToolUse **warning**; it never blocks, once per file per session |
-| A secret reaching a file through Bash any other way — an interpreter (`python open()`, `php file_put_contents`), `cp`/`mv` of a file that already holds one, `sed -i` replacement text, a here-string `<<<`, a `{ echo …; } > f` group, a `printf 'KEY=%s' value` pair the generic assigned-literal rule cannot join (a provider-shaped value still matches alone) — or a live key in a command that writes no file (`curl -H "Authorization: …"`) | **unenforceable here** — the guard reads only heredoc bodies and echo/printf arguments whose pipeline writes a file; `scan.sh`'s header `Misses:` line and its `cc_bash_write_chunks` `Misses:` line name each gap, and the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` keeps why. `command-guard` owns destroying a live `.env`, not what enters a file |
+| A secret a Bash python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run put in a file of a git repo (since 0.15.0) | **advisory** — the same `scan.sh`, registered on PostToolUse too, **warns** after the fact, naming the file and the pattern; it cannot deny, because the write has landed. It reads what each file git reports changed since the lane's previous call added: the whole file when HEAD lacks it, else its `+` lines against HEAD, so a line any uncommitted edit added is judged again. `scan-hook.test.sh` runs a python write, the first call in a repo, a run that wrote nothing, a placeholder and an Edit between two runs. Misses: a writer it does not name (`npx prettier --write`, `make`, `git apply`), gitignored files, no git, a file written then reverted, a `mv` or `cp -p` destination that keeps an older mtime, files past the eighth, text past 1 MiB per file, the first such run in a repo; and anything else that changed a file since the lane's previous call (an IDE, a parallel agent) reads as this run's write |
+| A secret reaching a file through Bash any other way — an interpreter or `cp`/`mv` before the write lands (the row above warns after it), `sed -i` replacement text, a here-string `<<<`, a `{ echo …; } > f` group, a `printf 'KEY=%s' value` pair the generic assigned-literal rule cannot join (a provider-shaped value still matches alone) — or a live key in a command that writes no file (`curl -H "Authorization: …"`) | **unenforceable here** — the guard reads only heredoc bodies and echo/printf arguments whose pipeline writes a file; `scan.sh`'s header `Misses:` line and its `cc_bash_write_chunks` `Misses:` line name each gap, and the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` keeps why. `command-guard` owns destroying a live `.env`, not what enters a file |
 | A secret introduced by an MCP server whose write tool uses key names this hook does not list | **unenforceable** — the extraction in `scan.sh` names the keys it knows (verified against the JetBrains MCP schema, 2026-09-14); a different server writes past it |
 | Secrets already committed before this plugin was installed | **out of scope** — that is `/secret-scanning:scan`, a command you run, not a hook |
 
@@ -47,11 +48,17 @@ off-switch documented only in a changelog is not reachable by the person it exis
   guard saw none of them. Fail-open on every error but one: an unusable
   `hooks/patterns.tsv` (the single pattern source) denies every write it would scan,
   naming the file, the line and `CC_SECRET_SCAN=off`. `CC_SECRET_SCAN=off` disables it
-  for a session.
+  for a session. Since 0.15.0 the same script also runs on PostToolUse: after a Bash
+  interpreter, `cp`, `mv`, `install` or `patch` run it **warns** — never denies, the write
+  has landed — on a secret in what each file git reports changed added (the "What has
+  teeth" row above names how and what it misses). Its marker lives in the plugin's data
+  dir, else under `<repo>/.claude/secret-scanning/` behind a `*` `.gitignore`.
 - **PostToolUse hook** (`hooks/unicode-scan.sh`) — **warns**, never blocks, when a file
   this session wrote *or read* carries invisible characters — since 0.9.0 including up to
   8 files per `Bash` command that wrote them (redirect, `tee`, `sed -i`) under the
-  project root: zero-width
+  project root, and since 0.15.0 up to 8 files a python, node, php, ruby, perl,
+  deno, bun, cp, mv, install or patch run changed in git, each read whole
+  (the misses the "What has teeth" interpreter row names): zero-width
   space/joiner/non-joiner, word joiner, soft hyphen, a mid-file BOM, the Unicode tag
   block, and the bidirectional overrides that make source display in an order different
   from the one it executes (the Trojan Source class, CVE-2021-42574), which get their

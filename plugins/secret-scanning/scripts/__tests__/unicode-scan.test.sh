@@ -96,6 +96,8 @@ out=$(nbfire "$T/clean.ipynb" nb-clean)
 [ -z "$out" ] && ok "a NotebookEdit on a clean notebook is silent" || bad "a NotebookEdit on a clean notebook is silent" "$out"
 
 unset CLAUDE_PROJECT_DIR
+# The host sets the plugin data dir, which holds the bash-effects marker; without it the marker falls back under the repo (last case).
+export CLAUDE_PLUGIN_DATA="$T/data"
 R="$T/repo"; mkdir -p "$R/app/sub" "$T/outside"; git -C "$R" init -q 2>/dev/null
 cp "$T/zw.ts" "$R/app/sub/zw.ts"; cp "$T/bidi.ts" "$R/app/up.ts"; cp "$T/clean.ts" "$R/app/sub/clean.ts"
 cp "$T/zw.ts" "$T/outside/zw.ts"
@@ -120,6 +122,39 @@ out=$(bashfire "${cmd9}echo x > zw.ts"); [ -z "$out" ] && ok "at most 8 targets 
 out=$(bashfire "echo x > zw.ts" "$T/gone"); [ -z "$out" ] && ok "a cwd that no longer exists fails open" || bad "a cwd that no longer exists fails open" "$out"
 [ -z "$(find "$R" -name .claude 2>/dev/null)" ] && ok "no .claude/ state under the repo root or the subdirectory" \
   || bad "no .claude/ state under the repo root or the subdirectory" "$(find "$R" -name .claude)"
+
+# Interpreter writes (bash-write-effects): a file a python run changed in git since this hook's previous call warns as a Write of it
+# would; the first call in a repo only sets the marker; a run that wrote nothing, and a file an Edit changed between two Bash calls, stay silent.
+K="$T/fx"; mkdir -p "$K/app"; git -C "$K" init -q 2>/dev/null
+pyrun() { # python source — runs it in $K as the Bash tool would, then the hook
+  local c="python3 - <<'PY'
+$1
+PY"
+  (cd "$K" && bash -c "$c") >/dev/null 2>&1
+  bashfire "$c" "$K"
+}
+out=$(pyrun "open('app/first.ts', 'w').write('const a' + chr(0x200b) + ' = 1;\n')")
+[ -f "$K/app/first.ts" ] || bad "effects fixture" "the first python heredoc did not write app/first.ts"
+[ -z "$out" ] && [ -n "$(find "$T/data" -name bash-effects-unicode.mark 2>/dev/null)" ] && ok "effects: the first call in a repo is silent and sets the marker" \
+  || bad "effects: the first call in a repo is silent and sets the marker" "got: ${out:-<silent>}"
+out=$(pyrun "open('app/zw.ts', 'w').write('const b' + chr(0x200b) + ' = 2;\n')")
+case "$out" in *"ZERO-WIDTH"*"zw.ts"*|*"zw.ts"*"ZERO-WIDTH"*) ok "effects: a python heredoc write warns" ;; *) bad "effects: a python heredoc write warns" "got: ${out:-<silent>}" ;; esac
+edit_out=$(fire "$K/app/zw.ts" Write)
+ctx() { jq -r '.hookSpecificOutput.additionalContext // empty' <<<"$1" 2>/dev/null; }
+[ -n "$(ctx "$out")" ] && [ "$(ctx "$out")" = "$(ctx "$edit_out")" ] && ok "effects: the warning is the one a Write of that file draws" \
+  || bad "effects: the warning is the one a Write of that file draws" "python=${out:0:80} write=${edit_out:0:80}"
+out=$(bashfire "python3 -c 'print(1)'" "$K")   # app/zw.ts is still dirty in git, but older than the marker
+[ -z "$out" ] && ok "effects: a python run that wrote nothing is silent" || bad "effects: a python run that wrote nothing is silent" "$out"
+printf 'const c\xe2\x80\x8b = 3;\n' > "$K/app/edited.ts"
+jq -cn --arg f "$K/app/edited.ts" --arg d "$K" '{session_id:"e1", transcript_path:"/tmp/e1", tool_name:"Edit", cwd:$d, tool_input:{file_path:$f}}' \
+  | "$BASH_BIN" "$HOOK" >/dev/null 2>&1
+out=$(pyrun "open('app/clean2.ts', 'w').write('const d = 4;\n')")
+[ -z "$out" ] && ok "effects: a file an Edit changed between two Bash calls is not read again" \
+  || bad "effects: a file an Edit changed between two Bash calls is not read again" "$out"
+out=$(CLAUDE_PLUGIN_DATA= bashfire "echo x > clean.ts")
+[ -f "$R/.claude/secret-scanning/bash-effects-unicode.mark" ] && ! git -C "$R" status --porcelain --untracked-files=all 2>/dev/null | grep -q '\.claude' \
+  && ok "effects: without a plugin data dir the marker sits under the repo, ignored by git" \
+  || bad "effects: without a plugin data dir the marker sits under the repo, ignored by git" "$(git -C "$R" status --porcelain --untracked-files=all 2>/dev/null | grep '\.claude')"
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

@@ -2,12 +2,18 @@
 # scan.sh (PreToolUse on Write, Edit, MultiEdit, NotebookEdit, MCP apply_patch/create_new_file and Bash; payload on stdin) — denies a write whose new text
 #   (for apply_patch, the whole patch), Bash heredoc body or echo/printf argument landing in a file carries a high-confidence, non-placeholder secret,
 #   and a Bash write of redact.ts's [REDACTED: marker unless CC_SECRET_REDACT is off (Write/Edit carrying it are redact.ts's to refuse).
+#   PostToolUse on the same tools (hook_event_name), warning only: after a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run,
+#   on the same patterns in what each file git reports changed since this lane's previous call added (the whole file when HEAD lacks it, else its
+#   `+` lines against HEAD, so a line any uncommitted edit added is judged again). State: that lane's marker in the plugin's data dir
+#   (CLAUDE_PLUGIN_DATA), else <root>/.claude/secret-scanning/ behind a `*` .gitignore.
 # Off: CC_SECRET_SCAN=off. Fails open: a timeout, a missing jq or any error but a bad pattern file allows the write.
-# Fails closed: a missing or malformed hooks/patterns.tsv, the pattern source, denies every write with text to scan.
+# Fails closed: a missing or malformed hooks/patterns.tsv, the pattern source, denies every write with text to scan (the PostToolUse lane stays silent).
 # CC_SECRET_SCAN unset: the /config option cc_secret_scan decides.
 # Misses: a URL password under 6 characters or led by `$` or `{`, a URL scheme not listed, a webhook URL other than Slack's; a real value holding a
-#   placeholder word; an MCP write tool with other key names; on Bash, a command with no write target, interpreter writes, cp/mv, sed/perl -i text
-#   and what cc_bash_write_chunks misses; a command that outruns the hook timeout (no per-call cap).
+#   placeholder word; an MCP write tool with other key names; on Bash, a command with no write target, interpreter writes and cp/mv before they
+#   land, sed/perl -i text and what cc_bash_write_chunks misses; a command that outruns the hook timeout (no per-call cap). After the fact: changed
+#   files past the eighth (MAX_BASH_EFFECTS), text past 1 MiB per file, the redaction marker, and the bash-write-effects block's misses; a file
+#   anything else changed since the lane's previous call (an IDE, a parallel agent) is read as that run's write.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/scan.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -206,12 +212,83 @@ cc_bash_write_chunks() {
       if (opener != "") { printf "\036%s\n", opener; inbody = 1 }
     }'
 }
+
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
+# Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
+# cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
+# Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
+cc_plugin_state() {
+  local key sum
+  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+    key=$(printf '%s' "$(basename -- "$1")" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-')
+    sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
+    printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
+  else
+    printf '%s/.claude/%s\n' "$1" "$2"
+  fi
+  return 0
+}
+
+# Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
+# cc_bash_effects_mark <root> <marker> rewrites <marker> when <root> holds a .git, making its directory with a `*` .gitignore.
+# Call it on EVERY tool call the hook sees (Write, Edit, Bash alike), after cc_bash_write_effects read <marker>: the tool has
+# finished before PostToolUse runs, so <marker> then post-dates every write of the last call this hook saw.
+# cc_bash_write_effects <root> <marker> <command> <max> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked AND newer than <marker>. It runs git only when <command> holds python, node, php,
+# ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, and <marker> exists.
+# Misses: writers it does not name, gitignored files, no git, a file written then reverted, a mv or cp -p destination (it
+# keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a parallel agent, a job.
+cc_bash_effects_mark() {
+  [ -e "$1/.git" ] || return 0
+  local d="${2%/*}"
+  [ -d "$d" ] || { mkdir -p "$d" && printf '*\n' > "$d/.gitignore"; } 2>/dev/null || return 0
+  printf '%s\n' "$$" > "$2" 2>/dev/null
+  return 0
+}
+cc_bash_write_effects() {
+  local re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)[[:space:]<]'
+  local e f n=0
+  local -a c
+  [ -f "$2" ] && [[ $3 =~ $re ]] || return 0
+  while [ "$n" -lt "$4" ] && IFS= read -r -d '' e; do
+    f="$1/${e:3}"
+    [ -f "$f" ] && ! [ "$2" -nt "$f" ] || continue
+    c[n]=$f; n=$((n + 1))
+  done < <(GIT_OPTIONAL_LOCKS=0 git -C "$1" status --porcelain -z --untracked-files=all --no-renames --ignore-submodules=all 2>/dev/null)
+  [ "$n" -gt 0 ] && find "${c[@]}" -prune -newer "$2" -print 2>/dev/null
+  return 0
+}
+
+MAX_BASH_EFFECTS=8
+MAX_EFFECT_BYTES=1048576
 {
   input=$(cat)
   [ "$(cc_option CC_SECRET_SCAN on)" = "off" ] && exit 0
   command -v jq >/dev/null 2>&1 || exit 0
 
-  tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
+  tool=""; event=""
+  { IFS= read -r tool; IFS= read -r event; } < <(printf '%s' "$input" | jq -r '.tool_name // "", .hook_event_name // ""' 2>/dev/null)
   case "$tool" in
     Write|Edit|MultiEdit|NotebookEdit) ;;
     # The matcher in hooks.json and this case must widen together.
@@ -311,6 +388,45 @@ EOF_M
       detect "${pat_kind[$k]}" "${pat_label[$k]}" "${pat_flags[$k]}" "${pat_re[$k]}"
     done
   }
+
+  # The PostToolUse lane: the write has landed, so it warns and never denies. It reads what an interpreter, cp, mv, install or
+  # patch run changed (the bash-write-effects block), each file judged on what it added: the whole file when HEAD lacks it, else
+  # its `+` lines against HEAD. The effects are read with the old marker, then the marker is dated, on EVERY call this lane sees.
+  if [ "$event" = PostToolUse ]; then
+    cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+    [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(cc_state_root "$cwd") || exit 0
+    emark="$(cc_plugin_state "$root" secret-scanning)/bash-effects-scan.mark"
+    effects=""
+    if [ "$tool" = Bash ]; then
+      cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
+      effects=$(cc_bash_write_effects "$root" "$emark" "$cmd" "$MAX_BASH_EFFECTS")
+    fi
+    cc_bash_effects_mark "$root" "$emark"
+    [ -n "$effects" ] || exit 0
+    # An unusable pattern file is the PreToolUse lane's to refuse; a lane that cannot deny stays silent.
+    load_patterns || exit 0
+    pat_loaded=1; found=""
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      rel="${f#"$root"/}"
+      if git -C "$root" cat-file -e "HEAD:$rel" 2>/dev/null; then
+        added=$(GIT_OPTIONAL_LOCKS=0 git -C "$root" diff --no-color --no-ext-diff -U0 HEAD -- ":(literal)$rel" 2>/dev/null \
+          | awk '/^@@/ { h = 1; next } h && /^\+/ { print substr($0, 2) }' | head -c "$MAX_EFFECT_BYTES")
+      else
+        added=$(head -c "$MAX_EFFECT_BYTES" "$f" 2>/dev/null)
+      fi
+      scan_for_secret "$added"
+      [ -z "$hit" ] || found="$found
+- $rel: $hit"
+    done <<EOF_E
+$effects
+EOF_E
+    [ -n "$found" ] || exit 0
+    jq -cn --arg c "secret-scanning: a Bash command just wrote what looks like a secret through a write this guard cannot read before it lands (an interpreter, cp, mv, install or patch):$found
+The value is on disk now. Move it to an environment variable or a secret store and take it out of the file before it is committed; if it is a deliberate fixture, make the value announce itself — end it in EXAMPLE, or use a placeholder word (example, placeholder, changeme, dummy, xxxx). CC_SECRET_SCAN=off disables this guard." \
+      '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$c}}' 2>/dev/null
+    exit 0
+  fi
 
   file=""
   if [ "$tool" = Bash ]; then
