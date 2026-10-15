@@ -392,7 +392,9 @@ FILES
 # must carry that block byte-for-byte. Prints one "shared-block-drift <path> <block>" per
 # offender; returns 1. Owned today: cc_state_root (state-root.md),
 # cc_bash_write_targets (bash-write-targets.md), cc_bash_write_chunks (bash-write-chunks.md),
-# cc_option (option-resolver.md) and cc_plugin_state (plugin-state.md).
+# cc_option (option-resolver.md), cc_plugin_state (plugin-state.md) and every cc_prompt_*
+# function (prompt-shape.md: the pair's fn is an ERE, so a hook pasting only one of its four
+# functions is still held to the whole block).
 #
 # WHY THIS EXISTS. Plugins install alone, so a helper two plugins need is COPIED, not
 # sourced — and a copy edited in one plugin is a fix the other five never got. Generated
@@ -405,7 +407,7 @@ FILES
 # hook swallows — each plugin's own harness is what catches that).
 pc_shared_blocks() {
   local root="${1:-plugins}" bdir="${2:-templates/blocks}" bad=0 f blk content fn name pair
-  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks option-resolver:cc_option plugin-state:cc_plugin_state; do
+  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks option-resolver:cc_option plugin-state:cc_plugin_state 'prompt-shape:cc_prompt_[a-z_]+'; do
     name=${pair%%:*}; fn=${pair#*:}
     [ -r "$bdir/$name.md" ] || continue
     blk=$(cat "$bdir/$name.md")
@@ -3425,6 +3427,152 @@ $key"
       || { printf 'fail %s\n' "$af: pins model '$m' but has neither a role-floors row nor 'floor: none'"; bad=1; }
   done < <(find "$root" -path '*/agents/*.md' -type f | sort)
   return $bad
+}
+
+# pc_agent_tool_fit <plugins_root>
+# Prints `tool-fit <plugin>:<agent> lacks <Bash|Write> — <file>:<line>: <sentence>` per
+# instruction an agent's own `tools:` cannot carry out; returns 1 if any. validate.sh err()s each.
+#
+# CATCHES, for an agent whose `tools:` grants no Bash (neither `Bash` nor `Bash(…)`), a
+# sentence telling it to run a shell command (run/execute/invoke before a backticked git, npm,
+# composer, node, python, jq, curl or make; "run git <verb>"), to hash (cksum, shasum, sha*sum,
+# md5sum within 40 characters after run, use, pipe, call, compute, take, seed or verify;
+# "compute/seed from a hash"; a sentence opening "Hash the"), or a ```bash fence in its
+# body; for one granted no Write, Edit or MultiEdit, a sentence telling it to write, save,
+# persist, append, store or create a backticked file path. It reads the agent BODY and, one hop
+# out, every `<dir>/references/<f>.md` the body names (own plugin first, then any plugin's
+# skills/; fenced code skipped there) — that hop is where its case lived.
+#
+# WHAT NOTHING ELSE CATCHES: no other check compares an agent's instructions with its grant.
+# creative-director (Read, Grep, Glob) was sent to concept-deck.md, which said "seed from a
+# hash of the brief text plus today's date" and "Write the draw into
+# `craft/divergence-record.md`"; three of three mined runs improvised a seed
+# (rationale/session-retro-2026-10-13.md, V-44). Over 18 master revisions back to a 3-agent
+# tree it names exactly those two lines wherever concept-deck carried them, and nothing on
+# the fixed tree: no false positive across the 19 agents lacking Bash or Write and the 11
+# craft-layer references they name (re-measured 2026-10-15).
+#
+# WHAT IT MISSES:
+#   - Dispatch prompts and hook text, where the same retro's other cases lived: reviewers
+#     handed "the diff" with no file and no shell (V-24), a browser-proof preamble injected
+#     into read-only agents (V-02). A skill legitimately tells the MAIN thread to run git
+#     beside an agent's name, so a lint there fires on the fix; that half stays agent-graded.
+#   - Two hops, and a reference named without a `<dir>/` prefix (`references/x.md`, a
+#     `plugin:skill` handle) — most agents outside craft-layer name theirs that way.
+#   - A `<dir>/SKILL.md` the body names: a skill mostly instructs the main thread (17 of 107
+#     SKILL.md files read as an order, against 9 of 155 references, 2026-10-15), so only
+#     references are followed.
+#   - Implied actions: "name the lens in the divergence record" asks for a write with no verb
+#     and no path. Only an imperative verb plus a backticked command or path is read.
+#   - Tools other than Bash and Write: a Read/Grep/Glob agent told to run a skill or fetch a
+#     URL passes (creative-director's optional live pass names ultra-deep-research).
+#   - A `tools:` YAML list reads as absent and is skipped, like an agent with no `tools:` line
+#     (which inherits every tool).
+#   - Negation is a word list, sentence-scoped: a sentence carrying never, cannot, do not, no
+#     Bash/shell/Write/files, or naming the main thread, the caller, the dispatcher or the
+#     orchestrator is not read. A reference shared with the main thread names its actor, or
+#     carries the marker.
+#   - A verb whose subject is that/which/who or the user ("a script that executes `bash -c`",
+#     "recommend the user run `npm audit`") reads as description, not an order; one whose
+#     subject is a noun ("where the hook runs `npm ci`") still reads as an order.
+#
+# Bless a block with `<!-- tool-fit-ok: <why> -->` anywhere in it: a paragraph, or a list or
+# table up to its blank line; an agent-body ```bash fence takes the mark from the block above
+# it. FAIL rather than WARN on that zero-false-positive measurement. Standing: gate.
+_pc_tool_fit_units() { # <file> <agent|ref> — "<line>\t<sentence>" per prose sentence outside a blessed block
+  awk -v mode="$2" '
+    function flush(   rest, start, seg, m) {
+      if (buf == "") return
+      if (index(buf, "<!-- tool-fit-ok:")) blk = 1
+      rest = buf
+      while (rest != "") {
+        if (match(rest, /[.!?][)"'"'"'*_`]*[[:space:]]+/)) { seg = substr(rest, 1, RSTART + RLENGTH - 1); rest = substr(rest, RSTART + RLENGTH) }
+        else { seg = rest; rest = "" }
+        start = cur
+        if (match(seg, /^[[:space:]]*\034[0-9]+\035/)) { m = substr(seg, RSTART, RLENGTH); gsub(/[^0-9]/, "", m); start = m }
+        while (match(seg, /\034[0-9]+\035/)) {
+          m = substr(seg, RSTART, RLENGTH); gsub(/[^0-9]/, "", m); cur = m
+          seg = substr(seg, 1, RSTART - 1) substr(seg, RSTART + RLENGTH)
+        }
+        if (seg ~ /[^[:space:]]/) pend = pend start "\t" descr(seg) "\n"
+      }
+      buf = ""
+    }
+    # ok carries a blessed block to the fence below it.
+    function endblock() {
+      flush()
+      if (pend != "") { if (!blk) printf "%s", pend; ok = blk }
+      pend = ""; blk = 0
+    }
+    # that/which/who or the user as subject describes, not orders: \037 splits the verb.
+    function descr(s,   l, out, j) {
+      s = " " s; l = tolower(s); out = ""
+      while (match(l, /[^a-z0-9_](that|which|who)([[:space:]]+([a-z]+ly|also|then|still|now|would|could|can|may|might|will|should|must|does))*[[:space:]]+(run|execute|invoke|write|save|persist|append|store|create|use|pipe|call|compute|take|seed|verify)|[^a-z0-9_]users?([[:space:]]+([a-z]+ly|also|then|would|could|can|may|might|will|should|must|to|whether))*[[:space:]]+(run|execute|invoke|write|save|persist|append|store|create|use|pipe|call|compute|take|seed|verify)/)) {
+        j = RSTART + RLENGTH - 1
+        while (substr(l, j, 1) !~ /[[:space:]]/) j--
+        out = out substr(s, 1, j + 1) "\037"
+        s = substr(s, j + 2); l = substr(l, j + 2)
+      }
+      return substr(out s, 2)
+    }
+    function add(line) { buf = buf (buf == "" ? "" : " ") "\034" NR "\035" line }
+    NR == 1 && /^---[[:space:]]*$/ { fm = 1; next }
+    fm == 1 { if (/^---[[:space:]]*$/) fm = 2; next }
+    /^[[:space:]]*```/ {
+      endblock()
+      if (!fence && mode == "agent" && !ok && $0 ~ /^[[:space:]]*```[[:space:]]*(bash|sh|shell|zsh|console)[[:space:]]*$/)
+        printf "%s\t%s\n", NR, "a ```shell block"
+      fence = !fence; next
+    }
+    fence { next }
+    /^[[:space:]]*$/ { endblock(); next }
+    /^[[:space:]]*(#|\|)/ { flush(); add($0); flush(); next }
+    /^[[:space:]]*([-*+]|[0-9]+[.)])[[:space:]]/ { flush() }
+    { add($0) }
+    END { endblock() }
+  ' "$1" 2>/dev/null
+}
+pc_agent_tool_fit() {
+  local root="${1:-plugins}" bad=0 tab af p n tools nob now ref rf src kind units hits want re ln s
+  local SKIP='\b(never|cannot|can.t|do not|don.t|does not|doesn.t|must not|no (bash|shell|write|edit|tools?|files?))\b|main thread|\b(the|your) (caller|dispatcher|orchestrator)\b|\bcaller.s\b'
+  local SHELL_RE='\b(run|runs|execute|executes|invoke|invokes)[[:space:]]+`(git|npm|npx|pnpm|yarn|composer|php|node|python3?|bash|sh|jq|curl|make)\b|\brun[[:space:]]+git[[:space:]]+[a-z]|\b(run|runs|use|uses|pipe|pipes|call|calls|compute|computes|take|takes|seed|seeds|verify|execute|executes|invoke|invokes)\b[^;,]{0,40}\b(cksum|shasum|sha(1|224|256|384|512)sum|md5sum|b2sum)\b|\b(compute|computes|take|takes|seed|seeded|seeds)[[:space:]]+(it[[:space:]]+)?(from[[:space:]]+)?(a|the)[[:space:]]+hash\b|^[0-9]+[[:space:]]+([-*+]|[0-9]+[.)])?[[:space:]]*(\*\*)?hash[[:space:]]+(the|it|a)\b|```shell'
+  local WRITE_RE='\b(write|writes|save|saves|persist|persists|append|appends|store|stores|create|creates)\b[^`]{0,80}\b(to|into|in|at|under)[[:space:]]+`[^`]+\.(md|json|jsonl|tsv|csv|txt|patch|ya?ml|html|log)`|\b(write|create)[[:space:]]+`[^`]+\.(md|json|jsonl|tsv|csv|txt|patch|ya?ml|html|log)`'
+  tab=$(printf '\t')
+  while IFS= read -r af; do
+    tools=$(awk 'NR == 1 && !/^---/ { exit } /^---[[:space:]]*$/ { c++; if (c == 2) exit; next }
+                 c == 1 && /^tools:/ { sub(/^tools:[[:space:]]*/, ""); print; exit }' "$af" 2>/dev/null)
+    [ -n "$tools" ] || continue
+    tools=",$(printf '%s' "$tools" | tr -d " \t\"'[]"),"
+    case "$tools" in *,Bash,*|*,Bash\(*) nob=1 ;; *) nob=0 ;; esac
+    case "$tools" in *,Write,*|*,Edit,*|*,MultiEdit,*) now=1 ;; *) now=0 ;; esac
+    [ "$nob$now" = 11 ] && continue
+    p=${af#"$root"/}; p=${p%%/*}; n=$(basename "$af" .md)
+    while IFS="$tab" read -r kind src; do
+      [ -f "$src" ] || continue
+      units=$(_pc_tool_fit_units "$src" "$kind" | grep -viE "$SKIP")
+      [ -n "$units" ] || continue
+      for want in Bash Write; do
+        if [ "$want" = Bash ]; then [ "$nob" = 0 ] || continue; re=$SHELL_RE
+        else [ "$now" = 0 ] || continue; re=$WRITE_RE; fi
+        hits=$(printf '%s\n' "$units" | grep -iE "$re") || continue
+        while IFS="$tab" read -r ln s; do
+          printf 'tool-fit %s:%s lacks %s — %s:%s: %.110s\n' "$p" "$n" "$want" "$src" "$ln" \
+            "$(printf '%s' "$s" | tr -d '\037' | tr -s ' ' | sed 's/^ //')"
+        done <<EOF_TF_HITS
+$hits
+EOF_TF_HITS
+        bad=1
+      done
+    done <<EOF_TF
+$(printf 'agent\t%s\n' "$af"
+  grep -oE '[A-Za-z0-9_-]+/references/[A-Za-z0-9._-]+\.md' "$af" 2>/dev/null | sort -u | while IFS= read -r ref; do
+    for rf in "$root/$p/skills/$ref" "$root"/*/skills/"$ref"; do
+      [ -f "$rf" ] && { printf 'ref\t%s\n' "$rf"; break; }
+    done
+  done)
+EOF_TF
+  done < <(find "$root" -path '*/agents/*.md' -type f 2>/dev/null | sort)
+  return "$bad"
 }
 
 # pc_stray_dirs <plugins_root>

@@ -184,6 +184,7 @@ or restating a check's header here; do not add the story back to this file.
   | `# offswitch-ok:` | a hook that reads an off-switch and deliberately omits it from a blocking reason |
   | `<!-- version-tail-ok: -->` | a version-pinning skill whose `Last verified` stamp deliberately carries no `npm:`/`composer:` tail |
   | `<!-- shadow-ok: <why> -->` | a command and a skill of the same name in one plugin, kept on purpose (the command's description shadows the skill's in the listing) |
+  | `<!-- tool-fit-ok: <why> -->` | a paragraph that tells a tool-limited agent to run, hash or write something on purpose (`pc_agent_tool_fit`) |
 
   `claude-api` must be described as Claude Code's built-in skill, never as a
   marketplace artifact.

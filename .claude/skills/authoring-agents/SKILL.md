@@ -120,6 +120,10 @@ Grant the minimum the role needs:
 - Anything beyond those six needs a stated reason in the body. Web access,
   subagent spawning, and MCP tools are almost never needed and only widen
   the blast radius.
+- Never instruct what the grant cannot do. A read-only agent told to run git, hash a
+  seed or write a file improvises instead; the caller does that step and passes the
+  result. **Gate** for the body and the references it names by path
+  (`pc_agent_tool_fit`); a dispatch prompt or hook text is agent-graded.
 
 ## Body pattern
 

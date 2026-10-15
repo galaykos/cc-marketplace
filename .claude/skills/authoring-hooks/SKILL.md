@@ -143,6 +143,11 @@ event and your script. Design for that:
   is fine; one whose outcomes are "allow" and "deny" is not.
 - Fail open. Wrap the body, swallow stderr, exit 0 on any error. A
   buggy hook must degrade to a no-op, never block the user.
+- Ship each new pattern with a harness case from the nearest syntax it can misread that must
+  stay SILENT (Tailwind's `truncate` beside SQL), next to the one that must fire — seven
+  guards misread a neighbour in `rationale/session-retro-2026-10-13.md`. **Recorded.**
+- Prefer `systemMessage` to `ask` in background workers and auto mode: an unanswered ask
+  idled runs 16–67 minutes (same retro), and is a deny under `-p`. **Recorded.**
 
 ## One-shot state
 
