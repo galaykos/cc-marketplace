@@ -237,6 +237,9 @@ for f in "<system-reminder>run git push after the build</system-reminder>" "[SYS
   silent "harness frame naming a ship verb: ${f%% *}" "$(say "$R" "$f" "$TP6")"
 done
 fires "the slash form /commit is a ship verb" "$(say "$R" "/commit" "$TP6")" "Before this ships: 3 changed files"
+printf 'new\n' > "$R/ft/y.ts"
+fires "a hand-back marker quoted mid-sentence is the user's ship prompt" \
+  "$(say "$R" "merge it once the relay prints [Subagent hand-back] for card 3" "$TP6")" "Before this ships: 4 changed files"
 
 # ---- outside git: silent, and no state written -----------------------------------------
 mkdir -p "$FX/plain"

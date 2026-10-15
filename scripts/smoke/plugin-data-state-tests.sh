@@ -3,7 +3,8 @@
 # repos — CLAUDE_PLUGIN_DATA unset (control) and set per plugin (treatment) — and checks that
 # moved hook state (the plugin-data rows of git-workflow's marketplace-scratch.tsv) leaves the
 # repo only when the variable is set. The control arm must create .claude/code-review/, or the
-# treatment's absence check would pass on a run where no hook wrote anything.
+# treatment's absence check would pass on a run where no hook wrote anything. The test edit adds a
+# comment line because density.sh judges, and so writes state for, only an edit that adds prose.
 # Every hook runs under env -i with HOME, CLAUDE_CONFIG_DIR and TMPDIR inside the temp dir.
 # WHAT IT DOES NOT CATCH: only UserPromptSubmit, Pre/PostToolUse on Edit and Stop are fired, so a
 # writer on another event — compact-capsule.sh (SessionStart compact), SubagentStop, PostToolUse on
@@ -73,6 +74,7 @@ TEST_AFTER="import { add } from './app.js';
 
 test('add sums two numbers', () => {
   expect(add(1, 2)).toBe(3);
+  // A negative operand must cancel a positive one, not wrap.
   expect(add(-1, 1)).toBe(0);
 });
 "
@@ -119,7 +121,7 @@ arm() { # <name> <CLAUDE_PLUGIN_DATA root, empty for the control>
       '{session_id:$s, transcript_path:$t, cwd:$c, hook_event_name:"UserPromptSubmit", prompt:$p}')"
   done
   edit "$repo" "$sid" "$tp" src/app.test.js '  expect(add(1, 2)).toBe(3);' \
-    "$(printf '  expect(add(1, 2)).toBe(3);\n  expect(add(-1, 1)).toBe(0);')" "$TEST_AFTER"
+    "$(printf '  expect(add(1, 2)).toBe(3);\n  // A negative operand must cancel a positive one, not wrap.\n  expect(add(-1, 1)).toBe(0);')" "$TEST_AFTER"
   edit "$repo" "$sid" "$tp" styles.css '  color: #111827;' \
     "$(printf '  color: #111827;\n  background: #6366f1;')" "$CSS_AFTER"
   fire "$repo" Stop "" "$(jq -cn --arg s "$sid" --arg t "$tp" --arg c "$repo" --arg r "$REPORT" \

@@ -876,6 +876,45 @@ assert_denies "leaders: commented-out code inside /** */ with no @example is sti
 export function compute(x: number) { return x * 2; }'
 assert_denies "leaders: // const old = compute(counter); is still denied" ld3 /tmp/proj/ld3.ts '// const old = compute(counter);
 const next = compute(counter + 1);'
+# A docblock line describing a shape borrows code punctuation; it is code there only with a code token and not as a sentence.
+assert_allows "docblock: Shop => [owner, warehouse, last sync failed]. is prose, not commented-out code" dp1 /tmp/proj/dp1.php '<?php
+class DemoSeeder
+{
+    /**
+     * Shop => [owner, warehouse, last sync failed].
+     */
+    private const ROWS = [];
+}'
+assert_silent "docblock: the same shape line draws no warning either" "$(envelope Write /tmp/proj/dp1.php '/**
+ * Shop => [owner, warehouse, last sync failed].
+ */
+const ROWS = [];')"
+assert_allows "docblock: a period-ended sentence holding an = is prose" dp2 /tmp/proj/dp2.ts '/**
+ * limit = thirty rows unless the caller passes its own.
+ */
+export function page(limit: number) { return limit; }'
+assert_denies "docblock: \$total = sum(\$rows); inside /** */ is still denied" dp3 /tmp/proj/dp3.php '<?php
+/**
+ * $total = sum($rows);
+ */
+function sum(array $rows) {}'
+assert_denies "docblock: // \$x = foo(); outside a docblock is still denied" dp4 /tmp/proj/dp4.php '<?php
+// $x = foo();
+$y = foo();'
+# Commented-out code needs no semicolon: a control-flow header, an import/export/return with a brace, a trailing { or [.
+n=0
+for l in 'import { legacyFetch } from "./legacy"' 'return { id: user.id, name: user.name }' 'export default {' \
+  'for (const row of rows) {' 'while (queue.length) {' 'const ROWS = ['; do
+  n=$((n + 1))
+  assert_denies "docblock: $l inside /** */ is commented-out code" "dc$n" "/tmp/proj/dc$n.ts" "/**
+ * $l
+ */
+export function load(rows: number[]) { return rows; }"
+done
+assert_allows "docblock: if (the caller passes null) the default applies. is prose" dc7 /tmp/proj/dc7.ts '/**
+ * if (the caller passes null) the default applies.
+ */
+export function load(rows: number[]) { return rows; }'
 assert_allows "leaders: a # Features heading over * fast features in a .sh heredoc is allowed" ld4 /tmp/proj/ld4.sh 'cat > NOTES.md <<EOF
 # Features
 * fast features

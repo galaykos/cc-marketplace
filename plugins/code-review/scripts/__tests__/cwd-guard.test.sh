@@ -122,11 +122,11 @@ else
   echo "FAIL: verbosity.sh across three cwds — got [${w1:+warn}] [${w2:+warn}] [${w3:+warn}], want [warn] [] []"; rc=1
 fi
 
-# 60 code lines: past density.sh's size floors, so it records the file in its state.
+# 60 code lines: past density.sh's size floors, so it records the file in its state; a Write, since an Edit adding no prose is not measured.
 for i in $(seq 1 60); do printf 'export const v%s = %s\n' "$i" "$i"; done > "$R/src/big.ts"
 density() { # cwd
   jq -nc --arg c "$1" --arg f "$R/src/big.ts" --arg t "/t/density-walk.jsonl" \
-    '{hook_event_name:"PostToolUse",tool_name:"Edit",cwd:$c,session_id:"walk",transcript_path:$t,tool_input:{file_path:$f}}' \
+    '{hook_event_name:"PostToolUse",tool_name:"Write",cwd:$c,session_id:"walk",transcript_path:$t,tool_input:{file_path:$f}}' \
     | bash plugins/code-review/hooks/density.sh >/dev/null 2>&1
 }
 density "$R/app/Enums"

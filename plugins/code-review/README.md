@@ -98,9 +98,16 @@ grammar, does not compare a `Write` against a file over 1 MiB, and after two den
 the write through with only a warning, so code can still be lost — **The elision deny**
 below has what it reads and the rest it misses.
 `density.sh` denies a whole `Write`, or a Bash heredoc that replaces a file, over
-the comment ceiling, at most twice per file, and after any edit warns when a file is over
+the comment ceiling, at most twice per file, and after a `Write` — or an `Edit` or Bash write
+that adds prose comment lines — warns when a file is over
 min(2x its committed siblings' median, the ceiling); a file with no committed siblings is
-judged against the ceiling alone. The ceiling is **0.3 prose comment lines per code line**
+judged against the ceiling alone. An `Edit` adds prose when the file on disk holds more than
+the same file with its new text swapped back, so a line added inside a Python docstring
+counts; past 256 kB, or when the new text is not on disk, only the edit's own text is read
+and that line is missed. Neither lane judges a file that only declares — an interface or an
+all-abstract class beside imports, type aliases and enums, no method body — in a brace
+language: its docblocks are the contract. A component or class beside the interface is
+judged. The ceiling is **0.3 prose comment lines per code line**
 by default, compared exactly: 30 prose lines over 100 code lines pass, 31 are refused. A
 file under 50 non-blank lines, or with fewer than 8 code lines, is judged by the **short rule**
 instead: it is over the limit with at least 5 prose lines, a code line, and more prose
@@ -156,8 +163,10 @@ to one file share them. A relative target is resolved against the shell's workin
 and `~/x` against `$HOME`. `scan.sh` judges an append like any other added text. `density.sh`
 denies only a heredoc that replaces the file (`>`, `tee` without `-a`), because an
 append is a fragment with no ratio of its own; after the command it measures the first
-three targets that exist on disk, whatever wrote them (`sed -i`, `echo >`, a generator),
-and prints the first warning. The cap counts any existing file, whatever its extension,
+three targets that exist on disk that the command added a prose comment line to (by an
+`echo`, `printf` or heredoc), or wrote through a redirect whose text it cannot read (a
+generator, a `{ …; } > f` group) — never a `sed -i` or `perl -i` target — and prints the
+first warning. The cap counts any existing file, whatever its extension,
 so three log redirects ahead of a source file leave it unmeasured. A command with several heredocs draws one verdict, for the
 first file that trips; the retry reaches the next.
 
@@ -316,7 +325,11 @@ bare `@return` or `@param` whose description wraps onto the next docblock line i
 A TODO carrying an owner (`TODO(ana):`), a ticket (`#123`, `BILL-412`) or a URL is not
 judged any further, so `// TODO #1: sort todos by date` above the line it names is no longer
 refused as a restatement, nor `// TODO(BILL-412): drop once v2 rollout completes (see ADR-7)`
-as commented-out code.
+as commented-out code. Inside a `/** */` docblock a code-shaped line counts as commented-out
+code only with a token prose does not use — `;`, a `$var`, `->`, a call, an `=` assignment,
+a control-flow header, a leading `import`/`export`/`return` with a brace, a trailing `{` or `[`
+— and not as a sentence of three or more lowercase words ending in a period, so
+` * Shop => [owner, warehouse, last sync failed].` is prose (since 0.33.0).
 
 **The twelve categories.** Denied before the write, and warned when such a write lands
 anyway: `restating the next line`, `commented-out code`,
@@ -445,8 +458,8 @@ it. A miss is preferred to judging the wrong file, so an uncertain shape is skip
   (`python3 - <<PY > f`); `echo` and `printf` content; `sed -i` and `perl -i` content;
   `cp`, `mv`, `install`; a `{ …; } > f` group; a here-string (`<<<`); a quoted string or
   `\` continuation spanning lines; a second heredoc opened on one line. `density.sh`
-  still measures the resulting file afterwards when the command names it as a redirect,
-  `tee` or `sed -i` / `perl -i` target.
+  still measures the resulting file afterwards when the command names it as a redirect
+  or `tee` target and adds prose to it or writes text it cannot read.
 - **Target not resolved, so the heredoc is skipped:** a path held in a variable; a
   globbed operand; `2>`, `&>` and `>&` targets; the second operand of `tee a b`;
   `VAR=value tee f <<EOF`; `cat` or `tee` behind a path, wrapper, brace or keyword
@@ -466,7 +479,9 @@ it. A miss is preferred to judging the wrong file, so an uncertain shape is skip
   judged file in one command — the after-command measurement reads only the first three
   targets. `scan.sh` still judges them.
 - **Skipped by `density.sh`'s after-command warning:** targets past the first three
-  that exist on disk, whatever their extension.
+  that exist on disk, whatever their extension; a target the command wrote no prose
+  comment line to — `sed -i`, `perl -i`, printf's substituted text, an echo whose
+  argument is not a comment — even when the file was already over (since 0.33.0).
 - **Too large:** a command over 32 kB that holds a line over 8 kB, or whose lines over
   2,000 characters sum past 32 kB, is not judged by either hook.
 - **Read wrongly — text judged that the shell would not write there:** a heredoc in a

@@ -149,6 +149,56 @@ cc_option() {
   return 0
 }
 
+# Shared block templates/blocks/prompt-shape.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/prompt-shape.md
+# Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste: stdin) and writes nothing.
+# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a line opens with the hand-back marker — not a human turn.
+# cc_prompt_unpaste: filter; cuts each <pasted_content …>…</pasted_content …> span, keeps text beside a tag, drops lines it emptied;
+#   an opening tag with no closing tag after it cuts only itself.
+# cc_prompt_ship_only <text> <verb-ERE>: status 0 when every <verb-ERE> match is create, add, open or make governing a PR, pull request
+#   or commit, or a branch, push, merge, tag or release once a PR, commit, `git` or a name beside the noun marks the text as git work;
+#   a hyphen-, slash-, dot- or underscore-joined name (fix-login, feature/add-auth) is one word, holds no verb, may follow the noun.
+# cc_prompt_question <text>: status 0 when <text> ends in `?` and holds no request (can/could/would/will you, please, why is…),
+#   or holds a hands-off ask (don't work on anything|it, don't change anything yet).
+cc_prompt_frame() {
+  case "${1:-}" in
+    '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
+    'Another Claude session sent a message:'*|'<agent-message'*) return 0 ;;
+    *'[Subagent hand-back]'*) printf '%s\n' "$1" | grep -qE '^[*_[:space:]]*\[Subagent hand-back\]' ;;
+    *) return 1 ;;
+  esac
+}
+cc_prompt_unpaste() {
+  awk '{ a[NR] = $0; if (index($0, "</pasted_content")) z = NR }
+    END { for (n = 1; n <= NR; n++) { out = ""; line = a[n]; cut = p
+      while (1) {
+        if (p) { j = index(line, "</pasted_content"); if (!j) break
+                 line = substr(line, j); k = index(line, ">"); line = k ? substr(line, k + 1) : ""; p = 0 }
+        else { i = index(line, "<pasted_content"); if (!i) { out = out line; break }
+               out = out substr(line, 1, i - 1) " "; line = substr(line, i); cut = 1
+               if (n < z + 0 || index(line, "</pasted_content")) p = 1
+               else { k = index(line, ">"); if (!k) { out = out line; break }; line = substr(line, k + 1) } } }
+      if (!cut || out ~ /[^[:space:]]/) print out } }'
+}
+cc_prompt_ship_only() {
+  local t v s n
+  [ -n "${2:-}" ] || return 1
+  t=$(printf '%s' "${1:-}" | tr '\n' ' ' | sed -E 's#[[:alnum:]]+([-/_.][[:alnum:]]+)+#x#g; s/ +([Aa]nd|[Tt]hen|&) +/ ; /g')
+  v=$(printf '%s' "$t" | grep -oiE "($2)" | grep -c .)
+  n='prs?|pull[ -]requests?|commits?'
+  printf '%s' "$t" | grep -qiE "(^|[^a-z])($n|git|(x|feature|hotfix|release) +(branch(es)?|tags?|releases?))([^a-z]|$)|(^|[^a-z])(branch(es)?|tags?|releases?) +x([^a-z]|$)" \
+    && n="$n|branch(es)?|push(es)?|merges?|tags?|releases?"
+  s=$(printf '%s' "$t" | grep -oiE "($2)( +(a|an|the|new|draft|this|that|my|our|feature|hotfix|release|git|remote|local|separate|fresh))*( +[^ .,;:!?]+)? +($n)( +x)?( *([.,;:!?]|$)| +(for|to|from|into|onto|off|against|with|called|named)([^a-z]|$))" \
+    | grep -ciE '^(create|add|open|make)([^a-z]|$)')
+  [ "${v:-0}" -gt 0 ] && [ "${s:-0}" -ge "$v" ]
+}
+cc_prompt_question() {
+  local t
+  t=$(printf '%s' "${1:-}" | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+  case "$t" in *'?') printf '%s' "$t" | grep -qiE "(^|[^a-z])((can|could|would|will) +(you|u|we)|please|why +(is|are|was|were|does|do|did))([^a-z]|$)" || return 0 ;; esac
+  printf '%s' "$t" | grep -qiE "(^|[^a-z])(don't|don’t|dont|do not|never)( +start)? +work(ing)? on +(anything|it|this|that)( *[.,;:!?]| +(yet|for now|until|before)([^a-z]|$)| *$)|(^|[^a-z])(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything +(yet|for now|until|before)([^a-z]|$)|^[[:space:]]*(please,? +)?(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything[[:space:][:punct:]]*$"
+}
+
 {
   command -v jq  >/dev/null 2>&1 || exit 0
   command -v git >/dev/null 2>&1 || exit 0
@@ -181,11 +231,10 @@ cc_option() {
       case "$prompt" in
         /code-review:review|"/code-review:review "*|/security:review|"/security:review "*) reviewed=1 ;;
         /code-review|"/code-review "*|/security-review|"/security-review "*) reviewed=1 ;;
-        # A harness frame quoting "commit" or "merge" is not the user asking to ship; skill-router's route-prompt.sh prefixes.
-        "<system-reminder>"*|"<task-notification"*|"[SYSTEM NOTIFICATION"*|"Stop hook feedback:"*) ;;
-        "Another Claude session sent a message:"*|"<agent-message"*|*"[Subagent hand-back]"*) ;;
-        *) printf '%s' "$prompt" | awk '/^[[:space:]]*```/{f=!f; next} !f' | tr '\n' ' ' | cut -c1-400 \
-             | grep -qiE '(^|[^[:alnum:]_./-])/?(commit|push|merge|pr|pull[ -]request)([^[:alnum:]_/-]|$)' && ship=1 ;;
+        # A harness frame quoting "commit" or "merge" is not the user asking to ship: the shared prompt-shape block's list.
+        *) cc_prompt_frame "$prompt" \
+             || { printf '%s' "$prompt" | awk '/^[[:space:]]*```/{f=!f; next} !f' | tr '\n' ' ' | cut -c1-400 \
+             | grep -qiE '(^|[^[:alnum:]_./-])/?(commit|push|merge|pr|pull[ -]request)([^[:alnum:]_/-]|$)' && ship=1; } ;;
       esac ;;
     *) exit 0 ;;
   esac

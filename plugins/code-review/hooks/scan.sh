@@ -481,6 +481,18 @@ cc_bash_write_chunks() {
     if (b ~ /^[$@]?[A-Za-z_][A-Za-z0-9_]*[ \t]*=[^=]/) return 1
     return 0
   }
+  # A /** */ line borrows code punctuation to describe a shape: ` * Site => [server, repository, last deploy failed].` was denied
+  # as code and a worker reshaped tuples and signatures to pass. There a line is code only with a token prose does not use (`;`,
+  # a `$var`, `->`, a call, an `=` assignment, a control-flow header, a leading import/export/return with a brace, a trailing
+  # `{` or `[`) and is not a period-ended sentence of 3+ lowercase words. Misses: such a sentence.
+  function doc_code(b,   x, n, w, k, p) {
+    if (b !~ /;|[$][A-Za-z_]|->|[A-Za-z_][A-Za-z0-9_]*[(]|(^|[^=!<>])=($|[^=>])|^(if|for|while|switch|foreach)[ \t]*[(]|^(import|export|return)[ \t].*[{]|[{[][ \t\r]*$/) return 0
+    x = b; sub(/[ \t\r]+$/, "", x)
+    if (x !~ /([A-Za-z0-9)]|[]])[.]$/) return 1
+    n = split(x, w, /[ \t]+/); p = 0
+    for (k = 1; k <= n; k++) { gsub(/^([(]|[[])+|([]]|[),.;:])+$/, "", w[k]); if (w[k] ~ /^[a-z][a-z]+$/) p++ }
+    return p < 3
+  }
   # The diff addressing its reviewer: a comment describing the EDIT — its author, its
   # correctness, the review that asked for it — rather than the code. A why-comment
   # states a standing constraint; a change event ("now handles", "updated to", "fix
@@ -928,7 +940,7 @@ cc_bash_write_chunks() {
       if (b == "" || exempt(b)) continue
       if (is_banner(b))       { H[2]++; total++; continue }
       if ((td = is_bare_todo(b)) < 0) continue
-      if (!EX[i] && is_code(b)) { H[3]++; total++; continue }
+      if (!EX[i] && is_code(b) && (!DOC[i] || doc_code(b))) { H[3]++; total++; continue }
       if (td > 0)             { H[4]++; total++; continue }
       if (is_dead_tag(b, i))  { H[5]++; total++; continue }
       if (is_narration(b))    { H[6]++; total++; continue }
