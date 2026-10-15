@@ -55,7 +55,7 @@ command -v jq >/dev/null 2>&1 || exit 0
   is_about_hooks && exit 0
   is_own_echo && exit 0
   is_question_only && exit 0
-{{#if promptShape}}  # A making verb that only governs a PR, branch, commit, push, merge, tag or release asks to ship, not to build.
+{{#if promptShape}}  # Every making verb being create, add, open or make on a PR or commit (or, in git context, a branch, push, merge, tag or release) asks to ship.
   cc_prompt_ship_only "$head" '{{regex}}' && exit 0
 {{/if}}  # sid before cc_phase_guard: its session check reads it.
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)

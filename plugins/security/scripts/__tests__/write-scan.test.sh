@@ -251,12 +251,15 @@ export CLAUDE_PLUGIN_DATA="$TMPDIR/data"
 G=$(mktemp -d "$TMPDIR/g.XXXXXX"); git -C "$G" init -q 2>/dev/null; mkdir -p "$G/app"
 printf '%s\n' 'data = pickle.loads(old_blob)' 'x = 1' > "$G/app/old.py"
 git -C "$G" add app/old.py && git -C "$G" -c user.email=t@example.com -c user.name=t commit -qm init
-runp() { # runp <session> <python source> — runs it in $G as the Bash tool would, then the hook
+# Every call shares one session_id and keys its context on transcript_path, as a session's subagents do: a marker another
+# session dated reads nothing.
+runp() { # runp <context> <python source> [session] [event] — runs it in $G as the Bash tool would, then the hook
   local c="python3 - <<'PY'
 $2
 PY"
   (cd "$G" && bash -c "$c") >/dev/null 2>&1
-  jq -cn --arg s "$1" --arg c "$c" --arg d "$G" '{tool_name:"Bash", session_id:$s, cwd:$d, tool_input:{command:$c}}' | bash "$HOOK"
+  jq -cn --arg t "/t/$1.jsonl" --arg c "$c" --arg d "$G" --arg s "${3:-sess}" --arg e "${4:-PostToolUse}" \
+    '{hook_event_name:$e, tool_name:"Bash", session_id:$s, transcript_path:$t, cwd:$d, tool_input:{command:$c}}' | bash "$HOOK"
 }
 eff() { # eff <name> <want: a slug, or silent> <out>
   if { [ "$2" = silent ] && [ -z "$3" ]; } || { [ "$2" != silent ] && grep -q "$2" <<<"$3"; }; then pass=$((pass+1)); echo "PASS effects: $1"
@@ -268,20 +271,29 @@ if command -v python3 >/dev/null 2>&1; then
   eff "the first call in a repo is silent and sets the marker" silent "$out"
   out=$(runp e2 "open('app/loader.py', 'w').write('data = pickle.loads(blob)\n')")
   eff "a python heredoc write warns, naming the file" 'unsafe-deserialization.*loader\.py' "$out"
-  w=$(jq -cn --arg d "$G" --arg f "$G/app/loader.py" '{tool_name:"Write", session_id:"e2w", cwd:$d, tool_input:{file_path:$f, content:"data = pickle.loads(blob)\n"}}' | bash "$HOOK")
+  w=$(jq -cn --arg d "$G" --arg f "$G/app/loader.py" '{tool_name:"Write", session_id:"sess", transcript_path:"/t/e2w.jsonl", cwd:$d, tool_input:{file_path:$f, content:"data = pickle.loads(blob)\n"}}' | bash "$HOOK")
   slugs() { grep -o '\[security\] [a-z-]*:' <<<"$1"; }
   [ -n "$(slugs "$out")" ] && [ "$(slugs "$out")" = "$(slugs "$w")" ] && eff "the findings are the ones a Write of that text draws" silent "" \
     || eff "the findings are the ones a Write of that text draws" "the Write's [$(slugs "$w")]" "$out"
-  out=$(jq -cn --arg d "$G" '{tool_name:"Bash", session_id:"e3", cwd:$d, tool_input:{command:"python3 -c '\''print(1)'\''"}}' | bash "$HOOK")
+  out=$(jq -cn --arg d "$G" '{tool_name:"Bash", session_id:"sess", transcript_path:"/t/e3.jsonl", cwd:$d, tool_input:{command:"python3 -c '\''print(1)'\''"}}' | bash "$HOOK")
   eff "a python run that wrote nothing is silent" silent "$out"
   printf '%s\n' 'el.innerHTML = b' > "$G/app/edited.js"
-  jq -cn --arg d "$G" --arg f "$G/app/edited.js" '{tool_name:"Edit", session_id:"e4e", cwd:$d, tool_input:{file_path:$f, old_string:"a", new_string:"b"}}' \
+  jq -cn --arg d "$G" --arg f "$G/app/edited.js" '{tool_name:"Edit", session_id:"sess", transcript_path:"/t/e4e.jsonl", cwd:$d, tool_input:{file_path:$f, old_string:"a", new_string:"b"}}' \
     | bash "$HOOK" >/dev/null
   out=$(runp e4 "open('app/clean.js', 'w').write('const ok = 1\n')")
   eff "a file an Edit changed between two Bash calls is not read again" silent "$out"
   out=$(runp e5 "p = 'app/old.py'; s = open(p).read(); open(p, 'w').write(s.replace('x = 1', 'x = 2\nos.system(cmd)'))")
   eff "a tracked file's added line warns" shell-string-exec "$out"
   eff "a tracked file is not judged on what HEAD already held" silent "$(grep -o 'unsafe-deserialization' <<<"$out")"
+  out=$(runp e6 "open('app/failed.py', 'w').write('data = pickle.loads(blob)\n')
+raise SystemExit(1)" sess PostToolUseFailure)
+  eff "a failed python run (PostToolUseFailure) warns in that event's envelope" 'unsafe-deserialization.*failed\.py' \
+    "$(jq -c 'select(.hookSpecificOutput.hookEventName == "PostToolUseFailure")' <<<"$out" 2>/dev/null)"
+  jq -e '.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[] | select(.command | test("hooks/write-scan.sh"))' \
+    "$(dirname "$HOOK")/hooks.json" >/dev/null 2>&1 && eff "write-scan.sh is registered on PostToolUseFailure for Bash" silent "" \
+    || eff "write-scan.sh is registered on PostToolUseFailure for Bash" "a PostToolUseFailure Bash entry" ""
+  out=$(runp e7 "open('app/other.py', 'w').write('data = pickle.loads(blob)\n')" other-session)
+  eff "a marker another session dated reads nothing" silent "$out"
 else
   echo "SKIP effects: python3 not available"
 fi

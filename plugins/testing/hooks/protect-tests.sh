@@ -7,9 +7,10 @@
 #
 #   1. a skip/exclusive marker being ADDED (`.skip`, `.only`, `xit(`, `xdescribe(`,
 #      `@pytest.mark.skip`, `markTestSkipped`, `$this->markTestIncomplete`, Go's
-#      `t.Skip(`, `#[ignore]`, `@Disabled`, `@Ignore`, `it.todo`, Pest's `})->skip()` and
-#      `->only()`, and the paren-less Ruby/bats spellings `xit "…" do`, `skip "…"`, and
-#      `pending "…"` in a Ruby file only)
+#      `t.Skip(`, `#[ignore]`, `@Disabled`, `@Ignore`, `it.todo`, Pest's `})->skip()`,
+#      `->only()`, `->skipOn…()`, `->skipLocally()`, `->onlyOn…()`, `->todo()` and
+#      `beforeEach()->skip()`, and the paren-less Ruby/bats spellings `xit "…" do`, `skip "…"`,
+#      and `pending "…"` in a Ruby file only)
 #   2. a whole test file being emptied or deleted through Write — content that no
 #      longer contains a single test function while the file on disk did
 #
@@ -279,16 +280,25 @@ cc_bash_write_chunks() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/heredoc-bodies.md
 # cc_strip_heredoc_bodies <mode> <command> [<reader ERE>] prints the command without the heredoc bodies the scan can place,
 # their terminators dropped with them. Mode all drops every such body. Mode inert keeps a body a reader may run: its opener's line
-# names a shell, ssh, su, eval, exec, source or `.`, or matches <reader ERE> (tested lowercased, unquoted, space-padded), or the
-# reader can sit off that line: a `\` continuation, a trailing | ( { do then else, an unquoted $( ) ( ) <( ) but x=$( ), an fd
-# number, a $ or quoted command word, a done/fi/esac/}/) lead, a pipe into a shell in the text left. Both modes keep every line
-# after a `<<` the scan cannot place (quoted, after a #, in arithmetic, an odd delimiter, a quote open across its line, a backtick,
-# $$', an unmatched ), a terminator with stray blanks) and a body with no terminator. Misses: inert drops a body fed to anything
-# else (python3 -, node, sudo -s, at, a function, alias or coproc) or written to a script a later line runs; a case pattern's )
-# inside $( ) closes it early.
+# names a shell (rbash, mksh too), ssh, su, sudo -i/-s, runuser, chroot, exec, xargs, eval, source or `.`, or matches <reader ERE>
+# (tested lowercased, unquoted, space-padded), or the reader can sit off that line: a `\` continuation, a trailing | ( { do then
+# else, an unquoted $( ) ( ) <( ) but x=$( ), an fd number, a $ or quoted command word, a done/fi/esac/}/) lead. Once it drops a
+# body, inert keeps every line if a later line pipes into a reader (other words may sit before it; `.`, source, eval or a $ command
+# word first), or runs eval, a shell's -c or a $ command word after an x=$( ) or "$( )" body. Mode cd is inert with eval, source,
+# `.` and the ERE the only named readers, for a cd test: a body this shell runs is kept, one a named subshell runs is not. Every
+# mode keeps every line after a `<<` the scan cannot place (quoted, after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a
+# quote or ${ open across its line, a backtick, $$', an unmatched ), a terminator with stray blanks) and a body with no terminator.
+# Misses: inert drops a body fed to anything else (python3 -, node, at, a function, alias or coproc), written to a script a later
+# line runs, or read into a variable by read; a case pattern's ) inside $( ) closes it early.
 cc_strip_heredoc_bodies() {
   printf '%s\n' "$2" | heredoc_readers="${3:-}" LC_ALL=C awk -v how="$1" '
-    BEGIN { rd = ENVIRON["heredoc_readers"] }
+    BEGIN {
+      rd = ENVIRON["heredoc_readers"]; sw = "((ba|z|da|k|c|tc|a|rba|mk|ok|ya)?sh|fish)"; hr = "[ /](eval|source|\\.) "
+      sh = "[ /](" sw "|ssh|su|runuser|chroot|exec|xargs) |[ /](sudo|doas) ([^;&|()]* )?(-[a-z]*[is][a-z]*|--login|--shell) "
+      shc = "[ /]" sw "( -[-a-z]+)* -[a-z]*c "
+    }
+    function reads(w) { return rd != "" && w ~ rd || w ~ hr || how != "cd" && w ~ sh }
+    function norm(s) { s = tolower(s); gsub(/\\[^a-z0-9_]/, "", s); gsub(/["\047\\]/, "", s); gsub(/[<>|;&()]/, " & ", s); gsub(/[ \t]+/, " ", s); return " " s " " }
     function delim(s, j,   c, q, w) {
       q = ""; w = ""
       for (; j <= length(s); j++) {
@@ -299,7 +309,7 @@ cc_strip_heredoc_bodies() {
       }
       return q == "" ? w : ""
     }
-    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", a/b arithmetic) carry across lines. 1 = ends in \.
+    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
     function scan(s,   n, i, c, nx, d, t, w, j) {
       n = length(s); cc = 0
       for (i = 1; i <= n; i++) {
@@ -338,18 +348,20 @@ cc_strip_heredoc_bodies() {
             if (substr(s, i + 2, 1) == "(") { st = st "a"; i += 2 } else { st = st (pc == "=" ? "v" : "p"); i++ }
             pc = "("; cs = 1; continue
           }
+          if (nx ~ /[{[]/) { st = st (nx == "{" ? "e" : "s"); i++; pc = nx; continue }
         }
+        t = substr(st, length(st))
+        if (c ~ /[]}[]/ && t == (c == "}" ? "e" : "s")) { if (c == "[") st = st t; else { st = substr(st, 1, length(st) - 1); pc = "x" }; continue }
         if (c == "(") { if (nx == "(") { st = st "a"; i++ } else st = st "p"; pc = c; cs = 1; continue }
         if (c == ")") {
-          t = substr(st, length(st))
-          if (t == "") { off = 1; return 0 }
+          if (t ~ /^[es]?$/) { off = 1; return 0 }
           if (t ~ /[ab]/) { if (nx != ")") { off = 1; return 0 }; i++ }
           st = substr(st, 1, length(st) - 1); if (t ~ /[qb]/) dq = 1
-          pc = c; continue
+          pc = "x"; continue
         }
         if (c == "<" && nx == "<") {
           if (substr(s, i + 2, 1) == "<") { i += 2; pc = "<"; continue }
-          if (hash || st ~ /[ab]/) { off = 1; return 0 }
+          if (hash || st ~ /[abes]/) { off = 1; return 0 }
           if (st ~ /p/ || sd0 != "" || substr(s, i - 1, 1) ~ /[0-9]/) k2 = 1
           j = i + 2; t = (substr(s, j, 1) == "-"); j += t
           while (substr(s, j, 1) ~ /[ \t]/) j++
@@ -381,23 +393,20 @@ cc_strip_heredoc_bodies() {
       cont = scan($0)
       if (off) { mode = 2; next }
       if (cont || !nc) next
-      if (startq || sq || dq) { mode = 2; next }
+      if (startq || sq || dq || st ~ /[es]/) { mode = 2; next }
       t = cc ? substr($0, 1, cc - 1) : $0; sub(/[ \t]+$/, "", t)
-      w = tolower(lw); gsub(/["\047\\]/, "", w); gsub(/[<>|;&()]/, " & ", w); gsub(/[ \t]+/, " ", w); w = " " w " "
-      keep = how != "all" && (k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ \
-        || rd != "" && w ~ rd || w ~ /[ \/]((ba|z|da|k|c|tc|a)?sh|fish|ssh|su|eval|exec|source|\.) /)
+      keep = how != "all" && (k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ || reads(norm(lw)))
+      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vq]/) cv = 1
       qi = 1; mode = 1; nh = 0
       next
     }
     END {
       if (mode == 1 && !keep) for (k = 1; k <= nh; k++) out[++no] = held[k]
-      for (k = 1; cut && how != "all" && k <= no; k++) {
+      for (k = c0; cut && how != "all" && k <= no; k++) {
         t = out[k]; if (t ~ /[|(]&?[ \t]*$/ && k < no) t = t " " out[k + 1]
-        t = tolower(t); gsub(/["\047\\]/, "", t)
-        if (t ~ /[|(]&?[ \t]*((sudo|doas|env|command|exec|nohup|time|nice)[ \t]+(-[^ \t]+[ \t]+)*)*([^ \t|;&()]*\/)?((ba|z|da|k|c|tc|a)?sh|fish|ssh|su|eval|source|\.|xargs)([ \t;&|)]|$)/) {
-          for (k = 1; k <= na; k++) print all[k]
-          exit
-        }
+        u = t = norm(t); r = cv && (t ~ / eval |(^|[;&|]) \$/ || how != "cd" && t ~ shc)
+        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/ }
+        if (r) { for (k = 1; k <= na; k++) print all[k]; exit }
       }
       for (k = 1; k <= no; k++) print out[k]
     }'
@@ -447,9 +456,11 @@ cc_strip_heredoc_bodies() {
   # after `it(…)`/`test(…)` with no inner parenthesis, past chained calls (`->with([1, 2])`). A
   # Collection or query builder spells both too, so `->only` needs empty parentheses and `->skip(`
   # Pest's own argument: none, a quoted reason, a closure or a boolean literal (`->skip(2)`,
-  # `->skip(count($h))` and `->only(['id'])` stay silent). Pest's skip message is not a reason (a
+  # `->skip(count($h))` and `->only(['id'])` stay silent). Pest's named helpers (`->skipOnCi()`,
+  # `->skipLocally()`, `->onlyOnLinux()`, `->todo()`) have no Collection twin, so any argument
+  # counts, and `beforeEach()->skip()` skips the whole file. Pest's skip message is not a reason (a
   # same-line comment is); the shapes this misses are in the header.
-  skip_re='(\b(it|test|describe|context|suite|scenario|feature|bench|fixture|story)\b(\.[A-Za-z]+(\([^)]*\))?)*\.(skip|only|todo|failing)[[:space:]]*\(|\bx(it|describe|test|context|specify)[[:space:]]*[("'\''"]|@pytest\.mark\.skip|markTestSkipped|markTestIncomplete|\bt\.Skip(Now)?[[:space:]]*\(|#\[ignore\]|@Disabled\b|@Ignore\b|\bpending[[:space:]]*\(|\bskip[[:space:]]+["'\'']|\.skipIf[[:space:]]*\(|(\}\)|\b(it|test|describe)\([^()]*\))([[:space:]]*->[[:space:]]*[A-Za-z]+[[:space:]]*\([^()]*\))*[[:space:]]*->[[:space:]]*(only[[:space:]]*\([[:space:]]*\)|skip[[:space:]]*\([[:space:]]*(\)|["'\'']|fn\b|function\b|true\b|false\b)))'
+  skip_re='(\b(it|test|describe|context|suite|scenario|feature|bench|fixture|story)\b(\.[A-Za-z]+(\([^)]*\))?)*\.(skip|only|todo|failing)[[:space:]]*\(|\bx(it|describe|test|context|specify)[[:space:]]*[("'\''"]|@pytest\.mark\.skip|markTestSkipped|markTestIncomplete|\bt\.Skip(Now)?[[:space:]]*\(|#\[ignore\]|@Disabled\b|@Ignore\b|\bpending[[:space:]]*\(|\bskip[[:space:]]+["'\'']|\.skipIf[[:space:]]*\(|(\}\)|\b(it|test|describe|beforeEach)\([^()]*\))([[:space:]]*->[[:space:]]*[A-Za-z]+[[:space:]]*\([^()]*\))*[[:space:]]*->[[:space:]]*(only[[:space:]]*\([[:space:]]*\)|skip[[:space:]]*\([[:space:]]*(\)|["'\'']|fn\b|function\b|true\b|false\b)|(skip(On[A-Za-z]+|Locally)|onlyOn[A-Za-z]+|todo)[[:space:]]*\())'
   rspec_re='\bpending[[:space:]]+["'\'']'
 
   # Reads tool, file, new and old; sets hit, empty when the write is allowed.
@@ -522,9 +533,9 @@ $(cc_bash_write_chunks "$cmd")
 EOF_C
     # A relative target after an in-command `cd` would resolve against the wrong directory
     # and read a kept marker as new: skip relative targets then (a miss, never a false deny).
-    # Only a `cd` outside heredoc bodies counts; a body line is text and moves nothing.
+    # A `cd` in a heredoc body counts only where this shell may run the body (`. /dev/stdin <<EOF`).
     hascd=0
-    cc_strip_heredoc_bodies all "$cmd" \
+    cc_strip_heredoc_bodies cd "$cmd" \
       | grep -qE '(^|[^A-Za-z0-9_./-])(cd|chdir|pushd)([^A-Za-z0-9_./-]|$)' && hascd=1
     # Chunks of one command compose per target (`> f` then `>> f`), and each target is
     # judged once on its final text, so a clear-then-append is not read as emptying f.

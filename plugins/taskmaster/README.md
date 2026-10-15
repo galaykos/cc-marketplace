@@ -67,7 +67,8 @@ A priority directive fires on work-shaped prompts
 governing a PR or commit ("create the PR"), or a branch, push, merge, tag or release once
 the prompt also names a PR, a commit or `git`, or a joined name sits beside the noun ("add
 fix-login branch"); nor on verbs inside a `<pasted_content>` paste or on a subagent
-hand-back. "fix the failing PR" and "add tags to the blog" still fire. Before the first code edit,
+hand-back. "fix the failing PR", "add tags to the blog" and "add PRs to the dashboard" (a
+ship noun before to, into, onto or with is a feature object) still fire. Before the first code edit,
 run one batched clarifying round to zero ambiguity or state in one line why
 the task is trivial. It holds `arcRank` 25 in the shared reminder-rank election
 (bounded at one line per eligible hook, never a guarantee of one per prompt) — no plugin is privileged there, so it earns its place by arc position:

@@ -1,5 +1,6 @@
 #!/bin/bash
-# write-scan.sh (PostToolUse on Write, Edit, MultiEdit and Bash; payload on stdin) — warns, never denies, once per context, file and finding,
+# write-scan.sh (PostToolUse on Write, Edit, MultiEdit and Bash, PostToolUseFailure on Bash; payload on stdin) — warns, never denies, once per
+#   context, file and finding,
 #   on a security sink one written line or Bash-written file shows; the ported and LLM sinks only in their own file types, the Laravel/Vite/raw-HTML ones in any file.
 #   After a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also on what each file git reports changed since this hook's
 #   previous call added: the whole file when HEAD lacks it, else its `+` lines against HEAD (so a line any uncommitted edit added is judged again).
@@ -174,16 +175,25 @@ cc_state_root() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/heredoc-bodies.md
 # cc_strip_heredoc_bodies <mode> <command> [<reader ERE>] prints the command without the heredoc bodies the scan can place,
 # their terminators dropped with them. Mode all drops every such body. Mode inert keeps a body a reader may run: its opener's line
-# names a shell, ssh, su, eval, exec, source or `.`, or matches <reader ERE> (tested lowercased, unquoted, space-padded), or the
-# reader can sit off that line: a `\` continuation, a trailing | ( { do then else, an unquoted $( ) ( ) <( ) but x=$( ), an fd
-# number, a $ or quoted command word, a done/fi/esac/}/) lead, a pipe into a shell in the text left. Both modes keep every line
-# after a `<<` the scan cannot place (quoted, after a #, in arithmetic, an odd delimiter, a quote open across its line, a backtick,
-# $$', an unmatched ), a terminator with stray blanks) and a body with no terminator. Misses: inert drops a body fed to anything
-# else (python3 -, node, sudo -s, at, a function, alias or coproc) or written to a script a later line runs; a case pattern's )
-# inside $( ) closes it early.
+# names a shell (rbash, mksh too), ssh, su, sudo -i/-s, runuser, chroot, exec, xargs, eval, source or `.`, or matches <reader ERE>
+# (tested lowercased, unquoted, space-padded), or the reader can sit off that line: a `\` continuation, a trailing | ( { do then
+# else, an unquoted $( ) ( ) <( ) but x=$( ), an fd number, a $ or quoted command word, a done/fi/esac/}/) lead. Once it drops a
+# body, inert keeps every line if a later line pipes into a reader (other words may sit before it; `.`, source, eval or a $ command
+# word first), or runs eval, a shell's -c or a $ command word after an x=$( ) or "$( )" body. Mode cd is inert with eval, source,
+# `.` and the ERE the only named readers, for a cd test: a body this shell runs is kept, one a named subshell runs is not. Every
+# mode keeps every line after a `<<` the scan cannot place (quoted, after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a
+# quote or ${ open across its line, a backtick, $$', an unmatched ), a terminator with stray blanks) and a body with no terminator.
+# Misses: inert drops a body fed to anything else (python3 -, node, at, a function, alias or coproc), written to a script a later
+# line runs, or read into a variable by read; a case pattern's ) inside $( ) closes it early.
 cc_strip_heredoc_bodies() {
   printf '%s\n' "$2" | heredoc_readers="${3:-}" LC_ALL=C awk -v how="$1" '
-    BEGIN { rd = ENVIRON["heredoc_readers"] }
+    BEGIN {
+      rd = ENVIRON["heredoc_readers"]; sw = "((ba|z|da|k|c|tc|a|rba|mk|ok|ya)?sh|fish)"; hr = "[ /](eval|source|\\.) "
+      sh = "[ /](" sw "|ssh|su|runuser|chroot|exec|xargs) |[ /](sudo|doas) ([^;&|()]* )?(-[a-z]*[is][a-z]*|--login|--shell) "
+      shc = "[ /]" sw "( -[-a-z]+)* -[a-z]*c "
+    }
+    function reads(w) { return rd != "" && w ~ rd || w ~ hr || how != "cd" && w ~ sh }
+    function norm(s) { s = tolower(s); gsub(/\\[^a-z0-9_]/, "", s); gsub(/["\047\\]/, "", s); gsub(/[<>|;&()]/, " & ", s); gsub(/[ \t]+/, " ", s); return " " s " " }
     function delim(s, j,   c, q, w) {
       q = ""; w = ""
       for (; j <= length(s); j++) {
@@ -194,7 +204,7 @@ cc_strip_heredoc_bodies() {
       }
       return q == "" ? w : ""
     }
-    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", a/b arithmetic) carry across lines. 1 = ends in \.
+    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
     function scan(s,   n, i, c, nx, d, t, w, j) {
       n = length(s); cc = 0
       for (i = 1; i <= n; i++) {
@@ -233,18 +243,20 @@ cc_strip_heredoc_bodies() {
             if (substr(s, i + 2, 1) == "(") { st = st "a"; i += 2 } else { st = st (pc == "=" ? "v" : "p"); i++ }
             pc = "("; cs = 1; continue
           }
+          if (nx ~ /[{[]/) { st = st (nx == "{" ? "e" : "s"); i++; pc = nx; continue }
         }
+        t = substr(st, length(st))
+        if (c ~ /[]}[]/ && t == (c == "}" ? "e" : "s")) { if (c == "[") st = st t; else { st = substr(st, 1, length(st) - 1); pc = "x" }; continue }
         if (c == "(") { if (nx == "(") { st = st "a"; i++ } else st = st "p"; pc = c; cs = 1; continue }
         if (c == ")") {
-          t = substr(st, length(st))
-          if (t == "") { off = 1; return 0 }
+          if (t ~ /^[es]?$/) { off = 1; return 0 }
           if (t ~ /[ab]/) { if (nx != ")") { off = 1; return 0 }; i++ }
           st = substr(st, 1, length(st) - 1); if (t ~ /[qb]/) dq = 1
-          pc = c; continue
+          pc = "x"; continue
         }
         if (c == "<" && nx == "<") {
           if (substr(s, i + 2, 1) == "<") { i += 2; pc = "<"; continue }
-          if (hash || st ~ /[ab]/) { off = 1; return 0 }
+          if (hash || st ~ /[abes]/) { off = 1; return 0 }
           if (st ~ /p/ || sd0 != "" || substr(s, i - 1, 1) ~ /[0-9]/) k2 = 1
           j = i + 2; t = (substr(s, j, 1) == "-"); j += t
           while (substr(s, j, 1) ~ /[ \t]/) j++
@@ -276,23 +288,20 @@ cc_strip_heredoc_bodies() {
       cont = scan($0)
       if (off) { mode = 2; next }
       if (cont || !nc) next
-      if (startq || sq || dq) { mode = 2; next }
+      if (startq || sq || dq || st ~ /[es]/) { mode = 2; next }
       t = cc ? substr($0, 1, cc - 1) : $0; sub(/[ \t]+$/, "", t)
-      w = tolower(lw); gsub(/["\047\\]/, "", w); gsub(/[<>|;&()]/, " & ", w); gsub(/[ \t]+/, " ", w); w = " " w " "
-      keep = how != "all" && (k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ \
-        || rd != "" && w ~ rd || w ~ /[ \/]((ba|z|da|k|c|tc|a)?sh|fish|ssh|su|eval|exec|source|\.) /)
+      keep = how != "all" && (k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ || reads(norm(lw)))
+      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vq]/) cv = 1
       qi = 1; mode = 1; nh = 0
       next
     }
     END {
       if (mode == 1 && !keep) for (k = 1; k <= nh; k++) out[++no] = held[k]
-      for (k = 1; cut && how != "all" && k <= no; k++) {
+      for (k = c0; cut && how != "all" && k <= no; k++) {
         t = out[k]; if (t ~ /[|(]&?[ \t]*$/ && k < no) t = t " " out[k + 1]
-        t = tolower(t); gsub(/["\047\\]/, "", t)
-        if (t ~ /[|(]&?[ \t]*((sudo|doas|env|command|exec|nohup|time|nice)[ \t]+(-[^ \t]+[ \t]+)*)*([^ \t|;&()]*\/)?((ba|z|da|k|c|tc|a)?sh|fish|ssh|su|eval|source|\.|xargs)([ \t;&|)]|$)/) {
-          for (k = 1; k <= na; k++) print all[k]
-          exit
-        }
+        u = t = norm(t); r = cv && (t ~ / eval |(^|[;&|]) \$/ || how != "cd" && t ~ shc)
+        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/ }
+        if (r) { for (k = 1; k <= na; k++) print all[k]; exit }
       }
       for (k = 1; k <= no; k++) print out[k]
     }'
@@ -318,32 +327,31 @@ cc_plugin_state() {
 
 # Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
-# cc_bash_effects_mark <root> <marker> rewrites <marker> when <root> holds a .git, making its directory with a `*` .gitignore.
-# Call it on EVERY tool call the hook sees (Write, Edit, Bash alike), after cc_bash_write_effects read <marker>: the tool has
-# finished before PostToolUse runs, so <marker> then post-dates every write of the last call this hook saw.
-# cc_bash_write_effects <root> <marker> <command> <max> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked AND newer than <marker>. It runs git only when <command> holds python, node, php,
-# ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, and <marker> exists.
-# Misses: writers it does not name, gitignored files, no git, a file written then reverted, a mv or cp -p destination (it
-# keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a parallel agent, a job.
+# cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
+# directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
+# cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
+# cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked, outside any .claude/ dir and newer than <marker>. It runs git only when <command> holds
+# python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, <marker>
+# holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and status.showUntrackedFiles is not no.
+# Misses: writers it does not name, gitignored files, submodules, no git, each session's first call, a file written then reverted, a
+# mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a
+# parallel agent, a job.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
-  local d="${2%/*}"
-  [ -d "$d" ] || { mkdir -p "$d" && printf '*\n' > "$d/.gitignore"; } 2>/dev/null || return 0
-  printf '%s\n' "$$" > "$2" 2>/dev/null
+  local d="${2%/*}" k
+  { [ -d "$d" ] || mkdir -p "$d"; } 2>/dev/null || return 0
+  { [ -e "$d/.gitignore" ] || printf '*\n' > "$d/.gitignore"; k=$(printf '%s' "$3" | cksum) && printf '%s\n' "${k%% *}" > "$2"; } 2>/dev/null
   return 0
 }
 cc_bash_write_effects() {
-  local re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)[[:space:]<]'
-  local e f n=0
-  local -a c
-  [ -f "$2" ] && [[ $3 =~ $re ]] || return 0
-  while [ "$n" -lt "$4" ] && IFS= read -r -d '' e; do
-    f="$1/${e:3}"
-    [ -f "$f" ] && ! [ "$2" -nt "$f" ] || continue
-    c[n]=$f; n=$((n + 1))
-  done < <(GIT_OPTIONAL_LOCKS=0 git -C "$1" status --porcelain -z --untracked-files=all --no-renames --ignore-submodules=all 2>/dev/null)
-  [ "$n" -gt 0 ] && find "${c[@]}" -prune -newer "$2" -print 2>/dev/null
+  local LC_ALL=C re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)([[:space:];&|)`<>]|$)' k m f
+  [ -f "$2" ] && [ "$1" != "${HOME%/}" ] && [[ $3 =~ $re ]] && IFS= read -r m < "$2" && k=$(printf '%s' "$5" | cksum) && [ "$m" = "${k%% *}" ] || return 0
+  case "$(git -C "$1" config status.showUntrackedFiles 2>/dev/null)" in no|false|off|0) return 0 ;; esac
+  # One find over the whole list, each path led by ./ so a name like -delete stays a path; the cap counts only what find kept.
+  while IFS= read -r f; do printf '%s\n' "$1/${f#./}"; done < <(exec 2>/dev/null; cd -- "$1" && GIT_OPTIONAL_LOCKS=0 git status --porcelain -z \
+    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e '/^...\.claude\//d' -e '/\/\.claude\//d' -e 's|^...|./|' \
+    | tr '\n' '\0' | xargs -0 sh -c 'exec find "$@" -prune -newer "$0" -type f -print' "$2" | head -n "$4")
   return 0
 }
 
@@ -360,25 +368,27 @@ MAX_BASH_EFFECTS=8
   case "$tool" in Write|Edit|MultiEdit|Bash) ;; *) exit 0 ;; esac
 
   # Interpreter writes: read the effects with the old marker, then date it, on EVERY call this hook sees, so a file an Edit
-  # changed or a command that wrote nothing is never read as the next run's write.
-  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  # changed or a command that wrote nothing is never read as the next run's write. A failed Bash call fires PostToolUseFailure,
+  # whose envelope must name that event.
+  { IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; } < <(printf '%s' "$input" \
+    | jq -r '.cwd // "", .session_id // "", if .hook_event_name == "PostToolUseFailure" then .hook_event_name else "PostToolUse" end' 2>/dev/null)
   sroot=""; effects=""
   if [ -n "$cwd" ] && [ -d "$cwd" ] && sroot=$(cc_state_root "$cwd"); then
     emark="$(cc_plugin_state "$sroot" security)/bash-effects.mark"
     if [ "$tool" = Bash ]; then
       cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
-      effects=$(cc_bash_write_effects "$sroot" "$emark" "$cmd" "$MAX_BASH_EFFECTS")
+      effects=$(cc_bash_write_effects "$sroot" "$emark" "$cmd" "$MAX_BASH_EFFECTS" "$sess")
     fi
-    cc_bash_effects_mark "$sroot" "$emark"
+    cc_bash_effects_mark "$sroot" "$emark" "$sess"
   fi
 
   if [ "$tool" = Bash ]; then
     [ -n "$sroot" ] || exit 0
     targets=$(cc_bash_write_targets "$cmd" | head -n "$MAX_BASH_TARGETS")
     [ -n "$targets" ] || [ -n "$effects" ] || exit 0
-    # A cd inside a heredoc body moves nothing, so bodies are dropped before the cd test.
+    # A cd in a heredoc body moves the shell only where this shell runs the body (`. /dev/stdin <<EOF`).
     hascd=0
-    [ -n "$targets" ] && cc_strip_heredoc_bodies all "$cmd" | grep -qE '(^|[;&|(])[[:space:]]*(cd|pushd)[[:space:]]' && hascd=1
+    [ -n "$targets" ] && cc_strip_heredoc_bodies cd "$cmd" | grep -qE '(^|[;&|(])[[:space:]]*(cd|pushd)[[:space:]]' && hascd=1
   else
     text=$(printf '%s' "$input" | jq -r '
       [ .tool_input.content // empty,
@@ -575,8 +585,8 @@ EOF_E
 
   [ -n "$hits" ] || exit 0
   ctx="${hits}[security] warn-tier only (file: ${hit_files}) — judgment cases stay with /security:review; CC_SECURITY_SCAN=off disables."
-  jq -cn --arg c "$ctx" \
-    '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$c}}' 2>/dev/null
+  jq -cn --arg c "$ctx" --arg ev "${hev:-PostToolUse}" \
+    '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$c}}' 2>/dev/null
   exit 0
 } 2>/dev/null
 exit 0

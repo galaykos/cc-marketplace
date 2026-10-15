@@ -201,10 +201,14 @@ mkdir -p "$G/src" "$G/app/Enums" "$FX/outside"
 git -C "$G" init -q
 printf 'root = true\n' > "$G/.editorconfig"
 printf '{}\n' > "$G/biome.json"
-bfire() { # command cwd session -> additionalContext
-  jq -nc --arg x "$1" --arg c "$2" --arg s "$3" --arg t "/t/$3.jsonl" \
-    '{hook_event_name:"PostToolUse",tool_name:"Bash",session_id:$s,transcript_path:$t,cwd:$c,tool_input:{command:$x}}' \
-    | bash "$H" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
+# The context is transcript_path; every call shares one session_id, as a session's subagents do.
+bfire() { # command cwd context [session] [event] -> additionalContext
+  bfire_raw "$@" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
+}
+bfire_raw() { # command cwd context [session] [event] -> raw stdout
+  jq -nc --arg x "$1" --arg c "$2" --arg s "${4:-sess}" --arg t "/t/$3.jsonl" --arg e "${5:-PostToolUse}" \
+    '{hook_event_name:$e,tool_name:"Bash",session_id:$s,transcript_path:$t,cwd:$c,tool_input:{command:$x}}' \
+    | bash "$H" 2>/dev/null
 }
 
 printf 'export const a = 1\n' > "$G/src/made.ts"
@@ -252,9 +256,9 @@ PY"
     (cd "$1" && bash -c "$c") >/dev/null 2>&1
     bfire "$c" "$1" "$2"
   }
-  efire() { # file repo session -> an Edit's PostToolUse in the context bfire keys
-    jq -nc --arg f "$1" --arg c "$2" --arg s "$3" --arg t "/t/$3.jsonl" \
-      '{hook_event_name:"PostToolUse",tool_name:"Edit",session_id:$s,transcript_path:$t,cwd:$c,tool_input:{file_path:$f}}' \
+  efire() { # file repo context -> an Edit's PostToolUse in the context bfire keys
+    jq -nc --arg f "$1" --arg c "$2" --arg t "/t/$3.jsonl" \
+      '{hook_event_name:"PostToolUse",tool_name:"Edit",session_id:"sess",transcript_path:$t,cwd:$c,tool_input:{file_path:$f}}' \
       | bash "$H" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
   }
   efx() { # name [nomark] -> a git repo with an .editorconfig
@@ -281,6 +285,28 @@ PY"
   d=$(efx s); printf 'export const s = 1\n' > "$d/src/first.ts"; efire "$d/src/first.ts" "$d" es1 >/dev/null
   printf 'export const t = 1\n' > "$d/src/late.ts"; bfire 'ls' "$d" es1 >/dev/null
   quiet "a code file written before a spent context's last call" "$(prun "$d" es2 'print(1)')"
+
+  # A spent context reads no effects: its answer is already given, so the matching run costs no git status.
+  shim="$FX/gitlog"; mkdir -p "$shim"; real_git=$(command -v git)
+  printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> "%s/calls"\nexec "%s" "$@"\n' "$shim" "$real_git" > "$shim/git"; chmod +x "$shim/git"
+  d=$(efx p); printf 'export const p = 1\n' > "$d/src/p.ts"; efire "$d/src/p.ts" "$d" ep1 >/dev/null
+  printf 'export const q = 1\n' > "$d/src/q.ts"; : > "$shim/calls"
+  PATH="$shim:$PATH" bfire "python3 -c 'print(1)'" "$d" ep1 >/dev/null
+  if [ -s "$shim/calls" ] && ! grep -q 'status --porcelain' "$shim/calls"; then echo "PASS: a spent context's matching run reads no effects (no git status)"
+  else echo "FAIL: a spent context's matching run ran git status: $(cat "$shim/calls")"; rc=1; fi
+
+  d=$(efx f); (cd "$d" && python3 -c "open('src/f.ts', 'w').write('export const f = 1\n')")
+  o=$(bfire_raw "python3 gen.py && false" "$d" ef1 sess PostToolUseFailure)
+  printf '%s' "$o" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUseFailure" and (.hookSpecificOutput.additionalContext | contains(".editorconfig"))' >/dev/null 2>&1 \
+    && echo "PASS: a failed python run (PostToolUseFailure) fires, its envelope naming that event" \
+    || { echo "FAIL: a failed python run (PostToolUseFailure): ${o:-<silent>}"; rc=1; }
+  jq -e '[.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[].command]
+         | (any(test("hooks/conventions.sh")) and any(test("hooks/scan.sh")) and any(test("hooks/density.sh")))' \
+    "$(dirname "$H")/hooks.json" >/dev/null 2>&1 && echo "PASS: conventions, scan and density are registered on PostToolUseFailure for Bash" \
+    || { echo "FAIL: PostToolUseFailure Bash registration: $(jq -c '.hooks.PostToolUseFailure' "$(dirname "$H")/hooks.json")"; rc=1; }
+
+  d=$(efx g); (cd "$d" && python3 -c "open('src/g.ts', 'w').write('export const g = 1\n')")
+  quiet "a python run in a session that did not date the marker" "$(bfire "python3 gen.py" "$d" eg1 other-session)"
 else
   echo "SKIP: python3 not found — interpreter-write cases"
 fi

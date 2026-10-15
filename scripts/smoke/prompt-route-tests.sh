@@ -142,6 +142,25 @@ want_fires  "request: can you fix …?"        "can you fix the login bug?"
 want_fires  "request: could you add …?"      "could you add pagination to the users endpoint?"
 want_fires  "request: why is … returning 500s?" "why is the checkout returning 500s?"
 want_fires  "request: failing, can you take a look?" "the tests are failing, can you take a look?"
+# Range review: each fired before V-16 and went silent with it. A `?`-ended prompt naming a strong-tier word, or asking why,
+# someone or for an idea, is an ask; a hands-off clause silences only when no strong-tier word stands outside it.
+want_fires  "request: why isn't … passing?"     "why isn't the build passing after the refactor?"
+want_fires  "request: why doesn't … finish?"    "why doesn't the deploy finish?"
+want_fires  "request: why won't … load?"        "why won't the page load after the deploy?"
+want_fires  "request: is it possible to add …?" "is it possible to add pagination to the users endpoint?"
+want_fires  "request: would it be possible to fix …?" "would it be possible to fix the login bug?"
+want_fires  "request: any chance you could add …?" "any chance you could add dark mode?"
+want_fires  "request: broken, can someone look?" "the checkout is broken, can someone look?"
+want_fires  "request: failing — any idea?"      "tests are failing after the merge — any idea?"
+want_fires  "request: fix it, ok?"              "fix it, ok?"
+want_fires  "request: an incident question naming a strong symptom" "what's causing the 500s?"
+want_fires  "work: refactor, but don't touch anything yet in …" "Refactor the importer, but don't touch anything yet in the exporter"
+want_fires  "work: fix first, don't work on it until …" "Fix the failing parser tests first and don't work on it until they pass"
+want_fires  "work: implement …, never work on that" "implement the hook in app/, never work on that"
+# A paste is reference: verbs only inside it do not make the prompt work, nor does it push typed text out of the 400-char head.
+want_silent "paste: verbs only inside a paste" 'FYI only, no action: <pasted_content id="1">npm ERR! build failed while we deploy to staging</pasted_content> that is from the CI run last night'
+want_fires  "paste: an ask after a long paste" "$(printf '<pasted_content id="2">%0500d</pasted_content>\nfix the importer' 0)"
+want_fires  "paste: a paste alone is read whole" '<pasted_content id="3">npm ERR! build failed while we deploy to staging</pasted_content>'
 want_silent "slash prompt"        "/taskmaster:task build a landing page"
 want_silent "meta: about the hook" "disable the router hook that injects the catalog"
 want_silent "own output echoed"   "[skill-router] Tool-fit check (once this session)."

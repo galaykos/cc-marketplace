@@ -144,6 +144,12 @@ denies "Pest })->with([…])->skip() chain denies" Edit \
   "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->with([1, 2])->skip();\"}"  # skip: the fixture this case must deny
 denies "Pest })->group('slow')->only() chain denies" Edit \
   "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->group('slow')->only();\"}"  # skip: the fixture this case must deny
+# Pest's named skip helpers take any argument; a Collection has no method of those names.
+for ns in "})->skipOnCi();" "})->skipLocally();" "})->skipOnWindows();" "})->skipOnPhp('>=8.0.0');" "})->onlyOnLinux();" "})->todo();" "beforeEach()->skip();"; do  # skip: the fixtures these cases must deny
+  denies "Pest $ns denies" Edit "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"$ns\"}"
+done
+allows "a Collection ->skipWhile(fn …) after a closure is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skipWhile(fn (\$r) => \$r->done);\"}"
 
 # The escape hatch must work when the same hunk carries an OLD unreasoned marker
 # through unchanged: only the ADDED marker is judged.
@@ -213,6 +219,11 @@ bash_allows "cd: a kept marker after CDPATH= cd is not read as new" \
   $'CDPATH= cd t && cat > foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit(\'c\',()=>{});\nEOF'  # skip: kept marker fixture
 bash_allows "cd: a kept marker after zsh's chdir is not read as new" \
   $'chdir t && cat > foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit(\'c\',()=>{});\nEOF'  # skip: kept marker fixture
+printf "it('a',()=>{});\n" > "$T/b10.test.js"
+bash_allows "cd: a cd in a body sourced into this shell skips a relative target" \
+  $'. /dev/stdin <<\'EOF\'\ncd packages/api\nEOF\necho "it.skip(\'x\')" > b10.test.js'  # skip: fixture judged against the wrong dir
+bash_denies "no cd: a cd in a body a subshell runs moves nothing" \
+  $'bash <<\'EOF\'\ncd packages/api\nEOF\necho "it.skip(\'x\')" > b10.test.js'  # skip: the fixture this case must deny
 bash_denies "no cd: cat > t/foo.test.js adding an it.skip is still judged" \
   $'cat > t/foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit.skip(\'n\',()=>{});\nit(\'c\',()=>{});\nEOF'  # skip: the fixture this case must deny
 

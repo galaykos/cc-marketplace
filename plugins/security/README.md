@@ -80,13 +80,19 @@ there. Since 0.12.4, after a python, node, php, ruby, perl, deno, bun, cp,
 mv, install or patch run it also reads up to 8 files git reports changed since the
 hook's previous call, judged on what each added: the whole file when HEAD lacks it, else its
 `+` lines against HEAD (so a line any uncommitted edit added warns again; what HEAD already
-held does not). It misses a writer it does not name (`npx prettier --write`, `make`), gitignored
-files, a repo with no git, a file written then reverted, a `mv` or `cp -p` destination that keeps
-an older mtime and the first such run in a repo, and reads anything else that changed a file
-since its previous call (an IDE, a parallel agent) as this run's write. Its marker lives in the
-plugin's data dir, else under `<repo>/.claude/security/` behind a `*` `.gitignore`.
-`write-scan.test.sh` runs a python write, the first call, a run that wrote nothing, an Edit between
-two runs and a tracked file's added line. Also since 0.12.4, a target outside the project root (the session cwd's git toplevel,
+held does not). A command that exits non-zero fires `PostToolUseFailure`, registered for Bash
+too, and is read the same way. It misses a writer it does not name (`npx prettier --write`,
+`make`), gitignored files, a repo with no git, a submodule's files, anything under `.claude/`, a
+file written then reverted, a `mv` or `cp -p` destination that keeps an older mtime and the first
+such run of each session (the marker holds the session's cksum; another session's reads as
+none); a `$HOME` root or a repo with `status.showUntrackedFiles=no` reads nothing. It reads
+anything else that changed a file since its previous call (an IDE, a parallel agent) as this
+run's write. Its marker lives in the plugin's data dir, else under `<repo>/.claude/security/`
+behind a `*` `.gitignore`. `write-scan.test.sh` runs a python write, the first call, a run that
+wrote nothing, an Edit between two runs, a tracked file's added line, a failed run's
+`PostToolUseFailure` envelope and another session's marker. A non-matching Bash call costs
+11.9 ms median and a matching one that wrote nothing 21.3 ms on a synthetic 2,786-file repo
+(10.4 and 16.5 ms before the session key, the failure event and the one-`find` read). Also since 0.12.4, a target outside the project root (the session cwd's git toplevel,
 else `CLAUDE_PROJECT_DIR` when the cwd is under it, else the cwd), or under `$TMPDIR`
 (`/tmp`) while the project is not, is skipped on every tool: a scratch probe is not the
 project. A sibling worktree written by absolute path from another checkout is skipped

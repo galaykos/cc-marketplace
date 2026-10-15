@@ -552,6 +552,49 @@ else
   echo "SKIP 24: python3 not available"
 fi
 
+# 25. bash-write-effects, second round: a failed command (PostToolUseFailure) is read and answered in that event's envelope;
+#     an interpreter at the end of a pipe counts; a marker another session dated, a root that is $HOME and a repo with
+#     status.showUntrackedFiles=no read nothing; a state dir that exists without a .gitignore gets one; a 1 MB
+#     separator-free token costs no quadratic regex.
+bashx() { # cwd command transcript session event [env...] — runs the command, then the hook, as bashw does
+  local c="$1" cmd="$2" t="$3" s="$4" e="$5"; shift 5
+  (cd "$c" && bash -c "$cmd") >/dev/null 2>&1
+  jq -cn --arg c "$c" --arg cmd "$cmd" --arg tp "$t" --arg s "$s" --arg e "$e" \
+    '{hook_event_name:$e,tool_name:"Bash",session_id:$s,transcript_path:$tp,cwd:$c,tool_input:{command:$cmd}}' | hook "$HOOK" "$@"
+}
+if command -v python3 >/dev/null 2>&1; then
+  jq -e '.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[] | select(.command | test("hooks/route.sh"))' \
+    "$SR/hooks/hooks.json" >/dev/null 2>&1 && ok || bad "effects: route.sh is not registered on PostToolUseFailure for Bash"
+  K="$WS/fx2"; mkrepo "$K"; edit "$K" "$K/composer.json" "$(fresh)" >/dev/null
+  out=$(bashx "$K" "python3 -c \"open('app/Models/Failed.php', 'w').write('<?php')\"; false" "$(fresh)" sess PostToolUseFailure)
+  has_skill "$out" laravel-best-practices && printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUseFailure"' >/dev/null 2>&1 \
+    && ok || bad "effects: a failed python run did not route in a PostToolUseFailure envelope; got: ${out:0:200}"
+  printf '<?php\n' > "$K/app/Models/Piped.php"
+  out=$(bashx "$K" "cat gen.py | python3" "$(fresh)" sess PostToolUse)
+  has_skill "$out" laravel-best-practices && ok || bad "effects: a python at the end of a pipe was not read; got: ${out:0:200}"
+  printf '<?php\n' > "$K/app/Models/Other.php"
+  out=$(bashx "$K" "python3 gen.py" "$(fresh)" sess-2 PostToolUse)
+  [ -z "$out" ] && ok || bad "effects: a marker another session dated was read; got: ${out:0:200}"
+  printf '<?php\n' > "$K/app/Models/Home.php"
+  out=$(bashx "$K" "python3 gen.py" "$(fresh)" sess-2 PostToolUse HOME="$K")
+  [ -z "$out" ] && ok || bad "effects: a root that is \$HOME was read; got: ${out:0:200}"
+  git -C "$K" config status.showUntrackedFiles no; printf '<?php\n' > "$K/app/Models/Hidden.php"
+  out=$(bashx "$K" "python3 gen.py" "$(fresh)" sess-2 PostToolUse)
+  [ -z "$out" ] && ok || bad "effects: a repo with status.showUntrackedFiles=no was read; got: ${out:0:200}"
+  K3="$WS/fx3"; mkrepo "$K3"; mkdir -p "$K3/.claude/skill-router"
+  bashx "$K3" "ls" "$(fresh)" sess PostToolUse >/dev/null
+  [ -f "$K3/.claude/skill-router/.gitignore" ] && [ -z "$(git -C "$K3" status --porcelain --untracked-files=all -- .claude)" ] \
+    && ok || bad "effects: a state dir that existed without a .gitignore left the marker visible to git"
+  head -c 1000000 /dev/zero | tr '\0' 'A' | { printf "echo '"; cat; printf "' | base64 -d | wc -c"; } > "$WS/long-cmd"
+  t0=$(date +%s)
+  jq -cn --arg c "$K3" --rawfile cmd "$WS/long-cmd" --arg tp "$(fresh)" \
+    '{hook_event_name:"PostToolUse",tool_name:"Bash",session_id:"sess",transcript_path:$tp,cwd:$c,tool_input:{command:$cmd}}' | hook "$HOOK" >/dev/null
+  took=$(( $(date +%s) - t0 ))
+  [ "$took" -le 3 ] && ok || bad "effects: a 1 MB separator-free token took $took s (quadratic regex)"
+else
+  echo "SKIP 25: python3 not available"
+fi
+
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }
 

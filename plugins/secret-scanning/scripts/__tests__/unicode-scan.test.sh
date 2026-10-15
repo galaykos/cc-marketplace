@@ -101,9 +101,9 @@ export CLAUDE_PLUGIN_DATA="$T/data"
 R="$T/repo"; mkdir -p "$R/app/sub" "$T/outside"; git -C "$R" init -q 2>/dev/null
 cp "$T/zw.ts" "$R/app/sub/zw.ts"; cp "$T/bidi.ts" "$R/app/up.ts"; cp "$T/clean.ts" "$R/app/sub/clean.ts"
 cp "$T/zw.ts" "$T/outside/zw.ts"
-bashfire() { # command [cwd]
-  jq -cn --arg c "$1" --arg d "${2:-$R/app/sub}" --arg s "b$RANDOM$RANDOM" \
-    '{session_id:$s, transcript_path:("/tmp/"+$s), tool_name:"Bash", cwd:$d, tool_input:{command:$c}}' \
+bashfire() { # command [cwd] [session] [event] — a fresh context in one session, as a session's subagents are
+  jq -cn --arg c "$1" --arg d "${2:-$R/app/sub}" --arg t "/tmp/b$RANDOM$RANDOM" --arg s "${3:-sess}" --arg e "${4:-PostToolUse}" \
+    '{hook_event_name:$e, session_id:$s, transcript_path:$t, tool_name:"Bash", cwd:$d, tool_input:{command:$c}}' \
     | "$BASH_BIN" "$HOOK" 2>/dev/null
 }
 out=$(bashfire "$(printf "cat > zw.ts <<'EOF'\nbody\nEOF")")
@@ -122,16 +122,23 @@ out=$(bashfire "${cmd9}echo x > zw.ts"); [ -z "$out" ] && ok "at most 8 targets 
 out=$(bashfire "echo x > zw.ts" "$T/gone"); [ -z "$out" ] && ok "a cwd that no longer exists fails open" || bad "a cwd that no longer exists fails open" "$out"
 [ -z "$(find "$R" -name .claude 2>/dev/null)" ] && ok "no .claude/ state under the repo root or the subdirectory" \
   || bad "no .claude/ state under the repo root or the subdirectory" "$(find "$R" -name .claude)"
+# After an in-command cd a relative target is skipped, a miss and never a wrong file; a cd inside a heredoc body moves nothing.
+mkdir -p "$R/app/sub/docs"; cp "$T/bidi.ts" "$R/app/sub/README.md"; cp "$T/clean.ts" "$R/app/sub/docs/README.md"
+out=$(bashfire "$(printf "cd docs && cat > README.md <<'EOF'\nclean\nEOF")")
+[ -z "$out" ] && ok "a relative target after an in-command cd is skipped, not read from the payload cwd" \
+  || bad "a relative target after an in-command cd is skipped, not read from the payload cwd" "got: ${out:0:120}"
+out=$(bashfire "$(printf "cat > zw.ts <<'EOF'\ncd /srv\nEOF")")
+case "$out" in *"zw.ts"*) ok "a cd inside a heredoc body does not skip the target" ;; *) bad "a cd inside a heredoc body does not skip the target" "got: ${out:-<silent>}" ;; esac
 
 # Interpreter writes (bash-write-effects): a file a python run changed in git since this hook's previous call warns as a Write of it
 # would; the first call in a repo only sets the marker; a run that wrote nothing, and a file an Edit changed between two Bash calls, stay silent.
 K="$T/fx"; mkdir -p "$K/app"; git -C "$K" init -q 2>/dev/null
-pyrun() { # python source — runs it in $K as the Bash tool would, then the hook
+pyrun() { # python source [session] [event] — runs it in $K as the Bash tool would, then the hook
   local c="python3 - <<'PY'
 $1
 PY"
   (cd "$K" && bash -c "$c") >/dev/null 2>&1
-  bashfire "$c" "$K"
+  bashfire "$c" "$K" "${2:-sess}" "${3:-PostToolUse}"
 }
 out=$(pyrun "open('app/first.ts', 'w').write('const a' + chr(0x200b) + ' = 1;\n')")
 [ -f "$K/app/first.ts" ] || bad "effects fixture" "the first python heredoc did not write app/first.ts"
@@ -146,11 +153,21 @@ ctx() { jq -r '.hookSpecificOutput.additionalContext // empty' <<<"$1" 2>/dev/nu
 out=$(bashfire "python3 -c 'print(1)'" "$K")   # app/zw.ts is still dirty in git, but older than the marker
 [ -z "$out" ] && ok "effects: a python run that wrote nothing is silent" || bad "effects: a python run that wrote nothing is silent" "$out"
 printf 'const c\xe2\x80\x8b = 3;\n' > "$K/app/edited.ts"
-jq -cn --arg f "$K/app/edited.ts" --arg d "$K" '{session_id:"e1", transcript_path:"/tmp/e1", tool_name:"Edit", cwd:$d, tool_input:{file_path:$f}}' \
+jq -cn --arg f "$K/app/edited.ts" --arg d "$K" '{session_id:"sess", transcript_path:"/tmp/e1", tool_name:"Edit", cwd:$d, tool_input:{file_path:$f}}' \
   | "$BASH_BIN" "$HOOK" >/dev/null 2>&1
 out=$(pyrun "open('app/clean2.ts', 'w').write('const d = 4;\n')")
 [ -z "$out" ] && ok "effects: a file an Edit changed between two Bash calls is not read again" \
   || bad "effects: a file an Edit changed between two Bash calls is not read again" "$out"
+out=$(pyrun "open('app/failed.ts', 'w').write('const f' + chr(0x200b) + ' = 1;\n')
+raise SystemExit(1)" sess PostToolUseFailure)
+[ "$(jq -r '.hookSpecificOutput.hookEventName' <<<"$out" 2>/dev/null)" = PostToolUseFailure ] && case "$(ctx "$out")" in *"failed.ts"*) true ;; *) false ;; esac \
+  && ok "effects: a failed python run (PostToolUseFailure) warns in that event's envelope" \
+  || bad "effects: a failed python run (PostToolUseFailure) warns in that event's envelope" "got: ${out:-<silent>}"
+jq -e '.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[] | select(.command | test("hooks/unicode-scan.sh"))' \
+  "$(dirname "$HOOK")/hooks.json" >/dev/null 2>&1 && ok "effects: unicode-scan.sh is registered on PostToolUseFailure for Bash" \
+  || bad "effects: unicode-scan.sh is registered on PostToolUseFailure for Bash" "$(jq -c '.hooks.PostToolUseFailure' "$(dirname "$HOOK")/hooks.json")"
+out=$(pyrun "open('app/other.ts', 'w').write('const o' + chr(0x200b) + ' = 1;\n')" other-session)
+[ -z "$out" ] && ok "effects: a marker another session dated reads nothing" || bad "effects: a marker another session dated reads nothing" "$out"
 out=$(CLAUDE_PLUGIN_DATA= bashfire "echo x > clean.ts")
 [ -f "$R/.claude/secret-scanning/bash-effects-unicode.mark" ] && ! git -C "$R" status --porcelain --untracked-files=all 2>/dev/null | grep -q '\.claude' \
   && ok "effects: without a plugin data dir the marker sits under the repo, ignored by git" \

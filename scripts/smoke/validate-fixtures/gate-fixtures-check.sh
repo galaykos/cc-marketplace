@@ -581,6 +581,18 @@ Compare it with this:
 git diff --stat
 ```
 MD
+# A demonstrative `that` leaves its verb an order; a bare hash tool with no code span, pipe or path is a noun.
+mkagent tf briefed 'Read, Grep, Glob' <<'MD'
+Read the brief. After that run `git diff` on each file.
+
+Read the brief, do that then run `npm test`.
+
+Verify the recorded cksum matches the one in the dispatch.
+
+Use the sha256sum the brief quotes to name the file.
+
+Take sha256sum dist/app.tgz and compare it with the brief.
+MD
 out=$(pc_agent_tool_fit "$A") && r=0 || r=$?
 want_tf() { # <label> <substring>
   case "$out" in *"$2"*) pass "tool-fit: $1" ;; *) fail "tool-fit: $1" "missing '$2' in: ${out:-<empty>}" ;; esac
@@ -606,11 +618,17 @@ want_tf "a run order beside a relative clause still fires" "$RV Bash — $A/tf/a
 want_tf "a hash tool after a verb fires" "$RV Bash — $A/tf/agents/reviewer.md:17: Pipe the brief through \`cksum\`"
 want_tf "a list past the blessed block's blank line fires" "$RV Bash — $A/tf/agents/reviewer.md:23: - Run \`npm ci\`"
 want_tf "an unblessed \`\`\`bash fence in an agent body fires" "$RV Bash — $A/tf/agents/reviewer.md:33: a \`\`\`shell block"
+BR="tool-fit tf:briefed lacks Bash — $A/tf/agents/briefed.md"
+want_tf "'After that run \`git diff\`': a demonstrative that leaves the order" "$BR:8: After that run"
+want_tf "'do that then run \`npm test\`': a demonstrative that leaves the order" "$BR:10: Read the brief, do that then run"
+none_tf "'verify the recorded cksum matches' names a value, not a run" "$BR:12:"
+none_tf "'use the sha256sum the brief quotes' names a value, not a run" "$BR:14:"
+want_tf "a bare hash tool followed by a path fires" "$BR:16: Take sha256sum dist/app.tgz"
 n_tf=$(printf '%s\n' "$out" | grep -c '^tool-fit ')
-[ "$r" -eq 1 ] && [ "$n_tf" -eq 8 ] \
+[ "$r" -eq 1 ] && [ "$n_tf" -eq 11 ] \
   && pass "tool-fit: the neighbours stay silent — negation, the main thread as actor, a fenced sample, 'run it here', a slash command, an implied write, a full grant, the marker, a granted Bash, reviewer wording" \
-  || fail "tool-fit: the neighbours stay silent" "rc=$r, $n_tf lines, want 8: $out"
-rm -rf "$A/tf/agents/director.md" "$A/tf/agents/runner.md" "$A/tf/agents/reviewer.md"
+  || fail "tool-fit: the neighbours stay silent" "rc=$r, $n_tf lines, want 11: $out"
+rm -rf "$A/tf/agents/director.md" "$A/tf/agents/runner.md" "$A/tf/agents/reviewer.md" "$A/tf/agents/briefed.md"
 out=$(pc_agent_tool_fit "$A") && r=0 || r=$?
 [ "$r" -eq 0 ] && [ -z "$out" ] && pass "tool-fit: a tree with nothing to name returns 0 and prints nothing" \
   || fail "tool-fit: a tree with nothing to name returns 0 and prints nothing" "rc=$r got: $out"

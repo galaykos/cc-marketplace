@@ -108,8 +108,8 @@ cc_option() {
 # cc_prompt_ship_only <text> <verb-ERE>: status 0 when every <verb-ERE> match is create, add, open or make governing a PR, pull request
 #   or commit, or a branch, push, merge, tag or release once a PR, commit, `git` or a name beside the noun marks the text as git work;
 #   a hyphen-, slash-, dot- or underscore-joined name (fix-login, feature/add-auth) is one word, holds no verb, may follow the noun.
-# cc_prompt_question <text>: status 0 when <text> ends in `?` and holds no request (can/could/would/will you, please, why is…),
-#   or holds a hands-off ask (don't work on anything|it, don't change anything yet).
+# cc_prompt_question <text> <verb-ERE>: status 0 when <text> ends in `?` and holds no <verb-ERE> match and no request (can/could
+#   you|someone, please, why, any idea), or holds a hands-off ask (don't work on it, don't change anything yet) and no match beside it.
 cc_prompt_frame() {
   case "${1:-}" in
     '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
@@ -138,15 +138,18 @@ cc_prompt_ship_only() {
   n='prs?|pull[ -]requests?|commits?'
   printf '%s' "$t" | grep -qiE "(^|[^a-z])($n|git|(x|feature|hotfix|release) +(branch(es)?|tags?|releases?))([^a-z]|$)|(^|[^a-z])(branch(es)?|tags?|releases?) +x([^a-z]|$)" \
     && n="$n|branch(es)?|push(es)?|merges?|tags?|releases?"
-  s=$(printf '%s' "$t" | grep -oiE "($2)( +(a|an|the|new|draft|this|that|my|our|feature|hotfix|release|git|remote|local|separate|fresh))*( +[^ .,;:!?]+)? +($n)( +x)?( *([.,;:!?]|$)| +(for|to|from|into|onto|off|against|with|called|named)([^a-z]|$))" \
+  s=$(printf '%s' "$t" | grep -oiE "($2)( +(a|an|the|new|draft|this|that|my|our|feature|hotfix|release|git|remote|local|separate|fresh))*( +[^ .,;:!?]+)? +($n)( +x)?( *([.,;:!?]|$)| +(for|from|off|against|called|named)([^a-z]|$))" \
     | grep -ciE '^(create|add|open|make)([^a-z]|$)')
   [ "${v:-0}" -gt 0 ] && [ "${s:-0}" -ge "$v" ]
 }
 cc_prompt_question() {
-  local t
+  local t h
+  [ -n "${2:-}" ] || return 1
   t=$(printf '%s' "${1:-}" | tr '\n' ' ' | sed 's/[[:space:]]*$//')
-  case "$t" in *'?') printf '%s' "$t" | grep -qiE "(^|[^a-z])((can|could|would|will) +(you|u|we)|please|why +(is|are|was|were|does|do|did))([^a-z]|$)" || return 0 ;; esac
-  printf '%s' "$t" | grep -qiE "(^|[^a-z])(don't|don’t|dont|do not|never)( +start)? +work(ing)? on +(anything|it|this|that)( *[.,;:!?]| +(yet|for now|until|before)([^a-z]|$)| *$)|(^|[^a-z])(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything +(yet|for now|until|before)([^a-z]|$)|^[[:space:]]*(please,? +)?(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything[[:space:][:punct:]]*$"
+  case "$t" in *'?') printf '%s' "$t" | grep -qiE "($2)|(^|[^a-z])((can|could|would|will) +(you|u|we|someone|anyone)|please|why|any +ideas?)([^a-z]|$)" || return 0 ;; esac
+  h="(^|[^a-z])(don't|don’t|dont|do not|never)( +start)? +work(ing)? on +(anything|it|this|that)( *[.,;:!?]| +(yet|for now|until|before)([^a-z]|$)| *$)|(^|[^a-z])(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything +(yet|for now|until|before)([^a-z]|$)|^[[:space:]]*(please,? +)?(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything[[:space:][:punct:]]*$"
+  printf '%s' "$t" | grep -qiE "$h" || return 1
+  ! printf '%s' "$t" | tr 'A-Z' 'a-z' | sed -E "s#$h# ; #g" | grep -qiE "$2"
 }
 
 {
@@ -196,7 +199,7 @@ cc_prompt_question() {
   is_about_hooks && exit 0
   is_own_echo && exit 0
   is_question_only && exit 0
-  # A making verb that only governs a PR, branch, commit, push, merge, tag or release asks to ship, not to build.
+  # Every making verb being create, add, open or make on a PR or commit (or, in git context, a branch, push, merge, tag or release) asks to ship.
   cc_prompt_ship_only "$head" '\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)\b' && exit 0
   # sid before cc_phase_guard: its session check reads it.
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)

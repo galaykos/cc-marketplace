@@ -72,7 +72,7 @@ agent owns the rubric; this skill only says WHEN to run it and WHAT it feeds.
 got an improvised seed. So the caller reads the run log, seeds from the first field of
 `printf '%s' "$brief$(date +%F)" | cksum` when the log is absent, empty or malformed, draws per
 `references/concept-deck.md`, writes the five draw lines into `craft/divergence-record.md`,
-and puts the draw, that seed and the archetype in the dispatch. The agent works inside the
+and puts the draw, that seed, the lens carry and the archetype in the dispatch. The agent works inside the
 draw, returns text, and opens motion skills only for a creative/portfolio or
 marketing/campaign archetype. Standing: agent-graded — `pc_agent_tool_fit` fails an agent
 body or a reference it reads that tells the agent itself to hash or write, never a dispatch

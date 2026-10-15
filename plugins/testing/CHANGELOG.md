@@ -27,28 +27,37 @@ file whose job is history is worse than an honest starting point.
   A Collection or query builder spells the same methods, so `->only` must have empty
   parentheses and `->skip(` must carry Pest's own argument: none, a quoted reason, a closure
   or `true`/`false` (`->skip(2)`, `->skip(count($header))`, `->skip(self::OFFSET)` and
-  `->only(['id'])` stay silent). Residual: Pest's own skip message does not count as the
+  `->only(['id'])` stay silent). Pest's named helpers have no Collection twin, so they deny
+  with any argument: `->skipOnCi()`, `->skipLocally()`, `->skipOnWindows()`,
+  `->skipOnPhp('>=8.0.0')`, `->onlyOnLinux()`, `->todo()`, and the file-level
+  `beforeEach()->skip()`; a Collection's `->skipWhile(…)` stays silent. Residual: Pest's own skip message does not count as the
   reason (a same-line comment does), and missed are a chain split across lines (`->skip()` on
   the line after `})`, or its argument on the next line), a condition spelled as an
   expression (`->skip($onCi)`), `it('x', fn () => …)->skip()`, and a chained call whose
   argument holds parentheses.
-- Standing: gate. `protect-tests.test.sh` gains fourteen cases (61); "bash harness: a stub's
+- Standing: gate. `protect-tests.test.sh` gains twenty-two cases (69); "bash harness: a stub's
   quoted pending mode is not a skip", "bash harness: a line-leading pending call is not a
   skip", "Pest })->skip() denies", "Pest test('…')->only() denies", "Pest })->skip('reason')
   denies", "Pest })->skip(fn () => …) denies", "Pest })->skip(true, …) denies", "Pest
-  })->with([…])->skip() chain denies" and "Pest })->group('slow')->only() chain denies" fail
-  against the hook before this change.
+  })->with([…])->skip() chain denies", "Pest })->group('slow')->only() chain denies" and the
+  seven named-helper cases ("Pest })->skipOnCi(); denies" … "Pest beforeEach()->skip();
+  denies") fail against the hook before this change.
 - **On Bash, the in-command `cd` test drops heredoc bodies with the shared scan.** The test
   used a one-line awk, also copied into three other plugins. That awk opened a body at a `<<`
   inside quotes or after a `#`, read one heredoc per line, cut a delimiter at its first
   non-word character and dropped an unterminated body to the end. It now calls
-  `cc_strip_heredoc_bodies all` (`templates/blocks/heredoc-bodies.md`, command-guard's
-  scanner). That scan keeps every line after a `<<` it cannot place, and every line of a body
-  whose terminator is indented, blank-padded or missing, so a `cd` there now skips relative
-  targets (a miss, never a wrong file). A `cd` in the body of a second
-  heredoc on one line no longer does. No verdict change on 2,611 distinct `<<` Bash commands
-  from local transcripts. Standing: gate — `pc_shared_blocks` holds the copy byte-identical;
-  `protect-tests.test.sh` (61) and `test-shape.test.sh` pass unchanged.
+  `cc_strip_heredoc_bodies cd` (`templates/blocks/heredoc-bodies.md`, command-guard's
+  scanner). That scan keeps every line after a `<<` it cannot place (inside `${ }` or `$[ ]`
+  too), and every line of a body whose terminator is indented, blank-padded or missing, so a
+  `cd` there now skips relative targets (a miss, never a wrong file). Mode `cd` also keeps a
+  body this shell runs, so `. /dev/stdin <<'EOF'` holding `cd packages/api`, then
+  `echo "it.skip('x')" > a.test.js`, no longer judges `<cwd>/a.test.js`, the wrong file; a
+  `cd` in a body a named subshell runs (`bash <<EOF`) still moves nothing, and nor does one
+  in the body of a second heredoc on one line. No verdict change on 2,611 distinct `<<` Bash
+  commands from local transcripts, and the cd test reads the same on all 1,111 that hold a
+  `cd` word. Standing: gate — `pc_shared_blocks` holds the copy byte-identical;
+  `protect-tests.test.sh` gains two cases (71) and "cd: a cd in a body sourced into this
+  shell skips a relative target" fails before; `test-shape.test.sh` passes unchanged.
 
 ## 0.13.1 — 2026-10-14
 

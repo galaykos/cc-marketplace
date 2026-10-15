@@ -73,6 +73,12 @@ for c in 'echo "{}" > .claude/task-runner/rv/rv-skip-bg-$(git rev-parse --short=
 done
 msg=$(consent_msg 'cat .claude/task-runner/rv/rv-skip-07.json > /tmp/x')
 [ -z "$msg" ] && ok "rv-consent stays silent on copying a record out" || bad "rv-consent stays silent on copying a record out" "msg=<$msg>"
+# an earlier redirect is not the record's: the path before the name stops at a separator too
+for c in 'mkdir -p out 2>/dev/null; ls .claude/task-runner/rv/rv-skip-*.json' \
+         'git status > /tmp/st && jq -r .reason .claude/task-runner/rv/rv-skip-*.json'; do
+  [ -z "$(consent_msg "$c")" ] && ok "rv-consent stays silent on a read after another redirect: $c" \
+    || bad "rv-consent stays silent on a read after another redirect: $c" "asked"
+done
 
 # 2c) the reviewer's type per card, so candor can ask for ui-ux-reviewer on a UI card by name,
 #     and the run-close range review's RV-RANGE marker, which arrives through a Skill call.

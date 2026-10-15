@@ -23,13 +23,15 @@
 # signal rare enough to read.
 #
 # INSIDE A REGISTERED RUN (.claude/task-runner/active-run.json at the state root, naming
-# the checked-out branch) it NOTIFIES instead (2026-10-14), and its first threshold is
+# the checked-out branch or none) it NOTIFIES instead (2026-10-14), and its first threshold is
 # max(cap, cards x 3), cards counted from the run's index_path (a worker plus reviewers
 # per card). The run was already authorized, and the ask at #20 left one run idle for 67
 # minutes, then 25 at #40, while its sibling agents finished; neither approval changed
 # the plan. The notice goes to the user (systemMessage) and the model
 # (additionalContext), and names the plan.
-# Residual: a run that dispatches past its plan is told, not stopped.
+# Residual: a run that dispatches past its plan is told, not stopped; a tag made after
+# registration with the branch's name makes --abbrev-ref print `heads/<branch>`, so the run
+# reads as another branch's, here and in candor's clause 4 alike.
 #
 # WHAT IT DOES NOT CATCH, stated because the README tiers this:
 #   - Agents a SUBAGENT spawns. The count is keyed on the session, and a nested dispatch
@@ -131,9 +133,10 @@ cc_option() {
   root=$(cc_state_root "$cwd") || root=""
   sent="$root/.claude/task-runner/active-run.json"
   # A sentinel names the branch it was registered on; one left behind on another branch
-  # turned this ask into a notice for unrelated work.
-  if [ -n "$root" ] && [ -r "$sent" ] &&
-     [ "$(jq -r '.branch // empty' "$sent" 2>/dev/null)" = "$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)" ]; then
+  # turned this ask into a notice for unrelated work. Read as candor's clause 4 reads it: a
+  # run differs only when both names are known and differ.
+  if [ -n "$root" ] && [ -r "$sent" ] && sb=$(jq -r '.branch // empty' "$sent" 2>/dev/null) &&
+     { cb=$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null); [ -z "$sb" ] || [ -z "$cb" ] || [ "$sb" = "$cb" ]; }; then
     run=$(jq -r '.slug // empty' "$sent" 2>/dev/null); [ -n "$run" ] || run=run
     idx=$(jq -r '.index_path // empty' "$sent" 2>/dev/null)
     idxp="$idx"; case "$idx" in '' | /*) ;; *) idxp="$root/$idx" ;; esac

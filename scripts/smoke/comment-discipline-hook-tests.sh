@@ -1603,26 +1603,30 @@ rm -rf "$STATE_DIR"
 
 # ---- 15. interpreter writes (bash-write-effects): a file a python run changed, judged on what it added ----
 # One git repo per case: a reused one carries an earlier case's marker. `ls` dates the marker, as any earlier call would.
+# Every call shares one session_id and keys its context on transcript_path, as a session's subagents do: one() moves the
+# helpers' session argument there. A marker another session dated reads nothing.
 if command -v git >/dev/null 2>&1; then
+  one() { jq -c --arg s "${1:-sess}" '.transcript_path = "/t/\(.session_id).jsonl" | .session_id = $s'; }
   effrepo() { # name  [nomark] -> a repo whose committed src/kept.js holds a noisy comment, its marker dated
     local d="$WORK/effects-$1"; mkdir -p "$d/src"; printf 'export const a = 1;\n%s\n' "$JS_NOISE" > "$d/src/kept.js"
     git -C "$d" init -q; git -C "$d" add -A; git -C "$d" -c user.email=t@t -c user.name=t commit -qm base
-    [ "${2:-}" = nomark ] || run "$(bash_payload PostToolUse "$d" mark ls)" >/dev/null
+    [ "${2:-}" = nomark ] || run "$(bash_payload PostToolUse "$d" mark ls | one)" >/dev/null
     printf '%s\n' "$d"
   }
-  pyrun() { # cwd  session  python-source -> runs it as a heredoc, then the PostToolUse lane on that command; the warning
+  pyraw() { # cwd  context  python-source  [session]  [event] -> runs it as a heredoc, then the PostToolUse lane on that command
     local c="python3 - <<'PY'
 $3
 PY"
     (cd "$1" && "$BASH_BIN" -c "$c") >/dev/null 2>&1
-    run "$(bash_payload PostToolUse "$1" "$2" "$c")" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
+    run "$(bash_payload "${5:-PostToolUse}" "$1" "$2" "$c" | one "${4:-sess}")"
   }
+  pyrun() { pyraw "$@" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
   NOISE_PY="open('src/new.js', 'w').write('''$JS_NOISE
 ''')"
   ctx_of() { run "$1" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
 
   d=$(effrepo a); b_warn=$(pyrun "$d" ea1 "$NOISE_PY")
-  w_warn=$(ctx_of "$(envelope Write "$d/src/new.js" "$JS_NOISE" | jq -c --arg c "$d" '.hook_event_name = "PostToolUse" | .cwd = $c | .session_id = "ea2"')")
+  w_warn=$(ctx_of "$(envelope Write "$d/src/new.js" "$JS_NOISE" | jq -c --arg c "$d" '.hook_event_name = "PostToolUse" | .cwd = $c | .session_id = "ea2"' | one)")
   case "$w_warn" in
     *"restating the next line"*) [ "$b_warn" = "$w_warn$SUFFIX new.js." ] && pass "effects: a noisy file a python heredoc wrote draws the Write warning plus the file suffix" \
       || fail "effects: a noisy file a python heredoc wrote draws the Write warning plus the file suffix" "write=[$w_warn] python=[$b_warn]" ;;
@@ -1646,10 +1650,24 @@ export const c = 3;
   [ -z "$o" ] && pass "effects: a python run that wrote nothing is silent" || fail "effects: a python run that wrote nothing is silent" "got: $o"
 
   d=$(effrepo e); printf '%s\n' "$JS_NOISE" > "$d/src/edited.js"
-  run "$(envelope Edit "$d/src/edited.js" "$JS_NOISE" new_string | jq -c --arg c "$d" '.hook_event_name = "PostToolUse" | .cwd = $c | .session_id = "ee1"')" >/dev/null
+  run "$(envelope Edit "$d/src/edited.js" "$JS_NOISE" new_string | jq -c --arg c "$d" '.hook_event_name = "PostToolUse" | .cwd = $c | .session_id = "ee1"' | one)" >/dev/null
   o=$(pyrun "$d" ee2 'print(1)')
   [ -z "$o" ] && pass "effects: a file an Edit wrote before the run is not read as the run's write" \
     || fail "effects: a file an Edit wrote before the run is not read as the run's write" "got: $o"
+
+  d=$(effrepo f); o=$(pyraw "$d" ef1 "$NOISE_PY
+raise SystemExit(1)" sess PostToolUseFailure)
+  case "$(printf '%s' "$o" | jq -r '.hookSpecificOutput.hookEventName + " " + .hookSpecificOutput.additionalContext' 2>/dev/null)" in
+    "PostToolUseFailure "*"restating the next line"*"$SUFFIX new.js.") pass "effects: a failed python run (PostToolUseFailure) is judged too, its envelope naming that event" ;;
+    *) fail "effects: a failed python run (PostToolUseFailure) is judged too, its envelope naming that event" "got: $o" ;; esac
+
+  d=$(effrepo g); o=$(pyrun "$d" eg1 "$NOISE_PY" other-session)
+  [ -z "$o" ] && pass "effects: a marker another session dated reads nothing" || fail "effects: a marker another session dated reads nothing" "got: $o"
+
+  d=$(effrepo h); big=$(head -c 40000 /dev/zero | tr '\0' 'a'); o=$(pyrun "$d" eh1 "data = '$big'
+$NOISE_PY")
+  case "$o" in *"restating the next line"*"$SUFFIX new.js.") pass "effects: a python run carrying a 40 kB data line is still judged" ;;
+    *) fail "effects: a python run carrying a 40 kB data line is still judged" "got: ${o:0:200}" ;; esac
 fi
 
 printf '\n'

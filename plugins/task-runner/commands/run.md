@@ -9,8 +9,10 @@ $ARGUMENTS — a taskmaster `00-INDEX.md` path, a tasks directory, a plan's task
 sequence, or an inline list. If no argument, look for the most recent
 `taskmaster-docs/tasks/*/00-INDEX.md`; if none exists, ask for the list.
 
-**`--tracks[=N]`** — if `$ARGUMENTS` includes `--tracks`, register the run (step 1's
-`scripts/register-run.sh`), then run via the
+**`--tracks[=N]`** — if `$ARGUMENTS` includes `--tracks`, establish the run branch first
+(`track-orchestration`'s run-branch precondition), then register the run on it with step 1's
+`scripts/register-run.sh`, again if a route registered earlier: candor's completion clause
+and the spawn cap apply a run only on the branch it registered on. Then run via the
 `track-orchestration` skill from this plugin instead of the serial path below:
 independent milestones run as concurrent git-worktree tracks. `N` is clamped to
 `[1,6]`; `--tracks=1` warns and runs serial; `--tracks=0`, negative, or non-integer is a
@@ -137,8 +139,8 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
      so the gate expands it, and the suite needs its own `timeout`, because the gate's cap
      kills the `docker exec` client, not the suite inside the container:
      `--runner-for php 'docker exec -w "/app/$BG_TREE_REL" app timeout 1700 vendor/bin/pest::No tests found'`.
-     The replacement must still print that language's test count, or the verdict is
-     `unverifiable-suite`. Under
+     The replacement must still print that language's test count, or a sibling runner's
+     (`skills/behavioral-gate/references/runners.md`), or the verdict is `unverifiable-suite`. Under
      `--isolate` the verdict record lands in the live repo's `.claude/task-runner/bg`, which
      the Stop hook reads; `--record-dir` overrides it. The repo suite may be a
      static linter that never executes the new code; the behavioral-gate is what proves

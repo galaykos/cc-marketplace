@@ -3,8 +3,7 @@
 An empty suite that exits 0 is the canonical false-green, and runners signal "no tests"
 differently. `behavioral-gate.sh` is authoritative; this mirrors it. **Fail-closed:** no
 positive "N ran and passed" signal is a failure, not a pass, and unparseable output is exit
-2. All of it runs under a hard timeout (`timeout`/`gtimeout`, else a `perl` alarm+fork
-returning 124; `BEHAVIORAL_GATE_TIMEOUT`, default 1800 s), so a hang is a verdict rather than a block.
+2. Every run is capped (SKILL.md step 2): a hang is a verdict, not a block.
 
 | Runner | Empty signal | Detection |
 |---|---|---|
@@ -19,7 +18,7 @@ returning 124; `BEHAVIORAL_GATE_TIMEOUT`, default 1800 s), so a hang is a verdic
 | `bundle exec rspec`, else `rspec` | `0 examples` | empty first — one summary line per run |
 | `./gradlew test --rerun-tasks`, else `./mvnw test`, else system `gradle`/`mvn` (wrappers first) | `Tests run: 0`, `:test NO-SOURCE`, `did not discover any tests` | covered needs `Tests run: N≥1` or `N tests completed`, else the weak row below; `:test UP-TO-DATE` ⇒ `unverifiable-suite` |
 | `--runner '<cmd>::<empty-regex>'` | the caller's regex | escape for a language with no row; the gate still owns not-started (126/127/signal) and timeout (124) |
-| `--runner-for <lang> '<cmd>::<empty-regex>'` | the caller's regex, then the row's | REPLACES the row's runner, e.g. a suite only a container runs; `--runner` only adds one |
+| `--runner-for <lang> '<cmd>::<empty-regex>'` | the caller's regex, then the row's | REPLACES the row's runner, e.g. a suite only a container runs; `--runner` only adds one. Needs the row's count or a sibling's: `Ran N tests` (unittest, bun), minitest `N runs,`, nextest `N tests run:`, gotestsum `DONE N tests`, a line opening `N passed` (Playwright) |
 
 **The one weak row.** A green `gradle test` prints no counts, only `BUILD SUCCESSFUL`
 (9.7.1, 2026-09-22), so it falls back to *sources exist and the task did not fail*. Past it:
@@ -29,6 +28,6 @@ a copied checkout carrying `build/`, where a plain `gradle test` executes nothin
 
 ## Adding a runner
 
-Extend `behavioral-gate.sh` and add a row; an uncharacterized empty signal is fail-closed,
-never assumed-pass. `--runner`'s residual is the caller's — a regex that never matches turns
-an empty suite green and nothing here can tell — so state the regex in the run report.
+Extend `behavioral-gate.sh` and add a row. `--runner`'s residual is the caller's — a regex
+that never matches turns an empty suite green and nothing here can tell — so state the
+regex in the run report.

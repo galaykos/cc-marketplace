@@ -294,7 +294,7 @@ JSON
 case_run "jest --passWithNoTests (empty masked green) -> unverifiable-suite(2)" "$GJ1" 2 --label 'unverifiable-suite' -- --changed impl.js
 
 # ---- G2. jest empty false-PASS via output anchoring (NO --passWithNoTests flag in
-# the script, so this exercises the '^Tests:' anchor independently): a run printing
+# the script, so this exercises the 'Tests:' count anchor independently): a run printing
 # "Test Suites: 1 passed" + "Tests: 0 total" must NOT be covered. (fix b)
 GJ2="$WS/pkg-suiteline-green"; mkdir -p "$GJ2"
 cat > "$GJ2/impl.js" <<'JS'
@@ -595,6 +595,40 @@ case_run "--runner-for py, a red suite with a pytest summary -> covered(0)" "$RF
 # RF_<lang> holds the flag's value and is never read from the environment.
 RF_php='./suite.sh::No tests' case_run "RF_php inherited from the environment is ignored -> the host runner decides(2)" "$RF" 2 --label 'unverifiable-suite' -- \
   --changed src/Calc.php
+# Nor RF_custom<N>: it was looked up for a --runner entry and called as parse_custom1 (exit 127, no verdict).
+RF_custom1='echo hijacked::ZZZ' case_run "RF_custom1 from the environment leaves --runner alone -> covered(0)" "$CR1" 0 --label 'VERDICT: covered' -- \
+  --changed calc.ex --runner './suite.sh::^0 tests'
+# A replacement is often a sibling runner, whose count line is not the built-in's (2026-10-15):
+# each of these green suites read unverifiable-suite.
+sib() { # sib <lang> <changed> <runner> <output>
+  printf '%s\n' "$4" > "$RF/sib.out"; printf '#!/bin/sh\ncat ./sib.out\n' > "$RF/sib.sh"; chmod +x "$RF/sib.sh"
+  case_run "--runner-for $1 printing $3's '$(printf '%s' "$4" | head -n 1)' -> ${5:-covered(0)}" "$RF" "${6:-0}" --label "${7:-VERDICT: covered}" -- \
+    --changed "$2" --runner-for "$1" './sib.sh::NEVER-PRINTED'
+}
+sib py src/calc.py unittest "$(printf 'Ran 5 tests in 0.012s\n\nOK')"
+sib rb src/calc.rb minitest '5 runs, 9 assertions, 0 failures, 0 errors, 0 skips'
+sib rs src/calc.rs nextest '5 tests run: 5 passed, 0 skipped'
+sib go src/calc.go gotestsum 'DONE 5 tests in 0.512s'
+sib js src/calc.js bun 'Ran 5 tests across 1 files.'
+sib js src/calc.js Playwright '  5 passed (3.2s)'
+# ...while jest's suite count is still not a test count, under a workspace prefix too.
+sib js src/calc.js jest "$(printf 'web:tests: Test Suites: 1 passed, 1 total\nweb:tests: Tests:       0 total')" 'empty-suite(2)' 2 'empty-suite'
+# A wrapper's own banner is not a go result line: this read covered.
+case_run "--runner-for go, a '--- :go:' banner over a docker error -> unverifiable-suite(2)" "$RF" 2 --label 'unverifiable-suite' -- \
+  --changed src/calc.go --runner-for go 'echo "--- :go: unit tests"; echo "Error response from daemon: container app is not running"; exit 1::no test files'
+
+# ---- JC. jest's summary coloured or prefixed (2026-10-15). Colour codes were stripped for php
+# only, the 'Tests:' count had to start the line, and "Snapshots:   0 total", printed on every jest
+# run, matched the empty check: each of these green suites read empty-suite or unverifiable.
+JC="$WS/js-colour"; mkdir -p "$JC"
+printf 'module.exports = () => 42;\n' > "$JC/impl.js"
+printf '{ "name": "fx", "version": "1.0.0", "scripts": { "test": "cat ./out.txt" } }\n' > "$JC/package.json"
+printf '\033[1mTests:\033[22m       \033[1m\033[32m5 passed\033[39m\033[22m, 5 total\nSnapshots:   0 total\n' > "$JC/out.txt"
+case_run "jest under FORCE_COLOR, 'Tests: 5 passed' in colour -> covered(0)" "$JC" 0 --label 'VERDICT: covered' -- --changed impl.js
+printf 'web:test: Tests:       5 passed, 5 total\nweb:test: Snapshots:   0 total\n' > "$JC/out.txt"
+case_run "jest behind a workspace prefix, 'web:test: Tests: 5 passed' -> covered(0)" "$JC" 0 --label 'VERDICT: covered' -- --changed impl.js
+printf ' \033[2m Test Files \033[22m \033[1m\033[32m1 passed\033[39m\033[22m\033[90m (1)\033[39m\n\033[2m      Tests \033[22m \033[1m\033[32m5 passed\033[39m\033[22m\033[90m (5)\033[39m\n' > "$JC/out.txt"
+case_run "vitest with CI set, 'Tests 5 passed (5)' in colour -> covered(0)" "$JC" 0 --label 'VERDICT: covered' -- --changed impl.js
 
 # ---- TO. the suite timeout: documented, 1800 s by default, and the variable still moves it.
 # At 60 s a large green suite read TIMED OUT -> unverifiable-suite.
@@ -704,6 +738,23 @@ if [ "$IRC" != 0 ]; then iso_bad "$d" "rc=$IRC" "$IOUT"
 elif [ ! -s "$PROBE2" ]; then iso_bad "$d" "the suite wrote no probe" "$IOUT"
 elif grep -q LIVE-SECRET "$PROBE2"; then iso_bad "$d" "the tree's nearest .env is the live one: $(head -n 1 "$PROBE2")"
 elif [ "$(cksum < "$LIVE2/.env")" != "$live2_sum" ]; then iso_bad "$d" "live .env CHANGED"
+else iso_ok "$d"; fi
+
+# I1e. a committed .env.dist (Symfony's Dotenv reads it only while .env is absent) is the tree's
+#      .env, not hidden behind an empty one (2026-10-15).
+LIVE3="$WS/live-envdist"; mkdir -p "$LIVE3"
+cat > "$LIVE3/impl.test.js" <<'JS'
+const test = require('node:test'); const fs = require('node:fs');
+test('tree .env', () => { fs.writeFileSync(process.env.BG_PROBE_OUT, fs.readFileSync('.env', 'utf8')); });
+JS
+printf 'APP_SECRET=from-dist\n' > "$LIVE3/.env.dist"; printf '.env\n.claude/\n' > "$LIVE3/.gitignore"
+( cd "$LIVE3" && git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm fixture )
+printf 'APP_SECRET=LIVE-SECRET\n' > "$LIVE3/.env"
+PROBE3="$WS/iso-probe-dist"
+set +e; IOUT=$( cd "$LIVE3" && BG_PROBE_OUT="$PROBE3" TMPDIR="$ISO_TMP" "$BG" --isolate --changed impl.test.js 2>&1 ); IRC=$?; set -e
+d="--isolate with a committed .env.dist and no .env.example: the tree's .env is the .env.dist"
+if [ "$IRC" != 0 ]; then iso_bad "$d" "rc=$IRC" "$IOUT"
+elif [ "$(cat "$PROBE3" 2>/dev/null)" != 'APP_SECRET=from-dist' ]; then iso_bad "$d" "the tree's .env held <$(cat "$PROBE3" 2>/dev/null)>"
 else iso_ok "$d"; fi
 
 # I2. --isolate when `git worktree add` fails (unborn HEAD) -> refuse(3), nothing ran anywhere.

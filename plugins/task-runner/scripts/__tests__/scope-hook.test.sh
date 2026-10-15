@@ -300,9 +300,9 @@ PY")
   ctx_b=$(runb "$R" "python3 - <<'PY'
 open('other/py.js', 'w').write('x\n')
 PY")
-  ctx_e=$(edit_ctx "$R" "$R/other/py.js")
-  check "effects: a python heredoc write outside scope warns as an Edit of the file does (bash=<$ctx_b>)" \
-    "$([ -n "$ctx_e" ] && [ "$ctx_b" = "$ctx_e" ] && echo 1)"
+  check "effects: a python heredoc write outside scope warns that it changed and may not be the command's, never to revert it (bash=<$ctx_b>)" \
+    "$(case "$ctx_b" in *"other/py.js changed since the previous tool call"*"git diff -- other/py.js"*"never revert a change you did not make"*) echo 1 ;; esac)"
+  lacks "effects: a file the effects found is never told 'revert this edit'" "$ctx_b" "revert this edit"
   ctx=$(runb "$R" "python3 - <<'PY'
 open('src/allowed.js', 'w').write('x\n'); open('lib/deep.js', 'w').write('x\n')
 PY")
@@ -314,11 +314,11 @@ PY")
 open('other/py2.js', 'w').write('x\n')
 PY")
   check "effects: the next interpreter write outside scope warns (ctx=<$ctx>)" \
-    "$(case "$ctx" in *"other/py2.js was edited"*) echo 1 ;; esac)"
+    "$(case "$ctx" in *"other/py2.js changed since"*) echo 1 ;; esac)"
   lacks "effects: a file an Edit changed between two Bash calls is not read again" "$ctx" "other/edited.js"
   ctx=$(runb "$R" "cp src/allowed.js other/copied.js")
   check "effects: a cp destination outside scope warns (ctx=<$ctx>)" \
-    "$(case "$ctx" in *"other/copied.js was edited"*) echo 1 ;; esac)"
+    "$(case "$ctx" in *"other/copied.js changed since"*) echo 1 ;; esac)"
   touch -t 202501010000 "$MK"
   ctx=$(runb "$R" "python3 - <<'PY'
 open('other/late.js', 'w').write('x\n')
@@ -328,6 +328,45 @@ PY")
   N="$WS/fx-norun"; mkdir -p "$N"; git init -q "$N"
   runb "$N" "python3 -c 'print(1)'" >/dev/null
   check "effects: no registered run -> no state written into the repo" "$([ ! -e "$N/.claude" ] && echo 1)"
+
+  # Two workers of one session in one tree: worker B's python run writes other/stray.js and worker A's hook call ends
+  # first. A is told the file changed and may not be its own, never to revert it; B, its window spent, is silent.
+  wb() { # <repo> <context> <command> [session] [event] -> the hook's raw stdout on that Bash call
+    jq -cn --arg cwd "$1" --arg t "/t/$2.jsonl" --arg c "$3" --arg s "${4:-sess}" --arg e "${5:-PostToolUse}" \
+      '{hook_event_name:$e, session_id:$s, transcript_path:$t, cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | bash "$HOOK" 2>/dev/null
+  }
+  wctx() { wb "$@" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
+  W="$WS/fx-workers"; mkrun "$W"; wb "$W" worker-a 'ls' >/dev/null
+  (cd "$W" && python3 -c "open('other/stray.js', 'w').write('x\n')")
+  ctx_a=$(wctx "$W" worker-a "python3 -c 'print(1)'")
+  ctx_bw=$(wctx "$W" worker-b "python3 - <<'PY'
+open('other/stray.js', 'w').write('x\n')
+PY")
+  check "effects: two workers, one tree — A hears of B's file as maybe not its own and is never told to revert it; B is silent (a=<$ctx_a> b=<$ctx_bw>)" \
+    "$(case "$ctx_a" in *"other/stray.js changed since"*"never revert a change you did not make"*) [ -z "$ctx_bw" ] && echo 1 ;; esac)"
+  lacks "effects: two workers — A is not told to revert B's file" "$ctx_a" "revert this edit"
+
+  # A marker another session dated reads nothing: a user's edit between sessions is not the next session's write.
+  S="$WS/fx-sessions"; mkrun "$S"; wb "$S" s1 'ls' sess-1 >/dev/null
+  echo x > "$S/other/user.js"
+  ctx=$(wctx "$S" s2 "python3 -c 'print(1)'" sess-2)
+  check "effects: a marker another session dated reads nothing (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+
+  # A failed command fires PostToolUseFailure: its writes are read, and the envelope names that event.
+  F="$WS/fx-failed"; mkrun "$F"; wb "$F" f1 'ls' >/dev/null
+  (cd "$F" && python3 -c "open('other/failed.js', 'w').write('x\n')")
+  out=$(wb "$F" f1 "python3 gen.py && false" sess PostToolUseFailure)
+  check "effects: a failed python run (PostToolUseFailure) is read, its envelope naming that event (out=<$out>)" \
+    "$(printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUseFailure" and (.hookSpecificOutput.additionalContext | contains("other/failed.js"))' >/dev/null 2>&1 && echo 1)"
+  check "effects: scope.sh is registered on PostToolUseFailure for Bash" \
+    "$(jq -e '.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[] | select(.command | test("hooks/scope.sh"))' \
+      "$(dirname "$HOOK")/hooks.json" >/dev/null 2>&1 && echo 1)"
+
+  # Another plugin's marker in a state dir without a .gitignore is not a write: nothing under .claude/ is read.
+  G="$WS/fx-sibling"; mkrun "$G"; wb "$G" g1 'ls' >/dev/null
+  mkdir -p "$G/.claude/security"; echo 123 > "$G/.claude/security/bash-effects.mark"
+  ctx=$(wctx "$G" g1 "python3 -c 'print(1)'")
+  check "effects: a sibling plugin's fresh marker under .claude/ is not read as the command's write (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
 else
   echo "SKIP 18: python3 not available"
 fi

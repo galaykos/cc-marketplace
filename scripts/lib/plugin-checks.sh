@@ -3438,12 +3438,12 @@ $key"
 # CATCHES, for an agent whose `tools:` grants no Bash (neither `Bash` nor `Bash(…)`), a
 # sentence telling it to run a shell command (run/execute/invoke before a backticked git, npm,
 # composer, node, python, jq, curl or make; "run git <verb>"), to hash (cksum, shasum, sha*sum,
-# md5sum within 40 characters after run, use, pipe, call, compute, take, seed or verify;
-# "compute/seed from a hash"; a sentence opening "Hash the"), or a ```bash fence in its
-# body; for one granted no Write, Edit or MultiEdit, a sentence telling it to write, save,
-# persist, append, store or create a backticked file path. It reads the agent BODY and, one hop
-# out, every `<dir>/references/<f>.md` the body names (own plugin first, then any plugin's
-# skills/; fenced code skipped there) — that hop is where its case lived.
+# md5sum within 40 characters after run, use, pipe, call, compute, take, seed or verify, inside
+# a code span or followed by `|` or a path; "compute/seed from a hash"; a sentence opening "Hash
+# the"), or a ```bash fence in its body; for one granted no Write, Edit or MultiEdit, a sentence
+# telling it to write, save, persist, append, store or create a backticked file path. It reads
+# the agent BODY and, one hop out, every `<dir>/references/<f>.md` the body names (own plugin
+# first, then any plugin's skills/; fenced code skipped there) — that hop is where its case lived.
 #
 # WHAT NOTHING ELSE CATCHES: no other check compares an agent's instructions with its grant.
 # creative-director (Read, Grep, Glob) was sent to concept-deck.md, which said "seed from a
@@ -3476,7 +3476,13 @@ $key"
 #     carries the marker.
 #   - A verb whose subject is that/which/who or the user ("a script that executes `bash -c`",
 #     "recommend the user run `npm audit`") reads as description, not an order; one whose
-#     subject is a noun ("where the hook runs `npm ci`") still reads as an order.
+#     subject is a noun ("where the hook runs `npm ci`") still reads as an order, and so does
+#     one after a demonstrative `that` following after, before, do, did, once, like or with
+#     ("After that run `git diff`"). Any other demonstrative reads as a relative ("then that
+#     runs `x`" is missed).
+#   - A hash tool named bare, outside a code span with no pipe or path after it ("pipe the
+#     brief through cksum") is missed: the bare word is as often a noun ("verify the recorded
+#     cksum matches").
 #
 # Bless a block with `<!-- tool-fit-ok: <why> -->` anywhere in it: a paragraph, or a list or
 # table up to its blank line; an agent-body ```bash fence takes the mark from the block above
@@ -3506,13 +3512,14 @@ _pc_tool_fit_units() { # <file> <agent|ref> — "<line>\t<sentence>" per prose s
       if (pend != "") { if (!blk) printf "%s", pend; ok = blk }
       pend = ""; blk = 0
     }
-    # that/which/who or the user as subject describes, not orders: \037 splits the verb.
-    function descr(s,   l, out, j) {
+    # that/which/who or the user as subject describes, not orders: \037 splits the verb. `after that run`: a demonstrative.
+    function descr(s,   l, out, j, d) {
       s = " " s; l = tolower(s); out = ""
       while (match(l, /[^a-z0-9_](that|which|who)([[:space:]]+([a-z]+ly|also|then|still|now|would|could|can|may|might|will|should|must|does))*[[:space:]]+(run|execute|invoke|write|save|persist|append|store|create|use|pipe|call|compute|take|seed|verify)|[^a-z0-9_]users?([[:space:]]+([a-z]+ly|also|then|would|could|can|may|might|will|should|must|to|whether))*[[:space:]]+(run|execute|invoke|write|save|persist|append|store|create|use|pipe|call|compute|take|seed|verify)/)) {
         j = RSTART + RLENGTH - 1
+        d = substr(l, RSTART + 1, 4) == "that" && substr(l, 1, RSTART) ~ /(^|[^a-z])(after|before|do|did|once|like|with)[[:space:]]*$/
         while (substr(l, j, 1) !~ /[[:space:]]/) j--
-        out = out substr(s, 1, j + 1) "\037"
+        out = out substr(s, 1, j + 1) (d ? "" : "\037")
         s = substr(s, j + 2); l = substr(l, j + 2)
       }
       return substr(out s, 2)
@@ -3537,7 +3544,7 @@ _pc_tool_fit_units() { # <file> <agent|ref> — "<line>\t<sentence>" per prose s
 pc_agent_tool_fit() {
   local root="${1:-plugins}" bad=0 tab af p n tools nob now ref rf src kind units hits want re ln s
   local SKIP='\b(never|cannot|can.t|do not|don.t|does not|doesn.t|must not|no (bash|shell|write|edit|tools?|files?))\b|main thread|\b(the|your) (caller|dispatcher|orchestrator)\b|\bcaller.s\b'
-  local SHELL_RE='\b(run|runs|execute|executes|invoke|invokes)[[:space:]]+`(git|npm|npx|pnpm|yarn|composer|php|node|python3?|bash|sh|jq|curl|make)\b|\brun[[:space:]]+git[[:space:]]+[a-z]|\b(run|runs|use|uses|pipe|pipes|call|calls|compute|computes|take|takes|seed|seeds|verify|execute|executes|invoke|invokes)\b[^;,]{0,40}\b(cksum|shasum|sha(1|224|256|384|512)sum|md5sum|b2sum)\b|\b(compute|computes|take|takes|seed|seeded|seeds)[[:space:]]+(it[[:space:]]+)?(from[[:space:]]+)?(a|the)[[:space:]]+hash\b|^[0-9]+[[:space:]]+([-*+]|[0-9]+[.)])?[[:space:]]*(\*\*)?hash[[:space:]]+(the|it|a)\b|```shell'
+  local SHELL_RE='\b(run|runs|execute|executes|invoke|invokes)[[:space:]]+`(git|npm|npx|pnpm|yarn|composer|php|node|python3?|bash|sh|jq|curl|make)\b|\brun[[:space:]]+git[[:space:]]+[a-z]|\b(run|runs|use|uses|pipe|pipes|call|calls|compute|computes|take|takes|seed|seeds|verify|execute|executes|invoke|invokes)\b[^;,`]{0,40}(`[^`]*\b(cksum|shasum|sha(1|224|256|384|512)sum|md5sum|b2sum)\b|\b(cksum|shasum|sha(1|224|256|384|512)sum|md5sum|b2sum)\b([[:space:]]*\||[[:space:]]+[^[:space:]`]*[/.][[:alnum:]]))|\b(compute|computes|take|takes|seed|seeded|seeds)[[:space:]]+(it[[:space:]]+)?(from[[:space:]]+)?(a|the)[[:space:]]+hash\b|^[0-9]+[[:space:]]+([-*+]|[0-9]+[.)])?[[:space:]]*(\*\*)?hash[[:space:]]+(the|it|a)\b|```shell'
   local WRITE_RE='\b(write|writes|save|saves|persist|persists|append|appends|store|stores|create|creates)\b[^`]{0,80}\b(to|into|in|at|under)[[:space:]]+`[^`]+\.(md|json|jsonl|tsv|csv|txt|patch|ya?ml|html|log)`|\b(write|create)[[:space:]]+`[^`]+\.(md|json|jsonl|tsv|csv|txt|patch|ya?ml|html|log)`'
   tab=$(printf '\t')
   while IFS= read -r af; do

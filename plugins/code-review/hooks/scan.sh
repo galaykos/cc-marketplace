@@ -12,7 +12,8 @@
 #   — the one non-blocking channel the executing model actually receives; plain stdout
 #   text with exit 0 never reaches it (same reasoning as task-runner/hooks/scope.sh).
 #   `additionalContext` is NOT a blocking key: it adds context, it cannot veto. This lane
-#   never blocks anything, ever.
+#   never blocks anything, ever. A Bash call that exits non-zero fires PostToolUseFailure
+#   instead (hooks.json registers that for Bash): it takes this lane, answering in its own envelope.
 #
 #   PreToolUse — DENY, narrowly. Warning after the write is warning about a file that is
 #   already on disk, and a warning the model may read and walk past is not enforcement.
@@ -52,8 +53,8 @@
 # target names on what it added (cd_effect_added in hooks/paths.sh): the whole file when HEAD lacks it, else its `+` lines
 # against HEAD, so a comment any uncommitted edit added since HEAD is judged again. Never denied: the write has landed.
 # Effects miss a writer the block does not name (npx prettier, make), gitignored files, a repo with no git, a mv or cp -p
-# destination, the first such run in a repo and a file over 1 MiB; any file changed since the lane's previous call (an IDE,
-# a parallel agent) is read as the run's write.
+# destination, each session's first such run and a file over 1 MiB; any file changed since the lane's previous call (an IDE,
+# a parallel agent) is read as the run's write. A command with a line over 8 kB is not parsed for targets; its effects are read.
 # NOT SEEN on Bash: interpreter, cp and mv writes before they land (the deny lane), a heredoc fed to anything but cat/tee,
 # echo/printf content, sed -i / perl -i content, a path held in a variable, a relative
 # target after an in-command cd, the second operand of `tee a b`, `VAR=x tee f`, cat/tee behind a
@@ -299,32 +300,31 @@ cc_bash_write_chunks() {
 
 # Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
-# cc_bash_effects_mark <root> <marker> rewrites <marker> when <root> holds a .git, making its directory with a `*` .gitignore.
-# Call it on EVERY tool call the hook sees (Write, Edit, Bash alike), after cc_bash_write_effects read <marker>: the tool has
-# finished before PostToolUse runs, so <marker> then post-dates every write of the last call this hook saw.
-# cc_bash_write_effects <root> <marker> <command> <max> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked AND newer than <marker>. It runs git only when <command> holds python, node, php,
-# ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, and <marker> exists.
-# Misses: writers it does not name, gitignored files, no git, a file written then reverted, a mv or cp -p destination (it
-# keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a parallel agent, a job.
+# cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
+# directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
+# cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
+# cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked, outside any .claude/ dir and newer than <marker>. It runs git only when <command> holds
+# python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, <marker>
+# holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and status.showUntrackedFiles is not no.
+# Misses: writers it does not name, gitignored files, submodules, no git, each session's first call, a file written then reverted, a
+# mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a
+# parallel agent, a job.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
-  local d="${2%/*}"
-  [ -d "$d" ] || { mkdir -p "$d" && printf '*\n' > "$d/.gitignore"; } 2>/dev/null || return 0
-  printf '%s\n' "$$" > "$2" 2>/dev/null
+  local d="${2%/*}" k
+  { [ -d "$d" ] || mkdir -p "$d"; } 2>/dev/null || return 0
+  { [ -e "$d/.gitignore" ] || printf '*\n' > "$d/.gitignore"; k=$(printf '%s' "$3" | cksum) && printf '%s\n' "${k%% *}" > "$2"; } 2>/dev/null
   return 0
 }
 cc_bash_write_effects() {
-  local re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)[[:space:]<]'
-  local e f n=0
-  local -a c
-  [ -f "$2" ] && [[ $3 =~ $re ]] || return 0
-  while [ "$n" -lt "$4" ] && IFS= read -r -d '' e; do
-    f="$1/${e:3}"
-    [ -f "$f" ] && ! [ "$2" -nt "$f" ] || continue
-    c[n]=$f; n=$((n + 1))
-  done < <(GIT_OPTIONAL_LOCKS=0 git -C "$1" status --porcelain -z --untracked-files=all --no-renames --ignore-submodules=all 2>/dev/null)
-  [ "$n" -gt 0 ] && find "${c[@]}" -prune -newer "$2" -print 2>/dev/null
+  local LC_ALL=C re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)([[:space:];&|)`<>]|$)' k m f
+  [ -f "$2" ] && [ "$1" != "${HOME%/}" ] && [[ $3 =~ $re ]] && IFS= read -r m < "$2" && k=$(printf '%s' "$5" | cksum) && [ "$m" = "${k%% *}" ] || return 0
+  case "$(git -C "$1" config status.showUntrackedFiles 2>/dev/null)" in no|false|off|0) return 0 ;; esac
+  # One find over the whole list, each path led by ./ so a name like -delete stays a path; the cap counts only what find kept.
+  while IFS= read -r f; do printf '%s\n' "$1/${f#./}"; done < <(exec 2>/dev/null; cd -- "$1" && GIT_OPTIONAL_LOCKS=0 git status --porcelain -z \
+    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e '/^...\.claude\//d' -e '/\/\.claude\//d' -e 's|^...|./|' \
+    | tr '\n' '\0' | xargs -0 sh -c 'exec find "$@" -prune -newer "$0" -type f -print' "$2" | head -n "$4")
   return 0
 }
 
@@ -334,8 +334,12 @@ cc_bash_write_effects() {
   MAX_BASH_EFFECTS=8   # changed files read after an interpreter, cp, mv, install or patch run, in git's path order
 
   input=$(cat)
-  # One detector, two lanes. Absent event name = PostToolUse, the original behavior.
-  event=$(printf '%s' "$input" | jq -r '.hook_event_name // "PostToolUse"' 2>/dev/null) || exit 0
+  # One detector, two lanes. Absent event name = PostToolUse, the original behavior; a failed Bash call's PostToolUseFailure
+  # takes the PostToolUse lane, and its envelope names the event it ran for (hev).
+  event=""; sess=""
+  { IFS= read -r event; IFS= read -r sess; } < <(printf '%s' "$input" | jq -r '.hook_event_name // "PostToolUse", .session_id // ""' 2>/dev/null)
+  [ -n "$event" ] || exit 0
+  hev=PostToolUse; [ "$event" = PostToolUseFailure ] && { hev=$event; event=PostToolUse; }
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in Edit|Write|MultiEdit|Bash) ;; *) exit 0 ;; esac
   [ "$tool" = Bash ] && { cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0; }
@@ -351,14 +355,16 @@ cc_bash_write_effects() {
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
     if [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(cc_state_root "$cwd"); then
       emark="$(cc_plugin_state "$root" comment-discipline)/bash-effects-scan.mark"
-      [ "$tool" = Bash ] && effects=$(cc_bash_write_effects "$root" "$emark" "$cmd" "$MAX_BASH_EFFECTS")
-      cc_bash_effects_mark "$root" "$emark"
+      [ "$tool" = Bash ] && effects=$(cc_bash_write_effects "$root" "$emark" "$cmd" "$MAX_BASH_EFFECTS" "$sess")
+      cc_bash_effects_mark "$root" "$emark" "$sess"
     fi
   fi
   if [ "$tool" = Bash ]; then
-    # The blocks mask a line character by character, quadratic in its length: a 200 kB line, or 100 lines of 8 kB, outlasts the timeout, so such a command is not judged.
-    [ "${#cmd}" -gt 32768 ] && printf '%s\n' "$cmd" | awk 'length($0) > 2000 { s += length($0) } length($0) > 8192 || s > 32768 { f = 1; exit } END { exit !f }' && exit 0
-    tgts=$(cc_bash_write_targets "$cmd")
+    # The blocks mask a line character by character, quadratic in its length: a 200 kB line, or 100 lines of 8 kB, outlasts the
+    # timeout, so such a command's text is not parsed. The files an interpreter run changed are read from disk and still judged.
+    tgts=""
+    [ "${#cmd}" -gt 32768 ] && printf '%s\n' "$cmd" | awk 'length($0) > 2000 { s += length($0) } length($0) > 8192 || s > 32768 { f = 1; exit } END { exit !f }' \
+      || tgts=$(cc_bash_write_targets "$cmd")
     [ -n "$tgts" ] || [ -n "$effects" ] || exit 0
   fi
   [ "$event" = "PostToolUse" ] || cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
@@ -1302,8 +1308,8 @@ cc_bash_write_effects() {
       jq -cn --arg r "$msg$1" \
         '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
     else
-      jq -cn --arg ctx "${ew:+$ew }$msg$1" \
-        '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
+      jq -cn --arg ctx "${ew:+$ew }$msg$1" --arg ev "$hev" \
+        '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$ctx}}'
     fi
   }
 

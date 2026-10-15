@@ -118,11 +118,13 @@ interactive walkthroughs, demos.
 have declared their file lists — it never blocks. It sees Edit/Write and the files a Bash
 command writes by redirect, heredoc, `tee` or `sed -i` (at most 8 per call), and, after an
 interpreter, `cp`, `mv`, `install` or `patch` run, each file git reports changed since its
-previous call in the run (at most 8): a `python3 - <<'EOF'` write outside the set warns as
-an Edit of it does. That read misses writers it does not name (`make`, `git apply`),
-gitignored outputs, `mv`/`cp -p` destinations and the first Bash call of a run, and takes
-any other change in that window (an IDE save, a parallel worker, an unignored cache) for the
-command's write. It reads the scope files at the project root in
+previous call in the run (at most 8), a failed command's too. A `python3 - <<'EOF'` write
+outside the set warns, worded apart from an Edit's: the file changed since the previous call
+and may not be the command's, so check `git diff` and never revert what you did not write.
+That read misses writers it does not name (`make`, `git apply`), gitignored outputs,
+`mv`/`cp -p` destinations, anything under `.claude/`, and the first Bash call of a run or of
+a session, and takes any other change in that window (an IDE save, a parallel worker, an
+unignored cache) for the command's write. It reads the scope files at the project root in
 whatever directory the shell sits, and ignores any left over from an earlier run. A scope
 file without an `allow` array (`{"allow":["path","dir/"],"task":"<id>"}`) leaves the call
 unenforced and says so on stderr; writes outside the project root are not checked. Most
@@ -144,11 +146,11 @@ counted. `ask` rather than `deny` because a large fan-out is sometimes right —
 not that thirty is wrong, only that thirty should be a decision somebody made. Thresholds
 double instead of firing every time, because asking at 21, 22, 23 trains reflexive approval.
 
-Inside a run registered on the checked-out branch it **notifies** instead — to you and to
-the model — and the first threshold is three dispatches per card in the run's index when
-that is above the cap. The run is already authorized, and an ask there left one run idle
-for 67 minutes while its other agents finished. The notice names the plan; a run that
-dispatches past it is told, not stopped.
+Inside a run registered on the checked-out branch, or one whose sentinel names no branch, it
+**notifies** instead — to you and to the model — and the first threshold is three dispatches
+per card in the run's index when that is above the cap. The run is already authorized, and
+an ask there left one run idle for 67 minutes while its other agents finished. The notice
+names the plan; a run that dispatches past it is told, not stopped.
 
 It counts dispatches, not cost: twenty haiku calls and twenty opus calls are one number
 here and not one bill. It cannot see an agent a subagent spawns through another mechanism,

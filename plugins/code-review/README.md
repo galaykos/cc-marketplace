@@ -108,7 +108,8 @@ counts; past 256 kB, or when the new text is not on disk, only the edit's own te
 and that line is missed. Since 0.33.0 a file a Bash run of python, node, php, ruby, perl,
 deno, bun, `cp`, `mv`, `install` or `patch` changed is measured the same way, after the
 command — **Interpreter writes** below. Neither lane judges a file that only declares — an interface or an
-all-abstract class beside imports, type aliases and enums, no method body — in a brace
+all-abstract class beside imports, type aliases and enums, no method body (an accessor's
+`get {`/`set {`/`init {` block and a `static {` initializer count as bodies) — in a brace
 language: its docblocks are the contract. A component or class beside the interface is
 judged. The ceiling is **0.3 prose comment lines per code line**
 by default, compared exactly: 30 prose lines over 100 code lines pass, 31 are refused. A
@@ -462,15 +463,20 @@ redirect or `tee` target named: `scan.sh` on what it added — the whole file wh
 it, else the `+` lines of `git diff -U0 HEAD`; `density.sh` once the file holds more prose
 lines than its `HEAD` copy, within its three files per command. Every call a lane sees, an
 `Edit` or a command that wrote nothing included, dates that hook's marker, so a file an `Edit`
-changed is not read as the next run's write. No deny sees these writes: they land before a
-hook can read them. Misses: a writer named through another word (`npx prettier --write`,
-`make`, `vendor/bin/pint`), gitignored files, a repo with no git, a `mv` or `cp -p`
-destination (it keeps the source's mtime), a file written then reverted, the first such run in
-a repo, files past the eighth, a file over 1 MiB (`scan.sh`) or 256 kB (`density.sh`). Reads
-too much: a file an IDE or a parallel agent changed since the hook's previous call is read as
-the run's write, and every change uncommitted since `HEAD` as what the run added, so a comment
-an earlier `Edit` added can draw a second warning. Each Bash call costs about 6 ms more per
-hook (CHANGELOG 0.33.0). Standing: **gate** — the `effects:` cases of
+changed is not read as the next run's write. A command that exits non-zero fires
+`PostToolUseFailure`, registered for Bash on all three hooks, and its writes are read the same
+way; a command with a line over 8 kB is not parsed for targets, but its effects are read. No
+deny sees these writes: they land before a hook can read them. Misses: a writer named through
+another word (`npx prettier --write`, `make`, `vendor/bin/pint`), gitignored files, a repo with
+no git, a submodule's files, anything under `.claude/`, a `mv` or `cp -p` destination (it keeps
+the source's mtime), a file written then reverted, the first such run of each session (the
+marker holds the session's cksum; another session's reads as none), files past the eighth, a
+file over 1 MiB (`scan.sh`) or 256 kB (`density.sh`); a `$HOME` root or a repo with
+`status.showUntrackedFiles=no` reads nothing. Reads too much: a file an IDE or a parallel
+agent changed since the hook's previous call is read as the run's write, and every change
+uncommitted since `HEAD` as what the run added, so a comment an earlier `Edit` added can draw a
+second warning. Each Bash call costs about 7 ms more per hook (CHANGELOG 0.33.0). Standing:
+**gate** — the `effects:` cases of
 `scripts/smoke/comment-density-tests.sh` and `scripts/smoke/comment-discipline-hook-tests.sh`.
 
 **What a Bash write still escapes.** The hooks read the command's text; they never run
@@ -538,7 +544,8 @@ writes an existing code file under the project root (a redirect, a heredoc, `tee
 the project root rather than the shell's cwd. Since 0.33.0 a code file git reports changed
 after a python, node, php, ruby, perl, deno, bun, `cp`, `mv`, `install` or `patch` run counts
 too, with the misses and over-read of **Interpreter writes** above; every call dates its
-marker, the one-shot spent or not (`conventions-hook.test.sh`, **gate**).
+marker, the one-shot spent or not, and a spent one-shot reads no effects
+(`conventions-hook.test.sh`, **gate**).
 Since 0.28.0 it also names a repo's prose standards doc on its own `standards:` line —
 `CONTRIBUTING.md`, `.github/CONTRIBUTING.md`, `docs/CONTRIBUTING.md`, `CODING_STANDARDS.md`,
 `docs/CODING_STANDARDS.md` or `STYLEGUIDE.md`, the path only — as a source for naming,

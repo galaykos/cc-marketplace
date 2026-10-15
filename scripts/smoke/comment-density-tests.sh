@@ -1719,6 +1719,15 @@ verdict $? "contract: a Kotlin interface beside a class of expression bodies is 
   rep 12 '    string Get%s(string key) => key;'; echo '}'; } > "$TMP/ct-cs.cs"
 denied "$(pre "$CT" "$CT/src/IStore.cs" ct8 "$TMP/ct-cs.cs")"
 verdict $? "contract: a C# interface whose members have => bodies is refused" ""
+{ echo 'public abstract class Shape'; echo '{'; rep 40 '    // why %s: the vendor caps ids at 2^31'
+  rep 12 '    public string Name%s { get { var v = _name ?? DefaultName; return v.Trim(); } }'; echo '}'; } > "$TMP/ct-acc.cs"
+{ echo 'public abstract class Registry {'; rep 40 '    // why %s: the vendor caps ids at 2^31'; echo '    static {'
+  rep 10 '        register("k%s");'; echo '    }'; echo '}'; } > "$TMP/ct-static.java"
+{ echo 'public abstract class Shape'; echo '{'; rep 40 '    // why %s: the vendor caps ids at 2^31'
+  rep 12 '    public abstract string Name%s { get; init; }'; echo '}'; } > "$TMP/ct-auto.cs"
+denied "$(pre "$CT" "$CT/src/Shape.cs" ct8a "$TMP/ct-acc.cs")" && denied "$(pre "$CT" "$CT/src/Registry.java" ct8b "$TMP/ct-static.java")" \
+  && [ -z "$(pre "$CT" "$CT/src/Auto.cs" ct8c "$TMP/ct-auto.cs")" ]
+verdict $? "contract: a C# abstract class with block-bodied accessors and a Java abstract class with a static block are refused; one of auto-properties is not" ""
 { rep 40 '# why %s: the vendor socket drops idle peers after 30 s'; echo 'protocol = "tcp"'
   echo 'def g():'; echo '    """'; echo '    protocol negotiation happens upstream.'; echo '    """'; rep 12 '    x%s = 1'; } > "$TMP/ct-py.py"
 denied "$(pre "$CT" "$CT/src/net.py" ct9 "$TMP/ct-py.py")"
@@ -1764,23 +1773,36 @@ verdict $? "added: a fourth Edit adding prose after three warnings starts no awk
 
 # ---- 18. INTERPRETER WRITES (bash-write-effects): what a python run changed, read after it ----
 # One repo per case: a reused one carries an earlier case's marker. `ls` dates the marker, as any earlier call would.
+# Every call shares one session_id and keys its context on transcript_path, as a session's subagents do: a marker another
+# session dated reads nothing.
 if command -v python3 >/dev/null 2>&1; then
-  pyrun() { # $1 cwd, $2 session, $3 python source -> runs it as a heredoc, then the PostToolUse lane on that command
+  ebash() { # $1 cwd, $2 context, $3 command, $4 session (default sess), $5 event -> raw stdout of the PostToolUse lane
+    jq -n --arg cwd "$1" --arg t "/t/$2.jsonl" --arg c "$3" --arg s "${4:-sess}" --arg e "${5:-PostToolUse}" \
+      '{hook_event_name:$e,tool_name:"Bash",session_id:$s,transcript_path:$t,cwd:$cwd,tool_input:{command:$c}}' \
+      | bash "$HOOK" 2>/dev/null
+  }
+  efire() { # $1 cwd, $2 file, $3 context, $4 tool (default Write) -> the warning, in session sess
+    jq -n --arg fp "$2" --arg cwd "$1" --arg t "/t/$3.jsonl" --arg tool "${4:-Write}" \
+      '{hook_event_name:"PostToolUse",tool_name:$tool,session_id:"sess",transcript_path:$t,cwd:$cwd,tool_input:({file_path:$fp}
+        + if $tool == "Edit" then {old_string:"",new_string:"// why: the vendor caps ids at 2^31"} else {} end)}' \
+      | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
+  }
+  pyrun() { # $1 cwd, $2 context, $3 python source, $4 session, $5 event -> runs it as a heredoc, then the PostToolUse lane on that command
     local c="python3 - <<'PY'
 $3
 PY"
     (cd "$1" && bash -c "$c") >/dev/null 2>&1
-    bash_hook PostToolUse "$1" "$2" "$c" | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
+    ebash "$1" "$2" "$c" "${4:-sess}" "${5:-PostToolUse}" | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
   }
-  effrepo() { mkdir -p "$1/src"; calm "$1/src/Calm.php"; commit_all "$1"; bash_hook PostToolUse "$1" mark 'ls' >/dev/null; }
+  effrepo() { mkdir -p "$1/src"; calm "$1/src/Calm.php"; commit_all "$1"; ebash "$1" mark 'ls' >/dev/null; }
   DENSE_PY="open('src/Dense.js', 'w').write(open('$TMP/d6020.txt').read())"
 
   EA="$TMP/eff-a"; effrepo "$EA"
-  b_warn=$(pyrun "$EA" ea1 "$DENSE_PY"); w_warn=$(fire "$EA" "$EA/src/Dense.js" ea2)
+  b_warn=$(pyrun "$EA" ea1 "$DENSE_PY"); w_warn=$(efire "$EA" "$EA/src/Dense.js" ea2)
   [ -n "$w_warn" ] && [ "$b_warn" = "$w_warn$SUFFIX Dense.js." ]
   verdict $? "effects: a dense file a python heredoc wrote draws the Write warning plus the file suffix" "write=[$w_warn] python=[$b_warn]"
 
-  EB="$TMP/eff-b"; mkdir -p "$EB/src"; cp "$TMP/d6020.txt" "$EB/src/Old.js"; commit_all "$EB"; bash_hook PostToolUse "$EB" mark 'ls' >/dev/null
+  EB="$TMP/eff-b"; mkdir -p "$EB/src"; cp "$TMP/d6020.txt" "$EB/src/Old.js"; commit_all "$EB"; ebash "$EB" mark 'ls' >/dev/null
   expect "effects: a committed file over the ceiling whose code a python run changed is not judged on its existing density" \
     "$(pyrun "$EB" eb1 "p = 'src/Old.js'; s = open(p).read(); open(p, 'w').write(s.replace('return 1;', 'return 11;'))")" ""
   expect "effects: the same file once a python run adds a prose line to it draws the warning" \
@@ -1793,8 +1815,25 @@ PY"
   expect "effects: a python run that wrote nothing is silent" "$(pyrun "$EC" ec2 'print(1)')" ""
 
   EE="$TMP/eff-e"; effrepo "$EE"
-  cp "$TMP/d6020.txt" "$EE/src/Edited.js"; fire "$EE" "$EE/src/Edited.js" ee1 Edit >/dev/null
+  cp "$TMP/d6020.txt" "$EE/src/Edited.js"; efire "$EE" "$EE/src/Edited.js" ee1 Edit >/dev/null
   expect "effects: a file an Edit wrote before the run is not read as the run's write" "$(pyrun "$EE" ee2 'print(1)')" ""
+
+  EF="$TMP/eff-f"; effrepo "$EF"
+  out=$(pyrun "$EF" ef1 "$DENSE_PY; raise SystemExit(1)" sess PostToolUseFailure)
+  case "$out" in *"comment-to-code"*"$SUFFIX Dense.js.") true ;; *) false ;; esac \
+    && [ "$(printf '%s' "$(ebash "$EF" ef2 "python3 -c 'print(1)'; false" sess PostToolUseFailure)" | wc -c)" = 0 ] \
+    && printf '%s' "$(cp "$TMP/d6020.txt" "$EF/src/Dense2.js"; ebash "$EF" ef3 'cat x.py | python3; false' sess PostToolUseFailure)" \
+      | jq -e '.hookSpecificOutput.hookEventName == "PostToolUseFailure"' >/dev/null 2>&1
+  verdict $? "effects: a failed python run (PostToolUseFailure) is read too, its envelope naming that event, and a piped python counts" "out=[$out]"
+
+  EG="$TMP/eff-g"; effrepo "$EG"
+  expect "effects: a marker another session dated reads nothing" "$(pyrun "$EG" eg1 "$DENSE_PY" other-session)" ""
+
+  EH="$TMP/eff-h"; effrepo "$EH"
+  big=$(head -c 40000 /dev/zero | tr '\0' 'a')
+  expect "effects: a python run carrying a 40 kB data line is still read" \
+    "$(pyrun "$EH" eh1 "data = '$big'
+$DENSE_PY")" "$SUFFIX Dense.js."
 else
   echo "SKIP 18: python3 not available"
 fi

@@ -27,6 +27,11 @@ for f in commands/run.md commands/plan.md skills/task-execution/SKILL.md; do
 done
 grep -qE '^## Step 1: register the run' "$PLUGIN/skills/task-execution/SKILL.md" \
   && ok "the task-execution skill's step 1 is the registration" || bad "the task-execution skill's step 1 is the registration" "no such heading"
+# --tracks registers on the run branch: registered on main first, the sentinel named main, and on
+# the run branch the spawn cap asked at #20 and candor's clause stood down (2026-10-15).
+awk '/^\*\*`--tracks/,/^$/' "$PLUGIN/commands/run.md" | tr '\n' ' ' | grep -qE 'establish the run branch first.*register-run\.sh' \
+  && ok "run.md --tracks establishes the run branch before registering" \
+  || bad "run.md --tracks establishes the run branch before registering" "the paragraph registers first, or names no run branch"
 
 REPO="$WS/repo"; mkdir -p "$REPO/app/Models" "$REPO/taskmaster-docs/tasks/2026-01-01-demo"
 git -C "$REPO" init -q -b main && git -C "$REPO" config user.email t@t.t && git -C "$REPO" config user.name t

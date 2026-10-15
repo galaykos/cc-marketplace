@@ -12,8 +12,9 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open
 
 pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
-# Unset, CLAUDE_PROJECT_DIR cannot pull cc_state_root into the runner's repository; in-flight records land under this sandboxed TMPDIR.
-unset CLAUDE_PROJECT_DIR
+# Unset, CLAUDE_PROJECT_DIR cannot pull cc_state_root into the runner's repository, nor CLAUDE_PLUGIN_DATA move the gate's records
+#   out of the fixture; in-flight records land under this sandboxed TMPDIR.
+unset CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_DATA
 export TMPDIR="$WS/tmp"; mkdir -p "$TMPDIR"
 PREAMBLE="$ROOT/plugins/candor/hooks/preamble.sh"
 CWD="$WS/proj"; mkdir -p "$CWD/src" "$CWD/deep/nested"

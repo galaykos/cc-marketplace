@@ -28,7 +28,7 @@ under its anti-corpus exception.
 
 The main thread draws, before it dispatches the `creative-director` — that agent has no shell
 to hash a seed and no Write to record a draw, and three runs that left the draw to it got an
-improvised seed. It receives the draw and the seed in its dispatch.
+improvised seed. It receives the draw, the seed and the lens carry in its dispatch.
 
 1. Read `<project>/.craft-layer/run-log.md` and take the `draw` cell of the last 5 rows.
 2. EXCLUDE every option those rows used — the exclusion window is the last 5 draws,
@@ -43,13 +43,16 @@ improvised seed. It receives the draw and the seed in its dispatch.
    division), axis 2 takes the new `seed mod n`, and so on, counting options from 0 in the
    order listed (n = the options left on that axis). The same `seed mod n` on every axis
    would tie the three eight-option axes to one index, so only 8 of their 512 combinations
-   could ever come up; carrying the quotient reaches every combination.
+   could ever come up; carrying the quotient reaches every combination. The carry left after
+   axis 5 seeds the creative-director's tie-break lens (carry mod 4), and the main thread
+   passes it with the seed: the seed's own `mod 4` is axis 1's index `mod 4`, so the lens
+   would follow the composition drawn.
 
    Worked example, as the main thread computes it on a first run (nothing excluded, so n is
    8, 8, 8, 7, 9 down the axes):
 
    ```
-   s=$seed; for n in 8 8 8 7 9; do echo $((s % n)); s=$((s / n)); done
+   s=$seed; for n in 8 8 8 7 9; do echo $((s % n)); s=$((s / n)); done; echo "lens carry $s"
 
    brief 'a CRM for independent dental clinics', date 2026-10-15
    seed = first field of printf '%s' "${brief}2026-10-15" | cksum = 521869429
@@ -57,7 +60,8 @@ improvised seed. It receives the draw and the seed in its dispatch.
    axis 2:  65233678 mod 8 = 6, carry  8154209 -> Polarity flip
    axis 3:   8154209 mod 8 = 1, carry  1019276 -> Type recedes
    axis 4:   1019276 mod 7 = 6, carry   145610 -> Stillness by design
-   axis 5:    145610 mod 9 = 8                 -> Declared none
+   axis 5:    145610 mod 9 = 8, carry    16178 -> Declared none
+   lens:       16178 mod 4 = 2                 -> thesis carry
    ```
 
 ## Recording the draw

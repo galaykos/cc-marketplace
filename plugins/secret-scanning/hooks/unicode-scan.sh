@@ -1,5 +1,6 @@
 #!/bin/bash
-# unicode-scan.sh (PostToolUse on file writes and reads, Bash included; payload on stdin) — warns once per file per session, never blocks,
+# unicode-scan.sh (PostToolUse on file writes and reads, Bash included, and PostToolUseFailure on Bash; payload on stdin) — warns once per file
+#   per session, never blocks,
 #   naming line and codepoint, when a file the call wrote or read holds a zero-width, bidi, soft-hyphen, mid-file BOM or Unicode tag character;
 #   after a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also each file git reports changed since this hook's previous call.
 # Off: CC_UNICODE_SCAN=off or CC_REMIND=off. Fails open on every error path; its one-shot markers live in $TMPDIR, its one bash-effects marker in
@@ -188,33 +189,168 @@ cc_plugin_state() {
 
 # Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
-# cc_bash_effects_mark <root> <marker> rewrites <marker> when <root> holds a .git, making its directory with a `*` .gitignore.
-# Call it on EVERY tool call the hook sees (Write, Edit, Bash alike), after cc_bash_write_effects read <marker>: the tool has
-# finished before PostToolUse runs, so <marker> then post-dates every write of the last call this hook saw.
-# cc_bash_write_effects <root> <marker> <command> <max> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked AND newer than <marker>. It runs git only when <command> holds python, node, php,
-# ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, and <marker> exists.
-# Misses: writers it does not name, gitignored files, no git, a file written then reverted, a mv or cp -p destination (it
-# keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a parallel agent, a job.
+# cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
+# directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
+# cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
+# cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked, outside any .claude/ dir and newer than <marker>. It runs git only when <command> holds
+# python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, <marker>
+# holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and status.showUntrackedFiles is not no.
+# Misses: writers it does not name, gitignored files, submodules, no git, each session's first call, a file written then reverted, a
+# mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a
+# parallel agent, a job.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
-  local d="${2%/*}"
-  [ -d "$d" ] || { mkdir -p "$d" && printf '*\n' > "$d/.gitignore"; } 2>/dev/null || return 0
-  printf '%s\n' "$$" > "$2" 2>/dev/null
+  local d="${2%/*}" k
+  { [ -d "$d" ] || mkdir -p "$d"; } 2>/dev/null || return 0
+  { [ -e "$d/.gitignore" ] || printf '*\n' > "$d/.gitignore"; k=$(printf '%s' "$3" | cksum) && printf '%s\n' "${k%% *}" > "$2"; } 2>/dev/null
   return 0
 }
 cc_bash_write_effects() {
-  local re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)[[:space:]<]'
-  local e f n=0
-  local -a c
-  [ -f "$2" ] && [[ $3 =~ $re ]] || return 0
-  while [ "$n" -lt "$4" ] && IFS= read -r -d '' e; do
-    f="$1/${e:3}"
-    [ -f "$f" ] && ! [ "$2" -nt "$f" ] || continue
-    c[n]=$f; n=$((n + 1))
-  done < <(GIT_OPTIONAL_LOCKS=0 git -C "$1" status --porcelain -z --untracked-files=all --no-renames --ignore-submodules=all 2>/dev/null)
-  [ "$n" -gt 0 ] && find "${c[@]}" -prune -newer "$2" -print 2>/dev/null
+  local LC_ALL=C re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)([[:space:];&|)`<>]|$)' k m f
+  [ -f "$2" ] && [ "$1" != "${HOME%/}" ] && [[ $3 =~ $re ]] && IFS= read -r m < "$2" && k=$(printf '%s' "$5" | cksum) && [ "$m" = "${k%% *}" ] || return 0
+  case "$(git -C "$1" config status.showUntrackedFiles 2>/dev/null)" in no|false|off|0) return 0 ;; esac
+  # One find over the whole list, each path led by ./ so a name like -delete stays a path; the cap counts only what find kept.
+  while IFS= read -r f; do printf '%s\n' "$1/${f#./}"; done < <(exec 2>/dev/null; cd -- "$1" && GIT_OPTIONAL_LOCKS=0 git status --porcelain -z \
+    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e '/^...\.claude\//d' -e '/\/\.claude\//d' -e 's|^...|./|' \
+    | tr '\n' '\0' | xargs -0 sh -c 'exec find "$@" -prune -newer "$0" -type f -print' "$2" | head -n "$4")
   return 0
+}
+
+# Shared block templates/blocks/heredoc-bodies.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/heredoc-bodies.md
+# cc_strip_heredoc_bodies <mode> <command> [<reader ERE>] prints the command without the heredoc bodies the scan can place,
+# their terminators dropped with them. Mode all drops every such body. Mode inert keeps a body a reader may run: its opener's line
+# names a shell (rbash, mksh too), ssh, su, sudo -i/-s, runuser, chroot, exec, xargs, eval, source or `.`, or matches <reader ERE>
+# (tested lowercased, unquoted, space-padded), or the reader can sit off that line: a `\` continuation, a trailing | ( { do then
+# else, an unquoted $( ) ( ) <( ) but x=$( ), an fd number, a $ or quoted command word, a done/fi/esac/}/) lead. Once it drops a
+# body, inert keeps every line if a later line pipes into a reader (other words may sit before it; `.`, source, eval or a $ command
+# word first), or runs eval, a shell's -c or a $ command word after an x=$( ) or "$( )" body. Mode cd is inert with eval, source,
+# `.` and the ERE the only named readers, for a cd test: a body this shell runs is kept, one a named subshell runs is not. Every
+# mode keeps every line after a `<<` the scan cannot place (quoted, after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a
+# quote or ${ open across its line, a backtick, $$', an unmatched ), a terminator with stray blanks) and a body with no terminator.
+# Misses: inert drops a body fed to anything else (python3 -, node, at, a function, alias or coproc), written to a script a later
+# line runs, or read into a variable by read; a case pattern's ) inside $( ) closes it early.
+cc_strip_heredoc_bodies() {
+  printf '%s\n' "$2" | heredoc_readers="${3:-}" LC_ALL=C awk -v how="$1" '
+    BEGIN {
+      rd = ENVIRON["heredoc_readers"]; sw = "((ba|z|da|k|c|tc|a|rba|mk|ok|ya)?sh|fish)"; hr = "[ /](eval|source|\\.) "
+      sh = "[ /](" sw "|ssh|su|runuser|chroot|exec|xargs) |[ /](sudo|doas) ([^;&|()]* )?(-[a-z]*[is][a-z]*|--login|--shell) "
+      shc = "[ /]" sw "( -[-a-z]+)* -[a-z]*c "
+    }
+    function reads(w) { return rd != "" && w ~ rd || w ~ hr || how != "cd" && w ~ sh }
+    function norm(s) { s = tolower(s); gsub(/\\[^a-z0-9_]/, "", s); gsub(/["\047\\]/, "", s); gsub(/[<>|;&()]/, " & ", s); gsub(/[ \t]+/, " ", s); return " " s " " }
+    function delim(s, j,   c, q, w) {
+      q = ""; w = ""
+      for (; j <= length(s); j++) {
+        c = substr(s, j, 1)
+        if (q != "") { if (c == q) q = ""; else w = w c; continue }
+        if (c ~ /[ \t;&|<>()]/) break
+        if (c == "\\") { j++; w = w substr(s, j, 1) } else if (c == "\047" || c == "\"") q = c; else w = w c
+      }
+      return q == "" ? w : ""
+    }
+    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
+    function scan(s,   n, i, c, nx, d, t, w, j) {
+      n = length(s); cc = 0
+      for (i = 1; i <= n; i++) {
+        c = substr(s, i, 1); nx = substr(s, i + 1, 1); d = dl; dl = 0
+        if (sq) {
+          if (c == "<" && nx == "<") { off = 1; return 0 }
+          if (c == "\\" && ans) i++; else if (c == "\047") sq = 0
+          continue
+        }
+        if (c == "\\") { if (i == n) { dl = d; return 1 }; i++; pc = "x"; cs = 0; continue }
+        if (dq) {
+          if (c == "\"") { dq = 0; pc = c }
+          else if (c == "`" || c == "<" && nx == "<") { off = 1; return 0 }
+          else if (c == "$" && nx == "(") {
+            if (substr(s, i + 2, 1) == "(") { st = st "b"; i += 2 } else { st = st "q"; i++ }
+            dq = 0; pc = "("; cs = 1
+          }
+          continue
+        }
+        if (cs && c !~ /[ \t]/) {
+          if (c ~ /[$"`\047]/) cw = 1
+          else if (c == ")" || match(substr(s, i, 6), /^(done|fi|esac|[}])([ \t;&|<>)]|$)/)) cl = 1
+          else if (match(substr(s, i, 7), /^([{!]|then|do|else|elif|if|while|until)[ \t]/)) { i += RLENGTH - 1; pc = " "; continue }
+          cs = 0
+        }
+        if (c == "\047") { if (d > 1) { off = 1; return 0 }; sq = 1; ans = (d == 1); pc = c; continue }
+        if (c == "\"") { dq = 1; pc = c; continue }
+        if (c == "`") { off = 1; return 0 }
+        if (c == "#") {
+          if (pc ~ /[ \t\n;&|()<>]/) { cc = i; if (index(substr(s, i), "<<") || substr(s, n, 1) == "\\") off = 1; return 0 }
+          hash = 1
+        }
+        if (c == "$") {
+          dl = d + 1
+          if (nx == "(") {
+            if (substr(s, i + 2, 1) == "(") { st = st "a"; i += 2 } else { st = st (pc == "=" ? "v" : "p"); i++ }
+            pc = "("; cs = 1; continue
+          }
+          if (nx ~ /[{[]/) { st = st (nx == "{" ? "e" : "s"); i++; pc = nx; continue }
+        }
+        t = substr(st, length(st))
+        if (c ~ /[]}[]/ && t == (c == "}" ? "e" : "s")) { if (c == "[") st = st t; else { st = substr(st, 1, length(st) - 1); pc = "x" }; continue }
+        if (c == "(") { if (nx == "(") { st = st "a"; i++ } else st = st "p"; pc = c; cs = 1; continue }
+        if (c == ")") {
+          if (t ~ /^[es]?$/) { off = 1; return 0 }
+          if (t ~ /[ab]/) { if (nx != ")") { off = 1; return 0 }; i++ }
+          st = substr(st, 1, length(st) - 1); if (t ~ /[qb]/) dq = 1
+          pc = "x"; continue
+        }
+        if (c == "<" && nx == "<") {
+          if (substr(s, i + 2, 1) == "<") { i += 2; pc = "<"; continue }
+          if (hash || st ~ /[abes]/) { off = 1; return 0 }
+          if (st ~ /p/ || sd0 != "" || substr(s, i - 1, 1) ~ /[0-9]/) k2 = 1
+          j = i + 2; t = (substr(s, j, 1) == "-"); j += t
+          while (substr(s, j, 1) ~ /[ \t]/) j++
+          w = delim(s, j)
+          if (w !~ /^[A-Za-z0-9_.-]+$/) { off = 1; return 0 }
+          term[++nc] = w; tdash[nc] = t
+          i++; pc = "<"; continue
+        }
+        if (c ~ /[;&|]/) cs = 1
+        pc = c
+      }
+      return 0
+    }
+    { all[++na] = $0 }
+    mode == 2 { out[++no] = $0; next }
+    mode == 1 {
+      t = $0; if (tdash[qi]) sub(/^\t+/, "", t)
+      if (t == term[qi]) { if (keep) out[++no] = $0; else held[++nh] = $0; if (++qi > nc) { mode = 0; if (!keep) cut = 1; nh = 0 }; next }
+      t = $0; gsub(/^[ \t]+|[ \t]+$/, "", t)
+      if (t == term[qi]) { for (k = 1; k <= nh; k++) out[++no] = held[k]; nh = 0; out[++no] = $0; mode = 2; next }
+      if (keep) out[++no] = $0; else held[++nh] = $0
+      next
+    }
+    {
+      out[++no] = $0
+      if (cont) cflag = 1
+      else { sd0 = st; startq = sq || dq; nc = 0; hash = 0; cw = 0; cl = 0; k2 = 0; cflag = 0; pc = "\n"; cs = 1; lw = ""; dl = 0 }
+      lw = lw " " $0
+      cont = scan($0)
+      if (off) { mode = 2; next }
+      if (cont || !nc) next
+      if (startq || sq || dq || st ~ /[es]/) { mode = 2; next }
+      t = cc ? substr($0, 1, cc - 1) : $0; sub(/[ \t]+$/, "", t)
+      keep = how != "all" && (k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ || reads(norm(lw)))
+      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vq]/) cv = 1
+      qi = 1; mode = 1; nh = 0
+      next
+    }
+    END {
+      if (mode == 1 && !keep) for (k = 1; k <= nh; k++) out[++no] = held[k]
+      for (k = c0; cut && how != "all" && k <= no; k++) {
+        t = out[k]; if (t ~ /[|(]&?[ \t]*$/ && k < no) t = t " " out[k + 1]
+        u = t = norm(t); r = cv && (t ~ / eval |(^|[;&|]) \$/ || how != "cd" && t ~ shc)
+        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/ }
+        if (r) { for (k = 1; k <= na; k++) print all[k]; exit }
+      }
+      for (k = 1; k <= no; k++) print out[k]
+    }'
 }
 
 MARKER_TTL_MIN=1440
@@ -237,16 +373,18 @@ MAX_BASH_EFFECTS=8
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
 
   # Interpreter writes: read the effects with the old marker, then date it, on EVERY call this hook sees (a Read too), so a
-  # file an Edit changed or a command that wrote nothing is never read as the next run's write.
-  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  # file an Edit changed or a command that wrote nothing is never read as the next run's write. A failed Bash call fires
+  # PostToolUseFailure, whose envelope must name that event.
+  { IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; } < <(printf '%s' "$input" \
+    | jq -r '.cwd // "", .session_id // "", if .hook_event_name == "PostToolUseFailure" then .hook_event_name else "PostToolUse" end' 2>/dev/null)
   root=""; cmd=""; effects=""
   if [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(cc_state_root "$cwd"); then
     emark="$(cc_plugin_state "$root" secret-scanning)/bash-effects-unicode.mark"
     if [ "$tool" = Bash ]; then
       cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
-      effects=$(cc_bash_write_effects "$root" "$emark" "$cmd" "$MAX_BASH_EFFECTS")
+      effects=$(cc_bash_write_effects "$root" "$emark" "$cmd" "$MAX_BASH_EFFECTS" "$sess")
     fi
-    cc_bash_effects_mark "$root" "$emark"
+    cc_bash_effects_mark "$root" "$emark" "$sess"
   fi
 
   # report_file <path> — prints the file's warning, or nothing when it is clean, too big, unreadable or already reported.
@@ -328,11 +466,14 @@ PY
     [ -n "$cmd" ] && [ -n "$root" ] || exit 0
     targets=$(cc_bash_write_targets "$cmd" | head -n "$MAX_BASH_TARGETS")
     [ -n "$targets" ] || [ -n "$effects" ] || exit 0
+    # A cd inside a heredoc body moves nothing, so bodies are dropped before the cd test.
+    hascd=0
+    [ -n "$targets" ] && cc_strip_heredoc_bodies cd "$cmd" | grep -qE '(^|[;&|(])[[:space:]]*(cd|pushd)([[:space:];&|)]|$)' && hascd=1
     files=""
     while IFS= read -r p; do
       [ -n "$p" ] || continue
-      # A relative target resolves against the payload cwd: the shell's cwd when the command starts.
-      case "$p" in /*) ;; *) p="$cwd/$p" ;; esac
+      # A relative target resolves against the payload cwd, the shell's cwd when the command starts; after a cd it is skipped.
+      case "$p" in /*) ;; *) [ "$hascd" = 0 ] || continue; p="$cwd/$p" ;; esac
       # Logical cd && pwd, not pwd -P: the prefix test must compare in cc_state_root's spelling.
       d=$(CDPATH= cd -- "$(dirname -- "$p")" 2>/dev/null && pwd) || continue
       p="$d/$(basename -- "$p")"
@@ -370,8 +511,8 @@ $files
 EOF_F
   [ -n "$msg" ] || exit 0
 
-  jq -cn --arg c "${msg}Silence with CC_UNICODE_SCAN=off. This warns once per file per session and never blocks." \
-    '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$c}}' 2>/dev/null
+  jq -cn --arg c "${msg}Silence with CC_UNICODE_SCAN=off. This warns once per file per session and never blocks." --arg ev "${hev:-PostToolUse}" \
+    '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$c}}' 2>/dev/null
   exit 0
 } 2>/dev/null
 exit 0

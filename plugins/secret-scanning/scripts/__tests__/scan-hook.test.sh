@@ -191,16 +191,17 @@ else echo "FAIL no state: a .claude/ dir appeared under $REPO"; fail=$((fail+1))
 # call in a repo only sets the marker; a run that wrote nothing, a placeholder, and a file an Edit changed between two Bash calls stay silent.
 E=$(mktemp -d); trap 'rm -rf "$REPO" "$E"' EXIT
 git -C "$E" init -q 2>/dev/null; mkdir -p "$E/app" "$E/data"
-post() { # post <tool> <json tool_input> — the PostToolUse payload, cwd $E
-  jq -cn --arg t "$1" --argjson i "$2" --arg d "$E" '{hook_event_name:"PostToolUse", tool_name:$t, cwd:$d, tool_input:$i}' \
+post() { # post <tool> <json tool_input> [event] [session] — the PostToolUse payload, cwd $E, session sess
+  jq -cn --arg t "$1" --argjson i "$2" --arg d "$E" --arg e "${3:-PostToolUse}" --arg s "${4:-sess}" \
+    '{hook_event_name:$e, session_id:$s, tool_name:$t, cwd:$d, tool_input:$i}' \
     | CLAUDE_PLUGIN_DATA="$E/data" bash "$HOOK"
 }
-pyrun() { # pyrun <python source> — runs it in $E as the Bash tool would, then the PostToolUse lane
+pyrun() { # pyrun <python source> [event] [session] — runs it in $E as the Bash tool would, then the PostToolUse lane
   local c="python3 - <<'PY'
 $1
 PY"
   (cd "$E" && bash -c "$c") >/dev/null 2>&1
-  post Bash "$(jq -cn --arg c "$c" '{command:$c}')"
+  post Bash "$(jq -cn --arg c "$c" '{command:$c}')" "${2:-PostToolUse}" "${3:-sess}"
 }
 post_case() { # post_case <name> <ok: 0 or 1> <out>
   if [[ $2 -eq 1 ]]; then pass=$((pass+1)); else echo "FAIL post lane, $1: got: ${3:-<empty>}"; fail=$((fail+1)); fi
@@ -223,6 +224,16 @@ if command -v python3 >/dev/null 2>&1; then
   post Edit "$(jq -cn --arg f "$E/app/edited.py" '{file_path:$f, old_string:"a", new_string:"b"}')" >/dev/null
   out=$(pyrun "open('app/clean.py', 'w').write('x = 1\n')")
   ok=0; [[ -z "$out" ]] && ok=1; post_case "a file an Edit changed between two Bash calls is not read again" $ok "$out"
+  out=$(pyrun "open('app/failed.py', 'w').write('k = \"$AWS\"\n')
+raise SystemExit(1)" PostToolUseFailure)
+  ok=0; jq -e '.hookSpecificOutput.hookEventName == "PostToolUseFailure" and (.hookSpecificOutput.additionalContext | contains("app/failed.py"))' \
+    <<<"$out" >/dev/null 2>&1 && ok=1
+  post_case "a failed python run (PostToolUseFailure) warns in that event's envelope" $ok "$out"
+  ok=0; jq -e '[.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[].command] | any(test("hooks/scan.sh"))' \
+    "$(dirname "$HOOK")/hooks.json" >/dev/null 2>&1 && ok=1
+  post_case "scan.sh is registered on PostToolUseFailure for Bash" $ok "$(jq -c '.hooks.PostToolUseFailure' "$(dirname "$HOOK")/hooks.json")"
+  out=$(pyrun "open('app/other.py', 'w').write('k = \"$AWS\"\n')" PostToolUse other-session)
+  ok=0; [[ -z "$out" ]] && ok=1; post_case "a marker another session dated reads nothing" $ok "$out"
 else
   echo "SKIP post lane: python3 not available"
 fi

@@ -72,7 +72,9 @@ hue and type family are kept: no departure may replace them, so K lands on the o
    variance: the same winner archetype every round. So when two candidates are still level
    after that tie-break, ROTATE the lens that separates them, seeded from
    `<project>/.craft-layer/run-log.md` (row count modulo the list below; a log absent,
-   empty or malformed → the seed your dispatch carries, modulo the list):
+   empty or malformed → the carry left after the draw's fifth axis, modulo the list; your
+   dispatch passes it with the seed, and a dispatch without it means the seed divided by
+   32,256, whole-number. The seed itself would repeat axis 1's index):
    - **substance** — which candidate gives the page more to actually say.
    - **material honesty** — which is truer about what the product is made of and does.
    - **thesis carry** — how well the signature move carries the brief's central claim.

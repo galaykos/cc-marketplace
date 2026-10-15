@@ -156,6 +156,11 @@ gh pr merge 12 --squash' \
   out=$(run running "$c")
   is_ask "$out" && ok || bad "a merge behind a wrapper must ask" "$c"
 done
+# A `<<` inside ${ } or $[ ] opens no heredoc, so the merge on the next line runs.
+for c in $'echo ${v%<<EOF }\ngh pr merge 12\nEOF' $'echo $[x<<EOF ]\ngh pr merge 12\nEOF'; do
+  out=$(run running "$c")
+  is_ask "$out" && ok || bad "a merge after a << that opens no heredoc must ask" "$c"
+done
 out=$(run running 'gh pr merge 12' mcp__ide__execute_terminal_command)
 is_ask "$out" && ok || bad "the MCP terminal tool is read too" "$out"
 

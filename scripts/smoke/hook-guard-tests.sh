@@ -141,6 +141,15 @@ if [ -f "$TMR" ]; then
     '{"prompt":"the importer drops rows <pasted_content id=\"p3\">\nplease fix the importer and add a regression test"}'
   assert_speaks "taskmaster [hand-back marker mid-sentence]"      "$TMR" \
     '{"prompt":"please fix the parser that handles the [Subagent hand-back] marker"}'
+  # Range review: each spoke before promptShape and went silent with it. A ship noun followed by to, into, onto or with is the
+  # object of feature work; for, from, off, against, called and named still end a ship phrase.
+  assert_speaks "taskmaster [PRs to a view]"                      "$TMR" '{"prompt":"add PRs to the dashboard"}'
+  assert_speaks "taskmaster [pull requests to a feed]"            "$TMR" '{"prompt":"add pull requests to the activity feed"}'
+  assert_speaks "taskmaster [commits to a view]"                  "$TMR" '{"prompt":"add commits to the timeline view"}'
+  assert_speaks "taskmaster [the PR to a sidebar]"                "$TMR" '{"prompt":"add the PR to the sidebar"}'
+  assert_speaks "taskmaster [dotted name beside tag, to a post]"  "$TMR" '{"prompt":"add the next.js tag to the post"}'
+  assert_speaks "taskmaster [tag beside a joined name, to a logo]" "$TMR" '{"prompt":"add a tag v-shaped to the logo"}'
+  assert_silent "taskmaster [ship-only: create a PR for this]"    "$TMR" '{"prompt":"create a PR for this"}'
 fi
 
 # debugging 0.3.18: the stuck-loop trigger covers the phrases a stuck user actually

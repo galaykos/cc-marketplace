@@ -27,8 +27,9 @@
 #               exist and to be a different toplevel than the live repo BEFORE anything
 #               runs (refuses, exit 3, otherwise — it never falls back to running in
 #               place), removed by the EXIT trap. It never reads or writes the live .env;
-#               when one exists and the tree has no .env.example, the tree root gets an
-#               empty .env, so a loader walking up parent directories stops there.
+#               when one exists and the tree has no .env.example, .env.dist or
+#               .env.sample to copy, the tree root gets an empty .env, so a loader
+#               walking up parent directories stops there.
 #               Inside the repo, not $TMPDIR (2026-10-14): a suite that only runs in a
 #               container (docker exec, sail, ddev, lerd) sees the repo's bind mount and
 #               nothing in /tmp, so a 119/119-green suite could not be run against the
@@ -155,8 +156,9 @@ set_runner_for() { # set_runner_for <lang> <spec>
   check_spec "--runner-for $1" "$2"
   printf -v "RF_$1" '%s' "$2"
 }
-# Only the flag sets these: one inherited from the environment replaced a runner unasked.
-unset RF_py RF_js RF_go RF_php RF_rs RF_rb RF_java
+# Only the flag sets these: one inherited from the environment replaced a runner unasked,
+# and an RF_custom<N> was called as parse_custom<N>.
+unset ${!RF_@}
 while [ $# -gt 0 ]; do
   case "$1" in
     --record-dir)     shift; [ $# -gt 0 ] || usage "--record-dir requires a value"; BG_RECORD_DIR="$1"; shift ;;
@@ -243,8 +245,11 @@ if [ "$ISOLATE" = 1 ]; then
   done
   # Environment: built from the tree's OWN committed example, by absolute path into the
   # verified tree. The live .env is never read — it holds the developer's credentials.
-  if [ -f "$ISO_TREE/.env.example" ] && [ ! -e "$ISO_TREE/.env" ]; then
-    cp "$ISO_TREE/.env.example" "$ISO_TREE/.env" || iso_refuse "cannot write $ISO_TREE/.env"
+  # .env.dist too: Symfony's Dotenv reads it only while .env is absent, so an empty .env hid it.
+  env_src=""
+  for f in .env.example .env.dist .env.sample; do [ -f "$ISO_TREE/$f" ] && { env_src=$f; break; }; done
+  if [ -n "$env_src" ] && [ ! -e "$ISO_TREE/.env" ]; then
+    cp "$ISO_TREE/$env_src" "$ISO_TREE/.env" || iso_refuse "cannot write $ISO_TREE/.env"
   fi
   # The tree sits inside the live repo, so a loader that walks up parent directories for a
   # .env (python-dotenv's find_dotenv) found the live one. An empty one at the tree root
@@ -401,7 +406,7 @@ pkg_test_script() {
 # `$(verdict_*)` command-substitution subshells below: those inherit WORKTMP but do
 # NOT fire the parent's EXIT trap, so the dir survives until the parent cleans it —
 # and the trap's `rm -rf` returns 0, so it never clobbers the script's exit code.
-CAP=""; RUN_RC=0
+CAP=""; RUN_RC=0; RAW_CAP=""
 WORKTMP=$(mktemp -d) || { log "cannot create temp workspace (mktemp -d failed)"; exit 3; }
 trap 'rm -rf "$WORKTMP"; pid_cleanup; iso_cleanup' EXIT INT TERM
 run_capture() {
@@ -409,7 +414,10 @@ run_capture() {
   run_with_timeout "$TIMEOUT_SECS" "$@" >"$WORKTMP/cap" 2>&1
   RUN_RC=$?
   set -e
-  CAP=$(cat "$WORKTMP/cap")
+  # Terminal codes off: Pest (colors="true"), jest (FORCE_COLOR, `docker exec -t`) and vitest
+  # (CI set) colour a file too, splitting `Tests` from its count. Probes compare raw output.
+  if [ -n "${RAW_CAP:-}" ]; then CAP=$(cat "$WORKTMP/cap")
+  else CAP=$(sed $'s/\033\\[[0-9;?]*[A-Za-z]//g' "$WORKTMP/cap"); fi
 }
 
 # ---- (b)+(c) per-runner verdict: covered | empty-suite | no-behavioral-coverage | unverifiable-suite
@@ -430,13 +438,15 @@ verdict_py() {
 # ---- parse_<lang>: CAP and RUN_RC -> verdict, after a run that started and did not time out.
 # The built-in runner and --runner-for share them, so a replacement must show the evidence the
 # built-in would have: a `docker exec` into a stopped container exits 1 with no count, and read
-# covered while --runner-for skipped this.
+# covered while --runner-for skipped this. Each also takes the count line of the language's
+# sibling runners (unittest, minitest, nextest, gotestsum, bun, Playwright), which a
+# replacement is often for.
 parse_py() { # parse_py [wrapped]: a wrapper's exit code may be its own, so a count must show too
   case "$RUN_RC" in
     5)   printf 'empty-suite\n' ;;                                             # exit 5 = no tests collected
     0|1)
-      if [ -n "${1:-}" ] && ! printf '%s\n' "$CAP" | grep -Eq '[1-9][0-9]* (passed|failed)'; then
-        log "pytest: exit $RUN_RC but no 'N passed/failed' summary — cannot confirm a suite ran (fail-closed)"
+      if [ -n "${1:-}" ] && ! printf '%s\n' "$CAP" | grep -Eq '[1-9][0-9]* (passed|failed)|^Ran [1-9][0-9]* tests?'; then
+        log "pytest: exit $RUN_RC but no 'N passed/failed' or 'Ran N tests' summary — cannot confirm a suite ran (fail-closed)"
         printf 'unverifiable-suite\n'
       elif [ "$RUN_RC" = 1 ]; then log "pytest: suite RED (>=1 test failed) — coverage present"; printf 'covered\n'
       else printf 'covered\n'; fi ;;                                         # >=1 test collected & passed
@@ -499,14 +509,17 @@ verdict_pkg() {
 }
 
 parse_js() { # the package.json script's parse; a --runner-for js command is a script too
-  # The jest "passed count" is anchored to jest's own '^Tests:' summary line, so a
-  # "Test Suites: 1 passed" line (printed even for an empty --passWithNoTests run)
-  # can NEVER satisfy coverage. Mocha's "N passing" and node/TAP "tests N" remain.
+  # The jest "passed count" must follow jest's own 'Tests:' label with only counts between,
+  # so a "Test Suites: 1 passed" line (printed even for an empty --passWithNoTests run)
+  # can NEVER satisfy coverage, and a workspace prefix (`web:test: Tests: …`) still can.
+  # Mocha's "N passing", node/TAP "tests N", bun's "Ran N tests" and a line that opens
+  # with "N passed"/"N pass" (Playwright, bun) remain.
   if printf '%s\n' "$CAP" | grep -Eiq \
-      'tests[[:space:]]+[1-9]|[1-9][0-9]*[[:space:]]+passing|^Tests:.*[1-9][0-9]*[[:space:]]+(passed|failed)'; then
+      'tests[[:space:]]+[1-9]|[1-9][0-9]*[[:space:]]+passing|(^|[^A-Za-z])Tests:[[:space:]]+([0-9]+[[:space:]]+[a-z]+,[[:space:]]+)*[1-9][0-9]*[[:space:]]+(passed|failed)|^[[:space:]]*[1-9][0-9]*[[:space:]]+(pass|fail)(ed)?([^[:alpha:]]|$)|Ran [1-9][0-9]* tests?'; then
     printf 'covered\n'; return
   fi
-  if printf '%s\n' "$CAP" | grep -Eiq 'No tests found|tests[[:space:]]+0([^0-9]|$)|0[[:space:]]+total|0[[:space:]]+passing'; then
+  # Anchored to jest's own 'Tests:' label: jest prints "Snapshots:   0 total" on every run.
+  if printf '%s\n' "$CAP" | grep -Eiq 'No tests found|tests[[:space:]]+0([^0-9]|$)|Tests:[[:space:]]+0[[:space:]]+total|0[[:space:]]+passing'; then
     printf 'empty-suite\n'; return
   fi
   log "js: no parseable test count in output — refusing to assume coverage (fail-closed)"
@@ -537,7 +550,12 @@ parse_go() {
   # COVERED is checked BEFORE empty: in a multi-package module one package can have
   # passing tests ('ok') while another has none ('[no test files]'). Any real result
   # line proves tests ran, so empty is declared ONLY when no result line exists.
-  if printf '%s\n' "$CAP" | grep -Eq '^(ok|PASS|FAIL|---)'; then printf 'covered\n'; return; fi
+  # Result lines only: a bare `^---` or `^ok` also matched a wrapper's own banner
+  # ("--- :go: unit tests") above a docker error, and read covered.
+  if printf '%s\n' "$CAP" | grep -Eq \
+      '^(ok|FAIL)[[:space:]]+[^[:space:]]+|^--- (PASS|FAIL|SKIP):|^(PASS|FAIL)$|^DONE [1-9][0-9]* tests?'; then
+    printf 'covered\n'; return
+  fi
   if printf '%s\n' "$CAP" | grep -Eq 'no test files'; then printf 'empty-suite\n'; return; fi
   log "go test: no parseable result — fail-closed"; printf 'unverifiable-suite\n'
 }
@@ -573,11 +591,6 @@ verdict_php() {
 }
 
 parse_php() {
-  # Colour codes off first: with colors="true" in phpunit.xml, Pest colours output written
-  # to a file too (measured, Pest 5.3.2), so `Tests:` was followed by an escape sequence,
-  # not the count, and a green suite read unverifiable. Only SGR (`ESC[…m`) codes are
-  # stripped, and only here; other runners' captured output is matched as it comes.
-  CAP=$(printf '%s\n' "$CAP" | sed $'s/\033\\[[0-9;]*m//g')
   # PHPUnit's empty signal is "No tests executed!"; Pest's is "No tests found".
   if printf '%s\n' "$CAP" | grep -Eq 'No tests executed|No tests found'; then printf 'empty-suite\n'; return; fi
   # PHPUnit green: "OK (5 tests, 9 assertions)". PHPUnit red and Pest both print a
@@ -612,7 +625,7 @@ parse_rs() {
   # COVERED before EMPTY, as with go: a crate has one 'test result:' line per target
   # (lib, each bin, each integration test, doc-tests), so a 0-passed line sits beside
   # a real one routinely. Empty is declared only when NO target passed anything.
-  if printf '%s\n' "$CAP" | grep -Eq 'test result:.*[1-9][0-9]* passed'; then printf 'covered\n'; return; fi
+  if printf '%s\n' "$CAP" | grep -Eq 'test result:.*[1-9][0-9]* passed|[1-9][0-9]* tests? run:'; then printf 'covered\n'; return; fi
   if printf '%s\n' "$CAP" | grep -Eq 'test result:.*\b0 passed'; then printf 'empty-suite\n'; return; fi
   log "cargo test: no parseable 'test result:' line — fail-closed"; printf 'unverifiable-suite\n'
 }
@@ -639,7 +652,7 @@ parse_rb() {
   # "0 examples, 0 failures" is the empty signal and it is unambiguous — rspec prints
   # exactly one summary line per run — so it is checked first.
   if printf '%s\n' "$CAP" | grep -Eq '(^|[^0-9])0 examples'; then printf 'empty-suite\n'; return; fi
-  if printf '%s\n' "$CAP" | grep -Eq '[1-9][0-9]* examples?'; then printf 'covered\n'; return; fi
+  if printf '%s\n' "$CAP" | grep -Eq '[1-9][0-9]* examples?|[1-9][0-9]* runs?, '; then printf 'covered\n'; return; fi
   log "rspec: no parseable 'N examples' summary — fail-closed"; printf 'unverifiable-suite\n'
 }
 
@@ -766,7 +779,7 @@ done
 # Reuses the card-06 isolation/timeout helpers (run_capture / run_with_timeout).
 SHELL_EPS=()
 smoke_entrypoints() {
-  local TIMEOUT_SECS="$PROBE_SECS" # run_capture reads it; probes keep the short cap
+  local TIMEOUT_SECS="$PROBE_SECS" RAW_CAP=1 # run_capture reads both; probes keep the short cap
   # nothing to smoke; a --differential with no shell entrypoint to run against is usage
   if [ "${#ENTRYPOINTS[@]}" -eq 0 ]; then
     [ "${#DIFFERENTIALS[@]}" -eq 0 ] || usage "--differential requires a shell --entrypoint to run against"

@@ -691,6 +691,31 @@ expect allow $'git commit -m "$(cat <<\'EOF\'\nphp artisan migrate:fresh is deni
 expect allow $'x=$(cat <<\'EOF\'\nphp artisan migrate:fresh\nEOF\n)'
 expect allow $'cat > install.md <<\'EOF\'\nmake build | sh\nphp artisan migrate:fresh\nEOF'
 expect ask   $'cat > notes.txt <<\'EOF\'  # it\'s data\nit\'s "half\nEOF\ngit reset --hard'
+# Each judged as 0.8.4 judged it: a pipe into a wrapped shell, $SHELL or a SQL client after the body (through the hook entry point),
+# a `<<` inside ${ } or $[ ], a # glued to a closing ), a body captured in x=$( ) and run later, a shell 0.8.5 did not name.
+for v in $'{ cat <<EOF\nphp artisan migrate:fresh\nEOF\n} | sudo -u deploy bash' $'{ cat <<EOF\nphp artisan migrate:fresh\nEOF\n} | timeout 60 bash' \
+  $'{ cat <<EOF\nphp artisan migrate:fresh\nEOF\n} | env X=1 bash' $'{ cat <<EOF\nphp artisan migrate:fresh\nEOF\n} | nice -n 5 bash' \
+  $'{ cat <<EOF\nphp artisan migrate:fresh\nEOF\n} | $SHELL' $'for i in 1; do cat <<EOF\nphp artisan migrate:fresh\nEOF\ndone | sudo -u deploy bash' \
+  $'{ cat <<SQL\nDROP DATABASE prod;\nSQL\n} | mysql' $'{ cat <<EOF\nphp artisan migrate:fresh\nEOF\n} | eval "$(cat)"'; do
+  d=$(hook "$(bash_json "$v")" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+  [ "$d" = "deny" ] && ok || bad "heredoc: a body piped into a reader later is judged" "verdict=${d:-<silent>} cmd=$v"
+done
+expect deny  $'echo ${v%<<EOF }\nphp artisan migrate:fresh\nEOF'
+expect ask   $'echo ${v%<<EOF }\ngit reset --hard\nEOF'
+expect deny  $'echo $[x<<EOF ]\nphp artisan migrate:fresh\nEOF'
+expect deny  $'cat <(true)#\'\ncat <<EOF\n\'\ngit push --force origin main\nEOF'
+expect deny  $'x=$(cat <<\'EOF\'\nphp artisan migrate:fresh\nEOF\n)\neval "$x"'
+expect deny  $'x=$(cat <<\'EOF\'\nphp artisan migrate:fresh\nEOF\n)\nbash -c "$x"'
+expect deny  $'x=$(cat <<\'EOF\'\nphp artisan migrate:fresh\nEOF\n)\n$x'
+expect deny  $'x="$(cat <<\'EOF\'\nphp artisan migrate:fresh\nEOF\n)"\neval "$x"'
+expect deny  $'rbash <<EOF\nphp artisan migrate:fresh\nEOF'
+expect deny  $'mksh <<EOF\nphp artisan migrate:fresh\nEOF'
+expect deny  $'sudo -i <<EOF\nphp artisan migrate:fresh\nEOF'
+expect deny  $'runuser -l deploy <<EOF\nphp artisan migrate:fresh\nEOF'
+# A later shell that does not take the body, or a pipe that is only quoted or escaped text, leaves the body data.
+expect allow $'cat > notes.txt <<\'EOF\'\nphp artisan migrate:fresh\nEOF\ndocker exec app sh -c \'ls\''
+expect allow $'cat > notes.txt <<\'EOF\'\nphp artisan migrate:fresh\nEOF\ngrep -rn "a\\|b" . | head'
+expect allow $'cat > notes.txt <<\'EOF\'\nphp artisan migrate:fresh\nEOF\ngit push'
 
 SNAP_AFTER=$(git_snap)
 [ "$SNAP_BEFORE" = "$SNAP_AFTER" ] && ok || bad "the guard mutated plugins/command-guard" "git status --porcelain -- plugins/command-guard changed"

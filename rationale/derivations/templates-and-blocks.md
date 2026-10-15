@@ -232,22 +232,27 @@ git sees changed since the hook's previous call.
 ### Contract
 
 ```text
-cc_bash_effects_mark <root> <marker> — nothing unless <root>/.git exists: outside git
-  there is no effect to read, and a marker there is a stray file in the user's
-  directory. Makes <marker>'s directory with a `*` .gitignore when it is missing, so a
-  repo-path fallback state dir stays invisible to git, then rewrites <marker> (a write,
-  not touch: no fork, and a write always moves mtime).
-cc_bash_write_effects <root> <marker> <command> <max> — nothing, and no git, unless
-  <marker> exists and <command> holds python, php, ruby, perl or node (any version
-  suffix, any directory before it), nodejs, deno, bun, cp, mv, install or patch as a
-  word: after the start, whitespace, ; & | ( or a backtick, before whitespace or <. Then
-  GIT_OPTIONAL_LOCKS=0 git status --porcelain -z --untracked-files=all --no-renames
-  --ignore-submodules=all; each regular file bash's -nt does not call older than
-  <marker> is a candidate, up to <max>; one find <candidates> -prune -newer <marker>
-  prints the strictly newer ones as <root>/<path>.
+cc_bash_effects_mark <root> <marker> <session> — nothing unless <root>/.git exists:
+  outside git there is no effect to read, and a marker there is a stray file in the
+  user's directory. Makes <marker>'s directory when it is missing and gives it a `*`
+  .gitignore whenever it has none, so a repo-path fallback state dir stays invisible to
+  git even when another hook of the plugin made the dir first; then rewrites <marker>
+  with the cksum of <session> (a write, not touch: a write always moves mtime).
+cc_bash_write_effects <root> <marker> <command> <max> <session> — nothing, and no git,
+  unless <marker> exists, <root> is not $HOME, <command> holds python, php, ruby, perl or
+  node (any version suffix, any directory before it), nodejs, deno, bun, cp, mv, install
+  or patch as a word (after the start, whitespace, ; & | ( or a backtick; before
+  whitespace, ; & | ) a backtick, < or >, or at the end), and <marker> holds the cksum of
+  <session>. Then nothing when git config status.showUntrackedFiles is no (false, off,
+  0). Else, in <root>: GIT_OPTIONAL_LOCKS=0 git status --porcelain -z
+  --untracked-files=all --no-renames --ignore-submodules=all, every path under a .claude/
+  dir dropped, each led by ./, through one xargs -0 find … -prune -newer <marker> -type f,
+  capped by head -n <max>, printed as <root>/<path>. The regex runs under LC_ALL=C.
 Caller: read the effects with the OLD marker, then mark — on every call the hook sees,
-  an Edit or a command that wrote nothing too; feed each path to the per-file logic the
-  Write branch uses, deduped against cc_bash_write_targets; name the <max> constant.
+  an Edit or a command that wrote nothing too; pass the payload's session_id to both;
+  register the hook on PostToolUseFailure for Bash as well and answer in that event's
+  envelope; feed each path to the per-file logic the Write branch uses, deduped against
+  cc_bash_write_targets; name the <max> constant.
 ```
 
 ### Where it departs from the design sketch, and why
@@ -256,10 +261,36 @@ Caller: read the effects with the OLD marker, then mark — on every call the ho
 - The filter matches any interpreter word, not only a heredoc, -c/-e or a script path:
   python -m black . writes files and has none of the three. A wrong match costs one git
   status, never a wrong report — the mtime test decides what is printed.
-- -nt, then find: bash 5's -nt is sub-second, macOS's bash 3.2 compares whole seconds
-  (task-runner's scope.sh states the same). -nt picks a superset under either; find
-  -newer, sub-second on GNU and BSD, decides. find gets at most <max> arguments, so a
-  large dirty tree cannot overflow ARG_MAX, and it runs only when a candidate exists.
+- One find over git's whole list, capped after it. The first cut walked the list in a
+  bash `read -d ''` loop, a byte per syscall, testing each path with -f and -nt before
+  the cap: 30,000 untracked files cost 325 ms a hook, eight hooks a call (2026-10-15
+  range review B8/E5). tr|sed|tr strips git's `XY ` prefix without a loop (sed -z is
+  GNU-only); xargs splits the list under ARG_MAX; find -newer, sub-second on GNU and
+  BSD, decides alone, so macOS bash 3.2's whole-second -nt no longer admits the previous
+  call's file to a cap slot. The ./ lead keeps a path named -delete a path: find reads
+  a leading - as an expression.
+- LC_ALL=C around the regex: in a UTF-8 locale glibc's matcher is quadratic on a long
+  token with no separator, and `echo '<150 kB base64>' | base64 -d > logo.png` cost
+  scan.sh 244 ms where it cost 14 (2026-10-15 range review E3).
+- The marker holds the session's cksum, and another session's marker reads as none: a
+  marker that outlived its session read the user's overnight edits as the next
+  session's first run (B4/E2, measured with an AWS key id and an eval() in an IDE
+  edit). Stored as a cksum, the form pc_marker_key asks of a key that reaches a path;
+  session_id, not transcript_path, so a session's subagents share one window. Cost: the
+  first call of each session that reaches the hook reads nothing, and two sessions in
+  one repo at once read nothing whenever the other session's call came last.
+- No read when <root> is $HOME or status.showUntrackedFiles is no: a session in a
+  non-git folder under a dotfiles $HOME took $HOME for its root, and
+  --untracked-files=all overrode the config there: 150,000 files, 1.5 s a hook, and
+  the session's own transcript under .claude/projects reported as written (E4).
+  Nothing under a .claude/ dir is read either: it holds this marketplace's state, and a
+  sibling plugin's fresh marker read as the command's write (B7).
+- PostToolUseFailure: a Bash command that exits non-zero fires that event and not
+  PostToolUse (the range review's live probe, CLI 2.1.300; the binary builds its payload
+  from the same base as PostToolUse's, so it carries tool_input, session_id,
+  transcript_path and cwd — read from the 2.1.293–2.1.300 binaries, 2.1.291 not on disk). An adopter registered on PostToolUse alone read
+  nothing for it, and the next call re-dated the marker past its writes (B1). The
+  envelope must name the event it ran for: the host rejects a hookEventName mismatch.
 - GIT_OPTIONAL_LOCKS=0: a plain git status refreshes the index under index.lock, and a
   parallel agent's git add or commit then fails on the lock. The cost is the racy-index
   case under Measured.
@@ -291,6 +322,18 @@ Racy index: right after a clone or checkout, until a git command that may take
 index.lock runs, a GIT_OPTIONAL_LOCKS=0 status re-hashes every racily clean file — (b)
 127.5 ms on the clone above, raw status ~197 ms on the 100k repo. One ordinary git
 status brings both back to the numbers above. An Edit costs the same as before.
+
+Second round, same day (range review fixes), 20 runs, median (max), before → after, on
+a synthetic 2,786-file repo (the work repo above was not cloned again):
+  (a) route.sh 11.4 (11.7) → 12.8 (13.0); every adopter +1.2 to +1.7 ms, the cksum
+      the marker now holds. PreToolUse lanes unchanged.
+  (b) route.sh 18.2 (19.3) → 22.8 (25.1); every adopter +4.2 to +5.3 ms: the
+      showUntrackedFiles read and the tr|sed|tr|xargs|find|head pipeline.
+  30,000 untracked files, no write: route.sh 281.1 → 51.5 ms, scan.sh 282.3 → 57.1.
+  echo '<150 kB base64>' | base64 -d > logo.png, no match: scan.sh 244.1 → 21.2,
+  density.sh 242.8 → 21.0, route.sh 419.4 → 198.7 (the rest is bash-write-targets'
+  mask), write-scan.sh 432.7 → 210.6, unicode-scan.sh 416.9 → 207.9. A 1 MB token
+  through route.sh: 15 s → 115 ms (route.test.sh case 25 bounds it at 3 s).
 ```
 
 ### What it does not catch, stated
@@ -298,18 +341,29 @@ status brings both back to the numbers above. An Edit costs the same as before.
 ```text
 - A writer named only through another word: npx prettier --write, vendor/bin/pint,
   eslint --fix, make, git apply, git stash pop, uv run.
-- Gitignored outputs, a repo with no git, a file outside <root> (/tmp).
+- Gitignored outputs, a repo with no git, a file outside <root> (/tmp), a file in a
+  submodule, anything under a .claude/ dir.
+- A root that is $HOME, or a repo with status.showUntrackedFiles=no: nothing at all.
 - A file written and reverted in one command, or rewritten byte-identical when clean:
-  not dirty.
+  not dirty; a file written and committed, or staged and committed, in one command.
 - mv, cp -p and cp -a destinations keep the source's mtime: reported only when that is
   newer than <marker>.
-- Files past <max>, taken in git's path order, not newest first.
-- The first call in a repo: no marker yet.
+- Files past <max>, taken in git's path order, not newest first. The cap counts files
+  before the caller's own filters (its file types, its scope exemptions), so a changed
+  file the caller skips can take the slot of one it would judge.
+- The first call of each session that reaches the hook (no marker, or another
+  session's); with two sessions in one repo at once, any call after the other
+  session's.
+- A run_in_background command: the hook runs at its launch, before its writes. The next
+  matching Bash call reads them as its own; any other call first dates them away.
+- A path with a newline in its name.
 - PreToolUse lanes: the effect does not exist yet. testing's protect-tests, command-guard's
   config-guard, database's guard and devops's workflow-guard stay blind to it.
-Reads too much: anything that changed a file since the hook's previous call — an IDE
-save, a parallel agent's tool this hook does not match, a background job, everything
-changed while the hook was switched off — is reported as this command's write.
+Reads too much: anything that changed a file since the hook's previous call in the
+session — an IDE save, a parallel agent's tool this hook does not match, a watcher or
+a job, everything changed while the hook was switched off — is reported as this
+command's write. task-runner's scope.sh says so in its warning for such a path and
+never tells the agent to revert it.
 Standing: the byte lock is a gate (pc_shared_blocks); behaviour is gated per adopter
 harness; the over-read and the racy-index cost are recorded here, nothing reads them.
 ```
@@ -317,9 +371,12 @@ harness; the over-read and the racy-index cost are recorded here, nothing reads 
 ### Adopters (2026-10-15)
 
 ```text
-All eight PostToolUse hooks carrying cc_bash_write_targets: skill-router route.sh
-(route.test.sh case 24), task-runner scope.sh (a marker older than active-run.json reads
-nothing, so a new run does not inherit the gap between runs), code-review density.sh
+All eight PostToolUse hooks carrying cc_bash_write_targets, each also registered on
+PostToolUseFailure for Bash: skill-router route.sh (route.test.sh cases 24 and 25),
+task-runner scope.sh (a marker older than active-run.json reads nothing, so a new run
+does not inherit the gap between runs; a path only the effects found is worded as
+"changed since the previous tool call", may not be this command's, never "revert this
+edit"), code-review density.sh
 (judged only when the file holds more prose than its HEAD copy), scan.sh and
 conventions.sh, security write-scan.sh, secret-scanning unicode-scan.sh and scan.sh (a
 new warn-only PostToolUse lane; its Pre lane cannot see an effect). Content scanners
@@ -363,6 +420,14 @@ ship noun used as a feature ("add tags", "add a branch to the store locator"), e
 an unclosed paste tag eating the rest of the prompt, and the hand-back marker matched
 mid-sentence. Each was turned toward speaking: a false nudge costs one line, a false
 silence costs the nudge in the moment it exists for.
+
+A second review (2026-10-15) found more of the same: `?`-ended requests with no listed
+request form ("why isn't the build passing…?", "is it possible to add…?", "can someone
+look?"), a hands-off clause beside the work it constrains ("Refactor the importer, but
+don't touch anything yet in the exporter"), and a ship noun as the object of feature work
+("add PRs to the dashboard"). The fix narrows when the test may silence instead of listing
+more phrases: the question test takes an ERE from its adopter and stays out of the way
+of any prompt matching it, and a ship phrase no longer ends at to, into, onto or with.
 ```
 
 ### Contract
@@ -381,17 +446,20 @@ cc_prompt_ship_only <text> <verb-ERE> — status 0 when the text has at least on
   <verb-ERE> match and every match is create, add, open or make governing a ship noun:
   the verb, any of a fixed list of determiners and modifiers (a, the, new, draft,
   feature, release…), at most one other word, then the noun, ended by punctuation, the
-  end, a joined name, or a joining word (for, to, from, into, named…). `and`, `then`
+  end, a joined name, or for, from, off, against, called or named; to, into, onto and
+  with make the noun an object ("add PRs to the dashboard" is work). `and`, `then`
   and `&` are turned into `;` first, so a conjunction is never the word before a noun.
   PR, pull request and commit are ship nouns always; branch, push, merge, tag and
   release only when the text also names a PR, pull request, commit or `git`, a joined
   name sits beside the noun, or feature/hotfix/release precedes it.
   A hyphen-, slash-, dot- or underscore-joined token is one word with no verb in it.
-cc_prompt_question <text> — status 0 when the text ends in `?` and holds no request
-  (can/could/would/will you|u|we, please, why is|are|was|were|does|do|did), or holds
-  "don't (start) work(ing) on anything|it|this|that" before punctuation, the end, yet,
-  for now, until or before; "don't <making verb> anything yet|for now|until|before";
-  or is, whole, "(please) don't <making verb> anything".
+cc_prompt_question <text> <verb-ERE> — status 1 when the ERE is empty. Status 0 when
+  the text ends in `?` and holds no <verb-ERE> match and no request form (can/could/
+  would/will you|u|we|someone|anyone, please, why, any idea|ideas); or holds "don't
+  (start) work(ing) on anything|it|this|that" before punctuation, the end, yet, for now,
+  until or before, "don't <making verb> anything yet|for now|until|before", or is,
+  whole, "(please) don't <making verb> anything" — and no <verb-ERE> match is left once
+  those clauses are cut.
 ```
 
 ### What it does not catch, stated
@@ -399,19 +467,26 @@ cc_prompt_question <text> — status 0 when the text ends in `?` and holds no re
 ```text
 - frame: a harness frame under any other prefix is a human turn.
 - unpaste: a name or verb that appears only inside a paste no longer counts.
-- ship_only: a feature-sense branch/tag/merge/release in a prompt that also names a
-  PR or commit reads as ship ("create the PR and add tags to the post" is silenced).
-  Every other miss errs toward speaking: "create a new branch" (no git context), "fix
-  the failing PR" (an edit verb), "write a commit message", a branch name holding a
+- ship_only: a feature-sense branch, tag, merge or release ending its clause reads as
+  ship when the prompt also names a PR or commit ("create the PR and add tags" is
+  silenced), or when a joined or dotted name sits beside it ("add the next.js tag",
+  "add a tag v-shaped" with nothing after them). A version tag is a dotted name
+  (v1.2.0), so a dotted name cannot be dropped from git context.
+  Every other miss errs toward speaking: "create a PR into main" (into ends no ship
+  phrase), "create a new branch" (no git context), "fix the failing PR" (an edit
+  verb), "write a commit message", a branch name holding a
   verb spelled as separate words (the verb counts), "create and add a PR" (each verb
   needs its own noun).
-- question: whole-prompt, so a trailing question without a request form hides an
-  imperative before it ("fix it, ok?"), and an incident question with no `why` waits
-  ("what's causing the 500s?"); a polite question with no work in it ("could you
-  explain this?") reaches the adopter's work test and stays silent only if that test
-  does. "don't touch the API", "do not work on the legacy importer" and "don't change
-  anything in vendor/" are constraints, not hands-off, and so is "fix it, don't change
-  anything else".
+- question: a `?`-ended symptom report with no <verb-ERE> match and no request form is a
+  question on purpose ("the login is broken?"; skill-router passes its strong tier, so
+  "what's causing the 500s?" speaks); a `?`-ended prompt naming a making verb as a noun
+  ("what does the build script do?") reaches the adopter's work test, which it passes,
+  and so does a polite question ("could you explain this?"), which stays silent only if
+  that test does. A hands-off clause silences only when no match stands outside it, so
+  "quick question, don't work on anything yet: why is the import slow" waits and "fix
+  the parser first and don't work on it until it passes" speaks. "don't touch the API",
+  "do not work on the legacy importer" and "don't change anything in vendor/" are
+  constraints, not hands-off.
 - Nothing here judges intent. Standing: the shapes are gated by each adopter's harness
   (ask-ledger ledger-hook.test.sh, scripts/smoke/prompt-route-tests.sh,
   review-debt.test.sh, scripts/smoke/hook-guard-tests.sh); the byte lock by
@@ -421,8 +496,9 @@ cc_prompt_question <text> — status 0 when the text ends in `?` and holds no re
 ### Adopters (2026-10-14)
 
 ```text
-ask-ledger ledger.sh: frame, unpaste. skill-router route-prompt.sh: frame, question (the
-tool-fit check only). code-review review-debt.sh: frame (ship detection skips frames).
+ask-ledger ledger.sh: frame, unpaste. skill-router route-prompt.sh: frame, unpaste (a
+prompt that is only a paste is read whole), question with its strong tier (the tool-fit
+check only). code-review review-debt.sh: frame (ship detection skips frames).
 taskmaster remind.sh via promptShape: frame, unpaste, ship_only. Not adopted: candor's
 preamble and the approaches, debugging and api-design reminder hooks, which set
 promptShape to adopt it; review-debt's auth-surface pattern is a path regex inside
@@ -460,23 +536,72 @@ cc_strip_heredoc_bodies <mode> <command> [<reader ERE>] prints the command witho
 the scan can place; a terminator goes with its body and the opener line stays.
   - all: drop every placed body. For a caller that reads the command for a word (a cd test, a
     `gh pr merge` match), where a body is text whatever reads it.
-  - inert (any word other than all): keep a body a reader may run. The reader is named on
-    the opener's line (a shell, ssh, su, eval, exec, source, `.`, or the caller's ERE, tested
-    on that line lowercased, unquoted, `<>|;&()` spaced out and space-padded) or sits off the
-    line (the header lists the shapes). For a guard that judges what runs.
+  - inert (any word other than all and cd): keep a body a reader may run. The reader is
+    named on the opener's line (a shell, rbash and mksh included, ssh, su, sudo -i/-s,
+    runuser, chroot, exec, xargs, eval, source, `.`, or the caller's ERE, tested on that line
+    lowercased, unquoted, an escaped non-word character dropped, `<>|;&()` spaced out and
+    space-padded) or sits off the line (the header lists the shapes). Once a body is
+    dropped, every line is kept when a later line pipes into a reader with any words before
+    it (`} | sudo -u deploy bash`, `} | timeout 60 bash`, `} | mysql`) or into a `$`
+    command word, or, after a body inside x=$( ) or "$( )", holds eval, a shell's -c or a
+    `$` command word. For a guard that judges what runs.
+  - cd: inert with eval, source, `.` and the ERE the only named readers. For a cd test: a
+    cd in a body this shell runs (`. /dev/stdin <<EOF`, `eval "$(cat <<EOF …)"`) moves it,
+    one in a body a named subshell runs (`bash <<EOF`) does not.
 The ERE reaches awk through the environment, not `awk -v`, which would process the
-backslashes in it. Both modes keep every line after a `<<` the scan cannot place, and they
-keep a body with no terminator. Keeping is the direction every adopter is safe in: more
-command text means a guard reads more and a cd test skips more relative targets.
+backslashes in it. Every mode keeps every line after a `<<` the scan cannot place (one
+inside `${ }` or `$[ ]` included; a `#` glued to a closing `)` is a word, not a comment),
+and keeps a body with no terminator. Keeping is the direction every adopter is safe in:
+more command text means a guard reads more and a cd test skips more relative targets.
 ```
 
 ### cc_strip_heredoc_bodies: what it does not catch
 
 ```text
-inert drops a body fed to anything not named (python3 -, node, sudo -s, at, a function, alias
-or coproc) and a body written to a script a later line runs. all drops a body a shell runs
-(`bash <<EOF`), by contract. A case pattern's `)` inside `$( )` closes the substitution early
-for the scan. A huge kept body is still slow for a caller that judges it line by line.
+inert drops a body fed to anything not named (python3 -, node, at, a function, alias or
+coproc), a body written to a script a later line runs, and one read into a variable by `read`
+and run later. all drops a body a shell runs (`bash <<EOF`), by contract. cd keeps the
+off-line shapes inert keeps, so a cd in a body piped into a subshell (`cat <<EOF |` then `sh`
+on the next line) still counts. A case pattern's `)` inside `$( )` closes the substitution
+early for the scan. The later-line rules read a quoted `|` as a pipe (`sed 's|a|$b|'`), so a
+command with one and a dropped body is read whole. A huge kept body is still slow for a caller
+that judges it line by line, and a `\`-continued line is joined by repeated concatenation,
+quadratic in its length (408 KB, 0.44 s).
+```
+
+### Range-review fixes (2026-10-15)
+
+```text
+Every input here was deny or ask on command-guard 0.8.4 and allow on the block as first
+extracted; each is now a destructive-guard.test.sh case asserting 0.8.4's verdict.
+  - A pipe into a reader after the body allowed only option flags between `|` and the shell,
+    and never the ERE: `} | sudo -u deploy bash`, `timeout 60 bash`, `env X=1 bash`,
+    `nice -n 5 bash`, `$SHELL`, `done | sudo -u deploy bash`, `} | mysql`. Any words may now
+    sit before the reader. Loosened only that far: a `.`, source, eval or `$` word counts
+    only first in the pipe, and an escaped character is dropped before the test, after the
+    first draft of this fix read `grep -rn "a\|b" .` as a pipe into `.` and took a 220-line
+    TSX body line by line (0.3 s to 16.6 s, past the 15 s timeout).
+  - No `${ }` or `$[ ]` frame: `echo ${v%<<EOF }` and `echo $[x<<EOF ]` opened a body and hid
+    the commands under them; a `#` right after `<(true)` was read as a comment, so the quote
+    after it never opened. Both are frames now, a `<<` in either cannot be placed, and every
+    `)` leaves a word character behind it (after a bare subshell's `)` bash does start a
+    comment; reading it as a word only keeps more).
+  - `x=$(cat <<'EOF' … EOF)` then `eval "$x"`, `bash -c "$x"` or `$x` ran the body. These
+    count only after a body inside x=$( ) or "$( )": unconditioned, `docker exec app sh -c`
+    after any python heredoc read 49 of the 2,705 transcript commands whole.
+  - rbash, mksh, `sudo -i`, `runuser -l` were not readers. The shell list is still explicit:
+    `[a-z]*sh` matched `git push` and `refresh` on 10 transcript openers (commit messages,
+    PR bodies), each then judged line by line.
+  - all hid a cd the current shell runs: `. /dev/stdin <<'EOF'` holding `cd packages/api`,
+    then `echo "it.skip('x')" > a.test.js`, had protect-tests judge <cwd>/a.test.js. The cd
+    tests in protect-tests.sh, write-scan.sh and paths.sh cd_has_cd call mode cd.
+Measured on 2,705 distinct `<<` transcript commands against the block as first extracted:
+inert output differs on 31 (18 read whole, 3.6 s at most through destructive-guard; 13 drop
+a body the old later-pipe test kept for a `bash` script inside `<( )` or `$( )`, or for a `(`
+it read out of quoted text), the guard's verdict on none;
+all output on none; mawk and busybox awk agree on every command. cd against all, the cd test
+alone: the same verdict on all 1,111 commands holding `<<` and a cd word. The 20 KB /
+7-heredoc command 335-365 ms, `git status && ls -la` 24.4-24.8 ms median.
 ```
 
 ### Adopters and measured verdict changes (2026-10-15)

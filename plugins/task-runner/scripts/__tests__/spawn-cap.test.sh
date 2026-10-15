@@ -104,6 +104,31 @@ case "$out" in *'"permissionDecision":"ask"'*) ok "a run registered on another b
   *) bad "a run registered on another branch still asks at 20" "got: ${out:-<silent>}" ;; esac
 git -C "$RUN" checkout -q main
 
+# A sentinel naming no branch is this branch's run, as candor's completion clause reads it.
+printf '{"slug":"nobranch"}' > "$RUN/.claude/task-runner/active-run.json"
+out=$(for i in $(seq 1 20); do fire_at run-f "$RUN"; done | tail -1)
+case "$out" in *'"systemMessage"'*'registered run nobranch'*) ok "a sentinel naming no branch is the current run: it notifies at 20" ;;
+  *) bad "a sentinel naming no branch is the current run: it notifies at 20" "got: ${out:-<silent>}" ;; esac
+
+# A --tracks run registered on main before its run branch existed (2026-10-15): the sentinel
+# names main, so on run/tm the hook asked at #20. Registered again on the run branch, as
+# /task-runner:run --tracks now orders it, the 8-card plan applies.
+RR="$(cd "$(dirname "$0")/../.." && pwd)/scripts/register-run.sh"
+rm -f "$RUN/.claude/task-runner/active-run.json"
+{ printf '| card | title | status |\n|---|---|---|\n'; for c in 01 02 03 04 05 06 07 08; do printf '| %s | t | pending |\n' "$c"; done; } > "$RUN/docs/tasks/demo/00-INDEX.md"
+(cd "$RUN" && HOME="$T/nohome" bash "$RR" --index docs/tasks/demo/00-INDEX.md >/dev/null 2>&1)
+git -C "$RUN" checkout -q -b run/tm
+out=$(for i in $(seq 1 20); do fire_at run-g "$RUN"; done | tail -1)
+case "$out" in *'"permissionDecision":"ask"'*) ok "registered on main, then checkout -b run/tm: dispatch #20 asks" ;;
+  *) bad "registered on main, then checkout -b run/tm: dispatch #20 asks" "got: ${out:-<silent>}" ;; esac
+(cd "$RUN" && HOME="$T/nohome" bash "$RR" --index docs/tasks/demo/00-INDEX.md >/dev/null 2>&1)
+said=""
+for i in $(seq 1 24); do out=$(fire_at run-h "$RUN"); [ -n "$out" ] && said="$said $i:${out:2:13}"; done
+[ "$said" = ' 24:systemMessage' ] && ok "registered again on run/tm: the 8-card plan notifies at 24" \
+  || bad "registered again on run/tm: the 8-card plan notifies at 24" "got '$said'"
+git -C "$RUN" checkout -q main
+rm -f "$RUN/.claude/cc-phase.json"
+
 # Outside a run, the same cwd still asks.
 rm -f "$RUN/.claude/task-runner/active-run.json"
 out=$(for i in $(seq 1 20); do fire_at run-d "$RUN"; done | tail -1)
