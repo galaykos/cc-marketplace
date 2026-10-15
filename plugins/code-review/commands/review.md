@@ -16,7 +16,7 @@ Review the code change in $ARGUMENTS. Resolve scope in this order:
 4. Nothing to review — say so and stop.
 
 **Debt lane** (`/code-review:review --debt`, or on request): instead of the diff
-review, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/debt-scan.sh --dir . --age` and
+review, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/debt-scan.sh" --dir . --age` and
 report the table it prints. Six categories — suppressions, skipped tests, bare
 markers, deprecated-symbol references, feature flags, `shortcut:` markers — counted,
 compared against `.claude/debt-baseline.json`, with `--age` resolving first-seen dates
@@ -96,7 +96,14 @@ PR/branch/path target for correctness and quality. Availability test: a skill
 named exactly `code-review` (no plugin prefix) is listed in this session. When it
 is, invoke it through the Skill tool — never the bare `/code-review` slash form,
 which collides with this plugin's namespace — on the scope resolved in items 1–4
-above, report-only: no `--fix`, no `--comment`. Take its findings as the
+above, report-only: no `--fix`, no `--comment`, and no effort level or `--max-findings`.
+The built-in reuses the level the user last typed (2.1.223+) and keeps a typed
+`--max-findings` (2.1.288+) until `--max-findings default`; that saved choice is the user's own
+setting for this pass, and this command takes no level argument to replace it with. Passing
+one would not overwrite it (on 2.1.300 the host saves both only when the user types
+`/code-review`, never on a Skill-tool call), but it would swap the user's depth for a guess.
+When the built-in reuses a saved level or limit it opens its report saying so: carry both
+onto `Checked:`. Take its findings as the
 correctness, smell and convention passes (the pass's items 2–4 below); do the hunk
 read (item 1), the comment pass (item 4a) and the history pass (item 5) yourself — the
 built-in reads neither blame nor this plugin's comment rule — then the stack fan-in and
@@ -195,7 +202,9 @@ Output rules:
     agent; security-deep issues → `/security:review`.
 
 Before the verdict, state the coverage: `Checked: host built-in | inline — …`, the branch
-that ran the generic pass as its first token, then each fan-in checklist item, and
+that ran the generic pass as its first token — `host built-in` followed by the level and
+limit it ran at, `(level high, limit 10)`, or by `(level and limit inherited)` when its
+report names neither — then each fan-in checklist item, and
 `Not checked: … (why)` so it is explicit what was covered, what was clean, and what was
 skipped — not only what broke. Then run one adversarial self-refute pass over every `critical` and `high`
 finding; if a finding does not survive it, drop or downgrade it with a note. The

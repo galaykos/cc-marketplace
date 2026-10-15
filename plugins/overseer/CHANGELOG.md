@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.4 — 2026-10-15
+
+- **Scripts run by path take a quoted `${CLAUDE_PLUGIN_ROOT}`.** `/overseer:start`, `/overseer:resume`, `/overseer:status`, the overseer skill and its dispatch prompts ran `${CLAUDE_PLUGIN_ROOT}/scripts/program.sh`, `capability-scan.sh` and `skill-path.sh` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.
+
 ## 0.6.3 — 2026-10-15
 
 - The shared mod kit (`hooks/cc-kit.ts`) is synced to the copy that reads the branch with `git symbolic-ref -q HEAD`. This plugin does not call the changed function (`activeRun`), so nothing it does changes.

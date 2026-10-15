@@ -111,7 +111,7 @@ A first-paint screenshot of a WebGL or scroll-driven page is a blank frame or on
 state, and a model naming the technique from it is guessing. So for every source whose
 Motion row matters, record three things in that row's second column:
 
-1. **Its technique fingerprint** — `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/technique-fingerprint.py <url>`
+1. **Its technique fingerprint** — `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/technique-fingerprint.py" <url>`
    (stdlib only; `--json` for a board row; `--file page.html` reads a saved page offline).
    It fetches the homepage plus capped first-party JS and CSS and names the stack and motion
    libraries it can see, so the row reads "GSAP + ScrollTrigger + Lenis" rather than "smooth

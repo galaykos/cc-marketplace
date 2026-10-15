@@ -35,7 +35,7 @@ one `.html` and any README or chat file. Say which files were read.
 ## The drift table
 
 ```
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/handoff-drift.py <bundle> [--repo .] [--near 24]
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/handoff-drift.py" <bundle> [--repo .] [--near 24]
 ```
 
 | verdict | do |

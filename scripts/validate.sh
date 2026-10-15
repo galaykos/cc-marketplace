@@ -904,6 +904,16 @@ $stamptail_gap
 EOF
 fi
 
+# A command or skill line that runs `${CLAUDE_PLUGIN_ROOT}/…` unquoted, by path or through an
+# interpreter, splits on a space in the install path; the host checks hooks.json for this, never
+# a command or skill. One FAIL per plugin.
+quote_gap=$(pc_plugin_root_quoting plugins) || true
+if [ -n "$quote_gap" ]; then
+  while IFS=$'\t' read -r qp qlocs; do
+    err "plugin-root-unquoted $qp: $qlocs — a runnable line runs an unquoted \${CLAUDE_PLUGIN_ROOT} path (as the command, or as an interpreter's script), so an install path holding a space splits it; quote it: \"\${CLAUDE_PLUGIN_ROOT}/…\""
+  done < <(printf '%s\n' "$quote_gap" | awk '{ a[$2] = a[$2] (a[$2] == "" ? "" : " ") $3 } END { for (p in a) print p "\t" a[p] }' | sort)
+fi
+
 # Corpus-level companion to the per-file SKILL budget: a ceiling authors write TO
 # stops being a ceiling, and no per-file check can see that. Ratchet, not
 # threshold — the reasoning is in pc_budget_crowding's header.

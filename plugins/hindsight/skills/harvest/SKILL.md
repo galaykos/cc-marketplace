@@ -79,7 +79,7 @@ does not abort the harvest; record the failure and continue.
 
 Produce exactly five sections:
 
-0. **Outcome check** — run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/outcome.sh`
+0. **Outcome check** — run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/outcome.sh"`
    and include its table verbatim: it grades PREVIOUS harvests' applied rules
    (mean friction/errors per session, before vs after each apply) from the
    ledger. Correlational only — the script says so itself; a "worsened" row is

@@ -44,7 +44,8 @@ turn ended at the hand-back with no closing text. This differs from the 2.1.284 
 (`rationale/candor-subagent-probe-2026-09-29.md:41-47`), where the hook-time copy already held
 the `tool_result` and `last_assistant_message` held closing text written after the hand-back.
 That may be this prompt's turn shape or a 2.1.286 change: both hand-backs in this run ended the
-turn before their `tool_result` was in the copy, and one run cannot tell which. Either way, the
+turn before their `tool_result` was in the copy, and one run cannot tell which (a likely answer:
+§ Amendment). Either way, the
 header of `plugins/candor/hooks/gate.sh:99-105` (at commit `a743bd33`) — "already written when
 the hook fires" — held here for the hand-back itself and not for what follows it.
 
@@ -101,3 +102,16 @@ were not captured; the Verdict's third line rests on hand-back #1.
 RESUME_OBSERVED: yes
 USER_TEXT_BETWEEN_TURNS: yes
 USER_TEXT_AFTER_HANDBACK_IN_ONE_TURN: no
+
+## Amendment, 2026-10-15: the turn ending at the hand-back is likely 2.1.285's
+
+§ First turn left open whether a turn ending at the hand-back, with no closing text and no
+`last_assistant_message`, was this prompt's shape or a host change. The CLI changelog likely
+answers it. 2.1.285, between the 2.1.284 probe and this one, reads: "Improved subagents in
+auto mode: a subagent's run now ends as soon as it hands its report back to its caller,
+instead of taking extra turns that reach no one". 2.1.290 then fixed "plugin hooks reading an
+empty `answer` on `turn.complete` for a subagent that hands its report back in auto mode",
+which points the same way. **Likely, not confirmed:** nothing was re-probed, and this probe
+did not record its permission mode. If it holds, the 2.1.284 shape (closing text after the
+hand-back) is the non-auto-mode case, and in auto mode the hand-back is the whole report.
+The Verdict and the scoped read's residuals stand as written.

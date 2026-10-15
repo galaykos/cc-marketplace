@@ -68,7 +68,7 @@ is not counted, so the run blocks at completion rather than passing silently —
 direction is deliberate.
 
 **Diff delivery** — reviewers hold Read, Grep and Glob: never tell one to run git. Before each
-`RV-CARD` dispatch run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/review-diff.sh --card <id> --base
+`RV-CARD` dispatch run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/review-diff.sh" --card <id> --base
 <HEAD before the card> <card files>`; it writes `.claude/task-runner/rv/diff-<id>.patch` (diff,
 untracked files, blame of the changed lines). Name that path in the prompt, with "cite line
 numbers from the working file, not the patch". Standing: agent-graded.

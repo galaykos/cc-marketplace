@@ -4,6 +4,11 @@ All notable changes to the ultra-deep-research plugin. Entries start at 0.6.0, w
 this file was created; earlier releases have no entries rather than invented ones.
 The verdict lint referenced below landed in 0.5.0, before that.
 
+## 0.7.3 — 2026-10-15
+
+### Fixed
+- **Runnable `${CLAUDE_PLUGIN_ROOT}` paths are quoted.** `/ultra-deep-research:research` and its skill's `verdict-lint.sh` line passed `${CLAUDE_PLUGIN_ROOT}/…` to `bash`, `node` or `python3` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.
+
 ## 0.7.2 — 2026-09-23
 
 ### Changed

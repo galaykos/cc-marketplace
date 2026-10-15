@@ -265,9 +265,12 @@ export function register(on: On, options: PluginOptions) {
   }).catch(($, e, next) => next(e))
 
   // Every footer drawn so far closes an earlier turn: none of them may take the line of the turn starting now.
+  // Since 2.1.299 a subagent's or teammate's turn raises turn.start too, inside a main-loop turn whose baseline it must keep.
   on('turn.start', async ($, e, next) => {
-    hud.base = snapshotOf(hud.figures)
-    hud.stale = new Set(hud.drawn)
+    if (e.agentId === undefined) {
+      hud.base = snapshotOf(hud.figures)
+      hud.stale = new Set(hud.drawn)
+    }
 
     return next(e)
   }).catch(($, e, next) => next(e))

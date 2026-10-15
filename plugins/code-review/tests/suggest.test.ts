@@ -146,6 +146,18 @@ describe('suggest', () => {
     expect(world.proposed, 'three in one turn').toEqual([REVIEW])
   })
 
+  test("keeps the turn's count across a subagent's turn start", async ($, on) => {
+    const world = seat(on)
+
+    await startTurn($, 't1')
+    await editAll($, ['/work/src/app.ts', '/work/src/util.ts'])
+    await $.turn.start({ text: 'audit the api', turnId: 'a1', agentId: 'agent-1' })
+    await edit($, '/work/src/api.ts')
+    await endTurn($)
+
+    expect(world.proposed).toEqual([REVIEW])
+  })
+
   test('counts a write, a multi-edit and a notebook edit of code', async ($, on) => {
     const world = seat(on)
 

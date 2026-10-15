@@ -19,7 +19,7 @@ the most recent `taskmaster-docs/tasks/*/00-INDEX.md`).
 4. Do NOT execute yet. Offer the next step as a selectable choice
    (AskUserQuestion): "Run now with this plan (Recommended)" / "Stop here".
    On "Run now", first register the run —
-   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh --index <00-INDEX.md> --session "<this session id>"`
+   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh" --index <00-INDEX.md> --session "<this session id>"`
    (an inline list: `--slug <name>`); unregistered, the review observer and candor's
    completion clause stay silently off — then proceed exactly as `/task-runner:run <list>`
    would from its step 1, using the computed run-level machinery (the `Dispatch:` pick — `default` or, at this

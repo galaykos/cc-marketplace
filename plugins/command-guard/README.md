@@ -55,7 +55,9 @@ chains, heredocs fed to a shell or SQL client — and skips read-only commands, 
 never confused with running it. Any other heredoc body (`cat > f <<EOF`, `python3 - <<EOF`)
 is data and is not read, unless the guard cannot rule out a shell reading it (rules.md lists
 when): judging every body line by line pushed a 21 KB command past the hook's 15 s
-timeout, where the guard fails open. It also covers MCP tools that shell out or run
+timeout. A judgment still running after 12 s now asks instead, on every CLI version; from
+Claude Code 2.1.295 a guard that cannot start, or one the host times out, blocks the call (see
+[Failure mode](#failure-mode)). It also covers MCP tools that shell out or run
 SQL, which are the same hole under a different tool name. It reads through `env` and
 every documented git global option before the subcommand, and does not take
 `git clean … -e -n` for a dry run (`-n` is the exclude pattern there). It misses a git
@@ -98,9 +100,9 @@ that means "no ask tier" (`off`, `deny-only`).
 
 ## Install
 
-```
-/plugin marketplace add <this marketplace>
-/plugin install command-guard
+```bash
+/plugin marketplace add galaykos/cc-marketplace
+/plugin install command-guard@cc-plugins-marketplace
 ```
 
 Nothing to configure. The hook is active from the next session; it costs ~0
@@ -213,8 +215,18 @@ The two tiers cost you very different things. The deny tier is free: it never
 prompts, it returns instantly, and it is where the framework knowledge lives
 (`migrate:fresh`, `doctrine:fixtures:load`, `flyway clean` — shapes a general
 safety check has no particular reason to know). The ask tier is the one that
-interrupts, and it is mostly `rm -rf` and `git reset --hard`, which any
-general-purpose command-risk check already covers.
+interrupts, and it is mostly `rm -rf` and `git reset --hard`, which the host's own
+checks partly cover. Claude Code's dangerous-`rm` check asks, in auto and
+`--dangerously-skip-permissions` mode, before a recursive `rm` of `/`, `~` or another
+spelling of the home folder or a drive, or of positional parameters; since CLI 2.1.281
+also of a target that is only command-substitution output (`rm -rf "$(pwd)"`, asked
+even past a Bash allow rule), of a variable followed by a top-level directory name or
+derived from the working directory (`$VAR/etc`), and of a backslash-only target
+(`rm -rf \`). Unanswered for 2 minutes, it denies with a rewrite hint. That is the
+host's changelog, not measured here. It does not judge a scoped `rm -rf ./dir`,
+`git reset --hard`, `find … -delete` or `kubectl delete pod`: in auto mode the host's
+classifier does, in default mode its ordinary permission prompt. This guard denies a
+backslash-only target outright since 0.9.0 (`rules.md` says why).
 
 It matters more than "one is noisier". Where the host decides permissions with a
 classifier of its own, a `PreToolUse` **`ask` overrides that classifier** — so
@@ -281,3 +293,26 @@ Fail-open, deliberately. Missing `jq`, unparseable input, an internal error: the
 hook stays silent, exits 0, and the command proceeds under normal permissions. A
 guard that breaks sessions gets uninstalled, and an uninstalled guard denies
 nothing. The tests assert this directly.
+
+One failure is the host's, not the script's: a guard that cannot start or runs past its
+15 s timeout. Since 0.9.0 both `destructive-guard.sh` entries in `hooks/hooks.json` set
+`onFailure: "block"`, so from Claude Code 2.1.295 the host blocks the call; below it the
+command runs unjudged. Two things keep the block off ordinary work. The entries start the
+script as `bash "${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh"`, through the `bash` on
+PATH rather than its `#!/bin/bash` line, so a host with no `/bin/bash` (NixOS) still runs it.
+And the script stops a judgment still running after 12 s and asks, on every CLI version and
+in every mode, `deny-only` included, since it has not ruled out a deny: a huge command gets a
+prompt, not a block or a pass. Measured 2026-10-15 against a fake local Messages API, no
+model call, one run each: a 109 KB `bash <<'EOF'` body under 0.8.5's guard was blocked at
+15 s on 2.1.300 and ran unjudged on 2.1.291, and asks at 12 s on both under this one; in a
+sandbox with no `/bin/bash` and `bash` on PATH, running the script by its path blocked a
+plain `ls` on 2.1.300, and the `bash` form runs it and still denies
+`php artisan migrate:fresh`. What still blocks every Bash, MCP shell, `Write` and `Edit`
+call from 2.1.295: no `bash` on PATH at all, or the plugin's directory gone from under a
+running session. `CLAUDE_DESTRUCTIVE_GUARD=off` cannot help there, because the script that
+reads it never ran; `/plugin disable command-guard` does. An older CLI ignores the key: on
+2.1.291, `claude plugin validate --strict` passes, the plugin installs, and
+`claude plugin details` lists its PreToolUse hook, where an invalid hook entry keeps the
+plugin from loading at all. Standing: **gate** for the key, the `bash` form and the
+12 s ask (`destructive-guard.test.sh`); **measured** that 2.1.300 blocks a run that fails or
+times out and that 2.1.291 runs the command (the runs above).

@@ -10,7 +10,7 @@ false-green. Before a card flips to done, the negative control proves the verify
 After the card's verify passes and before the status flips, run:
 
 ```
-${CLAUDE_PLUGIN_ROOT}/scripts/negative-control.sh --verify "<the card's exact verify>" \
+"${CLAUDE_PLUGIN_ROOT}/scripts/negative-control.sh" --verify "<the card's exact verify>" \
   --target <impl-file> --auto --record-dir .claude/task-runner/nc --card <cardId>
 ```
 

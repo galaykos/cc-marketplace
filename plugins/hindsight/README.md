@@ -21,6 +21,14 @@ running, and failed-approach warnings. Nothing is applied without your explicit 
 | `/hindsight:harvest [N\|all]` | Mine the top N unmined sessions (default 5) ranked by friction score; rank raw transcripts from `~/.claude/projects/<slug>/` when no ledger row exists. Reports the outcome check, a friction stats digest, CLAUDE.md rule and check candidates, skill/plugin ideas, and failed-approach warnings — inline and saved to `$HOME/.claude/hindsight/<slug>/reports/YYYY-MM-DD.md` — then gates every application behind a per-category multiselect |
 | `/hindsight:claude-md [path]` | Audit every CLAUDE.md in the repo: `scripts/claude-md-check.sh` reports stale backticked paths and undeclared `npm`/`pnpm`/`yarn`/`bun run`, `composer` and `make` targets with line numbers (gate-shaped, fixture-tested; a fragment that resolves anywhere in the tree, a bare extension, or a `file:line` suffix is not a stale row), then each file is scored on six weighted criteria (agent-graded) and at most five diffs per file are proposed — applied only on an explicit pick |
 
+Beside the host: Claude Code 2.1.283+ has `/doctor prompt-audit`, which audits
+CLAUDE.md, skills, agents and commands, and leads with stale paths, stale commands and
+contradicting instruction files. It covers more surfaces than `/hindsight:claude-md`.
+This command keeps two things the host's changelog does not claim: a scripted stale-reference check
+that gives the same rows on every run of the same tree (`gate`-shaped, fixture-tested),
+and the six-criterion weighted score (`agent-graded`). Run both; neither replaces the
+other. Whether the host's report repeats run to run is not measured here.
+
 ## How it works
 
 1. **Collect (automatic)** — on every SessionEnd, a fail-silent hook parses the

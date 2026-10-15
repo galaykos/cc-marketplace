@@ -12,7 +12,7 @@ every prompt. Two halves, and they have different standing.
 ## 1. Mechanical half (gate-shaped)
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/claude-md-check.sh ${ARGUMENTS:-.}
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/claude-md-check.sh" ${ARGUMENTS:-.}
 ```
 
 Include its output verbatim: per file, line and byte counts, then every backticked
@@ -53,6 +53,17 @@ directory, not the shared file.
 Then ask once (AskUserQuestion, multiSelect, one option per diff, plus "apply none")
 and apply only the picks with Edit. Headless: report and proposals only, nothing
 written.
+
+## Beside the host's audit
+
+Claude Code 2.1.283+ ships `/doctor prompt-audit` (also `/checkup prompt-audit`). It
+covers more: CLAUDE.md files and skills, agents and commands, prompting patterns
+written for older models, and — leading its report — stale paths, stale commands and
+instruction files that contradict each other. Point the user at it for those surfaces
+and for contradictions; this command reads neither. What stays here: the stale-path
+and undeclared-script rows come from a script, so one tree gives the same rows on
+every run, fixture-tested; and the six-criterion weighted score above. Whether the
+host's report repeats run to run is unmeasured here — it needs a live session.
 
 ## Standing
 

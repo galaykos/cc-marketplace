@@ -24,7 +24,7 @@ milestone — run the serial `task-execution` path below.
 with Y") rather than a task list. Bounded by a residual gate instead of a card count:
 
 1. FREEZE the target set before editing anything —
-   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/sweep-residual.sh --freeze --id <id> --pattern <ere>`.
+   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/sweep-residual.sh" --freeze --id <id> --pattern <ere>`.
    Enumerate in FOUR passes, not one: the direct form; the aliased, re-exported or
    barrel form; the dynamic or string-constructed reference; and non-code carriers
    (config, CI yaml, docs, fixtures, i18n keys). What one grep misses is invisible
@@ -89,7 +89,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    blocked → park the task with a reason. Prose that announces the next task and then
    ends the turn ("starting card 01 now") binds nothing — the run reads live, is dead,
    and the user waits on a turn that already ended. Register the run first, in the
-   same step: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh --index <00-INDEX.md> --session "<this session id>"`
+   same step: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh" --index <00-INDEX.md> --session "<this session id>"`
    (an inline list: `--slug <name>`). It writes `.claude/task-runner/active-run.json`
    (`slug`, `base`, `branch`, `start_sha`, `index_path`), which arms candor's Stop-hook
    completion clause on this branch only; deletes the `gate-pass.json` and
@@ -122,11 +122,12 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    Then finish with BOTH completion gates, never one alone:
    - the full project check suite (catches lint/type/build regressions), AND
    - the **behavioral-gate** on the run's changed files —
-     `${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed "<the run's
+     `"${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh" --isolate --changed "<the run's
      touched files>" [--entrypoint <bin>] [--differential 'flag::with::without']
      [--runner '<cmd>::<empty-output-regex>'] [--runner-for <lang> '<cmd>::<empty-output-regex>']`,
-     run from the repo root after committing, in the background: the Bash tool ends a
-     foreground call by 10 minutes, and that kill leaves no verdict.
+     run from the repo root after committing, in background Bash with `timeout: 7200000`:
+     a foreground call ends by 10 minutes, a background one by 30 unless told more (CLI
+     2.1.285+; from 2.1.288 in `-p`, SDK, CI and cloud only), and neither stop leaves a verdict.
      `--isolate` builds, verifies and removes its own worktree of HEAD, under the repo's
      gitignored `.claude/task-runner/iso/`, and never touches
      the live `.env`; do NOT hand-build a checkout (`git worktree add`, `cd /tmp/…`,
@@ -150,7 +151,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    - **No runner in the project** — `no-behavioral-coverage` because a changed language
      has no test runner here at all (React files in a repo with no JS runner) is the one
      red verdict with a recorded exit: run
-     `bash ${CLAUDE_PLUGIN_ROOT}/scripts/reduction-record.sh --kind coverage --id bg-<first 12 chars of HEAD> --reason "<which files, why no runner>"`
+     `bash "${CLAUDE_PLUGIN_ROOT}/scripts/reduction-record.sh" --kind coverage --id bg-<first 12 chars of HEAD> --reason "<which files, why no runner>"`
      for the HEAD the gate ran on, then record the gate pass below as for a green gate.
      candor's Stop gate accepts that verdict only with that record for that HEAD. Code
      whose runner exists but has no tests is not this case: write the tests.

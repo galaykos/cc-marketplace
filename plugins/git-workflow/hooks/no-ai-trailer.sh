@@ -8,8 +8,9 @@
 # message file (`COMMIT_EDITMSG`, `MERGE_MSG`, anything under `.git/`).
 #
 # The failure it exists for: the host setting `attribution.commit: ""` in
-# ~/.claude/settings.json is honoured by the host's OWN trailer injection and by
-# nothing else. The model still writes the trailer from habit — observed on
+# ~/.claude/settings.json — or `"attribution": false` (2.1.281+; 2.1.280 skips the
+# whole file that holds it, this plugin's enable included) — is honoured by the host's OWN trailer
+# injection and by nothing else. The model still writes the trailer from habit — observed on
 # Claude Code 2.1.266 on 2026-09-09 with the setting present since 2026-09-03 —
 # and prose in a skill ("never add AI attribution", the since-dropped terse-commit) did not stop
 # it. A rule with no reader is recorded, not enforced; this is the reader.

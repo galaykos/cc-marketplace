@@ -26,7 +26,10 @@ entrypoints) load on demand via `/brain <area>`. No more re-scouting from zero.
 
 ## Install
 
-Install the `brain` plugin from this marketplace.
+```bash
+/plugin marketplace add galaykos/cc-marketplace
+/plugin install brain@cc-plugins-marketplace
+```
 
 ## Commands
 

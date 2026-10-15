@@ -2,6 +2,11 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.18.3 — 2026-10-15
+
+### Fixed
+- **Runnable `${CLAUDE_PLUGIN_ROOT}` paths are quoted.** `/code-architecture:coding-task`'s phase-sentinel line passed `${CLAUDE_PLUGIN_ROOT}/…` to `bash`, `node` or `python3` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.
+
 ## 0.18.2 — 2026-10-14
 
 ### Fixed

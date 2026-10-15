@@ -18,6 +18,10 @@ fixes.
 |---------|--------------|
 | `/debugging:debug [error-or-symptom]` | Reproduce, investigate in phases, fix — root cause with evidence, or an explicit "not found" with what was ruled out |
 
+Type the prefix: a bare `/debug` runs Claude Code's own `/debug`, which turns on debug
+logging for the session. The two never compete in the model's listing, because the host's
+is user-only.
+
 ## Example
 
 ```bash

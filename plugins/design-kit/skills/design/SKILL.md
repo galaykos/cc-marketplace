@@ -85,7 +85,7 @@ pasting the artboard's HTML into the tree.
    depends on them.
 4. **Give each artboard one signature element** — the thing a reader remembers — and keep
    everything else quiet. Spend the `css` field on that element, not on decoration.
-5. **Build and serve**: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh board <spec>` builds,
+5. **Build and serve**: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh" board <spec>` builds,
    starts or reuses the server and prints `url=`; give the user that URL. The builder
    refuses lorem, external assets and artboard counts outside 2–4 — fix the spec, do
    not work around the gate.

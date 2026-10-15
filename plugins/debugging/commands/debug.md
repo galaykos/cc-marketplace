@@ -2,6 +2,7 @@
 description: Debug an error or symptom systematically — root cause with evidence before any fix
 argument-hint: [error-message-stack-trace-or-symptom]
 ---
+<!-- host-ok --> Shares its name with the host's /debug, which turns on session debug logging and is never model-invoked; a bare /debug runs the host's, this one is /debugging:debug.
 
 Debug the problem described in $ARGUMENTS — an error message, stack trace, or
 symptom description (if empty, take the most recent failure in the conversation

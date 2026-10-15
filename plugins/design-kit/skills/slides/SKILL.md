@@ -74,10 +74,10 @@ memory gets wrong.
    source becomes a question to the user). A path to an existing `.md` → treat it
    as the outline, fix only what breaks the grammar. Write the outline to
    `.design-kit/decks/<slug>.outline.md` so the user can edit it and rebuild.
-2. **Build.** `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/deck-build.py <outline>`; on
+2. **Build.** `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/deck-build.py" <outline>`; on
    exit 2 fix the outline (split the long slide — do not reach for `--allow-long`
    to silence it). The stderr names the theme file used, if any.
-3. **Serve.** `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh slides <outline>` does the build
+3. **Serve.** `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh" slides <outline>` does the build
    and the serve in one call and prints `url=`; give the user that URL. The page reloads
    itself on every rebuild; the gallery at the base URL lists every deck with a badge
    that turns amber when `design-system/tokens.json` moved after the build. `dk.sh
@@ -85,7 +85,7 @@ memory gets wrong.
    machine before using it.
 4. **Iterate** one axis per round: order, then headlines, then figures, then
    notes. Rebuild after each edit; the open tab follows.
-5. **Export** only when asked: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh export
+5. **Export** only when asked: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh" export
    <deck.html> --pdf` (needs a Chromium-family browser; exit 3 prints what to
    install, and pressing `P` in any browser is the same output) and `--pptx`
    (needs Node; the script refuses to download `pptxgenjs` until

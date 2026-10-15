@@ -22,7 +22,7 @@ the loop itself lives in the skill and is not restated here.
    than a web-distributed question → the skill's coverage engine, not its corroboration
    loop.
 4. **Run the loop as written**, verdict lint included
-   (`bash ${CLAUDE_PLUGIN_ROOT}/scripts/verdict-lint.sh` on each verifier return; a
+   (`bash "${CLAUDE_PLUGIN_ROOT}/scripts/verdict-lint.sh"` on each verifier return; a
    failing `confirmed` is demoted, never patched up).
 5. **Print the report inline, then report the path** it was written to.
 

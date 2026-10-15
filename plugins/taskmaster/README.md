@@ -89,12 +89,13 @@ Three separate knobs, easy to confuse because they all start with `ultra`:
 | Token | What it moves | Owned by |
 |---|---|---|
 | `ultra-task` / `ultra-goal` (or bare `ultra` / `goal` as a command's first argument) | subagent tier floor, mandatory red-team + coverage, bounded fan-out ceilings, goal ledger | this plugin |
-| `ultracode` | permission and bias to actually call the `Workflow` tool — real parallel fan-out instead of the inline fallback | Claude Code |
+| `ultracode`, or the Ultracode toggle in `/effort` | permission and bias to actually call the `Workflow` tool — real parallel fan-out instead of the inline fallback. Since CLI 2.1.284 a switch of its own: it no longer raises effort | Claude Code |
 | `ultrathink` | main-thread reasoning depth: the clarifying rounds, spec judgment, synthesis | Claude Code |
 
 They compose; none substitutes for another. The boost never changes your session
-model, and `effort=xhigh` binds only on the `Workflow` path — so an unpaired boost
-escalates the model alone. Two forms work:
+model. Its `effort=xhigh` reaches the reasoning subagents on either dispatch path from
+CLI 2.1.292, when the Agent tool took an `effort` parameter (passed only when the tool lists it); below that it binds only on
+the `Workflow` path, so an unpaired boost escalates the model alone. Two forms work:
 
 ```bash
 # All three knobs. Keywords must precede everything, so no slash command.
@@ -111,6 +112,7 @@ Three rules that catch people out:
   what makes the failure look like it worked).
 - **Never put `ultracode` / `ultrathink` inside a slash command's arguments.** They are
   harness keywords, not taskmaster flags; there they become part of your task description.
+  To pair a slash command with a fan-out, toggle Ultracode on in `/effort` first.
 - **One deliverable per run.** Two unrelated goals share one ambiguity ledger and the
   clarifying rounds interleave. Run them separately, or state the dependency explicitly
   so the split produces ordered milestones.

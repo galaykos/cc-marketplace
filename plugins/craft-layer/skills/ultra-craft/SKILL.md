@@ -49,8 +49,9 @@ response — output-level only, see the residual at the end.
 `model=auto, effort=xhigh`, always — the bare token carries no tier suffix.
 
 `auto` resolves at dispatch to the session model or opus, whichever is higher on
-`haiku < sonnet < opus < fable`: **escalate, never downgrade**. `effort` is settable
-ONLY on the Workflow `agent()` path — inline Agent dispatch escalates model only.
+`haiku < sonnet < opus < fable`: **escalate, never downgrade**. `effort` binds on the
+Workflow `agent()` path, and on the Agent tool only if it lists an `effort` parameter; else
+inline dispatch escalates model only. This skill naming `xhigh` is the explicit ask the Agent tool waits for.
 It is a FLOOR, so it never lowers an agent below its shipped frontmatter. Stated
 here rather than cited because craft-layer does not depend on task-runner; the
 owning copy is `task-runner:verification-panels` `references/dispatch-tier.md`. Never edit agent
@@ -142,10 +143,10 @@ the audit. Where the brief ALSO asks for fast, cheap, or a quick draft, the orde
 conflict — ASK which wins, rather than spending an hour on a fifteen-minute request.
 
 The fan-out half is the harness's, not this plugin's: `Workflow` runs on the user's explicit
-opt-in (`ultracode`, or invoking a skill like this one that directs it) and `effort` binds
-only there, so an unpaired boost escalates the model alone; `ultrathink` is the orthogonal
-main-thread half. The guided rounds and the board confirmation are INTERACTIVE — subagents
-have no user I/O, so they never fan out, whatever a harness default says. Rules + the
+opt-in (`ultracode`, or invoking a skill like this one that directs it); `ultrathink` is
+the orthogonal main-thread half. The guided rounds and the board confirmation are
+INTERACTIVE — subagents have no user I/O, so they never fan out, whatever a harness
+default says. Rules + the
 workflow-size ceiling: `verification-panels` `references/dispatch-tier.md` § Native harness interop.
 
 ## Anti-patterns

@@ -35,7 +35,7 @@ edit.
 5. Act on the triage verdict, without exception:
    - `trivial` → **write the arc phase sentinel** `.claude/cc-phase.json` with
      taskmaster's writer, never by hand —
-     `bash ${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh write build --owner code-architecture:coding-task --session "<this session id>"`.
+     `bash "${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh" write build --owner code-architecture:coding-task --session "<this session id>"`.
      It ships in taskmaster, which may not be installed: if that path does not resolve
      (an installed plugin sits at `<marketplace>/<plugin>/<version>/`, so the sibling
      path resolves only from a source checkout), run the newest installed copy —

@@ -39,7 +39,11 @@
 # a routing rule fires (a routed a11y-audit is ~1.8k tokens on top of its
 # description), and remote MCP servers, whose tool surface cannot be read
 # offline. Both are named in the run's closing notes rather than silently
-# scored as zero.
+# scored as zero. Unmetered by OMISSION, latent while no plugin ships an MCP
+# server: a server's `instructions` string, which `initialize` returns and this
+# gate never reads (it keeps the `tools/list` reply), so a LOCAL server's is
+# missed. `/context` counts it as its own row since CLI 2.1.283 (cut at 4,096
+# chars by default since 2.1.296). No closing note names it.
 set -u
 cd "$(dirname "$0")/.."
 

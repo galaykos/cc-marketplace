@@ -166,7 +166,7 @@ assumption list, or the user says "enough". Then:
 2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: raw + upgraded statement pair,
    goal, decisions (CLEAR rows with sources), accepted assumptions, approach with rejected
    alternatives and kill-trigger, non-goals, success criteria, and the converged ledger embedded
-   as `## Ambiguity ledger (final)`; run `${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh --spec <file>` (blocks
+   as `## Ambiguity ledger (final)`; run `"${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh" --spec <file>` (blocks
    UNKNOWN/missing/empty ledger, a sourceless CLEAR row, a spec with no success criteria)
    until exit 0. Every behavior-bearing CLEAR row must ALSO
    appear as a success criterion: coverage-check walks criteria only, so a decision left in

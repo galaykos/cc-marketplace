@@ -1,19 +1,25 @@
 import type { On, PluginOptions } from 'claude-code'
 
 import { isSupported, switchOn } from './cc-kit'
-import { decideModel, parseRegistry, rank } from './floors-core'
+import { atLeast, decideModel, parseRegistry, rank } from './floors-core'
 
 const REGISTRY = '/skills/delegation-contracts/references/role-floors.md'
+
+// 2.1.292 to 2.1.299 raise agent.spawn for a workflow agent but drop a hook's model for it.
+const WORKFLOW_MODEL_FROM = '2.1.300'
 
 export function registerFloors(on: On, options: PluginOptions) {
   let registry: Promise<Map<string, string> | null> | undefined
 
-  on('agent.spawn', async ($, e, next) => {
-    const isOn =
-      isSupported((await $.session.version()).version) &&
-      switchOn(await $.env.get('CC_SPAWN_FLOOR'), options.cc_spawn_floor !== false)
+  // A workflow's agents each reach agent.spawn, so a fan-out of 20 toasted 20 times.
+  const toastedRuns = new Set<string>()
 
-    if (!isOn || e.fork) {
+  on('agent.spawn', async ($, e, next) => {
+    const { version } = await $.session.version()
+    const isOn = isSupported(version) && switchOn(await $.env.get('CC_SPAWN_FLOOR'), options.cc_spawn_floor !== false)
+
+    // The host ignores a model rewrite on a resume: the agent keeps the model it started on.
+    if (!isOn || e.fork || e.resume || (e.workflow && !atLeast(version, WORKFLOW_MODEL_FROM))) {
       return next(e)
     }
 
@@ -64,7 +70,13 @@ export function registerFloors(on: On, options: PluginOptions) {
     // pc_role_floors holds each registry floor equal to the agent's pin, so the floor is what a spawn naming no model runs on.
     const before = explicit ?? (isInherit ? e.parentModel : floor)
 
-    if (rank(model) !== rank(before)) {
+    const runId = e.workflow?.runId
+
+    if (rank(model) !== rank(before) && (runId === undefined || !toastedRuns.has(runId))) {
+      if (runId !== undefined) {
+        toastedRuns.add(runId)
+      }
+
       try {
         $.ui.toast(`${e.subagentType}: ${e.model || 'its pin'} raised to ${model} (role floor ${floor})`)
       } catch {

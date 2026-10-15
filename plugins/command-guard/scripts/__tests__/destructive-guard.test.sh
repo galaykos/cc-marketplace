@@ -21,6 +21,7 @@ SNAP_BEFORE=$(git_snap)
 
 ok()  { pass=$((pass + 1)); }
 bad() { fail=$((fail + 1)); printf 'FAIL  %s\n      %s\n' "$1" "$2"; }
+ms_now() { local t; if [ -n "${EPOCHREALTIME:-}" ]; then t=${EPOCHREALTIME/[.,]/}; printf '%s' "${t%???}"; else printf '%s000' "$(date +%s)"; fi; }
 
 tier_of() { "$BASH_BIN" "$GUARD" --check "$1" >/dev/null 2>&1; case $? in 0) echo allow ;; 1) echo ask ;; 2) echo deny ;; *) echo error ;; esac; }
 
@@ -54,6 +55,26 @@ expect deny 'rm -rf /'
 expect deny 'rm -rf ~'
 expect deny 'rm -rf "$HOME"'
 expect deny 'rm -rf .'
+# A target whose shell value is only backslashes: the host's dangerous-rm check flags it too (CLI 2.1.281).
+expect deny 'rm -rf \'
+expect deny "rm -rf '\\'"
+expect deny 'rm -rf \\'
+expect deny 'rm -rf "\\"'
+expect deny 'sudo rm -rf \'
+expect deny 'ls; rm -rf \'
+expect allow $'rm -rf build \\\n  dist'   # a line continuation is no target
+expect allow $'rm -rf \\\nls'             # nor one that joins the next line's word
+expect allow 'rm -rf \ foo'                # an escaped space: the target is " foo"
+expect allow "rm -f '\\'"                  # not recursive
+# Judged on rm's own words, through a shell's -c and eval: 0.9.0's first cut grepped the whole segment, and missed the wrapped ones.
+expect deny "bash -c 'rm -rf \\'"
+expect deny "eval 'rm -rf \\'"
+expect deny "sudo bash -c 'rm -rf \\\\'"
+expect deny 'sh -c "rm -rf \\\\"'
+expect ask "rm -rf \"\$(echo \"\$p\" | tr '\\\\' '/')\""    # the backslash is tr's, the target a substitution
+expect allow "find . -name '\\\\' -exec rm -rf {} +"
+expect allow "rm -rf build # strip '\\\\' later"
+expect allow "bash -c 'rm -rf build # \\\\'"
 expect deny 'rm -rf /etc'
 expect deny 'rm .env'
 expect deny 'rm -f .env.local'
@@ -604,6 +625,38 @@ for junk in '' 'not json at all' '{"tool_name":' '{}' '{"tool_name":"Bash"}' '{"
   out=$(printf '%s' "$junk" | "$BASH_BIN" "$GUARD" 2>/dev/null); rc=$?
   { [ -z "$out" ] && [ "$rc" -eq 0 ]; } && ok || bad "malformed input must fail open" "input=<$junk> rc=$rc out=$out"
 done
+# The exits above are the script's own fail-open; a guard the host cannot start, or one past its timeout, blocks (CLI 2.1.295+).
+HJ="$here/../../hooks/hooks.json"
+sel='[.hooks.PreToolUse[].hooks[] | select(.command | test("destructive-guard\\.sh"))]'
+n=$(jq "$sel | length" "$HJ" 2>/dev/null); nb=$(jq "$sel | map(select(.onFailure == \"block\")) | length" "$HJ" 2>/dev/null)
+{ [ "${n:-0}" -gt 0 ] && [ "$nb" = "$n" ]; } && ok || bad "every destructive-guard entry in hooks.json sets onFailure: block" "${nb:-?} of ${n:-?}"
+# Each entry run as the host runs it (/bin/sh -c, the root in the env) on a copy whose shebang names no interpreter: a host
+# without /bin/bash (NixOS) must not block every call. 0.9.0's first cut executed the script by path.
+SB="$WS/noshebang"; mkdir -p "$SB/hooks"
+{ printf '#!/nonexistent/bash\n'; tail -n +2 "$GUARD"; } > "$SB/hooks/destructive-guard.sh"; chmod +x "$SB/hooks/destructive-guard.sh"
+while IFS= read -r c; do
+  d=$(printf '%s' "$(bash_json 'php artisan migrate:fresh')" | CLAUDE_PLUGIN_ROOT="$SB" /bin/sh -c "$c" 2>/dev/null \
+    | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+  [ "$d" = "deny" ] && ok || bad "hooks.json starts destructive-guard.sh through PATH bash, not its shebang" "verdict=${d:-<none>} command=$c"
+done < <(jq -r "$sel | .[].command" "$HJ" 2>/dev/null)
+# A judgment still running at GUARD_DEADLINE asks, in one line, before the host's timeout would block the call.
+slow="bash <<'EOF'"$'\n'
+for i in $(seq 1 2000); do slow+="echo row_$i compute alpha beta transform item $i"$'\n'; done
+slow+="EOF"
+mkdir -p "$WS/tmpd"
+t0=$(ms_now); out=$(hook "$(bash_json "$slow")" GUARD_DEADLINE=1 TMPDIR="$WS/tmpd"); t1=$(ms_now)
+d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+{ [ "$d" = "ask" ] && [ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && [ $((t1 - t0)) -lt 3000 ]; } && ok \
+  || bad "watchdog: a judgment past GUARD_DEADLINE asks once, in time" "verdict=${d:-<silent>} lines=$(printf '%s\n' "$out" | grep -c .) took $((t1 - t0)) ms"
+[ -z "$(ls -A "$WS/tmpd")" ] && ok || bad "watchdog: no temp file is left behind" "$(ls -A "$WS/tmpd" | tr '\n' ' ')"
+d=$(hook "$(bash_json 'php artisan migrate:fresh')" GUARD_DEADLINE=1 | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+[ "$d" = "deny" ] && ok || bad "watchdog: a judgment inside the deadline keeps its verdict" "verdict=${d:-<silent>}"
+NOSLEEP="$WS/nosleep"; mkdir -p "$NOSLEEP"
+for u in cat grep sed awk tr head tail wc cut env sh printf sort uniq jq mktemp rm git dirname basename; do
+  p="$(command -v "$u" 2>/dev/null)" && ln -s "$p" "$NOSLEEP/$u" 2>/dev/null
+done
+d=$(printf '%s' "$(bash_json 'php artisan migrate:fresh')" | PATH="$NOSLEEP" "$BASH_BIN" "$GUARD" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+[ "$d" = "deny" ] && ok || bad "watchdog: no sleep on PATH judges unwatched" "verdict=${d:-<silent>}"
 
 # Every vector that bypassed the two reverted self-exemptions for the guard's own --check, pinned as deny.
 printf '== no self-exemption\n'
@@ -666,7 +719,6 @@ done
 
 # A body went through the segment walk line by line: a 21 KB `python3 - <<'EOF'` ran 22.6 s past the 15 s timeout and failed open.
 printf '== heredoc bodies\n'
-ms_now() { local t; if [ -n "${EPOCHREALTIME:-}" ]; then t=${EPOCHREALTIME/[.,]/}; printf '%s' "${t%???}"; else printf '%s000' "$(date +%s)"; fi; }
 big=""
 for k in 1 2 3 4 5 6 7; do
   if [ "$k" = 7 ]; then big+="python3 - <<'EOF'"$'\n'; else big+="cat > $WS/f$k.txt <<'EOF'"$'\n'; fi

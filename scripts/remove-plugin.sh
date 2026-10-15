@@ -85,7 +85,7 @@ blocking_hooks() {
   jq -r '.hooks // {} | to_entries[] | .key as $e | .value[] | .hooks[]?
          | [$e, (.type // "command"), ((.command // "") | gsub("[\t\n\r]"; " ")), tojson] | join("\u001f")' "$hj" |
   while IFS=$'\x1f' read -r ev type cmd def; do
-    script=$(printf '%s' "$cmd" | tr -d "\"'" | sed "s#\${CLAUDE_PLUGIN_ROOT}#plugins/$1#g")
+    script=$(printf '%s' "$cmd" | tr -d "\"'" | sed -E 's#^(bash|sh)[[:space:]]+##' | sed "s#\${CLAUDE_PLUGIN_ROOT}#plugins/$1#g")
     if [ -f "$script" ] && [ -r "$script" ]; then
       h=$(shasum < "$script") || exit 1
       key="$ev:$(basename "$script"):${h:0:12}"

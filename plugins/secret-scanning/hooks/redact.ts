@@ -208,7 +208,8 @@ export function register(on: On, options: PluginOptions) {
     return next(e)
   }).catch(($, e, next) => next(e))
 
-  // Paint only: a span the editor shows marked is still sent unless the check at submit masks it.
+  // Paint only: a span the editor shows marked is still sent unless the check at submit masks it. A recalled draft stays
+  // unpainted: prompt.change (CLI 2.1.300) only observes, and naming it stops this module loading on older CLIs.
   on('prompt.edit', async ($, e, next) => {
     const r = await next(e)
     const pats = draftPatterns
@@ -222,6 +223,10 @@ export function register(on: On, options: PluginOptions) {
   }).catch(($, e, next) => next(e))
 
   // A classic UserPromptSubmit hook can refuse a prompt but not rewrite it; this one masks it on the way in.
+  // The host leaks around it below its fixes: before CLI 2.1.295 a masked or dropped prompt is still saved as typed to history
+  // and the transcript queue, before 2.1.296 Esc mid-check sends it unchecked, before 2.1.299 an image can drop the mask, before
+  // 2.1.300 the session title and the OpenTelemetry user_prompt get it as typed. Kept on from MODS_FLOOR: off below each fix,
+  // every path would leak instead of one.
   on('prompt.submit', async ($, e, next) => {
     if (!TYPED.has(e.origin.kind)) {
       return next(e)
@@ -336,6 +341,9 @@ export function register(on: On, options: PluginOptions) {
     return { text: null }
   })
 
+  // Below CLI 2.1.299 a call the host cannot hand this hook (a value nested past its limit) skips it and passes unredacted;
+  // from 2.1.299 the host refuses the call, or withholds a result that already ran. Read also decodes a UTF-16LE file with a
+  // byte-order mark from 2.1.299; before, it arrives NUL-interleaved and no pattern matches it.
   on('tool.call', async ($, e, next) => {
     if (!(await isOn($, options))) {
       return next(e)

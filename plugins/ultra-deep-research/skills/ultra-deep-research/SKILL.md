@@ -52,7 +52,7 @@ and 7 are the same either way.
    dispatches per round** (claims × votes): rank by how much the answer leans on each,
    verify down to the cap, carry the rest `unconfirmed`, and name the deferred count.
    **Lint every verdict before trusting it:** pipe each verifier return through
-   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/verdict-lint.sh` — a `confirmed` that fails
+   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/verdict-lint.sh"` — a `confirmed` that fails
    the lint (no verbatim quote, no retrieval timestamp, or empty corroboration) is
    DEMOTED to `contested`, never patched up on the verifier's behalf. The lint is a
    format gate only; whether the quote is real stays your judgment. Stated limitation:

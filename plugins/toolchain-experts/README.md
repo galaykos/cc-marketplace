@@ -4,6 +4,13 @@ Five expert reviewers for PHP, TypeScript/JavaScript, React, Vue and CSS that **
 the project's own static analysis** and triage the real output, instead of reciting a
 best-practice checklist.
 
+## Install
+
+```bash
+/plugin marketplace add galaykos/cc-marketplace
+/plugin install toolchain-experts@cc-plugins-marketplace
+```
+
 ## Why it is shaped this way
 
 This marketplace already measured the obvious version of this plugin and deleted it.

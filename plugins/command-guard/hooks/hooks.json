@@ -6,8 +6,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh\"",
-            "timeout": 15
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh\"",
+            "timeout": 15,
+            "onFailure": "block"
           }
         ]
       },
@@ -16,8 +17,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh\"",
-            "timeout": 15
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh\"",
+            "timeout": 15,
+            "onFailure": "block"
           }
         ]
       },
@@ -26,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/config-guard.sh\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/config-guard.sh\"",
             "timeout": 10
           }
         ]

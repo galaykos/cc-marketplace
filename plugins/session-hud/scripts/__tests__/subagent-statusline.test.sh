@@ -36,6 +36,10 @@ FAILED="$(task t3 ",\"agentType\":\"Plan\",\"status\":\"failed\",\"startTime\":$
 eq "failed mark and an hour-long age" "$(input 120 "$FAILED" | rows)" \
   '{"id":"t3","content":"✗ Plan · 12.3k · 1h02m · Reading README.md"}'
 
+PRE293="$(task t4 ",\"model\":\"claude-haiku-4-5-20251001\",\"effort\":\"low\",\"startTime\":$((NOW - 5000))")"
+eq "no agentType (CLI below 2.1.293): the row drops the type" "$(input 120 "$PRE293" | rows)" \
+  '{"id":"t4","content":"haiku-4-5 · low · 12.3k · 5s · Reading README.md"}'
+
 eq "cut to the row width" "$(input 20 "$FULL" | rows | jq -r .content)" 'Explore · haiku-4-5 '
 
 eq "malformed task skipped, good one kept" "$(input 120 "{\"bad\":1},$NAMED" | rows | jq -r .id)" 't2'

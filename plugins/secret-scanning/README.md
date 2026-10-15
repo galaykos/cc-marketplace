@@ -12,7 +12,7 @@ Blocks secrets before they reach disk.
 | An unusable `hooks/patterns.tsv` (missing, CRLF, a malformed row, a pattern outside the regex dialect its header states) | **gate** — the write guard's one exception to fail-open: `scan.sh` denies every write it would scan, naming the file, the line and `CC_SECRET_SCAN=off`; `scan-hook.test.sh` runs each shape. The redaction mod logs it once and passes output through instead |
 | Secrets in any tool's output, on Claude Code ≥ 2.1.291 — masked as `[REDACTED:<label>]`, or the result withheld (see Mods, below) | **gate** — `hooks/redact.ts`; `tests/redact.test.ts` runs under `claude plugin test` in CI (the marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails the build. A subagent's call is not tested (the test kit drops `agentId`) |
 | A file attached with an `@` mention, or changed outside the session, whose text holds a secret, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses the mention with a toast, and masks what the engine attaches either way; same tests, same CI step. A subagent's mention is not tested |
-| A secret typed or pasted into the prompt box, on Claude Code ≥ 2.1.291 | **gate** for the decision: the mod paints it in the draft, and at submit asks Mask and send / Send as typed / Cancel, masking when nobody can answer. A slash command's arguments cannot be masked, so a command holding a secret is offered only Send as typed / Cancel and dropped otherwise (`tests/redact.test.ts`, "prompt box"). **Recorded**: the masked text, not the secret, is what reached the API in a live probe on 2.1.294 (marketplace repository `rationale/2026-10-08-secret-scanning-prompt-guard-probe.md`) |
+| A secret typed or pasted into the prompt box, on Claude Code ≥ 2.1.291 | **gate** for the decision: the mod paints it in the draft, and at submit asks Mask and send / Send as typed / Cancel, masking when nobody can answer. A slash command's arguments cannot be masked, so a command holding a secret is offered only Send as typed / Cancel and dropped otherwise (`tests/redact.test.ts`, "prompt box"). **Recorded**: the masked text, not the secret, is what reached the API in a live probe on 2.1.294 (marketplace repository `rationale/2026-10-08-secret-scanning-prompt-guard-probe.md`). Below 2.1.300 the host's changelog says its session-title request still carried the prompt as typed; the residuals below give each CLI version's gap |
 | A `Write`/`Edit`/`MultiEdit`/`NotebookEdit` whose new text carries `[REDACTED:`, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses it, naming `CC_SECRET_REDACT=off`, so a redacted read written back cannot replace the real value; same tests, same CI step |
 | A `Bash` heredoc body or `echo`/`printf` argument carrying `[REDACTED:` that lands in a file (since 0.14.0), on any CLI, with or without mods | **gate** — `scan.sh` refuses it the same way unless `CC_SECRET_REDACT` is `off`, `0` or `false`; `scan-hook.test.sh` runs both write shapes, a command writing no file, stdout only and the off switches. Not refused: an MCP write tool, and the Bash writes the guard cannot read (`sed -i` text, interpreters, `cp`/`mv`; the "through Bash any other way" row below) |
 | The mod and the write guard agree on what is a secret (one pattern file, two regex engines) | **gate** — `scripts/__tests__/pattern-parity.test.sh` runs one fixture set through `scan.sh` and the mod's matcher and fails on any disagreement it does not declare; it proves its fixtures, not every input, and its declared divergences (astral characters in a webhook tail, a NUL inside a key) are fixtures of their own |
@@ -187,10 +187,16 @@ standing is in the table at the top.
 Residuals, stated:
 
 - **Where it fails open.** A hook failure before the tool runs lets the call through
-  and its output passes unredacted. An unusable `hooks/patterns.tsv` is logged once and
+  and its output passes unredacted. Below Claude Code 2.1.299 so does a call the host
+  cannot hand this hook at all (a value nested past its limit); from 2.1.299 the host
+  refuses that call, or withholds the result of one that ran (its changelog; in
+  `claude plugin test` 2.1.300 refuses a 30,000-deep value, where 2.1.291's kit raised an
+  error). An unusable `hooks/patterns.tsv` is logged once and
   every result then passes unredacted (the write guard denies instead). A
   withheld-output refusal that cannot return within the one-second grace of the hook's
-  failure handler lets the result through. An unusable `hooks/patterns.tsv` also lets every `@` mention and
+  failure handler lets the result through, on 2.1.300 as on 2.1.291: 2.1.299's refusal
+  does not cover it (re-measured in `claude plugin test` on both, the handler held 3 s).
+  An unusable `hooks/patterns.tsv` also lets every `@` mention and
   attachment through unscanned.
 - **Private keys.** A key body arriving without its `BEGIN` line in the same string — a
   `Read` with an offset, `tail`, a `Grep` hit inside a `.pem` — is never matched. A
@@ -208,15 +214,41 @@ Residuals, stated:
   non-text type (a `Bash` `stdout` holding image data is masked as text instead).
 - **The prompt box.**
   - **Not painted:** a large paste that the prompt box collapses to `[Pasted text #1 +N lines]`,
-    or a draft recalled with Up. Both are still checked at Enter.
+    or a draft recalled with Up. Both are still checked at Enter. CLI 2.1.300's
+    `prompt.change` hook, raised for a recall, a clear, an undo or a plugin's fill, does not
+    close this. Its hook only observes: the host discards what it returns. Repainting
+    through `$.prompt.fill` would rewrite the draft, resetting a `!` shell draft to prompt
+    mode and moving the cursor to the end (2.1.300's own code). And registering it at all
+    stops this module loading on 2.1.291, where `claude plugin validate` and
+    `claude plugin test` both fail on `"prompt.change" is not an event` (measured). An
+    event name must be a literal, so no version check can guard it.
   - **Not checked:** a prompt from a plugin, another session, a background task, a scheduled
     task or an MCP channel (any origin but `composer`, `bridge` and `sdk`).
   - **Send as typed sends the secret**, by your choice.
   - **Cancel's history:** the draft it keeps in history holds the secret, in the local
-    `history.jsonl`.
+    `history.jsonl` (live probe, 2.1.294). From 2.1.295 the host no longer saves a dropped
+    prompt as typed, so whether Up still brings Cancel's draft back is unmeasured.
+  - **By CLI version**, each from the host's changelog and none re-measured here, since each
+    needs a live session:
+    - below 2.1.295, a prompt this check masked or dropped was still saved as typed, to
+      `history.jsonl` and to the transcript's queued-prompt records, so Mask and send left
+      the secret on disk, though not in the request;
+    - below 2.1.296, Esc or an interrupt while the check ran could send the prompt unchecked;
+    - below 2.1.299, a prompt with a pasted image, or an image the host could not read,
+      could lose the mask and go as typed;
+    - below 2.1.300, the session-title request and the OpenTelemetry `user_prompt` event
+      carried the prompt as typed.
+
+    The guard still runs from 2.1.291, the mods floor. Below each fix one path leaks, and
+    turning the guard off there would leak on every path. Its version check could raise
+    the floor; it does not.
 - **Not matched.** The secret-access-key field of an AWS credentials CSV stays visible
   beside its masked key ID: it has no pattern of its own. NUL-interleaved UTF-16 text
-  passes, though `scan.sh` denies writing it. An assigned literal whose name carries more
+  passes, though `scan.sh` denies writing it. From CLI 2.1.299 `Read` decodes a UTF-16LE
+  file that opens with a byte-order mark, so its text is masked like any other. Measured
+  through `claude mcp serve`: 2.1.291 returns the NUL-interleaved bytes, 2.1.300 the text.
+  A file without the mark, one read through Bash, and every one below 2.1.299 still
+  pass. An assigned literal whose name carries more
   than twelve `_`/`-` segments after its last keyword, or a segment over 64 characters
   between that keyword and the `:`/`=`, passes both the mod and `scan.sh`: the shared pattern bounds the name so JavaScript's
   regex stays linear.

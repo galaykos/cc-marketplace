@@ -56,7 +56,7 @@ discipline the marketplace uses everywhere a second opinion has value
 because it cannot be removed after.
 
 **Mechanical check (run it, don't self-certify):** write the brief to a scratch
-file and run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/brief-lint.sh <file>`; rewrite
+file and run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/brief-lint.sh" <file>`; rewrite
 until it exits 0. The lint catches conclusion PHRASING only — a hypothesis
 smuggled as a neutral fact ("the stale cache layer at src/cache.ts") still
 passes, so a clean lint is necessary, never sufficient; reread for framing.
@@ -97,6 +97,18 @@ The passive reminder hook matches key-moment phrases and prints one advisory
 line naming the command. The nudge is a suggestion with no memory — it may
 repeat on later matching prompts, and ignoring it is always legitimate. A nudge
 is never a reason to consult by itself; the moment is.
+
+## Beside the host's `/advisor`
+
+Claude Code's `/advisor` (extended in 2.1.300) also puts a stronger model beside the
+session, server-side, consulted mid-generation. It is cheaper to reach and needs no
+brief. What a consult keeps: the brief is blind and facts-only, so the consultant never
+sees the session's hypothesis — the advisor is consulted from inside the session's own
+conversation; the consultant reads the repo itself, read-only, and checks every claim; and
+the passive nudge fires on irreversible-command tokens, which `/advisor` does not watch.
+Admission, stated plainly: if a blind brief does not beat an anchored advisor on the same
+stuck moment, the consult agent duplicates `/advisor` and only the nudge earns its place.
+No control-arm run has measured that — **recorded**, not shown.
 
 ## What a consult is not
 

@@ -3,6 +3,8 @@
 #   file's first word, the cc_terse option, else off; out of vocabulary is off. --sources prints each layer first. Exits 0, silent on stderr.
 # The option is CLAUDE_PLUGIN_OPTION_CC_TERSE where the host exports it, else one saved in managed-settings.json, then in the user settings.json.
 # Misses: --settings files, managed-settings.d drop-ins, MDM or server-managed policy, a symlinked settings file; without jq, every settings file.
+# --sources asks `claude plugin configure <id> --json` (2.1.285+) first: it resolves user, managed and drop-ins, follows symlinks, but cannot
+#   see the session's own --settings flag; ~0.45 s, so only --sources pays it. Any failure — older CLI, no claude, not under plugins/cache — reads the files.
 # CANDOR_MANAGED_SETTINGS replaces the managed-settings path; test-only, for the harness.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/level.sh
 {
@@ -29,7 +31,21 @@
   case "$opt_v" in true) opt_v=on ;; false) opt_v=off ;; esac
   if [ -z "$opt_v" ]; then
     opt_at="none saved in managed or user settings"
-    if [ -n "$env_v$file_v" ] && [ "${1:-}" != --sources ]; then
+    host_v=""
+    if [ "${1:-}" = --sources ] && command -v claude >/dev/null && command -v jq >/dev/null; then
+      # configure wants the full id; an install sits at plugins/cache/<marketplace>/candor/<version>, a --plugin-dir or checkout does not.
+      plug=$(cd "$(dirname "$0")/../.." && pwd -P)
+      if [ "$(basename "$plug")" = candor ] && [ "$(basename "$(dirname "$(dirname "$plug")")")" = cache ]; then
+        host_id="candor@$(basename "$(dirname "$plug")")"
+        tmo=""; command -v timeout >/dev/null && tmo="timeout 10"
+        host_v=$($tmo claude plugin configure "$host_id" --json </dev/null | jq -er '.inputs | objects | (.cc_terse // "") | strings') \
+          && host_v="ok:$host_v" || host_v=""
+      fi
+    fi
+    if [ -n "$host_v" ]; then
+      opt_v=${host_v#ok:}
+      opt_at="claude plugin configure $host_id: user, managed and drop-ins; not this session's --settings"
+    elif [ -n "$env_v$file_v" ] && [ "${1:-}" != --sources ]; then
       : # a higher layer decided; the badge skips jq on every keystroke
     elif command -v jq >/dev/null; then
       for f in "$managed" "$cfg/settings.json"; do

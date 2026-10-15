@@ -28,7 +28,7 @@ writing panel logic, stop — it exists in that skill; this one only wires it to
 The panel attacks code, not prose. Get the exact slice from the harness:
 
 ```
-${CLAUDE_PLUGIN_ROOT}/scripts/code-redteam-diff.sh --base <base-ref> [--paths <glob>...]
+"${CLAUDE_PLUGIN_ROOT}/scripts/code-redteam-diff.sh" --base <base-ref> [--paths <glob>...]
 ```
 
 `--base` prints `git diff <ref>..HEAD`. The base is INCREMENTAL: each milestone-boundary
@@ -61,10 +61,9 @@ or a recorded degradation.
 (`task-execution`, or `track-orchestration` on the tracks path) passes the **already
 resolved** `(model, effort)` in, so `auto` is resolved before it reaches here per
 `task-execution/SKILL.md`'s resolution rule. Dispatch the refuters **and** the
-completeness-critic with those values as `agent()` parameters: `model:` and `effort:` on
-the `Workflow` panel path, `model:` **only** on the Agent-tool path — the plain Agent
-tool has **no effort knob** (`verification-panels` `references/dispatch-tier.md`, which owns
-this rule). Absent a supplied tier, run native rather than guessing.
+completeness-critic with those values as `model:` and `effort:` parameters on either path;
+pass `effort:` to the Agent tool only if it lists that parameter (`verification-panels`
+`references/dispatch-tier.md`, which owns this rule). Absent a supplied tier, run native rather than guessing.
 
 The lenses:
 
@@ -121,8 +120,7 @@ The fallback trigger is **no dispatch mechanism at all** — neither the `Workfl
 the Agent tool (`verification-panels` § A panel verdict is a claim about process owns this;
 do not re-derive it). A missing `Workflow` tool is NOT the trigger: the Agent tool is a real
 dispatch path, so with it present the three refuters and the critic spawn as separate agents
-and the panel is real — `model:` only, no `effort:` (`verification-panels`
-`references/dispatch-tier.md`).
+and the panel is real, tiered as above.
 
 With no mechanism at all (headless, cron, a refused budget), do NOT skip the red-team. Run one inline
 single-agent code-redteam pass over the same diff from the harness: one agent walks the

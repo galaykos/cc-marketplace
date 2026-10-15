@@ -272,6 +272,28 @@ describe('session-hud', () => {
     expect(await texts(drawn), 'a redraw of the same footer keeps its line').toEqual(['Baked for 64s', '  3.2k out · $0.08 · ctx +6%'])
   })
 
+  test("counts the whole turn's cost across a subagent's turn start", async ($, on) => {
+    const world = seat(on)
+
+    await start($)
+    await $.turn.start({ text: 'fix it', turnId: 't1' })
+    world.costUsd = 1.25
+    await world.clock.advance(2_000)
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+    await $.turn.start({ text: 'audit it', turnId: 'a1', agentId: 'agent-1' })
+    world.costUsd = 1.28
+    await $.turn.complete({
+      answer: 'done',
+      durationMs: 64_000,
+      isAborted: false,
+      turnId: 't1',
+      reason: 'answer',
+      usage: { model: 'claude-opus-5-5', input_tokens: 10, output_tokens: 3_200, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+    })
+
+    expect(await footer($, 'm1', 64_000)).toEqual(['Baked for 64s', '  3.2k out · $0.08'])
+  })
+
   test("leaves an older turn's footer as the engine draws it", async ($, on) => {
     seat(on)
     await start($)

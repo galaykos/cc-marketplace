@@ -133,7 +133,7 @@ jobs:
       # The host's own validator, pinned to the CLI this repo was measured against —
       # scripts/official-validate.sh is the local twin and carries the derivation.
       # LAST among the fail-capable steps that do not need the binary, on purpose: the
-      # install is a ~217 MB native download, and every sub-second repo-owned harness
+      # install is a ~267 MB native download (2.1.300 linux-x64), and every sub-second repo-owned harness
       # above should report before a registry blip can. The fail-capable steps that follow
       # it are there because they drive the binary this installs.
       # Supply-chain residual, stated: the wrapper and its
@@ -142,7 +142,7 @@ jobs:
       # are disabled inside the script so the verdict cannot depend on network.
       - name: Official plugin validator (--strict)
         run: |
-          npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.291
+          npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.300
           bash scripts/official-validate.sh
       # After the validator step, where `claude` reaches PATH: arm (d) loads a real suite at
       # --max-cost-usd 0, which launches nothing; every other arm drives a stub claude.

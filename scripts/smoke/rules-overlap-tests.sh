@@ -209,6 +209,18 @@ else
   echo "FAIL[host]: <!-- host-ok --> rescue ignored on a command"; rc=1
 fi
 
+# 10c. built-ins that never reach a session's listing still collide. The host's
+#      `debug` is user-only, so a roster read off a listing missed it and
+#      `debugging:debug` shipped unmarked; these names came from the 2.1.300 bundle.
+for hn in debug commit pr plugin-authoring workflow-authoring; do
+  printf -- '---\ndescription: x\n---\nbody\n' > "$HOSTFIX/commands/$hn.md"
+  if pc_host_overlap "$HOSTFIX/commands/$hn.md" >/dev/null; then
+    echo "FAIL[host]: command colliding with 2.1.300 built-in $hn went undetected"; rc=1
+  else
+    echo "PASS[host]: command colliding with 2.1.300 built-in $hn detected"
+  fi
+done
+
 # 11. the documented escape must work
 printf -- '---\nname: dataviz\ndescription: x\n---\n<!-- host-ok --> defers to the built-in\n' > "$HOSTFIX/skills/dataviz/SKILL.md"
 if pc_host_overlap "$HOSTFIX/skills/dataviz/SKILL.md" >/dev/null; then

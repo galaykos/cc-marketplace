@@ -11,6 +11,13 @@ the sprites are Digimon. It can insist the model say so, per named thing, in the
 the reader looks, and refuse the turn until it does. That is this plugin, and it is its
 own plugin so it can be disabled on its own.
 
+## Install
+
+```bash
+/plugin marketplace add galaykos/cc-marketplace
+/plugin install ask-ledger@cc-plugins-marketplace
+```
+
 ## What it does
 
 | event | script | does |

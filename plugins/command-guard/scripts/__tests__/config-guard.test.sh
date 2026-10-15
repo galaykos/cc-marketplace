@@ -106,5 +106,23 @@ out=$(printf 'garbage' | "$BASH_BIN" "$HOOK" 2>/dev/null); rc=$?
 out=$(fire "$T/.claude/settings.json" Bash)
 [ -z "$out" ] && ok "a Bash payload with no command is silent" || bad "a Bash payload with no command is silent" "$out"
 
+# The entry run as the host runs it (/bin/sh -c, the root in the env) on a copy whose shebang names no interpreter:
+# on a host without /bin/bash (NixOS) the path form errored and the ask never came.
+HJ="$(dirname "$HOOK")/hooks.json"
+SB="$T/noshebang"; mkdir -p "$SB/hooks"
+{ printf '#!/nonexistent/bash\n'; tail -n +2 "$HOOK"; } > "$SB/hooks/config-guard.sh"; chmod +x "$SB/hooks/config-guard.sh"
+n=0
+while IFS= read -r c; do
+  n=$((n+1))
+  out=$(python3 -c "
+import json,sys
+print(json.dumps({'session_id':'cg','cwd':sys.argv[1],'tool_name':'Edit',
+  'tool_input':{'file_path':sys.argv[1]+'/.claude/settings.json','old_string':'a','new_string':'b'}}))
+" "$T" | CLAUDE_PLUGIN_ROOT="$SB" /bin/sh -c "$c" 2>/dev/null)
+  case "$out" in *'"permissionDecision":"ask"'*) ok "hooks.json starts config-guard.sh through PATH bash, not its shebang" ;;
+    *) bad "hooks.json starts config-guard.sh through PATH bash, not its shebang" "got: ${out:-<silent>} command=$c" ;; esac
+done < <(jq -r '.hooks.PreToolUse[].hooks[] | select(.command | test("config-guard\\.sh")) | .command' "$HJ" 2>/dev/null)
+[ "$n" -gt 0 ] || bad "hooks.json registers config-guard.sh" "no entry found in $HJ"
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

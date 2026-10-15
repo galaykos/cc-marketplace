@@ -24,7 +24,7 @@ strength — and before the task-runner handoff. Run both, in that order.
 For every card in the run, invoke the shipped denylist linter:
 
 ```
-${CLAUDE_PLUGIN_ROOT}/scripts/verify-teeth-lint.sh --card <card-file>
+"${CLAUDE_PLUGIN_ROOT}/scripts/verify-teeth-lint.sh" --card <card-file>
 ```
 
 It reads the card's `<verify>` element (or a legacy `**Verify:**` line) and exits **0**

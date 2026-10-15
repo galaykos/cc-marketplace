@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # gate-pins.test.sh — pins both sides of each named limit in hooks/gate.sh: the in-flight record TTL, the behavioral-gate PID file's
-#   age cap, the disclosure tail, the transcript tail, the citation cap, the bare-pushback length and the claim window.
+#   age cap and deadline, the disclosure tail, the transcript tail, the citation cap, the bare-pushback length and the claim window.
 set -u
 
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/gate.sh"
@@ -74,10 +74,16 @@ RP="$WS/bgpid"; repo "$RP"; mkdir -p "$RP/.claude/task-runner/bg"; PIDF="$RP/.cl
 printf 'sleep 600 & s=$!\ntrap "kill $s; exit 0" TERM\nwait\n' > "$WS/behavioral-gate.sh"
 bash "$WS/behavioral-gate.sh" >/dev/null 2>&1 & LIVE=$!
 [ -d /proc/self ] && for i in 1 2 3 4 5 6 7 8 9 10; do grep -qs 'behavioral-gate' "/proc/$LIVE/cmdline" && break; sleep 0.2; done
+# No line 3 is a task-runner before 0.48.0, which writes no deadline: the file's age decides.
 printf '%s\n%s\n' "$LIVE" "$(git -C "$RP" rev-parse HEAD)" > "$PIDF"; age_minutes "$PIDF" 238
-expect "bg PID age: a 238-minute running.pid with a live PID at HEAD still holds the block" "$RP" "$CLEAN" 0 "still in flight"
+expect "bg PID age: a 238-minute running.pid with no deadline and a live PID at HEAD still holds the block" "$RP" "$CLEAN" 0 "still in flight"
 age_minutes "$PIDF" 242
-expect "bg PID age: a 242-minute running.pid with a live PID at HEAD is ignored, the stop blocks" "$RP" "$CLEAN" 2 "$RUN_SUB"
+expect "bg PID age: a 242-minute running.pid with no deadline and a live PID at HEAD is ignored, the stop blocks" "$RP" "$CLEAN" 2 "$RUN_SUB"
+# Line 3, task-runner 0.48.0+: the epoch second the gate's own total ends it by, whatever the file's age.
+printf '%s\n%s\n%s\n' "$LIVE" "$(git -C "$RP" rev-parse HEAD)" $(($(date +%s) + 600)) > "$PIDF"; age_minutes "$PIDF" 300
+expect "bg PID deadline: a 300-minute running.pid whose deadline is 10 minutes ahead still holds the block" "$RP" "$CLEAN" 0 "still in flight"
+printf '%s\n%s\n%s\n' "$LIVE" "$(git -C "$RP" rev-parse HEAD)" $(($(date +%s) - 60)) > "$PIDF"
+expect "bg PID deadline: a fresh running.pid whose deadline passed a minute ago is ignored, the stop blocks" "$RP" "$CLEAN" 2 "$RUN_SUB"
 kill "$LIVE" 2>/dev/null; wait "$LIVE" 2>/dev/null
 
 RB="$WS/disclosure"; repo "$RB"

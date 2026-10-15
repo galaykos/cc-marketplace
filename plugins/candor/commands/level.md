@@ -18,7 +18,9 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/level.sh" --sources
 ```
 
 It prints each layer the hooks read — `CC_TERSE`, the level file, the `cc_terse` /config
-option — then `active: <level> <source>`. The first non-empty layer wins, in that order, and a
+option — then `active: <level> <source>`. The option comes from `claude plugin configure`
+(CLI 2.1.285+) when the host answers, which sees user and managed settings and their
+drop-ins; otherwise the option line names the settings file it read instead. The first non-empty layer wins, in that order, and a
 value that is not a level below counts as `off` rather than falling through to the next layer.
 
 Parse the first token of `$ARGUMENTS`:
@@ -50,9 +52,11 @@ contract is not already in context.
 
 The hook removed the level file, and its context this turn says whether `CC_TERSE` or
 the `cc_terse` option still keeps a level active. If it says so, report that, whatever
-`active` shows; when `active` is `off` anyway, add that the option sits where `level.sh`
-cannot read it — a `--settings` file, a managed drop-in or policy, a symlinked
-settings file, or any settings file when `jq` is missing (the option line says so).
+`active` shows; when `active` is `off` anyway, add that the option sits where this
+command cannot read it — always this session's `--settings` file, perhaps MDM or
+server-managed policy (unmeasured); when the option line
+names a settings file rather than `claude plugin configure`, also a managed drop-in or
+policy, a symlinked settings file, or any settings file when `jq` is missing.
 Otherwise read `active`: if it is `off`, confirm in one line that normal
 length resumes. If it still names a level, do not say that — name the source holding it
 instead: `env` is `CC_TERSE` (unset it); `option` is the `cc_terse` option in the
@@ -65,10 +69,13 @@ config dir).
 
 Report, without changing anything, every source the block above printed and which one
 wins (`active`). The level file and the option persist across sessions until changed;
-`CC_TERSE` lasts as long as the environment that set it. Not seen by this command or the
-badge, though the hooks apply it: a `cc_terse` saved only through a `--settings` file,
-managed drop-ins or policy, in a symlinked settings file, or in any settings file when
-`jq` is missing — say so when `active` is `off` and the user reports terse replies.
+`CC_TERSE` lasts as long as the environment that set it. The hooks apply a `cc_terse`
+this command cannot see: one saved only in this session's `--settings` file, always;
+perhaps one in MDM or server-managed policy (unmeasured); and
+when the option line names a settings file, one in managed drop-ins or policy, in a
+symlinked settings file, or in any settings file when `jq` is missing. Say so when
+`active` is `off` and the user reports terse replies. The badge never asks the host (about
+half a second per call, too slow for every keystroke), so it misses all of those.
 
 Then print the reference card (display only, change nothing):
 

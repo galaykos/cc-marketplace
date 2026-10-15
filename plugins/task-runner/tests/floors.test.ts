@@ -151,6 +151,52 @@ describe('floors', () => {
     expect(world.reads, 'a fork never reads the registry').toEqual([])
   })
 
+  test('raises a workflow agent from CLI 2.1.300, the first to apply its model', async ($, on) => {
+    const world = seat(on, { version: '2.1.300' })
+
+    await $.agent.spawn(spawnOf('code-review:code-reviewer', SONNET, { model: 'haiku', workflow: { runId: 'wf_1', agentIndex: 1 } }))
+
+    expect(world.models).toEqual(['opus'])
+    expect(world.toasts).toEqual(['code-review:code-reviewer: haiku raised to opus (role floor opus)'])
+  })
+
+  test('toasts once per workflow run, however many of its agents are raised', async ($, on) => {
+    const world = seat(on, { version: '2.1.300' })
+    const haiku = (more: Partial<Args<'agent.spawn'>> = {}) => spawnOf('code-review:code-reviewer', SONNET, { model: 'haiku', ...more })
+
+    for (const agentIndex of [1, 2, 3]) {
+      await $.agent.spawn(haiku({ workflow: { runId: 'wf_1', agentIndex } }))
+    }
+    await $.agent.spawn(haiku({ workflow: { runId: 'wf_2', agentIndex: 1 } }))
+    await $.agent.spawn(haiku())
+    await $.agent.spawn(haiku())
+
+    expect(world.models, 'every agent is still raised').toEqual(Array(6).fill('opus'))
+    expect(world.toasts, 'wf_1 once, wf_2 once, each Agent-tool spawn').toEqual(
+      Array(4).fill('code-review:code-reviewer: haiku raised to opus (role floor opus)'),
+    )
+  })
+
+  test('leaves a workflow agent untouched below CLI 2.1.300, which ignores its model', async ($, on) => {
+    const world = seat(on, { version: '2.1.299' })
+
+    await $.agent.spawn(spawnOf('code-review:code-reviewer', SONNET, { model: 'haiku', workflow: { runId: 'wf_1', agentIndex: 1 } }))
+    await $.agent.spawn(spawnOf('code-review:code-reviewer', FABLE, { workflow: { runId: 'wf_1', agentIndex: 2 } }))
+
+    expect(world.models).toEqual(['haiku', undefined])
+    expect(world.toasts, 'no toast for a raise the host would drop').toEqual([])
+  })
+
+  test('leaves a resumed agent on the model it started on', async ($, on) => {
+    const world = seat(on, { version: '2.1.300' })
+
+    await $.agent.spawn(spawnOf('code-review:code-reviewer', SONNET, { model: 'haiku', resume: { agentId: 'a1' } }))
+    await $.agent.spawn(spawnOf('code-review:code-reviewer', FABLE, { resume: { agentId: 'a2' } }))
+
+    expect(world.models).toEqual(['haiku', undefined])
+    expect(world.toasts).toEqual([])
+  })
+
   test('leaves an agent outside the registry untouched', async ($, on) => {
     const world = seat(on)
 

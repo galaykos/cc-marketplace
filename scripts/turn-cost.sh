@@ -50,9 +50,10 @@
 #     This systematically UNDER-counts exactly the orchestration-heavy plugins the
 #     instrument was built to look at. That is the biggest known hole in it.
 #   - Cost is ESTIMATED from a static price table (below), not read from a bill.
-#     Cache multipliers: read 0.1x, 1h write 2x, 5m write 1.25x. The TTL split is
-#     read per request from usage.cache_creation, because assuming the 1.25x
-#     default under-states a 1h-TTL session's write channel by 60%.
+#     Cache reads are priced per model (Sonnet 5.5 reads at 0.05x of input, not
+#     0.1x); writes are 1h 2x, 5m 1.25x. The TTL split is read per request from
+#     usage.cache_creation, because assuming the 1.25x default under-states a
+#     1h-TTL session's write channel by 60%.
 #
 # HONEST LIMITATION, stated the way this repo's convention asks. It cannot see:
 # subagents (above); anything on another machine; sessions whose transcripts have
@@ -113,30 +114,48 @@ SKILLS     = os.environ.get("TC_SKILLS") == "1"
 ROOT       = os.environ.get("TC_ROOT") or "."
 PROJECT    = os.environ.get("TC_PROJECT") or ""
 
-# $/MTok (input, output). Source: the claude-api skill's model table, cached
-# 2026-06-24. A model absent from this table is priced at the Opus rate and NAMED
-# in the output, so an unknown model shows up as a caveat rather than as silence.
+# $/MTok (input, output, cache read). Source: the model catalog baked into CLI
+# 2.1.300 (`pricing_tiers`), read 2026-10-15; it agrees with the changelog: Haiku 5.5
+# at $0.10/$0.50 (2.1.293), Sonnet 5.5 cache reads at $0.10 (2.1.296). Longest prefix
+# wins, so claude-opus-5-5 is never priced as claude-opus-5. A model absent from this
+# table is priced at the Opus 5 rate and NAMED in the output, so an unknown model
+# shows up as a caveat rather than as silence.
 PRICE = {
-    "claude-fable-5": (10.0, 50.0), "claude-mythos-5": (10.0, 50.0),
-    "claude-opus-5": (5.0, 25.0), "claude-opus-4-8": (5.0, 25.0),
-    "claude-opus-4-7": (5.0, 25.0), "claude-opus-4-6": (5.0, 25.0),
-    "claude-sonnet-5": (2.0, 10.0), "claude-sonnet-4-6": (3.0, 15.0),
-    "claude-haiku-4-5": (1.0, 5.0),
+    "claude-fable-5-1": (10.0, 50.0, 0.25), "claude-mythos-5-1": (10.0, 50.0, 0.25),
+    "claude-fable-5": (10.0, 50.0, 1.0), "claude-mythos-5": (10.0, 50.0, 1.0),
+    "claude-opus-5-5": (4.0, 20.0, 0.2),
+    "claude-opus-5": (5.0, 25.0, 0.5), "claude-opus-4-8": (5.0, 25.0, 0.5),
+    "claude-opus-4-7": (5.0, 25.0, 0.5), "claude-opus-4-6": (5.0, 25.0, 0.5),
+    "claude-sonnet-5-5": (2.0, 10.0, 0.1),
+    "claude-sonnet-5": (2.0, 10.0, 0.2), "claude-sonnet-4-6": (3.0, 15.0, 0.3),
+    "claude-haiku-5-5": (0.1, 0.5, 0.01), "claude-haiku-4-5": (1.0, 5.0, 0.1),
+    "claude-opus-4-5": (5.0, 25.0, 0.5),
+    "claude-opus-4-1": (15.0, 75.0, 1.5), "claude-opus-4-0": (15.0, 75.0, 1.5),
+    "claude-sonnet-4-5": (3.0, 15.0, 0.3), "claude-sonnet-4-0": (3.0, 15.0, 0.3),
+    "claude-3-7-sonnet": (3.0, 15.0, 0.3), "claude-3-5-sonnet": (3.0, 15.0, 0.3),
+    "claude-3-5-haiku": (0.8, 4.0, 0.08),
+    # The 4.0 pair's first-party ids, the ones transcripts record, drop the "-0".
+    "claude-opus-4-20250514": (15.0, 75.0, 1.5), "claude-sonnet-4-20250514": (3.0, 15.0, 0.3),
 }
-DEFAULT_PRICE = (5.0, 25.0)
+# A Haiku 5.5 request whose prompt (input + cache read + cache write) tops 100K tokens
+# is billed whole at the long-prompt rate — the CLI's own rule.
+LONG_PROMPT = {"claude-haiku-5-5": (100_000, (0.5, 2.5, 0.05))}
+DEFAULT_PRICE = (5.0, 25.0, 0.5)
+PRICE_KEYS = sorted(PRICE, key=len, reverse=True)
 unknown_models = collections.Counter()
 
-def price_for(model):
+def price_for(model, prompt_tokens=0):
     if model:
-        for k, v in PRICE.items():
+        for k in PRICE_KEYS:
             if model.startswith(k):
-                return v
+                above, long_price = LONG_PROMPT.get(k, (None, None))
+                return long_price if above is not None and prompt_tokens > above else PRICE[k]
     unknown_models[model or "(none)"] += 1
     return DEFAULT_PRICE
 
 def request_cost(u, model):
     """Dollars for one request. Reads the cache_creation TTL split per request."""
-    pin, pout = price_for(model)
+    pin, pout, pread = price_for(model, ctx_of(u))
     cc = u.get("cache_creation") or {}
     w1 = cc.get("ephemeral_1h_input_tokens", 0) or 0
     w5 = cc.get("ephemeral_5m_input_tokens", 0) or 0
@@ -149,7 +168,7 @@ def request_cost(u, model):
         (u.get("input_tokens", 0) or 0) * pin
         + w1 * pin * 2.0
         + w5 * pin * 1.25
-        + (u.get("cache_read_input_tokens", 0) or 0) * pin * 0.1
+        + (u.get("cache_read_input_tokens", 0) or 0) * pread
         + (u.get("output_tokens", 0) or 0) * pout
     ) / 1e6
 
