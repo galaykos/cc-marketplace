@@ -613,6 +613,14 @@ sib js src/calc.js bun 'Ran 5 tests across 1 files.'
 sib js src/calc.js Playwright '  5 passed (3.2s)'
 # ...while jest's suite count is still not a test count, under a workspace prefix too.
 sib js src/calc.js jest "$(printf 'web:tests: Test Suites: 1 passed, 1 total\nweb:tests: Tests:       0 total')" 'empty-suite(2)' 2 'empty-suite'
+# `pytest -qq` prints no summary, only its progress line (2026-10-15): a green wrapper read
+# unverifiable-suite. A pass or fail letter there counts; skips alone do not.
+sib py src/calc.py 'pytest -qq' '.....F.                                              [100%]'
+sib py src/calc.py 'pytest -qq, all skipped' 'sss                                                  [100%]' 'unverifiable-suite(2)' 2 'unverifiable-suite'
+# A replacement's build-success line is not a test count (2026-10-15): it read covered, and the
+# built-in's weak Gradle fallback stands on a test-sources check the replacement never makes.
+sib java src/Calc.java 'a gradle wrapper' 'BUILD SUCCESSFUL in 2s' 'unverifiable-suite(2)' 2 'unverifiable-suite'
+sib java src/Calc.java Surefire '[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0'
 # A wrapper's own banner is not a go result line: this read covered.
 case_run "--runner-for go, a '--- :go:' banner over a docker error -> unverifiable-suite(2)" "$RF" 2 --label 'unverifiable-suite' -- \
   --changed src/calc.go --runner-for go 'echo "--- :go: unit tests"; echo "Error response from daemon: container app is not running"; exit 1::no test files'

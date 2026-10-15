@@ -152,9 +152,10 @@ export async function activeRun(
     return null
   }
 
-  const current = await gitLine(host, ['rev-parse', '--abbrev-ref', 'HEAD'])
+  const ref = await gitLine(host, ['symbolic-ref', '-q', 'HEAD'])
+  const current = ref?.startsWith('refs/heads/') ? ref.slice('refs/heads/'.length) : null
 
-  if (current === null || current === 'HEAD' || current !== data.branch) {
+  if (current === null || current !== data.branch) {
     return null
   }
 

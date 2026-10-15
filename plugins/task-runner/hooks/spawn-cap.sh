@@ -29,9 +29,9 @@
 # minutes, then 25 at #40, while its sibling agents finished; neither approval changed
 # the plan. The notice goes to the user (systemMessage) and the model
 # (additionalContext), and names the plan.
-# Residual: a run that dispatches past its plan is told, not stopped; a tag made after
-# registration with the branch's name makes --abbrev-ref print `heads/<branch>`, so the run
-# reads as another branch's, here and in candor's clause 4 alike.
+# Residual: a run that dispatches past its plan is told, not stopped. The branch is read with
+# `symbolic-ref`: a tag with the branch's name made --abbrev-ref print `heads/<branch>`, so the
+# run read as another branch's and the cap asked. A detached HEAD (exit 1) reads `HEAD` as before.
 #
 # WHAT IT DOES NOT CATCH, stated because the README tiers this:
 #   - Agents a SUBAGENT spawns. The count is keyed on the session, and a nested dispatch
@@ -136,7 +136,7 @@ cc_option() {
   # turned this ask into a notice for unrelated work. Read as candor's clause 4 reads it: a
   # run differs only when both names are known and differ.
   if [ -n "$root" ] && [ -r "$sent" ] && sb=$(jq -r '.branch // empty' "$sent" 2>/dev/null) &&
-     { cb=$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null); [ -z "$sb" ] || [ -z "$cb" ] || [ "$sb" = "$cb" ]; }; then
+     { cb=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null); [ $? -ne 1 ] || cb=HEAD; cb=${cb#refs/heads/}; [ -z "$sb" ] || [ -z "$cb" ] || [ "$sb" = "$cb" ]; }; then
     run=$(jq -r '.slug // empty' "$sent" 2>/dev/null); [ -n "$run" ] || run=run
     idx=$(jq -r '.index_path // empty' "$sent" 2>/dev/null)
     idxp="$idx"; case "$idx" in '' | /*) ;; *) idxp="$root/$idx" ;; esac

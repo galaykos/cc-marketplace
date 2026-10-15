@@ -31,8 +31,8 @@
 #     line, or `pending reason_variable`. The quote is what tells a skip declaration from
 #     `items.skip 2`, so dropping it would deny ordinary Ruby; the narrower miss is the
 #     cheaper of the two, and it is a miss, not a false deny.
-#   - A Pest skip split across lines (`->skip()` on the line after `})`, or its argument on
-#     the next line), one whose condition is an expression (`->skip($onCi)`), one after
+#   - A Pest skip whose argument is on the next line (`->skip()` on the line after `})` is
+#     read, in a .php file), one whose condition is an expression (`->skip($onCi)`), one after
 #     `it('x', fn () => …)`, or past a chained call whose argument holds parentheses
 #     (`->with(fn () => […])`). The matcher reads one line, and Pest's own argument shapes are
 #     what tell its skip from a Collection's `->skip($n)` — the same miss-over-false-deny trade.
@@ -460,13 +460,17 @@ cc_strip_heredoc_bodies() {
   # `->skipLocally()`, `->onlyOnLinux()`, `->todo()`) have no Collection twin, so any argument
   # counts, and `beforeEach()->skip()` skips the whole file. Pest's skip message is not a reason (a
   # same-line comment is); the shapes this misses are in the header.
+  # A chain split after `})` puts the skip on a line that OPENS with `->` (2026-10-15: it passed).
+  # That arm reads .php files only, with the same argument shapes, so `->skip(2)` on a Collection's
+  # continuation line stays silent; a scheduler's `->skip(fn () => …)` there denies.
   skip_re='(\b(it|test|describe|context|suite|scenario|feature|bench|fixture|story)\b(\.[A-Za-z]+(\([^)]*\))?)*\.(skip|only|todo|failing)[[:space:]]*\(|\bx(it|describe|test|context|specify)[[:space:]]*[("'\''"]|@pytest\.mark\.skip|markTestSkipped|markTestIncomplete|\bt\.Skip(Now)?[[:space:]]*\(|#\[ignore\]|@Disabled\b|@Ignore\b|\bpending[[:space:]]*\(|\bskip[[:space:]]+["'\'']|\.skipIf[[:space:]]*\(|(\}\)|\b(it|test|describe|beforeEach)\([^()]*\))([[:space:]]*->[[:space:]]*[A-Za-z]+[[:space:]]*\([^()]*\))*[[:space:]]*->[[:space:]]*(only[[:space:]]*\([[:space:]]*\)|skip[[:space:]]*\([[:space:]]*(\)|["'\'']|fn\b|function\b|true\b|false\b)|(skip(On[A-Za-z]+|Locally)|onlyOn[A-Za-z]+|todo)[[:space:]]*\())'
   rspec_re='\bpending[[:space:]]+["'\'']'
+  pest_next_re='^[[:space:]]*(->[[:space:]]*[A-Za-z]+[[:space:]]*\([^()]*\)[[:space:]]*)*->[[:space:]]*(only[[:space:]]*\([[:space:]]*\)|skip[[:space:]]*\([[:space:]]*(\)|["'\'']|fn\b|function\b|true\b|false\b)|(skip(On[A-Za-z]+|Locally)|onlyOn[A-Za-z]+|todo)[[:space:]]*\()'
 
   # Reads tool, file, new and old; sets hit, empty when the write is allowed.
   judge_tests() {
     hit=""; re=$skip_re
-    case "$file" in *.rb) re="($skip_re|$rspec_re)" ;; esac
+    case "$file" in *.rb) re="($skip_re|$rspec_re)" ;; *.php) re="($skip_re|$pest_next_re)" ;; esac
     if printf '%s' "$new" | grep -qE "$re"; then
       # Count occurrences added vs already there. A rewrite that carries an existing
       # marker through unchanged must not deny.

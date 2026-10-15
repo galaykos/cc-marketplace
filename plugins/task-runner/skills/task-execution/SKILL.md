@@ -89,8 +89,8 @@ produced diff, and under `Goal:` auto-takes the pipeline gates (a `Goal:` carryi
 malformed-marker fallback, the run-start announcement, and what Goal never suppresses:
 `references/boost-execution.md`.
 
-Blocker/major findings send the task back into the fix loop; each such round counts toward the SAME three-cycle ceiling as verify failures (under `--crew`, the crew loop
-uses its own fresh budget) — so the reviewer pass cannot loop unboundedly. Minor findings go to the follow-up backlog, not the current diff; after a reviewer-driven fix,
+Critical/high findings send the task back into the fix loop; each such round counts toward the SAME three-cycle ceiling as verify failures (under `--crew`, the crew loop
+uses its own fresh budget) — so the reviewer pass cannot loop unboundedly. Medium/low findings go to the follow-up backlog, not the current diff; after a reviewer-driven fix,
 re-run the verify command before re-review. Accessibility findings and `/ui-ux:audit` deferrals are the exception: they
 close in the run, fixed or recorded (`references/reviewer-routing.md` § UI diffs).
 
@@ -166,7 +166,7 @@ The run is complete only when:
 3. The project's FULL check suite passes at the end (local passes can compose into a global
    failure) AND the **behavioral-gate** actually runs the produced code (`scripts/behavioral-gate.sh
    --isolate --changed <run's files>` in the background, never a hand-built checkout) — the repo suite may be a static linter that never runs new code.
-   If installed, api-design's drift check (`/api-design:drift`) joins, and code-architecture's **drift-review** reads the whole-run diff against what was ASKED — no suite checks that.
+   If installed, api-design's drift check (`/api-design:drift`) joins, and code-architecture's **drift-review** reads `<start_sha>..HEAD` against what was ASKED — no suite checks that.
 4. The final report is a table: task / status / verify command / evidence line, plus the
    parked list with reasons and the follow-up backlog collected by the scope lock, plus every UI group's Screens table.
 

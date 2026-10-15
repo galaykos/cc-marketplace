@@ -129,6 +129,30 @@ out="$(fire "$(mk 'fix the header nav' 20)" "$G/app/Models")"
 [ -z "$out" ] && pass "subdirectory cwd: yields to the run registered at the root" \
   || fail "subdirectory cwd: yields to the run registered at the root" "$out"
 
+# ---- 9. NEW FILES under a directory this request created are the feature, not drift ------
+# "build a homepage" wrote 12 new files under a new components/welcome/ and was told 12 of 12
+# were unnamed (2026-10-13 retro). The transcript marks each Write that created its file.
+mkc() { # $1 ask, $2 dir, $3 count -> transcript path; each file is created on disk too
+  _n=$((_n + 1)); local tp="$TMP/t$_n.jsonl" i f
+  printf '{"type":"user","message":{"role":"user","content":%s}}\n' "$(jq -Rn --arg a "$1" '$a')" > "$tp"
+  mkdir -p "$2"
+  for i in $(seq 1 "$3"); do
+    f="$2/part$i.tsx"; : > "$f"
+    jq -cn --arg f "$f" '{type:"assistant",message:{role:"assistant",content:[{type:"tool_use",name:"Write",input:{file_path:$f}}]}}' >> "$tp"
+    jq -cn --arg f "$f" '{type:"user",message:{role:"user",content:[{type:"tool_result",content:"File created successfully"}]},toolUseResult:{type:"create",filePath:$f}}' >> "$tp"
+  done
+  printf '%s' "$tp"
+}
+N="$TMP/newdir"; mkdir -p "$N"; git init -q "$N" 2>/dev/null
+out="$(fire "$(mkc 'build the homepage' "$N/components/welcome" 14)" "$N")"
+[ -z "$out" ] && pass "silent on new files under a directory the request created" \
+  || fail "silent on new files under a directory the request created" "$out"
+# The same new files beside one that was already there: the directory is not new, so they count.
+E="$TMP/olddir"; mkdir -p "$E/components/shared"; git init -q "$E" 2>/dev/null; : > "$E/components/shared/Button.tsx"
+out="$(fire "$(mkc 'fix the login page title' "$E/components/shared" 14)" "$E")"
+case "$out" in *"14 files edited"*) pass "new files in a directory that already held one still count" ;;
+  *) fail "new files in a directory that already held one still count" "got: ${out:-<silent>}" ;; esac
+
 printf '\n'
 [ "$rc" -eq 0 ] && printf 'drift.test: all cases passed\n' || printf 'drift.test: FAILURES above\n'
 exit "$rc"

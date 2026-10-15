@@ -253,3 +253,13 @@ export function shouldHold(v: Verdict | null): boolean {
 export function dropReason(v: Verdict): string {
   return `prompt-coach held this prompt (${v.kind}); set CC_PROMPT_COACH=off to stop`
 }
+
+// A word of letters with at most a leading capital, or an acronym of up to 5 capitals, reads as prose and is kept. A digit,
+// a symbol or an inner capital is the shape of a key, token or password, and becomes ▪; a lowercase passphrase is not caught.
+const PROSE_WORD = /^[("'‘“]?(?:[A-Za-z][a-z]{0,19}(?:['’-][a-z]{1,12})?|[A-Z]{2,5})[)"'’”.,;:!?]*$/
+
+export function maskedExcerpt(text: string, words = 40): string {
+  const all = text.split(/\s+/).filter((word) => word !== '')
+  const kept = all.slice(0, words).map((word) => (PROSE_WORD.test(word) ? word : '▪'))
+  return `${kept.join(' ')}${all.length > words ? ' …' : ''}`
+}

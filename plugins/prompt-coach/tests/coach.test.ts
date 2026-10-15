@@ -2,12 +2,15 @@ import type { Args, FsStat, On, RenderSurface, SessionMessage } from 'claude-cod
 import { describe, expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
+import { textHash } from '../hooks/coach-core'
+
 const NOW = Date.UTC(2026, 9, 7, 12)
 const ROOT = '/work'
 const RUN = '/work/.claude/task-runner/active-run.json'
 const INDEX = '/work/taskmaster-docs/tasks/login/00-INDEX.md'
 const SPEC = '/work/taskmaster-docs/specs/login.md'
 const SENTINEL = '/work/.claude/cc-phase.json'
+const HELD = '/work/.claude/prompt-coach/held.jsonl'
 
 const ZERO = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }
 
@@ -113,6 +116,8 @@ function seat(on: On, live: Live = {}) {
     submitted: [] as Args<'prompt.submit'>[],
     toasts: [] as string[],
     fills: [] as string[],
+    writes: [] as string[],
+    isWriteDenied: false,
   }
 
   on('session.version', async () => {
@@ -136,7 +141,7 @@ function seat(on: On, live: Live = {}) {
 
     const answers: Record<string, [number, string]> = {
       'git rev-parse --show-cdup': [0, '\n'],
-      'git rev-parse --abbrev-ref HEAD': [0, 'feat/login\n'],
+      'git symbolic-ref -q HEAD': [0, 'refs/heads/feat/login\n'],
       'git ls-files --error-unmatch -- .claude/task-runner/active-run.json': [world.lsFilesExit, ''],
     }
     const ran = answers[e.argv.join(' ')]
@@ -164,6 +169,19 @@ function seat(on: On, live: Live = {}) {
 
     return text === undefined ? { deny: `ENOENT: ${e.path}` } : { value: text }
   })
+
+  on('fs.write', ($, e) => {
+    if (world.isWriteDenied) {
+      return { deny: `EACCES: ${e.path}` }
+    }
+
+    world.files.set(e.path, e.text)
+    world.writes.push(e.path)
+
+    return { value: undefined }
+  })
+
+  on('session.id', () => ({ value: 'S1' }))
 
   on('ui.toast', ($, e) => {
     world.toasts.push(e.text)
@@ -269,6 +287,69 @@ describe('coach', () => {
       ['haiku', 8, 'low'],
       ['sonnet', 400, 'low'],
     ])
+  })
+
+  test('records a drop as a hash and a masked excerpt, never the text', async ($, on) => {
+    const world = seat(on)
+    const held = 'deploy it with tok_Zq81xVbLm0 and QzXwVbNmLkJh like before'
+
+    await mount($)
+
+    world.replies.haiku = [answer('unclear')]
+
+    expect(await $.prompt.submit(composer(PROMPT))).toEqual(dropOf('unclear'))
+    expect(await $.prompt.submit(composer(held))).toEqual(dropOf('unclear'))
+    expect(await $.prompt.submit(composer('fix the bug we talked about please'))).toEqual(dropOf('unclear'))
+
+    const log = world.files.get(HELD) ?? ''
+    const records = log.trim().split('\n').map(line => JSON.parse(line))
+
+    expect(records.length, 'one line per drop').toBe(3)
+    expect(records[1], 'the second drop').toEqual({
+      at: new Date(NOW).toISOString(),
+      session: 'S1',
+      hash: textHash(held),
+      chars: held.length,
+      kind: 'unclear',
+      excerpt: 'deploy it with ▪ and ▪ like before',
+      reason: 'Nothing here says which bug.',
+    })
+    expect(log.includes('tok_Zq81xVbLm0') || log.includes('QzXwVbNmLkJh'), 'neither secret-shaped word is written').toBe(false)
+    expect(log.includes('Fix the null check'), 'nor the rewrite, which restates the text').toBe(false)
+  })
+
+  test('keeps the last 50 drops', async ($, on) => {
+    const world = seat(on, { files: { [HELD]: Array.from({ length: 50 }, (_, i) => JSON.stringify({ n: i })).join('\n') + '\n' } })
+
+    await mount($)
+
+    world.replies.haiku = [answer('unclear')]
+
+    expect(await $.prompt.submit(composer(PROMPT))).toEqual(dropOf('unclear'))
+
+    const lines = (world.files.get(HELD) ?? '').trim().split('\n')
+
+    expect(lines.length).toBe(50)
+    expect(JSON.parse(lines[0]), 'the oldest record went').toEqual({ n: 1 })
+    expect(JSON.parse(lines[49]).hash).toBe(textHash(PROMPT))
+  })
+
+  test('a drop it cannot record still drops', async ($, on) => {
+    const world = seat(on)
+
+    world.isWriteDenied = true
+    await mount($)
+
+    world.replies.haiku = [answer('unclear')]
+
+    expect(await $.prompt.submit(composer(PROMPT))).toEqual(dropOf('unclear'))
+  })
+
+  test('a passed prompt writes no record', async ($, on) => {
+    const world = seat(on)
+
+    expect(await $.prompt.submit(composer(PROMPT))).toEqual({ text: PROMPT })
+    expect(world.writes).toEqual([])
   })
 
   test('names off-card only while a run is active', async ($, on) => {

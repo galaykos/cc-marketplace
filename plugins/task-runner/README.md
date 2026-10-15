@@ -86,7 +86,7 @@ every task; ui-ux, architecture, and security reviewers only when the task's
 content warrants them (security as a review-only `security-engineer`, which can run probes a
 read-only reviewer cannot). Reviewers have no shell, so each is handed a diff file that
 `scripts/review-diff.sh` writes: the card's diff, its untracked files and the blame of the
-lines it changes. Blocker/major findings re-enter the bounded fix loop. At run close one
+lines it changes. Critical/high findings re-enter the bounded fix loop. At run close one
 `/code-review:review` covers the whole range since the run started, because per-card passes
 cannot see what changed across cards.
 The run only completes when every task is done or parked AND the project's
@@ -131,7 +131,8 @@ unenforced and says so on stderr; writes outside the project root are not checke
 turns have no registered run, and there it exits at once — so
 `drift.sh` asks one question, once per request, when a narrow ask has produced a wide
 change: **12+** files edited (p90 of 169 measured local edit-turns), no breadth word in
-the request, half of them never named in it.
+the request, half of them never named in it. Files created under a directory the request
+created are not counted: they are the new feature.
 
 Advisory, and it counts **breadth only**: an unasked refactor inside a file you did
 name is invisible to it. `CC_DRIFT=off` silences it.
@@ -163,7 +164,8 @@ and it says nothing about whether the fan-out was a good idea — that is
 A run registers itself at start through `scripts/register-run.sh`, which `/task-runner:run`,
 the task-execution skill's first step and `/task-runner:plan`'s "Run now" all call (until
 0.47.0 only the command registered, and a handoff straight to the skill ran with every check
-below silently off). A Stop hook — clause 4 of candor's gate since
+below silently off). It also seeds `.claude/task-runner/env-notes.md`, the environment facts
+every worker reads before its first command, starting with "never read `.env`". A Stop hook — clause 4 of candor's gate since
 2026-09-14, this plugin's `hooks/completion-gate.sh` before that; install candor or
 the run can end by narration — refuses to let it end while the work is unfinished — no recorded behavioral-gate pass for the current HEAD, or
 cards neither done nor parked. Ending a turn with "starting card 01 now" and no

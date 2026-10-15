@@ -76,6 +76,15 @@ has "13 subdirectory cwd: the root's run is announced" "$line" '`2026-09-22-demo
 has "14 subdirectory cwd: the root-relative index still resolves" "$line" '2 of 4 cards still open'
 check "15 subdirectory cwd: no .claude/ created there" "$([ -e "$RUN/app/Models/.claude" ] && echo yes)" ""
 
+# 16) a tag named like the run's branch: --abbrev-ref printed `heads/feat/orders`, and the line
+#     told the session it was on another branch than its own run's
+TAGR="$WS/tagged"; mkdir -p "$TAGR/.claude/task-runner"
+git init -q -b feat/orders "$TAGR" 2>/dev/null && git -C "$TAGR" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
+git -C "$TAGR" tag feat/orders
+printf '{"slug":"tagged","branch":"feat/orders"}\n' > "$TAGR/.claude/task-runner/active-run.json"
+line=$(fire "$TAGR")
+check "16 a tag named like the branch: no 'you are on' another branch" "$(printf '%s' "$line" | grep -c 'you are on')" "0"
+
 ODD="$WS/odd"; mkdir -p "$ODD/.claude/task-runner" "$ODD/tasks/odd"
 printf '{"slug":"2026-10-08-odd","index_path":"tasks/odd/00-INDEX.md"}\n' > "$ODD/.claude/task-runner/active-run.json"
 printf '%s\n' '| card | title | status |' '|---|---|---|' '| 01 | a | committed e93ffc7 — verify 7/7 |' \

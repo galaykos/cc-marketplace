@@ -77,8 +77,8 @@ numbers from the working file, not the patch". Standing: agent-graded.
 return (delegation-contracts § Compressed returns), injected verbatim:
 
 > "Return findings most severe first, ONE line each:
-> `file:line — severity(blocker|major|minor) — problem — fix`. List every blocker and
-> major; minor findings past the tenth may collapse into one final `+N more (minor)` line.
+> `file:line — severity(critical|high|medium|low) — problem — fix`. List every critical
+> and high; medium/low past the tenth may collapse into one final `+N more (medium/low)` line.
 > No prose introductions, no summary of the summary. Your final message is data for the
 > orchestrator, not prose for a human."
 
@@ -122,9 +122,9 @@ Runs after the card's verification passes — a command OR a recorded manual che
    can write build artifacts into the shared tree, so it must not run concurrently with
    anything; that includes `security-engineer`. The `security:security-review` skill, when
    it stands in, runs inline in the orchestrator after the batch joins.
-6. **Severity normalization** (routed reviewers use varying scales): **critical/high** or
-   **blocker/major** → re-enter the existing **3-cycle fix loop** (`SKILL.md`'s fix-loop rule);
-   **medium/low** or **minor** → the backlog, except accessibility findings and deferrals
+6. **Severity** (one scale, code-review's): **critical/high** → re-enter the existing
+   **3-cycle fix loop** (`SKILL.md`'s fix-loop rule);
+   **medium/low** → the backlog, except accessibility findings and deferrals
    to `/ui-ux:audit`, which close in the run (§ UI diffs). In the fix loop the runner applies fixes
    (or re-dispatches the builder), re-runs verify, then re-reviews. A finding that names a
    mechanism (a middleware, a cache-key rule) first greps the run's diff for siblings.

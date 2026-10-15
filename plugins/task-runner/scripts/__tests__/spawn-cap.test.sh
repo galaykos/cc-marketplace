@@ -104,6 +104,15 @@ case "$out" in *'"permissionDecision":"ask"'*) ok "a run registered on another b
   *) bad "a run registered on another branch still asks at 20" "got: ${out:-<silent>}" ;; esac
 git -C "$RUN" checkout -q main
 
+# A tag named like the run's branch, made after registration: --abbrev-ref printed `heads/main`,
+# so the run read as another branch's and dispatch #20 asked (2026-10-15).
+printf '{"slug":"tagged","branch":"main"}' > "$RUN/.claude/task-runner/active-run.json"
+git -C "$RUN" tag main
+out=$(for i in $(seq 1 20); do fire_at run-t "$RUN"; done | tail -1)
+case "$out" in *'"systemMessage"'*'registered run tagged'*) ok "a tag named like the run's branch: still the run, it notifies at 20" ;;
+  *) bad "a tag named like the run's branch: still the run, it notifies at 20" "got: ${out:-<silent>}" ;; esac
+git -C "$RUN" tag -d main >/dev/null
+
 # A sentinel naming no branch is this branch's run, as candor's completion clause reads it.
 printf '{"slug":"nobranch"}' > "$RUN/.claude/task-runner/active-run.json"
 out=$(for i in $(seq 1 20); do fire_at run-f "$RUN"; done | tail -1)

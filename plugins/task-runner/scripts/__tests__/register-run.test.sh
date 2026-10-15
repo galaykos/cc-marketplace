@@ -86,6 +86,21 @@ for args in "" "--slug inline-fixes"; do
     *) bad "inline re-register (${args:-no flags})" "out=<$out>" ;; esac
 done
 
+# 3c) env-notes.md: seeded once with the .env rule, then the run's own, kept across registrations
+grep -q 'Never read, grep or print `.env`' "$TR/env-notes.md" 2>/dev/null \
+  && ok "seeds env-notes.md with the never-read-.env rule" || bad "seeds env-notes.md" "$(cat "$TR/env-notes.md" 2>&1)"
+printf -- '- host node: /opt/node/bin\n' >> "$TR/env-notes.md"
+(cd "$REPO" && bash "$RR" --index "$IDX" --fresh >/dev/null 2>&1)
+grep -q 'host node' "$TR/env-notes.md" && ok "a fresh registration keeps the notes a run added" || bad "env-notes kept" "$(cat "$TR/env-notes.md")"
+
+# 3d) a tag with the branch's name made --abbrev-ref record `heads/feature`, so every reader that
+# asks git for the branch name read the run as another branch's
+git -C "$REPO" tag feature
+(cd "$REPO" && bash "$RR" --index "$IDX" --fresh >/dev/null 2>&1)
+[ "$(jq -r .branch "$SENT")" = feature ] && ok "a tag named like the branch: the sentinel still names branch feature" \
+  || bad "a tag named like the branch: the sentinel still names branch feature" "branch=$(jq -r .branch "$SENT")"
+git -C "$REPO" tag -d feature >/dev/null
+
 # 4) refusals
 (cd "$REPO" && bash "$RR" --index nope/00-INDEX.md >/dev/null 2>&1); r=$?
 [ "$r" = 3 ] && ok "an index that does not exist is a usage error (3)" || bad "missing index" "rc=$r"

@@ -31,10 +31,9 @@ file whose job is history is worse than an honest starting point.
   with any argument: `->skipOnCi()`, `->skipLocally()`, `->skipOnWindows()`,
   `->skipOnPhp('>=8.0.0')`, `->onlyOnLinux()`, `->todo()`, and the file-level
   `beforeEach()->skip()`; a Collection's `->skipWhile(…)` stays silent. Residual: Pest's own skip message does not count as the
-  reason (a same-line comment does), and missed are a chain split across lines (`->skip()` on
-  the line after `})`, or its argument on the next line), a condition spelled as an
-  expression (`->skip($onCi)`), `it('x', fn () => …)->skip()`, and a chained call whose
-  argument holds parentheses.
+  reason (a same-line comment does), and missed are an argument on the next line, a
+  condition spelled as an expression (`->skip($onCi)`), `it('x', fn () => …)->skip()`, and a
+  chained call whose argument holds parentheses.
 - Standing: gate. `protect-tests.test.sh` gains twenty-two cases (69); "bash harness: a stub's
   quoted pending mode is not a skip", "bash harness: a line-leading pending call is not a
   skip", "Pest })->skip() denies", "Pest test('…')->only() denies", "Pest })->skip('reason')
@@ -42,6 +41,15 @@ file whose job is history is worse than an honest starting point.
   })->with([…])->skip() chain denies", "Pest })->group('slow')->only() chain denies" and the
   seven named-helper cases ("Pest })->skipOnCi(); denies" … "Pest beforeEach()->skip();
   denies") fail against the hook before this change.
+- **A Pest skip on the line after `})` is read (2026-10-15).** A chain split after the closure
+  puts `->skip()`, `->only()` or a named helper on a line that opens with `->`, and it passed
+  silently. In a `.php` test file that line is now read with the same argument shapes, so a
+  Collection's `->skip(2)` on a continuation line stays silent; a scheduler's
+  `->skip(fn () => …)` there denies (a same-line reason comment clears it). Standing: gate.
+  `protect-tests.test.sh` gains four cases (75): "Pest ->skip() on the line after }) denies"
+  and "Pest ->with([…]) then ->skipOnCi() on the next lines denies" fail before; "a
+  Collection's ->skip(2) on a continuation line is not a Pest skip" and "a continuation-line
+  ->skip() outside a .php file is not read as Pest" stay silent.
 - **On Bash, the in-command `cd` test drops heredoc bodies with the shared scan.** The test
   used a one-line awk, also copied into three other plugins. That awk opened a body at a `<<`
   inside quotes or after a `#`, read one heredoc per line, cut a delimiter at its first

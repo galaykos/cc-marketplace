@@ -48,8 +48,11 @@ was *is* the drift this review exists to catch.
 Review the **whole unit of work**, not just the uncommitted working tree — otherwise
 anything already committed mid-session escapes the review entirely.
 
-- **Git repo:** diff against the point this work branched from.
-  `git merge-base HEAD <default-branch>` gives the base; `git diff <base>` gives the
+- **Git repo:** diff against the point this work started. The base is the first that
+  applies: a range your caller passed (task-runner passes `<start_sha>..HEAD`); else, when
+  `.claude/task-runner/active-run.json` names the current branch, its `start_sha` — on a
+  stacked branch the merge-base would charge the parent branch's commits to this work;
+  else `git merge-base HEAD <default-branch>`. `git diff <base>` gives the
   change, including commits made along the way. When the work sits on the default branch
   itself, or the merge-base resolves to HEAD, fall back to `git diff HEAD` plus
   `git diff --cached` for the working state.

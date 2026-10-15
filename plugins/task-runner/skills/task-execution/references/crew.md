@@ -21,7 +21,7 @@ After the card's build verify passes:
 2. **Test-only authoring** if the card is test-eligible (§ Eligibility, § Authoring).
 3. **Unconditional card-verify re-run** — the runner re-runs the card's exact verify
    command before the card may close, so a card never closes on a stale pre-crew result.
-4. **Fresh bounded fix loop** if any reviewer blocker/major finding or failing authored
+4. **Fresh bounded fix loop** if any reviewer critical/high finding or failing authored
    test remains (§ Fix loop).
 
 ## Reviewer pass
@@ -58,7 +58,7 @@ authored tests are **new, untracked** files:
 ## Fix loop (fresh 3-cycle)
 
 The crew fix loop has its **own fresh 3-cycle budget**, independent of the build-phase
-verify loop. Feeders: reviewer blocker/major findings (severity-normalized per
+verify loop. Feeders: reviewer critical/high findings (severity per
 `reviewer-routing.md`) + failing **authored tests only** (run by the returned test-file
 list — pre-existing suite failures never enter, since authored files are new) + a
 `vacuous`/`invalid-control` **negative-control** on the post-fix diff. A runner
@@ -76,7 +76,7 @@ verify that had teeth pre-crew. The authored-test set is **frozen after authorin
 0. card verify command RED, or a `vacuous`/`invalid-control` negative-control on the
                                post-fix diff → HALT the card (never close red or teeth-less),
                                regardless of the rest; a control isolation failure (exit 5) halts always
-1. else live reviewer blocker/major → HALT the card (dominates tests)
+1. else live reviewer critical/high → HALT the card (dominates tests)
 2. else unsatisfied authored test   → remove it (case-level if the file has passing
                                        siblings, else the file — an allowed orchestrator
                                        edit, not a re-author), record a backlog line

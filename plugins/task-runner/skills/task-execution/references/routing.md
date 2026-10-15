@@ -17,19 +17,20 @@ testing       → [testing:test-engineer]
 devops        → [devops:devops-engineer]
 performance   → [resilience:performance-engineer]
 observability → [resilience:observability-engineer]
-backend       → [laravel:backend-engineer, web-dev:web-developer]
-api           → [web-dev:web-developer]
+backend       → [laravel:backend-engineer if Laravel*, web-dev:web-developer]
+api           → [laravel:backend-engineer if Laravel*, web-dev:web-developer]
 generic       → [task-runner:task-executor]
 ```
+
+\* `composer.json` requires `laravel/framework`: the stack decides, never what is installed.
 
 ## Per-card dispatch procedure
 
 1. **Read the tag.** Take the card's `<agent>` value (`**Agent:**` on a legacy card). Missing or not in the closed
    vocabulary → treat as `generic` and log the normalization.
 2. **Resolve the worker.** Walk the tag's preference list; pick the first agent present
-   in the runner's available-agent-types list. If none is reachable, use
-   `task-runner:task-executor`. Log any downgrade (requested tag → actual worker) in
-   the run report.
+   in the runner's available-agent-types list, else `task-runner:task-executor`. Log any
+   downgrade (requested tag → actual worker) in the run report.
 3. **Arm scope.** Write the card's allowed files to
    `<repo root>/.claude/task-runner/scope-<cardId>.json` as
    `{"allow":["path","dir/"],"task":"<cardId>"}` (no other shape is read), not the
@@ -42,12 +43,10 @@ generic       → [task-runner:task-executor]
    every `<skill name="…"/>` in the card's `<must>`, resolve its installed `SKILL.md`
    and inject a `Read <abs-path>` line into the same prompt (delegation-contracts
    § Skill priming) — a delegate cannot self-load skills. Do this **unconditionally, not
-   only under ultra**: a framework card must reach its worker with the framework skill
-   primed, or the code is written framework-blind and only caught (if at all) at review.
+   only under ultra**: unprimed, a framework card is written framework-blind.
    When a stamped skill's `SKILL.md` cannot be resolved (plugin not installed), NEVER
    proceed silently: print one line in the run output — `degraded: card <id> runs
    framework-blind ("<skill>" not installed; install <plugin> to fix)` — and continue.
-   The user must see the degradation, not discover it at review.
 5. **Dispatch** the resolved worker with that prompt. **The resolution above binds only
    if the dispatch names the worker.** On the Agent path that is `subagent_type:
    <resolved>`; on the `Workflow` path it is the `agentType` option —
@@ -57,8 +56,7 @@ generic       → [task-runner:task-executor]
    rules) silently does not, and every gate still passes green.
 
    Log the dispatch mechanism and the bound agent per card in the run report, next to
-   the worker downgrade line from step 2 — an unbound dispatch is invisible in the diff
-   and reads exactly like a bound one.
+   the worker downgrade line from step 2.
 
    **Standing: agent-graded.** `scripts/validate.sh` fails a shipped `agent(<args>)`
    code sample that spawns a plugin's own agent without `agentType`, which is what
@@ -123,8 +121,7 @@ applied per member. Differences:
    applies per member, not to the whole batch).
 6. **Reviewer pass is kept.** A returned batch is NOT a live parallel-group/track leaf (see
    `references/reviewer-routing.md` carve-out): the main runner runs the per-card reviewer
-   pass on each member's diff, exactly as an inline S-card would have received it. Batching
-   changes *where the code is written*, never the quality gates a card passes.
+   pass on each member's diff, exactly as an inline S-card would have received it.
 
 ## Blast-radius detection — breakage in unlisted files halts, not follow-up
 

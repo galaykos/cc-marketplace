@@ -95,7 +95,7 @@ function seat(on: On, live: Live = {}) {
   on('process.run', ($, e) => {
     const answers: Record<string, [number, string]> = {
       'git rev-parse --show-cdup': [0, '\n'],
-      'git rev-parse --abbrev-ref HEAD': [0, 'feat/login\n'],
+      'git symbolic-ref -q HEAD': [0, 'refs/heads/feat/login\n'],
       'git ls-files --error-unmatch -- .claude/task-runner/active-run.json': [1, ''],
     }
     const ran = answers[e.argv.join(' ')]

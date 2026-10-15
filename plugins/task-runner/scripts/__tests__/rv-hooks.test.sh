@@ -71,6 +71,15 @@ for c in 'echo "{}" > .claude/task-runner/rv/rv-skip-bg-$(git rev-parse --short=
   [ -n "$(consent_msg "$c")" ] && ok "rv-consent asks on a redirect into a record named by: ${c#*rv-skip-}" \
     || bad "rv-consent asks on a redirect into a record named by: ${c#*rv-skip-}" "silent"
 done
+# ...and one whose expansion holds a pipe, which read as the end of the redirect (2026-10-15)
+for c in 'echo "{}" > .claude/task-runner/rv/rv-skip-bg-$(git rev-parse HEAD | cut -c1-12).json' \
+         'echo "{}" > ".claude/task-runner/rv/rv-skip-`git rev-parse HEAD | cut -c1-12`.json"'; do
+  [ -n "$(consent_msg "$c")" ] && ok "rv-consent asks on a redirect into a record named by a piped expansion: ${c#*rv-skip-}" \
+    || bad "rv-consent asks on a redirect into a record named by a piped expansion: ${c#*rv-skip-}" "silent"
+done
+c='echo "$(wc -l < /tmp/a)" > /tmp/n; ls .claude/task-runner/rv/rv-skip-*.json'
+[ -z "$(consent_msg "$c")" ] && ok "rv-consent stays silent on a read after a redirect fed by an expansion" \
+  || bad "rv-consent stays silent on a read after a redirect fed by an expansion" "asked"
 msg=$(consent_msg 'cat .claude/task-runner/rv/rv-skip-07.json > /tmp/x')
 [ -z "$msg" ] && ok "rv-consent stays silent on copying a record out" || bad "rv-consent stays silent on copying a record out" "msg=<$msg>"
 # an earlier redirect is not the record's: the path before the name stops at a separator too

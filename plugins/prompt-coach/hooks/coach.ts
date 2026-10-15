@@ -1,6 +1,6 @@
 import type { EngineInterface, ModelCompleteRequest, ModelCompleteResult, On, PluginOptions, Timer } from 'claude-code'
 
-import { activeRun, isSupported, switchOn } from './cc-kit'
+import { activeRun, isSupported, stateRoot, switchOn } from './cc-kit'
 import type { Host } from './cc-kit'
 import {
   LIMITS,
@@ -10,6 +10,7 @@ import {
   isBackingOff,
   isEligible,
   judgeInput,
+  maskedExcerpt,
   parseLabel,
   parseVerdict,
   runContext,
@@ -134,6 +135,10 @@ const SPEC_LINE = /^Spec:.*?(taskmaster-docs\/specs\/[\w.-]+\.md)/m
 const MAX_CONTEXT_BYTES = 256 * 1024
 
 const SECONDS = LIMITS.deadlineMs / 1000
+
+const HELD_LOG = '.claude/prompt-coach/held.jsonl'
+
+const HELD_KEPT = 50
 
 type Prompt = { text: string; origin: string; attachments: number }
 
@@ -655,6 +660,29 @@ async function heldVerdict($: EngineInterface, prompt: Prompt, options: PluginOp
   }
 }
 
+// A dropped prompt is in no transcript, so each drop is recorded for audit, never its text: a coach loaded before
+// secret-scanning reads the prompt unmasked, and a dropped prompt never reaches secret-scanning. The hash matches a resend.
+async function recordHeld($: EngineInterface, text: string, verdict: Verdict): Promise<void> {
+  try {
+    const path = `${await stateRoot(hostOf($))}/${HELD_LOG}`
+    const kept = (await $.fs.read(path).catch(() => '')).split('\n').filter(line => line !== '')
+    const record = {
+      at: new Date(await $.clock.now()).toISOString(),
+      session: await $.session.id(),
+      hash: textHash(text),
+      chars: text.length,
+      kind: verdict.kind,
+      ...(verdict.decision !== undefined && { decision: verdict.decision }),
+      excerpt: maskedExcerpt(text),
+      reason: maskedExcerpt(verdict.reason),
+    }
+
+    await $.fs.write(path, `${[...kept, JSON.stringify(record)].slice(-HELD_KEPT).join('\n')}\n`)
+  } catch {
+    // An unwritten record leaves the drop standing; the transcript still names it.
+  }
+}
+
 export function register(on: On, options: PluginOptions) {
   // Plugins nest in one list order for every event: secret-scanning beneath the coach here is beneath it on prompt.submit too.
   on('session.start', async ($, e, next) => {
@@ -692,7 +720,13 @@ export function register(on: On, options: PluginOptions) {
       coach.isJudging = false
     }
 
-    return verdict === null ? next(e) : { drop: dropReason(verdict) }
+    if (verdict === null) {
+      return next(e)
+    }
+
+    await recordHeld($, e.text, verdict)
+
+    return { drop: dropReason(verdict) }
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'AbovePrompt', surface: 'terminal' }, async ($, e, next) => {

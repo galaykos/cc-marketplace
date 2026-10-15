@@ -41,7 +41,7 @@ function seat(on: On, live: Live = {}) {
     const answers: Record<string, string> = {
       'git rev-parse --show-cdup': live.cdup ?? '',
       'git rev-parse HEAD': world.head,
-      'git rev-parse --abbrev-ref HEAD': world.branch,
+      'git symbolic-ref -q HEAD': `refs/heads/${world.branch}`,
     }
 
     const stdout = answers[e.argv.join(' ')]

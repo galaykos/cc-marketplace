@@ -442,11 +442,13 @@ verdict_py() {
 # sibling runners (unittest, minitest, nextest, gotestsum, bun, Playwright), which a
 # replacement is often for.
 parse_py() { # parse_py [wrapped]: a wrapper's exit code may be its own, so a count must show too
+  # `pytest -qq` prints no summary line, only its progress line (`....F  [100%]`): a pass or
+  # fail letter there is the count.
   case "$RUN_RC" in
     5)   printf 'empty-suite\n' ;;                                             # exit 5 = no tests collected
     0|1)
-      if [ -n "${1:-}" ] && ! printf '%s\n' "$CAP" | grep -Eq '[1-9][0-9]* (passed|failed)|^Ran [1-9][0-9]* tests?'; then
-        log "pytest: exit $RUN_RC but no 'N passed/failed' or 'Ran N tests' summary — cannot confirm a suite ran (fail-closed)"
+      if [ -n "${1:-}" ] && ! printf '%s\n' "$CAP" | grep -Eq '[1-9][0-9]* (passed|failed)|^Ran [1-9][0-9]* tests?|^[.FEsxX]*[.F][.FEsxX]*[[:space:]]*\[[[:space:]]*[0-9]+(%|/[0-9]+)\]'; then
+        log "pytest: exit $RUN_RC but no 'N passed/failed', 'Ran N tests' or progress line — cannot confirm a suite ran (fail-closed)"
         printf 'unverifiable-suite\n'
       elif [ "$RUN_RC" = 1 ]; then log "pytest: suite RED (>=1 test failed) — coverage present"; printf 'covered\n'
       else printf 'covered\n'; fi ;;                                         # >=1 test collected & passed
@@ -708,10 +710,13 @@ parse_java() {
   # filtered out by a --tests selector, and a build that sets failOnNoDiscoveredTests to
   # false (on Gradle 9 the default TRUE turns a zero-discovery run into the build failure
   # matched as empty-suite above — that default is doing the empty-detection here).
-  if printf '%s\n' "$CAP" | grep -Eq 'BUILD SUCCESSFUL'; then
+  # Only for the built-in run, which checked test sources first: a --runner-for command's success
+  # line can come from a build that never ran a test, so a replacement must print a count.
+  if [ -z "${1:-}" ] && printf '%s\n' "$CAP" | grep -Eq 'BUILD SUCCESSFUL'; then
     log "java/kotlin: gradle printed no test counts; falling back to test-sources-exist + BUILD SUCCESSFUL (weak signal — see runners.md)"
     printf 'covered\n'; return
   fi
+  [ -z "${1:-}" ] || log "java/kotlin: a --runner-for command must print a test count (Surefire's 'Tests run: N'; for Gradle, a test-logging summary line in that form)"
   log "java/kotlin: no parseable test count in output — refusing to assume coverage (fail-closed)"
   printf 'unverifiable-suite\n'
 }

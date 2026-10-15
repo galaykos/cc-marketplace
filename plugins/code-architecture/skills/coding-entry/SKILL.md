@@ -132,6 +132,11 @@ nothing is loaded or primed — the receiving command sets its own:
 
     route: this is a component build → /ui-ux:build <the ask>
 
+Triage comes before loading, too: load and prime only on `trivial`. On `needs a spec` or
+`already spec'd` the block is `stack:`, `triage:` and `budget: 0 files, handed off` — the
+pipeline that takes the work loads its own skills, and five bodies loaded ahead of a
+handoff were read for nothing in a real session. Standing: agent-graded.
+
 ## Boundaries
 
 Standing: recorded — specs, cards and red-teams are `taskmaster`; scope lock and

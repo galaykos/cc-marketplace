@@ -150,6 +150,15 @@ for ns in "})->skipOnCi();" "})->skipLocally();" "})->skipOnWindows();" "})->ski
 done
 allows "a Collection ->skipWhile(fn …) after a closure is not a Pest skip" Edit \
   "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skipWhile(fn (\$r) => \$r->done);\"}"
+# A chain split after `})` puts the skip on the next line, which opens with `->` (2026-10-15).
+denies "Pest ->skip() on the line after }) denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})\n    ->skip();\"}"  # skip: the fixture this case must deny
+denies "Pest ->with([…]) then ->skipOnCi() on the next lines denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})\n    ->with([1, 2])\n    ->skipOnCi();\"}"  # skip: the fixture this case must deny
+allows "a Collection's ->skip(2) on a continuation line is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"\$rows = collect(\$all)\n    ->skip(2)\n    ->values();\"}"
+allows "a continuation-line ->skip() outside a .php file is not read as Pest" Edit \
+  "{\"file_path\":\"$T/a.test.ts\",\"old_string\":\"it('a'\",\"new_string\":\"it('a'\n    ->skip()\"}"
 
 # The escape hatch must work when the same hunk carries an OLD unreasoned marker
 # through unchanged: only the ADDED marker is judged.

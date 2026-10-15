@@ -5,7 +5,8 @@ into every worker dispatch (specialist or generic), because a delegated speciali
 no Skill tool and cannot load an execution skill. Injected discipline **overrides** the
 worker's own default procedure wherever they differ.
 
-1. Restate the card as discrete ordered steps; one change per step.
+1. Restate the card as discrete ordered steps; one change per step. First read
+   `.claude/task-runner/env-notes.md` at the repo root when it exists: its rules bind.
 2. Inner loop: implement → run the card's **exact** `Verify` command → pass records
    evidence; fail diagnoses from the real output and retries. This overrides any "run
    the available tests" or similar default in the worker's own prompt. An exit code is

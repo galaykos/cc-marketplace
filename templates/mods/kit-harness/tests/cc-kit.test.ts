@@ -20,7 +20,7 @@ const A_MD = '/work/a.md'
 
 const LIVE_BUILD = JSON.stringify({ phase: 'build', owner: 'task-runner:run', session_id: 'S1' })
 
-type Repo = { toplevel: string; branch: string; real?: string }
+type Repo = { toplevel: string; branch?: string; real?: string; abbrev?: string }
 
 type World = {
   cwd?: string
@@ -59,7 +59,8 @@ function hostIn(world: World): Host {
       const answers: Record<string, string | undefined> = {
         'git rev-parse --show-cdup': repo && '../'.repeat(depth),
         'git rev-parse --show-toplevel': repo && (repo.real ?? repo.toplevel),
-        'git rev-parse --abbrev-ref HEAD': repo?.branch,
+        'git symbolic-ref -q HEAD': repo?.branch && `refs/heads/${repo.branch}`,
+        ...(repo?.abbrev !== undefined && { 'git rev-parse --abbrev-ref HEAD': repo.abbrev }),
       }
 
       const command = argv.join(' ')
@@ -70,7 +71,7 @@ function hostIn(world: World): Host {
 
       const stdout = answers[command]
 
-      return stdout === undefined ? ran(128, '') : ran(0, `${stdout}\n`)
+      return stdout === undefined ? ran(repo ? 1 : 128, '') : ran(0, `${stdout}\n`)
     },
     read: async path => (await fileAt(path)).text,
     stat: async path => ({ kind: 'file', size: 0, mtimeMs: (await fileAt(path)).mtimeMs, isLink: false }),
@@ -303,6 +304,18 @@ describe('cc-kit', () => {
 
   test('activeRun ignores a run on another branch', async () => {
     const repos = [{ toplevel: '/work', branch: 'master' }]
+
+    expect(await activeRun(hostIn({ repos, files: RUN_FILE }))).toBe(null)
+  })
+
+  test('activeRun reads the full ref, so a tag named like the branch does not hide the run', async () => {
+    const repos = [{ toplevel: '/work', branch: 'feat/x', abbrev: 'heads/feat/x' }]
+
+    expect(await activeRun(hostIn({ repos, files: RUN_FILE }))).toMatchObject({ branch: 'feat/x' })
+  })
+
+  test('activeRun is null on a detached head', async () => {
+    const repos = [{ toplevel: '/work' }]
 
     expect(await activeRun(hostIn({ repos, files: RUN_FILE }))).toBe(null)
   })

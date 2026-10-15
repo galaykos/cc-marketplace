@@ -27,6 +27,9 @@
 #      actually adds, which the run-close range review reads.
 #   3. Writes the arc phase sentinel `build` with taskmaster's phase-sentinel.sh (the
 #      source-checkout sibling, else the newest installed copy), else by hand.
+#   4. Seeds env-notes.md when absent, kept across runs: the environment facts every worker
+#      reads first (the discipline preamble names it). Dispatches each re-pasted a ~1.5k-char
+#      environment block, and four that lacked "never read .env" grepped it (2026-10-13 retro).
 #
 # Exit: 0 registered or resumed, 3 usage, 5 not a git work tree or not writable.
 # Misses: whether the model runs the line it reads (agent-graded); a sentinel written by
@@ -53,7 +56,8 @@ done
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "not inside a git work tree"
 ROOT=$(cd "$ROOT" && pwd -P)
 HEAD=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null) || die "no commit at HEAD"
-BRANCH=$(git -C "$ROOT" rev-parse --abbrev-ref HEAD)
+# symbolic-ref, not --abbrev-ref: a tag with the branch's name made that print `heads/<branch>`.
+BRANCH=$(git -C "$ROOT" symbolic-ref -q HEAD || true); BRANCH=${BRANCH#refs/heads/}; BRANCH=${BRANCH:-HEAD}
 
 IDX_REL=""
 if [ -n "$INDEX" ]; then
@@ -68,6 +72,9 @@ TR="$ROOT/.claude/task-runner"
 SENT="$TR/active-run.json"
 mkdir -p "$TR/rv" "$TR/rt" "$TR/bg" "$TR/nc" "$TR/reductions" 2>/dev/null || die "cannot create $TR"
 [ -e "$TR/.gitignore" ] || printf '*\n' > "$TR/.gitignore"
+[ -e "$TR/env-notes.md" ] || printf '%s\n' '# Run environment notes' '' \
+  'Every worker reads this before its first command. Add a fact here once; do not paste it into each dispatch.' '' \
+  '- Never read, grep or print `.env` or a `.env.*` file other than `.env.example`: they hold credentials.' > "$TR/env-notes.md" || die "cannot write $TR/env-notes.md"
 
 resumed=0
 if [ "$FRESH" = 0 ] && [ -n "$IDX_REL" ] && [ -r "$SENT" ] && command -v jq >/dev/null 2>&1; then

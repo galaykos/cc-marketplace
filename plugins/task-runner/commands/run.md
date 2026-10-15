@@ -100,7 +100,9 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    the same branch resumes the run rather than discarding its records (`--fresh` starts
    over). The task-execution skill's step 1 and `/task-runner:plan`'s "Run now" call the
    same script, so no route runs unregistered. Records older than the registration are
-   ignored by the clause.
+   ignored by the clause. It also seeds `.claude/task-runner/env-notes.md` once, with "never
+   read `.env`"; the preamble has every worker read it, so write an environment fact there
+   (a host binary's path, a container shim, a capped test command), never into each dispatch.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking; after
    each task's verify passes, run the reviewer pass per the skill (conditional

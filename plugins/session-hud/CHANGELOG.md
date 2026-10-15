@@ -2,6 +2,10 @@
 
 All notable changes to the session-hud plugin.
 
+## 0.1.1 — 2026-10-15
+
+- The shared mod kit (`hooks/cc-kit.ts`) is synced to the copy that reads the branch with `git symbolic-ref -q HEAD`. This plugin does not call the changed function (`activeRun`), so nothing it does changes.
+
 ## 0.1.0 — 2026-10-08
 
 - First release: a hooks module (`hooks/hud.tsx`, Claude Code 2.1.291 or newer) and a default `subagentStatusLine`, all drawn without a `settings.json` edit.

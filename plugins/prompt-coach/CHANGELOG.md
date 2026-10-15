@@ -2,6 +2,12 @@
 
 All notable changes to the `prompt-coach` plugin.
 
+## 0.5.0 — 2026-10-15
+
+- **Each drop is recorded, without the prompt's text.** A dropped prompt reaches no transcript, so a later look could only infer whether a drop was right. The coach now appends one JSON line per drop to `.claude/prompt-coach/held.jsonl` at the repository root, keeping the last 50: time, session id, the text's hash and length, the kind, and the text and the reason as masked excerpts (the first 40 words, any word holding a digit, a symbol or an inner capital replaced by `▪`). The rewrite is not kept. The text is masked because a coach loaded before secret-scanning reads a prompt unmasked, and a dropped prompt never reaches secret-scanning's mask. Residual: a secret of plain lowercase letters is written as typed. Four new tests; the first two fail against 0.4.0.
+
+- **A registered run on a branch that shares a tag's name reads as active.** The shared mod kit read the branch with `rev-parse --abbrev-ref HEAD`, which prints `heads/<branch>` when a tag has the same name, so the coach judged prompts without the run's index and spec. It now reads `symbolic-ref -q HEAD`, as task-runner records it.
+
 ## 0.4.0 — 2026-10-09
 
 - **Says when a secret would reach the judge unmasked.** At Enter the coach judges a prompt before it passes it on, so with secret-scanning installed beneath it a secret typed into the prompt went to the judge model before secret-scanning masked it, even when you then chose Cancel. At session start the coach now reads the plugin order and toasts once when it runs first; Residuals names the exposure. Four new tests.

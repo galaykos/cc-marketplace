@@ -88,7 +88,10 @@ cc_state_root() {
       # expansion can build the name (`${H:0:12}`, `$(git rev-parse …)`, a backtick), so the
       # name runs to `.json` short of a pipe or command separator; an id class missed each.
       # The path before it stops there too: `2>/dev/null; ls …/rv-skip-*.json` only reads.
-      printf '%s' "$cmdline" | grep -qE '>[[:space:]]*[^|;&]*rv-skip-[^|;&]*\.json' && discretionary=1
+      # A `$(…)` or backtick span may hold one (`$(git rev-parse HEAD | cut -c1-12)`): it read
+      # as the redirect's end. Residual: a name held in a variable (`> "$f"`) and a nested `$(…)`.
+      span='([^|;&]|\$\([^)]*\)|`[^`]*`)*'
+      printf '%s' "$cmdline" | grep -qE ">[[:space:]]*${span}rv-skip-${span}\\.json" && discretionary=1
       ;;
   esac
   # An exemption is a design carve-out, never a judgment call: it must not prompt,

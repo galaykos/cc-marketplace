@@ -129,10 +129,9 @@ cc_option() {
     [ -n "$p" ] && phase=", arc phase \`$p\`${o:+ owned by $o}"
   fi
 
-  # `HEAD` is what rev-parse prints for a detached or unborn head — not a branch name,
-  # so it is never compared: a repo with no commits would otherwise be told it is "on
-  # HEAD" and the line would look wrong at exactly the moment it should say nothing.
-  here=$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  # A detached head names no branch, so it is never compared. symbolic-ref, not --abbrev-ref:
+  # a tag with the branch's name made that print `heads/<branch>`, read as another branch.
+  here=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null); here=${here#refs/heads/}
   elsewhere=""
   [ -n "$branch" ] && [ -n "$here" ] && [ "$here" != "HEAD" ] && [ "$branch" != "$here" ] \
     && elsewhere=" (you are on \`$here\`)"
