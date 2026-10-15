@@ -43,9 +43,15 @@ of this skill. Every script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scrip
    On revise/add, edit the spec, rebuild in place (the open tab reloads itself), ask again.
 5. On a pick: `dk.sh decision --record "board <title>, artboard N (<name>), <knobs>,
    text edits: <n>"` so `design-system/DECISIONS.md` carries it; then offer
-   `/design-kit:in-codebase` with no arguments (it reads the same pick — Recommended),
-   or the project's UI build command, or `dk.sh export <board> --png|--pdf` for someone
-   outside the session. Stop the server only if this skill started it.
+   `/design-kit:in-codebase <board>#board=N` — the board ref, since the pick is consumed
+   now and a bare `/design-kit:in-codebase` finds none — or "Build it now" with the
+   project's UI build command, or `dk.sh export <board> --png|--pdf` for someone
+   outside the session. Mark in-codebase "(Recommended)" only when drift is plausible:
+   no `design-system/tokens.json`, a handoff bundle in play, or a board on the neutral
+   defaults (its build printed `tokens: no colour mapped` or `nothing usable`).
+   Otherwise recommend "Build it now": a render that finds no drift is thrown away
+   when the real build starts. *Standing: agent-graded.* Stop the server only if this
+   skill started it.
 
 ## What a board is
 
@@ -91,8 +97,9 @@ pasting the artboard's HTML into the tree.
    read it literally — knob values and text edits are requirements now, a global knob
    applies to every artboard, a scoped one to its artboard only.
 7. **Hand off**: with a pick, `dk.sh decision --record "…"` writes one line to
-   `design-system/DECISIONS.md`; then offer `/design-kit:in-codebase` with no arguments
-   (it reads the same pick) or the project's UI plugin's build command. Export PNG or
+   `design-system/DECISIONS.md`; then offer `/design-kit:in-codebase <board>#board=N`
+   or the project's UI plugin's build command, the "(Recommended)" mark placed as Entry
+   step 5 says. Export PNG or
    PDF (`dk.sh export <board> --png|--pdf`) only when someone outside the session needs it.
 
 ## Rules the draft gets wrong from memory

@@ -6,6 +6,24 @@
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/candor-scan.sh
 set -uo pipefail
 
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
 tp=""; last=0; ex=3
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -68,49 +86,24 @@ samples() { grep -iE "$1" "$WS/assistant" 2>/dev/null | head -"$ex" | cut -c1-16
 n_flat=$(count "$FLATTERY"); n_apol=$(count "$APOLOGY")
 n_def=$(count "$DEFENSIVE"); n_emo=$(count "$EMOTIONAL")
 
-# Resolve citations against the TRANSCRIPT's own recorded cwd, not the shell's.
+# Resolve citations against the TRANSCRIPT's own recorded cwd and its state root, not the shell's.
 cwd=$(jq -rs '[.[] | .cwd? // empty] | last // empty' "$tp" 2>/dev/null)
 [ -n "$cwd" ] && [ -d "$cwd" ] || cwd=$(pwd)
-_find() { find "$cwd" -maxdepth 8 \
-  \( -name node_modules -o -name .git -o -name vendor -o -name dist -o -name build -o -name .venv \) -prune \
-  -o "$@" -type f -print 2>/dev/null; }
-resolve() { # prints FILE <path> | MISSING | AMBIGUOUS — same ladder as hooks/gate.sh
-  local p="$1" m b n
-  case "$p" in /*) [ -f "$p" ] && { printf 'FILE %s' "$p"; return 0; } ;; esac
-  [ -f "$cwd/$p" ] && { printf 'FILE %s' "$cwd/$p"; return 0; }
-  m=$(_find -path "*/$p" | head -1)
-  [ -n "$m" ] && { printf 'FILE %s' "$m"; return 0; }
-  b=${p##*/}
-  m=$(_find -name "$b" | head -2)
-  n=$(printf '%s\n' "$m" | grep -c .)
-  if [ "$n" -eq 0 ]; then printf 'MISSING'
-  elif [ "$n" -eq 1 ]; then printf 'FILE %s' "$m"
-  else printf 'AMBIGUOUS'
-  fi
-  return 0
-}
+root=$(cc_state_root "$cwd") || root=$cwd
+# hooks/cite.sh is the gate's own lookup, sourced: the report counts what clause 1 would block, no more.
 : > "$WS/badcites"
 n_cite=0
-sed -E 's#[a-zA-Z][a-zA-Z0-9+.-]*://[^[:space:])"]*##g' "$WS/assistant" \
-  | grep -oE '[A-Za-z0-9_.][A-Za-z0-9_./-]*\.[A-Za-z][A-Za-z0-9]{0,9}:[0-9]+' 2>/dev/null \
-  | grep -vEi '\.(com|net|org|io|co|ai|app|gg|me):[0-9]+$' \
-  | grep -vF '...' \
-  | sort -u | head -200 > "$WS/cites" || true
-while IFS= read -r c; do
-  [ -n "$c" ] || continue
-  p="${c%:*}"; l="${c##*:}"
-  r=$(resolve "$p")
-  case "$r" in
-    MISSING)   printf '%s — no file named %s exists anywhere under %s\n' "$c" "${p##*/}" "$cwd" >> "$WS/badcites"; continue ;;
-    AMBIGUOUS) continue ;;
-  esac
-  f="${r#FILE }"
-  [ -f "$f" ] || continue
-  n=$(wc -l < "$f" 2>/dev/null | tr -d ' ')
-  case "$n" in ''|*[!0-9]*) continue ;; esac
-  [ "$l" -gt $((n + 1)) ] 2>/dev/null && printf '%s — file has %s lines\n' "$c" "$n" >> "$WS/badcites"
-done < "$WS/cites"
-n_cite=$(wc -l < "$WS/badcites" | tr -d ' ')
+if . "$(dirname "$0")/../hooks/cite.sh" 2>/dev/null && command -v cite_miss >/dev/null 2>&1; then
+  cite_extract < "$WS/assistant" | head -200 > "$WS/cites" || true
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    r=$(cite_miss "$c" "$root" "$cwd")
+    [ -z "$r" ] || printf '%s — %s\n' "$c" "$r" >> "$WS/badcites"
+  done < "$WS/cites"
+  n_cite=$(wc -l < "$WS/badcites" | tr -d ' ')
+else
+  n_cite="-"
+fi
 
 # The gate's reversal test, over every turn in the window: bare pushback, then a retraction with no tool call between and no stated basis.
 awk -F'\t' '
@@ -143,7 +136,7 @@ awk -F'\t' '
 n_rev=$(grep '^COUNT ' "$WS/reversals" 2>/dev/null | awk '{print $2}'); n_rev=${n_rev:-0}
 
 printf 'candor-scan — %s\n' "$tp"
-printf 'citations resolved against: %s\n' "$cwd"
+printf 'citations resolved against: %s\n' "$root"
 printf 'assistant messages measured: %s\n\n' "$total"
 printf '%-24s %7s  %s\n' "axis" "hits" "standing"
 printf '%-24s %7s  %s\n' "------------------------" "-------" "--------"

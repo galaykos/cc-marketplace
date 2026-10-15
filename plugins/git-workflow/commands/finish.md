@@ -41,9 +41,13 @@ the failures reported; no destination options for broken work.
 
 On green, before offering any destination, run the review passes that exist in
 this installation — each only if its plugin is installed, none of them fatal on
-absence, all of them named in the report so a skip is visible:
+absence. A pass not run is a `Skipped: <pass> — <reason>` line in the report, never
+silence:
 
 - `/code-review:review` on the branch diff — correctness, smells, convention drift.
+  Per-card reviews from a task-runner run do not substitute for it: each saw one card's
+  diff, so a defect spanning cards, or an edit made after its card's review, reached
+  none of them. A branch pass after a run found exactly those.
 - `code-architecture:drift-review` on the whole diff — did the work stray from what
   was actually asked, are there weakened tests, left-in stubs, skipped criteria.
 - `/secret-scanning:scan` on the diff — a credential reaching a PR is the one

@@ -21,15 +21,13 @@ After the card's build verify passes:
 2. **Test-only authoring** if the card is test-eligible (§ Eligibility, § Authoring).
 3. **Unconditional card-verify re-run** — the runner re-runs the card's exact verify
    command before the card may close, so a card never closes on a stale pre-crew result.
-4. **Fresh bounded fix loop** if any reviewer blocker/major finding or failing authored
+4. **Fresh bounded fix loop** if any reviewer critical/high finding or failing authored
    test remains (§ Fix loop).
 
 ## Reviewer pass
 
-The reviewer set resolves, primes, AND dispatches exactly as the BASELINE pass does
-(`reviewer-routing.md`, batch rule 5 "Concurrent dispatch": one concurrent read-only batch, `Bash`-holding
-reviewers serial, the `security:security-review` skill inline after the join). Crew adds no
-dispatch mechanics of its own; it runs that pass as step 1 of the crew sequence.
+The reviewer set resolves, primes and dispatches exactly as the BASELINE pass does
+(`reviewer-routing.md` item 5, "Concurrent dispatch"); crew adds no dispatch mechanics of its own.
 
 ## Authoring — test files only
 
@@ -47,9 +45,8 @@ procedure — arm scope, inject the discipline preamble, dispatch):
 
 ### Hardened scope check on return
 
-Enforce with the existing diff-vs-declared-files check (routing.md step 6, the
-diff-vs-declared check), hardened for
-the fact that authored tests are **new, untracked** files:
+Enforce with the diff-vs-declared-files check (routing.md step 6), hardened for the fact that
+authored tests are **new, untracked** files:
 
 - Enumerate `test-engineer`'s touched paths **including untracked additions**
   (`git status --porcelain`, not bare `git diff`).
@@ -61,7 +58,7 @@ the fact that authored tests are **new, untracked** files:
 ## Fix loop (fresh 3-cycle)
 
 The crew fix loop has its **own fresh 3-cycle budget**, independent of the build-phase
-verify loop. Feeders: reviewer blocker/major findings (severity-normalized per
+verify loop. Feeders: reviewer critical/high findings (severity per
 `reviewer-routing.md`) + failing **authored tests only** (run by the returned test-file
 list — pre-existing suite failures never enter, since authored files are new) + a
 `vacuous`/`invalid-control` **negative-control** on the post-fix diff. A runner
@@ -79,7 +76,7 @@ verify that had teeth pre-crew. The authored-test set is **frozen after authorin
 0. card verify command RED, or a `vacuous`/`invalid-control` negative-control on the
                                post-fix diff → HALT the card (never close red or teeth-less),
                                regardless of the rest; a control isolation failure (exit 5) halts always
-1. else live reviewer blocker/major → HALT the card (dominates tests)
+1. else live reviewer critical/high → HALT the card (dominates tests)
 2. else unsatisfied authored test   → remove it (case-level if the file has passing
                                        siblings, else the file — an allowed orchestrator
                                        edit, not a re-author), record a backlog line

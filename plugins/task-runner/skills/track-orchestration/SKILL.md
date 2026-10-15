@@ -108,7 +108,7 @@ them — the worker cannot:
   worktree-local record merges nowhere (`references/algorithm.md` § Dispatch item 6)
 
 Without these records a tracks run blocks at completion having done nothing wrong. Records
-written before the run registered are ignored, so re-registration re-arms every check.
+written before the run registered are ignored.
 
 ## Final gate and the red-gate protocol
 
@@ -117,6 +117,7 @@ the merged run branch. Disjoint files do **not** prevent semantic breakage, and 
 track's in-worktree green was verified against a base that lacked the other tracks — so
 per-track green is stale after merge. Therefore:
 
+- Before it, the whole-range review (`task-execution` § Completion protocol, item 2).
 - **Retain** every track branch and worktree until the final gate is green.
 - On a **red** final gate over cleanly merged tracks, do **not** auto-rollback: report
   the failure and **preserve** the run branch + all track branches + worktrees so the

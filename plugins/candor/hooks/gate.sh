@@ -6,6 +6,9 @@
 # Misses: a wrong API, flag or directory; an elided path; pushback outside its list; entries before the transcript tail; a hand-back
 #   hidden by a later user-shaped entry; a resumed agent's text whose boundary is not on disk yet; dependency lines no pattern matches.
 #   Blocks anyway: a citation into a file the turn shortened, deleted or renamed; a run record written before the run registered.
+#   Clause 4 misses a UI card with no review diff file and a range review its RV-RANGE marker over-claims; a sentinel with no start_sha owes none.
+#   It retires a closed run unchecked once HEAD moves past its gate pass, a commit made before the closing stop included.
+#   Its hold for a behavioral gate in flight reads task-runner's PID file and, on Linux, /proc: without /proc a recycled PID misreads.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -68,7 +71,12 @@ cc_option() {
   return 0
 }
 
+# Clause 1's lookup, shared with /candor:check. A missing file stands the clause down; it never fails the gate.
+. "$(dirname "$0")/cite.sh" 2>/dev/null
+
 INFLIGHT_TTL_MIN=180
+# Seven built-in runners at behavioral-gate.sh's 1800 s cap is 210 minutes; an added --runner or a raised cap outruns it.
+BG_PID_TTL_MIN=240
 DISCLOSURE_TAIL_LINES=200
 TRANSCRIPT_TAIL_LINES=4000
 MAX_CITATIONS_CHECKED=25
@@ -134,22 +142,62 @@ inflight_count() {
   fi
 }
 
+# task-runner's behavioral gate run in background Bash writes bg/running.pid: its PID, then the HEAD it tests. It counts as one
+# worker while the sha is <head>, the file is under BG_PID_TTL_MIN and the gate is live; a dead gate or another HEAD is stale.
+# Live, with /proc (Linux): the PID's command line names behavioral-gate.sh, or else a live process whose command line names it
+# runs from under <root>. A sandboxed run (bwrap --unshare-pid) records its own namespace's PID, which here names another process or none; the
+# host still lists the gate under its real PID. The [e] keeps the scan's own grep from matching itself.
+# Misses: without /proc (macOS, no PID namespace) liveness is kill -0, so a recycled PID at the same HEAD holds until the file
+# ages out; on Linux, any process naming behavioral-gate.sh from under <root> holds while that file is current.
+bg_running() { # <head> -> 1 or 0
+  local f="$root/.claude/task-runner/bg/running.pid" pid="" sha="" rp p
+  if [ -r "$f" ] && [ -z "$(find "$f" -mmin +"$BG_PID_TTL_MIN" 2>/dev/null)" ]; then
+    { read -r pid || :; read -r sha || :; } < "$f"
+    case "$pid" in '' | *[!0-9]*) pid="" ;; esac
+    case "$sha" in '' | *[!0-9a-f]*) sha="" ;; esac
+    if [ -n "$pid" ] && [ "${#sha}" -ge 7 ]; then
+      case "$1" in "$sha"*)
+        if [ ! -d /proc/self ]; then kill -0 "$pid" 2>/dev/null && { printf '1'; return 0; }
+        else
+          grep -qsE 'behavioral-gat[e]\.sh' "/proc/$pid/cmdline" && { printf '1'; return 0; }
+          rp=$(cd "$root" 2>/dev/null && pwd -P)
+          for p in $(grep -lsE 'behavioral-gat[e]\.sh' /proc/[0-9]*/cmdline 2>/dev/null); do
+            case "$(readlink "${p%/cmdline}/cwd" 2>/dev/null)/" in "$root"/* | "${rp:-$root}"/*) printf '1'; return 0 ;; esac
+          done
+        fi ;;
+      esac
+    fi
+  fi
+  printf '0'
+}
+
 run_clause() {
   local sentinel="$root/.claude/task-runner/active-run.json"
   [ "$evt" != "SubagentStop" ] || return 0
   case "$(cc_option TASK_RUNNER_STOP_GATE block)" in off) return 0 ;; esac
+  # A run closes by renaming its sentinel (run.md step 4), so the stop after the report still reads its records; a clean read retires it.
+  [ -r "$sentinel" ] || sentinel="$root/.claude/task-runner/closed-run.json"
   [ -r "$sentinel" ] || return 0
   jq empty "$sentinel" 2>/dev/null || { echo "[candor] completion-gate: active-run.json malformed — not enforced" >&2; return 0; }
   command -v git >/dev/null 2>&1 || { echo "[candor] completion-gate: git not found — not enforced" >&2; return 0; }
   local head run_branch cur_branch slug
   head=$(git -C "$root" rev-parse HEAD 2>/dev/null) || { echo "[candor] completion-gate: not a git repo — not enforced" >&2; return 0; }
+  # A closed run whose gate pass names an earlier HEAD closed there, and its closing stop never reached this clause.
+  local closed_at
+  case "$sentinel" in */closed-run.json)
+    closed_at=$(jq -r '.head // empty' "$root/.claude/task-runner/gate-pass.json" 2>/dev/null)
+    if [ -n "$closed_at" ] && [ "$closed_at" != "$head" ]; then rm -f "$sentinel" 2>/dev/null; return 0; fi ;;
+  esac
 
   # An abandoned run leaves its sentinel behind: a run that names its branch is enforced only on that branch.
   run_branch=$(jq -r '.branch // empty' "$sentinel" 2>/dev/null)
-  cur_branch=$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  # symbolic-ref, not rev-parse --abbrev-ref: a tag named like the branch made that print heads/<branch>, a run read as another's.
+  # Exit 1 is a detached head; any other failure leaves the branch unknown, which never stands a run down.
+  cur_branch=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null)
+  case $? in 0) cur_branch=${cur_branch#refs/heads/} ;; 1) cur_branch=HEAD ;; *) cur_branch="" ;; esac
   if [ -n "$run_branch" ] && [ -n "$cur_branch" ] && [ "$run_branch" != "$cur_branch" ]; then
     printf '[candor] completion-gate: run registered on branch %s, now on %s — not enforced here.\n' "$run_branch" "$cur_branch" >&2
-    printf '  If that run is finished or abandoned, delete .claude/task-runner/active-run.json.\n' >&2
+    printf '  If that run is finished or abandoned, delete .claude/task-runner/%s.\n' "${sentinel##*/}" >&2
     return 0
   fi
   RUN_HEAD="$head"; RUN_SENTINEL="$sentinel"
@@ -189,9 +237,43 @@ run_clause() {
     if [ "$v" = "complete" ] && [ -d "$rvdir" ]; then
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
       rv_count=$(find "$rvdir" -maxdepth 1 \( -name 'rv-seen-*.json' -o -name 'rv-skip-*.json' -o -name 'rv-exempt-*.json' \) -newer "$sentinel" 2>/dev/null |
-        sed -E 's#.*/rv-(seen|skip|exempt)-##; s#\.json$##' | sort -u | wc -l | tr -d ' ')
+        sed -E 's#.*/rv-(seen|skip|exempt)-##; s#\.json$##' | grep -v '^range-' | sort -u | wc -l | tr -d ' ')
       if [ "$rv_count" -lt "$cdone" ] 2>/dev/null; then
         run_msg=$(printf '[candor] completion-gate: %s reports %s done cards but only %s per-card reviewer records in .claude/task-runner/rv/.\n  Every done card needs an observed reviewer dispatch (the RV-CARD marker in the prompt), a recorded skip (scripts/review-skip.sh --card --reason) or an exemption (--exempt). Run the missing reviews, then stop.' "$slug" "$cdone" "$rv_count")
+        verdict="run"; return 0
+      fi
+    fi
+    # A card whose review diff (task-runner's review-diff.sh) names a UI file owes ui-ux-reviewer: the count above let any reviewer stand in.
+    local pf card uicards=""
+    if [ "$v" = "complete" ] && [ -d "$rvdir" ]; then
+      while IFS= read -r pf; do
+        # Tests and stories are not UI: reviewer-routing sends a test-only card to code-reviewer alone.
+        grep -E '^diff --git a/.* b/.*\.(tsx|jsx|vue|svelte|css|scss|sass|less|blade\.php)$' "$pf" 2>/dev/null |
+          grep -qvE '/(__tests__|tests)/|\.(test|spec|stories)\.[^/]*$' || continue
+        card=${pf##*/diff-}; card=${card%.patch}
+        [ -n "$(find "$rvdir" -maxdepth 1 \( -name "rv-agent-$card@*ui-ux-reviewer.json" -o -name "rv-skip-$card.json" -o -name "rv-exempt-$card.json" \) -newer "$sentinel" 2>/dev/null)" ] ||
+          uicards="$uicards $card"
+      done < <(find "$rvdir" -maxdepth 1 -name 'diff-*.patch' -newer "$sentinel" 2>/dev/null | sort)
+      if [ -n "$uicards" ]; then
+        run_msg=$(printf '[candor] completion-gate: %s has UI cards with no ui-ux-reviewer dispatch recorded:%s\n  Their rv/diff-<card>.patch names a .tsx, .jsx, .vue, .svelte, stylesheet or .blade.php file, and no other reviewer stands in for ui-ux:ui-ux-reviewer. Dispatch it with the card'"'"'s RV-CARD marker, or record why not (scripts/review-skip.sh --card <id> --reason "<why>", or --exempt no-reviewer-installed). Then stop.' "$slug" "$uicards")
+        verdict="run"; return 0
+      fi
+    fi
+    # A run registered by register-run.sh carries start_sha and owes one whole-range review at this HEAD; rv-observe records it from RV-RANGE.
+    # A commit after a range review owes a review of the commits since it, not the whole run again: `from` is the newest reviewed ancestor.
+    local start_sha rf rid range_ok=0 from
+    start_sha=$(jq -r '.start_sha // empty' "$sentinel" 2>/dev/null); from=$start_sha
+    if [ -n "$start_sha" ] && [ -d "$rvdir" ]; then
+      while IFS= read -r rf; do
+        rid=${rf##*range-}; rid=${rid%.json}
+        case "$rid" in '' | *[!0-9a-f]*) continue ;; esac
+        [ "${#rid}" -ge 7 ] || continue
+        case "$head" in "$rid"*) range_ok=1; break ;; esac
+        case "$rf" in */range-*) git -C "$root" merge-base --is-ancestor "$rid" HEAD 2>/dev/null &&
+          git -C "$root" merge-base --is-ancestor "$from" "$rid" 2>/dev/null && from=$rid ;; esac
+      done < <(find "$rvdir" -maxdepth 1 \( -name 'range-*.json' -o -name 'rv-skip-range-*.json' -o -name 'rv-exempt-range-*.json' \) -newer "$sentinel" 2>/dev/null)
+      if [ "$range_ok" = 0 ]; then
+        run_msg=$(printf '[candor] completion-gate: %s has no whole-range review recorded for HEAD %s.\n  Per-card reviews cannot see what changed across cards, so they never substitute. Invoke /code-review:review %s..HEAD with "RV-RANGE: %s" in its arguments (task-runner'"'"'s run.md step 4), or record why it cannot run: scripts/review-skip.sh --card range-%s --reason "<why>" (or --exempt no-reviewer-installed). A commit after a range review owes only the commits since it, which is the range named here. Then stop.' "$slug" "${head:0:12}" "${from:0:12}" "${head:0:12}" "${head:0:12}")
         verdict="run"; return 0
       fi
     fi
@@ -272,6 +354,7 @@ run_clause() {
         fi
       fi
     fi
+    case "$sentinel" in */closed-run.json) rm -f "$sentinel" 2>/dev/null ;; esac
     return 0
   fi
 
@@ -279,6 +362,8 @@ run_clause() {
   # Workers in flight: print, block nothing and write no nudge, keeping this HEAD's one block for after the last hand-back.
   local waiting
   waiting=$(inflight_count)
+  case "$waiting" in '' | *[!0-9]*) waiting=0 ;; esac
+  waiting=$((waiting + $(bg_running "$head")))
   if [ "${waiting:-0}" -gt 0 ] 2>/dev/null; then
     printf '[candor] completion-gate: %s has no behavioral-gate pass for HEAD %s, and %s background worker(s) of this session are still in flight — not blocking.\n  A worker'"'"'s hand-back wakes this session; the gate holds the stop after the last one returns.\n' "$slug" "${head:0:12}" "$waiting" >&2
     return 0
@@ -288,16 +373,18 @@ run_clause() {
   Cards still to execute -> continue with the next card'"'"'s tool call. Do not name the next card
     in prose and yield: that binds nothing, and the user waits on a turn that already ended.
     Need a decision -> ask it with AskUserQuestion (not a stop). Blocked -> park the card with a reason.
-  Every card done or parked -> the gate is the only step left, and it has no deadline. From the
-    repo root run task-runner'"'"'s scripts/behavioral-gate.sh --isolate --changed "<the run'"'"'s touched
+  Every card done or parked -> the whole-range review and the gate are the steps left (run.md
+    step 4), and neither has a deadline. From the
+    repo root, in the background, run task-runner'"'"'s scripts/behavioral-gate.sh --isolate --changed "<the run'"'"'s touched
     files>" (the path run.md step 4 names). --isolate creates, checks and removes its own worktree
     and writes the verdict record; do not hand-build a checkout, and do not copy, generate or write
     any .env for it. Then record the pass to .claude/task-runner/gate-pass.json as {"head":"%s"}
-    plus the card counts, and clear active-run.json. A green repo suite alone is NOT this gate.
+    plus the card counts, and rename active-run.json to closed-run.json. A green repo suite
+    alone is NOT this gate.
   Any shell setup: one step per call, and read each result before the next. A denied or failed
     call ran NOTHING, not "everything but the part named in the error".
   Not running this task list at all? The sentinel outlived its run — delete
-    .claude/task-runner/active-run.json.' "$slug" "${head:0:12}" "$head")
+    .claude/task-runner/%s.' "$slug" "${head:0:12}" "$head" "${sentinel##*/}")
   verdict="run"
 }
 RUN_HEAD=""; RUN_SENTINEL=""
@@ -359,62 +446,17 @@ read_transcript
 
 clause_fabricated_citation() {
   [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ] || return 0
-  # URLs go before extraction (a.php:80 in one is a port); the extension starts with a letter, so v1.2.3:4 and 10:30 never match.
-  cites=$(printf '%s' "$last_msg" \
-    | sed -E 's#[a-zA-Z][a-zA-Z0-9+.-]*://[^[:space:])"]*##g' \
-    | grep -oE '[A-Za-z0-9_.~][A-Za-z0-9_./-]*\.[A-Za-z][A-Za-z0-9]{0,9}:[0-9]+' 2>/dev/null \
-    | grep -vEi '\.(com|net|org|io|co|ai|app|gg|me):[0-9]+$' \
-    | grep -vF '...' \
-    | sort -u)
-
-  # Pruned and depth-capped: a Stop hook must stay cheap on a large repo.
-  _find() { find "$root" -maxdepth 8 \
-    \( -name node_modules -o -name .git -o -name vendor -o -name dist -o -name build -o -name .venv \) -prune \
-    -o "$@" -type f -print 2>/dev/null; }
-
-  # resolve <relpath> prints FILE <path>, MISSING (the basename exists nowhere) or AMBIGUOUS (unresolved, basename not unique).
-  # Abbreviated paths outnumber invented ones (measured), so only a basename found nowhere is fabricated; a wrong directory passes.
-  resolve() {
-    local p="$1" m b n
-    case "$p" in "~/"*) p="${HOME:-}/${p#\~/}" ;; esac
-    case "$p" in
-      /*) [ -f "$p" ] && { printf 'FILE %s' "$p"; return 0; } ;;
-    esac
-    # The shell cwd first — a relative path the model just used from there — then the root.
-    [ -f "$cwd/$p" ] && { printf 'FILE %s' "$cwd/$p"; return 0; }
-    [ -f "$root/$p" ] && { printf 'FILE %s' "$root/$p"; return 0; }
-    m=$(_find -path "*/$p" | head -1)
-    [ -n "$m" ] && { printf 'FILE %s' "$m"; return 0; }
-    b=${p##*/}
-    m=$(_find -name "$b" | head -2)
-    n=$(printf '%s\n' "$m" | grep -c .)
-    if [ "$n" -eq 0 ]; then printf 'MISSING'
-    elif [ "$n" -eq 1 ]; then printf 'FILE %s' "$m"
-    else printf 'AMBIGUOUS'
-    fi
-    return 0
-  }
-
+  command -v cite_miss >/dev/null 2>&1 || { echo "[candor] citation clause: hooks/cite.sh not loaded — not enforced" >&2; return 0; }
+  # hooks/cite.sh: what counts as a citation (a dev host's :port does not) and when one is fabricated (its header has the limits).
+  cites=$(printf '%s' "$last_msg" | cite_extract)
   misses=""
   checked=0
   for c in $cites; do
     [ "$checked" -ge "$MAX_CITATIONS_CHECKED" ] && break
     checked=$((checked + 1))
-    path="${c%:*}"; line="${c##*:}"
-    r=$(resolve "$path")
-    case "$r" in
-      MISSING)   misses="$misses
-  - $c — no file named ${path##*/} exists anywhere under $root"; continue ;;
-      AMBIGUOUS) continue ;;   # path unresolved but the name is real — not decidable
-    esac
-    file="${r#FILE }"
-    lines=$(wc -l < "$file" 2>/dev/null | tr -d ' ')
-    case "$lines" in ''|*[!0-9]*) continue ;; esac
-    # +1 tolerance: a final line with no trailing newline is not counted by wc -l.
-    if [ "$line" -gt $((lines + 1)) ] 2>/dev/null; then
-      misses="$misses
-  - $c — $file has $lines lines"
-    fi
+    r=$(cite_miss "$c" "$root" "$cwd")
+    [ -n "$r" ] && misses="$misses
+  - $c — $r"
   done
 
   if [ -n "$misses" ]; then
@@ -603,6 +645,8 @@ report_verdict() {
       printf '  A file:line citation asserts you read that line. Open the file, cite what is actually\n' >&2
       printf '  there, or drop the number and say plainly that you are inferring rather than quoting.\n' >&2
       printf '  Inventing a location is the failure this clause exists to stop.\n' >&2
+      # A subagent that re-sent only the correction lost its whole report: the caller receives the last hand-back alone.
+      [ "$evt" = "SubagentStop" ] && printf '  Then re-send your COMPLETE report, corrected: only your last message reaches the caller.\n' >&2
       printf '  CC_CANDOR_GATE=off disables this gate for the session; =warn prints without blocking.\n' >&2 ;;
     reversal)
       printf '[candor] gate: the user pushed back without giving you new information, and this turn\n' >&2

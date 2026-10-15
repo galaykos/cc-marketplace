@@ -8,7 +8,8 @@
 #
 # WHAT IT MATCHES, in priority order (the first hit wins the message; relational data
 # loss outranks a lock hazard, which outranks the NoSQL analogues):
-#   1. DATA LOSS — DROP TABLE/DATABASE/SCHEMA, TRUNCATE, an unqualified DELETE/UPDATE
+#   1. DATA LOSS — DROP TABLE/DATABASE/SCHEMA, TRUNCATE (uppercase, or any-case
+#      `truncate table`; a lowercase `truncate users` is missed), an unqualified DELETE/UPDATE
 #      with no WHERE on the line; Laravel's `Schema::drop*(`; and the LISTED drop
 #      spellings of the other migration DSLs, matched case-insensitively and followed
 #      by `(` or a Ruby symbol `:` — `dropTable`, `dropTableIfExists`, `drop_table`,
@@ -26,6 +27,8 @@
 #      these do not lose data, they hold a lock or read the whole table per request.
 #
 # WHAT IT DOES NOT MATCH, stated because the README tiers this an ask:
+#   - A migration's rollback method: `function down(` in a PHP file under migrations/, `def down`
+#     under db/migrate/, Alembic's `def downgrade(` — skipped up to the next method (judge_sql says why).
 #   - A RENAME of a column or table. The expand→migrate→contract rule for that lives
 #     in `sql-best-practices` § Migrations and is agent-graded; no regex here reads it.
 #   - Documentation surfaces. `.md`, `.mdx`, `.markdown`, `.txt`, `.rst` and anything
@@ -51,6 +54,10 @@
 #     continuation spanning lines, and a second heredoc opened on one line.
 #   - Single-line matching: a DELETE whose WHERE sits on the next line still asks
 #     (false positive, accepted), and a filter built across lines never does.
+#   - Scratch (0.11.4): a target under neither CLAUDE_PROJECT_DIR nor the payload cwd's root, or
+#     under $TMPDIR (default /tmp) while the root holding it is not (the write-scope block).
+#   - A CREATE INDEX without CONCURRENTLY in a project whose config names SQLite (D1 via
+#     wrangler, Prisma, Drizzle; sqlite_project lists what it reads).
 #
 # CC_DB_GUARD=off disables it for the session, and the ask message says so.
 # CC_DB_GUARD unset: the /config option cc_db_guard decides.
@@ -252,6 +259,69 @@ cc_bash_write_chunks() {
       if (opener != "") { printf "\036%s\n", opener; inbody = 1 }
     }'
 }
+
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
+# Shared block templates/blocks/write-scope.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/write-scope.md
+# cc_scope_init <state root> sets the roots a written path is judged against, each symlink-resolved: CLAUDE_PROJECT_DIR, which the
+# shell's cd does not move, <state root> (cc_state_root of the payload cwd, empty for none) and $TMPDIR (default /tmp).
+# cc_scope_skip <path>: status 0 for scratch, a target under neither root or under the temp dir while the root holding it is not;
+# a path not created yet is judged by its nearest existing directory (cc_scope_dir prints it resolved). cc_scope_root <dir> sets
+# cc_scope_r to the root holding a resolved dir, the state root first; status 1 when neither does.
+# Misses: a sibling repo or worktree written by absolute path from outside both roots is skipped; with no cwd and no
+# CLAUDE_PROJECT_DIR only the temp-dir rule holds.
+cc_scope_init() {
+  cc_scope_pd=""; [ -z "${CLAUDE_PROJECT_DIR:-}" ] || cc_scope_pd=$(CDPATH= cd -- "$CLAUDE_PROJECT_DIR" 2>/dev/null && pwd -P) || cc_scope_pd=""
+  cc_scope_sr=""; [ -z "${1:-}" ] || cc_scope_sr=$(CDPATH= cd -- "$1" 2>/dev/null && pwd -P) || cc_scope_sr=""
+  cc_scope_tmp=$(CDPATH= cd -- "${TMPDIR:-/tmp}" 2>/dev/null && pwd -P) || cc_scope_tmp=""
+  cc_scope_pd=${cc_scope_pd%/}; cc_scope_sr=${cc_scope_sr%/}; cc_scope_tmp=${cc_scope_tmp%/}
+}
+cc_scope_dir() {
+  local d
+  d=$(dirname -- "$1")
+  while [ ! -d "$d" ]; do d=$(dirname -- "$d"); done
+  CDPATH= cd -- "$d" 2>/dev/null && pwd -P
+}
+cc_scope_root() {
+  local r
+  cc_scope_r=""
+  for r in "$cc_scope_sr" "$cc_scope_pd"; do
+    [ -n "$r" ] || continue
+    case "$1/" in "$r"/*) cc_scope_r=$r; return 0 ;; esac
+  done
+  return 1
+}
+cc_scope_skip() {
+  local d
+  d=$(cc_scope_dir "$1") || return 1
+  if cc_scope_root "$d"; then
+    [ -n "$cc_scope_tmp" ] || return 1
+    case "$cc_scope_r/" in "$cc_scope_tmp"/*) return 1 ;; esac
+  elif [ -n "$cc_scope_sr$cc_scope_pd" ]; then
+    return 0
+  fi
+  [ -n "$cc_scope_tmp" ] || return 1
+  case "$d/" in "$cc_scope_tmp"/*) return 0 ;; esac
+  return 1
+}
+
 {
   input=$(cat)
   # OFF-SWITCH. Until 2026-09-15 this guard had none: the only way out was
@@ -262,15 +332,64 @@ cc_bash_write_chunks() {
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in Write|Edit|MultiEdit|Bash) ;; *) exit 0 ;; esac
 
+  # Scratch is not the project: CREATE INDEX probes under /tmp and a test fake outside the repo asked in real sessions.
+  # security's write-scan skips the same targets (the write-scope block). Computed only for a target that would ask.
+  scoped=""; sroot=""
+  scope_init() {
+    [ -z "$scoped" ] || return 0
+    scoped=1
+    cwd=${cwd:-$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)}
+    [ -z "$cwd" ] || sroot=$(cc_state_root "$cwd") || sroot=""
+    cc_scope_init "$sroot"
+  }
+  out_of_scope() { scope_init; cc_scope_skip "$1"; }
+  # SQLite has no CREATE INDEX CONCURRENTLY, so that advice is wrong there. The guard read no project config before; this reads,
+  # only for a CREATE INDEX that would ask, from the target's directory up to the root holding it (cc_scope_root): wrangler's
+  # d1_databases (D1 is SQLite), a Prisma provider "sqlite", a drizzle.config.* dialect sqlite or turso. Laravel's .env is not
+  # read: DB_CONNECTION=sqlite is Laravel 11+'s default local config, whatever production runs.
+  # Residual: no root, no detection; another config (Rails database.yml, Django settings, a DSN in code) is not read; a project
+  # whose config names SQLite while the migration targets another engine is not asked.
+  sqlite_project() { # <path>
+    local d f root
+    scope_init
+    d=$(cc_scope_dir "$1") && cc_scope_root "$d" || return 1
+    root=$cc_scope_r
+    while :; do
+      case "$d/" in "$root"/*) ;; *) return 1 ;; esac
+      for f in "$d/wrangler.toml" "$d/wrangler.json" "$d/wrangler.jsonc"; do [ -f "$f" ] && grep -q 'd1_databases' "$f" && return 0; done
+      [ -f "$d/prisma/schema.prisma" ] && grep -qE '^[[:space:]]*provider[[:space:]]*=[[:space:]]*"sqlite"' "$d/prisma/schema.prisma" && return 0
+      for f in "$d"/drizzle.config.*; do [ -f "$f" ] && grep -qE "dialect[\"' ]*:[[:space:]]*[\"'](sqlite|turso)" "$f" && return 0; done
+      [ "$d" != "$root" ] || return 1
+      d=$(dirname -- "$d")
+    done
+  }
+
   # Reads text and flc; sets hit (data loss) or lockhit (lock hazard).
   judge_sql() {
     hit=""
+    # A migration's rollback method drops what its up() made, yet the ask fired on it: every new
+    # create-table migration asked because its down() drops the table, and sessions stalled 969 s and
+    # 1,454 s on an ask nobody was there to answer. That method is cut before judging, from its opener
+    # to the next method, so a drop in up() or in a helper still asks. Covered: PHP under migrations/
+    # (Laravel, Doctrine) `function down(`, Rails db/migrate `def down`, Alembic `def downgrade(`.
+    # Each opener must lead its line, so a comment or string naming it cuts nothing, and the cut
+    # restarts at a \036 line: MultiEdit's edits land apart, so one edit's down() is not another's.
+    # Residual: an Edit or MultiEdit edit whose new text sits inside down() without the opener still
+    # asks, a Knex, TypeORM or Sequelize rollback still asks, and code sharing a line with the down()
+    # opener is skipped.
+    case "$flc" in
+      migrations/*.php|*/migrations/*.php) rbo='^[ \t]*((public|protected|private|static|final)[ \t]+)*function[ \t]+down[ \t]*[(]' rbe='function[ \t]+&?[A-Za-z_]' ;;
+      db/migrate/*.rb|*/db/migrate/*.rb) rbo='^[ \t]*def[ \t]+down([ \t;(]|$)' rbe='^[ \t]*def[ \t]' ;;
+      alembic/versions/*.py|*/alembic/versions/*.py|migrations/versions/*.py|*/migrations/versions/*.py) rbo='^def[ \t]+downgrade[ \t]*[(]' rbe='^def[ \t]' ;;
+      *) rbo='' ;;
+    esac
+    [ -n "$rbo" ] && text=$(printf '%s\n' "$text" | awk -v o="$rbo" -v e="$rbe" '$0 == "\036" { s = 0; next } $0 ~ o { s = 1; next } $0 ~ e { s = 0 } !s')
     [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '\bdrop[[:space:]]+(table|database|schema)\b' && hit="DROP TABLE/DATABASE/SCHEMA"
     # Laravel's schema builder spells the same statement without the SQL keywords:
     # `Schema::dropIfExists('users')` in a migration's up() IS `DROP TABLE users`. The
     # rule above was blind to it, so the one migration shape an agent writes most in a
-    # Laravel repo was the one this guard never asked about. Same ask tier, same escape
-    # (a down() legitimately drops).
+    # Laravel repo was the one this guard never asked about. Same ask tier; a drop inside
+    # down() is cut above, since a rollback legitimately drops.
     [ -z "$hit" ] && printf '%s' "$text" | grep -qE 'Schema::(drop|dropIfExists|dropAllTables|dropAllViews|dropDatabase|dropDatabaseIfExists)[[:space:]]*\(' && hit="a Schema::drop* call (Laravel's DROP TABLE)"
     # Every other migration DSL spells the same statement its own way, and until 2026-09-14
     # this guard recognised exactly one of them — so a Prisma, Drizzle, TypeORM, Doctrine,
@@ -290,7 +409,15 @@ cc_bash_write_chunks() {
     # file, both measured, neither a migration. A quoted-string argument
     # (`drop_table 'users'`) still passes — stated in the header.
     [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '(\.|->|\b)(dropTable|dropTableIfExists|drop_table|dropSchema|drop_schema|dropAll|drop_all|DeleteModel|RemoveField|DeleteField)([[:space:]]*\(|[[:space:]]+:[A-Za-z_])' && hit="a drop-table call in a migration DSL (Prisma/Drizzle/TypeORM/Doctrine/Knex/Alembic/Rails/GORM/Django)"
-    [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '\btruncate[[:space:]]+(table[[:space:]]+)?[^;]' && hit="TRUNCATE"
+    # TRUNCATE was matched case-insensitively with TABLE optional until 2026-10-14, so
+    # Tailwind's `truncate` class (`className="truncate text-xs"`) asked as SQL in real
+    # sessions, most of them background workers or auto mode with nobody to answer. Now it
+    # fires on an UPPERCASE `TRUNCATE <x>`, or on `truncate table` in any case. `table` must be
+    # followed by whitespace and a name, so Tailwind's `truncate table-cell` stays silent, and the
+    # any-case form skips a line carrying a class list (`className="truncate table w-full"`).
+    # Residual: a lowercase `truncate users` without TABLE passes silently, and a class string
+    # built outside an attribute or helper (`const c = "truncate table w-full"`) still asks.
+    [ -z "$hit" ] && { printf '%s' "$text" | grep -qE '\bTRUNCATE[[:space:]]+[^;]' || printf '%s' "$text" | grep -iE '\btruncate[[:space:]]+table[[:space:]]+[^;[:space:]]' | grep -vE '(class(Name)?=|class:|\b(clsx|cn|cva)\(|\btw`)' | grep -q .; } && hit="TRUNCATE"
     # unqualified DELETE/UPDATE: a line with DELETE FROM or UPDATE … SET and no WHERE on it
     if [ -z "$hit" ]; then
       if printf '%s' "$text" | grep -iE '\b(delete[[:space:]]+from|update[[:space:]]+[^;]+[[:space:]]set)\b' \
@@ -304,7 +431,7 @@ cc_bash_write_chunks() {
     if [ -z "$hit" ]; then
       # CREATE [UNIQUE] INDEX without CONCURRENTLY: a CREATE INDEX line carrying no CONCURRENTLY.
       if printf '%s' "$text" | grep -iE '\bcreate[[:space:]]+(unique[[:space:]]+)?index\b' \
-           | grep -qivE '\bconcurrently\b'; then
+           | grep -qivE '\bconcurrently\b' && ! sqlite_project "$target"; then
         lockhit="a CREATE INDEX without CONCURRENTLY (PostgreSQL; other engines lock regardless)"
       fi
       # Table-rewriting ALTERs: a column TYPE change or adding a NOT NULL constraint.
@@ -335,7 +462,7 @@ cc_bash_write_chunks() {
     fi
   }
 
-  hit=""; lockhit=""; file=""
+  hit=""; lockhit=""; file=""; target=""; cwd=""
   if [ "$tool" = Bash ]; then
     cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
     [ -n "$cmd" ] || exit 0
@@ -372,14 +499,15 @@ EOF_C
       esac
       flc=$(printf '%s' "$abs" | tr '[:upper:]' '[:lower:]')
       case "$flc" in *.md|*.mdx|*.markdown|*.txt|*.rst|*/taskmaster-docs/*) continue ;; esac
-      text=${ctext[$i]}
+      text=${ctext[$i]}; target=$abs
       judge_sql
+      if { [ -n "$hit" ] || [ -n "$lockhit" ]; } && out_of_scope "$abs"; then hit=""; lockhit=""; fi
     done
   else
     text=$(printf '%s' "$input" | jq -r '
       [ .tool_input.content // empty,
         .tool_input.new_string // empty,
-        ( .tool_input.edits // [] | map(.new_string // empty) | join("\n") )
+        ( .tool_input.edits // [] | map(.new_string // empty) | join("\n\u001e\n") )
       ] | join("\n")' 2>/dev/null) || exit 0
     [ -n "$text" ] || exit 0
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
@@ -393,7 +521,9 @@ EOF_C
     case "$flc" in
       *.md|*.mdx|*.markdown|*.txt|*.rst|*/taskmaster-docs/*) exit 0 ;;
     esac
+    target=$file
     judge_sql
+    { [ -n "$hit" ] || [ -n "$lockhit" ]; } && out_of_scope "$file" && exit 0
   fi
 
   [ -n "$hit" ] || [ -n "$lockhit" ] || exit 0

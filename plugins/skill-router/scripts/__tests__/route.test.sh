@@ -43,10 +43,13 @@ bashw() { # cwd command transcript [env...] — runs the command, then the hook
       tool_input:{command:$cmd,description:"write"},tool_response:{stdout:"",stderr:"",interrupted:false}}' \
     | hook "$HOOK" "$@"
 }
-skills()  { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null | grep -oE 'load the `[^`]+`' | sed 's/^load the `//; s/`$//' | sort -u; }
+# Bare names, the plugin prefix dropped: case 19 pins the qualified spelling itself.
+skills()  { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null | grep -oE 'load the `[^`]+`' | sed 's/^load the `//; s/`$//; s/^[a-z0-9._-]*://' | sort -u; }
 ctxof()   { printf '%s' "$1" | cksum | cut -d' ' -f1; }
 statef()  { printf '%s/.claude/skill-router/fired-%s.json' "$1" "$(ctxof "$2")"; }
 has_skill() { skills <<<"$1" | grep -qxF "$2"; }
+# Every call in a git repo leaves the effects marker; nothing else may land, and the state dir must stay invisible to git.
+nostate() { ! ls "$1"/.claude/skill-router/fired-*.json >/dev/null 2>&1 && [ -z "$(git -C "$1" status --porcelain --untracked-files=all -- .claude 2>/dev/null)" ]; }
 
 CTRL='app/Http/Controllers/UserController.php'
 HEREDOC="cat > $CTRL <<'PHP'
@@ -78,7 +81,7 @@ for cmd in 'git status' 'ls app > /dev/null 2>&1' 'echo hi 2>&1' 'grep -rn foo a
   out=$(bashw "$B" "$cmd" "$WS/t-b.jsonl")
   [ -z "$out" ] && ok || bad "no target [$cmd]: expected silence, got: ${out:0:120}"
 done
-[ ! -e "$B/.claude" ] && ok || bad "no target: state dir created at $B/.claude"
+nostate "$B" && ok || bad "no target: state written at $B/.claude"
 
 # 3. a target missing afterwards, or outside the root → silent, no state
 for cmd in 'echo x > app/Gone.php && rm app/Gone.php' \
@@ -89,7 +92,7 @@ for cmd in 'echo x > app/Gone.php && rm app/Gone.php' \
   [ -z "$out" ] && ok || bad "missing/outside [$cmd]: expected silence, got: ${out:0:120}"
 done
 [ -f "$WS/outside-rel.php" ] && [ -f "$WS/outside-abs.php" ] && ok || bad "fixture: outside-root files were not written, so the outside cases proved nothing"
-[ ! -e "$B/.claude" ] && ok || bad "missing/outside: state dir created at $B/.claude"
+nostate "$B" && ok || bad "missing/outside: state written at $B/.claude"
 
 # 4. payload cwd = a subdirectory: state at the repo root, nothing in the subdirectory,
 #    `**/app/**` still matches a relative target, and the `?package.json` marker is read
@@ -145,15 +148,26 @@ has_skill "$out" laravel-best-practices && bad "one-shot: the Bash write re-nudg
 out=$(bashw "$E" "printf 'select 1;\\n' > app/report.sql" "$TE")
 has_skill "$out" sql-best-practices && ok || bad "one-shot: a NEW signal through Bash in the same context did not route; got: ${out:0:200}"
 
-# 6. one command, three files → ONE envelope carrying every skill
-F="$WS/f"; mkrepo "$F"
+# 6. one command, three files → ONE envelope of at most two nudges: the file-shape rows (laravel, sql) beat the language-wide
+#    low-cognitive-load, which is not spent and rides the next edit of that language
+F="$WS/f"; mkrepo "$F"; TF="$WS/t-f.jsonl"
 out=$(bashw "$F" "cat > app/Models/Order.php <<'A'
 <?php
 A
-printf 'select 1;\\n' > app/orders.sql; echo 'package f' > app/f.go" "$WS/t-f.jsonl")
+printf 'select 1;\\n' > app/orders.sql; echo 'package f' > app/f.go" "$TF")
 [ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && ok || bad "multi-file: expected one envelope line, got $(printf '%s\n' "$out" | grep -c .)"
-for s in laravel-best-practices sql-best-practices low-cognitive-load; do
+[ "$(skills <<<"$out" | grep -c .)" = 2 ] && ok || bad "cap: expected 2 nudges on one call, got [$(echo $(skills <<<"$out"))]"
+for s in laravel-best-practices sql-best-practices; do
   has_skill "$out" "$s" && ok || bad "multi-file: $s missing from the envelope"
+done
+has_skill "$out" low-cognitive-load && bad "cap: the language-wide low-cognitive-load took a slot from a file-shape row" || ok
+jq -e '.fired | index("low-cognitive-load") | not' "$(statef "$F" "$TF")" >/dev/null 2>&1 && ok || bad "cap: a skill over the cap was marked fired"
+out=$(edit "$F" "$F/app/f.go" "$TF")
+has_skill "$out" low-cognitive-load && ok || bad "cap: the skill over the cap did not ride the next edit; got: ${out:0:200}"
+last=$(sed -n 's/^# nudge-last:[[:space:]]*//p' "$SR/rules.tsv")
+[ -n "$last" ] && ok || bad "cap: rules.tsv carries no '# nudge-last:' line"
+for s in $last; do
+  awk -F'\t' -v s="$s" '$1 == "glob" && $3 == s {f = 1} END {exit !f}' "$SR/rules.tsv" && ok || bad "cap: nudge-last names $s, which no glob row routes"
 done
 
 # 7. the cap: the first 8 targets are examined, a 9th is not
@@ -320,9 +334,9 @@ for cmd in 'npm view shadcn version' 'npx shadcn@latest init' 'npx jsrepo@latest
   out=$(bashc "$S2" "$cmd" "$(fresh)")
   [ -z "$out" ] && ok || bad "command row [$cmd]: expected silence, got: ${out:0:160}"
 done
-[ ! -e "$S2/.claude" ] && ok || bad "command row: a non-matching command created state at $S2/.claude"
+nostate "$S2" && ok || bad "command row: a non-matching command wrote state at $S2/.claude"
 out=$(bashc "$S2" 'npx shadcn@latest add button' "$(fresh)" CC_REMIND=off)
-[ -z "$out" ] && [ ! -e "$S2/.claude" ] && ok || bad "CC_REMIND=off: the command row still routed: ${out:0:120}"
+[ -z "$out" ] && nostate "$S2" && ok || bad "CC_REMIND=off: the command row still routed: ${out:0:120}"
 printf 'npx shadcn@latest add button\n' > "$S2/NOTES.txt"
 out=$(edit "$S2" "$S2/NOTES.txt" "$(fresh)")
 has_skill "$out" shadcn-best-practices && bad "command row: matched a FILE's contents on an Edit" || ok
@@ -343,7 +357,7 @@ EOF
   out=$(bashc "$S3" "$cmd" "$TS3")
   [ -z "$out" ] && ok || bad "command row: quoted or heredoc text routed [${cmd%%$'\n'*}]: ${out:0:160}"
 done
-[ ! -e "$S3/.claude" ] && ok || bad "command row: a mention spent the one-shot (state created at $S3/.claude)"
+nostate "$S3" && ok || bad "command row: a mention spent the one-shot (state written at $S3/.claude)"
 out=$(bashc "$S3" 'npx shadcn@latest add "@magicui/marquee"' "$TS3")
 has_skill "$out" shadcn-best-practices && ok || bad "command row: a quoted install argument did not route after the mentions; got: ${out:0:160}"
 has_skill "$out" aceternity-best-practices && bad "quoted magicui install is a stated miss, yet aceternity-best-practices routed" || ok
@@ -351,15 +365,16 @@ out=$(bashc "$S3" 'echo "$(npx shadcn@latest add button)"' "$(fresh)")
 has_skill "$out" shadcn-best-practices && ok || bad "command row: \$(…) inside double quotes is live code and did not route; got: ${out:0:160}"
 
 # 15. content+high fires inline only on code and style files; any other file keeps its
-#     match in the digest and does not spend the one-shot
+#     match in the digest (a doc file queues nothing, case 18) and does not spend the one-shot
 N="$WS/n"; mkui "$N" '{"dependencies":{"react":"19.0.0"}}'; TN="$WS/t-n.jsonl"
 printf 'Hero timeline: port it to gsap next sprint.\n' > "$N/NOTES.md"
 out=$(edit "$N" "$N/NOTES.md" "$TN")
 has_skill "$out" motion-best-practices && bad "content+high: NOTES.md mentioning gsap fired inline" || ok
-pend "$(statef "$N" "$TN")" motion-best-practices && ok || bad "content+high: NOTES.md's match did not fall through to the digest"
 mkdir -p "$N/tools"; printf 'SNIPPET = "const r = new THREE.WebGLRenderer()"\n' > "$N/tools/gen.py"
 out=$(edit "$N" "$N/tools/gen.py" "$TN")
 has_skill "$out" threejs-best-practices && bad "content+high: a .py containing 'new THREE.' fired inline" || ok
+pend "$(statef "$N" "$TN")" threejs-best-practices && ok || bad "content+high: gen.py's match did not fall through to the digest"
+pend "$(statef "$N" "$TN")" motion-best-practices && bad "doc file: NOTES.md's gsap match reached the digest" || ok
 printf "import gsap from 'gsap'\n" > "$N/src/pages/Hero.tsx"
 out=$(edit "$N" "$N/src/pages/Hero.tsx" "$TN")
 has_skill "$out" motion-best-practices && ok || bad "content+high: the one-shot was spent by NOTES.md — Hero.tsx did not fire; got: ${out:0:160}"
@@ -387,6 +402,215 @@ routes "$K" resources/js/.scratch.jsx 'export const y = <div />' a11y-audit low-
 routes "$K" resources/js/.scratch.vue '<template><i /></template>' a11y-audit low-cognitive-load
 routes "$K" .php-cs-fixer.php '<?php return [];' laravel-best-practices low-cognitive-load
 routes "$K" config/app.php '<?php return [];' low-cognitive-load
+
+# 18. doc and style files queue nothing; a harness frame does not flush the digest, a human prompt does
+D="$WS/d"; mkrepo "$D"; TD="$WS/t-d.jsonl"
+mkdir -p "$D/docs" "$D/resources/css" "$D/taskmaster-docs/mockups"
+printf 'Rotate the api token before the release.\n' > "$D/docs/runbook.md"
+printf '.badge { color: var(--token-fg); }\n' > "$D/resources/css/badge.css"
+printf '<form><input type="password" name="password"></form>\n' > "$D/taskmaster-docs/mockups/login.html"
+printf 'Rotate the secret quarterly.\n' > "$D/docs/notes.txt"
+for f in docs/runbook.md resources/css/badge.css taskmaster-docs/mockups/login.html docs/notes.txt; do
+  edit "$D" "$D/$f" "$TD" >/dev/null
+  pend "$(statef "$D" "$TD")" security-review && bad "doc/style file: $f queued security-review" || ok
+done
+printf '<?php\nclass ApiTokenController { public function show() { return $this->token; } }\n' > "$D/app/Http/Controllers/ApiTokenController.php"
+edit "$D" "$D/app/Http/Controllers/ApiTokenController.php" "$TD" >/dev/null
+pend "$(statef "$D" "$TD")" security-review && ok || bad "code file: a .php edit with token no longer queues security-review"
+prompt_d() { # prompt transcript
+  jq -cn --arg c "$D" --arg tp "$2" --arg p "$1" '{hook_event_name:"UserPromptSubmit",prompt:$p,session_id:"sess",transcript_path:$tp,cwd:$c}' \
+    | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS"; }
+for p in '<task-notification><task-id>t1</task-id><status>completed</status></task-notification>' \
+         'Stop hook feedback: run the suite first' '<system-reminder>a file changed</system-reminder>' \
+         $'Another Claude session sent a message:\n<agent-message from="a1">done</agent-message>' \
+         $'note above the frame\n[Subagent hand-back] all green' \
+         $'# Autonomous loop tick (dynamic pacing)\n\nRun the autonomous check; fix the failing build.'; do
+  t=$(fresh); edit "$D" "$D/app/Http/Controllers/ApiTokenController.php" "$t" >/dev/null
+  fl=$(prompt_d "$p" "$t")
+  grep -qF 'Signals from recent edits' <<<"$fl" && bad "harness frame flushed the digest [${p:0:30}]" || ok
+  jq -e '.pending_low | any(.flushed != true)' "$(statef "$D" "$t")" >/dev/null 2>&1 && ok || bad "harness frame marked pending_low flushed [${p:0:30}]"
+done
+fl=$(prompt_d 'what does a <task-notification> prompt carry?' "$TD")
+grep -qF 'Signals from recent edits' <<<"$fl" && grep -qF 'ApiTokenController.php' <<<"$fl" && ok \
+  || bad "human prompt quoting a frame marker did not flush; got: ${fl:0:200}"
+grep -qE 'runbook\.md|badge\.css|login\.html|notes\.txt' <<<"$fl" && bad "digest named a doc/style file: ${fl:0:200}" || ok
+
+# 19. names are qualified plugin:skill in the nudge, the digest and the SessionEnd line: a bare name loaded a project's own
+#     .claude/skills copy of the same name (Laravel Boost ships several) instead of the plugin's file
+Q="$WS/q"; mkrepo "$Q"; TQ="$WS/t-q.jsonl"
+printf '<?php\nclass Token { public function show() { return $this->token; } }\n' > "$Q/app/Models/Token.php"
+out=$(edit "$Q" "$Q/app/Models/Token.php" "$TQ")
+jq -r '.hookSpecificOutput.additionalContext' <<<"$out" 2>/dev/null | grep -qF 'load the `laravel:laravel-best-practices` skill and review your change' \
+  && ok || bad "qualified: nudge does not name laravel:laravel-best-practices; got: ${out:0:200}"
+grep -qF 'plugin)' <<<"$out" && bad "qualified: the old '(X plugin)' tail survived" || ok
+fl=$(jq -cn --arg c "$Q" --arg tp "$TQ" '{hook_event_name:"UserPromptSubmit",prompt:"next",session_id:"sess",transcript_path:$tp,cwd:$c}' \
+  | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
+grep -qF 'security:security-review (Token.php)' <<<"$fl" && ok || bad "qualified: digest does not name security:security-review; got: ${fl:0:200}"
+printf '<?php\n$secret = 1;\n' > "$Q/app/Models/Key.php"; edit "$Q" "$Q/app/Models/Key.php" "$TQ" >/dev/null
+sl=$(jq -cn --arg c "$Q" --arg tp "$TQ" '{hook_event_name:"SessionEnd",session_id:"sess",transcript_path:$tp,cwd:$c}' \
+  | hook "$SR/hooks/summary.sh" HOME="$WS/home19")
+grep -qF 'security:security-review (1 file)' <<<"$sl" && ok || bad "qualified: SessionEnd line does not name security:security-review; got: ${sl:0:200}"
+
+# 20. no rubric for a file nobody reviews: gitignored scratch, anything under taskmaster-docs/ or .claude/, and a target outside
+#     the project root stay silent and queue nothing; the same file shape tracked in the repo still routes
+X="$WS/x"; mkrepo "$X"; printf 'scratch/\n' > "$X/.gitignore"
+mkdir -p "$X/scratch" "$X/taskmaster-docs/retro" "$X/.claude/skills/probe" "$WS/outside-x"
+for f in scratch/probe.py taskmaster-docs/retro/quant.py .claude/skills/probe/run.ts; do
+  printf 'import os\ntoken = os.environ["TOKEN"]\n' > "$X/$f"
+  t=$(fresh); out=$(edit "$X" "$X/$f" "$t")
+  [ -z "$out" ] && ok || bad "excluded target [$f]: expected silence, got: ${out:0:160}"
+  [ ! -e "$(statef "$X" "$t")" ] && ok || bad "excluded target [$f]: state written"
+done
+printf 'x = 1\n' > "$WS/outside-x/tool.py"
+for f in "$WS/outside-x/tool.py" "../outside-x/tool.py"; do
+  out=$(edit "$X" "$f" "$(fresh)")
+  [ -z "$out" ] && ok || bad "outside-root Edit [$f]: expected silence, got: ${out:0:160}"
+done
+out=$(bashw "$X" "printf 'select 1;\\n' > scratch/q.sql" "$(fresh)")
+[ -z "$out" ] && ok || bad "gitignored Bash target: expected silence, got: ${out:0:160}"
+printf 'x = 1\n' > "$X/tool.py"
+out=$(edit "$X" "$X/tool.py" "$(fresh)")
+has_skill "$out" low-cognitive-load && ok || bad "tracked .py beside the excluded ones did not route; got: ${out:0:200}"
+
+# 21. a skill this context already loaded is not nudged: its "Base directory for this skill" line, a Read of its SKILL.md, or a
+#     qualified Skill call in the transcript. The PROJECT's copy of the same bare name loaded, read or called bare does not count.
+Y="$WS/y"; mkrepo "$Y"; mkdir -p "$Y/database/migrations"
+sdir() { printf '%s/plugins/%s/skills/%s' "$ROOT" "$1" "$2"; }
+tline_base() { jq -cn --arg t "$(printf 'Base directory for this skill: %s\n\n# Skill' "$1")" '{type:"user",message:{role:"user",content:[{type:"text",text:$t}]}}'; }
+tline_read() { jq -cn --arg f "$1" '{type:"assistant",message:{role:"assistant",content:[{type:"tool_use",id:"toolu_r",name:"Read",input:{file_path:$f}}]}}'; }
+tline_skill() { jq -cn --arg s "$1" '{type:"assistant",message:{role:"assistant",content:[{type:"tool_use",id:"toolu_s",name:"Skill",input:{skill:$s}}]}}'; }
+printf '<?php\n' > "$Y/app/Models/Plan.php"; : > "$Y/database/migrations/2026_01_01_000000_create_plans.php"
+TY="$WS/t-y-loaded.jsonl"; tline_base "$(sdir laravel laravel-best-practices)" > "$TY"
+out=$(edit "$Y" "$Y/app/Models/Plan.php" "$TY")
+has_skill "$out" laravel-best-practices && bad "loaded (Skill base dir): laravel re-nudged; got: ${out:0:200}" || ok
+has_skill "$out" low-cognitive-load && ok || bad "loaded: an unloaded skill on the same edit stopped firing; got: ${out:0:200}"
+TY="$WS/t-y-read.jsonl"; tline_read "$(sdir database sql-best-practices)/SKILL.md" > "$TY"
+out=$(edit "$Y" "$Y/database/migrations/2026_01_01_000000_create_plans.php" "$TY")
+has_skill "$out" sql-best-practices && bad "loaded (SKILL.md Read): sql re-nudged; got: ${out:0:200}" || ok
+TY="$WS/t-y-skill.jsonl"; tline_skill laravel:laravel-best-practices > "$TY"
+out=$(edit "$Y" "$Y/app/Models/Plan.php" "$TY")
+has_skill "$out" laravel-best-practices && bad "loaded (qualified Skill call): laravel re-nudged; got: ${out:0:200}" || ok
+TY="$WS/t-y-shadow.jsonl"
+{ tline_base "$Y/.claude/skills/laravel-best-practices"; tline_read "$Y/.claude/skills/laravel-best-practices/SKILL.md"; tline_skill laravel-best-practices; } > "$TY"
+out=$(edit "$Y" "$Y/app/Models/Plan.php" "$TY")
+has_skill "$out" laravel-best-practices && ok || bad "project copy loaded: the plugin's laravel skill was taken as loaded; got: ${out:0:200}"
+
+# 22. a skill matched by a file row and then an import or command row takes rank 0 and that match's subject: a components/ stylesheet
+#     importing tailwindcss, written after two rank-1 files, keeps tailwind inside the cap; components.json plus `shadcn add` quotes the command
+Z="$WS/z"; mkrepo "$Z"; printf '{"devDependencies":{"tailwindcss":"^4.0.0"}}\n' > "$Z/package.json"; mkdir -p "$Z/resources/js/components"
+out=$(bashw "$Z" "cat > app/Models/Order.php <<'A'
+<?php
+A
+printf 'select 1;\\n' > app/orders.sql; printf '@import \"tailwindcss\";\\n' > resources/js/components/Card.css" "$(fresh)")
+has_skill "$out" tailwind-best-practices && ok || bad "min rank: the @import row did not lift tailwind over two rank-1 rows; got [$(echo $(skills <<<"$out"))]"
+[ "$(skills <<<"$out" | grep -c .)" = 2 ] && ok || bad "min rank: expected 2 nudges, got [$(echo $(skills <<<"$out"))]"
+printf '{"style":"new-york"}\n' > "$Z/components.json"
+out=$(bashc "$Z" 'printf x > components.json; npx shadcn@latest add button' "$(fresh)")
+grep -qF 'This command runs `shadcn@latest add`' <<<"$out" && ok || bad "min rank: the rank-0 command match did not carry its subject; got: ${out:0:200}"
+
+# 23. a skill found loaded is recorded as loaded (not fired, which the ledger reports as surfaced), so the next edit routing it does not grep the transcript again
+TY="$WS/t-y-once.jsonl"; tline_base "$(sdir laravel laravel-best-practices)" > "$TY"
+edit "$Y" "$Y/app/Models/Plan.php" "$TY" >/dev/null
+jq -e '(.loaded | index("laravel-best-practices")) and ((.fired // []) | index("laravel-best-practices") | not)' "$(statef "$Y" "$TY")" >/dev/null 2>&1 && ok || bad "loaded once: laravel-best-practices not recorded in loaded (or also in fired)"
+printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$GREP_LOG"\nexec %s "$@"\n' "$(command -v grep)" > "$HS/grep"; chmod +x "$HS/grep"
+edit "$Y" "$Y/app/Models/Plan.php" "$TY" PATH="$HS:$PATH" GREP_LOG="$WS/grep.log" >/dev/null
+rm -f "$HS/grep"
+scans=$(grep -cF -- "$TY" "$WS/grep.log" 2>/dev/null)
+[ -s "$WS/grep.log" ] && [ "$scans" = 0 ] && ok || bad "loaded once: the second edit grepped the transcript ${scans:-?} time(s)"
+
+# 24. interpreter writes (bash-write-effects): a file an interpreter run changed in git since this hook's previous call routes as an
+#     Edit of it would; the first call in a repo only sets the marker; a run that wrote nothing, and a file an Edit changed between
+#     two Bash calls, stay silent.
+if command -v python3 >/dev/null 2>&1; then
+  K="$WS/fx"; mkrepo "$K"; MK="$K/.claude/skill-router/bash-effects.mark"
+  out=$(bashw "$K" "python3 - <<'PY'
+open('app/Models/First.php', 'w').write('<?php\n')
+PY" "$(fresh)")
+  [ -f "$K/app/Models/First.php" ] || bad "fixture: the first python heredoc did not write First.php"
+  [ -z "$out" ] && [ -f "$MK" ] && ok || bad "effects: no marker yet must be silent and leave the marker; got: ${out:0:160}"
+  for cmd in "python3 -c 'print(1)'" 'ls -la app'; do
+    out=$(bashw "$K" "$cmd" "$(fresh)")
+    [ -z "$out" ] && ok || bad "effects: a run that wrote nothing routed [$cmd]: ${out:0:160}"
+  done
+  AUTH='app/Http/Controllers/AuthController.php'; TK="$(fresh)"
+  out_b=$(bashw "$K" "python3 - <<'PY'
+open('$AUTH', 'w').write('<?php\nclass AuthController { public function login() { return \$this->authenticate(\$password); } }\n')
+PY" "$TK")
+  out_e=$(edit "$K" "$K/$AUTH" "$(fresh)")
+  has_skill "$out_b" laravel-best-practices && ok || bad "effects: a python heredoc write did not route laravel-best-practices; got: ${out_b:0:200}"
+  sb=$(skills <<<"$out_b"); se=$(skills <<<"$out_e")
+  [ -n "$se" ] && [ "$sb" = "$se" ] && ok || bad "effects vs edit: skill sets differ — python [$(echo $sb)] edit [$(echo $se)]"
+  jq -e --arg f "$K/$AUTH" '.pending_low | any(.skill == "security-review" and .file == $f)' "$(statef "$K" "$TK")" >/dev/null 2>&1 \
+    && ok || bad "effects: the auth file written through python queued no security-review signal"
+  mkdir -p "$K/database"; printf 'select 1;\n' > "$K/database/report.sql"
+  edit "$K" "$K/database/report.sql" "$(fresh)" >/dev/null
+  out=$(bashw "$K" "python3 - <<'PY'
+open('app/svc.go', 'w').write('package app\n')
+PY" "$(fresh)")
+  has_skill "$out" low-cognitive-load && ok || bad "effects: the go file python wrote did not route; got: ${out:0:200}"
+  has_skill "$out" sql-best-practices && bad "effects: the file an Edit changed before this run was read again as its write" || ok
+else
+  echo "SKIP 24: python3 not available"
+fi
+
+# 25. bash-write-effects, second round: a failed command (PostToolUseFailure) is read and answered in that event's envelope;
+#     an interpreter at the end of a pipe counts; a marker another session dated, a root that is $HOME and a repo with
+#     status.showUntrackedFiles=no read nothing; a state dir that exists without a .gitignore gets one; a 1 MB
+#     separator-free token costs no quadratic regex.
+bashx() { # cwd command transcript session event [env...] — runs the command, then the hook, as bashw does
+  local c="$1" cmd="$2" t="$3" s="$4" e="$5"; shift 5
+  (cd "$c" && bash -c "$cmd") >/dev/null 2>&1
+  jq -cn --arg c "$c" --arg cmd "$cmd" --arg tp "$t" --arg s "$s" --arg e "$e" \
+    '{hook_event_name:$e,tool_name:"Bash",session_id:$s,transcript_path:$tp,cwd:$c,tool_input:{command:$cmd}}' | hook "$HOOK" "$@"
+}
+if command -v python3 >/dev/null 2>&1; then
+  jq -e '.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[] | select(.command | test("hooks/route.sh"))' \
+    "$SR/hooks/hooks.json" >/dev/null 2>&1 && ok || bad "effects: route.sh is not registered on PostToolUseFailure for Bash"
+  K="$WS/fx2"; mkrepo "$K"; edit "$K" "$K/composer.json" "$(fresh)" >/dev/null
+  out=$(bashx "$K" "python3 -c \"open('app/Models/Failed.php', 'w').write('<?php')\"; false" "$(fresh)" sess PostToolUseFailure)
+  has_skill "$out" laravel-best-practices && printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUseFailure"' >/dev/null 2>&1 \
+    && ok || bad "effects: a failed python run did not route in a PostToolUseFailure envelope; got: ${out:0:200}"
+  printf '<?php\n' > "$K/app/Models/Piped.php"
+  out=$(bashx "$K" "cat gen.py | python3" "$(fresh)" sess PostToolUse)
+  has_skill "$out" laravel-best-practices && ok || bad "effects: a python at the end of a pipe was not read; got: ${out:0:200}"
+  printf '<?php\n' > "$K/app/Models/Other.php"
+  out=$(bashx "$K" "python3 gen.py" "$(fresh)" sess-2 PostToolUse)
+  [ -z "$out" ] && ok || bad "effects: a marker another session dated was read; got: ${out:0:200}"
+  printf '<?php\n' > "$K/app/Models/Home.php"
+  out=$(bashx "$K" "python3 gen.py" "$(fresh)" sess-2 PostToolUse HOME="$K")
+  [ -z "$out" ] && ok || bad "effects: a root that is \$HOME was read; got: ${out:0:200}"
+  git -C "$K" config status.showUntrackedFiles no; printf '<?php\n' > "$K/app/Models/Hidden.php"
+  out=$(bashx "$K" "python3 gen.py" "$(fresh)" sess-2 PostToolUse)
+  [ -z "$out" ] && ok || bad "effects: a repo with status.showUntrackedFiles=no was read; got: ${out:0:200}"
+  K3="$WS/fx3"; mkrepo "$K3"; mkdir -p "$K3/.claude/skill-router"
+  bashx "$K3" "ls" "$(fresh)" sess PostToolUse >/dev/null
+  [ -f "$K3/.claude/skill-router/.gitignore" ] && [ -z "$(git -C "$K3" status --porcelain --untracked-files=all -- .claude)" ] \
+    && ok || bad "effects: a state dir that existed without a .gitignore left the marker visible to git"
+  head -c 1000000 /dev/zero | tr '\0' 'A' | { printf "echo '"; cat; printf "' | base64 -d | wc -c"; } > "$WS/long-cmd"
+  t0=$(date +%s)
+  jq -cn --arg c "$K3" --rawfile cmd "$WS/long-cmd" --arg tp "$(fresh)" \
+    '{hook_event_name:"PostToolUse",tool_name:"Bash",session_id:"sess",transcript_path:$tp,cwd:$c,tool_input:{command:$cmd}}' | hook "$HOOK" >/dev/null
+  took=$(( $(date +%s) - t0 ))
+  [ "$took" -le 3 ] && ok || bad "effects: a 1 MB separator-free token took $took s (quadratic regex)"
+else
+  echo "SKIP 25: python3 not available"
+fi
+
+# 26. command rows with no file to route (2026-10-15): a dependency update rewrites only the lockfile, and a ReUI or Metronic copy
+#     lands owned code that never imports @reui/. Neighbours stay silent: install, a script named update, a plain copy, a quoted mention.
+P="$WS/p"; mkui "$P" '{"dependencies":{"react":"19.0.0"}}'
+for cmd in 'composer update --with-all-dependencies' 'npm update' 'cd web && npm upgrade' 'composer upgrade laravel/framework'; do
+  out=$(bashc "$P" "$cmd" "$(fresh)")
+  has_skill "$out" package-hygiene && ok || bad "command row [$cmd]: did not route package-hygiene; got: ${out:0:160}"
+done
+for cmd in 'cp -r ~/Downloads/metronic-v9/src/components/ui/. resources/js/components/ui/' 'rsync -a ../reui-blocks/ src/components/blocks/'; do
+  out=$(bashc "$P" "$cmd" "$(fresh)")
+  has_skill "$out" reui-best-practices && ok || bad "command row [$cmd]: did not route reui-best-practices; got: ${out:0:160}"
+done
+for cmd in 'composer install' 'npm run update-snapshots' 'cp src/a.tsx src/b.tsx' 'git log --grep metronic' 'git commit -m "npm update and cp the reui kit"'; do
+  out=$(bashc "$P" "$cmd" "$(fresh)")
+  [ -z "$out" ] && ok || bad "command row [$cmd]: expected silence, got: ${out:0:160}"
+done
 
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }

@@ -33,6 +33,8 @@ Walk the correspondence both ways — one direction misses half the failures:
 
 - **Forward — coverage.** For each success criterion, find the card(s) whose criteria
   satisfy it. None → a **GAP**: scope the spec promised that the cards silently dropped.
+  Named only in a card's `<must>` or prose, never in its `<criterion>`/`<verify>` → a
+  **PLACEMENT**, not a GAP: the card does the work and nothing proves it.
 - **Reverse — traceability.** For each card, find the criteria it serves. None → an
   **ORPHAN**: work the spec never asked for.
 - **Drift.** A card whose criteria assert behavior traceable to no spec criterion and no
@@ -82,6 +84,9 @@ backs it. Do not proceed to the handoff while any finding is unresolved. Present
 then take each finding through a choice (AskUserQuestion; bare options when
 headless):
 
+- **PLACEMENT** → no question: move it into that card's `<criterion>`, extend its
+  `<verify>` to detect it, list each edit in one line, and continue. It becomes a GAP to
+  ask about only when no command the card can run would detect it.
 - **GAP** → *Add a card* (hand the authoring to the task-cards skill — never
   write the card here) / *Fold into an existing card* (name it) / *Reclassify the
   criterion as a non-goal* (move it to the spec's non-goals) / *Accept as a known

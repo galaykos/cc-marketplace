@@ -12,7 +12,8 @@
 #   — the one non-blocking channel the executing model actually receives; plain stdout
 #   text with exit 0 never reaches it (same reasoning as task-runner/hooks/scope.sh).
 #   `additionalContext` is NOT a blocking key: it adds context, it cannot veto. This lane
-#   never blocks anything, ever.
+#   never blocks anything, ever. A Bash call that exits non-zero fires PostToolUseFailure
+#   instead (hooks.json registers that for Bash): it takes this lane, answering in its own envelope.
 #
 #   PreToolUse — DENY, narrowly. Warning after the write is warning about a file that is
 #   already on disk, and a warning the model may read and walk past is not enforcement.
@@ -47,8 +48,15 @@
 # BASH LANE — a `cat`/`tee` heredoc body is judged as a Write of that text to that path
 # (cc_bash_write_chunks, cd_bash_target in hooks/paths.sh), chunks in command order, first verdict
 # printed. Measured: rationale/2026-09-25-session-plugin-usage-review.md finding 1, 233 of 238 writes.
-# NOT SEEN on Bash: interpreter writes (python open()), a heredoc fed to anything but cat/tee,
-# echo/printf content, sed -i / perl -i content, cp/mv, a path held in a variable, a relative
+# After a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run the warn lane also reads the files git reports
+# changed since its previous call (the bash-write-effects block, at most MAX_BASH_EFFECTS) and judges each governed one no
+# target names on what it added (cd_effect_added in hooks/paths.sh): the whole file when HEAD lacks it, else its `+` lines
+# against HEAD, so a comment any uncommitted edit added since HEAD is judged again. Never denied: the write has landed.
+# Effects miss a writer the block does not name (npx prettier, make), gitignored files, a repo with no git, a mv or cp -p
+# destination, each session's first such run and a file over 1 MiB; any file changed since the lane's previous call (an IDE,
+# a parallel agent) is read as the run's write. A command with a line over 8 kB is not parsed for targets; its effects are read.
+# NOT SEEN on Bash: interpreter, cp and mv writes before they land (the deny lane), a heredoc fed to anything but cat/tee,
+# echo/printf content, sed -i / perl -i content, a path held in a variable, a relative
 # target after an in-command cd, the second operand of `tee a b`, `VAR=x tee f`, cat/tee behind a
 # wrapper, brace or keyword (`/bin/cat`, `command cat`, `env X=1 cat`, `(cat`, `{ cat`, `then cat`,
 # `sudo -E tee`); plus what the two blocks below say they miss.
@@ -290,29 +298,76 @@ cc_bash_write_chunks() {
     }'
 }
 
+# Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
+# cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
+# directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
+# cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
+# cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
+# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
+# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
+# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
+# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
+# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
+cc_bash_effects_mark() {
+  [ -e "$1/.git" ] || return 0
+  local d="${2%/*}" k
+  { [ -d "$d" ] || mkdir -p "$d"; } 2>/dev/null || return 0
+  { [ -e "$d/.gitignore" ] || printf '*\n' > "$d/.gitignore"; k=$(printf '%s' "$3" | cksum) && printf '%s\n' "${k%% *}" > "$2"; } 2>/dev/null
+  return 0
+}
+cc_bash_write_effects() {
+  local LC_ALL=C re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)([[:space:];&|)`<>]|$)' k m f
+  [ -f "$2" ] && [ "$1" != "${HOME%/}" ] && [[ $3 =~ $re ]] && IFS= read -r m < "$2" && k=$(printf '%s' "$5" | cksum) && [ "$m" = "${k%% *}" ] || return 0
+  case "$(git -C "$1" config status.showUntrackedFiles 2>/dev/null)" in no|false|off|0) return 0 ;; esac
+  # One find over the whole list, each path led by ./ so a name like -delete stays a path; the cap counts only what find kept.
+  while IFS= read -r f; do printf '%s\n' "$1/${f#./}"; done < <(exec 2>/dev/null; cd -- "$1" && GIT_OPTIONAL_LOCKS=0 git status --porcelain -z \
+    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e 's|^...|./|' \
+    | tr '\n' '\0' | xargs -0 sh -c 'exec find "$@" -prune -newer "$0" -type f -print' "$2" | head -n "$4")
+  return 0
+}
+
 {
   command -v jq  >/dev/null 2>&1 || exit 0
   command -v awk >/dev/null 2>&1 || exit 0
+  MAX_BASH_EFFECTS=8   # changed files read after an interpreter, cp, mv, install or patch run, in git's path order
 
   input=$(cat)
-  # One detector, two lanes. Absent event name = PostToolUse, the original behavior.
-  event=$(printf '%s' "$input" | jq -r '.hook_event_name // "PostToolUse"' 2>/dev/null) || exit 0
+  # One detector, two lanes. Absent event name = PostToolUse, the original behavior; a failed Bash call's PostToolUseFailure
+  # takes the PostToolUse lane, and its envelope names the event it ran for (hev).
+  event=""; sess=""
+  { IFS= read -r event; IFS= read -r sess; } < <(printf '%s' "$input" | jq -r '.hook_event_name // "PostToolUse", .session_id // ""' 2>/dev/null)
+  [ -n "$event" ] || exit 0
+  hev=PostToolUse; [ "$event" = PostToolUseFailure ] && { hev=$event; event=PostToolUse; }
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
-  case "$tool" in
-    Edit|Write|MultiEdit) ;;
-    Bash)
-      cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
-      # The blocks mask a line character by character, quadratic in its length: a 200 kB line, or 100 lines of 8 kB, outlasts the timeout, so such a command is not judged.
-      [ "${#cmd}" -gt 32768 ] && printf '%s\n' "$cmd" | awk 'length($0) > 2000 { s += length($0) } length($0) > 8192 || s > 32768 { f = 1; exit } END { exit !f }' && exit 0
-      [ -n "$(cc_bash_write_targets "$cmd")" ] || exit 0 ;;
-    *) exit 0 ;;
-  esac
-  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  case "$tool" in Edit|Write|MultiEdit|Bash) ;; *) exit 0 ;; esac
+  [ "$tool" = Bash ] && { cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0; }
   # CC_REMIND is the marketplace-wide advisory switch, and the README promised it here
   # for two releases while nothing read it. It silences the WARN lane only: a PreToolUse
   # deny is not an advisory, so an env var must not be able to turn a block into a pass.
   remind=$(cc_option CC_REMIND on)
   [ "$event" = "PostToolUse" ] && [ "$remind" = "off" ] && exit 0
+  # Interpreter writes, through the bash-write-effects block: read with the old marker, then date it, on every call this lane
+  # sees, so an Edit's file or a command that wrote nothing never reads as the next run's write. The marker is this hook's own.
+  effects=""; root=""
+  if [ "$event" = "PostToolUse" ]; then
+    cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+    if [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(cc_state_root "$cwd"); then
+      emark="$(cc_plugin_state "$root" comment-discipline)/bash-effects-scan.mark"
+      [ "$tool" = Bash ] && effects=$(cc_bash_write_effects "$root" "$emark" "$cmd" "$MAX_BASH_EFFECTS" "$sess")
+      cc_bash_effects_mark "$root" "$emark" "$sess"
+    fi
+  fi
+  if [ "$tool" = Bash ]; then
+    # The blocks mask a line character by character, quadratic in its length: a 200 kB line, or 100 lines of 8 kB, outlasts the
+    # timeout, so such a command's text is not parsed. The files an interpreter run changed are read from disk and still judged.
+    tgts=""
+    [ "${#cmd}" -gt 32768 ] && printf '%s\n' "$cmd" | awk 'length($0) > 2000 { s += length($0) } length($0) > 8192 || s > 32768 { f = 1; exit } END { exit !f }' \
+      || tgts=$(cc_bash_write_targets "$cmd")
+    [ -n "$tgts" ] || [ -n "$effects" ] || exit 0
+  fi
+  [ "$event" = "PostToolUse" ] || cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   # CC_COMMENT_GUARD=off disables the DENY lane and leaves the advisory lane on.
   # Added 2026-09-22 (UX 1): until now the block had no off switch at all — CC_REMIND
   # covers the advisory only — so the refusal could name none, which is what
@@ -480,6 +535,18 @@ cc_bash_write_chunks() {
     if (b ~ /^[A-Za-z_$][A-Za-z0-9_$.]*\(.*\)[ \t]*;?[ \t]*$/) return 1
     if (b ~ /^[$@]?[A-Za-z_][A-Za-z0-9_]*[ \t]*=[^=]/) return 1
     return 0
+  }
+  # A /** */ line borrows code punctuation to describe a shape: ` * Site => [server, repository, last deploy failed].` was denied
+  # as code and a worker reshaped tuples and signatures to pass. There a line is code only with a token prose does not use (`;`,
+  # a `$var`, `->`, a call, an `=` assignment, a control-flow header, a leading import/export/return with a brace, a trailing
+  # `{` or `[`) and is not a period-ended sentence of 3+ lowercase words. Misses: such a sentence.
+  function doc_code(b,   x, n, w, k, p) {
+    if (b !~ /;|[$][A-Za-z_]|->|[A-Za-z_][A-Za-z0-9_]*[(]|(^|[^=!<>])=($|[^=>])|^(if|for|while|switch|foreach)[ \t]*[(]|^(import|export|return)[ \t].*[{]|[{[][ \t\r]*$/) return 0
+    x = b; sub(/[ \t\r]+$/, "", x)
+    if (x !~ /([A-Za-z0-9)]|[]])[.]$/) return 1
+    n = split(x, w, /[ \t]+/); p = 0
+    for (k = 1; k <= n; k++) { gsub(/^([(]|[[])+|([]]|[),.;:])+$/, "", w[k]); if (w[k] ~ /^[a-z][a-z]+$/) p++ }
+    return p < 3
   }
   # The diff addressing its reviewer: a comment describing the EDIT — its author, its
   # correctness, the review that asked for it — rather than the code. A why-comment
@@ -928,7 +995,7 @@ cc_bash_write_chunks() {
       if (b == "" || exempt(b)) continue
       if (is_banner(b))       { H[2]++; total++; continue }
       if ((td = is_bare_todo(b)) < 0) continue
-      if (!EX[i] && is_code(b)) { H[3]++; total++; continue }
+      if (!EX[i] && is_code(b) && (!DOC[i] || doc_code(b))) { H[3]++; total++; continue }
       if (td > 0)             { H[4]++; total++; continue }
       if (is_dead_tag(b, i))  { H[5]++; total++; continue }
       if (is_narration(b))    { H[6]++; total++; continue }
@@ -1241,14 +1308,14 @@ cc_bash_write_chunks() {
       jq -cn --arg r "$msg$1" \
         '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
     else
-      jq -cn --arg ctx "${ew:+$ew }$msg$1" \
-        '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
+      jq -cn --arg ctx "${ew:+$ew }$msg$1" --arg ev "$hev" \
+        '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$ctx}}'
     fi
   }
 
   if [ "$tool" = Bash ]; then
-    chunks=$(cc_bash_write_chunks "$cmd")
-    [ -n "$chunks" ] || exit 0
+    chunks=""; [ -z "$tgts" ] || chunks=$(cc_bash_write_chunks "$cmd")
+    [ -n "$chunks" ] || [ -n "$effects" ] || exit 0
     n=0; k=0
     while IFS= read -r l; do
       k=$((k + 1)); tgt=$(cc_bash_write_targets "${l#?}" | head -n 1)
@@ -1256,8 +1323,8 @@ cc_bash_write_chunks() {
     done <<EOF_C
 $(printf '%s\n' "$chunks" | awk 'substr($0, 1, 1) == "\036"')
 EOF_C
-    [ "$n" -gt 0 ] || exit 0
-    hascd=0; cd_has_cd "$cmd" && hascd=1
+    [ "$n" -gt 0 ] || [ -n "$effects" ] || exit 0
+    hascd=0; [ -n "$tgts" ] && cd_has_cd "$cmd" && hascd=1
     c=1
     while [ "$event" = PreToolUse ] && [ "$c" -le "$n" ]; do
       if [ "$(cd_chunk_mode "${chdr[$c]}")" = truncate ] && cd_target_whole "${chdr[$c]}" "${ctgt[$c]}" \
@@ -1284,6 +1351,16 @@ EOF_C
       fi
       c=$((c + 1))
     done
+    # A governed file the run changed that no target names: judged on the lines it added (cd_effect_added).
+    while IFS= read -r fp; do
+      [ -n "$fp" ] || continue
+      if scan_judge "$fp" "$(cd_effect_added "$root" "$fp")"; then
+        emit " Written by a Bash command: $(basename "$fp")."
+        exit 0
+      fi
+    done <<EOF_E
+$(cd_effect_files "$effects" "$tgts" "$cwd" "$hascd")
+EOF_E
     [ -n "$ew" ] && { msg="CC_REMIND=off silences this."; emit ""; }
   else
     fp=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0

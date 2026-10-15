@@ -15,8 +15,35 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|.*apply_patch|.*create_new_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scan.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit|NotebookEdit|Read|Bash|.*apply_patch|.*create_new_file|.*read_file",
         "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/unicode-scan.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scan.sh\"",
+            "timeout": 10
+          },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/unicode-scan.sh\"",

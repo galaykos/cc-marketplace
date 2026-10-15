@@ -312,7 +312,7 @@ for (const path of process.argv.slice(2)) {
   try { parsePatterns(readFileSync(path, "utf8")); console.log("accepted") } catch (e) { console.log(e.message) }
 }'
 mapfile -t parsed < <(node --input-type=module -e "$CORE_PARSE" "$CORE" "${bad[@]}" 2>&1)
-mkdir "$TMP/hook"; cp "$HOOK" "$TMP/hook/scan.sh"
+mkdir "$TMP/hook"; cp "$HOOK" "$ROOT/hooks/patterns.sh" "$TMP/hook/"
 CLEAN=$(payload 'const x = 1;')
 where() { [[ $1 =~ ^(line\ [0-9]+) ]] && printf '%s' "${BASH_REMATCH[1]}" || printf '%s' "$1"; }
 for i in "${!bad[@]}"; do

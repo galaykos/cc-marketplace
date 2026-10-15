@@ -16,10 +16,11 @@ Blocks secrets before they reach disk.
 | A `Write`/`Edit`/`MultiEdit`/`NotebookEdit` whose new text carries `[REDACTED:`, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses it, naming `CC_SECRET_REDACT=off`, so a redacted read written back cannot replace the real value; same tests, same CI step |
 | A `Bash` heredoc body or `echo`/`printf` argument carrying `[REDACTED:` that lands in a file (since 0.14.0), on any CLI, with or without mods | **gate** — `scan.sh` refuses it the same way unless `CC_SECRET_REDACT` is `off`, `0` or `false`; `scan-hook.test.sh` runs both write shapes, a command writing no file, stdout only and the off switches. Not refused: an MCP write tool, and the Bash writes the guard cannot read (`sed -i` text, interpreters, `cp`/`mv`; the "through Bash any other way" row below) |
 | The mod and the write guard agree on what is a secret (one pattern file, two regex engines) | **gate** — `scripts/__tests__/pattern-parity.test.sh` runs one fixture set through `scan.sh` and the mod's matcher and fails on any disagreement it does not declare; it proves its fixtures, not every input, and its declared divergences (astral characters in a webhook tail, a NUL inside a key) are fixtures of their own |
-| Invisible characters in a file this session wrote or read | **advisory** — `hooks/unicode-scan.sh` is a PostToolUse **warning**; it never blocks, once per file per session |
-| A secret reaching a file through Bash any other way — an interpreter (`python open()`, `php file_put_contents`), `cp`/`mv` of a file that already holds one, `sed -i` replacement text, a here-string `<<<`, a `{ echo …; } > f` group, a `printf 'KEY=%s' value` pair the generic assigned-literal rule cannot join (a provider-shaped value still matches alone) — or a live key in a command that writes no file (`curl -H "Authorization: …"`) | **unenforceable here** — the guard reads only heredoc bodies and echo/printf arguments whose pipeline writes a file; `scan.sh`'s header `Misses:` line and its `cc_bash_write_chunks` `Misses:` line name each gap, and the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` keeps why. `command-guard` owns destroying a live `.env`, not what enters a file |
+| Invisible characters in a file this session wrote or read | **advisory** — `hooks/unicode-scan.sh` is a PostToolUse **warning**; it never blocks, once per model context (a session's main thread, each subagent) and file, again only when the file's invisible characters change, including past the six it names (`unicode-scan.test.sh` pins each) |
+| A secret a Bash python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run put in a file of a git repo (since 0.15.0) | **advisory** — the same `scan.sh`, registered on PostToolUse too (and on PostToolUseFailure for Bash, the event a command that exits non-zero fires), **warns** after the fact, naming the file and the pattern; it cannot deny, because the write has landed. It reads what each file git reports changed since the lane's previous call added: the whole file when HEAD lacks it, else its `+` lines against HEAD, so a line any uncommitted edit added is judged again. `scan-hook.test.sh` runs a python write, the first call in a repo, a run that wrote nothing, a placeholder, an Edit between two runs, a failed run and another session's marker. Misses: a writer it does not name (`npx prettier --write`, `make`, `git apply`), gitignored files, no git, a submodule's files, anything under `.claude/`, a file written then reverted, a `mv` or `cp -p` destination that keeps an older mtime, files past the eighth, text past 1 MiB per file, the first such run of each session (the marker holds the session's cksum; another session's reads as none); a `$HOME` root or a repo with `status.showUntrackedFiles=no` reads nothing; and anything else that changed a file since the lane's previous call (an IDE, a parallel agent) reads as this run's write |
+| A secret reaching a file through Bash any other way — an interpreter or `cp`/`mv` before the write lands (the row above warns after it), `sed -i` replacement text, a here-string `<<<`, a `{ echo …; } > f` group, a `printf 'KEY=%s' value` pair the generic assigned-literal rule cannot join (a provider-shaped value still matches alone) — or a live key in a command that writes no file (`curl -H "Authorization: …"`) | **unenforceable here** — the guard reads only heredoc bodies and echo/printf arguments whose pipeline writes a file; `scan.sh`'s header `Misses:` line and its `cc_bash_write_chunks` `Misses:` line name each gap, and the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` keeps why. `command-guard` owns destroying a live `.env`, not what enters a file |
 | A secret introduced by an MCP server whose write tool uses key names this hook does not list | **unenforceable** — the extraction in `scan.sh` names the keys it knows (verified against the JetBrains MCP schema, 2026-09-14); a different server writes past it |
-| Secrets already committed before this plugin was installed | **out of scope** — that is `/secret-scanning:scan`, a command you run, not a hook |
+| Secrets already committed before this plugin was installed | **out of scope for the hooks** — that is `/secret-scanning:scan`, a command you run. Its scanner, `scripts/scan-range.sh <base>..HEAD \| --cached \| <path>…` (since 0.15.0), applies `hooks/patterns.tsv` through the write guard's own reader (`hooks/patterns.sh`) to the lines a range or the index added or to whole files, prints `file:line label` with the value masked and exits 1 on a match: **gate** for what it reports (`scan-range.test.sh` in CI) and wherever a CI step runs it, which nothing here wires. **Recorded**: that the command runs it before reading anything itself. Misses: a secret split across lines, a shape `patterns.tsv` does not list, a removed line still in history, binary files |
 
 There is no allow-file: a refused write is refused on every retry (history: the marketplace repository's
 `rationale/derivations/plugin-secret-scanning.md` § Header: PLACEHOLDER EXEMPTION (0.5.0)). The escapes it does have
@@ -47,11 +48,18 @@ off-switch documented only in a changelog is not reachable by the person it exis
   guard saw none of them. Fail-open on every error but one: an unusable
   `hooks/patterns.tsv` (the single pattern source) denies every write it would scan,
   naming the file, the line and `CC_SECRET_SCAN=off`. `CC_SECRET_SCAN=off` disables it
-  for a session.
+  for a session. Since 0.15.0 the same script also runs on PostToolUse: after a Bash
+  interpreter, `cp`, `mv`, `install` or `patch` run it **warns** — never denies, the write
+  has landed — on a secret in what each file git reports changed added (the "What has
+  teeth" row above names how and what it misses). Its marker lives in the plugin's data
+  dir, else under `<repo>/.claude/secret-scanning/` behind a `*` `.gitignore`.
 - **PostToolUse hook** (`hooks/unicode-scan.sh`) — **warns**, never blocks, when a file
   this session wrote *or read* carries invisible characters — since 0.9.0 including up to
   8 files per `Bash` command that wrote them (redirect, `tee`, `sed -i`) under the
-  project root: zero-width
+  project root (since 0.15.0 a relative one after a `cd`/`pushd` outside heredoc bodies is
+  skipped: it was read against the session cwd, the wrong file), and since 0.15.0 up to 8 files a python, node, php, ruby, perl,
+  deno, bun, cp, mv, install or patch run changed in git, each read whole
+  (the misses the "What has teeth" interpreter row names): zero-width
   space/joiner/non-joiner, word joiner, soft hyphen, a mid-file BOM, the Unicode tag
   block, and the bidirectional overrides that make source display in an order different
   from the one it executes (the Trojan Source class, CVE-2021-42574), which get their
@@ -59,12 +67,19 @@ off-switch documented only in a changelog is not reachable by the person it exis
   instruction substitutes for a scanner. Warn and PostToolUse on purpose: zero-width
   joiners are legitimate in emoji sequences and in Arabic, Persian and Indic text, and
   the interesting case is usually a file being READ, where blocking the read helps
-  nobody. A leading BOM is an encoding and is exempt; homoglyphs are out of scope. Once
-  per file per session. `CC_UNICODE_SCAN=off` (or `CC_REMIND=off`) disables it.
+  nobody. A leading BOM is an encoding and is exempt, and so is a lone BOM leading a line,
+  or a tab-separated field, of a `*.log` file (where a CI step's output starts; since
+  0.15.0); homoglyphs are out of scope. Once per model context — the main thread and each
+  subagent, told apart by `agent_id` — and file, again only when the file's invisible
+  characters change (since 0.15.0); every context that reads the hidden text is told. `CC_UNICODE_SCAN=off` (or `CC_REMIND=off`) disables it.
 - **Hooks module** (`hooks/redact.ts`, Claude Code ≥ 2.1.291) — masks secrets in tool
   output and refuses a write carrying a mask; see Mods, below.
 - **`/secret-scanning:scan`** — sweeps a path, diff, or the whole repo for secrets
-  already in the tree (what the write-time hook never saw).
+  already in the tree (what the write-time hook never saw). It runs
+  `scripts/scan-range.sh` first, so the pattern pass is the hook's `patterns.tsv`, read
+  by the hook's own loader, not patterns the model recalls; with nothing named it scans
+  the staged lines (`--cached`) when something is staged, then layers the review-time
+  suspicions on top.
 - **`secret-scanning` skill** — the patterns, the placeholder escape the deny message
   offers, remediation (rotate, don't just delete), and honest limits.
 

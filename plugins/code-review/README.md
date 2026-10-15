@@ -87,7 +87,8 @@ signature is deleted. Only a house style the project states in its `CLAUDE.md` o
 the default; a heavily commented neighbour does not.
 
 **The write-time hooks.** `scan.sh` inspects the text each `Edit` / `Write` /
-`MultiEdit` adds, and the text a Bash heredoc writes, on two lanes. `PostToolUse` warns,
+`MultiEdit` adds, the text a Bash heredoc writes, and after the command what an interpreter
+run added (**Interpreter writes** below), on two lanes. `PostToolUse` warns,
 at most one line, for any of the twelve categories listed below. `PreToolUse` denies the three
 strictest — a comment restating the next line, commented-out code, and a docblock tag
 repeating the signature — at most twice per file per session, then stands down. Since
@@ -98,9 +99,19 @@ grammar, does not compare a `Write` against a file over 1 MiB, and after two den
 the write through with only a warning, so code can still be lost — **The elision deny**
 below has what it reads and the rest it misses.
 `density.sh` denies a whole `Write`, or a Bash heredoc that replaces a file, over
-the comment ceiling, at most twice per file, and after any edit warns when a file is over
+the comment ceiling, at most twice per file, and after a `Write` — or an `Edit` or Bash write
+that adds prose comment lines — warns when a file is over
 min(2x its committed siblings' median, the ceiling); a file with no committed siblings is
-judged against the ceiling alone. The ceiling is **0.3 prose comment lines per code line**
+judged against the ceiling alone. An `Edit` adds prose when the file on disk holds more than
+the same file with its new text swapped back, so a line added inside a Python docstring
+counts; past 256 kB, or when the new text is not on disk, only the edit's own text is read
+and that line is missed. Since 0.33.0 a file a Bash run of python, node, php, ruby, perl,
+deno, bun, `cp`, `mv`, `install` or `patch` changed is measured the same way, after the
+command — **Interpreter writes** below. Neither lane judges a file that only declares — an interface or an
+all-abstract class beside imports, type aliases and enums, no method body (an accessor's
+`get {`/`set {`/`init {` block and a `static {` initializer count as bodies) — in a brace
+language: its docblocks are the contract. A component or class beside the interface is
+judged. The ceiling is **0.3 prose comment lines per code line**
 by default, compared exactly: 30 prose lines over 100 code lines pass, 31 are refused. A
 file under 50 non-blank lines, or with fewer than 8 code lines, is judged by the **short rule**
 instead: it is over the limit with at least 5 prose lines, a code line, and more prose
@@ -156,8 +167,10 @@ to one file share them. A relative target is resolved against the shell's workin
 and `~/x` against `$HOME`. `scan.sh` judges an append like any other added text. `density.sh`
 denies only a heredoc that replaces the file (`>`, `tee` without `-a`), because an
 append is a fragment with no ratio of its own; after the command it measures the first
-three targets that exist on disk, whatever wrote them (`sed -i`, `echo >`, a generator),
-and prints the first warning. The cap counts any existing file, whatever its extension,
+three targets that exist on disk that the command added a prose comment line to (by an
+`echo`, `printf` or heredoc), or wrote through a redirect whose text it cannot read (a
+generator, a `{ …; } > f` group) — never a `sed -i` or `perl -i` target — and prints the
+first warning. The cap counts any existing file, whatever its extension,
 so three log redirects ahead of a source file leave it unmeasured. A command with several heredocs draws one verdict, for the
 first file that trips; the retry reaches the next.
 
@@ -316,7 +329,11 @@ bare `@return` or `@param` whose description wraps onto the next docblock line i
 A TODO carrying an owner (`TODO(ana):`), a ticket (`#123`, `BILL-412`) or a URL is not
 judged any further, so `// TODO #1: sort todos by date` above the line it names is no longer
 refused as a restatement, nor `// TODO(BILL-412): drop once v2 rollout completes (see ADR-7)`
-as commented-out code.
+as commented-out code. Inside a `/** */` docblock a code-shaped line counts as commented-out
+code only with a token prose does not use — `;`, a `$var`, `->`, a call, an `=` assignment,
+a control-flow header, a leading `import`/`export`/`return` with a brace, a trailing `{` or `[`
+— and not as a sentence of three or more lowercase words ending in a period, so
+` * Shop => [owner, warehouse, last sync failed].` is prose (since 0.33.0).
 
 **The twelve categories.** Denied before the write, and warned when such a write lands
 anyway: `restating the next line`, `commented-out code`,
@@ -437,16 +454,41 @@ refusal.
   checked line by line against reference tokenizers and scanners on standard-library and
   system code; the CHANGELOG's 0.26.0 entry has the numbers.
 
+**Interpreter writes (0.33.0).** In reviewed sessions 40–85% of code writes went through
+`python3 - <<'EOF' … open(p, 'w')`, which neither hook saw. After a Bash command that runs
+python, node, php, ruby, perl, deno, bun, `cp`, `mv`, `install` or `patch`, both `PostToolUse`
+lanes read the files git reports changed or untracked since that hook's previous call (the
+byte-locked `templates/blocks/bash-write-effects.md`, at most 8) and judge each code file no
+redirect or `tee` target named: `scan.sh` on what it added — the whole file when `HEAD` lacks
+it, else the `+` lines of `git diff -U0 HEAD`; `density.sh` once the file holds more prose
+lines than its `HEAD` copy, within its three files per command. Every call a lane sees, an
+`Edit` or a command that wrote nothing included, dates that hook's marker, so a file an `Edit`
+changed is not read as the next run's write. A command that exits non-zero fires
+`PostToolUseFailure`, registered for Bash on all three hooks, and its writes are read the same
+way; a command with a line over 8 kB is not parsed for targets, but its effects are read. No
+deny sees these writes: they land before a hook can read them. Misses: a writer named through
+another word (`npx prettier --write`, `make`, `vendor/bin/pint`), gitignored files, a repo with
+no git, a submodule's files, anything under `.claude/`, a `mv` or `cp -p` destination (it keeps
+the source's mtime), a file written then reverted, the first such run of each session (the
+marker holds the session's cksum; another session's reads as none), files past the eighth, a
+file over 1 MiB (`scan.sh`) or 256 kB (`density.sh`); a `$HOME` root or a repo with
+`status.showUntrackedFiles=no` reads nothing. Reads too much: a file an IDE or a parallel
+agent changed since the hook's previous call is read as the run's write, and every change
+uncommitted since `HEAD` as what the run added, so a comment an earlier `Edit` added can draw a
+second warning. Each Bash call costs about 7 ms more per hook (CHANGELOG 0.33.0). Standing:
+**gate** — the `effects:` cases of
+`scripts/smoke/comment-density-tests.sh` and `scripts/smoke/comment-discipline-hook-tests.sh`.
+
 **What a Bash write still escapes.** The hooks read the command's text; they never run
 it. A miss is preferred to judging the wrong file, so an uncertain shape is skipped.
 
 - **Never read as file content:** interpreter writes (python `open()`, php
-  `file_put_contents`); a heredoc fed to anything but `cat` or `tee`
+  `file_put_contents`) before they land, and after it only as above; a heredoc fed to anything but `cat` or `tee`
   (`python3 - <<PY > f`); `echo` and `printf` content; `sed -i` and `perl -i` content;
-  `cp`, `mv`, `install`; a `{ …; } > f` group; a here-string (`<<<`); a quoted string or
+  `cp`, `mv`, `install` (after the command, as above); a `{ …; } > f` group; a here-string (`<<<`); a quoted string or
   `\` continuation spanning lines; a second heredoc opened on one line. `density.sh`
-  still measures the resulting file afterwards when the command names it as a redirect,
-  `tee` or `sed -i` / `perl -i` target.
+  still measures the resulting file afterwards when the command names it as a redirect
+  or `tee` target and adds prose to it or writes text it cannot read.
 - **Target not resolved, so the heredoc is skipped:** a path held in a variable; a
   globbed operand; `2>`, `&>` and `>&` targets; the second operand of `tee a b`;
   `VAR=value tee f <<EOF`; `cat` or `tee` behind a path, wrapper, brace or keyword
@@ -457,16 +499,18 @@ it. A miss is preferred to judging the wrong file, so an uncertain shape is skip
   a target holding a backslash, or one led by `~user`; a target whose `..` steps out of
   a symlinked directory; a relative target whenever the command holds a `cd`, `chdir`,
   `pushd` or `popd` word outside quoted strings and heredoc bodies (inside quotes too
-  when the command holds `eval`, `sh -c` or `bash -c`; inside a heredoc body too when a
-  `<<` sits inside a quoted string, after a backslash or inside `$((`) — an absolute
-  target is still judged.
+  when the command holds `eval`, `sh -c` or `bash -c`; every line after a `<<` the body
+  scan cannot place, such as one inside a quoted string, after a `#` or inside `$((`,
+  is read as command text) — an absolute target is still judged.
 - **Skipped by `density.sh`'s deny only:** an append; a heredoc whose target the same
   command writes again (the after-command measurement covers it).
 - **Judged by neither of `density.sh`'s lanes:** truncating heredocs past the 40th to a
   judged file in one command — the after-command measurement reads only the first three
   targets. `scan.sh` still judges them.
 - **Skipped by `density.sh`'s after-command warning:** targets past the first three
-  that exist on disk, whatever their extension.
+  that exist on disk, whatever their extension; a target the command wrote no prose
+  comment line to — `sed -i`, `perl -i`, printf's substituted text, an echo whose
+  argument is not a comment — even when the file was already over (since 0.33.0).
 - **Too large:** a command over 32 kB that holds a line over 8 kB, or whose lines over
   2,000 characters sum past 32 kB, is not judged by either hook.
 - **Read wrongly — text judged that the shell would not write there:** a heredoc in a
@@ -496,8 +540,12 @@ opens them, and deliberately never a digest of their contents. Once per context 
 on the transcript, so a subagent writing code gets its own copy rather than being deduped
 against a nudge only its parent saw. Since 0.23.0 it also fires when a Bash command
 writes an existing code file under the project root (a redirect, a heredoc, `tee`,
-`sed -i`/`perl -i`; interpreter writes, `cp`/`mv` and a path held in a variable are not
-parsed), and it reads the configs at the project root rather than the shell's cwd.
+`sed -i`/`perl -i`; a path held in a variable is not parsed), and it reads the configs at
+the project root rather than the shell's cwd. Since 0.33.0 a code file git reports changed
+after a python, node, php, ruby, perl, deno, bun, `cp`, `mv`, `install` or `patch` run counts
+too, with the misses and over-read of **Interpreter writes** above; every call dates its
+marker, the one-shot spent or not, and a spent one-shot reads no effects
+(`conventions-hook.test.sh`, **gate**).
 Since 0.28.0 it also names a repo's prose standards doc on its own `standards:` line —
 `CONTRIBUTING.md`, `.github/CONTRIBUTING.md`, `docs/CONTRIBUTING.md`, `CODING_STANDARDS.md`,
 `docs/CODING_STANDARDS.md` or `STYLEGUIDE.md`, the path only — as a source for naming,
@@ -519,20 +567,31 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
 
 - **What.** One line of context for the model on your next prompt: how many files changed
   since the last review, up to three auth-surface paths, and the exact command,
-  `/code-review:review <base>..HEAD`, "or say in one line why not". It never blocks and
-  never runs a review itself.
+  `/code-review:review <base>..HEAD`, "or say in one line why not", and that per-card reviews
+  do not cover cross-card changes. It never blocks and never runs a review itself.
 - **When.** In a git repo, when the diff since this session's last review (or since its
   first prompt) has 8 or more changed files, or at least one path matching an auth-surface
   pattern (auth, login, password, token, secret, credential, policy, permission, role,
-  guard, middleware, impersonation, session, oauth, webhook, payment, crypt, `migrations/`).
+  guard, middleware, impersonation, session, oauth, webhook, payment, crypt, registration,
+  sign-up, `migrations/`).
   Markdown, lockfiles, `.claude/`, `taskmaster-docs/` and vendor/build dirs don't count.
   Once per commit: it speaks again only after HEAD moves and the count has grown. A reviewer
   agent, a `code-review:review` / `security:review` call, or typing one of those commands
   resets the count. It stays silent during a task-runner run, which has its own reviewers,
   and the run's changes are not counted afterwards.
-- **Limits.** It checks the diff once per new commit, so uncommitted work alone doesn't
-  trigger it until the next commit. It recognises a review by its name, not by what the
-  review covered.
+- **At a ship prompt.** Since 0.33.0, a prompt whose first 400 characters (outside code
+  fences) say commit, push, merge, PR or pull request is checked at once, without waiting
+  for a commit, and untracked files count too. The line opens "Before this ships" and names
+  `/code-review:review <base>`, which covers the working tree. It repeats only when the count
+  has grown since the last such line.
+- **Branch switches.** Since 0.33.0 the base remembers its branch. After a `git switch` the
+  count starts where the switch landed, so a branch's existing commits are not charged to
+  your session; commits made after the switch, including on a branch created in the same
+  turn, still count.
+- **Limits.** Between ship prompts it checks the diff once per new commit, so uncommitted
+  work waits for the next commit or ship prompt. A ship verb is matched as a word ("push
+  notifications" counts; "land it" does not). Switching away from a branch and back drops
+  the earlier count. It recognises a review by its name, not by what the review covered.
 - **Off switch.** `CC_REVIEW_NUDGE=off` silences this nudge; `CC_REMIND=off` silences it
   along with every other advisory.
 - **Standing: advisory.** Nothing enforces the review. Whether a suggested review was worth

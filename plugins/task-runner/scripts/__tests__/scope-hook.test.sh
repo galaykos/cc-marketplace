@@ -9,8 +9,9 @@
 # with canned PostToolUse stdin JSON and judged on rc + stdout + stderr.
 set -u
 # This session may export CLAUDE_PROJECT_DIR (pointing at the marketplace repo); the
-# hook's state-root resolver reads it, so the fixtures must not inherit it.
-unset CLAUDE_PROJECT_DIR
+# hook's state-root resolver reads it, so the fixtures must not inherit it. CLAUDE_PLUGIN_DATA
+# would move the bash-effects marker out of the fixture repo, where case 18 looks for it.
+unset CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_DATA
 
 here=$(cd "$(dirname "$0")" && pwd)
 HOOK="$here/../../hooks/scope.sh"
@@ -183,6 +184,27 @@ esac
 rm -f "$CWD/.claude/task-runner/scope-03.json" "$CWD/.claude/task-runner/scope-01.json" \
       "$CWD/.claude/task-runner/scope-02.json"
 
+# 13b) VALID JSON, WRONG SHAPE. Orchestrators wrote {card, allowed}; `.allow // []` read
+#      it as an empty list and every edit of the run warned. Now it disarms like a
+#      malformed file and names the expected shape.
+printf '{"card":"04","allowed":["src/card-d.js"]}' > "$CWD/.claude/task-runner/scope-04.json"
+run_case "scope file with no allow array -> whole call not enforced, stdout silent" \
+  "$(stdin_for "$CWD/src/card-d.js")" 0 silent
+set +e
+err=$(printf '%s' "$(stdin_for "$CWD/src/card-d.js")" | bash "$HOOK" 2>&1 >/dev/null); set +e
+case "$err" in *'scope-04.json has no "allow" array (expected {"allow":["path","dir/"],"task":"<id>"})'*)
+  printf 'PASS: wrong-shape member named on stderr with the expected shape\n'; pass=$((pass+1)) ;;
+  *) printf 'FAIL: wrong-shape member not named on stderr: <%s>\n' "$err"; fail=$((fail+1)) ;;
+esac
+rm -f "$CWD/.claude/task-runner/scope-04.json"
+
+# 13c) an Edit/Write OUTSIDE the project root (a /tmp probe, the user's memory dir) is no
+#      card's file; it was told to "revert this edit". An in-root stray still warns.
+run_case "Edit to an absolute path outside the root -> silent" \
+  "$(stdin_for "$WS/elsewhere/notes.md")" 0 silent
+run_case "Edit to an in-root path outside scope -> still warns" \
+  "$(stdin_for "$CWD/src/stray.js")" 0 envelope "src/stray.js"
+
 # ---- 0.41.0: finding 8 (stale scope), finding 2 (state root), finding 1 (Bash writes)
 #      of rationale/2026-09-25-session-plugin-usage-review.md.
 ctx_of() { printf '%s' "$1" | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
@@ -255,6 +277,111 @@ else
   printf 'PASS: no .claude/ dir created under the subdirectory\n'; pass=$((pass+1))
 fi
 rm -f "$CWD/.claude/task-runner/gate-pass.json"
+
+# 18) INTERPRETER WRITES (0.47.0, bash-write-effects). A file git reports changed since this
+#     hook's previous call in the run, after an interpreter, cp, mv, install or patch run, is
+#     judged as an Edit of it would be. One repo per shape group: a reused repo carries the
+#     marker. All red against 0.46.3 except the silent ones, which pin what must not change.
+mkrun() { # <dir> -> a git repo with a registered run allowing src/allowed.js and lib/
+  mkdir -p "$1/.claude/task-runner" "$1/src" "$1/lib" "$1/other"; git init -q "$1"
+  printf '{"slug":"t"}' > "$1/.claude/task-runner/active-run.json"; touch -t 202601010000 "$1/.claude/task-runner/active-run.json"
+  printf '{"allow":["src/allowed.js","lib/"],"task":"card 07"}' > "$1/.claude/task-runner/scope.json"
+}
+runb() { (cd "$1" && bash -c "$2") >/dev/null 2>&1; ctx_of "$(stdin_bash "$2" "$1")"; } # <repo> <command>: run it, then the hook
+edit_ctx() { ctx_of "$(jq -cn --arg cwd "$1" --arg f "$2" '{cwd:$cwd, tool_name:"Edit", tool_input:{file_path:$f}}')"; }
+check() { if [ "$2" = 1 ]; then printf 'PASS: %s\n' "$1"; pass=$((pass+1)); else printf 'FAIL: %s\n' "$1"; fail=$((fail+1)); fi; }
+if command -v python3 >/dev/null 2>&1; then
+  R="$WS/fx-effects"; mkrun "$R"; MK="$R/.claude/task-runner/bash-effects.mark"
+  ctx=$(runb "$R" "python3 - <<'PY'
+open('other/first.js', 'w').write('x\n')
+PY")
+  check "effects: the first call of a run in a repo is silent and leaves the marker (ctx=<$ctx>)" \
+    "$([ -z "$ctx" ] && [ -f "$MK" ] && echo 1)"
+  ctx_b=$(runb "$R" "python3 - <<'PY'
+open('other/py.js', 'w').write('x\n')
+PY")
+  check "effects: a python heredoc write outside scope warns that it changed and may not be the command's, never to revert it (bash=<$ctx_b>)" \
+    "$(case "$ctx_b" in *"other/py.js changed since the previous tool call"*"git diff -- other/py.js"*"never revert a change you did not make"*) echo 1 ;; esac)"
+  lacks "effects: a file the effects found is never told 'revert this edit'" "$ctx_b" "revert this edit"
+  ctx=$(runb "$R" "python3 - <<'PY'
+open('src/allowed.js', 'w').write('x\n'); open('lib/deep.js', 'w').write('x\n')
+PY")
+  check "effects: a python heredoc write inside scope is silent (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+  ctx=$(runb "$R" "python3 -c 'print(1)'")
+  check "effects: a matching run that wrote nothing is silent (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+  echo x > "$R/other/edited.js"; edit_ctx "$R" "$R/other/edited.js" >/dev/null
+  ctx=$(runb "$R" "python3 - <<'PY'
+open('other/py2.js', 'w').write('x\n')
+PY")
+  check "effects: the next interpreter write outside scope warns (ctx=<$ctx>)" \
+    "$(case "$ctx" in *"other/py2.js changed since"*) echo 1 ;; esac)"
+  lacks "effects: a file an Edit changed between two Bash calls is not read again" "$ctx" "other/edited.js"
+  ctx=$(runb "$R" "cp src/allowed.js other/copied.js")
+  check "effects: a cp destination outside scope warns (ctx=<$ctx>)" \
+    "$(case "$ctx" in *"other/copied.js changed since"*) echo 1 ;; esac)"
+  touch -t 202501010000 "$MK"
+  ctx=$(runb "$R" "python3 - <<'PY'
+open('other/late.js', 'w').write('x\n')
+PY")
+  check "effects: a marker older than active-run.json (an earlier run's) reads nothing (ctx=<$ctx>)" \
+    "$([ -z "$ctx" ] && [ "$MK" -nt "$R/.claude/task-runner/active-run.json" ] && echo 1)"
+  N="$WS/fx-norun"; mkdir -p "$N"; git init -q "$N"
+  runb "$N" "python3 -c 'print(1)'" >/dev/null
+  check "effects: no registered run -> no state written into the repo" "$([ ! -e "$N/.claude" ] && echo 1)"
+
+  # Two workers of one session in one tree: worker B's python run writes other/stray.js and worker A's hook call ends
+  # first. A is told the file changed and may not be its own, never to revert it; B, its window spent, is silent.
+  wb() { # <repo> <context> <command> [session] [event] -> the hook's raw stdout on that Bash call
+    jq -cn --arg cwd "$1" --arg t "/t/$2.jsonl" --arg c "$3" --arg s "${4:-sess}" --arg e "${5:-PostToolUse}" \
+      '{hook_event_name:$e, session_id:$s, transcript_path:$t, cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | bash "$HOOK" 2>/dev/null
+  }
+  wctx() { wb "$@" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
+  W="$WS/fx-workers"; mkrun "$W"; wb "$W" worker-a 'ls' >/dev/null
+  (cd "$W" && python3 -c "open('other/stray.js', 'w').write('x\n')")
+  ctx_a=$(wctx "$W" worker-a "python3 -c 'print(1)'")
+  ctx_bw=$(wctx "$W" worker-b "python3 - <<'PY'
+open('other/stray.js', 'w').write('x\n')
+PY")
+  check "effects: two workers, one tree — A hears of B's file as maybe not its own and is never told to revert it; B is silent (a=<$ctx_a> b=<$ctx_bw>)" \
+    "$(case "$ctx_a" in *"other/stray.js changed since"*"never revert a change you did not make"*) [ -z "$ctx_bw" ] && echo 1 ;; esac)"
+  lacks "effects: two workers — A is not told to revert B's file" "$ctx_a" "revert this edit"
+
+  # A marker another session dated reads nothing: a user's edit between sessions is not the next session's write.
+  S="$WS/fx-sessions"; mkrun "$S"; wb "$S" s1 'ls' sess-1 >/dev/null
+  echo x > "$S/other/user.js"
+  ctx=$(wctx "$S" s2 "python3 -c 'print(1)'" sess-2)
+  check "effects: a marker another session dated reads nothing (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+
+  # A failed command fires PostToolUseFailure: its writes are read, and the envelope names that event.
+  F="$WS/fx-failed"; mkrun "$F"; wb "$F" f1 'ls' >/dev/null
+  (cd "$F" && python3 -c "open('other/failed.js', 'w').write('x\n')")
+  out=$(wb "$F" f1 "python3 gen.py && false" sess PostToolUseFailure)
+  check "effects: a failed python run (PostToolUseFailure) is read, its envelope naming that event (out=<$out>)" \
+    "$(printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUseFailure" and (.hookSpecificOutput.additionalContext | contains("other/failed.js"))' >/dev/null 2>&1 && echo 1)"
+  # A failed command may stop before its redirect: another writer's file it names is not called its edit.
+  T="$WS/fx-failed-redirect"; mkrun "$T"; echo theirs > "$T/other/x.js"
+  ctx=$(wctx "$T" t1 'npm test && echo done > other/x.js' sess PostToolUseFailure)
+  check "failed redirect, no marker yet: the named target takes the effects wording (ctx=<$ctx>)" \
+    "$(case "$ctx" in *"other/x.js changed since"*) echo 1 ;; esac)"
+  lacks "failed redirect, no marker yet: never told to revert" "$ctx" "revert this edit"
+  ctx=$(wctx "$T" t1 'npm test && echo done > other/x.js' sess PostToolUseFailure)
+  check "failed redirect: a named target older than the previous call's marker is not reported (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+  echo y > "$T/other/w.js"
+  ctx=$(wctx "$T" t1 'echo y > other/w.js; false' sess PostToolUseFailure)
+  check "failed command after its redirect ran: the named target still warns as an edit (ctx=<$ctx>)" \
+    "$(case "$ctx" in *"other/w.js was edited"*) echo 1 ;; esac)"
+  check "effects: scope.sh is registered on PostToolUseFailure for Bash" \
+    "$(jq -e '.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[] | select(.command | test("hooks/scope.sh"))' \
+      "$(dirname "$HOOK")/hooks.json" >/dev/null 2>&1 && echo 1)"
+
+  # Another plugin's marker is not a write: cc_bash_effects_mark gives its dir a `*` .gitignore, so git never lists it.
+  G="$WS/fx-sibling"; mkrun "$G"; wb "$G" g1 'ls' >/dev/null
+  mkdir -p "$G/.claude/security"; printf '*\n' > "$G/.claude/security/.gitignore"; echo 123 > "$G/.claude/security/bash-effects.mark"
+  ctx=$(wctx "$G" g1 "python3 -c 'print(1)'")
+  check "effects: a sibling plugin's fresh marker under .claude/ is not read as the command's write (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+else
+  echo "SKIP 18: python3 not available"
+fi
 
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

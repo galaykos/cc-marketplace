@@ -39,6 +39,73 @@ grep -q -- '--dk-radius:6px' b2.html && grep -q -- '--dk-space:10px' b2.html && 
 sha="$(python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest()[:12])" design-system/tokens.json)"
 grep -q "<meta name=\"design-kit-tokens\" content=\"$sha " b2.html || { echo "FAIL: board tokens stamp"; grep design-kit-tokens b2.html; exit 1; }
 grep -q '<meta name="design-kit-tokens" content="none ' "$out" || { echo "FAIL: untokened board should stamp none"; grep design-kit-tokens "$out"; exit 1; }
+grep -q 'no colour mapped' err.txt && { echo "FAIL: a hex accent drew the no-colour warning"; cat err.txt; exit 1; }
+
+# A Tailwind v4 @theme in oklch, through system-extract.py, is the board's own sibling's
+# output; until 0.10.0 the hex-only reader drew it in the default blue (hue 222) with no word.
+mkdir -p tw4/resources/css
+cat > tw4/resources/css/app.css <<'CSS'
+@import "tailwindcss";
+@theme {
+  --color-primary: oklch(0.58 0.14 45);
+  --color-surface: oklch(0.98 0.01 80);
+  --radius-md: 0.5rem;
+}
+CSS
+python3 "$here/system-extract.py" tw4 --source repo --out tw4/design-system >/dev/null
+python3 "$here/board-build.py" spec.json --tokens tw4/design-system/tokens.json --out b4.html >/dev/null 2>err4.txt
+grep -q 'accent ← color/primary' err4.txt || { echo "FAIL: oklch primary not mapped"; cat err4.txt; exit 1; }
+grep -q -- '--dk-accent-h:20;--dk-accent-s:64%;--dk-accent-l:45%' b4.html \
+  || { echo "FAIL: oklch(0.58 0.14 45) should draw hsl(20 64% 45%), rgb(188 90 41)"; grep -o -- '--dk-accent-[hsl]:[0-9]*%*' b4.html; exit 1; }
+# The stock starter-kit shape (synthetic values): @theme inline maps --color-primary to
+# var(--primary), and :root / .dark set --primary. Until 0.10.0 system-extract wrote
+# color.primary as the self-alias {color.primary}, so the board warned instead of mapping.
+mkdir -p kit/resources/css
+cat > kit/resources/css/app.css <<'CSS'
+@import 'tailwindcss';
+
+@source '../views';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-sans: 'Fixture Sans', ui-sans-serif, system-ui, sans-serif;
+    --radius-lg: var(--radius);
+    --color-background: var(--background);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+}
+
+:root {
+    --background: oklch(1 0 0);
+    --primary: oklch(0.52 0.13 150);
+    --primary-foreground: oklch(0.985 0 0);
+    --radius: 0.625rem;
+}
+
+.dark {
+    --background: oklch(0.145 0 0);
+    --primary: oklch(0.8 0.1 150);
+}
+CSS
+python3 "$here/system-extract.py" kit --source repo --out kit/design-system >/dev/null 2>kit-err.txt
+python3 "$here/board-build.py" spec.json --tokens kit/design-system/tokens.json --out b7.html >/dev/null 2>err7.txt
+grep -q 'no colour mapped' err7.txt && { echo "FAIL: the stock-kit shape still maps no colour"; cat err7.txt; exit 1; }
+grep -q -- '--dk-accent-h:141;--dk-accent-s:62%;--dk-accent-l:30%' b7.html \
+  || { echo "FAIL: oklch(0.52 0.13 150) via var(--primary) should draw hsl(141 62% 30%), rgb(29 125 62) as Chrome paints it"; grep -o -- '--dk-accent-[hsl]:[0-9]*%*' b7.html; exit 1; }
+# sRGB red, green and blue written four ways: each must land on its known hsl()
+for pair in 'oklch(62.8% 0.2577 29.23deg)|0;100;50' 'rgb(0 0 255)|240;100;50' 'rgba(0, 128, 0, 0.5)|120;100;25' 'hsl(145deg 45% 34% / 0.9)|145;45;34'; do
+  printf '{"color":{"brand":{"$type":"color","$value":"%s"}}}' "${pair%%|*}" > anchor.json
+  python3 "$here/board-build.py" spec.json --tokens anchor.json --out b5.html >/dev/null 2>&1
+  IFS=';' read -r h s l <<<"${pair#*|}"
+  grep -q -- "--dk-accent-h:$h;--dk-accent-s:$s%;--dk-accent-l:$l%" b5.html \
+    || { echo "FAIL: ${pair%%|*} should draw hsl($h $s% $l%)"; grep -o -- '--dk-accent-[hsl]:[0-9]*%*' b5.html; exit 1; }
+done
+# a token file that maps no colour says so on stderr and still builds in the neutral accent
+printf '{"color":{"primary":{"$type":"color","$value":"{color.base}"}},"radius":{"md":{"$value":"4px"}}}' > alias.json
+python3 "$here/board-build.py" spec.json --tokens alias.json --out b6.html >/dev/null 2>err6.txt || { echo "FAIL: an unmapped colour must not fail the build"; exit 1; }
+grep -q 'no colour mapped from alias.json' err6.txt || { echo "FAIL: no warning for a token file that maps no colour"; cat err6.txt; exit 1; }
+grep -q -- '--dk-accent-h:222' b6.html || { echo "FAIL: unmapped tokens should keep the neutral hue"; exit 1; }
 
 cat > spec.md <<'MD'
 # Onboarding

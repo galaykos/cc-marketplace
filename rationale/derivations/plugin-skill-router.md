@@ -349,6 +349,25 @@ made that true, and the per-session file showed up as untracked in every repo
 without a hand-written ignore line. A directory can ignore itself.
 ```
 
+### 0.26.0: qualified names, exclusions, the loaded check and the cap (session retro 2026-10-13)
+
+```text
+Measured across 13 days of sessions in four Laravel + Inertia repos running Laravel
+Boost: a bare "load the `testing-best-practices` skill" resolved to the project's
+same-named .claude/skills copy, and in the largest run workers read Boost's copies 94
+times and ours 0. Every name this hook prints is now plugin:skill. Main-thread
+follow-through on post-edit nudges was 0-19%: they fired on taskmaster-docs evidence
+files, gitignored scratch, vendored copies and skills already loaded, several at once.
+Now: no nudge for a target outside the root, under taskmaster-docs/ or .claude/, or
+git-check-ignored; none for a skill the transcript shows loaded (the host's "Base
+directory for this skill" line, a Read of our SKILL.md, or a qualified Skill call —
+one fixed-string grep, +35 ms on a 56 MB transcript, run only when a nudge is
+pending; a tail read would miss a skill loaded at session start, the common case);
+at most two per edit — import and command rows first, then file rows, then the
+`# nudge-last:` skills in rules.tsv. A skill over the cap is not marked fired, so a
+later edit carries it. Rationale: rationale/session-retro-2026-10-13.md (Tier 1 §1).
+```
+
 ## plugins/skill-router/hooks/route-prompt.sh
 
 Editor's note (2026-10-04, card 03): citations below that have moved since they were written — route.sh's "CONTEXT KEY block" is now a one-line "Context key" comment in its main block (its text: § plugins/skill-router/hooks/route.sh, ### CONTEXT KEY); route.sh's "deliver block" is now the function `deliver_nudges`; `testing/hooks/test-shape.sh:90` is now near its line 157; "the block above the heredoc" is ### The protocol, not a catalog, below.
@@ -432,12 +451,15 @@ calls a fifth a routing table regrowing in shell, so the tiers are alternations
 inside this pattern rather than lines of their own.
 
   MAKING VERBS — build, refactor, deploy … : match bare. Unchanged.
-  STRONG symptom — error, crash, 500s, regressed, why is, investigate, not
-    working: match bare. A prompt carrying one of these is about a defect
-    whatever the surrounding grammar.
-  WEAK symptom — down, slow, broken, failing, fails, leak, stuck: match ONLY
-    after a state verb (is/are/went/keeps/got/…), with at most one word
-    between. These are ordinary English before they are incident vocabulary.
+  STRONG symptom — 500s, regressed, why is, investigate, not working: match
+    bare. A prompt carrying one of these is about a defect whatever the
+    surrounding grammar.
+  WEAK symptom — down, slow, broken, failing, fails, leak, stuck, and since
+    skill-router 0.26.0 error(s) and crash: match ONLY after a state verb
+    (is/are/went/keeps/got/an/with/see/throw/…), with at most one word
+    between, or for `Error` opening a sentence. These are ordinary English
+    before they are incident vocabulary: bare `error` fired on `?`-ended error
+    reports and chat, measured in four sessions (CHANGELOG 0.26.0).
 
 WHY THE WEAK TIER IS BOUND AND THE STRONG ONE IS NOT. Symptom phrasing was
 added because `production is down` and `why is the checkout page broken`
@@ -686,6 +708,18 @@ network is missed — the same known misses rules.tsv's mariadb rows carry.
 Both the flat and the versioned-cache layouts — see hooks/plugins-dir.sh.
 ```
 
+### 0.26.0: the shadow line
+
+```text
+The prime line is qualified (plugin:skill). When <root>/.claude/skills/<bare>/SKILL.md
+exists for a primed skill — Laravel Boost ships laravel-best-practices,
+testing-best-practices and inertia-react-development there — one extra line names the
+collision: a bare name loads that copy, a different file. Ours carries rules Boost's
+does not (Inertia v3's Page.layout = [X] would have saved one session a three-round
+bundle detour). Renaming our skills was rejected: the qualified name fixes it without
+breaking references. A shadow in ~/.claude/skills is not checked.
+```
+
 ## plugins/skill-router/hooks/compact-capsule.sh
 
 ### Header: shebang and what it re-states
@@ -869,6 +903,22 @@ marketplace today, and the scan covers the day one does not.
 ```text
 Frontmatter only — the same read validate.sh's stack-authoring guard uses. `skills:`
 is read inline (`[a, b]` or `a, b`) and as a block list; a plugin prefix is dropped.
+```
+
+### 0.26.0: generic dispatches and surface skills
+
+```text
+SubagentStart path injection was the one channel that worked (~92% of injected
+paths read), but its matcher skipped general-purpose and claude agents, which built
+money and role features with no stack skills. Probed on the real host (CLI 2.1.299):
+at SubagentStart the dispatch prompt is nowhere on disk, so the hook also runs on
+PreToolUse(Agent|Task), prints nothing there, and records the file kinds the prompt
+names in dispatch-<ctx>.tsv. A generic agent gets the primed skills as Read paths
+when its dispatch named a repo file. Surface skills (vite, sql/mariadb,
+package-hygiene, docker, ci) ride only a dispatch naming their file kind — vite was
+injected 20 times and read twice — except for an agent whose whole list is surface
+skills (database-engineer keeps sql). Misses: dispatches within 120 s share one
+record; an Agent call held longer than that for approval reads as naming nothing.
 ```
 
 ## plugins/skill-router/hooks/plugins-dir.sh

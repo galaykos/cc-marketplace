@@ -1,6 +1,6 @@
 {
   "name": "task-runner",
-  "version": "0.46.2",
+  "version": "0.47.0",
   "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence — held at Stop by candor's gate (clause 4) when candor is installed; without it a run can end by narration. Ships the shared task-executor agent — the delegatable 'apply the fixes' sink every review routes to — a PostToolUse scope-lock tripwire, parallel-planning (/task-runner:plan), and the subagent discipline (the orchestration plugin was merged in on 2026-09-14): delegation contracts, verification panels, scripts/dispatch-lint.sh, and the ultra-assess boost hook.",
   "author": {
     "name": "Ivan-WG",
@@ -34,7 +34,7 @@
     "cc_spawn_cap": {
       "type": "string",
       "title": "Subagent spawn cap (CC_SPAWN_CAP)",
-      "description": "Ask once a session's subagent dispatches pass this count, then at every doubling: a number or off. The environment variable CC_SPAWN_CAP overrides this.",
+      "description": "Ask once a session's subagent dispatches pass this count, then at every doubling: a number or off. Inside a registered run it notifies instead, first at this count or 3 per card in the run's index, whichever is higher. The environment variable CC_SPAWN_CAP overrides this.",
       "default": "20"
     },
     "cc_spawn_floor": {

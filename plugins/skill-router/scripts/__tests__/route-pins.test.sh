@@ -43,7 +43,7 @@ bashw() { # cwd command transcript — runs the command, then the hook
     '{hook_event_name:"PostToolUse",tool_name:"Bash",session_id:"sess",transcript_path:$tp,cwd:$c,
       tool_input:{command:$cmd,description:"write"}}' | hook
 }
-nudges_for() { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null | grep -c "load the \`$1\`"; }
+nudges_for() { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null | grep -c "load the \`pinplug:$1\`"; }
 statef() { printf '%s/.claude/skill-router/fired-%s.json' "$1" "$(printf '%s' "$2" | cksum | cut -d' ' -f1)"; }
 mkrepo() { mkdir -p "$1"; git -C "$1" init -q; }
 
@@ -73,15 +73,15 @@ out=$(edit "$R" "$R/x.pind" "$WS/t-deliver" CLAUDE_PLUGIN_DATA="$WS/datafile")
 [ "$(nudges_for deliver-canary <<<"$out")" = 1 ] && ok "deliver: a nudge survives a state dir that cannot be created" \
   || bad "deliver: a nudge survives a state dir that cannot be created" "got: ${out:-<empty>}"
 
-R="$WS/low"; mkrepo "$R"; printf 'PINLOW\n' > "$R/note.txt"
-edit "$R" "$R/note.txt" "$WS/t-low" >/dev/null
+R="$WS/low"; mkrepo "$R"; printf 'PINLOW\n' > "$R/note.pinl"
+edit "$R" "$R/note.pinl" "$WS/t-low" >/dev/null
 sf=$(statef "$R" "$WS/t-low")
 if jq -e '(.pending_low | any(.skill == "present-canary")) and (.pending_low | any(.skill == "absent-canary") | not)' "$sf" >/dev/null 2>&1
 then ok "low pass: a content row whose plugin is not installed stays out of pending_low"
 else bad "low pass: a content row whose plugin is not installed stays out of pending_low" "state: $(cat "$sf" 2>/dev/null)"; fi
 
-edit "$R" "$R/note.txt" "$WS/t-low" >/dev/null
-if [ "$(jq --arg f "$R/note.txt" '[.pending_low[] | select(.skill == "present-canary" and .file == $f)] | length' "$sf" 2>/dev/null)" = 1 ]
+edit "$R" "$R/note.pinl" "$WS/t-low" >/dev/null
+if [ "$(jq --arg f "$R/note.pinl" '[.pending_low[] | select(.skill == "present-canary" and .file == $f)] | length' "$sf" 2>/dev/null)" = 1 ]
 then ok "persist: a low signal repeated on one file is queued once"
 else bad "persist: a low signal repeated on one file is queued once" "state: $(cat "$sf" 2>/dev/null)"; fi
 

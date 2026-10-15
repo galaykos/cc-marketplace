@@ -16,7 +16,7 @@ own plugin so it can be disabled on its own.
 | event | script | does |
 |---|---|---|
 | `UserPromptSubmit` | `hooks/ledger.sh` | on a work-shaped prompt (a making verb in an imperative clause), destructures the ask into the things it **names** — proper nouns not at a clause start (`Laravel`, `Digimon`), quoted terms of one to three words (`"digimon"`), digit-letter tokens with their word (`2D Sprites`) — drops every name the project's tracked tree already carries, and keeps the rest as a session ledger of names still owed (deduped, later prompts append, 12 max), telling the model the gate shape once per prompt that added entries |
-| `Stop` | `hooks/gate.sh` | refuses the final message (exit 2, reason on stderr) unless it carries one line per name still owed: `<name>: as named` \| `<name>: substituted → what, why` \| `<name>: omitted → why`. A name the final message accounts for leaves the ledger. At most two blocks per session; then it warns, drops the names it warned about, and lets the turn end |
+| `Stop` | `hooks/gate.sh` | refuses the final message (exit 2, reason on stderr) unless it carries one line per name still owed: `<name>: as named` \| `<name>: substituted → what, why` \| `<name>: omitted → why`. The block asks the retry to restate the answer's one-line verdict before those lines, because the retry is what the user reads last. A name the final message accounts for leaves the ledger. At most two blocks per session; then it warns, drops the names it warned about, and lets the turn end |
 
 Your original prompt of 2026-09-18 ("create a Laravel + React project … landing page
 with 2D Sprites and motion animation, Digimon themed … a "digimon" library") ledgers
@@ -34,7 +34,8 @@ and again by any later turn whose prompt names it again; never by a turn that di
   the rarer failure.
 - **What it does not see:** lowercase features (`login`, `register`, `a library`) — the
   ledger sees names, not nouns; a name mentioned in passing ("like Stripe does") is
-  ledgered and costs one line; anything inside code spans. A name the extractor misses is
+  ledgered and costs one line; anything inside code spans or a paste (`<pasted_content>`
+  blocks are reference, not the ask). A name the extractor misses is
   a name the gate never asks about. Once a final message accounts for a name, a later turn
   that quietly undoes it without naming it again is not asked about.
 - **A capital `I` glued to the next word is the pronoun, not a name.** "lets check if it

@@ -870,9 +870,11 @@ calm() { # $1 path — 6 prose / 63 code: long enough for the ratio rule, under 
     done; echo '}'; } > "$1"
 }
 
+# An Edit is judged on disk only once it adds a prose line (0.33.0), so this Edit adds one; a Write is judged whole.
 fire() { # $1 cwd, $2 file, $3 session, $4 tool (default Write)
   jq -n --arg fp "$2" --arg cwd "$1" --arg s "$3" --arg t "${4:-Write}" \
-    '{hook_event_name:"PostToolUse",tool_name:$t,session_id:$s,cwd:$cwd,tool_input:{file_path:$fp}}' \
+    '{hook_event_name:"PostToolUse",tool_name:$t,session_id:$s,cwd:$cwd,tool_input:({file_path:$fp}
+      + if $t == "Edit" then {old_string:"",new_string:"// why: the vendor caps ids at 2^31"} else {} end)}' \
     | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
 }
 pre() { # $1 cwd, $2 file, $3 session, $4 content-file -> raw stdout
@@ -1152,7 +1154,7 @@ verdict $? "bash: PostToolUse warns for a target on disk with the Write warning 
 
 D7="$TMP/bw7"; mkdir -p "$D7/src"; for k in 1 2 3 4; do calm "$D7/src/T$k.php"; done
 bash_hook PostToolUse "$D7" bb7 \
-  'echo 1 >> src/T1.php; echo 2 >> src/T2.php; echo 3 >> src/T3.php; echo 4 >> src/T4.php' >/dev/null
+  "echo '// why 1' >> src/T1.php; echo '// why 2' >> src/T2.php; echo '// why 3' >> src/T3.php; echo '// why 4' >> src/T4.php" >/dev/null
 st=$(cat "$D7"/.claude/comment-discipline/density-* 2>/dev/null)
 case "$st" in *"/src/T3.php"*) case "$st" in *"/src/T4.php"*) false ;; *) true ;; esac ;; *) false ;; esac
 verdict $? "bash: PostToolUse measures three targets: the 4th target's name is absent from the state file" "state=[$st]"
@@ -1196,7 +1198,7 @@ one_json "$out" && denied "$out" && names "$out" fat.js
 verdict $? "multi: a thin first heredoc and a dense second draw one deny naming the second file" "out=[$out]"
 
 D9="$TMP/bw9"; mkdir -p "$D9/src"; cp "$TMP/d6020.txt" "$D9/src/c.js"; cp "$TMP/d6020.txt" "$D9/src/d.js"
-out=$(bash_hook PostToolUse "$D9" m2 'echo x >> src/c.js; echo y >> src/d.js')
+out=$(bash_hook PostToolUse "$D9" m2 "echo '// x' >> src/c.js; echo '// y' >> src/d.js")
 rows=$(cat "$D9"/.claude/comment-discipline/density-* 2>/dev/null | grep -c '^warn ')
 one_json "$out" && [ "$rows" = 1 ]
 verdict $? "multi: two over-limit targets on disk draw one JSON object and one warn row in the state file" \
@@ -1204,7 +1206,7 @@ verdict $? "multi: two over-limit targets on disk draw one JSON object and one w
 
 # The dense file sits where the target would resolve if the cd were ignored.
 DC="$TMP/bwc"; mkdir -p "$DC/src"; cp "$TMP/d6020.txt" "$DC/x.js"
-out=$(bash_hook PostToolUse "$DC" m3 'cd src && echo y >> x.js')
+out=$(bash_hook PostToolUse "$DC" m3 "cd src && echo '// y' >> x.js")
 [ -z "$out" ] && ! grep -q 'x\.js' "$DC"/.claude/comment-discipline/density-* 2>/dev/null
 verdict $? "multi: a relative target after an in-command cd is not measured on the disk lane" "out=[$out]"
 
@@ -1226,6 +1228,7 @@ DR="$TMP/rt"; mkdir -p "$DR/src" "$DR/sub"; cp "$TMP/d6020.txt" "$DR/big.js"
 expect "redteam: with a dense big.js in the payload cwd, a heredoc to big.js after \`if cd sub; then\` draws no warning" \
   "$(bash_hook PostToolUse "$DR" rt1 'if cd sub; then
 cat > big.js <<EOF
+// why: one
 const a = 1;
 EOF
 fi')" ""
@@ -1314,7 +1317,7 @@ denied "$out" && names "$out" h31.js && case "$(reason_of "$out")" in *"(31 comm
 verdict $? "rule: a truncating heredoc of 31 prose / 100 code is refused at the default" "out=[$out]"
 RT="$TMP/rule-disk"; mkdir -p "$RT/src"; cp "$TMP/m31.txt" "$RT/src/d31.js"
 expect "rule: a Bash target on disk at 31 prose / 100 code draws the warning at the default" \
-  "$(bash_hook PostToolUse "$RT" t31 'echo x >> src/d31.js')" \
+  "$(bash_hook PostToolUse "$RT" t31 "echo '// why' >> src/d31.js")" \
   "(31 comment lines, 100 code); no committed siblings to compare against, so the ceiling of 0.3:1 applies."
 
 # A silent reply alone cannot tell a judged pass from a skipped file, so each countable input is also sent one prose line over the limit.
@@ -1424,7 +1427,7 @@ govern() { # $1 target under $GV, $2 comment line format, $3 code line format ->
   { rep 60 "$2"; rep 20 "$3"; } > "$f"; mkdir -p "$GV/${1%/*}"; cp "$f" "$GV/$1"
   w=$(pre "$GV" "$GV/$1" "gw-$1" "$f")
   h=$(bash_hook PreToolUse "$GV" "gh-$1" "$(heredoc "cat > $1" "$f")")
-  d=$(bash_hook PostToolUse "$GV" "gd-$1" "echo x >> $1")
+  d=$(bash_hook PostToolUse "$GV" "gd-$1" "echo '$(printf -- "$2" 0)' >> $1")
   case "$w" in *"$want"*) case "$h" in *"$want"*) case "$d" in *"$want"*) true ;; *) false ;; esac ;; *) false ;; esac ;; *) false ;; esac
   verdict $? "gov: a dense ${1##*/} is refused through a Write and a truncating heredoc, and draws the warning on disk" \
     "write=[$w] heredoc=[$h] on disk=[$d]"
@@ -1441,7 +1444,7 @@ build_file() { # $1 target, $2 comment line format, $3 code line format -> 60 pr
   { rep 60 "$2"; rep 20 "$3"; } > "$f"; mkdir -p "$root/${1%/*}"; cp "$f" "$root/$1"
   w=$(pre "$root" "$root/$1" "bw-$1" "$f")
   h=$(bash_hook PreToolUse "$root" "bh-$1" "$(heredoc "cat > $1" "$f")")
-  d=$(bash_hook PostToolUse "$root" "bd-$1" "echo x >> $1")
+  d=$(bash_hook PostToolUse "$root" "bd-$1" "echo '$(printf -- "$2" 0)' >> $1")
   [ -z "$w$h$d" ] && [ ! -e "$root/.claude" ]
   verdict $? "gov: a dense ${1##*/} is not judged for volume: a Write, a truncating heredoc and the file on disk are silent and leave no state" \
     "write=[$w] heredoc=[$h] on disk=[$d] state=[$(ls -A "$root/.claude" 2>/dev/null)]"
@@ -1559,7 +1562,7 @@ build_and_scan() { # $1 file name, $2 comment format, $3 code format, $4 a comme
   local root="$TMP/rt-build-$1" f="$TMP/rt-b-$1" w h d s
   { rep 60 "$2"; rep 20 "$3"; printf '%s\n%s\n' "$4" "$5"; } > "$f"; mkdir -p "$root"; cp "$f" "$root/$1"
   w=$(pre "$root" "$root/$1" rtb "$f"); h=$(bash_hook PreToolUse "$root" rtb "$(heredoc "cat > $1" "$f")")
-  d=$(bash_hook PostToolUse "$root" rtb "echo x >> $1"); s=$(HOOK="$SCAN" pre "$root" "$root/$1" rts "$f")
+  d=$(bash_hook PostToolUse "$root" rtb "echo '$(printf -- "$2" 0)' >> $1"); s=$(HOOK="$SCAN" pre "$root" "$root/$1" rts "$f")
   [ -z "$w$h$d" ] && denied "$s" && case "$(reason_of "$s")" in *"restating the next line"*) true ;; *) false ;; esac
   verdict $? "rt: a $1 of 60 prose / 20 code draws nothing from density.sh on any lane, while scan.sh refuses its restating comment" \
     "write=[$w] heredoc=[$h] on disk=[$d] scan=[$s]"
@@ -1606,6 +1609,234 @@ for n in 1 2 3; do { rep 10 "// $WHY"; rep 10 'const c%s = 1;'; } > "$SW/lib/c$n
 commit_all "$SW"; { rep 60 "// $WHY"; rep 20 'const a%s = 1;'; } > "$SW/src/new.js"
 expect "fix2: a sibling name holding a newline adds no fragment to the count: two real siblings beside it send the walk up a level" \
   "$(fire "$SW" "$SW/src/new.js" newline Edit)" "its siblings run 1.0:1"
+
+# ---- 18. CONTRACTS AND ADDED PROSE: interfaces are not judged; an Edit or a Bash write is judged once it adds prose ----
+gold "contract: php typed @param, @return, @throws and @var lines are not prose, the summary is" php "1 9 1" <<'FIX'
+<?php
+/**
+ * Opens a cart.
+ * @param string $customer
+ * @param list<string> $items bound to the ? placeholders
+ * @return array{id: int}
+ * @throws GatewayException when the store rejects it
+ * @var int
+ */
+$a = 1;
+FIX
+CT="$TMP/contract"; mkdir -p "$CT/src"; git -C "$CT" init -q
+gateway() { # $1 declaration line, $2 member suffix -> four members under three-line why-docblocks, PHP
+  echo '<?php'; echo; echo "$1"; echo '{'
+  for m in open charge refund stale; do
+    printf '    /**\n     * The %s call settles in minor units.\n     * A sandbox store never shares state with the live store.\n     * A retry with the same key is a no-op upstream.\n     */\n    public function %s(string $key): string%s\n\n' "$m" "$m" "$2"
+  done; echo '}'
+}
+gateway 'interface ShopGateway' ';' > "$TMP/ct-iface.php"
+gateway 'final class ShopGateway' ' { return $key; }' > "$TMP/ct-class.php"
+{ echo 'export interface Store {'; for m in put get drop; do printf '  /**\n   * The %s call is idempotent per key.\n   * A miss never throws; it resolves to undefined.\n   */\n  %s(key: string): Promise<void>;\n' "$m" "$m"; done; echo '}'; } > "$TMP/ct-iface.ts"
+expect "contract: a Write of an interface whose docblocks are its contract is not refused" "$(pre "$CT" "$CT/src/ShopGateway.php" ct1 "$TMP/ct-iface.php")" ""
+expect "contract: a Write of a TS interface of the same shape is not refused" "$(pre "$CT" "$CT/src/store.ts" ct2 "$TMP/ct-iface.ts")" ""
+out=$(pre "$CT" "$CT/src/ShopClass.php" ct3 "$TMP/ct-class.php")
+denied "$out"
+verdict $? "contract: its twin with method bodies is still refused" "out=[$out]"
+cp "$TMP/ct-iface.php" "$CT/src/ShopGateway.php"
+expect "contract: the interface on disk draws no warning after a Write" "$(fire "$CT" "$CT/src/ShopGateway.php" ct4)" ""
+
+AD="$TMP/added"; mkdir -p "$AD/src"; git -C "$AD" init -q; cp "$TMP/d6020.txt" "$AD/src/Disk.js"
+edit() { # $1 session, $2 old_string, $3 new_string -> the warning after an Edit of the dense src/Disk.js
+  jq -n --arg fp "$AD/src/Disk.js" --arg cwd "$AD" --arg s "$1" --arg o "$2" --arg n "$3" \
+    '{hook_event_name:"PostToolUse",tool_name:"Edit",session_id:$s,cwd:$cwd,tool_input:{file_path:$fp,old_string:$o,new_string:$n}}' \
+    | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
+}
+expect "added: an Edit that adds no comment line to a dense file draws no warning" \
+  "$(edit ad1 'function f1() { return 1; }' 'function f1() { return 11; }')" ""
+expect "added: an Edit that rewords one comment line draws no warning" \
+  "$(edit ad2 '// why 1: one' '// why 1: the first')" ""
+expect "added: an Edit that adds a comment line is measured on the whole file" \
+  "$(edit ad3 'function f1() { return 1; }' "// why: the vendor caps ids at 2^31
+function f1() { return 1; }")" "(60 comment lines, 20 code)"
+expect "added: an Edit starting inside a docblock that adds a line is measured" \
+  "$(edit ad4 ' * one' ' * one
+ * because the vendor caps ids')" "(60 comment lines, 20 code)"
+out=$(jq -n --arg fp "$AD/src/Disk.js" --arg cwd "$AD" \
+  '{hook_event_name:"PostToolUse",tool_name:"MultiEdit",session_id:"ad5",cwd:$cwd,tool_input:{file_path:$fp,
+    edits:[{old_string:"// why 2: one\n",new_string:""},{old_string:"function f3() { return 3; }",new_string:"// why: moved\nfunction f3() { return 3; }"}]}}' \
+  | bash "$HOOK" 2>/dev/null)
+expect "added: a MultiEdit that moves a comment line (one out, one in) draws no warning" "$out" ""
+expect "added: a Bash append of code to a dense file draws no warning" "$(bash_hook PostToolUse "$AD" ad6 'echo "const z = 1;" >> src/Disk.js')" ""
+expect "added: sed -i on a dense file draws no warning" "$(bash_hook PostToolUse "$AD" ad7 "sed -i 's/1/2/' src/Disk.js")" ""
+expect "added: a heredoc appending code only draws no warning" "$(bash_hook PostToolUse "$AD" ad8 "$(printf "cat >> src/Disk.js <<'EOF'\nconst z = 1;\nEOF")")" ""
+expect "added: a heredoc appending a comment line is measured" \
+  "$(bash_hook PostToolUse "$AD" ad9 "$(printf "cat >> src/Disk.js <<'EOF'\n// why: z\nconst z = 1;\nEOF")")" "(60 comment lines, 20 code)"
+expect "added: echo of a comment line with a stderr redirect after the target is measured" \
+  "$(bash_hook PostToolUse "$AD" ad10 "echo '// why: a' >> src/Disk.js 2>/dev/null")" "(60 comment lines, 20 code)"
+expect "added: echo with two spaces before its quoted comment line is measured" \
+  "$(bash_hook PostToolUse "$AD" ad11 "echo  '// why: a' >> src/Disk.js")" "(60 comment lines, 20 code)"
+expect "added: echo of a comment line piped to tee -a is measured" \
+  "$(bash_hook PostToolUse "$AD" ad12 "echo '// why: a' | tee -a src/Disk.js")" "(60 comment lines, 20 code)"
+expect "added: a { echo; echo; } group appended to the file, whose text no chunk spells, is measured whole" \
+  "$(bash_hook PostToolUse "$AD" ad13 "{ echo '// a'; echo '// b'; } >> src/Disk.js")" "(60 comment lines, 20 code)"
+expect "added: echo of a code line with a stderr redirect after the target draws no warning" \
+  "$(bash_hook PostToolUse "$AD" ad14 "echo 'const z = 1;' >> src/Disk.js 2>/dev/null")" ""
+
+# An Edit is read against the file on disk with its new_string swapped back, so a line added inside a block the fragment cannot open counts.
+ondisk() { # $1 session, $2 file, $3 old_string, $4 new_string -> applies the edit on disk, then the warning after it
+  local s; s=$(cat "$2"; printf x); s=${s%x}; printf '%s' "${s/"$3"/"$4"}" > "$2"
+  jq -n --arg fp "$2" --arg cwd "$AD" --arg s "$1" --arg o "$3" --arg n "$4" \
+    '{hook_event_name:"PostToolUse",tool_name:"Edit",session_id:$s,cwd:$cwd,tool_input:{file_path:$fp,old_string:$o,new_string:$n}}' \
+    | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
+}
+{ echo 'def load(rows):'; echo '    """'; rep 40 '    The vendor caps page %s at 200 rows.'; echo '    """'; rep 20 '    x%s = rows[0]'; } > "$AD/src/Docs.py"
+expect "added: an Edit adding a line inside an existing Python docstring is measured" \
+  "$(ondisk ad15 "$AD/src/Docs.py" '    The vendor caps page 7 at 200 rows.' '    The vendor caps page 7 at 200 rows.
+    A retry reuses the cursor.')" "(41 comment lines, 21 code)"
+expect "added: an Edit adding a code line to that file draws no warning" \
+  "$(ondisk ad16 "$AD/src/Docs.py" '    x3 = rows[0]' '    x3 = rows[0]
+    y3 = rows[1]')" ""
+{ echo '/*'; rep 40 'The vendor caps page %s at 200 rows.'; echo '*/'; rep 20 'const a%s = 1;'; } > "$AD/src/Bare.js"
+expect "added: an Edit adding a line inside a /* */ block with no * leaders is measured" \
+  "$(ondisk ad17 "$AD/src/Bare.js" 'The vendor caps page 7 at 200 rows.' 'The vendor caps page 7 at 200 rows.
+A retry reuses the cursor.')" "(41 comment lines, 20 code)"
+{ echo '=begin'; rep 40 'The vendor caps page %s at 200 rows.'; echo '=end'; rep 20 'a%s = 1'; } > "$AD/src/Begin.rb"
+expect "added: an Edit adding a line inside a Ruby =begin block is measured" \
+  "$(ondisk ad18 "$AD/src/Begin.rb" 'The vendor caps page 7 at 200 rows.' 'The vendor caps page 7 at 200 rows.
+A retry reuses the cursor.')" "(41 comment lines, 20 code)"
+
+# An interface beside implementations is an implementation file; a declaration keyword without a brace body declares nothing.
+{ echo 'export interface ButtonProps {'; echo '  label: string;'; echo '  onPress: () => void;'; echo '}'
+  rep 12 '// Button%s keeps the vendor tap target at 44 px; the label never wraps.'
+  rep 12 'export const Button%s = ({ label, onPress }: ButtonProps) => (<button onClick={onPress}>{label}</button>);'
+  rep 28 '// note %s: the design review asked for this layout'; } > "$TMP/ct-tsx.tsx"
+out=$(pre "$CT" "$CT/src/Button.tsx" ct5 "$TMP/ct-tsx.tsx")
+cp "$TMP/ct-tsx.tsx" "$CT/src/Button.tsx"
+denied "$out" && case "$(fire "$CT" "$CT/src/Button.tsx" ct6)" in *"(40 comment lines, 16 code)"*) true ;; *) false ;; esac
+verdict $? "contract: an interface beside 12 expression-bodied components is refused, and warned on disk" "pre=[$out]"
+{ echo 'package shop'; echo 'interface Store {'; echo '    fun get(key: String): String'; echo '}'
+  rep 40 '// why %s: the vendor caps ids at 2^31'; echo 'class MemoryStore : Store {'
+  rep 12 '    override fun get%s(key: String) = key'; echo '}'; } > "$TMP/ct-kt.kt"
+denied "$(pre "$CT" "$CT/src/Store.kt" ct7 "$TMP/ct-kt.kt")"
+verdict $? "contract: a Kotlin interface beside a class of expression bodies is refused" ""
+{ echo 'public interface IStore'; echo '{'; rep 40 '    // why %s: the vendor caps ids at 2^31'
+  rep 12 '    string Get%s(string key) => key;'; echo '}'; } > "$TMP/ct-cs.cs"
+denied "$(pre "$CT" "$CT/src/IStore.cs" ct8 "$TMP/ct-cs.cs")"
+verdict $? "contract: a C# interface whose members have => bodies is refused" ""
+{ echo 'public abstract class Shape'; echo '{'; rep 40 '    // why %s: the vendor caps ids at 2^31'
+  rep 12 '    public string Name%s { get { var v = _name ?? DefaultName; return v.Trim(); } }'; echo '}'; } > "$TMP/ct-acc.cs"
+{ echo 'public abstract class Registry {'; rep 40 '    // why %s: the vendor caps ids at 2^31'; echo '    static {'
+  rep 10 '        register("k%s");'; echo '    }'; echo '}'; } > "$TMP/ct-static.java"
+{ echo 'public abstract class Shape'; echo '{'; rep 40 '    // why %s: the vendor caps ids at 2^31'
+  rep 12 '    public abstract string Name%s { get; init; }'; echo '}'; } > "$TMP/ct-auto.cs"
+denied "$(pre "$CT" "$CT/src/Shape.cs" ct8a "$TMP/ct-acc.cs")" && denied "$(pre "$CT" "$CT/src/Registry.java" ct8b "$TMP/ct-static.java")" \
+  && [ -z "$(pre "$CT" "$CT/src/Auto.cs" ct8c "$TMP/ct-auto.cs")" ]
+verdict $? "contract: a C# abstract class with block-bodied accessors and a Java abstract class with a static block are refused; one of auto-properties is not" ""
+{ rep 40 '# why %s: the vendor socket drops idle peers after 30 s'; echo 'protocol = "tcp"'
+  echo 'def g():'; echo '    """'; echo '    protocol negotiation happens upstream.'; echo '    """'; rep 12 '    x%s = 1'; } > "$TMP/ct-py.py"
+denied "$(pre "$CT" "$CT/src/net.py" ct9 "$TMP/ct-py.py")"
+verdict $? "contract: a Python file holding protocol = \"tcp\" and a docstring line opening with protocol is refused" ""
+{ rep 40 '# why %s: the vendor socket drops idle peers after 30 s'; echo 'interface = "eth0"'; rep 12 'puts %s'; } > "$TMP/ct-rb.rb"
+denied "$(pre "$CT" "$CT/src/net.rb" ct10 "$TMP/ct-rb.rb")"
+verdict $? "contract: a Ruby file holding interface = \"eth0\" is refused" ""
+{ echo '/*'; echo 'interface Foo is negotiated upstream.'; rep 40 'why %s: the vendor caps ids at 2^31'; echo '*/'
+  rep 12 'export const a%s = 1;'; } > "$TMP/ct-blk.ts"
+denied "$(pre "$CT" "$CT/src/blk.ts" ct11 "$TMP/ct-blk.ts")"
+verdict $? "contract: a TS file whose block comment opens a line with interface is refused" ""
+why() { rep 6 "$1 why %s: the vendor settles in minor units and a retry with the same key is a no-op."; } # $1 leader and indent
+{ echo 'package store'; echo; echo 'import ('; echo '	"context"'; echo ')'; echo; echo 'type Store interface {'
+  for m in Get Put Drop; do why '	//'; printf '\t%s(ctx context.Context, key string) (string, error)\n' "$m"; done; echo '}'; } > "$TMP/ct-go.go"
+{ echo 'using System;'; echo; echo 'namespace Shop.Billing'; echo '{'; echo '    public interface IGateway'; echo '    {'
+  for m in Open Charge Refund; do why '        ///'; printf '        string %s(string key);\n' "$m"; done; echo '    }'; echo '}'; } > "$TMP/ct-ns.cs"
+{ echo "import type { Key } from './key';"; echo; echo 'export type Status ='; echo "  | 'open'"; echo "  | 'closed';"; echo 'export interface Store {'
+  for m in put get drop; do why '  //'; printf '  %s(key: Key, done: (s: Status) => void): Promise<void>;\n' "$m"; done; echo '}'; } > "$TMP/ct-ts2.ts"
+got=""; for f in ct-go.go:struct ct-ns.cs:class ct-ts2.ts:class; do
+  o=$(pre "$CT" "$CT/src/${f%:*}" "ct12${f%:*}" "$TMP/${f%:*}"); [ -z "$o" ] || got="$got ${f%:*}"
+  sed "s/interface \([IS{]\)/${f#*:} \1/" "$TMP/${f%:*}" > "$TMP/twin-${f%:*}"
+  denied "$(pre "$CT" "$CT/src/twin-${f%:*}" "ct12t${f%:*}" "$TMP/twin-${f%:*}")" || got="$got twin-${f%:*}-passed"
+done
+[ -z "$got" ]
+verdict $? "contract: a Go interface under an import block, a C# interface in a block namespace and a TS interface beside imports and a union alias are not refused; each twin declaring a struct or class is" "wrong:$got"
+
+# Read one line at a time: joining the lines was quadratic under mawk, 9 s a lane on this 3.8 MB interface.
+{ echo 'export interface Big {'; rep 37000 '  // The m%s call is idempotent per key.\n  m1(key: string): Promise<void>;\n  n1(key: string): void;'; echo '}'; } > "$TMP/ct-big.ts"
+cp "$TMP/ct-big.ts" "$CT/src/Big.ts"; t0=$SECONDS
+w=$(pre "$CT" "$CT/src/Big.ts" ct13 "$TMP/ct-big.ts"); took_w=$((SECONDS - t0)); t0=$SECONDS
+d=$(fire "$CT" "$CT/src/Big.ts" ct14); took_d=$((SECONDS - t0))
+[ -z "$w$d" ] && [ "$took_w" -le 5 ] && [ "$took_d" -le 5 ]
+verdict $? "contract: a 3.8 MB interface is read whole on both lanes within 5 s each and not judged" \
+  "write ${took_w} s [$w], on disk ${took_d} s [$d]"
+
+# After three warnings the lane is spent: the prose count and the contract scan behind it start no awk.
+MW="$TMP/maxwarn"; mkdir -p "$MW/src"; git -C "$MW" init -q
+for n in 1 2 3 4; do cp "$TMP/d6020.txt" "$MW/src/W$n.js"; done
+for n in 1 2 3; do fire "$MW" "$MW/src/W$n.js" mw >/dev/null; done; : > "$TMP/awk-count-mw"
+out=$(AWK_COUNT="$TMP/awk-count-mw" PATH="$TMP/shim:$PATH" fire "$MW" "$MW/src/W4.js" mw Edit)
+[ -z "$out" ] && [ "$(grep -c x "$TMP/awk-count-mw")" = 0 ]
+verdict $? "added: a fourth Edit adding prose after three warnings starts no awk" "out=[$out] awk=$(grep -c x "$TMP/awk-count-mw")"
+
+# ---- 18. INTERPRETER WRITES (bash-write-effects): what a python run changed, read after it ----
+# One repo per case: a reused one carries an earlier case's marker. `ls` dates the marker, as any earlier call would.
+# Every call shares one session_id and keys its context on transcript_path, as a session's subagents do: a marker another
+# session dated reads nothing.
+if command -v python3 >/dev/null 2>&1; then
+  ebash() { # $1 cwd, $2 context, $3 command, $4 session (default sess), $5 event -> raw stdout of the PostToolUse lane
+    jq -n --arg cwd "$1" --arg t "/t/$2.jsonl" --arg c "$3" --arg s "${4:-sess}" --arg e "${5:-PostToolUse}" \
+      '{hook_event_name:$e,tool_name:"Bash",session_id:$s,transcript_path:$t,cwd:$cwd,tool_input:{command:$c}}' \
+      | bash "$HOOK" 2>/dev/null
+  }
+  efire() { # $1 cwd, $2 file, $3 context, $4 tool (default Write) -> the warning, in session sess
+    jq -n --arg fp "$2" --arg cwd "$1" --arg t "/t/$3.jsonl" --arg tool "${4:-Write}" \
+      '{hook_event_name:"PostToolUse",tool_name:$tool,session_id:"sess",transcript_path:$t,cwd:$cwd,tool_input:({file_path:$fp}
+        + if $tool == "Edit" then {old_string:"",new_string:"// why: the vendor caps ids at 2^31"} else {} end)}' \
+      | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
+  }
+  pyrun() { # $1 cwd, $2 context, $3 python source, $4 session, $5 event -> runs it as a heredoc, then the PostToolUse lane on that command
+    local c="python3 - <<'PY'
+$3
+PY"
+    (cd "$1" && bash -c "$c") >/dev/null 2>&1
+    ebash "$1" "$2" "$c" "${4:-sess}" "${5:-PostToolUse}" | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
+  }
+  effrepo() { mkdir -p "$1/src"; calm "$1/src/Calm.php"; commit_all "$1"; ebash "$1" mark 'ls' >/dev/null; }
+  DENSE_PY="open('src/Dense.js', 'w').write(open('$TMP/d6020.txt').read())"
+
+  EA="$TMP/eff-a"; effrepo "$EA"
+  b_warn=$(pyrun "$EA" ea1 "$DENSE_PY"); w_warn=$(efire "$EA" "$EA/src/Dense.js" ea2)
+  [ -n "$w_warn" ] && [ "$b_warn" = "$w_warn$SUFFIX Dense.js." ]
+  verdict $? "effects: a dense file a python heredoc wrote draws the Write warning plus the file suffix" "write=[$w_warn] python=[$b_warn]"
+
+  EB="$TMP/eff-b"; mkdir -p "$EB/src"; cp "$TMP/d6020.txt" "$EB/src/Old.js"; commit_all "$EB"; ebash "$EB" mark 'ls' >/dev/null
+  expect "effects: a committed file over the ceiling whose code a python run changed is not judged on its existing density" \
+    "$(pyrun "$EB" eb1 "p = 'src/Old.js'; s = open(p).read(); open(p, 'w').write(s.replace('return 1;', 'return 11;'))")" ""
+  expect "effects: the same file once a python run adds a prose line to it draws the warning" \
+    "$(pyrun "$EB" eb2 "open('src/Old.js', 'a').write('// why: the vendor caps ids at 2^31\n')")" "comment-to-code"
+
+  EC="$TMP/eff-c"; mkdir -p "$EC/src"; calm "$EC/src/Calm.php"; commit_all "$EC"
+  out=$(pyrun "$EC" ec1 "$DENSE_PY")
+  [ -z "$out" ] && [ -f "$EC/.claude/comment-discipline/bash-effects-density.mark" ]
+  verdict $? "effects: the first call in a repo is silent and leaves the marker" "out=[$out]"
+  expect "effects: a python run that wrote nothing is silent" "$(pyrun "$EC" ec2 'print(1)')" ""
+
+  EE="$TMP/eff-e"; effrepo "$EE"
+  cp "$TMP/d6020.txt" "$EE/src/Edited.js"; efire "$EE" "$EE/src/Edited.js" ee1 Edit >/dev/null
+  expect "effects: a file an Edit wrote before the run is not read as the run's write" "$(pyrun "$EE" ee2 'print(1)')" ""
+
+  EF="$TMP/eff-f"; effrepo "$EF"
+  out=$(pyrun "$EF" ef1 "$DENSE_PY; raise SystemExit(1)" sess PostToolUseFailure)
+  case "$out" in *"comment-to-code"*"$SUFFIX Dense.js.") true ;; *) false ;; esac \
+    && [ "$(printf '%s' "$(ebash "$EF" ef2 "python3 -c 'print(1)'; false" sess PostToolUseFailure)" | wc -c)" = 0 ] \
+    && printf '%s' "$(cp "$TMP/d6020.txt" "$EF/src/Dense2.js"; ebash "$EF" ef3 'cat x.py | python3; false' sess PostToolUseFailure)" \
+      | jq -e '.hookSpecificOutput.hookEventName == "PostToolUseFailure"' >/dev/null 2>&1
+  verdict $? "effects: a failed python run (PostToolUseFailure) is read too, its envelope naming that event, and a piped python counts" "out=[$out]"
+
+  EG="$TMP/eff-g"; effrepo "$EG"
+  expect "effects: a marker another session dated reads nothing" "$(pyrun "$EG" eg1 "$DENSE_PY" other-session)" ""
+
+  EH="$TMP/eff-h"; effrepo "$EH"
+  big=$(head -c 40000 /dev/zero | tr '\0' 'a')
+  expect "effects: a python run carrying a 40 kB data line is still read" \
+    "$(pyrun "$EH" eh1 "data = '$big'
+$DENSE_PY")" "$SUFFIX Dense.js."
+else
+  echo "SKIP 18: python3 not available"
+fi
 
 [ "$rc" -eq 0 ] && echo "comment-density-tests: all assertions passed"
 exit "$rc"

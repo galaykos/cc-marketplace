@@ -54,9 +54,10 @@ Then wait. Suggesting the command is your job; running it is theirs.
 
 The deny is a decision, not an obstacle:
 
-- **Do not rephrase it.** Different quoting, `bash -c`, `eval`, a heredoc — the
-  guard reads through all of those. Putting the command in a **script file**, or
-  splitting it across two calls, does defeat the guard; that makes it an evasion
+- **Do not rephrase it.** Different quoting, `bash -c`, `eval`, a heredoc fed to a
+  shell — the guard reads through all of those. Putting the command in a **script
+  file**, an interpreter's heredoc (`python3 - <<EOF`), or splitting it across two
+  calls, does defeat the guard; that makes it an evasion
   you chose, not a check you passed. Routing around a safety gate is never the
   task you were given.
 - **Do not disable the guard**, edit its allow-file, or suggest the user do

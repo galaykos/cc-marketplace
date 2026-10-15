@@ -51,18 +51,24 @@ Without arguments it asks for a description first. The pipeline then:
 6. When code-architecture is installed, runs a plan check on the spec before
    card-splitting
 7. Emits single-prompt task cards to `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a
-   `00-INDEX.md` — each card stamped with the stack skills it needs (from the
-   stack-scan inventory), sized S/M/L/XL against task-cards' anchor rule, and
+   `00-INDEX.md` — each card stamped with the stack skills it needs as `plugin:skill`
+   (from the stack-scan inventory; `skills-stamp-lint.sh` warns when a same-named
+   project skill, such as Laravel Boost's, shadows a bare stamp), sized S/M/L/XL against task-cards' anchor rule, and
    grouped into independently shippable milestones on big runs. On UI work the
    first UI card builds how an agent signs in and the seeded states the grill
    settled, and each UI card names the screen, widths and state the browser walk
    at group close must see
 8. When task-runner is installed, asks "Start execution now?" — one approval and
-   it hands the index straight to the task-execution discipline, no manual
-   `/task-runner:run` needed (still printed as the fallback if you decline)
+   it invokes `/task-runner:run` on the index itself, so the run registers for the
+   completion gate, no manual command needed (still printed as the fallback if you decline)
 
 A priority directive fires on work-shaped prompts
-(build/add/implement/fix/update/change/write…): before the first code edit,
+(build/add/implement/fix/update/change/write…) — not when every verb is create or add
+governing a PR or commit ("create the PR"), or a branch, push, merge, tag or release once
+the prompt also names a PR, a commit or `git`, or a joined name sits beside the noun ("add
+fix-login branch"); nor on verbs inside a `<pasted_content>` paste or on a subagent
+hand-back. "fix the failing PR", "add tags to the blog" and "add PRs to the dashboard" (a
+ship noun before to, into, onto or with is a feature object) still fire. Before the first code edit,
 run one batched clarifying round to zero ambiguity or state in one line why
 the task is trivial. It holds `arcRank` 25 in the shared reminder-rank election
 (bounded at one line per eligible hook, never a guarantee of one per prompt) — no plugin is privileged there, so it earns its place by arc position:

@@ -6,6 +6,79 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.13.2 — 2026-10-14
+
+### Changed
+- **`testing-best-practices`: prove a limit by lowering it, never by exceeding a
+  production-sized constant.** A task asked a worker to prove a 100,000-row cap; it seeded
+  100,001 rows, the query ran away and the machine ran out of memory twice. The rule now sits
+  under "What to test": configure or inject a small cap (3) and write one past it (4).
+  Standing: agent-graded, prose the model reads; no hook or harness checks a test's size.
+
+### Fixed
+- **`protect-tests` no longer reads a quoted word after `pending` as a skip outside Ruby.**
+  The paren-less arm matched `pending '<x>'` in any test path, so a bash harness whose stub
+  took a mode string (`stub_checks pending 'build'`) was denied as a skipped test. Paren-less
+  `pending "…"` is RSpec's alone, so that arm now reads `*.rb` files only; `pending(` (Jasmine,
+  Jest, RSpec), `xit(`, `xit "…" do` and paren-less `skip "…"` still deny everywhere.
+- **Pest's chained skip is now read.** `})->skip()` and `test('…')->only()` passed silently:
+  the `.skip(` arm wants a dot, and Pest chains with `->`. Both now deny without a same-line
+  reason, also past chained calls (`})->with([1, 2])->skip()`, `})->group('slow')->only()`).
+  A Collection or query builder spells the same methods, so `->only` must have empty
+  parentheses and `->skip(` must carry Pest's own argument: none, a quoted reason, a closure
+  or `true`/`false` (`->skip(2)`, `->skip(count($header))`, `->skip(self::OFFSET)` and
+  `->only(['id'])` stay silent). Pest's named helpers have no Collection twin, so they deny
+  with any argument: `->skipOnCi()`, `->skipLocally()`, `->skipOnWindows()`,
+  `->skipOnPhp('>=8.0.0')`, `->onlyOnLinux()`, `->todo()`, and the file-level
+  `beforeEach()->skip()`; a Collection's `->skipWhile(…)` stays silent. Residual: Pest's own skip message does not count as the
+  reason (a same-line comment does), and missed are an argument on the next line, a
+  condition spelled as an expression (`->skip($onCi)`), `it('x', fn () => …)->skip()`, and a
+  chained call whose argument holds parentheses.
+- Standing: gate. `protect-tests.test.sh` gains twenty-two cases (69); "bash harness: a stub's
+  quoted pending mode is not a skip", "bash harness: a line-leading pending call is not a
+  skip", "Pest })->skip() denies", "Pest test('…')->only() denies", "Pest })->skip('reason')
+  denies", "Pest })->skip(fn () => …) denies", "Pest })->skip(true, …) denies", "Pest
+  })->with([…])->skip() chain denies", "Pest })->group('slow')->only() chain denies" and the
+  seven named-helper cases ("Pest })->skipOnCi(); denies" … "Pest beforeEach()->skip();
+  denies") fail against the hook before this change.
+- **A Pest skip on the line after `})` is read (2026-10-15).** A chain split after the closure
+  puts `->skip()`, `->only()` or a named helper on a line that opens with `->`, and it passed
+  silently. In a `.php` test file that line is now read with the same argument shapes, so a
+  Collection's `->skip(2)` on a continuation line stays silent; a scheduler's
+  `->skip(fn () => …)` there denies (a same-line reason comment clears it). Standing: gate.
+  `protect-tests.test.sh` gains four cases (75): "Pest ->skip() on the line after }) denies"
+  and "Pest ->with([…]) then ->skipOnCi() on the next lines denies" fail before; "a
+  Collection's ->skip(2) on a continuation line is not a Pest skip" and "a continuation-line
+  ->skip() outside a .php file is not read as Pest" stay silent.
+- **On Bash, the in-command `cd` test drops heredoc bodies with the shared scan.** The test
+  used a one-line awk, also copied into three other plugins. That awk opened a body at a `<<`
+  inside quotes or after a `#`, read one heredoc per line, cut a delimiter at its first
+  non-word character and dropped an unterminated body to the end. It now calls
+  `cc_strip_heredoc_bodies cd` (`templates/blocks/heredoc-bodies.md`, command-guard's
+  scanner). That scan keeps every line after a `<<` it cannot place (inside `${ }` or `$[ ]`
+  too), and every line of a body whose terminator is indented, blank-padded or missing, so a
+  `cd` there now skips relative targets (a miss, never a wrong file). Mode `cd` also keeps a
+  body this shell runs, so `. /dev/stdin <<'EOF'` holding `cd packages/api`, then
+  `echo "it.skip('x')" > a.test.js`, no longer judges `<cwd>/a.test.js`, the wrong file; a
+  `cd` in a body a named subshell runs (`bash <<EOF`) still moves nothing, and nor does one
+  in the body of a second heredoc on one line. No verdict change on 2,611 distinct `<<` Bash
+  commands from local transcripts, and the cd test reads the same on all 1,111 that hold a
+  `cd` word. Standing: gate — `pc_shared_blocks` holds the copy byte-identical;
+  `protect-tests.test.sh` gains two cases (71) and "cd: a cd in a body sourced into this
+  shell skips a relative target" fails before; `test-shape.test.sh` passes unchanged.
+
+## 0.13.1 — 2026-10-14
+
+### Fixed
+- **Pest's `test()->` helper no longer opens a test block in `test-shape`.** In Pest,
+  `test()` with no argument returns the running test case, so a `test()->account` line in a
+  `beforeEach` or a test body was read as a new test: the file split into hollow blocks and
+  the hook reported assertion-free tests that asserted. A `test(`/`it(`/`describe(`/`context(`
+  opener now needs an argument on the same line. Residual: an opener whose title starts on
+  the next line (`it(` alone on its line) is no longer seen. Harness case 5e in
+  `test-shape.test.sh` pins it ("silent on Pest's test()-> helper" fails against 0.13.0);
+  its sibling keeps `test('…'`, `it("…"` and `test(title,` opening.
+
 ## 0.13.0 — 2026-10-08
 
 - **A flake-hunt suggestion (Claude Code ≥ 2.1.291).** A hooks module, `hooks/suggest.ts`, offers `/testing:flake-hunt` in the idle prompt box (Tab accepts, nothing runs until you send it) at the end of a turn in which one test-runner command has both passed and failed in this session with no successful `Write`/`Edit`/`MultiEdit`/`NotebookEdit` between, once per command per session, silent under a live phase sentinel and `CC_SUGGEST=off`. `hooks/cc-kit.ts` is a byte copy of the shared mod kit. Six cases in `tests/suggest.test.ts`. Not seen: an edit made through `Bash`; a non-zero exit as a live CLI reports it.

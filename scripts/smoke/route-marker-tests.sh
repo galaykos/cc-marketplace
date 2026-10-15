@@ -283,6 +283,9 @@ if [ "$e" -eq 0 ] && [ -z "$out" ]; then echo "PASS: empty stdin exits 0 silentl
 # Both assertions must hold: the lowercase path is the regression, the uppercase
 # path proves the fix did not trade one casing for the other.
 mkdir -p "$TMP/casecwd"
+# A package.json naming no vue silences the two *.vue canaries: route.sh sends at most two nudges per edit (NUDGE_CAP),
+# and with both firing the directory row would be the third.
+echo '{}' > "$TMP/casecwd/package.json"
 out=$(route "$TMP/casecwd" "resources/js/pages/Users/Show.vue")
 expect "lowercase dir matches an uppercase **/Dir/** glob" "$out" 'case-canary' ''
 out=$(route "$TMP/casecwd" "resources/js/Pages/Users/Show.vue")
@@ -303,9 +306,9 @@ tp="$TMP/transcripts/sess-roundtrip.jsonl"
 mkdir -p "$(dirname "$tp")"; : > "$tp"
 mkdir -p "$TMP/rtcwd"
 printf 'content\tROUNDTRIP-CANARY\troundtrip-canary\tmisc\tlow\n' >> "$PR/rules.tsv"
-printf 'a file whose body contains ROUNDTRIP-CANARY\n' > "$TMP/rtcwd/note.txt"
+printf 'a file whose body contains ROUNDTRIP-CANARY\n' > "$TMP/rtcwd/note.cfg"
 
-payload=$(printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s","tool_input":{"file_path":"note.txt"}}' "$tp" "$TMP/rtcwd")
+payload=$(printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s","tool_input":{"file_path":"note.cfg"}}' "$tp" "$TMP/rtcwd")
 printf '%s' "$payload" | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE" >/dev/null 2>&1 || true
 
 # `find` exits 1 on an absent dir and `pipefail` propagates it — without `|| true`

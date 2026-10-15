@@ -113,6 +113,52 @@ allows "items.skip 2 is not a test skip" Edit \
   "{\"file_path\":\"$T/calc_spec.rb\",\"old_string\":\"zz\",\"new_string\":\"    rest = items.skip 2\"}"
 allows "a paren-less skip WITH a same-line reason" Edit \
   "{\"file_path\":\"$T/calc_spec.rb\",\"old_string\":\"zz\",\"new_string\":\"    skip \\\"needs db\\\" # skip: fixture DB missing, see #99\"}"
+# Only RSpec calls pending without parentheses: a bash harness stub taking a mode string was denied.
+allows "bash harness: a stub's quoted pending mode is not a skip" Edit \
+  "{\"file_path\":\"$T/merge.test.sh\",\"old_string\":\"zz\",\"new_string\":\"stub_checks pending 'build'\"}"  # skip: fixture the installed guard misreads
+allows "bash harness: a line-leading pending call is not a skip" Edit \
+  "{\"file_path\":\"$T/merge.test.sh\",\"old_string\":\"zz\",\"new_string\":\"  pending 'one check still running'\"}"  # skip: fixture the installed guard misreads
+denies "Jest's parenthesised pending still denies outside Ruby" Edit \
+  "{\"file_path\":\"$T/a.test.ts\",\"old_string\":\"zz\",\"new_string\":\"  pending('not ready');\"}"  # skip: the fixture this case must deny
+# Pest chains the skip onto the test call; a Collection's ->skip(2) / ->only([...]) is not one.
+denies "Pest })->skip() denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skip();\"}"  # skip: the fixture this case must deny
+denies "Pest test('…')->only() denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"test('adds')->only();\"}"  # skip: the fixture this case must deny
+allows "a Collection ->skip(2) after a closure is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"\$rows = \$all->filter(function (\$r) { return \$r; })->skip(2);\"}"
+# Only Pest's signature denies (nothing, a quoted reason, a closure, a boolean), across chained calls.
+allows "a Collection ->skip(count(…)) after a closure is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"\$rows = collect(\$csv)->map(function (\$r) { return \$r; })->skip(count(\$header));\"}"  # skip: fixture the installed guard misreads
+allows "a query ->skip((\$page - 1) * 10) after a where closure is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"\$q->where(function (\$w) { \$w->active(); })->skip((\$page - 1) * 10);\"}"  # skip: fixture the installed guard misreads
+allows "a ->skip(self::OFFSET) after a closure is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skip(self::OFFSET);\"}"  # skip: fixture the installed guard misreads
+denies "Pest })->skip('reason') denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skip('needs redis');\"}"  # skip: the fixture this case must deny
+denies "Pest })->skip(fn () => …) denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skip(fn () => getenv('CI'));\"}"  # skip: the fixture this case must deny
+denies "Pest })->skip(true, …) denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skip(true, 'flaky');\"}"  # skip: the fixture this case must deny
+denies "Pest })->with([…])->skip() chain denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->with([1, 2])->skip();\"}"  # skip: the fixture this case must deny
+denies "Pest })->group('slow')->only() chain denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->group('slow')->only();\"}"  # skip: the fixture this case must deny
+# Pest's named skip helpers take any argument; a Collection has no method of those names.
+for ns in "})->skipOnCi();" "})->skipLocally();" "})->skipOnWindows();" "})->skipOnPhp('>=8.0.0');" "})->onlyOnLinux();" "})->todo();" "beforeEach()->skip();"; do  # skip: the fixtures these cases must deny
+  denies "Pest $ns denies" Edit "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"$ns\"}"
+done
+allows "a Collection ->skipWhile(fn …) after a closure is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skipWhile(fn (\$r) => \$r->done);\"}"
+# A chain split after `})` puts the skip on the next line, which opens with `->` (2026-10-15).
+denies "Pest ->skip() on the line after }) denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})\n    ->skip();\"}"  # skip: the fixture this case must deny
+denies "Pest ->with([…]) then ->skipOnCi() on the next lines denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})\n    ->with([1, 2])\n    ->skipOnCi();\"}"  # skip: the fixture this case must deny
+allows "a Collection's ->skip(2) on a continuation line is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"\$rows = collect(\$all)\n    ->skip(2)\n    ->values();\"}"
+allows "a continuation-line ->skip() outside a .php file is not read as Pest" Edit \
+  "{\"file_path\":\"$T/a.test.ts\",\"old_string\":\"it('a'\",\"new_string\":\"it('a'\n    ->skip()\"}"
 
 # The escape hatch must work when the same hunk carries an OLD unreasoned marker
 # through unchanged: only the ADDED marker is judged.
@@ -182,6 +228,11 @@ bash_allows "cd: a kept marker after CDPATH= cd is not read as new" \
   $'CDPATH= cd t && cat > foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit(\'c\',()=>{});\nEOF'  # skip: kept marker fixture
 bash_allows "cd: a kept marker after zsh's chdir is not read as new" \
   $'chdir t && cat > foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit(\'c\',()=>{});\nEOF'  # skip: kept marker fixture
+printf "it('a',()=>{});\n" > "$T/b10.test.js"
+bash_allows "cd: a cd in a body sourced into this shell skips a relative target" \
+  $'. /dev/stdin <<\'EOF\'\ncd packages/api\nEOF\necho "it.skip(\'x\')" > b10.test.js'  # skip: fixture judged against the wrong dir
+bash_denies "no cd: a cd in a body a subshell runs moves nothing" \
+  $'bash <<\'EOF\'\ncd packages/api\nEOF\necho "it.skip(\'x\')" > b10.test.js'  # skip: the fixture this case must deny
 bash_denies "no cd: cat > t/foo.test.js adding an it.skip is still judged" \
   $'cat > t/foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit.skip(\'n\',()=>{});\nit(\'c\',()=>{});\nEOF'  # skip: the fixture this case must deny
 

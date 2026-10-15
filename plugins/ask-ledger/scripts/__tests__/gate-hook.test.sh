@@ -35,6 +35,7 @@ ledger s1b Laravel "2D Sprites" Digimon
 r=$(run s1b $'Laravel: as named\n2D Sprites: as named')
 check "3 one missing blocks with exit 2" "$r" "rc=2"
 check "4 the block names the missing entry" "$r" "named Digimon"
+check "4b the block asks for the answer's verdict before the name lines" "$r" "Restate the answer's one-line verdict first, then one line per name"
 ledger s1c Laravel "2D Sprites" Digimon
 check "5 omitted counts, case-insensitive" "$(run s1c $'laravel: OMITTED → out of scope\n2d sprites: as named\ndigimon: as named')" "rc=0"
 ledger s2 Stripe

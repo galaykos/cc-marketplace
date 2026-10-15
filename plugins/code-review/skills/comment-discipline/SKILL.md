@@ -161,10 +161,10 @@ section, so a fan-out cannot re-import the surrounding file's habits.
   recorded otherwise: `scan.sh` neither denies nor validates it, and the `shortcut:` prefix defeats the restatement detector unless the next line already holds the word, so
   `/code-review:review --debt`'s `shortcuts` count is the only mechanical counter-pressure.
 - **recorded** — everything else here. Nothing reads it back.
-- **recorded — what a Bash write still escapes.** Not judged: interpreter writes
-  (python `open()`, php `file_put_contents`); a heredoc fed to anything but `cat` or
+- **recorded — what a Bash write still escapes.** Not judged: interpreter, `cp` and `mv`
+  writes before they land (after: README, Interpreter writes); a heredoc fed to anything but `cat` or
   `tee`; `echo` / `printf` and `sed -i` / `perl -i` content (the after-command warning
-  below still measures the file); `cp`, `mv`, `install`; `{ …; } > f`; here-strings; a
+  below counts echo's prose, never sed/perl's); `{ …; } > f`; here-strings; a
   path held in a variable; a globbed operand; `2>`, `&>` and `>&` targets; a quoted string
   or `\` continuation spanning lines; a second heredoc on one line; the second operand
   of `tee a b`; `VAR=value tee f <<EOF`; `cat` with a file operand or an option, or
@@ -179,9 +179,9 @@ section, so a fan-out cannot re-import the surrounding file's habits.
   thresholds, the shapes the hooks misread (a heredoc in a function never called, a quoted `"cd"`, a `> f` in a
   shell comment), what the comment counter cannot tell apart and what `scan.sh` still misses.
 
-`hooks/density.sh` also warns after any edit when the file is over min(2x its committed siblings' median, the
-ceiling), or, with no committed siblings, over the ceiling alone; after a Bash command it measures the first three
-targets on disk. A file with no code line is never over. Not prose: delimiter-only lines, tool directives, typed doc
+`hooks/density.sh` also warns after a `Write`, or an edit or Bash write adding prose, when the file is over min(2x its
+committed siblings' median, the ceiling), or, with no committed siblings, over the ceiling alone; after a Bash command it
+measures the first three targets on disk; a file only declaring an interface or all-abstract class is never judged. A file with no code line is never over. Not prose: delimiter-only lines, tool directives, typed doc
 tags, a first comment block naming a licence, `|`-boxed config blocks; an untyped `@param name text` is prose. Not
 told apart: a triple-quoted string that is no docstring and a mid-line `/*` count as code; a directive the hook does
 not know and comment-looking lines in JS template literals and PHP heredocs count as prose. Dockerfiles and Makefiles

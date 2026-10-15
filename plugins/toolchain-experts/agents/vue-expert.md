@@ -21,7 +21,7 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
 1. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-analyzers.sh" .` — exit 1 means no
    analyzer: say so and STOP.
 2. Read the `ci` records: which config is enforced?
-3. Run the printed invocation. The detector reports `vue-tsc` in place of `tsc`
+3. Run the printed invocation, unless CI already passed it on this HEAD (the skill's step 4). The detector reports `vue-tsc` in place of `tsc`
    whenever the project has it, because the two are not interchangeable here.
 4. Triage into new defect / suppressed / config gap.
 

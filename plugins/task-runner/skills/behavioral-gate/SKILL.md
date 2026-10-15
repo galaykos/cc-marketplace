@@ -30,9 +30,7 @@ nothing; it is deliberately not the whole thing:
    the suite is non-empty, the code executes, entrypoints and their flags actually do
    something.
 
-Layers 1–2 are per-card and can be scoped out or skipped; this gate is the run-level backstop
-that a code-producing run shipped *something* runnable and non-empty. None substitutes for
-the others.
+Layers 1–2 are per-card and can be skipped; none substitutes for the others.
 
 ## Where it runs
 
@@ -42,17 +40,19 @@ the others.
 - **Tracks merged-branch final gate** — on the merged run branch, so the integrated result
   of all tracks is exercised, not just re-linted (see `track-orchestration`).
 
-Invoke the shipped script (it is the authoritative logic; this skill only drives it):
+Invoke the shipped script in the background (it is the authoritative logic; this skill only drives it):
 
 ```
 ${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed "<the run's touched files>" \
   [--entrypoint <bin> ...] [--differential 'flag::with::without' ...]
 ```
 
-`--isolate` is the isolation: the script makes a worktree of HEAD under `mktemp -d`,
+`--isolate` is the isolation: the script makes a worktree of HEAD under the repo's
+gitignored `.claude/task-runner/iso/`, where a container mounting the repo sees it,
 checks it exists and is not the live tree, and refuses with exit 3 otherwise. It links
-`vendor`/`node_modules`, builds `.env` from the tree's own `.env.example`, and removes
-the worktree on exit. Commit first, because it tests HEAD. Never hand-build the checkout
+`vendor`/`node_modules`, builds `.env` from the tree's own `.env.example`, `.env.dist` or
+`.env.sample` (else an empty one, so a loader walking up never reaches the live `.env`), and
+removes the worktree on exit. Commit first, because it tests HEAD. Never hand-build the checkout
 with `cd /tmp/…;` chains, and never copy or `key:generate` a `.env`: a failed `cd` sends
 the rest of the chain into the live repo. Laravel takes test env from `phpunit.xml`, and
 `--isolate` exports `APP_KEY` for the process only. `--in-place` is for a caller that is
@@ -66,10 +66,11 @@ run's live tree.
    honest lint-only run, not a failure. Otherwise the run needs behavioral coverage. The
    classifier is objective (runner detection + file type), never author discretion, so a run
    cannot dodge the gate by declaring its untested code "lint-only".
-2. **Own-tests.** Run the resolved runner non-interactively, under a hard timeout, in a temp
-   cwd. Apply per-runner **empty-detection** (see `references/runners.md`): an empty or
-   zero-collected suite is `empty-suite` (exit 2), not a pass. A runner that exposes no empty
-   signal **fails closed** for a code-producing run — silence is never a pass.
+2. **Own-tests.** Run the resolved runner non-interactively in that worktree, under a hard
+   timeout (`BEHAVIORAL_GATE_TIMEOUT`, default 1800 s). Apply per-runner **empty-detection**
+   (see `references/runners.md`): an empty or zero-collected suite is `empty-suite` (exit 2),
+   not a pass. A runner that exposes no empty signal **fails closed** for a code-producing
+   run — silence is never a pass.
 3. **Zero-check.** A run that needs coverage but ships neither a runnable own-test nor a
    smokable entrypoint exits 2 `no-behavioral-coverage`.
 4. **Entrypoint smoke.** Each shell-executable entrypoint is invoked in its declared
@@ -103,7 +104,7 @@ instead, against the HEAD the gate ran on:
 candor's completion gate accepts `no-behavioral-coverage` only with that record for that
 HEAD. It is a disclosed reduction, not a pass: the new code never ran. A project that HAS
 a runner, and changed code with no tests for it, is not this case — write the tests, or
-declare `--runner`. Standing: gate (with candor installed) for the record; the reason is
+declare `--runner` (`--runner-for <lang>` replaces a built-in one). Standing: gate (with candor installed) for the record; the reason is
 model-authored and unchecked.
 
 ## Worked example
@@ -114,13 +115,6 @@ reports 13/13 cards done. The behavioral gate classifies the run as needing cove
 files touched, a runner resolves), runs the suite, applies empty-detection, sees zero
 collected tests, and exits 2 `empty-suite`. Completion is blocked with the artifact path —
 the false-green is caught before the run closes.
-
-## Safety
-
-The gate executes produced code, which is arbitrary-code-execution by design. It runs under a
-hard timeout, in a temp cwd, and never mutates the caller's live working tree. An entrypoint
-smoke uses only the declared non-destructive form. A suite that needs an unavailable
-environment is reported as skipped-with-reason, not silently passed.
 
 ## Under ultra-goal (hands-off)
 
@@ -151,9 +145,5 @@ limitation law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace r
 
 ## Anti-patterns
 
-- Reimplementing runner detection or empty-detection in prose — the script + `runners.md`
-  are the single source of truth.
 - Treating `no-executable-surface` as a failure — a genuinely doc-only run is honestly
   lint-gated; the gate says so rather than failing it.
-- Accepting a green suite without the gate "because the suite passed" — the suite passing is
-  exactly the false-green this gate exists to test for emptiness.

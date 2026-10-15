@@ -6,6 +6,10 @@ argument-hint: "[path | PR number | branch | --debt]"
 Review the code change in $ARGUMENTS. Resolve scope in this order:
 
 1. If $ARGUMENTS names a path, PR number, branch, or commit range (`<sha>..HEAD`) — review that.
+   A bare commit (`<sha>`, as the review-debt nudge names at a ship prompt) means everything
+   since it: `git diff <sha>` plus untracked files.
+   An `RV-RANGE: <sha>` token is task-runner's run-close marker (its observer records it),
+   not scope — resolve scope from the rest of $ARGUMENTS.
 2. Else if staged changes exist (`git diff --cached --stat`) — review staged.
 3. Else review the working tree against the default branch
    (`git diff $(git merge-base HEAD origin/HEAD 2>/dev/null || echo HEAD~1)`).
@@ -57,13 +61,32 @@ vue-tsc, and for styles and markup stylelint/pa11y/axe/lighthouse-ci, whose revi
 `ui-expert`) → toolchain-experts' matching expert agent, which RUNS it rather than reciting
 it, plus its analyzer-triage skill to say whether CI enforces the result).
 Load each skill whose plugin IS installed and apply it inside the
-single pass below — never tell the user to run the per-stack review commands
+single pass below. Before the pass, print what resolved as a checklist, one
+`- [ ] plugin:skill` per item: every installed skill or agent the rows above and the
+resilience selection below pick, plus comment-discipline when the diff adds comments.
+`Checked:` accounts for each by name — applied, or under `Not checked:` with why; an
+earlier per-card review is a reason only if it loaded that same skill. Standing:
+agent-graded. Never tell the user to run the per-stack review commands
 separately; this command is the fan-in for the overlapping review surfaces. Name
 relevant-but-uninstalled plugins in one closing line instead. This list is the
 contract behind every per-stack command's hand-up clause ("the aggregator reaches
 this plugin's rubric too"): a plugin that ships a review command and is not named
 here is a defect in this file, not in that command. That holds for a plugin shipping
 review AGENTS and no review command too.
+
+**Diff delivery to a dispatched reviewer.** A reviewer agent with `tools: Read, Grep, Glob`
+(`code-reviewer`, `architecture-reviewer`, `frontend-reviewer`, `ui-ux-reviewer`) has no shell:
+told to "review the diff" it re-reads whole files and judges against memory, and it cannot
+read blame. Before the first such dispatch, write `git diff <scope>` (plus each untracked file
+in scope as `git diff --no-index /dev/null <file>`, plus
+`git blame --porcelain -L <a>,+<b> <base> -- <file>` for each modified hunk `@@ -<a>,<b>`;
+porcelain carries each commit's subject, which the history pass reads) to
+`.claude/code-review/rv/diff-<short HEAD>.patch`, with a `.gitignore` holding `*` in
+`.claude/code-review/` so the patch never lists itself as untracked. Name that path in every
+reviewer prompt and state "cite line numbers from the working file, not the patch". Never
+tell a Read/Grep/Glob agent to run git. An agent that runs tools (toolchain-experts' experts,
+`devops-reviewer`) has Bash and gets the scope instead. Standing: agent-graded — nothing
+checks that a dispatch named the file.
 
 Then:
 
@@ -88,8 +111,8 @@ after the pass — fan-in merge, self-refute, `Checked:`, verdict, apply offer �
 this command's, and **this command emits `ReportFindings` once**; the built-in's
 own emission, if any, is consumed as input, never forwarded. When the skill is
 absent (older host, disabled, a headless run without it), run items 1–5 inline
-exactly as written. Output contract unchanged either way; the `Checked:` line
-names which branch ran. Standing: recorded — nothing checks which branch ran.
+exactly as written. Output contract unchanged either way; the `Checked:` line's
+first token names which branch ran. Standing: recorded — no script reads it.
 
 1. Read every changed hunk plus enough surrounding code to judge behavior —
    never review a hunk in isolation when it calls or is called by nearby code.
@@ -140,10 +163,11 @@ Output rules:
   and dropping it would break every plugin that reads this format. Map the
   marketplace scale onto the tool's fields: `category` takes the kebab-case kind
   (`correctness`, `simplification`, `efficiency`, `test-coverage`), `verdict` is
-  `CONFIRMED` for anything re-read or re-run and `PLAUSIBLE` for the rest, and
-  `failure_scenario` carries the concrete inputs-to-wrong-output line rather than a
-  restatement of the summary. When the tool is absent, prose only — nothing else
-  about this command changes.
+  `CONFIRMED` for anything re-read or re-run and `PLAUSIBLE` for the rest,
+  `short_summary` is at most 60 characters (the tool rejects a longer one with an
+  InputValidationError), and `failure_scenario` carries the concrete
+  inputs-to-wrong-output line rather than a restatement of the summary. When the
+  tool is absent, prose only — nothing else about this command changes.
 - Defer instead of duplicating. The fan-in covers two axes:
   - **Stack axis** — idiom detail is already loaded inline when the plugin is
     installed; when absent, name the plugin in the closing line rather than
@@ -154,10 +178,14 @@ Output rules:
     idempotency, unguarded parallel writes; silent catch blocks, correlation IDs,
     secrets in logs; performance hotspots; at-least-once delivery, idempotent
     consumers, ordering and poison messages on a broker or queue) and this plugin's own `comment-discipline`
-    skill (added comments, judged in item 4a; volume stays with the hooks). When `resilience` is installed, LOAD its
-    matching skills (resilience-design, error-handling-design, concurrency-safety,
-    observability-design, performance-tuning, and event-driven when the diff touches a
-    broker, queue, consumer or event schema — all six) in this same pass and report each such
+    skill (added comments, judged in item 4a; volume stays with the hooks). When `resilience` is installed, LOAD only
+    the skills the diff's content selects: resilience-design for a call across a process
+    boundary (HTTP, database, third-party API, job dispatch), error-handling-design for an
+    added or changed try/catch or error type, concurrency-safety for a shared write, lock,
+    retry or transaction, observability-design for a log, metric, trace or health check,
+    performance-tuning for a query or I/O in a loop, a cache or payload/bundle size, and
+    event-driven for a broker, queue consumer or event schema; a diff with none of these
+    loads none. Apply them in this same pass and report each such
     finding once, tagged with the owning skill — never defer it to a `/resilience:*`
     command, because those commands hand their whole scope back here and a deferral
     is a loop in which nobody runs the rubric. When `resilience` is absent, this
@@ -166,9 +194,10 @@ Output rules:
   - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer
     agent; security-deep issues → `/security:review`.
 
-Before the verdict, state the coverage: `Checked: … (generic pass: host built-in | inline)`
-and `Not checked: … (why)` so it is explicit what was covered, what was clean, which
-branch did the generic pass, and what was skipped — not only what broke. Then run one adversarial self-refute pass over every `critical` and `high`
+Before the verdict, state the coverage: `Checked: host built-in | inline — …`, the branch
+that ran the generic pass as its first token, then each fan-in checklist item, and
+`Not checked: … (why)` so it is explicit what was covered, what was clean, and what was
+skipped — not only what broke. Then run one adversarial self-refute pass over every `critical` and `high`
 finding; if a finding does not survive it, drop or downgrade it with a note. The
 refutation checklist is the false-positive taxonomy — a finding matching any row is
 dropped, not downgraded:

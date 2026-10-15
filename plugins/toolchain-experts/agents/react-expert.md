@@ -22,7 +22,7 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
    eslint record, means the rules that catch these bugs are not installed: report
    that as the finding and STOP.
 2. Read the `ci` records: is the lint enforced, or advisory?
-3. Run the printed invocation scoped to the changed files.
+3. Run the printed invocation scoped to the changed files. Skip it when CI already passed it on this HEAD (the skill's step 4 says how to tell).
 4. Triage into new defect / suppressed / config gap.
 
 ## What only you can report

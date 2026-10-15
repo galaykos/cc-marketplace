@@ -256,6 +256,42 @@ assert lits["#123456"] == 3, lits
 print("brand tokens OK")
 EOF
 
+# var(--x) through the custom property it names: @theme's --color-primary: var(--primary)
+# and :root's --primary land on one path, which came out as the self-alias {color.primary}.
+# :root wins, .dark stays in the dark slot; a cycle or an undefined name is dropped with a warning.
+kit="$tmp/kit"; mkdir -p "$kit/resources/css"
+cat > "$kit/resources/css/app.css" <<'EOF'
+@import 'tailwindcss';
+@theme inline {
+    --color-primary: var(--primary);
+    --color-loop-a: var(--color-loop-b);
+    --color-loop-b: var(--color-loop-a);
+    --color-ghost: var(--undeclared);
+}
+:root { --primary: oklch(0.52 0.13 150); }
+.dark { --primary: oklch(0.8 0.1 150); }
+EOF
+python3 "$ex" "$kit" --out "$tmp/kitout" >/dev/null 2>"$tmp/kit-err" || fail "stock-shaped run exited non-zero"
+python3 - "$tmp/kitout/tokens.json" <<'EOF' || fail "var() resolution: $(cat "$tmp/kit-err")"
+import json, sys
+c = json.load(open(sys.argv[1]))["color"]
+p = c["primary"]
+assert p["$value"] == "oklch(0.52 0.13 150)", p
+assert p["$extensions"]["design-kit"]["modes"]["dark"] == "oklch(0.8 0.1 150)", p
+for k in ("loop-a", "loop-b", "ghost"):
+    assert k not in c, (k, c.get(k))
+def walk(n, path):
+    if isinstance(n, dict):
+        if "$value" in n:
+            vals = [n["$value"]] + list(n.get("$extensions", {}).get("design-kit", {}).get("modes", {}).values())
+            assert "{%s}" % path not in vals, path
+        for k, v in n.items():
+            if not k.startswith("$"):
+                walk(v, f"{path}.{k}" if path else k)
+walk(json.load(open(sys.argv[1])), "")
+EOF
+grep -q 'color.loop-a' "$tmp/kit-err" && grep -q 'color.ghost' "$tmp/kit-err" || fail "an unresolved var() was dropped without a warning: $(cat "$tmp/kit-err")"
+
 empty="$tmp/empty"; mkdir -p "$empty/src"; echo '{}' > "$empty/package.json"
 oute="$tmp/oute"
 python3 "$ex" "$empty" --out "$oute" >/dev/null || fail "empty repo run exited non-zero"

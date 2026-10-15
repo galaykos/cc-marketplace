@@ -2,6 +2,12 @@
 
 All notable changes to the `prompt-coach` plugin.
 
+## 0.5.0 — 2026-10-15
+
+- **Each drop is recorded with a masked excerpt of the prompt; a plain-letter secret survives the mask.** A dropped prompt reaches no transcript, so a later look could only infer whether a drop was right. The coach now appends one JSON line per drop to `.claude/prompt-coach/held.jsonl` at the repository root, keeping the last 50: time, session id, the text's hash and length, the kind, and the text and the reason as masked excerpts (the first 40 words, any word holding a digit, a symbol, a hyphen or an inner capital replaced by `▪`). The rewrite is not kept. The text is masked because a coach loaded before secret-scanning reads a prompt unmasked, and a dropped prompt never reaches secret-scanning's mask. The directory gets a `*` `.gitignore` when it has none, so `git add -A` does not stage the log. Residual: a secret of letters with at most a leading capital (`letmein`, `Letmein`) reads as prose and is written as typed. Four new tests; the first two fail against 0.4.0, and the first also fails without the hyphen mask and the `.gitignore`.
+
+- **A registered run on a branch that shares a tag's name reads as active.** The shared mod kit read the branch with `rev-parse --abbrev-ref HEAD`, which prints `heads/<branch>` when a tag has the same name, so the coach judged prompts without the run's index and spec. It now reads `symbolic-ref -q HEAD`, as task-runner records it: exit 1 is a detached HEAD, any other git failure leaves the branch unknown and the run active, and a sentinel naming no branch matches.
+
 ## 0.4.0 — 2026-10-09
 
 - **Says when a secret would reach the judge unmasked.** At Enter the coach judges a prompt before it passes it on, so with secret-scanning installed beneath it a secret typed into the prompt went to the judge model before secret-scanning masked it, even when you then chose Cancel. At session start the coach now reads the plugin order and toasts once when it runs first; Residuals names the exposure. Four new tests.

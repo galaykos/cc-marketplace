@@ -42,7 +42,11 @@ cc_state_root() {
   # not silently forgettable. This is the plugin talking (not project data), so it is NOT
   # inside the fenced block. The nudge stops for good the moment a map exists. Still a pure
   # read — no state written.
+  # Only on a `startup` SessionStart: the hook has no matcher, so every resume, clear and
+  # compaction reprinted the nudge, up to ten times in one real session (measured 2026-10-13). A
+  # payload with no `source` counts as startup. Residual: each new session still prints it.
   if [ ! -f "$index" ] || [ ! -s "$index" ]; then
+    [ "$(printf '%s' "$input" | jq -r '.source // "startup"' 2>/dev/null)" = startup ] || exit 0
     # Size-gate the nudge: a map only pays in repos with real surface area. Small
     # repos (<200 tracked source-ish files) never see the hint. Fast index read,
     # fail-open like everything else here.

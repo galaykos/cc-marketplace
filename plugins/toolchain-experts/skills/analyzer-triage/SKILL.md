@@ -55,6 +55,20 @@ breaks the build for everyone whose baseline still lists it.
 
 ### 4. Run it, and report the real exit code
 
+**Skip the run when CI already passed it on this HEAD** — re-running a green analyzer on
+the same code found nothing twice in real sessions. A `ci` record means only that a workflow
+names the tool, so skip only when all hold: the step that runs it (and, for `via-script`, the
+scripts in its chain) is not advisory — no `continue-on-error: true` on the step or its job, no
+`|| true`; the working tree is clean (`git status --porcelain` prints nothing — an uncommitted
+config or whole-program input counts); and `gh run list --commit "$(git rev-parse HEAD)" --json
+workflowName,event,status,conclusion` shows that workflow among the runs and every run
+`completed` with conclusion `success`, so a failed `pull_request` run beside a green `push` one
+blocks the skip. Report "CI ran <tool> on <short sha>: success" as its verdict. Steps 1-3 and 6
+still run, because CI green says nothing about which rules are off. No `gh`, not authenticated,
+offline, no run for this SHA, any run pending or failed, or a dirty tree: run it as below.
+Residual: a job skipped by a path filter or an `if:`, and a step that passes the tool a narrower
+path set than the files in scope, still read as a pass.
+
 Run the exact invocation the detector printed. Never paraphrase the tool's verdict
 from reading the source: the analyzer resolves types, config layering and plugin
 rules that no read-through reproduces.
@@ -128,4 +142,5 @@ analyzer-free project exits 1 rather than returning a checklist.
 **Agent-graded** for everything else on this page. No script can prove an agent read
 the baseline before running the tool, or that it labelled an unenforced config's
 findings as suggestions. Saying so is the point: the order is enforced by the
-reader, not by the build.
+reader, not by the build. That includes the CI-green skip in step 4: no script checks
+that an agent confirmed the run before skipping its own.

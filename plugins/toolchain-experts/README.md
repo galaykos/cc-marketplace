@@ -88,6 +88,13 @@ Every line of analyzer output lands in exactly one:
   analyzer.
 - **Agent-graded** — that each agent reads the baseline before running the tool, and
   labels an unenforced config's findings as suggestions. No script can prove either.
+  Likewise the skip (since 0.4.0): an analyzer CI already passed on this HEAD is not run
+  again — `gh run list --commit <HEAD>` must show every run for that SHA completed and
+  successful, the step running the tool must not be advisory (`continue-on-error`,
+  `|| true`) and the working tree must be clean. Without `gh`, offline or with no run for
+  the SHA, the agent runs the tool as before; the config-gap report runs either way.
+  Residual: a job skipped by a path filter or `if:`, or a step given a narrower path set
+  than the files in scope, still reads as a pass.
 - **Recorded, not measured** — the claim that these five outperform a blind control has
   **not** been ablated. That is the honest standing of a plugin whose own README opens
   with an ablation table, and it is stated rather than hidden. The design is argued

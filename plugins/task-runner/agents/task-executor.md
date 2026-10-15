@@ -57,6 +57,8 @@ state your assumption before editing.
    `scope.json`, which is the inline path's tripwire and would be clobbered by
    parallel workers. The scope-lock hook reads it only while a run is registered; your
    scope is held by the diff-vs-declared check on return. Delete the file when the task ends.
+   A dispatch that names the file as already armed means the orchestrator owns it: do not
+   write, rewrite or delete it.
 5. At the end, run the project's FULL check suite (tests, lint, type-check, build) —
    local per-task passes can compose into a global failure.
 

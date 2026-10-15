@@ -803,6 +803,12 @@ sot_gap=$(pc_source_of_truth plugins) || true
 fs_gap=$(pc_false_standing plugins) || true
 [ -n "$fs_gap" ] && err "$fs_gap"
 
+# An agent told to do what its own tools: cannot (run git, hash, write a file) improvises:
+# creative-director invented its seed in three of three runs. What it reads, what it misses
+# and why it FAILs: pc_agent_tool_fit's header.
+toolfit_gap=$(pc_agent_tool_fit plugins) || true
+[ -n "$toolfit_gap" ] && lane_err "$toolfit_gap" "an agent is told to do what its tools: cannot — move the step to the main thread and pass the agent its result, name that actor in the sentence, grant the tool, or mark the paragraph or list (for a \`\`\`shell block, the one above it) '<!-- tool-fit-ok: <why> -->'"
+
 # And the condition that let pc_marker_key's defect hide for a release: a harness
 # that only ever sends session_id grades the fallback branch, so the branch the host
 # actually takes is never executed. pc_marker_key gates the hook; this gates the

@@ -69,7 +69,7 @@ run_hook() { # run_hook <prompt> <root> [env...] -> hook stdout
   # a hook that never finds its state file. That is exactly how the writer/reader
   # key mismatch shipped: every assertion here passed while the flush was dead.
   # `pc_harness_payload` fails this file if the field goes away again.
-  local tp="$box/transcript-sess-$n.jsonl"; : > "$tp"
+  local tp="$box/transcript-sess-$n.jsonl"; printf '%s' "${SEED_TX:+$SEED_TX$'\n'}" > "$tp"
   printf '%s' "$prompt" | jq -Rs --arg s "sess-$n" --arg tp "$tp" \
       '{prompt:., session_id:$s, transcript_path:$tp}' \
     | env TMPDIR="$box" CLAUDE_PLUGIN_ROOT="$root" "$@" "$BASH_BIN" "$HOOK" 2>/dev/null
@@ -122,11 +122,63 @@ want_silent "weak tier: slow down"    "lets slow down and talk about scope first
 want_silent "chat: acknowledgement"   "thanks, that looks good"
 want_silent "chat: question about code" "what does this function do"
 want_silent "chat: question about history" "who wrote this file"
+# V-16 (2026-10-13 retro): the check fired on a question, a hands-off ask and chat naming an error or a crash.
+# Each fixture is synthetic, in the shape of a measured prompt; the work-shaped neighbours below still fire.
+want_silent "question: ?-ended error report" "the VM manager will not start and shows errors?"
+want_silent "question: hands-off ask"        "quick question first, don't work on anything yet: why is the nightly import slow"
+want_silent "chat: bare error"               "that error message in the log is from the old version"
+want_silent "chat: bare crash"               "the crash report from yesterday is in the channel"
+want_fires  "symptom: keeps crashing"        "the worker keeps crashing on startup"
+want_fires  "work: fix the crash"            "fix the crash in the export job"
+want_fires  "work: a negated detail is still work" "fix the login bug but don't touch the API"
+want_silent "question: measured error report" "GNOME boxes doesn't work, for some reason, I get errors?"
+# Wave-2 review: each fired before V-16 and went silent with it. An error after a state verb or `throw` is an incident; a
+# hands-off phrase about another object is a constraint; a polite request or a why-diagnosis ending in `?` is an ask.
+want_fires  "symptom: getting an error"      "I'm getting an error when saving the profile form"
+want_fires  "symptom: throws errors"         "the export throws errors for large files"
+want_fires  "work: hands-off names another object" "build the export job; do not work on the legacy importer"
+want_fires  "work: please don't change … in a path" "Please don't change anything in vendor/ — implement the hook in app/"
+want_fires  "request: can you fix …?"        "can you fix the login bug?"
+want_fires  "request: could you add …?"      "could you add pagination to the users endpoint?"
+want_fires  "request: why is … returning 500s?" "why is the checkout returning 500s?"
+want_fires  "request: failing, can you take a look?" "the tests are failing, can you take a look?"
+# Range review: each fired before V-16 and went silent with it. A `?`-ended prompt naming a strong-tier word, or asking why,
+# someone or for an idea, is an ask; a hands-off clause silences only when no strong-tier word stands outside it.
+want_fires  "request: why isn't … passing?"     "why isn't the build passing after the refactor?"
+want_fires  "request: why doesn't … finish?"    "why doesn't the deploy finish?"
+want_fires  "request: why won't … load?"        "why won't the page load after the deploy?"
+want_fires  "request: is it possible to add …?" "is it possible to add pagination to the users endpoint?"
+want_fires  "request: would it be possible to fix …?" "would it be possible to fix the login bug?"
+want_fires  "request: any chance you could add …?" "any chance you could add dark mode?"
+want_fires  "request: broken, can someone look?" "the checkout is broken, can someone look?"
+want_fires  "request: failing — any idea?"      "tests are failing after the merge — any idea?"
+want_fires  "request: fix it, ok?"              "fix it, ok?"
+want_fires  "request: an incident question naming a strong symptom" "what's causing the 500s?"
+want_fires  "work: refactor, but don't touch anything yet in …" "Refactor the importer, but don't touch anything yet in the exporter"
+want_fires  "work: fix first, don't work on it until …" "Fix the failing parser tests first and don't work on it until they pass"
+want_fires  "work: implement …, never work on that" "implement the hook in app/, never work on that"
+# Tier 2 review: a strong-tier noun outside the hands-off clause re-fired the check; only an ask counts there, a match opening a
+# clause or following to, please, a modal or a conjunction.
+want_silent "question: hands-off beside a question naming a noun" "I got a question about the deploy, don't work on it"
+want_silent "question: hands-off first, a question naming a noun" "don't work on anything yet, I have a question about the test setup"
+want_fires  "work: I need you to build …, but don't change anything yet" "I need you to build the export, but don't change anything yet"
+want_fires  "work: don't work on it yet, but plan …" "don't work on it yet, but plan the migration to Postgres"
+# A paste is reference: verbs only inside it do not make the prompt work, nor does it push typed text out of the 400-char head.
+want_silent "paste: verbs only inside a paste" 'FYI only, no action: <pasted_content id="1">npm ERR! build failed while we deploy to staging</pasted_content> that is from the CI run last night'
+want_fires  "paste: an ask after a long paste" "$(printf '<pasted_content id="2">%0500d</pasted_content>\nfix the importer' 0)"
+want_fires  "paste: a paste alone is read whole" '<pasted_content id="3">npm ERR! build failed while we deploy to staging</pasted_content>'
 want_silent "slash prompt"        "/taskmaster:task build a landing page"
 want_silent "meta: about the hook" "disable the router hook that injects the catalog"
 want_silent "own output echoed"   "[skill-router] Tool-fit check (once this session)."
 want_silent "CC_ROUTE=off"        "build a landing page" CC_ROUTE=off
 want_silent "CC_REMIND=off"       "build a landing page" CC_REMIND=off
+# A /loop or ScheduleWakeup re-fire (2026-10-15): a host tick is a frame; a re-fired prompt is found by the call that scheduled
+# it in the transcript (SEED_TX seeds run_hook's transcript). A typed prompt beside that call is still the user's.
+want_silent "/loop tick: dynamic pacing" "$(printf '# Autonomous loop tick (dynamic pacing)\n\nRun the autonomous check; fix the failing build.')"
+SEED_TX='{"type":"assistant","message":{"content":[{"type":"tool_use","id":"w1","name":"ScheduleWakeup","input":{"delaySeconds":1200,"reason":"fallback","prompt":"check whether the import agents finished, then fix the failing build"}}]}}'
+want_silent "ScheduleWakeup re-fire" "check whether the import agents finished, then fix the failing build"
+want_fires  "typed prompt beside a wakeup" "fix the failing build"
+SEED_TX=""
 
 box="$WORK/nojq-box"; mkdir -p "$box"
 out=$(printf '{"prompt":"build a landing page","session_id":"nojq"}' \
@@ -141,6 +193,19 @@ o1=$(printf '%s' "$J" | env TMPDIR="$box" CLAUDE_PLUGIN_ROOT="$ROOT/$SR" "$BASH_
 o2=$(printf '%s' "$J" | env TMPDIR="$box" CLAUDE_PLUGIN_ROOT="$ROOT/$SR" "$BASH_BIN" "$HOOK" 2>/dev/null)
 [ -n "$o1" ] && pass "first prompt injects" || fail "first prompt injects" "silent"
 [ -z "$o2" ] && pass "second prompt yields" || fail "second prompt yields" "injected twice"
+
+# The re-fire test reads the whole transcript, so it runs only once the check would speak: a later work prompt in the session
+# greps no transcript, and a re-fire that came first leaves the marker for the next typed ask.
+box="$WORK/once-tx"; mkdir -p "$box/bin"; tp="$box/transcript.jsonl"; log="$box/grep.log"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"w3","name":"ScheduleWakeup","input":{"delaySeconds":900,"reason":"fallback","prompt":"then fix the failing build"}}]}}' > "$tp"
+printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$GREP_LOG"\nexec %s "$@"\n' "$(command -v grep)" > "$box/bin/grep"; chmod +x "$box/bin/grep"
+tx_hook() { jq -cn --arg p "$1" --arg tp "$tp" '{prompt:$p,session_id:"once-tx",transcript_path:$tp}' \
+  | env TMPDIR="$box" CLAUDE_PLUGIN_ROOT="$ROOT/$SR" PATH="$box/bin:$PATH" GREP_LOG="$log" "$BASH_BIN" "$HOOK" 2>/dev/null; }
+o1=$(tx_hook "then fix the failing build"); o2=$(tx_hook "build a landing page"); : > "$log"; o3=$(tx_hook "add a pricing page")
+[ -z "$o1" ] && [ -n "$o2" ] && pass "a re-fire first leaves the marker for the typed ask" \
+  || fail "a re-fire first leaves the marker for the typed ask" "re-fire ${#o1} bytes, typed ask ${#o2} bytes"
+[ -s "$log" ] && ! grep -qF -- "$tp" "$log" && [ -z "$o3" ] && pass "a later work prompt reads no transcript" \
+  || fail "a later work prompt reads no transcript" "transcript grepped $(grep -cF -- "$tp" "$log" 2>/dev/null) time(s), ${#o3} bytes"
 
 # UNWRITABLE TMPDIR MUST STILL INJECT. The dedup above and this case are the two
 # outcomes of one failed `mkdir`, and the hook used to answer both with `exit 0`:

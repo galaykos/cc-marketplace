@@ -212,7 +212,10 @@ Warns — never blocks — naming the codepoint and the line, on:
 
   U+200B-U+200D  zero-width space / non-joiner / joiner
   U+2060         word joiner
-  U+FEFF         zero-width no-break space (BOM), mid-file only
+  U+FEFF         zero-width no-break space (BOM), mid-file only; since 0.15.0 not a
+                 lone one leading a *.log line or tab-separated field, where GitHub
+                 starts each step's output (gh run view --log puts it after the job
+                 and step fields; a saved CI log drew the warning for it)
   U+202A-U+202E  bidirectional overrides (the "Trojan Source" class, CVE-2021-42574)
   U+2066-U+2069  bidi isolates
   U+00AD         soft hyphen
@@ -301,6 +304,29 @@ invisible characters written into it later went unreported — "warns once" read
 one heredoc and appended by the next.
 Claim the shot now. mkdir is atomic: of two concurrent hooks on the same file,
 exactly one reports.
+
+0.15.0: the key was the transcript path (else the session id) and the file, so the
+same mockup HTML warned once in each of three read-only reviewer subagents in one
+measured session. It is now the date, the project root (cc_state_root of the payload
+cwd), the file and the codepoints the scan found with their positions dropped: one
+warning per project, file and day, and again that day only when the set of invisible
+characters changes, so a reflowed file stays quiet and an added character speaks.
+Accepted cost: a new session the same day is not told about an unchanged file it
+reads, and the day turns at local midnight.
+
+0.15.0, review round (2026-10-15): that per-day key was reverted. The warning exists for
+the model context that ingests the hidden text, and a subagent or a later session that
+Read a file with tag characters was never told. The key is now the session_id plus the
+payload's agent_id (the transcript path when there is no session_id), the file, and a
+sha1 of every hidden codepoint in order. Premise checked before keying on session_id:
+the 2026-09-29/10-01 candor probes show SubagentStart, SubagentStop and Stop carrying one
+session_id and a PostToolUse inside the subagent carrying an agent_id, and a subagent
+transcript's own sessionId field reads the parent's session (checked on a local
+transcript, 2026-10-15) — so session_id alone dedups subagents, and agent_id is what
+tells them apart. The digest covers codepoints past the six the report names: the old
+key was built from the report, so six U+200B and a seventh turned into U+202E stayed
+silent. Cost: a file with hits is read whole, as a clean one always was (1.87 MB with
+110k hits, 31 -> 208 ms; clean, 200 ms).
 ```
 
 ### The Bash branch: resolving a target
@@ -309,6 +335,19 @@ exactly one reports.
 Logical `cd && pwd` folds `..` without resolving symlinks, so the result keeps
 the spelling cc_state_root used and the prefix test compares like with like.
 A relative target resolves against the payload cwd: that IS the shell's cwd.
+```
+
+## plugins/secret-scanning/hooks/patterns.sh
+
+```text
+Moved out of scan.sh on 2026-10-15 (0.15.0, review round): scripts/scan-range.sh had
+re-implemented the loader, the placeholder rule and the assigned-value extraction, and
+checked less — no edge-space, dialect, escape, empty-match or placeholder-probe check —
+so a row scan.sh refused was applied by the sweep. One sourced file, as candor's
+hooks/cite.sh is for its gate and /candor:check. scan.sh keeps its fail-closed contract:
+a missing patterns.sh defines a load_patterns that fails, so every write with text is
+refused as for a bad patterns.tsv; scan-range.sh exits 2. pat_value sets a variable
+rather than printing, so a secret-row match costs no subshell in the hook.
 ```
 
 ## plugins/secret-scanning/scripts/__tests__/scan-hook.test.sh
@@ -402,7 +441,7 @@ surviving an editor, a copy-paste, or this repo's own review.
 ```text
 the bidi class gets its own message, because the consequence is different
 the report names a location, not just a fact
-one-shot per file per session
+one-shot per project, file and day (0.15.0; per session before)
 a clean touch does NOT spend the file's one warning (0.9.1): created clean, then an
 invisible character appended — the second touch must still warn.
 off switches

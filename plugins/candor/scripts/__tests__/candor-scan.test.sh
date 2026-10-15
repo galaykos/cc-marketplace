@@ -76,6 +76,44 @@ T="$WS/elide.jsonl"
   asst "And src/ghost.ts:1 — an invented filename."; } > "$T"
 axis_is "elided paths skipped, invented basename counted" "$T" unresolved-citation 1
 
+# The lookup is hooks/cite.sh, the gate's own; these shapes were false hits before 0.8.0.
+mkdir -p "$PROJ/node_modules/scrolly/dist" "$PROJ/vendor/acme/lib"
+printf 'x\n' > "$PROJ/node_modules/scrolly/dist/scrolly.mjs"
+seq 1 20 > "$PROJ/vendor/acme/lib/Thing.php"
+T="$WS/deps.jsonl"
+{ asst "The easing lives at scrolly.mjs:783."
+  asst "See $PROJ/vendor/acme/lib/Thing.php:12 for the hook."
+  asst "The admin panel is at shop.localhost:8080 and api.test:3000."; } > "$T"
+axis_is "a dependency basename, an absolute vendor/ path and dev hosts are not counted" "$T" unresolved-citation 0
+T="$WS/deps-bad.jsonl"
+{ asst "See src/Invented.php:12 for the handler."
+  asst "See $PROJ/vendor/acme/lib/Thing.php:99 past the end."; } > "$T"
+axis_is "an invented basename beside a vendor/ tree and an absolute vendor/ path past EOF are counted" "$T" unresolved-citation 2
+out=$(cd "$PROJ" && bash "$SCAN" --session-file "$T" 2>&1)
+if printf '%s' "$out" | grep -qF "src/Invented.php:12 — no file named Invented.php found under $PROJ (8 deep;" && ! printf '%s' "$out" | grep -q anywhere; then
+  pass=$((pass+1)); printf 'PASS  a missing basename names what was searched, never "anywhere"\n'
+else fail=$((fail+1)); printf 'FAIL  a missing basename names what was searched, never "anywhere"\n%s\n' "$out"; fi
+# One lookup, hooks/cite.sh, sourced by both: the gate and the report must agree on the same message, both ways.
+G="$ROOT/plugins/candor/hooks/gate.sh"
+agree() { # <desc> <message> <gate exit> <scan count>
+  local t="$WS/agree$((++na)).jsonl" grc n
+  { user "where is it"; asst "$2"; } > "$t"
+  rm -rf "$PROJ/.claude"
+  jq -cn --arg tp "$t" --arg cwd "$PROJ" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:false}' \
+    | env -u CLAUDE_PROJECT_DIR -u CLAUDE_PLUGIN_DATA TMPDIR="$WS" bash "$G" >/dev/null 2>&1; grc=$?
+  n=$(cd "$PROJ" && bash "$SCAN" --session-file "$t" 2>&1 | awk '$1=="unresolved-citation" {print $2; exit}')
+  if [ "$grc" = "$3" ] && [ "$n" = "$4" ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"
+  else fail=$((fail+1)); printf 'FAIL  %s (gate exit %s want %s; scan %s want %s)\n' "$1" "$grc" "$3" "${n:-<none>}" "$4"; fi
+}
+na=0
+agree "gate and report agree: a vendor/ citation, a dependency basename and localhost:8000 are no fabrication" \
+  "See vendor/acme/lib/Thing.php:12 and scrolly.mjs:783; the dev server answers on localhost:8000 and shop.localhost:8080." 0 0
+agree "gate and report agree: an invented basename beside them is one" \
+  "See vendor/acme/lib/Thing.php:12 and src/Invented.php:12; the dev server answers on localhost:8000." 2 1
+if grep -q 'hooks/cite.sh' "$SCAN" && grep -q '/cite.sh"' "$G" && ! grep -qE 'maxdepth 8|_find\(\)|resolve\(\)' "$G" "$SCAN"; then
+  pass=$((pass+1)); printf 'PASS  gate.sh and candor-scan.sh carry no citation lookup of their own\n'
+else fail=$((fail+1)); printf 'FAIL  gate.sh and candor-scan.sh carry no citation lookup of their own\n'; fi
+
 T="$WS/rev.jsonl"
 { asst "The retry is disabled."; user "Are you sure?"; asst "You're right, my mistake."
   asst "The queue is FIFO."; user "Are you sure?"; tools Bash; asst "You're right, it is LIFO."

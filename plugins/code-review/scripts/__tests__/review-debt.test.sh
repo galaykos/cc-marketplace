@@ -34,6 +34,9 @@ g add -A && g commit -qm init
 TP1='/Users/x/.claude/projects/-Users-x-proj/11111111-aaaa.jsonl'
 TP2='/Users/x/.claude/projects/-Users-x-proj/22222222-bbbb.jsonl'
 TP3='/Users/x/.claude/projects/-Users-x-proj/33333333-cccc.jsonl'
+TP4='/Users/x/.claude/projects/-Users-x-proj/44444444-dddd.jsonl'
+TP5='/Users/x/.claude/projects/-Users-x-proj/55555555-eeee.jsonl'
+TP6='/Users/x/.claude/projects/-Users-x-proj/66666666-ffff.jsonl'
 
 say() { # cwd prompt transcript -> additionalContext ('' when silent)
   jq -nc --arg c "$1" --arg p "$2" --arg t "$3" \
@@ -67,7 +70,11 @@ fires() { # label output needle...
   done
   echo "PASS: $l"
 }
-base_of() { cat "$R/.claude/code-review/review-base-$(printf '%s' "$1" | cksum | cut -d' ' -f1)" 2>/dev/null; }
+base_of() { # transcript -> the base commit (the file's first word; the second is the branch)
+  local b=""
+  read -r b _ < "$R/.claude/code-review/review-base-$(printf '%s' "$1" | cksum | cut -d' ' -f1)" 2>/dev/null
+  printf '%s' "$b"
+}
 
 # ---- first prompt: record a base, say nothing --------------------------------------
 silent "first prompt" "$(prompt)"
@@ -80,12 +87,20 @@ commit "nine" src/f1.ts src/f2.ts src/f3.ts src/f4.ts src/f5.ts src/f6.ts src/f7
 base1=$(base_of "$TP1"); short1=$(g rev-parse --short "$base1")
 out=$(prompt)
 fires "9 committed code files nudge" "$out" "9 changed files have had no review in this session since $short1" \
-  "/code-review:review $short1..HEAD" "or say in one line why not" "CC_REVIEW_NUDGE=off"
+  "/code-review:review $short1..HEAD" "or say in one line why not" \
+  "Per-card reviews do not cover cross-card changes." "CC_REVIEW_NUDGE=off"
+printf '%s' "$out" | grep -q 'Before this ships' && { echo "FAIL: a plain prompt drew the ship wording"; rc=1; }
 printf '%s' "$out" | grep -q 'auth-surface' && { echo "FAIL: no auth path, yet an auth-surface clause"; rc=1; }
 [ "$(printf '%s' "$out" | wc -l | tr -d ' ')" = "0" ] \
   && echo "PASS: the nudge is one line" || { echo "FAIL: the nudge spans lines: $out"; rc=1; }
 printf '%s\n' "$out" > "$FX/nudge-count.txt"
 silent "same HEAD, second prompt" "$(prompt)"
+
+# ---- a ship verb speaks at the same HEAD, even after the plain nudge; once per count ---
+fires "ship prompt after the plain nudge, same HEAD" "$(say "$R" "commit this and push" "$TP1")" \
+  "Before this ships: 9 changed files have had no review in this session since $short1" \
+  "uncommitted and untracked files included" "/code-review:review $short1 now"
+silent "second ship prompt, same count" "$(say "$R" "open the PR" "$TP1")"
 
 # ---- HEAD moves but the count does not grow: silent ---------------------------------
 commit "touch one again" src/f1.ts
@@ -117,6 +132,19 @@ printf '%s\n' "$out" > "$FX/nudge-auth.txt"
 skill code-review:review
 commit "author" app/Http/Controllers/AuthorController.php
 silent "Skill code-review:review moved the base; AuthorController is not auth" "$(prompt)"
+
+# ---- registration is an auth surface (the shared block's words); a registry is not --
+commit "registry" app/Support/ServiceRegistry.php
+silent "a service registry is not registration" "$(prompt)"
+commit "registration" app/Http/Controllers/RegistrationController.php
+fires "a registration controller nudges as an auth surface" "$(prompt)" "auth-surface: app/Http/Controllers/RegistrationController.php"
+
+# ---- sign-up counts as a word or a camelCase part, not inside DesignUpdates or AssignUploads --
+skill code-review:review
+commit "design updates" app/Http/Controllers/DesignUpdatesController.php app/Jobs/AssignUploadsToFolder.php
+silent "DesignUpdatesController and AssignUploadsToFolder are not sign-up" "$(prompt)"
+commit "sign-up" app/Http/Controllers/UserSignUpController.php
+fires "a camelCase SignUp controller nudges as an auth surface" "$(prompt)" "auth-surface: app/Http/Controllers/UserSignUpController.php"
 
 # ---- the user typing the review command moves the base too --------------------------
 silent "typed /code-review:review" "$(say "$R" "/code-review:review src/" "$TP1")"
@@ -161,14 +189,70 @@ fires "cwd app/Models sees the same context's base" "$(say "$R/app/Models" go "$
 silent "cwd at the root, same HEAD: already judged" "$(say "$R" go "$TP2")"
 [ -e "$R/app/Models/.claude" ] && { echo "FAIL: a .claude/ appeared in app/Models"; rc=1; }
 
-# ---- a base that left HEAD's history (branch switch) resets instead of diffing across -
+# ---- a base that left HEAD's history (amend) resets instead of diffing across ----------
 silent "first prompt of a third context" "$(say "$R" go "$TP3")"
-g checkout -q -b side HEAD~6
-commit "side work" app/Auth/SideGuard.php
+printf 'amended\n' >> "$R/app/Auth/TenantGuard.php"
+g add -A && g commit -q --amend -m "guard, amended"
 silent "base no longer an ancestor of HEAD" "$(say "$R" go "$TP3")"
 [ "$(base_of "$TP3")" = "$(g rev-parse HEAD)" ] \
   && echo "PASS: the orphaned base was reset to HEAD" \
   || { echo "FAIL: the orphaned base was not reset"; rc=1; }
+
+# ---- a switch to a branch built on the base does not charge that branch's files -------
+silent "first prompt of a fourth context, on master" "$(say "$R" go "$TP4")"
+g checkout -q -b upgrade
+commit "upgrade work" up/a.ts up/b.ts up/c.ts up/d.ts up/e.ts up/f.ts up/g.ts up/h.ts up/i.ts app/Auth/UpGuard.php
+g checkout -q master
+silent "fourth context, back on master" "$(say "$R" go "$TP4")"
+g switch -q upgrade
+silent "switched to a branch built on the base: its 10 files are not this session's" "$(say "$R" go "$TP4")"
+[ "$(base_of "$TP4")" = "$(g rev-parse HEAD)" ] \
+  && echo "PASS: the base moved to where the switch landed" \
+  || { echo "FAIL: the base did not move to the switched-to tip"; rc=1; }
+commit "after the switch" app/Auth/AfterSwitch.php
+fires "a commit after the switch is counted alone" "$(say "$R" go "$TP4")" \
+  "1 changed file has had no review" "auth-surface: app/Auth/AfterSwitch.php"
+
+# ---- git switch -c plus commits in one turn stay in the count ------------------------
+silent "first prompt of a fifth context" "$(say "$R" go "$TP5")"
+start5=$(g rev-parse --short HEAD)
+g switch -q -c feature
+commit "feature" ft/a.ts ft/b.ts ft/c.ts ft/d.ts ft/e.ts ft/f.ts ft/g.ts ft/h.ts
+fires "new branch and 8 commits in one turn: counted from the branch point" "$(say "$R" go "$TP5")" \
+  "8 changed files have had no review in this session since $start5"
+
+# ---- uncommitted and untracked work at a ship prompt ---------------------------------
+silent "first prompt of a sixth context" "$(say "$R" go "$TP6")"
+start6=$(g rev-parse --short HEAD)
+printf 'edit\n' >> "$R/ft/a.ts"
+mkdir -p "$R/app/Billing" && printf 'new\n' > "$R/app/Billing/PaymentHold.php"
+silent "uncommitted work, plain prompt, same HEAD: still once per HEAD" "$(say "$R" "proceed next recommended" "$TP6")"
+out=$(say "$R" "open a PR and merge it" "$TP6")
+fires "uncommitted + untracked auth file at a ship prompt, same HEAD" "$out" \
+  "Before this ships: 2 changed files have had no review in this session since $start6" \
+  "auth-surface: app/Billing/PaymentHold.php" "Run /code-review:review $start6 now" \
+  "Per-card reviews do not cover cross-card changes."
+printf '%s\n' "$out" > "$FX/nudge-ship.txt"
+silent "same count, second ship prompt" "$(say "$R" "git push" "$TP6")"
+printf 'new\n' > "$R/ft/z.ts"
+# Neighbouring words are not ship verbs; each would fire now (3 > 2) if read as one.
+silent "pre-commit is not commit" "$(say "$R" "add a pre-commit hook for the linter" "$TP6")"
+silent "merge-base is not merge" "$(say "$R" "use git merge-base to find the fork point" "$TP6")"
+silent "push_notifications is not push" "$(say "$R" "rename the push_notifications table" "$TP6")"
+silent "a path holding merge is not merge" "$(say "$R" "read src/merge/strategy.ts" "$TP6")"
+silent "ship verb inside a code fence" "$(say "$R" "$(printf 'why does this fail?\n```\n$ git push origin main\n```')" "$TP6")"
+silent "ship verb past 400 characters" "$(say "$R" "$(printf 'x%.0s' $(seq 1 400)) then commit" "$TP6")"
+silent "task notification naming a merge" "$(say "$R" "<task-notification>agent finished: merge conflict resolved</task-notification>" "$TP6")"
+silent "Stop hook feedback naming a commit" "$(say "$R" "Stop hook feedback: uncommitted changes — commit or stash before stopping" "$TP6")"
+for f in "<system-reminder>run git push after the build</system-reminder>" "[SYSTEM NOTIFICATION] merge queue updated" \
+         "Another Claude session sent a message: please commit your work" "<agent-message from=\"w1\">ready to merge</agent-message>" \
+         "*[Subagent hand-back]* done; open the PR when ready"; do
+  silent "harness frame naming a ship verb: ${f%% *}" "$(say "$R" "$f" "$TP6")"
+done
+fires "the slash form /commit is a ship verb" "$(say "$R" "/commit" "$TP6")" "Before this ships: 3 changed files"
+printf 'new\n' > "$R/ft/y.ts"
+fires "a hand-back marker quoted mid-sentence is the user's ship prompt" \
+  "$(say "$R" "merge it once the relay prints [Subagent hand-back] for card 3" "$TP6")" "Before this ships: 4 changed files"
 
 # ---- outside git: silent, and no state written -----------------------------------------
 mkdir -p "$FX/plain"
@@ -184,5 +268,6 @@ else echo "FAIL: garbage input did not fail open"; rc=1; fi
 echo
 echo "nudge (count):  $(cat "$FX/nudge-count.txt")"
 echo "nudge (auth):   $(cat "$FX/nudge-auth.txt")"
+echo "nudge (ship):   $(cat "$FX/nudge-ship.txt")"
 [ "$rc" -eq 0 ] && echo "review-debt.test: all cases passed" || echo "review-debt.test: FAILURES above"
 exit "$rc"

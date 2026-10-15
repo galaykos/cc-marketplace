@@ -6,7 +6,7 @@
 task-runner:task-executor	agent	build	decided-fix-list-application	a fix list or card list exists whose changes are already decided, plus a scope lock	-
 task-runner:delegation-contracts	skill	any	subagent-dispatch-contract	spawning a subagent, writing an agent prompt, planning a fan-out, or reading a subagent report back	-
 task-runner:verification-panels	skill	verify	agent-output-trust-decision	deciding whether agent findings can be trusted, judging competing solutions, or discovery may have stopped too early	-
-task-runner:drift	hook	any	ad-hoc-breadth-question	PostToolUse with no registered run (active-run.json), >=12 distinct files edited since the last typed request, no breadth marker in it, and half of them unnamed	-
+task-runner:drift	hook	any	ad-hoc-breadth-question	PostToolUse with no registered run (active-run.json), >=12 distinct files edited since the last typed request (not counting files created under a directory it created), no breadth marker in it, and half of them unnamed	-
 task-runner:plan	command	plan	task-list-parallelization-plan	invoked as /task-runner:plan with a task list or card index	task-runner:parallel-planning
 task-runner:parallel-planning	skill	plan	task-list-parallelization-plan	a task list of three-plus tasks is about to be executed, or "subagents or inline?" is asked: dependency levels, disjoint-file groups, agent count, inline-vs-delegate verdict	-
 task-runner:behavioral-gate	skill	verify	produced-artifact-execution	a run is completing, or a --tracks merged branch reaches its final gate: the produced artifact is actually run — the suite through a real runner plus a smoke of each shell entrypoint, not a re-lint	-
@@ -15,7 +15,7 @@ task-runner:ultra-assess	hook	any	ultra-assess-boost-directive	prompt head match
 # generated:end
 task-runner:announce	hook	any	registered-run-announcement	SessionStart with source startup, resume or clear while .claude/task-runner/active-run.json exists in the session project	skill-router:compact-capsule
 task-runner:rv-consent	hook	any	reviewer-verdict-consent	a Write/Edit/Bash runs under a registered task-runner run whose reviewer verdict has not been consented to	task-runner:task-execution
-task-runner:spawn-cap	hook	any	subagent-spawn-cap	an Agent/Task dispatch crosses the session's soft cap (20, then every doubling)	task-runner:parallel-planning
+task-runner:spawn-cap	hook	any	subagent-spawn-cap	an Agent/Task dispatch crosses the session's soft cap (20, then every doubling; inside a registered run max(cap, 3 per indexed card), as a notice)	task-runner:parallel-planning
 task-runner:floors	mod	any	subagent-model-floor	agent.spawn of an agent listed in delegation-contracts/references/role-floors.md whose explicit model, or the parent's model when none is given, differs from max(that model, its floor)	-
 task-runner:suggest	mod	any	next-step-suggestion	first main-loop turn end with no live phase sentinel after a successful Write of taskmaster-docs/tasks/*/00-INDEX.md under the state root, while no run is active on this branch, the index still has an open card and gate-pass.json does not name it; CC_SUGGEST not off	-
 # lane-cofire-ok: task-runner:suggest code-review:suggest

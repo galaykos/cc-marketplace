@@ -3,6 +3,79 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.11.4 — 2026-10-14
+
+### Fixed
+- **Tailwind's `truncate` class no longer asks as SQL.** The TRUNCATE rule matched
+  `truncate <word>` in any case, so a component line such as `className="truncate text-xs"`
+  drew the destructive-SQL ask, repeatedly, in background workers and auto mode with nobody
+  to answer it. The rule now fires on an uppercase `TRUNCATE <x>`, or on `truncate table` in
+  any case followed by a table name, so the Tailwind pair `truncate table-cell` stays silent
+  too. The any-case form also skips a line carrying a class list (`class=`, `className=`,
+  `:class=`, `class:`, `clsx(`, `cn(`, `cva(`, `` tw` ``), so `className="truncate table w-full"`
+  stays silent; an uppercase `TRUNCATE` still asks on such a line. Residual: a lowercase
+  `truncate users` without `TABLE` is no longer asked, and a class string built outside an
+  attribute or helper (`const c = "truncate table w-full"`) still asks. Harness cases
+  "Tailwind truncate class", "Tailwind truncate table-cell", "className truncate table",
+  "Vue :class truncate table", "cn() truncate table", "class string outside a helper",
+  "TRUNCATE without TABLE", "lowercase truncate table" and "lowercase truncate table, .sql"
+  in `guard.test.sh` pin it; the first fails against 0.11.3.
+- **A new create-table migration no longer asks because its `down()` drops the table.** The
+  rollback method is the escape this guard's own header grants, yet `Schema::dropIfExists` in
+  `down()` drew the destructive-SQL ask on every new migration; sessions stalled 969 s and
+  1,454 s on an ask nobody was there to answer. The rollback method is now cut before the text
+  is judged, from its opener to the next method: `function down(` in a PHP file under
+  `migrations/` (Laravel, Doctrine), `def down` under `db/migrate/` (Rails) and `def downgrade(`
+  in `alembic/versions/` or `migrations/versions/` (Alembic), on a Write, an Edit and a Bash
+  heredoc alike. A drop in `up()`, or in a helper method declared after `down()`, still asks.
+  An opener counts only where it leads its line (PHP's may follow `public`, `protected`,
+  `private`, `static` or `final`), so a comment or string in `up()` naming `function down()`
+  cuts nothing; and a MultiEdit's edits are cut one by one, so a `down()` added by one edit
+  does not hide a drop another edit puts in `up()`.
+  Residual: a Knex, TypeORM or Sequelize rollback still asks (their `down` is spelled several
+  ways with no line marking where it ends), an Edit or MultiEdit edit whose new text sits
+  inside `down()` without the opener still asks, and code sharing a line with the `down()`
+  opener is skipped.
+  Harness cases "create migration, dropIfExists in down()", "drop in up() still asks", "drop
+  in a helper after down() still asks", "down() opener outside migrations/ is not cut", "rails
+  def down drop_table", "alembic downgrade drop_table", "alembic drop_table in upgrade still
+  asks", "comment naming down() in up() cuts nothing", "string naming down() in up() cuts
+  nothing", "multiedit: down() in edit 1 does not cut edit 2's drop", "multiedit: a drop in an
+  edit's own down() is still cut" and "bash: create migration written by heredoc, drop only in
+  down()" pin it; the five that expect silence fail against the hook before this change.
+- **Scratch outside the project no longer asks** (2026-10-15). Scratch probes under `/tmp`
+  and a test fake outside the repository drew the ask, because only documentation surfaces
+  were exempt. A target under neither `CLAUDE_PROJECT_DIR` nor the payload cwd's root (its git
+  toplevel, else `CLAUDE_PROJECT_DIR` when the cwd is under it, else the cwd), or under
+  `$TMPDIR` (default `/tmp`) while the root holding it is not there, is now skipped on a Write,
+  an Edit and a Bash heredoc alike. `CLAUDE_PROJECT_DIR` counts because the cwd follows the
+  shell's `cd`: with the shell in a sibling repo, a `DROP TABLE` migration written into the
+  project was skipped on this version's first cut. The rule is the shared
+  `templates/blocks/write-scope.md`, which security's `write-scan` carries byte-for-byte. Both
+  sides are compared symlink-resolved, and a path not created yet by its nearest existing
+  directory. The check runs only for a target that would ask, so a write with no hit costs
+  what it did. Residual: a sibling repo or worktree written by absolute path from outside both
+  roots is skipped too, and a payload with no cwd and no `CLAUDE_PROJECT_DIR` keeps only the
+  temp-dir rule.
+- **No CONCURRENTLY ask on SQLite** (2026-10-15). SQLite (Cloudflare D1, Turso) has no
+  `CREATE INDEX CONCURRENTLY`, so the lock-hazard ask gave advice that cannot be followed.
+  The guard read no project config before. For a `CREATE INDEX` that would ask, it now reads,
+  from the target's directory up to the root holding it, wrangler's `d1_databases`, a Prisma
+  `provider = "sqlite"` and a `drizzle.config.*` dialect `sqlite` or `turso`; when one names
+  SQLite there is no ask. Laravel's `.env` is not read: `DB_CONNECTION=sqlite` is Laravel 11+'s
+  default local config, so a PostgreSQL-in-production app lost the ask on this version's first
+  cut. A data-loss statement still asks. Residual: with no cwd and no `CLAUDE_PROJECT_DIR`
+  nothing is detected; Laravel's `.env`, Rails' `database.yml`, Django settings and a DSN in
+  code are not read; a project whose config names SQLite while the migration targets another
+  engine is not asked.
+  Harness: 23 `guard.test.sh` cases (`scope:` and `sqlite:`); the nine that expect silence fail
+  against the hook before this change, and the fourteen that still ask (a target in the
+  project, a new dir in it, no cwd outside `$TMPDIR`, a project that lives in `$TMPDIR`, a Bash
+  heredoc into the project, `DROP TABLE` on D1, Prisma on PostgreSQL, Laravel on `pgsql` and
+  on `sqlite`, a monorepo sibling without the config, a migration into the project and a write
+  into the cwd's repo with the shell in a sibling repo) pass on both; of those, the
+  sibling-repo migration and Laravel's `sqlite` `.env` were silent on this version's first cut.
+
 ## 0.11.3 — 2026-10-04
 
 - **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/guard.sh` keep each function's contract and limits in a few lines; the derivations and history moved to the marketplace repository's `rationale/`. The hook parses to the same code as before, compared by bash's own parser with comments ignored.

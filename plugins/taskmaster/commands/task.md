@@ -103,18 +103,21 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
 9. Handoff — do not just print a command and stop:
    - **Skip the ask when execution is already authorized.** If the user settled it
      earlier this session — an answer that chose the pipeline's weight, an explicit
-     "just do it", a prior "Run now" — the decision is granted; invoke task-execution
-     directly and report the result. Re-asking a settled decision stalls the turn.
+     "just do it", a prior "Run now" — the decision is granted; invoke `/task-runner:run`
+     on the index directly and report the result. Re-asking a settled decision stalls the turn.
    - **Never substitute prose for the ask.** Ending a turn with "next: run the cards,
      or I edit the file now" is not a handoff — those two labels are the same work, so
      the choice is false, and a plain-text offer yields a dead turn with nothing started.
      Either the ask below runs as an AskUserQuestion, or execution begins.
    - If the task-runner plugin is installed, ask via AskUserQuestion: "Cards are
      ready. Start execution now?" with options "Run now (Recommended)" and "Stop
-     here — I'll run it later". On "Run now", immediately invoke the
-     task-execution skill from the task-runner plugin on the new `00-INDEX.md`,
-     exactly as `/task-runner:run taskmaster-docs/tasks/YYYY-MM-DD-<slug>/00-INDEX.md`
-     would — same scope lock, same bounded verify-fix loops.
+     here — I'll run it later". On "Run now", immediately invoke the command itself —
+     `/task-runner:run taskmaster-docs/tasks/YYYY-MM-DD-<slug>/00-INDEX.md` (Skill tool,
+     `task-runner:run`); the command is the handoff. Since task-runner 0.47.0 every
+     task-runner entry point registers the run (`active-run.json`, the `build` sentinel)
+     through `scripts/register-run.sh`, so the skill route no longer skips registration,
+     which once left the review observer, candor's completion clause and the closing
+     gate silently off.
    - On "Stop here", or when AskUserQuestion is unavailable (headless), print
      that exact command as the next step.
    - Without task-runner installed, give the card paths and note each card is

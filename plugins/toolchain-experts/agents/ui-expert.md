@@ -26,7 +26,7 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
    analyzer record, means the automatable pass does not exist here: report that and
    route the whole review to `/ui-ux:audit`.
 2. Read the `ci` records: enforced, or advisory?
-3. Run the printed invocation. `pa11y-ci`, `lhci` and `axe` need a built or running
+3. Run the printed invocation, unless CI already passed it on this HEAD (the skill's step 4). `pa11y-ci`, `lhci` and `axe` need a built or running
    target — if there is none, report that as the blocker rather than guessing a result.
 4. Triage into new defect / suppressed / config gap.
 

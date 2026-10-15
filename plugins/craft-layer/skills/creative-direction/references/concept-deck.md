@@ -26,18 +26,48 @@ under its anti-corpus exception.
 
 ## How the draw is seeded
 
+The main thread draws, before it dispatches the `creative-director` — that agent has no shell
+to hash a seed and no Write to record a draw, and three runs that left the draw to it got an
+improvised seed. It receives the draw, the seed and the lens carry in its dispatch.
+
 1. Read `<project>/.craft-layer/run-log.md` and take the `draw` cell of the last 5 rows.
 2. EXCLUDE every option those rows used — the exclusion window is the last 5 draws,
    applied per axis. If an axis has fewer than two options left, drop its oldest exclusions
    until two are drawable again.
-3. When the log is absent, empty, or malformed, seed from a hash of the brief text plus
-   today's date. A missing log is a first run, never an error.
+3. When the log is absent, empty or malformed, the main thread seeds from the brief text
+   plus today's date: the first field of `printf '%s' "$brief$(date +%F)" | cksum`. A missing
+   log is a first run, never an error.
 4. Draw ONE option per axis — five in total — and record them before generating candidates.
+   From a seed, read the axes as the digits of one mixed-radix number, in the order listed
+   below: axis 1 takes index `seed mod n`, the seed becomes `seed / n` (whole-number
+   division), axis 2 takes the new `seed mod n`, and so on, counting options from 0 in the
+   order listed (n = the options left on that axis). The same `seed mod n` on every axis
+   would tie the three eight-option axes to one index, so only 8 of their 512 combinations
+   could ever come up; carrying the quotient reaches every combination. The carry left after
+   axis 5 seeds the creative-director's tie-break lens (carry mod 4), and the main thread
+   passes it with the seed: the seed's own `mod 4` is axis 1's index `mod 4`, so the lens
+   would follow the composition drawn.
+
+   Worked example, as the main thread computes it on a first run (nothing excluded, so n is
+   8, 8, 8, 7, 9 down the axes):
+
+   ```
+   s=$seed; for n in 8 8 8 7 9; do echo $((s % n)); s=$((s / n)); done; echo "lens carry $s"
+
+   brief 'a CRM for independent dental clinics', date 2026-10-15
+   seed = first field of printf '%s' "${brief}2026-10-15" | cksum = 521869429
+   axis 1: 521869429 mod 8 = 5, carry 65233678 -> Layered depth stack
+   axis 2:  65233678 mod 8 = 6, carry  8154209 -> Polarity flip
+   axis 3:   8154209 mod 8 = 1, carry  1019276 -> Type recedes
+   axis 4:   1019276 mod 7 = 6, carry   145610 -> Stillness by design
+   axis 5:    145610 mod 9 = 8, carry    16178 -> Declared none
+   lens:       16178 mod 4 = 2                 -> thesis carry
+   ```
 
 ## Recording the draw
 
-Write the draw into `craft/divergence-record.md` as five lines, ONE PER AXIS, in the form
-`<axis-name>: <option-name>`:
+The main thread writes the draw into `craft/divergence-record.md` as five lines, ONE PER
+AXIS, in the form `<axis-name>: <option-name>`:
 
 ```
 Composition strategy: Broken grid
@@ -234,7 +264,19 @@ a `one-shot` run: does copy for this page already EXIST (the live site, a doc, a
 does the build ship visible `{{lorem}}` slots? A URL or path the brief ALREADY named is a
 supplied input, not a question — read it without asking. The rules binding ingested copy
 are in `content-source.md`. On a redesign the same call also carries the mode question
-(`redesign-preservation.md`) — up to three questions, still one call.
+(`redesign-preservation.md`), whose options carry the never-change approvals — four questions
+with the voice below, the host's limit, still one call.
+
+**The voice is its own question in that call**, its options the candidates' editorial
+voices, so a user who likes one concept's signature move and another's voice can say so
+without rejecting both. The picked voice is the one `voice-contract.md` makes buildable;
+headless, it is the picked concept's. On a marketing/campaign archetype no candidate's voice
+breaks toward restraint or plainness — a documentary, understated or no-promises voice —
+unless the brief asks for restraint: a page selling one idea has to sell it. A drawn
+restraint option (`Documentary plainness`, `Stillness by design`) binds the setting or the
+motion, never the voice. In a real marketing-homepage run the recommended concept carried a voice
+that promised nothing; the user kept its signature move and the voice cost a second build
+pass. Standing: agent-graded — no gate reads a voice against the archetype.
 
 **The fork forks on CONCEPT** — the spine and the signature move — never on three shades of
 one accent. `/ui-ux:theme` already forks on colour at its own step, and a second colour fork

@@ -876,6 +876,45 @@ assert_denies "leaders: commented-out code inside /** */ with no @example is sti
 export function compute(x: number) { return x * 2; }'
 assert_denies "leaders: // const old = compute(counter); is still denied" ld3 /tmp/proj/ld3.ts '// const old = compute(counter);
 const next = compute(counter + 1);'
+# A docblock line describing a shape borrows code punctuation; it is code there only with a code token and not as a sentence.
+assert_allows "docblock: Shop => [owner, warehouse, last sync failed]. is prose, not commented-out code" dp1 /tmp/proj/dp1.php '<?php
+class DemoSeeder
+{
+    /**
+     * Shop => [owner, warehouse, last sync failed].
+     */
+    private const ROWS = [];
+}'
+assert_silent "docblock: the same shape line draws no warning either" "$(envelope Write /tmp/proj/dp1.php '/**
+ * Shop => [owner, warehouse, last sync failed].
+ */
+const ROWS = [];')"
+assert_allows "docblock: a period-ended sentence holding an = is prose" dp2 /tmp/proj/dp2.ts '/**
+ * limit = thirty rows unless the caller passes its own.
+ */
+export function page(limit: number) { return limit; }'
+assert_denies "docblock: \$total = sum(\$rows); inside /** */ is still denied" dp3 /tmp/proj/dp3.php '<?php
+/**
+ * $total = sum($rows);
+ */
+function sum(array $rows) {}'
+assert_denies "docblock: // \$x = foo(); outside a docblock is still denied" dp4 /tmp/proj/dp4.php '<?php
+// $x = foo();
+$y = foo();'
+# Commented-out code needs no semicolon: a control-flow header, an import/export/return with a brace, a trailing { or [.
+n=0
+for l in 'import { legacyFetch } from "./legacy"' 'return { id: user.id, name: user.name }' 'export default {' \
+  'for (const row of rows) {' 'while (queue.length) {' 'const ROWS = ['; do
+  n=$((n + 1))
+  assert_denies "docblock: $l inside /** */ is commented-out code" "dc$n" "/tmp/proj/dc$n.ts" "/**
+ * $l
+ */
+export function load(rows: number[]) { return rows; }"
+done
+assert_allows "docblock: if (the caller passes null) the default applies. is prose" dc7 /tmp/proj/dc7.ts '/**
+ * if (the caller passes null) the default applies.
+ */
+export function load(rows: number[]) { return rows; }'
 assert_allows "leaders: a # Features heading over * fast features in a .sh heredoc is allowed" ld4 /tmp/proj/ld4.sh 'cat > NOTES.md <<EOF
 # Features
 * fast features
@@ -1561,6 +1600,75 @@ case "$co_out" in
   *) fail "cue: a three-line commented-out block draws only commented-out code" "got: $co_out" ;;
 esac
 rm -rf "$STATE_DIR"
+
+# ---- 15. interpreter writes (bash-write-effects): a file a python run changed, judged on what it added ----
+# One git repo per case: a reused one carries an earlier case's marker. `ls` dates the marker, as any earlier call would.
+# Every call shares one session_id and keys its context on transcript_path, as a session's subagents do: one() moves the
+# helpers' session argument there. A marker another session dated reads nothing.
+if command -v git >/dev/null 2>&1; then
+  one() { jq -c --arg s "${1:-sess}" '.transcript_path = "/t/\(.session_id).jsonl" | .session_id = $s'; }
+  effrepo() { # name  [nomark] -> a repo whose committed src/kept.js holds a noisy comment, its marker dated
+    local d="$WORK/effects-$1"; mkdir -p "$d/src"; printf 'export const a = 1;\n%s\n' "$JS_NOISE" > "$d/src/kept.js"
+    git -C "$d" init -q; git -C "$d" add -A; git -C "$d" -c user.email=t@t -c user.name=t commit -qm base
+    [ "${2:-}" = nomark ] || run "$(bash_payload PostToolUse "$d" mark ls | one)" >/dev/null
+    printf '%s\n' "$d"
+  }
+  pyraw() { # cwd  context  python-source  [session]  [event] -> runs it as a heredoc, then the PostToolUse lane on that command
+    local c="python3 - <<'PY'
+$3
+PY"
+    (cd "$1" && "$BASH_BIN" -c "$c") >/dev/null 2>&1
+    run "$(bash_payload "${5:-PostToolUse}" "$1" "$2" "$c" | one "${4:-sess}")"
+  }
+  pyrun() { pyraw "$@" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
+  NOISE_PY="open('src/new.js', 'w').write('''$JS_NOISE
+''')"
+  ctx_of() { run "$1" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
+
+  d=$(effrepo a); b_warn=$(pyrun "$d" ea1 "$NOISE_PY")
+  w_warn=$(ctx_of "$(envelope Write "$d/src/new.js" "$JS_NOISE" | jq -c --arg c "$d" '.hook_event_name = "PostToolUse" | .cwd = $c | .session_id = "ea2"' | one)")
+  case "$w_warn" in
+    *"restating the next line"*) [ "$b_warn" = "$w_warn$SUFFIX new.js." ] && pass "effects: a noisy file a python heredoc wrote draws the Write warning plus the file suffix" \
+      || fail "effects: a noisy file a python heredoc wrote draws the Write warning plus the file suffix" "write=[$w_warn] python=[$b_warn]" ;;
+    *) fail "effects: a noisy file a python heredoc wrote draws the Write warning plus the file suffix" "the Write itself drew no warning: [$w_warn]" ;;
+  esac
+
+  d=$(effrepo b)
+  o=$(pyrun "$d" eb1 "p = 'src/kept.js'; s = open(p).read(); open(p, 'w').write(s.replace('a = 1', 'a = 2'))")
+  [ -z "$o" ] && pass "effects: a committed noisy comment is not judged when a python run changes another line" \
+    || fail "effects: a committed noisy comment is not judged when a python run changes another line" "got: $o"
+  o=$(pyrun "$d" eb2 "open('src/kept.js', 'a').write('''// ===== HELPERS =====
+export const c = 3;
+''')")
+  case "$o" in *"1 section banner"*"$SUFFIX kept.js.") pass "effects: a banner a python run appended to a committed file draws the warning" ;;
+    *) fail "effects: a banner a python run appended to a committed file draws the warning" "got: $o" ;; esac
+
+  d=$(effrepo c nomark); o=$(pyrun "$d" ec1 "$NOISE_PY")
+  [ -z "$o" ] && [ -f "$d/.claude/comment-discipline/bash-effects-scan.mark" ] && pass "effects: the first call in a repo is silent and leaves the marker" \
+    || fail "effects: the first call in a repo is silent and leaves the marker" "out=[$o] marker=$(ls "$d/.claude/comment-discipline" 2>&1)"
+  o=$(pyrun "$d" ec2 'print(1)')
+  [ -z "$o" ] && pass "effects: a python run that wrote nothing is silent" || fail "effects: a python run that wrote nothing is silent" "got: $o"
+
+  d=$(effrepo e); printf '%s\n' "$JS_NOISE" > "$d/src/edited.js"
+  run "$(envelope Edit "$d/src/edited.js" "$JS_NOISE" new_string | jq -c --arg c "$d" '.hook_event_name = "PostToolUse" | .cwd = $c | .session_id = "ee1"' | one)" >/dev/null
+  o=$(pyrun "$d" ee2 'print(1)')
+  [ -z "$o" ] && pass "effects: a file an Edit wrote before the run is not read as the run's write" \
+    || fail "effects: a file an Edit wrote before the run is not read as the run's write" "got: $o"
+
+  d=$(effrepo f); o=$(pyraw "$d" ef1 "$NOISE_PY
+raise SystemExit(1)" sess PostToolUseFailure)
+  case "$(printf '%s' "$o" | jq -r '.hookSpecificOutput.hookEventName + " " + .hookSpecificOutput.additionalContext' 2>/dev/null)" in
+    "PostToolUseFailure "*"restating the next line"*"$SUFFIX new.js.") pass "effects: a failed python run (PostToolUseFailure) is judged too, its envelope naming that event" ;;
+    *) fail "effects: a failed python run (PostToolUseFailure) is judged too, its envelope naming that event" "got: $o" ;; esac
+
+  d=$(effrepo g); o=$(pyrun "$d" eg1 "$NOISE_PY" other-session)
+  [ -z "$o" ] && pass "effects: a marker another session dated reads nothing" || fail "effects: a marker another session dated reads nothing" "got: $o"
+
+  d=$(effrepo h); big=$(head -c 40000 /dev/zero | tr '\0' 'a'); o=$(pyrun "$d" eh1 "data = '$big'
+$NOISE_PY")
+  case "$o" in *"restating the next line"*"$SUFFIX new.js.") pass "effects: a python run carrying a 40 kB data line is still judged" ;;
+    *) fail "effects: a python run carrying a 40 kB data line is still judged" "got: ${o:0:200}" ;; esac
+fi
 
 printf '\n'
 [ "$rc" -eq 0 ] && printf 'comment-discipline-hook-tests: all cases passed\n' \

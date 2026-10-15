@@ -40,8 +40,10 @@ names into an EMPTY target is classed `greenfield`: no `preserve.json` is writte
 reviewer cannot check that site's slugs.
 
 **Confirming it costs no exchange.** The concept fork's single `AskUserQuestion` call carries
-the mode as one more question inside that call, and with it approval for any never-change value
-a candidate would change; a `guided` run may ask the approval in a section round instead.
+the mode as one more question inside that call, the fourth and the host's limit, so approval for
+any never-change value a candidate would change rides in that question's options (each mode offered
+with and without the change list, e.g. `new-look, approving nav:Docs → Developers`), never a fifth
+question; a `guided` run may ask the approval in a section round instead.
 Headless, unanswered, or with no fork to ask at, the default stands, nothing is approved, and
 every recorded value is kept.
 

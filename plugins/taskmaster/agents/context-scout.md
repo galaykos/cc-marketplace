@@ -41,4 +41,6 @@ the drift in your report. Output six compact sections:
 Rules: no recommendations, no refactoring notes, no praise. If the repo is empty or
 the task is greenfield, say so in one line and fill section 5 only. The report is
 fuel for the main thread's questions, not a document: one line per fact with its
-`path:line`, no excerpts.
+`path:line`, no excerpts. Budget: at most 120 lines and 8,000 characters. Over it, keep
+sections 4 and 5 whole, collapse the others to directories with counts
+(`app/Models/ — 14 files`), and end with one line naming what you collapsed.

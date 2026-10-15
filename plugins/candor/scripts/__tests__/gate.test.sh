@@ -12,8 +12,9 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open
 
 pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
-# Unset, CLAUDE_PROJECT_DIR cannot pull cc_state_root into the runner's repository; in-flight records land under this sandboxed TMPDIR.
-unset CLAUDE_PROJECT_DIR
+# Unset, CLAUDE_PROJECT_DIR cannot pull cc_state_root into the runner's repository, nor CLAUDE_PLUGIN_DATA move the gate's records
+#   out of the fixture; in-flight records land under this sandboxed TMPDIR.
+unset CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_DATA
 export TMPDIR="$WS/tmp"; mkdir -p "$TMPDIR"
 PREAMBLE="$ROOT/plugins/candor/hooks/preamble.sh"
 CWD="$WS/proj"; mkdir -p "$CWD/src" "$CWD/deep/nested"
@@ -107,7 +108,27 @@ T="$WS/c15.jsonl"; { user "where"; asst "See plugins/x/.../real.ts:900 — an el
 check "elided path (...) is prose, not a citation"   "" "$T" 0 "__NONE__"
 
 T="$WS/c16.jsonl"; { user "where"; asst "See src/ghost.ts:12 — invented filename."; } > "$T"
-check "invented basename blocks with the name in the reason" "" "$T" 2 "no file named ghost.ts exists anywhere"
+check "invented basename blocks with the name in the reason" "" "$T" 2 "no file named ghost.ts found under"
+
+# A dependency cited by a subagent was read as invented: the pruned search never looked in node_modules or vendor.
+mkdir -p "$CWD/node_modules/pkgdemo/dist" "$CWD/vendor/acme/widget/src"
+printf 'l\n%.0s' $(seq 900) > "$CWD/node_modules/pkgdemo/dist/scroller.mjs"
+printf 'l\n%.0s' $(seq 20)  > "$CWD/vendor/acme/widget/src/Gadget.php"
+T="$WS/c17.jsonl"; { user "where"; asst "The easing lives in scroller.mjs:783."; } > "$T"
+check "a basename only under node_modules is not invented, passes" "" "$T" 0 "__NONE__"
+T="$WS/c18.jsonl"; { user "where"; asst "See $CWD/vendor/acme/widget/src/Gadget.php:12 for it."; } > "$T"
+check "an absolute path into vendor/ resolves, passes"   "" "$T" 0 "__NONE__"
+T="$WS/c19.jsonl"; { user "where"; asst "See $CWD/vendor/acme/widget/src/Gadget.php:99 for it."; } > "$T"
+check "an absolute vendor/ path past EOF still blocks"   "" "$T" 2 "Gadget.php has 20 lines"
+T="$WS/c20.jsonl"; { user "where"; asst "The admin panel runs on shop.localhost:8080 and api.test:8000."; } > "$T"
+check "a .localhost / .test host:port is not a citation" "" "$T" 0 "__NONE__"
+T="$WS/c21.jsonl"; { user "where"; asst "The handler is in Invented.php:12."; } > "$T"
+check "an invented basename still blocks beside a vendor/ tree" "" "$T" 2 "no file named Invented.php found under"
+# The lookup is sourced from hooks/cite.sh: without it the citation clause stands down, the gate still exits 0.
+mkdir -p "$WS/lone"; cp "$HOOK" "$WS/lone/gate.sh"
+rm -f "$MARKER" "$CLAIMED"; err=$(payload "$T" | bash "$WS/lone/gate.sh" 2>&1 >/dev/null); rc=$?
+if [ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF 'hooks/cite.sh not loaded'; then pass=$((pass+1)); printf 'PASS  without hooks/cite.sh the citation clause stands down and says so\n'
+else fail=$((fail+1)); printf 'FAIL  without hooks/cite.sh the citation clause stands down and says so (rc=%s; stderr=%s)\n' "$rc" "$err"; fi
 
 T="$WS/r1.jsonl"; { asst "The retry is disabled."; user "Are you sure?"; asst "You're absolutely right, my mistake — it is enabled."; } > "$T"
 check "bare pushback + retraction + no tool blocks"   "" "$T" 2 "$REV_SUB"
@@ -187,6 +208,7 @@ sub_check() { # desc  last-msg  exp_rc  exp_sub
   else fail=$((fail+1)); printf 'FAIL  %s (rc=%s want %s; stderr=%s)\n' "$desc" "$rc" "$exp_rc" "$err"; fi
 }
 sub_check "subagent: fabricated citation in last_assistant_message blocks" "Found it at src/ghost.ts:12." 2 "this report cites a location that does not exist"
+sub_check "subagent: the block asks for the COMPLETE report, not just the fix" "Found it at src/ghost.ts:12." 2 "re-send your COMPLETE report"
 sub_check "subagent: resolving citation passes"                            "Found it at src/real.ts:3."   0 "__NONE__"
 sub_check "subagent: reversal clause disarmed (no user turn to push back)" "You're right, my mistake."   0 "__NONE__"
 { user "find the bug"; asst "See src/real.ts:3."; } > "$A"
@@ -427,6 +449,45 @@ if command -v git >/dev/null 2>&1; then
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
   rm -f "$(rec_of agentKilled)"
 
+  # task-runner's behavioral gate in background Bash records its PID, then the HEAD it tests, in bg/running.pid.
+  # Named like the gate: with /proc the hook checks the recorded PID's command line, not only that it is live.
+  #   Its child sleep dies with it, and no fixture holds the harness's stdout open.
+  printf 'sleep 300 & s=$!\ntrap "kill $s; exit 0" TERM\nwait\n' > "$WS/behavioral-gate.sh"
+  await_gate() { local i; [ -d /proc/self ] || return 0; for i in 1 2 3 4 5 6 7 8 9 10; do grep -qs 'behavioral-gate' "/proc/$1/cmdline" && return 0; sleep 0.2; done; }
+  mkdir -p "$TRD/bg"; bash "$WS/behavioral-gate.sh" >/dev/null 2>&1 & LIVE=$!; await_gate "$LIVE"
+  printf '%s\n%s\n' "$LIVE" "$RHEAD" > "$TRD/bg/running.pid"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+  verdict_is "in flight: a behavioral gate whose PID is live at HEAD holds the no-gate-pass block like a worker" \
+    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB" && ! printf '%s' "$err" | grep -qF "$RUN_SUB" && [ ! -e "$RNUDGE" ]; echo $?)"
+  printf '%s\n%s\n' "$LIVE" "0123456789abcdef0123456789abcdef01234567" > "$TRD/bg/running.pid"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+  verdict_is "in flight: a live behavioral-gate PID recorded for another HEAD is ignored" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+  kill "$LIVE" 2>/dev/null; wait "$LIVE" 2>/dev/null
+  printf '%s\n%s\n' "$LIVE" "$RHEAD" > "$TRD/bg/running.pid"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+  verdict_is "in flight: a dead behavioral-gate PID at HEAD is ignored" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+  verdict_is "no gate pass: the block says to run the behavioral gate in the background" \
+    "$(printf '%s' "$err" | grep -qF 'repo root, in the background, run task-runner'"'"'s scripts/behavioral-gate.sh'; echo $?)"
+  # Sandboxed Bash (bwrap --unshare-pid) records the sandbox's own PID: dead here, or another process. With /proc the gate is
+  #   found by its command line and a cwd under the root.
+  if [ -d /proc/self ]; then
+    (cd "$RR" && exec bash "$WS/behavioral-gate.sh") >/dev/null 2>&1 & SBX=$!; await_gate "$SBX"
+    clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+    verdict_is "sandbox: a dead recorded PID while a behavioral-gate.sh runs from under the root holds the block" \
+      "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB"; echo $?)"
+    kill "$SBX" 2>/dev/null; wait "$SBX" 2>/dev/null
+    (cd "$WS" && exec bash "$WS/behavioral-gate.sh") >/dev/null 2>&1 & SBX=$!; await_gate "$SBX"
+    sleep 300 >/dev/null 2>&1 & OTHER=$!
+    printf '%s\n%s\n' "$OTHER" "$RHEAD" > "$TRD/bg/running.pid"
+    clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+    verdict_is "sandbox: a recorded PID naming another live process, the only gate outside the root, is ignored" \
+      "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+    kill "$SBX" "$OTHER" 2>/dev/null; wait "$SBX" "$OTHER" 2>/dev/null
+  fi
+  rm -f "$TRD/bg/running.pid"
+
   mkdir -p "$TRD/bg"
   printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$RHEAD" > "$TRD/gate-pass.json"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" "$BT_RUNNING")"
@@ -471,6 +532,129 @@ if command -v git >/dev/null 2>&1; then
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "empty-suite"'; echo $?)"
 else
   printf 'SKIP  0.5.0 state-root / in-flight / coverage cases (git not available)\n'
+fi
+
+# 0.8.0: the whole-range review a register-run.sh run (start_sha) owes at HEAD, the ui-ux-reviewer a UI card owes,
+#   and the closing stop after the sentinel is renamed to closed-run.json. Records are newer than the sentinel.
+if command -v git >/dev/null 2>&1; then
+  RQ="$WS/rq"; mkdir -p "$RQ/src"; echo a > "$RQ/src/a.ts"
+  git -C "$RQ" init -q && git -C "$RQ" config user.email t@t.t && git -C "$RQ" config user.name t
+  git -C "$RQ" add -A >/dev/null 2>&1 && git -C "$RQ" commit -qm start
+  QSTART=$(git -C "$RQ" rev-parse HEAD)
+  echo b >> "$RQ/src/a.ts"; git -C "$RQ" commit -qam card
+  QHEAD=$(git -C "$RQ" rev-parse HEAD); Q12=${QHEAD:0:12}
+  QBR=$(git -C "$RQ" rev-parse --abbrev-ref HEAD)
+  QTR="$RQ/.claude/task-runner"; QRV="$QTR/rv"; QSENT="$QTR/active-run.json"; QCLOSED="$QTR/closed-run.json"
+  mkdir -p "$QRV"
+  qsent() { printf '{"slug":"q","branch":"%s"%s}' "$QBR" "$1" > "$QSENT"; touch -t 200001010000 "$QSENT"; }
+  qrun() { rm -rf "$RQ/.claude/candor" "$QTR/gate-nudge"; err=$(jq -cn --arg cwd "$RQ" --arg tp "$1" \
+    '{hook_event_name:"Stop",session_id:"q",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}' | bash "$HOOK" 2>&1 >/dev/null); rc=$?; }
+  qis() { if [ "$2" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"; else fail=$((fail+1)); printf 'FAIL  %s (rc=%s stderr=%s)\n' "$1" "$rc" "$err"; fi; }
+  QT="$WS/qclean.jsonl"; { user "run the cards"; asst "All cards done, gate recorded."; } > "$QT"
+  RANGE_SUB='no whole-range review recorded for HEAD'
+  UI_SUB='no ui-ux-reviewer dispatch recorded'
+
+  qsent ",\"start_sha\":\"$QSTART\""
+  printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
+  printf '{}' > "$QRV/rv-seen-01.json"; printf '{}' > "$QRV/rv-seen-02.json"
+  qrun "$QT"
+  qis "range: a start_sha run with no range record for HEAD blocks and names RV-RANGE" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && printf '%s' "$err" | grep -qF "RV-RANGE: $Q12" && printf '%s' "$err" | grep -qF "${QSTART:0:12}..HEAD"; echo $?)"
+  git -C "$RQ" tag "$QBR"
+  qrun "$QT"
+  qis "branch: a tag named like the run's branch does not move the run to another branch" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
+  git -C "$RQ" tag -d "$QBR" >/dev/null
+  git -C "$RQ" checkout -q --detach
+  qrun "$QT"
+  qis "branch: a detached HEAD is not the run's branch, as before" \
+    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "registered on branch $QBR, now on HEAD"; echo $?)"
+  git -C "$RQ" checkout -q "$QBR"
+  QSHIM="$WS/qshim"; mkdir -p "$QSHIM"
+  printf '#!/bin/sh\nfor a in "$@"; do [ "$a" = symbolic-ref ] && exit 128; done\nexec %s "$@"\n' "$(command -v git)" > "$QSHIM/git"; chmod +x "$QSHIM/git"
+  PATH="$QSHIM:$PATH" qrun "$QT"
+  qis "branch: symbolic-ref failing with exit 128 leaves the branch unknown, and the run is still enforced" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
+  printf '{}' > "$QRV/range-${QSTART:0:12}.json"
+  qrun "$QT"
+  qis "range: a record for an earlier HEAD does not count" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
+  printf '{}' > "$QRV/range-${QHEAD:0:7}.json"
+  qrun "$QT"
+  qis "range: a record whose id is a 7-char prefix of HEAD passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  echo c >> "$RQ/src/a.ts"; git -C "$RQ" commit -qam fix; QFIX=$(git -C "$RQ" rev-parse HEAD)
+  printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QFIX" > "$QTR/gate-pass.json"
+  qrun "$QT"
+  qis "range: a commit after a range review owes only the commits since it" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qE "/code-review:review ${QHEAD:0:7}[0-9a-f]*\.\.HEAD"; echo $?)"
+  git -C "$RQ" reset -q --hard "$QHEAD"
+  printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
+  rm -f "$QRV"/range-*.json
+  qsent ""
+  qrun "$QT"
+  qis "range: a sentinel without start_sha (hand-written, pre-0.8.0) owes none" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+
+  qsent ",\"start_sha\":\"$QSTART\""
+  printf '{"card":"range-%s","skipped":true,"reason":"x"}' "$Q12" > "$QRV/rv-skip-range-$Q12.json"
+  printf '{"head":"%s","cards_total":3,"cards_done":3,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
+  qrun "$QT"
+  qis "range: a recorded range skip is not counted as a card's review" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'only 2 per-card reviewer records'; echo $?)"
+  printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
+  qrun "$QT"
+  qis "range: a recorded range skip passes the check, then the report must name it" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "never names" && printf '%s' "$err" | grep -qF "range-$Q12"; echo $?)"
+  T="$WS/qnamed.jsonl"; { user "run the cards"; asst "Done. Skipped: range-$Q12, the range review (no code-review installed)."; } > "$T"
+  qrun "$T"
+  qis "range: a range skip the report names passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  rm -f "$QRV/rv-skip-range-$Q12.json"; printf '{}' > "$QRV/range-$Q12.json"
+
+  printf 'diff --git a/src/api.php b/src/api.php\n' > "$QRV/diff-01.patch"
+  printf 'diff --git a/src/a.ts b/src/a.ts\ndiff --git a/src/Button.tsx b/src/Button.tsx\n' > "$QRV/diff-02.patch"
+  qrun "$QT"
+  qis "ui: a card whose review diff names a .tsx file, with no ui-ux-reviewer record, blocks and names that card only" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 02" && ! printf '%s' "$err" | grep -qF ' 01'; echo $?)"
+  printf '{}' > "$QRV/rv-agent-02@code-review.code-reviewer.json"
+  qrun "$QT"
+  qis "ui: another reviewer's record does not stand in for ui-ux-reviewer" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB"; echo $?)"
+  printf '{}' > "$QRV/rv-agent-02@ui-ux.ui-ux-reviewer.json"
+  qrun "$QT"
+  qis "ui: a ui-ux-reviewer record for the card passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  printf 'diff --git a/resources/views/x.blade.php b/resources/views/x.blade.php\n' > "$QRV/diff-01.patch"
+  qrun "$QT"
+  qis "ui: a .blade.php view is a UI file (the .php neighbour was silent)" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 01"; echo $?)"
+  printf '{"card":"01","exempt":"no-reviewer-installed"}' > "$QRV/rv-exempt-01.json"
+  qrun "$QT"
+  qis "ui: an exemption for the card passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  printf 'diff --git a/src/components/__tests__/Button.test.tsx b/src/components/__tests__/Button.test.tsx\n' > "$QRV/diff-03.patch"
+  qrun "$QT"
+  qis "ui: a card whose only UI-extension file is a test owes no ui-ux-reviewer" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  printf 'diff --git a/src/Card.stories.tsx b/src/Card.stories.tsx\ndiff --git a/src/Card.tsx b/src/Card.tsx\n' >> "$QRV/diff-03.patch"
+  qrun "$QT"
+  qis "ui: a component beside its test and story still owes one" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 03"; echo $?)"
+  rm -f "$QRV/diff-03.patch"
+
+  rm -f "$QRV/range-$Q12.json"
+  mv "$QSENT" "$QCLOSED"
+  qrun "$QT"
+  qis "closed run: the stop after the rename still reads the records and blocks" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && [ -f "$QCLOSED" ]; echo $?)"
+  printf '{}' > "$QRV/range-$Q12.json"
+  qrun "$QT"
+  qis "closed run: a clean closing stop passes and retires closed-run.json" "$([ "$rc" -eq 0 ] && [ -z "$err" ] && [ ! -e "$QCLOSED" ]; echo $?)"
+  rm -f "$QRV/range-$Q12.json"; qrun "$QT"
+  qis "closed run: once retired, later stops are silent" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  qsent ",\"start_sha\":\"$QSTART\""; mv "$QSENT" "$QCLOSED"
+  echo d >> "$RQ/src/a.ts"; git -C "$RQ" commit -qam later; QLATER=$(git -C "$RQ" rev-parse HEAD)
+  qrun "$QT"
+  qis "closed run: left behind with a gate pass for an earlier HEAD, a later commit's stop retires it silently" \
+    "$([ "$rc" -eq 0 ] && [ -z "$err" ] && [ ! -e "$QCLOSED" ]; echo $?)"
+  qsent ",\"start_sha\":\"$QSTART\""; mv "$QSENT" "$QCLOSED"
+  printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QLATER" > "$QTR/gate-pass.json"
+  qrun "$QT"
+  qis "closed run: a gate pass at HEAD with no range record still blocks" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && [ -f "$QCLOSED" ]; echo $?)"
+else
+  printf 'SKIP  0.8.0 range / ui / closed-run cases (git not available)\n'
 fi
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"

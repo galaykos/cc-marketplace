@@ -4,7 +4,7 @@
 # brain/ (the map's own commit) → no hint; ≤5 files changed outside brain/ → the "refresh
 # now" imperative with a count; more → the passive offer; an active task-runner run →
 # the passive offer; an unreachable `built:` hash → the passive offer with no count;
-# malformed payload → silent exit 0.
+# malformed payload → silent exit 0; no map → the nudge on startup only, never on compact/resume.
 set -u
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 HOOK="$ROOT/plugins/brain/hooks/inject.sh"
@@ -46,5 +46,15 @@ check "6 an unreachable built hash is the offer with no count" "$(hint)" "⚠ br
 
 out=$(printf 'not json' | bash "$HOOK" 2>/dev/null; echo "rc=$?")
 check "7 malformed payload fails open" "$out" "rc=0"
+
+# The no-map nudge prints on startup only; resume, clear and compaction reprinted it before.
+NOMAP="$TMP/nomap"; mkdir -p "$NOMAP"
+git -C "$NOMAP" init -q; for i in $(seq 1 200); do : > "$NOMAP/s$i.txt"; done; git -C "$NOMAP" add -A
+nudge() { jq -n --arg c "$NOMAP" --arg s "$1" '{hook_event_name:"SessionStart",cwd:$c} + (if $s == "" then {} else {source:$s} end)' \
+  | env -u CLAUDE_PROJECT_DIR bash "$HOOK" 2>/dev/null | grep -c 'no map for this project yet'; }
+check "8 startup prints the no-map nudge" "$(nudge startup)" "1"
+check "9 a payload with no source counts as startup" "$(nudge '')" "1"
+check "10 compact is silent" "$(nudge compact)" "0"
+check "11 resume is silent" "$(nudge resume)" "0"
 
 exit "$rc"

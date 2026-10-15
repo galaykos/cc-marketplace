@@ -12,6 +12,10 @@
 # every shadcn row nudged a `.tsx` in a repo with no components.json. Per-row and opt-in;
 # an unprefixed alternative keeps the fire-if-uncertain default. It replaced the
 # `||!@base~.` default-deny tail 0.18.0 put on four rows — same behaviour, one mechanism.
+# nudge-last: low-cognitive-load solid-principles a11y-audit
+# route.sh sends at most two nudges per edit and ranks these last: each matches every file of
+# its language, so the next such edit draws it again, where a path-specific stack skill may
+# never recur. A skill over the cap is not spent. route.test.sh case 6 fails a name no glob row routes.
 # co-fire-ok: *.tsx a11y-audit react-native-best-practices
 # co-fire-ok: *.tsx a11y-audit nextjs-best-practices
 # Accessibility is orthogonal to every stack skill: the WCAG checklist and a library's
@@ -159,6 +163,10 @@ command	\bjsrepo(@[^[:space:]]+)?[[:space:]]+add\b	shadcn-best-practices	ui-ux	h
 # LIMITATION: a quoted argument is masked, so `add "@magicui/x"` routes shadcn alone. React Bits' jsrepo command passes a reactbits.dev/r/ URL.
 command	\b(shadcn|jsrepo)(@[^[:space:]]+)?[[:space:]]+add\b[^;&|]*[[:space:]](@(magicui|react-bits)/|https://reactbits\.dev/r/)	aceternity-best-practices	ui-libraries	high
 content	(@reui/|\breui\.io|\bfrom ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-libraries	low
+# A ReUI or Metronic port copies owned code that never imports `@reui/` (a 78-component `cp` drew shadcn and Tailwind only).
+# Probed 2026-10-15: route.sh's read of the files a `cp -r` wrote routes those generic rows, never this skill, so the command
+# is the signal. LIMITATION: a quoted path is masked and does not route; a `/cp/` path segment before a ReUI path does.
+command	\b(cp|rsync)\b[^;&|]*([Rr]e[Uu][Ii]|[Mm]etronic)	reui-best-practices	ui-libraries	high
 # Narrowed 2026-09-26: `motion/react|framer-motion` drew Aceternity on EVERY Motion file.
 content	(\baceternity\b|ui\.aceternity\.com|@aceternity/)	aceternity-best-practices	ui-libraries	low
 # The library-agnostic fallback. shadcn, ReUI, Aceternity, MUI and Astryx each have a sibling skill
@@ -245,6 +253,8 @@ glob	docker-compose*.yml	docker-best-practices	devops	high
 glob	compose*.yml	docker-best-practices	devops	high
 glob	package.json	package-hygiene	stack-scan	high
 glob	composer.json	package-hygiene	stack-scan	high
+# An update rewrites only the lockfile, which no glob row names (a 72-package `composer update` routed nothing, then broke CI).
+command	\b(composer|npm)[[:space:]]+(update|upgrade)\b	package-hygiene	stack-scan	high
 glob	next.config.*	nextjs-best-practices	web-dev	high
 glob	vite.config.*	vite-best-practices	web-dev	high
 # The @base exclusion on the *.js/*.ts rows suppresses design-principle nudges on

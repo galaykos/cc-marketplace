@@ -2,8 +2,8 @@
 # Fixture harness for the checks the 2026-09-22 specialist panel added to
 # scripts/lib/plugin-checks.sh — pc_cwd_validated (#2), pc_offswitch_named (#5) and
 # pc_version_stamp_tail (#21) — plus pc_state_root and pc_shared_blocks from the
-# 2026-09-25 session review, and pc_plugin_dependencies from the 2026-09-26 suite
-# retirement. Each gets BOTH arms: a planted violation that must be
+# 2026-09-25 session review, pc_plugin_dependencies from the 2026-09-26 suite
+# retirement, and pc_agent_tool_fit from the 2026-10-13 session retro. Each gets BOTH arms: a planted violation that must be
 # named, and a clean twin that must not be. A check that only ever runs against the live
 # tree proves nothing on the day the tree is clean, which is the day it lands.
 #
@@ -195,8 +195,14 @@ rm -rf "$QR"
 
 # ---- pc_shared_blocks ------------------------------------------------------------
 B="$T/_blocks"; mkdir -p "$B" "$T/blk/hooks"
-cp templates/blocks/state-root.md templates/blocks/bash-write-targets.md templates/blocks/bash-write-chunks.md templates/blocks/plugin-state.md "$B/"
-{ echo '#!/bin/bash'; cat "$B/state-root.md"; echo 'exit 0'; } > "$T/blk/hooks/good.sh"
+cp templates/blocks/state-root.md templates/blocks/bash-write-targets.md templates/blocks/bash-write-chunks.md templates/blocks/plugin-state.md templates/blocks/prompt-shape.md "$B/"
+{ echo '#!/bin/bash'; cat "$B/state-root.md" "$B/prompt-shape.md"; echo 'exit 0'; } > "$T/blk/hooks/good.sh"
+{ echo '#!/bin/bash'; sed 's/return 1$/return 2/' "$B/prompt-shape.md"; echo 'exit 0'; } > "$T/blk/hooks/prompt-edited.sh"
+{ echo '#!/bin/bash'; awk '/^cc_prompt_frame\(\) \{/,/^}/' "$B/prompt-shape.md"; echo 'exit 0'; } > "$T/blk/hooks/prompt-one.sh"
+# The auth words, review-debt's path list and taskmaster's prompt list, live in every copy: a lone paste or a dropped word splits them.
+{ echo '#!/bin/bash'; awk '/^cc_prompt_auth_surface\(\) \{/,/^}/' "$B/prompt-shape.md"; echo 'exit 0'; } > "$T/blk/hooks/prompt-auth-one.sh"
+{ echo '#!/bin/bash'; sed 's/|registration|/|/' "$B/prompt-shape.md"; echo 'exit 0'; } > "$T/blk/hooks/prompt-auth-edited.sh"
+{ echo '#!/bin/bash'; sed 's/|invit(e|ation)|/|/' "$B/prompt-shape.md"; echo 'exit 0'; } > "$T/blk/hooks/prompt-ask-edited.sh"
 { echo '#!/bin/bash'; sed 's/return 1$/return 2/' "$B/state-root.md"; echo 'exit 0'; } > "$T/blk/hooks/edited.sh"
 { echo '#!/bin/bash'; echo 'cc_bash_write_targets() { :; }'; } > "$T/blk/hooks/reimpl.sh"
 { echo '#!/bin/bash'; echo 'cc_bash_write_chunks() { :; }'; } > "$T/blk/hooks/reimpl-chunks.sh"
@@ -219,8 +225,77 @@ case "$out" in
   *) fail "shared-blocks: an edited plugin-state copy is named" "got: ${out:-<empty>}" ;;
 esac
 case "$out" in
+  *"blk/hooks/prompt-edited.sh prompt-shape.md"*) pass "shared-blocks: an edited prompt-shape copy is named" ;;
+  *) fail "shared-blocks: an edited prompt-shape copy is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/prompt-one.sh prompt-shape.md"*) pass "shared-blocks: a hook pasting one cc_prompt_* function is held to the whole block" ;;
+  *) fail "shared-blocks: a hook pasting one cc_prompt_* function is held to the whole block" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/prompt-auth-one.sh prompt-shape.md"*) pass "shared-blocks: a hook pasting only cc_prompt_auth_surface is held to the whole block" ;;
+  *) fail "shared-blocks: a hook pasting only cc_prompt_auth_surface is held to the whole block" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/prompt-auth-edited.sh prompt-shape.md"*) pass "shared-blocks: a copy dropping an auth-surface word is named" ;;
+  *) fail "shared-blocks: a copy dropping an auth-surface word is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/prompt-ask-edited.sh prompt-shape.md"*) pass "shared-blocks: a copy dropping a prompt-side auth word is named" ;;
+  *) fail "shared-blocks: a copy dropping a prompt-side auth word is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
   *good.sh*) fail "shared-blocks: a verbatim copy stays clean" "flagged: $out" ;;
   *) pass "shared-blocks: a verbatim copy stays clean" ;;
+esac
+# heredoc-bodies.md, in its own run so the arm stands alone.
+cp templates/blocks/heredoc-bodies.md "$B/"
+{ echo '#!/bin/bash'; cat "$B/heredoc-bodies.md"; echo 'exit 0'; } > "$T/blk/hooks/heredoc-good.sh"
+{ echo '#!/bin/bash'; sed 's/-v how=/-v hw=/' "$B/heredoc-bodies.md"; echo 'exit 0'; } > "$T/blk/hooks/heredoc-edited.sh"
+out=$(pc_shared_blocks "$T" "$B") || true
+case "$out" in
+  *"blk/hooks/heredoc-edited.sh heredoc-bodies.md"*) pass "shared-blocks: an edited heredoc-bodies copy is named" ;;
+  *) fail "shared-blocks: an edited heredoc-bodies copy is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *heredoc-good.sh*) fail "shared-blocks: a verbatim heredoc-bodies copy stays clean" "flagged: $out" ;;
+  *) pass "shared-blocks: a verbatim heredoc-bodies copy stays clean" ;;
+esac
+# bash-write-effects.md, in its own run: an edited copy, and one of its two functions pasted alone.
+cp templates/blocks/bash-write-effects.md "$B/"
+{ echo '#!/bin/bash'; cat "$B/bash-write-effects.md"; echo 'exit 0'; } > "$T/blk/hooks/effects-good.sh"
+{ echo '#!/bin/bash'; sed 's/--untracked-files=all/--untracked-files=normal/' "$B/bash-write-effects.md"; echo 'exit 0'; } > "$T/blk/hooks/effects-edited.sh"
+{ echo '#!/bin/bash'; awk '/^cc_bash_effects_mark\(\) \{/,/^}/' "$B/bash-write-effects.md"; echo 'exit 0'; } > "$T/blk/hooks/effects-one.sh"
+out=$(pc_shared_blocks "$T" "$B") || true
+case "$out" in
+  *"blk/hooks/effects-edited.sh bash-write-effects.md"*) pass "shared-blocks: an edited bash-write-effects copy is named" ;;
+  *) fail "shared-blocks: an edited bash-write-effects copy is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/effects-one.sh bash-write-effects.md"*) pass "shared-blocks: a hook pasting cc_bash_effects_mark alone is held to the whole block" ;;
+  *) fail "shared-blocks: a hook pasting cc_bash_effects_mark alone is held to the whole block" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *effects-good.sh*) fail "shared-blocks: a verbatim bash-write-effects copy stays clean" "flagged: $out" ;;
+  *) pass "shared-blocks: a verbatim bash-write-effects copy stays clean" ;;
+esac
+# write-scope.md, in its own run: an edited copy (the root order swapped), and cc_scope_skip pasted alone.
+cp templates/blocks/write-scope.md "$B/"
+{ echo '#!/bin/bash'; cat "$B/write-scope.md"; echo 'exit 0'; } > "$T/blk/hooks/scope-good.sh"
+{ echo '#!/bin/bash'; sed 's/for r in "$cc_scope_sr" "$cc_scope_pd"/for r in "$cc_scope_pd" "$cc_scope_sr"/' "$B/write-scope.md"; echo 'exit 0'; } > "$T/blk/hooks/scope-edited.sh"
+{ echo '#!/bin/bash'; awk '/^cc_scope_skip\(\) \{/,/^}/' "$B/write-scope.md"; echo 'exit 0'; } > "$T/blk/hooks/scope-one.sh"
+out=$(pc_shared_blocks "$T" "$B") || true
+case "$out" in
+  *"blk/hooks/scope-edited.sh write-scope.md"*) pass "shared-blocks: an edited write-scope copy is named" ;;
+  *) fail "shared-blocks: an edited write-scope copy is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/scope-one.sh write-scope.md"*) pass "shared-blocks: a hook pasting cc_scope_skip alone is held to the whole block" ;;
+  *) fail "shared-blocks: a hook pasting cc_scope_skip alone is held to the whole block" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *scope-good.sh*) fail "shared-blocks: a verbatim write-scope copy stays clean" "flagged: $out" ;;
+  *) pass "shared-blocks: a verbatim write-scope copy stays clean" ;;
 esac
 
 # ---- pc_offswitch_named --------------------------------------------------------
@@ -462,6 +537,139 @@ case "$r:$out:$r2:$out2" in
   "0::1:"*"$F/$tail: frontmatter missing model:"*) pass "frontmatter: a plugin-shaped tail is skipped relative, linted absolute" ;;
   *) fail "frontmatter: a plugin-shaped tail is skipped relative, linted absolute" "rc=$r got: ${out:-<empty>} / rc=$r2 got: ${out2:-<empty>}" ;;
 esac
+
+# ---- pc_agent_tool_fit: an instruction the agent's tools cannot carry out ----------
+# The true positives are V-44's two shapes (a reference the body names, telling a
+# Read/Grep/Glob agent to hash and to write) plus a direct `run git`. Every neighbour below
+# is a sentence the live tree carries and must stay silent.
+A="$T/toolfit"
+mkagent() { # <plugin> <name> <tools>, body on stdin
+  mkdir -p "$A/$1/agents"
+  { printf -- '---\nname: %s\ndescription: x\ntools: %s\nmodel: opus\n---\n\n' "$2" "$3"; cat; } > "$A/$1/agents/$2.md"
+}
+mkdir -p "$A/tf/skills/deck/references"
+cat > "$A/tf/skills/deck/references/draw.md" <<'MD'
+# Draw
+
+1. Read the log.
+2. When the log is absent, seed from a hash of the brief text plus
+   today's date. A missing log is a first run, never an error.
+
+Write the draw into `craft/record.md` as five lines.
+
+The main thread writes the draw into `craft/record.md` before the
+dispatch, and seeds from `printf '%s' "$brief" | cksum`.
+
+```bash
+git diff --stat > craft/diff.patch
+```
+MD
+mkagent tf director 'Read, Grep, Glob' <<'MD'
+Inputs: read `deck/references/draw.md` for the draw.
+
+Run `git diff main` and read the patch.
+
+You cannot run git; the dispatch gives you `git blame` output for each hunk.
+The contrast pre-check is a craft gate — run it here. Run `/tf:research <idea>` first.
+Return the record as text; you never write `notes.md`.
+
+Name the lens in the divergence record you return.
+MD
+sed -n '/^Inputs/,$p' "$A/tf/agents/director.md" | mkagent tf granted 'Read, Grep, Glob, Bash, Write'
+mkagent tf blessed 'Read, Grep, Glob' <<'MD'
+Run `git log -L` on the touched hunk before you judge it. <!-- tool-fit-ok: fixture -->
+MD
+mkagent tf runner 'Read, Grep, Glob, Bash' <<'MD'
+Run `npm test` and quote the output. Write the report to `out.md` when it is red.
+MD
+# Reviewer wording describes code or advises the user; a named SKILL.md instructs the main
+# thread; a marker blesses its whole block and the fence below it.
+printf '# Deck\n\n2. **Run `npx @tailwindcss/upgrade` on a new branch**.\n' > "$A/tf/skills/deck/SKILL.md"
+mkagent tf reviewer 'Read, Grep, Glob' <<'MD'
+Judge the deck against `deck/SKILL.md`.
+
+Flag any handler that writes to `config.json` without a lock.
+Flag a script that executes `bash -c` with user input.
+Recommend the user run `npm audit` before the release.
+Flag a download not verified with sha256sum.
+The brief carries a cksum of the spec; quote it back.
+
+Run `git diff main` and flag every hunk that writes to `config.json`.
+Pipe the brief through `cksum` before you compare.
+
+<!-- tool-fit-ok: fixture, the steps that built the input -->
+- Run `git log -L` on the hunk.
+- Run `npm test` and keep the output.
+
+- Run `npm ci` before the review.
+
+The input was built this way. <!-- tool-fit-ok: fixture -->
+
+```bash
+git status --short
+```
+
+Compare it with this:
+
+```bash
+git diff --stat
+```
+MD
+# A demonstrative `that` leaves its verb an order; a bare hash tool with no code span, pipe or path is a noun.
+mkagent tf briefed 'Read, Grep, Glob' <<'MD'
+Read the brief. After that run `git diff` on each file.
+
+Read the brief, do that then run `npm test`.
+
+Verify the recorded cksum matches the one in the dispatch.
+
+Use the sha256sum the brief quotes to name the file.
+
+Take sha256sum dist/app.tgz and compare it with the brief.
+MD
+out=$(pc_agent_tool_fit "$A") && r=0 || r=$?
+want_tf() { # <label> <substring>
+  case "$out" in *"$2"*) pass "tool-fit: $1" ;; *) fail "tool-fit: $1" "missing '$2' in: ${out:-<empty>}" ;; esac
+}
+none_tf() { # <label> <substring>
+  case "$out" in *"$2"*) fail "tool-fit: $1" "named: $(printf '%s\n' "$out" | grep -F -- "$2")" ;; *) pass "tool-fit: $1" ;; esac
+}
+want_tf "a direct 'Run \`git diff\`' in a Bash-less body is named at its line" "tool-fit tf:director lacks Bash — $A/tf/agents/director.md:10: Run \`git diff main\`"
+want_tf "a hash step in a reference the body names is named at its line (V-44)" "tool-fit tf:director lacks Bash — $A/tf/skills/deck/references/draw.md:4: When the log is absent, seed from a hash"
+want_tf "a write step in that reference is named (V-44)" "tool-fit tf:director lacks Write — $A/tf/skills/deck/references/draw.md:7: Write the draw into \`craft/record.md\`"
+want_tf "a Bash agent with no Write is named for the write only" "tool-fit tf:runner lacks Write"
+RV="tool-fit tf:reviewer lacks"
+none_tf "'a handler that writes to \`x.json\`' describes code, not a write order" "Flag any handler that writes"
+none_tf "'a script that executes \`bash -c\`' describes code, not a run order" "Flag a script that executes"
+none_tf "'recommend the user run \`npm audit\`' advises the user" "Recommend the user run"
+none_tf "a bare sha256sum with no verb before it is silent" "not verified with sha256sum"
+none_tf "a bare cksum as a noun is silent" "The brief carries a cksum"
+none_tf "a SKILL.md the body names is not followed" "deck/SKILL.md"
+none_tf "a marker line above a list blesses its first item" "$A/tf/agents/reviewer.md:20:"
+none_tf "a marker line above a list blesses its later items" "$A/tf/agents/reviewer.md:21:"
+none_tf "a marker in the block above a \`\`\`bash fence blesses the fence" "$A/tf/agents/reviewer.md:27: a \`\`\`shell block"
+want_tf "a run order beside a relative clause still fires" "$RV Bash — $A/tf/agents/reviewer.md:16: Run \`git diff main\` and flag every hunk"
+want_tf "a hash tool after a verb fires" "$RV Bash — $A/tf/agents/reviewer.md:17: Pipe the brief through \`cksum\`"
+want_tf "a list past the blessed block's blank line fires" "$RV Bash — $A/tf/agents/reviewer.md:23: - Run \`npm ci\`"
+want_tf "an unblessed \`\`\`bash fence in an agent body fires" "$RV Bash — $A/tf/agents/reviewer.md:33: a \`\`\`shell block"
+BR="tool-fit tf:briefed lacks Bash — $A/tf/agents/briefed.md"
+want_tf "'After that run \`git diff\`': a demonstrative that leaves the order" "$BR:8: After that run"
+want_tf "'do that then run \`npm test\`': a demonstrative that leaves the order" "$BR:10: Read the brief, do that then run"
+none_tf "'verify the recorded cksum matches' names a value, not a run" "$BR:12:"
+none_tf "'use the sha256sum the brief quotes' names a value, not a run" "$BR:14:"
+want_tf "a bare hash tool followed by a path fires" "$BR:16: Take sha256sum dist/app.tgz"
+n_tf=$(printf '%s\n' "$out" | grep -c '^tool-fit ')
+[ "$r" -eq 1 ] && [ "$n_tf" -eq 11 ] \
+  && pass "tool-fit: the neighbours stay silent — negation, the main thread as actor, a fenced sample, 'run it here', a slash command, an implied write, a full grant, the marker, a granted Bash, reviewer wording" \
+  || fail "tool-fit: the neighbours stay silent" "rc=$r, $n_tf lines, want 11: $out"
+rm -rf "$A/tf/agents/director.md" "$A/tf/agents/runner.md" "$A/tf/agents/reviewer.md" "$A/tf/agents/briefed.md"
+out=$(pc_agent_tool_fit "$A") && r=0 || r=$?
+[ "$r" -eq 0 ] && [ -z "$out" ] && pass "tool-fit: a tree with nothing to name returns 0 and prints nothing" \
+  || fail "tool-fit: a tree with nothing to name returns 0 and prints nothing" "rc=$r got: $out"
+grep -v '^[[:space:]]*#' scripts/validate.sh | grep -qF 'toolfit_gap=$(pc_agent_tool_fit plugins)' \
+  && grep -v '^[[:space:]]*#' scripts/validate.sh | grep -qF '[ -n "$toolfit_gap" ] && lane_err "$toolfit_gap"' \
+  && pass "tool-fit: wiring — validate.sh calls pc_agent_tool_fit and fails on its output" \
+  || fail "tool-fit: wiring" "validate.sh lacks the pc_agent_tool_fit call or its lane_err"
 
 [ "$rc" -eq 0 ] && echo "All panel gate-fixture asserts passed."
 exit "$rc"

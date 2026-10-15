@@ -1,7 +1,7 @@
 {
   "name": "skill-router",
-  "version": "0.25.1",
-  "description": "File-aware skill auto-routing: a PostToolUse hook injects one additionalContext directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia via .tsx/.jsx/.vue, plain .ts/.js/.py/.go/.rb/.rs, SQL and migrations (one engine-agnostic rubric, plus a MariaDB row where that engine is detected), components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals flush as one digest on your next prompt (SessionEnd keeps the ledger). Every relevant skill co-fires per edit; fail-open, once per skill per session.",
+  "version": "0.26.0",
+  "description": "File-aware skill auto-routing: a PostToolUse hook injects one additionalContext directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia via .tsx/.jsx/.vue, plain .ts/.js/.py/.go/.rb/.rs, SQL and migrations (one engine-agnostic rubric, plus a MariaDB row where that engine is detected), components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals flush as one digest on your next prompt (SessionEnd keeps the ledger). At most two per edit, named plugin:skill; fail-open, once per skill per session.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
@@ -26,7 +26,7 @@
     "cc_subagent_skills": {
       "type": "boolean",
       "title": "Subagent skill paths (CC_SUBAGENT_SKILLS)",
-      "description": "Hand a plugin subagent the paths of the best-practice skills its frontmatter declares: on or off. The environment variable CC_SUBAGENT_SKILLS overrides this.",
+      "description": "Hand a plugin subagent the paths of the best-practice skills its frontmatter declares, and a general-purpose or claude subagent whose task names repo files the paths of this repo's stack skills: on or off. The environment variable CC_SUBAGENT_SKILLS overrides this.",
       "default": true
     },
     "cc_surfaced_log": {

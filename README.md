@@ -34,9 +34,9 @@ Not sure what you need? Install one plugin and let it tell you:
 /stack-scan:suggest --skills     # third-party skills on skills.sh for the stack this marketplace does not cover
 /reload-plugins                  # nothing installed this run is active until you do
 
-# Or everything at once, no questions, local scope:
+# Or everything at once (asks once for the scope unless you pass --scope):
 /plugin install all-plugins@cc-plugins-marketplace
-/all-plugins:install              # every leaf plugin but opt-in prompt-coach, at local scope; --scope project|user, --dry-run (not found yet? /reload-plugins first)
+/all-plugins:install              # every leaf plugin but opt-in prompt-coach; asks user or local once unless --scope local|project|user; --dry-run (not found yet? /reload-plugins first)
 /all-plugins:uninstall            # the inverse; --self removes all-plugins too
 ```
 
@@ -55,7 +55,7 @@ installing its successor, so you end with neither. If you cannot update, run
 `renames` in [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json) maps to a
 successor, and `claude plugin uninstall <name>@cc-plugins-marketplace` only for a name
 `claude plugin list` still shows as `failed to load`; add `-s <scope>` matching where you
-installed it (`/all-plugins:install` uses local). A project-scope install lives in your
+installed it (`/all-plugins:install` asks, or takes `--scope`). A project-scope install lives in your
 repo's `.claude/settings.json`: per the docs, the session-start migration rewrites or drops its
 `enabledPlugins` key there too, so expect that diff and commit it.
 
@@ -138,6 +138,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 
 | Variable | Plugins | Default | What it does |
 |----------|---------|---------|--------------|
+| `CC_ALL_PLUGINS_HINT` | all-plugins | — | CC_ALL_PLUGINS_HINT=off hides the startup line naming all-plugins as the only plugin enabled |
 | `CC_ASK_LEDGER` | ask-ledger | on | Ledger what a prompt names and have the Stop gate ask for an accounting line for each: on or off |
 | `CC_AVERT` | candor | on | Ask before a write or dispatch that carries a hedge the user never raised: on, notify or off |
 | `CC_BOOST` | craft-layer, task-runner, taskmaster | on | Boost hooks that raise model and effort when a prompt carries an ultra- token: on or off |
@@ -163,6 +164,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_HUD_SUBAGENTS` | session-hud | on | Draw each subagent row as its type, model, effort, context use and age instead of the default row: on or … |
 | `CC_HUD_TURN` | session-hud | on | Add a turn's output tokens, cost and context growth to the line that closes it: on or off |
 | `CC_LOCKFILE_GATE` | candor | on | Stop-gate clause for a dependency manifest changed with its lockfile untouched: on or off |
+| `CC_MERGE_CHECKS` | git-workflow | on | Ask before gh pr merge while the pull request's checks are pending or failing: on or off |
 | `CC_OVERSEER_STATUS` | overseer | on | Pin the open program's next milestone under the prompt: on or off |
 | `CC_PALETTE` | ui-ux | on | Name the category-default indigo, violet or purple accent when a UI write uses it: on or off |
 | `CC_PREAMBLE` | candor | on | Inject the five working moves before the first edit of a session and of each subagent: on or off |
@@ -180,7 +182,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_SKILL_LOG` | hindsight | on | Log each skill invocation to a machine-local ledger under ~/.claude/hindsight: on or off |
 | `CC_SPAWN_CAP` | task-runner | 20 | Ask once a session's subagent dispatches pass this count, then at every doubling: a number or off |
 | `CC_SPAWN_FLOOR` | task-runner | on | Run a role-floors.md agent at max(its floor, the dispatch's model or else the session's): on or off |
-| `CC_SUBAGENT_SKILLS` | skill-router | on | Hand a plugin subagent the paths of the best-practice skills its frontmatter declares: on or off |
+| `CC_SUBAGENT_SKILLS` | skill-router | on | Hand a plugin subagent the paths of the best-practice skills its frontmatter declares, and a general-pur … |
 | `CC_SUGGEST` | code-review, debugging, git-workflow, task-runner, taskmaster, testing | — | On unless CC_SUGGEST=off, which silences these plugins' next-step suggestions, not Claude Code's own |
 | `CC_SURFACED_LOG` | skill-router | on | Append the session's surfaced routing signals to a machine-local ledger at session end: on or off |
 | `CC_TASK_BOARD` | task-runner | on | The status line of a run's phase and card progress on this branch, and the /task-board pane: on or off |
@@ -533,7 +535,7 @@ bill you did not agree to.
 | **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
 | **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
 | **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
-| **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace but opt-in prompt-coach at one scope (local by default) with zero prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
+| **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace but opt-in prompt-coach at one scope (asked once, or `--scope`) with no other prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
 | **[prompt-coach](plugins/prompt-coach)** | a hooks module that holds an eligible prompt at Enter for up to 5 s while a haiku first pass, and on a flag a standby sonnet or opus, judges whether nobody could act on it, it contradicts an earlier instruction, or it strays from a running task-runner card; only a confident flag drops it, and an animated pixel-art sprite shows your text, the reason and a rewrite, with buttons that fill the prompt box and never submit. Each eligible prompt bills a haiku call that `/cost` does not show; terminal only, Claude Code 2.1.291 or newer; installs only by name — `/all-plugins:install` and `/stack-scan:suggest --full` skip it | Prompts that keep needing a second round before anyone can act on them, and a model call per prompt is worth catching them |
 | **[session-hud](plugins/session-hud)** | a hooks module that adds context %, the 5-hour and 7-day rate-limit windows with reset countdowns, session cost, session time and git branch to the prompt's hint line, what each turn cost under its closing line, and a `/hud` pane with the context breakdown, opt-in pinned so it reopens after you close it; plus a default `subagentStatusLine` with each subagent's type, model, effort, context use and age. No `settings.json` edit (a plugin cannot ship your `statusLine`); terminal only, Claude Code 2.1.291 or newer; no model calls | You want the status-line figures without wiring a status-line tool, or a pane that stays up |
 
@@ -567,7 +569,7 @@ plugin — the authoring doctrine has one user, this repository.)
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |
 | want the whole pipeline | `taskmaster` + `task-runner` + `approaches` + `code-architecture` + `testing` + `debugging` |
-| want everything and accept the listing cost | `all-plugins`, then `/all-plugins:install` (every leaf but opt-in prompt-coach at local scope, no questions; re-run it after a marketplace update to pick up new plugins; it raises `skillListingBudgetFraction` for that scope so the listing is sent whole; its README carries the arithmetic and the one n=50 measurement that found the overflow changes nothing detectable) |
+| want everything and accept the listing cost | `all-plugins`, then `/all-plugins:install` (every leaf but opt-in prompt-coach at the scope it asks for once, or `--scope`; re-run it after a marketplace update to pick up new plugins; it raises `skillListingBudgetFraction` for that scope so the listing is sent whole; its README carries the arithmetic and the one n=50 measurement that found the overflow changes nothing detectable) |
 
 ---
 

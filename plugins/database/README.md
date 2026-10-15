@@ -48,13 +48,24 @@ loss or a lock hazard:
 
 | Tier | Shapes | Standing |
 |---|---|---|
-| data loss | `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE`, an unqualified `DELETE`/`UPDATE` with no `WHERE`; Laravel's `Schema::drop*(`; the same statement as spelled by Prisma, Drizzle, TypeORM, Doctrine, Knex, Alembic, Rails, GORM and Django (`dropTable`, `drop_table :users`, `dropSchema`, `drop_all`, `DeleteModel`, `RemoveField`, `DeleteField`, …), matched case-insensitively; and the NoSQL twins — `deleteMany`/`updateMany`/`remove` with an empty filter, a bare `deleteMany()`, `.drop()`/`.dropCollection()`/`.dropDatabase()` | **ask** — `permissionDecision: "ask"`, fixtures in `scripts/__tests__/guard.test.sh` |
-| lock hazard | `CREATE INDEX` without `CONCURRENTLY`, a table-rewriting `ALTER` (column TYPE change, `SET NOT NULL`), a DynamoDB `Scan` on a path that is not a script/migration/seed/test | **ask** — same tier, different message |
+| data loss | `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE` (uppercase, or `truncate table` in any case on a line with no class list — Tailwind's `truncate` class stays silent), an unqualified `DELETE`/`UPDATE` with no `WHERE`; Laravel's `Schema::drop*(`; the same statement as spelled by Prisma, Drizzle, TypeORM, Doctrine, Knex, Alembic, Rails, GORM and Django (`dropTable`, `drop_table :users`, `dropSchema`, `drop_all`, `DeleteModel`, `RemoveField`, `DeleteField`, …), matched case-insensitively; and the NoSQL twins — `deleteMany`/`updateMany`/`remove` with an empty filter, a bare `deleteMany()`, `.drop()`/`.dropCollection()`/`.dropDatabase()` | **ask** — `permissionDecision: "ask"`, fixtures in `scripts/__tests__/guard.test.sh` |
+| lock hazard | `CREATE INDEX` without `CONCURRENTLY` (not in a project whose config names SQLite, which has no `CONCURRENTLY`: wrangler's `d1_databases`, a Prisma `provider = "sqlite"`, a `drizzle.config.*` dialect `sqlite`/`turso`, read from the target's directory up to the project root; not Laravel's `.env`, whose `DB_CONNECTION=sqlite` is Laravel 11+'s local default), a table-rewriting `ALTER` (column TYPE change, `SET NOT NULL`), a DynamoDB `Scan` on a path that is not a script/migration/seed/test | **ask** — same tier, different message |
 | everything else in `sql-best-practices` | expand→migrate→contract ordering, index choice, pool sizing, rollback notes | **agent-graded** — a reviewer applies them; no script does |
 
 It asks, never hard-denies (down-migrations legitimately drop), and fails open on
 any error. `CC_DB_GUARD=off` disables it for the session, and the ask message says
-so. Two things it deliberately does not reach: a **rename** of a column or table
+so. A migration's rollback method is not judged — `function down(` in a PHP file under
+`migrations/` (Laravel, Doctrine), `def down` under `db/migrate/` (Rails), `def downgrade(`
+(Alembic), each up to the next method — so a new create-table migration whose `down()`
+drops the table does not ask, while a drop in `up()` or in a helper still does (standing:
+**gate**, `guard.test.sh`). A Knex, TypeORM or Sequelize rollback still asks, and so does an
+Edit or MultiEdit edit whose new text sits inside `down()` without the opener.
+Scratch is not the project: a target under neither `CLAUDE_PROJECT_DIR` nor the payload
+cwd's git toplevel, or under `$TMPDIR` (default `/tmp`) while the root holding it is not
+there, is not judged, the rule security's `write-scan` uses (standing: **gate**,
+`guard.test.sh`, the `scope:` cases). A payload with no cwd and no `CLAUDE_PROJECT_DIR`
+keeps only the temp-dir rule.
+Two things it deliberately does not reach: a **rename** of a column or table
 (that rule is `sql-best-practices` § Migrations, agent-graded), and documentation —
 `.md`, `.mdx`, `.markdown`, `.txt`, `.rst` and anything under `taskmaster-docs/`
 exit early, because a card that quotes a migration executes nothing and, with no

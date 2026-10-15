@@ -46,7 +46,8 @@
 #       what a clean file produces, so the gap is invisible from the outside — which is how
 #       `*_test.py`, `*_test.go` and `*_spec.rb` sat inside the path glob at :82 for a year
 #       while the opener set matched only JS and PHP. Openers now covered: JS/TS
-#       (`it(`/`test(`/`describe(`), PHP and JS `function test…(`, pytest/minitest
+#       (`it(`/`test(`/`describe(` with an argument on the same line, so Pest's `test()->`
+#       helper is not one), PHP and JS `function test…(`, pytest/minitest
 #       `def test…`, Go `func Test…`, RSpec/minitest paren-less `it "…" do`, `#[Test]`.
 #       Still absent, and therefore still SILENT rather than wrong: JUnit/Kotlin `@Test` +
 #       `void shouldX()`, Rust `#[test] fn …`, C++ `TEST_F(`, Elixir `test "…" do` (`test`
@@ -190,8 +191,12 @@ cc_plugin_state() {
     # arm is RSpec/minitest (`it "adds" do`), and it is anchored on `[^[:alnum:]_]` so
     # `xit "later" do` is not an opener: a skipped block is excluded in every other dialect
     # and must not become a finding here.
+    # The paren arm needs an argument after the `(`: in Pest `test()` returns the running
+    # test case, so a `test()->account` line inside a hook or a test body split it into a
+    # hollow block and the hook reported assertion-free tests that were not (2026-10-14).
+    # Residual: an opener whose title starts on the NEXT line (`it(` alone) is not seen.
     function is_opener(l) {
-      return (l ~ /(^|[^[:alnum:]_])(it|test|describe|context)[[:space:]]*\(/) ||
+      return (l ~ /(^|[^[:alnum:]_])(it|test|describe|context)[[:space:]]*\([[:space:]]*[^)[:space:]]/) ||
              (l ~ /(^|[^[:alnum:]_])(it|describe|context|specify|scenario)[[:space:]]+["\047]/) ||
              (l ~ /function[[:space:]]+test[[:alnum:]_]*[[:space:]]*\(/) ||
              (l ~ /(^|[^[:alnum:]_])def[[:space:]]+test/) ||

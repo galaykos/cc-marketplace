@@ -1,6 +1,7 @@
 #!/bin/bash
 # avert.sh (PreToolUse on Agent, Task, Write, Edit, MultiEdit, Bash; payload on stdin) — asks the user before a call whose text names a legal
 #   hedge, a declared substitute or precaution language that no human turn of the transcript contains; once per term per session.
+#   A Bash call's git commit message and gh pr create|edit title and body are not read (unbody, below).
 # Off: CC_AVERT=off; CC_AVERT=notify makes the ask a notification the call proceeds past. Without jq or on a bad payload it asks nothing.
 # CC_AVERT unset: the /config option cc_avert decides (on, notify or off).
 # Misses: a hedge outside its vocabulary; an avert that never names its reason; in a subagent, a hedge its dispatch prompt already wrote.
@@ -33,6 +34,50 @@ cc_option() {
 
 MARKER_TTL_MIN=1440
 
+# A commit message or PR body documents a hedge already made; it does not make one (a PR body disclosing a precaution coded
+# earlier was asked about). Cut: a git commit or gh pr create|edit at a command position, up to the next ; & | or line end, and
+# any heredoc body opened in that span; bodies opened elsewhere are kept, in order. Misses: a ; & | inside the quoted message,
+# or a multi-line quoted message with no heredoc, leaves the rest scanned (it asks); a message file written first is a Write.
+unbody() {
+  LC_ALL=C awk 'BEGIN { qi = 1 }
+    # Quoted text as _, length kept, so a << inside a quoted message opens nothing; a "$( reads the rest of the line unquoted.
+    function mask(s,   i, c, q, m) {
+      for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+        if (q == "") { if (c == "\"" || c == "\047") q = c }
+        else if (c == q || q == "\"" && c == "$" && substr(s, i + 1, 1) == "(") q = ""
+        else { if (c == "\\" && q == "\"") { m = m "_"; i++ }; c = "_" }
+        m = m c
+      }
+      return m
+    }
+    function queue(s, cut,   w, m) {
+      m = mask(s)
+      while (match(m, /<<<?-?[ \t]*["\047]?[A-Za-z0-9_.-]+/)) {
+        w = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH); m = substr(m, RSTART + RLENGTH)
+        if (substr(w, 3, 1) == "<") continue
+        q[++nq] = w; qd[nq] = (substr(w, 3, 1) == "-"); qx[nq] = cut; sub(/^<<-?[ \t]*["\047]?/, "", q[nq])
+      }
+    }
+    qi <= nq {
+      u = $0; if (qd[qi]) sub(/^\t+/, "", u)
+      if (u == q[qi]) { held = ""; qi++; next }
+      if (qx[qi]) held = held $0 "\n"; else print
+      next
+    }
+    {
+      s = $0; out = ""
+      while (match(s, /(^|[;&|(])[ \t]*(git([ \t]+-[cC][ \t]+[^ \t;&|]+|[ \t]+-[^ \t;&|]+)*[ \t]+commit|gh[ \t]+pr[ \t]+(create|edit))([ \t;&|)]|$)/)) {
+        k = RSTART + index(substr(s, RSTART, RLENGTH), "g") - 1
+        out = out substr(s, 1, k - 1) " "; queue(substr(s, 1, k - 1), 0)
+        s = substr(s, k); e = match(s, /[;&|]/)
+        queue(e ? substr(s, 1, e - 1) : s, 1); s = e ? substr(s, e) : ""
+      }
+      queue(s, 0); print out s
+    }
+    END { printf "%s", held }'
+}
+
 {
   command -v jq >/dev/null 2>&1 || exit 0
   [ "$(cc_option CC_AVERT on)" = "off" ] && exit 0
@@ -53,6 +98,10 @@ MARKER_TTL_MIN=1440
   hedge='trademark|copyright|infring|licen[cs](e|ing) (concern|risk|issue|reason)|legal(ly)? (risk|reason|concern|safe|issue)|(original|invented|made-up|fictional|generic|placeholder|stand-in) (mascot|character|creature|design|version|substitute|logo|brand|name|asset|art)s?|not (a )?cop(y|ies) of|look-?alike|inspired[- ]by|(instead of|rather than|in place of) (the |any )?(real|actual|official|licensed|branded|named) |(to (be|stay|play it) safe|as a precaution|to (avoid|sidestep|steer clear of) (any |the )?(legal|licen|copyright|trademark|ip |brand|rights|infring))'
   term=$(printf '%s' "$text" | grep -oiE "$hedge" | head -1)
   [ -n "$term" ] || exit 0
+  if [ "$tool" = Bash ]; then
+    term=$(printf '%s\n' "$text" | unbody | grep -oiE "$hedge" | head -1)
+    [ -n "$term" ] || exit 0
+  fi
   stem=$(printf '%s' "$term" | tr 'A-Z' 'a-z' | cut -c1-8)
 
   transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)

@@ -138,10 +138,16 @@ one stays on disk.
 
 `/design-kit:in-codebase <brief | board.html#board=N | handoff-dir>` renders a design with the
 project's OWN components on its OWN dev server. `codebase-scaffold.sh --detect` reads the stack
-from disk (Vite React/Vue, Next.js App Router, Nuxt, Laravel Blade) and `--create <slug>` writes a
+from disk (Vite React/Vue, Next.js App Router, Nuxt, Laravel Blade, Laravel + Inertia React/Vue)
+and `--create <slug>` writes a
 scratch entry under `__design-kit__/` paths, every file marked on line 1; the model fills it by
 importing real components and providers, opens it on the dev URL, and after the pick
-`codebase-cleanup.sh` removes every trace — `--verify` exits 1 if anything is left.
+`codebase-cleanup.sh` removes every trace — `--verify` exits 1 if anything is left. An Inertia
+app gets a page that names its own bare layout (the starter kits' default `layout` would wrap it
+in the signed-in shell) and a `Route::inertia` line; Laravel's dev URL is `.env`'s `APP_URL`, the
+one key read there. Where the entry stylesheet imports Tailwind v4, one marked `@source` line
+points it at the scratch dir, because `__design-kit__/` is gitignored and v4 skips gitignored
+paths; cleanup restores the stylesheet and `routes/web.php` byte for byte.
 
 A Claude Design handoff bundle (a folder of exported .html plus a README) goes through
 `handoff-drift.py` first: every colour and font in the export against the repo's tokens

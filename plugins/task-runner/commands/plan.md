@@ -18,12 +18,15 @@ the most recent `taskmaster-docs/tasks/*/00-INDEX.md`).
    and the `Dispatch:` line are part of the same computed plan.
 4. Do NOT execute yet. Offer the next step as a selectable choice
    (AskUserQuestion): "Run now with this plan (Recommended)" / "Stop here".
-   On "Run now", proceed exactly as `/task-runner:run <list>` would, using the
-   computed run-level machinery (the `Dispatch:` pick — `default` or, at this
+   On "Run now", first register the run —
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh --index <00-INDEX.md> --session "<this session id>"`
+   (an inline list: `--slug <name>`); unregistered, the review observer and candor's
+   completion clause stay silently off — then proceed exactly as `/task-runner:run <list>`
+   would from its step 1, using the computed run-level machinery (the `Dispatch:` pick — `default` or, at this
    confirmation, `workflow-tracks`) with the per-level `INLINE`/`DELEGATE`/`BATCH`
    verdicts as the within-run schedule. Print the bare command only when headless.
 
 **Goal marker** — when the list's `00-INDEX.md` carries `Goal: true` (hands-off),
 the step-4 AskUserQuestion is auto-taken to the computed
-verdict ("Run now with this plan"): proceed exactly as `/task-runner:run <list>` would,
-no prompt. Halts and the completion gate still surface.
+verdict ("Run now with this plan"): register the run as above, then proceed exactly as
+`/task-runner:run <list>` would, no prompt. Halts and the completion gate still surface.

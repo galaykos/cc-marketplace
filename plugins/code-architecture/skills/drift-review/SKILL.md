@@ -25,7 +25,7 @@ per Edit.
 ## 0 — Establish a usable X first
 
 X is read from the invoking context, in this order. Nothing is persisted; this skill
-writes no state file.
+writes no state file (step 2's patch is the reviewer's copy of the diff, not a record).
 
 1. **An active task card** — the card currently in progress, or the
    `taskmaster-docs/tasks/*/00-INDEX.md` referenced this session. Its acceptance criteria
@@ -48,8 +48,11 @@ was *is* the drift this review exists to catch.
 Review the **whole unit of work**, not just the uncommitted working tree — otherwise
 anything already committed mid-session escapes the review entirely.
 
-- **Git repo:** diff against the point this work branched from.
-  `git merge-base HEAD <default-branch>` gives the base; `git diff <base>` gives the
+- **Git repo:** diff against the point this work started. The base is the first that
+  applies: a range your caller passed (task-runner passes `<start_sha>..HEAD`); else, when
+  `.claude/task-runner/active-run.json` names the current branch, its `start_sha` — on a
+  stacked branch the merge-base would charge the parent branch's commits to this work;
+  else `git merge-base HEAD <default-branch>`. `git diff <base>` gives the
   change, including commits made along the way. When the work sits on the default branch
   itself, or the merge-base resolves to HEAD, fall back to `git diff HEAD` plus
   `git diff --cached` for the working state.
@@ -63,7 +66,14 @@ Independence breaks the self-grading loop, but it is **best-effort, not guarante
 - **Independent path — top-level session only.** Dispatch a read-only reviewer subagent
   given `(X + its criteria, the diff)`. It maps each hunk to a criterion it serves, or
   flags the hunk `DRIFT` / `CORNER-CUT`. It authored none of the change, so it grades
-  without the author's bias.
+  without the author's bias. **Diff delivery:** a Read/Grep/Glob reviewer has no shell;
+  told to diff, it re-reads whole files and grades against memory. Write step 1's diff
+  (plus untracked files as `git diff --no-index /dev/null <file>`, plus
+  `git blame -L <a>,+<b> <base> -- <file>` for each modified hunk `@@ -<a>,<b>`) to
+  `.claude/code-architecture/rv/diff-<short HEAD>.patch`, with a `.gitignore` holding `*`
+  in `.claude/code-architecture/`. Name that path in the prompt and state "cite line
+  numbers from the working file, not the patch". Never tell a Read/Grep/Glob agent to run
+  git. Standing: agent-graded.
 - **Self-review fallback — inside a subagent, headless, no budget, or where subagent
   dispatch is unavailable.** A subagent cannot dispatch another subagent, and delegated
   execution is the common case here. Then you review the same diff against the same

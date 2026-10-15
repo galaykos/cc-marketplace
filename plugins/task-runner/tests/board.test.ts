@@ -130,7 +130,7 @@ function seat(on: On, live: Live = {}) {
   on('process.run', ($, e) => {
     const answers: Record<string, string> = {
       'git rev-parse --show-cdup': '\n',
-      'git rev-parse --abbrev-ref HEAD': 'feat/x\n',
+      'git symbolic-ref -q HEAD': 'refs/heads/feat/x\n',
     }
     const stdout = answers[e.argv.join(' ')]
 

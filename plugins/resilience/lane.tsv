@@ -7,7 +7,7 @@
 # per-concern commands each held a territory of their own. One row, one territory.
 resilience:review	command	review	runtime-quality-review	invoked as /resilience:review [--concern …], a change crosses a process boundary, or a measured slowness is reported	code-review:review
 # The six skills, added 2026-09-22: resilience declared none of them while
-# /code-review:review fans all six in. observability-design and performance-tuning
+# /code-review:review fans them in (only those the diff selects, since code-review 0.33.0). observability-design and performance-tuning
 # share their agent's territory on purpose — the skill is the rubric, the agent is the
 # hand — so each yields to the worker that outranks it there.
 resilience:resilience-design	skill	build	cross-boundary-failure-design	code crosses a process boundary — an HTTP call, queue, database, third-party API or background job — and the timeout, retry, circuit breaker, fallback or backpressure is about to be left at its default	-

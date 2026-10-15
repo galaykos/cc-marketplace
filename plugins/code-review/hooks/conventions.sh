@@ -15,6 +15,14 @@
 # code file under the project root. Same one-shot, same context key. What the block does
 # NOT parse — interpreter writes (python open(), php file_put_contents), cp/mv
 # destinations, a path held in a variable — still goes unseen; its own header lists them.
+# Since 0.33.0 a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run
+# counts too when git reports a code file changed since this hook's previous call (the
+# bash-write-effects block, at most MAX_BASH_EFFECTS files). That misses a writer it does
+# not name (npx prettier, make), gitignored files, a repo with no git, a mv or cp -p
+# destination and each session's first such run; a file an IDE or a parallel agent changed
+# in that window reads as the run's write. Every call dates the marker, the one-shot spent
+# or not; a spent one-shot reads no effects. A Bash call that exits non-zero fires
+# PostToolUseFailure, registered for Bash too. Costs: the CHANGELOG's 0.33.0 entry.
 #
 # CONFIGS ARE READ AT THE PROJECT ROOT, not the payload cwd. The cwd is the shell's and
 # follows the model's `cd` (same review, finding 2), so a session that had `cd app/Enums`
@@ -199,7 +207,56 @@ cc_bash_write_targets() {
     }' | awk '!seen[$0]++'
 }
 
+# Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
+# cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
+# Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
+cc_plugin_state() {
+  local key sum
+  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+    key=$(printf '%s' "$(basename -- "$1")" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-')
+    sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
+    printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
+  else
+    printf '%s/.claude/%s\n' "$1" "$2"
+  fi
+  return 0
+}
+
+# Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
+# cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
+# directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
+# cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
+# cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
+# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
+# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
+# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
+# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
+# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
+cc_bash_effects_mark() {
+  [ -e "$1/.git" ] || return 0
+  local d="${2%/*}" k
+  { [ -d "$d" ] || mkdir -p "$d"; } 2>/dev/null || return 0
+  { [ -e "$d/.gitignore" ] || printf '*\n' > "$d/.gitignore"; k=$(printf '%s' "$3" | cksum) && printf '%s\n' "${k%% *}" > "$2"; } 2>/dev/null
+  return 0
+}
+cc_bash_write_effects() {
+  local LC_ALL=C re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)([[:space:];&|)`<>]|$)' k m f
+  [ -f "$2" ] && [ "$1" != "${HOME%/}" ] && [[ $3 =~ $re ]] && IFS= read -r m < "$2" && k=$(printf '%s' "$5" | cksum) && [ "$m" = "${k%% *}" ] || return 0
+  case "$(git -C "$1" config status.showUntrackedFiles 2>/dev/null)" in no|false|off|0) return 0 ;; esac
+  # One find over the whole list, each path led by ./ so a name like -delete stays a path; the cap counts only what find kept.
+  while IFS= read -r f; do printf '%s\n' "$1/${f#./}"; done < <(exec 2>/dev/null; cd -- "$1" && GIT_OPTIONAL_LOCKS=0 git status --porcelain -z \
+    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e 's|^...|./|' \
+    | tr '\n' '\0' | xargs -0 sh -c 'exec find "$@" -prune -newer "$0" -type f -print' "$2" | head -n "$4")
+  return 0
+}
+
 {
+  MAX_BASH_EFFECTS=8   # changed files read after an interpreter, cp, mv, install or patch run, in git's path order
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
   case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
@@ -207,6 +264,7 @@ cc_bash_write_targets() {
 
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in Write|Edit|MultiEdit|Bash) ;; *) exit 0 ;; esac
+  [ "$tool" = Bash ] && { cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0; }
 
   # ONCE PER SESSION. The paths do not change mid-session, and a second copy costs
   # the same tokens for no new information.
@@ -217,6 +275,18 @@ cc_bash_write_targets() {
   # is the one context this never speaks in. Pattern and rationale: the context-key one-shot in hooks/scan.sh.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // "nosession"' 2>/dev/null)
   seen="${TMPDIR:-/tmp}/cc-conventions-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
+
+  # Interpreter writes, through the bash-write-effects block: read with the old marker, then date it, on every call — the
+  # one-shot spent too, since the marker is per project and a subagent's first run must not inherit a stale window. A spent
+  # one-shot reads nothing: no git status for an answer nothing below would use. A failed Bash call fires PostToolUseFailure.
+  { IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; } < <(printf '%s' "$input" \
+    | jq -r '.cwd // "", .session_id // "", if .hook_event_name == "PostToolUseFailure" then .hook_event_name else "PostToolUse" end' 2>/dev/null)
+  effects=""; root=""
+  if [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(cc_state_root "$cwd"); then
+    emark="$(cc_plugin_state "$root" code-review)/bash-effects-conventions.mark"
+    [ "$tool" = Bash ] && [ ! -d "$seen" ] && effects=$(cc_bash_write_effects "$root" "$emark" "$cmd" "$MAX_BASH_EFFECTS" "$sess")
+    cc_bash_effects_mark "$root" "$emark" "$sess"
+  fi
   # CHEAP EXIT FIRST: with Bash in the matcher this runs after every shell command, and
   # once the one-shot is spent nothing below can change the answer.
   [ -d "$seen" ] && exit 0
@@ -230,26 +300,26 @@ cc_bash_write_targets() {
     return 1
   }
 
+  # Every write form the targets block recognises needs one of these; most commands carry none.
+  tw=0
   if [ "$tool" = "Bash" ]; then
-    cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
-    # Every write form the block recognises needs one of these; most commands carry none.
-    case "$cmd" in *'>'*|*tee*|*sed*|*perl*) ;; *) exit 0 ;; esac
+    case "$cmd" in *'>'*|*tee*|*sed*|*perl*) tw=1 ;; *) [ -n "$effects" ] || exit 0 ;; esac
   else
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
     [ -n "$file" ] || exit 0
     is_code "$file" || exit 0
   fi
 
-  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
-  root=$(cc_state_root "$cwd") || exit 0
+  [ -n "$cwd" ] && [ -d "$cwd" ] && [ -n "$root" ] || exit 0
 
   # BASH: a relative target resolves against the payload cwd — the Bash tool's own cwd,
   # which is the one place that cwd is exactly right. Kept only when it lands under the
   # project root and is now an existing code file. At most 8 targets per call, so a
-  # mass-write command cannot make one hook call slow.
+  # mass-write command cannot make one hook call slow. Then a code file the effects
+  # block listed: absolute, under the root and on disk already.
   if [ "$tool" = "Bash" ]; then
-    hit=""; n=0
+    hit=""; n=0; tgts=""
+    [ "$tw" = 1 ] && tgts=$(cc_bash_write_targets "$cmd")
     while IFS= read -r t; do
       [ -n "$t" ] || continue
       n=$((n + 1)); [ "$n" -le 8 ] || break
@@ -260,8 +330,11 @@ cc_bash_write_targets() {
       case "$abs" in "$root"/*) ;; *) continue ;; esac
       [ -f "$abs" ] && { hit=1; break; }
     done <<EOF
-$(cc_bash_write_targets "$cmd")
+$tgts
 EOF
+    while [ -z "$hit" ] && IFS= read -r t; do [ -n "$t" ] && is_code "$t" && hit=1; done <<EOF_E
+$effects
+EOF_E
     [ -n "$hit" ] || exit 0
   fi
 
@@ -330,8 +403,8 @@ EOF
   [ -n "$ci" ] && msg="$msg$(printf '\n  CI runs: %s' "$ci")"
   [ -n "$found$ci" ] && msg="$msg$(printf '\n  Whatever CI actually invokes is the tooling standard; a configured tool CI never runs is decoration. If two formatters are configured, exactly one owns formatting — do not add a third, and never add a second linter to a repo that already has one.')"
 
-  jq -cn --arg m "$msg" \
-    '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$m}}' 2>/dev/null
+  jq -cn --arg m "$msg" --arg ev "${hev:-PostToolUse}" \
+    '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$m}}' 2>/dev/null
   exit 0
 } 2>/dev/null
 exit 0

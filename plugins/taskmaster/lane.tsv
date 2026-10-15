@@ -7,7 +7,7 @@ taskmaster:context-scout	agent	understand	pre-question-codebase-scan	a taskmaste
 taskmaster:spec-adversary	agent	decide	spec-hole-adversary	a frozen taskmaster spec exists and has not been red-teamed	-
 taskmaster:task-cards	skill	plan	spec-to-task-cards	a frozen taskmaster spec exists and no card index has been written for it: single-prompt, one-sitting cards in a dependency-aware index with parallel groups	code-architecture:plan-before-code
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
-taskmaster:remind	hook	shape	requirements-clarification	prompt head carries a making verb (build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)	-
+taskmaster:remind	hook	shape	requirements-clarification	prompt head carries a making verb (build|create|add|implement|develop|rewrite|refactor|fix|update|change|write) that is not create or add governing only a PR, commit, or git-marked branch, push, merge, tag or release, outside a paste or harness frame	-
 taskmaster:ultra	hook	any	ultra-task-boost-directive	prompt head matches ultra-?(task|goal) with no negation and no active-banner echo	-
 # generated:end
 taskmaster:clarify-gate	hook	any	pre-edit-clarification-gate	off by default; when armed, a Write/Edit lands before the task's ambiguity ledger is resolved	taskmaster:grill

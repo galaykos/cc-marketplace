@@ -1,7 +1,6 @@
 # Track orchestration algorithm
 
-The step-by-step the `track-orchestration` orchestrator runs. It is the executable form
-of that skill's contract. All git commands are pinned with `-C`; no command relies on an
+The step-by-step the `track-orchestration` orchestrator runs. All git commands are pinned with `-C`; no command relies on an
 inherited cwd.
 
 ## Definitions
@@ -48,6 +47,7 @@ Repeat until no eligible milestone remains:
    git branch <run-branch>-track-<slug> <run-branch>
    git worktree add .claude/worktrees/<run-branch>-track-<slug> <run-branch>-track-<slug>
    mkdir -p <wt>/.claude/task-runner
+   cp .claude/task-runner/.gitignore .claude/task-runner/env-notes.md <wt>/.claude/task-runner/
    ```
 3. **Dispatch** the wave as ONE `Workflow` `agent()` batch (this blocks until all
    return — that is why scheduling is wave-granular, not rolling). Each track-worker
@@ -100,8 +100,7 @@ The prompt to each track-worker contains, in order:
    return a park reason instead — do not force a pass."*
    The orchestrator substitutes `<abs-negative-control.sh>` with the ABSOLUTE path to
    `${CLAUDE_PLUGIN_ROOT}/scripts/negative-control.sh` at dispatch time (the leaf has no
-   `CLAUDE_PLUGIN_ROOT` and a bare script name is command-not-found in its worktree —
-   same absolute-path rule as the primed `Read <abs-path>` lines in item 4), and
+   `CLAUDE_PLUGIN_ROOT` and a bare script name is command-not-found in its worktree), and
    `--root` with the worktree's absolute path.
 
    **`<abs-main-repo-nc>` is the MAIN repo's `.claude/task-runner/nc`, absolute — never the
@@ -124,17 +123,15 @@ The prompt to each track-worker contains, in order:
 1. After the wave loop, run every remaining **serial** milestone inline in the main tree,
    in dependency order (normal per-card execution, the per-card dispatch/routing procedure is available here).
 2. Run **one** full project check suite on the merged run branch, AND the behavioral-gate
-   (`${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed <all merged tracks' files>`,
-   see the behavioral-gate skill) — the merged code is exercised here, not just re-linted.
+   (`${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed <all merged tracks' files>`
+   in the background, see the behavioral-gate skill) — the merged code is exercised here, not just re-linted.
    Under an `Ultra:`/`Goal:` marker (not `boost=off`) the code-redteam pass also runs here at the resolved `model`
    and `effort`, passed in as `agent()` parameters (per its skill) — it never reads the index
    itself, so an unpassed tier means it silently runs native.
 3. **Green** → delete merged track branches, `git worktree remove` their (clean)
    worktrees, drop the lock, hand off to `git-workflow:finish` on the run branch.
-4. **Red** (semantic breakage can survive a clean merge — per-track green was verified
-   against a base lacking the other tracks) → do NOT rollback. Preserve the run branch,
-   all track branches, and their worktrees; report the failure and point the user at the
-   retained branches for bisection.
+4. **Red** → do NOT rollback. Preserve the run branch, all track branches, and their
+   worktrees; report the failure and point the user at the retained branches for bisection.
 
 ## Partial failure, timeouts, cleanup
 

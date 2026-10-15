@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.3 — 2026-10-15
+
+- The shared mod kit (`hooks/cc-kit.ts`) is synced to the copy that reads the branch with `git symbolic-ref -q HEAD`. This plugin does not call the changed function (`activeRun`), so nothing it does changes.
+
 ## 0.6.2 — 2026-10-09
 
 - **The status line no longer refreshes on a subagent's tool calls.** Each refresh runs `git rev-parse`, so a subagent fan-out paid one git call per tool call for a line only the main loop's `program.sh` can move. The line now refreshes at session start and after each main-loop tool call. One new test.

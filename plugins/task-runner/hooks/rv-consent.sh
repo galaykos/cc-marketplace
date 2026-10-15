@@ -62,7 +62,7 @@ cc_state_root() {
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
-  [ -r "$root/.claude/task-runner/active-run.json" ] || exit 0
+  [ -r "$root/.claude/task-runner/active-run.json" ] || [ -r "$root/.claude/task-runner/closed-run.json" ] || exit 0
 
   # TWO WAYS a discretionary skip reaches disk, and the sanctioned one does not
   # mention the filename at all: `review-skip.sh --card X --reason "..."` writes
@@ -84,8 +84,14 @@ cc_state_root() {
          printf '%s' "$cmdline" | grep -q -- '--reason'; then
         discretionary=1
       fi
-      # A shell redirect straight into a record file is the same act by another route.
-      printf '%s' "$cmdline" | grep -qE '>[[:space:]]*[^|]*rv-skip-[a-zA-Z0-9._-]+\.json' && discretionary=1
+      # A shell redirect straight into a record file is the same act by another route. Any
+      # expansion can build the name (`${H:0:12}`, `$(git rev-parse …)`, a backtick), so the
+      # name runs to `.json` short of a pipe or command separator; an id class missed each.
+      # The path before it stops there too: `2>/dev/null; ls …/rv-skip-*.json` only reads.
+      # A `$(…)` or backtick span may hold one (`$(git rev-parse HEAD | cut -c1-12)`): it read
+      # as the redirect's end. Residual: a name held in a variable (`> "$f"`) and a nested `$(…)`.
+      span='([^|;&]|\$\([^)]*\)|`[^`]*`)*'
+      printf '%s' "$cmdline" | grep -qE ">[[:space:]]*${span}rv-skip-${span}\\.json" && discretionary=1
       ;;
   esac
   # An exemption is a design carve-out, never a judgment call: it must not prompt,
@@ -100,19 +106,25 @@ cc_state_root() {
   # legitimate ones (a Windows path, a regex) inside the reason shown to the user.
   flat=$(printf '%s' "$blob" | sed 's/\\"/"/g')
 
-  card=$(printf '%s' "$flat" | grep -oE -- '--(card|id) *"?[a-zA-Z0-9._-]{1,64}' | head -1 |
+  # The id class takes `$ { } :` so a shell-built id such as `bg-${H:0:12}` is shown as
+  # written; without them the prompt named card `bg-`.
+  card=$(printf '%s' "$flat" | grep -oE -- '--(card|id) *"?[a-zA-Z0-9._{}:$-]{1,64}' | head -1 |
     sed -E 's/^--(card|id) *"?//')
   if [ -z "$card" ]; then
-    card=$(printf '%s' "$flat" | grep -oE 'rv-skip-[a-zA-Z0-9._-]{1,64}' | head -1 |
+    card=$(printf '%s' "$flat" | grep -oE 'rv-skip-[a-zA-Z0-9._{}:$-]{1,64}' | head -1 |
       sed -E 's/^rv-skip-//; s/\.json$//')
   fi
   [ -n "$card" ] || card="(unnamed)"
 
-  # {1,200}, not {1,300}: BSD grep rejects an interval above 255 with "maximum
+  # {1,201}, not {1,300}: BSD grep rejects an interval above 255 with "maximum
   # repetition exceeds 255" — on stderr, which this hook sends to /dev/null, so the
   # reason silently came back empty and every prompt read "no reason given".
-  reason=$(printf '%s' "$flat" | grep -oE -- "--reason *\"[^\"]{1,200}\"|--reason *'[^']{1,200}'" | head -1 |
-    sed -E "s/^--reason *[\"']//; s/[\"']$//" | cut -c1-300)
+  # No closing quote in the pattern: requiring one within the interval made any reason
+  # over 200 characters read "no reason given". The 201st character only marks a cut,
+  # shown as "…". Residual: an unterminated quote shows the rest of the command.
+  reason=$(printf '%s' "$flat" | grep -oE -- "--reason *\"[^\"]{1,201}|--reason *'[^']{1,201}" | head -1 |
+    sed -E "s/^--reason *[\"']//")
+  [ "${#reason}" -le 200 ] || reason="${reason:0:200}…"
   [ -n "$reason" ] || reason="no reason given in the command"
 
   what="the reviewer pass for card"

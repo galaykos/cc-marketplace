@@ -110,6 +110,89 @@ if [ -f "$TMR" ]; then
   # meta-prompt about the plugin machinery) is already covered by the META fixture above.
   assert_speaks "taskmaster [webhook is not the reminder machinery]" "$TMR" \
     '{"prompt":"fix the webhook handler for billing retries"}'
+  # V-20 (2026-10-13 retro), taskmaster's promptShape flag: a making verb that only governs a ship noun, a verb supplied by
+  # a paste, and a subagent hand-back are not work requests. Fixtures are synthetic, shaped like the measured prompts; the
+  # three speaking neighbours pin the narrowing: work beside a ship step, a ship noun as a feature object, an ask beside a paste.
+  assert_silent "taskmaster [ship-only: create the PR]"         "$TMR" '{"prompt":"create the PR"}'
+  assert_silent "taskmaster [ship-only: joined branch name]"    "$TMR" '{"prompt":"add upgrade-react-19-split-chunks branch"}'
+  assert_silent "taskmaster [ship-only: git chore chain]"       "$TMR" '{"prompt":"create a branch, commit, open a pr, merge"}'
+  assert_silent "taskmaster [a paste supplies the verbs]"       "$TMR" \
+    '{"prompt":"the import fails <pasted_content id=\"p1\">ERROR: build failed, run composer update</pasted_content id=\"p1\">"}'
+  assert_silent "taskmaster [subagent hand-back frame]"         "$TMR" \
+    '{"prompt":"Another Claude session sent a message:\n<agent-message from=\"a1\">\n[Subagent hand-back] I will build the parser and add tests.\n</agent-message>"}'
+  assert_speaks "taskmaster [work beside a ship step]"          "$TMR" '{"prompt":"fix the failing test, then create a PR"}'
+  assert_speaks "taskmaster [a ship noun as a feature object]"  "$TMR" '{"prompt":"add a tag input to the post form"}'
+  assert_speaks "taskmaster [an ask beside a paste]"            "$TMR" \
+    '{"prompt":"fix the parser for this input <pasted_content id=\"p2\">a,b,,c</pasted_content id=\"p2\">"}'
+  # Wave-2 review: each prompt below spoke before promptShape and went silent with it. A conjunction is not the word before a
+  # ship noun, an edit verb on a PR is code work, a branch/tag/merge with no git context is a feature, an unclosed paste tag
+  # cuts only itself, and a hand-back marker mid-sentence is the user's own text.
+  assert_speaks "taskmaster [conjunction: fix this and push]"     "$TMR" '{"prompt":"fix this and push"}'
+  assert_speaks "taskmaster [conjunction: implement this and commit]" "$TMR" '{"prompt":"implement this and commit"}'
+  assert_speaks "taskmaster [conjunction: fix and push]"          "$TMR" '{"prompt":"fix and push"}'
+  assert_speaks "taskmaster [edit verb on a PR: update]"          "$TMR" '{"prompt":"update the PR to handle null users"}'
+  assert_speaks "taskmaster [edit verb on a branch: refactor]"    "$TMR" '{"prompt":"refactor the branch to drop jQuery"}'
+  assert_speaks "taskmaster [edit verb on a PR: fix]"             "$TMR" '{"prompt":"fix the failing PR"}'
+  assert_speaks "taskmaster [merge as a feature]"                 "$TMR" '{"prompt":"implement merge for duplicate contacts"}'
+  assert_speaks "taskmaster [tags as a feature]"                  "$TMR" '{"prompt":"add tags and categories to the blog"}'
+  assert_speaks "taskmaster [branch as a feature]"                "$TMR" '{"prompt":"add a branch to the store locator"}'
+  assert_speaks "taskmaster [bare add tags]"                      "$TMR" '{"prompt":"add tags"}'
+  assert_speaks "taskmaster [unclosed paste tag cuts only itself]" "$TMR" \
+    '{"prompt":"the importer drops rows <pasted_content id=\"p3\">\nplease fix the importer and add a regression test"}'
+  assert_speaks "taskmaster [hand-back marker mid-sentence]"      "$TMR" \
+    '{"prompt":"please fix the parser that handles the [Subagent hand-back] marker"}'
+  # Range review: each spoke before promptShape and went silent with it. A ship noun followed by to, into, onto or with is the
+  # object of feature work; for, from, off, against, called and named still end a ship phrase.
+  assert_speaks "taskmaster [PRs to a view]"                      "$TMR" '{"prompt":"add PRs to the dashboard"}'
+  assert_speaks "taskmaster [pull requests to a feed]"            "$TMR" '{"prompt":"add pull requests to the activity feed"}'
+  assert_speaks "taskmaster [commits to a view]"                  "$TMR" '{"prompt":"add commits to the timeline view"}'
+  assert_speaks "taskmaster [the PR to a sidebar]"                "$TMR" '{"prompt":"add the PR to the sidebar"}'
+  assert_speaks "taskmaster [dotted name beside tag, to a post]"  "$TMR" '{"prompt":"add the next.js tag to the post"}'
+  assert_speaks "taskmaster [tag beside a joined name, to a logo]" "$TMR" '{"prompt":"add a tag v-shaped to the logo"}'
+  assert_silent "taskmaster [ship-only: create a PR for this]"    "$TMR" '{"prompt":"create a PR for this"}'
+  # A /loop or ScheduleWakeup re-fire (2026-10-15). A host tick opens with its own heading and is a frame; a re-fired prompt is
+  # plain text the payload does not mark, found by the call that scheduled it in the transcript. Speaking neighbours: a typed
+  # prompt beside that call, a subagent prompt with the same text, and a heading the user typed. Synthetic fixtures.
+  TX="$WORK/loop-transcript.jsonl"
+  printf '%s\n' \
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"w1","name":"ScheduleWakeup","input":{"delaySeconds":1200,"reason":"fallback","prompt":"Check whether the export agents finished; then build and run the browser tests."}}]}}' \
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"c1","name":"CronCreate","input":{"cron":"*/20 * * * *","prompt":"fix the nightly import if it failed","recurring":true}}]}}' \
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"a1","name":"Agent","input":{"description":"x","prompt":"add a CSV export to the orders page"}}]}}' > "$TX"
+  tx() { jq -cn --arg p "$1" --arg tp "$TX" '{prompt:$p,transcript_path:$tp}'; }
+  pj() { jq -cn --arg p "$1" '{prompt:$p}'; }
+  assert_silent "taskmaster [/loop tick: autonomous check]"   "$TMR" "$(pj $'# Autonomous loop check\n\nYou are invoked on a timer; build what the last tick left and fix what is red.')"
+  assert_silent "taskmaster [/loop tick: dynamic pacing]"     "$TMR" "$(pj $'# Autonomous loop tick (dynamic pacing)\n\nRun the autonomous check; fix any failing build.')"
+  assert_silent "taskmaster [/loop tick: loop.md tasks]"      "$TMR" "$(pj $'# /loop tick — tasks from /repo/.claude/loop.md\n\n- fix the flaky import test')"
+  assert_silent "taskmaster [ScheduleWakeup re-fire]"         "$TMR" "$(tx 'Check whether the export agents finished; then build and run the browser tests.')"
+  assert_silent "taskmaster [CronCreate re-fire]"             "$TMR" "$(tx 'fix the nightly import if it failed')"
+  assert_speaks "taskmaster [typed prompt beside a wakeup]"   "$TMR" "$(tx 'fix the nightly import')"
+  assert_speaks "taskmaster [subagent prompt is not a timer]" "$TMR" "$(tx 'add a CSV export to the orders page')"
+  assert_speaks "taskmaster [a heading the user typed]"       "$TMR" "$(pj $'# Autonomous loop detection\n\nbuild a cycle detector for the job graph')"
+  # V-20, the auth half: the trivial skip is withheld when the prompt names an auth surface (cc_prompt_auth_ask, the block's
+  # word-anchored prompt list). Neighbours that keep the skip: `author`, and a register verb that is not registration.
+  tm_auth() { # desc  withheld|offered  prompt
+    local out; out="$(pj "$3" | "$BASH_BIN" "$TMR" 2>/dev/null)"
+    [ -n "$out" ] || { fail "$1" "wanted a reminder, got silence"; return; }
+    if printf '%s' "$out" | grep -qF 'the trivial skip does not apply'; then
+      [ "$2" = withheld ] && pass "$1" || fail "$1" "the skip was withheld: $out"
+    else
+      [ "$2" = offered ] && pass "$1" || fail "$1" "the skip was still offered: $out"
+    fi
+  }
+  tm_auth "taskmaster [auth surface: registration]"   withheld "turn off public registration for now; we will add users from an artisan command"
+  tm_auth "taskmaster [auth surface: login]"          withheld "fix the login redirect after a password reset"
+  tm_auth "taskmaster [neighbour: author]"            offered  "add an author bio card to the post page"
+  tm_auth "taskmaster [neighbour: register a listener]" offered "add the event listener and register it in the service provider"
+  # Tier 2 review: the path words withheld the skip on every near miss below. Bare session, token and guard left the prompt
+  # list; account, invite and a camelCase name joined it.
+  tm_auth "taskmaster [near miss: design tokens]"     offered "update the design tokens for the dark theme"
+  tm_auth "taskmaster [near miss: session retro]"     offered "write up the session retro for yesterday's incident"
+  tm_auth "taskmaster [near miss: guard clause]"      offered "add a guard clause to the parser for empty input"
+  tm_auth "taskmaster [near miss: max tokens]"        offered "update max tokens on the summarizer to 4000"
+  tm_auth "taskmaster [near miss: redesign updates]"  offered "ship the redesign updates and fix the header spacing"
+  tm_auth "taskmaster [auth surface: account]"        withheld "add a delete-account button to the profile page"
+  tm_auth "taskmaster [auth surface: invite]"         withheld "add an invite flow so team owners can add members"
+  tm_auth "taskmaster [auth surface: camelCase name]" withheld "fix handleLogin so the redirect stops looping"
 fi
 
 # debugging 0.3.18: the stuck-loop trigger covers the phrases a stuck user actually
@@ -177,6 +260,30 @@ for spec in "taskmaster|remind.sh|refactor the service" "approaches|consult-remi
   pin_case "plugins/$pl/hooks/$f [fenced-trigger control]" speaks on "$pl" "$f" "$fenced. $p"
 done
 
+# promptShape adopted by three more reminders (2026-10-15): a hand-back frame, a paste and a scheduled re-fire carrying the
+# trigger stay silent, and so does build-vs-buy on a ship-only prompt. Each spoke before; the remind-on cases above are the
+# speaking neighbours. consult-remind keeps promptShape off: a paste may hold the destructive command the user asks to run.
+RTX="$WORK/refire-transcript.jsonl"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"w2","name":"ScheduleWakeup","input":{"delaySeconds":1500,"reason":"fallback","prompt":"check whether CI is still failing and wire the stripe webhook into the billing service"}}]}}' > "$RTX"
+for spec in \
+  "approaches|wire the session cache and implement a rate limiter for the billing api" \
+  "debugging|the login test is still failing again after the fix" \
+  "api-design|wire the stripe webhook into the billing service"; do
+  pl="${spec%%|*}"; p="${spec#*|}"
+  pin_hook "$pl" remind.sh "plugins/$pl/hooks/remind.sh [promptShape]" || continue
+  pin_case "plugins/$pl/hooks/remind.sh [hand-back frame]" silent on "$pl" remind.sh "$(printf '[Subagent hand-back] %s' "$p")"
+  pin_case "plugins/$pl/hooks/remind.sh [trigger only in a paste]" silent on "$pl" remind.sh \
+    "$(printf 'FYI, from the log <pasted_content id="p9">%s</pasted_content id="p9">' "$p")"
+done
+pin_case "plugins/debugging/hooks/remind.sh [ScheduleWakeup re-fire]" silent on debugging remind.sh \
+  'check whether CI is still failing and wire the stripe webhook into the billing service' '' "{\"transcript_path\":\"$RTX\"}"
+pin_case "plugins/api-design/hooks/remind.sh [ScheduleWakeup re-fire]" silent on api-design remind.sh \
+  'check whether CI is still failing and wire the stripe webhook into the billing service' '' "{\"transcript_path\":\"$RTX\"}"
+pin_case "plugins/approaches/hooks/remind.sh [ship-only prompt]" silent on approaches remind.sh 'create a PR for the session cache rework'
+# api-design's regex holds nouns, so ship_only reads its shipVerbs key; it spoke here while regex was passed.
+pin_case "plugins/api-design/hooks/remind.sh [ship-only prompt]" silent on api-design remind.sh 'create a PR for the webhook changes'
+pin_case "plugins/api-design/hooks/remind.sh [work beside a ship step]" speaks on api-design remind.sh 'add the webhook handler and create a PR'
+
 for spec in \
   "debugging|remind.sh|/debugging:debug|the login test is failing again, I tried three things and nothing works" \
   "approaches|consult-remind.sh|/approaches:consult|rm -rf node_modules and reinstall"
@@ -218,6 +325,28 @@ if pin_hook approaches consult-remind.sh "$rel [refusals]"; then
   pin_case "$rel [head-400]" silent on approaches consult-remind.sh "$(printf '%0420d\n%s' 0 'rm -rf node_modules')"
   pin_case "$rel [head-newline speaks]" speaks on approaches consult-remind.sh "$(printf 'the build is red\n%s' 'rm -rf node_modules and reinstall')"
   pin_case "$rel [control]" speaks on approaches consult-remind.sh 'rm -rf node_modules and reinstall'
+fi
+
+# build-vs-buy (approaches 0.11.2): the making verb and the capability noun must share one clause, within 40
+# characters, and a prompt naming the provider already chosen stays silent. Before, "build" anywhere plus
+# "payment" anywhere in the head fired on integration work for a chosen gateway.
+rel="plugins/approaches/hooks/remind.sh"
+if pin_hook approaches remind.sh "$rel [one clause]"; then
+  for spec in \
+    "verb and noun in two sentences|build the refund command for the admin panel. Acme is our payment gateway, so there is no manual path" \
+    "verb and noun across a comma|build the dashboard, then clear the cache" \
+    "provider named|implement payment refunds through our payment gateway" \
+    "noun inside a word|create a form for the settings page" \
+    "noun opening a word: author|write the author bio component" \
+    "noun opening a word: sluggish|build the sluggish dashboard faster" \
+    "noun opening a word: cached|create the cached thumbnails grid"
+  do
+    pin_case "$rel [${spec%%|*}]" silent on approaches remind.sh "${spec#*|}"
+  done
+  pin_case "$rel [our own is not a provider]" speaks on approaches remind.sh 'roll our own payment gateway'
+  pin_case "$rel [noun before its verb]" speaks on approaches remind.sh 'a markdown parser from scratch please'
+  pin_case "$rel [provider control]" speaks on approaches remind.sh 'implement payment refunds'
+  pin_case "$rel [a plural noun]" speaks on approaches remind.sh 'build our own payments page'
 fi
 
 if pin_hook taskmaster remind.sh "plugins/taskmaster/hooks/remind.sh [sweep]"; then

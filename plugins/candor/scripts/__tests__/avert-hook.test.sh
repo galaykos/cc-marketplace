@@ -61,4 +61,25 @@ out=$(printf 'not json' | CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK"
 check "10 malformed payload fails open with exit 0" "$out" "rc=0"
 check "11 missing transcript still asks (nothing proves the user raised it)" \
   "$(run Agent '{"prompt":"copyright concerns, so a fictional character"}' "/nowhere/none.jsonl")" ask
+# A commit message or PR body documents a hedge; it does not make one. Each case gets a fresh transcript, so no marker hides an ask.
+bash_case() { # $1 label, $2 command, $3 want
+  local t="$TMP/b$((++nb)).jsonl"; mk_transcript "$t" ""
+  check "$1" "$(run Bash "$(jq -cn --arg c "$2" '{command:$c}')" "$t")" "$3"
+}
+nb=0
+bash_case "16 a gh pr create body disclosing a precaution is silent" \
+  $'gh pr create --title "Fee totals" --body "$(cat <<\'EOF\'\n- [ ] Not run against a live account; both fees are subtracted to be safe.\nEOF\n)"' ""
+bash_case "17 a git commit heredoc message naming a substitute is silent" \
+  $'git add -A && git commit -m "$(cat <<\'EOF\'\nUse a placeholder logo rather than the official one\nEOF\n)" && git push' ""
+bash_case "18 a one-line gh pr edit title is silent" 'cd app && gh pr edit 12 --title "Look-alike icons until the set is licensed"' ""
+bash_case "19 a file written after the commit in the same command still asks" \
+  $'git commit -m "wip" && cat > brief.md <<EOF\nuse look-alike creatures\nEOF' ask
+bash_case "20 a heredoc opened before the commit's own body still asks" \
+  $'cat > brief.md <<A && git commit -qF - <<B\nnot copies of the official designs\nA\nship the sprites\nB' ask
+bash_case "21 git commit named inside another command's text still asks" \
+  $'printf \'run git commit later, as a precaution\\n\' > notes.md' ask
+bash_case "22 a <<WORD quoted in the commit message opens no heredoc" \
+  $'git commit -m "handle <<EOF in parser" && cat > brief.md <<EOF\nuse look-alike creatures\nEOF' ask
+bash_case "23 a <<< here-string in the commit span opens no heredoc" \
+  $'git commit -qF - <<<EOF && cat > brief.md <<EOF\nuse look-alike creatures\nEOF' ask
 exit $rc

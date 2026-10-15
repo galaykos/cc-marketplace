@@ -53,8 +53,9 @@ cat > design-system/components.json <<'EOF'
   "variants":{},"stories":[],"gaps":[]}
 ]}
 EOF
-printf 'import "./index.css";\nimport { x } from "./x";\n' > src/main.tsx; echo 'body{}' > src/index.css
+printf 'import "./index.css";\nimport { x } from "./x";\n' > src/main.tsx; echo '@tailwind base;' > src/index.css
 out="$(bash "$scaffold" --create filled --brief 'Acme')"
+[ "$(cat src/index.css)" = '@tailwind base;' ] || fail "a Tailwind v3 stylesheet got an @source line: $(cat src/index.css)"
 grep -q '^filled=design-system/components.json$' <<<"$out" || fail "filled= line: $out"
 f=src/__design-kit__/filled.tsx
 head -1 "$f" | grep -q '__design-kit__ scratch' || fail "filled marker line 1"
@@ -106,6 +107,95 @@ bash "$cleanup" >/dev/null
 bash "$cleanup" --verify >/dev/null || fail "laravel verify should pass after cleanup"
 grep -q '__design-kit__' routes/web.php && fail "route line survived"
 grep -q 'Route::get("/"' routes/web.php || fail "cleanup removed a real route"
+# a routes file with no final newline: the appended route used to join its last line, and
+# cleanup then deleted that real route with it
+printf '<?php\nRoute::get("/", fn () => view("welcome"));' > routes/web.php; cp routes/web.php "$tmp/lar.web"
+mkdir -p resources/css; printf "@import 'tailwindcss';\n@source '../views';\n" > resources/css/app.css; cp resources/css/app.css "$tmp/lar.css"
+out="$(bash "$scaffold" --create pricing)"
+grep -qx 'Route::get("/", fn () => view("welcome"));' routes/web.php || fail "the appended route joined the last real line: $(cat routes/web.php)"
+grep -qx '@source "../views/__design-kit__"; /\* __design-kit__ scratch — removed by codebase-cleanup.sh \*/' resources/css/app.css || fail "blade: no marked @source line: $(cat resources/css/app.css)"
+grep -q '^appended=resources/css/app.css$' <<<"$out" || fail "blade: appended= css line: $out"
+bash "$cleanup" >/dev/null
+cmp -s routes/web.php "$tmp/lar.web" || fail "cleanup left routes/web.php changed: $(od -c routes/web.php | tail -3)"
+cmp -s resources/css/app.css "$tmp/lar.css" || fail "cleanup left the blade stylesheet changed"
+# a cloned repo's .env is untrusted: shell syntax in APP_URL never runs and the value is refused
+printf '%s\n' "APP_URL=\"http://x';id>$tmp/PWNED;#\"" > .env
+out="$(bash "$scaffold" --create inj 2>&1)"
+[ -e "$tmp/PWNED" ] && fail "APP_URL from .env executed a command"
+grep -q '^open=http://127.0.0.1:8000/__design-kit__/inj$' <<<"$out" || fail "a non-URL APP_URL must be refused: $out"
+bash "$cleanup" >/dev/null; rm .env
+# Tailwind v3's utilities layer import is not a v4 entry
+printf '@tailwind base;\n@import "tailwindcss/utilities";\n' > resources/css/app.css; cp resources/css/app.css "$tmp/v3.css"
+bash "$scaffold" --create v3 >/dev/null
+cmp -s resources/css/app.css "$tmp/v3.css" || fail "a v3 tailwindcss/utilities import got an @source line: $(cat resources/css/app.css)"
+bash "$cleanup" >/dev/null
+
+# --- Laravel + Inertia (stock starter-kit shape, synthetic): React page, Route::inertia, APP_URL ---
+ine="$tmp/inertia"; mkdir -p "$ine/resources/views" "$ine/resources/js/pages" "$ine/resources/js/components/ui" "$ine/resources/css" "$ine/routes"
+touch "$ine/artisan"; echo '{}' > "$ine/tsconfig.json"
+echo '{ "require": { "php": "^8.3", "inertiajs/inertia-laravel": "^3.0", "laravel/framework": "^13.0" } }' > "$ine/composer.json"
+echo '{ "dependencies": { "@inertiajs/react": "^3.0.0", "react": "^19.0.0", "tailwindcss": "^4.0.0" } }' > "$ine/package.json"
+echo '<html><head>@vite(["resources/css/app.css", "resources/js/app.tsx"])</head><body><x-inertia::app /></body></html>' > "$ine/resources/views/app.blade.php"
+printf "@import 'tailwindcss';\n\n@source '../views';\n\n@theme {\n    --color-primary: var(--primary);\n}" > "$ine/resources/css/app.css"
+printf "<?php\n\nuse Illuminate\\\\Support\\\\Facades\\\\Route;\n\nRoute::inertia('/', 'welcome')->name('home');\n" > "$ine/routes/web.php"
+printf 'APP_NAME=Fixture\nAPP_KEY=fixture-key-EXAMPLE\nAPP_URL="https://fx-shop.test/"\nDB_PASSWORD=not-for-output-EXAMPLE\n' > "$ine/.env"
+cd "$ine"; cp resources/css/app.css "$tmp/ine.css"; cp routes/web.php "$tmp/ine.web"
+det="$(bash "$scaffold" --detect)"
+grep -q '^stack=laravel-inertia-react$' <<<"$det" || fail "inertia react detect: $det"
+grep -q '^dev_url=https://fx-shop.test$' <<<"$det" || fail "dev_url from .env APP_URL: $det"
+out="$(bash "$scaffold" --create hero 2>&1)"
+grep -q 'EXAMPLE' <<<"$det$out" && fail ".env values other than APP_URL were printed"
+p=resources/js/pages/__design-kit__/hero.tsx
+[ -f "$p" ] || fail "inertia page missing: $out"
+[ -e resources/views/__design-kit__ ] && fail "an Inertia app got a Blade scratch view"
+head -1 "$p" | grep -q '__design-kit__ scratch' || fail "inertia page marker line 1"
+grep -q '^export default function DesignKitScratch()' "$p" || fail "inertia page default export"
+grep -qx 'DesignKitScratch.layout = \[Bare\];' "$p" || fail "the page must name its own layout to opt out of the app's default: $(cat "$p")"
+grep -q 'function Bare({ children }: { children: ReactNode })' "$p" || fail "typed bare layout"
+grep -qx "Route::inertia('/__design-kit__/hero', '__design-kit__/hero'); // __design-kit__ scratch — removed by codebase-cleanup.sh" routes/web.php || fail "Route::inertia line: $(tail -1 routes/web.php)"
+grep -q 'Route::view' routes/web.php && fail "an Inertia app got a Route::view"
+grep -qx '@source "../js/pages/__design-kit__"; /\* __design-kit__ scratch — removed by codebase-cleanup.sh \*/' resources/css/app.css || fail "marked @source line: $(tail -2 resources/css/app.css)"
+grep -q '^open=https://fx-shop.test/__design-kit__/hero$' <<<"$out" || fail "inertia open url: $out"
+bash "$scaffold" --create hero-b >/dev/null
+[ "$(grep -c '@source "../js/pages/__design-kit__"' resources/css/app.css)" = 1 ] || fail "a second scratch page repeated the @source line"
+bash "$cleanup" --verify >/dev/null 2>&1 && fail "verify should fail while the @source line remains"
+vout="$(bash "$cleanup" --verify 2>/dev/null || true)"
+grep -q '^leftover=resources/css/app.css (1 marked line(s))$' <<<"$vout" || fail "verify names the stylesheet: $vout"
+bash "$cleanup" >/dev/null
+cmp -s resources/css/app.css "$tmp/ine.css" || fail "cleanup did not restore the stylesheet byte-for-byte: $(od -c resources/css/app.css | tail -3)"
+cmp -s routes/web.php "$tmp/ine.web" || fail "cleanup did not restore routes/web.php byte-for-byte"
+bash "$cleanup" --verify >/dev/null || fail "inertia verify after cleanup"
+# with the inventory: alias imports from tsconfig paths, the layout line kept
+printf '{ "compilerOptions": { "paths": { "@/*": ["./resources/js/*"] } } }\n' > tsconfig.json; mkdir -p design-system
+echo '{"components":[{"name":"Button","source":"resources/js/components/ui/button.tsx","export":"named","props":[],"variants":{},"stories":[],"gaps":[]}]}' > design-system/components.json
+out="$(bash "$scaffold" --create filled)"
+grep -q '^filled=design-system/components.json$' <<<"$out" || fail "inertia filled=: $out"
+grep -q '^import { Button } from "@/components/ui/button";$' resources/js/pages/__design-kit__/filled.tsx || fail "inertia alias import"
+grep -qx 'DesignKitScratch.layout = \[Bare\];' resources/js/pages/__design-kit__/filled.tsx || fail "filled inertia page lost its layout line"
+bash "$cleanup" >/dev/null
+# composer has the Laravel adapter but no React/Vue adapter is installed: still Blade
+echo '{ "dependencies": { "tailwindcss": "^4.0.0" } }' > package.json
+grep -q '^stack=laravel$' <<<"$(bash "$scaffold" --detect)" || fail "inertia-laravel without a client adapter should stay laravel"
+
+# --- Laravel + Inertia Vue: an SFC whose options block names the layout; no .env → artisan serve ---
+inv="$tmp/inertia-vue"; mkdir -p "$inv/resources/views" "$inv/resources/js/pages" "$inv/resources/css" "$inv/routes"
+touch "$inv/artisan"
+echo '{ "require": { "inertiajs/inertia-laravel": "^3.0" } }' > "$inv/composer.json"
+echo '{ "dependencies": { "@inertiajs/vue3": "^3.0.0", "vue": "^3.5.0" } }' > "$inv/package.json"
+echo '<html><head>@vite(["resources/js/app.ts"])</head></html>' > "$inv/resources/views/app.blade.php"
+printf '@import "tailwindcss" source("../");\n' > "$inv/resources/css/app.css"
+cd "$inv"; cp resources/css/app.css "$tmp/inv.css"
+det="$(bash "$scaffold" --detect)"
+grep -q '^stack=laravel-inertia-vue$' <<<"$det" || fail "inertia vue detect: $det"
+grep -q '^dev_url=http://127.0.0.1:8000$' <<<"$det" || fail "no .env keeps the artisan-serve url: $det"
+bash "$scaffold" --create hero >/dev/null
+v=resources/js/pages/__design-kit__/hero.vue
+[ -f "$v" ] && head -1 "$v" | grep -q '__design-kit__ scratch' || fail "inertia vue page"
+grep -q '^export default { layout: Bare };$' "$v" && grep -q '^<script setup>$' "$v" || fail "vue page must name its own layout: $(cat "$v")"
+grep -q "Route::inertia('/__design-kit__/hero', '__design-kit__/hero');" routes/web.php || fail "vue Route::inertia"
+grep -q '@source "../js/pages/__design-kit__";' resources/css/app.css || fail "vue: marked @source line"
+bash "$cleanup" >/dev/null
+cmp -s resources/css/app.css "$tmp/inv.css" || fail "vue stylesheet not restored"
 
 # --- unknown stack ---
 mkdir -p "$tmp/empty"; cd "$tmp/empty"

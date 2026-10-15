@@ -20,7 +20,7 @@ forbids, in the plugin whose own doctrine names it. Every fixture pair below
 was authored as a control (defective / clean, same copy, one variable changed)
 and then verified BY HAND, once, by whoever wrote it. This makes them execute.
 
-Six sections:
+Seven sections:
 The fixtures live HERE, beside this harness, not in template/craft-gates/. They
 are this file's inputs and nothing else reads them, so shipping 64K of them to
 every installer inside the directory commands/audit.md says to run from — and
@@ -43,6 +43,14 @@ never to copy — bought nobody anything (moved 2026-09-22).
      Needs a local Playwright; without one it prints SKIP and runs nothing.
   6. TYPE CHECK — gates.spec.ts under `tsc --strict`, when a local typescript and
      Playwright's types are found; SKIP otherwise.
+  7. CONCEPT-DECK WORKED DRAW (added 2026-10-15) — concept-deck.md's example
+     must still compute against the deck: each n is its axis's option count,
+     each index and carry is the arithmetic, each named option sits at that
+     index, the seed is the stated cksum and the lens is that index of
+     creative-director's list. A synthetic deck whose Axis 4 gained an option
+     must fail it. Before this, an axis gaining an option left the example
+     teaching the wrong draw with every gate green. It checks the example only,
+     never that a run drew correctly.
 
 The harness snapshots `git status --porcelain` before and after and asserts it
 is byte-identical: these gates read a build tree, and proving they only read is

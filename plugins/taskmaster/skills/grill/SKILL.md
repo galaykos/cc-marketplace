@@ -91,6 +91,10 @@ dimension left unwalked is a section left empty:
   Multiple-choice beats open-ended — options are answers the user only has to
   recognize, not compose. Put your recommended option first, labeled
   "(Recommended)", and use `multiSelect` when choices are not mutually exclusive.
+- Open round 1 by listing every open row with its recommended default, then one question:
+  *Accept all recommended* / *Walk through them*. Accept makes each defaulted row CLEAR
+  (source: user, accepted default); ask only the rows with no defensible default. One
+  run's user took "(Recommended)" in 16 of 16 answers across the run.
 - Offer concrete options, never "flexible/it depends" filler. Wrong-but-concrete
   options provoke corrections; vague options provoke shrugs.
 - A code fact found missing mid-round is a lookup, not a question: brief `context-scout`

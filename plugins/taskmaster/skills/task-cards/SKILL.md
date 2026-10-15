@@ -35,7 +35,7 @@ decided about each sentence, attributes carry the evidence. Standing of every ru
 <change>exact edits at file level — create X, extract Y into Z, wire A to B</change>
 <interface consumer="04">the signature or data shape card 04 reads</interface>
 <contract section="Data Model"/>
-<skill name="laravel-best-practices"/>
+<skill name="laravel:laravel-best-practices"/>
 </must>
 
 <must-not>
@@ -54,7 +54,10 @@ decided about each sentence, attributes carry the evidence. Standing of every ru
 ```
 
 One `<skill>` per skill, `name="none"` when none; the executing session MUST Read each
-before implementing. `<agent>`: one tag from `references/agent-tags.md`, `generic` when
+before implementing. Stamp a marketplace skill as `plugin:skill`: a bare name loses to a
+same-named project skill (Laravel Boost ships its own `laravel-best-practices`), so workers
+read that copy instead; `skills-stamp-lint.sh` warns (never blocks) when a project skill
+shadows a bare stamp. `<agent>`: one tag from `references/agent-tags.md`, `generic` when
 files span >1 domain. `<contract>` only when the spec has that binding section.
 
 ## Sizing rules
@@ -103,6 +106,7 @@ files span >1 domain. `<contract>` only when the spec has that binding section.
 - Criteria describe observable behavior, never the change itself. "Deleting a
   project soft-deletes its tasks" — not "code for soft-delete is added".
 - Each criterion is binary: passes or fails, no "works well".
+- Prove a limit by lowering it in the test (configure or inject a cap of 3, write 4), never by exceeding a production-sized constant: seeding 100,001 rows to prove a 100,000-row cap ran a workstation out of memory twice.
 - `<verify>` is ONE line, an exact command with **teeth**: a named assertion that fails if the
   feature is absent — verify-teeth blocks compile/existence/require-only, `|| true`, bare "suite passes".
 
@@ -111,8 +115,8 @@ files span >1 domain. `<contract>` only when the spec has that binding section.
 - Spec has UI → the FIRST UI card builds the sign-in and seeders its Walk access row settled
   (grill `references/visual-contract.md`); later UI cards depend on it. Already in the repo → no card.
 - Each UI card carries one `<walk>` line (surface, 1280/375, state) for the group-close walk:
-  `references/card-shape.md`. A `<verify>` of types/lint/grep alone draws a `ui-static-only` WARN;
-  name a component or browser test when the repo has a runner.
+  `references/card-shape.md`. A `<verify>` of types/lint/grep alone draws a `ui-static-only` WARN; name a component or browser test when the repo has a runner.
+  A card needing a browser names its driver as installed (Playwright MCP, a `playwright` dependency), never just "browser".
 
 ## Ordering and parallelism
 

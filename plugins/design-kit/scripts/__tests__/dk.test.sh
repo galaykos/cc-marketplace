@@ -56,6 +56,15 @@ if dk decision --latest >/dev/null 2>&1; then echo "FAIL: decision not consumed"
 python3 -c 'import json;ws=json.load(open(".design-kit/workshop.json"));assert ws["board"]["picked"]==2,ws' || { echo "FAIL: workshop board.picked"; exit 1; }
 dk decision --record "board Fx board, artboard 2 (B), hue 200, rendered with Button; gaps: none" >/dev/null
 grep -q "artboard 2 (B)" design-system/DECISIONS.md || { echo "FAIL: DECISIONS.md"; exit 1; }
+# a line already in the file's `date — …` shape is dated once (doubled until 0.9.4); a
+# date-named slug with no spaced dash after it is text and stays
+today="$(date +%Y-%m-%d)"
+dk decision --record "2001-02-03 — board Fx board, artboard 1 (A); gaps: none" >/dev/null
+grep -qxF -- "- $today — board Fx board, artboard 1 (A); gaps: none" design-system/DECISIONS.md \
+  || { echo "FAIL: a leading date was not replaced: $(tail -1 design-system/DECISIONS.md)"; exit 1; }
+dk decision --record "2001-02-03-hero.html, artboard 1 (A)" >/dev/null
+grep -qxF -- "- $today — 2001-02-03-hero.html, artboard 1 (A)" design-system/DECISIONS.md \
+  || { echo "FAIL: a date-named slug was stripped: $(tail -1 design-system/DECISIONS.md)"; exit 1; }
 
 dk scratch --detect | grep -q "stack=vite-react" || { echo "FAIL: scratch detect"; exit 1; }
 dk scratch --create hero >/dev/null

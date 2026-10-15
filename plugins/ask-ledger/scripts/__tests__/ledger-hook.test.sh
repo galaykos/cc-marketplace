@@ -55,12 +55,46 @@ check "13b a subagent hand-back writes no ledger" "$(run 'Another Claude session
 check "13c a bare agent-message tag writes no ledger" "$(run '<agent-message from="a0d31354dca16ebac">Build the Stripe adapter next.</agent-message>' s13c)" ""
 check "13d a hand-back frame under a harness note writes no ledger" "$(run 'Note: relayed.
 [Subagent hand-back] Create PopoverContent for Card 03.' s13d)" ""
+check "13n a task notification carrying attributes writes no ledger (shared prompt-shape list)" \
+  "$(run '<task-notification id="t42"><result>Add the Pagination fix. FAIL 0.</result></task-notification>' s13n)" ""
+check "13o an opening paste tag with no close cuts only itself, not the ask after it" "$(run 'build the Stripe adapter <pasted_content id="u7">
+and the Paddle one, with the same retry policy' s13o)" "Stripe,Paddle"
+check "13p a hand-back marker quoted mid-sentence is the user's ask" \
+  "$(run 'Build the Stripe adapter; the relay prints [Subagent hand-back] before each report' s13p)" "Stripe"
 # 13e-13g: a capital I glued to the next word is the pronoun with a missing space, not a
 # name (2026-10-07: `Iinstalled` ledgered and blocked two later turns); I-names stay.
 check "13e a glued I before a verb is not a name" \
   "$(run 'create a git branch, we got the new coach plugin, lets check if it works,  Iinstalled it' s13e)" ""
 check "13f a glued I is dropped, the real name beside it kept" "$(run 'fix the build, Ithink the Stripe key is stale and Ineed it today' s13f)" "Stripe"
 check "13g names that merely start with I still ledger" "$(run 'add Inertia and Ionic support' s13g)" "Inertia,Ionic"
+# 13h-13m: a paste is reference, not the ask, and an in-word apostrophe is not a quote
+# (2026-10-13: paste ids, log tokens and `t or didn` ledgered; every block a false positive).
+check "13h a paste's id and log body are not names, nor is its verb the ask" "$(run 'moved the base image to the new release <pasted_content id="b7e2">Err:3 http://mirror.example InRelease
+  NO_PUBKEY 9C1D2E3F4A5B6C7D
+Reading package lists... run apt-get update first</pasted_content id="b7e2">' s13h)" ""
+check "13i a question with a pasted dialog writes no ledger" \
+  "$(run "question, which scopes do I add by hand? at <pasted_content id=\"d9a0\">Manually add scopes. Then click 'Add to table'.</pasted_content id=\"d9a0\">" s13i)" ""
+check "13j the span between two contractions is not a quoted name" "$(run "fix the toggle so it says whether it doesn't or didn't save" s13j)" ""
+check "13k ask text on the paste's own line still ledgers, the paste's names do not" "$(run "build a \"pixel\" theme with a Stripe checkout like this <pasted_content id=\"e1f0\">Acme Billing dialog
+Confirm 'Pay now'</pasted_content id=\"e1f0\">" s13k)" "pixel,Stripe"
+check "13l a quoted name beside a contraction ledgers" "$(run "add Stripe's checkout to the 'pro plan' page, it doesn't exist yet" s13l)" "pro plan"
+check "13m an apostrophe inside a quoted name stays as typed; possessives are not names" \
+  "$(run "fix the \"Stripe's checkout\" flow, use Laravel's queue, That's the fix" s13m)" "Stripe's checkout"
+# 13q-13t: a /loop or ScheduleWakeup re-fire is not a new ask (2026-10-15). A host tick is a
+# frame; a re-fired prompt is matched to the call that scheduled it in the transcript.
+check "13q a host /loop tick writes no ledger" "$(run '# Autonomous loop tick (dynamic pacing)
+
+Run the autonomous check; add the Stripe retry if the Paddle job failed.' s13q)" ""
+TXL="$TMP/loop-transcript.jsonl"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"w1","name":"ScheduleWakeup","input":{"delaySeconds":1200,"reason":"fallback","prompt":"Continue: add the Stripe refund flow once the Paddle reviewer reports."}}]}}' > "$TXL"
+runtp() { # $1 prompt, $2 transcript → the ledger entries for that transcript's context
+  jq -n --arg pr "$1" --arg tp "$2" '{hook_event_name:"UserPromptSubmit",session_id:"sl",transcript_path:$tp,cwd:"/tmp",prompt:$pr}' \
+    | env -u CC_ASK_LEDGER bash "$HOOK" >/dev/null 2>&1
+  key=$(printf '%s' "$2" | cksum | cut -d' ' -f1)
+  [ -f "$TMP/cc-ask-ledger-$key/entries" ] && paste -sd, - < "$TMP/cc-ask-ledger-$key/entries"
+}
+check "13r a ScheduleWakeup re-fire writes no ledger" "$(runtp 'Continue: add the Stripe refund flow once the Paddle reviewer reports.' "$TXL")" ""
+check "13s a typed ask beside the scheduled call still ledgers" "$(runtp 'add the Stripe refund flow' "$TXL")" "Stripe"
 
 # --- 14-16 the existing-identifier filter (2026-09-22). A name the repo already carries
 #     is code to be REPAIRED, not a thing to be delivered; ledgering it made the Stop gate

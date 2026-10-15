@@ -139,17 +139,56 @@ cc_option() {
     ' 2>/dev/null)
   [ -n "$ask" ] || exit 0
 
-  files=$(printf '%s\n' "$tail_json" | jq -rs '
+  # One slurp emits both lists: "F <path>" for each file edited since the request, "C <path>" for each it created.
+  since=$(printf '%s\n' "$tail_json" | jq -rs '
       (map(.type=="user" and (.message.content|type=="string")) | rindex(true)) as $i
       | (if $i == null then [] else .[$i+1:] end)
-      | map(.message.content // [] | if type=="array" then .[] else empty end
+      | (map(.message.content // [] | if type=="array" then .[] else empty end
             | select(.type=="tool_use")
             | select(.name=="Edit" or .name=="Write" or .name=="MultiEdit")
             | .input.file_path // empty)
-      | unique | .[]
+         | unique | .[] | "F " + .),
+        (map(.toolUseResult | select(type=="object" and .type=="create") | .filePath // empty) | .[] | "C " + .)
     ' 2>/dev/null)
+  files=$(printf '%s\n' "$since" | sed -n 's/^F //p')
   count=$(printf '%s\n' "$files" | grep -c . 2>/dev/null)
   [ "${count:-0}" -ge "$DRIFT_FLOOR" ] || exit 0
+
+  # Files created under a directory this request created are the ask's new feature, not
+  # strays: "build a homepage" wrote 12 new files under a new components/welcome/ and was told
+  # 12 of 12 were unnamed (2026-10-13 retro). A directory is new when every file in it is one a
+  # Write since the request created (the transcript's toolUseResult.type "create"). Residual: a
+  # new file in a directory that already held files still counts, and so does a new directory
+  # anything else wrote into (a generator, a cache).
+  created=$( { printf '%s\n' "$since" | sed -n 's/^C //p'
+    printf '%s' "$input" | jq -r 'select(.tool_response.type? == "create") | .tool_input.file_path // empty' 2>/dev/null
+  } | grep . | sort -u)
+  if [ -n "$created" ]; then
+    nc=$(printf '%s\n' "$created" | grep -c .)
+    kept=""; newdirs=""; olddirs=""
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      d=$(dirname "$f")
+      if printf '%s\n' "$created" | grep -qxF -- "$f"; then
+        case "$d/" in "$root"/?*/) ;; *) olddirs="$olddirs$d
+" ;; esac
+        if ! printf '%s' "$newdirs$olddirs" | grep -qxF -- "$d"; then
+          listed=$(find "$d" -type f 2>/dev/null | head -n $((nc + 1)))
+          if [ -n "$listed" ] && [ -z "$(printf '%s\n' "$listed" | grep -vxF -- "$created")" ]; then newdirs="$newdirs$d
+"; else olddirs="$olddirs$d
+"; fi
+        fi
+        printf '%s' "$newdirs" | grep -qxF -- "$d" && continue
+      fi
+      kept="$kept$f
+"
+    done <<EOF
+$files
+EOF
+    files=$kept
+    count=$(printf '%s' "$files" | grep -c . 2>/dev/null)
+    [ "${count:-0}" -ge "$DRIFT_FLOOR" ] || exit 0
+  fi
 
   # A request that ASKS for breadth is not drift. Cheap word list, and its misses are
   # named in the limitation above.

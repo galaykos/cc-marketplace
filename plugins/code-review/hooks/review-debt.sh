@@ -24,6 +24,22 @@
 #     minus *.md, lockfiles, `.claude/`, `taskmaster-docs/` and generated/vendor dirs.
 #   - speak when changed >= 8 files, or >= 1 path matches the auth-surface pattern below.
 #   - ONCE PER HEAD: re-fire only after HEAD moves AND the count grew past what last fired.
+#   - SHIP PROMPTS skip the once-per-HEAD wait: a prompt whose first 400 characters outside
+#     code fences say commit, push, merge, PR or pull request is judged at once, untracked
+#     files counted too, and the line opens "Before this ships". It re-fires only when the
+#     count grew past what the last ship line said. Measured 2026-10-13: a money diff sat
+#     uncommitted when the user asked for a PR and a merge; HEAD had not moved, so the nudge
+#     stayed silent until after the merge, and the review it then prompted found a critical
+#     bug already on master.
+#   - base_f also holds the branch it was recorded on. A branch change moves the base to the
+#     commit the switch landed on (the HEAD reflog's newest `checkout:` entry, looked for only
+#     back to the old base's own entry), else to HEAD. Measured 2026-10-13: after `git switch`
+#     to a branch built on the old base, the old ancestor rule charged that branch's 162
+#     existing files to the session. The reflog point keeps a `git switch -c` plus commits made
+#     in one turn in the count, where a reset to HEAD would drop them.
+#   - Both lines say per-card reviews do not cover cross-card changes: in a 2026-10-13
+#     session the model declined the nudge citing the per-card reviews of an unregistered
+#     run, and whole-branch passes in the same retro found defects no card's review could see.
 #   - a review moves the base to HEAD: an Agent/Task dispatch whose subagent_type ends in
 #     `reviewer` or sits in `security:` / `code-review:`, a Skill call of code-review:review,
 #     security:review or the host's built-in code-review / security-review, or a prompt the
@@ -43,23 +59,31 @@
 #     CC_REVIEW_NUDGE=off silences only this one.
 #     CC_REMIND / CC_REVIEW_NUDGE unset: the /config options cc_remind / cc_review_nudge decide.
 #
-# CHEAP ON THE SILENT PATH: the state root (one `git rev-parse`), HEAD (a second), a stat of
-# the run marker and two one-line reads. The diff runs at most once per HEAD. Git runs with
+# CHEAP ON THE SILENT PATH: the state root (one `git rev-parse`), HEAD (a second), the branch
+# (a `git symbolic-ref`), a stat of the run marker and two one-line reads. The diff runs at
+# most once per HEAD, except on a ship prompt, which also lists untracked files. Git runs with
 # GIT_OPTIONAL_LOCKS=0 so it never contends with the model's own `git` for index.lock.
 #
 # LIMITATION (honest scope — the four laws, see
 # .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
-#   - COMMIT-DRIVEN. The diff is evaluated once per HEAD, so work that stays uncommitted is
-#     seen only at the next commit; a session that commits once at the end is nudged once,
-#     at the end. The measured session committed per item, which is the shape this serves.
+#   - COMMIT-DRIVEN except at a ship prompt. Between ship prompts the diff is evaluated once
+#     per HEAD, so uncommitted work is seen at the next commit or the next prompt naming a
+#     ship verb. A ship verb is matched on words, not intent: "push notifications" counts, a
+#     ship request worded without one ("land it", "/git-workflow:finish") does not, and a
+#     ship verb past 400 characters or inside a code fence is not read. Untracked files are
+#     counted only on a ship prompt.
 #   - A review is recognised by NAME, not by what it covered. A reviewer dispatched on one
 #     file moves the base past twenty; a review done outside these channels (a PR review,
 #     a manual read) is invisible and the nudge still fires.
 #   - The auth-surface pattern is a path regex: `tokens.css` (design tokens) matches it,
-#     and an auth bug in `app/Services/Billing.php` does not.
-#   - A base that stops being an ancestor of HEAD (branch switch, rebase, amend) is reset to
-#     HEAD silently rather than diffed across branches — an amended commit's changes are lost
-#     to the count.
+#     and an auth bug in `app/Services/Billing.php` does not. It is the shared prompt-shape
+#     block's cc_prompt_auth_surface, edited there for every copy.
+#   - A base that stops being an ancestor of HEAD (rebase, amend) is reset to HEAD silently
+#     rather than diffed across branches — an amended commit's changes are lost to the count.
+#     A branch change keeps nothing from the branch left behind: switching away and back
+#     starts the count again. Without a HEAD reflog (or with the switch older than its last
+#     200 entries) the base moves to HEAD, dropping commits made on the new branch before
+#     this prompt. A base recorded before 0.33.0 holds no branch; it adopts the current one.
 #   - A stale active-run.json (a crashed run) keeps this silent until the file is removed.
 #   - Whether a nudged review was WORTH it is agent-graded; nothing here reads the verdict.
 #
@@ -126,6 +150,82 @@ cc_option() {
   return 0
 }
 
+# Shared block templates/blocks/prompt-shape.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/prompt-shape.md
+# Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste, cc_prompt_auth_surface: stdin;
+#   cc_prompt_scheduled: the file it names) and writes nothing.
+# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back
+#   marker — not a human turn.
+# cc_prompt_scheduled <prompt> <transcript>: status 0 when <transcript> holds a ScheduleWakeup or CronCreate call whose prompt is
+#   <prompt> exactly: a timer re-delivering an earlier ask, which the hook payload does not mark. Needs jq.
+# cc_prompt_auth_surface: filter for paths; prints each stdin line naming an auth, secret, payment or migration surface (not `author`;
+#   sign-up only as a word or a camelCase part, so not DesignUpdates).
+# cc_prompt_auth_ask <text>: status 0 when <text> names an auth, account, invite, secret or payment surface as a word, camelCase split;
+#   no bare session, token, guard or crypt (design tokens, a session retro, a guard clause).
+# cc_prompt_unpaste: filter; cuts each <pasted_content …>…</pasted_content …> span, keeps text beside a tag, drops lines it emptied;
+#   an opening tag with no closing tag after it cuts only itself.
+# cc_prompt_ship_only <text> <verb-ERE>: status 0 when every <verb-ERE> match is create, add, open or make governing a PR, pull request
+#   or commit, or a branch, push, merge, tag or release once a PR, commit, `git` or a name beside the noun marks the text as git work;
+#   a hyphen-, slash-, dot- or underscore-joined name (fix-login, feature/add-auth) is one word, holds no verb, may follow the noun.
+# cc_prompt_question <text> <verb-ERE>: status 0 when <text> ends in `?` and holds no <verb-ERE> match and no request (can/could
+#   you|someone, please, why, any idea), or holds a hands-off ask (don't work on it, don't change anything yet) and, outside it, no match
+#   opening a clause or following to, please, a modal or a conjunction (`the deploy` is a noun, `then deploy` an ask).
+cc_prompt_frame() {
+  case "${1:-}" in
+    '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
+    'Another Claude session sent a message:'*|'<agent-message'*) return 0 ;;
+    '# Autonomous loop check'*|'# Autonomous loop tick'*|'# /loop tick'*) return 0 ;;
+    *'[Subagent hand-back]'*) printf '%s\n' "$1" | grep -qE '^[*_[:space:]]*\[Subagent hand-back\]' ;;
+    *) return 1 ;;
+  esac
+}
+cc_prompt_scheduled() {
+  local n
+  [ -n "${1:-}" ] && [ -f "${2:-}" ] || return 1
+  n=$(printf '%s' "$1" | jq -Rs . 2>/dev/null) && [ -n "$n" ] || return 1
+  grep -F -- "\"prompt\":$n" "$2" 2>/dev/null | grep -qE '"name":"(ScheduleWakeup|CronCreate)"'
+}
+cc_prompt_auth_surface() {
+  LC_ALL=C awk '{ l = " " tolower($0) " " } l ~ /auth[^o]|authori[sz]|login|passw|token|secret|credential|polic|permission|role|guard|middleware|impersonat|session|oauth|webhook|payment|crypt|registration|[^a-z]sign[-_ ]?up|[ \/]migrations\// || /Sign[-_]?[Uu]p/'
+}
+cc_prompt_auth_ask() {
+  printf '%s\n' "${1:-}" | sed -E 's/([a-z])([A-Z])/\1 \2/g' | grep -qiE "(^|[^a-z])((un|re|o)?auth(ori[sz]|[^o]|$)|log[- ]?(in|out)|logged[- ]?(in|out)|sign(ed)?[-_ ]?(in|up|out)s?([^a-z]|$)|pass(w|key)|secrets?([^a-z]|$)|credential|polic|permission|roles?([^a-z]|$)|middleware|impersonat|webhook|payment|(en|de|b)crypt|cryptograph|registration|accounts?([^a-z]|$)|invit(e|ation)|(api|access|refresh|bearer|reset)[-_ ]?(tokens?|keys?)|session[-_ ]?(cookie|token|id|fixation|hijack)|(2fa|mfa|two[- ]factor|sso|saml|jwts?|[cx]srf)([^a-z]|$))|(^|/)migrations/"
+}
+cc_prompt_unpaste() {
+  awk '{ a[NR] = $0; if (index($0, "</pasted_content")) z = NR }
+    END { for (n = 1; n <= NR; n++) { out = ""; line = a[n]; cut = p
+      while (1) {
+        if (p) { j = index(line, "</pasted_content"); if (!j) break
+                 line = substr(line, j); k = index(line, ">"); line = k ? substr(line, k + 1) : ""; p = 0 }
+        else { i = index(line, "<pasted_content"); if (!i) { out = out line; break }
+               out = out substr(line, 1, i - 1) " "; line = substr(line, i); cut = 1
+               if (n < z + 0 || index(line, "</pasted_content")) p = 1
+               else { k = index(line, ">"); if (!k) { out = out line; break }; line = substr(line, k + 1) } } }
+      if (!cut || out ~ /[^[:space:]]/) print out } }'
+}
+cc_prompt_ship_only() {
+  local t v s n
+  [ -n "${2:-}" ] || return 1
+  t=$(printf '%s' "${1:-}" | tr '\n' ' ' | sed -E 's#[[:alnum:]]+([-/_.][[:alnum:]]+)+#x#g; s/ +([Aa]nd|[Tt]hen|&) +/ ; /g')
+  v=$(printf '%s' "$t" | grep -oiE "($2)" | grep -c .)
+  n='prs?|pull[ -]requests?|commits?'
+  printf '%s' "$t" | grep -qiE "(^|[^a-z])($n|git|(x|feature|hotfix|release) +(branch(es)?|tags?|releases?))([^a-z]|$)|(^|[^a-z])(branch(es)?|tags?|releases?) +x([^a-z]|$)" \
+    && n="$n|branch(es)?|push(es)?|merges?|tags?|releases?"
+  s=$(printf '%s' "$t" | grep -oiE "($2)( +(a|an|the|new|draft|this|that|my|our|feature|hotfix|release|git|remote|local|separate|fresh))*( +[^ .,;:!?]+)? +($n)( +x)?( *([.,;:!?]|$)| +(for|from|off|against|called|named)([^a-z]|$))" \
+    | grep -ciE '^(create|add|open|make)([^a-z]|$)')
+  [ "${v:-0}" -gt 0 ] && [ "${s:-0}" -ge "$v" ]
+}
+cc_prompt_question() {
+  local t h
+  [ -n "${2:-}" ] || return 1
+  t=$(printf '%s' "${1:-}" | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+  case "$t" in *'?') printf '%s' "$t" | grep -qiE "($2)|(^|[^a-z])((can|could|would|will) +(you|u|we|someone|anyone)|please|why|any +ideas?)([^a-z]|$)" || return 0 ;; esac
+  h="(^|[^a-z])(don't|don’t|dont|do not|never)( +start)? +work(ing)? on +(anything|it|this|that)( *[.,;:!?]| +(yet|for now|until|before)([^a-z]|$)| *$)|(^|[^a-z])(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything +(yet|for now|until|before)([^a-z]|$)|^[[:space:]]*(please,? +)?(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything[[:space:][:punct:]]*$"
+  printf '%s' "$t" | grep -qiE "$h" || return 1
+  ! printf '%s' "$t" | tr 'A-Z' 'a-z' | sed -E "s#$h# ; #g" \
+    | grep -qiE "(^|[.,;:!?]|(^|[^a-z])(and|but|then|so|also|first|just|now|please|to|should|must|can|could|will|would|let'?s))[^a-z0-9]*($2)"
+}
+
 {
   command -v jq  >/dev/null 2>&1 || exit 0
   command -v git >/dev/null 2>&1 || exit 0
@@ -139,7 +239,7 @@ cc_option() {
     // (if .tool_name then "PostToolUse" elif has("prompt") then "UserPromptSubmit" else empty end)' 2>/dev/null) || exit 0
 
   # Is this a review? Decided before any git call: almost every Agent and Skill call is not.
-  reviewed=0
+  reviewed=0; ship=0
   case "$event" in
     PostToolUse)
       tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
@@ -158,6 +258,10 @@ cc_option() {
       case "$prompt" in
         /code-review:review|"/code-review:review "*|/security:review|"/security:review "*) reviewed=1 ;;
         /code-review|"/code-review "*|/security-review|"/security-review "*) reviewed=1 ;;
+        # A harness frame quoting "commit" or "merge" is not the user asking to ship: the shared prompt-shape block's list.
+        *) cc_prompt_frame "$prompt" \
+             || { printf '%s' "$prompt" | awk '/^[[:space:]]*```/{f=!f; next} !f' | tr '\n' ' ' | cut -c1-400 \
+             | grep -qiE '(^|[^[:alnum:]_./-])/?(commit|push|merge|pr|pull[ -]request)([^[:alnum:]_/-]|$)' && ship=1; } ;;
       esac ;;
     *) exit 0 ;;
   esac
@@ -176,45 +280,63 @@ cc_option() {
   # Not a work tree, or no commit yet: nothing to diff, and no state is written.
   head=$(git -C "$root" rev-parse --verify -q HEAD 2>/dev/null) || exit 0
   [ -n "$head" ] || exit 0
+  branch=$(git -C "$root" symbolic-ref -q --short HEAD 2>/dev/null) || branch=-   # detached: -
 
   dir=$(cc_plugin_state "$root" code-review)
   base_f="$dir/review-base-$ctx"
   seen_f="$dir/review-seen-$ctx"
-  # seen_f is "<last HEAD evaluated> <count that last fired>"; base_f is the base commit.
+  # base_f is "<base commit> <branch>"; seen_f is "<last HEAD evaluated> <count that last
+  # fired> <count the last ship line named>".
   record() {
     mkdir -p "$dir" 2>/dev/null || exit 0
     [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null   # the state dir ignores itself
-    printf '%s\n' "$1" > "$base_f" 2>/dev/null
-    printf '%s 0\n' "$1" > "$seen_f" 2>/dev/null
+    printf '%s %s\n' "$1" "$branch" > "$base_f" 2>/dev/null
+    printf '%s 0 0\n' "$1" > "$seen_f" 2>/dev/null
     find "$dir" -maxdepth 1 -name 'review-*' -type f -mtime +14 -exec rm -f {} + 2>/dev/null
   }
 
   [ "$reviewed" = 1 ] && { record "$head"; exit 0; }
   [ -e "$root/.claude/task-runner/active-run.json" ] && { record "$head"; exit 0; }
 
-  base=""; seen_head=""; fired=0
-  [ -r "$base_f" ] && read -r base _ < "$base_f"
+  base=""; bbranch=""; seen_head=""; fired=0; shipped=0
+  [ -r "$base_f" ] && read -r base bbranch _ < "$base_f"
   [ -n "$base" ] || { record "$head"; exit 0; }               # first prompt: baseline, silent
-  [ -r "$seen_f" ] && read -r seen_head fired _ < "$seen_f"
-  [ "$seen_head" = "$head" ] && exit 0                         # this HEAD is already judged
+  if [ -z "$bbranch" ]; then
+    printf '%s %s\n' "$base" "$branch" > "$base_f" 2>/dev/null  # recorded before 0.33.0: adopt
+  elif [ "$bbranch" != "$branch" ]; then
+    # Where the switch landed, searched only back to the old base's own entry: an older
+    # checkout predates this base, and moving the base onto it would charge history.
+    sw=$(git -C "$root" reflog -n 200 --format='%H %gs' 2>/dev/null \
+      | awk -v b="$base" '$2 == "checkout:" { print $1; exit } $1 == b { exit }')
+    { [ -n "$sw" ] && git -C "$root" merge-base --is-ancestor "$sw" "$head" 2>/dev/null; } || sw=$head
+    record "$sw"; base=$sw
+  fi
+  [ -r "$seen_f" ] && read -r seen_head fired shipped _ < "$seen_f"
+  [ "$ship" = 1 ] || [ "$seen_head" != "$head" ] || exit 0    # this HEAD is already judged
   case "$fired" in ''|*[!0-9]*) fired=0 ;; esac
+  case "$shipped" in ''|*[!0-9]*) shipped=0 ;; esac
 
-  # A base off HEAD's history (branch switch, rebase, amend) would diff across branches.
+  # A base off HEAD's history (rebase, amend) would diff across histories.
   git -C "$root" merge-base --is-ancestor "$base" "$head" 2>/dev/null || { record "$head"; exit 0; }
 
-  changed=$(git -C "$root" -c core.quotepath=off diff --name-only "$base" -- 2>/dev/null \
+  changed=$( { git -C "$root" -c core.quotepath=off diff --name-only "$base" -- 2>/dev/null
+               [ "$ship" = 1 ] && git -C "$root" -c core.quotepath=off ls-files --others --exclude-standard 2>/dev/null; } \
     | grep -vE '\.md$|(^|/)\.claude/|(^|/)taskmaster-docs/|(^|/)(node_modules|vendor|dist|build|\.next|coverage|generated|__generated__)/' \
     | grep -vE '(^|/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|composer\.lock|Gemfile\.lock|Cargo\.lock|poetry\.lock|Pipfile\.lock|uv\.lock|go\.sum|bun\.lockb?|mix\.lock|flake\.lock)$')
   count=$(printf '%s\n' "$changed" | grep -c .)
-  # `auth` but not `author`: a publishing app's AuthorController is not an auth surface.
-  auth=$(printf '%s\n' "$changed" \
-    | grep -iE 'auth([^o]|$)|authori[sz]|login|passw|token|secret|credential|polic|permission|role|guard|middleware|impersonat|session|oauth|webhook|payment|crypt|(^|/)migrations/')
+  # `auth` but not `author`: a publishing app's AuthorController is not an auth surface. The words are the prompt-shape block's
+  # cc_prompt_auth_surface; taskmaster's reminder reads the block's narrower cc_prompt_auth_ask on prompts.
+  auth=$(printf '%s\n' "$changed" | cc_prompt_auth_surface)
   nauth=$(printf '%s\n' "$auth" | grep -c .)
 
-  if { [ "$count" -ge 8 ] || [ "$nauth" -ge 1 ]; } && [ "$count" -gt "$fired" ]; then
-    printf '%s %s\n' "$head" "$count" > "$seen_f" 2>/dev/null || exit 0
+  # A ship line answers to the last ship line, so a ship prompt still speaks after a plain
+  # nudge at the same count; it also raises the plain count, so the next commit stays quiet.
+  [ "$ship" = 1 ] && last=$shipped || last=$fired
+  if { [ "$count" -ge 8 ] || [ "$nauth" -ge 1 ]; } && [ "$count" -gt "$last" ]; then
+    if [ "$ship" = 1 ]; then shipped=$count; [ "$count" -gt "$fired" ] && fired=$count; else fired=$count; fi
+    printf '%s %s %s\n' "$head" "$fired" "$shipped" > "$seen_f" 2>/dev/null || exit 0
   else
-    printf '%s %s\n' "$head" "$fired" > "$seen_f" 2>/dev/null
+    printf '%s %s %s\n' "$head" "$fired" "$shipped" > "$seen_f" 2>/dev/null
     exit 0
   fi
 
@@ -226,7 +348,12 @@ cc_option() {
     paths=" (auth-surface: $paths)"
   fi
   [ "$count" -eq 1 ] && noun="file has" || noun="files have"
-  msg="[code-review] $count changed $noun had no review in this session since $short$paths. Run /code-review:review $short..HEAD, or say in one line why not. CC_REVIEW_NUDGE=off silences this nudge."
+  tail="Per-card reviews do not cover cross-card changes. CC_REVIEW_NUDGE=off silences this nudge."
+  if [ "$ship" = 1 ]; then
+    msg="[code-review] Before this ships: $count changed $noun had no review in this session since $short, uncommitted and untracked files included$paths. Run /code-review:review $short now, or say in one line why not. $tail"
+  else
+    msg="[code-review] $count changed $noun had no review in this session since $short$paths. Run /code-review:review $short..HEAD, or say in one line why not. $tail"
+  fi
 
   jq -cn --arg m "$msg" \
     '{hookSpecificOutput:{hookEventName:"UserPromptSubmit",additionalContext:$m}}' 2>/dev/null

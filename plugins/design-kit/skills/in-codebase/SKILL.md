@@ -24,7 +24,9 @@ Resolve the argument first:
   **handoff bundle**: run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/handoff-drift.py" <dir>`
   before anything else and put the table in front of the user.
 - `<file>.html#board=N` → a board from `/design-kit:design`: read that artboard
-  for structure and copy (`dk.sh decision --board <file>` reads its recorded edits too).
+  for structure and copy (`dk.sh decision --board <file>` reads its recorded edits too;
+  its exit 3 after the design flow means those edits were read back earlier in this
+  session — use them).
 - Loaded by the model on a request, or anything else typed → a brief.
 
 Then, in order: `dk.sh scratch --detect`; consent via AskUserQuestion once per session —
@@ -81,7 +83,10 @@ Two entry shapes, one procedure:
    that order, on the same scratch page, with the library's own empty/loading/error
    components. A design that shows only the populated state is not done.
 5. **Scratch never touches a real file.** The only writes are the marked files
-   `codebase-scaffold.sh --create` prints. Registering a provider in `app.tsx`,
+   `codebase-scaffold.sh --create` prints as `wrote=`, and the marked lines it prints as
+   `appended=`: a route in `routes/web.php`, and a Tailwind v4 `@source` line in the
+   entry stylesheet, because `__design-kit__/` is gitignored and v4 skips gitignored
+   paths. Cleanup restores both files byte for byte. Registering a provider in `app.tsx`,
    adding a route to a file other than `routes/web.php`, or editing a component
    "just for the preview" leaves no marker and survives cleanup. Standing: the
    marked files are a **gate** (`codebase-cleanup.sh --verify`); edits to real
@@ -104,8 +109,11 @@ Two entry shapes, one procedure:
 
 1. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh scratch --detect` → read
    `stack=`, `dev_url=`, `components=`, `lang=`. `stack=unknown` → ask which of
-   `vite-react | vite-vue | next | nuxt | laravel` and pass `--stack`. Two stacks in
-   one repo resolve to Laravel; override when the design belongs to the SPA.
+   `vite-react | vite-vue | next | nuxt | laravel | laravel-inertia-react |
+   laravel-inertia-vue` and pass `--stack`. Two stacks in one repo resolve to Laravel;
+   override when the design belongs to the SPA. An Inertia page names its own bare
+   layout so the app's default one stays out; keep that line. Laravel's `dev_url` is
+   `.env`'s `APP_URL`; when that is not where the app is served, say so and use the real URL.
 2. Handoff bundle only: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/handoff-drift.py <dir>`
    and put the table in front of the user with one AskUserQuestion per `no token`
    row (adopt / map to nearest / leave as a gap). `references/handoff-bundle.md`

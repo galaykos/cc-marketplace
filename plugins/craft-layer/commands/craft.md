@@ -55,8 +55,14 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    `{"item","change","approvedAt"}` per value the user agrees to change, `item` as
    `<key>:<recorded value>`, `[]` until one is — shape and sources in `redesign-preservation.md`. **Then DRAW the starting constraint** per `references/concept-deck.md`:
    one option per axis, seeded by the log and excluding the options its last 5 rows used. The deck is
-   drawn from, never chosen from. An absent, empty or malformed log is EMPTY — warn, seed from a hash
-   of the brief plus today's date, carry on.
+   drawn from, never chosen from. An absent, empty or malformed log is EMPTY — warn, seed from
+   `printf '%s' "$brief$(date +%F)" | cksum`, carry on. You draw and record it, not the agent: it has
+   no shell and no Write, so the dispatch carries the draw, the seed, the lens carry and the archetype.
+
+   **Opt-in live moves pass** — only when the user asked for live or fresh move research. You run
+   it, before the dispatch, through the `ultra-deep-research` skill per `references/moves-taxonomy.md`
+   § Opt-in live per-brief research pass, and the dispatch carries its distilled move categories.
+   Not installed, failed or empty: say so in one line and dispatch on the cached taxonomy.
 
    **Then dispatch `creative-director`** for the DIVERGENT fork set — 2–3 ranked candidates, each a
    central metaphor, an editorial voice, one signature interaction — breaking the
@@ -67,9 +73,10 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    rebrand. **What it rules OUT goes into `craft/divergence-record.md`** on the three fixed
    `Banned genus:` / `Banned register:` / `Banned vocabulary:` keys, whose format and match semantics
    `concept-deck.md` owns — a ban left in the record's narrative reaches no builder and no gate.
-   **Then run the CONCEPT FORK**, at every tier including `one-shot`, per that same reference. On a
-   redesign its one call also confirms or changes the mode and asks approval for any never-change
-   value a candidate would change — questions inside that call, never an added exchange (a `guided`
+   **Then run the CONCEPT FORK**, at every tier including `one-shot`, per that same reference, the
+   editorial voice its own question in the call. On a
+   redesign its one call also confirms or changes the mode, its options carrying approval for any
+   never-change value a candidate would change — never a fifth question or an added exchange (a `guided`
    run may ask the approval in a section round); each approval lands in `preserve.json`'s
    `approved`. A changed mode is written back to `preserve.json` and the contract, `Brand echo:`
    added on entering `keep-brand` and removed on leaving it. Headless, or with no fork, the default
@@ -163,7 +170,7 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
      key is on and nothing else, so every pair after a wrap is lost silently. Let the line be long. It
      resolves at every tier — `one-shot` writes no ledger to carry it; a `guided` run copies the
      ledger's `slot` + `section` columns.
-   - `Voice:` — the concept's editorial voice made buildable, four dimensions separated by `·`: person
+   - `Voice:` — the editorial voice picked at the fork, made buildable, four dimensions separated by `·`: person
      and address · sentence-length band in words · what it does with fragments, questions and
      imperatives · 2–3 `NEVER "<literal>"` items, the exact strings THIS product does not say. Same
      lane and same one-line shape as `Banned vocabulary:`, and drawn from the concept deck's editorial

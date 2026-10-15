@@ -5,6 +5,7 @@
 set -u
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/write-scan.sh"
 export TMPDIR="$(mktemp -d)"; trap 'rm -rf "$TMPDIR"' EXIT
+unset CLAUDE_PROJECT_DIR
 pass=0; fail=0
 n=0
 
@@ -213,6 +214,100 @@ const ok = 1
 EOF")
 if [ -z "$out" ]; then pass=$((pass+1)); echo "PASS cd: a relative target after an in-command cd is not read from the payload cwd"
 else echo "FAIL cd: a relative target after an in-command cd is not read from the payload cwd, got: $out"; fail=$((fail+1)); fi
+
+# Scope: a scratch probe outside the project, or in a temp dir the project is not in, is skipped. P itself sits under
+# the exported TMPDIR, so the control case also proves a project that lives in the temp dir is still scanned.
+P=$(mktemp -d "$TMPDIR/proj.XXXXXX"); S=$(mktemp -d "$TMPDIR/scratch.XXXXXX"); mkdir -p "$P/app" "$P/tmp"
+SINK='data = pickle.loads(blob)'
+runc() { # runc <session> <file_path> [TMPDIR]
+  jq -cn --arg s "$1" --arg d "$P" --arg f "$2" --arg c "$SINK" \
+    '{tool_name:"Write", session_id:$s, cwd:$d, tool_input:{file_path:$f, content:$c}}' | TMPDIR="${3:-$TMPDIR}" bash "$HOOK"
+}
+scope() { # scope <name> <want warn|silent> <out>
+  if { [ "$2" = warn ] && grep -q 'unsafe-deserialization' <<<"$3"; } || { [ "$2" = silent ] && [ -z "$3" ]; }; then
+    pass=$((pass+1)); echo "PASS scope: $1"
+  else echo "FAIL scope: $1 (want $2), got: ${3:-<empty>}"; fail=$((fail+1)); fi
+}
+scope "a Write outside the project root is silent"                silent "$(runc sc1 "$S/probe.py")"
+scope "a Write inside a project that lives in the temp dir warns" warn   "$(runc sc2 "$P/app/loader.py")"
+scope "a Write under a TMPDIR inside the project is silent"       silent "$(runc sc3 "$P/tmp/probe.py" "$P/tmp")"
+printf '%s\n' "$SINK" > "$S/probe2.py"
+out=$(jq -cn --arg d "$P" --arg c "cat > $S/probe2.py <<'EOF'
+$SINK
+EOF" '{tool_name:"Bash", session_id:"sc4", cwd:$d, tool_input:{command:$c}}' | bash "$HOOK")
+scope "a Bash write outside the project root is silent"           silent "$out"
+# Outside git the root falls back to CLAUDE_PROJECT_DIR before the cwd, so a `cd src` does not hide a sibling dir.
+mkdir -p "$P/src"
+runsub() { # runsub <session> [CLAUDE_PROJECT_DIR]
+  jq -cn --arg s "$1" --arg d "$P/src" --arg f "$P/app/x.php" --arg c 'data = unserialize($blob);' \
+    '{tool_name:"Write", session_id:$s, cwd:$d, tool_input:{file_path:$f, content:$c}}' | CLAUDE_PROJECT_DIR="${2:-}" bash "$HOOK"
+}
+scope "non-git, cwd src/, CLAUDE_PROJECT_DIR set: a sibling app/ write warns" warn   "$(runsub sc5 "$P")"
+scope "non-git, cwd src/, no CLAUDE_PROJECT_DIR: the cwd is the root"         silent "$(runsub sc6)"
+# The cwd follows the shell's cd and CLAUDE_PROJECT_DIR does not: with the shell in a sibling repo, a write into the project
+# was skipped as outside the cwd's root; either root now holds a judged target (the write-scope block).
+SIB=$(mktemp -d "$TMPDIR/sib.XXXXXX"); git -C "$SIB" init -q 2>/dev/null
+runsib() { # runsib <session> <file_path>
+  jq -cn --arg s "$1" --arg d "$SIB" --arg f "$2" --arg c "$SINK" \
+    '{tool_name:"Write", session_id:$s, cwd:$d, tool_input:{file_path:$f, content:$c}}' | CLAUDE_PROJECT_DIR="$P" bash "$HOOK"
+}
+scope "cwd in a sibling repo, CLAUDE_PROJECT_DIR set: a write into the project warns" warn   "$(runsib sc7 "$P/app/sib.py")"
+scope "cwd in a sibling repo, CLAUDE_PROJECT_DIR set: a write into that repo warns"   warn   "$(runsib sc8 "$SIB/w.py")"
+scope "cwd in a sibling repo, CLAUDE_PROJECT_DIR set: outside both is silent"         silent "$(runsib sc9 "$S/probe3.py")"
+
+# Interpreter writes (bash-write-effects): what a python run added to a file git reports changed since this hook's previous call warns
+# as a Write of that text would; the first call in a repo only sets the marker; a run that wrote nothing, and a file an Edit changed
+# between two Bash calls, stay silent; a tracked file is judged on its `+` lines against HEAD, not on what HEAD already held.
+export CLAUDE_PLUGIN_DATA="$TMPDIR/data"
+G=$(mktemp -d "$TMPDIR/g.XXXXXX"); git -C "$G" init -q 2>/dev/null; mkdir -p "$G/app"
+printf '%s\n' 'data = pickle.loads(old_blob)' 'x = 1' > "$G/app/old.py"
+git -C "$G" add app/old.py && git -C "$G" -c user.email=t@example.com -c user.name=t commit -qm init
+# Every call shares one session_id and keys its context on transcript_path, as a session's subagents do: a marker another
+# session dated reads nothing.
+runp() { # runp <context> <python source> [session] [event] — runs it in $G as the Bash tool would, then the hook
+  local c="python3 - <<'PY'
+$2
+PY"
+  (cd "$G" && bash -c "$c") >/dev/null 2>&1
+  jq -cn --arg t "/t/$1.jsonl" --arg c "$c" --arg d "$G" --arg s "${3:-sess}" --arg e "${4:-PostToolUse}" \
+    '{hook_event_name:$e, tool_name:"Bash", session_id:$s, transcript_path:$t, cwd:$d, tool_input:{command:$c}}' | bash "$HOOK"
+}
+eff() { # eff <name> <want: a slug, or silent> <out>
+  if { [ "$2" = silent ] && [ -z "$3" ]; } || { [ "$2" != silent ] && grep -q "$2" <<<"$3"; }; then pass=$((pass+1)); echo "PASS effects: $1"
+  else echo "FAIL effects: $1 (want $2), got: ${3:-<empty>}"; fail=$((fail+1)); fi
+}
+if command -v python3 >/dev/null 2>&1; then
+  out=$(runp e1 "open('app/first.js', 'w').write('el.innerHTML = a\n')")
+  [ -f "$G/app/first.js" ] && [ -n "$(find "$CLAUDE_PLUGIN_DATA" -name bash-effects.mark 2>/dev/null)" ] || out="fixture: no first.js or no marker; $out"
+  eff "the first call in a repo is silent and sets the marker" silent "$out"
+  out=$(runp e2 "open('app/loader.py', 'w').write('data = pickle.loads(blob)\n')")
+  eff "a python heredoc write warns, naming the file" 'unsafe-deserialization.*loader\.py' "$out"
+  w=$(jq -cn --arg d "$G" --arg f "$G/app/loader.py" '{tool_name:"Write", session_id:"sess", transcript_path:"/t/e2w.jsonl", cwd:$d, tool_input:{file_path:$f, content:"data = pickle.loads(blob)\n"}}' | bash "$HOOK")
+  slugs() { grep -o '\[security\] [a-z-]*:' <<<"$1"; }
+  [ -n "$(slugs "$out")" ] && [ "$(slugs "$out")" = "$(slugs "$w")" ] && eff "the findings are the ones a Write of that text draws" silent "" \
+    || eff "the findings are the ones a Write of that text draws" "the Write's [$(slugs "$w")]" "$out"
+  out=$(jq -cn --arg d "$G" '{tool_name:"Bash", session_id:"sess", transcript_path:"/t/e3.jsonl", cwd:$d, tool_input:{command:"python3 -c '\''print(1)'\''"}}' | bash "$HOOK")
+  eff "a python run that wrote nothing is silent" silent "$out"
+  printf '%s\n' 'el.innerHTML = b' > "$G/app/edited.js"
+  jq -cn --arg d "$G" --arg f "$G/app/edited.js" '{tool_name:"Edit", session_id:"sess", transcript_path:"/t/e4e.jsonl", cwd:$d, tool_input:{file_path:$f, old_string:"a", new_string:"b"}}' \
+    | bash "$HOOK" >/dev/null
+  out=$(runp e4 "open('app/clean.js', 'w').write('const ok = 1\n')")
+  eff "a file an Edit changed between two Bash calls is not read again" silent "$out"
+  out=$(runp e5 "p = 'app/old.py'; s = open(p).read(); open(p, 'w').write(s.replace('x = 1', 'x = 2\nos.system(cmd)'))")
+  eff "a tracked file's added line warns" shell-string-exec "$out"
+  eff "a tracked file is not judged on what HEAD already held" silent "$(grep -o 'unsafe-deserialization' <<<"$out")"
+  out=$(runp e6 "open('app/failed.py', 'w').write('data = pickle.loads(blob)\n')
+raise SystemExit(1)" sess PostToolUseFailure)
+  eff "a failed python run (PostToolUseFailure) warns in that event's envelope" 'unsafe-deserialization.*failed\.py' \
+    "$(jq -c 'select(.hookSpecificOutput.hookEventName == "PostToolUseFailure")' <<<"$out" 2>/dev/null)"
+  jq -e '.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[] | select(.command | test("hooks/write-scan.sh"))' \
+    "$(dirname "$HOOK")/hooks.json" >/dev/null 2>&1 && eff "write-scan.sh is registered on PostToolUseFailure for Bash" silent "" \
+    || eff "write-scan.sh is registered on PostToolUseFailure for Bash" "a PostToolUseFailure Bash entry" ""
+  out=$(runp e7 "open('app/other.py', 'w').write('data = pickle.loads(blob)\n')" other-session)
+  eff "a marker another session dated reads nothing" silent "$out"
+else
+  echo "SKIP effects: python3 not available"
+fi
 
 echo "write-scan tests: $pass passed, $fail failed"
 exit $((fail > 0))

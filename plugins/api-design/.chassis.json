@@ -12,6 +12,8 @@
     "extraGuard": "printf '%s' \"$head\" | grep -qiE '\\b(build|implement|write|creat\\w*|add|wire|connect|integrat\\w*|call|fetch|use|fix|debug|update)\\b'",
     "artifact": "api-design:remind",
     "arcRank": 40,
+    "promptShape": true,
+    "shipVerbs": "\\b(build|implement|write|creat\\w*|add|wire|connect|integrat\\w*|call|fetch|use|fix|debug|update)\\b",
     "lane": {
       "owns": "third-party-api-doc-reminder",
       "trigger": "prompt head carries an integration noun (library|sdk|integrate|webhook|oauth|graphql|external/third-party/public/vendor api|api client/key/token/docs/reference) AND a making or calling verb",

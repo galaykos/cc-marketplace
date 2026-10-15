@@ -2,6 +2,48 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.4.2 — 2026-10-14
+
+### Fixed
+- **A paste is no longer read as the ask.** `<pasted_content id="…">` blocks fed both the
+  work-shape test and name extraction: in five reviewed sessions the host's paste id, log
+  tokens and a pasted dialog's quoted label were ledgered, a paste's own `update` made a
+  question work-shaped, and every one of the five blocks was a false positive (in two the
+  model told the user to turn the gate off). Each `<pasted_content …>…</pasted_content …>`
+  span is now cut first; ask text on the same line as either tag still counts. Residual: a
+  name that appears only inside a paste no longer ledgers. Harness cases 13h, 13i and 13k
+  in `ledger-hook.test.sh` pin it; each fails against 0.4.1.
+- **One harness-frame list, shared.** The prompt prefixes this hook skips (system reminder,
+  task notification, Stop hook feedback, another session's message, a hand-back) and the
+  paste cut now come from the byte-locked `templates/blocks/prompt-shape.md`, the copy
+  skill-router and code-review paste too, so the three lists cannot drift apart again.
+  One widening: a `<task-notification` that carries attributes is also skipped. Case 13n
+  pins it and fails against 0.4.1. Two narrowings: an opening `<pasted_content` tag with no
+  closing tag after it now cuts only itself, where the cut used to swallow the rest of the
+  prompt and its ask; and the hand-back marker makes a frame only where a line opens with
+  it, so an ask quoting it mid-sentence ledgers. Cases 13o and 13p pin them; each fails
+  against 0.4.1. Standing: gate (`ledger-hook.test.sh`; the byte lock is `validate.sh`'s
+  shared-block check).
+- **A `/loop` wakeup writes no ledger.** A scheduled fire reaches the hook as plain prompt
+  text. In two reviewed sessions it was always text the model had written for
+  ScheduleWakeup, so its names were the model's own. The `/loop` that sets a user's loop
+  is a slash command this hook already skips. A host `/loop` tick (`# Autonomous loop …`,
+  `# /loop tick …`) is now a frame. A prompt equal to a ScheduleWakeup or CronCreate call's
+  `prompt` in this context's transcript is skipped (the shared block's
+  `cc_prompt_scheduled`; the payload does not mark it). Residual: a prompt the user retypes
+  verbatim while its call is in the transcript is skipped too. Cases 13q and 13r fail
+  against the hook before this change; 13s, a typed ask beside the call, still ledgers.
+- **An in-word apostrophe no longer opens a quote.** In "doesn't or didn't" the span
+  between the two apostrophes ledgered as the name `t or didn`. Apostrophes between two
+  letters are masked while quoted terms are found and restored inside them, so
+  `"Stripe's checkout"` still ledgers as typed. Residual: the second apostrophe of
+  `rock'n'roll` still opens a quote. Cases 13j, 13l and 13m pin it; each fails against 0.4.1.
+- **A block asks for the answer's verdict before the accounting lines.** The retry a block
+  forces is the last thing the user reads, and when it held only `<name>: …` lines users
+  re-asked the question already answered above it. The block now says to restate the
+  answer's one-line verdict first. Whether the retry does so is agent-graded; case 4b in
+  `gate-hook.test.sh` pins the wording only.
+
 ## 0.4.1 — 2026-10-11
 
 ### Fixed

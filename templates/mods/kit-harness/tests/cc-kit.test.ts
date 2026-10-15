@@ -20,7 +20,7 @@ const A_MD = '/work/a.md'
 
 const LIVE_BUILD = JSON.stringify({ phase: 'build', owner: 'task-runner:run', session_id: 'S1' })
 
-type Repo = { toplevel: string; branch: string; real?: string }
+type Repo = { toplevel: string; branch?: string; real?: string; abbrev?: string; symbolicExit?: number }
 
 type World = {
   cwd?: string
@@ -59,10 +59,15 @@ function hostIn(world: World): Host {
       const answers: Record<string, string | undefined> = {
         'git rev-parse --show-cdup': repo && '../'.repeat(depth),
         'git rev-parse --show-toplevel': repo && (repo.real ?? repo.toplevel),
-        'git rev-parse --abbrev-ref HEAD': repo?.branch,
+        'git symbolic-ref -q HEAD': repo?.branch && `refs/heads/${repo.branch}`,
+        ...(repo?.abbrev !== undefined && { 'git rev-parse --abbrev-ref HEAD': repo.abbrev }),
       }
 
       const command = argv.join(' ')
+
+      if (command === 'git symbolic-ref -q HEAD' && repo?.symbolicExit !== undefined) {
+        return ran(repo.symbolicExit, '')
+      }
 
       if (!(command in answers)) {
         throw new Error(`unexpected command: ${command}`)
@@ -70,7 +75,7 @@ function hostIn(world: World): Host {
 
       const stdout = answers[command]
 
-      return stdout === undefined ? ran(128, '') : ran(0, `${stdout}\n`)
+      return stdout === undefined ? ran(repo ? 1 : 128, '') : ran(0, `${stdout}\n`)
     },
     read: async path => (await fileAt(path)).text,
     stat: async path => ({ kind: 'file', size: 0, mtimeMs: (await fileAt(path)).mtimeMs, isLink: false }),
@@ -305,6 +310,36 @@ describe('cc-kit', () => {
     const repos = [{ toplevel: '/work', branch: 'master' }]
 
     expect(await activeRun(hostIn({ repos, files: RUN_FILE }))).toBe(null)
+  })
+
+  test('activeRun reads the full ref, so a tag named like the branch does not hide the run', async () => {
+    const repos = [{ toplevel: '/work', branch: 'feat/x', abbrev: 'heads/feat/x' }]
+
+    expect(await activeRun(hostIn({ repos, files: RUN_FILE }))).toMatchObject({ branch: 'feat/x' })
+  })
+
+  test('activeRun is null on a detached head', async () => {
+    const repos = [{ toplevel: '/work' }]
+
+    expect(await activeRun(hostIn({ repos, files: RUN_FILE }))).toBe(null)
+  })
+
+  test('activeRun matches a run registered on a detached head while the head is detached', async () => {
+    const files = { [RUN]: { text: JSON.stringify({ slug: 'ship-mods', branch: 'HEAD' }), mtimeMs: NOW } }
+
+    expect(await activeRun(hostIn({ repos: [{ toplevel: '/work' }], files }))).toMatchObject({ branch: 'HEAD' })
+  })
+
+  test('activeRun keeps the run when symbolic-ref fails with an exit other than 1', async () => {
+    const repos = [{ toplevel: '/work', symbolicExit: 128 }]
+
+    expect(await activeRun(hostIn({ repos, files: RUN_FILE }))).toMatchObject({ slug: 'ship-mods' })
+  })
+
+  test('activeRun matches a run whose sentinel names no branch', async () => {
+    const files = { [RUN]: { text: JSON.stringify({ slug: 'ship-mods' }), mtimeMs: NOW } }
+
+    expect(await activeRun(hostIn({ repos: REPO, files }))).toMatchObject({ slug: 'ship-mods', branch: '' })
   })
 
   test('activeRun is null without a run file', async () => {

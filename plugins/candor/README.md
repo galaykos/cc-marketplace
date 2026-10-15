@@ -27,7 +27,7 @@ that clause on its own continuation.
 | **1 Fabricated citation** | the final assistant message cites `path/file.ext:NNN` that resolves to no file under the shell `cwd` or the project root (or under `~` for a `~/` path), or to a line past the file's end | re-read and cite what is there, or drop the number and say you are inferring |
 | **2 Unevidenced reversal** | the last user message is challenge-shaped pushback carrying no correction of its own, the final message retracts, and no tool ran in between | re-check and report what it showed, or hold the position and say why |
 | **3 Naked completion claim** | the assistant tail claims completion (done / fixed / implemented / verified / passes), a non-prose file was edited this session (`.md`/`.txt`/`.rst`/`.adoc` edits do not arm it — nothing executable proves a README right), and nothing was executed after the last such edit | run the check that would fail if the change were broken, or say what was not verified and the command that would verify it |
-| **4 Registered run not complete** | a task-runner run registered itself (`.claude/task-runner/active-run.json`) and is stopping with no recorded gate pass for HEAD (not while a background worker of this session is in flight — see below), cards neither done nor parked, short per-card control or reviewer records, a behavioral-gate verdict other than `covered` / `no-executable-surface` (`no-behavioral-coverage` passes only beside a recorded coverage reduction for that HEAD), a short red-team panel on a boosted run, or an undisclosed recorded reduction | continue with a tool call, ask with `AskUserQuestion`, park the card, or run the gate and record the pass |
+| **4 Registered run not complete** | a task-runner run registered itself (`.claude/task-runner/active-run.json`, or `closed-run.json` after its closing rename, which the clause removes once every check holds, or silently once HEAD has moved past its gate pass) and is stopping with no recorded gate pass for HEAD (not while a background worker of this session is in flight — see below), cards neither done nor parked, short per-card control or reviewer records, a UI card (its review diff names a `.tsx`, `.jsx`, `.vue`, `.svelte`, stylesheet or `.blade.php` file that is not a test or story) with no ui-ux-reviewer record, no whole-range review recorded for HEAD on a run whose sentinel carries `start_sha`, a behavioral-gate verdict other than `covered` / `no-executable-surface` (`no-behavioral-coverage` passes only beside a recorded coverage reduction for that HEAD), a short red-team panel on a boosted run, or an undisclosed recorded reduction | continue with a tool call, ask with `AskUserQuestion`, park the card, or run the gate and record the pass |
 | **5 Lockfile drift** | a dependency manifest's dependency map changed in the working tree and the lockfile that governs it did not — npm/pnpm/yarn/bun, Composer, Bundler, Poetry/uv/pdm, Cargo, Go. For JSON manifests the parsed dependency maps are compared, not diff lines, so a `version` bump never arms it; the other four test dependency-shaped lines and exclude metadata keys by name | run the installer and commit the lockfile with the manifest, or say plainly that the lockfile is deliberately unchanged and why |
 
 The gate's own state — the one-block-per-text marker and the which-clause-blocked
@@ -35,7 +35,7 @@ record — lives in the plugin's data directory, `${CLAUDE_PLUGIN_DATA}/<project
 (`<project-key>` is the repo folder's name plus a checksum of its path), when the host
 provides one, else in `<repo>/.claude/candor/`, which carries a self-ignoring `.gitignore`,
 so it never appears in `git status`. Since 0.5.0 every state path and every read of the
-run's records (`active-run.json`, `gate-pass.json`, `nc/`, `rv/`, `bg/`, `rt/`,
+run's records (`active-run.json` or `closed-run.json`, `gate-pass.json`, `nc/`, `rv/`, `bg/`, `rt/`,
 `reductions/`) resolves at the **project root** — the git toplevel above the payload
 `cwd`, else `CLAUDE_PROJECT_DIR` when `cwd` sits under it, else `cwd`. The payload
 `cwd` follows the model's `cd`; before 0.5.0 a stop taken from a subdirectory looked
@@ -50,7 +50,14 @@ list on the Stop payload whenever the payload carries it (probed on CLI 2.1.282)
 Otherwise it uses in-flight records: `preamble.sh` writes one on `SubagentStart`, and
 `gate.sh` deletes it on `SubagentStop`. Records older than 180 minutes are swept and
 not counted, which is how an agent that died without a `SubagentStop` stops counting.
-The gate prints a one-line note instead of blocking and keeps this HEAD's one block for
+Since 0.8.0 task-runner's behavioral gate running in background Bash counts as one
+worker: it writes `.claude/task-runner/bg/running.pid` (its PID, then the HEAD it tests),
+and the gate holds while that PID is live, the sha is the current HEAD and the file is
+under 240 minutes old (seven built-in runners at the gate's 1800 s cap run 210); a dead
+PID or another HEAD is ignored. With `/proc` (Linux) live means the PID's command line
+names `behavioral-gate.sh`, or else some live `behavioral-gate.sh` runs from under the
+repo root: a gate in sandboxed Bash (`bwrap --unshare-pid`) records the sandbox's own PID,
+which names another process or none outside it. The gate prints a one-line note instead of blocking and keeps this HEAD's one block for
 the stop after the last worker returns. Every other clause-4 reason still blocks while
 workers run: a claimed pass with short records, a red behavioral gate, a short
 red-team panel, or an undisclosed reduction.
@@ -93,7 +100,9 @@ on every later stop (0.3.1; `scripts/__tests__/gate.test.sh`, clause independenc
 prints six counts — the two gated candour axes plus flattery openers, apologies,
 defensive phrasing and emotional intensifiers — and, when a terse level is active
 or `--brevity` is passed, `scripts/measure.sh`'s prose-line count per turn-final
-message against the level's budget. Both always exit 0.
+message against the level's budget. Both always exit 0. The citation count uses the
+gate's own lookup, `hooks/cite.sh`, sourced by both (since 0.8.0), so a citation the
+report counts is one clause 1 would block.
 
 The four extra axes are deliberately ungated. No regex separates "you're right"
 said because it is true from the same words said to please, once the evidence
@@ -194,11 +203,11 @@ so the injected card and the skill body cannot drift.
 | Event | Script | Does |
 | --- | --- | --- |
 | `Stop`, `SubagentStop` | `hooks/gate.sh` | the five clauses above; exit 2 blocks |
-| `PreToolUse` (Agent, Task, Write, Edit, MultiEdit, Bash) | `hooks/avert.sh` | the text about to reach a worker or disk declares doing less than what was named for a reason the user did not give — a legal/IP reason, a substitute (original, invented, generic, placeholder, stand-in, look-alike, inspired-by) in place of the real thing, or precaution language ("to be safe", "as a precaution") — and no human turn raised that term: the call becomes a permission question, once per term per session. `CC_AVERT=notify` makes it a notification the call proceeds past. Vocabulary-bound — an avert that never names its reason passes; `CC_AVERT=off` silences it |
+| `PreToolUse` (Agent, Task, Write, Edit, MultiEdit, Bash) | `hooks/avert.sh` | the text about to reach a worker or disk declares doing less than what was named for a reason the user did not give — a legal/IP reason, a substitute (original, invented, generic, placeholder, stand-in, look-alike, inspired-by) in place of the real thing, or precaution language ("to be safe", "as a precaution") — and no human turn raised that term: the call becomes a permission question, once per term per session. A Bash call's `git commit` message and `gh pr create`/`edit` title and body are not read: they record a hedge already made (a heredoc opened beside them, or text after a `;`, `&` or `|`, still is) `CC_AVERT=notify` makes it a notification the call proceeds past. Vocabulary-bound — an avert that never names its reason passes; `CC_AVERT=off` silences it |
 | `SessionStart` | `hooks/activate.sh` | injects the terse contract once, only when a level is active; silent otherwise |
 | `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton (~150 tokens per prompt — measured 596 chars at `lite`/`full`/`ultra`, 693 at a `wenyan-*` level — and nothing when off) |
-| `UserPromptSubmit` | `hooks/preamble.sh` | once per session, on the first prompt whose head carries a making verb in an imperative clause: injects the five working moves before the first edit (under 1,000 bytes, bounded by the hook's own test); silent on every later prompt, on questions, on slash commands, and under `CC_PREAMBLE=off` |
-| `SubagentStart` | `hooks/preamble.sh` | the same five moves, once per `agent_id`, for every subagent the Agent tool spawns — `UserPromptSubmit` never fires inside a subagent, and on 2026-09-18 the text reached 0 of 3 workers building an app; no matcher, so read-only spawns pay the 878 chars as of 0.6.3, under 1,000 bytes too. Also writes the worker's in-flight record for clause 4 (under `$TMPDIR`, keyed on the hashed `session_id`), even under `CC_PREAMBLE=off` |
+| `UserPromptSubmit` | `hooks/preamble.sh` | once per session, on the first prompt whose head carries a making verb in an imperative clause: injects the five working moves before the first edit (under 1,000 bytes, bounded by the hook's own test); silent on every later prompt, on questions, on slash commands, on a harness frame (a hand-back, a notification), and under `CC_PREAMBLE=off`; a making verb only inside a pasted span does not count |
+| `SubagentStart` | `hooks/preamble.sh` | the same five moves, once per `agent_id`, for every subagent the Agent tool spawns — `UserPromptSubmit` never fires inside a subagent, and on 2026-09-18 the text reached 0 of 3 workers building an app; under 1,000 bytes too. Since 0.8.0 an agent that cannot edit gets no text — this marketplace's agents whose `tools:` holds neither `Write` nor `Edit` (reviewers, `*-expert`, scouts, `researcher`, `verifier`), matched by qualified name (`ultra-deep-research:verifier`, never a bare `verifier`), and the built-in `Explore`, `Plan` and `claude-code-guide`; `preamble-hook.test.sh` derives that set from every `agents/*.md` and fails on one the list misses; another source's read-only agent still gets it. Also writes the worker's in-flight record for clause 4 (under `$TMPDIR`, keyed on the hashed `session_id`), even under `CC_PREAMBLE=off` |
 
 `mode.sh` is **not** a `CC_REMIND` reminder hook: a user-selected mode is not a
 nudge, so it neither claims the one-nudge-per-prompt marker nor answers to that
@@ -229,6 +238,10 @@ Move (1)'s last sentence, *add no code comment unless it states what the code ca
 (0.6.3), is outside that measured set and no case covers it: its effect is unmeasured. It
 is there for reach — into every subagent, and into sessions without `code-review`, whose
 hooks judge a comment only as it is written.
+Move (2)'s last sentence, *if the user said they will test it themselves, name what is
+untested and stop* (0.8.0), is outside it too: in a reviewed session the model built
+throwaway containers three times to prove a config change the user had said they would test
+in production. **Standing: agent-graded**, no case covers it.
 
 Running them takes two operator grants the case files cannot give themselves:
 
@@ -255,7 +268,11 @@ Stated because a gate reads stronger than it is:
 - **Only an invented FILENAME is caught, not a wrong directory.** Measured over
   47 real transcripts, an abbreviated path is far more common than an invented
   one, so the resolver falls back to the basename and only a basename that
-  exists nowhere blocks.
+  exists nowhere blocks. A basename found only under `node_modules/` or `vendor/`
+  (6 levels deep) counts as real but is not line-checked; one only under `dist/`,
+  `build/` or `.venv/` still blocks. A `file:line` whose extension is a dev host
+  name (`.localhost`, `.test`, `.local`, `.example`…) is read as `host:port` and
+  not checked.
 - **Any tool call counts as re-checking (clause 2) and any post-edit execution
   counts as verification (clause 3).** A `git status` satisfies both. The gate
   proves something ran, not that the right thing ran.
@@ -268,7 +285,11 @@ Stated because a gate reads stronger than it is:
   whenever the payload carries it. Without that list, a worker that runs longer than
   180 minutes stops counting, and the gate blocks once per HEAD as it did before 0.5.0.
   A session resumed under a new `session_id` cannot see its earlier records.
-  Background shell tasks and workflows do not count as workers.
+  Background shell tasks and workflows do not count as workers, except the behavioral
+  gate's `bg/running.pid`; without `/proc` (macOS) a recycled PID at the same HEAD
+  holds the block until that file is 240 minutes old, on Linux any process naming
+  `behavioral-gate.sh` from under the repo root holds it while the file is current, and a
+  gate given an extra `--runner` or a raised timeout can outlast the 240 minutes.
 - **Pushback detection is a regex over one message.** Phrasing outside the list
   is invisible, and a user message carrying its own evidence disarms clause 2 on
   purpose.

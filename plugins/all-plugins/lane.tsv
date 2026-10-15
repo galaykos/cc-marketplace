@@ -10,3 +10,5 @@
 # curated set? that is /stack-scan:suggest") is stated in the README, not as a yields_to edge.
 all-plugins:install	command	ship	marketplace-wide-install	invoked as /all-plugins:install	-
 all-plugins:uninstall	command	ship	marketplace-wide-uninstall	invoked as /all-plugins:uninstall	-
+# The hint yields to install, the command it points at; phase any because a bare install is wrong at every point.
+all-plugins:hint	hook	any	marketplace-wide-install	SessionStart startup while the merged enabledPlugins of the user, project and local settings enable all-plugins@<m> and no other <name>@<m>; one systemMessage line, CC_ALL_PLUGINS_HINT=off hides it	all-plugins:install

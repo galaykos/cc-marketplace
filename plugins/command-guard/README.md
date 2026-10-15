@@ -18,7 +18,7 @@ that classifies the command string itself.
 |---|---|---|
 | `deny` | irreversible loss whose blast radius is not visible in the command — `migrate:fresh`, `db:wipe`, `DROP DATABASE`, `rm -rf /`, `rm .env` or a `cp`/`mv`/`tee` over a live one, `artisan key:generate` over a set `APP_KEY`, `cd /missing/dir; …` (the rest would run in the live tree), `git clean -fdx`, `git push --force`, `docker compose down -v`, `kubectl delete pvc`, `terraform destroy`, `aws s3 rb`, `gcloud … delete` | the call is blocked; the model is told not to rephrase it, and to hand the command to the user |
 | `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git clean -fd`, `rm -rf ./some-dir` *when git cannot restore it* (see below), `DELETE FROM`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh`, a `Write` that replaces an existing `.env` | the user gets a permission prompt naming what is lost — with no interactive prompt (`claude -p`, a headless agent, `dontAsk`) the request is **auto-denied**, see [Running headless / in CI](#running-headless--in-ci) |
-| `allow` | everything else, including `rm -rf node_modules`, `rm -rf /tmp/scratch-dir`, `git commit -m "drop the table step"`, `grep -r migrate:fresh .` | silent; normal permissions apply |
+| `allow` | everything else, including `rm -rf node_modules`, `rm -rf .playwright-mcp` (the Playwright MCP's scratch dir, unless it is a symlink or the command `cd`s first, in a subshell or through `env -C` too), `rm -rf /tmp/scratch-dir`, `git commit -m "drop the table step"`, `grep -r migrate:fresh .` | silent; normal permissions apply |
 
 `rm -rf` **inside the OS temp directory** is silent — under `/tmp`,
 `/private/tmp`, `/var/tmp`, macOS's `/var/folders/…/T/`, or a `$TMPDIR` the hook
@@ -51,8 +51,11 @@ real repo, and the credentials and the key were gone.
 
 It reads through the usual disguises — quotes (`artisan "migrate:fresh"`),
 wrappers (`bash -c`, `eval`, `docker compose exec`), extra whitespace, `&&`
-chains, heredocs — and skips read-only commands, so searching for a string is
-never confused with running it. It also covers MCP tools that shell out or run
+chains, heredocs fed to a shell or SQL client — and skips read-only commands, so searching for a string is
+never confused with running it. Any other heredoc body (`cat > f <<EOF`, `python3 - <<EOF`)
+is data and is not read, unless the guard cannot rule out a shell reading it (rules.md lists
+when): judging every body line by line pushed a 21 KB command past the hook's 15 s
+timeout, where the guard fails open. It also covers MCP tools that shell out or run
 SQL, which are the same hole under a different tool name. It reads through `env` and
 every documented git global option before the subcommand, and does not take
 `git clean … -e -n` for a dry run (`-n` is the exclude pattern there). It misses a git

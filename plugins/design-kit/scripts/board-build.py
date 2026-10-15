@@ -7,7 +7,8 @@ spec-format.md), fills skills/design/assets/board-shell.html, writes
 from --tokens (default design-system/tokens.json when it exists): a DTCG file is
 walked for an accent colour, a base spacing, a corner radius and a body font
 family, each by path-name heuristic, each falling back to the shell's neutral
-default when absent. Standing: scripts/__tests__/board-build.test.sh.
+default when absent; the accent is read from hex, rgb(), hsl() or oklch(), and a token
+file that maps no accent says so on stderr. Standing: scripts/__tests__/board-build.test.sh.
 
 WHAT IT GATES (exit 2). Fewer than 2 or more than 4 artboards; an empty body;
 "lorem ipsum" anywhere in a body; any external reference in a body (`http(s)://`
@@ -20,6 +21,7 @@ floor; a hand-written body can undo it).
 import argparse
 import datetime as _dt
 import json
+import math
 import os
 import re
 import sys
@@ -98,11 +100,41 @@ def _walk(node, trail, out):
             _walk(v, trail + [str(k)], out)
 
 
-def _hex_to_hsl(value):
-    m = re.fullmatch(r"#?([0-9a-f]{6})", str(value).strip(), re.I)
+_NUM = r"([-+]?(?:\d+\.?\d*|\.\d+))"
+_COLOR_FN = re.compile(r"(rgba?|hsla?|oklch)\(\s*" + _NUM + r"(%|deg)?[\s,]+" + _NUM + r"(%)?[\s,]+" + _NUM + r"(%|deg)?\s*(?:[,/][^)]*)?\)", re.I)
+
+
+def _color_to_hsl(value):
+    """(h, s, l) from a 6-digit hex, rgb(), hsl() or oklch() — the shapes system-extract.py
+    passes through from a stylesheet. Until 0.10.0 only hex was read, so a Tailwind v4
+    @theme in oklch drew the board in the default blue without a word. Residual: oklab(),
+    lab(), lch(), color() and a `{color.x}` alias read as no colour."""
+    v = str(value).strip()
+    m = re.fullmatch(r"#?([0-9a-f]{6})", v, re.I)
+    if m:
+        return _rgb_to_hsl(*(int(m.group(1)[i:i + 2], 16) / 255 for i in (0, 2, 4)))
+    m = _COLOR_FN.fullmatch(v)
     if not m:
         return None
-    r, g, b = (int(m.group(1)[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    fn = m.group(1).lower()
+    a, b, c = float(m.group(2)), float(m.group(4)), float(m.group(6))
+    if fn.startswith("hsl"):
+        return (round(a) % 360, round(min(max(b, 0), 100)), round(min(max(c, 0), 100)))
+    if fn.startswith("rgb"):
+        return _rgb_to_hsl(*(x / 100 if pct else x / 255 for x, pct in ((a, m.group(3) == "%"), (b, m.group(5) == "%"), (c, m.group(7) == "%"))))
+    L = a / 100 if m.group(3) == "%" else a
+    C = b / 100 * 0.4 if m.group(5) else b
+    la, lb = C * math.cos(math.radians(c)), C * math.sin(math.radians(c))
+    # OKLab → LMS → linear sRGB, Ottosson's matrices; gamma-encode, then clamp in _rgb_to_hsl
+    l_, m_, s_ = (L + 0.3963377774 * la + 0.2158037573 * lb) ** 3, (L - 0.1055613458 * la - 0.0638541728 * lb) ** 3, (L - 0.0894841775 * la - 1.2914855480 * lb) ** 3
+    lin = (4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_,
+           -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_,
+           -0.0041960863 * l_ - 0.7034186147 * m_ + 1.7076147010 * s_)
+    return _rgb_to_hsl(*(12.92 * x if x <= 0.0031308 else 1.055 * x ** (1 / 2.4) - 0.055 for x in lin))
+
+
+def _rgb_to_hsl(r, g, b):
+    r, g, b = (min(max(x, 0.0), 1.0) for x in (r, g, b))
     mx, mn = max(r, g, b), min(r, g, b)
     l = (mx + mn) / 2
     if mx == mn:
@@ -141,7 +173,7 @@ def read_tokens(path):
     used = []
     for want in ("primary", "brand", "accent"):  # the product colour first; "accent" is often the highlight, not the brand
         for p, t, v in flat:
-            hsl = _hex_to_hsl(v) if (t in (None, "color")) else None
+            hsl = _color_to_hsl(v) if (t in (None, "color")) else None
             if want in p and hsl:
                 theme["accent"] = hsl
                 used.append(f"accent ← {p}")
@@ -290,6 +322,9 @@ def main(argv=None):
         print("tokens: " + "; ".join(used), file=sys.stderr)
     elif tokens:
         print(f"tokens: nothing usable found in {tokens}; neutral defaults", file=sys.stderr)
+    if tokens and os.path.isfile(tokens) and not any(u.startswith("accent") for u in used):
+        print(f"tokens: no colour mapped from {tokens} — no primary, brand or accent token holds a hex, rgb(), hsl() "
+              "or oklch() value; the board uses the neutral accent", file=sys.stderr)
     return 0
 
 

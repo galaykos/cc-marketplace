@@ -67,6 +67,17 @@ distinctiveness × brief-fit × feasibility (feasibility includes a usability fl
 returns the winner plus a **structured divergence record** the audit later checks. The
 agent owns the rubric; this skill only says WHEN to run it and WHAT it feeds.
 
+**The main thread draws before it dispatches; the agent cannot.** It has `Read, Grep, Glob`
+— no shell to hash a seed, no Write to record a draw — and three runs that left both to it
+got an improvised seed. So the caller reads the run log, seeds from the first field of
+`printf '%s' "$brief$(date +%F)" | cksum` when the log is absent, empty or malformed, draws per
+`references/concept-deck.md`, writes the five draw lines into `craft/divergence-record.md`,
+and puts the draw, that seed, the lens carry and the archetype in the dispatch. The agent works inside the
+draw, returns text, and opens motion skills only for a creative/portfolio or
+marketing/campaign archetype. Standing: agent-graded — `pc_agent_tool_fit` fails an agent
+body or a reference it reads that tells the agent itself to hash or write, never a dispatch
+that leaves the draw out.
+
 ## Content depth — kill thinness
 
 Award-grade pages are substantial and specific, not skeletal. The per-archetype budget
@@ -110,8 +121,9 @@ which is which, row by row.
 The agent reasons from a taxonomy of MOVE CATEGORIES (hero archetypes, scroll devices,
 type treatments, motion signatures) with when-to-use — categories, never enumerated named
 moves (that would be the forbidden catalog). Cached by default; an opt-in live per-brief
-research pass reuses `ultra-deep-research` when present and degrades to the cache when
-absent. Detail: `references/moves-taxonomy.md`.
+research pass is run by the main thread through `ultra-deep-research` before the dispatch
+(the agent has no tool to run it), its findings passed in; absent, it degrades to the cache.
+Detail: `references/moves-taxonomy.md`.
 
 ## Reuse — never duplicate
 

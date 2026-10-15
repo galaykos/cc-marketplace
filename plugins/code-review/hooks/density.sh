@@ -3,8 +3,11 @@
 # even under a stripped PATH where `env bash` exits 127.
 #
 # Comment-VOLUME guard, two lanes. PostToolUse (warn-only, at most 3 warnings per
-# session) compares the file just written against the comment density of its OWN
-# siblings AND against an absolute ceiling, and says so when it is over either.
+# session; a Bash call that exits non-zero fires PostToolUseFailure, which takes this
+# lane) compares the file just written against the comment density of its OWN
+# siblings AND against an absolute ceiling, and says so when it is over either — after
+# a Write, or an Edit or Bash write that adds prose comment lines (density_added).
+# Neither lane judges a file that only declares an interface or an all-abstract class (density_contract).
 # PreToolUse (deny, a Write or a truncating Bash cat/tee heredoc, at most TWICE per file per session) refuses a whole new
 # file whose comment-to-code ratio is over the ceiling before it lands. Silence is the
 # common case.
@@ -49,10 +52,18 @@
 #   - BASH LANE. Pre-write, a truncating `cat`/`tee` heredoc is judged as a Write of its body to the
 #     resolved path (cd_bash_target in hooks/paths.sh), first deny printed; an append (`>>`, `tee -a`)
 #     is a fragment and is never denied. After the command, the warn lane measures the first 3 targets
-#     that exist on disk, in command order, whatever wrote them, skips one whose first five lines carry
-#     a generated marker, and prints the first warning. NOT SEEN on Bash: interpreter writes (python
-#     open()), cp/mv, a path held in a variable, a relative target after an in-command cd, targets past
-#     the first 3; pre-write also a heredoc fed to anything but cat/tee, a heredoc whose file the
+#     that exist on disk, in command order, skips one whose first five lines carry a generated marker or
+#     that the command wrote no prose comment line to (a redirect whose text no echo, printf or heredoc spells,
+#     `{ …; } > f` or `gen > f`, is measured whole; a sed -i or perl -i target never is), and prints the first warning.
+#     After a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run it also reads the files git reports changed
+#     since this lane's previous call (the bash-write-effects block, at most MAX_BASH_EFFECTS), and measures each governed one
+#     no target named, within the same 3, once it holds more prose lines than its HEAD copy (density_added).
+#     A command with a line over 8 kB is not parsed for targets; its effects are still read.
+#     NOT SEEN on Bash: a writer the effects block does not name (npx prettier, make), gitignored files, a repo with no git,
+#     a mv or cp -p destination, each session's first such run, a file over 256 KB that no target named, a path held in a
+#     variable, a relative target after an in-command cd, files past the first 3; any file changed since this lane's previous
+#     call (an IDE, a parallel agent) is read as the run's write, and prose uncommitted since HEAD as its prose; pre-write
+#     also an interpreter write, a heredoc fed to anything but cat/tee, a heredoc whose file the
 #     command writes again, truncating heredocs past the 40th to a governed file (judged by neither lane), echo/printf and sed -i / perl -i content, the second
 #     operand of `tee a b`, `VAR=x tee f`, cat/tee behind a wrapper, brace or keyword; plus what the two blocks below miss.
 #   - A ratio is not a judgment. A file legitimately denser than its siblings (the one
@@ -314,26 +325,74 @@ cc_bash_write_chunks() {
     }'
 }
 
+# Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
+# cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
+# directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
+# cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
+# cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
+# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
+# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
+# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
+# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
+# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
+cc_bash_effects_mark() {
+  [ -e "$1/.git" ] || return 0
+  local d="${2%/*}" k
+  { [ -d "$d" ] || mkdir -p "$d"; } 2>/dev/null || return 0
+  { [ -e "$d/.gitignore" ] || printf '*\n' > "$d/.gitignore"; k=$(printf '%s' "$3" | cksum) && printf '%s\n' "${k%% *}" > "$2"; } 2>/dev/null
+  return 0
+}
+cc_bash_write_effects() {
+  local LC_ALL=C re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)([[:space:];&|)`<>]|$)' k m f
+  [ -f "$2" ] && [ "$1" != "${HOME%/}" ] && [[ $3 =~ $re ]] && IFS= read -r m < "$2" && k=$(printf '%s' "$5" | cksum) && [ "$m" = "${k%% *}" ] || return 0
+  case "$(git -C "$1" config status.showUntrackedFiles 2>/dev/null)" in no|false|off|0) return 0 ;; esac
+  # One find over the whole list, each path led by ./ so a name like -delete stays a path; the cap counts only what find kept.
+  while IFS= read -r f; do printf '%s\n' "$1/${f#./}"; done < <(exec 2>/dev/null; cd -- "$1" && GIT_OPTIONAL_LOCKS=0 git status --porcelain -z \
+    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e 's|^...|./|' \
+    | tr '\n' '\0' | xargs -0 sh -c 'exec find "$@" -prune -newer "$0" -type f -print' "$2" | head -n "$4")
+  return 0
+}
+
 {
   command -v jq  >/dev/null 2>&1 || exit 0
   command -v awk >/dev/null 2>&1 || exit 0
+  MAX_BASH_EFFECTS=8   # changed files listed after an interpreter, cp, mv, install or patch run, in git's path order
 
   input=$(cat)
-  event=$(printf '%s' "$input" | jq -r '.hook_event_name // "PostToolUse"' 2>/dev/null) || exit 0
+  # A failed Bash call's PostToolUseFailure takes the PostToolUse lane; its envelope names the event it ran for (hev).
+  event=""; sess=""
+  { IFS= read -r event; IFS= read -r sess; } < <(printf '%s' "$input" | jq -r '.hook_event_name // "PostToolUse", .session_id // ""' 2>/dev/null)
+  hev=PostToolUse; [ "$event" = PostToolUseFailure ] && { hev=$event; event=PostToolUse; }
   case "$event" in PostToolUse|PreToolUse) ;; *) exit 0 ;; esac
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   # Only a whole file has a ratio: a Write carries one, and so does a truncating Bash heredoc.
   [ "$event" = "PreToolUse" ] && [ "$tool" != "Write" ] && [ "$tool" != "Bash" ] && exit 0
+  case "$tool" in Edit|Write|MultiEdit|Bash) ;; *) exit 0 ;; esac
+  [ "$tool" = Bash ] && { cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0; }
+  # WARN lane only — see scan.sh's note; the PreToolUse deny ignores this switch.
+  [ "$event" = "PostToolUse" ] && [ "$(cc_option CC_REMIND on)" = "off" ] && exit 0
+  # Interpreter writes, through the bash-write-effects block: read with the old marker, then date it, on every call this lane
+  # sees, so an Edit's file or a command that wrote nothing never reads as the next run's write. The marker is this hook's own.
+  effects=""; root=""
+  if [ "$event" = "PostToolUse" ]; then
+    cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+    if [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(cc_state_root "$cwd"); then
+      emark="$(cc_plugin_state "$root" comment-discipline)/bash-effects-density.mark"
+      [ "$tool" = Bash ] && effects=$(cc_bash_write_effects "$root" "$emark" "$cmd" "$MAX_BASH_EFFECTS" "$sess")
+      cc_bash_effects_mark "$root" "$emark" "$sess"
+    fi
+  fi
   case "$tool" in
     Edit|Write|MultiEdit)
       fp=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0 ;;
     Bash)
-      cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
-      # Same guard as scan.sh: the blocks are quadratic in the length of one line.
-      [ "${#cmd}" -gt 32768 ] && printf '%s\n' "$cmd" | awk 'length($0) > 2000 { s += length($0) } length($0) > 8192 || s > 32768 { f = 1; exit } END { exit !f }' && exit 0
-      tgts=$(cc_bash_write_targets "$cmd")
-      [ -n "$tgts" ] || exit 0 ;;
-    *) exit 0 ;;
+      # Same guard as scan.sh: the blocks are quadratic in the length of one line, so such a command's text is not parsed.
+      tgts=""
+      [ "${#cmd}" -gt 32768 ] && printf '%s\n' "$cmd" | awk 'length($0) > 2000 { s += length($0) } length($0) > 8192 || s > 32768 { f = 1; exit } END { exit !f }' \
+        || tgts=$(cc_bash_write_targets "$cmd")
+      [ -n "$tgts" ] || [ -n "$effects" ] || exit 0 ;;
   esac
   # Sourced only here, below the exit of a Bash call that writes nothing; without the file nothing is governed.
   . "$(dirname "$0")/paths.sh" 2>/dev/null
@@ -341,13 +400,12 @@ cc_bash_write_chunks() {
     gov=0
     while IFS= read -r t; do cd_governed "$t" && gov=1; done <<EOF_G
 $tgts
+$effects
 EOF_G
     [ "$gov" = 1 ] || exit 0
   else
     cd_governed "$fp" || exit 0
   fi
-  # WARN lane only — see scan.sh's note; the PreToolUse deny ignores this switch.
-  [ "$event" = "PostToolUse" ] && [ "$(cc_option CC_REMIND on)" = "off" ] && exit 0
   # CC_COMMENT_GUARD=off disables the DENY lane and leaves the advisory lane on.
   # Added 2026-09-22 (UX 1), same reasoning as scan.sh's: the block had no off switch,
   # so its refusal could name none. Read from the hook's environment.
@@ -371,7 +429,7 @@ EOF_C
     [ "$nc" -gt 0 ] || exit 0
   fi
 
-  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  [ "$event" = "PostToolUse" ] || cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   # CONTEXT KEY, not session key. PostToolUse is the only hook channel that reaches
   # subagents at all, and a subagent shares its parent's session_id while getting its
   # own transcript. Keying a one-shot on session_id therefore dedups the worker against
@@ -389,7 +447,7 @@ EOF_C
   # one of them alone splits a bound across two paths. Does NOT catch a cwd that exists
   # but is the wrong checkout — the payload cannot say.
   [ -n "$cwd" ] && [ -d "$cwd" ] && [ -n "$sid" ] || exit 0
-  root=$(cc_state_root "$cwd") || exit 0
+  [ -n "$root" ] || root=$(cc_state_root "$cwd") || exit 0
 
   # The floor is on SUBSTANTIVE LINES, not on code lines, and the difference is the
   # whole point. A `code >= 40` floor excludes exactly the worst case this hook exists
@@ -421,6 +479,84 @@ EOF_C
   density_over() { # <prose> <code> <limit, in tenths>
     d_ratio=$(( ($1 * 10 + $2 - 1) / $2 ))
     [ "$3" -gt 0 ] && [ "$(( $1 * 10 ))" -gt "$(( $3 * $2 ))" ]
+  }
+  # An interface or an all-abstract class has no bodies, so its docblocks are the contract and breach any ratio: a worker
+  # deleted a real why-clause from one to pass. A file is not judged when every line outside comments is an import, package
+  # or namespace line, an annotation, a type alias, an enum or a declaration's own lines, at least one declaration is an
+  # interface, abstract class, protocol or Go interface, and none holds a body: `)` then `{`, `)` then `=` (Kotlin), a C#
+  # or Dart `=>`, a get, set or init accessor's `{` or `=>`, or a `static {` initializer. One line at a time and out at the first other line: joining the text was quadratic under mawk, and a 3.7 MB
+  # file hit the 10 s timeout. Misses: a Python ABC; a member typed `(): { … }` reads as a body, so that file is judged; an
+  # arrow function assigned to an abstract class's property reads as no body.
+  density_contract() { # text on stdin
+    case "$lang" in php|ts|tsx|java|kt|kts|cs|swift|go|scala|dart|groovy) ;; *) return 1 ;; esac
+    awk -v lang="$lang" '
+      BEGIN {
+        M = "^((export|public|protected|private|internal|sealed|declare|default)[ \t]+)*"
+        DECL = M "(interface|abstract[ \t]+class|protocol)[ \t]+[A-Za-z_$]|^type[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]+interface([^A-Za-z0-9_]|$)"
+        NS = M "(namespace|module|global)([ \t][^;{]*)?[{]?$"
+        TYPE = M "(type[ \t]+[A-Za-z_$][^=]*=|(const[ \t]+)?enum[ \t]+[A-Za-z_$]|declare[ \t])"
+        PRE = "^(<[?]|[?]>|(namespace|package|import|use|using|library|part|export[ \t]+([*]|type[ \t]*[{]|[{]))([ \t({]|$)|declare[ \t]*[(]|@|[[]|export[ \t]+default[ \t]+[A-Za-z_$][A-Za-z0-9_$.]*;?$|[]});,]+$)"
+        MORE = "^([{|&:,]|(extends|implements|where)([ \t]|$)|[A-Za-z_$][A-Za-z0-9_$.\\\\]*(<[^>]*>)?[ \t]*[,{]?$)"
+        BODY = "[)][^;{}()]*[{]|[)][^;{}()=]*=($|[^=>])|(^|[^A-Za-z0-9_$.])(get|set|init)[ \t]*([{]|=>)|[ \t]static[ \t]*[{]" (lang ~ /^(cs|dart)$/ ? "|=>" : "")
+      }
+      { t = $0; sub(/^[ \t]+/, "", t); sub(/[ \t\r]+$/, "", t) }
+      blk { if (index(t, "*/")) blk = 0; next }
+      t ~ /^\/\*/ { if (!index(substr(t, 3), "*/")) blk = 1; next }
+      t == "" || t ~ /^(\/\/|\*|#)/ { next }
+      {
+        s = t; gsub(/"([^"\\]|\\.)*"|\047([^\047\\]|\\.)*\047/, "\"\"", s); sub(/[ \t]*\/\/.*$/, "", s)
+        k = dn ? K[dn] : ""; fresh = 0
+        if (pend != "" && s !~ MORE) pend = ""
+        if (pend != "") kind = pend
+        else if (k == "c" || k == "p") kind = k
+        else if (imp) { kind = "p"; if (s ~ /^[)]/) imp = 0 }
+        else if (s ~ DECL) { kind = "c"; decl = fresh = 1 }
+        else if (s ~ NS) { kind = "n"; fresh = 1 }
+        else if (s ~ TYPE) { kind = "c"; fresh = 1 }
+        else if (s ~ PRE) { kind = "p"; if (s ~ /^import[ \t]*[(]$/) imp = 1 }
+        else { no = 1; exit }
+        if (kind == "c") { u = cr " " s; if (u ~ BODY) { no = 1; exit }; cr = (u ~ /[)][^;{}()]*$/) ? ")" : "" } else cr = ""
+        o = gsub(/[{]/, "{", s); c = gsub(/[}]/, "}", s)
+        if (fresh && !o && s !~ /;$/) pend = kind
+        for (; o > c; o--) { K[++dn] = kind; pend = "" }
+        for (; c > o && dn > 0; c--) dn--
+      }
+      END { exit !(decl && !no) }' 2>/dev/null
+  }
+  # The prose lines a PostToolUse Edit or Bash write adds: 7 of 11 warnings in real sessions followed edits that added none,
+  # about a file's existing density. An Edit compares the file on disk with the same file, each new_string swapped back to its
+  # old_string, so a line added inside a docstring or a leader-less block comment counts. Past 256 KB, or with a new_string
+  # empty or not on disk, it counts its new_strings over its old_strings instead, a fragment whose first line is `*`-led read
+  # as opening inside a block comment. A Bash write counts the text it wrote to the target ($1). A file an interpreter run
+  # changed (mode effect) compares the file on disk with its HEAD copy, none when HEAD lacks it, up to 256 KB: the text before
+  # the run is gone, so prose any uncommitted edit added since HEAD counts as this run's.
+  # Misses: sed -i, perl -i and printf's substituted text add none; a new_string also present above the edit swaps the wrong copy.
+  density_added() { # [<text a Bash command wrote>] -> d_added, a signed count
+    local a="" b k=0 o n r x after before f='def frag(k): [(.tool_input.edits // [.tool_input])[] | (.[k] // "") | (if test("^\\s*\\*(\\s|$)") then "/*\n" else "" end) + . + "\n*/"] | join("\n");'
+    d_added=""
+    if [ "$mode" = effect ]; then
+      [ "$(wc -c < "$fp")" -le 262144 ] 2>/dev/null || return 1
+      a=$(cd_classify "$lang" "$fp"); b=$(git -C "$root" show "HEAD:${fp#"$root"/}" 2>/dev/null | cd_classify "$lang")
+    elif [ "$tool" = Bash ]; then a=$(printf '%s\n' "$1" | cd_classify "$lang"); b=0
+    else
+      if [ "$(wc -c < "$fp")" -le 262144 ] 2>/dev/null && after=$(cat "$fp" && printf x); then
+        before=${after%x}; after=$before
+        while IFS= read -r -d '' o && IFS= read -r -d '' n && IFS= read -r -d '' r; do
+          if [ "$r" = 1 ]; then x=${before//"$n"/"$o"}; else x=${before/"$n"/"$o"}; fi
+          [ -n "$n" ] && [ "$x" != "$before" ] || { k=0; break; }
+          before=$x; k=$((k + 1))
+        done < <(printf '%s' "$input" | jq -j '(.tool_input.edits // [.tool_input]) | reverse | .[] |
+          (.old_string // "" | tostring), "\u0000", (.new_string // "" | tostring), "\u0000", (if .replace_all == true then 1 else 0 end), "\u0000"' 2>/dev/null)
+        [ "$k" -gt 0 ] && a=$(printf '%s' "$after" | cd_classify "$lang") && b=$(printf '%s' "$before" | cd_classify "$lang")
+      fi
+      if [ "$k" = 0 ]; then
+        a=$(printf '%s' "$input" | jq -r "$f"' frag("new_string")' 2>/dev/null | cd_classify "$lang")
+        b=$(printf '%s' "$input" | jq -r "$f"' frag("old_string")' 2>/dev/null | cd_classify "$lang")
+      fi
+    fi
+    a=${a%% *}; b=${b%% *}
+    case "${a:-x}${b:-x}" in *[!0-9]*) return 1 ;; esac
+    d_added=$((a - b))
   }
 
   density_judge() {
@@ -475,6 +611,7 @@ EOF
     density_regime "$pprose" "$pc" "$pcode" || return 1
     limit=$CEIL; [ "$d_regime" = short ] && limit=$SHORT_LIMIT
     density_over "$pprose" "$pcode" "$limit" || return 1
+    printf '%s\n' "$content" | density_contract && return 1
     key=$(printf '%s' "$fp" | (command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
     [ -n "$key" ] || return 1
     marker="$dir/density-blocked-$ctx-$key"
@@ -508,6 +645,9 @@ EOF
     [ "$warned" -ge "$MAX_WARN" ] && return 1
     grep -qxF "file $fp" "$state" 2>/dev/null && return 1   # already reported this file
   fi
+  # A Write is a whole new text and keeps the whole-file ratio; an Edit or a Bash write is judged only once it adds prose,
+  # unless the command's text for this target could not be read (mode whole).
+  if [ "$tool" != Write ] && [ "$mode" != whole ]; then density_added "$text" && [ "$d_added" -gt 0 ] 2>/dev/null || return 1; fi
 
   read -r fprose fc fcode <<EOF
 $(cd_classify "$lang" "$fp")
@@ -515,6 +655,7 @@ EOF
   case "${fprose:-x} ${fc:-x} ${fcode:-x}" in *[!0-9\ ]*) return 1 ;; esac
   density_regime "$fprose" "$fc" "$fcode" || return 1
   if [ "$d_regime" = short ]; then density_over "$fprose" "$fcode" "$SHORT_LIMIT" || return 1; fi
+  density_contract < "$fp" && return 1
 
   # ---- baseline: same-language siblings, nearest directory first ----
   # Cached per directory per session — a fan-out writing 30 files into one package
@@ -667,8 +808,8 @@ EOS
       jq -cn --arg r "$msg$1" \
         '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
     else
-      jq -cn --arg m "$msg$1" \
-        '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$m}}'
+      jq -cn --arg m "$msg$1" --arg ev "$hev" \
+        '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$m}}'
     fi
   }
 
@@ -719,19 +860,60 @@ $fp
       c=$((c + 1))
     done
   else
-    hascd=0; cd_has_cd "$cmd" && hascd=1
-    nt=0
+    hascd=0; [ -n "$tgts" ] && cd_has_cd "$cmd" && hascd=1
+    # The text each chunk wrote, keyed by its target as spelled: a heredoc body as written, an echo/printf argument list
+    # with its redirects, flags and outer quotes dropped. The first 40 chunks, the deny lane's cap.
+    chunks=""; [ -z "$tgts" ] || chunks=$(cc_bash_write_chunks "$cmd"); k=0; nb=0
+    while IFS= read -r l; do
+      k=$((k + 1)); [ "$nb" -lt 40 ] || break
+      t=$(cc_bash_write_targets "${l#?}" | head -n 1); [ -n "$t" ] || continue
+      nb=$((nb + 1)); btgt[$nb]=$t
+      case "${l#?}" in
+        *'<<'*) btxt[$nb]=$(cd_chunk_text "$chunks" "$k") ;;
+        *) btxt[$nb]=$(cd_chunk_text "$chunks" "$k" | awk '{ sub(/^[ \t]+/, "")
+             while (sub(/[ \t]*[0-9&]*>>?[ \t]*("[^"]*"|\047[^\047]*\047|[^ \t"\047]+)[ \t]*$/, "")) ;
+             sub(/[ \t]+$/, ""); while (sub(/^-[neE]+[ \t]+/, "")) ;
+             if ($0 ~ /^["\047]/ && substr($0, length($0)) == substr($0, 1, 1)) $0 = substr($0, 2, length($0) - 2)
+             gsub(/\\n/, "\n"); print }') ;;
+      esac
+    done <<EOF_B
+$(printf '%s\n' "$chunks" | awk 'substr($0, 1, 1) == "\036"')
+EOF_B
+    nt=0; rtgts=""
     while IFS= read -r tgt; do
       [ "$nt" -lt "$MAX_WARN" ] || break
       fp=$(cd_bash_target "$tgt" "$cwd" "$hascd") && [ -f "$fp" ] || continue
       nt=$((nt + 1))
-      if density_judge "$fp" "" truncate; then
+      wrote=""; c=1; jm=truncate
+      while [ "$c" -le "$nb" ]; do [ "${btgt[$c]}" = "$tgt" ] && { jm=""; wrote="$wrote${btxt[$c]}
+"; }; c=$((c + 1)); done
+      # A redirect no chunk spells the text of (`{ echo …; } > f`, `gen > f`) is measured whole; a sed -i or perl -i target is not.
+      if [ -n "$jm" ]; then
+        [ -n "$rtgts" ] || { rtgts=${cmd//sed /_sed }; rtgts="
+$(cc_bash_write_targets "${rtgts//perl /_perl }")
+"; }
+        case "$rtgts" in *"
+$tgt
+"*) jm=whole ;; esac
+      fi
+      if density_judge "$fp" "$wrote" "${jm:-truncate}"; then
         emit " Written by a Bash command: $(basename "$fp")."
         exit 0
       fi
     done <<EOF_T
 $tgts
 EOF_T
+    # A governed file the run changed that no target names, within the same three per call.
+    while IFS= read -r fp; do
+      [ "$nt" -lt "$MAX_WARN" ] && [ -n "$fp" ] || break
+      nt=$((nt + 1))
+      if density_judge "$fp" "" effect; then
+        emit " Written by a Bash command: $(basename "$fp")."
+        exit 0
+      fi
+    done <<EOF_E
+$(cd_effect_files "$effects" "$tgts" "$cwd" "$hascd")
+EOF_E
   fi
 } 2>/dev/null
 exit 0

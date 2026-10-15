@@ -37,7 +37,8 @@ From the task list (taskmaster cards, a plan's steps, a todo list):
    if tasks are not yet self-contained.
 6. Recommended agent count = min(widest group, 6). Past ~6 concurrent
    agents, coordination and re-verification serialize anyway; more agents
-   add queue, not speed.
+   add queue, not speed. Cap the count at 2 when the group's cards run tests:
+   six concurrent suites beside one runaway test crashed a machine twice.
 
 ## The verdict rule
 

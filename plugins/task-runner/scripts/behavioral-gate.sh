@@ -23,10 +23,26 @@
 # a misbehaving suite CAN write there (runner cache dirs, coverage files, test-created
 # artifacts). Three modes decide which directory that is:
 #   --isolate   the gate builds the disposable checkout ITSELF: a detached `git worktree`
-#               of HEAD under mktemp -d, verified to exist and to be a different
-#               toplevel than the live repo BEFORE anything runs (refuses, exit 3,
-#               otherwise — it never falls back to running in place), removed by the
-#               EXIT trap. It never reads or writes the live .env.
+#               of HEAD under <repo>/.claude/task-runner/iso/ (gitignored), verified to
+#               exist and to be a different toplevel than the live repo BEFORE anything
+#               runs (refuses, exit 3, otherwise — it never falls back to running in
+#               place), removed by the EXIT trap. It never reads or writes the live .env;
+#               when one exists and the tree has no .env.example, .env.dist or
+#               .env.sample to copy, the tree root gets an empty .env, so a loader
+#               walking up parent directories stops there.
+#               Inside the repo, not $TMPDIR (2026-10-14): a suite that only runs in a
+#               container (docker exec, sail, ddev, lerd) sees the repo's bind mount and
+#               nothing in /tmp, so a 119/119-green suite could not be run against the
+#               isolated tree at all. BG_TREE_REL (exported) is the tree's path relative to
+#               the repo, for `docker exec -w <mount>/$BG_TREE_REL`. Residuals: while it
+#               exists, a scanner run in the live tree (a watch-mode test runner, an IDE
+#               indexer, a test run whose discovery enters dot-directories) can see the
+#               copy; a tree a crash left behind is swept after a day, but a non-empty
+#               directory a container created in it as root fails the trap and the sweep
+#               alike, silently (`|| true`); BG_TREE_REL is from the git toplevel, so a
+#               container that mounts only a subdirectory of the repo cannot reach the
+#               tree; any other config found by walking up parent directories resolves to
+#               the live repo's copy.
 #   --in-place  the caller has already isolated (a temp fixture, a scratch clone); run
 #               in cwd. The dogfood harnesses do this and assert `git status --porcelain`
 #               (and a fixture-dir checksum) is byte-identical before/after.
@@ -39,9 +55,10 @@
 # the live repo after the cd failed, and a developer's .env and APP_KEY were destroyed.
 # RESIDUAL --isolate does not close: vendor/ and node_modules/ are SYMLINKED from the
 # live tree (a fresh install per gate run is minutes), so a suite that writes into its
-# dependency dirs writes live; and the worktree is HEAD, so uncommitted changes to
-# tracked files are not what gets tested (warned, not refused — the record is keyed by
-# HEAD anyway).
+# dependency dirs writes live, and Composer's autoloader, which resolves its own path
+# through the link, loads the app's PHP classes from the live tree; and the worktree is
+# HEAD, so uncommitted changes to tracked files are not what gets tested, except through
+# that autoloader (warned, not refused — the record is keyed by HEAD anyway).
 
 set -euo pipefail
 
@@ -78,7 +95,16 @@ bg_record() { # bg_record <verdict-label> [runners]
   return 0
 }
 
-TIMEOUT_SECS="${BEHAVIORAL_GATE_TIMEOUT:-60}"
+# 1800 s, not 60 (2026-10-14). The cap turns a hang into a verdict; it is not meant to
+# bound a healthy suite. At 60 a 1,926-test Pest suite and a docker-exec suite both read
+# TIMED OUT -> unverifiable-suite while green, and a gate that cannot be earned trains
+# hand-written gate-pass.json. Too high costs only the wait on a real hang. The Bash
+# tool's foreground ceiling is 10 minutes and its kill leaves no verdict, so run the
+# gate in the background. Entrypoint probes (--help, differentials) keep 60 s: a hung
+# --help is a crash, not a slow suite.
+TIMEOUT_SECS="${BEHAVIORAL_GATE_TIMEOUT:-1800}"
+PROBE_SECS=60
+[ "$TIMEOUT_SECS" -lt "$PROBE_SECS" ] 2>/dev/null && PROBE_SECS="$TIMEOUT_SECS"
 
 # ---- portable hard-timeout wrapper -----------------------------------------
 # Prefers coreutils `timeout`/`gtimeout`; falls back to a perl alarm+fork (rc 124 on
@@ -116,6 +142,23 @@ add_changed() {
   for tok in $raw; do [ -n "$tok" ] && CHANGED+=("$tok"); done
   IFS="$_o"; set +f
 }
+check_spec() { # check_spec <flag> <spec>
+  case "$2" in *"::"*) : ;; *) usage "$1 must be '<cmd>::<empty-output-regex>' (got: $2)" ;; esac
+  [ -n "${2%%::*}" ] || usage "$1 command must be non-empty (got: $2)"
+  [ -n "${2#*::}" ]  || usage "$1 empty-output regex must be non-empty (got: $2)"
+}
+# --runner-for <lang> '<cmd>::<regex>' REPLACES that language's built-in runner; --runner
+# only adds one. A PHP suite that runs only through `docker exec` passed 119/119 as a
+# --runner while the built-in host phpunit beside it timed out, so the gate read
+# unverifiable-suite on a green suite. Stored as RF_<lang>: bash 3.2 has no assoc arrays.
+set_runner_for() { # set_runner_for <lang> <spec>
+  case "$1" in py|js|go|php|rs|rb|java) : ;; *) usage "--runner-for language must be one of py js go php rs rb java (got: $1)" ;; esac
+  check_spec "--runner-for $1" "$2"
+  printf -v "RF_$1" '%s' "$2"
+}
+# Only the flag sets these: one inherited from the environment replaced a runner unasked,
+# and an RF_custom<N> was called as parse_custom<N>.
+unset ${!RF_@}
 while [ $# -gt 0 ]; do
   case "$1" in
     --record-dir)     shift; [ $# -gt 0 ] || usage "--record-dir requires a value"; BG_RECORD_DIR="$1"; shift ;;
@@ -127,9 +170,11 @@ while [ $# -gt 0 ]; do
     --differential=*) DIFFERENTIALS+=("${1#--differential=}"); shift ;;
     --runner)         shift; [ $# -gt 0 ] || usage "--runner requires a value"; CUSTOM_RUNNERS+=("$1"); shift ;;
     --runner=*)       CUSTOM_RUNNERS+=("${1#--runner=}"); shift ;;
+    --runner-for)     shift; [ $# -ge 2 ] || usage "--runner-for requires <lang> '<cmd>::<empty-output-regex>'"; set_runner_for "$1" "$2"; shift 2 ;;
     --isolate)        ISOLATE=1; shift ;;
     --in-place)       IN_PLACE=1; shift ;;
-    -h|--help)   printf 'usage: %s (--isolate | --in-place) --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--runner '\''<cmd>::<empty-regex>'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2; exit 3 ;;
+    -h|--help)   printf 'usage: %s (--isolate | --in-place) --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--runner '\''<cmd>::<empty-regex>'\''] [--runner-for <py|js|go|php|rs|rb|java> '\''<cmd>::<empty-regex>'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2
+                 printf '  --runner adds a runner; --runner-for replaces that language'\''s built-in one.\n  BEHAVIORAL_GATE_TIMEOUT=<seconds> caps each suite run (default 1800; entrypoint probes: 60).\n  Run the gate in the background: a foreground Bash call ends by 10 minutes, with no verdict.\n  --isolate works in <repo>/.claude/task-runner/iso/ and exports BG_TREE_REL (its path from the repo root).\n' >&2; exit 3 ;;
     --*)         usage "unknown flag: $1" ;;
     *)           add_changed "$1"; shift ;;
   esac
@@ -161,7 +206,17 @@ if [ "$ISOLATE" = 1 ]; then
   [ -n "$live_top" ] || iso_refuse "$(pwd) is not inside a git work tree, so there is no HEAD to check out"
   ISO_LIVE=$(cd "$live_top" && pwd -P) || iso_refuse "cannot resolve the live toplevel $live_top"
   trap 'iso_cleanup' EXIT INT TERM
-  ISO_DIR=$(mktemp -d "${TMPDIR:-/tmp}/bg-isolate.XXXXXX" 2>/dev/null) || iso_refuse "mktemp -d failed"
+  ISO_ROOT="$ISO_LIVE/.claude/task-runner/iso"
+  mkdir -p "$ISO_ROOT" 2>/dev/null || iso_refuse "cannot create $ISO_ROOT"
+  [ -e "$ISO_ROOT/.gitignore" ] || printf '*\n' > "$ISO_ROOT/.gitignore" || iso_refuse "cannot write $ISO_ROOT/.gitignore"
+  # A reboot empties /tmp, not this directory, and a suite that exhausts memory kills the
+  # gate before its trap runs (one session crashed a machine twice). A tree older than a
+  # day is a dead gate's.
+  find "$ISO_ROOT" -mindepth 1 -maxdepth 1 -type d -name 'bg.*' -mtime +0 2>/dev/null | while IFS= read -r old; do
+    git -C "$ISO_LIVE" worktree remove --force "$old/tree" >/dev/null 2>&1 || true
+    rm -rf "$old" 2>/dev/null || true
+  done
+  ISO_DIR=$(mktemp -d "$ISO_ROOT/bg.XXXXXX" 2>/dev/null) || iso_refuse "mktemp -d under $ISO_ROOT failed"
   ISO_DIR=$(cd "$ISO_DIR" && pwd -P) || iso_refuse "cannot resolve the temp dir"
   git -C "$ISO_LIVE" worktree add --detach -q "$ISO_DIR/tree" HEAD >/dev/null 2>&1 \
     || iso_refuse "git worktree add $ISO_DIR/tree HEAD failed"
@@ -175,18 +230,32 @@ if [ "$ISOLATE" = 1 ]; then
   [ "$iso_top" != "$ISO_LIVE" ] || iso_refuse "the isolated tree resolves to the live repo $ISO_LIVE"
 
   if [ -n "$(git -C "$ISO_LIVE" status --porcelain --untracked-files=no 2>/dev/null)" ]; then
-    log "WARN: the live tree has uncommitted changes to tracked files; --isolate tests HEAD $(git -C "$ISO_LIVE" rev-parse --short HEAD 2>/dev/null), so those changes are NOT tested — commit them first"
+    log "WARN: the live tree has uncommitted changes to tracked files; the --isolate tree is HEAD $(git -C "$ISO_LIVE" rev-parse --short HEAD 2>/dev/null) without them, except PHP classes Composer autoloads, which load from the live tree through the vendor link — commit them first"
   fi
   # Dependency dirs are symlinked, not installed: the residual named in the header.
+  # Relative when the tree sits at the expected depth, so the link also resolves inside a
+  # container that mounts the repo at another path; an absolute host path dangles there.
+  BG_TREE_REL=${ISO_TREE#"$ISO_LIVE"/}; export BG_TREE_REL
+  dep_up="$ISO_LIVE"
+  case "$BG_TREE_REL" in .claude/task-runner/iso/*/tree) dep_up=../../../../.. ;; esac
   for dep in vendor node_modules; do
     if [ -d "$ISO_LIVE/$dep" ] && [ ! -e "$ISO_TREE/$dep" ]; then
-      ln -s "$ISO_LIVE/$dep" "$ISO_TREE/$dep" || iso_refuse "cannot link $dep into $ISO_TREE"
+      ln -s "$dep_up/$dep" "$ISO_TREE/$dep" && [ -d "$ISO_TREE/$dep" ] || iso_refuse "cannot link $dep into $ISO_TREE"
     fi
   done
   # Environment: built from the tree's OWN committed example, by absolute path into the
   # verified tree. The live .env is never read — it holds the developer's credentials.
-  if [ -f "$ISO_TREE/.env.example" ] && [ ! -e "$ISO_TREE/.env" ]; then
-    cp "$ISO_TREE/.env.example" "$ISO_TREE/.env" || iso_refuse "cannot write $ISO_TREE/.env"
+  # .env.dist too: Symfony's Dotenv reads it only while .env is absent, so an empty .env hid it.
+  env_src=""
+  for f in .env.example .env.dist .env.sample; do [ -f "$ISO_TREE/$f" ] && { env_src=$f; break; }; done
+  if [ -n "$env_src" ] && [ ! -e "$ISO_TREE/.env" ]; then
+    cp "$ISO_TREE/$env_src" "$ISO_TREE/.env" || iso_refuse "cannot write $ISO_TREE/.env"
+  fi
+  # The tree sits inside the live repo, so a loader that walks up parent directories for a
+  # .env (python-dotenv's find_dotenv) found the live one. An empty one at the tree root
+  # stops the walk; the live file is only tested for existence.
+  if [ -e "$ISO_LIVE/.env" ] && [ ! -e "$ISO_TREE/.env" ]; then
+    : > "$ISO_TREE/.env" || iso_refuse "cannot write $ISO_TREE/.env"
   fi
   # Laravel: tests take their env from phpunit.xml, but the app still boots with
   # APP_KEY. Exported for this process only — `artisan key:generate` writes a .env
@@ -204,6 +273,27 @@ elif [ "$IN_PLACE" = 0 ] && [ -n "$live_top" ] && [ -e "$live_top/.claude/task-r
   log "refusing to run in $live_top: it is a registered task-runner run's LIVE tree, and a suite run here can mutate it"
   log "re-run with --isolate (the gate builds and removes its own worktree), or --in-place if cwd is already a disposable copy"
   exit 3
+fi
+
+# IN FLIGHT. run.md runs this gate in the background, and candor's Stop gate (clause 4)
+# blocked a stop while it was still running for want of a verdict. bg/running.pid holds
+# `$$` and the HEAD being judged, so the Stop gate can tell "running" from "never run".
+# Written into the same bg dir as the record, and only where that dir already exists
+# (run registration creates it): creating it would arm bg_record outside a run. Removed
+# on exit only while it still names this process, so a second gate's file survives the
+# first one's exit. Residual: a SIGKILL leaves the file, naming a dead PID (or, once the
+# PID is reused, a live stranger beside the right HEAD).
+PID_FILE=""
+pid_cleanup() {
+  [ -n "$PID_FILE" ] && [ "$(head -n 1 "$PID_FILE" 2>/dev/null)" = "$$" ] && rm -f "$PID_FILE"
+  return 0
+}
+pid_dir="${BG_RECORD_DIR:-${live_top:-$(pwd)}/.claude/task-runner/bg}"
+if [ -d "$pid_dir" ] && [ -w "$pid_dir" ] && [ -w "$(dirname "$pid_dir")" ]; then
+  if printf '%s\n%s\n' "$$" "$(git rev-parse HEAD 2>/dev/null)" > "$pid_dir/running.pid" 2>/dev/null; then
+    PID_FILE="$pid_dir/running.pid"
+    trap 'pid_cleanup; iso_cleanup' EXIT INT TERM
+  fi
 fi
 
 # ---- (a) CLASSIFY: touched files -> language flags --------------------------
@@ -244,9 +334,7 @@ runners=()
 # was ever supplying.
 ci=0
 for _cr in ${CUSTOM_RUNNERS[@]+"${CUSTOM_RUNNERS[@]}"}; do
-  case "$_cr" in *"::"*) : ;; *) usage "--runner must be '<cmd>::<empty-output-regex>' (got: $_cr)" ;; esac
-  [ -n "${_cr%%::*}" ] || usage "--runner command must be non-empty (got: $_cr)"
-  [ -n "${_cr#*::}" ]  || usage "--runner empty-output regex must be non-empty (got: $_cr)"
+  check_spec --runner "$_cr"
   ci=$((ci + 1)); runners+=("custom$ci")
 done
 
@@ -265,16 +353,21 @@ if [ "${#runners[@]}" -eq 0 ]; then
 fi
 
 # ---- ZERO-CHECK helpers: is a runnable own-test statically present? ---------
-py_has_tests() { find . -type f \( -name 'test_*.py' -o -name '*_test.py' \) 2>/dev/null | grep -q .; }
+# `-print -quit`, never a bare `-print | grep -q .`: grep -q exits on the first line, and
+# once the path list outgrows the pipe buffer (64 KB) find dies of SIGPIPE, exit 141,
+# which pipefail makes the probe's verdict. Every repo large enough to matter read as
+# "no runnable own-test", so the closing gate could not be earned there. Residual: an
+# unreadable directory find reaches before the first match still exits non-zero.
+py_has_tests() { find . -type f \( -name 'test_*.py' -o -name '*_test.py' \) -print -quit 2>/dev/null | grep -q .; }
 js_has_tests() {
   find . -type d -name node_modules -prune -o -type f \
     \( -name '*.test.js' -o -name '*.test.mjs' -o -name '*.test.cjs' -o -name '*.test.ts' \
-       -o -name '*.spec.js' -o -name '*-test.js' -o -name '*_test.js' \) -print 2>/dev/null | grep -q .
+       -o -name '*.spec.js' -o -name '*-test.js' -o -name '*_test.js' \) -print -quit 2>/dev/null | grep -q .
 }
-go_has_tests() { find . -type f -name '*_test.go' 2>/dev/null | grep -q .; }
+go_has_tests() { find . -type f -name '*_test.go' -print -quit 2>/dev/null | grep -q .; }
 php_has_tests() {
   find . -type d -name vendor -prune -o -type f \
-    \( -name '*Test.php' -o -name '*_test.php' -o -path './tests/*.php' \) -print 2>/dev/null | grep -q .
+    \( -name '*Test.php' -o -name '*_test.php' -o -path './tests/*.php' \) -print -quit 2>/dev/null | grep -q .
 }
 # Rust tests are USUALLY inline `#[test]` fns in the same file, not a separate naming
 # convention, so the static zero-check greps for the attribute as well as tests/. The
@@ -285,14 +378,14 @@ php_has_tests() {
 # verdict. UNDER-matching is the expensive direction, because it reports
 # no-behavioral-coverage for a crate that does have tests.
 rs_has_tests() {
-  { find . -type d -name target -prune -o -type f -path './tests/*.rs' -print 2>/dev/null | grep -q .; } && return 0
-  grep -rl --include='*.rs' --exclude-dir=target -E '#\[[a-z_:]*test' . 2>/dev/null | grep -q .
+  { find . -type d -name target -prune -o -type f -path './tests/*.rs' -print -quit 2>/dev/null | grep -q .; } && return 0
+  grep -rqm1 --include='*.rs' --exclude-dir=target -E '#\[[a-z_:]*test' . 2>/dev/null
 }
-rb_has_tests() { find . -type f \( -name '*_spec.rb' -o -name '*_test.rb' \) 2>/dev/null | grep -q .; }
+rb_has_tests() { find . -type f \( -name '*_spec.rb' -o -name '*_test.rb' \) -print -quit 2>/dev/null | grep -q .; }
 java_has_tests() {
   find . -type d \( -name build -o -name target -o -name .gradle \) -prune -o -type f \
     \( -name '*Test.java'  -o -name '*Tests.java'  -o -name '*TestCase.java' \
-    -o -name '*Test.kt'    -o -name '*Tests.kt'    -o -name '*Spec.kt' \) -print 2>/dev/null | grep -q .
+    -o -name '*Test.kt'    -o -name '*Tests.kt'    -o -name '*Spec.kt' \) -print -quit 2>/dev/null | grep -q .
 }
 
 pkg_test_script() {
@@ -313,15 +406,18 @@ pkg_test_script() {
 # `$(verdict_*)` command-substitution subshells below: those inherit WORKTMP but do
 # NOT fire the parent's EXIT trap, so the dir survives until the parent cleans it —
 # and the trap's `rm -rf` returns 0, so it never clobbers the script's exit code.
-CAP=""; RUN_RC=0
+CAP=""; RUN_RC=0; RAW_CAP=""
 WORKTMP=$(mktemp -d) || { log "cannot create temp workspace (mktemp -d failed)"; exit 3; }
-trap 'rm -rf "$WORKTMP"; iso_cleanup' EXIT INT TERM
+trap 'rm -rf "$WORKTMP"; pid_cleanup; iso_cleanup' EXIT INT TERM
 run_capture() {
   set +e
   run_with_timeout "$TIMEOUT_SECS" "$@" >"$WORKTMP/cap" 2>&1
   RUN_RC=$?
   set -e
-  CAP=$(cat "$WORKTMP/cap")
+  # Terminal codes off: Pest (colors="true"), jest (FORCE_COLOR, `docker exec -t`) and vitest
+  # (CI set) colour a file too, splitting `Tests` from its count. Probes compare raw output.
+  if [ -n "${RAW_CAP:-}" ]; then CAP=$(cat "$WORKTMP/cap")
+  else CAP=$(sed $'s/\033\\[[0-9;?]*[A-Za-z]//g' "$WORKTMP/cap"); fi
 }
 
 # ---- (b)+(c) per-runner verdict: covered | empty-suite | no-behavioral-coverage | unverifiable-suite
@@ -335,11 +431,27 @@ verdict_py() {
   log "pytest: running 'pytest -q -p no:cacheprovider' (timeout ${TIMEOUT_SECS}s)"
   run_capture pytest -q -p no:cacheprovider
   log "pytest: exit=$RUN_RC"
+  if [ "$RUN_RC" = 124 ]; then log "pytest: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  parse_py
+}
+
+# ---- parse_<lang>: CAP and RUN_RC -> verdict, after a run that started and did not time out.
+# The built-in runner and --runner-for share them, so a replacement must show the evidence the
+# built-in would have: a `docker exec` into a stopped container exits 1 with no count, and read
+# covered while --runner-for skipped this. Each also takes the count line of the language's
+# sibling runners (unittest, minitest, nextest, gotestsum, bun, Playwright), which a
+# replacement is often for.
+parse_py() { # parse_py [wrapped]: a wrapper's exit code may be its own, so a count must show too
+  # `pytest -qq` prints no summary line, only its progress line (`....F  [100%]`): a pass or
+  # fail letter there is the count.
   case "$RUN_RC" in
     5)   printf 'empty-suite\n' ;;                                             # exit 5 = no tests collected
-    124) log "pytest: TIMED OUT"; printf 'unverifiable-suite\n' ;;
-    0)   printf 'covered\n' ;;                                                 # >=1 test collected & passed
-    1)   log "pytest: suite RED (>=1 test failed) — coverage present"; printf 'covered\n' ;;
+    0|1)
+      if [ -n "${1:-}" ] && ! printf '%s\n' "$CAP" | grep -Eq '[1-9][0-9]* (passed|failed)|^Ran [1-9][0-9]* tests?|^[.FEsxX]*[.F][.FEsxX]*[[:space:]]*\[[[:space:]]*[0-9]+(%|/[0-9]+)\]'; then
+        log "pytest: exit $RUN_RC but no 'N passed/failed', 'Ran N tests' or progress line — cannot confirm a suite ran (fail-closed)"
+        printf 'unverifiable-suite\n'
+      elif [ "$RUN_RC" = 1 ]; then log "pytest: suite RED (>=1 test failed) — coverage present"; printf 'covered\n'
+      else printf 'covered\n'; fi ;;                                         # >=1 test collected & passed
     *)   log "pytest: abnormal exit $RUN_RC — cannot confirm a suite ran (fail-closed)"; printf 'unverifiable-suite\n' ;;
   esac
 }
@@ -395,17 +507,24 @@ verdict_pkg() {
   run_capture sh -c "$script"
   log "package.json test: exit=$RUN_RC"
   if [ "$RUN_RC" = 124 ]; then log "package.json test: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
-  # The jest "passed count" is anchored to jest's own '^Tests:' summary line, so a
-  # "Test Suites: 1 passed" line (printed even for an empty --passWithNoTests run)
-  # can NEVER satisfy coverage. Mocha's "N passing" and node/TAP "tests N" remain.
+  parse_js
+}
+
+parse_js() { # the package.json script's parse; a --runner-for js command is a script too
+  # The jest "passed count" must follow jest's own 'Tests:' label with only counts between,
+  # so a "Test Suites: 1 passed" line (printed even for an empty --passWithNoTests run)
+  # can NEVER satisfy coverage, and a workspace prefix (`web:test: Tests: …`) still can.
+  # Mocha's "N passing", node/TAP "tests N", bun's "Ran N tests" and a line that opens
+  # with "N passed"/"N pass" (Playwright, bun) remain.
   if printf '%s\n' "$CAP" | grep -Eiq \
-      'tests[[:space:]]+[1-9]|[1-9][0-9]*[[:space:]]+passing|^Tests:.*[1-9][0-9]*[[:space:]]+(passed|failed)'; then
+      'tests[[:space:]]+[1-9]|[1-9][0-9]*[[:space:]]+passing|(^|[^A-Za-z])Tests:[[:space:]]+([0-9]+[[:space:]]+[a-z]+,[[:space:]]+)*[1-9][0-9]*[[:space:]]+(passed|failed)|^[[:space:]]*[1-9][0-9]*[[:space:]]+(pass|fail)(ed)?([^[:alpha:]]|$)|Ran [1-9][0-9]* tests?'; then
     printf 'covered\n'; return
   fi
-  if printf '%s\n' "$CAP" | grep -Eiq 'No tests found|tests[[:space:]]+0([^0-9]|$)|0[[:space:]]+total|0[[:space:]]+passing'; then
+  # Anchored to jest's own 'Tests:' label: jest prints "Snapshots:   0 total" on every run.
+  if printf '%s\n' "$CAP" | grep -Eiq 'No tests found|tests[[:space:]]+0([^0-9]|$)|Tests:[[:space:]]+0[[:space:]]+total|0[[:space:]]+passing'; then
     printf 'empty-suite\n'; return
   fi
-  log "package.json test: no parseable test count in output — refusing to assume coverage (fail-closed)"
+  log "js: no parseable test count in output — refusing to assume coverage (fail-closed)"
   printf 'unverifiable-suite\n'
 }
 
@@ -420,6 +539,10 @@ verdict_go() {
   run_capture go test ./...
   log "go test: exit=$RUN_RC"
   if [ "$RUN_RC" = 124 ]; then log "go test: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  parse_go
+}
+
+parse_go() {
   # A build/setup failure runs ZERO tests yet prints 'FAIL pkg [build failed]';
   # route it to unverifiable-suite BEFORE the covered check so it never reads green.
   if printf '%s\n' "$CAP" | grep -Eq '\[(build|setup) failed\]'; then
@@ -429,7 +552,12 @@ verdict_go() {
   # COVERED is checked BEFORE empty: in a multi-package module one package can have
   # passing tests ('ok') while another has none ('[no test files]'). Any real result
   # line proves tests ran, so empty is declared ONLY when no result line exists.
-  if printf '%s\n' "$CAP" | grep -Eq '^(ok|PASS|FAIL|---)'; then printf 'covered\n'; return; fi
+  # Result lines only: a bare `^---` or `^ok` also matched a wrapper's own banner
+  # ("--- :go: unit tests") above a docker error, and read covered.
+  if printf '%s\n' "$CAP" | grep -Eq \
+      '^(ok|FAIL)[[:space:]]+[^[:space:]]+|^--- (PASS|FAIL|SKIP):|^(PASS|FAIL)$|^DONE [1-9][0-9]* tests?'; then
+    printf 'covered\n'; return
+  fi
   if printf '%s\n' "$CAP" | grep -Eq 'no test files'; then printf 'empty-suite\n'; return; fi
   log "go test: no parseable result — fail-closed"; printf 'unverifiable-suite\n'
 }
@@ -461,6 +589,10 @@ verdict_php() {
   run_capture "$bin"
   log "php: exit=$RUN_RC"
   if [ "$RUN_RC" = 124 ]; then log "php: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  parse_php
+}
+
+parse_php() {
   # PHPUnit's empty signal is "No tests executed!"; Pest's is "No tests found".
   if printf '%s\n' "$CAP" | grep -Eq 'No tests executed|No tests found'; then printf 'empty-suite\n'; return; fi
   # PHPUnit green: "OK (5 tests, 9 assertions)". PHPUnit red and Pest both print a
@@ -481,6 +613,10 @@ verdict_rs() {
   run_capture cargo test
   log "cargo test: exit=$RUN_RC"
   if [ "$RUN_RC" = 124 ]; then log "cargo test: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  parse_rs
+}
+
+parse_rs() {
   # A compile error runs ZERO tests while printing a non-zero exit; route it to
   # unverifiable BEFORE anything else so it never reads green (same trap as go's
   # '[build failed]').
@@ -491,7 +627,7 @@ verdict_rs() {
   # COVERED before EMPTY, as with go: a crate has one 'test result:' line per target
   # (lib, each bin, each integration test, doc-tests), so a 0-passed line sits beside
   # a real one routinely. Empty is declared only when NO target passed anything.
-  if printf '%s\n' "$CAP" | grep -Eq 'test result:.*[1-9][0-9]* passed'; then printf 'covered\n'; return; fi
+  if printf '%s\n' "$CAP" | grep -Eq 'test result:.*[1-9][0-9]* passed|[1-9][0-9]* tests? run:'; then printf 'covered\n'; return; fi
   if printf '%s\n' "$CAP" | grep -Eq 'test result:.*\b0 passed'; then printf 'empty-suite\n'; return; fi
   log "cargo test: no parseable 'test result:' line — fail-closed"; printf 'unverifiable-suite\n'
 }
@@ -511,10 +647,14 @@ verdict_rb() {
   run_capture "${cmd[@]}"
   log "rspec: exit=$RUN_RC"
   if [ "$RUN_RC" = 124 ]; then log "rspec: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  parse_rb
+}
+
+parse_rb() {
   # "0 examples, 0 failures" is the empty signal and it is unambiguous — rspec prints
   # exactly one summary line per run — so it is checked first.
   if printf '%s\n' "$CAP" | grep -Eq '(^|[^0-9])0 examples'; then printf 'empty-suite\n'; return; fi
-  if printf '%s\n' "$CAP" | grep -Eq '[1-9][0-9]* examples?'; then printf 'covered\n'; return; fi
+  if printf '%s\n' "$CAP" | grep -Eq '[1-9][0-9]* examples?|[1-9][0-9]* runs?, '; then printf 'covered\n'; return; fi
   log "rspec: no parseable 'N examples' summary — fail-closed"; printf 'unverifiable-suite\n'
 }
 
@@ -545,6 +685,10 @@ verdict_java() {
   run_capture "${cmd[@]}"
   log "java/kotlin: exit=$RUN_RC"
   if [ "$RUN_RC" = 124 ]; then log "java/kotlin: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  parse_java
+}
+
+parse_java() {
   # Surefire's empty signal is "Tests run: 0"; Gradle's is a test task that found no
   # source. A task reported UP-TO-DATE executed nothing THIS invocation, which is not
   # a pass either — name --rerun-tasks rather than guess.
@@ -566,10 +710,13 @@ verdict_java() {
   # filtered out by a --tests selector, and a build that sets failOnNoDiscoveredTests to
   # false (on Gradle 9 the default TRUE turns a zero-discovery run into the build failure
   # matched as empty-suite above — that default is doing the empty-detection here).
-  if printf '%s\n' "$CAP" | grep -Eq 'BUILD SUCCESSFUL'; then
+  # Only for the built-in run, which checked test sources first: a --runner-for command's success
+  # line can come from a build that never ran a test, so a replacement must print a count.
+  if [ -z "${1:-}" ] && printf '%s\n' "$CAP" | grep -Eq 'BUILD SUCCESSFUL'; then
     log "java/kotlin: gradle printed no test counts; falling back to test-sources-exist + BUILD SUCCESSFUL (weak signal — see runners.md)"
     printf 'covered\n'; return
   fi
+  [ -z "${1:-}" ] || log "java/kotlin: a --runner-for command must print a test count (Surefire's 'Tests run: N'; for Gradle, a test-logging summary line in that form)"
   log "java/kotlin: no parseable test count in output — refusing to assume coverage (fail-closed)"
   printf 'unverifiable-suite\n'
 }
@@ -578,8 +725,9 @@ verdict_java() {
 # is the whole point and also the whole residual: a regex that never matches turns an
 # empty suite into a green one, and nothing in this script can tell. What the gate
 # still owns is the pair of failures a declaration cannot paper over — a command that
-# never started (126/127/signal) and one that hung (124).
-verdict_custom() {
+# never started (126/127/signal) and one that hung (124). Under --runner-for, parse_<lang>
+# then decides.
+verdict_custom() { # verdict_custom <spec> [<lang>]
   local spec="$1" cmd="${1%%::*}" empty="${1#*::}"
   log "custom runner: running 'sh -c \"$cmd\"' (timeout ${TIMEOUT_SECS}s)"
   run_capture sh -c "$cmd"
@@ -593,22 +741,29 @@ verdict_custom() {
     log "custom runner: output matched the declared empty signal /$empty/"
     printf 'empty-suite\n'; return
   fi
+  if [ -n "${2:-}" ]; then "parse_$2" wrapped; return; fi
   printf 'covered\n'
 }
 
 verdicts=()
 ci=0
 for r in "${runners[@]}"; do
-  case "$r" in
-    py) v=$(verdict_py) ;;
-    js) v=$(verdict_js) ;;
-    go) v=$(verdict_go) ;;
-    php) v=$(verdict_php) ;;
-    rs) v=$(verdict_rs) ;;
-    rb) v=$(verdict_rb) ;;
-    java) v=$(verdict_java) ;;
-    custom*) ci=$((ci + 1)); v=$(verdict_custom "${CUSTOM_RUNNERS[$((ci - 1))]}") ;;
-  esac
+  rf="RF_$r"
+  if [ -n "${!rf:-}" ]; then
+    log "$r: --runner-for replaces the built-in runner"
+    v=$(verdict_custom "${!rf}" "$r")
+  else
+    case "$r" in
+      py) v=$(verdict_py) ;;
+      js) v=$(verdict_js) ;;
+      go) v=$(verdict_go) ;;
+      php) v=$(verdict_php) ;;
+      rs) v=$(verdict_rs) ;;
+      rb) v=$(verdict_rb) ;;
+      java) v=$(verdict_java) ;;
+      custom*) ci=$((ci + 1)); v=$(verdict_custom "${CUSTOM_RUNNERS[$((ci - 1))]}") ;;
+    esac
+  fi
   verdicts+=("$r=$v")
   if [ "$v" = covered ]; then log "runner[$r]: covered"; else log "runner[$r]: FAIL ($v)"; fi
 done
@@ -629,6 +784,7 @@ done
 # Reuses the card-06 isolation/timeout helpers (run_capture / run_with_timeout).
 SHELL_EPS=()
 smoke_entrypoints() {
+  local TIMEOUT_SECS="$PROBE_SECS" RAW_CAP=1 # run_capture reads both; probes keep the short cap
   # nothing to smoke; a --differential with no shell entrypoint to run against is usage
   if [ "${#ENTRYPOINTS[@]}" -eq 0 ]; then
     [ "${#DIFFERENTIALS[@]}" -eq 0 ] || usage "--differential requires a shell --entrypoint to run against"

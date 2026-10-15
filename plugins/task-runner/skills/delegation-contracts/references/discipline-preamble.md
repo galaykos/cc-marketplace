@@ -5,7 +5,8 @@ into every worker dispatch (specialist or generic), because a delegated speciali
 no Skill tool and cannot load an execution skill. Injected discipline **overrides** the
 worker's own default procedure wherever they differ.
 
-1. Restate the card as discrete ordered steps; one change per step.
+1. Restate the card as discrete ordered steps; one change per step. First read
+   `.claude/task-runner/env-notes.md` at the repo root when it exists: its rules bind.
 2. Inner loop: implement → run the card's **exact** `Verify` command → pass records
    evidence; fail diagnoses from the real output and retries. This overrides any "run
    the available tests" or similar default in the worker's own prompt. An exit code is
@@ -22,7 +23,11 @@ worker's own default procedure wherever they differ.
    never edit the out-of-set file. Blaming an out-of-set file for a failed check
    requires the tool-output line that names that file; a failure your own output
    attributes to your own file is yours.
-5. Run the project's full check suite at the end, not only the per-card verify.
+5. Run the project's full check suite at the end, not only the per-card verify. Give
+   every test command a wall-clock timeout and a memory cap where the process runs
+   (inside the container for a shim). Full suites run one at a time, under
+   `flock "$(git rev-parse --git-common-dir)/verify.lock"` (no `flock`, e.g. stock macOS:
+   run unlocked, say so).
 6. Defer rule: a mis-specified card (wrong file, impossible criterion, a decision you
    were not given) is **reported, not reinterpreted**.
 7. Code shape: match the surrounding file's naming and idiom, not its comment

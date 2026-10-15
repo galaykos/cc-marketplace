@@ -186,6 +186,24 @@ overwrite. A worker's hand-back wakes the orchestrator anyway. Two sources:
     per SubagentStart, this script removes it on SubagentStop and puts it back when it
     BLOCKS the subagent, which then keeps running. A record older than 180 minutes is
     swept and not counted; the cutoff is what bounds a worker that died silently.
+  - (0.8.0) task-runner's behavioral gate run in background Bash, which neither source
+    above counts: inflight_count keeps subagent and teammate entries only. In one reviewed
+    session clause 4 blocked while behavioral-gate.sh was still running in the background,
+    demanding the very run that was in progress. task-runner writes
+    <root>/.claude/task-runner/bg/running.pid: the PID, then the HEAD sha it tests.
+    bg_running counts it as ONE worker, added to either source's count, so the hold prints
+    the same line and keeps this HEAD's one block, while the gate is live (below), the sha is
+    the current HEAD (a prefix of 7+ hex), and the file is under BG_PID_TTL_MIN, 240
+    minutes. A dead PID or another HEAD is a stale file and is ignored. The age cap is what
+    bounds a recycled PID at the same HEAD; it is not the records' 180 because seven
+    built-in runners at the gate's 1800 s suite cap run 210 minutes, and a cap the gate can
+    legitimately outrun blocks a stop with "run the behavioral gate" while one is running —
+    a second run under the first one's load. The first 0.8.0 cut used 180.
+    Why a private file and not the host's list: on CLI 2.1.300's schema a background_tasks
+    entry of type `shell` carries the command line (not probed for this), so a
+    `behavioral-gate` match there would see the run without a PID, immune to the sandbox
+    miss below. Not taken: unprobed, it names no HEAD, and it would count the same run the
+    file already counts. Recorded, not built.
 The records are keyed on the hashed session_id under $TMPDIR, not under the state root.
 The same probe showed SubagentStart, SubagentStop and Stop carrying ONE session_id and
 ONE transcript_path — the parent's. A subagent's cwd need not be the parent's, though
@@ -193,7 +211,24 @@ ONE transcript_path — the parent's. A subagent's cwd need not be the parent's,
 resolved from it would put its SubagentStop's delete where the parent's Stop never reads.
 RESIDUAL: on an older CLI a worker running past 180 minutes expires and the gate blocks
 once per HEAD as before; a session resumed under a new session_id cannot see the old
-records; background shell tasks and workflows are not workers here. Only the no-gate-
+records; background shell tasks and workflows are not workers here, except the
+behavioral gate's running.pid, and a gate given an added --runner or a raised
+BEHAVIORAL_GATE_TIMEOUT can outlast the 240 minutes and draw one block at its HEAD.
+A gate run in sandboxed Bash writes `$$` from the sandbox's PID namespace (the Linux
+sandbox passes bwrap --unshare-pid, read from the 2.1.300 binary). The first 0.8.0 cut
+tested it with kill -0, which here tests a different process: probed 2026-10-15 under
+bwrap --unshare-pid --unshare-user, the recorded PID was 2, the host's kthreadd (kill -0
+fails with EPERM: the block stood), while the host listed the gate under its real PID
+with its cwd and command line readable. So with /proc the hold reads the recorded PID's
+/proc/<pid>/cmdline for `behavioral-gate.sh`, and failing that, scans
+/proc/*/cmdline (one grep, ~4 ms over 900 processes) for a live behavioral-gate.sh whose
+cwd is under the root. The pattern is written behavioral-gat[e] so the scan's own grep,
+which names it, never matches itself. This also closes the recycled-PID hold on Linux.
+RESIDUAL: without /proc (macOS, whose sandbox has no PID namespace) it is kill -0, and a
+recycled live PID at the same HEAD holds the block until the file is 240 minutes old; on
+Linux any process whose command line names behavioral-gate.sh and whose cwd is under the
+root — a background `tail` of its log, an editor on the script in task-runner's own repo
+— holds it while a current running.pid names this HEAD. Only the no-gate-
 pass branch consults any of this: a claimed pass with short nc/rv/bg records, a short
 red-team panel or an undisclosed reduction still blocks with workers in flight.
 ```
@@ -318,6 +353,12 @@ leaves one behind indefinitely. Enforcing it from a different branch would turn 
 dead run into a repo-wide trap. A run registered with a "branch" is enforced only
 on that branch; a sentinel without one (pre-0.17 registration) keeps the old
 unconditional behaviour.
+The current branch is `git symbolic-ref -q HEAD` less `refs/heads/` (0.8.0). It was
+`rev-parse --abbrev-ref HEAD`, which prints `heads/<branch>` once a tag shares the
+branch's name, so a tag made during a run read the run as another branch's and clause 4
+stood down (`symbolic-ref --short` shortens the same way). A detached HEAD still reads
+`HEAD`, as before, and is not the run's branch. task-runner's register-run.sh writes the
+`branch` this compares against; both must spell it the same way.
 ```
 
 ### run_clause: card counts
@@ -350,6 +391,52 @@ PER-CARD REVIEWER COVERAGE (rv/): records are written by hooks/rv-observe.sh
 when it OBSERVES a reviewer dispatch carrying the RV-CARD marker, so the count is
 not model-authored. Only records newer than THIS registration count (card ids
 repeat across runs), and distinct ids (rv-seen-01 + rv-skip-01 is one card).
+A range record (range-*) is excluded from this count: it covers the run, not a card.
+```
+
+### run_clause: UI CARD REVIEWER (0.8.0)
+
+```text
+A card whose rv/diff-<card>.patch (task-runner's review-diff.sh) names a .tsx, .jsx,
+.vue, .svelte, stylesheet or .blade.php file owes a ui-ux-reviewer record
+(rv-agent-<card>@*ui-ux-reviewer.json, written by rv-observe from subagent_type), a
+skip or an exemption. Measured: in one 2026-10 run, 8 of 10 UI cards were reviewed by
+frontend-reviewer alone, asked to "also cover markup", and the per-card count above
+let it stand in. A test or story file (*.test.*, *.spec.*, *.stories.*, under
+__tests__/ or tests/) is not a UI file: reviewer-routing gives a test-only card
+code-reviewer alone, and the first cut blocked such a card for a reviewer the routing
+never dispatches. Misses: a UI card with no diff file is not checked; a test directory
+named otherwise (test/, e2e/) still counts as UI.
+```
+
+### run_clause: WHOLE-RANGE REVIEW (0.8.0)
+
+```text
+A run registered by register-run.sh carries start_sha and owes one /code-review:review
+over the run, recorded by rv-observe as range-<sha>.json from an RV-RANGE marker, at
+the closing HEAD. Per-card passes never substitute: in two 2026-10 sessions the
+whole-branch pass found cross-card defects (a stale cache key, a 500 for users with no
+team) that no card's review could see. A commit after a range review owes only the
+commits since the newest reviewed ancestor, and the block names that range; asking for
+the whole run again per fix commit would cost a full pass each time (~22M tokens
+measured for one). Misses: the record proves the marker was in the call, not which
+range was reviewed; a sentinel without start_sha owes none.
+```
+
+### run_clause: CLOSED-RUN SENTINEL (0.8.0)
+
+```text
+run.md step 4 renames active-run.json to closed-run.json instead of deleting it. Until
+0.8.0 a run that followed run.md deleted its sentinel before the closing stop, so the
+records checks above never ran on a correct close — only on an incorrect one. The gate
+reads closed-run.json when active-run.json is absent and deletes it once every check
+passes. Without candor installed, closed-run.json stays until the next registration.
+A closing stop that never reaches the clause (Esc, session end, the clause switched
+off) left the file read as a live run, so the first stop after any later commit on that
+branch blocked for a gate pass at the new HEAD. Now a closed-run.json whose gate-pass.json
+names a HEAD other than the current one is deleted silently: the run closed at that
+earlier commit. Misses: a commit made between the gate pass and the closing stop retires
+the run unchecked too; a closed-run.json with no gate-pass.json still blocks.
 ```
 
 ### run_clause: BEHAVIORAL-GATE EVIDENCE
@@ -751,6 +838,19 @@ Absolute-path shebang, as mode.sh: fail-open must hold under a stripped PATH.
 Two events. The job: inject the five working moves BEFORE the first edit. On
 UserPromptSubmit, once per session, on the FIRST work-shaped prompt. On SubagentStart,
 once per agent_id, unconditionally — a spawn is work by construction. Under 1,000 bytes (878 chars as of 0.6.3).
+(0.8.0: not for an agent type that cannot edit — this marketplace's agents whose tools:
+hold neither Write nor Edit, and the built-in Explore, Plan and claude-code-guide.
+Reviewers, scouts and Explore were being told to prove a change in the browser. The
+whole text is skipped rather than moves 4-5 sent: no skipped type can write, and a second
+text would be a second thing to pin. Not "they have no Bash" — six of the 19 marketplace
+types (the five toolchain-experts and devops-reviewer) and Explore and Plan hold it (and
+claude-code-guide on builds that search through Bash); each uses it to check, not edit.
+The *-expert agents keep the skip: each body says it runs its analyzers and never edits.
+Names are matched QUALIFIED (plugin:agent; bare only for the three built-ins): the first
+cut matched ${atype##*:} against *-reviewer, *-expert and bare names, which silenced
+another source's writable verifier or acme:security-reviewer. The record is still
+written. preamble-hook.test.sh derives the set from every agents/*.md; an agent with no
+tools: key, or a YAML-list tools: naming Write or Edit, counts as writable.)
 SubagentStart also records the worker as in flight for the Stop gate (IN-FLIGHT RECORD
 below) — silent bookkeeping, no output of its own.
 ```
@@ -845,6 +945,31 @@ session's dir — the only cleanup a worker killed without a SubagentStop gets.
 ```text
 One-shot per context. UserPromptSubmit never reaches a subagent, so session_id
 would do; transcript_path is preferred for the same reason the gate exists.
+```
+
+### Prompt shape (0.8.0)
+
+```text
+The prompt test adopts the shared prompt-shape block (templates-and-blocks.md): a prompt
+cc_prompt_frame calls a harness frame (a hand-back, a notification, a /loop tick) exits
+before the one-shot marker, so it can neither inject the moves nor spend the session's
+one injection; cc_prompt_unpaste cuts <pasted_content> spans before the verb test, so a
+pasted log's "fix" or "update" is not an imperative. Not adopted: ship_only (a session
+opened with "create the PR" still gets the moves, once) and scheduled (a re-delivered
+ask is a real ask, and the one-shot has usually been spent by its first delivery).
+Standing: gate — preamble-hook.test.sh 33-38 (33-36 red against 0.7.1).
+```
+
+### Move (2)'s exception (0.8.0)
+
+```text
+"If the user said they will test it themselves, name what is untested and stop." In a
+reviewed session (retro V-05) the model spun up throwaway containers three times to prove
+a three-line config change after the user had said they would test it in production,
+and the user had to interrupt. The model also tests unprompted, so the plugin's share of
+that is partial. +79 chars (957 now, 965 bytes), on the first work prompt and every
+writable subagent's start. Standing: agent-graded; preamble-hook.test.sh 31-32 pin the
+text, no eval case measures the behaviour.
 ```
 
 ## plugins/candor/hooks/activate.sh
@@ -986,6 +1111,49 @@ results are `tool_result` items and are skipped, so a worker's report cannot
 launder a hedge into "the user said it").
 ```
 
+### unbody: commit messages and PR bodies (0.8.0)
+
+```text
+A reviewed session (2026-10-13 retro, V-03) waited 6 minutes on an ask fired by a
+`gh pr create` body that DISCLOSED a precaution a worker had coded earlier ("both are
+subtracted to be safe"). A commit message or PR body records a hedge already made; the
+guard exists for the call where one is chosen — a dispatch, a file, an edit. So a Bash
+call is re-scanned without: a `git commit` (git -C/-c and single-token globals allowed
+before it) or `gh pr create|edit` that starts at a command position (line start, or
+after ; & | or an opening paren), up to the next ; & | or the line end, plus any
+heredoc body opened in that span — the `-m "$(cat <<'EOF' …)"` shape the host's own
+commit recipe uses. Heredoc bodies are consumed in the order their openers appear, so
+`cat > f <<A && git commit -F - <<B` keeps A's body and drops B's. A dropped body with
+no terminator is put back.
+
+Errs toward asking, never toward silence, on the shapes it cannot place: a ; & | inside
+the quoted message ends the span early and the rest is scanned; a multi-line quoted
+message with no heredoc is scanned from its second line; `GIT_X=y git commit` or
+`env git commit` is not at a command position. Not covered: a message written by Write
+and passed with -F or --body-file is a Write and is read; `gh pr comment`, `gh issue`
+and `git tag -m` bodies are read. The re-scan runs only after the raw text already hit
+the hedge pattern, so a call with no hedge pays nothing.
+
+Standing: gate — avert-hook.test.sh 16-18 (red against 0.7.1), neighbours 19-21.
+```
+
+## plugins/candor/hooks/cite.sh
+
+```text
+One citation lookup for clause 1 and /candor:check, sourced by both (0.8.0). Until then
+candor-scan.sh carried a copy, held to gate.sh by a text-comparison test that could not
+see the URL strip or the `...` filter. The reasons given for deferring a sourced file
+(below, candor-scan.sh's axis 1) were that the lib lives outside the hook and that a
+missing file leaves resolve undefined; both are handled: the file ships in the same
+hooks/ directory (skill-router's plugins-dir.sh is the precedent), and a gate that
+cannot source it stands clause 1 down with one stderr line, never failing the stop
+(gate.test.sh "without hooks/cite.sh …"). candor-scan.test.sh "gate and report agree"
+runs both on one message — a vendor/ citation, a dependency basename, localhost:8000
+and an invented basename — and a static case fails if either file grows its own lookup
+again. cite_miss takes root and cwd as arguments instead of reading the callers'
+globals, so the contract is in the call.
+```
+
 ## plugins/candor/scripts/candor-scan.sh
 
 ### Header
@@ -1046,7 +1214,12 @@ Only the contrastive forms — the ones that exist to reassign blame — are cou
 ```text
 --- axis 1: citations that do not resolve ----------------------------------
 Same extraction and resolution as the gate; reported instead of blocked, and
-across the whole window instead of the final message alone.
+across the whole window instead of the final message alone. (Until 0.8.0 it was not:
+the scan kept the pre-0.7.1 lookup and called a pruned basename missing "anywhere".
+A first 0.8.0 cut copied gate.sh's _find, resolve and extraction patterns, held by a
+text-comparison test that could not see the URL strip or the `...` filter.) Since 0.8.0
+both source hooks/cite.sh (its section above): one definition, no drift test. A scan
+that cannot source it prints `-` for the axis instead of a count.
 Measured: pointing the scan at a session that ran in another project reported 78
 "missing" files in one transcript, every one of them real where that turn actually
 happened. A measurement that is wrong whenever it is run from the wrong directory
