@@ -1,6 +1,7 @@
 #!/bin/bash
 # preamble.sh (UserPromptSubmit, SubagentStart; payload on stdin) — adds candor's five working moves as context: once per session, on the
-#   first prompt whose head has a making verb in an imperative clause; once per agent_id on SubagentStart, after recording the worker in flight.
+#   first prompt whose head has a making verb in an imperative clause; once per agent_id on SubagentStart, after recording the worker in flight,
+#   for an agent type that can edit (a read-only one gets the record and no text).
 # Off: CC_PREAMBLE=off silences the text, never the in-flight record; it does not answer to CC_REMIND. Unset, the /config option cc_preamble decides.
 #   Advisory: context cannot block. Fails open: without jq it does nothing; it always exits 0.
 # Misses: a work session opened with a question, until its first imperative prompt; a compaction drops the text and it is not re-sent.
@@ -55,6 +56,18 @@ MARKER_TTL_MIN=1440
 
   [ "$(cc_option CC_PREAMBLE on)" = "off" ] && exit 0
   if [ "$event" = "SubagentStart" ]; then
+    # No text for an agent that cannot edit: reviewers, scouts and Explore were told to prove a change in the browser.
+    # The names are this marketplace's agents and the built-ins whose tools hold no Write or Edit; preamble-hook.test.sh
+    # derives that set from agents/*.md and fails on one this list misses. Qualified: a bare-name glob would also silence
+    # another source's writable verifier or acme:security-reviewer. Misses: another source's read-only agent.
+    atype=$(printf '%s' "$input" | jq -r '.agent_type // empty' 2>/dev/null)
+    case "$atype" in
+      Explore | Plan | claude-code-guide | toolchain-experts:*-expert | approaches:consultant | approaches:opinion-lens \
+      | code-architecture:architecture-reviewer | code-review:code-reviewer | craft-layer:craft-reviewer \
+      | craft-layer:creative-director | devops:devops-reviewer | hindsight:transcript-miner | taskmaster:context-scout \
+      | taskmaster:spec-adversary | ui-ux:ui-ux-reviewer | ultra-deep-research:researcher | ultra-deep-research:verifier \
+      | web-dev:frontend-reviewer) exit 0 ;;
+    esac
     ctx="$aid"
   else
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0

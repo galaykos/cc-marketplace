@@ -59,6 +59,39 @@ check "18 SubagentStart without agent_id fails open, silent" "$out" 'rc=0'
 out=$(jq -n '{hook_event_name:"SubagentStart",session_id:"s-sub",transcript_path:"/nowhere/s-sub.jsonl",cwd:"/tmp",prompt_id:"p1",agent_id:"ag3",agent_type:"general-purpose"}' \
   | CC_PREAMBLE=off CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null)
 check "21 CC_PREAMBLE=off is silent on SubagentStart" "$out" ''
+# The read-only set is derived, not listed: an agent whose tools: hold neither Write nor Edit gets no text.
+writable() { # agents/*.md -> status 0 when it can edit: no tools: key (it inherits every tool), or Write or Edit inline or as a YAML list
+  local t
+  t=$(awk '/^---/ { k++; next } k != 1 { next } l && /^[[:space:]]*-/ { printf " %s", $0; next } l { exit }
+    /^tools:/ { l = 1; sub(/^tools:[[:space:]]*/, ""); printf "tools:%s", $0 }' "$1")
+  case "$t" in '' | tools: | *Write* | *Edit*) return 0 ;; esac
+  return 1
+}
+loud=""; quiet=""; n=0
+for f in "$ROOT"/plugins/*/agents/*.md; do
+  p=${f#"$ROOT"/plugins/}; t="${p%%/*}:$(basename "$f" .md)"; n=$((n + 1))
+  got=$(runsub "ro$n" "$t" | jq -r '.hookSpecificOutput.additionalContext // empty')
+  if writable "$f"; then [ -n "$got" ] || quiet="$quiet $t"
+  else [ -z "$got" ] || loud="$loud $t"; fi
+done
+check "22 every marketplace agent with no Write or Edit gets no text ($n agents read)" "${loud:-none}" 'none'
+check "23 every marketplace agent with Write or Edit still gets the five moves" "${quiet:-none}" 'none'
+check "24 the built-in Explore gets no text" "$(runsub ro-ex Explore)" ''
+check "25 the built-in Plan gets no text" "$(runsub ro-pl Plan)" ''
+rec=$(cat "$TMP"/cc-candor-inflight-*/* 2>/dev/null | grep -cx 'ro-ex')
+check "26 a read-only agent still gets its in-flight record" "rec=$rec" 'rec=1'
+loud=""
+for t in verifier code-reviewer acme:security-reviewer acme:schema-expert other-plugin:researcher acme:Explore; do
+  [ -n "$(runsub "other-$t" "$t" | jq -r '.hookSpecificOutput.additionalContext // empty')" ] || loud="$loud $t"
+done
+check "27 another source's agent sharing a skipped bare name still gets the five moves" "${loud:-none}" 'none'
+A="$TMP/agents"; mkdir -p "$A"
+printf -- '---\nname: bare\ndescription: x\n---\nbody\n' > "$A/bare.md"
+printf -- '---\nname: listw\ndescription: x\ntools:\n  - Read\n  - Write\nmodel: inherit\n---\nbody\n' > "$A/listw.md"
+printf -- '---\nname: listr\ndescription: x\ntools:\n- Read\n- Grep\nmodel: inherit\n---\nbody\n' > "$A/listr.md"
+check "28 an agent with no tools: line counts as writable (it inherits Write and Edit)" "$(writable "$A/bare.md" && echo w)" 'w'
+check "29 a YAML-list tools: naming Write counts as writable" "$(writable "$A/listw.md" && echo w)" 'w'
+check "30 a YAML-list tools: of Read and Grep counts as read-only" "$(writable "$A/listr.md" || echo r)" 'r'
 m=$(ls -d "$TMP"/cc-preamble-* 2>/dev/null | wc -l | tr -d ' ')
 [ "$m" -ge 1 ] && echo "PASS: 13 marker is written under TMPDIR ($m)" || { echo "FAIL: 13 no marker written"; rc=1; }
 

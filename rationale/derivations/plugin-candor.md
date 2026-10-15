@@ -186,6 +186,24 @@ overwrite. A worker's hand-back wakes the orchestrator anyway. Two sources:
     per SubagentStart, this script removes it on SubagentStop and puts it back when it
     BLOCKS the subagent, which then keeps running. A record older than 180 minutes is
     swept and not counted; the cutoff is what bounds a worker that died silently.
+  - (0.8.0) task-runner's behavioral gate run in background Bash, which neither source
+    above counts: inflight_count keeps subagent and teammate entries only. In one reviewed
+    session clause 4 blocked while behavioral-gate.sh was still running in the background,
+    demanding the very run that was in progress. task-runner writes
+    <root>/.claude/task-runner/bg/running.pid: the PID, then the HEAD sha it tests.
+    bg_running counts it as ONE worker, added to either source's count, so the hold prints
+    the same line and keeps this HEAD's one block, while `kill -0 PID` succeeds, the sha is
+    the current HEAD (a prefix of 7+ hex), and the file is under BG_PID_TTL_MIN, 240
+    minutes. A dead PID or another HEAD is a stale file and is ignored. The age cap is what
+    bounds a recycled PID at the same HEAD; it is not the records' 180 because seven
+    built-in runners at the gate's 1800 s suite cap run 210 minutes, and a cap the gate can
+    legitimately outrun blocks a stop with "run the behavioral gate" while one is running —
+    a second run under the first one's load. The first 0.8.0 cut used 180.
+    Why a private file and not the host's list: on CLI 2.1.300's schema a background_tasks
+    entry of type `shell` carries the command line (not probed for this), so a
+    `behavioral-gate` match there would see the run without a PID, immune to the sandbox
+    miss below. Not taken: unprobed, it names no HEAD, and it would count the same run the
+    file already counts. Recorded, not built.
 The records are keyed on the hashed session_id under $TMPDIR, not under the state root.
 The same probe showed SubagentStart, SubagentStop and Stop carrying ONE session_id and
 ONE transcript_path — the parent's. A subagent's cwd need not be the parent's, though
@@ -193,7 +211,14 @@ ONE transcript_path — the parent's. A subagent's cwd need not be the parent's,
 resolved from it would put its SubagentStop's delete where the parent's Stop never reads.
 RESIDUAL: on an older CLI a worker running past 180 minutes expires and the gate blocks
 once per HEAD as before; a session resumed under a new session_id cannot see the old
-records; background shell tasks and workflows are not workers here. Only the no-gate-
+records; background shell tasks and workflows are not workers here, except the
+behavioral gate's running.pid, where a recycled live PID at the same HEAD holds the block
+until the file is 240 minutes old, and a gate given an added --runner or a raised
+BEHAVIORAL_GATE_TIMEOUT can outlast that and draw one block at its HEAD. A gate run in
+sandboxed Bash writes `$$` from the sandbox's PID namespace (the Linux sandbox passes
+bwrap --unshare-pid, read from the 2.1.300 binary): kill -0 from this hook tests a
+different process, so the hold fails (the block stands, as before 0.8.0) or, when that
+number is one of the user's live processes, holds until the age cap. Only the no-gate-
 pass branch consults any of this: a claimed pass with short nc/rv/bg records, a short
 red-team panel or an undisclosed reduction still blocks with workers in flight.
 ```
@@ -797,6 +822,19 @@ Absolute-path shebang, as mode.sh: fail-open must hold under a stripped PATH.
 Two events. The job: inject the five working moves BEFORE the first edit. On
 UserPromptSubmit, once per session, on the FIRST work-shaped prompt. On SubagentStart,
 once per agent_id, unconditionally — a spawn is work by construction. Under 1,000 bytes (878 chars as of 0.6.3).
+(0.8.0: not for an agent type that cannot edit — this marketplace's agents whose tools:
+hold neither Write nor Edit, and the built-in Explore, Plan and claude-code-guide.
+Reviewers, scouts and Explore were being told to prove a change in the browser. The
+whole text is skipped rather than moves 4-5 sent: no skipped type can write, and a second
+text would be a second thing to pin. Not "they have no Bash" — six of the 19 marketplace
+types (the five toolchain-experts and devops-reviewer) and Explore and Plan hold it (and
+claude-code-guide on builds that search through Bash); each uses it to check, not edit.
+The *-expert agents keep the skip: each body says it runs its analyzers and never edits.
+Names are matched QUALIFIED (plugin:agent; bare only for the three built-ins): the first
+cut matched ${atype##*:} against *-reviewer, *-expert and bare names, which silenced
+another source's writable verifier or acme:security-reviewer. The record is still
+written. preamble-hook.test.sh derives the set from every agents/*.md; an agent with no
+tools: key, or a YAML-list tools: naming Write or Edit, counts as writable.)
 SubagentStart also records the worker as in flight for the Stop gate (IN-FLIGHT RECORD
 below) — silent bookkeeping, no output of its own.
 ```
@@ -1092,7 +1130,19 @@ Only the contrastive forms — the ones that exist to reassign blame — are cou
 ```text
 --- axis 1: citations that do not resolve ----------------------------------
 Same extraction and resolution as the gate; reported instead of blocked, and
-across the whole window instead of the final message alone.
+across the whole window instead of the final message alone. (Until 0.8.0 it was not:
+the scan kept the pre-0.7.1 lookup and called a pruned basename missing "anywhere".
+Since 0.8.0 _find, resolve and the two extraction patterns are gate.sh's, copied —
+the plugin sources no shared file — and candor-scan.test.sh fails when they differ.)
+RESIDUAL (the copy and its drift test): the test compares the text from `_find() {` to
+the next line that is a lone `}`, comments included, and the first two `grep -oE` /
+`grep -vEi` patterns in each file by position. So the URL strip and the `...` elision
+filter can drift unseen; a new `grep -oE` placed earlier in either file shifts the
+comparison into a false FAIL; a comment reworded in one copy fails it though nothing ran
+differently. The fix is one definition both files read: a byte-locked block under
+templates/blocks/ (pc_shared_blocks already gates the pasted copies) or a sourced
+hooks/lib.sh. Deferred: the block lives outside this plugin's files, and a sourced lib
+gives a fail-open Stop hook a new way to fail — a missing file leaves resolve undefined.
 Measured: pointing the scan at a session that ran in another project reported 78
 "missing" files in one transcript, every one of them real where that turn actually
 happened. A measurement that is wrong whenever it is run from the wrong directory

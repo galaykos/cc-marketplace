@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# gate-pins.test.sh — pins both sides of each named limit in hooks/gate.sh: the in-flight record TTL, the disclosure tail,
-#   the transcript tail, the citation cap, the bare-pushback length and the claim window.
+# gate-pins.test.sh — pins both sides of each named limit in hooks/gate.sh: the in-flight record TTL, the behavioral-gate PID file's
+#   age cap, the disclosure tail, the transcript tail, the citation cap, the bare-pushback length and the claim window.
 set -u
 
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/gate.sh"
@@ -68,6 +68,14 @@ printf 'agentA\n' > "$REC"; age_minutes "$REC" 182
 expect "in-flight TTL: a 182-minute record is swept, the stop blocks" "$RA" "$CLEAN" 2 "$RUN_SUB" "$SID"
 if [ ! -e "$REC" ]; then pass=$((pass+1)); printf 'PASS  in-flight TTL: the 182-minute record is deleted from disk\n'
 else fail=$((fail+1)); printf 'FAIL  in-flight TTL: the 182-minute record is deleted from disk\n'; fi
+
+RP="$WS/bgpid"; repo "$RP"; mkdir -p "$RP/.claude/task-runner/bg"; PIDF="$RP/.claude/task-runner/bg/running.pid"
+sleep 600 & LIVE=$!
+printf '%s\n%s\n' "$LIVE" "$(git -C "$RP" rev-parse HEAD)" > "$PIDF"; age_minutes "$PIDF" 238
+expect "bg PID age: a 238-minute running.pid with a live PID at HEAD still holds the block" "$RP" "$CLEAN" 0 "still in flight"
+age_minutes "$PIDF" 242
+expect "bg PID age: a 242-minute running.pid with a live PID at HEAD is ignored, the stop blocks" "$RP" "$CLEAN" 2 "$RUN_SUB"
+kill "$LIVE" 2>/dev/null; wait "$LIVE" 2>/dev/null
 
 RB="$WS/disclosure"; repo "$RB"
 printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$(git -C "$RB" rev-parse HEAD)" > "$RB/.claude/task-runner/gate-pass.json"

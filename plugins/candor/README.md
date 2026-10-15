@@ -50,7 +50,11 @@ list on the Stop payload whenever the payload carries it (probed on CLI 2.1.282)
 Otherwise it uses in-flight records: `preamble.sh` writes one on `SubagentStart`, and
 `gate.sh` deletes it on `SubagentStop`. Records older than 180 minutes are swept and
 not counted, which is how an agent that died without a `SubagentStop` stops counting.
-The gate prints a one-line note instead of blocking and keeps this HEAD's one block for
+Since 0.8.0 task-runner's behavioral gate running in background Bash counts as one
+worker: it writes `.claude/task-runner/bg/running.pid` (its PID, then the HEAD it tests),
+and the gate holds while that PID is live, the sha is the current HEAD and the file is
+under 240 minutes old (seven built-in runners at the gate's 1800 s cap run 210); a dead
+PID or another HEAD is ignored. The gate prints a one-line note instead of blocking and keeps this HEAD's one block for
 the stop after the last worker returns. Every other clause-4 reason still blocks while
 workers run: a claimed pass with short records, a red behavioral gate, a short
 red-team panel, or an undisclosed reduction.
@@ -198,7 +202,7 @@ so the injected card and the skill body cannot drift.
 | `SessionStart` | `hooks/activate.sh` | injects the terse contract once, only when a level is active; silent otherwise |
 | `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton (~150 tokens per prompt — measured 596 chars at `lite`/`full`/`ultra`, 693 at a `wenyan-*` level — and nothing when off) |
 | `UserPromptSubmit` | `hooks/preamble.sh` | once per session, on the first prompt whose head carries a making verb in an imperative clause: injects the five working moves before the first edit (under 1,000 bytes, bounded by the hook's own test); silent on every later prompt, on questions, on slash commands, and under `CC_PREAMBLE=off` |
-| `SubagentStart` | `hooks/preamble.sh` | the same five moves, once per `agent_id`, for every subagent the Agent tool spawns — `UserPromptSubmit` never fires inside a subagent, and on 2026-09-18 the text reached 0 of 3 workers building an app; no matcher, so read-only spawns pay the 878 chars as of 0.6.3, under 1,000 bytes too. Also writes the worker's in-flight record for clause 4 (under `$TMPDIR`, keyed on the hashed `session_id`), even under `CC_PREAMBLE=off` |
+| `SubagentStart` | `hooks/preamble.sh` | the same five moves, once per `agent_id`, for every subagent the Agent tool spawns — `UserPromptSubmit` never fires inside a subagent, and on 2026-09-18 the text reached 0 of 3 workers building an app; under 1,000 bytes too. Since 0.8.0 an agent that cannot edit gets no text — this marketplace's agents whose `tools:` holds neither `Write` nor `Edit` (reviewers, `*-expert`, scouts, `researcher`, `verifier`), matched by qualified name (`ultra-deep-research:verifier`, never a bare `verifier`), and the built-in `Explore`, `Plan` and `claude-code-guide`; `preamble-hook.test.sh` derives that set from every `agents/*.md` and fails on one the list misses; another source's read-only agent still gets it. Also writes the worker's in-flight record for clause 4 (under `$TMPDIR`, keyed on the hashed `session_id`), even under `CC_PREAMBLE=off` |
 
 `mode.sh` is **not** a `CC_REMIND` reminder hook: a user-selected mode is not a
 nudge, so it neither claims the one-nudge-per-prompt marker nor answers to that
@@ -272,7 +276,11 @@ Stated because a gate reads stronger than it is:
   whenever the payload carries it. Without that list, a worker that runs longer than
   180 minutes stops counting, and the gate blocks once per HEAD as it did before 0.5.0.
   A session resumed under a new `session_id` cannot see its earlier records.
-  Background shell tasks and workflows do not count as workers.
+  Background shell tasks and workflows do not count as workers, except the behavioral
+  gate's `bg/running.pid`; a recycled PID at the same HEAD holds the block until that
+  file is 240 minutes old, a gate given an extra `--runner` or a raised timeout can
+  outlast it, and a gate run in sandboxed Bash records a PID from its own namespace
+  that the hook cannot test.
 - **Pushback detection is a regex over one message.** Phrasing outside the list
   is invisible, and a user message carrying its own evidence disarms clause 2 on
   purpose.

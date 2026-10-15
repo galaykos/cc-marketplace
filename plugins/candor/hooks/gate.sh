@@ -8,6 +8,7 @@
 #   Blocks anyway: a citation into a file the turn shortened, deleted or renamed; a run record written before the run registered.
 #   Clause 4 misses a UI card with no review diff file and a range review its RV-RANGE marker over-claims; a sentinel with no start_sha owes none.
 #   It retires a closed run unchecked once HEAD moves past its gate pass, a commit made before the closing stop included.
+#   Its hold for a behavioral gate in flight reads task-runner's PID file, not background_tasks: a sandboxed or recycled PID misreads.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -71,6 +72,8 @@ cc_option() {
 }
 
 INFLIGHT_TTL_MIN=180
+# Seven built-in runners at behavioral-gate.sh's 1800 s cap is 210 minutes; an added --runner or a raised cap outruns it.
+BG_PID_TTL_MIN=240
 DISCLOSURE_TAIL_LINES=200
 TRANSCRIPT_TAIL_LINES=4000
 MAX_CITATIONS_CHECKED=25
@@ -134,6 +137,23 @@ inflight_count() {
   else
     printf '0'
   fi
+}
+
+# task-runner's behavioral gate run in background Bash writes bg/running.pid: its PID, then the HEAD it tests. It counts as one
+# worker while that PID is live, the sha is <head>, and the file is under BG_PID_TTL_MIN; a dead PID or another HEAD is stale.
+# Misses: a recycled PID at the same HEAD holds the block until the file ages out. A gate run in sandboxed Bash records a PID
+# from the sandbox's own namespace (bwrap --unshare-pid on Linux): kill -0 here tests another process, dead (the block stands) or live (it holds).
+bg_running() { # <head> -> 1 or 0
+  local f="$root/.claude/task-runner/bg/running.pid" pid="" sha=""
+  if [ -r "$f" ] && [ -z "$(find "$f" -mmin +"$BG_PID_TTL_MIN" 2>/dev/null)" ]; then
+    { read -r pid || :; read -r sha || :; } < "$f"
+    case "$pid" in '' | *[!0-9]*) pid="" ;; esac
+    case "$sha" in '' | *[!0-9a-f]*) sha="" ;; esac
+    if [ -n "$pid" ] && [ "${#sha}" -ge 7 ]; then
+      case "$1" in "$sha"*) kill -0 "$pid" 2>/dev/null && { printf '1'; return 0; } ;; esac
+    fi
+  fi
+  printf '0'
 }
 
 run_clause() {
@@ -324,6 +344,8 @@ run_clause() {
   # Workers in flight: print, block nothing and write no nudge, keeping this HEAD's one block for after the last hand-back.
   local waiting
   waiting=$(inflight_count)
+  case "$waiting" in '' | *[!0-9]*) waiting=0 ;; esac
+  waiting=$((waiting + $(bg_running "$head")))
   if [ "${waiting:-0}" -gt 0 ] 2>/dev/null; then
     printf '[candor] completion-gate: %s has no behavioral-gate pass for HEAD %s, and %s background worker(s) of this session are still in flight — not blocking.\n  A worker'"'"'s hand-back wakes this session; the gate holds the stop after the last one returns.\n' "$slug" "${head:0:12}" "$waiting" >&2
     return 0
@@ -335,7 +357,7 @@ run_clause() {
     Need a decision -> ask it with AskUserQuestion (not a stop). Blocked -> park the card with a reason.
   Every card done or parked -> the whole-range review and the gate are the steps left (run.md
     step 4), and neither has a deadline. From the
-    repo root run task-runner'"'"'s scripts/behavioral-gate.sh --isolate --changed "<the run'"'"'s touched
+    repo root, in the background, run task-runner'"'"'s scripts/behavioral-gate.sh --isolate --changed "<the run'"'"'s touched
     files>" (the path run.md step 4 names). --isolate creates, checks and removes its own worktree
     and writes the verdict record; do not hand-build a checkout, and do not copy, generate or write
     any .env for it. Then record the pass to .claude/task-runner/gate-pass.json as {"head":"%s"}

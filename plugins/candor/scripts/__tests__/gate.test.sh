@@ -443,6 +443,25 @@ if command -v git >/dev/null 2>&1; then
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
   rm -f "$(rec_of agentKilled)"
 
+  # task-runner's behavioral gate in background Bash records its PID, then the HEAD it tests, in bg/running.pid.
+  mkdir -p "$TRD/bg"; sleep 300 & LIVE=$!
+  printf '%s\n%s\n' "$LIVE" "$RHEAD" > "$TRD/bg/running.pid"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+  verdict_is "in flight: a behavioral gate whose PID is live at HEAD holds the no-gate-pass block like a worker" \
+    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB" && ! printf '%s' "$err" | grep -qF "$RUN_SUB" && [ ! -e "$RNUDGE" ]; echo $?)"
+  printf '%s\n%s\n' "$LIVE" "0123456789abcdef0123456789abcdef01234567" > "$TRD/bg/running.pid"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+  verdict_is "in flight: a live behavioral-gate PID recorded for another HEAD is ignored" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+  kill "$LIVE" 2>/dev/null; wait "$LIVE" 2>/dev/null
+  printf '%s\n%s\n' "$LIVE" "$RHEAD" > "$TRD/bg/running.pid"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+  verdict_is "in flight: a dead behavioral-gate PID at HEAD is ignored" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+  verdict_is "no gate pass: the block says to run the behavioral gate in the background" \
+    "$(printf '%s' "$err" | grep -qF 'repo root, in the background, run task-runner'"'"'s scripts/behavioral-gate.sh'; echo $?)"
+  rm -f "$TRD/bg/running.pid"
+
   mkdir -p "$TRD/bg"
   printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$RHEAD" > "$TRD/gate-pass.json"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" "$BT_RUNNING")"
