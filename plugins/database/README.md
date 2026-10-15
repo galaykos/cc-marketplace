@@ -54,7 +54,13 @@ loss or a lock hazard:
 
 It asks, never hard-denies (down-migrations legitimately drop), and fails open on
 any error. `CC_DB_GUARD=off` disables it for the session, and the ask message says
-so. Two things it deliberately does not reach: a **rename** of a column or table
+so. A migration's rollback method is not judged — `function down(` in a PHP file under
+`migrations/` (Laravel, Doctrine), `def down` under `db/migrate/` (Rails), `def downgrade(`
+(Alembic), each up to the next method — so a new create-table migration whose `down()`
+drops the table does not ask, while a drop in `up()` or in a helper still does (standing:
+**gate**, `guard.test.sh`). A Knex, TypeORM or Sequelize rollback still asks, and so does an
+Edit or MultiEdit edit whose new text sits inside `down()` without the opener.
+Two things it deliberately does not reach: a **rename** of a column or table
 (that rule is `sql-best-practices` § Migrations, agent-graded), and documentation —
 `.md`, `.mdx`, `.markdown`, `.txt`, `.rst` and anything under `taskmaster-docs/`
 exit early, because a card that quotes a migration executes nothing and, with no

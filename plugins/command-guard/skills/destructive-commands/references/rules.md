@@ -12,7 +12,15 @@ importantly, what is not.
    obvious evasions do not work.
 2. **Split.** The raw command is cut on `;`, `&&`, `||`, `|`, newlines and
    brackets — quote-aware, so `grep -E "a|rm -rf /"` does not become a fake `rm`
-   segment. Each segment is judged on its own.
+   segment. Each segment is judged on its own. A heredoc body is dropped first
+   unless the line opening it names a shell, `ssh`, `su`, `eval`, `exec`, `source`,
+   `.` or a SQL client (`bash <<EOF`, `cat <<EOF | sh`, `psql <<SQL`): there the
+   body runs, anywhere else it is data. It is kept too when its reader can sit off
+   that line — the line continues with `\` or ends in `|`, `(`, `{` or `do`, the
+   heredoc is inside an unquoted `$( )` or `( )`, the command is `$`-named or
+   quoted, or the text left pipes into a shell (`{ cat <<EOF … EOF; } | sh`). A
+   `<<` the guard cannot place (quoted, after a `#`, in arithmetic) keeps every
+   line after it, and so does a body with no terminator.
 3. **Exempt readers.** A segment whose leading word only reads (`grep`, `cat`,
    `rg`, `ls`, `git log`, …) is skipped, so searching for `migrate:fresh` is not
    running it. The exemption is dropped for the whole command when output is
@@ -108,6 +116,13 @@ shapes. It cannot see:
   truncates, a queued job;
 - work on a **remote host** through an interactive SSH session, or anything run
   inside a REPL the agent has already opened;
+- a **heredoc body fed to anything but a shell or SQL client** — `python3 - <<EOF`,
+  `node -`, `sudo -s`, `at`, a shell function or alias — or written to a script a
+  later line runs (`cat > x.sh <<EOF … EOF; bash x.sh`): not read. Reading every
+  body line by line took 22.6 s on a 21 KB command, past the hook's 15 s timeout,
+  and a timed-out guard fails open on everything in the command. A huge body fed
+  to a shell, `ssh` or a SQL client, or kept because its `<<` could not be placed,
+  is still read, and can still time out;
 - a **shape nobody has written a rule for** — a new framework's reset command,
   a CLI released next month;
 - **which database a connection points at** — `DROP TABLE` through an MCP SQL

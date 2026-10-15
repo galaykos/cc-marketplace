@@ -15,6 +15,30 @@ file whose job is history is worse than an honest starting point.
   under "What to test": configure or inject a small cap (3) and write one past it (4).
   Standing: agent-graded, prose the model reads; no hook or harness checks a test's size.
 
+### Fixed
+- **`protect-tests` no longer reads a quoted word after `pending` as a skip outside Ruby.**
+  The paren-less arm matched `pending '<x>'` in any test path, so a bash harness whose stub
+  took a mode string (`stub_checks pending 'build'`) was denied as a skipped test. Paren-less
+  `pending "…"` is RSpec's alone, so that arm now reads `*.rb` files only; `pending(` (Jasmine,
+  Jest, RSpec), `xit(`, `xit "…" do` and paren-less `skip "…"` still deny everywhere.
+- **Pest's chained skip is now read.** `})->skip()` and `test('…')->only()` passed silently:
+  the `.skip(` arm wants a dot, and Pest chains with `->`. Both now deny without a same-line
+  reason, also past chained calls (`})->with([1, 2])->skip()`, `})->group('slow')->only()`).
+  A Collection or query builder spells the same methods, so `->only` must have empty
+  parentheses and `->skip(` must carry Pest's own argument: none, a quoted reason, a closure
+  or `true`/`false` (`->skip(2)`, `->skip(count($header))`, `->skip(self::OFFSET)` and
+  `->only(['id'])` stay silent). Residual: Pest's own skip message does not count as the
+  reason (a same-line comment does), and missed are a chain split across lines (`->skip()` on
+  the line after `})`, or its argument on the next line), a condition spelled as an
+  expression (`->skip($onCi)`), `it('x', fn () => …)->skip()`, and a chained call whose
+  argument holds parentheses.
+- Standing: gate. `protect-tests.test.sh` gains fourteen cases (61); "bash harness: a stub's
+  quoted pending mode is not a skip", "bash harness: a line-leading pending call is not a
+  skip", "Pest })->skip() denies", "Pest test('…')->only() denies", "Pest })->skip('reason')
+  denies", "Pest })->skip(fn () => …) denies", "Pest })->skip(true, …) denies", "Pest
+  })->with([…])->skip() chain denies" and "Pest })->group('slow')->only() chain denies" fail
+  against the hook before this change.
+
 ## 0.13.1 — 2026-10-14
 
 ### Fixed

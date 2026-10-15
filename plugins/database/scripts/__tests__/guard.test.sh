@@ -15,6 +15,7 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not found"; exit 0; }
 
 payload() { jq -nc --arg f "$1" --arg c "$2" '{tool_name:"Edit",tool_input:{file_path:$f,new_string:$c}}'; }
 bpayload() { jq -nc --arg c "$1" '{tool_name:"Bash",cwd:"/tmp",tool_input:{command:$c}}'; }
+mpayload() { jq -nc --arg f "$1" --arg a "$2" --arg b "$3" '{tool_name:"MultiEdit",tool_input:{file_path:$f,edits:[{old_string:"a",new_string:$a},{old_string:"b",new_string:$b}]}}'; }
 
 # want=ask | allow
 check() {
@@ -31,6 +32,17 @@ check() {
 check_bash() {
   local label="$1" want="$2" cmd="$3" out got
   out=$(bpayload "$cmd" | bash "$HOOK" 2>/dev/null)
+  if printf '%s' "$out" | grep -q '"permissionDecision":"ask"'; then got=ask; else got=allow; fi
+  if [ "$got" = "$want" ]; then
+    echo "PASS: $label ($got)"
+  else
+    echo "FAIL: $label — want $want, got $got"; rc=1
+  fi
+}
+
+check_multi() {
+  local label="$1" want="$2" out got
+  out=$(mpayload "$3" "$4" "$5" | bash "$HOOK" 2>/dev/null)
   if printf '%s' "$out" | grep -q '"permissionDecision":"ask"'; then got=ask; else got=allow; fi
   if [ "$got" = "$want" ]; then
     echo "PASS: $label ($got)"
@@ -61,6 +73,36 @@ check "Schema::dropIfExists (Laravel)" ask   database/migrations/2026_01_01_0000
 check "Schema::drop (Laravel)"         ask   database/migrations/2026_01_01_000000_x.php "Schema::drop('users');"
 check "Schema::table add index"        allow database/migrations/2026_01_01_000000_x.php "Schema::table('users', fn (\$t) => \$t->index('email'));"
 check "Schema::dropColumns is not a table drop" allow database/migrations/2026_01_01_000000_x.php "Schema::table('users', fn (\$t) => \$t->dropColumn('legacy'));"
+# 0.11.4: every new create-table migration asked, because its down() drops the table. The
+# rollback method is cut from its opener to the next method; up() and helpers are still judged.
+MIG=database/migrations/2026_01_01_000000_create_widgets_table.php
+up_create=$'    public function up(): void\n    {\n        Schema::create(\'widgets\', function (Blueprint $table) {\n            $table->id();\n        });\n    }\n'
+check "create migration, dropIfExists in down()" allow "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n'"$up_create"$'\n    public function down(): void\n    {\n        Schema::dropIfExists(\'widgets\');\n    }\n};'
+check "drop in up() still asks"                  ask   "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        Schema::dropIfExists(\'old_widgets\');\n    }\n\n    public function down(): void\n    {\n        Schema::create(\'old_widgets\', fn ($t) => $t->id());\n    }\n};'
+check "drop in a helper after down() still asks" ask   "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n'"$up_create"$'\n    public function down(): void\n    {\n        Schema::dropIfExists(\'widgets\');\n    }\n\n    private function purge(): void\n    {\n        Schema::drop(\'widget_cache\');\n    }\n};'
+check "down() opener outside migrations/ is not cut" ask src/Elevator.php \
+  $'public function down(): void\n{\n    Schema::dropIfExists(\'floors\');\n}'
+check "rails def down drop_table"               allow db/migrate/003_create_widgets.rb \
+  $'class CreateWidgets < ActiveRecord::Migration[7.1]\n  def up\n    create_table :widgets\n  end\n\n  def down\n    drop_table :widgets\n  end\nend'
+check "alembic downgrade drop_table"            allow alembic/versions/0004_widgets.py \
+  $'def upgrade():\n    op.create_table("widgets", sa.Column("id", sa.Integer))\n\n\ndef downgrade():\n    op.drop_table("widgets")'
+check "alembic drop_table in upgrade still asks" ask  alembic/versions/0005_widgets.py \
+  $'def upgrade():\n    op.drop_table("old_widgets")\n\n\ndef downgrade():\n    pass'
+# The PHP opener must lead its line, and each MultiEdit edit is cut on its own: a comment,
+# a string or an earlier edit naming down() must not hide a drop in up().
+check "comment naming down() in up() cuts nothing" ask "$MIG" \
+  $'    public function up(): void\n    {\n        // reverse lives in function down() below\n        Schema::dropIfExists(\'legacy\');\n    }'
+check "string naming down() in up() cuts nothing"  ask "$MIG" \
+  $'    public function up(): void\n    {\n        $this->info(\'see function down() for the reverse\');\n        Schema::dropIfExists(\'legacy\');\n    }'
+check_multi "multiedit: down() in edit 1 does not cut edit 2's drop" ask "$MIG" \
+  $'    public function down(): void\n    {\n        Schema::create(\'users\', fn ($t) => $t->id());\n    }' \
+  $'        Schema::drop(\'users\');'
+check_multi "multiedit: a drop in an edit's own down() is still cut" allow "$MIG" \
+  $'    public function down(): void\n    {\n        Schema::dropIfExists(\'widgets\');\n    }' \
+  $'            $table->string(\'name\');'
 # 0.10.0: the DSL row was case-sensitive, required a `(`, and knew no Django
 # operation — so Rails, GORM and Django wrote a table drop in silence. Both
 # directions: a config key that merely SPELLS one of the names is not a migration.
@@ -117,6 +159,8 @@ check_bash "logged psql: SQL fed to psql whose output is logged is not scanned" 
   "$(printf '%s\n' "psql \"\$DATABASE_URL\" <<'SQL' > migrate.log" 'DROP TABLE users;' 'SQL')"
 check_bash "walk: a markdown chunk does not exempt a later .sql chunk" ask \
   "$(printf '%s\n' "cat > notes.md <<'EOF'" 'plain notes' 'EOF' "cat > db/x.sql <<'SQL'" 'DROP TABLE users;' 'SQL')"
+check_bash "bash: create migration written by heredoc, drop only in down()" allow \
+  "$(printf '%s\n' "cat > database/migrations/2026_01_01_000000_create_widgets_table.php <<'PHP'" '<?php' 'return new class extends Migration {' "    public function up(): void { Schema::create('widgets', fn (\$t) => \$t->id()); }" '    public function down(): void' '    {' "        Schema::dropIfExists('widgets');" '    }' '};' 'PHP')"
 check_bash "relative doc: a relative taskmaster-docs target is a doc surface" allow \
   "$(printf '%s\n' "cat > taskmaster-docs/specs/seed.sql <<'SQL'" 'DROP TABLE users;' 'SQL')"
 

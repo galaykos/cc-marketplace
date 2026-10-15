@@ -631,6 +631,67 @@ for v in "grep 'x\\' f; php artisan migrate:fresh" $'ls a\n\nphp artisan migrate
   [ "$d" = "deny" ] && ok || bad "hook mode must judge the command hidden behind a reader" "verdict=${d:-<silent>} cmd=$v"
 done
 
+# A body went through the segment walk line by line: a 21 KB `python3 - <<'EOF'` ran 22.6 s past the 15 s timeout and failed open.
+printf '== heredoc bodies\n'
+ms_now() { local t; if [ -n "${EPOCHREALTIME:-}" ]; then t=${EPOCHREALTIME/[.,]/}; printf '%s' "${t%???}"; else printf '%s000' "$(date +%s)"; fi; }
+big=""
+for k in 1 2 3 4 5 6 7; do
+  if [ "$k" = 7 ]; then big+="python3 - <<'EOF'"$'\n'; else big+="cat > $WS/f$k.txt <<'EOF'"$'\n'; fi
+  [ "$k" = 3 ] && big+="git reset --hard origin/main"$'\n'
+  for i in $(seq 1 38); do big+="    row_$i = compute(alpha, beta) + transform(\"item $k-$i\", key=$i)  # fixture"$'\n'; done
+  big+="EOF"$'\n'
+done
+[ "${#big}" -ge 20000 ] && [ "$(printf '%s' "$big" | grep -c '<<')" = 7 ] && ok || bad "timing fixture must be 20 KB with 7 heredocs" "bytes=${#big}"
+for v in "$big" "${big}git reset --hard"; do
+  t0=$(ms_now); out=$(hook "$(bash_json "$v")"); t1=$(ms_now)
+  d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+  [ $((t1 - t0)) -lt 2000 ] && ok || bad "heredoc: a 20 KB command with 7 bodies must be judged under 2 s" "took $((t1 - t0)) ms"
+  case "$v" in
+    *'git reset --hard') [ "$d" = "ask" ] && ok || bad "heredoc: an ask outside the bodies still asks" "verdict=${d:-<silent>}" ;;
+    *) [ -z "$d" ] && ok || bad "heredoc: a destructive line inside a cat body is data, not a command" "verdict=$d" ;;
+  esac
+done
+expect ask   $'bash <<\'EOF\'\necho start\ngit reset --hard\nEOF'       # a body fed to a shell runs
+expect deny  $'cat <<\'EOF\' | sh\nphp artisan migrate:fresh\nEOF'
+expect deny  $'ssh app@host <<EOF\nphp artisan migrate:fresh\nEOF'
+expect deny  $'docker compose exec -T db psql -U app <<SQL\nDROP TABLE users;\nSQL'
+expect allow $'cat > notes.txt <<\'EOF\'\nphp artisan migrate:fresh\nEOF'
+expect allow $'python3 - <<\'EOF\'\nos.system("git reset --hard")\nEOF'   # a residual: an interpreter body is not read
+expect deny  $'cat > notes.txt <<\'EOF\'\nx\nEOF\nphp artisan migrate:fresh'
+expect deny  $'cat > notes.txt <<-EOF\n\tx\n\tEOF\nphp artisan migrate:fresh'
+expect deny  $'python3 - <<\'EOF\'\nphp artisan migrate:fresh'                # no terminator: bash reads it to the end
+expect deny  $'x=$((a << b))\nphp artisan migrate:fresh'                     # a shift, not an opener
+expect deny  $'grep -c "<<<" f\nphp artisan migrate:fresh'
+# A body is kept when the `<<` may not open one or its reader is off the opener line; 0.8.4 judged every line here the same way.
+expect deny  $'echo "a <<EOF b"\nphp artisan migrate:fresh\nEOF'              # quoted: not an opener
+expect deny  $'git commit -m "handle <<END markers"\ngit push --force origin main\nEND'
+expect deny  $'git commit -m "build: generate config via cat <<EOF"\nphp artisan migrate:fresh\ncat > .env.example <<EOF\nAPP_ENV=local\nEOF'
+expect deny  $'echo $\'it\\\'s <<EOF\'\nphp artisan migrate:fresh\nEOF'          # $'…' keeps \' inside the quote
+expect ask   $'# write it with <<EOF below\ngit reset --hard origin/main\ncat > notes.txt <<EOF\nx\nEOF'
+expect deny  $'cat <<EOF \\\n| bash\nphp artisan migrate:fresh\nEOF'             # the reader is on a \ continuation
+expect deny  $'cat <<\'EOF\' \\\n  | sh\nphp artisan migrate:fresh\nEOF'
+expect deny  $'bash \\\n<<EOF\nphp artisan migrate:fresh\nEOF'
+expect deny  $'cat <<\'EOF\' |\nphp artisan migrate:fresh\nEOF\nsh'              # the reader follows the body
+expect deny  $'cat <<EOF | (\nphp artisan migrate:fresh\nEOF\nsh\n)'
+expect deny  $'cat <<\'EOF\' | while read -r l; do\nphp artisan migrate:fresh\nEOF\neval "$l"\ndone'
+expect deny  $'. /dev/stdin <<\'EOF\'\nphp artisan migrate:fresh\nEOF'
+expect deny  $'exec <<EOF\nphp artisan migrate:fresh\nEOF\nbash'
+expect deny  $'exec 3<<EOF\nphp artisan migrate:fresh\nEOF\nbash <&3'
+expect deny  $'"$SHELL" <<EOF\nphp artisan migrate:fresh\nEOF'
+expect deny  $'$(cat <<EOF\nphp artisan migrate:fresh\nEOF\n)'                  # the output runs as a command
+expect deny  $'source <(\ncat <<EOF\nphp artisan migrate:fresh\nEOF\n)'
+expect deny  $'{\ncat <<EOF\nphp artisan migrate:fresh\nEOF\n} | sh'
+expect deny  $'(\ncat <<EOF\nphp artisan migrate:fresh\nEOF\n)|bash'
+expect deny  $'while read -r l; do\n  eval "$l"\ndone <<EOF\nphp artisan migrate:fresh\nEOF'
+expect deny  $'cat <<A <<B\na\nA\nx <<C\nB\nphp artisan migrate:fresh\nC'       # B is a body: its <<C opens nothing
+expect deny  $'bash <<OUT\ncat <<IN\nOUT\nphp artisan migrate:fresh\nIN'        # OUT ends the outer body first
+expect deny  $'cat <<EOF\ndata\nEOF \nphp artisan migrate:fresh\nEOF'          # `EOF ` is not the terminator
+expect deny  $'x=$((a << b))\nphp artisan migrate:fresh\nb'
+expect allow $'git commit -m "$(cat <<\'EOF\'\nphp artisan migrate:fresh is denied now\nEOF\n)"'
+expect allow $'x=$(cat <<\'EOF\'\nphp artisan migrate:fresh\nEOF\n)'
+expect allow $'cat > install.md <<\'EOF\'\nmake build | sh\nphp artisan migrate:fresh\nEOF'
+expect ask   $'cat > notes.txt <<\'EOF\'  # it\'s data\nit\'s "half\nEOF\ngit reset --hard'
+
 SNAP_AFTER=$(git_snap)
 [ "$SNAP_BEFORE" = "$SNAP_AFTER" ] && ok || bad "the guard mutated plugins/command-guard" "git status --porcelain -- plugins/command-guard changed"
 

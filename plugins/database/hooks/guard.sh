@@ -27,6 +27,8 @@
 #      these do not lose data, they hold a lock or read the whole table per request.
 #
 # WHAT IT DOES NOT MATCH, stated because the README tiers this an ask:
+#   - A migration's rollback method: `function down(` in a PHP file under migrations/, `def down`
+#     under db/migrate/, Alembic's `def downgrade(` — skipped up to the next method (judge_sql says why).
 #   - A RENAME of a column or table. The expand→migrate→contract rule for that lives
 #     in `sql-best-practices` § Migrations and is agent-graded; no regex here reads it.
 #   - Documentation surfaces. `.md`, `.mdx`, `.markdown`, `.txt`, `.rst` and anything
@@ -266,12 +268,29 @@ cc_bash_write_chunks() {
   # Reads text and flc; sets hit (data loss) or lockhit (lock hazard).
   judge_sql() {
     hit=""
+    # A migration's rollback method drops what its up() made, yet the ask fired on it: every new
+    # create-table migration asked because its down() drops the table, and sessions stalled 969 s and
+    # 1,454 s on an ask nobody was there to answer. That method is cut before judging, from its opener
+    # to the next method, so a drop in up() or in a helper still asks. Covered: PHP under migrations/
+    # (Laravel, Doctrine) `function down(`, Rails db/migrate `def down`, Alembic `def downgrade(`.
+    # Each opener must lead its line, so a comment or string naming it cuts nothing, and the cut
+    # restarts at a \036 line: MultiEdit's edits land apart, so one edit's down() is not another's.
+    # Residual: an Edit or MultiEdit edit whose new text sits inside down() without the opener still
+    # asks, a Knex, TypeORM or Sequelize rollback still asks, and code sharing a line with the down()
+    # opener is skipped.
+    case "$flc" in
+      migrations/*.php|*/migrations/*.php) rbo='^[ \t]*((public|protected|private|static|final)[ \t]+)*function[ \t]+down[ \t]*[(]' rbe='function[ \t]+&?[A-Za-z_]' ;;
+      db/migrate/*.rb|*/db/migrate/*.rb) rbo='^[ \t]*def[ \t]+down([ \t;(]|$)' rbe='^[ \t]*def[ \t]' ;;
+      alembic/versions/*.py|*/alembic/versions/*.py|migrations/versions/*.py|*/migrations/versions/*.py) rbo='^def[ \t]+downgrade[ \t]*[(]' rbe='^def[ \t]' ;;
+      *) rbo='' ;;
+    esac
+    [ -n "$rbo" ] && text=$(printf '%s\n' "$text" | awk -v o="$rbo" -v e="$rbe" '$0 == "\036" { s = 0; next } $0 ~ o { s = 1; next } $0 ~ e { s = 0 } !s')
     [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '\bdrop[[:space:]]+(table|database|schema)\b' && hit="DROP TABLE/DATABASE/SCHEMA"
     # Laravel's schema builder spells the same statement without the SQL keywords:
     # `Schema::dropIfExists('users')` in a migration's up() IS `DROP TABLE users`. The
     # rule above was blind to it, so the one migration shape an agent writes most in a
-    # Laravel repo was the one this guard never asked about. Same ask tier, same escape
-    # (a down() legitimately drops).
+    # Laravel repo was the one this guard never asked about. Same ask tier; a drop inside
+    # down() is cut above, since a rollback legitimately drops.
     [ -z "$hit" ] && printf '%s' "$text" | grep -qE 'Schema::(drop|dropIfExists|dropAllTables|dropAllViews|dropDatabase|dropDatabaseIfExists)[[:space:]]*\(' && hit="a Schema::drop* call (Laravel's DROP TABLE)"
     # Every other migration DSL spells the same statement its own way, and until 2026-09-14
     # this guard recognised exactly one of them — so a Prisma, Drizzle, TypeORM, Doctrine,
@@ -388,7 +407,7 @@ EOF_C
     text=$(printf '%s' "$input" | jq -r '
       [ .tool_input.content // empty,
         .tool_input.new_string // empty,
-        ( .tool_input.edits // [] | map(.new_string // empty) | join("\n") )
+        ( .tool_input.edits // [] | map(.new_string // empty) | join("\n\u001e\n") )
       ] | join("\n")' 2>/dev/null) || exit 0
     [ -n "$text" ] || exit 0
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)

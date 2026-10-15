@@ -51,8 +51,11 @@ real repo, and the credentials and the key were gone.
 
 It reads through the usual disguises — quotes (`artisan "migrate:fresh"`),
 wrappers (`bash -c`, `eval`, `docker compose exec`), extra whitespace, `&&`
-chains, heredocs — and skips read-only commands, so searching for a string is
-never confused with running it. It also covers MCP tools that shell out or run
+chains, heredocs fed to a shell or SQL client — and skips read-only commands, so searching for a string is
+never confused with running it. Any other heredoc body (`cat > f <<EOF`, `python3 - <<EOF`)
+is data and is not read, unless the guard cannot rule out a shell reading it (rules.md lists
+when): judging every body line by line pushed a 21 KB command past the hook's 15 s
+timeout, where the guard fails open. It also covers MCP tools that shell out or run
 SQL, which are the same hole under a different tool name. It reads through `env` and
 every documented git global option before the subcommand, and does not take
 `git clean … -e -n` for a dry run (`-n` is the exclude pattern there). It misses a git

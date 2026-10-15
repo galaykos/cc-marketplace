@@ -7,8 +7,9 @@
 #
 #   1. a skip/exclusive marker being ADDED (`.skip`, `.only`, `xit(`, `xdescribe(`,
 #      `@pytest.mark.skip`, `markTestSkipped`, `$this->markTestIncomplete`, Go's
-#      `t.Skip(`, `#[ignore]`, `@Disabled`, `@Ignore`, `it.todo`, and the paren-less
-#      Ruby/bats spellings `xit "…" do`, `pending "…"`, `skip "…"`)
+#      `t.Skip(`, `#[ignore]`, `@Disabled`, `@Ignore`, `it.todo`, Pest's `})->skip()` and
+#      `->only()`, and the paren-less Ruby/bats spellings `xit "…" do`, `skip "…"`, and
+#      `pending "…"` in a Ruby file only)
 #   2. a whole test file being emptied or deleted through Write — content that no
 #      longer contains a single test function while the file on disk did
 #
@@ -29,6 +30,11 @@
 #     line, or `pending reason_variable`. The quote is what tells a skip declaration from
 #     `items.skip 2`, so dropping it would deny ordinary Ruby; the narrower miss is the
 #     cheaper of the two, and it is a miss, not a false deny.
+#   - A Pest skip split across lines (`->skip()` on the line after `})`, or its argument on
+#     the next line), one whose condition is an expression (`->skip($onCi)`), one after
+#     `it('x', fn () => …)`, or past a chained call whose argument holds parentheses
+#     (`->with(fn () => […])`). The matcher reads one line, and Pest's own argument shapes are
+#     what tell its skip from a Collection's `->skip($n)` — the same miss-over-false-deny trade.
 #   - A skip that was ALREADY in the file: only a newly introduced marker denies, so
 #     editing a legitimately-skipped test is never blocked.
 #   - Deleting a test file with `rm`: no guard stops a plain `rm` of a test file
@@ -307,22 +313,32 @@ cc_bash_write_chunks() {
   # demand a QUOTE after the keyword, because that is what separates a skip declaration
   # from `items.skip 2` or an English word — the same reason the `.skip(` arm is anchored
   # to a test identifier rather than left bare.
-  skip_re='(\b(it|test|describe|context|suite|scenario|feature|bench|fixture|story)\b(\.[A-Za-z]+(\([^)]*\))?)*\.(skip|only|todo|failing)[[:space:]]*\(|\bx(it|describe|test|context|specify)[[:space:]]*[("'\''"]|@pytest\.mark\.skip|markTestSkipped|markTestIncomplete|\bt\.Skip(Now)?[[:space:]]*\(|#\[ignore\]|@Disabled\b|@Ignore\b|\bpending[[:space:]]*\(|\b(pending|skip)[[:space:]]+["'\'']|\.skipIf[[:space:]]*\()'
+  # Paren-less `pending "…"` is RSpec's alone, so that arm reads Ruby files only: in any file it
+  # denied a bash harness whose stub took a mode string (`stub pending 'build'`). Pest chains
+  # `->skip(`/`->only()` onto the test call, which the `.skip(` arm never matched: after `})`, or
+  # after `it(…)`/`test(…)` with no inner parenthesis, past chained calls (`->with([1, 2])`). A
+  # Collection or query builder spells both too, so `->only` needs empty parentheses and `->skip(`
+  # Pest's own argument: none, a quoted reason, a closure or a boolean literal (`->skip(2)`,
+  # `->skip(count($h))` and `->only(['id'])` stay silent). Pest's skip message is not a reason (a
+  # same-line comment is); the shapes this misses are in the header.
+  skip_re='(\b(it|test|describe|context|suite|scenario|feature|bench|fixture|story)\b(\.[A-Za-z]+(\([^)]*\))?)*\.(skip|only|todo|failing)[[:space:]]*\(|\bx(it|describe|test|context|specify)[[:space:]]*[("'\''"]|@pytest\.mark\.skip|markTestSkipped|markTestIncomplete|\bt\.Skip(Now)?[[:space:]]*\(|#\[ignore\]|@Disabled\b|@Ignore\b|\bpending[[:space:]]*\(|\bskip[[:space:]]+["'\'']|\.skipIf[[:space:]]*\(|(\}\)|\b(it|test|describe)\([^()]*\))([[:space:]]*->[[:space:]]*[A-Za-z]+[[:space:]]*\([^()]*\))*[[:space:]]*->[[:space:]]*(only[[:space:]]*\([[:space:]]*\)|skip[[:space:]]*\([[:space:]]*(\)|["'\'']|fn\b|function\b|true\b|false\b)))'
+  rspec_re='\bpending[[:space:]]+["'\'']'
 
   # Reads tool, file, new and old; sets hit, empty when the write is allowed.
   judge_tests() {
-    hit=""
-    if printf '%s' "$new" | grep -qE "$skip_re"; then
+    hit=""; re=$skip_re
+    case "$file" in *.rb) re="($skip_re|$rspec_re)" ;; esac
+    if printf '%s' "$new" | grep -qE "$re"; then
       # Count occurrences added vs already there. A rewrite that carries an existing
       # marker through unchanged must not deny.
-      n_new=$(printf '%s' "$new" | grep -oE "$skip_re" | grep -c . || true)
-      n_old=$(printf '%s' "$old" | grep -oE "$skip_re" | grep -c . || true)
+      n_new=$(printf '%s' "$new" | grep -oE "$re" | grep -c . || true)
+      n_old=$(printf '%s' "$old" | grep -oE "$re" | grep -c . || true)
       case "$n_new" in ''|*[!0-9]*) n_new=0 ;; esac
       case "$n_old" in ''|*[!0-9]*) n_old=0 ;; esac
       # For a full-file Write, compare against the file on disk instead of old_string.
       if [ "$tool" = "Write" ] || [ -z "$old" ]; then
         if [ -f "$file" ]; then
-          n_old=$(grep -oE "$skip_re" "$file" 2>/dev/null | grep -c . || true)
+          n_old=$(grep -oE "$re" "$file" 2>/dev/null | grep -c . || true)
           case "$n_old" in ''|*[!0-9]*) n_old=0 ;; esac
         fi
       fi
@@ -338,9 +354,9 @@ cc_bash_write_chunks() {
           [ -f "$file" ] && prior=$(cat "$file" 2>/dev/null)
         fi
         # Lines carrying a marker, minus the ones that were already there verbatim.
-        added_markers=$(printf '%s\n' "$new" | grep -E "$skip_re" \
-          | grep -vxF "$(printf '%s\n' "$prior" | grep -E "$skip_re")" 2>/dev/null)
-        [ -z "$added_markers" ] && added_markers=$(printf '%s\n' "$new" | grep -E "$skip_re")
+        added_markers=$(printf '%s\n' "$new" | grep -E "$re" \
+          | grep -vxF "$(printf '%s\n' "$prior" | grep -E "$re")" 2>/dev/null)
+        [ -z "$added_markers" ] && added_markers=$(printf '%s\n' "$new" | grep -E "$re")
         unreasoned=$(printf '%s\n' "$added_markers" | grep -ivE "$reason_re" | grep -c . || true)
         case "$unreasoned" in ''|*[!0-9]*) unreasoned=0 ;; esac
         [ "$unreasoned" -gt 0 ] && hit="a test skip/exclusive marker with no reason on its line"

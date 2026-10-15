@@ -113,6 +113,37 @@ allows "items.skip 2 is not a test skip" Edit \
   "{\"file_path\":\"$T/calc_spec.rb\",\"old_string\":\"zz\",\"new_string\":\"    rest = items.skip 2\"}"
 allows "a paren-less skip WITH a same-line reason" Edit \
   "{\"file_path\":\"$T/calc_spec.rb\",\"old_string\":\"zz\",\"new_string\":\"    skip \\\"needs db\\\" # skip: fixture DB missing, see #99\"}"
+# Only RSpec calls pending without parentheses: a bash harness stub taking a mode string was denied.
+allows "bash harness: a stub's quoted pending mode is not a skip" Edit \
+  "{\"file_path\":\"$T/merge.test.sh\",\"old_string\":\"zz\",\"new_string\":\"stub_checks pending 'build'\"}"  # skip: fixture the installed guard misreads
+allows "bash harness: a line-leading pending call is not a skip" Edit \
+  "{\"file_path\":\"$T/merge.test.sh\",\"old_string\":\"zz\",\"new_string\":\"  pending 'one check still running'\"}"  # skip: fixture the installed guard misreads
+denies "Jest's parenthesised pending still denies outside Ruby" Edit \
+  "{\"file_path\":\"$T/a.test.ts\",\"old_string\":\"zz\",\"new_string\":\"  pending('not ready');\"}"  # skip: the fixture this case must deny
+# Pest chains the skip onto the test call; a Collection's ->skip(2) / ->only([...]) is not one.
+denies "Pest })->skip() denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skip();\"}"  # skip: the fixture this case must deny
+denies "Pest test('…')->only() denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"test('adds')->only();\"}"  # skip: the fixture this case must deny
+allows "a Collection ->skip(2) after a closure is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"\$rows = \$all->filter(function (\$r) { return \$r; })->skip(2);\"}"
+# Only Pest's signature denies (nothing, a quoted reason, a closure, a boolean), across chained calls.
+allows "a Collection ->skip(count(…)) after a closure is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"\$rows = collect(\$csv)->map(function (\$r) { return \$r; })->skip(count(\$header));\"}"  # skip: fixture the installed guard misreads
+allows "a query ->skip((\$page - 1) * 10) after a where closure is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"\$q->where(function (\$w) { \$w->active(); })->skip((\$page - 1) * 10);\"}"  # skip: fixture the installed guard misreads
+allows "a ->skip(self::OFFSET) after a closure is not a Pest skip" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skip(self::OFFSET);\"}"  # skip: fixture the installed guard misreads
+denies "Pest })->skip('reason') denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skip('needs redis');\"}"  # skip: the fixture this case must deny
+denies "Pest })->skip(fn () => …) denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skip(fn () => getenv('CI'));\"}"  # skip: the fixture this case must deny
+denies "Pest })->skip(true, …) denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->skip(true, 'flaky');\"}"  # skip: the fixture this case must deny
+denies "Pest })->with([…])->skip() chain denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->with([1, 2])->skip();\"}"  # skip: the fixture this case must deny
+denies "Pest })->group('slow')->only() chain denies" Edit \
+  "{\"file_path\":\"$T/tests/Feature/CalcTest.php\",\"old_string\":\"zz\",\"new_string\":\"})->group('slow')->only();\"}"  # skip: the fixture this case must deny
 
 # The escape hatch must work when the same hunk carries an OLD unreasoned marker
 # through unchanged: only the ADDED marker is judged.

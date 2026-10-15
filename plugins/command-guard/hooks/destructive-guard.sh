@@ -6,6 +6,7 @@
 # Misses: an allow-file path built from a variable or glob, a script or a program git config names writing it, an MCP write tool other than apply_patch and create_new_file,
 # NotebookEdit's notebook_path, a non-ASCII spelling the filesystem folds to the name; a failing cd to a relative target; env -S'…' or --split-string=… with the string glued on;
 # a -C/-c value holding a space, or a git option past the -C/-c/--git-dir set where git does not lead (bash -c "git -P push"); an unlisted wrapper option value or spaced long form (sudo -R x): a refusal, or a miss if it names a reader; a wrapper by path but env (/usr/bin/sudo): a refusal.
+# A heredoc body fed to anything but a shell or SQL client is not read (strip_heredoc_bodies).
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/destructive-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -32,7 +33,7 @@ cc_option() {
   return 0
 }
 
-GUARD_VERSION=0.8.4
+GUARD_VERSION=0.8.5
 
 # Quotes and backslashes go so a quoted evasion (artisan "migrate:fresh") meets the rule the plain form does.
 norm_cmd() {
@@ -75,6 +76,130 @@ split_segments() {
         seg = seg c
       }
       print seg
+    }'
+}
+
+# Before splitting, a heredoc body goes unless its opener's line names a shell, ssh, su, eval, exec, source, `.` or a SQL_CLIENT_RE
+# client: judged line by line, a 21 KB `python3 - <<'EOF'` took 22.6 s against the 15 s hook timeout and failed open. A body is kept
+# where its reader can sit off that line: a `\` continuation, a trailing | ( { do then else, an unquoted $( ) ( ) <( ) around it but
+# x=$( ), an fd number, a $ or quoted command word, a done/fi/esac/}/) lead, a pipe into a shell in the text left. A `<<` the scan
+# cannot place (quoted, after a #, in arithmetic, an odd delimiter, a quote open across its line, a backtick, $$', an unmatched ), a
+# terminator with stray blanks) keeps every later line; so does a missing terminator. Misses: a body fed to anything else (python3 -,
+# node, sudo -s, at, a function, alias or coproc) or written to a script a later line runs; a case pattern's ) inside $( ), which
+# closes it early for the scan; a huge kept body is still slow.
+strip_heredoc_bodies() { # raw command
+  printf '%s\n' "$1" | LC_ALL=C awk -v sql="$SQL_CLIENT_RE" '
+    function delim(s, j,   c, q, w) {
+      q = ""; w = ""
+      for (; j <= length(s); j++) {
+        c = substr(s, j, 1)
+        if (q != "") { if (c == q) q = ""; else w = w c; continue }
+        if (c ~ /[ \t;&|<>()]/) break
+        if (c == "\\") { j++; w = w substr(s, j, 1) } else if (c == "\047" || c == "\"") q = c; else w = w c
+      }
+      return q == "" ? w : ""
+    }
+    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", a/b arithmetic) carry across lines. 1 = ends in \.
+    function scan(s,   n, i, c, nx, d, t, w, j) {
+      n = length(s); cc = 0
+      for (i = 1; i <= n; i++) {
+        c = substr(s, i, 1); nx = substr(s, i + 1, 1); d = dl; dl = 0
+        if (sq) {
+          if (c == "<" && nx == "<") { off = 1; return 0 }
+          if (c == "\\" && ans) i++; else if (c == "\047") sq = 0
+          continue
+        }
+        if (c == "\\") { if (i == n) { dl = d; return 1 }; i++; pc = "x"; cs = 0; continue }
+        if (dq) {
+          if (c == "\"") { dq = 0; pc = c }
+          else if (c == "`" || c == "<" && nx == "<") { off = 1; return 0 }
+          else if (c == "$" && nx == "(") {
+            if (substr(s, i + 2, 1) == "(") { st = st "b"; i += 2 } else { st = st "q"; i++ }
+            dq = 0; pc = "("; cs = 1
+          }
+          continue
+        }
+        if (cs && c !~ /[ \t]/) {
+          if (c ~ /[$"`\047]/) cw = 1
+          else if (c == ")" || match(substr(s, i, 6), /^(done|fi|esac|[}])([ \t;&|<>)]|$)/)) cl = 1
+          else if (match(substr(s, i, 7), /^([{!]|then|do|else|elif|if|while|until)[ \t]/)) { i += RLENGTH - 1; pc = " "; continue }
+          cs = 0
+        }
+        if (c == "\047") { if (d > 1) { off = 1; return 0 }; sq = 1; ans = (d == 1); pc = c; continue }
+        if (c == "\"") { dq = 1; pc = c; continue }
+        if (c == "`") { off = 1; return 0 }
+        if (c == "#") {
+          if (pc ~ /[ \t\n;&|()<>]/) { cc = i; if (index(substr(s, i), "<<") || substr(s, n, 1) == "\\") off = 1; return 0 }
+          hash = 1
+        }
+        if (c == "$") {
+          dl = d + 1
+          if (nx == "(") {
+            if (substr(s, i + 2, 1) == "(") { st = st "a"; i += 2 } else { st = st (pc == "=" ? "v" : "p"); i++ }
+            pc = "("; cs = 1; continue
+          }
+        }
+        if (c == "(") { if (nx == "(") { st = st "a"; i++ } else st = st "p"; pc = c; cs = 1; continue }
+        if (c == ")") {
+          t = substr(st, length(st))
+          if (t == "") { off = 1; return 0 }
+          if (t ~ /[ab]/) { if (nx != ")") { off = 1; return 0 }; i++ }
+          st = substr(st, 1, length(st) - 1); if (t ~ /[qb]/) dq = 1
+          pc = c; continue
+        }
+        if (c == "<" && nx == "<") {
+          if (substr(s, i + 2, 1) == "<") { i += 2; pc = "<"; continue }
+          if (hash || st ~ /[ab]/) { off = 1; return 0 }
+          if (st ~ /p/ || sd0 != "" || substr(s, i - 1, 1) ~ /[0-9]/) k2 = 1
+          j = i + 2; t = (substr(s, j, 1) == "-"); j += t
+          while (substr(s, j, 1) ~ /[ \t]/) j++
+          w = delim(s, j)
+          if (w !~ /^[A-Za-z0-9_.-]+$/) { off = 1; return 0 }
+          term[++nc] = w; tdash[nc] = t
+          i++; pc = "<"; continue
+        }
+        if (c ~ /[;&|]/) cs = 1
+        pc = c
+      }
+      return 0
+    }
+    { all[++na] = $0 }
+    mode == 2 { out[++no] = $0; next }
+    mode == 1 {
+      t = $0; if (tdash[qi]) sub(/^\t+/, "", t)
+      if (t == term[qi]) { if (keep) out[++no] = $0; else held[++nh] = $0; if (++qi > nc) { mode = 0; if (!keep) cut = 1; nh = 0 }; next }
+      t = $0; gsub(/^[ \t]+|[ \t]+$/, "", t)
+      if (t == term[qi]) { for (k = 1; k <= nh; k++) out[++no] = held[k]; nh = 0; out[++no] = $0; mode = 2; next }
+      if (keep) out[++no] = $0; else held[++nh] = $0
+      next
+    }
+    {
+      out[++no] = $0
+      if (cont) cflag = 1
+      else { sd0 = st; startq = sq || dq; nc = 0; hash = 0; cw = 0; cl = 0; k2 = 0; cflag = 0; pc = "\n"; cs = 1; lw = ""; dl = 0 }
+      lw = lw " " $0
+      cont = scan($0)
+      if (off) { mode = 2; next }
+      if (cont || !nc) next
+      if (startq || sq || dq) { mode = 2; next }
+      t = cc ? substr($0, 1, cc - 1) : $0; sub(/[ \t]+$/, "", t)
+      w = tolower(lw); gsub(/["\047\\]/, "", w); gsub(/[<>|;&()]/, " & ", w); gsub(/[ \t]+/, " ", w); w = " " w " "
+      keep = k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ \
+        || w ~ sql || w ~ /[ \/]((ba|z|da|k|c|tc|a)?sh|fish|ssh|su|eval|exec|source|\.) /
+      qi = 1; mode = 1; nh = 0
+      next
+    }
+    END {
+      if (mode == 1 && !keep) for (k = 1; k <= nh; k++) out[++no] = held[k]
+      for (k = 1; cut && k <= no; k++) {
+        t = out[k]; if (t ~ /[|(]&?[ \t]*$/ && k < no) t = t " " out[k + 1]
+        t = tolower(t); gsub(/["\047\\]/, "", t)
+        if (t ~ /[|(]&?[ \t]*((sudo|doas|env|command|exec|nohup|time|nice)[ \t]+(-[^ \t]+[ \t]+)*)*([^ \t|;&()]*\/)?((ba|z|da|k|c|tc|a)?sh|fish|ssh|su|eval|source|\.|xargs)([ \t;&|)]|$)/) {
+          for (k = 1; k <= na; k++) print all[k]
+          exit
+        }
+      }
+      for (k = 1; k <= no; k++) print out[k]
     }'
 }
 
@@ -612,7 +737,7 @@ EOF
 
 # classify: raw command string -> VERDICT / V_WHAT / V_ALT / V_MATCH
 classify() {
-  local raw="$1" full full_lc seg segn segn_lc lead sub pipe_to_shell=0 sql_ctx=0 redirects=0
+  local raw="$1" body full full_lc seg segn segn_lc lead sub pipe_to_shell=0 sql_ctx=0 redirects=0
 
   full=$(norm_cmd "$raw")
   full_lc=$(printf '%s' "$full" | tr '[:upper:]' '[:lower:]')
@@ -628,6 +753,10 @@ classify() {
 
   # Output piped into a shell turns the reader exemption off: echo "rm -rf /" | sh is not an echo.
   printf '%s' " $full_lc " | grep -qE ' \| *(sudo )?[a-z]*sh( |$)| \| *xargs ' && pipe_to_shell=1
+
+  # The whole-command reads above see heredoc bodies; the segment walk and the cd chain below do not see a stripped body.
+  body=$raw
+  case "$raw" in *'<<'*) body=$(strip_heredoc_bodies "$raw"); [ -n "$body" ] || body=$raw ;; esac
 
   while IFS= read -r seg; do
     [ -n "$seg" ] || continue
@@ -677,9 +806,9 @@ classify() {
     match_rule_table "$segn" "$segn_lc" "$sql_ctx"
 
     [ "$VERDICT" = "deny" ] && break
-  done < <(split_segments "$raw")
+  done < <(split_segments "$body")
 
-  [ "$VERDICT" = "deny" ] || check_cd_chain "$raw"
+  [ "$VERDICT" = "deny" ] || check_cd_chain "$body"
 
   # The human opt-out comes last so it can release a deny.
   if [ "$VERDICT" != "allow" ] && allow_listed "$full_lc"; then
