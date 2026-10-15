@@ -57,7 +57,9 @@ ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "not inside a git work 
 ROOT=$(cd "$ROOT" && pwd -P)
 HEAD=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null) || die "no commit at HEAD"
 # symbolic-ref, not --abbrev-ref: a tag with the branch's name made that print `heads/<branch>`.
-BRANCH=$(git -C "$ROOT" symbolic-ref -q HEAD || true); BRANCH=${BRANCH#refs/heads/}; BRANCH=${BRANCH:-HEAD}
+# Exit 1 is a detached head; any other failure records no branch, which every reader takes as a match.
+BRANCH=$(git -C "$ROOT" symbolic-ref -q HEAD 2>/dev/null) && rc=0 || rc=$?
+case $rc in 0) BRANCH=${BRANCH#refs/heads/} ;; 1) BRANCH=HEAD ;; *) BRANCH="" ;; esac
 
 IDX_REL=""
 if [ -n "$INDEX" ]; then
@@ -113,7 +115,7 @@ else
 fi
 
 if [ "$resumed" = 1 ]; then
-  printf 'resumed %s on %s, registered at start_sha=%s (--fresh registers anew)\n' "$SLUG" "$BRANCH" "$(jq -r '.start_sha // "none" | .[0:12]' "$SENT")"
+  printf 'resumed %s on %s, registered at start_sha=%s (--fresh registers anew)\n' "$SLUG" "${BRANCH:-an unknown branch}" "$(jq -r '.start_sha // "none" | .[0:12]' "$SENT")"
 else
-  printf 'registered %s on %s start_sha=%s\n' "$SLUG" "$BRANCH" "${HEAD:0:12}"
+  printf 'registered %s on %s start_sha=%s\n' "$SLUG" "${BRANCH:-an unknown branch}" "${HEAD:0:12}"
 fi

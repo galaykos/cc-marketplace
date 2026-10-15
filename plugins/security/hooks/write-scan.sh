@@ -4,7 +4,7 @@
 #   on a security sink one written line or Bash-written file shows; the ported and LLM sinks only in their own file types, the Laravel/Vite/raw-HTML ones in any file.
 #   After a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also on what each file git reports changed since this hook's
 #   previous call added: the whole file when HEAD lacks it, else its `+` lines against HEAD (so a line any uncommitted edit added is judged again).
-#   Skips a target outside the project root, or under $TMPDIR (default /tmp) unless the project itself is there.
+#   Skips a target under neither CLAUDE_PROJECT_DIR nor the cwd's root, or under $TMPDIR (default /tmp) unless the root holding it is there.
 #   State: the bash-effects marker in the plugin's data dir (CLAUDE_PLUGIN_DATA), else <root>/.claude/security/ behind a `*` .gitignore.
 # Off: CC_SECURITY_SCAN=off or CC_REMIND=off. Fails open on any error, a missing jq included.
 # CC_SECURITY_SCAN / CC_REMIND unset: the /config options cc_security_scan / cc_remind decide.
@@ -171,6 +171,50 @@ cc_state_root() {
   printf '%s\n' "$1"
 }
 
+# Shared block templates/blocks/write-scope.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/write-scope.md
+# cc_scope_init <state root> sets the roots a written path is judged against, each symlink-resolved: CLAUDE_PROJECT_DIR, which the
+# shell's cd does not move, <state root> (cc_state_root of the payload cwd, empty for none) and $TMPDIR (default /tmp).
+# cc_scope_skip <path>: status 0 for scratch, a target under neither root or under the temp dir while the root holding it is not;
+# a path not created yet is judged by its nearest existing directory (cc_scope_dir prints it resolved). cc_scope_root <dir> sets
+# cc_scope_r to the root holding a resolved dir, the state root first; status 1 when neither does.
+# Misses: a sibling repo or worktree written by absolute path from outside both roots is skipped; with no cwd and no
+# CLAUDE_PROJECT_DIR only the temp-dir rule holds.
+cc_scope_init() {
+  cc_scope_pd=""; [ -z "${CLAUDE_PROJECT_DIR:-}" ] || cc_scope_pd=$(CDPATH= cd -- "$CLAUDE_PROJECT_DIR" 2>/dev/null && pwd -P) || cc_scope_pd=""
+  cc_scope_sr=""; [ -z "${1:-}" ] || cc_scope_sr=$(CDPATH= cd -- "$1" 2>/dev/null && pwd -P) || cc_scope_sr=""
+  cc_scope_tmp=$(CDPATH= cd -- "${TMPDIR:-/tmp}" 2>/dev/null && pwd -P) || cc_scope_tmp=""
+  cc_scope_pd=${cc_scope_pd%/}; cc_scope_sr=${cc_scope_sr%/}; cc_scope_tmp=${cc_scope_tmp%/}
+}
+cc_scope_dir() {
+  local d
+  d=$(dirname -- "$1")
+  while [ ! -d "$d" ]; do d=$(dirname -- "$d"); done
+  CDPATH= cd -- "$d" 2>/dev/null && pwd -P
+}
+cc_scope_root() {
+  local r
+  cc_scope_r=""
+  for r in "$cc_scope_sr" "$cc_scope_pd"; do
+    [ -n "$r" ] || continue
+    case "$1/" in "$r"/*) cc_scope_r=$r; return 0 ;; esac
+  done
+  return 1
+}
+cc_scope_skip() {
+  local d
+  d=$(cc_scope_dir "$1") || return 1
+  if cc_scope_root "$d"; then
+    [ -n "$cc_scope_tmp" ] || return 1
+    case "$cc_scope_r/" in "$cc_scope_tmp"/*) return 1 ;; esac
+  elif [ -n "$cc_scope_sr$cc_scope_pd" ]; then
+    return 0
+  fi
+  [ -n "$cc_scope_tmp" ] || return 1
+  case "$d/" in "$cc_scope_tmp"/*) return 0 ;; esac
+  return 1
+}
+
 # Shared block templates/blocks/heredoc-bodies.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/heredoc-bodies.md
 # cc_strip_heredoc_bodies <mode> <command> [<reader ERE>] prints the command without the heredoc bodies the scan can place,
@@ -178,11 +222,12 @@ cc_state_root() {
 # names a shell (rbash, mksh too), ssh, su, sudo -i/-s, runuser, chroot, exec, xargs, eval, source or `.`, or matches <reader ERE>
 # (tested lowercased, unquoted, space-padded), or the reader can sit off that line: a `\` continuation, a trailing | ( { do then
 # else, an unquoted $( ) ( ) <( ) but x=$( ), an fd number, a $ or quoted command word, a done/fi/esac/}/) lead. Once it drops a
-# body, inert keeps every line if a later line pipes into a reader (other words may sit before it; `.`, source, eval or a $ command
-# word first), or runs eval, a shell's -c or a $ command word after an x=$( ) or "$( )" body. Mode cd is inert with eval, source,
-# `.` and the ERE the only named readers, for a cd test: a body this shell runs is kept, one a named subshell runs is not. Every
-# mode keeps every line after a `<<` the scan cannot place (quoted, after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a
-# quote or ${ open across its line, a backtick, $$', an unmatched ), a terminator with stray blanks) and a body with no terminator.
+# body, inert keeps every line if a later line pipes into a reader (other words may sit before it, but a grep or rg lead is a filter
+# whatever its pattern names; `.`, source, eval or a $ command word first), or runs eval, a shell's -c or a $ command word after an
+# x=$( ) or x="$( )" body. Mode cd is inert with eval, source, `.` and the ERE the only named readers, for a cd test: a body this
+# shell runs is kept, one a named subshell runs is not. Every mode keeps every line after a `<<` the scan cannot place (quoted,
+# after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a quote or ${ open across its line, a backtick, $$', an unmatched ),
+# a terminator with stray blanks) and a body with no terminator.
 # Misses: inert drops a body fed to anything else (python3 -, node, at, a function, alias or coproc), written to a script a later
 # line runs, or read into a variable by read; a case pattern's ) inside $( ) closes it early.
 cc_strip_heredoc_bodies() {
@@ -204,7 +249,7 @@ cc_strip_heredoc_bodies() {
       }
       return q == "" ? w : ""
     }
-    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
+    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", w in ="", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
     function scan(s,   n, i, c, nx, d, t, w, j) {
       n = length(s); cc = 0
       for (i = 1; i <= n; i++) {
@@ -219,7 +264,7 @@ cc_strip_heredoc_bodies() {
           if (c == "\"") { dq = 0; pc = c }
           else if (c == "`" || c == "<" && nx == "<") { off = 1; return 0 }
           else if (c == "$" && nx == "(") {
-            if (substr(s, i + 2, 1) == "(") { st = st "b"; i += 2 } else { st = st "q"; i++ }
+            if (substr(s, i + 2, 1) == "(") { st = st "b"; i += 2 } else { st = st (dq > 1 ? "w" : "q"); i++ }
             dq = 0; pc = "("; cs = 1
           }
           continue
@@ -231,7 +276,7 @@ cc_strip_heredoc_bodies() {
           cs = 0
         }
         if (c == "\047") { if (d > 1) { off = 1; return 0 }; sq = 1; ans = (d == 1); pc = c; continue }
-        if (c == "\"") { dq = 1; pc = c; continue }
+        if (c == "\"") { dq = 1 + (pc == "="); pc = c; continue }
         if (c == "`") { off = 1; return 0 }
         if (c == "#") {
           if (pc ~ /[ \t\n;&|()<>]/) { cc = i; if (index(substr(s, i), "<<") || substr(s, n, 1) == "\\") off = 1; return 0 }
@@ -251,7 +296,7 @@ cc_strip_heredoc_bodies() {
         if (c == ")") {
           if (t ~ /^[es]?$/) { off = 1; return 0 }
           if (t ~ /[ab]/) { if (nx != ")") { off = 1; return 0 }; i++ }
-          st = substr(st, 1, length(st) - 1); if (t ~ /[qb]/) dq = 1
+          st = substr(st, 1, length(st) - 1); if (t ~ /[qbw]/) dq = 1 + (t == "w")
           pc = "x"; continue
         }
         if (c == "<" && nx == "<") {
@@ -291,7 +336,7 @@ cc_strip_heredoc_bodies() {
       if (startq || sq || dq || st ~ /[es]/) { mode = 2; next }
       t = cc ? substr($0, 1, cc - 1) : $0; sub(/[ \t]+$/, "", t)
       keep = how != "all" && (k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ || reads(norm(lw)))
-      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vq]/) cv = 1
+      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vw]/) cv = 1
       qi = 1; mode = 1; nh = 0
       next
     }
@@ -300,7 +345,7 @@ cc_strip_heredoc_bodies() {
       for (k = c0; cut && how != "all" && k <= no; k++) {
         t = out[k]; if (t ~ /[|(]&?[ \t]*$/ && k < no) t = t " " out[k + 1]
         u = t = norm(t); r = cv && (t ~ / eval |(^|[;&|]) \$/ || how != "cd" && t ~ shc)
-        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/ }
+        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = p !~ /^ ([ef]?grep|rg) / && (rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/) }
         if (r) { for (k = 1; k <= na; k++) print all[k]; exit }
       }
       for (k = 1; k <= no; k++) print out[k]
@@ -331,12 +376,12 @@ cc_plugin_state() {
 # directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
 # cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
 # cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked, outside any .claude/ dir and newer than <marker>. It runs git only when <command> holds
-# python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, <marker>
-# holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and status.showUntrackedFiles is not no.
-# Misses: writers it does not name, gitignored files, submodules, no git, each session's first call, a file written then reverted, a
-# mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a
-# parallel agent, a job.
+# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
+# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
+# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
+# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
+# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
+# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
   local d="${2%/*}" k
@@ -350,7 +395,7 @@ cc_bash_write_effects() {
   case "$(git -C "$1" config status.showUntrackedFiles 2>/dev/null)" in no|false|off|0) return 0 ;; esac
   # One find over the whole list, each path led by ./ so a name like -delete stays a path; the cap counts only what find kept.
   while IFS= read -r f; do printf '%s\n' "$1/${f#./}"; done < <(exec 2>/dev/null; cd -- "$1" && GIT_OPTIONAL_LOCKS=0 git status --porcelain -z \
-    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e '/^...\.claude\//d' -e '/\/\.claude\//d' -e 's|^...|./|' \
+    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e 's|^...|./|' \
     | tr '\n' '\0' | xargs -0 sh -c 'exec find "$@" -prune -newer "$0" -type f -print' "$2" | head -n "$4")
   return 0
 }
@@ -398,24 +443,8 @@ MAX_BASH_EFFECTS=8
     [ -n "$text" ] || exit 0
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // "unknown"' 2>/dev/null)
   fi
-  # Scratch is not the project: probe scripts under /tmp drew sink warnings in real sessions. A target outside the
-  # project root (cc_state_root: the payload cwd's git toplevel, else CLAUDE_PROJECT_DIR when the cwd is under it, else
-  # the cwd) or under $TMPDIR while the project is not is skipped, both sides compared symlink-resolved. Residual: a
-  # sibling worktree written by absolute path from another checkout is skipped too, and a payload with no cwd keeps only
-  # the temp-dir rule.
-  tmpd=$(CDPATH= cd -- "${TMPDIR:-/tmp}" 2>/dev/null && pwd -P) || tmpd=""
-  root=""
-  [ -z "$sroot" ] || root=$(CDPATH= cd -- "$sroot" 2>/dev/null && pwd -P) || root=""
-  tmpd=${tmpd%/}; root=${root%/}
-  out_of_scope() { # out_of_scope <path>: status 0 for a target outside the project root, or in a temp dir the project is not in
-    local d
-    d=$(CDPATH= cd -- "$(dirname -- "$1")" 2>/dev/null && pwd -P) || return 1
-    if [ -n "$root" ]; then case "$d/" in "$root"/*) ;; *) return 0 ;; esac; fi
-    [ -n "$tmpd" ] || return 1
-    case "$root/" in "$tmpd"/*) return 1 ;; esac
-    case "$d/" in "$tmpd"/*) return 0 ;; esac
-    return 1
-  }
+  # Scratch is not the project: probe scripts under /tmp drew sink warnings in real sessions (the write-scope block).
+  cc_scope_init "$sroot"
   # Context key, not session: a subagent shares its parent's session_id but has its own transcript.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // "nosession"' 2>/dev/null)
   skey=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
@@ -551,7 +580,7 @@ MAX_BASH_EFFECTS=8
       [ -f "$p" ] || continue
       seen="$seen$p
 "
-      out_of_scope "$p" && continue
+      cc_scope_skip "$p" && continue
       file=$p
       text=$(head -c 262144 "$p" 2>/dev/null)
       [ -n "$text" ] || continue
@@ -567,7 +596,7 @@ EOF_T
       case "$seen" in *"
 $p
 "*) continue ;; esac
-      out_of_scope "$p" && continue
+      cc_scope_skip "$p" && continue
       file=$p
       text=$(added_text "$p")
       [ -n "$text" ] || continue
@@ -578,7 +607,7 @@ $p
 $effects
 EOF_E
   else
-    out_of_scope "$file" && exit 0
+    cc_scope_skip "$file" && exit 0
     scan_text
     hit_files=$file
   fi

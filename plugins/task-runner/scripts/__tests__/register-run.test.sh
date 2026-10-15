@@ -100,6 +100,18 @@ git -C "$REPO" tag feature
 [ "$(jq -r .branch "$SENT")" = feature ] && ok "a tag named like the branch: the sentinel still names branch feature" \
   || bad "a tag named like the branch: the sentinel still names branch feature" "branch=$(jq -r .branch "$SENT")"
 git -C "$REPO" tag -d feature >/dev/null
+# 3e) symbolic-ref failing with an exit other than 1 (dubious ownership, a broken git env) is not a
+# detached head: recording `HEAD` there made every reader stand the run down once git worked again.
+SHIM="$WS/shim"; mkdir -p "$SHIM"
+printf '#!/bin/sh\nfor a in "$@"; do [ "$a" = symbolic-ref ] && exit 128; done\nexec %s "$@"\n' "$(command -v git)" > "$SHIM/git"; chmod +x "$SHIM/git"
+(cd "$REPO" && PATH="$SHIM:$PATH" bash "$RR" --index "$IDX" --fresh >/dev/null 2>&1)
+[ "$(jq -r .branch "$SENT")" = "" ] && ok "symbolic-ref exiting 128: the sentinel names no branch" \
+  || bad "symbolic-ref exiting 128: the sentinel names no branch" "branch=$(jq -r .branch "$SENT")"
+git -C "$REPO" checkout -q --detach
+(cd "$REPO" && bash "$RR" --index "$IDX" --fresh >/dev/null 2>&1)
+[ "$(jq -r .branch "$SENT")" = HEAD ] && ok "a detached head is recorded as HEAD" || bad "a detached head is recorded as HEAD" "branch=$(jq -r .branch "$SENT")"
+git -C "$REPO" checkout -q feature
+(cd "$REPO" && bash "$RR" --index "$IDX" --fresh >/dev/null 2>&1)
 
 # 4) refusals
 (cd "$REPO" && bash "$RR" --index nope/00-INDEX.md >/dev/null 2>&1); r=$?

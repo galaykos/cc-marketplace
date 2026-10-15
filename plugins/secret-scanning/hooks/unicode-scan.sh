@@ -1,15 +1,15 @@
 #!/bin/bash
-# unicode-scan.sh (PostToolUse on file writes and reads, Bash included, and PostToolUseFailure on Bash; payload on stdin) — warns once per project,
-#   file and day (again the same day only when the file's invisible characters change), never blocks,
+# unicode-scan.sh (PostToolUse on file writes and reads, Bash included, and PostToolUseFailure on Bash; payload on stdin) — warns once per model
+#   context (a session's main thread, each subagent) and file, again only when the file's invisible characters change, never blocks,
 #   naming line and codepoint, when a file the call wrote or read holds a zero-width, bidi, soft-hyphen, mid-file BOM or Unicode tag character
 #   (a lone BOM leading a `*.log` line, or a tab-separated field of one, is a CI step's encoding and skipped);
 #   after a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also each file git reports changed since this hook's previous call.
 # Off: CC_UNICODE_SCAN=off or CC_REMIND=off. Fails open on every error path; its one-shot markers live in $TMPDIR, its one bash-effects marker in
 #   the plugin's data dir (CLAUDE_PLUGIN_DATA), else <root>/.claude/secret-scanning/ behind a `*` .gitignore.
 # CC_UNICODE_SCAN / CC_REMIND unset: the /config options cc_unicode_scan / cc_remind decide.
-# Misses: homoglyphs; intent (presence only); a file over 2 MB or not valid UTF-8; hits past the sixth in a file; a file the session never touched;
-#   a second session or subagent the same day on a file holding the same characters (the one-shot is per project and day, not per session);
-#   a character stored as a JSON backslash-u escape (a .ipynb or .json the session only read); an MCP apply_patch (no single path); on Bash, a
+# Misses: homoglyphs; intent (presence only); a file over 2 MB or not valid UTF-8; naming hits past the sixth in a file (they still pick the
+#   message and the one-shot); a file the session never touched; a character stored as a JSON backslash-u escape (a .ipynb or .json
+#   the session only read); an MCP apply_patch (no single path); on Bash, a
 #   target past the eighth, outside the project root, not an existing regular file or relative after an in-command cd, and cc_bash_write_targets' misses;
 #   after an interpreter run, changed files past the eighth (MAX_BASH_EFFECTS) and the bash-write-effects block's misses. Reads too much: a file
 #   anything else changed since this hook's previous call (an IDE, a parallel agent) is read as that run's write.
@@ -195,12 +195,12 @@ cc_plugin_state() {
 # directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
 # cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
 # cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked, outside any .claude/ dir and newer than <marker>. It runs git only when <command> holds
-# python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, <marker>
-# holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and status.showUntrackedFiles is not no.
-# Misses: writers it does not name, gitignored files, submodules, no git, each session's first call, a file written then reverted, a
-# mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a
-# parallel agent, a job.
+# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
+# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
+# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
+# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
+# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
+# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
   local d="${2%/*}" k
@@ -214,7 +214,7 @@ cc_bash_write_effects() {
   case "$(git -C "$1" config status.showUntrackedFiles 2>/dev/null)" in no|false|off|0) return 0 ;; esac
   # One find over the whole list, each path led by ./ so a name like -delete stays a path; the cap counts only what find kept.
   while IFS= read -r f; do printf '%s\n' "$1/${f#./}"; done < <(exec 2>/dev/null; cd -- "$1" && GIT_OPTIONAL_LOCKS=0 git status --porcelain -z \
-    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e '/^...\.claude\//d' -e '/\/\.claude\//d' -e 's|^...|./|' \
+    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e 's|^...|./|' \
     | tr '\n' '\0' | xargs -0 sh -c 'exec find "$@" -prune -newer "$0" -type f -print' "$2" | head -n "$4")
   return 0
 }
@@ -226,11 +226,12 @@ cc_bash_write_effects() {
 # names a shell (rbash, mksh too), ssh, su, sudo -i/-s, runuser, chroot, exec, xargs, eval, source or `.`, or matches <reader ERE>
 # (tested lowercased, unquoted, space-padded), or the reader can sit off that line: a `\` continuation, a trailing | ( { do then
 # else, an unquoted $( ) ( ) <( ) but x=$( ), an fd number, a $ or quoted command word, a done/fi/esac/}/) lead. Once it drops a
-# body, inert keeps every line if a later line pipes into a reader (other words may sit before it; `.`, source, eval or a $ command
-# word first), or runs eval, a shell's -c or a $ command word after an x=$( ) or "$( )" body. Mode cd is inert with eval, source,
-# `.` and the ERE the only named readers, for a cd test: a body this shell runs is kept, one a named subshell runs is not. Every
-# mode keeps every line after a `<<` the scan cannot place (quoted, after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a
-# quote or ${ open across its line, a backtick, $$', an unmatched ), a terminator with stray blanks) and a body with no terminator.
+# body, inert keeps every line if a later line pipes into a reader (other words may sit before it, but a grep or rg lead is a filter
+# whatever its pattern names; `.`, source, eval or a $ command word first), or runs eval, a shell's -c or a $ command word after an
+# x=$( ) or x="$( )" body. Mode cd is inert with eval, source, `.` and the ERE the only named readers, for a cd test: a body this
+# shell runs is kept, one a named subshell runs is not. Every mode keeps every line after a `<<` the scan cannot place (quoted,
+# after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a quote or ${ open across its line, a backtick, $$', an unmatched ),
+# a terminator with stray blanks) and a body with no terminator.
 # Misses: inert drops a body fed to anything else (python3 -, node, at, a function, alias or coproc), written to a script a later
 # line runs, or read into a variable by read; a case pattern's ) inside $( ) closes it early.
 cc_strip_heredoc_bodies() {
@@ -252,7 +253,7 @@ cc_strip_heredoc_bodies() {
       }
       return q == "" ? w : ""
     }
-    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
+    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", w in ="", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
     function scan(s,   n, i, c, nx, d, t, w, j) {
       n = length(s); cc = 0
       for (i = 1; i <= n; i++) {
@@ -267,7 +268,7 @@ cc_strip_heredoc_bodies() {
           if (c == "\"") { dq = 0; pc = c }
           else if (c == "`" || c == "<" && nx == "<") { off = 1; return 0 }
           else if (c == "$" && nx == "(") {
-            if (substr(s, i + 2, 1) == "(") { st = st "b"; i += 2 } else { st = st "q"; i++ }
+            if (substr(s, i + 2, 1) == "(") { st = st "b"; i += 2 } else { st = st (dq > 1 ? "w" : "q"); i++ }
             dq = 0; pc = "("; cs = 1
           }
           continue
@@ -279,7 +280,7 @@ cc_strip_heredoc_bodies() {
           cs = 0
         }
         if (c == "\047") { if (d > 1) { off = 1; return 0 }; sq = 1; ans = (d == 1); pc = c; continue }
-        if (c == "\"") { dq = 1; pc = c; continue }
+        if (c == "\"") { dq = 1 + (pc == "="); pc = c; continue }
         if (c == "`") { off = 1; return 0 }
         if (c == "#") {
           if (pc ~ /[ \t\n;&|()<>]/) { cc = i; if (index(substr(s, i), "<<") || substr(s, n, 1) == "\\") off = 1; return 0 }
@@ -299,7 +300,7 @@ cc_strip_heredoc_bodies() {
         if (c == ")") {
           if (t ~ /^[es]?$/) { off = 1; return 0 }
           if (t ~ /[ab]/) { if (nx != ")") { off = 1; return 0 }; i++ }
-          st = substr(st, 1, length(st) - 1); if (t ~ /[qb]/) dq = 1
+          st = substr(st, 1, length(st) - 1); if (t ~ /[qbw]/) dq = 1 + (t == "w")
           pc = "x"; continue
         }
         if (c == "<" && nx == "<") {
@@ -339,7 +340,7 @@ cc_strip_heredoc_bodies() {
       if (startq || sq || dq || st ~ /[es]/) { mode = 2; next }
       t = cc ? substr($0, 1, cc - 1) : $0; sub(/[ \t]+$/, "", t)
       keep = how != "all" && (k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ || reads(norm(lw)))
-      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vq]/) cv = 1
+      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vw]/) cv = 1
       qi = 1; mode = 1; nh = 0
       next
     }
@@ -348,7 +349,7 @@ cc_strip_heredoc_bodies() {
       for (k = c0; cut && how != "all" && k <= no; k++) {
         t = out[k]; if (t ~ /[|(]&?[ \t]*$/ && k < no) t = t " " out[k + 1]
         u = t = norm(t); r = cv && (t ~ / eval |(^|[;&|]) \$/ || how != "cd" && t ~ shc)
-        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/ }
+        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = p !~ /^ ([ef]?grep|rg) / && (rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/) }
         if (r) { for (k = 1; k <= na; k++) print all[k]; exit }
       }
       for (k = 1; k <= no; k++) print out[k]
@@ -375,9 +376,10 @@ MAX_BASH_EFFECTS=8
   # Interpreter writes: read the effects with the old marker, then date it, on EVERY call this hook sees (a Read too), so a
   # file an Edit changed or a command that wrote nothing is never read as the next run's write. A failed Bash call fires
   # PostToolUseFailure, whose envelope must name that event.
-  # context-key-ok: session_id is only the effects marker's content; the warning's one-shot is per project, file and day, not per context.
-  { IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; } < <(printf '%s' "$input" \
-    | jq -r '.cwd // "", .session_id // "", if .hook_event_name == "PostToolUseFailure" then .hook_event_name else "PostToolUse" end' 2>/dev/null)
+  # The one-shot's context: a subagent shares its parent's session_id, so agent_id tells it apart; transcript_path when no session_id.
+  { IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; IFS= read -r ctx; } < <(printf '%s' "$input" \
+    | jq -r '.cwd // "", .session_id // "", if .hook_event_name == "PostToolUseFailure" then .hook_event_name else "PostToolUse" end,
+      if (.session_id // "") != "" then .session_id + "|" + (.agent_id // "") else .transcript_path // "" end' 2>/dev/null)
   root=""; cmd=""; effects=""
   if [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(cc_state_root "$cwd"); then
     emark="$(cc_plugin_state "$root" secret-scanning)/bash-effects-unicode.mark"
@@ -390,7 +392,7 @@ MAX_BASH_EFFECTS=8
 
   # report_file <path> — prints the file's warning, or nothing when it is clean, too big, unreadable or already reported.
   report_file() {
-    local file=$1 bytes key mark report kind body base
+    local file=$1 bytes key mark report kind digest body base
     [ -f "$file" ] || return 0
     # tr -d: BSD wc pads its count, which the numeric test below would reject, disabling the hook.
     bytes=$(wc -c < "$file" 2>/dev/null | tr -d '[:space:]' || echo 0)
@@ -400,7 +402,7 @@ MAX_BASH_EFFECTS=8
     find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-unicode-*' -type d -mmin +"$MARKER_TTL_MIN" -exec rmdir {} + 2>/dev/null
 
     report=$(python3 - "$file" <<'PY' 2>/dev/null
-import sys, unicodedata
+import hashlib, sys, unicodedata
 NAMED = {
     0x200B: "ZERO WIDTH SPACE", 0x200C: "ZERO WIDTH NON-JOINER",
     0x200D: "ZERO WIDTH JOINER", 0x2060: "WORD JOINER",
@@ -423,6 +425,7 @@ def hidden(cp):
 
 LOG = sys.argv[1].lower().endswith(".log")
 hits = []
+found = []
 for lineno, line in enumerate(lines, 1):
     for col, ch in enumerate(line, 1):
         cp = ord(ch)
@@ -432,30 +435,24 @@ for lineno, line in enumerate(lines, 1):
         if cp == 0xFEFF and LOG and (col == 1 or line[col - 2] == "\t") and not hidden(ord(line[col:col + 1] or "\n")):
             continue
         if hidden(cp):
-            name = NAMED.get(cp) or unicodedata.name(ch, "UNICODE TAG CHARACTER")
-            hits.append((lineno, col, cp, name, cp in BIDI))
-        if len(hits) >= 6:
-            break
-    if len(hits) >= 6:
-        break
+            found.append(cp)
+            if len(hits) < 6:
+                hits.append(f"line {lineno}, col {col}: U+{cp:04X} {NAMED.get(cp) or unicodedata.name(ch, 'UNICODE TAG CHARACTER')}")
 
-if not hits:
+if not found:
     sys.exit(0)
-bidi = any(h[4] for h in hits)
-out = []
-for lineno, col, cp, name, _ in hits:
-    out.append(f"line {lineno}, col {col}: U+{cp:04X} {name}")
-print(("BIDI\n" if bidi else "PLAIN\n") + "\n".join(out))
+# Every hidden codepoint in order, positions dropped: the one-shot's key, so a change past the sixth reported hit still counts.
+digest = hashlib.sha1(",".join(map(str, found)).encode()).hexdigest()
+print(("BIDI " if any(cp in BIDI for cp in found) else "PLAIN ") + digest + "\n" + "\n".join(hits))
 PY
     )
     [ -n "$report" ] || return 0
-    kind=$(printf '%s' "$report" | head -1)
+    IFS=' ' read -r kind digest <<<"$(printf '%s' "$report" | head -1)"
     body=$(printf '%s' "$report" | tail -n +2)
-    # One warning per project, file and day while the file holds the same invisible characters (codepoints in order, positions
-    # dropped): a per-session key let every subagent repeat it. Claimed only after a hit, so a clean touch keeps the file's one
-    # warning; mkdir is atomic, so one of two racing hooks reports.
-    key=$(printf '%s|%s|%s|%s' "$(date +%F)" "$root" "$file" "$(printf '%s\n' "$body" | sed 's/^line [0-9]*, col [0-9]*: //')" \
-      | cksum 2>/dev/null | cut -d' ' -f1)
+    # One warning per model context and file while the file holds the same invisible characters: each context that ingests the
+    # text is told once. Claimed only after a hit, so a clean touch keeps the file's one warning; mkdir is atomic, so one of two
+    # racing hooks reports.
+    key=$(printf '%s|%s|%s' "$ctx" "$file" "$digest" | cksum 2>/dev/null | cut -d' ' -f1)
     mark="${TMPDIR:-/tmp}/cc-unicode-$key"
     mkdir "$mark" 2>/dev/null || return 0
     base=$(basename "$file")
@@ -517,7 +514,7 @@ $files
 EOF_F
   [ -n "$msg" ] || exit 0
 
-  jq -cn --arg c "${msg}Silence with CC_UNICODE_SCAN=off. This warns once per file a day, again only when its invisible characters change, and never blocks." --arg ev "${hev:-PostToolUse}" \
+  jq -cn --arg c "${msg}Silence with CC_UNICODE_SCAN=off. This warns once per file in each session and subagent, again only when its invisible characters change, and never blocks." --arg ev "${hev:-PostToolUse}" \
     '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$c}}' 2>/dev/null
   exit 0
 } 2>/dev/null

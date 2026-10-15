@@ -168,8 +168,8 @@ if [ -f "$TMR" ]; then
   assert_speaks "taskmaster [typed prompt beside a wakeup]"   "$TMR" "$(tx 'fix the nightly import')"
   assert_speaks "taskmaster [subagent prompt is not a timer]" "$TMR" "$(tx 'add a CSV export to the orders page')"
   assert_speaks "taskmaster [a heading the user typed]"       "$TMR" "$(pj $'# Autonomous loop detection\n\nbuild a cycle detector for the job graph')"
-  # V-20, the auth half: the trivial skip is withheld when the prompt names an auth surface (cc_prompt_auth_surface, the words
-  # review-debt reads on paths). Neighbours that keep the skip: `author`, and a register verb that is not registration.
+  # V-20, the auth half: the trivial skip is withheld when the prompt names an auth surface (cc_prompt_auth_ask, the block's
+  # word-anchored prompt list). Neighbours that keep the skip: `author`, and a register verb that is not registration.
   tm_auth() { # desc  withheld|offered  prompt
     local out; out="$(pj "$3" | "$BASH_BIN" "$TMR" 2>/dev/null)"
     [ -n "$out" ] || { fail "$1" "wanted a reminder, got silence"; return; }
@@ -183,6 +183,16 @@ if [ -f "$TMR" ]; then
   tm_auth "taskmaster [auth surface: login]"          withheld "fix the login redirect after a password reset"
   tm_auth "taskmaster [neighbour: author]"            offered  "add an author bio card to the post page"
   tm_auth "taskmaster [neighbour: register a listener]" offered "add the event listener and register it in the service provider"
+  # Tier 2 review: the path words withheld the skip on every near miss below. Bare session, token and guard left the prompt
+  # list; account, invite and a camelCase name joined it.
+  tm_auth "taskmaster [near miss: design tokens]"     offered "update the design tokens for the dark theme"
+  tm_auth "taskmaster [near miss: session retro]"     offered "write up the session retro for yesterday's incident"
+  tm_auth "taskmaster [near miss: guard clause]"      offered "add a guard clause to the parser for empty input"
+  tm_auth "taskmaster [near miss: max tokens]"        offered "update max tokens on the summarizer to 4000"
+  tm_auth "taskmaster [near miss: redesign updates]"  offered "ship the redesign updates and fix the header spacing"
+  tm_auth "taskmaster [auth surface: account]"        withheld "add a delete-account button to the profile page"
+  tm_auth "taskmaster [auth surface: invite]"         withheld "add an invite flow so team owners can add members"
+  tm_auth "taskmaster [auth surface: camelCase name]" withheld "fix handleLogin so the redirect stops looping"
 fi
 
 # debugging 0.3.18: the stuck-loop trigger covers the phrases a stuck user actually
@@ -270,6 +280,9 @@ pin_case "plugins/debugging/hooks/remind.sh [ScheduleWakeup re-fire]" silent on 
 pin_case "plugins/api-design/hooks/remind.sh [ScheduleWakeup re-fire]" silent on api-design remind.sh \
   'check whether CI is still failing and wire the stripe webhook into the billing service' '' "{\"transcript_path\":\"$RTX\"}"
 pin_case "plugins/approaches/hooks/remind.sh [ship-only prompt]" silent on approaches remind.sh 'create a PR for the session cache rework'
+# api-design's regex holds nouns, so ship_only reads its shipVerbs key; it spoke here while regex was passed.
+pin_case "plugins/api-design/hooks/remind.sh [ship-only prompt]" silent on api-design remind.sh 'create a PR for the webhook changes'
+pin_case "plugins/api-design/hooks/remind.sh [work beside a ship step]" speaks on api-design remind.sh 'add the webhook handler and create a PR'
 
 for spec in \
   "debugging|remind.sh|/debugging:debug|the login test is failing again, I tried three things and nothing works" \
@@ -323,13 +336,17 @@ if pin_hook approaches remind.sh "$rel [one clause]"; then
     "verb and noun in two sentences|build the refund command for the admin panel. Acme is our payment gateway, so there is no manual path" \
     "verb and noun across a comma|build the dashboard, then clear the cache" \
     "provider named|implement payment refunds through our payment gateway" \
-    "noun inside a word|create a form for the settings page"
+    "noun inside a word|create a form for the settings page" \
+    "noun opening a word: author|write the author bio component" \
+    "noun opening a word: sluggish|build the sluggish dashboard faster" \
+    "noun opening a word: cached|create the cached thumbnails grid"
   do
     pin_case "$rel [${spec%%|*}]" silent on approaches remind.sh "${spec#*|}"
   done
   pin_case "$rel [our own is not a provider]" speaks on approaches remind.sh 'roll our own payment gateway'
   pin_case "$rel [noun before its verb]" speaks on approaches remind.sh 'a markdown parser from scratch please'
   pin_case "$rel [provider control]" speaks on approaches remind.sh 'implement payment refunds'
+  pin_case "$rel [a plural noun]" speaks on approaches remind.sh 'build our own payments page'
 fi
 
 if pin_hook taskmaster remind.sh "plugins/taskmaster/hooks/remind.sh [sweep]"; then

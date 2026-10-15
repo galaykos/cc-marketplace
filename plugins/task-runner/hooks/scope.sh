@@ -11,7 +11,9 @@
 # candor's gate.sh clause 4, whose Stop event reaches the model only through exit 2).
 # No registered run, or no live scope file → no-op (the discipline is opt-in per run).
 # A Bash call that exits non-zero fires PostToolUseFailure instead, registered for Bash too;
-# the envelope then names that event. Fail-open.
+# the envelope then names that event. Such a command may have stopped before its redirect, so a
+# named target the previous call's marker post-dates is skipped, and on a call with no marker
+# (the run's first) a named target takes the effects wording below, never "revert". Fail-open.
 #
 # WHAT IT SEES (0.41.0). Edit/Write/MultiEdit through `.tool_input.file_path`, AND Bash:
 # the files a command writes by `>`/`>>`, heredoc, `tee` or `sed -i`/`perl -i`, parsed by
@@ -248,12 +250,12 @@ cc_plugin_state() {
 # directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
 # cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
 # cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked, outside any .claude/ dir and newer than <marker>. It runs git only when <command> holds
-# python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, <marker>
-# holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and status.showUntrackedFiles is not no.
-# Misses: writers it does not name, gitignored files, submodules, no git, each session's first call, a file written then reverted, a
-# mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a
-# parallel agent, a job.
+# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
+# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
+# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
+# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
+# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
+# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
   local d="${2%/*}" k
@@ -267,7 +269,7 @@ cc_bash_write_effects() {
   case "$(git -C "$1" config status.showUntrackedFiles 2>/dev/null)" in no|false|off|0) return 0 ;; esac
   # One find over the whole list, each path led by ./ so a name like -delete stays a path; the cap counts only what find kept.
   while IFS= read -r f; do printf '%s\n' "$1/${f#./}"; done < <(exec 2>/dev/null; cd -- "$1" && GIT_OPTIONAL_LOCKS=0 git status --porcelain -z \
-    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e '/^...\.claude\//d' -e '/\/\.claude\//d' -e 's|^...|./|' \
+    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e 's|^...|./|' \
     | tr '\n' '\0' | xargs -0 sh -c 'exec find "$@" -prune -newer "$0" -type f -print' "$2" | head -n "$4")
   return 0
 }
@@ -310,7 +312,8 @@ cc_bash_write_effects() {
     [ -n "$cmd" ] && [ "$effects_mark" -nt "$sentinel" ] \
       && effects=$(cc_bash_write_effects "$root" "$effects_mark" "$cmd" "$MAX_BASH_EFFECTS" "$sess")
   fi
-  cc_bash_effects_mark "$root" "$effects_mark" "$sess"
+  # Dated on the way out: a failed call's named targets are read against the previous call's marker below.
+  trap 'cc_bash_effects_mark "$root" "$effects_mark" "$sess"' EXIT
   [ "${#scopes[@]}" -gt 0 ] || exit 0
   for s in "${scopes[@]}"; do
     jq empty "$s" 2>/dev/null || { echo "task-runner scope-lock: $(basename "$s") is malformed — scope not enforced this call" >&3; exit 0; }
@@ -324,14 +327,15 @@ cc_bash_write_effects() {
   rels=()
   if [ "$tool" = "Bash" ]; then
     [ -n "$cmd" ] || exit 0
-    # bash_rel <path>: keep a written path repo-relative when it is an existing regular file
-    # under the root, outside the run's state, and not kept already; status 1 otherwise.
+    # bash_rel <path> [marker]: keep a written path repo-relative when it is an existing regular file
+    # under the root, outside the run's state, not older than [marker] and not kept already; status 1 otherwise.
     bash_rel() {
       local p d rel q
       # Relative targets resolve against the Bash call's cwd: that is where the shell
       # wrote them, which is the one place the payload cwd is the right anchor.
       case "$1" in /*) p="$1" ;; *) p="$cwd/$1" ;; esac
       [ -f "$p" ] || return 1
+      [ -n "${2:-}" ] && [ "$2" -nt "$p" ] && return 1
       case "$p" in */./* | */../*)
         d=$(CDPATH= cd -- "${p%/*}" 2>/dev/null && pwd) || return 1
         p="$d/${p##*/}" ;;
@@ -341,15 +345,18 @@ cc_bash_write_effects() {
       for q in "${rels[@]}"; do [ "$q" = "$rel" ] && return 1; done
       rels+=("$rel")
     }
+    # A failed command may have stopped before its redirect: a named target older than the previous
+    # call's marker was not written, and with no marker to tell, a target takes the effects wording.
+    old=""; [ "$hev" = PostToolUseFailure ] && [ "$effects_mark" -nt "$sentinel" ] && old="$effects_mark"
     n=0
     while IFS= read -r t; do
       [ -n "$t" ] || continue
-      bash_rel "$t" && n=$((n + 1))
+      bash_rel "$t" "$old" && n=$((n + 1))
       [ "$n" -ge "$MAX_BASH_TARGETS" ] && break
     done <<EOF
 $(cc_bash_write_targets "$cmd")
 EOF
-    named=${#rels[@]}
+    named=${#rels[@]}; [ "$hev" = PostToolUseFailure ] && [ -z "$old" ] && named=0
     while IFS= read -r t; do
       [ -n "$t" ] && bash_rel "$t"
     done <<EOF

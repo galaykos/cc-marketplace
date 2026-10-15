@@ -5,6 +5,7 @@
 set -u
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/write-scan.sh"
 export TMPDIR="$(mktemp -d)"; trap 'rm -rf "$TMPDIR"' EXIT
+unset CLAUDE_PROJECT_DIR
 pass=0; fail=0
 n=0
 
@@ -243,6 +244,16 @@ runsub() { # runsub <session> [CLAUDE_PROJECT_DIR]
 }
 scope "non-git, cwd src/, CLAUDE_PROJECT_DIR set: a sibling app/ write warns" warn   "$(runsub sc5 "$P")"
 scope "non-git, cwd src/, no CLAUDE_PROJECT_DIR: the cwd is the root"         silent "$(runsub sc6)"
+# The cwd follows the shell's cd and CLAUDE_PROJECT_DIR does not: with the shell in a sibling repo, a write into the project
+# was skipped as outside the cwd's root; either root now holds a judged target (the write-scope block).
+SIB=$(mktemp -d "$TMPDIR/sib.XXXXXX"); git -C "$SIB" init -q 2>/dev/null
+runsib() { # runsib <session> <file_path>
+  jq -cn --arg s "$1" --arg d "$SIB" --arg f "$2" --arg c "$SINK" \
+    '{tool_name:"Write", session_id:$s, cwd:$d, tool_input:{file_path:$f, content:$c}}' | CLAUDE_PROJECT_DIR="$P" bash "$HOOK"
+}
+scope "cwd in a sibling repo, CLAUDE_PROJECT_DIR set: a write into the project warns" warn   "$(runsib sc7 "$P/app/sib.py")"
+scope "cwd in a sibling repo, CLAUDE_PROJECT_DIR set: a write into that repo warns"   warn   "$(runsib sc8 "$SIB/w.py")"
+scope "cwd in a sibling repo, CLAUDE_PROJECT_DIR set: outside both is silent"         silent "$(runsib sc9 "$S/probe3.py")"
 
 # Interpreter writes (bash-write-effects): what a python run added to a file git reports changed since this hook's previous call warns
 # as a Write of that text would; the first call in a repo only sets the marker; a run that wrote nothing, and a file an Edit changed

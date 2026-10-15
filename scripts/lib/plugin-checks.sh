@@ -397,7 +397,9 @@ FILES
 # one ERE, so either function pasted alone is held to the whole block) and every cc_prompt_*
 # function (prompt-shape.md: the pair's fn is an ERE, so a hook pasting only one of its six
 # functions is still held to the whole block; cc_prompt_auth_surface carries the words
-# review-debt reads on paths and taskmaster's reminder on prompts, so a split is a drift).
+# review-debt reads on paths and taskmaster's reminder on prompts, so a split is a drift),
+# and every cc_scope_* function (write-scope.md: database's guard and security's write-scan
+# skip the same scratch targets; their hand copies had already diverged).
 #
 # WHY THIS EXISTS. Plugins install alone, so a helper two plugins need is COPIED, not
 # sourced — and a copy edited in one plugin is a fix the other five never got. Generated
@@ -410,7 +412,7 @@ FILES
 # hook swallows — each plugin's own harness is what catches that).
 pc_shared_blocks() {
   local root="${1:-plugins}" bdir="${2:-templates/blocks}" bad=0 f blk content fn name pair
-  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks option-resolver:cc_option plugin-state:cc_plugin_state heredoc-bodies:cc_strip_heredoc_bodies 'bash-write-effects:cc_bash_(effects_mark|write_effects)' 'prompt-shape:cc_prompt_[a-z_]+'; do
+  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks option-resolver:cc_option plugin-state:cc_plugin_state heredoc-bodies:cc_strip_heredoc_bodies 'bash-write-effects:cc_bash_(effects_mark|write_effects)' 'prompt-shape:cc_prompt_[a-z_]+' 'write-scope:cc_scope_[a-z]+'; do
     name=${pair%%:*}; fn=${pair#*:}
     [ -r "$bdir/$name.md" ] || continue
     blk=$(cat "$bdir/$name.md")

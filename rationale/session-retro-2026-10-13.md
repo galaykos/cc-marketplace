@@ -284,26 +284,39 @@ is the only plugin from this marketplace that is enabled; surface the official c
 
 ## Tier 2 — polish (each one session, low)
 
-**Tier 2 applied 2026-10-15.** Eight crews took every row below plus most of the Tier 1
-"found while applying" residuals. Not done: context-scout's overflow file (the scout has no
-Write tool, and granting one costs more than the nit), the `@reui/*` prime (`@reui` is a shadcn
-registry namespace, not an npm package) and the ask-ledger re-measure (it needs fresh sessions
-with this branch installed). Departures from the text below:
+**Tier 2 applied 2026-10-15.** A whole-range review of 7caa8bd9..HEAD (the range-fix commit
+e939f12d plus Tier 2; four readers and the host's pass) found 40 issues, four high: a later-pipe
+heredoc test that could push command-guard past its timeout, `.env` reaching `eval` in
+design-kit's scaffold, the database guard's root following a `cd` into another repo, and the
+per-day unicode dedupe. All were fixed or stated before the commit. Eight crews took every row
+below plus most of the Tier 1 "found while applying" residuals. Not done: context-scout's
+overflow file (the scout has no Write tool, and granting one costs more than the nit), the
+`@reui/*` prime (`@reui` is a shadcn registry namespace, not an npm package) and the ask-ledger
+re-measure (it needs fresh sessions with this branch installed). Departures from the text below:
 
-- V-20: review-debt's auth-surface words moved into the prompt-shape block as one list both
-  hooks read; `registration` and `sign-up` were added because the observed case used them.
+- V-20: review-debt's auth-surface path words moved into the prompt-shape block, with
+  `registration` and `sign-up` added because the observed case used them. taskmaster's reminder
+  reads a separate word-anchored prompt list in the same block: the path list withheld the skip on
+  ordinary prompts ("design tokens", "guard clause").
 - /loop: a scheduled re-fire is matched against the ScheduleWakeup or CronCreate call already
   in the transcript; the reminders, the router and the ledger stay silent on it, review-debt
   does not. candor's preamble and the approaches, debugging and api-design reminders now
   use the block.
-- V-55: a log-file BOM is also benign after a tab (CI log lines carry fields before it), and
-  the warning is deduplicated per day, project, file and character set, not per session.
-- V-11: SQLite is read from four config shapes, on the CREATE INDEX path only.
+- V-55: a log-file BOM is also benign after a tab (CI log lines carry fields before it). The
+  dedupe half was applied (per day and project) and then reverted by the review: the context
+  that reads a file with hidden characters is the one that needs the warning, so each model
+  context (session plus subagent) is warned once per file and character set.
+- V-11: SQLite is read from three build-time declarations (wrangler D1, Prisma, drizzle), on
+  the CREATE INDEX path only. `.env` was dropped: `DB_CONNECTION=sqlite` is a stock Laravel
+  app's local default, not its production engine.
 - V-57: prompt-coach records a hash and a masked excerpt of a held prompt, never its text.
 - V-46: the stock starter kit's `--color-primary: var(--primary)` resolves through `:root`;
   before, it became an alias to itself and the board fell back to the default blue.
 - §7: the `*-lsp` line already shipped in wave 2's install close; this tier adds only the
   startup hint.
+- The database guard's out-of-root rule was a hand copy of security write-scan's. Both now
+  read `templates/blocks/write-scope.md`, which judges a target under the project dir or under
+  the cwd's root.
 
 Residuals fixed in this tier:
 - Branch lookups:
@@ -327,7 +340,6 @@ Found while applying, not fixed:
   - `-F`/`--body-file` bodies, `gh pr comment` and `git tag -m` are still read.
 - drift.sh: a new file in an existing directory still counts.
 - candor: any process naming behavioral-gate.sh under the root holds the completion gate.
-- unicode-scan: a new session the same day is not re-warned about an unchanged file.
 - design-kit:
   - An alias to another token maps no colour.
   - `oklab()`, `lab()`, `lch()` and `color()` are not parsed.

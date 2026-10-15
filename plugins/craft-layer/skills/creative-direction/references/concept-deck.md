@@ -264,7 +264,8 @@ a `one-shot` run: does copy for this page already EXIST (the live site, a doc, a
 does the build ship visible `{{lorem}}` slots? A URL or path the brief ALREADY named is a
 supplied input, not a question — read it without asking. The rules binding ingested copy
 are in `content-source.md`. On a redesign the same call also carries the mode question
-(`redesign-preservation.md`) — up to four questions with the voice below, still one call.
+(`redesign-preservation.md`), whose options carry the never-change approvals — four questions
+with the voice below, the host's limit, still one call.
 
 **The voice is its own question in that call**, its options the candidates' editorial
 voices, so a user who likes one concept's signature move and another's voice can say so

@@ -45,28 +45,36 @@ releases were not recorded here and are not reconstructed.
   down()" pin it; the five that expect silence fail against the hook before this change.
 - **Scratch outside the project no longer asks** (2026-10-15). Scratch probes under `/tmp`
   and a test fake outside the repository drew the ask, because only documentation surfaces
-  were exempt. A target outside the project root (the payload cwd's git toplevel, else
-  `CLAUDE_PROJECT_DIR` when the cwd is under it, else the cwd), or under `$TMPDIR` (default
-  `/tmp`) while the project itself is not there, is now skipped on a Write, an Edit and a Bash
-  heredoc alike, the rule security's `write-scan` uses. Both sides are compared
-  symlink-resolved, and a path not created yet by its nearest existing directory. The check
-  runs only for a target that would ask, so a write with no hit costs what it did. Residual:
-  a sibling worktree written by absolute path is skipped too, and a payload with no cwd keeps
-  only the temp-dir rule.
+  were exempt. A target under neither `CLAUDE_PROJECT_DIR` nor the payload cwd's root (its git
+  toplevel, else `CLAUDE_PROJECT_DIR` when the cwd is under it, else the cwd), or under
+  `$TMPDIR` (default `/tmp`) while the root holding it is not there, is now skipped on a Write,
+  an Edit and a Bash heredoc alike. `CLAUDE_PROJECT_DIR` counts because the cwd follows the
+  shell's `cd`: with the shell in a sibling repo, a `DROP TABLE` migration written into the
+  project was skipped on this version's first cut. The rule is the shared
+  `templates/blocks/write-scope.md`, which security's `write-scan` carries byte-for-byte. Both
+  sides are compared symlink-resolved, and a path not created yet by its nearest existing
+  directory. The check runs only for a target that would ask, so a write with no hit costs
+  what it did. Residual: a sibling repo or worktree written by absolute path from outside both
+  roots is skipped too, and a payload with no cwd and no `CLAUDE_PROJECT_DIR` keeps only the
+  temp-dir rule.
 - **No CONCURRENTLY ask on SQLite** (2026-10-15). SQLite (Cloudflare D1, Turso) has no
   `CREATE INDEX CONCURRENTLY`, so the lock-hazard ask gave advice that cannot be followed.
   The guard read no project config before. For a `CREATE INDEX` that would ask, it now reads,
-  from the target's directory up to the project root, wrangler's `d1_databases`, a Prisma
-  `provider = "sqlite"`, Laravel's `.env` `DB_CONNECTION=sqlite` and a `drizzle.config.*`
-  dialect `sqlite` or `turso`; when one names SQLite there is no ask. A data-loss statement
-  still asks. Residual: a payload with no cwd detects nothing; Rails' `database.yml`, Django
-  settings and a DSN in code are not read; a project whose config names SQLite while the
-  migration targets another engine is not asked.
-  Harness: 20 `guard.test.sh` cases (`scope:` and `sqlite:`); the ten that expect silence fail
-  against the hook before this change, and the ten that still ask (a target in the project, a
-  new dir in it, no cwd outside `$TMPDIR`, a project that lives in `$TMPDIR`, a Bash heredoc
-  into the project, `DROP TABLE` on D1, Prisma on PostgreSQL, Laravel on `pgsql`, a monorepo
-  sibling without the config) pass on both.
+  from the target's directory up to the root holding it, wrangler's `d1_databases`, a Prisma
+  `provider = "sqlite"` and a `drizzle.config.*` dialect `sqlite` or `turso`; when one names
+  SQLite there is no ask. Laravel's `.env` is not read: `DB_CONNECTION=sqlite` is Laravel 11+'s
+  default local config, so a PostgreSQL-in-production app lost the ask on this version's first
+  cut. A data-loss statement still asks. Residual: with no cwd and no `CLAUDE_PROJECT_DIR`
+  nothing is detected; Laravel's `.env`, Rails' `database.yml`, Django settings and a DSN in
+  code are not read; a project whose config names SQLite while the migration targets another
+  engine is not asked.
+  Harness: 23 `guard.test.sh` cases (`scope:` and `sqlite:`); the nine that expect silence fail
+  against the hook before this change, and the fourteen that still ask (a target in the
+  project, a new dir in it, no cwd outside `$TMPDIR`, a project that lives in `$TMPDIR`, a Bash
+  heredoc into the project, `DROP TABLE` on D1, Prisma on PostgreSQL, Laravel on `pgsql` and
+  on `sqlite`, a monorepo sibling without the config, a migration into the project and a write
+  into the cwd's repo with the shell in a sibling repo) pass on both; of those, the
+  sibling-repo migration and Laravel's `sqlite` `.env` were silent on this version's first cut.
 
 ## 0.11.3 — 2026-10-04
 

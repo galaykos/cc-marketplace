@@ -283,11 +283,12 @@ cc_bash_write_chunks() {
 # names a shell (rbash, mksh too), ssh, su, sudo -i/-s, runuser, chroot, exec, xargs, eval, source or `.`, or matches <reader ERE>
 # (tested lowercased, unquoted, space-padded), or the reader can sit off that line: a `\` continuation, a trailing | ( { do then
 # else, an unquoted $( ) ( ) <( ) but x=$( ), an fd number, a $ or quoted command word, a done/fi/esac/}/) lead. Once it drops a
-# body, inert keeps every line if a later line pipes into a reader (other words may sit before it; `.`, source, eval or a $ command
-# word first), or runs eval, a shell's -c or a $ command word after an x=$( ) or "$( )" body. Mode cd is inert with eval, source,
-# `.` and the ERE the only named readers, for a cd test: a body this shell runs is kept, one a named subshell runs is not. Every
-# mode keeps every line after a `<<` the scan cannot place (quoted, after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a
-# quote or ${ open across its line, a backtick, $$', an unmatched ), a terminator with stray blanks) and a body with no terminator.
+# body, inert keeps every line if a later line pipes into a reader (other words may sit before it, but a grep or rg lead is a filter
+# whatever its pattern names; `.`, source, eval or a $ command word first), or runs eval, a shell's -c or a $ command word after an
+# x=$( ) or x="$( )" body. Mode cd is inert with eval, source, `.` and the ERE the only named readers, for a cd test: a body this
+# shell runs is kept, one a named subshell runs is not. Every mode keeps every line after a `<<` the scan cannot place (quoted,
+# after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a quote or ${ open across its line, a backtick, $$', an unmatched ),
+# a terminator with stray blanks) and a body with no terminator.
 # Misses: inert drops a body fed to anything else (python3 -, node, at, a function, alias or coproc), written to a script a later
 # line runs, or read into a variable by read; a case pattern's ) inside $( ) closes it early.
 cc_strip_heredoc_bodies() {
@@ -309,7 +310,7 @@ cc_strip_heredoc_bodies() {
       }
       return q == "" ? w : ""
     }
-    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
+    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", w in ="", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
     function scan(s,   n, i, c, nx, d, t, w, j) {
       n = length(s); cc = 0
       for (i = 1; i <= n; i++) {
@@ -324,7 +325,7 @@ cc_strip_heredoc_bodies() {
           if (c == "\"") { dq = 0; pc = c }
           else if (c == "`" || c == "<" && nx == "<") { off = 1; return 0 }
           else if (c == "$" && nx == "(") {
-            if (substr(s, i + 2, 1) == "(") { st = st "b"; i += 2 } else { st = st "q"; i++ }
+            if (substr(s, i + 2, 1) == "(") { st = st "b"; i += 2 } else { st = st (dq > 1 ? "w" : "q"); i++ }
             dq = 0; pc = "("; cs = 1
           }
           continue
@@ -336,7 +337,7 @@ cc_strip_heredoc_bodies() {
           cs = 0
         }
         if (c == "\047") { if (d > 1) { off = 1; return 0 }; sq = 1; ans = (d == 1); pc = c; continue }
-        if (c == "\"") { dq = 1; pc = c; continue }
+        if (c == "\"") { dq = 1 + (pc == "="); pc = c; continue }
         if (c == "`") { off = 1; return 0 }
         if (c == "#") {
           if (pc ~ /[ \t\n;&|()<>]/) { cc = i; if (index(substr(s, i), "<<") || substr(s, n, 1) == "\\") off = 1; return 0 }
@@ -356,7 +357,7 @@ cc_strip_heredoc_bodies() {
         if (c == ")") {
           if (t ~ /^[es]?$/) { off = 1; return 0 }
           if (t ~ /[ab]/) { if (nx != ")") { off = 1; return 0 }; i++ }
-          st = substr(st, 1, length(st) - 1); if (t ~ /[qb]/) dq = 1
+          st = substr(st, 1, length(st) - 1); if (t ~ /[qbw]/) dq = 1 + (t == "w")
           pc = "x"; continue
         }
         if (c == "<" && nx == "<") {
@@ -396,7 +397,7 @@ cc_strip_heredoc_bodies() {
       if (startq || sq || dq || st ~ /[es]/) { mode = 2; next }
       t = cc ? substr($0, 1, cc - 1) : $0; sub(/[ \t]+$/, "", t)
       keep = how != "all" && (k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ || reads(norm(lw)))
-      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vq]/) cv = 1
+      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vw]/) cv = 1
       qi = 1; mode = 1; nh = 0
       next
     }
@@ -405,7 +406,7 @@ cc_strip_heredoc_bodies() {
       for (k = c0; cut && how != "all" && k <= no; k++) {
         t = out[k]; if (t ~ /[|(]&?[ \t]*$/ && k < no) t = t " " out[k + 1]
         u = t = norm(t); r = cv && (t ~ / eval |(^|[;&|]) \$/ || how != "cd" && t ~ shc)
-        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/ }
+        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = p !~ /^ ([ef]?grep|rg) / && (rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/) }
         if (r) { for (k = 1; k <= na; k++) print all[k]; exit }
       }
       for (k = 1; k <= no; k++) print out[k]

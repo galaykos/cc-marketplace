@@ -112,7 +112,7 @@ this command's, and **this command emits `ReportFindings` once**; the built-in's
 own emission, if any, is consumed as input, never forwarded. When the skill is
 absent (older host, disabled, a headless run without it), run items 1–5 inline
 exactly as written. Output contract unchanged either way; the `Checked:` line's
-first token names which branch ran. Standing: agent-graded — no script reads it.
+first token names which branch ran. Standing: recorded — no script reads it.
 
 1. Read every changed hunk plus enough surrounding code to judge behavior —
    never review a hunk in isolation when it calls or is called by nearby code.

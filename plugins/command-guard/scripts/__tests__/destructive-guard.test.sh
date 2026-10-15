@@ -204,6 +204,10 @@ if [ -d "$FIX/.git" ]; then
   ( cd "$FIX" && git -c user.email=t@t -c user.name=t add -A \
     && git -c user.email=t@t -c user.name=t commit -qm storage ) >/dev/null 2>&1
   expect_in ask   'rm -rf ./storage/app/public'
+  # On a case-sensitive disk the lowercased name is another path, which does not exist, so 0.8.5 read it as nothing lost.
+  mkdir -p "$FIX/Docs"; printf 'draft\n' > "$FIX/Docs/notes.txt"
+  expect_in ask   'rm -rf Docs'
+  rm -rf "$FIX/Docs"
   # cwd is not the rm's cwd once the command moves: never trust the check then
   expect_in ask   'cd /elsewhere && rm -rf src'
   expect_in ask   'cd sub; rm -rf src'
@@ -223,6 +227,8 @@ if [ -d "$FIX/.git" ]; then
   expect_in ask   'rm -rf .playwright-mcp/../src'          # walks out of the dir
   expect_in ask   'rm -rf .playwright-mcp/*'               # a glob's expansion is unknown, as for src/*
   expect_in ask   'cd sub && rm -rf .playwright-mcp'       # another dir's .playwright-mcp
+  expect_in ask   '(cd sub && rm -rf .playwright-mcp/)'    # a subshell's cd moves it too
+  expect_in ask   'env -C sub rm -rf .playwright-mcp'      # and so does env -C
   printf 'draft\n' > "$FIX/src/untracked.txt"
   expect_in ask   'rm -rf .playwright-mcp src'             # the other target is judged on its own
   rm -f "$FIX/src/untracked.txt"
@@ -230,6 +236,9 @@ if [ -d "$FIX/.git" ]; then
   ln -s "$WS/pw-target" "$LNK/.playwright-mcp"
   got=$( cd "$LNK" && "$BASH_BIN" "$GUARD" --check 'rm -rf .playwright-mcp/' >/dev/null 2>&1; echo $? )
   [ "$got" = 1 ] && ok || bad "want ask, got exit $got (a symlinked .playwright-mcp: rm -rf link/ empties the target)" 'rm -rf .playwright-mcp/'
+  LNK2="$WS/linked2"; mkdir -p "$LNK2"; ln -s "$WS/pw-target" "$LNK2/.PLAYWRIGHT-MCP"
+  got=$( cd "$LNK2" && "$BASH_BIN" "$GUARD" --check 'rm -rf .PLAYWRIGHT-MCP/' >/dev/null 2>&1; echo $? )
+  [ "$got" = 1 ] && ok || bad "want ask, got exit $got (the symlink test reads the name as typed)" 'rm -rf .PLAYWRIGHT-MCP/'
   pw_json() { jq -cn --arg d "$1" '{hook_event_name:"PreToolUse",tool_name:"Bash",cwd:$d,tool_input:{command:"rm -rf .playwright-mcp/"}}'; }
   out=$( cd "$FIX" && pw_json "$LNK" | "$BASH_BIN" "$GUARD" 2>/dev/null )
   case "$out" in *'"permissionDecision":"ask"'*) ok ;; *) bad "want ask: the payload cwd's .playwright-mcp is a symlink" "${out:-<silent>}" ;; esac
@@ -740,6 +749,21 @@ expect deny  $'runuser -l deploy <<EOF\nphp artisan migrate:fresh\nEOF'
 expect allow $'cat > notes.txt <<\'EOF\'\nphp artisan migrate:fresh\nEOF\ndocker exec app sh -c \'ls\''
 expect allow $'cat > notes.txt <<\'EOF\'\nphp artisan migrate:fresh\nEOF\ngrep -rn "a\\|b" . | head'
 expect allow $'cat > notes.txt <<\'EOF\'\nphp artisan migrate:fresh\nEOF\ngit push'
+# A shell's name as a grep pattern is not the reader; 0.8.5 kept the body for each of these.
+for r in 'grep -c bash' 'grep -i ssh' 'grep -v su' 'grep exec' 'rg -l sh'; do
+  expect allow $'python3 - <<\'EOF\'\nx = "git push --force origin main"\nEOF\ngit status --short | '"$r"
+done
+expect deny  $'cat > s.sh <<\'EOF\'\nphp artisan migrate:fresh\nEOF\ngrep -v "^#" s.sh | bash'
+# Kept by that misread, a 19 KB body was judged line by line past the 15 s hook timeout, and the reset ran unjudged.
+big="python3 - <<'EOF'"$'\n'
+for i in $(seq 1 240); do big+="    row_$i = compute(alpha, beta) + transform(\"item $i\", key=$i)  # fixture"$'\n'; done
+big+=$'EOF\ngit status --short | grep -c bash\ngit reset --hard'
+t0=$(ms_now); d=$(hook "$(bash_json "$big")" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null); t1=$(ms_now)
+[ $((t1 - t0)) -lt 2000 ] && ok || bad "heredoc: a 19 KB body before | grep -c bash must be judged under 2 s" "took $((t1 - t0)) ms"
+[ "$d" = "ask" ] && ok || bad "heredoc: the reset after a dropped body and | grep -c bash still asks" "verdict=${d:-<silent>}"
+# Only an assigned "$( )" can be run later; a commit message's is not, so a later bash -c leaves it data.
+expect allow $'git commit -m "$(cat <<\'EOF\'\nremove the git push --force origin main step\nEOF\n)" && bash -c \'npm test\''
+expect deny  $'export X="$(cat <<\'EOF\'\nphp artisan migrate:fresh\nEOF\n)"\nbash -c "$X"'
 
 SNAP_AFTER=$(git_snap)
 [ "$SNAP_BEFORE" = "$SNAP_AFTER" ] && ok || bad "the guard mutated plugins/command-guard" "git status --porcelain -- plugins/command-guard changed"

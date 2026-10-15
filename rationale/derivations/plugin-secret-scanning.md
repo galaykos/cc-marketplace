@@ -313,6 +313,20 @@ warning per project, file and day, and again that day only when the set of invis
 characters changes, so a reflowed file stays quiet and an added character speaks.
 Accepted cost: a new session the same day is not told about an unchanged file it
 reads, and the day turns at local midnight.
+
+0.15.0, review round (2026-10-15): that per-day key was reverted. The warning exists for
+the model context that ingests the hidden text, and a subagent or a later session that
+Read a file with tag characters was never told. The key is now the session_id plus the
+payload's agent_id (the transcript path when there is no session_id), the file, and a
+sha1 of every hidden codepoint in order. Premise checked before keying on session_id:
+the 2026-09-29/10-01 candor probes show SubagentStart, SubagentStop and Stop carrying one
+session_id and a PostToolUse inside the subagent carrying an agent_id, and a subagent
+transcript's own sessionId field reads the parent's session (checked on a local
+transcript, 2026-10-15) — so session_id alone dedups subagents, and agent_id is what
+tells them apart. The digest covers codepoints past the six the report names: the old
+key was built from the report, so six U+200B and a seventh turned into U+202E stayed
+silent. Cost: a file with hits is read whole, as a clean one always was (1.87 MB with
+110k hits, 31 -> 208 ms; clean, 200 ms).
 ```
 
 ### The Bash branch: resolving a target
@@ -321,6 +335,19 @@ reads, and the day turns at local midnight.
 Logical `cd && pwd` folds `..` without resolving symlinks, so the result keeps
 the spelling cc_state_root used and the prefix test compares like with like.
 A relative target resolves against the payload cwd: that IS the shell's cwd.
+```
+
+## plugins/secret-scanning/hooks/patterns.sh
+
+```text
+Moved out of scan.sh on 2026-10-15 (0.15.0, review round): scripts/scan-range.sh had
+re-implemented the loader, the placeholder rule and the assigned-value extraction, and
+checked less — no edge-space, dialect, escape, empty-match or placeholder-probe check —
+so a row scan.sh refused was applied by the sweep. One sourced file, as candor's
+hooks/cite.sh is for its gate and /candor:check. scan.sh keeps its fail-closed contract:
+a missing patterns.sh defines a load_patterns that fails, so every write with text is
+refused as for a bad patterns.tsv; scan-range.sh exits 2. pat_value sets a variable
+rather than printing, so a secret-row match costs no subshell in the hook.
 ```
 
 ## plugins/secret-scanning/scripts/__tests__/scan-hook.test.sh

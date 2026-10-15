@@ -84,6 +84,13 @@ git -C "$TAGR" tag feat/orders
 printf '{"slug":"tagged","branch":"feat/orders"}\n' > "$TAGR/.claude/task-runner/active-run.json"
 line=$(fire "$TAGR")
 check "16 a tag named like the branch: no 'you are on' another branch" "$(printf '%s' "$line" | grep -c 'you are on')" "0"
+# 17) symbolic-ref's exit 1 is a detached head, named as candor names it; any other exit is unknown and never compared
+SHIM="$WS/shim"; mkdir -p "$SHIM"
+printf '#!/bin/sh\nfor a in "$@"; do [ "$a" = symbolic-ref ] && exit 128; done\nexec %s "$@"\n' "$(command -v git)" > "$SHIM/git"; chmod +x "$SHIM/git"
+line=$(PATH="$SHIM:$PATH" fire "$TAGR")
+check "17a symbolic-ref exiting 128: no 'you are on'" "$(printf '%s' "$line" | grep -c 'you are on')" "0"
+git -C "$TAGR" checkout -q --detach
+has "17b a detached head beside a run on a branch: 'you are on HEAD'" "$(fire "$TAGR")" '(you are on `HEAD`)'
 
 ODD="$WS/odd"; mkdir -p "$ODD/.claude/task-runner" "$ODD/tasks/odd"
 printf '{"slug":"2026-10-08-odd","index_path":"tasks/odd/00-INDEX.md"}\n' > "$ODD/.claude/task-runner/active-run.json"

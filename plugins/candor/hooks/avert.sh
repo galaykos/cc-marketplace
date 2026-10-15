@@ -40,9 +40,21 @@ MARKER_TTL_MIN=1440
 # or a multi-line quoted message with no heredoc, leaves the rest scanned (it asks); a message file written first is a Write.
 unbody() {
   LC_ALL=C awk 'BEGIN { qi = 1 }
-    function queue(s, cut,   w) {
-      while (match(s, /<<-?[ \t]*["\047]?[A-Za-z0-9_.-]+/)) {
-        w = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+    # Quoted text as _, length kept, so a << inside a quoted message opens nothing; a "$( reads the rest of the line unquoted.
+    function mask(s,   i, c, q, m) {
+      for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+        if (q == "") { if (c == "\"" || c == "\047") q = c }
+        else if (c == q || q == "\"" && c == "$" && substr(s, i + 1, 1) == "(") q = ""
+        else { if (c == "\\" && q == "\"") { m = m "_"; i++ }; c = "_" }
+        m = m c
+      }
+      return m
+    }
+    function queue(s, cut,   w, m) {
+      m = mask(s)
+      while (match(m, /<<<?-?[ \t]*["\047]?[A-Za-z0-9_.-]+/)) {
+        w = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH); m = substr(m, RSTART + RLENGTH)
         if (substr(w, 3, 1) == "<") continue
         q[++nq] = w; qd[nq] = (substr(w, 3, 1) == "-"); qx[nq] = cut; sub(/^<<-?[ \t]*["\047]?/, "", q[nq])
       }

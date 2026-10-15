@@ -17,7 +17,8 @@
 #                     the app's default one (createInertiaApp `layout`) stays out, and a
 #                     Route::inertia line. dev_url for Laravel is .env's APP_URL — the only
 #                     key read from .env, and no other value is printed — else
-#                     http://127.0.0.1:8000.
+#                     http://127.0.0.1:8000. A value with characters outside a URL's
+#                     (quote, `;`, `#`, `$`, space) is refused, and no value reaches a shell.
 #                     When the app's entry stylesheet imports Tailwind v4, one marked
 #                     `@source` line naming the scratch dir is appended to it: dk.sh
 #                     gitignores __design-kit__/, and v4's automatic detection skips
@@ -55,7 +56,7 @@ while [ $# -gt 0 ]; do
     --brief) brief="${2:-}"; shift ;;
     --components) components="${2:-}"; shift ;;
     --stack) case "${2:-}" in vite-react|vite-vue|next|nuxt|laravel|laravel-inertia-react|laravel-inertia-vue) force_stack="$2" ;; *) echo "codebase-scaffold.sh: --stack must be vite-react|vite-vue|next|nuxt|laravel|laravel-inertia-react|laravel-inertia-vue" >&2; exit 2 ;; esac; shift ;;
-    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,34p' "$0"; exit 0 ;;
     *) echo "codebase-scaffold.sh: unknown argument $1" >&2; exit 2 ;;
   esac
   shift
@@ -64,10 +65,10 @@ done
 
 has_dep() { [ -f package.json ] && grep -Eq "\"$1\"[[:space:]]*:" package.json; }
 first_dir() { for d in "$@"; do [ -d "$d" ] && { echo "$d"; return; }; done; echo "-"; }
-app_url() {  # .env's APP_URL alone, unquoted, no trailing slash; empty when unset or interpolated
+app_url() {  # .env's APP_URL alone, unquoted, no trailing slash; empty when unset, interpolated or not a plain URL
   [ -f .env ] || return 0
   sed -n -E 's/^[[:space:]]*APP_URL[[:space:]]*=[[:space:]]*//p' .env | head -1 \
-    | sed -E "s/[[:space:]]+#.*\$//; s/^[\"']//; s/[\"'][[:space:]]*\$//; s#/+\$##" | grep -E '^https?://[^[:space:]$]+$' || true
+    | sed -E "s/[[:space:]]+#.*\$//; s/^[\"']//; s/[\"'][[:space:]]*\$//; s#/+\$##" | grep -E '^https?://[][A-Za-z0-9._~:/?&=%@+,!-]+$' || true
 }
 
 detect() {
@@ -98,7 +99,10 @@ if [ "$mode" = detect ]; then detect; exit 0; fi
 
 [ -n "$slug" ] || { echo "codebase-scaffold.sh: --create needs a slug" >&2; exit 2; }
 case "$slug" in *[!a-z0-9-]*) echo "codebase-scaffold.sh: slug must be [a-z0-9-]" >&2; exit 2 ;; esac
-eval "$(detect | sed 's/^/d_/; s/=/=\x27/; s/$/\x27/')"
+# a cloned repo's .env is untrusted: detect's values are assigned, never re-parsed by a shell
+while IFS= read -r kv; do
+  case "${kv%%=*}" in stack|dev_cmd|dev_url|components|lang) printf -v "d_${kv%%=*}" '%s' "${kv#*=}" ;; esac
+done < <(detect)
 
 write() { mkdir -p "$(dirname "$1")"; cat > "$1"; echo "wrote=$1"; }
 # mark_line <file> <line>: append once, after a newline only when the file ends without one
@@ -115,7 +119,7 @@ PY
 tw_source() {  # tw_source <scratch dir>: the marked @source line in a Tailwind v4 entry stylesheet
   local css
   case "$d_stack" in laravel*) css=resources/css/app.css ;; *) css="$(app_css)" ;; esac
-  [ -n "$css" ] && [ -f "$css" ] && grep -Eq "@import[[:space:]]+[\"']tailwindcss(/utilities(\.css)?)?[\"']" "$css" || return 0
+  [ -n "$css" ] && [ -f "$css" ] && grep -Eq "@import[[:space:]]+[\"']tailwindcss(/utilities\.css)?[\"']" "$css" || return 0
   mark_line "$css" "@source \"$(python3 -c 'import os,sys;r=os.path.relpath(sys.argv[1],os.path.dirname(sys.argv[2]));print(r if r.startswith(".") else "./"+r)' "$1" "$css")\"; /* $MARK */"
   echo "appended=$css"
 }

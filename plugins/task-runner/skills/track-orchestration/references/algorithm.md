@@ -1,7 +1,6 @@
 # Track orchestration algorithm
 
-The step-by-step the `track-orchestration` orchestrator runs. It is the executable form
-of that skill's contract. All git commands are pinned with `-C`; no command relies on an
+The step-by-step the `track-orchestration` orchestrator runs. All git commands are pinned with `-C`; no command relies on an
 inherited cwd.
 
 ## Definitions
@@ -48,6 +47,7 @@ Repeat until no eligible milestone remains:
    git branch <run-branch>-track-<slug> <run-branch>
    git worktree add .claude/worktrees/<run-branch>-track-<slug> <run-branch>-track-<slug>
    mkdir -p <wt>/.claude/task-runner
+   cp .claude/task-runner/.gitignore .claude/task-runner/env-notes.md <wt>/.claude/task-runner/
    ```
 3. **Dispatch** the wave as ONE `Workflow` `agent()` batch (this blocks until all
    return — that is why scheduling is wave-granular, not rolling). Each track-worker
@@ -100,8 +100,7 @@ The prompt to each track-worker contains, in order:
    return a park reason instead — do not force a pass."*
    The orchestrator substitutes `<abs-negative-control.sh>` with the ABSOLUTE path to
    `${CLAUDE_PLUGIN_ROOT}/scripts/negative-control.sh` at dispatch time (the leaf has no
-   `CLAUDE_PLUGIN_ROOT` and a bare script name is command-not-found in its worktree —
-   same absolute-path rule as the primed `Read <abs-path>` lines in item 4), and
+   `CLAUDE_PLUGIN_ROOT` and a bare script name is command-not-found in its worktree), and
    `--root` with the worktree's absolute path.
 
    **`<abs-main-repo-nc>` is the MAIN repo's `.claude/task-runner/nc`, absolute — never the

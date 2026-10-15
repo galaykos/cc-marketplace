@@ -8,7 +8,8 @@
 #   `+` lines against HEAD, so a line any uncommitted edit added is judged again). State: that lane's marker in the plugin's data dir
 #   (CLAUDE_PLUGIN_DATA), else <root>/.claude/secret-scanning/ behind a `*` .gitignore.
 # Off: CC_SECRET_SCAN=off. Fails open: a timeout, a missing jq or any error but a bad pattern file allows the write.
-# Fails closed: a missing or malformed hooks/patterns.tsv, the pattern source, denies every write with text to scan (the PostToolUse lane stays silent).
+# Fails closed: a missing or malformed hooks/patterns.tsv, the pattern source, or a missing hooks/patterns.sh, its reader, denies every write with
+#   text to scan (the PostToolUse lane stays silent).
 # CC_SECRET_SCAN unset: the /config option cc_secret_scan decides.
 # Misses: a URL password under 6 characters or led by `$` or `{`, a URL scheme not listed, a webhook URL other than Slack's; a real value holding a
 #   placeholder word; an MCP write tool with other key names; on Bash, a command with no write target, interpreter writes and cp/mv before they
@@ -256,12 +257,12 @@ cc_plugin_state() {
 # directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
 # cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
 # cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked, outside any .claude/ dir and newer than <marker>. It runs git only when <command> holds
-# python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, <marker>
-# holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and status.showUntrackedFiles is not no.
-# Misses: writers it does not name, gitignored files, submodules, no git, each session's first call, a file written then reverted, a
-# mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a
-# parallel agent, a job.
+# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
+# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
+# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
+# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
+# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
+# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
   local d="${2%/*}" k
@@ -275,7 +276,7 @@ cc_bash_write_effects() {
   case "$(git -C "$1" config status.showUntrackedFiles 2>/dev/null)" in no|false|off|0) return 0 ;; esac
   # One find over the whole list, each path led by ./ so a name like -delete stays a path; the cap counts only what find kept.
   while IFS= read -r f; do printf '%s\n' "$1/${f#./}"; done < <(exec 2>/dev/null; cd -- "$1" && GIT_OPTIONAL_LOCKS=0 git status --porcelain -z \
-    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e '/^...\.claude\//d' -e '/\/\.claude\//d' -e 's|^...|./|' \
+    --untracked-files=all --no-renames --ignore-submodules=all | tr '\0' '\n' | sed -e 's|^...|./|' \
     | tr '\n' '\0' | xargs -0 sh -c 'exec find "$@" -prune -newer "$0" -type f -print' "$2" | head -n "$4")
   return 0
 }
@@ -299,78 +300,25 @@ MAX_EFFECT_BYTES=1048576
   esac
 
   hit=""
-  pat_file=""; pat_loaded=""; pat_bad=""; pat_kind=(); pat_label=(); pat_flags=(); pat_re=(); ph_i=""; ph_c=""
+  pat_file="$(dirname "$0")/patterns.tsv"; pat_loaded=""
+  # One reader of patterns.tsv for this hook and scan-range.sh; without it every write with text is refused, as for a bad file.
+  . "$(dirname "$0")/patterns.sh" || load_patterns() { pat_bad="hooks/patterns.sh is missing"; return 1; }
   # deny <reason> — prints the PreToolUse deny and ends the run.
   deny() {
     jq -cn --arg r "$1" \
       '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}' 2>/dev/null
     exit 0
   }
-  # load_patterns — reads pat_file, the patterns.tsv beside this script, into pat_* (secret and assigned rows, in file
-  # order) and the ph_i/ph_c placeholder alternations; returns 1 with pat_bad set when the file is missing or malformed.
-  load_patterns() {
-    local line rest kind label flags re tabs n=0 nsecret=0 tab=$'\t' cr=$'\r'
-    # Matched after dropping `\\` pairs, so an escaped backslash before a digit is not read as a backreference.
-    local dialect='\[\[(:|\.|=)|\[:[[:alpha:]]+:\]|(^|[^\\])\(\?|\\[1-9]'
-    # GNU grep reads \d as d and JavaScript as a digit; \b \B \w \W differ on non-ASCII letters, \s \S on U+00A0 and U+FEFF.
-    local escape='\\[^].[+*?(){}|^$/-]'
-    # No placeholder word, and every character class an assigned value can carry.
-    local probe='Kq7Zt9_Wm2-Rp4/Lx8+Vn3=Bc6'
-    pat_file="$(dirname "$0")/patterns.tsv"
-    [ -f "$pat_file" ] && [ -r "$pat_file" ] || { pat_bad="missing or unreadable"; return 1; }
-    while IFS= read -r line || [ -n "$line" ]; do
-      n=$((n + 1))
-      case "$line" in *"$cr"*) pat_bad="line $n carries a carriage return"; return 1 ;; '' | '#'*) continue ;; esac
-      tabs=${line//[!$tab]/}
-      [ "${#tabs}" -eq 3 ] || { pat_bad="line $n has $((${#tabs} + 1)) fields, not 4"; return 1; }
-      kind=${line%%"$tab"*}; rest=${line#*"$tab"}
-      label=${rest%%"$tab"*}; rest=${rest#*"$tab"}
-      flags=${rest%%"$tab"*}; re=${rest#*"$tab"}
-      [ -n "$label" ] && [ -n "$re" ] || { pat_bad="line $n has an empty label or pattern"; return 1; }
-      case "$re" in ' '* | *' ') pat_bad="line $n has a pattern that starts or ends with a space; write an edge space as [ ]"; return 1 ;; esac
-      case "$flags" in - | i) ;; *) pat_bad="line $n has flags '$flags', not - or i"; return 1 ;; esac
-      case "$kind" in secret | assigned | placeholder) ;; *) pat_bad="line $n has kind '$kind', not secret, assigned or placeholder"; return 1 ;; esac
-      [[ ${re//\\\\/} =~ $dialect ]] && { pat_bad="line $n uses [[:, [[., [[=, a [:class:], (? or a backreference, which grep and JavaScript read differently"; return 1; }
-      [[ ${re//\\\\/} =~ $escape ]] && { pat_bad="line $n escapes a character other than ] . [ + * ? ( ) { } | ^ \$ / -, which grep and JavaScript read differently"; return 1; }
-      grep -qE -- "$re" <<<'' 2>/dev/null
-      case $? in
-        0) pat_bad="line $n has a pattern that matches the empty string"; return 1 ;;
-        1) ;;
-        *) pat_bad="line $n has a pattern grep -E cannot compile"; return 1 ;;
-      esac
-      if [ "$kind" = placeholder ] && LC_ALL=C grep -qiE -- "$re" <<<"$probe" 2>/dev/null; then
-        pat_bad="line $n: a placeholder row matches a secret-shaped value"; return 1
-      fi
-      case "$kind" in
-        placeholder) if [ "$flags" = i ]; then ph_i="$ph_i${ph_i:+|}($re)"; else ph_c="$ph_c${ph_c:+|}($re)"; fi ;;
-        *) [ "$kind" = secret ] && nsecret=$((nsecret + 1))
-           pat_kind+=("$kind"); pat_label+=("$label"); pat_flags+=("$flags"); pat_re+=("$re") ;;
-      esac
-    done < "$pat_file"
-    [ "$nsecret" -gt 0 ] || { pat_bad="no secret row"; return 1; }
-    return 0
-  }
-  # placeholder <matched-value> — 0 when the value announces itself as fake.
-  # LC_ALL=C: under UTF-8, grep -i also folds U+017F and U+212A into s and k.
-  placeholder() {
-    local v="$1"
-    [ -n "$ph_i" ] && printf '%s' "$v" | LC_ALL=C grep -qiE -- "$ph_i" && return 0
-    [ -n "$ph_c" ] && printf '%s' "$v" | grep -qE -- "$ph_c" && return 0
-    [ "$(printf '%s' "$v" | fold -w1 | sort -u | wc -l | tr -d ' ')" -le 1 ] && return 0
-    return 1
-  }
   # detect <kind> <label> <flags> <ERE> — sets hit to <label> when a match of <ERE> in $text is no placeholder; a no-op once hit is set.
   # grep needs `--`: the private-key pattern starts with dashes, which grep would read as options.
   detect() {
-    local m v opts=-oE
+    local m opts=-oE
     [ -z "$hit" ] || return 0
     [ "$3" = i ] && opts=-oiE
     while IFS= read -r m; do
       [ -n "$m" ] || continue
-      v=$m
-      # The placeholder test reads the value after the operator, never the variable name.
-      [ "$1" = assigned ] && v=$(printf '%s' "$m" | sed -E 's/^[^:=]*[:=]["'"'"' ]*//')
-      placeholder "${v:-$m}" || { hit="$2"; return 0; }
+      pat_value "$1" "$m"
+      placeholder "$pat_v" || { hit="$2"; return 0; }
     done <<EOF_M
 $(printf '%s' "$text" | grep "$opts" -- "$4" 2>/dev/null)
 EOF_M
@@ -382,7 +330,7 @@ EOF_M
     text=$1; hit=""
     [ -n "$text" ] || return 0
     if [ -z "$pat_loaded" ]; then
-      load_patterns || deny "secret-scanning: the pattern file $pat_file is unusable ($pat_bad), so this write cannot be checked for secrets and is blocked. Reinstall or update the plugin to restore it. CC_SECRET_SCAN=off disables this guard for the session."
+      load_patterns "$pat_file" || deny "secret-scanning: the pattern file $pat_file is unusable ($pat_bad), so this write cannot be checked for secrets and is blocked. Reinstall or update the plugin to restore it. CC_SECRET_SCAN=off disables this guard for the session."
       pat_loaded=1
     fi
     for k in "${!pat_re[@]}"; do
@@ -406,7 +354,7 @@ EOF_M
     cc_bash_effects_mark "$root" "$emark" "$sess"
     [ -n "$effects" ] || exit 0
     # An unusable pattern file is the PreToolUse lane's to refuse; a lane that cannot deny stays silent.
-    load_patterns || exit 0
+    load_patterns "$pat_file" || exit 0
     pat_loaded=1; found=""
     while IFS= read -r f; do
       [ -n "$f" ] || continue

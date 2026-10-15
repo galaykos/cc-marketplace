@@ -1,56 +1,38 @@
 #!/bin/bash
-# scan-range.sh <base>..<head> | <path>… — applies hooks/patterns.tsv, the file the write guard and the redaction mod read, to the
-#   lines a git range ADDED, or to whole files: a file path as given, a directory's git-tracked files (every file under it outside git).
-#   Prints one `<file>:<line> <label> (<first 4 characters>****, <n> chars)` per matching line, never a whole value; a count to stderr.
-# Exit: 0 nothing matched · 1 a match · 2 nothing was scanned (no argument, a missing path, a range git cannot diff, an unusable
-#   patterns.tsv: missing, a carriage return, a row not four TAB-separated fields, an unknown kind or flag, no secret row, a row grep -E rejects).
-# Matching is scan.sh's: secret and assigned rows in file order, the first non-placeholder match names the line; an assigned row's value
-#   is what follows the first : or =; a placeholder row, or a value of one repeated character, releases a match.
+# scan-range.sh <base>..<head> | --cached | <path>… — applies hooks/patterns.tsv, the file the write guard and the redaction mod read, to the
+#   lines a git range or the index ADDED, or to whole files: a file path as given, a directory's git-tracked files (every file under it
+#   outside git). Prints one `<file>:<line> <label> (<first 4 characters>****, <n> chars)` per matching line, never a whole value; a count
+#   to stderr. A range or the index names files from the repo root, from any directory. A name holding a tab, newline, `"` or `\` prints
+#   in git's escapes (`\t`, `\n`, `\"`, `\\`), unquoted, in every mode.
+# Exit: 0 nothing matched · 1 a match · 2 nothing was scanned (no argument, a missing path, a range or index git cannot diff, an unusable
+#   patterns.tsv as scan.sh judges it, or no hooks/patterns.sh).
+# Matching is scan.sh's, through hooks/patterns.sh: secret and assigned rows in file order, the first non-placeholder match names the line.
 # Misses: a secret split across lines (each line is matched alone), a shape patterns.tsv does not list, a real value holding a placeholder
 #   word, binary files, a line a range removed (the secret is still in history), history outside the range, untracked files under a
-#   directory in git. Not checked: the regex dialect scan.sh enforces on the same file (grep is the only engine here).
+#   directory in git; in path mode a name's other control characters print raw.
 set -u
 export LC_ALL=C
 pat_file="$(cd "$(dirname "$0")/.." && pwd)/hooks/patterns.tsv"
 die() { printf 'scan-range: %s\n' "$1" >&2; exit 2; }
-[ $# -gt 0 ] || die "usage: scan-range.sh <base>..<head> | <path>..."
+[ $# -gt 0 ] || die "usage: scan-range.sh <base>..<head> | --cached | <path>..."
 
-kinds=(); labels=(); flags=(); res=(); ph_i=""; ph_c=""; nsecret=0; n=0; tab=$'\t'
-[ -f "$pat_file" ] && [ -r "$pat_file" ] || die "$pat_file is missing or unreadable"
-while IFS= read -r line || [ -n "$line" ]; do
-  n=$((n + 1))
-  case "$line" in *$'\r'*) die "$pat_file line $n carries a carriage return" ;; '' | '#'*) continue ;; esac
-  tabs=${line//[!$tab]/}
-  [ "${#tabs}" -eq 3 ] || die "$pat_file line $n has $((${#tabs} + 1)) fields, not 4"
-  kind=${line%%"$tab"*}; rest=${line#*"$tab"}; label=${rest%%"$tab"*}; rest=${rest#*"$tab"}; fl=${rest%%"$tab"*}; re=${rest#*"$tab"}
-  [ -n "$label" ] && [ -n "$re" ] || die "$pat_file line $n has an empty label or pattern"
-  case "$fl" in - | i) ;; *) die "$pat_file line $n has flags '$fl', not - or i" ;; esac
-  case "$kind" in
-    placeholder) if [ "$fl" = i ]; then ph_i="$ph_i${ph_i:+|}($re)"; else ph_c="$ph_c${ph_c:+|}($re)"; fi ;;
-    secret | assigned) [ "$kind" = secret ] && nsecret=$((nsecret + 1))
-      kinds+=("$kind"); labels+=("$label"); flags+=("$fl"); res+=("$re") ;;
-    *) die "$pat_file line $n has kind '$kind', not secret, assigned or placeholder" ;;
-  esac
-done < "$pat_file"
-[ "$nsecret" -gt 0 ] || die "$pat_file has no secret row"
-
-placeholder() { # <value> — 0 when the value announces itself as fake (scan.sh's rule)
-  [ -n "$ph_i" ] && printf '%s' "$1" | grep -qiE -- "$ph_i" && return 0
-  [ -n "$ph_c" ] && printf '%s' "$1" | grep -qE -- "$ph_c" && return 0
-  [ "$(printf '%s' "$1" | fold -w1 | sort -u | wc -l | tr -d ' ')" -le 1 ]
-}
+tab=$'\t'
+. "$(dirname "$0")/../hooks/patterns.sh" 2>/dev/null || die "$(dirname "$0")/../hooks/patterns.sh is missing"
+load_patterns "$pat_file" || die "$pat_file is unusable ($pat_bad)"
 
 W=$(mktemp -d) || die "cannot make a temp dir"
 trap 'rm -rf "$W"' EXIT
 : > "$W/text"; : > "$W/loc"
 # text holds one scanned line per row and loc its `<file>TAB<line>`, so a match's row number names its place.
-if [ $# -eq 1 ] && [[ $1 == *..* ]] && [ ! -e "$1" ]; then
+if [ $# -eq 1 ] && { [ "$1" = --cached ] || { [[ $1 == *..* ]] && [ ! -e "$1" ]; }; }; then
   git -c core.quotePath=false diff --no-color --no-ext-diff --no-textconv --src-prefix=a/ --dst-prefix=b/ -U0 "$1" -- > "$W/diff" 2>/dev/null \
-    || die "git cannot diff the range '$1' here"
+    || die "git cannot diff '$1' here"
   # A ---/+++ pair is a header only between `diff --git` and the first hunk: an added line reading `++ x` shows as `+++ x`.
   awk -v text="$W/text" -v loc="$W/loc" '
     /^diff --git / { hdr = 1; f = ""; next }
-    hdr && /^\+\+\+ / { f = substr($0, 5); if (f == "/dev/null") f = ""; else sub(/^b\//, "", f); next }
+    # git pads a name holding a space with a tab and C-quotes one holding a control character, `"` or `\`: the escapes stay, the quotes go.
+    hdr && /^\+\+\+ / { f = substr($0, 5); sub(/\t$/, "", f); if (f ~ /^".*"$/) f = substr(f, 2, length(f) - 2)
+      if (f == "/dev/null") f = ""; else sub(/^b\//, "", f); next }
     /^@@ / { hdr = 0; match($0, /\+[0-9]+/); ln = substr($0, RSTART + 1, RLENGTH - 1) + 0; next }
     f != "" && /^\+/ { print substr($0, 2) >> text; print f "\t" ln >> loc; ln++ }
   ' "$W/diff"
@@ -75,21 +57,24 @@ else
     [ -f "$f" ] || continue
     case "$f" in /*) printf '%s\0' "$f" ;; ./*) printf '%s\0' "$f" ;; *) printf './%s\0' "$f" ;; esac
   done < "$W/files" | xargs -0 grep -I -l -Z -e '' -- 2>/dev/null \
-    | xargs -0 awk -v text="$W/text" -v loc="$W/loc" '{ print >> text; f = FILENAME; sub(/^\.\//, "", f); print f "\t" FNR >> loc }' 2>/dev/null
+    | xargs -0 awk -v text="$W/text" -v loc="$W/loc" '
+      # Escaped as git escapes a name, so a tab or newline in one cannot split its loc row.
+      FNR == 1 { f = ""; n = FILENAME; sub(/^\.\//, "", n)
+        for (i = 1; i <= length(n); i++) { c = substr(n, i, 1)
+          f = f (c == "\\" ? "\\\\" : c == "\"" ? "\\\"" : c == "\t" ? "\\t" : c == "\n" ? "\\n" : c) } }
+      { print >> text; print f "\t" FNR >> loc }' 2>/dev/null
 fi
 
 scanned=$(wc -l < "$W/loc" | tr -d ' ')
 : > "$W/hits"
-for k in "${!res[@]}"; do
-  opts=-noE; [ "${flags[$k]}" = i ] && opts=-noiE
-  grep "$opts" -- "${res[$k]}" "$W/text" > "$W/m" 2>/dev/null
-  [ $? -le 1 ] || die "$pat_file: grep -E rejects the pattern labelled '${labels[$k]}'"
+for k in "${!pat_re[@]}"; do
+  opts=-noE; [ "${pat_flags[$k]}" = i ] && opts=-noiE
+  grep "$opts" -- "${pat_re[$k]}" "$W/text" > "$W/m" 2>/dev/null
+  [ $? -le 1 ] || die "grep failed on the pattern labelled '${pat_label[$k]}'"
   while IFS= read -r nm; do
-    row=${nm%%:*}; m=${nm#*:}; v=$m
-    [ "${kinds[$k]}" = assigned ] && v=$(printf '%s' "$m" | sed -E 's/^[^:=]*[:=]["'"'"' ]*//')
-    v=${v:-$m}
+    row=${nm%%:*}; pat_value "${pat_kind[$k]}" "${nm#*:}"; v=$pat_v
     placeholder "$v" && continue
-    printf '%s\t%s\t%s\t%s****, %s chars\n' "$row" "$k" "${labels[$k]}" "${v:0:4}" "${#v}" >> "$W/hits"
+    printf '%s\t%s\t%s\t%s****, %s chars\n' "$row" "$k" "${pat_label[$k]}" "${v:0:4}" "${#v}" >> "$W/hits"
   done < "$W/m"
 done
 

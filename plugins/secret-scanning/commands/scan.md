@@ -7,14 +7,16 @@ Scan existing content for leaked credentials — the on-demand complement to the
 write-time guard hook.
 
 1. Determine scope from $ARGUMENTS: a range (`<base>..HEAD`; a bare branch name means
-   `<branch>..HEAD`), one or more paths, or nothing — the whole tracked tree (`.`), or the
-   staged files (`git diff --cached --name-only --diff-filter=d`) when something is staged.
+   `<branch>..HEAD`), one or more paths, or nothing — the staged lines (`--cached`) when
+   `git diff --cached --quiet` exits 1, else the whole tracked tree (the path printed by
+   `git rev-parse --show-toplevel`, so a run from a subdirectory still covers the repo).
 
 2. Run the pattern scanner FIRST, before reading any file yourself:
-   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/scan-range.sh" <range | path…>`
-   It applies the hook's own `hooks/patterns.tsv` to the lines a range added, or to whole
-   files for a path. Exit 1: each stdout line is `file:line label (masked value)`, a
-   **confirmed** hit. Exit 0: no pattern matched; stderr says how many lines were read.
+   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/scan-range.sh" <range | --cached | path…>`
+   It applies the hook's own `hooks/patterns.tsv` to the lines a range or the index added
+   (named from the repo root), or to whole files for a path. Exit 1: each stdout line is
+   `file:line label (masked value)`, a **confirmed** hit. Exit 0: no pattern matched;
+   stderr says how many lines were read.
    Exit 2: nothing was scanned — report its message and stop. Never substitute regexes of
    your own for the script's: its result is what the patterns say, not what you remember.
 

@@ -255,8 +255,9 @@ export function dropReason(v: Verdict): string {
 }
 
 // A word of letters with at most a leading capital, or an acronym of up to 5 capitals, reads as prose and is kept. A digit,
-// a symbol or an inner capital is the shape of a key, token or password, and becomes ▪; a lowercase passphrase is not caught.
-const PROSE_WORD = /^[("'‘“]?(?:[A-Za-z][a-z]{0,19}(?:['’-][a-z]{1,12})?|[A-Z]{2,5})[)"'’”.,;:!?]*$/
+// a symbol, a hyphen or an inner capital is the shape of a key, token or password, and becomes ▪; a lowercase or
+// capitalised one-word passphrase ("letmein", "Letmein") reads as prose and is not caught.
+const PROSE_WORD = /^[("'‘“]?(?:[A-Za-z][a-z]{0,19}(?:['’][a-z]{1,12})?|[A-Z]{2,5})[)"'’”.,;:!?]*$/
 
 export function maskedExcerpt(text: string, words = 40): string {
   const all = text.split(/\s+/).filter((word) => word !== '')

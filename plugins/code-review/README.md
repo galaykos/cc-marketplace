@@ -572,7 +572,8 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
 - **When.** In a git repo, when the diff since this session's last review (or since its
   first prompt) has 8 or more changed files, or at least one path matching an auth-surface
   pattern (auth, login, password, token, secret, credential, policy, permission, role,
-  guard, middleware, impersonation, session, oauth, webhook, payment, crypt, `migrations/`).
+  guard, middleware, impersonation, session, oauth, webhook, payment, crypt, registration,
+  sign-up, `migrations/`).
   Markdown, lockfiles, `.claude/`, `taskmaster-docs/` and vendor/build dirs don't count.
   Once per commit: it speaks again only after HEAD moves and the count has grown. A reviewer
   agent, a `code-review:review` / `security:review` call, or typing one of those commands

@@ -107,14 +107,18 @@ cc_option() {
 #   marker — not a human turn.
 # cc_prompt_scheduled <prompt> <transcript>: status 0 when <transcript> holds a ScheduleWakeup or CronCreate call whose prompt is
 #   <prompt> exactly: a timer re-delivering an earlier ask, which the hook payload does not mark. Needs jq.
-# cc_prompt_auth_surface: filter; prints each stdin line naming an auth, account, secret, payment or migration surface (not `author`).
+# cc_prompt_auth_surface: filter for paths; prints each stdin line naming an auth, secret, payment or migration surface (not `author`;
+#   sign-up only as a word or a camelCase part, so not DesignUpdates).
+# cc_prompt_auth_ask <text>: status 0 when <text> names an auth, account, invite, secret or payment surface as a word, camelCase split;
+#   no bare session, token, guard or crypt (design tokens, a session retro, a guard clause).
 # cc_prompt_unpaste: filter; cuts each <pasted_content …>…</pasted_content …> span, keeps text beside a tag, drops lines it emptied;
 #   an opening tag with no closing tag after it cuts only itself.
 # cc_prompt_ship_only <text> <verb-ERE>: status 0 when every <verb-ERE> match is create, add, open or make governing a PR, pull request
 #   or commit, or a branch, push, merge, tag or release once a PR, commit, `git` or a name beside the noun marks the text as git work;
 #   a hyphen-, slash-, dot- or underscore-joined name (fix-login, feature/add-auth) is one word, holds no verb, may follow the noun.
 # cc_prompt_question <text> <verb-ERE>: status 0 when <text> ends in `?` and holds no <verb-ERE> match and no request (can/could
-#   you|someone, please, why, any idea), or holds a hands-off ask (don't work on it, don't change anything yet) and no match beside it.
+#   you|someone, please, why, any idea), or holds a hands-off ask (don't work on it, don't change anything yet) and, outside it, no match
+#   opening a clause or following to, please, a modal or a conjunction (`the deploy` is a noun, `then deploy` an ask).
 cc_prompt_frame() {
   case "${1:-}" in
     '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
@@ -131,7 +135,10 @@ cc_prompt_scheduled() {
   grep -F -- "\"prompt\":$n" "$2" 2>/dev/null | grep -qE '"name":"(ScheduleWakeup|CronCreate)"'
 }
 cc_prompt_auth_surface() {
-  grep -iE 'auth([^o]|$)|authori[sz]|login|passw|token|secret|credential|polic|permission|role|guard|middleware|impersonat|session|oauth|webhook|payment|crypt|registration|sign[-_ ]?up|(^|/)migrations/'
+  LC_ALL=C awk '{ l = " " tolower($0) " " } l ~ /auth[^o]|authori[sz]|login|passw|token|secret|credential|polic|permission|role|guard|middleware|impersonat|session|oauth|webhook|payment|crypt|registration|[^a-z]sign[-_ ]?up|[ \/]migrations\// || /Sign[-_]?[Uu]p/'
+}
+cc_prompt_auth_ask() {
+  printf '%s\n' "${1:-}" | sed -E 's/([a-z])([A-Z])/\1 \2/g' | grep -qiE "(^|[^a-z])((un|re|o)?auth(ori[sz]|[^o]|$)|log[- ]?(in|out)|logged[- ]?(in|out)|sign(ed)?[-_ ]?(in|up|out)s?([^a-z]|$)|pass(w|key)|secrets?([^a-z]|$)|credential|polic|permission|roles?([^a-z]|$)|middleware|impersonat|webhook|payment|(en|de|b)crypt|cryptograph|registration|accounts?([^a-z]|$)|invit(e|ation)|(api|access|refresh|bearer|reset)[-_ ]?(tokens?|keys?)|session[-_ ]?(cookie|token|id|fixation|hijack)|(2fa|mfa|two[- ]factor|sso|saml|jwts?|[cx]srf)([^a-z]|$))|(^|/)migrations/"
 }
 cc_prompt_unpaste() {
   awk '{ a[NR] = $0; if (index($0, "</pasted_content")) z = NR }
@@ -164,7 +171,8 @@ cc_prompt_question() {
   case "$t" in *'?') printf '%s' "$t" | grep -qiE "($2)|(^|[^a-z])((can|could|would|will) +(you|u|we|someone|anyone)|please|why|any +ideas?)([^a-z]|$)" || return 0 ;; esac
   h="(^|[^a-z])(don't|don’t|dont|do not|never)( +start)? +work(ing)? on +(anything|it|this|that)( *[.,;:!?]| +(yet|for now|until|before)([^a-z]|$)| *$)|(^|[^a-z])(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything +(yet|for now|until|before)([^a-z]|$)|^[[:space:]]*(please,? +)?(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything[[:space:][:punct:]]*$"
   printf '%s' "$t" | grep -qiE "$h" || return 1
-  ! printf '%s' "$t" | tr 'A-Z' 'a-z' | sed -E "s#$h# ; #g" | grep -qiE "$2"
+  ! printf '%s' "$t" | tr 'A-Z' 'a-z' | sed -E "s#$h# ; #g" \
+    | grep -qiE "(^|[.,;:!?]|(^|[^a-z])(and|but|then|so|also|first|just|now|please|to|should|must|can|could|will|would|let'?s))[^a-z0-9]*($2)"
 }
 
 {
@@ -214,7 +222,8 @@ cc_prompt_question() {
   is_about_hooks && exit 0
   is_own_echo && exit 0
   is_question_only && exit 0
-  # Every making verb being create, add, open or make on a PR or commit (or, in git context, a branch, push, merge, tag or release) asks to ship.
+  # Every shipVerbs match being create, add, open or make on a PR or commit (or, in git context, a branch, push, merge, tag or release)
+  # asks to ship. Its own key, since a regex of nouns (api-design's) never matches a verb; needs promptShape.
   cc_prompt_ship_only "$head" '\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)\b' && exit 0
   # sid before cc_phase_guard: its session check reads it.
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
@@ -230,8 +239,8 @@ cc_prompt_question() {
     best=$(best_rank)
     if [ -z "$best" ] || [ "$best" = '25' ]; then
       printf '%s (%s).\n' 'taskmaster: work-shaped prompt — before the first code edit, run one batched clarifying round to zero ambiguity, or state in one line why this task is trivial enough to skip it; the inline route is /code-architecture:coding-task' '/taskmaster:task'
-      # The trivial skip let an auth change through: withheld on review-debt's surface words (the block's; needs promptShape).
-      printf '%s\n' "$head" | cc_prompt_auth_surface >/dev/null && printf '%s\n' 'The prompt names an auth surface: the trivial skip does not apply.'
+      # The trivial skip let an auth change through: withheld on the block's prompt-side auth words (needs promptShape).
+      cc_prompt_auth_ask "$head" && printf '%s\n' 'The prompt names an auth surface: the trivial skip does not apply.'
     fi
     sweep_stale_markers
   fi

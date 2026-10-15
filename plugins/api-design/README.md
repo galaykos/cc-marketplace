@@ -55,7 +55,8 @@ an integration noun — `library`, `sdk`, `integrate`/`integration`, `webhook`,
 `oauth`, `graphql`, `external`/`third-party`/`public`/`vendor api`, or `api`
 followed by `client`/`key`/`token`/`docs`/`reference` — together with a making or
 calling verb. `endpoint` alone does NOT fire it; nor does a question ("how do I
-integrate oauth?"), a prompt about the hook itself, or a slash command. It never
+integrate oauth?"), a prompt about the hook itself, a slash command, or a prompt
+whose every verb creates or opens a PR or commit ("create a PR for the webhook changes"). It never
 blocks the prompt. `CC_REMIND=off` in the hook's environment silences it and every
 other reminder hook in the marketplace.
 

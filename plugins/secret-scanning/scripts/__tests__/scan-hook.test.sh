@@ -232,6 +232,16 @@ raise SystemExit(1)" PostToolUseFailure)
   ok=0; jq -e '[.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[].command] | any(test("hooks/scan.sh"))' \
     "$(dirname "$HOOK")/hooks.json" >/dev/null 2>&1 && ok=1
   post_case "scan.sh is registered on PostToolUseFailure for Bash" $ok "$(jq -c '.hooks.PostToolUseFailure' "$(dirname "$HOOK")/hooks.json")"
+  mkdir -p "$E/.claude" && printf '{}\n' > "$E/.claude/settings.json" && git -C "$E" add .claude/settings.json \
+    && git -C "$E" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false commit -qm settings >/dev/null 2>&1
+  post Bash '{"command":"ls"}' >/dev/null
+  out=$(pyrun "open('.claude/settings.json', 'w').write('{\"env\": {\"AWS_ACCESS_KEY_ID\": \"$AWS\"}}\n')")
+  ok=0; grep -qF -- '- .claude/settings.json: ' <<<"$(jq -r '.hookSpecificOutput.additionalContext // empty' <<<"$out")" && ok=1
+  post_case "a python write into a tracked .claude/settings.json warns" $ok "$out"
+  mkdir -p "$E/.claude/sibling" && printf '*\n' > "$E/.claude/sibling/.gitignore" \
+    && printf 'k = "%s"\n' "$AWS" > "$E/.claude/sibling/state.json"
+  out=$(pyrun "open('app/clean2.py', 'w').write('x = 2\n')")
+  ok=0; [[ -z "$out" ]] && ok=1; post_case "a sibling plugin's state under a *-ignored .claude/<plugin>/ dir is silent" $ok "$out"
   out=$(pyrun "open('app/other.py', 'w').write('k = \"$AWS\"\n')" PostToolUse other-session)
   ok=0; [[ -z "$out" ]] && ok=1; post_case "a marker another session dated reads nothing" $ok "$out"
 else
@@ -255,6 +265,8 @@ pat_case() { # pat_case <name> deny|allow <payload> <reason text> [env...] — r
   if [[ $ok -eq 1 ]]; then pass=$((pass+1)); echo "ok $n";
   else echo "FAIL $n: expected $want naming $PH/patterns.tsv and \"$x\", got: ${out:-<empty>}"; fail=$((fail+1)); fi
 }
+pat_case "a missing hooks/patterns.sh, the reader, denies a clean Write" deny "$WRITE_CLEAN" "hooks/patterns.sh is missing"
+cp "$(dirname "$HOOK")/patterns.sh" "$PH/"
 pat_case "missing patterns file denies a clean Write" deny "$WRITE_CLEAN" "missing or unreadable"
 pat_case "missing patterns file denies a Bash write"  deny "$BASH_WRITE"  "missing or unreadable"
 pat_case "missing patterns file passes a Bash command that writes no file" allow "$BASH_READ" ""

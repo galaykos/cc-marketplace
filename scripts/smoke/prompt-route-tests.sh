@@ -157,6 +157,12 @@ want_fires  "request: an incident question naming a strong symptom" "what's caus
 want_fires  "work: refactor, but don't touch anything yet in …" "Refactor the importer, but don't touch anything yet in the exporter"
 want_fires  "work: fix first, don't work on it until …" "Fix the failing parser tests first and don't work on it until they pass"
 want_fires  "work: implement …, never work on that" "implement the hook in app/, never work on that"
+# Tier 2 review: a strong-tier noun outside the hands-off clause re-fired the check; only an ask counts there, a match opening a
+# clause or following to, please, a modal or a conjunction.
+want_silent "question: hands-off beside a question naming a noun" "I got a question about the deploy, don't work on it"
+want_silent "question: hands-off first, a question naming a noun" "don't work on anything yet, I have a question about the test setup"
+want_fires  "work: I need you to build …, but don't change anything yet" "I need you to build the export, but don't change anything yet"
+want_fires  "work: don't work on it yet, but plan …" "don't work on it yet, but plan the migration to Postgres"
 # A paste is reference: verbs only inside it do not make the prompt work, nor does it push typed text out of the 400-char head.
 want_silent "paste: verbs only inside a paste" 'FYI only, no action: <pasted_content id="1">npm ERR! build failed while we deploy to staging</pasted_content> that is from the CI run last night'
 want_fires  "paste: an ask after a long paste" "$(printf '<pasted_content id="2">%0500d</pasted_content>\nfix the importer' 0)"
@@ -187,6 +193,19 @@ o1=$(printf '%s' "$J" | env TMPDIR="$box" CLAUDE_PLUGIN_ROOT="$ROOT/$SR" "$BASH_
 o2=$(printf '%s' "$J" | env TMPDIR="$box" CLAUDE_PLUGIN_ROOT="$ROOT/$SR" "$BASH_BIN" "$HOOK" 2>/dev/null)
 [ -n "$o1" ] && pass "first prompt injects" || fail "first prompt injects" "silent"
 [ -z "$o2" ] && pass "second prompt yields" || fail "second prompt yields" "injected twice"
+
+# The re-fire test reads the whole transcript, so it runs only once the check would speak: a later work prompt in the session
+# greps no transcript, and a re-fire that came first leaves the marker for the next typed ask.
+box="$WORK/once-tx"; mkdir -p "$box/bin"; tp="$box/transcript.jsonl"; log="$box/grep.log"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"w3","name":"ScheduleWakeup","input":{"delaySeconds":900,"reason":"fallback","prompt":"then fix the failing build"}}]}}' > "$tp"
+printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$GREP_LOG"\nexec %s "$@"\n' "$(command -v grep)" > "$box/bin/grep"; chmod +x "$box/bin/grep"
+tx_hook() { jq -cn --arg p "$1" --arg tp "$tp" '{prompt:$p,session_id:"once-tx",transcript_path:$tp}' \
+  | env TMPDIR="$box" CLAUDE_PLUGIN_ROOT="$ROOT/$SR" PATH="$box/bin:$PATH" GREP_LOG="$log" "$BASH_BIN" "$HOOK" 2>/dev/null; }
+o1=$(tx_hook "then fix the failing build"); o2=$(tx_hook "build a landing page"); : > "$log"; o3=$(tx_hook "add a pricing page")
+[ -z "$o1" ] && [ -n "$o2" ] && pass "a re-fire first leaves the marker for the typed ask" \
+  || fail "a re-fire first leaves the marker for the typed ask" "re-fire ${#o1} bytes, typed ask ${#o2} bytes"
+[ -s "$log" ] && ! grep -qF -- "$tp" "$log" && [ -z "$o3" ] && pass "a later work prompt reads no transcript" \
+  || fail "a later work prompt reads no transcript" "transcript grepped $(grep -cF -- "$tp" "$log" 2>/dev/null) time(s), ${#o3} bytes"
 
 # UNWRITABLE TMPDIR MUST STILL INJECT. The dedup above and this case are the two
 # outcomes of one failed `mkdir`, and the hook used to answer both with `exit 0`:

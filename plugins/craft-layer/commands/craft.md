@@ -75,8 +75,8 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    `concept-deck.md` owns — a ban left in the record's narrative reaches no builder and no gate.
    **Then run the CONCEPT FORK**, at every tier including `one-shot`, per that same reference, the
    editorial voice its own question in the call. On a
-   redesign its one call also confirms or changes the mode and asks approval for any never-change
-   value a candidate would change — questions inside that call, never an added exchange (a `guided`
+   redesign its one call also confirms or changes the mode, its options carrying approval for any
+   never-change value a candidate would change — never a fifth question or an added exchange (a `guided`
    run may ask the approval in a section round); each approval lands in `preserve.json`'s
    `approved`. A changed mode is written back to `preserve.json` and the contract, `Brand echo:`
    added on entering `keep-brand` and removed on leaving it. Headless, or with no fork, the default

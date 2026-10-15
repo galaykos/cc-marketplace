@@ -136,7 +136,7 @@ const MAX_CONTEXT_BYTES = 256 * 1024
 
 const SECONDS = LIMITS.deadlineMs / 1000
 
-const HELD_LOG = '.claude/prompt-coach/held.jsonl'
+const HELD_DIR = '.claude/prompt-coach'
 
 const HELD_KEPT = 50
 
@@ -660,11 +660,18 @@ async function heldVerdict($: EngineInterface, prompt: Prompt, options: PluginOp
   }
 }
 
-// A dropped prompt is in no transcript, so each drop is recorded for audit, never its text: a coach loaded before
+// A dropped prompt is in no transcript, so each drop is recorded for audit, its text only masked: a coach loaded before
 // secret-scanning reads the prompt unmasked, and a dropped prompt never reaches secret-scanning. The hash matches a resend.
 async function recordHeld($: EngineInterface, text: string, verdict: Verdict): Promise<void> {
   try {
-    const path = `${await stateRoot(hostOf($))}/${HELD_LOG}`
+    const dir = `${await stateRoot(hostOf($))}/${HELD_DIR}`
+    const path = `${dir}/held.jsonl`
+
+    // The directory ignores itself, as the sibling plugins' state dirs do, so `git add -A` never stages the excerpts.
+    if ((await $.fs.stat(`${dir}/.gitignore`).catch(() => null)) === null) {
+      await $.fs.write(`${dir}/.gitignore`, '*\n')
+    }
+
     const kept = (await $.fs.read(path).catch(() => '')).split('\n').filter(line => line !== '')
     const record = {
       at: new Date(await $.clock.now()).toISOString(),

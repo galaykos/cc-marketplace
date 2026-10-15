@@ -148,20 +148,25 @@ export async function activeRun(
   const text = await host.read(`${root}/.claude/task-runner/active-run.json`).catch(() => null)
   const data = text === null ? null : parsed(text)
 
-  if (!isRecord(data) || typeof data.slug !== 'string' || typeof data.branch !== 'string') {
+  if (!isRecord(data) || typeof data.slug !== 'string') {
     return null
   }
 
-  const ref = await gitLine(host, ['symbolic-ref', '-q', 'HEAD'])
-  const current = ref?.startsWith('refs/heads/') ? ref.slice('refs/heads/'.length) : null
+  const branch = typeof data.branch === 'string' ? data.branch : ''
+  const ref = await host
+    .run(['git', 'symbolic-ref', '-q', 'HEAD'], { cwd: await host.cwd(), timeoutMs: GIT_TIMEOUT_MS })
+    .catch(() => null)
+  // Exit 1 is a detached head, as the bash readers name it; any other failure leaves the branch unknown, which never hides a run.
+  const current =
+    ref?.exitCode === 0 ? ref.stdout.trim().replace(/^refs\/heads\//, '') : ref?.exitCode === 1 ? 'HEAD' : null
 
-  if (current === null || current !== data.branch) {
+  if (branch !== '' && current !== null && current !== branch) {
     return null
   }
 
   return {
     slug: data.slug,
-    branch: data.branch,
+    branch,
     ...(typeof data.index_path === 'string' && { index_path: data.index_path }),
     root,
   }

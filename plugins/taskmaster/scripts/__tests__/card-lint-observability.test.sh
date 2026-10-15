@@ -217,4 +217,16 @@ if printf '%s' "$out" | grep -qF '4 of 4' && ! printf '%s' "$out" | grep -qF '13
   pass "a non-card NN-*.md is not counted; a <card> file is"
 else bad "card predicate wrong (got: $out)"; fi
 
+# --- 13. A card set in the wrong shape (no <card>, no **Verify:**) the index names, by
+# basename or by a table row's number, is still a card set that reached the run unlinted.
+WRONG="$REPO/taskmaster-docs/tasks/2026-10-15-wrong"; mkdir -p "$WRONG"
+printf '# Index\n\n| card | title | status |\n|---|---|---|\n| 01 | a | pending |\n\nThen [02-b.md](02-b.md).\n' > "$WRONG/00-INDEX.md"
+printf '# 01 — a\n\nDo a.\n' > "$WRONG/01-a.md"; printf '# 02 — b\n\nDo b.\n' > "$WRONG/02-b.md"
+printf '# notes\n' > "$WRONG/03-notes.md"
+jq -nc --arg i "$WRONG/00-INDEX.md" '{slug:"wrong",index_path:$i}' > "$REPO/.claude/task-runner/active-run.json"
+out=$(fire "$FX/t/wrong.jsonl" "$REPO")
+if printf '%s' "$out" | grep -qF '2 of 2' && ! printf '%s' "$out" | grep -qF '03-notes.md'; then
+  pass "wrong-shape cards the index names are counted; an unnamed note is not"
+else bad "wrong-shape cards the index names (got: ${out:-<silent>})"; fi
+
 exit "$rc"

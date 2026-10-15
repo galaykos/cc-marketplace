@@ -47,7 +47,7 @@ The plugin is one hooks module, `hooks/coach.ts`, the only entry under `modules`
   (unclear); set CC_PROMPT_COACH=off to stop`; the prompt never enters the conversation,
   and the prompt box is left empty. Each drop also appends one line to
   `.claude/prompt-coach/held.jsonl` at the repository root, so a drop can be audited
-  later (residuals below). In the live walks the drop came 2.86-3.57 s after
+  later; the line holds a masked excerpt of the prompt (residuals below). In the live walks the drop came 2.86-3.57 s after
   Enter.
 - **Everything else passes untouched.** A clear or low-confidence verdict, a timeout, an
   API error, a model your organization refuses, malformed output and any error inside the
@@ -299,16 +299,18 @@ What the judge sees, and how far to trust it:
 - **The standby only confirms.** The model you configure (sonnet or opus) sees only the
   prompts the haiku first pass flagged; a prompt haiku calls clear is never shown to it.
   **Gate** — `tests/coach.test.ts`, "passes a clear prompt untouched".
-- **The drop record holds no prompt text.** A dropped prompt is in no transcript, so the
-  coach appends a line per drop to `.claude/prompt-coach/held.jsonl` at the repository
-  root (the git root, else the project directory), keeping the last 50: the time, the
-  session id, the text's FNV-1a hash (the one a resend of the same text has), its length,
-  the kind, and the text and reason as **masked excerpts** — the first 40 words, each word
-  holding a digit, a symbol or an inner capital replaced by `▪`. The rewrite is not kept,
-  because it restates the text. The text is masked because a coach loaded before
-  secret-scanning reads it unmasked and a dropped prompt never reaches secret-scanning.
-  Residual: a secret made only of letters with at most a leading capital (a lowercase
-  passphrase) is written as typed; add the file to `.gitignore` if `.claude/` is tracked.
+- **The drop record holds a masked excerpt of the prompt, and the mask misses a
+  plain-letter secret.** A word made only of letters with at most a leading capital (a
+  passphrase such as `letmein` or `Letmein`) reads as prose and is written as typed. A
+  dropped prompt is in no transcript, so the coach appends a line per drop to
+  `.claude/prompt-coach/held.jsonl` at the repository root (the git root, else the project
+  directory), keeping the last 50: the time, the session id, the text's FNV-1a hash (the
+  one a resend of the same text has), its length, the kind, and the text and reason as
+  **masked excerpts** — the first 40 words, each word holding a digit, a symbol, a hyphen
+  or an inner capital replaced by `▪`. The rewrite is not kept, because it restates the
+  text. The text is masked because a coach loaded before secret-scanning reads it
+  unmasked and a dropped prompt never reaches secret-scanning. The directory carries a
+  `*` `.gitignore`, written when it has none, so `git add -A` does not stage the log.
   A record that cannot be written leaves the drop standing. **Gate** —
   `tests/coach.test.ts`, "records a drop as a hash and a masked excerpt, never the text",
   "keeps the last 50 drops" and "a drop it cannot record still drops".

@@ -86,11 +86,12 @@ split_segments() {
 # names a shell (rbash, mksh too), ssh, su, sudo -i/-s, runuser, chroot, exec, xargs, eval, source or `.`, or matches <reader ERE>
 # (tested lowercased, unquoted, space-padded), or the reader can sit off that line: a `\` continuation, a trailing | ( { do then
 # else, an unquoted $( ) ( ) <( ) but x=$( ), an fd number, a $ or quoted command word, a done/fi/esac/}/) lead. Once it drops a
-# body, inert keeps every line if a later line pipes into a reader (other words may sit before it; `.`, source, eval or a $ command
-# word first), or runs eval, a shell's -c or a $ command word after an x=$( ) or "$( )" body. Mode cd is inert with eval, source,
-# `.` and the ERE the only named readers, for a cd test: a body this shell runs is kept, one a named subshell runs is not. Every
-# mode keeps every line after a `<<` the scan cannot place (quoted, after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a
-# quote or ${ open across its line, a backtick, $$', an unmatched ), a terminator with stray blanks) and a body with no terminator.
+# body, inert keeps every line if a later line pipes into a reader (other words may sit before it, but a grep or rg lead is a filter
+# whatever its pattern names; `.`, source, eval or a $ command word first), or runs eval, a shell's -c or a $ command word after an
+# x=$( ) or x="$( )" body. Mode cd is inert with eval, source, `.` and the ERE the only named readers, for a cd test: a body this
+# shell runs is kept, one a named subshell runs is not. Every mode keeps every line after a `<<` the scan cannot place (quoted,
+# after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a quote or ${ open across its line, a backtick, $$', an unmatched ),
+# a terminator with stray blanks) and a body with no terminator.
 # Misses: inert drops a body fed to anything else (python3 -, node, at, a function, alias or coproc), written to a script a later
 # line runs, or read into a variable by read; a case pattern's ) inside $( ) closes it early.
 cc_strip_heredoc_bodies() {
@@ -112,7 +113,7 @@ cc_strip_heredoc_bodies() {
       }
       return q == "" ? w : ""
     }
-    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
+    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", w in ="", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
     function scan(s,   n, i, c, nx, d, t, w, j) {
       n = length(s); cc = 0
       for (i = 1; i <= n; i++) {
@@ -127,7 +128,7 @@ cc_strip_heredoc_bodies() {
           if (c == "\"") { dq = 0; pc = c }
           else if (c == "`" || c == "<" && nx == "<") { off = 1; return 0 }
           else if (c == "$" && nx == "(") {
-            if (substr(s, i + 2, 1) == "(") { st = st "b"; i += 2 } else { st = st "q"; i++ }
+            if (substr(s, i + 2, 1) == "(") { st = st "b"; i += 2 } else { st = st (dq > 1 ? "w" : "q"); i++ }
             dq = 0; pc = "("; cs = 1
           }
           continue
@@ -139,7 +140,7 @@ cc_strip_heredoc_bodies() {
           cs = 0
         }
         if (c == "\047") { if (d > 1) { off = 1; return 0 }; sq = 1; ans = (d == 1); pc = c; continue }
-        if (c == "\"") { dq = 1; pc = c; continue }
+        if (c == "\"") { dq = 1 + (pc == "="); pc = c; continue }
         if (c == "`") { off = 1; return 0 }
         if (c == "#") {
           if (pc ~ /[ \t\n;&|()<>]/) { cc = i; if (index(substr(s, i), "<<") || substr(s, n, 1) == "\\") off = 1; return 0 }
@@ -159,7 +160,7 @@ cc_strip_heredoc_bodies() {
         if (c == ")") {
           if (t ~ /^[es]?$/) { off = 1; return 0 }
           if (t ~ /[ab]/) { if (nx != ")") { off = 1; return 0 }; i++ }
-          st = substr(st, 1, length(st) - 1); if (t ~ /[qb]/) dq = 1
+          st = substr(st, 1, length(st) - 1); if (t ~ /[qbw]/) dq = 1 + (t == "w")
           pc = "x"; continue
         }
         if (c == "<" && nx == "<") {
@@ -199,7 +200,7 @@ cc_strip_heredoc_bodies() {
       if (startq || sq || dq || st ~ /[es]/) { mode = 2; next }
       t = cc ? substr($0, 1, cc - 1) : $0; sub(/[ \t]+$/, "", t)
       keep = how != "all" && (k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ || reads(norm(lw)))
-      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vq]/) cv = 1
+      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vw]/) cv = 1
       qi = 1; mode = 1; nh = 0
       next
     }
@@ -208,7 +209,7 @@ cc_strip_heredoc_bodies() {
       for (k = c0; cut && how != "all" && k <= no; k++) {
         t = out[k]; if (t ~ /[|(]&?[ \t]*$/ && k < no) t = t " " out[k + 1]
         u = t = norm(t); r = cv && (t ~ / eval |(^|[;&|]) \$/ || how != "cd" && t ~ shc)
-        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/ }
+        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = p !~ /^ ([ef]?grep|rg) / && (rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/) }
         if (r) { for (k = 1; k <= na; k++) print all[k]; exit }
       }
       for (k = 1; k <= no; k++) print out[k]
@@ -371,6 +372,7 @@ match_rule_table() { # padded segment, the same lowercased, sql_ctx 0|1
 
 VERDICT=allow   # allow | ask | deny
 CWD_MOVED=0     # 1 when the command cds: its relative paths do not resolve against this process's cwd
+CD_RE='[ ;&|(](cd|pushd)[ ;&|)]|[ ;&|(/]env( -[upa] [^ ]+| -[^ ]*| [a-z_][a-z0-9_]*=[^ ]*)* (-[a-z]*c|--chdir)[ =]'
 V_WHAT=""       # what the command does
 V_ALT=""        # the non-destructive alternative
 V_MATCH=""      # the segment that matched
@@ -444,16 +446,19 @@ command_cwd() {
 }
 
 # Not a table rule: whether rm -rf is catastrophic depends on each target, not on the flags.
-check_rm() { # normalised segment (lowercased, padded)
-  local seg="$1" flags="" targets="" tok recursive=0 t
+check_rm() { # normalised segment (lowercased, padded), the same case-preserved
+  local seg="$1" flags="" targets="" tok sp recursive=0 t
   case "$seg" in *" rm "*) ;; *) return 0 ;; esac
 
-  targets=$(printf '%s' "$seg" | awk '{ seen=0; for (i=1;i<=NF;i++) { if (!seen) { if ($i=="rm") seen=1; continue } ; print $i } }')
-  flags=$(printf '%s\n' "$targets" | grep '^-' | tr -d '\n')
+  # Each target lowercased, then as typed for the filesystem tests: on a case-sensitive disk docs is not Docs.
+  targets=$(printf '%s\n%s\n' "$seg" "${2:-$seg}" | awk 'NR == 1 { n = split($0, l, " "); next }
+    { if (split($0, c, " ") != n) for (i = 1; i <= n; i++) c[i] = l[i]
+      seen = 0; for (i = 1; i <= n; i++) { if (!seen) { if (l[i] == "rm") seen = 1; continue }; print l[i] "\t" c[i] } }')
+  flags=$(printf '%s\n' "$targets" | awk -F'\t' '/^-/ { printf "%s", $1 }')
   case "$flags" in *r*|*R*) recursive=1 ;; esac
   [ "$recursive" -eq 1 ] || return 0
 
-  while IFS= read -r tok; do
+  while IFS=$'\t' read -r tok sp; do
     [ -n "$tok" ] || continue
     case "$tok" in -*) continue ;; esac
     case "$tok" in
@@ -488,14 +493,14 @@ check_rm() { # normalised segment (lowercased, padded)
     # and not a symlink: rm -rf link/ empties the link's target.
     case "$tok" in
       .playwright-mcp|.playwright-mcp/|./.playwright-mcp|./.playwright-mcp/)
-        [ "$CWD_MOVED" -eq 0 ] && [ ! -L "$(command_cwd)/.playwright-mcp" ] && continue ;;
+        [ "$CWD_MOVED" -eq 0 ] && [ ! -L "$(command_cwd)/${sp%/}" ] && continue ;;
     esac
     t="$tok"
     printf '%s' "$t" | grep -qE "$ARTIFACT_RE" && continue
     # A path git can restore is no loss; .. and absolute paths are not asked of git, as they can leave its repo.
     case "$tok" in
       /*|*..*) ;;
-      *) git_recoverable "$tok" && continue ;;
+      *) git_recoverable "${sp:-$tok}" && continue ;;
     esac
     case "$tok" in
       /*) set_verdict ask "recursively deletes ${tok}, which is outside the project" \
@@ -769,7 +774,9 @@ classify() {
   check_whole " $full_lc "
   check_self_protection " $full_lc " "$raw"
 
-  case " $full_lc " in *' cd '*|*' pushd '*) CWD_MOVED=1 ;; *) CWD_MOVED=0 ;; esac
+  # A subshell's (cd x && …) and env -C/--chdir move the cwd as a bare cd does.
+  CWD_MOVED=0
+  [[ " $full_lc " =~ $CD_RE ]] && CWD_MOVED=1
 
   # SQL rules need a SQL client in the command, or git commit -m "remove the drop table step" reads as executed SQL.
   printf '%s' " $full_lc " | grep -qE "$SQL_CLIENT_RE" && sql_ctx=1
@@ -829,7 +836,7 @@ classify() {
       fi
     fi
 
-    check_rm "$segn_lc"
+    check_rm "$segn_lc" "$segn"
     match_rule_table "$segn" "$segn_lc" "$sql_ctx"
 
     [ "$VERDICT" = "deny" ] && break

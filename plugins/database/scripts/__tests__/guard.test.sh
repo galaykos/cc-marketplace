@@ -10,6 +10,7 @@ set -u
 cd "$(dirname "$0")/../../../.." || exit 1
 HOOK=plugins/database/hooks/guard.sh
 rc=0
+unset CLAUDE_PROJECT_DIR
 
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not found"; exit 0; }
 
@@ -168,7 +169,6 @@ check_bash "relative doc: a relative taskmaster-docs target is a doc surface" al
 #     in $WS (no git: the root is the payload cwd) and the hook's TMPDIR is $WS/tmp, so the
 #     out-of-root rule and the temp-dir rule can each be shown alone.
 WS=$(mktemp -d); trap 'rm -rf "$WS"' EXIT
-unset CLAUDE_PROJECT_DIR
 mkdir -p "$WS/tmp/probe" "$WS/proj/db" "$WS/elsewhere" "$WS/tmp/inproj/db"
 check_at() { # label want file content cwd [tool]
   local out got
@@ -188,6 +188,12 @@ check_at "scope: no payload cwd, outside TMPDIR still asks"  ask   "$WS/proj/db/
 check_at "scope: a project living in TMPDIR is still judged" ask   "$WS/tmp/inproj/db/x.sql" 'DROP TABLE users;' "$WS/tmp/inproj"
 check_at "scope: bash heredoc into a TMPDIR probe"           allow "" "$(printf '%s\n' "cat > $WS/tmp/probe/m.php <<'EOF'" 'DROP TABLE users;' 'EOF')" "$WS/proj" Bash
 check_at "scope: bash heredoc into the project still asks"   ask   "" "$(printf '%s\n' "cat > db/m.sql <<'EOF'" 'DROP TABLE users;' 'EOF')" "$WS/proj" Bash
+# The payload cwd follows the shell's cd; CLAUDE_PROJECT_DIR does not. With the shell in a sibling repo, a migration written
+# into the project was skipped as outside the cwd's root (0.11.4's first cut); either root now holds a judged target.
+mkdir -p "$WS/real/db" "$WS/sib/db"; git -C "$WS/real" init -q 2>/dev/null; git -C "$WS/sib" init -q 2>/dev/null
+CLAUDE_PROJECT_DIR="$WS/real" check_at "scope: cwd in a sibling repo, a migration into the project asks" ask "$WS/real/db/x.sql" 'DROP TABLE users;' "$WS/sib"
+CLAUDE_PROJECT_DIR="$WS/real" check_at "scope: cwd in a sibling repo, a write into that repo asks"   ask   "$WS/sib/db/x.sql"  'DROP TABLE users;' "$WS/sib"
+CLAUDE_PROJECT_DIR="$WS/real" check_at "scope: a target outside both roots is skipped"             allow "$WS/elsewhere/x.sql" 'DROP TABLE users;' "$WS/sib"
 mkdir -p "$WS/d1/migrations" "$WS/pr/prisma" "$WS/pg/prisma" "$WS/lv" "$WS/lvpg" "$WS/dz" "$WS/mono/apps/api" "$WS/mono/apps/web"
 printf 'name = "app"\n\n[[d1_databases]]\nbinding = "DB"\n' > "$WS/d1/wrangler.toml"
 printf 'datasource db {\n  provider = "sqlite"\n}\n' > "$WS/pr/prisma/schema.prisma"
@@ -201,7 +207,8 @@ check_at "sqlite: D1 (wrangler d1_databases), CREATE INDEX"  allow "$WS/d1/migra
 check_at "sqlite: D1 still asks on DROP TABLE"               ask   "$WS/d1/migrations/0002_drop.sql" 'DROP TABLE users;' "$WS/d1"
 check_at "sqlite: Prisma provider sqlite"                    allow "$WS/pr/prisma/migrations/1/migration.sql" "$IDX" "$WS/pr"
 check_at "sqlite: Prisma provider postgresql still asks"     ask   "$WS/pg/prisma/migrations/1/migration.sql" "$IDX" "$WS/pg"
-check_at "sqlite: Laravel .env DB_CONNECTION=sqlite"         allow "$WS/lv/database/migrations/x.php" "DB::statement('$IDX');" "$WS/lv"
+# Laravel 11+ ships DB_CONNECTION=sqlite in its default local .env, so it says nothing about production's engine.
+check_at "sqlite: Laravel .env DB_CONNECTION=sqlite alone still asks" ask "$WS/lv/database/migrations/x.php" "DB::statement('$IDX');" "$WS/lv"
 check_at "sqlite: Laravel .env DB_CONNECTION=pgsql still asks" ask "$WS/lvpg/database/migrations/x.php" "DB::statement('$IDX');" "$WS/lvpg"
 check_at "sqlite: drizzle.config dialect turso"              allow "$WS/dz/drizzle/0000_x.sql" "$IDX" "$WS/dz"
 check_at "sqlite: a package's own wrangler config (monorepo)" allow "$WS/mono/apps/api/migrations/0001.sql" "$IDX" "$WS/mono"

@@ -192,7 +192,9 @@ run_clause() {
   # An abandoned run leaves its sentinel behind: a run that names its branch is enforced only on that branch.
   run_branch=$(jq -r '.branch // empty' "$sentinel" 2>/dev/null)
   # symbolic-ref, not rev-parse --abbrev-ref: a tag named like the branch made that print heads/<branch>, a run read as another's.
-  cur_branch=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null) && cur_branch=${cur_branch#refs/heads/} || cur_branch=HEAD
+  # Exit 1 is a detached head; any other failure leaves the branch unknown, which never stands a run down.
+  cur_branch=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null)
+  case $? in 0) cur_branch=${cur_branch#refs/heads/} ;; 1) cur_branch=HEAD ;; *) cur_branch="" ;; esac
   if [ -n "$run_branch" ] && [ -n "$cur_branch" ] && [ "$run_branch" != "$cur_branch" ]; then
     printf '[candor] completion-gate: run registered on branch %s, now on %s — not enforced here.\n' "$run_branch" "$cur_branch" >&2
     printf '  If that run is finished or abandoned, delete .claude/task-runner/%s.\n' "${sentinel##*/}" >&2

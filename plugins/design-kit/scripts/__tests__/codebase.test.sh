@@ -118,6 +118,17 @@ grep -q '^appended=resources/css/app.css$' <<<"$out" || fail "blade: appended= c
 bash "$cleanup" >/dev/null
 cmp -s routes/web.php "$tmp/lar.web" || fail "cleanup left routes/web.php changed: $(od -c routes/web.php | tail -3)"
 cmp -s resources/css/app.css "$tmp/lar.css" || fail "cleanup left the blade stylesheet changed"
+# a cloned repo's .env is untrusted: shell syntax in APP_URL never runs and the value is refused
+printf '%s\n' "APP_URL=\"http://x';id>$tmp/PWNED;#\"" > .env
+out="$(bash "$scaffold" --create inj 2>&1)"
+[ -e "$tmp/PWNED" ] && fail "APP_URL from .env executed a command"
+grep -q '^open=http://127.0.0.1:8000/__design-kit__/inj$' <<<"$out" || fail "a non-URL APP_URL must be refused: $out"
+bash "$cleanup" >/dev/null; rm .env
+# Tailwind v3's utilities layer import is not a v4 entry
+printf '@tailwind base;\n@import "tailwindcss/utilities";\n' > resources/css/app.css; cp resources/css/app.css "$tmp/v3.css"
+bash "$scaffold" --create v3 >/dev/null
+cmp -s resources/css/app.css "$tmp/v3.css" || fail "a v3 tailwindcss/utilities import got an @source line: $(cat resources/css/app.css)"
+bash "$cleanup" >/dev/null
 
 # --- Laravel + Inertia (stock starter-kit shape, synthetic): React page, Route::inertia, APP_URL ---
 ine="$tmp/inertia"; mkdir -p "$ine/resources/views" "$ine/resources/js/pages" "$ine/resources/js/components/ui" "$ine/resources/css" "$ine/routes"

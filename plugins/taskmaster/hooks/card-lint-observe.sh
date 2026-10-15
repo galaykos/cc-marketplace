@@ -141,9 +141,12 @@ cc_option() {
     [ -f "$card" ] || continue
     base=$(basename "$card")
     case "$base" in 00-*) continue ;; esac      # the index is not a card
-    # A card is what card-shape-lint accepts: a <card> wrapper or a legacy **Verify:**
-    # line. A probe-results or notes file named NN-*.md beside the cards was counted.
-    grep -Eq '^<card( |>)|\*\*Verify:\*\*' "$card" 2>/dev/null || continue
+    # A card is a file the index names, by basename or by its number opening a table row, or
+    # one card-shape-lint accepts (a <card> wrapper or a legacy **Verify:** line). A probe-results
+    # or notes file named NN-*.md beside the cards was counted; a card in the wrong shape was not.
+    grep -qF -- "$base" "$index" 2>/dev/null \
+      || grep -Eq "^[[:space:]]*\|[[:space:]]*${base%%-*}[[:space:]]*\|" "$index" 2>/dev/null \
+      || grep -Eq '^<card( |>)|\*\*Verify:\*\*' "$card" 2>/dev/null || continue
     total=$((total + 1))
     [ "$total" -gt 60 ] && break                # bounded: this runs inside the turn
     gaps=""

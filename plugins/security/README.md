@@ -92,11 +92,12 @@ behind a `*` `.gitignore`. `write-scan.test.sh` runs a python write, the first c
 wrote nothing, an Edit between two runs, a tracked file's added line, a failed run's
 `PostToolUseFailure` envelope and another session's marker. A non-matching Bash call costs
 11.9 ms median and a matching one that wrote nothing 21.3 ms on a synthetic 2,786-file repo
-(10.4 and 16.5 ms before the session key, the failure event and the one-`find` read). Also since 0.12.4, a target outside the project root (the session cwd's git toplevel,
-else `CLAUDE_PROJECT_DIR` when the cwd is under it, else the cwd), or under `$TMPDIR`
-(`/tmp`) while the project is not, is skipped on every tool: a scratch probe is not the
-project. A sibling worktree written by absolute path from another checkout is skipped
-too. Warn — never deny — because each has a legitimate form; `CC_SECURITY_SCAN=off`
+(10.4 and 16.5 ms before the session key, the failure event and the one-`find` read). Also since 0.12.4, a target under neither `CLAUDE_PROJECT_DIR` nor the session cwd's root
+(its git toplevel, else `CLAUDE_PROJECT_DIR` when the cwd is under it, else the cwd), or
+under `$TMPDIR` (`/tmp`) while the root holding it is not, is skipped on every tool: a
+scratch probe is not the project. The rule is the shared `write-scope` block database's
+guard also carries. A sibling repo or worktree written by absolute path from outside both
+roots is skipped too. Warn — never deny — because each has a legitimate form; `CC_SECURITY_SCAN=off`
 disables it, and `CC_REMIND=off` silences it along with
 every other advisory nudge in this marketplace. Single-line matching only: a `SafeLoader` on
 the next line still warns, a system prompt assembled across lines never does. GitHub Actions expression injection is deliberately not

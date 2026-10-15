@@ -245,9 +245,9 @@ cc_bash_write_effects <root> <marker> <command> <max> <session> — nothing, and
   whitespace, ; & | ) a backtick, < or >, or at the end), and <marker> holds the cksum of
   <session>. Then nothing when git config status.showUntrackedFiles is no (false, off,
   0). Else, in <root>: GIT_OPTIONAL_LOCKS=0 git status --porcelain -z
-  --untracked-files=all --no-renames --ignore-submodules=all, every path under a .claude/
-  dir dropped, each led by ./, through one xargs -0 find … -prune -newer <marker> -type f,
-  capped by head -n <max>, printed as <root>/<path>. The regex runs under LC_ALL=C.
+  --untracked-files=all --no-renames --ignore-submodules=all, each path led by ./,
+  through one xargs -0 find … -prune -newer <marker> -type f, capped by head -n <max>,
+  printed as <root>/<path>. The regex runs under LC_ALL=C.
 Caller: read the effects with the OLD marker, then mark — on every call the hook sees,
   an Edit or a command that wrote nothing too; pass the payload's session_id to both;
   register the hook on PostToolUseFailure for Bash as well and answer in that event's
@@ -283,8 +283,20 @@ Caller: read the effects with the OLD marker, then mark — on every call the ho
   non-git folder under a dotfiles $HOME took $HOME for its root, and
   --untracked-files=all overrode the config there: 150,000 files, 1.5 s a hook, and
   the session's own transcript under .claude/projects reported as written (E4).
-  Nothing under a .claude/ dir is read either: it holds this marketplace's state, and a
-  sibling plugin's fresh marker read as the command's write (B7).
+- No path filter: plugin state stays out by its dir's `*` .gitignore. The first cut of
+  the B7 fix (a sibling plugin's fresh marker read as the command's write) also dropped
+  every path under a .claude/ dir, which hid tracked, user-authored .claude/settings.json,
+  .claude/skills/** and .claude/agents/** from secret-scanning, security and the scope
+  lock: python3 -c writing an API key into a tracked settings.json drew no warning
+  (2026-10-15 Tier 2 review B8). route.sh and code-review's comment hooks still skip
+  .claude/ by their own target rule, as they do for a Write. cc_bash_effects_mark gives
+  each marker dir the .gitignore on every call. On 2026-10-15 every hooks.json hook,
+  fired with CLAUDE_PLUGIN_DATA unset in a scratch repo through a prompt, Edits, python
+  Bash calls (Pre, Post, PostToolUseFailure), Stop, Session and Subagent events, left no
+  .claude/ path in git status: candor, code-review, comment-discipline, secret-scanning,
+  security, skill-router, testing and ui-ux state dirs each carried one. Read, not run
+  (no active run, no mod host): task-runner's, overseer's and prompt-coach's dirs are
+  written with one.
 - PostToolUseFailure: a Bash command that exits non-zero fires that event and not
   PostToolUse (the range review's live probe, CLI 2.1.300; the binary builds its payload
   from the same base as PostToolUse's, so it carries tool_input, session_id,
@@ -342,7 +354,7 @@ a synthetic 2,786-file repo (the work repo above was not cloned again):
 - A writer named only through another word: npx prettier --write, vendor/bin/pint,
   eslint --fix, make, git apply, git stash pop, uv run.
 - Gitignored outputs, a repo with no git, a file outside <root> (/tmp), a file in a
-  submodule, anything under a .claude/ dir.
+  submodule.
 - A root that is $HOME, or a repo with status.showUntrackedFiles=no: nothing at all.
 - A file written and reverted in one command, or rewritten byte-identical when clean:
   not dirty; a file written and committed, or staged and committed, in one command.
@@ -361,8 +373,10 @@ a synthetic 2,786-file repo (the work repo above was not cloned again):
   config-guard, database's guard and devops's workflow-guard stay blind to it.
 Reads too much: anything that changed a file since the hook's previous call in the
 session — an IDE save, a parallel agent's tool this hook does not match, a watcher or
-a job, everything changed while the hook was switched off — is reported as this
-command's write. task-runner's scope.sh says so in its warning for such a path and
+a job, everything changed while the hook was switched off, a state file another tool
+keeps under .claude/ without a .gitignore (the host's .claude/settings.local.json where
+its own ignore rule is absent, written when a permission is granted) — is reported as
+this command's write. task-runner's scope.sh says so in its warning for such a path and
 never tells the agent to revert it.
 Standing: the byte lock is a gate (pc_shared_blocks); behaviour is gated per adopter
 harness; the over-read and the racy-index cost are recorded here, nothing reads them.
@@ -457,6 +471,27 @@ left. The words review-debt already read on changed paths moved into the block a
 cc_prompt_auth_surface, so taskmaster's reminder reads the same list on the prompt and
 pc_shared_blocks keeps the two from drifting. The list gained registration and sign-up:
 without them it would have missed the one measured case.
+
+The third review (2026-10-15, Tier 2) found three over-reads. The hands-off test checked
+what was left beside the clause for any strong-tier word, nouns included, so "I got a
+question about the deploy, don't work on it" fired skill-router's 1,759-byte check; a
+match there now counts only when it opens a clause or follows to, please, a modal or a
+conjunction (`the deploy` is a noun, `then deploy` an ask). On a corpus written for this
+fix (8 hands-off questions, 13 hands-off prompts carrying work), the old test fired on
+7 of 8 questions and the new one on none; all 13 work prompts fire under both.
+Unanchored `sign[-_ ]?up` matched DesignUpdatesController and AssignUploadsToFolder; on
+paths it now needs a non-letter before it or a capital S (UserSignUpController). On this
+repository's ~1,160 tracked paths the path list's 90 matches did not change; it holds no
+application code, so that shows only that the rewrite from grep to awk kept the words.
+On prompts the path words withheld taskmaster's skip on every near miss the review tried
+("design tokens", "session retro", "guard clause", "max tokens"), so prompts read their
+own word-anchored list, cc_prompt_auth_ask: no bare session, token, guard or crypt; add
+account, invite, csrf, 2FA/MFA/SSO/SAML, JWT, api/access/refresh/reset tokens and keys,
+session cookies, logged-in and sign-in; a camelCase name is split first (handleLogin).
+On a synthetic corpus of 33 auth asks and 42 near misses, written for this fix rather than
+sampled from sessions (so it favours the words it was written beside), the path list
+matched 22/33 and 29/42 and the prompt list 33/33 and 12/42. A reviewer's own
+measurement on a different corpus found 16/17 and 6/35 for its candidate list.
 ```
 
 ### Contract
@@ -472,10 +507,17 @@ cc_prompt_scheduled <prompt> <transcript> — status 0 when the transcript has a
   holding `"prompt":` plus the prompt JSON-encoded by jq (the whole value, so a prefix of
   a scheduled prompt does not match) and naming a ScheduleWakeup or CronCreate call.
   Status 1 with no prompt, no such file, or no jq.
-cc_prompt_auth_surface — stdin filter, case-insensitive: prints each line holding auth
-  (not author), authorise/authorize, login, passw, token, secret, credential, polic,
-  permission, role, guard, middleware, impersonat, session, oauth, webhook, payment,
-  crypt, registration, sign-up/signup/sign up/sign_up, or a migrations/ directory.
+cc_prompt_auth_surface — stdin filter for paths, case-insensitive (awk, C locale): prints
+  each line holding auth (not author), authorise/authorize, login, passw, token, secret,
+  credential, polic, permission, role, guard, middleware, impersonat, session, oauth,
+  webhook, payment, crypt, registration, a migrations/ directory, or sign-up/signup/
+  sign up/sign_up after a non-letter or as a camelCase part (SignUp, Signup).
+cc_prompt_auth_ask <text> — status 0 when <text>, camelCase split, holds as a word: auth
+  (also un-, re-, o-; not author or authority), log in/out, logged in/out, sign in/up/out,
+  passw, passkey, secret, credential, polic, permission, role, middleware, impersonat,
+  webhook, payment, encrypt/decrypt/bcrypt, cryptograph, registration, account, invite,
+  invitation, api/access/refresh/bearer/reset token or key, session cookie/token/id/
+  fixation/hijack, 2FA, MFA, two-factor, SSO, SAML, JWT, CSRF/XSRF, or a migrations/ path.
 cc_prompt_unpaste — stdin filter: each <pasted_content …>…</pasted_content …> span
   goes, text on the tag's own line stays, a line left blank by a cut is dropped. An
   opening tag with no closing tag anywhere after it is cut alone (to its `>`), and the
@@ -496,8 +538,10 @@ cc_prompt_question <text> <verb-ERE> — status 1 when the ERE is empty. Status 
   would/will you|u|we|someone|anyone, please, why, any idea|ideas); or holds "don't
   (start) work(ing) on anything|it|this|that" before punctuation, the end, yet, for now,
   until or before, "don't <making verb> anything yet|for now|until|before", or is,
-  whole, "(please) don't <making verb> anything" — and no <verb-ERE> match is left once
-  those clauses are cut.
+  whole, "(please) don't <making verb> anything" — and, once those clauses are cut, no
+  <verb-ERE> match opens a clause (the start, after .,;:!? and any non-alphanumerics) or
+  follows and, but, then, so, also, first, just, now, please, to, should, must, can,
+  could, will, would or let's.
 ```
 
 ### What it does not catch, stated
@@ -512,9 +556,14 @@ cc_prompt_question <text> <verb-ERE> — status 1 when the ERE is empty. Status 
   verbatim while its call is in the transcript is silenced, and so is one equal to a
   subagent's prompt on a JSONL line that also names ScheduleWakeup. Each call reads the
   whole transcript, so adopters call it only once the prompt would otherwise speak.
-- auth_surface: on a prompt the words over-match ("this session", "design tokens", a
-  guard clause, a privacy policy page), which withholds the trivial skip for one
-  clarifying round; "register the listener", "invite", "account" and "user" do not match.
+- auth_surface: path words, not prompt words; `tokens.css` and a `SessionTimer` component
+  match. A sign-up glued to a lowercase prefix (presignup.tsx) no longer counts.
+- auth_ask: role, policy, middleware, secret, account, invite and "log in" still over-match
+  ("the role of the sidebar", a privacy policy page, a timing middleware, a secret santa
+  draw, an account balance, invited speakers, "a debug log in the job"), which withholds
+  the skip for one clarifying round; narrowing them needed a phrase list per word. Missed:
+  a guard, token or session named alone ("add a new guard for the API"), "register the
+  listener", "user", and a surface named by brand (Sanctum, Clerk).
 - unpaste: a name or verb that appears only inside a paste no longer counts.
 - ship_only: a feature-sense branch, tag, merge or release ending its clause reads as
   ship when the prompt also names a PR or commit ("create the PR and add tags" is
@@ -531,9 +580,12 @@ cc_prompt_question <text> <verb-ERE> — status 1 when the ERE is empty. Status 
   "what's causing the 500s?" speaks); a `?`-ended prompt naming a making verb as a noun
   ("what does the build script do?") reaches the adopter's work test, which it passes,
   and so does a polite question ("could you explain this?"), which stays silent only if
-  that test does. A hands-off clause silences only when no match stands outside it, so
-  "quick question, don't work on anything yet: why is the import slow" waits and "fix
-  the parser first and don't work on it until it passes" speaks. "don't touch the API",
+  that test does. A hands-off clause silences only when no match outside it opens a
+  clause or follows a lead word, so "quick question, don't work on anything yet: why is
+  the import slow" waits and "fix the parser first and don't work on it until it passes"
+  speaks. A strong-tier noun opening a clause still speaks ("don't work on it; test setup
+  question"), and a deferred ask without a listed lead goes quiet ("we'll fix it later,
+  don't work on it yet"); the next work prompt draws the check. "don't touch the API",
   "do not work on the legacy importer" and "don't change anything in vendor/" are
   constraints, not hands-off.
 - Nothing here judges intent. Standing: the shapes are gated by each adopter's harness
@@ -551,11 +603,13 @@ unpaste (a prompt that is only a paste is read whole), question with its strong 
 scheduled (the tool-fit check only; the digest still flushes on a re-fire, as on a slash
 command). code-review review-debt.sh: frame (ship detection skips frames) and
 auth_surface on changed paths. The reminder template with promptShape: frame, unpaste,
-ship_only, and scheduled once the trigger matched; with armsClarifyGate too
-(taskmaster) the auth_surface line. promptShape is set by taskmaster's remind.sh and,
-since 2026-10-15, by approaches' remind.sh (build-vs-buy), debugging's and api-design's.
-For the last two, ship_only never silences: their regex holds no making verb, so no
-match is create/add/open/make. approaches' consult-remind.sh keeps it off: it is a
+and scheduled once the trigger matched; ship_only on the manifest's shipVerbs; with
+armsClarifyGate too (taskmaster) auth_ask on the prompt head. promptShape is set by
+taskmaster's remind.sh and, since 2026-10-15, by approaches' remind.sh (build-vs-buy),
+debugging's and api-design's. shipVerbs is set by taskmaster, approaches (their regex)
+and api-design (its extraGuard verbs; its regex is nouns, so ship_only had never
+silenced it). debugging sets none: its stuck phrases hold no making verb, and the
+template then renders no ship test. approaches' consult-remind.sh keeps it off: it is a
 phase-any guard on irreversible commands, a paste may hold the command the user asks to
 run, and no misfire on a frame was measured. candor's preamble.sh (2026-10-15): frame and
 unpaste, before its one-shot marker; not ship_only or scheduled (rationale in
@@ -600,9 +654,9 @@ the scan can place; a terminator goes with its body and the opener line stays.
     lowercased, unquoted, an escaped non-word character dropped, `<>|;&()` spaced out and
     space-padded) or sits off the line (the header lists the shapes). Once a body is
     dropped, every line is kept when a later line pipes into a reader with any words before
-    it (`} | sudo -u deploy bash`, `} | timeout 60 bash`, `} | mysql`) or into a `$`
-    command word, or, after a body inside x=$( ) or "$( )", holds eval, a shell's -c or a
-    `$` command word. For a guard that judges what runs.
+    it (`} | sudo -u deploy bash`, `} | timeout 60 bash`, `} | mysql`) but not a grep or rg
+    lead, or into a `$` command word, or, after a body inside x=$( ) or x="$( )", holds
+    eval, a shell's -c or a `$` command word. For a guard that judges what runs.
   - cd: inert with eval, source, `.` and the ERE the only named readers. For a cd test: a
     cd in a body this shell runs (`. /dev/stdin <<EOF`, `eval "$(cat <<EOF …)"`) moves it,
     one in a body a named subshell runs (`bash <<EOF`) does not.
@@ -662,6 +716,27 @@ alone: the same verdict on all 1,111 commands holding `<<` and a cd word. The 20
 7-heredoc command 335-365 ms, `git status && ls -la` 24.4-24.8 ms median.
 ```
 
+### Tier-2 review fixes (2026-10-15)
+
+```text
+  - The later-pipe test matched a reader's name anywhere in the piped segment, so
+    `| grep -c bash`, `| grep -i ssh`, `| grep -v su` and `| grep exec` kept a dropped body.
+    A 19 KB `python3 -` body then went through destructive-guard line by line in 62 s against
+    the 15 s timeout, and the `git reset --hard` after it ran unjudged. A segment led by grep,
+    egrep, fgrep or rg is now a filter whatever its pattern names. Every other lead still
+    counts a reader named anywhere after it (`| sudo -u postgres psql`, `| docker exec -i db
+    psql`, `| php artisan tinker`), because a command-word-only test would drop those bodies;
+    so `| awk '/bash/'` still keeps one, the over-read side.
+  - Any `"$( )"` armed the later eval / -c / `$` test, so `git commit -m "$(cat <<'EOF' …)"`
+    followed by `&& bash -c 'npm test'` read the message as commands. Only an assigned one
+    does now: a `"` right after `=` (`x="$(`, `export X="$(`), as the unquoted form already
+    required, so `--message="$(cat <<EOF …)"` still arms it.
+Modes all and cd: the grep/rg rule changes nothing (cd mode names no shell and no ERE). The
+`"$( )"` rule keeps fewer lines in cd mode after a commit-message body and a later eval or `$`
+word, so a relative target there is judged. Every adopter's harness passed; destructive-guard
+gains 10 checks (7 fail on the block before this change).
+```
+
 ### Adopters and measured verdict changes (2026-10-15)
 
 ```text
@@ -687,6 +762,69 @@ Not adopted: skill-router route.sh route_cmd_mask, which blanks bodies and masks
 one pass for the command rows. code-review's file-content heredoc tracking (scan.sh,
 paths.sh cd_classify), which reads a shell FILE's comments, not a command. The body skipping
 inside bash-write-targets and bash-write-chunks, which are byte-locked blocks of their own.
+```
+
+## templates/blocks/write-scope.md
+
+### Banner and canonical copy
+
+```text
+--- write scope ---------------------------------------------------------------
+Canonical copy: templates/blocks/write-scope.md. Every hook defining a cc_scope_*
+function must carry this block byte-for-byte (pc_shared_blocks).
+```
+
+### Why it exists
+
+```text
+database's guard.sh and security's write-scan.sh each skip a scratch target (a probe under
+/tmp, a test fake outside the repo), and each held a hand copy of the rule. The copies had
+already diverged: database judged a path not created yet by its nearest existing directory,
+write-scan judged it whenever the dirname was missing. Both took the project root from
+cc_state_root of the payload cwd, which follows the shell's cd, so with the shell in a sibling
+repo a DROP TABLE migration written into the project was skipped, CLAUDE_PROJECT_DIR set or
+not; before the rule existed (7caa8bd9) it asked. Tier-2 review B1 and B10, 2026-10-15.
+```
+
+### Contract
+
+```text
+cc_scope_init <state root> resolves, with cd and pwd -P, CLAUDE_PROJECT_DIR, <state root> (the
+caller's cc_state_root of the payload cwd, empty for none) and $TMPDIR (default /tmp).
+cc_scope_skip <path> is status 0 for scratch:
+  - a target under neither root, when either is set, or
+  - a target under the temp dir while the root holding it is not.
+A path not created yet is judged by its nearest existing directory (cc_scope_dir). The roots
+are a union, not CLAUDE_PROJECT_DIR alone: the project dir alone would skip a write into the
+repo the shell cd'd into, which the cwd rule judged, so every target the hand copies judged
+is still judged. cc_scope_root <dir> sets cc_scope_r to the root holding a resolved dir, the
+state root first, so database's SQLite probe stops where it did when only the cwd counted; a
+variable rather than stdout, so the caller pays no subshell.
+```
+
+### What it does not catch
+
+```text
+A sibling repo or worktree written by absolute path from outside both roots is skipped. With
+no payload cwd and no CLAUDE_PROJECT_DIR only the temp-dir rule holds. With CLAUDE_PROJECT_DIR
+set and no cwd, a target outside it is skipped where the temp-dir rule alone judged it; the
+host sends a cwd on every tool call, so that is a harness shape. A directory symlinked out of
+the project resolves out of it, so a write through it is skipped, as before.
+```
+
+### Adopters and measured verdict changes (2026-10-15)
+
+```text
+  - database guard.sh: scope_init calls cc_scope_init once, only for a target that would ask.
+    A target under CLAUDE_PROJECT_DIR but outside the cwd's root now asks; with no cwd and
+    CLAUDE_PROJECT_DIR set, a target outside the project dir is now skipped.
+  - security write-scan.sh: the same two changes to its warnings, and a target whose
+    directory is missing is judged by its nearest existing one (a PostToolUse target exists
+    by then; no case found where it differs). A plain Write with CLAUDE_PROJECT_DIR set:
+    34-35 ms per call against 34 ms (30 calls, two rounds).
+guard.test.sh and write-scan.test.sh gain three scope cases each; the write into the project
+from a sibling repo fails on the hand copies, the write into the cwd's repo and the target
+outside both pass on both.
 ```
 
 ## templates/blocks/phase-guard.md
@@ -954,19 +1092,36 @@ Gated on an explicit manifest flag, not on rank, so exactly one plugin arms
 it — making it unconditional would widen a deny gate's trigger to five hooks.
 ```
 
+### shipVerbs: the ship test reads the manifest's verbs
+
+```text
+cc_prompt_ship_only takes a verb ERE. The template passed regex, which is verbs for
+taskmaster and approaches but nouns for api-design (its verbs sit in extraGuard), so
+api-design's ship test could never silence: "create a PR for the webhook changes" drew
+the docs reminder (Tier 2 review, 2026-10-15). The manifest now names the verbs in
+shipVerbs, and a manifest without it renders no ship test, so that reminder speaks on a
+ship prompt rather than reading nouns as verbs. Every verb the reminder counts as work
+belongs in the list: a verb left out is a verb the test never sees, which turns "integrate
+X and create a PR" into a ship-only prompt. The cost runs the other way: api-design's
+integrat\w* also reads the noun, so "create a PR for the Stripe integration" still speaks.
+Needs promptShape for the function. Standing:
+gate (scripts/smoke/hook-guard-tests.sh, api-design "ship-only prompt" and "work beside a
+ship step").
+```
+
 ### The auth-surface line (armsClarifyGate)
 
 ```text
 The clarify gate's reminder offers a way out: "state in one line why this task is
 trivial enough to skip it". A session took it on a prompt disabling registration
 (2026-10-13 retro, V-20). Where the manifest sets armsClarifyGate, a second line
-follows the message when the prompt head matches cc_prompt_auth_surface: the trivial
-skip does not apply. The words are the prompt-shape block's, the ones review-debt reads
-on paths, so the line also needs promptShape; without it the call fails and no line is
-printed. Keyed on armsClarifyGate rather than a new manifest key because the skip it
-withdraws belongs to the clarify gate's message. Standing: gate for the line
-(scripts/smoke/hook-guard-tests.sh, the tm_auth cases); whether the model then runs
-the round is agent-graded.
+follows the message when cc_prompt_auth_ask matches the prompt head: the trivial
+skip does not apply. The words are the prompt-shape block's prompt-side list (review-debt
+reads the path list beside it), so the line also needs promptShape; without it the call
+fails and no line is printed. Keyed on armsClarifyGate rather than a new manifest key
+because the skip it withdraws belongs to the clarify gate's message. Standing: gate for
+the line (scripts/smoke/hook-guard-tests.sh, the tm_auth cases); whether the model then
+runs the round is agent-graded.
 ```
 
 ## templates/boost-hook.sh.tmpl

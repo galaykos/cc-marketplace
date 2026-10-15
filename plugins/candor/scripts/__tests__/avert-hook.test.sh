@@ -78,4 +78,8 @@ bash_case "20 a heredoc opened before the commit's own body still asks" \
   $'cat > brief.md <<A && git commit -qF - <<B\nnot copies of the official designs\nA\nship the sprites\nB' ask
 bash_case "21 git commit named inside another command's text still asks" \
   $'printf \'run git commit later, as a precaution\\n\' > notes.md' ask
+bash_case "22 a <<WORD quoted in the commit message opens no heredoc" \
+  $'git commit -m "handle <<EOF in parser" && cat > brief.md <<EOF\nuse look-alike creatures\nEOF' ask
+bash_case "23 a <<< here-string in the commit span opens no heredoc" \
+  $'git commit -qF - <<<EOF && cat > brief.md <<EOF\nuse look-alike creatures\nEOF' ask
 exit $rc

@@ -20,7 +20,8 @@ importantly, what is not.
    the line continues with `\` or ends in `|`, `(`, `{` or `do`, the heredoc is
    inside an unquoted `$( )` or `( )`, or the command is `$`-named or quoted. The
    whole command is read when a later line pipes into a shell or SQL client, other
-   words allowed before it (`{ cat <<EOF … EOF; } | sudo -u deploy bash`), or into a
+   words allowed before it (`{ cat <<EOF … EOF; } | sudo -u deploy bash`) but not a
+   `grep` or `rg` lead, whose pattern is text (`| grep -c bash`), or into a
    `$`-named command (`| $SHELL`), and when a body captured in `x=$( )` is followed
    by `eval`, a shell's `-c` or a `$`-named command (`eval "$x"`). A `<<` the guard
    cannot place (quoted, after a `#`, in arithmetic, inside `${ }` or `$[ ]`) keeps
@@ -93,8 +94,8 @@ of (an `Edit` stays silent) · `find … -delete`, `shred`, `truncate -s 0`, `hi
 `bootstrap/cache`). Prompting on those trains the user to click through prompts,
 which costs more than it saves. Also `.playwright-mcp`, the Playwright MCP's scratch
 dir, spelled `.playwright-mcp` or `./.playwright-mcp` with or without a trailing `/`:
-it asks again when the command `cd`s first, or when it is a symlink, since
-`rm -rf link/` empties the link's target.
+it asks again when the command `cd`s first (in a subshell too, or through `env -C`),
+or when it is a symlink as typed, since `rm -rf link/` empties the link's target.
 
 Also `rm -rf` on a path **inside** the OS temp directory — under `/tmp`,
 `/private/tmp`, `/var/tmp`, macOS's `/var/folders/<ab>/<hash>/T/`, or a resolved

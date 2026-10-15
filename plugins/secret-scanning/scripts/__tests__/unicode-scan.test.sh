@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# unicode-scan.test.sh — fixture cases for hooks/unicode-scan.sh: each invisible class, the bidi message, the per-day one-shot, the off
+# unicode-scan.test.sh — fixture cases for hooks/unicode-scan.sh: each invisible class, the bidi message, the per-context one-shot, the off
 #   switches, fail-open, the Bash write path and the log-BOM skip. Bytes come from printf escapes: a literal invisible byte would not survive an editor or a paste.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/scripts/__tests__/unicode-scan.test.sh
 set -u
@@ -12,7 +12,7 @@ export TMPDIR="$T/tmp"; mkdir -p "$TMPDIR"
 ok()  { pass=$((pass+1)); printf 'PASS  %s\n' "$1"; }
 bad() { fail=$((fail+1)); printf 'FAIL  %s\n      %s\n' "$1" "$2"; }
 
-# The one-shot is per project, file and day, so a case that needs a warning again starts a new day by clearing the markers.
+# The one-shot is per model context and file; a case that needs a warning again in the same context clears the markers.
 newday() { find "$TMPDIR" -maxdepth 1 -name 'cc-unicode-*' -type d -exec rmdir {} + 2>/dev/null; }
 fire() { # file [tool]
   newday
@@ -68,19 +68,33 @@ case "$out" in
 esac
 
 newday; cp "$T/zw.ts" "$T/day.ts"
-day() { # session — a Read of day.ts in a session and context of its own, as a subagent's is
-  printf '{"session_id":"%s","transcript_path":"/tmp/%s","tool_name":"Read","tool_input":{"file_path":"%s"}}' "$1" "$1" "$T/day.ts" \
+day() { # session [agent_id] — a Read of day.ts; a subagent's payload carries its parent's session_id and an agent_id of its own
+  jq -cn --arg s "$1" --arg a "${2:-}" --arg f "$T/day.ts" \
+    '{session_id:$s, transcript_path:("/tmp/"+$s), tool_name:"Read", tool_input:{file_path:$f}} + (if $a == "" then {} else {agent_id:$a} end)' \
     | "$BASH_BIN" "$HOOK" 2>/dev/null
 }
-first=$(day one); second=$(day two)
-[ -n "$first" ] && [ -z "$second" ] && ok "warns once per file a day, across sessions and subagents" \
-  || bad "warns once per file a day, across sessions and subagents" "first=${first:0:40} second=${second:0:40}"
+first=$(day two); again=$(day two)
+[ -n "$first" ] && [ -z "$again" ] && ok "warns once per file in one context" || bad "warns once per file in one context" "first=${first:0:40} again=${again:0:40}"
+sub=$(day two agent-a); subagain=$(day two agent-a)
+[ -n "$sub" ] && [ -z "$subagain" ] && ok "a subagent of the warned session reading the file is warned, once" \
+  || bad "a subagent of the warned session reading the file is warned, once" "sub=${sub:0:40} again=${subagain:0:40}"
+out=$(day three)
+[ -n "$out" ] && ok "a new session reading the file is warned" || bad "a new session reading the file is warned" "got: <silent>"
+nosess() { jq -cn --arg t "$1" --arg f "$T/day.ts" '{transcript_path:$t, tool_name:"Read", tool_input:{file_path:$f}}' | "$BASH_BIN" "$HOOK" 2>/dev/null; }
+a1=$(nosess /tmp/ta); a2=$(nosess /tmp/ta); b1=$(nosess /tmp/tb)
+[ -n "$a1" ] && [ -z "$a2" ] && [ -n "$b1" ] && ok "without a session_id the transcript path keys the context" \
+  || bad "without a session_id the transcript path keys the context" "a1=${a1:0:30} a2=${a2:0:30} b1=${b1:0:30}"
 printf 'const c = 3;\n' >> "$T/day.ts"; out=$(day two)
-[ -z "$out" ] && ok "an edit leaving the invisible characters as they were stays silent the same day" \
-  || bad "an edit leaving the invisible characters as they were stays silent the same day" "$out"
+[ -z "$out" ] && ok "an edit leaving the invisible characters as they were stays silent" \
+  || bad "an edit leaving the invisible characters as they were stays silent" "$out"
 printf 'const d\xe2\x81\xa0 = 4;\n' >> "$T/day.ts"; out=$(day two)
-case "$out" in *"U+2060"*) ok "a change to the file's invisible characters warns again the same day" ;;
-  *) bad "a change to the file's invisible characters warns again the same day" "got: ${out:-<silent>}" ;; esac
+case "$out" in *"U+2060"*) ok "a change to the file's invisible characters warns again" ;;
+  *) bad "a change to the file's invisible characters warns again" "got: ${out:-<silent>}" ;; esac
+# Seven U+200B, of which the report names six; turning the seventh into U+202E changes what the file hides, so it warns again, as bidi.
+z=$(printf '\xe2\x80\x8b'); printf 'a%s%s%s%s%s%s b%s\n' "$z" "$z" "$z" "$z" "$z" "$z" "$z" > "$T/day.ts"; day two >/dev/null
+printf 'a%s%s%s%s%s%s b\xe2\x80\xae\n' "$z" "$z" "$z" "$z" "$z" "$z" > "$T/day.ts"; out=$(day two)
+case "$out" in *"BIDIRECTIONAL OVERRIDE"*) ok "a change past the sixth reported character warns again, and picks the message" ;;
+  *) bad "a change past the sixth reported character warns again, and picks the message" "got: ${out:-<silent>}" ;; esac
 
 printf 'const a = 1;\n' > "$T/later.ts"
 LATER='{"session_id":"later","transcript_path":"/tmp/later","tool_name":"Write","tool_input":{"file_path":"'"$T"'/later.ts"}}'

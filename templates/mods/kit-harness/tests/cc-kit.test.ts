@@ -20,7 +20,7 @@ const A_MD = '/work/a.md'
 
 const LIVE_BUILD = JSON.stringify({ phase: 'build', owner: 'task-runner:run', session_id: 'S1' })
 
-type Repo = { toplevel: string; branch?: string; real?: string; abbrev?: string }
+type Repo = { toplevel: string; branch?: string; real?: string; abbrev?: string; symbolicExit?: number }
 
 type World = {
   cwd?: string
@@ -64,6 +64,10 @@ function hostIn(world: World): Host {
       }
 
       const command = argv.join(' ')
+
+      if (command === 'git symbolic-ref -q HEAD' && repo?.symbolicExit !== undefined) {
+        return ran(repo.symbolicExit, '')
+      }
 
       if (!(command in answers)) {
         throw new Error(`unexpected command: ${command}`)
@@ -318,6 +322,24 @@ describe('cc-kit', () => {
     const repos = [{ toplevel: '/work' }]
 
     expect(await activeRun(hostIn({ repos, files: RUN_FILE }))).toBe(null)
+  })
+
+  test('activeRun matches a run registered on a detached head while the head is detached', async () => {
+    const files = { [RUN]: { text: JSON.stringify({ slug: 'ship-mods', branch: 'HEAD' }), mtimeMs: NOW } }
+
+    expect(await activeRun(hostIn({ repos: [{ toplevel: '/work' }], files }))).toMatchObject({ branch: 'HEAD' })
+  })
+
+  test('activeRun keeps the run when symbolic-ref fails with an exit other than 1', async () => {
+    const repos = [{ toplevel: '/work', symbolicExit: 128 }]
+
+    expect(await activeRun(hostIn({ repos, files: RUN_FILE }))).toMatchObject({ slug: 'ship-mods' })
+  })
+
+  test('activeRun matches a run whose sentinel names no branch', async () => {
+    const files = { [RUN]: { text: JSON.stringify({ slug: 'ship-mods' }), mtimeMs: NOW } }
+
+    expect(await activeRun(hostIn({ repos: REPO, files }))).toMatchObject({ slug: 'ship-mods', branch: '' })
   })
 
   test('activeRun is null without a run file', async () => {

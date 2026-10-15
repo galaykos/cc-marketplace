@@ -11,6 +11,7 @@ const INDEX = '/work/taskmaster-docs/tasks/login/00-INDEX.md'
 const SPEC = '/work/taskmaster-docs/specs/login.md'
 const SENTINEL = '/work/.claude/cc-phase.json'
 const HELD = '/work/.claude/prompt-coach/held.jsonl'
+const HELD_IGNORE = '/work/.claude/prompt-coach/.gitignore'
 
 const ZERO = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }
 
@@ -291,7 +292,7 @@ describe('coach', () => {
 
   test('records a drop as a hash and a masked excerpt, never the text', async ($, on) => {
     const world = seat(on)
-    const held = 'deploy it with tok_Zq81xVbLm0 and QzXwVbNmLkJh like before'
+    const held = 'deploy it with tok_Zq81xVbLm0 and QzXwVbNmLkJh or sunshine-rainbow like before'
 
     await mount($)
 
@@ -311,15 +312,18 @@ describe('coach', () => {
       hash: textHash(held),
       chars: held.length,
       kind: 'unclear',
-      excerpt: 'deploy it with ▪ and ▪ like before',
+      excerpt: 'deploy it with ▪ and ▪ or ▪ like before',
       reason: 'Nothing here says which bug.',
     })
-    expect(log.includes('tok_Zq81xVbLm0') || log.includes('QzXwVbNmLkJh'), 'neither secret-shaped word is written').toBe(false)
+    expect(log.includes('tok_Zq81xVbLm0') || log.includes('QzXwVbNmLkJh') || log.includes('sunshine'), 'no secret-shaped word is written').toBe(false)
+    expect(world.files.get(HELD_IGNORE), 'the state dir ignores itself, so git add -A never stages the log').toBe('*\n')
     expect(log.includes('Fix the null check'), 'nor the rewrite, which restates the text').toBe(false)
   })
 
   test('keeps the last 50 drops', async ($, on) => {
-    const world = seat(on, { files: { [HELD]: Array.from({ length: 50 }, (_, i) => JSON.stringify({ n: i })).join('\n') + '\n' } })
+    const world = seat(on, {
+      files: { [HELD]: Array.from({ length: 50 }, (_, i) => JSON.stringify({ n: i })).join('\n') + '\n', [HELD_IGNORE]: 'held.jsonl\n' },
+    })
 
     await mount($)
 
@@ -332,6 +336,7 @@ describe('coach', () => {
     expect(lines.length).toBe(50)
     expect(JSON.parse(lines[0]), 'the oldest record went').toEqual({ n: 1 })
     expect(JSON.parse(lines[49]).hash).toBe(textHash(PROMPT))
+    expect(world.files.get(HELD_IGNORE), 'an existing .gitignore is kept').toBe('held.jsonl\n')
   })
 
   test('a drop it cannot record still drops', async ($, on) => {

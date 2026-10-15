@@ -78,14 +78,18 @@ cc_option() {
 #   marker — not a human turn.
 # cc_prompt_scheduled <prompt> <transcript>: status 0 when <transcript> holds a ScheduleWakeup or CronCreate call whose prompt is
 #   <prompt> exactly: a timer re-delivering an earlier ask, which the hook payload does not mark. Needs jq.
-# cc_prompt_auth_surface: filter; prints each stdin line naming an auth, account, secret, payment or migration surface (not `author`).
+# cc_prompt_auth_surface: filter for paths; prints each stdin line naming an auth, secret, payment or migration surface (not `author`;
+#   sign-up only as a word or a camelCase part, so not DesignUpdates).
+# cc_prompt_auth_ask <text>: status 0 when <text> names an auth, account, invite, secret or payment surface as a word, camelCase split;
+#   no bare session, token, guard or crypt (design tokens, a session retro, a guard clause).
 # cc_prompt_unpaste: filter; cuts each <pasted_content …>…</pasted_content …> span, keeps text beside a tag, drops lines it emptied;
 #   an opening tag with no closing tag after it cuts only itself.
 # cc_prompt_ship_only <text> <verb-ERE>: status 0 when every <verb-ERE> match is create, add, open or make governing a PR, pull request
 #   or commit, or a branch, push, merge, tag or release once a PR, commit, `git` or a name beside the noun marks the text as git work;
 #   a hyphen-, slash-, dot- or underscore-joined name (fix-login, feature/add-auth) is one word, holds no verb, may follow the noun.
 # cc_prompt_question <text> <verb-ERE>: status 0 when <text> ends in `?` and holds no <verb-ERE> match and no request (can/could
-#   you|someone, please, why, any idea), or holds a hands-off ask (don't work on it, don't change anything yet) and no match beside it.
+#   you|someone, please, why, any idea), or holds a hands-off ask (don't work on it, don't change anything yet) and, outside it, no match
+#   opening a clause or following to, please, a modal or a conjunction (`the deploy` is a noun, `then deploy` an ask).
 cc_prompt_frame() {
   case "${1:-}" in
     '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
@@ -102,7 +106,10 @@ cc_prompt_scheduled() {
   grep -F -- "\"prompt\":$n" "$2" 2>/dev/null | grep -qE '"name":"(ScheduleWakeup|CronCreate)"'
 }
 cc_prompt_auth_surface() {
-  grep -iE 'auth([^o]|$)|authori[sz]|login|passw|token|secret|credential|polic|permission|role|guard|middleware|impersonat|session|oauth|webhook|payment|crypt|registration|sign[-_ ]?up|(^|/)migrations/'
+  LC_ALL=C awk '{ l = " " tolower($0) " " } l ~ /auth[^o]|authori[sz]|login|passw|token|secret|credential|polic|permission|role|guard|middleware|impersonat|session|oauth|webhook|payment|crypt|registration|[^a-z]sign[-_ ]?up|[ \/]migrations\// || /Sign[-_]?[Uu]p/'
+}
+cc_prompt_auth_ask() {
+  printf '%s\n' "${1:-}" | sed -E 's/([a-z])([A-Z])/\1 \2/g' | grep -qiE "(^|[^a-z])((un|re|o)?auth(ori[sz]|[^o]|$)|log[- ]?(in|out)|logged[- ]?(in|out)|sign(ed)?[-_ ]?(in|up|out)s?([^a-z]|$)|pass(w|key)|secrets?([^a-z]|$)|credential|polic|permission|roles?([^a-z]|$)|middleware|impersonat|webhook|payment|(en|de|b)crypt|cryptograph|registration|accounts?([^a-z]|$)|invit(e|ation)|(api|access|refresh|bearer|reset)[-_ ]?(tokens?|keys?)|session[-_ ]?(cookie|token|id|fixation|hijack)|(2fa|mfa|two[- ]factor|sso|saml|jwts?|[cx]srf)([^a-z]|$))|(^|/)migrations/"
 }
 cc_prompt_unpaste() {
   awk '{ a[NR] = $0; if (index($0, "</pasted_content")) z = NR }
@@ -135,7 +142,8 @@ cc_prompt_question() {
   case "$t" in *'?') printf '%s' "$t" | grep -qiE "($2)|(^|[^a-z])((can|could|would|will) +(you|u|we|someone|anyone)|please|why|any +ideas?)([^a-z]|$)" || return 0 ;; esac
   h="(^|[^a-z])(don't|don’t|dont|do not|never)( +start)? +work(ing)? on +(anything|it|this|that)( *[.,;:!?]| +(yet|for now|until|before)([^a-z]|$)| *$)|(^|[^a-z])(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything +(yet|for now|until|before)([^a-z]|$)|^[[:space:]]*(please,? +)?(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything[[:space:][:punct:]]*$"
   printf '%s' "$t" | grep -qiE "$h" || return 1
-  ! printf '%s' "$t" | tr 'A-Z' 'a-z' | sed -E "s#$h# ; #g" | grep -qiE "$2"
+  ! printf '%s' "$t" | tr 'A-Z' 'a-z' | sed -E "s#$h# ; #g" \
+    | grep -qiE "(^|[.,;:!?]|(^|[^a-z])(and|but|then|so|also|first|just|now|please|to|should|must|can|could|will|would|let'?s))[^a-z0-9]*($2)"
 }
 
 {
@@ -188,7 +196,8 @@ cc_prompt_question() {
   printf '%s' "$head" | grep -qF '[skill-router]' && exit 0
 
   # A question or a hands-off ask is not a work request (2026-10-13: the check fired on "I got a question, don't work on anything"
-  # and on `?`-ended error reports); one naming a strong-tier word outside the hands-off clause, or a request form (`can you…?`), is.
+  # and on `?`-ended error reports); one asking for strong-tier work outside the hands-off clause (`then fix…`, not `the deploy`),
+  # or a request form (`can you…?`), is.
   strong='build|create|make|add|implement|develop|write|rewrite|refactor|migrate|port|fix|debug|review|audit|design|redesign|restyle|theme|style|test|deploy|ship|optimi[sz]e|speed up|scaffold|set ?up|plan|spec|integrate|automate|investigate|500s?|regress(ed|ion)?|not working'
   cc_prompt_question "$scrub" "\b($strong)\b" && exit 0
   # One grep, three tiers: validate.sh allows four prompt greps here, so a new tier is an alternation in it, never a fifth line.
@@ -196,13 +205,15 @@ cc_prompt_question() {
   # error/crash count after a weak-tier verb (`an`, `with`, `see`, `throw` added for them) or opening a sentence (`Error: …`):
   # bare, they fired on `that error message in the log`; dropped entirely, `I'm getting an error` went silent.
   printf '%s' "$head" | grep -qiE "\b($strong|why is)\b|\b(is|are|was|were|been|went|going|get(s|ting)?|got|keeps?|kept|still|now|seems?|looks?|am|an|with|see(s|ing)?|saw|throw(s|ing|n)?|threw)\b[[:space:]]+([a-z]+[[:space:]]+)?\b(down|slow(er)?|broken|failing|fails|leak(s|ing)?|stuck|crash(es|ed|ing)?|errors?)\b|(^|[.!?;:][[:space:]]+)errors?\b" || exit 0
-  # A /loop or ScheduleWakeup re-fire is answered like the slash command that set it, after the flush: the payload does not mark it,
-  # so cc_prompt_scheduled looks in the transcript for the call that scheduled it. A host /loop tick is a frame, above.
-  cc_prompt_scheduled "$prompt" "$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)" && exit 0
 
   # Raw session_id, not route.sh's context key: UserPromptSubmit never fires in a subagent, so no second context shares this marker.
   sid=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null)
   seen="${TMPDIR:-/tmp}/cc-route-catalog-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
+  [ -e "$seen" ] && exit 0
+  # A /loop or ScheduleWakeup re-fire is answered like the slash command that set it, after the flush: the payload does not mark it,
+  # so cc_prompt_scheduled looks in the transcript for the call that scheduled it, once the check would otherwise speak.
+  # A host /loop tick is a frame, above.
+  cc_prompt_scheduled "$prompt" "$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)" && exit 0
   # mkdir failed: anything at the path (fired, or a squatting file) suppresses; a vacant path means TMPDIR is unwritable, so deliver.
   if ! mkdir "$seen" 2>/dev/null; then
     [ -e "$seen" ] && exit 0

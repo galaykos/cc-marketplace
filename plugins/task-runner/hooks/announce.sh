@@ -129,11 +129,12 @@ cc_option() {
     [ -n "$p" ] && phase=", arc phase \`$p\`${o:+ owned by $o}"
   fi
 
-  # A detached head names no branch, so it is never compared. symbolic-ref, not --abbrev-ref:
-  # a tag with the branch's name made that print `heads/<branch>`, read as another branch.
-  here=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null); here=${here#refs/heads/}
+  # symbolic-ref, not --abbrev-ref: a tag with the branch's name made that print `heads/<branch>`,
+  # read as another branch. Exit 1 is a detached head; any other failure is never compared.
+  here=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null)
+  case $? in 0) here=${here#refs/heads/} ;; 1) here=HEAD ;; *) here="" ;; esac
   elsewhere=""
-  [ -n "$branch" ] && [ -n "$here" ] && [ "$here" != "HEAD" ] && [ "$branch" != "$here" ] \
+  [ -n "$branch" ] && [ -n "$here" ] && [ "$branch" != "$here" ] \
     && elsewhere=" (you are on \`$here\`)"
 
   msg=$(printf '[task-runner] A run is registered on disk: `%s`%s%s%s%s. Read .claude/task-runner/active-run.json%s before starting anything else — candor'"'"'s Stop gate refuses a clean stop while this sentinel exists, and deleting it is how a LIVE run gets abandoned. Resume it with /task-runner:run, or remove the sentinel and .claude/cc-phase.json only once every card is done or parked.' \

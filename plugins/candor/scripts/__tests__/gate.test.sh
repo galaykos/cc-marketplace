@@ -570,6 +570,11 @@ if command -v git >/dev/null 2>&1; then
   qis "branch: a detached HEAD is not the run's branch, as before" \
     "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "registered on branch $QBR, now on HEAD"; echo $?)"
   git -C "$RQ" checkout -q "$QBR"
+  QSHIM="$WS/qshim"; mkdir -p "$QSHIM"
+  printf '#!/bin/sh\nfor a in "$@"; do [ "$a" = symbolic-ref ] && exit 128; done\nexec %s "$@"\n' "$(command -v git)" > "$QSHIM/git"; chmod +x "$QSHIM/git"
+  PATH="$QSHIM:$PATH" qrun "$QT"
+  qis "branch: symbolic-ref failing with exit 128 leaves the branch unknown, and the run is still enforced" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
   printf '{}' > "$QRV/range-${QSTART:0:12}.json"
   qrun "$QT"
   qis "range: a record for an earlier HEAD does not count" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"

@@ -358,13 +358,25 @@ PY")
   out=$(wb "$F" f1 "python3 gen.py && false" sess PostToolUseFailure)
   check "effects: a failed python run (PostToolUseFailure) is read, its envelope naming that event (out=<$out>)" \
     "$(printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUseFailure" and (.hookSpecificOutput.additionalContext | contains("other/failed.js"))' >/dev/null 2>&1 && echo 1)"
+  # A failed command may stop before its redirect: another writer's file it names is not called its edit.
+  T="$WS/fx-failed-redirect"; mkrun "$T"; echo theirs > "$T/other/x.js"
+  ctx=$(wctx "$T" t1 'npm test && echo done > other/x.js' sess PostToolUseFailure)
+  check "failed redirect, no marker yet: the named target takes the effects wording (ctx=<$ctx>)" \
+    "$(case "$ctx" in *"other/x.js changed since"*) echo 1 ;; esac)"
+  lacks "failed redirect, no marker yet: never told to revert" "$ctx" "revert this edit"
+  ctx=$(wctx "$T" t1 'npm test && echo done > other/x.js' sess PostToolUseFailure)
+  check "failed redirect: a named target older than the previous call's marker is not reported (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+  echo y > "$T/other/w.js"
+  ctx=$(wctx "$T" t1 'echo y > other/w.js; false' sess PostToolUseFailure)
+  check "failed command after its redirect ran: the named target still warns as an edit (ctx=<$ctx>)" \
+    "$(case "$ctx" in *"other/w.js was edited"*) echo 1 ;; esac)"
   check "effects: scope.sh is registered on PostToolUseFailure for Bash" \
     "$(jq -e '.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[] | select(.command | test("hooks/scope.sh"))' \
       "$(dirname "$HOOK")/hooks.json" >/dev/null 2>&1 && echo 1)"
 
-  # Another plugin's marker in a state dir without a .gitignore is not a write: nothing under .claude/ is read.
+  # Another plugin's marker is not a write: cc_bash_effects_mark gives its dir a `*` .gitignore, so git never lists it.
   G="$WS/fx-sibling"; mkrun "$G"; wb "$G" g1 'ls' >/dev/null
-  mkdir -p "$G/.claude/security"; echo 123 > "$G/.claude/security/bash-effects.mark"
+  mkdir -p "$G/.claude/security"; printf '*\n' > "$G/.claude/security/.gitignore"; echo 123 > "$G/.claude/security/bash-effects.mark"
   ctx=$(wctx "$G" g1 "python3 -c 'print(1)'")
   check "effects: a sibling plugin's fresh marker under .claude/ is not read as the command's write (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
 else

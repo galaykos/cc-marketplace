@@ -31,7 +31,8 @@
 # (additionalContext), and names the plan.
 # Residual: a run that dispatches past its plan is told, not stopped. The branch is read with
 # `symbolic-ref`: a tag with the branch's name made --abbrev-ref print `heads/<branch>`, so the
-# run read as another branch's and the cap asked. A detached HEAD (exit 1) reads `HEAD` as before.
+# run read as another branch's and the cap asked. A detached HEAD (exit 1) reads `HEAD`; any other
+# failure leaves the branch unknown, which matches the run.
 #
 # WHAT IT DOES NOT CATCH, stated because the README tiers this:
 #   - Agents a SUBAGENT spawns. The count is keyed on the session, and a nested dispatch

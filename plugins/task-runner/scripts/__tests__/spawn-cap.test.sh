@@ -113,6 +113,14 @@ case "$out" in *'"systemMessage"'*'registered run tagged'*) ok "a tag named like
   *) bad "a tag named like the run's branch: still the run, it notifies at 20" "got: ${out:-<silent>}" ;; esac
 git -C "$RUN" tag -d main >/dev/null
 
+# symbolic-ref failing with an exit other than 1 is not a detached head: the branch is unknown, the run counts.
+SHIM="$T/shim"; mkdir -p "$SHIM"
+printf '#!/bin/sh\nfor a in "$@"; do [ "$a" = symbolic-ref ] && exit 128; done\nexec %s "$@"\n' "$(command -v git)" > "$SHIM/git"; chmod +x "$SHIM/git"
+printf '{"slug":"gitfail","branch":"main"}' > "$RUN/.claude/task-runner/active-run.json"
+out=$(for i in $(seq 1 20); do PATH="$SHIM:$PATH" fire_at run-x "$RUN"; done | tail -1)
+case "$out" in *'"systemMessage"'*'registered run gitfail'*) ok "symbolic-ref exiting 128: still the run, it notifies at 20" ;;
+  *) bad "symbolic-ref exiting 128: still the run, it notifies at 20" "got: ${out:-<silent>}" ;; esac
+
 # A sentinel naming no branch is this branch's run, as candor's completion clause reads it.
 printf '{"slug":"nobranch"}' > "$RUN/.claude/task-runner/active-run.json"
 out=$(for i in $(seq 1 20); do fire_at run-f "$RUN"; done | tail -1)
