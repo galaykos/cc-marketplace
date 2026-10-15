@@ -21,6 +21,21 @@ any other plugin.
 > `ui-ux` on 2026-09-26, is one such plugin: an install from before that date lacks it
 > until you re-run.
 
+## The startup line
+
+Installing `all-plugins` alone installs nothing else. While it is the only plugin of its
+marketplace enabled, each new session (startup, not a resume or compaction) shows you
+one line: run `/all-plugins:install`. It goes to you as a `systemMessage` and never into
+the model's context, and it stops the moment any leaf is enabled. `CC_ALL_PLUGINS_HINT=off`
+hides it.
+
+"Enabled" is the `enabledPlugins` map merged from the settings files the CLI writes,
+later wins: `~/.claude/settings.json` (or under `CLAUDE_CONFIG_DIR`), then the project's
+`.claude/settings.json` and `.claude/settings.local.json`. It does not read managed policy
+settings, a `--settings` file or a `--plugin-dir` load: when all-plugins itself is enabled
+only through one of those it stays silent, and when leaves are, it shows the line wrongly.
+**Gate** — `scripts/__tests__/all-plugins.test.sh`, the `hint:` cases.
+
 ## Three ways to run it
 
 ```bash
@@ -89,6 +104,7 @@ disk before any plugin is installed.
 | The exit codes, the every-listed-plugin list, the `prompt-coach` opt-in skip, the scope flag, a script that never prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
 | The commands relay the script instead of running `claude plugin install` themselves | **agent-graded** — it is instruction text in `commands/*.md`; nothing detects a substituted loop |
 | Both commands ask user or local when `--scope` is absent, and stop rather than defaulting when nobody answers | **agent-graded** — instruction text in `commands/install.md` and `commands/uninstall.md`; no harness drives a command |
+| The startup line: shown only while all-plugins is its marketplace's sole enabled plugin, on startup, to the person, off with `CC_ALL_PLUGINS_HINT=off` | **gate** — the same harness's `hint:` cases drive `hooks/hint.sh` against fixture settings files |
 | The budget step: nothing written without `--budget`; with it, the fraction written, never lowered, foreign values kept, invalid JSON untouched, removed only when it is the script's own value | **gate** — the same harness drives it against fixture settings files |
 | The overflow arithmetic | **recorded** — reproduced by `scripts/context-budget.sh`; the 0.07 figure moves as the marketplace grows, and the script recomputes it on every run |
 | The zero-delta firing result | **recorded** — one n=50 measurement; nothing re-runs it in CI (`scripts/smoke/listing-eviction-probe.sh` needs a live model and `LISTING_PROBE=1`) |

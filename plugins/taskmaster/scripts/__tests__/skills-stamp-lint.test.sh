@@ -89,15 +89,27 @@ else
   printf 'FAIL: unreachable skill warns but exits 0 (rc=%s out=<%s>)\n' "$rc" "$out"; fail=$((fail+1))
 fi
 
-# no CLAUDE_PLUGIN_ROOT: probe silently skipped
-set +e
-out=$(env -u CLAUDE_PLUGIN_ROOT "$lint" --line 'vue3-best-practices' --files 'resources/js/App.vue' 2>&1); rc=$?
-set -e
-if [ "$rc" = 0 ] && ! printf '%s' "$out" | grep -q unreachable-skill; then
-  printf 'PASS: probe skipped without CLAUDE_PLUGIN_ROOT (rc=%s)\n' "$rc"; pass=$((pass+1))
-else
-  printf 'FAIL: probe skipped without CLAUDE_PLUGIN_ROOT (rc=%s out=<%s>)\n' "$rc" "$out"; fail=$((fail+1))
-fi
+# no CLAUDE_PLUGIN_ROOT (a Bash call by path): the probe resolves from the script's own
+# plugin. A copy of the lint inside the fixture cache, so its siblings are the fixture's.
+mkdir -p "$cache/taskmaster/scripts"
+cp "$lint" "$here/../card-lint-record.sh" "$cache/taskmaster/scripts/"
+bypath="$cache/taskmaster/scripts/skills-stamp-lint.sh"
+for c in "unreachable|vue3-best-practices|resources/js/App.vue|1" \
+         "reachable|laravel-best-practices|app/Models/User.php|0" \
+         "none|none|src/util.py|0"; do
+  IFS='|' read -r d st fl want <<EOF2
+$c
+EOF2
+  set +e
+  out=$(env -u CLAUDE_PLUGIN_ROOT "$bypath" --line "$st" --files "$fl" 2>&1); rc=$?
+  set -e
+  hit=0; printf '%s' "$out" | grep -q unreachable-skill && hit=1
+  if [ "$rc" = 0 ] && [ "$hit" = "$want" ]; then
+    printf 'PASS: no CLAUDE_PLUGIN_ROOT, %s stamp: probe from the script location (warned=%s)\n' "$d" "$hit"; pass=$((pass+1))
+  else
+    printf 'FAIL: no CLAUDE_PLUGIN_ROOT, %s stamp (rc=%s warned=%s want=%s out=<%s>)\n' "$d" "$rc" "$hit" "$want" "$out"; fail=$((fail+1))
+  fi
+done
 
 # --- framework-card-no-skill names a qualified example ---
 run_case "no-skill message suggests the plugin:skill form" 2 "e.g. laravel:laravel-best-practices" \
@@ -169,7 +181,7 @@ check_warn "qualified, cache layout: a cached plugin is reachable" absent unreac
   env CLAUDE_PLUGIN_ROOT="$cache/mkt/taskmaster/0.48.1" "$lint" --line 'laravel:laravel-best-practices' --files 'app/Models/User.php'
 check_warn "qualified, cache layout: an absent plugin warns" present 'unreachable-skill: "ghost:ghost-best-practices"' \
   env CLAUDE_PLUGIN_ROOT="$cache/mkt/taskmaster/0.48.1" "$lint" --line 'ghost:ghost-best-practices' --files 'app/Models/User.php'
-check_warn "qualified: probe skipped without CLAUDE_PLUGIN_ROOT" absent unreachable-skill \
+check_warn "qualified, no CLAUDE_PLUGIN_ROOT: an absent plugin still warns" present 'unreachable-skill: "ghost:ghost-best-practices"' \
   env -u CLAUDE_PLUGIN_ROOT "$lint" --line 'ghost:ghost-best-practices' --files 'app/Models/User.php'
 
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"

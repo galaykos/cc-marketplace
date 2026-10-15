@@ -46,7 +46,7 @@ command -v jq >/dev/null 2>&1 || exit 0
   case "$prompt" in "" | "/"*) exit 0 ;; esac # empty, or slash commands manage their own flow
   # CC_REMIND=off silences every reminder hook, the cc_remind /config option only this plugin's; a non-empty CC_REMIND wins.
   case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
-{{#if promptShape}}  # promptShape: a harness frame (hand-back, notification) is not the user's ask, and a <pasted_content> span is reference.
+{{#if promptShape}}  # promptShape: a harness frame (hand-back, notification, /loop tick) is not the user's ask, and a <pasted_content> span is reference.
   cc_prompt_frame "$prompt" && exit 0
 {{/if}}  # Only the head outside fences and backtick spans counts: a pasted log or quote buries its keywords.
   scrub=$(printf '%s' "$prompt" | {{#if promptShape}}cc_prompt_unpaste | {{/if}}awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
@@ -61,7 +61,9 @@ command -v jq >/dev/null 2>&1 || exit 0
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
   cc_phase_guard '{{artifact}}' || exit 0
   if printf '%s' "$head" | grep -qiE '{{regex}}'{{#if extraGuard}} && {{extraGuard}}{{/if}}; then
-    # MONOTONIC PRECEDENCE: the best rank eligible this turn always speaks; a worse rank that reads before it claims also prints.
+{{#if promptShape}}    # A /loop or ScheduleWakeup re-fire repeats an earlier ask on a timer: the /loop that set it was a slash command, and nobody is there to answer.
+    cc_prompt_scheduled "$prompt" "$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)" && exit 0
+{{/if}}    # MONOTONIC PRECEDENCE: the best rank eligible this turn always speaks; a worse rank that reads before it claims also prints.
     key=$(printf '%s%s%s' "$sid" "$prompt" "$cc_phase_now" | cksum | cut -d' ' -f1)
 {{#if armsClarifyGate}}    # Sole producer for taskmaster's clarify gate: dropped whenever this hook reaches its trigger branch, even when a better rank speaks.
     mkdir "${TMPDIR:-/tmp}/cc-workprompt-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)" 2>/dev/null
@@ -69,7 +71,9 @@ command -v jq >/dev/null 2>&1 || exit 0
     best=$(best_rank)
     if [ -z "$best" ] || [ "$best" = '{{arcRank}}' ]; then
       printf '%s (%s).\n' '{{message}}' '{{command}}'
-    fi
+{{#if armsClarifyGate}}      # The trivial skip let an auth change through: withheld on review-debt's surface words (the block's; needs promptShape).
+      printf '%s\n' "$head" | cc_prompt_auth_surface >/dev/null && printf '%s\n' 'The prompt names an auth surface: the trivial skip does not apply.'
+{{/if}}    fi
     sweep_stale_markers
   fi
 } 2>/dev/null

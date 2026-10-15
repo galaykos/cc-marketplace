@@ -8,7 +8,7 @@
 #   Blocks anyway: a citation into a file the turn shortened, deleted or renamed; a run record written before the run registered.
 #   Clause 4 misses a UI card with no review diff file and a range review its RV-RANGE marker over-claims; a sentinel with no start_sha owes none.
 #   It retires a closed run unchecked once HEAD moves past its gate pass, a commit made before the closing stop included.
-#   Its hold for a behavioral gate in flight reads task-runner's PID file, not background_tasks: a sandboxed or recycled PID misreads.
+#   Its hold for a behavioral gate in flight reads task-runner's PID file and, on Linux, /proc: without /proc a recycled PID misreads.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -70,6 +70,9 @@ cc_option() {
   printf '%s\n' "$v"
   return 0
 }
+
+# Clause 1's lookup, shared with /candor:check. A missing file stands the clause down; it never fails the gate.
+. "$(dirname "$0")/cite.sh" 2>/dev/null
 
 INFLIGHT_TTL_MIN=180
 # Seven built-in runners at behavioral-gate.sh's 1800 s cap is 210 minutes; an added --runner or a raised cap outruns it.
@@ -140,17 +143,29 @@ inflight_count() {
 }
 
 # task-runner's behavioral gate run in background Bash writes bg/running.pid: its PID, then the HEAD it tests. It counts as one
-# worker while that PID is live, the sha is <head>, and the file is under BG_PID_TTL_MIN; a dead PID or another HEAD is stale.
-# Misses: a recycled PID at the same HEAD holds the block until the file ages out. A gate run in sandboxed Bash records a PID
-# from the sandbox's own namespace (bwrap --unshare-pid on Linux): kill -0 here tests another process, dead (the block stands) or live (it holds).
+# worker while the sha is <head>, the file is under BG_PID_TTL_MIN and the gate is live; a dead gate or another HEAD is stale.
+# Live, with /proc (Linux): the PID's command line names behavioral-gate.sh, or else a live process whose command line names it
+# runs from under <root>. A sandboxed run (bwrap --unshare-pid) records its own namespace's PID, which here names another process or none; the
+# host still lists the gate under its real PID. The [e] keeps the scan's own grep from matching itself.
+# Misses: without /proc (macOS, no PID namespace) liveness is kill -0, so a recycled PID at the same HEAD holds until the file
+# ages out; on Linux, any process naming behavioral-gate.sh from under <root> holds while that file is current.
 bg_running() { # <head> -> 1 or 0
-  local f="$root/.claude/task-runner/bg/running.pid" pid="" sha=""
+  local f="$root/.claude/task-runner/bg/running.pid" pid="" sha="" rp p
   if [ -r "$f" ] && [ -z "$(find "$f" -mmin +"$BG_PID_TTL_MIN" 2>/dev/null)" ]; then
     { read -r pid || :; read -r sha || :; } < "$f"
     case "$pid" in '' | *[!0-9]*) pid="" ;; esac
     case "$sha" in '' | *[!0-9a-f]*) sha="" ;; esac
     if [ -n "$pid" ] && [ "${#sha}" -ge 7 ]; then
-      case "$1" in "$sha"*) kill -0 "$pid" 2>/dev/null && { printf '1'; return 0; } ;; esac
+      case "$1" in "$sha"*)
+        if [ ! -d /proc/self ]; then kill -0 "$pid" 2>/dev/null && { printf '1'; return 0; }
+        else
+          grep -qsE 'behavioral-gat[e]\.sh' "/proc/$pid/cmdline" && { printf '1'; return 0; }
+          rp=$(cd "$root" 2>/dev/null && pwd -P)
+          for p in $(grep -lsE 'behavioral-gat[e]\.sh' /proc/[0-9]*/cmdline 2>/dev/null); do
+            case "$(readlink "${p%/cmdline}/cwd" 2>/dev/null)/" in "$root"/* | "${rp:-$root}"/*) printf '1'; return 0 ;; esac
+          done
+        fi ;;
+      esac
     fi
   fi
   printf '0'
@@ -176,7 +191,8 @@ run_clause() {
 
   # An abandoned run leaves its sentinel behind: a run that names its branch is enforced only on that branch.
   run_branch=$(jq -r '.branch // empty' "$sentinel" 2>/dev/null)
-  cur_branch=$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  # symbolic-ref, not rev-parse --abbrev-ref: a tag named like the branch made that print heads/<branch>, a run read as another's.
+  cur_branch=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null) && cur_branch=${cur_branch#refs/heads/} || cur_branch=HEAD
   if [ -n "$run_branch" ] && [ -n "$cur_branch" ] && [ "$run_branch" != "$cur_branch" ]; then
     printf '[candor] completion-gate: run registered on branch %s, now on %s — not enforced here.\n' "$run_branch" "$cur_branch" >&2
     printf '  If that run is finished or abandoned, delete .claude/task-runner/%s.\n' "${sentinel##*/}" >&2
@@ -428,68 +444,17 @@ read_transcript
 
 clause_fabricated_citation() {
   [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ] || return 0
-  # URLs go before extraction (a.php:80 in one is a port); the extension starts with a letter, so v1.2.3:4 and 10:30 never match.
-  # The leading / is kept (an absolute path into vendor/ lost it and resolved nowhere), and a dev host such as shop.localhost:8080
-  # is a port, not a line. Misses: a file whose extension is one of those host names (.env.local:3, .env.example:12) goes unchecked.
-  cites=$(printf '%s' "$last_msg" \
-    | sed -E 's#[a-zA-Z][a-zA-Z0-9+.-]*://[^[:space:])"]*##g' \
-    | grep -oE '[/A-Za-z0-9_.~][A-Za-z0-9_./-]*\.[A-Za-z][A-Za-z0-9]{0,9}:[0-9]+' 2>/dev/null \
-    | grep -vEi '\.(com|net|org|io|co|ai|app|gg|me|localhost|test|local|internal|example|invalid|lan):[0-9]+$' \
-    | grep -vF '...' \
-    | sort -u)
-
-  # Pruned and depth-capped: a Stop hook must stay cheap on a large repo.
-  _find() { find "$root" -maxdepth 8 \
-    \( -name node_modules -o -name .git -o -name vendor -o -name dist -o -name build -o -name .venv \) -prune \
-    -o "$@" -type f -print 2>/dev/null; }
-
-  # resolve <relpath> prints FILE <path>, MISSING (the basename is in no searched dir) or AMBIGUOUS (unresolved, basename not unique).
-  # Abbreviated paths outnumber invented ones (measured), so only a basename found nowhere is fabricated; a wrong directory passes.
-  # A basename only under the root's node_modules or vendor (6 deep, first hit) is AMBIGUOUS: subagents citing a dependency were
-  # blocked as inventing it. Misses: a name only under dist, build or .venv, or past either depth cap, still reads as MISSING.
-  resolve() {
-    local p="$1" m b n
-    case "$p" in "~/"*) p="${HOME:-}/${p#\~/}" ;; esac
-    case "$p" in
-      /*) [ -f "$p" ] && { printf 'FILE %s' "$p"; return 0; } ;;
-    esac
-    # The shell cwd first — a relative path the model just used from there — then the root.
-    [ -f "$cwd/$p" ] && { printf 'FILE %s' "$cwd/$p"; return 0; }
-    [ -f "$root/$p" ] && { printf 'FILE %s' "$root/$p"; return 0; }
-    m=$(_find -path "*/$p" | head -1)
-    [ -n "$m" ] && { printf 'FILE %s' "$m"; return 0; }
-    b=${p##*/}
-    m=$(_find -name "$b" | head -2)
-    n=$(printf '%s\n' "$m" | grep -c .)
-    if [ "$n" -eq 0 ] && [ -n "$(find "$root/node_modules" "$root/vendor" -maxdepth 6 -name "$b" -print -quit 2>/dev/null)" ]; then
-      printf 'AMBIGUOUS'
-    elif [ "$n" -eq 0 ]; then printf 'MISSING'
-    elif [ "$n" -eq 1 ]; then printf 'FILE %s' "$m"
-    else printf 'AMBIGUOUS'
-    fi
-    return 0
-  }
-
+  command -v cite_miss >/dev/null 2>&1 || { echo "[candor] citation clause: hooks/cite.sh not loaded — not enforced" >&2; return 0; }
+  # hooks/cite.sh: what counts as a citation (a dev host's :port does not) and when one is fabricated (its header has the limits).
+  cites=$(printf '%s' "$last_msg" | cite_extract)
   misses=""
   checked=0
   for c in $cites; do
     [ "$checked" -ge "$MAX_CITATIONS_CHECKED" ] && break
     checked=$((checked + 1))
-    path="${c%:*}"; line="${c##*:}"
-    r=$(resolve "$path")
-    case "$r" in
-      MISSING)   misses="$misses
-  - $c — no file named ${path##*/} found under $root (8 deep; node_modules and vendor 6 deep; dist, build, .venv, .git not searched)"; continue ;;
-      AMBIGUOUS) continue ;;   # path unresolved but the name is real — not decidable
-    esac
-    file="${r#FILE }"
-    lines=$(wc -l < "$file" 2>/dev/null | tr -d ' ')
-    case "$lines" in ''|*[!0-9]*) continue ;; esac
-    # +1 tolerance: a final line with no trailing newline is not counted by wc -l.
-    if [ "$line" -gt $((lines + 1)) ] 2>/dev/null; then
-      misses="$misses
-  - $c — $file has $lines lines"
-    fi
+    r=$(cite_miss "$c" "$root" "$cwd")
+    [ -n "$r" ] && misses="$misses
+  - $c — $r"
   done
 
   if [ -n "$misses" ]; then

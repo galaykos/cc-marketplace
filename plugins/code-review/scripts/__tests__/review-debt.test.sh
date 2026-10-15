@@ -133,6 +133,12 @@ skill code-review:review
 commit "author" app/Http/Controllers/AuthorController.php
 silent "Skill code-review:review moved the base; AuthorController is not auth" "$(prompt)"
 
+# ---- registration is an auth surface (the shared block's words, which taskmaster's reminder reads too); a registry is not --
+commit "registry" app/Support/ServiceRegistry.php
+silent "a service registry is not registration" "$(prompt)"
+commit "registration" app/Http/Controllers/RegistrationController.php
+fires "a registration controller nudges as an auth surface" "$(prompt)" "auth-surface: app/Http/Controllers/RegistrationController.php"
+
 # ---- the user typing the review command moves the base too --------------------------
 silent "typed /code-review:review" "$(say "$R" "/code-review:review src/" "$TP1")"
 [ "$(base_of "$TP1")" = "$(g rev-parse HEAD)" ] \

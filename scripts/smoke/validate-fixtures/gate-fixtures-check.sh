@@ -199,6 +199,9 @@ cp templates/blocks/state-root.md templates/blocks/bash-write-targets.md templat
 { echo '#!/bin/bash'; cat "$B/state-root.md" "$B/prompt-shape.md"; echo 'exit 0'; } > "$T/blk/hooks/good.sh"
 { echo '#!/bin/bash'; sed 's/return 1$/return 2/' "$B/prompt-shape.md"; echo 'exit 0'; } > "$T/blk/hooks/prompt-edited.sh"
 { echo '#!/bin/bash'; awk '/^cc_prompt_frame\(\) \{/,/^}/' "$B/prompt-shape.md"; echo 'exit 0'; } > "$T/blk/hooks/prompt-one.sh"
+# The auth-surface words are shared by review-debt (paths) and taskmaster's reminder (prompts): a lone paste or a dropped word splits them.
+{ echo '#!/bin/bash'; awk '/^cc_prompt_auth_surface\(\) \{/,/^}/' "$B/prompt-shape.md"; echo 'exit 0'; } > "$T/blk/hooks/prompt-auth-one.sh"
+{ echo '#!/bin/bash'; sed 's/|registration|/|/' "$B/prompt-shape.md"; echo 'exit 0'; } > "$T/blk/hooks/prompt-auth-edited.sh"
 { echo '#!/bin/bash'; sed 's/return 1$/return 2/' "$B/state-root.md"; echo 'exit 0'; } > "$T/blk/hooks/edited.sh"
 { echo '#!/bin/bash'; echo 'cc_bash_write_targets() { :; }'; } > "$T/blk/hooks/reimpl.sh"
 { echo '#!/bin/bash'; echo 'cc_bash_write_chunks() { :; }'; } > "$T/blk/hooks/reimpl-chunks.sh"
@@ -227,6 +230,14 @@ esac
 case "$out" in
   *"blk/hooks/prompt-one.sh prompt-shape.md"*) pass "shared-blocks: a hook pasting one cc_prompt_* function is held to the whole block" ;;
   *) fail "shared-blocks: a hook pasting one cc_prompt_* function is held to the whole block" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/prompt-auth-one.sh prompt-shape.md"*) pass "shared-blocks: a hook pasting only cc_prompt_auth_surface is held to the whole block" ;;
+  *) fail "shared-blocks: a hook pasting only cc_prompt_auth_surface is held to the whole block" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/prompt-auth-edited.sh prompt-shape.md"*) pass "shared-blocks: a copy dropping an auth-surface word is named" ;;
+  *) fail "shared-blocks: a copy dropping an auth-surface word is named" "got: ${out:-<empty>}" ;;
 esac
 case "$out" in
   *good.sh*) fail "shared-blocks: a verbatim copy stays clean" "flagged: $out" ;;

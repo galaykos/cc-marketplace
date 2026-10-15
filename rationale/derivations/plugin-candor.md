@@ -192,7 +192,7 @@ overwrite. A worker's hand-back wakes the orchestrator anyway. Two sources:
     demanding the very run that was in progress. task-runner writes
     <root>/.claude/task-runner/bg/running.pid: the PID, then the HEAD sha it tests.
     bg_running counts it as ONE worker, added to either source's count, so the hold prints
-    the same line and keeps this HEAD's one block, while `kill -0 PID` succeeds, the sha is
+    the same line and keeps this HEAD's one block, while the gate is live (below), the sha is
     the current HEAD (a prefix of 7+ hex), and the file is under BG_PID_TTL_MIN, 240
     minutes. A dead PID or another HEAD is a stale file and is ignored. The age cap is what
     bounds a recycled PID at the same HEAD; it is not the records' 180 because seven
@@ -212,13 +212,23 @@ resolved from it would put its SubagentStop's delete where the parent's Stop nev
 RESIDUAL: on an older CLI a worker running past 180 minutes expires and the gate blocks
 once per HEAD as before; a session resumed under a new session_id cannot see the old
 records; background shell tasks and workflows are not workers here, except the
-behavioral gate's running.pid, where a recycled live PID at the same HEAD holds the block
-until the file is 240 minutes old, and a gate given an added --runner or a raised
-BEHAVIORAL_GATE_TIMEOUT can outlast that and draw one block at its HEAD. A gate run in
-sandboxed Bash writes `$$` from the sandbox's PID namespace (the Linux sandbox passes
-bwrap --unshare-pid, read from the 2.1.300 binary): kill -0 from this hook tests a
-different process, so the hold fails (the block stands, as before 0.8.0) or, when that
-number is one of the user's live processes, holds until the age cap. Only the no-gate-
+behavioral gate's running.pid, and a gate given an added --runner or a raised
+BEHAVIORAL_GATE_TIMEOUT can outlast the 240 minutes and draw one block at its HEAD.
+A gate run in sandboxed Bash writes `$$` from the sandbox's PID namespace (the Linux
+sandbox passes bwrap --unshare-pid, read from the 2.1.300 binary). The first 0.8.0 cut
+tested it with kill -0, which here tests a different process: probed 2026-10-15 under
+bwrap --unshare-pid --unshare-user, the recorded PID was 2, the host's kthreadd (kill -0
+fails with EPERM: the block stood), while the host listed the gate under its real PID
+with its cwd and command line readable. So with /proc the hold reads the recorded PID's
+/proc/<pid>/cmdline for `behavioral-gate.sh`, and failing that, scans
+/proc/*/cmdline (one grep, ~4 ms over 900 processes) for a live behavioral-gate.sh whose
+cwd is under the root. The pattern is written behavioral-gat[e] so the scan's own grep,
+which names it, never matches itself. This also closes the recycled-PID hold on Linux.
+RESIDUAL: without /proc (macOS, whose sandbox has no PID namespace) it is kill -0, and a
+recycled live PID at the same HEAD holds the block until the file is 240 minutes old; on
+Linux any process whose command line names behavioral-gate.sh and whose cwd is under the
+root — a background `tail` of its log, an editor on the script in task-runner's own repo
+— holds it while a current running.pid names this HEAD. Only the no-gate-
 pass branch consults any of this: a claimed pass with short nc/rv/bg records, a short
 red-team panel or an undisclosed reduction still blocks with workers in flight.
 ```
@@ -343,6 +353,12 @@ leaves one behind indefinitely. Enforcing it from a different branch would turn 
 dead run into a repo-wide trap. A run registered with a "branch" is enforced only
 on that branch; a sentinel without one (pre-0.17 registration) keeps the old
 unconditional behaviour.
+The current branch is `git symbolic-ref -q HEAD` less `refs/heads/` (0.8.0). It was
+`rev-parse --abbrev-ref HEAD`, which prints `heads/<branch>` once a tag shares the
+branch's name, so a tag made during a run read the run as another branch's and clause 4
+stood down (`symbolic-ref --short` shortens the same way). A detached HEAD still reads
+`HEAD`, as before, and is not the run's branch. task-runner's register-run.sh writes the
+`branch` this compares against; both must spell it the same way.
 ```
 
 ### run_clause: card counts
@@ -931,6 +947,31 @@ One-shot per context. UserPromptSubmit never reaches a subagent, so session_id
 would do; transcript_path is preferred for the same reason the gate exists.
 ```
 
+### Prompt shape (0.8.0)
+
+```text
+The prompt test adopts the shared prompt-shape block (templates-and-blocks.md): a prompt
+cc_prompt_frame calls a harness frame (a hand-back, a notification, a /loop tick) exits
+before the one-shot marker, so it can neither inject the moves nor spend the session's
+one injection; cc_prompt_unpaste cuts <pasted_content> spans before the verb test, so a
+pasted log's "fix" or "update" is not an imperative. Not adopted: ship_only (a session
+opened with "create the PR" still gets the moves, once) and scheduled (a re-delivered
+ask is a real ask, and the one-shot has usually been spent by its first delivery).
+Standing: gate — preamble-hook.test.sh 33-38 (33-36 red against 0.7.1).
+```
+
+### Move (2)'s exception (0.8.0)
+
+```text
+"If the user said they will test it themselves, name what is untested and stop." In a
+reviewed session (retro V-05) the model spun up throwaway containers three times to prove
+a three-line config change after the user had said they would test it in production,
+and the user had to interrupt. The model also tests unprompted, so the plugin's share of
+that is partial. +79 chars (957 now, 965 bytes), on the first work prompt and every
+writable subagent's start. Standing: agent-graded; preamble-hook.test.sh 31-32 pin the
+text, no eval case measures the behaviour.
+```
+
 ## plugins/candor/hooks/activate.sh
 
 ### Header: the shebang
@@ -1070,6 +1111,49 @@ results are `tool_result` items and are skipped, so a worker's report cannot
 launder a hedge into "the user said it").
 ```
 
+### unbody: commit messages and PR bodies (0.8.0)
+
+```text
+A reviewed session (2026-10-13 retro, V-03) waited 6 minutes on an ask fired by a
+`gh pr create` body that DISCLOSED a precaution a worker had coded earlier ("both are
+subtracted to be safe"). A commit message or PR body records a hedge already made; the
+guard exists for the call where one is chosen — a dispatch, a file, an edit. So a Bash
+call is re-scanned without: a `git commit` (git -C/-c and single-token globals allowed
+before it) or `gh pr create|edit` that starts at a command position (line start, or
+after ; & | or an opening paren), up to the next ; & | or the line end, plus any
+heredoc body opened in that span — the `-m "$(cat <<'EOF' …)"` shape the host's own
+commit recipe uses. Heredoc bodies are consumed in the order their openers appear, so
+`cat > f <<A && git commit -F - <<B` keeps A's body and drops B's. A dropped body with
+no terminator is put back.
+
+Errs toward asking, never toward silence, on the shapes it cannot place: a ; & | inside
+the quoted message ends the span early and the rest is scanned; a multi-line quoted
+message with no heredoc is scanned from its second line; `GIT_X=y git commit` or
+`env git commit` is not at a command position. Not covered: a message written by Write
+and passed with -F or --body-file is a Write and is read; `gh pr comment`, `gh issue`
+and `git tag -m` bodies are read. The re-scan runs only after the raw text already hit
+the hedge pattern, so a call with no hedge pays nothing.
+
+Standing: gate — avert-hook.test.sh 16-18 (red against 0.7.1), neighbours 19-21.
+```
+
+## plugins/candor/hooks/cite.sh
+
+```text
+One citation lookup for clause 1 and /candor:check, sourced by both (0.8.0). Until then
+candor-scan.sh carried a copy, held to gate.sh by a text-comparison test that could not
+see the URL strip or the `...` filter. The reasons given for deferring a sourced file
+(below, candor-scan.sh's axis 1) were that the lib lives outside the hook and that a
+missing file leaves resolve undefined; both are handled: the file ships in the same
+hooks/ directory (skill-router's plugins-dir.sh is the precedent), and a gate that
+cannot source it stands clause 1 down with one stderr line, never failing the stop
+(gate.test.sh "without hooks/cite.sh …"). candor-scan.test.sh "gate and report agree"
+runs both on one message — a vendor/ citation, a dependency basename, localhost:8000
+and an invented basename — and a static case fails if either file grows its own lookup
+again. cite_miss takes root and cwd as arguments instead of reading the callers'
+globals, so the contract is in the call.
+```
+
 ## plugins/candor/scripts/candor-scan.sh
 
 ### Header
@@ -1132,17 +1216,10 @@ Only the contrastive forms — the ones that exist to reassign blame — are cou
 Same extraction and resolution as the gate; reported instead of blocked, and
 across the whole window instead of the final message alone. (Until 0.8.0 it was not:
 the scan kept the pre-0.7.1 lookup and called a pruned basename missing "anywhere".
-Since 0.8.0 _find, resolve and the two extraction patterns are gate.sh's, copied —
-the plugin sources no shared file — and candor-scan.test.sh fails when they differ.)
-RESIDUAL (the copy and its drift test): the test compares the text from `_find() {` to
-the next line that is a lone `}`, comments included, and the first two `grep -oE` /
-`grep -vEi` patterns in each file by position. So the URL strip and the `...` elision
-filter can drift unseen; a new `grep -oE` placed earlier in either file shifts the
-comparison into a false FAIL; a comment reworded in one copy fails it though nothing ran
-differently. The fix is one definition both files read: a byte-locked block under
-templates/blocks/ (pc_shared_blocks already gates the pasted copies) or a sourced
-hooks/lib.sh. Deferred: the block lives outside this plugin's files, and a sourced lib
-gives a fail-open Stop hook a new way to fail — a missing file leaves resolve undefined.
+A first 0.8.0 cut copied gate.sh's _find, resolve and extraction patterns, held by a
+text-comparison test that could not see the URL strip or the `...` filter.) Since 0.8.0
+both source hooks/cite.sh (its section above): one definition, no drift test. A scan
+that cannot source it prints `-` for the axis instead of a count.
 Measured: pointing the scan at a session that ran in another project reported 78
 "missing" files in one transcript, every one of them real where that turn actually
 happened. A measurement that is wrong whenever it is run from the wrong directory

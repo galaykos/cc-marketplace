@@ -21,7 +21,7 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
 1. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-analyzers.sh" .` — exit 1 means no
    checker is configured: say so and STOP.
 2. Read the `ci` records: which config does CI actually enforce?
-3. Run the printed invocation. `npx tsc --noEmit` is a whole-program check — its
+3. Run the printed invocation, unless CI already passed it on this HEAD (the skill's step 4). `npx tsc --noEmit` is a whole-program check — its
    output covers files outside the diff, so attribute findings to the diff explicitly
    rather than dumping the full log.
 4. Triage into new defect / baselined debt / config gap.

@@ -124,6 +124,11 @@ T="$WS/c20.jsonl"; { user "where"; asst "The admin panel runs on shop.localhost:
 check "a .localhost / .test host:port is not a citation" "" "$T" 0 "__NONE__"
 T="$WS/c21.jsonl"; { user "where"; asst "The handler is in Invented.php:12."; } > "$T"
 check "an invented basename still blocks beside a vendor/ tree" "" "$T" 2 "no file named Invented.php found under"
+# The lookup is sourced from hooks/cite.sh: without it the citation clause stands down, the gate still exits 0.
+mkdir -p "$WS/lone"; cp "$HOOK" "$WS/lone/gate.sh"
+rm -f "$MARKER" "$CLAIMED"; err=$(payload "$T" | bash "$WS/lone/gate.sh" 2>&1 >/dev/null); rc=$?
+if [ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF 'hooks/cite.sh not loaded'; then pass=$((pass+1)); printf 'PASS  without hooks/cite.sh the citation clause stands down and says so\n'
+else fail=$((fail+1)); printf 'FAIL  without hooks/cite.sh the citation clause stands down and says so (rc=%s; stderr=%s)\n' "$rc" "$err"; fi
 
 T="$WS/r1.jsonl"; { asst "The retry is disabled."; user "Are you sure?"; asst "You're absolutely right, my mistake — it is enabled."; } > "$T"
 check "bare pushback + retraction + no tool blocks"   "" "$T" 2 "$REV_SUB"
@@ -445,7 +450,11 @@ if command -v git >/dev/null 2>&1; then
   rm -f "$(rec_of agentKilled)"
 
   # task-runner's behavioral gate in background Bash records its PID, then the HEAD it tests, in bg/running.pid.
-  mkdir -p "$TRD/bg"; sleep 300 & LIVE=$!
+  # Named like the gate: with /proc the hook checks the recorded PID's command line, not only that it is live.
+  #   Its child sleep dies with it, and no fixture holds the harness's stdout open.
+  printf 'sleep 300 & s=$!\ntrap "kill $s; exit 0" TERM\nwait\n' > "$WS/behavioral-gate.sh"
+  await_gate() { local i; [ -d /proc/self ] || return 0; for i in 1 2 3 4 5 6 7 8 9 10; do grep -qs 'behavioral-gate' "/proc/$1/cmdline" && return 0; sleep 0.2; done; }
+  mkdir -p "$TRD/bg"; bash "$WS/behavioral-gate.sh" >/dev/null 2>&1 & LIVE=$!; await_gate "$LIVE"
   printf '%s\n%s\n' "$LIVE" "$RHEAD" > "$TRD/bg/running.pid"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
   verdict_is "in flight: a behavioral gate whose PID is live at HEAD holds the no-gate-pass block like a worker" \
@@ -461,6 +470,22 @@ if command -v git >/dev/null 2>&1; then
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
   verdict_is "no gate pass: the block says to run the behavioral gate in the background" \
     "$(printf '%s' "$err" | grep -qF 'repo root, in the background, run task-runner'"'"'s scripts/behavioral-gate.sh'; echo $?)"
+  # Sandboxed Bash (bwrap --unshare-pid) records the sandbox's own PID: dead here, or another process. With /proc the gate is
+  #   found by its command line and a cwd under the root.
+  if [ -d /proc/self ]; then
+    (cd "$RR" && exec bash "$WS/behavioral-gate.sh") >/dev/null 2>&1 & SBX=$!; await_gate "$SBX"
+    clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+    verdict_is "sandbox: a dead recorded PID while a behavioral-gate.sh runs from under the root holds the block" \
+      "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB"; echo $?)"
+    kill "$SBX" 2>/dev/null; wait "$SBX" 2>/dev/null
+    (cd "$WS" && exec bash "$WS/behavioral-gate.sh") >/dev/null 2>&1 & SBX=$!; await_gate "$SBX"
+    sleep 300 >/dev/null 2>&1 & OTHER=$!
+    printf '%s\n%s\n' "$OTHER" "$RHEAD" > "$TRD/bg/running.pid"
+    clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
+    verdict_is "sandbox: a recorded PID naming another live process, the only gate outside the root, is ignored" \
+      "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+    kill "$SBX" "$OTHER" 2>/dev/null; wait "$SBX" "$OTHER" 2>/dev/null
+  fi
   rm -f "$TRD/bg/running.pid"
 
   mkdir -p "$TRD/bg"
@@ -535,6 +560,16 @@ if command -v git >/dev/null 2>&1; then
   qrun "$QT"
   qis "range: a start_sha run with no range record for HEAD blocks and names RV-RANGE" \
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && printf '%s' "$err" | grep -qF "RV-RANGE: $Q12" && printf '%s' "$err" | grep -qF "${QSTART:0:12}..HEAD"; echo $?)"
+  git -C "$RQ" tag "$QBR"
+  qrun "$QT"
+  qis "branch: a tag named like the run's branch does not move the run to another branch" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
+  git -C "$RQ" tag -d "$QBR" >/dev/null
+  git -C "$RQ" checkout -q --detach
+  qrun "$QT"
+  qis "branch: a detached HEAD is not the run's branch, as before" \
+    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "registered on branch $QBR, now on HEAD"; echo $?)"
+  git -C "$RQ" checkout -q "$QBR"
   printf '{}' > "$QRV/range-${QSTART:0:12}.json"
   qrun "$QT"
   qis "range: a record for an earlier HEAD does not count" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"

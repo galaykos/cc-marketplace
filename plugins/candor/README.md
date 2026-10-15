@@ -54,7 +54,10 @@ Since 0.8.0 task-runner's behavioral gate running in background Bash counts as o
 worker: it writes `.claude/task-runner/bg/running.pid` (its PID, then the HEAD it tests),
 and the gate holds while that PID is live, the sha is the current HEAD and the file is
 under 240 minutes old (seven built-in runners at the gate's 1800 s cap run 210); a dead
-PID or another HEAD is ignored. The gate prints a one-line note instead of blocking and keeps this HEAD's one block for
+PID or another HEAD is ignored. With `/proc` (Linux) live means the PID's command line
+names `behavioral-gate.sh`, or else some live `behavioral-gate.sh` runs from under the
+repo root: a gate in sandboxed Bash (`bwrap --unshare-pid`) records the sandbox's own PID,
+which names another process or none outside it. The gate prints a one-line note instead of blocking and keeps this HEAD's one block for
 the stop after the last worker returns. Every other clause-4 reason still blocks while
 workers run: a claimed pass with short records, a red behavioral gate, a short
 red-team panel, or an undisclosed reduction.
@@ -97,7 +100,9 @@ on every later stop (0.3.1; `scripts/__tests__/gate.test.sh`, clause independenc
 prints six counts — the two gated candour axes plus flattery openers, apologies,
 defensive phrasing and emotional intensifiers — and, when a terse level is active
 or `--brevity` is passed, `scripts/measure.sh`'s prose-line count per turn-final
-message against the level's budget. Both always exit 0.
+message against the level's budget. Both always exit 0. The citation count uses the
+gate's own lookup, `hooks/cite.sh`, sourced by both (since 0.8.0), so a citation the
+report counts is one clause 1 would block.
 
 The four extra axes are deliberately ungated. No regex separates "you're right"
 said because it is true from the same words said to please, once the evidence
@@ -198,10 +203,10 @@ so the injected card and the skill body cannot drift.
 | Event | Script | Does |
 | --- | --- | --- |
 | `Stop`, `SubagentStop` | `hooks/gate.sh` | the five clauses above; exit 2 blocks |
-| `PreToolUse` (Agent, Task, Write, Edit, MultiEdit, Bash) | `hooks/avert.sh` | the text about to reach a worker or disk declares doing less than what was named for a reason the user did not give — a legal/IP reason, a substitute (original, invented, generic, placeholder, stand-in, look-alike, inspired-by) in place of the real thing, or precaution language ("to be safe", "as a precaution") — and no human turn raised that term: the call becomes a permission question, once per term per session. `CC_AVERT=notify` makes it a notification the call proceeds past. Vocabulary-bound — an avert that never names its reason passes; `CC_AVERT=off` silences it |
+| `PreToolUse` (Agent, Task, Write, Edit, MultiEdit, Bash) | `hooks/avert.sh` | the text about to reach a worker or disk declares doing less than what was named for a reason the user did not give — a legal/IP reason, a substitute (original, invented, generic, placeholder, stand-in, look-alike, inspired-by) in place of the real thing, or precaution language ("to be safe", "as a precaution") — and no human turn raised that term: the call becomes a permission question, once per term per session. A Bash call's `git commit` message and `gh pr create`/`edit` title and body are not read: they record a hedge already made (a heredoc opened beside them, or text after a `;`, `&` or `|`, still is) `CC_AVERT=notify` makes it a notification the call proceeds past. Vocabulary-bound — an avert that never names its reason passes; `CC_AVERT=off` silences it |
 | `SessionStart` | `hooks/activate.sh` | injects the terse contract once, only when a level is active; silent otherwise |
 | `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton (~150 tokens per prompt — measured 596 chars at `lite`/`full`/`ultra`, 693 at a `wenyan-*` level — and nothing when off) |
-| `UserPromptSubmit` | `hooks/preamble.sh` | once per session, on the first prompt whose head carries a making verb in an imperative clause: injects the five working moves before the first edit (under 1,000 bytes, bounded by the hook's own test); silent on every later prompt, on questions, on slash commands, and under `CC_PREAMBLE=off` |
+| `UserPromptSubmit` | `hooks/preamble.sh` | once per session, on the first prompt whose head carries a making verb in an imperative clause: injects the five working moves before the first edit (under 1,000 bytes, bounded by the hook's own test); silent on every later prompt, on questions, on slash commands, on a harness frame (a hand-back, a notification), and under `CC_PREAMBLE=off`; a making verb only inside a pasted span does not count |
 | `SubagentStart` | `hooks/preamble.sh` | the same five moves, once per `agent_id`, for every subagent the Agent tool spawns — `UserPromptSubmit` never fires inside a subagent, and on 2026-09-18 the text reached 0 of 3 workers building an app; under 1,000 bytes too. Since 0.8.0 an agent that cannot edit gets no text — this marketplace's agents whose `tools:` holds neither `Write` nor `Edit` (reviewers, `*-expert`, scouts, `researcher`, `verifier`), matched by qualified name (`ultra-deep-research:verifier`, never a bare `verifier`), and the built-in `Explore`, `Plan` and `claude-code-guide`; `preamble-hook.test.sh` derives that set from every `agents/*.md` and fails on one the list misses; another source's read-only agent still gets it. Also writes the worker's in-flight record for clause 4 (under `$TMPDIR`, keyed on the hashed `session_id`), even under `CC_PREAMBLE=off` |
 
 `mode.sh` is **not** a `CC_REMIND` reminder hook: a user-selected mode is not a
@@ -233,6 +238,10 @@ Move (1)'s last sentence, *add no code comment unless it states what the code ca
 (0.6.3), is outside that measured set and no case covers it: its effect is unmeasured. It
 is there for reach — into every subagent, and into sessions without `code-review`, whose
 hooks judge a comment only as it is written.
+Move (2)'s last sentence, *if the user said they will test it themselves, name what is
+untested and stop* (0.8.0), is outside it too: in a reviewed session the model built
+throwaway containers three times to prove a config change the user had said they would test
+in production. **Standing: agent-graded**, no case covers it.
 
 Running them takes two operator grants the case files cannot give themselves:
 
@@ -277,10 +286,10 @@ Stated because a gate reads stronger than it is:
   180 minutes stops counting, and the gate blocks once per HEAD as it did before 0.5.0.
   A session resumed under a new `session_id` cannot see its earlier records.
   Background shell tasks and workflows do not count as workers, except the behavioral
-  gate's `bg/running.pid`; a recycled PID at the same HEAD holds the block until that
-  file is 240 minutes old, a gate given an extra `--runner` or a raised timeout can
-  outlast it, and a gate run in sandboxed Bash records a PID from its own namespace
-  that the hook cannot test.
+  gate's `bg/running.pid`; without `/proc` (macOS) a recycled PID at the same HEAD
+  holds the block until that file is 240 minutes old, on Linux any process naming
+  `behavioral-gate.sh` from under the repo root holds it while the file is current, and a
+  gate given an extra `--runner` or a raised timeout can outlast the 240 minutes.
 - **Pushback detection is a regex over one message.** Phrasing outside the list
   is invisible, and a user message carrying its own evidence disarms clause 2 on
   purpose.

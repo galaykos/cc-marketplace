@@ -24,7 +24,7 @@ order is the content. In short:
    analyzer is configured: say so, name the cheapest one to add, and STOP.
 2. Read the `ci` records to learn which config is authoritative before opening any.
 3. Read `phpstan-baseline.neon` / `psalm-baseline.xml` before running anything.
-4. Run the exact invocation the detector printed. Report the real exit code.
+4. Run the exact invocation the detector printed. Report the real exit code. Skip it when CI already passed it on this HEAD (the skill's step 4 says how to tell).
 5. Triage into new defect / baselined debt / config gap.
 6. Report config gaps last and loudest.
 

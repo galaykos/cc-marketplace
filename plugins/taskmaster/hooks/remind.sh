@@ -101,8 +101,13 @@ cc_option() {
 
 # Shared block templates/blocks/prompt-shape.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/prompt-shape.md
-# Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste: stdin) and writes nothing.
-# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a line opens with the hand-back marker — not a human turn.
+# Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste, cc_prompt_auth_surface: stdin;
+#   cc_prompt_scheduled: the file it names) and writes nothing.
+# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back
+#   marker — not a human turn.
+# cc_prompt_scheduled <prompt> <transcript>: status 0 when <transcript> holds a ScheduleWakeup or CronCreate call whose prompt is
+#   <prompt> exactly: a timer re-delivering an earlier ask, which the hook payload does not mark. Needs jq.
+# cc_prompt_auth_surface: filter; prints each stdin line naming an auth, account, secret, payment or migration surface (not `author`).
 # cc_prompt_unpaste: filter; cuts each <pasted_content …>…</pasted_content …> span, keeps text beside a tag, drops lines it emptied;
 #   an opening tag with no closing tag after it cuts only itself.
 # cc_prompt_ship_only <text> <verb-ERE>: status 0 when every <verb-ERE> match is create, add, open or make governing a PR, pull request
@@ -114,9 +119,19 @@ cc_prompt_frame() {
   case "${1:-}" in
     '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
     'Another Claude session sent a message:'*|'<agent-message'*) return 0 ;;
+    '# Autonomous loop check'*|'# Autonomous loop tick'*|'# /loop tick'*) return 0 ;;
     *'[Subagent hand-back]'*) printf '%s\n' "$1" | grep -qE '^[*_[:space:]]*\[Subagent hand-back\]' ;;
     *) return 1 ;;
   esac
+}
+cc_prompt_scheduled() {
+  local n
+  [ -n "${1:-}" ] && [ -f "${2:-}" ] || return 1
+  n=$(printf '%s' "$1" | jq -Rs . 2>/dev/null) && [ -n "$n" ] || return 1
+  grep -F -- "\"prompt\":$n" "$2" 2>/dev/null | grep -qE '"name":"(ScheduleWakeup|CronCreate)"'
+}
+cc_prompt_auth_surface() {
+  grep -iE 'auth([^o]|$)|authori[sz]|login|passw|token|secret|credential|polic|permission|role|guard|middleware|impersonat|session|oauth|webhook|payment|crypt|registration|sign[-_ ]?up|(^|/)migrations/'
 }
 cc_prompt_unpaste() {
   awk '{ a[NR] = $0; if (index($0, "</pasted_content")) z = NR }
@@ -190,7 +205,7 @@ cc_prompt_question() {
   case "$prompt" in "" | "/"*) exit 0 ;; esac # empty, or slash commands manage their own flow
   # CC_REMIND=off silences every reminder hook, the cc_remind /config option only this plugin's; a non-empty CC_REMIND wins.
   case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
-  # promptShape: a harness frame (hand-back, notification) is not the user's ask, and a <pasted_content> span is reference.
+  # promptShape: a harness frame (hand-back, notification, /loop tick) is not the user's ask, and a <pasted_content> span is reference.
   cc_prompt_frame "$prompt" && exit 0
   # Only the head outside fences and backtick spans counts: a pasted log or quote buries its keywords.
   scrub=$(printf '%s' "$prompt" | cc_prompt_unpaste | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
@@ -205,6 +220,8 @@ cc_prompt_question() {
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
   cc_phase_guard 'taskmaster:remind' || exit 0
   if printf '%s' "$head" | grep -qiE '\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)\b'; then
+    # A /loop or ScheduleWakeup re-fire repeats an earlier ask on a timer: the /loop that set it was a slash command, and nobody is there to answer.
+    cc_prompt_scheduled "$prompt" "$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)" && exit 0
     # MONOTONIC PRECEDENCE: the best rank eligible this turn always speaks; a worse rank that reads before it claims also prints.
     key=$(printf '%s%s%s' "$sid" "$prompt" "$cc_phase_now" | cksum | cut -d' ' -f1)
     # Sole producer for taskmaster's clarify gate: dropped whenever this hook reaches its trigger branch, even when a better rank speaks.
@@ -213,6 +230,8 @@ cc_prompt_question() {
     best=$(best_rank)
     if [ -z "$best" ] || [ "$best" = '25' ]; then
       printf '%s (%s).\n' 'taskmaster: work-shaped prompt — before the first code edit, run one batched clarifying round to zero ambiguity, or state in one line why this task is trivial enough to skip it; the inline route is /code-architecture:coding-task' '/taskmaster:task'
+      # The trivial skip let an auth change through: withheld on review-debt's surface words (the block's; needs promptShape).
+      printf '%s\n' "$head" | cc_prompt_auth_surface >/dev/null && printf '%s\n' 'The prompt names an auth surface: the trivial skip does not apply.'
     fi
     sweep_stale_markers
   fi

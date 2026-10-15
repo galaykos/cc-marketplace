@@ -390,6 +390,38 @@ else bad 'main "$@" is the last line of the script' "got: $(tail -n 1 "$SCRIPT")
 if ! grep -qE '(^|[^-])-y( |$)|--yes' "$SCRIPT"; then ok "the script never passes -y"
 else bad "the script never passes -y" "$(grep -nE '(^|[^-])-y( |$)|--yes' "$SCRIPT")"; fi
 
+# ---- 11. hooks/hint.sh: a startup line only while all-plugins is the marketplace's sole enabled plugin --------
+HINT="$ROOT/plugins/all-plugins/hooks/hint.sh"
+HH="$WS/hint-home"; HP="$WS/hint-proj"; mkdir -p "$HH/.claude" "$HP/.claude"
+hint() { # hint <source> [env...] -> stdout of the hook
+  local src="$1"; shift
+  printf '{"hook_event_name":"SessionStart","source":"%s","cwd":"%s"}' "$src" "$HP" \
+    | env -u CLAUDE_CONFIG_DIR HOME="$HH" CLAUDE_PROJECT_DIR="$HP" "$@" bash "$HINT" 2>/dev/null
+}
+hint_case() { # desc speaks|silent out
+  if [ "$2" = speaks ]; then
+    if printf '%s' "$3" | jq -e '.systemMessage | test("only cc-plugins-marketplace plugin enabled") and test("/all-plugins:install")' >/dev/null 2>&1
+    then ok "hint: $1"; else bad "hint: $1" "wanted the systemMessage line, got: [$3]"; fi
+  elif [ -z "$3" ]; then ok "hint: $1"; else bad "hint: $1" "wanted silence, got: $3"; fi
+}
+jq -n '{enabledPlugins:{"all-plugins@cc-plugins-marketplace":true,"tool@other-marketplace":true}}' > "$HH/.claude/settings.json"
+hint_case "all-plugins alone (another marketplace's plugin does not count)" speaks "$(hint startup)"
+hint_case "a resume or compaction stays silent" silent "$(hint resume)"
+hint_case "CC_ALL_PLUGINS_HINT=off" silent "$(hint startup CC_ALL_PLUGINS_HINT=off)"
+jq -n '{enabledPlugins:{"alpha@cc-plugins-marketplace":true}}' > "$HP/.claude/settings.local.json"
+hint_case "a leaf enabled at local scope silences it" silent "$(hint startup)"
+jq -n '{enabledPlugins:{"alpha@cc-plugins-marketplace":false}}' > "$HP/.claude/settings.local.json"
+hint_case "a leaf disabled at local scope does not count" speaks "$(hint startup)"
+rm -f "$HP/.claude/settings.local.json"
+jq -n '{enabledPlugins:{"beta@cc-plugins-marketplace":true}}' > "$HP/.claude/settings.json"
+hint_case "a leaf enabled at project scope silences it" silent "$(hint startup)"
+jq -n '{enabledPlugins:{"all-plugins@cc-plugins-marketplace":false}}' > "$HP/.claude/settings.json"
+hint_case "all-plugins disabled at project scope: silent" silent "$(hint startup)"
+rm -f "$HP/.claude/settings.json" "$HH/.claude/settings.json"
+hint_case "no settings at all: silent" silent "$(hint startup)"
+printf 'not json\n' > "$HH/.claude/settings.json"
+hint_case "unreadable settings: silent" silent "$(hint startup)"
+
 if command -v shellcheck >/dev/null 2>&1; then
   if sc=$(shellcheck "$SCRIPT" 2>&1); then ok "shellcheck clean"; else bad "shellcheck clean" "$sc"; fi
 else

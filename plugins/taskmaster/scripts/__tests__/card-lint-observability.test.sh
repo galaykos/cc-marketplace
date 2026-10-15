@@ -59,11 +59,12 @@ jq -nc --arg i "$SET/00-INDEX.md" \
   '{slug:"2026-08-31-demo",base:"deadbeef",branch:"master",index_path:$i}' \
   > "$REPO/.claude/task-runner/active-run.json"
 
-fire() { # $1 transcript_path, $2 cwd, $3 session_id -> additionalContext (empty = silent)
-  jq -nc --arg t "$1" --arg c "$2" --arg s "${3:-sess-shared}" \
+fire() { # $1 transcript_path, $2 cwd, $3 session_id, $4 agent_id -> additionalContext (empty = silent)
+  jq -nc --arg t "$1" --arg c "$2" --arg s "${3:-sess-shared}" --arg a "${4:-}" \
     '{hook_event_name:"PostToolUse",tool_name:"Edit",session_id:$s,transcript_path:$t,
       cwd:$c,tool_input:{file_path:"src/x.ts",old_string:"a",new_string:"b"},
-      tool_response:{filePath:"src/x.ts",success:true}}' \
+      tool_response:{filePath:"src/x.ts",success:true}}
+     + (if $a == "" then {} else {agent_id:$a,agent_type:"task-runner:task-executor"} end)' \
   | bash "$H" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
 }
 
@@ -91,10 +92,16 @@ if [ -z "$(find "$TMPDIR" -name '*main.jsonl*' -o -name '*t?main*' 2>/dev/null)"
   pass "raw transcript_path never appears in a created path"
 else bad "raw transcript_path leaked into a path under TMPDIR"; fi
 
-# --- 4. THE DELIVERY CLAIM: a subagent sharing the parent's session still warned
-if [ -n "$(fire "$FX/t/subagents/a1.jsonl" "$REPO" sess-shared)" ]; then
-  pass "subagent transcript warns under the parent's session id"
-else bad "subagent silenced by the parent's marker — session-keyed, and the claim is false"; fi
+# --- 4. the one-shot is keyed per transcript: a second transcript under one session id
+if [ -n "$(fire "$FX/t/second.jsonl" "$REPO" sess-shared)" ]; then
+  pass "a second transcript warns under the same session id"
+else bad "second transcript silenced by the first's marker — session-keyed"; fi
+
+# --- 4b. MAIN THREAD ONLY: a subagent payload (agent_id set) stays silent, on a
+# fresh transcript so the one-shot cannot be what silences it.
+if [ -z "$(fire "$FX/t/subagents/a1.jsonl" "$REPO" sess-shared agent-a1)" ]; then
+  pass "subagent payload (agent_id) is silent: linting is the orchestrator's job"
+else bad "warned inside a subagent"; fi
 
 # --- 5. the linters leave a record -------------------------------------------
 # Run them the way skills/task-cards/SKILL.md says to, per card.
@@ -197,5 +204,17 @@ if printf '%s' "$out" | grep -qF "01-alpha.md"; then pass "subdirectory cwd: roo
 else bad "subdirectory cwd: silent from src/ (got: $out)"; fi
 if [ ! -e "$REPO/src/.claude" ]; then pass "subdirectory cwd: no .claude/ under src/"
 else bad "subdirectory cwd: a .claude/ dir appeared under src/"; fi
+
+# --- 12. ONLY CARDS COUNT: an NN-*.md beside the cards with no <card> wrapper and no
+# **Verify:** line (probe results, notes) is not a card; a role-tagged card is.
+rm -f "$SET/.lint-records"/*.log
+jq -nc --arg i "$SET/00-INDEX.md" '{slug:"2026-08-31-demo",index_path:$i}' \
+  > "$REPO/.claude/task-runner/active-run.json"
+printf '# Probe results\n\n| probe | result |\n|---|---|\n| ping | ok |\n' > "$SET/13-probe-results.md"
+printf '# 04 — delta\n\n<card id="04">\n<goal>g</goal>\n</card>\n' > "$SET/04-delta.md"
+out=$(fire "$FX/t/notcard.jsonl" "$REPO")
+if printf '%s' "$out" | grep -qF '4 of 4' && ! printf '%s' "$out" | grep -qF '13-probe-results.md'; then
+  pass "a non-card NN-*.md is not counted; a <card> file is"
+else bad "card predicate wrong (got: $out)"; fi
 
 exit "$rc"

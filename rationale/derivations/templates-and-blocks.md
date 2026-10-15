@@ -428,6 +428,35 @@ don't touch anything yet in the exporter"), and a ship noun as the object of fea
 ("add PRs to the dashboard"). The fix narrows when the test may silence instead of listing
 more phrases: the question test takes an ERE from its adopter and stays out of the way
 of any prompt matching it, and a ship phrase no longer ends at to, into, onto or with.
+
+A scheduled wakeup (2026-10-15) was still read as the user's work. In the retro's six
+scheduled fires (two sessions), every prompt was text the model had passed to
+ScheduleWakeup itself as a fallback ("check whether the agents finished; then build…"),
+and taskmaster's reminder spoke on all three fires of one of them. Read from CLI 2.1.300: a dynamic
+/loop passes the user's /loop text back as the prompt, or the sentinel
+<<autonomous-loop-dynamic>>, which the host expands BEFORE the hook into text opening
+"# Autonomous loop check" (first fire) or "# Autonomous loop tick", and a loop.md loop
+into "# /loop tick — …". The UserPromptSubmit payload carries no origin field (session_id,
+transcript_path, cwd, prompt_id, permission_mode, agent_*, effort, prompt, session_title).
+The transcript's scheduled_task_fire entry is no help either: the hook started 12-28 ms
+after the fire in all three measured fires, and the host batches transcript writes at
+100 ms. What IS on disk is the call that scheduled the prompt, at least 60 s older (the
+tool clamps delays to 60-3600 s), so cc_prompt_scheduled matches the prompt to a
+ScheduleWakeup or CronCreate call in the transcript. It found all six fires in their
+transcripts, including the 1,136 lines written before the first one, in 5-7 ms on a 10 MB
+file, and none of the typed prompts.
+Silence is the decision because the first firing was already silent: the user typed
+`/loop …`, a slash command every adopter skips, so speaking on the re-fire nudges about an
+ask that never drew the nudge, on a turn the host's own preamble says runs "while the user
+is away". review-debt does not call it: a re-fired prompt that says push still gets its
+ship line, because a push nobody is watching is the one most worth a review.
+
+The auth half of V-20 (2026-10-15): a session took taskmaster's "state why this is
+trivial" skip on a prompt disabling registration, and review found the invite dead-end it
+left. The words review-debt already read on changed paths moved into the block as
+cc_prompt_auth_surface, so taskmaster's reminder reads the same list on the prompt and
+pc_shared_blocks keeps the two from drifting. The list gained registration and sign-up:
+without them it would have missed the one measured case.
 ```
 
 ### Contract
@@ -436,8 +465,17 @@ of any prompt matching it, and a ship phrase no longer ends at to, into, onto or
 cc_prompt_frame <prompt> — status 0 when the prompt OPENS with <system-reminder>,
   <task-notification (attributes allowed), [SYSTEM NOTIFICATION, Stop hook feedback:,
   Another Claude session sent a message: or <agent-message, or a line opens with
-  [Subagent hand-back] (after optional spaces, `*` or `_`). A real ask quoting a marker
-  mid-sentence is an ask. The grep runs only when the marker is present.
+  [Subagent hand-back] (after optional spaces, `*` or `_`), or opens as a host /loop
+  tick: "# Autonomous loop check", "# Autonomous loop tick" or "# /loop tick". A real ask
+  quoting a marker mid-sentence is an ask. The grep runs only when the marker is present.
+cc_prompt_scheduled <prompt> <transcript> — status 0 when the transcript has a line
+  holding `"prompt":` plus the prompt JSON-encoded by jq (the whole value, so a prefix of
+  a scheduled prompt does not match) and naming a ScheduleWakeup or CronCreate call.
+  Status 1 with no prompt, no such file, or no jq.
+cc_prompt_auth_surface — stdin filter, case-insensitive: prints each line holding auth
+  (not author), authorise/authorize, login, passw, token, secret, credential, polic,
+  permission, role, guard, middleware, impersonat, session, oauth, webhook, payment,
+  crypt, registration, sign-up/signup/sign up/sign_up, or a migrations/ directory.
 cc_prompt_unpaste — stdin filter: each <pasted_content …>…</pasted_content …> span
   goes, text on the tag's own line stays, a line left blank by a cut is dropped. An
   opening tag with no closing tag anywhere after it is cut alone (to its `>`), and the
@@ -465,7 +503,18 @@ cc_prompt_question <text> <verb-ERE> — status 1 when the ERE is empty. Status 
 ### What it does not catch, stated
 
 ```text
-- frame: a harness frame under any other prefix is a human turn.
+- frame: a harness frame under any other prefix is a human turn, and so is a /loop tick
+  whose heading the host renames. A prompt the user types under one of the three
+  headings is silenced.
+- scheduled: a re-fire the transcript cannot show — a durable task from an earlier
+  session, a prompt ending in a newline (the hook's read strips it), a prompt holding DEL
+  (jq escapes it, the host does not) — is a human turn. A prompt the user retypes
+  verbatim while its call is in the transcript is silenced, and so is one equal to a
+  subagent's prompt on a JSONL line that also names ScheduleWakeup. Each call reads the
+  whole transcript, so adopters call it only once the prompt would otherwise speak.
+- auth_surface: on a prompt the words over-match ("this session", "design tokens", a
+  guard clause, a privacy policy page), which withholds the trivial skip for one
+  clarifying round; "register the listener", "invite", "account" and "user" do not match.
 - unpaste: a name or verb that appears only inside a paste no longer counts.
 - ship_only: a feature-sense branch, tag, merge or release ending its clause reads as
   ship when the prompt also names a PR or commit ("create the PR and add tags" is
@@ -488,21 +537,30 @@ cc_prompt_question <text> <verb-ERE> — status 1 when the ERE is empty. Status 
   "do not work on the legacy importer" and "don't change anything in vendor/" are
   constraints, not hands-off.
 - Nothing here judges intent. Standing: the shapes are gated by each adopter's harness
-  (ask-ledger ledger-hook.test.sh, scripts/smoke/prompt-route-tests.sh,
-  review-debt.test.sh, scripts/smoke/hook-guard-tests.sh); the byte lock by
-  pc_shared_blocks and generate.sh --check.
+  (ask-ledger ledger-hook.test.sh, scripts/smoke/prompt-route-tests.sh, skill-router
+  route.test.sh case 18, review-debt.test.sh, scripts/smoke/hook-guard-tests.sh); the
+  byte lock by pc_shared_blocks and generate.sh --check. Which shape a live host sends a
+  wakeup in was read from the 2.1.300 binary and six recorded fires, not probed live.
 ```
 
-### Adopters (2026-10-14)
+### Adopters (2026-10-14, 2026-10-15)
 
 ```text
-ask-ledger ledger.sh: frame, unpaste. skill-router route-prompt.sh: frame, unpaste (a
-prompt that is only a paste is read whole), question with its strong tier (the tool-fit
-check only). code-review review-debt.sh: frame (ship detection skips frames).
-taskmaster remind.sh via promptShape: frame, unpaste, ship_only. Not adopted: candor's
-preamble and the approaches, debugging and api-design reminder hooks, which set
-promptShape to adopt it; review-debt's auth-surface pattern is a path regex inside
-review-debt.sh, so taskmaster's reminder cannot reach it without a cross-plugin call.
+ask-ledger ledger.sh: frame, unpaste, scheduled. skill-router route-prompt.sh: frame,
+unpaste (a prompt that is only a paste is read whole), question with its strong tier and
+scheduled (the tool-fit check only; the digest still flushes on a re-fire, as on a slash
+command). code-review review-debt.sh: frame (ship detection skips frames) and
+auth_surface on changed paths. The reminder template with promptShape: frame, unpaste,
+ship_only, and scheduled once the trigger matched; with armsClarifyGate too
+(taskmaster) the auth_surface line. promptShape is set by taskmaster's remind.sh and,
+since 2026-10-15, by approaches' remind.sh (build-vs-buy), debugging's and api-design's.
+For the last two, ship_only never silences: their regex holds no making verb, so no
+match is create/add/open/make. approaches' consult-remind.sh keeps it off: it is a
+phase-any guard on irreversible commands, a paste may hold the command the user asks to
+run, and no misfire on a frame was measured. candor's preamble.sh (2026-10-15): frame and
+unpaste, before its one-shot marker; not ship_only or scheduled (rationale in
+plugin-candor.md § preamble.sh "Prompt shape").
+Recount: grep -rl 'cc_prompt_frame() {' plugins/
 ```
 
 ## templates/blocks/heredoc-bodies.md
@@ -894,6 +952,21 @@ better-ranked sibling speaks instead, or retiring the old budgetExempt branch
 would silently disarm that gate for everyone who set CC_CLARIFY_GATE=block.
 Gated on an explicit manifest flag, not on rank, so exactly one plugin arms
 it — making it unconditional would widen a deny gate's trigger to five hooks.
+```
+
+### The auth-surface line (armsClarifyGate)
+
+```text
+The clarify gate's reminder offers a way out: "state in one line why this task is
+trivial enough to skip it". A session took it on a prompt disabling registration
+(2026-10-13 retro, V-20). Where the manifest sets armsClarifyGate, a second line
+follows the message when the prompt head matches cc_prompt_auth_surface: the trivial
+skip does not apply. The words are the prompt-shape block's, the ones review-debt reads
+on paths, so the line also needs promptShape; without it the call fails and no line is
+printed. Keyed on armsClarifyGate rather than a new manifest key because the skip it
+withdraws belongs to the clarify gate's message. Standing: gate for the line
+(scripts/smoke/hook-guard-tests.sh, the tm_auth cases); whether the model then runs
+the round is agent-graded.
 ```
 
 ## templates/boost-hook.sh.tmpl

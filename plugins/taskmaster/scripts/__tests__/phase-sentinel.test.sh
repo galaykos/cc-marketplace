@@ -96,7 +96,7 @@ OUT=$("$S" frobnicate 2>&1); RC=$?
 H="$PLUGIN_ROOT/hooks/remind.sh"
 if command -v jq >/dev/null 2>&1 && [ -f "$H" ]; then
   fire() {
-    printf '{"hook_event_name":"UserPromptSubmit","prompt":"build a login page","cwd":"%s","session_id":"S1"}' "$P" \
+    printf '{"hook_event_name":"UserPromptSubmit","prompt":"build a login page","cwd":"%s","session_id":"S1","transcript_path":"/nowhere/S1.jsonl"}' "$P" \
       | CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$H" 2>/dev/null
   }
   "$S" clear --cwd "$P" >/dev/null 2>&1
@@ -128,7 +128,7 @@ OUT=$("$S" clear --cwd "$G/app/Models" 2>&1); RC=$?
 [ "$RC" = 0 ] && [ ! -e "$GS" ] && ok "clear --cwd <subdir> removes the root's sentinel" || bad "clear from a subdirectory" "rc=$RC ($OUT)"
 if command -v jq >/dev/null 2>&1 && [ -f "$H" ]; then
   subfire() {
-    printf '{"hook_event_name":"UserPromptSubmit","prompt":"build a login page","cwd":"%s","session_id":"S1"}' "$G/app/Models" \
+    printf '{"hook_event_name":"UserPromptSubmit","prompt":"build a login page","cwd":"%s","session_id":"S1","transcript_path":"/nowhere/S1.jsonl"}' "$G/app/Models" \
       | CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$H" 2>/dev/null
   }
   [ -n "$(subfire)" ] && ok "generated reader, subdirectory cwd: speaks with no sentinel (control arm)" \

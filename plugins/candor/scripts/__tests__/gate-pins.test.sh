@@ -70,7 +70,10 @@ if [ ! -e "$REC" ]; then pass=$((pass+1)); printf 'PASS  in-flight TTL: the 182-
 else fail=$((fail+1)); printf 'FAIL  in-flight TTL: the 182-minute record is deleted from disk\n'; fi
 
 RP="$WS/bgpid"; repo "$RP"; mkdir -p "$RP/.claude/task-runner/bg"; PIDF="$RP/.claude/task-runner/bg/running.pid"
-sleep 600 & LIVE=$!
+# Named like the gate: with /proc the hook checks the recorded PID's command line, not only that it is live.
+printf 'sleep 600 & s=$!\ntrap "kill $s; exit 0" TERM\nwait\n' > "$WS/behavioral-gate.sh"
+bash "$WS/behavioral-gate.sh" >/dev/null 2>&1 & LIVE=$!
+[ -d /proc/self ] && for i in 1 2 3 4 5 6 7 8 9 10; do grep -qs 'behavioral-gate' "/proc/$LIVE/cmdline" && break; sleep 0.2; done
 printf '%s\n%s\n' "$LIVE" "$(git -C "$RP" rev-parse HEAD)" > "$PIDF"; age_minutes "$PIDF" 238
 expect "bg PID age: a 238-minute running.pid with a live PID at HEAD still holds the block" "$RP" "$CLEAN" 0 "still in flight"
 age_minutes "$PIDF" 242

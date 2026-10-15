@@ -115,8 +115,8 @@ files span >1 domain. `<contract>` only when the spec has that binding section.
 - Spec has UI → the FIRST UI card builds the sign-in and seeders its Walk access row settled
   (grill `references/visual-contract.md`); later UI cards depend on it. Already in the repo → no card.
 - Each UI card carries one `<walk>` line (surface, 1280/375, state) for the group-close walk:
-  `references/card-shape.md`. A `<verify>` of types/lint/grep alone draws a `ui-static-only` WARN;
-  name a component or browser test when the repo has a runner.
+  `references/card-shape.md`. A `<verify>` of types/lint/grep alone draws a `ui-static-only` WARN; name a component or browser test when the repo has a runner.
+  A card needing a browser names its driver as installed (Playwright MCP, a `playwright` dependency), never just "browser".
 
 ## Ordering and parallelism
 

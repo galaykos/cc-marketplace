@@ -423,7 +423,8 @@ prompt_d() { # prompt transcript
 for p in '<task-notification><task-id>t1</task-id><status>completed</status></task-notification>' \
          'Stop hook feedback: run the suite first' '<system-reminder>a file changed</system-reminder>' \
          $'Another Claude session sent a message:\n<agent-message from="a1">done</agent-message>' \
-         $'note above the frame\n[Subagent hand-back] all green'; do
+         $'note above the frame\n[Subagent hand-back] all green' \
+         $'# Autonomous loop tick (dynamic pacing)\n\nRun the autonomous check; fix the failing build.'; do
   t=$(fresh); edit "$D" "$D/app/Http/Controllers/ApiTokenController.php" "$t" >/dev/null
   fl=$(prompt_d "$p" "$t")
   grep -qF 'Signals from recent edits' <<<"$fl" && bad "harness frame flushed the digest [${p:0:30}]" || ok
@@ -594,6 +595,22 @@ if command -v python3 >/dev/null 2>&1; then
 else
   echo "SKIP 25: python3 not available"
 fi
+
+# 26. command rows with no file to route (2026-10-15): a dependency update rewrites only the lockfile, and a ReUI or Metronic copy
+#     lands owned code that never imports @reui/. Neighbours stay silent: install, a script named update, a plain copy, a quoted mention.
+P="$WS/p"; mkui "$P" '{"dependencies":{"react":"19.0.0"}}'
+for cmd in 'composer update --with-all-dependencies' 'npm update' 'cd web && npm upgrade' 'composer upgrade laravel/framework'; do
+  out=$(bashc "$P" "$cmd" "$(fresh)")
+  has_skill "$out" package-hygiene && ok || bad "command row [$cmd]: did not route package-hygiene; got: ${out:0:160}"
+done
+for cmd in 'cp -r ~/Downloads/metronic-v9/src/components/ui/. resources/js/components/ui/' 'rsync -a ../reui-blocks/ src/components/blocks/'; do
+  out=$(bashc "$P" "$cmd" "$(fresh)")
+  has_skill "$out" reui-best-practices && ok || bad "command row [$cmd]: did not route reui-best-practices; got: ${out:0:160}"
+done
+for cmd in 'composer install' 'npm run update-snapshots' 'cp src/a.tsx src/b.tsx' 'git log --grep metronic' 'git commit -m "npm update and cp the reui kit"'; do
+  out=$(bashc "$P" "$cmd" "$(fresh)")
+  [ -z "$out" ] && ok || bad "command row [$cmd]: expected silence, got: ${out:0:160}"
+done
 
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }

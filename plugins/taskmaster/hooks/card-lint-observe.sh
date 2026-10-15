@@ -21,14 +21,18 @@
 # an exit-0 Stop hook prints into a turn that has already ended, so a warn-only Stop
 # hook would be a message nobody acts on (candor's gate.sh clause 4 — where the run
 # completion gate lives; task-runner ships no hook of its own for it — states the same
-# constraint from the blocking side). PostToolUse is also the only
-# event that runs inside SUBAGENTS, which is where a fanned-out card is actually
-# implemented.
+# constraint from the blocking side).
+#
+# MAIN THREAD ONLY. PostToolUse also runs inside subagents, and a payload there carries
+# an agent_id (rationale/candor-subagent-context-probe-2026-10-01.md). Linting the set is
+# the orchestrator's job, so a worker told to fix one card got a warning about the whole
+# set it could not act on, once per worker (D2-20, rationale/session-retro-2026-10-13.md).
+# A payload with an agent_id now exits silent. Residual: in a fully fanned-out run the
+# first main-thread write may be an index status update after the first card, not before.
 #
 # THE CONTEXT KEY. The one-shot ("already warned about this set here") is keyed on
-# transcript_path, never session_id: a subagent shares its parent's session_id, so a
-# session-keyed marker would dedupe the worker against a warning it never saw — the
-# whole point of using this event. transcript_path is an ABSOLUTE PATH, so it is
+# transcript_path, never session_id: chosen when subagents were warned too, since a
+# worker shares its parent's session_id. transcript_path is an ABSOLUTE PATH, so it is
 # hashed with cksum before it reaches a filename; interpolated raw it would name a
 # file under directories that do not exist and the bound would silently stop
 # existing. (pc_context_key / pc_marker_key, scripts/lib/plugin-checks.sh.)
@@ -109,6 +113,8 @@ cc_option() {
   input=$(cat)
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] || exit 0
+  aid=$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)
+  [ -z "$aid" ] || exit 0                        # a subagent: main thread only, see header
   root=$(cc_state_root "$cwd") || exit 0
 
   # HANDOFF, cheapest test first: this is a per-edit hook and the overwhelming case
@@ -135,6 +141,9 @@ cc_option() {
     [ -f "$card" ] || continue
     base=$(basename "$card")
     case "$base" in 00-*) continue ;; esac      # the index is not a card
+    # A card is what card-shape-lint accepts: a <card> wrapper or a legacy **Verify:**
+    # line. A probe-results or notes file named NN-*.md beside the cards was counted.
+    grep -Eq '^<card( |>)|\*\*Verify:\*\*' "$card" 2>/dev/null || continue
     total=$((total + 1))
     [ "$total" -gt 60 ] && break                # bounded: this runs inside the turn
     gaps=""

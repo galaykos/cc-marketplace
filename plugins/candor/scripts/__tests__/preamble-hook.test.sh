@@ -92,6 +92,17 @@ printf -- '---\nname: listr\ndescription: x\ntools:\n- Read\n- Grep\nmodel: inhe
 check "28 an agent with no tools: line counts as writable (it inherits Write and Edit)" "$(writable "$A/bare.md" && echo w)" 'w'
 check "29 a YAML-list tools: naming Write counts as writable" "$(writable "$A/listw.md" && echo w)" 'w'
 check "30 a YAML-list tools: of Read and Grep counts as read-only" "$(writable "$A/listr.md" || echo r)" 'r'
+move2='cannot disagree with you. If the user said they will test it themselves, name what is untested and stop. (3) '
+check "31 move (2) yields to a user who will test it themselves, on UserPromptSubmit" "$(run 'build the exporter' s11)" "$move2"
+check "32 the same on SubagentStart" "$(runsub ag-m2 general-purpose | jq -r '.hookSpecificOutput.additionalContext // empty')" "$move2"
+check "33 a hand-back frame with a making verb is silent" "$(run $'[Subagent hand-back]\nFixed the parser; update the docs next.' s12)" ''
+check "34 the frame did not spend the session's one-shot" "$(run 'fix the login redirect bug' s12)" 'five moves'
+check "35 a task notification is silent" "$(run '<task-notification><summary>fix applied</summary></task-notification>' s13)" ''
+check "36 a making verb only inside a paste is silent" \
+  "$(run $'<pasted_content id="p1">\nnpm WARN: run npm audit fix to update\n</pasted_content id="p1">\nwhat is this warning about' s14)" ''
+check "37 an ask beside a paste still speaks" \
+  "$(run $'<pasted_content id="p2">\nTypeError: x is undefined\n</pasted_content id="p2">\nfix this error in the importer' s15)" 'five moves'
+check "38 the hand-back marker quoted mid-sentence is an ask" "$(run 'fix the parser that drops the [Subagent hand-back] line' s16)" 'five moves'
 m=$(ls -d "$TMP"/cc-preamble-* 2>/dev/null | wc -l | tr -d ' ')
 [ "$m" -ge 1 ] && echo "PASS: 13 marker is written under TMPDIR ($m)" || { echo "FAIL: 13 no marker written"; rc=1; }
 

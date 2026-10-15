@@ -76,7 +76,8 @@
 #     file moves the base past twenty; a review done outside these channels (a PR review,
 #     a manual read) is invisible and the nudge still fires.
 #   - The auth-surface pattern is a path regex: `tokens.css` (design tokens) matches it,
-#     and an auth bug in `app/Services/Billing.php` does not.
+#     and an auth bug in `app/Services/Billing.php` does not. It is the shared prompt-shape
+#     block's cc_prompt_auth_surface; editing it there changes taskmaster's reminder too.
 #   - A base that stops being an ancestor of HEAD (rebase, amend) is reset to HEAD silently
 #     rather than diffed across branches — an amended commit's changes are lost to the count.
 #     A branch change keeps nothing from the branch left behind: switching away and back
@@ -151,8 +152,13 @@ cc_option() {
 
 # Shared block templates/blocks/prompt-shape.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/prompt-shape.md
-# Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste: stdin) and writes nothing.
-# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a line opens with the hand-back marker — not a human turn.
+# Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste, cc_prompt_auth_surface: stdin;
+#   cc_prompt_scheduled: the file it names) and writes nothing.
+# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back
+#   marker — not a human turn.
+# cc_prompt_scheduled <prompt> <transcript>: status 0 when <transcript> holds a ScheduleWakeup or CronCreate call whose prompt is
+#   <prompt> exactly: a timer re-delivering an earlier ask, which the hook payload does not mark. Needs jq.
+# cc_prompt_auth_surface: filter; prints each stdin line naming an auth, account, secret, payment or migration surface (not `author`).
 # cc_prompt_unpaste: filter; cuts each <pasted_content …>…</pasted_content …> span, keeps text beside a tag, drops lines it emptied;
 #   an opening tag with no closing tag after it cuts only itself.
 # cc_prompt_ship_only <text> <verb-ERE>: status 0 when every <verb-ERE> match is create, add, open or make governing a PR, pull request
@@ -164,9 +170,19 @@ cc_prompt_frame() {
   case "${1:-}" in
     '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
     'Another Claude session sent a message:'*|'<agent-message'*) return 0 ;;
+    '# Autonomous loop check'*|'# Autonomous loop tick'*|'# /loop tick'*) return 0 ;;
     *'[Subagent hand-back]'*) printf '%s\n' "$1" | grep -qE '^[*_[:space:]]*\[Subagent hand-back\]' ;;
     *) return 1 ;;
   esac
+}
+cc_prompt_scheduled() {
+  local n
+  [ -n "${1:-}" ] && [ -f "${2:-}" ] || return 1
+  n=$(printf '%s' "$1" | jq -Rs . 2>/dev/null) && [ -n "$n" ] || return 1
+  grep -F -- "\"prompt\":$n" "$2" 2>/dev/null | grep -qE '"name":"(ScheduleWakeup|CronCreate)"'
+}
+cc_prompt_auth_surface() {
+  grep -iE 'auth([^o]|$)|authori[sz]|login|passw|token|secret|credential|polic|permission|role|guard|middleware|impersonat|session|oauth|webhook|payment|crypt|registration|sign[-_ ]?up|(^|/)migrations/'
 }
 cc_prompt_unpaste() {
   awk '{ a[NR] = $0; if (index($0, "</pasted_content")) z = NR }
@@ -300,9 +316,10 @@ cc_prompt_question() {
     | grep -vE '\.md$|(^|/)\.claude/|(^|/)taskmaster-docs/|(^|/)(node_modules|vendor|dist|build|\.next|coverage|generated|__generated__)/' \
     | grep -vE '(^|/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|composer\.lock|Gemfile\.lock|Cargo\.lock|poetry\.lock|Pipfile\.lock|uv\.lock|go\.sum|bun\.lockb?|mix\.lock|flake\.lock)$')
   count=$(printf '%s\n' "$changed" | grep -c .)
-  # `auth` but not `author`: a publishing app's AuthorController is not an auth surface.
-  auth=$(printf '%s\n' "$changed" \
-    | grep -iE 'auth([^o]|$)|authori[sz]|login|passw|token|secret|credential|polic|permission|role|guard|middleware|impersonat|session|oauth|webhook|payment|crypt|(^|/)migrations/')
+  # `auth` but not `author`: a publishing app's AuthorController is not an auth surface. The words are the prompt-shape block's
+  # cc_prompt_auth_surface, which taskmaster's reminder reads on prompts, so the two cannot drift; since 0.33.0 they add
+  # registration and sign-up.
+  auth=$(printf '%s\n' "$changed" | cc_prompt_auth_surface)
   nauth=$(printf '%s\n' "$auth" | grep -c .)
 
   # A ship line answers to the last ship line, so a ship prompt still speaks after a plain

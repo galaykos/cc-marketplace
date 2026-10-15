@@ -138,6 +138,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 
 | Variable | Plugins | Default | What it does |
 |----------|---------|---------|--------------|
+| `CC_ALL_PLUGINS_HINT` | all-plugins | — | CC_ALL_PLUGINS_HINT=off hides the startup line naming all-plugins as the only plugin enabled |
 | `CC_ASK_LEDGER` | ask-ledger | on | Ledger what a prompt names and have the Stop gate ask for an accounting line for each: on or off |
 | `CC_AVERT` | candor | on | Ask before a write or dispatch that carries a hedge the user never raised: on, notify or off |
 | `CC_BOOST` | craft-layer, task-runner, taskmaster | on | Boost hooks that raise model and effort when a prompt carries an ultra- token: on or off |

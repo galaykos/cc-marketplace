@@ -61,7 +61,12 @@ vue-tsc, and for styles and markup stylelint/pa11y/axe/lighthouse-ci, whose revi
 `ui-expert`) → toolchain-experts' matching expert agent, which RUNS it rather than reciting
 it, plus its analyzer-triage skill to say whether CI enforces the result).
 Load each skill whose plugin IS installed and apply it inside the
-single pass below — never tell the user to run the per-stack review commands
+single pass below. Before the pass, print what resolved as a checklist, one
+`- [ ] plugin:skill` per item: every installed skill or agent the rows above and the
+resilience selection below pick, plus comment-discipline when the diff adds comments.
+`Checked:` accounts for each by name — applied, or under `Not checked:` with why; an
+earlier per-card review is a reason only if it loaded that same skill. Standing:
+agent-graded. Never tell the user to run the per-stack review commands
 separately; this command is the fan-in for the overlapping review surfaces. Name
 relevant-but-uninstalled plugins in one closing line instead. This list is the
 contract behind every per-stack command's hand-up clause ("the aggregator reaches
@@ -106,8 +111,8 @@ after the pass — fan-in merge, self-refute, `Checked:`, verdict, apply offer �
 this command's, and **this command emits `ReportFindings` once**; the built-in's
 own emission, if any, is consumed as input, never forwarded. When the skill is
 absent (older host, disabled, a headless run without it), run items 1–5 inline
-exactly as written. Output contract unchanged either way; the `Checked:` line
-names which branch ran. Standing: recorded — nothing checks which branch ran.
+exactly as written. Output contract unchanged either way; the `Checked:` line's
+first token names which branch ran. Standing: agent-graded — no script reads it.
 
 1. Read every changed hunk plus enough surrounding code to judge behavior —
    never review a hunk in isolation when it calls or is called by nearby code.
@@ -173,10 +178,14 @@ Output rules:
     idempotency, unguarded parallel writes; silent catch blocks, correlation IDs,
     secrets in logs; performance hotspots; at-least-once delivery, idempotent
     consumers, ordering and poison messages on a broker or queue) and this plugin's own `comment-discipline`
-    skill (added comments, judged in item 4a; volume stays with the hooks). When `resilience` is installed, LOAD its
-    matching skills (resilience-design, error-handling-design, concurrency-safety,
-    observability-design, performance-tuning, and event-driven when the diff touches a
-    broker, queue, consumer or event schema — all six) in this same pass and report each such
+    skill (added comments, judged in item 4a; volume stays with the hooks). When `resilience` is installed, LOAD only
+    the skills the diff's content selects: resilience-design for a call across a process
+    boundary (HTTP, database, third-party API, job dispatch), error-handling-design for an
+    added or changed try/catch or error type, concurrency-safety for a shared write, lock,
+    retry or transaction, observability-design for a log, metric, trace or health check,
+    performance-tuning for a query or I/O in a loop, a cache or payload/bundle size, and
+    event-driven for a broker, queue consumer or event schema; a diff with none of these
+    loads none. Apply them in this same pass and report each such
     finding once, tagged with the owning skill — never defer it to a `/resilience:*`
     command, because those commands hand their whole scope back here and a deferral
     is a loop in which nobody runs the rubric. When `resilience` is absent, this
@@ -185,9 +194,10 @@ Output rules:
   - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer
     agent; security-deep issues → `/security:review`.
 
-Before the verdict, state the coverage: `Checked: … (generic pass: host built-in | inline)`
-and `Not checked: … (why)` so it is explicit what was covered, what was clean, which
-branch did the generic pass, and what was skipped — not only what broke. Then run one adversarial self-refute pass over every `critical` and `high`
+Before the verdict, state the coverage: `Checked: host built-in | inline — …`, the branch
+that ran the generic pass as its first token, then each fan-in checklist item, and
+`Not checked: … (why)` so it is explicit what was covered, what was clean, and what was
+skipped — not only what broke. Then run one adversarial self-refute pass over every `critical` and `high`
 finding; if a finding does not survive it, drop or downgrade it with a note. The
 refutation checklist is the false-positive taxonomy — a finding matching any row is
 dropped, not downgraded:

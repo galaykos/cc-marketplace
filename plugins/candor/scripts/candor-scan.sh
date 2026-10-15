@@ -90,60 +90,20 @@ n_def=$(count "$DEFENSIVE"); n_emo=$(count "$EMOTIONAL")
 cwd=$(jq -rs '[.[] | .cwd? // empty] | last // empty' "$tp" 2>/dev/null)
 [ -n "$cwd" ] && [ -d "$cwd" ] || cwd=$(pwd)
 root=$(cc_state_root "$cwd") || root=$cwd
-# _find and resolve below are hooks/gate.sh's, copied: this plugin sources no shared file. candor-scan.test.sh fails when the
-# two copies, or the two extraction patterns, differ once indentation is set aside.
-_find() { find "$root" -maxdepth 8 \
-  \( -name node_modules -o -name .git -o -name vendor -o -name dist -o -name build -o -name .venv \) -prune \
-  -o "$@" -type f -print 2>/dev/null; }
-
-# resolve <relpath> prints FILE <path>, MISSING (the basename is in no searched dir) or AMBIGUOUS (unresolved, basename not unique).
-# Abbreviated paths outnumber invented ones (measured), so only a basename found nowhere is fabricated; a wrong directory passes.
-# A basename only under the root's node_modules or vendor (6 deep, first hit) is AMBIGUOUS: subagents citing a dependency were
-# blocked as inventing it. Misses: a name only under dist, build or .venv, or past either depth cap, still reads as MISSING.
-resolve() {
-  local p="$1" m b n
-  case "$p" in "~/"*) p="${HOME:-}/${p#\~/}" ;; esac
-  case "$p" in
-    /*) [ -f "$p" ] && { printf 'FILE %s' "$p"; return 0; } ;;
-  esac
-  # The shell cwd first — a relative path the model just used from there — then the root.
-  [ -f "$cwd/$p" ] && { printf 'FILE %s' "$cwd/$p"; return 0; }
-  [ -f "$root/$p" ] && { printf 'FILE %s' "$root/$p"; return 0; }
-  m=$(_find -path "*/$p" | head -1)
-  [ -n "$m" ] && { printf 'FILE %s' "$m"; return 0; }
-  b=${p##*/}
-  m=$(_find -name "$b" | head -2)
-  n=$(printf '%s\n' "$m" | grep -c .)
-  if [ "$n" -eq 0 ] && [ -n "$(find "$root/node_modules" "$root/vendor" -maxdepth 6 -name "$b" -print -quit 2>/dev/null)" ]; then
-    printf 'AMBIGUOUS'
-  elif [ "$n" -eq 0 ]; then printf 'MISSING'
-  elif [ "$n" -eq 1 ]; then printf 'FILE %s' "$m"
-  else printf 'AMBIGUOUS'
-  fi
-  return 0
-}
+# hooks/cite.sh is the gate's own lookup, sourced: the report counts what clause 1 would block, no more.
 : > "$WS/badcites"
 n_cite=0
-sed -E 's#[a-zA-Z][a-zA-Z0-9+.-]*://[^[:space:])"]*##g' "$WS/assistant" \
-  | grep -oE '[/A-Za-z0-9_.~][A-Za-z0-9_./-]*\.[A-Za-z][A-Za-z0-9]{0,9}:[0-9]+' 2>/dev/null \
-  | grep -vEi '\.(com|net|org|io|co|ai|app|gg|me|localhost|test|local|internal|example|invalid|lan):[0-9]+$' \
-  | grep -vF '...' \
-  | sort -u | head -200 > "$WS/cites" || true
-while IFS= read -r c; do
-  [ -n "$c" ] || continue
-  p="${c%:*}"; l="${c##*:}"
-  r=$(resolve "$p")
-  case "$r" in
-    MISSING)   printf '%s — no file named %s found under %s (8 deep; node_modules and vendor 6 deep; dist, build, .venv, .git not searched)\n' "$c" "${p##*/}" "$root" >> "$WS/badcites"; continue ;;
-    AMBIGUOUS) continue ;;
-  esac
-  f="${r#FILE }"
-  [ -f "$f" ] || continue
-  n=$(wc -l < "$f" 2>/dev/null | tr -d ' ')
-  case "$n" in ''|*[!0-9]*) continue ;; esac
-  [ "$l" -gt $((n + 1)) ] 2>/dev/null && printf '%s — file has %s lines\n' "$c" "$n" >> "$WS/badcites"
-done < "$WS/cites"
-n_cite=$(wc -l < "$WS/badcites" | tr -d ' ')
+if . "$(dirname "$0")/../hooks/cite.sh" 2>/dev/null && command -v cite_miss >/dev/null 2>&1; then
+  cite_extract < "$WS/assistant" | head -200 > "$WS/cites" || true
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    r=$(cite_miss "$c" "$root" "$cwd")
+    [ -z "$r" ] || printf '%s — %s\n' "$c" "$r" >> "$WS/badcites"
+  done < "$WS/cites"
+  n_cite=$(wc -l < "$WS/badcites" | tr -d ' ')
+else
+  n_cite="-"
+fi
 
 # The gate's reversal test, over every turn in the window: bare pushback, then a retraction with no tool call between and no stated basis.
 awk -F'\t' '

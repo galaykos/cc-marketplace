@@ -24,6 +24,15 @@ All notable changes to the `ask-ledger` plugin.
   it, so an ask quoting it mid-sentence ledgers. Cases 13o and 13p pin them; each fails
   against 0.4.1. Standing: gate (`ledger-hook.test.sh`; the byte lock is `validate.sh`'s
   shared-block check).
+- **A `/loop` wakeup writes no ledger.** A scheduled fire reaches the hook as plain prompt
+  text. In two reviewed sessions it was always text the model had written for
+  ScheduleWakeup, so its names were the model's own. The `/loop` that sets a user's loop
+  is a slash command this hook already skips. A host `/loop` tick (`# Autonomous loop …`,
+  `# /loop tick …`) is now a frame. A prompt equal to a ScheduleWakeup or CronCreate call's
+  `prompt` in this context's transcript is skipped (the shared block's
+  `cc_prompt_scheduled`; the payload does not mark it). Residual: a prompt the user retypes
+  verbatim while its call is in the transcript is skipped too. Cases 13q and 13r fail
+  against the hook before this change; 13s, a typed ask beside the call, still ledgers.
 - **An in-word apostrophe no longer opens a quote.** In "doesn't or didn't" the span
   between the two apostrophes ledgered as the name `t or didn`. Apostrophes between two
   letters are masked while quoted terms are found and restored inside them, so

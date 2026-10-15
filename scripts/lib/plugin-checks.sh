@@ -395,8 +395,9 @@ FILES
 # cc_option (option-resolver.md), cc_plugin_state (plugin-state.md), cc_strip_heredoc_bodies
 # (heredoc-bodies.md), cc_bash_effects_mark and cc_bash_write_effects (bash-write-effects.md,
 # one ERE, so either function pasted alone is held to the whole block) and every cc_prompt_*
-# function (prompt-shape.md: the pair's fn is an ERE, so a hook pasting only one of its four
-# functions is still held to the whole block).
+# function (prompt-shape.md: the pair's fn is an ERE, so a hook pasting only one of its six
+# functions is still held to the whole block; cc_prompt_auth_surface carries the words
+# review-debt reads on paths and taskmaster's reminder on prompts, so a split is a drift).
 #
 # WHY THIS EXISTS. Plugins install alone, so a helper two plugins need is COPIED, not
 # sourced — and a copy edited in one plugin is a fix the other five never got. Generated

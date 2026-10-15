@@ -68,8 +68,13 @@ cc_option() {
 
 # Shared block templates/blocks/prompt-shape.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/prompt-shape.md
-# Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste: stdin) and writes nothing.
-# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a line opens with the hand-back marker — not a human turn.
+# Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste, cc_prompt_auth_surface: stdin;
+#   cc_prompt_scheduled: the file it names) and writes nothing.
+# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back
+#   marker — not a human turn.
+# cc_prompt_scheduled <prompt> <transcript>: status 0 when <transcript> holds a ScheduleWakeup or CronCreate call whose prompt is
+#   <prompt> exactly: a timer re-delivering an earlier ask, which the hook payload does not mark. Needs jq.
+# cc_prompt_auth_surface: filter; prints each stdin line naming an auth, account, secret, payment or migration surface (not `author`).
 # cc_prompt_unpaste: filter; cuts each <pasted_content …>…</pasted_content …> span, keeps text beside a tag, drops lines it emptied;
 #   an opening tag with no closing tag after it cuts only itself.
 # cc_prompt_ship_only <text> <verb-ERE>: status 0 when every <verb-ERE> match is create, add, open or make governing a PR, pull request
@@ -81,9 +86,19 @@ cc_prompt_frame() {
   case "${1:-}" in
     '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
     'Another Claude session sent a message:'*|'<agent-message'*) return 0 ;;
+    '# Autonomous loop check'*|'# Autonomous loop tick'*|'# /loop tick'*) return 0 ;;
     *'[Subagent hand-back]'*) printf '%s\n' "$1" | grep -qE '^[*_[:space:]]*\[Subagent hand-back\]' ;;
     *) return 1 ;;
   esac
+}
+cc_prompt_scheduled() {
+  local n
+  [ -n "${1:-}" ] && [ -f "${2:-}" ] || return 1
+  n=$(printf '%s' "$1" | jq -Rs . 2>/dev/null) && [ -n "$n" ] || return 1
+  grep -F -- "\"prompt\":$n" "$2" 2>/dev/null | grep -qE '"name":"(ScheduleWakeup|CronCreate)"'
+}
+cc_prompt_auth_surface() {
+  grep -iE 'auth([^o]|$)|authori[sz]|login|passw|token|secret|credential|polic|permission|role|guard|middleware|impersonat|session|oauth|webhook|payment|crypt|registration|sign[-_ ]?up|(^|/)migrations/'
 }
 cc_prompt_unpaste() {
   awk '{ a[NR] = $0; if (index($0, "</pasted_content")) z = NR }
@@ -142,7 +157,8 @@ cc_prompt_question() {
   # reached the user. The opening line and the tag are matched at the start; the frame
   # marker at a line start, because the harness may put a note above it. The list is the
   # shared prompt-shape block's cc_prompt_frame (one copy for this hook, skill-router's and
-  # code-review's); since 0.4.2 it also matches `<task-notification` carrying attributes.
+  # code-review's); since 0.4.2 it also matches `<task-notification` carrying attributes
+  # and a host /loop tick (`# Autonomous loop …`, `# /loop tick …`).
   cc_prompt_frame "$prompt" && exit 0
 
   # A PASTE IS REFERENCE, NOT THE ASK (2026-10-13: a pasted package-manager log and a
@@ -162,6 +178,11 @@ cc_prompt_question() {
 
   ctx=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
   [ -n "$ctx" ] || exit 0
+  # A SCHEDULED RE-FIRE IS NOT A NEW ASK (2026-10-15). A /loop or ScheduleWakeup prompt comes
+  # back on a timer as plain text; the /loop that set it was a slash command this hook skips,
+  # and a model-written wakeup names the model's own words. The payload does not mark it, so
+  # the transcript is read for the call that scheduled it (cc_prompt_scheduled).
+  cc_prompt_scheduled "$prompt" "$ctx" && exit 0
   key=$(printf '%s' "$ctx" | cksum | cut -d' ' -f1)
   dir="${TMPDIR:-/tmp}/cc-ask-ledger-$key"
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-ask-ledger-*' -type d -mmin +1440 -exec rm -rf {} + 2>/dev/null

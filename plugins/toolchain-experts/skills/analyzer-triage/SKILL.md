@@ -55,6 +55,17 @@ breaks the build for everyone whose baseline still lists it.
 
 ### 4. Run it, and report the real exit code
 
+**Skip the run when CI already passed it on this HEAD** — re-running a green analyzer on
+the same code found nothing twice in real sessions. Skip only when all hold: a `ci` record
+names the tool; the files in scope are committed (`git status --porcelain -- <files>`
+prints nothing); and `gh run list --commit "$(git rev-parse HEAD)" --workflow <that
+record's workflow file name> --json status,conclusion` shows a `completed` run with
+conclusion `success`. Report "CI ran <tool> on <short sha>: success" as its verdict. Steps
+1-3 and 6 still run, because CI green says nothing about which rules are off. No `gh`, not
+authenticated, offline, no run for this SHA, pending, failed, or uncommitted changes: run
+it as below. Residual: a workflow skipping that job (a path filter, an `if:`) still
+concludes `success`.
+
 Run the exact invocation the detector printed. Never paraphrase the tool's verdict
 from reading the source: the analyzer resolves types, config layering and plugin
 rules that no read-through reproduces.
@@ -128,4 +139,5 @@ analyzer-free project exits 1 rather than returning a checklist.
 **Agent-graded** for everything else on this page. No script can prove an agent read
 the baseline before running the tool, or that it labelled an unenforced config's
 findings as suggestions. Saying so is the point: the order is enforced by the
-reader, not by the build.
+reader, not by the build. That includes the CI-green skip in step 4: no script checks
+that an agent confirmed the run before skipping its own.

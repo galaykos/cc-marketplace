@@ -3,6 +3,12 @@
 Read this when the deliberation runs as a BLIND PANEL rather than an inline
 candidate slate. The SKILL body decides which; this file is the mechanism.
 
+**Do not convene it when only sequencing is open** — the shape is settled and the
+question left is the order of its steps (one jump or stepwise, which module first).
+Write 2-3 orderings inline instead. Four lenses on an ordering converged 4 of 4 in
+a real session and bought nothing but an extra approval round. Standing:
+agent-graded.
+
 ## The personas — fixed, non-configurable
 
 Four voices, always the same four — two push for more work (Purist, Quality), two
@@ -60,7 +66,12 @@ delegation-contracts skill; otherwise the contract above suffices.
    | Persona | Approach | Top risk | Verdict |
    |---------|----------|----------|---------|
 
-   Verdict is one of: aligned / detail divergence / structural divergence.
+   Verdict is one of: aligned / detail divergence / structural divergence /
+   **ungrounded** — the lens's result reports zero tool uses, or its `approach:`
+   names no file it read. An ungrounded take argued from the prompt alone: it
+   does not count toward convergence, so four aligned takes with one ungrounded
+   are three-way agreement, and four ungrounded ones are no evidence at all.
+   Standing: agent-graded; nothing counts the tool calls but the reader.
 2. Synthesize ONE pick — what was taken from whom, what was given up. Same output
    shape as the inline slate, so downstream handling is identical. With
    plan-before-code (code-architecture) installed the pick honors its scope lock —

@@ -150,6 +150,39 @@ if [ -f "$TMR" ]; then
   assert_speaks "taskmaster [dotted name beside tag, to a post]"  "$TMR" '{"prompt":"add the next.js tag to the post"}'
   assert_speaks "taskmaster [tag beside a joined name, to a logo]" "$TMR" '{"prompt":"add a tag v-shaped to the logo"}'
   assert_silent "taskmaster [ship-only: create a PR for this]"    "$TMR" '{"prompt":"create a PR for this"}'
+  # A /loop or ScheduleWakeup re-fire (2026-10-15). A host tick opens with its own heading and is a frame; a re-fired prompt is
+  # plain text the payload does not mark, found by the call that scheduled it in the transcript. Speaking neighbours: a typed
+  # prompt beside that call, a subagent prompt with the same text, and a heading the user typed. Synthetic fixtures.
+  TX="$WORK/loop-transcript.jsonl"
+  printf '%s\n' \
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"w1","name":"ScheduleWakeup","input":{"delaySeconds":1200,"reason":"fallback","prompt":"Check whether the export agents finished; then build and run the browser tests."}}]}}' \
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"c1","name":"CronCreate","input":{"cron":"*/20 * * * *","prompt":"fix the nightly import if it failed","recurring":true}}]}}' \
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"a1","name":"Agent","input":{"description":"x","prompt":"add a CSV export to the orders page"}}]}}' > "$TX"
+  tx() { jq -cn --arg p "$1" --arg tp "$TX" '{prompt:$p,transcript_path:$tp}'; }
+  pj() { jq -cn --arg p "$1" '{prompt:$p}'; }
+  assert_silent "taskmaster [/loop tick: autonomous check]"   "$TMR" "$(pj $'# Autonomous loop check\n\nYou are invoked on a timer; build what the last tick left and fix what is red.')"
+  assert_silent "taskmaster [/loop tick: dynamic pacing]"     "$TMR" "$(pj $'# Autonomous loop tick (dynamic pacing)\n\nRun the autonomous check; fix any failing build.')"
+  assert_silent "taskmaster [/loop tick: loop.md tasks]"      "$TMR" "$(pj $'# /loop tick — tasks from /repo/.claude/loop.md\n\n- fix the flaky import test')"
+  assert_silent "taskmaster [ScheduleWakeup re-fire]"         "$TMR" "$(tx 'Check whether the export agents finished; then build and run the browser tests.')"
+  assert_silent "taskmaster [CronCreate re-fire]"             "$TMR" "$(tx 'fix the nightly import if it failed')"
+  assert_speaks "taskmaster [typed prompt beside a wakeup]"   "$TMR" "$(tx 'fix the nightly import')"
+  assert_speaks "taskmaster [subagent prompt is not a timer]" "$TMR" "$(tx 'add a CSV export to the orders page')"
+  assert_speaks "taskmaster [a heading the user typed]"       "$TMR" "$(pj $'# Autonomous loop detection\n\nbuild a cycle detector for the job graph')"
+  # V-20, the auth half: the trivial skip is withheld when the prompt names an auth surface (cc_prompt_auth_surface, the words
+  # review-debt reads on paths). Neighbours that keep the skip: `author`, and a register verb that is not registration.
+  tm_auth() { # desc  withheld|offered  prompt
+    local out; out="$(pj "$3" | "$BASH_BIN" "$TMR" 2>/dev/null)"
+    [ -n "$out" ] || { fail "$1" "wanted a reminder, got silence"; return; }
+    if printf '%s' "$out" | grep -qF 'the trivial skip does not apply'; then
+      [ "$2" = withheld ] && pass "$1" || fail "$1" "the skip was withheld: $out"
+    else
+      [ "$2" = offered ] && pass "$1" || fail "$1" "the skip was still offered: $out"
+    fi
+  }
+  tm_auth "taskmaster [auth surface: registration]"   withheld "turn off public registration for now; we will add users from an artisan command"
+  tm_auth "taskmaster [auth surface: login]"          withheld "fix the login redirect after a password reset"
+  tm_auth "taskmaster [neighbour: author]"            offered  "add an author bio card to the post page"
+  tm_auth "taskmaster [neighbour: register a listener]" offered "add the event listener and register it in the service provider"
 fi
 
 # debugging 0.3.18: the stuck-loop trigger covers the phrases a stuck user actually
@@ -217,6 +250,27 @@ for spec in "taskmaster|remind.sh|refactor the service" "approaches|consult-remi
   pin_case "plugins/$pl/hooks/$f [fenced-trigger control]" speaks on "$pl" "$f" "$fenced. $p"
 done
 
+# promptShape adopted by three more reminders (2026-10-15): a hand-back frame, a paste and a scheduled re-fire carrying the
+# trigger stay silent, and so does build-vs-buy on a ship-only prompt. Each spoke before; the remind-on cases above are the
+# speaking neighbours. consult-remind keeps promptShape off: a paste may hold the destructive command the user asks to run.
+RTX="$WORK/refire-transcript.jsonl"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"w2","name":"ScheduleWakeup","input":{"delaySeconds":1500,"reason":"fallback","prompt":"check whether CI is still failing and wire the stripe webhook into the billing service"}}]}}' > "$RTX"
+for spec in \
+  "approaches|wire the session cache and implement a rate limiter for the billing api" \
+  "debugging|the login test is still failing again after the fix" \
+  "api-design|wire the stripe webhook into the billing service"; do
+  pl="${spec%%|*}"; p="${spec#*|}"
+  pin_hook "$pl" remind.sh "plugins/$pl/hooks/remind.sh [promptShape]" || continue
+  pin_case "plugins/$pl/hooks/remind.sh [hand-back frame]" silent on "$pl" remind.sh "$(printf '[Subagent hand-back] %s' "$p")"
+  pin_case "plugins/$pl/hooks/remind.sh [trigger only in a paste]" silent on "$pl" remind.sh \
+    "$(printf 'FYI, from the log <pasted_content id="p9">%s</pasted_content id="p9">' "$p")"
+done
+pin_case "plugins/debugging/hooks/remind.sh [ScheduleWakeup re-fire]" silent on debugging remind.sh \
+  'check whether CI is still failing and wire the stripe webhook into the billing service' '' "{\"transcript_path\":\"$RTX\"}"
+pin_case "plugins/api-design/hooks/remind.sh [ScheduleWakeup re-fire]" silent on api-design remind.sh \
+  'check whether CI is still failing and wire the stripe webhook into the billing service' '' "{\"transcript_path\":\"$RTX\"}"
+pin_case "plugins/approaches/hooks/remind.sh [ship-only prompt]" silent on approaches remind.sh 'create a PR for the session cache rework'
+
 for spec in \
   "debugging|remind.sh|/debugging:debug|the login test is failing again, I tried three things and nothing works" \
   "approaches|consult-remind.sh|/approaches:consult|rm -rf node_modules and reinstall"
@@ -258,6 +312,24 @@ if pin_hook approaches consult-remind.sh "$rel [refusals]"; then
   pin_case "$rel [head-400]" silent on approaches consult-remind.sh "$(printf '%0420d\n%s' 0 'rm -rf node_modules')"
   pin_case "$rel [head-newline speaks]" speaks on approaches consult-remind.sh "$(printf 'the build is red\n%s' 'rm -rf node_modules and reinstall')"
   pin_case "$rel [control]" speaks on approaches consult-remind.sh 'rm -rf node_modules and reinstall'
+fi
+
+# build-vs-buy (approaches 0.11.2): the making verb and the capability noun must share one clause, within 40
+# characters, and a prompt naming the provider already chosen stays silent. Before, "build" anywhere plus
+# "payment" anywhere in the head fired on integration work for a chosen gateway.
+rel="plugins/approaches/hooks/remind.sh"
+if pin_hook approaches remind.sh "$rel [one clause]"; then
+  for spec in \
+    "verb and noun in two sentences|build the refund command for the admin panel. Acme is our payment gateway, so there is no manual path" \
+    "verb and noun across a comma|build the dashboard, then clear the cache" \
+    "provider named|implement payment refunds through our payment gateway" \
+    "noun inside a word|create a form for the settings page"
+  do
+    pin_case "$rel [${spec%%|*}]" silent on approaches remind.sh "${spec#*|}"
+  done
+  pin_case "$rel [our own is not a provider]" speaks on approaches remind.sh 'roll our own payment gateway'
+  pin_case "$rel [noun before its verb]" speaks on approaches remind.sh 'a markdown parser from scratch please'
+  pin_case "$rel [provider control]" speaks on approaches remind.sh 'implement payment refunds'
 fi
 
 if pin_hook taskmaster remind.sh "plugins/taskmaster/hooks/remind.sh [sweep]"; then

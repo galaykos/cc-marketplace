@@ -55,7 +55,7 @@ row shape is identical to a reader and the distinction matters only when editing
 
 | Event | Script | Does |
 | --- | --- | --- |
-| `UserPromptSubmit` | `hooks/remind.sh` | build-vs-buy nudge when the prompt carries a making verb and a commodity-capability noun; `decide` phase, stands down once the arc has moved on |
+| `UserPromptSubmit` | `hooks/remind.sh` | build-vs-buy nudge when one clause of the prompt carries a making verb and a commodity-capability noun, silent when it names the provider already chosen ("our payment gateway"); `decide` phase, stands down once the arc has moved on |
 | `UserPromptSubmit` | `hooks/consult-remind.sh` | one advisory line naming `/approaches:consult` on an irreversible-command token (`rm -rf`, `reset --hard`, `drop table`, `migrate:fresh`, `force push`) or a repeated-attempt phrase; `any` phase — a guard, not a step. On the repeated-attempt phrases `debugging`'s reminder outranks this one (arcRank 10 against 20), so where both match, the debugging nudge is the one guaranteed to speak — matching the lane edge that has `consult` yield to `systematic-debugging` |
 | `SessionStart` (compact) | `hooks/compact-recovery.sh` | re-injects the deliberation marker after a compaction so a settled shape is not re-deliberated |
 

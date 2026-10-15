@@ -105,12 +105,16 @@ sibling_plugin() {
 
 # Reachability probe (WARN-only, never blocks): a stamp proves a skill is NAMED,
 # not that its plugin is installed — a named-but-absent skill executes the card
-# framework-blind while the lint reads green. When CLAUDE_PLUGIN_ROOT is set
-# (running from an installed plugin cache), probe the sibling plugin dirs for
+# framework-blind while the lint reads green. Probe the sibling plugin dirs for
 # each stamped skill's SKILL.md and warn on stderr when none carries it; a qualified
 # plugin:skill stamp is probed in that plugin alone. Exit stays 0: cross-marketplace
-# and project-local skills are legitimate.
-if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -d "${CLAUDE_PLUGIN_ROOT}/.." ]; then
+# and project-local skills are legitimate. The root is CLAUDE_PLUGIN_ROOT, else this
+# script's own plugin: the probe used to need the variable, which the Bash tool's
+# environment does not carry (checked 2026-10-15), so it never ran where task-cards
+# runs the lint. A "none" stamp is not probed.
+probe_root=$(cd "${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}" 2>/dev/null && pwd) || probe_root=""
+case "$(printf '%s' "$val" | tr 'A-Z' 'a-z')" in ""|none*|"n/a"|"n\a"|"-"|"—") probe_root="" ;; esac
+if [ -n "$probe_root" ]; then
   for tok in $(printf '%s' "$val" | tr ',' ' '); do
     case "$tok" in ?*:*) p=${tok%%:*}; s=${tok#*:} ;; *) p=""; s=$tok ;; esac
     case "$p$s" in *[!a-z0-9-]*|"") continue ;; esac

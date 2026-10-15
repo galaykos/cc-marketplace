@@ -69,7 +69,7 @@ run_hook() { # run_hook <prompt> <root> [env...] -> hook stdout
   # a hook that never finds its state file. That is exactly how the writer/reader
   # key mismatch shipped: every assertion here passed while the flush was dead.
   # `pc_harness_payload` fails this file if the field goes away again.
-  local tp="$box/transcript-sess-$n.jsonl"; : > "$tp"
+  local tp="$box/transcript-sess-$n.jsonl"; printf '%s' "${SEED_TX:+$SEED_TX$'\n'}" > "$tp"
   printf '%s' "$prompt" | jq -Rs --arg s "sess-$n" --arg tp "$tp" \
       '{prompt:., session_id:$s, transcript_path:$tp}' \
     | env TMPDIR="$box" CLAUDE_PLUGIN_ROOT="$root" "$@" "$BASH_BIN" "$HOOK" 2>/dev/null
@@ -166,6 +166,13 @@ want_silent "meta: about the hook" "disable the router hook that injects the cat
 want_silent "own output echoed"   "[skill-router] Tool-fit check (once this session)."
 want_silent "CC_ROUTE=off"        "build a landing page" CC_ROUTE=off
 want_silent "CC_REMIND=off"       "build a landing page" CC_REMIND=off
+# A /loop or ScheduleWakeup re-fire (2026-10-15): a host tick is a frame; a re-fired prompt is found by the call that scheduled
+# it in the transcript (SEED_TX seeds run_hook's transcript). A typed prompt beside that call is still the user's.
+want_silent "/loop tick: dynamic pacing" "$(printf '# Autonomous loop tick (dynamic pacing)\n\nRun the autonomous check; fix the failing build.')"
+SEED_TX='{"type":"assistant","message":{"content":[{"type":"tool_use","id":"w1","name":"ScheduleWakeup","input":{"delaySeconds":1200,"reason":"fallback","prompt":"check whether the import agents finished, then fix the failing build"}}]}}'
+want_silent "ScheduleWakeup re-fire" "check whether the import agents finished, then fix the failing build"
+want_fires  "typed prompt beside a wakeup" "fix the failing build"
+SEED_TX=""
 
 box="$WORK/nojq-box"; mkdir -p "$box"
 out=$(printf '{"prompt":"build a landing page","session_id":"nojq"}' \

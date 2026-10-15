@@ -35,7 +35,7 @@ decide as on a standard run, and a skip is written to the goal ledger, not only 
 ## Dispatch the adversary — blind
 
 When the gate is met, dispatch the `spec-adversary` agent with **only the spec file
-path**. Do not pass it the grill conversation, the design doc, or your own summary —
+path** (a re-dispatch adds the prior holes list, § After amendments). Do not pass it the grill conversation, the design doc, or your own summary —
 its value is that it reads the requirements cold and finds what the dialogue missed.
 Passing it the conversation re-imports the blind spots you are trying to escape.
 
@@ -88,7 +88,10 @@ itself to, not one a build enforces.
 
 Present the holes grouped by lens. Then resolve each before task-cards runs; the
 handoff waits. Per hole, offer a choice (AskUserQuestion; bare options when
-headless):
+headless). Before marking an option Recommended, grep the tests and config for what it
+would change, and name any conflict in the option text ("breaks
+`tests/Feature/ProxyTest.php`"): a Recommended fix that broke an existing test cost a
+worker halt, a re-ask and a card rewrite.
 
 - **Amend the spec** — the hole is real; edit the spec file to close it (add the
   missing edge case, state the assumption, resolve the conflict, specify the failure
@@ -125,6 +128,11 @@ of that section, not a fresh subagent. Re-dispatch the adversary only when the
 amendments were broad enough to plausibly open new holes — a reworked data model, a
 new external dependency, a criterion rewritten wholesale. Otherwise, confirm the
 edits actually landed in the spec file and continue to task-cards.
+
+A re-dispatch gets the spec path plus the prior holes list with each one's resolution
+(never the conversation), and reports only prior holes the amendments left open and new
+holes in the amended sections. A blind second pass re-attacks the whole spec: one run
+returned 31 holes after 28, measuring the spec's size, not whether the fixes held.
 
 ## Worked example
 

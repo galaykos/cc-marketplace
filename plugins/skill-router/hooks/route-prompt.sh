@@ -1,6 +1,7 @@
 #!/bin/bash
 # route-prompt.sh — UserPromptSubmit, fails open: on any prompt but a harness frame, prints once each the low-confidence signals route.sh queued for this context;
-#   then, on the session's first work-shaped prompt, the rules for judging the host's own command listing. It picks no command.
+#   then, on the session's first work-shaped prompt that no ScheduleWakeup or CronCreate call scheduled (a /loop re-fire), the rules
+#   for judging the host's own command listing. It picks no command.
 # Off: CC_REMIND=off (every advisory nudge in this marketplace) or CC_ROUTE=off (this hook); unset, the /config options cc_remind / cc_route decide.
 # Misses: a symptom phrased without a state verb (`payment failures spiking`, `login error after the upgrade`); fires anyway on a chat sentence
 #   carrying one (`the build is slow to watch`) or a `?`-ended one naming a making verb (`what does the build script do?`); waits out
@@ -71,8 +72,13 @@ cc_option() {
 
 # Shared block templates/blocks/prompt-shape.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/prompt-shape.md
-# Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste: stdin) and writes nothing.
-# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a line opens with the hand-back marker — not a human turn.
+# Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste, cc_prompt_auth_surface: stdin;
+#   cc_prompt_scheduled: the file it names) and writes nothing.
+# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back
+#   marker — not a human turn.
+# cc_prompt_scheduled <prompt> <transcript>: status 0 when <transcript> holds a ScheduleWakeup or CronCreate call whose prompt is
+#   <prompt> exactly: a timer re-delivering an earlier ask, which the hook payload does not mark. Needs jq.
+# cc_prompt_auth_surface: filter; prints each stdin line naming an auth, account, secret, payment or migration surface (not `author`).
 # cc_prompt_unpaste: filter; cuts each <pasted_content …>…</pasted_content …> span, keeps text beside a tag, drops lines it emptied;
 #   an opening tag with no closing tag after it cuts only itself.
 # cc_prompt_ship_only <text> <verb-ERE>: status 0 when every <verb-ERE> match is create, add, open or make governing a PR, pull request
@@ -84,9 +90,19 @@ cc_prompt_frame() {
   case "${1:-}" in
     '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
     'Another Claude session sent a message:'*|'<agent-message'*) return 0 ;;
+    '# Autonomous loop check'*|'# Autonomous loop tick'*|'# /loop tick'*) return 0 ;;
     *'[Subagent hand-back]'*) printf '%s\n' "$1" | grep -qE '^[*_[:space:]]*\[Subagent hand-back\]' ;;
     *) return 1 ;;
   esac
+}
+cc_prompt_scheduled() {
+  local n
+  [ -n "${1:-}" ] && [ -f "${2:-}" ] || return 1
+  n=$(printf '%s' "$1" | jq -Rs . 2>/dev/null) && [ -n "$n" ] || return 1
+  grep -F -- "\"prompt\":$n" "$2" 2>/dev/null | grep -qE '"name":"(ScheduleWakeup|CronCreate)"'
+}
+cc_prompt_auth_surface() {
+  grep -iE 'auth([^o]|$)|authori[sz]|login|passw|token|secret|credential|polic|permission|role|guard|middleware|impersonat|session|oauth|webhook|payment|crypt|registration|sign[-_ ]?up|(^|/)migrations/'
 }
 cc_prompt_unpaste() {
   awk '{ a[NR] = $0; if (index($0, "</pasted_content")) z = NR }
@@ -180,6 +196,9 @@ cc_prompt_question() {
   # error/crash count after a weak-tier verb (`an`, `with`, `see`, `throw` added for them) or opening a sentence (`Error: …`):
   # bare, they fired on `that error message in the log`; dropped entirely, `I'm getting an error` went silent.
   printf '%s' "$head" | grep -qiE "\b($strong|why is)\b|\b(is|are|was|were|been|went|going|get(s|ting)?|got|keeps?|kept|still|now|seems?|looks?|am|an|with|see(s|ing)?|saw|throw(s|ing|n)?|threw)\b[[:space:]]+([a-z]+[[:space:]]+)?\b(down|slow(er)?|broken|failing|fails|leak(s|ing)?|stuck|crash(es|ed|ing)?|errors?)\b|(^|[.!?;:][[:space:]]+)errors?\b" || exit 0
+  # A /loop or ScheduleWakeup re-fire is answered like the slash command that set it, after the flush: the payload does not mark it,
+  # so cc_prompt_scheduled looks in the transcript for the call that scheduled it. A host /loop tick is a frame, above.
+  cc_prompt_scheduled "$prompt" "$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)" && exit 0
 
   # Raw session_id, not route.sh's context key: UserPromptSubmit never fires in a subagent, so no second context shares this marker.
   sid=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null)

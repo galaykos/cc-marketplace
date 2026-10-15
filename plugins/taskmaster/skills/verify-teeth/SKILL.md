@@ -113,7 +113,7 @@ observation — the card is not yet a task — halt with evidence rather than lo
 Standing: gate when it runs — `scripts/verify-teeth-lint.sh` exits non-zero on a
 toothless Verify line. That it runs at all is now **observed, not gated**: every lint
 appends a run record beside the card (`scripts/card-lint-record.sh`), and
-`hooks/card-lint-observe.sh` warns on the run's first write when a card in the
+`hooks/card-lint-observe.sh` warns on the run's first main-thread write when a card in the
 registered set carries none. It warns and never blocks, it is keyed off the run
 registering itself (a set executed without `/task-runner:run` is still unseen), and a
 record proves invocation, not honesty — it closes forgetting, not evasion.
