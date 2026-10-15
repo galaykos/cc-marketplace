@@ -122,6 +122,26 @@ want_silent "weak tier: slow down"    "lets slow down and talk about scope first
 want_silent "chat: acknowledgement"   "thanks, that looks good"
 want_silent "chat: question about code" "what does this function do"
 want_silent "chat: question about history" "who wrote this file"
+# V-16 (2026-10-13 retro): the check fired on a question, a hands-off ask and chat naming an error or a crash.
+# Each fixture is synthetic, in the shape of a measured prompt; the work-shaped neighbours below still fire.
+want_silent "question: ?-ended error report" "the VM manager will not start and shows errors?"
+want_silent "question: hands-off ask"        "quick question first, don't work on anything yet: why is the nightly import slow"
+want_silent "chat: bare error"               "that error message in the log is from the old version"
+want_silent "chat: bare crash"               "the crash report from yesterday is in the channel"
+want_fires  "symptom: keeps crashing"        "the worker keeps crashing on startup"
+want_fires  "work: fix the crash"            "fix the crash in the export job"
+want_fires  "work: a negated detail is still work" "fix the login bug but don't touch the API"
+want_silent "question: measured error report" "GNOME boxes doesn't work, for some reason, I get errors?"
+# Wave-2 review: each fired before V-16 and went silent with it. An error after a state verb or `throw` is an incident; a
+# hands-off phrase about another object is a constraint; a polite request or a why-diagnosis ending in `?` is an ask.
+want_fires  "symptom: getting an error"      "I'm getting an error when saving the profile form"
+want_fires  "symptom: throws errors"         "the export throws errors for large files"
+want_fires  "work: hands-off names another object" "build the export job; do not work on the legacy importer"
+want_fires  "work: please don't change … in a path" "Please don't change anything in vendor/ — implement the hook in app/"
+want_fires  "request: can you fix …?"        "can you fix the login bug?"
+want_fires  "request: could you add …?"      "could you add pagination to the users endpoint?"
+want_fires  "request: why is … returning 500s?" "why is the checkout returning 500s?"
+want_fires  "request: failing, can you take a look?" "the tests are failing, can you take a look?"
 want_silent "slash prompt"        "/taskmaster:task build a landing page"
 want_silent "meta: about the hook" "disable the router hook that injects the catalog"
 want_silent "own output echoed"   "[skill-router] Tool-fit check (once this session)."

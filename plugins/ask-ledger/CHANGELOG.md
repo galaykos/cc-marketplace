@@ -13,6 +13,17 @@ All notable changes to the `ask-ledger` plugin.
   span is now cut first; ask text on the same line as either tag still counts. Residual: a
   name that appears only inside a paste no longer ledgers. Harness cases 13h, 13i and 13k
   in `ledger-hook.test.sh` pin it; each fails against 0.4.1.
+- **One harness-frame list, shared.** The prompt prefixes this hook skips (system reminder,
+  task notification, Stop hook feedback, another session's message, a hand-back) and the
+  paste cut now come from the byte-locked `templates/blocks/prompt-shape.md`, the copy
+  skill-router and code-review paste too, so the three lists cannot drift apart again.
+  One widening: a `<task-notification` that carries attributes is also skipped. Case 13n
+  pins it and fails against 0.4.1. Two narrowings: an opening `<pasted_content` tag with no
+  closing tag after it now cuts only itself, where the cut used to swallow the rest of the
+  prompt and its ask; and the hand-back marker makes a frame only where a line opens with
+  it, so an ask quoting it mid-sentence ledgers. Cases 13o and 13p pin them; each fails
+  against 0.4.1. Standing: gate (`ledger-hook.test.sh`; the byte lock is `validate.sh`'s
+  shared-block check).
 - **An in-word apostrophe no longer opens a quote.** In "doesn't or didn't" the span
   between the two apostrophes ledgered as the name `t or didn`. Apostrophes between two
   letters are masked while quoted terms are found and restored inside them, so

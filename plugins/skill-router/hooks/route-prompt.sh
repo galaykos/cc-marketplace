@@ -2,8 +2,9 @@
 # route-prompt.sh — UserPromptSubmit, fails open: on any prompt but a harness frame, prints once each the low-confidence signals route.sh queued for this context;
 #   then, on the session's first work-shaped prompt, the rules for judging the host's own command listing. It picks no command.
 # Off: CC_REMIND=off (every advisory nudge in this marketplace) or CC_ROUTE=off (this hook); unset, the /config options cc_remind / cc_route decide.
-# Misses: a symptom phrased without a state verb (`payment failures spiking`, `memory leak in the worker`); fires anyway on a chat sentence
-#   carrying one (`the build is slow to watch`). Repeats a signal on the next prompt when its state file cannot be rewritten.
+# Misses: a symptom phrased without a state verb (`payment failures spiking`, `login error after the upgrade`); fires anyway on a chat sentence
+#   carrying one (`the build is slow to watch`); waits out a `?`-ended prompt holding no request (`fix it, ok?`; `can you…?` is one).
+#   Repeats a signal on the next prompt when its state file cannot be rewritten.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route-prompt.sh
 MARKER_TTL_MIN=1440
 
@@ -67,6 +68,56 @@ cc_option() {
   return 0
 }
 
+# Shared block templates/blocks/prompt-shape.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/prompt-shape.md
+# Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste: stdin) and writes nothing.
+# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a line opens with the hand-back marker — not a human turn.
+# cc_prompt_unpaste: filter; cuts each <pasted_content …>…</pasted_content …> span, keeps text beside a tag, drops lines it emptied;
+#   an opening tag with no closing tag after it cuts only itself.
+# cc_prompt_ship_only <text> <verb-ERE>: status 0 when every <verb-ERE> match is create, add, open or make governing a PR, pull request
+#   or commit, or a branch, push, merge, tag or release once a PR, commit, `git` or a name beside the noun marks the text as git work;
+#   a hyphen-, slash-, dot- or underscore-joined name (fix-login, feature/add-auth) is one word, holds no verb, may follow the noun.
+# cc_prompt_question <text>: status 0 when <text> ends in `?` and holds no request (can/could/would/will you, please, why is…),
+#   or holds a hands-off ask (don't work on anything|it, don't change anything yet).
+cc_prompt_frame() {
+  case "${1:-}" in
+    '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
+    'Another Claude session sent a message:'*|'<agent-message'*) return 0 ;;
+    *'[Subagent hand-back]'*) printf '%s\n' "$1" | grep -qE '^[*_[:space:]]*\[Subagent hand-back\]' ;;
+    *) return 1 ;;
+  esac
+}
+cc_prompt_unpaste() {
+  awk '{ a[NR] = $0; if (index($0, "</pasted_content")) z = NR }
+    END { for (n = 1; n <= NR; n++) { out = ""; line = a[n]; cut = p
+      while (1) {
+        if (p) { j = index(line, "</pasted_content"); if (!j) break
+                 line = substr(line, j); k = index(line, ">"); line = k ? substr(line, k + 1) : ""; p = 0 }
+        else { i = index(line, "<pasted_content"); if (!i) { out = out line; break }
+               out = out substr(line, 1, i - 1) " "; line = substr(line, i); cut = 1
+               if (n < z + 0 || index(line, "</pasted_content")) p = 1
+               else { k = index(line, ">"); if (!k) { out = out line; break }; line = substr(line, k + 1) } } }
+      if (!cut || out ~ /[^[:space:]]/) print out } }'
+}
+cc_prompt_ship_only() {
+  local t v s n
+  [ -n "${2:-}" ] || return 1
+  t=$(printf '%s' "${1:-}" | tr '\n' ' ' | sed -E 's#[[:alnum:]]+([-/_.][[:alnum:]]+)+#x#g; s/ +([Aa]nd|[Tt]hen|&) +/ ; /g')
+  v=$(printf '%s' "$t" | grep -oiE "($2)" | grep -c .)
+  n='prs?|pull[ -]requests?|commits?'
+  printf '%s' "$t" | grep -qiE "(^|[^a-z])($n|git|(x|feature|hotfix|release) +(branch(es)?|tags?|releases?))([^a-z]|$)|(^|[^a-z])(branch(es)?|tags?|releases?) +x([^a-z]|$)" \
+    && n="$n|branch(es)?|push(es)?|merges?|tags?|releases?"
+  s=$(printf '%s' "$t" | grep -oiE "($2)( +(a|an|the|new|draft|this|that|my|our|feature|hotfix|release|git|remote|local|separate|fresh))*( +[^ .,;:!?]+)? +($n)( +x)?( *([.,;:!?]|$)| +(for|to|from|into|onto|off|against|with|called|named)([^a-z]|$))" \
+    | grep -ciE '^(create|add|open|make)([^a-z]|$)')
+  [ "${v:-0}" -gt 0 ] && [ "${s:-0}" -ge "$v" ]
+}
+cc_prompt_question() {
+  local t
+  t=$(printf '%s' "${1:-}" | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+  case "$t" in *'?') printf '%s' "$t" | grep -qiE "(^|[^a-z])((can|could|would|will) +(you|u|we)|please|why +(is|are|was|were|does|do|did))([^a-z]|$)" || return 0 ;; esac
+  printf '%s' "$t" | grep -qiE "(^|[^a-z])(don't|don’t|dont|do not|never)( +start)? +work(ing)? on +(anything|it|this|that)( *[.,;:!?]| +(yet|for now|until|before)([^a-z]|$)| *$)|(^|[^a-z])(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything +(yet|for now|until|before)([^a-z]|$)|^[[:space:]]*(please,? +)?(don't|don’t|dont|do not) +(touch|change|edit|modify|build|code|write|fix|make|implement) +anything[[:space:][:punct:]]*$"
+}
+
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -78,12 +129,8 @@ cc_option() {
 
   # A harness frame is not a human turn. The flush below ran on task notifications, hand-backs and Stop hook feedback, spending
   # the digest where nobody judged it (45 of 65 in one measured session); skipped here, it waits for the next human prompt.
-  # Same prefixes as ask-ledger's ledger.sh. Misses: a frame it does not name, which still flushes.
-  case "$prompt" in
-    '<system-reminder>'*|'<task-notification>'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) exit 0 ;;
-    'Another Claude session sent a message:'*|'<agent-message'*) exit 0 ;;
-    *'[Subagent hand-back]'*) exit 0 ;;
-  esac
+  # The list is the shared prompt-shape block's, as in ask-ledger and code-review. Misses: a frame it does not name, which still flushes.
+  cc_prompt_frame "$prompt" && exit 0
 
   # Key and root as route.sh spells them (`.transcript_path // .session_id`, hashed; cc_state_root): any other spelling misses its file.
   sid_f=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
@@ -116,9 +163,14 @@ cc_option() {
   printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|router|route|trigger|catalog)' && exit 0
   printf '%s' "$head" | grep -qF '[skill-router]' && exit 0
 
+  # A question or a hands-off ask is not a work request (2026-10-13: the check fired on "I got a question, don't work on anything"
+  # and on `?`-ended error reports); a polite request (`can you fix…?`) is an ask. Whole prompt; prompt-shape block.
+  cc_prompt_question "$scrub" && exit 0
   # One grep, three tiers: validate.sh allows four prompt greps here, so a new tier is an alternation in it, never a fifth line.
   # A weak symptom (down, slow, broken…) counts only after a state verb: bare, it matches `scroll down` and `the meeting ran slow`.
-  printf '%s' "$head" | grep -qiE '\b(build|create|make|add|implement|develop|write|rewrite|refactor|migrate|port|fix|debug|review|audit|design|redesign|restyle|theme|style|test|deploy|ship|optimi[sz]e|speed up|scaffold|set ?up|plan|spec|integrate|automate|error|errors|crash|crashing|500s?|regress(ed|ion)?|not working|why is|investigate)\b|\b(is|are|was|were|been|went|going|get(s|ting)?|got|keeps?|kept|still|now|seems?|looks?|am)\b[[:space:]]+([a-z]+[[:space:]]+)?\b(down|slow(er)?|broken|failing|fails|leak(s|ing)?|stuck)\b' || exit 0
+  # error/crash count after a weak-tier verb (`an`, `with`, `see`, `throw` added for them) or opening a sentence (`Error: …`):
+  # bare, they fired on `that error message in the log`; dropped entirely, `I'm getting an error` went silent.
+  printf '%s' "$head" | grep -qiE '\b(build|create|make|add|implement|develop|write|rewrite|refactor|migrate|port|fix|debug|review|audit|design|redesign|restyle|theme|style|test|deploy|ship|optimi[sz]e|speed up|scaffold|set ?up|plan|spec|integrate|automate|500s?|regress(ed|ion)?|not working|why is|investigate)\b|\b(is|are|was|were|been|went|going|get(s|ting)?|got|keeps?|kept|still|now|seems?|looks?|am|an|with|see(s|ing)?|saw|throw(s|ing|n)?|threw)\b[[:space:]]+([a-z]+[[:space:]]+)?\b(down|slow(er)?|broken|failing|fails|leak(s|ing)?|stuck|crash(es|ed|ing)?|errors?)\b|(^|[.!?;:][[:space:]]+)errors?\b' || exit 0
 
   # Raw session_id, not route.sh's context key: UserPromptSubmit never fires in a subagent, so no second context shares this marker.
   sid=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null)

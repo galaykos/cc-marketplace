@@ -7,7 +7,8 @@ command -v jq >/dev/null 2>&1 || exit 0
 {{> state-root}}
 {{> phase-guard}}
 {{> option-resolver}}
-{
+{{#if promptShape}}{{> prompt-shape}}
+{{/if}}{
   is_machinery_prompt() {
     printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit'
   }
@@ -45,14 +46,18 @@ command -v jq >/dev/null 2>&1 || exit 0
   case "$prompt" in "" | "/"*) exit 0 ;; esac # empty, or slash commands manage their own flow
   # CC_REMIND=off silences every reminder hook, the cc_remind /config option only this plugin's; a non-empty CC_REMIND wins.
   case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
-  # Only the head outside fences and backtick spans counts: a pasted log or quote buries its keywords.
-  scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
+{{#if promptShape}}  # promptShape: a harness frame (hand-back, notification) is not the user's ask, and a <pasted_content> span is reference.
+  cc_prompt_frame "$prompt" && exit 0
+{{/if}}  # Only the head outside fences and backtick spans counts: a pasted log or quote buries its keywords.
+  scrub=$(printf '%s' "$prompt" | {{#if promptShape}}cc_prompt_unpaste | {{/if}}awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
   is_machinery_prompt && exit 0
   is_about_hooks && exit 0
   is_own_echo && exit 0
   is_question_only && exit 0
-  # sid before cc_phase_guard: its session check reads it.
+{{#if promptShape}}  # A making verb that only governs a PR, branch, commit, push, merge, tag or release asks to ship, not to build.
+  cc_prompt_ship_only "$head" '{{regex}}' && exit 0
+{{/if}}  # sid before cc_phase_guard: its session check reads it.
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
   cc_phase_guard '{{artifact}}' || exit 0
   if printf '%s' "$head" | grep -qiE '{{regex}}'{{#if extraGuard}} && {{extraGuard}}{{/if}}; then

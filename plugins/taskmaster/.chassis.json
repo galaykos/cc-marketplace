@@ -7,9 +7,10 @@
     "artifact": "taskmaster:remind",
     "arcRank": 25,
     "armsClarifyGate": true,
+    "promptShape": true,
     "lane": {
       "owns": "requirements-clarification",
-      "trigger": "prompt head carries a making verb (build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)",
+      "trigger": "prompt head carries a making verb (build|create|add|implement|develop|rewrite|refactor|fix|update|change|write) that is not create or add governing only a PR, commit, or git-marked branch, push, merge, tag or release, outside a paste or harness frame",
       "yieldsTo": "-",
       "phase": "shape"
     }

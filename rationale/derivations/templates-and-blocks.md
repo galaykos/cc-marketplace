@@ -204,6 +204,106 @@ mask() copies the one inside cc_bash_write_targets: the block is byte-locked and
 awk functions are not reachable from outside it.
 ```
 
+## templates/blocks/prompt-shape.md
+
+### Banner and canonical copy
+
+```text
+--- prompt shape --------------------------------------------------------------
+Canonical copy: templates/blocks/prompt-shape.md (added 2026-10-14). Every hook defining
+any cc_prompt_* function must carry this block byte-for-byte: pc_shared_blocks keys the
+block on the ERE cc_prompt_[a-z_]+, so a partial paste fails like an edited one. A
+reminder hook includes it through the template when its manifest sets promptShape: true,
+and generate.sh --check holds that copy to the block as well.
+```
+
+### Why it exists
+
+```text
+The 2026-10-13 session retro (rationale/session-retro-2026-10-13.md, Tier 1 §6; its
+cross-cutting finding 7) found four UserPromptSubmit hooks each deciding "is this the
+user asking for work" with their own partial filters. ask-ledger and skill-router's
+route-prompt.sh carried one harness-frame prefix list and code-review's review-debt.sh a
+third copy that already differed (`<task-notification` without the `>`). Only ask-ledger
+cut <pasted_content> spans. The defects it closes: the tool-fit check fired on a question,
+a hands-off ask and chat naming an error; taskmaster's work-shaped reminder fired on
+"create PR"-shaped git chores, on verbs inside a paste, and on subagent hand-backs, where
+it also armed the clarify gate.
+
+The first cut (2026-10-14) erred toward silence, and a review the next day found the
+prompts the hooks had spoken on before it and now silenced: a conjunction filling the slot
+before a ship noun ("fix this and push"), an edit verb on a PR ("fix the failing PR"), a
+ship noun used as a feature ("add tags", "add a branch to the store locator"), every
+`?`-ended request ("can you fix the login bug?"), any object after "don't work on",
+an unclosed paste tag eating the rest of the prompt, and the hand-back marker matched
+mid-sentence. Each was turned toward speaking: a false nudge costs one line, a false
+silence costs the nudge in the moment it exists for.
+```
+
+### Contract
+
+```text
+cc_prompt_frame <prompt> — status 0 when the prompt OPENS with <system-reminder>,
+  <task-notification (attributes allowed), [SYSTEM NOTIFICATION, Stop hook feedback:,
+  Another Claude session sent a message: or <agent-message, or a line opens with
+  [Subagent hand-back] (after optional spaces, `*` or `_`). A real ask quoting a marker
+  mid-sentence is an ask. The grep runs only when the marker is present.
+cc_prompt_unpaste — stdin filter: each <pasted_content …>…</pasted_content …> span
+  goes, text on the tag's own line stays, a line left blank by a cut is dropped. An
+  opening tag with no closing tag anywhere after it is cut alone (to its `>`), and the
+  text after it stays; without a `>` the line stays as it was.
+cc_prompt_ship_only <text> <verb-ERE> — status 0 when the text has at least one
+  <verb-ERE> match and every match is create, add, open or make governing a ship noun:
+  the verb, any of a fixed list of determiners and modifiers (a, the, new, draft,
+  feature, release…), at most one other word, then the noun, ended by punctuation, the
+  end, a joined name, or a joining word (for, to, from, into, named…). `and`, `then`
+  and `&` are turned into `;` first, so a conjunction is never the word before a noun.
+  PR, pull request and commit are ship nouns always; branch, push, merge, tag and
+  release only when the text also names a PR, pull request, commit or `git`, a joined
+  name sits beside the noun, or feature/hotfix/release precedes it.
+  A hyphen-, slash-, dot- or underscore-joined token is one word with no verb in it.
+cc_prompt_question <text> — status 0 when the text ends in `?` and holds no request
+  (can/could/would/will you|u|we, please, why is|are|was|were|does|do|did), or holds
+  "don't (start) work(ing) on anything|it|this|that" before punctuation, the end, yet,
+  for now, until or before; "don't <making verb> anything yet|for now|until|before";
+  or is, whole, "(please) don't <making verb> anything".
+```
+
+### What it does not catch, stated
+
+```text
+- frame: a harness frame under any other prefix is a human turn.
+- unpaste: a name or verb that appears only inside a paste no longer counts.
+- ship_only: a feature-sense branch/tag/merge/release in a prompt that also names a
+  PR or commit reads as ship ("create the PR and add tags to the post" is silenced).
+  Every other miss errs toward speaking: "create a new branch" (no git context), "fix
+  the failing PR" (an edit verb), "write a commit message", a branch name holding a
+  verb spelled as separate words (the verb counts), "create and add a PR" (each verb
+  needs its own noun).
+- question: whole-prompt, so a trailing question without a request form hides an
+  imperative before it ("fix it, ok?"), and an incident question with no `why` waits
+  ("what's causing the 500s?"); a polite question with no work in it ("could you
+  explain this?") reaches the adopter's work test and stays silent only if that test
+  does. "don't touch the API", "do not work on the legacy importer" and "don't change
+  anything in vendor/" are constraints, not hands-off, and so is "fix it, don't change
+  anything else".
+- Nothing here judges intent. Standing: the shapes are gated by each adopter's harness
+  (ask-ledger ledger-hook.test.sh, scripts/smoke/prompt-route-tests.sh,
+  review-debt.test.sh, scripts/smoke/hook-guard-tests.sh); the byte lock by
+  pc_shared_blocks and generate.sh --check.
+```
+
+### Adopters (2026-10-14)
+
+```text
+ask-ledger ledger.sh: frame, unpaste. skill-router route-prompt.sh: frame, question (the
+tool-fit check only). code-review review-debt.sh: frame (ship detection skips frames).
+taskmaster remind.sh via promptShape: frame, unpaste, ship_only. Not adopted: candor's
+preamble and the approaches, debugging and api-design reminder hooks, which set
+promptShape to adopt it; review-debt's auth-surface pattern is a path regex inside
+review-debt.sh, so taskmaster's reminder cannot reach it without a cross-plugin call.
+```
+
 ## templates/blocks/phase-guard.md
 
 ### Banner

@@ -110,6 +110,37 @@ if [ -f "$TMR" ]; then
   # meta-prompt about the plugin machinery) is already covered by the META fixture above.
   assert_speaks "taskmaster [webhook is not the reminder machinery]" "$TMR" \
     '{"prompt":"fix the webhook handler for billing retries"}'
+  # V-20 (2026-10-13 retro), taskmaster's promptShape flag: a making verb that only governs a ship noun, a verb supplied by
+  # a paste, and a subagent hand-back are not work requests. Fixtures are synthetic, shaped like the measured prompts; the
+  # three speaking neighbours pin the narrowing: work beside a ship step, a ship noun as a feature object, an ask beside a paste.
+  assert_silent "taskmaster [ship-only: create the PR]"         "$TMR" '{"prompt":"create the PR"}'
+  assert_silent "taskmaster [ship-only: joined branch name]"    "$TMR" '{"prompt":"add upgrade-react-19-split-chunks branch"}'
+  assert_silent "taskmaster [ship-only: git chore chain]"       "$TMR" '{"prompt":"create a branch, commit, open a pr, merge"}'
+  assert_silent "taskmaster [a paste supplies the verbs]"       "$TMR" \
+    '{"prompt":"the import fails <pasted_content id=\"p1\">ERROR: build failed, run composer update</pasted_content id=\"p1\">"}'
+  assert_silent "taskmaster [subagent hand-back frame]"         "$TMR" \
+    '{"prompt":"Another Claude session sent a message:\n<agent-message from=\"a1\">\n[Subagent hand-back] I will build the parser and add tests.\n</agent-message>"}'
+  assert_speaks "taskmaster [work beside a ship step]"          "$TMR" '{"prompt":"fix the failing test, then create a PR"}'
+  assert_speaks "taskmaster [a ship noun as a feature object]"  "$TMR" '{"prompt":"add a tag input to the post form"}'
+  assert_speaks "taskmaster [an ask beside a paste]"            "$TMR" \
+    '{"prompt":"fix the parser for this input <pasted_content id=\"p2\">a,b,,c</pasted_content id=\"p2\">"}'
+  # Wave-2 review: each prompt below spoke before promptShape and went silent with it. A conjunction is not the word before a
+  # ship noun, an edit verb on a PR is code work, a branch/tag/merge with no git context is a feature, an unclosed paste tag
+  # cuts only itself, and a hand-back marker mid-sentence is the user's own text.
+  assert_speaks "taskmaster [conjunction: fix this and push]"     "$TMR" '{"prompt":"fix this and push"}'
+  assert_speaks "taskmaster [conjunction: implement this and commit]" "$TMR" '{"prompt":"implement this and commit"}'
+  assert_speaks "taskmaster [conjunction: fix and push]"          "$TMR" '{"prompt":"fix and push"}'
+  assert_speaks "taskmaster [edit verb on a PR: update]"          "$TMR" '{"prompt":"update the PR to handle null users"}'
+  assert_speaks "taskmaster [edit verb on a branch: refactor]"    "$TMR" '{"prompt":"refactor the branch to drop jQuery"}'
+  assert_speaks "taskmaster [edit verb on a PR: fix]"             "$TMR" '{"prompt":"fix the failing PR"}'
+  assert_speaks "taskmaster [merge as a feature]"                 "$TMR" '{"prompt":"implement merge for duplicate contacts"}'
+  assert_speaks "taskmaster [tags as a feature]"                  "$TMR" '{"prompt":"add tags and categories to the blog"}'
+  assert_speaks "taskmaster [branch as a feature]"                "$TMR" '{"prompt":"add a branch to the store locator"}'
+  assert_speaks "taskmaster [bare add tags]"                      "$TMR" '{"prompt":"add tags"}'
+  assert_speaks "taskmaster [unclosed paste tag cuts only itself]" "$TMR" \
+    '{"prompt":"the importer drops rows <pasted_content id=\"p3\">\nplease fix the importer and add a regression test"}'
+  assert_speaks "taskmaster [hand-back marker mid-sentence]"      "$TMR" \
+    '{"prompt":"please fix the parser that handles the [Subagent hand-back] marker"}'
 fi
 
 # debugging 0.3.18: the stuck-loop trigger covers the phrases a stuck user actually

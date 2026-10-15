@@ -451,12 +451,15 @@ calls a fifth a routing table regrowing in shell, so the tiers are alternations
 inside this pattern rather than lines of their own.
 
   MAKING VERBS — build, refactor, deploy … : match bare. Unchanged.
-  STRONG symptom — error, crash, 500s, regressed, why is, investigate, not
-    working: match bare. A prompt carrying one of these is about a defect
-    whatever the surrounding grammar.
-  WEAK symptom — down, slow, broken, failing, fails, leak, stuck: match ONLY
-    after a state verb (is/are/went/keeps/got/…), with at most one word
-    between. These are ordinary English before they are incident vocabulary.
+  STRONG symptom — 500s, regressed, why is, investigate, not working: match
+    bare. A prompt carrying one of these is about a defect whatever the
+    surrounding grammar.
+  WEAK symptom — down, slow, broken, failing, fails, leak, stuck, and since
+    skill-router 0.26.0 error(s) and crash: match ONLY after a state verb
+    (is/are/went/keeps/got/an/with/see/throw/…), with at most one word
+    between, or for `Error` opening a sentence. These are ordinary English
+    before they are incident vocabulary: bare `error` fired on `?`-ended error
+    reports and chat, measured in four sessions (CHANGELOG 0.26.0).
 
 WHY THE WEAK TIER IS BOUND AND THE STRONG ONE IS NOT. Symptom phrasing was
 added because `production is down` and `why is the checkout page broken`

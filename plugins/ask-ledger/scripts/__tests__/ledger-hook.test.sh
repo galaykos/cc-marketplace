@@ -55,6 +55,12 @@ check "13b a subagent hand-back writes no ledger" "$(run 'Another Claude session
 check "13c a bare agent-message tag writes no ledger" "$(run '<agent-message from="a0d31354dca16ebac">Build the Stripe adapter next.</agent-message>' s13c)" ""
 check "13d a hand-back frame under a harness note writes no ledger" "$(run 'Note: relayed.
 [Subagent hand-back] Create PopoverContent for Card 03.' s13d)" ""
+check "13n a task notification carrying attributes writes no ledger (shared prompt-shape list)" \
+  "$(run '<task-notification id="t42"><result>Add the Pagination fix. FAIL 0.</result></task-notification>' s13n)" ""
+check "13o an opening paste tag with no close cuts only itself, not the ask after it" "$(run 'build the Stripe adapter <pasted_content id="u7">
+and the Paddle one, with the same retry policy' s13o)" "Stripe,Paddle"
+check "13p a hand-back marker quoted mid-sentence is the user's ask" \
+  "$(run 'Build the Stripe adapter; the relay prints [Subagent hand-back] before each report' s13p)" "Stripe"
 # 13e-13g: a capital I glued to the next word is the pronoun with a missing space, not a
 # name (2026-10-07: `Iinstalled` ledgered and blocked two later turns); I-names stay.
 check "13e a glued I before a verb is not a name" \
