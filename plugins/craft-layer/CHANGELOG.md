@@ -9,7 +9,7 @@ than an honest starting point.
 
 ## 0.58.1 — 2026-10-15
 
-- **ultra-craft's `effort=xhigh` reaches inline dispatches from CLI 2.1.292.** The skill and its `ultra-craft` hook said `effort` was settable only on the Workflow `agent()` path; since 2.1.292 the Agent tool takes it per call, and the skill naming `xhigh` is the explicit ask that parameter waits for. Below 2.1.292 an inline dispatch still escalates the model only. Agent-graded: no script reads a dispatch.
+- **ultra-craft's `effort=xhigh` reaches inline dispatches from CLI 2.1.292.** The skill and its `ultra-craft` hook said `effort` was settable only on the Workflow `agent()` path; since 2.1.292 the Agent tool takes it per call, and the skill naming `xhigh` is the explicit ask that parameter waits for. Below 2.1.292 an inline dispatch still escalates the model only. Agent-graded: no script reads a dispatch. It is passed only when the Agent tool lists an `effort` parameter.
 - **Runnable `${CLAUDE_PLUGIN_ROOT}` paths are quoted.** `/craft-layer:audit`'s two craft-gate `node` lines and design-research's `technique-fingerprint.py` line passed `${CLAUDE_PLUGIN_ROOT}/…` to `bash`, `node` or `python3` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.
 
 ## 0.58.0 — 2026-10-15

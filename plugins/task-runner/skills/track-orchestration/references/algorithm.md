@@ -99,7 +99,7 @@ The prompt to each track-worker contains, in order:
    each card's negative-control result, and the commit sha. If you cannot finish,
    return a park reason instead — do not force a pass."*
    The orchestrator substitutes `<abs-negative-control.sh>` with the ABSOLUTE path to
-   `${CLAUDE_PLUGIN_ROOT}/scripts/negative-control.sh` at dispatch time (the leaf has no
+   `"${CLAUDE_PLUGIN_ROOT}/scripts/negative-control.sh"` at dispatch time (the leaf has no
    `CLAUDE_PLUGIN_ROOT` and a bare script name is command-not-found in its worktree), and
    `--root` with the worktree's absolute path.
 
@@ -123,7 +123,7 @@ The prompt to each track-worker contains, in order:
 1. After the wave loop, run every remaining **serial** milestone inline in the main tree,
    in dependency order (normal per-card execution, the per-card dispatch/routing procedure is available here).
 2. Run **one** full project check suite on the merged run branch, AND the behavioral-gate
-   (`${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed <all merged tracks' files>`
+   (`"${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh" --isolate --changed <all merged tracks' files>`
    in background Bash with `timeout: 7200000`, see the behavioral-gate skill) — the merged code is exercised here, not just re-linted.
    Under an `Ultra:`/`Goal:` marker (not `boost=off`) the code-redteam pass also runs here at the resolved `model`
    and `effort`, passed in as `agent()` parameters (per its skill) — it never reads the index

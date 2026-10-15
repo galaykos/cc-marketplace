@@ -188,6 +188,29 @@ pc_hook_timeout() {
   return $bad
 }
 
+# _pc_hook_script <command> <plugin_dir>
+# The script a hooks.json `command` runs, for every check below that resolves one: double
+# quotes dropped, one leading `bash ` or `sh ` dropped, `${CLAUDE_PLUGIN_ROOT}` replaced by
+# the dir. The interpreter-led form is command-guard's since 0.9.0
+# (`bash "${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh"`, so a host with no /bin/bash
+# still starts it); before this helper, every check here but pc_state_root matched only a
+# command that opened on `${CLAUDE_PLUGIN_ROOT}` and skipped that hook without a word. MISSES: an interpreter flag
+# (`bash -e …`), any other interpreter, and arguments after the path. Each resolves to no
+# file, so the caller skips it exactly as before.
+_pc_hook_script() {
+  local c=${1//\"/}
+  c=${c#"${c%%[![:space:]]*}"}
+  case "$c" in bash[[:space:]]*|sh[[:space:]]*) c=${c#*[[:space:]]}; c=${c#"${c%%[![:space:]]*}"} ;; esac
+  printf '%s' "${c//\$\{CLAUDE_PLUGIN_ROOT\}/"$2"}"
+}
+
+# _pc_hook_interp <command> — `bash` or `sh` when the command starts that interpreter, else nothing.
+_pc_hook_interp() {
+  local c=${1//\"/}
+  c=${c#"${c%%[![:space:]]*}"}
+  case "$c" in bash[[:space:]]*) printf bash ;; sh[[:space:]]*) printf sh ;; esac
+}
+
 # pc_hook_shebang <plugins_root>
 # Every script a hooks.json registers as a `command` must start `#!/bin/bash`.
 # Prints one "hook-shebang <plugin>:<script> <first line>" per offender; returns 1.
@@ -215,6 +238,11 @@ pc_hook_timeout() {
 #   - non-hook scripts. A plugin's `scripts/*.sh` is run by a model or a human with
 #     a working PATH and is deliberately out of scope.
 #   - jq-dependent, like its siblings here. No jq, no check — it returns 0.
+#   - a command that names its interpreter (`bash "${CLAUDE_PLUGIN_ROOT}/hooks/x.sh"`,
+#     or `sh …`). Skipped ON PURPOSE (decided 2026-10-15): the host runs the interpreter
+#     on PATH and never reads the shebang, so no shebang can make that hook start or fail
+#     to. What such a hook depends on instead, an interpreter on PATH, is not a file this
+#     check can read; and `sh` running a bash script under dash is not caught either.
 #
 # TIER: FAIL. It shipped at WARN on 2026-09-22 because 11 hooks failed it that hour;
 # eight were regenerated from the two hook templates and three fixed by hand the same
@@ -232,7 +260,8 @@ pc_hook_shebang() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -z "$(_pc_hook_interp "$sh")" ] || continue
+      sh=$(_pc_hook_script "$sh" "$d")
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       IFS= read -r first < "$sh" || true
@@ -297,7 +326,7 @@ pc_cwd_validated() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=$(_pc_hook_script "$sh" "$d")
       [ -f "$sh" ] || continue
       grep -qF 'cwd-mkdir-ok:' "$sh" 2>/dev/null && continue
       rel=$(basename "$sh")
@@ -367,8 +396,7 @@ pc_state_root() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh#bash }
-      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=$(_pc_hook_script "$sh" "$d")
       [ -f "$sh" ] || continue
       grep -qF 'state-root-ok:' "$sh" 2>/dev/null && continue
       out=$(awk '
@@ -521,7 +549,7 @@ pc_offswitch_named() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=$(_pc_hook_script "$sh" "$d")
       [ -f "$sh" ] || continue
       grep -qF 'offswitch-ok:' "$sh" 2>/dev/null && continue
       # Refusal-capable? Either channel counts. Comments are stripped so a header that
@@ -1991,8 +2019,9 @@ EOF_LANE_ADJ_FILES
 #
 # LIMITATION (honest scope), three residuals:
 #   1. The hook half reads hooks.json with jq and understands one command shape,
-#      `${CLAUDE_PLUGIN_ROOT}/hooks/<name>.sh`. A hook invoked any other way is
-#      not counted — it draws no failure and no warning.
+#      `${CLAUDE_PLUGIN_ROOT}/hooks/<name>.sh`, quoted or not, optionally led by `bash`
+#      or `sh` (_pc_hook_script). A hook invoked any other way is not counted — it
+#      draws no failure and no warning.
 #   2. Coverage is existence, not agreement: a row may name the wrong phase or a
 #      territory the agent does not work in, and this passes.
 #   3. A scratch agent planted by another harness (parity-check.sh plants three
@@ -2033,7 +2062,8 @@ pc_lanes_coverage() {
     hj="$d/hooks/hooks.json"
     if [ -f "$hj" ] && command -v jq >/dev/null 2>&1; then
       while IFS= read -r cmd; do
-        case "$cmd" in '${CLAUDE_PLUGIN_ROOT}/hooks/'*.sh) ;; *) continue ;; esac
+        cmd=$(_pc_hook_script "$cmd" "$d")
+        case "$cmd" in "$d/hooks/"*.sh) ;; *) continue ;; esac
         n=$(basename "$cmd" .sh)
         case "$NL$rows$NL" in
           *"$NL$p:$n${TAB}hook$NL"*) ;;
@@ -2063,7 +2093,8 @@ pc_lanes_coverage() {
       # either form in a comment, or exits 2 for a usage error rather than a verdict, is
       # over-reported. Both fail toward declaring a row, which is the cheap direction.
       while IFS= read -r cmd; do
-        case "$cmd" in '${CLAUDE_PLUGIN_ROOT}/hooks/'*.sh) ;; *) continue ;; esac
+        cmd=$(_pc_hook_script "$cmd" "$d")
+        case "$cmd" in "$d/hooks/"*.sh) ;; *) continue ;; esac
         n=$(basename "$cmd" .sh)
         [ -f "$d/hooks/$n.sh" ] || continue
         grep -qE 'permissionDecision|^[[:space:]]*exit 2([[:space:]]|$)' "$d/hooks/$n.sh" 2>/dev/null || continue
@@ -2277,7 +2308,7 @@ pc_phase_guard() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=$(_pc_hook_script "$sh" "$d")
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       grep -qF 'cc-phase.json' "$sh" 2>/dev/null && continue
@@ -2345,7 +2376,7 @@ pc_context_key() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=$(_pc_hook_script "$sh" "$d")
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       grep -q 'session_id' "$sh" 2>/dev/null || continue
@@ -2432,7 +2463,7 @@ pc_marker_key() {
     d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
     while IFS= read -r sh; do
       [ -n "$sh" ] || continue
-      sh=${sh//\"/}; sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      sh=$(_pc_hook_script "$sh" "$d")
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       grep -q 'marker-key-ok:' "$sh" 2>/dev/null && continue
@@ -3222,6 +3253,8 @@ pc_frontmatter() {
 # For every hooks/hooks.json under the dir: prints `<f>: invalid JSON`, or one
 # `<f>: hook script <script> missing or not executable` per `${CLAUDE_PLUGIN_ROOT}`
 # command that does not resolve to an executable file — validate.sh's text exactly.
+# A `bash`/`sh`-led command (_pc_hook_script) needs only a file: its interpreter reads
+# the script, so the exec bit is not something the host uses.
 # Returns 1 if any; 0 when clean, when the dir is missing, or when jq is missing.
 #
 # WHY IT EXISTS: done-gate.sh needed a per-plugin hook check and none existed — the
@@ -3229,9 +3262,9 @@ pc_frontmatter() {
 # function: done-gate.sh per changed plugin, validate.sh once on `plugins`, which
 # keeps the tree-wide `find` order its FAIL lines have always printed in.
 #
-# WHAT IT DOES NOT CATCH: a command not written as `${CLAUDE_PLUGIN_ROOT}…` (it is
-# never resolved), a script that is executable but broken, and a missing `timeout`
-# (pc_hook_timeout's job).
+# WHAT IT DOES NOT CATCH: a command whose script path does not open on
+# `${CLAUDE_PLUGIN_ROOT}` after the interpreter (it is never resolved), a script that
+# is executable but broken, and a missing `timeout` (pc_hook_timeout's job).
 pc_hook_exec() {
   local root="${1%/}" bad=0 f plugroot cmd script
   command -v jq >/dev/null 2>&1 || return 0
@@ -3241,9 +3274,12 @@ pc_hook_exec() {
     jq empty "$f" 2>/dev/null || { printf '%s\n' "$f: invalid JSON"; bad=1; continue; }
     plugroot=$(dirname "$(dirname "$f")")
     while IFS= read -r cmd; do
-      script="${cmd/\$\{CLAUDE_PLUGIN_ROOT\}/$plugroot}"
-      [ -x "$script" ] || { printf '%s\n' "$f: hook script $script missing or not executable"; bad=1; }
-    done < <(jq -r '.. | .command? // empty' "$f" | tr -d '"' | grep '^\${CLAUDE_PLUGIN_ROOT}')
+      script=$(_pc_hook_script "$cmd" "$plugroot")
+      case "$script" in "$plugroot"/*) ;; *) continue ;; esac
+      if [ -n "$(_pc_hook_interp "$cmd")" ]; then [ -f "$script" ] && continue
+      else [ -x "$script" ] && continue; fi
+      printf '%s\n' "$f: hook script $script missing or not executable"; bad=1
+    done < <(jq -r '.. | .command? // empty' "$f")
   done < <(find "$root" -path '*/hooks/hooks.json')
   return $bad
 }
@@ -3732,25 +3768,35 @@ pc_gating_catch() {
 
 # pc_plugin_root_quoting <plugins_root>
 # Prints `plugin-root-unquoted <plugin> <path-in-plugin>:<line>` for every RUNNABLE line in
-# <root>/*/commands/*.md or <root>/*/skills/**/*.md that runs bash, sh, node, python or
-# python3 (flags allowed) on an unquoted `${CLAUDE_PLUGIN_ROOT}` or `$CLAUDE_PLUGIN_ROOT`.
-# A runnable line is a line inside a ``` or ~~~ fence (the interpreter anywhere on it) or an
-# inline backtick span that STARTS with the interpreter. Prose naming the path is exempt.
-# Returns 1 if any.
+# <root>/*/commands/*.md or <root>/*/skills/**/*.md that runs an unquoted `${CLAUDE_PLUGIN_ROOT}`
+# or `$CLAUDE_PLUGIN_ROOT` path: as the command itself, or as the script bash, sh, node,
+# python or python3 is handed (option words `-x`, `--long`, `--` allowed between). Command
+# position is the first token after any `sudo`/`env` (with options) or `VAR=val` wrappers.
+# A runnable line is a line inside a ``` or ~~~ fence — command position at its start or
+# after `;` `&` `|` `(`, the interpreter anywhere — or an inline code span, read in
+# command position at its start. A span holding the bare path alone counts only when it
+# names a script (.sh .bash .py .mjs .cjs .js .ts): `${CLAUDE_PLUGIN_ROOT}/x/SKILL.md` is
+# a path to read, `${CLAUDE_PLUGIN_ROOT}/x.sh --y` a command. Spans follow CommonMark: an N-backtick run closes on the
+# next run of exactly N, across lines up to a blank line, and the hit is reported on the
+# line holding the span's first word. Fences close on the same character, at least as
+# long, with no info string. Prose naming the path is exempt. Returns 1 if any.
 #
 # WHY IT EXISTS: CLI 2.1.281 warns that a shell-form hook leaving `${CLAUDE_PLUGIN_ROOT}`
 # unquoted "breaks on plugin paths with spaces", and official-validate.sh fails that — in
 # hooks.json only. Commands and skills tell the model to run the same line through Bash,
 # and nothing read them: under an install path holding a space (a HOME or
-# CLAUDE_CONFIG_DIR with one) the path splits and the script never runs. Two quote
-# characters fix it. Standing: gate — FAIL in validate.sh. It shipped at WARN naming 38 lines
-# in 13 plugins, all quoted the same day (2026-10-15) before the promotion.
+# CLAUDE_CONFIG_DIR with one) the path splits and the script never runs — measured with
+# CLAUDE_PLUGIN_ROOT="/tmp/rb probe": the behavioral-gate line exits 127. Two quote
+# characters fix it. Standing: gate — FAIL in validate.sh. It shipped at WARN naming 38
+# interpreter lines in 13 plugins, all quoted the same day (2026-10-15) before the
+# promotion; widening it to command position the same day named the scripts run by path.
 #
-# WHAT IT DOES NOT CATCH: a command in plain prose or an indented code block; a span
-# opened on an earlier line (lines are read one at a time, so a span's continuation line
-# reads as prose) or a double-backtick span; another launcher (`ruby`, `npx`, `exec`) or a
-# script run by path with no interpreter; other unquoted words on the line (`$ARGUMENTS`, a
-# `<placeholder>` that may hold a space); agents, READMEs and scripts. No blessing marker.
+# WHAT IT DOES NOT CATCH: a command in plain prose or an indented code block; fence
+# indentation (any is accepted, so a fence nested in a list item still opens); a wrapper
+# outside the list (`exec`, `nohup`, `time`, `sudo -u <user>`) or a launcher outside it
+# (`ruby`, `npx`); the path as an ordinary argument (`cat ${CLAUDE_PLUGIN_ROOT}/x`); other
+# unquoted words on the line (`$ARGUMENTS`, a `<placeholder>` that may hold a space);
+# agents, READMEs and scripts. No blessing marker.
 pc_plugin_root_quoting() {
   local root="${1%/}" d
   [ -d "$root" ] || return 0
@@ -3759,22 +3805,53 @@ pc_plugin_root_quoting() {
     [ -d "$d/commands" ] && find "$d/commands" -maxdepth 1 -type f -name '*.md'
     [ -d "$d/skills" ] && find "$d/skills" -type f -name '*.md'
   done | sort | tr '\n' '\0' | xargs -0 -r awk -v root="$root" '
-    function hit(  rel) {
+    BEGIN {
+      R = "[$][{]?CLAUDE_PLUGIN_ROOT"
+      OPT = "(--?[A-Za-z-]*[ \t]+)*"
+      WRAP = "((sudo|env)[ \t]+" OPT "|[A-Za-z_][A-Za-z0-9_]*=(\"[^\"]*\"|\047[^\047]*\047|[^ \t]*)[ \t]+)*"
+      INTERP = "(bash|sh|node|python3?)[ \t]+" OPT
+      SPAN = "^[ \t]*" WRAP "(" INTERP R "|" R "[^ \t]*([.](sh|bash|py|mjs|cjs|js|ts)[ \t]*$|[ \t]+[^ \t]))"
+      LINE = "(^|[;&|(])[ \t]*" WRAP "(" INTERP ")?" R
+      ANY = "(^|[^A-Za-z0-9_./-])" INTERP R
+    }
+    function hit(ln,  rel) {
+      if (FILENAME == lastf && ln == lastl) return
+      lastf = FILENAME; lastl = ln
       rel = substr(FILENAME, length(root) + 2)
-      printf "plugin-root-unquoted %s %s:%d\n", substr(rel, 1, index(rel, "/") - 1), substr(rel, index(rel, "/") + 1), FNR
+      printf "plugin-root-unquoted %s %s:%d\n", substr(rel, 1, index(rel, "/") - 1), substr(rel, index(rel, "/") + 1), ln
       found = 1
     }
-    FNR == 1 { fence = "" }
-    fence != "" {
-      if (index($0, fence) && $0 ~ /^[ \t]*(```|~~~)/) { fence = ""; next }
-      if ($0 ~ /(^|[^A-Za-z0-9_.\/-])(bash|sh|node|python3?)[ \t]+(-[A-Za-z]+[ \t]+)*[$][{]?CLAUDE_PLUGIN_ROOT/) hit()
+    function add(t) {
+      if (!bufline && t ~ /[^ \t]/) bufline = FNR
+      buf = buf t
+    }
+    FNR == 1 { fch = ""; open = 0 }
+    fch != "" {
+      if (match($0, /^[ \t]*(```+|~~~+)[ \t]*$/)) {
+        f = $0; gsub(/[ \t]/, "", f)
+        if (substr(f, 1, 1) == fch && length(f) >= flen) { fch = ""; next }
+      }
+      if ($0 ~ LINE || $0 ~ ANY) hit(FNR)
       next
     }
-    /^[ \t]*(```|~~~)/ { fence = ($0 ~ /^[ \t]*```/) ? "```" : "~~~"; next }
+    match($0, /^[ \t]*(```+|~~~+)/) {
+      f = substr($0, RSTART, RLENGTH); sub(/^[ \t]*/, "", f)
+      if (substr(f, 1, 1) == "~" || substr($0, RSTART + RLENGTH) !~ /`/) {
+        fch = substr(f, 1, 1); flen = length(f); open = 0; next
+      }
+    }
+    /^[ \t]*$/ { open = 0; next }
     {
-      n = split($0, seg, "`")
-      for (i = 2; i <= n; i += 2)
-        if (seg[i] ~ /^[ \t]*(bash|sh|node|python3?)[ \t]+(-[A-Za-z]+[ \t]+)*[$][{]?CLAUDE_PLUGIN_ROOT/) { hit(); break }
+      s = $0
+      if (open) add(" ")
+      while (match(s, /`+/)) {
+        pre = substr(s, 1, RSTART - 1); run = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+        if (!open) { open = length(run); buf = ""; bufline = 0; continue }
+        add(pre)
+        if (length(run) == open) { if (buf ~ SPAN) hit(bufline); open = 0 }
+        else add(run)
+      }
+      if (open) add(s)
     }
     END { exit found }' || return 1
 }

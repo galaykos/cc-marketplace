@@ -196,18 +196,23 @@ overwrite. A worker's hand-back wakes the orchestrator anyway. Two sources:
     above counts: inflight_count keeps subagent and teammate entries only. In one reviewed
     session clause 4 blocked while behavioral-gate.sh was still running in the background,
     demanding the very run that was in progress. task-runner writes
-    <root>/.claude/task-runner/bg/running.pid: the PID, then the HEAD sha it tests.
+    <root>/.claude/task-runner/bg/running.pid: the PID, the HEAD sha it tests and (0.48.0+)
+    its deadline in epoch seconds.
     bg_running counts it as ONE worker, added to either source's count, so the hold prints
     the same line and keeps this HEAD's one block, while the gate is live (below), the sha is
-    the current HEAD (a prefix of 7+ hex), and the file is under BG_PID_TTL_MIN, 120
-    minutes. A dead PID or another HEAD is a stale file and is ignored. The age cap is what
+    the current HEAD (a prefix of 7+ hex), and the file's deadline (below) is ahead or, in
+    a file with none, the file is under BG_PID_TTL_MIN, 240 minutes. A dead PID or another HEAD is a stale file and is ignored. The age cap is what
     bounds a recycled PID at the same HEAD; a cap the gate can legitimately outrun blocks a
     stop with "run the behavioral gate" while one is running — a second run under the first
     one's load. The first 0.8.0 cut used 180; 0.8.0 shipped 240, because seven built-in
-    runners at the gate's 1800 s suite cap ran 210 minutes. 0.9.0 (2026-10-15): 120. From
-    CLI 2.1.285 the host stops a background Bash call at its `timeout`, 2 h at most (from
-    2.1.288 only in -p, SDK, CI and cloud sessions), and task-runner 0.48.0's gate ends itself
-    by BEHAVIORAL_GATE_TOTAL, 6600 s, with running.pid written after the clock starts. A
+    runners at the gate's 1800 s suite cap ran 210 minutes. 0.9.0's first cut (2026-10-15):
+    120, because from CLI 2.1.285 the host stops a background Bash call at its `timeout`, 2 h
+    at most (from 2.1.288 only in -p, SDK, CI and cloud sessions), and task-runner 0.48.0's
+    gate ends itself by BEHAVIORAL_GATE_TOTAL, 6600 s. Review found that window outlived by a
+    raised total where the host sets no limit and by task-runner 0.47.0's 210 minutes, the
+    two producers versioning apart. So 0.48.0 writes the deadline as line 3, start + total +
+    60 s (the 10 s KILL grace and the uncapped steps), and the hold honours it; a file with
+    no line 3 keeps 240. A
     host stop sends TERM, then KILL about 1.4 s later, to the call's whole process tree
     (measured on 2.1.300 through TaskStop, twice); the gate's TERM trap removed running.pid
     and its worktree inside that window (measured once, a small fixture), and a file the KILL
@@ -225,9 +230,9 @@ resolved from it would put its SubagentStop's delete where the parent's Stop nev
 RESIDUAL: on an older CLI a worker running past 180 minutes expires and the gate blocks
 once per HEAD as before; a session resumed under a new session_id cannot see the old
 records; background shell tasks and workflows are not workers here, except the
-behavioral gate's running.pid, and a gate given a raised BEHAVIORAL_GATE_TOTAL where
-the host sets no limit, or a task-runner older than 0.48.0 with no total, can outlast
-the 120 minutes and draw one block at its HEAD.
+behavioral gate's running.pid, and a gate that outlives its deadline (only with no
+timeout, gtimeout or perl to cap its suites), or a task-runner older than 0.48.0 past
+240 minutes, draws one block at its HEAD.
 A gate run in sandboxed Bash writes `$$` from the sandbox's PID namespace (the Linux
 sandbox passes bwrap --unshare-pid, read from the 2.1.300 binary). The first 0.8.0 cut
 tested it with kill -0, which here tests a different process: probed 2026-10-15 under
@@ -239,7 +244,8 @@ with its cwd and command line readable. So with /proc the hold reads the recorde
 cwd is under the root. The pattern is written behavioral-gat[e] so the scan's own grep,
 which names it, never matches itself. This also closes the recycled-PID hold on Linux.
 RESIDUAL: without /proc (macOS, whose sandbox has no PID namespace) it is kill -0, and a
-recycled live PID at the same HEAD holds the block until the file is 120 minutes old; on
+recycled live PID at the same HEAD holds the block until the file's deadline, or until it
+is 240 minutes old when it has none; on
 Linux any process whose command line names behavioral-gate.sh and whose cwd is under the
 root — a background `tail` of its log, an editor on the script in task-runner's own repo
 — holds it while a current running.pid names this HEAD. Only the no-gate-

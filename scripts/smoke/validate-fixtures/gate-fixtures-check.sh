@@ -4,7 +4,8 @@
 # pc_version_stamp_tail (#21) — plus pc_state_root and pc_shared_blocks from the
 # 2026-09-25 session review, pc_plugin_dependencies from the 2026-09-26 suite
 # retirement, pc_agent_tool_fit from the 2026-10-13 session retro, and pc_gating_catch and
-# pc_plugin_root_quoting from the 2026-10-15 host review. Each gets BOTH arms: a planted violation that must be
+# pc_plugin_root_quoting from the 2026-10-15 host review, with official-validate.sh's report
+# handling and turn-cost.sh's catalog prices from its re-review. Each gets BOTH arms: a planted violation that must be
 # named, and a clean twin that must not be. A check that only ever runs against the live
 # tree proves nothing on the day the tree is clean, which is the day it lands.
 #
@@ -153,11 +154,11 @@ printf '#!/bin/bash\nexit 0\n' > "$QR/qfix/hooks/gate.sh"
 printf '#!/bin/bash\necho %s\nexit 0\n' "'{\"hookSpecificOutput\":{\"permissionDecision\":\"deny\"}}'" > "$QR/qfix/hooks/deny.sh"
 chmod +x "$QR"/qfix/hooks/*.sh
 printf '# artifact\tkind\tphase\towns\tdefinite_trigger\tyields_to\n' > "$QR/qfix/lane.tsv"
-qhooks() { # $1 = command prefix/suffix quote character ('' or '"')
-  jq -n --arg q "$1" '{hooks:{
-    UserPromptSubmit:[{hooks:[{type:"command",command:($q+"${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh"+$q)}]}],
-    Stop:[{hooks:[{type:"command",command:($q+"${CLAUDE_PLUGIN_ROOT}/hooks/gate.sh"+$q),timeout:5}]}],
-    PreToolUse:[{matcher:"Edit",hooks:[{type:"command",command:($q+"${CLAUDE_PLUGIN_ROOT}/hooks/deny.sh"+$q),timeout:5}]}]}}' \
+qhooks() { # $1 = command prefix/suffix quote character ('' or '"'), $2 = interpreter prefix ('', 'bash ', 'sh ')
+  jq -n --arg q "$1" --arg i "${2:-}" '{hooks:{
+    UserPromptSubmit:[{hooks:[{type:"command",command:($i+$q+"${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh"+$q)}]}],
+    Stop:[{hooks:[{type:"command",command:($i+$q+"${CLAUDE_PLUGIN_ROOT}/hooks/gate.sh"+$q),timeout:5}]}],
+    PreToolUse:[{matcher:"Edit",hooks:[{type:"command",command:($i+$q+"${CLAUDE_PLUGIN_ROOT}/hooks/deny.sh"+$q),timeout:5}]}]}}' \
     > "$QR/qfix/hooks/hooks.json"
 }
 qrun() {
@@ -176,6 +177,77 @@ for want in "hook-timeout qfix:UserPromptSubmit:remind.sh" "hook-shebang qfix:re
   case "$quo" in *"$want"*) pass "quoting: quoted form still draws '$want'" ;;
     *) fail "quoting: quoted form still draws '$want'" "got: $(printf '%s' "$quo" | grep -v '^==' | head -6)" ;; esac
 done
+
+# ---- interpreter-led hook commands: `bash "${CLAUDE_PLUGIN_ROOT}/hooks/x.sh"` --------------
+# 2026-10-15: command-guard 0.9.0 starts destructive-guard through the bash on PATH, so a host
+# with no /bin/bash still runs it, and every hooks.json reader but pc_state_root matched only a
+# command opening on ${CLAUDE_PLUGIN_ROOT}: they went silent on that hook. The same fixture led
+# by `bash` or `sh` must draw the quoted form's findings, except from pc_hook_shebang, which
+# skips an interpreter-led command by decision (its header): the host never reads that shebang.
+no_shebang() { printf '%s\n' "$1" | awk '/^== /{skip=($2=="pc_hook_shebang")} !skip'; }
+qhooks '"' 'bash '; bsh=$(qrun)
+qhooks '' 'sh '; ssh_=$(qrun)
+qhooks '"'
+for form in bash sh; do
+  if [ "$form" = bash ]; then got=$bsh; else got=$ssh_; fi
+  if [ "$(no_shebang "$quo")" = "$(no_shebang "$got")" ]; then pass "interpreter-led ($form): every other hooks.json reader agrees with the quoted form"
+  else fail "interpreter-led ($form): every other hooks.json reader agrees with the quoted form" "$(diff <(no_shebang "$quo") <(no_shebang "$got") | head -8)"; fi
+  case "$got" in *"hook-shebang"*) fail "interpreter-led ($form): pc_hook_shebang skips it" "$(printf '%s' "$got" | grep hook-shebang)" ;;
+    *) pass "interpreter-led ($form): pc_hook_shebang skips it" ;; esac
+done
+
+# Every resolver on one interpreter-led fixture, each with a finding to make: a check that
+# draws nothing here proves nothing about the form. ig.sh is not executable and opens on an
+# env shebang, which the interpreter-led form makes irrelevant; the path-led twin names both.
+IR="$T/_interp"; mkdir -p "$IR/ifix/hooks"
+cat > "$IR/ifix/hooks/ig.sh" <<'SH'
+#!/usr/bin/env bash
+input=$(cat)
+[ "${CC_IFIX_GUARD:-on}" = off ] && exit 0
+cwd=$(printf %s "$input" | jq -r .cwd)
+mkdir -p "$cwd/.claude/x"
+tp=$(printf %s "$input" | jq -r .transcript_path)
+marker="/tmp/ifix-$tp"
+jq -cn '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:"fixture: refused."}}'
+exit 0
+SH
+printf '#!/bin/bash\nsid=$(jq -r .session_id)\nexit 0\n' > "$IR/ifix/hooks/pk.sh"
+printf '#!/bin/bash\nexit 0\n' > "$IR/ifix/hooks/dg.sh"
+chmod 644 "$IR/ifix/hooks/ig.sh"; chmod +x "$IR/ifix/hooks/pk.sh" "$IR/ifix/hooks/dg.sh"
+printf 'ifix:ig\thook\tbuild\tfixture-territory\ta fixture\t-\n' > "$IR/ifix/lane.tsv"
+ihooks() { # $1 = interpreter prefix ('' for the path-led twin)
+  jq -n --arg i "$1" '{hooks:{
+    PreToolUse:[{matcher:"Edit",hooks:[{type:"command",command:($i+"\"${CLAUDE_PLUGIN_ROOT}/hooks/ig.sh\""),timeout:5},
+                                       {type:"command",command:($i+"\"${CLAUDE_PLUGIN_ROOT}/hooks/missing.sh\""),timeout:5}]}],
+    PostToolUse:[{matcher:"Edit",hooks:[{type:"command",command:($i+"\"${CLAUDE_PLUGIN_ROOT}/hooks/pk.sh\""),timeout:5}]}],
+    Stop:[{hooks:[{type:"command",command:($i+"${CLAUDE_PLUGIN_ROOT}/hooks/dg.sh"),timeout:5}]}]}}' > "$IR/ifix/hooks/hooks.json"
+}
+iwant() { # <label> <function> <substring>, against the interpreter-led fixture
+  local out; out=$("$2" "$IR" 2>&1) || true
+  case "$out" in *"$3"*) pass "interpreter-led: $1" ;; *) fail "interpreter-led: $1" "got: ${out:-<empty>}" ;; esac
+}
+inone() { # <label> <function> <substring>
+  local out; out=$("$2" "$IR" 2>&1) || true
+  case "$out" in *"$3"*) fail "interpreter-led: $1" "got: $out" ;; *) pass "interpreter-led: $1" ;; esac
+}
+ihooks 'bash '
+iwant "pc_hook_exec names a missing script" pc_hook_exec "ifix/hooks/missing.sh missing or not executable"
+inone "pc_hook_exec needs no exec bit" pc_hook_exec "ifix/hooks/ig.sh"
+inone "pc_hook_shebang skips the env shebang" pc_hook_shebang "hook-shebang ifix:ig.sh"
+iwant "pc_offswitch_named" pc_offswitch_named "offswitch-unnamed ifix:ig.sh CC_IFIX_GUARD"
+iwant "pc_cwd_validated" pc_cwd_validated "cwd-unvalidated ifix:ig.sh"
+iwant "pc_state_root" pc_state_root "state-root-raw ifix:ig.sh"
+iwant "pc_phase_guard" pc_phase_guard "phase-unguarded ifix:ig.sh"
+iwant "pc_marker_key" pc_marker_key "marker-key-unhashed ifix:ig.sh"
+iwant "pc_context_key" pc_context_key "context-keyed-on-session ifix:pk.sh"
+iwant "pc_lanes_coverage (unquoted path)" pc_lanes_coverage "lane-missing hook ifix:dg"
+ihooks 'sh '
+iwant "pc_hook_exec names a missing script (sh)" pc_hook_exec "ifix/hooks/missing.sh missing or not executable"
+iwant "pc_offswitch_named (sh)" pc_offswitch_named "offswitch-unnamed ifix:ig.sh CC_IFIX_GUARD"
+ihooks ''
+iwant "path-led twin: pc_hook_exec wants the exec bit" pc_hook_exec "ifix/hooks/ig.sh missing or not executable"
+iwant "path-led twin: pc_hook_shebang names the env shebang" pc_hook_shebang "hook-shebang ifix:ig.sh"
+rm -rf "$IR"
 
 # ---- modules-only and hooks+modules hooks.json: every reader must agree --------------
 QERR="$T/qerr"; : > "$QERR"
@@ -708,6 +780,81 @@ grep -v '^[[:space:]]*#' scripts/official-validate.sh | grep -qF 'nocatch=$(pc_g
   && pass "gating: wiring — official-validate.sh runs pc_gating_catch on each plugin's --json report" \
   || fail "gating: wiring" "official-validate.sh lacks the --json run or the pc_gating_catch call"
 
+# ---- official-validate.sh: one --json run per plugin, its findings printed, its verdict kept ----
+# A stub `claude` answers like 2.1.300 does (both modes, the bad plugin failing in each) and logs
+# every call; the script runs from a copy whose plugins/ holds one clean and one failing plugin.
+OV="$T/ov"
+mkdir -p "$OV/scripts/lib" "$OV/bin" "$OV/.claude-plugin" "$OV/plugins/good/.claude-plugin" "$OV/plugins/bad/.claude-plugin"
+cp scripts/official-validate.sh scripts/host-constants.sh scripts/removed-plugins.tsv "$OV/scripts/"
+cp scripts/lib/plugin-checks.sh "$OV/scripts/lib/"
+echo '{}' > "$OV/plugins/good/.claude-plugin/plugin.json"; echo '{}' > "$OV/plugins/bad/.claude-plugin/plugin.json"
+cat > "$OV/bin/claude" <<'SH'
+#!/usr/bin/env bash
+echo "$*" >> "$OV_CALLS"
+case "$*" in
+  --version) echo "2.1.300 (Claude Code)" ;;
+  *marketplace.json) exit 0 ;;
+  *--json*plugins/bad/) cat <<'J'; exit 1 ;;
+{"success":false,"strict":true,"manifest":{"file":"/p/bad/.claude-plugin/plugin.json","errors":[{"path":"name","message":"Plugin name cannot contain spaces"}],"warnings":[],"gatingHooks":[]},
+ "contents":[{"file":"/p/bad/hooks/hooks.json","errors":[],"warnings":[{"path":"hooks.Stop","message":"Shell command uses ${CLAUDE_PLUGIN_ROOT} without quotes"}],"gatingHooks":[]}],"advice":[]}
+J
+  *--json*plugins/garbled/) echo "Segmentation fault"; exit 1 ;;
+  *--json*plugins/lying/) echo '{"success":false,"manifest":{"errors":[],"warnings":[]},"contents":[]}' ;;
+  *--json*) echo '{"success":true,"manifest":{"errors":[],"warnings":[],"gatingHooks":[]},"contents":[]}' ;;
+  *plugins/bad/) echo "  ❯ name: Plugin name cannot contain spaces"; exit 1 ;;
+  *) echo "✔ Validation passed" ;;
+esac
+SH
+chmod +x "$OV/bin/claude"
+ov_run() { : > "$T/ov-calls"; OV_CALLS="$T/ov-calls" PATH="$OV/bin:$PATH" bash "$OV/scripts/official-validate.sh" 2>&1; }
+out=$(ov_run) && r=0 || r=$?
+n_good=$(grep -c ' plugins/good/$' "$T/ov-calls"); n_bad=$(grep -c ' plugins/bad/$' "$T/ov-calls")
+[ "$n_good" -eq 1 ] && [ "$n_bad" -eq 1 ] \
+  && pass "official-validate: one validator run per plugin" \
+  || fail "official-validate: one validator run per plugin" "good=$n_good bad=$n_bad: $(cat "$T/ov-calls")"
+case "$r:$out" in
+  1:*"FAIL: plugins/bad/"*"error: name: Plugin name cannot contain spaces"*"warning: hooks.Stop: Shell command uses"*)
+    printf '%s\n' "$out" | grep -q '^FAIL: plugins/good/' \
+      && fail "official-validate: a failing plugin fails with its findings printed" "the clean plugin failed too: $out" \
+      || pass "official-validate: a failing plugin fails with its findings printed, the clean one passes" ;;
+  *) fail "official-validate: a failing plugin fails with its findings printed" "rc=$r got: $out" ;;
+esac
+mv "$OV/plugins/bad" "$OV/plugins/garbled"
+out=$(ov_run) && r=0 || r=$?
+case "$r:$out" in
+  1:*"FAIL: plugins/garbled/"*"Segmentation fault"*) pass "official-validate: a report jq cannot read fails and prints the raw output" ;;
+  *) fail "official-validate: a report jq cannot read fails and prints the raw output" "rc=$r got: $out" ;;
+esac
+mv "$OV/plugins/garbled" "$OV/plugins/lying"
+out=$(ov_run) && r=0 || r=$?
+case "$r:$out" in
+  1:*"FAIL: plugins/lying/"*) pass "official-validate: success:false fails even on exit 0" ;;
+  *) fail "official-validate: success:false fails even on exit 0" "rc=$r got: $out" ;;
+esac
+rm -rf "$OV/plugins/lying"
+out=$(ov_run) && r=0 || r=$?
+case "$r:$out" in
+  0:*"OK: official validator"*) pass "official-validate: a clean tree passes" ;;
+  *) fail "official-validate: a clean tree passes" "rc=$r got: $out" ;;
+esac
+
+# ---- turn-cost.sh: older catalog models priced from the CLI 2.1.300 catalog, not the fallback ----
+# One request of 1M input + 1M output + 1M cache-read tokens costs input + output + read rates.
+for mc in claude-opus-4-1-20250805:91.5 claude-opus-4-20250514:91.5 claude-opus-4-5-20251101:30.5 \
+          claude-sonnet-4-5-20250929:18.3 claude-sonnet-4-20250514:18.3 claude-3-7-sonnet-20250219:18.3 \
+          claude-3-5-sonnet-20241022:18.3 claude-3-5-haiku-20241022:4.88 claude-made-up-9:30.5; do
+  m=${mc%:*} want=${mc##*:}
+  TH="$T/tc-$m"; mkdir -p "$TH/.claude/projects/p"
+  printf '{"cwd":"/w","message":{"model":"%s","usage":{"input_tokens":1000000,"output_tokens":1000000,"cache_read_input_tokens":1000000}}}\n' "$m" \
+    > "$TH/.claude/projects/p/s.jsonl"
+  got=$(HOME="$TH" bash scripts/turn-cost.sh --json 2>/dev/null | jq -r '.usd')
+  [ "$got" = "$want" ] && pass "turn-cost: $m costs \$$want" || fail "turn-cost: $m costs \$$want" "got: ${got:-<empty>}"
+done
+TH="$T/tc-claude-made-up-9"
+HOME="$TH" bash scripts/turn-cost.sh 2>/dev/null | grep -q 'not in the table.*claude-made-up-9' \
+  && pass "turn-cost: a model outside the table is still named" \
+  || fail "turn-cost: a model outside the table is still named" "$(HOME="$TH" bash scripts/turn-cost.sh 2>&1 | tail -5)"
+
 # ---- pc_plugin_root_quoting: an unquoted ${CLAUDE_PLUGIN_ROOT} on a runnable line -------
 Q="$T/quoting"
 mkdir -p "$Q/qbad/commands" "$Q/qbad/skills/s/references" "$Q/qbad/agents" "$Q/qok/commands"
@@ -715,7 +862,7 @@ cat > "$Q/qbad/commands/run.md" <<'MD'
 # Run
 
 Inline: run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/a.sh --x` now.
-Prose span: the script lives at `${CLAUDE_PLUGIN_ROOT}/scripts/a.sh`.
+Prose span: the doc lives at `${CLAUDE_PLUGIN_ROOT}/skills/s/SKILL.md`.
 Prose, no span: run bash ${CLAUDE_PLUGIN_ROOT}/scripts/a.sh by hand.
 Quoted: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/a.sh"`.
 Second span: see `x` then `python3 -I ${CLAUDE_PLUGIN_ROOT}/s.py`.
@@ -729,21 +876,53 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/b.sh"
 ~~~
 sh ${CLAUDE_PLUGIN_ROOT}/c.sh
 ~~~
+By path: run `${CLAUDE_PLUGIN_ROOT}/scripts/p.sh status`.
+Bare script: `${CLAUDE_PLUGIN_ROOT}/scripts/scan.sh` prints a table.
+Sudo: `sudo ${CLAUDE_PLUGIN_ROOT}/w.sh`.
+Env: `env -i X="a b" ${CLAUDE_PLUGIN_ROOT}/w.sh`.
+Option end: `bash -- ${CLAUDE_PLUGIN_ROOT}/o.sh`.
+Long option: `python3 --no-site ${CLAUDE_PLUGIN_ROOT}/o.py`.
+Spans across lines: the gate —
+  `${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh --changed "<the
+  files>"`, then a span opened at the end of a line `
+  ${CLAUDE_PLUGIN_ROOT}/scripts/next.sh --x`.
+Unclosed: a lone `
+
+${CLAUDE_PLUGIN_ROOT}/x.sh --y` would read as a span if the blank line did not end it.
+
+```sh
+x=1 && ${CLAUDE_PLUGIN_ROOT}/f.sh
+${CLAUDE_PLUGIN_ROOT}/g.sh --y
+cat ${CLAUDE_PLUGIN_ROOT}/notes.txt
+```
+
+````markdown
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/inner.sh
+```
+````
+After the four-backtick fence: bash ${CLAUDE_PLUGIN_ROOT}/prose.sh is prose again.
 MD
 printf 'Intro.\n\n```\npython ${CLAUDE_PLUGIN_ROOT}/r.py <dir>\n```\n' > "$Q/qbad/skills/s/references/r.md"
 printf -- '---\nname: a\n---\nRun `bash ${CLAUDE_PLUGIN_ROOT}/x.sh`.\n' > "$Q/qbad/agents/a.md"
 printf 'Run `bash ${CLAUDE_PLUGIN_ROOT}/x.sh`.\n' > "$Q/qbad/README.md"
-printf 'Run `bash "${CLAUDE_PLUGIN_ROOT}/x.sh"` and `node "$CLAUDE_PLUGIN_ROOT/y.mjs"`.\n' > "$Q/qok/commands/ok.md"
+printf 'Run `bash "${CLAUDE_PLUGIN_ROOT}/x.sh"` and `node "$CLAUDE_PLUGIN_ROOT/y.mjs"`, then `"${CLAUDE_PLUGIN_ROOT}/p.sh" status`.\n' > "$Q/qok/commands/ok.md"
 out=$(pc_plugin_root_quoting "$Q") && r=0 || r=$?
+# 18-23 run a script by path or through a wrapper or option word, 25 and 27 are spans that
+# continue onto the next line (task-runner run.md's behavioral-gate line), 33-34 fenced lines
+# in command position, 40 a line inside a ```` fence after an inner ```bash opener.
 for want in "commands/run.md:3" "commands/run.md:7" "commands/run.md:8" "commands/run.md:12" \
-            "commands/run.md:16" "skills/s/references/r.md:4"; do
+            "commands/run.md:16" "skills/s/references/r.md:4" \
+            "commands/run.md:18" "commands/run.md:19" "commands/run.md:20" "commands/run.md:21" \
+            "commands/run.md:22" "commands/run.md:23" "commands/run.md:25" "commands/run.md:27" \
+            "commands/run.md:33" "commands/run.md:34" "commands/run.md:40"; do
   printf '%s\n' "$out" | grep -qxF "plugin-root-unquoted qbad $want" \
     && pass "root-quoting: qbad $want is named" || fail "root-quoting: qbad $want is named" "got: ${out:-<empty>}"
 done
 n_q=$(printf '%s\n' "$out" | grep -c '^plugin-root-unquoted ')
-[ "$r" -eq 1 ] && [ "$n_q" -eq 6 ] \
-  && pass "root-quoting: the neighbours stay silent — a prose span, prose without a span, quoted paths, zsh/npx, agents, README, a clean plugin" \
-  || fail "root-quoting: the neighbours stay silent" "rc=$r, $n_q lines, want 6: $out"
+[ "$r" -eq 1 ] && [ "$n_q" -eq 17 ] \
+  && pass "root-quoting: the neighbours stay silent — a doc-path span, prose, an argument, quoted paths, zsh/npx, an unclosed backtick, agents, README, a clean plugin" \
+  || fail "root-quoting: the neighbours stay silent" "rc=$r, $n_q lines, want 17: $out"
 rm -rf "$Q/qbad"
 out=$(pc_plugin_root_quoting "$Q") && r=0 || r=$?
 [ "$r" -eq 0 ] && [ -z "$out" ] && pass "root-quoting: a tree with nothing to name returns 0 and prints nothing" \

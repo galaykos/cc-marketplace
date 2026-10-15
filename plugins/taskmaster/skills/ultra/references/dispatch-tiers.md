@@ -20,7 +20,7 @@ refusal in the other (derivation: `rationale/2026-09-26-taskmaster-prose-derivat
 | **Breadth** (stay native) | `opinion-lens` | native (`sonnet`/low) — never overridden | four persona takes, low-effort by design; escalating multiplies cost for no depth |
 
 This ladder is the explicit ask the Agent tool's `effort` parameter waits for (CLI 2.1.292+):
-set it on every Reasoning dispatch, never on the other rows (agent-graded). Mechanical/breadth roles get
+set it on every Reasoning dispatch when the tool lists it, never on the other rows (agent-graded). Mechanical/breadth roles get
 **no** override, so they run at their shipped frontmatter tier. Lever 1 never *downgrades*
 an agent below its frontmatter; it only declines to *raise* it.
 
@@ -118,7 +118,7 @@ two compatible:
 - Red-team and coverage still run **ALWAYS** — Lever 2 sets their N, not whether
   they happen. An ultra run never ships without them.
 - The resolved tier still lands on both the inline `Agent` path and the `Workflow`
-  `agent()` path — for the reasoning roles (inline `effort` from CLI 2.1.292).
+  `agent()` path — for the reasoning roles (inline `effort` only where the Agent tool lists it).
 - The `Ultra: true (model=…, effort=…)` marker still carries the boost tier into
   execution verbatim; workers there tier the same way (executor reasoning-tier,
   its scouts native).

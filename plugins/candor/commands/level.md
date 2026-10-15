@@ -53,7 +53,8 @@ contract is not already in context.
 The hook removed the level file, and its context this turn says whether `CC_TERSE` or
 the `cc_terse` option still keeps a level active. If it says so, report that, whatever
 `active` shows; when `active` is `off` anyway, add that the option sits where this
-command cannot read it — always this session's `--settings` file; when the option line
+command cannot read it — always this session's `--settings` file, perhaps MDM or
+server-managed policy (unmeasured); when the option line
 names a settings file rather than `claude plugin configure`, also a managed drop-in or
 policy, a symlinked settings file, or any settings file when `jq` is missing.
 Otherwise read `active`: if it is `off`, confirm in one line that normal
@@ -69,7 +70,8 @@ config dir).
 Report, without changing anything, every source the block above printed and which one
 wins (`active`). The level file and the option persist across sessions until changed;
 `CC_TERSE` lasts as long as the environment that set it. The hooks apply a `cc_terse`
-this command cannot see: one saved only in this session's `--settings` file, always; and
+this command cannot see: one saved only in this session's `--settings` file, always;
+perhaps one in MDM or server-managed policy (unmeasured); and
 when the option line names a settings file, one in managed drop-ins or policy, in a
 symlinked settings file, or in any settings file when `jq` is missing. Say so when
 `active` is `off` and the user reports terse replies. The badge never asks the host (about

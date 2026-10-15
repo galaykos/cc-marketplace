@@ -84,7 +84,7 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    assumptions, the approach with rejected alternatives and kill-trigger,
    non-goals, success criteria, and the converged ledger embedded as
    `## Ambiguity ledger (final)`; run
-   `${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh --spec <file>`
+   `"${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh" --spec <file>`
    until exit 0 (task-cards re-runs it later as the final gate) — plus the
    walkthrough file path and cross-screen contracts when step 4 ran.
 6. Red-team the spec first when its blast radius warrants — run the `spec-redteam`

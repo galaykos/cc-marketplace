@@ -94,7 +94,7 @@ Three separate knobs, easy to confuse because they all start with `ultra`:
 
 They compose; none substitutes for another. The boost never changes your session
 model. Its `effort=xhigh` reaches the reasoning subagents on either dispatch path from
-CLI 2.1.292, when the Agent tool took an `effort` parameter; below that it binds only on
+CLI 2.1.292, when the Agent tool took an `effort` parameter (passed only when the tool lists it); below that it binds only on
 the `Workflow` path, so an unpaired boost escalates the model alone. Two forms work:
 
 ```bash

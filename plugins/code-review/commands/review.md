@@ -97,8 +97,8 @@ named exactly `code-review` (no plugin prefix) is listed in this session. When i
 is, invoke it through the Skill tool — never the bare `/code-review` slash form,
 which collides with this plugin's namespace — on the scope resolved in items 1–4
 above, report-only: no `--fix`, no `--comment`, and no effort level or `--max-findings`.
-Since 2.1.288 the built-in reuses the level the user last typed and keeps a typed
-`--max-findings` until `--max-findings default`; that saved choice is the user's own
+The built-in reuses the level the user last typed (2.1.223+) and keeps a typed
+`--max-findings` (2.1.288+) until `--max-findings default`; that saved choice is the user's own
 setting for this pass, and this command takes no level argument to replace it with. Passing
 one would not overwrite it (on 2.1.300 the host saves both only when the user types
 `/code-review`, never on a Skill-tool call), but it would swap the user's depth for a guess.

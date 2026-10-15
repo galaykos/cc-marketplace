@@ -10,7 +10,7 @@ directives hardcode it — so those two values are the only ones that can ever a
 stays the literal `auto` so execution
 re-resolves it in its own session. That is how a fresh-session execution run inherits the boost at the
 same tier. Under `ULTRA-GOAL ACTIVE` (the `ultra` skill's Goal mode), FIRST run
-`${CLAUDE_PLUGIN_ROOT}/scripts/goal-ledger-check.sh --slug <slug>` — exit 2 blocks the stamp
+`"${CLAUDE_PLUGIN_ROOT}/scripts/goal-ledger-check.sh" --slug <slug>` — exit 2 blocks the stamp
 (an unaudited goal run may not hand itself off); then ALSO write an exact `Goal: true
 (model=<model>, effort=<effort>) — requires task-runner ≥0.11.0; older runners fall back to
 interactive execution` line with the resolved tier (ultra-task tier when both tokens are

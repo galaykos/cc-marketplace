@@ -51,9 +51,10 @@ Otherwise it uses in-flight records: `preamble.sh` writes one on `SubagentStart`
 `gate.sh` deletes it on `SubagentStop`. Records older than 180 minutes are swept and
 not counted, which is how an agent that died without a `SubagentStop` stops counting.
 Since 0.8.0 task-runner's behavioral gate running in background Bash counts as one
-worker: it writes `.claude/task-runner/bg/running.pid` (its PID, then the HEAD it tests),
-and the gate holds while that PID is live, the sha is the current HEAD and the file is
-under 120 minutes old (the gate ends itself by 110, inside the 2 h a background call may run); a dead
+worker: it writes `.claude/task-runner/bg/running.pid` (its PID, the HEAD it tests and,
+from task-runner 0.48.0, the deadline its own `BEHAVIORAL_GATE_TOTAL` ends it by), and the
+gate holds while that PID is live, the sha is the current HEAD and the deadline is ahead,
+or, in a file with no deadline, while the file is under 240 minutes old; a dead
 PID or another HEAD is ignored. With `/proc` (Linux) live means the PID's command line
 names `behavioral-gate.sh`, or else some live `behavioral-gate.sh` runs from under the
 repo root: a gate in sandboxed Bash (`bwrap --unshare-pid`) records the sandbox's own PID,
@@ -289,10 +290,11 @@ Stated because a gate reads stronger than it is:
   A session resumed under a new `session_id` cannot see its earlier records.
   Background shell tasks and workflows do not count as workers, except the behavioral
   gate's `bg/running.pid`; without `/proc` (macOS) a recycled PID at the same HEAD
-  holds the block until that file is 120 minutes old, on Linux any process naming
-  `behavioral-gate.sh` from under the repo root holds it while the file is current, and a
-  gate given a raised `BEHAVIORAL_GATE_TOTAL` can outlast the 120 minutes where the host
-  sets no limit (CLI 2.1.288+: terminal, desktop app, VS Code).
+  holds the block until the file's deadline (about 111 minutes by default, longer with a
+  raised `BEHAVIORAL_GATE_TOTAL`) or, with none, until it is 240 minutes old; on Linux any
+  process naming `behavioral-gate.sh` from under the repo root holds it while the file is
+  current. A gate that outlives its deadline, possible only where no `timeout`, `gtimeout`
+  or `perl` caps its suites, draws one block at its HEAD.
 - **Pushback detection is a regex over one message.** Phrasing outside the list
   is invisible, and a user message carrying its own evidence disarms clause 2 on
   purpose.

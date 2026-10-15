@@ -55,8 +55,8 @@ chains, heredocs fed to a shell or SQL client — and skips read-only commands, 
 never confused with running it. Any other heredoc body (`cat > f <<EOF`, `python3 - <<EOF`)
 is data and is not read, unless the guard cannot rule out a shell reading it (rules.md lists
 when): judging every body line by line pushed a 21 KB command past the hook's 15 s
-timeout. Below Claude Code 2.1.295 a timed-out guard fails open; from 2.1.295 its
-`hooks.json` entries set `onFailure: "block"`, so the host blocks the call instead (see
+timeout. A judgment still running after 12 s now asks instead, on every CLI version; from
+Claude Code 2.1.295 a guard that cannot start, or one the host times out, blocks the call (see
 [Failure mode](#failure-mode)). It also covers MCP tools that shell out or run
 SQL, which are the same hole under a different tool name. It reads through `env` and
 every documented git global option before the subcommand, and does not take
@@ -295,15 +295,24 @@ guard that breaks sessions gets uninstalled, and an uninstalled guard denies
 nothing. The tests assert this directly.
 
 One failure is the host's, not the script's: a guard that cannot start or runs past its
-15 s timeout. Below Claude Code 2.1.295 the command then runs unjudged. Since 0.9.0 both
-`destructive-guard.sh` entries in `hooks/hooks.json` set `onFailure: "block"`, so on
-2.1.295 and later the host blocks the call instead. The cost: when the script cannot start
-at all (no `/bin/bash`, the plugin's directory gone from under a running session), every
-Bash, MCP shell, `Write` and `Edit` call is blocked, and `CLAUDE_DESTRUCTIVE_GUARD=off`
-cannot help, because the script that reads it never ran; `/plugin disable command-guard`
-does. An older CLI ignores the key: on 2.1.291, `claude plugin validate --strict` passes,
-the plugin installs, and `claude plugin details` lists its PreToolUse hook, where an
-invalid hook entry keeps the plugin from loading at all. Standing: **gate** for the key
-being there (`destructive-guard.test.sh` fails without it on either entry); **recorded**
-that the host honours it (the 2.1.295 changelog, and 2.1.300's validator accepting the
-value). No live session has timed the guard out.
+15 s timeout. Since 0.9.0 both `destructive-guard.sh` entries in `hooks/hooks.json` set
+`onFailure: "block"`, so from Claude Code 2.1.295 the host blocks the call; below it the
+command runs unjudged. Two things keep the block off ordinary work. The entries start the
+script as `bash "${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh"`, through the `bash` on
+PATH rather than its `#!/bin/bash` line, so a host with no `/bin/bash` (NixOS) still runs it.
+And the script stops a judgment still running after 12 s and asks, on every CLI version and
+in every mode, `deny-only` included, since it has not ruled out a deny: a huge command gets a
+prompt, not a block or a pass. Measured 2026-10-15 against a fake local Messages API, no
+model call, one run each: a 109 KB `bash <<'EOF'` body under 0.8.5's guard was blocked at
+15 s on 2.1.300 and ran unjudged on 2.1.291, and asks at 12 s on both under this one; in a
+sandbox with no `/bin/bash` and `bash` on PATH, running the script by its path blocked a
+plain `ls` on 2.1.300, and the `bash` form runs it and still denies
+`php artisan migrate:fresh`. What still blocks every Bash, MCP shell, `Write` and `Edit`
+call from 2.1.295: no `bash` on PATH at all, or the plugin's directory gone from under a
+running session. `CLAUDE_DESTRUCTIVE_GUARD=off` cannot help there, because the script that
+reads it never ran; `/plugin disable command-guard` does. An older CLI ignores the key: on
+2.1.291, `claude plugin validate --strict` passes, the plugin installs, and
+`claude plugin details` lists its PreToolUse hook, where an invalid hook entry keeps the
+plugin from loading at all. Standing: **gate** for the key, the `bash` form and the
+12 s ask (`destructive-guard.test.sh`); **measured** that 2.1.300 blocks a run that fails or
+times out and that 2.1.291 runs the command (the runs above).

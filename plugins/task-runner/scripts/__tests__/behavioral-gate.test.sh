@@ -25,7 +25,7 @@ command -v node >/dev/null 2>&1 || { printf 'FAIL: node is required to run these
 WS=$(mktemp -d)
 trap 'rm -rf "$WS"' EXIT
 pass=0; fail=0
-unset BEHAVIORAL_GATE_TIMEOUT   # the default-cap case reads the script's own default
+unset BEHAVIORAL_GATE_TIMEOUT BEHAVIORAL_GATE_TOTAL   # the default-cap and deadline cases read the script's own defaults
 
 git_snap() { ( cd "$repo_root" && git status --porcelain ); }
 
@@ -813,21 +813,34 @@ else iso_ok "$d"; fi
 # I8. IN FLIGHT (2026-10-14): while the gate runs, the LIVE bg dir holds running.pid naming the
 #     gate and the HEAD it judges, so candor's Stop gate can tell "running" from "never run";
 #     it is gone after exit. A file a second gate has since rewritten is left alone.
+#     Line 3 (2026-10-15) is the deadline candor holds a stop until: start + total + 60 s.
 printf '#!/bin/sh\nsleep 2\necho "3 tests, 0 failures"\n' > "$LIVE/slow-suite.sh"; chmod +x "$LIVE/slow-suite.sh"
 ( cd "$LIVE" && git add slow-suite.sh && git -c user.email=t@t -c user.name=t commit -qm slow )
 slow_head=$(git -C "$LIVE" rev-parse HEAD); PIDF="$LIVE/.claude/task-runner/bg/running.pid"; rm -f "$PIDF"
-bg_inflight() { # starts the gate in the background, sets GPID, waits for running.pid
+bg_inflight() { # starts the gate in the background, sets GPID, T0 and T1, waits for running.pid
+  T0=$(date +%s)
   ( cd "$LIVE" && TMPDIR="$ISO_TMP" exec "$BG" --isolate --changed calc.ex --runner './slow-suite.sh::^0 tests' ) >"$WS/i8.out" 2>&1 &
   GPID=$!
   for _ in $(seq 1 50); do [ -s "$PIDF" ] && break; sleep 0.1; done
+  T1=$(date +%s)
+}
+deadline_is() { # deadline_is <desc> <total>: line 3 of $seen lies in [T0 + total + 60 - 1, T1 + total + 60 + 1]
+  local dl; dl=$(printf '%s\n' "$seen" | sed -n 3p)
+  case "$dl" in '' | *[!0-9]*) iso_bad "$1" "line 3 <$dl> is no epoch"; return 0 ;; esac
+  if [ "$dl" -ge $((T0 + $2 + 59)) ] && [ "$dl" -le $((T1 + $2 + 61)) ]; then iso_ok "$1"
+  else iso_bad "$1" "deadline $dl, want $((T0 + $2 + 60))..$((T1 + $2 + 60))"; fi
 }
 bg_inflight; seen=$(cat "$PIDF" 2>/dev/null || true)
 set +e; wait "$GPID"; grc=$?; set -e
 d="a running gate holds bg/running.pid (its PID, then HEAD); the file is gone after exit"
-if [ "$seen" != "$(printf '%s\n%s' "$GPID" "$slow_head")" ]; then iso_bad "$d" "running.pid held <$seen>, want <$GPID / $slow_head>" "$(cat "$WS/i8.out")"
+if [ "$(printf '%s\n' "$seen" | sed -n 1,2p)" != "$(printf '%s\n%s' "$GPID" "$slow_head")" ]; then iso_bad "$d" "running.pid held <$seen>, want <$GPID / $slow_head>" "$(cat "$WS/i8.out")"
 elif [ "$grc" != 0 ]; then iso_bad "$d" "rc=$grc" "$(cat "$WS/i8.out")"
 elif [ -e "$PIDF" ]; then iso_bad "$d" "running.pid left after exit"
 else iso_ok "$d"; fi
+deadline_is "running.pid line 3: the deadline, start + the 6600 s total + 60 s" 6600
+BEHAVIORAL_GATE_TOTAL=86400 bg_inflight; seen=$(cat "$PIDF" 2>/dev/null || true)
+set +e; wait "$GPID"; set -e
+deadline_is "BEHAVIORAL_GATE_TOTAL=86400 moves the deadline with it: start + 86400 + 60 s" 86400
 bg_inflight; printf '999999\n%s\n' "$slow_head" > "$PIDF"
 set +e; wait "$GPID"; set -e
 d="a running.pid another gate rewrote is not removed by this one's exit"
@@ -854,6 +867,23 @@ t0=$SECONDS
 PATH="$TT/bin:$PATH" BEHAVIORAL_GATE_TIMEOUT=1 case_run "a suite ignoring TERM past a 1 s cap is killed -> TIMED OUT, unverifiable(2)" "$TT/py" 2 \
   --label 'pytest: TIMED OUT' -- --changed impl.py
 took_under 15 "a suite ignoring TERM is killed 10 s after its cap, not waited on for its 20 s"
+case_run "--help says how to lift the total where the host sets no limit" "$RF" 3 --label 'e.g. BEHAVIORAL_GATE_TOTAL=14400' -- --help
+# The clock and its inputs (2026-10-15): `08` was octal and ended the gate with exit 1; an inherited
+# SECONDS spent the total before anything ran; `30m`, which GNU timeout reads, made the cap tests error,
+# so the total never cut the suite.
+BEHAVIORAL_GATE_TOTAL=08 case_run "BEHAVIORAL_GATE_TOTAL=08 is 8 s, not an octal error -> covered(0)" "$TT" 0 \
+  --label 'VERDICT: covered' -- --changed calc.ex --runner 'echo 3 tests::^0 tests'
+printf '#!/bin/sh\nexec env SECONDS=100000 "%s" "$@"\n' "$BG" > "$TT/gate-seconds"; chmod +x "$TT/gate-seconds"
+BG="$TT/gate-seconds" case_run "SECONDS=100000 inherited from the environment does not spend the total -> covered(0)" "$TT" 0 \
+  --label 'VERDICT: covered' -- --changed calc.ex --runner 'echo 3 tests::^0 tests'
+t0=$SECONDS
+BEHAVIORAL_GATE_TIMEOUT=30m BEHAVIORAL_GATE_TOTAL=2 case_run "BEHAVIORAL_GATE_TIMEOUT=30m: the total still cuts a 4 s suite -> unverifiable(2)" "$TT" 2 \
+  --label 'BEHAVIORAL_GATE_TOTAL (2s) is spent' -- --changed calc.ex --runner './slow.sh::^0 tests' --runner 'echo 3 tests::^0 tests'
+took_under 4 "BEHAVIORAL_GATE_TIMEOUT=30m: the gate ends at its 2 s total"
+BEHAVIORAL_GATE_TIMEOUT=1m case_run "BEHAVIORAL_GATE_TIMEOUT=1m caps a suite at 60 s" "$TT" 0 \
+  --label 'timeout 60s' -- --changed calc.ex --runner 'echo 3 tests::^0 tests'
+BEHAVIORAL_GATE_TIMEOUT=1.5m case_run "BEHAVIORAL_GATE_TIMEOUT=1.5m is refused -> usage error(3)" "$TT" 3 \
+  --label 'BEHAVIORAL_GATE_TIMEOUT must be whole seconds' -- --changed calc.ex --runner 'echo 3 tests::^0 tests'
 
 # ---- tally ----
 printf '\nbehavioral-gate.test: %d passed, %d failed\n' "$pass" "$fail"

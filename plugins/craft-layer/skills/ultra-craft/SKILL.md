@@ -50,8 +50,8 @@ response — output-level only, see the residual at the end.
 
 `auto` resolves at dispatch to the session model or opus, whichever is higher on
 `haiku < sonnet < opus < fable`: **escalate, never downgrade**. `effort` binds on the
-Workflow `agent()` path and on the Agent tool from CLI 2.1.292; below that inline dispatch
-escalates model only. This skill naming `xhigh` is the explicit ask the Agent tool waits for.
+Workflow `agent()` path, and on the Agent tool only if it lists an `effort` parameter; else
+inline dispatch escalates model only. This skill naming `xhigh` is the explicit ask the Agent tool waits for.
 It is a FLOOR, so it never lowers an agent below its shipped frontmatter. Stated
 here rather than cited because craft-layer does not depend on task-runner; the
 owning copy is `task-runner:verification-panels` `references/dispatch-tier.md`. Never edit agent

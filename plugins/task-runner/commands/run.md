@@ -122,7 +122,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    Then finish with BOTH completion gates, never one alone:
    - the full project check suite (catches lint/type/build regressions), AND
    - the **behavioral-gate** on the run's changed files —
-     `${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed "<the run's
+     `"${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh" --isolate --changed "<the run's
      touched files>" [--entrypoint <bin>] [--differential 'flag::with::without']
      [--runner '<cmd>::<empty-output-regex>'] [--runner-for <lang> '<cmd>::<empty-output-regex>']`,
      run from the repo root after committing, in background Bash with `timeout: 7200000`:

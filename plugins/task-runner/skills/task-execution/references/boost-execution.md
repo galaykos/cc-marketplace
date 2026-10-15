@@ -17,7 +17,7 @@ model (<model>) · effort: <effort> · boost: off`); the autonomy axis comes fro
 falls to the marker's legacy default (`Ultra:`→opus/xhigh, `Goal:`→opus/xhigh). Announce the tier once at run start, boosted or not: `⚡ Ultra run — workers
 model=<marker-model>→<resolved>, effort=<effort>` / `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>` (standard `<effort>` =
 `$CLAUDE_EFFORT` when the harness exposes it — `echo ${CLAUDE_EFFORT:-inherit}` — else the literal `inherit`). Marker `effort` applies on the `Workflow` path, and on
-the Agent tool from CLI 2.1.292. Delegated stack implementers also get delegation-contracts § Skill priming (resolve+inject `Read <abs-path>` per `<skill>` element).
+the Agent tool only when it lists an `effort` parameter. Delegated stack implementers also get delegation-contracts § Skill priming (resolve+inject `Read <abs-path>` per `<skill>` element).
 Under the marker, ALSO run the **code-redteam** pass (its skill) over the produced diff — at each serial milestone boundary and once before completion (in `--tracks`:
 once on the merged branch) — routing confirmed findings to reopen the targeted card under a fresh budget. **Under `Goal:`** (hands-off): auto-take pipeline gates — the
 run-plan preview is DISPLAYED, then execution proceeds without waiting; post-run "Retry parked" is bounded to at most ONE auto-retry, and only on forward progress (a task

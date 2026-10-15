@@ -25,7 +25,7 @@ start ──► Discover ──► Clarify (once) ──► Charter + Roadmap �
                                                              → review → accept → finish
 ```
 
-Every arrow writes state through `${CLAUDE_PLUGIN_ROOT}/scripts/program.sh`, so a session
+Every arrow writes state through `"${CLAUDE_PLUGIN_ROOT}/scripts/program.sh"`, so a session
 can die between any two steps and `/overseer:resume` re-enters at the recorded one.
 
 ### Discover (write `discovery.md` and `capabilities.tsv` in the program dir)
@@ -41,7 +41,7 @@ can die between any two steps and `/overseer:resume` re-enters at the recorded o
    base (the scan prints `# ci:` rows), and whether CI is green on the baseline — a red one
    is the charter's first suggestion. Read the project's own `CLAUDE.md`/`AGENTS.md` — its
    rules bind every prompt you write. Never scan the whole filesystem (`find /`).
-2. **Capability scan.** `${CLAUDE_PLUGIN_ROOT}/scripts/capability-scan.sh` prints, per
+2. **Capability scan.** `"${CLAUDE_PLUGIN_ROOT}/scripts/capability-scan.sh"` prints, per
    phase, the installed plugins and the missing ones. Record the table; per missing row
    note the fallback (`capability-map.md`) and offer the install once (hands-off: record).
    **Installed is not reachable**: check the table against this session's own Skill

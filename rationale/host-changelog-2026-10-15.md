@@ -26,12 +26,14 @@ plugin's CHANGELOG.
   The risk is therefore hands-off runs.
   - task-runner's behavioral gate now has a total cap (`BEHAVIORAL_GATE_TOTAL`, default
     6,600 s) and its callers pass `timeout: 7200000`. Its old worst case was 210 minutes.
-  - candor's in-flight window fell from 240 to 120 minutes.
+  - The gate writes its deadline (start + total + 60 s) into `running.pid`, and candor holds
+    while that deadline is ahead. Without a deadline, as with an older task-runner, candor keeps
+    its 240-minute window, because the two plugins version independently.
   - The preview-server skills pass the timeout and re-check the port before each later pass.
   - When the host stops a call it sends TERM, then KILL about 1.4 s later, to the whole
     process tree. That was measured with TaskStop. `setsid -f` and double-forked children
     survive.
-- **The built-in `code-review` reuses the last typed level and `--max-findings` (2.1.288).**
+- **The built-in `code-review` reuses the last typed level (2.1.223) and `--max-findings` (2.1.288).**
   Only the typed slash path saves those values, not a Skill-tool call, so `/code-review:review`
   inherits the user's saved choice on purpose. `Checked:` now names the level and limit the
   built-in ran at.
@@ -79,8 +81,10 @@ plugin's CHANGELOG.
   - `rm -rf \` is now denied too, which the host's own check (2.1.281) also asks on.
 - **`pc_gating_catch` (2.1.290 `gatingHooks`).** `official-validate.sh` fails a mod gating
   hook with no `.catch`, because the host's `--strict` only prints a note.
-- **`pc_plugin_root_quoting`.** This lints unquoted `${CLAUDE_PLUGIN_ROOT}` on runnable lines
-  in commands and skills. The host checks hooks.json only.
+- **`pc_plugin_root_quoting`.** This fails the build on an unquoted `${CLAUDE_PLUGIN_ROOT}` on
+  a runnable command or skill line, after an interpreter or in command position (a script run
+  by its path). It found 60 lines in 14 plugins, all quoted now. With a space in the install path
+  the behavioral gate's own line had failed with exit 127. The host checks hooks.json only.
 - **`/candor:level`.** It asks `claude plugin configure --json` (2.1.285) first, so managed
   settings and drop-ins are seen, and falls back to reading the files.
 - **Install lines.** Five READMEs gained the install lines the validator asks for.
@@ -106,7 +110,8 @@ plugin's CHANGELOG.
 
 ## Undecided: needs a logged-in session
 
-- Does auto mode, the default since 2.1.284/2.1.285, answer a hook `ask` in `-p`? command-guard
+- Does auto mode answer a hook `ask` in `-p` where it is the default: since 2.1.285, only on a
+  third-party provider or with telemetry off (2.1.284 covers interactive sessions)? command-guard
   and database say an unanswered ask is a deny.
 - Does a mod's `prompt.submit` now run before a slash command expands (2.1.299)?
 - Can Up still recall a dropped prompt after 2.1.295? prompt-coach and secret-scanning promise

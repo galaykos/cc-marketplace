@@ -102,17 +102,29 @@ bg_record() { # bg_record <verdict-label> [runners]
 # tool's foreground ceiling is 10 minutes and its kill leaves no verdict, so run the
 # gate in the background. Entrypoint probes (--help, differentials) keep 60 s: a hung
 # --help is a crash, not a slow suite.
+# A suffix is read as GNU timeout reads it: `30m` reached `timeout` intact, but the tests on
+# the cap below errored on it, so the total and the 137 mapping were skipped.
 TIMEOUT_SECS="${BEHAVIORAL_GATE_TIMEOUT:-1800}"
+case "${TIMEOUT_SECS%[smhd]}" in '' | *[!0-9]*) usage "BEHAVIORAL_GATE_TIMEOUT must be whole seconds, or with an s, m, h or d suffix (got: $TIMEOUT_SECS)" ;; esac
+case "$TIMEOUT_SECS" in
+  *m) TIMEOUT_SECS=$((10#${TIMEOUT_SECS%m} * 60)) ;;
+  *h) TIMEOUT_SECS=$((10#${TIMEOUT_SECS%h} * 3600)) ;;
+  *d) TIMEOUT_SECS=$((10#${TIMEOUT_SECS%d} * 86400)) ;;
+  *)  TIMEOUT_SECS=$((10#${TIMEOUT_SECS%s})) ;;
+esac
 PROBE_SECS=60
-[ "$TIMEOUT_SECS" -lt "$PROBE_SECS" ] 2>/dev/null && PROBE_SECS="$TIMEOUT_SECS"
-# The whole gate, isolate build included (SECONDS counts from start): 6600 s. From CLI
+[ "$TIMEOUT_SECS" -lt "$PROBE_SECS" ] && PROBE_SECS="$TIMEOUT_SECS"
+# The whole gate, isolate build included: 6600 s. From CLI
 # 2.1.285 the host stops a background Bash call at its `timeout` (30 min default, 2 h max;
 # from 2.1.288 only in -p, SDK, CI and cloud sessions), and a stopped gate writes no verdict
 # (measured 2026-10-15). Seven suites at 1800 s ran 210 minutes. Each run starts with what
 # is left, so the gate concludes about 10 minutes inside the 2 h; one that finds nothing
-# left reads unverifiable-suite.
+# left reads unverifiable-suite. SECONDS is reset: one inherited from the environment
+# started the clock there. 10#: a leading zero read as octal, and `08` ended the gate with exit 1.
+SECONDS=0
 TOTAL_SECS="${BEHAVIORAL_GATE_TOTAL:-6600}"
 case "$TOTAL_SECS" in '' | *[!0-9]*) usage "BEHAVIORAL_GATE_TOTAL must be whole seconds (got: $TOTAL_SECS)" ;; esac
+TOTAL_SECS=$((10#$TOTAL_SECS))
 
 # ---- portable hard-timeout wrapper -----------------------------------------
 # Prefers coreutils `timeout`/`gtimeout`; falls back to a perl alarm+fork (rc 124 on
@@ -189,7 +201,7 @@ while [ $# -gt 0 ]; do
     --isolate)        ISOLATE=1; shift ;;
     --in-place)       IN_PLACE=1; shift ;;
     -h|--help)   printf 'usage: %s (--isolate | --in-place) --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--runner '\''<cmd>::<empty-regex>'\''] [--runner-for <py|js|go|php|rs|rb|java> '\''<cmd>::<empty-regex>'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2
-                 printf '  --runner adds a runner; --runner-for replaces that language'\''s built-in one.\n  BEHAVIORAL_GATE_TIMEOUT=<seconds> caps each suite run (default 1800; entrypoint probes: 60).\n  BEHAVIORAL_GATE_TOTAL=<seconds> caps the whole gate (default 6600); a run it cuts short is unverifiable-suite.\n  Run the gate in background Bash with timeout 7200000: a foreground call ends by 10 minutes, a background one\n  by 30 unless its timeout says more (2 h max), with no verdict.\n  --isolate works in <repo>/.claude/task-runner/iso/ and exports BG_TREE_REL (its path from the repo root).\n' >&2; exit 3 ;;
+                 printf '  --runner adds a runner; --runner-for replaces that language'\''s built-in one.\n  BEHAVIORAL_GATE_TIMEOUT=<seconds> caps each suite run (default 1800; entrypoint probes: 60).\n  BEHAVIORAL_GATE_TOTAL=<seconds> caps the whole gate (default 6600); a run it cuts short is unverifiable-suite.\n  Where the host sets no limit (CLI 2.1.288+ outside -p, SDK, CI and cloud), raise it for a long suite set,\n  e.g. BEHAVIORAL_GATE_TOTAL=14400; 0 is not "no total", it cuts every run.\n  Run the gate in background Bash with timeout 7200000: a foreground call ends by 10 minutes, a background one\n  by 30 unless its timeout says more (2 h max), with no verdict.\n  --isolate works in <repo>/.claude/task-runner/iso/ and exports BG_TREE_REL (its path from the repo root).\n' >&2; exit 3 ;;
     --*)         usage "unknown flag: $1" ;;
     *)           add_changed "$1"; shift ;;
   esac
@@ -298,6 +310,11 @@ fi
 # on exit only while it still names this process, so a second gate's file survives the
 # first one's exit. Residual: a SIGKILL leaves the file, naming a dead PID (or, once the
 # PID is reused, a live stranger beside the right HEAD).
+# Line 3 is the deadline, epoch seconds: start, total, then 60 s for the 10 s KILL grace
+# and the steps no cap covers. candor holds a stop until then, so a raised total moves it;
+# a fixed hold on candor's side was outlived by a raised total or an older gate's 210 minutes.
+deadline=$(date +%s 2>/dev/null) || deadline=""
+case "$deadline" in '' | *[!0-9]*) deadline="" ;; *) deadline=$((deadline - SECONDS + TOTAL_SECS + 60)) ;; esac
 PID_FILE=""
 pid_cleanup() {
   [ -n "$PID_FILE" ] && [ "$(head -n 1 "$PID_FILE" 2>/dev/null)" = "$$" ] && rm -f "$PID_FILE"
@@ -305,7 +322,7 @@ pid_cleanup() {
 }
 pid_dir="${BG_RECORD_DIR:-${live_top:-$(pwd)}/.claude/task-runner/bg}"
 if [ -d "$pid_dir" ] && [ -w "$pid_dir" ] && [ -w "$(dirname "$pid_dir")" ]; then
-  if printf '%s\n%s\n' "$$" "$(git rev-parse HEAD 2>/dev/null)" > "$pid_dir/running.pid" 2>/dev/null; then
+  if printf '%s\n%s\n%s\n' "$$" "$(git rev-parse HEAD 2>/dev/null)" "$deadline" > "$pid_dir/running.pid" 2>/dev/null; then
     PID_FILE="$pid_dir/running.pid"
     trap 'pid_cleanup; iso_cleanup' EXIT INT TERM
   fi

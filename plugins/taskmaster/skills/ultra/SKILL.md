@@ -135,7 +135,7 @@ for lean/standard); or anyone who wants autonomy priced like a standard run.
 
 1. **Goal ledger** `.claude/taskmaster/goal-ledger-<slug>.md`, appended live per auto-take
    (decision, options, pick, rationale, source `file:line`). Writability is an ACTIVATION
-   PRECONDITION — run `${CLAUDE_PLUGIN_ROOT}/scripts/goal-ledger-check.sh --init --slug <slug>`
+   PRECONDITION — run `"${CLAUDE_PLUGIN_ROOT}/scripts/goal-ledger-check.sh" --init --slug <slug>`
    at boost time (creates the ledger and probes an append; exit 2 → halt with evidence, never
    proceed unaudited). After grill's Step 0, record the upgraded task statement here as its
    dedicated entry — grill stays goal-blind; the recording is goal's.

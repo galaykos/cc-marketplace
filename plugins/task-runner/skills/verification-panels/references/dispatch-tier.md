@@ -10,9 +10,10 @@ agent below the tier its own frontmatter ships. Never edit frontmatter to achiev
 boost; the override belongs to dispatch.
 
 **`effort`** binds per dispatch: on the `Workflow` `agent()` path, and on the Agent tool
-from CLI 2.1.292. Below 2.1.292 inline dispatch escalates the model only; the agent's
-frontmatter `effort:` is the only lever. The Agent tool sets `effort` only on an explicit
-ask, and this tier string is that ask: pass it wherever the tier applies (agent-graded).
+only when it lists an `effort` parameter (CLI 2.1.292+). Without one, pass none (an older
+CLI may refuse the key); the agent's frontmatter `effort:` is the only lever. That parameter
+acts only on an explicit ask, and this tier string is that ask: pass it wherever the tier
+applies (agent-graded).
 
 Consumers — `taskmaster:ultra`, `task-runner:ultra-assess`, `craft-layer:ultra-craft`
 — cite this file. Each keeps only what is genuinely its own: taskmaster the goal-mode

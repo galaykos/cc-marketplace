@@ -18,8 +18,8 @@ is data for the orchestrator, not prose for a human".
 ## Resolving a skill path (do it yourself; the delegate cannot)
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/skill-path.sh <plugin> <skill>            # installed plugin skill
-${CLAUDE_PLUGIN_ROOT}/scripts/skill-path.sh project <skill> --project <root>   # <root>/.claude/skills/<skill>
+"${CLAUDE_PLUGIN_ROOT}/scripts/skill-path.sh" <plugin> <skill>            # installed plugin skill
+"${CLAUDE_PLUGIN_ROOT}/scripts/skill-path.sh" project <skill> --project <root>   # <root>/.claude/skills/<skill>
 ```
 
 It resolves through the CLI's `installPath` when the plugin is enabled in this session and

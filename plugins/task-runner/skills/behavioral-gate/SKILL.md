@@ -43,7 +43,7 @@ Layers 1–2 are per-card and can be skipped; none substitutes for the others.
 Invoke the shipped script (the authoritative logic) in background Bash with `timeout: 7200000`, or CLI 2.1.285+ may stop it at 30 minutes:
 
 ```
-${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --isolate --changed "<the run's touched files>" \
+"${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh" --isolate --changed "<the run's touched files>" \
   [--entrypoint <bin> ...] [--differential 'flag::with::without' ...]
 ```
 
@@ -68,7 +68,8 @@ run's live tree.
    cannot dodge the gate by declaring its untested code "lint-only".
 2. **Own-tests.** Run the resolved runner non-interactively in that worktree, under a hard
    timeout (`BEHAVIORAL_GATE_TIMEOUT`, default 1800 s) within `BEHAVIORAL_GATE_TOTAL` (6600 s, inside the
-   host's 2 h; a run it cuts is `unverifiable-suite`). Apply per-runner **empty-detection**
+   host's 2 h; a run it cuts is `unverifiable-suite`; where the host sets no limit, CLI 2.1.288+ outside `-p`,
+   SDK, CI and cloud, raise it, e.g. `14400`; candor's stop hold (a gate) follows the deadline the script writes). Apply per-runner **empty-detection**
    (see `references/runners.md`): an empty or zero-collected suite is `empty-suite` (exit 2),
    not a pass. A runner that exposes no empty signal **fails closed** for a code-producing
    run — silence is never a pass.
@@ -97,7 +98,7 @@ run's live tree.
 measured run with ~40 such files could close only by deleting `active-run.json`. Record it
 instead, against the HEAD the gate ran on:
 
-1. `${CLAUDE_PLUGIN_ROOT}/scripts/reduction-record.sh --kind coverage --id bg-$(git rev-parse HEAD | cut -c1-12) --reason "<which files, why no runner>"`
+1. `"${CLAUDE_PLUGIN_ROOT}/scripts/reduction-record.sh" --kind coverage --id bg-$(git rev-parse HEAD | cut -c1-12) --reason "<which files, why no runner>"`
    — in an interactive session a PreToolUse hook asks the user before the record exists.
 2. Write the gate pass to `gate-pass.json` as for a green gate.
 3. Name `bg-<HEAD12>` and its reason in the closing report.

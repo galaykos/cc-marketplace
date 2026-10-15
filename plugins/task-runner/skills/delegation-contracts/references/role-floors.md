@@ -67,7 +67,8 @@ Worked cases:
 A floor below `opus` is not a weaker floor — it is the same rule at the agent's own level.
 `sonnet` is where `verifier` already sat; the row only stops it capping there.
 
-Effort is **not** floored: frontmatter `effort:` stands unless a dispatch sets its own.
+Effort is **not** floored: frontmatter `effort:` stands unless a dispatch sets its own,
+which the Agent tool can only when it lists an `effort` parameter.
 
 ## Resolving this file
 

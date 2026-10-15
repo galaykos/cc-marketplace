@@ -11,6 +11,9 @@ const WORKFLOW_MODEL_FROM = '2.1.300'
 export function registerFloors(on: On, options: PluginOptions) {
   let registry: Promise<Map<string, string> | null> | undefined
 
+  // A workflow's agents each reach agent.spawn, so a fan-out of 20 toasted 20 times.
+  const toastedRuns = new Set<string>()
+
   on('agent.spawn', async ($, e, next) => {
     const { version } = await $.session.version()
     const isOn = isSupported(version) && switchOn(await $.env.get('CC_SPAWN_FLOOR'), options.cc_spawn_floor !== false)
@@ -67,7 +70,13 @@ export function registerFloors(on: On, options: PluginOptions) {
     // pc_role_floors holds each registry floor equal to the agent's pin, so the floor is what a spawn naming no model runs on.
     const before = explicit ?? (isInherit ? e.parentModel : floor)
 
-    if (rank(model) !== rank(before)) {
+    const runId = e.workflow?.runId
+
+    if (rank(model) !== rank(before) && (runId === undefined || !toastedRuns.has(runId))) {
+      if (runId !== undefined) {
+        toastedRuns.add(runId)
+      }
+
       try {
         $.ui.toast(`${e.subagentType}: ${e.model || 'its pin'} raised to ${model} (role floor ${floor})`)
       } catch {

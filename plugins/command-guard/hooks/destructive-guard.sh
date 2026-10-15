@@ -1,7 +1,8 @@
 #!/bin/bash
 # destructive-guard.sh [--check '<command>' | --version] — PreToolUse on Bash and MCP shell/SQL tools: deny irreversible data loss, ask on scoped
 # destruction, allow the rest; deny a write to the allow-file; ask before a Write replaces a live .env. --check ignores the mode: exit 0/1/2 = allow/ask/deny.
-# Fails open on its own errors (exit 0); hooks.json's onFailure: block makes the host block a run that cannot start or overruns its timeout (CLI 2.1.295+).
+# Fails open on its own errors (exit 0); a judgment past GUARD_DEADLINE (12 s) asks. hooks.json starts it with PATH bash, not this shebang, and its
+# onFailure: block makes the host block a run that cannot start or overruns the 15 s timeout (CLI 2.1.295+).
 # CLAUDE_DESTRUCTIVE_GUARD, else /config claude_destructive_guard: deny-only drops the ask tier, ask turns a command deny into a prompt, off disables.
 # Allow-file .claude/destructive-guard-allow, project then ~: a line's regex matched unanchored on the whole lowercased command, trailing comment too, releases it; a command naming the file must be a pure read.
 # Misses: an allow-file path built from a variable or glob, a script or a program git config names writing it, an MCP write tool other than apply_patch and create_new_file,
@@ -446,10 +447,74 @@ command_cwd() {
   printf '%s' "${d:-.}"
 }
 
-# A word whose shell value is backslashes only: an even bare run, '\…' or "\\…"; an odd bare run only where the command
-# ends (RM_TRAILING_BACKSLASH_RE), since a segment line read off split_segments also ends in one at a \<newline> continuation.
-RM_BACKSLASH_RE='(^|[[:space:]])((\\\\)+|'"'"'\\+'"'"'|"(\\\\)+")([[:space:]]|$)'
-RM_TRAILING_BACKSLASH_RE='(^|[[:space:]])\\+$'
+# 0 when a recursive rm's operand has a shell value of backslashes only: rm's own raw words, then each shell -c script and eval's
+# arguments as commands of their own. A lone \ ending the segment is a word only when it ends the command (arg 2 = 1): a segment line
+# read off split_segments also ends in one at a \<newline> continuation. Misses: $'\\', a variable holding \, ssh's or su -c's command.
+rm_backslash_target() { # raw segment, 1 when it ends the command
+  printf '%s' "$1" | LC_ALL=C awk -v tail="${2:-0}" '
+    { buf = (NR == 1 ? $0 : buf "\n" $0) }
+    function word() { if (inw) { if (redir) redir = 0; else wv[++nw] = w }; w = ""; inw = 0 }
+    function judge(   j, k, opts, rec, bs, x, c) {
+      word()
+      for (j = 1; j <= nw && tolower(wv[j]) != "rm"; j++) ;
+      rec = 0; bs = 0; opts = 1
+      for (k = j + 1; k <= nw; k++) {
+        if (opts && wv[k] == "--") opts = 0
+        else if (opts && wv[k] ~ /^-./) { if (wv[k] ~ /^-[^-]*[rR]/ || wv[k] == "--recursive") rec = 1 }
+        else if (wv[k] ~ /^\\+$/) bs = 1
+      }
+      if (rec && bs) found = 1
+      for (j = 1; j <= nw; j++) {
+        x = wv[j]; sub(/^.*\//, "", x)
+        if (x == "eval") { x = ""; for (k = j + 1; k <= nw; k++) x = x " " wv[k]; q[++nq] = x; break }
+        if (x !~ /^((ba|z|da|k|c|tc|a|rba|mk|ok|ya)?sh|fish)$/) continue
+        c = 0
+        for (k = j + 1; k <= nw && wv[k] ~ /^[-+]./ && wv[k] != "--"; k++) {
+          if (wv[k] ~ /^[-+][oO]$|^--(rcfile|init-file)$/) k++
+          else if (wv[k] ~ /^-[A-Za-z]*c/) c = 1
+        }
+        if (c && wv[k] == "--") k++
+        if (c && k <= nw) { q[++nq] = wv[k]; break }
+      }
+      nw = 0; redir = 0
+    }
+    # Quote removal as bash does it, ANSI-C quoting kept opaque; a redirection target is no operand.
+    function scan(s, lit,   n, i, c, nx, j) {
+      n = length(s); nw = 0; w = ""; inw = 0; redir = 0
+      for (i = 1; i <= n; i++) {
+        c = substr(s, i, 1); nx = substr(s, i + 1, 1)
+        if (c == "\\") {
+          if (i == n) { if (lit) { w = w c; inw = 1 }; continue }
+          i++; if (nx != "\n") { w = w nx; inw = 1 }; continue
+        }
+        if (c == "\047") {
+          j = index(substr(s, i + 1), "\047"); if (j == 0) j = n - i + 1
+          w = w substr(s, i + 1, j - 1); i += j; inw = 1; continue
+        }
+        if (c == "\"") {
+          for (i++; i <= n && (c = substr(s, i, 1)) != "\""; i++) {
+            nx = substr(s, i + 1, 1)
+            if (c == "\\" && nx ~ /[$`"\\\n]/) { i++; if (nx != "\n") w = w nx } else w = w c
+          }
+          inw = 1; continue
+        }
+        if (c == "$" && nx == "\047") {
+          for (i += 2; i <= n && (c = substr(s, i, 1)) != "\047"; i++) if (c == "\\") i++
+          w = w "$"; inw = 1; continue
+        }
+        if (c == " " || c == "\t") { word(); continue }
+        if (c == "#" && !inw) { while (i < n && substr(s, i + 1, 1) != "\n") i++; continue }
+        if (c == "<" || c == ">") {
+          if (w ~ /^[0-9]+$/) inw = 0
+          word(); while (substr(s, i + 1, 1) ~ /[<>&|]/) i++; redir = 1; continue
+        }
+        if (c ~ /[;&|(){}\n]/) { judge(); continue }
+        w = w c; inw = 1
+      }
+      judge()
+    }
+    END { nq = 1; q[1] = buf; for (qi = 1; qi <= nq && qi <= 16 && !found; qi++) scan(q[qi], qi > 1 || tail); exit !found }'
+}
 
 # Not a table rule: whether rm -rf is catastrophic depends on each target, not on the flags.
 check_rm() { # normalised segment (lowercased, padded), the same case-preserved, the raw segment, the command it came from
@@ -464,9 +529,9 @@ check_rm() { # normalised segment (lowercased, padded), the same case-preserved,
   case "$flags" in *r*|*R*) recursive=1 ;; esac
   [ "$recursive" -eq 1 ] || return 0
 
-  # norm_cmd drops backslashes, so a target that is only backslashes is found on the raw segment.
-  if [ -n "${3:-}" ] && { printf '%s' "$3" | grep -qE "$RM_BACKSLASH_RE" ||
-    { [[ $3 =~ $RM_TRAILING_BACKSLASH_RE ]] && [ "${4%"$3"}" != "${4:-}" ]; }; }; then
+  # norm_cmd drops backslashes, so a target that is only backslashes is judged on the raw words.
+  t=0; [ -n "${3:-}" ] && [ "${4%"$3"}" != "${4:-}" ] && t=1
+  if [ -n "${3:-}" ] && rm_backslash_target "$3" "$t"; then
     set_verdict deny "recursively deletes \\, a path of backslashes only, which Git Bash on Windows can take for the root of the current drive" \
       "name the specific directory to delete" "$seg"
     return 0
@@ -919,6 +984,26 @@ emit() {
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$d,permissionDecisionReason:$r}}' 2>/dev/null
 }
 
+# The host blocks a run past hooks.json's 15 s (onFailure: block), so a judgment still running after GUARD_DEADLINE seconds
+# (12; the harness lowers it) is stopped and asks, in every mode: it has not ruled out a deny. No mktemp or sleep: unwatched.
+judge_in_time() { # guard function, its arguments
+  local out timer job
+  out=$(mktemp "${TMPDIR:-/tmp}/command-guard.XXXXXX" 2>/dev/null) || { "$@"; return 0; }
+  sleep "${GUARD_DEADLINE:-12}" >/dev/null 2>&1 &
+  timer=$!
+  # Only this shell writes the hook's stdout: the job's verdict goes through the file, so a late one cannot follow the ask.
+  { "$@"; kill "$timer" 2>/dev/null; } > "$out" &
+  job=$!
+  if wait "$timer"; then
+    kill "$job" 2>/dev/null
+    emit ask "command-guard: judging this call took longer than ${GUARD_DEADLINE:-12} s, so the guard stopped before the host's 15 s hook timeout without ruling out data loss. Confirm it is safe to run; split into smaller calls, each is judged in time. CLAUDE_DESTRUCTIVE_GUARD=off in the session's env disables this guard."
+  else
+    wait "$job"
+    cat "$out"
+  fi
+  rm -f "$out"
+}
+
 check_cli() { # command -> prints its tier whatever the mode; exits 0 allow, 1 ask, 2 deny
   classify "$1"
   case "$VERDICT" in
@@ -990,7 +1075,7 @@ if [ "${1:-}" = "--version" ]; then printf 'command-guard %s\n' "$GUARD_VERSION"
 
   case "$tool" in
     Write|Edit|MultiEdit|NotebookEdit|*apply_patch|*create_new_file)
-      guard_file_write "$tool" "$input" "$mode"
+      judge_in_time guard_file_write "$tool" "$input" "$mode"
       exit 0 ;;
   esac
 
@@ -1001,7 +1086,7 @@ if [ "${1:-}" = "--version" ]; then printf 'command-guard %s\n' "$GUARD_VERSION"
     *) exit 0 ;;
   esac
 
-  guard_command "$tool" "$input" "$mode"
+  judge_in_time guard_command "$tool" "$input" "$mode"
   exit 0
 } 2>/dev/null
 exit 0

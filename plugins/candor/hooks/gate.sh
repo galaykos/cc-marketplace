@@ -75,9 +75,8 @@ cc_option() {
 . "$(dirname "$0")/cite.sh" 2>/dev/null
 
 INFLIGHT_TTL_MIN=180
-# behavioral-gate.sh ends by its 110-minute total, and from CLI 2.1.285 the host stops a background Bash call by 2 h; a
-# raised BEHAVIORAL_GATE_TOTAL run where the host sets no limit (2.1.288+: terminal, desktop, VS Code) outruns it.
-BG_PID_TTL_MIN=120
+# Only for a running.pid with no deadline (task-runner before 0.48.0): seven built-in runners at its 1800 s suite cap run 210 minutes.
+BG_PID_TTL_MIN=240
 DISCLOSURE_TAIL_LINES=200
 TRANSCRIPT_TAIL_LINES=4000
 MAX_CITATIONS_CHECKED=25
@@ -143,17 +142,23 @@ inflight_count() {
   fi
 }
 
-# task-runner's behavioral gate run in background Bash writes bg/running.pid: its PID, then the HEAD it tests. It counts as one
-# worker while the sha is <head>, the file is under BG_PID_TTL_MIN and the gate is live; a dead gate or another HEAD is stale.
+# task-runner's behavioral gate run in background Bash writes bg/running.pid: its PID, the HEAD it tests and (0.48.0+) the epoch
+# second its own total ends it by. It counts as one worker while the sha is <head>, that deadline has not passed (with none, the
+# file is under BG_PID_TTL_MIN) and the gate is live; a dead gate or another HEAD is stale. No fixed hold fits both a raised
+# BEHAVIORAL_GATE_TOTAL and an older gate's 210 minutes.
 # Live, with /proc (Linux): the PID's command line names behavioral-gate.sh, or else a live process whose command line names it
 # runs from under <root>. A sandboxed run (bwrap --unshare-pid) records its own namespace's PID, which here names another process or none; the
 # host still lists the gate under its real PID. The [e] keeps the scan's own grep from matching itself.
-# Misses: without /proc (macOS, no PID namespace) liveness is kill -0, so a recycled PID at the same HEAD holds until the file
-# ages out; on Linux, any process naming behavioral-gate.sh from under <root> holds while that file is current.
+# Misses: without /proc (macOS, no PID namespace) liveness is kill -0, so a recycled PID at the same HEAD holds until the
+# deadline, or the file ages out; on Linux, any process naming behavioral-gate.sh from under <root> holds while that file is current.
 bg_running() { # <head> -> 1 or 0
-  local f="$root/.claude/task-runner/bg/running.pid" pid="" sha="" rp p
-  if [ -r "$f" ] && [ -z "$(find "$f" -mmin +"$BG_PID_TTL_MIN" 2>/dev/null)" ]; then
-    { read -r pid || :; read -r sha || :; } < "$f"
+  local f="$root/.claude/task-runner/bg/running.pid" pid="" sha="" dl="" rp p
+  if [ -r "$f" ]; then
+    { read -r pid || :; read -r sha || :; read -r dl || :; } < "$f"
+    case "$dl" in
+      '' | *[!0-9]*) [ -z "$(find "$f" -mmin +"$BG_PID_TTL_MIN" 2>/dev/null)" ] || pid="" ;;
+      *) [ "$(date +%s)" -lt "$dl" ] 2>/dev/null || pid="" ;;
+    esac
     case "$pid" in '' | *[!0-9]*) pid="" ;; esac
     case "$sha" in '' | *[!0-9a-f]*) sha="" ;; esac
     if [ -n "$pid" ] && [ "${#sha}" -ge 7 ]; then

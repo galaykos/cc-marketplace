@@ -28,7 +28,7 @@ writing panel logic, stop — it exists in that skill; this one only wires it to
 The panel attacks code, not prose. Get the exact slice from the harness:
 
 ```
-${CLAUDE_PLUGIN_ROOT}/scripts/code-redteam-diff.sh --base <base-ref> [--paths <glob>...]
+"${CLAUDE_PLUGIN_ROOT}/scripts/code-redteam-diff.sh" --base <base-ref> [--paths <glob>...]
 ```
 
 `--base` prints `git diff <ref>..HEAD`. The base is INCREMENTAL: each milestone-boundary
@@ -62,7 +62,7 @@ or a recorded degradation.
 resolved** `(model, effort)` in, so `auto` is resolved before it reaches here per
 `task-execution/SKILL.md`'s resolution rule. Dispatch the refuters **and** the
 completeness-critic with those values as `model:` and `effort:` parameters on either path;
-below CLI 2.1.292 the Agent tool takes `model:` only (`verification-panels`
+pass `effort:` to the Agent tool only if it lists that parameter (`verification-panels`
 `references/dispatch-tier.md`, which owns this rule). Absent a supplied tier, run native rather than guessing.
 
 The lenses:

@@ -43,7 +43,7 @@ text verbatim. Honor every line:
 ```
 ULTRA-ASSESS ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this assessment run.
 - Reachable reasoning subagents dispatched model:<model> (default auto = session model or opus, whichever is higher on haiku<sonnet<opus<fable — escalate, never downgrade). Also
-  effort:<effort> (default xhigh): on Workflow agent(), and on the Agent tool from CLI 2.1.292; below that an inline subagent keeps its frontmatter effort.
+  effort:<effort> (default xhigh): on Workflow agent(), and on the Agent tool only if it lists an effort parameter; else an inline subagent keeps its frontmatter effort.
 - Fan out readers over the assessment units (files, plugins, modules, endpoints),
   one lens each, per delegation-contracts; each returns a compressed structured record.
   TIER each lens by its work (delegation-contracts rule): an enumerate/locate lens is

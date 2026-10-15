@@ -37,7 +37,8 @@
 # EGRESS. HOME is a throwaway dir, the auto-updater and non-essential traffic are
 # disabled, stdin is closed — the verdict cannot depend on network or a prompt.
 # Measured 2026-09-03 (darwin arm64 native binary): unauthenticated, no prompt,
-# 44/44 + manifest in ~25 s. The linux-x64 npm channel is measured by CI itself.
+# 44/44 + manifest in ~25 s. Linux x64 native, 2.1.300, 2026-10-15: 33 plugins + manifest in
+# 3.0 s with one --json run per plugin, 5.6 s with the old human + --json pair.
 #
 # Standing: gate (a named, fail-capable CI step) — and a local pre-push check.
 set -u
@@ -61,11 +62,19 @@ command -v jq >/dev/null 2>&1 || { echo "FAIL: jq not on PATH — cannot read ga
 
 rc=0
 out="$HOME/validate.out"   # inside the throwaway HOME, so the EXIT trap removes it
+errf="$HOME/validate.err"
+# One --json run per plugin carries the verdict, the findings printed on failure and
+# gatingHooks; a human-mode run repeats the whole validation for the same findings.
 for p in plugins/*/; do
   [ -f "$p/.claude-plugin/plugin.json" ] || continue
-  claude plugin validate --strict "$p" </dev/null >"$out" 2>&1 \
-    || { echo "FAIL: $p"; cat "$out"; rc=1; continue; }
-  claude plugin validate --strict --json "$p" </dev/null >"$out" 2>/dev/null
+  claude plugin validate --strict --json "$p" </dev/null >"$out" 2>"$errf" && vrc=0 || vrc=$?
+  if [ "$vrc" -ne 0 ] || [ "$(jq -r '.success' "$out" 2>/dev/null)" != true ]; then
+    echo "FAIL: $p (exit $vrc; --strict treats warnings as errors)"
+    findings=$(jq -r '([.manifest] + (.contents // []))[] | select(((.errors // []) + (.warnings // [])) | length > 0)
+      | "  \(.file)", ((.errors // [])[] | "    error: \(.path): \(.message)"), ((.warnings // [])[] | "    warning: \(.path): \(.message)")' "$out" 2>/dev/null)
+    if [ -n "$findings" ]; then printf '%s\n' "$findings"; else cat "$out" "$errf"; fi
+    rc=1; continue
+  fi
   nocatch=$(pc_gating_catch "$out") \
     || { echo "FAIL: $p gating hook without .catch, or an unreadable --json report — a hook that throws is skipped and the action runs; chain .catch(...) answering in its place:"; printf '  %s\n' "$nocatch"; rc=1; }
 done

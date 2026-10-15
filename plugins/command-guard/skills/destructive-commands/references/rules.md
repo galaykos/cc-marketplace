@@ -62,9 +62,11 @@ TypeORM, Knex, Alembic, Doctrine, Flyway, Liquibase, Supabase, WP-CLI) ·
 executed `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE`, `dropdb`, `FLUSHALL`,
 `dropDatabase()`, `deleteMany({})` · `rm -rf` on `/`, `~`, `$HOME`, `.`, a
 target whose shell value is only backslashes (`\` ending the command, `'\'`, `\\`,
-`"\\"`: Git Bash on Windows takes a backslash path for a Windows one, so `\` is the
-current drive's root — read from its path rules, not measured here — and the host's
-own dangerous-`rm` check flags it from CLI 2.1.281; on Linux and macOS it names a
+`"\\"`, read off `rm`'s own words and off a shell's `-c` script or `eval`'s arguments, so a
+backslash elsewhere in the command is no target; `$'\\'`, a variable holding `\` and a
+command `ssh` or `su -c` runs are missed. Git Bash on Windows takes a backslash path for
+a Windows one, so `\` is the current drive's root — read from its path rules, not
+measured here — and the host's own dangerous-`rm` check flags it from CLI 2.1.281; on Linux and macOS it names a
 file called `\`, so the deny costs nothing there), a
 top-level system directory, or a temp ROOT (`/tmp`, `/private/tmp`, `/var/tmp`,
 and their `/*` spellings — those hold every other process's scratch state, not
@@ -133,12 +135,12 @@ shapes. It cannot see:
   `node -`, `at`, a shell function or alias — written to a script a later line runs
   (`cat > x.sh <<EOF … EOF; bash x.sh`), or read into a variable by `read`: not
   read. Reading every body line by line took 22.6 s on a 21 KB command, past the
-  hook's 15 s timeout; below Claude Code 2.1.295 a timed-out guard fails open on
-  everything in the command, and from 2.1.295 `onFailure: "block"` in `hooks.json`
-  makes the host block it instead (recorded from the changelog, not measured live).
-  A huge body fed to a shell, `ssh` or a SQL client, or kept because its
-  `<<` could not be placed or a later line may run it, is still read, and can still
-  time out — a block from 2.1.295, a pass before it;
+  hook's 15 s timeout. A huge body fed to a shell, `ssh` or a SQL client, or kept
+  because its `<<` could not be placed or a later line may run it, is still read:
+  past 12 s the guard stops and asks, on every CLI version. A run the host times out
+  anyway, or cannot start, passes unjudged below Claude Code 2.1.295 and is blocked
+  from 2.1.295 by `onFailure: "block"` in `hooks.json` — measured 2026-10-15 on 2.1.291
+  and 2.1.300 with a fake local Messages API (the README's Failure mode);
 - a **shape nobody has written a rule for** — a new framework's reset command,
   a CLI released next month;
 - **which database a connection points at** — `DROP TABLE` through an MCP SQL
