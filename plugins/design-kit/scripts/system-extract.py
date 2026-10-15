@@ -231,7 +231,9 @@ class Extraction:
         if entry is None:
             entry = {"$type": ttype, "modes": {}, "sources": []}
             self.tokens[path] = entry
-        if mode not in entry["modes"]:
+        # `--color-primary: var(--primary)` and `--primary: oklch(…)` name one path, so the
+        # reference arrives as the self-alias {color.primary}: hold it only until a value comes
+        if mode not in entry["modes"] or entry["modes"][mode] == "{" + path + "}":
             entry["modes"][mode] = val
         if source not in entry["sources"]:
             entry["sources"].append(source)
@@ -675,11 +677,37 @@ def extract_brand(root, ex):
 
 
 
+def drop_unresolved(ex):
+    """Drop every mode value whose {alias} chain loops or ends at no declared value, and
+    warn on stderr: a reference to itself, a cycle or an undefined custom property would
+    otherwise ship as an alias no reader can resolve (the stock Laravel starter kit's
+    {color.primary} did, so the board drew no colour from it). Repeats until stable,
+    since one drop can strand an alias that pointed at it."""
+    changed = True
+    while changed:
+        changed = False
+        for path, entry in ex.tokens.items():
+            for mode, val in list(entry["modes"].items()):
+                seen, cur = {path}, val
+                while isinstance(cur, str) and cur.startswith("{") and cur.endswith("}"):
+                    target = ex.tokens.get(cur[1:-1])
+                    if cur[1:-1] in seen or target is None or not target["modes"]:
+                        print(f"system-extract: {path} ({mode}) → {val} resolves to no declared value; alias dropped", file=sys.stderr)
+                        del entry["modes"][mode]
+                        changed = True
+                        break
+                    seen.add(cur[1:-1])
+                    cur = target["modes"].get(mode, target["modes"].get("light", next(iter(target["modes"].values()))))
+
+
 def build_tokens(ex):
+    drop_unresolved(ex)
     out = collections.OrderedDict()
     for path in sorted(ex.tokens):
         entry = ex.tokens[path]
         modes = entry["modes"]
+        if not modes:
+            continue
         light = modes.get("light", next(iter(modes.values())))
         node = collections.OrderedDict()
         node["$type"] = entry["$type"]

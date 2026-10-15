@@ -83,9 +83,14 @@ judgment — no skill to load.
 4. Confirm responsive coverage at the code level: check that breakpoint
    classes or media queries exist in the markup/CSS for the standard tiers —
    mobile, tablet, desktop — and that no fixed pixel dimensions would force
-   layout breakage between them. This is a check for the presence of
-   responsive rules in the code, not a rendered or visual verification of any
-   screen size.
+   layout breakage between them. Two overflow causes are mechanical; check
+   both. A `grid` whose base (unprefixed) classes set no `grid-cols-*` gets an
+   `auto` column as wide as its widest child: add `grid-cols-1`, or `min-w-0` on
+   long-text children. An `sr-only` or `absolute` element inside an `overflow-*`
+   wrapper that is not `relative` escapes the clip and widens the page: make the
+   wrapper `relative`. This is a check for the presence of responsive rules in
+   the code, not a rendered or visual verification of any screen size; a
+   browser sweep at each width stays the proof.
 5. A decided spec in the dispatch BINDS. Lines reading `Composition:`,
    `Graphic system:`, `Signature:`, `Copy voice:`, `Banned vocabulary:`,
    `Ambition:` or `Motion:` outrank every default in the skills above and every

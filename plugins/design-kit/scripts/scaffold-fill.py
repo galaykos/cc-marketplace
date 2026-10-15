@@ -16,7 +16,11 @@ WHAT IT DOES. Given the detected stack, a slug and design-system/components.json
   - for every `gaps` entry, a comment naming the file to open before using that
     component — the extractor's blind spot made visible, never guessed around.
 Stacks: vite-react (tsx/jsx), next (page.tsx), vite-vue and nuxt (SFC with
-<script setup>), laravel (Blade <x-…> tags derived from the view path).
+<script setup>), laravel (Blade <x-…> tags derived from the view path),
+laravel-inertia-react and -vue (an Inertia page that names a bare layout of its own:
+a page-level layout outranks createInertiaApp's default `layout`, which in the stock
+starter kits wraps every unnamed page in the signed-in AppLayout; React takes it in
+an array because Inertia 3 reads a bare arrow there as a layout callback).
 
 WHAT IT DOES NOT DO. It does not compile or type-check the imports — the dev
 server's overlay is the check; it does not pass a required prop it cannot fill
@@ -36,7 +40,8 @@ import sys
 
 MARK = "__design-kit__ scratch — removed by codebase-cleanup.sh"
 STACK_DIR = {"vite-react": "src/__design-kit__", "vite-vue": "src/__design-kit__",
-             "next": "app/__design-kit__/{slug}", "nuxt": "pages/__design-kit__", "laravel": "resources/views/__design-kit__"}
+             "next": "app/__design-kit__/{slug}", "nuxt": "pages/__design-kit__", "laravel": "resources/views/__design-kit__",
+             "laravel-inertia-react": "resources/js/pages/__design-kit__", "laravel-inertia-vue": "resources/js/pages/__design-kit__"}
 
 
 def strip_json_comments(text):
@@ -183,7 +188,7 @@ def render(stack, slug, comps, brief, lang, root, css=""):
     if css and stack in ("vite-react", "next", "vite-vue", "nuxt"):
         rel = os.path.relpath(css, scratch_dir).replace(os.sep, "/")
         css_import = f'import "{rel if rel.startswith(".") else "./" + rel}";'  # the app's own stylesheet: the strip renders styled, like the product
-    if stack in ("vite-react", "next"):
+    if stack in ("vite-react", "next", "laravel-inertia-react"):
         imports, sigs, items, gaps = [], [], [], []
         for c in comps:
             name = c["name"]
@@ -199,6 +204,8 @@ def render(stack, slug, comps, brief, lang, root, css=""):
         head = [f"/* {MARK} */"]
         if stack == "vite-react":
             head.append('import { createRoot } from "react-dom/client";')
+        if stack == "laravel-inertia-react" and lang == "ts":
+            head.append('import type { ReactNode } from "react";')
         if css_import:
             head.append(css_import)
         head += imports + [""] + sigs + [""]
@@ -207,9 +214,12 @@ def render(stack, slug, comps, brief, lang, root, css=""):
             return "\n".join(head + [
                 "function Scratch() {", "  return (", f'    <main data-design-kit="{slug}">', body, "    </main>", "  );", "}",
                 f'createRoot(document.getElementById("design-kit-root"){bang}).render(<Scratch />);', ""])
-        return "\n".join(head + [
-            "export default function DesignKitScratch() {", "  return (", f'    <main data-design-kit="{slug}">', body, "    </main>", "  );", "}", ""])
-    if stack in ("vite-vue", "nuxt"):
+        page = ["export default function DesignKitScratch() {", "  return (", f'    <main data-design-kit="{slug}">', body, "    </main>", "  );", "}"]
+        if stack == "laravel-inertia-react":
+            typed = ": { children: ReactNode }" if lang == "ts" else ""
+            return "\n".join(head + [f"function Bare({{ children }}{typed}) {{", "  return <>{children}</>;", "}", ""] + page + ["DesignKitScratch.layout = [Bare];", ""])
+        return "\n".join(head + page + [""])
+    if stack in ("vite-vue", "nuxt", "laravel-inertia-vue"):
         imports, sigs, items, gaps = [], [], [], []
         for c in comps:
             path = import_path(c["source"], scratch_dir, alias, stack)
@@ -219,7 +229,9 @@ def render(stack, slug, comps, brief, lang, root, css=""):
             sigs.append("// " + "\n// ".join(signature_lines(c)))
             items += strip_items(c, text or c["name"], "vue")
             gaps += gap_comments(c, "vue")
-        return "\n".join([f"<!-- {MARK} -->", "<script setup>"] + ([css_import] if css_import else []) + imports + sigs + ["</script>", "<template>", f'  <main data-design-kit="{slug}">',
+        options = ["<script>", "const Bare = { setup: (_, { slots }) => () => slots.default?.() };", "export default { layout: Bare };", "</script>"] \
+            if stack == "laravel-inertia-vue" else []
+        return "\n".join([f"<!-- {MARK} -->"] + options + ["<script setup>"] + ([css_import] if css_import else []) + imports + sigs + ["</script>", "<template>", f'  <main data-design-kit="{slug}">',
                           '    <section data-design-kit="strip">'] + [f"      {i}" for i in items] + ["    </section>"] + [f"    {g}" for g in gaps] +
                          ["    <!-- Compose the design below from the components above; real data, never lorem. -->", "  </main>", "</template>", ""])
     if stack == "laravel":
@@ -295,7 +307,7 @@ def main(argv=None):
     comps = [c for c in doc.get("components", []) if c.get("name") and c.get("source")]
     lara = a.stack == "laravel"
     comps = [c for c in comps if (c["source"].endswith((".blade.php", ".php")) if lara else not c["source"].endswith((".blade.php", ".php")))]
-    if a.stack in ("vite-vue", "nuxt"):
+    if a.stack in ("vite-vue", "nuxt", "laravel-inertia-vue"):
         comps = [c for c in comps if c["source"].endswith(".vue")] or comps
     sys.stdout.write(render(a.stack, a.slug, comps, a.brief, a.lang, a.root, a.css))
     return 0

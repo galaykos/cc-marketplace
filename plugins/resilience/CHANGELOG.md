@@ -8,6 +8,10 @@ whose job is history would be worse than the gap. Adding this file opts the plug
 `scripts/check-version-bumps.sh`'s changelog gate permanently — every bump from here on
 must carry an entry.
 
+## 0.8.1 — 2026-10-15
+
+- **`/resilience:review`'s hand-up says what the fan-in loads now.** code-review 0.33.0 stopped loading all six rubrics on every review: `/code-review:review` loads only the ones the diff's content selects. The command's hand-up, the README and a `lane.tsv` comment said "all six" and now say "the ones the diff selects". No behaviour changed here.
+
 ## 0.8.0 — 2026-10-06
 
 - **`performance-tuning` states the current web-vitals API.** Its Core Web Vitals line now says INP replaced FID on 2024-03-12, and that field code reads the metrics with `web-vitals`' `on*` functions (`onLCP`, `onCLS`, `onINP`, each taking a callback, since v3 in 2022): `get*` was removed in v4 and `onFID` in v5 (2025-05), so a fix writes neither. Current on npm, 2026-10-06: 6.2.3.

@@ -55,7 +55,7 @@ is acceptance-by-omission, the exact failure the threat-modeling skill names as 
 anti-pattern, and nothing else reads dispositions back.
 
 Close with a coverage inventory and a self-refute pass: state
-`Checked: … (generic pass: host built-in | inline)` and `Not checked: … (why)` so it is explicit what was covered, what was clean, and what was
+`Checked: host built-in | inline — …` (the branch that ran the generic pass as its first token) and `Not checked: … (why)` so it is explicit what was covered, what was clean, and what was
 skipped — not only what broke. Then run one adversarial self-refute pass over every
 `critical` finding; if a finding does not survive it, drop or downgrade it with a note.
 

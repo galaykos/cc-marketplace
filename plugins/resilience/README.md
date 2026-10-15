@@ -36,8 +36,8 @@ Runtime quality in one plugin — does it stay up, can you see it, is it fast.
 
 Until 2026-09-14 each concern was its own command (`error-review`, `concurrency-review`,
 `observability-review`, `performance-review`); one entry with a flag costs the host's
-skill listing one line instead of five, and the code-review fan-in already loads all six
-rubrics in one pass.
+skill listing one line instead of five, and the code-review fan-in already loads the
+rubrics the diff selects in one pass.
 
 ## Skills
 

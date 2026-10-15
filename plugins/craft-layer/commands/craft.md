@@ -73,7 +73,8 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    rebrand. **What it rules OUT goes into `craft/divergence-record.md`** on the three fixed
    `Banned genus:` / `Banned register:` / `Banned vocabulary:` keys, whose format and match semantics
    `concept-deck.md` owns — a ban left in the record's narrative reaches no builder and no gate.
-   **Then run the CONCEPT FORK**, at every tier including `one-shot`, per that same reference. On a
+   **Then run the CONCEPT FORK**, at every tier including `one-shot`, per that same reference, the
+   editorial voice its own question in the call. On a
    redesign its one call also confirms or changes the mode and asks approval for any never-change
    value a candidate would change — questions inside that call, never an added exchange (a `guided`
    run may ask the approval in a section round); each approval lands in `preserve.json`'s
@@ -169,7 +170,7 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
      key is on and nothing else, so every pair after a wrap is lost silently. Let the line be long. It
      resolves at every tier — `one-shot` writes no ledger to carry it; a `guided` run copies the
      ledger's `slot` + `section` columns.
-   - `Voice:` — the concept's editorial voice made buildable, four dimensions separated by `·`: person
+   - `Voice:` — the editorial voice picked at the fork, made buildable, four dimensions separated by `·`: person
      and address · sentence-length band in words · what it does with fragments, questions and
      imperatives · 2–3 `NEVER "<literal>"` items, the exact strings THIS product does not say. Same
      lane and same one-line shape as `Banned vocabulary:`, and drawn from the concept deck's editorial

@@ -11,7 +11,19 @@
 #                     codebase-cleanup.sh` in that file type's comment syntax, and
 #                     prints `wrote=<path>` per file plus `open=<url>`.
 #                     Laravel also appends ONE marked Route::view line to
-#                     routes/web.php.
+#                     routes/web.php; Laravel + Inertia (composer inertia-laravel plus
+#                     @inertiajs/react or @inertiajs/vue3) gets a page under
+#                     resources/js/pages/__design-kit__/ that names its own layout, so
+#                     the app's default one (createInertiaApp `layout`) stays out, and a
+#                     Route::inertia line. dev_url for Laravel is .env's APP_URL — the only
+#                     key read from .env, and no other value is printed — else
+#                     http://127.0.0.1:8000.
+#                     When the app's entry stylesheet imports Tailwind v4, one marked
+#                     `@source` line naming the scratch dir is appended to it: dk.sh
+#                     gitignores __design-kit__/, and v4's automatic detection skips
+#                     gitignored paths, so the page rendered half-styled in a real session.
+#                     Every appended line keeps the file's own final-newline state, so
+#                     cleanup restores it byte for byte.
 #
 #                     When design-system/components.json exists (system-extract.py
 #                     wrote it), the component-bearing scratch file is filled by
@@ -23,9 +35,14 @@
 # WHAT IT DOES NOT CATCH. A project with two stacks (Laravel + a separate Vite SPA)
 # resolves to Laravel because `artisan` outranks `vite.config.*`; pass --stack to
 # override. It never starts the dev server and never composes the design — the
-# model does both; the strip proves the imports resolve, nothing more. Standing:
+# model does both; the strip proves the imports resolve, nothing more. Inertia with
+# the Svelte adapter stays `laravel`. An APP_URL that is not the URL the app is served
+# on (the skeleton's bare http://localhost under `php artisan serve`) is printed as is.
+# A Tailwind v4 entry stylesheet the scaffold cannot find (Nuxt's, any but
+# resources/css/app.css on Laravel) gets no @source line. Standing:
 # scripts/__tests__/codebase.test.sh drives --detect and --create on a Vite React
-# fixture (plain, inventory-filled, alias-imported) and a Laravel fixture.
+# fixture (plain, inventory-filled, alias-imported), a Laravel fixture and Laravel +
+# Inertia React and Vue fixtures, and cmp's the stylesheet and routes file after cleanup.
 set -euo pipefail
 
 MARK="__design-kit__ scratch — removed by codebase-cleanup.sh"
@@ -37,8 +54,8 @@ while [ $# -gt 0 ]; do
     --create) mode=create; slug="${2:-}"; shift ;;
     --brief) brief="${2:-}"; shift ;;
     --components) components="${2:-}"; shift ;;
-    --stack) case "${2:-}" in vite-react|vite-vue|next|nuxt|laravel) force_stack="$2" ;; *) echo "codebase-scaffold.sh: --stack must be vite-react|vite-vue|next|nuxt|laravel" >&2; exit 2 ;; esac; shift ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    --stack) case "${2:-}" in vite-react|vite-vue|next|nuxt|laravel|laravel-inertia-react|laravel-inertia-vue) force_stack="$2" ;; *) echo "codebase-scaffold.sh: --stack must be vite-react|vite-vue|next|nuxt|laravel|laravel-inertia-react|laravel-inertia-vue" >&2; exit 2 ;; esac; shift ;;
+    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
     *) echo "codebase-scaffold.sh: unknown argument $1" >&2; exit 2 ;;
   esac
   shift
@@ -47,19 +64,27 @@ done
 
 has_dep() { [ -f package.json ] && grep -Eq "\"$1\"[[:space:]]*:" package.json; }
 first_dir() { for d in "$@"; do [ -d "$d" ] && { echo "$d"; return; }; done; echo "-"; }
+app_url() {  # .env's APP_URL alone, unquoted, no trailing slash; empty when unset or interpolated
+  [ -f .env ] || return 0
+  sed -n -E 's/^[[:space:]]*APP_URL[[:space:]]*=[[:space:]]*//p' .env | head -1 \
+    | sed -E "s/[[:space:]]+#.*\$//; s/^[\"']//; s/[\"'][[:space:]]*\$//; s#/+\$##" | grep -E '^https?://[^[:space:]$]+$' || true
+}
 
 detect() {
   stack=unknown; dev_cmd="-"; dev_url="-"; lang=js
   [ -f tsconfig.json ] && lang=ts
   if [ -n "$force_stack" ]; then stack="$force_stack"
   elif [ -f artisan ] && grep -rlq --include='*.blade.php' '@vite' resources/views 2>/dev/null; then stack=laravel
+    if [ -f composer.json ] && grep -Eq '"inertiajs/inertia-laravel"[[:space:]]*:' composer.json; then
+      if has_dep @inertiajs/react; then stack=laravel-inertia-react; elif has_dep @inertiajs/vue3; then stack=laravel-inertia-vue; fi
+    fi
   elif ls next.config.* >/dev/null 2>&1 && [ -d app ]; then stack=next
   elif ls nuxt.config.* >/dev/null 2>&1; then stack=nuxt
   elif ls vite.config.* >/dev/null 2>&1; then
     if has_dep vue; then stack=vite-vue; elif has_dep react; then stack=vite-react; else stack=vite; fi
   fi
   case "$stack" in
-    laravel) dev_cmd="php artisan serve & npm run dev"; dev_url="http://127.0.0.1:8000" ;;
+    laravel*) dev_cmd="php artisan serve & npm run dev"; dev_url="$(app_url)"; dev_url="${dev_url:-http://127.0.0.1:8000}" ;;
     next|nuxt) dev_cmd="npm run dev"; dev_url="http://localhost:3000" ;;
     vite*) dev_cmd="npm run dev"
       port=$(grep -hoE 'port[[:space:]]*:[[:space:]]*[0-9]+' vite.config.* 2>/dev/null | grep -oE '[0-9]+' | head -1 || true)
@@ -76,6 +101,24 @@ case "$slug" in *[!a-z0-9-]*) echo "codebase-scaffold.sh: slug must be [a-z0-9-]
 eval "$(detect | sed 's/^/d_/; s/=/=\x27/; s/$/\x27/')"
 
 write() { mkdir -p "$(dirname "$1")"; cat > "$1"; echo "wrote=$1"; }
+# mark_line <file> <line>: append once, after a newline only when the file ends without one
+# (a routes file with no final newline had its last route joined, then deleted by cleanup)
+mark_line() {
+  python3 - "$1" "$2" <<'PY'
+import sys
+p, line = sys.argv[1], sys.argv[2].encode()
+b = open(p, "rb").read()
+if line not in b.splitlines():
+    open(p, "wb").write(b + (line + b"\n" if not b or b.endswith(b"\n") else b"\n" + line))
+PY
+}
+tw_source() {  # tw_source <scratch dir>: the marked @source line in a Tailwind v4 entry stylesheet
+  local css
+  case "$d_stack" in laravel*) css=resources/css/app.css ;; *) css="$(app_css)" ;; esac
+  [ -n "$css" ] && [ -f "$css" ] && grep -Eq "@import[[:space:]]+[\"']tailwindcss(/utilities(\.css)?)?[\"']" "$css" || return 0
+  mark_line "$css" "@source \"$(python3 -c 'import os,sys;r=os.path.relpath(sys.argv[1],os.path.dirname(sys.argv[2]));print(r if r.startswith(".") else "./"+r)' "$1" "$css")\"; /* $MARK */"
+  echo "appended=$css"
+}
 # fill <path>: the inventory-driven body when components.json exists, else the heredoc on stdin
 app_css() {  # the first stylesheet the app's own entry imports — repo-relative, or empty
   local entry imp
@@ -119,6 +162,7 @@ function Scratch() { return <main data-design-kit="$slug">Fill me with real comp
 createRoot(document.getElementById("design-kit-root")!).render(<Scratch />);
 EOF
     if [ "$d_lang" != ts ]; then sed -i.bak 's/)!)/))/' "src/__design-kit__/$slug.$ext"; rm -f "src/__design-kit__/$slug.$ext.bak"; fi
+    tw_source src/__design-kit__
     echo "open=$d_dev_url/__design-kit__/$slug.html" ;;
   vite-vue)
     ext=js; [ "$d_lang" = ts ] && ext=ts
@@ -140,6 +184,7 @@ EOF
 </script>
 <template><main data-design-kit="$slug">Fill me with real components.</main></template>
 EOF
+    tw_source src/__design-kit__
     echo "open=$d_dev_url/__design-kit__/$slug.html" ;;
   next)
     fill "app/__design-kit__/$slug/page.tsx" <<EOF
@@ -147,6 +192,7 @@ EOF
 // Import the project's real components here — never restyle a copy.
 export default function DesignKitScratch() { return <main data-design-kit="$slug">Fill me with real components.</main>; }
 EOF
+    tw_source app/__design-kit__
     echo "open=$d_dev_url/__design-kit__/$slug" ;;
   nuxt)
     fill "pages/__design-kit__/$slug.vue" <<EOF
@@ -164,8 +210,19 @@ EOF
     if [ -f "$components" ]; then fill "$target" </dev/null; else
       python3 "$HERE/scaffold-fill.py" laravel "$slug" --components /dev/null --brief "$brief" > "$target"; echo "wrote=$target"; fi
     [ -f routes/web.php ] || { mkdir -p routes; echo "<?php" > routes/web.php; echo "wrote=routes/web.php"; }
-    printf "Route::view('/__design-kit__/%s', '__design-kit__.%s'); // %s\n" "$slug" "$slug" "$MARK" >> routes/web.php
-    echo "appended=routes/web.php"
+    mark_line routes/web.php "Route::view('/__design-kit__/$slug', '__design-kit__.$slug'); // $MARK"
+    echo "appended=routes/web.php"; tw_source resources/views/__design-kit__
     echo "open=$d_dev_url/__design-kit__/$slug" ;;
-  *) echo "codebase-scaffold.sh: stack=$d_stack has no scratch template — pass --stack vite-react|vite-vue|next|nuxt|laravel" >&2; exit 3 ;;
+  laravel-inertia-react|laravel-inertia-vue)
+    pages=resources/js/pages; [ -d resources/js/Pages ] && [ ! -d resources/js/pages ] && pages=resources/js/Pages
+    ext=vue; [ "$d_stack" = laravel-inertia-react ] && { ext=jsx; [ "$d_lang" = ts ] && ext=tsx; }
+    target="$pages/__design-kit__/$slug.$ext"; mkdir -p "$(dirname "$target")"
+    inv=/dev/null; [ -f "$components" ] && inv="$components"
+    python3 "$HERE/scaffold-fill.py" "$d_stack" "$slug" --components "$inv" --brief "$brief" --lang "$d_lang" > "$target"
+    echo "wrote=$target"; [ "$inv" = /dev/null ] || echo "filled=$inv"
+    [ -f routes/web.php ] || { mkdir -p routes; echo "<?php" > routes/web.php; echo "wrote=routes/web.php"; }
+    mark_line routes/web.php "Route::inertia('/__design-kit__/$slug', '__design-kit__/$slug'); // $MARK"
+    echo "appended=routes/web.php"; tw_source "$pages/__design-kit__"
+    echo "open=$d_dev_url/__design-kit__/$slug" ;;
+  *) echo "codebase-scaffold.sh: stack=$d_stack has no scratch template — pass --stack vite-react|vite-vue|next|nuxt|laravel|laravel-inertia-react|laravel-inertia-vue" >&2; exit 3 ;;
 esac

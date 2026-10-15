@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # craft-gates.test.sh — runs divergence.mjs and contrast.mjs over defective/clean fixture controls and asserts each verdict, exit code and
-# coverage line, then gates.spec.ts's reduced-motion block and a tsc --strict compile; fails if the repository's git status changes during the run.
+# coverage line, then gates.spec.ts's reduced-motion block, a tsc --strict compile and concept-deck.md's worked draw; fails if the repository's git status changes during the run.
 # Misses: the reduced-motion and type-check sections SKIP without a local Playwright, or typescript with its types, and CI installs neither.
 # Why, limits, history: rationale/derivations/plugin-craft-layer.md § plugins/craft-layer/scripts/__tests__/craft-gates.test.sh
 set -u
@@ -680,6 +680,54 @@ else
       --module esnext --moduleResolution bundler --lib es2023,dom,dom.iterable gates.spec.ts 2>&1); then ok
   else bad "gates.spec.ts does not compile under tsc --strict" "$(printf '%s\n' "$out" | head -4)"; fi
 fi
+
+# The concept deck's worked draw must still compute: each line's n is its axis's option count, the
+# index and carry are the arithmetic, the option named is that index of that axis, the seed is the
+# stated cksum, and the lens is that index of creative-director's list. An axis gaining an option
+# changed none of this text before, so the example silently taught the wrong draw.
+DECK="$here/../../skills/creative-direction/references/concept-deck.md"
+AGENT="$here/../../agents/creative-director.md"
+deck_example_errors() { # deck agent -> one line per error, nothing when the example holds
+  node -e '
+    const fs = require("fs"), cp = require("child_process")
+    const deck = fs.readFileSync(process.argv[1], "utf8"), agent = fs.readFileSync(process.argv[2], "utf8")
+    const err = (m) => console.log(m)
+    const axes = []
+    for (const sec of deck.split(/^## /m).slice(1)) {
+      if (!/^Axis \d+ — /.test(sec)) continue
+      axes.push([...sec.matchAll(/^- \*\*(.+?)\*\* —/gm)].map((m) => m[1]))
+    }
+    const counts = axes.map((a) => a.length).join(" ")
+    const loop = deck.match(/for n in ([\d ]+); do/)
+    if (!loop || loop[1].trim() !== counts) err(`loop n list "${loop && loop[1]}" != option counts "${counts}"`)
+    const prose = deck.replace(/\s+/g, " ").match(/so n is ([\d, ]+?) down the axes/)
+    if (!prose || prose[1].replace(/,/g, "") !== counts) err(`prose n list "${prose && prose[1]}" != option counts "${counts}"`)
+    const lines = [...deck.matchAll(/^\s*axis (\d+): +(\d+) mod (\d+) = (\d+), carry +(\d+) -> (.+)$/gm)]
+    if (lines.length !== axes.length) err(`example shows ${lines.length} axes, deck has ${axes.length}`)
+    let carry = null
+    for (const [, i, a, n, k, c, name] of lines) {
+      const opts = axes[i - 1] || [], A = BigInt(a), N = BigInt(n)
+      if (carry !== null && A !== carry) err(`axis ${i}: starts from ${a}, previous carry was ${carry}`)
+      if (Number(n) !== opts.length) err(`axis ${i}: n=${n} but the axis lists ${opts.length} options`)
+      if (A % N !== BigInt(k) || A / N !== BigInt(c)) err(`axis ${i}: ${a} mod ${n} is ${A % N}, carry ${A / N}`)
+      if (opts[k] !== name.trim()) err(`axis ${i}: option ${k} is "${opts[k]}", example names "${name.trim()}"`)
+      carry = BigInt(c)
+    }
+    const lens = deck.match(/^\s*lens: +(\d+) mod 4 = (\d+) +-> (.+)$/m)
+    const lenses = [...(agent.split("ROTATE the lens")[1] || "").split("Name the lens")[0].matchAll(/^\s+- \*\*(.+?)\*\* —/gm)].map((m) => m[1])
+    if (!lens || BigInt(lens[1]) !== carry || Number(lens[1]) % 4 !== Number(lens[2]) || lenses[lens[2]] !== lens[3].trim())
+      err(`lens line "${lens && lens[0].trim()}" disagrees with carry ${carry} and lens list ${lenses.join(", ")}`)
+    const sd = deck.match(/brief \x27(.+?)\x27, date (\S+)\n\s*seed = .*= (\d+)/)
+    const sum = sd && cp.execFileSync("cksum", { input: sd[1] + sd[2] }).toString().split(" ")[0]
+    if (!sd || sum !== sd[3] || !lines[0] || lines[0][2] !== sd[3]) err(`seed line does not match cksum (${sum})`)
+  ' "$1" "$2"
+}
+if out=$(deck_example_errors "$DECK" "$AGENT") && [ -z "$out" ]; then ok
+else bad "concept-deck worked example: the shipped deck's example holds" "$out"; fi
+GROWN="$WS/concept-deck-grown.md"
+awk '{ print } /^- \*\*Stillness by design\*\* —/ { print "- **Motion as wayfinding** — a synthetic eighth option for the harness." }' "$DECK" > "$GROWN"
+if out=$(deck_example_errors "$GROWN" "$AGENT") && printf '%s\n' "$out" | grep -q 'axis 4: n=7 but the axis lists 8'; then ok
+else bad "concept-deck worked example: an axis gaining an option fails it" "${out:-no error reported}"; fi
 
 SNAP_AFTER=$(git_snap)
 if [ "$SNAP_BEFORE" != "$SNAP_AFTER" ]; then

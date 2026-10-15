@@ -43,7 +43,8 @@ hue and type family are kept: no departure may replace them, so K lands on the o
 
 1. **Generate N ≈ 4 blind candidates.** Each is { central metaphor · editorial voice · ONE
    signature interaction }. Generate them independently — do not average them toward one
-   safe idea.
+   safe idea. On a marketing/campaign archetype no voice breaks toward restraint or
+   plainness unless the brief asks for restraint (`concept-deck.md` § The concept fork).
 2. **Seed each with the anti-corpus differential.** Every candidate must BREAK K
    sameness-fingerprint defaults, where K SCALES WITH THE PINNED AMBITION — `restrained` 1,
    `standard` 2, `maximal` 3 — and the departures must land on DIFFERENT fingerprint axes: a

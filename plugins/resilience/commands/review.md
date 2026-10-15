@@ -32,7 +32,7 @@ An unknown name aborts with one line printing that list. `--concern all` loads e
    **Hand up when the scope is not this plugin's alone.** If the resolved scope contains
    files outside this plugin's surface and `/code-review:review` is installed, hand the
    WHOLE scope to it and stop. It is the fan-in for overlapping review surfaces and loads
-   every matching stack skill — including all six rubrics here — in one pass; running the
+   every matching stack skill — including the rubrics here the diff selects — in one pass; running the
    per-concern passes beside it produces the duplicate findings the fan-in exists to
    prevent. Deferring is not a smaller answer.
 

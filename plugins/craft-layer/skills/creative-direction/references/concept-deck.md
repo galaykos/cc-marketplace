@@ -264,7 +264,18 @@ a `one-shot` run: does copy for this page already EXIST (the live site, a doc, a
 does the build ship visible `{{lorem}}` slots? A URL or path the brief ALREADY named is a
 supplied input, not a question — read it without asking. The rules binding ingested copy
 are in `content-source.md`. On a redesign the same call also carries the mode question
-(`redesign-preservation.md`) — up to three questions, still one call.
+(`redesign-preservation.md`) — up to four questions with the voice below, still one call.
+
+**The voice is its own question in that call**, its options the candidates' editorial
+voices, so a user who likes one concept's signature move and another's voice can say so
+without rejecting both. The picked voice is the one `voice-contract.md` makes buildable;
+headless, it is the picked concept's. On a marketing/campaign archetype no candidate's voice
+breaks toward restraint or plainness — a documentary, understated or no-promises voice —
+unless the brief asks for restraint: a page selling one idea has to sell it. A drawn
+restraint option (`Documentary plainness`, `Stillness by design`) binds the setting or the
+motion, never the voice. In a real marketing-homepage run the recommended concept carried a voice
+that promised nothing; the user kept its signature move and the voice cost a second build
+pass. Standing: agent-graded — no gate reads a voice against the archetype.
 
 **The fork forks on CONCEPT** — the spine and the signature move — never on three shades of
 one accent. `/ui-ux:theme` already forks on colour at its own step, and a second colour fork
