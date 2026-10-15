@@ -48,6 +48,8 @@ bashfire() { # command session
 out=$(bashfire "$(writes 8)" eighth)
 case "$out" in *ZERO-WIDTH*hit.ts*|*hit.ts*ZERO-WIDTH*) true ;; *) false ;; esac
 verdict "target cap: the 8th file one Bash call writes is scanned" $?
+# The one-shot is per project, file and day: clear the markers, or hit.ts's first warning would silence this case by itself.
+find "$TMPDIR" -maxdepth 1 -name 'cc-unicode-*' -type d -exec rmdir {} + 2>/dev/null
 out=$(bashfire "$(writes 9)" ninth)
 [ -z "$out" ]; verdict "target cap: the 9th file one Bash call writes is not scanned" $?
 

@@ -436,6 +436,13 @@ git_recoverable() { # path -> 0 recoverable, 1 ask
   [ -z "$st" ]
 }
 
+# The Bash call's cwd from the payload; --check has no payload, so this process's.
+command_cwd() {
+  local d=""
+  [ -n "${input:-}" ] && d=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  printf '%s' "${d:-.}"
+}
+
 # Not a table rule: whether rm -rf is catastrophic depends on each target, not on the flags.
 check_rm() { # normalised segment (lowercased, padded)
   local seg="$1" flags="" targets="" tok recursive=0 t
@@ -476,6 +483,12 @@ check_rm() { # normalised segment (lowercased, padded)
         set_verdict ask "recursively deletes ${tok}; if that variable is unset the path collapses (rm -rf \$X/ becomes rm -rf /)" \
           "expand the variable first and check it is non-empty, or use \${X:?} so the shell refuses when unset" "$seg"
         continue ;;
+    esac
+    # The Playwright MCP's scratch dir asked on every cleanup (4 times in one session). Only that name, under the command's cwd, unmoved,
+    # and not a symlink: rm -rf link/ empties the link's target.
+    case "$tok" in
+      .playwright-mcp|.playwright-mcp/|./.playwright-mcp|./.playwright-mcp/)
+        [ "$CWD_MOVED" -eq 0 ] && [ ! -L "$(command_cwd)/.playwright-mcp" ] && continue ;;
     esac
     t="$tok"
     printf '%s' "$t" | grep -qE "$ARTIFACT_RE" && continue

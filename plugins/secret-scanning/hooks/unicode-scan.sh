@@ -1,12 +1,14 @@
 #!/bin/bash
-# unicode-scan.sh (PostToolUse on file writes and reads, Bash included, and PostToolUseFailure on Bash; payload on stdin) — warns once per file
-#   per session, never blocks,
-#   naming line and codepoint, when a file the call wrote or read holds a zero-width, bidi, soft-hyphen, mid-file BOM or Unicode tag character;
+# unicode-scan.sh (PostToolUse on file writes and reads, Bash included, and PostToolUseFailure on Bash; payload on stdin) — warns once per project,
+#   file and day (again the same day only when the file's invisible characters change), never blocks,
+#   naming line and codepoint, when a file the call wrote or read holds a zero-width, bidi, soft-hyphen, mid-file BOM or Unicode tag character
+#   (a lone BOM leading a `*.log` line, or a tab-separated field of one, is a CI step's encoding and skipped);
 #   after a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also each file git reports changed since this hook's previous call.
 # Off: CC_UNICODE_SCAN=off or CC_REMIND=off. Fails open on every error path; its one-shot markers live in $TMPDIR, its one bash-effects marker in
 #   the plugin's data dir (CLAUDE_PLUGIN_DATA), else <root>/.claude/secret-scanning/ behind a `*` .gitignore.
 # CC_UNICODE_SCAN / CC_REMIND unset: the /config options cc_unicode_scan / cc_remind decide.
 # Misses: homoglyphs; intent (presence only); a file over 2 MB or not valid UTF-8; hits past the sixth in a file; a file the session never touched;
+#   a second session or subagent the same day on a file holding the same characters (the one-shot is per project and day, not per session);
 #   a character stored as a JSON backslash-u escape (a .ipynb or .json the session only read); an MCP apply_patch (no single path); on Bash, a
 #   target past the eighth, outside the project root, not an existing regular file or relative after an in-command cd, and cc_bash_write_targets' misses;
 #   after an interpreter run, changed files past the eighth (MAX_BASH_EFFECTS) and the bash-write-effects block's misses. Reads too much: a file
@@ -370,11 +372,10 @@ MAX_BASH_EFFECTS=8
     *) exit 0 ;;
   esac
 
-  sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
-
   # Interpreter writes: read the effects with the old marker, then date it, on EVERY call this hook sees (a Read too), so a
   # file an Edit changed or a command that wrote nothing is never read as the next run's write. A failed Bash call fires
   # PostToolUseFailure, whose envelope must name that event.
+  # context-key-ok: session_id is only the effects marker's content; the warning's one-shot is per project, file and day, not per context.
   { IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; } < <(printf '%s' "$input" \
     | jq -r '.cwd // "", .session_id // "", if .hook_event_name == "PostToolUseFailure" then .hook_event_name else "PostToolUse" end' 2>/dev/null)
   root=""; cmd=""; effects=""
@@ -396,13 +397,7 @@ MAX_BASH_EFFECTS=8
     case "$bytes" in ''|*[!0-9]*) return 0 ;; esac
     [ "$bytes" -gt 2000000 ] && return 0
 
-    mark=""
-    if [ -n "$sid" ]; then
-      key=$(printf '%s|%s' "$sid" "$file" | cksum 2>/dev/null | cut -d' ' -f1)
-      mark="${TMPDIR:-/tmp}/cc-unicode-$key"
-      [ -d "$mark" ] && return 0
-      find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-unicode-*' -type d -mmin +"$MARKER_TTL_MIN" -exec rmdir {} + 2>/dev/null
-    fi
+    find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-unicode-*' -type d -mmin +"$MARKER_TTL_MIN" -exec rmdir {} + 2>/dev/null
 
     report=$(python3 - "$file" <<'PY' 2>/dev/null
 import sys, unicodedata
@@ -423,13 +418,20 @@ try:
 except Exception:
     sys.exit(0)
 
+def hidden(cp):
+    return cp in NAMED or 0xE0000 <= cp <= 0xE007F
+
+LOG = sys.argv[1].lower().endswith(".log")
 hits = []
 for lineno, line in enumerate(lines, 1):
     for col, ch in enumerate(line, 1):
         cp = ord(ch)
         if cp == 0xFEFF and lineno == 1 and col == 1:
             continue                      # a leading BOM is a file encoding, not a hider
-        if cp in NAMED or 0xE0000 <= cp <= 0xE007F:
+        # A CI log carries a BOM where each step's output starts: at a line's start, or after `gh run view --log`'s job and step fields.
+        if cp == 0xFEFF and LOG and (col == 1 or line[col - 2] == "\t") and not hidden(ord(line[col:col + 1] or "\n")):
+            continue
+        if hidden(cp):
             name = NAMED.get(cp) or unicodedata.name(ch, "UNICODE TAG CHARACTER")
             hits.append((lineno, col, cp, name, cp in BIDI))
         if len(hits) >= 6:
@@ -447,11 +449,15 @@ print(("BIDI\n" if bidi else "PLAIN\n") + "\n".join(out))
 PY
     )
     [ -n "$report" ] || return 0
-    # Claimed only after a hit, so a clean touch keeps the file's one warning; mkdir is atomic, so one of two racing hooks reports.
-    if [ -n "$mark" ]; then mkdir "$mark" 2>/dev/null || return 0; fi
-
     kind=$(printf '%s' "$report" | head -1)
     body=$(printf '%s' "$report" | tail -n +2)
+    # One warning per project, file and day while the file holds the same invisible characters (codepoints in order, positions
+    # dropped): a per-session key let every subagent repeat it. Claimed only after a hit, so a clean touch keeps the file's one
+    # warning; mkdir is atomic, so one of two racing hooks reports.
+    key=$(printf '%s|%s|%s|%s' "$(date +%F)" "$root" "$file" "$(printf '%s\n' "$body" | sed 's/^line [0-9]*, col [0-9]*: //')" \
+      | cksum 2>/dev/null | cut -d' ' -f1)
+    mark="${TMPDIR:-/tmp}/cc-unicode-$key"
+    mkdir "$mark" 2>/dev/null || return 0
     base=$(basename "$file")
 
     if [ "$kind" = "BIDI" ]; then
@@ -511,7 +517,7 @@ $files
 EOF_F
   [ -n "$msg" ] || exit 0
 
-  jq -cn --arg c "${msg}Silence with CC_UNICODE_SCAN=off. This warns once per file per session and never blocks." --arg ev "${hev:-PostToolUse}" \
+  jq -cn --arg c "${msg}Silence with CC_UNICODE_SCAN=off. This warns once per file a day, again only when its invisible characters change, and never blocks." --arg ev "${hev:-PostToolUse}" \
     '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$c}}' 2>/dev/null
   exit 0
 } 2>/dev/null

@@ -214,6 +214,30 @@ else
   bad "recoverability fixture" "could not create a git repo in $FIX"
 fi
 
+# The Playwright MCP's scratch dir, untracked as it always is, asked on every cleanup; only that name, from the command's own cwd.
+printf '== rm -rf .playwright-mcp\n'
+if [ -d "$FIX/.git" ]; then
+  mkdir -p "$FIX/.playwright-mcp"; printf 'snapshot\n' > "$FIX/.playwright-mcp/page.yml"
+  expect_in allow 'rm -rf .playwright-mcp'
+  expect_in allow 'rm -rf ./.playwright-mcp/'
+  expect_in ask   'rm -rf .playwright-mcp/../src'          # walks out of the dir
+  expect_in ask   'rm -rf .playwright-mcp/*'               # a glob's expansion is unknown, as for src/*
+  expect_in ask   'cd sub && rm -rf .playwright-mcp'       # another dir's .playwright-mcp
+  printf 'draft\n' > "$FIX/src/untracked.txt"
+  expect_in ask   'rm -rf .playwright-mcp src'             # the other target is judged on its own
+  rm -f "$FIX/src/untracked.txt"
+  LNK="$WS/linked"; mkdir -p "$LNK" "$WS/pw-target"; printf 'keep\n' > "$WS/pw-target/keep"
+  ln -s "$WS/pw-target" "$LNK/.playwright-mcp"
+  got=$( cd "$LNK" && "$BASH_BIN" "$GUARD" --check 'rm -rf .playwright-mcp/' >/dev/null 2>&1; echo $? )
+  [ "$got" = 1 ] && ok || bad "want ask, got exit $got (a symlinked .playwright-mcp: rm -rf link/ empties the target)" 'rm -rf .playwright-mcp/'
+  pw_json() { jq -cn --arg d "$1" '{hook_event_name:"PreToolUse",tool_name:"Bash",cwd:$d,tool_input:{command:"rm -rf .playwright-mcp/"}}'; }
+  out=$( cd "$FIX" && pw_json "$LNK" | "$BASH_BIN" "$GUARD" 2>/dev/null )
+  case "$out" in *'"permissionDecision":"ask"'*) ok ;; *) bad "want ask: the payload cwd's .playwright-mcp is a symlink" "${out:-<silent>}" ;; esac
+  out=$( cd "$LNK" && pw_json "$FIX" | "$BASH_BIN" "$GUARD" 2>/dev/null )
+  [ -z "$out" ] && ok || bad "want silence: the payload cwd's .playwright-mcp is a real dir" "$out"
+  rm -r "$FIX/.playwright-mcp"
+fi
+
 printf '== temp directory\n'
 expect allow 'rm -rf /tmp/pintcheck && echo cleaned'    # the false positive this exists for
 expect allow 'rm -rf /tmp/build-1/*'                    # a glob INSIDE the scratch dir

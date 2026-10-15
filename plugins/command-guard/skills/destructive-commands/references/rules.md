@@ -91,7 +91,10 @@ of (an `Edit` stays silent) · `find … -delete`, `shred`, `truncate -s 0`, `hi
 `dist`, `build`, `out`, `target`, `coverage`, `.next`, `.nuxt`, `.turbo`,
 `.cache`, `__pycache__`, `.venv`, `tmp`, Laravel's `storage/framework/*` and
 `bootstrap/cache`). Prompting on those trains the user to click through prompts,
-which costs more than it saves.
+which costs more than it saves. Also `.playwright-mcp`, the Playwright MCP's scratch
+dir, spelled `.playwright-mcp` or `./.playwright-mcp` with or without a trailing `/`:
+it asks again when the command `cd`s first, or when it is a symlink, since
+`rm -rf link/` empties the link's target.
 
 Also `rm -rf` on a path **inside** the OS temp directory — under `/tmp`,
 `/private/tmp`, `/var/tmp`, macOS's `/var/folders/<ab>/<hash>/T/`, or a resolved

@@ -54,6 +54,10 @@
 #     continuation spanning lines, and a second heredoc opened on one line.
 #   - Single-line matching: a DELETE whose WHERE sits on the next line still asks
 #     (false positive, accepted), and a filter built across lines never does.
+#   - Scratch (0.11.4): a target outside the project root, or under $TMPDIR (default /tmp)
+#     while the project is not there (scope_init says how both are found).
+#   - A CREATE INDEX without CONCURRENTLY in a project whose config names SQLite (D1 via
+#     wrangler, Prisma, Laravel's .env, Drizzle; sqlite_project lists what it reads).
 #
 # CC_DB_GUARD=off disables it for the session, and the ask message says so.
 # CC_DB_GUARD unset: the /config option cc_db_guard decides.
@@ -255,6 +259,25 @@ cc_bash_write_chunks() {
       if (opener != "") { printf "\036%s\n", opener; inbody = 1 }
     }'
 }
+
+# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
+# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
+# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
+# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
+cc_state_root() {
+  [ -n "$1" ] && [ -d "$1" ] || return 1
+  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
+  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
+    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
+    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
+  fi
+  if [ -n "$pd" ] && [ -d "$pd" ]; then
+    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
+  fi
+  printf '%s\n' "$1"
+}
+
 {
   input=$(cat)
   # OFF-SWITCH. Until 2026-09-15 this guard had none: the only way out was
@@ -264,6 +287,56 @@ cc_bash_write_chunks() {
   command -v jq >/dev/null 2>&1 || exit 0
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in Write|Edit|MultiEdit|Bash) ;; *) exit 0 ;; esac
+
+  # Scratch is not the project: CREATE INDEX probes under /tmp and a test fake outside the repo asked in real sessions.
+  # The rule security's write-scan uses: a target outside the project root (cc_state_root of the payload cwd), or under
+  # $TMPDIR (default /tmp) while the project is not, is skipped; both sides symlink-resolved, a path not yet created by its
+  # nearest existing directory. Computed only for a target that would ask. Residual: a sibling worktree written by absolute
+  # path is skipped too, and a payload with no cwd keeps only the temp-dir rule.
+  scoped=""; root=""; tmpd=""
+  scope_init() {
+    [ -z "$scoped" ] || return 0
+    scoped=1
+    cwd=${cwd:-$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)}
+    [ -n "$cwd" ] && sroot=$(cc_state_root "$cwd") && root=$(CDPATH= cd -- "$sroot" 2>/dev/null && pwd -P) || root=""
+    tmpd=$(CDPATH= cd -- "${TMPDIR:-/tmp}" 2>/dev/null && pwd -P) || tmpd=""
+    root=${root%/}; tmpd=${tmpd%/}
+  }
+  target_dir() { # <path> — its nearest existing directory, symlink-resolved
+    local d
+    d=$(dirname -- "$1")
+    while [ ! -d "$d" ]; do d=$(dirname -- "$d"); done
+    CDPATH= cd -- "$d" 2>/dev/null && pwd -P
+  }
+  out_of_scope() { # <path> — status 0 for a target outside the project root, or in a temp dir the project is not in
+    local d
+    scope_init
+    d=$(target_dir "$1") || return 1
+    if [ -n "$root" ]; then case "$d/" in "$root"/*) ;; *) return 0 ;; esac; fi
+    [ -n "$tmpd" ] || return 1
+    case "$root/" in "$tmpd"/*) return 1 ;; esac
+    case "$d/" in "$tmpd"/*) return 0 ;; esac
+    return 1
+  }
+  # SQLite has no CREATE INDEX CONCURRENTLY, so that advice is wrong there. The guard read no project config before; this reads,
+  # only for a CREATE INDEX that would ask, from the target's directory up to the project root: wrangler's d1_databases (D1 is
+  # SQLite), a Prisma provider "sqlite", Laravel's .env DB_CONNECTION=sqlite, a drizzle.config.* dialect sqlite or turso.
+  # Residual: no cwd, no detection; another config (Rails database.yml, Django settings, a DSN in code) is not read; a project
+  # whose config names SQLite while the migration targets another engine is not asked.
+  sqlite_project() { # <path>
+    local d f
+    scope_init
+    [ -n "$root" ] && d=$(target_dir "$1") || return 1
+    while :; do
+      case "$d/" in "$root"/*) ;; *) return 1 ;; esac
+      for f in "$d/wrangler.toml" "$d/wrangler.json" "$d/wrangler.jsonc"; do [ -f "$f" ] && grep -q 'd1_databases' "$f" && return 0; done
+      [ -f "$d/prisma/schema.prisma" ] && grep -qE '^[[:space:]]*provider[[:space:]]*=[[:space:]]*"sqlite"' "$d/prisma/schema.prisma" && return 0
+      [ -f "$d/.env" ] && grep -qE '^[[:space:]]*DB_CONNECTION[[:space:]]*=[[:space:]]*["'"'"']?sqlite' "$d/.env" && return 0
+      for f in "$d"/drizzle.config.*; do [ -f "$f" ] && grep -qE "dialect[\"' ]*:[[:space:]]*[\"'](sqlite|turso)" "$f" && return 0; done
+      [ "$d" != "$root" ] || return 1
+      d=$(dirname -- "$d")
+    done
+  }
 
   # Reads text and flc; sets hit (data loss) or lockhit (lock hazard).
   judge_sql() {
@@ -332,7 +405,7 @@ cc_bash_write_chunks() {
     if [ -z "$hit" ]; then
       # CREATE [UNIQUE] INDEX without CONCURRENTLY: a CREATE INDEX line carrying no CONCURRENTLY.
       if printf '%s' "$text" | grep -iE '\bcreate[[:space:]]+(unique[[:space:]]+)?index\b' \
-           | grep -qivE '\bconcurrently\b'; then
+           | grep -qivE '\bconcurrently\b' && ! sqlite_project "$target"; then
         lockhit="a CREATE INDEX without CONCURRENTLY (PostgreSQL; other engines lock regardless)"
       fi
       # Table-rewriting ALTERs: a column TYPE change or adding a NOT NULL constraint.
@@ -363,7 +436,7 @@ cc_bash_write_chunks() {
     fi
   }
 
-  hit=""; lockhit=""; file=""
+  hit=""; lockhit=""; file=""; target=""; cwd=""
   if [ "$tool" = Bash ]; then
     cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
     [ -n "$cmd" ] || exit 0
@@ -400,8 +473,9 @@ EOF_C
       esac
       flc=$(printf '%s' "$abs" | tr '[:upper:]' '[:lower:]')
       case "$flc" in *.md|*.mdx|*.markdown|*.txt|*.rst|*/taskmaster-docs/*) continue ;; esac
-      text=${ctext[$i]}
+      text=${ctext[$i]}; target=$abs
       judge_sql
+      if { [ -n "$hit" ] || [ -n "$lockhit" ]; } && out_of_scope "$abs"; then hit=""; lockhit=""; fi
     done
   else
     text=$(printf '%s' "$input" | jq -r '
@@ -421,7 +495,9 @@ EOF_C
     case "$flc" in
       *.md|*.mdx|*.markdown|*.txt|*.rst|*/taskmaster-docs/*) exit 0 ;;
     esac
+    target=$file
     judge_sql
+    { [ -n "$hit" ] || [ -n "$lockhit" ]; } && out_of_scope "$file" && exit 0
   fi
 
   [ -n "$hit" ] || [ -n "$lockhit" ] || exit 0

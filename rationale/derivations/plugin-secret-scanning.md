@@ -212,7 +212,10 @@ Warns — never blocks — naming the codepoint and the line, on:
 
   U+200B-U+200D  zero-width space / non-joiner / joiner
   U+2060         word joiner
-  U+FEFF         zero-width no-break space (BOM), mid-file only
+  U+FEFF         zero-width no-break space (BOM), mid-file only; since 0.15.0 not a
+                 lone one leading a *.log line or tab-separated field, where GitHub
+                 starts each step's output (gh run view --log puts it after the job
+                 and step fields; a saved CI log drew the warning for it)
   U+202A-U+202E  bidirectional overrides (the "Trojan Source" class, CVE-2021-42574)
   U+2066-U+2069  bidi isolates
   U+00AD         soft hyphen
@@ -301,6 +304,15 @@ invisible characters written into it later went unreported — "warns once" read
 one heredoc and appended by the next.
 Claim the shot now. mkdir is atomic: of two concurrent hooks on the same file,
 exactly one reports.
+
+0.15.0: the key was the transcript path (else the session id) and the file, so the
+same mockup HTML warned once in each of three read-only reviewer subagents in one
+measured session. It is now the date, the project root (cc_state_root of the payload
+cwd), the file and the codepoints the scan found with their positions dropped: one
+warning per project, file and day, and again that day only when the set of invisible
+characters changes, so a reflowed file stays quiet and an added character speaks.
+Accepted cost: a new session the same day is not told about an unchanged file it
+reads, and the day turns at local midnight.
 ```
 
 ### The Bash branch: resolving a target
@@ -402,7 +414,7 @@ surviving an editor, a copy-paste, or this repo's own review.
 ```text
 the bidi class gets its own message, because the consequence is different
 the report names a location, not just a fact
-one-shot per file per session
+one-shot per project, file and day (0.15.0; per session before)
 a clean touch does NOT spend the file's one warning (0.9.1): created clean, then an
 invisible character appended — the second touch must still warn.
 off switches

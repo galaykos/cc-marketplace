@@ -164,6 +164,49 @@ check_bash "bash: create migration written by heredoc, drop only in down()" allo
 check_bash "relative doc: a relative taskmaster-docs target is a doc surface" allow \
   "$(printf '%s\n' "cat > taskmaster-docs/specs/seed.sql <<'SQL'" 'DROP TABLE users;' 'SQL')"
 
+# --- 0.11.4: scratch is not the project, and SQLite gets no CONCURRENTLY ask. Fixture projects sit
+#     in $WS (no git: the root is the payload cwd) and the hook's TMPDIR is $WS/tmp, so the
+#     out-of-root rule and the temp-dir rule can each be shown alone.
+WS=$(mktemp -d); trap 'rm -rf "$WS"' EXIT
+unset CLAUDE_PROJECT_DIR
+mkdir -p "$WS/tmp/probe" "$WS/proj/db" "$WS/elsewhere" "$WS/tmp/inproj/db"
+check_at() { # label want file content cwd [tool]
+  local out got
+  out=$(jq -nc --arg t "${6:-Write}" --arg f "$3" --arg c "$4" --arg d "$5" \
+          '{tool_name:$t,cwd:$d,tool_input:({file_path:$f,content:$c} + (if $t == "Bash" then {command:$c} else {} end))}' \
+        | TMPDIR="$WS/tmp" bash "$HOOK" 2>/dev/null)
+  if printf '%s' "$out" | grep -q '"permissionDecision":"ask"'; then got=ask; else got=allow; fi
+  if [ "$got" = "$2" ]; then echo "PASS: $1 ($got)"; else echo "FAIL: $1 — want $2, got $got"; rc=1; fi
+}
+check_at "scope: a target under TMPDIR, project elsewhere"   allow "$WS/tmp/probe/x.php"    'DROP TABLE users;' "$WS/proj"
+check_at "scope: a TMPDIR target, no payload cwd"            allow "$WS/tmp/probe/x.php"    'DROP TABLE users;' ""
+check_at "scope: a TMPDIR dir not created yet"               allow "$WS/tmp/new/dir/x.sql"  'CREATE INDEX idx_a ON t (a);' "$WS/proj"
+check_at "scope: a target outside the project root"         allow "$WS/elsewhere/Fake.php" 'DELETE FROM orders;' "$WS/proj"
+check_at "scope: a target in the project still asks"         ask   "$WS/proj/db/x.sql"      'DROP TABLE users;' "$WS/proj"
+check_at "scope: a new dir in the project still asks"        ask   "$WS/proj/db/new/x.sql"  'DROP TABLE users;' "$WS/proj"
+check_at "scope: no payload cwd, outside TMPDIR still asks"  ask   "$WS/proj/db/x.sql"      'DROP TABLE users;' ""
+check_at "scope: a project living in TMPDIR is still judged" ask   "$WS/tmp/inproj/db/x.sql" 'DROP TABLE users;' "$WS/tmp/inproj"
+check_at "scope: bash heredoc into a TMPDIR probe"           allow "" "$(printf '%s\n' "cat > $WS/tmp/probe/m.php <<'EOF'" 'DROP TABLE users;' 'EOF')" "$WS/proj" Bash
+check_at "scope: bash heredoc into the project still asks"   ask   "" "$(printf '%s\n' "cat > db/m.sql <<'EOF'" 'DROP TABLE users;' 'EOF')" "$WS/proj" Bash
+mkdir -p "$WS/d1/migrations" "$WS/pr/prisma" "$WS/pg/prisma" "$WS/lv" "$WS/lvpg" "$WS/dz" "$WS/mono/apps/api" "$WS/mono/apps/web"
+printf 'name = "app"\n\n[[d1_databases]]\nbinding = "DB"\n' > "$WS/d1/wrangler.toml"
+printf 'datasource db {\n  provider = "sqlite"\n}\n' > "$WS/pr/prisma/schema.prisma"
+printf 'datasource db {\n  provider = "postgresql"\n}\n' > "$WS/pg/prisma/schema.prisma"
+printf 'APP_NAME=x\nDB_CONNECTION=sqlite\n' > "$WS/lv/.env"
+printf 'APP_NAME=x\nDB_CONNECTION=pgsql\n' > "$WS/lvpg/.env"
+printf 'export default defineConfig({ dialect: "turso" });\n' > "$WS/dz/drizzle.config.ts"
+printf '{ "d1_databases": [{ "binding": "DB" }] }\n' > "$WS/mono/apps/api/wrangler.jsonc"
+IDX='CREATE INDEX idx_a ON t (a);'
+check_at "sqlite: D1 (wrangler d1_databases), CREATE INDEX"  allow "$WS/d1/migrations/0001_init.sql" "$IDX" "$WS/d1"
+check_at "sqlite: D1 still asks on DROP TABLE"               ask   "$WS/d1/migrations/0002_drop.sql" 'DROP TABLE users;' "$WS/d1"
+check_at "sqlite: Prisma provider sqlite"                    allow "$WS/pr/prisma/migrations/1/migration.sql" "$IDX" "$WS/pr"
+check_at "sqlite: Prisma provider postgresql still asks"     ask   "$WS/pg/prisma/migrations/1/migration.sql" "$IDX" "$WS/pg"
+check_at "sqlite: Laravel .env DB_CONNECTION=sqlite"         allow "$WS/lv/database/migrations/x.php" "DB::statement('$IDX');" "$WS/lv"
+check_at "sqlite: Laravel .env DB_CONNECTION=pgsql still asks" ask "$WS/lvpg/database/migrations/x.php" "DB::statement('$IDX');" "$WS/lvpg"
+check_at "sqlite: drizzle.config dialect turso"              allow "$WS/dz/drizzle/0000_x.sql" "$IDX" "$WS/dz"
+check_at "sqlite: a package's own wrangler config (monorepo)" allow "$WS/mono/apps/api/migrations/0001.sql" "$IDX" "$WS/mono"
+check_at "sqlite: its sibling package still asks"            ask   "$WS/mono/apps/web/db/0001.sql" "$IDX" "$WS/mono"
+
 # --- fail-open contract
 if printf 'not json' | bash "$HOOK" >/dev/null 2>&1; then
   echo "PASS: garbage input exits 0 (fail-open)"

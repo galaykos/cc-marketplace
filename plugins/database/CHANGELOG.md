@@ -43,6 +43,30 @@ releases were not recorded here and are not reconstructed.
   nothing", "multiedit: down() in edit 1 does not cut edit 2's drop", "multiedit: a drop in an
   edit's own down() is still cut" and "bash: create migration written by heredoc, drop only in
   down()" pin it; the five that expect silence fail against the hook before this change.
+- **Scratch outside the project no longer asks** (2026-10-15). Scratch probes under `/tmp`
+  and a test fake outside the repository drew the ask, because only documentation surfaces
+  were exempt. A target outside the project root (the payload cwd's git toplevel, else
+  `CLAUDE_PROJECT_DIR` when the cwd is under it, else the cwd), or under `$TMPDIR` (default
+  `/tmp`) while the project itself is not there, is now skipped on a Write, an Edit and a Bash
+  heredoc alike, the rule security's `write-scan` uses. Both sides are compared
+  symlink-resolved, and a path not created yet by its nearest existing directory. The check
+  runs only for a target that would ask, so a write with no hit costs what it did. Residual:
+  a sibling worktree written by absolute path is skipped too, and a payload with no cwd keeps
+  only the temp-dir rule.
+- **No CONCURRENTLY ask on SQLite** (2026-10-15). SQLite (Cloudflare D1, Turso) has no
+  `CREATE INDEX CONCURRENTLY`, so the lock-hazard ask gave advice that cannot be followed.
+  The guard read no project config before. For a `CREATE INDEX` that would ask, it now reads,
+  from the target's directory up to the project root, wrangler's `d1_databases`, a Prisma
+  `provider = "sqlite"`, Laravel's `.env` `DB_CONNECTION=sqlite` and a `drizzle.config.*`
+  dialect `sqlite` or `turso`; when one names SQLite there is no ask. A data-loss statement
+  still asks. Residual: a payload with no cwd detects nothing; Rails' `database.yml`, Django
+  settings and a DSN in code are not read; a project whose config names SQLite while the
+  migration targets another engine is not asked.
+  Harness: 20 `guard.test.sh` cases (`scope:` and `sqlite:`); the ten that expect silence fail
+  against the hook before this change, and the ten that still ask (a target in the project, a
+  new dir in it, no cwd outside `$TMPDIR`, a project that lives in `$TMPDIR`, a Bash heredoc
+  into the project, `DROP TABLE` on D1, Prisma on PostgreSQL, Laravel on `pgsql`, a monorepo
+  sibling without the config) pass on both.
 
 ## 0.11.3 — 2026-10-04
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# unicode-scan.test.sh — fixture cases for hooks/unicode-scan.sh: each invisible class, the bidi message, the one-shot, the off switches,
-#   fail-open and the Bash write path. Bytes come from printf escapes: a literal invisible byte would not survive an editor or a paste.
+# unicode-scan.test.sh — fixture cases for hooks/unicode-scan.sh: each invisible class, the bidi message, the per-day one-shot, the off
+#   switches, fail-open, the Bash write path and the log-BOM skip. Bytes come from printf escapes: a literal invisible byte would not survive an editor or a paste.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/scripts/__tests__/unicode-scan.test.sh
 set -u
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/unicode-scan.sh"
@@ -12,7 +12,10 @@ export TMPDIR="$T/tmp"; mkdir -p "$TMPDIR"
 ok()  { pass=$((pass+1)); printf 'PASS  %s\n' "$1"; }
 bad() { fail=$((fail+1)); printf 'FAIL  %s\n      %s\n' "$1" "$2"; }
 
+# The one-shot is per project, file and day, so a case that needs a warning again starts a new day by clearing the markers.
+newday() { find "$TMPDIR" -maxdepth 1 -name 'cc-unicode-*' -type d -exec rmdir {} + 2>/dev/null; }
 fire() { # file [tool]
+  newday
   printf '{"session_id":"u%s","transcript_path":"/tmp/u%s","tool_name":"%s","tool_input":{"file_path":"%s"}}' \
     "$RANDOM$RANDOM" "$RANDOM$RANDOM" "${2:-Read}" "$1" | "$BASH_BIN" "$HOOK" 2>/dev/null
 }
@@ -25,6 +28,11 @@ printf 'x\xf3\xa0\x80\x81y\n'                                           > "$T/ta
 printf 'const a = 1;\n'                                                 > "$T/clean.ts"
 printf '\xef\xbb\xbfconst a = 1;\n'                                     > "$T/bom.ts"     # leading BOM
 printf 'x = 1;\n\xef\xbb\xbfy = 2;\n'                                   > "$T/midbom.ts"  # BOM mid-file
+printf 'first\n\xef\xbb\xbf2026-10-15T10:00:00Z step output\n'           > "$T/step.log"   # a CI step's BOM leading a log line
+printf 'build\tRun tests\t\xef\xbb\xbf2026-10-15T10:00:00Z ok\n'          > "$T/gh.log"     # gh run view --log: after the job and step fields
+printf 'ok \xef\xbb\xbfhidden\n'                                          > "$T/mid.log"    # a BOM mid-line in a log
+printf '\xef\xbb\xbf\xe2\x80\x8bx\n'                                     > "$T/run.log"    # a BOM leading a run of invisibles
+printf 'line one\nline\xe2\x80\x8btwo\n'                                  > "$T/zw.log"     # U+200B in a log
 
 warns()  { out=$(fire "$1"); case "$out" in *additionalContext*) ok "$2" ;; *) bad "$2" "expected a warning, got: ${out:-<silent>}" ;; esac; }
 silent() { out=$(fire "$1"); [ -z "$out" ] && ok "$2" || bad "$2" "expected silence, got: $out"; }
@@ -36,6 +44,11 @@ warns  "$T/tag.ts"    "a Unicode tag character warns"
 warns  "$T/midbom.ts" "a BOM in the middle of a file warns"
 silent "$T/clean.ts"  "clean ASCII is silent"
 silent "$T/bom.ts"    "a LEADING BOM is an encoding, not a hider"
+silent "$T/step.log"  "a lone BOM leading a line of a .log is a CI step's encoding"
+silent "$T/gh.log"    "a lone BOM leading a tab-separated field of a .log (gh run view --log) is skipped too"
+warns  "$T/mid.log"   "a BOM mid-line in a .log still warns"
+warns  "$T/run.log"   "a BOM leading a run of invisible characters in a .log still warns"
+warns  "$T/zw.log"    "a zero-width space in a .log still warns"
 
 out=$(fire "$T/bidi.ts")
 case "$out" in
@@ -54,11 +67,20 @@ case "$out" in
   *) bad "the report names line and codepoint" "got: $out" ;;
 esac
 
-SID='{"session_id":"once","transcript_path":"/tmp/once","tool_name":"Read","tool_input":{"file_path":"'"$T"'/zw.ts"}}'
-first=$(printf '%s' "$SID" | "$BASH_BIN" "$HOOK" 2>/dev/null)
-second=$(printf '%s' "$SID" | "$BASH_BIN" "$HOOK" 2>/dev/null)
-[ -n "$first" ] && [ -z "$second" ] && ok "warns once per file per session" \
-  || bad "warns once per file per session" "first=${first:0:40} second=${second:0:40}"
+newday; cp "$T/zw.ts" "$T/day.ts"
+day() { # session — a Read of day.ts in a session and context of its own, as a subagent's is
+  printf '{"session_id":"%s","transcript_path":"/tmp/%s","tool_name":"Read","tool_input":{"file_path":"%s"}}' "$1" "$1" "$T/day.ts" \
+    | "$BASH_BIN" "$HOOK" 2>/dev/null
+}
+first=$(day one); second=$(day two)
+[ -n "$first" ] && [ -z "$second" ] && ok "warns once per file a day, across sessions and subagents" \
+  || bad "warns once per file a day, across sessions and subagents" "first=${first:0:40} second=${second:0:40}"
+printf 'const c = 3;\n' >> "$T/day.ts"; out=$(day two)
+[ -z "$out" ] && ok "an edit leaving the invisible characters as they were stays silent the same day" \
+  || bad "an edit leaving the invisible characters as they were stays silent the same day" "$out"
+printf 'const d\xe2\x81\xa0 = 4;\n' >> "$T/day.ts"; out=$(day two)
+case "$out" in *"U+2060"*) ok "a change to the file's invisible characters warns again the same day" ;;
+  *) bad "a change to the file's invisible characters warns again the same day" "got: ${out:-<silent>}" ;; esac
 
 printf 'const a = 1;\n' > "$T/later.ts"
 LATER='{"session_id":"later","transcript_path":"/tmp/later","tool_name":"Write","tool_input":{"file_path":"'"$T"'/later.ts"}}'
@@ -88,7 +110,7 @@ nbfire() { # notebook session
   printf '{"session_id":"%s","transcript_path":"/tmp/%s","tool_name":"NotebookEdit","tool_input":{"notebook_path":"%s","cell_id":"c1","new_source":"x = 1"}}' \
     "$2" "$2" "$1" | "$BASH_BIN" "$HOOK" 2>/dev/null
 }
-first=$(nbfire "$T/bidi.ipynb" nb-once); second=$(nbfire "$T/bidi.ipynb" nb-once)
+newday; first=$(nbfire "$T/bidi.ipynb" nb-once); second=$(nbfire "$T/bidi.ipynb" nb-once)
 case "$first" in *"bidi.ipynb"*"BIDIRECTIONAL OVERRIDE"*) [ -z "$second" ] ;; *) false ;; esac \
   && ok "a NotebookEdit notebook with a bidi control warns once, like a Write" \
   || bad "a NotebookEdit notebook with a bidi control warns once, like a Write" "first=${first:0:60} second=${second:0:40}"
@@ -102,6 +124,7 @@ R="$T/repo"; mkdir -p "$R/app/sub" "$T/outside"; git -C "$R" init -q 2>/dev/null
 cp "$T/zw.ts" "$R/app/sub/zw.ts"; cp "$T/bidi.ts" "$R/app/up.ts"; cp "$T/clean.ts" "$R/app/sub/clean.ts"
 cp "$T/zw.ts" "$T/outside/zw.ts"
 bashfire() { # command [cwd] [session] [event] — a fresh context in one session, as a session's subagents are
+  newday
   jq -cn --arg c "$1" --arg d "${2:-$R/app/sub}" --arg t "/tmp/b$RANDOM$RANDOM" --arg s "${3:-sess}" --arg e "${4:-PostToolUse}" \
     '{hook_event_name:$e, session_id:$s, transcript_path:$t, tool_name:"Bash", cwd:$d, tool_input:{command:$c}}' \
     | "$BASH_BIN" "$HOOK" 2>/dev/null
