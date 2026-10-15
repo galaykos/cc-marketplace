@@ -26,18 +26,44 @@ under its anti-corpus exception.
 
 ## How the draw is seeded
 
+The main thread draws, before it dispatches the `creative-director` — that agent has no shell
+to hash a seed and no Write to record a draw, and three runs that left the draw to it got an
+improvised seed. It receives the draw and the seed in its dispatch.
+
 1. Read `<project>/.craft-layer/run-log.md` and take the `draw` cell of the last 5 rows.
 2. EXCLUDE every option those rows used — the exclusion window is the last 5 draws,
    applied per axis. If an axis has fewer than two options left, drop its oldest exclusions
    until two are drawable again.
-3. When the log is absent, empty, or malformed, seed from a hash of the brief text plus
-   today's date. A missing log is a first run, never an error.
+3. When the log is absent, empty or malformed, the main thread seeds from the brief text
+   plus today's date: the first field of `printf '%s' "$brief$(date +%F)" | cksum`. A missing
+   log is a first run, never an error.
 4. Draw ONE option per axis — five in total — and record them before generating candidates.
+   From a seed, read the axes as the digits of one mixed-radix number, in the order listed
+   below: axis 1 takes index `seed mod n`, the seed becomes `seed / n` (whole-number
+   division), axis 2 takes the new `seed mod n`, and so on, counting options from 0 in the
+   order listed (n = the options left on that axis). The same `seed mod n` on every axis
+   would tie the three eight-option axes to one index, so only 8 of their 512 combinations
+   could ever come up; carrying the quotient reaches every combination.
+
+   Worked example, as the main thread computes it on a first run (nothing excluded, so n is
+   8, 8, 8, 7, 9 down the axes):
+
+   ```
+   s=$seed; for n in 8 8 8 7 9; do echo $((s % n)); s=$((s / n)); done
+
+   brief 'a CRM for independent dental clinics', date 2026-10-15
+   seed = first field of printf '%s' "${brief}2026-10-15" | cksum = 521869429
+   axis 1: 521869429 mod 8 = 5, carry 65233678 -> Layered depth stack
+   axis 2:  65233678 mod 8 = 6, carry  8154209 -> Polarity flip
+   axis 3:   8154209 mod 8 = 1, carry  1019276 -> Type recedes
+   axis 4:   1019276 mod 7 = 6, carry   145610 -> Stillness by design
+   axis 5:    145610 mod 9 = 8                 -> Declared none
+   ```
 
 ## Recording the draw
 
-Write the draw into `craft/divergence-record.md` as five lines, ONE PER AXIS, in the form
-`<axis-name>: <option-name>`:
+The main thread writes the draw into `craft/divergence-record.md` as five lines, ONE PER
+AXIS, in the form `<axis-name>: <option-name>`:
 
 ```
 Composition strategy: Broken grid

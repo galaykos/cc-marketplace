@@ -1,12 +1,19 @@
 ---
-description: Uninstall every leaf plugin of this marketplace from one scope with zero prompts — local by default; --self removes all-plugins too; runs the plugin's script and relays its exit code: 0 done, 1 lists the plugins that failed, 2 names the missing precondition.
+description: Uninstall every leaf plugin of this marketplace from one scope — asks user or local once when --scope is absent, never defaults silently; --self removes all-plugins too; runs the plugin's script and relays its exit code: 0 done, 1 lists the plugins that failed, 2 names the missing precondition.
 argument-hint: [--scope local|project|user] [--dry-run] [--self] [--no-budget]
 disable-model-invocation: true
 ---
 
-Run the plugin's uninstall script through the Bash tool, exactly as written, with the
-user's arguments passed through unchanged (an empty $ARGUMENTS is the default: local
-scope, no dry run, all-plugins itself left installed):
+**Settle the scope first**, the same question `/all-plugins:install` asks. When `$ARGUMENTS`
+carries no `--scope`, ask once with AskUserQuestion before running anything: **user** (every
+project on this machine) or **local** (this checkout only); `project` only when the user
+types it. A `--scope` the user already typed is the answer — never ask over it. No answer
+(headless, dismissed): stop and say the command needs `--scope`; never fall back to local.
+After a user-scope install, a local default skips every plugin as `skip (not installed)` and
+exits 0, removing nothing.
+
+Then run the plugin's uninstall script through the Bash tool, exactly as written, with the
+user's arguments passed through unchanged, plus `--scope <answer>` when you asked:
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/all-plugins.sh" uninstall $ARGUMENTS
@@ -14,8 +21,8 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/all-plugins.sh" uninstall $ARGUMENTS
 
 Then:
 
-1. Do not ask any question first — the script is the decision procedure, and it
-   prompts for nothing by design.
+1. Ask nothing else — the scope question above is the only one, and only when `--scope` is
+   absent. The script is the decision procedure and prompts for nothing by design.
 2. Show the script's output verbatim. It is the record of what was removed, skipped
    and failed; do not summarise it into a count.
 3. Read the exit code:

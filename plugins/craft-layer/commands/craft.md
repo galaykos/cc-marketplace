@@ -55,8 +55,14 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    `{"item","change","approvedAt"}` per value the user agrees to change, `item` as
    `<key>:<recorded value>`, `[]` until one is — shape and sources in `redesign-preservation.md`. **Then DRAW the starting constraint** per `references/concept-deck.md`:
    one option per axis, seeded by the log and excluding the options its last 5 rows used. The deck is
-   drawn from, never chosen from. An absent, empty or malformed log is EMPTY — warn, seed from a hash
-   of the brief plus today's date, carry on.
+   drawn from, never chosen from. An absent, empty or malformed log is EMPTY — warn, seed from
+   `printf '%s' "$brief$(date +%F)" | cksum`, carry on. You draw and record it, not the agent: it has
+   no shell and no Write, so the dispatch carries the draw, the seed and the archetype.
+
+   **Opt-in live moves pass** — only when the user asked for live or fresh move research. You run
+   it, before the dispatch, through the `ultra-deep-research` skill per `references/moves-taxonomy.md`
+   § Opt-in live per-brief research pass, and the dispatch carries its distilled move categories.
+   Not installed, failed or empty: say so in one line and dispatch on the cached taxonomy.
 
    **Then dispatch `creative-director`** for the DIVERGENT fork set — 2–3 ranked candidates, each a
    central metaphor, an editorial voice, one signature interaction — breaking the

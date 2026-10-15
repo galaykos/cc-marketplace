@@ -1,12 +1,19 @@
 ---
-description: Install every leaf plugin of this marketplace but opt-in prompt-coach at one scope with zero prompts — local by default; runs the plugin's script and relays its exit code: 0 run /reload-plugins, 1 lists the plugins that failed, 2 names the missing precondition.
+description: Install every leaf plugin of this marketplace but opt-in prompt-coach at one scope — asks user or local once when --scope is absent, never defaults silently; runs the plugin's script and relays its exit code: 0 run /reload-plugins, 1 lists the plugins that failed, 2 names the missing precondition.
 argument-hint: [--scope local|project|user] [--dry-run] [--budget]
 disable-model-invocation: true
 ---
 
-Run the plugin's install script through the Bash tool, exactly as written, with the
-user's arguments passed through unchanged (an empty $ARGUMENTS is the default: local
-scope, no dry run):
+**Settle the scope first.** When `$ARGUMENTS` carries no `--scope`, ask once with
+AskUserQuestion before running anything: **user** (every project on this machine — what
+"the marketplace is active" means) or **local** (this checkout only, not committed);
+`project` (committed to the repo) only when the user types it. A `--scope` the user already
+typed is the answer — never ask over it. No answer (headless, dismissed): stop and say the
+command needs `--scope`; never fall back to local. A silent local default once left every
+other project bare while the user believed the marketplace was on.
+
+Then run the plugin's install script through the Bash tool, exactly as written, with the
+user's arguments passed through unchanged, plus `--scope <answer>` when you asked:
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/all-plugins.sh" install $ARGUMENTS
@@ -14,8 +21,8 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/all-plugins.sh" install $ARGUMENTS
 
 Then:
 
-1. Do not ask any question first — the script is the decision procedure, and it
-   prompts for nothing by design.
+1. Ask nothing else — the scope question above is the only one, and only when `--scope` is
+   absent. The script is the decision procedure and prompts for nothing by design.
 2. Show the script's output verbatim. It is the record of what was installed, skipped
    and failed; do not summarise it into a count.
 3. Read the exit code:
@@ -27,6 +34,9 @@ Then:
      script wrote to the scope's settings file and why (the listing overflows the default
      budget); relay it as printed, do not explain it further, and never edit that key
      yourself. Without `--budget` the script leaves the key alone and prints no such line.
+     Close with one line: this installs only this marketplace's plugins — official
+     complements such as the language servers (`php-lsp`, `typescript-lsp`) are matched to
+     the project's manifests and printed, never run, by `/stack-scan:suggest`.
    - **1** — at least one plugin failed. List the `FAIL` lines from the output and stop;
      do not retry them.
    - **2** — a precondition is missing. Show the stderr line — it names the fix, usually

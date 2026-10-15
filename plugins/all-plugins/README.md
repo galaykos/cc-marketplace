@@ -1,6 +1,7 @@
 # all-plugins
 
-Installs every leaf plugin of this marketplace at one scope, with zero prompts — under
+Installs every leaf plugin of this marketplace at one scope — `/all-plugins:install` and
+`/all-plugins:uninstall` ask user or local once when you typed no `--scope`, and nothing else — under
 `--budget` also raises the host's skill-listing budget so every description is actually
 sent — and undoes both.
 One script, one exit code; the two commands only relay it. "Every leaf" means every
@@ -25,7 +26,7 @@ any other plugin.
 ```bash
 # 1. In a session, after installing this one plugin:
 /plugin install all-plugins@cc-plugins-marketplace
-/all-plugins:install                   # every leaf but opt-in prompt-coach, at local scope (not found yet? /reload-plugins first)
+/all-plugins:install                   # every leaf but opt-in prompt-coach; asks user or local first (not found yet? /reload-plugins first)
 /all-plugins:uninstall                 # the inverse; --self removes all-plugins too
 /reload-plugins                        # nothing installed this run is active until you do
 
@@ -45,7 +46,7 @@ disk before any plugin is installed.
 | Flag | Meaning |
 |---|---|
 | `install` / `uninstall` / `list` | the verb; required. `list` prints each leaf's state at the scope (script only — the commands wrap the first two) |
-| `--scope local\|project\|user` | where the install records go; default `local` (this checkout, not committed) |
+| `--scope local\|project\|user` | where the install records go. Absent, both commands ask user or local once and run nothing until answered; the script run directly defaults to `local` (this checkout, not committed) |
 | `--dry-run` | print the plan — one `DRY` line per command it would run — and exit 0 without running any |
 | `--self` | `uninstall` only: remove `all-plugins` too, last; without it the plugin stays and the script says how to remove it |
 | `--budget` | `install` only: raise `skillListingBudgetFraction` to cover the whole listing (see "The listing budget"); off by default since 0.3.0 |
@@ -67,7 +68,13 @@ disk before any plugin is installed.
 - **Never touches another marketplace.** The plugin list is read from one added
   marketplace's `marketplace.json` (this one unless `--marketplace` says otherwise),
   never from what happens to be installed.
-- **Never prompts.** There is no picker and no confirmation; `--dry-run` is the preview.
+- **Never picks or confirms.** There is no picker and no confirmation; `--dry-run` is the
+  preview. The one question is the scope, asked by either command only when you
+  typed no `--scope` — a silent `local` default once left every other project bare while
+  its user believed the marketplace was on. The script itself never prompts.
+- **Does not install the official complements.** Language servers such as `php-lsp` are a
+  different marketplace's; `/stack-scan:suggest` matches them to your manifests and prints
+  their install commands.
 - **Does not reload the session.** The host owns that; the command tells you to run
   `/reload-plugins` and cannot do it for you. The raised budget takes effect on the same
   reload.
@@ -79,8 +86,9 @@ disk before any plugin is installed.
 
 | Rule | Standing |
 |---|---|
-| The exit codes, the every-listed-plugin list, the `prompt-coach` opt-in skip, the scope flag, zero prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
+| The exit codes, the every-listed-plugin list, the `prompt-coach` opt-in skip, the scope flag, a script that never prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
 | The commands relay the script instead of running `claude plugin install` themselves | **agent-graded** — it is instruction text in `commands/*.md`; nothing detects a substituted loop |
+| Both commands ask user or local when `--scope` is absent, and stop rather than defaulting when nobody answers | **agent-graded** — instruction text in `commands/install.md` and `commands/uninstall.md`; no harness drives a command |
 | The budget step: nothing written without `--budget`; with it, the fraction written, never lowered, foreign values kept, invalid JSON untouched, removed only when it is the script's own value | **gate** — the same harness drives it against fixture settings files |
 | The overflow arithmetic | **recorded** — reproduced by `scripts/context-budget.sh`; the 0.07 figure moves as the marketplace grows, and the script recomputes it on every run |
 | The zero-delta firing result | **recorded** — one n=50 measurement; nothing re-runs it in CI (`scripts/smoke/listing-eviction-probe.sh` needs a live model and `LISTING_PROBE=1`) |

@@ -19,10 +19,21 @@ registry, so a registry floor would be inert; the tier is pinned in frontmatter 
 ## Inputs
 
 The dispatch injects: the product brief, the classified work-type archetype (+ its dials,
-from `creative-direction/references/archetypes.md`), and the sameness-fingerprint
-(`creative-direction/references/sameness-fingerprint.md`). Read the MOVES taxonomy
+from `creative-direction/references/archetypes.md`), the sameness-fingerprint
+(`creative-direction/references/sameness-fingerprint.md`), and the five-axis DRAW — plus,
+when the run log was absent, empty or malformed, the seed it came from. The caller drew and recorded it
+(`creative-direction/references/concept-deck.md` § How the draw is seeded): you have no shell
+and no Write, so you never derive, re-draw or record it, and every candidate works inside
+it. When a drawn option genuinely cannot serve a candidate, name the axis and the reason in
+your return; the caller redraws it. Read the MOVES taxonomy
 (`creative-direction/references/moves-taxonomy.md`) for the move CATEGORIES you reason
 from — derive a specific move, never pick a named one off a list.
+
+Open a motion skill's own files (`motion-tiers`, `scroll-orchestration`, `kinetic-typography`,
+`physics-motion`, `page-transitions`, `interaction-fx`, `webgl-effects`) only when the archetype
+is creative/portfolio or marketing/campaign. For any other archetype, name the building skill
+from `creative-direction/references/archetype-recipes.md` without opening it — one app refresh
+read five of them, about 139k tokens, for a concept.
 
 On a redesign the dispatch also carries the contract's `Redesign:` mode and `Brand echo:` line
 (`creative-direction/references/redesign-preservation.md`). Under `keep-brand` the echoed accent
@@ -60,15 +71,15 @@ hue and type family are kept: no departure may replace them, so K lands on the o
    rubric with one weighting applied to four candidates from one model has low effective
    variance: the same winner archetype every round. So when two candidates are still level
    after that tie-break, ROTATE the lens that separates them, seeded from
-   `<project>/.craft-layer/run-log.md` (row count modulo the list below; no log or an
-   unreadable one → seed from the brief text plus today's date, the same seed the concept
-   deck falls back to):
+   `<project>/.craft-layer/run-log.md` (row count modulo the list below; a log absent,
+   empty or malformed → the seed your dispatch carries, modulo the list):
    - **substance** — which candidate gives the page more to actually say.
    - **material honesty** — which is truer about what the product is made of and does.
    - **thesis carry** — how well the signature move carries the brief's central claim.
    - **restatement** — which idea a reader could repeat back after one scroll.
-   Name the lens that ran in the divergence record, beside the draw: an unrecorded lens
-   cannot rotate next run, and the rotation quietly collapses back to one lens forever.
+   Name the lens that ran in the divergence record you return, beside the draw, for the
+   caller to persist: an unrecorded lens cannot rotate next run, and the rotation quietly
+   collapses back to one lens forever.
 4. **Return the FORK SET — the top 2–3 candidates, winner first.** Not one winner: the
    concept fork is a HUMAN pick and it runs at every tier, `one-shot` included
    (`creative-direction/references/concept-deck.md` § The concept fork). Returning a single
@@ -85,9 +96,10 @@ hue and type family are kept: no departure may replace them, so K lands on the o
 
 ## Optional live pass
 
-If the dispatch opted into a live research pass, run it through `ultra-deep-research` per
-`moves-taxonomy.md` (presence-probe; degrade to the cached taxonomy and note it if
-absent/failed). Distill fresh move CATEGORIES only — never copy an asset or a design.
+If the dispatch carries a live research pass's findings (the caller ran it through
+`ultra-deep-research` per `moves-taxonomy.md`; you have no tool to run it), distill fresh
+move CATEGORIES from them only — never copy an asset or a design. Without them, use the
+cached taxonomy and say so.
 
 ## Output
 
