@@ -392,7 +392,9 @@ FILES
 # must carry that block byte-for-byte. Prints one "shared-block-drift <path> <block>" per
 # offender; returns 1. Owned today: cc_state_root (state-root.md),
 # cc_bash_write_targets (bash-write-targets.md), cc_bash_write_chunks (bash-write-chunks.md),
-# cc_option (option-resolver.md), cc_plugin_state (plugin-state.md) and every cc_prompt_*
+# cc_option (option-resolver.md), cc_plugin_state (plugin-state.md), cc_strip_heredoc_bodies
+# (heredoc-bodies.md), cc_bash_effects_mark and cc_bash_write_effects (bash-write-effects.md,
+# one ERE, so either function pasted alone is held to the whole block) and every cc_prompt_*
 # function (prompt-shape.md: the pair's fn is an ERE, so a hook pasting only one of its four
 # functions is still held to the whole block).
 #
@@ -407,7 +409,7 @@ FILES
 # hook swallows — each plugin's own harness is what catches that).
 pc_shared_blocks() {
   local root="${1:-plugins}" bdir="${2:-templates/blocks}" bad=0 f blk content fn name pair
-  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks option-resolver:cc_option plugin-state:cc_plugin_state 'prompt-shape:cc_prompt_[a-z_]+'; do
+  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks option-resolver:cc_option plugin-state:cc_plugin_state heredoc-bodies:cc_strip_heredoc_bodies 'bash-write-effects:cc_bash_(effects_mark|write_effects)' 'prompt-shape:cc_prompt_[a-z_]+'; do
     name=${pair%%:*}; fn=${pair#*:}
     [ -r "$bdir/$name.md" ] || continue
     blk=$(cat "$bdir/$name.md")

@@ -1,14 +1,18 @@
 #!/bin/bash
-# route.sh — PostToolUse, fails open: matches the edited file, each existing file a Bash command wrote under the project root, and the
+# route.sh — PostToolUse, fails open: matches the edited file, each existing file a Bash command wrote under the project root (named by
+# the command, or — after an interpreter, cp, mv, install or patch run — changed in git since this hook's previous call), and the
 # command itself against rules.tsv; prints one additionalContext envelope of at most NUDGE_CAP `high` nudges naming plugin:skill, each skill
 # once per context and none the context already loaded; queues other content matches as pending_low, none from a doc or style file.
 # Speaks about no target outside the root, under taskmaster-docs/ or .claude/, or ignored by git.
 # Off: CC_REMIND=off, or unset with the /config option cc_remind off. CC_ROUTE is not read here: it silences route-prompt.sh, the tool-fit check and the flush of what this hook queues.
 # Misses: two concurrent calls can drop a pending_low entry; a payload cwd of `/` or `$HOME` outside git is taken for the project root;
 # a directory row matches only the directory name it spells (in any case); a command row routes an unquoted mention of its CLI
-# and misses a CLI run through a script or an npm alias; a Bash command's write targets past the eighth (MAX_BASH_TARGETS) are not read.
+# and misses a CLI run through a script or an npm alias; a Bash command's write targets past the eighth (MAX_BASH_TARGETS) are not read,
+# nor changed files past the eighth (MAX_BASH_EFFECTS); the bash-write-effects block's own misses apply, and a file anything else changed
+# between this hook's calls (an IDE, a parallel agent) is read as that run's write.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route.sh
 MAX_BASH_TARGETS=8
+MAX_BASH_EFFECTS=8
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
@@ -183,6 +187,37 @@ cc_bash_write_targets() {
       }
     }' | awk '!seen[$0]++'
 }
+
+# Shared block templates/blocks/bash-write-effects.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
+# cc_bash_effects_mark <root> <marker> rewrites <marker> when <root> holds a .git, making its directory with a `*` .gitignore.
+# Call it on EVERY tool call the hook sees (Write, Edit, Bash alike), after cc_bash_write_effects read <marker>: the tool has
+# finished before PostToolUse runs, so <marker> then post-dates every write of the last call this hook saw.
+# cc_bash_write_effects <root> <marker> <command> <max> prints at most <max> absolute paths, one per line: files `git status`
+# under <root> reports changed or untracked AND newer than <marker>. It runs git only when <command> holds python, node, php,
+# ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or patch as a word, and <marker> exists.
+# Misses: writers it does not name, gitignored files, no git, a file written then reverted, a mv or cp -p destination (it
+# keeps the source's mtime), files past <max>. Reads too much: any change since <marker> — an IDE, a parallel agent, a job.
+cc_bash_effects_mark() {
+  [ -e "$1/.git" ] || return 0
+  local d="${2%/*}"
+  [ -d "$d" ] || { mkdir -p "$d" && printf '*\n' > "$d/.gitignore"; } 2>/dev/null || return 0
+  printf '%s\n' "$$" > "$2" 2>/dev/null
+  return 0
+}
+cc_bash_write_effects() {
+  local re='(^|[;&|(`[:space:]])([^[:space:];&|()`<>]*/)?((python|php|ruby|perl|node)[0-9.]*|nodejs|deno|bun|cp|mv|install|patch)[[:space:]<]'
+  local e f n=0
+  local -a c
+  [ -f "$2" ] && [[ $3 =~ $re ]] || return 0
+  while [ "$n" -lt "$4" ] && IFS= read -r -d '' e; do
+    f="$1/${e:3}"
+    [ -f "$f" ] && ! [ "$2" -nt "$f" ] || continue
+    c[n]=$f; n=$((n + 1))
+  done < <(GIT_OPTIONAL_LOCKS=0 git -C "$1" status --porcelain -z --untracked-files=all --no-renames --ignore-submodules=all 2>/dev/null)
+  [ "$n" -gt 0 ] && find "${c[@]}" -prune -newer "$2" -print 2>/dev/null
+  return 0
+}
 # route_cmd_mask <command> prints the command as command rows see it: quoted text as `_`, heredoc bodies blank, `$(…)` live.
 route_cmd_mask() {
   printf '%s\n' "$1" | awk '
@@ -231,7 +266,12 @@ route_cmd_mask() {
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   rules="${CLAUDE_PLUGIN_ROOT}/rules.tsv"
   [ -f "$rules" ] || exit 0
-  bash_targets=""; cmd_hits=""
+  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
+  [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
+  root=$(cc_state_root "$cwd") || exit 0
+  state_dir=$(cc_plugin_state "$root" skill-router)
+  effects_mark="$state_dir/bash-effects.mark"
+  bash_targets=""; bash_effects=""; cmd_hits=""
   if [ "$tool" = Bash ]; then
     bash_cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
     [ -n "$bash_cmd" ] || exit 0
@@ -249,12 +289,15 @@ route_cmd_mask() {
       m="${m%%$'\n'*}"; marker="${marker%$'\r'}"; [ -n "$marker" ] || marker=-
       cmd_hits="${cmd_hits}${skill}"$'\t'"${plugin}"$'\t'"${marker}"$'\t'"${m}"$'\n'
     done < <(grep "^command"$'\t' "$rules" 2>/dev/null)
-    [ -n "$bash_targets" ] || [ -n "$cmd_hits" ] || exit 0
+    bash_effects=$(cc_bash_write_effects "$root" "$effects_mark" "$bash_cmd" "$MAX_BASH_EFFECTS")
   fi
+  # Every call dates the marker, an Edit or a command that wrote nothing too, so a run's effects are only what changed after the
+  # previous call. The tool has finished before PostToolUse runs, so dating it here equals dating it as the hook exits.
+  cc_bash_effects_mark "$root" "$effects_mark"
+  [ "$tool" != Bash ] || [ -n "$bash_targets" ] || [ -n "$bash_effects" ] || [ -n "$cmd_hits" ] || exit 0
 
   # Context key, not session key: a subagent shares its parent's session_id but has its own transcript.
   session_id=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null) || exit 0
-  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   file_path=""
   if [ "$tool" != Bash ]; then
     # pathInProject: the JetBrains MCP create_new_file key.
@@ -262,9 +305,6 @@ route_cmd_mask() {
     [ -n "$file_path" ] || exit 0
   fi
   [ -n "$session_id" ] || exit 0
-  [ -n "$cwd" ] || exit 0
-  [ -d "$cwd" ] || exit 0
-  root=$(cc_state_root "$cwd") || exit 0
 
   # route_target_ok <path> — a file worth a rubric: under the project root, outside taskmaster-docs/ and .claude/, not ignored by git.
   # Nudges fired on gitignored scratch scripts, taskmaster-docs evidence files and vendored copies, where nobody applies one.
@@ -286,9 +326,11 @@ route_cmd_mask() {
       p="${pd%/}/${p##*/}"
       [ -f "$p" ] || continue
       route_target_ok "$p" || continue
+      for q in "${abs[@]}"; do [ "$q" = "$p" ] && continue 2; done
       rec+=("$p"); abs+=("$p")
     done <<EOF_TARGETS
 $bash_targets
+$bash_effects
 EOF_TARGETS
     [ "${#abs[@]}" -gt 0 ] || [ -n "$cmd_hits" ] || exit 0
   else
@@ -304,7 +346,6 @@ EOF_TARGETS
   . "$(dirname "$0")/plugins-dir.sh" 2>/dev/null
   command -v pr_resolve_plugins_dir >/dev/null 2>&1 && pr_resolve_plugins_dir
 
-  state_dir=$(cc_plugin_state "$root" skill-router)
   # Hashed: the context key is usually an absolute path, and a raw one names a file whose parent directories never exist.
   ctx=$(printf '%s' "$session_id" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0

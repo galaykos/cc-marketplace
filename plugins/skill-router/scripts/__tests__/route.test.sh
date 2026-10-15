@@ -48,6 +48,8 @@ skills()  { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null |
 ctxof()   { printf '%s' "$1" | cksum | cut -d' ' -f1; }
 statef()  { printf '%s/.claude/skill-router/fired-%s.json' "$1" "$(ctxof "$2")"; }
 has_skill() { skills <<<"$1" | grep -qxF "$2"; }
+# Every call in a git repo leaves the effects marker; nothing else may land, and the state dir must stay invisible to git.
+nostate() { ! ls "$1"/.claude/skill-router/fired-*.json >/dev/null 2>&1 && [ -z "$(git -C "$1" status --porcelain --untracked-files=all -- .claude 2>/dev/null)" ]; }
 
 CTRL='app/Http/Controllers/UserController.php'
 HEREDOC="cat > $CTRL <<'PHP'
@@ -79,7 +81,7 @@ for cmd in 'git status' 'ls app > /dev/null 2>&1' 'echo hi 2>&1' 'grep -rn foo a
   out=$(bashw "$B" "$cmd" "$WS/t-b.jsonl")
   [ -z "$out" ] && ok || bad "no target [$cmd]: expected silence, got: ${out:0:120}"
 done
-[ ! -e "$B/.claude" ] && ok || bad "no target: state dir created at $B/.claude"
+nostate "$B" && ok || bad "no target: state written at $B/.claude"
 
 # 3. a target missing afterwards, or outside the root → silent, no state
 for cmd in 'echo x > app/Gone.php && rm app/Gone.php' \
@@ -90,7 +92,7 @@ for cmd in 'echo x > app/Gone.php && rm app/Gone.php' \
   [ -z "$out" ] && ok || bad "missing/outside [$cmd]: expected silence, got: ${out:0:120}"
 done
 [ -f "$WS/outside-rel.php" ] && [ -f "$WS/outside-abs.php" ] && ok || bad "fixture: outside-root files were not written, so the outside cases proved nothing"
-[ ! -e "$B/.claude" ] && ok || bad "missing/outside: state dir created at $B/.claude"
+nostate "$B" && ok || bad "missing/outside: state written at $B/.claude"
 
 # 4. payload cwd = a subdirectory: state at the repo root, nothing in the subdirectory,
 #    `**/app/**` still matches a relative target, and the `?package.json` marker is read
@@ -332,9 +334,9 @@ for cmd in 'npm view shadcn version' 'npx shadcn@latest init' 'npx jsrepo@latest
   out=$(bashc "$S2" "$cmd" "$(fresh)")
   [ -z "$out" ] && ok || bad "command row [$cmd]: expected silence, got: ${out:0:160}"
 done
-[ ! -e "$S2/.claude" ] && ok || bad "command row: a non-matching command created state at $S2/.claude"
+nostate "$S2" && ok || bad "command row: a non-matching command wrote state at $S2/.claude"
 out=$(bashc "$S2" 'npx shadcn@latest add button' "$(fresh)" CC_REMIND=off)
-[ -z "$out" ] && [ ! -e "$S2/.claude" ] && ok || bad "CC_REMIND=off: the command row still routed: ${out:0:120}"
+[ -z "$out" ] && nostate "$S2" && ok || bad "CC_REMIND=off: the command row still routed: ${out:0:120}"
 printf 'npx shadcn@latest add button\n' > "$S2/NOTES.txt"
 out=$(edit "$S2" "$S2/NOTES.txt" "$(fresh)")
 has_skill "$out" shadcn-best-practices && bad "command row: matched a FILE's contents on an Edit" || ok
@@ -355,7 +357,7 @@ EOF
   out=$(bashc "$S3" "$cmd" "$TS3")
   [ -z "$out" ] && ok || bad "command row: quoted or heredoc text routed [${cmd%%$'\n'*}]: ${out:0:160}"
 done
-[ ! -e "$S3/.claude" ] && ok || bad "command row: a mention spent the one-shot (state created at $S3/.claude)"
+nostate "$S3" && ok || bad "command row: a mention spent the one-shot (state written at $S3/.claude)"
 out=$(bashc "$S3" 'npx shadcn@latest add "@magicui/marquee"' "$TS3")
 has_skill "$out" shadcn-best-practices && ok || bad "command row: a quoted install argument did not route after the mentions; got: ${out:0:160}"
 has_skill "$out" aceternity-best-practices && bad "quoted magicui install is a stated miss, yet aceternity-best-practices routed" || ok
@@ -514,6 +516,41 @@ edit "$Y" "$Y/app/Models/Plan.php" "$TY" PATH="$HS:$PATH" GREP_LOG="$WS/grep.log
 rm -f "$HS/grep"
 scans=$(grep -cF -- "$TY" "$WS/grep.log" 2>/dev/null)
 [ -s "$WS/grep.log" ] && [ "$scans" = 0 ] && ok || bad "loaded once: the second edit grepped the transcript ${scans:-?} time(s)"
+
+# 24. interpreter writes (bash-write-effects): a file an interpreter run changed in git since this hook's previous call routes as an
+#     Edit of it would; the first call in a repo only sets the marker; a run that wrote nothing, and a file an Edit changed between
+#     two Bash calls, stay silent.
+if command -v python3 >/dev/null 2>&1; then
+  K="$WS/fx"; mkrepo "$K"; MK="$K/.claude/skill-router/bash-effects.mark"
+  out=$(bashw "$K" "python3 - <<'PY'
+open('app/Models/First.php', 'w').write('<?php\n')
+PY" "$(fresh)")
+  [ -f "$K/app/Models/First.php" ] || bad "fixture: the first python heredoc did not write First.php"
+  [ -z "$out" ] && [ -f "$MK" ] && ok || bad "effects: no marker yet must be silent and leave the marker; got: ${out:0:160}"
+  for cmd in "python3 -c 'print(1)'" 'ls -la app'; do
+    out=$(bashw "$K" "$cmd" "$(fresh)")
+    [ -z "$out" ] && ok || bad "effects: a run that wrote nothing routed [$cmd]: ${out:0:160}"
+  done
+  AUTH='app/Http/Controllers/AuthController.php'; TK="$(fresh)"
+  out_b=$(bashw "$K" "python3 - <<'PY'
+open('$AUTH', 'w').write('<?php\nclass AuthController { public function login() { return \$this->authenticate(\$password); } }\n')
+PY" "$TK")
+  out_e=$(edit "$K" "$K/$AUTH" "$(fresh)")
+  has_skill "$out_b" laravel-best-practices && ok || bad "effects: a python heredoc write did not route laravel-best-practices; got: ${out_b:0:200}"
+  sb=$(skills <<<"$out_b"); se=$(skills <<<"$out_e")
+  [ -n "$se" ] && [ "$sb" = "$se" ] && ok || bad "effects vs edit: skill sets differ — python [$(echo $sb)] edit [$(echo $se)]"
+  jq -e --arg f "$K/$AUTH" '.pending_low | any(.skill == "security-review" and .file == $f)' "$(statef "$K" "$TK")" >/dev/null 2>&1 \
+    && ok || bad "effects: the auth file written through python queued no security-review signal"
+  mkdir -p "$K/database"; printf 'select 1;\n' > "$K/database/report.sql"
+  edit "$K" "$K/database/report.sql" "$(fresh)" >/dev/null
+  out=$(bashw "$K" "python3 - <<'PY'
+open('app/svc.go', 'w').write('package app\n')
+PY" "$(fresh)")
+  has_skill "$out" low-cognitive-load && ok || bad "effects: the go file python wrote did not route; got: ${out:0:200}"
+  has_skill "$out" sql-best-practices && bad "effects: the file an Edit changed before this run was read again as its write" || ok
+else
+  echo "SKIP 24: python3 not available"
+fi
 
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }

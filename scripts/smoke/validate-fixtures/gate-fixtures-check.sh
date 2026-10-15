@@ -232,6 +232,37 @@ case "$out" in
   *good.sh*) fail "shared-blocks: a verbatim copy stays clean" "flagged: $out" ;;
   *) pass "shared-blocks: a verbatim copy stays clean" ;;
 esac
+# heredoc-bodies.md, in its own run so the arm stands alone.
+cp templates/blocks/heredoc-bodies.md "$B/"
+{ echo '#!/bin/bash'; cat "$B/heredoc-bodies.md"; echo 'exit 0'; } > "$T/blk/hooks/heredoc-good.sh"
+{ echo '#!/bin/bash'; sed 's/-v how=/-v hw=/' "$B/heredoc-bodies.md"; echo 'exit 0'; } > "$T/blk/hooks/heredoc-edited.sh"
+out=$(pc_shared_blocks "$T" "$B") || true
+case "$out" in
+  *"blk/hooks/heredoc-edited.sh heredoc-bodies.md"*) pass "shared-blocks: an edited heredoc-bodies copy is named" ;;
+  *) fail "shared-blocks: an edited heredoc-bodies copy is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *heredoc-good.sh*) fail "shared-blocks: a verbatim heredoc-bodies copy stays clean" "flagged: $out" ;;
+  *) pass "shared-blocks: a verbatim heredoc-bodies copy stays clean" ;;
+esac
+# bash-write-effects.md, in its own run: an edited copy, and one of its two functions pasted alone.
+cp templates/blocks/bash-write-effects.md "$B/"
+{ echo '#!/bin/bash'; cat "$B/bash-write-effects.md"; echo 'exit 0'; } > "$T/blk/hooks/effects-good.sh"
+{ echo '#!/bin/bash'; sed 's/--untracked-files=all/--untracked-files=normal/' "$B/bash-write-effects.md"; echo 'exit 0'; } > "$T/blk/hooks/effects-edited.sh"
+{ echo '#!/bin/bash'; awk '/^cc_bash_effects_mark\(\) \{/,/^}/' "$B/bash-write-effects.md"; echo 'exit 0'; } > "$T/blk/hooks/effects-one.sh"
+out=$(pc_shared_blocks "$T" "$B") || true
+case "$out" in
+  *"blk/hooks/effects-edited.sh bash-write-effects.md"*) pass "shared-blocks: an edited bash-write-effects copy is named" ;;
+  *) fail "shared-blocks: an edited bash-write-effects copy is named" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *"blk/hooks/effects-one.sh bash-write-effects.md"*) pass "shared-blocks: a hook pasting cc_bash_effects_mark alone is held to the whole block" ;;
+  *) fail "shared-blocks: a hook pasting cc_bash_effects_mark alone is held to the whole block" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *effects-good.sh*) fail "shared-blocks: a verbatim bash-write-effects copy stays clean" "flagged: $out" ;;
+  *) pass "shared-blocks: a verbatim bash-write-effects copy stays clean" ;;
+esac
 
 # ---- pc_offswitch_named --------------------------------------------------------
 mkhook badsw quiet-deny.sh <<'SH'
