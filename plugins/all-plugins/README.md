@@ -1,7 +1,8 @@
 # all-plugins
 
-Installs every leaf plugin of this marketplace at one scope — `/all-plugins:install` and
-`/all-plugins:uninstall` ask user or local once when you typed no `--scope`, and nothing else — under
+Installs every leaf plugin of this marketplace at one scope — `/all-plugins:install` asks local
+or project, `/all-plugins:uninstall` local, project or user, once when you typed no `--scope`,
+and nothing else — under
 `--budget` also raises the host's skill-listing budget so every description is actually
 sent — and undoes both.
 One script, one exit code; the two commands only relay it. "Every leaf" means every
@@ -41,7 +42,7 @@ only through one of those it stays silent, and when leaves are, it shows the lin
 ```bash
 # 1. In a session, after installing this one plugin:
 /plugin install all-plugins@cc-plugins-marketplace
-/all-plugins:install                   # every leaf but opt-in prompt-coach; asks user or local first (not found yet? /reload-plugins first)
+/all-plugins:install                   # every leaf but opt-in prompt-coach; asks local or project first (not found yet? /reload-plugins first)
 /all-plugins:uninstall                 # the inverse; --self removes all-plugins too
 /reload-plugins                        # nothing installed this run is active until you do
 
@@ -61,7 +62,7 @@ disk before any plugin is installed.
 | Flag | Meaning |
 |---|---|
 | `install` / `uninstall` / `list` | the verb; required. `list` prints each leaf's state at the scope (script only — the commands wrap the first two) |
-| `--scope local\|project\|user` | where the install records go. Absent, both commands ask user or local once and run nothing until answered; the script run directly defaults to `local` (this checkout, not committed) |
+| `--scope local\|project\|user` | where the install records go. Absent, `install` asks local or project and `uninstall` local, project or user, once, and run nothing until answered; the script run directly defaults to `local` (this checkout, not committed) |
 | `--dry-run` | print the plan — one `DRY` line per command it would run — and exit 0 without running any |
 | `--self` | `uninstall` only: remove `all-plugins` too, last; without it the plugin stays and the script says how to remove it |
 | `--budget` | `install` only: raise `skillListingBudgetFraction` to cover the whole listing (see "The listing budget"); off by default since 0.3.0 |
@@ -94,7 +95,9 @@ disk before any plugin is installed.
   `/reload-plugins` and cannot do it for you. The raised budget takes effect on the same
   reload.
 - **Does not decide what you need.** That is `/stack-scan:suggest`, which reads your
-  manifests and installs a picked set with evidence. This plugin is for the case where
+  manifests and installs a picked set with evidence; its `--sync` mode moves a machine off
+  user scope project by project, and prints this script's `uninstall --scope user --self`
+  as the last step. This plugin is for the case where
   you have already decided you want everything but prompt-coach.
 
 ## What has teeth
@@ -103,7 +106,7 @@ disk before any plugin is installed.
 |---|---|
 | The exit codes, the every-listed-plugin list, the `prompt-coach` opt-in skip, the scope flag, a script that never prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
 | The commands relay the script instead of running `claude plugin install` themselves | **agent-graded** — it is instruction text in `commands/*.md`; nothing detects a substituted loop |
-| Both commands ask user or local when `--scope` is absent, and stop rather than defaulting when nobody answers | **agent-graded** — instruction text in `commands/install.md` and `commands/uninstall.md`; no harness drives a command |
+| Both commands ask for the scope when `--scope` is absent (`user` only typed, for install), and stop rather than defaulting when nobody answers | **agent-graded** — instruction text in `commands/install.md` and `commands/uninstall.md`; no harness drives a command |
 | The startup line: shown only while all-plugins is its marketplace's sole enabled plugin, on startup, to the person, off with `CC_ALL_PLUGINS_HINT=off` | **gate** — the same harness's `hint:` cases drive `hooks/hint.sh` against fixture settings files |
 | The budget step: nothing written without `--budget`; with it, the fraction written, never lowered, foreign values kept, invalid JSON untouched, removed only when it is the script's own value | **gate** — the same harness drives it against fixture settings files |
 | The overflow arithmetic | **recorded** — reproduced by `scripts/context-budget.sh`; the 0.07 figure moves as the marketplace grows, and the script recomputes it on every run |

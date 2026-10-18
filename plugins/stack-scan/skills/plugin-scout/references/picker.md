@@ -60,14 +60,14 @@ TIER 1 — earned by a signal in this repo
    1  laravel   composer.json — laravel/framework ^11
    2  web-dev   package.json — vite ^5 + vite.config.ts
    3  devops    docker-compose.yml
-TIER 2 — any-project core (7)
+TIER 2 — any-project core (10)
    4  code-review ✓  5  debugging  6  testing  7  git-workflow
    8  code-architecture  9  secret-scanning  10 command-guard
+  11  candor  12 hindsight  13 skill-router
 TIER 3 — no signal in this repo
-  worth a look here:  11 brain  12 approaches
-  quality/review:     13 toolchain-experts  14 resilience  15 security  16 api-design
-  process/planning:   17 taskmaster  18 task-runner  19 overseer
-  session-wide:       20 candor  21 hindsight  22 skill-router
+  worth a look here:  14 brain  15 approaches
+  quality/review:     16 toolchain-experts  17 resilience  18 security  19 api-design
+  process/planning:   20 taskmaster  21 task-runner  22 overseer
   ui:                 23 ui-ux ✓  24 craft-layer
   ...
   companion: ui-ux (#23 ✓) needs ui-libraries — claude plugin install ui-libraries@cc-plugins-marketplace --scope local
@@ -97,7 +97,9 @@ TIER 3 — no signal in this repo
 - When coherence and density collide — 4 tier-1 rows and 8 core rows do not
   divide into 3 questions of 4 — **coherence wins**, the under-filled question is
   the last one on the page, and a question never mixes tiers. Without that
-  tiebreak two runs on one repo produce different pages.
+  tiebreak two runs on one repo produce different pages. With any tier-1 row the
+  core cannot all fit in what is left of questions 1-3; the rows that spill stay
+  numbered and pickable through Other, and `--yes` installs every core row anyway.
 - Under `--all`, reserve exactly one option slot per call for **"Stop — skip
   remaining"** on the last question. Picking it ends the picker; rows already
   selected on any page still install. Selecting nothing on a page just advances.

@@ -18,7 +18,7 @@
 # leaves marketplace plugins to plugin-scout — not a cycle.
 stack-scan:report	command	understand	installed-stack-inventory	invoked as /stack-scan:report [path]	stack-scan:installed-versions
 stack-scan:installed-versions	skill	understand	installed-stack-inventory	version-dependent advice is about to be given, or work starts in an unfamiliar repo, and what is actually installed has not been read from manifests, lockfiles, runtime binaries or container images	stack-scan:plugin-scout,devops:compose-init,taskmaster:context-scout
-stack-scan:suggest	command	understand	marketplace-plugin-suggestion	invoked as /stack-scan:suggest, with --skills for the third-party mode	stack-scan:plugin-scout,stack-scan:vercel-skills-scout
+stack-scan:suggest	command	understand	marketplace-plugin-suggestion	invoked as /stack-scan:suggest, with --skills for the third-party mode and --sync to reconcile this project's enabled set by scope	stack-scan:plugin-scout,stack-scan:vercel-skills-scout
 stack-scan:plugin-scout	skill	understand	marketplace-plugin-suggestion	the user asks which marketplace plugins fit this repo, or a session starts in a project with no cc-plugins-marketplace plugin installed	stack-scan:installed-versions,stack-scan:vercel-skills-scout
 stack-scan:vercel-skills-scout	skill	understand	third-party-skill-suggestion	the user asks to search skills.sh or find a community skill for the stack, or this marketplace has no plugin covering the need	stack-scan:plugin-scout
 stack-scan:audit	command	review	dependency-audit	invoked as /stack-scan:audit; the user asks for vulnerabilities, outdated packages or licences across composer/npm dependencies	security:security-review
