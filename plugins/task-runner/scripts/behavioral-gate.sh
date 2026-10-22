@@ -508,7 +508,7 @@ parse_js() { # the package.json script's parse; a --runner-for js command is a s
   # with "N passed"/"N pass" (Playwright, bun) remain.
   if printf '%s\n' "$CAP" | grep -Eiq \
       'tests[[:space:]]+[1-9]|[1-9][0-9]*[[:space:]]+passing|(^|[^A-Za-z])Tests:[[:space:]]+([0-9]+[[:space:]]+[a-z]+,[[:space:]]+)*[1-9][0-9]*[[:space:]]+(passed|failed)|^[[:space:]]*[1-9][0-9]*[[:space:]]+(pass|fail)(ed)?([^[:alpha:]]|$)|Ran [1-9][0-9]* tests?' ||
-     printf '%s\n' "$CAP" | grep -Eq '^[[:space:]]*[1-9][0-9]*[[:space:]]+failing[[:space:]]*$'; then
+     printf '%s\n' "$CAP" | grep -Eq '(^|:)[[:space:]]*[1-9][0-9]*[[:space:]]+failing[[:space:]]*$'; then
     covered_or_red; return
   fi
   # Anchored to jest's own 'Tests:' label: jest prints "Snapshots:   0 total" on every run.

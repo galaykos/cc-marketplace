@@ -22,8 +22,7 @@ All notable changes to the task-runner plugin.
   elsewhere (no status HTML, a green suite alone, the plan is displayed) were cut to keep its
   size. Standing: gate — `reduction-record.test.sh` "--kind red writes red-bg-<HEAD12>.json at
   the repo root", red against this version's previous cut; the acceptance is candor's
-  (`gate.test.sh` "red: …"). Residual: nothing checks that the failures predate the run, and
-  `skills/behavioral-gate/SKILL.md` still describes exit 2 as having one recorded exit.
+  (`gate.test.sh` "red: …"). Residual: nothing checks that the failures predate the run.
 - **A suite whose every test fails reads `red-suite`, not `empty-suite`.** cargo's `test result:
   FAILED. 0 passed; 1 failed` and mocha's `0 passing` beside `1 failing` matched the zero-pass
   empty signal before any failure count. Both verdicts exit 2, so no run closed over one, but
@@ -35,10 +34,12 @@ All notable changes to the task-runner plugin.
   gate — `behavioral-gate.test.sh` "--runner-for rs, cargo 'test result: FAILED. 0 passed; 1
   failed' …" and "--runner-for js, mocha '0 passing' and '1 failing' …", both red against this
   version's first cut. The mocha failing count counts only as its own summary line,
-  `^\s*N failing\s*$`, case-sensitive: a first cut took `N failing` anywhere, so a green script
-  printing `2 failing checks skipped` read `covered`. Standing: gate — "package.json script
-  printing '2 failing checks skipped', exit 0 -> unverifiable-suite(2), not covered", red
-  against that cut. Residual: mocha's `N passing` is still matched anywhere on a line, as
+  `N failing` alone after a line start or a workspace prefix (`web:test:   1 failing`),
+  case-sensitive: a first cut took `N failing` anywhere, so a green script printing `2 failing
+  checks skipped` read `covered`, and a second anchored it to the line start, so a turbo-prefixed
+  all-failing run read `empty-suite`. Standing: gate — "package.json script printing '2 failing
+  checks skipped' …" and "--runner-for js, a workspace-prefixed all-failing mocha run …", each
+  red against one of those cuts. Residual: mocha's `N passing` is still matched anywhere on a line, as
   before 0.49.0.
 - **Three code comments no longer point at header sections that moved out of the code.**
   Standing: recorded.

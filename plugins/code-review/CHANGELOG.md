@@ -9,9 +9,10 @@ file is what makes an upgrade readable. Newest first.
   code.** `# MAX_RETRIES=5 is what the upstream API tolerates before it bans the key.` — the
   external-constraint shape `comment-discipline` says to keep — matched the assignment test and
   was refused before the write (measured in the 2026-10-21 plugin review). The text after the
-  value now reads as a sentence when it holds no bracket, brace, parenthesis, `;` or member dot
-  (`user.active`), its first word is not a keyword (`and or not if else elif unless for in then
-  do while until when`), and it has three or more lowercase words, keywords counted:
+  value now reads as a sentence when the value is not `not`, the text holds no bracket, brace,
+  parenthesis, member dot (`user.active`) or `; NAME =`, its first word is neither a keyword
+  (`and or not if else elif unless in then do while until`) nor an operator (`>=`, `+`, `&&` …),
+  and it has three or more lowercase words, keywords counted:
   `# TIMEOUT=30 is in seconds, not minutes` and `# PORT=8080 is not used in prod` pass. A
   commented-out `total = total + item.price`, a Python comprehension
   `names = [user.name for user in users if user.active]`, `is_valid = name and email and
@@ -24,8 +25,10 @@ file is what makes an upgrade readable. Newest first.
   red against the first cut of this change; "PreToolUse does NOT deny TIMEOUT=30 is in seconds,
   not minutes", "…PORT=8080 is not used in prod", "PreToolUse denies a commented-out conditional
   chain …" and "…a commented-out ternary …" are red against the second cut, which left keywords
-  out of the word count. Residual: a constraint sentence after `NAME=value` that holds a
-  parenthetical, a `;` or a dotted word (`(measured)`, `e.g.`, `api.example.com`), or opens with
+  out of the word count; "PreToolUse denies a commented-out negated boolean", "…comparison chain",
+  "PreToolUse allows a constraint opening with for", "…with when" and "…carrying a semicolon" are
+  red against the third cut. Residual: a constraint sentence after `NAME=value` that holds a
+  parenthetical or a dotted word (`(measured)`, `e.g.`, `api.example.com`), or opens with
   a keyword (`# TIMEOUT=30 if the proxy is slow …`), is still denied as code; commented-out code
   whose text after the value opens with a non-keyword and holds three plain lowercase words
   (`# CC=clang make all install`, `# ok = done is not pending`) reads as prose and is not denied.

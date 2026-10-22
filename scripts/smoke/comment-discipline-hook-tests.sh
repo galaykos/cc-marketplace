@@ -383,6 +383,18 @@ assert_allows "PreToolUse does NOT deny a constraint comment that opens with NAM
 MAX_RETRIES = 5'
 assert_denies "PreToolUse still denies a commented-out assignment" s12 /tmp/proj/n.js '// total = total + item.price
 const t = 1;'
+# Round 3 (2026-10-22): a `not` value or an operator after the value is code; `for`/`when` and a `;` not followed by
+# an assignment open prose.
+assert_denies "PreToolUse denies a commented-out negated boolean" s13 /tmp/proj/o.py '# is_hidden = not visible and not pinned
+x = 1'
+assert_denies "PreToolUse denies a commented-out comparison chain" s14 /tmp/proj/p.py '# ready = count >= total and not paused
+x = 1'
+assert_allows "PreToolUse allows a constraint opening with for" s15 /tmp/proj/q.py '# BATCH=500 for the nightly import job
+BATCH = 500'
+assert_allows "PreToolUse allows a constraint opening with when" s16 /tmp/proj/r.py '# RETRIES=3 when the upstream returns 429
+RETRIES = 3'
+assert_allows "PreToolUse allows a constraint sentence carrying a semicolon" s17 /tmp/proj/s.py '# RETRIES=5 is the upstream cap; more gets the key banned
+RETRIES = 5'
 # After the value: a bracket, a `;`, a member dot or an opening keyword is code, else three lowercase words are a sentence (2026-10-22 review).
 assert_allows "PreToolUse does NOT deny TIMEOUT=30 is in seconds, not minutes" s16 /tmp/proj/r1.py '# TIMEOUT=30 is in seconds, not minutes
 TIMEOUT = 30'

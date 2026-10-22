@@ -24,12 +24,13 @@ All notable changes to the `ask-ledger` plugin.
   two-word cut), "13ae" (fails against the lowercase-only list), "13af", "13ag" (each fails
   against the `has`/`have`/`had`-only mask).
 - **Ordinals and units are not names.** "a plan 1st then decide" ledgered `1st then`;
-  `5s before` and `2nd pass` did the same. A digit token ending in a multi-letter unit
-  (`ms sec min hr px em rem kb mb gb tb vh vw fps hz`) in any case (`10GB`, `30Min`), or in
-  an ordinal or short suffix written lowercase (`st nd rd th s h x pt am pm`: `5s`, `3x`), is
-  dropped; `2D Sprites`, `4K video`, `5S support` and `4X zoom` still ledger. Standing: gate —
+  `5s before` and `2nd pass` did the same. A digit token ending in an ordinal, a clock suffix
+  or a multi-letter unit (`st nd rd th am pm ms sec min hr px pt em rem kb mb gb tb vh vw fps
+  hz`) in any case (`10GB`, `30Min`, `5PM`, `1ST`), or in `s`, `h` or `x` written lowercase
+  (`5s`, `3x`), is dropped; `2D Sprites`, `4K video`, `5S support` and `4X zoom` still ledger. Standing: gate —
   `ledger-hook.test.sh` "13w" (fails against 0.4.2), "13ab" (fails against the
-  lowercase-only match), "13ac", "13ad" (fails against the any-case match of every suffix).
+  lowercase-only match), "13ac", "13ad" (fails against the any-case match of every suffix), "13ah" (fails
+  against a lowercase-only `am pm st`).
 - Not changed, on purpose: the existence check stays a substring match. A whole-word match
   would make `Payment` miss the plural table name a Laravel repo uses for it — a case the 0.2.0 existence filter exists to stop.
 

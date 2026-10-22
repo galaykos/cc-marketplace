@@ -111,6 +111,7 @@ check "13ac a lowercase multiplier is not a name" "$(run 'make the build 3x fast
 check "13ad a capital letter after a digit is a name, not a unit" \
   "$(run 'add 5S support, a 4X zoom and 4K video next to the 2D sprites' s13ad)" "5S support,4X zoom,4K video,2D sprites"
 check "13ae a capitalised mid word keeps the negation on its quoted term, and is no name itself" "$(run "build it, Don't Use \"Redux\"" s13ae)" ""
+check "13ah a clock time or ordinal in capitals is no name" "$(run 'add a cron job that runs at 5PM daily, from the 1ST of the month' s13ah)" ""
 check "13af 'there is no \"x\"' names the gap the ask fills" "$(run 'build a page, there is no "Logout" button yet, add one' s13af)" "Logout"
 check "13ag 'there's no' and 'there are no' name a gap too" \
   "$(run "add a page, there's no \"Logout\" button and there are no \"Saved\" lists yet" s13ag)" "Logout,Saved"

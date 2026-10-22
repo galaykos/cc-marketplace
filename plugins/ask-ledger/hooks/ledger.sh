@@ -168,8 +168,8 @@ cc_prompt_question() {
   q="(\"[^\"]{2,40}\"|'[^']{2,40}')"
   neg='([Nn]o|[Nn]ot|[Ww]ithout|[Nn]ever|[Aa]void|[Nn]or|[Dd]on.?t|[Dd]o [Nn]ot)'
   mid='([Uu]se|[Uu]sing|[Aa]ny|[Mm]ore|[Ss]uch|[Tt]he|[Aa]|[Aa]n|[Cc]all|[Cc]alled|[Aa]dd|[Ii]nclude|[Ii]ncluding|[Mm]ention)'
-  units_i='^[0-9]+(ms|secs?|mins?|hrs?|px|r?em|[kmgt]b|v[hw]|fps|hz)( |$)'
-  units_l='^[0-9]+(st|nd|rd|th|s|h|x|pt|am|pm)( |$)'
+  units_i='^[0-9]+(st|nd|rd|th|ms|secs?|mins?|hrs?|px|pt|r?em|[kmgt]b|v[hw]|fps|hz|am|pm)( |$)'
+  units_l='^[0-9]+(s|h|x)( |$)'
   cut=$(printf '%s\n' "$scrub" | sed "s/\([A-Za-z]\)'\([A-Za-z]\)/\1$ap\2/g" \
       | sed -E "s/(^|[^A-Za-z])([Hh]as|[Hh]ave|[Hh]ad|[Tt]here[[:space:]]+(is|are)|[Tt]here${ap}s)([[:space:]]+[Nn])o([^A-Za-z]|$)/\1\2\4$st\5/g" \
       | sed -E "s/(^|[^A-Za-z])$neg([[:space:]]+$mid)?[[:space:]]+$q(([[:space:]]*(,|[Oo]r|[Aa]nd|[Nn]or)[[:space:]]*|[[:space:]]+)$q)*/\1\2 /g")
