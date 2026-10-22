@@ -251,6 +251,26 @@ else
   echo "FAIL[hook]: deny reason does not resolve CLAUDE_PLUGIN_ROOT: $out"; rc=1
 fi
 
+# 0.9.5: the guard's leaf list lacked the wiki page name the audit already calls critical.
+hook_case "gollum page_name into a run: block is denied, as the audit reports it" deny \
+  ".github/workflows/wiki.yml" 'on: gollum
+jobs:
+  b:
+    steps:
+      - run: echo "${{ github.event.pages[0].page_name }}"'
+# 0.9.5: an install path holding a space split the printed audit command.
+out=$(jq -nc --arg f ".github/workflows/ci.yml" --arg c 'jobs:
+  b:
+    steps:
+      - run: echo "${{ github.event.pull_request.body }}"' \
+      '{tool_name:"Write",tool_input:{file_path:$f,content:$c}}' \
+      | CLAUDE_PLUGIN_ROOT="/opt/my plugins/devops" bash "$HOOK" 2>/dev/null)
+if printf '%s' "$out" | grep -qF 'Run bash \"/opt/my plugins/devops/scripts/workflow-audit.sh\"'; then
+  echo "PASS[hook]: the printed audit path is quoted"
+else
+  echo "FAIL[hook]: the printed audit path is not quoted: $out"; rc=1
+fi
+
 if printf 'not json' | bash "$HOOK" >/dev/null 2>&1; then
   echo "PASS[hook]: garbage input exits 0 (fail-open)"
 else

@@ -2,6 +2,17 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.5 — 2026-10-22
+
+- **The workflow guard denies a wiki page name in a `run:` block.** `workflow-audit.sh` already
+  reported `${{ github.event.pages[N].page_name }}` (a `gollum` event, author-typed) in a shell
+  step as critical; the guard's own leaf list lacked it, so the edit went through. Pinned by
+  `workflow-audit.test.sh` "gollum page_name into a run: block is denied …", red against 0.9.4.
+- **The deny message quotes the audit path.** An install path holding a space split the printed
+  `bash …/workflow-audit.sh` command. Pinned by "the printed audit path is quoted", red
+  against 0.9.4. `workflow-audit.sh`'s header no longer claims an exit 3 for a missing `yq`,
+  which it never checks.
+
 ## 0.9.4 — 2026-10-15
 
 - **Runnable `${CLAUDE_PLUGIN_ROOT}` paths are quoted.** `/devops:review` and the devops-practices skill's `plan-audit.sh` and `workflow-audit.sh` lines passed `${CLAUDE_PLUGIN_ROOT}/…` to `bash`, `node` or `python3` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.

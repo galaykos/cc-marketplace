@@ -14,7 +14,7 @@
 #
 #   bash workflow-audit.sh [--dir DIR] [--quiet]
 #
-# Exit: 0 clean · 2 critical finding · 3 cannot read (no dir, no yq/grep)
+# Exit: 0 clean · 2 critical finding · 3 cannot read (no dir, or no workflow or composite file in it)
 #
 # HONEST LIMITATION. This is a line-oriented scan, not a YAML parser: it reads
 # what a workflow SAYS, and it can be fooled by an unusual layout, a composite
