@@ -1,6 +1,6 @@
 # candor: the comment text moved out of the code (2026-10-04)
 
-The text below was moved verbatim on 2026-10-04 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-candor.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
+The text below was moved verbatim on 2026-10-04 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-candor.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved. A `###` section carrying a date in its heading was written on that date, not moved.
 
 ## plugins/candor/hooks/gate.sh
 
@@ -65,6 +65,8 @@ without it).
 
 ### Header: LIMITATION
 
+Editor's note (2026-10-22): false from 0.10.0 — an Agent/Task call no longer counts as execution (§ Clause 3: only a Bash call is execution), and a claimed re-check no longer passes clause 2 without a tool call (§ Clause 2: a claimed re-check is no HOLD).
+
 ```text
 LIMITATION (honest scope — the four laws, "Honest limitation"):
   - CLAUSE 1 checks `file:line` ONLY, never a bare path — a bare path is
@@ -121,6 +123,8 @@ MODES:
 ```
 
 ### Header: SUBAGENT REPORTS
+
+Editor's note (2026-10-22): false from 0.10.0 — clause 3 also runs at SubagentStop, over the worker's report and its own transcript (§ Clause 3 at SubagentStop).
 
 ```text
 SUBAGENT REPORTS (SubagentStop, 0.2.0). The same script is wired to
@@ -583,6 +587,8 @@ on the exact file a settings question is answered from.
 
 ### Clause 2: the user's evidence, HOLD and what ran
 
+Editor's note (2026-10-22): HOLD no longer holds "names what it re-checked" — those phrases left it in 0.10.0 (§ Clause 2: a claimed re-check is no HOLD).
+
 ```text
 Last real user message. Tool results also arrive as type "user"; they carry
 tool_result blocks and no text blocks, so selecting text blocks excludes them.
@@ -703,6 +709,128 @@ No marker means no per-text bound this turn. THIS is where the shared flag
 earns its keep: without both, a gate that blocks on unwritable state blocks
 the same turn forever. Honouring it only here costs at most one unenforced
 stop on an already-degraded setup.
+```
+
+### Clause 3: only a Bash call is execution (0.10.0)
+
+```text
+Until 0.10.0 the awk that orders tool names counted Agent and Task as execution, so
+"edited, dispatched an agent, said fixed" passed: a dispatch returns words, and the
+worker may not have run anything either. Only a Bash call now sets last_exec.
+scripts/smoke/evidence-gate-hook-tests.sh case 12 had pinned the old shortcut ("Agent
+tool after edit passes") and was flipped with it. Standing: gate — gate.test.sh "clause
+3: an Agent dispatch after the edit is not execution…" and "…a Task dispatch…", red
+against 0.9.1; "clause 3: a Bash call after the edit passes". Residual: any Bash call
+still counts (a `git status` satisfies it), as before; another runner a host might add
+(PowerShell, an MCP tool) does not.
+```
+
+### Clause 3 at SubagentStop (0.10.0)
+
+```text
+Until 0.10.0 only clause 1 ran at SubagentStop. Clause 3 now runs there too: the
+worker's own transcript (agent_transcript_path) supplies the edits and the Bash calls,
+and the claim is its report — last_msg, the hand-back first — because a hand-back is a
+tool call and carries no text block for the 30-line window to read. CLAIM, ACK and the
+prose-file exemption are the main thread's. The block names "this report" and asks the
+worker to re-send its complete report, as clause 1's does. Standing: gate — gate.test.sh
+"subagent: an editing worker claiming fixed with no Bash after its edit blocks" (red
+against 0.9.1), "…with a Bash after the edit passes", "subagent: a read-only worker
+claiming done is untouched". Residual: a resumed worker's edits from an earlier turn
+count; a report that states its caveat ("not tested") passes on ACK, by design.
+A payload with no agent_transcript_path stands the clause down. The transcript read
+falls back to transcript_path, which at SubagentStop is the parent's, so the parent's
+edits armed a read-only worker's "Done" (review finding; gate.test.sh "subagent: with no
+agent_transcript_path clause 3 stands down; the parent's edits never arm it", red before).
+Clause 1 keeps the fallback.
+```
+
+### Clause 3: a caveat label followed by none is no acknowledgement (0.10.0)
+
+```text
+The report format this marketplace's briefs ask for ends with "Not tested:", "Residuals:"
+and the like, "none" when none. ACK matched "not tested" inside "Not tested: none", so a
+worker that edited, ran nothing and reported "Fixed the bug. Not tested: none" passed on
+the very line saying nothing was left untested (probed by the orchestrator). Lines that
+are a caveat label (relay.sh's vocabulary) followed only by none, n/a or nothing, after
+any bullet or bold, are dropped from the text ACK reads; CLAIM still reads them. Both the
+main-thread window and the SubagentStop report. Standing: gate — gate.test.sh
+"subagent: 'Not tested: none' is no acknowledgement …" and "… '**Not verified:** n/a' …",
+evidence-gate-hook-tests.sh 34-35, all red before; 36 and "subagent: a caveat that names
+something still acknowledges" are the neighbours that pass. Residual: "none" phrased
+otherwise ("nothing left", "all covered") still acknowledges.
+```
+
+### Clause 2: a claimed re-check is no HOLD (0.10.0)
+
+```text
+HOLD exempted a retraction that SAID it re-checked — re-read, re-ran, re-checked,
+I checked/verified/confirmed, after checking/running, the file/output/test shows — on
+the word alone, so "I re-checked — you're right, reverting." passed with no tool call
+after the challenge. Those phrases left HOLD; what remains keeps part of the position
+(I still think, I disagree, partly, to be clear). A claimed re-check now passes only
+through the tool-call test it claims to have met. candor-scan.sh's copy of HOLD, which
+says it applies the gate's test, moved with it (and gained "on that/this one|point I",
+which the gate had and the copy had dropped). Standing: gate — gate.test.sh "a claimed
+re-check with no tool call after the challenge blocks" (red against 0.9.1) and "…after a
+Read call passes"; candor-scan.test.sh "only the unevidenced reversals counted…" (red
+against 0.9.1). Residual: any tool call after the challenge still counts.
+```
+
+### The relay clause and the partial-read warning (0.10.0)
+
+```text
+Both run after clause 5, on a main-thread Stop only, each over a per-context ledger
+under ${TMPDIR:-/tmp} (cc-candor-relay-<cksum of transcript_path // session_id>,
+cc-candor-reads-<same>, read only when the hook's user owns it) written by a
+PostToolUse/UserPromptSubmit hook (§ plugins/candor/hooks/relay.sh and
+§ plugins/candor/hooks/reads.sh). Not the state root: the payload cwd follows the model's
+`cd`, so a recorder that ran after a cd into a nested repo resolved another root than
+the stop did, and the warning was lost. Both lists are reported once and the ledger is
+removed at that stop.
+The warnings are the user's, not the model's. Until review they printed to stderr with
+exit 0, which the hooks reference says Claude never sees and the user sees at most in
+verbose mode. Now every exit-0 path after them (no verdict, the loop guard, the
+unwritable-marker fallback, warn mode) prints one stdout line, {"systemMessage": …},
+naming the switches: CC_RELAY_GATE=off and CC_READ_LEDGER=off silence them,
+CC_RELAY_GATE=block makes the model relay. A stop that blocks appends the same text to
+the stderr the model reads instead. The verdicts' own warn modes (CC_CANDOR_GATE=warn,
+CC_EVIDENCE_GATE=warn, TASK_RUNNER_STOP_GATE=warn) still print to stderr only.
+Relay in block mode takes the one verdict slot when it is free; behind another clause's
+verdict it reports its items through the warning channel and clears the ledger, where it
+used to keep the ledger and block a later turn for a report that turn never saw. Its own
+continuation stands down through the per-clause record like the others. The read warning
+has no block mode. A stop with no readable final message stands both down; relay keeps its
+ledger then, the read ledger is cleared anyway. Neither runs at SubagentStop: at that
+event the payload's transcript_path is the parent's, and the recorders skip a payload
+carrying agent_id.
+Standing: gate — relay-hook.test.sh "a final 'All done.' that drops it shows the user one
+systemMessage …", "block mode behind another clause's block: the items ride on its stderr
+and the ledger clears", "the repeat stop the loop guard passes still shows the user a new
+warning", "CC_CANDOR_GATE=warn: the verdict stays on stderr …" and "a report recorded from
+a nested cwd reaches the stop taken at the project root …"; reads-hook.test.sh's matching
+two. Each red against this branch before review. Residual: whether a systemMessage changes
+what the user asks next is unmeasured; the verdict warn modes stay invisible to Claude and
+mostly to the user.
+```
+
+### Header until 2026-10-22, moved verbatim
+
+The header was cut to three lines (what it catches, what it misses) and this pointer.
+
+```text
+gate.sh (Stop, SubagentStop; payload on stdin) — exit 2 refuses a turn end for one clause per stop, tried 4, 1, 2, 3, 5: an incomplete
+  registered task-runner run, a file:line resolving to nothing, a reversal after bare pushback, a naked completion claim, lockfile drift.
+  Then it warns: a worker caveat the final message drops (relay.sh's ledger), a file read only in part it never names (reads.sh's).
+Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5),
+  CC_RELAY_GATE=off|block (relay), CC_READ_LEDGER=off (reads);
+  unset, each reads the /config option of its lower-cased name. Fails open: no jq, no enforcement; a clause lacking its input stands down.
+Misses: a wrong API, flag or directory; an elided path; pushback outside its list; entries before the transcript tail; a hand-back
+  hidden by a later user-shaped entry; a resumed agent's text whose boundary is not on disk yet; dependency lines no pattern matches.
+  Blocks anyway: a citation into a file the turn shortened, deleted or renamed; a run record written before the run registered.
+  Clause 4 misses a UI card with no review diff file and a range review its RV-RANGE marker over-claims; a sentinel with no start_sha owes none.
+  It retires a closed run unchecked once HEAD moves past its gate pass, a commit made before the closing stop included.
+  Its hold for a behavioral gate in flight reads task-runner's PID file and, on Linux, /proc: without /proc a recycled PID misreads.
 ```
 
 ## plugins/candor/hooks/mode.sh
@@ -1174,6 +1302,205 @@ again. cite_miss takes root and cwd as arguments instead of reading the callers'
 globals, so the contract is in the call.
 ```
 
+## plugins/candor/hooks/relay.sh
+
+### Why it exists (2026-10-22)
+
+```text
+A worker's report names what it did not do, did not test, or left as a residual; the
+orchestrating turn then summarises, and the caveat is gone before the user reads
+anything. Nothing on disk records that a caveat was handed over, so nothing could say it
+was dropped. This hook keeps the caveat lines; gate.sh's relay clause compares them with
+the final message.
+```
+
+### What it reads
+
+```text
+PostToolUse Agent|Task: tool_response as a string, a text-block array, or an object's
+content text blocks plus handbackReport.text and result. In CLI 2.1.295 transcripts a
+foreground result's content is only a pointer ("This agent's report was delivered to you
+as a message from …") and the report is toolUseResult.handbackReport.text; tool_response
+is assumed to carry the same object (not probed live).
+UserPromptSubmit: a <task-notification …> frame, read only inside <result>…</result>;
+and a hand-back frame — "Another Claude session sent a message:", "<agent-message", or a
+line opening "[Subagent hand-back]" (the prompt-shape block's markers). The second is
+not in the brief that ordered this hook: in both measured sessions (CLI 2.1.296) every
+background report arrived as that frame, with origin.kind "peer", while the
+task-notification's <result> said only that the report was "not repeated here". A
+<result> read alone would have recorded nothing. Repeats are dropped at read time.
+A payload carrying agent_id (a dispatch made inside a subagent) records nothing.
+```
+
+### Extraction
+
+```text
+A caveat line opens — after leading space, ">", a bullet (-, *, +, •, 1., 1), (a)) and
+an optional **label** — with not done, partial, not tested, untested, not checked, not
+run, residual, known miss, blocked, could not, did not, unverified or not verified,
+case-insensitive; the label itself may be the caveat ("**Not tested:** …"). Its item is
+"<label>\t<first 100 chars>", the label being the first id-shaped token on the line
+(A2, T2-C, W6, UI-13), else "-". A caveat line that is a heading — it ends in ":", is
+one bold span with no inner colon, or is a `#` markdown heading ("## Not done", whose
+#s are stripped like a bullet) — records up to ten lines under it instead of itself. Blank
+lines directly under the heading are skipped; the scope ends at a blank line after an
+item, a bold label, a `#` heading, or a line ending in ":" that is no caveat ("Files
+changed:"); a caveat sub-heading ("Not run:" under "Residuals:") is skipped and the scope
+goes on. A heading with nothing under it records itself; one whose first line is none,
+n/a or nothing records nothing. "none", "n/a" and "nothing" after the phrase are no
+caveat either: the brief's own report format ends every report with "Residuals:" and
+"Not tested:", "none" when none. Reading stops at </agent-message> or </result>. At most
+40 per context, appended rather than rewritten so parallel results cannot clobber each
+other. awk with no interval expressions: mawk and busybox awk both pass
+relay-hook.test.sh.
+The heading rules above are review fixes: a blank line under "Residuals:" recorded the
+heading and dropped the items, "**Residuals:**" over a blank and "None." recorded a false
+caveat, "Files changed:" and "## Summary" were read as more items, and "## Not done" was
+not a heading at all. Standing: gate — the six relay-hook.test.sh cases from "a blank line
+directly under a caveat heading …" to "a '## Not done' heading …", five red before; the
+caveat sub-heading case is the neighbour that kept passing.
+Accounting (gate.sh RELAY_ACCOUNT): the final message names the item's id token as a
+word; or, of the item's n words of 5+ letters that are not in a short stopword list
+(which also holds the caveat vocabulary itself), at least min(2, n) appear; or, with
+n = 0, the item's text after its caveat label appears, case-insensitively. Two words for
+every item listed "Not tested: login flow" against a final message repeating it word for
+word, since "login" is its only counted word (relay-hook.test.sh "an item with one content
+word …" and "… no content word …", red before).
+```
+
+### Measurement (2026-10-22)
+
+```text
+Corpus: /tmp/retro-relay/479f845f.relay1-4.txt and f5492e65.relay1.txt, 92 blocks
+headed "SUBAGENT-REPORT (full)" — 86 hand-back frames, 2 mid-task peer messages and 4
+review prompts the extract mislabelled — each paired with the last "MAIN-THREAD (after
+report)" block before the next USER or report block, taken as that turn's final message.
+Run through the shipped hooks (each block as a hand-back prompt into relay.sh, then a
+Stop into gate.sh); the item set equals the draft extractor's exactly.
+  items: 192 over 92 reports, mean 2.09, max 9; 29 reports carry none (hand-backs only:
+    86 reports, mean 2.24).
+  precision: 30 items drawn with shuf --random-source (a fixed seed), judged by hand:
+    29 true caveats; the miss is a scope note ("W3-B's concurrent edits … were left
+    alone"). The draft before the sub-heading rule scored 28/30 on its own draw — a
+    sub-heading line ("Reads too much:") was the second miss, and is now skipped.
+  would have warned: 54 reports (59% of 92; 86% of the 63 carrying items), 154 of 192
+    items unaccounted. Read by hand, these are real drops: the turn after a hand-back in
+    an orchestrated run is usually an interim status line ("Waiting on two crews", "The
+    other three agents are still running"). Allowing an item with one distinctive word
+    to be carried by that one word changed one report.
+Decision: warn by default, block opt-in (CC_RELAY_GATE=block), as ordered. At this rate
+block would hold most interim turns.
+```
+
+Amendment, 2026-10-22 review: these figures are the first extraction's and accounting's.
+The heading rules and the min(2, n) accounting (§ Extraction) changed both; the corpus was
+not re-run.
+
+### Residuals
+
+```text
+A caveat phrased outside the list, or mid-line, is not recorded; two shared words count
+as carrying an item, so a paraphrase can over-credit and a reworded relay can
+under-credit; a spurious id token (L95) can account its item; an item with one counted
+word is carried by that word alone. A nested worker's caveats handed to a subagent are
+not tracked. Concurrent appends can pass 40 by a few lines. The payload shapes are read
+from transcripts, not a live probe. The ledger is ${TMPDIR:-/tmp}/cc-candor-relay-<cksum>,
+written under umask 077; one whose session never stops again expires after 24 hours
+(swept on the next write).
+```
+
+### Header until 2026-10-22, moved verbatim
+
+```text
+relay.sh (PostToolUse Agent|Task, UserPromptSubmit; payload on stdin) — records a worker's caveat lines (not done, untested, residual…)
+  from a foreground result, a hand-back or a task-notification <result> for gate.sh's relay clause: <label>\t<first 100 chars>, 40 at most.
+Off: CC_RELAY_GATE=off or CC_CANDOR_GATE=off (unset, their /config options). Prints nothing; fails open; always exits 0.
+```
+
+## plugins/candor/hooks/reads.sh
+
+### What it records (2026-10-22)
+
+```text
+A partial read of an existing regular file longer than the slice, per context: a Read
+with offset and/or limit (offset alone reads to the end); in a Bash command split at
+&&, ||, ;, | and newlines, a head -n N, head -N, tail -n N or sed -n 'a,bp' / 'ap'
+(quoted or not) naming one file, after any `cd DIR` in an earlier segment. A segment
+whose head or tail reads a pipe names no file and records nothing; so do a path holding
+$ * ? ` { } < >, tail -n +N, tail -f and sed -i. Line counts are awk NR when the call
+returns. Ledger lines: <path>\t<lines>\t<a-b,c-d>; slices of one file merge, and a Read
+with neither offset nor limit, or slices covering 1..lines, drop it.
+Only a slice that starts at line 1 opens an entry (owner's decision at review, the narrower
+rule measured below): a Read with no offset or offset 1 and a limit, head -n N, head -N,
+sed -n '1,Np'. A slice starting later — tail -n N, sed -n '214,231p', a Read offset — only
+merges into an entry already there, so it can still clear it. A clear never counts the
+file's lines, and a clear or later slice with no ledger file exits before the sweep and
+the touch. A relative path after a `cd DIR` that is not a file is tried from the payload
+cwd: the parser drops parentheses, so `(cd sub && make) && head -n 5 README.md` read as
+sub/README.md. The ledger is ${TMPDIR:-/tmp}/cc-candor-reads-<cksum>, umask 077, swept
+after 1440 minutes (§ plugins/candor/hooks/gate.sh, the relay clause and the
+partial-read warning, for why not the state root). Standing: gate — reads-hook.test.sh
+"a Read starting past line 1 of an unrecorded file records nothing", "tail -n 10 and
+mid-file sed -n slices …", "a path the cd before it does not resolve …", "a whole-file
+Read with no ledger exits before any find, touch, mkdir or awk" and "… clears its entry
+without counting the file's lines", red before; "a later Read starting past line 1
+merges …" the neighbour. Absent Read fields
+are "-" in the jq row: bash read splits on runs of tabs, and the first cut read
+{limit:40} as offset 40 (reads-hook.test.sh "a Read, a sed -n slice and a tail that
+together cover the file clear it" caught it). A payload with agent_id records nothing.
+At Stop (gate.sh clause_partial_reads) each entry whose basename the final message never
+contains is listed as path:ranges (of N lines), root-relative; the ledger is removed.
+```
+
+### Measurement and the default (2026-10-22)
+
+```text
+Replayed, through the shipped hooks, the main-thread Read and Bash calls of
+479f845f-ffb3-4239-b174-7a16543b334b, f5492e65-96bc-47f5-bf52-3c66e03c51e4 and
+25f72aab-f8f2-4392-a0f5-26c575832791 (436 calls), with a Stop at every turn end — a user
+entry with text and no tool_result, hand-back and notification frames included — given
+that turn's last assistant text.
+  479f845f: 123 turn ends, 32 warned (26.0%), max 6 files
+  f5492e65:   5 turn ends,  5 warned (100%),  max 12
+  25f72aab:   3 turn ends,  1 warned (33.3%), max 13
+  total: 38 of 131 turn ends (29.0%), max 13; 38 of the 95 turns that made a Read or
+  Bash call (40.0%).
+The brief's line: over 30% of turn ends ships default off. 29.0% is under it by one
+point, so the default is warn. The margin is smaller than the method's error: line
+counts are today's tree (a file since shortened or deleted is missed), /tmp logs that no
+longer exist were not recorded, and the turn boundary is this replay's heuristic.
+Narrower rule, measured on the same replay: count only a slice starting at line 1 — the
+top of a file read and left, the shape of a conclusion drawn from a head — and drop the
+section read after a search (sed -n 214,231p gate.sh), which is most of the hits. It
+would have warned on 14 of 131 turn ends (10.7%). Not built: the order named this rule.
+```
+
+Amendment, 2026-10-22 review: the narrower rule is now the shipped one (the owner's
+decision). 14 of 131 turn ends (10.7%) is that earlier replay's figure; the replay was not
+re-run against the shipped hook.
+
+### Residuals
+
+```text
+Pipes (cmd | head), awk/less/cat -n slices, tail -n +N, a Read's own 2,000-line cap (a
+Read with no limit counts as whole), a relative path after a cd the parser cannot see,
+and files outside the state root's tree are missed or misplaced. Parallel calls can lose
+an update (read-merge-rename). A basename the final message mentions for another reason
+silences the entry. Warn only: nothing blocks.
+```
+
+Amendment, 2026-10-22 review: a slice starting past line 1 of a file with no entry is now
+missed by design, and a relative path after a cd the parser misreads is retried from the
+payload cwd, which catches the subshell case and no other.
+
+### Header until 2026-10-22, moved verbatim
+
+```text
+reads.sh (PostToolUse Read|Bash; payload on stdin) — records a partial read of a file longer than the slice (a Read with offset/limit;
+  head -n N, head -N, tail -n N, sed -n 'a,bp' on one file) as path + line ranges for gate.sh's read clause; a whole-file Read or one
+  covering the rest clears it. Off: CC_READ_LEDGER=off or CC_CANDOR_GATE=off. Prints nothing; fails open; always exits 0.
+```
+
 ## plugins/candor/scripts/candor-scan.sh
 
 ### Header
@@ -1247,6 +1574,8 @@ is not a measurement. Falls back to $(pwd) when the field is absent or gone.
 ```
 
 ### Axis 3: unevidenced reversals
+
+Editor's note (2026-10-22): the scan's HOLD moved with the gate's in 0.10.0 — a stated re-check no longer counts as a basis.
 
 ```text
 --- axis 3: unevidenced reversals ------------------------------------------

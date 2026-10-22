@@ -79,8 +79,8 @@ return (delegation-contracts § Compressed returns), injected verbatim:
 > "Return findings most severe first, ONE line each:
 > `file:line — severity(critical|high|medium|low) — problem — fix`. List every critical
 > and high; medium/low past the tenth may collapse into one final `+N more (medium/low)` line.
-> No prose introductions, no summary of the summary. Your final message is data for the
-> orchestrator, not prose for a human."
+> Close with `Not read:` and `Not checked:` lines, `none` allowed. No prose introductions.
+> Your final message is data for the orchestrator, not prose for a human."
 
 **Card-criteria inject** — every reviewer dispatch ALSO carries the card's own bar,
 right after `RV-CARD`: paste the card's success criteria (or, when the card has none,

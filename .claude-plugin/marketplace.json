@@ -77,7 +77,7 @@
     {
       "name": "security",
       "source": "./plugins/security",
-      "description": "Security for web apps: OWASP-aligned code review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, PLUS design-phase threat-modeling (STRIDE, trust boundaries), a data-privacy (GDPR/CCPA) regulatory lens, and an api-auth lens (token model, OAuth2+PKCE, scopes). Includes /security:review and a security-engineer worker agent."
+      "description": "Security for web apps: OWASP-aligned code review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, PLUS design-phase threat-modeling (STRIDE, trust boundaries), a data-privacy (GDPR/CCPA) regulatory lens, and an api-auth lens (token model, OAuth2+PKCE, scopes). Includes /security:review, a read-only security-reviewer agent and a security-engineer worker agent."
     },
     {
       "name": "api-design",

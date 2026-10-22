@@ -144,7 +144,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_BOOST` | craft-layer, task-runner, taskmaster | on | Boost hooks that raise model and effort when a prompt carries an ultra- token: on or off |
 | `CC_CANDOR_GATE` | candor | block | The whole candor Stop gate: block, warn (print, never block) or off |
 | `CC_CARDLINT` | taskmaster | on | Say when a card set reaches execution without its author-time linters having run: on or off |
-| `CC_CLARIFY_GATE` | taskmaster | off | Refuse the first code write after a work-shaped prompt, once per session: block or off |
+| `CC_CLARIFY_GATE` | taskmaster | block | Deny a work prompt's first code write until the model asks you or writes an Assuming: line: block or off |
 | `CC_COACH_MASCOT` | prompt-coach | pane | Where the coach's mascot lives: pane (pixel art, fullscreen UI), statusline (a text face) or off |
 | `CC_COACH_MODEL` | prompt-coach | sonnet | The model that confirms a haiku first-pass flag before a prompt is dropped: sonnet or opus |
 | `CC_COACH_SENSITIVITY` | prompt-coach | unactionable | What counts as unclear: unactionable (nobody could act on it) or ambiguous (also two readings of scope) |
@@ -171,6 +171,8 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_PREVIEW_GUARD` | taskmaster, ui-ux | on | Ask before an HTML page is published as a remote artifact instead of served locally: on or off |
 | `CC_PROMPT_COACH` | prompt-coach | on | Judge an eligible prompt at Enter, and hold a flagged one for the sprite's rewrite: on or off |
 | `CC_PROTECT_TESTS` | testing | on | Refuse an edit that adds a skip or only marker to a test, or empties a test file: on or off |
+| `CC_READ_LEDGER` | candor | warn | Stop-gate warning for a file read from line 1 and left short (a Read with a limit, head or sed -n '1,Np' … |
+| `CC_RELAY_GATE` | candor | warn | Stop-gate clause for a worker report's caveat lines (not done, untested, residual) that the turn's final … |
 | `CC_REMIND` | api-design, approaches, code-review, debugging, design-kit, secret-scanning, security, skill-router, task-runner, taskmaster, testing, ui-ux | on | Reminder hooks that add guidance to the session: on or off |
 | `CC_REVIEW_NUDGE` | code-review | on | Suggest an independent review once enough unreviewed or sensitive code has changed: on or off |
 | `CC_ROUTE` | skill-router | on | Hand the model command-picking rules and flush pending low-confidence skill signals: on or off |
@@ -408,7 +410,7 @@ to retype findings as instructions.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[security](plugins/security)** | OWASP-aligned review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, plus design-phase threat modeling, a GDPR/CCPA data-privacy lens, an API-auth lens, and a `security-engineer` worker | Auth, user input, uploads, personal data — or before the code exists, at design |
+| **[security](plugins/security)** | OWASP-aligned review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, plus design-phase threat modeling, a GDPR/CCPA data-privacy lens, an API-auth lens, a read-only `security-reviewer` and a `security-engineer` worker | Auth, user input, uploads, personal data — or before the code exists, at design |
 | **[secret-scanning](plugins/secret-scanning)** | a **PreToolUse hook that blocks** a Write/Edit introducing a high-confidence secret before it reaches disk, plus an on-demand sweep | Always. It costs nothing until it fires |
 | **[command-guard](plugins/command-guard)** | a **PreToolUse classifier** on every Bash and MCP shell/SQL command: denies irreversible loss (`migrate:fresh`, `DROP DATABASE`, `rm -rf /`, `docker compose down -v`, `terraform destroy`), asks on scoped-but-destructive ones. Reads through quotes, wrappers, heredocs | Any agent with shell access, especially an autonomous run |
 

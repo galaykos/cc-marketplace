@@ -24,7 +24,8 @@ needs must travel inside the prompt itself:
   formats the repo enforces. If a validator will reject it, the prompt
   must say so — the agent cannot infer house rules it has never seen.
 - **The required return shape.** Say exactly what the final message
-  must contain: format, per-item structure, length cap.
+  must contain: format, per-item structure, length cap — and always a
+  `Not read:` and a `Not checked:` line, `none` when there is nothing.
 - **The done-when.** A bar the agent can check and cannot meet early:
   "every caller of parse() listed with path and line, past the length cap
   a count of the rest", not "find the callers". A vague bar is where a
@@ -76,6 +77,23 @@ finished — it has stopped. Send it back with the verify commands or
 run them yourself, but never merge an evidence-free "done" into your
 plan state.
 
+## Relaying a report to the user
+
+The rules above govern worker → orchestrator. The orchestrator → user
+hop loses more: in one reviewed session about 56 of 86 reports lost a
+NOT DONE item, caveat or residual on the way to the user, and about 27
+were overstated ("A2: NOT DONE (blocked)" reached the user as "H4 is done").
+
+- Every NOT DONE, partial, not tested, not checked or residual line of a
+  report reaches the user — verbatim, or gathered into one list.
+- Say "done", "fixed", "verified" or "all" only of a report that carries
+  none of those lines.
+- A number from a report is the worker's until you re-run it: "the worker
+  reports 41 passing", not "41 pass".
+
+Standing: agent-graded, plus candor's relay ledger, which warns at Stop
+(candor 0.10.0).
+
 ## Model and effort tiering
 
 Not every stage deserves the same brain:
@@ -120,7 +138,7 @@ Reads parallelize freely; writes need proof of disjointness.
   supports.
 - **A cross-cutting property needs ONE tree-wide gate, run by the orchestrator after fan-in** — N scoped greps verify it nowhere, and a tree-wide command run mid-fan-out reports on a sibling's half-saved file, not on the runner's diff: `references/tree-wide-gates.md`.
 
-The failure mode is silent: two writers touch one file, the second write clobbers the first, and no error is raised anywhere. (Honest limitation and Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+The failure mode is silent: two writers touch one file, the second write clobbers the first, and no error is raised anywhere.
 
 ## Skill priming (authoring-time)
 

@@ -69,8 +69,11 @@ the prompt also names a PR, a commit or `git`, or a joined name sits beside the 
 fix-login branch"); nor on verbs inside a `<pasted_content>` paste or on a subagent
 hand-back. "fix the failing PR", "add tags to the blog" and "add PRs to the dashboard" (a
 ship noun before to, into, onto or with is a feature object) still fire. Before the first code edit,
-run one batched clarifying round to zero ambiguity or state in one line why
-the task is trivial. It holds `arcRank` 25 in the shared reminder-rank election
+either ask one batched AskUserQuestion round, or write one line starting `Assuming:` that
+names what the model decided for you; at a later fork you have not answered, ask rather than
+default. When the prompt names an auth surface, the `Assuming:` route is withdrawn. Until
+0.50.0 the line offered "state in one line why this task is trivial enough to skip it"
+instead; it fired 50 times in 30 days of reviewed sessions and was ignored. It holds `arcRank` 25 in the shared reminder-rank election
 (bounded at one line per eligible hook, never a guarantee of one per prompt) — no plugin is privileged there, so it earns its place by arc position:
 clarification is `shape`, ahead of build-vs-buy (`decide`, 30) and the API docs
 check (`build`, 40), behind only the two `any`-phase guards, a stuck-loop nudge
@@ -78,9 +81,21 @@ check (`build`, 40), behind only the two `any`-phase guards, a stuck-loop nudge
 it carried rank 90 — last — while this paragraph claimed an exemption that had
 been retired, so on a prompt like "build auth" the build-vs-buy nudge spoke and
 this directive did not. Silenced by `CC_REMIND=off`.
-Opt-in stricter contract: `CC_CLARIFY_GATE=block` arms a PreToolUse gate that
-denies the FIRST code write of such a session once, forcing one
-clarify-or-declare-trivial turn before code exists. Off by default.
+
+**The clarify gate (on by default since 0.50.0).** A PreToolUse gate refuses the main
+thread's first `Edit`, `Write` or `MultiEdit` after such a prompt unless, since that prompt,
+the transcript holds an AskUserQuestion call or an assistant line starting `Assuming:`. It
+refuses at most once per work-shaped prompt: the next write goes through. Any later prompt
+of yours that is not work-shaped disarms it; a subagent's write is never judged. Until
+0.50.0 it was off unless you set it, and when on it refused the first write of the session
+whatever had happened. Measured before the default changed, replaying the real hooks over
+three sessions in this marketplace's own repository: 3 work-shaped prompts, 1 would have been refused,
+and none of those was followed by an AskUserQuestion in the same turn; over all 11 sessions
+in that project, 9 work-shaped prompts and 4 refusals, 2 of them followed by one. A small
+sample from one repository, not an estimate for yours. `CC_CLARIFY_GATE=off` (or the `cc_clarify_gate` option) turns it off.
+Standing: **gate** for the refusal (`scripts/__tests__/clarify-gate.test.sh`); whether the
+questions asked or the assumptions written were the right ones is agent-graded. It does not
+see Bash writes, and a turn that only delegates to subagents is never refused.
 
 ## Invocation cheat sheet — boost, and the two knobs Claude Code owns
 
@@ -279,8 +294,8 @@ Credit: grill's frontier rule adapts one from an earlier (2026-09-02) read of [m
   `:brainstorm` (fuzzy idea → approved design doc, upstream of everything),
   `:coverage`, `:redteam`
 - **Hooks**, five: the clarify-first directive and the boost detector on
-  UserPromptSubmit; the artifact preview guard (ask) and the opt-in clarify gate
-  (`CC_CLARIFY_GATE=block`, deny once) on PreToolUse; the card-shape observer
+  UserPromptSubmit; the artifact preview guard (ask) and the clarify gate
+  (deny once per work-shaped prompt, `CC_CLARIFY_GATE=off` to disable) on PreToolUse; the card-shape observer
   (warn) on PostToolUse
 - **Mod** (Claude Code ≥ 2.1.291): `hooks/suggest.ts`, the `/taskmaster:redteam`
   suggestion after a spec is written (see Mods, above)
@@ -294,5 +309,4 @@ Every hook fails open and every one has an off switch. `CC_REMIND=off` silences 
 clarify directive, the clarify gate and the card observer; `CC_CARDLINT=off` just the
 observer; `CC_PREVIEW_GUARD=off` the artifact guard; `CC_BOOST=off` (or
 `TASKMASTER_BOOST=off`) the boost detector; `CC_SUGGEST=off` the red-team suggestion.
-The clarify gate is additionally off
-unless `CC_CLARIFY_GATE=block`. `PREVIEW_PORT` moves the preview server off 8123.
+`CC_CLARIFY_GATE=off` turns off just the clarify gate. `PREVIEW_PORT` moves the preview server off 8123.

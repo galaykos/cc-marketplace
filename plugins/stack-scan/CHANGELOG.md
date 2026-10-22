@@ -4,6 +4,12 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.12.7 — 2026-10-22
+
+- **The scout catalog names security's read-only `security-reviewer`.** security 0.13.0 ships
+  the agent and its listing says so; `references/catalog.md` is regenerated from
+  `marketplace.json` to match. Standing: gate — `generate.sh --check` fails on catalog drift.
+
 ## 0.12.6 — 2026-10-22
 
 - **The scout catalog carries brain's corrected description.** brain 0.4.6 writes a

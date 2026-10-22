@@ -141,5 +141,4 @@ Standing: gate for what it reads, unenforceable for the rest — the hook is a *
 check, never executes the produced tests, and fails open for a run that writes no
 `active-run.json` or no `nc/`; a record could be forged, a skip reason is
 model-authored, and a non-index run records no card counts, so card-completeness never
-fires for it. It closes the honest-but-forgetful skip, not deliberate evasion. (Honest
-limitation law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+fires for it. It closes the honest-but-forgetful skip, not deliberate evasion.

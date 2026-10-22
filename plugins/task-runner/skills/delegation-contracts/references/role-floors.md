@@ -102,7 +102,7 @@ agent per claim told to *break* it under ordered provenance rules, the same shap
 `spec-adversary`, so it takes a row. Producer and auditor land in different classes because
 the work differs, not because one was missed.
 
-## Residual — main-thread PROACTIVE dispatch is covered only where the spawn-floor mod loads (Honest limitation law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+## Residual — main-thread PROACTIVE dispatch is covered only where the spawn-floor mod loads
 
 `system-architect` has no dispatcher file anywhere; it is auto-dispatched by the main
 thread from its `Use PROACTIVELY` description, and `code-reviewer` / `architecture-reviewer`

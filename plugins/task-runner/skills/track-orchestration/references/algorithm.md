@@ -29,7 +29,7 @@ inherited cwd.
 
 Classify each milestone from its normalized `Files:` set per `eligibility.md` § Verdict;
 the rest are **serial milestones** (orchestrator, main tree, dependency order). No `Files:`
-lines, or 0–1 milestone eligible → warn and fall back to `task-execution`. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+lines, or 0–1 milestone eligible → warn and fall back to `task-execution`.
 
 ## 2. Wave loop (strict dependency waves — fork-join)
 

@@ -2,6 +2,31 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.50.0 — 2026-10-22
+
+- **delegation-contracts: a report's NOT DONE lines reach the user.** The skill governed
+  worker → orchestrator only; in one reviewed session about 56 of 86 subagent reports lost a
+  NOT DONE item, caveat or residual on the way to the user, and about 27 were overstated
+  ("A2: NOT DONE (blocked)" reached the user as "H4 is done"). New § Relaying a report to the
+  user: every NOT DONE, partial, not tested, not checked or residual line reaches the user,
+  verbatim or as one list; "done", "fixed", "verified" or "all" only of a report carrying none;
+  a number from a report is the worker's until re-run. Standing: agent-graded, plus
+  candor's relay ledger, which warns at Stop (candor 0.10.0). No harness reads the prose.
+- **Worker and reviewer returns close with `Not read:` and `Not checked:` lines.**
+  delegation-contracts' return shape, the discipline preamble's clause 8 and
+  reviewer-routing's compressed-return contract all carry them, `none` allowed, so a skipped file or check is stated by the worker instead of
+  inferred by the orchestrator. Standing: agent-graded; no harness reads a return.
+- **A card's security review stays with `security-engineer` dispatched review-only.** Its
+  probes once found SSRF and XSS bypasses a read-only review missed. The role contradiction
+  (16 of 20 security dispatches measured in the projects these plugins run in were reviews,
+  sent to an agent whose body said "apply a decided fix list") is closed in security 0.13.0,
+  whose `security-engineer` body now carries the review-only mode; reviewer-routing is
+  unchanged. Standing: agent-graded.
+- **Nine citations of a repo path installers do not have are removed** ("(… law:
+  `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) …)"), 1,085 bytes
+  that pay for the entries above under the 160,000-byte skills prose cap. Standing: gate
+  (`pc_plugin_corpus`).
+
 ## 0.49.0 — 2026-10-22
 
 - **A suite that ran and failed is `red-suite`, not `covered`.** The behavioral gate's record

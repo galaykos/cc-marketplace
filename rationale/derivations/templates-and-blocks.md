@@ -1124,6 +1124,28 @@ the line (scripts/smoke/hook-guard-tests.sh, the tm_auth cases); whether the mod
 runs the round is agent-graded.
 ```
 
+### The clarify-gate marker is prompt-scoped (2026-10-22)
+
+```text
+Added with taskmaster 0.50.0, armsClarifyGate only. Every human prompt that passes the
+frame test removes the marker before the other early exits, and the trigger branch creates
+it again, so the marker exists only while the latest human prompt was work-shaped and its
+mtime is that prompt's. clarify-gate.sh reads that mtime as "since that prompt". A frame or
+a slash command exits first and leaves the marker as it was. Why and the measurement:
+rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/hooks/clarify-gate.sh.
+```
+
+### The auth-surface line withdraws the Assuming: route (2026-10-22)
+
+```text
+taskmaster 0.50.0 dropped the "trivial enough to skip" clause; the way out it offers now is
+one line starting `Assuming:`. The auth line keeps its job against the new route: "The
+prompt names an auth surface: ask; an Assuming: line does not cover it." Standing: gate for
+the line (scripts/smoke/hook-guard-tests.sh, the tm_auth cases); clarify-gate.sh does not
+know the prompt named an auth surface and accepts an Assuming: line there, so whether the
+model asks is agent-graded.
+```
+
 ## templates/boost-hook.sh.tmpl
 
 ### Off switch

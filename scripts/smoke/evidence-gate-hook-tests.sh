@@ -122,10 +122,10 @@ else fail=$((fail+1)); printf 'FAIL  blocks forever on unwritable state (rc=%s)\
 # 11. Missing transcript -> fail open.
 check "missing transcript fails open"               "" "$WS/nope.jsonl" 0 "__NONE__"
 
-# 12. Subagent counts as execution (Agent after edit) -> allow.
+# 12. A dispatch is not execution (candor 0.10.0): Agent after edit, nothing run -> block.
 T12="$WS/t12.jsonl"
 { tool_entry Edit; tool_entry Agent; text_entry "Done — the reviewer confirmed it."; } > "$T12"
-check "Agent tool after edit passes"                "" "$T12" 0 "__NONE__"
+check "Agent tool after edit still blocks"          "" "$T12" 2 "$BLOCK_SUB"
 
 # --- ACK phrase-scoping (13-19) -------------------------------------------
 # A failure named as the thing that was FIXED is part of the claim, not an
@@ -246,6 +246,17 @@ check "json write still arms the clause"            "" "$T32" 2 "$BLOCK_SUB"
 T33="$WS/t33.jsonl"
 { tool_path Write "$CWD/LICENSE"; text_entry "Done."; } > "$T33"
 check "extensionless write still arms the clause"   "" "$T33" 2 "$BLOCK_SUB"
+
+# 34-36. A caveat label followed only by none / n/a acknowledges nothing (candor 0.10.0).
+T34="$WS/t34.jsonl"
+{ tool_path Edit "$CWD/src/a.ts"; text_entry $'Fixed the bug.\nNot tested: none'; } > "$T34"
+check "'Not tested: none' does not disarm the claim"  "" "$T34" 2 "$BLOCK_SUB"
+T35="$WS/t35.jsonl"
+{ tool_path Edit "$CWD/src/a.ts"; text_entry $'Fixed the bug.\n- **Not verified:** n/a'; } > "$T35"
+check "'**Not verified:** n/a' does not disarm the claim" "" "$T35" 2 "$BLOCK_SUB"
+T36="$WS/t36.jsonl"
+{ tool_path Edit "$CWD/src/a.ts"; text_entry $'Fixed the bug.\nNot tested: the Windows path'; } > "$T36"
+check "a caveat naming what was not tested still passes" "" "$T36" 0 "__NONE__"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
