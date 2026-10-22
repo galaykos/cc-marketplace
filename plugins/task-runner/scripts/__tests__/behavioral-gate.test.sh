@@ -590,8 +590,20 @@ case_run "--runner-for php exiting 1 with no test count -> unverifiable-suite(2)
 case_run "--runner-for py exiting 1 with no pytest summary -> unverifiable-suite(2)" "$RF" 2 --label 'unverifiable-suite' -- \
   --changed src/calc.py --runner-for py './down.sh::no tests ran'
 printf '#!/bin/sh\necho "1 failed, 2 passed in 0.12s"\nexit 1\n' > "$RF/py-red.sh"; chmod +x "$RF/py-red.sh"
-case_run "--runner-for py, a red suite with a pytest summary -> covered(0)" "$RF" 0 --label 'VERDICT: covered' -- \
+case_run "--runner-for py, a red suite with a pytest summary -> red-suite(2)" "$RF" 2 --label 'VERDICT: red-suite' -- \
   --changed src/calc.py --runner-for py './py-red.sh::no tests ran'
+# A suite that ran and failed is red, not covered (2026-10-21 plugin review): the record read
+# `covered` and candor let the run close over it, while run.md asks for BOTH gates green.
+PHR="$WS/php-red"; mkdir -p "$PHR/vendor/bin" "$PHR/tests" "$PHR/src"
+printf '<?php class Calc {}\n' > "$PHR/src/Calc.php"; printf '<?php final class CalcTest {}\n' > "$PHR/tests/CalcTest.php"
+mk_stub "$PHR/vendor/bin/phpunit" .phpstub.out .phpstub.rc
+printf 'There was 1 failure:\n\nFAILURES!\nTests: 1, Assertions: 1, Failures: 1.\n' > "$PHR/.phpstub.out"; printf '1\n' > "$PHR/.phpstub.rc"
+case_run "php suite with FAILURES! -> red-suite(2)" "$PHR" 2 --label 'VERDICT: red-suite' -- --changed src/Calc.php
+GR="$WS/go-red"; mkdir -p "$GR"; printf 'package p\n' > "$GR/impl.go"; printf 'package p\n' > "$GR/impl_test.go"
+printf -- '--- FAIL: TestAdd (0.00s)\nFAIL\nFAIL\texample/pkg\t0.002s\n' > "$GR/.gostub.out"; printf '1\n' > "$GR/.gostub.rc"
+case_run "go test with a failing test -> red-suite(2)" "$GR" 2 --label 'VERDICT: red-suite' -- --changed impl.go
+case_run "--runner whose suite fails -> red-suite(2)" "$CR1" 2 --label 'VERDICT: red-suite' -- \
+  --changed calc.ex --runner 'echo "3 tests, 1 failure"; exit 1::^0 tests'
 # RF_<lang> holds the flag's value and is never read from the environment.
 RF_php='./suite.sh::No tests' case_run "RF_php inherited from the environment is ignored -> the host runner decides(2)" "$RF" 2 --label 'unverifiable-suite' -- \
   --changed src/Calc.php

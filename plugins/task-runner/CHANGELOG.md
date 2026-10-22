@@ -2,8 +2,22 @@
 
 All notable changes to the task-runner plugin.
 
-## 0.48.1 — 2026-10-22
+## 0.49.0 — 2026-10-22
 
+- **A suite that ran and failed is `red-suite`, not `covered`.** The behavioral gate's record
+  said `covered` — exit 0 — whenever tests ran, red or green (`pytest` exit 1, PHPUnit
+  `FAILURES!`, a failing `go test`, a `--runner` exiting 1), so candor's clause 4, which
+  refuses every verdict but `covered`, let a run close over a red suite while `run.md` asks
+  for both gates green. Once a runner's count shows tests ran, a non-zero exit now reads
+  `red-suite` (exit 2). Pinned by `behavioral-gate.test.sh` "php suite with FAILURES! …",
+  "go test with a failing test …", "--runner whose suite fails …" and "--runner-for py, a red
+  suite …", all red against 0.48.0 (the last one pinned `covered` until now). Residuals: a
+  suite already red before the run now blocks its close too, which `run.md` already required
+  on paper; a package.json test script that also lints reads `red-suite` when only the lint
+  fails.
+- **`ultra-assess.md` renders past line 64 again.** A "(Proportionality law: …)" citation sat on
+  the closing fence's line, and a closing fence followed by text does not close, so the rest of
+  the reference read as code. The citation, a repo path installers do not have, is removed.
 - **The scope lock no longer flags the run's own card index.** In one project 61 of 77
   scope-lock warnings named the run's `00-INDEX.md` and told the model to revert it, while
   `run.md` tells it to update status there. The index `active-run.json` records as
