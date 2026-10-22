@@ -114,8 +114,10 @@ interactive walkthroughs, demos.
 
 ## Staying near the ask when there is no card
 
-`scope.sh` warns, once per written file outside the set, while a registered run's cards
-have declared their file lists — it never blocks. It sees Edit/Write and the files a Bash
+`scope.sh` warns on each write outside the set — every call, it keeps no memory of earlier
+warnings — while a registered run's cards have declared their file lists; it never blocks.
+The run's own state (`.claude/task-runner/`) and the card index `active-run.json` names are
+never checked: updating a card's status is the run's bookkeeping, not scope creep. It sees Edit/Write and the files a Bash
 command writes by redirect, heredoc, `tee` or `sed -i` (at most 8 per call), and, after an
 interpreter, `cp`, `mv`, `install` or `patch` run, each file git reports changed since its
 previous call in the run (at most 8), a failed command's too. A `python3 - <<'EOF'` write
