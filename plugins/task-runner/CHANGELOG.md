@@ -12,9 +12,18 @@ All notable changes to the task-runner plugin.
   `red-suite` (exit 2). Pinned by `behavioral-gate.test.sh` "php suite with FAILURES! …",
   "go test with a failing test …", "--runner whose suite fails …" and "--runner-for py, a red
   suite …", all red against 0.48.0 (the last one pinned `covered` until now). Residuals: a
-  suite already red before the run now blocks its close too, which `run.md` already required
-  on paper; a package.json test script that also lints reads `red-suite` when only the lint
-  fails.
+  suite already red before the run now blocks its close too, unless recorded (next entry); a
+  package.json test script that also lints reads `red-suite` when only the lint fails.
+- **A suite already red before the run has a recorded exit.** `reduction-record.sh --kind red
+  --id bg-<HEAD12> --reason "<which tests fail and why they predate the run>"` writes
+  `reductions/red-bg-<HEAD12>.json`; candor 0.9.1 accepts `red-suite` for that HEAD only with
+  it, newer than the run's registration, and only when the closing report names
+  `bg-<HEAD12>`. `run.md` names it beside the no-runner exit; three sentences it restated from
+  elsewhere (no status HTML, a green suite alone, the plan is displayed) were cut to keep its
+  size. Standing: gate — `reduction-record.test.sh` "--kind red writes red-bg-<HEAD12>.json at
+  the repo root", red against this version's previous cut; the acceptance is candor's
+  (`gate.test.sh` "red: …"). Residual: nothing checks that the failures predate the run, and
+  `skills/behavioral-gate/SKILL.md` still describes exit 2 as having one recorded exit.
 - **A suite whose every test fails reads `red-suite`, not `empty-suite`.** cargo's `test result:
   FAILED. 0 passed; 1 failed` and mocha's `0 passing` beside `1 failing` matched the zero-pass
   empty signal before any failure count. Both verdicts exit 2, so no run closed over one, but
@@ -25,7 +34,12 @@ All notable changes to the task-runner plugin.
   those probe lines were written from each tool's format, not captured from a run. Standing:
   gate — `behavioral-gate.test.sh` "--runner-for rs, cargo 'test result: FAILED. 0 passed; 1
   failed' …" and "--runner-for js, mocha '0 passing' and '1 failing' …", both red against this
-  version's first cut.
+  version's first cut. The mocha failing count counts only as its own summary line,
+  `^\s*N failing\s*$`, case-sensitive: a first cut took `N failing` anywhere, so a green script
+  printing `2 failing checks skipped` read `covered`. Standing: gate — "package.json script
+  printing '2 failing checks skipped', exit 0 -> unverifiable-suite(2), not covered", red
+  against that cut. Residual: mocha's `N passing` is still matched anywhere on a line, as
+  before 0.49.0.
 - **Three code comments no longer point at header sections that moved out of the code.**
   Standing: recorded.
 - **`ultra-assess.md` renders past line 64 again.** A "(Proportionality law: …)" citation sat on

@@ -504,10 +504,11 @@ parse_js() { # the package.json script's parse; a --runner-for js command is a s
   # The jest "passed count" must follow jest's own 'Tests:' label with only counts between,
   # so a "Test Suites: 1 passed" line (printed even for an empty --passWithNoTests run)
   # can NEVER satisfy coverage, and a workspace prefix (`web:test: Tests: …`) still can.
-  # Mocha's "N passing" or "N failing", node/TAP "tests N", bun's "Ran N tests" and a line that opens
+  # Mocha's "N passing" or its "N failing" summary line, node/TAP "tests N", bun's "Ran N tests" and a line that opens
   # with "N passed"/"N pass" (Playwright, bun) remain.
   if printf '%s\n' "$CAP" | grep -Eiq \
-      'tests[[:space:]]+[1-9]|[1-9][0-9]*[[:space:]]+(passing|failing)|(^|[^A-Za-z])Tests:[[:space:]]+([0-9]+[[:space:]]+[a-z]+,[[:space:]]+)*[1-9][0-9]*[[:space:]]+(passed|failed)|^[[:space:]]*[1-9][0-9]*[[:space:]]+(pass|fail)(ed)?([^[:alpha:]]|$)|Ran [1-9][0-9]* tests?'; then
+      'tests[[:space:]]+[1-9]|[1-9][0-9]*[[:space:]]+passing|(^|[^A-Za-z])Tests:[[:space:]]+([0-9]+[[:space:]]+[a-z]+,[[:space:]]+)*[1-9][0-9]*[[:space:]]+(passed|failed)|^[[:space:]]*[1-9][0-9]*[[:space:]]+(pass|fail)(ed)?([^[:alpha:]]|$)|Ran [1-9][0-9]* tests?' ||
+     printf '%s\n' "$CAP" | grep -Eq '^[[:space:]]*[1-9][0-9]*[[:space:]]+failing[[:space:]]*$'; then
     covered_or_red; return
   fi
   # Anchored to jest's own 'Tests:' label: jest prints "Snapshots:   0 total" on every run.

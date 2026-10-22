@@ -205,9 +205,9 @@ So the mandated passes now leave evidence a run cannot author for itself:
 | ui-ux-reviewer on a UI card | `rv-agent-<card>@<reviewer>` from the same observer, for each card whose `rv/diff-<card>.patch` names a `.tsx`, `.jsx`, `.vue`, `.svelte`, stylesheet or `.blade.php` file | a ui-ux-reviewer record, or a recorded skip or exemption |
 
 Skips stay possible and stop being silent. `scripts/review-skip.sh` (per card) and
-`scripts/reduction-record.sh` (`--kind redteam|dispatch|suite|coverage|other` — a degraded
-panel, a downgraded dispatch, a narrowed suite, a dropped coverage pass, anything
-else) record the cut with its reason and print it to the transcript at the moment of the
+`scripts/reduction-record.sh` (`--kind redteam|dispatch|suite|coverage|red|other` — a degraded
+panel, a downgraded dispatch, a narrowed suite, a dropped coverage pass, a suite already red
+before the run, anything else) record the cut with its reason and print it to the transcript at the moment of the
 decision. `--evidence <path>` records what was observed instead, for example the UI walk's
 shot dir; it must exist inside the repo. In an interactive session a PreToolUse hook asks
 you to approve it first. The

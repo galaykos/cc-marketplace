@@ -8,21 +8,27 @@ file is what makes an upgrade readable. Newest first.
 - **A constraint comment that opens with `NAME=value` is no longer denied as commented-out
   code.** `# MAX_RETRIES=5 is what the upstream API tolerates before it bans the key.` — the
   external-constraint shape `comment-discipline` says to keep — matched the assignment test and
-  was refused before the write (measured in the 2026-10-21 plugin review). An assignment
-  followed, after its value, by three or more lowercase words that are not language keywords
-  (`and or not if else unless for in is then do end while return nil null none true false`),
-  with no bracket, brace, parenthesis or member dot (`user.active`) there, now reads as a
-  sentence; a commented-out `total = total + item.price`, a Python comprehension
+  was refused before the write (measured in the 2026-10-21 plugin review). The text after the
+  value now reads as a sentence when it holds no bracket, brace, parenthesis, `;` or member dot
+  (`user.active`), its first word is not a keyword (`and or not if else elif unless for in then
+  do while until when`), and it has three or more lowercase words, keywords counted:
+  `# TIMEOUT=30 is in seconds, not minutes` and `# PORT=8080 is not used in prod` pass. A
+  commented-out `total = total + item.price`, a Python comprehension
   `names = [user.name for user in users if user.active]`, `is_valid = name and email and
-  password` and a Ruby `user = User.find(id) unless user and user.persisted` are still denied.
-  Standing: gate — `comment-discipline-hook-tests.sh` "PreToolUse does NOT deny a constraint
-  comment that opens with NAME=value", red against 0.33.1, and "PreToolUse still denies a
-  commented-out assignment"; "PreToolUse denies a commented-out Python comprehension", "…a
-  commented-out boolean assignment" and "…a commented-out Ruby assignment with unless" are red
-  against the first cut of this change. Residual: commented-out code that chains three plain
-  lowercase names with keywords and no bracket or dot (`mode = fast if cached else slow unless
-  forced`) still reads as prose and is not denied; a constraint sentence holding a parenthetical
-  or a dotted word (`(measured)`, `e.g.`, `api.example.com`) after `NAME=value` is denied as code.
+  password`, a Ruby `user = User.find(id) unless user and user.persisted`,
+  `mode = fast if cached else slow unless forced` and `x = a if the user is admin else b` are
+  still denied. Standing: gate — `comment-discipline-hook-tests.sh` "PreToolUse does NOT deny a
+  constraint comment that opens with NAME=value", red against 0.33.1, and "PreToolUse still
+  denies a commented-out assignment"; "PreToolUse denies a commented-out Python comprehension",
+  "…a commented-out boolean assignment" and "…a commented-out Ruby assignment with unless" are
+  red against the first cut of this change; "PreToolUse does NOT deny TIMEOUT=30 is in seconds,
+  not minutes", "…PORT=8080 is not used in prod", "PreToolUse denies a commented-out conditional
+  chain …" and "…a commented-out ternary …" are red against the second cut, which left keywords
+  out of the word count. Residual: a constraint sentence after `NAME=value` that holds a
+  parenthetical, a `;` or a dotted word (`(measured)`, `e.g.`, `api.example.com`), or opens with
+  a keyword (`# TIMEOUT=30 if the proxy is slow …`), is still denied as code; commented-out code
+  whose text after the value opens with a non-keyword and holds three plain lowercase words
+  (`# CC=clang make all install`, `# ok = done is not pending`) reads as prose and is not denied.
 
 ## 0.33.1 — 2026-10-15
 

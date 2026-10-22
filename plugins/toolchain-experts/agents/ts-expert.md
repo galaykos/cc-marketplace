@@ -35,9 +35,11 @@ reader knows what it was configured to look at:
   it, so every possibly-null dereference in the diff passes the build. This is the
   single most consequential fact you can report and it is invisible without reading
   the config. From TypeScript 6 an absent `strict` is on: the detector prints
-  `strict absent-default-on` and the implied flags `true-via-strict`. With an
-  `extends` it prints `strict absent-via-extends-unresolved`: the base decides, so
-  read it or `npx tsc --showConfig` before calling strict on or off.
+  `strict absent-default-on` and the implied flags `true-via-strict`. On any
+  TypeScript major, an `extends` with no local `strict` prints `strict
+  absent-via-extends-unresolved` and each implied flag with no local value
+  `unresolved-via-extends`: the base decides, so read it or `npx tsc --showConfig`
+  before calling strict on or off.
 - **`typescript 7-no-compiler-api <tool>`.** TypeScript 7 ships no compiler API, and
   that tool loads one: report it unrunnable on this install, never as a green check.
 - **`eslint config eslintrc-not-loaded <major>`.** ESLint 9 reads `.eslintrc*` only

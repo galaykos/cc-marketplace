@@ -14,8 +14,9 @@ entrypoints) load on demand via `/brain <area>`. No more re-scouting from zero.
 
 - **Scans the code, in place.** The map is derived from reading your source. `brain`
   **never modifies, moves, or deletes any file outside `brain/`** — not your source, not
-  docs, not other plugins. Its one write outside `brain/` is the session-start hook's
-  gitignored nudge marker (see Disabling).
+  docs, not other plugins. Its only writes outside `brain/` are the session-start hook's
+  nudge marker and, when the marker's directory has none, a `.gitignore` holding `*` beside
+  it (see Disabling).
 - **Auto-orients every session.** A `SessionStart` hook injects the terse `INDEX.md` table
   of contents (bounded ~30 lines / ~2 KB, delimited as project data) so Claude sees every
   area immediately; per-area depth loads on demand with `/brain <area>`.
@@ -148,11 +149,11 @@ is delimited and labeled as project data.
 it does is emit a **single one-line hint**, once per project, on the first session start —
 `ℹ brain: no map for this project yet — run /brain index to create one. (Shown once per
 project.)` — so an enabled-but-unused install is not silently forgotten. The `SessionStart`
-hook is fail-open (any error → silent exit, never blocks a session). Its only write is that
-once-per-project marker, in the plugin's data directory (`CLAUDE_PLUGIN_DATA`), or in
-`<repo>/.claude/brain/` where the host sets none; if the marker cannot be written, the hint
-repeats next session. The marker's directory gets a `.gitignore` holding `*` when it has
-none, so the in-repo marker never shows in `git status`. Standing: gate —
+hook is fail-open (any error → silent exit, never blocks a session). It writes two files:
+that once-per-project marker, in the plugin's data directory (`CLAUDE_PLUGIN_DATA`), or in
+`<repo>/.claude/brain/` where the host sets none, and, when that directory has none, a
+`.gitignore` holding `*` beside it, so the in-repo marker never shows in `git status`. If the
+marker cannot be written, the hint repeats next session. Standing: gate —
 `inject-hook.test.sh` "16 the in-repo marker leaves git status clean".
 
 To turn it off:

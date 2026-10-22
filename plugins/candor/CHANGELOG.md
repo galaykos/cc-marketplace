@@ -20,6 +20,25 @@ All notable changes to the `candor` plugin.
   coverage reduction still does not release it. Standing: gate — `gate.test.sh` "coverage:
   red-suite blocks and says to fix the failing tests, not the coverage", red against this
   version's first cut.
+- **A suite already red before the run has a recorded exit.** A `red-suite` blocked every
+  close, including one whose failing tests predate the run. Clause 4 now accepts it for a
+  HEAD when task-runner 0.49.0's `reduction-record.sh --kind red --id bg-<HEAD12>` record
+  exists and is newer than the run's registration, the same shape as the no-runner exit; the
+  disclosure check then requires `bg-<HEAD12>` in the closing report, and the `red-suite`
+  message names the exit beside "fix the failing test(s)". A coverage record does not release
+  `red-suite`, nor a red record `no-behavioral-coverage`. Standing: gate — `gate.test.sh`
+  "red: red-suite + a red record newer than the sentinel + a report naming it -> allow",
+  "red: red-suite + a red record the closing report never names still blocks (disclosure)"
+  and "red: without a red record the block names …", red against this version's previous cut;
+  "red: a red record older than the run's registration still blocks". Residual: nothing
+  checks that the failures predate the run; the reason is model-authored.
+- **Each other non-covered verdict names its own repair.** `empty-suite`,
+  `unverifiable-suite`, `entrypoint-error` and `dead-affordance` all read "Fix the coverage",
+  which fits none of them. Each now says what failed and what to do: add tests a runner
+  executes; fix the runner or environment, or declare `--runner`/`--runner-for`; fix the
+  entrypoint that crashed on `--help`; wire the flag or drop its declaration. Standing: gate —
+  `gate.test.sh` "remedy: <verdict> blocks with its own repair, not 'Fix the coverage'", one
+  case per verdict, all four red against this version's previous cut.
 
 ## 0.9.0 — 2026-10-15
 

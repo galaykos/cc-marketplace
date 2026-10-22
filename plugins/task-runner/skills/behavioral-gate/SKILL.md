@@ -88,7 +88,7 @@ run's live tree.
 | Exit | Meaning | Completion action |
 |------|---------|-------------------|
 | 0 | covered, or honest `no-executable-surface` | gate passes |
-| 2 | `empty-suite` / `red-suite` / `no-behavioral-coverage` / `unverifiable-suite` / `entrypoint-error` / `dead-affordance` | block completion (one recorded exit, below) |
+| 2 | `empty-suite` / `red-suite` / `no-behavioral-coverage` / `unverifiable-suite` / `entrypoint-error` / `dead-affordance` | block completion (recorded exits, below) |
 | 3 | usage | fix the invocation |
 
 ## No runner in the project: the recorded exit

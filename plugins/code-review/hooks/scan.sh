@@ -477,14 +477,17 @@ cc_bash_write_effects() {
     if (b ~ /^[$@]?[A-Za-z_][A-Za-z0-9_]*[ \t]*=[^=]/ && !assign_prose(b)) return 1
     return 0
   }
-  # `MAX_RETRIES=5 is what the API tolerates` states a constraint: three lowercase non-keyword words after the value, and no
-  # bracket or member dot there, make it a sentence.
-  function assign_prose(b,   x, n, w, k, p) {
+  # `MAX_RETRIES=5 is what the API tolerates` states a constraint: after the value, no bracket, `;` or member dot, a first word
+  # that is not a keyword (`and if unless for when` …), and three lowercase words make it a sentence.
+  function assign_prose(b,   x, n, w, k, p, f, s) {
     x = b; sub(/^[$@]?[A-Za-z_][A-Za-z0-9_]*[ \t]*=[ \t]*("[^"]*"|\047[^\047]*\047|[^ \t]+)/, "", x)
-    if (x ~ /[(){}]|[[]|[]]|[A-Za-z0-9_][.][A-Za-z_]/) return 0
-    n = split(x, w, /[ \t]+/); p = 0
-    for (k = 1; k <= n; k++)
-      if (w[k] ~ /^[a-z][a-z]+[,.;:]?$/ && w[k] !~ /^(and|or|not|if|else|unless|for|in|is|then|do|end|while|return|nil|null|none|true|false)[,.;:]?$/) p++
+    if (x ~ /^[ \t]*$/ || x ~ /[(){};]|[[]|[]]|[A-Za-z0-9_][.][A-Za-z]/) return 0
+    n = split(x, w, /[ \t]+/); p = 0; f = 1
+    for (k = 1; k <= n; k++) {
+      if (w[k] == "") continue
+      if (f) { f = 0; s = tolower(w[k]); sub(/[,.;:]+$/, "", s); if (s ~ /^(and|or|not|if|else|elif|unless|for|in|then|do|while|until|when)$/) return 0 }
+      if (w[k] ~ /^[a-z][a-z]+[,.;:]?$/) p++
+    }
     return p >= 3
   }
   # A /** */ line borrows code punctuation to describe a shape: ` * Site => [server, repository, last deploy failed].` was denied

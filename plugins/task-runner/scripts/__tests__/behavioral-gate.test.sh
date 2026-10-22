@@ -643,6 +643,11 @@ case_run "--runner-for rs, cargo 'test result: FAILED. 0 passed; 1 failed' -> re
 printf '  calc\n    1) adds\n\n\n  0 passing (4ms)\n  1 failing\n' > "$RF/js-allfail.out"
 case_run "--runner-for js, mocha '0 passing' and '1 failing' -> red-suite(2)" "$RF" 2 --label 'VERDICT: red-suite' -- \
   --changed src/calc.js --runner-for js 'cat ./js-allfail.out; exit 1::NEVER-PRINTED'
+# Mocha's failing count is a summary line of its own (2026-10-22 review): this prose line from a green script read covered.
+MF="$WS/pkg-failing-prose"; mkdir -p "$MF"; printf 'module.exports = () => 1;\n' > "$MF/impl.js"
+printf '{ "name": "fx", "version": "1.0.0", "scripts": { "test": "echo 2 failing checks skipped" } }\n' > "$MF/package.json"
+case_run "package.json script printing '2 failing checks skipped', exit 0 -> unverifiable-suite(2), not covered" "$MF" 2 --label 'VERDICT: unverifiable-suite' -- \
+  --changed impl.js
 
 # ---- JC. jest's summary coloured or prefixed (2026-10-15). Colour codes were stripped for php
 # only, the 'Tests:' count had to start the line, and "Snapshots:   0 total", printed on every jest

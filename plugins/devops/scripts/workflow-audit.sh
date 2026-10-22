@@ -99,7 +99,7 @@ for wf in $files $cfiles; do
       "This is substituted into the shell, not passed as an argument — a crafted title/branch/body is command execution. Pass it through an env: var and reference \"\$VAR\" instead."
   done < <(awk '
     /^[[:space:]]*-?[[:space:]]*run:/ { inrun=1 }
-    inrun && /\$\{\{[[:space:]]*github\.(head_ref|event\.(pull_request\.(title|body|head\.(ref|label|repo\.default_branch))|issue\.(title|body)|comment\.body|review\.body|review_comment\.body|discussion\.(title|body)|head_commit\.(message|author\.(name|email))|commits\[[0-9]*\]\.(message|author\.(name|email))|pages\[[0-9]*\]\.page_name))/ { print NR ":" }
+    inrun && /\$\{\{[[:space:]]*github\.(head_ref|event\.(pull_request\.(title|body|head\.(ref|label|repo\.default_branch))|issue\.(title|body)|comment\.body|review\.body|review_comment\.body|discussion\.(title|body)|head_commit\.(message|(author|committer)\.(name|email))|commits\[[0-9]*\]\.(message|(author|committer)\.(name|email))|pages\[[0-9]*\]\.page_name|workflow_run\.(head_branch|display_title|head_commit\.(message|(author|committer)\.(name|email)))))/ { print NR ":" }
     /^[[:space:]]*(uses|with|env|if|name):/ { inrun=0 }
   ' "$wf")
 

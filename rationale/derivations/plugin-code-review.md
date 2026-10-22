@@ -71,3 +71,7 @@ Fail-open throughout: a missing jq/awk, or any error, exits 0 and denies nothing
 CC_REMIND / CC_COMMENT_GUARD / CC_ELISION_GUARD unset: the /config options cc_remind / cc_comment_guard / cc_elision_guard decide.
 Deny and elision-warn markers: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/comment-discipline/ is only the fallback.
 ```
+
+### assign_prose: a `NAME=value` sentence (2026-10-22)
+
+`# MAX_RETRIES=5 is what the upstream API tolerates before it bans the key.` was denied as commented-out code. The first cut counted every lowercase word after the value, so a comprehension, `name and email and password` and a Ruby `unless` chain read as prose. The second cut added a bracket and member-dot test and left keywords out of the count, which denied `# TIMEOUT=30 is in seconds, not minutes` and `# PORT=8080 is not used in prod` (`is in not` excluded) and still allowed `mode = fast if cached else slow unless forced` and `x = a if the user is admin else b`, whose other words were enough. Round 2 puts the keyword test on the first word after the value only, adds `;` to the code characters, and counts every lowercase word. Residuals: a constraint sentence holding a parenthetical, a `;`, a dotted word (`e.g.`, `api.example.com`) or opening with a keyword is still denied; `# CC=clang make all install` and `# ok = done is not pending` read as prose and pass.

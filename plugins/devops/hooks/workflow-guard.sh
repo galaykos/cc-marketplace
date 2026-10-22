@@ -235,7 +235,7 @@ judge_workflow() {
   if [ -z "$reason" ]; then
     if printf '%s' "$text" | awk '
         /^[[:space:]]*-?[[:space:]]*run:/ { inrun=1 }
-        inrun && /\$\{\{[[:space:]]*github\.(head_ref|event\.(pull_request\.(title|body|head\.(ref|label|repo\.default_branch))|issue\.(title|body)|comment\.body|review\.body|review_comment\.body|discussion\.(title|body)|head_commit\.(message|author\.(name|email))|commits\[[0-9]*\]\.(message|author\.(name|email))|pages\[[0-9]*\]\.page_name))/ { found=1 }
+        inrun && /\$\{\{[[:space:]]*github\.(head_ref|event\.(pull_request\.(title|body|head\.(ref|label|repo\.default_branch))|issue\.(title|body)|comment\.body|review\.body|review_comment\.body|discussion\.(title|body)|head_commit\.(message|(author|committer)\.(name|email))|commits\[[0-9]*\]\.(message|(author|committer)\.(name|email))|pages\[[0-9]*\]\.page_name|workflow_run\.(head_branch|display_title|head_commit\.(message|(author|committer)\.(name|email)))))/ { found=1 }
         /^[[:space:]]*(uses|with|env|if|name):/ { inrun=0 }
         END { exit !found }
       '; then

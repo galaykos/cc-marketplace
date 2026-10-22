@@ -162,20 +162,21 @@ cc_prompt_question() {
 
   # Quoted names run one to three words; an in-word apostrophe is masked so it opens no quote.
   # A quoted list after a negation plus at most one listed word ("no "x" or "y"", "don't use 'z'") is excluded: cut first.
-  # The `no` of `has no "x"` is masked: it names the gap the ask fills.
+  # The `no` of `has no "x"` or `there is no "x"` is masked: it names the gap the ask fills.
   # Why, limits, history: rationale/derivations/plugin-ask-ledger.md § Quoted spans: phrases and apostrophes
   ap=$(printf '\001'); st=$(printf '\002')
   q="(\"[^\"]{2,40}\"|'[^']{2,40}')"
   neg='([Nn]o|[Nn]ot|[Ww]ithout|[Nn]ever|[Aa]void|[Nn]or|[Dd]on.?t|[Dd]o [Nn]ot)'
-  mid='(use|using|any|more|such|the|a|an|call|called|add|include|including|mention)'
-  units='^[0-9]+(st|nd|rd|th|s|ms|secs?|mins?|h|hrs?|x|px|r?em|[kmgt]b|pt|v[hw]|fps|hz|am|pm)( |$)'
+  mid='([Uu]se|[Uu]sing|[Aa]ny|[Mm]ore|[Ss]uch|[Tt]he|[Aa]|[Aa]n|[Cc]all|[Cc]alled|[Aa]dd|[Ii]nclude|[Ii]ncluding|[Mm]ention)'
+  units_i='^[0-9]+(ms|secs?|mins?|hrs?|px|r?em|[kmgt]b|v[hw]|fps|hz)( |$)'
+  units_l='^[0-9]+(st|nd|rd|th|s|h|x|pt|am|pm)( |$)'
+  cut=$(printf '%s\n' "$scrub" | sed "s/\([A-Za-z]\)'\([A-Za-z]\)/\1$ap\2/g" \
+      | sed -E "s/(^|[^A-Za-z])([Hh]as|[Hh]ave|[Hh]ad|[Tt]here[[:space:]]+(is|are)|[Tt]here${ap}s)([[:space:]]+[Nn])o([^A-Za-z]|$)/\1\2\4$st\5/g" \
+      | sed -E "s/(^|[^A-Za-z])$neg([[:space:]]+$mid)?[[:space:]]+$q(([[:space:]]*(,|[Oo]r|[Aa]nd|[Nn]or)[[:space:]]*|[[:space:]]+)$q)*/\1\2 /g")
   found=$(
-    printf '%s\n' "$scrub" | sed "s/\([A-Za-z]\)'\([A-Za-z]\)/\1$ap\2/g" \
-      | sed -E "s/(^|[^A-Za-z])([Hh]as|[Hh]ave|[Hh]ad)([[:space:]]+[Nn])o([^A-Za-z]|$)/\1\2\3$st\4/g" \
-      | sed -E "s/(^|[^A-Za-z])$neg([[:space:]]+$mid)?[[:space:]]+$q(([[:space:]]*(,|[Oo]r|[Aa]nd|[Nn]or)[[:space:]]*|[[:space:]]+)$q)*/\1\2 /g" \
-      | grep -oE '"[^"]{2,40}"|'"'"'[^'"'"']{2,40}'"'" | sed 's/^["'"'"']//; s/["'"'"']$//' | tr "$ap$st" "'o" | awk 'NF <= 3'
-    printf '%s\n' "$scrub" | grep -oE '\b[0-9]+[A-Za-z]{1,4}\b( [A-Za-z]{3,})?' | grep -viE "$units"
-    printf '%s\n' "$scrub" | awk '
+    printf '%s\n' "$cut" | grep -oE '"[^"]{2,40}"|'"'"'[^'"'"']{2,40}'"'" | sed 's/^["'"'"']//; s/["'"'"']$//' | tr "$ap$st" "'o" | awk 'NF <= 3'
+    printf '%s\n' "$scrub" | grep -oE '\b[0-9]+[A-Za-z]{1,4}\b( [A-Za-z]{3,})?' | grep -viE "$units_i" | grep -vE "$units_l"
+    printf '%s\n' "$cut" | tr "$ap$st" "'o" | awk '
       { line=$0; gsub(/[.?!:;]+/, "\n", line); n=split(line, parts, "\n")
         for (i=1;i<=n;i++){ m=split(parts[i], w, /[[:space:]]+/); first=1
           for (j=1;j<=m;j++){ t=w[j]; if (t=="") continue

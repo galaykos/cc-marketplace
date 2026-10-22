@@ -87,5 +87,13 @@ if [ "$got" -eq 0 ] && [ -f "$RD/suite-s1.json" ] && [ ! -e "$G/sub/.claude" ] &
 else fail "subdirectory call (rc=$got; sub/.claude exists? $([ -e "$G/sub/.claude" ] && echo yes || echo no))"; fi
 [ -f "$G/.claude/task-runner/.gitignore" ] && pass "state root ignores itself" || fail "no .claude/task-runner/.gitignore"
 
+# 6. --kind red: the recorded exit from a red-suite that predates the run, red-bg-<HEAD12>.json,
+# which candor's gate strips to the id bg-<HEAD12>.
+run_in "$G/sub" --kind red --id bg-0123456789ab --reason "test_login fails on the base commit too"
+if [ "$got" -eq 0 ] && [ ! -e "$G/sub/.claude" ] &&
+   jq -e '.kind=="red" and .id=="bg-0123456789ab" and .reduced==true' "$RD/red-bg-0123456789ab.json" >/dev/null 2>&1; then
+  pass "--kind red writes red-bg-<HEAD12>.json at the repo root"
+else fail "--kind red (rc=$got, err=$err)"; fi
+
 [ "$rc" -eq 0 ] && echo "All reduction-record fixtures passed."
 exit "$rc"

@@ -45,7 +45,8 @@ manifest_has() {
 emit() { printf '%s\n' "$*"; found=1; }
 
 # pkg_version <name> — "<version> <installed|lockfile|manifest>": node_modules, then package-lock.json, then package.json's
-# devDependencies or dependencies range. A config's meaning can depend on the major (TS 6's strict default, ESLint 9's eslintrc).
+# devDependencies or dependencies range, else (no jq, or jq cannot parse the file) the first "<name>": range it holds.
+# A config's meaning can depend on the major (TS 6's strict default, ESLint 9's eslintrc).
 pkg_version() {
   local v
   v=$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$root/node_modules/$1/package.json" 2>/dev/null | head -1 | sed -E 's/.*"([^"]*)"$/\1/')
@@ -54,16 +55,15 @@ pkg_version() {
     v=$(jq -r --arg k "node_modules/$1" '.packages[$k].version // empty' "$root/package-lock.json" 2>/dev/null)
     [ -n "$v" ] && { printf '%s lockfile\n' "$v"; return 0; }
   fi
-  if command -v jq >/dev/null 2>&1; then
-    v=$(jq -r --arg k "$1" '.devDependencies[$k] // .dependencies[$k] // empty' "$root/package.json" 2>/dev/null)
-  else
+  if ! { command -v jq >/dev/null 2>&1 \
+         && v=$(jq -r --arg k "$1" '.devDependencies[$k] // .dependencies[$k] // empty' "$root/package.json" 2>/dev/null); }; then
     v=$(grep -oE "\"$1\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "$root/package.json" 2>/dev/null | head -1 | sed -E 's/.*:[[:space:]]*"([^"]*)"/\1/')
   fi
   [ -n "$v" ] && { printf '%s manifest\n' "$v"; return 0; }
   return 1
 }
-# pkg_major <name> — the leading number of pkg_version's version, or nothing.
-pkg_major() { pkg_version "$1" | grep -oE '^[^0-9]*[0-9]+' | grep -oE '[0-9]+$'; }
+# pkg_major <pkg_version output> — the leading number of its version, or nothing.
+pkg_major() { printf '%s' "$1" | grep -oE '^[^0-9]*[0-9]+' | grep -oE '[0-9]+$'; }
 
 # ---------------------------------------------------------------- PHP
 if [ -f "$root/composer.json" ]; then
@@ -134,15 +134,15 @@ if [ -f "$root/package.json" ]; then
     printf '%s' "$ts_src" | grep -qE '"extends"[[:space:]]*:' \
       && printf 'strictness tsconfig extends present\n' && ts_ext=1
 
-    tsv=$(pkg_version typescript) && tsmaj=$(pkg_major typescript) \
-      && [ -n "$tsmaj" ] && printf 'strictness typescript major %s %s\n' "$tsmaj" "${tsv#* }"
-    strict_on=0
+    tsv=$(pkg_version typescript); tsmaj=$(pkg_major "$tsv")
+    [ -n "$tsmaj" ] && printf 'strictness typescript major %s %s\n' "$tsmaj" "${tsv#* }"
+    strict_on=0; strict_unres=0
     if printf '%s' "$ts_src" | grep -qE '"strict"[[:space:]]*:[[:space:]]*true'; then
       printf 'strictness tsconfig strict true\n'; strict_on=1
     elif printf '%s' "$ts_src" | grep -qE '"strict"[[:space:]]*:'; then
       printf 'strictness tsconfig strict false\n'
     elif [ "$ts_ext" -eq 1 ]; then
-      printf 'strictness tsconfig strict absent-via-extends-unresolved\n'
+      printf 'strictness tsconfig strict absent-via-extends-unresolved\n'; strict_unres=1
     elif [ "${tsmaj:-0}" -ge 6 ] 2>/dev/null; then
       printf 'strictness tsconfig strict absent-default-on\n'; strict_on=1
     else
@@ -165,6 +165,8 @@ if [ -f "$root/package.json" ]; then
         printf 'strictness tsconfig %s %s\n' "$k" "$v"
       elif [ "$strict_on" -eq 1 ]; then
         printf 'strictness tsconfig %s true-via-strict\n' "$k"
+      elif [ "$strict_unres" -eq 1 ]; then
+        printf 'strictness tsconfig %s unresolved-via-extends\n' "$k"
       else
         printf 'strictness tsconfig %s absent\n' "$k"
       fi
@@ -179,7 +181,7 @@ if [ -f "$root/package.json" ]; then
     printf '%s' "$ts_src" | grep -qE '"skipLibCheck"[[:space:]]*:[[:space:]]*true' \
       && printf 'strictness tsconfig skipLibCheck true\n'
   fi
-  if cfg=$(first_file eslint.config.js eslint.config.mjs eslint.config.cjs eslint.config.ts \
+  if cfg=$(first_file eslint.config.js eslint.config.mjs eslint.config.cjs eslint.config.ts eslint.config.mts eslint.config.cts \
                       .eslintrc.js .eslintrc.cjs .eslintrc.json .eslintrc.yml .eslintrc.yaml .eslintrc) \
      || manifest_has package.json '"eslintConfig"'; then
     cfg="${cfg:-package.json#eslintConfig}"
@@ -187,7 +189,7 @@ if [ -f "$root/package.json" ]; then
     emit "analyzer js eslint ${cfg} ${base} 'npx eslint .'"
     case "$cfg" in
       .eslintrc* | package.json#eslintConfig)
-        esmaj=$(pkg_major eslint)
+        esmaj=$(pkg_major "$(pkg_version eslint)")
         [ "${esmaj:-0}" -ge 9 ] 2>/dev/null && printf 'strictness eslint config eslintrc-not-loaded %s\n' "$esmaj" ;;
     esac
     # The single highest-value config gap in a React codebase: the rule that

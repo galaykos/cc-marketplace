@@ -260,7 +260,10 @@ jobs:
       - run: echo "${{ github.event.pages[0].page_name }}"'
 # 0.9.5: author-typed leaves GitHub's script-injection page names that neither leaf list carried.
 for leaf in 'commits[0].message' 'commits[0].author.name' 'commits[0].author.email' \
-            'pull_request.head.repo.default_branch' 'review_comment.body'; do
+            'pull_request.head.repo.default_branch' 'review_comment.body' \
+            'commits[0].committer.name' 'head_commit.committer.email' \
+            'workflow_run.head_branch' 'workflow_run.display_title' 'workflow_run.head_commit.message' \
+            'workflow_run.head_commit.author.email' 'workflow_run.head_commit.committer.name'; do
   audit_case "$leaf into a run: block is critical" 2 "on:
   push:
 permissions:
@@ -285,6 +288,16 @@ permissions:
   contents: read
 $GENERATED"
 hook_case "number, head.sha and commits[0].id are allowed" allow ".github/workflows/ci.yml" "$GENERATED"
+WR_GENERATED='jobs:
+  b:
+    steps:
+      - run: bash check.sh "${{ github.event.workflow_run.head_sha }}" "${{ github.event.workflow_run.id }}" "${{ github.event.workflow_run.head_commit.id }}"'
+audit_case "workflow_run head_sha, id and head_commit.id into a run: block are SAFE" 0 "on:
+  push:
+permissions:
+  contents: read
+$WR_GENERATED"
+hook_case "workflow_run head_sha, id and head_commit.id are allowed" allow ".github/workflows/ci.yml" "$WR_GENERATED"
 
 leaf_re() { sed -n 's/^[[:space:]]*inrun && \(\/.*\/\) {.*$/\1/p' "$1"; }
 g_re=$(leaf_re "$HOOK"); a_re=$(leaf_re "$AUDIT")

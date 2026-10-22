@@ -283,8 +283,9 @@ run_clause() {
         verdict="run"; return 0
       fi
     fi
-    # Of the red verdicts only no-behavioral-coverage may pass, beside this HEAD's coverage reduction, which the report must then name.
-    local bgdir="$root/.claude/task-runner/bg" bgv covred
+    # Of the red verdicts only no-behavioral-coverage and red-suite may pass, each beside this HEAD's own reduction
+    # (coverage-bg-<HEAD12>, red-bg-<HEAD12>), which the report must then name.
+    local bgdir="$root/.claude/task-runner/bg" bgv bgred fix
     if [ "$v" = "complete" ] && [ -d "$bgdir" ]; then
       if [ ! -r "$bgdir/bg-$head.json" ]; then
         run_msg=$(printf '[candor] completion-gate: %s recorded a gate pass for HEAD %s, but behavioral-gate.sh left no verdict record for it.\n  gate-pass.json is written by hand; bg/bg-<head>.json is written by the gate itself. Run scripts/behavioral-gate.sh against this HEAD, then stop.' "$slug" "${head:0:12}")
@@ -292,8 +293,9 @@ run_clause() {
       fi
       bgv=$(jq -r '.verdict // empty' "$bgdir/bg-$head.json" 2>/dev/null)
       case "$bgv" in covered | no-executable-surface | '') bgv="" ;; esac
-      covred="$root/.claude/task-runner/reductions/coverage-bg-${head:0:12}.json"
-      if [ "$bgv" = "no-behavioral-coverage" ] && [ -f "$covred" ] && [ "$covred" -nt "$sentinel" ]; then
+      case "$bgv" in no-behavioral-coverage) bgred=coverage ;; red-suite) bgred=red ;; *) bgred="" ;; esac
+      bgred=${bgred:+$root/.claude/task-runner/reductions/$bgred-bg-${head:0:12}.json}
+      if [ -n "$bgred" ] && [ -f "$bgred" ] && [ "$bgred" -nt "$sentinel" ]; then
         bgv=""
       fi
       if [ "$bgv" = "no-behavioral-coverage" ]; then
@@ -301,11 +303,18 @@ run_clause() {
         verdict="run"; return 0
       fi
       if [ "$bgv" = "red-suite" ]; then
-        run_msg=$(printf '[candor] completion-gate: behavioral-gate.sh reached "red-suite" for HEAD %s, and the run is reporting complete.\n  The tests ran and at least one failed. Fix the failing test(s), re-run the gate, then stop.' "${head:0:12}")
+        run_msg=$(printf '[candor] completion-gate: behavioral-gate.sh reached "red-suite" for HEAD %s, and the run is reporting complete.\n  The tests ran and at least one failed. Fix the failing test(s), re-run the gate, then stop — or, if those failures predate this run, record them. From the repo root run task-runner'"'"'s scripts/reduction-record.sh --kind red --id bg-%s --reason "<which tests fail and why they predate the run>", name bg-%s and that reason in the closing report, then stop.' "${head:0:12}" "${head:0:12}" "${head:0:12}")
         verdict="run"; return 0
       fi
       if [ -n "$bgv" ]; then
-        run_msg=$(printf '[candor] completion-gate: behavioral-gate.sh reached "%s" for HEAD %s, and the run is reporting complete.\n  A run may not close over a red or unverifiable behavioral gate. Fix the coverage, re-run the gate, then stop.' "$bgv" "${head:0:12}")
+        case "$bgv" in
+          empty-suite) fix='The suite ran zero tests. Add tests a runner here executes' ;;
+          unverifiable-suite) fix='The gate could not confirm a suite ran (a timeout, a missing runner, no count line). Fix the runner or the environment, or declare one with --runner or --runner-for' ;;
+          entrypoint-error) fix='A declared entrypoint crashed on --help. Fix it' ;;
+          dead-affordance) fix='A declared flag changed nothing. Wire it or drop the declaration' ;;
+          *) fix='A run may not close over a red or unverifiable behavioral gate. Fix what the gate reported' ;;
+        esac
+        run_msg=$(printf '[candor] completion-gate: behavioral-gate.sh reached "%s" for HEAD %s, and the run is reporting complete.\n  %s, re-run the gate, then stop.' "$bgv" "${head:0:12}" "$fix")
         verdict="run"; return 0
       fi
     fi

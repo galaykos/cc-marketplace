@@ -556,6 +556,43 @@ if command -v git >/dev/null 2>&1; then
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
   verdict_is "coverage: red-suite blocks and says to fix the failing tests, not the coverage" \
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "red-suite"' && printf '%s' "$err" | grep -qF 'at least one failed' && ! printf '%s' "$err" | grep -qF 'Fix the coverage'; echo $?)"
+  # A suite already red before the run has a recorded exit too, red-bg-<HEAD12>, and only for red-suite.
+  rm -f "$COVRED"; REDRED="$TRD/reductions/red-bg-$H12.json"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "red: without a red record the block names the fix and the recorded exit for failures that predate the run" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'Fix the failing test(s)' && printf '%s' "$err" | grep -qF 'predate this run' && printf '%s' "$err" | grep -qF "reduction-record.sh --kind red --id bg-$H12"; echo $?)"
+  if [ -r "$RS" ]; then
+    ( cd "$SUBD" && bash "$RS" --kind red --id "bg-$H12" --reason "test_login fails on the base commit too" ) >/dev/null 2>&1
+  else
+    mkdir -p "$TRD/reductions"; printf '{"kind":"red","id":"bg-%s","reduced":true,"reason":"x"}\n' "$H12" > "$REDRED"
+  fi
+  verdict_is "red: reduction-record.sh --kind red --id bg-<HEAD12> writes the file the gate reads" "$([ -f "$REDRED" ]; echo $?)"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$WS/rhide.jsonl")"
+  verdict_is "red: red-suite + a red record the closing report never names still blocks (disclosure)" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "never names" && printf '%s' "$err" | grep -qF "bg-$H12"; echo $?)"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "red: red-suite + a red record newer than the sentinel + a report naming it -> allow" \
+    "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  printf '{"head":"%s","verdict":"no-behavioral-coverage"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "red: a red record does not release no-behavioral-coverage" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "no-behavioral-coverage"'; echo $?)"
+  printf '{"head":"%s","verdict":"red-suite"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
+  touch -t 199901010000 "$REDRED"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "red: a red record older than the run's registration still blocks" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "red-suite"'; echo $?)"
+  rm -f "$REDRED"
+  # Each remaining non-covered verdict names its own repair; "Fix the coverage" fitted none of them.
+  for vr in 'empty-suite|The suite ran zero tests. Add tests a runner here executes' \
+            'unverifiable-suite|could not confirm a suite ran (a timeout, a missing runner, no count line). Fix the runner or the environment, or declare one with --runner or --runner-for' \
+            'entrypoint-error|A declared entrypoint crashed on --help. Fix it' \
+            'dead-affordance|A declared flag changed nothing. Wire it or drop the declaration'; do
+    printf '{"head":"%s","verdict":"%s"}' "$RHEAD" "${vr%%|*}" > "$TRD/bg/bg-$RHEAD.json"
+    clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+    verdict_is "remedy: ${vr%%|*} blocks with its own repair, not 'Fix the coverage'" \
+      "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "reached \"${vr%%|*}\"" && printf '%s' "$err" | grep -qF "${vr#*|}" && ! printf '%s' "$err" | grep -qF 'Fix the coverage'; echo $?)"
+  done
 else
   printf 'SKIP  0.5.0 state-root / in-flight / coverage cases (git not available)\n'
 fi

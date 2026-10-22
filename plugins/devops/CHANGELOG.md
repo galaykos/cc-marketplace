@@ -9,14 +9,30 @@ Consumer-facing changes only. Newest first.
   step as critical; the guard's own leaf list lacked it, so the edit went through. Standing:
   gate — `workflow-audit.test.sh` "gollum page_name into a run: block is denied, as the audit
   reports it", red against 0.9.4.
-- **Both halves catch five more author-typed fields.** `${{ github.event.commits[N].message }}`,
-  `commits[N].author.name`, `commits[N].author.email`, `pull_request.head.repo.default_branch`
-  and `review_comment.body` in a `run:` block are on GitHub's script-injection list; the guard
-  now denies them and the audit reports them critical, where both let them through.
-  GitHub-generated fields (`base.sha`, `head.sha`, `number`, `commits[N].id`) stay allowed. Not
-  matched: the `.*` filter spelling (`commits.*.message`). Standing: gate — `workflow-audit.test.sh`
-  "<field> into a run: block is denied" and "… is critical" for each of the five, red against
-  the old lists, and "number, head.sha and commits[0].id are allowed" / "… are SAFE".
+- **Both halves match more author-typed fields.** In a `run:` block the guard now denies, and
+  the audit reports critical, `${{ github.event.commits[N].message }}`,
+  `commits[N].author.(name|email)`, `commits[N].committer.(name|email)`,
+  `head_commit.committer.(name|email)`, `pull_request.head.repo.default_branch`,
+  `review_comment.body`, and from a `workflow_run` event `workflow_run.head_branch`,
+  `workflow_run.display_title` and `workflow_run.head_commit.(message|author.(name|email)|committer.(name|email))`;
+  both let them through before. GitHub-generated fields (`base.sha`, `head.sha`, `number`,
+  `commits[N].id`, `workflow_run.head_sha`, `workflow_run.id`, `workflow_run.head_commit.id`)
+  stay allowed. Standing: gate — `workflow-audit.test.sh` "<field> into a run: block is denied"
+  and "… is critical", red against the old lists, for `commits[0].message`,
+  `commits[0].author.name`, `commits[0].author.email`, `commits[0].committer.name`,
+  `head_commit.committer.email`, `pull_request.head.repo.default_branch`, `review_comment.body`,
+  `workflow_run.head_branch`, `workflow_run.display_title`, `workflow_run.head_commit.message`,
+  `workflow_run.head_commit.author.email` and `workflow_run.head_commit.committer.name`; and
+  "number, head.sha and commits[0].id are allowed" / "… are SAFE" and "workflow_run head_sha,
+  id and head_commit.id are allowed" / "… are SAFE".
+- **The lists name fields; GitHub's rule names suffixes.** GitHub's script-injection page says
+  untrusted contexts "typically end with" `body`, `default_branch`, `email`, `head_ref`,
+  `label`, `message`, `name`, `page_name`, `ref` and `title` (github/docs,
+  `content/actions/concepts/security/script-injections.md:17`). Both halves match only the
+  fields listed above and in earlier releases, so an author-typed field outside them (another
+  event's `…name` or `…ref`, say) passes the guard and draws no audit finding, as does the
+  `.*` filter spelling (`commits.*.message`). A clean result is not coverage of that page.
+  Standing: recorded — no case can enumerate the fields the lists do not name.
 - **The guard's and the audit's field lists cannot drift apart again.** Each script carries the
   regex by hand, and the page-name gap above was the two copies drifting. Standing: gate —
   `workflow-audit.test.sh` "the guard and the audit carry the same untrusted-leaf regex", seen

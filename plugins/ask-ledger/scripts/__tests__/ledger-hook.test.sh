@@ -107,6 +107,13 @@ check "13y a negation does not reach across 'and' to a wanted quoted name" "$(ru
 check "13z 'has no \"x\"' names the gap the ask fills, not an exclusion" "$(run 'the app has no "dark mode" toggle yet, add one' s13z)" "dark mode"
 check "13aa 'not only \"x\" but also \"y\"' asks for both" "$(run 'build not only "Stripe" but also "PayPal" checkout' s13aa)" "Stripe,PayPal"
 check "13ab a unit in capitals is not a name; 2D sprites still is" "$(run 'add a 10GB upload limit, wait 30Min, keep the 2D sprites' s13ab)" "2D sprites"
+check "13ac a lowercase multiplier is not a name" "$(run 'make the build 3x faster' s13ac)" ""
+check "13ad a capital letter after a digit is a name, not a unit" \
+  "$(run 'add 5S support, a 4X zoom and 4K video next to the 2D sprites' s13ad)" "5S support,4X zoom,4K video,2D sprites"
+check "13ae a capitalised mid word keeps the negation on its quoted term, and is no name itself" "$(run "build it, Don't Use \"Redux\"" s13ae)" ""
+check "13af 'there is no \"x\"' names the gap the ask fills" "$(run 'build a page, there is no "Logout" button yet, add one' s13af)" "Logout"
+check "13ag 'there's no' and 'there are no' name a gap too" \
+  "$(run "add a page, there's no \"Logout\" button and there are no \"Saved\" lists yet" s13ag)" "Logout,Saved"
 
 # --- 14-16 the existing-identifier filter (2026-09-22). A name the repo already carries
 #     is code to be REPAIRED, not a thing to be delivered; ledgering it made the Stop gate
