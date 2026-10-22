@@ -3,18 +3,12 @@
 # how to invoke them, what they suppress, and how strictly they are configured.
 # Usage: detect-analyzers.sh [project-root]   (default: .)
 #
-# WHY THIS EXISTS. rationale/stack-skill-baselines.md measured four
-# best-practice checklists for these same stacks at zero-to-negative delta
-# against a blind control: restating public documentation is what a model
-# already does. What a blind model has no route to is the project's OWN
-# configuration — which analyzer is authoritative, what its baseline already
-# forgives, and which rules are switched off. This script emits that, so an
-# expert agent grades against the project instead of against memory.
+# Why, limits, history: rationale/derivations/plugin-toolchain-experts.md § plugins/toolchain-experts/scripts/detect-analyzers.sh
 #
 # Output lines, one record per line, stable and greppable:
 #   analyzer  <lang> <tool> <config|-> <baseline|-> <invocation>
 #   formatter <lang> <tool> <config>            # reported, never graded
-#   strictness <tool> <key> <value>             # the config-gap evidence
+#   strictness <tool> <key> <value> [source]    # the config-gap evidence; `typescript major N` names where N was read
 #   ci <workflow> <tool>                        # tool named in a CI workflow
 #   none      <reason>
 #
@@ -49,6 +43,23 @@ manifest_has() {
 }
 
 emit() { printf '%s\n' "$*"; found=1; }
+
+# pkg_version <name> — "<version> <installed|lockfile|manifest>": node_modules first, then package-lock.json, then the
+# package.json range. A config's meaning can depend on the major (TS 6's strict default, ESLint 10's dropped eslintrc).
+pkg_version() {
+  local v
+  v=$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$root/node_modules/$1/package.json" 2>/dev/null | head -1 | sed -E 's/.*"([^"]*)"$/\1/')
+  [ -n "$v" ] && { printf '%s installed\n' "$v"; return 0; }
+  if [ -f "$root/package-lock.json" ] && command -v jq >/dev/null 2>&1; then
+    v=$(jq -r --arg k "node_modules/$1" '.packages[$k].version // empty' "$root/package-lock.json" 2>/dev/null)
+    [ -n "$v" ] && { printf '%s lockfile\n' "$v"; return 0; }
+  fi
+  v=$(grep -oE "\"$1\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "$root/package.json" 2>/dev/null | head -1 | sed -E 's/.*:[[:space:]]*"([^"]*)"/\1/')
+  [ -n "$v" ] && { printf '%s manifest\n' "$v"; return 0; }
+  return 1
+}
+# pkg_major <name> — the leading number of pkg_version's version, or nothing.
+pkg_major() { pkg_version "$1" | grep -oE '^[^0-9]*[0-9]+' | grep -oE '[0-9]+$'; }
 
 # ---------------------------------------------------------------- PHP
 if [ -f "$root/composer.json" ]; then
@@ -118,13 +129,23 @@ if [ -f "$root/package.json" ]; then
     printf '%s' "$ts_src" | grep -qE '"extends"[[:space:]]*:' \
       && printf 'strictness tsconfig extends present\n'
 
+    tsv=$(pkg_version typescript) && tsmaj=$(pkg_major typescript) \
+      && [ -n "$tsmaj" ] && printf 'strictness typescript major %s %s\n' "$tsmaj" "${tsv#* }"
     strict_on=0
     if printf '%s' "$ts_src" | grep -qE '"strict"[[:space:]]*:[[:space:]]*true'; then
       printf 'strictness tsconfig strict true\n'; strict_on=1
     elif printf '%s' "$ts_src" | grep -qE '"strict"[[:space:]]*:'; then
       printf 'strictness tsconfig strict false\n'
+    elif [ "${tsmaj:-0}" -ge 6 ] 2>/dev/null; then
+      printf 'strictness tsconfig strict absent-default-on\n'; strict_on=1
     else
       printf 'strictness tsconfig strict absent\n'
+    fi
+    # TypeScript 7 exports no compiler API; these consumers load the 6.x one.
+    if [ "${tsmaj:-0}" -ge 7 ] 2>/dev/null; then
+      for c in vue-tsc svelte-check astro typescript-eslint @typescript-eslint/parser; do
+        manifest_has package.json "\"$c\"" && printf 'strictness typescript 7-no-compiler-api %s\n' "$c"
+      done
     fi
 
     # Flags `strict: true` turns on implicitly. Reporting these as `absent`
@@ -155,8 +176,13 @@ if [ -f "$root/package.json" ]; then
                       .eslintrc.js .eslintrc.cjs .eslintrc.json .eslintrc.yml .eslintrc.yaml .eslintrc) \
      || manifest_has package.json '"eslintConfig"'; then
     cfg="${cfg:-package.json#eslintConfig}"
-    base=$(first_file .eslintcache) || base='-'
+    base=$(first_file eslint-suppressions.json) || base='-'
     emit "analyzer js eslint ${cfg} ${base} 'npx eslint .'"
+    case "$cfg" in
+      .eslintrc* | package.json#eslintConfig)
+        esmaj=$(pkg_major eslint)
+        [ "${esmaj:-0}" -ge 10 ] 2>/dev/null && printf 'strictness eslint config eslintrc-ignored-by-eslint-10\n' ;;
+    esac
     # The single highest-value config gap in a React codebase: the rule that
     # catches stale-closure and missing-dependency bugs is frequently present
     # but demoted to a warning, so CI stays green while the defect ships.
@@ -164,6 +190,8 @@ if [ -f "$root/package.json" ]; then
       if grep -qE 'exhaustive-deps' "$root/$cfg" 2>/dev/null; then
         sev=$(grep -oE 'exhaustive-deps"?[^,}]*' "$root/$cfg" 2>/dev/null | grep -oE '(error|warn|off)' | head -1)
         printf 'strictness eslint react-hooks/exhaustive-deps %s\n' "${sev:-unparsed}"
+      elif grep -qE "([Hh]ooks[A-Za-z]*\.configs(\.flat)?(\.|\[['\"])recommended|react-hooks/recommended)" "$root/$cfg" 2>/dev/null; then
+        printf 'strictness eslint react-hooks/exhaustive-deps warn-via-preset\n'
       fi
       grep -qE 'react-hooks' "$root/$cfg" 2>/dev/null && printf 'strictness eslint react-hooks-plugin present\n'
       # A typeless <button> inside a <form> submits it. Measured 2026-09-25: a "Try with …"

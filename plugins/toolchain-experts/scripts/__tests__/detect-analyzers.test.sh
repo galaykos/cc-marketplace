@@ -265,6 +265,45 @@ echo 'module.exports={};' > "$fmtck/.eslintrc.js"
 refute "the eslint invocation does not use the removed unix formatter" "$fmtck" "--format=unix"
 check "the eslint invocation is version-portable" "$fmtck" 0 "'npx eslint .'"
 
+# --- the installed major decides what a config means (2026-10-21) -----------
+# TypeScript 6 made an absent `strict` default to true (5.9.3 reads `!!strict`, 6.0.3
+# `strict !== false`); ESLint 10 removed the LegacyESLint that loaded .eslintrc*;
+# TypeScript 7 ships no compiler API (its "." export is lib/version.cjs), which
+# vue-tsc, svelte-check, astro check and typescript-eslint load.
+ts6="$tmp/ts6"; mkdir -p "$ts6/node_modules/typescript"
+echo '{"devDependencies":{"typescript":"^6"}}' > "$ts6/package.json"
+echo '{"version":"6.0.3"}' > "$ts6/node_modules/typescript/package.json"
+echo '{"compilerOptions":{"target":"es2022"}}' > "$ts6/tsconfig.json"
+check "TS 6: an absent strict is on, and its implied flags read true-via-strict" "$ts6" 0 \
+  "strictness typescript major 6 installed" "strictness tsconfig strict absent-default-on" \
+  "strictness tsconfig strictNullChecks true-via-strict"
+if run "$ts6" | grep -qx 'strictness tsconfig strict absent'; then
+  echo "FAIL TS 6: an absent strict is not reported as off"; fail=$((fail+1)); else pass=$((pass+1)); fi
+check "TS 5 from the manifest range: absent strict stays absent" "$ab" 0 "strictness tsconfig strict absent"
+es10="$tmp/es10"; mkdir -p "$es10"
+echo '{"devDependencies":{"eslint":"^10"}}' > "$es10/package.json"
+printf 'module.exports={rules:{}};\n' > "$es10/.eslintrc.js"
+check "ESLint 10 with only an .eslintrc: the config is reported dead" "$es10" 0 \
+  "strictness eslint config eslintrc-ignored-by-eslint-10"
+refute "ESLint 9 with an .eslintrc: no dead-config record" "$ts" "eslintrc-ignored"
+ts7="$tmp/ts7"; mkdir -p "$ts7"
+echo '{"devDependencies":{"typescript":"^7","vue-tsc":"^3","typescript-eslint":"^8"}}' > "$ts7/package.json"
+echo '{"compilerOptions":{"strict":true}}' > "$ts7/tsconfig.json"
+check "TS 7: each compiler-API consumer present is named" "$ts7" 0 \
+  "strictness typescript 7-no-compiler-api vue-tsc" "strictness typescript 7-no-compiler-api typescript-eslint"
+sup="$tmp/suppress"; mkdir -p "$sup"
+echo '{"devDependencies":{"eslint":"^9","eslint-plugin-react-hooks":"^7"}}' > "$sup/package.json"
+printf "import reactHooks from 'eslint-plugin-react-hooks';\nexport default [reactHooks.configs['recommended-latest']];\n" > "$sup/eslint.config.js"
+echo '{}' > "$sup/eslint-suppressions.json"; : > "$sup/.eslintcache"
+check "ESLint's suppressions file is the baseline" "$sup" 0 "analyzer js eslint eslint.config.js eslint-suppressions.json"
+refute "the lint cache is not a baseline" "$sup" "eslint.config.js .eslintcache"
+check "a react-hooks preset's exhaustive-deps severity is reported" "$sup" 0 \
+  "strictness eslint react-hooks/exhaustive-deps warn-via-preset"
+nohooks="$tmp/nohooks"; mkdir -p "$nohooks"
+echo '{"devDependencies":{"eslint":"^9"}}' > "$nohooks/package.json"
+printf "import js from '@eslint/js';\nexport default [js.configs.recommended];\n" > "$nohooks/eslint.config.js"
+refute "another plugin's recommended preset is not a react-hooks severity" "$nohooks" "exhaustive-deps"
+
 # --- usage ------------------------------------------------------------------
 out=$(bash "$DET" "$tmp/does-not-exist" 2>&1); rc=$?
 if [ "$rc" -eq 2 ] && grep -qF 'not a directory' <<<"$out"; then

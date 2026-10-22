@@ -31,9 +31,15 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
 Strictness is the deliverable. A type checker's silence means nothing until the
 reader knows what it was configured to look at:
 
-- **`strict: false` or absent.** `strictNullChecks` is off with it, so every
-  possibly-null dereference in the diff passes the build. This is the single most
-  consequential fact you can report and it is invisible without reading the config.
+- **`strict: false`, or absent below TypeScript 6.** `strictNullChecks` is off with
+  it, so every possibly-null dereference in the diff passes the build. This is the
+  single most consequential fact you can report and it is invisible without reading
+  the config. From TypeScript 6 an absent `strict` is on: the detector prints
+  `strict absent-default-on` and the implied flags `true-via-strict`.
+- **`typescript 7-no-compiler-api <tool>`.** TypeScript 7 ships no compiler API, and
+  that tool loads one: report it unrunnable on this install, never as a green check.
+- **`eslint config eslintrc-ignored-by-eslint-10`.** ESLint 10 does not read
+  `.eslintrc*`: the project's lint rules are not running. That is the finding.
 - **`noUncheckedIndexedAccess: false`** — the default. Every `arr[i]` and
   `record[key]` is typed as present when it may be undefined. Name the specific
   indexed accesses in the diff this covers for.
@@ -44,8 +50,8 @@ reader knows what it was configured to look at:
   both and quote the bare ones.
 - **`any` and `as` in the diff.** An assertion defeats the checker at exactly the
   point the author was least sure. Report each with the type it overrides.
-- **Excluded paths.** Files matched by `exclude` or `.eslintignore` were never
-  checked. A green run over an ignored file is not evidence.
+- **Excluded paths.** Files matched by `exclude`, an ESLint `ignores` entry, or
+  `.eslintignore` (eslintrc configs) were never checked. A green run over an ignored file is not evidence.
 
 ## Defer rules
 

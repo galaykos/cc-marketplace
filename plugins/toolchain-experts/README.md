@@ -54,7 +54,11 @@ One skill, `analyzer-triage`, carries the step order all five follow. One script
 
 Emits one greppable record per line — `analyzer`, `formatter`, `strictness`, `ci`,
 `none` — naming each configured tool, its config path, its baseline, its exact
-invocation, and which CI workflow actually runs it.
+invocation, and which CI workflow actually runs it. Where a config's meaning depends on
+the installed major — an absent `strict` is on from TypeScript 6, ESLint 10 ignores
+`.eslintrc*`, TypeScript 7 has no compiler API for vue-tsc, svelte-check, astro check or
+typescript-eslint — it reads the version from `node_modules`, then `package-lock.json`, then
+the `package.json` range, and says which. Residual: pnpm and yarn lockfiles are not read.
 
 **Exit 1 means no analyzer is configured**, and that exit code is the point: it stops
 an agent from falling back on a remembered checklist, which is the measured-negative
