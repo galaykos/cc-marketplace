@@ -53,9 +53,9 @@ context-scout and delegation-contracts readers use the map as an **orientation
 prior** — they verify touched areas with their own greps and trust the code over a
 stale map — and git-workflow's branch-finish offers `/brain index` when the stamp is
 behind the merged result. The session-start no-map nudge only appears in repos with
-≥200 tracked files, where a map actually pays, and since 0.4.5 only on a fresh startup —
-not on resume, `/clear` or compaction; the staleness hint for an existing map carries no
-size gate.
+≥200 tracked files, where a map actually pays, and since 0.4.6 only on the first startup
+in each project — not again in later sessions, and never on resume, `/clear` or
+compaction; the staleness hint for an existing map carries no size gate.
 
 Small drift **self-heals**: when ≤5 files changed since the `built:` stamp, the
 session-start hint instructs Claude to run the incremental `/brain index` refresh
@@ -141,13 +141,13 @@ is delimited and labeled as project data.
 ## Disabling
 
 `brain` is opt-in by install. Until you build a map with `/brain index`, the only thing
-it does is emit a **single one-line hint** at session start — `ℹ brain: no map for this
-project yet — run /brain index to create one.` — so an enabled-but-unused install is not
-silently forgotten. The `SessionStart` hook is fail-open (any error → silent exit, never
-blocks a session) and writes nothing.
-
-If you have `brain` enabled in a repo where you never intend to build a map and don't want
-even that hint, disable the plugin locally (below).
+it does is emit a **single one-line hint**, once per project, on the first session start —
+`ℹ brain: no map for this project yet — run /brain index to create one. (Shown once per
+project.)` — so an enabled-but-unused install is not silently forgotten. The `SessionStart`
+hook is fail-open (any error → silent exit, never blocks a session). Its only write is that
+once-per-project marker, in the plugin's data directory (`CLAUDE_PLUGIN_DATA`), or in
+`<repo>/.claude/brain/` where the host sets none; if the marker cannot be written, the hint
+repeats next session.
 
 To turn it off:
 

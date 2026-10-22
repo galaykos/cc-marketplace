@@ -1,15 +1,10 @@
 #!/bin/bash
 # Absolute-path shebang (not `/usr/bin/env bash`): the fail-open guarantee must hold
 # even under a stripped/broken PATH.
-# SessionStart primer for the `brain` plugin. Injects the committed codebase map
-# (brain/INDEX.md), delimited and labeled as project data and bounded to ~30 lines /
-# ~2 KB, with a one-line staleness hint when the map predates the current commit.
-# Fail-open: any error exits silently and emits nothing.
-# Reads at the project root (state-root block below), not the payload cwd: the cwd
-# follows the model's `cd` (finding 2, rationale/2026-09-25-session-plugin-usage-
-# review.md), so a compaction's SessionStart after `cd app/Models` would look for
-# app/Models/brain/INDEX.md, find none, and size-gate the nudge on that directory's
-# files alone (`git ls-files` is cwd-relative).
+# SessionStart: injects brain/INDEX.md (≤30 lines / 2 KB, labelled project data) with a staleness hint; with no map, a one-line nudge
+#   on a project's first startup only (≥200 tracked files), recorded by a marker in the plugin's data dir. Fail-open.
+# Misses: a failed marker write repeats the nudge next session; a project moved to a new path is a new project.
+# Why, limits, history: rationale/derivations/plugin-brain.md § plugins/brain/hooks/inject.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
@@ -29,6 +24,24 @@ cc_state_root() {
   printf '%s\n' "$1"
 }
 
+# Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
+# cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
+# Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
+cc_plugin_state() {
+  local key sum
+  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+    key=$(printf '%s' "$(basename -- "$1")" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-')
+    sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
+    printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
+  else
+    printf '%s/.claude/%s\n' "$1" "$2"
+  fi
+  return 0
+}
+
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -38,13 +51,8 @@ cc_state_root() {
   root=$(cc_state_root "$cwd") || exit 0
 
   index="$root/brain/INDEX.md"
-  # Discoverability nudge: plugin enabled but no map yet → emit one short hint so it is
-  # not silently forgettable. This is the plugin talking (not project data), so it is NOT
-  # inside the fenced block. The nudge stops for good the moment a map exists. Still a pure
-  # read — no state written.
-  # Only on a `startup` SessionStart: the hook has no matcher, so every resume, clear and
-  # compaction reprinted the nudge, up to ten times in one real session (measured 2026-10-13). A
-  # payload with no `source` counts as startup. Residual: each new session still prints it.
+  # No map: the plugin talking, outside the project-data fence, once per project on a startup.
+  # Why, limits, history: rationale/derivations/plugin-brain.md § The no-map nudge
   if [ ! -f "$index" ] || [ ! -s "$index" ]; then
     [ "$(printf '%s' "$input" | jq -r '.source // "startup"' 2>/dev/null)" = startup ] || exit 0
     # Size-gate the nudge: a map only pays in repos with real surface area. Small
@@ -54,7 +62,10 @@ cc_state_root() {
       nfiles=$(git -C "$root" ls-files 2>/dev/null | wc -l | tr -d ' ') || nfiles=0
       [ "${nfiles:-0}" -ge 200 ] || exit 0
     fi
-    printf '%s\n' "ℹ brain: no map for this project yet — run /brain index to create one."
+    seen="$(cc_plugin_state "$root" brain)/nudged"
+    [ -e "$seen" ] && exit 0
+    mkdir -p "${seen%/*}" 2>/dev/null && : > "$seen" 2>/dev/null
+    printf '%s\n' "ℹ brain: no map for this project yet — run /brain index to create one. (Shown once per project.)"
     exit 0
   fi
 

@@ -4,7 +4,7 @@
 # brain/ (the map's own commit) → no hint; ≤5 files changed outside brain/ → the "refresh
 # now" imperative with a count; more → the passive offer; an active task-runner run →
 # the passive offer; an unreachable `built:` hash → the passive offer with no count;
-# malformed payload → silent exit 0; no map → the nudge on startup only, never on compact/resume.
+# malformed payload → silent exit 0; no map → the nudge on a project's first startup only, never on compact/resume.
 set -u
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 HOOK="$ROOT/plugins/brain/hooks/inject.sh"
@@ -47,14 +47,20 @@ check "6 an unreachable built hash is the offer with no count" "$(hint)" "⚠ br
 out=$(printf 'not json' | bash "$HOOK" 2>/dev/null; echo "rc=$?")
 check "7 malformed payload fails open" "$out" "rc=0"
 
-# The no-map nudge prints on startup only; resume, clear and compaction reprinted it before.
-NOMAP="$TMP/nomap"; mkdir -p "$NOMAP"
-git -C "$NOMAP" init -q; for i in $(seq 1 200); do : > "$NOMAP/s$i.txt"; done; git -C "$NOMAP" add -A
-nudge() { jq -n --arg c "$NOMAP" --arg s "$1" '{hook_event_name:"SessionStart",cwd:$c} + (if $s == "" then {} else {source:$s} end)' \
+# The no-map nudge prints on the first startup in a project only: resume, clear and compaction
+# reprinted it before 0.4.5, and every new session did before 0.4.6 (45 fires, 0 maps, 2026-10-21).
+export CLAUDE_PLUGIN_DATA="$TMP/plugin-data"
+mkrepo() { mkdir -p "$1"; git -C "$1" init -q; for i in $(seq 1 200); do : > "$1/s$i.txt"; done; git -C "$1" add -A; }
+nudge() { # $1 source ("" = none), $2 repo
+  jq -n --arg c "$2" --arg s "$1" '{hook_event_name:"SessionStart",cwd:$c} + (if $s == "" then {} else {source:$s} end)' \
   | env -u CLAUDE_PROJECT_DIR bash "$HOOK" 2>/dev/null | grep -c 'no map for this project yet'; }
-check "8 startup prints the no-map nudge" "$(nudge startup)" "1"
-check "9 a payload with no source counts as startup" "$(nudge '')" "1"
-check "10 compact is silent" "$(nudge compact)" "0"
-check "11 resume is silent" "$(nudge resume)" "0"
+NOMAP="$TMP/nomap"; mkrepo "$NOMAP"
+check "10 compact is silent" "$(nudge compact "$NOMAP")" "0"
+check "11 resume is silent" "$(nudge resume "$NOMAP")" "0"
+check "8 the first startup in a project prints the no-map nudge" "$(nudge startup "$NOMAP")" "1"
+check "12 the second startup in the same project is silent" "$(nudge startup "$NOMAP")" "0"
+check "13 the once-per-project marker is on disk" "$(find "$CLAUDE_PLUGIN_DATA" -name nudged -type f | grep -c .)" "1"
+NOMAP2="$TMP/nomap2"; mkrepo "$NOMAP2"
+check "9 a payload with no source counts as startup, in another project" "$(nudge '' "$NOMAP2")" "1"
 
 exit "$rc"
