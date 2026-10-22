@@ -226,7 +226,7 @@ real forks, merging, and remembering a correction. The plugins mirror this. They
 on reminders the model learns to dismiss, and have no mechanism for the two failures that
 cost most. S3 is the right default size; S1's size should need the user to ask for it.
 
-## Plan — draft for decision; nothing below is applied
+## Plan — approved 2026-10-21 ("proceed with everything - step by step"); one stacked PR per wave
 
 Execution rule (from finding 1): one wave at a time, ≤3 crews, a whole-range review before
 the next wave. Each relay carries every NOT-DONE and residual line verbatim. Each behaviour
@@ -238,7 +238,7 @@ on the old hook and pass on the new one.
 | # | change | plugin | evidence |
 |---|---|---|---|
 | W1.1 | negation skip for quoted spans; drop ordinal and unit tokens; whole-word existence check (was P4) | ask-ledger | finding 10; `ledger.sh:209-253` |
-| W1.2 | delete the no-map nudge or make it opt-in | brain | 45 fires, 0 maps |
+| W1.2 | the no-map line prints once per project (marker), then never again (owner pick) | brain | 45 fires, 0 maps |
 | W1.3 | exempt `index_path` from the scope lock | task-runner | 61/77 fires |
 | W1.4 | a non-unique suffix is undecidable | candor `cite.sh` | blocked a correct citation |
 | W1.5 | `NAME=value <prose>` is not commented-out code | code-review `scan.sh` | measured false deny |
@@ -267,7 +267,11 @@ only, and other installers are unmeasured.**
 - code-architecture: route work-verification; cut domain-modeling, system-design and
   yagni-check.
 - taskmaster: shrink ultra.
-- candor: retire straight-talk; split out the terse subsystem.
+- candor: retire straight-talk. The terse subsystem STAYS (owner pick). Why it was never
+  used: it defaults `off`; the owner gets brevity from the built-in `outputStyle: Concise`;
+  across every project's prompts nobody typed a brevity phrase (0 matches); and `mode.sh`
+  switches only on "terse mode on" / "enable terse" / `/candor:level`, not on the "be
+  brief" its skill description advertises.
 - api-design: cut graphql-grpc.
 - devops: cut compose-init.
 - web-dev: add a Laravel/Inertia Vite section.
@@ -285,7 +289,11 @@ only, and other installers are unmeasured.**
   - P8 CONFIRMED only when reproduced this session.
   - New: split and read big content in full, or name what was not read.
   - New: at a fork the user has not answered, ask; do not "go with my defaults".
-- **Footprint.** Merge PR #213, then run `--sync` live in one work project. It was never
-  run through the host, and it is the off-ramp from 32 plugins everywhere.
+  - New (owner, 2026-10-21): do not read, run or write in another project (e.g. the work
+    repos) unless asked or permitted; `/tmp` is fine. This session broke it: it read work
+    projects' settings and package.json, and two readers ran a detector inside them.
+  - Applied 2026-10-21 as six memory files, including `relay-caveats` beyond the four planned.
+- **Footprint.** Merge PR #213. The live `--sync` test is SKIPPED by the owner, so `--sync`
+  stays never run through the host.
 - **Withdrawn:** P5 as first framed (suppressing review-debt after fix waves). Skipped by
   the owner: P1–P3.
