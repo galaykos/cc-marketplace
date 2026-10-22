@@ -3,6 +3,19 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.33.2 — 2026-10-22
+
+- **A constraint comment that opens with `NAME=value` is no longer denied as commented-out
+  code.** `# MAX_RETRIES=5 is what the upstream API tolerates before it bans the key.` — the
+  external-constraint shape `comment-discipline` says to keep — matched the assignment test and
+  was refused before the write (measured in the 2026-10-21 plugin review). An assignment
+  followed, after its value, by three or more lowercase words now reads as a sentence; a
+  commented-out `total = total + item.price` is still denied. Standing: gate —
+  `comment-discipline-hook-tests.sh` "PreToolUse does NOT deny a constraint comment that opens
+  with NAME=value", red against 0.33.1, and "PreToolUse still denies a commented-out
+  assignment". Residual: a commented-out Python conditional expression (`x = a if the user is
+  admin else b`) now reads as prose and is not denied.
+
 ## 0.33.1 — 2026-10-15
 
 - **`Checked:` names the level and finding limit the host's `code-review` ran at.** The built-in reuses the effort level you last typed (since Claude Code 2.1.223) and keeps a typed `--max-findings` (since 2.1.288) until `--max-findings default`, so a `/code-review low --max-findings 3` from last week silently sized the generic pass of `/code-review:review`. The command still passes neither, on purpose: the saved choice is yours, and this command has no level argument to replace it with. What changed is that `Checked:` now reads `host built-in (level high, limit 10)`, or `(level and limit inherited)` when the built-in names neither; type `/code-review <level>` or `--max-findings default` to change what it inherits. Passing a value from here would not have overwritten your choice: on 2.1.300 the host saves both only from a typed `/code-review`, never from a Skill-tool call (read from the CLI bundle, not run). On 2.1.223–2.1.287 only the level is saved and the limit is the built-in's default. Standing: recorded — nothing reads a review's output back.
