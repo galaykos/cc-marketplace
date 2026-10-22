@@ -2,6 +2,18 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.9.1 — 2026-10-22
+
+- **A path suffix several files share no longer blocks a correct citation.** The lookup took
+  whichever file `find` listed first for a suffix such as `hooks/hooks.json` (112 under the
+  gate's 8-deep search of this repo, 26 in `plugins/`), so a correct `hooks/hooks.json:33` was blocked against a shorter sibling, and short
+  `README.md`/`SKILL.md` citations were checked against unrelated files (2026-10-21). A
+  suffix two to eight files share now resolves if any of them holds the line, blocks only
+  when all are too short, and is undecidable past eight. Standing: gate — `gate.test.sh`
+  "a suffix shared by two files resolves … (layout 1)", red against 0.9.0, and "… every
+  match is too short for still blocks". Residual: a wrong line in a file that shares its
+  suffix with a longer one passes.
+
 ## 0.9.0 — 2026-10-15
 
 ### Changed

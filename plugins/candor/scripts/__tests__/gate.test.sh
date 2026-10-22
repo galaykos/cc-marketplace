@@ -124,6 +124,26 @@ T="$WS/c20.jsonl"; { user "where"; asst "The admin panel runs on shop.localhost:
 check "a .localhost / .test host:port is not a citation" "" "$T" 0 "__NONE__"
 T="$WS/c21.jsonl"; { user "where"; asst "The handler is in Invented.php:12."; } > "$T"
 check "an invented basename still blocks beside a vendor/ tree" "" "$T" 2 "no file named Invented.php found under"
+
+# A path suffix several files share took whichever `find` listed first, so a correct hooks/hooks.json:33 was blocked against a
+#   shorter sibling (2026-10-21). The same two paths with their contents swapped: a first-pick blocks in one layout either way.
+sfx() { # <layout 1|2> <long-lines> <short-lines> -> rc and stderr of the gate on "hooks/hooks.json:33"
+  local R="$WS/suffix$1-$2-$3" a b
+  mkdir -p "$R/a/hooks" "$R/b/hooks"; a="$R/a/hooks/hooks.json"; b="$R/b/hooks/hooks.json"
+  [ "$1" = 2 ] && { a="$R/b/hooks/hooks.json"; b="$R/a/hooks/hooks.json"; }
+  printf 'l\n%.0s' $(seq "$2") > "$a"; printf 'l\n%.0s' $(seq "$3") > "$b"
+  { user "where"; asst "The matcher is at hooks/hooks.json:33."; } > "$R/t.jsonl"
+  jq -cn --arg tp "$R/t.jsonl" --arg cwd "$R" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:false}' | bash "$HOOK" 2>&1 >/dev/null
+  printf 'rc=%s' "$?"
+}
+for lay in 1 2; do
+  out=$(sfx "$lay" 40 10)
+  if [ "${out##*rc=}" = 0 ]; then pass=$((pass+1)); printf 'PASS  a suffix shared by two files resolves when either holds the line (layout %s)\n' "$lay"
+  else fail=$((fail+1)); printf 'FAIL  a suffix shared by two files resolves when either holds the line (layout %s): %s\n' "$lay" "$out"; fi
+done
+out=$(sfx 1 10 12)
+case "$out" in *"$CITE_SUB"*"rc=2") pass=$((pass+1)); printf 'PASS  a shared suffix every match is too short for still blocks\n' ;;
+  *) fail=$((fail+1)); printf 'FAIL  a shared suffix every match is too short for still blocks: %s\n' "$out" ;; esac
 # The lookup is sourced from hooks/cite.sh: without it the citation clause stands down, the gate still exits 0.
 mkdir -p "$WS/lone"; cp "$HOOK" "$WS/lone/gate.sh"
 rm -f "$MARKER" "$CLAIMED"; err=$(payload "$T" | bash "$WS/lone/gate.sh" 2>&1 >/dev/null); rc=$?
