@@ -102,10 +102,12 @@ files the model has not seen. The `strictness` records from step 1 are the evide
 - `strictness tsconfig strict false` or `strict absent` — every null-safety and
   implicit-any defect in the diff is invisible to the type checker. Findings the
   reader believes are covered are not. `strict absent-default-on` (TypeScript 6+)
-  is on, not a gap.
+  is on, not a gap. `strict absent-via-extends-unresolved` is neither until the
+  base config, or `npx tsc --showConfig`, says which.
 - `strictness typescript 7-no-compiler-api <tool>` or `strictness eslint config
-  eslintrc-ignored-by-eslint-10` — the checker cannot run as configured on this
-  install. Report it as a gap, never as a clean run.
+  eslintrc-not-loaded <major>` — the checker cannot run as configured on this
+  install (ESLint 9 loads `.eslintrc*` only under `ESLINT_USE_FLAT_CONFIG=false`).
+  Report it as a gap, never as a clean run.
 - `strictness phpstan level N` — levels are cumulative; a level-5 run does not check
   what level 6+ checks. Name the bug class the configured level cannot reach rather
   than the level number alone.

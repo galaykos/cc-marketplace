@@ -300,6 +300,10 @@ run_clause() {
         run_msg=$(printf '[candor] completion-gate: behavioral-gate.sh reached "no-behavioral-coverage" for HEAD %s, and the run is reporting complete.\n  No test in this project exercises the changed files. Add tests a runner here executes, re-run the gate, then stop — or, if that coverage is out of this run'"'"'s scope, record the gap honestly. From the repo root run task-runner'"'"'s scripts/reduction-record.sh --kind coverage --id bg-%s --reason "<which files no runner covers, and why>", name bg-%s and that reason in the closing report, then stop.' "${head:0:12}" "${head:0:12}" "${head:0:12}")
         verdict="run"; return 0
       fi
+      if [ "$bgv" = "red-suite" ]; then
+        run_msg=$(printf '[candor] completion-gate: behavioral-gate.sh reached "red-suite" for HEAD %s, and the run is reporting complete.\n  The tests ran and at least one failed. Fix the failing test(s), re-run the gate, then stop.' "${head:0:12}")
+        verdict="run"; return 0
+      fi
       if [ -n "$bgv" ]; then
         run_msg=$(printf '[candor] completion-gate: behavioral-gate.sh reached "%s" for HEAD %s, and the run is reporting complete.\n  A run may not close over a red or unverifiable behavioral gate. Fix the coverage, re-run the gate, then stop.' "$bgv" "${head:0:12}")
         verdict="run"; return 0

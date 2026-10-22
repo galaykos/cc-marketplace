@@ -44,8 +44,8 @@ manifest_has() {
 
 emit() { printf '%s\n' "$*"; found=1; }
 
-# pkg_version <name> — "<version> <installed|lockfile|manifest>": node_modules first, then package-lock.json, then the
-# package.json range. A config's meaning can depend on the major (TS 6's strict default, ESLint 10's dropped eslintrc).
+# pkg_version <name> — "<version> <installed|lockfile|manifest>": node_modules, then package-lock.json, then package.json's
+# devDependencies or dependencies range. A config's meaning can depend on the major (TS 6's strict default, ESLint 9's eslintrc).
 pkg_version() {
   local v
   v=$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$root/node_modules/$1/package.json" 2>/dev/null | head -1 | sed -E 's/.*"([^"]*)"$/\1/')
@@ -54,7 +54,11 @@ pkg_version() {
     v=$(jq -r --arg k "node_modules/$1" '.packages[$k].version // empty' "$root/package-lock.json" 2>/dev/null)
     [ -n "$v" ] && { printf '%s lockfile\n' "$v"; return 0; }
   fi
-  v=$(grep -oE "\"$1\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "$root/package.json" 2>/dev/null | head -1 | sed -E 's/.*:[[:space:]]*"([^"]*)"/\1/')
+  if command -v jq >/dev/null 2>&1; then
+    v=$(jq -r --arg k "$1" '.devDependencies[$k] // .dependencies[$k] // empty' "$root/package.json" 2>/dev/null)
+  else
+    v=$(grep -oE "\"$1\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "$root/package.json" 2>/dev/null | head -1 | sed -E 's/.*:[[:space:]]*"([^"]*)"/\1/')
+  fi
   [ -n "$v" ] && { printf '%s manifest\n' "$v"; return 0; }
   return 1
 }
@@ -126,8 +130,9 @@ if [ -f "$root/package.json" ]; then
     ts_src=$(sed -e 's#^[[:space:]]*//.*##' -e 's#/\*[^*]*\*/##g' "$root/$cfg" 2>/dev/null)
 
     # `extends` means flags can arrive from a base config this grep never opens.
+    ts_ext=0
     printf '%s' "$ts_src" | grep -qE '"extends"[[:space:]]*:' \
-      && printf 'strictness tsconfig extends present\n'
+      && printf 'strictness tsconfig extends present\n' && ts_ext=1
 
     tsv=$(pkg_version typescript) && tsmaj=$(pkg_major typescript) \
       && [ -n "$tsmaj" ] && printf 'strictness typescript major %s %s\n' "$tsmaj" "${tsv#* }"
@@ -136,6 +141,8 @@ if [ -f "$root/package.json" ]; then
       printf 'strictness tsconfig strict true\n'; strict_on=1
     elif printf '%s' "$ts_src" | grep -qE '"strict"[[:space:]]*:'; then
       printf 'strictness tsconfig strict false\n'
+    elif [ "$ts_ext" -eq 1 ]; then
+      printf 'strictness tsconfig strict absent-via-extends-unresolved\n'
     elif [ "${tsmaj:-0}" -ge 6 ] 2>/dev/null; then
       printf 'strictness tsconfig strict absent-default-on\n'; strict_on=1
     else
@@ -181,7 +188,7 @@ if [ -f "$root/package.json" ]; then
     case "$cfg" in
       .eslintrc* | package.json#eslintConfig)
         esmaj=$(pkg_major eslint)
-        [ "${esmaj:-0}" -ge 10 ] 2>/dev/null && printf 'strictness eslint config eslintrc-ignored-by-eslint-10\n' ;;
+        [ "${esmaj:-0}" -ge 9 ] 2>/dev/null && printf 'strictness eslint config eslintrc-not-loaded %s\n' "$esmaj" ;;
     esac
     # The single highest-value config gap in a React codebase: the rule that
     # catches stale-closure and missing-dependency bugs is frequently present

@@ -552,6 +552,10 @@ if command -v git >/dev/null 2>&1; then
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
   verdict_is "coverage: empty-suite plus a coverage reduction still blocks" \
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "empty-suite"'; echo $?)"
+  printf '{"head":"%s","verdict":"red-suite"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "coverage: red-suite blocks and says to fix the failing tests, not the coverage" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "red-suite"' && printf '%s' "$err" | grep -qF 'at least one failed' && ! printf '%s' "$err" | grep -qF 'Fix the coverage'; echo $?)"
 else
   printf 'SKIP  0.5.0 state-root / in-flight / coverage cases (git not available)\n'
 fi

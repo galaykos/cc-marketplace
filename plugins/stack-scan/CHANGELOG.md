@@ -4,6 +4,13 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.12.6 — 2026-10-22
+
+- **The scout catalog carries brain's corrected description.** brain 0.4.6 writes a
+  once-per-project marker, so its listing no longer says nothing outside `brain/` is modified;
+  `references/catalog.md` is regenerated from `marketplace.json` to match. Standing: gate —
+  `generate.sh --check` fails on catalog drift.
+
 ## 0.12.5 — 2026-10-15
 
 - plugin-scout no longer tells you the official directory's `code-review` plugin and this marketplace's can coexist. Both are named `code-review`, and Claude Code runs the hooks of only the first one it loads: the other's `hooks.json` hooks and hooks module stay off, and `/plugin` notes it from 2.1.296. If ours is the one left out, you lose the review offer, the review-debt nudge and the commented-out-code guard. Pick one. Standing: recorded — the exclusion list is curated by hand.

@@ -2,7 +2,7 @@
 # Absolute-path shebang (not `/usr/bin/env bash`): the fail-open guarantee must hold
 # even under a stripped/broken PATH.
 # SessionStart: injects brain/INDEX.md (≤30 lines / 2 KB, labelled project data) with a staleness hint; with no map, a one-line nudge
-#   on a project's first startup only (≥200 tracked files), recorded by a marker in the plugin's data dir. Fail-open.
+#   on a project's first startup only (≥200 tracked files), recorded by a marker in the data dir, else a self-ignored .claude/brain/. Fail-open.
 # Misses: a failed marker write repeats the nudge next session; a project moved to a new path is a new project.
 # Why, limits, history: rationale/derivations/plugin-brain.md § plugins/brain/hooks/inject.sh
 
@@ -55,6 +55,8 @@ cc_plugin_state() {
   # Why, limits, history: rationale/derivations/plugin-brain.md § The no-map nudge
   if [ ! -f "$index" ] || [ ! -s "$index" ]; then
     [ "$(printf '%s' "$input" | jq -r '.source // "startup"' 2>/dev/null)" = startup ] || exit 0
+    seen="$(cc_plugin_state "$root" brain)/nudged"
+    [ -e "$seen" ] && exit 0
     # Size-gate the nudge: a map only pays in repos with real surface area. Small
     # repos (<200 tracked source-ish files) never see the hint. Fast index read,
     # fail-open like everything else here.
@@ -62,9 +64,7 @@ cc_plugin_state() {
       nfiles=$(git -C "$root" ls-files 2>/dev/null | wc -l | tr -d ' ') || nfiles=0
       [ "${nfiles:-0}" -ge 200 ] || exit 0
     fi
-    seen="$(cc_plugin_state "$root" brain)/nudged"
-    [ -e "$seen" ] && exit 0
-    mkdir -p "${seen%/*}" 2>/dev/null && : > "$seen" 2>/dev/null
+    mkdir -p "${seen%/*}" 2>/dev/null && { [ -e "${seen%/*}/.gitignore" ] || printf '*\n' > "${seen%/*}/.gitignore"; : > "$seen"; } 2>/dev/null
     printf '%s\n' "ℹ brain: no map for this project yet — run /brain index to create one. (Shown once per project.)"
     exit 0
   fi
@@ -75,7 +75,7 @@ cc_plugin_state() {
   # Small drift (≤5 changed files) self-heals: the hint instructs the MODEL to run the
   # incremental index right away — auto from the user's seat. Larger drift stays an
   # explicit offer (a big reindex spends real tokens; the user decides). The hook itself
-  # still writes nothing — the model performs the refresh, visibly, in the session.
+  # never writes the map — the model performs the refresh, visibly, in the session.
   built=$(head -1 "$index" | grep -oE 'built: [0-9a-f]+' | awk '{print $2}')
   hint=""; built_current=""
   if [ -n "$built" ] && command -v git >/dev/null 2>&1; then

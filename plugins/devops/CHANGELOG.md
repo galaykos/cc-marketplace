@@ -6,12 +6,28 @@ Consumer-facing changes only. Newest first.
 
 - **The workflow guard denies a wiki page name in a `run:` block.** `workflow-audit.sh` already
   reported `${{ github.event.pages[N].page_name }}` (a `gollum` event, author-typed) in a shell
-  step as critical; the guard's own leaf list lacked it, so the edit went through. Pinned by
-  `workflow-audit.test.sh` "gollum page_name into a run: block is denied …", red against 0.9.4.
+  step as critical; the guard's own leaf list lacked it, so the edit went through. Standing:
+  gate — `workflow-audit.test.sh` "gollum page_name into a run: block is denied, as the audit
+  reports it", red against 0.9.4.
+- **Both halves catch five more author-typed fields.** `${{ github.event.commits[N].message }}`,
+  `commits[N].author.name`, `commits[N].author.email`, `pull_request.head.repo.default_branch`
+  and `review_comment.body` in a `run:` block are on GitHub's script-injection list; the guard
+  now denies them and the audit reports them critical, where both let them through.
+  GitHub-generated fields (`base.sha`, `head.sha`, `number`, `commits[N].id`) stay allowed. Not
+  matched: the `.*` filter spelling (`commits.*.message`). Standing: gate — `workflow-audit.test.sh`
+  "<field> into a run: block is denied" and "… is critical" for each of the five, red against
+  the old lists, and "number, head.sha and commits[0].id are allowed" / "… are SAFE".
+- **The guard's and the audit's field lists cannot drift apart again.** Each script carries the
+  regex by hand, and the page-name gap above was the two copies drifting. Standing: gate —
+  `workflow-audit.test.sh` "the guard and the audit carry the same untrusted-leaf regex", seen
+  failing on a copy with one field removed.
 - **The deny message quotes the audit path.** An install path holding a space split the printed
-  `bash …/workflow-audit.sh` command. Pinned by "the printed audit path is quoted", red
-  against 0.9.4. `workflow-audit.sh`'s header no longer claims an exit 3 for a missing `yq`,
-  which it never checks.
+  `bash …/workflow-audit.sh` command. Standing: gate — `workflow-audit.test.sh` "the printed
+  audit path is quoted", red against 0.9.4; "deny reason names the installed audit path" now
+  fails on any repo-relative `plugins/devops/scripts` path in the message, which its old
+  `Run bash plugins/devops/` match could no longer catch once the path was quoted.
+  `workflow-audit.sh`'s header no longer claims an exit 3 for a missing `yq`, which it never
+  checks. Standing: recorded.
 
 ## 0.9.4 — 2026-10-15
 

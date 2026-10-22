@@ -13,6 +13,13 @@ All notable changes to the `candor` plugin.
   "a suffix shared by two files resolves … (layout 1)", red against 0.9.0, and "… every
   match is too short for still blocks". Residual: a wrong line in a file that shares its
   suffix with a longer one passes.
+- **A `red-suite` behavioral gate gets its own clause-4 message.** task-runner 0.49.0 records
+  `red-suite` when the tests ran and at least one failed; clause 4 blocked it but told the
+  run to "fix the coverage", which is the wrong repair for a failing test. It now says the
+  tests ran and at least one failed: fix the failing test(s), re-run the gate, then stop. A
+  coverage reduction still does not release it. Standing: gate — `gate.test.sh` "coverage:
+  red-suite blocks and says to fix the failing tests, not the coverage", red against this
+  version's first cut.
 
 ## 0.9.0 — 2026-10-15
 

@@ -14,7 +14,7 @@ positive "N ran and passed" signal is a failure, not a pass, and unparseable out
 | `go test ./...` | `no test files`, exits 0 | covered first: a real result line beats a no-test package |
 | `package.json` script (opaque) | no parseable count | fail closed — never a silent pass |
 | `vendor/bin/pest`, else `phpunit` | `No tests executed` / `No tests found` | tests ran: `OK (N tests`, a non-zero `Tests:`, or `FAILURES!` |
-| `cargo test` | `0 passed` on **every** target | covered first (one line per target); `error[E…]` ⇒ `unverifiable-suite` |
+| `cargo test` | `0 passed; 0 failed` everywhere | covered first (a line per target); `error[E…]` ⇒ `unverifiable-suite` |
 | `bundle exec rspec`, else `rspec` | `0 examples` | empty first — one summary line per run |
 | `./gradlew test --rerun-tasks`, else `./mvnw test`, else system `gradle`/`mvn` (wrappers first) | `Tests run: 0`, `:test NO-SOURCE`, `did not discover any tests` | covered needs `Tests run: N≥1` or `N tests completed`, else the weak row below; `:test UP-TO-DATE` ⇒ `unverifiable-suite` |
 | `--runner '<cmd>::<empty-regex>'` | the caller's regex | escape for a language with no row; the gate still owns not-started (126/127/signal) and timeout (124) |

@@ -1,6 +1,6 @@
 # task-runner: the comment text moved out of the code (2026-10-22)
 
-The text below was moved verbatim on 2026-10-22 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-task-runner.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved. One statement below is no longer true and is kept as written: "The run's own card index under the root is not exempt" — since task-runner 0.48.1 the index `active-run.json` names (`index_path`) is exempt.
+The text below was moved verbatim on 2026-10-22 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-task-runner.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved. One statement below is no longer true and is kept as written: "The run's own card index under the root is not exempt" — since task-runner 0.49.0 the index `active-run.json` names (`index_path`) is exempt.
 
 ## plugins/task-runner/hooks/scope.sh
 

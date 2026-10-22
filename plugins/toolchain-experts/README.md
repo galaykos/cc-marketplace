@@ -55,10 +55,17 @@ One skill, `analyzer-triage`, carries the step order all five follow. One script
 Emits one greppable record per line — `analyzer`, `formatter`, `strictness`, `ci`,
 `none` — naming each configured tool, its config path, its baseline, its exact
 invocation, and which CI workflow actually runs it. Where a config's meaning depends on
-the installed major — an absent `strict` is on from TypeScript 6, ESLint 10 ignores
-`.eslintrc*`, TypeScript 7 has no compiler API for vue-tsc, svelte-check, astro check or
+the installed major — an absent `strict` is on from TypeScript 6 unless an `extends` base
+may set it (`strict absent-via-extends-unresolved`), ESLint 9 loads `.eslintrc*` only under
+`ESLINT_USE_FLAT_CONFIG=false` and ESLint 10 never (`eslintrc-not-loaded <major>`),
+TypeScript 7 has no compiler API for vue-tsc, svelte-check, astro check or
 typescript-eslint — it reads the version from `node_modules`, then `package-lock.json`, then
-the `package.json` range, and says which. Residual: pnpm and yarn lockfiles are not read.
+the `package.json` `devDependencies` or `dependencies` range, never a `peerDependencies`
+one, and says which. Standing: gate — `detect-analyzers.test.sh` "TS 6, extends and no
+local strict: …", "ESLint 9 with an .eslintrc: …" and "a peerDependencies range does not
+decide the major, …". Residuals: pnpm and yarn lockfiles are not read; without `jq` the
+range is the first one `package.json` names; ESLint 9 run with `ESLINT_USE_FLAT_CONFIG=false`
+still draws `eslintrc-not-loaded`.
 
 **Exit 1 means no analyzer is configured**, and that exit code is the point: it stops
 an agent from falling back on a remembered checklist, which is the measured-negative

@@ -34,7 +34,6 @@ cite_miss() {
   [ -n "$f" ] || { [ -f "$cwd/$p" ] && f="$cwd/$p"; }
   [ -n "$f" ] || { [ -f "$root/$p" ] && f="$root/$p"; }
   if [ -z "$f" ]; then
-    # A suffix several files share resolves if any of them holds the line; past 8 matches it is undecidable.
     m=$(cite_find "$root" -path "*/$p" | head -9); n=$(printf '%s\n' "$m" | grep -c .)
     if [ "$n" -gt 1 ]; then
       [ "$n" -gt 8 ] && return 0

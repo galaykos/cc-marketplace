@@ -35,11 +35,14 @@ reader knows what it was configured to look at:
   it, so every possibly-null dereference in the diff passes the build. This is the
   single most consequential fact you can report and it is invisible without reading
   the config. From TypeScript 6 an absent `strict` is on: the detector prints
-  `strict absent-default-on` and the implied flags `true-via-strict`.
+  `strict absent-default-on` and the implied flags `true-via-strict`. With an
+  `extends` it prints `strict absent-via-extends-unresolved`: the base decides, so
+  read it or `npx tsc --showConfig` before calling strict on or off.
 - **`typescript 7-no-compiler-api <tool>`.** TypeScript 7 ships no compiler API, and
   that tool loads one: report it unrunnable on this install, never as a green check.
-- **`eslint config eslintrc-ignored-by-eslint-10`.** ESLint 10 does not read
-  `.eslintrc*`: the project's lint rules are not running. That is the finding.
+- **`eslint config eslintrc-not-loaded <major>`.** ESLint 9 reads `.eslintrc*` only
+  under `ESLINT_USE_FLAT_CONFIG=false`, ESLint 10 never: unless lint runs with that
+  variable set, the project's lint rules are not running. That is the finding.
 - **`noUncheckedIndexedAccess: false`** — the default. Every `arr[i]` and
   `record[key]` is typed as present when it may be undefined. Name the specific
   indexed accesses in the diff this covers for.

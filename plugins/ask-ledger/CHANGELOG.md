@@ -7,13 +7,22 @@ All notable changes to the `ask-ledger` plugin.
 ### Fixed
 - **A quoted term the ask excludes is no longer owed.** "no \"summerizing\" or \"inventing\""
   ledgered `summerizing` and the Stop gate demanded a line for a thing the user had ruled
-  out. A quoted list up to two words after `no`, `not`, `without`, `never`, `avoid`, `nor`
-  or `don't` is now cut before extraction. Cases 13u, 13v and 13x pin it; each fails against
-  0.4.2. Residual: a negation more than two words before the quote still ledgers it.
+  out. A quoted list right after `no`, `not`, `without`, `never`, `avoid`, `nor` or `don't`,
+  or after one of those plus one word from a fixed list (`use using any more such the a an
+  call called add include including mention`), is now cut before extraction. Any other
+  word between them stops the cut, so "no images and \"Digimon\" sprites" still ledgers
+  `Digimon` and "not only \"Stripe\" but also \"PayPal\"" ledgers both. `has no`, `have
+  no` and `had no` name a gap the ask fills, never an exclusion: "has no \"dark mode\"
+  toggle yet, add one" ledgers `dark mode`. Residual: a negation two or more words before
+  the quote (`don't use any "neon"`) does not cut, and a `has no "x"` the user wants kept
+  out still ledgers. Standing: gate — `ledger-hook.test.sh` "13u", "13v", "13x" (each fails
+  against 0.4.2), "13y", "13z", "13aa" (each fails against the two-word cut).
 - **Ordinals and units are not names.** "a plan 1st then decide" ledgered `1st then`;
   `5s before` and `2nd pass` did the same. A digit token ending in an ordinal or a common
-  lowercase unit (`st nd rd th s ms min h x px em rem kb mb gb pt vh vw fps hz am pm`) is
-  dropped; `2D Sprites` still ledgers. Case 13w pins it; fails against 0.4.2.
+  unit (`st nd rd th s ms min h x px em rem kb mb gb pt vh vw fps hz am pm`), in any case
+  (`10GB`, `30Min`), is dropped; `2D Sprites` and `4K` still ledger. Standing: gate —
+  `ledger-hook.test.sh` "13w" (fails against 0.4.2), "13ab" (fails against the
+  lowercase-only match).
 - Not changed, on purpose: the existence check stays a substring match. A whole-word match
   would make `Payment` miss the plural table name a Laravel repo uses for it — a case the 0.2.0 existence filter exists to stop.
 

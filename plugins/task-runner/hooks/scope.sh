@@ -208,7 +208,7 @@ cc_bash_write_effects() {
   # can ignore itself, so the first hook to see it drops a `.gitignore` holding `*`.
   if [ -d "$tr_dir" ] && [ ! -e "$tr_dir/.gitignore" ]; then printf '*\n' > "$tr_dir/.gitignore" 2>/dev/null; fi
 
-  # No registered run → every scope file on disk is a leftover (header, LIVE).
+  # No registered run → every scope file on disk is a leftover.
   sentinel="$tr_dir/active-run.json"
   [ -f "$sentinel" ] || exit 0
   idx=$(jq -r '.index_path // empty' "$sentinel" 2>/dev/null)
@@ -240,7 +240,7 @@ cc_bash_write_effects() {
   done
 
   # Written paths, repo-relative. The run's own state dir is never in a card's scope and
-  # never checked (header, WHAT IT SEES).
+  # never checked.
   rels=()
   if [ "$tool" = "Bash" ]; then
     [ -n "$cmd" ] || exit 0

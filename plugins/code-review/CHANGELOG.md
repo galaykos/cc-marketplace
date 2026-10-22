@@ -9,12 +9,20 @@ file is what makes an upgrade readable. Newest first.
   code.** `# MAX_RETRIES=5 is what the upstream API tolerates before it bans the key.` — the
   external-constraint shape `comment-discipline` says to keep — matched the assignment test and
   was refused before the write (measured in the 2026-10-21 plugin review). An assignment
-  followed, after its value, by three or more lowercase words now reads as a sentence; a
-  commented-out `total = total + item.price` is still denied. Standing: gate —
-  `comment-discipline-hook-tests.sh` "PreToolUse does NOT deny a constraint comment that opens
-  with NAME=value", red against 0.33.1, and "PreToolUse still denies a commented-out
-  assignment". Residual: a commented-out Python conditional expression (`x = a if the user is
-  admin else b`) now reads as prose and is not denied.
+  followed, after its value, by three or more lowercase words that are not language keywords
+  (`and or not if else unless for in is then do end while return nil null none true false`),
+  with no bracket, brace, parenthesis or member dot (`user.active`) there, now reads as a
+  sentence; a commented-out `total = total + item.price`, a Python comprehension
+  `names = [user.name for user in users if user.active]`, `is_valid = name and email and
+  password` and a Ruby `user = User.find(id) unless user and user.persisted` are still denied.
+  Standing: gate — `comment-discipline-hook-tests.sh` "PreToolUse does NOT deny a constraint
+  comment that opens with NAME=value", red against 0.33.1, and "PreToolUse still denies a
+  commented-out assignment"; "PreToolUse denies a commented-out Python comprehension", "…a
+  commented-out boolean assignment" and "…a commented-out Ruby assignment with unless" are red
+  against the first cut of this change. Residual: commented-out code that chains three plain
+  lowercase names with keywords and no bracket or dot (`mode = fast if cached else slow unless
+  forced`) still reads as prose and is not denied; a constraint sentence holding a parenthetical
+  or a dotted word (`(measured)`, `e.g.`, `api.example.com`) after `NAME=value` is denied as code.
 
 ## 0.33.1 — 2026-10-15
 

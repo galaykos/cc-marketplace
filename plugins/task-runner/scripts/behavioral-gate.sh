@@ -153,7 +153,7 @@ done
 [ "${#CHANGED[@]}" -gt 0 ] || usage "no --changed files given (want --changed <file-or-list>)"
 [ "$ISOLATE" = 1 ] && [ "$IN_PLACE" = 1 ] && usage "--isolate and --in-place are mutually exclusive"
 
-# ---- ISOLATION (see the SAFETY header) ---------------------------------------
+# ---- ISOLATION ---------------------------------------------------------------
 # Every step that can fail refuses with exit 3 and runs NOTHING: the failure this
 # exists for was a setup step that failed silently while the steps after it ran in the
 # live repo. Cleanup is one function so the WORKTMP trap below can call it too — a
@@ -504,10 +504,10 @@ parse_js() { # the package.json script's parse; a --runner-for js command is a s
   # The jest "passed count" must follow jest's own 'Tests:' label with only counts between,
   # so a "Test Suites: 1 passed" line (printed even for an empty --passWithNoTests run)
   # can NEVER satisfy coverage, and a workspace prefix (`web:test: Tests: …`) still can.
-  # Mocha's "N passing", node/TAP "tests N", bun's "Ran N tests" and a line that opens
+  # Mocha's "N passing" or "N failing", node/TAP "tests N", bun's "Ran N tests" and a line that opens
   # with "N passed"/"N pass" (Playwright, bun) remain.
   if printf '%s\n' "$CAP" | grep -Eiq \
-      'tests[[:space:]]+[1-9]|[1-9][0-9]*[[:space:]]+passing|(^|[^A-Za-z])Tests:[[:space:]]+([0-9]+[[:space:]]+[a-z]+,[[:space:]]+)*[1-9][0-9]*[[:space:]]+(passed|failed)|^[[:space:]]*[1-9][0-9]*[[:space:]]+(pass|fail)(ed)?([^[:alpha:]]|$)|Ran [1-9][0-9]* tests?'; then
+      'tests[[:space:]]+[1-9]|[1-9][0-9]*[[:space:]]+(passing|failing)|(^|[^A-Za-z])Tests:[[:space:]]+([0-9]+[[:space:]]+[a-z]+,[[:space:]]+)*[1-9][0-9]*[[:space:]]+(passed|failed)|^[[:space:]]*[1-9][0-9]*[[:space:]]+(pass|fail)(ed)?([^[:alpha:]]|$)|Ran [1-9][0-9]* tests?'; then
     covered_or_red; return
   fi
   # Anchored to jest's own 'Tests:' label: jest prints "Snapshots:   0 total" on every run.
@@ -616,8 +616,8 @@ parse_rs() {
   fi
   # COVERED before EMPTY, as with go: a crate has one 'test result:' line per target
   # (lib, each bin, each integration test, doc-tests), so a 0-passed line sits beside
-  # a real one routinely. Empty is declared only when NO target passed anything.
-  if printf '%s\n' "$CAP" | grep -Eq 'test result:.*[1-9][0-9]* passed|[1-9][0-9]* tests? run:'; then covered_or_red; return; fi
+  # a real one routinely. Empty is declared only when NO target passed or failed anything.
+  if printf '%s\n' "$CAP" | grep -Eq 'test result:.*[1-9][0-9]* (passed|failed)|[1-9][0-9]* tests? run:'; then covered_or_red; return; fi
   if printf '%s\n' "$CAP" | grep -Eq 'test result:.*\b0 passed'; then printf 'empty-suite\n'; return; fi
   log "cargo test: no parseable 'test result:' line — fail-closed"; printf 'unverifiable-suite\n'
 }

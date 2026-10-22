@@ -15,6 +15,19 @@ All notable changes to the task-runner plugin.
   suite already red before the run now blocks its close too, which `run.md` already required
   on paper; a package.json test script that also lints reads `red-suite` when only the lint
   fails.
+- **A suite whose every test fails reads `red-suite`, not `empty-suite`.** cargo's `test result:
+  FAILED. 0 passed; 1 failed` and mocha's `0 passing` beside `1 failing` matched the zero-pass
+  empty signal before any failure count. Both verdicts exit 2, so no run closed over one, but
+  the label sent the reader after a missing test instead of a failing one. A non-zero failure
+  count now means tests ran, and `runners.md`'s cargo row says so. The other parsers' all-fail
+  shapes (pytest, unittest, jest, vitest, node, bun, Playwright, go, gotestsum, PHPUnit, Pest,
+  nextest, rspec, minitest, Surefire, Gradle) were probed by hand and already read `red-suite`;
+  those probe lines were written from each tool's format, not captured from a run. Standing:
+  gate — `behavioral-gate.test.sh` "--runner-for rs, cargo 'test result: FAILED. 0 passed; 1
+  failed' …" and "--runner-for js, mocha '0 passing' and '1 failing' …", both red against this
+  version's first cut.
+- **Three code comments no longer point at header sections that moved out of the code.**
+  Standing: recorded.
 - **`ultra-assess.md` renders past line 64 again.** A "(Proportionality law: …)" citation sat on
   the closing fence's line, and a closing fence followed by text does not close, so the rest of
   the reference read as code. The citation, a repo path installers do not have, is removed.

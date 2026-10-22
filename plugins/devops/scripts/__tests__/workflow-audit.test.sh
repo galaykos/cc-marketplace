@@ -245,7 +245,7 @@ out=$(jq -nc --arg f ".github/workflows/ci.yml" --arg c 'jobs:
       '{tool_name:"Write",tool_input:{file_path:$f,content:$c}}' \
       | CLAUDE_PLUGIN_ROOT=/opt/plugins/devops bash "$HOOK" 2>/dev/null)
 if printf '%s' "$out" | grep -q '/opt/plugins/devops/scripts/workflow-audit.sh' \
-   && ! printf '%s' "$out" | grep -q 'Run bash plugins/devops/'; then
+   && ! printf '%s' "$out" | grep -qE '(^|[^/])plugins/devops/scripts'; then
   echo "PASS[hook]: deny reason names the installed audit path"
 else
   echo "FAIL[hook]: deny reason does not resolve CLAUDE_PLUGIN_ROOT: $out"; rc=1
@@ -258,6 +258,43 @@ jobs:
   b:
     steps:
       - run: echo "${{ github.event.pages[0].page_name }}"'
+# 0.9.5: author-typed leaves GitHub's script-injection page names that neither leaf list carried.
+for leaf in 'commits[0].message' 'commits[0].author.name' 'commits[0].author.email' \
+            'pull_request.head.repo.default_branch' 'review_comment.body'; do
+  audit_case "$leaf into a run: block is critical" 2 "on:
+  push:
+permissions:
+  contents: read
+jobs:
+  b:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo \"\${{ github.event.$leaf }}\""
+  hook_case "$leaf into a run: block is denied" deny ".github/workflows/ci.yml" "jobs:
+  b:
+    steps:
+      - run: echo \"\${{ github.event.$leaf }}\""
+done
+GENERATED='jobs:
+  b:
+    steps:
+      - run: bash check.sh "${{ github.event.pull_request.number }}" "${{ github.event.pull_request.head.sha }}" "${{ github.event.commits[0].id }}"'
+audit_case "number, head.sha and commits[0].id into a run: block are SAFE" 0 "on:
+  push:
+permissions:
+  contents: read
+$GENERATED"
+hook_case "number, head.sha and commits[0].id are allowed" allow ".github/workflows/ci.yml" "$GENERATED"
+
+leaf_re() { sed -n 's/^[[:space:]]*inrun && \(\/.*\/\) {.*$/\1/p' "$1"; }
+g_re=$(leaf_re "$HOOK"); a_re=$(leaf_re "$AUDIT")
+if [ -n "$g_re" ] && [ "$(printf '%s\n' "$g_re" | wc -l)" -eq 1 ] && [ "$g_re" = "$a_re" ]; then
+  echo "PASS[parity]: the guard and the audit carry the same untrusted-leaf regex"
+else
+  echo "FAIL[parity]: the untrusted-leaf regex differs between $HOOK and $AUDIT"
+  printf '  guard: %s\n  audit: %s\n' "${g_re:-<none>}" "${a_re:-<none>}"; rc=1
+fi
+
 # 0.9.5: an install path holding a space split the printed audit command.
 out=$(jq -nc --arg f ".github/workflows/ci.yml" --arg c 'jobs:
   b:

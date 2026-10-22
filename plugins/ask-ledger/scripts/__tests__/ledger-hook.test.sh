@@ -102,6 +102,11 @@ check "13u a negated list of quoted terms writes no ledger" "$(run 'create a git
 check "13v a quoted term outside the negation still ledgers" "$(run "build the \"pixel\" theme without 'pokemon' sprites" s13v)" "pixel"
 check "13w ordinals and units are not names; 2D sprites still is" "$(run 'we need a plan 1st then decide, make 2D sprites, retry after 5s before the 2nd pass' s13w)" "2D sprites"
 check "13x a don't-negation masks its quoted term" "$(run "add a dark theme, don't use \"neon\" colours" s13x)" ""
+# 13y-13ab: the cut reaches past at most one listed word, never across a clause (2026-10-22 review).
+check "13y a negation does not reach across 'and' to a wanted quoted name" "$(run 'create a page with no images and "Digimon" sprites' s13y)" "Digimon"
+check "13z 'has no \"x\"' names the gap the ask fills, not an exclusion" "$(run 'the app has no "dark mode" toggle yet, add one' s13z)" "dark mode"
+check "13aa 'not only \"x\" but also \"y\"' asks for both" "$(run 'build not only "Stripe" but also "PayPal" checkout' s13aa)" "Stripe,PayPal"
+check "13ab a unit in capitals is not a name; 2D sprites still is" "$(run 'add a 10GB upload limit, wait 30Min, keep the 2D sprites' s13ab)" "2D sprites"
 
 # --- 14-16 the existing-identifier filter (2026-09-22). A name the repo already carries
 #     is code to be REPAIRED, not a thing to be delivered; ledgering it made the Stop gate

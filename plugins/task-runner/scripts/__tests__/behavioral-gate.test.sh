@@ -636,6 +636,13 @@ sib java src/Calc.java Surefire '[INFO] Tests run: 5, Failures: 0, Errors: 0, Sk
 # A wrapper's own banner is not a go result line: this read covered.
 case_run "--runner-for go, a '--- :go:' banner over a docker error -> unverifiable-suite(2)" "$RF" 2 --label 'unverifiable-suite' -- \
   --changed src/calc.go --runner-for go 'echo "--- :go: unit tests"; echo "Error response from daemon: container app is not running"; exit 1::no test files'
+# A suite whose every test fails ran (2026-10-22 review): its zero-pass line read empty-suite.
+printf 'running 1 test\ntest tests::adds ... FAILED\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n' > "$RF/rs-allfail.out"
+case_run "--runner-for rs, cargo 'test result: FAILED. 0 passed; 1 failed' -> red-suite(2)" "$RF" 2 --label 'VERDICT: red-suite' -- \
+  --changed src/calc.rs --runner-for rs 'cat ./rs-allfail.out; exit 1::NEVER-PRINTED'
+printf '  calc\n    1) adds\n\n\n  0 passing (4ms)\n  1 failing\n' > "$RF/js-allfail.out"
+case_run "--runner-for js, mocha '0 passing' and '1 failing' -> red-suite(2)" "$RF" 2 --label 'VERDICT: red-suite' -- \
+  --changed src/calc.js --runner-for js 'cat ./js-allfail.out; exit 1::NEVER-PRINTED'
 
 # ---- JC. jest's summary coloured or prefixed (2026-10-15). Colour codes were stripped for php
 # only, the 'Tests:' count had to start the line, and "Snapshots:   0 total", printed on every jest

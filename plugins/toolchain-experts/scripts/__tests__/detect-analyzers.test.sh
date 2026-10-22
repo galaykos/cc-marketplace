@@ -267,7 +267,8 @@ check "the eslint invocation is version-portable" "$fmtck" 0 "'npx eslint .'"
 
 # --- the installed major decides what a config means (2026-10-21) -----------
 # TypeScript 6 made an absent `strict` default to true (5.9.3 reads `!!strict`, 6.0.3
-# `strict !== false`); ESLint 10 removed the LegacyESLint that loaded .eslintrc*;
+# `strict !== false`); ESLint 9 loads .eslintrc* only under ESLINT_USE_FLAT_CONFIG=false and
+# ESLint 10 removed the LegacyESLint that loaded it;
 # TypeScript 7 ships no compiler API (its "." export is lib/version.cjs), which
 # vue-tsc, svelte-check, astro check and typescript-eslint load.
 ts6="$tmp/ts6"; mkdir -p "$ts6/node_modules/typescript"
@@ -280,12 +281,30 @@ check "TS 6: an absent strict is on, and its implied flags read true-via-strict"
 if run "$ts6" | grep -qx 'strictness tsconfig strict absent'; then
   echo "FAIL TS 6: an absent strict is not reported as off"; fail=$((fail+1)); else pass=$((pass+1)); fi
 check "TS 5 from the manifest range: absent strict stays absent" "$ab" 0 "strictness tsconfig strict absent"
+ts6x="$tmp/ts6extends"; mkdir -p "$ts6x/node_modules/typescript"
+echo '{"devDependencies":{"typescript":"^6"}}' > "$ts6x/package.json"
+echo '{"version":"6.0.3"}' > "$ts6x/node_modules/typescript/package.json"
+echo '{"extends":"./tsconfig.base.json"}' > "$ts6x/tsconfig.json"
+echo '{"compilerOptions":{"strict":false}}' > "$ts6x/tsconfig.base.json"
+check "TS 6, extends and no local strict: unresolved, and its implied flags read absent" "$ts6x" 0 \
+  "strictness tsconfig strict absent-via-extends-unresolved" "strictness tsconfig strictNullChecks absent"
+refute "TS 6, extends and no local strict: nothing claims via-strict" "$ts6x" "true-via-strict"
+peer="$tmp/peerdep"; mkdir -p "$peer"
+echo '{"peerDependencies":{"typescript":">=4.8"},"devDependencies":{"typescript":"^6.0.0"}}' > "$peer/package.json"
+echo '{"compilerOptions":{"target":"es2022"}}' > "$peer/tsconfig.json"
+check "a peerDependencies range does not decide the major, devDependencies does" "$peer" 0 \
+  "strictness typescript major 6 manifest"
 es10="$tmp/es10"; mkdir -p "$es10"
 echo '{"devDependencies":{"eslint":"^10"}}' > "$es10/package.json"
 printf 'module.exports={rules:{}};\n' > "$es10/.eslintrc.js"
-check "ESLint 10 with only an .eslintrc: the config is reported dead" "$es10" 0 \
-  "strictness eslint config eslintrc-ignored-by-eslint-10"
-refute "ESLint 9 with an .eslintrc: no dead-config record" "$ts" "eslintrc-ignored"
+check "ESLint 10 with only an .eslintrc: the config is reported not loaded" "$es10" 0 \
+  "strictness eslint config eslintrc-not-loaded 10"
+check "ESLint 9 with an .eslintrc: the config is reported not loaded" "$ts" 0 \
+  "strictness eslint config eslintrc-not-loaded 9"
+es8="$tmp/es8"; mkdir -p "$es8"
+echo '{"devDependencies":{"eslint":"^8"}}' > "$es8/package.json"
+printf 'module.exports={rules:{}};\n' > "$es8/.eslintrc.js"
+refute "ESLint 8 with an .eslintrc: no not-loaded record" "$es8" "eslintrc-not-loaded"
 ts7="$tmp/ts7"; mkdir -p "$ts7"
 echo '{"devDependencies":{"typescript":"^7","vue-tsc":"^3","typescript-eslint":"^8"}}' > "$ts7/package.json"
 echo '{"compilerOptions":{"strict":true}}' > "$ts7/tsconfig.json"

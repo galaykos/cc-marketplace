@@ -1,7 +1,7 @@
 {
   "name": "brain",
   "version": "0.4.6",
-  "description": "A committed, Obsidian-style codebase map for a project: brain/INDEX.md indexes areas, key files, and notable classes/entrypoints so a fresh Claude session starts oriented. A SessionStart hook injects the compact map (with a staleness hint when it lags HEAD); /brain reads it and /brain index builds/refreshes it. Builds the map only \u2014 it never annotates code, and nothing outside brain/ is ever modified.",
+  "description": "A committed, Obsidian-style codebase map for a project: brain/INDEX.md indexes areas, key files, and notable classes/entrypoints so a fresh Claude session starts oriented. A SessionStart hook injects the compact map (with a staleness hint when it lags HEAD); /brain reads it and /brain index builds/refreshes it. Builds the map only \u2014 never annotates code; outside brain/ it writes only gitignored state.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
