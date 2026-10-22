@@ -2,6 +2,21 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.4.3 — 2026-10-22
+
+### Fixed
+- **A quoted term the ask excludes is no longer owed.** "no \"summerizing\" or \"inventing\""
+  ledgered `summerizing` and the Stop gate demanded a line for a thing the user had ruled
+  out. A quoted list up to two words after `no`, `not`, `without`, `never`, `avoid`, `nor`
+  or `don't` is now cut before extraction. Cases 13u, 13v and 13x pin it; each fails against
+  0.4.2. Residual: a negation more than two words before the quote still ledgers it.
+- **Ordinals and units are not names.** "a plan 1st then decide" ledgered `1st then`;
+  `5s before` and `2nd pass` did the same. A digit token ending in an ordinal or a common
+  lowercase unit (`st nd rd th s ms min h x px em rem kb mb gb pt vh vw fps hz am pm`) is
+  dropped; `2D Sprites` still ledgers. Case 13w pins it; fails against 0.4.2.
+- Not changed, on purpose: the existence check stays a substring match. A whole-word match
+  would make `Payment` miss the plural table name a Laravel repo uses for it — a case the 0.2.0 existence filter exists to stop.
+
 ## 0.4.2 — 2026-10-14
 
 ### Fixed
