@@ -757,8 +757,12 @@ any bullet or bold, are dropped from the text ACK reads; CLAIM still reads them.
 main-thread window and the SubagentStop report. Standing: gate — gate.test.sh
 "subagent: 'Not tested: none' is no acknowledgement …" and "… '**Not verified:** n/a' …",
 evidence-gate-hook-tests.sh 34-35, all red before; 36 and "subagent: a caveat that names
-something still acknowledges" are the neighbours that pass. Residual: "none" phrased
-otherwise ("nothing left", "all covered") still acknowledges.
+something still acknowledges" are the neighbours that pass. The labels came from relay.sh
+alone, so ACK's own label-shaped words still disarmed it ("Parked: none", "Left to do:
+nothing", "Known issue: none", "In progress: none", "Incomplete: n/a"); they joined the
+list at the second review — evidence-gate-hook-tests.sh 37-41, red before. Residual: "none"
+phrased otherwise ("nothing left", "all covered"), or after a label longer than the
+listed one ("Remains to do: nothing"), still acknowledges.
 ```
 
 ### Clause 2: a claimed re-check is no HOLD (0.10.0)
@@ -793,9 +797,13 @@ exit 0, which the hooks reference says Claude never sees and the user sees at mo
 verbose mode. Now every exit-0 path after them (no verdict, the loop guard, the
 unwritable-marker fallback, warn mode) prints one stdout line, {"systemMessage": …},
 naming the switches: CC_RELAY_GATE=off and CC_READ_LEDGER=off silence them,
-CC_RELAY_GATE=block makes the model relay. A stop that blocks appends the same text to
-the stderr the model reads instead. The verdicts' own warn modes (CC_CANDOR_GATE=warn,
-CC_EVIDENCE_GATE=warn, TASK_RUNNER_STOP_GATE=warn) still print to stderr only.
+CC_RELAY_GATE=block makes the model relay. A stop that clause 1, 2, 3 or 5 blocks appends
+the same text to the stderr the model reads instead; clause 4 exits before either warning
+runs, so both ledgers wait for a later stop. The verdicts' own warn modes
+(CC_CANDOR_GATE=warn, CC_EVIDENCE_GATE=warn, TASK_RUNNER_STOP_GATE=warn) still print to
+stderr only — except a relay verdict: under CC_CANDOR_GATE=warn, or on the repeat stop
+the loop guard passes, its list now goes into the systemMessage too. Before the second
+review it went to stderr alone, after its ledger was already removed.
 Relay in block mode takes the one verdict slot when it is free; behind another clause's
 verdict it reports its items through the warning channel and clears the ledger, where it
 used to keep the ledger and block a later turn for a report that turn never saw. Its own
@@ -809,7 +817,10 @@ systemMessage …", "block mode behind another clause's block: the items ride on
 and the ledger clears", "the repeat stop the loop guard passes still shows the user a new
 warning", "CC_CANDOR_GATE=warn: the verdict stays on stderr …" and "a report recorded from
 a nested cwd reaches the stop taken at the project root …"; reads-hook.test.sh's matching
-two. Each red against this branch before review. Residual: whether a systemMessage changes
+two. Each red against this branch before review. At the second review: "CC_RELAY_GATE=block
+under CC_CANDOR_GATE=warn: the dropped caveat reaches the systemMessage" and
+"CC_RELAY_GATE=block: the repeat stop the loop guard passes shows the user the list", both
+red before. Residual: whether a systemMessage changes
 what the user asks next is unmeasured; the verdict warn modes stay invisible to Claude and
 mostly to the user.
 ```
@@ -1344,8 +1355,11 @@ case-insensitive; the label itself may be the caveat ("**Not tested:** …"). It
 one bold span with no inner colon, or is a `#` markdown heading ("## Not done", whose
 #s are stripped like a bullet) — records up to ten lines under it instead of itself. Blank
 lines directly under the heading are skipped; the scope ends at a blank line after an
-item, a bold label, a `#` heading, or a line ending in ":" that is no caveat ("Files
-changed:"); a caveat sub-heading ("Not run:" under "Residuals:") is skipped and the scope
+item, a bold heading (the bold span is the whole line, or its text ends in ":"; a line
+opening with a bold id, "**A2** the rollback path", is an item and keeps its id), a `#`
+heading, or a line ending in ":" that is no caveat ("Files changed:"); lines inside a
+fence of three backticks are skipped, so a `# not run:` shell comment is no heading (a
+tilde fence is not recognised); a caveat sub-heading ("Not run:" under "Residuals:") is skipped and the scope
 goes on. A heading with nothing under it records itself; one whose first line is none,
 n/a or nothing records nothing. "none", "n/a" and "nothing" after the phrase are no
 caveat either: the brief's own report format ends every report with "Residuals:" and
@@ -1358,14 +1372,22 @@ heading and dropped the items, "**Residuals:**" over a blank and "None." recorde
 caveat, "Files changed:" and "## Summary" were read as more items, and "## Not done" was
 not a heading at all. Standing: gate — the six relay-hook.test.sh cases from "a blank line
 directly under a caveat heading …" to "a '## Not done' heading …", five red before; the
-caveat sub-heading case is the neighbour that kept passing.
+caveat sub-heading case is the neighbour that kept passing. The second review found a bold
+id ending the scope ("Not done:" over "- **A2** the rollback path" recorded only the
+heading) and a `#` comment in fenced code read as a heading: relay-hook.test.sh "an item
+opening with a bold id stays under the heading …" and "a '#' comment inside fenced code is
+no heading …", red before; "a bold heading, or a bold label ending in ':', ends the scope"
+the neighbour.
 Accounting (gate.sh RELAY_ACCOUNT): the final message names the item's id token as a
 word; or, of the item's n words of 5+ letters that are not in a short stopword list
 (which also holds the caveat vocabulary itself), at least min(2, n) appear; or, with
-n = 0, the item's text after its caveat label appears, case-insensitively. Two words for
-every item listed "Not tested: login flow" against a final message repeating it word for
-word, since "login" is its only counted word (relay-hook.test.sh "an item with one content
-word …" and "… no content word …", red before).
+n = 0, the item's text after its caveat label appears as whole words (anything but a letter
+or digit is a space), case-insensitively, and only when it is two characters or more. Two
+words for every item listed "Not tested: login flow" against a final message repeating it
+word for word, since "login" is its only counted word (relay-hook.test.sh "an item with one
+content word …" and "… no content word …", red before). The n = 0 rule first matched a
+substring, so "Not run: CI" was carried by "decision" (relay-hook.test.sh "an item with no
+content word is not carried by its text inside another word", red before).
 ```
 
 ### Measurement (2026-10-22)
@@ -1451,6 +1473,12 @@ together cover the file clear it" caught it). A payload with agent_id records no
 At Stop (gate.sh clause_partial_reads) each entry whose basename the final message never
 contains is listed as path:ranges (of N lines), root-relative; the ledger is removed.
 ```
+
+Amendment, 2026-10-23 second review: under the line-1 rule the order of slices within one
+command decided the record — `sed -n 30p f; sed -n 1,9p f` dropped the 30 because no entry
+existed yet when it was read. The parser now emits the slices starting at line 1 first, so
+that command records 1-9,30-30 (reads-hook.test.sh "within one command a slice before the
+line-1 slice still merges", red before).
 
 ### Measurement and the default (2026-10-22)
 

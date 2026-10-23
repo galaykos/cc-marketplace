@@ -30,7 +30,7 @@ cc_option() {
 
 LEDGER_TTL_MIN=1440
 
-# A command on stdin, one "path<TAB>start<TAB>end|tail:N<TAB>alt" per head, tail or sed -n print of one file; a pipe's own input is not a file.
+# A command on stdin, one "path<TAB>start<TAB>end|tail:N<TAB>alt" per head, tail or sed -n print of one file, line-1 slices first; a pipe's own input is not a file.
 # `cd DIR` before it moves the base a relative path resolves from; alt is the same path from the payload cwd, for a cd in a subshell.
 reads_parse() {
   awk -v base="$1" '
@@ -41,7 +41,9 @@ reads_parse() {
       if (s !~ /^\//) { if (base != cwd) alt = cwd "/" s; s = base "/" s }
       return s
     }
+    function out(l, s) { if (s == "1") print l; else later = later l "\n" }
     BEGIN { cwd = base }
+    END { printf "%s", later }
     { gsub(/&&|\|\||;|\|/, "\n"); n = split($0, seg, "\n")
       for (i = 1; i <= n; i++) {
         s = seg[i]; gsub(/[ \t]+[0-9]?>[>&]?[ \t]*[^ \t]+/, "", s); sub(/^[ \t(]+/, "", s); sub(/[ \t)]+$/, "", s)
@@ -51,13 +53,13 @@ reads_parse() {
         else if ((w[1] == "head" || w[1] == "tail") && m == 4 && w[2] == "-n" && w[3] ~ /^[0-9]+$/) { k = w[3]; f = w[4] }
         else if (w[1] == "sed" && m == 4 && w[2] == "-n" && unq(w[3]) ~ /^[0-9]+(,[0-9]+)?p$/) {
           r = unq(w[3]); sub(/p$/, "", r); a = r; b = r; if (index(r, ",")) { a = substr(r, 1, index(r, ",") - 1); b = substr(r, index(r, ",") + 1) }
-          if ((f = file(w[4])) != "") print f "\t" a "\t" b "\t" alt
+          if ((f = file(w[4])) != "") out(f "\t" a "\t" b "\t" alt, a)
           continue
         }
         else continue
         sub(/^-n?/, "", k)
         if ((f = file(f)) == "" || k + 0 < 1) continue
-        print f "\t" (w[1] == "head" ? 1 "\t" k : "tail\t" k) "\t" alt
+        out(f "\t" (w[1] == "head" ? 1 "\t" k : "tail\t" k) "\t" alt, w[1] == "head" ? "1" : "tail")
       } }'
 }
 

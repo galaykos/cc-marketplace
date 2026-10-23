@@ -69,6 +69,7 @@ reset; bash_call "cd src && head -15 big.txt 2>/dev/null"; [ "$(entry big.txt)" 
 reset; bash_call "tail -n 10 src/big.txt"; bash_call "sed -n 214,231p src/big.txt; sed -n 5,9p src/big.txt"
 [ ! -e "$LEDGER" ] && ok "tail -n 10 and mid-file sed -n slices of an unrecorded file record nothing" || bad "tail/mid-file" "$(entry big.txt)"
 reset; bash_call "sed -n 1,9p src/big.txt && sed -n '30p' src/big.txt"; [ "$(entry big.txt)" = "100 1-9,30-30" ] && ok "sed -n 1,9p records, a later sed -n 30p merges into it" || bad "sed" "$(entry big.txt)"
+reset; bash_call "sed -n 30p src/big.txt; sed -n 1,9p src/big.txt"; [ "$(entry big.txt)" = "100 1-9,30-30" ] && ok "within one command a slice before the line-1 slice still merges" || bad "slice order" "$(entry big.txt)"
 reset; bash_call "(cd src && ls) && head -n 20 src/big.txt"; [ "$(entry big.txt)" = "100 1-20" ] && ok "a path the cd before it does not resolve is tried from the payload cwd" || bad "cd fallback" "$(entry big.txt)"
 
 SHIM="$WS/shim"; mkdir -p "$SHIM"

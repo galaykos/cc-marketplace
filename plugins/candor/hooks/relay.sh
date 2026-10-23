@@ -1,7 +1,7 @@
 #!/bin/bash
 # relay.sh (PostToolUse Agent|Task, UserPromptSubmit) — records the caveat lines (not done, untested, residual…, or the lines under such a heading) of a
 #   foreground result, hand-back or task-notification <result> for gate.sh's relay clause, 40 at most. Off: CC_RELAY_GATE=off|CC_CANDOR_GATE=off. Prints nothing.
-# Misses: a caveat phrased otherwise or mid-line; a nested worker's caveats; payload shapes read from transcripts, not probed live.
+# Misses: a caveat phrased otherwise, mid-line or in fenced code; a nested worker's caveats; payload shapes read from transcripts, not probed live.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/relay.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -48,6 +48,8 @@ relay_extract() {
       ID = "[A-Z][A-Z]?[A-Z]?[A-Z]?-?[0-9][0-9]?[0-9]?(-[A-Z0-9][A-Z0-9]?[A-Z0-9]?)?"
     }
     /<\/agent-message>|<\/result>/ { exit }
+    /^[ \t>]*```/ { fence = !fence; next }
+    fence { next }
     {
       hd = ($0 ~ /^[ \t>]*#+[ \t]/)
       body = strip($0)
@@ -56,12 +58,13 @@ relay_extract() {
         lab = substr(rest, 3, RLENGTH - 4); rest = substr(rest, RLENGTH + 1)
         sub(/^([ \t:.-]|—|–)+/, "", rest)
       }
+      bh = (lab != "" && (lab ~ /:$/ || body ~ /^\*\*[^*]+\*\*[.:]?[ \t]*$/))
       b = tolower(body); sub(/^(\*\*|__)/, "", b)
       cav = (b ~ CAV || (lab != "" && (tolower(lab) ~ CAV || tolower(rest) ~ CAV)))
       t = body; sub(/[ \t*_]+$/, "", t)
       if (under) {
         if (body ~ /^[ \t]*$/) { if (!took) next; under = 0 }
-        else if (hd || lab != "" || (t ~ /:$/ && !cav) || ++under > 11) { under = 0; if (!took) emit(head) }
+        else if (hd || bh || (t ~ /:$/ && !cav) || ++under > 11) { under = 0; if (!took) emit(head) }
         else if (t ~ /:$/) next
         else { x = tolower(t); sub(/^[*_ ]+/, "", x)
                if (!took && x ~ /^(none|n\/a|nothing)[.!]?$/) { under = 0; next }

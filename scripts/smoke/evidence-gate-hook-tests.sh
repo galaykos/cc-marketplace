@@ -257,6 +257,14 @@ check "'**Not verified:** n/a' does not disarm the claim" "" "$T35" 2 "$BLOCK_SU
 T36="$WS/t36.jsonl"
 { tool_path Edit "$CWD/src/a.ts"; text_entry $'Fixed the bug.\nNot tested: the Windows path'; } > "$T36"
 check "a caveat naming what was not tested still passes" "" "$T36" 0 "__NONE__"
+# 37-41. The same for ACK's own label-shaped words.
+i=37
+for nogap in 'Parked: none' 'Left to do: nothing' 'Known issue: none' 'In progress: none' 'Incomplete: n/a'; do
+  T="$WS/t$i.jsonl"
+  { tool_path Edit "$CWD/src/a.ts"; text_entry "Implemented the retry."$'\n'"$nogap"; } > "$T"
+  check "'$nogap' does not disarm the claim" "" "$T" 2 "$BLOCK_SUB"
+  i=$((i + 1))
+done
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

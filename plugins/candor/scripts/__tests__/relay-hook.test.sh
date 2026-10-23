@@ -85,11 +85,20 @@ reset; agent_result $'Done.\nResiduals:\nNot run:\n- the e2e suite'
 [ "$(items)" = 1 ] && grep -qF 'e2e suite' "$LEDGER" && ok "a caveat sub-heading under a caveat heading keeps the scope" || bad "caveat sub-heading" "$(cat "$LEDGER" 2>/dev/null)"
 reset; agent_result $'Done.\n## Not done\n\n- the migration rollback'
 [ "$(items)" = 1 ] && grep -qF 'migration rollback' "$LEDGER" && ok "a '## Not done' heading records the lines under it" || bad "## heading" "$(cat "$LEDGER" 2>/dev/null)"
+reset; agent_result $'Done.\nNot done:\n- **A2** the rollback path\n- **A3** the Windows shell'
+[ "$(cut -f1 "$LEDGER" 2>/dev/null | tr '\n' ' ')" = "A2 A3 " ] && ok "an item opening with a bold id stays under the heading, recorded with its id" || bad "bold id under heading" "$(cat "$LEDGER" 2>/dev/null)"
+reset; agent_result $'Done.\nNot tested:\n- the rollback path\n**Summary**\nAll good.\n**Files changed:** src/a.ts'
+[ "$(items)" = 1 ] && ! grep -qF 'All good' "$LEDGER" && ok "a bold heading, or a bold label ending in ':', ends the scope" || bad "bold heading ends scope" "$(cat "$LEDGER" 2>/dev/null)"
+reset; agent_result $'Done.\n```bash\n# not run: needs a live DB\npsql -c \'select 1\'\n```\nNot tested: the Windows shell'
+[ "$(items)" = 1 ] && grep -qF 'Windows shell' "$LEDGER" && ! grep -qF 'psql' "$LEDGER" && ! grep -qF '```' "$LEDGER" \
+  && ok "a '#' comment inside fenced code is no heading; a caveat after the fence still records" || bad "fenced code" "$(cat "$LEDGER" 2>/dev/null)"
 
 reset; agent_result $'Shipped.\n- Not tested: login flow\n- Not run: e2e suite'; stop "Not tested: login flow. Not run: e2e suite."
 quiet && ok "an item with one content word is carried by that word" || bad "one content word" "rc=$rc err=$err out=$out"
 reset; agent_result $'Shipped.\n- Not run: e2e'; stop "Shipped; e2e is not run yet."
 quiet && ok "an item with no content word is carried by its text after the label" || bad "no content word" "rc=$rc err=$err out=$out"
+reset; agent_result $'Shipped.\n- Not run: CI'; stop "All set; the decision is in the PR."
+warned 'Not run: CI' && ok "an item with no content word is not carried by its text inside another word" || bad "no content word, substring" "rc=$rc err=$err out=$out"
 
 reset; agent_result "$REPORT" "CC_RELAY_GATE=off"; stop "All done." "CC_RELAY_GATE=off"
 [ ! -e "$LEDGER" ] && quiet && ok "CC_RELAY_GATE=off records nothing and the stop is silent" || bad "off" "rc=$rc err=$err out=$out"
@@ -114,6 +123,12 @@ agent_result "$REPORT"; stop "Found it at src/ghost.ts:12."
 reset; agent_result "$REPORT"; stop "Found it at src/ghost.ts:12." "CC_CANDOR_GATE=warn"
 [ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$CITE_SUB" && ! printf '%s' "$err" | grep -qF "$RELAY_SUB" && printf '%s' "$msg" | grep -qF 'clipboard bridge' \
   && ok "CC_CANDOR_GATE=warn: the verdict stays on stderr, the relay warning goes to the systemMessage" || bad "gate warn mode" "rc=$rc err=$err out=$out"
+reset; agent_result "$REPORT"; stop "All done." "CC_CANDOR_GATE=warn CC_RELAY_GATE=block"
+[ "$rc" -eq 0 ] && printf '%s' "$msg" | grep -qF 'clipboard bridge' && [ ! -e "$LEDGER" ] \
+  && ok "CC_RELAY_GATE=block under CC_CANDOR_GATE=warn: the dropped caveat reaches the systemMessage" || bad "relay block under gate warn" "rc=$rc err=$err out=$out"
+reset; agent_result "$REPORT"; stop "All done." "CC_RELAY_GATE=block"; agent_result "$REPORT"; stop "All done." "CC_RELAY_GATE=block"
+[ "$rc" -eq 0 ] && printf '%s' "$msg" | grep -qF 'clipboard bridge' \
+  && ok "CC_RELAY_GATE=block: the repeat stop the loop guard passes shows the user the list" || bad "relay block loop-guard pass" "rc=$rc err=$err out=$out"
 
 # CLI 2.1.295: a foreground result's content points at the hand-back and the report is handbackReport.text.
 reset

@@ -26,7 +26,7 @@ that clause on its own continuation.
 | --- | --- | --- |
 | **1 Fabricated citation** | the final assistant message cites `path/file.ext:NNN` that resolves to no file under the shell `cwd` or the project root (or under `~` for a `~/` path), or to a line past the file's end | re-read and cite what is there, or drop the number and say you are inferring |
 | **2 Unevidenced reversal** | the last user message is challenge-shaped pushback carrying no correction of its own, the final message retracts, and no tool ran in between — writing "I re-checked" or "the file shows" is no re-check without a tool call after the challenge (0.10.0) | re-check and report what it showed, or hold the position and say why |
-| **3 Naked completion claim** | the assistant tail claims completion (done / fixed / implemented / verified / passes), a non-prose file was edited this session (`.md`/`.txt`/`.rst`/`.adoc` edits do not arm it — nothing executable proves a README right), and no Bash call ran after the last such edit — dispatching an Agent or Task is not execution (0.10.0). On `SubagentStop` it judges the worker's report against the worker's own transcript, and stands down when the payload names none (0.10.0) | run the check that would fail if the change were broken, or say what was not verified and the command that would verify it — a "Not tested: none" line says nothing was left unverified, so it is no escape (0.10.0) |
+| **3 Naked completion claim** | the assistant tail claims completion (done / fixed / implemented / verified / passes), a non-prose file was edited this session (`.md`/`.txt`/`.rst`/`.adoc` edits do not arm it — nothing executable proves a README right), and no Bash call ran after the last such edit — dispatching an Agent or Task is not execution (0.10.0). On `SubagentStop` it judges the worker's report against the worker's own transcript, and stands down when the payload names none (0.10.0) | run the check that would fail if the change were broken, or say what was not verified and the command that would verify it — a caveat label followed only by none, n/a or nothing ("Not tested: none", "Parked: none") says nothing was left, so it is no escape (0.10.0) |
 | **4 Registered run not complete** | a task-runner run registered itself (`.claude/task-runner/active-run.json`, or `closed-run.json` after its closing rename, which the clause removes once every check holds, or silently once HEAD has moved past its gate pass) and is stopping with no recorded gate pass for HEAD (not while a background worker of this session is in flight — see below), cards neither done nor parked, short per-card control or reviewer records, a UI card (its review diff names a `.tsx`, `.jsx`, `.vue`, `.svelte`, stylesheet or `.blade.php` file that is not a test or story) with no ui-ux-reviewer record, no whole-range review recorded for HEAD on a run whose sentinel carries `start_sha`, a behavioral-gate verdict other than `covered` / `no-executable-surface` (`no-behavioral-coverage` passes only beside a recorded coverage reduction for that HEAD), a short red-team panel on a boosted run, or an undisclosed recorded reduction | continue with a tool call, ask with `AskUserQuestion`, park the card, or run the gate and record the pass |
 | **5 Lockfile drift** | a dependency manifest's dependency map changed in the working tree and the lockfile that governs it did not — npm/pnpm/yarn/bun, Composer, Bundler, Poetry/uv/pdm, Cargo, Go. For JSON manifests the parsed dependency maps are compared, not diff lines, so a `version` bump never arms it; the other four test dependency-shaped lines and exclude metadata keys by name | run the installer and commit the lockfile with the manifest, or say plainly that the lockfile is deliberately unchanged and why |
 
@@ -105,8 +105,9 @@ on every later stop (0.3.1; `scripts/__tests__/gate.test.sh`, clause independenc
 ## What warns
 
 Both warnings are for you, not for Claude: a stop that passes shows them as one
-`systemMessage` line in your session, naming the switches. When another clause blocks the
-same stop, their text is appended to the block reason Claude reads instead.
+`systemMessage` line in your session, naming the switches. When clause 1, 2, 3 or 5 blocks
+the same stop, their text is appended to the block reason Claude reads instead; clause 4
+blocks before either runs, so both lists wait for a later stop.
 
 **Relay (0.10.0).** `hooks/relay.sh` reads each worker report as it arrives — a
 foreground `Agent`/`Task` result (`PostToolUse`), a subagent hand-back or a
@@ -115,16 +116,20 @@ a line that opens, after any bullet, `#` or `**label**`, with *not done, partial
 untested, not checked, not run, residual, known miss, blocked, could not, did not,
 unverified* or *not verified*. A heading of one ("Residuals:", "## Not done") records the
 lines under it, past a blank line directly beneath it, up to the next blank line, `#`
-heading, bold label or other heading ("Files changed:"); "none", "n/a" and "nothing", after
-the label or as the first line under a heading, are no caveat. At most 40 per context, kept
+heading, bold heading (`**Summary**`, `**Files changed:**`; a line opening with a bold id
+such as `**A2**` stays an item) or other heading ("Files changed:"); "none", "n/a" and
+"nothing", after the label or as the first line under a heading, are no caveat, and lines
+inside fenced code are skipped. At most 40 per context, kept
 under `$TMPDIR` (keyed on the hashed transcript path, so a `cd` into a nested repo cannot
 lose it). At the next main-thread stop the gate lists each item the final message does not
 carry — carried means it names the item's id token (`A2`, `T2-C`, `W6`), or two of its
 words of five letters or more that are not stopwords (one, if the item has only one), or,
-for an item with none, its text after the label — and clears the list.
+for an item with none, its text after the label as whole words (two characters at least)
+— and clears the list.
 `CC_RELAY_GATE=warn` (default) shows you the list and never blocks; `block` holds the
 turn once so Claude relays them (behind another clause's block it reports them on that
-block instead and clears the list); `off` records nothing.
+block instead and clears the list; under `CC_CANDOR_GATE=warn`, or on a repeat stop the
+one-block bound lets through, it shows you the list); `off` records nothing.
 **Standing:** `gate` for the extraction, the accounting, the modes and the output channel
 (`relay-hook.test.sh`); whether the warning changes what gets relayed is unmeasured.
 
@@ -141,7 +146,8 @@ Bash `head -n N`, `head -N` or `sed -n '1,Np'` on one existing file — when the
 longer than the slice. A later slice of that file (`tail -n N`, `sed -n 'a,bp'`, a `Read`
 `offset`) merges into the entry, and a `Read` with neither `offset` nor `limit`, or slices
 that together cover the file, clear it; a slice that starts past line 1 of a file with no
-entry is ignored. At the next main-thread stop the gate lists each recorded `path:ranges`
+entry is ignored. Within one command the slices from line 1 apply first, so
+`sed -n 30p f; sed -n 1,9p f` records both. At the next main-thread stop the gate lists each recorded `path:ranges`
 whose basename the final message never mentions, and the record clears at every stop.
 `CC_READ_LEDGER=warn` (default) shows you the list, or `off`; it never blocks.
 **Standing:** `gate` for the recording, merging, clearing and the warning
@@ -370,7 +376,8 @@ Stated because a gate reads stronger than it is:
   the fact. Nor can any script measure work that did not happen — the
   no-less-work rule is stated in every injection because that is the only lever.
 - **The relay and partial-read warnings read words and commands, not intent.** A
-  caveat phrased outside the list, or not at a line or bullet start, is not recorded;
+  caveat phrased outside the list, not at a line or bullet start, or inside fenced code is
+  not recorded;
   a final message that repeats two of an item's words counts as carrying it. Caveats a
   nested worker hands to a subagent, and what a subagent reads, are not tracked. The
   `tool_response` and hand-back shapes come from transcripts of CLI 2.1.295–2.1.296,

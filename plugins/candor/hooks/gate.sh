@@ -542,7 +542,7 @@ clause_naked_completion() {
   # ACK must state this turn's verification state: a failure named as the thing fixed stays part of the claim.
   ACK='not tested|untested|unverified|not verified|did not (run|rerun)|didn.t (run|rerun)|have not (run|rerun)|haven.t (run|rerun)|not (run|rerun) yet|cannot verify|could not verify|not green|still fail(ing|s)?|currently fail(ing|s)?|(tests?|suite|build|lint|checks?|it) (is|are|was|were) (still |currently )?fail(ing|ed|s)?|(tests?|suite|build|lint|checks?|it) (still |currently )?fail(ing|ed|s)?|fail(ing|s) (with|on|because|due)|in progress|still working|wip|not done|incomplete|halt|halting|halted|blocked|parked|known issue|please verify|verify manually|left to do|remains to'
   # A caveat label followed only by none or n/a ("Not tested: none") states no gap, so it leaves the text ACK reads.
-  NO_GAP='^[[:space:]>*_+-]*([0-9]+[.)][[:space:]]*)?(not done|partial|not tested|untested|not checked|not run|residual|known miss|blocked|could not|did not|unverified|not verified)[a-z]*[[:space:]*_]*(:|—|–|-)?[[:space:]*_]*(none|n/a|nothing)[[:space:]]*[.!]?[[:space:]*_]*$'
+  NO_GAP='^[[:space:]>*_+-]*([0-9]+[.)][[:space:]]*)?(not done|partial|not tested|untested|not checked|not run|residual|known miss|blocked|could not|did not|unverified|not verified|parked|left to do|remains to|known issue|incomplete|in progress|wip|halted|not green|still failing)[a-z]*[[:space:]*_]*(:|—|–|-)?[[:space:]*_]*(none|n/a|nothing)[[:space:]]*[.!]?[[:space:]*_]*$'
   acked=$(printf '%s\n' "$said" | grep -viE "$NO_GAP")
   if [ -n "$said" ] && printf '%s' "$said" | grep -qiwE "$CLAIM" && ! printf '%s' "$acked" | grep -qiwE "$ACK"; then
     # An edit to a prose file (.md, .txt, .rst, .adoc and kin) does not arm the clause: no command's failure proves a README wrong.
@@ -636,7 +636,7 @@ MANIFESTS
 }
 clause_lockfile_drift
 
-# Carried: the item's id token; or min(2, n) of its n words of 5+ letters that are not stopwords; or, with n = 0, its text after the label.
+# Carried: the item's id token; or min(2, n) of its n words of 5+ letters that are not stopwords; or, with n = 0, its text after the label as whole words.
 RELAY_ACCOUNT='
   function words(s, out,   n, i, w, a) {
     s = tolower(s); gsub(/[^a-z]+/, " ", s); n = split(s, a, " ")
@@ -654,13 +654,13 @@ RELAY_ACCOUNT='
   }
   FNR == NR { m = m " " $0; next }
   !seen[$0]++ && ++k <= 40 {
-    if (!said_done) { said_done = 1; m = m " "; lm = tolower(m); words(m, said) }
+    if (!said_done) { said_done = 1; m = m " "; lm = tolower(m); gsub(/[^a-z0-9]+/, " ", lm); lm = " " lm " "; words(m, said) }
     lab = $0; sub(/\t.*/, "", lab); txt = $0; sub(/^[^\t]*\t/, "", txt)
     if (lab != "-" && match(m, "[^A-Za-z0-9_-]" lab "[^A-Za-z0-9_]")) next
     split("", iw); words(txt, iw); n = 0; hits = 0
     for (w in iw) { n++; if (w in said) hits++ }
     if (n > 0 && hits >= (n < 2 ? n : 2)) next
-    if (n == 0 && index(lm, after(txt))) next
+    if (n == 0) { at = after(txt); gsub(/[^a-z0-9]+/, " ", at); gsub(/^ | $/, "", at); if (length(at) >= 2 && index(lm, " " at " ")) next }
     print txt
   }'
 relay_mode=$(cc_option CC_RELAY_GATE warn)
@@ -680,8 +680,11 @@ clause_relay() {
   if [ "$relay_mode" = block ] && [ -z "$verdict" ]; then
     verdict="relay"; detail="$relay_detail"
   else
-    warn_text=$(printf '[candor] relay: a worker'"'"'s report named caveats Claude'"'"'s final message dropped:\n%s\n  CC_RELAY_GATE=block makes Claude relay them; CC_RELAY_GATE=off silences this.' "$relay_detail")
+    warn_text=$(relay_warning 'CC_RELAY_GATE=block makes Claude relay them; ')
   fi
+}
+relay_warning() {
+  printf '[candor] relay: a worker'"'"'s report named caveats Claude'"'"'s final message dropped:\n%s\n  %sCC_RELAY_GATE=off silences this.' "$relay_detail" "$1"
 }
 relay_report() {
   printf '[candor] relay: a worker report this turn named caveats the final message does not carry:\n%s\n' "$relay_detail" >&2
@@ -709,8 +712,13 @@ clause_partial_reads() {
 }
 clause_partial_reads
 
-# The two warnings are the user's: a passing stop shows them as a systemMessage, a blocked one appends them to the model's stderr.
-pass_turn() { [ -z "$warn_text" ] || jq -cn --arg m "$warn_text" '{systemMessage:$m}'; exit 0; }
+# The two warnings are the user's: a passing stop shows them as a systemMessage; a block by clause 1-3 or 5 appends them to the model's stderr.
+pass_turn() {
+  [ "$verdict" != relay ] || warn_text="$(relay_warning '')${warn_text:+
+$warn_text}"
+  [ -z "$warn_text" ] || jq -cn --arg m "$warn_text" '{systemMessage:$m}'
+  exit 0
+}
 [ -n "$verdict" ] || pass_turn
 
 report_verdict() {
