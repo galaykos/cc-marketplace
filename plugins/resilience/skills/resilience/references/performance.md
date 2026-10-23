@@ -1,14 +1,4 @@
----
-name: performance-tuning
-description: Use when optimizing or profiling what is slow or heavy — endpoint, query, job, page, bundle, memory — or reviewing a change for performance: measure before/after, N+1, payload, Core Web Vitals, cache correctness (stampede, TTL, eviction), load tests. Index/schema design is database's.
----
-
 # Performance tuning
-
-The iron rule: **measure before, measure after.** An optimization without a
-before/after number is a guess, and guesses do not ship. If you cannot measure the
-cost, your first task is to build the measurement — a profiler trace, a timed run, a
-bundle report, an `EXPLAIN` plan — not to start optimizing.
 
 ## The loop
 

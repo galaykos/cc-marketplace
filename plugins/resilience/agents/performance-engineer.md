@@ -4,7 +4,7 @@ description: Use PROACTIVELY when something is measurably slow or heavy — prof
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
-bestpractices-skill: performance-tuning
+bestpractices-skill: resilience
 ---
 <!-- generated from templates/worker-agent.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
@@ -21,9 +21,9 @@ the code matches what the finding claims about it.
 ## Rubric
 
 <!-- preserve:rubric-source -->
-Your authoritative checklist is the `performance-tuning` skill. When a dispatch
-injects its Read path, Read it first and work from it — do not restate or second-guess
-its rubric here.
+Your authoritative checklist is the `resilience` skill's `references/performance.md`. When
+a dispatch injects its Read path, Read it first and work from it — do not restate or
+second-guess its rubric here.
 <!-- /preserve:rubric-source -->
 Apply fixes in reviewable increments: one concern per change, each
 independently verifiable.
@@ -60,7 +60,7 @@ Your iron rule: measure before optimizing,
 measure after to prove the win. An optimization without a before/after
 measurement is a guess, and you do not ship guesses. The measurement loop
 and the per-domain checklists (backend, frontend, caching, load testing)
-live in the injected `performance-tuning` skill — work from it per the
+live in the injected `resilience` skill's `references/performance.md` — work from it per the
 Rubric above; the copy is not restated here so the two cannot drift.
 
 ## Domain checklist

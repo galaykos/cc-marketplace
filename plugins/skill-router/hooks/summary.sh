@@ -1,7 +1,6 @@
 #!/bin/bash
-# summary.sh — SessionEnd, fails open: appends what the router surfaced in this context to $HOME/.claude/skill-router/<root-slug>/surfaced.jsonl,
-#   prints the signals no prompt flushed (transcript residue: no model turn follows) and removes the context's state and dispatch files.
-# Off: CC_SURFACED_LOG=off skips the ledger append; unset, the /config option cc_surfaced_log decides.
+# summary.sh — SessionEnd, fails open: appends the skills the router nudged or found loaded in this context to
+#   $HOME/.claude/skill-router/<root-slug>/surfaced.jsonl and removes the context's state and dispatch files. Off: CC_SURFACED_LOG=off skips the append.
 # Misses: a context whose payload cwd no longer exists keeps its state file, orphaned.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/summary.sh
 
@@ -82,15 +81,6 @@ cc_option() {
   rm -f "${state_file%/*}/dispatch-$ctx.tsv" 2>/dev/null # subagent-skills.sh's dispatch record
   [ -r "$state_file" ] || exit 0
 
-  line=$(jq -r '
-    [ (.pending_low // [])[] | select(.flushed != true) ]
-    | group_by(.skill)
-    | map((if .[0].plugin then .[0].plugin + ":" else "" end) + .[0].skill + " (" + (length | tostring) + " file" + (if length == 1 then "" else "s" end) + ")")
-    | join(", ")
-  ' "$state_file" 2>/dev/null) || { rm -f "$state_file" 2>/dev/null; exit 0; }
-
-  [ -n "$line" ] && printf '[skill-router] Low-confidence signals seen this session — consider: %s.\n' "$line"
-
   case "$(cc_option CC_SURFACED_LOG on)" in
     off) : ;;
     *)
@@ -104,18 +94,7 @@ cc_option() {
             ts: (now | todate),
             session_id: $sid,
             fired: ((.fired // []) | unique),
-            loaded: ((.loaded // []) | unique),
-            # SPLIT ON `flushed`, not one bucket. route-prompt.sh marks an entry
-            # flushed only when it actually printed the digest to the model, so
-            # collapsing both states into `pending_low` made "accumulated but
-            # never shown" indistinguishable from "surfaced" — and that is the
-            # exact number the turn-cost --skills queue ranks skills by. Measured before
-            # this fix: four skills read 47 pending_low across 17 local sessions
-            # with 0 fired, and nothing could say whether any reached the model.
-            # `pending_low` is kept as the union so an older reader keeps working.
-            pending_low: ((.pending_low // []) | map(.skill) | unique),
-            pending_low_flushed: ((.pending_low // []) | map(select(.flushed == true) | .skill) | unique),
-            pending_low_unflushed: ((.pending_low // []) | map(select(.flushed != true) | .skill) | unique)
+            loaded: ((.loaded // []) | unique)
           }' "$state_file" >> "$dir/surfaced.jsonl" 2>/dev/null
         fi
       fi ;;

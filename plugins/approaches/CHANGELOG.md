@@ -3,6 +3,11 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.0 — 2026-10-23
+
+### Removed
+- **`pattern-selection` and `rollout-planning` were merged into `approach-deliberation` as references.** Each body moved verbatim, minus its frontmatter: `pattern-selection` → `references/patterns.md`, its catalog → `references/pattern-catalog.md` (the two path mentions inside updated), `rollout-planning` → `references/rollout.md`. Neither skill was used in the three projects a 2026-10-21 usage review measured; other installs are unmeasured. `/approaches:pattern` and `/approaches:rollout` stay and read their reference by `${CLAUDE_PLUGIN_ROOT}` path, and approach-deliberation's pattern handoff names `references/patterns.md`. What is lost: neither discipline fires by description any more — only the command, or a reader following approach-deliberation's pattern handoff, reaches it. Standing: recorded.
+
 ## 0.11.3 — 2026-10-15
 
 ### Changed
@@ -18,7 +23,7 @@ have no entries rather than invented ones.
 
 ## 0.11.1 — 2026-10-03
 
-- Two instructions stop asking for comments the comment rule forbids. pattern-selection puts the why for keeping the simple version in the PR or commit message, with a one-line comment only where a reader would otherwise "fix" it back into the pattern (code-review's comment-discipline keep-case, when code-review is installed). approach-deliberation's explain-first strategy writes the README section, the public contract or the commit message first — never a docstring that restates the behaviour.
+- Two instructions stop asking for comments the comment rule forbids. pattern-selection puts the why for keeping the simple version in the PR or commit message, with a one-line comment only where a reader would otherwise "fix" it back into the pattern (code-review's comment-discipline keep-case, when code-review is installed). approach-deliberation's explain-first strategy writes the README section, the public contract or the commit message first — never a docstring that restates the behaviour. <!-- removed-ok -->
 - **Hook comments cut to contract and limits; behaviour unchanged.** The shared blocks in `hooks/compact-recovery.sh`, `hooks/remind.sh` and `hooks/consult-remind.sh` keep each function's contract and limits in a few lines, and the reminder hooks their off-switch; the derivations and history moved to the marketplace repository's `rationale/`. `compact-recovery.sh` parses to the same code as before, compared by bash's own parser with comments ignored. The two reminder hooks name their steps as functions where comments stood (`is_machinery_prompt`, `is_about_hooks`, `is_own_echo`, `is_question_only`, `claim_rank`, `best_rank`, `sweep_stale_markers`), so their code did change and the parse comparison does not cover them. Their off-switch, refusal and stale-marker paths are pinned by cases in the marketplace repository's `scripts/smoke/hook-guard-tests.sh` that passed before the change and pass after it, and a differential run of the old against the new hooks over CC_REMIND × phase-sentinel × TMPDIR-marker matrices found 0 divergences in 263,500 old/new pairs across the marketplace's five reminder hooks, these two among them (stdout, exit status and marker state compared). bash 5 and hooks firing in parallel were not tested.
 
 ## 0.11.0 — 2026-09-30
@@ -46,7 +51,7 @@ have no entries rather than invented ones.
 ## 0.10.2 — 2026-09-23
 
 ### Changed
-- **Prompt audit (Claude Code's built-in `claude-api` skill, `prompt-audit` subcommand; target Opus 5.5 / Fable 5.1):** the consult nudge on an irreversible command is advisory in its own words ("a blind second opinion is available if the moment warrants one") instead of "stop", matching consult/SKILL.md; approach-deliberation and pattern-selection drop merge history and the mandatory catalog read. Method: that built-in skill's `shared/prompt-audit.md`; the full report and diff are in the maintainers' working area, not shipped.
+- **Prompt audit (Claude Code's built-in `claude-api` skill, `prompt-audit` subcommand; target Opus 5.5 / Fable 5.1):** the consult nudge on an irreversible command is advisory in its own words ("a blind second opinion is available if the moment warrants one") instead of "stop", matching consult/SKILL.md; approach-deliberation and pattern-selection drop merge history and the mandatory catalog read. Method: that built-in skill's `shared/prompt-audit.md`; the full report and diff are in the maintainers' working area, not shipped. <!-- removed-ok -->
 
 ## 0.10.0
 

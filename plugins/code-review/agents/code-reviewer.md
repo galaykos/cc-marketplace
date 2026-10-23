@@ -80,8 +80,8 @@ Rules:
   finding also says how to show it fails — the input or state that produces the wrong
   output — inside its problem clause; a bug nobody can reproduce is a claim, not a finding.
 - Defer rather than duplicate: structural, YAGNI and speculative-generality
-  concerns belong to /code-architecture:yagni and the architecture-reviewer
-  agent; deep security audits to /security:review; framework-idiom detail to the
+  concerns belong to code-architecture's architecture-reviewer agent; deep
+  security audits to /security:review; framework-idiom detail to the
   per-stack review command when its plugin is installed. On the concern axis —
   swallowed catches, races and retry idempotency, silent catch blocks, missing
   timeouts — the owning plugin reports it if installed:

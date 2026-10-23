@@ -43,12 +43,10 @@ rubrics the diff selects in one pass.
 
 | Skill | Fires when |
 |---|---|
-| `resilience-design` | Code crosses a process boundary — HTTP calls, queues, databases, third-party APIs, background jobs |
-| `error-handling-design` | Code handles exceptions — catches, cause chains, user-facing errors |
-| `concurrency-safety` | Code has concurrent writers or retried operations |
-| `observability-design` | Code emits logs, metrics, spans, or health signals |
-| `performance-tuning` | Something is measurably slow or heavy, or a cache is being designed |
-| `event-driven` | Message-driven architecture is designed or reviewed — brokers, topics, schema versioning, delivery semantics, outbox, sagas, DLQ, consumer idempotency (system-design was merged into code-architecture on 2026-09-14 and this skill moved here) |
+| `resilience` | Code crosses a process boundary, handles errors, has concurrent writers or retried operations, emits logs, metrics, traces or health checks, is slow or caches, or designs broker messaging. Its body carries each concern's core rule and a table naming the reference a change selects, under `references/`: `timeouts-retries.md`, `error-handling.md`, `concurrency.md`, `observability.md`, `performance.md`, `messaging.md` |
+
+The six concerns were six skills until 0.9.0. One skill costs the host's listing one entry
+instead of six, and a change reads only the references it touches.
 
 ## Agents
 
@@ -62,7 +60,7 @@ rubrics the diff selects in one pass.
 ## Evals
 
 `evals/` holds six cases. Run them with the control arm — without it a grader
-passing proves nothing about the skills, only that the model can review code:
+passing proves nothing about the skill, only that the model can review code:
 
 ```bash
 claude plugin eval ./plugins/resilience --ablation with-without --runs 5 \
@@ -86,12 +84,12 @@ state the run count and the vote spread with the number or do not state the numb
 
 ## Pairs well with
 
-- **code-architecture** (system-design skill) — the service boundaries whose failure modes this plugin reviews
+- **code-architecture** (system-architect agent) — the service boundaries whose failure modes this plugin reviews
 - **devops** — infra-layer wiring (collectors, dashboards, deploy config) the observability engineer defers to
 - **database** — SQL statement and index idioms (its sql skill, loaded by `/code-review:review`) the performance review defers to instead of duplicating
 - **task-runner** — the apply-now path hands findings to its executor when installed
 - **craft-layer** — a consumer: its `craft-reviewer` yields to
   `/resilience:review --concern performance` for the audit step (`craft-layer/lane.tsv`).
   Frame-budget, `requestAnimationFrame` and compositor questions route to ui-ux's
-  `motion-best-practices` skill instead — `performance-tuning` carries no
+  `motion-best-practices` skill instead — `references/performance.md` carries no
   frame-budget material (grep it before trusting this line)

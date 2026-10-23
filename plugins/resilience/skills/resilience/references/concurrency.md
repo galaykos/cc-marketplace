@@ -1,16 +1,4 @@
----
-name: concurrency-safety
-description: Use when code has concurrent writers or retried operations — race conditions, check-then-act, optimistic vs pessimistic locking, distributed locks, retry idempotency. Broker delivery, outbox, DLQ → this plugin's event-driven skill.
----
-
-## Core rule
-
-Two copies of your code will run the same lines at the same time — two
-requests, a retry, a second queue worker, a user double-clicking. The
-question is never whether concurrent execution happens but what breaks
-when it does. Any read-check-write sequence that assumes the world
-holds still between the read and the write is a race; the check alone
-is never protection, because the world changes after you look.
+# Concurrency safety
 
 ## Check-then-act races
 

@@ -55,6 +55,7 @@ BLOCK_SUB='no command ran after the last edit'
 T1="$WS/t1.jsonl"
 { tool_entry Read Edit; text_entry "All done — the fix is implemented."; } > "$T1"
 check "naked claim blocks (exit 2)"                 "" "$T1" 2 "$BLOCK_SUB"
+check "the block names code-architecture:work-verification" "" "$T1" 2 "code-architecture:work-verification, if installed, says how"
 
 # 2. One-shot: same final text again with marker kept -> allow.
 check_keep "same claim re-stop passes (one-shot marker)" "" "$T1" 0 "__NONE__"

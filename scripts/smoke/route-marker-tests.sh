@@ -294,19 +294,19 @@ out=$(route "$TMP/casecwd" "src/components/Widget.vue")
 expect "unrelated dir does not match" "$out" '' 'case-canary'
 
 # ---- CROSS-HOOK ROUND TRIP (the check nothing else performs) --------------
-# route.sh WRITES the state file, route-prompt.sh and summary.sh READ it. Every
+# route.sh WRITES the state file, summary.sh READS it. Every
 # other assertion in this file exercises one hook alone, and `find -name
 # 'fired-*.json'` is name-agnostic — so when route.sh changed its state-file key
-# to a cksum and the two readers kept reading `fired-<raw session_id>.json`, the
-# entire low-confidence channel died and this suite stayed green for a week.
-# These three assertions fail if the writer and either reader ever disagree
+# to a cksum and the readers kept reading `fired-<raw session_id>.json`, the
+# ledger died and this suite stayed green for a week.
+# These assertions fail if the writer and the reader ever disagree
 # again. Payload is HOST-SHAPED: it carries transcript_path, because that is the
 # field route.sh reads first and a payload without it grades the fallback branch.
 tp="$TMP/transcripts/sess-roundtrip.jsonl"
 mkdir -p "$(dirname "$tp")"; : > "$tp"
 mkdir -p "$TMP/rtcwd"
-printf 'content\tROUNDTRIP-CANARY\troundtrip-canary\tmisc\tlow\n' >> "$PR/rules.tsv"
-printf 'a file whose body contains ROUNDTRIP-CANARY\n' > "$TMP/rtcwd/note.cfg"
+printf 'glob\tnote.cfg\troundtrip-canary\tmisc\thigh\n' >> "$PR/rules.tsv"
+printf 'any body\n' > "$TMP/rtcwd/note.cfg"
 
 payload=$(printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s","tool_input":{"file_path":"note.cfg"}}' "$tp" "$TMP/rtcwd")
 printf '%s' "$payload" | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE" >/dev/null 2>&1 || true
@@ -320,14 +320,6 @@ if [ "$statefiles" = "1" ]; then
 else
   echo "FAIL: round trip — route.sh wrote $statefiles state files, expected 1"; rc=1
 fi
-
-# The reader must FIND that file. Same payload shape, UserPromptSubmit fields.
-flush=$(printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s","prompt":"keep going"}' "$tp" "$TMP/rtcwd" \
-  | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROOT/plugins/skill-router/hooks/route-prompt.sh" 2>/dev/null || true)
-case "$flush" in
-  *roundtrip-canary*) echo "PASS: round trip — route-prompt.sh flushed the digest route.sh wrote" ;;
-  *) echo "FAIL: round trip — route-prompt.sh found no digest (writer/reader key mismatch); got: $flush"; rc=1 ;;
-esac
 
 # SessionEnd must find the same file, append one ledger row, and remove it.
 # Record whether HOME was set at all, not just its value: restoring an unset HOME

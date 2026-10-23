@@ -3,11 +3,12 @@ description: Suggest (or reject) a design pattern for a described problem
 argument-hint: [problem-description]
 ---
 
-Invoke the pattern-selection skill from this plugin, then respond to $ARGUMENTS with:
+Read `${CLAUDE_PLUGIN_ROOT}/skills/approach-deliberation/references/patterns.md`, then respond to
+$ARGUMENTS with:
 
 1. The problem, restated in one sentence — without naming a pattern.
 2. The simplest non-pattern solution that could work.
-3. The skill's **Gate** (three checks): state each verdict. If any fails, stop at the simple
+3. The reference's **Gate** (three checks): state each verdict. If any fails, stop at the simple
    solution — do not reach the map.
 4. A pattern recommendation ONLY if the gate passed AND it clearly beats the simple solution —
    name the trade-offs (indirection, new concepts for readers, testing surface).

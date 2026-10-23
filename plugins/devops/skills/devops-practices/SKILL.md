@@ -1,6 +1,6 @@
 ---
 name: devops-practices
-description: Use when writing or reviewing CI/CD pipelines, Kubernetes manifests, deployment strategy, or secrets handling. Local docker-compose dev environments belong to this plugin's compose-init skill; in-code instrumentation belongs to resilience.
+description: Use when writing or reviewing CI/CD pipelines, Kubernetes manifests, deployment strategy, or secrets handling; in-code instrumentation belongs to resilience.
 ---
 
 Infrastructure and pipeline configuration has a blast radius the code does not: a bad
@@ -105,13 +105,13 @@ terraform rubric here, and writing one from memory is the shape
 Standing: recorded — this plugin owns the infra layer: probes wired to endpoints,
 logs shipped off the node, metrics scraped/exported, dashboards, alerting, the
 collector. What the application *emits* — structured logs, correlation IDs, levels,
-RED/USE metrics, spans — is the `resilience` plugin's observability skill; recommend
+RED/USE metrics, spans — is the `resilience:resilience` skill's `references/observability.md`; recommend
 `/resilience:review --concern observability`, do not audit in-code instrumentation here.
 
 ## Defer rule
 
-- Local dev-environment compose generation → `/devops:init`; auditing an existing
-  one → `/devops:review`, which loads `docker-best-practices`.
+- Auditing an existing local dev environment → `/devops:review`, which loads
+  `docker-best-practices`.
 - Stack/dependency inventory → `/stack-scan:report` — use its output.
 - Application-code security → `/security:review`; you handle infra and pipeline
   config, not source audits.

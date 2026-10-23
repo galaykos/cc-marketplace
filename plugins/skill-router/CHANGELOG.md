@@ -2,6 +2,20 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.27.0 — 2026-10-24
+
+### Removed
+
+- **The low-confidence digest.** `route.sh` no longer queues content matches, `route-prompt.sh` no longer prints "Signals from recent edits" on the next prompt, and `summary.sh` no longer prints a SessionEnd line or writes `pending_low`, `pending_low_flushed` and `pending_low_unflushed`: a `surfaced.jsonl` row is `v`, `ts`, `session_id`, `fired`, `loaded`, and `scripts/turn-cost.sh --skills` reads the missing fields as empty. Every `low` row left `rules.tsv` with it: the two `security-review` rows, the four resilience concerns, and the ReUI and Aceternity import rows. Why: in one user's three projects 242 of 362 surfacings went to skills never loaded, driven by these rows and the language-wide ones below (the marketplace repository's `rationale/session-retro-2026-10-21.md`). Where the job went: `security-review` and `resilience:resilience` load through their own descriptions and their agents' skill lists; nothing replaces the digest. `CC_ROUTE` now silences the tool-fit check alone. Standing: gate (`route.test.sh` cases 4b, 15 and 18, `route-pins.test.sh`), each red against 0.26.0.
+- **The language-wide nudges.** The rows that routed `low-cognitive-load` and `solid-principles` on every `.ts`/`.js`/`.py`/`.go`/`.rb`/`.rs` file, `low-cognitive-load` on `.tsx`/`.jsx`/`.vue`/`.php`, and `a11y-audit` on `.tsx`/`.jsx`/`.vue`/`.blade.php`/`.svelte`/`.astro`/`.html`/`.erb`/`.twig`, and the `# nudge-last:` rank that put them after other rows. Where the job went: `a11y-audit` is still in `prime.sh`'s index for a `.tsx`/`.jsx` repo; the two code-architecture skills load through their descriptions and `coding-entry`. Standing: gate (`route.test.sh` case 17, red against 0.26.0).
+- **The `*.graphql` and `*.proto` rows** were removed with `api-design:graphql-grpc`; no row replaces them.
+
+### Changed
+
+- **MUI and Astryx imports, Magic UI and React Bits installs, and ReUI or Metronic copies route `ui-libraries:component-libraries`**, whose library map covers each of them; their sibling skills left ui-libraries. Standing: gate (`route.test.sh` cases 10, 14 and 26).
+- The headers of `route.sh`, `route-prompt.sh`, `summary.sh` and `subagent-skills.sh` are three lines; the text they lost is in the marketplace repository's `rationale/derivations/plugin-skill-router.md`. `subagent-skills.sh`'s list of declared skills it never hands out names `resilience`.
+- Unmeasured: whether any removed surfacing changed what the model wrote; the 242-of-362 figure counts loads, not effects.
+
 ## 0.26.0 — 2026-10-14
 
 ### Fixed
@@ -16,7 +30,7 @@ All notable changes to the skill-router plugin.
 
 - **A file a Bash interpreter run wrote routes as an Edit of it would.** In four measured sessions 40–85% of code writes went through `python3 - <<'EOF'` heredocs, which no per-file hook saw; in one, auth logic written that way drew no security-review signal while it was being written. After a Bash call naming python, node, php, ruby, perl, deno, bun, cp, mv, install or patch as a word, `route.sh` asks git which files changed or appeared since its own previous call (`git status` under `GIT_OPTIONAL_LOCKS=0`, then an mtime test against a marker every call rewrites, Edit included) and routes up to eight (`MAX_BASH_EFFECTS`) through the same per-file path, deduped against the targets the command names. The detection is the new byte-locked `templates/blocks/bash-write-effects.md`. Measured, 20 runs, median: on the largest local repo (2,786 tracked files) a non-matching call 13.6 ms (7.5 ms before: it now reads the cwd and the state root to date the marker), a matching call that wrote nothing 18.5 ms, a python heredoc writing three PHP files 164 ms against 73 ms for one Edit of one of them; on a 100,000-file repo 13.5, 50 and 191 ms. Right after a clone, until any git command refreshes the index, the matching call's `git status` re-hashes every file (127.5 ms on the 2,786-file repo); an Edit costs what it did. A range review's second round on the block, folded in here: a command that exits non-zero fires `PostToolUseFailure`, not `PostToolUse`, so `route.sh` is registered on it for Bash and answers in that event's envelope (before, a red `python3 … && php artisan test` read nothing and the next call dated its writes away); `cat gen.py | python3`, `python3;ls` and `make && python3` now count (the word could not end the command or meet `;`); the marker holds the session's cksum and another session's reads as none, so the user's overnight edits are not the next session's first run; a `$HOME` root and a repo with `status.showUntrackedFiles=no` read nothing (a non-git folder under a dotfiles `$HOME` listed 150,000 files a hook); the block reads tracked `.claude/` files for the other adopters, plugin state staying out by its dir's `*` `.gitignore`, and `route.sh`'s own target rule still routes nothing under `.claude/`; a state dir that already existed gets its `.gitignore`; git's list goes to one `find` capped after it (30,000 untracked files: 281 → 51.5 ms a call), and the regex runs under `LC_ALL=C` (a 150 kB base64 `echo … > logo.png` 419 → 199 ms, a 1 MB token 15 s → 115 ms). Re-measured on a synthetic 2,786-file repo, 20 runs, median (max), before → after that round: a non-matching call 11.4 (11.7) → 12.8 (13.0) ms, a matching call that wrote nothing 18.2 (19.3) → 22.8 (25.1) ms. Residuals: the first call of each session that reaches the hook only sets the marker, and two sessions in one repo at once read nothing after each other's calls; a writer named another way (`npx prettier --write`, `make`, `git apply`), a gitignored output, a repo with no git, a submodule's files, a `mv` or `cp -p` destination (it keeps the source's mtime) and changed files past the eighth are missed, the cap counting files the router then skips; a `run_in_background` command's hook runs at launch, so its writes are read only by the next matching call; anything else that changed a file between two calls of the session (an IDE save, a parallel agent) is read as the run's write. In the repo-path fallback (no `CLAUDE_PLUGIN_DATA`) the marker creates `.claude/skill-router/`, self-ignored, on the first call in a git repo, so cases 2, 3, 14 and 14b of `route.test.sh` now assert no fired state and nothing git can see instead of no `.claude/` directory. Pinned by `route.test.sh` case 24 (a python write routes what an Edit does and queues security-review for an auth file; a matching run that wrote nothing, the first call in a repo and an Edit's file between two Bash calls stay silent), 5 assertions red against the committed hook, and case 25 (the `PostToolUseFailure` registration and envelope, the piped python, another session's marker, a `$HOME` root, `showUntrackedFiles=no`, an existing state dir's `.gitignore`, a 1 MB token within 3 s), all 8 red against 0.26.0's first cut. Standing: gate for those shapes and for the block's byte lock (`pc_shared_blocks`); the over-read is recorded.
 - **`general-purpose` and `claude` subagents get the repo's stack skill paths when their dispatch names a repo file, and a surface skill rides only a dispatch naming its file kind.** The SubagentStart matcher skipped generic agents, which built money and role features with no stack skill, while Vite's path was handed to plugin agents 20 times and read twice and SQL's 23 times and read 7. The dispatch prompt is not on disk when SubagentStart fires (probed twice on CLI 2.1.299: the parent's Agent `tool_use` and the subagent's files are written after the hook), so `subagent-skills.sh` now also runs on `PreToolUse` of the Agent call, prints nothing, and appends which file kinds the prompt named to `dispatch-<ctx>.tsv` in the router's state directory (a dispatch of a type it does not handle, such as Explore, exits after one `jq` read, before any `git` call); `summary.sh` removes it at session end. Vite, SQL/MariaDB, package-hygiene, Docker and CI skills need a matching file named (`vite.config.*`; `.sql` or `migrations/`; `composer.json`/`package.json`; a Dockerfile or compose file; `.github/workflows/`), unless the agent declares nothing else, as `database:database-engineer` does. Residuals: dispatches of one agent type within 120 seconds share one record, so a parallel fan-out is judged as a whole; a dispatch held longer than that for approval reads as naming nothing; a migration described but not named by path does not count; a nested dispatch's keys are unmeasured. Pinned by `subagent-skills.test.sh` cases 1-1f and 10 (both `hooks.json` matchers included), 17 assertions red against 0.25.2, and case 11 for the early exit. Standing: gate for the record, the gate and the matchers; agent-graded whether the agent reads the paths.
-- **Dependency updates and ReUI or Metronic copies route.** A 72-package `composer update` routed nothing, because an update rewrites only the lockfile, and a ReUI port of 78 components arrived by `cp` and drew shadcn and Tailwind but never `reui-best-practices`: the copied files import nothing from `@reui/`. A probe on this release's own Bash-write read confirmed the copy still routes only generic rows. New `command` rows: `(composer|npm) (update|upgrade)` → `stack-scan:package-hygiene`, and a `cp` or `rsync` naming a ReUI or Metronic path → `ui-libraries:reui-best-practices`. No `@reui/*` package.json prime: `@reui` is a shadcn registry namespace, not an npm package. Residuals: a quoted source path is masked and does not route; `pnpm`/`yarn` updates and `composer u` do not; a `/cp/` path segment before a ReUI path does route. Pinned by `route.test.sh` case 26 (six commands, each silent without the rows; five neighbours stay silent). Standing: gate.
+- **Dependency updates and ReUI or Metronic copies route.** A 72-package `composer update` routed nothing, because an update rewrites only the lockfile, and a ReUI port of 78 components arrived by `cp` and drew shadcn and Tailwind but never `reui-best-practices`: the copied files import nothing from `@reui/`. A probe on this release's own Bash-write read confirmed the copy still routes only generic rows. New `command` rows: `(composer|npm) (update|upgrade)` → `stack-scan:package-hygiene`, and a `cp` or `rsync` naming a ReUI or Metronic path → `ui-libraries:reui-best-practices`. No `@reui/*` package.json prime: `@reui` is a shadcn registry namespace, not an npm package. Residuals: a quoted source path is masked and does not route; `pnpm`/`yarn` updates and `composer u` do not; a `/cp/` path segment before a ReUI path does route. Pinned by `route.test.sh` case 26 (six commands, each silent without the rows; five neighbours stay silent). Standing: gate. <!-- removed-ok -->
 
 ## 0.25.2 — 2026-10-14
 
@@ -43,7 +57,7 @@ All notable changes to the skill-router plugin.
 ## 0.24.0 — 2026-10-06
 
 - **`jsrepo add` routes `shadcn-best-practices`**, the way `shadcn add` already did: a new `command` row, so the copy-in rules in its `references/registries.md` (now with a jsrepo section, ui-ux 0.30.0) arrive with the install. `jsrepo init` stays silent.
-- **Magic UI and React Bits installs also route `aceternity-best-practices`** (ui-libraries 0.3.0 widened it to them). A `shadcn add` or `jsrepo add` whose arguments include `@magicui/`, `@react-bits/` or a `https://reactbits.dev/r/` URL draws both skills in one envelope; a `jsrepo add` of any other registry draws shadcn's alone. No glob row: read 2026-10-06, 77 of 78 Magic UI items name no install target and React Bits targets only its `-CSS` stylesheets, so there is no fixed directory to match.
+- **Magic UI and React Bits installs also route `aceternity-best-practices`** (ui-libraries 0.3.0 widened it to them). A `shadcn add` or `jsrepo add` whose arguments include `@magicui/`, `@react-bits/` or a `https://reactbits.dev/r/` URL draws both skills in one envelope; a `jsrepo add` of any other registry draws shadcn's alone. No glob row: read 2026-10-06, 77 of 78 Magic UI items name no install target and React Bits targets only its `-CSS` stylesheets, so there is no fixed directory to match. <!-- removed-ok -->
 - **A `locomotive-scroll` import routes `scroll-orchestration`**, which now covers Locomotive Scroll 5 (craft-layer 0.57.0). The README's library and registry-install lines say so.
 - **Standing: gate** — `scripts/__tests__/route.test.sh` pins the unquoted `@magicui/`, `@react-bits/` and `reactbits.dev/r/` installs, `jsrepo add` routing shadcn's skill and not Aceternity's, `jsrepo init` silent, the quoted-argument miss, the locomotive import, and the one-envelope assertion on the existing Magic UI case; it runs in CI's plugin-harness step. Residuals: a quoted install argument is masked, so `add "@magicui/x"` routes shadcn's skill alone (pinned as a stated miss); a later edit of an installed Magic UI or React Bits file routes no Aceternity rules; an `ogl` import routes nowhere, by decision. The command rows run on Bash calls, which the budget gate's Edit-only probes do not meter.
 - **Credit and effect.** Found while reviewing freshtechbro/claudedesignskills @1da73feb (MIT, © 2025 Claude Skills Project); rewritten here, not copied. Unmeasured: whether the routed skills change what the model writes. No eval with a control arm covers it.
@@ -139,7 +153,7 @@ All notable changes to the skill-router plugin.
   built-in and project agents, an agent with no list, nothing matching, a skill the
   agent already preloads through `skills:`, and under `CC_REMIND=off` or the new
   `CC_SUBAGENT_SKILLS=off`. A declared skill `prime.sh` has no evidence row for (motion,
-  security-review, performance-tuning, observability-design) is never handed out. Cost:
+  security-review, performance-tuning, observability-design) is never handed out. Cost: <!-- removed-ok -->
   200-265 ms per plugin-agent spawn on two real Laravel/Inertia repos. Not metered:
   `scripts/context-budget.sh` does not execute SubagentStart hooks. Probed once live
   (CLI 2.1.282, haiku, `--plugin-dir`): the subagent's transcript carried exactly the
@@ -317,7 +331,7 @@ All notable changes to the skill-router plugin.
 - **The ReUI content row could not match a ReUI import.** `\b(@reui/|…)` put a word
   boundary immediately before `@`, so it matched only where a word character preceded
   the `@` (`x@reui/bar`) — never in `from "@reui/core"`. A project installing ReUI by
-  package name got no `reui-best-practices` nudge unless the file also mentioned
+  package name got no `reui-best-practices` nudge unless the file also mentioned <!-- removed-ok -->
   `reui.io` or imported from the `@/components/ui/data-grid` alias. Now
   `(@reui/|\breui\.io|\bfrom …)`.
 - **The concurrency row's `.lock(` alternative needed an argument.** The trailing `\b`
@@ -398,7 +412,7 @@ All notable changes to the skill-router plugin.
   `co-fire-ok` blessings — both plugins were removed from the marketplace
   (2026-09-14 consolidation plan). Payment-provider and LLM-provider edits now
   route through the co-firing skills that remain: `security-review`,
-  `concurrency-safety`, `error-handling-design`, `resilience-design`.
+  `concurrency-safety`, `error-handling-design`, `resilience-design`. <!-- removed-ok -->
 
 ## 0.15.1
 
@@ -420,13 +434,13 @@ All notable changes to the skill-router plugin.
 
 ### Added
 - `rules.tsv` content row for `@astryxdesign/(core|cli|theme-*)` → ui-ux's
-  `astryx-best-practices` (low confidence, digest channel), matching the existing
+  `astryx-best-practices` (low confidence, digest channel), matching the existing <!-- removed-ok -->
   `@mui/*` row. Verified against `scripts/smoke/router-corpus` for co-fires: none.
 
 ## 0.14.12
 
 ### Fixed
-- `rules.tsv` row for `observability-design` named `observability` as its owning plugin — a
+- `rules.tsv` row for `observability-design` named `observability` as its owning plugin — a <!-- removed-ok -->
   directory that has not existed since the fold into `resilience`. `route.sh` skips any
   row whose col-4 plugin is not installed, so the row was suppressed wherever the
   installed-plugin filter resolved — and named a non-existent plugin in its nudge where
@@ -790,7 +804,7 @@ All notable changes to the skill-router plugin.
 
 - Correction to 0.11.0's note: `*.php` was NOT missing. Lines 78-79 have carried
   Laravel and plain-PHP rows behind `composer.json` markers all along.
-- Still unrouted, deliberately: `code-smells`, `reuse-hygiene`, `yagni-check`,
+- Still unrouted, deliberately: `code-smells`, `reuse-hygiene`, `yagni-check`, <!-- removed-ok -->
   `plan-before-code`. `comment-discipline` stays absent by design — its own
   PreToolUse/PostToolUse hook is its delivery channel.
 - No context-budget change: the dynamic channel measures a synthetic edit to

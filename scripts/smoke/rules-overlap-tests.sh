@@ -69,9 +69,10 @@ else
   echo "FAIL[cofire]: shipped rules.tsv has an unblessed content co-fire"; rc=1
 fi
 
-# 2. an unblessed row with a DISTINCT regex that overlaps on real code must fail
+# 2. two unblessed rows with DISTINCT regexes that overlap on real code must fail
 cp plugins/skill-router/rules.tsv "$RT"
-printf 'content\t\\b(catch|rescue)\\b\tzz-probe\tzz\tlow\n' >> "$RT"
+printf 'content\t\\b(catch|rescue)\\b\tzz-probe\tzz\thigh\n' >> "$RT"
+printf 'content\t\\bthrow\\b\tzz-probe-b\tzz\thigh\n' >> "$RT"
 if pc_rules_cofire "$RT" "$CORPUS" >/dev/null; then
   echo "FAIL[cofire]: distinct-regex overlap went undetected"; rc=1
 else
@@ -124,10 +125,10 @@ case "$own_rc:$out" in
   *) echo "FAIL[owner]: dead owner not flagged (rc=$own_rc; out=$out)"; rc=1 ;;
 esac
 cp plugins/skill-router/rules.tsv "$RT"
-printf 'glob\t*.zzprobe\tobservability-design\tui-ux\tlow\n' >> "$RT"
+printf 'glob\t*.zzprobe\tsecurity-review\tui-ux\thigh\n' >> "$RT"
 out=$(pc_rules_owner "$RT" plugins) && own_rc=0 || own_rc=$?
 case "$own_rc:$out" in
-  1:*'rules-owner observability-design ui-ux'*) echo "PASS[owner]: live-but-wrong owner detected" ;;
+  1:*'rules-owner security-review ui-ux'*) echo "PASS[owner]: live-but-wrong owner detected" ;;
   *) echo "FAIL[owner]: live-but-wrong owner not flagged (rc=$own_rc; out=$out)"; rc=1 ;;
 esac
 cp plugins/skill-router/rules.tsv "$RT"

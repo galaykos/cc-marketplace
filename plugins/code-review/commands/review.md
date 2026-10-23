@@ -188,21 +188,22 @@ Output rules:
     idempotency, unguarded parallel writes; silent catch blocks, correlation IDs,
     secrets in logs; performance hotspots; at-least-once delivery, idempotent
     consumers, ordering and poison messages on a broker or queue) and this plugin's own `comment-discipline`
-    skill (added comments, judged in item 4a; volume stays with the hooks). When `resilience` is installed, LOAD only
-    the skills the diff's content selects: resilience-design for a call across a process
-    boundary (HTTP, database, third-party API, job dispatch), error-handling-design for an
-    added or changed try/catch or error type, concurrency-safety for a shared write, lock,
-    retry or transaction, observability-design for a log, metric, trace or health check,
-    performance-tuning for a query or I/O in a loop, a cache or payload/bundle size, and
-    event-driven for a broker, queue consumer or event schema; a diff with none of these
-    loads none. Apply them in this same pass and report each such
-    finding once, tagged with the owning skill — never defer it to a `/resilience:*`
+    skill (added comments, judged in item 4a; volume stays with the hooks). When `resilience` is installed, LOAD its
+    `resilience` skill and read only the references the diff's content selects:
+    `references/timeouts-retries.md` for a call across a process boundary (HTTP, database,
+    third-party API, job dispatch), `references/error-handling.md` for an added or changed
+    try/catch or error type, `references/concurrency.md` for a shared write, lock, retry or
+    transaction, `references/observability.md` for a log, metric, trace or health check,
+    `references/performance.md` for a query or I/O in a loop, a cache or payload/bundle
+    size, and `references/messaging.md` for a broker, queue consumer or event schema; a diff
+    with none of these loads neither the skill nor a reference. Apply them in this same pass
+    and report each such finding once, tagged with the owning reference — never defer it to a `/resilience:*`
     command, because those commands hand their whole scope back here and a deferral
     is a loop in which nobody runs the rubric. When `resilience` is absent, this
     review keeps the finding under step 2. The swallowed catch alone had four
     claimants; it is reported once, under one owner.
-  - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer
-    agent; a whole-application security audit → `/security:review`.
+  - Structural/YAGNI → code-architecture's `architecture-reviewer` agent; a
+    whole-application security audit → `/security:review`.
 
 Before the verdict, state the coverage: `Checked: host built-in | inline — …`, the branch
 that ran the generic pass as its first token — `host built-in` followed by the level and

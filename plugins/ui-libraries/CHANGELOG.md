@@ -2,9 +2,14 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.4.0 — 2026-10-23
+
+- **`mui-best-practices`, `astryx-best-practices`, `reui-best-practices` and `aceternity-best-practices` were removed.** None had a use in the projects measured for the cut; other installers were not measured. Their libraries are rows in `component-libraries/references/library-map.md` that point at each library's official docs (`https://mui.com/material-ui/`, `https://astryx.atmeta.com/docs/getting-started`, `https://reui.io/docs`, `https://ui.aceternity.com/components`), under `component-libraries`' library-agnostic rules. Magic UI and React Bits, which followed Aceternity's rules from 0.3.0, follow the same floor. Lost with them: MUI X's per-major tables, the Astryx 0.x inventory and the one-hero-effect placement rule. Standing: recorded for the map rows; agent-graded for the floor's rules.
+- Kept: `primereact-best-practices` (the one skill with a measured delta) and `component-libraries`.
+
 ## 0.3.0 — 2026-10-06
 
-- **Magic UI and React Bits follow Aceternity's rules.** `aceternity-best-practices` no longer hands Magic UI to `ui-ux:motion-best-practices`: Magic UI (`@magicui/<name>`) and React Bits (`@react-bits/<Name>-<JS|TS>-<CSS|TW>`) are the same class of copy-in marketing effect, so placement, one hero effect per view, pausing off-screen, reduced motion, SSR randomness and theming apply to them, and their docs pages stand in for Aceternity's. One exception: an animated number (NumberTicker, CountUp) follows ui-ux's counter rule — final value in the markup, no count under reduced motion. Animate UI's app primitives and hand-written `motion/react` code stay with motion-best-practices. The skill's description is unchanged, so this plugin's always-on context does not move.
+- **Magic UI and React Bits follow Aceternity's rules.** `aceternity-best-practices` no longer hands Magic UI to `ui-ux:motion-best-practices`: Magic UI (`@magicui/<name>`) and React Bits (`@react-bits/<Name>-<JS|TS>-<CSS|TW>`) are the same class of copy-in marketing effect, so placement, one hero effect per view, pausing off-screen, reduced motion, SSR randomness and theming apply to them, and their docs pages stand in for Aceternity's. One exception: an animated number (NumberTicker, CountUp) follows ui-ux's counter rule — final value in the markup, no count under reduced motion. Animate UI's app primitives and hand-written `motion/react` code stay with motion-best-practices. The skill's description is unchanged, so this plugin's always-on context does not move. <!-- removed-ok -->
 - **Two `component-libraries/references/library-map.md` rows**, read 2026-10-06 from the registry items, the licences and a `shadcn add --dry-run` on shadcn 4.21.2: Magic UI (`components/ui/<name>.tsx`; motion items import `motion/react`, CSS-only items add keyframes to the theme CSS; MIT) and React Bits (`components/<Name>.tsx`, or jsrepo; colours through props; deps per item, `ogl` for Aurora; MIT + Commons Clause — free inside a product, never sold or redistributed as components).
 - **Standing:** agent-graded for the class rule — only a reader of a file's imports and origin can tell the classes apart; recorded for the map rows. Residuals: skill-router 0.24.0 sends the skill on a Magic UI or React Bits install command, but a later edit of an installed component file routes no Aceternity rules, and a quoted install argument routes shadcn's skill alone; the description still names only Aceternity.
 - **Credit and effect.** Found while reviewing freshtechbro/claudedesignskills @1da73feb (MIT, © 2025 Claude Skills Project); rewritten here, not copied. Unmeasured: whether it changes what the model builds. No eval with a control arm covers it.
@@ -20,8 +25,8 @@ Consumer-facing changes only. Newest first.
 ## 0.1.0 — 2026-09-26
 
 - Split out of `ui-ux`, which had reached the 160,000-byte per-plugin prose cap
-  (`pc_plugin_corpus`). Moved unchanged: `mui-best-practices`, `astryx-best-practices`,
-  `reui-best-practices`, `aceternity-best-practices`, `component-libraries`. Skill names
+  (`pc_plugin_corpus`). Moved unchanged: `mui-best-practices`, `astryx-best-practices`, <!-- removed-ok -->
+  `reui-best-practices`, `aceternity-best-practices`, `component-libraries`. Skill names <!-- removed-ok -->
   change from `ui-ux:<skill>` to `ui-libraries:<skill>`. Every suite that carries `ui-ux`
   now carries this plugin; a standalone `ui-ux` install needs this one added by name.
 - New `primereact-best-practices`: PrimeReact 11 is a rewrite (GA 2026-07-15) — `@primereact/ui` vs the

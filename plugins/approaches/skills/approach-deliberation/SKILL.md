@@ -144,8 +144,8 @@ Mid-implementation, when reality contradicts the pick's assumptions:
 - Product shape unclear (what to build, for whom) → taskmaster brainstorm. This
   skill starts after WHAT is settled.
 - Winner picked → plan-before-code for file-level planning, then implement.
-- Pattern-level choice inside the winner (factory vs builder) → this plugin's
-  pattern-selection skill (`/approaches:pattern`).
+- Pattern-level choice inside the winner (factory vs builder) →
+  `references/patterns.md` (`/approaches:pattern`).
 
 ## Anti-patterns
 

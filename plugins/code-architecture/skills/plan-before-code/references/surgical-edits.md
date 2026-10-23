@@ -66,8 +66,8 @@ both directions:
 Minimum code that solves the stated problem:
 
 - Nothing speculative: no config knobs, extension points, or "flexibility"
-  the request didn't ask for — the yagni-check skill carries the full
-  checklist; this is its inline reflex.
+  the request didn't ask for — the architecture-reviewer agent flags what
+  slips through at review; this is the inline reflex.
 - No abstractions for single-use code; the default is the third occurrence,
   and a real second caller earns the abstraction only when the duplication
   is knowledge, not text (see `low-cognitive-load/references/kiss-dry.md`).

@@ -35,7 +35,7 @@ itself — `renderList(items, true)` against `renderCompactList(items)`.
 If the function starts accumulating multiple boolean flags, that's a stronger signal it's
 secretly several functions glued together — split it before adding a third flag. The
 named-options object is the boolean-param fix only when every field has a concrete consumer
-today; yagni-check's options-object red flag targets speculative fields, not this.
+today; a field nobody passes yet is speculative generality, not this fix.
 
 ## Names carry meaning — no mental mapping
 
@@ -90,7 +90,7 @@ a wide, long-lived set of mutable locals that all interact by the end of the fun
 Read the code the change touches first, then build on the first step below that covers the
 need; the order picks what to build on and never excuses skipping the read.
 
-1. **Nothing** — the need is not real yet; `yagni-check` decides.
+1. **Nothing** — the need is not real yet: no caller you can point to today.
 2. **This repository** — search for a function, type or pattern that already does it, then
    confirm it is alive (`reuse-hygiene`, when code-review is installed).
 3. **The standard library, then the platform under it** — what the browser, the database or
@@ -116,9 +116,8 @@ catch (e) { throw isUniqueViolation(e) ? new EmailTaken() : e; }
 
 Standing: **recorded** — nothing checks that the order was walked (adapted from
 dietrichgebert/ponytail v4.10.0, MIT). Reach: before code exists, only `coding-entry` loads this
-section, beside the description's own match; after an edit, skill-router (when installed)
-suggests it on .ts and .js source files (not config, .d.ts, .min.js or dotfiles), .tsx, .jsx and
-.vue files (not dotfiles), .php files (not Blade views or dotfiles), and .py, .go, .rb and .rs files — not .java.
+section, beside the description's own match; no edit nudge reaches it — skill-router dropped its
+language-wide rows in 0.27.0.
 
 ## KISS and DRY
 

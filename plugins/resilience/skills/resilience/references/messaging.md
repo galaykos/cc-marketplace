@@ -1,15 +1,4 @@
----
-name: event-driven
-description: Use when designing or reviewing message-driven architecture — brokers/queues, topics and partitions, event schema versioning, delivery semantics, outbox, sagas, dead-letter queues, consumer idempotency. In-process framework queues belong to the stack plugin.
----
-
 # Event-driven architecture
-
-Asynchronous messaging trades a synchronous failure you can see for a distributed
-one you cannot. Every guarantee you assume — "it arrives", "once", "in order" — is
-false by default and must be designed for. The single rule that prevents most
-production incidents: **assume at-least-once delivery and make every consumer
-idempotent.** Everything below serves that.
 
 ## Choosing the transport
 
@@ -84,7 +73,7 @@ no one watching is a silent data-loss bucket; monitor its depth.
 
 - In-process framework queues (Laravel queues, Sidekiq, Celery) as *usage* → the
   stack plugin. This skill owns the cross-broker architecture, not the API.
-- The service-boundary decision (which service owns which event) → code-architecture's `system-design` skill.
+- The service-boundary decision (which service owns which event) → code-architecture's `system-architect` agent.
 - Concurrency hazards inside a single consumer → `/resilience:review --concern concurrency`.
 
 ## Anti-patterns

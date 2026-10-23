@@ -1,6 +1,6 @@
 ---
 name: vite-best-practices
-description: Use when writing or reviewing Vite config or a Vite-built app — VITE_-prefix env security, optimizeDeps, code splitting (manualChunks), base for sub-path deploys, server.proxy, import.meta.glob, SSR externalization, plugin order — pinned to the lockfile's vite version.
+description: Use when writing or reviewing Vite config or a Vite-built app — VITE_-prefix env security, optimizeDeps, code splitting (manualChunks), base for sub-path deploys, server.proxy, import.meta.glob, SSR externalization, plugin order, laravel-vite-plugin, @inertiajs/vite, Wayfinder and vite-plus — pinned to the lockfile's vite version.
 ---
 
 > Last verified: 2026-08-02 — https://vite.dev/releases — npm:vite@8
@@ -137,6 +137,35 @@ Advising above the locked version is a finding; confirm boundaries against the d
   (`import.meta.hot?.accept(...)`) so it tree-shakes out of the production bundle
   instead of throwing. HMR boundaries are dev ergonomics, never a correctness
   mechanism the app depends on.
+
+## Laravel and Inertia
+
+Sources, read 2026-10-23: https://laravel.com/docs/13.x/vite, https://inertiajs.com/docs/v3, the npm registry. Re-read them for the locked versions.
+
+- **One plugin major per Vite major.** `laravel-vite-plugin` 2.x peers `vite ^7`, 3.x `^8`; Vite 8 needs 3.0.0+. Read both lock
+  entries first. Its source lives on the repo's `3.x` branch; `main` is stale at 0.8.1.
+- **`laravel({ input, refresh })`.** `input` is required; an Inertia app works best with the JS entry alone and its CSS imported
+  from JS. `refresh: true` full-reloads on saves under `resources/views`, `routes`, `lang`, `app/View/Components` and
+  `app/Livewire`, and also when an AI tool writes its state files: add `server.watch.ignored: ['**/.claude/**', '**/.cursor/**']`.
+- **Defaults it sets:** output `public/build`, `manifest.json`, `publicDir: false`, `assetsInlineLimit: 0`, an `@` alias to
+  `/resources/js`. A custom `hotFile`, `buildDirectory` or manifest name must be set in vite.config AND through the `Vite::`
+  facade (`useHotFile`, `useBuildDirectory`, `useManifestFilename`), or Blade looks in the wrong place.
+- **Vite 8 drops glob-imported assets.** Rolldown tree-shakes an unused `import.meta.glob`, so images imported only for
+  `Vite::asset()` silently leave the manifest. 3.x lists them in `assets: ['resources/images/**']` instead.
+- **Fonts (3.1.0+):** `fonts: [google(…), bunny(…), fontsource(…), local(…)]` from `laravel-vite-plugin/fonts` self-hosts them and
+  feeds Blade's `@fonts` (laravel/framework 13.7.0+). Metric-matched fallbacks need the optional `fontaine` package and are skipped
+  without it. Fonts belong in `fonts`, not `assets`.
+- **`@inertiajs/vite`** (Inertia v3, Vite 7 or 8) goes after `laravel()`. Its `pages` shorthand builds the lazy `import.meta.glob`
+  resolver (default `./pages` and `./Pages`), and it serves dev-mode SSR with no separate Node process. Production still runs
+  `vite build && vite build --ssr` and `php artisan inertia:start-ssr`. With `ssr: false`, or a manual `setup` callback, the SSR
+  entry goes back on `laravel({ ssr })`. Inertia v2 resolves pages with `resolvePageComponent` from
+  `laravel-vite-plugin/inertia-helpers`, which the Laravel docs still show.
+- **`@laravel/vite-plugin-wayfinder`** (0.x; Wayfinder is beta) runs `php artisan wayfinder:generate` at build start and on
+  changes under `routes/**/*.php` and `app/**/Http/**/*.php`. The build therefore needs PHP, and a cached route table generates
+  stale routes: run `php artisan route:clear` before `npm run build`. It declares no Vite peer range.
+- **`vite-plus`** (Vite+, CLI `vp`, stable since 1.0 on 2026-09-28) replaces `vite` through a package-manager override, and its
+  config imports `defineConfig` from `vite-plus`. `vp build` runs the built-in build, not the `package.json` script (`vp run build`
+  does). No source says the Laravel, Inertia or Wayfinder plugins work under it: verify a real build before advising a move.
 
 ## Scope by model tier
 

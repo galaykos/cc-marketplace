@@ -43,7 +43,7 @@ when `skill-router` is installed.
 |---|---|
 | `nextjs-best-practices` | App Router work — server/client boundaries, the opt-in caching model (`fetch`, `revalidate`, tags, `use cache` behind `cacheComponents`), server actions as public endpoints, route handlers, streaming, metadata, `next/image` / `next/font`; version leverage 14 → 15 → 16 |
 | `react-native-best-practices` | Screens and lists — FlatList/FlashList virtualization, typed and shallow navigation, `Platform.select` and file splits, native-driver animation, image sizing, JS-to-native crossings; New Architecture gating from 0.76 to 0.82 |
-| `vite-best-practices` | `vite.config.*` and the build layer — `VITE_` env security, `optimizeDeps`, dynamic `import()` and `manualChunks`, `base` for sub-path deploys, `server.proxy`, `define` stringify traps, SSR, library mode; Node floors and defaults across Vite 5 → 8 |
+| `vite-best-practices` | `vite.config.*` and the build layer — `VITE_` env security, `optimizeDeps`, dynamic `import()` and `manualChunks`, `base` for sub-path deploys, `server.proxy`, `define` stringify traps, SSR, library mode; Node floors and defaults across Vite 5 → 8; Laravel and Inertia builds (`laravel-vite-plugin` 3.x, `@inertiajs/vite`, Wayfinder, `vite-plus`) |
 
 Every skill pins its advice to the version in the lockfile, not the version the
 model remembers: caching flipped between Next 14 and 15, the New Architecture became

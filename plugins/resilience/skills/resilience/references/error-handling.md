@@ -1,18 +1,4 @@
----
-name: error-handling-design
-description: Use when writing or reviewing exception and error handling — try/catch placement, error boundaries, propagation, custom error types, rethrow and cause chains, fail-fast vs recover — instead of catch-log-continue at every layer.
----
-
-## Core rule
-
-Every error is one of two things: a bug or an event. A broken invariant
-— null where the contract says never-null, an enum case that cannot
-happen — is a bug; the only correct response is to crash loudly and fix
-the code. A failed network call, a missing file, invalid user input:
-these are events the program was always going to meet, and they deserve
-designed handling. Most bad error handling comes from conflating the
-two — recovering from bugs (hiding corruption) or crashing on events
-(fragile software). Classify first; everything else follows.
+# Error handling
 
 ## Fail fast vs recover
 
@@ -42,8 +28,7 @@ complete the failure (respond 500, abort the job, reject the message).
   it was actually handled — usually because it never was.
 - The natural catch sites are few: top-level request/job/message handlers,
   integration-point wrappers, the rare mid-layer with a real fallback. Log-and-rethrow
-  at a layer with no boundary role is a candidate for deletion. observability-design
-  reports catches too: it owns what a kept catch EMITS, this whether it EXISTS — one owner.
+  at a layer with no boundary role is a candidate for deletion.
 
 ## No swallowing
 
@@ -159,7 +144,7 @@ internal log entry carries the same id plus everything else.
 
 Standing: recorded — owns how errors are typed, propagated, and reported once at
 the boundary. Retry, timeout and circuit-breaker policy is `/resilience:review`;
-log and metric shape is the sibling `observability-design` skill.
+log and metric shape is `references/observability.md`.
 
 ## Anti-patterns
 

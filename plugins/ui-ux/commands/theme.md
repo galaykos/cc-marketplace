@@ -28,8 +28,8 @@ accent swap.
    `-foreground` pairing), and the detection rules. Read it for anything but
    plain shadcn. `@astryxdesign/core` in the manifest is an Astryx project: the
    preview still decides the colours, but the write target is the project's
-   `defineTheme()` file (light/dark tuples), not `globals.css` — follow the
-   `ui-libraries:astryx-best-practices` theming section for the write.
+   `defineTheme()` file (light/dark tuples), not `globals.css` — follow Astryx's
+   docs (https://astryx.atmeta.com/docs/getting-started) for the write.
 2. If $ARGUMENTS is empty, ask for direction in one round: brand color or hue
    family, light/dark priority, and any reference the user wants to echo.
 3. Generate up to 3 candidate token sets (light + dark each, contrast-checked),

@@ -7,8 +7,8 @@ description: >
   handler verifies a real dependency — and returns "good, it has health checks" plus
   generic advice about timeouts or log levels. What it misses is the inversion:
   liveness answering for a DEPENDENCY means a database blip restarts every pod at
-  once, and the restart makes reconnection strictly less likely. observability-design
-  SKILL.md carries that rule ("Never check dependencies here: a database blip becomes
+  once, and the restart makes reconnection strictly less likely. The resilience skill's
+  references/observability.md carries that rule ("Never check dependencies here: a database blip becomes
   a restart storm") and the split that fixes it. The grader detects the miss by
   requiring the restart-storm consequence stated as a consequence, plus the two-endpoint
   split; a response that only says "add more health checks", "tune the thresholds", or

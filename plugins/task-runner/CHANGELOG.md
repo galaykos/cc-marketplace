@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.50.1 — 2026-10-23
+
+- **reviewer-routing primes the merged `resilience` skill.** resilience 0.9.0 merged its six skills into one, `resilience:resilience`, with one reference per concern. The `backend` and `api` tags now prime that skill; `performance` and `observability` prime it with `references/performance.md` and `references/observability.md` named. The skills prose grows 26 bytes. Standing: agent-graded; no script reads which rubric a dispatch primed.
+
 ## 0.50.0 — 2026-10-22
 
 - **delegation-contracts: a report's NOT DONE lines reach the user.** The skill governed

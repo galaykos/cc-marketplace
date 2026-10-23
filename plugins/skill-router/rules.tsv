@@ -1,9 +1,8 @@
 # signal_type	pattern	skill	owning_plugin	confidence	stack_marker
 # stack_marker: `[!]<manifest>~<ERE>` alternatives joined by `||`; `@base` as the manifest
 # matches the ERE against the edited file's BASENAME (route.sh marker_ok), which is how a
-# bare-extension row excludes tool configs, rc files, .d.ts and minified bundles. `@path`
-# matches it against the file's PATH instead, which is how a row excludes a built-output
-# DIRECTORY (dist/, build/, .next/) that a basename cannot distinguish from its source.
+# row keys on or excludes a file shape. `@path` matches it against the file's PATH instead,
+# which is how a row keys on a DIRECTORY (design-system/, dist/) a basename cannot show.
 # A `?` PREFIX on an alternative — `?package.json~"next"`, `?!composer.json~x` — REQUIRES
 # its manifest: absent or unreadable is decisive-suppress instead of merely indecisive,
 # so a chain of `?` alternatives means "fire only on a manifest that exists and says
@@ -12,38 +11,9 @@
 # every shadcn row nudged a `.tsx` in a repo with no components.json. Per-row and opt-in;
 # an unprefixed alternative keeps the fire-if-uncertain default. It replaced the
 # `||!@base~.` default-deny tail 0.18.0 put on four rows — same behaviour, one mechanism.
-# nudge-last: low-cognitive-load solid-principles a11y-audit
-# route.sh sends at most two nudges per edit and ranks these last: each matches every file of
-# its language, so the next such edit draws it again, where a path-specific stack skill may
-# never recur. A skill over the cap is not spent. route.test.sh case 6 fails a name no glob row routes.
-# co-fire-ok: *.tsx a11y-audit react-native-best-practices
-# co-fire-ok: *.tsx a11y-audit nextjs-best-practices
-# Accessibility is orthogonal to every stack skill: the WCAG checklist and a library's
-# idioms answer different questions about the same file, and one suppressing the other
-# is the failure, not the co-fire. The Blade pair is the case that proves it — the lane
-# declared a11y-audit's trigger as including .blade.php while the only Blade row routed
-# to laravel, so a Blade edit got the framework rubric and never the checklist.
-# co-fire-ok: *.tsx a11y-audit shadcn-best-practices
-# co-fire-ok: *.jsx a11y-audit shadcn-best-practices
-# co-fire-ok: *.vue a11y-audit shadcn-best-practices
-# co-fire-ok: *.blade.php a11y-audit laravel-best-practices
+# Every row is `high`: route.sh reads no `low` row.
 # co-fire-ok: *.tsx nextjs-best-practices react-native-best-practices
-# co-fire-ok: *.ts low-cognitive-load solid-principles
-# co-fire-ok: *.js low-cognitive-load solid-principles
-# co-fire-ok: *.py low-cognitive-load solid-principles
-# Content-row co-fires, verified against scripts/smoke/router-corpus (pc_rules_cofire).
-# These seven rows are all `low` confidence: they do NOT emit an inline nudge, they
-# accumulate into one session digest (route.sh queue_low_matches). Several firing on one file is the
-# designed behaviour, not a collision — an ordinary React component with await, catch,
-# fetch( and a token legitimately touches all four concerns. Blessed so that a NEW
-# content row must be considered against the corpus rather than added blind.
-# co-fire-ok: content concurrency-safety error-handling-design
-# co-fire-ok: content concurrency-safety security-review
-# co-fire-ok: content concurrency-safety observability-design
-# co-fire-ok: content error-handling-design security-review
-# co-fire-ok: content error-handling-design observability-design
-# co-fire-ok: content security-review observability-design
-# 2026-08-12 addition. Both rows are `high` since 2026-09-26 (inline, not the digest);
+# 2026-08-12 addition. Both rows are `high` since 2026-09-26;
 # pc_rules_cofire pairs content rows whatever their confidence, and a GSAP timeline
 # driving a three.js scene legitimately wants the animation skill and the scene skill.
 # co-fire-ok: content threejs-best-practices motion-best-practices
@@ -58,31 +28,12 @@
 # stack_markers, so only the generic pairs need blessing.
 # co-fire-ok: *.sql sql-best-practices mariadb-best-practices
 # co-fire-ok: **/migrations/** sql-best-practices mariadb-best-practices
-# co-fire-ok: *.go low-cognitive-load solid-principles
-# co-fire-ok: *.rb low-cognitive-load solid-principles
-# co-fire-ok: *.rs low-cognitive-load solid-principles
-# low-cognitive-load judges code shape; the accessibility, framework and library skills on the same file judge other things, so both fire.
-# co-fire-ok: *.tsx low-cognitive-load a11y-audit
-# co-fire-ok: *.tsx low-cognitive-load shadcn-best-practices
-# co-fire-ok: *.tsx low-cognitive-load nextjs-best-practices
-# co-fire-ok: *.tsx low-cognitive-load react-native-best-practices
-# co-fire-ok: *.jsx low-cognitive-load a11y-audit
-# co-fire-ok: *.jsx low-cognitive-load shadcn-best-practices
-# co-fire-ok: *.vue low-cognitive-load a11y-audit
-# co-fire-ok: *.vue low-cognitive-load shadcn-best-practices
-# co-fire-ok: *.vue low-cognitive-load component-libraries
-# co-fire-ok: *.php low-cognitive-load laravel-best-practices
 #
-# LIMITATION (honest scope): NOT routed by any rule — code-smells, reuse-hygiene,
-# yagni-check, plan-before-code, and the rest of code-architecture beyond the two
-# routed below. comment-discipline is ABSENT here on purpose: its own
+# LIMITATION (honest scope): NOT routed by any rule — every code-architecture skill,
+# code-smells, reuse-hygiene, a11y-audit, security-review and resilience.
+# comment-discipline is ABSENT here on purpose: its own
 # PreToolUse/PostToolUse hook is the delivery channel, and a routing row would be
-# redundant — do not "fix" that. Plain source
-# edits (*.ts / *.js / *.py / *.go / *.rb / *.rs) route to low-cognitive-load +
-# solid-principles, once per skill per session. *.tsx / *.jsx / *.vue / *.php edits
-# route to low-cognitive-load ONLY, no solid-principles: the first three skip
-# dotfiles, *.php skips a .blade.php view and dotfiles. PHP config, routes and lang array files
-# keep the route on purpose — they are code, and the nudge is once per session.
+# redundant — do not "fix" that.
 # **/migrations/** routes to sql-best-practices plus the detected engine skill
 # (blessed pairs above).
 #
@@ -121,22 +72,6 @@ glob	*.sql	sql-best-practices	database	high
 glob	**/migrations/**	sql-best-practices	database	high
 glob	*.sql	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
 glob	**/migrations/**	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
-glob	*.ts	low-cognitive-load	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
-glob	*.ts	solid-principles	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
-glob	*.js	low-cognitive-load	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
-glob	*.js	solid-principles	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
-glob	*.py	low-cognitive-load	code-architecture	high
-glob	*.py	solid-principles	code-architecture	high
-glob	*.go	low-cognitive-load	code-architecture	high
-glob	*.go	solid-principles	code-architecture	high
-glob	*.rb	low-cognitive-load	code-architecture	high
-glob	*.rb	solid-principles	code-architecture	high
-glob	*.rs	low-cognitive-load	code-architecture	high
-glob	*.rs	solid-principles	code-architecture	high
-glob	*.tsx	low-cognitive-load	code-architecture	high	!@base~^\.
-glob	*.jsx	low-cognitive-load	code-architecture	high	!@base~^\.
-glob	*.vue	low-cognitive-load	code-architecture	high	!@base~^\.
-glob	*.php	low-cognitive-load	code-architecture	high	!@base~(\.blade\.php$|^\.)
 # The only stack row that carried no marker at all: a Go module with `components/`,
 # and a Blade app with no Tailwind in it, both drew the Tailwind skill. The `?` prefix
 # is what makes "no package.json" mean no, instead of maybe.
@@ -161,21 +96,19 @@ command	\bshadcn(-ui|-vue)?(@[^[:space:]]+)?[[:space:]]+add\b	shadcn-best-practi
 command	\bjsrepo(@[^[:space:]]+)?[[:space:]]+add\b	shadcn-best-practices	ui-ux	high
 # No fixed install directory to glob (read 2026-10-06): 77 of 78 Magic UI ui items name no target, and React Bits targets only -CSS stylesheets, at the @components alias.
 # LIMITATION: a quoted argument is masked, so `add "@magicui/x"` routes shadcn alone. React Bits' jsrepo command passes a reactbits.dev/r/ URL.
-command	\b(shadcn|jsrepo)(@[^[:space:]]+)?[[:space:]]+add\b[^;&|]*[[:space:]](@(magicui|react-bits)/|https://reactbits\.dev/r/)	aceternity-best-practices	ui-libraries	high
-content	(@reui/|\breui\.io|\bfrom ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-libraries	low
+command	\b(shadcn|jsrepo)(@[^[:space:]]+)?[[:space:]]+add\b[^;&|]*[[:space:]](@(magicui|react-bits)/|https://reactbits\.dev/r/)	component-libraries	ui-libraries	high
 # A ReUI or Metronic port copies owned code that never imports `@reui/` (a 78-component `cp` drew shadcn and Tailwind only).
 # Probed 2026-10-15: route.sh's read of the files a `cp -r` wrote routes those generic rows, never this skill, so the command
 # is the signal. LIMITATION: a quoted path is masked and does not route; a `/cp/` path segment before a ReUI path does.
-command	\b(cp|rsync)\b[^;&|]*([Rr]e[Uu][Ii]|[Mm]etronic)	reui-best-practices	ui-libraries	high
-# Narrowed 2026-09-26: `motion/react|framer-motion` drew Aceternity on EVERY Motion file.
-content	(\baceternity\b|ui\.aceternity\.com|@aceternity/)	aceternity-best-practices	ui-libraries	low
-# The library-agnostic fallback. shadcn, ReUI, Aceternity, MUI and Astryx each have a sibling skill
-# and a row of their own; a project on Mantine, Chakra, Ant Design, PrimeVue, Vuetify, Base UI, Ark,
+command	\b(cp|rsync)\b[^;&|]*([Rr]e[Uu][Ii]|[Mm]etronic)	component-libraries	ui-libraries	high
+# The library-agnostic fallback. shadcn has a sibling skill and rows of its own; MUI and Astryx
+# route here through their rows below, ReUI, Magic UI and React Bits through the command rows
+# above. A project on Mantine, Chakra, Ant Design, PrimeVue, Vuetify, Base UI, Ark,
 # Reka or Nuxt UI matched nothing, so the one skill written for that case never loaded. The
 # alternatives are the package signals in the Signal column of
 # plugins/ui-libraries/skills/component-libraries/references/library-map.md — keep the two in step;
 # nothing reads that file back, so this is `recorded`, not a gate. `primereact` left 2026-09-26 for
-# its own sibling skill (primereact-best-practices, rows beside MUI's below), so the two never
+# its own sibling skill (primereact-best-practices, rows below), so the two never
 # co-fire; `@base-ui-components/` is Base UI's pre-1.0 package name. Organisation design systems
 # joined 2026-10-05: `govuk-frontend`, `uswds`, `@uswds/`, `@shopify/polaris` (and `-types`),
 # `@carbon/`, and `@atlaskit/` minus `pragmatic-*`, an Apache-2.0 drag-and-drop library apps outside
@@ -192,34 +125,16 @@ content	['"](@(base-ui|base-ui-components|ark-ui|headlessui|ariakit|mantine|chak
 # `reka-ui`/`radix-vue` are left out on purpose: shadcn-vue repos carry them, and the
 # shadcn row owns those. LIMITATION: a monorepo whose package.json sits in a workspace
 # reads as absent and suppresses (the `?` prefix), as every `?package.json` row does.
-# co-fire-ok: *.vue a11y-audit component-libraries
 glob	*.vue	component-libraries	ui-libraries	high	?package.json~"(primevue|vuetify|element-plus|naive-ui|quasar|@nuxt/ui)"
 glob	**/dashboard/**	information-design	craft-layer	high
 glob	**/admin/**	information-design	craft-layer	high
-glob	*.tsx	a11y-audit	ui-ux	high
-glob	*.jsx	a11y-audit	ui-ux	high
-glob	*.vue	a11y-audit	ui-ux	high
-glob	*.blade.php	a11y-audit	ui-ux	high
-glob	*.svelte	a11y-audit	ui-ux	high
-glob	*.astro	a11y-audit	ui-ux	high
-# Server-rendered and static markup. a11y-audit routed only the six component
-# extensions above, so a Rails/Django/Twig/plain-HTML project got the WCAG checklist
-# on no file it actually edits. The `@path` exclusion keeps these off BUILT output —
-# `dist/index.html` carries the same basename as its source and nothing worth
-# auditing. LIMITATION: it lists the build directories people use; a bundler
-# configured to emit somewhere else still routes, and a hand-minified page without
-# `.min.` in its name does too.
-glob	*.html	a11y-audit	ui-ux	high	!@path~(^|/)(dist|build|out|\.next|_site|coverage|vendor|node_modules)/|\.min\.
-glob	*.erb	a11y-audit	ui-ux	high	!@path~(^|/)(dist|build|out|\.next|_site|coverage|vendor|node_modules)/|\.min\.
-glob	*.twig	a11y-audit	ui-ux	high	!@path~(^|/)(dist|build|out|\.next|_site|coverage|vendor|node_modules)/|\.min\.
 # `?` on both: a `.tsx` in a repo with NO package.json is a component in a stack this
 # router cannot name, and firing every framework skill at once was the whole defect.
 glob	*.tsx	react-native-best-practices	web-dev	high	?package.json~"react-native"
 glob	*.tsx	nextjs-best-practices	web-dev	high	?package.json~"next"
 # Next.js SERVER files. The *.tsx row above routes components only, so a route
 # handler, a server action, `middleware.ts` or `proxy.ts` — the files the skill's own
-# server-actions-are-public-endpoints rule is about — reached low-cognitive-load and
-# solid-principles and nothing else. `**/app/**` is broad on purpose and the marker is
+# server-actions-are-public-endpoints rule is about — matched no row. `**/app/**` is broad on purpose and the marker is
 # what makes it safe: a Laravel `app/` or a Rails `app/` has no `"next"` in a
 # package.json, so it suppresses, and the `?` prefix means a repo with no
 # package.json at all — a Go module with an `app/` directory — suppresses too.
@@ -257,8 +172,7 @@ glob	composer.json	package-hygiene	stack-scan	high
 command	\b(composer|npm)[[:space:]]+(update|upgrade)\b	package-hygiene	stack-scan	high
 glob	next.config.*	nextjs-best-practices	web-dev	high
 glob	vite.config.*	vite-best-practices	web-dev	high
-# The @base exclusion on the *.js/*.ts rows suppresses design-principle nudges on
-# `*.config.*`, so a tool config routes ONLY via its own row — next and vite had one,
+# A tool config routes ONLY via its own row — next and vite had one,
 # tailwind did not, and tailwind-best-practices' own description names "config tokens".
 # prime.sh already sniffs `tailwind.config.*` for the SessionStart index, so the two
 # signals now agree. Tailwind v4 is CSS-first and a v4 project may ship no config file
@@ -287,23 +201,13 @@ glob	*.tokens.json	design-tokens	ui-ux	high
 glob	tokens.json	design-tokens	ui-ux	high	@path~(^|/)design-system/
 glob	app.config.*	react-native-best-practices	web-dev	high	package.json~"expo"
 glob	eas.json	react-native-best-practices	web-dev	high	package.json~"expo"
-glob	*.graphql	graphql-grpc	api-design	high
-glob	*.proto	graphql-grpc	api-design	high
 glob	**/workflows/**	devops-practices	devops	high
-content	(\b(async|await|mutex|goroutine|queue)\b|\bPromise\.all\b|\.[lL]ock\()	concurrency-safety	resilience	low
-content	\b(catch|throw|rescue)\b	error-handling-design	resilience	low
-content	\b(password|token|secret|jwt|api[_-]?key|authenticate)\b	security-review	security	low
-content	\b(Stripe-Signature|constructEvent|stripe\.webhooks|paddle|braintree)\b	security-review	security	low
-content	\b(fetch\(|axios|http\.(get|post)|HttpClient)\b	resilience-design	resilience	low
-# Span API calls, not the word: `\bspan\b` matched JSX `<span>`, so nearly every component
-# put observability-design in the digest (routing review 2026-09-26, fixture S2).
-content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|OpenTelemetry|correlation[_-]?id|trace_id|startSpan|startActiveSpan|span\.(end|setAttribute|setStatus|recordException))\b	observability-design	resilience	low
 # LIBRARY ROWS — `high` since 2026-09-26: a content row marked `high` fires INLINE at the
-# first file whose contents match, once per signal per context, and never enters the
-# digest (route.sh nudge_high_matches). As `low` rows every one of them reached the model on the
-# next user prompt, after the build turn, and inside a subagent never.
-content	@mui/(material|icons-material|x-[a-z-]+|lab)\b	mui-best-practices	ui-libraries	high
-content	@astryxdesign/(core|cli|theme-[a-z0-9-]+)\b	astryx-best-practices	ui-libraries	high
+# first file whose contents match, once per signal per context (route.sh nudge_high_matches).
+# As `low` rows every one of them reached the model on the next user prompt, after the build
+# turn, and inside a subagent never.
+content	@mui/(material|icons-material|x-[a-z-]+|lab)\b	component-libraries	ui-libraries	high
+content	@astryxdesign/(core|cli|theme-[a-z0-9-]+)\b	component-libraries	ui-libraries	high
 # PrimeReact: `primereact` (v10 whole library, v11 unstyled primitives) and `@primereact/*`
 # (v11's ui/core/headless/hooks) are unambiguous. `@primeuix/*` is NOT: PrimeVue imports the
 # same `@primeuix/themes` presets, so that row requires a package.json naming PrimeReact.

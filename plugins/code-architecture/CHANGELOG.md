@@ -2,6 +2,15 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.19.0 — 2026-10-23
+
+### Removed
+- **`yagni-check` and `/code-architecture:yagni` were removed.** Neither was used in the three projects a 2026-10-21 usage review measured; other installs are unmeasured. The YAGNI call now lives with the `architecture-reviewer` agent, which already flagged speculative generality and is where `/code-review:review` defers it; `solid-principles` states the origin test (a consumer-owned port stands with one implementation, an interface added for a provider nobody asked for is speculative) on its own, and `low-cognitive-load`, `surgical-edits.md` and `/code-architecture:solid` name the reviewer or the rule instead of the skill. Standing: agent-graded at review; recorded while writing.
+- **`system-design` and `domain-modeling` were removed.** The `system-architect` worker no longer loads them: its body already carries the system checklist (boundaries on data ownership, scaling path, cache invalidation, async failure modes, single points of failure), and the `architecture-reviewer` audits a design doc against that same checklist inline. Domain modeling (bounded contexts, aggregates, the written glossary) has no replacement here; `low-cognitive-load` still takes a glossary's canonical term when the repo keeps one. Standing: recorded.
+
+### Changed
+- `coding-entry/references/skill-map.md` primes `resilience:resilience` for an ask naming an external API, webhook, retry or queue (resilience 0.9.0 merged its six skills into one); `solid-principles` sends a pattern choice to `/approaches:pattern`; `system-architect` sends local environment topology to the devops plugin's `docker-best-practices` skill, since `/devops:init` was removed in that plugin. The README drops the three skills and the command, and the plugin description no longer names the two system skills.
+
 ## 0.18.3 — 2026-10-15
 
 ### Fixed
@@ -29,7 +38,7 @@ All notable changes to the code-architecture plugin.
 - **`low-cognitive-load` takes a glossary's canonical term.** When the repo keeps a glossary,
   its canonical term wins over a synonym it retires and over a neighbour's naming; renaming the
   neighbour is the section's existing deliberate-rename rule. Standing: recorded.
-- **`domain-modeling` writes the language down.** A `GLOSSARY.md` at each bounded context's root
+- **`domain-modeling` writes the language down.** A `GLOSSARY.md` at each bounded context's root <!-- removed-ok -->
   (the repo root for a single context); an entry is the canonical term, one or two sentences on
   what it IS, and the synonyms it retires; project terms only, added when the term settles. A
   class, test title or task using a retired synonym is a finding. Standing: recorded.
@@ -51,7 +60,7 @@ with a control arm.
   with code-review installed, its write hooks deny three of the kill-cases in this agent's writes too.
 
 ### Fixed
-- **Four-laws pointers say they are not installed.** `/code-architecture:yagni`, `yagni-check`,
+- **Four-laws pointers say they are not installed.** `/code-architecture:yagni`, `yagni-check`, <!-- removed-ok -->
   `solid-principles`, `work-verification` and `plan-before-code`'s `surgical-edits.md` cite a
   path that lives in the marketplace repository; an install does not contain it.
 
@@ -68,7 +77,7 @@ with a control arm.
   platform after the standard library" were carried nowhere. Standing: recorded. Reach: before
   code exists only `coding-entry` loads the section (its gloss now names it); after an edit
   skill-router, when installed, suggests the skill on six globs — not .php, .tsx, .vue or .java.
-- **`/code-architecture:yagni` ranks and nets.** A directory scope ranks proposals by lines
+- **`/code-architecture:yagni` ranks and nets.** A directory scope ranks proposals by lines <!-- removed-ok -->
   removed, largest first, with code-review's `reuse-hygiene` deep pass as dead-symbol evidence
   when code-review is installed; the report closes with `net: −N lines, −M dependencies`
   (`net: −0 lines` when nothing was found), M counting only dependencies a proposal removes
@@ -139,14 +148,14 @@ runs them with a control arm.
 ## 0.16.0
 
 ### Changed
-- **Three skills now catch the words a user actually types.** `yagni-check` never contained
+- **Three skills now catch the words a user actually types.** `yagni-check` never contained <!-- removed-ok -->
   "over-engineered", "premature" or "YAGNI"; `work-verification` never contained "fixed" or
   "tests pass"; `plan-before-code` never contained "implementation plan". Each of those is a
   routine opening phrase, and a skill that does not carry it loses the dispatch to a
   neighbour. Triggers only — no behaviour in any body changed.
 - **`low-cognitive-load` is 50 lines and 1.3 kB smaller.** The canonical guard-clause,
   boolean-param and short-name before/after snippets are gone; every rule, and every local
-  boundary note they were wrapped around (the yagni-check options-object split, the
+  boundary note they were wrapped around (the yagni-check options-object split, the <!-- removed-ok -->
   match-the-surrounding-file convention, locality-over-indirection), is kept verbatim.
   `rationale/measured-zero-shapes.md` §3 measured that shape of content at or below zero
   delta — a model emits guard clauses from memory, so the example was paying body budget to
@@ -212,11 +221,11 @@ runs them with a control arm.
 
 ### Added
 - **The system-design plugin was merged into this one** (2026-09-14 consolidation plan): the
-  `system-design` and `domain-modeling` skills and the opus-floored
+  `system-design` and `domain-modeling` skills and the opus-floored <!-- removed-ok -->
   `system-architect` worker now ship here. Its `event-driven` skill went to
   `resilience`, whose failure-mode review already owned delivery semantics.
   `architecture-reviewer` absorbs the read-only `system-design-reviewer`: on a design
-  doc, RFC, or service topology it loads the system-design rubric and reports.
+  doc, RFC, or service topology it loads the system-design rubric and reports. <!-- removed-ok -->
   `/system-design:review` is gone; `/code-architecture:plan` and the reviewer cover it. <!-- removed-ok -->
 
 ### Changed

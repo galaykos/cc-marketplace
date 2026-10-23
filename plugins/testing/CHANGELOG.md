@@ -6,6 +6,11 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.13.4 — 2026-10-23
+
+### Changed
+- **`tdd` no longer points at code-architecture's yagni-check skill**, which was removed in code-architecture 0.19.0. The "Green buys nothing extra" rule now reads "YAGNI applied at test granularity"; the rule itself is unchanged. Standing: recorded.
+
 ## 0.13.3 — 2026-10-15
 
 ### Fixed

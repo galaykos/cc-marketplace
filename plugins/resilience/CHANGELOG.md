@@ -8,6 +8,13 @@ whose job is history would be worse than the gap. Adding this file opts the plug
 `scripts/check-version-bumps.sh`'s changelog gate permanently — every bump from here on
 must carry an entry.
 
+## 0.9.0 — 2026-10-23
+
+### Changed
+- **Six skills merged into one, `resilience`.** Each old skill body moved verbatim into a reference of the new skill, minus its frontmatter and its core rule, which the skill body now carries with a table that says which reference a change selects: `resilience-design` → `references/timeouts-retries.md`, `error-handling-design` → `error-handling.md`, `concurrency-safety` → `concurrency.md`, `observability-design` → `observability.md`, `performance-tuning` → `performance.md`, `event-driven` → `messaging.md`. Two sentences in the error-handling and observability references, which split ownership of a catch block between them, were dropped because the skill body states that split once. The listing carries one description instead of six. Standing: recorded; the routing table is agent-graded at review time (`/resilience:review` names the references it read on its `Checked:` line).
+- **`/resilience:review --concern <name>` reads the matching reference**; without `--concern` it reads `references/timeouts-retries.md` and each reference whose surface the scope touches. The `observability-engineer` and `performance-engineer` workers take the `resilience` skill as their rubric and name their reference. `lane.tsv` declares one skill row in place of six. The service-boundary defer that pointed at code-architecture's design skill now names its `system-architect` agent, since that skill was removed in code-architecture 0.19.0.
+- Unmeasured: whether one skill with references routes as well as six skills did. The five control-ceiling eval cases cannot show it; `liveness-probe-dependency` now reads its rule from `references/observability.md` and its delta is still unmeasured.
+
 ## 0.8.1 — 2026-10-15
 
 - **`/resilience:review`'s hand-up says what the fan-in loads now.** code-review 0.33.0 stopped loading all six rubrics on every review: `/code-review:review` loads only the ones the diff's content selects. The command's hand-up, the README and a `lane.tsv` comment said "all six" and now say "the ones the diff selects". No behaviour changed here.
@@ -37,7 +44,7 @@ must carry an entry.
 - **`evals/liveness-probe-dependency`, the first case in this suite with headroom.** A
   Deployment whose `livenessProbe` and `readinessProbe` both hit `/health`, and a
   `/health` handler that pings Postgres — six replicas behind one primary. The control
-  arm reads that as a well-instrumented service; `observability-design` carries the
+  arm reads that as a well-instrumented service; `observability-design` carries the <!-- removed-ok -->
   inversion ("never check dependencies here: a database blip becomes a restart storm")
   and the two-endpoint split that fixes it. The grader requires the consequence stated
   as a consequence and fails a response whose only advice is a bigger `failureThreshold`
@@ -52,6 +59,6 @@ must carry an entry.
 ### Added
 - `lane.tsv` rows for all six skills. The plugin declared its command and its two
   agents and none of its skills, while `/code-review:review` fans all six in — so the
-  artifacts a reader actually meets had no declared territory. `observability-design`
-  and `performance-tuning` share their agent's `owns` and yield to it: the skill is the
+  artifacts a reader actually meets had no declared territory. `observability-design` <!-- removed-ok -->
+  and `performance-tuning` share their agent's `owns` and yield to it: the skill is the <!-- removed-ok -->
   rubric, the agent is the hand.

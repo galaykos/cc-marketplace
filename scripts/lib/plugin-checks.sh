@@ -986,12 +986,13 @@ pc_removed_refs() {
   # dangling pointer, none was ordinary English. WHAT IT DOES NOT CATCH: "estimate",
   # "sizing" and "S/M/L/XL" name the same dead capability and match nothing here, and a
   # future skill using "estimation" as ordinary English needs <!-- removed-ok -->.
-  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress|real-preview|design-session|estimation'
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress|real-preview|design-session|estimation|aceternity-best-practices|astryx-best-practices|mui-best-practices|reui-best-practices|concurrency-safety|error-handling-design|observability-design|performance-tuning|resilience-design|resilience:event-driven|skills/event-driven|pattern-selection|rollout-planning|domain-modeling|system-design|yagni-check|straight-talk|graphql-grpc|compose-init'
+  # 2026-10-23 slim wave (rationale/session-retro-2026-10-21.md, Plan): bare event-driven is English, so only its qualified and path forms.
   # Removed COMMANDS, fully qualified. `/approaches:size` (2026-09-22, same finding) went
   # with the estimation skill, and no list above can hold it: the plugin half is live, so
   # $moved would mis-fire on every surviving /approaches: command, and the artifact half
   # `size` is ordinary English in every table in the repo. Only the joined token matches.
-  cmds='approaches:size'
+  cmds='approaches:size|code-architecture:yagni|devops:init'
   # `bundles?` added 2026-08-31: the `everything` removal shipped six shipped-doc
   # references in the form "`everything` bundle(s)" / "`craft-suite` and
   # `everything`" that no existing shape matched — the guard was extended for that

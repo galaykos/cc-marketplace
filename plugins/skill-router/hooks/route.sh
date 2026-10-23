@@ -1,15 +1,7 @@
 #!/bin/bash
-# route.sh — PostToolUse, and PostToolUseFailure on a Bash call that exited non-zero; fails open: matches the edited file, each existing file a Bash command wrote under the project root (named by
-# the command, or — after an interpreter, cp, mv, install or patch run — changed in git since this hook's previous call), and the
-# command itself against rules.tsv; prints one additionalContext envelope of at most NUDGE_CAP `high` nudges naming plugin:skill, each skill
-# once per context and none the context already loaded; queues other content matches as pending_low, none from a doc or style file.
-# Speaks about no target outside the root, under taskmaster-docs/ or .claude/, or ignored by git.
-# Off: CC_REMIND=off, or unset with the /config option cc_remind off. CC_ROUTE is not read here: it silences route-prompt.sh, the tool-fit check and the flush of what this hook queues.
-# Misses: two concurrent calls can drop a pending_low entry; a payload cwd of `/` or `$HOME` outside git is taken for the project root;
-# a directory row matches only the directory name it spells (in any case); a command row routes an unquoted mention of its CLI
-# and misses a CLI run through a script or an npm alias; a Bash command's write targets past the eighth (MAX_BASH_TARGETS) are not read,
-# nor changed files past the eighth (MAX_BASH_EFFECTS); the bash-write-effects block's own misses apply, and a file anything else changed
-# between this hook's calls (an IDE, a parallel agent) is read as that run's write.
+# route.sh (PostToolUse; PostToolUseFailure on Bash), fails open — matches the edited file, each file a Bash command wrote under the project
+#   root and the command itself against rules.tsv's `high` rows; prints one envelope of at most NUDGE_CAP plugin:skill nudges, each skill once per context. Off: CC_REMIND=off.
+# Misses: a CLI run through a script or npm alias; Bash targets past MAX_BASH_TARGETS, changed files past MAX_BASH_EFFECTS; the bash-write-effects misses.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route.sh
 MAX_BASH_TARGETS=8
 MAX_BASH_EFFECTS=8
@@ -316,7 +308,7 @@ route_cmd_mask() {
     ! git -C "$root" check-ignore -q -- "$1" 2>/dev/null
   }
 
-  # Two parallel arrays per target: rec, the spelling pending_low records; abs, the file on disk.
+  # Two parallel arrays per target: rec, the payload's spelling; abs, the file on disk.
   rec=(); abs=()
   if [ "$tool" = Bash ]; then
     while IFS= read -r t; do
@@ -364,7 +356,7 @@ EOF_TARGETS
     case "$target" in "$root"/*) rel="${target#"$root"/}" ;; esac
   }
 
-  # A code or style file, the only kind a `content`+`high` row fires inline on (nudge_high_matches).
+  # A code or style file, the only kind a `content` row fires on.
   inline_ext() {
     case "$base" in
       *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.vue|*.svelte|*.astro|*.css|*.scss|*.sass|*.less|*.html|*.php|*.twig|*.erb) return 0 ;;
@@ -438,15 +430,11 @@ EOF_TARGETS
 
   # At most NUDGE_CAP nudges per call: arriving several at once (seven on one vendored copy) they were almost never followed, 0 of 25
   # and 0 of 14 in two measured sessions. Rank 0, an import or command row (the edit named that library or CLI), beats rank 1, any other
-  # row, which beats rank 2, the skills rules.tsv's `# nudge-last:` line names: they match every file of their language, so the next
-  # such edit draws them again, where a path-specific skill may not recur. Ties keep target and rules.tsv order. A skill left over is
-  # not marked fired, so a later edit can carry it.
+  # row. Ties keep target and rules.tsv order. A skill left over is not marked fired, so a later edit can carry it.
   NUDGE_CAP=2
-  last_skills=$(sed -n 's/^# nudge-last:[[:space:]]*//p' "$rules" 2>/dev/null | tr -d '\r' | tr ' \t' '\n\n')
   cands=""; cand_skills=""; seq=0
   add_cand() { # $1 rank, $2 skill, $3 owning_plugin, $4 subject — a skill matched again keeps its lowest rank, with that match's place and subject
     local pr="" old
-    printf '%s\n' "$last_skills" | grep -qxF "$2" && set -- 2 "$2" "$3" "$4"
     if printf '%s\n' "$cand_skills" | grep -qxF "$2"; then
       old=$(printf '%s' "$cands" | awk -F'\t' -v s="$2" '$3 == s {print $1; exit}')
       [ "$1" -lt "${old:-0}" ] || return 0
@@ -483,12 +471,10 @@ EOF_TARGETS
 
   nudge_high_matches() {
     fired_now=""; loaded_now=""
-    hcs=()
     i=0
     while [ "$i" -lt "${#abs[@]}" ]; do
       set_target "$i"; i=$((i + 1))
       hc=""; [ -r "$target" ] && hc=$(head -c 65536 "$target" 2>/dev/null)
-      hcs+=("$hc")
       inline=0; inline_ext && inline=1
       while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
         case "$stype" in ''|'#'*) continue ;; esac
@@ -539,36 +525,11 @@ EOF_CMD
     fi
   }
 
-  # Reads hcs, the one head per target nudge_high_matches read.
-  # Doc and style files queue nothing: `token` in a spec or a CSS file queued security-review. Same exemption as database's guard.sh;
-  # the cost is a doc that really is about the concern (a security runbook) drawing no signal.
-  queue_low_matches() {
-    pending_adds=""
-    i=0
-    while [ "$i" -lt "${#abs[@]}" ]; do
-      set_target "$i"; content="${hcs[$i]}"; i=$((i + 1))
-      [ -n "$content" ] || continue
-      case "$target" in *.md|*.mdx|*.markdown|*.txt|*.rst|*.css|*/taskmaster-docs/*) continue ;; esac
-      inline=0; inline_ext && inline=1
-      while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
-        case "$stype" in ''|'#'*) continue ;; esac
-        conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
-        [ "$stype" = content ] || continue
-        [ "$conf" = high ] && [ "$inline" = 1 ] && continue
-        plugin_installed "$plugin" || continue
-        marker_ok "$marker" || continue
-        if printf '%s' "$content" | grep -qE "$pattern" 2>/dev/null; then
-          pending_adds="${pending_adds}${skill}"$'\t'"${plugin}"$'\t'"${file_path}"$'\n'
-        fi
-      done < "$rules"
-    done
-  }
-
   persist_state() {
-    if [ -n "$fired_now" ] || [ -n "$loaded_now" ] || [ -n "$pending_adds" ]; then
+    if [ -n "$fired_now" ] || [ -n "$loaded_now" ]; then
       mkdir -p "$state_dir" 2>/dev/null || exit 0
       [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null
-      json='{"fired":[],"loaded":[],"pending_low":[]}'
+      json='{"fired":[],"loaded":[]}'
       if [ -r "$state_file" ]; then
         existing=$(cat "$state_file" 2>/dev/null)
         printf '%s' "$existing" | jq empty 2>/dev/null && json="$existing"
@@ -591,15 +552,6 @@ EOF_FIRED
 $loaded_now
 EOF_LOADED
       fi
-      if [ -n "$pending_adds" ]; then
-        while IFS=$'\t' read -r pskill pplug pfile; do
-          [ -n "$pskill" ] || continue
-          json=$(printf '%s' "$json" | jq --arg sk "$pskill" --arg pl "$pplug" --arg f "$pfile" \
-            'if (.pending_low | any(.skill==$sk and .file==$f)) then . else .pending_low += [{skill:$sk,plugin:$pl,file:$f}] end' 2>/dev/null) || break
-        done <<EOF
-$pending_adds
-EOF
-      fi
       printf '%s\n' "$json" > "$state_file" 2>/dev/null || exit 0
     fi
   }
@@ -607,7 +559,6 @@ EOF
   nudge_high_matches
   # Before persist_state: an unwritable state dir must not swallow a nudge the model should have seen.
   deliver_nudges
-  queue_low_matches
   persist_state
 } 2>/dev/null
 exit 0

@@ -59,7 +59,7 @@ Match `model:` to the cost of a wrong answer, not to prestige:
   reviewer in a fable session reviews work written by a stronger model than
   itself. That is what `role-floors.md` computes; read it before pinning.
 - `opus` — judgment-heavy and wrong-answer-expensive: review verdicts
-  (architecture, code), system-design trade-offs, adversarial
+  (architecture, code), system design trade-offs, adversarial
   verification, security exploitability calls.
 - `sonnet` — a deliberate pin for cheap checklist/breadth work (workers
   default to `inherit`, not a sonnet pin).

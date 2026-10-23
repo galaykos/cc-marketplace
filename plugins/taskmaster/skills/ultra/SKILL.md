@@ -53,39 +53,30 @@ is a separate command with its own one-line worker-tier status (task-execution) 
 single hands-off journey the operator sees at most one boost banner per phase, never two
 goal banners in one response.
 
-## Fixed tier — one rule, stated once
+## Fixed tier
 
-`model=auto, effort=xhigh`, always. What `auto` resolves to, the escalate-never-downgrade
-ladder, and which dispatch paths take `effort` are owned by
-`task-runner:verification-panels` `references/dispatch-tier.md` — cited, not
-restated (§ Panel width owns panel width N and states none of the three). Taskmaster adds two
-rules of its own: the resolution is a FLOOR (`max(marker, frontmatter)`), so it never lowers
-an agent below its shipped tier; and never edit agent frontmatter to achieve it — the boost
-is a dispatch-time override. Tokens take no suffix — a bare token, one fixed tier.
+`model=auto, effort=xhigh`, always; tokens take no suffix. What `auto` resolves to, the
+floor, the never-edit-frontmatter rule and which dispatch paths take `effort` are owned by
+`task-runner:verification-panels` `references/dispatch-tier.md` — cited, not restated.
 
 ## The boost contract (both modes)
 
 - REASONING roles (red-team, coverage gap-judgment, card-verify, synthesis) dispatch at the
   boosted tier; mechanical/breadth roles (recon scouts, `opinion-lens`) stay NATIVE. Ladder,
   reachable set, and sizing table: `references/dispatch-tiers.md`.
+- Each fan-out below goes through either dispatch mechanism (the Workflow tool or the Agent
+  tool), and its count is a CEILING sized to blast radius, gated by `budget.remaining()` and
+  the session's workflow-size guideline on the Workflow path (same reference). (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 - grill: extra clarifying rounds; no early ledger exit on first CLEAR sweep.
-- spec-redteam: runs ALWAYS; blind adversaries via either dispatch mechanism (the Workflow
-  tool or the Agent tool), N=3 as a CEILING (2 at small radius) — spec-redteam sizes N
-  from its own gate.
+- spec-redteam: runs ALWAYS, as a blind adversary panel; spec-redteam sizes N from its own gate.
 - coverage-check: runs ALWAYS before handoff; loop-until-dry, stop at two dry rounds or the
-  3-round cap.
-- recon: up to 3 parallel lenses via either dispatch mechanism (the Workflow tool or the
-  Agent tool), else one inline scout (NATIVE).
-- card-verify: one fan-out pass per card via either dispatch mechanism (the Workflow tool
-  or the Agent tool).
-- task-cards writes the index markers verbatim. Which lines, in which order, and the
-  ledger check that must pass first are owned by `task-cards/references/index-markers.md`
-  — cited, not restated (boosted goal writes BOTH an `Ultra:` and a `Goal:` line; goal-lean
-  writes `Goal:` only). The executing session re-resolves `auto` against
-  ITS model, never below opus; an older runner parses legacy forms as opus/xhigh. Hands-off
-  execution needs task-runner ≥0.11.0; older runners fall back to interactive.
-- Fan-out counts are CEILINGS sized to blast radius, additionally gated by `budget.remaining()`
-  and the session's workflow-size guideline on the Workflow path (see dispatch-tiers). (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+  radius's round cap.
+- recon: one `context-scout` dispatch per lens, else one inline scout (NATIVE).
+- card-verify: one fan-out pass per card.
+- task-cards writes the index markers verbatim. Which lines, in which order, the ledger
+  check that must pass first and the task-runner versions that read them are owned by
+  `task-cards/references/index-markers.md` — cited, not restated. The executing session
+  re-resolves `auto` against its own model; an older runner parses legacy forms as opus/xhigh.
 
 ## Goal mode — autonomy on top of the boost
 
@@ -114,20 +105,16 @@ is a dispatch-time override. Tokens take no suffix — a bare token, one fixed t
 
 ## Goal-lean — autonomy without the boost
 
-`goal-lean` is Goal mode with the boost contract switched off. Every rule in § Goal
-mode and § Goal audit trail applies unchanged — auto-take with derive-then-take, run
-through execution, never merge, the never-suppress set, the escape hatch, the ledger
-(the ledger header records `boost=off`). Nothing in § The boost contract applies:
-reasoning roles run at the session tier; grill takes its normal rounds; spec-redteam and
+`goal-lean` is Goal mode with the boost contract switched off: § Goal mode and § Goal audit
+trail apply unchanged (the ledger header records `boost=off`), and nothing in § The boost
+contract does. Reasoning roles run at the session tier; grill takes its normal rounds; spec-redteam and
 coverage-check run by their OWN gates (three-plus criteria or an ASSUMED row still fires
 spec-redteam, so a hands-off run of any real brief keeps its wrong-pick checkpoint; a
 trivial spec skips, and the skip is a ledger line); no fan-out; no code red-team at
 execution. Directive string: `ULTRA-GOAL ACTIVE (boost=off)` — the Goal rules key on the
-prefix, the boost rules check the suffix. task-cards stamps `Goal: true (boost=off)` and NO
-`Ultra:` line (`task-cards/references/index-markers.md`); task-runner ≥0.32.0 reads the
-suffix; an older runner reads a lone `Goal:` as boosted and overpays, never under-verifies.
-Status line, not the ⚡ banner: `▷ goal-lean active · hands-off · audit ledger · standard
-tier · boost: off`. Who asks for it: the overseer plugin, whose rigour profile decides per
+prefix, the boost rules check the suffix. Its marker, and how an older runner reads it:
+`task-cards/references/index-markers.md`. It prints the `▷` status line of § Banner, not the
+⚡ banner. Who asks for it: the overseer plugin, whose rigour profile decides per
 milestone whether the code red-team is worth buying (`goal` for adversarial, `goal-lean`
 for lean/standard); or anyone who wants autonomy priced like a standard run.
 
@@ -140,8 +127,8 @@ for lean/standard); or anyone who wants autonomy priced like a standard run.
    proceed unaudited). After grill's Step 0, record the upgraded task statement here as its
    dedicated entry — grill stays goal-blind; the recording is goal's.
 2. **Spec appendix** `## Auto-decisions` — durable summary in the frozen spec.
-3. **Index marker** `Goal: true (model=auto, effort=xhigh)` (above) carries
-   hands-off into execution; `Goal: true (boost=off)` under goal-lean.
+3. **Index marker** `Goal:` (`task-cards/references/index-markers.md`) carries hands-off
+   into execution.
 
 Crash/resume: goal re-derives from the goal-ledger file (header records tier/scope); logged
 decisions replay as CLEAR rows, never re-derived; no ledger AND no marker → re-trigger; a
@@ -157,19 +144,15 @@ that fallback is reported as **"inline heuristic pass — single model, uncorrob
 never as a panel or adversary count. Auto-take, ledger, and markers operate identically inline.
 
 `Workflow` needs the user's own opt-in: say once that **`ultracode` is the half this plugin
-cannot supply** (the fan-out), and that `ultrathink` (main-thread depth) is the orthogonal
-other half —
-`ultrathink ultracode ultra-task <task>` is the loaded form. Rules, including the workflow-size
-ceiling: `task-runner:verification-panels` `references/dispatch-tier.md` § Native harness interop.
+cannot supply** (the fan-out). The opt-in, `ultrathink` and the workflow-size ceiling:
+`task-runner:verification-panels` `references/dispatch-tier.md` § Native harness interop.
 
 ## What the boost does NOT do
 
 - Change the user's main-thread session model, or automate merge/PR/branch finish — the
   git surface stays manual.
 - Fan out an INTERACTIVE phase — grill's question rounds, visual-decisions picks,
-  experience-walkthrough, any consent gate. Subagents have no user I/O, so those stay in
-  the main thread whatever a harness-level "workflow by default" says; the boost widens
-  reasoning phases only.
+  experience-walkthrough, any consent gate (`dispatch-tier.md` § Native harness interop).
 - Persist across runs or expose an off command; goal survives a session boundary only via
   the `00-INDEX.md` marker.
 - Boost mechanical/breadth roles, suppress safety halts, or source requirements from
@@ -177,7 +160,6 @@ ceiling: `task-runner:verification-panels` `references/dispatch-tier.md` § Nati
 
 ## Residual: no cross-plugin activation guard
 
-Standing: unenforceable — three independently-installed plugins share no writable state, so
-two boost tokens inject two directives. The off switch (`CC_BOOST=off`, or `TASKMASTER_BOOST=off`)
-is what IS implementable; full statement with the trigger-narrowing limits:
-`task-runner:verification-panels` `references/dispatch-tier.md`.
+Standing: unenforceable — two boost tokens inject two directives. `CC_BOOST=off` or
+`TASKMASTER_BOOST=off` is the implementable control; full statement and the trigger-narrowing
+limits: `task-runner:verification-panels` `references/dispatch-tier.md`.

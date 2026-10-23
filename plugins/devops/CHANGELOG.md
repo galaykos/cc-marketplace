@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.10.0 — 2026-10-23
+
+- **`/devops:init` and its `compose-init` skill were removed.** Neither had a use in the projects measured for the cut; other installers were not measured. A local docker-compose environment is now ordinary work for the `devops-engineer` worker, written to `docker-best-practices` (which already covers compose files: profiles, healthchecks, `init: true`) and checked with `docker compose config`; `/devops:review` audits it as before. Lost with them: the evidence-pinned service plan (PHP version from `composer.json`, extensions from `ext-*` requires, the engine from `.env` DSNs), the diagram before any YAML, and the `docker compose up -d --wait` smoke check. Standing: agent-graded — the worker and the reviewer apply the Docker rubric; no script reads a compose file.
+- The workflow guard, `docker-best-practices`, `workflow-audit.sh` and `plan-audit.sh` are unchanged.
+- README: staged rollout planning is `/approaches:rollout`; the database pairing, which rested on `/devops:init`, is no longer listed.
+
 ## 0.9.5 — 2026-10-22
 
 - **The workflow guard denies a wiki page name in a `run:` block.** `workflow-audit.sh` already
@@ -116,7 +122,7 @@ Consumer-facing changes only. Newest first.
 ## 0.7.1 — 2026-09-22
 
 ### Changed
-- `compose-init`'s `Last verified` stamp carries a `version-tail-ok:` marker. The stamp
+- `compose-init`'s `Last verified` stamp carries a `version-tail-ok:` marker. The stamp <!-- removed-ok -->
   points at an EOL calendar, not a package registry — the skill pins container image tags
   read from the project's manifests and depends on no package of its own — so
   `check-doc-staleness.sh --live` has nothing to compare and `pc_version_stamp_tail` was
@@ -165,7 +171,7 @@ Consumer-facing changes only. Newest first.
   E4, `rationale/marketplace-trend-audit-2026-09-16.md`): Bash is granted for dry-runs,
   so "read-only" is the body's rule, not a tool restriction — recorded, not enforced.
 - README states the boundary with the host's built-in `/init`, which writes a
-  `CLAUDE.md`; `/devops:init` generates docker-compose (audit C3). `commands/init.md`
+  `CLAUDE.md`; `/devops:init` generates docker-compose (audit C3). `commands/init.md` <!-- removed-ok -->
   carries the matching `<!-- host-ok -->` blessing for the extended host-overlap gate
   (audit C2).
 
@@ -174,7 +180,7 @@ Consumer-facing changes only. Newest first.
 ### Fixed
 - **`devops-engineer`'s defer rule was unreadable.** A search-and-replace had turned
   "dev environment" into "devopsironment", so the one line telling the worker to hand
-  local compose generation to `/devops:init` named nothing a reader could parse. Fixed
+  local compose generation to `/devops:init` named nothing a reader could parse. Fixed <!-- removed-ok -->
   in `.chassis.json` and the rendered agent.
 
 ### Changed
@@ -200,7 +206,7 @@ Consumer-facing changes only. Newest first.
 - **Two removed plugins were named in always-on listing bytes.** `devops-practices`'
   description and the `devops-engineer` agent's routed work to `dev-env` and <!-- removed-ok -->
   `observability`, both absorbed into other plugins — text the CLI sends every session.
-  They now name this plugin's own `compose-init` skill and `resilience`. `pc_removed_refs`
+  They now name this plugin's own `compose-init` skill and `resilience`. `pc_removed_refs` <!-- removed-ok -->
   gained `dev-env` so the next one fails the build instead of shipping. <!-- removed-ok -->
 
 ### Added
@@ -244,7 +250,7 @@ Consumer-facing changes only. Newest first.
 
 ### Added
 - **dev-env merged in.** `docker-best-practices` and `compose-init` are devops skills; <!-- removed-ok -->
-  `/devops:init` generates a local compose environment from evidence, and
+  `/devops:init` generates a local compose environment from evidence, and <!-- removed-ok -->
   `/devops:review` loads the Docker rubric whenever a Dockerfile or compose file is in
   scope. The old ownership split (prod containers here, dev compose there) is gone: one
   review, the skill table decides the rubric by what the file deploys.

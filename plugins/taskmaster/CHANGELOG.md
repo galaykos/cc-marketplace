@@ -4,6 +4,24 @@ Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first. It starts at 0.50.0: earlier
 releases were not recorded here.
 
+## 0.51.0 — 2026-10-24
+
+- **The ultra skill states each rule once.** `skills/ultra/references/dispatch-tiers.md` keeps
+  only what taskmaster's pipeline alone has — the role ladder, recon lenses, the radius table,
+  the budget gate and card-verify waves — and cites `task-runner:verification-panels`
+  `references/dispatch-tier.md` for the tier string, `auto`'s floor, the never-edit-frontmatter
+  rule, `effort` binding, the `Workflow` opt-in and the workflow-size cap (9,293 → 4,642 bytes).
+  The ultra skill body drops its copies of rules that file or `task-cards/references/index-markers.md`
+  owns (11,615 → 10,272 bytes), and the boosted-recon paragraph that cited its own file goes,
+  with its copy in `/taskmaster:brainstorm`. `ultra-task`, `ultra-goal` and `goal-lean` behave as
+  before. Standing: recorded — no harness reads the skill text; every taskmaster harness stays green.
+- **Two pointers reroute.** `/taskmaster:brainstorm` names the `code-architecture:system-architect`
+  agent for unit boundaries, since the system-design skill was removed. A task card that creates a
+  unit takes its shape from `/approaches:pattern`, since the pattern-selection skill was merged
+  into approaches as a reference; it names the pick in `<change>` instead of stamping a `<skill>`.
+  Standing: gate for the names (`scripts/validate.sh` removed-reference check); recorded for the
+  wording.
+
 ## 0.50.0 — 2026-10-22
 
 - **The clarify directive names two checkable forms and no skip.** On a work-shaped prompt

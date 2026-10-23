@@ -2,13 +2,11 @@
 
 APIs in both directions. **Designing your own:** REST resource naming, status-code
 discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457
-error format, idempotency, Laravel API Resources, plus the `graphql-grpc` skill —
-GraphQL (N+1/DataLoader, per-field resolver authz, depth/complexity limits, cursor
-pagination) and gRPC (proto field-number safety, streaming, deadlines, status codes) —
-applied when the surface is non-REST. **Consuming others':** verify current official
-API/SDK docs before writing integration code (the `api-docs-first` skill and a
-UserPromptSubmit reminder), and keep your own docs true after a change with the
-`docs-upkeep` drift scan.
+error format, idempotency and Laravel API Resources; a GraphQL or gRPC surface is
+reviewed against its official docs, since no rubric for it ships here. **Consuming
+others':** verify current official API/SDK docs before writing integration code (the
+`api-docs-first` skill and a UserPromptSubmit reminder), and keep your own docs true
+after a change with the `docs-upkeep` drift scan.
 
 ## Install
 
@@ -45,7 +43,6 @@ implementation and reused as the fixture source for tests.
 | Skill | Reach for it when |
 |---|---|
 | `api-design` | Designing or reviewing your own REST API |
-| `graphql-grpc` | The surface is GraphQL or gRPC |
 | `api-docs-first` | About to write code that calls an external API, SDK, or library — identify the exact installed version from the lockfile, verify against current official docs, stop and ask for a URL or file when none are accessible |
 | `docs-upkeep` | A change altered behavior, interfaces, setup steps, or commands that the docs describe — fix the docs in the same change |
 

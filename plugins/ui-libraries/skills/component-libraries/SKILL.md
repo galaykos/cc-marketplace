@@ -99,7 +99,7 @@ fetched. Record source and date in the file header — nothing else does.
 ## Routing: which sibling owns what
 
 `references/library-map.md` names the sibling skill in the Notes column of every
-row that has one: ReUI, Aceternity, Astryx, MUI and PrimeReact in this plugin; shadcn and
+row that has one: PrimeReact in this plugin; shadcn and
 daisyUI→Tailwind in `ui-ux`. Everything else — every Vue and Svelte library, every
 unlisted one — is this skill plus the docs URL there.
 

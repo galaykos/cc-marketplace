@@ -97,9 +97,9 @@ files span >1 domain. `<contract>` only when the spec has that binding section.
 - `<skill>`: stamp the stack skills relevant to each card from the stack-scan inventory
   taken at pipeline step 1 (read manifests when stack-scan is absent). delegation-contracts
   § Skill priming injects a Read-by-path into the dispatch — a delegate cannot self-load.
-- A card that CREATES a unit (module, class, service, boundary) also stamps
-  `approaches:pattern-selection`, so the shape pick is deliberate and reviewable. Not on
-  edit-in-place cards — it is a decision aid, not a checklist.
+- A card that CREATES a unit (module, class, service, boundary) gets its shape from
+  `/approaches:pattern` before it is written and names the pick in `<change>`, so the choice
+  is deliberate and reviewable. Not on edit-in-place cards — it is a decision aid, not a checklist.
 
 ## Acceptance criteria rules
 

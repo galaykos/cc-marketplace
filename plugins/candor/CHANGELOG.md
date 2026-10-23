@@ -2,6 +2,14 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.11.0 — 2026-10-24
+
+### Removed
+- **The straight-talk skill was removed.** It had no recorded use in the projects the 2026-10-21 retro measured (one user's, 30 days). Where its job went: its three provable rules were already clauses 1-3 of `hooks/gate.sh` (citations that resolve, no reversal without a re-check, no completion claim without a run); the rest — disagreement before concession, "I don't know" with the settling command, correction without performance — is counted by `/candor:check` and blocked by nothing, as before. Standing: gate for the removal (`scripts/validate.sh`'s removed-reference check); the terse subsystem stays.
+
+### Changed
+- **Clause 3's block names `code-architecture:work-verification`.** The evidence-gate reason now says that skill, if installed, says how to run the check that would fail on a broken change — the one place a session meets it at the moment it skipped verification. Standing: gate — `scripts/smoke/evidence-gate-hook-tests.sh` "the block names code-architecture:work-verification", red against 0.10.0; whether the model then loads the skill is agent-graded.
+
 ## 0.10.0 — 2026-10-22
 
 ### Changed
@@ -586,7 +594,7 @@ Initial release.
   transcript, all of them neutral back-references. The citation axis is
   backward-looking by nature (it resolves a whole session's history against
   today's tree); the gate is not, and both say so.
-- `skills/straight-talk/SKILL.md` — the six orderings the gate cannot check:
+- `skills/straight-talk/SKILL.md` — the six orderings the gate cannot check: <!-- removed-ok -->
   evidence before claim, disagreement before concession, reversal-as-finding,
   "I don't know" plus the settling command, scope honesty, correction without
   performance. Carries the standing table for which of them have teeth.

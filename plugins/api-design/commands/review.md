@@ -4,8 +4,10 @@ argument-hint: [files-or-diff]
 ---
 
 Invoke the api-design skill from this plugin first, then decide the branch. When the
-surface is GraphQL or gRPC (schemas, resolvers, .graphql/.proto files), apply the
-graphql-grpc skill from this plugin as the review rubric instead of the REST rules.
+surface is GraphQL or gRPC (schemas, resolvers, .graphql/.proto files), the REST rules do
+not apply and no rubric for it ships here: say so, and review against the official docs
+(https://graphql.org/learn/best-practices/, https://grpc.io/docs/guides/,
+https://protobuf.dev/programming-guides/dos-donts/), never from memory.
 
 Branch decision (do this first): when $ARGUMENTS describes endpoints that do not exist
 yet (a design task rather than a review), switch to the skill's contract-preview

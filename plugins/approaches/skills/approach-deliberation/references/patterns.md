@@ -1,7 +1,4 @@
----
-name: pattern-selection
-description: Use when structuring code and weighing — or naming — a design pattern (Factory, Strategy, Observer, Decorator, the GoF catalog): maps a problem to the right pattern with when-NOT per pattern and look-alike disambiguation.
----
+# Pattern selection
 
 ## The rule: name the problem first, pattern second
 
@@ -35,7 +32,7 @@ comment-discipline skill, when code-review is installed.
 1. State the problem in one sentence — the recurring pain, not the solution you already imagined.
 2. Find the row whose **Use when** matches that pain; check its **Skip when** does not describe you.
 3. If two rows fit, read the **Look-alikes** section — the difference is intent, not shape.
-4. Open `references/catalog.md` for that pattern's example before writing it. Prefer the idiom form.
+4. Open `references/pattern-catalog.md` for that pattern's example before writing it. Prefer the idiom form.
 
 ## Problem → pattern map
 
@@ -121,7 +118,7 @@ const report = (fmt) => `<<${section(fmt)}>>`;   // fmt is the injected step
 
 ## Full catalog — intent, structure, example per pattern
 
-`references/catalog.md` (this skill's directory) carries the intent, a minimal structure, a
+`references/pattern-catalog.md` (this skill's directory) carries the intent, a minimal structure, a
 runnable example and the collapse-to-idiom note for every pattern above plus non-GoF ones
 (Repository, Null Object, DI); open it when the idiom form or a non-GoF entry is in question.
 For diagrams or a fuller applicability checklist, the GoF write-ups live at

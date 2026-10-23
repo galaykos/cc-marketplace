@@ -62,12 +62,8 @@ run_hook() { # run_hook <prompt> <root> [env...] -> hook stdout
   local prompt="$1" root="$2"; shift 2
   local n; n=$(( $(cat "$COUNTER") + 1 )); printf '%s' "$n" > "$COUNTER"
   local box="$WORK/box-$n"; mkdir -p "$box"
-  # HOST-SHAPED PAYLOAD: transcript_path is sent, and it is load-bearing.
-  # route-prompt.sh keys its pending-signal flush on `.transcript_path //
-  # .session_id` — the same key route.sh writes — so a payload carrying only
-  # session_id grades the FALLBACK branch and this harness would report green on
-  # a hook that never finds its state file. That is exactly how the writer/reader
-  # key mismatch shipped: every assertion here passed while the flush was dead.
+  # HOST-SHAPED PAYLOAD: transcript_path is sent, and it is load-bearing:
+  # route-prompt.sh reads it to tell a ScheduleWakeup re-fire from a human prompt.
   # `pc_harness_payload` fails this file if the field goes away again.
   local tp="$box/transcript-sess-$n.jsonl"; printf '%s' "${SEED_TX:+$SEED_TX$'\n'}" > "$tp"
   printf '%s' "$prompt" | jq -Rs --arg s "sess-$n" --arg tp "$tp" \
