@@ -134,12 +134,27 @@ and saying so is the point.
 
 ## Plugin change gates
 
-Four scripts. **Every derivation below lives in the check's own header** — each
-`pc_*` function in `scripts/lib/plugin-checks.sh` carries a header explaining
-what it catches, what it does not, and what shipped that made it exist. **Cite
-them; do not restate them here** — the same rule this file already applies to the
-four laws and the has-teeth convention. What follows is only what you need in hand
-while editing.
+Four scripts. **Every check, hook and script says in its own header what it catches
+and what it does not** — at most three comment lines. The derivation (what shipped
+that made it exist, measurements, incident dates) moves verbatim to
+`rationale/derivations/<file>.md` under a `## <path>` heading, and the code keeps one
+pointer, `# Why, limits, history: rationale/derivations/<file>.md § <heading>`. Recount
+the files already following it:
+`grep -rl 'Why, limits, history: rationale/derivations' plugins scripts | wc -l`.
+Applied as files are touched, not in a sweep; existing long headers are debt, not
+precedent. **Standing: `recorded`** — no gate reads a header. (Why: the 2026-10-21
+retro found incident narration in 13 of 16 shipped plugins it read, in files whose
+installers have no `rationale/`.) **Cite headers; do not restate them here** — the
+same rule this file already applies to the four laws and the has-teeth convention.
+What follows is only what you need in hand while editing.
+
+**Load the authoring skill before the edit.** Editing a hook → `authoring-hooks`
+(plus `hook-bash-writes` when it must see Bash writes); a SKILL.md →
+`authoring-skills`; an agent → `authoring-agents`; a command → `authoring-commands`; a
+chassis-generated file → `chassis-workflow`. Load it in the thread that edits, and
+name its path in a dispatch so a worker reads it. **Standing: `recorded`.** (Why: in
+the three sessions the 2026-10-21 retro read, hooks and skills were edited with zero
+Skill calls for any of these.)
 
 **Numbers in this file rot.** Every count ever written here went stale within days,
 usually in both directions. The file carries one on purpose (the CI step count,
