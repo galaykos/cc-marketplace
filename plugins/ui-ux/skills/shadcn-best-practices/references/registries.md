@@ -6,8 +6,8 @@ This file covers registries as **install sources**: where the code comes from an
 it in safely. It does not treat them as design references and never recommends a block for a
 brief. That is a design decision, and craft-layer's design-research owns it when installed.
 
-ReUI and Aceternity also have their own skills in the `ui-libraries` plugin. The mechanics
-here apply underneath them. Every rule below is **recorded**: it was checked against the live
+ReUI's and Aceternity's docs URLs are in `ui-libraries:component-libraries`' library map. The
+mechanics here apply to them too. Every rule below is **recorded**: it was checked against the live
 docs and registry endpoints on the stamp date, or on the date written beside it, and no script
 enforces it.
 

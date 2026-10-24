@@ -81,8 +81,8 @@ fix is an opinion; do not report opinions.
   Fix: extract once — but only after the rule of three; see below.
 - Speculative generality. Cue: interfaces with one implementation, config
   nobody sets, hooks nobody calls. Risk: cognitive tax on every reader.
-  Fix: inline to the concrete case (the yagni-check skill in
-  code-architecture owns the deep version of this call).
+  Fix: inline to the concrete case (code-architecture's
+  architecture-reviewer agent owns the deep version of this call).
 - Reinvented shelf. Cue: hand-rolled code, or a dependency imported for one
   call, doing what the standard library, the platform (browser, database, OS)
   or an already-installed dependency ships. Risk: the copy misses edge cases
@@ -124,6 +124,6 @@ fix is an opinion; do not report opinions.
 4. Severity honesty: a smell is minor unless it conceals a correctness
    risk; never inflate to force attention.
 5. Defer the neighbor's specialty: structure and YAGNI depth to
-   code-architecture skills; security-relevant smells (secrets in code,
+   code-architecture's architecture-reviewer; security-relevant smells (secrets in code,
    homemade crypto) to the security plugin; framework idioms to the
    per-stack review command when installed.

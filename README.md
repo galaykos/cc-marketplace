@@ -103,7 +103,7 @@ install line for the missing half:
 | If you install | Also install | Why |
 |---|---|---|
 | `craft-layer` | `ui-ux` and `ui-libraries` | it themes and builds through ui-ux, and reaches component libraries through ui-libraries |
-| `ui-ux` | `ui-libraries` | ui-ux's component-library skills (MUI, PrimeReact, Astryx, ReUI, Aceternity, `component-libraries`) moved there on 2026-09-26 |
+| `ui-ux` | `ui-libraries` | ui-ux's component-library skills (PrimeReact, `component-libraries`) live there |
 
 ```bash
 /plugin install ui-ux@cc-plugins-marketplace
@@ -175,7 +175,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_RELAY_GATE` | candor | warn | Stop-gate clause for a worker report's caveat lines (not done, untested, residual) that the turn's final … |
 | `CC_REMIND` | api-design, approaches, code-review, debugging, design-kit, secret-scanning, security, skill-router, task-runner, taskmaster, testing, ui-ux | on | Reminder hooks that add guidance to the session: on or off |
 | `CC_REVIEW_NUDGE` | code-review | on | Suggest an independent review once enough unreviewed or sensitive code has changed: on or off |
-| `CC_ROUTE` | skill-router | on | Hand the model command-picking rules and flush pending low-confidence skill signals: on or off |
+| `CC_ROUTE` | skill-router | on | Hand the model command-picking rules: on or off |
 | `CC_ROUTE_SCOPE` | skill-router | off | Drop the Laravel, Inertia, Next.js, Vite, React Native, Tailwind, shadcn and MariaDB skills from the ski … |
 | `CC_SECRET_PROMPT` | secret-scanning | on | Mark a secret typed or pasted into the prompt box, and ask before sending it (mask, send as typed, or ca … |
 | `CC_SECRET_REDACT` | secret-scanning | on | Mask secrets in tool output before the model or the transcript sees them: on or off |
@@ -324,7 +324,7 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[ui-ux](plugins/ui-ux)** | shadcn/ui and Tailwind rules, design tokens, a theming system, motion best practices, the WCAG audit, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface — install `ui-libraries` with it ([companions](#companions-install-these-together)) |
-| **[ui-libraries](plugins/ui-libraries)** | component-library rules split out of ui-ux: Material UI (MUI X), Astryx, ReUI, Aceternity, and any other React or Vue library via `component-libraries` | The project already uses a component library other than shadcn |
+| **[ui-libraries](plugins/ui-libraries)** | component-library rules split out of ui-ux: PrimeReact, and `component-libraries`, whose per-library map points at the docs for Material UI, Astryx, ReUI, Aceternity and any other React or Vue library | The project already uses a component library other than shadcn |
 | **[design-kit](plugins/design-kit)** | the Claude Desktop design picker as local, own-your-files skills: an HTML deck with PDF/PPTX export, an artboard canvas with knobs and PNG export, designs rendered with the project's own components plus handoff-bundle intake, a design system extracted from the repo or a URL (DTCG tokens, a record the host reads, a UI kit), and self-contained artifacts in a local gallery | Slides, mockups, a design system or a shareable page without leaving the repo |
 | **[craft-layer](plugins/craft-layer)** | the studio pipeline: creative direction, design research, asset sourcing with a licence gate, information design, and a five-tier motion catalogue with mandatory reduced-motion and reduced-bundle fallbacks | The result has to look designed, not generated — needs `ui-ux` and `ui-libraries` installed too ([companions](#companions-install-these-together)) |
 
@@ -368,13 +368,13 @@ the shell mockup rather than scaffolding a sandbox.
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[code-review](plugins/code-review)** | the stack-agnostic pass — correctness bugs, code smells, convention drift — and the **fan-in** that loads every matching stack skill in one pass; plus a reuse-hygiene skill for deprecated or orphaned symbols | Any diff, PR, or branch — start here when a change spans stacks |
-| **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review, system design (service boundaries from data ownership, scaling paths, cache placement, async failure modes) and domain modeling; the Stop hook that refuses a completion claim with nothing run after the edits is clause 3 of candor's gate since 2026-09-14 | Structure decisions at code or system level |
+| **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), SOLID with judgment, low-cognitive-load, work verification, drift review, and system-level design (service boundaries from data ownership, scaling paths, cache placement, async failure modes) through the `system-architect` worker; the Stop hook that refuses a completion claim with nothing run after the edits is clause 3 of candor's gate since 2026-09-14 | Structure decisions at code or system level |
 | **[toolchain-experts](plugins/toolchain-experts)** | five reviewers that RUN the project's configured static analysis rather than reciting a checklist — phpstan/psalm/phpcs/rector, tsc/eslint/biome, the React hook rules, vue-tsc/eslint-plugin-vue, stylelint/pa11y/lighthouse-ci — and report which config CI enforces, what the baseline forgives, and which rules are switched off | A diff in a repo that has analyzers configured, and you want their real output triaged rather than a second opinion |
 | **[testing](plugins/testing)** | the pyramid and what to actually test, Pest/PHPUnit, Vitest/Jest, Playwright/Dusk, mocking at owned boundaries, flaky-test causes, coverage traps, TDD | Writing tests, reviewing tests, or chasing a flake |
 | **[ask-ledger](plugins/ask-ledger)** | the silent-avert catch: a UserPromptSubmit hook destructures a work-shaped ask into the things it names (proper nouns, quoted terms, `2D`-style tokens) and a Stop gate refuses a final message that does not account for each — `as named` / `substituted → what, why` / `omitted → why`; gate on the shape, the truth is the model's word | Work keeps quietly doing less than you named and nobody says so |
 | **[candor](plugins/candor)** | the marketplace's one blocking Stop gate, five clauses a script can prove: a `file:line` citation that resolves to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass, a dependency manifest changed without its lockfile; plus the terse reply mode — chat-message brevity as a shape contract, `lite` / `full` / `ultra` | You want the honesty rule to have teeth rather than tone; long sessions where the narration costs more than the work |
 | **[debugging](plugins/debugging)** | reproduce first, read the actual error, one hypothesis per experiment, bisect, verify against the original symptom, escalate after three failed fixes; plus a delegatable `debugger` agent | A bug, a failing test, or the third failed fix in a row |
-| **[resilience](plugins/resilience)** | timeouts, retries with backoff and idempotency, circuit breaking, degradation, delivery semantics — plus error-handling design and concurrency safety | Code crosses a process boundary, or two writers can race |
+| **[resilience](plugins/resilience)** | one `resilience` skill whose references load as a change touches them: timeouts, retries with backoff and idempotency, circuit breaking, degradation, delivery semantics, error handling, concurrency, observability and measure-first performance | Code crosses a process boundary, or two writers can race |
 
 **Using them.**
 
@@ -382,7 +382,6 @@ the shell mockup rather than scaffolding a sandbox.
 /code-review:review [path|diff]        # the fan-in — start here
 /code-architecture:plan                # file-level plan before writing code
 /code-architecture:solid               # SOLID audit of a design or class
-/code-architecture:yagni               # speculative-generality audit
 /code-architecture:verify              # verify completed work against criteria, with evidence
 /testing:flake-hunt                    # classify flaky tests by cause, with a fix lane
 /code-review:comment-review            # comment noise, one line per finding
@@ -432,7 +431,7 @@ directly — so an attempt to grant itself an exception is denied where you can 
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[api-design](plugins/api-design)** | resource naming, honest status codes, RFC 9457 problem+json, cursor vs page pagination, whitelisted filtering, versioning, `Idempotency-Key`, Laravel `apiResource` mapping — plus GraphQL/gRPC (DataLoader, resolver authz, depth limits, proto field-number safety) | Designing or reviewing an API you own |
+| **[api-design](plugins/api-design)** | resource naming, honest status codes, RFC 9457 problem+json, cursor vs page pagination, whitelisted filtering, versioning, `Idempotency-Key`, Laravel `apiResource` mapping | Designing or reviewing an API you own |
 
 **Using them.**
 
@@ -463,7 +462,7 @@ take a fuzzy request to a verified branch.
 | **[taskmaster](plugins/taskmaster)** | brainstorm a fuzzy idea into an approved design, grill requirements to zero ambiguity against an ambiguity ledger, decide visuals with mockups, red-team the frozen spec, then emit single-prompt task cards with a coverage check and a verify-teeth lint | The request is vague, large, or has five plausible readings |
 | **[task-runner](plugins/task-runner)** | delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, writer isolation, the role-floor registry) and verification panels (refuter voting, judge panels, completeness critic) for any subagent fan-out — the orchestration plugin until 2026-09-14 — plus one task at a time, scope locked, a bounded verify-fix loop per task, halt-with-evidence instead of drift, a completion gate that actually runs the artifact, plus parallel planning and a `--tracks` mode | You have a task list and want it executed without drift |
 | **[overseer](plugins/overseer)** | a program-level product owner: `/overseer:start "Build a CRM"` inventories the project and every installed plugin, asks one clarifying round, writes a milestone roadmap, briefs taskmaster and task-runner per milestone on its own branch, and closes a milestone only after a browser walk at three widths with a clean console — `program.sh accept` refuses a green suite alone; `/overseer:resume` continues across sessions | A whole product to deliver over many sessions and branches, with someone owning the roadmap and the acceptance |
-| **[approaches](plugins/approaches)** | 2–3 structurally different approaches with a trade-off table and a kill-trigger — or four **blind** persona subagents when the work is a refactor/rewrite — plus build-vs-buy, rollout planning, and design-pattern selection | Before implementing anything non-trivial, and especially before a rewrite |
+| **[approaches](plugins/approaches)** | 2–3 structurally different approaches with a trade-off table and a kill-trigger — or four **blind** persona subagents when the work is a refactor/rewrite — plus build-vs-buy, and `/approaches:rollout` and `/approaches:pattern` for rollout plans and design-pattern picks | Before implementing anything non-trivial, and especially before a rewrite |
 | **[git-workflow](plugins/git-workflow)** | worktree isolation, a branch-finish protocol (verify → merge / PR / keep / discard, no zombie branches), and review-exchange rigor | Starting isolated work, or finishing a branch |
 | **[hindsight](plugins/hindsight)** | mines past session transcripts for recurring friction and proposes CLAUDE.md rules, skill ideas, and failed-approach warnings — applied only on approval | Periodically. It is the only plugin that learns from your history |
 | **[ultra-deep-research](plugins/ultra-deep-research)** | parallel web-search fan-out, source tiering by provenance, date-stamped claims, adversarial refutation before synthesis, a cited report with a contradiction ledger | A question where being confidently wrong is expensive |
@@ -511,12 +510,11 @@ bill you did not agree to.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[devops](plugins/devops)** | CI/CD ordering, image hygiene, Kubernetes limits and probes, deploy strategy with rollback, secrets handling, Dockerfile and compose discipline — plus `/devops:init`, which scans manifests, lockfiles, `.env` DSNs and CI images and generates a `docker-compose.yml` + `Dockerfile` matched to the real stack, a **PreToolUse guard** on workflow files and a `devops-engineer` / `devops-reviewer` pair | Pipelines, manifests, anything that reaches production — and onboarding a repo or a compose file that drifted from reality |
+| **[devops](plugins/devops)** | CI/CD ordering, image hygiene, Kubernetes limits and probes, deploy strategy with rollback, secrets handling, Dockerfile and compose discipline — plus a **PreToolUse guard** on workflow files and a `devops-engineer` / `devops-reviewer` pair | Pipelines, manifests, Dockerfiles, anything that reaches production |
 | **[stack-scan](plugins/stack-scan)** | required-vs-installed inventory from manifests, lockfiles, runtime binaries and container images, with drift, missing locks and EOL majors flagged | Before giving version-dependent advice in an unfamiliar repo |
 
 ```bash
 /stack-scan:report        # what is ACTUALLY installed here
-/devops:init              # generate compose + Dockerfile from evidence
 /devops:review            # pipelines, k8s manifests, deploy and secret config, docker files
 ```
 
@@ -525,7 +523,6 @@ bill you did not agree to.
 ```
 /stack-scan:report        # PHP 8.3 / Laravel 12 / MariaDB 11.4 / Node 22 + pnpm
 /stack-scan:suggest       # → suggests laravel, mariadb, web-dev, …
-/devops:init              # → compose file pinned to those exact versions
 ```
 
 ---
@@ -534,7 +531,7 @@ bill you did not agree to.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
+| **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (Laravel/Blade, Inertia pages, Next.js, shadcn and component-library imports, SQL and migrations with engine-aware rows, tests, Dockerfiles, OpenAPI), at most two per edit, and a SessionStart primer | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
 | **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
 | **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
 | **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace but opt-in prompt-coach at one scope (asked once, or `--scope`) with no other prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |

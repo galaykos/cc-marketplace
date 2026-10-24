@@ -1,15 +1,7 @@
 #!/bin/bash
-# subagent-skills.sh — SubagentStart for a plugin-scoped agent, fails open: hands it the absolute SKILL.md Read paths of the skills its
-#   bestpractices-skill: frontmatter declares and prime.sh's rows find at the project root, owner installed, minus its skills: preloads.
-#   A general-purpose or claude agent gets every skill prime.sh's rows find, when its dispatch named a repo file. PreToolUse on the Agent
-#   call records what the dispatch named, since nothing on disk holds the prompt at SubagentStart; a surface skill (Vite, SQL, manifests,
-#   Docker, CI) rides only a dispatch naming its file kind, unless the agent declares nothing else.
-# Off: CC_SUBAGENT_SKILLS=off (this hook) or CC_REMIND=off (every advisory nudge); unset, the /config options cc_subagent_skills / cc_remind decide.
-# Misses: a declared skill with no prime.sh row (motion-best-practices, security-review, performance-tuning, observability-design) and
-#   prime.sh's own misses; a path past the CAP-character output. Advisory: it cannot make the agent Read. Another marketplace's plugin of
-#   the same name resolves against this one's definition. Dispatches of one agent type within DISPATCH_TTL seconds share one record, so
-#   a parallel fan-out is judged as a whole; a dispatch whose Agent call waits longer than that for approval reads as naming nothing;
-#   a file named without a path-shaped word (a migration described, not named) does not count.
+# subagent-skills.sh (SubagentStart; PreToolUse Agent|Task records what the dispatch named), fails open — hands a plugin agent the SKILL.md Read
+#   paths of its bestpractices-skill: list that prime.sh's rows find at the root; a generic agent whose dispatch names a repo file gets all of them.
+# Off: CC_SUBAGENT_SKILLS=off|CC_REMIND=off. Misses: a declared skill with no prime.sh row (motion-best-practices, security-review, resilience); a path past CAP.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/subagent-skills.sh
 
 # Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.

@@ -8,8 +8,8 @@ Generic CSS3/Grid/Flexbox/Bootstrap skills were removed after baseline tests sho
 model covers them unaided — see rationale/stack-skill-baselines.md.
 
 > **Install `ui-libraries` with this plugin — nothing does it for you.** The
-> component-library skills — Material UI, PrimeReact, Astryx, ReUI, Aceternity, and the
-> library-agnostic `component-libraries` floor with its per-library map — moved to
+> component-library skills — PrimeReact, and the library-agnostic `component-libraries` floor
+> whose per-library map covers Material UI, Astryx, ReUI, Aceternity and the rest — moved to
 > `ui-libraries` on 2026-09-26, when ui-ux reached the marketplace's per-plugin prose cap.
 > No plugin here may declare `dependencies` (an update that adds one leaves it uninstalled
 > and the plugin fails to load), and the suites that used to bring both were retired the
@@ -26,7 +26,7 @@ model covers them unaided — see rationale/stack-skill-baselines.md.
 Registry libraries (shadcn, [ReUI](https://reui.io/docs),
 [Aceternity](https://ui.aceternity.com/components)) get docs-first treatment:
 they have no npm version to pin against, so component APIs are verified on the
-live docs page, never from memory. The skills split roles cleanly — shadcn/ReUI
+live docs page, never from memory. The libraries split roles cleanly — shadcn/ReUI
 for app UI, Aceternity for motion-heavy marketing pages, one primitive set per
 project, everything themed through the same CSS-variable tokens.
 

@@ -276,6 +276,11 @@ only, and other installers are unmeasured.**
 - devops: cut compose-init.
 - web-dev: add a Laravel/Inertia Vite section.
 
+Amendment, 2026-10-23 (owner picks at wave-3 start): `/code-architecture:yagni` and `/devops:init`
+are cut with their skills; the merged skill is `resilience:resilience`, one reference per old skill;
+ultra is collapsed and de-duplicated with all three modes kept; work-verification is named in
+candor's clause-3 block. system-architect stays, outside the plan.
+
 **Cross-cutting**
 - **P10 (picked: short header + pointer).** A check header is at most 3 lines: what it
   catches and what it misses. Derivation and history move to `rationale/derivations/`

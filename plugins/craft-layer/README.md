@@ -12,8 +12,8 @@ an asset-sourcing + licence gate, a concept→token-system derivation, a tiered 
 
 > **craft-layer needs `ui-ux` and `ui-libraries` installed beside it — nothing installs
 > them for you.** It themes through `/ui-ux:theme` and builds through `/ui-ux:build`, which
-> loads the component-library skills (Aceternity, ReUI, MUI, PrimeReact, Astryx,
-> `component-libraries`) from `ui-libraries`. No plugin here may declare `dependencies`
+> loads the component-library skills (`primereact-best-practices`, and `component-libraries`
+> for Aceternity, ReUI, MUI, Astryx and the rest) from `ui-libraries`. No plugin here may declare `dependencies`
 > (an update that adds one leaves it uninstalled and the plugin fails to load), and the
 > craft suite that used to bring all three was retired on 2026-09-26. Install them now:
 >

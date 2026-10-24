@@ -53,9 +53,7 @@ Same doctrine as grill: dispatch context-scout (and reuse the stack-scan
 inventory when installed) BEFORE asking anything. An idea conversation that
 ignores the existing codebase produces designs the codebase rejects on contact.
 Existing patterns, existing modules that half-do the idea, hard version
-constraints — all of it bounds the option space before the first question. Under
-`ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout NATIVE (mechanical —
-no override), lenses sized per that skill's `references/dispatch-tiers.md`; opinion-lens native.
+constraints — all of it bounds the option space before the first question.
 
 ## Scope check first
 
@@ -139,8 +137,8 @@ When the shape is settled, present the design incrementally — architecture,
 components and their single responsibilities, data flow, error handling,
 testing approach — each section scaled to its complexity, approval collected
 per section rather than as one big "looks good?" at the end. Unit boundaries are
-`code-architecture:solid-principles` and `code-architecture:system-design` when that
-plugin is installed; brainstorm's own job is that the boundary gets DECIDED on the
+`code-architecture:solid-principles` and `code-architecture:plan-before-code` when
+that plugin is installed; brainstorm's own job is that the boundary gets DECIDED on the
 whiteboard, not discovered mid-card.
 
 ## The design doc

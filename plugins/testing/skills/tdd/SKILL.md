@@ -45,8 +45,8 @@ case, ignore the parameter. That feeling is correct, not a problem. If the
 hardcoded return is wrong, the NEXT test on the list forces it out; if no
 test on the list would ever force it out, either the list is missing a
 behavior or the constant genuinely is the requirement. Generality is bought
-with the next failing test, never with speculation — the yagni-check
-discipline (code-architecture plugin) applied at test granularity. Building
+with the next failing test, never with speculation — YAGNI applied at
+test granularity. Building
 the flexible version "while you're in there" produces untested branches by
 definition, since no red test demanded them.
 

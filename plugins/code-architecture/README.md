@@ -6,19 +6,17 @@ low-cognitive-load code. KISS/DRY and the surgical-edit discipline (surface
 assumptions, every changed line traces to the request, clean up your own
 orphans — after Karpathy's LLM-coding guidelines) travel as references of the
 two skills that own them, not as separate always-on triggers. The reach order in
-`low-cognitive-load` and the ranked `net:` close of `/code-architecture:yagni` adapt
-rules from dietrichgebert/ponytail (MIT, v4.10.0). Depth as the measure of a split and the
-glossary's canonical term in `low-cognitive-load`, and the written glossary in
-`domain-modeling`, adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock);
-their effect is unmeasured.
+`low-cognitive-load` adapts rules from dietrichgebert/ponytail (MIT, v4.10.0). Depth as
+the measure of a split and the glossary's canonical term in `low-cognitive-load` adapt
+rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock); their effect is unmeasured.
 
 Owns structure at both levels. Code: units, interfaces, file placement. System:
 service boundaries drawn on data ownership, scaling paths, cache placement, sync vs
-async integration and its failure modes, single points of failure, and domain
-modeling (bounded contexts, aggregates, ubiquitous language) — the `system-design`
-and `domain-modeling` skills and the `system-architect` worker (the system-design
-plugin was merged into this one on 2026-09-14). Message-driven architecture (delivery
-semantics, outbox, sagas, DLQ) lives in `resilience`'s `event-driven` skill.
+async integration and its failure modes, and single points of failure — the
+`system-architect` worker, whose body carries that checklist, and the
+`architecture-reviewer`, which audits a design doc against it. Message-driven
+architecture (delivery semantics, outbox, sagas, DLQ) lives in `resilience`'s
+`references/messaging.md`.
 
 ## Install
 
@@ -32,7 +30,6 @@ semantics, outbox, sagas, DLQ) lives in `resilience`'s `event-driven` skill.
 | Command | What it does |
 |---------|--------------|
 | `/code-architecture:plan` | File-level implementation plan before writing code — which files change, unit ownership, interfaces |
-| `/code-architecture:yagni` | Audit code or a design for speculative generality |
 | `/code-architecture:solid` | Audit code or a design for SOLID violations |
 | `/code-architecture:verify` | Verify completed work against its success criteria, with evidence |
 | `/code-architecture:coding-task` | Start ad-hoc coding work with the house rules already loaded — detects the stack, loads the always-relevant skills, and says in one line whether the task proceeds inline or belongs in the taskmaster pipeline |
@@ -49,12 +46,12 @@ feature.
 ## Skills & agent
 
 Best-practice skills auto-trigger by context — `plan-before-code`,
-`low-cognitive-load`, `solid-principles`, `yagni-check`,
-`work-verification`, `drift-review`, `system-design`, `domain-modeling`, and
+`low-cognitive-load`, `solid-principles`, `work-verification`, `drift-review`, and
 `coding-entry` (the one `/code-architecture:coding-task` invokes). The
 `architecture-reviewer` agent reviews structural changes for boundaries, cohesion,
-and cognitive load, and on a design doc or service topology audits against the
-system-design rubric. The `system-architect` worker (opus floor) designs and
+cognitive load and speculative generality (YAGNI — the structural call code-review defers
+to it), and audits a design doc or service topology against the system checklist it
+carries. The `system-architect` worker (opus floor) designs and
 implements system-level structure: how services split, who owns which data, how
 load scales, where caches sit, which integrations run async.
 
@@ -93,9 +90,9 @@ still downgrades that clause alone.
 ## Evals
 
 One case, and it is a measurement of this plugin's SHAPE rather than a regression
-guard. Ten checklist skills across this marketplace — `solid-principles`,
-`low-cognitive-load`, `yagni-check`, `domain-modeling`, `system-design`, and five
-more in sibling plugins — ship prose with no mechanism and no eval.
+guard. Checklist skills across this marketplace — `solid-principles` and
+`low-cognitive-load` here, more in sibling plugins — ship prose with no mechanism and
+no eval.
 `evals/solid-control/` puts one real SRP violation in front of three deliberate
 decoys that a reflex SOLID review flags, and requires the decoys to be declined
 with a reason:
@@ -112,21 +109,21 @@ which is what `scripts/eval-cases.sh` does in CI; nothing runs a model there.
 **The delta is unmeasured.** The expectation is that the control arm produces a
 SUPERSET of the treatment's findings — that is the shape `rationale/stack-skill-baselines.md`
 measured for eight stack skills in 2026-07. If both arms pass, the skill restates the
-model and the shape is settled for all ten. State the run count and the vote spread
+model and the shape is settled for every skill of that shape. State the run count and the vote spread
 with any delta or do not state the delta.
 
 ## Example
 
 ```bash
 /code-architecture:plan add a webhook retry queue
-/code-architecture:yagni app/Services/
+/code-architecture:solid app/Services/
 /code-architecture:verify
 ```
 
 ## Pairs well with
 
-- **resilience** — owns the `event-driven` skill (brokers, outbox, sagas, DLQ) and
-  the failure modes of the topology this plugin draws
+- **resilience** — owns event-driven messaging (brokers, outbox, sagas, DLQ: its
+  `references/messaging.md`) and the failure modes of the topology this plugin draws
 - **taskmaster** — supplies the plan-before-code and work-verification gates the pipeline runs
 - **task-runner** — applies the work-verification discipline across a task run
 - **candor** — carries the Stop gate whose clause 3 is this plugin's evidence

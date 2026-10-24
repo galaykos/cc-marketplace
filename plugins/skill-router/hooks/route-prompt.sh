@@ -1,50 +1,9 @@
 #!/bin/bash
-# route-prompt.sh — UserPromptSubmit, fails open: on any prompt but a harness frame, prints once each the low-confidence signals route.sh queued for this context;
-#   then, on the session's first work-shaped prompt that no ScheduleWakeup or CronCreate call scheduled (a /loop re-fire), the rules
-#   for judging the host's own command listing. It picks no command.
-# Off: CC_REMIND=off (every advisory nudge in this marketplace) or CC_ROUTE=off (this hook); unset, the /config options cc_remind / cc_route decide.
-# Misses: a symptom phrased without a state verb (`payment failures spiking`, `login error after the upgrade`); fires anyway on a chat sentence
-#   carrying one (`the build is slow to watch`) or a `?`-ended one naming a making verb (`what does the build script do?`); waits out
-#   a `?`-ended symptom with no making verb and no request form (`the login is broken?`). Repeats a signal on the next prompt when
-#   its state file cannot be rewritten.
+# route-prompt.sh (UserPromptSubmit), fails open — on the session's first work-shaped human prompt that no ScheduleWakeup or CronCreate call
+#   scheduled, prints the rules for judging the host's own command listing; it picks no command. Off: CC_REMIND=off|CC_ROUTE=off.
+# Misses: a symptom with no state verb (`payment failures spiking`); fires on a chat sentence carrying one (`the build is slow to watch`).
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route-prompt.sh
 MARKER_TTL_MIN=1440
-
-# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
-# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
-# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
-# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
-# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
-cc_state_root() {
-  [ -n "$1" ] && [ -d "$1" ] || return 1
-  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
-  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
-    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
-    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
-  fi
-  if [ -n "$pd" ] && [ -d "$pd" ]; then
-    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
-  fi
-  printf '%s\n' "$1"
-}
-
-# Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
-# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
-# cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
-# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
-# The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
-# Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
-cc_plugin_state() {
-  local key sum
-  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
-    key=$(printf '%s' "$(basename -- "$1")" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-')
-    sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
-    printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
-  else
-    printf '%s/.claude/%s\n' "$1" "$2"
-  fi
-  return 0
-}
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
@@ -155,34 +114,10 @@ cc_prompt_question() {
   case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
   case "$(cc_option CC_ROUTE on)" in off) exit 0 ;; esac
 
-  # A harness frame is not a human turn. The flush below ran on task notifications, hand-backs and Stop hook feedback, spending
-  # the digest where nobody judged it (45 of 65 in one measured session); skipped here, it waits for the next human prompt.
-  # The list is the shared prompt-shape block's, as in ask-ledger and code-review. Misses: a frame it does not name, which still flushes.
+  # A harness frame is not a human turn; the list is the shared prompt-shape block's, as in ask-ledger and code-review.
   cc_prompt_frame "$prompt" && exit 0
 
-  # Key and root as route.sh spells them (`.transcript_path // .session_id`, hashed; cc_state_root): any other spelling misses its file.
-  sid_f=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
-  cwd_f=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  ctx_f=$(printf '%s' "$sid_f" | cksum 2>/dev/null | cut -d' ' -f1)
-  root_f=""
-  [ -n "$cwd_f" ] && root_f=$(cc_state_root "$cwd_f")
-  state_f=""
-  [ -n "$root_f" ] && [ -n "$ctx_f" ] && state_f="$(cc_plugin_state "$root_f" skill-router)/fired-$ctx_f.json"
-  if [ -n "$sid_f" ] && [ -n "$state_f" ] && [ -r "$state_f" ]; then
-    digest=$(jq -r '
-      [ (.pending_low // [])[] | select(.flushed != true) ]
-      | group_by(.skill)
-      | map((if .[0].plugin then .[0].plugin + ":" else "" end) + .[0].skill + " (" + ([.[].file | split("/") | last] | unique | join(", ")) + ")")
-      | join("; ")
-    ' "$state_f" 2>/dev/null)
-    if [ -n "$digest" ]; then
-      printf '[skill-router] Signals from recent edits — judge each in one line before continuing, load the skill only if it applies: %s.\n' "$digest"
-      upd=$(jq '(.pending_low // []) |= map(.flushed = true)' "$state_f" 2>/dev/null) \
-        && [ -n "$upd" ] && printf '%s\n' "$upd" > "$state_f" 2>/dev/null
-    fi
-  fi
-
-  # Slash commands manage their own flow — but only AFTER the flush above ran.
+  # Slash commands manage their own flow.
   case "$prompt" in "/"*) exit 0 ;; esac
 
   # A paste is reference, as in ask-ledger and taskmaster: its verbs are not the ask, and it no longer pushes the ask out of the head.
@@ -210,7 +145,7 @@ cc_prompt_question() {
   sid=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null)
   seen="${TMPDIR:-/tmp}/cc-route-catalog-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
   [ -e "$seen" ] && exit 0
-  # A /loop or ScheduleWakeup re-fire is answered like the slash command that set it, after the flush: the payload does not mark it,
+  # A /loop or ScheduleWakeup re-fire is answered like the slash command that set it: the payload does not mark it,
   # so cc_prompt_scheduled looks in the transcript for the call that scheduled it, once the check would otherwise speak.
   # A host /loop tick is a frame, above.
   cc_prompt_scheduled "$prompt" "$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)" && exit 0

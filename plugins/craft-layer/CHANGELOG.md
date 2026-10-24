@@ -7,6 +7,10 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.58.2 — 2026-10-23
+
+- **Two pointers follow the slimmed plugins they name.** `information-design/references/product-mock.md` sends LCP measurement to `resilience:resilience` and its `references/performance.md`; resilience merged its six skills into that one. The README's companion notice says `ui-libraries` now loads `primereact-best-practices`, and `component-libraries` for Aceternity, ReUI, MUI, Astryx and the rest. Standing: recorded — no script follows the pointer.
+
 ## 0.58.1 — 2026-10-15
 
 - **ultra-craft's `effort=xhigh` reaches inline dispatches from CLI 2.1.292.** The skill and its `ultra-craft` hook said `effort` was settable only on the Workflow `agent()` path; since 2.1.292 the Agent tool takes it per call, and the skill naming `xhigh` is the explicit ask that parameter waits for. Below 2.1.292 an inline dispatch still escalates the model only. Agent-graded: no script reads a dispatch. It is passed only when the Agent tool lists an `effort` parameter.

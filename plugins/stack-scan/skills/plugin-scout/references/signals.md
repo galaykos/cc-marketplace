@@ -30,13 +30,14 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `.github/workflows/*.yml`, `.gitlab-ci.yml`, `Jenkinsfile` | `devops` | mirrors rules.tsv `**/workflows/**` — which matches any path segment case-insensitively, so the router also fires on `app/Workflows/`; this row does not |
 | `k8s/`, `helm/`, `*.yaml` with `apiVersion:` + `kind:` | `devops` | |
 | `Dockerfile*`, `docker-compose*.y{a,}ml`, `compose*.y{a,}ml` | `devops` | mirrors rules.tsv, which covers `.yml` only — a repo with `compose.yaml` (the Compose Spec's preferred name) is suggested here and not routed there |
-| `openapi*.y{a,}ml`, `swagger*.json`, `*.proto`, `*.graphql` | `api-design` | mirrors rules.tsv, forked both ways: `swagger*.json` is only here, `api.php` is only there |
-| `.env` / `.env.example` key matching `STRIPE_`, `PADDLE_`, `BRAINTREE_`; or dep `stripe`, `@stripe/stripe-js`, `braintree`, `@paddle/*`; or composer require `stripe/stripe-php`, `laravel/cashier` | — | **no plugin covers this** — `security` and `resilience` skills co-fire on provider calls. Key name only — never read the value |
+| `openapi*.y{a,}ml`, `swagger*.json` | `api-design` | mirrors rules.tsv, forked both ways: `swagger*.json` is only here, `api.php` is only there |
+| `*.proto`, `*.graphql` | — | **no plugin covers GraphQL or gRPC**: api-design's rubric is REST and OpenAPI only, and `/api-design:review` says so and reviews these against the official docs |
+| `.env` / `.env.example` key matching `STRIPE_`, `PADDLE_`, `BRAINTREE_`; or dep `stripe`, `@stripe/stripe-js`, `braintree`, `@paddle/*`; or composer require `stripe/stripe-php`, `laravel/cashier` | — | **no plugin covers this**, and no skill-router row fires on provider calls; `security` and `resilience` reach them only through their review commands. Key name only — never read the value |
 | dep `three` or `@react-three/fiber` | `craft-layer` | |
 | dep `gsap`, `lenis` or `@studio-freight/lenis` | `craft-layer` | its `scroll-orchestration` skill owns GSAP ScrollTrigger + Lenis; without this row an Astro + GSAP + Lenis site earned only `ui-ux` |
 | `tailwind.config.*`, `components.json`, or dep `tailwindcss` | `ui-ux` | |
 | `components.json` carrying a `registries` or `aliases` key | `ui-ux` | a configured registry is what its stack skills read component APIs from; print shadcn's own MCP install line (`npx shadcn@latest mcp init --client claude`) with it — this marketplace ships no registry server |
-| dep `@mui/material`, `@mantine/core`, `@chakra-ui/react`, `antd`, `@heroui/react`, `@base-ui/react`, `radix-ui`/`@radix-ui/*`, `react-aria-components`, `@ark-ui/react`, `@headlessui/react`, `@ariakit/react`, `@astryxdesign/core`, `primereact`, `@primereact/ui`, `primevue`, `vuetify`, `element-plus` | `ui-libraries` | a React or Vue component library in the manifest; MUI, Astryx and PrimeReact have sibling skills, the rest route to `component-libraries` (split out of `ui-ux` 2026-09-26 — suggest `ui-ux` too when it is not installed) |
+| dep `@mui/material`, `@mantine/core`, `@chakra-ui/react`, `antd`, `@heroui/react`, `@base-ui/react`, `radix-ui`/`@radix-ui/*`, `react-aria-components`, `@ark-ui/react`, `@headlessui/react`, `@ariakit/react`, `@astryxdesign/core`, `primereact`, `@primereact/ui`, `primevue`, `vuetify`, `element-plus` | `ui-libraries` | a React or Vue component library in the manifest; PrimeReact has a sibling skill, the rest (MUI and Astryx included) route to `component-libraries` (split out of `ui-ux` 2026-09-26 — suggest `ui-ux` too when it is not installed) |
 | devDep `eslint-plugin-jsx-a11y` or `@axe-core/*` | `ui-ux` | the dep, not the presence of `.tsx` — every React repo has those |
 | `*.sql`, `**/migrations/**`, `prisma/schema.prisma`, `knexfile.*`, `alembic.ini` | `database` | engine-agnostic floor; mirrors rules.tsv `*.sql` + `**/migrations/**`, which make it the decisive DB fallback |
 | composer require `laravel/sanctum` or `laravel/passport`; or dep `next-auth`, `@auth/core`, `jsonwebtoken`, `passport` | `security` | an auth dependency is the app-shaped evidence its OWASP review wants |
@@ -72,7 +73,7 @@ the report (after the install summary for a pick), with this run's scope:
 
 | Recommended, picked or installed | Plugin | Why it is needed |
 |---|---|---|
-| `ui-ux` | `ui-libraries` | ui-ux's component-library skills (MUI, PrimeReact, Astryx, ReUI, Aceternity, `component-libraries`) live there since 2026-09-26; `/ui-ux:build` and the ui-ux agents name them as `ui-libraries:<skill>` |
+| `ui-ux` | `ui-libraries` | ui-ux's component-library skills (PrimeReact, and `component-libraries` for MUI, Astryx, ReUI, Aceternity and the rest) live there; `/ui-ux:build` and the ui-ux agents name them as `ui-libraries:<skill>` |
 | `craft-layer` | `ui-ux` | craft-layer themes and builds through `/ui-ux:theme` and `/ui-ux:build` |
 | `craft-layer` | `ui-libraries` | the component-library layer those builds reach |
 | `ui-libraries` | `ui-ux` | the foundations, and the agents that load its skills |

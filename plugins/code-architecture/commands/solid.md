@@ -17,7 +17,7 @@ description), or the current uncommitted diff if no argument is given. Steps:
    contract repair, interface slice, or boundary abstraction, and what the resulting code looks
    like).
 5. Do not propose speculative abstractions for code under no current change pressure — that
-   trade-off is governed by the yagni-check skill.
+   is speculative generality, which the architecture-reviewer agent flags as YAGNI.
 
 6. When violations were found, ask via AskUserQuestion: "Apply these fixes now (Recommended)" /
    "Skip — report only". Apply only the listed proposals on acceptance. Headless: report only.

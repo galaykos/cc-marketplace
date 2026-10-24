@@ -481,7 +481,7 @@ EOF_OVERLAPS
   unreach=$(pc_rules_reachable "$SR/rules.tsv") || true
   if [ -n "$unreach" ]; then
     while IFS= read -r ur; do
-      err "rules.tsv unreachable row ($ur) — route.sh matches non-'**/dir/**' patterns against the BASENAME, so this can never fire"
+      err "rules.tsv unreachable row ($ur) — it can never fire"
     done <<EOF_UNREACH
 $unreach
 EOF_UNREACH

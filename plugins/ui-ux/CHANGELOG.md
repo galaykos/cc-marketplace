@@ -4,6 +4,10 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.30.3 — 2026-10-23
+
+- **Pointers to the four removed ui-libraries skills reroute.** `mui-best-practices`, `astryx-best-practices`, `reui-best-practices` and `aceternity-best-practices` were removed in ui-libraries 0.4.0. `ui-ux-engineer`, `ui-ux-reviewer` and `/ui-ux:build` now send Material UI, Astryx, ReUI and Aceternity to `ui-libraries:component-libraries` and its library map, and PrimeReact to `ui-libraries:primereact-best-practices`. `/ui-ux:theme`, `shadcn-theming` and its `references/token-vocabularies.md` send an Astryx theme write to Astryx's docs (https://astryx.atmeta.com/docs/getting-started). `shadcn-best-practices/references/registries.md` points at the map for ReUI's and Aceternity's docs, and `/ui-ux:build` no longer says a registry block has a skill of its own. `ui-ux-reviewer`'s description now advertises shadcn and Tailwind best practices and any component library via `ui-libraries:component-libraries`; it listed ReUI, Aceternity, Astryx and MUI as if each had a rubric of its own. Standing: agent-graded — the worker and the reviewer apply the skill a dispatch names; no script checks the route.
+
 ## 0.30.2 — 2026-10-15
 
 - **The theme preview survives the host's background limit.** From CLI 2.1.285 the host stops a background Bash call at its `timeout`, 30 minutes by default and 2 h at most (from 2.1.288 only in `-p`, SDK, CI and cloud sessions), so a preview server started there could die between rounds. shadcn-theming now starts its fallback server with `timeout: 7200000` and re-checks the port before each round, starting it again on the same port when nothing listens. Measured on 2.1.300 through TaskStop: a stop kills the call's whole tree, a `&`, `nohup` or `setsid` child included; only a process already re-parented (`setsid -f`, a double fork) survives, and that one outlives the session with no owner, so the skill does not detach. Agent-graded: no script reads the call.
@@ -47,8 +51,8 @@ rather than invented ones.
 
 ## 0.27.0 — 2026-09-26
 
-- **Split: the component-library skills moved to the new `ui-libraries` plugin** — `mui-best-practices`,
-  `astryx-best-practices`, `reui-best-practices`, `aceternity-best-practices`, `component-libraries`.
+- **Split: the component-library skills moved to the new `ui-libraries` plugin** — `mui-best-practices`, <!-- removed-ok -->
+  `astryx-best-practices`, `reui-best-practices`, `aceternity-best-practices`, `component-libraries`. <!-- removed-ok -->
   ui-ux had reached the 160,000-byte per-plugin prose cap. Every suite carrying ui-ux now carries
   ui-libraries; a standalone ui-ux install should add it by name. This plugin's commands and agents
   name the moved skills as `ui-libraries:<skill>`.
@@ -158,7 +162,7 @@ rather than invented ones.
   hooks that carried the relative form. Its twin in taskmaster must match byte for byte.
 
 ### Changed
-- `astryx-best-practices` carries a `Last verified` stamp with an
+- `astryx-best-practices` carries a `Last verified` stamp with an <!-- removed-ok -->
   `npm:@astryxdesign/core@0.6` tail, so `check-doc-staleness.sh --live` can see it at all
   — the skill's own frontmatter promises a pinned version and the plugin's corpus had no
   stamp to check. The minor, not the bare major, is the tail: on a 0.x package a minor is
@@ -233,7 +237,7 @@ rather than invented ones.
 ## 0.24.4 — 2026-09-22
 
 ### Changed
-- `astryx-best-practices` refreshed from 0.5 to 0.6.2 against the live docs: `adaptations`
+- `astryx-best-practices` refreshed from 0.5 to 0.6.2 against the live docs: `adaptations` <!-- removed-ok -->
   and the full `defineTheme()` key set, data attributes preferred over bare classes (removal
   window 0.7.0), `astryx upgrade --apply`, 47 templates, the new CLI verbs, StyleX peer and
   the swizzle compile requirement, English as the only shipped locale. Net-negative in
@@ -278,7 +282,7 @@ rather than invented ones.
   neither description named it, so an Astryx project asking for a theme matched nothing.
   The README's two stack lists were at five targets for the same reason.
 - **Descriptions cut where they recapped work instead of naming a trigger**
-  (`component-libraries`, `astryx-`, `mui-best-practices`) — the always-on channel pays
+  (`component-libraries`, `astryx-`, `mui-best-practices`) — the always-on channel pays <!-- removed-ok -->
   for every one, and the dispatcher only ever matches the trigger half. Net effect of
   every description change in this release: +3 chars.
 
@@ -366,7 +370,7 @@ rather than invented ones.
 ## 0.21.0
 
 ### Changed
-- **`astryx-best-practices` rewritten against Astryx 0.5.4** (was a 0.3-era digest,
+- **`astryx-best-practices` rewritten against Astryx 0.5.4** (was a 0.3-era digest, <!-- removed-ok -->
   last verified 2026-07-22). What changed upstream and now in the skill: the install
   set is four packages (`core`, `@stylexjs/stylex`, a `theme-<name>` package, `cli`),
   React 19+ is the peer range, three global CSS imports and a documented `@layer`
@@ -379,8 +383,8 @@ rather than invented ones.
   `references/astryx.md` carries the package/CSS/CLI/theme/template inventory
   (last verified 2026-09-09, stamped `npm:@astryxdesign/core@0.5` so
   `check-doc-staleness.sh --live` flags the next 0.x minor).
-- `lane.tsv` declares `astryx-best-practices` (build, `astryx-idioms`), the same
-  standing `mui-best-practices` already had.
+- `lane.tsv` declares `astryx-best-practices` (build, `astryx-idioms`), the same <!-- removed-ok -->
+  standing `mui-best-practices` already had. <!-- removed-ok -->
 - `/ui-ux:theme`, `shadcn-theming` and its `token-vocabularies.md` detect an Astryx
   project and route the theme WRITE to the `defineTheme()` file instead of
   `globals.css`; the colour preview is unchanged.
@@ -415,7 +419,7 @@ rather than invented ones.
 ## 0.20.0
 
 ### Added
-- **`mui-best-practices`** — Material UI (`@mui/material`, `@mui/x-*`): lockfile-first
+- **`mui-best-practices`** — Material UI (`@mui/material`, `@mui/x-*`): lockfile-first <!-- removed-ok -->
   version discipline (v7 and v9 removed APIs a v5 memory still recites; v8 was
   skipped), one-level imports, `createTheme` with `cssVariables`/`colorSchemes`,
   `theme.vars` + `applyStyles` over `palette.mode` branches, `useColorScheme` and

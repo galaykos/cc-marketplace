@@ -3,6 +3,12 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.35.0 — 2026-10-23
+
+- **The resilience fan-in loads one skill and reads only the references the diff selects.** resilience 0.9.0 merged its six skills into one, `resilience`. `/code-review:review` now loads that skill and reads `references/timeouts-retries.md`, `error-handling.md`, `concurrency.md`, `observability.md`, `performance.md` or `messaging.md` on the same six diff triggers as before; a diff touching none of them loads neither the skill nor a reference, and a finding is tagged with the owning reference. Standing: agent-graded — the fan-in checklist and `Checked:` line name what was read; nothing checks the pick.
+- **Structural and YAGNI findings defer to code-architecture's `architecture-reviewer` agent.** `/code-architecture:yagni` and the `yagni-check` skill were removed in code-architecture 0.19.0, so the command, the `code-reviewer` agent, `code-smells` and `reuse-hygiene` name the agent alone. A `scripts/debt-scan.sh` comment names approaches' rollout reference, since its rollout skill was merged into `approach-deliberation`. No hook changed.
+- **GraphQL and proto files no longer route to api-design.** api-design 0.12.0 removed its `graphql-grpc` skill and covers REST and OpenAPI only, so the fan-in sends OpenAPI files there and, for GraphQL or proto files, says no rubric ships and reviews against the official GraphQL, gRPC and protobuf docs, as `/api-design:review` does. Standing: agent-graded.
+
 ## 0.34.0 — 2026-10-22
 
 - **The review-debt nudge hands the review decision to you.** Its line ended "Run

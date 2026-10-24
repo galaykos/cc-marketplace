@@ -1,16 +1,4 @@
----
-name: resilience-design
-description: Use when code crosses a process boundary — HTTP calls, queues, databases, third-party APIs, background jobs — picking the timeout, retry/backoff, circuit breaker, fallback and backpressure, not defaults.
----
-
-## Core rule
-
-Every network call fails eventually. Not "might" — will: the dependency
-restarts, the DNS entry goes stale, the vendor ships a bad deploy. The
-design question is never whether the call fails but what happens then —
-and that question gets answered at write time, deliberately, or at
-incident time, expensively. A call site with no failure decision has one
-anyway: whatever the library default is, discovered during the outage.
+# Timeouts, retries and degradation
 
 ## Timeouts
 

@@ -772,8 +772,9 @@ report_verdict() {
       what="this turn"; [ "$evt" = "SubagentStop" ] && what="this report"
       printf '[candor] evidence-gate: %s claims completion, files were edited, and no command ran after the last edit — nothing verified the change.\n' "$what" >&2
       printf '  Either run the check that would FAIL if the change were broken (test, build, lint, or execute\n' >&2
-      printf '  the changed code) and show its output — or restate honestly: what changed, what was NOT\n' >&2
-      printf '  verified, and the exact command the user can run to verify it.\n' >&2
+      printf '  the changed code) and show its output — code-architecture:work-verification, if installed, says how —\n' >&2
+      printf '  or restate honestly: what changed, what was NOT verified, and the exact command the user\n' >&2
+      printf '  can run to verify it.\n' >&2
       printf '  A claim with no execution behind it is the failure this gate exists to stop.\n' >&2
       [ "$evt" = "SubagentStop" ] && printf '  Then re-send your COMPLETE report, corrected: only your last message reaches the caller.\n' >&2
       printf '  CC_EVIDENCE_GATE=off disables this clause for the session; =warn prints without blocking.\n' >&2 ;;

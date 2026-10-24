@@ -26,7 +26,7 @@ that clause on its own continuation.
 | --- | --- | --- |
 | **1 Fabricated citation** | the final assistant message cites `path/file.ext:NNN` that resolves to no file under the shell `cwd` or the project root (or under `~` for a `~/` path), or to a line past the file's end | re-read and cite what is there, or drop the number and say you are inferring |
 | **2 Unevidenced reversal** | the last user message is challenge-shaped pushback carrying no correction of its own, the final message retracts, and no tool ran in between — writing "I re-checked" or "the file shows" is no re-check without a tool call after the challenge (0.10.0) | re-check and report what it showed, or hold the position and say why |
-| **3 Naked completion claim** | the assistant tail claims completion (done / fixed / implemented / verified / passes), a non-prose file was edited this session (`.md`/`.txt`/`.rst`/`.adoc` edits do not arm it — nothing executable proves a README right), and no Bash call ran after the last such edit — dispatching an Agent or Task is not execution (0.10.0). On `SubagentStop` it judges the worker's report against the worker's own transcript, and stands down when the payload names none (0.10.0) | run the check that would fail if the change were broken, or say what was not verified and the command that would verify it — a caveat label followed only by none, n/a or nothing ("Not tested: none", "Parked: none") says nothing was left, so it is no escape (0.10.0) |
+| **3 Naked completion claim** | the assistant tail claims completion (done / fixed / implemented / verified / passes), a non-prose file was edited this session (`.md`/`.txt`/`.rst`/`.adoc` edits do not arm it — nothing executable proves a README right), and no Bash call ran after the last such edit — dispatching an Agent or Task is not execution (0.10.0). On `SubagentStop` it judges the worker's report against the worker's own transcript, and stands down when the payload names none (0.10.0) | run the check that would fail if the change were broken — the block names `code-architecture:work-verification`, which says how when installed (0.11.0) — or say what was not verified and the command that would verify it — a caveat label followed only by none, n/a or nothing ("Not tested: none", "Parked: none") says nothing was left, so it is no escape (0.10.0) |
 | **4 Registered run not complete** | a task-runner run registered itself (`.claude/task-runner/active-run.json`, or `closed-run.json` after its closing rename, which the clause removes once every check holds, or silently once HEAD has moved past its gate pass) and is stopping with no recorded gate pass for HEAD (not while a background worker of this session is in flight — see below), cards neither done nor parked, short per-card control or reviewer records, a UI card (its review diff names a `.tsx`, `.jsx`, `.vue`, `.svelte`, stylesheet or `.blade.php` file that is not a test or story) with no ui-ux-reviewer record, no whole-range review recorded for HEAD on a run whose sentinel carries `start_sha`, a behavioral-gate verdict other than `covered` / `no-executable-surface` (`no-behavioral-coverage` passes only beside a recorded coverage reduction for that HEAD), a short red-team panel on a boosted run, or an undisclosed recorded reduction | continue with a tool call, ask with `AskUserQuestion`, park the card, or run the gate and record the pass |
 | **5 Lockfile drift** | a dependency manifest's dependency map changed in the working tree and the lockfile that governs it did not — npm/pnpm/yarn/bun, Composer, Bundler, Poetry/uv/pdm, Cargo, Go. For JSON manifests the parsed dependency maps are compared, not diff lines, so a `version` bump never arms it; the other four test dependency-shaped lines and exclude metadata keys by name | run the installer and commit the lockfile with the manifest, or say plainly that the lockfile is deliberately unchanged and why |
 
@@ -255,14 +255,6 @@ that trims prose out of an MCP server's tool descriptions (`node shrink.mjs
 
 ## The skill
 
-`straight-talk` fires when a claim is challenged or about to be reversed, or when
-an honest read of the user's own work is asked for. Its body is six **orderings**,
-not sentiments: evidence before claim; the disagreement before the concession; a
-reversal treated as a finding that needs its own evidence; "I don't know" shipped
-with the command that would settle it; scope honesty stated when decided rather
-than in a footnote; correction without performance. It carries its own standing
-table naming which of the six have teeth and which do not.
-
 `terse-output` fires when the user asks for shorter, denser replies or a level is
 set. Its marked contract block is what the hooks inject — extracted at runtime,
 so the injected card and the skill body cannot drift.
@@ -394,8 +386,8 @@ Stated because a gate reads stronger than it is:
 
 Install it by name — nothing brings it in for you since the suites were retired on
 2026-09-26. It matters most beside `task-runner` and `code-architecture`, whose runs and
-`work-verification` skill rely on clauses 3 and 4. Always-on cost: the descriptions of two
-commands and two skills; the terse hooks inject nothing until a level is set.
+`work-verification` skill rely on clauses 3 and 4. Always-on cost: the description of one
+skill (both commands are typed, not listed); the terse hooks inject nothing until a level is set.
 
 ## Author-time checks
 

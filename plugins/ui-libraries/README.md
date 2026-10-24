@@ -1,12 +1,12 @@
 # ui-libraries
 
-Component-library skills: **Material UI** (with MUI X Data Grid, Pickers and Charts),
-**Astryx** (Meta's design system), **ReUI** and **Aceternity UI** (shadcn-compatible
-registries), and a library-agnostic **component-libraries** skill for every other React
-or Vue component library — headless (Base UI, Radix, React Aria, Ark, Headless UI) or
-styled (Mantine, Chakra, Ant Design, HeroUI, PrimeVue, Vuetify, Element Plus) — and for an
-organisation's own service owed its official design system (GOV.UK Frontend, USWDS, Polaris,
-Carbon, Atlassian), with a per-library map of detection signals, theme channels and docs URLs.
+Component-library skills: **PrimeReact** (the v11 rewrite and its licence key) and a
+library-agnostic **component-libraries** skill for every other React or Vue component
+library — headless (Base UI, Radix, React Aria, Ark, Headless UI), styled (Material UI,
+Astryx, Mantine, Chakra, Ant Design, HeroUI, PrimeVue, Vuetify, Element Plus) or a
+shadcn-compatible registry (ReUI, Aceternity UI, Magic UI) — and for an organisation's own
+service owed its official design system (GOV.UK Frontend, USWDS, Polaris, Carbon,
+Atlassian), with a per-library map of detection signals, theme channels and docs URLs.
 
 These skills lived in `ui-ux` until 2026-09-26. They moved because `ui-ux` had reached
 the marketplace's per-plugin prose cap, and the split keeps the foundations (shadcn,
@@ -30,12 +30,8 @@ layer each under it.
 
 | Skill | Reach for it when |
 |---|---|
-| `mui-best-practices` | The project imports `@mui/material`, `@mui/icons-material` or `@mui/x-*` — imports, `createTheme` with CSS variables, `sx`/`slotProps`, MUI X per-major APIs |
-| `astryx-best-practices` | The project imports `@astryxdesign/*` or runs the `astryx` CLI — beta 0.x, pin the installed version first |
 | `primereact-best-practices` | The project imports `primereact`, `@primereact/*` or `@primeuix/*` — v10 or v11 from the lockfile first, v11's PrimeUI licence key, token presets on `PrimeReactProvider`, compound parts, the renames and the Tailwind registry |
-| `reui-best-practices` | ReUI registry components or blocks — shadcn-compatible installs, owned-code discipline |
-| `aceternity-best-practices` | Aceternity UI motion-heavy marketing components — placement limits, motion deps, reduced motion |
-| `component-libraries` | Any other React or Vue component library, two libraries on one surface, or an organisation's own service that must use its official design system (GOV.UK, USWDS, Polaris, Carbon, Atlassian) — library-agnostic rules plus `references/library-map.md` |
+| `component-libraries` | Any other React or Vue component library (Material UI, Astryx, ReUI and Aceternity UI included), two libraries on one surface, or an organisation's own service that must use its official design system (GOV.UK, USWDS, Polaris, Carbon, Atlassian) — library-agnostic rules plus `references/library-map.md` |
 
 With `skill-router` installed, the skills load on their own when a matching import or
 manifest appears. `/ui-ux:build` and the `ui-ux` agents name them as `ui-libraries:<skill>`.

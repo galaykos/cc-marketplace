@@ -57,7 +57,7 @@ Engines without a dialect plugin (MySQL, PostgreSQL, …) prime only the sql row
 | `Dockerfile*` or a compose file | `devops:docker-best-practices` |
 | `.github/workflows/` | `devops:devops-practices` |
 | the ASK mentions auth, login, token, session, permission, or payment | `security:security-review` |
-| the ASK mentions an external API, webhook, retry, or queue | `resilience:resilience-design` |
+| the ASK mentions an external API, webhook, retry, or queue | `resilience:resilience` |
 
 The last four rows key off the request, not the repository — they are the surfaces where
 getting it wrong is expensive and the file that would trigger the router does not exist

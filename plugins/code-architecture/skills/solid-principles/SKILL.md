@@ -7,7 +7,7 @@ description: Use when designing or reviewing classes, interfaces, inheritance, o
 
 SOLID is five heuristics for keeping change cheap in class and module design. Each one earns
 its keep only when the pain it prevents actually exists in the code — applied by reflex, every
-one of them mass-produces the indirection that low-cognitive-load and yagni-check exist to
+one of them mass-produces the indirection that low-cognitive-load exists to
 delete. For each principle: what it demands, the detection cue in real code, the concrete fix,
 and when the apparent violation is actually fine.
 
@@ -58,7 +58,7 @@ dispatcher.
 **Not a violation:** one switch statement in one place, with two cases, that has never grown.
 And the inverse error is worse: building extension points before a second variant exists is
 speculative generality — a single-implementation interface "for extensibility" is exactly what
-the yagni-check skill flags. Open/Closed is a response to observed change pressure, not a
+the architecture-reviewer agent flags as YAGNI. Open/Closed is a response to observed change pressure, not a
 default posture. (Admission law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository, not installed) "The four laws".)
 
 ## L — Liskov Substitution: subtypes honor the base contract
@@ -113,23 +113,23 @@ concrete implementation at the composition root, and keep infrastructure imports
 modules. The abstraction belongs to the consumer and is shaped by what it needs — not a mirror
 of the vendor SDK's surface.
 
-**Boundary with yagni-check:** both rules fire on single-implementation interfaces.
+**Boundary with YAGNI:** both rules fire on single-implementation interfaces.
 Split by origin, not by implementation count — one the consumer wrote to state what
 it needs at a genuine boundary is this principle and stands with one implementation;
-one added because a second provider might arrive is yagni-check's, and it wins.
+one added because a second provider might arrive is speculative generality, and YAGNI wins.
 
 **Not a violation:** wrapping every concrete class in an interface by reflex. A value object,
 a stdlib call, or a stable in-process collaborator needs no interface between you and it.
 Invert at genuine boundaries — process edges, vendors, things you swap in tests — and let
 everything inside a module stay concrete. Single-implementation interfaces everywhere is
-yagni-check territory, not architecture.
+YAGNI territory, not architecture.
 
 ## SOLID motivates patterns — it never mandates them
 
 Every fix above lands on a structure some pattern catalog has a name for (strategy, adapter,
 composition over inheritance). That is the correct direction of travel: the violation creates
-the pressure, and a pattern is one possible relief — chosen via the approaches plugin's
-pattern-selection skill, which also lists when NOT to use each. Never the reverse: "we should
+the pressure, and a pattern is one possible relief — chosen via `/approaches:pattern`
+(approaches plugin), which also lists when NOT to use each. Never the reverse: "we should
 use Strategy here" is not a requirement, and simplest-thing-first (low-cognitive-load)
 still wins whenever a plain function or a small local edit relieves the same pressure.
 

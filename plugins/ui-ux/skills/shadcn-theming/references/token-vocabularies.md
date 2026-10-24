@@ -177,8 +177,8 @@ mis-targets a migration, where two stacks are present by definition:
   importing `bootstrap/scss/bootstrap`.
 - **Astryx** — `@astryxdesign/core` in dependencies. Not a CSS-variable target:
   the write is `defineTheme({tokens: {'--name': [light, dark]}})` in an owned
-  theme file, compiled by `astryx theme build`; the `ui-libraries:astryx-best-practices`
-  skill owns that write. StyleX/Tailwind alongside it is not a second signal.
+  theme file, compiled by `astryx theme build`; Astryx's docs
+  (https://astryx.atmeta.com/docs/getting-started) govern that write. StyleX/Tailwind alongside it is not a second signal.
 - **Tailwind** — `tailwindcss` in dependencies. On its own (no
   `components.json`) it means the semantic layer does not exist yet. Alongside
   `components.json` it is not a separate signal — shadcn IS Tailwind-based, so

@@ -54,7 +54,7 @@ manifests, and the per-plugin boundary forced two byte-identical picker scripts.
 
 Run the report once per session in an unfamiliar repo. The inventory feeds the
 version-aware review plugins (laravel, database, web-dev), taskmaster's
-context-scout, devops's compose generator, and the suggest command's own detection
+context-scout, and the suggest command's own detection
 (as version truth, never as a replacement for the manifest signal table).
 
 ## Skills
@@ -199,7 +199,7 @@ Residuals, stated:
 ## Pairs well with
 
 - **taskmaster** — hard constraints for the interrogation come from this inventory
-- **devops** — `/devops:init` reuses the report instead of re-scanning
+- **devops** — its `devops-engineer` worker takes the stack from the report instead of re-deriving it
 - **approaches** (build-vs-buy skill) — decides whether a dependency should be added at all
 - **security** — broader security review beyond the dependency audit surface
 - **all-plugins** — the other install path: every plugin but opt-in prompt-coach, no

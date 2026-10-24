@@ -9,10 +9,12 @@ Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue
 rework-shaped tasks.
 
 The `build-vs-buy`, `estimation`, `rollout`, and `design-patterns` plugins were
-merged into this one: their skills (build-vs-buy, rollout-planning,
-pattern-selection) now ship here, their commands live on below, and
-build-vs-buy's UserPromptSubmit reminder hook moved over intact — it now nudges
-toward `/approaches:build-vs-buy`. Nothing was dropped in the merge itself; the
+merged into this one. build-vs-buy ships as a skill; rollout planning and pattern
+selection are references of `approach-deliberation` (`references/rollout.md`,
+`references/patterns.md`, since 0.12.0), read by `/approaches:rollout` and
+`/approaches:pattern`. build-vs-buy's UserPromptSubmit reminder hook moved over
+intact — it now nudges toward `/approaches:build-vs-buy`. Nothing was dropped in the
+merge itself; the
 `estimation` skill and its `size` command were removed later, on 2026-09-22.
 
 The fresh-take plugin was merged into this one on 2026-09-14: `/approaches:consult` composes a

@@ -6,18 +6,19 @@ argument-hint: [path-diff-or-design-doc] [--concern failure|errors|concurrency|o
 Review the target in $ARGUMENTS against this plugin's rubrics — audit it, do not rewrite it.
 
 Parse `--concern <name>` (also `--concern=<name>`) out of $ARGUMENTS first; the remainder
-is the target. The names and the skill each loads:
+is the target. The names and the reference each reads from this plugin's `resilience` skill
+(`${CLAUDE_PLUGIN_ROOT}/skills/resilience/references/`):
 
-| `--concern` | skill | what it audits |
+| `--concern` | reference | what it audits |
 |---|---|---|
-| failure | `resilience-design` | timeouts, retries with backoff and idempotency, circuit breaking, degradation, backpressure, delivery semantics at every process boundary |
-| errors | `error-handling-design` | empty or over-broad catches, swallowed exceptions, message-string branching, missing cause chains, internals leaking to users |
-| concurrency | `concurrency-safety` | check-then-act races, missing idempotency on retried paths, unguarded parallel writes, locks without TTL or fencing |
-| observability | `observability-design` | unstructured logs, missing correlation IDs, secrets in logs, silent catch blocks, cardinality bombs, dishonest health checks |
-| performance | `performance-tuning` | N+1 queries, missing indexes, chatty I/O, payload and bundle size, render-blocking resources, Core Web Vitals, cache invalidation / stampede / staleness |
-| events | `event-driven` | broker and topic design, schema versioning, outbox, sagas, DLQ, consumer idempotency |
+| failure | `references/timeouts-retries.md` | timeouts, retries with backoff and idempotency, circuit breaking, degradation, backpressure, delivery semantics at every process boundary |
+| errors | `references/error-handling.md` | empty or over-broad catches, swallowed exceptions, message-string branching, missing cause chains, internals leaking to users |
+| concurrency | `references/concurrency.md` | check-then-act races, missing idempotency on retried paths, unguarded parallel writes, locks without TTL or fencing |
+| observability | `references/observability.md` | unstructured logs, missing correlation IDs, secrets in logs, silent catch blocks, cardinality bombs, dishonest health checks |
+| performance | `references/performance.md` | N+1 queries, missing indexes, chatty I/O, payload and bundle size, render-blocking resources, Core Web Vitals, cache invalidation / stampede / staleness |
+| events | `references/messaging.md` | broker and topic design, schema versioning, outbox, sagas, DLQ, consumer idempotency |
 
-An unknown name aborts with one line printing that list. `--concern all` loads every rubric.
+An unknown name aborts with one line printing that list. `--concern all` reads every reference.
 
 1. Determine scope from the target — a file, directory, diff/branch reference, or design
    document. If empty, default to recent changes (`git diff` against the merge base,
@@ -36,17 +37,17 @@ An unknown name aborts with one line printing that list. `--concern all` loads e
    per-concern passes beside it produces the duplicate findings the fan-in exists to
    prevent. Deferring is not a smaller answer.
 
-3. Choose the rubrics. With `--concern`, load that one skill from this plugin and nothing
-   else. Without it, load `resilience-design` always, then add each other skill whose
-   surface the scope actually touches — catch blocks or custom error types load
-   `error-handling-design`; shared state, retried operations or locks load
-   `concurrency-safety`; log, metric, span or health-check calls load
-   `observability-design`; queries, caches, bundles or the render path load
-   `performance-tuning`; producers, consumers, brokers or outbox tables load
-   `event-driven`. Name the
-   loaded set in the Checked line of step 6; a rubric not loaded is `Not checked`, with
-   the reason being that its surface is absent from the scope. Apply each loaded skill's
-   checklist across the scope — cite the skill's rubric, do not restate it here.
+3. Choose the rubrics. Load this plugin's `resilience` skill. With `--concern`, read that
+   one reference and nothing else. Without it, read `references/timeouts-retries.md`
+   always, then add each other reference whose surface the scope actually touches — catch
+   blocks or custom error types read `references/error-handling.md`; shared state, retried
+   operations or locks read `references/concurrency.md`; log, metric, span or health-check
+   calls read `references/observability.md`; queries, caches, bundles or the render path
+   read `references/performance.md`; producers, consumers, brokers or outbox tables read
+   `references/messaging.md`. Name the read set in the Checked line of step 6; a reference
+   not read is `Not checked`, with the reason being that its surface is absent from the
+   scope. Apply each read reference's checklist across the scope — cite the reference, do
+   not restate it here.
 
 4. Report findings one line each, sorted by severity (critical, high, medium, low):
    `locator — severity — [CONFIRMED|PLAUSIBLE] problem — fix` — the locator is
@@ -65,7 +66,7 @@ An unknown name aborts with one line printing that list. `--concern all` loads e
    `/code-review:review`, the fan-in that loads database's sql skill and the laravel /
    web-dev stack skills for whatever the diff touches; infra-layer observability wiring
    (collectors, dashboards, deploy config) → `/devops:review`; the service-boundary
-   decision behind an event → code-architecture's `system-design` skill. Recommend
+   decision behind an event → code-architecture's `system-architect` agent. Recommend
    each; do not run it from here.
 
 6. Close with a coverage inventory and a self-refute pass. State `Checked: …` (the
@@ -75,7 +76,7 @@ An unknown name aborts with one line printing that list. `--concern all` loads e
    not survive it, drop or downgrade it with a note.
 
 7. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
-   Apply all / Apply critical+high only / Report only — with `performance-tuning` loaded,
+   Apply all / Apply critical+high only / Report only — with `references/performance.md` read,
    the middle option is "Measure first, then decide". On an apply pick, dispatch the finding
    list down the static chain, grouped by rubric: observability findings →
    `resilience:observability-engineer`, performance findings →

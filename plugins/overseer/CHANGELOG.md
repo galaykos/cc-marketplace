@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.5 — 2026-10-23
+
+- **`kinds.tsv` drops two alternatives whose skills were removed.** The `api` kind's contract group is `api-design:api-design` alone (api-design 0.12.0 removed `graphql-grpc`, and no other skill took its job), and the `infra` group is `devops:devops-practices|devops:docker-best-practices` (devops 0.10.0 removed `compose-init` and `/devops:init`). A pin on either removed skill would have resolved to no path, so `accept` could never have counted it. The `api` kind's note now says an HTTP (REST/OpenAPI) surface, not an HTTP or GraphQL one, since its contract group covers REST only. Standing: gate — `program.sh accept` counts a pin only by a path that exists and refuses while an installed group is unpinned; the note is recorded.
+
 ## 0.6.4 — 2026-10-15
 
 - **Scripts run by path take a quoted `${CLAUDE_PLUGIN_ROOT}`.** `/overseer:start`, `/overseer:resume`, `/overseer:status`, the overseer skill and its dispatch prompts ran `${CLAUDE_PLUGIN_ROOT}/scripts/program.sh`, `capability-scan.sh` and `skill-path.sh` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.
@@ -202,7 +206,7 @@ web survey of comparable harnesses (`taskmaster-docs/overseer/final-review-2026-
 - Conflicts with neighbours resolved: `--tracks` is for two-plus track-eligible milestones,
   not parallel groups (task-runner owns the flag); `worktree.md` now follows
   git-workflow's worktree-isolation (`.claude/worktrees/`, lockfile install, plain remove)
-  and keeps only the Laravel/Vite additions; the `api` kind pins `graphql-grpc`, not
+  and keeps only the Laravel/Vite additions; the `api` kind pins `graphql-grpc`, not <!-- removed-ok -->
   `api-docs-first` (which disclaims own-API design); the size letters are declared a
   milestone scale, not `/approaches:size`'s card scale; <!-- removed-ok --> tier `opus` is stated as a cost cap
   overriding role-floors; lean drops the code red-team only (the spec red-team is

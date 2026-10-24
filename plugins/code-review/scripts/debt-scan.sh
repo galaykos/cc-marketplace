@@ -84,7 +84,7 @@ P_TODO='(^|[^[:alnum:]])(TODO|FIXME|HACK|XXX)([^[:alnum:](]|$)'
 # 4. DEPRECATED-SYMBOL REFERENCES — the deprecation was announced; nothing counts
 #    whether callers actually left.
 P_DEPRECATED='@deprecated|Deprecated\(|DeprecationWarning'
-# 5. FEATURE FLAGS PAST THEIR REMOVAL DATE — approaches:rollout-planning tells
+# 5. FEATURE FLAGS PAST THEIR REMOVAL DATE — approaches' rollout reference tells
 #    authors to write a removal date down and nothing in this marketplace has ever
 #    read one back. This counts the flags that carry one at all; the date check is
 #    reported separately below.

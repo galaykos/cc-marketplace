@@ -4,6 +4,11 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.12.8 — 2026-10-23
+
+- **Pointers follow the slimmed devops and resilience plugins.** `/devops:init` and its `compose-init` skill were removed in devops 0.10.0: `installed-versions` no longer yields to the skill in `lane.tsv`, and the README names the `devops-engineer` worker as devops's reader of the inventory. `official-complements.md` says `silent-failure-hunter`'s fallback rules live in `resilience:resilience`'s `references/error-handling.md`, the one skill resilience's six were merged into. Standing: gate for the lane edge (`pc_lanes_resolve` fails a `yields_to` that names no artifact); recorded for the prose.
+- **`signals.md` follows the slimmed api-design, skill-router and ui-libraries plugins.** `*.proto` and `*.graphql` no longer suggest `api-design`, whose rubric is REST and OpenAPI only since its `graphql-grpc` skill was removed; the row says no plugin covers them and that `/api-design:review` reviews them against the official docs. The payment row no longer says `security` and `resilience` skills co-fire on provider calls, since skill-router 0.27.0 cut those rows. The component-library row says only PrimeReact has a sibling skill; MUI and Astryx route to `component-libraries`. Standing: recorded; `pc_scout_names` gates only the suggested names.
+
 ## 0.12.7 — 2026-10-22
 
 - **The scout catalog names security's read-only `security-reviewer`.** security 0.13.0 ships

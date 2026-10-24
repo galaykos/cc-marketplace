@@ -54,10 +54,13 @@ inertia skill when `inertiajs/inertia-laravel` or `@inertiajs/*` is in the manif
 mariadb skill when that engine is detected; test files, fixtures, or production code
 changed with no covering test → testing's testing-best-practices; `.github/workflows/`,
 `Dockerfile*`, `compose*.y*ml` → devops-practices, plus docker-best-practices for the
-container files; routes, controllers, API resources, OpenAPI/GraphQL/proto files →
-api-design; auth, input handling, uploads, secrets, session transport or dependency
-manifests → security's `security-reviewer` agent, handed the diff file; Three.js /
-react-three-fiber imports → craft-layer's threejs-best-practices;
+container files; routes, controllers, API resources, OpenAPI files → api-design;
+GraphQL/proto files → no shipped rubric: say so and review against the official docs
+(https://graphql.org/learn/best-practices/, https://grpc.io/docs/guides/,
+https://protobuf.dev/programming-guides/dos-donts/), never from memory; auth, input
+handling, uploads, secrets, session transport or dependency manifests → security's
+`security-reviewer` agent, handed the diff file; Three.js / react-three-fiber imports →
+craft-layer's threejs-best-practices;
 a configured analyzer for the changed language (phpstan/psalm/phpcs, tsc/eslint/biome,
 vue-tsc, and for styles and markup stylelint/pa11y/axe/lighthouse-ci, whose reviewer is
 `ui-expert`) → toolchain-experts' matching expert agent, which RUNS it rather than reciting
@@ -188,21 +191,22 @@ Output rules:
     idempotency, unguarded parallel writes; silent catch blocks, correlation IDs,
     secrets in logs; performance hotspots; at-least-once delivery, idempotent
     consumers, ordering and poison messages on a broker or queue) and this plugin's own `comment-discipline`
-    skill (added comments, judged in item 4a; volume stays with the hooks). When `resilience` is installed, LOAD only
-    the skills the diff's content selects: resilience-design for a call across a process
-    boundary (HTTP, database, third-party API, job dispatch), error-handling-design for an
-    added or changed try/catch or error type, concurrency-safety for a shared write, lock,
-    retry or transaction, observability-design for a log, metric, trace or health check,
-    performance-tuning for a query or I/O in a loop, a cache or payload/bundle size, and
-    event-driven for a broker, queue consumer or event schema; a diff with none of these
-    loads none. Apply them in this same pass and report each such
-    finding once, tagged with the owning skill — never defer it to a `/resilience:*`
+    skill (added comments, judged in item 4a; volume stays with the hooks). When `resilience` is installed, LOAD its
+    `resilience` skill and read only the references the diff's content selects:
+    `references/timeouts-retries.md` for a call across a process boundary (HTTP, database,
+    third-party API, job dispatch), `references/error-handling.md` for an added or changed
+    try/catch or error type, `references/concurrency.md` for a shared write, lock, retry or
+    transaction, `references/observability.md` for a log, metric, trace or health check,
+    `references/performance.md` for a query or I/O in a loop, a cache or payload/bundle
+    size, and `references/messaging.md` for a broker, queue consumer or event schema; a diff
+    with none of these loads neither the skill nor a reference. Apply them in this same pass
+    and report each such finding once, tagged with the owning reference — never defer it to a `/resilience:*`
     command, because those commands hand their whole scope back here and a deferral
     is a loop in which nobody runs the rubric. When `resilience` is absent, this
     review keeps the finding under step 2. The swallowed catch alone had four
     claimants; it is reported once, under one owner.
-  - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer
-    agent; a whole-application security audit → `/security:review`.
+  - Structural/YAGNI → code-architecture's `architecture-reviewer` agent; a
+    whole-application security audit → `/security:review`.
 
 Before the verdict, state the coverage: `Checked: host built-in | inline — …`, the branch
 that ran the generic pass as its first token — `host built-in` followed by the level and

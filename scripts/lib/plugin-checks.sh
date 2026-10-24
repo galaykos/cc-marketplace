@@ -613,11 +613,11 @@ EOF
 # names the source the stamp points at instead (an EOL calendar, a vendor release page
 # with no package).
 #
-# TIER, THIS RUN: WARN, not FAIL. Two skills fail it on the day it ships —
+# TIER, THIS RUN: WARN, not FAIL. Two skills failed it on the day it shipped —
 # devops:compose-init (stamp points at endoflife.date, no package tail) and
 # ui-ux:astryx-best-practices (no `Last verified` stamp at all, while its description
-# says "pin the installed version before advising"). Both are other plugins' to fix;
-# err() is the follow-up once they do.
+# said "pin the installed version before advising"). Both were deleted 2026-10-23; the
+# tier stays WARN until a commit promotes it to err().
 pc_version_stamp_tail() {
   local root="${1:-plugins}" bad=0 f p s fm stamp
   for f in "$root"/*/skills/*/SKILL.md; do
@@ -986,12 +986,13 @@ pc_removed_refs() {
   # dangling pointer, none was ordinary English. WHAT IT DOES NOT CATCH: "estimate",
   # "sizing" and "S/M/L/XL" name the same dead capability and match nothing here, and a
   # future skill using "estimation" as ordinary English needs <!-- removed-ok -->.
-  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress|real-preview|design-session|estimation'
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress|real-preview|design-session|estimation|aceternity-best-practices|astryx-best-practices|mui-best-practices|reui-best-practices|concurrency-safety|error-handling-design|observability-design|performance-tuning|resilience-design|resilience:event-driven|skills/event-driven|pattern-selection|rollout-planning|domain-modeling|system-design|yagni-check|straight-talk|graphql-grpc|compose-init'
+  # 2026-10-23 slim wave (rationale/session-retro-2026-10-21.md, Plan): bare event-driven is English, so only its qualified and path forms.
   # Removed COMMANDS, fully qualified. `/approaches:size` (2026-09-22, same finding) went
   # with the estimation skill, and no list above can hold it: the plugin half is live, so
   # $moved would mis-fire on every surviving /approaches: command, and the artifact half
   # `size` is ordinary English in every table in the repo. Only the joined token matches.
-  cmds='approaches:size'
+  cmds='approaches:size|code-architecture:yagni|devops:init'
   # `bundles?` added 2026-08-31: the `everything` removal shipped six shipped-doc
   # references in the form "`everything` bundle(s)" / "`craft-suite` and
   # `everything`" that no existing shape matched — the guard was extended for that
@@ -1054,11 +1055,11 @@ pc_doc_location() {
 # directive in the same file — the same convention the glob axis already uses.
 #
 # WHY A CORPUS, not pattern equality: pc_rules_overlap flags glob rows that share an
-# IDENTICAL pattern string. Content rows never do — all five are distinct regexes at
-# low confidence — so extending that algorithm here would be vacuous, matching nothing
-# ever. Content rows collide because two DIFFERENT regexes match the same text: one
-# ordinary React component containing `await`, `catch`, `fetch(`, `console.error` and
-# `token` fires four of them at once. Only a corpus can express that.
+# IDENTICAL pattern string. Content rows never do — each is a distinct regex — so
+# extending that algorithm here would be vacuous, matching nothing ever. Content rows
+# collide because two DIFFERENT regexes match the same text: one file using GSAP's
+# `ScrollTrigger` fires motion-best-practices and scroll-orchestration at once. Only a
+# corpus can express that.
 #
 # LIMITATION (honest scope): the corpus is a fixed, hand-written sample. This converts
 # "add a content row and never learn what it co-fires with" into "add one and the gate
@@ -1155,7 +1156,7 @@ pc_rules_overlap() {
 # pc_rules_reachable <rules_tsv>
 # Every shipped routing row must be ABLE to fire. Prints one `unreachable <kind>
 # <pattern> <skill>` line per dead row and returns 1; clean or missing file
-# returns 0.
+# returns 0. route.sh reads `high` rows only, so a col-5 confidence other than `high` is dead too.
 #
 # WHY THIS EXISTS. skill-router's match_glob (plugins/skill-router/hooks/route.sh,
 # `match_glob()`) understands exactly one multi-segment form, `**/dir/**`, which it
@@ -1173,27 +1174,33 @@ pc_rules_overlap() {
 # proves a glob CAN match some path, never that any file in a real project does.
 # For content and command rows it only compiles the regex (an invalid ERE can never
 # match either); asserting that each content regex matches a real fixture would need a
-# corpus covering all 31 glob rows, and expanding scripts/smoke/router-corpus
+# corpus covering every glob row, and expanding scripts/smoke/router-corpus
 # re-runs pc_rules_cofire's O(n^2) pairing over every added file. Accepted, not
 # covered — the dead-pattern class above is the one that actually shipped.
 pc_rules_reachable() {
-  local tsv="$1" bad=0 kind pattern skill rest
+  local tsv="$1" bad=0 kind pattern skill plugin conf rest
   [ -f "$tsv" ] || return 0
-  while IFS=$'\t' read -r kind pattern skill rest; do
+  while IFS=$'\t' read -r kind pattern skill plugin conf rest; do
     case "$kind" in ''|'#'*) continue ;; esac
     [ -n "$pattern" ] || continue
+    conf=${conf%$'\r'}
+    if [ "$conf" != high ]; then
+      printf "unreachable %s %s %s: confidence '%s', not high; low rows were retired in skill-router 0.27.0 and route.sh reads high rows only\n" \
+        "$kind" "$pattern" "$skill" "${conf:-(none)}"
+      bad=1
+    fi
     case "$kind" in
       glob)
         # The only path-aware form route.sh implements.
         case "$pattern" in '**/'*'/**') continue ;; esac
         # Anything else is basename-matched; a `/` makes it unmatchable.
         case "$pattern" in
-          */*) printf 'unreachable glob %s %s\n' "$pattern" "$skill"; bad=1 ;;
+          */*) printf 'unreachable glob %s %s: route.sh matches it against the basename\n' "$pattern" "$skill"; bad=1 ;;
         esac ;;
       content|command)
         # A `command` row's ERE runs against the Bash command string; same compile test.
         printf '' | grep -qE "$pattern" 2>/dev/null
-        [ $? -gt 1 ] && { printf 'unreachable %s %s %s\n' "$kind" "$pattern" "$skill"; bad=1; } ;;
+        [ $? -gt 1 ] && { printf 'unreachable %s %s %s: the ERE does not compile\n' "$kind" "$pattern" "$skill"; bad=1; } ;;
     esac
   done < "$tsv"
   return $bad
@@ -2156,9 +2163,9 @@ pc_lanes_coverage() {
 #
 # TWO STRUCTURAL GUARDS, so there is no exclusion list to maintain:
 #   1. A REAL CALL, not an API mention. `agent(` must be followed by something other
-#      than `)`. `dispatch-tiers.md` discusses "the `Workflow` `agent()` path" as a tier
-#      concept and names two agents in a table; it is documentation about dispatch, not
-#      a dispatch, and empty parens are exactly what tells the two apart.
+#      than `)`. A reference that discusses "the `Workflow` `agent()` path" as a tier
+#      concept and names agents in a table is documentation about dispatch, not a
+#      dispatch, and empty parens are exactly what tells the two apart.
 #   2. The referenced agent must RESOLVE — `<root>/<plugin>/agents/<name>.md` must
 #      exist. A bare backticked token counts only against the file's OWN plugin, so a
 #      common word (`verifier`, `researcher`) cannot match some other plugin's agent by

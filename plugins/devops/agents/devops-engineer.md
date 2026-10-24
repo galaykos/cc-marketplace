@@ -1,6 +1,6 @@
 ---
 name: devops-engineer
-description: Use PROACTIVELY for CI/CD pipelines, container builds, Kubernetes manifests, deployment strategy, observability, or secrets-handling work. Local docker-compose dev environments belong to this plugin's own compose-init skill.
+description: Use PROACTIVELY for CI/CD pipelines, container builds, Kubernetes manifests, deployment strategy, observability, or secrets-handling work.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
@@ -84,7 +84,7 @@ Safety rule: never store credentials, tokens, or private keys in any generated f
 
 Do not reimplement what neighboring plugins already own:
 
-- Local dev-environment compose generation belongs to `/devops:init`; auditing an existing dev environment belongs to `/devops:review`.
+- Auditing an existing dev environment belongs to `/devops:review`.
 - Stack and dependency inventory belongs to `/stack-scan:report` — use its output rather than re-deriving it.
 - Application-code security review belongs to `/security:review`; you handle infra and pipeline configuration, not source-code audits.
 

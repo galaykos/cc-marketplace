@@ -1,15 +1,4 @@
----
-name: observability-design
-description: Use when writing or reviewing code that emits telemetry — logging, metrics, tracing, health checks, alerting, error reporting — to design structured, correlated, bounded observability signals instead of print-statement archaeology at incident time.
----
-
-## Core rule
-
-You cannot fix what you cannot see. Every production incident is
-resolved at the speed of the telemetry the code bothered to emit — the
-log line written at 2pm decides the length of the 3am incident. Design
-each signal at write time, deliberately: what gets logged, what gets
-counted, what gets traced, and what the health endpoint actually checks.
+# Observability
 
 ## Structured logging
 
@@ -140,9 +129,7 @@ secrets beyond keep-it-out-of-logs is `/security:review`.
   island.
 - error-level everything — the log level that cried wolf.
 - Silent catch blocks — an exception swallowed with no log, metric, or
-  span event; the incident with no evidence. resilience's
-  error-handling-design also reports catches: it owns whether the catch
-  should EXIST, this owns what a kept one EMITS. One finding, one owner.
+  span event; the incident with no evidence.
 - user_id as a metric label — the dashboard that OOMed the monitoring
   stack.
 - The unconditional-200 health check — green while everything burns.

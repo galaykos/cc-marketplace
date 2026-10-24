@@ -130,7 +130,7 @@ element.
 - **Polarity:** in both cases the polarity is fixed. The specimen is a picture of the product
   and does not follow the page's theme toggle.
 
-Measuring LCP belongs to `resilience:performance-tuning`. `recorded`
+Measuring LCP belongs to `resilience:resilience` (`references/performance.md`). `recorded`
 
 ## 10. Operable or inert, with a text equivalent
 

@@ -53,25 +53,18 @@ task-list-parallelization-plan
 
 # --- build ---
 accessibility-remediation
-astryx-idioms
 cicd-and-deploy-idioms
 comment-placement-rule
 component-library-floor
-compose-generation-procedure
-concurrency-hazard-discipline
 cross-boundary-failure-design
 decided-fix-list-application
 defensive-security-remediation
 dependency-management-discipline
 dockerfile-and-compose-idioms
-error-propagation-discipline
 in-code-instrumentation
 inertia-idioms
 laravel-idioms
-local-dev-environment-generation
 mariadb-idioms
-message-delivery-design
-mui-idioms
 nextjs-idioms
 performance-optimization
 php-laravel-backend-implementation
@@ -138,7 +131,6 @@ ad-hoc-breadth-question
 ai-attribution-in-git-history
 ask-named-things-ledger
 ci-workflow-write-block
-claim-reversal-discipline
 comment-noise-write-block
 comment-volume-write-block
 config-file-write-consent

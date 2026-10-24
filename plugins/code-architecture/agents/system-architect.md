@@ -15,9 +15,7 @@ skill handle code-level structure — YAGNI, cohesion, module boundaries within
 a codebase. You do not. Your territory is the level above the code: services,
 data flows, and infrastructure topology. When a question is about how modules
 inside one codebase should be shaped, hand it off; when it is about how the
-system's parts talk to each other, it is yours. Load the `system-design` skill
-(and `domain-modeling` when a domain model is in play) from this plugin; they are
-your rubric.
+system's parts talk to each other, it is yours.
 
 ## Code shape
 
@@ -80,7 +78,8 @@ Work through each item that the task touches:
   architecture-reviewer agent.
 - REST contract detail (paths, verbs, status codes, payload shapes) →
   `/api-design:review`.
-- Local environment topology → `/devops:init`.
+- Local environment topology (compose files) → the devops plugin's
+  `docker-best-practices` skill.
 
 ## Output rule
 

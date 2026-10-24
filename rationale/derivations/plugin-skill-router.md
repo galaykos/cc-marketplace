@@ -4,6 +4,8 @@ The text below was moved verbatim on 2026-10-04 from the files named in the `##`
 
 ## plugins/skill-router/hooks/route.sh
 
+Editor's note (2026-10-24): skill-router 0.27.0 removed the low-confidence digest — route.sh's queueing, route-prompt.sh's flush, summary.sh's SessionEnd line and pending-low ledger fields — and route.sh's `# nudge-last:` rank, with every `low` row and the language-wide rows of rules.tsv (rationale/session-retro-2026-10-21.md, Plan, Wave 3). Sections below that describe them are history.
+
 ### Header: shebang, contract and delivery channel
 
 ```text
@@ -368,7 +370,25 @@ at most two per edit — import and command rows first, then file rows, then the
 later edit carries it. Rationale: rationale/session-retro-2026-10-13.md (Tier 1 §1).
 ```
 
+### Header as it stood until 0.27.0 (moved 2026-10-24)
+
+```text
+route.sh — PostToolUse, and PostToolUseFailure on a Bash call that exited non-zero; fails open: matches the edited file, each existing file a Bash command wrote under the project root (named by
+the command, or — after an interpreter, cp, mv, install or patch run — changed in git since this hook's previous call), and the
+command itself against rules.tsv; prints one additionalContext envelope of at most NUDGE_CAP `high` nudges naming plugin:skill, each skill
+once per context and none the context already loaded; queues other content matches as pending_low, none from a doc or style file.
+Speaks about no target outside the root, under taskmaster-docs/ or .claude/, or ignored by git.
+Off: CC_REMIND=off, or unset with the /config option cc_remind off. CC_ROUTE is not read here: it silences route-prompt.sh, the tool-fit check and the flush of what this hook queues.
+Misses: two concurrent calls can drop a pending_low entry; a payload cwd of `/` or `$HOME` outside git is taken for the project root;
+a directory row matches only the directory name it spells (in any case); a command row routes an unquoted mention of its CLI
+and misses a CLI run through a script or an npm alias; a Bash command's write targets past the eighth (MAX_BASH_TARGETS) are not read,
+nor changed files past the eighth (MAX_BASH_EFFECTS); the bash-write-effects block's own misses apply, and a file anything else changed
+between this hook's calls (an IDE, a parallel agent) is read as that run's write.
+```
+
 ## plugins/skill-router/hooks/route-prompt.sh
+
+Editor's note (2026-10-24): 0.27.0 removed the pending-signal flush described below (§ plugins/skill-router/hooks/route.sh, first note).
 
 Editor's note (2026-10-04, card 03): citations below that have moved since they were written — route.sh's "CONTEXT KEY block" is now a one-line "Context key" comment in its main block (its text: § plugins/skill-router/hooks/route.sh, ### CONTEXT KEY); route.sh's "deliver block" is now the function `deliver_nudges`; `testing/hooks/test-shape.sh:90` is now near its line 157; "the block above the heredoc" is ### The protocol, not a catalog, below.
 
@@ -539,7 +559,22 @@ actually sent a listing either; if a session has none, step 1 reads as vacuous a
 the hook is silent rather than wrong.
 ```
 
+### Header as it stood until 0.27.0 (moved 2026-10-24)
+
+```text
+route-prompt.sh — UserPromptSubmit, fails open: on any prompt but a harness frame, prints once each the low-confidence signals route.sh queued for this context;
+  then, on the session's first work-shaped prompt that no ScheduleWakeup or CronCreate call scheduled (a /loop re-fire), the rules
+  for judging the host's own command listing. It picks no command.
+Off: CC_REMIND=off (every advisory nudge in this marketplace) or CC_ROUTE=off (this hook); unset, the /config options cc_remind / cc_route decide.
+Misses: a symptom phrased without a state verb (`payment failures spiking`, `login error after the upgrade`); fires anyway on a chat sentence
+  carrying one (`the build is slow to watch`) or a `?`-ended one naming a making verb (`what does the build script do?`); waits out
+  a `?`-ended symptom with no making verb and no request form (`the login is broken?`). Repeats a signal on the next prompt when
+  its state file cannot be rewritten.
+```
+
 ## plugins/skill-router/hooks/summary.sh
+
+Editor's note (2026-10-24): 0.27.0 removed the SessionEnd digest line and the pending-low ledger fields described below.
 
 Editor's note (2026-10-04, card 03): route.sh's "CONTEXT KEY block" is now a one-line "Context key" comment in its main block (its text: § plugins/skill-router/hooks/route.sh, ### CONTEXT KEY).
 
@@ -609,6 +644,28 @@ a session that ended after `cd app/Models` filed its row under a slug of its own
 so one project could split into one ledger per directory the model ended in. The only
 reader (turn-cost.sh --skills) globs every slug, so the rows it already has stay
 counted; they just stop multiplying.
+```
+
+### Header as it stood until 0.27.0 (moved 2026-10-24)
+
+```text
+summary.sh — SessionEnd, fails open: appends what the router surfaced in this context to $HOME/.claude/skill-router/<root-slug>/surfaced.jsonl,
+  prints the signals no prompt flushed (transcript residue: no model turn follows) and removes the context's state and dispatch files.
+Off: CC_SURFACED_LOG=off skips the ledger append; unset, the /config option cc_surfaced_log decides.
+Misses: a context whose payload cwd no longer exists keeps its state file, orphaned.
+```
+
+### The ledger's pending-low split (comment removed with its fields, 0.27.0)
+
+```text
+SPLIT ON `flushed`, not one bucket. route-prompt.sh marks an entry
+flushed only when it actually printed the digest to the model, so
+collapsing both states into `pending_low` made "accumulated but
+never shown" indistinguishable from "surfaced" — and that is the
+exact number the turn-cost --skills queue ranks skills by. Measured before
+this fix: four skills read 47 pending_low across 17 local sessions
+with 0 fired, and nothing could say whether any reached the model.
+`pending_low` is kept as the union so an older reader keeps working.
 ```
 
 ## plugins/skill-router/hooks/prime.sh
@@ -919,6 +976,22 @@ package-hygiene, docker, ci) ride only a dispatch naming their file kind — vit
 injected 20 times and read twice — except for an agent whose whole list is surface
 skills (database-engineer keeps sql). Misses: dispatches within 120 s share one
 record; an Agent call held longer than that for approval reads as naming nothing.
+```
+
+### Header as it stood until 0.27.0 (moved 2026-10-24)
+
+```text
+subagent-skills.sh — SubagentStart for a plugin-scoped agent, fails open: hands it the absolute SKILL.md Read paths of the skills its
+  bestpractices-skill: frontmatter declares and prime.sh's rows find at the project root, owner installed, minus its skills: preloads.
+  A general-purpose or claude agent gets every skill prime.sh's rows find, when its dispatch named a repo file. PreToolUse on the Agent
+  call records what the dispatch named, since nothing on disk holds the prompt at SubagentStart; a surface skill (Vite, SQL, manifests,
+  Docker, CI) rides only a dispatch naming its file kind, unless the agent declares nothing else.
+Off: CC_SUBAGENT_SKILLS=off (this hook) or CC_REMIND=off (every advisory nudge); unset, the /config options cc_subagent_skills / cc_remind decide.
+Misses: a declared skill with no prime.sh row (motion-best-practices, security-review, performance-tuning, observability-design) and
+  prime.sh's own misses; a path past the CAP-character output. Advisory: it cannot make the agent Read. Another marketplace's plugin of
+  the same name resolves against this one's definition. Dispatches of one agent type within DISPATCH_TTL seconds share one record, so
+  a parallel fan-out is judged as a whole; a dispatch whose Agent call waits longer than that for approval reads as naming nothing;
+  a file named without a path-shaped word (a migration described, not named) does not count.
 ```
 
 ## plugins/skill-router/hooks/plugins-dir.sh
