@@ -6,6 +6,7 @@ Consumer-facing changes only. Newest first.
 
 - **`mui-best-practices`, `astryx-best-practices`, `reui-best-practices` and `aceternity-best-practices` were removed.** None had a use in the projects measured for the cut; other installers were not measured. Their libraries are rows in `component-libraries/references/library-map.md` that point at each library's official docs (`https://mui.com/material-ui/`, `https://astryx.atmeta.com/docs/getting-started`, `https://reui.io/docs`, `https://ui.aceternity.com/components`), under `component-libraries`' library-agnostic rules. Magic UI and React Bits, which followed Aceternity's rules from 0.3.0, follow the same floor. Lost with them: MUI X's per-major tables, the Astryx 0.x inventory and the one-hero-effect placement rule. Standing: recorded for the map rows; agent-graded for the floor's rules.
 - Kept: `primereact-best-practices` (the one skill with a measured delta) and `component-libraries`.
+- **`component-libraries`' description names Material UI (MUI), Astryx, ReUI and Aceternity**, whose only home it now is, and drops PrimeReact, which `primereact-best-practices` owns. To hold its byte length, and so this plugin's always-on budget, it no longer names Atlassian twice or says "or any without a sibling skill". Standing: recorded — whether a prompt naming those libraries reaches the skill is unmeasured.
 
 ## 0.3.0 — 2026-10-06
 

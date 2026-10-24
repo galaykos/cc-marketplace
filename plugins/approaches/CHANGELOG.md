@@ -8,6 +8,9 @@ have no entries rather than invented ones.
 ### Removed
 - **`pattern-selection` and `rollout-planning` were merged into `approach-deliberation` as references.** Each body moved verbatim, minus its frontmatter: `pattern-selection` → `references/patterns.md`, its catalog → `references/pattern-catalog.md` (the two path mentions inside updated), `rollout-planning` → `references/rollout.md`. Neither skill was used in the three projects a 2026-10-21 usage review measured; other installs are unmeasured. `/approaches:pattern` and `/approaches:rollout` stay and read their reference by `${CLAUDE_PLUGIN_ROOT}` path, and approach-deliberation's pattern handoff names `references/patterns.md`. What is lost: neither discipline fires by description any more — only the command, or a reader following approach-deliberation's pattern handoff, reaches it. Standing: recorded.
 
+### Changed
+- **`/approaches:pattern` makes no implement offer when a planning phase invokes it.** Called from taskmaster's task-cards or while a spec is written, step 6 now gives advice only and leaves the pick to the card or spec; before, a session that takes the recommended option unasked (goal mode) could start writing code mid-card-drafting. Standing: recorded — no harness reads the command text.
+
 ## 0.11.3 — 2026-10-15
 
 ### Changed

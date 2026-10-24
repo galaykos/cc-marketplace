@@ -2,7 +2,7 @@
 
 ## 0.6.5 — 2026-10-23
 
-- **`kinds.tsv` drops two alternatives whose skills were removed.** The `api` kind's contract group is `api-design:api-design` alone (api-design 0.12.0 removed `graphql-grpc`, and no other skill took its job), and the `infra` group is `devops:devops-practices|devops:docker-best-practices` (devops 0.10.0 removed `compose-init` and `/devops:init`). A pin on either removed skill would have resolved to no path, so `accept` could never have counted it. Standing: gate — `program.sh accept` counts a pin only by a path that exists and refuses while an installed group is unpinned.
+- **`kinds.tsv` drops two alternatives whose skills were removed.** The `api` kind's contract group is `api-design:api-design` alone (api-design 0.12.0 removed `graphql-grpc`, and no other skill took its job), and the `infra` group is `devops:devops-practices|devops:docker-best-practices` (devops 0.10.0 removed `compose-init` and `/devops:init`). A pin on either removed skill would have resolved to no path, so `accept` could never have counted it. The `api` kind's note now says an HTTP (REST/OpenAPI) surface, not an HTTP or GraphQL one, since its contract group covers REST only. Standing: gate — `program.sh accept` counts a pin only by a path that exists and refuses while an installed group is unpinned; the note is recorded.
 
 ## 0.6.4 — 2026-10-15
 

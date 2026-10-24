@@ -555,6 +555,32 @@ for cmd in 'composer install' 'npm run update-snapshots' 'cp src/a.tsx src/b.tsx
   [ -z "$out" ] && ok || bad "command row [$cmd]: expected silence, got: ${out:0:160}"
 done
 
+# 27. route-prompt.sh: a harness frame as a session's first prompt prints no tool-fit rules and leaves the once-per-session marker
+#     unspent, so a human work-shaped prompt next in that session prints them; a human prompt quoting a frame marker mid-message is human.
+RP="$SR/hooks/route-prompt.sh"; RPT="$WS/rp-tmp"; mkdir -p "$RPT"; TOOLFIT='[skill-router] Tool-fit check'
+prompt_rp() { # session prompt
+  jq -cn --arg c "$WS" --arg s "$1" --arg p "$2" --arg tp "$WS/t-rp-$1.jsonl" \
+    '{hook_event_name:"UserPromptSubmit",prompt:$p,session_id:$s,transcript_path:$tp,cwd:$c}' | hook "$RP" TMPDIR="$RPT"
+}
+n=0
+for p in '<task-notification><task-id>t1</task-id><status>completed</status><summary>fix the failing build</summary></task-notification>' \
+         'Stop hook feedback: fix the failing test first' \
+         '<system-reminder>fix the failing build before you stop</system-reminder>' \
+         $'Another Claude session sent a message:\n<agent-message from="a1">fix the login bug</agent-message>' \
+         '<agent-message from="a2">refactor the billing module</agent-message>' \
+         '[Subagent hand-back] fixed the parser; review the diff' \
+         $'# Autonomous loop tick (dynamic pacing)\n\nRun the autonomous check; fix the failing build.'; do
+  n=$((n+1)); out=$(prompt_rp "frame-$n" "$p")
+  [ -z "$out" ] && ok || bad "frame as a first prompt printed [${p:0:40}]: ${out:0:120}"
+  out=$(prompt_rp "frame-$n" 'fix the failing checkout test')
+  grep -qF "$TOOLFIT" <<<"$out" && ok || bad "human prompt after a frame [${p:0:40}] printed no tool-fit rules; got: ${out:0:120}"
+done
+for p in 'Fix the parser so a [Subagent hand-back] line inside a message is kept' \
+         'Refactor the inbox view so an <agent-message> tag renders as text'; do
+  n=$((n+1)); out=$(prompt_rp "quote-$n" "$p")
+  grep -qF "$TOOLFIT" <<<"$out" && ok || bad "human prompt quoting a frame marker read as a frame [${p:0:40}]; got: ${out:0:120}"
+done
+
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }
 

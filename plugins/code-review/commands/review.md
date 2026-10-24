@@ -54,10 +54,13 @@ inertia skill when `inertiajs/inertia-laravel` or `@inertiajs/*` is in the manif
 mariadb skill when that engine is detected; test files, fixtures, or production code
 changed with no covering test → testing's testing-best-practices; `.github/workflows/`,
 `Dockerfile*`, `compose*.y*ml` → devops-practices, plus docker-best-practices for the
-container files; routes, controllers, API resources, OpenAPI/GraphQL/proto files →
-api-design; auth, input handling, uploads, secrets, session transport or dependency
-manifests → security's `security-reviewer` agent, handed the diff file; Three.js /
-react-three-fiber imports → craft-layer's threejs-best-practices;
+container files; routes, controllers, API resources, OpenAPI files → api-design;
+GraphQL/proto files → no shipped rubric: say so and review against the official docs
+(https://graphql.org/learn/best-practices/, https://grpc.io/docs/guides/,
+https://protobuf.dev/programming-guides/dos-donts/), never from memory; auth, input
+handling, uploads, secrets, session transport or dependency manifests → security's
+`security-reviewer` agent, handed the diff file; Three.js / react-three-fiber imports →
+craft-layer's threejs-best-practices;
 a configured analyzer for the changed language (phpstan/psalm/phpcs, tsc/eslint/biome,
 vue-tsc, and for styles and markup stylelint/pa11y/axe/lighthouse-ci, whose reviewer is
 `ui-expert`) → toolchain-experts' matching expert agent, which RUNS it rather than reciting

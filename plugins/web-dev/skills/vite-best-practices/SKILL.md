@@ -158,8 +158,7 @@ Sources, read 2026-10-23: https://laravel.com/docs/13.x/vite, https://inertiajs.
 - **`@inertiajs/vite`** (Inertia v3, Vite 7 or 8) goes after `laravel()`. Its `pages` shorthand builds the lazy `import.meta.glob`
   resolver (default `./pages` and `./Pages`), and it serves dev-mode SSR with no separate Node process. Production still runs
   `vite build && vite build --ssr` and `php artisan inertia:start-ssr`. With `ssr: false`, or a manual `setup` callback, the SSR
-  entry goes back on `laravel({ ssr })`. Inertia v2 resolves pages with `resolvePageComponent` from
-  `laravel-vite-plugin/inertia-helpers`, which the Laravel docs still show.
+  entry goes back on `laravel({ ssr })`. Page and app wiring → `laravel:inertia-best-practices`.
 - **`@laravel/vite-plugin-wayfinder`** (0.x; Wayfinder is beta) runs `php artisan wayfinder:generate` at build start and on
   changes under `routes/**/*.php` and `app/**/Http/**/*.php`. The build therefore needs PHP, and a cached route table generates
   stale routes: run `php artisan route:clear` before `npm run build`. It declares no Vite peer range.

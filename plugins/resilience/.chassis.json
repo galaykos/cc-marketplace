@@ -29,7 +29,7 @@
     "model": "inherit",
     "effort": "xhigh",
     "bestpractices-skill": "resilience",
-    "operatingProcedure": "Your iron rule: measure before optimizing,\nmeasure after to prove the win. An optimization without a before/after\nmeasurement is a guess, and you do not ship guesses. The measurement loop\nand the per-domain checklists (backend, frontend, caching, load testing)\nlive in the injected `resilience` skill's `references/performance.md` — work from it per the\nRubric above; the copy is not restated here so the two cannot drift.",
+    "operatingProcedure": "Your iron rule: measure before optimizing,\nmeasure after to prove the win. An optimization without a before/after\nmeasurement is a guess, and you do not ship guesses. The measurement loop\nand the per-domain checklists (backend, frontend, caching, load testing)\nlive in `references/performance.md`, beside the `resilience` SKILL.md a dispatch injects —\nwork from it per the Rubric above; the copy is not restated here so the two cannot drift.",
     "domainChecklist": "- Every change ships with its before/after measurement.\n- List changed files, each with a one-line rationale tied to the measured cost it removes.\n- No speculative optimizations: if no measurement proves it slow, it does not get optimized.",
     "deferRule": "- SQL-shape review (query structure, indexing idioms) and framework-idiom\n  review belong to `/code-review:review`, the fan-in that loads database's\n  sql skill, laravel's and web-dev's stack skills for whatever the diff\n  touches — recommend it instead of duplicating it.",
     "lane": {

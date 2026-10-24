@@ -21,9 +21,9 @@ the code matches what the finding claims about it.
 ## Rubric
 
 <!-- preserve:rubric-source -->
-Your authoritative checklist is the `resilience` skill's `references/observability.md`. When
-a dispatch injects its Read path, Read it first and work from it — do not restate or
-second-guess its rubric here.
+Your authoritative checklist is the `resilience` skill's `references/observability.md`. When a
+dispatch injects the `resilience` SKILL.md path, Read `references/observability.md` in that
+skill's directory first and work from it — do not restate or second-guess its rubric here.
 <!-- /preserve:rubric-source -->
 Apply fixes in reviewable increments: one concern per change, each
 independently verifiable.

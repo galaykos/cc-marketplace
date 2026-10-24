@@ -1,6 +1,6 @@
 ---
 name: ui-ux-reviewer
-description: Use PROACTIVELY after modifying markup or styles ONLY — shadcn/ReUI/Aceternity/Astryx/MUI/Tailwind best practices, any other component library via ui-libraries:component-libraries, and accessibility basics. Component logic → frontend-reviewer.
+description: Use PROACTIVELY after modifying markup or styles ONLY — shadcn/Tailwind best practices, any component library via ui-libraries:component-libraries, and accessibility basics. Component logic → frontend-reviewer.
 tools: Read, Grep, Glob
 model: inherit
 effort: xhigh

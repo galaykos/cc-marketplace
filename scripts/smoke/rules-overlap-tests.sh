@@ -162,12 +162,21 @@ fi
 
 # 7. an uncompilable content regex can never match either
 cp plugins/skill-router/rules.tsv "$RT"
-printf 'content\t[unclosed\tzz-probe\tzz\tlow\n' >> "$RT"
+printf 'content\t[unclosed\tzz-probe\tzz\thigh\n' >> "$RT"
 if pc_rules_reachable "$RT" >/dev/null; then
   echo "FAIL[reach]: invalid content regex went undetected"; rc=1
 else
   echo "PASS[reach]: invalid content regex detected"
 fi
+
+# 7b. route.sh reads high rows only, so a well-formed `low` row is dead too
+cp plugins/skill-router/rules.tsv "$RT"
+printf 'content\t\\bzzprobe\\b\tzz-probe\tzz\tlow\n' >> "$RT"
+out=$(pc_rules_reachable "$RT") && reach_rc=0 || reach_rc=$?
+case "$reach_rc:$out" in
+  1:*'unreachable content'*'zz-probe'*'retired in skill-router 0.27.0'*) echo "PASS[reach]: a low-confidence row is refused, naming the 0.27.0 retirement" ;;
+  *) echo "FAIL[reach]: a low-confidence row was not refused (rc=$reach_rc; out=${out:-<empty>})"; rc=1 ;;
+esac
 
 # --- host-skill overlap (pc_host_overlap) ------------------------------------
 # Preventive, not corrective: no shipped skill collides today, so these fixtures

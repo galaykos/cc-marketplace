@@ -74,7 +74,7 @@ laravel/web-dev skill really is).
 | board | stack · testing · a11y-audit · information-design · a styling skill | drag, reorder, kanban, calendar — pointer AND keyboard paths; `interaction-fx` is cursor effects, not this |
 | auth | stack · testing · security-review or api-auth | login, roles, permissions, tokens |
 | form | stack · testing · a11y-audit · security-review or api-auth | a form collecting user data — contact, application, sign-up; never `feature` |
-| api | stack · testing · api-design · api-auth or security-review | an HTTP or GraphQL surface |
+| api | stack · testing · api-design · api-auth or security-review | an HTTP (REST/OpenAPI) surface |
 | data-model | stack · a database skill · testing | schema, migrations, indexes |
 | infra | a devops skill | CI, containers, deploy |
 | game | stack · testing · a11y-audit · motion or interaction-fx | a game or motion-heavy interactive screen |

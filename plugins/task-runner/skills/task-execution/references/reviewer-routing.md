@@ -33,8 +33,8 @@ ui-ux         -> ui-ux:ui-ux-reviewer + prime {card Skills-to-apply}
 devops        -> devops:devops-reviewer + prime {card Skills-to-apply} + devops:devops-practices
 generic       -> code-review:code-reviewer
 database      -> code-review:code-reviewer + prime {card Skills-to-apply} + database:sql-best-practices
-backend       -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:resilience
-api           -> code-review:code-reviewer + prime {card Skills-to-apply} + api-design:api-design + resilience:resilience
+backend       -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:resilience (references its table picks for the diff)
+api           -> code-review:code-reviewer + prime {card Skills-to-apply} + api-design:api-design + resilience:resilience (references its table picks for the diff)
 security      -> security:security-engineer (review-only) + prime {card Skills-to-apply} + security:security-review
 testing       -> code-review:code-reviewer + prime {card Skills-to-apply} + testing:testing-best-practices
 performance   -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:resilience (references/performance.md)

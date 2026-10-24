@@ -15,10 +15,12 @@ releases were not recorded here.
   owns (11,615 → 10,272 bytes), and the boosted-recon paragraph that cited its own file goes,
   with its copy in `/taskmaster:brainstorm`. `ultra-task`, `ultra-goal` and `goal-lean` behave as
   before. Standing: recorded — no harness reads the skill text; every taskmaster harness stays green.
-- **Two pointers reroute.** `/taskmaster:brainstorm` names the `code-architecture:system-architect`
-  agent for unit boundaries, since the system-design skill was removed. A task card that creates a
+- **Two pointers reroute.** `/taskmaster:brainstorm` names `code-architecture:solid-principles` and
+  `code-architecture:plan-before-code` for unit boundaries, since the system-design skill was removed. A task card that creates a
   unit takes its shape from `/approaches:pattern`, since the pattern-selection skill was merged
   into approaches as a reference; it names the pick in `<change>` instead of stamping a `<skill>`.
+  The pick is advice only: nothing is implemented while cards are written, and
+  `/approaches:pattern` (approaches 0.12.0) skips its implement offer when a planning phase invokes it.
   Standing: gate for the names (`scripts/validate.sh` removed-reference check); recorded for the
   wording.
 

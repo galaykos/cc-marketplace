@@ -14,6 +14,7 @@ $ARGUMENTS with:
    name the trade-offs (indirection, new concepts for readers, testing surface).
 5. If no pattern is warranted, say so explicitly.
 
-6. When the problem maps to real code in this repo, ask via AskUserQuestion:
-   "Implement the recommended approach now (Recommended)" / "Skip — advice
+6. Invoked from a planning phase (task-cards, a spec): skip the offer — advice only; the card
+   or spec carries the pick. Otherwise, when the problem maps to real code in this repo, ask
+   via AskUserQuestion: "Implement the recommended approach now (Recommended)" / "Skip — advice
    only". Headless: advice only.

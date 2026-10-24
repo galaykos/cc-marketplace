@@ -5,7 +5,8 @@ description: Use when code crosses a process boundary (HTTP call, queue, databas
 
 Six runtime-quality concerns, one reference each. Read the core rule below for every concern
 the change touches, then that concern's reference — only the ones the change selects, never
-all six by default.
+all six by default. `references/` sits beside this file: resolve each `references/…` path below
+from this file's directory.
 
 ## Pick the references from the change
 

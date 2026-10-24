@@ -137,7 +137,7 @@ When the shape is settled, present the design incrementally — architecture,
 components and their single responsibilities, data flow, error handling,
 testing approach — each section scaled to its complexity, approval collected
 per section rather than as one big "looks good?" at the end. Unit boundaries are
-`code-architecture:solid-principles` and the `code-architecture:system-architect` agent when
+`code-architecture:solid-principles` and `code-architecture:plan-before-code` when
 that plugin is installed; brainstorm's own job is that the boundary gets DECIDED on the
 whiteboard, not discovered mid-card.
 
