@@ -21,6 +21,9 @@
 #                     files and why there is no runner. candor's completion gate accepts
 #                     that verdict only with this record for that HEAD, and the closing
 #                     report must name bg-<HEAD12>. Not for code whose runner exists.
+#          red        the one recorded exit from behavioral-gate's red-suite, for failing tests
+#                     that predate the run: --id bg-<HEAD12>, --reason naming the tests and why.
+#                     candor accepts red-suite only with it for that HEAD; the report names it.
 #          other      anything else the run promised and did not fully deliver
 #
 # THE POINT. Every one of these is legitimate sometimes. None of them is legitimate
@@ -63,8 +66,8 @@ while [ $# -gt 0 ]; do
 done
 
 case "$KIND" in
-  redteam | dispatch | suite | coverage | other) ;;
-  "") usage "need --kind <redteam|dispatch|suite|coverage|other>" ;;
+  redteam | dispatch | suite | coverage | red | other) ;;
+  "") usage "need --kind <redteam|dispatch|suite|coverage|red|other>" ;;
   *) usage "unknown --kind: $KIND" ;;
 esac
 [ -n "$ID" ] || usage "need --id <ref> (a card, a milestone, a commit, a scope name)"

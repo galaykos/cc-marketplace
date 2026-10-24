@@ -108,8 +108,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    each task's verify passes, run the reviewer pass per the skill (conditional
    on the review plugins installed), plus the full crew pass when `--crew` is set.
 3. Update status in the index only; collect scope-lock follow-ups as a backlog
-   list, never as in-run detours. No status HTML — the index and the
-   conversation are the run's views (per the task-execution skill).
+   list, never as in-run detours.
 4. First the **whole-range review**: invoke `/code-review:review <start_sha>..HEAD` (Skill
    tool; `start_sha` is in `active-run.json`) with `RV-RANGE: <first 12 of HEAD>` in its
    arguments and a lens for knowledge duplicated across cards. The review observer records
@@ -147,15 +146,16 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
      `--isolate` the verdict record lands in the live repo's `.claude/task-runner/bg`, which
      the Stop hook reads; `--record-dir` overrides it. The repo suite may be a
      static linter that never executes the new code; the behavioral-gate is what proves
-     it ran. A green suite alone does NOT close the run.
+     it ran.
    - **No runner in the project** — `no-behavioral-coverage` because a changed language
-     has no test runner here at all (React files in a repo with no JS runner) is the one
-     red verdict with a recorded exit: run
+     has no test runner here at all (React files in a repo with no JS runner) has a
+     recorded exit: run
      `bash "${CLAUDE_PLUGIN_ROOT}/scripts/reduction-record.sh" --kind coverage --id bg-<first 12 chars of HEAD> --reason "<which files, why no runner>"`
      for the HEAD the gate ran on, then record the gate pass below as for a green gate.
      candor's Stop gate accepts that verdict only with that record for that HEAD. Code
      whose runner exists but has no tests is not this case: write the tests.
-   On BOTH green (or the recorded no-runner exit), record the pass to `.claude/task-runner/gate-pass.json` as ONE JSON
+   - **Red before the run** — a `red-suite` whose failing tests predate the run: the same script with `--kind red --id bg-<HEAD12> --reason "<which tests fail, why they predate the run>"`, then as above.
+   On BOTH green (or a recorded exit above), record the pass to `.claude/task-runner/gate-pass.json` as ONE JSON
    object — `{"head":"<git rev-parse HEAD>"}` for a plain run; for a taskmaster-index
    run the SAME single object also carries
    `"index_path":"<00-INDEX.md>","cards_total":N,"cards_done":N,"cards_parked":N` from
@@ -166,7 +166,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    repo root), then print the
    completion report table (task / status / verify command / evidence), parked tasks
    with reasons, the follow-up backlog, and every recorded reduction by id and reason —
-   `bg-<HEAD12>` when the no-runner exit was taken. When cards touched UI, the report also carries one Screens table (screen · width · before · after · not observed) per `skills/task-execution/references/ui-walk.md`, whose walk is also the `--evidence` for that no-runner record.
+   `bg-<HEAD12>` when a recorded exit was taken. When cards touched UI, the report also carries one Screens table (screen · width · before · after · not observed) per `skills/task-execution/references/ui-walk.md`, whose walk is also the `--evidence` for that no-runner record.
    The rename, not a delete: the stop after the report is where candor's clause 4 reads
    the records (reviewer, control, range, disclosure), and it retires `closed-run.json`
    when they hold. The review observer and the skip-consent ask still treat it as the run,
@@ -174,7 +174,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    `active-run.json`, so the run reads as ended at once. Without candor nothing retires
    the closed file, and the next registration deletes it.
    If either gate is RED, other than
-   that recorded exit, the run is not
+   a recorded exit, the run is not
    complete — do not print a done report. A run may not report complete while any card
    is neither done nor parked; the completion gate checks the recorded card counts for
    index runs.
@@ -187,8 +187,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    the exact next command.
 
 **Goal marker** (`Goal: true` in `00-INDEX.md`) — hands-off
-execution per the task-execution skill. The step-1 run plan is displayed, then execution
-proceeds without waiting. The step-5 green branch-finish gate is
+execution per the task-execution skill. The step-5 green branch-finish gate is
 EXEMPT from take-Recommended — under Goal it ALWAYS resolves to "Stop here" regardless of
 which option is labeled Recommended (never auto-run branch merge/PR). The parked "Retry
 parked tasks now" offer is bounded to one auto-retry on forward progress (a task moved

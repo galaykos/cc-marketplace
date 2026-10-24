@@ -27,7 +27,8 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
 
 ## What only you can report
 
-- **`react-hooks/exhaustive-deps` severity.** The detector prints it. `warn` and
+- **`react-hooks/exhaustive-deps` severity.** The detector prints it; `warn-via-preset`
+  means a react-hooks preset (`recommended`, `recommended-latest`) set `warn`. `warn` and
   `off` both produce a green build while the defect ships, and they are
   indistinguishable from a passing CI log. This is your headline finding whenever it
   is not `error`.

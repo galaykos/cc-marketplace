@@ -50,8 +50,9 @@ breaks the build for everyone whose baseline still lists it.
 
 - phpstan: `phpstan-baseline.neon`, usually included from the main config.
 - psalm: `psalm-baseline.xml`.
-- eslint: inline `eslint-disable` comments are the per-line equivalent — a
-  disable carrying a reason is a decision; a bare one is undocumented debt.
+- eslint: `eslint-suppressions.json` when the detector names it; inline
+  `eslint-disable` comments are the per-line equivalent — a disable carrying a
+  reason is a decision; a bare one is undocumented debt.
 
 ### 4. Run it, and report the real exit code
 
@@ -100,7 +101,15 @@ files the model has not seen. The `strictness` records from step 1 are the evide
 
 - `strictness tsconfig strict false` or `strict absent` — every null-safety and
   implicit-any defect in the diff is invisible to the type checker. Findings the
-  reader believes are covered are not.
+  reader believes are covered are not. `strict absent-default-on` (TypeScript 6+)
+  is on, not a gap. `strict absent-via-extends-unresolved` (any TypeScript major,
+  whenever `extends` is present and `strict` is not set locally; its implied flags
+  read `unresolved-via-extends`) is neither until the base config, or
+  `npx tsc --showConfig`, says which.
+- `strictness typescript 7-no-compiler-api <tool>` or `strictness eslint config
+  eslintrc-not-loaded <major>` — the checker cannot run as configured on this
+  install (ESLint 9 loads `.eslintrc*` only under `ESLINT_USE_FLAT_CONFIG=false`).
+  Report it as a gap, never as a clean run.
 - `strictness phpstan level N` — levels are cumulative; a level-5 run does not check
   what level 6+ checks. Name the bug class the configured level cannot reach rather
   than the level number alone.

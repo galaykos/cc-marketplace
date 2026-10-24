@@ -590,8 +590,20 @@ case_run "--runner-for php exiting 1 with no test count -> unverifiable-suite(2)
 case_run "--runner-for py exiting 1 with no pytest summary -> unverifiable-suite(2)" "$RF" 2 --label 'unverifiable-suite' -- \
   --changed src/calc.py --runner-for py './down.sh::no tests ran'
 printf '#!/bin/sh\necho "1 failed, 2 passed in 0.12s"\nexit 1\n' > "$RF/py-red.sh"; chmod +x "$RF/py-red.sh"
-case_run "--runner-for py, a red suite with a pytest summary -> covered(0)" "$RF" 0 --label 'VERDICT: covered' -- \
+case_run "--runner-for py, a red suite with a pytest summary -> red-suite(2)" "$RF" 2 --label 'VERDICT: red-suite' -- \
   --changed src/calc.py --runner-for py './py-red.sh::no tests ran'
+# A suite that ran and failed is red, not covered (2026-10-21 plugin review): the record read
+# `covered` and candor let the run close over it, while run.md asks for BOTH gates green.
+PHR="$WS/php-red"; mkdir -p "$PHR/vendor/bin" "$PHR/tests" "$PHR/src"
+printf '<?php class Calc {}\n' > "$PHR/src/Calc.php"; printf '<?php final class CalcTest {}\n' > "$PHR/tests/CalcTest.php"
+mk_stub "$PHR/vendor/bin/phpunit" .phpstub.out .phpstub.rc
+printf 'There was 1 failure:\n\nFAILURES!\nTests: 1, Assertions: 1, Failures: 1.\n' > "$PHR/.phpstub.out"; printf '1\n' > "$PHR/.phpstub.rc"
+case_run "php suite with FAILURES! -> red-suite(2)" "$PHR" 2 --label 'VERDICT: red-suite' -- --changed src/Calc.php
+GR="$WS/go-red"; mkdir -p "$GR"; printf 'package p\n' > "$GR/impl.go"; printf 'package p\n' > "$GR/impl_test.go"
+printf -- '--- FAIL: TestAdd (0.00s)\nFAIL\nFAIL\texample/pkg\t0.002s\n' > "$GR/.gostub.out"; printf '1\n' > "$GR/.gostub.rc"
+case_run "go test with a failing test -> red-suite(2)" "$GR" 2 --label 'VERDICT: red-suite' -- --changed impl.go
+case_run "--runner whose suite fails -> red-suite(2)" "$CR1" 2 --label 'VERDICT: red-suite' -- \
+  --changed calc.ex --runner 'echo "3 tests, 1 failure"; exit 1::^0 tests'
 # RF_<lang> holds the flag's value and is never read from the environment.
 RF_php='./suite.sh::No tests' case_run "RF_php inherited from the environment is ignored -> the host runner decides(2)" "$RF" 2 --label 'unverifiable-suite' -- \
   --changed src/Calc.php
@@ -624,6 +636,21 @@ sib java src/Calc.java Surefire '[INFO] Tests run: 5, Failures: 0, Errors: 0, Sk
 # A wrapper's own banner is not a go result line: this read covered.
 case_run "--runner-for go, a '--- :go:' banner over a docker error -> unverifiable-suite(2)" "$RF" 2 --label 'unverifiable-suite' -- \
   --changed src/calc.go --runner-for go 'echo "--- :go: unit tests"; echo "Error response from daemon: container app is not running"; exit 1::no test files'
+# A suite whose every test fails ran (2026-10-22 review): its zero-pass line read empty-suite.
+printf 'running 1 test\ntest tests::adds ... FAILED\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n' > "$RF/rs-allfail.out"
+case_run "--runner-for rs, cargo 'test result: FAILED. 0 passed; 1 failed' -> red-suite(2)" "$RF" 2 --label 'VERDICT: red-suite' -- \
+  --changed src/calc.rs --runner-for rs 'cat ./rs-allfail.out; exit 1::NEVER-PRINTED'
+printf '  calc\n    1) adds\n\n\n  0 passing (4ms)\n  1 failing\n' > "$RF/js-allfail.out"
+case_run "--runner-for js, mocha '0 passing' and '1 failing' -> red-suite(2)" "$RF" 2 --label 'VERDICT: red-suite' -- \
+  --changed src/calc.js --runner-for js 'cat ./js-allfail.out; exit 1::NEVER-PRINTED'
+# Mocha's failing count is a summary line of its own (2026-10-22 review): this prose line from a green script read covered.
+MF="$WS/pkg-failing-prose"; mkdir -p "$MF"; printf 'module.exports = () => 1;\n' > "$MF/impl.js"
+printf '{ "name": "fx", "version": "1.0.0", "scripts": { "test": "echo 2 failing checks skipped" } }\n' > "$MF/package.json"
+case_run "package.json script printing '2 failing checks skipped', exit 0 -> unverifiable-suite(2), not covered" "$MF" 2 --label 'VERDICT: unverifiable-suite' -- \
+  --changed impl.js
+printf 'web:test:   calc\nweb:test:   0 passing (4ms)\nweb:test:   1 failing\n' > "$RF/js-allfail-prefixed.out"
+case_run "--runner-for js, a workspace-prefixed all-failing mocha run -> red-suite(2)" "$RF" 2 --label 'VERDICT: red-suite' -- \
+  --changed src/calc.js --runner-for js 'cat ./js-allfail-prefixed.out; exit 1::NEVER-PRINTED'
 
 # ---- JC. jest's summary coloured or prefixed (2026-10-15). Colour codes were stripped for php
 # only, the 'Tests:' count had to start the line, and "Snapshots:   0 total", printed on every jest

@@ -117,7 +117,7 @@
     {
       "name": "brain",
       "source": "./plugins/brain",
-      "description": "A committed, Obsidian-style codebase map for a project: brain/INDEX.md indexes areas, key files, and notable classes/entrypoints so a fresh Claude session starts oriented. A SessionStart hook injects the compact map (with a staleness hint when it lags HEAD); /brain reads it and /brain index builds/refreshes it. Builds the map only — it never annotates code, and nothing outside brain/ is ever modified."
+      "description": "A committed, Obsidian-style codebase map for a project: brain/INDEX.md indexes areas, key files, and notable classes/entrypoints so a fresh Claude session starts oriented. A SessionStart hook injects the compact map (with a staleness hint when it lags HEAD); /brain reads it and /brain index builds/refreshes it. Builds the map only — never annotates code; outside brain/ it writes only gitignored state."
     },
     {
       "name": "resilience",

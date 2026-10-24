@@ -13,12 +13,14 @@ positive "N ran and passed" signal is a failure, not a pass, and unparseable out
 | `vitest` | exits 0 "no test files found" | "no test files" / 0 collected |
 | `go test ./...` | `no test files`, exits 0 | covered first: a real result line beats a no-test package |
 | `package.json` script (opaque) | no parseable count | fail closed — never a silent pass |
-| `vendor/bin/pest`, else `phpunit` | `No tests executed` / `No tests found` | covered needs `OK (N tests`, a non-zero `Tests:`, or `FAILURES!` |
-| `cargo test` | `0 passed` on **every** target | covered first (one line per target); `error[E…]` ⇒ `unverifiable-suite` |
+| `vendor/bin/pest`, else `phpunit` | `No tests executed` / `No tests found` | tests ran: `OK (N tests`, a non-zero `Tests:`, or `FAILURES!` |
+| `cargo test` | `0 passed; 0 failed` everywhere | covered first (a line per target); `error[E…]` ⇒ `unverifiable-suite` |
 | `bundle exec rspec`, else `rspec` | `0 examples` | empty first — one summary line per run |
 | `./gradlew test --rerun-tasks`, else `./mvnw test`, else system `gradle`/`mvn` (wrappers first) | `Tests run: 0`, `:test NO-SOURCE`, `did not discover any tests` | covered needs `Tests run: N≥1` or `N tests completed`, else the weak row below; `:test UP-TO-DATE` ⇒ `unverifiable-suite` |
 | `--runner '<cmd>::<empty-regex>'` | the caller's regex | escape for a language with no row; the gate still owns not-started (126/127/signal) and timeout (124) |
 | `--runner-for <lang> '<cmd>::<empty-regex>'` | the caller's regex, then the row's | REPLACES the row's runner, e.g. a suite only a container runs; `--runner` only adds one. Needs the row's count or a sibling's: `Ran N tests` (unittest, bun), minitest `N runs,`, nextest `N tests run:`, gotestsum `DONE N tests`, a line opening `N passed` (Playwright), pytest `-qq`'s progress line; never the weak row |
+
+**Ran is not green.** Once a row's count shows tests ran, exit 0 is `covered`, else `red-suite`.
 
 **The one weak row.** A green `gradle test` prints no counts, only `BUILD SUCCESSFUL`
 (9.7.1, 2026-09-22), so it falls back to *sources exist and the task did not fail*. Past it:

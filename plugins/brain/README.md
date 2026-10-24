@@ -14,7 +14,9 @@ entrypoints) load on demand via `/brain <area>`. No more re-scouting from zero.
 
 - **Scans the code, in place.** The map is derived from reading your source. `brain`
   **never modifies, moves, or deletes any file outside `brain/`** — not your source, not
-  docs, not other plugins.
+  docs, not other plugins. Its only writes outside `brain/` are the session-start hook's
+  nudge marker and, when the marker's directory has none, a `.gitignore` holding `*` beside
+  it (see Disabling).
 - **Auto-orients every session.** A `SessionStart` hook injects the terse `INDEX.md` table
   of contents (bounded ~30 lines / ~2 KB, delimited as project data) so Claude sees every
   area immediately; per-area depth loads on demand with `/brain <area>`.
@@ -53,15 +55,18 @@ context-scout and delegation-contracts readers use the map as an **orientation
 prior** — they verify touched areas with their own greps and trust the code over a
 stale map — and git-workflow's branch-finish offers `/brain index` when the stamp is
 behind the merged result. The session-start no-map nudge only appears in repos with
-≥200 tracked files, where a map actually pays, and since 0.4.5 only on a fresh startup —
-not on resume, `/clear` or compaction; the staleness hint for an existing map carries no
-size gate.
+≥200 tracked files, where a map actually pays, and since 0.4.6 only on the first startup
+in each project — not again in later sessions, and never on resume, `/clear` or
+compaction; the staleness hint for an existing map carries no size gate. The marker is
+read before the file count, so a project already nudged never pays the `git ls-files`
+scan again. Standing: gate — `inject-hook.test.sh` "14 a project already nudged skips the
+git ls-files scan".
 
 Small drift **self-heals**: when ≤5 files changed since the `built:` stamp, the
 session-start hint instructs Claude to run the incremental `/brain index` refresh
 immediately — no keystroke needed; you see the refresh happen in-session. Larger
 drift stays an explicit offer (a big reindex spends real tokens — your call). The
-hook itself never writes anything; the model performs the refresh visibly.
+hook never writes the map; the model performs the refresh visibly.
 
 Two cases demote the self-heal back to the offer. While a task-runner run is open
 (`.claude/task-runner/scope.json` exists) that run's scope-lock hook would flag a
@@ -141,13 +146,15 @@ is delimited and labeled as project data.
 ## Disabling
 
 `brain` is opt-in by install. Until you build a map with `/brain index`, the only thing
-it does is emit a **single one-line hint** at session start — `ℹ brain: no map for this
-project yet — run /brain index to create one.` — so an enabled-but-unused install is not
-silently forgotten. The `SessionStart` hook is fail-open (any error → silent exit, never
-blocks a session) and writes nothing.
-
-If you have `brain` enabled in a repo where you never intend to build a map and don't want
-even that hint, disable the plugin locally (below).
+it does is emit a **single one-line hint**, once per project, on the first session start —
+`ℹ brain: no map for this project yet — run /brain index to create one. (Shown once per
+project.)` — so an enabled-but-unused install is not silently forgotten. The `SessionStart`
+hook is fail-open (any error → silent exit, never blocks a session). It writes two files:
+that once-per-project marker, in the plugin's data directory (`CLAUDE_PLUGIN_DATA`), or in
+`<repo>/.claude/brain/` where the host sets none, and, when that directory has none, a
+`.gitignore` holding `*` beside it, so the in-repo marker never shows in `git status`. If the
+marker cannot be written, the hint repeats next session. Standing: gate —
+`inject-hook.test.sh` "16 the in-repo marker leaves git status clean".
 
 To turn it off:
 

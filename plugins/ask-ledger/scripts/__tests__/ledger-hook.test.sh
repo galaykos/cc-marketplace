@@ -95,6 +95,26 @@ runtp() { # $1 prompt, $2 transcript → the ledger entries for that transcript'
 }
 check "13r a ScheduleWakeup re-fire writes no ledger" "$(runtp 'Continue: add the Stripe refund flow once the Paddle reviewer reports.' "$TXL")" ""
 check "13s a typed ask beside the scheduled call still ledgers" "$(runtp 'add the Stripe refund flow' "$TXL")" "Stripe"
+# 13u-13x: a quoted term after a negation is excluded, not asked for (2026-10-21: the user
+# wrote `no "summerizing" or "inventing"` and the gate demanded a line for "summerizing");
+# an ordinal or a unit is not a name (2026-10-13: "a plan 1st then decide" ledgered `1st then`).
+check "13u a negated list of quoted terms writes no ledger" "$(run 'create a git branch. review the sessions, read carefully, that means no "summerizing" or "inventing" things' s13u)" ""
+check "13v a quoted term outside the negation still ledgers" "$(run "build the \"pixel\" theme without 'pokemon' sprites" s13v)" "pixel"
+check "13w ordinals and units are not names; 2D sprites still is" "$(run 'we need a plan 1st then decide, make 2D sprites, retry after 5s before the 2nd pass' s13w)" "2D sprites"
+check "13x a don't-negation masks its quoted term" "$(run "add a dark theme, don't use \"neon\" colours" s13x)" ""
+# 13y-13ab: the cut reaches past at most one listed word, never across a clause (2026-10-22 review).
+check "13y a negation does not reach across 'and' to a wanted quoted name" "$(run 'create a page with no images and "Digimon" sprites' s13y)" "Digimon"
+check "13z 'has no \"x\"' names the gap the ask fills, not an exclusion" "$(run 'the app has no "dark mode" toggle yet, add one' s13z)" "dark mode"
+check "13aa 'not only \"x\" but also \"y\"' asks for both" "$(run 'build not only "Stripe" but also "PayPal" checkout' s13aa)" "Stripe,PayPal"
+check "13ab a unit in capitals is not a name; 2D sprites still is" "$(run 'add a 10GB upload limit, wait 30Min, keep the 2D sprites' s13ab)" "2D sprites"
+check "13ac a lowercase multiplier is not a name" "$(run 'make the build 3x faster' s13ac)" ""
+check "13ad a capital letter after a digit is a name, not a unit" \
+  "$(run 'add 5S support, a 4X zoom and 4K video next to the 2D sprites' s13ad)" "5S support,4X zoom,4K video,2D sprites"
+check "13ae a capitalised mid word keeps the negation on its quoted term, and is no name itself" "$(run "build it, Don't Use \"Redux\"" s13ae)" ""
+check "13ah a clock time or ordinal in capitals is no name" "$(run 'add a cron job that runs at 5PM daily, from the 1ST of the month' s13ah)" ""
+check "13af 'there is no \"x\"' names the gap the ask fills" "$(run 'build a page, there is no "Logout" button yet, add one' s13af)" "Logout"
+check "13ag 'there's no' and 'there are no' name a gap too" \
+  "$(run "add a page, there's no \"Logout\" button and there are no \"Saved\" lists yet" s13ag)" "Logout,Saved"
 
 # --- 14-16 the existing-identifier filter (2026-09-22). A name the repo already carries
 #     is code to be REPAIRED, not a thing to be delivered; ledgering it made the Stop gate

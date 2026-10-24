@@ -3,6 +3,36 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.33.2 — 2026-10-22
+
+- **A constraint comment that opens with `NAME=value` is no longer denied as commented-out
+  code.** `# MAX_RETRIES=5 is what the upstream API tolerates before it bans the key.` — the
+  external-constraint shape `comment-discipline` says to keep — matched the assignment test and
+  was refused before the write (measured in the 2026-10-21 plugin review). The text after the
+  value now reads as a sentence when the value is not `not`, the text holds no bracket, brace,
+  parenthesis, member dot (`user.active`) or `; NAME =`, its first word is neither a keyword
+  (`and or not if else elif unless in then do while until`) nor an operator (`>=`, `+`, `&&` …),
+  and it has three or more lowercase words, keywords counted:
+  `# TIMEOUT=30 is in seconds, not minutes` and `# PORT=8080 is not used in prod` pass. A
+  commented-out `total = total + item.price`, a Python comprehension
+  `names = [user.name for user in users if user.active]`, `is_valid = name and email and
+  password`, a Ruby `user = User.find(id) unless user and user.persisted`,
+  `mode = fast if cached else slow unless forced` and `x = a if the user is admin else b` are
+  still denied. Standing: gate — `comment-discipline-hook-tests.sh` "PreToolUse does NOT deny a
+  constraint comment that opens with NAME=value", red against 0.33.1, and "PreToolUse still
+  denies a commented-out assignment"; "PreToolUse denies a commented-out Python comprehension",
+  "…a commented-out boolean assignment" and "…a commented-out Ruby assignment with unless" are
+  red against the first cut of this change; "PreToolUse does NOT deny TIMEOUT=30 is in seconds,
+  not minutes", "…PORT=8080 is not used in prod", "PreToolUse denies a commented-out conditional
+  chain …" and "…a commented-out ternary …" are red against the second cut, which left keywords
+  out of the word count; "PreToolUse denies a commented-out negated boolean", "…comparison chain",
+  "PreToolUse allows a constraint opening with for", "…with when" and "…carrying a semicolon" are
+  red against the third cut. Residual: a constraint sentence after `NAME=value` that holds a
+  parenthetical or a dotted word (`(measured)`, `e.g.`, `api.example.com`), or opens with
+  a keyword (`# TIMEOUT=30 if the proxy is slow …`), is still denied as code; commented-out code
+  whose text after the value opens with a non-keyword and holds three plain lowercase words
+  (`# CC=clang make all install`, `# ok = done is not pending`) reads as prose and is not denied.
+
 ## 0.33.1 — 2026-10-15
 
 - **`Checked:` names the level and finding limit the host's `code-review` ran at.** The built-in reuses the effort level you last typed (since Claude Code 2.1.223) and keeps a typed `--max-findings` (since 2.1.288) until `--max-findings default`, so a `/code-review low --max-findings 3` from last week silently sized the generic pass of `/code-review:review`. The command still passes neither, on purpose: the saved choice is yours, and this command has no level argument to replace it with. What changed is that `Checked:` now reads `host built-in (level high, limit 10)`, or `(level and limit inherited)` when the built-in names neither; type `/code-review <level>` or `--max-findings default` to change what it inherits. Passing a value from here would not have overwritten your choice: on 2.1.300 the host saves both only from a typed `/code-review`, never from a Skill-tool call (read from the CLI bundle, not run). On 2.1.223–2.1.287 only the level is saved and the limit is the built-in's default. Standing: recorded — nothing reads a review's output back.

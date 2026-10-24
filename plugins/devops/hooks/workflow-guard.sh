@@ -2,45 +2,10 @@
 # Absolute-path shebang (not `env bash`): the fail-open guarantee must hold even
 # under a stripped/broken PATH, where `env bash` itself exits 127.
 #
-# PreToolUse guard on writes to .github/workflows/. DENIES exactly two shapes —
-# the ones with no legitimate form, where the workflow hands repository secrets or
-# a write token to code the repository does not control:
-#
-#   1. pull_request_target (or workflow_run) checking out the untrusted head.
-#   2. An attacker-controlled ${{ github.event.* }} field interpolated into a
-#      `run:` block, which is shell substitution, not argument passing.
-#
-# Everything else workflow-audit.sh reports — unpinned actions, a missing
-# permissions: block, self-hosted runners on fork triggers — is a WARN there and
-# is NOT denied here. A deny that fires on the ambiguous cases is a deny that gets
-# turned off, and then the two unambiguous ones stop being blocked too.
-#
-# Why a hook at all, given both shapes are well-documented: nobody asks. Workflow
-# files get edited during unrelated work and reviewed for step ordering. The hook
-# is the thing that asks, at the only moment the answer is cheap.
-#
-# BASH WRITES (0.8.2). A heredoc body or echo/printf arguments whose pipeline writes an
-# in-scope file are judged exactly like a Write of that text to that file
-# (cc_bash_write_chunks for the text, cc_bash_write_targets for the file it lands in; a
-# relative target matches the relative patterns as spelled). Text fed to a command that
-# writes no file (`yq eval - <<EOF`, `gh api --input - <<EOF`) is not read. An append
-# (`>>`) is judged on the appended text alone, as an Edit is on its new_string, so a
-# rule-1 trigger already in the file whose `ref:` arrives by append is NOT caught.
-# echo/printf arguments are read as written with ONE leading quote stripped, so
-# `echo '  - run: …' >> .github/workflows/ci.yml` is judged as its line. An echo chunk is
-# one line, so it can only ever meet rule 2. NOT caught on an echo: a flag or extra space
-# before the quote (`echo -n '…'`, `echo  '…'`), `printf '%s\n' '…'` (the format comes
-# first), a run line that itself holds `<<`, an escaped multi-line echo (`echo -e '…\n…'`,
-# `$'…'`, not unescaped), and a quoted string spanning lines. Also NOT caught: interpreter
-# writes (python open(), php file_put_contents), cp/mv/install of a prepared file into
-# .github/workflows/, `sed -i`/`perl -i` edits (the target resolves, no text is judged),
-# `{ …; } > f` groups, a path held in a variable, a path relative to an earlier `cd` in
-# the command or to a session cwd already under .github/ (targets match as spelled), a
-# here-string, a second heredoc on one line, printf format substitution, and any target
-# after the first on one writer (`tee a b` checks `a`).
-#
-# Fail-open: any error, missing jq, or unparseable input allows the write.
-# CC_WORKFLOW_GUARD unset: the /config option cc_workflow_guard decides.
+# PreToolUse guard on Write/Edit/MultiEdit and Bash writes to .github/workflows/ and composite actions: DENIES only a privileged
+#   trigger checking out the untrusted head, and an author-typed ${{ github.event.* }} field in a run: block. Off: CC_WORKFLOW_GUARD.
+# Misses: everything workflow-audit.sh only warns on; interpreter, cp/mv and sed -i writes; a path in a variable. Fail-open.
+# Why, limits, history: rationale/derivations/plugin-devops.md § plugins/devops/hooks/workflow-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
@@ -270,7 +235,7 @@ judge_workflow() {
   if [ -z "$reason" ]; then
     if printf '%s' "$text" | awk '
         /^[[:space:]]*-?[[:space:]]*run:/ { inrun=1 }
-        inrun && /\$\{\{[[:space:]]*github\.(head_ref|event\.(pull_request\.(title|body|head\.(ref|label))|issue\.(title|body)|comment\.body|review\.body|discussion\.(title|body)|head_commit\.(message|author\.(name|email))))/ { found=1 }
+        inrun && /\$\{\{[[:space:]]*github\.(head_ref|event\.(pull_request\.(title|body|head\.(ref|label|repo\.default_branch))|issue\.(title|body)|comment\.body|review\.body|review_comment\.body|discussion\.(title|body)|head_commit\.(message|(author|committer)\.(name|email))|commits\[[0-9]*\]\.(message|(author|committer)\.(name|email))|pages\[[0-9]*\]\.page_name|workflow_run\.(head_branch|display_title|head_commit\.(message|(author|committer)\.(name|email)))))/ { found=1 }
         /^[[:space:]]*(uses|with|env|if|name):/ { inrun=0 }
         END { exit !found }
       '; then
@@ -280,9 +245,7 @@ judge_workflow() {
 }
 {
   input=$(cat)
-  # OFF-SWITCH. Until 2026-09-15 this guard had none: the only way out was
-  # uninstalling the plugin. Every other guard in the marketplace ships one,
-  # and a global install makes "turn it off here" a real need.
+  # Why, limits, history: rationale/derivations/plugin-devops.md § The off switch
   [ "$(cc_option CC_WORKFLOW_GUARD on)" = "off" ] && exit 0
   command -v jq >/dev/null 2>&1 || exit 0
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
@@ -334,7 +297,7 @@ EOF_C
   # is this marketplace's own layout and does not exist on an installer's disk; resolve
   # the real root the host hands the hook, and fall back to this script's own directory.
   auditroot="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)}"
-  reason="$reason (file: $file)  Run bash ${auditroot}/scripts/workflow-audit.sh for the full report, including the warn-level findings this hook deliberately does not block."
+  reason="$reason (file: $file)  Run bash \"${auditroot}/scripts/workflow-audit.sh\" for the full report, including the warn-level findings this hook deliberately does not block."
   # Name the escape in the message that blocks you.
   reason="$reason CC_WORKFLOW_GUARD=off disables this guard for the session."
 

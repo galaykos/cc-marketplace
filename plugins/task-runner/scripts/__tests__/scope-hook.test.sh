@@ -383,5 +383,20 @@ else
   echo "SKIP 18: python3 not available"
 fi
 
+# 19) THE RUN'S OWN INDEX. Updating a card's status in the index active-run.json names is the
+#     run's bookkeeping, not scope creep: 61 of 77 scope-lock warnings in one project named it
+#     and told the model to revert it (2026-10-21 retro). A sibling card file still warns.
+I="$WS/fx-index"; mkdir -p "$I/.claude/task-runner" "$I/taskmaster-docs/feat"; git init -q "$I"
+printf '{"slug":"feat","index_path":"taskmaster-docs/feat/00-INDEX.md"}' > "$I/.claude/task-runner/active-run.json"
+touch -t 202601010000 "$I/.claude/task-runner/active-run.json"
+printf '{"allow":["src/a.js"],"task":"card 01"}' > "$I/.claude/task-runner/scope.json"
+echo '| 01 | todo |' > "$I/taskmaster-docs/feat/00-INDEX.md"; echo card > "$I/taskmaster-docs/feat/01-card.md"
+run_case "an Edit of the run's own index -> silent" \
+  "$(jq -cn --arg cwd "$I" --arg f "$I/taskmaster-docs/feat/00-INDEX.md" '{cwd:$cwd, tool_name:"Edit", tool_input:{file_path:$f}}')" 0 silent
+run_case "a Bash sed -i of the run's own index -> silent" \
+  "$(jq -cn --arg cwd "$I" --arg c "sed -i 's/todo/done/' taskmaster-docs/feat/00-INDEX.md" '{cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}')" 0 silent
+run_case "an Edit of a sibling card file -> still warns" \
+  "$(jq -cn --arg cwd "$I" --arg f "$I/taskmaster-docs/feat/01-card.md" '{cwd:$cwd, tool_name:"Edit", tool_input:{file_path:$f}}')" 0 envelope "01-card.md"
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

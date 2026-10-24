@@ -124,6 +124,26 @@ T="$WS/c20.jsonl"; { user "where"; asst "The admin panel runs on shop.localhost:
 check "a .localhost / .test host:port is not a citation" "" "$T" 0 "__NONE__"
 T="$WS/c21.jsonl"; { user "where"; asst "The handler is in Invented.php:12."; } > "$T"
 check "an invented basename still blocks beside a vendor/ tree" "" "$T" 2 "no file named Invented.php found under"
+
+# A path suffix several files share took whichever `find` listed first, so a correct hooks/hooks.json:33 was blocked against a
+#   shorter sibling (2026-10-21). The same two paths with their contents swapped: a first-pick blocks in one layout either way.
+sfx() { # <layout 1|2> <long-lines> <short-lines> -> rc and stderr of the gate on "hooks/hooks.json:33"
+  local R="$WS/suffix$1-$2-$3" a b
+  mkdir -p "$R/a/hooks" "$R/b/hooks"; a="$R/a/hooks/hooks.json"; b="$R/b/hooks/hooks.json"
+  [ "$1" = 2 ] && { a="$R/b/hooks/hooks.json"; b="$R/a/hooks/hooks.json"; }
+  printf 'l\n%.0s' $(seq "$2") > "$a"; printf 'l\n%.0s' $(seq "$3") > "$b"
+  { user "where"; asst "The matcher is at hooks/hooks.json:33."; } > "$R/t.jsonl"
+  jq -cn --arg tp "$R/t.jsonl" --arg cwd "$R" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:false}' | bash "$HOOK" 2>&1 >/dev/null
+  printf 'rc=%s' "$?"
+}
+for lay in 1 2; do
+  out=$(sfx "$lay" 40 10)
+  if [ "${out##*rc=}" = 0 ]; then pass=$((pass+1)); printf 'PASS  a suffix shared by two files resolves when either holds the line (layout %s)\n' "$lay"
+  else fail=$((fail+1)); printf 'FAIL  a suffix shared by two files resolves when either holds the line (layout %s): %s\n' "$lay" "$out"; fi
+done
+out=$(sfx 1 10 12)
+case "$out" in *"$CITE_SUB"*"rc=2") pass=$((pass+1)); printf 'PASS  a shared suffix every match is too short for still blocks\n' ;;
+  *) fail=$((fail+1)); printf 'FAIL  a shared suffix every match is too short for still blocks: %s\n' "$out" ;; esac
 # The lookup is sourced from hooks/cite.sh: without it the citation clause stands down, the gate still exits 0.
 mkdir -p "$WS/lone"; cp "$HOOK" "$WS/lone/gate.sh"
 rm -f "$MARKER" "$CLAIMED"; err=$(payload "$T" | bash "$WS/lone/gate.sh" 2>&1 >/dev/null); rc=$?
@@ -532,6 +552,47 @@ if command -v git >/dev/null 2>&1; then
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
   verdict_is "coverage: empty-suite plus a coverage reduction still blocks" \
     "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "empty-suite"'; echo $?)"
+  printf '{"head":"%s","verdict":"red-suite"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "coverage: red-suite blocks and says to fix the failing tests, not the coverage" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "red-suite"' && printf '%s' "$err" | grep -qF 'at least one failed' && ! printf '%s' "$err" | grep -qF 'Fix the coverage'; echo $?)"
+  # A suite already red before the run has a recorded exit too, red-bg-<HEAD12>, and only for red-suite.
+  rm -f "$COVRED"; REDRED="$TRD/reductions/red-bg-$H12.json"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "red: without a red record the block names the fix and the recorded exit for failures that predate the run" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'Fix the failing test(s)' && printf '%s' "$err" | grep -qF 'predate this run' && printf '%s' "$err" | grep -qF "reduction-record.sh --kind red --id bg-$H12"; echo $?)"
+  if [ -r "$RS" ]; then
+    ( cd "$SUBD" && bash "$RS" --kind red --id "bg-$H12" --reason "test_login fails on the base commit too" ) >/dev/null 2>&1
+  else
+    mkdir -p "$TRD/reductions"; printf '{"kind":"red","id":"bg-%s","reduced":true,"reason":"x"}\n' "$H12" > "$REDRED"
+  fi
+  verdict_is "red: reduction-record.sh --kind red --id bg-<HEAD12> writes the file the gate reads" "$([ -f "$REDRED" ]; echo $?)"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$WS/rhide.jsonl")"
+  verdict_is "red: red-suite + a red record the closing report never names still blocks (disclosure)" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "never names" && printf '%s' "$err" | grep -qF "bg-$H12"; echo $?)"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "red: red-suite + a red record newer than the sentinel + a report naming it -> allow" \
+    "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  printf '{"head":"%s","verdict":"no-behavioral-coverage"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "red: a red record does not release no-behavioral-coverage" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "no-behavioral-coverage"'; echo $?)"
+  printf '{"head":"%s","verdict":"red-suite"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
+  touch -t 199901010000 "$REDRED"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+  verdict_is "red: a red record older than the run's registration still blocks" \
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "red-suite"'; echo $?)"
+  rm -f "$REDRED"
+  # Each remaining non-covered verdict names its own repair; "Fix the coverage" fitted none of them.
+  for vr in 'empty-suite|The suite ran zero tests. Add tests a runner here executes' \
+            'unverifiable-suite|could not confirm a suite ran (a timeout, a missing runner, no count line). Fix the runner or the environment, or declare one with --runner or --runner-for' \
+            'entrypoint-error|A declared entrypoint crashed on --help. Fix it' \
+            'dead-affordance|A declared flag changed nothing. Wire it or drop the declaration'; do
+    printf '{"head":"%s","verdict":"%s"}' "$RHEAD" "${vr%%|*}" > "$TRD/bg/bg-$RHEAD.json"
+    clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+    verdict_is "remedy: ${vr%%|*} blocks with its own repair, not 'Fix the coverage'" \
+      "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "reached \"${vr%%|*}\"" && printf '%s' "$err" | grep -qF "${vr#*|}" && ! printf '%s' "$err" | grep -qF 'Fix the coverage'; echo $?)"
+  done
 else
   printf 'SKIP  0.5.0 state-root / in-flight / coverage cases (git not available)\n'
 fi

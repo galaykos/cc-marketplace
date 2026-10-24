@@ -2,6 +2,44 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.9.1 — 2026-10-22
+
+- **A path suffix several files share no longer blocks a correct citation.** The lookup took
+  whichever file `find` listed first for a suffix such as `hooks/hooks.json` (112 under the
+  gate's 8-deep search of this repo, 26 in `plugins/`), so a correct `hooks/hooks.json:33` was blocked against a shorter sibling, and short
+  `README.md`/`SKILL.md` citations were checked against unrelated files (2026-10-21). A
+  suffix two to eight files share now resolves if any of them holds the line, blocks only
+  when all are too short, and is undecidable past eight. Standing: gate — `gate.test.sh`
+  "a suffix shared by two files resolves … (layout 1)", red against 0.9.0, and "… every
+  match is too short for still blocks". Residual: a wrong line in a file that shares its
+  suffix with a longer one passes.
+- **A `red-suite` behavioral gate gets its own clause-4 message.** task-runner 0.49.0 records
+  `red-suite` when the tests ran and at least one failed; clause 4 blocked it but told the
+  run to "fix the coverage", which is the wrong repair for a failing test. It now says the
+  tests ran and at least one failed: fix the failing test(s), re-run the gate, then stop. A
+  coverage reduction still does not release it. Standing: gate — `gate.test.sh` "coverage:
+  red-suite blocks and says to fix the failing tests, not the coverage", red against this
+  version's first cut.
+- **A suite already red before the run has a recorded exit.** A `red-suite` blocked every
+  close, including one whose failing tests predate the run. Clause 4 now accepts it for a
+  HEAD when task-runner 0.49.0's `reduction-record.sh --kind red --id bg-<HEAD12>` record
+  exists and is newer than the run's registration, the same shape as the no-runner exit; the
+  disclosure check then requires `bg-<HEAD12>` in the closing report, and the `red-suite`
+  message names the exit beside "fix the failing test(s)". A coverage record does not release
+  `red-suite`, nor a red record `no-behavioral-coverage`. Standing: gate — `gate.test.sh`
+  "red: red-suite + a red record newer than the sentinel + a report naming it -> allow",
+  "red: red-suite + a red record the closing report never names still blocks (disclosure)"
+  and "red: without a red record the block names …", red against this version's previous cut;
+  "red: a red record older than the run's registration still blocks". Residual: nothing
+  checks that the failures predate the run; the reason is model-authored.
+- **Each other non-covered verdict names its own repair.** `empty-suite`,
+  `unverifiable-suite`, `entrypoint-error` and `dead-affordance` all read "Fix the coverage",
+  which fits none of them. Each now says what failed and what to do: add tests a runner
+  executes; fix the runner or environment, or declare `--runner`/`--runner-for`; fix the
+  entrypoint that crashed on `--help`; wire the flag or drop its declaration. Standing: gate —
+  `gate.test.sh` "remedy: <verdict> blocks with its own repair, not 'Fix the coverage'", one
+  case per verdict, all four red against this version's previous cut.
+
 ## 0.9.0 — 2026-10-15
 
 ### Changed

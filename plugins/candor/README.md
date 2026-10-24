@@ -68,8 +68,9 @@ in the project exercises the changed files, for example React files in a project
 no JS runner. It still blocks, and the message now names the honest exit: from the repo
 root, task-runner's `scripts/reduction-record.sh --kind coverage --id bg-<HEAD12>
 --reason "…"`. That record, newer than the run's registration, lets the verdict pass.
-The disclosure check then requires `bg-<HEAD12>` in the closing report. `empty-suite`,
-`unverifiable-suite` and every other red verdict keep blocking.
+The disclosure check then requires `bg-<HEAD12>` in the closing report. A `red-suite`
+whose failing tests predate the run has the same exit with `--kind red` (0.9.1). Every
+other red verdict keeps blocking, its message naming that verdict's own repair.
 
 Clause 4 is dormant outside a registered run, on another branch than the run's,
 and without git — a records check, never a test run. On `SubagentStop` only

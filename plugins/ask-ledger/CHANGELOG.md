@@ -2,6 +2,38 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.4.3 — 2026-10-22
+
+### Fixed
+- **A quoted term the ask excludes is no longer owed.** "no \"summerizing\" or \"inventing\""
+  ledgered `summerizing` and the Stop gate demanded a line for a thing the user had ruled
+  out. A quoted list right after `no`, `not`, `without`, `never`, `avoid`, `nor` or `don't`,
+  or after one of those plus one word from a fixed list (`use using any more such the a an
+  call called add include including mention`, first letter in either case, so "Don't Use
+  \"Redux\"" cuts `Redux`), is now cut before extraction. Any other
+  word between them stops the cut, so "no images and \"Digimon\" sprites" still ledgers
+  `Digimon` and "not only \"Stripe\" but also \"PayPal\"" ledgers both. `has no`, `have
+  no`, `had no`, `there is no`, `there's no` and `there are no` name a gap the ask fills,
+  never an exclusion: "has no \"dark mode\" toggle yet, add one" ledgers `dark mode`, "there
+  is no \"Logout\" button yet, add one" ledgers `Logout`. Residual: a negation two or more
+  words before the quote (`don't use any "neon"`) does not cut; a `has no "x"` or `there is
+  no "x"` the user wants kept out still ledgers ("make sure there is no \"lorem ipsum\" left"
+  ledgers `lorem ipsum`). The proper-noun pass reads the same cut text, so "Don't Use
+  \"Redux\"" ledgers nothing, not `Use`. Standing: gate — `ledger-hook.test.sh` "13u",
+  "13v", "13x" (each fails against 0.4.2), "13y", "13z", "13aa" (each fails against the
+  two-word cut), "13ae" (fails against the lowercase-only list), "13af", "13ag" (each fails
+  against the `has`/`have`/`had`-only mask).
+- **Ordinals and units are not names.** "a plan 1st then decide" ledgered `1st then`;
+  `5s before` and `2nd pass` did the same. A digit token ending in an ordinal, a clock suffix
+  or a multi-letter unit (`st nd rd th am pm ms sec min hr px pt em rem kb mb gb tb vh vw fps
+  hz`) in any case (`10GB`, `30Min`, `5PM`, `1ST`), or in `s`, `h` or `x` written lowercase
+  (`5s`, `3x`), is dropped; `2D Sprites`, `4K video`, `5S support` and `4X zoom` still ledger. Standing: gate —
+  `ledger-hook.test.sh` "13w" (fails against 0.4.2), "13ab" (fails against the
+  lowercase-only match), "13ac", "13ad" (fails against the any-case match of every suffix), "13ah" (fails
+  against a lowercase-only `am pm st`).
+- Not changed, on purpose: the existence check stays a substring match. A whole-word match
+  would make `Payment` miss the plural table name a Laravel repo uses for it — a case the 0.2.0 existence filter exists to stop.
+
 ## 0.4.2 — 2026-10-14
 
 ### Fixed

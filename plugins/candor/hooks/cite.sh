@@ -5,7 +5,8 @@
 #   .example, .invalid, .lan and common public TLDs) is no file, and a bare localhost:8000 has no extension; an elided path is skipped.
 # cite_miss <file:line> <root> <cwd>: prints why the citation does not resolve — no file of that basename where it searched, or a line
 #   past the end — and nothing when it resolves or cannot be decided: a path not found whose basename is not unique, or exists only
-#   under <root>'s node_modules or vendor (6 deep). A path is tried from <cwd>, then <root>, then as a suffix, then by basename (8 deep).
+#   under <root>'s node_modules or vendor (6 deep). A path is tried from <cwd>, then <root>, then as a suffix, then by basename (8 deep);
+#   a suffix two to eight files share resolves if any holds the line, and more than eight is undecidable.
 # Misses: a file whose extension is a host name (.env.local:3) is never checked; a name only under dist, build or .venv, or past either
 #   depth cap, reads as missing; a wrong line in a basename a dependency also has passes; a wrong directory with a unique basename passes.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/cite.sh
@@ -26,13 +27,26 @@ cite_find() { # <root> <find predicate...>
 }
 
 cite_miss() {
-  local p="${1%:*}" l="${1##*:}" root="$2" cwd="$3" f="" m b n
+  local p="${1%:*}" l="${1##*:}" root="$2" cwd="$3" f="" m b n k
   case "$p" in "~/"*) p="${HOME:-}/${p#\~/}" ;; esac
   case "$p" in /*) [ -f "$p" ] && f="$p" ;; esac
   # Abbreviated paths outnumber invented ones (measured), so only a basename found nowhere is fabricated.
   [ -n "$f" ] || { [ -f "$cwd/$p" ] && f="$cwd/$p"; }
   [ -n "$f" ] || { [ -f "$root/$p" ] && f="$root/$p"; }
-  [ -n "$f" ] || f=$(cite_find "$root" -path "*/$p" | head -1)
+  if [ -z "$f" ]; then
+    m=$(cite_find "$root" -path "*/$p" | head -9); n=$(printf '%s\n' "$m" | grep -c .)
+    if [ "$n" -gt 1 ]; then
+      [ "$n" -gt 8 ] && return 0
+      while IFS= read -r b; do
+        k=$(wc -l < "$b" 2>/dev/null | tr -d ' ')
+        case "$k" in '' | *[!0-9]*) return 0 ;; esac
+        [ "$l" -le $((k + 1)) ] 2>/dev/null && return 0
+      done <<< "$m"
+      printf 'none of the %s files ending in %s has %s lines\n' "$n" "$p" "$l"
+      return 0
+    fi
+    f="$m"
+  fi
   if [ -z "$f" ]; then
     b=${p##*/}
     m=$(cite_find "$root" -name "$b" | head -2)

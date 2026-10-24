@@ -114,8 +114,10 @@ interactive walkthroughs, demos.
 
 ## Staying near the ask when there is no card
 
-`scope.sh` warns, once per written file outside the set, while a registered run's cards
-have declared their file lists — it never blocks. It sees Edit/Write and the files a Bash
+`scope.sh` warns on each write outside the set — every call, it keeps no memory of earlier
+warnings — while a registered run's cards have declared their file lists; it never blocks.
+The run's own state (`.claude/task-runner/`) and the card index `active-run.json` names are
+never checked: updating a card's status is the run's bookkeeping, not scope creep. It sees Edit/Write and the files a Bash
 command writes by redirect, heredoc, `tee` or `sed -i` (at most 8 per call), and, after an
 interpreter, `cp`, `mv`, `install` or `patch` run, each file git reports changed since its
 previous call in the run (at most 8), a failed command's too. A `python3 - <<'EOF'` write
@@ -203,9 +205,9 @@ So the mandated passes now leave evidence a run cannot author for itself:
 | ui-ux-reviewer on a UI card | `rv-agent-<card>@<reviewer>` from the same observer, for each card whose `rv/diff-<card>.patch` names a `.tsx`, `.jsx`, `.vue`, `.svelte`, stylesheet or `.blade.php` file | a ui-ux-reviewer record, or a recorded skip or exemption |
 
 Skips stay possible and stop being silent. `scripts/review-skip.sh` (per card) and
-`scripts/reduction-record.sh` (`--kind redteam|dispatch|suite|coverage|other` — a degraded
-panel, a downgraded dispatch, a narrowed suite, a dropped coverage pass, anything
-else) record the cut with its reason and print it to the transcript at the moment of the
+`scripts/reduction-record.sh` (`--kind redteam|dispatch|suite|coverage|red|other` — a degraded
+panel, a downgraded dispatch, a narrowed suite, a dropped coverage pass, a suite already red
+before the run, anything else) record the cut with its reason and print it to the transcript at the moment of the
 decision. `--evidence <path>` records what was observed instead, for example the UI walk's
 shot dir; it must exist inside the repo. In an interactive session a PreToolUse hook asks
 you to approve it first. The

@@ -2,6 +2,57 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.49.0 — 2026-10-22
+
+- **A suite that ran and failed is `red-suite`, not `covered`.** The behavioral gate's record
+  said `covered` — exit 0 — whenever tests ran, red or green (`pytest` exit 1, PHPUnit
+  `FAILURES!`, a failing `go test`, a `--runner` exiting 1), so candor's clause 4, which
+  refuses every verdict but `covered`, let a run close over a red suite while `run.md` asks
+  for both gates green. Once a runner's count shows tests ran, a non-zero exit now reads
+  `red-suite` (exit 2). Pinned by `behavioral-gate.test.sh` "php suite with FAILURES! …",
+  "go test with a failing test …", "--runner whose suite fails …" and "--runner-for py, a red
+  suite …", all red against 0.48.0 (the last one pinned `covered` until now). Residuals: a
+  suite already red before the run now blocks its close too, unless recorded (next entry); a
+  package.json test script that also lints reads `red-suite` when only the lint fails.
+- **A suite already red before the run has a recorded exit.** `reduction-record.sh --kind red
+  --id bg-<HEAD12> --reason "<which tests fail and why they predate the run>"` writes
+  `reductions/red-bg-<HEAD12>.json`; candor 0.9.1 accepts `red-suite` for that HEAD only with
+  it, newer than the run's registration, and only when the closing report names
+  `bg-<HEAD12>`. `run.md` names it beside the no-runner exit; three sentences it restated from
+  elsewhere (no status HTML, a green suite alone, the plan is displayed) were cut to keep its
+  size. Standing: gate — `reduction-record.test.sh` "--kind red writes red-bg-<HEAD12>.json at
+  the repo root", red against this version's previous cut; the acceptance is candor's
+  (`gate.test.sh` "red: …"). Residual: nothing checks that the failures predate the run.
+- **A suite whose every test fails reads `red-suite`, not `empty-suite`.** cargo's `test result:
+  FAILED. 0 passed; 1 failed` and mocha's `0 passing` beside `1 failing` matched the zero-pass
+  empty signal before any failure count. Both verdicts exit 2, so no run closed over one, but
+  the label sent the reader after a missing test instead of a failing one. A non-zero failure
+  count now means tests ran, and `runners.md`'s cargo row says so. The other parsers' all-fail
+  shapes (pytest, unittest, jest, vitest, node, bun, Playwright, go, gotestsum, PHPUnit, Pest,
+  nextest, rspec, minitest, Surefire, Gradle) were probed by hand and already read `red-suite`;
+  those probe lines were written from each tool's format, not captured from a run. Standing:
+  gate — `behavioral-gate.test.sh` "--runner-for rs, cargo 'test result: FAILED. 0 passed; 1
+  failed' …" and "--runner-for js, mocha '0 passing' and '1 failing' …", both red against this
+  version's first cut. The mocha failing count counts only as its own summary line,
+  `N failing` alone after a line start or a workspace prefix (`web:test:   1 failing`),
+  case-sensitive: a first cut took `N failing` anywhere, so a green script printing `2 failing
+  checks skipped` read `covered`, and a second anchored it to the line start, so a turbo-prefixed
+  all-failing run read `empty-suite`. Standing: gate — "package.json script printing '2 failing
+  checks skipped' …" and "--runner-for js, a workspace-prefixed all-failing mocha run …", each
+  red against one of those cuts. Residual: mocha's `N passing` is still matched anywhere on a line, as
+  before 0.49.0.
+- **Three code comments no longer point at header sections that moved out of the code.**
+  Standing: recorded.
+- **`ultra-assess.md` renders past line 64 again.** A "(Proportionality law: …)" citation sat on
+  the closing fence's line, and a closing fence followed by text does not close, so the rest of
+  the reference read as code. The citation, a repo path installers do not have, is removed.
+- **The scope lock no longer flags the run's own card index.** In one project 61 of 77
+  scope-lock warnings named the run's `00-INDEX.md` and told the model to revert it, while
+  `run.md` tells it to update status there. The index `active-run.json` records as
+  `index_path` is now exempt, for Edit/Write and for Bash writes alike; a sibling card file
+  still warns. Pinned by `scope-hook.test.sh` case 19, red against 0.48.0. Residual: an
+  inline run registers no index, so its own status file, if any, still warns.
+
 ## 0.48.0 — 2026-10-15
 
 - **The behavioral gate ends itself inside the host's 2 h background limit: `BEHAVIORAL_GATE_TOTAL`.** From CLI 2.1.285 the host stops a background Bash call at its `timeout`, 30 minutes unless the call sets more and 2 h at most; from 2.1.288 only in `-p`, Agent SDK, CI and cloud sessions, which is where a hands-off run lives. The gate's suite cap is 1800 s, so a default-timeout call was stopped at the moment a hung suite would have read TIMED OUT, and seven suites at the cap ran 210 minutes, past any timeout. A stopped gate writes no verdict: measured on 2.1.300 through TaskStop, the host sends TERM, then KILL about 1.4 s later, to the call's whole process tree; the gate's trap removed `running.pid` and its worktree, and `bg/` held no record. Now `BEHAVIORAL_GATE_TOTAL` (default 6600 s, isolate build included) bounds the whole gate: each suite and probe starts with what is left, a run it cuts or never starts reads `unverifiable-suite` (an entrypoint probe too, not `entrypoint-error`), and the record is written. `timeout` gets `-k 10` where it supports it: a suite that ignores TERM held a 1 s cap for 6 s, so no total held; the KILL's 137 at the cap still reads as a timeout. `run.md`, the behavioral-gate and task-execution skills, the tracks final gate and `--help` now say to start it in background Bash with `timeout: 7200000` (agent-graded: no script reads the call). Pinned by `behavioral-gate.test.sh` "--help documents BEHAVIORAL_GATE_TOTAL", "BEHAVIORAL_GATE_TOTAL=2: a 4 s suite is cut …", "… the gate ends at its total …", "… a --help probe it cuts short is unverifiable(2) …" and "a suite ignoring TERM is killed 10 s after its cap …", all red against 0.47.0. Residuals: the time-limit stop itself was not run (it needs an unattended session, and so a model call); in this interactive 2.1.300 session a 15 s and a 60 s `timeout` were not applied, as 2.1.288 says. A `git worktree add` that hangs is not capped, only counted; a suite's grandchild that ignores TERM keeps running when the process `timeout` started exits on it (the gate moves on, the process leaks). The skills prose ends 64 bytes below where it started.

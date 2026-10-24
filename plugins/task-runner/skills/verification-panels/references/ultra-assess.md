@@ -61,7 +61,7 @@ ULTRA-ASSESS ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this 
   boost is for the red-team + critic. Fan-out counts are ceilings sized to blast radius.
 - Fan out on EITHER dispatch mechanism — `Workflow` `agent()` or the Agent tool; the inline
   fallback fires only when neither exists (§ Graceful degradation).
-``` (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+```
 
 ## The recipe
 
