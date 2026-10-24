@@ -57,7 +57,7 @@ NOT open a new loop. On the third failed cycle, halt the card as usual.
   with a note and rely on the behavioral-gate + reviewer pass; record that the control was
   not applicable.
 
-### Residual (named): the manual-skip justification is instruction-layer (Honest limitation law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+### Residual (named): the manual-skip justification is instruction-layer
 
 The why-non-automatable requirement above is enforced by instruction, not by a script —
 nothing mechanically rejects a manual/visual skip whose justification is missing or hollow.

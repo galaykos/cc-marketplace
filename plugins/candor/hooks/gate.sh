@@ -1,14 +1,7 @@
 #!/bin/bash
-# gate.sh (Stop, SubagentStop; payload on stdin) — exit 2 refuses a turn end for one clause per stop, tried 4, 1, 2, 3, 5: an incomplete
-#   registered task-runner run, a file:line resolving to nothing, a reversal after bare pushback, a naked completion claim, lockfile drift.
-# Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5);
-#   unset, each reads the /config option of its lower-cased name. Fails open: no jq, no enforcement; a clause lacking its input stands down.
-# Misses: a wrong API, flag or directory; an elided path; pushback outside its list; entries before the transcript tail; a hand-back
-#   hidden by a later user-shaped entry; a resumed agent's text whose boundary is not on disk yet; dependency lines no pattern matches.
-#   Blocks anyway: a citation into a file the turn shortened, deleted or renamed; a run record written before the run registered.
-#   Clause 4 misses a UI card with no review diff file and a range review its RV-RANGE marker over-claims; a sentinel with no start_sha owes none.
-#   It retires a closed run unchecked once HEAD moves past its gate pass, a commit made before the closing stop included.
-#   Its hold for a behavioral gate in flight reads task-runner's PID file and, on Linux, /proc: without /proc a recycled PID misreads.
+# gate.sh (Stop, SubagentStop) — exit 2 refuses a turn end, one clause a stop, tried 4, 1, 2, 3, 5: an unfinished registered task-runner run, a file:line
+#   resolving to nothing, a reversal after bare pushback, a naked completion claim, lockfile drift; then shows the user a dropped worker caveat or partial read.
+# Misses: a wrong API, flag or directory; pushback outside its list; a claim without a claim word; dependency lines no pattern matches. Fails open without jq.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -508,8 +501,8 @@ clause_unevidenced_reversal() {
 
   CAVE='you.?re (absolutely |completely |totally |quite |entirely )?right|you are (absolutely |completely |totally |quite |entirely )?right|you.?re correct|you are correct|my (mistake|apologies|bad|error)|i (was|am) wrong|i apologi[sz]e|apologies|good catch|i stand corrected|i (was|got) (confused|mistaken)|that was (wrong|my (mistake|error))|let me correct'
 
-  # HOLD: the message names what it re-checked, or keeps part of its position — candour either way.
-  HOLD='i still (think|believe|maintain)|i do (think|believe)|i.?m not (changing|reversing)|re-?read|re-?ran|re-?checked|i (checked|verified|confirmed)|after (checking|re-?reading|running|re-?running)|the (file|output|test|error|transcript) (shows|says)|i disagree|on (that|this) (one|point) i|partly|only partly|to be clear, i'
+  # HOLD keeps part of the position. A claimed re-check ("I re-read", "the file shows") is no HOLD: only a tool call after the challenge backs it.
+  HOLD='i still (think|believe|maintain)|i do (think|believe)|i.?m not (changing|reversing)|i disagree|on (that|this) (one|point) i|partly|only partly|to be clear, i'
 
   if [ -n "$last_user" ] && [ "$user_has_evidence" -eq 0 ] \
      && printf '%s' "$last_user" | grep -qiE "$PUSHBACK" \
@@ -534,15 +527,24 @@ clause_unevidenced_reversal
 
 ev_mode=$(cc_option CC_EVIDENCE_GATE block)
 clause_naked_completion() {
-  [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "evidence" ] && [ "$ev_mode" != "off" ] || return 0
+  [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$skip" != "evidence" ] && [ "$ev_mode" != "off" ] || return 0
   # grep -w, not \b: BSD grep has no \b, and an unanchored 'done' would match 'abandoned'.
-  said=$(printf '%s' "$tail_jsonl" \
+  # A worker's claim is its report, which a hand-back carries as a tool call, not a text block.
+  if [ "$evt" = "SubagentStop" ]; then
+    # With no transcript of its own the worker's edits are unknown; the parent's fallback would arm a read-only worker's "Done".
+    [ -n "$(printf '%s' "$input" | jq -r '.agent_transcript_path // empty' 2>/dev/null)" ] || return 0
+    said=$last_msg
+  else said=$(printf '%s' "$tail_jsonl" \
     | jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' 2>/dev/null \
     | tail -"$CLAIM_WINDOW_LINES")
+  fi
   CLAIM='done|complete|completed|finished|implemented|fixed|resolved|verified|passes|passing|works now|working now|should work|all set|good to go'
   # ACK must state this turn's verification state: a failure named as the thing fixed stays part of the claim.
   ACK='not tested|untested|unverified|not verified|did not (run|rerun)|didn.t (run|rerun)|have not (run|rerun)|haven.t (run|rerun)|not (run|rerun) yet|cannot verify|could not verify|not green|still fail(ing|s)?|currently fail(ing|s)?|(tests?|suite|build|lint|checks?|it) (is|are|was|were) (still |currently )?fail(ing|ed|s)?|(tests?|suite|build|lint|checks?|it) (still |currently )?fail(ing|ed|s)?|fail(ing|s) (with|on|because|due)|in progress|still working|wip|not done|incomplete|halt|halting|halted|blocked|parked|known issue|please verify|verify manually|left to do|remains to'
-  if [ -n "$said" ] && printf '%s' "$said" | grep -qiwE "$CLAIM" && ! printf '%s' "$said" | grep -qiwE "$ACK"; then
+  # A caveat label followed only by none or n/a ("Not tested: none") states no gap, so it leaves the text ACK reads.
+  NO_GAP='^[[:space:]>*_+-]*([0-9]+[.)][[:space:]]*)?(not done|partial|not tested|untested|not checked|not run|residual|known miss|blocked|could not|did not|unverified|not verified|parked|left to do|remains to|known issue|incomplete|in progress|wip|halted|not green|still failing)[a-z]*[[:space:]*_]*(:|—|–|-)?[[:space:]*_]*(none|n/a|nothing)[[:space:]]*[.!]?[[:space:]*_]*$'
+  acked=$(printf '%s\n' "$said" | grep -viE "$NO_GAP")
+  if [ -n "$said" ] && printf '%s' "$said" | grep -qiwE "$CLAIM" && ! printf '%s' "$acked" | grep -qiwE "$ACK"; then
     # An edit to a prose file (.md, .txt, .rst, .adoc and kin) does not arm the clause: no command's failure proves a README wrong.
     ev=$(printf '%s' "$tail_jsonl" \
       | jq -r 'select(.type=="assistant")
@@ -554,7 +556,7 @@ clause_naked_completion() {
       | awk '
           { for (i = 1; i <= NF; i++) { n++
               if ($i ~ /^(Edit|Write|MultiEdit|NotebookEdit)(@|$)/ && $i !~ /@(md|mdx|markdown|txt|rst|adoc|asciidoc)$/) last_edit = n
-              if ($i ~ /^(Bash|Agent|Task)$/)                   last_exec = n } }
+              if ($i == "Bash")                                 last_exec = n } }
           END {
             if (!last_edit)               print "no-edits"
             else if (last_exec > last_edit) print "evidence"
@@ -634,7 +636,90 @@ MANIFESTS
 }
 clause_lockfile_drift
 
-[ -n "$verdict" ] || exit 0
+# Carried: the item's id token; or min(2, n) of its n words of 5+ letters that are not stopwords; or, with n = 0, its text after the label as whole words.
+RELAY_ACCOUNT='
+  function words(s, out,   n, i, w, a) {
+    s = tolower(s); gsub(/[^a-z]+/, " ", s); n = split(s, a, " ")
+    for (i = 1; i <= n; i++) { w = a[i]; if (length(w) >= 5 && !(w in STOP)) out[w] = 1 }
+  }
+  function after(s,   t) {
+    t = tolower(s); sub(/^[*_ ]+/, "", t); sub(CAV "[a-z]*[*_ ]*[:.)—–-]*[*_ ]*", "", t); sub(/[ \t.,;:!*_]+$/, "", t)
+    if (t == "") { t = tolower(s); sub(/[ \t.,;:!*_]+$/, "", t) }
+    return t
+  }
+  BEGIN {
+    n = split("about above after again against already also although always among another because before being below between cannot could doing during either every first further having however itself might never other others rather really should since still their theirs there these thing things those though through under until using which while whether within without would partial partially tested untested checked unchecked verified unverified residual residuals blocked known", s, " ")
+    for (i = 1; i <= n; i++) STOP[s[i]] = 1
+    CAV = "^(not done|partial|not tested|untested|not checked|not run|residual|known miss|blocked|could not|did not|unverified|not verified)"
+  }
+  FNR == NR { m = m " " $0; next }
+  !seen[$0]++ && ++k <= 40 {
+    if (!said_done) { said_done = 1; m = m " "; lm = tolower(m); gsub(/[^a-z0-9]+/, " ", lm); lm = " " lm " "; words(m, said) }
+    lab = $0; sub(/\t.*/, "", lab); txt = $0; sub(/^[^\t]*\t/, "", txt)
+    if (lab != "-" && match(m, "[^A-Za-z0-9_-]" lab "[^A-Za-z0-9_]")) next
+    split("", iw); words(txt, iw); n = 0; hits = 0
+    for (w in iw) { n++; if (w in said) hits++ }
+    if (n > 0 && hits >= (n < 2 ? n : 2)) next
+    if (n == 0) { at = after(txt); gsub(/[^a-z0-9]+/, " ", at); gsub(/^ | $/, "", at); if (length(at) >= 2 && index(lm, " " at " ")) next }
+    print txt
+  }'
+relay_mode=$(cc_option CC_RELAY_GATE warn)
+relay_detail=""
+warn_text=""
+clause_relay() {
+  [ "$evt" != "SubagentStop" ] && [ "$relay_mode" != off ] && [ -n "$last_msg" ] || return 0
+  local ctx f missing
+  ctx=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
+  [ -n "$ctx" ] || return 0
+  f="${TMPDIR:-/tmp}/cc-candor-relay-$(printf '%s' "$ctx" | cksum | cut -d' ' -f1)"
+  [ -f "$f" ] && [ -O "$f" ] || return 0
+  missing=$(printf '%s\n' "$last_msg" | awk "$RELAY_ACCOUNT" - "$f" 2>/dev/null)
+  rm -f "$f" 2>/dev/null
+  [ -n "$missing" ] || return 0
+  relay_detail=$(printf '%s\n' "$missing" | sed 's/^/  - /')
+  if [ "$relay_mode" = block ] && [ -z "$verdict" ]; then
+    verdict="relay"; detail="$relay_detail"
+  else
+    warn_text=$(relay_warning 'CC_RELAY_GATE=block makes Claude relay them; ')
+  fi
+}
+relay_warning() {
+  printf '[candor] relay: a worker'"'"'s report named caveats Claude'"'"'s final message dropped:\n%s\n  %sCC_RELAY_GATE=off silences this.' "$relay_detail" "$1"
+}
+relay_report() {
+  printf '[candor] relay: a worker report this turn named caveats the final message does not carry:\n%s\n' "$relay_detail" >&2
+  printf '  Relay each one the user needs, or say why it no longer applies.\n' >&2
+  printf '  CC_RELAY_GATE=off silences this; =block holds the turn once.\n' >&2
+}
+clause_relay
+
+# Partial reads (0.10.0): a file hooks/reads.sh saw read only in part, which the final message never names. Warn-only.
+clause_partial_reads() {
+  [ "$evt" != "SubagentStop" ] || return 0
+  local ctx f list
+  ctx=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
+  [ -n "$ctx" ] || return 0
+  f="${TMPDIR:-/tmp}/cc-candor-reads-$(printf '%s' "$ctx" | cksum | cut -d' ' -f1)"
+  [ -f "$f" ] && [ -O "$f" ] || return 0
+  if [ "$(cc_option CC_READ_LEDGER warn)" != off ] && [ -n "$last_msg" ]; then
+    list=$(while IFS=$'\t' read -r path lines ranges; do
+             printf '%s' "$last_msg" | grep -qF -- "${path##*/}" || printf '  - %s:%s (of %s lines)\n' "${path#"$root"/}" "$ranges" "$lines"
+           done < "$f")
+    [ -z "$list" ] || warn_text="${warn_text:+$warn_text
+}$(printf '[candor] reads: Claude read only part of these files, and its final message never names them:\n%s\n  CC_READ_LEDGER=off silences this.' "$list")"
+  fi
+  rm -f "$f" 2>/dev/null
+}
+clause_partial_reads
+
+# The two warnings are the user's: a passing stop shows them as a systemMessage; a block by clause 1-3 or 5 appends them to the model's stderr.
+pass_turn() {
+  [ "$verdict" != relay ] || warn_text="$(relay_warning '')${warn_text:+
+$warn_text}"
+  [ -z "$warn_text" ] || jq -cn --arg m "$warn_text" '{systemMessage:$m}'
+  exit 0
+}
+[ -n "$verdict" ] || pass_turn
 
 report_verdict() {
   mode="$gate_mode"
@@ -646,11 +731,11 @@ report_verdict() {
   marker="$state_dir/last$agent_sfx"
   state=$(printf '%s|%s' "$verdict" "$detail$last_msg" | (command -v shasum >/dev/null 2>&1 && shasum | cut -d' ' -f1 || cksum | cut -d' ' -f1))
   if [ -r "$marker" ] && [ "$(cat "$marker" 2>/dev/null)" = "$state" ]; then
-    exit 0
+    pass_turn
   fi
   if ! { mkdir -p "$state_dir" 2>/dev/null && { [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null || :; } && printf '%s' "$state" > "$marker" 2>/dev/null; }; then
     # No marker, no per-text bound: honour the shared flag here only, so unwritable state cannot block the same turn forever.
-    [ "$sha_active" = "true" ] && exit 0
+    [ "$sha_active" = "true" ] && pass_turn
   fi
 
   # Record which clause blocked, so only that clause stands down on the continuation.
@@ -684,15 +769,19 @@ report_verdict() {
       printf '  build, go mod tidy) and commit the lockfile with the manifest — or say plainly that the\n' >&2
       printf '  lockfile is deliberately unchanged and why. CC_LOCKFILE_GATE=off disables this clause.\n' >&2 ;;
     evidence)
-      printf '[candor] evidence-gate: this turn claims completion, files were edited, and no command ran after the last edit — nothing verified the change.\n' >&2
+      what="this turn"; [ "$evt" = "SubagentStop" ] && what="this report"
+      printf '[candor] evidence-gate: %s claims completion, files were edited, and no command ran after the last edit — nothing verified the change.\n' "$what" >&2
       printf '  Either run the check that would FAIL if the change were broken (test, build, lint, or execute\n' >&2
       printf '  the changed code) and show its output — or restate honestly: what changed, what was NOT\n' >&2
       printf '  verified, and the exact command the user can run to verify it.\n' >&2
       printf '  A claim with no execution behind it is the failure this gate exists to stop.\n' >&2
+      [ "$evt" = "SubagentStop" ] && printf '  Then re-send your COMPLETE report, corrected: only your last message reaches the caller.\n' >&2
       printf '  CC_EVIDENCE_GATE=off disables this clause for the session; =warn prints without blocking.\n' >&2 ;;
+    relay) relay_report ;;
   esac
 
-  [ "$mode" = "block" ] || exit 0
+  [ "$mode" = "block" ] || pass_turn
+  [ -z "$warn_text" ] || printf '%s\n' "$warn_text" >&2
   # A blocked subagent keeps running: put back the in-flight record removed above.
   if [ -n "$inflight_rec" ]; then
     printf '%s\n' "$agent_id" > "$inflight_rec" 2>/dev/null

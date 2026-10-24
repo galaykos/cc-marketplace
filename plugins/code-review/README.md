@@ -566,9 +566,14 @@ items — a second auth guard, impersonation, API tokens — with zero reviews w
 stayed green, and a sibling session's reviewers caught bugs those tests had passed.
 
 - **What.** One line of context for the model on your next prompt: how many files changed
-  since the last review, up to three auth-surface paths, and the exact command,
-  `/code-review:review <base>..HEAD`, "or say in one line why not", and that per-card reviews
-  do not cover cross-card changes. It never blocks and never runs a review itself.
+  since the last review, up to three auth-surface paths, and that per-card reviews do not
+  cover cross-card changes. Since 0.34.0 it tells the model to let you decide: ask you
+  through AskUserQuestion with two options, "Review <base>..HEAD now (Recommended)", which
+  runs `/code-review:review <base>..HEAD`, and "Skip — I'll say why"; in a hands-off goal
+  run, run the review without asking. Until then it offered the model "or say in one line
+  why not", and in reviewed sessions the model took that skip at least six times while the
+  reviews the nudge did prompt found high-severity bugs. It never blocks and never runs a
+  review itself.
 - **When.** In a git repo, when the diff since this session's last review (or since its
   first prompt) has 8 or more changed files, or at least one path matching an auth-surface
   pattern (auth, login, password, token, secret, credential, policy, permission, role,
@@ -580,8 +585,9 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
   resets the count. It stays silent during a task-runner run, which has its own reviewers,
   and the run's changes are not counted afterwards.
 - **At a ship prompt.** Since 0.33.0, a prompt whose first 400 characters (outside code
-  fences) say commit, push, merge, PR or pull request is checked at once, without waiting
-  for a commit, and untracked files count too. The line opens "Before this ships" and names
+  fences) say commit, push, merge, PR or pull request — since 0.34.0 also finish or land, so
+  `/git-workflow:finish` counts — is checked at once, without waiting for a commit, and
+  untracked files count too. The line opens "Before this ships" and its review option runs
   `/code-review:review <base>`, which covers the working tree. It repeats only when the count
   has grown since the last such line.
 - **Branch switches.** Since 0.33.0 the base remembers its branch. After a `git switch` the
@@ -590,12 +596,14 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
   turn, still count.
 - **Limits.** Between ship prompts it checks the diff once per new commit, so uncommitted
   work waits for the next commit or ship prompt. A ship verb is matched as a word ("push
-  notifications" counts; "land it" does not). Switching away from a branch and back drops
+  notifications" and "finish the login form" count; "landing page" does not, and neither does
+  "ship it"). Switching away from a branch and back drops
   the earlier count. It recognises a review by its name, not by what the review covered.
 - **Off switch.** `CC_REVIEW_NUDGE=off` silences this nudge; `CC_REMIND=off` silences it
   along with every other advisory.
-- **Standing: advisory.** Nothing enforces the review. Whether a suggested review was worth
-  running is agent-graded.
+- **Standing: advisory.** Nothing enforces the review. The wording and the ship verbs are a
+  **gate** through `scripts/__tests__/review-debt.test.sh`; whether the model asks you, and
+  whether a suggested review was worth running, is agent-graded.
 
 ## Mods (Claude Code ≥ 2.1.291)
 

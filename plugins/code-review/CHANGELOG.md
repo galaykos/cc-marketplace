@@ -3,6 +3,34 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.34.0 — 2026-10-22
+
+- **The review-debt nudge hands the review decision to you.** Its line ended "Run
+  `/code-review:review <base>..HEAD`, or say in one line why not", and in the sessions the
+  2026-10-21 retro read the model took that skip at least six times ("I'm not running
+  another", "skipping it") while the reviews the nudge did prompt found high-severity bugs.
+  Both lines now tell the model to ask you through AskUserQuestion with two options, "Review
+  <range> now (Recommended)", which runs `/code-review:review <range>`, and "Skip — I'll say
+  why", and in a hands-off goal run to run the review without asking. The range is
+  `<base>..HEAD`, or `<base>` on a ship prompt, which covers the working tree. Once per HEAD,
+  the ship-prompt rule and the thresholds are unchanged. Standing: gate for the wording —
+  `scripts/__tests__/review-debt.test.sh` "9 committed code files nudge", "ship prompt after
+  the plain nudge, same HEAD" and "uncommitted + untracked auth file at a ship prompt, same
+  HEAD", red against 0.33.2; agent-graded for whether the model asks.
+- **`finish` and `land` are ship verbs, so `/git-workflow:finish` gets the "Before this
+  ships" line.** A ship request worded that way waited for the next commit. Standing: gate —
+  "land is a ship verb", "finish is a ship verb" and "/git-workflow:finish is a ship prompt"
+  are red against 0.33.2; "landing is not land", "finished is not finish" and "finish_reason
+  is not finish" stay silent. Residual: a word match, not intent — "finish the login form"
+  and "land registry" now judge the diff at once and open "Before this ships".
+
+- **`/code-review:review` hands security-relevant diffs to security's `security-reviewer`.**
+  A change touching auth, input handling, uploads, secrets, session transport or dependency
+  manifests adds the read-only agent (security 0.13.0) to the fan-in, given the diff file like
+  the other Read/Grep/Glob reviewers; "security-deep issues → `/security:review`" now reads
+  "a whole-application security audit". Without security installed, the closing line names
+  the plugin as before. Standing: agent-graded — nothing checks the dispatch happened.
+
 ## 0.33.2 — 2026-10-22
 
 - **A constraint comment that opens with `NAME=value` is no longer denied as commented-out

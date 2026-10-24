@@ -218,6 +218,10 @@ cc_prompt_question() {
   # Only the head outside fences and backtick spans counts: a pasted log or quote buries its keywords.
   scrub=$(printf '%s' "$prompt" | cc_prompt_unpaste | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
+  # Any typed prompt but a slash command disarms taskmaster's clarify gate and a work-shaped one re-arms it below, so the marker's mtime is that prompt's.
+  sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
+  wp="${TMPDIR:-/tmp}/cc-workprompt-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
+  rmdir "$wp" 2>/dev/null
   is_machinery_prompt && exit 0
   is_about_hooks && exit 0
   is_own_echo && exit 0
@@ -234,13 +238,13 @@ cc_prompt_question() {
     # MONOTONIC PRECEDENCE: the best rank eligible this turn always speaks; a worse rank that reads before it claims also prints.
     key=$(printf '%s%s%s' "$sid" "$prompt" "$cc_phase_now" | cksum | cut -d' ' -f1)
     # Sole producer for taskmaster's clarify gate: dropped whenever this hook reaches its trigger branch, even when a better rank speaks.
-    mkdir "${TMPDIR:-/tmp}/cc-workprompt-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)" 2>/dev/null
+    mkdir "$wp" 2>/dev/null
     claim_rank
     best=$(best_rank)
     if [ -z "$best" ] || [ "$best" = '25' ]; then
-      printf '%s (%s).\n' 'taskmaster: work-shaped prompt — before the first code edit, run one batched clarifying round to zero ambiguity, or state in one line why this task is trivial enough to skip it; the inline route is /code-architecture:coding-task' '/taskmaster:task'
-      # The trivial skip let an auth change through: withheld on the block's prompt-side auth words (needs promptShape).
-      cc_prompt_auth_ask "$head" && printf '%s\n' 'The prompt names an auth surface: the trivial skip does not apply.'
+      printf '%s (%s).\n' 'taskmaster: work-shaped prompt — before the first code edit, either ask one batched AskUserQuestion round, or write one line starting `Assuming:` that names what you decided for the user; at a later fork the user has not answered, ask — do not default; the inline route is /code-architecture:coding-task' '/taskmaster:task'
+      # A skip let an auth change through: the Assuming: route is withdrawn on the block's prompt-side auth words (needs promptShape).
+      cc_prompt_auth_ask "$head" && printf '%s\n' 'The prompt names an auth surface: ask; an Assuming: line does not cover it.'
     fi
     sweep_stale_markers
   fi

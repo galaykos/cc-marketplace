@@ -31,9 +31,14 @@ the self-refute pass. Filter the built-in's findings through
 `security:security-review`'s exploitability triage before reporting — an
 unreachable-path finding is dropped subject to the same unless-nothing-else-is-found
 exception below. When $ARGUMENTS names a path or file set, or the host skill is
-absent, run the whole review inline as written: the built-in reviews only the
-branch diff and would not cover the requested scope. The `Checked:` line names
-which branch did the generic pass. Standing: recorded — nothing checks which ran.
+absent, the generic pass is this plugin's read-only `security:security-reviewer`
+instead (the built-in reviews only the branch diff and would not cover the requested
+scope): hand it the paths, or the branch diff written to
+`.claude/security/diff-<short HEAD>.patch` beside a `.gitignore` holding `*`, with
+"cite line numbers from the working file, not the patch". Its `Not read:` and
+`Not checked:` lines carry into this command's own. No Agent tool (a subagent run):
+inline as written. The `Checked:` line names which branch did the generic pass.
+Standing: recorded — nothing checks which ran.
 
 Before reporting, read the project manifests (composer.json / package.json and their
 lockfiles) and pin every finding to the installed versions — do not flag vulnerabilities
@@ -55,7 +60,7 @@ is acceptance-by-omission, the exact failure the threat-modeling skill names as 
 anti-pattern, and nothing else reads dispositions back.
 
 Close with a coverage inventory and a self-refute pass: state
-`Checked: host built-in | inline — …` (the branch that ran the generic pass as its first token) and `Not checked: … (why)` so it is explicit what was covered, what was clean, and what was
+`Checked: host built-in | security-reviewer | inline — …` (the branch that ran the generic pass as its first token) and `Not checked: … (why)` so it is explicit what was covered, what was clean, and what was
 skipped — not only what broke. Then run one adversarial self-refute pass over every
 `critical` finding; if a finding does not survive it, drop or downgrade it with a note.
 

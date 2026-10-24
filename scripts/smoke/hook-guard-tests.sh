@@ -168,15 +168,16 @@ if [ -f "$TMR" ]; then
   assert_speaks "taskmaster [typed prompt beside a wakeup]"   "$TMR" "$(tx 'fix the nightly import')"
   assert_speaks "taskmaster [subagent prompt is not a timer]" "$TMR" "$(tx 'add a CSV export to the orders page')"
   assert_speaks "taskmaster [a heading the user typed]"       "$TMR" "$(pj $'# Autonomous loop detection\n\nbuild a cycle detector for the job graph')"
-  # V-20, the auth half: the trivial skip is withheld when the prompt names an auth surface (cc_prompt_auth_ask, the block's
-  # word-anchored prompt list). Neighbours that keep the skip: `author`, and a register verb that is not registration.
+  # V-20, the auth half: the Assuming: route is withheld when the prompt names an auth surface (cc_prompt_auth_ask, the block's
+  # word-anchored prompt list; until taskmaster 0.50.0 the route was "trivial enough to skip"). Neighbours that keep it: `author`,
+  # and a register verb that is not registration.
   tm_auth() { # desc  withheld|offered  prompt
     local out; out="$(pj "$3" | "$BASH_BIN" "$TMR" 2>/dev/null)"
     [ -n "$out" ] || { fail "$1" "wanted a reminder, got silence"; return; }
-    if printf '%s' "$out" | grep -qF 'the trivial skip does not apply'; then
-      [ "$2" = withheld ] && pass "$1" || fail "$1" "the skip was withheld: $out"
+    if printf '%s' "$out" | grep -qF 'an Assuming: line does not cover it'; then
+      [ "$2" = withheld ] && pass "$1" || fail "$1" "the Assuming: route was withheld: $out"
     else
-      [ "$2" = offered ] && pass "$1" || fail "$1" "the skip was still offered: $out"
+      [ "$2" = offered ] && pass "$1" || fail "$1" "the Assuming: route was still offered: $out"
     fi
   }
   tm_auth "taskmaster [auth surface: registration]"   withheld "turn off public registration for now; we will add users from an artisan command"

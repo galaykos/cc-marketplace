@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # gate.test.sh — drives hooks/gate.sh with synthetic transcripts and Stop/SubagentStop payloads carrying transcript_path, asserting exit status
-#   and stderr: clauses 1, 2 and 5, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage.
+#   and stderr: clauses 1, 2 and 5, clause 3's dispatch and SubagentStop cases, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop,
+#   the state root, in-flight workers, coverage.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/gate.test.sh
 set -u
 
@@ -167,8 +168,10 @@ LONG="Are you sure about that? I have been staring at this for an hour and my re
 T="$WS/r5.jsonl"; { asst "It is disabled."; user "$LONG"; asst "You're right, I was wrong."; } > "$T"
 check "long argued pushback disarms (>400 chars)"     "" "$T" 0 "__NONE__"
 
-T="$WS/r6.jsonl"; { asst "It is disabled."; user "Are you sure?"; asst "I re-read the settings — you're right, it is on."; } > "$T"
-check "stated basis (re-read) passes"                 "" "$T" 0 "__NONE__"
+T="$WS/r6.jsonl"; { asst "It is disabled."; user "Are you sure?"; asst "I re-checked — you're right, reverting."; } > "$T"
+check "a claimed re-check with no tool call after the challenge blocks" "" "$T" 2 "$REV_SUB"
+T="$WS/r6b.jsonl"; { asst "It is disabled."; user "Are you sure?"; tools Read; tres; asst "I re-checked — you're right, reverting."; } > "$T"
+check "a claimed re-check after a Read call passes"   "" "$T" 0 "__NONE__"
 
 T="$WS/r7.jsonl"; { asst "It is disabled."; user "Are you sure?"; asst "I still think it is disabled; the flag defaults to false."; } > "$T"
 check "holding the position passes"                   "" "$T" 0 "__NONE__"
@@ -178,6 +181,14 @@ check "retraction language without pushback passes"   "" "$T" 0 "__NONE__"
 
 T="$WS/r9.jsonl"; { asst "Deleting the branch now."; user "No, don't do that."; asst "Understood — leaving it in place."; } > "$T"
 check "an instruction (not a challenge) passes"       "" "$T" 0 "__NONE__"
+
+CLAIM_SUB='no command ran after the last edit'
+T="$WS/e1.jsonl"; { user "fix the bug"; tools Edit; tres; tools Agent; tres; asst "Fixed and verified."; } > "$T"
+check "clause 3: an Agent dispatch after the edit is not execution, the claim blocks" "" "$T" 2 "$CLAIM_SUB"
+T="$WS/e1b.jsonl"; { user "fix the bug"; tools Edit; tres; tools Task; tres; asst "Fixed and verified."; } > "$T"
+check "clause 3: a Task dispatch after the edit is not execution, the claim blocks" "" "$T" 2 "$CLAIM_SUB"
+T="$WS/e2.jsonl"; { user "fix the bug"; tools Edit; tres; tools Bash; tres; asst "Fixed."; } > "$T"
+check "clause 3: a Bash call after the edit passes"   "" "$T" 0 "__NONE__"
 
 T="$WS/p1.jsonl"; { asst "It is fine."; user "Are you sure?"; asst "You're right, my mistake — see src/ghost.ts:9."; } > "$T"
 check "citation clause reported first when both trip" "" "$T" 2 "$CITE_SUB"
@@ -231,6 +242,25 @@ sub_check "subagent: fabricated citation in last_assistant_message blocks" "Foun
 sub_check "subagent: the block asks for the COMPLETE report, not just the fix" "Found it at src/ghost.ts:12." 2 "re-send your COMPLETE report"
 sub_check "subagent: resolving citation passes"                            "Found it at src/real.ts:3."   0 "__NONE__"
 sub_check "subagent: reversal clause disarmed (no user turn to push back)" "You're right, my mistake."   0 "__NONE__"
+A="$WS/agent-edit.jsonl"; { user "fix the bug"; tools Read; tres; tools Edit; tres; } > "$A"
+sub_check "subagent: an editing worker claiming fixed with no Bash after its edit blocks" "Fixed the bug." 2 "this report claims completion"
+A="$WS/agent-edit-run.jsonl"; { user "fix the bug"; tools Edit; tres; tools Bash; tres; } > "$A"
+sub_check "subagent: an editing worker with a Bash after its edit passes" "Fixed the bug." 0 "__NONE__"
+A="$WS/agent-readonly.jsonl"; { user "find the bug"; tools Read Grep; tres; } > "$A"
+sub_check "subagent: a read-only worker claiming done is untouched"        "Done — the bug is in the parser." 0 "__NONE__"
+A="$WS/agent-edit-a.jsonl"
+{ user "fix the bug"; jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"Edit",input:{file_path:"src/a.ts"}}]}}'; tres; } > "$A"
+sub_check "subagent: 'Not tested: none' is no acknowledgement, the claim still blocks" $'Fixed the bug.\nNot tested: none' 2 "this report claims completion"
+sub_check "subagent: a bold '**Not verified:** n/a' is no acknowledgement either" $'Fixed the bug.\n**Not verified:** n/a' 2 "this report claims completion"
+sub_check "subagent: a caveat that names something still acknowledges" $'Fixed the bug.\nNot tested: the Windows path' 0 "__NONE__"
+{ user "fix the bug"; jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"Edit",input:{file_path:"src/a.ts"}}]}}'; tres; tools Agent; tres; } > "$WS/parent-edit.jsonl"
+rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"
+err=$(jq -cn --arg tp "$WS/parent-edit.jsonl" --arg cwd "$CWD" --arg m "Done — the root cause is in the parser; I did not edit anything." \
+  '{hook_event_name:"SubagentStop",transcript_path:$tp,agent_id:"aac4725192b90da07",agent_type:"Explore",last_assistant_message:$m,cwd:$cwd,stop_hook_active:false}' \
+  | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+if [ "$rc" -eq 0 ] && [ -z "$err" ]; then pass=$((pass+1)); printf 'PASS  subagent: with no agent_transcript_path clause 3 stands down; the parent'"'"'s edits never arm it\n'
+else fail=$((fail+1)); printf 'FAIL  subagent: with no agent_transcript_path clause 3 stands down (rc=%s; stderr=%s)\n' "$rc" "$err"; fi
+A="$WS/agent.jsonl"
 { user "find the bug"; asst "See src/real.ts:3."; } > "$A"
 sub_check "subagent: payload text is judged, not the transcript tail"      "Found it at src/ghost.ts:12." 2 "this report"
 rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"

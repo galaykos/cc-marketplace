@@ -36,6 +36,13 @@ which branch ran; the `Checked:` line says.
 |---------|--------------|
 | `/security:review [files-or-diff]` | Security-review a diff or path; severity-ordered findings with exploitability notes and concrete fixes; runs `composer audit` / `npm audit` alongside; wraps the host's built-in `security-review` on a branch-diff scope (see Boundary above) |
 
+## Agents
+
+| Agent | What it does |
+|-------|--------------|
+| `security-reviewer` | Since 0.13.0. Read-only (`Read, Grep, Glob`): reviews the diff file it is handed against the `security-review` skill, which the host preloads into it (a 10,113-byte body, about 2.5k tokens at 4 bytes/token, paid per spawn and not metered by `context-budget.sh`), and returns `path:line — severity — problem — fix` findings closed by `Not read:` and `Not checked:` lines. It has no shell, so it runs no audit and no probe: `composer audit` / `npm audit` output folds in only when the dispatch carries it. It is `/security:review`'s generic pass on a path scope or when the host built-in is absent, and `/code-review:review` hands it the diff file when the change touches auth, input, uploads, secrets, session transport or dependencies. Standing: the read-only grant is the host's; `pc_agent_tool_fit` (validate.sh) fails a body that tells it to run or write something; the findings are agent-graded. |
+| `security-engineer` | Worker: applies a decided security fix list, one regression test per fix. Dispatched review-only (task-runner's per-card security review, since 0.13.0 a mode in its own body), it edits nothing in the repository, runs probes of the project's own guards under `$TMPDIR`, and returns findings closed by `Not read:` and `Not checked:` lines — the probes a read-only reviewer cannot run. Standing: agent-graded; nothing stops a write it was told not to make. |
+
 ## Example
 
 ```bash

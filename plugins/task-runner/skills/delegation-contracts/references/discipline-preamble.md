@@ -39,8 +39,8 @@ worker's own default procedure wherever they differ.
    signature is deleted; only a house style the project's CLAUDE.md states overrides
    this. New behavior no test exercises is **named as untested** in your return.
 8. Final message is data for the orchestrator: a completion table
-   (task / status / verify command / evidence line) plus any parked items. No preamble
-   prose, no file dumps.
+   (task / status / verify command / evidence line), any parked items, then
+   `Not read:` and `Not checked:` lines (`none` allowed). No preamble prose, no file dumps.
 9. Cost discipline: default to the **smallest change that satisfies the card's
    acceptance criteria** — code, tests, new files, and actions (a tool call, a spawn, a
    re-read, an extra verify pass) alike; comment density is clause 7. Exceeding that

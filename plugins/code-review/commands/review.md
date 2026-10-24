@@ -55,7 +55,9 @@ mariadb skill when that engine is detected; test files, fixtures, or production 
 changed with no covering test → testing's testing-best-practices; `.github/workflows/`,
 `Dockerfile*`, `compose*.y*ml` → devops-practices, plus docker-best-practices for the
 container files; routes, controllers, API resources, OpenAPI/GraphQL/proto files →
-api-design; Three.js / react-three-fiber imports → craft-layer's threejs-best-practices;
+api-design; auth, input handling, uploads, secrets, session transport or dependency
+manifests → security's `security-reviewer` agent, handed the diff file; Three.js /
+react-three-fiber imports → craft-layer's threejs-best-practices;
 a configured analyzer for the changed language (phpstan/psalm/phpcs, tsc/eslint/biome,
 vue-tsc, and for styles and markup stylelint/pa11y/axe/lighthouse-ci, whose reviewer is
 `ui-expert`) → toolchain-experts' matching expert agent, which RUNS it rather than reciting
@@ -75,7 +77,8 @@ here is a defect in this file, not in that command. That holds for a plugin ship
 review AGENTS and no review command too.
 
 **Diff delivery to a dispatched reviewer.** A reviewer agent with `tools: Read, Grep, Glob`
-(`code-reviewer`, `architecture-reviewer`, `frontend-reviewer`, `ui-ux-reviewer`) has no shell:
+(`code-reviewer`, `architecture-reviewer`, `frontend-reviewer`, `ui-ux-reviewer`,
+`security-reviewer`) has no shell:
 told to "review the diff" it re-reads whole files and judges against memory, and it cannot
 read blame. Before the first such dispatch, write `git diff <scope>` (plus each untracked file
 in scope as `git diff --no-index /dev/null <file>`, plus
@@ -199,7 +202,7 @@ Output rules:
     review keeps the finding under step 2. The swallowed catch alone had four
     claimants; it is reported once, under one owner.
   - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer
-    agent; security-deep issues → `/security:review`.
+    agent; a whole-application security audit → `/security:review`.
 
 Before the verdict, state the coverage: `Checked: host built-in | inline — …`, the branch
 that ran the generic pass as its first token — `host built-in` followed by the level and

@@ -87,8 +87,10 @@ commit "nine" src/f1.ts src/f2.ts src/f3.ts src/f4.ts src/f5.ts src/f6.ts src/f7
 base1=$(base_of "$TP1"); short1=$(g rev-parse --short "$base1")
 out=$(prompt)
 fires "9 committed code files nudge" "$out" "9 changed files have had no review in this session since $short1" \
-  "/code-review:review $short1..HEAD" "or say in one line why not" \
+  "AskUserQuestion" "\"Review $short1..HEAD now (Recommended)\"" "/code-review:review $short1..HEAD" \
+  "\"Skip — I'll say why\"" "In a hands-off goal run, run the review without asking." \
   "Per-card reviews do not cover cross-card changes." "CC_REVIEW_NUDGE=off"
+printf '%s' "$out" | grep -qF 'or say in one line why not' && { echo "FAIL: the nudge still offers the model its own skip"; rc=1; }
 printf '%s' "$out" | grep -q 'Before this ships' && { echo "FAIL: a plain prompt drew the ship wording"; rc=1; }
 printf '%s' "$out" | grep -q 'auth-surface' && { echo "FAIL: no auth path, yet an auth-surface clause"; rc=1; }
 [ "$(printf '%s' "$out" | wc -l | tr -d ' ')" = "0" ] \
@@ -99,7 +101,7 @@ silent "same HEAD, second prompt" "$(prompt)"
 # ---- a ship verb speaks at the same HEAD, even after the plain nudge; once per count ---
 fires "ship prompt after the plain nudge, same HEAD" "$(say "$R" "commit this and push" "$TP1")" \
   "Before this ships: 9 changed files have had no review in this session since $short1" \
-  "uncommitted and untracked files included" "/code-review:review $short1 now"
+  "uncommitted and untracked files included" "\"Review $short1 now (Recommended)\""
 silent "second ship prompt, same count" "$(say "$R" "open the PR" "$TP1")"
 
 # ---- HEAD moves but the count does not grow: silent ---------------------------------
@@ -230,8 +232,9 @@ silent "uncommitted work, plain prompt, same HEAD: still once per HEAD" "$(say "
 out=$(say "$R" "open a PR and merge it" "$TP6")
 fires "uncommitted + untracked auth file at a ship prompt, same HEAD" "$out" \
   "Before this ships: 2 changed files have had no review in this session since $start6" \
-  "auth-surface: app/Billing/PaymentHold.php" "Run /code-review:review $start6 now" \
-  "Per-card reviews do not cover cross-card changes."
+  "auth-surface: app/Billing/PaymentHold.php" "\"Review $start6 now (Recommended)\"" "/code-review:review $start6" \
+  "\"Skip — I'll say why\"" "Per-card reviews do not cover cross-card changes."
+printf '%s' "$out" | grep -qF 'or say in one line why not' && { echo "FAIL: the ship line still offers the model its own skip"; rc=1; }
 printf '%s\n' "$out" > "$FX/nudge-ship.txt"
 silent "same count, second ship prompt" "$(say "$R" "git push" "$TP6")"
 printf 'new\n' > "$R/ft/z.ts"
@@ -253,6 +256,16 @@ fires "the slash form /commit is a ship verb" "$(say "$R" "/commit" "$TP6")" "Be
 printf 'new\n' > "$R/ft/y.ts"
 fires "a hand-back marker quoted mid-sentence is the user's ship prompt" \
   "$(say "$R" "merge it once the relay prints [Subagent hand-back] for card 3" "$TP6")" "Before this ships: 4 changed files"
+# finish and land are ship verbs (2026-10-21 retro, W2.4); their neighbours are not.
+printf 'new\n' > "$R/ft/x.ts"
+silent "landing is not land" "$(say "$R" "update the landing page copy" "$TP6")"
+silent "finished is not finish" "$(say "$R" "the import finished with errors, look at the log" "$TP6")"
+silent "finish_reason is not finish" "$(say "$R" "log the finish_reason from the API response" "$TP6")"
+fires "land is a ship verb" "$(say "$R" "land it" "$TP6")" "Before this ships: 5 changed files"
+printf 'new\n' > "$R/ft/w.ts"
+fires "finish is a ship verb" "$(say "$R" "finish the branch" "$TP6")" "Before this ships: 6 changed files"
+printf 'new\n' > "$R/ft/v.ts"
+fires "/git-workflow:finish is a ship prompt" "$(say "$R" "/git-workflow:finish" "$TP6")" "Before this ships: 7 changed files"
 
 # ---- outside git: silent, and no state written -----------------------------------------
 mkdir -p "$FX/plain"

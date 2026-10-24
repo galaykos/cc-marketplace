@@ -142,7 +142,7 @@ MARKER_TTL_MIN=1440
       | code-architecture:architecture-reviewer | code-review:code-reviewer | craft-layer:craft-reviewer \
       | craft-layer:creative-director | devops:devops-reviewer | hindsight:transcript-miner | taskmaster:context-scout \
       | taskmaster:spec-adversary | ui-ux:ui-ux-reviewer | ultra-deep-research:researcher | ultra-deep-research:verifier \
-      | web-dev:frontend-reviewer) exit 0 ;;
+      | web-dev:frontend-reviewer | security:security-reviewer) exit 0 ;;
     esac
     ctx="$aid"
   else

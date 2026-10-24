@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "0.49.1",
+  "version": "0.50.0",
   "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach with a blind four-persona round (via the approaches plugin when installed; inline 2-3 approaches otherwise), decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under taskmaster-docs/ (no collision with a project's own docs/).",
   "author": {
     "name": "Ivan-WG",
@@ -26,8 +26,8 @@
     "cc_clarify_gate": {
       "type": "string",
       "title": "Clarify gate (CC_CLARIFY_GATE)",
-      "description": "Refuse the first code write after a work-shaped prompt, once per session: block or off. The environment variable CC_CLARIFY_GATE overrides this.",
-      "default": "off"
+      "description": "Deny a work prompt's first code write until the model asks you or writes an Assuming: line: block or off. Once per prompt; the environment variable CC_CLARIFY_GATE overrides this.",
+      "default": "block"
     },
     "cc_preview_guard": {
       "type": "boolean",

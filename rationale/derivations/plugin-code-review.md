@@ -1,6 +1,6 @@
 # code-review: the comment text moved out of the code (2026-10-22)
 
-The text below was moved verbatim on 2026-10-22 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-code-review.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
+The text below was moved verbatim on 2026-10-22 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-code-review.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved. A `###` section carrying a date in its heading was written on that date, not moved.
 
 ## plugins/code-review/hooks/scan.sh
 
@@ -75,3 +75,128 @@ Deny and elision-warn markers: per project under CLAUDE_PLUGIN_DATA (cc_plugin_s
 ### assign_prose: a `NAME=value` sentence (2026-10-22)
 
 `# MAX_RETRIES=5 is what the upstream API tolerates before it bans the key.` was denied as commented-out code. The first cut counted every lowercase word after the value, so a comprehension, `name and email and password` and a Ruby `unless` chain read as prose. The second cut added a bracket and member-dot test and left keywords out of the count, which denied `# TIMEOUT=30 is in seconds, not minutes` and `# PORT=8080 is not used in prod` (`is in not` excluded) and still allowed `mode = fast if cached else slow unless forced` and `x = a if the user is admin else b`, whose other words were enough. Round 2 puts the keyword test on the first word after the value only, adds `;` to the code characters, and counts every lowercase word. Residuals: a constraint sentence holding a parenthetical, a `;`, a dotted word (`e.g.`, `api.example.com`) or opening with a keyword is still denied; `# CC=clang make all install` and `# ok = done is not pending` read as prose and pass.
+
+## plugins/code-review/hooks/review-debt.sh
+
+### Header until 0.34.0
+
+```text
+Absolute-path shebang (not `env bash`): the fail-open guarantee must hold even under a
+stripped or broken PATH, where `env bash` itself exits 127.
+
+Review-debt nudge. ADVISORY: one line of additionalContext on a user prompt when the
+code changed since this context's last review is big enough, or sensitive enough, that
+an independent pass is worth asking for. It never blocks and it never reviews.
+
+WHY THIS EXISTS. Measured 2026-09-25 (rationale/2026-09-25-session-plugin-usage-review.md,
+finding 7): one inline session shipped ~40 task-list items over 22 days — a second auth
+guard, impersonation with an audit trail, invite and API tokens, encrypted credentials —
+and dispatched ZERO reviewer agents. Its tests, PHPStan and CI were green on every item.
+In the same weeks a sibling session's pipeline reviewers caught what those tools had
+passed: API keys in logs, a race that overwrote a failure with "succeeded", a refusal
+detector firing on ordinary words. That session lacked the prompt, not the tools: its
+prompts ("proceed next recommended") carry no keyword a prompt router can match, and the
+per-edit nudges never saw its writes (finding 1). So this measures the DIFF, not the words.
+
+THE RULE, per context (keyed on cksum(transcript_path)):
+  - base: `<root>/.claude/code-review/review-base-<ctx>` holds a commit. The first prompt
+    with no base records HEAD and says nothing — the nudge counts only what THIS context
+    wrote, never the history it walked into.
+  - changed = `git diff --name-only <base>` (commits since base plus the working tree),
+    minus *.md, lockfiles, `.claude/`, `taskmaster-docs/` and generated/vendor dirs.
+  - speak when changed >= 8 files, or >= 1 path matches the auth-surface pattern below.
+  - ONCE PER HEAD: re-fire only after HEAD moves AND the count grew past what last fired.
+  - SHIP PROMPTS skip the once-per-HEAD wait: a prompt whose first 400 characters outside
+    code fences say commit, push, merge, PR, pull request, finish or land is judged at once, untracked
+    files counted too, and the line opens "Before this ships". It re-fires only when the
+    count grew past what the last ship line said. Measured 2026-10-13: a money diff sat
+    uncommitted when the user asked for a PR and a merge; HEAD had not moved, so the nudge
+    stayed silent until after the merge, and the review it then prompted found a critical
+    bug already on master.
+  - base_f also holds the branch it was recorded on. A branch change moves the base to the
+    commit the switch landed on (the HEAD reflog's newest `checkout:` entry, looked for only
+    back to the old base's own entry), else to HEAD. Measured 2026-10-13: after `git switch`
+    to a branch built on the old base, the old ancestor rule charged that branch's 162
+    existing files to the session. The reflog point keeps a `git switch -c` plus commits made
+    in one turn in the count, where a reset to HEAD would drop them.
+  - Both lines tell the model to let the user choose through AskUserQuestion, review or skip.
+  - Both lines say per-card reviews do not cover cross-card changes: in a 2026-10-13
+    session the model declined the nudge citing the per-card reviews of an unregistered
+    run, and whole-branch passes in the same retro found defects no card's review could see.
+  - a review moves the base to HEAD: an Agent/Task dispatch whose subagent_type ends in
+    `reviewer` or sits in `security:` / `code-review:`, a Skill call of code-review:review,
+    security:review or the host's built-in code-review / security-review, or a prompt the
+    user typed as one of those slash commands (a typed command never reaches PostToolUse,
+    and without this the user who ran the review this nudge asks for would be nudged again).
+
+WHY UserPromptSubmit, not Stop as the review table first proposed: a Stop hook reaches the
+model only by blocking, and blocking on review debt would repeat finding 4 (a completion
+gate blocking a correctly-waiting turn). A prompt-time line costs nothing when ignored.
+
+SILENT, and why:
+  - outside a git work tree, or before the first commit — there is no diff to measure;
+  - under an active task-runner run (`<root>/.claude/task-runner/active-run.json`): runs
+    carry their own reviewer discipline, so each prompt there also moves the base to HEAD,
+    or the whole run's diff would be charged to the first prompt after it;
+  - off switches: CC_REMIND=off silences every advisory nudge in this marketplace;
+    CC_REVIEW_NUDGE=off silences only this one.
+    CC_REMIND / CC_REVIEW_NUDGE unset: the /config options cc_remind / cc_review_nudge decide.
+
+CHEAP ON THE SILENT PATH: the state root (one `git rev-parse`), HEAD (a second), the branch
+(a `git symbolic-ref`), a stat of the run marker and two one-line reads. The diff runs at
+most once per HEAD, except on a ship prompt, which also lists untracked files. Git runs with
+GIT_OPTIONAL_LOCKS=0 so it never contends with the model's own `git` for index.lock.
+
+LIMITATION (honest scope — the four laws, see
+.claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
+  - COMMIT-DRIVEN except at a ship prompt. Between ship prompts the diff is evaluated once
+    per HEAD, so uncommitted work is seen at the next commit or the next prompt naming a
+    ship verb. A ship verb is matched on words, not intent: "push notifications" and "finish
+    the login form" count, a ship request worded without one ("ship it", "cut a release") does not, and a
+    ship verb past 400 characters or inside a code fence is not read. Untracked files are
+    counted only on a ship prompt.
+  - A review is recognised by NAME, not by what it covered. A reviewer dispatched on one
+    file moves the base past twenty; a review done outside these channels (a PR review,
+    a manual read) is invisible and the nudge still fires.
+  - The auth-surface pattern is a path regex: `tokens.css` (design tokens) matches it,
+    and an auth bug in `app/Services/Billing.php` does not. It is the shared prompt-shape
+    block's cc_prompt_auth_surface, edited there for every copy.
+  - A base that stops being an ancestor of HEAD (rebase, amend) is reset to HEAD silently
+    rather than diffed across branches — an amended commit's changes are lost to the count.
+    A branch change keeps nothing from the branch left behind: switching away and back
+    starts the count again. Without a HEAD reflog (or with the switch older than its last
+    200 entries) the base moves to HEAD, dropping commits made on the new branch before
+    this prompt. A base recorded before 0.33.0 holds no branch; it adopts the current one.
+  - A stale active-run.json (a crashed run) keeps this silent until the file is removed.
+  - Whether a nudged review was WORTH it is agent-graded; nothing here reads the verdict.
+
+FAIL-OPEN: missing jq/git, unreadable state, or any error exits 0 with no output.
+State: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); the <root>/.claude/code-review/ above is only the fallback.
+```
+
+### The user decides, not the model (2026-10-22)
+
+```text
+Until 0.34.0 both lines ended "Run /code-review:review <range>, or say in one line why
+not". The 2026-10-21 retro (rationale/session-retro-2026-10-21.md, finding 10 and row W2.4)
+counted the model taking that second clause at least six times ("I'm not running
+another", "skipping it"), while each review the nudge did prompt found real
+high-severity bugs. The skip was offered to the party with the least reason to take the
+review: the model that wrote the code. The line now tells the model to ask the user through
+AskUserQuestion with two options, "Review <range> now (Recommended)" and "Skip — I'll say
+why", so declining costs the user one click and is the user's call. A hands-off goal run has
+nobody to ask, so there the line says to run the review. The range is <base>..HEAD on a plain
+prompt and <base> on a ship prompt, the form that covers the working tree.
+Standing: gate for the wording (review-debt.test.sh); agent-graded for whether the model asks.
+Not measured: whether users pick Review more often than the model did.
+```
+
+### finish and land (2026-10-22)
+
+```text
+The ship lane read commit, push, merge, PR and pull request. A ship request worded "land it"
+or typed as /git-workflow:finish waited for the next commit, and the LIMITATION paragraph
+named both as misses. Both verbs join the word list; /git-workflow:finish matches through the
+`:` boundary. The match stays a word, not an intent: landing, finished and finish_reason do
+not match, while "finish the login form" and "land registry" do and get the ship line early.
+```

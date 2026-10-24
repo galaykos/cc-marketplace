@@ -10,9 +10,11 @@ row or an unconfirmed ASSUMED row. Interrogation is the deliverable of this phas
 The cheapest bug is the one killed as a wrong assumption before a line existed.
 
 **Standing is split and that sentence hides it:** "no spec" is a **gate**
-(`scripts/spec-ledger-lint.sh` blocks an UNKNOWN row); "no implementation code" is
-**unenforceable** by default (`hooks/clarify-gate.sh` ships off, opt-in via
-`CC_CLARIFY_GATE=block`); round count and question quality are **agent-graded**.
+(`scripts/spec-ledger-lint.sh` blocks an UNKNOWN row); "no implementation code" is a
+**gate** only at its first step: `hooks/clarify-gate.sh`, on by default (`CC_CLARIFY_GATE=off`
+turns it off), refuses the main thread's first edit after a work-shaped prompt until an
+AskUserQuestion call or an `Assuming:` line exists, and never reads this ledger; round count
+and question quality are **agent-graded**.
 
 Scale to blast radius: a one-file bugfix earns zero to two questions; a feature that
 crosses module boundaries earns full rounds. Every question must be able to change
