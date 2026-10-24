@@ -20,23 +20,23 @@ with an exit code, a gate that blocks a turn.
 /plugin install <plugin>@cc-plugins-marketplace
 ```
 
-Not sure what you need? Install one plugin and let it tell you:
+Not sure what you need? Install one plugin in the project and let it tell you:
 
 ```bash
-/plugin install stack-scan@cc-plugins-marketplace
+claude plugin install stack-scan@cc-plugins-marketplace --scope local   # from your shell; --scope project to commit it
 /stack-scan:suggest              # scans your manifests, suggests a set, installs your picks
 /stack-scan:suggest --yes        # installs the stack-matched tier plus the any-project core, without asking
 /stack-scan:suggest --full       # everything relevant to the detected stack but opt-in prompt-coach, leaves only, after a plan and one confirm
 /stack-scan:suggest --full --stack laravel,inertia,react   # greenfield: name the stack the manifests do not show yet
 /stack-scan:suggest --persist    # project scope: teammates who clone get the same set
-/stack-scan:suggest --global     # user scope: every repo on this machine
+/stack-scan:suggest --sync       # reconcile this project's plugins by scope; the way off user scope
 /stack-scan:suggest --all        # page every row as an explicit option instead of one question
 /stack-scan:suggest --skills     # third-party skills on skills.sh for the stack this marketplace does not cover
 /reload-plugins                  # nothing installed this run is active until you do
 
 # Or everything at once (asks once for the scope unless you pass --scope):
 /plugin install all-plugins@cc-plugins-marketplace
-/all-plugins:install              # every leaf plugin but opt-in prompt-coach; asks user or local once unless --scope local|project|user; --dry-run (not found yet? /reload-plugins first)
+/all-plugins:install              # every leaf plugin but opt-in prompt-coach; asks local or project once unless --scope local|project|user; --dry-run (not found yet? /reload-plugins first)
 /all-plugins:uninstall            # the inverse; --self removes all-plugins too
 ```
 
@@ -559,7 +559,7 @@ plugin — the authoring doctrine has one user, this repository.)
 | If you… | Install |
 |---------|---------|
 | just cloned an unfamiliar repo | `stack-scan`, then whatever `/stack-scan:suggest` suggests |
-| want a global baseline in every repo | `candor`, `code-review`, `git-workflow`, `hindsight`, `secret-scanning`, `skill-router`, each at user scope (`-s user`) |
+| want the same baseline in every repo | `/stack-scan:suggest --yes` in each — the any-project core (`candor`, `code-review`, `git-workflow`, `hindsight`, `secret-scanning`, `skill-router`, …) at local scope, `--persist` for project |
 | write Laravel every day | `laravel` + `database` (+ `web-dev` for Inertia's client side) |
 | write React/Vue apps | `web-dev` + `ui-ux` + `ui-libraries` (+ `skill-router`, which loads the matching skill per file) |
 | are building something design-led | `craft-layer` + `ui-ux` + `ui-libraries` — [companions](#companions-install-these-together), install all three (+ `design-kit`, `skill-router`) |

@@ -35,6 +35,9 @@ A row belongs here only if it passes both:
 | code-architecture | plan-before-code, YAGNI, and verification-with-evidence are process, not stack |
 | secret-scanning | any repo can leak a key; the pre-write block hook is language-independent |
 | command-guard | irreversible data loss (`migrate:fresh`, `DROP DATABASE`, `rm -rf`) is language-independent, and its deny hook is the pair to secret-scanning's block |
+| candor | its Stop gate checks claims (a citation, a completion, a retraction) against what the session actually did — no language in it |
+| skill-router | it routes by file path and prompt to whichever skills are installed, so it is a floor under every other row, not a rubric of its own |
+| hindsight | it mines this project's own past sessions for repeated friction; every project has sessions |
 
 ## Deliberate exclusions (near misses)
 
@@ -50,12 +53,11 @@ A row belongs here only if it passes both:
 - `taskmaster`, `task-runner` — workflow pipelines, not floors; fails membership
   test 2. Adopting a planning pipeline is a decision the user should make
   explicitly.
-- `candor`, `skill-router`, `hindsight` — these change how the model
-  talks or routes across every session rather than how this
-  project's code is checked, so per-project installation is the wrong unit for
-  them. Point at a `--global` run, or at installing each with `--scope user`. Under `--full` they install
-  at the run's scope anyway — the user asked for everything; that is the one flag
-  this bullet does not bind.
+- `candor`, `skill-router`, `hindsight` were near misses until stack-scan 0.13.0: they
+  change how every session runs rather than how this project's code is checked, so
+  they were routed to `--global`. They are core rows now because per-project installs
+  (`--sync`, `references/sync.md`) leave no other unit — a machine moved off user scope
+  has them only where a project installs them.
 
 Note what the core list is NOT: a copy of any bundle's membership (the suites were
 retired 2026-09-26). `git-workflow`, `secret-scanning` and `command-guard` are all in
@@ -73,9 +75,10 @@ select for. The criterion is the membership test above.
   installs without a pick.
 - Evidence column: the literal string `core` — the evidence is this file, not
   a manifest.
-- Five of these ship write-time hooks (secret-scanning blocks secrets,
-  command-guard denies destructive commands). A `--yes` run must name that in
-  its summary: the user did not see a picker for them.
+- Three of these ship hooks that can stop work (secret-scanning blocks secrets,
+  command-guard denies destructive commands, candor's Stop gate refuses a final
+  message it can disprove). A `--yes` run must name all three in its summary: the
+  user did not see a picker for them.
 
 ## Standing
 

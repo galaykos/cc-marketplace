@@ -38,6 +38,7 @@ manifests, and the per-plugin boundary forced two byte-identical picker scripts.
 | `/stack-scan:report` | Produce the required-vs-installed table plus red flags (multiple lockfiles, drift, EOL majors, docker-vs-local divergence) |
 | `/stack-scan:audit` | Audit composer/npm dependencies — vulnerabilities, outdated packages, and dependency licences against the project's distribution mode, severity-sorted with a fix lane per finding, plus container base-image tags (`trivy` when on PATH, otherwise an EOL check stated as a tag check, never a CVE scan); report-only, ends by offering the patch-lane fixes as a choice. Dockerfile and compose judgment beyond the tag is `/devops:review` |
 | `/stack-scan:suggest [path] [--yes] [--all] [--full] [--stack a,b,c] [--persist \| --global]` | Detect the stack, print the numbered three-tier inventory covering every marketplace plugin, then offer the plugins you pick — one question set for the signal-backed and core rows plus a door into the remainder (`--all` pages every row explicitly), or auto-install tier-1 + core picks (`--yes`), or install the whole stack-relevant set after one plan confirm (`--full`, with `--stack a,b,c` for a stack the manifests do not show yet), at project scope (`--persist`) or machine-wide user scope (`--global`) |
+| `/stack-scan:suggest --sync [--persist] [--yes]` | Reconcile this project's enabled set, scope by scope, with tier 1 + the core: install what is missing at local scope (`--persist`: project), offer to remove extras and redundant local copies, leave user scope alone and print the one command that empties it once every project is synced |
 | `/stack-scan:suggest --skills [query]` | Search skills.sh for third-party skills matching the detected stack (or the query) — one provenance table (source repo, installs, evidence, overlap with installed plugins), a picker, a preview of each pick's SKILL.md, then `npx skills add` per confirmed pick. Explicit picks only; no auto-install flag exists in this mode |
 
 ```bash
@@ -48,6 +49,7 @@ manifests, and the per-plugin boundary forced two byte-identical picker scripts.
 /stack-scan:suggest --full                # everything relevant to the detected stack, leaves only, after a plan and one confirm
 /stack-scan:suggest --full --stack laravel,inertia,react   # greenfield: name the stack the manifests do not show yet
 /stack-scan:suggest --persist             # project scope: teammates who clone get the same set
+/stack-scan:suggest --sync                # install what this project lacks here, offer removing what it does not need
 /stack-scan:suggest --skills              # third-party skills on skills.sh for the detected stack
 /stack-scan:suggest --skills terraform    # skip detection, search this instead
 ```
@@ -114,8 +116,23 @@ in the numbered inventory and stays pickable by number, name or range, or throug
 unbounded `scripts/pick.sh` TTY picker. `--all` restores exhaustive paging.
 
 **After installing.** Nothing installed during a run is active in that session until
-you run `/reload-plugins` (or restart Claude Code); the summary says so and names any
-write-time hooks a `--yes` run installed (`secret-scanning`, `command-guard`).
+you run `/reload-plugins` (or restart Claude Code); the summary says so and names the
+hooks a `--yes` run installed that can stop work (`secret-scanning`, `command-guard`,
+`candor`'s Stop gate).
+
+**Per project, not per machine.** `--sync` is the mode for a machine that installed
+everything at user scope. User scope enables a plugin in every repo, so the picker
+marks it installed everywhere and offers nothing. `--sync` reads the three settings
+files separately, through `scripts/sync-plan.sh`, and installs this project's set at
+local or project scope. Use project scope for a repo worked in git worktrees: local
+scope is recorded per path, so a worktree starts bare. It never touches user scope.
+Its last line is the one command that empties user scope, to run once every project
+you use is synced. A project with no plugin from this marketplace bootstraps from the
+shell with `claude plugin install stack-scan@cc-plugins-marketplace --scope local`, then
+`/stack-scan:suggest --sync --yes`. Contract and row classes:
+`skills/plugin-scout/references/sync.md`. Standing: **gate** for the scope
+classification (`scripts/__tests__/sync-plan.test.sh`), **agent-graded** for the
+detection that feeds it and for asking before any change.
 
 **Beyond this marketplace.** The inventory closes with one block of plugins from
 Anthropic's own `claude-plugins-official` directory — only the vendor-agnostic ones that

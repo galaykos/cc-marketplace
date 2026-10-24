@@ -25,7 +25,7 @@
     | [$on[] | select(startswith("all-plugins@")) | ltrimstr("all-plugins@")
        | select(. as $m | [$on[] | select(endswith("@" + $m))] | length == 1)] | .[0] // empty' 2>/dev/null)
   [ -n "$bare" ] || exit 0
-  jq -cn --arg m "all-plugins is the only $bare plugin enabled here, and it adds nothing by itself: run /all-plugins:install to install the rest (it asks user or local scope). CC_ALL_PLUGINS_HINT=off hides this line." \
+  jq -cn --arg m "all-plugins is the only $bare plugin enabled here, and it adds nothing by itself: run /all-plugins:install to install the rest (it asks local or project scope). CC_ALL_PLUGINS_HINT=off hides this line." \
     '{systemMessage: $m}'
 } 2>/dev/null
 exit 0

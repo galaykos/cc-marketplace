@@ -1,6 +1,6 @@
 ---
 name: plugin-scout
-description: Use when setting up Claude Code plugins for a project — "which plugins should I install", "what plugins fit this repo", a repo without plugins, or right after cloning: scans manifests, suggests every marketplace plugin in three tiers; `--yes` auto-installs tiers 1-2, `--full` installs everything stack-relevant after one confirm, `--persist`/`--global` set scope, `--all` pages every row.
+description: Use when setting up Claude Code plugins for a project — "which plugins should I install", "what plugins fit this repo", a repo without plugins, or right after cloning: scans manifests, suggests every marketplace plugin in three tiers; `--yes` auto-installs tiers 1-2, `--full` installs everything stack-relevant after one confirm, `--persist`/`--global` set scope, `--all` pages every row, `--sync` reconciles the project's enabled set by scope.
 ---
 
 ## Purpose
@@ -157,7 +157,7 @@ own default is `user`.
    finishes (a failure does not abort the rest); one summary line: installed n, failed m,
    skipped k (already installed). Then print `Run /reload-plugins to load these in this
    session (or restart Claude Code) — nothing installed this run is active until you do`,
-   naming any write-time hooks installed (secret-scanning, command-guard). With
+   naming the hooks a core install adds (secret-scanning, command-guard, candor's Stop gate). With
    `--persist`, verify the installed set is reflected in the project's settings — Flags.
 
 ## Flags
@@ -174,13 +174,14 @@ in the project's `.claude/settings.json`, so teammates who clone get the same se
 Never hand-author an entry for a failed install. Full rules: `references/flags.md`.
 - `--global` — switches installs to `--scope user`: machine-wide, every repo on this machine. Mutually
 exclusive with `--persist` — both at once aborts before Preflight. Full rules and the required machine-wide notice: `references/flags.md`.
+- `--sync` — reconciles what is enabled here, per scope, with tier 1 + core: installs the missing at local (`--persist`: project), offers removing extras, never touches user scope, prints the user-scope off-ramp. `scripts/sync-plan.sh` classifies; rules: `references/sync.md`.
 
 ## Boundaries
 
 Tiered once, in Standing below — not restated here. Installs only cc-plugins-marketplace
 plugins — official-directory rows are named and their install command printed, nothing
-more; it does not audit, configure, or uninstall (an uninstall command under `--persist`
-is printed, never run). Detection and the relevance pass never mutate the project: no
+more; it does not audit or configure, and uninstalls only through `--sync`'s explicit removal
+option at local or project scope (an uninstall command under `--persist` is printed, never run). Detection and the relevance pass never mutate the project: no
 lockfile writes, installs, package-manager invocations, or delegated fix prompts. If every
 suggestion is already installed, say so and stop.
 

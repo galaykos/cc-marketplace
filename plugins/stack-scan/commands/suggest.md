@@ -1,27 +1,29 @@
 ---
-description: Scan manifests and suggest every marketplace plugin in three tiers, then install the picks; --yes auto-installs tiers 1-2, --full installs everything stack-relevant after one confirm, --all pages every row, --persist/--global set scope. --skills [query] searches skills.sh for third-party skills instead — explicit picks only, never auto.
-argument-hint: [path] [--yes] [--all] [--full] [--stack a,b,c] [--persist | --global] | --skills [query]
+description: Scan manifests and suggest every marketplace plugin in three tiers, then install the picks; --yes auto-installs tiers 1-2, --full installs everything stack-relevant after one confirm, --all pages every row, --persist/--global set scope, --sync reconciles this project's enabled set by scope. --skills [query] searches skills.sh for third-party skills instead — explicit picks only, never auto.
+argument-hint: [path] [--yes] [--all] [--full] [--stack a,b,c] [--persist | --global] [--sync] | --skills [query]
 ---
 
 Two modes, one command. Parse `--skills` out of $ARGUMENTS first: present, the
 rest of $ARGUMENTS is a free-text skills.sh query and the **skills mode** below
 runs; absent, the **plugin mode** runs against $ARGUMENTS (or the repository
 root if no argument). The two modes never combine: `--skills` beside `--yes`,
-`--full`, `--all`, `--stack`, `--persist` or `--global` aborts with one line —
+`--full`, `--all`, `--stack`, `--persist`, `--global` or `--sync` aborts with one line —
 skills.sh content is unvetted, so no auto-install or scope flag exists on that
 side, and that is a rule of the `vercel-skills-scout` skill, not an omission.
 
 ## Plugin mode (default)
 
 Invoke the `plugin-scout` skill from this plugin, parsing any `--yes`, `--all`,
-`--full`, `--stack <tokens>` (also `--stack=<tokens>`), `--persist`, and
-`--global` flags out of $ARGUMENTS first — the token after `--stack` is consumed
+`--full`, `--stack <tokens>` (also `--stack=<tokens>`), `--persist`, `--global`
+and `--sync` flags out of $ARGUMENTS first — the token after `--stack` is consumed
 before the remainder becomes the path. `--persist` and `--global` together are a
 conflict: abort before anything else, including the marketplace-add prompt, with
 one line asking for exactly one of them. A bare `--stack`, an empty token, a
 token outside `references/stack-relevance.md`'s token column aborts the same way,
 printing the accepted list; a positional argument that is itself a token
 (`--stack laravel, react`) aborts with the hint `did you mean --stack laravel,react`.
+`--sync` beside `--global`, `--full`, `--all` or `--stack` aborts the same way, before
+Preflight: sync works on this project's scopes only.
 Steps:
 
 1. Preflight per the skill: check that the marketplace is registered, then
@@ -34,6 +36,9 @@ Steps:
    fold in this plugin's `/stack-scan:report` inventory as a version-truth
    supplement — never as a replacement, and never accepting its offer to
    fix red flags from inside detection.
+   With `--sync`, steps 3-5 do not run: follow the skill's `references/sync.md` —
+   feed tier 1 + core to `scripts/sync-plan.sh`, print its plan, ask once, run only
+   its command column, never touch user scope, and print the off-ramp row.
 3. Output the numbered three-tier inventory as defined by the skill's Report
    section and `references/picker.md` — a header line plus one block per
    tier, tier 1 signal-backed with cited evidence, tier 2 the any-project

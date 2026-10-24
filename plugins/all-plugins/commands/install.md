@@ -1,13 +1,15 @@
 ---
-description: Install every leaf plugin of this marketplace but opt-in prompt-coach at one scope — asks user or local once when --scope is absent, never defaults silently; runs the plugin's script and relays its exit code: 0 run /reload-plugins, 1 lists the plugins that failed, 2 names the missing precondition.
+description: Install every leaf plugin of this marketplace but opt-in prompt-coach at one scope — asks local or project once when --scope is absent, never defaults silently; runs the plugin's script and relays its exit code: 0 run /reload-plugins, 1 lists the plugins that failed, 2 names the missing precondition.
 argument-hint: [--scope local|project|user] [--dry-run] [--budget]
 disable-model-invocation: true
 ---
 
 **Settle the scope first.** When `$ARGUMENTS` carries no `--scope`, ask once with
-AskUserQuestion before running anything: **user** (every project on this machine — what
-"the marketplace is active" means) or **local** (this checkout only, not committed);
-`project` (committed to the repo) only when the user types it. A `--scope` the user already
+AskUserQuestion before running anything: **local** (this checkout only, not committed — a
+linked git worktree starts without it) or **project** (the committed `.claude/settings.json`:
+teammates and every worktree get it); `user` (every project on this machine) only when the
+user types it — this marketplace installs per project, and `/stack-scan:suggest --sync`
+installs a project-matched set instead of all of it. A `--scope` the user already
 typed is the answer — never ask over it. No answer (headless, dismissed): stop and say the
 command needs `--scope`; never fall back to local. A silent local default once left every
 other project bare while the user believed the marketplace was on.

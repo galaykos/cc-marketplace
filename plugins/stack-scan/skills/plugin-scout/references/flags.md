@@ -1,5 +1,7 @@
 # Flags: --yes, --full, --stack, --persist, --global, --all
 
+`--sync`, the reconcile mode, has its own file: `references/sync.md`.
+
 Full semantics for the `/stack-scan:suggest` plugin-mode flags. `SKILL.md`'s Flags section
 is the short pointer; this file is the source of truth a reviewer checks against.
 
@@ -55,8 +57,9 @@ before any install happens.
 - Hooks note: plugins installed via `--yes` may ship hooks (SessionStart,
   UserPromptSubmit, PreToolUse) that activate once installed. The core set makes
   this certain, not merely likely — `secret-scanning` blocks writes containing
-  secrets and `command-guard` denies destructive commands — so the summary line
-  must name both by name. The user did not see a picker for these.
+  secrets, `command-guard` denies destructive commands and `candor`'s Stop gate
+  refuses a final message it can disprove — so the summary line must name all
+  three by name. The user did not see a picker for these.
 
 ## `--full`
 
@@ -70,11 +73,9 @@ rule and the typed-token rule; this section does not restate them.
   (`laravel`, `web-dev`, `craft-layer`)
   follow `references/stack-relevance.md` and are the only rows `--full` skips for
   stack reasons; the three by-construction exclusions are below. Any-stack covers
-  the whole of tier 2 and, from tier 3, the process/pipeline group (taskmaster,
-  task-runner, approaches),
-  the session-wide group (candor, hindsight and
-  skill-router — the three `references/any-core.md` routes to `--global` for `--yes`;
-  `--full` is the flag that bullet does not bind) and the research/tooling group
+  the whole of tier 2 (candor, hindsight and skill-router included, core since
+  0.13.0) and, from tier 3, the process/pipeline group (taskmaster,
+  task-runner, approaches) and the research/tooling group
   (brain, toolchain-experts and ultra-deep-research
   when their signal has not fired — they are tier 1 when it has).
 - What it excludes: stack-mismatched leaves (a class whose manifest evidence is
@@ -282,9 +283,10 @@ step of its own — the CLI writes the user's own settings.
   at once: abort **before Preflight** with one line naming the conflict and
   asking for exactly one of them — before the marketplace-add trust prompt can
   fire, not merely before the installs.
-- Combinable with `--yes`: the auto-set installs at user scope. This is the
-  intended one-shot "set up my machine" path; the machine-wide notice still
-  prints — `--yes` never silences it.
+- Combinable with `--yes`: the auto-set installs at user scope, a one-shot "set up
+  my machine" path; the machine-wide notice still prints — `--yes` never silences it.
+  It is the one path here that writes user scope; `--sync` is the way back off it
+  (`references/sync.md`).
 - Headless: same rules as the other flags.
 
 ## Scope model
@@ -299,6 +301,11 @@ Three modes, one flag surface — every install this run uses exactly one scope:
   team-shared, committed.
 - With `--global`: `--scope user` — the user's `~/.claude/settings.json`,
   machine-wide, every repo.
+
+Local scope is recorded per project PATH, and `.claude/settings.local.json` is not
+committed, so a linked git worktree starts with none of the main checkout's local
+installs. Project scope lives in a committed file every worktree checks out — for a
+repo worked in worktrees, `--persist` is the scope that follows the work.
 
 ## Standing
 

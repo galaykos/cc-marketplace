@@ -1,13 +1,14 @@
 ---
-description: Uninstall every leaf plugin of this marketplace from one scope — asks user or local once when --scope is absent, never defaults silently; --self removes all-plugins too; runs the plugin's script and relays its exit code: 0 done, 1 lists the plugins that failed, 2 names the missing precondition.
+description: Uninstall every leaf plugin of this marketplace from one scope — asks local, project or user once when --scope is absent, never defaults silently; --self removes all-plugins too; runs the plugin's script and relays its exit code: 0 done, 1 lists the plugins that failed, 2 names the missing precondition.
 argument-hint: [--scope local|project|user] [--dry-run] [--self] [--no-budget]
 disable-model-invocation: true
 ---
 
 **Settle the scope first**, the same question `/all-plugins:install` asks. When `$ARGUMENTS`
-carries no `--scope`, ask once with AskUserQuestion before running anything: **user** (every
-project on this machine) or **local** (this checkout only); `project` only when the user
-types it. A `--scope` the user already typed is the answer — never ask over it. No answer
+carries no `--scope`, ask once with AskUserQuestion before running anything: **local** (this
+checkout only), **project** (the committed `.claude/settings.json`) or **user** (every project
+on this machine — the off-ramp once `/stack-scan:suggest --sync` has given each project you
+use its own set). A `--scope` the user already typed is the answer — never ask over it. No answer
 (headless, dismissed): stop and say the command needs `--scope`; never fall back to local.
 After a user-scope install, a local default skips every plugin as `skip (not installed)` and
 exits 0, removing nothing.

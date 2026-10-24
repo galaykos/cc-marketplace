@@ -78,8 +78,8 @@ What the pass should lift there:
 TIER 3 — no signal in this repo
   worth a look here
     11 brain        one dir per marketplace plugin and no map; a session starts cold
-    12 candor       every doctrine file here labels its own standing by hand;
-                    this is that rule with a Stop hook behind it
+    12 task-runner  a change here is a plugin file, its harness, a changelog line
+                    and a baseline; its completion gate is the pre-push loop
     13 approaches   most changes here are shape decisions (a gate? a hook?
                     a reference file?) rather than implementation
   quality/review:  14 toolchain-experts  15 resilience  ...
