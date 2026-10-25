@@ -665,13 +665,16 @@ pc_version_stamp_tail() {
 #     which is the right way for a gate to be wrong; no offender in this tree hits it.
 #   - the host's own commands, which this never reads — plugins only.
 pc_command_arg_hint() {
-  local root="${1:-plugins}" bad=0 f p body
+  local root="${1:-plugins}" bad=0 f p body fm
   for f in "$root"/*/commands/*.md; do
     [ -f "$f" ] || continue
     p=$(basename "$(dirname "$(dirname "$f")")")
     body=$(awk 'BEGIN{n=0} /^---$/{n++; next} n>=2{print}' "$f")
-    printf '%s' "$body" | grep -qE '\$ARGUMENTS|\$[0-9]' || continue
-    awk 'BEGIN{n=0} /^---$/{n++; next} n==1{print}' "$f" | grep -q '^argument-hint:' && continue
+    fm=$(awk 'BEGIN{n=0} /^---$/{n++; next} n==1{print}' "$f")
+    # Here-strings, not pipes: a `grep -q` that exits on its first match broke the writer's pipe in CI and put
+    # "printf: write error: Broken pipe" on stderr (run 40210716420).
+    grep -qE '\$ARGUMENTS|\$[0-9]' <<<"$body" || continue
+    grep -q '^argument-hint:' <<<"$fm" && continue
     printf 'command-arg-hint %s:%s\n' "$p" "$(basename "$f" .md)"
     bad=1
   done
