@@ -85,6 +85,7 @@ function seat(on: On, live: Live = {}) {
     fills: [] as string[],
     submits: [] as string[],
     ran: [] as string[],
+    gitRuns: 0,
   }
   const put = (path: string, text: string) => world.disk.set(path, { text, mtimeMs: (world.disk.get(path)?.mtimeMs ?? NOW - 60_000) + 1_000 })
 
@@ -128,6 +129,8 @@ function seat(on: On, live: Live = {}) {
   on('session.start', ($, e) => ({ cwd: e.cwd }))
 
   on('process.run', ($, e) => {
+    world.gitRuns += 1
+
     const answers: Record<string, string> = {
       'git rev-parse --show-cdup': '\n',
       'git symbolic-ref -q HEAD': 'refs/heads/feat/x\n',
@@ -265,6 +268,8 @@ function seat(on: On, live: Live = {}) {
 
     return { text: e.text }
   })
+
+  on('turn.complete', ($, e) => ({ text: e.answer }))
 
   return Object.assign(world, { put, holdNextRead, holdNextRunWrite, clock })
 }
@@ -429,10 +434,46 @@ describe('board', () => {
     expect(world.writes, 'no run: written once').toBe(1)
 
     world.put(RUN, RUN_HERE)
+    await world.clock.advance(2_000)
     await $.tool.call({ tool: 'Bash', command: 'ls' })
     await $.tool.call({ tool: 'Bash', command: 'ls' })
 
     expect(world.writes, 'the run started: written once more').toBe(2)
+    expect(world.statuses.at(-1)).toBe('task-runner  build  card 5/12  1 parked  goal')
+  })
+
+  test('an idle board looks again at most every 2 s, never on a subagent call', async ($, on) => {
+    const world = seat(on)
+
+    await start($)
+    world.gitRuns = 0
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+
+    expect(world.gitRuns, 'within the gap: no refresh').toBe(0)
+
+    await world.clock.advance(2_000)
+    await edit($, 'a', 'b', 'a-executor')
+
+    expect(world.gitRuns, 'a subagent call past the gap: no refresh').toBe(0)
+
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+
+    expect(world.gitRuns, 'a main-loop call past the gap refreshes').toBeGreaterThan(0)
+  })
+
+  test('a run started within the idle gap shows at the turn end', async ($, on) => {
+    const world = seat(on)
+
+    await start($)
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, BOARD)
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+
+    expect(world.statuses.at(-1), 'within the gap').toBeUndefined()
+
+    await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+
     expect(world.statuses.at(-1)).toBe('task-runner  build  card 5/12  1 parked  goal')
   })
 
@@ -729,6 +770,7 @@ describe('board', () => {
 
     world.put(INDEX, LAYOUT)
     await start($)
+    await world.clock.advance(2_000)
     await $.tool.call({ tool: 'Write', file_path: RUN, content: RUN_HERE })
 
     expect([...world.panes]).toEqual(['task-board'])
@@ -744,6 +786,7 @@ describe('board', () => {
 
     world.put(INDEX, LAYOUT)
     await start($)
+    await world.clock.advance(2_000)
 
     const write = world.holdNextRunWrite()
     const started = $.tool.call({ tool: 'Write', file_path: RUN, content: RUN_HERE })
@@ -780,6 +823,7 @@ describe('board', () => {
 
     world.put(INDEX, LAYOUT)
     await start($)
+    await world.clock.advance(2_000)
     await $.tool.call({ tool: 'Write', file_path: RUN, content: RUN_HERE })
 
     expect(world.opened).toEqual(['task-board'])

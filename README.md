@@ -145,7 +145,6 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_CANDOR_GATE` | candor | block | The whole candor Stop gate: block, warn (print, never block) or off |
 | `CC_CARDLINT` | taskmaster | on | Say when a card set reaches execution without its author-time linters having run: on or off |
 | `CC_CLARIFY_GATE` | taskmaster | off | Refuse the first code write after a work-shaped prompt, once per session: block or off |
-| `CC_COACH_MASCOT` | prompt-coach | pane | Where the coach's mascot lives: pane (pixel art, fullscreen UI), statusline (a text face) or off |
 | `CC_COACH_MODEL` | prompt-coach | sonnet | The model that confirms a haiku first-pass flag before a prompt is dropped: sonnet or opus |
 | `CC_COACH_SENSITIVITY` | prompt-coach | unactionable | What counts as unclear: unactionable (nobody could act on it) or ambiguous (also two readings of scope) |
 | `CC_COMMENT_GUARD` | code-review | on | Refuse a write whose comments restate the code or pass the density ceiling: on or off |
@@ -157,12 +156,12 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_DRIFT` | task-runner | on | Nudge when a turn touches files well beyond the request, outside a task-runner run: on or off |
 | `CC_ELISION_GUARD` | code-review | on | Refuse, not just warn about, a write replacing code with // … existing code … or similar: on or off |
 | `CC_EVIDENCE_GATE` | candor | block | Stop-gate clause for a completion claim with nothing run since the last edit: block, warn or off |
-| `CC_HUD_HINT` | session-hud | on | Add the HUD segments to the dim hint line under the prompt: on or off |
+| `CC_HUD_HINT` | session-hud | off | Add the HUD segments to the dim hint line under the prompt: on or off |
 | `CC_HUD_PIN` | session-hud | off | Reopen the /hud pane after you close it by hand; under 144 terminal columns it waits until the terminal  … |
 | `CC_HUD_SEGMENTS` | session-hud | context,limits,cost,time,git | Which segments the hint and status lines show, comma-separated, in order: context, limits, cost, time, g … |
 | `CC_HUD_STATUS` | session-hud | off | Also pin the HUD segments as a status line under the prompt, which the engine prefixes with a warning ma … |
 | `CC_HUD_SUBAGENTS` | session-hud | on | Draw each subagent row as its type, model, effort, context use and age instead of the default row: on or … |
-| `CC_HUD_TURN` | session-hud | on | Add a turn's output tokens, cost and context growth to the line that closes it: on or off |
+| `CC_HUD_TURN` | session-hud | off | Add a turn's output tokens, cost and context growth to the line that closes it: on or off |
 | `CC_LOCKFILE_GATE` | candor | on | Stop-gate clause for a dependency manifest changed with its lockfile untouched: on or off |
 | `CC_MERGE_CHECKS` | git-workflow | on | Ask before gh pr merge while the pull request's checks are pending or failing: on or off |
 | `CC_OVERSEER_STATUS` | overseer | on | Pin the open program's next milestone under the prompt: on or off |
@@ -174,7 +173,6 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_REMIND` | api-design, approaches, code-review, debugging, design-kit, secret-scanning, security, skill-router, task-runner, taskmaster, testing, ui-ux | on | Reminder hooks that add guidance to the session: on or off |
 | `CC_REVIEW_NUDGE` | code-review | on | Suggest an independent review once enough unreviewed or sensitive code has changed: on or off |
 | `CC_ROUTE` | skill-router | on | Hand the model command-picking rules and flush pending low-confidence skill signals: on or off |
-| `CC_ROUTE_SCOPE` | skill-router | off | Drop the Laravel, Inertia, Next.js, Vite, React Native, Tailwind, shadcn and MariaDB skills from the ski … |
 | `CC_SECRET_PROMPT` | secret-scanning | on | Mark a secret typed or pasted into the prompt box, and ask before sending it (mask, send as typed, or ca … |
 | `CC_SECRET_REDACT` | secret-scanning | on | Mask secrets in tool output before the model or the transcript sees them: on or off |
 | `CC_SECRET_SCAN` | secret-scanning | on | Refuse a write or shell command that puts a high-confidence secret on disk: on or off |
@@ -183,7 +181,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_SPAWN_CAP` | task-runner | 20 | Ask once a session's subagent dispatches pass this count, then at every doubling: a number or off |
 | `CC_SPAWN_FLOOR` | task-runner | on | Run a role-floors.md agent at max(its floor, the dispatch's model or else the session's): on or off |
 | `CC_SUBAGENT_SKILLS` | skill-router | on | Hand a plugin subagent the paths of the best-practice skills its frontmatter declares, and a general-pur … |
-| `CC_SUGGEST` | code-review, debugging, git-workflow, task-runner, taskmaster, testing | — | On unless CC_SUGGEST=off, which silences these plugins' next-step suggestions, not Claude Code's own |
+| `CC_SUGGEST` | code-review, debugging, git-workflow, task-runner, testing | — | On unless CC_SUGGEST=off, which silences these plugins' next-step suggestions, not Claude Code's own |
 | `CC_SURFACED_LOG` | skill-router | on | Append the session's surfaced routing signals to a machine-local ledger at session end: on or off |
 | `CC_TASK_BOARD` | task-runner | on | The status line of a run's phase and card progress on this branch, and the /task-board pane: on or off |
 | `CC_TASK_BOARD_PIN` | task-runner | off | Reopen the task board after you close it while a run is active: on or off |
@@ -191,7 +189,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_TERSE_BADGE` | candor | on | Show the active terse level as [TERSE:LEVEL] at the end of the hint line under the prompt (terminal, CLI … |
 | `CC_TEST_SHAPE` | testing | on | Name the blocks in a written test file that do not earn their place: on or off |
 | `CC_UNICODE_SCAN` | secret-scanning | on | Warn when written or read text carries zero-width or bidirectional-override characters: on or off |
-| `CC_VERSION_PINS` | stack-scan | on | Prepend the installed npm version to a skill whose Last verified stamp names that package: on or off |
+| `CC_VERSION_PINS` | stack-scan | on | Prepend the installed npm or composer version to a skill whose Last verified stamp names that package: o … |
 | `CC_WORKFLOW_GUARD` | devops | on | Refuse a GitHub workflow write that hands secrets or a write token to untrusted code: on or off |
 | `CLAUDE_AI_TRAILER` | git-workflow | — | CLAUDE_AI_TRAILER=allow for that one command |
 | `CLAUDE_DESTRUCTIVE_GUARD` | command-guard | deny | Destructive-command guard: deny (hard stops plus asks), ask (prompt instead), deny-only or off |

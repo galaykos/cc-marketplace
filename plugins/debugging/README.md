@@ -72,6 +72,12 @@ Since 0.8.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed und
   command in this session; one the host did not show is offered again at the next turn end.
 - **Off switch.** `CC_SUGGEST=off`, environment only, silences this and every other
   next-step suggestion of this marketplace together.
+- **Counts** (since 0.9.0). Each time the prompt box reports this suggestion shown, and
+  whether your next prompt then sent the suggested command (`accepted`) or something else
+  (`passed`), one is added to `suggest.debug.shown`, `.accepted` or `.passed` in this
+  plugin's own `$.store` (key `outcomes`): counts only, never the text, on this machine only.
+  The marketplace repository's `scripts/mod-outcomes.sh` prints them. **Gate** for the
+  counting (the shared kit's tests); what a count says about the suggestion is **recorded**.
 - **CLI.** With mods off in the host, on a CLI below 2.1.287 (which loads no module), on
   2.1.288-2.1.290, or with `CC_SUGGEST=off`, the module offers nothing and the classic hooks
   work as before. On CLI 2.1.287 with mods on, the module still registers its `tool.call`

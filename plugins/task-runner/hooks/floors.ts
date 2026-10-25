@@ -1,6 +1,6 @@
 import type { On, PluginOptions } from 'claude-code'
 
-import { isSupported, switchOn } from './cc-kit'
+import { countOutcome, isSupported, switchOn } from './cc-kit'
 import { atLeast, decideModel, parseRegistry, rank } from './floors-core'
 
 const REGISTRY = '/skills/delegation-contracts/references/role-floors.md'
@@ -71,8 +71,13 @@ export function registerFloors(on: On, options: PluginOptions) {
     const before = explicit ?? (isInherit ? e.parentModel : floor)
 
     const runId = e.workflow?.runId
+    const isRaised = rank(model) !== rank(before)
 
-    if (rank(model) !== rank(before) && (runId === undefined || !toastedRuns.has(runId))) {
+    if (isRaised) {
+      void countOutcome($, `floors.raised.${e.subagentType}`)
+    }
+
+    if (isRaised && (runId === undefined || !toastedRuns.has(runId))) {
       if (runId !== undefined) {
         toastedRuns.add(runId)
       }

@@ -2,6 +2,11 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.27.0 — 2026-10-25
+
+- **Removed: the stack-scoped skill listing** (`cc_route_scope`, `CC_ROUTE_SCOPE`, `hooks/listing.ts`, `hooks/stack-evidence.sh`). It shipped off by default because nothing showed a shorter listing helps, and the marketplace's own eviction probe measured 47/50 against 47/50 for a name-only listing; a default install carried it as code that never ran. Compaction steering is unchanged. A `cc_route_scope` you set is now ignored.
+- **The shared mod kit exports `hostOf` and runs the git-root lookup once per hook call.** `hooks/cc-kit.ts` (byte-identical in every mod plugin) now exports the host adapter that seven feature files pasted, and remembers `stateRoot` per host object, so a hook that asked three times runs `git rev-parse` once. It also carries `countOutcome`, a counts-only `$.store` tally.
+
 ## 0.26.0 — 2026-10-14
 
 ### Fixed

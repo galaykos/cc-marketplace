@@ -87,14 +87,16 @@ which fire with or without it. It reads `program.json` and writes nothing.
   roadmap, `n` the milestone count. It clears when no milestone is open, when the open ones
   wait only on a parked one, and when the file is gone (`program.sh close` archives it) or
   unreadable.
-- **Refresh.** At session start and after every main-loop tool call: the module checks the
-  file's modification time and re-reads it only when that moved, so a hand edit shows at
-  the next tool call, not at once. A subagent's tool calls do not refresh it (since 0.6.2):
-  `program.sh`, the one writer of the file, runs in the main loop.
-- **A git call per tool call.** Unless the line is switched off, every main-loop tool call
-  waits for a refresh that runs `git rev-parse` once to find the git toplevel;
-  `CC_OVERSEER_STATUS=off` removes it. With task-runner's board also on, each tool call
-  waits on both refreshes.
+- **Refresh.** At session start and after every main-loop `Bash`, `Write`, `Edit` or
+  `MultiEdit` call, the calls that can change the file (`program.sh` runs through Bash):
+  the module checks the file's modification time and re-reads it only when that moved, so
+  an edit made outside the session shows at the next such call, not at once. A subagent's
+  tool calls do not refresh it (since 0.6.2), nor, since 0.7.0, does a read-only call
+  (`Read`, `Grep`, `Glob` and every other tool). **Gate** — `tests/status-line.test.ts`,
+  "leaves a read-only main-loop call to the next call that can write".
+- **A git call per writing call.** Unless the line is switched off, every main-loop
+  `Bash`, `Write`, `Edit` or `MultiEdit` call waits for a refresh that runs `git rev-parse`
+  once to find the git toplevel; `CC_OVERSEER_STATUS=off` removes it.
 - **Off switch.** `CC_OVERSEER_STATUS=off` (or `0`, `false`), or the `/config` option
   `cc_overseer_status` off; the variable wins over the option. Off clears the line at the
   next refresh.
@@ -109,7 +111,7 @@ Standing: **gate** — `tests/status-line.test.ts` runs under `claude plugin tes
 marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails
 the build; `scripts/__tests__/status-core.test.sh` holds the milestone rule to
 `program.sh`'s own. Untested here: the drawn line (the test kit records the text, not the
-screen) and the git call per tool call, which no test counts. That a subagent's tool call
+screen) and the git call per writing call, which no test counts. That a subagent's tool call
 leaves the line to the next main-loop one is a gate (`tests/status-line.test.ts`).
 
 ## Standing of the rules

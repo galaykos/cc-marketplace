@@ -1,6 +1,6 @@
 import type { EngineInterface, ModelCompleteRequest, ModelCompleteResult, On, PluginOptions, Timer } from 'claude-code'
 
-import { activeRun, isSupported, stateRoot, switchOn } from './cc-kit'
+import { activeRun, countOutcome, hostOf, isSupported, stateRoot, switchOn } from './cc-kit'
 import type { Host } from './cc-kit'
 import {
   LIMITS,
@@ -19,22 +19,9 @@ import {
   textHash,
 } from './coach-core'
 import type { Gate, Label, RunContext, Sensitivity, Verdict } from './coach-core'
-import { coachView, frameOf, markerBlit, mascotSpriteFor, mascotView, poseOf, restOf, spriteBlit, spriteFor, statusText } from './coach-view'
-import type { Renderer } from './coach-view'
-import { BLINK, FRAMES, rendererFor } from './sprite'
-
-// Shared block templates/mods/host-block.ts — re-paste byte-for-byte.
-function hostOf($: EngineInterface): Host {
-  return {
-    run: (argv, init) => $.process.run(argv, init),
-    read: path => $.fs.read(path),
-    stat: path => $.fs.stat(path),
-    now: () => $.clock.now(),
-    sessionId: () => $.session.id(),
-    cwd: () => $.session.cwd(),
-    projectDir: () => $.env.get('CLAUDE_PROJECT_DIR'),
-  }
-}
+import { coachView, frameOf, markerBlit, poseOf, restOf, spriteBlit, spriteFor } from './coach-view'
+import type { FillButton, Renderer } from './coach-view'
+import { FRAMES, rendererFor } from './sprite'
 
 export type CoachView =
   | { mode: 'idle' }
@@ -64,36 +51,6 @@ type Band = {
 }
 
 const band: Band = { drawn: null, hasSurvey: false, isImageDenied: false, loop: null, ticks: 0 }
-
-type Display = 'pane' | 'statusline' | 'off'
-
-type Mascot = {
-  // Read once a session, at the first draw of the band.
-  display: Display | null
-  isStarting: boolean
-  // What an earlier activation of another display left up, cleared once.
-  isTidied: boolean
-  // The pane opened or the status line set, once a session.
-  isShown: boolean
-  drawn: Drawn | null
-  blink: Timer | null
-  isStill: boolean
-}
-
-const mascot: Mascot = { display: null, isStarting: false, isTidied: false, isShown: false, drawn: null, blink: null, isStill: false }
-
-const MASCOT_PANE = { id: 'prompt-coach', title: 'coach', columns: 18 } as const
-
-const DISPLAYS = ['pane', 'statusline', 'off'] as const
-
-const MOVE_NOTE = 'to move or hide him, set cc_coach_mascot in /config'
-
-// The delay the 2.1.294 probe re-opened a pane after (rationale/2026-10-08-mods-ui-survey-and-pane-probe.md §3); sooner is unmeasured.
-const REOPEN_MS = 100
-
-const BLINK_EVERY_MS = 4000
-
-const BLINK_SHUT_MS = 150
 
 const FRAME_MS = 250
 
@@ -194,22 +151,16 @@ function show($: EngineInterface, view: CoachView): void {
   }
 
   $.ui.invalidate('ui.render')
-
-  if (mascot.isShown && mascot.display === 'statusline') {
-    $.ui.status(statusText(view))
-  }
 }
 
-// An Image the terminal can draw only as its alt falls back to Raster for the session. True when the frame was drawn.
-async function blitSprite($: EngineInterface, requestId: string, renderer: Renderer, frame: readonly string[]): Promise<boolean> {
+// An Image the terminal can draw only as its alt falls back to Raster for the session.
+async function blitSprite($: EngineInterface, requestId: string, renderer: Renderer, frame: readonly string[]): Promise<void> {
   const blitted = await $.ui.blit(spriteBlit(requestId, renderer, frame)).catch(() => null)
 
   if (renderer === 'image' && ALT.test(blitted?.deny ?? '')) {
     band.isImageDenied = true
     $.ui.invalidate('ui.render')
   }
-
-  return blitted !== null && blitted.deny === undefined
 }
 
 // Every drawn pose gets one blit, a looping one a frame each tick until the cap, ending on its rest frame.
@@ -225,131 +176,11 @@ async function tick($: EngineInterface): Promise<void> {
   }
 
   const frame = isLast ? restOf(pose) : frameOf(pose, band.ticks - 1)
+  const drawn = band.drawn
 
-  // A view that changed while an earlier blit was answered has been redrawn: its old pose must not be blitted over it.
-  for (const drawn of [band.drawn, mascot.drawn]) {
-    if (drawn !== null && drawn.sprite !== null && poseOf(coach.view) === pose) {
-      await blitSprite($, drawn.requestId, drawn.sprite, frame)
-    }
+  if (drawn !== null && drawn.sprite !== null) {
+    await blitSprite($, drawn.requestId, drawn.sprite, frame)
   }
-}
-
-function stopBlink(): void {
-  mascot.blink?.cancel()
-  mascot.blink = null
-}
-
-// Only at rest; a pane that refuses the blit (closed, or behind another tab) stops it until the pane draws again.
-async function blink($: EngineInterface): Promise<void> {
-  const drawn = mascot.drawn
-  const sprite = drawn?.sprite ?? null
-
-  if (drawn === null || sprite === null || poseOf(coach.view) !== 'idle') {
-    return
-  }
-
-  if (!(await blitSprite($, drawn.requestId, sprite, BLINK))) {
-    stopBlink()
-    mascot.drawn = null
-
-    return
-  }
-
-  $.clock.after(BLINK_SHUT_MS, () => {
-    if (poseOf(coach.view) === 'idle') {
-      void blitSprite($, drawn.requestId, sprite, restOf('idle'))
-    }
-  })
-}
-
-function still($: EngineInterface): void {
-  mascot.isStill = true
-  stopBlink()
-  $.ui.invalidate('ui.render')
-}
-
-// The variable's 0 and false mean off too, as every switch of this plugin's does.
-async function displayOf($: EngineInterface, options: PluginOptions): Promise<Display> {
-  const value = await $.env.get('CC_COACH_MASCOT')
-
-  if (!switchOn(await $.env.get('CC_PROMPT_COACH'), options.cc_prompt_coach !== false) || !switchOn(value)) {
-    return 'off'
-  }
-
-  return choiceOf(value, options.cc_coach_mascot, DISPLAYS, 'pane')
-}
-
-async function mascotDisplay($: EngineInterface, options: PluginOptions): Promise<Display> {
-  mascot.display ??= await displayOf($, options)
-
-  return mascot.display
-}
-
-// A /config change reloads the plugin while its pane, and perhaps its status line, stay up: another display clears them.
-async function tidyLeftovers($: EngineInterface, display: Display): Promise<void> {
-  if (display !== 'statusline') {
-    try {
-      $.ui.status(undefined)
-    } catch {
-      // A refused clear leaves at most a stale face; the mascot still starts.
-    }
-  }
-
-  const panes = display === 'pane' ? [] : await $.ui.panes().catch(() => [])
-
-  if (panes.some(pane => pane.id === MASCOT_PANE.id)) {
-    await $.ui.close({ id: MASCOT_PANE.id }).catch(() => undefined)
-  }
-}
-
-// The pane docks beside the transcript only under the fullscreen renderer: anywhere else an unasked pane would take rows above the prompt.
-async function startMascot($: EngineInterface, isFullscreen: boolean | undefined, options: PluginOptions): Promise<void> {
-  if (mascot.isShown || mascot.isStarting) {
-    return
-  }
-
-  mascot.isStarting = true
-
-  try {
-    const display = await mascotDisplay($, options)
-
-    if (!mascot.isTidied) {
-      mascot.isTidied = true
-      await tidyLeftovers($, display)
-    }
-
-    if (display === 'off') {
-      mascot.isShown = true
-
-      return
-    }
-
-    if (display === 'pane' && isFullscreen !== true) {
-      return
-    }
-
-    mascot.isShown = true
-
-    if (!(await isTerminalSession($))) {
-      return
-    }
-
-    // A pane too wide for the terminal now waits unplaced, and the engine seats it once the terminal is widened.
-    if (mascot.display === 'pane') {
-      await $.ui.open(MASCOT_PANE)
-    } else {
-      $.ui.status(statusText(coach.view))
-    }
-  } finally {
-    mascot.isStarting = false
-  }
-}
-
-// An open the person did not ask for: the engine seats it from 144 columns, and narrower it waits undrawn until the terminal widens.
-async function reopen($: EngineInterface): Promise<void> {
-  const opened = await $.ui.open(MASCOT_PANE)
-
-  say($, opened.isPlaced ? `The coach comes back; ${MOVE_NOTE}` : `The coach comes back at 144 columns or wider; ${MOVE_NOTE}`)
 }
 
 // Why the bubble would not show if the prompt dropped now, from a blit the band answers now; null when it would.
@@ -383,7 +214,7 @@ async function rendererOf($: EngineInterface): Promise<Renderer> {
 }
 
 // Never over a draft the person typed since the drop; a refused fill leaves the bubble up with the text in it.
-async function fill($: EngineInterface, text: string): Promise<void> {
+async function fill($: EngineInterface, text: string, button: FillButton): Promise<void> {
   if ((await $.prompt.read()).text !== '') {
     say($, 'Clear the prompt box, then press 1 or 2 again')
 
@@ -395,6 +226,8 @@ async function fill($: EngineInterface, text: string): Promise<void> {
   if (!filled.isFilled) {
     return
   }
+
+  void countOutcome($, `coach.${button}`)
 
   // The box drops the code points a terminal draws as nothing, so Enter sends what it holds, not what was given.
   const hash = textHash(filled.text === '' ? text : filled.text)
@@ -409,6 +242,7 @@ async function fill($: EngineInterface, text: string): Promise<void> {
 
 async function mute($: EngineInterface): Promise<void> {
   await $.state.set(MUTED, true)
+  void countOutcome($, 'coach.mute')
   say($, MUTED_NOTE)
   show($, IDLE)
 }
@@ -525,6 +359,10 @@ async function ask($: EngineInterface, request: ModelCompleteRequest, judgment: 
 async function settle($: EngineInterface, before: Gate, escalated: boolean, failure: string | null): Promise<void> {
   const after = afterJudge(before, failure === null ? 'ok' : 'failed', escalated, await $.clock.now())
 
+  if (failure !== null) {
+    void countOutcome($, 'coach.failed')
+  }
+
   await $.state.set(ESCALATIONS, after.escalations)
   await $.state.set(FAILURES, after.failures)
   await $.state.set(BACKOFF_UNTIL, after.backoffUntil)
@@ -569,11 +407,14 @@ async function verdictOf($: EngineInterface, text: string, judgment: Judgment, o
 
   const label = parseLabel(first.text)
 
+  void countOutcome($, 'coach.judged')
+
   if (label === 'clear' || !canEscalate(judgment.gate)) {
     await settle($, judgment.gate, false, null)
 
     if (label !== 'clear') {
       show($, { mode: 'hint', label })
+      void countOutcome($, 'coach.hint')
     }
 
     return null
@@ -599,12 +440,19 @@ async function heldVerdict($: EngineInterface, prompt: Prompt, options: PluginOp
   }
 
   // Only the person's own next prompt ends the bubble: a notification, a schedule or a peer may arrive while it is read.
-  if (prompt.origin === 'composer' && (coach.view.mode === 'speaking' || coach.view.mode === 'hint')) {
+  const ended = prompt.origin === 'composer' ? coach.view.mode : 'idle'
+
+  if (ended === 'speaking' || ended === 'hint') {
     show($, IDLE)
   }
 
   if (!switchOn(await $.env.get('CC_PROMPT_COACH'), options.cc_prompt_coach !== false) || !(await isTerminalSession($))) {
     return null
+  }
+
+  // Every button press that takes effect ends the bubble, so one still up here had none.
+  if (ended === 'speaking') {
+    void countOutcome($, 'coach.ignored')
   }
 
   const { value: passed = [] } = await $.state.get(PASS)
@@ -644,11 +492,13 @@ async function heldVerdict($: EngineInterface, prompt: Prompt, options: PluginOp
 
     if (unavailable !== null) {
       say($, `Flagged (${verdict.kind}) but sent: ${unavailable}.`)
+      void countOutcome($, 'coach.unshown')
 
       return null
     }
 
     show($, { mode: 'speaking', text: prompt.text, verdict })
+    void countOutcome($, 'coach.flagged')
 
     return verdict
   } finally {
@@ -741,9 +591,6 @@ export function register(on: On, options: PluginOptions) {
       return next(e)
     }
 
-    // Not awaited: the band draws now, whatever the open does to the layout.
-    void startMascot($, e.viewport?.isFullscreen, options).catch(() => undefined)
-
     band.hasSurvey = e.props.hasSurvey
 
     const view = coach.view
@@ -759,39 +606,8 @@ export function register(on: On, options: PluginOptions) {
 
     band.drawn = { requestId: e.requestId, sprite }
 
-    const kit = { ui: $.ui.resolve(e), sprite, bodyRows, fill: (text: string) => fill($, text), mute: () => mute($) }
+    const kit = { ui: $.ui.resolve(e), sprite, bodyRows, fill: (text: string, button: FillButton) => fill($, text, button), mute: () => mute($) }
 
     return coachView(kit, view)
-  }).catch(($, e, next) => next(e))
-
-  on('ui.render', { component: 'Pane', requestId: MASCOT_PANE.id }, async ($, e, next) => {
-    if (!isSupported((await $.session.version()).version) || (await mascotDisplay($, options)) !== 'pane') {
-      return next(e)
-    }
-
-    const sprite = mascotSpriteFor(await rendererOf($), e.props.bodyColumns, e.props.scroll.bodyRows)
-
-    mascot.drawn = { requestId: e.requestId, sprite }
-
-    if (sprite !== null && !mascot.isStill) {
-      mascot.blink ??= $.clock.every(BLINK_EVERY_MS, () => void blink($))
-    }
-
-    const kit = { ui: $.ui.resolve(e), sprite, still: mascot.isStill ? null : () => still($) }
-
-    return mascotView(kit, coach.view)
-  }).catch(($, e, next) => next(e))
-
-  // Answering a person's close without next closed the pane anyway on 2.1.294 (rationale/2026-10-08-mods-ui-survey-and-pane-probe.md §3): let it close, then come back.
-  on('ui.close', async ($, e, next) => {
-    if (e.id !== MASCOT_PANE.id || e.origin.kind !== 'person' || (await mascotDisplay($, options)) !== 'pane') {
-      return next(e)
-    }
-
-    const closed = await next(e)
-
-    $.clock.after(REOPEN_MS, () => void reopen($).catch(() => undefined))
-
-    return closed
   }).catch(($, e, next) => next(e))
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0 — 2026-10-25
+
+- **The milestone line refreshes only after a main-loop `Bash`, `Write`, `Edit` or `MultiEdit` call.** A read-only call (`Read`, `Grep`, `Glob`) cannot change `program.json`, yet each one waited for a `git rev-parse`; now none does. An edit made outside the session shows at the next writing call. Gate: `tests/status-line.test.ts`, "leaves a read-only main-loop call to the next call that can write".
+- **The shared mod kit exports `hostOf` and runs the git-root lookup once per hook call.** `hooks/cc-kit.ts` (byte-identical in every mod plugin) now exports the host adapter that seven feature files pasted, and remembers `stateRoot` per host object, so a hook that asked three times runs `git rev-parse` once. It also carries `countOutcome`, a counts-only `$.store` tally.
+
 ## 0.6.4 — 2026-10-15
 
 - **Scripts run by path take a quoted `${CLAUDE_PLUGIN_ROOT}`.** `/overseer:start`, `/overseer:resume`, `/overseer:status`, the overseer skill and its dispatch prompts ran `${CLAUDE_PLUGIN_ROOT}/scripts/program.sh`, `capability-scan.sh` and `skill-path.sh` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.

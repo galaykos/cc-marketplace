@@ -4,6 +4,7 @@ import type { Engine } from 'claude-code/testing'
 
 import {
   activeRun,
+  countOutcome,
   isSupported,
   liveSentinel,
   MODS_FLOOR,
@@ -120,6 +121,7 @@ function seat(on: On, live: Live = {}) {
     io: [] as string[],
     envReads: [] as string[],
     board: [] as string[],
+    store: new Map<string, unknown>(),
   }
 
   mock.clock(on, { now: NOW })
@@ -130,8 +132,14 @@ function seat(on: On, live: Live = {}) {
     return { value: e.name === 'CC_SUGGEST' ? world.suggest : undefined }
   })
 
+  on('store.get', ($, e) => ({ value: world.store.get(e.key) }))
+
   on('store.set', ($, e) => {
-    world.board.push(String(e.value))
+    if (e.key === 'board') {
+      world.board.push(String(e.value))
+    }
+
+    world.store.set(e.key, e.value)
 
     return { value: undefined }
   })
@@ -174,6 +182,8 @@ function seat(on: On, live: Live = {}) {
 
   on('turn.complete', ($, e) => ({ text: e.answer }))
 
+  on('prompt.submit', ($, e) => ({ text: e.text }))
+
   on('prompt.suggest', ($, e) => {
     world.proposed.push(e.text)
 
@@ -190,6 +200,8 @@ const write = ($: Engine, path = A_MD, agentId?: string) =>
     content: 'x',
     ...(agentId !== undefined && { agentId }),
   })
+
+const typed = (text: string, kind: 'composer' | 'sdk' = 'composer') => ({ text, wait: false, origin: { kind } })
 
 const endTurn = ($: Engine) =>
   $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
@@ -263,6 +275,39 @@ describe('cc-kit', () => {
 
   test('stateRoot outside git and the project dir falls back to the cwd', async () => {
     expect(await stateRoot(hostIn({ cwd: '/project-two/x', projectDir: '/proj' }))).toBe('/project-two/x')
+  })
+
+  test('stateRoot runs git once per host, and again for a new host', async () => {
+    const runs: string[] = []
+    const world = { cwd: '/work/app', repos: REPO }
+    const counted = (host: Host): Host => ({ ...host, run: (argv, init) => (runs.push(argv.join(' ')), host.run(argv, init)) })
+    const host = counted(hostIn(world))
+
+    expect([await stateRoot(host), await stateRoot(host)]).toEqual(['/work', '/work'])
+    expect(runs).toEqual(['git rev-parse --show-cdup'])
+
+    await stateRoot(counted(hostIn(world)))
+
+    expect(runs).toHaveLength(2)
+  })
+
+  test('countOutcome adds one per call and loses none when calls overlap', async () => {
+    const held = new Map<string, unknown>([['outcomes', { kept: 4 }]])
+    const store = {
+      get: async (key: string) => held.get(key),
+      set: async (key: string, value: unknown) => void held.set(key, value),
+    }
+    const $ = { store } as unknown as Parameters<typeof countOutcome>[0]
+
+    await Promise.all([countOutcome($, 'a'), countOutcome($, 'a'), countOutcome($, 'b')])
+
+    expect(held.get('outcomes')).toEqual({ kept: 4, a: 2, b: 1 })
+  })
+
+  test('countOutcome swallows a store that refuses', async () => {
+    const store = { get: async () => undefined, set: async () => Promise.reject(new Error('over 4 MiB')) }
+
+    await countOutcome({ store } as unknown as Parameters<typeof countOutcome>[0], 'a')
   })
 
   test('liveSentinel reads an unexpired sentinel of this session', async () => {
@@ -361,6 +406,46 @@ describe('cc-kit', () => {
     await endTurn($)
 
     expect(world.proposed, 'recorded once shown').toEqual(['/probe /work/a.md'])
+  })
+
+  test('registerSuggestion counts a shown suggestion, then the sent command as accepted', async ($, on) => {
+    const world = seat(on)
+
+    await write($)
+    await endTurn($)
+    await $.prompt.submit(typed('/probe /work/a.md'))
+    await $.prompt.submit(typed('/probe again'))
+
+    expect(world.store.get('outcomes')).toEqual({ 'suggest.probe.shown': 1, 'suggest.probe.accepted': 1 })
+  })
+
+  test('registerSuggestion counts another prompt after a shown suggestion as passed', async ($, on) => {
+    const world = seat(on)
+
+    await write($)
+    await endTurn($)
+    await $.prompt.submit(typed('/probes are not the probe'))
+
+    expect(world.store.get('outcomes')).toEqual({ 'suggest.probe.shown': 1, 'suggest.probe.passed': 1 })
+  })
+
+  test('registerSuggestion settles an offer only on a composer prompt, and counts nothing not shown', async ($, on) => {
+    const world = seat(on, { shownAnswers: [false] })
+
+    await write($)
+    await endTurn($)
+    await $.prompt.submit(typed('/probe /work/a.md'))
+
+    expect(world.store.get('outcomes'), 'a not-shown answer is no offer').toBeUndefined()
+
+    await endTurn($)
+    await $.prompt.submit(typed('/probe /work/a.md', 'sdk'))
+
+    expect(world.store.get('outcomes')).toEqual({ 'suggest.probe.shown': 1 })
+
+    await $.prompt.submit(typed('/probe /work/a.md'))
+
+    expect(world.store.get('outcomes')).toEqual({ 'suggest.probe.shown': 1, 'suggest.probe.accepted': 1 })
   })
 
   test('registerSuggestion re-proposes after a not-shown answer', async ($, on) => {

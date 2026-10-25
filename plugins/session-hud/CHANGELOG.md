@@ -2,6 +2,11 @@
 
 All notable changes to the session-hud plugin.
 
+## 0.2.0 — 2026-10-25
+
+- **The hint line and the turn line are off by default** (`cc_hud_hint`, `cc_hud_turn`; `CC_HUD_HINT`, `CC_HUD_TURN`). A `statusLine` you wired yourself already shows context, limits, cost, time and branch, and two copies of them is noise; the `/hud` pane and the subagent rows, which no status line can show, stay on. Turn either line back on in `/config`. Gate: `tests/hud.test.ts`, "draws no hint line and no turn line by default".
+- **The shared mod kit exports `hostOf` and runs the git-root lookup once per hook call.** `hooks/cc-kit.ts` (byte-identical in every mod plugin) now exports the host adapter that seven feature files pasted, and remembers `stateRoot` per host object, so a hook that asked three times runs `git rev-parse` once. It also carries `countOutcome`, a counts-only `$.store` tally.
+
 ## 0.1.2 — 2026-10-15
 
 - **The turn line counts the whole turn across a subagent's turn.** Since Claude Code 2.1.299 a subagent's or teammate's turn raises `turn.start` too, and the module took a new cost and context baseline on every one, so a turn whose subagent started midway showed `$0.03` where it had spent `$0.08`. A `turn.start` carrying `agentId` now leaves the baseline and the footers alone. On 2.1.291–2.1.298 a subagent's turn raises no `turn.start`, so nothing changes there. Standing: gate — `tests/hud.test.ts` "counts the whole turn's cost across a subagent's turn start", red against 0.1.1.

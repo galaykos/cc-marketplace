@@ -177,6 +177,23 @@ describe('status-line', () => {
     expect(world.line).toBe('overseer  milestone 2/2  m2 Client list (queued)')
   })
 
+  test('leaves a read-only main-loop call to the next call that can write', async ($, on) => {
+    const world = seat(on)
+
+    world.save([m('m1', 'Walking skeleton', 'queued'), m('m2', 'Client list', 'queued', ['m1'])])
+    await start($)
+
+    world.save([m('m1', 'Walking skeleton', 'done'), m('m2', 'Client list', 'queued', ['m1'])])
+    await $.tool.call({ tool: 'Read', file_path: '/work/app/README.md' })
+    await $.tool.call({ tool: 'Grep', pattern: 'm1' })
+
+    expect(world.line, 'unchanged after reads').toBe('overseer  milestone 1/2  m1 Walking skeleton (queued)')
+
+    await $.tool.call({ tool: 'Edit', file_path: '/work/.claude/overseer/program.json', old_string: 'a', new_string: 'b' })
+
+    expect(world.line).toBe('overseer  milestone 2/2  m2 Client list (queued)')
+  })
+
   test('clears when program.json is gone', async ($, on) => {
     const world = seat(on)
 

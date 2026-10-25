@@ -2,6 +2,11 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.10.0 — 2026-10-25
+
+- **The terse badge re-reads the level file only after a main-loop `Bash` call, at turn start and at session start.** It re-read on every tool call, a subagent's included, though only `/candor:level` and `level.sh` (both through Bash) write the file. Gate: `tests/badge.test.ts`, "reads the level file again after a main-loop Bash call only".
+- **The shared mod kit exports `hostOf` and runs the git-root lookup once per hook call.** `hooks/cc-kit.ts` (byte-identical in every mod plugin) now exports the host adapter that seven feature files pasted, and remembers `stateRoot` per host object, so a hook that asked three times runs `git rev-parse` once. It also carries `countOutcome`, a counts-only `$.store` tally.
+
 ## 0.9.0 — 2026-10-15
 
 ### Changed

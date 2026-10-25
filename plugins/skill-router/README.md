@@ -136,33 +136,7 @@ glob   *.blade.php      laravel-best-practices   laravel   high   composer.json~
 
 ## Mods (Claude Code ≥ 2.1.291)
 
-One hooks module, `hooks/mods.ts`, is the only `modules` entry. It loads two features.
-
-### Stack-scoped skill listing (opt-in)
-
-- **What it does.** With `cc_route_scope` on (`CC_ROUTE_SCOPE` overrides; default off), the
-  skill listing the model reads leaves out the Laravel, Inertia, Next.js, Vite, React Native,
-  Tailwind, shadcn and MariaDB skills when this repository shows none of that stack's
-  evidence.
-- **Where the evidence comes from.** It is `prime.sh`'s own rows: the module sources the script
-  and runs `sr_repo_skills`, rather than copying them.
-- **What replaces the dropped entries.** One line naming them: "Listed by name only … the Skill
-  tool still loads each: …".
-- **Process skills stay listed.** a11y-audit, testing, sql, docker, devops and package-hygiene are
-  wanted when you create their file shape.
-- **Fail-open.** An unreadable listing format, a failed `prime.sh` or any error passes the
-  listing through unchanged. The output is byte-stable for one listing and one repository,
-  since the engine caches the answer per attachment.
-- **Standing:**
-  - **Gate:** filter, keep, pass-through, the off-switches and the floor
-    (`tests/listing.test.ts`). The shell half, `hooks/stack-evidence.sh` run on real
-    directories against the real `prime.sh`, is `scripts/__tests__/stack-evidence.test.sh`.
-  - **Recorded:** measured once on 2.1.294 against a stand-in API
-    (`rationale/2026-10-08-skill-router-mods-probe.md`).
-    - The filtered listing is what reaches every API request.
-    - A `Skill` call naming a hidden skill still loads it.
-- **Off by default** because nothing has measured that a shorter listing makes the right skill
-  fire more often.
+One hooks module, `hooks/mods.ts`, is the only `modules` entry. It loads one feature.
 
 ### Compaction steering (on by default)
 

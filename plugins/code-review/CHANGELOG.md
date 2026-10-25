@@ -3,6 +3,11 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.34.0 — 2026-10-25
+
+- **Next-step suggestion counts.** Each suggestion the prompt box reports shown adds one to `suggest.<transition>.shown`, and your next prompt adds `.accepted` (it sent the suggested command) or `.passed`, in this plugin's own `$.store` key `outcomes`; counts only, never text. `scripts/mod-outcomes.sh` in the marketplace repository prints them. Standing: gate for the counting (kit tests), recorded for what a count means.
+- **The shared mod kit exports `hostOf` and runs the git-root lookup once per hook call.** `hooks/cc-kit.ts` (byte-identical in every mod plugin) now exports the host adapter that seven feature files pasted, and remembers `stateRoot` per host object, so a hook that asked three times runs `git rev-parse` once. It also carries `countOutcome`, a counts-only `$.store` tally.
+
 ## 0.33.1 — 2026-10-15
 
 - **`Checked:` names the level and finding limit the host's `code-review` ran at.** The built-in reuses the effort level you last typed (since Claude Code 2.1.223) and keeps a typed `--max-findings` (since 2.1.288) until `--max-findings default`, so a `/code-review low --max-findings 3` from last week silently sized the generic pass of `/code-review:review`. The command still passes neither, on purpose: the saved choice is yours, and this command has no level argument to replace it with. What changed is that `Checked:` now reads `host built-in (level high, limit 10)`, or `(level and limit inherited)` when the built-in names neither; type `/code-review <level>` or `--max-findings default` to change what it inherits. Passing a value from here would not have overwritten your choice: on 2.1.300 the host saves both only from a typed `/code-review`, never from a Skill-tool call (read from the CLI bundle, not run). On 2.1.223–2.1.287 only the level is saved and the limit is the built-in's default. Standing: recorded — nothing reads a review's output back.

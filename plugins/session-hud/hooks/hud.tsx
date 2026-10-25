@@ -1,23 +1,10 @@
 import type { EngineInterface, On, PluginOptions } from 'claude-code'
 
-import { gitLine, isSupported, switchOn } from './cc-kit'
+import { gitLine, hostOf, isSupported, switchOn } from './cc-kit'
 import type { Host } from './cc-kit'
 import { appendTail, hudLine, paneRows, parseSegments, turnLine } from './hud-core'
 import type { Breakdown, Figures, Segment } from './hud-core'
 import { hudView } from './hud-view'
-
-// Shared block templates/mods/host-block.ts — re-paste byte-for-byte.
-function hostOf($: EngineInterface): Host {
-  return {
-    run: (argv, init) => $.process.run(argv, init),
-    read: path => $.fs.read(path),
-    stat: path => $.fs.stat(path),
-    now: () => $.clock.now(),
-    sessionId: () => $.session.id(),
-    cwd: () => $.session.cwd(),
-    projectDir: () => $.env.get('CLAUDE_PROJECT_DIR'),
-  }
-}
 
 export const PANE = { id: 'hud', title: 'HUD' } as const
 
@@ -58,9 +45,9 @@ async function switchesOf($: EngineInterface, options: PluginOptions): Promise<S
   const segments = (await $.env.get('CC_HUD_SEGMENTS')) || (typeof options.cc_hud_segments === 'string' ? options.cc_hud_segments : undefined)
 
   return {
-    hint: switchOn(await $.env.get('CC_HUD_HINT'), options.cc_hud_hint !== false),
+    hint: switchOn(await $.env.get('CC_HUD_HINT'), options.cc_hud_hint === true),
     status: switchOn(await $.env.get('CC_HUD_STATUS'), options.cc_hud_status === true),
-    turn: switchOn(await $.env.get('CC_HUD_TURN'), options.cc_hud_turn !== false),
+    turn: switchOn(await $.env.get('CC_HUD_TURN'), options.cc_hud_turn === true),
     pin: switchOn(await $.env.get('CC_HUD_PIN'), options.cc_hud_pin === true),
     segments: parseSegments(segments),
   }

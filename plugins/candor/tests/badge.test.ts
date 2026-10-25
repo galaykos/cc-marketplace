@@ -160,6 +160,22 @@ describe('badge', () => {
     expect(world.tail, 'back after a tool call').toBe('session 12m · [TERSE:LITE]')
   })
 
+  test('reads the level file again after a main-loop Bash call only', async ($, on) => {
+    const world = seat(on)
+
+    world.disk.set(LEVEL_FILE, 'full\n')
+    await start($)
+    world.io.length = 0
+    await $.tool.call({ tool: 'Read', file_path: '/work/a.ts' })
+    await $.tool.call({ tool: 'Bash', command: 'true', agentId: 'a1' })
+
+    expect(world.io, 'a Read and a subagent Bash read nothing').toEqual([])
+
+    await $.tool.call({ tool: 'Bash', command: 'true' })
+
+    expect(world.io).toContain(`stat ${LEVEL_FILE}`)
+  })
+
   test('draws the badge after a reload that raises no session.start', async ($, on) => {
     const world = seat(on)
 

@@ -46,6 +46,10 @@ const bash = ($: Engine, command: string) => $.tool.call({ tool: 'Bash', command
 
 const edit = ($: Engine) => $.tool.call({ tool: 'Edit', file_path: '/work/src/a.ts', old_string: 'a', new_string: 'b' })
 
+const read = ($: Engine) => $.tool.call({ tool: 'Read', file_path: '/work/src/a.ts' })
+
+const dispatch = ($: Engine) => $.tool.call({ tool: 'Agent', description: 'fix the test', prompt: 'fix it', subagent_type: 'debugging:debugger' })
+
 const endTurn = ($: Engine) => $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
 
 const HUNT = '/testing:flake-hunt'
@@ -82,6 +86,54 @@ describe('suggest', () => {
     await edit($)
     world.failing.clear()
     await bash($, 'pytest -q')
+    await endTurn($)
+
+    expect(world.proposed).toEqual([HUNT])
+  })
+
+  test('a fix made through Bash between the runs is a fix, not a flake', async ($, on) => {
+    const world = seat(on, { failing: ['npm test'] })
+
+    await bash($, 'npm test')
+    await bash($, "sed -i 's/a/b/' src/a.ts")
+    world.failing.clear()
+    await bash($, 'npm test')
+    await endTurn($)
+
+    expect(world.proposed).toEqual([])
+  })
+
+  test('a subagent dispatched between the runs is a possible fix, not a flake', async ($, on) => {
+    const world = seat(on, { failing: ['npm test'] })
+
+    await bash($, 'npm test')
+    await dispatch($)
+    world.failing.clear()
+    await bash($, 'npm test')
+    await endTurn($)
+
+    expect(world.proposed).toEqual([])
+  })
+
+  test('a command that changes code before its run is a fix each time, not a flake', async ($, on) => {
+    const chained = "sed -i 's/a/b/' src/a.ts && npm test"
+    const world = seat(on, { failing: [chained] })
+
+    await bash($, chained)
+    world.failing.clear()
+    await bash($, chained)
+    await endTurn($)
+
+    expect(world.proposed).toEqual([])
+  })
+
+  test('reads, a cd before the run and a piped run change nothing', async ($, on) => {
+    const world = seat(on)
+
+    await bash($, 'cd app && npm test 2>&1 | tail -5')
+    await read($)
+    world.failing.add('cd app && npm test 2>&1 | tail -5')
+    await bash($, 'cd app && npm test 2>&1 | tail -5')
     await endTurn($)
 
     expect(world.proposed).toEqual([HUNT])

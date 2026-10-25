@@ -1,7 +1,7 @@
 {
   "name": "session-hud",
-  "version": "0.1.2",
-  "description": "A zero-setup session HUD for the terminal, as a hooks module: context %, the 5-hour and 7-day rate-limit windows with reset countdowns, session cost, session time and git branch on the prompt's hint line; what each turn cost on its closing line; a /hud pane with the context breakdown, opt-in pinned so it comes back after you close it; and richer subagent rows. Plugins cannot edit your statusLine, so this needs no settings.json edit. Each surface is its own /config option. Terminal only; needs Claude Code 2.1.291.",
+  "version": "0.2.0",
+  "description": "A zero-setup session HUD for the terminal, as a hooks module: a /hud pane with the context window by category, the compaction point, the 5-hour and 7-day rate-limit windows with reset countdowns and the session's cost and time, opt-in pinned so it comes back after you close it; and richer subagent rows. Opt-in: the same figures on the prompt's hint line and what each turn cost on its closing line, for anyone without a statusLine of their own. Plugins cannot edit your statusLine, so this needs no settings.json edit. Each surface is its own /config option. Terminal only; needs Claude Code 2.1.291.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
@@ -15,7 +15,7 @@
       "type": "boolean",
       "title": "Usage on the hint line (CC_HUD_HINT)",
       "description": "Add the HUD segments to the dim hint line under the prompt: on or off. The environment variable CC_HUD_HINT overrides this.",
-      "default": true
+      "default": false
     },
     "cc_hud_status": {
       "type": "boolean",
@@ -27,7 +27,7 @@
       "type": "boolean",
       "title": "Per-turn usage (CC_HUD_TURN)",
       "description": "Add a turn's output tokens, cost and context growth to the line that closes it: on or off. The environment variable CC_HUD_TURN overrides this.",
-      "default": true
+      "default": false
     },
     "cc_hud_segments": {
       "type": "string",

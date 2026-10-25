@@ -3,6 +3,10 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.15.2 — 2026-10-25
+
+- **The shared mod kit exports `hostOf` and runs the git-root lookup once per hook call.** `hooks/cc-kit.ts` (byte-identical in every mod plugin) now exports the host adapter that seven feature files pasted, and remembers `stateRoot` per host object, so a hook that asked three times runs `git rev-parse` once. It also carries `countOutcome`, a counts-only `$.store` tally. Redaction itself is unchanged.
+
 ## 0.15.1 — 2026-10-15
 
 - **Docs and comments: what the redaction mod's guarantees depend on, by Claude Code version; behaviour unchanged.** The module runs from 2.1.291, the mods floor, and the host fixed several gaps after that. The README and the comments above `prompt.submit` and `tool.call` in `hooks/redact.ts` now name each one. Below 2.1.295 a prompt the check masked or dropped was still saved as typed to `history.jsonl` and to the transcript's queued-prompt records. Below 2.1.296 Esc mid-check could send the prompt unchecked. Below 2.1.299 an image could drop the mask, and a call the host could not hand the hook passed unredacted. Below 2.1.300 the session-title request and the OpenTelemetry `user_prompt` event carried the prompt as typed. The prompt guard's floor stays at 2.1.291, though `$.session.version()` could raise it: below each fix one path leaks, and switching the guard off there would leak on every path. Those come from the host's changelog. Re-measured without a model call: in `claude plugin test`, a failure handler held past its one-second grace still lets the result through on 2.1.300 as on 2.1.291, which 2.1.299's fail-closed change does not cover. Through `claude mcp serve`, `Read` of a UTF-16LE file with a byte-order mark returns NUL-interleaved bytes on 2.1.291 and decoded text on 2.1.300, so the mod masks it from 2.1.299. The README now says so where it said all UTF-16 passes. It also notes that whether Up still recalls a cancelled draft from 2.1.295 on is unmeasured.

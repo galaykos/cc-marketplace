@@ -142,10 +142,16 @@ without it.
   into a non-default base by fast-forward, is still offered once per session; a branch
   pushed by hand without a PR is silenced as if finished.
 - **Off switch.** `CC_SUGGEST=off` silences this marketplace's next-step suggestions
-  (taskmaster, task-runner, code-review, git-workflow, debugging, testing); there is no
+  (task-runner, code-review, git-workflow, debugging, testing); there is no
   `/config` option.
   Another plugin's suggestion can take the one slot after this one, a suggestion shown and
   then replaced counts as shown, and Claude Code's own suggestion is not suppressed.
+- **Counts** (since 0.13.0). Each time the prompt box reports this suggestion shown, and
+  whether your next prompt then sent the suggested command (`accepted`) or something else
+  (`passed`), one is added to `suggest.finish.shown`, `.accepted` or `.passed` in this
+  plugin's own `$.store` (key `outcomes`): counts only, never the text, on this machine only.
+  The marketplace repository's `scripts/mod-outcomes.sh` prints them. **Gate** for the
+  counting (the shared kit's tests); what a count says about the suggestion is **recorded**.
 - **CLI floor.** With mods off in the host or on a CLI below 2.1.287 no module loads; on
   2.1.287-2.1.290 its turn-end hook passes through. It registers no `tool.call` hook when
   it runs (on CLI 2.1.291, `claude plugin validate --strict` still lists the shared kit's
