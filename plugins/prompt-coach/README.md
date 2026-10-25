@@ -7,8 +7,7 @@ running card or reopens a decision its spec settled; only a confidently flagged 
 pixel-art sprite shows your text, the reason and a rewrite, with buttons that fill the
 prompt box and never submit it. A haiku first pass judges every eligible prompt, and the
 standby model below confirms a flag, at most 10 times a session. Terminal only; it
-needs Claude Code 2.1.291 or newer with mods allowed. The coach also stays on screen as a
-mascot: a pixel-art pane beside the transcript, or a text face in the status line.
+needs Claude Code 2.1.291 or newer with mods allowed.
 
 Bulk installs leave it out, because it bills a model call per eligible prompt:
 `/all-plugins:install` and `/stack-scan:suggest --full` skip it, though
@@ -36,8 +35,9 @@ The plugin is one hooks module, `hooks/coach.ts`, the only entry under `modules`
   `checking your prompt…`. Haiku is asked for one word (`clear`, `unclear` or
   `conflict`); the coach reads its first word, ignoring case and any leading spaces, `*`,
   `_`, backtick or quote, and a reply whose first word is none of the three counts as
-  clear. On `clear` the prompt goes on, after about 0.6 s (haiku's median in the probe, on
-  Haiku 4.5 — see Residuals for Haiku 5.5).
+  clear. On `clear` the prompt goes on, after about 1.2 s on Haiku 5.5 (median 1.16 s, n = 10,
+  CLI 2.1.310; it was 0.6 s on Haiku 4.5): **recorded**,
+  `rationale/2026-10-25-prompt-coach-judge.md` §2 in the marketplace repository.
   On a flag the standby model answers a JSON verdict: a kind, a confidence, a one-line
   reason and a rewrite. Calls still running 5 s into the judgment are aborted, and the
   prompt goes on.
@@ -110,61 +110,6 @@ CLI's own hint.
   5 s after Enter, the talking pose on its closed mouth. The deadline runs from the start
   of the judgment, not from Enter (see "Deadline overruns" below).
 
-## The mascot
-
-`cc_coach_mascot` (or `CC_COACH_MASCOT`) picks where he lives: `pane` (the default),
-`statusline` or `off`. It is read once, at the first draw of the band in a session, and
-changes nothing about the judging. `CC_PROMPT_COACH=off` turns him off with the coach, and
-the variable's `0` and `false` mean off too. **Gate** — `tests/coach-view.test.ts`,
-"CC_COACH_MASCOT=off opens no pane, and the coach still judges", "off shows no mascot at
-all", "CC_COACH_MASCOT=0 is off", "CC_COACH_MASCOT=statusline beats the pane option".
-
-- **`pane`.** A pane titled `coach`, 18 columns wide, docked beside the transcript, opened
-  once a session, only when the renderer is fullscreen (`"tui": "fullscreen"` in
-  settings.json, or `CLAUDE_CODE_NO_FLICKER=1`): under the default renderer the CLI would
-  seat an unasked pane inline above the prompt, so none opens. The CLI 2.1.292 types say an
-  unasked pane waits undrawn below 144 terminal columns (110 once you have opened that pane
-  yourself) and is seated when the terminal is widened. **Gate** — "opens one docked pane a
-  session, only under the fullscreen renderer", "opens no pane where the renderer would seat
-  it inline".
-  - It shows the idle sprite at rest, the thinking loop with `checking…` while a prompt is
-    held and the talking pose with `flagged` while the band shows a bubble; the bubble and
-    its buttons stay in the band. A pane under 16 columns or 8 rows draws no sprite.
-    **Gate** — "the pane shows the idle sprite and follows the judgment", "says flagged
-    while the band shows a bubble".
-  - At rest the eyes shut for 0.15 s every 4 s. `s: Still` stops the blink for the
-    session. A pane that refuses the blink stops it until the pane draws again, then
-    blinks again. **Gate** — "blinks every 4 s at rest", "Still stops the blink", "a pane
-    that refuses the blink stops blinking until it draws again".
-  - **He comes back.** The pane's close mark and ctrl+x x close the pane. While the
-    display is `pane`, the coach opens it again 0.1 s later, with a toast saying how to move
-    or hide him. You did not ask for that re-open, so the CLI seats it only on a terminal
-    144 columns or wider. Narrower, the pane waits undrawn until the terminal is widened,
-    and the toast says so. A close made by a plugin, such as the display switch below, is
-    not undone. Esc only hands the keys back (the pane is not opened with `closeOnEscape`).
-    **Recorded** — on CLI 2.1.294, refusing a person's close (answering `ui.close` without
-    `next`, which the CLI types say keeps a pane open) closed the pane anyway. Re-opening
-    it was the one pin that held, and only from 144 columns. Both were measured once with a
-    probe plugin (`rationale/2026-10-08-mods-ui-survey-and-pane-probe.md` §3). A walk of
-    this plugin the same day saw the re-open draw at 200 columns, wait at 130 and be seated
-    on widening. The test kit's engine raises no `ui.close` and refuses a test's own
-    `$.ui.close`, so no test exercises any of it.
-  - **Switching away.** A display set in `/config` reloads the plugin, and at the band's
-    next draw, once, whatever the old display left up is cleared: a pane under any display
-    but `pane`, a status line under any but `statusline`. Set through `CC_COACH_MASCOT` it
-    takes a new session. Under any display but `pane` the pane draws nothing. **Gate** — "a
-    display other than pane closes the pane a /config change left open", "a switch to pane
-    clears the face a statusline display left", "the pane draws nothing and never blinks
-    unless the display is pane". Whether the engine keeps a status line across a reload at
-    all is not known; the clear runs either way. **Recorded.**
-- **`statusline`.** A pinned status line under the prompt, in every renderer: `(^_^) coach`
-  at rest, `(-_-) coach  checking…` while a prompt is held, `(O_O) coach  Unclear: <reason>`
-  while the band shows a bubble, back at rest on your next prompt. No sprite, no blink, and
-  nothing to close. **Gate** — "statusline shows a text face in any renderer, and opens no
-  pane", "the status line follows the judgment".
-- **No model calls.** The mascot only draws: the pane's blink costs a timer, two blits (shut,
-  then open 0.15 s later) and one more timer dispatch every 4 s.
-
 ## What it flags
 
 - **Unclear.** With the default sensitivity, `unactionable`: nobody could act on it. It
@@ -193,7 +138,6 @@ run the judge sees no card or spec context.
 | `/config` option | variable | values | default |
 |---|---|---|---|
 | `cc_prompt_coach` | `CC_PROMPT_COACH` | on, off | on |
-| `cc_coach_mascot` | `CC_COACH_MASCOT` | `pane`, `statusline`, `off` (the mascot only) | `pane` |
 | `cc_coach_model` | `CC_COACH_MODEL` | `sonnet`, `opus` (the standby judge) | `sonnet` |
 | `cc_coach_sensitivity` | `CC_COACH_SENSITIVITY` | `unactionable`, `ambiguous` | `unactionable` |
 
@@ -203,8 +147,7 @@ off only at exactly `off`, `0` or `false`, in any case; any other non-empty valu
 `disabled`, ` off` with a leading space) turns it on, over a `/config` off, and an empty
 or unset variable leaves the option in charge. `CC_COACH_MODEL` and `CC_COACH_SENSITIVITY`
 ignore case and surrounding spaces, and a value outside the list falls back to the option,
-then the default. `CC_COACH_MASCOT` reads the same way, except that `0` and `false` (any
-case) mean `off` rather than falling back.
+then the default.
 
 Fixed in code: haiku as the first pass, the 5 s deadline, 10 standby checks a session,
 and a 10-minute back-off after 3 judgments in a row fail (an API error, a refused call, a
@@ -221,6 +164,43 @@ timeout).
   sonnet's place all 5 judgments would have finished inside the 5 s deadline, the slowest
   at 4236 ms from the hook's start, against 3298 ms for sonnet's slowest.
 - **`/cost` shows none of it** (residuals below).
+
+## Outcome counts
+
+The coach counts what became of each judgment, so how often a flag was wrong can be read
+instead of guessed. Counts only: a name and a number, never a prompt, reason or rewrite.
+
+| count | adds 1 when |
+|---|---|
+| `coach.judged` | the haiku first pass answers, whatever its label |
+| `coach.hint` | the coach puts up the after-cap hint (a haiku flag, sent) |
+| `coach.flagged` | a prompt is dropped and the bubble shown |
+| `coach.unshown` | a confident flag is sent because the band could not show it |
+| `coach.failed` | a judgment ends in a failure that counts toward the back-off |
+| `coach.use`, `coach.send` | `1` (use) or `2` (send) fills the box |
+| `coach.mute` | `3` mutes the coach |
+| `coach.ignored` | your next prompt from the box ends a bubble no press ended |
+
+- **Where they live.** In this plugin's own `$.store`, under the key `outcomes`: the file
+  `${CLAUDE_CONFIG_DIR:-~/.claude}/plugins/store/prompt-coach_<marketplace>-<hash>.json`,
+  where `<hash>` is the host's. They outlast the session. The marketplace repository's
+  `scripts/mod-outcomes.sh` reads them. **Recorded** — the path was measured once, on CLI
+  2.1.310 with a probe plugin.
+- **What `send / flagged` approximates.** Every dropped prompt carried a high-confidence
+  verdict, and Send anyway sends your text as written, so the ratio approximates the
+  false-positive rate of those flags. Only approximates: Send anyway on a prompt that was
+  unclear counts the same, and an `ignored` bubble can hide either kind. Each bubble ends
+  in at most one of `use`, `send`, `mute` and `ignored`, and one still up when the session
+  ends in none.
+- **What the counts cannot tell.** A skipped prompt counts nothing, and a confident verdict
+  past the deadline (Deadline overruns) counts `judged` alone. An empty first-pass reply
+  counts as `judged` and reads as clear, so a first pass gone silent (Haiku 5.5, Residuals)
+  looks like a run of clear prompts. No marker blit proves a `hint` was on screen.
+- **Standing.** **Gate** for when each count is added, and that counting never holds or
+  changes a prompt: `tests/coach.test.ts` and `tests/coach-view.test.ts`, "outcome
+  counts" (a clear prompt counts `judged` alone; a coach switched off counts nothing; a
+  store that refuses or stalls changes no prompt's fate, nor when it is decided). A count
+  the store refuses is lost, with nothing said. **Recorded** for what a count means.
 
 ## Where it runs
 
@@ -255,7 +235,7 @@ this marketplace's repository, and "walk" the maintainers' live walks on CLI 2.1
 
 The first-pass model:
 
-- **`haiku` is Haiku 5.5 since CLI 2.1.293, and nothing here was measured on it.** The coach
+- **`haiku` is Haiku 5.5 since CLI 2.1.293; its first pass was measured once, on 2.1.310.** The coach
   sends the alias, not an id: `$.model.complete` takes "an alias (`haiku`) or a full model
   id", resolved like a `--model` value, so the mod API pins nothing, and its result carries
   text and usage but no model id, so the coach cannot tell which model answered. The 0.6 s
@@ -263,8 +243,10 @@ The first-pass model:
   `effort: 'low'` was dropped as unsupported. Haiku 5.5 takes effort and thinks adaptively
   by default; if its thinking spends the 8 tokens, the reply has no text, which the coach
   counts as malformed and passes the prompt unflagged, so the first pass would fall silent
-  rather than fail loudly. Unverified on 2.1.300: settling it needs a live model call.
-  **Recorded.** `CC_COACH_MODEL` picks the standby model only, never the first pass.
+  rather than fail loudly. On CLI 2.1.310 it did not: the coach's exact request answered 10
+  of 10 times with the bare word in 4–5 output tokens, every label as expected, median 1.16 s
+  (`rationale/2026-10-25-prompt-coach-judge.md` §2). A later CLI or model can still change
+  that, and only a live call shows it. **Recorded.** `CC_COACH_MODEL` picks the standby model only, never the first pass.
 
 Skipping and spend:
 
@@ -328,9 +310,15 @@ What the judge sees, and how far to trust it:
   A record that cannot be written leaves the drop standing. **Gate** —
   `tests/coach.test.ts`, "records a drop as a hash and a masked excerpt, never the text",
   "keeps the last 50 drops" and "a drop it cannot record still drops".
-- **Judge quality is unmeasured.** Whether the judge flags the right prompts, and obeys
-  the rules it is told, is not measured: the plugin tests stub the judge, so they prove
-  the plumbing only, and no eval ships. **Unenforceable** without a live eval.
+- **Judge quality is barely measured.** The plugin tests stub the judge, so they prove the
+  plumbing only, and no eval ships. One labelled set, written by the marketplace's reviewer
+  and judged with the shipped prompts on Haiku 5.5 and Sonnet 5.5 (24 prompts × 3 runs), gave
+  0 of 36 clear runs dropped, 24 of 27 unclear dropped (one case missed in all 3 runs) and both
+  real conflicts dropped. It did not cover `off-card`, `reopens`, sensitivity `ambiguous` or
+  real typed prompts (`rationale/2026-10-25-prompt-coach-judge.md` §1). The outcome counts are the instrument now
+  present: `send / flagged` from real sessions approximates how often a confident flag was
+  wrong (Outcome counts), but nothing here reads them or acts on them. **Unenforceable**
+  without a live eval.
 - **The rewrite can be steered.** Text planted in the recent turns, card titles and files,
   or the spec's decisions can shape the reason and the rewrite: a cloned repository's task
   files, or an assistant reply quoting a web page. Read the rewrite before you press
@@ -436,22 +424,6 @@ The band and its buttons:
   when a fill reports no text, the text given is hashed instead. **Gate** —
   `tests/coach-view.test.ts`, "2 fills your text and it passes unjudged".
 
-The mascot:
-
-- **Seen live once.** One maintainer screenshot (2026-10-07, 0.2.0, fullscreen, a terminal
-  drawing Image pixels) showed the pane open beside the transcript with the idle sprite,
-  so the open from the band's render hook works live. `Still` was not visible in it, and
-  the blink and the status line have not been seen live. The close and re-open were walked
-  once (2026-10-08, see "He comes back"). **Recorded.**
-- **The width floor.** 144 columns for an open you did not ask for was measured once, at
-  130 columns (`rationale/2026-10-08-mods-ui-survey-and-pane-probe.md` §3). The 110 for a
-  pane you once opened is read from the CLI types, not measured. **Recorded.**
-- **Beside `/task-board`.** Both are panes in one dock, one shown at a time (the CLI's
-  pane roster). Whether a blink sent to the hidden coach pane is refused, which stops it
-  until the pane is shown again, or drawn unseen was not observed. **Recorded.**
-- **Two sprites during a hold.** While a prompt is held or flagged, the band's sprite and
-  the pane's animate together. **Recorded.**
-
 Sprite and install:
 
 - **Pixels.** Real Image pixels are documented and probed for kitty and Ghostty only. The
@@ -477,8 +449,7 @@ prompts, verdict parsing and the sprite's pixels in CI. Untested here: the drawn
 applies its rubric well, which is judge quality above. **Recorded**: a first live walk on
 2.1.291 and 2.1.292 passed 8 of 8 screens, and a final one on the shipped code on 2.1.292
 walked the marker-gated drop at 200x50 and 80x24, an opus verdict and `/init` ending the
-bubble; the collapse toast was not re-walked with the marker. Those walks predate the
-mascot; one screenshot has seen the pane since (The mascot, residuals).
+bubble; the collapse toast was not re-walked with the marker.
 
 - **The three rows in the root README's off-switch table: gate.** `scripts/generate.sh
   --check` fails the build when they drift from `userConfig` in `plugin.json`.
@@ -489,4 +460,6 @@ mascot; one screenshot has seen the pane since (The mascot, residuals).
   does not declare. Every plugin can read `$.state`, so the coach keeps there only hashes
   of the texts you marked to pass, the escalation and failure counts, the back-off time
   and the mute flag; the bubble's text lives in module memory, and nothing there outlasts
-  the session. The one thing kept past it is the drop record, a file (residuals above). **Recorded** for what goes into a declared key.
+  the session. Two things are kept past it: the drop record, a file (residuals above), and
+  the outcome counts, which hold no text (Outcome counts). **Recorded** for what goes into
+  a declared key.

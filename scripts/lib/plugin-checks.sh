@@ -665,13 +665,16 @@ pc_version_stamp_tail() {
 #     which is the right way for a gate to be wrong; no offender in this tree hits it.
 #   - the host's own commands, which this never reads — plugins only.
 pc_command_arg_hint() {
-  local root="${1:-plugins}" bad=0 f p body
+  local root="${1:-plugins}" bad=0 f p body fm
   for f in "$root"/*/commands/*.md; do
     [ -f "$f" ] || continue
     p=$(basename "$(dirname "$(dirname "$f")")")
     body=$(awk 'BEGIN{n=0} /^---$/{n++; next} n>=2{print}' "$f")
-    printf '%s' "$body" | grep -qE '\$ARGUMENTS|\$[0-9]' || continue
-    awk 'BEGIN{n=0} /^---$/{n++; next} n==1{print}' "$f" | grep -q '^argument-hint:' && continue
+    fm=$(awk 'BEGIN{n=0} /^---$/{n++; next} n==1{print}' "$f")
+    # Here-strings, not pipes: a `grep -q` that exits on its first match broke the writer's pipe in CI and put
+    # "printf: write error: Broken pipe" on stderr (run 40210716420).
+    grep -qE '\$ARGUMENTS|\$[0-9]' <<<"$body" || continue
+    grep -q '^argument-hint:' <<<"$fm" && continue
     printf 'command-arg-hint %s:%s\n' "$p" "$(basename "$f" .md)"
     bad=1
   done
@@ -3331,28 +3334,26 @@ pc_mod_modules() {
 }
 
 # pc_mod_kit <plugins_root> <canonical>
-# <canonical> is templates/mods/cc-kit.ts; host-block.ts and kit-harness/ are read beside it.
+# <canonical> is templates/mods/cc-kit.ts; kit-harness/ is read beside it.
 # Prints one line per fault and returns 1 if any:
 #   mod-kit-drift <file>         a <root>/*/hooks/cc-kit.ts or kit-harness/hooks/cc-kit.ts
 #                                that is not byte-identical (cmp) to <canonical>
-#   mod-host-block-drift <file>  <canonical>, or any .ts .tsx .mts .cts .js .mjs file under a
-#                                <root>/*/hooks/ or kit-harness/hooks/ dir except that dir's
-#                                cc-kit.ts, that contains `hostOf(` but not host-block.ts
-#                                verbatim (content-contains, as pc_shared_blocks)
+#   mod-host-unexported <file>   <canonical> without `export function hostOf(`
+#   mod-host-paste <file>        any .ts .tsx .mts .cts .js .mjs file under a <root>/*/hooks/
+#                                or kit-harness/hooks/ dir except that dir's cc-kit.ts that
+#                                defines its own `function hostOf(`; import the kit's instead
 #
 # WHY IT EXISTS: plugins install alone, so each mod plugin ships its own copy of the kit, and
 # a copy edited in one plugin is a fix the others never got (spec
-# 2026-10-06-ship-claude-code-mods, SC40). `hostOf` is private to the kit, so a module that
-# needs it pastes the block; one `modules` entry imports every feature file, so the paste
-# can sit in any hooks/ file, not only the entry.
+# 2026-10-06-ship-claude-code-mods, SC40). The kit exports `hostOf` since 2026-10-25; before,
+# seven files pasted it, and a paste is a second copy that can drift.
 #
 # WHAT IT DOES NOT CATCH: byte identity proves a copy matches the canonical kit, not that the
-# kit is correct — the kit-harness tests do that. `hostOf(` is a text match: one in a comment
-# is over-reported, a call through an alias is missed. An unreadable <canonical> skips the
-# whole check and an unreadable host-block.ts skips the block half, as pc_shared_blocks skips
-# a missing block.
+# kit is correct — the kit-harness tests do that. `function hostOf(` is a text match: one in a
+# comment is over-reported, an arrow function or a renamed copy is missed. An unreadable
+# <canonical> skips the whole check.
 pc_mod_kit() {
-  local root="${1%/}" canon="$2" kdir blk d f bad=0
+  local root="${1%/}" canon="$2" kdir d f bad=0
   [ -r "$canon" ] || return 0
   kdir=$(dirname "$canon")
   while IFS= read -r f; do
@@ -3360,17 +3361,14 @@ pc_mod_kit() {
     cmp -s "$canon" "$f" || { printf 'mod-kit-drift %s\n' "$f"; bad=1; }
   done < <(find "$root" -mindepth 3 -maxdepth 3 -path '*/hooks/cc-kit.ts' 2>/dev/null | sort
            printf '%s\n' "$kdir/kit-harness/hooks/cc-kit.ts")
-  [ -r "$kdir/host-block.ts" ] || return $bad
-  blk=$(cat "$kdir/host-block.ts")
-  [[ "$(cat "$canon")" == *"$blk"* ]] || { printf 'mod-host-block-drift %s\n' "$canon"; bad=1; }
+  grep -qF 'export function hostOf(' "$canon" || { printf 'mod-host-unexported %s\n' "$canon"; bad=1; }
   while IFS= read -r d; do
     [ -d "$d" ] || continue
     while IFS= read -r f; do
       [ -n "$f" ] && [ "$f" != "$d/cc-kit.ts" ] || continue
-      [[ "$(cat "$f")" == *"$blk"* ]] && continue
-      printf 'mod-host-block-drift %s\n' "$f"; bad=1
-    done < <(grep -rlF 'hostOf(' "$d" --include='*.ts' --include='*.tsx' --include='*.mts' \
-               --include='*.cts' --include='*.js' --include='*.mjs' 2>/dev/null | sort)
+      printf 'mod-host-paste %s\n' "$f"; bad=1
+    done < <(grep -rlE '(^|[^A-Za-z0-9_$.])function[[:space:]]+hostOf[[:space:]]*\(' "$d" --include='*.ts' \
+               --include='*.tsx' --include='*.mts' --include='*.cts' --include='*.js' --include='*.mjs' 2>/dev/null | sort)
   done < <(find "$root" -mindepth 2 -maxdepth 2 -type d -name hooks 2>/dev/null | sort
            printf '%s\n' "$kdir/kit-harness/hooks")
   return $bad

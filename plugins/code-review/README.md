@@ -626,9 +626,15 @@ Since 0.31.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed un
   shown it, not again for the same HEAD commit in this session; one the host did not show
   is offered again at the next turn end.
 - **Off switch.** `CC_SUGGEST=off`, environment only with no `/config` option, silences
-  this and the next-step suggestions of taskmaster, task-runner, git-workflow, debugging
+  this and the next-step suggestions of task-runner, git-workflow, debugging
   and testing together.
   `CC_REVIEW_NUDGE` and `CC_REMIND` do not touch it.
+- **Counts** (since 0.34.0). Each time the prompt box reports this suggestion shown, and
+  whether your next prompt then sent the suggested command (`accepted`) or something else
+  (`passed`), one is added to `suggest.review.shown`, `.accepted` or `.passed` in this
+  plugin's own `$.store` (key `outcomes`): counts only, never the text, on this machine only.
+  The marketplace repository's `scripts/mod-outcomes.sh` prints them. **Gate** for the
+  counting (the shared kit's tests); what a count says about the suggestion is **recorded**.
 - **CLI.** With mods off in the host, on a CLI below 2.1.287 (which loads no module), on
   2.1.288-2.1.290, or with `CC_SUGGEST=off`, the module offers nothing and the classic hooks
   work as before. On CLI 2.1.287 with mods on, the module still registers its `tool.call`

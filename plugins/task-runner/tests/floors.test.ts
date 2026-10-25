@@ -15,7 +15,7 @@ type Live = {
 }
 
 function seat(on: On, live: Live = {}) {
-  const world = { models: [] as (string | undefined)[], reads: [] as string[], toasts: [] as string[], logs: [] as string[] }
+  const world = { models: [] as (string | undefined)[], reads: [] as string[], toasts: [] as string[], logs: [] as string[], store: new Map<string, unknown>() }
 
   mock.env(on, live.env ?? {})
 
@@ -45,6 +45,14 @@ function seat(on: On, live: Live = {}) {
     return { value: undefined }
   })
 
+  on('store.get', ($, e) => ({ value: world.store.get(e.key) }))
+
+  on('store.set', ($, e) => {
+    world.store.set(e.key, e.value)
+
+    return { value: undefined }
+  })
+
   on('agent.spawn', ($, e) => {
     world.models.push(e.model)
 
@@ -69,6 +77,19 @@ function spawnOf(subagentType: string, parentModel: string, more: Partial<Args<'
 }
 
 describe('floors', () => {
+  test('counts each raise by agent, and nothing for a spawn left as given', async ($, on) => {
+    const world = seat(on)
+
+    await $.agent.spawn(spawnOf('code-review:code-reviewer', FABLE))
+    await $.agent.spawn(spawnOf('code-review:code-reviewer', FABLE))
+    await $.agent.spawn(spawnOf('code-review:code-reviewer', OLD_OPUS))
+    await $.agent.spawn(spawnOf('code-review:code-reviewer', SONNET))
+
+    expect(world.store.get('outcomes'), 'a raise to the floor equal to the pin changes no tier').toEqual({
+      'floors.raised.code-review:code-reviewer': 2,
+    })
+  })
+
   test('raises a no-model dispatch to the parent model', async ($, on) => {
     const world = seat(on)
 

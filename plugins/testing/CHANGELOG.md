@@ -6,6 +6,12 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.14.0 — 2026-10-25
+
+- **The flake-hunt suggestion counts every main-loop call that could change the code as a change.** Until now only a successful `Write`, `Edit`, `MultiEdit` or `NotebookEdit` did, so the commonest loop, fail → fix through `Bash` or a subagent → pass, read as a flake. Now anything but a read-only tool or a test run counts: a `Bash` command, an MCP tool, an `Agent` dispatch, and a test command chained after another step (`sed -i … && npm test`); `cd`/`export`/`echo` steps and a pipe after the run do not. Cost: a real flake with such a call between its runs is not offered. Gate: `tests/suggest.test.ts`, three new cases, each red against 0.13.3.
+- **Next-step suggestion counts.** Each suggestion the prompt box reports shown adds one to `suggest.<transition>.shown`, and your next prompt adds `.accepted` (it sent the suggested command) or `.passed`, in this plugin's own `$.store` key `outcomes`; counts only, never text. `scripts/mod-outcomes.sh` in the marketplace repository prints them. Standing: gate for the counting (kit tests), recorded for what a count means.
+- **The shared mod kit exports `hostOf` and runs the git-root lookup once per hook call.** `hooks/cc-kit.ts` (byte-identical in every mod plugin) now exports the host adapter that seven feature files pasted, and remembers `stateRoot` per host object, so a hook that asked three times runs `git rev-parse` once. It also carries `countOutcome`, a counts-only `$.store` tally.
+
 ## 0.13.3 — 2026-10-15
 
 ### Fixed

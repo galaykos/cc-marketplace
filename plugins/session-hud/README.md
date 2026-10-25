@@ -2,14 +2,20 @@
 
 A session HUD for the terminal that needs no `settings.json` edit. A plugin cannot ship or
 change your `statusLine`, so every status-line tool asks you to wire a command in by hand.
-This plugin draws the same figures through the surfaces a plugin does own:
+This plugin draws the same figures through the surfaces a plugin does own. On by default,
+the two a status line cannot show:
 
-- the dim hint line under the prompt:
-  `⏵⏵ auto mode on · ctx 4% · 5h 12% ↻2h15m · 7d 8% ↻6d8h · $0.01 · <1m · main*`
-- a line under each turn's closing line with what that turn added: `410 out · $0.08 · ctx +6%`
 - a `/hud` pane with the context window by category, the compaction point, each rate-limit
   window and the session. It can be pinned so it comes back after you close it.
 - each subagent row in the agent panel: `◯ Explore · haiku-5-5 · low · 12k 1% · 1m05s · Reading README.md`
+
+Off by default since 0.2.0, for anyone without a `statusLine` of their own (one you wired
+already shows these figures, and two copies of them is noise):
+
+- the dim hint line under the prompt (`cc_hud_hint`):
+  `⏵⏵ auto mode on · ctx 4% · 5h 12% ↻2h15m · 7d 8% ↻6d8h · $0.01 · <1m · main*`
+- a line under each turn's closing line with what that turn added (`cc_hud_turn`):
+  `410 out · $0.08 · ctx +6%`
 
 It needs Claude Code 2.1.291 or newer with mods allowed. It draws in the terminal only,
 because the hint-line tail and the turn line exist only there. It makes no model calls.
@@ -46,8 +52,8 @@ The figures refresh:
 - at each turn's end;
 - every 30 s, so countdowns and the session time move between turns.
 
-If your own `statusLine` already shows these figures, set `cc_hud_segments` to what it
-lacks, or turn the hint line off.
+If you turn the hint line on beside a `statusLine` of your own, set `cc_hud_segments` to
+what it lacks.
 
 ## Options
 
@@ -55,9 +61,9 @@ Each is a `/config` row. The environment variable named in its title overrides i
 
 | Option | Default | Does |
 | --- | --- | --- |
-| `cc_hud_hint` (`CC_HUD_HINT`) | on | the segments on the hint line |
+| `cc_hud_hint` (`CC_HUD_HINT`) | off | the segments on the hint line (on until 0.1.2) |
 | `cc_hud_status` (`CC_HUD_STATUS`) | off | the segments as a status line under the prompt as well. The engine starts every plugin status line with `⚠ session-hud:`, so it reads like a warning, which is why it is off by default |
-| `cc_hud_turn` (`CC_HUD_TURN`) | on | the line under each turn's closing line |
+| `cc_hud_turn` (`CC_HUD_TURN`) | off | the line under each turn's closing line (on until 0.1.2) |
 | `cc_hud_segments` (`CC_HUD_SEGMENTS`) | `context,limits,cost,time,git` | which segments, comma-separated, in order; unknown names are ignored |
 | `cc_hud_pin` (`CC_HUD_PIN`) | off | reopen the `/hud` pane after you close it by hand |
 | `cc_hud_subagents` (`CC_HUD_SUBAGENTS`) | on | the subagent rows; off leaves the panel's default rows |
@@ -80,7 +86,7 @@ for good.
 
 ## Standing
 
-- **Gate:** the segments, their order and their off-switches, the hint-line tail added after
+- **Gate:** the hint and turn lines off by default, the segments, their order and their off-switches, the hint-line tail added after
   another plugin's tail, the status line off by default, the turn line and when it is left
   out, `/hud` opening and closing, and the pane's rows fitting the 23-column docked body
   (`tests/*.test.ts`, run by `claude plugin test` in CI's `scripts/mod-tests.sh`); the

@@ -119,6 +119,9 @@ function seat(on: On, live: Live = {}) {
     fills: [] as string[],
     writes: [] as string[],
     isWriteDenied: false,
+    store: new Map<string, unknown>(),
+    isStoreDenied: false,
+    storeDelayMs: 0,
   }
 
   on('session.version', async () => {
@@ -183,6 +186,28 @@ function seat(on: On, live: Live = {}) {
   })
 
   on('session.id', () => ({ value: 'S1' }))
+
+  const storeAnswer = async () => {
+    if (world.storeDelayMs > 0) {
+      await world.clock.sleep(world.storeDelayMs)
+    }
+
+    return world.isStoreDenied ? { deny: 'the store is read-only here' } : null
+  }
+
+  on('store.get', async ($, e) => (await storeAnswer()) ?? { value: world.store.get(e.key) })
+
+  on('store.set', async ($, e) => {
+    const denied = await storeAnswer()
+
+    if (denied !== null) {
+      return denied
+    }
+
+    world.store.set(e.key, e.value)
+
+    return { value: undefined }
+  })
 
   on('ui.toast', ($, e) => {
     world.toasts.push(e.text)
@@ -954,5 +979,100 @@ describe('coach', () => {
     await $.session.start(START)
 
     expect(world.toasts).toEqual([])
+  })
+})
+
+// What the coach counted in its own store, once the counts it fired off have landed.
+async function counted(world: ReturnType<typeof seat>) {
+  await world.clock.settle()
+
+  return world.store.get('outcomes')
+}
+
+describe('outcome counts', () => {
+  test('a failed judgment counts failed, an interrupted one nothing', async ($, on) => {
+    const world = seat(on)
+
+    await mount($)
+
+    world.replies = { haiku: [{ fail: 'api-error' }, { fail: 'aborted' }, answer('unclear')], standby: [{ fail: 'api-error' }] }
+
+    for (let i = 0; i < 3; i += 1) {
+      expect(await $.prompt.submit(composer(PROMPT))).toEqual({ text: PROMPT })
+    }
+
+    expect(await counted(world), 'a haiku error, Esc, then a standby error').toEqual({ 'coach.failed': 2, 'coach.judged': 1 })
+
+    world.gitDelayMs = 60_000
+
+    expect(await pastDeadline($, world)).toEqual({ text: PROMPT })
+    expect(await counted(world), 'a context read past the deadline').toEqual({ 'coach.failed': 3, 'coach.judged': 1 })
+  })
+
+  test('a verdict the standby is not confident of counts judged alone', async ($, on) => {
+    const world = seat(on)
+
+    world.replies = { haiku: [answer('unclear')], standby: [answer(verdict('unclear', 'low'))] }
+    await mount($)
+
+    expect(await $.prompt.submit(composer(PROMPT))).toEqual({ text: PROMPT })
+    expect(await counted(world)).toEqual({ 'coach.judged': 1 })
+  })
+
+  test('a coach switched off counts nothing, not even the end of a bubble it showed', async ($, on) => {
+    const world = seat(on, { version: '2.1.290' })
+
+    await mount($)
+
+    world.replies.haiku = [answer('unclear')]
+
+    await $.prompt.submit(composer(PROMPT))
+
+    world.version = '2.1.291'
+    world.surfaces = ['desktop']
+    await $.prompt.submit(composer(PROMPT))
+
+    world.surfaces = ['terminal']
+    world.env.CC_PROMPT_COACH = 'off'
+    await $.prompt.submit(composer(PROMPT))
+
+    expect(await counted(world), 'below the floor, off the terminal and switched off').toBeUndefined()
+
+    world.env.CC_PROMPT_COACH = undefined
+
+    expect(await $.prompt.submit(composer(PROMPT))).toEqual(dropOf('unclear'))
+
+    world.env.CC_PROMPT_COACH = 'off'
+
+    expect(await $.prompt.submit(composer(PROMPT)), 'switched off with the bubble up').toEqual({ text: PROMPT })
+    expect(await counted(world)).toEqual({ 'coach.judged': 1, 'coach.flagged': 1 })
+  })
+
+  test("a store that refuses or stalls changes no prompt's fate, nor when it is decided", async ($, on) => {
+    const world = seat(on)
+    const other = 'rename the parse helper in src/utils.ts'
+
+    await mount($)
+
+    world.replies.haiku = [answer('unclear'), answer('clear')]
+    world.isStoreDenied = true
+
+    expect(await $.prompt.submit(composer(PROMPT))).toEqual(dropOf('unclear'))
+    expect(await $.prompt.submit(composer(other))).toEqual({ text: other })
+    expect(await counted(world), 'refused').toBeUndefined()
+
+    world.isStoreDenied = false
+    world.storeDelayMs = 60_000
+
+    expect(await $.prompt.submit(composer(PROMPT))).toEqual(dropOf('unclear'))
+    expect(await $.prompt.submit(composer(other))).toEqual({ text: other })
+    expect(world.clock.now(), 'both decided with every count still waiting on the store').toBe(NOW)
+    expect(await counted(world)).toBeUndefined()
+
+    for (let i = 0; i < 12; i += 1) {
+      await world.clock.advance(60_000)
+    }
+
+    expect(await counted(world), 'each count lands once the store answers').toEqual({ 'coach.judged': 2, 'coach.flagged': 1, 'coach.ignored': 1 })
   })
 })

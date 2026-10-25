@@ -2,7 +2,7 @@
 name: laravel-best-practices
 description: Use when writing or reviewing Laravel code — Eloquent N+1 prevention and eager loading, form request validation, thin controllers with service/action classes, queued jobs, authorization policies, migrations.
 ---
-> Last verified: 2026-08-02 — https://laravel.com/docs/13.x/releases
+> Last verified: 2026-08-02 — https://laravel.com/docs/13.x/releases — composer:laravel/framework@13
 
 ## Know the version before advising
 

@@ -1,21 +1,8 @@
 import type { EngineInterface, On, PluginOptions } from 'claude-code'
 
-import { isSupported, stateRoot, switchOn } from './cc-kit'
+import { hostOf, isSupported, stateRoot, switchOn } from './cc-kit'
 import type { Host } from './cc-kit'
 import { nextMilestone, overseerLine } from './status-core'
-
-// Shared block templates/mods/host-block.ts — re-paste byte-for-byte.
-function hostOf($: EngineInterface): Host {
-  return {
-    run: (argv, init) => $.process.run(argv, init),
-    read: path => $.fs.read(path),
-    stat: path => $.fs.stat(path),
-    now: () => $.clock.now(),
-    sessionId: () => $.session.id(),
-    cwd: () => $.session.cwd(),
-    projectDir: () => $.env.get('CLAUDE_PROJECT_DIR'),
-  }
-}
 
 function parsed(text: string): unknown {
   try {
@@ -69,6 +56,9 @@ async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean
   $.ui.status(shown?.line)
 }
 
+// The calls that can change program.json: program.sh through Bash, or a hand edit through an edit tool.
+const WRITERS = /^(?:Bash|Write|Edit|MultiEdit)$/
+
 export function register(on: On, options: PluginOptions) {
   const refreshes: Refreshes = { latest: 0 }
   const option = options.cc_overseer_status !== false
@@ -81,8 +71,9 @@ export function register(on: On, options: PluginOptions) {
     return started
   }).catch(($, e, next) => next(e))
 
-  // program.sh, the one writer of program.json, runs in the main loop: a subagent's calls cannot move the line.
-  on('tool.call', async ($, e, next) => {
+  // program.sh, the one writer of program.json, runs in the main loop: a subagent's calls cannot move the line, and a
+  // read-only call (Read, Grep, Glob) cannot either, so neither waits for a git call.
+  on('tool.call', { tool: WRITERS }, async ($, e, next) => {
     const r = await next(e)
 
     if (e.agentId === undefined) {

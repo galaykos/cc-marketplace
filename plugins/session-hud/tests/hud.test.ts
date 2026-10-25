@@ -154,35 +154,35 @@ const pane = async ($: Engine) => texts(await $.ui.mount({ plugin: 'session-hud'
 const LINE = 'ctx 43% · 5h 61% ↻2h05m · $1.20 · 42m · main*'
 
 describe('session-hud', () => {
-  test('adds every segment to the hint line at session start', async ($, on) => {
+  test('adds every segment to the hint line at session start', { options: { cc_hud_hint: true } }, async ($, on) => {
     seat(on)
     await start($)
 
     expect(await hint($)).toEqual([`? for shortcuts|${LINE}`])
   })
 
-  test("appends after another plugin's tail instead of replacing it", async ($, on) => {
+  test("appends after another plugin's tail instead of replacing it", { options: { cc_hud_hint: true } }, async ($, on) => {
     seat(on)
     await start($)
 
     expect(await hint($, '[TERSE:FULL]')).toEqual([`? for shortcuts|[TERSE:FULL] · ${LINE}`])
   })
 
-  test('follows the cc_hud_segments order', { options: { cc_hud_segments: 'cost,context' } }, async ($, on) => {
+  test('follows the cc_hud_segments order', { options: { cc_hud_hint: true, cc_hud_segments: 'cost,context' } }, async ($, on) => {
     seat(on)
     await start($)
 
     expect(await hint($)).toEqual(['? for shortcuts|$1.20 · ctx 43%'])
   })
 
-  test('lets CC_HUD_SEGMENTS override the option', { options: { cc_hud_segments: 'cost' } }, async ($, on) => {
+  test('lets CC_HUD_SEGMENTS override the option', { options: { cc_hud_hint: true, cc_hud_segments: 'cost' } }, async ($, on) => {
     seat(on, { env: { CC_HUD_SEGMENTS: 'git' } })
     await start($)
 
     expect(await hint($)).toEqual(['? for shortcuts|main*'])
   })
 
-  test('runs no git command when the git segment is not picked', { options: { cc_hud_segments: 'context' } }, async ($, on) => {
+  test('runs no git command when the git segment is not picked', { options: { cc_hud_hint: true, cc_hud_segments: 'context' } }, async ($, on) => {
     const world = seat(on)
 
     await start($)
@@ -190,25 +190,45 @@ describe('session-hud', () => {
     expect(world.git).toEqual([])
   })
 
-  test('shows no branch outside a git repository', async ($, on) => {
+  test('shows no branch outside a git repository', { options: { cc_hud_hint: true } }, async ($, on) => {
     seat(on, { isGit: false })
     await start($)
 
     expect(await hint($)).toEqual(['? for shortcuts|ctx 43% · 5h 61% ↻2h05m · $1.20 · 42m'])
   })
 
-  test('marks a clean tree without the star', async ($, on) => {
+  test('marks a clean tree without the star', { options: { cc_hud_hint: true } }, async ($, on) => {
     seat(on, { isDirty: false })
     await start($)
 
     expect((await hint($))[0]?.endsWith('· main')).toBe(true)
   })
 
-  test('leaves the hint line alone with CC_HUD_HINT=off', async ($, on) => {
+  test('leaves the hint line alone with CC_HUD_HINT=off', { options: { cc_hud_hint: true } }, async ($, on) => {
     seat(on, { env: { CC_HUD_HINT: 'off' } })
     await start($)
 
     expect(await hint($)).toEqual(['? for shortcuts|'])
+  })
+
+  test('draws no hint line and no turn line by default', async ($, on) => {
+    const world = seat(on)
+
+    await start($)
+    await $.turn.start({ text: 'fix it', turnId: 't1' })
+    world.costUsd = 1.28
+    await $.turn.complete({
+      answer: 'done',
+      durationMs: 4_000,
+      isAborted: false,
+      turnId: 't1',
+      reason: 'answer',
+      usage: { model: 'claude-opus-5-5', input_tokens: 10, output_tokens: 3_200, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+    })
+
+    expect(await hint($)).toEqual(['? for shortcuts|'])
+    expect(await footer($, 'm1', 4_000)).toEqual(['Baked for 4s'])
+    expect(world.git, 'no line shows git, so none runs').toEqual([])
   })
 
   test('pins no status line by default', async ($, on) => {
@@ -227,7 +247,7 @@ describe('session-hud', () => {
     expect(world.statuses.at(-1)).toBe(LINE)
   })
 
-  test('refreshes the line after a tool call once the gap has passed', async ($, on) => {
+  test('refreshes the line after a tool call once the gap has passed', { options: { cc_hud_hint: true } }, async ($, on) => {
     const world = seat(on)
 
     await start($)
@@ -247,7 +267,7 @@ describe('session-hud', () => {
     expect(world.registered).toEqual([])
   })
 
-  test("adds the turn's output, cost and context growth to its closing line", async ($, on) => {
+  test("adds the turn's output, cost and context growth to its closing line", { options: { cc_hud_turn: true } }, async ($, on) => {
     const world = seat(on)
 
     await start($)
@@ -272,7 +292,7 @@ describe('session-hud', () => {
     expect(await texts(drawn), 'a redraw of the same footer keeps its line').toEqual(['Baked for 64s', '  3.2k out · $0.08 · ctx +6%'])
   })
 
-  test("counts the whole turn's cost across a subagent's turn start", async ($, on) => {
+  test("counts the whole turn's cost across a subagent's turn start", { options: { cc_hud_turn: true } }, async ($, on) => {
     const world = seat(on)
 
     await start($)
@@ -294,7 +314,7 @@ describe('session-hud', () => {
     expect(await footer($, 'm1', 64_000)).toEqual(['Baked for 64s', '  3.2k out · $0.08'])
   })
 
-  test("leaves an older turn's footer as the engine draws it", async ($, on) => {
+  test("leaves an older turn's footer as the engine draws it", { options: { cc_hud_turn: true } }, async ($, on) => {
     seat(on)
     await start($)
     await $.turn.complete({
@@ -343,7 +363,7 @@ describe('session-hud', () => {
     expect(world.writes.map(([path]) => path)).toEqual(['/cfg/plugins/session-hud-root'])
   })
 
-  test('starts after a reload that raises no session.start', async ($, on) => {
+  test('starts after a reload that raises no session.start', { options: { cc_hud_hint: true } }, async ($, on) => {
     const world = seat(on)
     const drawn = await $.ui.mount({ plugin: 'session-hud', surface: 'terminal', component: 'PromptHint', requestId: 'prompt-hint', props: HINT })
 
@@ -361,7 +381,7 @@ describe('session-hud', () => {
     expect(world.opened).toEqual(['hud'])
   })
 
-  test('keeps the turn line whole with every other surface off', { options: { cc_hud_hint: false } }, async ($, on) => {
+  test('keeps the turn line whole with every other surface off', { options: { cc_hud_turn: true } }, async ($, on) => {
     const world = seat(on)
 
     await start($)
@@ -381,7 +401,7 @@ describe('session-hud', () => {
     expect(world.git, 'no line shows git, so none runs').toEqual([])
   })
 
-  test("a footer drawn before the turn started never takes that turn's line", async ($, on) => {
+  test("a footer drawn before the turn started never takes that turn's line", { options: { cc_hud_turn: true } }, async ($, on) => {
     seat(on)
     await start($)
 

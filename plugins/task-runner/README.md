@@ -264,7 +264,7 @@ four features under three off switches.
   send it. Not offered for an index whose every card is closed or that `gate-pass.json`
   names, nor again for an index already shown this session. Off: `CC_SUGGEST=off`,
   environment only with no `/config` option, which also silences the next-step suggestions
-  of taskmaster, code-review, git-workflow, debugging and testing.
+  of code-review, git-workflow, debugging and testing.
 - **Status line** (`hooks/board.ts`). While a run is registered on the current branch, one
   line is pinned under the prompt:
   `task-runner  <phase>  card <N>/<total>  <p> parked  <u> unrecognised  <ultra|goal>`, N
@@ -273,13 +273,19 @@ four features under three off switches.
   outside `pending`, `in_progress`, `done`, `parked`, `skipped` and `blocked` (a run that wrote
   `committed <sha>`) is counted as `unrecognised`, never silently as pending, and stays open
   for the session-start notice, which names how many there are. A plain run, or an index with no card table, shows `task-runner  <phase>`.
-  It refreshes at session start and after every tool call, main loop and subagents,
-  parsing the index again only when its modification time moves (an index that cannot be
-  statted, read or parsed is read again at every refresh); only the newest of overlapping
-  refreshes paints, so a slow one cannot revive an ended run's line. The board's saved
-  state is written only when it changed (since 0.46.1). Subagent tool calls refresh it on
-  purpose: a delegated executor marking its card done moves the line mid-turn. The line
-  clears when no run is registered on this branch.
+  It refreshes at session start, at each main-loop turn end and, while a run is registered
+  or the pane is open, after every tool call, main loop and subagents, parsing the index
+  again only when its modification time moves (an index that cannot be statted, read or
+  parsed is read again at every refresh); only the newest of overlapping refreshes paints,
+  so a slow one cannot revive an ended run's line. The board's saved state is written only
+  when it changed (since 0.46.1). Subagent tool calls refresh it on purpose during a run: a
+  delegated executor marking its card done moves the line mid-turn. **Idle** (since
+  0.49.0): when the last refresh found no run and no open pane, a subagent's tool call
+  refreshes nothing and a main-loop call refreshes at most once every 2 s, so a run that
+  registers within 2 s of the last look shows at the next call after that, or at the turn
+  end. **Gate** — `tests/board.test.ts`, "an idle board looks again at most every 2 s, never
+  on a subagent call" and "a run started within the idle gap shows at the turn end". The
+  line clears when no run is registered on this branch.
 - **Task board** (`hooks/board-view.tsx`, `/task-board`). A pane of the run's cards:
   `Task board  <slug>  <marker>`, then `<phase>  <done>/<total> done  <p> parked  <u> unrecognised`, then a
   button row, then one row per card (id, title cut to the pane width, parallel group,
@@ -322,6 +328,13 @@ four features under three off switches.
   in worktree subagents, fixed in 2.1.288 — applies even with all three switches off:
   upgrade the CLI or turn mods off.
 
+- **Counts** (since 0.49.0). One is added, in this plugin's own `$.store` (key `outcomes`),
+  to `floors.raised.<agent>` each time a spawn's tier is raised, and to `suggest.run.shown`,
+  then `.accepted` or `.passed`, each time the run suggestion is shown and your next prompt
+  sent `/task-runner:run` or something else: counts only, never text, on this machine only.
+  The marketplace repository's `scripts/mod-outcomes.sh` prints them. **Gate** for the
+  counting (`tests/floors.test.ts`, the shared kit's tests); what a count means is **recorded**.
+
 Residuals, stated:
 
 - **One shared suggestion slot.** The prompt box holds one suggestion, so when several
@@ -338,11 +351,11 @@ Residuals, stated:
   setups do, misaligns that row.
 - **An open pane with no run** lists `taskmaster-docs/tasks` and checks every index's
   modification time on each tool call, to find the newest.
-- **A git call per tool call.** With the board on, every tool call waits for a refresh
-  that runs `git` one to three times (once with no run, twice while
-  `.claude/task-runner/active-run.json` names a run, up to three with the pane open and no
-  run on this branch) and reads that file; `CC_TASK_BOARD=off` removes both. No test counts
-  these calls.
+- **A git call per tool call during a run.** While a run is registered or the pane is open,
+  every tool call waits for a refresh that runs `git` once or twice (twice while
+  `.claude/task-runner/active-run.json` names a run on this branch) and reads that file;
+  idle, a main-loop call waits for one `git` call at most every 2 s. `CC_TASK_BOARD=off`
+  removes all of it. The idle gap is gated (above); the per-run count is not.
 
 Standing: **gate** — `tests/floors.test.ts`, `tests/suggest.test.ts` and
 `tests/board.test.ts` run under `claude plugin test` in CI (the marketplace repository's

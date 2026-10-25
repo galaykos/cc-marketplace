@@ -60,19 +60,34 @@ Since 0.13.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed un
 `modules` in `hooks/hooks.json` beside the classic hooks, which fire with or without them.
 
 - **What.** At the end of a turn in which one test command (the same text, whitespace
-  aside) has both passed and failed in this session with no successful `Write`, `Edit`,
-  `MultiEdit` or `NotebookEdit` between those runs, the prompt box offers
-  `/testing:flake-hunt` as a next-step suggestion: Tab accepts it, and nothing runs until
-  you send it. A fail, then a fix, then a pass is not a flake and offers nothing.
+  aside) has both passed and failed in this session with nothing between those runs that
+  could have changed the code, the prompt box offers `/testing:flake-hunt` as a next-step
+  suggestion: Tab accepts it, and nothing runs until you send it. A fail, then a fix, then
+  a pass is not a flake and offers nothing.
+- **What counts as a possible change** (since 0.14.0). Every main-loop tool call except a
+  read-only one (`Read`, `Grep`, `Glob`, `LS`, `NotebookRead`, `WebFetch`, `WebSearch`,
+  `TodoWrite`, `ToolSearch`, `AskUserQuestion`, `Skill`) and a test run: a `Bash` command
+  such as `sed -i` or `git checkout`, an MCP tool, and an `Agent` dispatch, whose subagent
+  edits where this module cannot see. An edit tool that errored wrote nothing and does not
+  count; a `Bash` command that errored does. A test command chained after another step
+  (`sed -i … && npm test`) counts as a change too; `cd`, `export` and `echo` steps and a
+  pipe after the run (`npm test 2>&1 | tail`) do not. Until 0.13.3 only the four edit tools
+  counted, so a fix made through `Bash` or a subagent read as a flake. The cost of the
+  wider rule: a real flake whose two runs have any such call between them is not offered.
 - **Test commands** are `npm`/`pnpm`/`yarn`/`bun` `test` (with or without `run`), `vitest`,
   `jest`, `pytest`, `phpunit`, `pest`, `artisan test`, `go test`, `cargo test`, `rspec`,
   `mocha`, `playwright test` and `dotnet test`, a path prefix allowed
-  (`vendor/bin/pest`). A change made through `Bash` (`sed -i`, `git checkout`) is not seen
-  as an edit, so a fix applied that way can read as a flake.
+  (`vendor/bin/pest`).
 - **When it stays silent.** While a phase sentinel is live (a taskmaster or task-runner run
   owns the turn). Once shown for a command, not again for that command in this session.
 - **Off switch.** `CC_SUGGEST=off`, environment only, silences this and every other
   next-step suggestion of this marketplace together.
+- **Counts** (since 0.14.0). Each time the prompt box reports this suggestion shown, and
+  whether your next prompt then sent the suggested command (`accepted`) or something else
+  (`passed`), one is added to `suggest.flake-hunt.shown`, `.accepted` or `.passed` in this
+  plugin's own `$.store` (key `outcomes`): counts only, never the text, on this machine only.
+  The marketplace repository's `scripts/mod-outcomes.sh` prints them. **Gate** for the
+  counting (the shared kit's tests); what a count says about the suggestion is **recorded**.
 - **CLI.** With mods off in the host, on a CLI below 2.1.287 (which loads no module), on
   2.1.288-2.1.290, or with `CC_SUGGEST=off`, the module offers nothing and the classic hooks
   work as before. On CLI 2.1.287 with mods on, the module still registers its `tool.call`

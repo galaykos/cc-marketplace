@@ -2,23 +2,11 @@ import type { EngineInterface, On, PluginOptions, PluginState } from 'claude-cod
 
 import { parseIndex, statusLine } from './board-core'
 import { boardView } from './board-view'
-import { activeRun, isSupported, liveSentinel, stateRoot, switchOn } from './cc-kit'
+import { activeRun, hostOf, isSupported, liveSentinel, stateRoot, switchOn } from './cc-kit'
 import type { Host } from './cc-kit'
 
-// Shared block templates/mods/host-block.ts — re-paste byte-for-byte.
-function hostOf($: EngineInterface): Host {
-  return {
-    run: (argv, init) => $.process.run(argv, init),
-    read: path => $.fs.read(path),
-    stat: path => $.fs.stat(path),
-    now: () => $.clock.now(),
-    sessionId: () => $.session.id(),
-    cwd: () => $.session.cwd(),
-    projectDir: () => $.env.get('CLAUDE_PROJECT_DIR'),
-  }
-}
-
-type Refreshes = { latest: number; opening: number; paintedRun: string; hasRedTeam: boolean }
+// idleAt: when the newest refresh found no run and no open pane, else null.
+type Refreshes = { latest: number; opening: number; paintedRun: string; hasRedTeam: boolean; idleAt: number | null }
 
 type Board = PluginState['task-runner']['board']
 
@@ -29,6 +17,9 @@ const PANE = { id: 'task-board', title: 'Task board' }
 const INACTIVE: Board = { indexPath: null, mtimeMs: null, model: null, runActive: false, phase: '', hasRedTeam: false }
 
 const REOPEN_MS = 100
+
+// With no run and no pane a refresh finds nothing, so an idle board looks again at most this often, and at each turn end.
+const IDLE_GAP_MS = 2000
 
 async function isBoardOn($: EngineInterface, option: boolean): Promise<boolean> {
   return isSupported((await $.session.version()).version) && switchOn(await $.env.get('CC_TASK_BOARD'), option)
@@ -141,6 +132,7 @@ async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean
 
     if (mine === refreshes.latest) {
       $.ui.status(undefined)
+      refreshes.idleAt = isShown ? null : await $.clock.now()
     }
 
     return
@@ -159,6 +151,7 @@ async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean
   await save($, held, board)
 
   if (mine === refreshes.latest) {
+    refreshes.idleAt = null
     $.ui.status(model === null || 'error' in model ? `task-runner  ${phase}` : statusLine(model, phase))
 
     // Latched here, never cleared on a refresh that reads no run: one transient miss must not reopen a pane the person closed.
@@ -177,7 +170,7 @@ export function isPinOn(env: string | undefined, option: PluginOptions[string] |
 }
 
 export function registerBoard(on: On, options: PluginOptions) {
-  const refreshes: Refreshes = { latest: 0, opening: 0, paintedRun: '', hasRedTeam: false }
+  const refreshes: Refreshes = { latest: 0, opening: 0, paintedRun: '', hasRedTeam: false, idleAt: null }
   const option = options.cc_task_board !== false
 
   on('session.start', async ($, e, next) => {
@@ -197,10 +190,26 @@ export function registerBoard(on: On, options: PluginOptions) {
     return r
   }).catch(($, e, next) => next(e))
 
+  // During a run every call refreshes, a subagent's too: a delegated executor marking its card done moves the line mid-turn.
   on('tool.call', async ($, e, next) => {
     const r = await next(e)
+    const idleAt = refreshes.idleAt
+    const isResting = idleAt !== null && (e.agentId !== undefined || (await $.clock.now()) - idleAt < IDLE_GAP_MS)
 
-    await refresh($, refreshes, option)
+    if (!isResting) {
+      await refresh($, refreshes, option)
+    }
+
+    return r
+  }).catch(($, e, next) => next(e))
+
+  // Matched on every turn id: the kit's run suggestion already holds this module's one unmatched turn.complete hook.
+  on('turn.complete', { turnId: /^/ }, async ($, e, next) => {
+    const r = await next(e)
+
+    if (e.agentId === undefined) {
+      await refresh($, refreshes, option)
+    }
 
     return r
   }).catch(($, e, next) => next(e))

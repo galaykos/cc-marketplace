@@ -74,10 +74,13 @@ export function register(on: On, options: PluginOptions) {
     return r
   }).catch(($, e, next) => next(e))
 
-  on('tool.call', async ($, e, next) => {
+  // Only the main loop's Bash: /candor:level and level.sh write the level file there, and no other call can.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const r = await next(e)
 
-    await refresh($, shown, options)
+    if (e.agentId === undefined) {
+      await refresh($, shown, options)
+    }
 
     return r
   }).catch(($, e, next) => next(e))

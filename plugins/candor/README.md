@@ -166,7 +166,9 @@ under the prompt, and nothing while terse is off. It follows `scripts/statusline
 symlinked level file shows no badge. The option comes from the plugin configuration the host
 hands the module, so a `cc_terse` saved through `--settings` shows too (measured once on 2.1.294).
 It re-reads at session start, at each turn start (after `/candor:level` wrote the level) and
-after every tool call; a level another session changes shows here at the next of those. Another
+after every main-loop `Bash` call, the one tool that writes the level file (since 0.10.0; until
+then after every tool call, a subagent's included); a level another session changes shows here
+at the next of those. Another
 plugin's text on the same line stays, the badge after it. Terminal only — the desktop app does
 not draw the line's tail yet. Off: `cc_terse_badge` in `/config`, or `CC_TERSE_BADGE=off`.
 **Standing:** `gate` for the level order, the tail composition and both switches

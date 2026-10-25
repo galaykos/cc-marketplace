@@ -24,8 +24,7 @@ const PHASE_TTL_MS = 120 * 60 * 1000
 
 const GIT_TIMEOUT_MS = 2000
 
-// Shared block templates/mods/host-block.ts — re-paste byte-for-byte.
-function hostOf($: EngineInterface): Host {
+export function hostOf($: EngineInterface): Host {
   return {
     run: (argv, init) => $.process.run(argv, init),
     read: path => $.fs.read(path),
@@ -104,7 +103,24 @@ export async function gitLine(host: Host, args: string[]): Promise<string | null
   return ran?.exitCode === 0 ? ran.stdout.trim() : null
 }
 
-export async function stateRoot(host: Host): Promise<string> {
+// Per host, and a hook builds one host per call: the calls of one hook share one git run, the next hook runs its own.
+const roots = new WeakMap<Host, Promise<string>>()
+
+export function stateRoot(host: Host): Promise<string> {
+  const held = roots.get(host)
+
+  if (held !== undefined) {
+    return held
+  }
+
+  const root = rootOf(host)
+
+  roots.set(host, root)
+
+  return root
+}
+
+async function rootOf(host: Host): Promise<string> {
   const cwd = await host.cwd()
   const up = await gitLine(host, ['rev-parse', '--show-cdup'])
 
@@ -172,6 +188,27 @@ export async function activeRun(
   }
 }
 
+let counting: Promise<void> = Promise.resolve()
+
+// Counts only, never text, in this plugin's own $.store under `outcomes`; one write at a time, so no count is lost.
+export function countOutcome($: Pick<EngineInterface, 'store'>, name: string): Promise<void> {
+  counting = counting.then(async () => {
+    try {
+      const held = await $.store.get('outcomes')
+      const counts = isRecord(held) ? held : {}
+      const seen = counts[name]
+
+      await $.store.set('outcomes', { ...counts, [name]: (typeof seen === 'number' ? seen : 0) + 1 })
+    } catch {
+      // A count that cannot be kept changes nothing the person sees.
+    }
+  })
+
+  return counting
+}
+
+const firstWord = (text: string) => text.trim().split(/\s/, 1)[0] ?? ''
+
 export function registerSuggestion(
   on: On,
   spec: {
@@ -189,6 +226,7 @@ export function registerSuggestion(
 ): void {
   let armed: { session: string; keys: string[] } = { session: '', keys: [] }
   const shown = new Set<string>()
+  let offered: { session: string; text: string } | null = null
 
   const armedIn = (session: string) => (armed.session === session ? armed.keys : [])
 
@@ -259,14 +297,32 @@ export function registerSuggestion(
       return r
     }
 
-    const { isShown } = await $.prompt.suggest({ text: spec.text(key) })
+    const text = spec.text(key)
+    const { isShown } = await $.prompt.suggest({ text })
 
     if (isShown) {
       shown.add(dedupeOf(key))
+      offered = { session, text }
+      void countOutcome($, `suggest.${spec.transition}.shown`)
     } else {
       armed = { session, keys: [key, ...armedIn(session)] }
     }
 
     return r
+  }).catch(($, e, next) => next(e))
+
+  // The person's next prompt settles an offer: the suggested command sent (Tab, edited or not) or something else.
+  on('prompt.submit', async ($, e, next) => {
+    const pending = offered
+
+    if (pending !== null && e.origin.kind === 'composer' && pending.session === (await $.session.id())) {
+      offered = null
+
+      const outcome = firstWord(e.text) === firstWord(pending.text) ? 'accepted' : 'passed'
+
+      void countOutcome($, `suggest.${spec.transition}.${outcome}`)
+    }
+
+    return next(e)
   }).catch(($, e, next) => next(e))
 }

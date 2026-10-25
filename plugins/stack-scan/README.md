@@ -173,9 +173,9 @@ picker's parser), `scan.test.sh` (the report's mechanical pass) and
 
 Since 0.12.0 the plugin ships a hooks module, `hooks/pins.ts`, the only entry under
 `modules` in `hooks/hooks.json`. When any skill loads — this marketplace's or another's —
-and its text carries a `Last verified:` stamp naming an npm package (`npm:next@16.3`), the
-module looks the package up and prepends one line per installed package before the
-model reads the skill:
+and its text carries a `Last verified:` stamp naming an npm package (`npm:next@16.3`) or a
+composer one (`composer:laravel/framework@13`), the module looks the package up and
+prepends one line per installed package before the model reads the skill:
 
 ```text
 Installed in this project, read by stack-scan when this skill loaded:
@@ -183,14 +183,27 @@ Installed in this project, read by stack-scan when this skill loaded:
 ```
 
 - **Where it looks.** `node_modules/<pkg>/package.json` in the session's directory and each
-  directory above it up to the repository root, nearest first, as Node resolves a package;
-  for a package none has, `package-lock.json` (lockfile version 2 or 3) in the same places,
-  read once each, at its hoisted `node_modules/<pkg>` entry only, and marked `(lockfile;
-  node_modules not read)`. Only a whole semver is taken, and only its `major.minor.patch`
-  is printed (`16.3.0-rc.1` reads `16.3.0`), so a lockfile from a cloned repository cannot
-  carry words into the skill. A file over the
-  4 MiB a plugin may read is skipped. A package found nowhere gets no line, and a skill with
-  no installed stamped package is left exactly as it was. **Gate** — `tests/pins.test.ts`.
+  directory above it up to the repository root, nearest first, as Node resolves a package.
+  For a package none has, the lockfile of the same directories, nearest first: a
+  directory's lockfile is the first present of `package-lock.json` (version 2 or 3, its
+  hoisted `node_modules/<pkg>` entry only), `pnpm-lock.yaml` (v6 or v9) and `yarn.lock` (v1
+  or berry), and the others there are not read. The line is marked `(lockfile;
+  node_modules not read)`. Every file is read at most once per skill load. **Gate** —
+  `tests/pins.test.ts`.
+- **Composer.** A `composer:<vendor>/<package>@<major>[.<minor>]` stamp reads
+  `vendor/composer/installed.json` (composer 1 or 2) in the same directories, then
+  `composer.lock` (`packages` and `packages-dev`), marked `(lockfile; vendor not read)`.
+  **Gate** — the composer cases in the same file.
+- **One version or none.** Only a whole semver is taken, after one leading `v` for
+  composer, and only its `major.minor.patch` is printed (`16.3.0-rc.1` reads `16.3.0`), so
+  a lockfile from a cloned repository cannot carry words into the skill. pnpm's root
+  importer decides, else the one `packages` version for the name; yarn's entries naming the
+  package must agree. Several versions, a `workspace:` or `link:` entry, a git URL or an
+  alias give no line, and `next-auth` or `@scope/next` never answers for `next`. A file over
+  the 4 MiB a plugin may read is skipped. A package found nowhere gets no line, and a skill
+  with no installed stamped package is left exactly as it was. **Gate** — the lockfile
+  cases in the same file. The fixtures follow what pnpm 8 and 9 and yarn 1 and 4 wrote on
+  2026-10-25; that check was by hand, once. **Recorded.**
 - **Drift** is judged at the precision the stamp names: a stamp of `16` ignores minors,
   `16.3` does not. **Gate** — "drift is judged at the precision the stamp names".
 - **Off.** `CC_VERSION_PINS=off` (or `0`, `false`), or the `/config` option
@@ -205,11 +218,16 @@ Residuals, stated:
 
 - **Only what the SKILL.md body says.** A stamp in a skill's `references/` file is read
   through a tool call later, not when the skill loads, so it gets no line. **Recorded.**
-- **npm only.** No SKILL.md in this marketplace stamps a composer package, so composer,
-  pnpm's and yarn's lockfiles, and Yarn Plug'n'Play installs are not read. **Recorded.**
+- **Not read.** `bun.lock` and `bun.lockb`, pnpm lockfile v5 and older, npm lockfile
+  version 1, and a composer `vendor-dir` other than `vendor`. A Yarn Plug'n'Play install has
+  no `node_modules`, so it is read through `yarn.lock` only. **Recorded.**
+- **Line rules, not YAML.** `pnpm-lock.yaml` and `yarn.lock` are read line by line, in the
+  layout pnpm and yarn write; a file in any other layout (hand-edited, flow style) is not
+  modelled and untested. **Recorded.**
 - **Monorepos.** A session started at the repository root reads the root's copy, not a
-  workspace's, and a workspace's non-hoisted lockfile entry
-  (`apps/web/node_modules/<pkg>`) is not read. **Recorded.**
+  workspace's. A workspace's non-hoisted `package-lock.json` entry
+  (`apps/web/node_modules/<pkg>`) and a pnpm importer other than the root (`apps/web`) are
+  not read. **Recorded.**
 - **Never seen live.** Proven in the test kit, with the engine's `skill.prompt` stubbed.
   **Recorded.**
 
