@@ -14,12 +14,16 @@ mkdir -p "$HOME" "$CLAUDE_CONFIG_DIR"
 unset CC_HUD_SUBAGENTS CLAUDE_PLUGIN_OPTION_CC_HUD_SUBAGENTS
 rc=0
 
-NOW=$(( $(date +%s) * 1000 ))
+# The script reads `date +%s` itself; a frozen clock on its PATH keeps a second boundary from turning 5s into 6s.
+EPOCH=$(date +%s); NOW=$(( EPOCH * 1000 )); REAL_DATE="$(command -v date)"
+mkdir -p "$TMP/bin"
+printf '#!/bin/sh\n[ "$1" = "+%%s" ] && [ $# -eq 1 ] && { echo %s; exit 0; }\nexec "%s" "$@"\n' "$EPOCH" "$REAL_DATE" > "$TMP/bin/date"
+chmod +x "$TMP/bin/date"
 task() { # task <id> <extra json fields>
   printf '{"id":"%s","type":"local_agent","status":"running","description":"List files","label":"Reading README.md","tokenCount":12345,"tokenSamples":[],"cwd":"/w"%s}' "$1" "$2"
 }
 input() { printf '{"columns":%s,"session_id":"s","tasks":[%s]}' "$1" "$2"; }
-rows() { env "$@" bash "$S" 2>&1; }
+rows() { env PATH="$TMP/bin:$PATH" "$@" bash "$S" 2>&1; }
 eq() { # eq <label> <got> <want>
   if [ "$2" = "$3" ]; then echo "PASS: $1"; else echo "FAIL: $1 — want '$3', got '${2:-<empty>}'"; rc=1; fi
 }
