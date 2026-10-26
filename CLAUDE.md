@@ -349,8 +349,8 @@ Those four are the ones you invoke. They are **not** all the enforcement. Named
 by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **49 named steps;
-47 can fail the build**, and on a push to `master` only **46** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **50 named steps;
+48 can fail the build**, and on a push to `master` only **47** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
 This is the one count deliberately carried here and nowhere else
 (`scripts/done-gate.sh:7` says why); **recount it, do not copy it**:
@@ -423,7 +423,12 @@ doctrine: zero proves nobody used it HERE, non-zero proves it fired and not that
 it helped, and it says where a control/treatment run is worth spending — nothing
 more. Why this channel and not the byte ones, and what it measured:
 `rationale/2026-08-31-token-cost-review.md`. Cite it; do not restate its numbers
-here. The unrouted count is not recorded here — recount:
+here. **`--workflow`** counts, per turn block of one project's transcripts (default:
+this repo's), the questions, subagents, Stop-check blocks, suite runs and browser calls
+it set off, joining subagent transcripts the cost report cannot see; its siblings
+`scripts/comment-stats.sh` and `scripts/readability.sh` count comment share and
+sentence length. All three exit 0; their before values are in
+`rationale/improvement-plan-2026-10-26.md`. The unrouted count is not recorded here — recount:
 
 ```bash
 python3 -c "import glob,os;s={os.path.basename(os.path.dirname(p)) for p in glob.glob('plugins/*/skills/*/SKILL.md')};r=open('plugins/skill-router/rules.tsv').read();print(sum(1 for x in s if f'\t{x}\t' not in r),'of',len(s),'unrouted')"

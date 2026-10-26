@@ -3,6 +3,11 @@
 #
 #   turn-cost.sh [--project PATH] [--min-blocks N] [--since DAYS] [--json]
 #   turn-cost.sh --skills [--project PATH] [--since DAYS]
+#   turn-cost.sh --workflow [--project PATH] [--since DAYS] [--json] [--suite-regex RE]
+#
+# --workflow counts what each turn block set off, its subagents' transcripts included, in
+# ONE project's transcript dir (default: this checkout's main repo): questions, subagents,
+# Stop-check blocks, suite runs, browser calls. It counts events; it never judges them.
 #
 # --since filters RECORDS by their own timestamp, not files by modification time,
 # so a months-old session appended to yesterday contributes only its recent turns.
@@ -75,6 +80,8 @@ min_blocks=10
 since_days=0
 as_json=0
 skills_mode=0
+workflow=0
+suite_regex=""
 project=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -82,15 +89,17 @@ while [ $# -gt 0 ]; do
     # bash — the loop re-read the same flag forever (100% CPU) when a flag was the
     # last argument. Checked, reported, exit 0: this script never fails a build,
     # and a hang is worse than either.
-    --project|--min-blocks|--since)
+    --project|--min-blocks|--since|--suite-regex)
       [ $# -ge 2 ] || { printf 'turn-cost: %s needs a value\n' "$1" >&2; exit 0; }
       case "$1" in
         --project)    project="$2" ;;
+        --suite-regex) suite_regex="$2" ;;
         --min-blocks) case "$2" in ''|*[!0-9]*) printf 'turn-cost: --min-blocks needs an integer, got %s\n' "$2" >&2; exit 0 ;; esac; min_blocks="$2" ;;
         --since)      case "$2" in ''|*[!0-9.]*|.|*.*.*) printf 'turn-cost: --since needs a number of days, got %s\n' "$2" >&2; exit 0 ;; esac; since_days="$2" ;;
       esac; shift 2 ;;
     --json)        as_json=1; shift ;;
     --skills)      skills_mode=1; shift ;;
+    --workflow)    workflow=1; shift ;;
     # Only the header block is documentation; '^#' alone also dumped the price
     # table and schema-drift internals living further down the file.
     -h|--help)     awk 'NR==1{next} /^#/{sub(/^# ?/,""); print; next} {exit}' "$0"; exit 0 ;;
@@ -101,18 +110,60 @@ done
 # Same guard shape context-budget.sh uses for jq: a missing interpreter is a skip,
 # never a failure, because this is not allowed to fail anything.
 command -v python3 >/dev/null 2>&1 || { echo "turn-cost: python3 not found, skipping"; exit 0; }
+# Combined, --workflow's one-project file set would silently narrow --skills.
+[ "$skills_mode" = 1 ] && [ "$workflow" = 1 ] && { echo "turn-cost: --skills and --workflow are separate modes; pick one" >&2; exit 0; }
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+if [ "$workflow" = 1 ] && [ -z "$project" ]; then
+  common=$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) \
+    && project=$(dirname "$common") || project="$root"
+fi
 
 TC_MIN_BLOCKS="$min_blocks" TC_SINCE="$since_days" TC_JSON="$as_json" \
-TC_SKILLS="$skills_mode" TC_ROOT="$(cd "$(dirname "$0")/.." && pwd)" \
+TC_SKILLS="$skills_mode" TC_ROOT="$root" TC_WORKFLOW="$workflow" TC_SUITE_RE="$suite_regex" \
 TC_PROJECT="$project" python3 - <<'PY'
-import json, glob, os, sys, statistics, collections, time, datetime
+import json, glob, os, re, sys, statistics, collections, time, datetime
 
 MIN_BLOCKS = int(os.environ.get("TC_MIN_BLOCKS") or 10)
 SINCE      = float(os.environ.get("TC_SINCE") or 0)
 AS_JSON    = os.environ.get("TC_JSON") == "1"
 SKILLS     = os.environ.get("TC_SKILLS") == "1"
+WORKFLOW   = os.environ.get("TC_WORKFLOW") == "1"
 ROOT       = os.environ.get("TC_ROOT") or "."
 PROJECT    = os.environ.get("TC_PROJECT") or ""
+
+ARG = r"""(?:"[^"]*"|'[^']*'|\S+)"""
+COMMAND_AT = (r"(?:^|[;&|(])\s*(?:(?:timeout(?:\s+-\S+)*\s+" + ARG + r"|time|flock(?:\s+-\S+)*\s+" + ARG
+              + r"|env|[A-Za-z_]\w*=" + ARG + r"?|npx|bunx|pnpm(?:\s+exec)?|yarn|exec)\s+)*")
+SUITE_DEFAULT = COMMAND_AT + r"(?:" + "|".join((
+    r"(?:\S*/)?(?:pest|phpunit|vitest|jest|pytest)\b",
+    r"python3?\s+-m\s+pytest\b",
+    r"(?:npm|pnpm|yarn|bun|composer)\s+(?:run\s+)?test\b",
+    r"php\s+artisan\s+test\b",
+    r"bash\s+(?:-\S+\s+)*\S*scripts/(?:validate|context-budget|check-version-bumps|official-validate|mod-tests)\.sh\b",
+    r"(?:bash\s+)?\S*scripts/generate\.sh\s+--check\b",
+    r"for\s+\w+\s+in\s+[^;\n]*(?:scripts/smoke/\*\.sh|plugins/\*/scripts/__tests__/\*)",
+)) + r")"
+HEREDOC_OPEN = re.compile(r"(?<!<)<<(?!<)-?\s*(['\"]?)([A-Za-z_]\w*)\1")
+
+def without_heredoc_bodies(cmd):
+    out, pending = [], []
+    for line in cmd.split("\n"):
+        if pending:
+            if line.strip() == pending[0]:
+                pending.pop(0)
+            continue
+        out.append(line)
+        pending = [m.group(2) for m in HEREDOC_OPEN.finditer(line)]
+    return "\n".join(out)
+
+try:
+    SUITE_RE = re.compile(os.environ.get("TC_SUITE_RE") or SUITE_DEFAULT, re.M)
+except re.error as e:
+    print(f"turn-cost: --suite-regex does not compile: {e}", file=sys.stderr)
+    sys.exit(0)
+WF_KEYS = ("questions_calls", "questions_asked", "subagents", "stop_blocks", "suite_runs", "browser_calls")
+CMD_TAG = re.compile(r"<command-name>\s*(/[^<\s]+)\s*</command-name>")
 
 # $/MTok (input, output, cache read). Source: the model catalog baked into CLI
 # 2.1.300 (`pricing_tiers`), read 2026-10-15; it agrees with the changelog: Haiku 5.5
@@ -181,15 +232,87 @@ def is_human_turn(o):
     """A real user instruction, not a tool result and not harness chatter.
     Tool results are user-role records too; treating them as boundaries would
     turn every block into a single request and the whole metric into 1.0."""
-    if o.get("type") != "user" or o.get("toolUseResult") or o.get("isMeta"):
+    if (o.get("type") != "user" or o.get("toolUseResult") or o.get("isMeta")
+            or o.get("isCompactSummary")):
         return False
     c = (o.get("message") or {}).get("content")
     if isinstance(c, list):
-        return not any(isinstance(b, dict) and b.get("type") == "tool_result" for b in c)
-    return bool(c)
+        human = not any(isinstance(b, dict) and b.get("type") == "tool_result" for b in c)
+    else:
+        human = bool(c)
+    return human and not is_harness_frame(o)
+
+FRAME_PREFIXES = ("<task-notification", "Another Claude session sent a message:")
+
+def is_harness_frame(o):
+    """A user-role record the harness writes (a background task finishing, a peer's
+    message), so its requests belong to the instruction already running."""
+    c = (o.get("message") or {}).get("content")
+    if o.get("type") != "user" or o.get("toolUseResult") or (
+            isinstance(c, list) and any(isinstance(b, dict) and b.get("type") == "tool_result" for b in c)):
+        return False
+    origin = o.get("origin")
+    if isinstance(origin, dict) and origin.get("kind"):
+        return origin["kind"] != "human"
+    return text_of(c).lstrip().startswith(FRAME_PREFIXES)
+
+def text_of(c):
+    if isinstance(c, list):
+        return next(((b.get("text") or "") for b in c
+                     if isinstance(b, dict) and b.get("type") == "text"), "")
+    return c if isinstance(c, str) else ""
+
+def wf_zero():
+    return dict.fromkeys(WF_KEYS, 0)
+
+seen_tool_ids = set()
+tool_uses_seen = 0
+
+def wf_events(o, acc):
+    """Adds one record's workflow events to acc; returns the tool_use ids it carries."""
+    global tool_uses_seen
+    c = (o.get("message") or {}).get("content")
+    if o.get("type") == "user" and o.get("isMeta") and text_of(c).startswith("Stop hook feedback:"):
+        acc["stop_blocks"] += 1
+    ids = []
+    for b in (c if isinstance(c, list) else []):
+        if not isinstance(b, dict) or b.get("type") != "tool_use":
+            continue
+        tid = b.get("id")
+        if tid:
+            ids.append(tid)
+            if tid in seen_tool_ids:
+                continue
+            seen_tool_ids.add(tid)
+        tool_uses_seen += 1
+        name, inp = b.get("name") or "", b.get("input") or {}
+        if name == "AskUserQuestion":
+            acc["questions_calls"] += 1
+            qs = inp.get("questions")
+            acc["questions_asked"] += len(qs) if isinstance(qs, list) else 0
+        elif name in ("Agent", "Task"):
+            acc["subagents"] += 1
+        elif name == "Bash" and SUITE_RE.search(without_heredoc_bodies(str(inp.get("command") or ""))):
+            acc["suite_runs"] += 1
+        if any(k in name.lower() for k in ("playwright", "chrome", "browser_")):
+            acc["browser_calls"] += 1
+    return ids
+
+def slash_command(o):
+    t = text_of((o.get("message") or {}).get("content")).lstrip()
+    if t.startswith("<command-"):
+        m = CMD_TAG.search(t)
+        return m.group(1) if m else None
+    tok = t.split()[0] if t.split() else ""
+    return tok if tok.startswith("/") and len(tok) > 1 and "/" not in tok[1:] else None
 
 base = os.path.expanduser("~/.claude/projects/")
 files = sorted(glob.glob(base + "*/*.jsonl"))
+if WORKFLOW:
+    # Claude Code names a project's transcript dir after its path, every non-alphanumeric as '-'.
+    tdir = os.path.join(base, re.sub(r"[^A-Za-z0-9]", "-", PROJECT.rstrip("/")))
+    files = sorted(glob.glob(os.path.join(glob.escape(tdir), "*.jsonl")))
+wf_blocks, wf_files, tool_block = [], [], {}
 cutoff = time.time() - SINCE * 86400 if SINCE else 0
 undated = 0
 
@@ -225,6 +348,8 @@ total_usd = 0.0
 attributed_reqs = 0
 contexts = []
 projects = collections.Counter()
+seen_msg_ids = set()
+harness_frames = compact_summaries = 0
 
 for f in files:
     # Pure optimisation, safe because a file's mtime is >= its newest record:
@@ -253,8 +378,12 @@ for f in files:
     sessions += 1
     if cwd:
         projects[cwd] += 1
+    sid = os.path.splitext(os.path.basename(f))[0]
+    if WORKFLOW:
+        wf_files.append(f)
 
     cur_reqs, cur_usd, cur_plugins = 0, 0.0, set()
+    cur_wf, cur_ids, cur_open = wf_zero(), [], (sid, None, None)
     att, ver = None, None
 
     def close_block():
@@ -262,14 +391,29 @@ for f in files:
             blocks.append((cur_reqs, cur_usd, frozenset(cur_plugins)))
             for p in cur_plugins:
                 per_plugin[p]["blocks"] += 1
+        if WORKFLOW:
+            for i in cur_ids:
+                tool_block.setdefault(i, len(wf_blocks) if cur_reqs else None)
+            if cur_reqs:
+                s, ts, cmd = cur_open
+                wf_blocks.append(dict(cur_wf, session=s, started=ts, command=cmd, requests=cur_reqs))
 
     for o in recs:
         if too_old(o):
+            if WORKFLOW:
+                for i in wf_events(o, wf_zero()):
+                    tool_block.setdefault(i, None)
             continue
         ver = o.get("version") or ver
+        harness_frames += is_harness_frame(o)
+        compact_summaries += bool(o.get("isCompactSummary"))
         if is_human_turn(o):
             close_block()
             cur_reqs, cur_usd, cur_plugins = 0, 0.0, set()
+            if WORKFLOW:
+                cur_wf, cur_ids, cur_open = wf_zero(), [], (sid, o.get("timestamp"), slash_command(o))
+        if WORKFLOW:
+            cur_ids += wf_events(o, cur_wf)
         if o.get("attributionPlugin"):
             att = o["attributionPlugin"]
             ver_att[ver] += 1
@@ -287,6 +431,13 @@ for f in files:
         # call, so counting it would inflate both the request count and the bill.
         if model == "<synthetic>":
             continue
+        # One API response is written as one record per content block, each with the
+        # same message.id and usage; the first one stands for the request.
+        mid = msg.get("id")
+        if mid:
+            if mid in seen_msg_ids:
+                continue
+            seen_msg_ids.add(mid)
         d = request_cost(u, model)
         total_reqs += 1
         total_usd += d
@@ -303,6 +454,43 @@ for f in files:
         per_plugin[key]["reqs"] += 1
         per_plugin[key]["usd"] += d
     close_block()
+
+# Subagent transcripts live beside their session as <sid>/subagents/agent-*.jsonl; each
+# .meta.json names the Agent tool_use that spawned it, which places it in a turn block.
+sub_pending, sub_joined, inside = [], 0, wf_zero()
+for f in wf_files:
+    sdir = os.path.join(os.path.dirname(f), os.path.splitext(os.path.basename(f))[0], "subagents")
+    for sf in sorted(glob.glob(os.path.join(glob.escape(sdir), "*.jsonl"))):
+        try:
+            parent = json.load(open(sf[:-len(".jsonl")] + ".meta.json")).get("toolUseId")
+        except Exception:
+            parent = None
+        acc, ids = wf_zero(), []
+        for line in open(sf, encoding="utf-8", errors="replace"):
+            try:
+                o = json.loads(line)
+            except Exception:
+                continue
+            ids += wf_events(o, wf_zero() if too_old(o) else acc)
+        sub_pending.append((parent, acc, ids))
+progress = True
+while sub_pending and progress:
+    progress = False
+    for item in list(sub_pending):
+        parent, acc, ids = item
+        if parent not in tool_block:
+            continue
+        sub_pending.remove(item)
+        progress = True
+        idx = tool_block[parent]
+        for i in ids:
+            tool_block[i] = idx
+        if idx is None:
+            continue
+        sub_joined += 1
+        for k in WF_KEYS:
+            wf_blocks[idx][k] += acc[k]
+            inside[k] += acc[k]
 
 # ---- SKILLS MODE: the retirement queue, folded in from scripts/retirement-queue.sh
 # (deleted 2026-08-31). That script read two ledgers — skill-router's surfaced.jsonl
@@ -403,6 +591,74 @@ def pctl(vals, q):
     v = sorted(vals)
     import math
     return v[max(0, math.ceil(q * len(v)) - 1)]
+
+if WORKFLOW:
+    wf_drift = []
+    if not files:
+        wf_drift.append(f"no transcripts found under {tdir}")
+    elif total_reqs == 0:
+        wf_drift.append("ZERO usage records — the transcript schema has probably changed")
+    elif not blocks:
+        wf_drift.append("ZERO turn blocks — the human-turn record shape has probably changed")
+    elif not tool_uses_seen:
+        wf_drift.append("ZERO tool_use blocks — the assistant content shape has probably changed")
+
+    def summary(k):
+        v = [b[k] for b in wf_blocks]
+        return {"total": sum(v), "median": statistics.median(v) if v else 0,
+                "p90": pctl(v, 0.9) if v else 0, "max": max(v, default=0)}
+    regex_src = SUITE_RE.pattern + ("" if os.environ.get("TC_SUITE_RE") else "  (default)")
+    if AS_JSON:
+        print(json.dumps({
+            "mode": "workflow", "project": PROJECT, "transcript_dir": tdir,
+            "files": len(files), "sessions": sessions, "turn_blocks": len(wf_blocks),
+            "harness_frames": harness_frames, "compact_summaries": compact_summaries,
+            "subagent_transcripts": {"joined": sub_joined, "unlinked": len(sub_pending)},
+            "suite_regex": SUITE_RE.pattern,
+            "totals": {k: summary(k) for k in WF_KEYS},
+            "inside_subagents": inside, "blocks": wf_blocks, "drift": wf_drift,
+        }, indent=2))
+        sys.exit(0)
+
+    print("turn-cost --workflow — what each human instruction set off")
+    print("MAINTAINER PATH: reports only, exits 0, counts events and never judges them.\n")
+    if wf_drift:
+        print("!! POSSIBLE SCHEMA DRIFT — do not trust the numbers below:")
+        for d in wf_drift:
+            print("   " + d)
+        print()
+    print(f"scanned   {scanned} of {len(files)} transcript file(s) in {tdir}, "
+          f"{sessions} with model requests" + (f", --since {SINCE:g}d" if SINCE else ""))
+    print(f"joined    {sub_joined} subagent transcript(s) to the block that spawned them; "
+          f"{len(sub_pending)} unlinked, not counted")
+    print(f"suites    {regex_src}")
+    cols = WF_KEYS
+    heads = ("asks", "qs", "agents", "stops", "suites", "browser")
+    busy = [(i, b) for i, b in enumerate(wf_blocks) if any(b[k] for k in cols)]
+    print(f"\nPER TURN BLOCK ({len(busy)} of {len(wf_blocks)} blocks had at least one event)")
+    print(f"  {'#':>4} {'session':8} {'started':16} {'opened by':24} {'reqs':>5} "
+          + " ".join(f"{h:>7}" for h in heads))
+    for i, b in busy:
+        print(f"  {i:4} {b['session'][:8]:8} {(b['started'] or '')[:16]:16} {(b['command'] or '')[:24]:24} "
+              f"{b['requests']:5} " + " ".join(f"{b[k]:7}" for k in cols))
+    print(f"\nTOTALS over {len(wf_blocks)} turn blocks "
+          f"({harness_frames} harness frames and {compact_summaries} compaction summaries "
+          "folded into the block already open)")
+    print(f"  {'measure':22} {'total':>7} {'median':>7} {'p90':>5} {'max':>5}")
+    labels = ("questions (calls)", "questions (asked)", "subagents spawned",
+              "Stop-check blocks", "full-suite runs", "browser calls")
+    for k, label in zip(cols, labels):
+        s = summary(k)
+        print(f"  {label:22} {s['total']:7} {s['median']:7g} {s['p90']:5} {s['max']:5}")
+    print("  of which inside subagents: " + ", ".join(f"{h} {inside[k]}" for k, h in zip(cols, heads)))
+    print("\nnotes")
+    print("  - a turn block is the default report's: one human prompt and every request after")
+    print("    it. A harness frame (a task notification, a peer's message) or a compaction")
+    print("    summary opens no block.")
+    print("  - suite runs are Bash commands matching the regex: a filtered or failed run counts")
+    print("    as one, and a chain of gates in one command counts once.")
+    print("  - sessions launched in a worktree have their own transcript dir; pass its path.")
+    sys.exit(0)
 
 if AS_JSON:
     out = {

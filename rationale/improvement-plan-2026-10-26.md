@@ -117,3 +117,51 @@ m14  Review findings carry checked evidence     (8)   M
 - A version bump for each touched plugin, and a changelog entry where the plugin has a CHANGELOG.md.
 - A before and after number from the table above, taken with the same command.
 - No new always-on text unless it replaces more than it adds.
+
+## Before values (m2, 2026-10-26)
+
+Taken on branch `overseer/m2-measure-first` with the commands named in each row; an after value must use the same command. Transcript rows read only this repo's own transcripts (13 sessions, 2026-10-07 to 2026-10-26, including the live session running this program), never another project's.
+
+| measure | value | command |
+| --- | --- | --- |
+| comment share, all code but tests (item 6) | 22.3%: 13,438 comment lines of 60,179, 260 files | `bash scripts/comment-stats.sh` |
+| comment share, plugin hooks | 20.8% (95 files) | `bash scripts/comment-stats.sh` |
+| comment share, plugin scripts | 16.9% (80 files) | `bash scripts/comment-stats.sh` |
+| comment share, scripts/ (not lib, not smoke) | 35.3% (18 files) | `bash scripts/comment-stats.sh` |
+| comment share, scripts/smoke | 17.8% (65 files) | `bash scripts/comment-stats.sh` |
+| comment share, scripts/lib | 53.1% (2 files) | `bash scripts/comment-stats.sh` |
+| comment share, tests (`__tests__/`, `tests/`, any `.test.` or `.spec.` file) | 9.3% (139 files) | `bash scripts/comment-stats.sh` |
+| files with the house header (≤3-line first comment block naming `Why, limits, history:`) | 21 of 399 (3 of them added by m2); 0 of the 30 files with most comment lines | `bash scripts/comment-stats.sh --top 30` |
+| README openings: words per sentence, % over 30 (item 7) | 26.8, 33.7% (101 sentences, 44 READMEs) | `bash scripts/readability.sh` |
+| SKILL description + when_to_use: words per sentence, % over 30 | 28.3, 49.7% (177 sentences, 126 skills) | `bash scripts/readability.sh` |
+| command descriptions: words per sentence, % over 30 | 18.7, 10.9% (55 sentences, 52 commands) | `bash scripts/readability.sh` |
+| CLAUDE.md prose: words per sentence, % over 30 | 20.9, 23.4% (167 sentences) | `bash scripts/readability.sh` |
+| CLAUDE.md length (item 9) | 446 lines on `master`, before m2 (451 after m2 adds the `--workflow` sentences) | `git show master:CLAUDE.md \| wc -l` |
+| turn blocks scanned | 59. Folded into the block already open: 227 harness frames (task notifications and peer messages, decided by `origin.kind`, else by text) and 10 compaction summaries. 183 subagent transcripts joined, 9 unlinked | `bash scripts/turn-cost.sh --workflow` |
+| questions per block: AskUserQuestion calls (item 3b) | median 0, p90 1, max 8 (19 in all) | `bash scripts/turn-cost.sh --workflow` |
+| questions per block: questions inside those calls | median 0, p90 3, max 17 (45 in all) | `bash scripts/turn-cost.sh --workflow` |
+| subagents spawned per block | median 0, p90 7, max 39 (183 in all) | `bash scripts/turn-cost.sh --workflow` |
+| Stop-check blocks per block (item 2) | median 0, p90 1, max 5 (15 in all, 6 inside subagents) | `bash scripts/turn-cost.sh --workflow` |
+| full-suite runs per block (item 3a) | median 0, p90 23, max 144 (590 in all, 403 inside subagents). A run is a gate script or test runner at a command position, heredoc bodies removed; counting every mention gave 780 | `bash scripts/turn-cost.sh --workflow` |
+| browser calls per block (item 5) | median 0, p90 0, max 0 | `bash scripts/turn-cost.sh --workflow` |
+| model requests and estimated spend, cost report, this repo's transcripts | before the m2 fixes: 4,785 requests, $630.91, 175 blocks. After: 2,221 requests, $262.85, 59 blocks. One response is written as one record per content block, so requests were counted 2.15x; harness frames and compaction summaries had split blocks | the procedure below |
+| dynamic-channel tokens (item 1) | skill-router 583, candor 262, taskmaster 79: 924 | `bash scripts/context-budget.sh` |
+
+To reproduce the cost-report row, run from the repo root. Copy both versions of the script, and point `HOME` at a temp dir whose `.claude/projects` holds only this project's transcript dir, so no other project is read. Run the two back to back: the live session keeps appending records.
+
+```bash
+T=$(mktemp -d); mkdir -p "$T/home/.claude/projects"
+ln -s ~/.claude/projects/-mnt-data-Personal-git-repositories-cc-marketplace "$T/home/.claude/projects/"
+git show master:scripts/turn-cost.sh > "$T/before.sh"
+git show overseer/m2-measure-first:scripts/turn-cost.sh > "$T/after.sh"
+for s in before after; do HOME="$T/home" bash "$T/$s.sh" --json | jq -c '{requests, usd, turn_blocks}'; done
+```
+
+What these numbers cannot say yet:
+
+- **Suite runs per milestone** (item 3a's 6-8): not measured. A turn block is one instruction; a milestone spans many blocks and sessions, and nothing groups them. Records carry `gitBranch`, so grouping blocks by milestone branch is the likely next step.
+- **Questions per medium feature** (item 3b's 5-12) and **Stop-check blocks per run** (item 2's 47): no taskmaster feature run or task-runner run sits in these transcripts. The per-block max is the nearest proxy. The 47-block run was recorded in another project, which this default does not read.
+- **Browser calls by UI workers** (item 5): 0 here means nothing, because these sessions did no UI work. Measure on a project with UI work with `--project`.
+- **A turn block is still one instruction, not one task.** Harness frames and compaction summaries no longer open a block, but a user's "proceed" or "yes" mid-task does, and nothing marks where a task ends.
+- **Whole-diff reviews per milestone** (item 3a) and **quoted lines that do not match the file** (item 8) have no counter yet. Subagents are counted, not classified by type.
+- **Readability numbers are not comparable with m1's audit figures** (27.9 and 38% for READMEs, 28.8 and 51% for skills). The audit read plugin READMEs only and counted each word inside a code span; this counter adds the root README and counts a code span as one word. m7 and m12 compare against this table, not against the audit.
