@@ -37,7 +37,14 @@ continues. Rows marked `left to you` (brain/, design-system/, research/, …) ar
 per-project state the script never touches — name them in the report, decide nothing.
 
 Run the project's full check suite as the gate — a red suite stops here with
-the failures reported; no destination options for broken work.
+the failures reported; no destination options for broken work. First run
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/receipt-fresh.sh" --name suite --root "<the branch's worktree>" --cmd "<the full suite command you would run>"`.
+Reuse only when it prints `fresh: …`, exits 0, and its `<head7>` equals
+`git rev-parse --short=7 <branch>`: the suite already passed there on this exact tree, so
+do not run it again, put `Reused: suite passed at <head7> (<cmd>)` in the report, and use
+the receipt log that line names (`.claude/task-runner/receipts/suite-<HEAD12>.txt` in that
+worktree) as the suite output tail. Anything else (`stale: …`, another exit, another
+head) runs the suite.
 
 On green, before offering any destination, run the review passes that exist in
 this installation — each only if its plugin is installed, none of them fatal on
@@ -52,6 +59,9 @@ silence:
   was actually asked, are there weakened tests, left-in stubs, skipped criteria.
 - `/secret-scanning:scan` on the diff — a credential reaching a PR is the one
   finding that cannot be fixed by a later commit.
+
+These three passes and the post-merge suite always run: a receipt stands in only for
+the suite before them.
 
 A green suite is evidence the code RUNS, not that it should merge; without this
 step those three are named nowhere in the path between finishing work and

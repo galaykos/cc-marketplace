@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1 — 2026-10-26
+
+- **Acceptance can record a suite run that already passed instead of running it again.** `references/acceptance.md` Protocol step 1: only when the brief's verify set is one command and the milestone branch HEAD has a fresh receipt for exactly it (git-workflow's `scripts/receipt-fresh.sh --name suite --cmd "<it>"` or task-runner's `scripts/check-receipt.sh check --name suite --cmd "<it>"` prints `fresh:`) may the receipt's log file be the `tests` evidence; otherwise the verify set runs as before, one file with every tail. Standing: recorded — `program.sh accept` does not check where the `tests` file came from.
+
 ## 0.7.0 — 2026-10-25
 
 - **The milestone line refreshes only after a main-loop `Bash`, `Write`, `Edit` or `MultiEdit` call.** A read-only call (`Read`, `Grep`, `Glob`) cannot change `program.json`, yet each one waited for a `git rev-parse`; now none does. An edit made outside the session shows at the next writing call. Gate: `tests/status-line.test.ts`, "leaves a read-only main-loop call to the next call that can write".

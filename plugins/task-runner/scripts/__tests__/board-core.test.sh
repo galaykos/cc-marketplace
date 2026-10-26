@@ -2,7 +2,7 @@
 # board-core.test.sh — hooks/board-core.ts under node: parseIndex on a fixture for each status form, marker, blockquote,
 #   milestone and missing-table case and on this run's real index when the gitignored taskmaster-docs/ copy exists;
 #   counts, statusLine and planLine exact strings, record names and the running.pid rule as candor's gate.sh reads them;
-#   its open-card count against hooks/announce.sh on the same index.
+#   its open-card count against hooks/announce.sh on the same index; receiptOf against scripts/check-receipt.sh's real output.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 CORE="$ROOT/hooks/board-core.ts"
@@ -63,7 +63,7 @@ if [ -r "$REAL" ]; then cp "$REAL" "$WS/real.md"; else printf 'SKIP  the real in
 CASES='
 import { existsSync, readFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
-const { parseIndex, counts, statusLine, planLine, recordsOf, checkPid, cardKey } = await import(pathToFileURL(process.argv[1]).href)
+const { parseIndex, counts, statusLine, planLine, recordsOf, checkPid, cardKey, receiptOf } = await import(pathToFileURL(process.argv[1]).href)
 const ws = process.argv[2]
 const base = readFileSync(ws + "/base.md", "utf8")
 const b = parseIndex(base, "demo")
@@ -130,6 +130,17 @@ const cases = [
   ["status line ends with the minutes the background check has run, on a plain run too",
     [statusLine(board(["done", "in_progress", "parked"], "ULTRA"), "verify", 12), statusLine(null, "build", 0)],
     ["task-runner  verify 6/8  card 2/3  1 parked  ultra  check running 12m", "task-runner  build 5/8  check running 0m"]],
+  ["status line ends with suite ✓ and the commit for a fresh receipt only",
+    [statusLine(board(["done", "in_progress"]), "verify", 3, { isFresh: true, head: "9f1c2b3", cmd: "make test" }),
+     statusLine(null, "build", null, { isFresh: false, reason: "files changed since suite ran at 9f1c2b3" }), statusLine(null, "build", null, null)],
+    ["task-runner  verify 6/8  card 2/2  check running 3m  suite ✓ 9f1c2b3", "task-runner  build 5/8", "task-runner  build 5/8"]],
+  ["receipt: fresh only on exit 0 with a fresh: line naming 7 hex digits and the command; stale keeps the reason on exit 1",
+    [receiptOf(0, "fresh: suite passed at 9f1c2b3 (bash -c \"a && (b)\")\n"), receiptOf(1, "stale: the receipt is for another commit (0123456), not 9f1c2b3\n")],
+    [{ isFresh: true, head: "9f1c2b3", cmd: "bash -c \"a && (b)\"" },{ isFresh: false, reason: "the receipt is for another commit (0123456), not 9f1c2b3" }]],
+  ["receipt: a fresh: line with another exit, a stale: line with exit 0, no line, no exit or a short sha cannot be checked",
+    [receiptOf(1, "fresh: suite passed at 9f1c2b3 (x)"), receiptOf(0, "stale: x"), receiptOf(0, ""), receiptOf(null, ""), receiptOf(0, "fresh: suite passed at 9f1c2b (x)")]
+      .map((r) => r.isFresh || r.reason),
+    Array(5).fill("the receipt could not be checked")],
   ["taskmaster line for understand, shape, decide and plan only",
     ["understand", "shape", "decide", "plan", "build", "verify", "", "Shape"].map((phase) => planLine(phase) ?? null),
     ["taskmaster  understand 1/8", "taskmaster  shape 2/8", "taskmaster  decide 3/8", "taskmaster  plan 4/8", null, null, null, null]],
@@ -212,6 +223,31 @@ if command -v jq >/dev/null; then
   [ -r "$WS/real.md" ] && agree "open cards agree with hooks/announce.sh on the real index" "$WS/real.md"
 else
   printf 'SKIP  announce.sh agreement (jq is required)\n'
+fi
+
+RECEIPT='
+import { pathToFileURL } from "node:url"
+const { receiptOf } = await import(pathToFileURL(process.argv[1]).href)
+console.log(JSON.stringify(receiptOf(Number(process.argv[2]), process.argv[3])))
+'
+said() { # <repo> — receiptOf over what check-receipt.sh check prints there
+  local out code
+  out=$(cd "$1" && "$ROOT/scripts/check-receipt.sh" check --name suite); code=$?
+  node --input-type=module -e "$RECEIPT" "$CORE" "$code" "$out" 2>&1
+}
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+R="$WS/repo"
+if command -v git >/dev/null && command -v jq >/dev/null && mkdir -p "$R" && git -C "$R" init -q && [ "$(git -C "$R" rev-parse --git-dir)" = .git ]; then
+  git -C "$R" config user.email t@t.t && git -C "$R" config user.name t && echo a > "$R/a.txt" && git -C "$R" add a.txt && git -C "$R" commit -qm seed
+  H=$(git -C "$R" rev-parse --short=7 HEAD)
+  (cd "$R" && "$ROOT/scripts/check-receipt.sh" run --name suite -- true >/dev/null 2>&1)
+  got=$(said "$R"); want="{\"isFresh\":true,\"head\":\"$H\",\"cmd\":\"true\"}"
+  [ "$got" = "$want" ] && ok "receiptOf reads check-receipt.sh's fresh line as fresh at its commit" || bad "receipt agreement, fresh" "got $got, want $want"
+  echo b > "$R/a.txt"
+  got=$(said "$R"); want="{\"isFresh\":false,\"reason\":\"files changed since suite ran at $H\"}"
+  [ "$got" = "$want" ] && ok "receiptOf keeps check-receipt.sh's stale reason" || bad "receipt agreement, stale" "got $got, want $want"
+else
+  printf 'SKIP  receipt agreement (git and jq are required)\n'
 fi
 
 printf '\nboard-core: %s passed, %s failed\n' "$pass" "$fail"

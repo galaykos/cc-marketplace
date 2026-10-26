@@ -1,7 +1,7 @@
 import type { Elements, PluginState, RenderElement } from 'claude-code'
 
 import { cardKey, counts } from './board-core'
-import type { Card, IndexModel, Mark, Records } from './board-core'
+import type { Card, IndexModel, Mark, Receipt, Records } from './board-core'
 
 type Board = PluginState['task-runner']['board']
 
@@ -45,6 +45,19 @@ function statOf(card: Card, done: Set<string>): string {
 
 function markOf(marks: Record<string, Mark> | undefined, id: string): string {
   return marks === undefined ? '' : (marks[cardKey(id)] ?? 'no')
+}
+
+const CMD_CELLS = 40
+
+// The recorded command is shown so a receipt for a command that checks nothing, `true`, is seen as one.
+function receiptRow(receipt: Receipt): string {
+  if (!receipt.isFresh) {
+    return `checks stale: ${receipt.reason}`
+  }
+
+  const cmd = receipt.cmd.length <= CMD_CELLS ? receipt.cmd : `${receipt.cmd.slice(0, CMD_CELLS - 1)}…`
+
+  return `checks passed at ${receipt.head}: suite (${cmd})`
 }
 
 const LEGEND = 'review = review recorded · check = test shown to fail without the change · skip, exempt = left out with a reason'
@@ -93,9 +106,10 @@ export function boardView(kit: BoardKit, board: Board): RenderElement {
   const c = counts(model)
   const header = ['Task board', model.slug, model.marker ?? '', board.runActive ? '' : 'not running']
   const summary = [board.phase, `${c.done}/${c.total} done`, `${c.parked} parked`, c.unrecognised > 0 ? `${c.unrecognised} unrecognised` : '']
-  // A board saved before 0.49.2 has neither field, and the state outlives a hot reload of this module.
+  // A board saved before 0.49.2 has none of these fields, one before 0.49.3 no receipt, and the state outlives a hot reload of this module.
   const records = board.records ?? null
   const waiting = board.checkMinutes == null ? null : `waiting on: background check running ${board.checkMinutes}m`
+  const receipt = board.receipt ?? null
   const specPath = model.specPath
 
   return (
@@ -103,6 +117,7 @@ export function boardView(kit: BoardKit, board: Board): RenderElement {
       <Text>{header.filter(part => part !== '').join('  ')}</Text>
       <Text>{summary.filter(part => part !== '').join('  ')}</Text>
       {waiting === null ? null : <Text>{waiting}</Text>}
+      {receipt === null ? null : <Text>{receiptRow(receipt)}</Text>}
       <Box flexDirection="row" gap={2}>
         <Button key="run-next" hotkey="r" plain autoFocus onPress={() => kit.fill(`/task-runner:run ${indexPath}`)}>
           Run next

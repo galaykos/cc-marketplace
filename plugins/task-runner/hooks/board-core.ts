@@ -101,7 +101,22 @@ export function phaseAt(phase: string): string {
   return k === 0 ? phase : `${phase} ${k}/${ARC.length}`
 }
 
-export function statusLine(m: IndexModel | null, phase: string, checkMinutes: number | null): string {
+export type Receipt = { isFresh: true; head: string; cmd: string } | { isFresh: false; reason: string }
+
+// scripts/check-receipt.sh check prints `fresh: <name> passed at <head7> (<cmd>)` and exits 0, else `stale: <reason>` and exits 1.
+export function receiptOf(exitCode: number | null, stdout: string): Receipt {
+  const line = stdout.split('\n', 1)[0] ?? ''
+  const [, head, cmd = ''] = /^fresh: \S+ passed at ([0-9a-f]{7}) \((.*)\)$/.exec(line) ?? []
+  const [, reason] = /^stale: (.+)$/.exec(line) ?? []
+
+  if (exitCode === 0 && head !== undefined) {
+    return { isFresh: true, head, cmd }
+  }
+
+  return { isFresh: false, reason: exitCode === 1 && reason !== undefined ? reason : 'the receipt could not be checked' }
+}
+
+export function statusLine(m: IndexModel | null, phase: string, checkMinutes: number | null, receipt: Receipt | null = null): string {
   const c = m === null ? null : counts(m)
   const marker = m?.marker ?? null
   return [
@@ -112,6 +127,7 @@ export function statusLine(m: IndexModel | null, phase: string, checkMinutes: nu
     c === null || c.unrecognised === 0 ? '' : `${c.unrecognised} unrecognised`,
     marker === null ? '' : marker === 'ULTRA' ? 'ultra' : 'goal',
     checkMinutes === null ? '' : `check running ${checkMinutes}m`,
+    receipt?.isFresh === true ? `suite ✓ ${receipt.head}` : '',
   ]
     .filter((part) => part !== '')
     .join('  ')

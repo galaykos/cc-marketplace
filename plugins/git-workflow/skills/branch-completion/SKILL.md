@@ -13,12 +13,12 @@ states is inventory: unmerged branches age into conflict farms, and every
 
 ## The verification gate
 
-Before any destination talk, run the project's FULL check suite — tests, lint,
-type-check, build, whatever the repo defines — not just the tests near the
-change. This mirrors the task-runner plugin's completion gate, for the same
-reason: local passes compose into global failures. A red suite ends the
-conversation — nothing to merge, PR, or park with a clear conscience. Report
-the failures and fix first; never present destinations for a red branch.
+Before any destination talk, run the project's FULL check suite — tests, lint, type-check,
+build, whatever the repo defines — not just the tests near the change; local passes compose
+into global failures, as in task-runner's completion gate. A pass of that exact command at the branch's head on this
+exact tree counts — `scripts/receipt-fresh.sh --name suite --root <worktree> --cmd "<suite command>"` prints `fresh:`
+with that head — and the report says `Reused:` and names the receipt log; the post-merge suite never reuses. A red
+suite ends the conversation: report the failures and fix first; never present destinations for a red branch.
 
 ## Evidence, then options
 

@@ -120,7 +120,12 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    approval and `scripts/review-skip.sh --card range-<HEAD12> --reason "<why>"` (no
    code-review installed: `--exempt no-reviewer-installed`), and appears under `Skipped:`.
    Then finish with BOTH completion gates, never one alone:
-   - the full project check suite (catches lint/type/build regressions), AND
+   - the full project check suite (catches lint/type/build regressions), run after the run's
+     last commit through
+     `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-receipt.sh" run --name suite -- bash -c '<whole suite>'`.
+     The whole suite goes in as ONE argument: unquoted, the shell splits `a && b` and only `a`
+     is recorded. It records the pass at this commit so `/git-workflow:finish` can reuse it; a
+     commit after it makes the receipt stale. AND
    - the **behavioral-gate** on the run's changed files —
      `"${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh" --isolate --changed "<the run's
      touched files>" [--entrypoint <bin>] [--differential 'flag::with::without']

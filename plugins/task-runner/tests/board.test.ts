@@ -11,6 +11,8 @@ const SENTINEL = '/work/.claude/cc-phase.json'
 const BG = '/work/.claude/task-runner/bg/running.pid'
 const RV = '/work/.claude/task-runner/rv'
 const NC = '/work/.claude/task-runner/nc'
+const RECEIPT = '/work/.claude/task-runner/receipt.json'
+const GIT_INDEX = '/work/.git/index'
 const HEAD = '9f1c2b3a4d5e6f708192a3b4c5d6e7f8091a2b3c'
 const GATE = 'bash\0/home/u/.claude/plugins/cache/task-runner/scripts/behavioral-gate.sh\0--isolate\0'
 
@@ -36,6 +38,9 @@ const PLAIN_RUN = JSON.stringify({ slug: 'adhoc', branch: 'feat/x' })
 const VERIFY = JSON.stringify({ phase: 'verify', owner: 'task-runner:run', session_id: 'S1' })
 const phased = (phase: string, session = 'S1') => JSON.stringify({ phase, owner: 'taskmaster:task', session_id: session })
 const pidFile = (pid: string, deadline = NOW / 1000 + 3600) => `${pid}\n${HEAD.slice(0, 12)}\n${deadline}\n`
+
+const FRESH: [number, string] = [0, 'fresh: suite passed at 9f1c2b3 (bash scripts/validate.sh)\n']
+const STALE: [number, string] = [1, 'stale: files changed since suite ran at 9f1c2b3\n']
 
 const TASKS = '/work/taskmaster-docs/tasks'
 
@@ -96,6 +101,9 @@ function seat(on: On, live: Live = {}) {
     ran: [] as string[],
     gitRuns: 0,
     procs: new Map<string, { cmdline: string; cwd: string }>(),
+    receiptCheck: undefined as [number, string] | undefined,
+    head: HEAD,
+    receiptRuns: [] as { argv: readonly string[]; cwd: string | undefined }[],
   }
   const put = (path: string, text: string) => world.disk.set(path, { text, mtimeMs: (world.disk.get(path)?.mtimeMs ?? NOW - 60_000) + 1_000 })
 
@@ -141,12 +149,23 @@ function seat(on: On, live: Live = {}) {
   on('process.run', ($, e) => {
     world.gitRuns += 1
 
+    if (/\/scripts\/check-receipt\.sh$/.test(e.argv[1] ?? '')) {
+      world.receiptRuns.push({ argv: e.argv, cwd: e.init?.cwd })
+
+      const [exitCode, stdout] = world.receiptCheck ?? []
+
+      return exitCode === undefined || stdout === undefined
+        ? { deny: 'check-receipt.sh did not start' }
+        : { value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    }
+
     const command = e.argv.join(' ')
     const gates = [...world.procs].filter(([, proc]) => proc.cmdline.includes('behavioral-gate.sh')).map(([pid]) => `${pid}\n`)
     const answers: Record<string, [number, string]> = {
       'git rev-parse --show-cdup': [0, '\n'],
       'git symbolic-ref -q HEAD': [0, 'refs/heads/feat/x\n'],
       'git -C /work rev-parse HEAD': [0, `${HEAD}\n`],
+      'git rev-parse HEAD --git-path index': [0, `${world.head}\n.git/index\n`],
       'pgrep -f behavioral-gate\\.sh': [gates.length > 0 ? 0 : 1, gates.join('')],
       [`kill -0 ${e.argv[2]}`]: [world.procs.has(e.argv[2] ?? '') ? 0 : 1, ''],
     }
@@ -547,6 +566,136 @@ describe('board', () => {
     await $.tool.call({ tool: 'Bash', command: 'true' })
 
     expect((await lines(pane)).slice(1, 3)).toEqual(['build  1/5 done  1 parked', LEGEND])
+  })
+
+  test('status line ends with suite ✓ and the commit once the suite receipt reads fresh, asking check-receipt.sh from the root', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, BOARD)
+    await start($)
+
+    expect(world.receiptRuns, 'no receipt.json: the script is not run').toEqual([])
+
+    world.put(RECEIPT, '{}')
+    world.receiptCheck = FRESH
+    await $.tool.call({ tool: 'Bash', command: 'true' })
+
+    expect(world.statuses).toEqual(['task-runner  build 5/8  card 5/12  1 parked  goal', 'task-runner  build 5/8  card 5/12  1 parked  goal  suite ✓ 9f1c2b3'])
+    expect(world.receiptRuns).toEqual([{ argv: ['bash', expect.stringMatching(/\/task-runner\/scripts\/check-receipt\.sh$/), 'check', '--name', 'suite'], cwd: '/work' }])
+  })
+
+  test('no suite part while the receipt reads stale or cannot be checked', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, PLAIN_RUN)
+    world.put(RECEIPT, '{}')
+    world.receiptCheck = STALE
+    await start($)
+    world.receiptCheck = undefined
+    await $.turn.complete(TURN)
+    world.receiptCheck = [0, 'stale: files changed since suite ran at 9f1c2b3\n']
+    await $.turn.complete(TURN)
+
+    expect(world.statuses).toEqual(['task-runner  build 5/8', 'task-runner  build 5/8', 'task-runner  build 5/8'])
+    expect(world.receiptRuns).toHaveLength(3)
+  })
+
+  test('asks check-receipt.sh again only at a turn end or once the receipt, HEAD or the index moved', async ($, on) => {
+    const world = seat(on)
+    const asked: number[] = []
+    const step = async (change: () => void, act: () => Promise<unknown>) => {
+      change()
+      await act()
+      asked.push(world.receiptRuns.length)
+    }
+    const call = () => $.tool.call({ tool: 'Bash', command: 'true' })
+
+    world.put(RUN, PLAIN_RUN)
+    world.put(RECEIPT, '{}')
+    world.put(GIT_INDEX, 'i')
+    world.receiptCheck = FRESH
+    await start($)
+    await step(() => undefined, call)
+    await step(() => undefined, call)
+    await step(() => undefined, () => $.turn.complete(TURN))
+    await step(() => world.put(RECEIPT, '{ }'), call)
+    await step(() => world.put(GIT_INDEX, 'j'), call)
+    await step(() => void (world.head = '0123456789abcdef0123456789abcdef01234567'), call)
+    await step(() => undefined, call)
+
+    expect(asked).toEqual([1, 1, 2, 3, 4, 5, 5])
+  })
+
+  test('pane shows a receipt row under the summary: passed at the commit with its command, else stale and why', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, LAYOUT)
+    world.put(RECEIPT, '{}')
+    world.receiptCheck = FRESH
+    await start($)
+
+    const pane = await mount($)
+
+    expect((await lines(pane)).slice(0, 4)).toEqual([
+      'Task board  ship-mods  ULTRA',
+      'build  1/5 done  1 parked',
+      'checks passed at 9f1c2b3: suite (bash scripts/validate.sh)',
+      LEGEND,
+    ])
+
+    world.receiptCheck = STALE
+    await $.turn.complete(TURN)
+
+    expect((await lines(pane))[2]).toBe('checks stale: files changed since suite ran at 9f1c2b3')
+
+    world.receiptCheck = undefined
+    await $.turn.complete(TURN)
+
+    expect((await lines(pane))[2]).toBe('checks stale: the receipt could not be checked')
+
+    world.disk.delete(RECEIPT)
+    await $.tool.call({ tool: 'Bash', command: 'true' })
+
+    expect((await lines(pane)).slice(1, 3)).toEqual(['build  1/5 done  1 parked', LEGEND])
+  })
+
+  test('pane cuts a long recorded command to 40 cells, so a receipt for `true` stays visible', async ($, on) => {
+    const world = seat(on)
+    const long = `bash -c '${'npm run lint && '.repeat(4)}npm test'`
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, LAYOUT)
+    world.put(RECEIPT, '{}')
+    world.receiptCheck = [0, 'fresh: suite passed at 9f1c2b3 (true)\n']
+    await start($)
+
+    const pane = await mount($, 120)
+
+    expect((await lines(pane))[2]).toBe('checks passed at 9f1c2b3: suite (true)')
+
+    world.receiptCheck = [0, `fresh: suite passed at 9f1c2b3 (${long})\n`]
+    await $.turn.complete(TURN)
+
+    expect((await lines(pane))[2]).toBe(`checks passed at 9f1c2b3: suite (${long.slice(0, 39)}…)`)
+  })
+
+  test('/task-board with no run shows the receipt row for the newest index and sets no line', async ($, on) => {
+    const world = seat(on)
+
+    world.put(INDEX, LAYOUT)
+    world.put(RECEIPT, '{}')
+    world.receiptCheck = FRESH
+    await start($)
+    await $.command.run(TASK_BOARD)
+
+    expect((await lines(await mount($))).slice(0, 3)).toEqual([
+      'Task board  ship-mods  ULTRA  not running',
+      '1/5 done  1 parked',
+      'checks passed at 9f1c2b3: suite (bash scripts/validate.sh)',
+    ])
+    expect(world.statuses.at(-1)).toBeUndefined()
   })
 
   test('clears the line while the run is on another branch', async ($, on) => {

@@ -234,6 +234,33 @@ closing report is still checked against the run's records; candor's gate removes
 once they hold. Set `TASK_RUNNER_STOP_GATE=warn` to downgrade the block to a printed
 reminder everywhere.
 
+## Receipts
+
+`/task-runner:run` runs the closing suite, after the run's last commit, through
+`scripts/check-receipt.sh run --name suite -- bash -c '<whole suite>'`, which runs it from the
+repo root and records it in `.claude/task-runner/receipt.json`: the commit, a digest of the
+working tree, and the check's command (each argument quoted as given), exit status, time and a
+log of its last 60 output lines (`.claude/task-runner/receipts/suite-<commit>.txt`). A run at
+another commit or on another tree replaces the receipt; at the same ones, a failed check is
+replaced only by the same command run again. `check --name suite [--cmd '<command>']` prints
+`fresh: suite passed at <commit> (<command>)` and exits 0 only when the receipt names HEAD, the
+suite exited 0, its own log ends `exit 0`, the command is the one `--cmd` names, and nothing
+changed since: no tracked file edited or staged, no untracked file added or changed outside
+`.claude/` (whose `skills/`, `agents/`, `commands/`, `hooks/` and `settings.json` do count) and
+`taskmaster-docs/`, no root `.env*` file changed, no executable bit flipped, no submodule file
+edited. Anything else, an unreadable receipt included, prints `stale: <why>` and exits 1. It
+never writes the git index.
+
+Who reads it: `/git-workflow:finish` skips a fresh suite, overseer's acceptance may cite its log,
+and the task board shows `checks passed at <commit>: suite (<command>)` or `checks stale: <why>`
+under its summary, and `suite ✓ <commit>` at the end of the status line while a run's suite is
+fresh. The board asks `check` at each turn end and when the receipt, HEAD or the git index moved,
+not on every tool call; one that takes over 2 s reads stale. Not seen: other gitignored files
+(build output), skip-worktree or assume-unchanged files, untracked files inside submodules, nested
+repos that are not submodules, a receipt written by hand; a suite that leaves new untracked files
+behind reads stale at once. **Gate** — `scripts/__tests__/check-receipt.test.sh`,
+`tests/board.test.ts`.
+
 ## Mods (Claude Code ≥ 2.1.291)
 
 Since 0.44.0 the plugin also ships a hooks module, `hooks/mods.ts`, listed under `modules`
