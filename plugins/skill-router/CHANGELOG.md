@@ -2,6 +2,10 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.28.1 — 2026-10-26
+
+- **`design-kit:film`** routes on `**/.design-kit/film/**`, beside the motion row. Standing: gate for the row syntax (`validate.sh`).
+
 ## 0.28.0 — 2026-10-26
 
 - **Game engines route.** New rows send an edit to the engine plugin's skill when that plugin is installed: `.gd`, `.gdshader`, `export_presets.cfg` → `godot-best-practices`; `.tscn`, `.tres`, `project.godot` → `godot-project-check`; a `godot --headless` line → `godot-headless-testing`; `.inputactions` → `unity-best-practices`; `.uproject` and `UCLASS(`/`GENERATED_BODY()` → `unreal-best-practices`; `.luau` and a Rojo DataModel project → `roblox-best-practices`; `game.project` → `defold-best-practices`; a `phaser` or `pixi.js` import → their skills; Steam `.vdf`, `steam_appid.txt`, `steamcmd`, `butler push`, `.itch.toml` and Yarn/Ink files → `gamedev`'s release and dialogue skills. A generic extension carries a `?` marker on the engine's own manifest — `.cs` is Godot's beside `project.godot` and Unity's beside `ProjectVersion.txt`, `.go` is Defold's beside `game.project` and Ebitengine's beside a go.mod requiring `ebiten/v2`, `.rs` is Bevy's beside a Cargo.toml naming `bevy` — so a repo without the engine stays silent. Standing: gate for the row syntax (`validate.sh`); the markers were probed once by hand in temp repos — `.gd` and `.cs` beside `project.godot`, `.cs` beside `ProjectVersion.txt`, `.go` beside an ebiten go.mod and `.rs` beside a bevy Cargo.toml each routed their engine skill, while a plain go.mod, Cargo.toml and lone `.cs` routed none — and no `route.test.sh` case pins them.

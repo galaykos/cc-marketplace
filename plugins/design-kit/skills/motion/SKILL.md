@@ -60,8 +60,8 @@ Figma REST calls, layer placement, background and clipping recipes are in
 Every timing, distance and curve comes from `references/motion-system.md`, which also holds
 the choreography kinds, the story table, accents and the cycle. Never invent ad hoc values.
 
-- **Start empty.** Every page load and every export opens on the empty state; empty becomes
-  loaded. Elements rise from below and resolve from blur to sharp, staggered in reading
+- **Start empty.** Every page load and both GIFs open on the empty state; empty becomes
+  loaded. The X MP4 is the exception below. Elements rise from below and resolve from blur to sharp, staggered in reading
   order, about 2 to 2.5 s for a full frame.
 - **Never `scale(0)` an object.** Only lines and bars grow from zero, because they draw.
   Bars and meters fill as left-to-right `clip-path` wipes. Never add a loading line or any
@@ -94,6 +94,9 @@ Recorder, page-side contract, checks and `ffmpeg` lines: `references/capture-exp
   (the frame before the dissolve equals `?still`), and a contact sheet read by eye.
 - **Three files:** `<name>-x.mp4` (H.264, `yuv420p`, 60 fps, even dimensions, ≤ 1920×1200),
   `<name>-loop.gif` (960 px wide), `<name>-800x500.gif` (cropped to content at exactly 1.6:1).
+- **The X MP4 opens loaded.** X autoplays muted and shows frame 0 as the thumbnail, so an empty
+  first frame posts a blank card. The loop is seamless, so rotate that file's export window to
+  start at the rest frame (loop time = the intro's end); the GIFs keep the empty start.
 
 ## The rules, and who enforces each
 

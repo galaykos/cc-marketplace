@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, game engines, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.123.0"
+    "version": "0.124.0"
   },
   "plugins": [
     {
@@ -27,7 +27,7 @@
     {
       "name": "design-kit",
       "source": "./plugins/design-kit",
-      "description": "The Claude Desktop design picker as local, own-your-files skills: /design-kit:slides (HTML deck with notes; PDF and PPTX by script), /design-kit:design (2-4 artboard directions with editable text and knobs), /design-kit:in-codebase (the design rendered with the project's OWN components on its dev server; handoff-bundle intake with a token-drift table), /design-kit:system (tokens, typefaces and components extracted into design-system/), /design-kit:artifact (a self-contained page in a local gallery, shared on consent), /design-kit:motion (a static design animated into a looping showcase, MP4 and GIFs). One localhost URL under .design-kit/; nothing leaves the machine unless you say yes."
+      "description": "The Claude Desktop design picker as local, own-your-files skills: /design-kit:slides (an HTML deck; PDF and PPTX by script), /design-kit:design (2-4 artboard directions with knobs), /design-kit:in-codebase (the design rendered with the project's OWN components; handoff-bundle intake with a token-drift table), /design-kit:system (tokens, typefaces and components into design-system/), /design-kit:artifact (a self-contained page, shared on consent), /design-kit:motion (a static design animated into a looping showcase) and /design-kit:film (a beat-synced product film from a brief, with checks by script). One localhost URL under .design-kit/; nothing leaves the machine unless you say yes."
     },
     {
       "name": "laravel",

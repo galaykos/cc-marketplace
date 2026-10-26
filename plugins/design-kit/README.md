@@ -16,6 +16,7 @@ machine unless a skill names the path and you say yes.
 | Design System | `/design-kit:system` | `design-system/`: DTCG `tokens.json`, `DESIGN-SYSTEM.md` in the format the host's artifact skill reads, and a UI-kit page with `@dsCard`-marked cards |
 | Artifacts | `/design-kit:artifact` | one self-contained, versioned HTML page in a local gallery; LAN, pages-branch or zip sharing on explicit consent |
 | — (not in the picker) | `/design-kit:motion` | a static design — Figma frame, dashboard, card set, screenshot — rebuilt exactly and animated from empty to loaded with a story per visual, as a looping page plus an MP4 and two GIFs; or the same choreography on a site's bento and feature sections |
+| — (not in the picker) | `/design-kit:film` | a product demo, launch film or explainer made from a brief: facts traced, UI captured, sound first, a blind review each round, one MP4 per format with a music-only track and a ledger |
 
 Why a plugin when the host has `/design`, `/design-sync` and the `Artifact` tool: those
 need a claude.ai-backed login, a paid plan, and Anthropic's servers, and the design
@@ -268,6 +269,36 @@ and unresolved-link reports, and the publisher's worktree isolation are **gates*
 `scripts/__tests__/artifact-*.test.sh` drive each. Page quality is **agent-graded**.
 Not here: comments on a page, refresh from live data, runtime asset loads (a page that
 fetches assets from JavaScript keeps those references unreported), `srcset` rewriting.
+
+### `/design-kit:film` — a product film from a brief
+
+`/design-kit:film [brief.md | product URL] [--run-to-end]` makes a demo, launch film, explainer or
+beat-synced reel in `.design-kit/film/<slug>/`, rendered by HyperFrames (default), Remotion, or a
+hand-rolled `seek(t)` page. The skill is an order: brief (every blank decided and logged in
+`brief.txt`) → `film.py doctor` → facts into `facts.json` → the UI captured at 2x, logo as SVG, fonts
+copied → a 3-second draft MP4 → sound first (`film.py music` writes the beat grid, or
+`film.py beats` reads a supplied track) → three storyboard directions ⏸ → style lock from three
+stills ⏸ → one component per scene, every value from the frame number → review rounds by a fresh
+subagent given only the MP4 → muted test → delivery: one MP4 per format, a music-only track, a
+contact sheet, `facts.json`, `timing.json`, `ledger.txt`, and the seconds still worth watching
+yourself. ⏸ stops ask; `--run-to-end` decides and logs why.
+
+Needs Node (22+ for HyperFrames), `ffmpeg` with libx264, AAC and loudnorm, and a headless Chromium.
+Voice needs a TTS key in an environment variable; without one the skill stops and says so.
+Remotion requires a paid company licence for a for-profit organisation over 3 employees, so the
+skill asks before choosing it.
+
+What has teeth: `scripts/film.py check` fails an on-screen line `timing.json` declares without a
+`facts.json` source or with a number its source lacks, a line held under 0.7 s or 0.3 s a word, a
+hard cut or action more than one frame off the beat, a text pair under 4.5:1, more than six
+colours, text in the bottom 8% or overlapping, and with `--video` a wrong duration, fps, size,
+codec, sample rate or a moov atom after mdat; `film.py loudness` fails off −14 LUFS / −1 dBTP;
+`film.py pops` fails a single-frame pop — **gate**, driven by `scripts/__tests__/film.test.sh`,
+whose five ffmpeg cases skip where ffmpeg is absent. That every line is declared, that the
+reviewer stayed blind, that frame 0 is a finished picture and the film reads muted — **agent-graded**.
+Whether a fact is true — **unenforceable** here. Adapted from a "Motion Studio" brief the user
+supplied, with pipeline facts from [yihui-dev/awesome-opus5-5-videos](https://github.com/yihui-dev/awesome-opus5-5-videos)
+@92aee2f; no creator's prompt is reproduced. Unmeasured: no control arm.
 
 ### `/design-kit:motion` — a static design, alive
 
