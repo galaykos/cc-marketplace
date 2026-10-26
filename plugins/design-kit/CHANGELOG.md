@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.12.1 — 2026-10-26
+
+- **`film.py sheet` tiles start at 0 and the index carries each tile's real time.** It sampled with ffmpeg's `fps=` filter, which picks a frame mid-interval (the first tile of a 16-frame sheet over 6 s was 0.167 s, not 0) and re-stamps frames onto its own grid, so the index's times did not match the pictures a reviewer cites. It now selects the first frame of each interval, frame 0 included, and `index.json` lists `tile_times_s` read from the selected frames. Standing: gate — `film.test.sh`; a mutation back to `fps=` fails it.
+- **The five ffmpeg cases now run, with positive cases.** First run with ffmpeg 8.0.1 on 2026-10-26: all pass. `pops` now has to find a one-frame white flash at frame 45, and `cuts` a real cut at 2.0 s in a two-source concat, besides passing a clean clip. CI still has no ffmpeg, so there they skip as before.
+
 ## 0.12.0 — 2026-10-26
 
 - **`/design-kit:film` — a product film from a brief.** Demo, launch film, explainer or beat-synced reel rendered from code (HyperFrames by default, Remotion, or hand-rolled `seek(t)` HTML), with music, sound effects or voice, for X, 16:9 or 9:16. The order is the skill: brief with every blank decided and logged, tools checked, facts pulled into `facts.json`, the UI captured at 2x, a 3-second draft render, sound first, three storyboard directions, a style lock from three stills, a build where every value is computed from the frame, review rounds by a fresh blind subagent each round, a muted-viewer test, then delivery with a ledger. Remotion's company licence (for-profit organisations over 3 employees) is asked about before it is chosen; HyperFrames' and Remotion's own agent skills are offered, not restated. Adapted from a "Motion Studio" brief the user supplied, plus pipeline facts from the 703 prompts in [yihui-dev/awesome-opus5-5-videos](https://github.com/yihui-dev/awesome-opus5-5-videos) @92aee2f (MIT list; each prompt belongs to its creator, so none is reproduced).

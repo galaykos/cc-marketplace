@@ -189,18 +189,40 @@ class WithFfmpeg(Base):
                               "-movflags", "+faststart", "-shortest", self.video], capture_output=True, text=True)
         self.assertEqual(res.returncode, 0, res.stderr)
 
-    def test_sheet_index(self):
+    def clip(self, name, vf_or_graph, *inputs):
+        path = str(self.tmp / name)
+        args = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y"]
+        for src in inputs:
+            args += ["-f", "lavfi", "-i", src]
+        args += (["-filter_complex", vf_or_graph, "-map", "[v]"] if "[v]" in vf_or_graph else ["-vf", vf_or_graph])
+        res = subprocess.run(args + ["-c:v", "libx264", "-pix_fmt", "yuv420p", path], capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        return path
+
+    def test_sheet_tiles_start_at_zero_on_the_interval(self):
         res = run("sheet", self.video, "--out", str(self.tmp / "sheets"), "--every", "0.5", "--per", "6", "--cols", "3")
         self.assertEqual(res.returncode, 0, res.stderr)
         index = json.loads((self.tmp / "sheets" / "index.json").read_text())
-        self.assertGreaterEqual(len(index), 1)
+        self.assertEqual(len(index), 2)
         self.assertEqual(index[0]["grid"], "3x2")
+        self.assertEqual(index[0]["tile_times_s"], [0.0, 0.5, 1.0, 1.5, 2.0, 2.5])
+        self.assertEqual(index[1]["tile_times_s"][0], 3.0)
+        one = json.loads(run("sheet", self.video, "--out", str(self.tmp / "one"), "--frames", "16").stdout)
+        self.assertEqual(one["sheets"], 1)
+        times = json.loads((self.tmp / "one" / "index.json").read_text())[0]["tile_times_s"]
+        self.assertEqual(len(times), 16)
+        for k, t in enumerate(times):  # each tile is the first frame at or after k x 0.375 s, frame 0 included
+            self.assertTrue(k * 0.375 - 1e-3 <= t <= k * 0.375 + 1 / 30 + 1e-3, f"tile {k} at {t}s")
+            self.assertAlmostEqual(t * 30, round(t * 30), delta=0.05, msg=f"tile {k}: {t}s is not a source frame's time")
 
-    def test_cuts_returns_shots_covering_the_clip(self):
-        res = run("cuts", self.video)
-        self.assertEqual(res.returncode, 0, res.stderr)
-        shots = json.loads(res.stdout)["shots"]
-        self.assertAlmostEqual(shots[-1]["end"], 6.0, delta=0.1)
+    def test_cuts_finds_a_real_cut(self):
+        self.assertEqual(json.loads(run("cuts", self.video).stdout)["cuts"], [])
+        cut = self.clip("cut.mp4", "[0:v][1:v]concat=n=2:v=1[v]", "testsrc2=size=320x180:rate=30:duration=2",
+                        "smptebars=size=320x180:rate=30:duration=2")
+        found = json.loads(run("cuts", cut).stdout)
+        self.assertEqual(len(found["cuts"]), 1)
+        self.assertAlmostEqual(found["cuts"][0], 2.0, delta=0.05)
+        self.assertAlmostEqual(found["shots"][-1]["end"], 4.0, delta=0.1)
 
     def test_loudness_masters_to_target(self):
         out = str(self.tmp / "mastered.m4a")
@@ -208,9 +230,13 @@ class WithFfmpeg(Base):
         self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
         self.assertAlmostEqual(json.loads(res.stdout)["after"]["lufs"], -14, delta=1)
 
-    def test_smooth_clip_has_no_pops(self):
-        res = run("pops", self.video)
-        self.assertEqual(res.returncode, 0, res.stdout)
+    def test_smooth_clip_has_no_pops_and_a_one_frame_flash_is_one(self):
+        self.assertEqual(run("pops", self.video).returncode, 0)
+        flash = self.clip("flash.mp4", "drawbox=enable='eq(n,45)':x=0:y=0:w=iw:h=ih:color=white:t=fill",
+                          "testsrc2=size=320x180:rate=30:duration=3")
+        res = run("pops", flash)
+        self.assertEqual(res.returncode, 1, res.stdout)
+        self.assertEqual([p["frame"] for p in json.loads(res.stdout)["pops"]], [45])
 
     def test_probe_checks_pass_on_a_matching_brief(self):
         self.write("timing.json", {"fps": 30, "duration_s": 6, "sound": "music", "music": {"beat_times": [0.0]},

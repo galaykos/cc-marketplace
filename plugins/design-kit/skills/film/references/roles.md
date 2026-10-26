@@ -11,7 +11,7 @@ agent-graded.
 Prompt: "Reference video: `<path>`. Run
 `python3 "<plugin>/scripts/film.py" cuts <path>` for its cuts and shot lengths, then
 `film.py sheet <path> --out <ws>/.frames/ref --every 0.1` and Read the sheets covering each cut
-(the sheet index gives each sheet's time span).
+(each sheet's `index.json` entry lists the exact time of every tile, row by row).
 Return: shot lengths (median and range), shot types, transitions, how type enters and leaves,
 pacing per section, and what happens on the beat. Learn the patterns; copy no footage or music."
 
@@ -36,7 +36,7 @@ Prompt: "You review one rendered film. Read ONLY these: `<mp4>`, `<facts.json>`[
 contact sheets]. Open no other file. Run
 `python3 "<plugin>/scripts/film.py" sheet <mp4> --out <ws>/.frames/review-<n> --every 0.2 --per 20`
 and Read every sheet. Every on-screen line must come from facts.json. List problems by severity
-(blocker / should-fix / polish) with timecodes from the sheet index. Earlier rounds found:
+(blocker / should-fix / polish) with timecodes from the tile times in the sheet index. Earlier rounds found:
 `<list>` — recheck each and say fixed or not. End with exactly `ship` or `another pass`."
 
 The main session fixes the worst first; the next round goes to another new reviewer. Five rounds at
