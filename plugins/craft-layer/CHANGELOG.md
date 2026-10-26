@@ -7,6 +7,10 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.59.1 — 2026-10-26
+
+- **One more sameness tell: cards nested inside cards** as the default container, where grouping, spacing or one rule would separate the content. Found while reviewing [madebymustafa/design-taste](https://github.com/madebymustafa/design-taste) @c4a6bff (MIT, © 2026 Mustafa); rewritten, not copied. Everything else on its never-list was already in `sameness-fingerprint.md`, and its ten genre packs prescribe palettes, faces and chrome that file lists as category defaults, so none was imported. Standing: agent-graded — `craft-reviewer` reads shipped markup against the list. Unmeasured.
+
 ## 0.59.0 — 2026-10-26
 
 - **`information-design` names the captioned layout as an anti-pattern.** A tagline under the page title, helper text under every field, a secondary label restating a column header: cut them, and fix the ranking or grouping a screen needed them for. Units, a field's required format (WCAG 3.3.2), errors and the qualifying delta stay — they are data. Standing: recorded — no reviewer here reads it back.

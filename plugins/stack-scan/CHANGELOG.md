@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.16.0 — 2026-10-26
+
+- **Remotion and HyperFrames ship their own agent skills; the scout now says so.** Two Framework-native tooling rows: dep `remotion` / `@remotion/cli` → `npx skills add remotion-dev/skills`, with the licence note (a paid company licence for a for-profit organisation over 3 employees, read from Remotion's `LICENSE.md` on 2026-10-26); dep `hyperframes` / `@hyperframes/*` → `npx skills add heygen-com/hyperframes` or its Claude Code plugin. Both are printed, never run, like the rest of that table. Standing: agent-graded — the scout follows the rows.
+
 ## 0.15.0 — 2026-10-26
 
 - **The scout finds game engines.** `plugin-scout`'s `signals.md` gains one row per new engine plugin — `project.godot` → `godot` (a `Godot.NET.Sdk` csproj beside it is Godot C#, never Unity), `ProjectVersion.txt` beside `Assets/` → `unity`, `*.uproject` → `unreal`, a Rojo DataModel project, `wally.toml` or place file → `roblox`, a `bevy` dependency → `bevy`, `game.project` → `defold`, `ebiten/v2` in go.mod → `ebitengine`, dep `phaser` / `pixi.js` → `phaser` / `pixijs` — plus a `gamedev` row on any engine, a Steam `.vdf`, `steam_appid.txt`, `butler push` or Yarn/Ink files. They sit before the `Cargo.toml`/`go.mod`/`*.csproj` "no plugin covers this" row, which now yields to them.

@@ -4,6 +4,26 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.124.0] - 2026-10-26
+
+Three more inputs reviewed in full; mapping and verdicts in `rationale/video-taste-import-2026-10-26.md`.
+Nothing imported is measured against a control arm.
+
+- **design-kit 0.12.0 — `/design-kit:film`**, a product film from a brief (HyperFrames, Remotion or a
+  hand-rolled `seek(t)` page; music, sfx or voice; X, 16:9, 9:16), implementing a "Motion Studio" brief the user
+  supplied, with pipeline facts from the 703 prompts in
+  [yihui-dev/awesome-opus5-5-videos](https://github.com/yihui-dev/awesome-opus5-5-videos) @92aee2f (none reproduced).
+  `scripts/film.py` checks it by script: facts tracing, holds, beat sync, contrast, palette, safe area, overlaps,
+  probes, loudness, pops; a synthesized beat grid and a beat detector. Standing: gate for `film.test.sh`'s 19 cases,
+  of which the 5 ffmpeg ones skip where ffmpeg is absent and were not run here. design-kit:motion's X MP4 now opens
+  on the loaded frame, since X uses frame 0 as the thumbnail.
+- **stack-scan 0.16.0** — plugin-scout points at Remotion's and HyperFrames' own agent skills, with Remotion's
+  company-licence threshold (over 3 employees).
+- **craft-layer 0.59.1** — one sameness tell from [madebymustafa/design-taste](https://github.com/madebymustafa/design-taste)
+  @c4a6bff (MIT): cards nested inside cards. Its genre packs prescribe what `sameness-fingerprint.md` lists as
+  category defaults, and its craft skills restate ui-ux, craft-layer and resilience, so nothing else was imported.
+- **skill-router 0.28.1** — routes `**/.design-kit/film/**` to the film skill.
+
 ## [0.123.0] - 2026-10-26
 
 Two external skill repositories reviewed in full and folded in under this repo's admission bar, plus two house

@@ -343,6 +343,7 @@ glob	**/.design-kit/boards/**	design	design-kit	high
 glob	**/__design-kit__/**	in-codebase	design-kit	high
 glob	**/.design-kit/artifacts/**	artifact	design-kit	high
 glob	**/.design-kit/motion/**	motion	design-kit	high
+glob	**/.design-kit/film/**	film	design-kit	high
 # game rows (2026-10-26, the gamedev import — rationale/gamedev-design-import-2026-10-26.md).
 # One plugin per engine, each installed only in its own projects, so a row fires only where
 # that plugin is installed. A generic extension (.cs .go .rs .script) carries a `?` marker on

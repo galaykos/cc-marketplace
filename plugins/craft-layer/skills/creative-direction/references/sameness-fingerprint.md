@@ -191,6 +191,12 @@ labels joined the `01 / 02 / 03` row. Agent-graded, except the scroll cue's copy
 - poetic section labels ("Field notes", "From the field", "On the bench") where a plain one
   ("Testimonials", "Latest writing") names the section
 
+**Added 2026-10-26 from madebymustafa/design-taste c4a6bff (MIT), rewritten.** Its
+never-list, cross-checked against everything above: one tell was not already here. Agent-graded:
+
+- cards nested inside cards — a card inside a panel inside a card — as the default container,
+  where grouping, spacing or one rule would separate the content
+
 ### Recurring copy register (category default)
 
 The copy half of the fingerprint: the machine-copy lexicon a reader identifies as

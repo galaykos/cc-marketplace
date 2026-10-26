@@ -55,6 +55,10 @@ frames.
   1440×990 frame); the MP4 crop to even dimensions handles it, so expect 1744×1200.
 - **The export window** starts at frame `PRE − 1` (loop time 0, the empty state) and spans exactly
   `cycle × 60` frames. Record at least 10 frames past it for the seam check.
+- **The X MP4's window starts at the rest frame** instead — `PRE − 1 + intro × 60`, where the
+  intro has landed — and still spans exactly `cycle × 60` frames, so record one cycle plus the
+  intro. X shows frame 0 as the thumbnail; the rotation costs nothing on a seamless loop. The seam
+  check for that file compares its first frame with the frame one cycle later, as before.
 
 ## Checks on the recorded frames — before encoding
 
