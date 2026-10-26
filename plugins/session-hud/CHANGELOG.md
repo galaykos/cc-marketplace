@@ -2,6 +2,10 @@
 
 All notable changes to the session-hud plugin.
 
+## 0.2.1 — 2026-10-26
+
+- **The subagent-row test no longer flakes on a second boundary.** `scripts/__tests__/subagent-statusline.test.sh` fixed its "now" once, while `subagent-statusline.sh` reads `date +%s` on each call, so a run that crossed a second read `6s` where it expected `5s` (CI, 2026-10-26). The test now puts a frozen `date` on the script's PATH; the script is unchanged. Proven by a mutation: skewing that clock one second fails three assertions. Standing: gate — the harness runs in CI.
+
 ## 0.2.0 — 2026-10-25
 
 - **The hint line and the turn line are off by default** (`cc_hud_hint`, `cc_hud_turn`; `CC_HUD_HINT`, `CC_HUD_TURN`). A `statusLine` you wired yourself already shows context, limits, cost, time and branch, and two copies of them is noise; the `/hud` pane and the subagent rows, which no status line can show, stay on. Turn either line back on in `/config`. Gate: `tests/hud.test.ts`, "draws no hint line and no turn line by default".
