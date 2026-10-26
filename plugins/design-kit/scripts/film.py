@@ -326,14 +326,17 @@ def cmd_sheet(a):
         per, every = a.per, a.every
     cols = a.cols
     rows = math.ceil(per / cols)
-    vf = f"fps=1/{every},scale={a.width}:-2,tile={cols}x{rows}"
+    # The first frame of each `every`-long interval, frame 0 included: `fps=` samples mid-interval and drifts the index.
+    pick = f"select='isnan(prev_selected_t)+gte(floor(t/{every}),floor(prev_selected_t/{every})+1)'"
+    vf = f"{pick},showinfo,scale={a.width}:-2,tile={cols}x{rows}"
     pattern = os.path.join(a.out, "sheet-%03d.png")
-    res = run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", a.video, "-vf", vf, "-vsync", "vfr", pattern])
+    res = run(["ffmpeg", "-hide_banner", "-loglevel", "info", "-y", "-i", a.video, "-vf", vf, "-vsync", "vfr", pattern])
     if res.returncode != 0:
-        die(f"ffmpeg sheet failed: {res.stderr.strip()[:200]}", EXIT_FAIL)
+        die(f"ffmpeg sheet failed: {res.stderr.strip()[-200:]}", EXIT_FAIL)
+    times = [round(float(t), 3) for t in re.findall(r"Parsed_showinfo.*?pts_time:([0-9.]+)", res.stderr)]
     sheets = sorted(f for f in os.listdir(a.out) if re.match(r"sheet-\d{3}\.png$", f))
-    index = [{"sheet": f, "from_s": round(i * per * every, 3), "to_s": round(min(duration, (i + 1) * per * every), 3),
-              "every_s": round(every, 4), "grid": f"{cols}x{rows}"} for i, f in enumerate(sheets)]
+    index = [{"sheet": f, "tile_times_s": times[i * per:(i + 1) * per], "every_s": round(every, 4),
+              "grid": f"{cols}x{rows}", "order": "row by row, left to right"} for i, f in enumerate(sheets)]
     save_json(os.path.join(a.out, "index.json"), index)
     print(json.dumps({"sheets": len(sheets), "index": os.path.join(a.out, "index.json")}))
     return EXIT_OK
