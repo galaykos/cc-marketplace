@@ -1,0 +1,13 @@
+{
+  "name": "ebitengine",
+  "version": "0.1.0",
+  "description": "Ebitengine (Go 2D game engine) advice that changed under the model: the v2.9/v2.10 API renames, pure-Go desktop builds from v2.10, Go 1.24's wasm_exec.js move, audio decoder/player pairing, Windows Steam and mobile footguns, a headless CI and capture recipe, and a stdlib Python checker for deprecated calls and Update/Draw loop misuse.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "gamedev",
+    "tooling"
+  ]
+}

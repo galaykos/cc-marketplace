@@ -1,0 +1,12 @@
+{
+  "name": "defold",
+  "version": "0.1.0",
+  "description": "Defold skill plus a read-only reference checker. The checker (Python, stdlib only) finds what Bob will fail to resolve: compiled-suffix paths in game.project, quoted /paths inside embedded data, require() modules, case mismatches and library paths. The skill covers the footguns that cost a build or a silent run — Bob's truncated and generated-file errors, JDK 25, a headless engine that keeps running after a Lua error, proxy socket clashes, Remotery port collisions — and a smoke test under timeout.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "gamedev"
+  ]
+}

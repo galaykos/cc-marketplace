@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **33 leaf plugins** covering stacks, review,
+A Claude Code plugin marketplace: **43 leaf plugins** covering stacks, game engines, review,
 architecture, design, and the whole idea-to-shipped workflow. Every one installs on its
 own — there are no bundles (the four suites were retired 2026-09-26; see
 [Companions](#companions-install-these-together)).
@@ -36,7 +36,7 @@ claude plugin install stack-scan@cc-plugins-marketplace --scope local   # from y
 
 # Or everything at once (asks once for the scope unless you pass --scope):
 /plugin install all-plugins@cc-plugins-marketplace
-/all-plugins:install              # every leaf plugin but opt-in prompt-coach; asks local or project once unless --scope local|project|user; --dry-run (not found yet? /reload-plugins first)
+/all-plugins:install              # every leaf plugin but opt-in prompt-coach and the game plugins; asks local or project once unless --scope local|project|user; --dry-run (not found yet? /reload-plugins first)
 /all-plugins:uninstall            # the inverse; --self removes all-plugins too
 ```
 
@@ -254,6 +254,7 @@ early:
 - [Architecture and APIs](#architecture-and-apis)
 - [Workflow: idea to shipped](#workflow-idea-to-shipped)
 - [Infrastructure and environments](#infrastructure-and-environments)
+- [Game development](#game-development)
 - [Meta: steering Claude Code itself](#meta-steering-claude-code-itself)
 
 ---
@@ -321,7 +322,7 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 |--------|-----------------|-------------------|
 | **[ui-ux](plugins/ui-ux)** | shadcn/ui and Tailwind rules, design tokens, a theming system, motion best practices, the WCAG audit, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface — install `ui-libraries` with it ([companions](#companions-install-these-together)) |
 | **[ui-libraries](plugins/ui-libraries)** | component-library rules split out of ui-ux: Material UI (MUI X), Astryx, ReUI, Aceternity, and any other React or Vue library via `component-libraries` | The project already uses a component library other than shadcn |
-| **[design-kit](plugins/design-kit)** | the Claude Desktop design picker as local, own-your-files skills: an HTML deck with PDF/PPTX export, an artboard canvas with knobs and PNG export, designs rendered with the project's own components plus handoff-bundle intake, a design system extracted from the repo or a URL (DTCG tokens, a record the host reads, a UI kit), and self-contained artifacts in a local gallery | Slides, mockups, a design system or a shareable page without leaving the repo |
+| **[design-kit](plugins/design-kit)** | the Claude Desktop design picker as local, own-your-files skills: an HTML deck with PDF/PPTX export, an artboard canvas with knobs and PNG export, designs rendered with the project's own components plus handoff-bundle intake, a design system extracted from the repo or a URL (DTCG tokens, a record the host reads, a UI kit), self-contained artifacts in a local gallery, and a static design animated into a looping showcase with MP4 and GIF exports | Slides, mockups, a design system, a shareable page or a motion showcase without leaving the repo |
 | **[craft-layer](plugins/craft-layer)** | the studio pipeline: creative direction, design research, asset sourcing with a licence gate, information design, and a five-tier motion catalogue with mandatory reduced-motion and reduced-bundle fallbacks | The result has to look designed, not generated — needs `ui-ux` and `ui-libraries` installed too ([companions](#companions-install-these-together)) |
 
 **Using them.**
@@ -526,6 +527,33 @@ bill you did not agree to.
 
 ---
 
+## Game development
+
+One plugin per engine, so a project installs only its own — `/stack-scan:suggest` finds it from
+the engine's manifest (`project.godot`, `ProjectVersion.txt`, `*.uproject`, a Rojo project, a
+`bevy` or `ebiten/v2` dependency, `game.project`, a `phaser` or `pixi.js` dep), and
+`/all-plugins:install` leaves all ten out unless you name them. Each carries only what a model
+gets wrong from memory — the inversions of the engine's last few releases, its footguns and hard
+limits — and four of them ship a read-only checker script with an exit code. Adapted from
+[gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills)
+@184b72b (Apache-2.0); what was kept, cut and verified is in
+`rationale/gamedev-design-import-2026-10-26.md`. Nothing here is measured against a control arm.
+
+| Plugin | What it carries | Reach for it when |
+|--------|-----------------|-------------------|
+| **[godot](plugins/godot)** | Godot 4.4–4.7 inversions (Jolt as the 3D default and its behaviour differences, 4.7's typed-return and packed-array changes, `.uid` sidecars, `duplicate_deep`), multiplayer and export traps, a headless test runner that cannot hang or exit 0 on failure, and `check_godot_project.py` for broken `res://`, uid and scene references | Any `.gd`, `.tscn`, `.tres` or `project.godot` work |
+| **[unity](plugins/unity)** | Unity 6 renames and build-profile traps, batch-mode builds that exit 0 on errors, project-wide input actions enabling every map, `Awaitable` pooling, and `check_unity_project.py` for `.meta`/GUID breakage | C# under `Assets/`, input actions, CI builds |
+| **[unreal](plugins/unreal)** | UE 5.8's Zen cooked store and SDK minimums, Enhanced Input setup and rebinding, headless automation tests | Packaging, input, gameplay C++ |
+| **[roblox](plugins/roblox)** | DataStore budgets and retry traps, remote-event limits and ordering, Server Authority, the Studio MCP and lint pipeline | Luau under Rojo, data stores, networking |
+| **[bevy](plugins/bevy)** | the 0.17–0.20 breaking renames (resources as entities, `On<Add<T>>`, messages vs events, flattened pointer events) | Any Bevy system, query or plugin |
+| **[defold](plugins/defold)** | `game.project` compiled-path rules, Bob and headless-run traps, and `check_defold_project.py` | Defold collections, scripts, builds |
+| **[ebitengine](plugins/ebitengine)** | v2.9/v2.10 and Go 1.24 inversions (pure-Go desktop builds, `lib/wasm`, renamed vector and audio APIs), headless CI, and `check_ebitengine.py` for work in `Draw`/`Update` that belongs elsewhere | Any Ebitengine game |
+| **[phaser](plugins/phaser)** | Phaser 3→4 inversions (filters replace preFX/postFX, `setTintFill` a stub, `TAU` changed) and Arcade collision traps | `phaser` in the lockfile |
+| **[pixijs](plugins/pixijs)** | PixiJS v7→v8 inversions (`await app.init`, the ticker argument, `globalpointermove`, `Assets.load` first) | `pixi.js` in the lockfile |
+| **[gamedev](plugins/gamedev)** | the engine-agnostic half: Steam and itch.io release (`check_steam_build.py` for SteamPipe scripts), asset checks (`asset_report.py`), Yarn Spinner 3 and Ink, seed stability across runtime versions, XAG text-size and ASWG loudness floors | Shipping, assets, dialogue, procedural generation |
+
+---
+
 ## Meta: steering Claude Code itself
 
 | Plugin | What it carries | Reach for it when |
@@ -533,7 +561,7 @@ bill you did not agree to.
 | **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
 | **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
 | **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
-| **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace but opt-in prompt-coach at one scope (asked once, or `--scope`) with no other prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
+| **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace but opt-in prompt-coach and the game plugins at one scope (asked once, or `--scope`) with no other prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
 | **[prompt-coach](plugins/prompt-coach)** | a hooks module that holds an eligible prompt at Enter for up to 5 s while a haiku first pass, and on a flag a standby sonnet or opus, judges whether nobody could act on it, it contradicts an earlier instruction, or it strays from a running task-runner card; only a confident flag drops it, and an animated pixel-art sprite shows your text, the reason and a rewrite, with buttons that fill the prompt box and never submit. Each eligible prompt bills a haiku call that `/cost` does not show; terminal only, Claude Code 2.1.291 or newer; installs only by name — `/all-plugins:install` and `/stack-scan:suggest --full` skip it | Prompts that keep needing a second round before anyone can act on them, and a model call per prompt is worth catching them |
 | **[session-hud](plugins/session-hud)** | a hooks module that adds context %, the 5-hour and 7-day rate-limit windows with reset countdowns, session cost, session time and git branch to the prompt's hint line, what each turn cost under its closing line, and a `/hud` pane with the context breakdown, opt-in pinned so it reopens after you close it; plus a default `subagentStatusLine` with each subagent's type, model, effort, context use and age. No `settings.json` edit (a plugin cannot ship your `statusLine`); terminal only, Claude Code 2.1.291 or newer; no model calls | You want the status-line figures without wiring a status-line tool, or a pane that stays up |
 
@@ -567,7 +595,8 @@ plugin — the authoring doctrine has one user, this repository.)
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |
 | want the whole pipeline | `taskmaster` + `task-runner` + `approaches` + `code-architecture` + `testing` + `debugging` |
-| want everything and accept the listing cost | `all-plugins`, then `/all-plugins:install` (every leaf but opt-in prompt-coach at the scope it asks for once, or `--scope`; re-run it after a marketplace update to pick up new plugins; it raises `skillListingBudgetFraction` for that scope so the listing is sent whole; its README carries the arithmetic and the one n=50 measurement that found the overflow changes nothing detectable) |
+| make games | the engine's plugin + `gamedev` — `/stack-scan:suggest` finds the engine from its manifest |
+| want everything and accept the listing cost | `all-plugins`, then `/all-plugins:install` (every leaf but opt-in prompt-coach and the game plugins at the scope it asks for once, or `--scope`; re-run it after a marketplace update to pick up new plugins; it raises `skillListingBudgetFraction` for that scope so the listing is sent whole; its README carries the arithmetic and the one n=50 measurement that found the overflow changes nothing detectable) |
 
 ---
 

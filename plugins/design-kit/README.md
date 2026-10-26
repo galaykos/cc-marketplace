@@ -15,6 +15,7 @@ machine unless a skill names the path and you say yes.
 | Design in codebase | `/design-kit:in-codebase` | the design rendered with the project's OWN components on its dev server, cleaned up after the pick; intake of a Claude Design handoff bundle with a token-drift table |
 | Design System | `/design-kit:system` | `design-system/`: DTCG `tokens.json`, `DESIGN-SYSTEM.md` in the format the host's artifact skill reads, and a UI-kit page with `@dsCard`-marked cards |
 | Artifacts | `/design-kit:artifact` | one self-contained, versioned HTML page in a local gallery; LAN, pages-branch or zip sharing on explicit consent |
+| — (not in the picker) | `/design-kit:motion` | a static design — Figma frame, dashboard, card set, screenshot — rebuilt exactly and animated from empty to loaded with a story per visual, as a looping page plus an MP4 and two GIFs; or the same choreography on a site's bento and feature sections |
 
 Why a plugin when the host has `/design`, `/design-sync` and the `Artifact` tool: those
 need a claude.ai-backed login, a paid plan, and Anthropic's servers, and the design
@@ -268,6 +269,31 @@ and unresolved-link reports, and the publisher's worktree isolation are **gates*
 Not here: comments on a page, refresh from live data, runtime asset loads (a page that
 fetches assets from JavaScript keeps those references unreported), `srcset` rewriting.
 
+### `/design-kit:motion` — a static design, alive
+
+`/design-kit:motion [figma-url | image] [--website] [--no-export]` rebuilds the design as a
+fixed-size stage in `.design-kit/motion/<slug>/index.html` — every moving layer exported from
+Figma's REST API at 3x and placed by the rules in `references/figma-export.md`, the background
+kept byte-for-byte — then animates it: the empty state first, a staggered rise-and-resolve intro,
+a story per visual (a list receiving an item, a chart being read, a prompt being typed), a
+dissolve and a seamless repeat. A capture steps Playwright's fake clock frame by frame into the
+dot directory `.frames/` (the preview server neither lists nor watches it) and `ffmpeg` writes
+`<name>-x.mp4`, `<name>-loop.gif` and `<name>-800x500.gif` into `out/`. On a website the same
+stories run on bento and feature cards, started once on scroll, with live HTML text.
+
+Needs Node with Playwright's Chromium for capture, `ffmpeg` for export, and a Figma personal
+access token in the environment for a Figma source; the skill names what is missing before it
+builds.
+
+What has teeth: nothing here is a **gate**. The still-versus-reference PSNR floor and the
+overflow, seam, empty-beat and rest checks are **agent-graded** — the skill tells the model to run
+them on the recorded frames before encoding, and no script re-runs them. No script in this plugin
+captures or encodes; the recorder in `references/capture-export.md` is written per project.
+Credit: adapted from `design-to-motion` in
+[elayadesign/ai-design-skills](https://github.com/elayadesign/ai-design-skills) @a2735a3 (MIT,
+© 2026 Elaya), restructured here; the licence text is in `references/motion-system.md`. Its
+effect on what the model builds is unmeasured.
+
 ## Snapshots and review
 
 Two `dk` verbs, no command and no hook — a UI change is easier to judge beside the screen
@@ -414,7 +440,7 @@ delete at any time; `design-system/` is yours and is not.
 ## Not in this release
 
 Reading comments on a shared page, a version picker in the browser, Figma import or
-export, image generation, a component registry, and any hosted publishing beyond a git
+export beyond `/design-kit:motion`'s read-only REST calls, image generation, a component registry, and any hosted publishing beyond a git
 pages branch you push yourself.
 
 No Figma bridge does not mean no route out: `design-system/tokens.json` is DTCG-shaped,

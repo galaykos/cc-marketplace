@@ -1,0 +1,20 @@
+awesome-gamedev-agent-skills
+Copyright 2026 Abhishek Barali and the awesome-gamedev-agent-skills contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+All skills in this repository are original works. They were authored from primary
+documentation (engine and framework docs, language references, and platform
+specifications). Third-party sources and other skill collections were studied for
+general patterns only; no text or code was copied from them.
+
+Game engine, framework, and platform names referenced in this repository
+(including but not limited to Godot, Unity, Unreal Engine, Phaser, PixiJS,
+three.js, Babylon.js, Bevy, GameMaker, LÖVE, and MonoGame) are trademarks of
+their respective owners and are used for identification and descriptive purposes
+only. Their use does not imply any affiliation with or endorsement by those owners.
+
+Modified for cc-marketplace (2026-10-26):
+- scripts/check_ebitengine.py: docstring cut to three lines (the rest moved to rationale/derivations/plugin-ebitengine.md in the cc-marketplace repository), exit-status help corrected, `.At(` in Update/Draw now needs two arguments, `.Close()` on a receiver assigned from Open/OpenFile/Create/CreateTemp is no longer reported as an audio.Player.
+- scripts/__tests__/test_check_ebitengine.py: merged from upstream tests/test_check_ebitengine.py and the checker cases of tests/test_ebitengine_tools.py, path repointed, three cases added for the Update/Draw-body rules and the narrowed patterns.
+- skills/ebitengine-best-practices/SKILL.md and references/inversions.md: distilled and rewritten from upstream skills/ebitengine/ebitengine-game (SKILL.md and references), with facts re-verified against primary docs on 2026-10-26; no upstream prose copied wholesale.

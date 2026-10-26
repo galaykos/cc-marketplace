@@ -3,6 +3,11 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.0 — 2026-10-26
+
+### Changed
+- **The pick elevates UX, DX and AX without breaking anything.** `approach-deliberation`'s trade-off table gains a UX · DX · AX column — the end user, the developer who maintains the change, and the agent that reads, edits and runs it next — and the pick must lift all three while existing behaviour, public contracts, data and green tests survive, or name the breakage in the option. A candidate that buys one at another's cost is surfaced as the user's trade, not settled in the reasoning. The blind panel's synthesis holds the same bar. Standing: agent-graded — the user reads the table and the option before approving; no script scores it.
+
 ## 0.11.3 — 2026-10-15
 
 ### Changed

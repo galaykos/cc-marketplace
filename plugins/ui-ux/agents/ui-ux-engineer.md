@@ -129,6 +129,11 @@ applying it (WCAG contrast and touch-target rules stay here).
   asks to change them; name any such change in the rationale. A decided line
   (`Copy voice:`, `Banned vocabulary:`) is not that ask, and step 5 does not
   outrank this bullet.
+- Copy load: cut taglines, helper text and secondary labels from what this
+  change builds or restyles; when a screen needs one to make sense, fix the
+  hierarchy, grouping or primary label instead. Never cut an input's visible label, a format or constraint the
+  field needs before input (WCAG 3.3.2), error text, units, or the copy the
+  existing-target bullet keeps.
 
 - Note which breakpoints were checked and how (a code-level presence check,
   not a rendered verification).

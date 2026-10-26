@@ -1,0 +1,12 @@
+{
+  "name": "roblox",
+  "version": "0.1.0",
+  "description": "Roblox Luau skill carrying only what a remembered answer gets wrong: remote throttle and UnreliableRemoteEvent payload limits, the yield race that lets two requests pass one cooldown, DataStore request budgets, storage quota and data-loss footguns, Server Authority (AuthorityMode, BindToSimulation, time(), the 64-attribute cap), PreferredInput, the deprecated collision-group methods, and Studio's MCP server and StudioTestService for verification.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "gamedev"
+  ]
+}

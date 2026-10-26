@@ -3,7 +3,7 @@ name: threejs-best-practices
 description: Use when building or reviewing Three.js or R3F code — scenes, renderers, TSL/GLSL shaders, react-three-fiber and drei, WebGPU vs WebGL choice, glTF/GLB asset loading, disposal and GPU leaks, render-loop performance.
 ---
 
-> Last verified: 2026-10-06 — https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API — npm:three@0.186
+> Last verified: 2026-10-26 — https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API — npm:three@0.186
 
 # Three.js best practices
 
@@ -13,8 +13,9 @@ r186 in September 2026) and check the migration guide for anything you touch:
 threejs.org/docs + the per-release migration notes. Never advise from a
 remembered API level.
 
-Versions read that day (2026-10-06) for the version traps below: three 0.186.1,
-@react-three/fiber 9.8.1, @react-three/drei 10.7.9. Standing: recorded — no gate reads
+Versions read 2026-10-06 for the version traps below: three 0.186.1, @react-three/fiber
+9.8.1, @react-three/drei 10.7.9; the `init()`, `dispose()`, `HDRLoader` and environment
+facts were read from three r186 source on 2026-10-26. Standing: recorded — no gate reads
 this file, and the next three or fiber release can move any of them.
 
 ## Renderer choice (2026 floor)
@@ -24,6 +25,8 @@ this file, and the next three or fiber release can move any of them.
   to automatically. WebGPU itself is **not Baseline**: MDN lists it as limited
   availability, secure contexts only — a dev server on `http://<LAN-IP>` silently gets
   the WebGL 2 backend. Test both (`forceWebGL: true`).
+- `await renderer.init()` before a direct `render()` — earlier it throws `.render() called
+  before the backend is initialized`; `setAnimationLoop` awaits it, so render-on-demand breaks.
 - WebGPURenderer does not run `ShaderMaterial`, `RawShaderMaterial`, `onBeforeCompile`
   or `EffectComposer`, on either backend. Write shaders in **TSL** (`three/tsl`, compiles
   to WGSL or GLSL) and post in the TSL pipeline (`webgl-effects`); port a raw GLSL
@@ -70,7 +73,9 @@ Three.js does NOT garbage-collect GPU resources. Removing a mesh from the
 scene keeps its geometry, material, and textures alive on the GPU:
 
 - Every `Geometry`, `Material`, `Texture`, and render target you stop using
-  gets `.dispose()`; traverse the removed subtree and dispose per node.
+  gets `.dispose()`; traverse the removed subtree and dispose per node, plus a `SkinnedMesh`'s
+  `skeleton.dispose()` (bone texture) and, from r186, `node.dispose()` on any `Object3D`
+  (below r186 only lights, `InstancedMesh`, `BatchedMesh`: use `node.dispose?.()`).
 - Share geometries/materials across meshes deliberately; dispose only when
   the LAST user goes away — an ownership question, decide it explicitly.
 - On SPA route unmount: dispose the whole scene graph AND
@@ -97,6 +102,9 @@ scene keeps its geometry, material, and textures alive on the GPU:
 - `texture.colorSpace = THREE.SRGBColorSpace` for color maps — leaving data
   maps (normal, roughness) linear; wrong colorSpace is the "everything looks
   washed out" bug.
+- `HDRLoader` replaced `RGBELoader` in r180 (the old name only warns). `scene.environmentIntensity`
+  (r163+) scales `scene.environment`; on WebGLRenderer a material without its own `envMap`
+  ignores its `envMapIntensity`. r183 moved `RoomEnvironment`: re-check exposure.
 
 ## Performance checklist
 

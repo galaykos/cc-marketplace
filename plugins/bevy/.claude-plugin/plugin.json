@@ -1,0 +1,12 @@
+{
+  "name": "bevy",
+  "version": "0.1.0",
+  "description": "Bevy (Rust ECS engine) skill carrying only what changed in 0.17–0.20 and still gets written the old way: buffered events renamed to messages, resources stored as entities (IsResource and broad-query panics), On<Add<T>> lifecycle observers, flattened pointer events, set_if_different, Name lifetimes, iter_many results, Mesh2d sprites and weakly ordered built-in sets. Reads Cargo.lock before advising.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "gamedev"
+  ]
+}

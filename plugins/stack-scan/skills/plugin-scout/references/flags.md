@@ -69,10 +69,10 @@ whose class the manifests (or `--stack`) satisfy, per
 rule and the typed-token rule; this section does not restate them.
 
 - What it includes, by name so no later reader has to infer it: every
-  **any-stack** leaf whether or not its signal fired — the three stack-bound leaves
-  (`laravel`, `web-dev`, `craft-layer`)
-  follow `references/stack-relevance.md` and are the only rows `--full` skips for
-  stack reasons; the three by-construction exclusions are below. Any-stack covers
+  **any-stack** leaf whether or not its signal fired — the stack-bound leaves
+  (`laravel`, `web-dev`, `craft-layer`, and the game plugins: one per engine plus
+  `gamedev`) follow `references/stack-relevance.md` and are the only rows `--full`
+  skips for stack reasons; the three by-construction exclusions are below. Any-stack covers
   the whole of tier 2 (candor, hindsight and skill-router included, core since
   0.13.0) and, from tier 3, the process/pipeline group (taskmaster,
   task-runner, approaches) and the research/tooling group
@@ -183,7 +183,7 @@ of `references/stack-relevance.md`, nothing else.
 - A bare `--stack` with no value, or any token outside the vocabulary, aborts
   **before Preflight** — before the marketplace-add prompt can fire — printing the
   accepted list. `django`, `rails`, `go` are not tokens: an uncovered stack needs
-  none, because absent manifests already exclude both stack classes.
+  none, because absent manifests already exclude every stack class.
 - Effect: a token restores its class ONLY when that class's manifest evidence is
   absent, and the plan prints one line per restored class under
   `Restored by --stack:`. When the manifest already satisfies the class the token

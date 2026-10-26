@@ -21,6 +21,11 @@ Your authoritative checklist is the `tailwind-best-practices,shadcn-best-practic
    (labels, contrast, focus states, keyboard reachability), responsive behavior,
    idiomatic use of the stack (no fighting the framework), and layout-tool fit
    (Grid for 2D, Flexbox for 1D).
+3. Flag copy that props up a layout — a tagline, helper text or secondary label the
+   screen needs to make sense — with the layout fix (hierarchy, grouping, a clearer
+   primary label) as the remedy, never a rewording. Never flag an input's visible
+   label, a format or constraint the field needs before input (WCAG 3.3.2), error
+   text, units, or legal and consent copy.
 
 ## Defer rule
 

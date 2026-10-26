@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.11.0 — 2026-10-26
+
+- **`/design-kit:motion` — a static design, alive.** A new skill rebuilds a Figma frame, dashboard, card set or screenshot as an exact stage under `.design-kit/motion/<slug>/`, animates it from the empty state with a story per visual, and exports `<name>-x.mp4`, `<name>-loop.gif` and `<name>-800x500.gif` from a fake-clock Playwright capture through `ffmpeg`; on a website it runs the same stories on bento and feature cards. Frames go in the dot directory `.frames/`, which the preview server neither lists nor watches, and the capture loads `?capture&static=1` so the live-reload stream is not injected. Needs Node with Playwright's Chromium, `ffmpeg`, and a Figma token for a Figma source. Standing: agent-graded — the PSNR, overflow, seam, empty-beat and rest checks are the model's to run; no script captures or encodes yet. Credit: adapted from `design-to-motion` in [elayadesign/ai-design-skills](https://github.com/elayadesign/ai-design-skills) @a2735a3 (MIT, © 2026 Elaya), restructured; unmeasured.
+- **Copy that explains the layout is a layout defect.** The design skill's rules now say to cut taglines, helper text and secondary labels and fix the artboard's hierarchy or grouping instead; an input's label, a field's required format, error text and units stay. Standing: agent-graded.
+
 ## 0.10.1 — 2026-10-15
 
 - **Runnable `${CLAUDE_PLUGIN_ROOT}` paths are quoted.** The artifact, design, in-codebase and slides skills' `dk.sh`, `handoff-drift.py` and `deck-build.py` lines passed `${CLAUDE_PLUGIN_ROOT}/…` to `bash`, `node` or `python3` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.

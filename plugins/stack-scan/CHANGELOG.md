@@ -4,6 +4,12 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.15.0 — 2026-10-26
+
+- **The scout finds game engines.** `plugin-scout`'s `signals.md` gains one row per new engine plugin — `project.godot` → `godot` (a `Godot.NET.Sdk` csproj beside it is Godot C#, never Unity), `ProjectVersion.txt` beside `Assets/` → `unity`, `*.uproject` → `unreal`, a Rojo DataModel project, `wally.toml` or place file → `roblox`, a `bevy` dependency → `bevy`, `game.project` → `defold`, `ebiten/v2` in go.mod → `ebitengine`, dep `phaser` / `pixi.js` → `phaser` / `pixijs` — plus a `gamedev` row on any engine, a Steam `.vdf`, `steam_appid.txt`, `butler push` or Yarn/Ink files. They sit before the `Cargo.toml`/`go.mod`/`*.csproj` "no plugin covers this" row, which now yields to them.
+- **`--full` keeps them where they belong.** `stack-relevance.md` gains a Game class per engine and one for `gamedev`, so `--full` installs a game plugin only on its manifest evidence or a typed `--stack godot` (and the other engine tokens); before this every leaf not in that table counted as any-stack and would have been installed in every repo. Standing: agent-graded — `--full` is prose the model follows; `pc_scout_names` gates only that the names are live.
+- The all-plugins line in the README now says it skips the game plugins as well as prompt-coach.
+
 ## 0.14.0 — 2026-10-25
 
 - **Version pins read pnpm and yarn lockfiles.** For a package `node_modules` lacks, the pins mod now reads each directory's lockfile, nearest first. A directory's lockfile is the first present of `package-lock.json`, `pnpm-lock.yaml` (v6, v9) and `yarn.lock` (v1, berry), and each file is read at most once per skill load. The pnpm and yarn readers are line rules, since no YAML library loads in a mod. pnpm's root importer decides, else the one `packages` version for the name; yarn's entries naming the package must agree. Several versions, a `workspace:` or `link:` entry, a git URL, an alias, or a similar name (`next-auth`, `@scope/next` for `next`) give no line. Standing: gate, `tests/pins.test.ts`.

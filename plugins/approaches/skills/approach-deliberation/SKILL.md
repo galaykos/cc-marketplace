@@ -80,9 +80,15 @@ Same protocol, same output, two ways of generating the candidates:
    it optimizes, and a one-line file-level sketch. Three variants of one idea is
    one candidate wearing costumes: reject and diversify.
 3. Build the trade-off table. Columns: effort, risk, reversibility, codebase fit,
-   blast radius. Rows filled honestly — if the table only ever justifies the first
-   idea, the table is theater.
-4. Pick — and surface it, never self-approve it. One paragraph of reasoning naming
+   blast radius, and **UX · DX · AX** — the effect on the end user, on the developer
+   who maintains it, and on the agent that reads, edits and runs it next (greppable,
+   scriptable, testable from a CLI, documented where an agent looks). Rows filled
+   honestly — if the table only ever justifies the first idea, the table is theater.
+4. Pick — and surface it, never self-approve it. The pick elevates all three of UX,
+   DX and AX without breaking anything: existing behaviour, public contracts, data
+   and green tests survive, or the breakage is named in the option. A candidate that
+   buys one at another's cost is a trade the user makes — name it in the option, never
+   inside the reasoning. One paragraph of reasoning naming
    what was given up, then one AskUserQuestion: "Proceed with <pick>
    (Recommended)" vs the strongest runner-up, one line of trade-off each. When the
    candidates differ in file-level SHAPE (different modules created, different
