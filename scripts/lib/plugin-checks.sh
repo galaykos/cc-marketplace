@@ -473,8 +473,9 @@ DEFS
 # printed `CC_ASK_LEDGER` although its own sibling ledger.sh did. The remedy the user
 # cannot find is the remedy they do not have.
 #
-# THE RULE, precisely: a hook is in scope when it emits `permissionDecision` deny/ask or
-# `exit 2` (the two channels that reach the model as a refusal). Its switches are the
+# THE RULE, precisely: a hook is in scope when it emits `permissionDecision` deny/ask,
+# `exit 2`, or a `decision` of "block" in JSON on stdout (the channels that reach the model
+# as a refusal; candor's and ask-ledger's Stop blocks use the last since 2026-10-26). Its switches are the
 # names read as `${NAME:-…}` or through the resolver as `cc_option NAME …` (a literal
 # name, optionally quoted) matching `CC_*`, `CLAUDE_*`, `*_BOOST` or `*_STOP_GATE`, minus
 # the host-supplied path/session/data variables (`CLAUDE_PLUGIN_ROOT`, `CLAUDE_PROJECT_DIR`,
@@ -552,10 +553,10 @@ pc_offswitch_named() {
       sh=$(_pc_hook_script "$sh" "$d")
       [ -f "$sh" ] || continue
       grep -qF 'offswitch-ok:' "$sh" 2>/dev/null && continue
-      # Refusal-capable? Either channel counts. Comments are stripped so a header that
-      # merely DISCUSSES exit 2 (every one of them does) does not put a hook in scope.
+      # Refusal-capable? Any channel counts: decision:"block" in a jq filter, "decision":"block" raw or
+      # escaped. Comments are stripped so a header that merely DISCUSSES exit 2 does not put a hook in scope.
       grep -v '^[[:space:]]*#' "$sh" \
-        | grep -qE 'permissionDecision[^,}]*(deny|ask)|permissionDecision:[[:space:]]*\$|exit 2' || continue
+        | grep -qE 'permissionDecision[^,}]*(deny|ask)|permissionDecision:[[:space:]]*\$|exit 2|decision\\?"?[[:space:]]*:[[:space:]]*\\?"block' || continue
       sw=$(pc_switch_reads "$sh")
       [ -n "$sw" ] || continue
       named=0

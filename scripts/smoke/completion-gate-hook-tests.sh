@@ -7,11 +7,11 @@
 # The hook is a cheap RECORDS check (no test execution): given a throwaway git repo
 # as .cwd, it enforces that a run which registered itself (active-run.json) has a
 # gate-pass.json recorded for the current HEAD before it stops clean. These cases
-# drive the hook with canned Stop-hook stdin JSON and assert rc + stderr.
+# drive the hook with canned Stop-hook stdin JSON and assert the verdict + its text.
 #
-# DEFAULT IS BLOCK (exit 2) — a Stop hook reaches the model only through exit 2, so the
-# cases below assert the default blocks and that TASK_RUNNER_STOP_GATE=warn downgrades
-# each blocking path to print-only. Both modes are covered on every branch that can block.
+# DEFAULT IS BLOCK — {"decision":"block",…} on stdout with exit 0, which run_gate reads
+# as rc=2 — and TASK_RUNNER_STOP_GATE=warn downgrades each blocking path to print-only.
+# Both modes are covered on every branch that can block.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -38,12 +38,27 @@ NUDGE="$REPO/.claude/task-runner/gate-nudge"
 # The hook blocks at most ONCE per HEAD, so each case starts from a cleared nudge marker
 # and is judged on its own. check_keep() preserves the marker — that is how the
 # one-block-per-HEAD bound itself is tested.
+# run_gate <env> <json> sets rc, err and out (stdout). A Stop block is exit 0 with {"decision":"block",reason,systemMessage} on stdout:
+#   rc=2, and err is stderr plus the reason. A pass may carry {"systemMessage":…} alone (rc stays 0). A bare exit 2 is the old
+#   channel (rc=exit2); any other stdout is rc=stdout.
+run_gate() {
+  set +e
+  out=$(printf '%s' "$2" | env $1 bash "$HOOK" 2>"$WS/stderr"); rc=$?
+  set -e
+  err=$(cat "$WS/stderr")
+  if [ "$rc" = 0 ] && [ -n "$out" ]; then
+    if printf '%s' "$out" | jq -e '.decision=="block" and (.reason|type=="string" and length>0) and (.systemMessage|type=="string" and length>0)' >/dev/null 2>&1; then
+      rc=2; err="$err${err:+
+}$(printf '%s' "$out" | jq -r .reason)"
+    elif ! printf '%s' "$out" | jq -e '(has("decision")|not) and (.systemMessage|type=="string" and length>0)' >/dev/null 2>&1; then
+      rc=stdout
+    fi
+  elif [ "$rc" = 2 ]; then rc=exit2; fi
+}
 check() { rm -f "$NUDGE"; check_keep "$@"; }
 check_keep() {
-  local desc="$1" envv="$2" json="$3" exp_rc="$4" exp_sub="$5" err rc ok=1
-  set +e
-  err=$(printf '%s' "$json" | env $envv bash "$HOOK" 2>&1 1>/dev/null); rc=$?
-  set -e
+  local desc="$1" envv="$2" json="$3" exp_rc="$4" exp_sub="$5" ok=1
+  run_gate "$envv" "$json"
   [ "$rc" = "$exp_rc" ] || ok=0
   if [ "$exp_sub" = "__NONE__" ]; then
     [ -z "$err" ] || ok=0
@@ -401,6 +416,44 @@ if bash "$RS2" --kind dispatch --id m2 --record-dir "$REDDIR" >/dev/null 2>&1; t
 else
   echo "PASS: reduction-record refuses a reason-less reduction"; pass=$((pass+1))
 fi
+
+# ---- every missing record in ONE block: k=4 kinds at one HEAD (nc, rv, whole-diff review, behavioral-gate verdict) ----
+K="$WS/k"; mkdir -p "$K"
+git -C "$K" init -q; git -C "$K" config user.email t@t.t; git -C "$K" config user.name t
+echo a > "$K/a.txt"; git -C "$K" add -A; git -C "$K" commit -qm start; KSTART="$(git -C "$K" rev-parse HEAD)"
+echo b >> "$K/a.txt"; git -C "$K" commit -qam card; KHEAD="$(git -C "$K" rev-parse HEAD)"
+KTR="$K/.claude/task-runner"; mkdir -p "$KTR/nc" "$KTR/rv" "$KTR/bg"
+printf '{"slug":"k-run","start_sha":"%s"}' "$KSTART" > "$KTR/active-run.json"; touch -t 200001010000 "$KTR/active-run.json"
+printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$KHEAD" > "$KTR/gate-pass.json"
+KJ='{"cwd":"'"$K"'","stop_hook_active":false}'
+check_keep "k=4 missing kinds -> one block with the count in its lead line" "" "$KJ" 2 \
+  "Not finished: 4 things must be done before the task-runner run k-run can close:"
+items=$(printf '%s\n' "$err" | grep -c '^  - ' || true)
+if [ "$items" = 4 ] && printf '%s' "$err" | grep -q 'fails without the change' && printf '%s' "$err" | grep -q 'have a review recorded' \
+   && printf '%s' "$err" | grep -q 'no whole-diff review recorded for HEAD' && printf '%s' "$err" | grep -q 'left no verdict record'; then
+  echo "PASS: the one block lists all 4 missing kinds, one line each"; pass=$((pass+1))
+else
+  echo "FAIL: the one block lists all 4 missing kinds ($items item lines; err=<$err>)"; fail=$((fail+1))
+fi
+if [ "$(printf '%s' "$out" | jq -r .systemMessage)" = "candor sent the turn back: 4 things to do before the task-runner run k-run can close." ]; then
+  echo "PASS: the block's systemMessage tells the person the count in one plain line"; pass=$((pass+1))
+else
+  echo "FAIL: the block's systemMessage (out=<$out>)"; fail=$((fail+1))
+fi
+printf '{}' > "$KTR/nc/nc-pass-01.json"; printf '{}' > "$KTR/nc/nc-pass-02.json"
+run_gate "" "$KJ"
+if [ "$rc" = 0 ] && printf '%s' "$out" | jq -e 'has("decision")|not' >/dev/null 2>&1 \
+   && [ "$(printf '%s' "$out" | jq -r .systemMessage)" = "candor let the turn end, but the task-runner run k-run still owes 3 things: card reviews, the whole-diff review, a behavioral-gate verdict." ]; then
+  echo "PASS: a later stop at the blocked HEAD that still owes items passes, and tells the person what is owed (no decision key)"; pass=$((pass+1))
+else
+  echo "FAIL: a later stop at the blocked HEAD that still owes items (rc=$rc out=<$out>)"; fail=$((fail+1))
+fi
+printf '{}' > "$KTR/rv/rv-seen-01.json"; printf '{}' > "$KTR/rv/rv-seen-02.json"
+printf '{}' > "$KTR/rv/range-${KHEAD:0:12}.json"
+printf '{"head":"%s","verdict":"covered"}' "$KHEAD" > "$KTR/bg/bg-$KHEAD.json"
+check_keep "all 4 supplied after the one block -> the next stop passes, silent" "" "$KJ" 0 __NONE__
+[ -z "$out" ] && { echo "PASS: a stop that owes nothing prints nothing on stdout"; pass=$((pass+1)); } \
+  || { echo "FAIL: a stop that owes nothing printed <$out>"; fail=$((fail+1)); }
 
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

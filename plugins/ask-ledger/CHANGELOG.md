@@ -2,6 +2,16 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.4.4 — 2026-10-26
+
+### Changed
+- **The Stop check tells the person why it sent the turn back.** A block is now
+  `{"decision":"block","reason":…,"systemMessage":…}` on stdout with exit 0 instead of
+  exit 2: the reason is the same text as before and still reaches the model, and one plain
+  line ("ask-ledger sent the turn back: the reply does not say what happened to <names>.")
+  is shown to the person (probed on CLI 2.1.310). Which stops block, the two-block ceiling
+  and the give-up warning are unchanged. Pinned by `gate-hook.test.sh` cases 3 and 3b.
+
 ## 0.4.3 — 2026-10-26
 
 ### Changed

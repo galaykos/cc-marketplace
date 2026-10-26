@@ -95,12 +95,15 @@ if printf '%s' "$out" | grep -qF "src/Invented.php:12 — no file named Invented
 else fail=$((fail+1)); printf 'FAIL  a missing basename names what was searched, never "anywhere"\n%s\n' "$out"; fi
 # One lookup, hooks/cite.sh, sourced by both: the gate and the report must agree on the same message, both ways.
 G="$ROOT/plugins/candor/hooks/gate.sh"
-agree() { # <desc> <message> <gate exit> <scan count>
-  local t="$WS/agree$((++na)).jsonl" grc n
+agree() { # <desc> <message> <gate verdict: 2 blocked (JSON block on stdout, exit 0), 0 passed> <scan count>
+  local t="$WS/agree$((++na)).jsonl" grc n gout
   { user "where is it"; asst "$2"; } > "$t"
   rm -rf "$PROJ/.claude"
-  jq -cn --arg tp "$t" --arg cwd "$PROJ" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:false}' \
-    | env -u CLAUDE_PROJECT_DIR -u CLAUDE_PLUGIN_DATA TMPDIR="$WS" bash "$G" >/dev/null 2>&1; grc=$?
+  gout=$(jq -cn --arg tp "$t" --arg cwd "$PROJ" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:false}' \
+    | env -u CLAUDE_PROJECT_DIR -u CLAUDE_PLUGIN_DATA TMPDIR="$WS" bash "$G" 2>/dev/null); grc=$?
+  if [ "$grc" = 0 ] && [ -n "$gout" ]; then
+    printf '%s' "$gout" | jq -e '.decision=="block"' >/dev/null 2>&1 && grc=2 || grc=stdout
+  elif [ "$grc" = 2 ]; then grc=exit2; fi
   n=$(cd "$PROJ" && bash "$SCAN" --session-file "$t" 2>&1 | awk '$1=="unresolved-citation" {print $2; exit}')
   if [ "$grc" = "$3" ] && [ "$n" = "$4" ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"
   else fail=$((fail+1)); printf 'FAIL  %s (gate exit %s want %s; scan %s want %s)\n' "$1" "$grc" "$3" "${n:-<none>}" "$4"; fi

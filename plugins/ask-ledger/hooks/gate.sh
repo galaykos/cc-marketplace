@@ -2,8 +2,8 @@
 # Absolute-path shebang: fail-open must hold under a stripped PATH.
 #
 # Stop. Reads the session ledger ledger.sh wrote and the final assistant message from the
-# transcript; refuses the turn (exit 2, reason on stderr — the channel candor's gate
-# measured as the one that reaches the model) when any ledgered name has no accounting
+# transcript; refuses the turn (a JSON block on stdout: the reason reaches the model and
+# systemMessage the person, probed on CLI 2.1.310) when any ledgered name has no accounting
 # line: a line naming it and one of `as named`, `substituted`, `omitted`. Blocks at most
 # twice per session, so a model that will not comply cannot be held forever; after that
 # the missing names are printed as a warning and the turn ends.
@@ -91,8 +91,10 @@ exec 3>&2
   echo $((n+1)) > "$dir/blocks"
   # The retry is the last thing the user reads; when it held only these lines, users re-asked
   # the question the turn had already answered above them.
-  printf 'ask-ledger: your final reply does not say what happened to %s, which the request named. Restate the answer'"'"'s one-line verdict first, then one line per name, then stop again:\n  `<name>: as named` | `<name>: substituted → what, why` | `<name>: omitted → why`\n  A substitution you never raised is "substituted", not "as named".\n' "$missing" >&3
-  printf 'ask-ledger: CC_ASK_LEDGER=off turns this check off.\n' >&3
-  exit 2
+  reason=$(printf 'ask-ledger: your final reply does not say what happened to %s, which the request named. Restate the answer'"'"'s one-line verdict first, then one line per name, then stop again:\n  `<name>: as named` | `<name>: substituted → what, why` | `<name>: omitted → why`\n  A substitution you never raised is "substituted", not "as named".\n' "$missing"
+    printf 'ask-ledger: CC_ASK_LEDGER=off turns this check off.\n')
+  jq -cn --arg r "$reason" --arg m "ask-ledger sent the turn back: the reply does not say what happened to $missing." \
+    '{decision:"block",reason:$r,systemMessage:$m}'
+  exit 0
 } 2>/dev/null
 exit 0

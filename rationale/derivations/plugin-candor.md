@@ -112,6 +112,7 @@ FAIL-OPEN on missing jq, an unreadable transcript, or empty text.
 
 A Stop hook reaches the model only via exit 2 with the reason on stderr; this
 uses exit 2. Exit 0 prints into a turn that has already ended.
+2026-10-26 (0.10.2): a Stop block is now {"decision":"block","reason":…,"systemMessage":…} on stdout with exit 0, because a probe on CLI 2.1.310 (`claude -p --output-format stream-json`) showed the reason reaching the model and the systemMessage shown to the user ("Stop says: …"), which exit 2 never did; SubagentStop keeps exit 2, since there the systemMessage stayed in the agent's own transcript.
 
 MODES:
   CC_CANDOR_GATE=block (default) | warn (print, never block) | off — the whole gate

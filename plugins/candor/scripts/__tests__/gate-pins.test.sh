@@ -27,12 +27,20 @@ stop_json() { # cwd transcript [session_id]
     '{hook_event_name:"Stop",session_id:$sid,transcript_path:$tp,cwd:$cwd,stop_hook_active:false}'
 }
 
-# expect <label> <cwd> <transcript> <rc> <stderr-substring|__NONE__> [session_id]
+# expect <label> <cwd> <transcript> <rc> <text-substring|__NONE__> [session_id]
+# A block is exit 0 with {"decision":"block",reason,systemMessage} on stdout: rc=2, the text is stderr plus the reason; a bare exit 2 is rc=exit2.
 expect() {
-  local label="$1" err rc ok=1
+  local label="$1" err out rc ok=1
   rm -rf "$2/.claude/candor" "$2/.claude/task-runner/gate-nudge"
-  err=$(stop_json "$2" "$3" "${6:-}" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  [ "$rc" -eq "$4" ] || ok=0
+  out=$(stop_json "$2" "$3" "${6:-}" | bash "$HOOK" 2>"$WS/stderr"); rc=$?
+  err=$(cat "$WS/stderr")
+  if [ "$rc" = 0 ] && [ -n "$out" ]; then
+    if printf '%s' "$out" | jq -e '.decision=="block" and (.reason|type=="string" and length>0) and (.systemMessage|type=="string" and length>0)' >/dev/null 2>&1; then
+      rc=2; err="$err${err:+
+}$(printf '%s' "$out" | jq -r .reason)"
+    else rc=stdout; fi
+  elif [ "$rc" = 2 ]; then rc=exit2; fi
+  [ "$rc" = "$4" ] || ok=0
   if [ "$5" = "__NONE__" ]; then [ -z "$err" ] || ok=0; else printf '%s' "$err" | grep -qF "$5" || ok=0; fi
   if [ "$ok" -eq 1 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$label"
   else fail=$((fail+1)); printf 'FAIL  %s (rc=%s want %s; stderr=%s)\n' "$label" "$rc" "$4" "$(printf '%s' "$err" | head -2)"; fi

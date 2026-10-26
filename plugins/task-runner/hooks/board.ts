@@ -1,12 +1,12 @@
-import type { EngineInterface, On, PluginOptions, PluginState } from 'claude-code'
+import type { EngineInterface, On, PluginOptions, PluginState, Timer } from 'claude-code'
 
-import { parseIndex, statusLine } from './board-core'
+import { checkPid, parseIndex, planLine, recordsOf, statusLine } from './board-core'
 import { boardView } from './board-view'
-import { activeRun, hostOf, isSupported, liveSentinel, stateRoot, switchOn } from './cc-kit'
+import { activeRun, gitLine, hostOf, isSupported, liveSentinel, stateRoot, switchOn } from './cc-kit'
 import type { Host } from './cc-kit'
 
-// idleAt: when the newest refresh found no run and no open pane, else null.
-type Refreshes = { latest: number; opening: number; paintedRun: string; hasRedTeam: boolean; idleAt: number | null }
+// idleAt: when the newest refresh found no run and no open pane, else null. tick: the next refresh a running check asked for.
+type Refreshes = { latest: number; opening: number; paintedRun: string; hasRedTeam: boolean; idleAt: number | null; tick: Timer | null }
 
 type Board = PluginState['task-runner']['board']
 
@@ -14,12 +14,18 @@ const BOARD = { plugin: 'task-runner', key: 'board' } as const
 
 const PANE = { id: 'task-board', title: 'Task board' }
 
-const INACTIVE: Board = { indexPath: null, mtimeMs: null, model: null, runActive: false, phase: '', hasRedTeam: false }
+const INACTIVE: Board = { indexPath: null, mtimeMs: null, model: null, runActive: false, phase: '', hasRedTeam: false, records: null, checkMinutes: null }
 
 const REOPEN_MS = 100
 
 // With no run and no pane a refresh finds nothing, so an idle board looks again at most this often, and at each turn end.
 const IDLE_GAP_MS = 2000
+
+const PROBE_TIMEOUT_MS = 2000
+
+const MINUTE_MS = 60_000
+
+const GATE = /behavioral-gate\.sh/
 
 async function isBoardOn($: EngineInterface, option: boolean): Promise<boolean> {
   return isSupported((await $.session.version()).version) && switchOn(await $.env.get('CC_TASK_BOARD'), option)
@@ -65,7 +71,7 @@ async function indexOf(host: Host, held: Board | undefined, root: string, indexP
   return { mtimeMs, model }
 }
 
-async function newestBoard($: EngineInterface, host: Host, held: Board | undefined, hasRedTeam: boolean): Promise<Board> {
+async function newestBoard($: EngineInterface, host: Host, held: Board | undefined, hasRedTeam: boolean, phase: string): Promise<Board> {
   const root = await stateRoot(host)
   const tasks = `${root}/taskmaster-docs/tasks`
   const entries = await $.fs.list(tasks).catch(() => [])
@@ -82,9 +88,69 @@ async function newestBoard($: EngineInterface, host: Host, held: Board | undefin
 
   const indexPath = `${tasks}/${newest.slug}/00-INDEX.md`
   const { mtimeMs, model } = await indexOf(host, held, root, indexPath, newest.slug)
-  const phase = (await liveSentinel(host, root))?.phase ?? ''
 
-  return { indexPath, mtimeMs, model, runActive: false, phase, hasRedTeam }
+  return { indexPath, mtimeMs, model, runActive: false, phase, hasRedTeam, records: null, checkMinutes: null }
+}
+
+async function recordsAt($: EngineInterface, host: Host, root: string): Promise<Board['records']> {
+  const dir = `${root}/.claude/task-runner`
+  const registeredMs = await host.stat(`${dir}/active-run.json`).then(s => s.mtimeMs, () => null)
+  const listed = (name: string) => $.fs.list(`${dir}/${name}`).catch(() => [])
+
+  return registeredMs === null ? null : recordsOf(await listed('rv'), await listed('nc'), registeredMs)
+}
+
+// As candor's bg_running(): with /proc, the PID is the gate or, under a PID namespace, a gate runs from under the root; else kill -0.
+async function isGateLive($: EngineInterface, host: Host, root: string, pid: string): Promise<boolean> {
+  if (!(await host.stat('/proc/self').then(() => true, () => false))) {
+    return host.run(['kill', '-0', pid], { timeoutMs: PROBE_TIMEOUT_MS }).then(r => r.exitCode === 0, () => false)
+  }
+
+  if (GATE.test(await host.read(`/proc/${pid}/cmdline`).catch(() => ''))) {
+    return true
+  }
+
+  // One pgrep where candor's shell greps every /proc/<pid>/cmdline: a module read per process would slow every tool call.
+  const listed = await host.run(['pgrep', '-f', GATE.source], { timeoutMs: PROBE_TIMEOUT_MS }).catch(() => null)
+  const where = (path: string) => $.fs.stat(path, { resolve: true }).then(s => s.realPath ?? '', () => '')
+  const roots = [`${root}/`, `${(await where(root)) || root}/`]
+  const cwds = await Promise.all((listed?.stdout.match(/\d+/g) ?? []).map(gate => where(`/proc/${gate}/cwd`)))
+
+  return cwds.some(cwd => cwd !== '' && roots.some(under => `${cwd}/`.startsWith(under)))
+}
+
+async function checkAt($: EngineInterface, host: Host, root: string): Promise<{ minutes: number; dueInMs: number } | null> {
+  const path = `${root}/.claude/task-runner/bg/running.pid`
+  const stat = await host.stat(path).catch(() => null)
+  const text = stat === null ? null : await host.read(path).catch(() => null)
+
+  if (stat === null || text === null) {
+    return null
+  }
+
+  const now = await host.now()
+  const pid = checkPid(text, stat.mtimeMs, now, (await gitLine(host, ['-C', root, 'rev-parse', 'HEAD'])) ?? '')
+
+  if (pid === null || !(await isGateLive($, host, root, pid))) {
+    return null
+  }
+
+  const ranMs = Math.max(0, now - stat.mtimeMs)
+
+  return { minutes: Math.floor(ranMs / MINUTE_MS), dueInMs: MINUTE_MS - (ranMs % MINUTE_MS) }
+}
+
+// The person often waits on the check with no tool call or turn end to refresh the line, so its minutes keep their own time.
+function tickWhileChecking($: EngineInterface, refreshes: Refreshes, option: boolean, dueInMs: number | null): void {
+  if (dueInMs === null) {
+    refreshes.tick?.cancel()
+    refreshes.tick = null
+  } else if (refreshes.tick === null) {
+    refreshes.tick = $.clock.after(dueInMs, () => {
+      refreshes.tick = null
+      void refresh($, refreshes, option).catch(() => undefined)
+    })
+  }
 }
 
 // An unasked open below the engine's width floor waits undrawn; withdrawn, a later widening cannot seat it mid-run.
@@ -122,7 +188,8 @@ async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean
 
   if (run === null) {
     const isShown = isOn && (refreshes.opening > 0 || (await isPaneOpen($)))
-    const board = isShown ? await newestBoard($, host, held, refreshes.hasRedTeam) : INACTIVE
+    const phase = isOn ? ((await liveSentinel(host))?.phase ?? '') : ''
+    const board = isShown ? await newestBoard($, host, held, refreshes.hasRedTeam, phase) : INACTIVE
 
     if (mine !== refreshes.latest) {
       return
@@ -131,7 +198,8 @@ async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean
     await save($, held, board)
 
     if (mine === refreshes.latest) {
-      $.ui.status(undefined)
+      $.ui.status(planLine(phase))
+      tickWhileChecking($, refreshes, option, null)
       refreshes.idleAt = isShown ? null : await $.clock.now()
     }
 
@@ -142,7 +210,10 @@ async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean
   const indexPath = listed === '' ? null : listed.startsWith('/') ? listed : `${run.root}/${listed}`
   const { mtimeMs, model } = indexPath === null ? { mtimeMs: null, model: null } : await indexOf(host, held, run.root, indexPath, run.slug)
   const phase = (await liveSentinel(host, run.root))?.phase ?? 'build'
-  const board = { indexPath, mtimeMs, model, runActive: true, phase, hasRedTeam: refreshes.hasRedTeam }
+  const records = await recordsAt($, host, run.root)
+  const check = await checkAt($, host, run.root)
+  const checkMinutes = check?.minutes ?? null
+  const board = { indexPath, mtimeMs, model, runActive: true, phase, hasRedTeam: refreshes.hasRedTeam, records, checkMinutes }
 
   if (mine !== refreshes.latest) {
     return
@@ -152,7 +223,8 @@ async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean
 
   if (mine === refreshes.latest) {
     refreshes.idleAt = null
-    $.ui.status(model === null || 'error' in model ? `task-runner  ${phase}` : statusLine(model, phase))
+    $.ui.status(statusLine(model === null || 'error' in model ? null : model, phase, checkMinutes))
+    tickWhileChecking($, refreshes, option, check?.dueInMs ?? null)
 
     // Latched here, never cleared on a refresh that reads no run: one transient miss must not reopen a pane the person closed.
     const runKey = `${run.root}|${run.slug}|${run.branch}`
@@ -170,7 +242,7 @@ export function isPinOn(env: string | undefined, option: PluginOptions[string] |
 }
 
 export function registerBoard(on: On, options: PluginOptions) {
-  const refreshes: Refreshes = { latest: 0, opening: 0, paintedRun: '', hasRedTeam: false, idleAt: null }
+  const refreshes: Refreshes = { latest: 0, opening: 0, paintedRun: '', hasRedTeam: false, idleAt: null, tick: null }
   const option = options.cc_task_board !== false
 
   on('session.start', async ($, e, next) => {

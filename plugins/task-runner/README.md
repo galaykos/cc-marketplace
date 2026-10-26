@@ -267,12 +267,23 @@ four features under three off switches.
   of code-review, git-workflow, debugging and testing.
 - **Status line** (`hooks/board.ts`). While a run is registered on the current branch, one
   line is pinned under the prompt:
-  `task-runner  <phase>  card <N>/<total>  <p> parked  <u> unrecognised  <ultra|goal>`, N
-  counting done cards plus the one in progress, empty parts dropped, and `<phase>` the live
-  phase sentinel's, else `build`. A card's status is the first word of its status cell; a word
+  `task-runner  <phase> <k>/8  card <N>/<total>  <p> parked  <u> unrecognised  <ultra|goal>  check running <m>m`.
+  `<phase>` is the live phase file's (`.claude/cc-phase.json`), else `build`, and `<k>/8` its
+  place in understand, shape, decide, plan, build, verify, review, ship (a phase outside that
+  list shows alone). N counts done cards plus the one in progress, and empty parts are dropped.
+  A card's status is the first word of its status cell; a word
   outside `pending`, `in_progress`, `done`, `parked`, `skipped` and `blocked` (a run that wrote
   `committed <sha>`) is counted as `unrecognised`, never silently as pending, and stays open
-  for the session-start notice, which names how many there are. A plain run, or an index with no card table, shows `task-runner  <phase>`.
+  for the session-start notice, which names how many there are. A plain run, or an index with no card table, shows `task-runner  <phase> <k>/8`.
+  `check running <m>m` shows while the behavioral gate runs in the background, read from
+  `.claude/task-runner/bg/running.pid` by candor's Stop check rule: the deadline on its third
+  line not yet passed (with no deadline, the file under 240 minutes old), the commit it names
+  is the current one, and the process it names is the gate, or on Linux any gate `pgrep` finds
+  running from inside the project; without `/proc`, any live process with that number counts.
+  `<m>` is the minutes since the file was written; while the check runs the line refreshes on
+  its own at each new minute, with no tool call or turn end needed, and stops when it ends.
+  With no run registered, a live phase file naming understand, shape, decide or plan shows
+  `taskmaster  <phase> <k>/8` (`taskmaster  shape 2/8`); any other phase shows no line.
   It refreshes at session start, at each main-loop turn end and, while a run is registered
   or the pane is open, after every tool call, main loop and subagents, parsing the index
   again only when its modification time moves (an index that cannot be statted, read or
@@ -284,12 +295,20 @@ four features under three off switches.
   refreshes nothing and a main-loop call refreshes at most once every 2 s, so a run that
   registers within 2 s of the last look shows at the next call after that, or at the turn
   end. **Gate** — `tests/board.test.ts`, "an idle board looks again at most every 2 s, never
-  on a subagent call" and "a run started within the idle gap shows at the turn end". The
-  line clears when no run is registered on this branch.
+  on a subagent call" and "a run started within the idle gap shows at the turn end". With no
+  run registered on this branch, the line clears unless the planning phase shows.
 - **Task board** (`hooks/board-view.tsx`, `/task-board`). A pane of the run's cards:
-  `Task board  <slug>  <marker>`, then `<phase>  <done>/<total> done  <p> parked  <u> unrecognised`, then a
-  button row, then one row per card (id, title cut to the pane width, parallel group,
-  marker), with a header row before each milestone's cards. `/task-board` opens or closes
+  `Task board  <slug>  <marker>`, then `<phase>  <done>/<total> done  <p> parked  <u> unrecognised`,
+  then `waiting on: background check running <m>m` only while that check runs (as in the
+  status line), then a button row, then one row per card (id, title cut to the pane width,
+  parallel group, marker), with a header row before each milestone's cards. During a run each
+  row adds two columns under a one-line legend: **review**, whether the card's review is
+  recorded, and **check**, whether its test was shown to fail without the change. Each reads
+  `yes`, `skip` (skipped with a reason), `exempt` (no review owed: a leaf card, or no
+  reviewer installed) or `no`. They are the records candor's Stop check counts:
+  `.claude/task-runner/rv/rv-seen-`, `rv-skip-` or `rv-exempt-<card>.json`, and
+  `.claude/task-runner/nc/nc-pass-` or `nc-skip-<card>.json`, only those written after the run
+  was registered. A numeric card id matches without its leading zeros (`1` is card `01`), as candor counts any id. `/task-board` opens or closes
   it; with no run it shows the newest `taskmaster-docs/tasks/*/00-INDEX.md`, labelled
   `not running`. It opens itself once per run in a session, the first time a refresh sees
   that run, when the terminal can place it; a pane you close stays closed for that run
@@ -315,8 +334,8 @@ four features under three off switches.
   too), `[!]` blocked, `[?]` a status outside the vocabulary. `<NN` names the first unmet dependency and `+N` how many more
   (`<11+5`); only a done dependency is met, so a parked one counts as unmet.
 - **Off switch for the line and the pane.** `CC_TASK_BOARD=off` (or `0`, `false`), or the
-  `/config` option `cc_task_board` off; the variable wins. Off clears the line at the next
-  refresh and keeps the pane from opening, and a session started with it off has no
+  `/config` option `cc_task_board` off; the variable wins. Off clears the line, the
+  planning-phase `taskmaster` line too, at the next refresh and keeps the pane from opening, and a session started with it off has no
   `/task-board`.
 - **CLI floor.** With mods off in the host or on a CLI below 2.1.287 no module loads; on
   2.1.288-2.1.290 the module passes every call through; either way the classic hooks work
