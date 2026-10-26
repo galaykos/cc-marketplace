@@ -3,6 +3,11 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.1 — 2026-10-26
+
+### Changed
+- **Both reminders are plainer.** The build-vs-buy reminder now reads "before writing this by hand, check whether a library or service already does it; if one fits, use it", replacing the take/wrap/write wording. The consult reminder now says when the command helps: "for an irreversible step or a third try at a failing fix, a blind second opinion can help (/approaches:consult)"; it used to say only that one was available "if the moment warrants one". It stays advisory, and triggers are unchanged.
+
 ## 0.12.0 — 2026-10-26
 
 ### Changed

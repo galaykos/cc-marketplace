@@ -330,7 +330,7 @@ EOF_M
     text=$1; hit=""
     [ -n "$text" ] || return 0
     if [ -z "$pat_loaded" ]; then
-      load_patterns "$pat_file" || deny "secret-scanning: the pattern file $pat_file is unusable ($pat_bad), so this write cannot be checked for secrets and is blocked. Reinstall or update the plugin to restore it. CC_SECRET_SCAN=off disables this guard for the session."
+      load_patterns "$pat_file" || deny "secret-scanning: blocked this write because the pattern file $pat_file is unusable ($pat_bad). Reinstall or update the plugin. CC_SECRET_SCAN=off turns this check off."
       pat_loaded=1
     fi
     for k in "${!pat_re[@]}"; do
@@ -372,8 +372,8 @@ EOF_M
 $effects
 EOF_E
     [ -n "$found" ] || exit 0
-    jq -cn --arg c "secret-scanning: a Bash command just wrote what looks like a secret through a write this guard cannot read before it lands (an interpreter, cp, mv, install or patch):$found
-The value is on disk now. Move it to an environment variable or a secret store and take it out of the file before it is committed; if it is a deliberate fixture, make the value announce itself — end it in EXAMPLE, or use a placeholder word (example, placeholder, changeme, dummy, xxxx). CC_SECRET_SCAN=off disables this guard." \
+    jq -cn --arg c "secret-scanning: a Bash command just wrote what looks like a secret to disk:$found
+Move each value to an environment variable or secret store before it is committed; for a test fixture, end it in EXAMPLE or use a placeholder word. CC_SECRET_SCAN=off turns this check off." \
       --arg ev "$event" '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$c}}' 2>/dev/null
     exit 0
   fi
@@ -404,7 +404,7 @@ EOF_C
       i=1
       while [ "$i" -le "$n" ]; do
         case "${ctext[$i]}" in
-          *'[REDACTED:'*) deny "secret-scanning: this command writes the redaction marker [REDACTED:…] to ${ctgt[$i]}. It may have come from a tool result secret-scanning redacted; if so, writing it would replace the real value on disk, so leave the value out of the write, or edit only the lines around it with the Edit tool. If the text quotes the marker on purpose, ask the user to set CC_SECRET_REDACT=off, which also stops redacting secrets in tool output." ;;
+          *'[REDACTED:'*) deny "secret-scanning: this command writes the redaction marker [REDACTED:…] to ${ctgt[$i]}. That would replace the real secret on disk: leave the value out, or edit only the lines around it with the Edit tool. CC_SECRET_REDACT=off, set by the user, allows it and also turns redaction off." ;;
         esac
         i=$((i + 1))
       done
@@ -428,9 +428,9 @@ EOF_C
   fi
   [ -n "$hit" ] || exit 0
 
-  reason="secret-scanning: this write appears to contain ${hit}. Blocked before it reaches disk. Move the value to an environment variable or a secret store and reference it by name; if this is a deliberate fixture, make the value announce itself — end it in EXAMPLE, or use a placeholder word (example, placeholder, changeme, dummy, xxxx) — and the guard lets it through."
+  reason="secret-scanning: blocked a write containing ${hit}. Put the value in an environment variable or secret store and reference it by name; for a test fixture, end the value in EXAMPLE or use a placeholder word (example, placeholder, changeme, dummy, xxxx)."
   [ -n "$file" ] && reason="$reason (file: $file)"
-  reason="$reason CC_SECRET_SCAN=off disables this guard for the session."
+  reason="$reason CC_SECRET_SCAN=off turns this check off."
   deny "$reason"
 } 2>/dev/null
 exit 0

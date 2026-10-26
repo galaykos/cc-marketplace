@@ -150,18 +150,18 @@ config_kind() {
   local b
   b=$(basename "$1")
   case "/$1" in
-    */.claude/settings.json|*/.claude/settings.local.json|*/.claude/settings.*.json) echo "the settings file that decides which tools and permissions this session has"; return ;;
-    */.claude/hooks/*|*/hooks/hooks.json)                                            echo "a hooks configuration — the file that decides which guards run at all"; return ;;
+    */.claude/settings.json|*/.claude/settings.local.json|*/.claude/settings.*.json) echo "a Claude Code settings file"; return ;;
+    */.claude/hooks/*|*/hooks/hooks.json)                                            echo "a hooks configuration"; return ;;
   esac
   case "$b" in
-    hooks.json)            echo "a hooks configuration — the file that decides which guards run at all"; return ;;
+    hooks.json)            echo "a hooks configuration"; return ;;
     plugin.json|marketplace.json)
-                           echo "a plugin manifest — it declares the hooks, matchers and dependencies an install gets"; return ;;
+                           echo "a plugin manifest"; return ;;
     .eslintrc|.eslintrc.*|eslint.config.*|biome.json|.rubocop.yml|ruff.toml|.flake8|setup.cfg|pytest.ini|pyproject.toml|phpstan.neon|phpstan.neon.dist|psalm.xml|psalm.xml.dist|.php-cs-fixer.php|.php-cs-fixer.dist.php|.golangci.yml|.golangci.yaml|clippy.toml|tsconfig.json)
-                           echo "a lint, type-check or test configuration — the rules a build fails on"; return ;;
+                           echo "a lint, type-check or test config"; return ;;
   esac
   case "/$1" in
-    */hooks/*.sh|*/hooks/*.py|*/hooks/*.mjs|*/hooks/*.js) echo "a hook script — the code a guard runs" ;;
+    */hooks/*.sh|*/hooks/*.py|*/hooks/*.mjs|*/hooks/*.js) echo "a hook script" ;;
   esac
 }
 
@@ -222,7 +222,7 @@ EOF_T
     [ -f "$root/.claude-plugin/marketplace.json" ] && exit 0
   fi
 
-  reason="command-guard: this writes to $kind (\`$base\`). Editing it is often the task — and it is also the cheapest way past a gate that just refused something, which is why you are being asked rather than told. Confirm you intend a configuration change here, not a way around a check. If a rule is wrong, say so in the change; if a check is in the way, the check is the thing to argue with. This guard reads the PATH, not the diff: it cannot tell adding a rule from deleting one. CC_CONFIG_GUARD=off disables it for the session; so does CLAUDE_DESTRUCTIVE_GUARD=deny-only."
+  reason="command-guard: editing $kind (\`$base\`). Confirm this is a real config change, not a way around a failing check. CC_CONFIG_GUARD=off turns this prompt off."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}' 2>/dev/null

@@ -2,7 +2,7 @@
   {
     "chassis": "reminder-hook",
     "regex": "\\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)\\b",
-    "message": "taskmaster: work-shaped prompt — before the first code edit, run one batched clarifying round to zero ambiguity, or state in one line why this task is trivial enough to skip it; the inline route is /code-architecture:coding-task",
+    "message": "taskmaster: before the first edit, ask your open questions in one batch, or say in one line why this task is trivial enough to skip them; do a small change inline with /code-architecture:coding-task, a larger one in the full pipeline",
     "command": "/taskmaster:task",
     "artifact": "taskmaster:remind",
     "arcRank": 25,

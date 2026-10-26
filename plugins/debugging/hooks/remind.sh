@@ -233,7 +233,7 @@ cc_prompt_question() {
     claim_rank
     best=$(best_rank)
     if [ -z "$best" ] || [ "$best" = '10' ]; then
-      printf '%s (%s).\n' 'ℹ debugging: a fix that did not hold is a hypothesis that was never tested — reproduce first, read the actual error, isolate one variable, and stop guessing after three failed attempts' '/debugging:debug'
+      printf '%s (%s).\n' 'ℹ debugging: reproduce the failure and read the actual error before the next fix; after three failed fixes, stop guessing' '/debugging:debug'
     fi
     sweep_stale_markers
   fi

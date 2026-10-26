@@ -40,6 +40,10 @@ asks "$T/phpstan.neon"                 "phpstan config asks"
 asks "$T/.golangci.yml"                "golangci config asks"
 asks "$T/pytest.ini"                   "pytest config asks"
 asks "$T/biome.json"                   "biome config asks"
+r=$(fire "$T/tsconfig.json" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
+[ "$r" = 'command-guard: editing a lint, type-check or test config (`tsconfig.json`). Confirm this is a real config change, not a way around a failing check. CC_CONFIG_GUARD=off turns this prompt off.' ] \
+  && ok "the ask names the file, its kind and one off switch" \
+  || bad "the ask names the file, its kind and one off switch" "$r"
 
 allows "$T/src/app.ts"      "ordinary source is silent"
 allows "$T/README.md"       "a README is silent"

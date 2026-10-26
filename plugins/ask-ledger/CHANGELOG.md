@@ -2,6 +2,15 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.4.3 — 2026-10-26
+
+### Changed
+- **Plain wording for the prompt note and the Stop check.** The note no longer says
+  "ledger" or "confessed": it lists the names and the three answer lines the final reply
+  must carry. The block leads with the names the reply did not cover. The answer format
+  the check parses (`<name>: as named` | `substituted` | `omitted`) and which stops block
+  are unchanged. Pinned by `gate-hook.test.sh` cases 4, 11a and 12c.
+
 ## 0.4.2 — 2026-10-14
 
 ### Fixed

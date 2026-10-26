@@ -238,7 +238,7 @@ cc_prompt_question() {
     claim_rank
     best=$(best_rank)
     if [ -z "$best" ] || [ "$best" = '25' ]; then
-      printf '%s (%s).\n' 'taskmaster: work-shaped prompt — before the first code edit, run one batched clarifying round to zero ambiguity, or state in one line why this task is trivial enough to skip it; the inline route is /code-architecture:coding-task' '/taskmaster:task'
+      printf '%s (%s).\n' 'taskmaster: before the first edit, ask your open questions in one batch, or say in one line why this task is trivial enough to skip them; do a small change inline with /code-architecture:coding-task, a larger one in the full pipeline' '/taskmaster:task'
       # The trivial skip let an auth change through: withheld on the block's prompt-side auth words (needs promptShape).
       cc_prompt_auth_ask "$head" && printf '%s\n' 'The prompt names an auth surface: the trivial skip does not apply.'
     fi

@@ -2,6 +2,11 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.28.2 — 2026-10-26
+
+- **The first-work-prompt note is three sentences.** `route-prompt.sh` no longer injects a six-rule, 1,769-byte tool-fit essay; it says: if the user named a tool and a listed command fits the ask better, ask once which to use; if none was named and one clearly fits, name it in one line after any open questions, otherwise say nothing about commands; in a run that decides for you (`goal`, `goal-lean`, `ultra-goal`, or `Goal: true` in the card index), pick the better fit, say so, and add it to the run's decision log. The two-option picker wording and the one-picker-per-tool line are gone; "ask once" carries both.
+- **The per-edit message leads with the skill:** "Load the `plugin:skill` skill for <file> (or Read <path>) and check your change against it." A command row names the command in backticks where the file goes. The edit digest and both `prime.sh` lines are reworded to lead with the action. Pinned by `scripts/smoke/prompt-route-tests.sh`, `route.test.sh`, `route-pins.test.sh` and `subagent-skills.test.sh`.
+
 ## 0.28.1 — 2026-10-26
 
 - **`design-kit:film`** routes on `**/.design-kit/film/**`, beside the motion row. Standing: gate for the row syntax (`validate.sh`).

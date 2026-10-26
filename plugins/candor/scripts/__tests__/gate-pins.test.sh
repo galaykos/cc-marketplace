@@ -53,7 +53,7 @@ age_minutes() { # file minutes
   touch -t "$s" "$1"
 }
 
-RUN_SUB='registered run with no behavioral-gate pass'
+RUN_SUB='has no recorded pass of behavioral-gate.sh'
 CLAIM_SUB='no command ran after the last edit'
 
 # A find -mmin age is truncated by GNU and rounded up by BSD, so each record sits two minutes off the boundary.
@@ -63,7 +63,7 @@ IDIR="$TMPDIR/cc-candor-inflight-$(printf '%s' "$SID" | cksum | cut -d' ' -f1)"
 REC="$IDIR/$(printf '%s' agentA | cksum | cut -d' ' -f1)"
 CLEAN="$WS/clean.jsonl"; { user "run the cards"; asst "Waiting on the workers."; } > "$CLEAN"
 mkdir -p "$IDIR"; printf 'agentA\n' > "$REC"; age_minutes "$REC" 178
-expect "in-flight TTL: a 178-minute record still counts, the stop is not blocked" "$RA" "$CLEAN" 0 "still in flight" "$SID"
+expect "in-flight TTL: a 178-minute record still counts, the stop is not blocked" "$RA" "$CLEAN" 0 "still running" "$SID"
 printf 'agentA\n' > "$REC"; age_minutes "$REC" 182
 expect "in-flight TTL: a 182-minute record is swept, the stop blocks" "$RA" "$CLEAN" 2 "$RUN_SUB" "$SID"
 if [ ! -e "$REC" ]; then pass=$((pass+1)); printf 'PASS  in-flight TTL: the 182-minute record is deleted from disk\n'
@@ -76,12 +76,12 @@ bash "$WS/behavioral-gate.sh" >/dev/null 2>&1 & LIVE=$!
 [ -d /proc/self ] && for i in 1 2 3 4 5 6 7 8 9 10; do grep -qs 'behavioral-gate' "/proc/$LIVE/cmdline" && break; sleep 0.2; done
 # No line 3 is a task-runner before 0.48.0, which writes no deadline: the file's age decides.
 printf '%s\n%s\n' "$LIVE" "$(git -C "$RP" rev-parse HEAD)" > "$PIDF"; age_minutes "$PIDF" 238
-expect "bg PID age: a 238-minute running.pid with no deadline and a live PID at HEAD still holds the block" "$RP" "$CLEAN" 0 "still in flight"
+expect "bg PID age: a 238-minute running.pid with no deadline and a live PID at HEAD still holds the block" "$RP" "$CLEAN" 0 "still running"
 age_minutes "$PIDF" 242
 expect "bg PID age: a 242-minute running.pid with no deadline and a live PID at HEAD is ignored, the stop blocks" "$RP" "$CLEAN" 2 "$RUN_SUB"
 # Line 3, task-runner 0.48.0+: the epoch second the gate's own total ends it by, whatever the file's age.
 printf '%s\n%s\n%s\n' "$LIVE" "$(git -C "$RP" rev-parse HEAD)" $(($(date +%s) + 600)) > "$PIDF"; age_minutes "$PIDF" 300
-expect "bg PID deadline: a 300-minute running.pid whose deadline is 10 minutes ahead still holds the block" "$RP" "$CLEAN" 0 "still in flight"
+expect "bg PID deadline: a 300-minute running.pid whose deadline is 10 minutes ahead still holds the block" "$RP" "$CLEAN" 0 "still running"
 printf '%s\n%s\n%s\n' "$LIVE" "$(git -C "$RP" rev-parse HEAD)" $(($(date +%s) - 60)) > "$PIDF"
 expect "bg PID deadline: a fresh running.pid whose deadline passed a minute ago is ignored, the stop blocks" "$RP" "$CLEAN" 2 "$RUN_SUB"
 kill "$LIVE" 2>/dev/null; wait "$LIVE" 2>/dev/null

@@ -126,7 +126,7 @@ cc_option() {
   if [ -r "$f" ]; then
     p=$(jq -r '.phase // empty' "$f" 2>/dev/null)
     o=$(jq -r '.owner // empty' "$f" 2>/dev/null)
-    [ -n "$p" ] && phase=", arc phase \`$p\`${o:+ owned by $o}"
+    [ -n "$p" ] && phase=", phase \`$p\`${o:+ set by $o}"
   fi
 
   # symbolic-ref, not --abbrev-ref: a tag with the branch's name made that print `heads/<branch>`,
@@ -137,8 +137,8 @@ cc_option() {
   [ -n "$branch" ] && [ -n "$here" ] && [ "$branch" != "$here" ] \
     && elsewhere=" (you are on \`$here\`)"
 
-  msg=$(printf '[task-runner] A run is registered on disk: `%s`%s%s%s%s. Read .claude/task-runner/active-run.json%s before starting anything else — candor'"'"'s Stop gate refuses a clean stop while this sentinel exists, and deleting it is how a LIVE run gets abandoned. Resume it with /task-runner:run, or remove the sentinel and .claude/cc-phase.json only once every card is done or parked.' \
-    "$slug" "${branch:+ on branch \`$branch\`}" "$elsewhere" "${cards:+ — $cards}" "$phase" "${index:+ and $index}")
+  msg=$(printf '[task-runner] Run in progress: `%s`%s%s%s%s. Continue it with /task-runner:run%s; do not delete .claude/task-runner/active-run.json until the run is finished.' \
+    "$slug" "${branch:+ on branch \`$branch\`}" "$elsewhere" "${cards:+ — $cards}" "$phase" "${index:+ (cards in $index)}")
   jq -cn --arg m "$msg" \
     '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$m}}' 2>/dev/null
 } 2>/dev/null

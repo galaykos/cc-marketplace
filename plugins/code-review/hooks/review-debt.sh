@@ -37,9 +37,6 @@
 #     to a branch built on the old base, the old ancestor rule charged that branch's 162
 #     existing files to the session. The reflog point keeps a `git switch -c` plus commits made
 #     in one turn in the count, where a reset to HEAD would drop them.
-#   - Both lines say per-card reviews do not cover cross-card changes: in a 2026-10-13
-#     session the model declined the nudge citing the per-card reviews of an unregistered
-#     run, and whole-branch passes in the same retro found defects no card's review could see.
 #   - a review moves the base to HEAD: an Agent/Task dispatch whose subagent_type ends in
 #     `reviewer` or sits in `security:` / `code-review:`, a Skill call of code-review:review,
 #     security:review or the host's built-in code-review / security-review, or a prompt the
@@ -89,6 +86,7 @@
 #
 # FAIL-OPEN: missing jq/git, unreadable state, or any error exits 0 with no output.
 # State: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); the <root>/.claude/code-review/ above is only the fallback.
+# Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/hooks/review-debt.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
@@ -345,14 +343,14 @@ cc_prompt_question() {
   if [ "$nauth" -ge 1 ]; then
     paths=$(printf '%s\n' "$auth" | head -3 | paste -sd, - | sed 's/,/, /g')
     [ "$nauth" -gt 3 ] && paths="$paths, +$((nauth - 3)) more"
-    paths=" (auth-surface: $paths)"
+    paths=" (touches auth: $paths)"
   fi
   [ "$count" -eq 1 ] && noun="file has" || noun="files have"
-  tail="Per-card reviews do not cover cross-card changes. CC_REVIEW_NUDGE=off silences this nudge."
+  tail="(CC_REVIEW_NUDGE=off turns this reminder off)."
   if [ "$ship" = 1 ]; then
-    msg="[code-review] Before this ships: $count changed $noun had no review in this session since $short, uncommitted and untracked files included$paths. Run /code-review:review $short now, or say in one line why not. $tail"
+    msg="[code-review] Before this ships: $count changed $noun had no review in this session since $short, uncommitted and untracked files included$paths. Run /code-review:review $short now or say in one line why not $tail"
   else
-    msg="[code-review] $count changed $noun had no review in this session since $short$paths. Run /code-review:review $short..HEAD, or say in one line why not. $tail"
+    msg="[code-review] $count changed $noun had no review in this session since $short$paths. Run /code-review:review $short..HEAD or say in one line why not $tail"
   fi
 
   jq -cn --arg m "$msg" \

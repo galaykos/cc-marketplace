@@ -599,7 +599,7 @@ EOF_C
 
   [ -n "$hit" ] || exit 0
 
-  reason="testing: this edit introduces $hit in $base. A suite that goes green because a test stopped running is a false report, and the drop in test count is invisible in a summary. Fix the code, or — if the skip is genuinely right (a quarantined flake, an unimplemented feature, a platform gap) — put the reason on the same line, e.g. \`it.skip('…')  // skip: flaky on CI, see #1421\`, and this guard allows it. CC_PROTECT_TESTS=off disables the guard for the session."
+  reason="testing: blocked $hit in $base, which would let the suite pass without running those tests. Fix the code instead, or if the skip is right, put the reason on the same line, e.g. \`it.skip('…')  // skip: flaky on CI, see #1421\`. CC_PROTECT_TESTS=off turns this check off."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}' 2>/dev/null

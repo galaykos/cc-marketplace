@@ -236,7 +236,7 @@ cc_prompt_question() {
     claim_rank
     best=$(best_rank)
     if [ -z "$best" ] || [ "$best" = '30' ]; then
-      printf '%s (%s).\n' 'build-vs-buy: this looks like building a capability often already solved by a battle-tested library or service — before writing it, weigh take (adopt) vs wrap vs write via an existing-solution search, health table, and verdict; skip only if you already know no fit exists' '/approaches:build-vs-buy'
+      printf '%s (%s).\n' 'build-vs-buy: before writing this by hand, check whether a library or service already does it; if one fits, use it' '/approaches:build-vs-buy'
     fi
     sweep_stale_markers
   fi

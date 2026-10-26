@@ -335,7 +335,7 @@ main() {
   reason="git-workflow: $pr is not green on CI —"
   [ -n "$failing" ] && reason="$reason failing: $failing;"
   [ -n "$pending" ] && reason="$reason still running: $pending;"
-  reason="$reason merging now ships a commit CI has not passed. Approve to merge anyway (a known-flaky or non-required check), or deny and wait: gh pr checks${sel:+ $sel} --watch, or merge with --auto so GitHub merges once the required checks pass. CC_MERGE_CHECKS=off disables this check for the session."
+  reason="${reason%;}. Approve only to merge anyway (a known-flaky or optional check); otherwise wait with gh pr checks${sel:+ $sel} --watch, or merge with --auto. CC_MERGE_CHECKS=off turns this check off."
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}' 2>/dev/null
 }

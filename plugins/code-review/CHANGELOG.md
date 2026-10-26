@@ -3,6 +3,10 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.34.1 — 2026-10-26
+
+- **The unreviewed-changes reminder no longer mentions per-card reviews.** It said "Per-card reviews do not cover cross-card changes" to users who never ran task-runner. It now says how many changed files have no review, the command to run and `CC_REVIEW_NUDGE=off`; an auth path reads "(touches auth: …)". When it fires is unchanged. Gate: `review-debt.test.sh` pins both texts and fails on "per-card".
+
 ## 0.34.0 — 2026-10-25
 
 - **Next-step suggestion counts.** Each suggestion the prompt box reports shown adds one to `suggest.<transition>.shown`, and your next prompt adds `.accepted` (it sent the suggested command) or `.passed`, in this plugin's own `$.store` key `outcomes`; counts only, never text. `scripts/mod-outcomes.sh` in the marketplace repository prints them. Standing: gate for the counting (kit tests), recorded for what a count means.

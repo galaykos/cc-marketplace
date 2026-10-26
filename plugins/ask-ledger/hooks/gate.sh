@@ -84,15 +84,15 @@ exec 3>&2
 
   n=$(cat "$dir/blocks" 2>/dev/null || echo 0)
   if [ "$n" -ge 2 ]; then
-    printf 'ask-ledger: still unaccounted after two blocks — %s. Ending the turn anyway; the reader should treat those names as unverified.\n' "$missing" >&3
+    printf 'ask-ledger: after two tries the final reply still does not say what happened to %s; ending the turn anyway, so treat those as unverified.\n' "$missing" >&3
     : > "$dir/entries"
     exit 0
   fi
   echo $((n+1)) > "$dir/blocks"
   # The retry is the last thing the user reads; when it held only these lines, users re-asked
   # the question the turn had already answered above them.
-  printf 'ask-ledger: the ask named %s and the final message does not account for them. Restate the answer'"'"'s one-line verdict first, then one line per name — `<name>: as named` | `<name>: substituted → what, why` | `<name>: omitted → why` — and say so truthfully: a substitution you never raised is a substitution, not "as named". Then stop again.\n' "$missing" >&3
-  printf 'ask-ledger: CC_ASK_LEDGER=off disables this gate for the session.\n' >&3
+  printf 'ask-ledger: your final reply does not say what happened to %s, which the request named. Restate the answer'"'"'s one-line verdict first, then one line per name, then stop again:\n  `<name>: as named` | `<name>: substituted → what, why` | `<name>: omitted → why`\n  A substitution you never raised is "substituted", not "as named".\n' "$missing" >&3
+  printf 'ask-ledger: CC_ASK_LEDGER=off turns this check off.\n' >&3
   exit 2
 } 2>/dev/null
 exit 0

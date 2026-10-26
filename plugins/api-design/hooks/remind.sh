@@ -236,7 +236,7 @@ cc_prompt_question() {
     claim_rank
     best=$(best_rank)
     if [ -z "$best" ] || [ "$best" = '40' ]; then
-      printf '%s (%s).\n' 'api-design: this prompt mentions an API/SDK integration — verify current official docs before writing integration code, and if none are accessible ask the user for a URL or file' '/api-design:check'
+      printf '%s (%s).\n' 'api-design: read the current official docs before writing code against this API or SDK; if you cannot reach them, ask the user for a URL or file' '/api-design:check'
     fi
     sweep_stale_markers
   fi

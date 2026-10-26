@@ -3,6 +3,14 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.11.5 — 2026-10-26
+
+### Changed
+- **The destructive-SQL ask is shorter; which writes ask is unchanged.** It names what the
+  change adds, what to confirm (a backup or tested rollback, only the rows you mean, or the
+  non-blocking form for a locking change), the file, and `CC_DB_GUARD=off`. Gate:
+  `guard.test.sh` pins both texts.
+
 ## 0.11.4 — 2026-10-14
 
 ### Fixed

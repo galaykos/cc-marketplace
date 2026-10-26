@@ -39,6 +39,8 @@ allow() { # allow <name> <tool> <content>
 }
 
 deny "AWS key"          "aws_ref = \"$AWS\""
+if [[ "$(jq -r '.hookSpecificOutput.permissionDecisionReason' <<<"$out")" == 'secret-scanning: blocked a write containing an AWS access key ID. Put the value in an environment variable or secret store and reference it by name; for a test fixture, end the value in EXAMPLE or use a placeholder word (example, placeholder, changeme, dummy, xxxx). (file: /tmp/x.txt) CC_SECRET_SCAN=off turns this check off.' ]]; then pass=$((pass+1));
+else echo "FAIL deny reason: what was blocked, the fix, the file, one off switch — got: $out"; fail=$((fail+1)); fi
 deny "private key"      "$PKEY"
 deny "GitHub token"     "gh auth: $GH"
 deny "Slack token"      "SLACK=$SLACK"
@@ -172,7 +174,7 @@ bash_allow "echo of a \$VAR into .env"                'echo "API_KEY=$API_KEY" >
 marker_deny() { # marker_deny <name> <command> <expected file>
   out=$(bash_run "$2")
   if grep -q '"permissionDecision":"deny"' <<<"$out" && grep -qF "redaction marker [REDACTED:…] to $3." <<<"$out" \
-     && grep -qF 'CC_SECRET_REDACT=off' <<<"$out"; then pass=$((pass+1));
+     && grep -qF '. That would replace the real secret on disk: leave the value out, or edit only the lines around it with the Edit tool. CC_SECRET_REDACT=off, set by the user, allows it and also turns redaction off.' <<<"$out"; then pass=$((pass+1));
   else echo "FAIL $1: expected the marker deny naming $3 and CC_SECRET_REDACT=off, got: ${out:-<empty>}"; fail=$((fail+1)); fi
 }
 MASKED='STRIPE_SECRET=[REDACTED:a Stripe live secret key]'
@@ -212,9 +214,11 @@ if command -v python3 >/dev/null 2>&1; then
   post_case "the first call in a repo is silent and sets the marker" $ok "$out"
   out=$(pyrun "open('app/creds.py', 'w').write('k = \"$AWS\"\n')")
   pre=$(run Write "k = \"$AWS\"")
-  label=$(jq -r '.hookSpecificOutput.permissionDecisionReason // empty' <<<"$pre" | sed -n 's/.*appears to contain \(.*\)\. Blocked.*/\1/p')
-  ok=0; [[ -n "$label" ]] && grep -qF -- "- app/creds.py: $label" <<<"$(jq -r '.hookSpecificOutput.additionalContext // empty' <<<"$out")" \
-    && grep -qF 'CC_SECRET_SCAN=off' <<<"$out" && ! grep -q permissionDecision <<<"$out" && ok=1
+  label=$(jq -r '.hookSpecificOutput.permissionDecisionReason // empty' <<<"$pre" | sed -n 's/.*blocked a write containing \(.*\)\. Put the value.*/\1/p')
+  ok=0; [[ -n "$label" ]] && [[ "$(jq -r '.hookSpecificOutput.additionalContext // empty' <<<"$out")" == "secret-scanning: a Bash command just wrote what looks like a secret to disk:
+- app/creds.py: $label
+Move each value to an environment variable or secret store before it is committed; for a test fixture, end it in EXAMPLE or use a placeholder word. CC_SECRET_SCAN=off turns this check off." ]] \
+    && ! grep -q permissionDecision <<<"$out" && ok=1
   post_case "a python write warns with the label a Write of it is denied on, never denying" $ok "$out"
   out=$(post Bash '{"command":"python3 -c '"'"'print(1)'"'"'"}')
   ok=0; [[ -z "$out" ]] && ok=1; post_case "a python run that wrote nothing is silent" $ok "$out"
@@ -259,7 +263,7 @@ pat_case() { # pat_case <name> deny|allow <payload> <reason text> [env...] — r
   out=$(printf '%s' "$p" | env "$@" bash "$PH/scan.sh")
   case $want in
     allow) [[ -z "$out" ]] && ok=1 ;;
-    deny) grep -q '"permissionDecision":"deny"' <<<"$out" && grep -qF "$PH/patterns.tsv" <<<"$out" \
+    deny) grep -q '"permissionDecision":"deny"' <<<"$out" && grep -qF "secret-scanning: blocked this write because the pattern file $PH/patterns.tsv is unusable" <<<"$out" \
             && grep -qF "($x" <<<"$out" && grep -qF 'CC_SECRET_SCAN=off' <<<"$out" && ok=1 ;;
   esac
   if [[ $ok -eq 1 ]]; then pass=$((pass+1)); echo "ok $n";

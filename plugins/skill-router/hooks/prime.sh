@@ -97,7 +97,7 @@ sr_repo_skills() {
   skills="${skills# }"
   [ -n "$skills" ] || exit 0
   csv=$(printf '%s' "$skills" | tr ' ' ',' | sed 's/,/, /g')
-  printf '[skill-router] Repo-relevant skills this session: %s. Load each when you touch its surface.\n' "$csv"
-  [ -z "$shadowed" ] || printf '[skill-router] This project ships its own %s in .claude/skills: a bare name loads that copy, a different file; load the plugin skill by the qualified name above.\n' "${shadowed#, }"
+  printf '[skill-router] Skills that match this repo: %s. Load each one before you work on what it covers.\n' "$csv"
+  [ -z "$shadowed" ] || printf '[skill-router] Load %s by the plugin:skill name above: a bare name loads the project copy in .claude/skills instead.\n' "${shadowed#, }"
 } 2>/dev/null
 exit 0

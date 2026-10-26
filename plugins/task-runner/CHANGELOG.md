@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.49.1 — 2026-10-26
+
+- **Plain run-status messages.** The SessionStart line names the run, its branch, open cards and phase, says to continue with `/task-runner:run`, and not to delete `active-run.json` until the run is finished; it no longer says "sentinel" or explains candor's Stop check. The spawn-cap prompt and in-run notice drop the incident story and the list of causes; the prompt (outside a run, where the hook asks) names one switch, `CC_SPAWN_CAP`, and the notice (inside a run, where it only informs) names none and asks no one to approve. Thresholds and verdicts are unchanged. Pinned by `announce-hook.test.sh` case 6 and, word for word, by `spawn-cap.test.sh` "the ask reason is the plain prompt, word for word" and "the notice is the plain sentence, word for word, …".
+
 ## 0.49.0 — 2026-10-25
 
 - **An idle board rests.** With no run registered and no pane open, a subagent's tool call no longer refreshes the board, and a main-loop call refreshes it at most once every 2 s; every main-loop turn end refreshes it, so a run that registers inside the gap shows at the next call after it or at the turn end. During a run every call still refreshes, subagents' included. Gate: `tests/board.test.ts`, "an idle board looks again at most every 2 s, never on a subagent call" and "a run started within the idle gap shows at the turn end".

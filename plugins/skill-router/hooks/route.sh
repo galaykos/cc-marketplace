@@ -432,8 +432,8 @@ EOF_TARGETS
     # Qualified: a bare name loaded a project's own .claude/skills copy of the same name instead of this plugin's file.
     # A subagent has no Skill tool, so the nudge names the SKILL.md path to Read when one is found.
     local sp=""
-    [ -n "$3" ] && [ -f "$3/skills/$1/SKILL.md" ] && sp=" — Read $3/skills/$1/SKILL.md"
-    nudges="${nudges}$(printf '[skill-router] %s — load the `%s:%s` skill and review your change against it before continuing.%s' "$4" "$2" "$1" "$sp")"$'\n'
+    [ -n "$3" ] && [ -f "$3/skills/$1/SKILL.md" ] && sp=" (or Read $3/skills/$1/SKILL.md)"
+    nudges="${nudges}$(printf '[skill-router] Load the `%s:%s` skill for %s%s and check your change against it.' "$2" "$1" "$4" "$sp")"$'\n'
   }
 
   # At most NUDGE_CAP nudges per call: arriving several at once (seven on one vendored copy) they were almost never followed, 0 of 25
@@ -505,7 +505,7 @@ EOF_TARGETS
         plugin_installed "$plugin" || continue
         marker_ok "$marker" || continue
         already_fired "$skill" && continue
-        add_cand "$rank" "$skill" "$plugin" "This edit touches $base"
+        add_cand "$rank" "$skill" "$plugin" "$base"
       done < "$rules"
     done
     # A command row has no file, so `@base` and `@path` markers see an empty string.
@@ -515,7 +515,7 @@ EOF_TARGETS
       plugin_installed "$plugin" || continue
       marker_ok "$marker" || continue
       already_fired "$skill" && continue
-      add_cand 0 "$skill" "$plugin" "This command runs \`${frag}\`"
+      add_cand 0 "$skill" "$plugin" "\`${frag}\`"
     done <<EOF_CMD
 $cmd_hits
 EOF_CMD

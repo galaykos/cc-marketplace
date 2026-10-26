@@ -408,7 +408,7 @@ cc_scope_skip() {
     # also matched `dropAll: boolean` in a TS interface and `dropTable: false` in a config
     # file, both measured, neither a migration. A quoted-string argument
     # (`drop_table 'users'`) still passes — stated in the header.
-    [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '(\.|->|\b)(dropTable|dropTableIfExists|drop_table|dropSchema|drop_schema|dropAll|drop_all|DeleteModel|RemoveField|DeleteField)([[:space:]]*\(|[[:space:]]+:[A-Za-z_])' && hit="a drop-table call in a migration DSL (Prisma/Drizzle/TypeORM/Doctrine/Knex/Alembic/Rails/GORM/Django)"
+    [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '(\.|->|\b)(dropTable|dropTableIfExists|drop_table|dropSchema|drop_schema|dropAll|drop_all|DeleteModel|RemoveField|DeleteField)([[:space:]]*\(|[[:space:]]+:[A-Za-z_])' && hit="a drop-table call in a migration"
     # TRUNCATE was matched case-insensitively with TABLE optional until 2026-10-14, so
     # Tailwind's `truncate` class (`className="truncate text-xs"`) asked as SQL in real
     # sessions, most of them background workers or auto mode with nobody to answer. Now it
@@ -529,13 +529,13 @@ EOF_C
   [ -n "$hit" ] || [ -n "$lockhit" ] || exit 0
 
   if [ -n "$hit" ]; then
-    reason="destructive-SQL guard: this change introduces ${hit}. Confirm a backup or a tested rollback path exists before applying it, and that the statement is scoped as intended (an unqualified DELETE/UPDATE rewrites every row). Proceed only if that is verified."
+    reason="destructive-SQL guard: this change adds ${hit}. Confirm a backup or tested rollback exists and that it touches only the rows you mean."
   else
-    reason="destructive-SQL guard: this change introduces ${lockhit}. On a large table this holds a lock that blocks concurrent reads/writes for the whole operation; prefer the non-blocking path (CREATE INDEX CONCURRENTLY; for a type change or NOT NULL, backfill then validate in a separate step, or add-column-and-copy). Proceed only if the table is small or a maintenance window is planned."
+    reason="destructive-SQL guard: this change adds ${lockhit}, which is slow on a large table and can block other queries. Use the non-blocking form (CREATE INDEX CONCURRENTLY; for a type change add a column and copy; for NOT NULL backfill, then validate) unless the table is small or a maintenance window is planned."
   fi
   [ -n "$file" ] && reason="$reason (file: $file)"
   # Name the escape in the message that blocks you.
-  reason="$reason CC_DB_GUARD=off disables this guard for the session."
+  reason="$reason CC_DB_GUARD=off turns this check off."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}' 2>/dev/null

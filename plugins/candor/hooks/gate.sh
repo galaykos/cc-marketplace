@@ -103,7 +103,7 @@ fi
 gate_mode=$(cc_option CC_CANDOR_GATE block)
 case "$gate_mode" in off) exit 0 ;; esac
 
-[ "$have_jq" = 1 ] || { echo "[candor] gate: jq not found — gate not enforced" >&2; exit 0; }
+[ "$have_jq" = 1 ] || { echo "[candor] jq not found, so the Stop check is not enforced." >&2; exit 0; }
 
 sha_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
@@ -184,10 +184,10 @@ run_clause() {
   # A run closes by renaming its sentinel (run.md step 4), so the stop after the report still reads its records; a clean read retires it.
   [ -r "$sentinel" ] || sentinel="$root/.claude/task-runner/closed-run.json"
   [ -r "$sentinel" ] || return 0
-  jq empty "$sentinel" 2>/dev/null || { echo "[candor] completion-gate: active-run.json malformed — not enforced" >&2; return 0; }
-  command -v git >/dev/null 2>&1 || { echo "[candor] completion-gate: git not found — not enforced" >&2; return 0; }
+  jq empty "$sentinel" 2>/dev/null || { echo "[candor] .claude/task-runner/active-run.json is malformed, so the task-runner run is not checked." >&2; return 0; }
+  command -v git >/dev/null 2>&1 || { echo "[candor] git not found, so the task-runner run is not checked." >&2; return 0; }
   local head run_branch cur_branch slug
-  head=$(git -C "$root" rev-parse HEAD 2>/dev/null) || { echo "[candor] completion-gate: not a git repo — not enforced" >&2; return 0; }
+  head=$(git -C "$root" rev-parse HEAD 2>/dev/null) || { echo "[candor] Not a git repository, so the task-runner run is not checked." >&2; return 0; }
   # A closed run whose gate pass names an earlier HEAD closed there, and its closing stop never reached this clause.
   local closed_at
   case "$sentinel" in */closed-run.json)
@@ -202,7 +202,7 @@ run_clause() {
   cur_branch=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null)
   case $? in 0) cur_branch=${cur_branch#refs/heads/} ;; 1) cur_branch=HEAD ;; *) cur_branch="" ;; esac
   if [ -n "$run_branch" ] && [ -n "$cur_branch" ] && [ "$run_branch" != "$cur_branch" ]; then
-    printf '[candor] completion-gate: run registered on branch %s, now on %s — not enforced here.\n' "$run_branch" "$cur_branch" >&2
+    printf '[candor] The task-runner run was registered on branch %s and you are on %s, so it is not checked here.\n' "$run_branch" "$cur_branch" >&2
     printf '  If that run is finished or abandoned, delete .claude/task-runner/%s.\n' "${sentinel##*/}" >&2
     return 0
   fi
@@ -225,7 +225,7 @@ run_clause() {
       ct=$(jq -r '.cards_total' "$gatepass" 2>/dev/null)
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
       cpark=$(jq -r '.cards_parked' "$gatepass" 2>/dev/null)
-      run_msg=$(printf '[candor] completion-gate: %s recorded a gate pass but its card counts are %s: done=%s parked=%s total=%s.\n  A run may not report complete while any card is neither done nor parked.' "$slug" "$v" "$cdone" "$cpark" "$ct")
+      run_msg=$(printf '[candor] The task-runner run %s cannot close yet: the card counts in .claude/task-runner/gate-pass.json are %s (done=%s parked=%s total=%s).\n  Finish or park every card and record the three counts as numbers that add up, then stop.' "$slug" "$v" "$cdone" "$cpark" "$ct")
       verdict="run"; return 0
     fi
     # Only records newer than this registration count: card ids repeat across runs, and these dirs are never cleared.
@@ -235,7 +235,7 @@ run_clause() {
       nc_count=$(find "$ncdir" -maxdepth 1 \( -name 'nc-pass-*.json' -o -name 'nc-skip-*.json' \) -newer "$sentinel" 2>/dev/null |
         sed -E 's#.*/nc-(pass|skip)-##; s#\.json$##' | sort -u | wc -l | tr -d ' ')
       if [ "$nc_count" -lt "$cdone" ] 2>/dev/null; then
-        run_msg=$(printf '[candor] completion-gate: %s reports %s done cards but only %s per-card negative-control records in .claude/task-runner/nc/.\n  Every done card needs an nc-pass record (negative-control.sh --record-dir --card) or a documented nc-skip. Run the missing controls, then stop.' "$slug" "$cdone" "$nc_count")
+        run_msg=$(printf '[candor] Not finished: %s cards of the task-runner run %s are marked done, but only %s have the check that their test fails without the change (.claude/task-runner/nc/).\n  Run the missing checks with task-runner'"'"'s scripts/negative-control.sh --record-dir .claude/task-runner/nc --card <id>, or record a skip with its reason (--skip "<why>"), then stop.' "$cdone" "$slug" "$nc_count")
         verdict="run"; return 0
       fi
     fi
@@ -245,7 +245,7 @@ run_clause() {
       rv_count=$(find "$rvdir" -maxdepth 1 \( -name 'rv-seen-*.json' -o -name 'rv-skip-*.json' -o -name 'rv-exempt-*.json' \) -newer "$sentinel" 2>/dev/null |
         sed -E 's#.*/rv-(seen|skip|exempt)-##; s#\.json$##' | grep -v '^range-' | sort -u | wc -l | tr -d ' ')
       if [ "$rv_count" -lt "$cdone" ] 2>/dev/null; then
-        run_msg=$(printf '[candor] completion-gate: %s reports %s done cards but only %s per-card reviewer records in .claude/task-runner/rv/.\n  Every done card needs an observed reviewer dispatch (the RV-CARD marker in the prompt), a recorded skip (scripts/review-skip.sh --card --reason) or an exemption (--exempt). Run the missing reviews, then stop.' "$slug" "$cdone" "$rv_count")
+        run_msg=$(printf '[candor] Not finished: %s cards of the task-runner run %s are marked done, but only %s have a review recorded (.claude/task-runner/rv/).\n  Dispatch the missing reviews as task-runner'"'"'s skills/task-execution/references/reviewer-routing.md (Coverage marker) describes, or record why not with scripts/review-skip.sh --card <id> --reason "<why>" (or --exempt no-reviewer-installed), then stop.' "$cdone" "$slug" "$rv_count")
         verdict="run"; return 0
       fi
     fi
@@ -261,7 +261,7 @@ run_clause() {
           uicards="$uicards $card"
       done < <(find "$rvdir" -maxdepth 1 -name 'diff-*.patch' -newer "$sentinel" 2>/dev/null | sort)
       if [ -n "$uicards" ]; then
-        run_msg=$(printf '[candor] completion-gate: %s has UI cards with no ui-ux-reviewer dispatch recorded:%s\n  Their rv/diff-<card>.patch names a .tsx, .jsx, .vue, .svelte, stylesheet or .blade.php file, and no other reviewer stands in for ui-ux:ui-ux-reviewer. Dispatch it with the card'"'"'s RV-CARD marker, or record why not (scripts/review-skip.sh --card <id> --reason "<why>", or --exempt no-reviewer-installed). Then stop.' "$slug" "$uicards")
+        run_msg=$(printf '[candor] Cards of the task-runner run %s changed UI files and have no ui-ux-reviewer review recorded:%s\n  Dispatch ui-ux:ui-ux-reviewer for each (no other reviewer counts) as task-runner'"'"'s skills/task-execution/references/reviewer-routing.md (Coverage marker) describes, or record why not with scripts/review-skip.sh --card <id> --reason "<why>" (or --exempt no-reviewer-installed), then stop.' "$slug" "$uicards")
         verdict="run"; return 0
       fi
     fi
@@ -279,7 +279,7 @@ run_clause() {
           git -C "$root" merge-base --is-ancestor "$from" "$rid" 2>/dev/null && from=$rid ;; esac
       done < <(find "$rvdir" -maxdepth 1 \( -name 'range-*.json' -o -name 'rv-skip-range-*.json' -o -name 'rv-exempt-range-*.json' \) -newer "$sentinel" 2>/dev/null)
       if [ "$range_ok" = 0 ]; then
-        run_msg=$(printf '[candor] completion-gate: %s has no whole-range review recorded for HEAD %s.\n  Per-card reviews cannot see what changed across cards, so they never substitute. Invoke /code-review:review %s..HEAD with "RV-RANGE: %s" in its arguments (task-runner'"'"'s run.md step 4), or record why it cannot run: scripts/review-skip.sh --card range-%s --reason "<why>" (or --exempt no-reviewer-installed). A commit after a range review owes only the commits since it, which is the range named here. Then stop.' "$slug" "${head:0:12}" "${from:0:12}" "${head:0:12}" "${head:0:12}")
+        run_msg=$(printf '[candor] The task-runner run %s has no whole-diff review recorded for HEAD %s.\n  Run /code-review:review %s..HEAD with "RV-RANGE: %s" in its arguments (task-runner'"'"'s run.md step 4), or record why it cannot run with scripts/review-skip.sh --card range-%s --reason "<why>" (or --exempt no-reviewer-installed), then stop.' "$slug" "${head:0:12}" "${from:0:12}" "${head:0:12}" "${head:0:12}")
         verdict="run"; return 0
       fi
     fi
@@ -287,7 +287,7 @@ run_clause() {
     local bgdir="$root/.claude/task-runner/bg" bgv covred
     if [ "$v" = "complete" ] && [ -d "$bgdir" ]; then
       if [ ! -r "$bgdir/bg-$head.json" ]; then
-        run_msg=$(printf '[candor] completion-gate: %s recorded a gate pass for HEAD %s, but behavioral-gate.sh left no verdict record for it.\n  gate-pass.json is written by hand; bg/bg-<head>.json is written by the gate itself. Run scripts/behavioral-gate.sh against this HEAD, then stop.' "$slug" "${head:0:12}")
+        run_msg=$(printf '[candor] The task-runner run %s wrote gate-pass.json for HEAD %s, but behavioral-gate.sh left no verdict record for it (.claude/task-runner/bg/bg-<head>.json).\n  Run task-runner'"'"'s scripts/behavioral-gate.sh against this HEAD, then stop.' "$slug" "${head:0:12}")
         verdict="run"; return 0
       fi
       bgv=$(jq -r '.verdict // empty' "$bgdir/bg-$head.json" 2>/dev/null)
@@ -297,11 +297,11 @@ run_clause() {
         bgv=""
       fi
       if [ "$bgv" = "no-behavioral-coverage" ]; then
-        run_msg=$(printf '[candor] completion-gate: behavioral-gate.sh reached "no-behavioral-coverage" for HEAD %s, and the run is reporting complete.\n  No test in this project exercises the changed files. Add tests a runner here executes, re-run the gate, then stop — or, if that coverage is out of this run'"'"'s scope, record the gap honestly. From the repo root run task-runner'"'"'s scripts/reduction-record.sh --kind coverage --id bg-%s --reason "<which files no runner covers, and why>", name bg-%s and that reason in the closing report, then stop.' "${head:0:12}" "${head:0:12}" "${head:0:12}")
+        run_msg=$(printf '[candor] No test in this project exercises the files the run changed: behavioral-gate.sh reached "no-behavioral-coverage" for HEAD %s.\n  Add tests a runner here executes and re-run behavioral-gate.sh, then stop.\n  Or, if that coverage is out of scope: from the repo root run task-runner'"'"'s scripts/reduction-record.sh --kind coverage --id bg-%s --reason "<which files no runner covers, and why>", name bg-%s and that reason in your closing report, then stop.' "${head:0:12}" "${head:0:12}" "${head:0:12}")
         verdict="run"; return 0
       fi
       if [ -n "$bgv" ]; then
-        run_msg=$(printf '[candor] completion-gate: behavioral-gate.sh reached "%s" for HEAD %s, and the run is reporting complete.\n  A run may not close over a red or unverifiable behavioral gate. Fix the coverage, re-run the gate, then stop.' "$bgv" "${head:0:12}")
+        run_msg=$(printf '[candor] behavioral-gate.sh reached "%s" for HEAD %s, so the task-runner run cannot close yet.\n  Fix what it reports, re-run it, then stop.' "$bgv" "${head:0:12}")
         verdict="run"; return 0
       fi
     fi
@@ -333,7 +333,7 @@ run_clause() {
         critic=$(find "$rtdir" -maxdepth 1 -name 'rt-critic-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
         degraded=$(find "$root/.claude/task-runner/reductions" -maxdepth 1 -name 'redteam-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
         if [ "$degraded" -eq 0 ] 2>/dev/null && { [ "$lenses" -lt 3 ] || [ "$critic" -lt 1 ]; } 2>/dev/null; then
-          run_msg=$(printf '[candor] completion-gate: this is a boosted run, and the code red-team panel is short: %s of 3 refuter lenses, %s of 1 completeness critic.\n  Dispatch the missing refuters (each prompt carries RT-LENS: <lens>, the critic RT-CRITIC: <id>), or record the degraded inline pass with scripts/reduction-record.sh --kind redteam --id <ref> --reason "...". Then stop.' "$lenses" "$critic")
+          run_msg=$(printf '[candor] This task-runner run is marked for max effort (Ultra or Goal in its index), which requires a code red-team, and the red-team panel is short: %s of 3 refuters, %s of 1 completeness critic.\n  Dispatch the missing ones as task-runner'"'"'s code-redteam skill describes, or record a reduced inline pass with scripts/reduction-record.sh --kind redteam --id <ref> --reason "<why>", then stop.' "$lenses" "$critic")
           verdict="run"; return 0
         fi
       fi
@@ -354,7 +354,7 @@ run_clause() {
             printf '%s' "$said" | grep -qF "$id" || missing="$missing $id"
           done
           if [ -n "$said" ] && [ -n "$missing" ]; then
-            run_msg=$(printf '[candor] completion-gate: this run recorded reductions that the closing report never names:%s\n  Name each one and its reason (the records are in .claude/task-runner/rv/ and reductions/) before stopping — a cut the user has to ask about is the gap this gate exists to prevent.' "$missing")
+            run_msg=$(printf '[candor] The closing report never names these skipped or reduced steps of the task-runner run:%s\n  Name each one and why it was cut, then stop (details in .claude/task-runner/rv/ and reductions/).' "$missing")
             verdict="run"; return 0
           fi
         fi
@@ -371,27 +371,20 @@ run_clause() {
   case "$waiting" in '' | *[!0-9]*) waiting=0 ;; esac
   waiting=$((waiting + $(bg_running "$head")))
   if [ "${waiting:-0}" -gt 0 ] 2>/dev/null; then
-    printf '[candor] completion-gate: %s has no behavioral-gate pass for HEAD %s, and %s background worker(s) of this session are still in flight — not blocking.\n  A worker'"'"'s hand-back wakes this session; the gate holds the stop after the last one returns.\n' "$slug" "${head:0:12}" "$waiting" >&2
+    printf '[candor] The task-runner run %s is not finished, but %s background worker(s) are still running, so this stop is allowed.\n  The check runs again when the last worker reports back.\n' "$slug" "$waiting" >&2
     return 0
   fi
-  run_msg=$(printf '[candor] completion-gate: %s is a registered run with no behavioral-gate pass for HEAD %s.
-  The run is not complete, so this turn must not end here.
-  Cards still to execute -> continue with the next card'"'"'s tool call. Do not name the next card
-    in prose and yield: that binds nothing, and the user waits on a turn that already ended.
-    Need a decision -> ask it with AskUserQuestion (not a stop). Blocked -> park the card with a reason.
-  Every card done or parked -> the whole-range review and the gate are the steps left (run.md
-    step 4), and neither has a deadline. From the
+  run_msg=$(printf '[candor] The task-runner run %s is not finished: HEAD %s has no recorded pass of behavioral-gate.sh, so do not end the turn here.
+  Cards left: start the next card with a tool call now; naming it in prose and stopping leaves the user waiting.
+  Need a decision: ask it with AskUserQuestion. Blocked: park the card with a reason.
+  Every card done or parked: run the whole-diff review, then from the
     repo root, in the background, run task-runner'"'"'s scripts/behavioral-gate.sh --isolate --changed "<the run'"'"'s touched
-    files>" (the path run.md step 4 names), with a Bash timeout of 7200000: the default stops a
-    background call at 30 minutes in -p, SDK, CI and cloud sessions. --isolate creates, checks and removes its own worktree
-    and writes the verdict record; do not hand-build a checkout, and do not copy, generate or write
-    any .env for it. Then record the pass to .claude/task-runner/gate-pass.json as {"head":"%s"}
-    plus the card counts, and rename active-run.json to closed-run.json. A green repo suite
-    alone is NOT this gate.
-  Any shell setup: one step per call, and read each result before the next. A denied or failed
-    call ran NOTHING, not "everything but the part named in the error".
-  Not running this task list at all? The sentinel outlived its run — delete
-    .claude/task-runner/%s.' "$slug" "${head:0:12}" "$head" "${sentinel##*/}")
+    files>" with a Bash timeout of 7200000 (the default can stop it at 30 minutes). --isolate makes and removes its
+    own worktree: do not build a checkout or write any .env for it.
+    Then write .claude/task-runner/gate-pass.json as {"head":"%s"} plus the card counts, and rename
+    active-run.json to closed-run.json (run.md step 4). The repo'"'"'s own test suite passing does not replace this.
+  No rush: run one shell step per call and read its result; a denied or failed call ran nothing.
+  Not running this task list? The run file is left over: delete .claude/task-runner/%s.' "$slug" "${head:0:12}" "$head" "${sentinel##*/}")
   verdict="run"
 }
 RUN_HEAD=""; RUN_SENTINEL=""
@@ -402,7 +395,7 @@ if [ "$verdict" = "run" ]; then
   case "$(cc_option TASK_RUNNER_STOP_GATE block)" in warn) run_mode=warn ;; esac
   # The switch is printed here, the one print site of every clause-4 reason: a blocked reader sees only this stderr.
   printf '%s\n' "$run_msg" >&2
-  printf '  TASK_RUNNER_STOP_GATE=off disables this clause for the session; =warn prints without blocking.\n' >&2
+  printf '  TASK_RUNNER_STOP_GATE=off turns this check off (=warn only prints).\n' >&2
   if [ "$run_mode" = "block" ]; then
     # One block per HEAD: the nudge counts only while newer than the sentinel, so an earlier run's marker cannot eat this one's block.
     nudge="$root/.claude/task-runner/gate-nudge"
@@ -453,7 +446,7 @@ read_transcript
 
 clause_fabricated_citation() {
   [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ] || return 0
-  command -v cite_miss >/dev/null 2>&1 || { echo "[candor] citation clause: hooks/cite.sh not loaded — not enforced" >&2; return 0; }
+  command -v cite_miss >/dev/null 2>&1 || { echo "[candor] hooks/cite.sh not loaded, so file:line citations are not checked." >&2; return 0; }
   # hooks/cite.sh: what counts as a citation (a dev host's :port does not) and when one is fabricated (its header has the limits).
   cites=$(printf '%s' "$last_msg" | cite_extract)
   misses=""
@@ -647,36 +640,25 @@ report_verdict() {
 
   case "$verdict" in
     citation)
-      what="this turn"; [ "$evt" = "SubagentStop" ] && what="this report"
-      printf '[candor] gate: %s cites a location that does not exist.%s\n' "$what" "$detail" >&2
-      printf '  A file:line citation asserts you read that line. Open the file, cite what is actually\n' >&2
-      printf '  there, or drop the number and say plainly that you are inferring rather than quoting.\n' >&2
-      printf '  Inventing a location is the failure this clause exists to stop.\n' >&2
+      what="This turn"; [ "$evt" = "SubagentStop" ] && what="This report"
+      printf '[candor] %s cites a location that does not exist.%s\n' "$what" "$detail" >&2
+      printf '  Open the file and cite what is there, or drop the line number and say you are inferring, not quoting.\n' >&2
       # A subagent that re-sent only the correction lost its whole report: the caller receives the last hand-back alone.
       [ "$evt" = "SubagentStop" ] && printf '  Then re-send your COMPLETE report, corrected: only your last message reaches the caller.\n' >&2
-      printf '  CC_CANDOR_GATE=off disables this gate for the session; =warn prints without blocking.\n' >&2 ;;
+      printf '  CC_CANDOR_GATE=off turns this check off (=warn only prints).\n' >&2 ;;
     reversal)
-      printf '[candor] gate: the user pushed back without giving you new information, and this turn\n' >&2
-      printf '  retracts your position anyway — nothing was re-checked between the challenge and the\n' >&2
-      printf '  retraction.\n' >&2
-      printf '  Do one of two things. Re-check: run the command or read the file that would settle it,\n' >&2
-      printf '  then report what it showed. Or hold: say you still believe what you said, and why.\n' >&2
-      printf '  "You are right" is a finding. It needs the same evidence as any other finding.\n' >&2
-      printf '  CC_CANDOR_GATE=off disables this gate for the session; =warn prints without blocking.\n' >&2 ;;
+      printf '[candor] The user pushed back with no new information, and this turn retracts your position anyway without re-checking anything.\n' >&2
+      printf '  Re-check (run the command or read the file that settles it, then report what it showed), or keep your position and say why.\n' >&2
+      printf '  CC_CANDOR_GATE=off turns this check off (=warn only prints).\n' >&2 ;;
     lockfile)
-      printf '[candor] gate: a dependency manifest changed and its lockfile did not — %s.\n' "$detail" >&2
-      printf '  The install step was skipped, so the tree you are leaving has a manifest and a lockfile\n' >&2
-      printf '  that disagree. The next clone resolves different versions, and CI blames whoever ran it.\n' >&2
-      printf '  Run the installer (npm/pnpm/yarn install, composer update <pkg>, bundle install, cargo\n' >&2
-      printf '  build, go mod tidy) and commit the lockfile with the manifest — or say plainly that the\n' >&2
-      printf '  lockfile is deliberately unchanged and why. CC_LOCKFILE_GATE=off disables this clause.\n' >&2 ;;
+      printf '[candor] A dependency manifest changed and its lockfile did not: %s.\n' "$detail" >&2
+      printf '  Run the installer (npm/pnpm/yarn install, composer update <pkg>, bundle install, cargo build, go mod tidy) and keep\n' >&2
+      printf '  the lockfile with the manifest, or say why the lockfile stays unchanged. CC_LOCKFILE_GATE=off turns this check off.\n' >&2 ;;
     evidence)
-      printf '[candor] evidence-gate: this turn claims completion, files were edited, and no command ran after the last edit — nothing verified the change.\n' >&2
-      printf '  Either run the check that would FAIL if the change were broken (test, build, lint, or execute\n' >&2
-      printf '  the changed code) and show its output — or restate honestly: what changed, what was NOT\n' >&2
-      printf '  verified, and the exact command the user can run to verify it.\n' >&2
-      printf '  A claim with no execution behind it is the failure this gate exists to stop.\n' >&2
-      printf '  CC_EVIDENCE_GATE=off disables this clause for the session; =warn prints without blocking.\n' >&2 ;;
+      printf '[candor] This turn says the work is done, but no command ran after the last edit.\n' >&2
+      printf '  Run the check that would fail if the change were broken (a test, build, lint, or the changed code) and show its\n' >&2
+      printf '  output, or say what changed, what was not verified, and the command the user can run to verify it.\n' >&2
+      printf '  CC_EVIDENCE_GATE=off turns this check off (=warn only prints).\n' >&2 ;;
   esac
 
   [ "$mode" = "block" ] || exit 0

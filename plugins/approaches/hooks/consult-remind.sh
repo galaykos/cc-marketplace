@@ -153,7 +153,7 @@ cc_option() {
     claim_rank
     best=$(best_rank)
     if [ -z "$best" ] || [ "$best" = '20' ]; then
-      printf '%s (%s).\n' 'ℹ approaches: this prompt names an irreversible command or a repeated failed attempt — a blind second opinion is available if the moment warrants one (advisory)' '/approaches:consult'
+      printf '%s (%s).\n' 'ℹ approaches: for an irreversible step or a third try at a failing fix, a blind second opinion can help' '/approaches:consult'
     fi
     sweep_stale_markers
   fi

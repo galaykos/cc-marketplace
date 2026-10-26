@@ -46,7 +46,7 @@ check "2 a registered run announces exactly one line" "$(printf '%s' "$line" | g
 has "3 the line names the slug" "$line" '`2026-09-22-demo`'
 has "4 the line names the branch" "$line" 'branch `feat/orders`'
 has "5 done and parked cards are closed, the rest remain" "$line" '2 of 4 cards still open'
-has "6 the declared arc phase is named" "$line" 'arc phase `build`'
+has "6 the declared phase is named with its owner" "$line" 'phase `build` set by task-runner:run'
 if printf '%s' "$line" | grep -q 'status outside'; then echo "FAIL: 6b a vocabulary-only index names no unrecognised status"; rc=1; else echo "PASS: 6b a vocabulary-only index names no unrecognised status"; fi
 
 check "7 source=compact is skill-router's lane, not this one" "$(fire "$RUN" compact)" ""

@@ -486,7 +486,7 @@ MAX_BASH_EFFECTS=8
       "{!! \$var !!} skips Blade escaping — use {{ }} unless this exact value is sanitized HTML"
     detect "client-bundle-secret" \
       '(^|[^A-Z0-9_])(VITE|NEXT_PUBLIC|NUXT_PUBLIC|EXPO_PUBLIC|PUBLIC|REACT_APP|GATSBY|VUE_APP)_[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|PRIVATE|API_?KEY)' \
-      "a public-bundle env prefix (VITE_, NEXT_PUBLIC_, NUXT_PUBLIC_, EXPO_PUBLIC_, PUBLIC_, REACT_APP_, GATSBY_, VUE_APP_) compiles the value into the client bundle — server secrets must not carry one"
+      "a public env prefix (VITE_, NEXT_PUBLIC_ and the like) compiles the value into the client bundle — a server secret must not carry one"
     detect "raw-sql-interpolation" \
       'whereRaw\((["'"'"'][^"'"'"')]*\{\$|[^,)]*\.[[:space:]]*\$)' \
       "variable inside whereRaw SQL — use ? placeholders with the bindings array"
@@ -496,7 +496,7 @@ MAX_BASH_EFFECTS=8
 
     detect "code-eval" \
       '(^|[^[:alnum:]_.$>])eval[[:space:]]*\(|new[[:space:]]+Function[[:space:]]*\(' \
-      "eval()/new Function() executes a string as code — parse data with JSON/literal parsers; a static string wants the literal, not eval. When eval is genuinely required, a one-line comment at the call saying why" \
+      "eval()/new Function() runs a string as code — parse data with JSON or a literal parser; if eval is truly needed, say why in a one-line comment at the call" \
       "$CODE"
     detect "shell-string-exec" \
       'child_process\.exec(Sync)?[[:space:]]*\(|(^|[^[:alnum:]_.])execSync[[:space:]]*\(|(^|[^[:alnum:]_.$>])(shell_exec|passthru|popen|proc_open)[[:space:]]*\(|(^|[^[:alnum:]_.$>])(exec|system)[[:space:]]*\([[:space:]]*["'"'"'$]|os\.system[[:space:]]*\(|subprocess\.[A-Za-z_]+\(.*shell[[:space:]]*=[[:space:]]*True' \
@@ -613,7 +613,7 @@ EOF_E
   fi
 
   [ -n "$hits" ] || exit 0
-  ctx="${hits}[security] warn-tier only (file: ${hit_files}) — judgment cases stay with /security:review; CC_SECURITY_SCAN=off disables."
+  ctx="${hits}[security] Fix the lines above in ${hit_files}, or say why each is safe; /security:review checks what these patterns cannot. CC_SECURITY_SCAN=off turns these warnings off."
   jq -cn --arg c "$ctx" --arg ev "${hev:-PostToolUse}" \
     '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$c}}' 2>/dev/null
   exit 0

@@ -64,17 +64,17 @@ check "no active-run sentinel -> silent no-op" "" "$J" 0 __NONE__
 # 2) registered, no gate-pass, DEFAULT -> BLOCK (exit 2). This is the stalled-run case:
 #    a run that registered itself and then yielded in prose with no card started.
 printf '{"slug":"demo-run","base":"HEAD"}' > "$SENT"; rm -f "$GP"
-check "registered + no gate-pass (default) -> exit 2" "" "$J" 2 "completion-gate"
+check "registered + no gate-pass (default) -> exit 2" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # 2b) the blocked stop must carry the mid-run branch, not only the completion branch —
 #     naming just "run behavioral-gate.sh" is useless to a run that is on card 1 of 17.
 check "block message names the mid-run continue path" "" "$J" 2 "AskUserQuestion"
 
 # 2c) opt-out: warn mode downgrades the same case to print-only
-check "registered + no gate-pass (warn) -> print-only exit 0" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "completion-gate"
+check "registered + no gate-pass (warn) -> print-only exit 0" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "no recorded pass of behavioral-gate.sh"
 
 # 3) registered, no gate-pass, explicit block mode -> BLOCK (exit 2)
-check "registered + no gate-pass (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "completion-gate"
+check "registered + no gate-pass (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # 4) registered + gate-pass matching HEAD -> allow, silent (even under block)
 printf '{"head":"%s"}' "$HEAD" > "$GP"
@@ -82,7 +82,7 @@ check "gate-pass matches HEAD (block) -> allow, silent" "TASK_RUNNER_STOP_GATE=b
 
 # 5) registered + STALE gate-pass (wrong head), block -> BLOCK
 printf '{"head":"deadbeefdeadbeef"}' > "$GP"
-check "stale gate-pass head (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "completion-gate"
+check "stale gate-pass head (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # 6) stop_hook_active NO LONGER short-circuits this gate.
 # The flag is SHARED across every Stop hook — Claude Code sets it on the continuation
@@ -97,12 +97,12 @@ rm -f "$GP" "$NUDGE" 2>/dev/null
 # silence". A harness that registers the run and stops in the same second exercises
 # that tie, not the bound — which made this assertion flaky rather than wrong.
 touch -t 202601010000 "$SENT"
-check_keep "stop_hook_active does not spend this gate (still blocks)" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 2 "registered run"
+check_keep "stop_hook_active does not spend this gate (still blocks)" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 2 "no recorded pass of behavioral-gate.sh"
 
 # 6b) The bound is the marker: a second stop at the SAME HEAD does not BLOCK. It still
 # prints — one block per HEAD, then print-only, per this hook's own design (":62-66").
 # Asserting silence here would be asserting the wrong contract.
-check_keep "per-HEAD nudge bounds the loop on a repeat stop" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 0 "registered run"
+check_keep "per-HEAD nudge bounds the loop on a repeat stop" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 0 "no recorded pass of behavioral-gate.sh"
 
 # 7) malformed sentinel -> fail-open exit 0 with a warning
 printf '{not valid json' > "$SENT"
@@ -163,20 +163,20 @@ printf '{"slug":"demo-run","base":"HEAD"}' > "$SENT"    # restore plain sentinel
 rm -f "$GP"
 git -C "$REPO" checkout -q -b other-branch
 printf '{"slug":"demo-run","base":"HEAD","branch":"%s"}' "$(git -C "$REPO" rev-parse --abbrev-ref HEAD)" > "$SENT"
-check "sentinel branch == current branch -> enforced" "" "$J" 2 "completion-gate"
+check "sentinel branch == current branch -> enforced" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 printf '{"slug":"demo-run","base":"HEAD","branch":"a-dead-run-branch"}' > "$SENT"
-check "sentinel from another branch -> not enforced" "" "$J" 0 "not enforced here"
+check "sentinel from another branch -> not enforced" "" "$J" 0 "not checked here"
 
 printf '{"slug":"demo-run","base":"HEAD"}' > "$SENT"   # pre-0.17 sentinel, no branch field
-check "sentinel without branch field -> enforced (back-compat)" "" "$J" 2 "completion-gate"
+check "sentinel without branch field -> enforced (back-compat)" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # 21-25) ONE BLOCK PER HEAD — the bound that keeps a stale sentinel from nagging every
 # stop. Independent of stop_hook_active: the hook records the HEAD it blocked on.
 # mtimes are set explicitly: the marker counts only while it is newer than the sentinel
 # it was written under, and a same-tick write would otherwise make these cases racy.
 touch -t 200001010000 "$SENT"          # registration precedes the block it provoked
-check_keep "second stop at the same HEAD -> print-only exit 0" "" "$J" 0 "completion-gate"
+check_keep "second stop at the same HEAD -> print-only exit 0" "" "$J" 0 "no recorded pass of behavioral-gate.sh"
 if [ "$(cat "$NUDGE" 2>/dev/null)" = "$HEAD" ]; then
   echo "PASS: nudge marker records the blocked HEAD"; pass=$((pass+1))
 else
@@ -186,23 +186,23 @@ fi
 # a marker left by an EARLIER run must not eat this run's first block: same HEAD, no
 # commit in between, but a fresh registration — the case a per-repo marker gets wrong.
 touch "$SENT"                          # re-register at the same HEAD, after the marker
-check_keep "marker predating this registration -> block still fires" "" "$J" 2 "completion-gate"
+check_keep "marker predating this registration -> block still fires" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 touch -t 200001010000 "$SENT"          # back to within-run ordering for the cases below
 
 # a new commit re-arms the gate — enforcement rides on progress, so a real run is held
 # at every card boundary, not nudged once for the whole run
 echo more >> "$REPO/f.txt"; git -C "$REPO" add -A; git -C "$REPO" commit -qm second
 HEAD="$(git -C "$REPO" rev-parse HEAD)"
-check "new commit re-arms the gate -> exit 2 again" "" "$J" 2 "completion-gate"
+check "new commit re-arms the gate -> exit 2 again" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # warn mode never writes a marker, so it cannot disarm a later block
-check "warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "completion-gate"
+check "warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "no recorded pass of behavioral-gate.sh"
 if [ -e "$NUDGE" ]; then
   echo "FAIL: warn mode wrote a nudge marker"; fail=$((fail+1))
 else
   echo "PASS: warn mode leaves no marker"; pass=$((pass+1))
 fi
-check "block still fires after a warn-mode stop" "" "$J" 2 "completion-gate"
+check "block still fires after a warn-mode stop" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # ---- per-card negative-control coverage (opt-in by nc/ dir presence) ----
 NC="$ROOT/plugins/task-runner/scripts/negative-control.sh"
@@ -217,8 +217,8 @@ check "complete counts, no nc dir -> legacy allow" "" "$J" 0 __NONE__
 # nc/ dir with fewer records than cards_done -> block (a done card had no control)
 mkdir -p "$NCDIR"
 printf '{"card":"01"}' > "$NCDIR/nc-pass-01.json"
-check "nc records 1 < done 3 -> block" "" "$J" 2 "negative-control records"
-check "nc records short + warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "negative-control records"
+check "nc records 1 < done 3 -> block" "" "$J" 2 "fails without the change"
+check "nc records short + warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "fails without the change"
 
 # records covering done count (mix of mechanical pass + documented skip) -> allow
 out=$("$NC" --skip "visual-only card" --record-dir "$NCDIR" --card 02 2>&1)
@@ -261,8 +261,8 @@ check "no rv dir at all -> legacy allow" "" "$J" 0 __NONE__
 
 mkdir -p "$RVDIR"
 printf '{"card":"01"}' > "$RVDIR/rv-seen-01.json"
-check "rv records 1 < done 3 -> block" "" "$J" 2 "per-card reviewer records"
-check "rv records short + warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "per-card reviewer records"
+check "rv records 1 < done 3 -> block" "" "$J" 2 "have a review recorded"
+check "rv records short + warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "have a review recorded"
 
 # the observer writes a record from a dispatch carrying the marker
 printf '{"cwd":"%s","tool_name":"Agent","tool_input":{"prompt":"RV-CARD: 02\\nreview the diff"}}' "$REPO" \

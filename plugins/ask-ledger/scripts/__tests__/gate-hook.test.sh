@@ -34,7 +34,7 @@ check "2 all accounted: silent" "$(run s1 $'Laravel: as named\n2D Sprites: as na
 ledger s1b Laravel "2D Sprites" Digimon
 r=$(run s1b $'Laravel: as named\n2D Sprites: as named')
 check "3 one missing blocks with exit 2" "$r" "rc=2"
-check "4 the block names the missing entry" "$r" "named Digimon"
+check "4 the block names the missing entry" "$r" "what happened to Digimon"
 check "4b the block asks for the answer's verdict before the name lines" "$r" "Restate the answer's one-line verdict first, then one line per name"
 ledger s1c Laravel "2D Sprites" Digimon
 check "5 omitted counts, case-insensitive" "$(run s1c $'laravel: OMITTED → out of scope\n2d sprites: as named\ndigimon: as named')" "rc=0"
@@ -59,12 +59,12 @@ is "10a the turn that names it accounts for it" "$(run s10 'Iinstalled: as named
 is "10b a later turn that never named it owes no line" "$(run s10 'Merged; CI green.')" "rc=0"
 ledger s11 Laravel Digimon
 r=$(run s11 'Laravel: as named')
-check "11a a partial accounting blocks on the missing name only" "$r" "named Digimon and"
+check "11a a partial accounting blocks on the missing name only" "$r" "what happened to Digimon, which"
 is "11b the retry owes only the names the block listed" "$(run s11 'Digimon: substituted → invented mascots, my hedge')" "rc=0"
 prompt s12 'build a Stripe checkout'
 is "12a a prompt-ledgered name accounted in its turn passes" "$(run s12 'Stripe: as named')" "rc=0"
 prompt s12 'check if CI is done and merge'
 is "12b the next turn owes nothing" "$(run s12 'Merged.')" "rc=0"
 prompt s12 'now add Stripe refunds to the checkout'
-check "12c a later prompt that names it again owes it again" "$(run s12 'Refunds added.')" "named Stripe and"
+check "12c a later prompt that names it again owes it again" "$(run s12 'Refunds added.')" "what happened to Stripe, which"
 exit $rc

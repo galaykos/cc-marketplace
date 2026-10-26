@@ -176,7 +176,7 @@ cc_prompt_question() {
       | join("; ")
     ' "$state_f" 2>/dev/null)
     if [ -n "$digest" ]; then
-      printf '[skill-router] Signals from recent edits — judge each in one line before continuing, load the skill only if it applies: %s.\n' "$digest"
+      printf '[skill-router] Your recent edits may need these skills: %s. Load each one that applies, or say in one line why it does not.\n' "$digest"
       upd=$(jq '(.pending_low // []) |= map(.flushed = true)' "$state_f" 2>/dev/null) \
         && [ -n "$upd" ] && printf '%s\n' "$upd" > "$state_f" 2>/dev/null
     fi
@@ -220,30 +220,6 @@ cc_prompt_question() {
   fi
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-route-catalog-*' -type d -mmin +"$MARKER_TTL_MIN" -exec rmdir {} + 2>/dev/null
 
-  cat <<CATALOG
-[skill-router] Tool-fit check (once this session). Judge against the slash commands already listed in this session — do not rebuild or ask for that list.
-
-Apply this to work requests for the rest of the session:
-
-1. Judge which listed command best fits the ASK — its substance, not its wording. Most
-   requests fit none of them. Silence is the default and the common case.
-2. If the user NAMED a tool (a command, a plugin, a pipeline) and a listed command
-   clearly fits the ask better, do NOT silently switch and do NOT silently comply.
-   Ask via AskUserQuestion, exactly two options:
-     "Proceed with <better-command> (Recommended)" / "Proceed with <what-they-named> as asked"
-   Give one line of why the other fits — the deliverable's shape, not a preference.
-3. If no tool was named and one clearly fits, name it in one line and carry on. No picker.
-   Exception: when a scope-first reminder fired on the same prompt, satisfy it before
-   carrying on — scoping the work outranks tool-fit. Which reminder that is varies by
-   phase and rank, not by plugin: it may be the clarifying-round directive, a
-   build-vs-buy check, a docs check, or a stuck-loop nudge. Obey whichever one spoke.
-4. Close call, or the named tool IS the best fit: say nothing at all. A tool being
-   listed is not a reason to route to it; over-suggesting is the failure mode here.
-5. At most one picker per named tool per session. Declining is durable — a user who
-   kept their choice is not asked about that tool again.
-6. Under a hands-off boost (an ultra-goal run, or a Goal: marker in the card index),
-   auto-take the Recommended route instead of asking, and record it in the goal ledger
-   with the rationale and both options, per the taskmaster ultra skill's Goal rules.
-CATALOG
+  printf '%s\n' '[skill-router] If the user named a tool and a listed command fits the ask better, ask once which to use. If none was named and one clearly fits, name it in one line after any open questions; otherwise say nothing about commands. In a run that decides for you (`goal`, `goal-lean`, `ultra-goal`, or `Goal: true` in the card index), pick the better fit, say so, and add it to the run'\''s decision log.'
 } 2>/dev/null
 exit 0

@@ -252,7 +252,7 @@ mkdir -p "$L/.claude/skills/laravel-best-practices" "$L/.claude/skills/inertia-b
 for d in laravel-best-practices inertia-best-practices pest-testing; do printf '# project copy\n' > "$L/.claude/skills/$d/SKILL.md"; done
 p_sh=$(prime "$L")
 [ "$(printf '%s\n' "$p_sh" | grep -c .)" = 2 ] && ok || bad "prime shadow: expected exactly two lines; got: $p_sh"
-printf '%s\n' "$p_sh" | sed -n 2p | grep -qF 'This project ships its own laravel-best-practices, inertia-best-practices in .claude/skills: a bare name loads that copy' \
+printf '%s\n' "$p_sh" | sed -n 2p | grep -qF 'Load laravel-best-practices, inertia-best-practices by the plugin:skill name above: a bare name loads the project copy in .claude/skills instead.' \
   && ok || bad "prime shadow: collision line wrong: $(printf '%s\n' "$p_sh" | sed -n 2p)"
 printf '%s\n' "$p_sh" | grep -qF 'pest-testing' && bad "prime shadow: named a project skill no row primes" || ok
 rm -rf "$L/.claude"

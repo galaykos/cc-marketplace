@@ -35,7 +35,7 @@ cc_option() {
   return 0
 }
 
-GUARD_VERSION=0.9.0
+GUARD_VERSION=0.9.1
 
 # Quotes and backslashes go so a quoted evasion (artisan "migrate:fresh") meets the rule the plain form does.
 norm_cmd() {
@@ -708,8 +708,8 @@ deny_env_overwrite() { # target seg
     /*) ;;
     *) if [ "$CWD_MOVED" -eq 1 ]; then
          set_verdict deny \
-           "writes ${t} relative to a directory the command changes into, so the guard cannot tell which ${t} it replaces — if that cd fails, it is the live project's, and git has no copy of it" \
-           "write the file by ABSOLUTE path inside a scratch directory you have checked exists (test -d DIR) in a separate call; never create a secrets file by a relative path after a cd" "$2"
+           "writes ${t} by a relative path after a cd; if the cd fails, it overwrites the live project's ${t}, which git has no copy of" \
+           "write it by absolute path into a directory you checked exists (test -d DIR) in a separate call" "$2"
          return 0
        fi ;;
   esac
@@ -770,8 +770,8 @@ EOF
     grep -qE '^[[:space:]]*APP_KEY=["'\'']?[^"'\''[:space:]]' "$ef" 2>/dev/null || return 0  # empty key: fresh setup
   fi
   set_verdict deny \
-    "replaces APP_KEY in ${ef}; everything encrypted with the old key — stored OAuth tokens, sessions, encrypted casts and cookies — becomes unreadable" \
-    "\`php artisan key:generate --show\` prints a key without writing it; for a test run, export APP_KEY for that process instead of writing any env file" "$seg"
+    "replaces APP_KEY in ${ef}, so everything encrypted with the old key (sessions, stored tokens, encrypted columns) becomes unreadable" \
+    "\`php artisan key:generate --show\` prints a key without writing it; for a test run, export APP_KEY for that process" "$seg"
 }
 
 # Denies only a cd certain to fail: a missing absolute or ~ target no earlier step names, its chain ended by ; before more steps, no set -e.
@@ -831,7 +831,7 @@ check_cd_chain() { # raw command
         case "$earlier" in
           *"$target"*|*"${resolved%/}"*) ;;   # an earlier step names it: may create it
           *) set_verdict deny "$target" \
-               "check the directory in a SEPARATE call first (test -d $target) and read the result; then chain the steps with && (or start with set -e) so a failed cd stops the sequence" \
+               "run \`test -d $target\` in a separate call first, then chain the steps with && (or start with set -e)" \
                "$seg" cd
              return 0 ;;
         esac
@@ -945,10 +945,10 @@ allow_listed() { # normalised lowercased command
 # A deny reason also has to stop the retry loop: without "do not retry" the next turn is the same command requoted.
 deny_reason() {
   if [ "$V_KIND" = "cd" ]; then
-    printf '%s' "BLOCKED by command-guard — \`cd ${V_WHAT}\` will fail: that directory does not exist, nothing earlier in this command creates it, and its chain ends in a \`;\`, so every step after that \`;\` would run in the shell's CURRENT directory — the live project — instead. If an earlier call was meant to create ${V_WHAT}, it did not: a denied or failed call means nothing in it ran. Fix: ${V_ALT}. This is not a destructive-command stop; re-issuing the corrected command is the expected next step."
+    printf '%s' "BLOCKED by command-guard — \`cd ${V_WHAT}\` will fail: the directory does not exist (a denied or failed earlier call created nothing), so the steps after its \`;\` would run in the live project. Fix: ${V_ALT}, then re-issue the corrected command."
     return 0
   fi
-  printf '%s' "BLOCKED by command-guard — this command ${V_WHAT}. The guard cannot tell a local database from production from the command line, so it does not ask; this is a hard stop. Do NOT retry it with different quoting, a wrapper (bash -c, eval), a script file, or a split-up form — the guard reads those too, and working around a safety gate is not the task. Non-destructive path: ${V_ALT}. If the destructive command is genuinely what the task needs, stop and tell the user exactly which command you want run and why, and let them run it. Standing opt-out (the user's call, not yours): a regex line in .claude/${ALLOW_BASENAME}, or CLAUDE_DESTRUCTIVE_GUARD=off in the SESSION's env (=ask downgrades every hard stop to a prompt) — the env is read from this hook's own process, so putting it in front of the command does nothing."
+  printf '%s' "BLOCKED by command-guard — this command ${V_WHAT}. Do not retry it in another form (other quoting, bash -c, a script file). Instead: ${V_ALT}. If the task truly needs it, ask the user to run it, or to allow this exact command with a regex line in .claude/${ALLOW_BASENAME}."
 }
 
 # Silent unless devops' plan reader exists at that path: a hint naming a file the reader does not have is worse than none.
@@ -975,7 +975,7 @@ plan_audit_hint() {
 }
 
 ask_reason() {
-  printf '%s' "command-guard: this command ${V_WHAT}. Confirm that is intended and that anything it removes is either recoverable or not needed. Less destructive path: ${V_ALT}.$(plan_audit_hint) CLAUDE_DESTRUCTIVE_GUARD=off in the session's env disables this guard; =deny-only keeps the hard stops and drops this prompt tier."
+  printf '%s' "command-guard: this command ${V_WHAT}. Confirm that is intended; a safer path: ${V_ALT}.$(plan_audit_hint) CLAUDE_DESTRUCTIVE_GUARD=off turns this guard off."
 }
 
 emit() {
@@ -996,7 +996,7 @@ judge_in_time() { # guard function, its arguments
   job=$!
   if wait "$timer"; then
     kill "$job" 2>/dev/null
-    emit ask "command-guard: judging this call took longer than ${GUARD_DEADLINE:-12} s, so the guard stopped before the host's 15 s hook timeout without ruling out data loss. Confirm it is safe to run; split into smaller calls, each is judged in time. CLAUDE_DESTRUCTIVE_GUARD=off in the session's env disables this guard."
+    emit ask "command-guard: this call took over ${GUARD_DEADLINE:-12} s to check, so data loss is not ruled out. Confirm it is safe, or split it into smaller calls. CLAUDE_DESTRUCTIVE_GUARD=off turns this guard off."
   else
     wait "$job"
     cat "$out"
@@ -1023,12 +1023,12 @@ guard_file_write() { # tool, payload, mode
     case "$patch" in *"$ALLOW_BASENAME"*) f="$ALLOW_BASENAME" ;; esac
   fi
   case "$(printf '%s' "$f" | LC_ALL=C tr '[:upper:]' '[:lower:]' 2>/dev/null || printf '%s' "$f")" in
-    *"$ALLOW_BASENAME") emit deny "BLOCKED by command-guard — ${ALLOW_BASENAME} is the user's standing exemption list for destructive commands. An agent that can edit it can exempt itself. Ask the user to add the line; tell them the exact regex you want." ;;
+    *"$ALLOW_BASENAME") emit deny "BLOCKED by command-guard — ${ALLOW_BASENAME} is the user's own list of allowed destructive commands. Ask the user to add the line, and give them the exact regex." ;;
   esac
   # Ask, not deny: a whole-file Write over a live .env may be meant. Edit is targeted, and creating the file loses nothing.
   if [ "$tool" = "Write" ] && is_env_secret "$f" && [ "$mode" != "deny-only" ]; then
     CWD_MOVED=0
-    env_target_at_risk "$f" && emit ask "command-guard: this Write replaces the whole of ${f}, a local secrets file git has no copy of — every value not in the new content is lost. Confirm that is intended; an Edit changes only the lines named. CLAUDE_DESTRUCTIVE_GUARD=off in the session's env disables this guard; =deny-only drops this prompt tier."
+    env_target_at_risk "$f" && emit ask "command-guard: this Write replaces all of ${f}, a local secrets file git has no copy of. Confirm, or use Edit to change only the lines you mean. CLAUDE_DESTRUCTIVE_GUARD=off turns this guard off."
   fi
 }
 

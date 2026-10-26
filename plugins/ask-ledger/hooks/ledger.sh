@@ -271,7 +271,7 @@ cc_prompt_question() {
   printf '%s\n' "$added" >> "$dir/entries"
   total=$(awk 'NF' "$dir/entries" | head -12 | paste -sd ',' - | sed 's/,/, /g')
 
-  jq -cn --arg m "ask-ledger: the ask names these things — $total. The Stop gate refuses a final message without one line per name: \`<name>: as named\` | \`<name>: substituted → what, why\` | \`<name>: omitted → why\`. A substitution is a question before the first edit, not a line at the end; the line is where it is confessed if it was not asked. Off with CC_ASK_LEDGER=off." \
+  jq -cn --arg m "ask-ledger: the request names $total. Your final reply must say what happened to each, one line per name — \`<name>: as named\` | \`<name>: substituted → what, why\` | \`<name>: omitted → why\` — and a substitution should be asked about before the first edit." \
     '{hookSpecificOutput:{hookEventName:"UserPromptSubmit",additionalContext:$m}}' 2>/dev/null
 } 2>/dev/null
 exit 0

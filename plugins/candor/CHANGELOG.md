@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.10.1 — 2026-10-26
+
+- **The Stop check says what to do in plain words.** Every clause's message leads with the fact and the next step, without the internal names (`completion-gate:`, "sentinel", "negative-control records", the `RV-CARD` marker) or a paragraph on why the clause exists; each still names its off switch. The per-card review and red-team messages point to task-runner's `reviewer-routing.md` and code-redteam skill for the prompt markers instead of pasting them; the whole-diff review still gives its exact `/code-review:review … RV-RANGE:` call. The run-not-finished block keeps its pace rule in one line ("No rush: run one shell step per call and read its result; a denied or failed call ran nothing."), now pinned by `gate.test.sh`. Which stops block is unchanged. Pinned by `gate.test.sh`, `gate-pins.test.sh` and `scripts/smoke/completion-gate-hook-tests.sh`, each asserting the new text.
+
 ## 0.10.0 — 2026-10-25
 
 - **The terse badge re-reads the level file only after a main-loop `Bash` call, at turn start and at session start.** It re-read on every tool call, a subagent's included, though only `/candor:level` and `level.sh` (both through Bash) write the file. Gate: `tests/badge.test.ts`, "reads the level file again after a main-loop Bash call only".

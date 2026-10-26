@@ -159,12 +159,12 @@ cc_option() {
   [ "$n" -eq "$t" ] || exit 0
 
   if [ -n "$run" ]; then
-    msg="task-runner: subagent dispatch #$n in this session, inside the registered run $run ($plan). This is a notice, not a question: the run is already authorized, and an approval prompt here once left a run idle for over an hour while its other agents finished. The next notice is at #$((n * 2)). If the count has outrun the plan, the usual causes are a retry loop that re-dispatches instead of reading the last report, or a fan-out sized per file rather than per independent unit. CC_SPAWN_CAP=<n> moves the threshold, CC_SPAWN_CAP=off disables it."
+    msg="task-runner: subagent dispatch #$n in this session (each is billed), inside the registered run $run ($plan); next notice at #$((n * 2)). Continue if this matches the plan; otherwise stop re-dispatching and read the last report."
     jq -cn --arg r "$msg" '{systemMessage:$r,hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$r}}' 2>/dev/null
     exit 0
   fi
 
-  reason="task-runner: this is subagent dispatch #$n in this session. Subagent turns do not appear in the transcript and they are billed, so a fan-out that grew past its plan is invisible until the invoice — this is the only place it gets counted. If the work genuinely needs this many, approve and carry on; the next prompt is at #$((n * 2)). If it does not, the usual causes are a retry loop that re-dispatches instead of reading the last report, or a fan-out sized per file rather than per independent unit — task-runner's parallel-planning skill sizes it per dependency level. CC_SPAWN_CAP=<n> moves the threshold, CC_SPAWN_CAP=off disables it."
+  reason="task-runner: this is subagent dispatch #$n in this session; each is billed and none shows in the transcript. Approve if this many was planned (next prompt at #$((n * 2))); if not, decline and stop re-dispatching. CC_SPAWN_CAP=<n> moves the threshold (off disables it)."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}' 2>/dev/null

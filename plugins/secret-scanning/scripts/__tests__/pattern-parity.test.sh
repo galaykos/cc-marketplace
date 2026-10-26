@@ -150,8 +150,8 @@ scan() { # scan <payload> [hook] -> allow, or deny TAB the label the deny names 
   [ -n "$out" ] || { printf 'allow'; return; }
   r=$(jq -r '.hookSpecificOutput.permissionDecisionReason // empty' <<<"$out")
   case $r in
-    *"is unusable ("*) r=${r#*is unusable (}; r=${r%%), so this write*} ;;
-    *) r=${r#*this write appears to contain }; r=${r%%. Blocked before it reaches disk.*} ;;
+    *"is unusable ("*) r=${r#*is unusable (}; r=${r%%). Reinstall or update the plugin.*} ;;
+    *) r=${r#*blocked a write containing }; r=${r%%. Put the value in an environment variable*} ;;
   esac
   printf 'deny\t%s' "$r"
 }

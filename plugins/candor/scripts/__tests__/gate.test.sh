@@ -207,12 +207,12 @@ sub_check() { # desc  last-msg  exp_rc  exp_sub
   if [ "$ok" -eq 1 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$desc"
   else fail=$((fail+1)); printf 'FAIL  %s (rc=%s want %s; stderr=%s)\n' "$desc" "$rc" "$exp_rc" "$err"; fi
 }
-sub_check "subagent: fabricated citation in last_assistant_message blocks" "Found it at src/ghost.ts:12." 2 "this report cites a location that does not exist"
+sub_check "subagent: fabricated citation in last_assistant_message blocks" "Found it at src/ghost.ts:12." 2 "This report cites a location that does not exist"
 sub_check "subagent: the block asks for the COMPLETE report, not just the fix" "Found it at src/ghost.ts:12." 2 "re-send your COMPLETE report"
 sub_check "subagent: resolving citation passes"                            "Found it at src/real.ts:3."   0 "__NONE__"
 sub_check "subagent: reversal clause disarmed (no user turn to push back)" "You're right, my mistake."   0 "__NONE__"
 { user "find the bug"; asst "See src/real.ts:3."; } > "$A"
-sub_check "subagent: payload text is judged, not the transcript tail"      "Found it at src/ghost.ts:12." 2 "this report"
+sub_check "subagent: payload text is judged, not the transcript tail"      "Found it at src/ghost.ts:12." 2 "This report"
 rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"
 sub_payload "$A" "Found it at src/ghost.ts:12." | bash "$HOOK" >/dev/null 2>&1
 if [ -f "$SUB_CLAIMED" ] && [ ! -f "$CLAIMED" ]; then pass=$((pass+1)); printf 'PASS  subagent block writes its own claim, not the main thread'"'"'s\n'
@@ -229,7 +229,7 @@ else fail=$((fail+1)); printf 'FAIL  subagent: same report re-stop passes (rc=%s
 # CLI 2.1.284 hands a report back as the last SubagentHandback tool_use's input.message (rationale/candor-subagent-probe-2026-09-29.md).
 handback() { jq -cn --arg m "$1" --arg n "SubagentHandback" '{type:"assistant",message:{content:[{type:"tool_use",name:$n,input:{message:$m}}]}}'; }
 A="$WS/agent-hb1.jsonl"; { user "find the bug"; handback "Found it at src/ghost.ts:12."; } > "$A"
-sub_check "subagent handback: fabricated citation in the handed-back report blocks" "Report delivered." 2 "this report cites a location that does not exist"
+sub_check "subagent handback: fabricated citation in the handed-back report blocks" "Report delivered." 2 "This report cites a location that does not exist"
 A="$WS/agent-hb2.jsonl"; { user "find the bug"; handback "Found it at src/real.ts:3."; } > "$A"
 sub_check "subagent handback: resolving citation in the handed-back report passes"  "Report delivered." 0 "__NONE__"
 A="$WS/agent-hb3.jsonl"; { user "find the bug"; tools Read; tres; } > "$A"
@@ -256,7 +256,7 @@ if command -v git >/dev/null 2>&1; then
   SENT="$CWD/.claude/task-runner/active-run.json"; NUDGE="$CWD/.claude/task-runner/gate-nudge"
   mkdir -p "$CWD/.claude/task-runner"; printf '{"slug":"t"}' > "$SENT"
   touch -t 200001010000 "$SENT"                   # registration precedes every stop below
-  RUN_SUB='registered run with no behavioral-gate pass'
+  RUN_SUB='has no recorded pass of behavioral-gate.sh'
 
   T="$WS/c4a.jsonl"; { user "fix it"; asst "Fixed at src/ghost.ts:12."; } > "$T"
   err=$(payload "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
@@ -285,7 +285,7 @@ if command -v git >/dev/null 2>&1; then
   T="$WS/c4c.jsonl"; { user "fix it"; tools Edit; tres; asst "Done — implemented and verified."; } > "$T"
   rm -f "$MARKER" "$CLAIMED"
   err=$(payload "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'claims completion'; then
+  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'says the work is done'; then
     pass=$((pass+1)); printf 'PASS  bounded clause 4: clause 3 still blocks a naked completion claim\n'
   else fail=$((fail+1)); printf 'FAIL  bounded clause 4 + clause 3 (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
@@ -368,8 +368,8 @@ if command -v git >/dev/null 2>&1; then
   SID="sess-0-5-0"
   IDIR="$TMPDIR/cc-candor-inflight-$(printf '%s' "$SID" | cksum | cut -d' ' -f1)"
   rec_of() { printf '%s/%s' "$IDIR" "$(printf '%s' "$1" | cksum | cut -d' ' -f1)"; }
-  RUN_SUB='registered run with no behavioral-gate pass'
-  WAIT_SUB='still in flight'
+  RUN_SUB='has no recorded pass of behavioral-gate.sh'
+  WAIT_SUB='still running'
 
   # stop_json <cwd> <transcript> [background_tasks-json] — the Stop payload as the host sends it
   stop_json() {
@@ -472,6 +472,8 @@ if command -v git >/dev/null 2>&1; then
     "$(printf '%s' "$err" | grep -qF 'repo root, in the background, run task-runner'"'"'s scripts/behavioral-gate.sh'; echo $?)"
   verdict_is "no gate pass: the block names the 7200000 ms Bash timeout (CLI 2.1.285+ stops a background call at 30 min)" \
     "$(printf '%s' "$err" | grep -qF 'with a Bash timeout of 7200000'; echo $?)"
+  verdict_is "no gate pass: the block sets the pace — one shell step per call, a denied or failed call ran nothing" \
+    "$(printf '%s' "$err" | grep -qxF '  No rush: run one shell step per call and read its result; a denied or failed call ran nothing.'; echo $?)"
   # Sandboxed Bash (bwrap --unshare-pid) records the sandbox's own PID: dead here, or another process. With /proc the gate is
   #   found by its command line and a cwd under the root.
   if [ -d /proc/self ]; then
@@ -553,8 +555,8 @@ if command -v git >/dev/null 2>&1; then
     '{hook_event_name:"Stop",session_id:"q",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}' | bash "$HOOK" 2>&1 >/dev/null); rc=$?; }
   qis() { if [ "$2" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"; else fail=$((fail+1)); printf 'FAIL  %s (rc=%s stderr=%s)\n' "$1" "$rc" "$err"; fi; }
   QT="$WS/qclean.jsonl"; { user "run the cards"; asst "All cards done, gate recorded."; } > "$QT"
-  RANGE_SUB='no whole-range review recorded for HEAD'
-  UI_SUB='no ui-ux-reviewer dispatch recorded'
+  RANGE_SUB='no whole-diff review recorded for HEAD'
+  UI_SUB='no ui-ux-reviewer review recorded'
 
   qsent ",\"start_sha\":\"$QSTART\""
   printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
@@ -570,7 +572,7 @@ if command -v git >/dev/null 2>&1; then
   git -C "$RQ" checkout -q --detach
   qrun "$QT"
   qis "branch: a detached HEAD is not the run's branch, as before" \
-    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "registered on branch $QBR, now on HEAD"; echo $?)"
+    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "registered on branch $QBR and you are on HEAD"; echo $?)"
   git -C "$RQ" checkout -q "$QBR"
   QSHIM="$WS/qshim"; mkdir -p "$QSHIM"
   printf '#!/bin/sh\nfor a in "$@"; do [ "$a" = symbolic-ref ] && exit 128; done\nexec %s "$@"\n' "$(command -v git)" > "$QSHIM/git"; chmod +x "$QSHIM/git"
@@ -600,7 +602,7 @@ if command -v git >/dev/null 2>&1; then
   printf '{"head":"%s","cards_total":3,"cards_done":3,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
   qrun "$QT"
   qis "range: a recorded range skip is not counted as a card's review" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'only 2 per-card reviewer records'; echo $?)"
+    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'only 2 have a review recorded'; echo $?)"
   printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
   qrun "$QT"
   qis "range: a recorded range skip passes the check, then the report must name it" \

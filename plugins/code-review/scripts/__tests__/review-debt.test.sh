@@ -86,11 +86,13 @@ silent "first prompt" "$(prompt)"
 commit "nine" src/f1.ts src/f2.ts src/f3.ts src/f4.ts src/f5.ts src/f6.ts src/f7.ts src/f8.ts src/f9.ts
 base1=$(base_of "$TP1"); short1=$(g rev-parse --short "$base1")
 out=$(prompt)
-fires "9 committed code files nudge" "$out" "9 changed files have had no review in this session since $short1" \
-  "/code-review:review $short1..HEAD" "or say in one line why not" \
-  "Per-card reviews do not cover cross-card changes." "CC_REVIEW_NUDGE=off"
+fires "9 committed code files nudge" "$out" \
+  "[code-review] 9 changed files have had no review in this session since $short1. Run /code-review:review $short1..HEAD or say in one line why not (CC_REVIEW_NUDGE=off turns this reminder off)."
+printf '%s' "$out" | grep -qi 'per-card' && { echo "FAIL: the reminder speaks of per-card reviews to a user who may never have run task-runner"; rc=1; }
+[ "$(printf '%s' "$out" | wc -c)" -le 300 ] && echo "PASS: the reminder is at most 300 bytes" \
+  || { echo "FAIL: the reminder is over 300 bytes: $out"; rc=1; }
 printf '%s' "$out" | grep -q 'Before this ships' && { echo "FAIL: a plain prompt drew the ship wording"; rc=1; }
-printf '%s' "$out" | grep -q 'auth-surface' && { echo "FAIL: no auth path, yet an auth-surface clause"; rc=1; }
+printf '%s' "$out" | grep -q 'touches auth' && { echo "FAIL: no auth path, yet an auth clause"; rc=1; }
 [ "$(printf '%s' "$out" | wc -l | tr -d ' ')" = "0" ] \
   && echo "PASS: the nudge is one line" || { echo "FAIL: the nudge spans lines: $out"; rc=1; }
 printf '%s\n' "$out" > "$FX/nudge-count.txt"
@@ -125,7 +127,7 @@ agent web-dev:frontend-reviewer
 commit "policy" app/Policies/PostPolicy.php
 out=$(prompt)
 fires "one changed file under app/Policies/ nudges" "$out" "1 changed file has had no review" \
-  "auth-surface: app/Policies/PostPolicy.php"
+  "touches auth: app/Policies/PostPolicy.php"
 printf '%s\n' "$out" > "$FX/nudge-auth.txt"
 
 # ---- a Skill review moves the base; `author` is not `auth` ----------------------------
@@ -137,14 +139,14 @@ silent "Skill code-review:review moved the base; AuthorController is not auth" "
 commit "registry" app/Support/ServiceRegistry.php
 silent "a service registry is not registration" "$(prompt)"
 commit "registration" app/Http/Controllers/RegistrationController.php
-fires "a registration controller nudges as an auth surface" "$(prompt)" "auth-surface: app/Http/Controllers/RegistrationController.php"
+fires "a registration controller nudges as an auth surface" "$(prompt)" "touches auth: app/Http/Controllers/RegistrationController.php"
 
 # ---- sign-up counts as a word or a camelCase part, not inside DesignUpdates or AssignUploads --
 skill code-review:review
 commit "design updates" app/Http/Controllers/DesignUpdatesController.php app/Jobs/AssignUploadsToFolder.php
 silent "DesignUpdatesController and AssignUploadsToFolder are not sign-up" "$(prompt)"
 commit "sign-up" app/Http/Controllers/UserSignUpController.php
-fires "a camelCase SignUp controller nudges as an auth surface" "$(prompt)" "auth-surface: app/Http/Controllers/UserSignUpController.php"
+fires "a camelCase SignUp controller nudges as an auth surface" "$(prompt)" "touches auth: app/Http/Controllers/UserSignUpController.php"
 
 # ---- the user typing the review command moves the base too --------------------------
 silent "typed /code-review:review" "$(say "$R" "/code-review:review src/" "$TP1")"
@@ -211,7 +213,7 @@ silent "switched to a branch built on the base: its 10 files are not this sessio
   || { echo "FAIL: the base did not move to the switched-to tip"; rc=1; }
 commit "after the switch" app/Auth/AfterSwitch.php
 fires "a commit after the switch is counted alone" "$(say "$R" go "$TP4")" \
-  "1 changed file has had no review" "auth-surface: app/Auth/AfterSwitch.php"
+  "1 changed file has had no review" "touches auth: app/Auth/AfterSwitch.php"
 
 # ---- git switch -c plus commits in one turn stay in the count ------------------------
 silent "first prompt of a fifth context" "$(say "$R" go "$TP5")"
@@ -229,9 +231,7 @@ mkdir -p "$R/app/Billing" && printf 'new\n' > "$R/app/Billing/PaymentHold.php"
 silent "uncommitted work, plain prompt, same HEAD: still once per HEAD" "$(say "$R" "proceed next recommended" "$TP6")"
 out=$(say "$R" "open a PR and merge it" "$TP6")
 fires "uncommitted + untracked auth file at a ship prompt, same HEAD" "$out" \
-  "Before this ships: 2 changed files have had no review in this session since $start6" \
-  "auth-surface: app/Billing/PaymentHold.php" "Run /code-review:review $start6 now" \
-  "Per-card reviews do not cover cross-card changes."
+  "[code-review] Before this ships: 2 changed files have had no review in this session since $start6, uncommitted and untracked files included (touches auth: app/Billing/PaymentHold.php). Run /code-review:review $start6 now or say in one line why not (CC_REVIEW_NUDGE=off turns this reminder off)."
 printf '%s\n' "$out" > "$FX/nudge-ship.txt"
 silent "same count, second ship prompt" "$(say "$R" "git push" "$TP6")"
 printf 'new\n' > "$R/ft/z.ts"

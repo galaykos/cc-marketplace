@@ -336,7 +336,7 @@ expect allow 'cd /tmp; ls'                                   # exists
 expect allow 'cd sub; ls'                                    # relative: not judged
 expect allow 'echo "cd /tmp/cg-absent-dir; rm x"'
 out=$("$BASH_BIN" "$GUARD" --check 'cd /tmp/cg-absent-dir; ls' 2>/dev/null)
-case "$out" in *"re-issuing the corrected command is the expected next step"*) ok ;;
+case "$out" in *"Fix: run \`test -d /tmp/cg-absent-dir\` in a separate call first"*"then re-issue the corrected command."*) ok ;;
   *) bad "the cd deny must invite the corrected retry, not forbid retrying" "$out" ;; esac
 
 printf '== evasion\n'
@@ -467,10 +467,16 @@ printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecisionReason | lengt
 # the reason must tell the model not to rephrase, or the next turn is a retry
 printf '%s' "$out" | grep -qi 'do not retry' \
   && ok || bad "deny reason lacks the no-retry instruction" "$out"
+r=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason')
+[ "$r" = "BLOCKED by command-guard — this command drops every table in the configured database and re-runs migrations. Do not retry it in another form (other quoting, bash -c, a script file). Instead: \`php artisan migrate\` applies pending migrations without touching existing rows. If the task truly needs it, ask the user to run it, or to allow this exact command with a regex line in .claude/destructive-guard-allow." ] \
+  && ok || bad "deny reason: what was blocked, the alternative, and the user's narrow exception" "$r"
 
 out=$(hook "$(bash_json 'git reset --hard')")
 [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "ask" ] \
   && ok || bad "Bash ask: wrong decision" "$out"
+r=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason')
+[ "$r" = "command-guard: this command discards every uncommitted change in the working tree. Confirm that is intended; a safer path: \`git stash\` keeps them recoverable. CLAUDE_DESTRUCTIVE_GUARD=off turns this guard off." ] \
+  && ok || bad "ask reason: what to confirm, the safer path and one off switch" "$r"
 
 SIB="$WS/plugins"; mkdir -p "$SIB/command-guard" "$SIB/devops/scripts"
 printf '#!/bin/bash\nexit 0\n' > "$SIB/devops/scripts/plan-audit.sh"
@@ -579,6 +585,8 @@ printf 'APP_KEY=base64:abc\n' > "$WENV/.env"
 out=$(hook_in "$WENV" "$(file_json Write .env)")
 [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision' 2>/dev/null)" = "ask" ] \
   && ok || bad "Write replacing an existing .env must ask" "${out:-<silent>}"
+[ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason' 2>/dev/null)" = "command-guard: this Write replaces all of .env, a local secrets file git has no copy of. Confirm, or use Edit to change only the lines you mean. CLAUDE_DESTRUCTIVE_GUARD=off turns this guard off." ] \
+  && ok || bad "the .env Write ask names the file, the Edit alternative and one off switch" "$out"
 out=$(hook_in "$WENV" "$(file_json Write "$WENV/.env")")
 [ -z "$out" ] && ok || bad "Write to a .env under the temp dir is scratch and must be silent" "$out"
 out=$(hook_in "$WENV" "$(file_json Edit .env)")
