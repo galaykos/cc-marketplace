@@ -114,6 +114,10 @@ pasting the artboard's HTML into the tree.
 - **Default tells** read as generated: an all-caps eyebrow over every heading, numbered
   01/02/03 markers on content that is not a sequence, a gradient wash as decoration, an
   arrow glued to every link. Use each only when the content asks for it.
+- **Copy that explains the layout is a layout defect.** Cut taglines, helper text and
+  secondary labels; an artboard that needs one to make sense fixes its hierarchy or
+  grouping instead. An input's label, a field's required format, error text and units
+  stay. *Standing: agent-graded.*
 - **Accessibility floor is not a knob.** 44px targets (`dk-btn`, `dk-input` default),
   visible focus (the shell provides it), body text on `--dk-bg` at the shell's contrast,
   `aria-current` on the active nav item, labels bound to inputs. A hand-written body can

@@ -4,6 +4,37 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.123.0] - 2026-10-26
+
+Two external skill repositories reviewed in full and folded in under this repo's admission bar, plus two house
+rules. What was kept, cut, verified and dropped, skill by skill, is in `rationale/gamedev-design-import-2026-10-26.md`.
+Nothing imported is measured against a control arm.
+
+- **Ten new game plugins, one per engine plus an engine-agnostic one** — `godot`, `unity`, `unreal`, `roblox`,
+  `bevy`, `defold`, `ebitengine`, `phaser`, `pixijs`, `gamedev` — distilled from
+  [gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills)
+  @184b72b (Apache-2.0): 76 upstream skills became 17, keeping only inverted version facts, footguns, hard platform
+  limits and six checker scripts with their tests (`check_godot_project.py`, `check_unity_project.py`,
+  `check_defold_project.py`, `check_ebitengine.py`, `check_steam_build.py`, `asset_report.py`; 171 test cases, each
+  suite CI-globbed). Genres, generic disciplines, pygame, LÖVE and the router were cut. Plugins shipping a copied
+  script carry `LICENSE` and `NOTICE`. Standing: gate for the scripts' harnesses; recorded for the prose.
+- **design-kit 0.11.0 — `/design-kit:motion`,** migrated from `design-to-motion` in
+  [elayadesign/ai-design-skills](https://github.com/elayadesign/ai-design-skills) @a2735a3 (MIT). Its sibling
+  `landing-page-design` was not imported: craft-layer's offer contract already carries its strategy half, and its
+  visual half (Geist mandated, Inter banned, no gradients, fixed hexes, invented copy) contradicts house doctrine.
+- **Copy that explains the layout is a layout defect** — ui-ux 0.31.0 (`/ui-ux:build`, `ui-ux-engineer`,
+  `ui-ux-reviewer`), design-kit's design skill, craft-layer 0.59.0's `information-design`: cut taglines, helper text
+  and secondary labels, fix the hierarchy instead; input labels, required formats (WCAG 3.3.2), errors, units and
+  legal copy stay. Standing: agent-graded through `ui-ux-reviewer`; recorded elsewhere.
+- **approaches 0.12.0 — the pick elevates UX, DX and AX without breaking anything.** The trade-off table gains a
+  UX · DX · AX column, and a candidate that trades one for another is surfaced as the user's call. Standing:
+  agent-graded.
+- **Installs stay per project.** `all-plugins` 0.6.0 skips the game plugins like prompt-coach (gate: its harness);
+  stack-scan 0.15.0 adds a scout row and a `--full` Game class per engine; skill-router 0.28.0 routes engine files
+  only beside the engine's own manifest. craft-layer also gains the three.js facts the import surfaced.
+- **Repository:** `gamedev` joins the keyword taxonomy; 18 owns nouns join the lane vocabulary; the context-budget
+  baselines gain the ten new plugins only (always-on total 12,254 of the 12,800 ceiling).
+
 ## [0.122.0] - 2026-10-06
 
 Design and motion facts found while reviewing [freshtechbro/claudedesignskills](https://github.com/freshtechbro/claudedesignskills)

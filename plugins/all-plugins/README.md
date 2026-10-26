@@ -13,7 +13,11 @@ construction: **`prompt-coach`**, which bills a model call per eligible prompt, 
 installs only when you name it (`claude plugin install prompt-coach@cc-plugins-marketplace -s local`).
 `install` never installs or enables it and prints it as a
 `skip (opt-in: bills a model call per prompt)` row; `uninstall` and `list` treat it like
-any other plugin.
+any other plugin. The game plugins — `godot`, `unity`, `unreal`, `roblox`, `bevy`, `defold`,
+`ebitengine`, `phaser`, `pixijs` and `gamedev` — are left out the same way, as
+`skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)`: ten engines'
+descriptions in every project's listing serve none of them, and `/stack-scan:suggest` puts each
+one where its manifest signal is. Install one by name like prompt-coach.
 
 > **Re-run it after every marketplace update.** `install` installs what the marketplace
 > holds **when you run it**. `/plugin marketplace update` updates the plugins you have;
@@ -42,7 +46,7 @@ only through one of those it stays silent, and when leaves are, it shows the lin
 ```bash
 # 1. In a session, after installing this one plugin:
 /plugin install all-plugins@cc-plugins-marketplace
-/all-plugins:install                   # every leaf but opt-in prompt-coach; asks local or project first (not found yet? /reload-plugins first)
+/all-plugins:install                   # every leaf but opt-in prompt-coach and the game plugins; asks local or project first (not found yet? /reload-plugins first)
 /all-plugins:uninstall                 # the inverse; --self removes all-plugins too
 /reload-plugins                        # nothing installed this run is active until you do
 
@@ -98,13 +102,13 @@ disk before any plugin is installed.
   manifests and installs a picked set with evidence; its `--sync` mode moves a machine off
   user scope project by project, and prints this script's `uninstall --scope user --self`
   as the last step. This plugin is for the case where
-  you have already decided you want everything but prompt-coach.
+  you have already decided you want everything but prompt-coach and the game plugins.
 
 ## What has teeth
 
 | Rule | Standing |
 |---|---|
-| The exit codes, the every-listed-plugin list, the `prompt-coach` opt-in skip, the scope flag, a script that never prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
+| The exit codes, the every-listed-plugin list, the `prompt-coach` and game-plugin opt-in skips, the scope flag, a script that never prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
 | The commands relay the script instead of running `claude plugin install` themselves | **agent-graded** — it is instruction text in `commands/*.md`; nothing detects a substituted loop |
 | Both commands ask for the scope when `--scope` is absent (`user` only typed, for install), and stop rather than defaulting when nobody answers | **agent-graded** — instruction text in `commands/install.md` and `commands/uninstall.md`; no harness drives a command |
 | The startup line: shown only while all-plugins is its marketplace's sole enabled plugin, on startup, to the person, off with `CC_ALL_PLUGINS_HINT=off` | **gate** — the same harness's `hint:` cases drive `hooks/hint.sh` against fixture settings files |

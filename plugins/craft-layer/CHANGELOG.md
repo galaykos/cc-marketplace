@@ -7,6 +7,11 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.59.0 — 2026-10-26
+
+- **`information-design` names the captioned layout as an anti-pattern.** A tagline under the page title, helper text under every field, a secondary label restating a column header: cut them, and fix the ranking or grouping a screen needed them for. Units, a field's required format (WCAG 3.3.2), errors and the qualifying delta stay — they are data. Standing: recorded — no reviewer here reads it back.
+- **three.js facts from the gamedev import.** `threejs-best-practices` gains: `await renderer.init()` before a direct `render()` on WebGPURenderer; `skeleton.dispose()` and r186's `Object3D.dispose()` in the disposal traversal; `HDRLoader` for the r180-deprecated `RGBELoader`; `scene.environmentIntensity` (r163), which overrides a material's `envMapIntensity` when the material has no `envMap` of its own; and the r183 `RoomEnvironment` move. `compressed-gltf.md` gains `KHR_meshopt_compression` (r183) and `DRACO_GLTF_CONFIG` / `setDecoderConfig` deprecated since r185. `effect-pipeline.md` gains `OutputPass` at the end of an `EffectComposer` chain (FXAA after it) and the GLSL ES ban on `uniform` initialisers. Read 2026-10-26 from three r183/r186 source, the migration guide and GLSL ES 3.20 §4.3. Standing: recorded. Unmeasured: no control-arm eval. Adapted from [gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) @184b72b (Apache-2.0); rewritten, not copied.
+
 ## 0.58.1 — 2026-10-15
 
 - **ultra-craft's `effort=xhigh` reaches inline dispatches from CLI 2.1.292.** The skill and its `ultra-craft` hook said `effort` was settable only on the Workflow `agent()` path; since 2.1.292 the Agent tool takes it per call, and the skill naming `xhigh` is the explicit ask that parameter waits for. Below 2.1.292 an inline dispatch still escalates the model only. Agent-graded: no script reads a dispatch. It is passed only when the Agent tool lists an `effort` parameter.

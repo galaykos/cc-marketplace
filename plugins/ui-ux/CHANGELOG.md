@@ -4,6 +4,10 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.31.0 — 2026-10-26
+
+- **Copy that explains the layout is a layout defect.** `/ui-ux:build` and the generated `ui-ux-engineer` cut taglines, helper text and secondary labels from what a build makes or restyles; when a screen needs one to make sense, the fix is the hierarchy, grouping or primary label, not the line. `ui-ux-reviewer` flags such copy with the layout fix as the remedy. Carved out so nothing breaks: an input's visible label, a format or constraint the field needs before input (WCAG 3.3.2), error text, units, and the legal, consent and nav copy the existing-target rule keeps; a decided `Copy voice:` line outranks it. Standing: agent-graded — `ui-ux-reviewer` applies it when dispatched; no script reads copy.
+
 ## 0.30.2 — 2026-10-15
 
 - **The theme preview survives the host's background limit.** From CLI 2.1.285 the host stops a background Bash call at its `timeout`, 30 minutes by default and 2 h at most (from 2.1.288 only in `-p`, SDK, CI and cloud sessions), so a preview server started there could die between rounds. shadcn-theming now starts its fallback server with `timeout: 7200000` and re-checks the port before each round, starting it again on the same port when nothing listens. Measured on 2.1.300 through TaskStop: a stop kills the call's whole tree, a `&`, `nohup` or `setsid` child included; only a process already re-parented (`setsid -f`, a double fork) survives, and that one outlives the session with no owner, so the skill does not detach. Agent-graded: no script reads the call.

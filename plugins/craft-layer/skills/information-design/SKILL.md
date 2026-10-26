@@ -163,5 +163,9 @@ this rule is in `references/app-craft-floors.md`.
 - **Off-scale spacing.** `margin: 13px`, mixed gutters. Every gap is a scale step.
 - **Right-shouting metadata.** Timestamps and IDs at primary weight, drowning the
   value that matters. Push tertiary content to hover or a drawer.
+- **Captioned layout.** A tagline under the page title, helper text under every
+  field, a secondary label restating a column header. Cut them; a screen that does
+  not read without them has a ranking or grouping defect — fix that. Units, a field's
+  required format (WCAG 3.3.2), errors and the qualifying delta are data, not captions.
 - **Duplicating dataviz.** Restating chart-type or color rules here. Cite the
   `dataviz` skill and link out.

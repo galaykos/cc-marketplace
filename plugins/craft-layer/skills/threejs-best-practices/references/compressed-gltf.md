@@ -1,11 +1,12 @@
 # Compressed glTF — decoders, where they load from, and the encode step
 
-> Last verified: 2026-10-06 — https://threejs.org/docs/pages/GLTFLoader.html — npm:three@0.186
+> Last verified: 2026-10-26 — https://threejs.org/docs/pages/GLTFLoader.html — npm:three@0.186
 
 Read on demand from the threejs-best-practices SKILL when a model is Draco-, Meshopt- or
 KTX2-compressed. Versions read that day: three 0.186.1, @react-three/drei 10.7.9 (on
 three-stdlib 2.36.1), @gltf-transform/cli 4.5.1 — each fact below was read from those
-packages' source, not from a render.
+packages' source, not from a render. The `KHR_meshopt_compression` and `DRACO_GLTF_CONFIG`
+facts were read from three r183 and r186 source on 2026-10-26.
 
 ## The decoder must match the file
 
@@ -14,7 +15,7 @@ decoder for. GLTFLoader throws on the mismatch:
 
 | The file uses | Wire before loading | Without it, GLTFLoader throws |
 | --- | --- | --- |
-| Meshopt (`EXT_meshopt_compression`) | `loader.setMeshoptDecoder(MeshoptDecoder)` | `setMeshoptDecoder must be called before loading compressed files` |
+| Meshopt (`EXT_meshopt_compression`, or `KHR_meshopt_compression` from r183) | `loader.setMeshoptDecoder(MeshoptDecoder)` | `setMeshoptDecoder must be called before loading compressed files` |
 | Draco (`KHR_draco_mesh_compression`) | `loader.setDRACOLoader(dracoLoader)` | `No DRACOLoader instance provided.` |
 | KTX2 textures (`KHR_texture_basisu`) | `loader.setKTX2Loader(ktx2Loader)` after `detectSupport(renderer)` | `setKTX2Loader must be called before loading KTX2 textures` |
 
@@ -31,6 +32,11 @@ decoder for. GLTFLoader throws on the mismatch:
   `setDecoderPath` / `setTranscoderPath` are only overrides. Below r185 both paths default
   to empty and must be set. Either way, confirm the built output serves the `.wasm` — that
   depends on the bundler, not on three.
+- **Draco's glTF-only build (r185+):** `setDecoderPath` also takes a `{ js, wasm }` object,
+  and `DRACOLoader.js` exports one, `DRACO_GLTF_CONFIG`, pointing at the smaller decoder in
+  `libs/draco/gltf/`: `new DRACOLoader().setDecoderPath(DRACO_GLTF_CONFIG)`.
+  `setDecoderConfig()` is deprecated since r185 (DRACOLoader is moving to WASM only); its
+  warning names removal in r194.
 - **drei `useGLTF`** builds three-stdlib's loaders, not three's, so the r185 resolution does
   not reach it. It wires Draco and Meshopt for you and, by default, fetches the Draco
   decoder from `https://www.gstatic.com/draco/versioned/decoders/1.5.5/` — a third-party

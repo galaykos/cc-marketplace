@@ -73,7 +73,8 @@ delegation-contracts skill; otherwise the contract above suffices.
    are three-way agreement, and four ungrounded ones are no evidence at all.
    Standing: agent-graded; nothing counts the tool calls but the reader.
 2. Synthesize ONE pick — what was taken from whom, what was given up. Same output
-   shape as the inline slate, so downstream handling is identical. With
+   shape as the inline slate, so downstream handling is identical, and the same
+   step-4 bar: it elevates UX, DX and AX without breaking anything. With
    plan-before-code (code-architecture) installed the pick honors its scope lock —
    debt arguments never widen the change.
 3. Then the body's proceed rule and kill-trigger apply unchanged. A **structural

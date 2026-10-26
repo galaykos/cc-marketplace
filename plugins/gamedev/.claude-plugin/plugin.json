@@ -1,0 +1,14 @@
+{
+  "name": "gamedev",
+  "version": "0.1.0",
+  "description": "Engine-agnostic game shipping: Steam release (a SteamPipe build-script validator, the store and review timeline, Content Survey AI disclosure, Steam Cloud and Deck/Machine compatibility) and itch.io release (butler channels, HTML5 limits, jam submissions), plus game asset checks, Yarn Spinner and Ink dialogue scripting, seed-stable procedural generation, and console/PC/handheld text-size and loudness floors. Companion to the engine plugins (Godot, Unity, Unreal, Roblox, Bevy, Defold, Ebitengine, Phaser, PixiJS).",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "gamedev",
+    "devops",
+    "tooling"
+  ]
+}

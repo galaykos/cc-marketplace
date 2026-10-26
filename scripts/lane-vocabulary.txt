@@ -54,6 +54,7 @@ task-list-parallelization-plan
 # --- build ---
 accessibility-remediation
 astryx-idioms
+bevy-idioms
 cicd-and-deploy-idioms
 comment-placement-rule
 component-library-floor
@@ -62,9 +63,15 @@ concurrency-hazard-discipline
 cross-boundary-failure-design
 decided-fix-list-application
 defensive-security-remediation
+defold-idioms
 dependency-management-discipline
+design-motion-showcase
+dialogue-scripting
 dockerfile-and-compose-idioms
+ebitengine-idioms
 error-propagation-discipline
+game-asset-checks
+godot-idioms
 in-code-instrumentation
 inertia-idioms
 laravel-idioms
@@ -74,15 +81,19 @@ message-delivery-design
 mui-idioms
 nextjs-idioms
 performance-optimization
+phaser-idioms
 php-laravel-backend-implementation
 pipeline-and-infra-implementation
+pixijs-idioms
 primereact-idioms
 react-native-idioms
 real-component-design-render
 relational-schema-and-query-implementation
 reviewer-verdict-consent
+roblox-idioms
 run-board
 secret-handling-discipline
+seeded-generation
 slide-deck-authoring
 sql-idioms
 stack-neutral-web-implementation
@@ -90,12 +101,17 @@ third-party-api-doc-reminder
 third-party-api-doc-verification
 threejs-idioms
 ui-implementation
+unity-idioms
+unreal-idioms
 vite-idioms
 wcag-checklist
 
 # --- verify ---
 agent-output-trust-decision
 candour-transcript-measurement
+game-platform-floors
+godot-headless-test-runner
+godot-reference-check
 load-bearing-claim-refutation
 own-docs-drift-scan
 produced-artifact-execution
@@ -129,9 +145,11 @@ wcag-audit
 
 # --- ship ---
 development-branch-completion
+itch-release
 marketplace-wide-install
 marketplace-wide-uninstall
 self-contained-artifact-bundle
+steam-release
 
 # --- any ---
 ad-hoc-breadth-question

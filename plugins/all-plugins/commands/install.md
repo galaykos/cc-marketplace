@@ -1,5 +1,5 @@
 ---
-description: Install every leaf plugin of this marketplace but opt-in prompt-coach at one scope — asks local or project once when --scope is absent, never defaults silently; runs the plugin's script and relays its exit code: 0 run /reload-plugins, 1 lists the plugins that failed, 2 names the missing precondition.
+description: Install every leaf plugin of this marketplace but opt-in prompt-coach and the game plugins at one scope — asks local or project once when --scope is absent, never defaults silently; runs the plugin's script and relays its exit code: 0 run /reload-plugins, 1 lists the plugins that failed, 2 names the missing precondition.
 argument-hint: [--scope local|project|user] [--dry-run] [--budget]
 disable-model-invocation: true
 ---

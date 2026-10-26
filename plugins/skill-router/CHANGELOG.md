@@ -2,6 +2,11 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.28.0 — 2026-10-26
+
+- **Game engines route.** New rows send an edit to the engine plugin's skill when that plugin is installed: `.gd`, `.gdshader`, `export_presets.cfg` → `godot-best-practices`; `.tscn`, `.tres`, `project.godot` → `godot-project-check`; a `godot --headless` line → `godot-headless-testing`; `.inputactions` → `unity-best-practices`; `.uproject` and `UCLASS(`/`GENERATED_BODY()` → `unreal-best-practices`; `.luau` and a Rojo DataModel project → `roblox-best-practices`; `game.project` → `defold-best-practices`; a `phaser` or `pixi.js` import → their skills; Steam `.vdf`, `steam_appid.txt`, `steamcmd`, `butler push`, `.itch.toml` and Yarn/Ink files → `gamedev`'s release and dialogue skills. A generic extension carries a `?` marker on the engine's own manifest — `.cs` is Godot's beside `project.godot` and Unity's beside `ProjectVersion.txt`, `.go` is Defold's beside `game.project` and Ebitengine's beside a go.mod requiring `ebiten/v2`, `.rs` is Bevy's beside a Cargo.toml naming `bevy` — so a repo without the engine stays silent. Standing: gate for the row syntax (`validate.sh`); the markers were probed once by hand in temp repos — `.gd` and `.cs` beside `project.godot`, `.cs` beside `ProjectVersion.txt`, `.go` beside an ebiten go.mod and `.rs` beside a bevy Cargo.toml each routed their engine skill, while a plain go.mod, Cargo.toml and lone `.cs` routed none — and no `route.test.sh` case pins them.
+- **`design-kit:motion`** routes on `**/.design-kit/motion/**`, beside the other design-kit directory rows.
+
 ## 0.27.0 — 2026-10-25
 
 - **Removed: the stack-scoped skill listing** (`cc_route_scope`, `CC_ROUTE_SCOPE`, `hooks/listing.ts`, `hooks/stack-evidence.sh`). It shipped off by default because nothing showed a shorter listing helps, and the marketplace's own eviction probe measured 47/50 against 47/50 for a name-only listing; a default install carried it as code that never ran. Compaction steering is unchanged. A `cc_route_scope` you set is now ignored.

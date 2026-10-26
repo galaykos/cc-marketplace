@@ -62,6 +62,14 @@ convention.
    Standing: agent-graded on a craft run (craft-reviewer against `preserve.json`);
    recorded on a standalone build — no reviewer here reads it back.
 
+   **Copy that explains the layout is a layout defect.** Cut taglines, helper text and
+   secondary labels from what this build makes or restyles. When a screen needs one to
+   make sense, fix the hierarchy, grouping or primary label instead of adding the line.
+   Never cut an input's visible label, a format or constraint the field needs before
+   input (WCAG 3.3.2), error text, units, or the copy the paragraph above keeps. A
+   decided `Copy voice:` line outranks this. Standing: agent-graded — `ui-ux-reviewer`
+   flags it when dispatched.
+
    **No decided lines → name the defaults to leave out.** With no art direction the
    model falls back on a few house styles, and "avoid a generic look" only swaps one
    default for another; a list of named patterns works. When $ARGUMENTS carries no

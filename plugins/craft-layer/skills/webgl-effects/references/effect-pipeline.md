@@ -1,6 +1,6 @@
 # Effect pipeline — postprocessing, uniforms, and the GLSL→TSL port
 
-> Last verified: 2026-10-06 — https://threejs.org/docs/pages/RenderPipeline.html — npm:three@0.186
+> Last verified: 2026-10-26 — https://threejs.org/docs/pages/RenderPipeline.html — npm:three@0.186
 
 Read on demand from the webgl-effects SKILL. Renderer/scene/R3F setup is NOT re-taught
 here — it lives in `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`; lazy-load
@@ -25,6 +25,10 @@ effect-layer how-to.
   `npm view postprocessing peerDependencies` before a three bump: past the bound, npm stops
   with `ERESOLVE` and forcing the install runs a pair pmndrs never declared.
   Standing: recorded.
+- `EffectComposer` ends with `OutputPass` (`three/addons/postprocessing/OutputPass.js`).
+  The renderer applies tone mapping and the sRGB output conversion only when it draws
+  straight to the canvas, so a chain without it comes out dark and untoned. A pass that
+  needs sRGB input (FXAA) goes AFTER `OutputPass` (its own doc comment, three r186).
 - One pipeline instance per renderer, created after the scene, disposed with it.
 - Compose passes cheapest-first; every full-screen pass re-reads the framebuffer, so each
   one is real fill-rate. Cap the count (≈2–3 as a ceiling). pmndrs merging counts as one
@@ -36,6 +40,9 @@ effect-layer how-to.
 
 - Declare uniforms once (`uProgress`, `uPointer`, `uTime`) and WRITE them on the render
   loop — never rebuild the material or the pipeline per frame.
+- Defaults go in the material's `uniforms` (or TSL `uniform(0.05)`), never in the GLSL:
+  GLSL ES forbids initialisers on `uniform` declarations (GLSL ES 3.20 §4.3), so
+  `uniform float uAmp = 0.05;` compiles on desktop GLSL and fails in WebGL.
 - Scroll progress comes from the existing scroll contract
   (`plugins/craft-layer/skills/scroll-orchestration/SKILL.md`) — read the smoothed
   progress it already produces; do not start a second scroll/rAF loop for the shader
