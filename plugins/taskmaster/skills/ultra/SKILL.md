@@ -105,7 +105,8 @@ is a dispatch-time override. Tokens take no suffix — a bare token, one fixed t
   (produced code is run, not just linted) + negative-control, mis-specified-task halts,
   security-hole flagging. These SURFACE; they are not consent prompts. Confirmed
   code-redteam findings feed the bounded auto-retry like reviewer findings; on exhaustion, park.
-- Never auto-accept security/auth/data-loss holes OR statement-fidelity holes (the upgraded
+- Never auto-accept security holes, any hole touching auth or stored data (loss, corruption,
+  schema or migration, personal data) whatever its lens, OR statement-fidelity holes (the upgraded
   statement adds, drops, or swaps capability vs the raw prompt): amend the spec/statement,
   or halt with evidence if unamendable.
 - Escape hatch (surface-and-stop, not a prompt): when no defensible recommendation can be

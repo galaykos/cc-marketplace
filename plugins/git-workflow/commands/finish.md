@@ -1,12 +1,13 @@
 ---
 description: Finish a development branch — full-suite verify with state evidence, then merge/PR/keep/discard with cleanup.
-argument-hint: [branch]
+argument-hint: [branch] [--to pr|merge|keep]
 ---
 
-Finish the development branch $ARGUMENTS (or the current branch if no argument
-is given) using the branch-completion skill from this plugin. Invoke the skill
+Finish the development branch named in $ARGUMENTS (or the current branch if none
+is named) using the branch-completion skill from this plugin. Invoke the skill
 first. If a branch was named and is not checked out, switch to it (or its
-worktree) before doing anything else.
+worktree) before doing anything else. `--to pr|merge|keep` in $ARGUMENTS is not a
+branch name: it answers the destination question ahead of time (below).
 
 Write the arc phase sentinel `.claude/cc-phase.json` first, with taskmaster's writer
 and never by hand —
@@ -83,8 +84,22 @@ to end, including post-merge re-verification, worktree removal, and branch
 deletion where the protocol calls for them — discard only after the user types
 the branch name back.
 
+**`--to pr|merge|keep`** skips this question and nothing else: everything above runs
+as without it, then the named destination's protocol runs — `pr` push and open a PR,
+`merge` merge locally, `keep` keep the branch open — post-merge suite and the skill's
+two halts (HEAD is the default branch, PR impossible) included. A red suite still
+stops before any destination. An unresolved `critical` finding, or a **confirmed**
+secret-scan hit, stops the `--to` path: show it and ask as above, where the waiver
+rule applies. A review or drift-review fix applied after the gate suite changed the
+tree: on the `--to` path, run the suite again (the receipt check first) before the
+destination. A `--to` the destination protocol does not offer here (`merge` when the
+base is the default branch), or any other value, `discard` included, is not applied:
+say so and ask as above. Discard is never reached through `--to`. Standing:
+agent-graded — no script reads the flag.
+
 Headless fallback: if AskUserQuestion is unavailable or the session is
 non-interactive, report the verification result, the state evidence, and the
 applicable options with the exact commands each would run — omitting any
 local-merge or push onto the default branch (PR-only) — and take no destructive
-action: no merge, no push, no branch deletion, no worktree removal.
+action: no merge, no push, no branch deletion, no worktree removal. `--to` changes
+none of this.

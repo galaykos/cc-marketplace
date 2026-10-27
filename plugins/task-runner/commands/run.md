@@ -185,11 +185,24 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    index runs.
 
 5. Handoff — on a green completion report, if the git-workflow plugin is
-   installed, ask via AskUserQuestion: "Finish the branch now (Recommended)"
-   / "Stop here — I'll finish it later"; on finish, proceed exactly as
-   /git-workflow:finish would. If tasks were parked, offer instead: "Retry
-   parked tasks now" / "Stop here" — one offer, not both. Headless: print
-   the exact next command.
+   installed, ask ONE AskUserQuestion, "The run passed. What should happen to the
+   branch?", offering finish's destinations directly, each with what it does:
+   "Open a PR (Recommended)" — push the branch and open a pull request for review;
+   "Merge locally" — merge into the base branch here, no review; "Keep the branch" —
+   leave it open with a note on what is missing; "Stop here" — nothing more now,
+   finish it later with `/git-workflow:finish`. Offer "Merge locally" only where
+   finish's destination protocol allows it: the base is not the default branch
+   (git-workflow's `branch-completion` skill, "The default branch is PR-only"); when
+   unsure, leave it out. On a destination, invoke
+   `/git-workflow:finish --to <pr|merge|keep>` (Skill tool): it skips only its own
+   destination question, still runs every check, stops on a red suite, a critical
+   finding or a confirmed secret, and asks again when the pick is not allowed there.
+   Pass `--to` only when git-workflow is 0.13.3 or later (`version` in its
+   `.claude-plugin/plugin.json`); with an older one, invoke `/git-workflow:finish`
+   without it. Discard is never offered here; it stays behind `/git-workflow:finish`
+   without `--to`. Standing: agent-graded. If tasks were parked, offer instead:
+   "Retry parked tasks now" / "Stop here" — one offer, not both. Headless: print the
+   exact next command.
 
 **Goal marker** (`Goal: true` in `00-INDEX.md`) — hands-off
 execution per the task-execution skill. The step-1 run plan is displayed, then execution

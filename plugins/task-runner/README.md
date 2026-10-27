@@ -91,6 +91,9 @@ lines it changes. Critical/high findings re-enter the bounded fix loop. At run c
 cannot see what changed across cards.
 The run only completes when every task is done or parked AND the project's
 full check suite passes — including api-design's doc-drift check when installed.
+A green run then asks one question with git-workflow's destinations (open a PR, merge
+locally where allowed, keep the branch, stop) and passes the pick to
+`/git-workflow:finish --to <pr|merge|keep>`, which still runs every check.
 
 When a milestone's cards touch UI, the orchestrator walks the changed screens in a real
 browser before the milestone closes. Workers never do it: they share one browser and

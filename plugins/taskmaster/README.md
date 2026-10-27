@@ -58,7 +58,8 @@ Without arguments it asks for a description first. The pipeline then:
    first UI card builds how an agent signs in and the seeded states the grill
    settled, and each UI card names the screen, widths and state the browser walk
    at group close must see
-8. When task-runner is installed, asks "Start execution now?" — one approval and
+8. When task-runner is installed, asks "Start execution now?" — in the same batch of
+   questions as the coverage check's recommended fixes when it found gaps — one approval and
    it invokes `/task-runner:run` on the index itself, so the run registers for the
    completion gate, no manual command needed (still printed as the fallback if you decline)
 
@@ -159,8 +160,9 @@ picks between `goal` and `goal-lean` per milestone from its rigour profile.
 
 Safety floor: goal mode **never** runs a branch merge/PR (the git surface stays
 manual), never suppresses the never-suppress set defined in the `ultra` skill's Goal
-contract, and never auto-accepts a security/auth/data-loss or statement-fidelity red-team
-hole as known risk (it amends the spec or halts). Hands-off execution requires task-runner ≥ 0.11.0; older
+contract, and never auto-accepts as known risk a security red-team hole, any hole touching
+auth or stored data (loss, corruption, schema or migration, personal data) whatever its
+lens, or a statement-fidelity hole (it amends the spec or halts). Hands-off execution requires task-runner ≥ 0.11.0; older
 runners fall back to interactive.
 
 ## Conversation example

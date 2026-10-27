@@ -31,20 +31,21 @@ git rev-list --left-right --count "$BASE...HEAD"        # behind / ahead
 git log --oneline "$BASE..HEAD"                         # the commits
 ```
 
-Present that evidence plus the suite result, then the destination options —
-the set depends on the base (see "The default branch is PR-only" below).
-For a large or many-session branch, offer one optional artifact before the
-destination ask: a change explainer — what changed, why, decisions and
-deviations — for a reviewer who saw none of the work (HTML served on the project's
-own preview URL, else markdown). Offer, never default:
-small branches don't earn the ceremony. For a
-feature whose base is NOT the default branch, offer all four: merge locally,
-push and open a PR, keep the branch open, discard the work. When the base IS
-the default branch, drop "merge locally" — offer only push and open a PR, keep
-the branch open, discard the work. Never assume which applies: an obviously
-mergeable branch may be an experiment, a scruffy spike may be tomorrow's
-release. Interactive sessions ask via AskUserQuestion; headless sessions report
-evidence and options, then stop — destructive defaults are how work disappears.
+Present that evidence plus the suite result, then the destination options — the
+set depends on the base (see "The default branch is PR-only" below). For a large
+or many-session branch, offer one optional artifact before the destination ask:
+a change explainer — what changed, why, decisions and deviations — for a
+reviewer who saw none of the work (HTML served on the project's own preview URL,
+else markdown). Offer, never default: small branches don't earn the ceremony.
+For a feature whose base is NOT the default branch, offer all four: merge
+locally, push and open a PR, keep the branch open, discard the work. When the
+base IS the default branch, drop "merge locally" — offer only push and open a
+PR, keep the branch open, discard the work. Never assume which applies: an
+obviously mergeable branch may be an experiment, a scruffy spike may be
+tomorrow's release. Interactive sessions ask via AskUserQuestion; headless
+sessions report evidence and options, then stop — destructive defaults are how
+work disappears. A pick made ahead, `--to pr|merge|keep`, skips only this
+question: `references/destination-ahead.md`.
 
 ## The default branch is PR-only
 

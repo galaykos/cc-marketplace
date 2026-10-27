@@ -30,13 +30,16 @@ the ⚡ banner, marker `Goal: true (boost=off)`). It has no free-text form.
 <!-- boost-preamble:end -->
 
 **Goal in this command:** standalone under goal, auto-resolve every hole WITHIN
-this command (derive-then-take Amend/Accept/Dismiss) — security/auth/data-loss
-holes are NEVER auto-accepted — writing no execution marker; only task-cards
+this command (derive-then-take Amend/Accept/Dismiss) — security holes and any hole
+touching auth or stored data (loss, corruption, schema or migration, personal data)
+whatever its lens are NEVER auto-accepted — writing no execution marker; only task-cards
 stamps the `Goal: true` marker.
 
 1. Resolve the target spec file.
 2. Invoke the spec-redteam skill — apply its blast-radius gate; when met, dispatch
    the blind `spec-adversary` agent on the spec path and present the holes grouped
    by lens.
-3. Resolve each hole with the skill's blocking gate (Amend the spec / Accept as
-   known risk / Dismiss as non-issue); on a trivial spec, print the skip note.
+3. Resolve the holes in the skill's one batch of questions — each blocker, security,
+   auth, stored-data and fidelity hole asked on its own, the rest under one "Apply all"
+   question — until each is amended, accepted or dismissed; on a trivial spec, print
+   the skip note.

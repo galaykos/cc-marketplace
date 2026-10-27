@@ -38,8 +38,9 @@ marker; only task-cards stamps the `Goal: true` marker.
 2. Invoke the coverage-check skill — cross-check the spec's `## Success criteria`
    against every card's `<proof>` criteria in both directions (coverage
    and traceability), plus the drift check.
-3. Present the coverage matrix, then take each GAP / ORPHAN / DRIFT through its
-   resolution choice per the skill; block until every finding is resolved or
+3. Present the coverage matrix with a recommended fix per finding, then ask once per
+   the skill — a finding that would change a success criterion asked on its own, card
+   edits under one "Apply all" question; block until every finding is resolved or
    explicitly accepted.
 4. Write the `## Coverage` section into `00-INDEX.md`. On a clean pass, print the
    matrix and stop.

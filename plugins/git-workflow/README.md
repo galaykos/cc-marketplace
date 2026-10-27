@@ -18,7 +18,7 @@ that keeps AI attribution out of git history, and a check that asks before
 
 | Command | What it does |
 |---------|--------------|
-| `/git-workflow:finish [branch]` | Verify the full suite, show branch state evidence (diffstat, ahead/behind, commits), ask PR / keep / discard (plus merge-locally only when the base is not the default branch — the default branch is reached via PR only), execute the choice including worktree and branch cleanup |
+| `/git-workflow:finish [branch] [--to pr\|merge\|keep]` | Verify the full suite, show branch state evidence (diffstat, ahead/behind, commits), ask PR / keep / discard (plus merge-locally only when the base is not the default branch — the default branch is reached via PR only), execute the choice including worktree and branch cleanup; `--to` (passed by task-runner's run handoff) answers only the destination question — every check still runs, and it never discards or merges onto the default branch |
 | `/git-workflow:clean-gone [--dry-run]` | Fetch with prune, list every local branch whose upstream is `[gone]` with its worktree, skip the current branch and any dirty worktree, ask once, then remove worktrees and `-D` the branches — the sweep for PRs merged and deleted somewhere other than `/git-workflow:finish` |
 
 ## Example
