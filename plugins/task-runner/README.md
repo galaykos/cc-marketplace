@@ -4,6 +4,8 @@ Disciplined task execution: one task at a time, scope locked, bounded verify-fix
 inner loop (max three cycles, then park with evidence), no unbounded outer loop,
 full-suite completion gate.
 
+**Not sure where to start? Start with `/work <what you want done>`** (or `/code-architecture:work`): it routes work through `/taskmaster:task` to this plugin's `/task-runner:run` when it needs a spec.
+
 ## Install
 
 ```bash

@@ -255,7 +255,7 @@ done
 if pin_hook taskmaster remind.sh "plugins/taskmaster/hooks/remind.sh [names both routes]"; then
   pin_run on taskmaster remind.sh "refactor the service"
   case "$pin_out" in
-    *'do a small change inline with /code-architecture:coding-task, a larger one in the full pipeline (/taskmaster:task).'*)
+    *'do a small change inline with /code-architecture:work, a larger one in the full pipeline (/taskmaster:task).'*)
       pass "plugins/taskmaster/hooks/remind.sh [names both routes]" ;;
     *) fail "plugins/taskmaster/hooks/remind.sh [names both routes]" "got: $pin_out" ;;
   esac

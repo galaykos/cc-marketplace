@@ -12,6 +12,8 @@ glossary's canonical term in `low-cognitive-load`, and the written glossary in
 `domain-modeling`, adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock);
 their effect is unmeasured.
 
+**Start any work with `/work <what you want done>`** (or `/code-architecture:work`): it picks quick, spec or program, prints why and the steps ahead, and `--explain` shows the route without running anything.
+
 Owns structure at both levels. Code: units, interfaces, file placement. System:
 service boundaries drawn on data ownership, scaling paths, cache placement, sync vs
 async integration and its failure modes, single points of failure, and domain
@@ -35,7 +37,8 @@ semantics, outbox, sagas, DLQ) lives in `resilience`'s `event-driven` skill.
 | `/code-architecture:yagni` | Audit code or a design for speculative generality |
 | `/code-architecture:solid` | Audit code or a design for SOLID violations |
 | `/code-architecture:verify` | Verify completed work against its success criteria, with evidence |
-| `/code-architecture:coding-task` | Start ad-hoc coding work with the house rules already loaded — detects the stack, loads the always-relevant skills, and says in one line whether the task proceeds inline or belongs in the taskmaster pipeline |
+| `/code-architecture:work` | Start any coding work here — triages the ask into quick (done inline, house rules loaded), spec (`/taskmaster:task` → `/task-runner:run` → `/git-workflow:finish`), program (`/overseer:start`), or hands it to the command that owns that kind of work (`/ui-ux:build`, `/debugging:debug`, …); `--explain` prints the route only, `--lane` overrides it |
+| `/code-architecture:coding-task` | The old name of `/code-architecture:work`; still works |
 
 Two host built-ins sit beside these in the listing. `/simplify` reviews the changed
 code for reuse, simplification and efficiency and **applies** the fixes; the
@@ -51,7 +54,7 @@ feature.
 Best-practice skills auto-trigger by context — `plan-before-code`,
 `low-cognitive-load`, `solid-principles`, `yagni-check`,
 `work-verification`, `drift-review`, `system-design`, `domain-modeling`, and
-`coding-entry` (the one `/code-architecture:coding-task` invokes). The
+`coding-entry` (the one `/code-architecture:work` invokes). The
 `architecture-reviewer` agent reviews structural changes for boundaries, cohesion,
 and cognitive load, and on a design doc or service topology audits against the
 system-design rubric. The `system-architect` worker (opus floor) designs and

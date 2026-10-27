@@ -11,6 +11,8 @@ wrong from memory — a version inversion, a footgun, a house convention — or 
 shipping a mechanism prose cannot replace: a hook that fires unasked, a script
 with an exit code, a gate that blocks a turn.
 
+**Start any work with `/work <what you want done>`** (or `/code-architecture:work`): it picks quick, spec or program, prints why and the steps ahead, and `--explain` shows the route without running anything.
+
 ---
 
 ## Install

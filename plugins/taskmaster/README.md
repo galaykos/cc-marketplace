@@ -6,6 +6,8 @@ for visual decisions — rendered in the project's own colors when detectable, w
 compare modes and tradeoff callouts (consent-gated: full mockups, ASCII only, or
 none — asked once per session), then a spec and single-prompt task cards.
 
+**Not sure where to start? Start with `/work <what you want done>`** (or `/code-architecture:work`): it sends work that needs a spec here and does small changes inline.
+
 ## Install
 
 ```bash

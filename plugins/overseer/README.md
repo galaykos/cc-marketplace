@@ -8,6 +8,8 @@ delivers each milestone on its own branch by briefing the pipeline plugins alrea
 It accepts nothing it has not watched work: in a browser where the milestone has a screen,
 in a captured run where it has none.
 
+**Not sure where to start? Start with `/work <what you want done>`** (or `/code-architecture:work`): it sends a whole product here and anything smaller to a spec or an inline change.
+
 ## Install
 
 ```bash
