@@ -1,6 +1,6 @@
 {
   "name": "ui-ux",
-  "version": "0.31.0",
+  "version": "0.32.0",
   "description": "UI/UX foundations with per-stack skills for shadcn/ui and Tailwind, a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, motion best practices, theme creation with a live colour preview, a /ui-ux:build entry point, a WCAG 2.2 AA accessibility audit (/ui-ux:audit, the a11y-audit skill, and an a11y-engineer worker), and ui-ux-reviewer + ui-ux-engineer agents. Component-library skills (MUI, Astryx, ReUI, Aceternity, PrimeReact, component-libraries) live in the ui-libraries plugin — install both.",
   "author": {
     "name": "Ivan-WG",
@@ -30,6 +30,12 @@
       "title": "Reminder hooks (CC_REMIND)",
       "description": "Reminder hooks that add guidance to the session: on or off. The environment variable CC_REMIND overrides this. Set in the shell, the variable mutes every plugin at once, while this option mutes only this plugin.",
       "default": true
+    },
+    "cc_ui_check": {
+      "type": "string",
+      "title": "Browser check at turn end (CC_UI_CHECK)",
+      "description": "Send the turn back once when a UI file changed and was not checked in a browser since: on, warn (print, never send back) or off. The environment variable CC_UI_CHECK overrides this.",
+      "default": "on"
     }
   }
 }

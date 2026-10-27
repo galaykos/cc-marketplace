@@ -92,6 +92,23 @@ that looks great as a swatch can fail hard as a button.
     returns `permissionDecision: "ask"`, which stops the tool call until you answer:
     every time for a strongly visual artifact, once per session for a weak signal.
     It never decides for you, but calling it advisory was wrong — an ask blocks.
+  - `ui-check` (Stop) — **sends the turn back once.** When a UI file in the project
+    (`.tsx` `.jsx` `.vue` `.blade.php` `.svelte` `.astro` `.html` `.erb` `.twig` `.css`
+    `.scss`) was edited in this turn and after the last browser call, the model is asked
+    to render the changed page at 375, 768 and 1280 px wide and read the console, or to
+    say in one line why it cannot; you see one line naming the files. A browser call is a
+    browser tool, or a Bash run of Playwright, Cypress, Dusk, an e2e or headless-browser
+    script, Lighthouse, pa11y, axe and kin. A finished subagent's edits count too, named
+    as a subagent's, including in an isolated worktree. It only prints, never blocks,
+    when it is unsure a browser tool is set up, or when a request earlier in the session
+    was not taken up (until your second prompt after it or a dev-server start); while a
+    background subagent is still doing UI work it says nothing. It never blocks the same
+    edits twice, nor the stop right after its own block. Tests, mocks, stories, scratch
+    and build output (`.claude/`, `dist/`, `node_modules/`, `.next/` and kin, at any
+    depth) and failed edits never count. `CC_UI_CHECK=off` turns it off, `=warn` prints
+    without sending the turn back. It does not check a subagent's own turn end
+    (SubagentStop) or see interpreter and `cp`/`mv` writes. Whether the model really
+    looked is agent-graded; the hook only decides when to ask.
   - `palette-default` (PostToolUse on a written UI file) — **advisory.** It names the
     indigo/violet/purple category default when it arrives through Tailwind class
     strings or a literal default swatch, once per session, and never blocks. A violet

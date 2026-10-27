@@ -182,6 +182,7 @@ subagent-spawn-cap
 subagent-stack-skill-paths
 test-weakening-write-block
 tool-fit-catalog
+ui-edit-browser-check
 ultra-assess-boost-directive
 ultra-craft-boost-directive
 ultra-task-boost-directive

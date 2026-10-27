@@ -311,3 +311,47 @@ The payload cwd follows the model's `cd` (measured 2026-09-25, finding 2 of
 rationale/2026-09-25-session-plugin-usage-review.md). State must land at the repo root,
 never under the subdirectory, and a later edit from the root must see the same one-shot.
 ```
+
+## plugins/ui-ux/hooks/ui-check.sh
+
+Written 2026-10-27 when the hook shipped (ui-ux 0.32.0), not moved from the code. Standing: `recorded`.
+
+### Why it exists
+
+`rationale/2026-09-25-session-plugin-usage-review.md` (P1): 34 UI worker subagents made 0 browser calls, and the one 2-minute browser check found two defects the review cycles had missed (two nav items highlighted at once; Generate enabled with no provider configured). Playwright was available throughout; what stopped the walk was access (a password the model correctly would not type, data and API keys that did not exist). So the hook asks for the walk, and the reason it sends lets the model answer in one line why it cannot, rather than demanding a render it may be unable to do.
+
+It is a ui-ux Stop hook, not a candor clause (decision 2026-10-27, `.claude/overseer/decisions.md`): ui-ux is installed by people doing UI and already declares the UI file shapes in its lane, and candor's Stop gate stays about honesty.
+
+### What it decides, and why that way
+
+Every rule errs toward silence: a wrong block costs the person a turn, a wrong "checked" costs one missed reminder. Two reviewer lenses (correctness, false-block adversary, about 150 fixture cases) set that order on 2026-10-27, a re-check found two more false blocks and nine misses the same day, and the rules below are those findings as decided.
+
+- **The window.** A browser call clears every edit before it. A turn opener clears only the session's own edits: the person's prompt (text, or content that starts with an image), and a `<task-notification>`. Not a turn opener: `isMeta` records, compact summaries (`isCompactSummary`), and other frames (`<system-reminder>`, `[SYSTEM NOTIFICATION`, `Stop hook feedback:`, `<local-command-`). So an edit made during the hook's own continuation is not raised at the end of a later, unrelated turn, while a background subagent's edits survive the notification that reports its completion.
+- **Once per edit.** The per-session state file holds the newest edit's timestamp, what was done (`blocked`, `declined`, `noticed`) and, while declined, the blocked edit's timestamp. The check acts again only on a strictly newer edit. Keying on the newest edit's id let the eight-command Bash window shift which edit read as newest, and the same edits blocked twice.
+- **Declined.** After a block, a later decision that finds no browser call after the blocked edit prints instead. The decline ends with a browser call, the person's second prompt since the block, or a Bash dev-server start (`npm|pnpm|yarn run dev|serve|start`, `vite`, `next dev`, `php artisan serve`). It stands down on `stop_hook_active`, which every Stop hook shares, so another hook's block also defers it.
+- **Availability.** A `deferred_tools_delta` in the session transcript decides alone: added and re-added names minus removed ones, pending servers ignored, matched on `playwright`, `browser_`, `chrome`, `puppeteer`. A screenshot tool is evidence of a call, not of a browser. Without a delta, settings decide: `enabledPlugins` local over project over user; user and local MCP servers minus `disabledMcpServers`; `.mcp.json` servers only once approved (`enableAllProjectMcpServers` or `enabledMcpjsonServers`) and not in `disabledMcpjsonServers`. Unsure prints "no browser check was seen", since a browser tool it does not recognise may exist.
+- **Subagents.** Finished ones (`.meta.json` says `"finished": true`, the join `scripts/turn-cost.sh --workflow` uses) are read, and every call is ordered by its record `timestamp`. The check stands down, recording nothing, only for a running background agent (`"requestShape": "background"`) whose transcript changed in the last 30 minutes and holds UI or browser words, matched in any case. Any other running subagent is skipped and the stop is judged now. A line that does not parse drops only its subagent; in the session transcript it silences the check, since it could be the browser call. A record with no timestamp takes the previous timestamped record's in the same file.
+- **Paths.** Judged root-relative, the root being `cc_state_root` of `CLAUDE_PROJECT_DIR`, else of the cwd. A leading `.claude/worktrees/<name>/` is set aside first, so an isolated-worktree subagent's edits count. Never counted:
+  - dot-directories and `taskmaster-docs/` at the top;
+  - `dist`, `build`, `out`, `coverage`, `storybook-static`, `node_modules`, `.next`, `.nuxt` and `.svelte-kit` at any depth;
+  - tests, mocks, e2e, specs, stories and `setupTests.*`.
+
+  A relative Bash target is skipped when the command, heredoc bodies aside, holds `cd ` or `pushd `, and is otherwise resolved against the record's `cwd`. A redirect that only moves file descriptors (`2>&1`, `>&2`) or goes to `/dev/null` is not a write and does not use up the eight-command window. An Edit, Write or MultiEdit whose `tool_result` has `is_error: true` is not an edit; an edit later reverted still counts.
+- **Browser evidence.** A tool name holding `playwright`, `browser_`, `chrome`, `puppeteer` or `screenshot`, in any case. Or a Bash command segment holding `playwright`, `puppeteer`, `cypress`, `dusk`, `browser`, `test-storybook`, `wdio`, `lighthouse`, `lhci`, `pa11y`, `e2e`, `chrom`, `--screenshot`, `--headless`, `backstop` or `axe`. That segment must not be run by a reader, writer, VCS or `cd` command (`cat`, `grep`, `git`, `echo`, `tee`, `cp`, …), nor be a package install (`npm i`, `pnpm add`, `npx playwright install`, …); quoted text is masked first. A command holding a heredoc is judged on `cc_strip_heredoc_bodies inert` output: a body a shell runs is kept, one written to a file is not. Only the newest eight such commands are judged; older ones count as checks. A write and a check in one command count in that order.
+- **No `declare -A`.** The fix list asked for one to dedupe file names; `/bin/bash` on macOS is 3.2, which has none, so the dedupe runs in the awk pass instead, with no per-event process either way.
+- **State it cannot save** prints instead of blocking: an unrecorded block would repeat on every stop.
+
+### What it misses
+
+- SubagentStop is not hooked: a subagent ends its own turn unchecked, and only its parent is sent back.
+- The live host's display of `systemMessage` on a Stop block was probed for candor's gate on CLI 2.1.310, not for this hook.
+- Browsers it does not recognise: a tool or command holding none of the words above (a node script driving Playwright under another name, `curl`, `npm test` wrapping Playwright), or a browser run hidden in quotes (`bash -c '…'`).
+- It reads too much as a check: the words are substrings, so `npx eslint e2e/`, `taxes` or a `chrome-ext` path count. That costs a missed reminder, never a wrong block. A task notification hides the session's own edits made before it.
+- Writes it cannot see: interpreter, `cp` and `mv` writes, and the rest `cc_bash_write_targets` lists in its header; past the eight newest Bash commands that could write a UI file, none is read.
+- A CLI that writes no `finished` flag reads every subagent as unfinished: a recent background one doing UI work stops the check, any other is skipped. Subagents nested below `subagents/` are not read.
+- Only lines that can hold an event are parsed: a tool call naming a UI extension, a browser or dev-server word, a tool list, an error result, or a prompt. A truncated line holding none of those is not seen.
+- Timestamps compare as strings in the CLI's ISO form; an edit whose file has no timestamp before it stands the check down. A file reached both by an Edit and by a Bash write can be counted twice in "and N more".
+
+### Cost
+
+Median over 5 runs (2026-10-27, Linux, jq 1.8.1), first stop then the repeat stop that finds its state file: 31.0 ms on a 2 MB transcript that ends in a block; 66.8 / 63.5 ms with 1,000 UI edits; 286.8 / 283.1 ms with 6,000; 227.6 / 225.4 ms on a 50 MB transcript beside 100 finished 0.5 MB subagent files, 20 of them with UI edits (105 MB in all); 7.6 ms when no UI file appears. The repeat stop saves little because reading dominates, not the walk. jq compiles a regex on every `test()` call, so per-record checks are `contains`/`endswith`, and awk passes on only the lines that can hold an event: the same 105 MB took 1,131.8 ms when every tool-call line was parsed.
