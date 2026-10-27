@@ -2,6 +2,10 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.29.0 — 2026-10-27
+
+- **Game engine rows removed.** The ten game plugins left the marketplace, so `rules.tsv` drops their 31 routing rows and six `# co-fire-ok:` declarations (Godot, Unity, Unreal, Roblox, Bevy, Defold, Ebitengine, Phaser, PixiJS, and the Steam, itch.io and dialogue-file rows). An edit to a `.go` or `.rs` file now meets only the language-wide rows; a `.cs` file meets none. Standing: gate for the row syntax (`validate.sh`).
+
 ## 0.28.2 — 2026-10-26
 
 - **The first-work-prompt note is three sentences.** `route-prompt.sh` no longer injects a six-rule, 1,769-byte tool-fit essay; it says: if the user named a tool and a listed command fits the ask better, ask once which to use; if none was named and one clearly fits, name it in one line after any open questions, otherwise say nothing about commands; in a run that decides for you (`goal`, `goal-lean`, `ultra-goal`, or `Goal: true` in the card index), pick the better fit, say so, and add it to the run's decision log. The two-option picker wording and the one-picker-per-tool line are gone; "ask once" carries both.

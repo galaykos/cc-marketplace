@@ -5,7 +5,7 @@
     "email": "public@galayko.com"
   },
   "metadata": {
-    "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, game engines, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
+    "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
     "version": "0.124.0"
   },
   "plugins": [
@@ -162,7 +162,7 @@
     {
       "name": "all-plugins",
       "source": "./plugins/all-plugins",
-      "description": "Installs every leaf plugin of this marketplace but opt-in prompt-coach and the game plugins at one scope (/all-plugins:install asks local or project once when --scope is absent; the script alone defaults to local), with --budget also raises skillListingBudgetFraction in that scope's settings so the whole skill listing is sent instead of overflowing the default budget (~6x at 200k), and undoes both — one script with an exit code (0 done, 1 a plugin failed, 2 marketplace not added), via /all-plugins:install and /all-plugins:uninstall or straight from the marketplace clone. Re-run after marketplace updates. Never picks — that is /stack-scan:suggest."
+      "description": "Installs every leaf plugin of this marketplace but opt-in prompt-coach at one scope (/all-plugins:install asks local or project once when --scope is absent; the script alone defaults to local), with --budget also raises skillListingBudgetFraction in that scope's settings so the whole skill listing is sent instead of overflowing the default budget (~6x at 200k), and undoes both — one script with an exit code (0 done, 1 a plugin failed, 2 marketplace not added), via /all-plugins:install and /all-plugins:uninstall or straight from the marketplace clone. Re-run after marketplace updates. Never picks — that is /stack-scan:suggest."
     },
     {
       "name": "prompt-coach",
@@ -173,56 +173,6 @@
       "name": "session-hud",
       "source": "./plugins/session-hud",
       "description": "A zero-setup session HUD for the terminal, as a hooks module: a /hud pane with the context window by category, the compaction point, the 5-hour and 7-day rate-limit windows with reset countdowns and the session's cost and time, opt-in pinned so it comes back after you close it; and richer subagent rows. Opt-in: the same figures on the prompt's hint line and what each turn cost on its closing line, for anyone without a statusLine of their own. Plugins cannot edit your statusLine, so this needs no settings.json edit. Each surface is its own /config option. Terminal only; needs Claude Code 2.1.291."
-    },
-    {
-      "name": "godot",
-      "source": "./plugins/godot",
-      "description": "Godot 4 skills that carry only what a model gets wrong from memory: the 4.3–4.7 inversions (Jolt Physics 3D as the default for new projects since 4.6, the 4.7 GDScript override and packed-array changes, flipped defaults), multiplayer authority, visibility and auth footguns, web-export and C# limits; a headless GDScript test runner that exits non-zero on failure; and a standard-library Python checker for broken res:// paths, uids and scene references. Pairs with gamedev."
-    },
-    {
-      "name": "unity",
-      "source": "./plugins/unity",
-      "description": "Unity 6 (6000.x) traps a model gets wrong from memory — Rigidbody and Find* renames, the Unity 6 torque change, Cinemachine 3 class names, Input System project-wide actions enabling every map, Awaitable cancellation, batch-mode CI builds and build profiles, NavMeshSurface/NavMeshLink — plus a read-only .meta/GUID checker that exits 1 when files were moved, renamed or copied outside the Editor without their .meta."
-    },
-    {
-      "name": "unreal",
-      "source": "./plugins/unreal",
-      "description": "Unreal Engine 5 traps a model gets wrong from memory — UE 5.8 Zen Server as the default cooked output store (Saved/Cooked holds only ue.projectstore), the 5.8 Visual Studio/MSVC/Windows SDK/Xcode minimums, Enhanced Input mapping contexts that fail on clients and player-mappable key rebinding through User Settings, headless automation tests, UObjects held from plain C++, and Behavior Tree node memory."
-    },
-    {
-      "name": "roblox",
-      "source": "./plugins/roblox",
-      "description": "Roblox Luau skill carrying only what a remembered answer gets wrong: remote throttle and UnreliableRemoteEvent payload limits, the yield race that lets two requests pass one cooldown, DataStore request budgets, storage quota and data-loss footguns, Server Authority (AuthorityMode, BindToSimulation, time(), the 64-attribute cap), PreferredInput, the deprecated collision-group methods, and Studio's MCP server and StudioTestService for verification."
-    },
-    {
-      "name": "bevy",
-      "source": "./plugins/bevy",
-      "description": "Bevy (Rust ECS engine) skill carrying only what changed in 0.17–0.20 and still gets written the old way: buffered events renamed to messages, resources stored as entities (IsResource and broad-query panics), On<Add<T>> lifecycle observers, flattened pointer events, set_if_different, Name lifetimes, iter_many results, Mesh2d sprites and weakly ordered built-in sets. Reads Cargo.lock before advising."
-    },
-    {
-      "name": "defold",
-      "source": "./plugins/defold",
-      "description": "Defold skill plus a read-only reference checker. The checker (Python, stdlib only) finds what Bob will fail to resolve: compiled-suffix paths in game.project, quoted /paths inside embedded data, require() modules, case mismatches and library paths. The skill covers the footguns that cost a build or a silent run — Bob's truncated and generated-file errors, JDK 25, a headless engine that keeps running after a Lua error, proxy socket clashes, Remotery port collisions — and a smoke test under timeout."
-    },
-    {
-      "name": "ebitengine",
-      "source": "./plugins/ebitengine",
-      "description": "Ebitengine (Go 2D game engine) advice that changed under the model: the v2.9/v2.10 API renames, pure-Go desktop builds from v2.10, Go 1.24's wasm_exec.js move, audio decoder/player pairing, Windows Steam and mobile footguns, a headless CI and capture recipe, and a stdlib Python checker for deprecated calls and Update/Draw loop misuse."
-    },
-    {
-      "name": "phaser",
-      "source": "./plugins/phaser",
-      "description": "Phaser skill carrying only what changed from Phaser 3 to 4 and still gets written the v3 way: preFX/postFX and BitmapMask replaced by filters, setLighting, setTintFill reduced to a console error, Math.TAU corrected from π/2 to 2π, Geom.Point removed, roundPixels off by default, pipelines rewritten as render nodes; plus the scene.launch restart and three Arcade Physics footguns (two-sided collision masks, onFloor on dynamic bodies, drag under acceleration). Reads the lockfile before advising."
-    },
-    {
-      "name": "pixijs",
-      "source": "./plugins/pixijs",
-      "description": "PixiJS skill carrying only what changed from v7 to v8 and still gets written the v7 way: empty Application constructor plus await app.init, the Ticker passed to ticker callbacks, pointermove firing only over the object, passive default eventMode, Texture.from no longer loading URLs, children only on Containers, shape-first Graphics, cacheAsTexture, Particle-based ParticleContainer, the new Filter constructor; plus v8 footguns: particle bounds, renderer preference, the 8.22 contextmenu event, filter texture coordinates. Reads the lockfile before advising."
-    },
-    {
-      "name": "gamedev",
-      "source": "./plugins/gamedev",
-      "description": "Engine-agnostic game shipping: Steam release (a SteamPipe build-script validator, the store and review timeline, Content Survey AI disclosure, Steam Cloud and Deck/Machine compatibility) and itch.io release (butler channels, HTML5 limits, jam submissions), plus game asset checks, Yarn Spinner and Ink dialogue scripting, seed-stable procedural generation, and console/PC/handheld text-size and loudness floors. Companion to the engine plugins (Godot, Unity, Unreal, Roblox, Bevy, Defold, Ebitengine, Phaser, PixiJS)."
     }
   ],
   "forceRemoveDeletedPlugins": true,
@@ -307,6 +257,16 @@
     "vite": "web-dev",
     "vue2": null,
     "vue3": null,
-    "workflow-suite": null
+    "workflow-suite": null,
+    "bevy": null,
+    "defold": null,
+    "ebitengine": null,
+    "gamedev": null,
+    "godot": null,
+    "phaser": null,
+    "pixijs": null,
+    "roblox": null,
+    "unity": null,
+    "unreal": null
   }
 }

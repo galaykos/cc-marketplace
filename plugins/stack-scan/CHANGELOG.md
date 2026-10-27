@@ -4,6 +4,11 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.17.0 — 2026-10-27
+
+- **The scout no longer suggests game plugins.** The ten game plugins left the marketplace: `signals.md` drops their ten engine rows and the "unless a game row above matched first" clause on the `go.mod`/`Cargo.toml`/`*.csproj` row, `stack-relevance.md` drops the ten Game classes and their `--stack` tokens, and `flags.md`'s `--full` stack-bound list is back to `laravel`, `web-dev`, `craft-layer`. The generated catalog no longer lists them.
+- The all-plugins line in the README no longer mentions game plugins.
+
 ## 0.16.0 — 2026-10-26
 
 - **Remotion and HyperFrames ship their own agent skills; the scout now says so.** Two Framework-native tooling rows: dep `remotion` / `@remotion/cli` → `npx skills add remotion-dev/skills`, with the licence note (a paid company licence for a for-profit organisation over 3 employees, read from Remotion's `LICENSE.md` on 2026-10-26); dep `hyperframes` / `@hyperframes/*` → `npx skills add heygen-com/hyperframes` or its Claude Code plugin. Both are printed, never run, like the rest of that table. Standing: agent-graded — the scout follows the rows.

@@ -194,23 +194,20 @@ MKO="$WS/mk-optin"; MARKETS_OPTIN="$WS/marketplaces-optin.json"
 mkdir -p "$MKO/.claude-plugin"
 jq -n '{name:"cc-plugins-marketplace",plugins:[
   {name:"prompt-coach",source:"./plugins/prompt-coach"},
-  {name:"godot",source:"./plugins/godot"},
   {name:"alpha",source:"./plugins/alpha"}]}' > "$MKO/.claude-plugin/marketplace.json"
 jq -n --arg loc "$MKO" '[{name:"cc-plugins-marketplace",source:"github",repo:"galaykos/cc-marketplace",installLocation:$loc}]' > "$MARKETS_OPTIN"
 installed
 SHIM_MARKETPLACES="$MARKETS_OPTIN" run -- install --no-budget
 calls_are "install skips prompt-coach by construction" "plugin install alpha@$MK_NAME -s local"
 out_has "the prompt-coach row names why it is opt-in" "prompt-coach  skip (opt-in: bills a model call per prompt)"
-out_has "a game plugin row names why it is opt-in" "godot         skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)"
-out_has "the summary counts both opt-in skips" "installed 1, enabled 0, skipped 2, failed 0 of 3 leaves at scope local"
+out_has "the summary counts the opt-in skip" "installed 1, enabled 0, skipped 1, failed 0 of 2 leaves at scope local"
 installed "$(entry prompt-coach local false "$PROJ")"
 SHIM_MARKETPLACES="$MARKETS_OPTIN" run -- install --no-budget
 calls_are "a disabled prompt-coach is not re-enabled" "plugin install alpha@$MK_NAME -s local"
 installed
 SHIM_MARKETPLACES="$MARKETS_OPTIN" run -- install --dry-run --no-budget
 out_not "dry-run prints no install line for prompt-coach" "DRY  claude plugin install prompt-coach"
-out_not "dry-run prints no install line for a game plugin" "DRY  claude plugin install godot"
-out_has "dry-run summary counts the opt-in skips" "dry-run: would install 1, enable 0, skip 2 of 3 leaves at scope local"
+out_has "dry-run summary counts the opt-in skip" "dry-run: would install 1, enable 0, skip 1 of 2 leaves at scope local"
 installed "$(entry prompt-coach local true "$PROJ")"
 SHIM_MARKETPLACES="$MARKETS_OPTIN" run -- uninstall --no-budget
 calls_are "uninstall still removes a prompt-coach installed by name" "plugin uninstall prompt-coach@$MK_NAME -s local"

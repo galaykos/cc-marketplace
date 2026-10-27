@@ -1,8 +1,0 @@
-# lane declaration — who owns which territory, at which phase, and who outranks them.
-# artifact	kind	phase	owns	definite_trigger	yields_to
-# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
-# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
-# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-godot:godot-best-practices	skill	build	godot-idioms	the repo has a project.godot and the file is .gd, .tscn, .tres, .gdshader, project.godot, export_presets.cfg or C# in a Godot.NET.Sdk project	-
-godot:godot-headless-testing	skill	verify	godot-headless-test-runner	GDScript tests run from a terminal or CI through godot --headless	-
-godot:godot-project-check	skill	verify	godot-reference-check	scenes, resources or scripts in a Godot project were created, moved, renamed or edited by hand	-

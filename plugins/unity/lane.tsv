@@ -1,6 +1,0 @@
-# lane declaration — who owns which territory, at which phase, and who outranks them.
-# artifact	kind	phase	owns	definite_trigger	yields_to
-# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
-# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
-# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-unity:unity-best-practices	skill	build	unity-idioms	the project has ProjectSettings/ProjectVersion.txt and the change touches C# under Assets/, an .inputactions asset, a build script, or moves, renames or deletes files under Assets/	-
