@@ -1,23 +1,7 @@
 #!/usr/bin/env bash
-# Fail if a plugin's files changed vs a base ref but its plugin.json version did
-# NOT strictly INCREASE (sort -V) — rejects both a missing bump (version equal to
-# base) and a downgrade (version below base). Complements scripts/validate.sh
-# (which is static/structural and does not look at history). Runs in CI on pull
-# requests; also runnable locally before
-# pushing:  bash scripts/check-version-bumps.sh [base-ref]   (default: origin/master)
-#
-# New plugins (no manifest at base) are exempt — a first release needs no bump.
-#
-# DOC-ONLY changes are exempt too: a typo fix in a plugin's root README.md,
-# CHANGELOG.md or ROADMAP.md does not force a semver bump. Before this filter,
-# correcting one character in plugins/i18n/README.md failed the gate.
-# The exclusions use :(glob) so `*` does NOT cross a directory separator —
-# plugins/x/template/README.md is shipped code and still forces a bump.
-#
-# LIMITATION (honest scope): this converts "a doc typo silently demands a
-# version bump" into "only functional changes demand one". It cannot tell a
-# substantive README rewrite from a typo — a real documentation change now ships
-# without a bump unless the author bumps deliberately.
+# check-version-bumps.sh [base-ref] — FAILs a plugin whose functional files changed in base...HEAD (base: origin/master, else master) without a strictly higher plugin.json version (sort -V), or whose CHANGELOG.md has no `##` entry for the new version.
+# Exempt: new plugins and plugin-root README/CHANGELOG/ROADMAP edits (:(glob), so template/README.md counts). Misses: uncommitted work (it reads HEAD), a substantive README rewrite; no CHANGELOG.md is only a WARN.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/check-version-bumps.sh
 set -u
 cd "$(dirname "$0")/.."
 
@@ -62,25 +46,9 @@ for dir in $changed; do
       echo "FAIL: plugin '$name' version went backwards ($base_ver -> $cur) — must increase" >&2
       fail=1
     fi
-    # CHANGELOG COVERAGE (added 2026-08-02). A bump the consumer cannot read is a
-    # version number, not a release. Verified before this landed: 0 git tags across
-    # the repository and 0 of 58 leaves shipping a CHANGELOG.md, while validate.sh
-    # has always ALLOWED one and this script already excludes it from triggering a
-    # bump. So a user upgrading `laravel` 0.3.1 -> 0.4.0 had no artifact anywhere
-    # naming what changed.
-    #
-    # Deliberately WARN, not FAIL, and the reason is the same one that kept the
-    # version-stamp gate a warning until its verification pass ran: making it hard
-    # today would demand 58 backfilled changelogs describing releases nobody
-    # recorded at the time, i.e. invented history in the file whose whole job is
-    # history. It hardens per plugin: once a plugin HAS a CHANGELOG.md, an entry
-    # for the new version is required, so adopting the file opts that plugin in.
+    # CHANGELOG coverage: FAIL once a plugin ships CHANGELOG.md, else WARN — a hard rule for all would demand backfilled, invented history.
     if [ -f "$dir/CHANGELOG.md" ]; then
-      # Anchored to a `##` heading, not a substring: a plugin that inherited its
-      # predecessor's changelog (two bundles did, both retired 2026-09-26) carries the OLD
-      # numbering below a seam, so `grep -F 0.6.0` matched history — and prose
-      # such as "against taskmaster-suite 0.19.0" — and passed six unreleased
-      # versions vacuously (measured 2026-09-22).
+      # Anchored to a `##` heading: a substring matched an inherited changelog's old numbering and passed unreleased versions.
       if ! grep -Eq "^##[[:space:]]*\[?${cur//./\\.}\]?([[:space:]]|$)" "$dir/CHANGELOG.md" 2>/dev/null; then
         echo "FAIL: plugin '$name' bumped to $cur but $dir/CHANGELOG.md has no entry for it" >&2
         fail=1

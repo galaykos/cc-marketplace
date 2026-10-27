@@ -1,25 +1,16 @@
 #!/usr/bin/env bash
-# Shared per-plugin checks, sourced by validate.sh (full sweep), context-budget.sh,
-# done-gate.sh (changed plugins) and authoring-guard.sh (single edited file). Pure: sourcing assigns the host listing
-# constants (scripts/host-constants.sh — variable definitions only) and the removed-plugin
-# lists (read from scripts/removed-plugins.tsv) and runs nothing
-# else; functions close over no caller globals (no err/fail/allow_md), and take all
-# inputs as args — except pc_removed_refs, which reads those lists and PC_REMOVED_PLUGINS_TSV.
+# Per-plugin checks sourced by validate.sh, context-budget.sh, official-validate.sh, generate.sh, done-gate.sh and authoring-guard.sh; sourcing sets only host constants and removed-plugin lists.
+# Every input is an argument and no caller global is read, except by pc_removed_refs, which reads those lists and PC_REMOVED_PLUGINS_TSV.
+# Why, limits, history: rationale/derivations/scripts-lib.md § scripts/lib/plugin-checks.sh
 
-# The `1536` per-entry description cap below is the host's, not ours. One definition,
-# re-read out of the pinned CLI by `scripts/host-constants.sh --check`.
 . "$(dirname "${BASH_SOURCE[0]}")/../host-constants.sh" \
   || echo "plugin-checks.sh: cannot source scripts/host-constants.sh — the per-entry description cap is unset" >&2
 
 _PC_REMOVED_TSV_DEFAULT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/removed-plugins.tsv"
 
-# _pc_removed_lists
-# Sets _PC_RR_PLUG (prose_match plug|both) and _PC_RR_MOVED (moved|both), `|`-joined names
-# from ${PC_REMOVED_PLUGINS_TSV:-$_PC_REMOVED_TSV_DEFAULT}, cached by the path read
-# (_PC_RR_SRC). Returns 1 when the file is unreadable, a data row is malformed (fewer than
-# five fields, a name outside [a-z0-9-], a prose_match outside plug|moved|both|no) or either
-# list is empty: a stray `(` makes grep -E exit 2 with no output, a silent pass on every
-# file, and an empty alternation `()` would match every " plugin" in the repo.
+# _pc_removed_lists — sets _PC_RR_PLUG (prose_match plug|both) and _PC_RR_MOVED (moved|both) from the removed-plugins ledger, cached by the path read.
+# Returns 1 on an unreadable file, a malformed row or an empty list: a stray ( or an empty () alternation would pass or match every file.
+# Why, limits, history: rationale/derivations/scripts-lib.md § _pc_removed_lists
 _pc_removed_lists() {
   local src="${PC_REMOVED_PLUGINS_TSV:-$_PC_REMOVED_TSV_DEFAULT}" lists plug moved
   [ "$src" = "${_PC_RR_SRC:-}" ] && return 0
@@ -39,82 +30,13 @@ _pc_removed_lists() {
   [ -n "$plug" ] && [ -n "$moved" ] || return 1
   _PC_RR_PLUG=$plug _PC_RR_MOVED=$moved _PC_RR_SRC=$src
 }
-# Primed at source time: every caller runs pc_removed_refs in a `$(…)` subshell, where a
-# cache first filled inside the call dies with it.
+# Primed at source time: callers run pc_removed_refs in a $(…) subshell, where a cache filled inside the call dies with it.
 _pc_removed_lists \
   || echo "plugin-checks.sh: removed-plugins ledger unreadable, empty or malformed: ${_PC_RR_BAD:-${PC_REMOVED_PLUGINS_TSV:-$_PC_REMOVED_TSV_DEFAULT}} — pc_removed_refs fails every file until it is restored" >&2
 
-# pc_skill_budget <skill_md_path>
-# On a violation: prints "budget <path> <kind> <n>" and returns 1, where kind is
-# `lines`, `bytes`, or `line-length` (the last also prints `:<lineno>`).
-# Clean or missing file: prints nothing, returns 0.
-#
-# THREE MEASURES, because one stopped measuring. The line ceiling was 150 and the
-# byte ceiling 10,000 until 2026-08-27; they are now 200 and 14,000. Both the
-# original numbers and the raise are recorded here, because the RAISE REVERSES AN
-# ARGUMENT THIS HEADER USED TO MAKE and a silent reversal would be the worse sin.
-#
-# WHY 150/10,000 EXISTED. The line ceiling was demonstrably no longer a budget by
-# 2026-08-20: task-runner/skills/task-execution/SKILL.md sat at exactly 154 total
-# lines across 20 commits while its bytes grew 9,288 -> 12,193 (+31%) and its
-# lines over 110 chars went 2 -> 29. taskmaster/skills/task-cards went 105 lines /
-# 4,550 bytes -> 154 / 9,318: lines +47%, bytes +105%, with one line of 1,526
-# characters carrying four separate rules. Content accreted until the line gate
-# bit, then went onto an existing line. Bytes were added to catch exactly that.
-#
-# WHY THEY MOVED. The line cap did not stop the accretion; it redirected it. By
-# 2026-08-27, 24 of 116 bodies sat at EXACTLY 150 lines and 31 within three of it
-# — a quarter of the corpus written TO the ceiling rather than under it, which is
-# the same pathology one iteration later and visible only in aggregate. Raising
-# the ceiling does not by itself fix that. What fixes it is that the PRESSURE
-# MOVED: pc_budget_crowding (below) is now the instrument that resists growth,
-# and this function is a bound on the worst case rather than a squeeze on the
-# median. Read the two together or neither makes sense.
-#
-# THE ARGUMENT THIS REVERSES, stated plainly. The old header said "12,000 would
-# fail zero — a ceiling that permits today's worst case is theater." 14,000 fails
-# zero today by construction (worst case is 9,929 B). By that sentence's own
-# standard this measure is now theater, and it WOULD be, if it were still the
-# only instrument. It is not: the ratchet fails on the first body that grows into
-# the new room. The claim being made is narrower than the old one — this gate
-# bounds catastrophe, the ratchet bounds drift — and stating the narrower claim
-# is the point of saying it here.
-#
-# THE NUMBERS ARE FROM THE DISTRIBUTION, NOT FROM TASTE. Re-measured over the 116
-# shipped skill bodies on 2026-08-27: median 6,893 B, p75 8,025, p90 8,580,
-# max 9,929; lines median 135, p75 148, p90 150, max 150 (the line quantiles are
-# themselves evidence of the ceiling-as-target effect).
-#   - BYTES 14,000 (~3,500 tokens) is the binding pair to 200 lines: at this
-#     corpus's median 54 bytes/line, 14,000 B permits ~259 lines, so the LINE cap
-#     binds first and 200 is a real number rather than a decorative one. At the
-#     old 10,000 the byte cap allowed only ~185 lines, which is why raising lines
-#     alone to 200 or 250 would have changed nothing — both were measured at a
-#     median 35 usable extra lines, identical.
-#     Anthropic's own guidance is "under 5k tokens" for a body
-#     (https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices);
-#     14,000 B is still stricter than that, deliberately, because several of ours
-#     load together on one task. Skill BODIES are not always-on — they load on invocation — so the
-#     cost of this raise is paid per fire, not per session.
-#   - LINE LENGTH 300 is unchanged. It fails five files, every one of them prose
-#     that a reflow fixes without losing a word. Prose in this repo wraps at ~90;
-#     300 is three times that, so it flags a jammed subsection rather than a long
-#     sentence. It is NOT raised with the others on purpose: jamming was the
-#     old cap's symptom, and relaxing the symptom check alongside the cap would
-#     have removed the evidence that the cap was distorting content.
-#
-# LIMITATION (honest scope), four residuals:
-#   1. Frontmatter is exempt from the line check by construction — a
-#      `description:` MUST stay on one line (context-budget.sh parses it that
-#      way, and a YAML block scalar would silently undercount the always-on bill).
-#      A 900-char description is therefore invisible here; validate.sh's own
-#      500-char description linter is what covers that surface.
-#   2. Fenced code blocks and markdown table rows are exempt from the line check.
-#      Neither can be wrapped without changing meaning, and a table row is the
-#      one shape where 300+ characters is ordinary.
-#   3. Bytes measure VOLUME, not value. A dense, useless 9,000-byte body passes;
-#      only a reader catches that. This gate makes growth visible, not good.
-#   4. The old floor is still gone and still unreplaced — a 3-line body passes
-#      every gate in this repo, and neither new measure changes that.
+# pc_skill_budget <skill_md> — a body over 200 lines or 14,000 bytes, or a line over 300 chars outside fences and tables: prints "budget <path> lines|bytes|line-length <n>".
+# Misses frontmatter (validate.sh's description linter), fences and table rows, value per byte and any floor; drift under the cap is pc_budget_crowding's.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_skill_budget
 pc_skill_budget() {
   local f="$1" n bytes maxlen maxline
   [ -f "$f" ] || return 0
@@ -128,7 +50,6 @@ pc_skill_budget() {
     printf 'budget %s bytes %s\n' "$f" "$bytes"
     return 1
   fi
-  # Longest BODY line outside fenced code and table rows, with its line number.
   maxline=$(awk '
     /^---$/ { c++; next }
     c < 2   { next }
@@ -146,28 +67,9 @@ pc_skill_budget() {
   return 0
 }
 
-# pc_hook_timeout <plugins_root>
-# Every hook entry in every plugins/*/hooks/hooks.json must declare a `timeout`.
-# Prints one "hook-timeout <plugin>:<event>:<script>" line per undeclared entry
-# and returns 1; clean returns 0 having printed nothing.
-#
-# WHY. A hook runs inside the user's turn. Without a per-entry timeout the plugin
-# has expressed no opinion about how long its own script may hold that turn and
-# inherits whatever the host defaults to — so a script that blocks (a slow network
-# mount, a large transcript, an npm probe) stalls the session, and the author who
-# could have bounded it never had to think about the bound. All 41 entries in this
-# marketplace were undeclared until 2026-08-27; the check exists so the next one
-# is a decision rather than an omission.
-#
-# LIMITATION (honest scope), three residuals, and they matter:
-#   1. This gates that a NUMBER EXISTS, not that it is right. A 900s timeout
-#      passes. Nothing here measures how long a hook actually takes — that needs
-#      a runtime harness with a realistic payload, which no gate in this repo has.
-#   2. It says nothing about what happens ON timeout. A killed PreToolUse deny
-#      guard fails open on most hosts, which is correct for secret-scanning (whose
-#      own header declares fail-open) and would be wrong for a guard meant to
-#      block. That behaviour is agent-graded, per plugin, and saying so is the point.
-#   3. jq-dependent, like its siblings here. No jq, no check — it returns 0.
+# pc_hook_timeout <plugins_root> — a plugins/*/hooks/hooks.json entry with no `timeout`: prints "hook-timeout <plugin>:<event>:<script>" per entry, returns 1.
+# Misses whether the number is right and what a killed hook does (agent-graded, per plugin); with no jq it returns 0.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_hook_timeout
 pc_hook_timeout() {
   local root="${1:-plugins}" bad=0 d p hj
   command -v jq >/dev/null 2>&1 || return 0
@@ -188,15 +90,9 @@ pc_hook_timeout() {
   return $bad
 }
 
-# _pc_hook_script <command> <plugin_dir>
-# The script a hooks.json `command` runs, for every check below that resolves one: double
-# quotes dropped, one leading `bash ` or `sh ` dropped, `${CLAUDE_PLUGIN_ROOT}` replaced by
-# the dir. The interpreter-led form is command-guard's since 0.9.0
-# (`bash "${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh"`, so a host with no /bin/bash
-# still starts it); before this helper, every check here but pc_state_root matched only a
-# command that opened on `${CLAUDE_PLUGIN_ROOT}` and skipped that hook without a word. MISSES: an interpreter flag
-# (`bash -e …`), any other interpreter, and arguments after the path. Each resolves to no
-# file, so the caller skips it exactly as before.
+# _pc_hook_script <command> <plugin_dir> — the script a hooks.json command runs: quotes and one leading `bash `/`sh ` dropped, ${CLAUDE_PLUGIN_ROOT} replaced.
+# Misses an interpreter flag (`bash -e`), any other interpreter and arguments after the path; each resolves to no file, so callers skip it.
+# Why, limits, history: rationale/derivations/scripts-lib.md § _pc_hook_script
 _pc_hook_script() {
   local c=${1//\"/}
   c=${c#"${c%%[![:space:]]*}"}
@@ -211,47 +107,9 @@ _pc_hook_interp() {
   case "$c" in bash[[:space:]]*) printf bash ;; sh[[:space:]]*) printf sh ;; esac
 }
 
-# pc_hook_shebang <plugins_root>
-# Every script a hooks.json registers as a `command` must start `#!/bin/bash`.
-# Prints one "hook-shebang <plugin>:<script> <first line>" per offender; returns 1.
-#
-# WHY THIS EXISTS. The fail-open guarantee these hooks sell is written into six of
-# their own headers in almost identical words — "the fail-open guarantee must hold
-# even under a stripped/broken PATH, where `/usr/bin/env bash` itself exits 127".
-# That is a doctrine the repo asserts and nothing reads back: counted 2026-09-22
-# (OPS 7, rationale/specialist-panel-2026-09-22.md #46), 11 of 53 registered hooks
-# used `#!/usr/bin/env bash`, two of them decision-capable — taskmaster's and
-# ui-ux's `preview-guard.sh`, both of which can return a DENY verdict. A guard that
-# cannot start is a guard that allows, and the exit code it never produced looks
-# exactly like an allow on the host side. This is the four laws' theater test
-# applied to a claim six files make about themselves.
-#
-# WHAT IT DOES NOT CATCH, stated because the header it enforces over-claims:
-#   - anything about the hook's BEHAVIOUR on a broken PATH. `/bin/bash` starting is
-#     necessary, not sufficient: the script's own `jq`/`python3` calls still go
-#     through PATH, and whether each of those is guarded is agent-graded.
-#   - a host where `/bin/bash` is absent (NixOS, some containers). There the
-#     absolute path is the WRONG choice and the escape below is the right answer —
-#     the check has an opinion, not a proof.
-#   - scripts a hook SOURCES or execs. Only the `command` string in hooks.json is
-#     resolved; a helper under `scripts/` reached from inside a hook is invisible.
-#   - non-hook scripts. A plugin's `scripts/*.sh` is run by a model or a human with
-#     a working PATH and is deliberately out of scope.
-#   - jq-dependent, like its siblings here. No jq, no check — it returns 0.
-#   - a command that names its interpreter (`bash "${CLAUDE_PLUGIN_ROOT}/hooks/x.sh"`,
-#     or `sh …`). Skipped ON PURPOSE (decided 2026-10-15): the host runs the interpreter
-#     on PATH and never reads the shebang, so no shebang can make that hook start or fail
-#     to. What such a hook depends on instead, an interpreter on PATH, is not a file this
-#     check can read; and `sh` running a bash script under dash is not caught either.
-#
-# TIER: FAIL. It shipped at WARN on 2026-09-22 because 11 hooks failed it that hour;
-# eight were regenerated from the two hook templates and three fixed by hand the same
-# day, and it was promoted once the tree agreed with it.
-#
-# ESCAPE: `# env-shebang-ok: <reason>` on any line of the hook. A reason that
-# earns it names the host or the interpreter — "NixOS has no /bin/bash", "runs
-# under a pinned bash 5 from brew" — not "portability", which is the claim the
-# absolute path is already making.
+# pc_hook_shebang <plugins_root> — a hooks.json-registered script not opening `#!/bin/bash`: prints "hook-shebang <plugin>:<script> <first line>", returns 1.
+# Misses PATH calls inside, hosts without /bin/bash, sourced helpers, bash/sh-led commands (on purpose); no jq, no check. Escape: `# env-shebang-ok: <host or interpreter>`.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_hook_shebang
 pc_hook_shebang() {
   local root="${1:-plugins}" bad=0 hj d p sh rel first
   command -v jq >/dev/null 2>&1 || return 0
@@ -279,45 +137,9 @@ EOF
   return $bad
 }
 
-# pc_cwd_validated <plugins_root>
-# A hook registered in a hooks.json may not `mkdir -p` a path built from the payload's
-# `cwd` without first proving that directory still exists. Prints one
-# "cwd-unvalidated <plugin>:<script> <line>:<statement>" per offender; returns 1.
-#
-# WHY THIS EXISTS. The Stop/PostToolUse payload's `cwd` is a directory the session was
-# in — the shell's cwd, which follows the model's `cd` (measured 2026-09-25, see
-# pc_state_root) — and a session outlives the directory. `mkdir -p "$cwd/.claude/<state>"` then does not
-# fail on a deleted project — it REBUILDS it, three levels deep, holding nothing but the
-# hook's own state dir. Measured live on a deleted `work/acme/design-studio`
-# (rationale/specialist-panel-2026-09-22.md #2, AR 1; first reported as trend-audit H6
-# and still open a review later). Eight hooks across six plugins shared the shape;
-# `plugins/overseer/hooks/track-read.sh:30-31` already had the right one. `-n "$cwd"` is
-# not the test — an empty string is not the failure mode, a stale path is.
-#
-# WHAT COUNTS AS VALIDATION, before the first such `mkdir -p`:
-#   - `[ -d "$cwd" ]`, the direct test;
-#   - `-e|-f|-r|-s|-w|-d "$cwd/<something>"`, a test on a path INSIDE cwd, which proves
-#     the directory exists just as well (task-runner/hooks/rv-observe.sh reads
-#     `$cwd/.claude/task-runner/active-run.json` before writing beside it);
-#   - `cd "$cwd"`.
-# Taint follows one hop of path building: `dir="$cwd/.claude/x"` then `mkdir -p "$dir"`
-# is the shape almost every hook here uses, so the check has to see through it.
-#
-# WHAT IT DOES NOT CATCH:
-#   - a cwd that EXISTS but is not this project — a stale session left in a sibling
-#     checkout writes its state there and nothing in the payload can tell.
-#   - taint through a transformation rather than a path join. `slug=$(printf %s "$cwd" |
-#     tr -c '[:alnum:]' -)` then `mkdir -p "$HOME/.claude/x/$slug"` is deliberately NOT
-#     flagged: the target is under $HOME and no project directory can be resurrected by
-#     it (hindsight's two hooks and skill-router's summary.sh are that shape).
-#   - any write that is not `mkdir -p` — a bare `>` redirect into a missing directory
-#     fails rather than resurrecting, which is the behaviour this check wants.
-#   - scripts a hook sources or execs, and non-hook scripts. Like its siblings here it
-#     resolves only the `command` string in hooks.json, and it is jq-dependent: no jq,
-#     no check.
-#
-# ESCAPE: `# cwd-mkdir-ok: <reason>` anywhere in the hook. A reason that earns it says
-# why resurrecting the directory is correct for that hook, not that the path is short.
+# pc_cwd_validated <plugins_root> — a hook running `mkdir -p` on a path from payload cwd before `[ -d "$cwd" ]`, a test inside it or `cd "$cwd"`: prints "cwd-unvalidated <plugin>:<script> …".
+# Misses a live cwd of another project, taint through a transform, writes other than mkdir -p, sourced scripts; no jq, no check. Escape: `# cwd-mkdir-ok: <why resurrect>`.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_cwd_validated
 pc_cwd_validated() {
   local root="${1:-plugins}" bad=0 hj d p sh rel out
   command -v jq >/dev/null 2>&1 || return 0
@@ -366,28 +188,9 @@ EOF
   return $bad
 }
 
-# pc_state_root <plugins_root>
-# A registered hook may not build a path from `$cwd/.claude` — state and project-root
-# reads go through the shared `cc_state_root` block (templates/blocks/state-root.md).
-# Prints one "state-root-raw <plugin>:<script> <line>:<statement>" per offender; returns 1.
-#
-# WHY THIS EXISTS. The payload's `cwd` is the SHELL's cwd and follows the model's `cd`.
-# Measured 2026-09-25 (rationale/2026-09-25-session-plugin-usage-review.md, finding 2):
-# one session's payload cwd was app/Enums, then app/Models, then the repo root; a "shown
-# once per session" warning fired three times, one `.claude/` state dir landed in each
-# directory (nine in another project, one COMMITTED to a work repo), and task-runner's
-# scope-lock silently disarmed because its scope files sat at the root it was not
-# looking in. 22 hook files had the shape. The comment that justified it said the cwd was
-# "whatever the session STARTED in" — the premise this check exists to keep dead.
-#
-# WHAT IT DOES NOT CATCH: a state path built through another variable that merely holds
-# the cwd (`d=$cwd; mkdir "$d/.claude"`), a state path under `$PWD` in a script the model
-# runs (only hooks.json commands are resolved, like its siblings), and a hook that calls
-# cc_state_root and then ignores the result. Comment lines are skipped — headers DISCUSS
-# the old shape.
-#
-# ESCAPE: `# state-root-ok: <reason>` anywhere in the hook — a reason that earns it says
-# why this state is genuinely per-directory, not per-project.
+# pc_state_root <plugins_root> — a registered hook building a path from `$cwd/.claude` instead of cc_state_root: prints "state-root-raw <plugin>:<script> <line>:<stmt>", returns 1.
+# Misses the cwd copied to another variable, $PWD in model-run scripts, an ignored cc_state_root result; comment lines skipped. Escape: `# state-root-ok: <why per-directory>`.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_state_root
 pc_state_root() {
   local root="${1:-plugins}" bad=0 hj d p sh out
   command -v jq >/dev/null 2>&1 || return 0
@@ -415,29 +218,9 @@ FILES
   return $bad
 }
 
-# pc_shared_blocks <plugins_root> <blocks_dir>
-# Every shell file under <plugins_root> that DEFINES a function owned by a shared block
-# must carry that block byte-for-byte. Prints one "shared-block-drift <path> <block>" per
-# offender; returns 1. Owned today: cc_state_root (state-root.md),
-# cc_bash_write_targets (bash-write-targets.md), cc_bash_write_chunks (bash-write-chunks.md),
-# cc_option (option-resolver.md), cc_plugin_state (plugin-state.md), cc_strip_heredoc_bodies
-# (heredoc-bodies.md), cc_bash_effects_mark and cc_bash_write_effects (bash-write-effects.md,
-# one ERE, so either function pasted alone is held to the whole block) and every cc_prompt_*
-# function (prompt-shape.md: the pair's fn is an ERE, so a hook pasting only one of its six
-# functions is still held to the whole block; cc_prompt_auth_surface carries the words
-# review-debt reads on paths and taskmaster's reminder on prompts, so a split is a drift),
-# and every cc_scope_* function (write-scope.md: database's guard and security's write-scan
-# skip the same scratch targets; their hand copies had already diverged).
-#
-# WHY THIS EXISTS. Plugins install alone, so a helper two plugins need is COPIED, not
-# sourced — and a copy edited in one plugin is a fix the other five never got. Generated
-# hooks include the block through the template engine; hand-written hooks paste it, and
-# this is what keeps the paste honest. The first two landed 2026-09-25 across several
-# plugins at once (rationale/2026-09-25-session-plugin-usage-review.md, findings 1-2).
-#
-# WHAT IT DOES NOT CATCH: a hook that needs the helper and reimplements it under another
-# name, or calls it without defining it (a runtime `command not found` that a fail-open
-# hook swallows — each plugin's own harness is what catches that).
+# pc_shared_blocks <plugins_root> <blocks_dir> — a .sh defining a function owned by a templates/blocks/ block (pairs below) without the block byte-for-byte: prints "shared-block-drift <path> <block>".
+# Misses a hook reimplementing the helper under another name, or calling it without defining it (its own harness catches that).
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_shared_blocks
 pc_shared_blocks() {
   local root="${1:-plugins}" bdir="${2:-templates/blocks}" bad=0 f blk content fn name pair
   for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks option-resolver:cc_option plugin-state:cc_plugin_state heredoc-bodies:cc_strip_heredoc_bodies 'bash-write-effects:cc_bash_(effects_mark|write_effects)' 'prompt-shape:cc_prompt_[a-z_]+' 'write-scope:cc_scope_[a-z]+'; do
@@ -457,69 +240,9 @@ DEFS
   return $bad
 }
 
-# pc_offswitch_named <plugins_root>
-# A registered hook that can BLOCK or DENY and reads an environment off switch must name
-# that variable in the text it emits. Prints one
-# "offswitch-unnamed <plugin>:<script> <switches>" per offender; returns 1.
-#
-# WHY THIS EXISTS. Every guard here fails open and every one of them can be switched
-# off, but the person who needs that fact is the person whose turn just got refused —
-# and they are reading the refusal, not the hook's header. Counted 2026-09-22 (UX 1,
-# rationale/specialist-panel-2026-09-22.md #5): the root README documented 0 of 30
-# `CC_*` switches, and the PreToolUse guards named theirs in the message
-# (candor/hooks/avert.sh, database/hooks/guard.sh, secret-scanning/hooks/scan.sh,
-# devops/hooks/workflow-guard.sh) while the Stop gates did not — candor's gate.sh never
-# printed `CC_EVIDENCE_GATE` or `TASK_RUNNER_STOP_GATE`, ask-ledger's gate.sh never
-# printed `CC_ASK_LEDGER` although its own sibling ledger.sh did. The remedy the user
-# cannot find is the remedy they do not have.
-#
-# THE RULE, precisely: a hook is in scope when it emits `permissionDecision` deny/ask,
-# `exit 2`, or a `decision` of "block" in JSON on stdout (the channels that reach the model
-# as a refusal; candor's and ask-ledger's Stop blocks use the last since 2026-10-26). Its switches are the
-# names read as `${NAME:-…}` or through the resolver as `cc_option NAME …` (a literal
-# name, optionally quoted) matching `CC_*`, `CLAUDE_*`, `*_BOOST` or `*_STOP_GATE`, minus
-# the host-supplied path/session/data variables (`CLAUDE_PLUGIN_ROOT`, `CLAUDE_PROJECT_DIR`,
-# `CLAUDE_CONFIG_DIR`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_PLUGIN_DATA`), plus the indirect
-# `plugin_switch=NAME` form the boost chassis uses. At least ONE of those names must also
-# appear in prose — an occurrence that is neither `$NAME`/`${NAME}`, a `cc_option NAME`
-# call, nor a line-leading assignment. The resolver call is removed before that test
-# because the space before NAME would otherwise count as prose and pass every such hook.
-#
-# WHAT IT DOES NOT CATCH, and this is the gap that matters:
-#   - WHICH message names it. The contract is per-message ("every reason that blocks");
-#     no static reader can attribute a string constant to one of eight branches, so this
-#     gates the FILE. A hook with eight refusal strings and the switch named in one of
-#     them passes here and still fails the contract. That half is agent-graded.
-#   - whether the name is spelled correctly, or is the switch that actually silences
-#     THAT branch. `CC_ANYTHING=off` in a comment-free string satisfies it. The inverse
-#     is live in this tree: code-review's scan.sh and density.sh read `CC_REMIND` on
-#     their PostToolUse branch only, so their DENY branch has no off switch at all — this
-#     check reports them as "switch not named", which understates it.
-#   - a hook whose off switch is read some other way (a settings file, a marker file).
-#   - a resolver called with a variable (`cc_option "$x" on`): the name is not in the text,
-#     so the switch is not discovered — except through the `plugin_switch=NAME` form the
-#     boost chassis keeps.
-#   - jq-dependent, hooks.json-registered scripts only, like its siblings here.
-#
-# ESCAPE: `# offswitch-ok: <reason>` in the hook. A reason that earns it explains why a
-# refused user should not be told how to turn the thing off.
-#
-# TIER, THIS RUN: WARN, not FAIL. Five hooks in four plugins fail it the moment it
-# ships — candor/avert.sh (CC_AVERT), code-review/density.sh and scan.sh (CC_REMIND),
-# command-guard/destructive-guard.sh (CLAUDE_DESTRUCTIVE_GUARD), git-workflow/
-# no-ai-trailer.sh (CLAUDE_AI_TRAILER) — every one of them naming the switch in a
-# comment and in none of its reasons. Promoting this to err() is the follow-up, owed
-# once those five messages carry the name; the rule is not soft, the tree is.
-# pc_switch_reads <hook> — the off-switch names one hook script reads, one per line, sorted:
-# `${NAME:-`, `plugin_switch=NAME`, and `cc_option NAME` (bare, "NAME" or 'NAME'; comment lines
-# skipped; the whole identifier is read, then kept only if it has a switch shape, so
-# `FOO_BOOST_MODE` is never cut to `FOO_BOOST`). Host variables are dropped. ONE source for
-# pc_offswitch_named and generate.sh's off-switch table: two copies of this could disagree
-# about which switches exist, and nothing else would notice.
-# A hooks module (.ts .tsx .mts .cts .js .mjs) is read too: a literal `$.env.get('NAME')` (the
-# 2.1.291 module scan forces literal names), and a `registerSuggestion(` call as CC_SUGGEST,
-# which only the shared kit reads; `//` and `*` comment lines skipped. Never pass it cc-kit.ts:
-# every mod plugin carries the kit, and the kit reads CC_SUGGEST whether or not it suggests.
+# pc_switch_reads <hook> — the off-switch names one hook reads, sorted: `${NAME:-`, `plugin_switch=NAME`, `cc_option NAME`; in a module `$.env.get('NAME')`, and registerSuggestion( as CC_SUGGEST.
+# One source for pc_offswitch_named and generate.sh's off-switch table. Skips comment lines and host variables; never pass it cc-kit.ts, which reads CC_SUGGEST in every mod.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_switch_reads
 pc_switch_reads() {
   local shape='CC_[A-Z0-9_]+|CLAUDE_[A-Z0-9_]+|[A-Z0-9_]+_BOOST|[A-Z0-9_]+_STOP_GATE'
   { grep -ohE "\\\$\\{($shape):-" "$1" | sed -E 's/^\$\{//; s/:-$//'
@@ -542,6 +265,9 @@ pc_switch_reads() {
   return 0
 }
 
+# pc_offswitch_named <plugins_root> — a registered hook that can refuse (deny/ask, exit 2, decision block) and reads an off switch it names in no non-comment prose: "offswitch-unnamed …".
+# Gates the file, not each refusal message (agent-graded); misses a wrong switch, one read another way or via a variable. Escape: `# offswitch-ok: <why not tell the user>`.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_offswitch_named
 pc_offswitch_named() {
   local root="${1:-plugins}" bad=0 hj d p sh rel sw named
   command -v jq >/dev/null 2>&1 || return 0
@@ -553,8 +279,7 @@ pc_offswitch_named() {
       sh=$(_pc_hook_script "$sh" "$d")
       [ -f "$sh" ] || continue
       grep -qF 'offswitch-ok:' "$sh" 2>/dev/null && continue
-      # Refusal-capable? Any channel counts: decision:"block" in a jq filter, "decision":"block" raw or
-      # escaped. Comments are stripped so a header that merely DISCUSSES exit 2 does not put a hook in scope.
+      # Refusal-capable by any channel; comment lines are stripped, so a header DISCUSSING exit 2 does not bring a hook into scope.
       grep -v '^[[:space:]]*#' "$sh" \
         | grep -qE 'permissionDecision[^,}]*(deny|ask)|permissionDecision:[[:space:]]*\$|exit 2|decision\\?"?[[:space:]]*:[[:space:]]*\\?"block' || continue
       sw=$(pc_switch_reads "$sh")
@@ -582,43 +307,9 @@ EOF
   return $bad
 }
 
-# pc_version_stamp_tail <plugins_root>
-# A SKILL.md whose own description/when_to_use PROMISES version pinning must carry a
-# machine-readable package tail on its `Last verified` stamp. Prints one
-# "version-stamp-tail <plugin>:<skill> <why>" per offender; returns 1.
-#
-# WHY THIS EXISTS. `scripts/check-doc-staleness.sh --live` compares the
-# `npm:<pkg>@<major>` tail of a stamp against the registry; with no tail there is
-# nothing to compare and the skill is invisible to the only instrument that can tell it
-# has gone stale. Measured 2026-09-22 (WEB 4, rationale/specialist-panel-2026-09-22.md
-# #21): five web/laravel skills promised pinning, one reference file in the whole set
-# carried a tail, `--live` printed nothing, and the shipped ceilings were two minor
-# versions behind upstream (next 16.3 against a skill saying 16.2, react-native 0.87
-# against 0.82). The root README sells this as "pins its advice to the version in your
-# lockfile", so the promise is the marketplace's, not one skill's.
-#
-# THE TRIGGER is the skill's own frontmatter claim — `pinned`, `version leverage` or
-# `installed version`. A skill that never claims pinning is not asked for a tail.
-#
-# WHAT IT DOES NOT CATCH:
-#   - whether the tail is TRUE. `npm:next@16` on a skill teaching v14 passes; the tail
-#     makes staleness checkable, it does not check it.
-#   - a pinning promise phrased some other way ("reads your lockfile first", "matches
-#     the installed major"). Three phrases, chosen because they are what the shipped
-#     descriptions actually say; widening them is a follow-up with a re-count.
-#   - a body claim with no frontmatter claim — every skill teaches versions somewhere.
-#   - registries other than npm/composer/pypi, which is why it accepts any of the three
-#     and why a Go or crates skill would need this list extended, not blessed.
-#
-# ESCAPE: `<!-- version-tail-ok: <reason> -->` in the SKILL.md. A reason that earns it
-# names the source the stamp points at instead (an EOL calendar, a vendor release page
-# with no package).
-#
-# TIER, THIS RUN: WARN, not FAIL. Two skills fail it on the day it ships —
-# devops:compose-init (stamp points at endoflife.date, no package tail) and
-# ui-ux:astryx-best-practices (no `Last verified` stamp at all, while its description
-# says "pin the installed version before advising"). Both are other plugins' to fix;
-# err() is the follow-up once they do.
+# pc_version_stamp_tail <plugins_root> — a SKILL.md whose frontmatter claims pinned, version leverage or installed version, with no npm:/composer:/pypi: tail on its `Last verified` stamp.
+# Prints "version-stamp-tail <plugin>:<skill> <why>". Misses a false tail, other phrasings, body-only claims, other registries. Escape: `<!-- version-tail-ok: <the source> -->`.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_version_stamp_tail
 pc_version_stamp_tail() {
   local root="${1:-plugins}" bad=0 f p s fm stamp
   for f in "$root"/*/skills/*/SKILL.md; do
@@ -641,30 +332,9 @@ pc_version_stamp_tail() {
   return $bad
 }
 
-# pc_command_arg_hint <plugins_root>
-# A `commands/*.md` whose BODY reads `$ARGUMENTS` or a positional `$1` must declare
-# `argument-hint:` in its frontmatter. Prints one "command-arg-hint <plugin>:<cmd>"
-# per offender; returns 1.
-#
-# WHY THIS EXISTS. The hint is what the host shows in the slash-command menu as the
-# command is typed: with it the user reads `/ui-ux:audit [files-or-diff]`, without it
-# they read `/ui-ux:audit` and then guess. `.claude/skills/authoring-commands/SKILL.md:31`
-# has said "expected whenever the command takes input" since it was written, and the
-# 2026-09-22 panel (UX 11, rationale/specialist-panel-2026-09-22.md #49) found three
-# commands reading `$ARGUMENTS` with no hint — `api-design:drift`, `task-runner:plan`
-# and `ui-ux:audit`, the last of which is advertised as taking `[files-or-diff]` in its
-# own plugin README. 26 of 29 commands had it: a convention everyone followed and
-# nothing checked, which is the shape a gate is cheap for.
-#
-# WHAT IT DOES NOT CATCH:
-#   - whether the hint DESCRIBES the arguments. `argument-hint: [x]` on a command
-#     taking a PR number passes. Accuracy is agent-graded, presence is gated.
-#   - a command that takes input without naming `$ARGUMENTS` — one that tells the
-#     model in prose to "read what follows the command". Nothing here can see that.
-#   - a `$1` inside a fenced code block that is shell the command tells the user to
-#     run, not an argument reference. That direction over-reports rather than under-,
-#     which is the right way for a gate to be wrong; no offender in this tree hits it.
-#   - the host's own commands, which this never reads — plugins only.
+# pc_command_arg_hint <plugins_root> — a commands/*.md whose body reads $ARGUMENTS or $<n> with no `argument-hint:` in its frontmatter: prints "command-arg-hint <plugin>:<cmd>", returns 1.
+# Misses a hint that misdescribes the input (agent-graded) and input taken without naming $ARGUMENTS; over-reports a `$1` in a shell fence.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_command_arg_hint
 pc_command_arg_hint() {
   local root="${1:-plugins}" bad=0 f p body fm
   for f in "$root"/*/commands/*.md; do
@@ -672,8 +342,7 @@ pc_command_arg_hint() {
     p=$(basename "$(dirname "$(dirname "$f")")")
     body=$(awk 'BEGIN{n=0} /^---$/{n++; next} n>=2{print}' "$f")
     fm=$(awk 'BEGIN{n=0} /^---$/{n++; next} n==1{print}' "$f")
-    # Here-strings, not pipes: a `grep -q` that exits on its first match broke the writer's pipe in CI and put
-    # "printf: write error: Broken pipe" on stderr (run 40210716420).
+    # Here-strings, not pipes: an early-exiting grep -q broke the writer's pipe in CI (run 40210716420).
     grep -qE '\$ARGUMENTS|\$[0-9]' <<<"$body" || continue
     grep -q '^argument-hint:' <<<"$fm" && continue
     printf 'command-arg-hint %s:%s\n' "$p" "$(basename "$f" .md)"
@@ -682,58 +351,9 @@ pc_command_arg_hint() {
   return $bad
 }
 
-# pc_budget_crowding <plugins_root> <baseline_file>
-# Corpus-level companion to pc_skill_budget. Counts skill bodies within 3 lines
-# of the LINE ceiling (200 since 2026-08-27, so >=198) and fails if that count
-# EXCEEDS the committed baseline.
-# Prints "crowding <count> > <baseline>" plus one line per crowded file, returns 1.
-#
-# WHY A DISTRIBUTION CHECK AT ALL. pc_skill_budget is per-file and therefore
-# structurally blind to the thing that killed the line measure once already: a
-# ceiling authors write TO rather than under. Its own header records that
-# task-execution sat at a frozen 154 lines for 20 commits while its bytes grew
-# 31%. On 2026-08-27, one iteration later, the same shape is visible in the
-# aggregate — 24 of 116 bodies at EXACTLY 150 and 31 within three lines of it.
-# No per-file check can see that, because every one of those files passes.
-#
-# WHY A RATCHET AND NOT A THRESHOLD. A flat "no more than N% crowded" set at
-# today's honest number would fail the build on the commit that introduces it,
-# and set anywhere above it would bless the current state as acceptable. The
-# baseline is the same instrument context-budget.sh uses: the number may fall
-# freely and may not rise. Lower it when skills are actually cut; never raise it
-# to make a build pass.
-#
-# THIS CHECK NOW CARRIES THE PRESSURE. When the ceiling was 150 the cap itself
-# squeezed the median and this ratchet merely watched. At 200 the cap fails
-# nothing (the longest body is 150 lines against a 200 ceiling), so
-# pc_skill_budget bounds catastrophe and THIS bounds drift. The baseline was
-# re-seeded to 0 on 2026-08-27 for that reason: not because crowding was solved,
-# but because the window moved to a ceiling nothing is near, so the FIRST body
-# written to 200 fails immediately instead of joining a tolerated crowd of 31.
-# If this file ever reads a non-zero baseline again, someone accepted a body at
-# the new ceiling — which may be right, but should be an argued commit, not a
-# quiet edit.
-#
-# LIMITATION (honest scope), three residuals:
-#   1. It measures CROWDING, not quality. Thirty-one skills sitting under a cap
-#      they were written to fit is the signal; whether any given one deserves its
-#      length is a judgement no counter makes.
-#   2. Ratchets only detect the direction of travel. A commit that cuts one skill
-#      to 120 lines and pushes another from 140 to 150 nets zero and passes.
-#   3. The 3-line window is a choice, not a measurement. It catches "written to
-#      the cap"; a body parked at 194 is equally suspicious and invisible here.
-#   4. LINES ONLY. Nothing ratchets the byte dimension, and that direction is
-#      demonstrably live: on 2026-08-27 seven bodies sat above 9,000 B against
-#      the then-10,000 cap, one of them (task-runner/task-execution, 9,929 B at
-#      147 lines) with lines to spare — byte crowding without line crowding, the
-#      exact shape this check cannot see. Adding a byte window was considered and
-#      declined when the cap moved; if bodies start clustering near 14,000 B
-#      while staying short, this residual is where to look first.
-# The find depth is 4 (<root>/<plugin>/skills/<name>/SKILL.md) and was 3 in the
-# first draft, which matched nothing: the check counted zero, compared it to a
-# baseline of 31, and passed on every input including a deliberately crowded
-# fixture. Caught by scripts/smoke/hook-budget-tests.sh on the commit that added
-# both — which is the whole argument for writing the failing case first.
+# pc_budget_crowding <plugins_root> <baseline_file> — more skill bodies at 198+ lines (3 under the 200 cap) than the committed ratchet: prints "crowding <n> > <baseline>" and each file.
+# Misses quality, moves that net zero, a body parked just outside the window, and byte crowding. Lower the baseline when skills are cut; never raise it to pass.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_budget_crowding
 pc_budget_crowding() {
   local root="${1:-plugins}" base_file="${2:-scripts/skill-crowding-baseline.json}"
   local baseline count f n crowded=""
@@ -758,63 +378,9 @@ pc_budget_crowding() {
   return 0
 }
 
-# pc_plugin_corpus <plugins_root> <baseline_file>
-# Counts plugins whose ON-INVOKE PROSE corpus — .md under skills/, bodies plus
-# references — exceeds CORPUS_CAP bytes, and fails if that count EXCEEDS the
-# committed baseline. Prints "corpus <count> > <baseline>" plus one line per
-# offender, returns 1.
-#
-# WHY A THIRD BUDGET CHECK. pc_skill_budget bounds one FILE; pc_budget_crowding
-# bounds the distribution of file LENGTHS. Neither can see a plugin that stays
-# under both while shipping thirteen skills and eighty thousand tokens of
-# references, because every individual file passes. That channel is not small and
-# it is not metered anywhere else: context-budget.sh gates three channels and
-# CLAUDE.md states plainly that skill bodies loaded by a routing rule are
-# "unmetered BY NATURE". Measured 2026-08-31, the two ends of the corpus are
-# craft-layer at ~105.8k tokens and taskmaster at ~70.7k, against a marketplace
-# median plugin under 3k. A boosted taskmaster+task-runner run was measured
-# loading ~28k tokens of bodies alone — more than the whole always-on floor of a
-# 40-plugin install. This check is the only thing that watches that number.
-#
-# WHY GENERATED FILES ARE EXCLUDED. plugins/stack-scan/skills/plugin-scout/
-# references/catalog.md is emitted by scripts/generate.sh with one row per
-# marketplace plugin, and generate.sh --check byte-gates it. Counting it would
-# convert "someone added a plugin to the marketplace" into a CI failure inside an
-# unrelated plugin — a gate that fires on growth it cannot be fixed by. Any .md
-# whose first 400 bytes say "generated" is skipped for the same reason; that was
-# 4.7k tokens in craft-layer and 7.3k in the then-separate plugin-scout plugin,
-# which dropped from ~18.1k to ~10.9k once excluded, which is the point.
-#
-# WHY A RATCHET AND NOT A CEILING. A flat cap set at today's honest number fails
-# the build on the commit that introduces it; set above craft-layer it blesses
-# 105k tokens as acceptable. Same instrument as pc_budget_crowding and
-# context-budget.sh: the number may fall freely and may not rise. Seeded at 2
-# (craft-layer, taskmaster) on 2026-08-31. Lowering it requires actually cutting
-# a plugin's corpus. Never raise it to make a build pass.
-#
-# WHY .md ONLY, AND NOT EVERY FILE UNDER skills/. The first draft summed every
-# file and was wrong by half on the second-largest plugin. taskmaster ships
-# 34,627 tokens of NON-prose under skills/: visual-decisions/assets/shell.html
-# (21,465) and serve.py (6,256) are a mockup shell and the server that serves it
-# — copied to disk and executed, never read into a context window — plus 5,645
-# of starter HTML the shell loads at runtime. Counting them reported 70,664
-# against a real prose cost of 36,037. A budget check that cannot tell prose the
-# model READS from code the plugin RUNS punishes plugins for shipping working
-# software, which is the opposite of the intent.
-#
-# LIMITATION (honest scope), four residuals:
-#   1. It counts BYTES ON DISK, not tokens charged. A reference is charged only
-#      when a body actually routes the model to read it, and nothing here proves
-#      any given file is ever read. Over-reports by construction.
-#   2. It gates the AGGREGATE, so a plugin may grow 40% and stay under the cap
-#      while contributing every token of that growth to real sessions.
-#   3. It is blind to the CHAIN, which is the shape that actually costs: thirteen
-#      skills across four plugins, each plugin individually fine. That is
-#      context-budget.sh's fourth channel, not this one.
-#   4. CORPUS_CAP (160,000 B, ~40k tokens) is a choice, not a measurement. It was
-#      picked against the prose measure to isolate craft-layer (~105.8k tok),
-#      which is 2.9x the next plugin (taskmaster, ~36.0k). If a plugin parks at
-#      39k it is equally heavy and invisible here.
+# pc_plugin_corpus <plugins_root> <baseline_file> — more plugins than the ratchet whose skills/ .md (generated excluded) pass 160,000 B: prints "corpus <n> > <baseline>" and each plugin.
+# Bytes on disk, not tokens read; misses growth under the cap and chains across plugins, and the cap is a choice. Never raise the baseline to pass.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_plugin_corpus
 pc_plugin_corpus() {
   local root="${1:-plugins}" base_file="${2:-scripts/plugin-corpus-baseline.json}"
   local cap=160000
@@ -844,38 +410,13 @@ pc_plugin_corpus() {
   return 0
 }
 
-# pc_pick_parity was retired 2026-09-14: it held the two scout plugins' copies of
-# pick.sh byte-identical because `${CLAUDE_PLUGIN_ROOT}` is per-plugin and neither
-# could read the other's file. Both scouts are skills of stack-scan now and share
-# ONE copy (plugins/stack-scan/scripts/pick.sh), so there is nothing to keep in
-# step; its harness (scripts/__tests__/pick.test.sh) still runs on every PR.
-
-# pc_jargon <md_path>
-# Internal-taskmaster-vocabulary denylist with an ordinary-English rescue list.
-# On a hit: prints the comma-joined matches and returns 1. Clean: prints nothing,
-# returns 0. Lives here so validate.sh and the smoke fixtures share ONE source —
-# a fixture that re-declared the patterns would drift from the gate it tests.
-#
-# LIMITATION (honest scope): a heuristic denylist over prose with a rescue list,
-# not a parser. It converts "leak the internal vocabulary without noticing" into
-# "leak it in a form that does not read as ordinary English". Two residuals:
-# (1) a real leak sharing a line with a rescued phrase is missed; (2) unrescued
-# ordinary English in these shapes still false-positives, and the author's only
-# recourse is the <!-- jargon-ok --> marker.
+# pc_jargon <md_path> — internal taskmaster vocabulary shapes outside an ordinary-English rescue list: prints the matches comma-joined, returns 1.
+# A heuristic, not a parser: misses a leak sharing a line with a rescued phrase, and unrescued English false-positives (escape `<!-- jargon-ok -->`).
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_jargon
 pc_jargon() {
   local f="$1" hit jargon rescue
   [ -f "$f" ] || return 0
-  # cards? — plural included (2026-07-28): "cards 03, 05" leaked past the
-  # singular-only pattern in a shipped SKILL while reading as internal vocab.
   jargon='(^|[^[:alnum:]])(cards? #?[0-9][0-9]|finding #[0-9]|smoke[ -]test #?[0-9]|the back-?log)'
-  # Ordinary English that these shapes WOULD reject. No shipped plugin .md
-  # contains them — the gate would have failed CI — so these are probes from the
-  # task card, not observed leaks. Stating it that way keeps the claim inside
-  # its evidence, which is the same discipline the gate itself is about.
-  #   "Use a credit card 16 digits long."            (payments)
-  #   "The backlog of user stories is groomed."      (estimation / rollout)
-  #   "See finding #2 in the OWASP report."          (security)
-  #   "Run smoke test 3 in the regression suite."
   rescue='(credit|debit|gift|payment|loyalty|graphics|SIM|library|report) card|card (number|reader|holder)|(product|sprint|issue|story|user|work) backlog|backlog of|(finding|smoke[ -]test) #?[0-9]+ (in|of|from) '
   hit=$(grep -viF '<!-- jargon-ok -->' "$f" \
         | grep -ivE "$rescue" \
@@ -886,48 +427,9 @@ pc_jargon() {
   return 1
 }
 
-# pc_removed_refs <md_path>
-# Removed-artifact reference denylist. Removed PLUGIN names come from
-# scripts/removed-plugins.tsv — prose_match plug|both feeds $plug, moved|both feeds
-# $moved, `no` rows are recorded and never matched — read once per shell by
-# _pc_removed_lists; PC_REMOVED_PLUGINS_TSV points it at another file (fixtures). A
-# removal is recorded by adding its row, in the same commit as the removal. Removed SKILL
-# and COMMAND names stay in $skills and $cmds below (ground truth: rationale/stack-skill-
-# baselines.md, 2026-07-27): the react/css-family best-practices skills were removed;
-# simplicity-principles and surgical-coding (code-architecture,
-# 2026-07-28) were merged into low-cognitive-load and plan-before-code as
-# references — the material survives, the always-on trigger does not, so a doc
-# still routing a reader to them by name is the same dangling pointer. A shipped doc still routing to one of them is a dangling pointer no
-# other gate sees — validate.sh's reference check reads only the
-# /plugin:command slash form. On a hit: prints the comma-joined matches and
-# returns 1. Clean: prints nothing, returns 0. An unreadable, empty or malformed ledger
-# prints `removed-plugins ledger unreadable, empty or malformed: <path> — …` and returns 1:
-# fail closed, never a silent pass. Lives here so validate.sh and the smoke fixtures share ONE source, same as pc_jargon.
-#
-# SHAPE-BOUNDED BY DESIGN: rollout, concurrency, error-handling, typescript
-# and javascript are ordinary technical English as bare words ("migrations, or
-# concurrency" appears in ~20 review commands), so PLUGIN names match only in
-# reference shapes — a bolded member row (**vue2**), "<name> plugin(s)", a
-# plugins/<name> path, an install target (<name>@…), a routing arrow
-# (→ <name>), or the /<name>: command form. Removed SKILL names
-# (react-best-practices, css3/css-grid/flexbox/bootstrap-best-practices) are
-# unambiguous hyphenates and match word-bounded anywhere. claude-api is Claude
-# Code's BUILT-IN skill, not a marketplace artifact: a line naming it as if it
-# were one is a hit UNLESS that line says built-in, external or
-# harness-provided (or carries the escape) — the honest wording stays legal.
-# harness-provided is in the token list because the shipped llm-app disclosure
-# wraps: "Claude Code's built-in" ends one line and "claude-api skill —
-# harness-provided, not part of this marketplace" starts the next, and this
-# check is line-scoped by design.
-#
-# LIMITATION (honest scope): a heuristic over prose, lowercase-only for plugin
-# names (TitleCase "TypeScript" is the language, not the plugin), so a
-# capitalized stale row would slip; capability-breadth staleness ("react
-# reviews components") names no removed artifact and is invisible here. The
-# rescue list frees lines DISCUSSING a removal; anything else needs the
-# <!-- removed-ok --> marker. A malformed ledger row — a name outside [a-z0-9-], a
-# prose_match outside plug|moved|both|no, fewer than five fields — fails closed like an
-# unreadable file.
+# pc_removed_refs <md_path> — a removed plugin (scripts/removed-plugins.tsv), skill or command in a reference shape, or claude-api not called built-in: prints the hits comma-joined, returns 1.
+# Misses capitalised names and capability-breadth staleness; an unreadable or malformed ledger fails closed. Lines discussing a removal pass, others need `<!-- removed-ok -->`.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_removed_refs
 pc_removed_refs() {
   local f="$1" b plug skills cmds shapes rescue hit capi
   [ -f "$f" ] || return 0
@@ -939,89 +441,19 @@ pc_removed_refs() {
   b='[^[:alnum:]-]'
   # Why each name sits in $plug, $moved or neither: its reason column in scripts/removed-plugins.tsv.
   plug=$_PC_RR_PLUG
-  # $shapes gives $moved only the plugin-reference forms, not $plug's bare-backtick or arrow
-  # shape: most of those names live on as skill names, npm packages or ordinary words.
+  # $moved gets only the plugin-reference shapes: most of those names live on as skill names, npm packages or ordinary words.
   moved=$_PC_RR_MOVED
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
-  # `\`($moved):[a-z][a-z0-9-]*` added 2026-09-02: three craft-layer files cited
-  # `a11y:a11y-audit` / `performance:performance-engineer` — the backtick
-  # plugin:artifact form, the most common way one skill names another — and
-  # every shape above missed it. Residual: the same citation unbackticked in
-  # prose still passes; `web-dev:react-native-best-practices` is legal because
-  # the moved name is not the plugin half, and `mariadb:11` (a docker tag) is
-  # legal because the artifact half must start with a letter. Until 2026-09-29 this
-  # shape was written `\\\``, which hands grep `\``: a literal backtick to BSD grep,
-  # GNU grep's start-of-buffer anchor — so it fired on macOS and never on Linux CI.
-  # task-orchestration added 2026-08-21: merged into plan-before-code, which
-  # already produced the file map its dependency edges were derived from. Its
-  # parallel-safety rule was stated in four places across three plugins; the
-  # worked table, the one thing nothing else had, is now that skill's reference.
-  # opinion-round added 2026-08-21: merged into approach-deliberation, whose own
-  # lane.tsv had already declared the two as ONE territory. The blind panel is now
-  # that skill's second mechanism (references/blind-panel.md), not a second skill
-  # with its own copy of the marker, defer rule, proceed rule and kill-trigger.
-  # database-design added 2026-08-20: merged into sql-best-practices, which already
-  # stated four of its rules (constraints in the schema, index every FK, additive
-  # migrations, short transactions) at the same level of generality while the file
-  # claimed to defer where both could speak. The `database` PLUGIN survives — it
-  # ships the destructive-SQL PreToolUse guard and the database-engineer worker.
-  # 2026-08-26 skill names ride the nine-plugin removal of that day. The i18n plugin's skill was
-  # also named bare "i18n" — deliberately NOT listed: word-bounded "i18n" is
-  # ordinary technical English everywhere, so its coverage rides the plugin
-  # shapes only. That residual is real: a doc naming the removed SKILL as bare
-  # "i18n" outside a reference shape slips through.
-  # terse-crew, terse-commit, terse-compress added 2026-09-14: dropped with the terse
-  # merge into candor; the three crew agents went with the crew skill.
-  # real-preview, design-session added 2026-09-15: design-studio's two skills, retired
-  # with it. real-preview's BODY survives as taskmaster's
-  # visual-decisions/references/real-components.md — under a different name, so every
-  # citation of the old skill name resolves to nothing. Six shipped files carried one
-  # after the retirement and no shape saw them: the names sat in neither list, and the
-  # `moved` list would not have helped because it guards the PLUGIN half of
-  # `plugin:artifact`, while these appeared as the artifact half (`ui-ux:real-preview`).
-  # estimation added 2026-09-22 (specialist-panel-2026-09-22 §3.2, software finding 12):
-  # approaches' estimation skill was measured-zero shape 2 verbatim — a checklist with no
-  # mechanism, no Standing: line and no eval — and the ledger it appended to had exactly
-  # one grep hit, the instruction to write it. It rides $skills, not $moved, for the
-  # real-preview reason: it is the ARTIFACT half of `approaches:estimation`, which the
-  # $moved list cannot see. It is the first SINGLE BARE WORD in this list, and the i18n
-  # note above is the standing argument against that — so the survey that earned it:
-  # after the removal every word-bounded `estimation` in the scanned .md set was a
-  # dangling pointer, none was ordinary English. WHAT IT DOES NOT CATCH: "estimate",
-  # "sizing" and "S/M/L/XL" name the same dead capability and match nothing here, and a
-  # future skill using "estimation" as ordinary English needs <!-- removed-ok -->.
+  # Hyphenates and surveyed bare words only: a bare word must dangle wherever it appears, which is why i18n is absent.
   skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress|real-preview|design-session|estimation'
-  # Removed COMMANDS, fully qualified. `/approaches:size` (2026-09-22, same finding) went
-  # with the estimation skill, and no list above can hold it: the plugin half is live, so
-  # $moved would mis-fire on every surviving /approaches: command, and the artifact half
-  # `size` is ordinary English in every table in the repo. Only the joined token matches.
+  # Removed commands, fully qualified: the plugin half is live and the artifact half is ordinary English.
   cmds='approaches:size'
-  # `bundles?` added 2026-08-31: the `everything` removal shipped six shipped-doc
-  # references in the form "`everything` bundle(s)" / "`craft-suite` and
-  # `everything`" that no existing shape matched — the guard was extended for that
-  # removal and then verified against shapes, not against references.
-  # NB the final two alternatives: `\`($plug)\`` is the 2026-08-31 bundle-reference
-  # addition, and `($skills)` is the removed-SKILL-name clause that predates it —
-  # the first version of that addition REPLACED the skills clause instead of
-  # appending, silently un-guarding every removed skill name; parity-check.sh's
-  # violation-skill-name fixture is what caught it.
+  # Append a shape, never replace one: the ($skills) and ($cmds) clauses are the only guard on removed skill and command names.
+  # Write a backtick as \` here, never \\\`: that hands grep \`, GNU grep's start-of-buffer anchor, so the shape fires on macOS and never on Linux CI.
   shapes="/($moved):|\`($moved):[a-z][a-z0-9-]*|(^|$b)plugins/($moved)($b|\$)|(^|$bm)($moved)@|\\*\\*($moved)\\*\\*|(^|$bm)($moved)\`? plugins?($b|\$)|\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)|(^|$b)($cmds)($b|\$)"
-  # Lines legitimately discussing the removal itself stay legal without a
-  # marker. Every phrase below is quoted from a shipped disclosure:
-  #   "it was removed after baseline testing"          (plugin-scout flags.md)
-  #   "`error-handling` and `concurrency` plugins were / merged into this one"
-  #   "**vue2** (Vue 2 is EOL) is no longer bundled"   (the retired frontend-suite README)
+  # Lines discussing a removal stay legal unmarked; each phrase is quoted from a shipped disclosure.
   rescue="(was|were|been|are|is) (removed|merged|retired)|merged into|no longer|plugins? (were|was)($b|\$)"
-  # NPM TAIL OF A `Last verified` STAMP, blanked before matching. `$bm` excludes
-  # `/@.-` so a package path cannot be mistaken for a plugin reference, but NOT `:`
-  # — so `npm:vite@8` and `npm:react-native@0.82` matched `(^|$bm)($moved)@` and
-  # failed two shipped skills whose whole job is to name those packages
-  # (2026-09-22). Only the `npm:<pkg>@<ver>` TOKEN is blanked, not the stamp line
-  # and not the `:` boundary: a stale `/vite:review` or `plugins/vite` on the same
-  # line is still caught, and `install vite@cc-plugins-marketplace` after a colon
-  # anywhere else is still caught. WHAT IT NO LONGER CATCHES: a removed plugin name
-  # written in the exact shape `npm:<name>@<version>`, which is a package
-  # coordinate, not a marketplace reference — that is the point.
+  # Blank npm:<pkg>@<ver> first: $bm excludes /@.- but not ':', so a package pin read as a plugin reference.
   hit=$(grep -vF '<!-- removed-ok -->' "$f" \
         | sed -E 's/npm:(@[^ ]+\/)?[^ ]+@[0-9]+(\.[0-9]+)?/npm-pin/g' \
         | grep -viE "$rescue" \
@@ -1038,10 +470,9 @@ pc_removed_refs() {
   return 1
 }
 
-# pc_doc_location <plugins_relative_md> <allow_regex>
-# $1 is a repo-relative path beginning "plugins/<name>/…". Mirrors validate.sh:
-# strips "plugins/*/" and greps the caller-supplied allow regex.
-# On violation: prints "doc-location <path>" and returns 1. Clean: returns 0.
+# pc_doc_location <plugins/<name>/…md> <allow_regex> — a plugin .md whose path below plugins/<name>/ misses the caller's allow regex: prints "doc-location <path>", returns 1.
+# Path only: it reads no content, and which files reach it is validate.sh's choice.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_doc_location
 pc_doc_location() {
   local mdf="$1" allow="$2" rel
   rel=${mdf#plugins/*/}
@@ -1050,27 +481,9 @@ pc_doc_location() {
   return 1
 }
 
-# pc_rules_cofire <rules_tsv_path> <corpus_dir>
-# CONTENT-row co-firing gate. Two content rows co-fire when BOTH patterns match at
-# least one file in a shared corpus of representative source snippets. Every such
-# unordered pair must be blessed by a
-#   "# co-fire-ok: content <skillA> <skillB>"
-# directive in the same file — the same convention the glob axis already uses.
-#
-# WHY A CORPUS, not pattern equality: pc_rules_overlap flags glob rows that share an
-# IDENTICAL pattern string. Content rows never do — all five are distinct regexes at
-# low confidence — so extending that algorithm here would be vacuous, matching nothing
-# ever. Content rows collide because two DIFFERENT regexes match the same text: one
-# ordinary React component containing `await`, `catch`, `fetch(`, `console.error` and
-# `token` fires four of them at once. Only a corpus can express that.
-#
-# LIMITATION (honest scope): the corpus is a fixed, hand-written sample. This converts
-# "add a content row and never learn what it co-fires with" into "add one and the gate
-# names every existing row it collides with on realistic code". It does NOT prove the
-# absence of collisions on code shapes the corpus does not contain, and it says nothing
-# about whether a blessed co-fire is a good idea — only that someone declared it.
-#
-# On violation: prints "cofire <skillA> <skillB> <file>" per unblessed pair, returns 1.
+# pc_rules_cofire <rules_tsv> <corpus_dir> — two content rows whose regexes both match one corpus file, unblessed by `# co-fire-ok: content <a> <b>`: prints "cofire <a> <b> <file>", returns 1.
+# Proves nothing about code shapes the hand-written corpus lacks, nor whether a blessed co-fire is wise.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_rules_cofire
 pc_rules_cofire() {
   local f="$1" corpus="$2" rc=0
   [ -f "$f" ] || return 0
@@ -1078,7 +491,6 @@ pc_rules_cofire() {
   local blessed pats skills n i j
   blessed=$(grep '^# co-fire-ok:[[:space:]]*content ' "$f" 2>/dev/null \
             | sed 's/^# co-fire-ok:[[:space:]]*content //')
-  # collect content rows
   local -a P S
   while IFS="$(printf '\t')" read -r kind pat skill rest; do
     [ "$kind" = content ] || continue
@@ -1105,16 +517,9 @@ pc_rules_cofire() {
   return $rc
 }
 
-# pc_rules_overlap <rules_tsv_path>
-# Flags unresolved same-pattern collisions among high-confidence glob rows.
-# Every unordered pair of rows sharing an identical pattern must be either
-# marker-discriminated (both rows carry a stack_marker, and they differ) or
-# covered by a pairwise "# co-fire-ok: <pattern> <skillA> <skillB>" directive
-# (space-tokenized) in the same file. Content and low-confidence rows are
-# never flagged; identical-pattern subsumption (*.php vs *.blade.php) is out
-# of scope by design.
-# On violation: prints "overlap <pattern> <skillA> <skillB>" per pair and
-# returns 1. Clean or missing file: returns 0.
+# pc_rules_overlap <rules_tsv> — two high-confidence glob rows with one pattern, not told apart by differing stack markers or `# co-fire-ok: <pattern> <a> <b>`: prints "overlap <pattern> <a> <b>".
+# Content and low-confidence rows are never flagged; subsumption (*.php vs *.blade.php) is out of scope by design.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_rules_overlap
 pc_rules_overlap() {
   local f="$1"
   [ -f "$f" ] || return 0
@@ -1156,30 +561,9 @@ pc_rules_overlap() {
     }' "$f"
 }
 
-# pc_rules_reachable <rules_tsv>
-# Every shipped routing row must be ABLE to fire. Prints one `unreachable <kind>
-# <pattern> <skill>` line per dead row and returns 1; clean or missing file
-# returns 0.
-#
-# WHY THIS EXISTS. skill-router's match_glob (plugins/skill-router/hooks/route.sh,
-# `match_glob()`) understands exactly one multi-segment form, `**/dir/**`, which it
-# tests against the full path — case-insensitively since 0.13.3. EVERY other pattern is matched against the BASENAME — so a
-# pattern containing a `/` outside that one form is compared to a string that can
-# never contain a `/`, and cannot match any file, ever. `**/routes/api.php`
-# shipped in that state and routed api-design zero times for months. The three
-# existing router harnesses could not see it: rules-overlap-tests.sh checks
-# pattern COLLISIONS and route-marker-tests.sh checks MARKER semantics, and a row
-# that never fires collides with nothing and reaches no marker. A rule nobody can
-# prove fires is indistinguishable from a rule that was never written, which is
-# also why nobody could ever justify deleting one.
-#
-# LIMITATION (honest scope). This is a STRUCTURAL check, not a corpus check: it
-# proves a glob CAN match some path, never that any file in a real project does.
-# For content and command rows it only compiles the regex (an invalid ERE can never
-# match either); asserting that each content regex matches a real fixture would need a
-# corpus covering all 31 glob rows, and expanding scripts/smoke/router-corpus
-# re-runs pc_rules_cofire's O(n^2) pairing over every added file. Accepted, not
-# covered — the dead-pattern class above is the one that actually shipped.
+# pc_rules_reachable <rules_tsv> — a routing row that can never fire: a glob with a / outside `**/dir/**` (route.sh matches basenames), or a content or command ERE that does not compile.
+# Prints "unreachable <kind> <pattern> <skill>", returns 1. Structural only: never proves a real file matches.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_rules_reachable
 pc_rules_reachable() {
   local tsv="$1" bad=0 kind pattern skill rest
   [ -f "$tsv" ] || return 0
@@ -1203,37 +587,13 @@ pc_rules_reachable() {
   return $bad
 }
 
-# pc_rules_owner <rules_tsv> [plugins_root]
-# Every routing row's col-4 `owning_plugin` must be a plugin directory that
-# SHIPS the row's col-3 skill: `<root>/<plugin>/skills/<skill>/SKILL.md` must
-# exist. Prints one `rules-owner <skill> <plugin>` line per bad row — a row with
-# no fourth field at all prints `rules-owner <skill> (missing)` — and returns 1;
-# clean or missing file returns 0. A row whose col 4 is EMPTY between two tabs
-# is read by bash (and by route.sh, same `read`) with the next field shifted
-# into it, so it surfaces as an unknown owner such as `low`; caught either way.
-#
-# WHY THIS EXISTS. Until 2026-09-03 (skill-router 0.14.12) rules.tsv named
-# `observability` as the owner of `observability-design`, weeks after that
-# plugin was folded into `resilience`. Nothing read col 4 at author time:
-# pc_rules_reachable reads cols 1-3, validate.sh resolves col 3 across ALL
-# plugins, so a skill that moved between plugins still resolved. At run time
-# route.sh DOES read col 4 — `plugin_installed "$plugin" || continue` — so the
-# row was silently suppressed wherever the installed-plugin filter resolved, and
-# named a non-existent plugin in its nudge where it did not. An empty owner is
-# the same class: `pr_is_enabled ""` returns 1 and the row is skipped. A dead
-# owner is a routing rule that looks alive and never fires — the class
-# pc_rules_reachable exists for, one column over. Found by the 2026-09-03
-# marketplace standard review (rationale/marketplace-standard-review-2026-09-03.md).
-#
-# LIMITATION (honest scope). Author-time file existence only. It does not prove
-# the plugin is installed for any user — that is route.sh's runtime filter, by
-# design — nor that the row's pattern fires (pc_rules_reachable) or collides
-# (pc_rules_overlap / pc_rules_cofire).
+# pc_rules_owner <rules_tsv> [plugins_root] — a routing row whose col-4 plugin does not ship its col-3 skill, or has no col 4: prints "rules-owner <skill> <plugin|(missing)>", returns 1.
+# Author-time existence only: not whether the plugin is installed (route.sh's runtime filter), the row fires, or it collides.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_rules_owner
 pc_rules_owner() {
   local tsv="$1" root="${2:-plugins}" bad=0 kind pattern skill plugin rest
   [ -f "$tsv" ] || return 0
-  # `|| [ -n "$kind" ]` mirrors route.sh: a final row without a trailing newline
-  # is live at runtime and must be visible to the gate.
+  # `|| [ -n "$kind" ]` mirrors route.sh: an unterminated final row is live at runtime.
   while IFS=$'\t' read -r kind pattern skill plugin rest || [ -n "$kind" ]; do
     case "$kind" in ''|'#'*) continue ;; esac
     if [ -z "$plugin" ]; then
@@ -1244,62 +604,15 @@ pc_rules_owner() {
   return $bad
 }
 
-# pc_host_overlap <md_path>
-# Fails a shipped plugin .md that introduces a SKILL or COMMAND whose name collides
-# with a skill Claude Code itself ships. Prints one `hostoverlap <path>
-# <name>` line per hit and returns 1; clean returns 0.
-#
-# WHY THIS EXISTS. This marketplace already made the host-deferral decision twice
-# and wrote it down twice — craft-layer/skills/information-design/SKILL.md defers
-# chart form and colour to the built-in `dataviz` skill BY NAME ("Do not duplicate
-# dataviz guidance in craft-layer files", and "Duplicating dataviz" listed as an
-# anti-pattern), and llm-app defers provider API specifics to the built-in
-# claude-api skill. Both are held together by prose. The one host boundary any
-# script enforces runs the OTHER way: pc_removed_refs' rescue list forbids
-# describing `claude-api` as a marketplace artifact. Nothing checked the direction
-# that costs tokens — a plugin re-implementing a capability the user already has,
-# paying always-on description cost to compete with it for the same trigger.
-#
-# The name list is the host skill roster as of CLI 2.1.300. It is a NAME collision
-# check only: a plugin may still cover adjacent ground, and should say so as a
-# deferral. Mark a legitimate mention with <!-- host-ok --> on the line, matching
-# the rescue idiom pc_removed_refs already uses.
-#
-# LIMITATION (honest scope). Name equality only. A skill called `chart-styling`
-# that silently restates dataviz trips nothing, and the roster is a hardcoded list
-# that goes stale when the harness ships a new built-in — the same standing
-# pc_removed_refs' plugin lists carry: they come from scripts/removed-plugins.tsv, current
-# only as of its last row. Accepted, not covered.
+# pc_host_overlap <md_path> — a plugin skill or command named like a Claude Code built-in in $hosts: prints "hostoverlap <path> <name>", returns 1. Escape: `<!-- host-ok -->`.
+# Name equality only: a differently named skill restating a built-in passes, and the roster goes stale when the host ships a new one.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_host_overlap
 pc_host_overlap() {
   local f="$1" bad=0 name host
   [ -f "$f" ] || return 0
-  # Roster refreshed 2026-09-15 against a live session's skill listing. The six
-  # added then — code-review security-review run init loop schedule — had shipped
-  # in the host while this list still read 2026-08-02, so `security/skills/
-  # security-review` collided with a built-in for 44 days without tripping. That
-  # one is deliberate and carries <!-- host-ok -->; the gate simply could not see it.
-  # Five more on 2026-09-16 — verify batch deep-research goal skill-doctor — from the
-  # same source (rationale/marketplace-trend-audit-2026-09-16.md C2).
-  # Fifteen more on 2026-10-15 from the 2.1.300 bundle itself (`strings` on the
-  # binary), because a session's listing shows only the model-invocable built-ins
-  # that are switched on: the host's `debug` is user-only, so `debugging:debug`
-  # shared its name unseen. Three sources there: the default core-skill array
-  # (artifact-diagramming ... workflow-authoring), the bundled-skill registrations,
-  # and the prompt commands (init insights team-onboarding security-review). Names
-  # from earlier rosters stay, since a user on an older CLI still has them.
-  # NOT here: UI commands (/plan /resume /status /theme /install) and aliases
-  # (`review` for code-review, `checkup` for doctor). They never enter the model's
-  # listing, and on 2.1.300 a bare typed name resolves to the exact built-in first,
-  # so a plugin's same-named command loses only its bare typed form.
+  # Built-ins as of CLI 2.1.300 (a session listing plus `strings` on the bundle); older names stay, UI commands and aliases never list.
   local hosts="dataviz artifact-design artifact-capabilities skill-creator claude-api update-config keybindings-help fewer-permission-prompts claude-in-chrome simplify code-review security-review run init loop schedule verify batch deep-research goal skill-doctor artifact-diagramming artifact-components claude-code-docs commit debug design-sync doctor explain-usage insights memory-types plugin-authoring pr run-skill-generator team-onboarding workflow-authoring"
-  # SKILLS AND COMMANDS. Until 2026-09-16 this walked skills only, on the argument
-  # that a command is namespaced at the call site (`/task-runner:run` cannot be typed
-  # for the host's bare `/run`). The host has since merged commands into skills
-  # (code.claude.com/docs/en/skills: "Custom commands have been merged into skills"):
-  # a command is model-invocable by default and its description sits in the same
-  # listing, so it competes for a trigger by DESCRIPTION exactly as a skill does —
-  # the namespace protects only the typed form. Three shipped commands collided
-  # unseen: task-runner:run, devops:init, code-architecture:verify.
+  # Commands too: the host merged commands into skills, so a command competes for a trigger by description like a skill.
   case "$f" in
     */skills/*/SKILL.md) name=$(basename "$(dirname "$f")") ;;
     */commands/*.md)     name=$(basename "$f" .md) ;;
@@ -1314,31 +627,9 @@ pc_host_overlap() {
   return $bad
 }
 
-# pc_cmd_skill_shadow [plugins-root] — one plugin must not ship `commands/<n>.md` AND
-# `skills/<n>/SKILL.md`. Prints `shadow <plugin>:<n>` per unmarked pair and returns 1.
-#
-# WHY IT EXISTS. The host lists a plugin's commands and skills in one listing under one
-# `<plugin>:<n>` name, and a same-name pair keeps only one description. Measured
-# 2026-09-29: `claude plugin details design-kit` printed `Skills (10)  artifact, artifact,
-# design, design, …`, and a live session's listing carried each COMMAND's description —
-# the skill's "Use when" trigger never reached the model. Six pairs shipped that way
-# (design-kit artifact, design, in-codebase, slides, system; taskmaster brainstorm) with
-# every gate green, because each file was valid on its own.
-#
-# CATCHES. A same-name pair inside one plugin's default `commands/` and `skills/` dirs.
-# Escape: `<!-- shadow-ok: <why> -->` anywhere in the command file. The reason must be
-# non-empty and not whitespace — `<!-- shadow-ok -->`, `<!-- shadow-ok: -->` and a
-# tab-only reason still fail — and cannot contain `>`.
-#
-# WHAT IT DOES NOT CATCH. A differently-named command that restates a skill. A pair
-# across two plugins (namespaced, so no shadow). Commands or skills declared through
-# plugin.json `commands`/`skills` paths outside the default dirs, or nested
-# `commands/<dir>/<n>.md`. `.claude/skills` project skills. A skill whose frontmatter `name:`
-# differs from its directory (the host lists the `name:`; the dir is only the fallback).
-# Whether a marker's reason is true. Names match case-sensitively on every filesystem,
-# so macOS and Linux CI agree.
-#
-# Standing: gate. validate.sh feeds it to lane_err.
+# pc_cmd_skill_shadow [plugins_root] — one plugin shipping commands/<n>.md and skills/<n>/SKILL.md: prints "shadow <plugin>:<n>", returns 1. Escape: `<!-- shadow-ok: <why> -->`, reason non-empty.
+# Misses cross-plugin pairs, paths outside the default dirs, nested commands, project skills, a skill `name:` unlike its dir, and whether a marker's reason is true.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_cmd_skill_shadow
 pc_cmd_skill_shadow() {
   local root="${1:-plugins}" bad=0 cmd pdir name
   for cmd in "$root"/*/commands/*.md; do
@@ -1354,38 +645,20 @@ pc_cmd_skill_shadow() {
   return $bad
 }
 
-# pc_lanes_vocabulary [plugins-root] [vocab-file] — an `owns` noun must be declared.
-#
-# WHAT IT CATCHES. pc_lanes_territory compares `owns` as a string, so two artifacts doing
-# one job slip past it by choosing different nouns — which is what every plugin here had
-# done. Twelve review-phase agents each picked a unique noun and the territory gate stayed
-# green while they contended for the same `.tsx` diff. This check does not merge them; it
-# makes INVENTING a noun a reviewed act, because the new one has to be typed into
-# scripts/lane-vocabulary.txt directly beneath the twelve already there.
-#
-# HONEST LIMITATION, and it is the whole of the check's weakness: nothing here proves two
-# nouns MEAN different things, and nothing stops an author adding a near-duplicate line.
-# The catch is social — a human reading the grouped list — with a gate only on the
-# bookkeeping. A semantic check is not available to a shell script, and pretending
-# otherwise is the tier over-claim this repo's own convention forbids.
+# pc_lanes_vocabulary [plugins_root] [vocab_file] — a lane.tsv `owns` noun absent from scripts/lane-vocabulary.txt, or no such file: prints "lane-vocab <file> <noun>", returns 1.
+# Bookkeeping only: nothing proves two nouns mean different things or stops a near-duplicate line; the catch is a human reading the list.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_lanes_vocabulary
 pc_lanes_vocabulary() {
   local root="${1:-plugins}" vocab="${2:-scripts/lane-vocabulary.txt}" bad=0 f line owns
-  # A MISSING VOCABULARY IS A FAILURE, NOT A PASS. The first version returned 0 here,
-  # so deleting the file silently disabled a blocking gate while its own header still
-  # said `Standing: gate` — the same shape as the two eval suites CLAUDE.md records as
-  # having loaded zero cases for weeks with nobody noticing.
+  # A missing vocabulary fails: returning 0 would let a deleted file disable this gate silently.
   if [ ! -f "$vocab" ]; then printf 'lane-vocab MISSING %s\n' "$vocab"; return 1; fi
   while IFS= read -r f; do
     [ -f "$f" ] || continue
-    # `|| [ -n "$line" ]`: a lane.tsv with no trailing newline otherwise loses its LAST
-    # row here while every sibling lane check (all awk-based) still sees it — so the final
-    # row of an unterminated file was schema-checked and territory-checked but exempt from
-    # the vocabulary gate. The inconsistency is the bug; the missing newline is not.
+    # `|| [ -n "$line" ]`: the awk-based lane checks see an unterminated last row, so this one must too.
     while IFS= read -r line || [ -n "$line" ]; do
       case "$line" in ''|'#'*) continue ;; esac
       line=${line%$'\r'}
-      # -s: a line with no tab is skipped rather than returned whole. Without it a
-      # malformed row reports its entire text as an undeclared noun.
+      # -s: a line with no tab is skipped, not reported whole as an undeclared noun.
       owns=$(printf '%s' "$line" | cut -s -f4)
       [ -n "$owns" ] || continue
       case "$owns" in owns) continue ;; esac
@@ -1396,35 +669,15 @@ pc_lanes_vocabulary() {
   return $bad
 }
 
-# pc_twin_files [plugins-root] — a file that DECLARES itself a twin must still be one.
-#
-# WHAT IT CATCHES. `plugins/taskmaster/hooks/preview-guard.sh` and
-# `plugins/ui-ux/hooks/preview-guard.sh` are one guard shipped twice: ${CLAUDE_PLUGIN_ROOT}
-# is per-plugin so the file cannot be shared, and a user may install ui-ux without
-# taskmaster, so without its own copy that path has no guard at all. Their
-# correctness as a PAIR depends on byte-identity: both hash the same session_id to the
-# same marker, and that shared key is what leaves exactly one asker on the weak tier.
-# Let them drift and the marker keys diverge, so both ask — silently, on every call, with
-# the header still claiming one does.
-#
-# HOW. Any file carrying `# TWIN: <path> is an identical copy save this line.` must match
-# its named partner on every line EXCEPT the two TWIN lines themselves, which name each
-# other and therefore cannot match. Prints `twin <a> <b>` per drifted pair, returns 1.
-#
-# HONEST LIMITATION. It gates SAMENESS, not correctness — two identically wrong copies
-# pass. It also cannot tell you WHICH copy is authoritative: the fix is always "make them
-# match", never "make them match the right one". And it only sees pairs that declare
-# themselves; an undeclared copy-paste twin is invisible, the same residual pc_host_overlap
-# carries for its hardcoded roster.
+# pc_twin_files [plugins_root] — a file marked `# TWIN: <path> is an identical copy save this line.` that differs from its partner outside the TWIN lines: prints "twin <a> <b>".
+# Gates sameness, not correctness; cannot say which copy is right, and sees only declared pairs.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_twin_files
 pc_twin_files() {
   local root="${1:-plugins}" f partner bad=0 a b
   while IFS= read -r f; do
     [ -f "$f" ] || continue
     partner=$(sed -n 's/^# TWIN: \([^ ]*\) is an identical copy save this line.*/\1/p' "$f" | head -1)
-    # A NEAR MISS IS LOUD, NOT SILENT. The extraction wants one exact sentence; any reword
-    # left `partner` empty and skipped the file with no output, so editing the comment on
-    # BOTH copies would retire the gate while both files still read to a human as a
-    # declared pair. Same failure shape as a vocabulary file that goes missing.
+    # A reworded marker fails loud: skipping an empty partner would retire the gate while both files still read as a pair.
     if [ -z "$partner" ]; then
       printf 'twin %s (unparseable marker — expected: # TWIN: <path> is an identical copy save this line)\n' "$f"
       bad=1; continue
@@ -1440,55 +693,12 @@ pc_twin_files() {
   return $bad
 }
 
-# pc_handoff_refs <md_path> [plugins_root]
-# Every bare `<plugin>:<name>` handoff in a shipped plugin doc must RESOLVE to a
-# real artifact in that plugin: agents/<name>.md, skills/<name>/SKILL.md or
-# commands/<name>.md. Prints one `handoff <path> <token>` line per unresolved
-# reference and returns 1; clean returns 0.
-#
-# WHY THIS EXISTS. validate.sh has always gated the SLASH form `/plugin:command`
-# globally, and pc_removed_refs reads the plugins deleted from this marketplace
-# from scripts/removed-plugins.tsv. Neither sees the bare `plugin:agent` form — the one the
-# routing chains, reviewer maps and worker handoffs are actually written in. So
-# `ui-ux:ui-ux-enginer` (typo), `taskrunner:task-executor` (wrong plugin name) and
-# a rename that missed one call site all shipped green, and the failure is silent
-# at runtime: the model reads a name that does not exist and quietly does the work
-# inline instead of delegating. About 90 such edges ship today across 37 distinct
-# targets, and nothing checked any of them.
-#
-# TWO STRUCTURAL GUARDS, so there is no exclusion list to maintain:
-#   1. LHS must be a real plugin directory. That drops `model:opus`, `http:` and
-#      every YAML-ish token in one rule.
-#   2. A token immediately preceded by `<` is markup, not a handoff. Blade and
-#      Livewire component tags (`<livewire:item-row />`) share this syntax
-#      exactly, and a cross-plugin handoff is never written as an opening tag.
-#      Without this the three shipped Livewire examples fail, and the alternative
-#      — an HTML comment escape inside a fenced Blade snippet — would corrupt the
-#      example it is documenting.
-# Fenced code is deliberately IN scope: the reviewer Resolution map and the worker
-# chains live inside fences, and they are the edges most worth checking.
-#
-# LIMITATION (honest scope). Resolution only. It cannot tell whether the
-# referenced plugin is INSTALLED in the reader's session — that is the degradation
-# question, and the answer is prose ("if installed") that no script can verify
-# means what it says. It also cannot see a deferral to a HOST skill, which is
-# written as a bare name with no plugin prefix; pc_host_overlap covers the name
-# collision, nothing covers a host deferral going stale.
-#
-# Mark a legitimate non-reference (a Blade tag, a quoted example of a bad name)
-# with <!-- handoff-ok --> on the line, matching the rescue idiom the jargon and
-# removed-artifact guards already use.
-#
-# SINGLE PASS, deliberately. The first implementation looped over every line and
-# spawned grep+sed+sort per line; across ~400 shipped docs that took validate.sh
-# from 30s to 110s, and role-floors-check — which then ran validate.sh nine times —
-# to seven minutes. A gate slow enough to discourage running it locally is a gate
-# that only fires in CI. Two greps per file, then one filesystem probe per
-# DISTINCT token.
+# pc_handoff_refs <md_path> [plugins_root] — a bare `<plugin>:<name>` (a real plugin dir, not after `<`, fences included) naming no agent, skill or command there: prints "handoff <path> <token>".
+# Resolution only: not whether the plugin is installed, nor a stale deferral to a host skill. Escape: `<!-- handoff-ok -->` on the line.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_handoff_refs
 pc_handoff_refs() {
   local f="$1" root="${2:-plugins}" bad=0 tok lhs rhs ln skiplines
   [ -f "$f" ] || return 0
-  # Line numbers carrying the escape, as a space-padded set for O(1)-ish lookup.
   skiplines=" $(grep -nF '<!-- handoff-ok -->' "$f" 2>/dev/null | cut -d: -f1 | tr '\n' ' ')"
   while IFS= read -r ln; do
     [ -n "$ln" ] || continue
@@ -1501,123 +711,41 @@ pc_handoff_refs() {
     [ -f "$root/$lhs/commands/$rhs.md" ] && continue
     printf 'handoff %s %s\n' "$f" "$tok"
     bad=1
-  # `sort -u` on the WHOLE line, not `-t: -k1,1 -k2,2`. That key was (line, plugin), so
-  # two handoffs sharing a plugin prefix ON ONE LINE collapsed to the first and the
-  # second was never checked. Verified: `code-architecture:yagni-check and
-  # code-architecture:no-such-thing` on one line passed clean, while the same pair on two
-  # lines failed correctly. Prose wraps, so this mostly hid; a plugin.json description is
-  # a single long line, which is where it bites every time.
+  # sort -u on the whole line: a (line, plugin) key would drop a second handoff sharing a prefix on one line.
   done < <(grep -nEo '(^|[^/`<[:alnum:]_-])[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' "$f" 2>/dev/null \
     | sed -E 's/^([0-9]+):[^a-z]*/\1:/' | sort -u)
   return $bad
 }
 
-# pc_version_stamp <plugin_dir>
-# A plugin whose OWN plugin.json description claims version leverage should carry
-# a `> Last verified: YYYY-MM-DD — <url>` stamp somewhere in its skills, so
-# check-doc-staleness.sh can see it decay. Prints `unstamped <plugin>` and returns
-# 1 when the claim exists and no stamp does; returns 0 otherwise.
-#
-# STANDING: gate — validate.sh's `pc_version_stamp` loop feeds this straight to `err`, so a plugin
-# claiming version leverage with no stamp FAILS the build. Promoted in 6487412
-# (2026-08-02, "put teeth behind the stamp") after the verification pass below was
-# actually run and the claimants were actually stamped.
-#
-# THIS HEADER SAID THE OPPOSITE FOR 21 DAYS. It read "STANDING: recorded, NOT gate
-# — validate.sh prints this as a WARN and never fails on it", plus a "WHY IT IS NOT
-# BLOCKING YET" rationale and a "TO PROMOTE IT TO `gate`" work queue, all of which
-# described a promotion that had already happened three weeks earlier. That is the
-# INVERSE of the over-claim CLAUDE.md's has-teeth convention was written to catch:
-# not a rule pretending to be enforced, but a gate documenting itself as toothless.
-# It is the more expensive direction — a maintainer reading this header would have
-# budgeted work to build a gate that already existed, or trusted that a missing
-# stamp only warns. Kept as a comment rather than deleted because the failure mode
-# is the reusable part: when you change a check's wiring in validate.sh, the
-# standing line in THIS file is the second edit, and nothing enforces that pairing.
-#
-# WHY IT WAS ONCE WARN (kept for provenance): rationale/stack-skill-baselines.md
-# exempts ~20 tier-1 stack plugins from the baseline-redundancy loop on the promise
-# that they encode version leverage rather than idioms. Ten made that claim with no
-# stamp. Blocking before the verification pass would have forced ten fabricated
-# provenance records into the one file whose purpose is provenance — the
-# honest-limitation law forbids that more clearly than almost anything here. The
-# pass was run; the stamps are real; the gate is now safe to block on.
+# pc_version_stamp <plugin_dir> — a plugin.json description claiming version leverage with no `> Last verified:` stamp in any skills/ .md: prints "unstamped <plugin>", returns 1.
+# Presence only: whether the stamp is current is check-doc-staleness.sh's job; descriptions asserting no moving fact are not matched.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_version_stamp
 pc_version_stamp() {
   local pdir="$1" pj="$1/.claude-plugin/plugin.json" desc name
   [ -f "$pj" ] || return 0
   command -v jq >/dev/null 2>&1 || return 0
   name=$(jq -r '.name // empty' "$pj" 2>/dev/null)
   desc=$(jq -r '.description // empty' "$pj" 2>/dev/null)
-  # `lockfile` was in this list and was WRONG: `packages` describes lockfile
-  # DISCIPLINE — semver semantics, which do not drift — and was flagged as owing a
-  # provenance stamp it has nothing to stamp. A detector that manufactures debt
-  # teaches people to ignore it. Match only phrases that assert a moving fact.
+  # Only phrases asserting a moving fact: `lockfile` stays out because lockfile discipline (semver) does not drift.
   printf '%s' "$desc" | grep -qiE 'version-aware|version leverage|version-leverage|as of [0-9]|version[- ]conditional|[0-9]+\.[0-9]+\+' || return 0
-  # find, not a glob: an unmatched glob is a literal path under bash and a hard
-  # error under zsh, and this file is sourced by both validate.sh and a hook.
+  # find, not a glob: an unmatched glob is a hard error under zsh, and a hook sources this file too.
   find "$pdir/skills" -type f -name '*.md' -exec grep -lq '^> Last verified:' {} + 2>/dev/null && return 0
   printf 'unstamped %s\n' "$name"
   return 1
 }
 
-# ---- Lane declarations (plugins/<name>/lane.tsv) -----------------------------
-#
-# THE FORMAT, mirrored in every shipped lane.tsv header. Six TAB-separated
-# fields, one row per artifact:
-#
-#   artifact  kind  phase  owns  definite_trigger  yields_to
-#
-#   artifact          <plugin>:<name> — taskmaster:task, code-review:code-reviewer
-#   kind              command | hook | agent | skill
-#   phase             understand|shape|decide|plan|build|verify|review|ship|any
-#   owns              the territory noun (requirements-clarification, ...)
-#   definite_trigger  a checkable condition, not prose
-#   yields_to         comma-list of artifacts that outrank this one, or `-`
-#
-# Lines starting with `#` are comments. One comment shape is read by the gates:
-#   # lane-cofire-ok: <artifact-a> <artifact-b>
-# blesses one PAIR that shares a territory. It may sit in EITHER participant's
-# file — pc_lanes_territory collects every blessing from every file before it
-# evaluates anything, so neither side of a cross-plugin pair is privileged.
-#
-# `yields_to` IS TERRITORY-SCOPED: it names artifacts that outrank this one ON
-# THEIR OWN `owns`, which is why a mutual pair between two DIFFERENT territories
-# is coherent rather than a cycle — devops owns infra-layer wiring and yields
-# in-code instrumentation to observability, which yields infra wiring back. Both
-# statements ship in those plugins' descriptions today; the columns record them
-# without inventing a winner neither plugin claims.
-#
-# WHY PER-PLUGIN AND NOT A CENTRAL REGISTRY. skill-router is not in every install
-# (it shipped in 5 of 10 bundles when this was written; the bundles are retired), so a
-# registry under it would leave every install without it with no lane at runtime. Collision detection needs every claim visible at once and
-# runs HERE, at author time, over the repo — where every plugin is present
-# regardless of what any user installed. Turn-taking needs only the artifact's
-# OWN lane and reads `${CLAUDE_PLUGIN_ROOT}/lane.tsv` at runtime. Separating the
-# two jobs is what removes the partial-install failure.
-#
-# LIMITATION (honest scope), shared by all five functions below: these gate what
-# a plugin DECLARES, never what it does. Nothing here proves an agent confines
-# itself to its `owns`, that a `definite_trigger` describes the code that fires,
-# or that a `yields_to` edge is honoured at runtime — those stay agent-graded.
-# What the gates convert is "two artifacts silently claim one job and nobody
-# finds out" into "two artifacts claim one job and the build says so".
+# Lane checks read plugins/<name>/lane.tsv (format: CLAUDE.md § Lanes) and gate what a plugin DECLARES, never what its artifacts do (agent-graded).
+# Why, limits, history: rationale/derivations/scripts-lib.md § Lane declarations
 
-# _pc_lane_rows <lane_tsv>
-# Emits "artifact<TAB>kind" for each well-formed data row. Private helper.
+# _pc_lane_rows <lane_tsv> — "artifact<TAB>kind" per well-formed data row.
 _pc_lane_rows() {
   [ -f "$1" ] || return 0
   awk -F'\t' '{ sub(/\r$/, "") } /^#/ { next } NF==6 { print $1 "\t" $2 }' "$1"
 }
 
-# _pc_mod_file <plugins_root> <plugin> <name>
-# Prints <root>/<plugin>/hooks/<name>.<ext> (ext .ts .tsx .mts .cts .js .mjs) and returns 0
-# when that file is a top-level `modules` entry of the plugin's hooks.json, or is imported
-# by one as `from './<name>'` (either quote); returns 1 otherwise and when jq is missing.
-# Private helper. CLI 2.1.291 refuses a second `modules` entry, so one entry imports every
-# feature file and the lane artifact is the feature, not the entry.
-# MISSES: an entry nested below hooks/ (its `./` imports name a different directory), an
-# import with an extension or a path other than `./<name>`, and anything a feature file
-# imports in turn — none of those resolve. Text match only: a commented-out import counts.
+# _pc_mod_file <plugins_root> <plugin> <name> — prints hooks/<name>.<ts|tsx|mts|cts|js|mjs> when it is the hooks.json `modules` entry or imported by it as './<name>'.
+# Misses an entry nested below hooks/, an import with an extension or another path, second-hop imports; a commented-out import counts. No jq: returns 1.
+# Why, limits, history: rationale/derivations/scripts-lib.md § _pc_mod_file
 _pc_mod_file() {
   local d="$1/$2/hooks" n="$3" e x
   [ -f "$d/hooks.json" ] || return 1
@@ -1657,14 +785,9 @@ _pc_lane_resolves() {
   esac
 }
 
-# pc_lanes_schema <lane_tsv>
-# Prints one `lane-schema <file>:<line> <reason>` per malformed row and returns
-# 1; clean or missing file returns 0. Four reasons: a row without exactly 6
-# tab-separated fields, an unknown `kind` (command hook agent skill mod), an unknown
-# `phase`, and a duplicate artifact+owns pair within one file (the same artifact
-# claiming one territory twice is a merge artifact, not a declaration). `mod` joined
-# the kinds 2026-10-06: a hooks module speaks on the prompt channel like a hook and
-# had no way to declare a lane (spec 2026-10-06-ship-claude-code-mods, SC3).
+# pc_lanes_schema <lane_tsv> — a row without 6 tab fields, an unknown kind or phase, an empty owns or definite_trigger, or a repeated artifact+owns: prints "lane-schema <file>:<line> <reason>".
+# Shape only: whether the phase, owns or trigger is true is agent-graded.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_lanes_schema
 pc_lanes_schema() {
   local f="$1"
   [ -f "$f" ] || return 0
@@ -1697,32 +820,9 @@ pc_lanes_schema() {
     END { exit bad+0 }' "$f"
 }
 
-# RESIDUAL, stated because the gate reads stronger than it is. pc_lanes_territory
-# compares owns and phase as STRINGS, so it fires only on an exact collision. Two
-# artifacts doing one job still pass by choosing different nouns for it — security-review
-# against security-audit, with identical triggers — or by declaring different phases for
-# the same noun. When this was written nearly every shipped row carried a unique owns,
-# so the gate fired on nothing (the row count has since roughly doubled — 2026-09-03's
-# generated blocks — so recount with `grep -hv '^#' plugins/*/lane.tsv | wc -l` rather
-# than trusting a number here); the two rows it would catch are the pair the authors
-# deliberately wrote identically. What it genuinely prevents is a FUTURE unblessed
-# duplicate, and the empty-field checks above close the hole where a row satisfied the
-# coverage gate while declaring no territory and no trigger at all. Judging whether two
-# different nouns name one job needs a reader, not a string compare: agent-graded.
-#
-# pc_lanes_authority <lane_tsv>
-# A plugin may declare only its OWN artifacts. Prints one
-# `lane-authority <file>:<line> <artifact> not owned by <plugin>` per violation
-# and returns 1; clean or missing file returns 0.
-#
-# WHY IT EXISTS. Per-plugin files opened an authority hole the central-registry
-# design did not have: nothing otherwise stopped plugins/foo/lane.tsv from
-# declaring bar:baz's territory, or from writing bar a `yields_to` edge that
-# makes bar stand down in foo's favour. The plugin directory name is the
-# authority, so a row whose artifact is malformed (no `plugin:name` shape) is
-# not owned by anyone and fails here too. Blessings are comments and are
-# deliberately NOT checked: a blessing names two parties by design, and
-# requiring it to sit in one specific file would privilege one side.
+# pc_lanes_authority <lane_tsv> — a row declaring an artifact outside its own plugin, or not plugin:name shaped: prints "lane-authority <file>:<line> <artifact> not owned by <plugin>".
+# Blessing comments are not checked: a blessing names two parties and may sit in either file.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_lanes_authority
 pc_lanes_authority() {
   local f="$1" plug
   [ -f "$f" ] || return 0
@@ -1741,16 +841,9 @@ pc_lanes_authority() {
     END { exit bad+0 }' "$f"
 }
 
-# pc_lanes_resolve <lane_tsv> [plugins_root]
-# Every declared artifact must exist as its declared kind, and every `yields_to`
-# token must name a real artifact of some kind. Prints one
-# `lane-resolve <file>:<line> …` per dangling reference and returns 1.
-#
-# A lane row is the only place in this marketplace where one plugin names
-# another as its better on a shared territory; a name that resolves to nothing
-# is a deference to an artifact that cannot arrive, and it fails silently at
-# runtime exactly the way a bad handoff does (pc_handoff_refs, same class,
-# different file type — that one reads prose and cannot see a .tsv).
+# pc_lanes_resolve <lane_tsv> [plugins_root] — an artifact missing as its declared kind, or a yields_to token naming nothing: prints "lane-resolve <file>:<line> …", returns 1.
+# Existence only: whether a yields_to edge is honoured at runtime is agent-graded.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_lanes_resolve
 pc_lanes_resolve() {
   local f="$1" root="${2:-plugins}" bad=0 lineno=0 art kind ph owns trig yields tok
   [ -f "$f" ] || return 0
@@ -1768,21 +861,9 @@ pc_lanes_resolve() {
   return $bad
 }
 
-# pc_lanes_territory <lane_tsv> [lane_tsv …]
-# THE GATE THAT CARRIES THE MISSION. Two artifacts must not silently claim the
-# same job: any two rows sharing `owns` + `phase` fail unless one names the
-# other in `yields_to`, or a `# lane-cofire-ok:` blessing names both. Prints one
-# `lane-territory <owns> <phase> <artifact-a> <artifact-b>` per unresolved pair
-# and returns 1.
-#
-# ALL FILES AT ONCE, deliberately. The collisions that matter are cross-plugin —
-# 8 reviewer-class agents in 8 different plugins collide on ROLE while their
-# filenames are distinct, so every other gate in this repo sees eight unrelated
-# files. Same-file pairs are checked too: a plugin's own worker and reviewer
-# claiming one territory is the same defect at shorter range.
-#
-# Blessings are collected from every file BEFORE any pair is evaluated, so
-# either participant may carry it and neither side is privileged.
+# pc_lanes_territory <lane_tsv>… — two rows in any files sharing owns + phase, with no yields_to edge and no `# lane-cofire-ok: <a> <b>` anywhere: prints "lane-territory <owns> <phase> <a> <b>".
+# A string compare: two nouns for one job, or one noun in two phases, pass (pc_lanes_adjacency; agent-graded).
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_lanes_territory
 pc_lanes_territory() {
   local f had=0
   for f in "$@"; do [ -f "$f" ] && had=1; done
@@ -1823,74 +904,18 @@ pc_lanes_territory() {
     }' "$@"
 }
 
-# pc_lanes_adjacency [plugins_root] [rules_tsv] [min_cluster]
-# CROWDING, not collision. pc_lanes_territory compares `owns` and `phase` as
-# strings, so two artifacts doing one job pass it by picking two nouns for that job
-# — its own RESIDUAL paragraph says exactly that, and pc_lanes_vocabulary cannot
-# close the hole because it gates that a noun is DECLARED, not that two nouns name
-# two jobs. This check asks what neither can: how many artifacts speak at once
-# about ONE file shape, in one phase, whatever each calls its territory.
-#
-# WHY IT EXISTS. rationale/2026-09-15-listing-eviction-probe.md:60-66 priced the
-# defect: stripping a skill's description changed firing not at all (47/50 in both
-# arms), while EIGHT rivals contesting one territory dropped the target from 100%
-# to ~75%. Overlap is what costs a marketplace, not bytes. The 2026-09-22
-# specialist panel (finding 10) named the shape no gate could see — "twelve
-# review-phase agents whose triggers match one .tsx diff".
-#
-# WHERE THE TRIGGER COMES FROM, since `definite_trigger` is prose no script reads:
-#   skill   — the glob rows routing to it in plugins/skill-router/rules.tsv, keyed
-#             by owning_plugin + skill so the row and the lane artifact agree.
-#   agent   — the globs of every skill its frontmatter names in
-#             `bestpractices-skill`, the only machine-readable file claim an agent
-#             carries in this tree. No agent frontmatter and no .chassis.json field
-#             declares a path or file kind; the worker-agent manifests carry the
-#             same `bestpractices-skill` key and generate.sh --check holds the two
-#             byte-equal, so reading the rendered agent reads both.
-#   command — NOTHING. No command declares a file shape anywhere here, so commands
-#             are invisible to this check and their crowding stays agent-graded.
-#
-# A pair inside a cluster is RESOLVED, and stops counting, when either row
-# `yields_to` the other, when a `# lane-cofire-ok: <a> <b>` blesses it in any
-# lane.tsv, or when the agent names that skill in `bestpractices-skill` — an agent
-# that READS a skill consumes it rather than contesting it, and its shapes were
-# derived from that skill to begin with. An artifact keeping at least one
-# unresolved pair counts toward the cluster; a cluster of `min_cluster` (default 3)
-# or more prints.
-#
-# WHAT IT CANNOT SEE, beyond commands: content rows, which fire on a regex over a
-# file's BODY and never collide by string equality — pc_rules_cofire owns those
-# with a corpus; every skill and command with no lane row at all (pc_lanes_coverage
-# warns, and most skills are in that state); any agent naming no
-# `bestpractices-skill`, 21 of 33 on 2026-09-22, which is why the panel's twelve
-# review-phase agents surface here as ONE pair below the threshold rather than the
-# crowd they are (ui-ux:ui-ux-reviewer and web-dev:frontend-reviewer, on *.tsx);
-# and whether a crowd is actually WRONG,
-# which needs a reader. pc_rules_overlap already fails two skills sharing one glob
-# PATTERN, pairwise, and excuses a pair whose stack_markers differ — this one
-# counts those excused rows, because one Next.js repo with a components.json
-# satisfies three markers at once and the model still sees the crowd.
-#
-# TIER: WARN, and the validate.sh call site says so. It ships as a WARN because the
-# tree had SIX clusters at min 3 the day it landed (build *.tsx N=6, *.blade.php
-# N=5, *.sql N=4, **/migrations/** N=4, *.jsx N=3, *.vue N=3) — a FAIL would have
-# blocked the build on work nobody had scheduled. Flipping the call site from warn
-# to lane_err is the whole follow-up; nothing in this function changes.
-#
-# Prints `lane-adjacency <shape> <phase> <artifact> …` per cluster, sorted, and
-# returns 1 when any printed.
+# pc_lanes_adjacency [plugins_root] [rules_tsv] [min=3] — min+ lane artifacts on one file shape in one phase with unresolved pairs: prints "lane-adjacency <shape> <phase> <artifact>…".
+# Shapes come from rules.tsv globs and agents' bestpractices-skill; misses commands, content rows, rowless artifacts, agents naming no skill, and whether a crowd is wrong.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_lanes_adjacency
 pc_lanes_adjacency() {
   local root="${1:-plugins}" rules="${2:-}" min="${3:-3}" out lanes agents f
   [ -n "$rules" ] || rules="$root/skill-router/rules.tsv"
   [ -f "$rules" ] || return 0
-  # find, not a glob: an unmatched glob is a literal path under bash and a hard
-  # error under zsh, and this file is sourced by validate.sh and by a hook.
+  # find, not a glob: an unmatched glob is a hard error under zsh, and a hook sources this file too.
   lanes=$(find "$root" -maxdepth 2 -name lane.tsv 2>/dev/null | sort)
   [ -n "$lanes" ] || return 0
   agents=$(find "$root" -maxdepth 3 -type f -path '*/agents/*.md' 2>/dev/null | sort)
-  # Build the awk argument list positionally rather than by word-splitting an
-  # unquoted expansion: this file is sourced by validate.sh under bash AND by a
-  # hook, and zsh does not word-split unquoted parameters at all.
+  # Positional args, not word splitting: zsh does not split unquoted parameters.
   set -- "$rules"
   while IFS= read -r f; do
     [ -n "$f" ] && set -- "$@" "$f"
@@ -2001,55 +1026,14 @@ EOF_LANE_ADJ_FILES
   return 1
 }
 
-# pc_lanes_coverage [plugins_root]
-# Every agent, every UserPromptSubmit/Stop hook script, every Pre/PostToolUse
-# hook script that can return a DENY verdict, and every hooks-module feature file that
-# registers a hook, must carry a row in its own plugin's lane.tsv — those are the GATE
-# tier. Commands and skills are WARN this run. Prints `lane-missing agent|hook <plugin>:<name>`
-# and `lane-missing lane-uncovered-mod <plugin>:<name>` (gate) and
-# `lane-warn command|skill <plugin>:<name>` (advisory), and returns 1 only when
-# something at gate tier is missing.
-#
-# WHY THOSE THREE ARE THE TEETH. Agents are the surface where ownership is
-# contested by the MODEL rather than by a script: 8 of the 32 are reviewer-class
-# with distinct filenames, and the model picks between them from descriptions
-# alone. Prompt-channel and Stop hooks are the surface where two plugins speak
-# on one turn and the winner is decided by scheduling order. Deny-capable tool-channel
-# hooks were added to the tier on 2026-09-15: with all 31 plugins installed, three of
-# them return a verdict on one Edit and two had no row, so the pair that actually
-# collides was invisible to pc_lanes_territory. Gating all 99
-# commands instead would have forced ~66 version bumps in one change for rows
-# nothing yet arbitrates.
-#
-# LIMITATION (honest scope), three residuals:
-#   1. The hook half reads hooks.json with jq and understands one command shape,
-#      `${CLAUDE_PLUGIN_ROOT}/hooks/<name>.sh`, quoted or not, optionally led by `bash`
-#      or `sh` (_pc_hook_script). A hook invoked any other way is not counted — it
-#      draws no failure and no warning.
-#   2. Coverage is existence, not agreement: a row may name the wrong phase or a
-#      territory the agent does not work in, and this passes.
-#   3. A scratch agent planted by another harness (parity-check.sh plants three
-#      in the mirror it runs validate.sh in) is a real agent file with no row, so
-#      it draws a lane-missing line during that harness's run. That harness asserts
-#      by string presence and wants a non-zero exit, so it costs nothing — but a
-#      future harness that asserts "no FAILs" would trip on it.
-#
-# THE MOD ARM (2026-10-06). A module file that _pc_mod_file resolves — the `modules` entry
-# or a `./<name>` file it imports — and that calls `on(` or `registerSuggestion(` needs a
-# `mod` row; cc-kit.ts, the shared kit, never does. Before it, a module spoke on the
-# prompt channel with no lane at all, invisible to pc_lanes_territory. `on(` is matched
-# behind a word boundary because the bare substring also hits `registerRedaction(` and
-# `$.session.version(`, which would demand a row for an entry that only dispatches. The
-# `lane-missing ` prefix is what validate.sh's coverage filter routes to err(). MISSES:
-# what _pc_mod_file misses, a hook registered through any other helper name, and an `on(`
-# inside a comment or string, which is over-reported (the cheap direction).
+# pc_lanes_coverage [plugins_root] — an agent, a UserPromptSubmit/Stop hook, a deny-capable Pre/PostToolUse hook or a hook-registering mod file with no own lane row: "lane-missing …".
+# Commands and skills draw only "lane-warn …". Misses hooks invoked another way and rows naming the wrong phase or territory; a mod `on(` in a comment over-reports.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_lanes_coverage
 pc_lanes_coverage() {
   local root="${1:-plugins}" bad=0 d p lane rows a n hj cmd TAB NL
   TAB=$(printf '\t'); NL='
 '
-  # find, not a glob, for the same reason pc_version_stamp uses it: an unmatched
-  # glob is a literal path under bash and a hard error under zsh, and this file
-  # is sourced by validate.sh and by a hook.
+  # find, not a glob: an unmatched glob is a hard error under zsh, and a hook sources this file too.
   while IFS= read -r d; do
     [ -n "$d" ] || continue
     p=$(basename "$d")
@@ -2076,26 +1060,7 @@ pc_lanes_coverage() {
       done < <(jq -r '.hooks // {} | to_entries[]
                       | select(.key=="UserPromptSubmit" or .key=="Stop")
                       | (.value[].hooks[].command // empty) | gsub("\""; "")' "$hj" 2>/dev/null | sort -u)
-      # DENY-CAPABLE TOOL-CHANNEL HOOKS ARE GATED TOO (2026-09-15). The two events above
-      # were the whole hook half of this check, which left the most contended surface in
-      # the marketplace undeclared: 14 hooks can return a permissionDecision on one tool
-      # call and only 3 had a lane row, so pc_lanes_territory could not see the pair that
-      # actually collides. Measured with all 31 plugins installed — on one Edit,
-      # code-review:scan (deny), secret-scanning:scan (deny) and database:guard (ask) all
-      # return a verdict and two of the three were invisible.
-      #
-      # THE TEST IS THE SCRIPT'S OWN TEXT, not the event name. Two verdict channels count,
-      # because a PreToolUse hook denies EITHER by emitting `permissionDecision` OR by
-      # exiting 2 — an earlier revision tested only the first and said a hook without it
-      # "cannot block anything", which is false and would have exempted an exit-2 denier
-      # from a blocking gate. Measured 2026-09-15: of 27 shipped Pre/PostToolUse hooks, 14
-      # emit the key and 0 deny by exit 2 alone, so widening the test costs nothing today
-      # and closes the hole for the next one.
-      #
-      # Honest limitation: grep, not parsing — a hook that builds the key dynamically, or
-      # exits 2 through a variable or a trap, is still missed; a hook that only MENTIONS
-      # either form in a comment, or exits 2 for a usage error rather than a verdict, is
-      # over-reported. Both fail toward declaring a row, which is the cheap direction.
+      # Deny-capable Pre/PostToolUse hooks too: permissionDecision or a bare exit 2 in the text (grep, not parse: over-reports, the cheap way).
       while IFS= read -r cmd; do
         cmd=$(_pc_hook_script "$cmd" "$d")
         case "$cmd" in "$d/hooks/"*.sh) ;; *) continue ;; esac
@@ -2141,47 +1106,9 @@ pc_lanes_coverage() {
   return $bad
 }
 
-# pc_dispatch_binding <md_path> [plugins_root]
-# A shipped `agent(<args>)` code sample that spawns an agent this marketplace ships
-# must name it with `agentType`. Prints one `dispatch <path> <agent>` line per
-# unbound reference and returns 1; clean returns 0.
-#
-# WHY THIS EXISTS. `Workflow`'s `agent()` spawns the GENERIC workflow subagent unless
-# `agentType` is passed. A recipe that says "spawn one `researcher` per facet" in prose
-# and then shows `agent(researcherPrompt(facet), {schema, phase})` in its code block
-# dispatches something else entirely: the prompt arrives, the agent's own system prompt
-# does not, and the transcript is indistinguishable from a run that bound it correctly.
-# The word `agentType` appeared ZERO times across every plugin in this marketplace when
-# this check was written, while ~10 plugins ship agents and several fan out through
-# `Workflow` — so every one of those agent contracts was decorative on that path. The
-# cost is not theoretical: a 30-card run fanned out with no `agentType`, and
-# `task-executor`'s "match the surrounding file's comment density" never reached a
-# single writing agent (see task-execution/references/routing.md step 5).
-#
-# TWO STRUCTURAL GUARDS, so there is no exclusion list to maintain:
-#   1. A REAL CALL, not an API mention. `agent(` must be followed by something other
-#      than `)`. `dispatch-tiers.md` discusses "the `Workflow` `agent()` path" as a tier
-#      concept and names two agents in a table; it is documentation about dispatch, not
-#      a dispatch, and empty parens are exactly what tells the two apart.
-#   2. The referenced agent must RESOLVE — `<root>/<plugin>/agents/<name>.md` must
-#      exist. A bare backticked token counts only against the file's OWN plugin, so a
-#      common word (`verifier`, `researcher`) cannot match some other plugin's agent by
-#      accident; cross-plugin references use the `plugin:agent` form and are resolved
-#      against it directly.
-#
-# LIMITATION (honest scope — the four laws). CODE SAMPLES ONLY. It cannot read a prose
-# instruction ("dispatch the resolved worker") and confirm an orchestrator obeyed it at
-# runtime, and it cannot see a `Workflow` script the model composes on the fly — which is
-# how the original failure actually happened. It gates the recipes this marketplace
-# SHIPS, which is the part a repo can hold; the runtime half stays `agent-graded` and the
-# run-report line in routing.md step 5 is what makes it visible after the fact.
-#
-# BOUNDARY. `task-runner/scripts/dispatch-lint.sh` (orchestration's until 2026-09-14) checks the CONTENT of a drafted
-# prompt (absolute path, scope lock, return shape, closing data instruction). This checks
-# WHICH AGENT the call binds. A prompt can pass all four of those elements and still be
-# handed to the wrong agent — that is the gap here, and nothing else looks at it.
-#
-# Mark a sample that deliberately wants the generic subagent with <!-- dispatch-ok -->.
+# pc_dispatch_binding <md_path> [plugins_root] — an `agent(<args>)` sample naming a shipped agent (own plugin bare, else plugin:agent) with no `agentType`: prints "dispatch <path> <agent>".
+# Code samples only: not runtime orchestration or Workflow scripts composed on the fly (agent-graded). Escape: `<!-- dispatch-ok -->` for the generic subagent.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_dispatch_binding
 pc_dispatch_binding() {
   local f="$1" root="${2:-plugins}" bad=0 plug a n tok lhs rhs
   [ -f "$f" ] || return 0
@@ -2208,38 +1135,9 @@ pc_dispatch_binding() {
   return $bad
 }
 
-# pc_deference_edges [plugins_root]
-# A plugin.json description that promises deference — a clause matching
-# `defers? … to …` — must be backed by a lane edge: for every token in that
-# clause that names a plugin directory under <root> (other than the plugin
-# itself), some row in the plugin's OWN lane.tsv must carry a `yields_to` entry
-# of that plugin (`<target>:…`). Prints one `deference <plugin> -> <target>`
-# line per unbacked claim and returns 1; clean returns 0. Requires jq.
-#
-# WHY THIS EXISTS. Descriptions carried "defers X to Y" clauses when the lane
-# system landed (collective-taskforce-backlog #9; recount with
-# `grep -il 'defer' plugins/*/.claude-plugin/plugin.json`) and the lane rows
-# were reconciled against them BY HAND. pc_handoff_refs does scan plugin.json,
-# but it resolves `plugin:artifact` tokens — these clauses name a bare plugin
-# word, so nothing compared them to lane.tsv and the next edit to either side
-# could diverge silently. A description is what the USER reads before
-# installing; a lane row is what the RUNTIME honours. Two copies of one promise
-# with nothing comparing them is the drift CLAUDE.md's has-teeth convention
-# names. Landed by the 2026-09-03 marketplace standard review
-# (rationale/marketplace-standard-review-2026-09-03.md, spec A14).
-#
-# LIMITATION (honest scope). Only PLUGIN-NAMED targets are checkable. A clause
-# that defers to a host built-in ("Claude Code's built-in claude-api skill") or
-# to a class of plugins ("the per-framework review plugins") names no directory,
-# so it is SKIPPED, not failed — that half of the promise is unenforceable here
-# and the skip is deliberate. The clause must be introduced by a form of
-# "defer" (defer/defers/deferred/deferring/deferral); "hands X to Y" or
-# "leaves X to Y" is not scanned. Tokens are maximal `[a-z0-9-]` runs after
-# lowercasing, so a plugin named inside a hyphen-joined word (`ui-ux-review`)
-# is not matched — a false NEGATIVE — while a plugin whose name is an ordinary
-# word (`testing`, `security`) is matched wherever it appears in the clause — a
-# false POSITIVE that fails loud with the target named, never silently. The
-# edge's PHASE and territory are not checked — pc_lanes_territory owns that.
+# pc_deference_edges [plugins_root] — a plugin.json "defer… to …" clause naming another plugin dir with no yields_to <that>:… in its own lane.tsv: prints "deference <plugin> -> <target>".
+# Skips host or class targets; misses other verbs and names inside hyphenated words; plugins named like words over-report loudly; phase is not checked. Needs jq.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_deference_edges
 pc_deference_edges() {
   local root="${1:-plugins}" bad=0 pj p desc clause tok lane
   command -v jq >/dev/null 2>&1 || return 0
@@ -2269,41 +1167,9 @@ EOF_CLAUSE
   return $bad
 }
 
-# pc_phase_guard <plugins-root> — spec §4.3, C4.
-#
-# SCOPE FOLLOWS pc_lanes_coverage, 2026-09-15. It read UserPromptSubmit and Stop only,
-# which was right while those were the whole gate tier. When deny-capable Pre/PostToolUse
-# hooks joined that tier, 11 hooks were forced to carry a lane row and nothing checked
-# the phase those rows claimed — two of them named a specific phase and never read the
-# sentinel. Adding rows to a tier without widening its companion gate is how a rule gets
-# trusted as a guarantee while nothing enforces it.
-# A script wired to UserPromptSubmit or Stop must READ the phase sentinel, or it
-# cannot take turns: it speaks in every phase forever, which is the defect the
-# sentinel exists to fix (taskmaster's "before the first code edit" directive
-# firing on turn 40 of a registered execution run).
-#
-# Scope is per SCRIPT, not per plugin. An earlier cut keyed on "this plugin has a
-# prompt hook somewhere" and flagged 16 scripts, most of them PostToolUse or
-# PreToolUse (skill-router:route.sh, taskmaster:preview-guard.sh) with no business
-# reading a prompt-phase sentinel. jq walks the two events and resolves only their
-# own commands.
-#
-# HONEST LIMITATION: this proves the sentinel PATH appears in the script. It cannot
-# prove the script honours the verdict on every branch — a hook could read it and
-# ignore it. Gate on the read; the behaviour half is agent-graded. Claiming
-# otherwise would be the tier over-claim CLAUDE.md's has-teeth convention forbids.
-#
-# MOD ROWS (2026-10-06), keyed on the lane row rather than on hooks.json: a `mod` row
-# naming a phase other than `any` passes only if the file _pc_mod_file resolves it to
-# contains `liveSentinel(`, `registerSuggestion(` (the kit checks the sentinel when arming
-# and when delivering) or `cc-phase.json`. Only that OWN file is read — every feature file
-# imports the kit, and the kit reads the sentinel, so counting cc-kit.ts would pass every
-# module; a row naming cc-kit itself fails for the same reason. Same limitation as above:
-# a read is proven, never honoured. A row that resolves to no module is skipped —
-# pc_lanes_resolve reports it.
-#
-# Prints `phase-unguarded <plugin>:<script>` and `phase-guard-mod <plugin>:<name>` per
-# offender; returns 1 if any.
+# pc_phase_guard <plugins_root> — a Prompt/Stop/Pre/PostToolUse hook or mod file whose lane names a phase other than `any` and never reads .claude/cc-phase.json: "phase-unguarded|phase-guard-mod …".
+# Proves the read, not that every branch honours the verdict (agent-graded); rowless artifacts are pc_lanes_coverage's, unresolved mod rows pc_lanes_resolve's.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_phase_guard
 pc_phase_guard() {
   local root="${1:-plugins}" bad=0 hj d p sh rel lane_phase art mf
   command -v jq >/dev/null 2>&1 || return 0
@@ -2316,13 +1182,7 @@ pc_phase_guard() {
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
       grep -qF 'cc-phase.json' "$sh" 2>/dev/null && continue
-      # EXEMPTION, tied to the declaration rather than to a hand-kept list: an
-      # artifact whose lane says `any` is a guard, not a phase step, and guards
-      # must fire in every phase. The boost hooks (ultra, ultra-craft,
-      # ultra-assess) answer an explicit user keyword and candor:mode is an
-      # output-shape contract — none of them takes a turn, so demanding a
-      # sentinel read would be ceremony that catches nothing. An artifact with no
-      # row at all is pc_lanes_coverage's problem, not this gate's.
+      # A lane phase of `any` declares a guard that must fire in every phase; a hook with no row is pc_lanes_coverage's.
       lane_phase=$(awk -F'\t' -v a="$p:${rel%.sh}" '$1==a {print $3; exit}' \
                     "$d/lane.tsv" 2>/dev/null)
       [ -z "$lane_phase" ] && continue
@@ -2354,24 +1214,9 @@ EOF
   return $bad
 }
 
-# pc_context_key <plugins-root> — subagent delivery, backlog item 3.
-# A PostToolUse hook that derives a ONE-SHOT marker from session_id is structurally
-# silent in exactly the context where most fan-out code is written. PostToolUse is
-# the only hook channel that reaches subagents at all (SessionStart and
-# UserPromptSubmit do not run for them), and a subagent shares its parent's
-# session_id while getting its own transcript — so a session-keyed marker the parent
-# already claimed dedups the worker's nudge away. lean/hooks/budget.sh:10-15
-# discovered and documented this; skill-router/hooks/route.sh:16-18 documented the
-# identical hole and did not adopt the fix, which is why this is a gate rather than
-# six patches: the next hook someone writes would make the same choice.
-#
-# EXEMPTION, by marker comment: a hook that RECORDS session_id as data — a ledger
-# field, an audit row — is legitimately session-scoped and must not be rewritten.
-# hindsight/hooks/skill-use.sh is the worked example: it writes session_id into a
-# JSONL row and never keys a marker on it. Mark such a hook with
-# `# context-key-ok: <why>` on any line.
-#
-# Prints `context-keyed-on-session <plugin>:<script>` per offender; returns 1 if any.
+# pc_context_key <plugins_root> — a PostToolUse hook reading session_id and never transcript_path: prints "context-keyed-on-session <plugin>:<script>", returns 1.
+# String presence only (pc_marker_key checks the value is hashed). Escape: `# context-key-ok: <why>` for a hook recording session_id as data.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_context_key
 pc_context_key() {
   local root="${1:-plugins}" bad=0 hj d p sh rel
   command -v jq >/dev/null 2>&1 || return 0
@@ -2397,49 +1242,13 @@ EOF
   return $bad
 }
 
-# pc_marker_key [plugins-root] — the other half of pc_context_key.
-#
-# pc_context_key gates that a one-shot READS the context key. It cannot gate that the
-# value is USABLE, because it is a string-presence check: every hook that mentions
-# `transcript_path` passes it identically, whether the value is hashed or pasted into a
-# filename. That gap shipped three live defects at once in commit 6c8c306 —
-# comment-discipline/hooks/scan.sh, comment-discipline/hooks/density.sh and
-# skill-router/hooks/route.sh each built `<dir>/<prefix>-$sid` from a key that is normally
-# an ABSOLUTE PATH. The parents of `…/blocked-/Users/x/y.jsonl-<hash>` are never created,
-# so every state write failed silently. Effect: scan.sh's PreToolUse deny was withheld on
-# every edit (its own rule — a bound that cannot be recorded means no block at all), and
-# density.sh's warning cap, per-file dedup and self-output filter all disengaged. Four
-# local scripts and 18 smoke harnesses stayed green, because the harnesses send
-# `session_id` and no `transcript_path` and so only ever exercise the fallback branch.
-#
-# THIS IS THE RULE NOTHING ELSE CARRIES: a context key that reaches a filesystem path must
-# be hashed first. Passes a use that is piped straight into cksum/shasum/md5/sha1sum, that
-# strips slashes with `${var//\/…}`, or that is followed within three lines by
-# `mkdir -p "$(dirname …)"` (which genuinely does create the nested parents —
-# plugins/security/hooks/write-scan.sh relies on exactly that). Bless a deliberate
-# exception with `# marker-key-ok: <why>` on any line of the script.
-#
-# Scans EVERY event's hooks, not just PostToolUse: the defect is about filenames, and a
-# PreToolUse or Stop hook keying a marker has the identical failure.
-#
-# HONEST LIMITATION: this proves the NAME is safe, nothing more. A hashed key written to a
-# directory the host wipes between calls, or a read-only mount, still fails silently, and
-# only a harness feeding the real payload shape can see that — which is why the smoke
-# fixtures now send transcript_path. It is a grep over shell, so a path built through
-# printf into a variable, an array, or eval passes unseen.
-#
-# Prints `marker-key-unhashed <plugin>:<script>:<line>` per offender; returns 1 if any.
+# pc_marker_key [plugins_root] — any registered hook building a path from an unhashed transcript_path key, tainted through assignments: prints "marker-key-unhashed <plugin>:<script>:<line>".
+# Passes cksum/shasum/md5, a slash strip, or mkdir -p "$(dirname …)" within 3 lines; misses printf into variables, arrays, eval. Escape: `# marker-key-ok: <why>`.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_marker_key
 pc_marker_key() {
   local root="${1:-plugins}" bad=0 hj d p sh rel v line no body seeds tainted round newly
 
-  # TAINT, not one syntactic form. The first version matched only
-  # `marker="$dir/x-$sid"` — one-step, double-quoted. An adversarial audit on
-  # 2026-08-18 shipped the identical defect past it three ways: unquoted
-  # (`marker=$dir/x-$sid`), two-step (`pre="x-$sid"; marker="$dir/$pre"`), and
-  # `printf -v`. A gate that only catches the exact syntax of the instance that
-  # created it is a gate against that commit, not against the defect. So: seed
-  # from the jq read, propagate through assignments, and treat a hash or a
-  # slash-strip as the thing that CLEARS taint.
+  # Taint, not one syntax: seed from the jq read, propagate through assignments; a hash or a slash strip clears it.
   _mk_tainted() { # $1 file -> tainted var names
     local f=$1 seeds tainted round newly v
     seeds=$(grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[^=]*jq[^;]*transcript_path' "$f" 2>/dev/null \
@@ -2448,9 +1257,7 @@ pc_marker_key() {
     for round in 1 2; do
       newly=""
       for v in $tainted; do
-        # A var assigned FROM a tainted var inherits the taint, unless that same
-        # line hashes it or strips the slashes — those are the cures, and a cured
-        # value is exactly what we want people to use.
+        # Assigned from a tainted var inherits the taint, unless that line hashes it or strips its slashes.
         newly="$newly $(grep -E "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=.*\\\$\{?$v\}?" "$f" 2>/dev/null \
           | grep -vE 'cksum|shasum|md5|sha1sum' \
           | grep -vE "\\\$\{$v//" \
@@ -2474,9 +1281,7 @@ pc_marker_key() {
 
       for v in $(_mk_tainted "$sh"); do
         [ -n "$v" ] || continue
-        # Path-shaped assignment using the tainted var: quoted or bare, but the
-        # right-hand side must contain a slash — that is what makes it a path
-        # rather than a plain value.
+        # Path-shaped: the right-hand side must contain a slash.
         while IFS=: read -r no body; do
           [ -n "$no" ] || continue
           printf '%s' "$body" | grep -qE '(cksum|shasum|md5|sha1sum)' && continue
@@ -2499,56 +1304,9 @@ EOF
   return $bad
 }
 
-# pc_source_of_truth: a SKILL that names a reference as SOURCE OF TRUTH for its
-# figures must not carry a figure that reference does not.
-#
-# WHY THIS EXISTS. craft-layer's motion-tiers/SKILL.md declares
-# `references/tier-budgets.md` "SOURCE OF TRUTH for every KB figure below" and
-# then states, in its own words, "Standing **recorded** — the mirror is manual and
-# no gate checks the two agree." It had already rotted: the SKILL told a React
-# reader to reach for `motion/mini` as the Tier-1 reduced-bundle path while the
-# reference reserved `motion/mini` for VANILLA tweens and named `LazyMotion`+`m.*`
-# as the React path. Two files, opposite advice, one of them labelled the truth.
-#
-# WHAT THIS CATCHES, precisely: a figure matching `[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)`
-# with the unit ADJACENT to the number, present in the SKILL body but absent from
-# the cited reference. That mismatch is the drift shape a manual mirror produces —
-# someone edits the summary and not the source, or the source and not the summary.
-# Not px. Not a spaced unit (`34 KB`). Not a bare integer.
-#
-# (An earlier draft of this comment claimed px and "a bare integer with a unit",
-# which the regex never matched — a gate whose header overstates its catch-scope is
-# the same over-claim this check exists to prevent, committed inside the check. A
-# later fix then inserted that correction BETWEEN the catch-description and the
-# sentence explaining it, so "That is the drift shape" briefly pointed at the
-# over-claim instead of the mismatch. Corrections to this block keep breaking the
-# antecedent of whatever sentence they land in front of; put them in parentheses at
-# the end, as here, rather than mid-paragraph.)
-#
-# WHAT IT DOES NOT CATCH, and this is the honest limit: prose that contradicts
-# without changing a number. The `motion/mini` rot above is exactly that prose
-# shape, so this gate would NOT have caught the defect that motivated it.
-#
-# Two further limits, distinct from that one. A unit outside the four above is
-# invisible. And a figure spaced on the REFERENCE side but not the skill side
-# (`34KB` vs `34 KB`) produces a FALSE fail — no in-repo instance today, since
-# motion-tiers is the only user of the marker, but a measured brittleness rather
-# than a hypothetical one.
-#
-# WHAT IS PINNED, and by what. `scripts/smoke/source-of-truth-tests.sh` is a named
-# CI step covering the FIGURE-level behaviours: what is caught, the three misses
-# (px, spaced-on-the-skill-side, bare integer), the false-fail direction above, and
-# the marker scoping. A regression in any of those is red.
-#
-# It does NOT pin the prose limit. Every fixture is figure-only, so if this check
-# ever started catching prose the harness would stay green. That limit is prose,
-# and stays agent-graded.
-#
-# So: it catches the cheaper half and leaves the other half to a reader. Saying
-# which is which is the point — a gate that implies more coverage than it has is
-# the defect this repo's has-teeth convention exists to name.
-#
-# Standing: gate. validate.sh feeds it to `err`.
+# pc_source_of_truth [plugins_root] — a SKILL.md naming references/<f>.md as SOURCE OF TRUTH and carrying a figure (KB|MB|ms|fps, unit adjacent) that file lacks: prints "source-of-truth …".
+# Misses prose that contradicts without a number, px, spaced units, bare integers; a figure spaced only on the reference side false-fails.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_source_of_truth
 pc_source_of_truth() {
   local root="${1:-plugins}" bad=0 f dir ref refpath body figs missing
 
@@ -2563,10 +1321,7 @@ pc_source_of_truth() {
     [ -f "$refpath" ] || { printf 'source-of-truth %s names %s which does not exist\n' "$f" "$ref"; bad=1; continue; }
 
     body=$(awk '/^---$/{c++; next} c>=2' "$f" 2>/dev/null)
-    # LC_ALL=C on sort AND comm: under a UTF-8 locale their collations can
-    # disagree on strings like "2.6KB" (dot-ignoring strcoll vs byte order),
-    # making comm report figures present in both files — a false FAIL that
-    # only shows on machines whose locale differs from CI's.
+    # LC_ALL=C on sort AND comm: UTF-8 collations can disagree on "2.6KB" and report a false FAIL.
     figs=$(printf '%s' "$body" | grep -oE '[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)' | LC_ALL=C sort -u)
     [ -n "$figs" ] || continue
     missing=$(LC_ALL=C comm -23 <(printf '%s\n' "$figs") \
@@ -2581,66 +1336,16 @@ pc_source_of_truth() {
   return "$bad"
 }
 
-# pc_false_standing: a SKILL that ACTUALLY trips pc_source_of_truth must not also
-# claim nothing gates it.
-#
-# WHY THIS EXISTS. On 2026-08-25 this branch added `pc_source_of_truth`. The one
-# skill it engages — craft-layer's motion-tiers — went on saying "Standing
-# **recorded** — the mirror is manual and no gate checks the two agree", true when
-# written and false the moment the gate landed. A model loading that skill was told
-# the wrong enforcement tier about the skill it was reading.
-#
-# ENGAGEMENT, NOT KEYWORDS — and this is the correction that matters. Earlier
-# versions fired on the mere PRESENCE of a trigger string. That produced false
-# positives whose error message was itself false: a body saying "treat package.json
-# as the SOURCE OF TRUTH — no gate checks it here" trips nothing, because
-# pc_source_of_truth also requires a `references/*.md` named beside the marker
-# (see its `[ -n "$ref" ] || continue`). The denial was TRUE and the gate called it
-# a lie. So this check now reproduces pc_source_of_truth's own precondition —
-# marker AND a resolvable reference — and fires only when that gate really would.
-#
-# THE VERSION PAIR WAS DROPPED for the same reason, after being encoded and shipped:
-# pc_version_stamp reads a plugin's `description` in plugin.json; this check reads a
-# SKILL BODY. Different surfaces. A body-only "version-aware" sentence genuinely has
-# no gate over it, so a skill saying so is correct and blocking it was wrong. Two
-# shipped skills (nuxt, stack-scan) sit in exactly that position. A pair belongs
-# here only when this check can evaluate the OTHER gate's real predicate on the
-# SAME artifact; that was true for pc_source_of_truth and false for pc_version_stamp.
-#
-# WHAT THIS CATCHES, precisely: a SKILL that (a) carries `SOURCE OF TRUTH`, (b)
-# names a `references/*.md` on or just before that line which exists on disk — so
-# pc_source_of_truth engages — and (c) denies being gated, in the same paragraph as
-# the marker.
-#
-# FALSE POSITIVES REMAIN POSSIBLE and have an escape hatch. Paragraph proximity is a
-# proxy for "the denial is about the marker", and `RS=""` treats a contiguous bullet
-# list or markdown table as ONE paragraph — which is the idiom the has-teeth
-# convention prescribes for standing tables. A row saying "lane rows: convention —
-# nothing checks them" beside a row about the SOURCE OF TRUTH reference will fire.
-# Mark it `<!-- false-standing-ok: <why> -->` in that paragraph, as with jargon-ok
-# and removed-ok. A gate with no escape hatch for a proxy it cannot make exact is a
-# gate that gets switched off.
-#
-# THE DENIAL LIST IS ENUMERATIVE, NOT SEMANTIC. `DENIALS` is a fixed set of phrasings
-# ("no gate checks", "nothing checks it", …). A skill writing "nothing checks these"
-# or "no script verifies it" says the same thing and is not matched. That is a known
-# miss, not a surprise: the alternative is meaning-matching, which a grep cannot do.
-# Widen the list when a real miss appears; do not pretend it is exhaustive.
-#
-# WHAT IT DOES NOT CATCH: the other 23 checks in this file. Their triggers are
-# structural or live on a different artifact than the claim, and "does this file
-# trip that check" is then not answerable here. Add a pair only when this check can
-# evaluate the other gate's real predicate on the same file.
-#
-# Standing: gate. validate.sh feeds it to `err`.
+# pc_false_standing [plugins_root] — a SKILL.md engaging pc_source_of_truth (marker + existing reference) that denies being gated in that paragraph: prints "false-standing …", returns 1.
+# DENIALS is a fixed phrase list; a list or table is one paragraph, so a neighbour's row trips it (escape `<!-- false-standing-ok: <why> -->`). No other check is paired.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_false_standing
 pc_false_standing() {
   local root="${1:-plugins}" bad=0 f dir body ref refpath hit
   local DENIALS='no gate (checks|reads|enforces)|nothing (checks|enforces|gates) (it|this|that|the two|them)|the mirror is manual and no gate|not (gated|enforced|checked) by (any|a) (script|gate)'
 
   while IFS= read -r f; do
     [ -f "$f" ] || continue
-    # pc_source_of_truth's own preconditions, in its order. Case-sensitive, because
-    # that gate greps the marker with a plain `grep -q`.
+    # pc_source_of_truth's own preconditions, in its order; case-sensitive like its plain grep -q.
     grep -q 'SOURCE OF TRUTH' "$f" 2>/dev/null || continue
     dir=$(dirname "$f")
     ref=$(grep -B1 -A0 'SOURCE OF TRUTH' "$f" 2>/dev/null \
@@ -2650,14 +1355,7 @@ pc_false_standing() {
     [ -f "$refpath" ] || continue
 
     body=$(awk '/^---$/{c++; next} c>=2' "$f" 2>/dev/null)
-    # tolower() not IGNORECASE: the latter is a gawk extension BSD awk ignores
-    # silently, which made an earlier version miss a sentence-initial "No gate...".
-    # The blessing test lives INSIDE awk, per paragraph. It used to sit in the
-    # shell after `print; exit`: awk stopped at the FIRST engaging paragraph, and
-    # a blessing there made the shell `continue` the whole FILE — so a blessed
-    # paragraph hid every later unblessed denial in the same skill. Reported and
-    # reproduced 2026-08-26. Now each paragraph is judged on its own and only an
-    # unblessed one can stop the scan.
+    # tolower(), not gawk-only IGNORECASE; each paragraph is judged alone, so a blessed one cannot hide a later denial.
     hit=$(printf '%s' "$body" | awk -v deny="$DENIALS" '
       BEGIN { RS = "" }
       /SOURCE OF TRUTH/ && tolower($0) ~ tolower(deny) &&
@@ -2672,34 +1370,9 @@ pc_false_standing() {
   return "$bad"
 }
 
-# pc_harness_payload — the CONDITION behind pc_marker_key, not another instance of it.
-#
-# pc_marker_key fails a hook that misuses the context key. It cannot fail the reason
-# nobody noticed for a whole release: every harness testing those hooks sent `session_id`
-# and no `transcript_path`, so 40+ cases graded the FALLBACK branch while the branch the
-# host actually takes was never executed once. Three hooks shipped broken with a green
-# suite. A gate on the hooks alone leaves that intact — the next harness can still test a
-# payload shape no host produces, and the next defect hides exactly as this one did.
-#
-# THE RULE: if a harness builds a hook payload, and any hook it exercises reads
-# `transcript_path`, the harness must send `transcript_path` somewhere.
-#
-# Deliberately narrow. A harness whose hook never reads the context key does not need the
-# field, and demanding it there would be ceremony on 7 harnesses to catch 2 — which is the
-# proportionality law, and also the difference between a gate people keep and one they
-# route around. Measured when written: 15 harnesses build payloads, 6 already comply,
-# 7 exercise hooks with no context key at all, and exactly 2 were real offenders.
-#
-# Bless with `# harness-payload-ok: <why>` (e.g. a harness deliberately pinning the
-# no-transcript_path fallback path itself).
-#
-# HONEST LIMITATION: it checks that the STRING appears, not that a case meaningfully
-# exercises it — a harness could send `transcript_path` in one unused fixture and pass.
-# It resolves the harness→hook link by grepping for hook paths in the harness text, so a
-# harness that reaches its hook through a variable this regex cannot follow is invisible.
-# And it says nothing about the payload's other fields.
-#
-# Prints `harness-payload-fallback-only <harness>:<hook>` per offender; returns 1 if any.
+# pc_harness_payload [repo_root] — a smoke or plugin harness that builds a payload for a hook reading transcript_path and never sends it: prints "harness-payload-fallback-only <harness>:<hook>".
+# String presence only, not a meaningful case; misses hooks reached through paths it cannot resolve. Escape: `# harness-payload-ok: <why>`.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_harness_payload
 pc_harness_payload() {
   local root="${1:-.}" bad=0 f plug h hooks b
 
@@ -2708,20 +1381,12 @@ pc_harness_payload() {
     case "$f" in */plugins/*|plugins/*) plug=$(printf '%s' "${f#$root/}" | sed -n 's|^plugins/\([a-z0-9-]*\)/.*|\1|p') ;;
     esac
     out=$(grep -ohE 'plugins/[a-z0-9-]+/hooks/[a-z0-9_-]+\.sh' "$f" 2>/dev/null | sed "s|^|$root/|" | sort -u)
-    # Match `hooks/x.sh` ANYWHERE, including after a slash. The first version
-    # excluded a preceding `/`, so a harness reaching its hook through a variable
-    # — `bash "$1/hooks/route.sh"`, which is how versioned-layout-tests.sh does it
-    # — was invisible, and that harness was a real unblessed offender the check
-    # reported as out of scope.
+    # hooks/x.sh anywhere, also after a slash, so a hook reached through "$1/hooks/x.sh" is seen.
     for b in $(grep -ohE 'hooks/[a-z0-9_-]+\.sh' "$f" 2>/dev/null | sort -u); do
       if [ -n "$plug" ] && [ -f "$root/plugins/$plug/$b" ]; then out="$out
 $root/plugins/$plug/$b"
       else
-        # Resolve a bare `hooks/x.sh` across plugins ONLY when exactly one plugin owns
-        # that filename. `remind.sh` lives in five plugins, so a harness naming it would
-        # otherwise be charged with exercising all five — an ambiguity that manufactures
-        # false positives rather than finding defects. Unique names (route.sh) still
-        # resolve, which is what catches the variable-path case.
+        # A bare hooks/x.sh resolves across plugins only when one plugin owns that name (remind.sh is in five).
         _cand=$(ls "$root"/plugins/*/"$b" 2>/dev/null)
         [ "$(printf '%s\n' "$_cand" | grep -c .)" -eq 1 ] && out="$out
 $_cand"
@@ -2735,8 +1400,7 @@ $_cand"
     case "$f" in *canary.sh) continue ;; esac
     grep -q 'harness-payload-ok:' "$f" 2>/dev/null && continue
     grep -qE 'hook_event_name|"session_id"|session_id"?[:=]' "$f" 2>/dev/null || continue
-    # A COMMENT mentioning transcript_path does not exercise anything. Strip
-    # comment-only lines before deciding the harness complies.
+    # A comment naming transcript_path exercises nothing: comment lines are stripped first.
     grep -vE '^[[:space:]]*#' "$f" 2>/dev/null | grep -q 'transcript_path' && continue
     while IFS= read -r h; do
       [ -n "$h" ] && [ -f "$h" ] || continue
@@ -2753,48 +1417,9 @@ EOF
   return $bad
 }
 
-# pc_prime_coverage [plugins-root] — the session-open index, backlog item 1.
-# skill-router/hooks/prime.sh emits the SessionStart "repo-relevant skills" line from a
-# hand-written table. coding-entry/references/skill-map.md is the DOCUMENTED
-# manifest-shaped map and says of itself that "two copies of one matcher guarantees that
-# one goes stale" — while being unaware prime.sh is a third copy. It went stale exactly
-# as predicted: prime.sh asserted tailwind-best-practices on any React or Vue dependency,
-# in the first line of every session, and all four blocking gates passed it because none
-# of them reads this map.
-#
-# Generating prime.sh from skill-map.md needs a FIFTH chassis type (generate.sh:216-221
-# dispatches four and dies otherwise) — a render function, a template and a --check path.
-# This gate buys the protection that generation would buy, at a fraction of it: it fails
-# when prime.sh names a skill the documented map does not. Proportionality, not laziness;
-# the generation entry stays open and this makes its absence survivable.
-#
-# TWO DIRECTIONS, TIERED DIFFERENTLY. `prime-unmapped` (prime.sh claims a skill the map
-# never sanctioned) is the original failure and the hard one. `map-unprimed` (the map
-# declares a repository signal prime.sh never emits) was added 2026-09-22: the subset
-# argument above held right up until it hid a real gap — skill-map.md:25-26 declared the
-# Next.js and Vite rows and prime.sh emitted neither, so a session opened in a Next repo
-# got no nextjs-best-practices line while the documented map said it would
-# (rationale/specialist-panel-2026-09-22.md #20, WEB 6). "Meant to be a subset" and
-# "silently missing four rows" are the same shape from inside the gate, which is why
-# this direction reports rather than trusting the intent.
-#
-# ASK-KEYED ROWS ARE STRUCTURALLY EXEMPT, not blessed by hand: a row whose Signal column
-# says "the ASK mentions …" keys off the user's prompt, and prime.sh is a SessionStart
-# probe that has no prompt to read. Excluding them by their own wording means the map
-# stays the single source; a hand list here would be the third copy this file warns about.
-# For anything else the map declares and the probe deliberately will not sniff, the
-# escape is the marker this repo already has — `# prime-ok: <skill>` on any line of
-# prime.sh, which clears BOTH directions. No new marker was minted: a fifteenth escape
-# in CLAUDE.md's table to say "this row is fine" is ceremony the existing one covers,
-# and the decision belongs where the probe is written, not in the map.
-#
-# WHAT NEITHER DIRECTION CATCHES: whether prime.sh's MATCHER agrees with the map's
-# Signal column. Both sides can name `tailwind-best-practices` while one fires on any
-# React dependency and the other on `"tailwindcss"` — which is the exact defect that
-# made this gate exist, and it is still only caught by reading. Generation would catch
-# it; this is the proportionate stand-in, and saying so is the point.
-#
-# Prints `prime-unmapped <skill>` and `map-unprimed <skill>` per offender; returns 1.
+# pc_prime_coverage [plugins_root] — prime.sh priming a skill skill-map.md does not map (prime-unmapped <skill>), or a non-ASK map row it never primes (map-unprimed <skill>).
+# Misses whether prime.sh's matcher agrees with the map's Signal column; only a reader or generation catches that. Escape: `# prime-ok: <skill>` in prime.sh.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_prime_coverage
 pc_prime_coverage() {
   local root="${1:-plugins}" bad=0 sk primed
   local prime="$root/skill-router/hooks/prime.sh"
@@ -2824,40 +1449,9 @@ EOF
   return $bad
 }
 
-# pc_plugin_dependencies [plugins-root] — no plugin may declare `dependencies`.
-#
-# WHAT IT CATCHES. Any `<root>/*/.claude-plugin/plugin.json` carrying a `dependencies`
-# key — any value, an empty array included, because `has("dependencies")` was the one
-# test every bundle branch in this repo keyed on. Prints `plugin-dependencies <name>
-# <deps…>` per offender and returns 1.
-#
-# WHY — MEASURED, NOT ASSUMED. CLI 2.1.283, 2026-09-26, against a throwaway marketplace:
-#   - a FRESH install of a plugin with `dependencies` auto-installs them
-#     ("(+ 1 dependency: dep-a)");
-#   - an UPDATE that ADDS a dependency does not: `claude plugin update` leaves it
-#     uninstalled, and the plugin then FAILS TO LOAD with
-#     `Dependency "dep-c@…" is not installed`.
-# RE-MEASURED on CLI 2.1.300, 2026-10-15, same shape (directory-source marketplace, scratch
-# HOME): both halves hold. `claude plugin update` still reports a plain success and names no
-# new dependency, and a second update finds nothing to do. What changed (2.1.287): `claude
-# plugin list` now marks the plugin `✘ failed to load` and its error names the fix
-# (`claude plugin install dep-c@…`).
-# So declaring a new companion on a shipped plugin disables every existing install of it
-# on its next update — silent at update time, visible only to someone who opens the plugin
-# list or reads the load error. The four meta-bundles (core-, frontend-, craft-,
-# workflow-suite) were retired on 2026-09-26 for that reason; companion relationships
-# (craft-layer needs ui-ux and ui-libraries, ui-ux's component-library skills live in
-# ui-libraries) are loud README notices and plugin-scout rows now, never a manifest key.
-# Install paths are `all-plugins` and `/stack-scan:suggest`.
-#
-# WHAT IT DOES NOT CATCH. A companion notice that is wrong or missing — prose, recorded or
-# agent-graded, never read by a script. A plugin that needs another at runtime and
-# degrades silently without it. A `dependencies` field placed on a marketplace.json entry
-# instead of the plugin.json (not modelled; whether the host honours it there was not
-# measured). And the host behaviour itself was measured on two CLI versions, the 2.1.300
-# run from a directory source only (no git-source update was run then): a later
-# CLI that installs an added dependency on update would make this gate stricter than it
-# needs to be — re-measure before relaxing it, do not relax it on a changelog line.
+# pc_plugin_dependencies [plugins_root] — a plugin.json with a `dependencies` key, any value: prints "plugin-dependencies <name> <deps…>", returns 1.
+# Misses wrong or missing companion notices, silent runtime degradation, the key on a marketplace.json entry; re-measure the host before relaxing it.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_plugin_dependencies
 pc_plugin_dependencies() {
   local root="${1:-plugins}" bad=0 pj name deps
   for pj in "$root"/*/.claude-plugin/plugin.json; do
@@ -2872,65 +1466,9 @@ pc_plugin_dependencies() {
   return $bad
 }
 
-# pc_scout_names <repo_root>
-#
-# Every plugin name in the plugin-scout skill's four HAND-WRITTEN suggestion
-# lists — the tier-1 signal table in SKILL.md, the Suggest column of
-# references/signals.md, the Plugin column of references/any-core.md, and the
-# Plugin column of references/stack-relevance.md (the `--full` exclusion table,
-# added 2026-09-03) — must be a live entry in .claude-plugin/marketplace.json.
-# The fourth file is the one where a stale name is an ACTION, not a typo: that
-# table decides what `--full` installs or skips, so a removed plugin left in it
-# is a leaf `--full` silently drops from every plan — or a ghost it tries to
-# install.
-#
-# WHY THIS EXISTS. `cfef9c1` deleted nine plugins. signals.md kept the row
-#   | `locales/`, `lang/`, `*.po`, `messages/*.json`, `i18n` dep | `i18n` | |
-# and the SKILL counts a signals.md row as a tier-1 signal that JOINS THE `--yes`
-# AUTO-INSTALL SET. So `/plugin-scout --yes` in any repo with a `lang/` directory
-# — every Laravel app — ran `claude plugin install i18n@cc-plugins-marketplace`
-# against a plugin that no longer exists. pc_removed_refs returns 0 on that file
-# and its own header predicts the miss: plugin names match only in REFERENCE
-# SHAPES (`**name**`, "`name` plugin", `plugins/name`, `name@`, `→ name`,
-# `/name:`), and a bare backticked table cell is none of them. Extending that
-# denylist would not fix the class either — it is a list someone must remember to
-# feed on the same commit as a removal. This check derives the live set from the
-# manifest, so a removal it has never heard of still fails it.
-#
-# THE COLUMN, NOT THE LINE. Only the `Plugin` / `Suggest` cell is read. The
-# signal-pattern column legitimately holds `` `locales/` `` and `` `i18n` dep `` —
-# globs and dependency names, not plugin names, and no line-scoped matcher can
-# tell those from the target cell. A cell with no alphanumerics (`—`, `-`, empty)
-# is the deliberate "no plugin covers this" idiom signals.md uses for its
-# terraform row, and PASSES. A cell containing backticks yields its backticked
-# tokens ONLY, which is how `also `vercel-skills-scout`` resolves to one name
-# rather than two without a stopword list.
-#
-# LIMITATION (honest scope), four residuals:
-#   1. It validates the NAME COLUMN and nothing else. Whether the signal pattern
-#      is correct, and whether that plugin is the right SUGGESTION for it, are
-#      both invisible here: `| Gemfile | laravel |` passes clean.
-#   2. Liveness, not fitness. A name that exists but is wrong — a companion row naming
-#      the wrong partner, a plugin whose capability moved elsewhere — passes.
-#   3. Tables only, and only tables whose header carries a `Plugin`/`Suggest`
-#      cell. A plugin named in prose (any-core.md's "Deliberate exclusions"
-#      bullets, the SKILL's Boundaries section) is out of scope. Conversely it
-#      reads EVERY such table in those files, not only the four lists — an
-#      illustrative one (SKILL.md carried a sample report table until 2026-08-28)
-#      is covered too, so a placeholder row there needs the blessing. Fenced
-#      blocks are not tracked either, so a `|`-shaped table INSIDE one would be
-#      read as a real table; none exists today, and the blessing is the recourse.
-#   4. plugin-scout-skill-specific by construction. The sibling vercel-skills-scout
-#      skill ships its own hand-written lists and nothing here reads them — those
-#      name third-party skills, for which marketplace.json is not ground truth.
-#      Both skills live under plugins/stack-scan since 2026-09-14.
-#
-# Bless a line with `scout-name-ok: <why>`, written as an HTML comment
-# (`<!-- scout-name-ok: … -->`) so it does not render inside the table.
-#
-# Prints `scout-name <file>:<line> <name>` per offender, or
-# `scout-name-unparsed <file>:<line> <cell>` for a bare cell that is not
-# name-shaped (backtick the name, or bless the line); returns 1 if any.
+# pc_scout_names [repo_root] — a name in a Plugin/Suggest cell of plugin-scout's SKILL.md, signals.md, any-core.md or stack-relevance.md that is not live in marketplace.json.
+# Prints "scout-name …", or "scout-name-unparsed …" for a bare non-name cell. Misses wrong signals, wrong live names, prose. Escape: `<!-- scout-name-ok: <why> -->`.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_scout_names
 pc_scout_names() {
   local root="${1:-.}" bad=0 mp live skill f ln kind val
   mp="$root/.claude-plugin/marketplace.json"
@@ -2993,52 +1531,9 @@ EOF
   return $bad
 }
 
-# pc_renames_ledger [repo_root] — scripts/removed-plugins.tsv and marketplace.json's top-level
-# `renames` must record the same removals. Prints one line per defect and returns 1:
-#   renames-missing <name>                       a TSV row with no renames key
-#   renames-mismatch <name> <successor> <value>  the value is not the row's successor (JSON
-#                                                null compares as the string null)
-#   renames-live-key <name>                      a renames key still in .plugins[].name
-#   renames-dangling <name> <target>             the chain from <name> reaches a name that is
-#                                                neither listed nor a renames key
-#   renames-cycle <name>                         the chain from <name> revisits a name
-#   renames-orphan <name>                        a renames key with no TSV row
-#   renames-ledger-unreadable <path>[:<line>]    a TSV that is not a readable file, a row
-#                                                _pc_removed_lists would reject, or an awk
-#                                                failure; a marketplace.json that is not JSON
-#                                                with an object .renames of null or string
-#                                                values and a .plugins array of objects
-#
-# The string "null" is refused as unreadable: jq renders it exactly like JSON null, and the
-# host reads it as a plugin name — `{"old": "null"}` fails `claude plugin validate --strict`
-# with `chain does not resolve (target-missing)` (measured 2.1.284, 2026-09-29).
-#
-# WHY IT EXISTS. One fact, two hand-edited copies. The TSV feeds pc_removed_refs; `renames` is
-# what the host acts on for every install: a name maps to its successor (enabledPlugins
-# rewritten, successor installed) or to null (uninstalled under forceRemoveDeletedPlugins), and
-# a removed name with neither fails to load and is uninstalled with no successor — measured on
-# 2.1.282, rationale/host-features-2026-09-29.md. A drifted pair is a wrong migration on every
-# install, and nothing else compares the two.
-#
-# THE HOST'S RULES, followed here (https://code.claude.com/docs/en/plugins/host-marketplace,
-# accessed 2026-09-29; user decision 2026-09-29): `renames` is "append-only history" and Claude
-# Code "follows the chain from the oldest name". A target may be a current plugin, null, or
-# another renames key; every chain must end at a current plugin or null, with no cycle. So
-# removing a plugin that is some entry's target (web-dev, the target of nextjs, react-native
-# and vite) rewrites none of those entries: the new row's own renames entry extends their chains.
-#
-# CATCHES what the host validator does not: TSV/renames agreement (missing, mismatch, orphan)
-# and a renamed key still listed — `{"a": "b"}` with `a` in plugins[] passes `claude plugin
-# validate --strict` (measured 2.1.282). The cycle and dangling arms repeat the host's own
-# `chain does not resolve (cycle|target-missing)` rejection on purpose: validate.sh runs with
-# no CLI, official-validate.sh only on the pinned one.
-#
-# WHAT IT DOES NOT CATCH. Whether a successor is RIGHT: the TSV header's blocking-hook rule is
-# prose. An old entry retargeted or deleted together with its TSV row — neither file enforces
-# append-only; git history is the only record. A duplicate TSV row that agrees with renames, or
-# a duplicate JSON key (jq keeps the last). Whether a validated migration runs.
-#
-# Standing: gate. validate.sh feeds it to lane_err.
+# pc_renames_ledger [repo_root] — removed-plugins.tsv and marketplace.json `renames` disagree, a renamed key still listed, or a chain dangles or cycles: renames-<kind> lines, returns 1.
+# Misses a wrong successor, retargeted or deleted history, duplicates that agree; the string "null" is refused as unreadable (the host reads it as a name).
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_renames_ledger
 pc_renames_ledger() {
   local root="${1:-.}" mp tsv bad=0 rc
   mp="$root/.claude-plugin/marketplace.json"
@@ -3083,16 +1578,9 @@ pc_renames_ledger() {
   return 1
 }
 
-# pc_listing_fields <md_path> — the three frontmatter fields the skill listing is priced
-# and linted on, as ONE line: description, when_to_use, disable-model-invocation
-# (`true`|`false`), tab-separated. Single-line values only: validate.sh rejects a block
-# scalar on either text field, so a `>`/`|` value never reaches a caller in a tree that
-# passes the rest of the gates. Split with `${line%%$'\t'*}`, not `read` — a tab-only IFS
-# collapses an empty when_to_use into the field after it. Three callers carried this
-# awk+sed walk by value (pc_listing_entry_cost, context-budget.sh's plugin_desc_bytes,
-# validate.sh's description linter) and could drift one sed at a time — the 2026-09-16
-# `when_to_use` addition had to be made three times. all-plugins/scripts/all-plugins.sh
-# keeps a fourth copy because it ships alone, and names this function as its source.
+# pc_listing_fields <md_path> — "description<TAB>when_to_use<TAB>true|false" (disable-model-invocation) from the frontmatter; single-line values only.
+# Split with ${line%%$'\t'*}, not read: a tab-only IFS collapses an empty when_to_use. all-plugins.sh keeps a copy because it ships alone.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_listing_fields
 pc_listing_fields() {
   local fm dmi=false
   fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$1" 2>/dev/null)
@@ -3103,31 +1591,9 @@ pc_listing_fields() {
     "$dmi"
 }
 
-# pc_listing_entry_cost <plugin-dir> — the CLI's per-plugin skill-listing entry cost,
-# THE single implementation. Prints "<chars> <entries>": sum over skills/*/SKILL.md and
-# commands/*.md of `name + 4 + min(desc + " - " + when_to_use, 1536)` with NO separator term — the
-# caller owns separators (one per entry minus one per install, matching the CLI's join).
-# An entry flagged `disable-model-invocation: true` is charged nothing — not even
-# name + 4. The doc says its DESCRIPTION is not in context (code.claude.com/docs/en/skills,
-# "Description not in context"); whether the NAME still renders as a name-only entry is
-# unmeasured, so that skip is `recorded — unmeasured`: if the CLI does list the name, this
-# walk undercounts by name + 4 per flagged entry. `when_to_use:` rides with the
-# description: the CLI renders `${description} - ${whenToUse}` (`wWe`, read out of the 2.1.273
-# binary 2026-09-17) and truncates that JOINED string at 1,536 — so the 3-char " - " is
-# charged too, and the cap applies to the sum. One caller now: context-budget.sh's
-# listing channel. There were two — the bundle floor-declaration gate
-# (pc_listing_declaration) went with the bundles on 2026-09-26 — and while there were,
-# they carried the walk twice by value and disagreed by the separator model (9 chars on
-# taskmaster-suite), so every bundle README's "recompute with context-budget.sh" step
-# failed its own verification. Keep it one function if a second caller returns.
-#
-# LC_ALL=C is pinned: `wc -m` is locale-dependent (chars under UTF-8, bytes under C) and
-# the verdict near a floor must not depend on the machine's locale. C counts BYTES — a
-# deterministic ~1% OVERcount of what the CLI (JS string length) sees on this em-dash
-# corpus. Conservative in the safe direction for a floor warning, and stated rather than
-# hidden. Folded (`>-`) description scalars would be miscounted, but validate.sh's
-# frontmatter gates already force single-line descriptions, so the shape cannot occur in
-# a tree that passes the rest of this file.
+# pc_listing_entry_cost <plugin_dir> — "<chars> <entries>": per skill and command, name + 4 + min(desc + " - " + when_to_use, 1536) bytes under LC_ALL=C, no separators.
+# disable-model-invocation entries cost nothing (unmeasured: if the CLI lists the name, this undercounts name + 4); C bytes overcount UTF-8 by ~1%.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_listing_entry_cost
 pc_listing_entry_cost() {
   local pdir="$1" plug total=0 n=0 f name fields desc wtu dl
   plug=$(basename "$pdir")
@@ -3148,51 +1614,9 @@ pc_listing_entry_cost() {
   printf '%s %s' "$total" "$n"
 }
 
-# pc_frontmatter <md_path>
-# The frontmatter FAILs validate.sh raises for one SKILL.md, command or agent file,
-# printed one per line as the exact text it `err`s (no "FAIL: " prefix); returns 1 if
-# any. Kind comes from the path's POSITION: `<root>/skills/<name>/SKILL.md`,
-# `<root>/commands/<name>.md`, `<root>/agents/<name>.md`, `<name>` one path segment and
-# `<root>` `plugins/<plugin>` or `.claude`; anything else returns 0, so
-# `plugins/x/skills/y/references/agents/n.md` is no agent. PRECONDITION: the path is
-# repo-relative (starts at `plugins/` or `.claude/`) or absolute; any other relative form
-# (`./plugins/…`) returns 0 unlinted. An absolute path is matched from its END — the
-# function cannot know where the repo starts — so a deep absolute file whose own tail has
-# the shape (`/…/references/plugins/x/agents/n.md`) is still linted as an agent.
-# A SKILL.md whose skill dir exists but whose file does not prints
-# `<dir>/: SKILL.md missing`. Covers validate.sh's skill loop
-# (minus pc_skill_budget), its commands/agents loop and its description linter — a
-# structural failure (no opener, not terminated) skips the key checks and not the
-# linter, as validate.sh's separate loops do; a symlinked skill dir skips the skill
-# loop's checks, and a `.claude/skills/` path skips the linter, whose glob is plugins/.
-#
-# WHY IT EXISTS: done-gate.sh needed a per-file frontmatter check and none existed —
-# the logic was inline in validate.sh, which only walks the whole tree. Both now call
-# this one function, so the fast Stop gate and CI cannot drift apart on it.
-#
-# WHY THE TRIGGER RULE SKIPS SOME SKILLS: trigger phrasing is for skills the MODEL picks
-# from a listing. A skill carrying `disable-model-invocation: true` is invoked only by
-# name (`/name`), never matched on its description, so an imperative description
-# ("Scaffold a …") is its correct shape — the rule is kind-level, never plugin-level.
-#
-# WHY THE DESCRIPTION LINTER IS HARD: a frontmatter description over 500 chars bloats the
-# always-on context surface every session pays for; a literal "Trigger words:" list
-# restates in-sentence terms. Both fail the build — trim, don't grandfather. 500 is a
-# HOUSE budget, not a host limit. The two host caps it sits under: the CLI truncates
-# `description` + `when_to_use` together at 1,536 chars in the skill listing
-# (code.claude.com/docs/en/skills), and the Agent Skills API rejects a description over
-# 1,024. Both count the pair, so this does too — a `when_to_use:` line is added to the
-# measured length when present (rationale/marketplace-trend-audit-2026-09-16.md D3). The
-# pair is read through pc_listing_fields, the same walk context-budget.sh meters with, so
-# what this caps is exactly what that charges. Block-scalar (>/|) values would evade both
-# this cap and the token accounting (each reads the first line only), so the form is
-# rejected outright.
-#
-# WHAT IT DOES NOT CATCH: an invented key, a wrong `model:` value. RESIDUAL:
-# validate.sh prints every file's structural lines before any file's linter lines, so
-# it splits this output by matching the linter messages' text (fm_is_linter there).
-# Reword a linter message and that line prints with the structural ones — out of
-# order, never dropped.
+# pc_frontmatter <md_path> — validate.sh's frontmatter FAILs for one SKILL.md, command or agent (kind by path), unprefixed, returns 1; misses invented keys, wrong model: values.
+# validate.sh keys on this wording: reword 'missing frontmatter opener' or 'frontmatter not terminated' and its budget check runs on a broken file; a reworded linter line prints out of order.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_frontmatter
 pc_frontmatter() {
   local f="$1" d="" fm sname fields dsc wtu dlen bad=0
   local root='^(/|/.*/)?(plugins/[^/]+|\.claude)'
@@ -3253,22 +1677,9 @@ pc_frontmatter() {
   return $bad
 }
 
-# pc_hook_exec <plugin_dir>
-# For every hooks/hooks.json under the dir: prints `<f>: invalid JSON`, or one
-# `<f>: hook script <script> missing or not executable` per `${CLAUDE_PLUGIN_ROOT}`
-# command that does not resolve to an executable file — validate.sh's text exactly.
-# A `bash`/`sh`-led command (_pc_hook_script) needs only a file: its interpreter reads
-# the script, so the exec bit is not something the host uses.
-# Returns 1 if any; 0 when clean, when the dir is missing, or when jq is missing.
-#
-# WHY IT EXISTS: done-gate.sh needed a per-plugin hook check and none existed — the
-# logic was inline in validate.sh's tree-wide hooks.json loop. Both now call this one
-# function: done-gate.sh per changed plugin, validate.sh once on `plugins`, which
-# keeps the tree-wide `find` order its FAIL lines have always printed in.
-#
-# WHAT IT DOES NOT CATCH: a command whose script path does not open on
-# `${CLAUDE_PLUGIN_ROOT}` after the interpreter (it is never resolved), a script that
-# is executable but broken, and a missing `timeout` (pc_hook_timeout's job).
+# pc_hook_exec <plugin_dir> — per hooks/hooks.json, "<f>: invalid JSON" or a ${CLAUDE_PLUGIN_ROOT} script missing or not executable (bash/sh-led: missing only); returns 1.
+# Misses a path not opening on ${CLAUDE_PLUGIN_ROOT}, a broken executable, a missing timeout (pc_hook_timeout); no dir or no jq returns 0.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_hook_exec
 pc_hook_exec() {
   local root="${1%/}" bad=0 f plugroot cmd script
   command -v jq >/dev/null 2>&1 || return 0
@@ -3288,29 +1699,9 @@ pc_hook_exec() {
   return $bad
 }
 
-# pc_mod_modules <plugins_root>
-# For every <root>/<plugin>/hooks/hooks.json carrying a `modules` array, resolves each
-# entry against that hooks/ dir (nested paths allowed) and prints one line per fault:
-#   mod-module-missing <plugin> <entry>       no regular file there
-#   mod-module-ext <plugin> <entry>           extension not .ts .tsx .mts .cts .js .mjs
-#   mod-module-no-register <plugin> <entry>   no `export [async] function register` or
-#                                             `export const register`
-#   mod-module-count <plugin> <n>             more than one entry
-# A missing file draws only the missing line. Returns 1 if any; 0 when clean or no jq.
-#
-# WHY IT EXISTS: every other gate reads only `.hooks`, so a broken `modules` entry passed
-# validate.sh silently (spec 2026-10-06-ship-claude-code-mods, SC1). `claude plugin
-# validate --strict` also FAILs a missing file and a missing register export (measured on
-# 2.1.282 and 2.1.291, 2026-10-06) and a second entry ("names one hooks module per
-# plugin", 2.1.291); this gate mirrors those so the failure lands at author time, in the
-# repo's own words, without the CLI — the host check runs as CI's last step. The host
-# ACCEPTS a `.jsx` module, so the extension list — the module kinds a plugin may ship —
-# is caught here and nowhere else.
-#
-# WHAT IT DOES NOT CATCH: it reads text — it never loads, parses or typechecks a module,
-# so a commented-out `export function register` passes and `export { register }` FAILs.
-# An entry that climbs out of hooks/ (`../x.ts`) is resolved, not refused; a non-string
-# entry is checked as its JSON text and so reads as missing.
+# pc_mod_modules <plugins_root> — a hooks.json `modules` entry missing, not .ts/.tsx/.mts/.cts/.js/.mjs, without `export function|const register`, or a second entry: mod-module-* lines.
+# Reads text only: a commented-out register passes, `export { register }` fails; `../x.ts` is resolved, not refused; no jq returns 0.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_mod_modules
 pc_mod_modules() {
   local root="${1%/}" bad=0 hj d p m n
   local re='export[[:space:]]+((async[[:space:]]+)?function|const)[[:space:]]+register([^[:alnum:]_$]|$)'
@@ -3334,25 +1725,9 @@ pc_mod_modules() {
   return $bad
 }
 
-# pc_mod_kit <plugins_root> <canonical>
-# <canonical> is templates/mods/cc-kit.ts; kit-harness/ is read beside it.
-# Prints one line per fault and returns 1 if any:
-#   mod-kit-drift <file>         a <root>/*/hooks/cc-kit.ts or kit-harness/hooks/cc-kit.ts
-#                                that is not byte-identical (cmp) to <canonical>
-#   mod-host-unexported <file>   <canonical> without `export function hostOf(`
-#   mod-host-paste <file>        any .ts .tsx .mts .cts .js .mjs file under a <root>/*/hooks/
-#                                or kit-harness/hooks/ dir except that dir's cc-kit.ts that
-#                                defines its own `function hostOf(`; import the kit's instead
-#
-# WHY IT EXISTS: plugins install alone, so each mod plugin ships its own copy of the kit, and
-# a copy edited in one plugin is a fix the others never got (spec
-# 2026-10-06-ship-claude-code-mods, SC40). The kit exports `hostOf` since 2026-10-25; before,
-# seven files pasted it, and a paste is a second copy that can drift.
-#
-# WHAT IT DOES NOT CATCH: byte identity proves a copy matches the canonical kit, not that the
-# kit is correct — the kit-harness tests do that. `function hostOf(` is a text match: one in a
-# comment is over-reported, an arrow function or a renamed copy is missed. An unreadable
-# <canonical> skips the whole check.
+# pc_mod_kit <plugins_root> <canonical> — a cc-kit.ts copy not byte-identical to <canonical>, a kit not exporting hostOf, or a hooks file defining its own `function hostOf(`.
+# Prints mod-kit-drift|mod-host-unexported|mod-host-paste <file>. Proves copies match, not that the kit is right; an arrow or renamed hostOf is missed.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_mod_kit
 pc_mod_kit() {
   local root="${1%/}" canon="$2" kdir d f bad=0
   [ -r "$canon" ] || return 0
@@ -3375,34 +1750,9 @@ pc_mod_kit() {
   return $bad
 }
 
-# pc_role_floors <registry_md> <plugins_root>
-# The role-floor registry gate. Prints `fail <message>` per violation, <message> being
-# the exact text validate.sh err()s, and `exempt <agent_path>: <floor-reason>` per agent
-# deliberately unfloored; returns 1 if any `fail` line. Agent paths are
-# `<root>/<plugin>/agents/<name>.md`, and a key's plugin is read from the path relative
-# to <root>, so with root `plugins` every string matches the gate's inline original.
-#
-# CATCHES nine violations. Registry side: missing, empty or no parseable rows; a key
-# listed twice; a row off the `<plugin>:<agent> <tier>` shape or off
-# haiku|sonnet|opus|fable; a key resolving to no agent file; a row tier that disagrees
-# with the agent's `model:`. Agent side: a row AND `floor: none`; `floor: none` with an
-# empty `floor-reason:`; a `model:` that is neither inherit nor a tier; a pinned tier
-# with neither a row nor `floor: none`.
-#
-# WHAT IT DOES NOT CATCH: it reads frontmatter `model:`, `floor:` and `floor-reason:`
-# only. An agent with no `model:` is skipped — validate.sh's own agent check owns that —
-# and a floor-reason is checked for presence, never for truth. A `floor:` value other
-# than `none` is ignored (a row plus `floor: nonee` passes; a `floor-reason:` without
-# `floor: none` is dropped), and `*/agents/*.md` also matches nested agent dirs, keyed
-# as `<plugin>:<basename>`.
-#
-# WHY IT EXISTS: role-floors.md was prose, so nothing checked its rows against agent
-# frontmatter and unclassified `model:` pins shipped (CHANGELOG 0.63.0). A row AND
-# `floor: none` is an error because nine consumer sites read "has a row" as "is floored".
-# Moved out of validate.sh 2026-09-29: inline, role-floors-check.sh could prove the nine
-# strings only by running all of validate.sh four times — 202 s of CI on master run
-# 36299461261. House rules kept from the inline block: `done < <(...)`, never
-# `| while read`; grep -qxF, never `case` (a key holding * would glob-match); bash 3.2.
+# pc_role_floors <registry_md> <plugins_root> — role-floors.md rows against agent model:/floor:/floor-reason: frontmatter: "fail <validate.sh text>" per violation, "exempt <agent>: <reason>".
+# Misses a false floor-reason, floor: values other than none, agents with no model:. Keep `done < <(…)`, grep -qxF (a * key globs under case) and bash 3.2.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_role_floors
 pc_role_floors() {
   local rf="$1" root="${2%/}" rows="" keys="" seen="" dup="" bad=0
   local row nf key tier ap fm af fmb m k fl fr rel has
@@ -3486,62 +1836,6 @@ $key"
   return $bad
 }
 
-# pc_agent_tool_fit <plugins_root>
-# Prints `tool-fit <plugin>:<agent> lacks <Bash|Write> — <file>:<line>: <sentence>` per
-# instruction an agent's own `tools:` cannot carry out; returns 1 if any. validate.sh err()s each.
-#
-# CATCHES, for an agent whose `tools:` grants no Bash (neither `Bash` nor `Bash(…)`), a
-# sentence telling it to run a shell command (run/execute/invoke before a backticked git, npm,
-# composer, node, python, jq, curl or make; "run git <verb>"), to hash (cksum, shasum, sha*sum,
-# md5sum within 40 characters after run, use, pipe, call, compute, take, seed or verify, inside
-# a code span or followed by `|` or a path; "compute/seed from a hash"; a sentence opening "Hash
-# the"), or a ```bash fence in its body; for one granted no Write, Edit or MultiEdit, a sentence
-# telling it to write, save, persist, append, store or create a backticked file path. It reads
-# the agent BODY and, one hop out, every `<dir>/references/<f>.md` the body names (own plugin
-# first, then any plugin's skills/; fenced code skipped there) — that hop is where its case lived.
-#
-# WHAT NOTHING ELSE CATCHES: no other check compares an agent's instructions with its grant.
-# creative-director (Read, Grep, Glob) was sent to concept-deck.md, which said "seed from a
-# hash of the brief text plus today's date" and "Write the draw into
-# `craft/divergence-record.md`"; three of three mined runs improvised a seed
-# (rationale/session-retro-2026-10-13.md, V-44). Over 18 master revisions back to a 3-agent
-# tree it names exactly those two lines wherever concept-deck carried them, and nothing on
-# the fixed tree: no false positive across the 19 agents lacking Bash or Write and the 11
-# craft-layer references they name (re-measured 2026-10-15).
-#
-# WHAT IT MISSES:
-#   - Dispatch prompts and hook text, where the same retro's other cases lived: reviewers
-#     handed "the diff" with no file and no shell (V-24), a browser-proof preamble injected
-#     into read-only agents (V-02). A skill legitimately tells the MAIN thread to run git
-#     beside an agent's name, so a lint there fires on the fix; that half stays agent-graded.
-#   - Two hops, and a reference named without a `<dir>/` prefix (`references/x.md`, a
-#     `plugin:skill` handle) — most agents outside craft-layer name theirs that way.
-#   - A `<dir>/SKILL.md` the body names: a skill mostly instructs the main thread (17 of 107
-#     SKILL.md files read as an order, against 9 of 155 references, 2026-10-15), so only
-#     references are followed.
-#   - Implied actions: "name the lens in the divergence record" asks for a write with no verb
-#     and no path. Only an imperative verb plus a backticked command or path is read.
-#   - Tools other than Bash and Write: a Read/Grep/Glob agent told to run a skill or fetch a
-#     URL passes (creative-director's optional live pass names ultra-deep-research).
-#   - A `tools:` YAML list reads as absent and is skipped, like an agent with no `tools:` line
-#     (which inherits every tool).
-#   - Negation is a word list, sentence-scoped: a sentence carrying never, cannot, do not, no
-#     Bash/shell/Write/files, or naming the main thread, the caller, the dispatcher or the
-#     orchestrator is not read. A reference shared with the main thread names its actor, or
-#     carries the marker.
-#   - A verb whose subject is that/which/who or the user ("a script that executes `bash -c`",
-#     "recommend the user run `npm audit`") reads as description, not an order; one whose
-#     subject is a noun ("where the hook runs `npm ci`") still reads as an order, and so does
-#     one after a demonstrative `that` following after, before, do, did, once, like or with
-#     ("After that run `git diff`"). Any other demonstrative reads as a relative ("then that
-#     runs `x`" is missed).
-#   - A hash tool named bare, outside a code span with no pipe or path after it ("pipe the
-#     brief through cksum") is missed: the bare word is as often a noun ("verify the recorded
-#     cksum matches").
-#
-# Bless a block with `<!-- tool-fit-ok: <why> -->` anywhere in it: a paragraph, or a list or
-# table up to its blank line; an agent-body ```bash fence takes the mark from the block above
-# it. FAIL rather than WARN on that zero-false-positive measurement. Standing: gate.
 _pc_tool_fit_units() { # <file> <agent|ref> — "<line>\t<sentence>" per prose sentence outside a blessed block
   awk -v mode="$2" '
     function flush(   rest, start, seg, m) {
@@ -3596,6 +1890,10 @@ _pc_tool_fit_units() { # <file> <agent|ref> — "<line>\t<sentence>" per prose s
     END { endblock() }
   ' "$1" 2>/dev/null
 }
+
+# pc_agent_tool_fit <plugins_root> — an agent body, or a <dir>/references/<f>.md it names, ordering a shell run, a hash or a ```bash fence without Bash, or a file write without Write/Edit.
+# Prints "tool-fit <plugin>:<agent> lacks <Bash|Write> — …". Misses dispatch prompts, two hops, SKILL.md, implied acts. Escape: `<!-- tool-fit-ok: <why> -->`.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_agent_tool_fit
 pc_agent_tool_fit() {
   local root="${1:-plugins}" bad=0 tab af p n tools nob now ref rf src kind units hits want re ln s
   local SKIP='\b(never|cannot|can.t|do not|don.t|does not|doesn.t|must not|no (bash|shell|write|edit|tools?|files?))\b|main thread|\b(the|your) (caller|dispatcher|orchestrator)\b|\bcaller.s\b'
@@ -3639,31 +1937,9 @@ EOF_TF
   return "$bad"
 }
 
-# pc_stray_dirs <plugins_root>
-# Prints `stray <name>` per <root>/*/ dir that is scratch, not a plugin; returns 1 if
-# any. validate.sh err()s each as `stray directory plugins/<name> has no tracked files
-# — delete it (a hook or editor left scratch here)` and skips it in its
-# marketplace-listing, README-presence and plugin-table checks.
-#
-# CATCHES a dir with all three of: no .claude-plugin/plugin.json, no file tracked by the
-# enclosing git repo (outside any repo that counts as none), and no *.md or *.json outside
-# its dot-directories — a hook's marker files under .claude/ and nothing else.
-#
-# WHAT IT DOES NOT CATCH, on purpose: an untracked dir holding any *.md/*.json outside a
-# dot-dir is treated as a half-scaffolded plugin and falls through to validate.sh's three
-# checklist FAILs (audit H7: the first version told such a dir to delete itself), so
-# scratch that happens to be a stray notes.md is reported as a half-made plugin. A dir
-# with even one tracked file is never stray, scratch or not.
-#
-# WHY IT EXISTS: plugins/design-studio/ held only code-review/hooks/verbosity.sh's marker
-# files (it writes under the payload cwd) and drew three FAILs about a plugin that never
-# existed on a clean master checkout, while CI stayed green because it checks out only
-# tracked files (marketplace 0.113.0; rationale/marketplace-trend-audit-2026-09-16.md E1,
-# H7). Moved out of validate.sh 2026-09-29 so stray-dir-check.sh stops paying three full
-# validate.sh runs (151 s of CI on master run 36299461261). Dot-entries are pruned by
-# `-mindepth 1 -name '.*'`, not `-path '*/.*'`, which prunes the start point itself when
-# the root sits under a dot-dir (this repo's .claude/worktrees/) and calls every
-# half-made plugin stray; no `cd`, which prints under an exported CDPATH.
+# pc_stray_dirs <plugins_root> — a <root>/*/ dir with no plugin.json, no git-tracked file and no *.md/*.json outside dot-dirs: prints "stray <name>", returns 1.
+# An untracked dir holding any .md or .json reads as a half-made plugin, not stray; one tracked file makes any dir non-stray.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_stray_dirs
 pc_stray_dirs() {
   local root="${1%/}" bad=0 dir
   for dir in "$root"/*/; do
@@ -3678,26 +1954,9 @@ pc_stray_dirs() {
   return $bad
 }
 
-# pc_route_prompt_literals <hook_path>
-# Prints the sorted unique `/plugin:command` tokens on the hook's non-comment lines, joined
-# by single spaces on one line; returns 1 if any. A missing file returns 0. validate.sh
-# err()s the list as `skill-router route-prompt.sh carries literal command token(s): …`.
-#
-# CATCHES a `/<plugin>:<command>` token (lowercase, digits, hyphens) written literally
-# anywhere on a line not starting with `#`: an echo, a case arm, a heredoc, a string.
-#
-# WHAT IT DOES NOT CATCH: a token built at run time (`"/$p:$c"`, printf with a format), a
-# token with an uppercase letter or underscore, a one-letter plugin or command name, or
-# a heredoc body line beginning with `#` (a markdown heading) — it reads as a comment.
-# Which command the model then picks is agent-graded, never gated. It over-reports on
-# anything `/ab:cd`-shaped that is not a command, and on a token in a trailing `# comment`
-# on a code line — only a whole-line comment is skipped.
-#
-# WHY IT EXISTS: 7fc492d0 (2026-07-28) replaced a prompt routing table — it routed only the
-# phrasings someone wrote down and needed a row per new plugin — with a catalog built from
-# installed plugins and a model judgment; a hardcoded token is a route that catalog never
-# shows. Moved out of validate.sh 2026-09-29 so prompt-route-tests.sh stops paying three
-# validate.sh runs (155 s of CI on master run 36299461261).
+# pc_route_prompt_literals <hook> — literal /plugin:command tokens on the hook's non-comment lines: prints them space-joined, returns 1.
+# Misses tokens built at run time, uppercase or one-letter names, a heredoc line opening with #; over-reports trailing comments and other /ab:cd text.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_route_prompt_literals
 pc_route_prompt_literals() {
   local hook="$1" lits
   [ -f "$hook" ] || return 0
@@ -3708,26 +1967,9 @@ pc_route_prompt_literals() {
   return 1
 }
 
-# pc_route_prompt_greps <hook_path>
-# Counts lines matching `printf .%s. "\$head" | grep` — a grep over the scrubbed prompt;
-# over 4, prints the count and returns 1. A zero count and a missing or unreadable file
-# return 0. validate.sh err()s it as `… matches the prompt <n> times — at most 4 …`.
-#
-# CATCHES a fifth prompt-matching line: the budget is three narrowing refusals plus the one
-# work-shaped gate, so a fifth is a routing rule regrowing in shell.
-#
-# WHAT IT DOES NOT CATCH: a grep spelled any other way (`grep … <<<"$head"`, `echo "$head" |`,
-# a `case "$head"` arm, `[[ $head =~ … ]]`, a copy of `$head` under another name), and a
-# widened alternation inside an existing grep — which is how symptom phrasing was added
-# without spending budget (skill-router CHANGELOG 0.13.0). It counts LINES: two greps on one
-# line count once, and a commented-out grep line counts. Which command the model picks is
-# agent-graded, never gated.
-#
-# WHY IT EXISTS: the same 7fc492d0 replacement as pc_route_prompt_literals — one routing
-# pattern per phrasing is the table that commit deleted. Moved out of validate.sh
-# 2026-09-29 with it. Not carried over: inline, `grep -c … || echo 0` yielded "0\n0" on a
-# zero-grep hook, `[ -le 4 ]` then errored, and the gate drew a false FAIL; a zero count is
-# now clean. No string changes for a real violation.
+# pc_route_prompt_greps <hook> — over 4 lines piping printf .%s. "$head" into grep (three refusals plus the work gate): prints the count, returns 1.
+# Misses greps spelt another way and a widened alternation in an existing grep; counts lines, so two on one line count once.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_route_prompt_greps
 pc_route_prompt_greps() {
   local hook="$1" n
   [ -f "$hook" ] || return 0
@@ -3737,23 +1979,9 @@ pc_route_prompt_greps() {
   return 1
 }
 
-# pc_gating_catch <validate.json>
-# Reads one `claude plugin validate --json` report and prints `<module> <hook>` for every
-# `gatingHooks` entry, at any depth, whose `hasCatch` is false, and returns 1. A file jq
-# cannot read prints `unreadable report <file>` and returns 1 too: a gate that cannot read
-# its input must not pass. Returns 0 when clean, or with no jq.
-#
-# WHY IT EXISTS: at a gating site (tool.call, prompt.submit, …) a mod hook that throws or
-# overruns its budget is skipped and the action runs — the host's generated types say "a guard
-# fails open unless its registration carries a `.catch`". CLI 2.1.290 lists each such hook with
-# `hasCatch`, but as a note: `--strict` exits 0 on `hasCatch: false` (probed on 2.1.300,
-# 2026-10-15, with a one-hook module). official-validate.sh runs this on every plugin, so
-# the CI step fails what the host only reports.
-#
-# WHAT IT DOES NOT CATCH: what the `.catch` answers — `.catch(($, e, next) => next(e))` is
-# a fail-open catch and passes, and whether a hook SHOULD fail closed is the author's call;
-# a hook at an event the host does not count as gating; anything on a CLI older than
-# 2.1.290, whose report has no `gatingHooks` key, so every plugin passes vacuously.
+# pc_gating_catch <validate.json> — a `claude plugin validate --json` gatingHooks entry with hasCatch false: prints "<module> <hook>", returns 1; an unreadable report fails too.
+# Misses a fail-open .catch, events the host does not count as gating, and every CLI before 2.1.290 (no gatingHooks key); no jq returns 0.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_gating_catch
 pc_gating_catch() {
   local f="$1" hits
   command -v jq >/dev/null 2>&1 || return 0
@@ -3765,37 +1993,9 @@ pc_gating_catch() {
   return 1
 }
 
-# pc_plugin_root_quoting <plugins_root>
-# Prints `plugin-root-unquoted <plugin> <path-in-plugin>:<line>` for every RUNNABLE line in
-# <root>/*/commands/*.md or <root>/*/skills/**/*.md that runs an unquoted `${CLAUDE_PLUGIN_ROOT}`
-# or `$CLAUDE_PLUGIN_ROOT` path: as the command itself, or as the script bash, sh, node,
-# python or python3 is handed (option words `-x`, `--long`, `--` allowed between). Command
-# position is the first token after any `sudo`/`env` (with options) or `VAR=val` wrappers.
-# A runnable line is a line inside a ``` or ~~~ fence — command position at its start or
-# after `;` `&` `|` `(`, the interpreter anywhere — or an inline code span, read in
-# command position at its start. A span holding the bare path alone counts only when it
-# names a script (.sh .bash .py .mjs .cjs .js .ts): `${CLAUDE_PLUGIN_ROOT}/x/SKILL.md` is
-# a path to read, `${CLAUDE_PLUGIN_ROOT}/x.sh --y` a command. Spans follow CommonMark: an N-backtick run closes on the
-# next run of exactly N, across lines up to a blank line, and the hit is reported on the
-# line holding the span's first word. Fences close on the same character, at least as
-# long, with no info string. Prose naming the path is exempt. Returns 1 if any.
-#
-# WHY IT EXISTS: CLI 2.1.281 warns that a shell-form hook leaving `${CLAUDE_PLUGIN_ROOT}`
-# unquoted "breaks on plugin paths with spaces", and official-validate.sh fails that — in
-# hooks.json only. Commands and skills tell the model to run the same line through Bash,
-# and nothing read them: under an install path holding a space (a HOME or
-# CLAUDE_CONFIG_DIR with one) the path splits and the script never runs — measured with
-# CLAUDE_PLUGIN_ROOT="/tmp/rb probe": the behavioral-gate line exits 127. Two quote
-# characters fix it. Standing: gate — FAIL in validate.sh. It shipped at WARN naming 38
-# interpreter lines in 13 plugins, all quoted the same day (2026-10-15) before the
-# promotion; widening it to command position the same day named the scripts run by path.
-#
-# WHAT IT DOES NOT CATCH: a command in plain prose or an indented code block; fence
-# indentation (any is accepted, so a fence nested in a list item still opens); a wrapper
-# outside the list (`exec`, `nohup`, `time`, `sudo -u <user>`) or a launcher outside it
-# (`ruby`, `npx`); the path as an ordinary argument (`cat ${CLAUDE_PLUGIN_ROOT}/x`); other
-# unquoted words on the line (`$ARGUMENTS`, a `<placeholder>` that may hold a space);
-# agents, READMEs and scripts. No blessing marker.
+# pc_plugin_root_quoting <plugins_root> — a fenced or code-span line in commands/ or skills/ .md running an unquoted ${CLAUDE_PLUGIN_ROOT} path as the command or an interpreter's script.
+# Prints "plugin-root-unquoted <plugin> <path>:<line>". Misses plain prose, indented code, unlisted wrappers and launchers, the path as an argument, agents, READMEs.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_plugin_root_quoting
 pc_plugin_root_quoting() {
   local root="${1%/}" d
   [ -d "$root" ] || return 0

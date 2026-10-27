@@ -164,7 +164,7 @@ or restating a check's header here; do not add the story back to this file.
 
 - **`scripts/validate.sh`** — structure, frontmatter, reference resolution, README
   structure, routing reachability, the doc-location rule above, the no-`dependencies`
-  rule (`pc_plugin_dependencies`; the measurement that made it is in its header), and the `pc_*`
+  rule (`pc_plugin_dependencies`; the measurement that made it is in `rationale/derivations/scripts-lib.md` § pc_plugin_dependencies), and the `pc_*`
   battery in `scripts/lib/plugin-checks.sh` (one source shared with the smoke
   fixtures).
 
@@ -224,7 +224,7 @@ or restating a check's header here; do not add the story back to this file.
   | always-on | `scripts/context-budget-baseline.json` | descriptions + SessionStart stdout + local MCP `tools/list` |
   | dynamic | `scripts/context-budget-dynamic-baseline.json` | UserPromptSubmit + per-tool hook stdout, MAX across a prompt corpus and five file shapes |
   | activated | `scripts/context-budget-activated-baseline.json` | the always-on surface with the state its hooks WAIT for |
-  | listing (report-only) | — | CLI entry cost (`name + 4 + capped desc`) vs the formula budget: 6,000 chars at the default 200k window, 30,000 at 1M — derivation in the script's `LISTING_*` header |
+  | listing (report-only) | — | CLI entry cost (`name + 4 + capped desc`) vs the formula budget: 6,000 chars at the default 200k window, 30,000 at 1M — derivation in `rationale/derivations/scripts.md` § scripts/context-budget.sh |
 
   Accept intentional growth with `--update-baseline`, **never in CI**, and never
   blanket — a blanket run has moved baselines it should not have (`5192047a`).
@@ -299,7 +299,7 @@ your CLI auto-updates past it — which it does every few days. The env var skip
 the pin check; CI still asserts it. Bump the pin in the script and in
 `.github/workflows/validate.yml` together when the CI version moves.
 
-**`check-version-bumps.sh` reads `HEAD`, not your working tree** (`:36`,
+**`check-version-bumps.sh` reads `HEAD`, not your working tree** (its `changed=` line,
 `git diff "$base"...HEAD`). Every other gate above reads the files on disk. So running it
 before you commit is structurally blind to the commit you are about to make: a plugin file
 you have edited but not committed draws no FAIL locally and does draw one in CI. **Run it
@@ -353,7 +353,7 @@ per the has-teeth convention above:
 49 can fail the build**, and on a push to `master` only **48** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
 This is the one count deliberately carried here and nowhere else
-(`scripts/done-gate.sh:7` says why); **recount it, do not copy it**:
+(`scripts/done-gate.sh:3` says why); **recount it, do not copy it**:
 
 ```bash
 python3 -c "import re;s=open('.github/workflows/validate.yml').read();t=re.split(r'\n      - name:',s)[1:];f=[x for x in t if 'continue-on-error: true' not in x];print(len(t),'named',len(f),'fail-capable',len([x for x in f if 'pull_request' in x]),'PR-gated')"

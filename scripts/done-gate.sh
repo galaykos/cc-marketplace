@@ -1,81 +1,7 @@
 #!/usr/bin/env bash
-# done-gate — a Stop hook that refuses to let a turn end quietly on a red gate.
-#
-# WHY: CLAUDE.md is advisory. Across a long session an agent reliably verifies
-# the axes it was last burned on and quietly skips the rest. The checks below are
-# the fast per-plugin slice of CI's blocking steps — passing them is necessary, not
-# sufficient. Only CLAUDE.md ("Every enforcement surface, by tier") carries the
-# step COUNT; two files carrying one number is how they drift apart.
-#
-# TRIGGER — all THREE must hold:
-#   1. a plugins/<name> dir has a modified, staged or untracked file, and
-#   2. the turn did NOT acknowledge a failing/in-progress state, and
-#   3. a check genuinely fails.
-#
-# The original version asked "did the turn claim completion?" and matched a
-# completion-phrasing regex. That penalised clear reporting and was evaded by
-# saying nothing: end the turn without the word "done" and a red gate shipped
-# silently. The test is inverted — saying "validate.sh is failing", "still in
-# progress", "halting with evidence", "blocked on X" passes; ending on a red gate
-# having said none of it does not.
-#
-# The prose comes from the TRANSCRIPT on purpose. The Stop payload does carry
-# `last_assistant_message` (ask-ledger and candor read it), but that is the final
-# message only; the tail of every assistant text block lets an acknowledgment said
-# earlier in the turn count.
-#
-# WHAT RUNS: `generate.sh --check`, then for each changed plugin validate.sh's
-# FAIL-tier per-file checks — plugin.json JSON validity (`jq empty`), frontmatter
-# (pc_frontmatter), skill budget, doc location, jargon (not for
-# taskmaster/task-runner), removed refs, hook executability (pc_hook_exec), hook
-# shebangs, hook timeouts (pc_hook_timeout), the no-dependencies rule
-# (pc_plugin_dependencies) — plus check-version-bumps.sh when committed history
-# differs from the base. No WARN-tier check runs. validate.sh and
-# context-budget.sh are NOT invoked: measured 2026-09-29, the gate that ran them
-# took 93 s against the 60 s Stop timeout, so the host killed it before it blocked.
-#
-# WHAT IT NO LONGER CATCHES — every cross-plugin and repo-level check, left to CI
-# and CLAUDE.md's pre-push loop: lanes (territory, coverage, deference, phase
-# guard), skill-router rules (resolution, overlap, reachability, co-fire), README
-# counts and the plugin table, marketplace.json parity, CHANGELOG/metadata parity,
-# the role-floor registry, the context budget, the host's official validator, the
-# smoke harnesses, and validate.sh's per-file checks not named above (plugin.json
-# fields, command argument hints, host overlap, handoff refs, dispatch binding, the
-# hook-state checks, the command/skill shadow check, the renames ledger). A change
-# confined to templates/, scripts/ or .claude/skills/ never triggers it.
-#
-# RESIDUAL: the doc allow-list, the jargon exemption, the jargon/removed-refs file
-# set, the symlinked-skill budget skip and the plugin.json validity test (one label
-# here for a missing and an invalid file) are COPIES of validate.sh's inline logic;
-# frontmatter and hook-exec are not — both scripts call pc_frontmatter and pc_hook_exec.
-# validate.sh stays the authority; the allow_md copy is asserted byte-identical by
-# scripts/smoke/done-gate-tests.sh. pc_plugin_dependencies prints the manifest's
-# `.name`, so a changed plugin whose name differs from its directory is not matched.
-#
-# LIMITATION (honest scope). This converts "stop silently while a gate is red"
-# into "stop having said so, or be blocked". Residuals, all accepted:
-#   - It does not prove the acknowledgment is truthful; prose mentioning failure
-#     for another reason satisfies the escape.
-#   - It cannot tell a mid-work pause from a final claim. A Stop hook sees one
-#     turn, not intent; the acknowledgment escape is what keeps ordinary work
-#     unblocked, and an honest turn always carries it.
-#   - The trigger reads the working tree, index and untracked files; only the
-#     version-bump gate consults committed history.
-#   - It fires on "plugins are dirty", not "this turn dirtied plugins", so the
-#     first stop in an already-dirty session is judged even if the turn was
-#     read-only. The state marker below means it says so once, not repeatedly.
-#
-# FAIL-OPEN on every missing tool or unreadable input, matching the sibling hooks
-# (candor/hooks/gate.sh, hindsight/hooks/collect.sh) — with one exception:
-# pc_removed_refs fails CLOSED on a missing or malformed scripts/removed-plugins.tsv,
-# so a broken ledger blocks every changed plugin .md until it is restored.
-#
-# A Stop hook can reach the model two ways: stdout {"decision":"block",…} with
-# exit 0, or exit 2 with the reason on stderr. This uses exit 2. Exit 0 with no
-# JSON prints into a turn that has already ended and cannot prevent anything.
-#
-# DISABLE: remove the Stop entry from .claude/settings.json, or
-#          export CRAFT_DONE_GATE=off
+# done-gate.sh — this repo's Stop hook: blocks (exit 2, once per state) a turn ending on changed plugins/ that acknowledged no failure while generate.sh --check, a FAIL-tier per-file check of a changed plugin, or check-version-bumps.sh fails. CRAFT_DONE_GATE=off disables it.
+# Misses: cross-plugin and repo-level checks, WARN tiers, validate.sh and context-budget.sh (93 s against the 60 s timeout), a false acknowledgment; it is a slice of CI, so only CLAUDE.md carries CI's step count (two copies drift). Fails open, except pc_removed_refs on a broken removed-plugins.tsv.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/done-gate.sh
 
 set -uo pipefail
 [ "${CRAFT_DONE_GATE:-on}" = "off" ] && exit 0
@@ -103,11 +29,7 @@ done < <( { git diff --name-only -z -- plugins
           | tr '\0' '\n' | cut -d/ -f1-2 | sort -u )
 [ "${#changed[@]}" -eq 0 ] && exit 0
 
-# 2. ACKNOWLEDGMENT (cheap, and evaluated BEFORE the checks so an honest turn
-# never pays generate.sh --check plus the per-plugin scans).
-# Whole-word matching via grep -w: BSD grep has no \b, and an unanchored `red`
-# matches the tail of required/registered/triggered/covered — 1390 occurrences
-# under plugins/ in this repo, which would reopen the evasion in new spelling.
+# 2. ACKNOWLEDGMENT, checked before the checks so an honest turn pays nothing; grep -w, since BSD grep has no \b and a bare `red` matches required/registered.
 ACK='fail|fails|failing|failed|failure|not green|red gate|in progress|still working|wip|not done|incomplete|halt|halting|halted|blocked|parked|known issue|cannot verify'
 tp=$(printf '%s' "$payload" | sed -n 's/.*"transcript_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
 if [ -n "$tp" ] && [ -r "$tp" ] && command -v jq >/dev/null 2>&1; then
@@ -134,6 +56,7 @@ each() { # $1 label prefix; one finding per stdin line
 # every chassis-generated file as a side effect of a Stop hook.
 bash scripts/generate.sh --check >/dev/null 2>&1 || finding "generate.sh --check"
 
+# allow_md, the symlink skip, the jargon exemption and the file set below copy validate.sh (the authority); done-gate-tests.sh asserts only allow_md, so the rest can drift.
 allow_md='^(README|CHANGELOG|ROADMAP)\.md$|^skills/[^/]+/SKILL\.md$|^skills/[^/]+/references/.+\.md$|^commands/[^/]+\.md$|^agents/[^/]+\.md$|^evals/.+\.md$'
 # These three take a plugins ROOT, not one plugin: run each once, filter by name.
 rootwide=$( { pc_hook_shebang plugins; pc_hook_timeout plugins; pc_plugin_dependencies plugins; } 2>/dev/null ) || true
@@ -173,10 +96,7 @@ for p in "${changed[@]}"; do
   done <<<"$rootwide"
 done
 
-# check-version-bumps.sh reads COMMITTED history while this hook fires on an
-# UNCOMMITTED tree — different questions. Run it only when there IS committed
-# history to judge, against the same base ref that script would pick itself;
-# otherwise it reports OK regardless and adds a gate that cannot report.
+# check-version-bumps.sh judges COMMITTED history: run it only when some exists against the base that script would pick.
 base=""
 if   git rev-parse --verify -q origin/master >/dev/null 2>&1; then base=origin/master
 elif git rev-parse --verify -q master        >/dev/null 2>&1; then base=master
@@ -190,10 +110,7 @@ fi
 
 [ -z "$findings" ] && exit 0
 
-# 4. LOOP GUARD. stop_hook_active is not trusted alone — the sibling Stop hook
-# refuses to assume it too. The old trigger was prose the next turn could simply
-# not repeat; this one is repo state a mid-work turn cannot clear, so an unset
-# flag would mean an unbreakable stop-loop. Block once per distinct state.
+# 4. LOOP GUARD: block once per distinct state — stop_hook_active is not trusted alone, and repo state cannot be cleared mid-work.
 marker=".claude/done-gate-last"
 state=$(printf '%s|%s' "$(git status --porcelain -- plugins 2>/dev/null)" "$findings" \
         | (command -v shasum >/dev/null 2>&1 && shasum | cut -d' ' -f1 || echo "$findings"))

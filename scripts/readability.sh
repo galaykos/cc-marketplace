@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # readability.sh [--top N] [--json] — sentences, words per sentence and % over 30 words for README openings, SKILL and command frontmatter, CLAUDE.md prose; worst N passages.
 # Sentence splitting is heuristic (a full stop, then a capital, digit or markup); a code span counts as one word. Measures length, never clarity. Exits 0 always.
-# Why, limits, history: rationale/improvement-plan-2026-10-26.md § Before values (m2, 2026-10-26)
+# Why, limits, history: rationale/derivations/scripts.md § scripts/readability.sh
 set -u
 
 top=10

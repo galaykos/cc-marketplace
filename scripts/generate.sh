@@ -1,38 +1,7 @@
 #!/usr/bin/env bash
-# scripts/generate.sh — deterministic chassis stamper.
-#
-# Discovers every plugins/*/.chassis.json (each holds ONE chassis object or an ARRAY
-# of them) and renders it through templates/ via the card-01 template engine
-# (scripts/lib/template-engine.sh, overridable with TEMPLATE_ENGINE). Var derivation:
-# booleans lang/concern come from the manifest `variant` string, applyExtraBlock from
-# the `applyExtra` array, worker-agent vars are the six frontmatter fields verbatim
-# plus an optional `floor` frontmatter slot, an optional `preloadSkills` slot (renders a
-# `skills: [...]` frontmatter line — Claude Code preloads those bodies at spawn; set only
-# where the cost per spawn is earned, see ui-ux's .chassis.json), and three optional
-# domain-content slots —
-# operatingProcedure, domainChecklist, deferRule (each a markdown string or an array of
-# lines, joined with "\n"; absent fields default to "" so the template's {{#if}} guards
-# render nothing — so a chassis agent that pins a non-`inherit` model can emit its own
-# `floor: none`/floor row exemption, and existing agents re-render byte-identical).
-#
-# RETIRED 2026-09-22: the `stack-review` kind and templates/review-command.md.tmpl.
-# It rendered ONE file in the whole marketplace (code-review/commands/comment-review.md)
-# behind a 24-line template, four partials and nine opt-out justifications — more prose
-# in the machinery than in the artifact (panel finding #64,
-# rationale/specialist-panel-2026-09-22.md). That output is inlined and hand-maintained
-# now; the `optout` kind stays, as the plain note it always was. The build-time worker
-# routing through task-execution/references/routing.md went with it — nothing else read
-# that map from here.
-#
-#   --write : byte-compare rendered vs tree; on a delta write the file (chmod +x for
-#             .sh) and patch-bump that plugin's plugin.json ONCE per run. Idempotent.
-#   --check : render to a temp file, byte-diff vs tree (incl. the mode bit on hooks),
-#             print the opt-out + worker-override report, exit non-zero on any drift.
-#             NEVER writes.
-#
-# hooks.json is never generated. Roots are overridable for fixtures via CHASSIS_ROOT
-# (plugins tree to scan/stamp) and CHASSIS_TEMPLATES (templates dir).
-# Spec: taskmaster-docs/specs/2026-07-13-fable-review-engine.md §generate.sh contract, D6, D7.
+# generate.sh --write|--check — deterministic chassis stamper: renders each plugins/*/.chassis.json object (reminder-hook, boost-hook, worker-agent; optout is reported) through templates/, plus each plugin's lane.tsv generated block, stack-scan's scout catalog and the README off-switch table.
+# --write writes deltas (+x on .sh) and patch-bumps each changed plugin once; --check byte-diffs (hook mode bits too) and never writes. Misses: hooks.json, a deleted manifest's lane block. Fixture roots: CHASSIS_ROOT, CHASSIS_TEMPLATES, TEMPLATE_ENGINE.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/generate.sh
 set -uo pipefail
 
 MODE=""
@@ -74,14 +43,7 @@ mark_changed() { case " $CHANGED_PLUGINS " in *" $1 "*) : ;; *) CHANGED_PLUGINS=
 
 emit() { # rendered-file target-path is_exec(0|1) plugin-dir
   local rendered="$1" target="$2" isexec="$3" pdir="$4" rel="${2#$ROOT/}"
-  # Preserve blocks: transplant the tree's version of each
-  # <!-- preserve:NAME --> body into the render before ANY comparison, so a
-  # sanctioned local divergence is not drift in --check and is not clobbered by
-  # --write. Everything outside those markers still refreshes from the template.
-  # Both modes go through here, so they cannot disagree about what "the render"
-  # is. Runs for every render carrying a marker — today the worker agents'
-  # rubric-source block — and is a no-op for the rest; recount with
-  # `grep -rl '^<!--[[:space:]]*preserve:' plugins templates`.
+  # Preserve blocks: each <!-- preserve:NAME --> body in the tree is transplanted into the render before any compare, so a sanctioned divergence is neither drift nor clobbered.
   if grep -q '^<!--[[:space:]]*preserve:' "$rendered" 2>/dev/null; then
     ensure_engine
     local merged="$WORK/merged.$$"
@@ -119,34 +81,7 @@ bump_plugin() { # plugin-dir : patch-bump plugin.json once
   printf 'bumped %s: %s -> %s\n' "${pj#$ROOT/}" "$v" "$newv"
 }
 
-# --- lane rows: the generated block in <plugin>/lane.tsv ---------------------------
-# Every chassis object that renders an ARTIFACT (reminder hook, boost hook, worker
-# agent) also declares its lane in a `lane` key —
-#   {"owns": "<territory>", "trigger": "<definite trigger>", "yieldsTo": "a:b,c:d" | "-",
-#    "phase": "<optional override>"}
-# — and generate.sh renders one six-field lane.tsv row per artifact into a block
-# between `# generated:start` and `# generated:end`. --check byte-diffs that block
-# like any other generated file; --write rewrites it and patch-bumps the plugin.
-#
-# WHY. Until 2026-09-03 the rows for generated artifacts were typed by hand
-# (every generated worker agent, chassis command and reminder hook — recount with
-# `grep -l 'generated from templates' plugins/*/agents/*.md plugins/*/commands/*.md
-# plugins/*/hooks/*.sh`), so one property was split across a generator and a
-# hand-edited file — exactly the drift the chassis exists to prevent
-# (collective-taskforce-backlog #8). A missing `lane` key is a hard error in both
-# modes: every manifest has carried one since the 2026-09-03 sweep.
-# Phase: no surviving renderer supplies a default — the two command kinds that did
-# (review command → review, suite uninstall → ship) were retired 2026-09-22 and
-# 2026-09-26 — so hooks and agents MUST declare `lane.phase` explicitly — a hook's phase is what
-# pc_phase_guard reads (`any` exempts it from the sentinel), and the shipped rows
-# disagree with any default (api-design:remind build, taskmaster:remind shape,
-# testing:test-engineer verify), so a default there would silently disarm a gate.
-# owns/trigger/yieldsTo carry the SAME values the hand rows carried, lifted verbatim.
-# A hand row for an artifact the block now owns is a hard error: two rows for one
-# artifact only trip pc_lanes_schema when their `owns` match verbatim.
-# RESIDUAL (named): a deleted `lane` KEY strips its block on the next run, but a
-# deleted MANIFEST is never visited, so its plugin's generated block would rot with
-# --check silent. Delete the block by hand with the manifest; nothing checks it.
+# Lane rows: a chassis object's `lane` key {owns, trigger, yieldsTo, phase} renders one six-field lane.tsv row in the generated block; there is no phase default, and a missing key dies.
 LANE_ROWS=""
 LANE_HEADER='# lane declaration — who owns which territory, at which phase, and who outranks them.
 # artifact	kind	phase	owns	definite_trigger	yields_to
@@ -158,9 +93,7 @@ LANE_END='# generated:end'
 
 lane_row() { # obj plugin-dir artifact kind default-phase
   local obj="$1" pdir="$2" art="$3" kind="$4" dphase="$5" rel="${2#$ROOT/}" owns trig yt phase
-  # Every manifest carries a lane key since the 2026-09-03 sweep; a new chassis
-  # object without one is a hard error — the generator owns the artifact, so it
-  # owns the row, and pc_lanes_coverage would fail the build on a row nobody writes.
+  # A chassis object without a lane key dies: the generator owns the artifact, so it owns the row.
   printf '%s' "$obj" | jq -e '(.lane // null) | type == "object"' >/dev/null 2>&1 \
     || die "$rel/.chassis.json: object for $art has no \"lane\" key — {\"owns\",\"trigger\",\"yieldsTo\"[,\"phase\"]}; generated artifacts declare their lane in the manifest, never by hand in lane.tsv"
   [ -n "$art" ] || die "$rel/.chassis.json: a $kind object has a lane but no artifact name (reminder hooks need \"artifact\")"
@@ -216,19 +149,7 @@ write_lane_block() { # plugin-dir — called once per manifest after its objects
 # --- per-chassis renderers --------------------------------------------------------
 render_reminder_hook() { # obj plugin-dir
   local obj="$1" pdir="$2" dfile="$WORK/m.json" rfile="$WORK/r.out"
-  # budgetShared/budgetExempt are GONE. They were derived complements standing in
-  # for a two-branch template: one branch ran a first-come mkdir lottery, the other
-  # was a privileged directive exempt from it. Both are replaced by a single ranked
-  # path — a hook declares `arcRank` and yields to any better rank sharing its phase,
-  # so no plugin is privileged and the protocol still works when the old exempt
-  # plugin is not installed (approaches alone ships two reminder hooks and no taskmaster).
-  # armsClarifyGate replaces budgetExempt's SIDE EFFECT only: dropping the
-  # cross-plugin cc-workprompt marker. Defaults keep a bare manifest renderable.
-  # `file` (optional, default hooks/remind.sh) names the target the way boost-hook's
-  # does: a plugin carrying TWO reminder hooks with different phases renders each
-  # to its own file (approaches: remind.sh for build-vs-buy at `decide`,
-  # consult-remind.sh for the irreversible-command guard at `any`, since fresh-take
-  # merged in on 2026-09-14). hooks.json must list both by hand.
+  # One ranked path: a hook declares `arcRank` and yields to a better rank in its phase; armsClarifyGate drops the cc-workprompt marker; `file` (default hooks/remind.sh) allows two per plugin.
   local file
   file="$(printf '%s' "$obj" | jq -r '.file // "hooks/remind.sh"')"
   printf '%s' "$obj" | jq \
@@ -240,16 +161,7 @@ render_reminder_hook() { # obj plugin-dir
 }
 
 render_boost_hook() { # obj plugin-dir
-  # Boost injectors (taskmaster ultra.sh, task-runner ultra-assess.sh, craft-layer
-  # ultra-craft.sh) shared one hand-copied 35-line skeleton — off switch, fence
-  # scrub, 200-char head, negation guard, enumerated self-echo guard — and differed
-  # only in env var, token regex and directive text. The self-echo guard had been
-  # fixed in three files once already (hook-guard-tests.sh pins the regression), so
-  # the skeleton is one template now and the manifest carries the data. `file`
-  # names the target (hooks/<name>.sh — the three shipped names differ); `regex2`/
-  # `message2` render an elif branch when non-empty (taskmaster's ultra-goal) and
-  # nothing otherwise. The directive goes out through a quoted heredoc, so the
-  # manifest text is the wire text — no bash escaping in the manifest.
+  # One template for every boost injector: the manifest carries the env var, regex(es), `file` and directive, sent through a quoted heredoc as written.
   local obj="$1" pdir="$2" dfile="$WORK/m.json" rfile="$WORK/r.out" file
   file="$(printf '%s' "$obj" | jq -r '.file // empty')"
   [ -n "$file" ] || die "${2#$ROOT/}/.chassis.json: boost-hook object needs \"file\" (hooks/<name>.sh)"
@@ -264,11 +176,7 @@ render_worker_agent() { # obj plugin-dir
   local obj="$1" pdir="$2" agentFile dfile="$WORK/m.json" rfile="$WORK/r.out"
   agentFile="$(printf '%s' "$obj" | jq -r '.agentFile')"
   [ -n "$agentFile" ] && [ "$agentFile" != null ] || die "worker-agent in ${2#$ROOT/} missing agentFile"
-  # Optional slots (operatingProcedure, domainChecklist, deferRule, floor): each may be
-  # a markdown string or an array of lines (joined with "\n"); absent -> "" so the
-  # template's {{#if}} guards render nothing and existing agents (which carry none of
-  # these fields) re-render byte-identical. `floor` is a scalar frontmatter value
-  # ("none" for a breadth/mechanical exemption) — same absent->"" defaulting.
+  # Optional slots (operatingProcedure, domainChecklist, deferRule, floor): a string or an array of lines; absent renders "", so agents without them stay byte-identical.
   printf '%s' "$obj" | jq \
     'reduce (["operatingProcedure","domainChecklist","deferRule","floor"][]) as $k
        (.;
@@ -299,13 +207,7 @@ render_chassis() { # obj plugin-dir
 }
 
 # --- repo-level catalog step (not a per-plugin chassis) ---------------------------
-# Renders plugins/stack-scan/skills/plugin-scout/references/catalog.md (the scout
-# lived in its own plugin until 2026-09-14): one deterministic row per marketplace
-# plugin — `name — [keywords] — description`. Description comes from
-# marketplace.json, keywords from each plugin.json. Always regenerated on --write
-# (byte-compared, written on delta); byte-diffed on --check via the shared DRIFT
-# flag. Does NOT bump stack-scan — the catalog rides the plugin's own change
-# set, so version ownership stays with its manifest/skill edits.
+# One row per marketplace plugin, `name — [keywords] — description`, from marketplace.json and each plugin.json; never bumps stack-scan.
 render_catalog() {
   local mp="$ROOT/.claude-plugin/marketplace.json"
   local target="$ROOT/plugins/stack-scan/skills/plugin-scout/references/catalog.md"
@@ -336,15 +238,7 @@ render_catalog() {
 }
 
 # --- repo-level README block applier ----------------------------------------------
-# One README region is generated now: the off-switch table. The bundle-table and
-# no-suite-leaves blocks went with the suites on 2026-09-26 (no plugin may declare
-# `dependencies`, so there is no bundle to tabulate and no leaf outside one). The
-# helper stays a helper: each block owns a marker pair and rewrites only its own
-# region, and a second block needs nothing but a second call.
-#
-# A fixture root (CHASSIS_ROOT pointed at a smoke harness tree) has no root README —
-# every caller returns early rather than dying, or each harness that overrides
-# CHASSIS_ROOT would read this step's abort as chassis drift.
+# Rewrites only the region between one marker pair; a fixture CHASSIS_ROOT with no root README returns early rather than reading as drift.
 readme_apply() { # start-marker end-marker block-file
   local start="$1" end="$2" block="$3"
   local target="$ROOT/README.md" out="$WORK/README.out" rel="README.md"
@@ -364,35 +258,7 @@ readme_apply() { # start-marker end-marker block-file
 }
 
 # --- repo-level off-switch table step ---------------------------------------------
-# Every guard in this marketplace fails open and every one of them can be switched off —
-# and on 2026-09-22 the root README named ZERO of the switches (UX 1,
-# rationale/specialist-panel-2026-09-22.md #5). A user whose turn was just refused had
-# no list to read. Generated rather than typed because the set moves with every hook.
-#
-# THE SOURCE is each plugin's userConfig in plugins/*/.claude-plugin/plugin.json: one
-# row per distinct upper-cased key, which is the environment variable overriding that
-# option. It is not the hooks, because a hook reading its switch through cc_option
-# (templates/blocks/option-resolver.md) leaves no `${NAME:-` for a grep to find. A
-# switch a hook still reads — `${NAME:-`, `cc_option NAME` on a non-comment line, or the
-# boost chassis' `plugin_switch=NAME` — that no plugin declares gets a row as well, so
-# the deliberately undeclared CLAUDE_AI_TRAILER keeps its name in front of a refused
-# user. The host-supplied CLAUDE_* path, session and data variables are not switches.
-# Hooks modules under plugins/*/hooks/ count as hooks, cc-kit.ts excepted: pc_switch_reads
-# credits CC_SUGGEST, which only the kit reads, to the plugins whose modules suggest.
-#
-# THE COLUMNS: Variable, the env override; Plugins, every plugin declaring it, sorted;
-# Default, the declared default with true/false shown as on/off — plugins that disagree
-# are all listed, and an undeclared read shows `—`; What it does, the description's first
-# sentence, or for an undeclared read the first hook comment line writing `NAME=` ("see
-# hook header" when none does; CC_SUGGEST's is fixed here, as the kit that reads it is never
-# scanned). Cut at 104 characters with ` …`, `|` escaped.
-#
-# WHAT THIS TABLE DOES NOT ESTABLISH: that a switch works, that any hook reads a declared
-# key, that the hook's cc_option default equals the Default column, or that the hook
-# names the variable when it refuses you — that last one is pc_offswitch_named's job and
-# it is a WARN. Nor is a module read exact: a `registerSuggestion(` inside a string literal
-# or after a trailing `//` still credits CC_SUGGEST, and an `$.env.get` with backticks, inner
-# spaces or a receiver other than `$` is not read at all.
+# A row per upper-cased userConfig key plus each undeclared switch a hook or module reads; it does not establish that a switch works, matches its default, or is named on refusal.
 render_offswitch_table() {
   local block="$WORK/offswitch.md" rows="$WORK/offswitch.tsv" pj f p v note
   [ -f "$ROOT/README.md" ] || return 0

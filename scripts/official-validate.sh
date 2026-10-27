@@ -1,46 +1,7 @@
 #!/usr/bin/env bash
-# official-validate.sh — run the host's own plugin validator, strict, over every
-# plugin and the marketplace manifest. The local twin of the CI step
-# "Official plugin validator (--strict)" in .github/workflows/validate.yml, so a
-# contributor green on the four repo gates is not red only in CI.
-#
-# WHAT IT CATCHES that validate.sh does not — each probed with a crafted plugin on
-# CLI 2.1.300, 2026-10-15; the release that added it in brackets:
-#   - plugin.json / marketplace.json SCHEMA errors — unrecognized fields, wrong
-#     types — because validate.sh models named fields only;
-#   - a shell-form hooks.json command leaving `${CLAUDE_PLUGIN_ROOT}` unquoted [2.1.281];
-#   - an .mcp.json entry the loader would silently drop, a `${user_config.*}`
-#     reference plugin.json does not declare, an http:// URL to a non-loopback host [2.1.281];
-#   - a marketplace.json plugin name Claude Code cannot install [2.1.283];
-#   - an outputStyles / themes / monitors / lspServers path that is missing or
-#     leaves the plugin directory [2.1.283];
-#   - a hooks module the host refuses (an `on()` event name that is not a literal).
-# `--strict` promotes the CLI's warnings to errors.
-# GATING HOOKS. The CLI LISTS every mod hook at a gating site with whether its
-# registration carries a `.catch` (`gatingHooks` under --json) [2.1.290], as a note:
-# --strict passes a missing `.catch`. A gating hook that throws is skipped and the
-# action runs — the guard fails open — so this script fails `hasCatch: false` itself
-# (pc_gating_catch). It reads PRESENCE, not policy: a `.catch` that answers `next(e)`
-# fails open too, and passes here. Below 2.1.290 (reachable only with
-# OFFICIAL_VALIDATE_ANY_VERSION=1) the key is absent and that half passes vacuously.
-# WHAT IT DOES NOT: SKILL.md frontmatter typos (measured 2026-08-20 accepting an
-# invented `bogusfield:` key — rationale/distillation-strategy-2026-08-20.md:37;
-# still accepted on 2.1.300); that remains validate.sh's job. Nor an unquoted
-# `${CLAUDE_PLUGIN_ROOT}` in a command or skill — the host reads hooks.json only
-# (validate.sh's pc_plugin_root_quoting, FAIL).
-#
-# PIN. The CLI version is asserted, not assumed: `--strict` semantics drift with
-# releases, so a run on any other version is reported and fails unless
-# OFFICIAL_VALIDATE_ANY_VERSION=1. CI installs the pinned npm package; locally you
-# run whatever `claude` is on PATH and this script tells you if it differs.
-#
-# EGRESS. HOME is a throwaway dir, the auto-updater and non-essential traffic are
-# disabled, stdin is closed — the verdict cannot depend on network or a prompt.
-# Measured 2026-09-03 (darwin arm64 native binary): unauthenticated, no prompt,
-# 44/44 + manifest in ~25 s. Linux x64 native, 2.1.300, 2026-10-15: 33 plugins + manifest in
-# 3.0 s with one --json run per plugin, 5.6 s with the old human + --json pair.
-#
-# Standing: gate (a named, fail-capable CI step) — and a local pre-push check.
+# official-validate.sh — the host's `claude plugin validate --strict`, one --json run per plugin plus marketplace.json (CI's twin): schema errors, unquoted ${CLAUDE_PLUGIN_ROOT} in hooks.json, .mcp.json, install-name and component-path faults validate.sh never models; FAILs a gating mod hook without .catch (pc_gating_catch).
+# Misses: SKILL.md frontmatter (the host accepts invented keys — validate.sh's job), unquoted roots in commands and skills (pc_plugin_root_quoting), a .catch that still fails open. A CLI other than PIN FAILs unless OFFICIAL_VALIDATE_ANY_VERSION=1.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/official-validate.sh
 set -u
 cd "$(dirname "$0")/.." || exit 2
 PIN="2.1.300"
@@ -63,8 +24,7 @@ command -v jq >/dev/null 2>&1 || { echo "FAIL: jq not on PATH — cannot read ga
 rc=0
 out="$HOME/validate.out"   # inside the throwaway HOME, so the EXIT trap removes it
 errf="$HOME/validate.err"
-# One --json run per plugin carries the verdict, the findings printed on failure and
-# gatingHooks; a human-mode run repeats the whole validation for the same findings.
+# One --json run per plugin carries verdict, findings and gatingHooks; a human-mode run would repeat the whole validation.
 for p in plugins/*/; do
   [ -f "$p/.claude-plugin/plugin.json" ] || continue
   claude plugin validate --strict --json "$p" </dev/null >"$out" 2>"$errf" && vrc=0 || vrc=$?

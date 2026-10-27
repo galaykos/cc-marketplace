@@ -15,18 +15,6 @@
 # MAINTAINER PATH, NOT A GATE. Always exits 0. It reports; it never fails a build
 # and it never proposes a change by itself.
 #
-# WHY THIS EXISTS. Every cost instrument in this repo meters BYTES:
-# context-budget.sh's three channels, pc_skill_budget, pc_budget_crowding, the
-# description linter, the listing channel. rationale/2026-08-31-token-cost-review.md
-# measured what those bytes are worth against real spend and found the whole
-# always-on surface is ~1% of a session, while 61.8% of the bill is cache reads —
-# context re-read every request. The term that actually moves that is how many
-# model requests a piece of work takes, and NOTHING here measures it. Same run:
-# task-runner-attributed context cost 19% of all measured spend across 464
-# requests, against a shipped byte surface worth ~$2.80 a session. A ~40:1 gap
-# between what a plugin ships and what its workflow costs, in the channel with no
-# instrument.
-#
 # THE UNIT. A "turn block" is one real user prompt and every model request that
 # followed it before the next real user prompt. Tool results are user-role records
 # too and are NOT boundaries — only a genuine human turn is. That is the closest
@@ -34,46 +22,9 @@
 # completion itself is not recorded anywhere, so this measures cost per
 # INSTRUCTION, and says so rather than claiming the stronger thing.
 #
-# WHAT THE NUMBERS DO AND DO NOT MEAN — read before quoting any of them:
-#   - This measures COST, NEVER VALUE. A plugin that turns one instruction into
-#     200 requests may be buying 200 requests of work you would otherwise have
-#     driven by hand. Nothing here can tell those apart, and this repo's one real
-#     ablation (rationale/eval-ablation-2026-08-20.md) measured zero delta in
-#     every arm. This is a denominator. It is not a verdict, and a high number is
-#     not a finding.
-#   - Attribution is INCOMPLETE and the script measures its own coverage on every
-#     run — see the coverage table it prints. On the machine this was written for,
-#     one Claude Code version accounted for 48.6% of all requests and emitted no
-#     attribution records at all. Unattributed cost is reported as its own row,
-#     never silently spread over the plugins.
-#   - Attribution also carries FORWARD, and turn blocks are delimited by user
-#     prompts, so a plugin keeps being charged across a block boundary into an
-#     instruction about something else. Per-plugin figures are UPPER BOUNDS, and
-#     the two errors compound.
-#   - SUBAGENT TURNS ARE INVISIBLE. No `isSidechain` record appeared in any
-#     transcript measured; subagent requests are billed and do not show up here.
-#     This systematically UNDER-counts exactly the orchestration-heavy plugins the
-#     instrument was built to look at. That is the biggest known hole in it.
-#   - Cost is ESTIMATED from a static price table (below), not read from a bill.
-#     Cache reads are priced per model (Sonnet 5.5 reads at 0.05x of input, not
-#     0.1x); writes are 1h 2x, 5m 1.25x. The TTL split is read per request from
-#     usage.cache_creation, because assuming the 1.25x default under-states a
-#     1h-TTL session's write channel by 60%.
-#
-# HONEST LIMITATION, stated the way this repo's convention asks. It cannot see:
-# subagents (above); anything on another machine; sessions whose transcripts have
-# been deleted; and whether a turn was useful. It reports a per-plugin ratio only
-# once that plugin has --min-blocks turn blocks (default 10), because a $/block
-# figure at n=3 is noise wearing a table — the failure the retirement queue's
-# doctrine (now the --skills mode below) warns about. Below the threshold it prints the raw count and withholds
-# the ratio.
-#
-# WHY IT DEFAULTS TO ALL PROJECTS: a plugin's turn cost appears where the plugin
-# is USED, which is essentially never this repo. (retirement-queue.sh, folded into
-# --skills here on 2026-08-31, defaulted to the current project and answered with
-# an empty table on every machine anyone ran it on.)
-# Scoped to the marketplace checkout it would measure authoring sessions and
-# report nothing about any plugin. Use --project to narrow.
+# Misses: VALUE (it measures cost), subagent turns, other machines, deleted transcripts. Per-plugin figures are UPPER BOUNDS (attribution is incomplete
+# and carries forward), cost comes from a static price table, a ratio needs --min-blocks blocks (default 10), and every project is in scope unless --project narrows it.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/turn-cost.sh
 set -u
 
 min_blocks=10
@@ -85,10 +36,7 @@ suite_regex=""
 project=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    # Value-taking flags demand their value: `shift 2` with $#=1 does NOT shift in
-    # bash — the loop re-read the same flag forever (100% CPU) when a flag was the
-    # last argument. Checked, reported, exit 0: this script never fails a build,
-    # and a hang is worse than either.
+    # A value-taking flag given last made `shift 2` (with $#=1) a no-op and the loop spin forever: report it and exit 0.
     --project|--min-blocks|--since|--suite-regex)
       [ $# -ge 2 ] || { printf 'turn-cost: %s needs a value\n' "$1" >&2; exit 0; }
       case "$1" in

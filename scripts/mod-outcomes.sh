@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# mod-outcomes.sh — prints the outcome counts this marketplace's mods keep in each plugin's $.store (key `outcomes`).
-# Catches: suggestions shown, accepted or passed over; prompt-coach judgments, flags and buttons; spawn-floor raises.
+# mod-outcomes.sh — prints the outcome counts this marketplace's mods keep in each plugin's $.store (key `outcomes`): suggestions shown, accepted or passed over; prompt-coach judgments, flags and buttons; spawn-floor raises.
 # Does not: say which project a count came from, see a session with mods off, or show that anything helped. Always exits 0.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/mod-outcomes.sh
 set -u
 
 dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/store"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # comment-stats.sh [--top N] [--json] — whole-line comment share of .sh .ts .mts .js .mjs .py by area, top N files, house headers.
 # Misses trailing comments and docstrings; counts #-lines in heredocs and // in template strings as comments. Exits 0 always.
-# Why, limits, history: rationale/improvement-plan-2026-10-26.md § Before values (m2, 2026-10-26)
+# Why, limits, history: rationale/derivations/scripts.md § scripts/comment-stats.sh
 set -u
 
 top=15

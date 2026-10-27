@@ -135,7 +135,7 @@ jobs:
       - name: receipt contract harness (task-runner writes a receipt, git-workflow reads it)
         run: bash scripts/smoke/receipt-contract-tests.sh
       # The host's own validator, pinned to the CLI this repo was measured against —
-      # scripts/official-validate.sh is the local twin and carries the derivation.
+      # scripts/official-validate.sh is the local twin; derivation: rationale/derivations/scripts.md § scripts/official-validate.sh.
       # LAST among the fail-capable steps that do not need the binary, on purpose: the
       # install is a ~267 MB native download (2.1.300 linux-x64), and every sub-second repo-owned harness
       # above should report before a registry blip can. The fail-capable steps that follow

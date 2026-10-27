@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
-# Repo-level PostToolUse authoring guard. Advisory (post-write) and fail-open:
-# any error, missing jq, or out-of-scope path exits 0 silently and never blocks.
-# On an over-budget SKILL.md or a stray non-functional .md inside this repo's own
-# plugins/, emits a model-visible additionalContext warning so the author (human
-# or Claude) fixes it in-session instead of at CI. Shares check logic with
-# validate.sh via scripts/lib/plugin-checks.sh — no drift.
+# authoring-guard.sh — repo PostToolUse hook on Edit/Write/MultiEdit, advisory and fail-open (any error exits 0): warns in-session on an over-budget SKILL.md or a non-functional .md in this repo's plugins/.
+# Misses: worktrees and paths outside plugins/, Bash writes, and every other validate.sh check; it never blocks. Both checks come from scripts/lib/plugin-checks.sh, shared with validate.sh.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/authoring-guard.sh
 {
   command -v jq >/dev/null 2>&1 || exit 0
   input=$(cat)
