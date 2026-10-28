@@ -1,7 +1,6 @@
 #!/bin/bash
-# statusline.sh — prints the active terse level as a badge, e.g. [TERSE:ULTRA]; nothing when off, for a symlinked level file or for any
-#   value outside the level vocabulary. Opt-in: wire it yourself as a "statusLine" command in settings.json.
-# The level is level.sh's: CC_TERSE, then the level file, then the cc_terse /config option.
+# statusline.sh — prints the active terse level (level.sh's rule: CC_TERSE, the level file, the cc_terse option) as a badge, e.g. [TERSE:ULTRA]; nothing when off, for a symlinked level file or a value outside the vocabulary.
+# Opt-in: wire it yourself as a "statusLine" command in settings.json. Misses what level.sh misses: --settings files, managed-settings.d drop-ins, MDM policy.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/statusline.sh
 FLAG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode"
 

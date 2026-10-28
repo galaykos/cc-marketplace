@@ -2,6 +2,10 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.29.2 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `hooks/route-prompt.sh`, `hooks/route.sh`, `hooks/subagent-skills.sh`, `hooks/summary.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
 ## 0.29.1 — 2026-10-28
 
 - **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/compact-capsule.sh`, `hooks/plugins-dir.sh`, `hooks/prime.sh`, `hooks/route-prompt.sh`, `hooks/route.sh`, `hooks/subagent-skills.sh`, `hooks/summary.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-skill-router.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).

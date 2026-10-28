@@ -1,53 +1,7 @@
 #!/usr/bin/env bash
-# sync-plan.sh — the scope arithmetic behind `/stack-scan:suggest --sync`. Given the
-# scout's recommended set for this project, it reads the three settings files the CLI
-# merges for `enabledPlugins` (user, then project, then local — later wins) and prints
-# one TSV row per plugin of this marketplace: what --sync should do with it, at which
-# scope, and the exact command that does it. Read-only: it never runs `claude`; the
-# skill renders the plan, asks, and runs the command column.
-#
-# Why a script: the precedence is where prose went wrong. A plugin enabled at user
-# scope looks "installed" from every project, so the scout's picker offered nothing in
-# a repo that relied on user scope; a `false` in .claude/settings.local.json beats a
-# user-scope `true`; local scope is one checkout's path, so a linked worktree starts
-# bare. Each of those is a row class below with a harness case behind it.
-#
-# Usage: sync-plan.sh [--persist] [--root DIR] [--catalog FILE] [--] NAME...
-#   NAME       the scout's recommended set (tier 1 fired + tier 2 core). stack-scan is
-#              always added: a project moved off user scope must keep the tool that
-#              manages it.
-#   --persist  target scope project (.claude/settings.json) instead of local.
-#   --root     the project root (default: .).
-#   --catalog  the marketplace's plugin list (default: this plugin's generated
-#              skills/plugin-scout/references/catalog.md).
-#
-# Output: class<TAB>name<TAB>scope<TAB>command, `-` for no command, sorted by class:
-#   add          recommended, enabled nowhere            → install at the target scope
-#   move         recommended, enabled only at user scope → install at the target scope
-#   held         recommended, but a settings file says false → never re-enabled
-#   extra        enabled at local/project, not recommended → uninstall at that scope;
-#                a project-scope extra gets a command only under --persist (that file is
-#                the team's)
-#   duplicate    a local copy of a project-scope entry, recommended or not → uninstall
-#                the local copy (the project entry still enables it, so removing the
-#                copy changes nothing but the record)
-#   ok           recommended and enabled at local or project — nothing to do
-#   machine-wide not recommended, enabled only at user scope — left alone (other
-#                projects may rely on it)
-#   unknown      enabled, but not in the catalog: removed from the marketplace, or newer
-#                than this stack-scan
-#   note         worktree: a linked git worktree under a local target (local scope is
-#                this path only; --persist writes the file every worktree checks out)
-#   offramp      user scope still enables this marketplace's plugins; name = how many,
-#                command = the one-shot user-scope removal, printed, never run here
-#
-# Exit: 0 plan printed (possibly empty); 2 bad argument, no jq, a NAME the catalog does
-# not list, or a settings file that exists and is not a JSON object — a plan built on a
-# misread file would install or remove the wrong set.
-#
-# Residual: reads neither managed policy settings, a --settings file nor a --plugin-dir
-# load (the same three all-plugins' hint.sh skips), and not the install records — a
-# project-scope `true` for a plugin this machine never installed classes as enabled.
+# sync-plan.sh [--persist] [--root DIR] [--catalog FILE] [--] NAME... — the scope arithmetic behind `/stack-scan:suggest --sync`: reads enabledPlugins from the user, project and local settings files (later wins) and prints one row per plugin of this marketplace, class<TAB>name<TAB>scope<TAB>command (`-` for none), sorted by class (the classes: skills/plugin-scout/references/sync.md). NAME is the scout's recommended set, stack-scan always added; --persist targets project scope instead of local. Read-only: never runs `claude`.
+# Misses: managed policy settings, a --settings file, a --plugin-dir load, the install records (a project-scope `true` for a plugin never installed here classes as enabled). Exit 2 on a bad argument, no jq, a NAME the catalog does not list, or a settings file that is not a JSON object — nothing is planned from a misread file.
+# Why, limits, history: rationale/derivations/plugin-stack-scan.md § plugins/stack-scan/scripts/sync-plan.sh
 set -u
 
 M=cc-plugins-marketplace

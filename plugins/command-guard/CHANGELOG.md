@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.3 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `hooks/config-guard.sh`, `hooks/destructive-guard.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain. The one code change: `GUARD_VERSION` in `hooks/destructive-guard.sh` follows this release (0.9.3), so `--version` reports the version plugin.json ships.
+
 ## 0.9.2 — 2026-10-28
 
 - **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/config-guard.sh`, `hooks/destructive-guard.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-command-guard.md, which an install does not contain. Every hook parses to the same code as before (comments ignored), except `GUARD_VERSION` in `hooks/destructive-guard.sh`, now 0.9.2 so `--version` reports the version this plugin ships.

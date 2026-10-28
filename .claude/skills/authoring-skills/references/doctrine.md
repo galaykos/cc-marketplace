@@ -55,9 +55,9 @@ the teeth table's own two copies), in three mutually unaware vocabularies:
 
 - the declarative teeth table (`CLAUDE.md`, and the body of this skill);
 - an operational gate-script header, whose exact wording varies —
-  `LIMITATION (honest scope, …)` in `taskmaster/scripts/spec-ledger-lint.sh`,
-  bare `LIMITATION:` in `goal-ledger-check.sh`,
-  `LIMITATION (this is a DENYLIST…)` in `verify-teeth-lint.sh`, and
+  the `Misses:` header line in `taskmaster/scripts/spec-ledger-lint.sh`,
+  `goal-ledger-check.sh` and `verify-teeth-lint.sh` (each its own `LIMITATION` paragraph
+  until 2026-10-28, kept in `rationale/derivations/plugin-taskmaster.md`), and
   the `Misses:` header line in `task-runner/hooks/scope.sh`;
 - a named-residual heading — `Residual (named)` in
   `task-runner/skills/task-execution/references/negative-control.md`,
@@ -65,8 +65,9 @@ the teeth table's own two copies), in three mutually unaware vocabularies:
   `SKILL.md`, `Residual —` in
   `task-runner/skills/delegation-contracts/references/role-floors.md`.
 
-Best-stated, and the sharpest sentence in the repo on the subject —
-`taskmaster/scripts/goal-ledger-check.sh`:
+Best-stated, and the sharpest sentence in the repo on the subject — the header of
+`taskmaster/scripts/goal-ledger-check.sh` as it stood before 2026-10-28
+(`rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/goal-ledger-check.sh`):
 
 > …from silent to blocking; entry completeness stays a prose obligation.
 

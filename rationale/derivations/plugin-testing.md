@@ -1,6 +1,6 @@
-# testing hooks: the comment text moved out of the code (2026-10-28)
+# testing hooks and scripts: the comment text moved out of the code (2026-10-28)
 
-The text below was moved verbatim on 2026-10-28 from the hooks named in the `##` headings, with only each comment's `# ` leader (and the indentation before it) removed. Each `###` block is a comment block, or a contiguous part of a header, as it stood; the file kept a short summary in its place (a header of at most three lines, a one-line trap), or nothing where the code already says it. A pointer by name was left in each file's header, `# Why, limits, history: rationale/derivations/plugin-testing.md § <path>`. Standing: `recorded` — no gate reads this file, and its dates, measurements, line citations and file names are as they stood on the day it moved.
+The text below was moved verbatim on 2026-10-28 from the hooks and scripts named in the `##` headings, with only each comment's `# ` leader (and the indentation before it) removed. Each `###` block is a comment block, or a contiguous part of a header, as it stood; the file kept a short summary in its place (a header of at most three lines, a one-line trap), or nothing where the code already says it. A pointer by name was left in each file's header, `# Why, limits, history: rationale/derivations/plugin-testing.md § <path>`. Standing: `recorded` — no gate reads this file, and its dates, measurements, line citations and file names are as they stood on the day it moved. `scripts/flake-hunt.sh` prints its comment lines as `--help`, so its usage lines (the three classes, synopsis, exit codes) stayed in place.
 
 ## plugins/testing/hooks/protect-tests.sh
 
@@ -365,4 +365,47 @@ of one identity spend three of the four finding slots saying the same thing.
 ```text
 Duplicate groups first: one line covers N blocks, so it is the densest finding and
 it claims those blocks, keeping them out of the assertion-free list below.
+```
+
+## plugins/testing/scripts/flake-hunt.sh
+
+### Header
+
+```text
+Flake hunter. Runs a test suite N times across two axes — fixed order and
+randomized order — then set-diffs the per-run results to CLASSIFY each flake,
+not merely detect it.
+
+WHY CLASSIFY. Handed an intermittently red suite, the ordinary move is to re-run
+the one failing test alone, see green, and report "flaky, probably timing". That
+is a guess, and the wrong guess about half the time. The plugin's own
+testing-best-practices already lists the root causes and their fixes; what has
+never existed is the evidence that selects BETWEEN them. Three distinguishable
+shapes, and each implies a different fix:
+```
+
+### Header: HONEST LIMITATIONS
+
+```text
+HONEST LIMITATIONS. It observes; it does not diagnose. A test that fails on every
+run is BROKEN, not flaky, and is reported as such rather than counted. N=5 finds
+a 1-in-3 flake reliably and a 1-in-50 flake almost never — absence of a finding
+at N=5 is not evidence of a stable suite, and the report says so. Test-name
+extraction is regex over the runner's output: it recognises the common shapes
+(vitest/jest, pytest, go test, phpunit/pest) and falls back to whole-run
+pass/fail, which still detects flakiness but cannot name the test.
+```
+
+### extract_failures
+
+```text
+Failed test names from a run's output. Deliberately several shapes: the point is
+to name the test when possible, not to support one runner.
+```
+
+### broken
+
+```text
+broken = failed in EVERY fixed run. Not a flake; reporting it as one sends the
+reader hunting for nondeterminism in a test that is simply red.
 ```

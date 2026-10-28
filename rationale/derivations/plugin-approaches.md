@@ -1,6 +1,6 @@
-# approaches hooks: the comment text moved out of the code (2026-10-28)
+# approaches hooks and scripts: the comment text moved out of the code (2026-10-28)
 
-The text below was moved verbatim on 2026-10-28 from the file named in the `##` heading, with only each comment's `# ` leader (and the indentation before it) removed; the lines the file kept are not repeated here. A pointer by name was left in the file, `# Why, limits, history: rationale/derivations/plugin-approaches.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
+The text below was moved verbatim on 2026-10-28 from the files named in the `##` headings, with only each comment's `# ` leader (and the indentation before it) removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-approaches.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
 
 ## plugins/approaches/hooks/compact-recovery.sh
 
@@ -81,3 +81,23 @@ re-deliberates, which is a cost in tokens); expiring late re-asserts a decision 
 session has moved past, which is a cost in WRONG WORK. The two are not symmetric,
 so this errs toward forgetting.
 ```
+
+## plugins/approaches/scripts/brief-lint.sh
+
+### Header
+
+```text
+brief-lint.sh — leaning detector for a consult brief.
+Usage: brief-lint.sh [file]   (reads stdin when no file is given)
+
+The blind rule (skills/consult/SKILL.md) says the brief must carry facts, not
+the session's conclusion. The session composing the brief is the party with
+the anchor, so the rule was self-policed; this lint is the mechanical part.
+Exit 0: no leaning phrasing found. Exit 1: offending lines listed.
+
+Residual (honest limitation): this catches conclusion PHRASING, not smuggled
+conclusions. "The cache layer, which is broken, is at path X" passes the lint
+and still leans. A clean lint is necessary, never sufficient — reread the
+brief for framing before dispatch.
+```
+

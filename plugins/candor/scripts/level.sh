@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# level.sh [--sources] — prints "<level> <source>", source env|file|option|off, by the hooks' rule: the first non-empty of CC_TERSE, the level
-#   file's first word, the cc_terse option, else off; out of vocabulary is off. --sources prints each layer first. Exits 0, silent on stderr.
-# The option is CLAUDE_PLUGIN_OPTION_CC_TERSE where the host exports it, else one saved in managed-settings.json, then in the user settings.json.
-# Misses: --settings files, managed-settings.d drop-ins, MDM or server-managed policy, a symlinked settings file; without jq, every settings file.
-# --sources asks `claude plugin configure <id> --json` (2.1.285+) first: it resolves user, managed and drop-ins, follows symlinks, but cannot
-#   see the session's own --settings flag; ~0.45 s, so only --sources pays it. Any failure — older CLI, no claude, not under plugins/cache — reads the files.
-# CANDOR_MANAGED_SETTINGS replaces the managed-settings path; test-only, for the harness.
+# level.sh [--sources] — prints "<level> <source>" (env|file|option|off): the first non-empty of CC_TERSE, the level file's first word, the cc_terse option (CLAUDE_PLUGIN_OPTION_CC_TERSE, else managed-settings.json, then user settings.json), else off. --sources prints each layer, asking `claude plugin configure` first (~0.45 s). Exits 0.
+# Misses: --settings files, managed-settings.d drop-ins, MDM or server-managed policy, a symlinked settings file; without jq, every settings file. CANDOR_MANAGED_SETTINGS (test-only) replaces the managed-settings path.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/level.sh
 {
   cfg="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"

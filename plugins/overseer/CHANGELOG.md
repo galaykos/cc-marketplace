@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.3 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/capability-scan.sh`, `scripts/program.sh`, `scripts/skill-path.sh`: each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain. The usage text `scripts/program.sh`, `scripts/skill-path.sh` print on a missing or bad argument no longer carries the history prose; usage, flags and exit codes are unchanged.
+
 ## 0.7.2 — 2026-10-28
 
 - **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/announce.sh`, `hooks/track-read.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-overseer.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).

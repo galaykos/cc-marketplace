@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# check-receipt.sh — `run` runs a check from the repo root and records it in .claude/task-runner/receipt.json; `check` says if it still holds.
-# Fresh: same HEAD, exit 0, its own log ending `exit 0`, and an unchanged digest of tracked changes, untracked files and root .env* files.
+# check-receipt.sh — `run` runs a check from the repo root and records it in .claude/task-runner/receipt.json; `check` says it still holds: same HEAD, exit 0, its own log ending `exit 0`, an unchanged digest of tracked changes, untracked files and root .env* files.
 # Misses: skip-worktree/assume-unchanged files, other gitignored files, untracked files inside submodules, nested non-submodule repos, a receipt written by hand.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/check-receipt.sh
 set -uo pipefail
 
 PROG=check-receipt

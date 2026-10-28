@@ -1,39 +1,12 @@
 #!/usr/bin/env bash
-# register-run.sh — register a task-runner run; the one writer of
-# .claude/task-runner/active-run.json.
-#
+# register-run.sh — the one writer of .claude/task-runner/active-run.json: resumes a same branch+slug+index run untouched (its mtime is where gate records count from; --fresh, or no --index, registers anew); else deletes stale gate records, arms rv/ rt/ bg/ nc/ reductions/, writes slug, base, branch, start_sha. Sets phase build; seeds env-notes.md.
+# Misses: whether the model runs the line it reads (agent-graded); a sentinel written by hand, which carries no start_sha and so does not arm the range-review check.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/register-run.sh (marketplace repository)
+
 # Usage:
 #   register-run.sh [--index <00-INDEX.md>] [--slug <name>] [--session <id>] [--fresh]
 #
-# WHY A SCRIPT. Registration was prose in /task-runner:run step 1 only. A handoff that
-# invoked the task-execution skill directly skipped it: no active-run.json, so the review
-# observer recorded 0 of 22 reviews, candor's completion clause never armed, and the run
-# closed over a red behavioral-gate verdict. /task-runner:run step 1, the task-execution
-# skill's step 1 and /task-runner:plan's "Run now" all call this now;
-# scripts/__tests__/register-run.test.sh pins the three call sites.
-#
-# WHAT IT DOES:
-#   1. RESUME. An index run's active-run.json on this branch with the same slug and index is
-#      kept untouched: its mtime is the cutoff every completion-gate record is counted from, so
-#      re-registering a run already under way would discard the records of its done cards.
-#      --fresh registers anew anyway. An inline run (no --index) always registers anew: its
-#      slug is only a name, `run` when none is given, and a match would adopt an abandoned
-#      run's records.
-#   2. FRESH. Deletes gate-pass.json, bg/bg-<HEAD>.json and closed-run.json (candor's gate
-#      trusts the first two when they name HEAD, whatever their age), creates rv/ rt/ bg/
-#      nc/ reductions/ (each arms one completion-gate check by existing) and a .gitignore of
-#      `*`, then writes {"slug","base","branch","start_sha"[,"index_path"]}. base is the
-#      merge-base with the default branch; start_sha is HEAD now, the range a stacked branch
-#      actually adds, which the run-close range review reads.
-#   3. Writes the arc phase sentinel `build` with taskmaster's phase-sentinel.sh (the
-#      source-checkout sibling, else the newest installed copy), else by hand.
-#   4. Seeds env-notes.md when absent, kept across runs: the environment facts every worker
-#      reads first (the discipline preamble names it). Dispatches each re-pasted a ~1.5k-char
-#      environment block, and four that lacked "never read .env" grepped it (2026-10-13 retro).
-#
 # Exit: 0 registered or resumed, 3 usage, 5 not a git work tree or not writable.
-# Misses: whether the model runs the line it reads (agent-graded); a sentinel written by
-# hand, which carries no start_sha and so does not arm the range-review check.
 set -euo pipefail
 
 PROG=register-run
@@ -56,8 +29,7 @@ done
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "not inside a git work tree"
 ROOT=$(cd "$ROOT" && pwd -P)
 HEAD=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null) || die "no commit at HEAD"
-# symbolic-ref, not --abbrev-ref: a tag with the branch's name made that print `heads/<branch>`.
-# Exit 1 is a detached head; any other failure records no branch, which every reader takes as a match.
+# symbolic-ref, not --abbrev-ref (a same-named tag printed `heads/<branch>`); exit 1 is a detached head, any other failure records no branch, which every reader takes as a match.
 BRANCH=$(git -C "$ROOT" symbolic-ref -q HEAD 2>/dev/null) && rc=0 || rc=$?
 case $rc in 0) BRANCH=${BRANCH#refs/heads/} ;; 1) BRANCH=HEAD ;; *) BRANCH="" ;; esac
 

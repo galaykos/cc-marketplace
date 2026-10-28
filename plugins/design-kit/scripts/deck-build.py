@@ -1,21 +1,9 @@
 #!/usr/bin/env python3
 """deck-build.py — outline markdown → one self-contained HTML deck.
 
-WHAT IT DOES. Reads an outline (grammar: skills/slides/references/outline-format.md),
-renders every slide into skills/slides/assets/deck-shell.html, inlines local images
-as data URIs, applies theme tokens from design-system/tokens.json or
-design-system/DESIGN-SYSTEM.md when either exists, and writes
-.design-kit/decks/YYYY-MM-DD-<slug>.html (or --out) — .design-kit/ at the git root,
-or $DESIGN_KIT_DIR when set. Stdlib only.
-
-WHAT IT CHECKS (exit 2 on any): a deck title (`# `) exists; at least one slide;
-no slide body over --max-lines (default 6) visible lines — the rule the model
-breaks most, so the script holds it rather than the prose; the output contains
-no external `src=`/`href=` (self-containment is what makes the PDF and the LAN
-path work). `--allow-long` downgrades the line rule to a warning.
-
-WHAT IT DOES NOT CHECK. Whether the headline states a claim, whether numbers
-belong in a figure — those stay agent-graded in the skill.
+Renders an outline (skills/slides/references/outline-format.md) into skills/slides/assets/deck-shell.html with local images inlined and theme tokens from design-system/ when present; writes .design-kit/decks/YYYY-MM-DD-<slug>.html (or --out). Stdlib only. Exit 2 with no `# ` title, no slide, a slide body over --max-lines visible lines (default 6; --allow-long warns instead), or an external src=/href= in the output.
+Misses: whether a headline states a claim and whether numbers belong in a figure (agent-graded in the skill).
+Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/deck-build.py
 """
 import argparse
 import base64
@@ -34,10 +22,7 @@ INLINE_RE = re.compile(r"(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(\[([^\]]+)\]\(([
 
 
 def dk_dir():
-    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit
-    at the git root — never under a subdirectory the shell had cd'd into, which scattered
-    a second .design-kit/ (finding 2 of the marketplace's
-    rationale/2026-09-25-session-plugin-usage-review.md)."""
+    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit at the git root (the cwd outside git)."""
     import subprocess
     if os.environ.get("DESIGN_KIT_DIR"):
         return os.environ["DESIGN_KIT_DIR"]

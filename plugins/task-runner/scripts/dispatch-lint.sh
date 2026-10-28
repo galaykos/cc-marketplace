@@ -1,18 +1,7 @@
 #!/usr/bin/env bash
-# dispatch-lint.sh — mechanical contract check over ONE drafted subagent prompt.
-# Usage: dispatch-lint.sh [file]   (reads stdin when no file is given)
-#
-# delegation-contracts § Prompt contract names six elements; four are
-# string-checkable and this lint checks exactly those:
-#   1. an absolute path            (fresh context — relative paths are coin flips)
-#   2. a scope lock                (what NOT to touch, stated)
-#   3. a required return shape     (format/cap stated, not hoped for)
-#   4. the closing data instruction ("final message is data", no-preamble)
-# The other two (constraints/conventions, the done-when) are not string-checkable — judgment owns them.
-#
-# Exit 0: all four present. Exit 1: each missing element printed.
-# Residual: presence-of-phrase, not quality-of-contract — a scope lock that
-# locks the wrong scope passes. The delegation-contracts skill's reader judges that part.
+# dispatch-lint.sh [file] (stdin when none) — checks one drafted subagent prompt for the four string-checkable parts of delegation-contracts' prompt contract: an absolute path, a scope lock, a return shape, the closing data instruction. Exit 0 all four, 1 each missing one printed.
+# Misses: quality of contract, only the phrase — a scope lock on the wrong scope passes; constraints and the done-when are judgment's.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/dispatch-lint.sh
 set -u
 
 input=$(cat "${1:-/dev/stdin}") || exit 2

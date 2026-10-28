@@ -22,10 +22,7 @@
 #     need python3 + Pillow; without it the page shows the pair alone and every row
 #     reads `no diff engine: install Pillow`.
 #
-# BEHIND A LOGIN. Every authenticated app in the measured sessions sat behind a login
-# this script could not pass, so none of them could get a before/after here (the
-# marketplace's rationale/2026-09-25-session-plugin-usage-review.md, UI/UX section).
-# --storage-state FILE replays a signed-in session: a Playwright storageState JSON,
+# BEHIND A LOGIN. --storage-state FILE replays a signed-in session: a Playwright storageState JSON,
 # {"cookies": [...], "origins": [{"origin", "localStorage": [{name, value}]}]}, saved
 # by whoever signed in
 # through the project's walk access, a self-registered or seeded test user and never
@@ -35,7 +32,7 @@
 # stdlib only): cookies set before the first navigation, localStorage seeded on each
 # new document of a matching origin, one browser for every shot. It settles in REAL
 # time — the load event, then 500 ms with no request in flight, at most 3 s — because
-# a virtual-time budget left CDP screenshots hanging (measured 2026-09-25, Chrome 153).
+# a virtual-time budget left CDP screenshots hanging.
 # A route that ends on another URL (a sign-in redirect, an expired session) is still
 # shot, with a WARN naming where it landed; a file holding cookies for other hosts than
 # the base URL's draws a WARN too. The file holds a live session token: one
@@ -44,8 +41,7 @@
 # or outside the repo.
 #
 # WHERE SHOTS GO. $DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root),
-# else .design-kit at the git toplevel — not under a subdirectory the shell cd'd into,
-# which scattered a second .design-kit/ (finding 2 of the same rationale file).
+# else .design-kit at the git toplevel — not under a subdirectory the shell cd'd into.
 #
 # EXIT. 0 shot / rendered · 1 bad arguments (a refused or malformed --storage-state
 # too) · 2 the browser or the server was unreachable, printed as NOT MEASURED and never
@@ -70,6 +66,7 @@
 # saying so. Reading the pair — deciding the change is the one you meant — is
 # **agent-graded**; nothing here asserts a pixel.
 set -euo pipefail
+# Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/snapshot.sh
 
 here="$(cd "$(dirname "$0")" && pwd)"
 DK="${DESIGN_KIT_DIR:-$(git rev-parse --show-cdup 2>/dev/null || true).design-kit}"
@@ -92,9 +89,7 @@ for dp, _dns, fns in os.walk(sys.argv[1]):
 print(sorted(found)[-1] if found else "")
 PY
 }
-# check_state <file> — exit 1 unless it exists, reads as a storageState, and cannot be
-# committed. `git check-ignore` never reports a tracked file as ignored, so a tracked
-# state file is refused even when a .gitignore pattern matches it.
+# check_state <file> — exit 1 unless it exists, reads as a storageState and cannot be committed (git check-ignore never calls a tracked file ignored).
 check_state() {
   [ -f "$1" ] && [ -r "$1" ] || die "--storage-state $1: no such readable file — save one first (README, \"Behind a login\")" 1
   local dir top
@@ -150,8 +145,7 @@ if [ "$mode" = snapshot ]; then
     echo "snapshot: base-url=$base_url (detected)" >&2
   fi
 
-  # The browser lives in board-export.sh; this asks it rather than re-implementing the
-  # probe order, so a new install path is added once.
+  # board-export.sh --which owns the browser probe order, so a new install path is added once.
   hint="$(mktemp)"
   set +e; browser="$(bash "$here/board-export.sh" --which 2>"$hint")"; rc=$?; set -e
   if [ "$rc" != 0 ] || [ -z "$browser" ]; then
@@ -411,8 +405,7 @@ else
     || die "--base '$base' is neither a directory nor a git ref" 1
   base_root="$DK/shots/_base-$(slug "$base")"
   rm -rf "$base_root"; mkdir -p "$base_root"
-  # From the toplevel, with a toplevel-relative path: `git archive` refuses a pathspec
-  # outside the cwd, so run from a subdirectory it never found the root's shots.
+  # git archive refuses a pathspec outside the cwd, so it runs from the toplevel with a toplevel-relative path.
   top="$(git rev-parse --show-toplevel)"
   shots_rel="$(python3 -c 'import os,sys;print(os.path.relpath(os.path.realpath(sys.argv[1]),os.path.realpath(sys.argv[2])))' "$DK/shots" "$top")"
   git -C "$top" archive "$base" -- "$shots_rel" 2>/dev/null | tar -x -C "$base_root" 2>/dev/null || true

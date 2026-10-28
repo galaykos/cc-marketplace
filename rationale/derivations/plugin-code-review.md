@@ -2,7 +2,7 @@
 
 The text below was moved verbatim on 2026-10-26 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-code-review.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
 
-The second move, on 2026-10-28, cut every hand-written shell hook of the plugin to a header of at most three lines (what it catches, what it misses, the pointer) and one line per trap the code cannot show. Its blocks are every `###` below except review-debt.sh's "Header, THE RULE": each is a comment block, or a contiguous part of a header, as it stood, with the `# ` leader and the indentation before it removed, titled by what it sat above; the file kept a one-line summary in its place, or nothing where the code already says it. Text inside a pasted `templates/blocks/` block did not move.
+The second move, on 2026-10-28, cut every hand-written shell hook of the plugin to a header of at most three lines (what it catches, what it misses, the pointer) and one line per trap the code cannot show. Its blocks are every `###` below except review-debt.sh's "Header, THE RULE": each is a comment block, or a contiguous part of a header, as it stood, with the `# ` leader and the indentation before it removed, titled by what it sat above; the file kept a one-line summary in its place, or nothing where the code already says it. Text inside a pasted `templates/blocks/` block did not move. The same day `scripts/debt-scan.sh` moved its body comments in the same form; its header stayed whole, because `--help` prints lines 2-32 of the file.
 
 ## plugins/code-review/hooks/conventions.sh
 
@@ -1203,4 +1203,57 @@ Machine-local, never inside the project tree — same placement reasoning as
 hindsight/hooks/collect.sh. One compact row per scan, capped so an old ledger
 cannot grow without bound. Nothing reads this automatically; it is a dataset for
 a future evaluation, and saying that is the honest scope.
+```
+
+## plugins/code-review/scripts/debt-scan.sh
+
+### Exclusions
+
+```text
+Exclusions: vendored trees are somebody else's debt, and counting them makes the
+number move when a dependency updates — which is exactly the noise a ratchet
+cannot tolerate.
+```
+
+### 1. Suppressions
+
+```text
+1. SUPPRESSIONS — the category teams actually bleed on, and the one a TODO grep
+   misses entirely, because a suppression reads as code rather than as debt.
+```
+
+### 2. Skipped and quarantined tests
+
+```text
+2. SKIPPED / QUARANTINED TESTS — a test that does not run is a claim nobody checks.
+   `->skip(`/`->todo(` is Pest's chained form and its IDIOMATIC one — the PHPUnit
+   entries below (markTestSkipped) do not cover it, so a Pest suite's quarantined
+   tests counted zero while the same project's PHPUnit-style skips counted. Pest is
+   first-class here: this marketplace ships php + laravel plugins, and testing's
+   flake-hunt runner table lists Pest by name.
+```
+
+### 4. Deprecated-symbol references
+
+```text
+4. DEPRECATED-SYMBOL REFERENCES — the deprecation was announced; nothing counts
+   whether callers actually left.
+```
+
+### 5. Feature flags
+
+```text
+5. FEATURE FLAGS PAST THEIR REMOVAL DATE — approaches:rollout-planning tells
+   authors to write a removal date down and nothing in this marketplace has ever
+   read one back. This counts the flags that carry one at all; the date check is
+   reported separately below.
+```
+
+Editor's note (2026-10-28): 'reported separately below' is false as moved; see debt-scan.sh's date-check line.
+
+### Age
+
+```text
+Age is reported, never ratcheted: "340 TODOs" is a number nobody acts on;
+"11 of them are older than two years, 3 in payments" is a decision.
 ```

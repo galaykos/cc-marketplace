@@ -2,6 +2,8 @@
 
 The text below was moved verbatim on 2026-10-04 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-secret-scanning.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
 
+`scripts/scan-range.sh` moved on 2026-10-28: its header as it stood, with the `# ` leader and the indentation before it removed; the file kept a header of three lines.
+
 ## plugins/secret-scanning/hooks/scan.sh
 
 ### Header: the shebang
@@ -565,4 +567,22 @@ fail-open
 (rationale/2026-09-25-session-plugin-usage-review.md, finding 1). The hook runs AFTER the
 command, so each fixture file is created first and the payload carries the command that
 wrote it. The cwd is a SUBDIRECTORY of a temp git repo, as after the model's `cd`.
+```
+
+## plugins/secret-scanning/scripts/scan-range.sh
+
+### Header
+
+```text
+scan-range.sh <base>..<head> | --cached | <path>… — applies hooks/patterns.tsv, the file the write guard and the redaction mod read, to the
+  lines a git range or the index ADDED, or to whole files: a file path as given, a directory's git-tracked files (every file under it
+  outside git). Prints one `<file>:<line> <label> (<first 4 characters>****, <n> chars)` per matching line, never a whole value; a count
+  to stderr. A range or the index names files from the repo root, from any directory. A name holding a tab, newline, `"` or `\` prints
+  in git's escapes (`\t`, `\n`, `\"`, `\\`), unquoted, in every mode.
+Exit: 0 nothing matched · 1 a match · 2 nothing was scanned (no argument, a missing path, a range or index git cannot diff, an unusable
+  patterns.tsv as scan.sh judges it, or no hooks/patterns.sh).
+Matching is scan.sh's, through hooks/patterns.sh: secret and assigned rows in file order, the first non-placeholder match names the line.
+Misses: a secret split across lines (each line is matched alone), a shape patterns.tsv does not list, a real value holding a placeholder
+  word, binary files, a line a range removed (the secret is still in history), history outside the range, untracked files under a
+  directory in git; in path mode a name's other control characters print raw.
 ```

@@ -3,6 +3,10 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.34.3 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/debt-scan.sh`; `hooks/conventions.sh`, `hooks/density.sh`, `hooks/review-debt.sh`, `hooks/scan.sh`, `hooks/verbosity.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
 ## 0.34.2 — 2026-10-28
 
 - **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/conventions.sh`, `hooks/density.sh`, `hooks/paths.sh`, `hooks/review-debt.sh`, `hooks/scan.sh`, `hooks/verbosity.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-code-review.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).

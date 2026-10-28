@@ -1,24 +1,13 @@
 #!/usr/bin/env bash
-# code-redteam-diff.sh — deterministic core for the code-redteam skill.
-#
-# Two modes:
-#   --base <git-ref> [--paths <glob>...]
-#       Print `git diff <git-ref>..HEAD`, optionally scoped to the given paths.
-#       This is the exact code slice the refuter panel is fed.
-#   --dedup <seen-file>
-#       Read a findings list on stdin (one per line, format: file:line<TAB>title)
-#       and print only the NOVEL findings — those whose file:line plus normalized
-#       title does not already appear in <seen-file> (same format). SEEN means
-#       seen, so <seen-file> holds every previously confirmed finding.
-#
-# Exit codes: 0 normal, 3 usage error.
+# code-redteam-diff.sh --base <git-ref> [--paths <glob>...] | --dedup <seen-file> — prints `git diff <ref>..HEAD`, the refuter panel's slice; or only the stdin findings (file:line<TAB>title) whose file:line and normalized title are not in <seen-file>. Exit 0, 3 usage.
+# Misses: a finding re-titled beyond case and spacing, or moved to another line, reads as novel.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/code-redteam-diff.sh
 set -euo pipefail
 
 PROG=code-redteam-diff
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 
-# Normalize a finding title: lowercase, collapse whitespace runs, trim ends.
-# Keeps dedup stable across trivial title rewording between rounds.
+# Lowercased and space-collapsed, so a title reworded only that way between rounds still dedups.
 normalize_title() {
   printf '%s' "$1" \
     | tr '[:upper:]' '[:lower:]' \
@@ -26,8 +15,7 @@ normalize_title() {
     | sed -e 's/^ //' -e 's/ $//'
 }
 
-# Turn a raw "file:line<TAB>title" line into its dedup key
-# "file:line<TAB>normalized-title". A line with no tab keys on itself.
+# A line with no tab keys on itself.
 key_of() {
   local line="$1" fl title
   fl=${line%%$'\t'*}

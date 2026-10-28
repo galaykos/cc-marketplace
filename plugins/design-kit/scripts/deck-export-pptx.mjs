@@ -1,16 +1,7 @@
 #!/usr/bin/env node
-// deck-export-pptx.mjs <deck.html> <out.pptx>
-//
-// WHAT IT DOES. Reads the native content of a design-kit deck — every
-// <section class="slide"> with its data-title, data-notes, headings, list items,
-// paragraphs, code blocks, big figures and data-URI images — and writes a PPTX
-// with real text boxes and pictures via pptxgenjs, so the deck is editable in
-// PowerPoint/Keynote/Google Slides. Not a screenshot exporter.
-//
-// WHAT IT DOES NOT DO. Fragments, transitions, nested-list indentation beyond one
-// level and CSS theme colours are not carried; the theme's accent is read from
-// --dk-accent when present, everything else is PowerPoint defaults. Driven by
-// deck-export.sh, which owns the pptxgenjs install consent.
+// deck-export-pptx.mjs <deck.html> <out.pptx> — an editable PPTX (real text boxes and pictures via pptxgenjs, not screenshots) from a design-kit deck's slides: data-title, data-notes, headings, list items, paragraphs, code, big figures, data-URI images. Driven by deck-export.sh, which owns the pptxgenjs install consent.
+// Misses: fragments, transitions, list nesting past one level and CSS theme colours; only --dk-accent is read, the rest is PowerPoint defaults.
+// Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/deck-export-pptx.mjs
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 

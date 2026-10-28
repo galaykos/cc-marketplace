@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# candor-scan.sh [--session-file PATH] [--last N] [--examples N] — report-only: counts a transcript's assistant messages on the six candour
-#   axes and prints the hits with examples; changes nothing and always exits 0, so it can never be mistaken for a gate.
-# Standing: **recorded** — this prints numbers, nothing reads them back.
+# candor-scan.sh [--session-file PATH] [--last N] [--examples N] — report-only: counts a transcript's assistant messages on the six candour axes and prints the hits with examples; changes nothing, always exits 0 (standing: recorded, nothing reads the numbers back).
 # Misses: hits are pattern matches, not judgements; citations resolve against today's tree, not the one each turn saw.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/candor-scan.sh
 set -uo pipefail

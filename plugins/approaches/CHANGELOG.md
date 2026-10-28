@@ -3,6 +3,11 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.3 — 2026-10-28
+
+### Changed
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/brief-lint.sh`; `hooks/consult-remind.sh`, `hooks/remind.sh` (generated hooks): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
 ## 0.12.2 — 2026-10-28
 
 ### Changed

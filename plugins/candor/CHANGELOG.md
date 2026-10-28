@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.10.4 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/candor-scan.sh`, `scripts/level.sh`, `scripts/measure.sh`, `scripts/shrink.mjs`, `scripts/statusline.sh`; `hooks/activate.sh`, `hooks/avert.sh`, `hooks/gate.sh`, `hooks/mode.sh`, `hooks/preamble.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
 ## 0.10.3 — 2026-10-28
 
 - **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/activate.sh`, `hooks/avert.sh`, `hooks/cite.sh`, `hooks/gate.sh`, `hooks/mode.sh`, `hooks/preamble.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-candor.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).

@@ -1,4 +1,4 @@
-# hindsight hooks: the comment text moved out of the code (2026-10-28)
+# hindsight hooks and scripts: the comment text moved out of the code (2026-10-28)
 
 The text below was moved verbatim on 2026-10-28 from the files named in the `##` headings, with only each comment's `# ` leader (and the indentation before it) removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-hindsight.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
 
@@ -100,4 +100,58 @@ the plugin-qualified form without caring which, since either identifies it.
 ```text
 slug: the same rule Claude Code uses for its projects dir, and the same rule
 hooks/collect.sh uses — one directory per project, shared with the ledger.
+```
+
+## plugins/hindsight/scripts/claude-md-check.sh
+
+### Header
+
+```text
+claude-md-check.sh — the mechanical half of a CLAUDE.md audit: which of the
+paths and scripts a CLAUDE.md names no longer exist.
+
+Usage: claude-md-check.sh [repo-root]   (defaults to $PWD)
+Finds: CLAUDE.md, .claude.md, .claude.local.md at any depth (node_modules,
+       vendor, .git skipped). Prints per file: lines, bytes, then one row per
+       stale reference — a backticked path that does not resolve from the repo
+       root or the file's own directory, or a backticked `npm run X` /
+       `composer X` / `make X` whose script target is not declared.
+Exit 0 always — a report, not a gate. Nothing here is edited.
+
+Residual (stated, per the has-teeth convention): only BACKTICKED references are
+read, and only three script runners are resolved. A path written in prose, a
+command with a variable in it, or a runner not listed is not checked and not
+reported as clean — it is simply not seen. Currency of ARCHITECTURE prose
+(a described module boundary that moved) is judgment, left to the command.
+
+A token that resolves neither from the repo root nor from the file's own
+directory gets one more chance: if it exists ANYWHERE in the tree as a path
+suffix (`plugin.json`, `references/`, `hooks/x.sh`), it is read as an
+illustrative fragment, not a stale path. Measured 2026-09-10 on this
+marketplace's own CLAUDE.md before the rule: 35 rows, 3 real. A bare
+extension (`.md`) is skipped outright. The cost, accepted: a root-anchored
+path that went stale while a same-named file lives elsewhere is not reported.
+```
+
+## plugins/hindsight/scripts/outcome.sh
+
+### Header
+
+```text
+outcome.sh — closes the loop the ledger always had the data for: did an
+applied hindsight rule actually move the numbers in later sessions?
+
+Usage: outcome.sh [project-cwd]   (defaults to $PWD; slug derived like collect.sh)
+Reads:  $HOME/.claude/hindsight/<slug>/ledger.jsonl   (written by the SessionEnd hook;
+        rows tagged kind:"agent" are subagent transcripts and are skipped here — a
+        session that fans out 90 reviewers would otherwise count as 91 sessions)
+        $HOME/.claude/hindsight/<slug>/applied.jsonl  (written at harvest apply time)
+Prints a per-rule before/after table. Exit 0 always — a report, not a gate.
+
+Residual (stated, per the has-teeth convention): this is CORRELATION. Sessions
+after an applied rule differ in more than the rule — different work, other
+rules, model updates. A moved number is a hint about where to spend a real
+control/treatment run (see skill-creator's eval loop), not proof the rule
+worked. The honest minimum is printed with every table; MIN_N=3 sessions per
+side before any number is shown at all.
 ```

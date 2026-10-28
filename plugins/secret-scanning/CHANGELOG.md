@@ -3,6 +3,10 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.15.5 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/scan-range.sh`; `hooks/scan.sh`, `hooks/unicode-scan.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
 ## 0.15.4 — 2026-10-28
 
 - **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/patterns.sh`, `hooks/scan.sh`, `hooks/unicode-scan.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-secret-scanning.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).

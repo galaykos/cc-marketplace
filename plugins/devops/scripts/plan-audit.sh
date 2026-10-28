@@ -10,59 +10,15 @@
 #
 # Exit: 0 nothing found · 2 a finding · 1 cannot answer (no jq, unreadable file,
 #       not JSON, not a plan)
-#
-# WHY A SCRIPT AND NOT A `terraform-best-practices` SKILL. A skill restating
-# Terraform's own documentation is shape 4 in rationale/measured-zero-shapes.md and
-# measured zero three times over. The thing a model cannot do from memory is read
-# THIS plan: which of the 300 resource changes in front of it takes data with it.
-# So this ships as a thing that runs, with an exit code, not a thing that is read.
-#
-# WHY IT FAILS CLOSED. Every hook in this marketplace fails OPEN and says so in its
-# own header, because a guard that wedges a session gets uninstalled. This is not a
-# hook: nothing invokes it on a keystroke, its output is read by a human or a CI
-# step, and the only other thing it could say about a plan it cannot parse is
-# "clean". So a parse error exits 1 and never 0.
-#
-# WHAT IT CATCHES
-#   1. A `delete` — or a replace, which is a delete plus a create — of a resource
-#      whose type is on the stateful list below. `--list-types` prints it.
-#   2. `lifecycle.prevent_destroy = true` removed from a resource since --base.
-#      This one is read from the .tf SOURCE, not from the plan: lifecycle is
-#      configuration Terraform does not record in state and does not emit in the
-#      JSON plan, so `configuration.root_module.resources[].expressions` has no
-#      `lifecycle` key to read (verified 2026-09-22 against
-#      developer.hashicorp.com/terraform/internals/json-format and
-#      hashicorp/terraform#30271). A plan-only check for it would be theater.
-#
-# WHAT IT DOES NOT CATCH
-#   - A resource type that is not on the list: another provider (DigitalOcean,
-#     Oracle, Alicloud), a stateful type nobody added (`aws_rds_cluster_instance`,
-#     `aws_elasticache_replication_group`), or a module that wraps the storage in a
-#     type of its own. Module nesting itself is fine — `resource_changes` carries the
-#     real type and the full `module.x.` address — but a wrapper that owns the data
-#     under an unlisted type reads as ordinary.
-#   - Data loss inside an `update`. No delete action appears for a shrunk
-#     `allocated_storage`, an engine downgrade, `skip_final_snapshot` flipped to
-#     true, or a `force_destroy` newly set — all of those plan as in-place changes.
-#   - A `moved` block, which is an address change: the plan says no-op and there is
-#     nothing to find. (Good — that is the point of `moved`.)
-#   - Whether the destroy is RECOVERABLE. A final snapshot, `deletion_protection`,
-#     bucket versioning and PITR are not modelled; a listed type being destroyed is a
-#     finding even when the backup makes it survivable.
-#   - A `helm_release` whose PVC comes from the chart's own defaults with no mention
-#     in the release's values. Only values/set text is scanned.
-#   - Anything about a plan that is stale, or about drift since it was generated. It
-#     reads the file it is handed and does not run Terraform.
-#
-# Panel finding 43 (rationale/specialist-panel-2026-09-22.md §2, ops detail 9): the
-# marketplace had no IaC lane at all, and the mechanism-bearing slice of that gap is
-# this reader — not a terraform skill.
+
+# Catches: a delete or replace of a resource whose type is on the stateful list (--list-types); `lifecycle.prevent_destroy = true` removed since --base, read from the .tf source because the plan JSON carries no lifecycle. Fails closed: an unparseable plan exits 1, never 0.
+# Misses: an unlisted type (another provider, a stateful type nobody added, a module wrapping the data in a type of its own); data loss inside an in-place `update`; a `moved` block; whether a destroy is recoverable (snapshot, deletion_protection, versioning, PITR); a helm_release PVC from chart defaults its values never mention; a stale plan or drift since it was made.
+# Why, limits, history: rationale/derivations/plugin-devops.md § plugins/devops/scripts/plan-audit.sh
 set -u
 
 die() { printf 'plan-audit: %s\n' "$1" >&2; exit 1; }
 
-# type <TAB> why it is stateful. Kept as data so --list-types and the finding lines
-# read from one source.
+# type <TAB> why it is stateful: one source for --list-types and the finding lines.
 stateful_types() {
   cat <<'TYPES'
 aws_db_instance	an RDS instance; the destroy takes its databases with it unless a final snapshot is configured, and the snapshot is not visible in this plan
@@ -83,9 +39,7 @@ helm_release	a release whose values name a PVC; uninstalling it removes the char
 TYPES
 }
 
-# helm_release is the one conditional row: most releases are stateless and flagging
-# every one of them is how a gate gets switched off. Matched against the release's
-# values/set text only — see WHAT IT DOES NOT CATCH.
+# helm_release is the one conditional row, matched on values/set text only: flagging every (mostly stateless) release gets a gate switched off.
 HELM_PVC_RE='persistentvolumeclaim|claimname|persistence|"pvc|[-_.]pvc'
 
 plan_file=""
@@ -111,8 +65,7 @@ if [ -z "$plan_file" ] || [ "$plan_file" = "-" ]; then
   plan_file="-"
   plan=$(cat)
 else
-  # -r, not -f: `plan-audit.sh <(terraform show -json plan.out)` hands over a
-  # /dev/fd entry, which is not a regular file.
+  # -r, not -f: `plan-audit.sh <(terraform show -json plan.out)` hands over a /dev/fd entry, not a regular file.
   [ -r "$plan_file" ] || die "cannot read $plan_file"
   plan=$(cat "$plan_file" 2>/dev/null) || die "cannot read $plan_file"
 fi
@@ -144,11 +97,7 @@ findings=$(printf '%s' "$plan" | jq -r \
 changed=$(printf '%s' "$plan" | jq -r '(.resource_changes // []) | length')
 
 # --- prevent_destroy: source-side, because the plan JSON does not carry lifecycle ---
-# Set difference, not a diff-hunk read: an address protected at $base and no longer
-# protected in the working tree is a finding whether the line was deleted, flipped to
-# false, or the whole resource block was removed from the configuration — that last
-# one is how a protected resource gets destroyed in practice. Only files the diff
-# touches are read, so a move between two changed files does not read as a removal.
+# A set difference, not a hunk read: a deleted line, a flip to false and a removed resource block all count; a move between two changed files does not.
 protected_addresses() { # stdin: HCL · stdout: type.name per protected resource
   awk '
     /^[[:space:]]*(data|module|variable|output|locals|provider|terraform|import|check|moved|removed)[[:space:]]*[{"]/ { cur = "" }

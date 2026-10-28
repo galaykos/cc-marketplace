@@ -26,8 +26,6 @@ cc_state_root() {
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -60,8 +58,7 @@ dec="$root/.design-kit/decisions.jsonl"
 
 # Shared block templates/blocks/phase-guard.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-guard.md
-# No template directive of any kind in these comments: _expand_includes copies this file raw, then conditionals and
-# substitution run over the whole text.
+# No template directive in these comments: _expand_includes copies this file raw, then conditionals and substitution run over all of it.
 # cc_phase_guard returns 1 only when <cc_state_root>/.claude/cc-phase.json, unexpired (one older than cc_phase_ttl_min is deleted)
 # and not another session's, names a phase past $1's phase in this plugin's own lane.tsv; else 0.
 # cc_phase_now: the phase any unexpired sentinel names, whichever session wrote it, or empty.

@@ -1,7 +1,6 @@
 #!/bin/bash
 # generated from templates/reminder-hook.sh.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file
-# Fail open: never block the prompt. Print a reminder only when the prompt reads
-# like the work it nudges about — a mere mention of the words stays silent.
+# Fail open: one reminder line when the prompt's first 400 characters ask for the work it nudges about. Misses an ask past them or phrased as a question.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/reminder-hook.sh.tmpl
 command -v jq >/dev/null 2>&1 || exit 0
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -24,8 +23,7 @@ cc_state_root() {
 
 # Shared block templates/blocks/phase-guard.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-guard.md
-# No template directive of any kind in these comments: _expand_includes copies this file raw, then conditionals and
-# substitution run over the whole text.
+# No template directive in these comments: _expand_includes copies this file raw, then conditionals and substitution run over all of it.
 # cc_phase_guard returns 1 only when <cc_state_root>/.claude/cc-phase.json, unexpired (one older than cc_phase_ttl_min is deleted)
 # and not another session's, names a phase past $1's phase in this plugin's own lane.tsv; else 0.
 # cc_phase_now: the phase any unexpired sentinel names, whichever session wrote it, or empty.
@@ -80,8 +78,6 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -103,8 +99,7 @@ cc_option() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/prompt-shape.md
 # Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste, cc_prompt_auth_surface: stdin;
 #   cc_prompt_scheduled: the file it names) and writes nothing.
-# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back
-#   marker — not a human turn.
+# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back marker.
 # cc_prompt_scheduled <prompt> <transcript>: status 0 when <transcript> holds a ScheduleWakeup or CronCreate call whose prompt is
 #   <prompt> exactly: a timer re-delivering an earlier ask, which the hook payload does not mark. Needs jq.
 # cc_prompt_auth_surface: filter for paths; prints each stdin line naming an auth, secret, payment or migration surface (not `author`;
@@ -222,8 +217,7 @@ cc_prompt_question() {
   is_about_hooks && exit 0
   is_own_echo && exit 0
   is_question_only && exit 0
-  # Every shipVerbs match being create, add, open or make on a PR or commit (or, in git context, a branch, push, merge, tag or release)
-  # asks to ship. Its own key, since a regex of nouns (api-design's) never matches a verb; needs promptShape.
+  # shipVerbs, not regex: a regex of nouns (api-design's) never matches a verb. Needs promptShape.
   cc_prompt_ship_only "$head" '\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)\b' && exit 0
   # sid before cc_phase_guard: its session check reads it.
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
@@ -239,7 +233,7 @@ cc_prompt_question() {
     best=$(best_rank)
     if [ -z "$best" ] || [ "$best" = '25' ]; then
       printf '%s (%s).\n' 'taskmaster: before the first edit, ask your open questions in one batch, or say in one line why this task is trivial enough to skip them; do a small change inline with /code-architecture:work, a larger one in the full pipeline' '/taskmaster:task'
-      # The trivial skip let an auth change through: withheld on the block's prompt-side auth words (needs promptShape).
+      # An auth change is never trivial: the skip is withheld on the prompt-shape block's auth words (needs promptShape).
       cc_prompt_auth_ask "$head" && printf '%s\n' 'The prompt names an auth surface: the trivial skip does not apply.'
     fi
     sweep_stale_markers

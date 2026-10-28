@@ -2,6 +2,10 @@
 
 All notable changes to the session-hud plugin.
 
+## 0.2.2 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/subagent-statusline.sh`: each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
 ## 0.2.1 — 2026-10-26
 
 - **The subagent-row test no longer flakes on a second boundary.** `scripts/__tests__/subagent-statusline.test.sh` fixed its "now" once, while `subagent-statusline.sh` reads `date +%s` on each call, so a run that crossed a second read `6s` where it expected `5s` (CI, 2026-10-26). The test now puts a frozen `date` on the script's PATH; the script is unchanged. Proven by a mutation: skewing that clock one second fails three assertions. Standing: gate — the harness runs in CI.

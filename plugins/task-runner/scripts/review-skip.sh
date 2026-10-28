@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # review-skip.sh — record a card whose reviewer pass did not run.
-#
+# Misses: whether the reason is true (model-authored); what it buys is the reason echoed to stderr at the moment of the skip, into the transcript.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/review-skip.sh (marketplace repository)
+
 # Usage:
 #   review-skip.sh --card <id> --reason "<why>" [--record-dir <dir>]
 #   review-skip.sh --card <id> --exempt <leaf|no-reviewer-installed> [--record-dir <dir>]
@@ -14,11 +16,6 @@
 #             the routing rules, and a reviewer plugin that is not installed cannot run.
 #             Writes rv-exempt-<card>.json. Routine, never prompts, still counted.
 #
-# The reason is MODEL-AUTHORED and this script cannot check it. What it does buy: the
-# reason is echoed to stderr the moment the skip happens, so it lands in the transcript
-# at the point of decision instead of being reconstructed later — the disclosure the
-# original incident never made. Standing: recorded.
-#
 # Default --record-dir is <repo-root>/.claude/task-runner/rv, where the observer hook and
 # the completion gate look.
 set -euo pipefail
@@ -27,9 +24,7 @@ PROG=review-skip
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 
 CARD=""; REASON=""; EXEMPT="";
-# Anchored at the repo ROOT, not the shell's cwd: a `cd sub && ...` invocation wrote the
-# record where the completion gate never looks, so the count came up short and blocked
-# the run.
+# The repo root, not the cwd: a record written under a subdirectory is one the completion gate never finds.
 ROOT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 DIR="$ROOT_DIR/.claude/task-runner/rv"
 while [ $# -gt 0 ]; do
@@ -54,12 +49,10 @@ case "$EXEMPT" in
 esac
 
 mkdir -p "$DIR" 2>/dev/null || { printf '%s: cannot create %s\n' "$PROG" "$DIR" >&2; exit 5; }
-# The run's state root ignores itself (see hooks/scope.sh); only when this record
-# lands under the default .claude/task-runner/, never under a --record-dir override.
+# Only the default state root ignores itself (as hooks/scope.sh does), never a --record-dir override.
 case "${DIR%/*}" in */.claude/task-runner) [ -e "${DIR%/*}/.gitignore" ] || printf '*\n' > "${DIR%/*}/.gitignore" 2>/dev/null ;; esac
 
-# Strips control characters as well as escaping: a newline in --reason wrote a record
-# that is not valid JSON, which nothing reads back today but breaks the first tool that does.
+# Control characters stripped too: a newline in --reason made the record invalid JSON.
 esc() { printf '%s' "$1" | tr -d '\000-\037' | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
 if [ -n "$EXEMPT" ]; then
@@ -70,8 +63,7 @@ if [ -n "$EXEMPT" ]; then
 fi
 
 printf '{"card":"%s","skipped":true,"reason":"%s"}\n' "$CARD" "$(esc "$REASON")" > "$DIR/rv-skip-$CARD.json"
-# Loud on purpose: this line is the mid-run disclosure. A skip the user only learns
-# about when they ask is the failure this whole mechanism exists to prevent.
+# Loud on purpose: this line is the mid-run disclosure.
 printf '%s: REVIEWER PASS SKIPPED for card %s — %s\n' "$PROG" "$CARD" "$REASON" >&2
 printf '%s: this must appear under Skipped: in the completion report; the gate checks.\n' "$PROG" >&2
 echo "skip-recorded"

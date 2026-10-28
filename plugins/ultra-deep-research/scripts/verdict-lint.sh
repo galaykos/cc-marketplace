@@ -1,20 +1,7 @@
 #!/usr/bin/env bash
-# verdict-lint.sh — mechanical format check over verifier verdict blocks.
-# Usage: verdict-lint.sh [file]   (reads stdin when no file is given)
-#
-# Enforces the two invariants agents/verifier.md declares but nothing checked:
-#   confirmed  => FETCH carries a verbatim quote ("...") AND a retrieval timestamp
-#   confirmed  => CORROBORATION names a real source (present, not "none found"/"n/a")
-#   unverifiable-this-session => FETCH carries a failure reason (non-empty)
-# plus basic shape: CLAIM present, VERDICT one of the four values.
-#
-# Exit 0: every block passes. Exit 1: violations (one line each on stdout).
-# Exit 2: no verdict block found at all.
-#
-# Residual (honest limitation): this is a FORMAT check. It proves a confirmed
-# verdict carries quote+timestamp+corroboration fields — not that the quote is
-# real, the fetch happened, or the corroborating source is independent. Those
-# stay with the orchestrator's judgment and the verifier's own rules.
+# verdict-lint.sh [file] (stdin when none) — format check over verifier verdict blocks (agents/verifier.md): CLAIM present, VERDICT one of four values; confirmed needs a verbatim quote ("...") and a retrieval timestamp in FETCH and a CORROBORATION naming a real source; unverifiable-this-session needs a failure reason. Exit 0 all pass, 1 violations (one line each on stdout), 2 no verdict block.
+# Misses: whether the quote is real, the fetch happened, or the corroborating source is independent — the orchestrator's judgment and the verifier's own rules.
+# Why, limits, history: rationale/derivations/plugin-ultra-deep-research.md § plugins/ultra-deep-research/scripts/verdict-lint.sh
 set -u
 
 input=$(cat "${1:-/dev/stdin}") || exit 2

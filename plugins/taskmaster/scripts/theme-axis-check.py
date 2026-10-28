@@ -1,29 +1,9 @@
 #!/usr/bin/env python3
 """theme-axis-check.py — machine gate for a visual-decisions theme-axis pass.
 
-A theme-axis pass (aesthetic / density / type family) is only honest if the
-CONTENT is identical across frames and only the token preset differs. This
-extracts each frame's `.vd-content` inner HTML and diffs every frame against
-the first. The per-frame preset lives in the shell's `SLOT: custom-css` style
-block, OUTSIDE `.vd-content`, so it is stripped by construction.
-
-WHY A FILE AND NOT A HEREDOC. It shipped pasted into
-skills/visual-decisions/references/shell-authoring.md, where its 1.5 KB was
-counted against the plugin's on-invoke prose corpus (pc_plugin_corpus,
-scripts/plugin-corpus-baseline.json) every time an author read the reference —
-and a reader had to paste it correctly to run it. Executable code belongs in
-scripts/; the reference now cites this path.
-
-Usage:
-    python3 theme-axis-check.py taskmaster-docs/mockups/<file>.html
-
-Exit codes:
-    0  every frame's .vd-content is byte-identical (honest theme-axis pass)
-    1  a frame differs — the pass is varying content as well as tokens
-    2  usage error / unreadable file
-
-LIMITATION: proves the CONTENT matched, never that the token preset is a
-single axis. "One axis per pass" stays author judgment.
+python3 theme-axis-check.py <mockup.html> — diffs every frame's `.vd-content` inner HTML against the first (the token preset sits outside it); exit 0 all identical, 1 a frame differs, 2 usage error / unreadable file.
+Misses: whether the token preset is a single axis — "one axis per pass" stays author judgment.
+Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/theme-axis-check.py
 """
 import sys
 from html.parser import HTMLParser
@@ -33,8 +13,7 @@ VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
 
 
 class Content(HTMLParser):
-    # convert_charrefs defaults to True: entities resolve into handle_data,
-    # so a frame differing only by &mdash; vs &ndash; still shows up as a diff.
+    # convert_charrefs (default True) resolves entities into handle_data, so &mdash; vs &ndash; still diffs.
     def __init__(self):
         super().__init__()
         self.depth = 0

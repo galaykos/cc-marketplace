@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.12.3 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/artifact-bundle.py`, `scripts/board-build.py`, `scripts/codebase-scaffold.sh`, `scripts/deck-build.py`, `scripts/deck-export-pptx.mjs`, `scripts/dk.sh`, `scripts/handoff-drift.py`, `scripts/scaffold-fill.py`, `scripts/serve.py`, `scripts/snapshot.sh`, `scripts/system-extract.py`; `hooks/unread-pick.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain. `--help` of `scripts/snapshot.sh` no longer prints the history prose; usage, flags and exit codes are unchanged.
+
 ## 0.12.2 — 2026-10-28
 
 - **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/unread-pick.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-design-kit.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).

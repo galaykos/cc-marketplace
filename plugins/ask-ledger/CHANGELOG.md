@@ -2,6 +2,11 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.4.6 — 2026-10-28
+
+### Changed
+- **Comments cut to what a reader needs; behaviour unchanged.** `hooks/gate.sh`, `hooks/ledger.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
 ## 0.4.5 — 2026-10-28
 
 ### Changed

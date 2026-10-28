@@ -1,6 +1,8 @@
-# Shared blocks and chassis templates: the comment text moved out of the code (2026-10-04)
+# Shared blocks and chassis templates: the comment text moved out of the code (2026-10-04, 2026-10-28)
 
 The text below was moved verbatim on 2026-10-04 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/templates-and-blocks.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
+
+The second move, on 2026-10-28, held each block to its first line, its pointer line, each function's contract and one line per trap, and each chassis template to a header of at most three lines (the `generated from` line, what the hook does and misses, the pointer). Its text is every `### Moved 2026-10-28` below: the lines as they stood, with the `# ` leader and the indentation before it removed, each introduced by where it sat; the file kept the one-line form named there, or nothing. Every paste of a changed block was rewritten byte-for-byte in the same change.
 
 ## templates/blocks/option-resolver.md
 
@@ -33,6 +35,15 @@ Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yie
 ```text
 WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
 outside the switch's vocabulary — each hook still validates the value it gets.
+```
+
+### Moved 2026-10-28
+
+Between the `The host exports only SAVED options` line and the `Misses:` line; nothing kept in its place, since the contract above it already orders the variable before the option:
+
+```text
+A non-empty variable beats the option: the environment is shared, so one export before launch
+switches every plugin that reads it.
 ```
 
 ## templates/blocks/state-root.md
@@ -148,6 +159,15 @@ with no `/` or `.` in it. Reads too much: a `-`-led perl script argument that ha
 
 ```text
 The caller filters to existing files under its root.
+```
+
+### Moved 2026-10-28
+
+Below the contract; kept as one line, ``A backup suffix is never a target: the word after BSD sed's -I, or a `''` or `.`-led word after a bare sed -i unless it is the only file.``:
+
+```text
+BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
+a `''` or `.`-led word is read as one too, unless it would be the only file.
 ```
 
 ## templates/blocks/bash-write-chunks.md
@@ -400,6 +420,16 @@ guard, devops workflow-guard) cannot judge an effect before it happens and do no
 Recount: grep -rl 'cc_bash_write_effects() {' plugins/
 ```
 
+### Moved 2026-10-28
+
+The first three contract lines; the clause after `read <marker>` left, and the contract around it stayed, rewrapped:
+
+```text
+cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
+directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
+cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
+```
+
 ## templates/blocks/prompt-shape.md
 
 ### Banner and canonical copy
@@ -615,6 +645,15 @@ run, and no misfire on a frame was measured. candor's preamble.sh (2026-10-15): 
 unpaste, before its one-shot marker; not ship_only or scheduled (rationale in
 plugin-candor.md § preamble.sh "Prompt shape").
 Recount: grep -rl 'cc_prompt_frame() {' plugins/
+```
+
+### Moved 2026-10-28
+
+The cc_prompt_frame contract; kept as one line without its last clause:
+
+```text
+cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back
+  marker — not a human turn.
 ```
 
 ## templates/blocks/heredoc-bodies.md
@@ -988,6 +1027,15 @@ turn 40 of an executing build it is the defect this guard exists to kill.
 --- end phase guard ---------------------------------------------------------
 ```
 
+### Moved 2026-10-28
+
+Below the pointer line; kept as one line, `No template directive in these comments: _expand_includes copies this file raw, then conditionals and substitution run over all of it.`:
+
+```text
+No template directive of any kind in these comments: _expand_includes copies this file raw, then conditionals and
+substitution run over the whole text.
+```
+
 ## templates/reminder-hook.sh.tmpl
 
 ### Off switch
@@ -1124,6 +1172,28 @@ the line (scripts/smoke/hook-guard-tests.sh, the tm_auth cases); whether the mod
 runs the round is agent-graded.
 ```
 
+### Moved 2026-10-28
+
+Header, between the `generated from` line and the pointer; kept as one line naming what the hook does and misses:
+
+```text
+Fail open: never block the prompt. Print a reminder only when the prompt reads
+like the work it nudges about — a mere mention of the words stays silent.
+```
+
+Above `cc_prompt_ship_only "$head" '{{shipVerbs}}' && exit 0`; kept as `shipVerbs, not regex: a regex of nouns (api-design's) never matches a verb. Needs promptShape.`:
+
+```text
+Every shipVerbs match being create, add, open or make on a PR or commit (or, in git context, a branch, push, merge, tag or release)
+asks to ship. Its own key, since a regex of nouns (api-design's) never matches a verb; needs promptShape.
+```
+
+Above `cc_prompt_auth_ask "$head" && printf …`; kept as the standing fact `An auth change is never trivial: the skip is withheld on the prompt-shape block's auth words (needs promptShape).`:
+
+```text
+The trivial skip let an auth change through: withheld on the block's prompt-side auth words (needs promptShape).
+```
+
 ## templates/boost-hook.sh.tmpl
 
 ### Off switch
@@ -1176,4 +1246,21 @@ the reliable control, this is the cheap one.
 ```text
 The directive is emitted through a quoted heredoc: no expansion, so the
 manifest text is the wire text — backticks, quotes and $ are all literal.
+```
+
+### Moved 2026-10-28
+
+Header, between the `generated from` line and the pointer; kept as one line naming what the hook does and misses. The manifest's `intro` line, which sat between the first line below and the second, did not move out: it renders above the hook's main `{` now, so the header stays at three lines:
+
+```text
+Fail open: never block the prompt. Inject the boost directive when the prompt asks.
+No suffix grammar — bare tokens only, fixed tier model=auto effort=xhigh
+(auto = session model or opus, whichever is higher on haiku<sonnet<opus<fable).
+```
+
+Above `plugin_switch={{envVar}}`; kept as one line:
+
+```text
+CC_BOOST=off silences every boost hook and the variable plugin_switch names silences this one; either
+/config option silences only this plugin's hook, and a non-empty environment variable wins over it.
 ```

@@ -1,18 +1,8 @@
 #!/usr/bin/env bash
-# skills-stamp-lint.sh — author-time lint for a task card's skill stamp: its
-# <skill name="…"/> elements, or the legacy `Skills to apply` bold line.
-#
-# WHY: the stamp is what makes a framework/stack best-practice skill (laravel,
-# react, vue, …) reach the card's executor. If a card that touches FRAMEWORK source
-# is stamped "none detected", every downstream routing silently applies no skill —
-# the card is implemented framework-blind. This lint refuses that: a framework card
-# must name at least one skill.
-#
-# It is deliberately NARROW — it fails ONLY for source extensions that unambiguously
-# have a best-practice plugin (.php/.blade.php/.vue/.jsx/.tsx). Generic .ts/.js/.py
-# cards are NOT forced (a "none detected" there is defensible), so false positives
-# are avoided.
-#
+# skills-stamp-lint.sh — author-time lint for a task card's skill stamp (<skill name="…"/> elements, or the legacy `Skills to apply` bold line): blocks a card touching framework source (.php/.blade.php/.vue/.jsx/.tsx) that names no skill; warns, exit 0, on a stamped skill no sibling plugin ships and on a bare stamp a project skill shadows.
+# Misses: generic .ts/.js/.py cards (a "none detected" there is defensible); whether a named skill fits the card.
+# Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/skills-stamp-lint.sh (marketplace repository)
+
 # CLI:
 #   skills-stamp-lint.sh --card <card.md>                    # lint the card's stamp
 #   skills-stamp-lint.sh --line "<value>" --files "<paths>"  # (testing) parts form
@@ -22,11 +12,7 @@
 #   3  usage
 set -euo pipefail
 
-# RUN RECORD. The lint is a gate when it runs, and nothing observed that it ran —
-# a card set could reach execution with none of the linters invoked and every check in
-# the repo green. `record_run` appends one line per invocation beside the card; the
-# reader is hooks/card-lint-observe.sh. Written on BOTH outcomes: the record says the
-# lint ran and what it said, never that the card is good.
+# Run record (card-lint-record.sh), written on both outcomes: the lint ran and what it said, never that the card is good.
 _cardlint_target=""
 . "$(dirname "$0")/card-lint-record.sh" 2>/dev/null || true
 record_run() { # $1 = verdict. No-op in --line mode: no file to key the record on.
@@ -53,9 +39,7 @@ done
 if [ "$mode" = card ]; then
   [ -f "$card" ] || usage "card file not found: $card"
   _cardlint_target="$card"
-  # Two card shapes: role-tagged <skill name="…"/> elements (taskmaster ≥0.45.0, one
-  # per line, `name="none"` is the explicit no-skill stamp) and the legacy
-  # **Skills to apply:** bold label. Tagged first; the value is the comma-joined names.
+  # Tagged <skill name="…"/> lines first (`name="none"` is the explicit no-skill stamp), else the legacy **Skills to apply:** label.
   tagged=$(grep -E '^<skill([ />]|$)' "$card" 2>/dev/null || true)
   if [ -n "$tagged" ]; then
     line=$(printf '%s\n' "$tagged" | grep -Eo 'name="[^"]*"' | sed -e 's/^name="//' -e 's/"$//' | paste -sd, -)
@@ -83,11 +67,7 @@ if printf '%s' "$files" | grep -Eiq -- "$fw_re"; then
   esac
 fi
 
-# The sibling plugin shipping skills/<name>/SKILL.md, printed by name; status 1 when none.
-# A second argument narrows the search to that one plugin. Two layouts: a source checkout
-# keeps plugins side by side (plugins/<p>/), the installed cache one level deeper
-# (<marketplace>/<p>/<version>/), where `../*` lists this plugin's own versions. A
-# cached-but-disabled plugin still counts.
+# sibling_plugin <skill> [plugin] — prints the sibling plugin shipping skills/<skill>/SKILL.md, status 1 when none; reads a source checkout or the installed cache (one level deeper); a cached-but-disabled plugin counts.
 sibling_plugin() {
   local r sk p=${2:-*}
   r=$(cd "${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}" 2>/dev/null && pwd) || return 1
@@ -103,15 +83,7 @@ sibling_plugin() {
   return 1
 }
 
-# Reachability probe (WARN-only, never blocks): a stamp proves a skill is NAMED,
-# not that its plugin is installed — a named-but-absent skill executes the card
-# framework-blind while the lint reads green. Probe the sibling plugin dirs for
-# each stamped skill's SKILL.md and warn on stderr when none carries it; a qualified
-# plugin:skill stamp is probed in that plugin alone. Exit stays 0: cross-marketplace
-# and project-local skills are legitimate. The root is CLAUDE_PLUGIN_ROOT, else this
-# script's own plugin: the probe used to need the variable, which the Bash tool's
-# environment does not carry (checked 2026-10-15), so it never ran where task-cards
-# runs the lint. A "none" stamp is not probed.
+# Reachability probe, WARN only (cross-marketplace and project skills are legitimate); the root falls back to this script's plugin because the Bash tool carries no CLAUDE_PLUGIN_ROOT.
 probe_root=$(cd "${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}" 2>/dev/null && pwd) || probe_root=""
 case "$(printf '%s' "$val" | tr 'A-Z' 'a-z')" in ""|none*|"n/a"|"n\a"|"-"|"—") probe_root="" ;; esac
 if [ -n "$probe_root" ]; then
@@ -123,14 +95,7 @@ if [ -n "$probe_root" ]; then
   done
 fi
 
-# Shadow probe (WARN-only, never blocks): a bare stamp resolves to a same-named PROJECT
-# skill before a plugin's. Laravel Boost writes .claude/skills/laravel-best-practices
-# (and its own inertia/tailwind skills) into a repo; one 61-card run stamped bare names,
-# and its workers read the Boost copies dozens of times and the marketplace skills almost
-# never. Warn when <project>/.claude/skills/<name>/SKILL.md exists and a marketplace plugin
-# ships that name, or the name is a known Boost twin, and print the qualified stamp. The
-# project is the card's git toplevel, else CLAUDE_PROJECT_DIR, else the working directory.
-# Not caught: a shadow from ~/.claude/skills, and Boost twins missing from the case below.
+# Shadow probe, WARN only: a bare stamp resolves to a same-named project skill (Laravel Boost writes some) before a plugin's; misses ~/.claude/skills and Boost twins missing below.
 proj=""
 [ -n "$card" ] && proj=$(git -C "$(dirname "$card")" rev-parse --show-toplevel 2>/dev/null || true)
 [ -n "$proj" ] || proj=${CLAUDE_PROJECT_DIR:-$PWD}

@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.49.6 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/behavioral-gate.sh`, `scripts/check-receipt.sh`, `scripts/code-redteam-diff.sh`, `scripts/dispatch-lint.sh`, `scripts/negative-control.sh`, `scripts/reduction-record.sh`, `scripts/register-run.sh`, `scripts/review-diff.sh`, `scripts/review-skip.sh`, `scripts/sweep-residual.sh`; `hooks/announce.sh`, `hooks/drift.sh`, `hooks/scope.sh`, `hooks/spawn-cap.sh` (shared-block comments); `hooks/ultra-assess.sh` (generated hook): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain. `--help` of `scripts/negative-control.sh`, `scripts/reduction-record.sh`, `scripts/register-run.sh`, `scripts/review-diff.sh`, `scripts/review-skip.sh`, `scripts/sweep-residual.sh` no longer prints the history prose; usage, flags and exit codes are unchanged.
+
 ## 0.49.5 — 2026-10-28
 
 - **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/announce.sh`, `hooks/drift.sh`, `hooks/rv-consent.sh`, `hooks/rv-observe.sh`, `hooks/scope.sh`, `hooks/spawn-cap.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-task-runner.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).

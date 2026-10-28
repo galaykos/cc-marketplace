@@ -1,18 +1,8 @@
 #!/usr/bin/env bash
-# card-shape-lint.sh — author-time STRUCTURAL lint for a role-tagged task card.
-#
-# WHY. A card's sections used to be bold labels that named CONTENT (Why, Context,
-# Out of scope). The role-tagged shape (task-cards `references/card-shape.md`)
-# names the author's DECISION about each sentence — <goal>, <facts>, <must>,
-# <must-not>, <proof> — and hangs the decision's evidence on attributes: a
-# forbidden file carries the reason it is forbidden, an interface names its
-# consumer, a file to edit names the line. Those attributes are what a bold label
-# could never demand, and a rule nothing demands is a rule that is skipped when the
-# author is in a hurry. Measured 2026-09-23 (8 fresh-model runs, 4 per shape): the
-# READING side showed zero delta between the two shapes — the gain is entirely at
-# authoring time, and this lint is what turns the authoring rules from `recorded`
-# into `gate`.
-#
+# card-shape-lint.sh — author-time STRUCTURAL lint for a role-tagged task card (task-cards `references/card-shape.md`); a legacy bold-label card (no <card> wrapper, a **Verify:** line) passes with a NOTE.
+# Misses: whether a <criterion> describes behaviour rather than the diff, whether a reason="…" is true, whether the <change> is right (agent-graded in task-cards); the <verify> text (verify-teeth-lint.sh); <skill> names against the touched files (skills-stamp-lint.sh); a UI card's optional <walk> line.
+# Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/card-shape-lint.sh (marketplace repository)
+
 # WHAT IT CATCHES (each -> exit 2, one `card-shape: <reason>` line on stderr per
 # finding, every finding reported before exiting):
 #   no-shape             : neither a <card> wrapper nor a legacy **Verify:** line
@@ -30,18 +20,6 @@
 #                          skills/task-cards/references/agent-tags.md (read at run time,
 #                          never copied here; unreadable list -> this ONE check is skipped
 #                          with a NOTE, the rest still run)
-#
-# WHAT IT DOES NOT CATCH (stated, not hidden): whether a <criterion> describes
-# behaviour rather than the diff, whether a reason="…" is true, whether the
-# <change> is the right change. Those stay agent-graded in task-cards. It also does
-# not grade the <verify> text — that is verify-teeth-lint.sh — nor the <skill>
-# names against the touched files — that is skills-stamp-lint.sh. A UI card's
-# <walk> line is optional and unchecked: present or absent, no finding.
-#
-# LEGACY SHAPE. A card with no <card> wrapper but a **Verify:** line is the bold-label
-# shape task-cards emitted before taskmaster 0.45.0. It passes with a NOTE on stderr
-# and exit 0: in-flight card sets keep executing. task-cards emits only the tagged
-# shape; the acceptance here is for cards already written, not a second template.
 #
 # CLI:
 #   card-shape-lint.sh --card <card.md>

@@ -1,6 +1,6 @@
-# task-runner hooks: the comment text moved out of the code (2026-10-28)
+# task-runner hooks and scripts: the comment text moved out of the code (2026-10-28)
 
-The text below was moved verbatim on 2026-10-28 from the hooks named in the `##` headings, with only each comment's `# ` leader (and the indentation before it) removed. Each `###` block is a comment block, or a contiguous part of a header, as it stood; the file kept a short summary in its place (a header of at most three lines, a one-line trap), or nothing where the code already says it. A pointer by name was left in each file's header, `# Why, limits, history: rationale/derivations/plugin-task-runner.md § <path>`. Standing: `recorded` — no gate reads this file, and its dates, measurements, line citations and file names are as they stood on the day it moved.
+The text below was moved verbatim on 2026-10-28 from the hooks and scripts named in the `##` headings, with only each comment's `# ` leader (and the indentation before it) removed. Each `###` block is a comment block, or a contiguous part of a header, as it stood; the file kept a short summary in its place (a header of at most three lines, a one-line trap), or nothing where the code already says it. A pointer by name was left in each file's header, `# Why, limits, history: rationale/derivations/plugin-task-runner.md § <path>`. Standing: `recorded` — no gate reads this file, and its dates, measurements, line citations and file names are as they stood on the day it moved. A script whose `--help` prints its comment header kept its usage lines (synopsis, flags, exit codes) in place; only description and history left it.
 
 ## plugins/task-runner/hooks/announce.sh
 
@@ -621,4 +621,922 @@ run differs only when both names are known and differ.
 
 ```text
 Threshold at the first one, then every doubling: 20, 40, 80, 160…
+```
+
+## plugins/task-runner/scripts/behavioral-gate.sh
+
+### Header
+
+```text
+behavioral-gate.sh — B1 completion gate: classify + own-tests + empty-detect + zero-check.
+
+Deepest root cause this closes: the repo completion gate is a *static* linter — no
+stage ever RUNS the produced artifact's own tests, so a code-producing run that
+ships zero runnable check sails through green. This gate:
+  (a) CLASSIFY   the touched files -> languages -> a real test runner.
+  (b) OWN-TESTS  run that runner non-interactively, under a hard timeout, applying
+                 per-runner EMPTY-DETECTION.
+  (c) ZERO-CHECK a needs-coverage run that ships no runnable own-test FAILs.
+  (d) HONEST report to stderr of what ran / was skipped / the verdict label.
+
+Per-runner empty-detection recipe: references/runners.md — the table there mirrors
+the EMPTY-DETECT logic below; THIS SCRIPT is the source of truth.
+
+Exit contract:
+  0  covered  OR honest  no-executable-surface
+  2  fail:     empty-suite | no-behavioral-coverage | unverifiable-suite (fail-closed)
+             | entrypoint-error (crash-on-invoke) | dead-affordance (flag is a no-op)
+  3  usage
+
+SAFETY: this gate RUNS code (the artifact's own tests) IN the directory it runs in —
+a misbehaving suite CAN write there (runner cache dirs, coverage files, test-created
+artifacts). Three modes decide which directory that is:
+  --isolate   the gate builds the disposable checkout ITSELF: a detached `git worktree`
+              of HEAD under <repo>/.claude/task-runner/iso/ (gitignored), verified to
+              exist and to be a different toplevel than the live repo BEFORE anything
+              runs (refuses, exit 3, otherwise — it never falls back to running in
+              place), removed by the EXIT trap. It never reads or writes the live .env;
+              when one exists and the tree has no .env.example, .env.dist or
+              .env.sample to copy, the tree root gets an empty .env, so a loader
+              walking up parent directories stops there.
+              Inside the repo, not $TMPDIR (2026-10-14): a suite that only runs in a
+              container (docker exec, sail, ddev, lerd) sees the repo's bind mount and
+              nothing in /tmp, so a 119/119-green suite could not be run against the
+              isolated tree at all. BG_TREE_REL (exported) is the tree's path relative to
+              the repo, for `docker exec -w <mount>/$BG_TREE_REL`. Residuals: while it
+              exists, a scanner run in the live tree (a watch-mode test runner, an IDE
+              indexer, a test run whose discovery enters dot-directories) can see the
+              copy; a tree a crash left behind is swept after a day, but a non-empty
+              directory a container created in it as root fails the trap and the sweep
+              alike, silently (`|| true`); BG_TREE_REL is from the git toplevel, so a
+              container that mounts only a subdirectory of the repo cannot reach the
+              tree; any other config found by walking up parent directories resolves to
+              the live repo's copy.
+  --in-place  the caller has already isolated (a temp fixture, a scratch clone); run
+              in cwd. The dogfood harnesses do this and assert `git status --porcelain`
+              (and a fixture-dir checksum) is byte-identical before/after.
+  neither     as --in-place, EXCEPT inside a registered run's live tree
+              (.claude/task-runner/active-run.json at the toplevel), where it refuses.
+WHY --isolate exists (2026-09-24): the header used to say "tree isolation is the
+CALLER's responsibility", so every run improvised worktree + symlink + env steps. One
+such hand-built `git worktree add` was rejected with the rest of its Bash call, the
+next call's `cd /tmp/<dir>; cp .env.example .env && php artisan key:generate` ran in
+the live repo after the cd failed, and a developer's .env and APP_KEY were destroyed.
+RESIDUAL --isolate does not close: vendor/ and node_modules/ are SYMLINKED from the
+live tree (a fresh install per gate run is minutes), so a suite that writes into its
+dependency dirs writes live, and Composer's autoloader, which resolves its own path
+through the link, loads the app's PHP classes from the live tree; and the worktree is
+HEAD, so uncommitted changes to tracked files are not what gets tested, except through
+that autoloader (warned, not refused — the record is keyed by HEAD anyway).
+```
+
+### MACHINE EVIDENCE: bg_record
+
+```text
+MACHINE EVIDENCE. gate-pass.json is written by the MODEL, so on its own it records a
+claim, not a run: a run can write {"head":...} having never invoked this script. This
+writes what THIS script actually concluded, for the HEAD it concluded it at, and
+candor's Stop gate (clause 4) cross-checks the claim against it.
+
+Armed by the directory existing (created at run registration), so a plain non-run
+invocation writes nothing. Called on EVERY exit path, including the honest
+no-executable-surface pass: a legitimate run that produced no runnable surface would
+otherwise leave no record, and the completion gate would block it forever for a pass
+it actually earned. Failure to write is never fatal — verdict and exit code are
+unchanged either way, so this can only ever add evidence, never withhold a result.
+```
+
+### bg_record: where the record lands
+
+```text
+--record-dir names the LIVE repo's bg dir. run.md runs this gate from a disposable
+checkout so it cannot mutate the tree it is judging, which means $(pwd) here is the
+temp copy: without the flag the record landed in a directory about to be deleted and
+the completion gate then blocked an honest run for a pass it had actually earned.
+Without the flag it is anchored at the git toplevel, not $(pwd), like
+reduction-record.sh: run from a subdirectory, the gate looked for sub/.claude/…/bg,
+found it unarmed, and left no record.
+```
+
+### TIMEOUT_SECS: 1800 s, and the suffix
+
+```text
+1800 s, not 60 (2026-10-14). The cap turns a hang into a verdict; it is not meant to
+bound a healthy suite. At 60 a 1,926-test Pest suite and a docker-exec suite both read
+TIMED OUT -> unverifiable-suite while green, and a gate that cannot be earned trains
+hand-written gate-pass.json. Too high costs only the wait on a real hang. The Bash
+tool's foreground ceiling is 10 minutes and its kill leaves no verdict, so run the
+gate in the background. Entrypoint probes (--help, differentials) keep 60 s: a hung
+--help is a crash, not a slow suite.
+A suffix is read as GNU timeout reads it: `30m` reached `timeout` intact, but the tests on
+the cap below errored on it, so the total and the 137 mapping were skipped.
+```
+
+### TOTAL_SECS: the whole gate, 6600 s
+
+```text
+The whole gate, isolate build included: 6600 s. From CLI
+2.1.285 the host stops a background Bash call at its `timeout` (30 min default, 2 h max;
+from 2.1.288 only in -p, SDK, CI and cloud sessions), and a stopped gate writes no verdict
+(measured 2026-10-15). Seven suites at 1800 s ran 210 minutes. Each run starts with what
+is left, so the gate concludes about 10 minutes inside the 2 h; one that finds nothing
+left reads unverifiable-suite. SECONDS is reset: one inherited from the environment
+started the clock there. 10#: a leading zero read as octal, and `08` ended the gate with exit 1.
+```
+
+### The portable hard-timeout wrapper
+
+```text
+---- portable hard-timeout wrapper -----------------------------------------
+Prefers coreutils `timeout`/`gtimeout`; falls back to a perl alarm+fork (rc 124 on
+timeout, GNU-compatible); last resort runs uncapped with a logged warning.
+```
+
+### run_with_timeout: -k
+
+```text
+-k: a suite that ignores TERM held `timeout` past its cap (a 1 s cap ran 6 s, measured
+2026-10-15), and no total holds then. The KILL exits 137; at the cap that is a timeout.
+```
+
+### Arg parse: repeatable flags
+
+```text
+---- arg parse: --changed accepts a space/newline list OR repeated flag -----
+--entrypoint <bin> and --differential 'flag::with::without' are BOTH repeatable
+(card 07: shell-entrypoint smoke + differential dead-flag detection).
+```
+
+### --runner-for replaces, --runner adds
+
+```text
+--runner-for <lang> '<cmd>::<regex>' REPLACES that language's built-in runner; --runner
+only adds one. A PHP suite that runs only through `docker exec` passed 119/119 as a
+--runner while the built-in host phpunit beside it timed out, so the gate read
+unverifiable-suite on a green suite. Stored as RF_<lang>: bash 3.2 has no assoc arrays.
+```
+
+### unset RF_*
+
+```text
+Only the flag sets these: one inherited from the environment replaced a runner unasked,
+and an RF_custom<N> was called as parse_custom<N>.
+```
+
+### ISOLATION
+
+```text
+---- ISOLATION (see the SAFETY header) ---------------------------------------
+Every step that can fail refuses with exit 3 and runs NOTHING: the failure this
+exists for was a setup step that failed silently while the steps after it ran in the
+live repo. Cleanup is one function so the WORKTMP trap below can call it too — a
+second `trap … EXIT` would replace this one.
+```
+
+### isolate: the sweep of dead trees
+
+```text
+A reboot empties /tmp, not this directory, and a suite that exhausts memory kills the
+gate before its trap runs (one session crashed a machine twice). A tree older than a
+day is a dead gate's.
+```
+
+### isolate: the tree is verified
+
+```text
+Verified, not assumed: the directory exists AND git inside it names IT as the
+toplevel. A tree that resolves to the live repo is the incident, so it refuses.
+```
+
+### isolate: dependency dirs
+
+```text
+Dependency dirs are symlinked, not installed: the residual named in the header.
+Relative when the tree sits at the expected depth, so the link also resolves inside a
+container that mounts the repo at another path; an absolute host path dangles there.
+```
+
+### isolate: the environment
+
+```text
+Environment: built from the tree's OWN committed example, by absolute path into the
+verified tree. The live .env is never read — it holds the developer's credentials.
+.env.dist too: Symfony's Dotenv reads it only while .env is absent, so an empty .env hid it.
+```
+
+### isolate: the empty .env
+
+```text
+The tree sits inside the live repo, so a loader that walks up parent directories for a
+.env (python-dotenv's find_dotenv) found the live one. An empty one at the tree root
+stops the walk; the live file is only tested for existence.
+```
+
+### isolate: APP_KEY
+
+```text
+Laravel: tests take their env from phpunit.xml, but the app still boots with
+APP_KEY. Exported for this process only — `artisan key:generate` writes a .env
+file, which is the command that destroyed a live key.
+```
+
+### IN FLIGHT: bg/running.pid
+
+```text
+IN FLIGHT. run.md runs this gate in the background, and candor's Stop gate (clause 4)
+blocked a stop while it was still running for want of a verdict. bg/running.pid holds
+`$$` and the HEAD being judged, so the Stop gate can tell "running" from "never run".
+Written into the same bg dir as the record, and only where that dir already exists
+(run registration creates it): creating it would arm bg_record outside a run. Removed
+on exit only while it still names this process, so a second gate's file survives the
+first one's exit. Residual: a SIGKILL leaves the file, naming a dead PID (or, once the
+PID is reused, a live stranger beside the right HEAD).
+Line 3 is the deadline, epoch seconds: start, total, then 60 s for the 10 s KILL grace
+and the steps no cap covers. candor holds a stop until then, so a raised total moves it;
+a fixed hold on candor's side was outlived by a raised total or an older gate's 210 minutes.
+```
+
+### (a) CLASSIFY
+
+```text
+---- (a) CLASSIFY: touched files -> language flags --------------------------
+php/rs/rb/java+kt were added 2026-09-22 (SW 1 of the specialist panel). Before that
+the classifier knew py/js/go and nothing else, so a PHP, Rust, Java or Ruby run fell
+to HAS_OPAQUE=1 -> no-behavioral-coverage -> exit 2 with no flag to escape it, and
+candor's Stop gate then refused every close: a gate that could not be passed rather
+than a rule that could be followed. Measured on four fixtures with green suites:
+EXIT=2 all four.
+```
+
+### --runner and the opaque surface
+
+```text
+--runner is the escape for the FIFTH language — anything the classifier still calls
+opaque. Declaring one satisfies the opaque surface: the caller has named a command
+and the output that means "it ran nothing", which is the only thing the classifier
+was ever supplying.
+```
+
+### ZERO-CHECK helpers
+
+```text
+---- ZERO-CHECK helpers: is a runnable own-test statically present? ---------
+`-print -quit`, never a bare `-print | grep -q .`: grep -q exits on the first line, and
+once the path list outgrows the pipe buffer (64 KB) find dies of SIGPIPE, exit 141,
+which pipefail makes the probe's verdict. Every repo large enough to matter read as
+"no runnable own-test", so the closing gate could not be earned there. Residual: an
+unreadable directory find reaches before the first match still exits non-zero.
+```
+
+### rs_has_tests
+
+```text
+Rust tests are USUALLY inline `#[test]` fns in the same file, not a separate naming
+convention, so the static zero-check greps for the attribute as well as tests/. The
+pattern is deliberately loose (anywhere on the line, any `#[<path>test…]` attribute:
+`#[test]`, `#[tokio::test]`, `#[rstest]`, `#[test_case(..)]`) and deliberately not
+`#[cfg(test)]`, which is a module gate and not a test. Over-matching — a commented-out
+attribute — costs nothing: cargo then runs and the empty-suite branch renders the
+verdict. UNDER-matching is the expensive direction, because it reports
+no-behavioral-coverage for a crate that does have tests.
+```
+
+### run_capture: the temp dir
+
+```text
+---- run a runner, capture combined output + exit code ----------------------
+All captures land in one script-scoped temp DIR removed by an EXIT/INT/TERM trap,
+so a signal between mktemp and the read can never leak a temp (mirrors
+negative-control.sh's isolation). run_capture is ALSO called inside the
+`$(verdict_*)` command-substitution subshells below: those inherit WORKTMP but do
+NOT fire the parent's EXIT trap, so the dir survives until the parent cleans it —
+and the trap's `rm -rf` returns 0, so it never clobbers the script's exit code.
+```
+
+### run_capture: terminal codes
+
+```text
+Terminal codes off: Pest (colors="true"), jest (FORCE_COLOR, `docker exec -t`) and vitest
+(CI set) colour a file too, splitting `Tests` from its count. Probes compare raw output.
+```
+
+### Per-runner verdict banner
+
+```text
+---- (b)+(c) per-runner verdict: covered | empty-suite | no-behavioral-coverage | unverifiable-suite
+```
+
+### parse_<lang>
+
+```text
+---- parse_<lang>: CAP and RUN_RC -> verdict, after a run that started and did not time out.
+The built-in runner and --runner-for share them, so a replacement must show the evidence the
+built-in would have: a `docker exec` into a stopped container exits 1 with no count, and read
+covered while --runner-for skipped this. Each also takes the count line of the language's
+sibling runners (unittest, minitest, nextest, gotestsum, bun, Playwright), which a
+replacement is often for.
+```
+
+### parse_py: pytest -qq
+
+```text
+`pytest -qq` prints no summary line, only its progress line (`....F  [100%]`): a pass or
+fail letter there is the count.
+```
+
+### verdict_js: tests N
+
+```text
+'tests N' alone is not trustworthy: some node versions count an empty file or a
+skip-only suite as 'tests 1'. Cross-check the executed counts (pass+fail+todo)
+from node's summary — zero executed assertions => empty, whatever 'tests N' says.
+```
+
+### verdict_pkg: --passWithNoTests
+
+```text
+--passWithNoTests disables the very empty-suite signal this gate relies on:
+jest then prints a GREEN "Test Suites: 1 passed" line while running zero tests.
+A suite whose runner is invoked with it cannot be verified — fail closed.
+```
+
+### parse_js: the jest Tests: label
+
+```text
+The jest "passed count" must follow jest's own 'Tests:' label with only counts between,
+so a "Test Suites: 1 passed" line (printed even for an empty --passWithNoTests run)
+can NEVER satisfy coverage, and a workspace prefix (`web:test: Tests: …`) still can.
+Mocha's "N passing", node/TAP "tests N", bun's "Ran N tests" and a line that opens
+with "N passed"/"N pass" (Playwright, bun) remain.
+```
+
+### parse_go: build failed
+
+```text
+A build/setup failure runs ZERO tests yet prints 'FAIL pkg [build failed]';
+route it to unverifiable-suite BEFORE the covered check so it never reads green.
+```
+
+### parse_go: covered before empty
+
+```text
+COVERED is checked BEFORE empty: in a multi-package module one package can have
+passing tests ('ok') while another has none ('[no test files]'). Any real result
+line proves tests ran, so empty is declared ONLY when no result line exists.
+Result lines only: a bare `^---` or `^ok` also matched a wrapper's own banner
+("--- :go: unit tests") above a docker error, and read covered.
+```
+
+### php / rs / rb / java
+
+```text
+---- php / rs / rb / java (SW 1, 2026-09-22) --------------------------------
+Each follows the SAME three-step shape as py/js/go above and must: (1) declare
+no-behavioral-coverage when no own-test exists statically, (2) declare
+unverifiable-suite when the runner binary is absent — never a silent pass, and
+(3) check its EMPTY signal BEFORE its covered signal wherever the empty output is
+unambiguous, and AFTER it wherever a multi-target runner can print both (rs, like go).
+Unparseable output is unverifiable-suite. The table in
+skills/behavioral-gate/references/runners.md mirrors these; this script is the
+source of truth.
+```
+
+### parse_php: the covered signal
+
+```text
+PHPUnit green: "OK (5 tests, 9 assertions)". PHPUnit red and Pest both print a
+"Tests:" summary line carrying a non-zero count.
+```
+
+### parse_rs: compile error
+
+```text
+A compile error runs ZERO tests while printing a non-zero exit; route it to
+unverifiable BEFORE anything else so it never reads green (same trap as go's
+'[build failed]').
+```
+
+### parse_rs: covered before empty
+
+```text
+COVERED before EMPTY, as with go: a crate has one 'test result:' line per target
+(lib, each bin, each integration test, doc-tests), so a 0-passed line sits beside
+a real one routinely. Empty is declared only when NO target passed anything.
+```
+
+### parse_rb
+
+```text
+"0 examples, 0 failures" is the empty signal and it is unambiguous — rspec prints
+exactly one summary line per run — so it is checked first.
+```
+
+### verdict_java: --rerun-tasks and wrapper order
+
+```text
+--rerun-tasks on the Gradle path, measured 2026-09-22: a plain `gradle test` on an
+already-built tree prints `> Task :test UP-TO-DATE` and executes NOTHING, and the
+gate is run from a copied checkout that carries build/ — so the second invocation of
+an honest green suite failed. Forcing the task is what makes the Java arm passable
+at all. Cost: the compile is redone (0.6s on the probe fixture; minutes on a large
+module, which is what BEHAVIORAL_GATE_TIMEOUT is for). Maven's surefire always runs.
+BOTH wrappers before EITHER system binary. A project that ships ./mvnw is a Maven
+project, and a `gradle` that happens to be on the developer's PATH has no business
+building it — checking the system binary first ran the wrong build system whenever
+both were present.
+```
+
+### parse_java: the empty signals
+
+```text
+Surefire's empty signal is "Tests run: 0"; Gradle's is a test task that found no
+source. A task reported UP-TO-DATE executed nothing THIS invocation, which is not
+a pass either — name --rerun-tasks rather than guess.
+```
+
+### parse_java: defensive UP-TO-DATE
+
+```text
+Defensive: --rerun-tasks above should make this unreachable on the Gradle path, but a
+wrapper or init script can still skip the task, and a skipped task is not a pass.
+```
+
+### parse_java: Gradle's weak signal
+
+```text
+GRADLE'S WEAK SIGNAL, stated rather than hidden. `gradle test` prints no counts at
+all on a green run — only "BUILD SUCCESSFUL" (verified against Gradle 9.7.1,
+2026-09-22) — so for that one path the gate falls back to "test sources exist
+(checked above) and the test task did not fail". That is weaker than every other row
+in this file. Two ways past it, both named in runners.md: a suite whose tests are all
+filtered out by a --tests selector, and a build that sets failOnNoDiscoveredTests to
+false (on Gradle 9 the default TRUE turns a zero-discovery run into the build failure
+matched as empty-suite above — that default is doing the empty-detection here).
+Only for the built-in run, which checked test sources first: a --runner-for command's success
+line can come from a build that never ran a test, so a replacement must print a count.
+```
+
+### verdict_custom
+
+```text
+--runner '<cmd>::<empty-output-regex>'. The CALLER owns the empty signal here, which
+is the whole point and also the whole residual: a regex that never matches turns an
+empty suite into a green one, and nothing in this script can tell. What the gate
+still owns is the pair of failures a declaration cannot paper over — a command that
+never started (126/127/signal) and one that hung (124). Under --runner-for, parse_<lang>
+then decides.
+```
+
+### Entrypoint smoke and differential dead-flag
+
+```text
+--- entrypoint smoke + differential dead-flag (card 07) --------------------
+Own-tests + zero-check above establish that a runnable behavioral suite EXISTS
+and is NON-EMPTY. Card 07 hooks in HERE: for each declared shell entrypoint,
+ (a) SMOKE it in a non-destructive form (--help) and assert it boots — a
+     crash-on-invoke is exit 2 entrypoint-error.
+ (b) DIFFERENTIAL: for each --differential 'flag::with::without', run the
+     entrypoint WITH the flag and WITHOUT it and assert the observable output
+     differs AS DECLARED (with-marker only-with, without-marker only-without).
+     A flag whose presence changes nothing is exit 2 dead-affordance. This is a
+     DIFFERENTIAL check, not "assert not error" — a silent no-op flag boots fine.
+ (c) A .md entrypoint is a command/skill prompt doc, NOT a shell binary: it is
+     reported (not-shell-smokable -> routed to B2/review) and NEVER executed,
+     NEVER silently passed, NEVER failed.
+Reuses the card-06 isolation/timeout helpers (run_capture / run_with_timeout).
+```
+
+### smoke_entrypoints: markdown
+
+```text
+(c) markdown prompt doc — do NOT execute; report + route (not a silent pass)
+```
+
+### smoke_entrypoints: (a) SMOKE
+
+```text
+(a) SMOKE: non-destructive probe under hard timeout; assert it boots (non-error)
+```
+
+### smoke_entrypoints: usage exit vs crash
+
+```text
+A hard crash — killed by signal (>=128), not-executable (126), not-found
+(127) or timeout (124) — is a genuine entrypoint-error. But a conventional
+--help/usage handler may print usage and exit with a SMALL non-zero code;
+that is not a crash. Distinguish by whether usage/help text was printed.
+```
+
+### smoke_entrypoints: empty markers
+
+```text
+An empty with/without marker makes 'grep -qF -- ""' match every line, so an
+unwired flag would spuriously read as observable — reject it as a usage error.
+```
+
+### smoke_entrypoints: marker direction
+
+```text
+with-marker must appear WITH the flag and NOT without it; without-marker vice-versa
+```
+
+## plugins/task-runner/scripts/check-receipt.sh
+
+### Header
+
+```text
+check-receipt.sh — `run` runs a check from the repo root and records it in .claude/task-runner/receipt.json; `check` says if it still holds.
+Fresh: same HEAD, exit 0, its own log ending `exit 0`, and an unchanged digest of tracked changes, untracked files and root .env* files.
+```
+
+## plugins/task-runner/scripts/code-redteam-diff.sh
+
+### Header
+
+```text
+code-redteam-diff.sh — deterministic core for the code-redteam skill.
+
+Two modes:
+  --base <git-ref> [--paths <glob>...]
+      Print `git diff <git-ref>..HEAD`, optionally scoped to the given paths.
+      This is the exact code slice the refuter panel is fed.
+  --dedup <seen-file>
+      Read a findings list on stdin (one per line, format: file:line<TAB>title)
+      and print only the NOVEL findings — those whose file:line plus normalized
+      title does not already appear in <seen-file> (same format). SEEN means
+      seen, so <seen-file> holds every previously confirmed finding.
+
+Exit codes: 0 normal, 3 usage error.
+```
+
+### normalize_title
+
+```text
+Normalize a finding title: lowercase, collapse whitespace runs, trim ends.
+Keeps dedup stable across trivial title rewording between rounds.
+```
+
+### key_of
+
+```text
+Turn a raw "file:line<TAB>title" line into its dedup key
+"file:line<TAB>normalized-title". A line with no tab keys on itself.
+```
+
+## plugins/task-runner/scripts/dispatch-lint.sh
+
+### Header
+
+```text
+dispatch-lint.sh — mechanical contract check over ONE drafted subagent prompt.
+Usage: dispatch-lint.sh [file]   (reads stdin when no file is given)
+
+delegation-contracts § Prompt contract names six elements; four are
+string-checkable and this lint checks exactly those:
+  1. an absolute path            (fresh context — relative paths are coin flips)
+  2. a scope lock                (what NOT to touch, stated)
+  3. a required return shape     (format/cap stated, not hoped for)
+  4. the closing data instruction ("final message is data", no-preamble)
+The other two (constraints/conventions, the done-when) are not string-checkable — judgment owns them.
+
+Exit 0: all four present. Exit 1: each missing element printed.
+Residual: presence-of-phrase, not quality-of-contract — a scope lock that
+locks the wrong scope passes. The delegation-contracts skill's reader judges that part.
+```
+
+## plugins/task-runner/scripts/reduction-record.sh
+
+### Header: THE POINT, the three traces, standing
+
+```text
+THE POINT. Every one of these is legitimate sometimes. None of them is legitimate
+silently: the failure this exists to prevent is the one that already happened —
+reviewers dropped on 7 of 8 cards to save context, reported as "all 8 done", found
+only because the user asked afterwards.
+
+So a reduction leaves three traces: this record (which candor's Stop gate counts and
+whose existence makes the closing report's disclosure mandatory), the reason echoed
+to stderr at the moment of the decision so it lands in the transcript where it
+happened, and — in an interactive session — a permission prompt from
+hooks/rv-consent.sh before the record exists at all.
+
+The reviewer pass has its own recorder (review-skip.sh) because it is counted per
+card against cards_done; this one covers the reductions that are not per-card.
+
+Standing: recorded. The reason is model-authored and nothing here can check it. What
+is mechanical is that the reduction cannot be invisible.
+```
+
+### ROOT_DIR
+
+```text
+Anchored at the repo ROOT, not the shell's cwd: a `cd sub && ...` invocation wrote the
+record where the completion gate never looks, so the count came up short and blocked
+the run.
+```
+
+### The evidence check
+
+```text
+Checked before anything is written: a record naming evidence that is not there reads
+as proof to whoever opens it later. Relative paths resolve against the shell's cwd,
+like any argument; both sides are compared physically (pwd -P), so /tmp vs
+/private/tmp on macOS cannot fail a path that is inside the repo.
+```
+
+### The state root's .gitignore
+
+```text
+The run's state root ignores itself (see hooks/scope.sh); only when this record
+lands under the default .claude/task-runner/, never under a --record-dir override.
+```
+
+### esc
+
+```text
+Strips control characters as well as escaping: a newline in --reason wrote a record
+that is not valid JSON, which nothing reads back today but breaks the first tool that does.
+```
+
+## plugins/task-runner/scripts/register-run.sh
+
+### Header
+
+```text
+register-run.sh — register a task-runner run; the one writer of
+.claude/task-runner/active-run.json.
+```
+
+### Header: WHY A SCRIPT, WHAT IT DOES
+
+```text
+WHY A SCRIPT. Registration was prose in /task-runner:run step 1 only. A handoff that
+invoked the task-execution skill directly skipped it: no active-run.json, so the review
+observer recorded 0 of 22 reviews, candor's completion clause never armed, and the run
+closed over a red behavioral-gate verdict. /task-runner:run step 1, the task-execution
+skill's step 1 and /task-runner:plan's "Run now" all call this now;
+scripts/__tests__/register-run.test.sh pins the three call sites.
+
+WHAT IT DOES:
+  1. RESUME. An index run's active-run.json on this branch with the same slug and index is
+     kept untouched: its mtime is the cutoff every completion-gate record is counted from, so
+     re-registering a run already under way would discard the records of its done cards.
+     --fresh registers anew anyway. An inline run (no --index) always registers anew: its
+     slug is only a name, `run` when none is given, and a match would adopt an abandoned
+     run's records.
+  2. FRESH. Deletes gate-pass.json, bg/bg-<HEAD>.json and closed-run.json (candor's gate
+     trusts the first two when they name HEAD, whatever their age), creates rv/ rt/ bg/
+     nc/ reductions/ (each arms one completion-gate check by existing) and a .gitignore of
+     `*`, then writes {"slug","base","branch","start_sha"[,"index_path"]}. base is the
+     merge-base with the default branch; start_sha is HEAD now, the range a stacked branch
+     actually adds, which the run-close range review reads.
+  3. Writes the arc phase sentinel `build` with taskmaster's phase-sentinel.sh (the
+     source-checkout sibling, else the newest installed copy), else by hand.
+  4. Seeds env-notes.md when absent, kept across runs: the environment facts every worker
+     reads first (the discipline preamble names it). Dispatches each re-pasted a ~1.5k-char
+     environment block, and four that lacked "never read .env" grepped it (2026-10-13 retro).
+```
+
+### Header: misses
+
+```text
+Misses: whether the model runs the line it reads (agent-graded); a sentinel written by
+hand, which carries no start_sha and so does not arm the range-review check.
+```
+
+### The branch read with symbolic-ref
+
+```text
+symbolic-ref, not --abbrev-ref: a tag with the branch's name made that print `heads/<branch>`.
+Exit 1 is a detached head; any other failure records no branch, which every reader takes as a match.
+```
+
+## plugins/task-runner/scripts/negative-control.sh
+
+### Header
+
+```text
+negative-control.sh - B3(b) isolated red-before-green control.
+
+Proves a Verify command CAN fail (goes RED by an ASSERTION failure) against a
+targeted disabling of the feature, in an ISOLATED COPY so the live working tree
+is never mutated. A red caused by a build / collection / import error is NOT a
+valid control (the check never reached an assertion) and is rejected.
+```
+
+### classify_red
+
+```text
+classify_red: read a run's combined stdout+stderr on stdin; print one of
+  collection | build | assertion | unknown
+Precedence is ASSERTION-MARKER-FIRST so a genuine assertion failure whose
+*message* merely contains a build/collection word (e.g. a test asserting on
+the string "SyntaxError") is NOT swallowed by the build/collection substring
+match:
+  1. HARD assertion markers that never appear in a pure build/collection run
+     (AssertionError, ERR_ASSERTION, go `--- FAIL:`, pytest `^E +assert`, TAP
+     `not ok`, jest expect()/Expected:/Received:) -> assertion.
+  2. else collection/import substrings -> collection.
+  3. else build/compile/syntax substrings -> build.
+  4. else generic per-test fail glyphs (✖ / ✗) that runners such as
+     `node --test` ALSO print for build failures -> only here, with no
+     build/collection signature present, do they mean assertion.
+  5. else unknown (still a valid discriminating red - see the caller).
+Signatures verified against real output of `node --test` and `pytest`.
+```
+
+### classify_red: tier 1, hard assertion markers
+
+```text
+1) HARD assertion markers FIRST: these strings never appear in a pure
+   build/collection error, so matching them here cannot misfile a build red.
+   `not ok ` is deliberately NOT here — see tier 4. TAP prints it for ANY
+   failing subtest, a load/build failure included, so it is a generic fail
+   glyph and not a hard assertion marker.
+```
+
+### classify_red: tier 2, collection
+
+```text
+2) collection / import errors (pytest ERROR collecting, python ImportError,
+   node MODULE_NOT_FOUND / Cannot find module, go missing package)
+```
+
+### classify_red: tier 3, build
+
+```text
+3) build / compile / syntax errors
+```
+
+### classify_red: tier 4, generic fail glyphs
+
+```text
+4) generic per-test fail glyphs, meaningful ONLY once build/collection are
+   ruled out. `node --test` prints ✖ for build failures too, and under its TAP
+   reporter (the non-TTY default on older Node) the same failure prints
+   `not ok 1 - <file>` — which is why the reporter node happens to pick must
+   not change the verdict. Both live here, after the build/collection checks,
+   never before them.
+```
+
+### Per-card record support
+
+```text
+Per-card record support: when --record-dir + --card are given, a PASS (exit 0)
+writes nc-pass-<card>.json mechanically — a record authored by this tool, not
+the model. --skip records a documented non-run (manual/visual card) as
+nc-skip-<card>.json; the reason is model-authored, but at least it is an
+auditable artifact the completion gate can count. Card ids are path-safe only.
+```
+
+### SRC
+
+```text
+SRC is the subtree that gets copied+isolated; --target is resolved under it. With
+the default --root '.', SRC is CWD and behavior is byte-identical to the old form.
+```
+
+### Isolate banner
+
+```text
+---- isolate: copy the working tree (minus .git) into two fresh temp copies ----
+```
+
+### Mutate banner
+
+```text
+---- mutate the RED copy's impl only ----
+```
+
+### Run Verify banner
+
+```text
+---- run Verify in each copy ----
+```
+
+### Decide: exit 4
+
+```text
+exit 4 is reserved STRICTLY for a red POSITIVELY identified as a
+build/collection/import error - the check never reached its behavior.
+```
+
+### Decide: an unknown red
+
+```text
+unknown red: a discriminating failure whose runner signature is outside the
+allowlist (TAP `not ok`, a plain `exit 1` with a diff, a bespoke shell
+assert). It is NOT a build/collection error, so the Verify DID discriminate
+(mutated RED, unmutated GREEN). Treat it as a valid assertion-style red
+rather than parking a working control. (Fix 2)
+```
+
+## plugins/task-runner/scripts/review-diff.sh
+
+### Header: WHY
+
+```text
+WHY. The reviewer agents hold Read, Grep and Glob: no shell. Dispatches said "review the
+diff" and never delivered one, so reviewers re-read whole files (1.4M to 16M cache-read
+tokens a review), compared against memory or another checkout, and skipped the history
+pass their rubric asks for; a hand-made patch file then drew patch-line citations.
+The orchestrator runs this before each RV-CARD dispatch and names the printed path in it.
+(The run-close range review is /code-review:review, which writes its own.)
+```
+
+### Header: misses
+
+```text
+Misses: a rename reads as a delete and an add; a binary file is named, not shown; a path
+git quotes (spaces, non-ASCII) gets no blame; lines a hunk only adds have no history.
+```
+
+## plugins/task-runner/scripts/review-skip.sh
+
+### Header: the reason is model-authored
+
+```text
+The reason is MODEL-AUTHORED and this script cannot check it. What it does buy: the
+reason is echoed to stderr the moment the skip happens, so it lands in the transcript
+at the point of decision instead of being reconstructed later — the disclosure the
+original incident never made. Standing: recorded.
+```
+
+### ROOT_DIR
+
+```text
+Anchored at the repo ROOT, not the shell's cwd: a `cd sub && ...` invocation wrote the
+record where the completion gate never looks, so the count came up short and blocked
+the run.
+```
+
+### The state root's .gitignore
+
+```text
+The run's state root ignores itself (see hooks/scope.sh); only when this record
+lands under the default .claude/task-runner/, never under a --record-dir override.
+```
+
+### esc
+
+```text
+Strips control characters as well as escaping: a newline in --reason wrote a record
+that is not valid JSON, which nothing reads back today but breaks the first tool that does.
+```
+
+### The stderr disclosure
+
+```text
+Loud on purpose: this line is the mid-run disclosure. A skip the user only learns
+about when they ask is the failure this whole mechanism exists to prevent.
+```
+
+## plugins/task-runner/scripts/sweep-residual.sh
+
+### Header
+
+```text
+Sweep-migration residual gate. Freezes the target set of an at-scale mechanical
+change, then RE-MEASURES it after the edits and fails while occurrences survive.
+
+WHY. Given "migrate every axios call to fetch" on a tree with twelve occurrences
+— three behind an aliased import, one built dynamically, one in a CI YAML, one in
+a test fixture — a competent model greps `axios.`, edits what it found, runs a
+green suite (the alias path has no test), and reports the migration complete. The
+failure is not knowledge. Nothing forces a SECOND measurement after the edits,
+and nothing demands that a surviving occurrence be justified in writing. This is
+that second measurement.
+```
+
+### Header: the state root
+
+```text
+the git toplevel of --dir (else --dir itself), like reduction-record.sh: `--dir src` or a
+run from a subdirectory used to leave a stray src/.claude/ state dir beside the code.
+```
+
+### Header: HONEST LIMITATIONS
+
+```text
+HONEST LIMITATIONS. The freeze records the file list and a tree hash, not file
+contents, so a file edited between freeze and measure is expected — that IS the
+work. Detection is one ERE over text: a call constructed entirely at runtime from
+pieces no regex spans is invisible here, which is exactly why the enumeration
+step below asks for FOUR passes rather than one, and why the allowlist demands a
+written reason instead of a suppression comment.
+```
+
+### default_find: non-code carriers
+
+```text
+Non-code carriers are IN SCOPE on purpose. A migration that leaves the old name
+in a CI workflow, a fixture, a doc example or an i18n catalogue is not finished —
+and those are precisely the files a code-shaped grep skips.
+```
+
+### Target set moved
+
+```text
+Target set moved: new files carrying the pattern that were not frozen. A file
+added mid-run is the case a one-shot grep cannot see at all.
 ```

@@ -384,3 +384,7 @@ The decline:
 After a block with no browser call since, the session declined: print, until a browser call, the person's second prompt since the
   block, or a dev-server start.
 ```
+
+## plugins/ui-ux/scripts/contrast.mjs
+
+The twin of `plugins/craft-layer/template/craft-gates/contrast.mjs`, identical save its TWIN line (`pc_twin_files`). Its header points at that file's heading, `rationale/derivations/plugin-craft-layer.md` § `plugins/craft-layer/template/craft-gates/contrast.mjs`, where the comment text both copies carried until 2026-10-28 was moved verbatim. Standing: `recorded`.

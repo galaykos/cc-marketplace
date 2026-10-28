@@ -44,8 +44,6 @@ cc_plugin_state() {
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -67,8 +65,7 @@ cc_option() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
 # cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
 # one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
-# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
-# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# A backup suffix is never a target: the word after BSD sed's -I, or a `''` or `.`-led word after a bare sed -i unless it is the only file.
 # Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
 # redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
 # operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.

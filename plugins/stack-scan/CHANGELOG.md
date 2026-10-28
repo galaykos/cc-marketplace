@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.17.1 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/licence-scan.sh`, `scripts/pick.sh`, `scripts/scan.sh`, `scripts/sync-plan.sh`: each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain. `--help` of `scripts/licence-scan.sh` no longer prints the history prose; usage, flags and exit codes are unchanged.
+
 ## 0.17.0 — 2026-10-27
 
 - **The scout no longer suggests game plugins.** The ten game plugins left the marketplace: `signals.md` drops their ten engine rows and the "unless a game row above matched first" clause on the `go.mod`/`Cargo.toml`/`*.csproj` row, `stack-relevance.md` drops the ten Game classes and their `--stack` tokens, and `flags.md`'s `--full` stack-bound list is back to `laravel`, `web-dev`, `craft-layer`. The generated catalog no longer lists them.

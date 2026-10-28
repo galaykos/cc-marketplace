@@ -29,8 +29,7 @@ cc_state_root() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
 # cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
 # one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
-# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
-# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# A backup suffix is never a target: the word after BSD sed's -I, or a `''` or `.`-led word after a bare sed -i unless it is the only file.
 # Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
 # redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
 # operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
@@ -161,14 +160,13 @@ cc_plugin_state() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
 # cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
 # directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
-# cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
-# cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
-# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
-# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
-# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
-# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
-# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
+# cc_bash_write_effects read <marker>. cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute
+# paths, one per line: files `git status` under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out
+# by its `*` .gitignore). It runs git only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs,
+# deno, bun, cp, mv, install or patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not
+# $HOME and status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's
+# first call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much:
+# any change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
   local d="${2%/*}" k

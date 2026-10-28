@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.7 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/plan-audit.sh`, `scripts/workflow-audit.sh`; `hooks/workflow-guard.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
 ## 0.9.6 — 2026-10-28
 
 - **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/workflow-guard.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-devops.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Misses: a deleted file (only changed or new paths are pushed); a ninth open stream (503); under --lan the Origin/Host guard passes every request (/_restore still needs its header); the synthesized landing and gallery pages never reload.
+# Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/skills/visual-decisions/assets/serve.py
 """Threaded static file server with an SSE push-reload lane.
 
 First rung of the mockup preview launch chain: static files under a docroot
@@ -29,15 +31,9 @@ KEEPALIVE_SECONDS = 15
 LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "::1"}
 # Reserved per-purpose destinations other flows write to (see the landing map).
 PER_PURPOSE_FILES = ("theme.html", "walkthrough.html", "diagram.html", "api.html", "modules.html", "compose.html")
-# The ledger is the dated-pass history ONLY. A per-purpose file is a live
-# destination, not a past pass of current.html, so offering it as a restorable
-# version would let one click overwrite the decision page with the theme page.
+# Per-purpose files are live destinations, not past passes of current.html: never offered as a restorable version.
 LEDGER_EXCLUDED = {"current.html", "index.html"} | set(PER_PURPOSE_FILES)
-# Restore is the one state-changing route, so it demands a header no
-# cross-origin <form> can set. That forces a CORS preflight, which this server
-# never answers, so a page on another localhost PORT cannot drive it — the
-# Host/Origin check alone would let it through, since every port shares the
-# hostname `localhost`.
+# Restore demands a header no cross-origin <form> can set, forcing a CORS preflight this server never answers; Host/Origin alone would pass another localhost port.
 RESTORE_HEADER = "X-Preview-Restore"
 MAX_RESTORE_BODY = 4096
 
@@ -96,7 +92,7 @@ class ServerState:
 def _esc(text):
     """Minimal HTML escaper — stdlib-only, avoids importing the ``html`` module.
 
-    ADDITIVE helper: used solely by the synthesized landing/gallery pages.
+    Used solely by the synthesized landing/gallery pages.
     """
     return (
         str(text)
@@ -111,7 +107,7 @@ def _esc(text):
 def _urlenc(text):
     """Percent-encode one path segment — stdlib-only, no ``urllib`` import.
 
-    ADDITIVE helper: used solely for href/src path segments in the synthesized
+    Used solely for href/src path segments in the synthesized
     landing/gallery pages, so filenames with spaces/#/?/% still produce a
     working link. Keeps RFC 3986 unreserved characters; escapes everything
     else. Use ``_esc`` (not this) for visible text.
@@ -140,13 +136,7 @@ def build_handler(state):
             if path == "/events":
                 self.handle_sse()
                 return
-            # --- ADDITIVE landing/gallery branches ------------------------------
-            # Synthesized session-map and gallery pages. Both are STATIC snapshots:
-            # no SSE and no auto-reload script is injected, and the /events lane
-            # plus the per-purpose-file model (basename filter) stay untouched. A
-            # user-authored index.html always wins. Delete these two branches (and
-            # the serve_landing / serve_gallery / _gallery_captions helpers) to
-            # revert '/' and '/gallery/' to today's stock autoindex.
+            # Synthesized session-map and gallery pages: STATIC snapshots (no SSE, no reload script); a user-authored index.html always wins.
             if path in ("/", ""):
                 if (state.docroot / "index.html").exists():
                     super().do_GET()  # user's own index.html wins verbatim
@@ -156,10 +146,7 @@ def build_handler(state):
             if path == "/gallery/" and not (state.docroot / "gallery" / "index.html").exists():
                 self.serve_gallery()
                 return
-            # --- end ADDITIVE ---------------------------------------------------
-            # Ledger lane: the dated passes already on disk, as data, so an open
-            # preview can offer them as versions instead of making the user read
-            # the landing map and retype a filename.
+            # Ledger lane: the dated passes on disk, as data, for an open preview's version picker.
             if path == "/_versions.json":
                 self.serve_versions()
                 return
@@ -219,7 +206,6 @@ def build_handler(state):
         def log_message(self, fmt, *args):
             sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
 
-        # --- ADDITIVE helpers: synthesized static pages (no SSE/reload) ---------
         def _send_html(self, body):
             """Send a hand-built HTML string with a 200. STATIC — no reload lane."""
             payload = body.encode("utf-8")
@@ -298,8 +284,7 @@ def build_handler(state):
             except (ValueError, KeyError, UnicodeDecodeError):
                 self._send_json({"ok": False, "error": "bad request body"}, 400)
                 return
-            # Reject anything that is not a plain basename BEFORE touching the
-            # filesystem: Path('a/../b').name would quietly launder a traversal.
+            # A non-basename is rejected before the filesystem is touched: Path('a/../b').name would launder a traversal.
             if (not isinstance(name, str) or not name or name != Path(name).name
                     or name in (".", "..") or self._ledger_entry(name) is None):
                 self._send_json({"ok": False, "error": "not a ledger file"}, 400)
@@ -313,8 +298,7 @@ def build_handler(state):
             except OSError as exc:
                 self._send_json({"ok": False, "error": str(exc)}, 500)
                 return
-            # No explicit broadcast: the watcher sees current.html's new mtime
-            # and pushes the reload down the same lane every other edit uses.
+            # No explicit broadcast: the watcher sees current.html's new mtime and pushes the reload.
             self._send_json({"ok": True, "restored": name})
 
         def serve_landing(self):
@@ -410,8 +394,7 @@ def build_handler(state):
                 return
             gdir = state.docroot / "gallery"
             files = []
-            # Scoped to gallery/ only (not the whole docroot) — same scan_mtimes
-            # helper, just rooted one level down to avoid O(whole-tree) I/O per hit.
+            # Rooted at gallery/, not the docroot, to avoid O(whole-tree) I/O per hit.
             for name, (_mtime, _size) in scan_mtimes(gdir):
                 if "/" in name:
                     continue
@@ -499,7 +482,6 @@ def build_handler(state):
                     if rest:
                         captions.setdefault(fname, rest)
             return captions
-        # --- end ADDITIVE helpers ----------------------------------------------
 
     return functools.partial(Handler, directory=str(state.docroot))
 

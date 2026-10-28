@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# goal-ledger-check.sh — mechanical gate for goal mode's audit precondition.
-#
-# The ultra skill (Goal audit trail) makes the goal ledger's writability an
-# ACTIVATION PRECONDITION: no auto-take may proceed unaudited. This script is
-# the bash form of that rule at the two moments that matter:
+# goal-ledger-check.sh — mechanical gate for goal mode's audit precondition (the ultra skill, Goal audit trail): no auto-take may proceed unaudited.
+# Misses: whether every auto-take was logged — it proves the ledger exists, has entries and is writable; entry completeness stays a prose obligation.
+# Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/goal-ledger-check.sh (marketplace repository)
+
 #   --slug <slug>         verify .claude/taskmaster/goal-ledger-<slug>.md exists,
 #                         is non-empty, and contains at least one decision entry
 #                         (a "## " or "- " line beyond the header). Run it BEFORE
@@ -11,10 +10,6 @@
 #   --init --slug <slug>  create the ledger with a header if absent, then verify
 #                         writability by appending+removing a probe line. Run it
 #                         at goal activation.
-#
-# LIMITATION: proves the file exists, has entries, and is writable — cannot prove
-# every auto-take was actually logged. It converts "forgot the ledger entirely"
-# from silent to blocking; entry completeness stays a prose obligation.
 #
 # Exit codes:
 #   0  ledger present/writable (per mode)
@@ -42,20 +37,12 @@ ledger="$base/goal-ledger-$slug.md"
 
 if [ "$init" = 1 ]; then
   mkdir -p "$base" 2>/dev/null || violation "init-failed: cannot create $base"
-  # STATE HYGIENE. This dir is scratch and belongs in no commit. Three shipped
-  # artifacts called it "gitignored", which is true only of THIS marketplace's own
-  # .gitignore — in a consumer repo it showed up untracked, the same thing
-  # rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/scope.sh recorded and fixed. A directory can ignore
-  # itself, so drop a `.gitignore` holding `*` the first time we create it.
-  # `|| :` is load-bearing HERE and nowhere else this idiom appears: every sibling copy
-  # lives in a hook that is fail-open by construction, this script runs under
-  # `set -euo pipefail`, so on a read-only state dir the bare `||` list returns non-zero
-  # and takes the whole precondition check down before it can report anything useful.
+  # The scratch dir ignores itself (a `*` .gitignore): a consumer repo's own .gitignore does not cover it.
+  # `|| :` is load-bearing: under set -e a read-only state dir would end the check before it reports.
   [ -e "$base/.gitignore" ] || printf '*\n' > "$base/.gitignore" 2>/dev/null || :
   [ -f "$ledger" ] || printf '# Goal ledger — %s\n\n' "$slug" > "$ledger" 2>/dev/null \
     || violation "init-failed: cannot create $ledger"
-  # writability probe: append + remove one line; a failed append here is the
-  # exact failure mode the precondition exists to catch.
+  # A failed probe append is the exact failure this precondition exists to catch.
   if ! printf '<!-- probe -->\n' >> "$ledger" 2>/dev/null; then
     violation "not-writable: append to $ledger failed — halt, never proceed unaudited"
   fi

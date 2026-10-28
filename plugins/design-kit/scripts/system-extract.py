@@ -1,32 +1,9 @@
 #!/usr/bin/env python3
-"""system-extract.py — extract a design system from a repo, a live URL, or a brand
-asset directory into design-system/: tokens.json (DTCG-shaped), DESIGN-SYSTEM.md
-(the plain `## Design system` block plus a component inventory) and kit.html (a
-UI-kit page whose every card carries an `@dsCard` marker).
+"""system-extract.py — extract a design system from a repo, a live URL, or a brand asset directory into design-system/.
 
-WHAT IT CATCHES. Every token it emits points back to a source line; nothing is
-invented. A value that is not in the source does not appear, which is the rule
-the model gets wrong from memory — it "remembers" a palette the repo never had.
-Deterministic: same input, byte-identical output, so a diff of design-system/
-after a re-run is a real change in the source.
-
-WHAT IT DOES NOT CATCH. Repo mode reads text with regexes — no JS evaluation, so
-a Tailwind config built from imports or functions yields only its literal
-entries. URL mode fetches HTML and linked stylesheets without running JS, so
-styles injected at runtime (CSS-in-JS, Tailwind CDN builds) are invisible; it says
-so in the output. Naming (which of two primaries is THE primary) is the
-reader's judgment, flagged, never decided here. Component "approximations" in
-kit.html are static HTML carrying the real component's name, path and props —
-they are not the component.
-
-Standing: scripts/__tests__/system-extract.test.sh drives the three sources on
-fixtures and asserts the output shape; the determinism claim is asserted by
-running twice and comparing bytes.
-
-Usage:
-  system-extract.py <repo-dir | https://url | brand-dir> [--source repo|url|brand]
-                    [--out design-system] [--kit-shell path] [--project-name X]
-                    [--dry-run]
+Writes tokens.json (DTCG-shaped), DESIGN-SYSTEM.md (the `## Design system` block plus a component inventory) and kit.html (a UI-kit page, one `@dsCard` per card). Every token points back to a source line, nothing is invented, and the same input gives byte-identical output.
+Misses: repo mode reads text with regexes (a Tailwind config built from imports or functions yields its literal entries only); URL mode runs no JS, so runtime-injected styles are invisible (it says so); which of two primaries is THE primary is flagged, never decided; kit.html cards are static stand-ins, not the components.
+Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/system-extract.py
 """
 import argparse
 import datetime as _dt
@@ -540,10 +517,7 @@ def scan_components(root, ex):
                 ex.components.append({"name": name, "path": rel, "props": props,
                                       "variants": {k: v for k, v in variants.items()},
                                       "details": details, "gaps": gaps, "export": export})
-    # A Blade view without @props may be the template of a class component
-    # (app/View/Components/<Name>.php) whose promoted constructor parameters ARE
-    # the props — Laravel's own convention; the Blade-first walk hid it (measured
-    # 2026-09-22 on a fixture: Alert.php's type/message/dismissible read as "no props").
+    # A Blade view without @props may be a class component's template: its promoted constructor parameters (app/View/Components/<Name>.php) are the props.
     for c in ex.components:
         if not c["path"].endswith(".blade.php") or c["props"]:
             continue
