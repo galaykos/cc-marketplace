@@ -1,96 +1,7 @@
 #!/bin/bash
-# Absolute-path shebang not `/usr/bin/env bash`: the fail-open guarantee must hold
-# even under a stripped PATH where `env bash` exits 127.
-#
-# Comment-VOLUME guard, two lanes. PostToolUse (warn-only, at most 3 warnings per
-# session; a Bash call that exits non-zero fires PostToolUseFailure, which takes this
-# lane) compares the file just written against the comment density of its OWN
-# siblings AND against an absolute ceiling, and says so when it is over either — after
-# a Write, or an Edit or Bash write that adds prose comment lines (density_added).
-# Neither lane judges a file that only declares an interface or an all-abstract class (density_contract).
-# PreToolUse (deny, a Write or a truncating Bash cat/tee heredoc, at most TWICE per file per session) refuses a whole new
-# file whose comment-to-code ratio is over the ceiling before it lands. Silence is the
-# common case.
-#
-# WHY THIS EXISTS — the gap scan.sh cannot close by design. scan.sh detects KINDS of
-# bad comment: restatement, banners, commented-out code, bare TODOs, dead docblock
-# tags, change narration. Every one of those is a pattern in a single comment. None of
-# them fires on a well-formed why-comment, and a file can be 81% comment with every
-# line individually defensible. That is not hypothetical: a 30-card run produced
-# `GoogleClient.php` at 180 comment lines out of 223, and scan.sh was silent on it and
-# on the three next-fattest files, correctly, because each comment passed every kind
-# check. The skill's own anti-pattern list even warns against "deleting comments to hit
-# a ratio" — which is right about deletion and was read as licence to never measure.
-#
-# WHY SIBLINGS. A driver with vendor quirks earns more prose than a controller, and
-# "twice the surrounding code" is a signal no constant can give: a run at 0.3:1 in a
-# repo that sits at 0.1:1 is an outlier the ceiling below would wave through. This
-# hook reaches subagents, which is where writing actually happens and where a prose
-# contract had no delivery channel.
-#
-# WHY A CEILING TOO (2026-09-02, owner decision). Siblings alone had two holes. A
-# greenfield subtree with no tracked siblings got no judgment at all, which is the
-# fan-out case this hook was written for. And a repo whose committed house style is
-# already heavy certified more of the same. The marketplace's stated default is code
-# that speaks for itself — minimal comments, a docblock only for what the signature
-# cannot state — so the limit is now min(2x the sibling median, CEIL), and a file with
-# no siblings is judged against CEIL alone. CEIL is 0.3:1 on prose lines by default, the one
-# constant here; a project with a deliberately heavier style overrides it per project
-# via `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (e.g. 10 for 1:1, 0 to
-# switch the ceiling off and keep the sibling test). The deny lane uses the same CEIL.
-#
-# LIMITATION (honest scope — the four laws, see
-# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
-#   - The PostToolUse lane is WARN-ONLY: `additionalContext` is not a blocking key. The
-#     file is already on disk. It informs the next write, never the one that tripped it.
-#     The PreToolUse lane denies, but only a `Write` or a truncating Bash heredoc (an Edit or an
-#     append carries a fragment, whose ratio says nothing about the file), only over CEIL, at most TWICE
-#     per file per session with the same marker-on-disk bound as scan.sh — so a false
-#     positive costs up to two turns and the third attempt goes through with a warning.
-#     The bound was one until 2026-09-15; a sibling hook denying the same call spent it
-#     without the write ever landing, which cost this guard its only enforcement.
-#   - BASH LANE. Pre-write, a truncating `cat`/`tee` heredoc is judged as a Write of its body to the
-#     resolved path (cd_bash_target in hooks/paths.sh), first deny printed; an append (`>>`, `tee -a`)
-#     is a fragment and is never denied. After the command, the warn lane measures the first 3 targets
-#     that exist on disk, in command order, skips one whose first five lines carry a generated marker or
-#     that the command wrote no prose comment line to (a redirect whose text no echo, printf or heredoc spells,
-#     `{ …; } > f` or `gen > f`, is measured whole; a sed -i or perl -i target never is), and prints the first warning.
-#     After a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run it also reads the files git reports changed
-#     since this lane's previous call (the bash-write-effects block, at most MAX_BASH_EFFECTS), and measures each governed one
-#     no target named, within the same 3, once it holds more prose lines than its HEAD copy (density_added).
-#     A command with a line over 8 kB is not parsed for targets; its effects are still read.
-#     NOT SEEN on Bash: a writer the effects block does not name (npx prettier, make), gitignored files, a repo with no git,
-#     a mv or cp -p destination, each session's first such run, a file over 256 KB that no target named, a path held in a
-#     variable, a relative target after an in-command cd, files past the first 3; any file changed since this lane's previous
-#     call (an IDE, a parallel agent) is read as the run's write, and prose uncommitted since HEAD as its prose; pre-write
-#     also an interpreter write, a heredoc fed to anything but cat/tee, a heredoc whose file the
-#     command writes again, truncating heredocs past the 40th to a governed file (judged by neither lane), echo/printf and sed -i / perl -i content, the second
-#     operand of `tee a b`, `VAR=x tee f`, cat/tee behind a wrapper, brace or keyword; plus what the two blocks below miss.
-#   - A ratio is not a judgment. A file legitimately denser than its siblings (the one
-#     driver full of vendor workarounds) trips this, and that is a false positive the
-#     author should overrule by keeping the comments and moving on — the message says so.
-#   - It cannot see the AGGREGATE across a fan-out. Each subagent gets its own warning
-#     in its own context; nothing sums 73 files and reports "this run runs 2x the
-#     repo". The ledger below exists so that question can be answered later from data,
-#     but nothing reads it back today and calling it a feedback loop would be the
-#     over-claim this plugin has been pulled up on before.
-#   - The counter is cd_classify in hooks/paths.sh: a per-language line classifier, not a
-#     parser. The numerator is PROSE lines: delimiters, typed doc tags, tool directives, a
-#     licence first block and `|`-boxed config blocks are comments but not prose. A trailing
-#     comment, a mid-line `/*` and a triple-quoted string that is no docstring count as
-#     code; a directive it does not know counts as prose. A line it is unsure of is code. Dockerfiles and Makefiles are not judged.
-#   - Thresholds are a starting point, not a constant: 2.0x the sibling MEDIAN, with an
-#     absolute floor of 0.3 so a repo that comments almost nothing cannot make a single
-#     why-comment an outlier, then capped at CEIL. The floor EQUALS the default ceiling,
-#     so the sibling test decides only where a project raised CEIL past 0.3 or set it to 0.
-#     A file under 50 non-blank lines, or under 8 code lines, gets the SHORT rule instead: over the
-#     limit with 5+ prose lines, a code line, and more prose than code (or than CEIL allows,
-#     once CEIL is past 1:1); CEIL=0 switches it off. The ledger records every measurement
-#     so the thresholds can be revisited against real data instead of re-argued.
-#
-# FAIL-OPEN: missing jq/awk, unreadable file, too few siblings, or any error exits 0.
-# CC_REMIND / CC_COMMENT_GUARD unset: the /config options cc_remind / cc_comment_guard decide.
-# State: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/comment-discipline/ is only the fallback.
+# Comment-volume guard: PreToolUse denies a Write or truncating cat/tee heredoc over the prose:code ceiling (twice per file per session); PostToolUse warns (3 per session) past min(2x sibling median, ceiling).
+# Misses: interface and all-abstract files, sed -i/perl -i/printf text, Bash targets past 3, the fan-out aggregate; a ratio is not a judgment. Fails open. Off: CC_COMMENT_GUARD (deny), CC_REMIND (warn).
+# Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/hooks/density.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
@@ -373,8 +284,7 @@ cc_bash_write_effects() {
   [ "$tool" = Bash ] && { cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0; }
   # WARN lane only — see scan.sh's note; the PreToolUse deny ignores this switch.
   [ "$event" = "PostToolUse" ] && [ "$(cc_option CC_REMIND on)" = "off" ] && exit 0
-  # Interpreter writes, through the bash-write-effects block: read with the old marker, then date it, on every call this lane
-  # sees, so an Edit's file or a command that wrote nothing never reads as the next run's write. The marker is this hook's own.
+  # Read effects with the old marker, then date it on every call this lane sees, or an Edit's file reads as the next run's write.
   effects=""; root=""
   if [ "$event" = "PostToolUse" ]; then
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
@@ -407,8 +317,6 @@ EOF_G
     cd_governed "$fp" || exit 0
   fi
   # CC_COMMENT_GUARD=off disables the DENY lane and leaves the advisory lane on.
-  # Added 2026-09-22 (UX 1), same reasoning as scan.sh's: the block had no off switch,
-  # so its refusal could name none. Read from the hook's environment.
   [ "$event" = "PreToolUse" ] && [ "$(cc_option CC_COMMENT_GUARD on)" = "off" ] && exit 0
 
   if [ "$tool" = Bash ] && [ "$event" = "PreToolUse" ]; then
@@ -430,31 +338,13 @@ EOF_C
   fi
 
   [ "$event" = "PostToolUse" ] || cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  # CONTEXT KEY, not session key. PostToolUse is the only hook channel that reaches
-  # subagents at all, and a subagent shares its parent's session_id while getting its
-  # own transcript. Keying a one-shot on session_id therefore dedups the worker against
-  # nudges only the PARENT ever saw, so the context where most fan-out code is written
-  # is the one context this never speaks in. Key on transcript_path first, session_id as fallback.
+  # Keyed on the context (transcript_path first), not the session: a subagent shares its parent's session_id.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
-  # `-d` as well as `-n`: a session outlives its directories, and the `mkdir -p "$dir"`
-  # below rebuilt a deleted three-level project tree just to hold this hook's state. Then
-  # the state ROOT, not the cwd: the payload cwd is the shell's and follows the model's
-  # `cd` (measured 2026-09-25, rationale/2026-09-25-session-plugin-usage-review.md finding
-  # 2 — app/Enums, app/Models, then the repo root in one session), so `<cwd>/.claude` scattered
-  # one state dir per directory and reset MAX_WARN and the per-file dedup at every `cd`.
-  # The address `<root>/.claude/comment-discipline` is SHARED with verbosity.sh and
-  # scan.sh; all three moved to cc_state_root in one change (0.23.0), because re-rooting
-  # one of them alone splits a bound across two paths. Does NOT catch a cwd that exists
-  # but is the wrong checkout — the payload cannot say.
+  # -d too: a session outlives its directories. State sits at the state root, shared with verbosity.sh and scan.sh; re-rooting one alone splits a bound.
   [ -n "$cwd" ] && [ -d "$cwd" ] && [ -n "$sid" ] || exit 0
   [ -n "$root" ] || root=$(cc_state_root "$cwd") || exit 0
 
-  # The floor is on SUBSTANTIVE LINES, not on code lines, and the difference is the
-  # whole point. A `code >= 40` floor excludes exactly the worst case this hook exists
-  # to catch: the observed `GoogleClient.php` was 223 lines of which 180 were comment,
-  # so it had ~43 code lines and a code-shaped floor would have waved through the
-  # single densest file in the run. A few code lines are still needed for the ratio to
-  # mean anything, hence MIN_CODE — set low, as a divide-by-noise guard, not a filter.
+  # The floor counts substantive lines, not code lines: a code floor waves through a file that is mostly comment.
   MIN_LINES=50       # comment + code; a file under this, or under MIN_CODE, gets the short rule
   MIN_CODE=8         # enough denominator for a ratio to carry information
   MIN_SIBLINGS=3     # a median of two files is not a house style
@@ -480,13 +370,7 @@ EOF_C
     d_ratio=$(( ($1 * 10 + $2 - 1) / $2 ))
     [ "$3" -gt 0 ] && [ "$(( $1 * 10 ))" -gt "$(( $3 * $2 ))" ]
   }
-  # An interface or an all-abstract class has no bodies, so its docblocks are the contract and breach any ratio: a worker
-  # deleted a real why-clause from one to pass. A file is not judged when every line outside comments is an import, package
-  # or namespace line, an annotation, a type alias, an enum or a declaration's own lines, at least one declaration is an
-  # interface, abstract class, protocol or Go interface, and none holds a body: `)` then `{`, `)` then `=` (Kotlin), a C#
-  # or Dart `=>`, a get, set or init accessor's `{` or `=>`, or a `static {` initializer. One line at a time and out at the first other line: joining the text was quadratic under mawk, and a 3.7 MB
-  # file hit the 10 s timeout. Misses: a Python ABC; a member typed `(): { … }` reads as a body, so that file is judged; an
-  # arrow function assigned to an abstract class's property reads as no body.
+  # Not judged: declarations only, with an interface, abstract class or protocol and no body; read a line at a time, since joining is quadratic under mawk.
   density_contract() { # text on stdin
     case "$lang" in php|ts|tsx|java|kt|kts|cs|swift|go|scala|dart|groovy) ;; *) return 1 ;; esac
     awk -v lang="$lang" '
@@ -523,14 +407,7 @@ EOF_C
       }
       END { exit !(decl && !no) }' 2>/dev/null
   }
-  # The prose lines a PostToolUse Edit or Bash write adds: 7 of 11 warnings in real sessions followed edits that added none,
-  # about a file's existing density. An Edit compares the file on disk with the same file, each new_string swapped back to its
-  # old_string, so a line added inside a docstring or a leader-less block comment counts. Past 256 KB, or with a new_string
-  # empty or not on disk, it counts its new_strings over its old_strings instead, a fragment whose first line is `*`-led read
-  # as opening inside a block comment. A Bash write counts the text it wrote to the target ($1). A file an interpreter run
-  # changed (mode effect) compares the file on disk with its HEAD copy, none when HEAD lacks it, up to 256 KB: the text before
-  # the run is gone, so prose any uncommitted edit added since HEAD counts as this run's.
-  # Misses: sed -i, perl -i and printf's substituted text add none; a new_string also present above the edit swaps the wrong copy.
+  # d_added: prose lines an Edit adds (each new_string swapped back to its old_string), a Bash write's text adds, or an effect adds over its HEAD copy.
   density_added() { # [<text a Bash command wrote>] -> d_added, a signed count
     local a="" b k=0 o n r x after before f='def frag(k): [(.tool_input.edits // [.tool_input])[] | (.[k] // "") | (if test("^\\s*\\*(\\s|$)") then "/*\n" else "" end) + . + "\n*/"] | join("\n");'
     d_added=""
@@ -564,40 +441,27 @@ EOF_C
   [ -n "$fp" ] || return 1
   cd_governed "$fp" || return 1
   if [ "$event" = "PostToolUse" ]; then [ -f "$fp" ] && [ -r "$fp" ] || return 1; fi
-  # Same PATH exclusions as scan.sh, decided by hooks/paths.sh against the same LOGICAL
-  # path (worktree prefix stripped): generated, vendored and marketplace tooling trees
-  # have deliberate header blocks. A missing paths.sh judges nothing. Config/prose formats
-  # use comments for navigation, which this rule does not govern.
+  # Same path exclusions as scan.sh, on the same logical path; a missing paths.sh judges nothing.
   command -v cd_path_exempt >/dev/null 2>&1 || return 1
   cd_path_exempt "$fp" "$root" && return 1
   cd_lang "$fp" || return 1
   lang=$cd_lang_key
-  # A comment per instruction is idiomatic in a build file (owner decision 2026-10-02); scan.sh still reads them.
+  # A comment per instruction is idiomatic in a build file; scan.sh still reads them.
   case "$lang" in dockerfile|make) return 1 ;; esac
   # A generator redirected to a file (`gen > src/api.ts`) leaves its marker on disk, not in the command.
   [ "$event" = "PostToolUse" ] && [ "$tool" = Bash ] && cd_generated < "$fp" && return 1
 
   dir=$(cc_plugin_state "$root" comment-discipline)
-  # Hashed, not raw: `.transcript_path` is an absolute path, so `density-$sid` names a
-  # nested file whose parents are never created. Every state write then fails silently,
-  # `warned` stays 0, MAX_WARN never engages, the per-file dedup never engages, and the
-  # self-output filter below never engages — so a track run raises the sibling median to
-  # match its own dense output and certifies the drift it just wrote. Same idiom as
-  # the `seen=` line of hooks/conventions.sh.
+  # Hashed: .transcript_path is an absolute path, and raw it names a file whose parents never exist, so no bound engages.
   ctx=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || return 1
   state="$dir/density-$ctx"
-  # Same rule as scan.sh's deny lane and verbosity.sh: a bound that cannot be recorded
-  # is not a bound. Unwritable state means this hook does nothing at all, rather than
-  # warning on every single edit for the rest of the session.
+  # A bound that cannot be recorded is not a bound: unwritable state means this hook does nothing.
   mkdir -p "$dir" 2>/dev/null || return 1
   [ -w "$dir" ] || return 1
   [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null   # the state dir ignores itself
 
-  # ---- PreToolUse lane: deny a whole new file over CEIL, at most TWICE per file ----
-  # Same bound and the same reasoning as scan.sh's deny: the model wrote it, so the
-  # model is the audience; `ask` would interrupt the human for a style call; and a
-  # deny that cannot record its bounding marker is withheld rather than left unbounded.
+  # PreToolUse lane: deny a whole new file over CEIL, at most twice per file; a deny whose marker cannot land is withheld.
   if [ "$event" = "PreToolUse" ]; then
     [ "$mode" = truncate ] || return 1
     [ "$CEIL" -gt 0 ] || return 1
@@ -615,16 +479,9 @@ EOF
     key=$(printf '%s' "$fp" | (command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
     [ -n "$key" ] || return 1
     marker="$dir/density-blocked-$ctx-$key"
-    # BOUNDED RETRIES, not a one-shot — same defect and same fix as scan.sh: a sibling
-    # PreToolUse deny blocks the write too, and the old one-shot was spent on a write
-    # that never landed, so the next edit of this file went through unchecked.
+    # Two tries, not one: a sibling hook's deny can block the write a try was spent on.
     DENY_CAP=2
-    # ATOMIC, same claim as scan.sh: a noclobber file per try (O_CREAT|O_EXCL), not
-    # mkdir(1), which uutils coreutils makes non-exclusive under a race. A `.dN` directory
-    # from <=0.31.0 or a legacy zero-byte marker counts as a try, so an upgrade
-    # mid-session does not grant a fresh budget.
-    # Residual, same as scan.sh: the bound is spent on a DENY, which does not prove the
-    # write landed — two co-firing siblings can still exhaust it.
+    # A noclobber file per try (O_CREAT|O_EXCL), not mkdir(1); an old .dN dir or zero-byte marker counts as a try. Two co-firing denies can spend both.
     tries=0
     [ -e "$marker" ] && tries=1
     i=1
@@ -645,8 +502,7 @@ EOF
     [ "$warned" -ge "$MAX_WARN" ] && return 1
     grep -qxF "file $fp" "$state" 2>/dev/null && return 1   # already reported this file
   fi
-  # A Write is a whole new text and keeps the whole-file ratio; an Edit or a Bash write is judged only once it adds prose,
-  # unless the command's text for this target could not be read (mode whole).
+  # A Write keeps the whole-file ratio; an Edit or Bash write is judged once it adds prose, or when its text is unreadable (mode whole).
   if [ "$tool" != Write ] && [ "$mode" != whole ]; then density_added "$text" && [ "$d_added" -gt 0 ] 2>/dev/null || return 1; fi
 
   read -r fprose fc fcode <<EOF
@@ -657,13 +513,9 @@ EOF
   if [ "$d_regime" = short ]; then density_over "$fprose" "$fcode" "$SHORT_LIMIT" || return 1; fi
   density_contract < "$fp" && return 1
 
-  # ---- baseline: same-language siblings, nearest directory first ----
-  # Cached per directory per session — a fan-out writing 30 files into one package
-  # must not re-scan that package 30 times.
+  # Baseline: same-language siblings, nearest directory first, cached per directory per session.
   fdir=$(dirname "$fp")
-  # Resolved forms, computed once. Needed in two places that must agree: the
-  # repo-root bound on the sibling walk, and the "already measured this session"
-  # ledger — git reports symlink-free paths and the edited path usually is not one.
+  # Resolved once: the walk's root bound and the ledger must agree, and git reports symlink-free paths.
   rdir=$(cd "$fdir" 2>/dev/null && pwd -P) || rdir="$fdir"
   rfp="$rdir/$(basename "$fp")"
   key=$(printf '%s' "$fdir/$lang" |(command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
@@ -671,15 +523,7 @@ EOF
   [ -n "$key" ] && base=$(awk -v k="$key" '$1=="base" && $2==k {print $3}' "$state" 2>/dev/null | tail -1)
 
   if [ -z "$base" ]; then
-    # THE BASELINE MUST BE PRE-EXISTING CODE, and this is the subtlety the whole hook
-    # turns on. A fan-out that writes 73 uniformly dense files into one new package
-    # would otherwise compute its baseline FROM ITS OWN OUTPUT, find no outlier, and
-    # certify the drift it just created. That is precisely the run this hook exists
-    # for. So siblings are drawn from files git already TRACKS — committed code is
-    # house style; a file this run created is not — and any file this session has
-    # already written is filtered out on top, which covers a tracked file the run
-    # rewrote. Not a git repo, or git absent: fall back to `find`, and say so in the
-    # ledger by way of the baseline it produces.
+    # Siblings are files git tracks, minus this session's writes, so a fan-out never baselines on its own output; without git, find.
     sibs_from() { # $1 dir, $2 maxdepth
       local d="$1" depth="$2" rel
       # A superset by name, then cd_lang decides: `*.php` also lists Blade files.
@@ -706,24 +550,7 @@ EOF
         printf '%s\n' "$s"
       done | head -n "$SAMPLE_CAP"
     }
-    # WALK UP until there is enough tracked code to average, capped at 4 levels. One
-    # widening step is not enough: a feature fan-out creates a whole new SUBTREE
-    # (`app/Services/Google/Contracts/`), so neither that directory nor its parent has
-    # any tracked file, and a two-step search finds nothing and exits silently on
-    # exactly the run this hook is for. Depth grows with the walk so a shallow level
-    # can still reach the code below it.
-    #
-    # THE WALK IS BOUNDED BY THE REPOSITORY ROOT, and that bound is load-bearing rather
-    # than tidy. Without it a file in a repo with no tracked code walks out of the
-    # project entirely and averages whatever `.php` files happen to sit in the parent
-    # directory — a sibling checkout, a scratch dir — then reports that as "its
-    # siblings". A baseline computed from unrelated code is worse than no baseline,
-    # because the warning names a house style that does not exist.
-    # Both sides of the bound are resolved with `pwd -P` before comparison. They must
-    # be: `git rev-parse --show-toplevel` returns a symlink-free path, while the edited
-    # file's path usually is not — on macOS every `/var/...` path is really
-    # `/private/var/...` — so a raw string prefix test fails on exactly the temp dirs
-    # this is tested in, and silently reduces the walk to zero levels.
+    # Walk up at most 4 levels, never past the repo root (unrelated code is no baseline); both sides go through pwd -P, as macOS /var is /private/var.
     top=""
     if command -v git >/dev/null 2>&1; then
       top=$(cd "$rdir" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)
@@ -740,9 +567,7 @@ EOF
       [ "$parent" = "$d" ] && break
       d="$parent"; depth=$((depth + 1)); up=$((up + 1))
     done
-    # Median of the per-sibling ratios in tenths. Median, not mean: one 90%-comment
-    # interface file in the sample must not redefine the house style by itself.
-    # No usable siblings leaves base empty, and the ceiling alone judges the file.
+    # Median, not mean: one dense interface file must not set the house style; no usable siblings leaves the ceiling alone.
     if [ "$n" -ge "$MIN_SIBLINGS" ]; then
       # One awk for every sibling; a tracked file that is gone from disk would make awk exit with nothing read.
       base=$(set --
@@ -750,7 +575,7 @@ EOF
 $sibs
 EOS
              [ "$#" -gt 0 ] || exit 0
-             # One find for the whole set, -L so a tracked symlink is sized by its target: 25 siblings of 7.7 MB took the classifier 8 s against a 10 s timeout.
+             # One find for the whole set, -L so a tracked symlink is sized by its target; the size cap keeps the classifier inside the timeout.
              kept=$(find -L "$@" -size -262145c 2>/dev/null); set --
              while IFS= read -r s; do [ -n "$s" ] && set -- "$@" "$s"; done <<EOS
 $kept
@@ -775,10 +600,7 @@ EOS
   fi
   density_over "$fprose" "$fcode" "$limit"; over=$?
 
-  # LEDGER. Every measurement, warned or not — machine-local, never in the project
-  # tree, capped, and read by nothing automatically. Same placement and same honest
-  # framing as verbosity.sh's: it exists so the thresholds above can be revisited
-  # against real data rather than re-argued.
+  # Ledger: every measurement, machine-local, capped at 1 MB; nothing reads it back automatically.
   ledger="${HOME:-/tmp}/.claude/comment-discipline/density-ledger.jsonl"
   if [ "$(wc -c < "$ledger" 2>/dev/null || echo 0)" -lt 1048576 ]; then
     mkdir -p "${ledger%/*}" 2>/dev/null &&
@@ -861,8 +683,7 @@ $fp
     done
   else
     hascd=0; [ -n "$tgts" ] && cd_has_cd "$cmd" && hascd=1
-    # The text each chunk wrote, keyed by its target as spelled: a heredoc body as written, an echo/printf argument list
-    # with its redirects, flags and outer quotes dropped. The first 40 chunks, the deny lane's cap.
+    # Each chunk's text by its target as spelled: a heredoc body, or echo/printf arguments less redirects, flags and outer quotes; the first 40.
     chunks=""; [ -z "$tgts" ] || chunks=$(cc_bash_write_chunks "$cmd"); k=0; nb=0
     while IFS= read -r l; do
       k=$((k + 1)); [ "$nb" -lt 40 ] || break

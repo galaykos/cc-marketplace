@@ -1,8 +1,5 @@
-# patterns.sh — sourced, never run, by hooks/scan.sh (the write guard) and scripts/scan-range.sh (/secret-scanning:scan): one reader of
-#   hooks/patterns.tsv, so the guard and the sweep cannot disagree on what a row means, what is a placeholder, or which value is judged.
-# load_patterns <file>: reads <file> into pat_kind/pat_label/pat_flags/pat_re (secret and assigned rows, in file order) and the
-#   ph_i/ph_c placeholder alternations; returns 1 with pat_bad set when it is missing or malformed.
-# placeholder <value>: 0 when the value announces itself as fake. pat_value <kind> <match>: sets pat_v to the value a match is judged on.
+# patterns.sh — sourced, never run, by hooks/scan.sh and scripts/scan-range.sh: the one reader of hooks/patterns.tsv. load_patterns <file> fills pat_kind/pat_label/pat_flags/pat_re and ph_i/ph_c, or returns 1 with pat_bad set.
+# placeholder <value>: 0 when the value announces itself as fake. pat_value <kind> <match>: sets pat_v to the value a match is judged on. A dialect the checks below do not name is not refused.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/patterns.sh
 
 load_patterns() {

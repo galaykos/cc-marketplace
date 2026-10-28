@@ -706,6 +706,93 @@ the same turn forever. Honouring it only here costs at most one unenforced
 stop on an already-degraded setup.
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+gate.sh (Stop, SubagentStop; payload on stdin) — refuses a turn end (Stop: JSON block on stdout; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 2, 3, 5: an incomplete
+  registered task-runner run, a file:line resolving to nothing, a reversal after bare pushback, a naked completion claim, lockfile drift.
+Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5);
+  unset, each reads the /config option of its lower-cased name. Fails open: no jq, no enforcement; a clause lacking its input stands down.
+Misses: a wrong API, flag or directory; an elided path; pushback outside its list; entries before the transcript tail; a hand-back
+  hidden by a later user-shaped entry; a resumed agent's text whose boundary is not on disk yet; dependency lines no pattern matches.
+  Blocks anyway: a citation into a file the turn shortened, deleted or renamed; a run record written before the run registered.
+  Clause 4 misses a UI card with no review diff file and a range review its RV-RANGE marker over-claims; a sentinel with no start_sha owes none.
+  It retires a closed run unchecked once HEAD moves past its gate pass, a commit made before the closing stop included.
+  Its hold for a behavioral gate in flight reads task-runner's PID file and, on Linux, /proc: without /proc a recycled PID misreads.
+```
+
+Above `BG_PID_TTL_MIN=240`:
+
+```text
+Only for a running.pid with no deadline (task-runner before 0.48.0): seven built-in runners at its 1800 s suite cap run 210 minutes.
+```
+
+Above `block_turn() { # <reason> <one plain line for the person>`:
+
+```text
+Stop: the host shows systemMessage to the person and feeds reason to the model (probed on CLI 2.1.310). A SubagentStop
+  systemMessage stayed in the agent's own transcript, so that event keeps exit 2.
+```
+
+Above `pass_turn() {`:
+
+```text
+Every passing exit once clause 4 has run: a stop let through at an already-blocked HEAD still shows the person what the run owes,
+  with no decision key, so it cannot block.
+```
+
+Above `bg_running() { # <head> -> 1 or 0`:
+
+```text
+task-runner's behavioral gate run in background Bash writes bg/running.pid: its PID, the HEAD it tests and (0.48.0+) the epoch
+second its own total ends it by. It counts as one worker while the sha is <head>, that deadline has not passed (with none, the
+file is under BG_PID_TTL_MIN) and the gate is live; a dead gate or another HEAD is stale. No fixed hold fits both a raised
+BEHAVIORAL_GATE_TOTAL and an older gate's 210 minutes.
+Live, with /proc (Linux): the PID's command line names behavioral-gate.sh, or else a live process whose command line names it
+runs from under <root>. A sandboxed run (bwrap --unshare-pid) records its own namespace's PID, which here names another process or none; the
+host still lists the gate under its real PID. The [e] keeps the scan's own grep from matching itself.
+Misses: without /proc (macOS, no PID namespace) liveness is kill -0, so a recycled PID at the same HEAD holds until the
+deadline, or the file ages out; on Linux, any process naming behavioral-gate.sh from under <root> holds while that file is current.
+```
+
+Above `cur_branch=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null)`:
+
+```text
+symbolic-ref, not rev-parse --abbrev-ref: a tag named like the branch made that print heads/<branch>, a run read as another's.
+Exit 1 is a detached head; any other failure leaves the branch unknown, which never stands a run down.
+```
+
+Above `local start_sha rf rid range_ok=0 from`:
+
+```text
+A run registered by register-run.sh carries start_sha and owes one whole-range review at this HEAD; rv-observe records it from RV-RANGE.
+A commit after a range review owes a review of the commits since it, not the whole run again: `from` is the newest reviewed ancestor.
+```
+
+Above `local waiting`:
+
+```text
+Mid-run and end-of-run both land here and cannot be told apart cheaply, so the message names both branches.
+Workers in flight: print, block nothing and write no nudge, keeping this HEAD's one block for after the last hand-back.
+```
+
+Above `clause_lockfile_drift() {`:
+
+```text
+Only a dependency-shaped change arms it: a version, scripts or description edit never touches a lockfile.
+The $skip test is load-bearing, as in clauses 1-3: without it this clause re-fires on its own continuation and its escape never works.
+```
+
+Above `if [ "$mode" = "block" ]; then`:
+
+```text
+Record which clause blocked, so only that clause stands down on the continuation.
+```
+
 ## plugins/candor/hooks/mode.sh
 
 ### Header: the shebang
@@ -843,6 +930,20 @@ arguing about the mode is not asking for it.
 ---- 3. per-turn reinforcement -----------------------------------------------
 wenyan levels share their latin counterpart's budgets; only the word layer
 differs (skills/terse-output/references/wenyan.md).
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+mode.sh (UserPromptSubmit; payload on stdin) — switches the terse level on `/candor:level <level>` or a narrow natural-language request,
+  writing the level file; while a level is active, adds one budget line to each other prompt. Advisory; fails open; always exits 0.
+The level: CC_TERSE, then the level file, then the /config option cc_terse.
+Misses: a switch phrased outside its few patterns (the slash command is the reliable path); the budget line after a prompt its
+  negation or question guard stops.
 ```
 
 ## plugins/candor/hooks/preamble.sh
@@ -993,6 +1094,30 @@ writable subagent's start. Standing: agent-graded; preamble-hook.test.sh 31-32 p
 text, no eval case measures the behaviour.
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+preamble.sh (UserPromptSubmit, SubagentStart; payload on stdin) — adds candor's five working moves as context: once per session, on the
+  first prompt whose head has a making verb in an imperative clause; once per agent_id on SubagentStart, after recording the worker in flight,
+  for an agent type that can edit (a read-only one gets the record and no text). A harness frame is no prompt; a paste's verbs do not count.
+Off: CC_PREAMBLE=off silences the text, never the in-flight record; it does not answer to CC_REMIND. Unset, the /config option cc_preamble decides.
+  Advisory: context cannot block. Fails open: without jq it does nothing; it always exits 0.
+Misses: a work session opened with a question, until its first imperative prompt; a compaction drops the text and it is not re-sent.
+```
+
+Above `atype=$(printf '%s' "$input" | jq -r '.agent_type // empty' 2>/dev/null)`:
+
+```text
+No text for an agent that cannot edit: reviewers, scouts and Explore were told to prove a change in the browser.
+The names are this marketplace's agents and the built-ins whose tools hold no Write or Edit; preamble-hook.test.sh
+derives that set from agents/*.md and fails on one this list misses. Qualified: a bare-name glob would also silence
+another source's writable verifier or acme:security-reviewer. Misses: another source's read-only agent.
+```
+
 ## plugins/candor/hooks/activate.sh
 
 ### Header: the shebang
@@ -1043,6 +1168,19 @@ LIMITATION (honest scope — the four laws, see
 Env beats file, the CC_BOOST / CC_REMIND convention: environment is the one
 state independently-installed plugins genuinely share, and the only control a
 headless run can set.
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+activate.sh (SessionStart) — while a terse level is active, prints the contract block of skills/terse-output/SKILL.md, read at runtime
+  under ${CLAUDE_PLUGIN_ROOT}, or one line naming the level when that block is unreadable; nothing otherwise. Always exits 0.
+The level: CC_TERSE, then the level file, then the /config option cc_terse.
+Misses: enforcement (nothing rewrites a message once emitted); a per-project level (the level file is one per machine).
 ```
 
 ## plugins/candor/hooks/avert.sh
@@ -1158,6 +1296,31 @@ the hedge pattern, so a call with no hedge pays nothing.
 Standing: gate — avert-hook.test.sh 16-18 (red against 0.7.1), neighbours 19-21.
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+avert.sh (PreToolUse on Agent, Task, Write, Edit, MultiEdit, Bash; payload on stdin) — asks the user before a call whose text names a legal
+  hedge, a declared substitute or precaution language that no human turn of the transcript contains; once per term per session.
+  A Bash call's git commit message and gh pr create|edit title and body are not read (unbody, below).
+Off: CC_AVERT=off; CC_AVERT=notify makes the ask a notification the call proceeds past. Without jq or on a bad payload it asks nothing.
+CC_AVERT unset: the /config option cc_avert decides (on, notify or off).
+Misses: a hedge outside its vocabulary; an avert that never names its reason; in a subagent, a hedge its dispatch prompt already wrote.
+  Asks anyway: when the transcript is missing. An ask is a deny in a -p run with no permission host.
+```
+
+Above `unbody() {`:
+
+```text
+A commit message or PR body documents a hedge already made; it does not make one (a PR body disclosing a precaution coded
+earlier was asked about). Cut: a git commit or gh pr create|edit at a command position, up to the next ; & | or line end, and
+any heredoc body opened in that span; bodies opened elsewhere are kept, in order. Misses: a ; & | inside the quoted message,
+or a multi-line quoted message with no heredoc, leaves the rest scanned (it asks); a message file written first is a Write.
+```
+
 ## plugins/candor/hooks/cite.sh
 
 ```text
@@ -1173,6 +1336,31 @@ runs both on one message — a vendor/ citation, a dependency basename, localhos
 and an invented basename — and a static case fails if either file grows its own lookup
 again. cite_miss takes root and cwd as arguments instead of reading the callers'
 globals, so the contract is in the call.
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+cite.sh — sourced, never run, by hooks/gate.sh (clause 1) and scripts/candor-scan.sh (/candor:check): one citation lookup, so the
+  report and the gate cannot disagree on what resolves. Defines functions only.
+cite_extract: filter; prints each file:line in stdin once, sorted. URLs go first (a.php:80 in one is a port); the extension starts with
+  a letter, so v1.2.3:4 and 10:30 never match; a leading / is kept; a host before :<port> (.localhost, .test, .local, .internal,
+  .example, .invalid, .lan and common public TLDs) is no file, and a bare localhost:8000 has no extension; an elided path is skipped.
+cite_miss <file:line> <root> <cwd>: prints why the citation does not resolve — no file of that basename where it searched, or a line
+  past the end — and nothing when it resolves or cannot be decided: a path not found whose basename is not unique, or exists only
+  under <root>'s node_modules or vendor (6 deep). A path is tried from <cwd>, then <root>, then as a suffix, then by basename (8 deep).
+Misses: a file whose extension is a host name (.env.local:3) is never checked; a name only under dist, build or .venv, or past either
+  depth cap, reads as missing; a wrong line in a basename a dependency also has passes; a wrong directory with a unique basename passes.
+```
+
+Above `[ -n "$(find "$root/node_modules" "$root/vendor" -maxdepth 6 -name "$b" -print -quit 2>/dev/null)" ] && return 0`:
+
+```text
+Subagents citing a dependency were blocked as inventing it: a basename only there is real but undecidable.
 ```
 
 ## plugins/candor/scripts/candor-scan.sh

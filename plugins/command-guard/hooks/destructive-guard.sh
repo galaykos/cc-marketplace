@@ -1,14 +1,6 @@
 #!/bin/bash
-# destructive-guard.sh [--check '<command>' | --version] — PreToolUse on Bash and MCP shell/SQL tools: deny irreversible data loss, ask on scoped
-# destruction, allow the rest; deny a write to the allow-file; ask before a Write replaces a live .env. --check ignores the mode: exit 0/1/2 = allow/ask/deny.
-# Fails open on its own errors (exit 0); a judgment past GUARD_DEADLINE (12 s) asks. hooks.json starts it with PATH bash, not this shebang, and its
-# onFailure: block makes the host block a run that cannot start or overruns the 15 s timeout (CLI 2.1.295+).
-# CLAUDE_DESTRUCTIVE_GUARD, else /config claude_destructive_guard: deny-only drops the ask tier, ask turns a command deny into a prompt, off disables.
-# Allow-file .claude/destructive-guard-allow, project then ~: a line's regex matched unanchored on the whole lowercased command, trailing comment too, releases it; a command naming the file must be a pure read.
-# Misses: an allow-file path built from a variable or glob, a script or a program git config names writing it, an MCP write tool other than apply_patch and create_new_file,
-# NotebookEdit's notebook_path, a non-ASCII spelling the filesystem folds to the name; a failing cd to a relative target; env -S'…' or --split-string=… with the string glued on;
-# a -C/-c value holding a space, or a git option past the -C/-c/--git-dir set where git does not lead (bash -c "git -P push"); an unlisted wrapper option value or spaced long form (sudo -R x): a refusal, or a miss if it names a reader; a wrapper by path but env (/usr/bin/sudo): a refusal.
-# A heredoc body fed to anything but a shell or SQL client is not read (cc_strip_heredoc_bodies).
+# PreToolUse on Bash and MCP shell/SQL tools: denies irreversible data loss, asks on scoped destruction, denies a write to the allow-file, asks before a Write replaces a live .env. --check '<command>' prints the tier whatever the mode and exits 0/1/2 = allow/ask/deny.
+# Misses an allow-file path built from a variable, glob, script or git-config program; unlisted MCP write tools; a heredoc body fed to anything but a shell or SQL client; some wrapper and git option spellings. Fails open on its own errors; past GUARD_DEADLINE it asks. CLAUDE_DESTRUCTIVE_GUARD (else /config): deny-only, ask, off. hooks.json starts it with PATH bash and onFailure: block, so a run that cannot start or overruns 15 s blocks the call.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/destructive-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -35,7 +27,7 @@ cc_option() {
   return 0
 }
 
-GUARD_VERSION=0.9.1
+GUARD_VERSION=0.9.2
 
 # Quotes and backslashes go so a quoted evasion (artisan "migrate:fresh") meets the rule the plain form does.
 norm_cmd() {
@@ -44,16 +36,14 @@ norm_cmd() {
     | sed -e "s/[\"'\\\\]//g" -e 's/>/ > /g' -e 's/  */ /g' -e 's/^ //' -e 's/ $//'
 }
 
-# Git rules are written ` git <subcommand>`, so the global options before it (-C, -c, --git-dir …) are dropped; an unknown one stays.
-# Where git does not lead the segment only the short list is dropped, so quoted prose (gh pr create --title "git -P push --force") is not read as git.
+# Git rules are written ` git <subcommand>`, so the global options before it are dropped; where git does not lead only the short list goes, so quoted prose is not read as git.
 strip_git_global_options() { # normalised segment, lead word
   local o='-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space:]]+|--(git-dir|work-tree|namespace)(=[^[:space:]]+|[[:space:]]+[^[:space:]]+)|--no-pager|--no-optional-locks|--literal-pathspecs|--bare' n=6
   [ "$2" = git ] && { o='-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space:]]+|--(git-dir|work-tree|namespace|config-env|attr-source|super-prefix|shallow-file)(=[^[:space:]]+|[[:space:]]+[^[:space:]]+)|--exec-path=[^[:space:]]+|-p|-P|--paginate|--no-pager|--no-optional-locks|--no-replace-objects|--no-lazy-fetch|--no-advice|--(literal|glob|noglob|icase)-pathspecs|--bare'; n=7; }
   printf '%s' "$1" | sed -E "s/(^|[[:space:]])git([[:space:]]+($o))+([[:space:]])/\\1git\\$n/g"
 }
 
-# Quote-aware on the RAW string: dequoting first splits grep -E "a|rm -rf /" into a fake rm segment. check_cd_chain copies this walk.
-# One walk in END, not per record: BWK awk reads RS = "\0" as paragraph mode. After $$' bash and zsh disagree, so `raw` splits on every separator.
+# Quote-aware on the RAW string: dequoting first would turn `grep -E "a|rm -rf /"` into a fake rm segment. One walk in END (BWK awk reads RS = "\0" as paragraph mode); after $$' bash and zsh disagree, so `raw` splits on every separator. check_cd_chain copies this walk.
 split_segments() {
   printf '%s' "$1" | awk '
     { buf = (NR == 1 ? $0 : buf "\n" $0) }
@@ -382,7 +372,6 @@ V_MATCH=""      # the segment that matched
 V_KIND=""      # "cd" for a failing-cd deny, whose reason invites the corrected retry
 
 set_verdict() { # tier what alt match [kind]
-  # deny wins over ask; the first deny wins over later denies.
   [ "$VERDICT" = "deny" ] && return 0
   [ "$VERDICT" = "ask" ] && [ "$1" = "ask" ] && return 0
   VERDICT="$1"; V_WHAT="$2"; V_ALT="$3"; V_MATCH="$4"; V_KIND="${5:-}"
@@ -391,8 +380,7 @@ set_verdict() { # tier what alt match [kind]
 # Regenerated by a build, so rm -rf on them is ordinary work; a prompt here trains the user to click through prompts.
 ARTIFACT_RE='^(\./)?(node_modules|vendor|dist|build|out|target|coverage|\.next|\.nuxt|\.turbo|\.cache|\.parcel-cache|__pycache__|\.pytest_cache|\.venv|venv|tmp|temp|\.tmp|storage/framework/(cache|views|sessions)|bootstrap/cache)/?\*?$'
 
-# A path inside the OS temp dir is scratch, so deleting it is ordinary work; the roots themselves stay denied.
-# Prints what sits under the temp root; prints nothing when the path is not one.
+# Prints what sits under an OS temp root (scratch, so deleting it is ordinary work), nothing when the path is not under one; the roots themselves stay denied.
 temp_remainder() { # lowercased token
   local p="$1"
   case "$p" in /private/*) p="${p#/private}" ;; esac   # macOS: /private/tmp IS /tmp
@@ -447,9 +435,7 @@ command_cwd() {
   printf '%s' "${d:-.}"
 }
 
-# 0 when a recursive rm's operand has a shell value of backslashes only: rm's own raw words, then each shell -c script and eval's
-# arguments as commands of their own. A lone \ ending the segment is a word only when it ends the command (arg 2 = 1): a segment line
-# read off split_segments also ends in one at a \<newline> continuation. Misses: $'\\', a variable holding \, ssh's or su -c's command.
+# 0 when a recursive rm's operand is backslashes only, in rm's raw words or a shell -c / eval argument; a lone trailing \ is a word only at the command's end (arg 2 = 1). Misses $'\\', a variable holding \, ssh's or su -c's command.
 rm_backslash_target() { # raw segment, 1 when it ends the command
   printf '%s' "$1" | LC_ALL=C awk -v tail="${2:-0}" '
     { buf = (NR == 1 ? $0 : buf "\n" $0) }
@@ -561,15 +547,13 @@ check_rm() { # normalised segment (lowercased, padded), the same case-preserved,
         return 0 ;;
     esac
     is_temp_path "$tok" && continue   # inside the OS temp dir: scratch, not a loss
-    # unexpanded variable: if it is unset or empty, the path collapses to / or to cwd
     case "$tok" in
       *'$'*)
         set_verdict ask "recursively deletes ${tok}; if that variable is unset the path collapses (rm -rf \$X/ becomes rm -rf /)" \
           "expand the variable first and check it is non-empty, or use \${X:?} so the shell refuses when unset" "$seg"
         continue ;;
     esac
-    # The Playwright MCP's scratch dir asked on every cleanup (4 times in one session). Only that name, under the command's cwd, unmoved,
-    # and not a symlink: rm -rf link/ empties the link's target.
+    # Only the Playwright MCP's scratch dir, under the command's cwd, unmoved, and not a symlink: rm -rf link/ empties the link's target.
     case "$tok" in
       .playwright-mcp|.playwright-mcp/|./.playwright-mcp|./.playwright-mcp/)
         [ "$CWD_MOVED" -eq 0 ] && [ ! -L "$(command_cwd)/${sp%/}" ] && continue ;;
@@ -865,9 +849,7 @@ classify() {
   # Output piped into a shell turns the reader exemption off: echo "rm -rf /" | sh is not an echo.
   printf '%s' " $full_lc " | grep -qE ' \| *(sudo )?[a-z]*sh( |$)| \| *xargs ' && pipe_to_shell=1
 
-  # The whole-command reads above see heredoc bodies; the segment walk and the cd chain below do not see a stripped body.
-  # Inert mode, SQL clients counted as readers: judged line by line, a 21 KB `python3 - <<'EOF'` took 22.6 s against the
-  # 15 s hook timeout and failed open. A huge kept body is still slow.
+  # The whole-command reads above see heredoc bodies; the segment walk and cd chain below see them stripped (inert, SQL clients as readers): judged line by line, a large body overruns the hook timeout.
   body=$raw
   case "$raw" in *'<<'*) body=$(cc_strip_heredoc_bodies inert "$raw" "$SQL_CLIENT_RE"); [ -n "$body" ] || body=$raw ;; esac
 
@@ -893,9 +875,7 @@ classify() {
       if [ "$lead" = "git" ]; then
         sub=$(printf '%s' "$segn_lc" | awk '{ for (i=1;i<=NF;i++) if ($i=="git") { print $(i+1); exit } }')
         git_safe_subcmd "$sub" && continue
-        # A token with an n flag (-n, -fn) or --dry-run is taken for a dry run, the preview the ask tier tells the model to run.
-        # -e (and --exclude, abbreviated or not) takes the rest of its cluster or the next word as a pattern, so an n there is no flag;
-        # after -- every word is a path; the last of --dry-run/-n and --no-dry-run wins, each also as git's abbreviation (--d…, --no-d…).
+        # An n flag (-n, -fn) or --dry-run, abbreviations too, is a dry run; -e/--exclude takes the rest of its cluster or the next word, words after -- are paths, and the last of --dry-run/--no-dry-run wins.
         if [ "$sub" = "clean" ]; then
           printf '%s' "$segn_lc" | awk '{ for (i = 1; i <= NF && $i != "git"; i++) ;
             d = 0
@@ -958,8 +938,7 @@ plan_audit_hint() {
   local p d v
   p="$(dirname "$CLAUDE_PLUGIN_ROOT")/devops/scripts/plan-audit.sh"
   if [ ! -f "$p" ]; then
-    # An installed plugin sits at cache/<marketplace>/<plugin>/<version>/, so devops is two levels up, under its own version dir.
-    # The host marks a superseded cached version with .orphaned_at and deletes it later; the 4th sort key ranks a release over its pre-release.
+    # An installed plugin sits at cache/<marketplace>/<plugin>/<version>/: take devops' newest version without .orphaned_at, a release over its pre-release.
     d="$(dirname "$(dirname "$CLAUDE_PLUGIN_ROOT")")/devops"
     v=$(for f in "$d"/*/scripts/plan-audit.sh; do
           f="${f%/scripts/plan-audit.sh}"; n="${f##*/}"
@@ -984,8 +963,7 @@ emit() {
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$d,permissionDecisionReason:$r}}' 2>/dev/null
 }
 
-# The host blocks a run past hooks.json's 15 s (onFailure: block), so a judgment still running after GUARD_DEADLINE seconds
-# (12; the harness lowers it) is stopped and asks, in every mode: it has not ruled out a deny. No mktemp or sleep: unwatched.
+# A judgment still running after GUARD_DEADLINE seconds (12; the harness lowers it) is stopped and asks in every mode, inside hooks.json's 15 s onFailure: block. No mktemp or sleep: unwatched.
 judge_in_time() { # guard function, its arguments
   local out timer job
   out=$(mktemp "${TMPDIR:-/tmp}/command-guard.XXXXXX" 2>/dev/null) || { "$@"; return 0; }

@@ -6,6 +6,10 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.14.2 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/protect-tests.sh`, `hooks/test-shape.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-testing.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
 ## 0.14.1 — 2026-10-26
 
 - **The skipped-test deny is shorter; what it denies is unchanged.** It says what was blocked and why in one sentence, then the same-line reason that lets a skip through and `CC_PROTECT_TESTS=off`. Gate: `protect-tests.test.sh` pins the text.

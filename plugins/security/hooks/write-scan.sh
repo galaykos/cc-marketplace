@@ -1,18 +1,6 @@
 #!/bin/bash
-# write-scan.sh (PostToolUse on Write, Edit, MultiEdit and Bash, PostToolUseFailure on Bash; payload on stdin) — warns, never denies, once per
-#   context, file and finding,
-#   on a security sink one written line or Bash-written file shows; the ported and LLM sinks only in their own file types, the Laravel/Vite/raw-HTML ones in any file.
-#   After a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also on what each file git reports changed since this hook's
-#   previous call added: the whole file when HEAD lacks it, else its `+` lines against HEAD (so a line any uncommitted edit added is judged again).
-#   Skips a target under neither CLAUDE_PROJECT_DIR nor the cwd's root, or under $TMPDIR (default /tmp) unless the root holding it is there.
-#   State: the bash-effects marker in the plugin's data dir (CLAUDE_PLUGIN_DATA), else <root>/.claude/security/ behind a `*` .gitignore.
-# Off: CC_SECURITY_SCAN=off or CC_REMIND=off. Fails open on any error, a missing jq included.
-# CC_SECURITY_SCAN / CC_REMIND unset: the /config options cc_security_scan / cc_remind decide.
-# Misses: a sink split across lines or reached through an alias, and injection inside the data; cross-file flows, authz, raw SQL outside whereRaw;
-#   a client secret with no public-bundle prefix or with no secret word in its name (NEXT_PUBLIC_FOO); on Bash, targets past the eighth, bytes past
-#   256 KiB, writes cc_bash_write_targets misses, a relative target in a command holding a cd/pushd; after an interpreter run, changed files past the
-#   eighth (MAX_BASH_EFFECTS) and the bash-write-effects block's misses. Warns anyway: a guard on the next line (SafeLoader, weights_only); a file
-#   anything else changed since this hook's previous call (an IDE, a parallel agent), read as that run's write.
+# PostToolUse on Write, Edit, MultiEdit and Bash (PostToolUseFailure on Bash): warns, never denies, once per context, file and finding, on a security sink in a written line, a Bash-written file, or what an interpreter, cp, mv, install or patch run added; scratch outside the project is skipped.
+# Misses a sink split across lines or aliased, cross-file flows, authz, raw SQL outside whereRaw, a client secret without a public prefix, Bash targets or changed files past the eighth or 256 KiB; warns on a guard on the next line and on files anything else changed. Fail-open. Off: CC_SECURITY_SCAN=off or CC_REMIND=off; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-security.md § plugins/security/hooks/write-scan.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -412,9 +400,7 @@ MAX_BASH_EFFECTS=8
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in Write|Edit|MultiEdit|Bash) ;; *) exit 0 ;; esac
 
-  # Interpreter writes: read the effects with the old marker, then date it, on EVERY call this hook sees, so a file an Edit
-  # changed or a command that wrote nothing is never read as the next run's write. A failed Bash call fires PostToolUseFailure,
-  # whose envelope must name that event.
+  # Read the effects with the old marker, then mark, on EVERY call, so an Edit's file or a no-write command is never read as the next run's write; a failed Bash call answers as PostToolUseFailure.
   { IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; } < <(printf '%s' "$input" \
     | jq -r '.cwd // "", .session_id // "", if .hook_event_name == "PostToolUseFailure" then .hook_event_name else "PostToolUse" end' 2>/dev/null)
   sroot=""; effects=""
@@ -443,7 +429,6 @@ MAX_BASH_EFFECTS=8
     [ -n "$text" ] || exit 0
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // "unknown"' 2>/dev/null)
   fi
-  # Scratch is not the project: probe scripts under /tmp drew sink warnings in real sessions (the write-scope block).
   cc_scope_init "$sroot"
   # Context key, not session: a subagent shares its parent's session_id but has its own transcript.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // "nosession"' 2>/dev/null)
@@ -552,8 +537,7 @@ MAX_BASH_EFFECTS=8
       "$JS|$PY|$PHP" '<<<|"""|'"'''"'|<[a-z_]+>|\[BEGIN|---|```'
   }
 
-  # added_text <file> — what a run added to <file>, at most 256 KiB: the whole file when HEAD lacks it, else the `+` lines of
-  # `git diff -U0 HEAD`. The text before the run is gone, so a line any uncommitted edit added since HEAD is judged again.
+  # added_text <file>: at most 256 KiB of what a run added, the whole file when HEAD lacks it, else the `+` lines of `git diff -U0 HEAD`, so an uncommitted earlier edit is judged again.
   added_text() {
     local rel="${1#"$sroot"/}"
     if git -C "$sroot" cat-file -e "HEAD:$rel" 2>/dev/null; then

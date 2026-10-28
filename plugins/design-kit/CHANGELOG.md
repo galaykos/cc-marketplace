@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.12.2 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/unread-pick.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-design-kit.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
 ## 0.12.1 — 2026-10-26
 
 - **`film.py sheet` tiles start at 0 and the index carries each tile's real time.** It sampled with ffmpeg's `fps=` filter, which picks a frame mid-interval (the first tile of a 16-frame sheet over 6 s was 0.167 s, not 0) and re-stamps frames onto its own grid, so the index's times did not match the pictures a reviewer cites. It now selects the first frame of each interval, frame 0 included, and `index.json` lists `tile_times_s` read from the selected frames. Standing: gate — `film.test.sh`; a mutation back to `fps=` fails it.

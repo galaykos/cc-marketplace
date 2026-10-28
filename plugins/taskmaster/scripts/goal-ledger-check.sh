@@ -45,7 +45,7 @@ if [ "$init" = 1 ]; then
   # STATE HYGIENE. This dir is scratch and belongs in no commit. Three shipped
   # artifacts called it "gitignored", which is true only of THIS marketplace's own
   # .gitignore — in a consumer repo it showed up untracked, the same thing
-  # task-runner/hooks/scope.sh:31-35 recorded and fixed. A directory can ignore
+  # rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/scope.sh recorded and fixed. A directory can ignore
   # itself, so drop a `.gitignore` holding `*` the first time we create it.
   # `|| :` is load-bearing HERE and nowhere else this idiom appears: every sibling copy
   # lives in a hook that is fail-open by construction, this script runs under

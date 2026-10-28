@@ -1,21 +1,6 @@
 #!/bin/bash
-# scan.sh (PreToolUse on Write, Edit, MultiEdit, NotebookEdit, MCP apply_patch/create_new_file and Bash; payload on stdin) — denies a write whose new text
-#   (for apply_patch, the whole patch), Bash heredoc body or echo/printf argument landing in a file carries a high-confidence, non-placeholder secret,
-#   and a Bash write of redact.ts's [REDACTED: marker unless CC_SECRET_REDACT is off (Write/Edit carrying it are redact.ts's to refuse).
-#   PostToolUse on the same tools, and PostToolUseFailure on a Bash call that exited non-zero (hook_event_name), warning only: after a python,
-#   node, php, ruby, perl, deno, bun, cp, mv, install or patch run,
-#   on the same patterns in what each file git reports changed since this lane's previous call added (the whole file when HEAD lacks it, else its
-#   `+` lines against HEAD, so a line any uncommitted edit added is judged again). State: that lane's marker in the plugin's data dir
-#   (CLAUDE_PLUGIN_DATA), else <root>/.claude/secret-scanning/ behind a `*` .gitignore.
-# Off: CC_SECRET_SCAN=off. Fails open: a timeout, a missing jq or any error but a bad pattern file allows the write.
-# Fails closed: a missing or malformed hooks/patterns.tsv, the pattern source, or a missing hooks/patterns.sh, its reader, denies every write with
-#   text to scan (the PostToolUse lane stays silent).
-# CC_SECRET_SCAN unset: the /config option cc_secret_scan decides.
-# Misses: a URL password under 6 characters or led by `$` or `{`, a URL scheme not listed, a webhook URL other than Slack's; a real value holding a
-#   placeholder word; an MCP write tool with other key names; on Bash, a command with no write target, interpreter writes and cp/mv before they
-#   land, sed/perl -i text and what cc_bash_write_chunks misses; a command that outruns the hook timeout (no per-call cap). After the fact: changed
-#   files past the eighth (MAX_BASH_EFFECTS), text past 1 MiB per file, the redaction marker, and the bash-write-effects block's misses; a file
-#   anything else changed since the lane's previous call (an IDE, a parallel agent) is read as that run's write.
+# PreToolUse on Write, Edit, MultiEdit, NotebookEdit, MCP apply_patch/create_new_file and Bash: denies new text, or a Bash heredoc or echo landing in a file, carrying a high-confidence non-placeholder secret, and a Bash write of redact.ts's marker unless CC_SECRET_REDACT is off. PostToolUse(Failure): warns on what an interpreter, cp, mv, install or patch run added.
+# Misses short or $-led URL passwords, unlisted schemes and webhooks, a real value holding a placeholder word, other MCP key names; on Bash, a command with no write target (a live key in curl -H …), interpreter and cp/mv writes before they land, sed/perl -i text, what cc_bash_write_chunks misses, a command that outruns the hook timeout; after the fact, changed files past the eighth or 1 MiB and the redaction marker, and a file anything else changed reads as the run's write. Fail-open, except a missing or malformed patterns.tsv or patterns.sh denies. Off: CC_SECRET_SCAN=off; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/scan.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -309,8 +294,7 @@ MAX_EFFECT_BYTES=1048576
       '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}' 2>/dev/null
     exit 0
   }
-  # detect <kind> <label> <flags> <ERE> — sets hit to <label> when a match of <ERE> in $text is no placeholder; a no-op once hit is set.
-  # grep needs `--`: the private-key pattern starts with dashes, which grep would read as options.
+  # detect <kind> <label> <flags> <ERE>: sets hit when a match of <ERE> in $text is no placeholder, a no-op once hit is set; grep needs `--` because the private-key pattern starts with dashes.
   detect() {
     local m opts=-oE
     [ -z "$hit" ] || return 0
@@ -323,8 +307,7 @@ MAX_EFFECT_BYTES=1048576
 $(printf '%s' "$text" | grep "$opts" -- "$4" 2>/dev/null)
 EOF_M
   }
-  # scan_for_secret <text> — the one scanner for both paths: resets hit, then sets it to the first label whose match is no placeholder.
-  # The first non-empty text loads $pat_file; an unusable one ends the run with a deny.
+  # scan_for_secret <text>: resets hit, then sets it to the first label whose match is no placeholder; the first non-empty text loads $pat_file, and an unusable one ends the run with a deny.
   scan_for_secret() {
     local k
     text=$1; hit=""
@@ -338,10 +321,7 @@ EOF_M
     done
   }
 
-  # The PostToolUse lane: the write has landed, so it warns and never denies. It reads what an interpreter, cp, mv, install or
-  # patch run changed (the bash-write-effects block), each file judged on what it added: the whole file when HEAD lacks it, else
-  # its `+` lines against HEAD. The effects are read with the old marker, then the marker is dated, on EVERY call this lane sees,
-  # a failed Bash call's PostToolUseFailure included.
+  # PostToolUse lane: the write has landed, so it warns and never denies; the effects are read with the old marker, then the marker is dated, on EVERY call, a failed Bash call included.
   if [ "$event" = PostToolUse ] || [ "$event" = PostToolUseFailure ]; then
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
     [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(cc_state_root "$cwd") || exit 0
@@ -396,9 +376,7 @@ Move each value to an environment variable or secret store before it is committe
     done <<EOF_C
 $(cc_bash_write_chunks "$cmd")
 EOF_C
-    # redact.ts masks a secret in tool output as [REDACTED:<label>] and refuses Write/Edit carrying it; through Bash, the
-    # same write-back would replace the real value on disk. With redaction off no mask is ever shown, so the text is quoted.
-    # off, 0 and false in any case, as redact.ts's switchOn reads the same variable.
+    # A Bash write of redact.ts's mask would replace the real value on disk; off, 0 and false in any case, as redact.ts's switchOn reads the same variable.
     redact=$(cc_option CC_SECRET_REDACT on | tr '[:upper:]' '[:lower:]')
     if [ "$redact" != off ] && [ "$redact" != 0 ] && [ "$redact" != false ]; then
       i=1

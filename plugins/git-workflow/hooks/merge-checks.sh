@@ -1,49 +1,7 @@
 #!/bin/bash
-# Absolute-path shebang: the fail-open guarantee must hold under a broken PATH.
-#
-# PreToolUse readiness check on `gh pr merge`. Before the merge runs it reads the pull
-# request's checks (`gh pr checks`, killed after CHECKS_TIMEOUT seconds) and returns
-# permissionDecision "ask" when any check is pending, failing or cancelled, naming those
-# checks and the off-switch. All green, no checks reported, or any error: silent, and the
-# merge proceeds.
-#
-# The failure it exists for: a session ran `gh pr merge` while CI was still running, CI
-# then failed on the merged commit, and the user had asked to wait for every check first.
-# Nothing in the finish protocol reads CI state at the moment of the merge; the command
-# is the one place that moment is visible.
-#
-# Tiering (ask, never deny): a pending or red check is usually a reason to wait, but a
-# known-flaky or non-required check is a legitimate merge, and only the user knows which.
-# The ask names the checks so that call takes one glance. In a headless run nobody answers
-# an ask, so the merge does not happen there, which is the outcome this hook wants.
-#
-# A NETWORK READ IN A HOOK, against the house rule of no network calls: CI state lives only
-# on GitHub, with no local stand-in. It is bounded (one `gh pr checks` per command, killed
-# at CHECKS_TIMEOUT, well inside the hooks.json timeout), and every outcome that is not a
-# parsed pending/failing row is silence: no gh, not logged in, no network, a timeout, no PR
-# for the branch, no checks reported.
-#
-# WHAT IT READS: `gh pr merge` at a command position (after `;` `&&` `|` `(` `$(` or a
-# wrapper such as `sudo`, `env`, `bash -c "…"`; the prefix list is no-ai-trailer.sh's),
-# outside heredoc bodies (cc_strip_heredoc_bodies all: a body fed to `bash <<EOF` is not read,
-# and every line after a `<<` it cannot place, such as one inside quotes or `${ }`, is read, so a
-# `gh pr merge` line in a multi-line quoted string after one is read as a merge). The PR is
-# the first positional argument (number, `#n`, URL or branch; never a redirection or a
-# quoted value), else the current branch's; `-R/--repo` and a `GH_REPO=`/`GH_HOST=` prefix
-# are passed through; gh runs in the payload's cwd.
-# Silent on purpose: `--help`, `--disable-auto`, and `--auto`, which hands the wait to
-# GitHub (and is what the ask suggests).
-#
-# WHAT IT DOES NOT CATCH, stated: a PR or repo held in a variable or a substitution
-# (`gh pr merge "$n"`); any `gh pr merge` after the first in one command; flags between
-# `pr` and `merge`; a merge through the API, the web UI or a push to the base branch;
-# non-required checks that `--auto` does not wait for. A `cd` inside the command does not
-# move where gh runs, so `cd ../other && gh pr merge 3` reads PR 3 of the session's repo,
-# and an `export GH_REPO=…` before it is not read; the ask names the PR, so a wrong one shows.
-#
-# CC_MERGE_CHECKS=off disables it for the session, and the ask message says so.
-# CC_MERGE_CHECKS unset: the /config option cc_merge_checks decides.
-# Fail-open: missing jq or gh, unparseable input, any internal error allows the merge.
+# merge-checks.sh — PreToolUse on `gh pr merge` at a command position: asks (never denies) when `gh pr checks` shows a pending, failing or cancelled check, naming them. Off: CC_MERGE_CHECKS=off (unset: /config option cc_merge_checks). Fails open: no jq or gh, no PR, a CHECKS_TIMEOUT kill or any error is silent.
+# Misses: a PR or repo in a variable or substitution, a second `gh pr merge` in one command, flags between `pr` and `merge`, API, web and push merges, a `cd` or `export GH_REPO=` earlier in the command; `--auto`, `--disable-auto` and `--help` pass on purpose.
+# Why, limits, history: rationale/derivations/plugin-git-workflow.md § plugins/git-workflow/hooks/merge-checks.sh
 
 set -u
 
@@ -74,10 +32,7 @@ cc_option() {
 CHECKS_TIMEOUT=5
 MAX_NAMES=5
 
-# Command position, the same anchor and wrapper tokens as no-ai-trailer.sh's GIT_WRITE_RE,
-# so the two guards agree on what runs. The tail stops at the next command delimiter
-# outside a quoted span. A span counts only where a word, a `=` or a one-letter flag opens
-# it; any other quote closes a wrapper's string (`bash -c "gh pr merge 12"`) and ends it.
+# Same anchor and wrapper tokens as no-ai-trailer.sh's GIT_WRITE_RE, so the two guards agree on what runs: change both together.
 MERGE_Q='("[^"]*"|'"'"'[^'"'"']*'"'"')'
 MERGE_C='([^[:space:];&|`()"'"'"']|[<>]&|&>)'
 MERGE_RE='(^|[;&|`()]|\$\()[[:space:]]*(([a-z_][a-z0-9_]*=[^[:space:]]*|bash|sh|zsh|dash|ksh|eval|exec|command|sudo|doas|env|nohup|timeout|nice|time|xargs|then|do|else|elif|if|while|until|-[-a-z0-9]*|[0-9]+|"|'"'"')[[:space:]]*)*([^[:space:]]*/)?gh[[:space:]]+pr[[:space:]]+merge'"([[:space:]]+(-[a-z]$MERGE_Q|$MERGE_Q|$MERGE_C)($MERGE_C|=$MERGE_Q)*)*"
@@ -227,9 +182,7 @@ open_quote() {
   esac
 }
 
-# Sets sel and repo from the words after `gh pr merge`, gh_repo and gh_host from a
-# GH_REPO=/GH_HOST= prefix. Returns 1 when the call passes silently: help, --auto,
-# --disable-auto, or a PR, repo or host this cannot resolve.
+# Sets the globals sel, repo, gh_repo and gh_host; returns 1 when the merge passes silently.
 parse_merge() {
   local w a t r i=0 n skip=""
   read -r -a w <<< "$1"
@@ -279,8 +232,7 @@ parse_merge() {
   return 0
 }
 
-# gh pr checks in <dir>, stdout only, killed after CHECKS_TIMEOUT seconds (status 1).
-# A polling watchdog rather than timeout(1), which macOS does not ship.
+# Status 1 when killed at CHECKS_TIMEOUT; a polling watchdog because macOS ships no timeout(1).
 run_checks() {
   local dir=$1 out pid i=0
   shift
@@ -300,8 +252,7 @@ run_checks() {
   return 0
 }
 
-# Names of the checks whose bucket (gh's non-TTY second column) matches, comma-joined,
-# at most MAX_NAMES of them.
+# The bucket is gh's non-TTY second column.
 names() {
   printf '%s\n' "$1" | awk -F'\t' -v re="$2" -v m="$MAX_NAMES" '
     $2 ~ re { n++; if (n <= m) s = s (s == "" ? "" : ", ") $1 }

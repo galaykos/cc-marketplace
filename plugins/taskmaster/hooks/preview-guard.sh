@@ -1,12 +1,8 @@
 #!/bin/bash
-# preview-guard.sh (PreToolUse on Artifact; payload on stdin) — asks before an .html or .htm artifact is published remotely: every time for
-#   a mockup (a preview basename, a path under taskmaster-docs/mockups, or such a docroot at or above cwd), once per session for any other.
-# Off: CC_PREVIEW_GUARD=off. Fails open: without jq it never asks, and it always exits 0.
-# CC_PREVIEW_GUARD unset: the /config option cc_preview_guard decides.
-# Misses: a session's later plain-.html publishes after its first ask, a retry of a denied one included.
-#   Asks anyway: every plain .html when the payload has no session_id; a mockup twice with ui-ux and taskmaster both installed (a plain
-#   page once: the two copies share one marker).
+# preview-guard.sh — PreToolUse on Artifact: asks before an .html/.htm artifact is published remotely, every time for a mockup (a preview basename, a path under taskmaster-docs/mockups, or such a docroot at or above cwd), once per session for any other. Off: CC_PREVIEW_GUARD=off (unset: /config option cc_preview_guard). Fails open: no jq, no ask; always exits 0.
+# Misses: a session's later plain-.html publishes after its first ask, a denied one's retry included. Asks anyway: every plain .html with no session_id; a mockup twice with ui-ux and taskmaster both installed (a plain page once: one shared marker).
 # Why, limits, history: rationale/derivations/plugin-ui-ux.md § plugins/ui-ux/hooks/preview-guard.sh
+
 # TWIN: plugins/ui-ux/hooks/preview-guard.sh is an identical copy save this line.
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.

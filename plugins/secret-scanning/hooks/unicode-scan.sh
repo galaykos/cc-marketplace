@@ -1,18 +1,6 @@
 #!/bin/bash
-# unicode-scan.sh (PostToolUse on file writes and reads, Bash included, and PostToolUseFailure on Bash; payload on stdin) — warns once per model
-#   context (a session's main thread, each subagent) and file, again only when the file's invisible characters change, never blocks,
-#   naming line and codepoint, when a file the call wrote or read holds a zero-width, bidi, soft-hyphen, mid-file BOM or Unicode tag character
-#   (a lone BOM leading a `*.log` line, or a tab-separated field of one, is a CI step's encoding and skipped);
-#   after a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also each file git reports changed since this hook's previous call.
-# Off: CC_UNICODE_SCAN=off or CC_REMIND=off. Fails open on every error path; its one-shot markers live in $TMPDIR, its one bash-effects marker in
-#   the plugin's data dir (CLAUDE_PLUGIN_DATA), else <root>/.claude/secret-scanning/ behind a `*` .gitignore.
-# CC_UNICODE_SCAN / CC_REMIND unset: the /config options cc_unicode_scan / cc_remind decide.
-# Misses: homoglyphs; intent (presence only); a file over 2 MB or not valid UTF-8; naming hits past the sixth in a file (they still pick the
-#   message and the one-shot); a file the session never touched; a character stored as a JSON backslash-u escape (a .ipynb or .json
-#   the session only read); an MCP apply_patch (no single path); on Bash, a
-#   target past the eighth, outside the project root, not an existing regular file or relative after an in-command cd, and cc_bash_write_targets' misses;
-#   after an interpreter run, changed files past the eighth (MAX_BASH_EFFECTS) and the bash-write-effects block's misses. Reads too much: a file
-#   anything else changed since this hook's previous call (an IDE, a parallel agent) is read as that run's write.
+# PostToolUse on file writes and reads, Bash included (PostToolUseFailure on Bash): warns, never blocks, once per model context and file until its invisible characters change, naming line and codepoint of a zero-width, bidi, soft-hyphen, mid-file BOM or Unicode tag character in a file the call wrote or read, or an interpreter, cp, mv, install or patch run changed.
+# Misses homoglyphs, intent, files over 2 MB or not UTF-8, naming hits past the sixth, JSON \u escapes, MCP apply_patch, Bash targets past the eighth, outside the root or after an in-command cd; reads a file anything else changed as the run's write; skips a CI log's step BOM. Fail-open. Off: CC_UNICODE_SCAN=off or CC_REMIND=off; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/unicode-scan.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -373,9 +361,7 @@ MAX_BASH_EFFECTS=8
     *) exit 0 ;;
   esac
 
-  # Interpreter writes: read the effects with the old marker, then date it, on EVERY call this hook sees (a Read too), so a
-  # file an Edit changed or a command that wrote nothing is never read as the next run's write. A failed Bash call fires
-  # PostToolUseFailure, whose envelope must name that event.
+  # Read the effects with the old marker, then mark, on EVERY call (a Read too), so an Edit's file or a no-write command is never read as the next run's write; a failed Bash call answers as PostToolUseFailure.
   # The one-shot's context: a subagent shares its parent's session_id, so agent_id tells it apart; transcript_path when no session_id.
   { IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; IFS= read -r ctx; } < <(printf '%s' "$input" \
     | jq -r '.cwd // "", .session_id // "", if .hook_event_name == "PostToolUseFailure" then .hook_event_name else "PostToolUse" end,
@@ -449,9 +435,7 @@ PY
     [ -n "$report" ] || return 0
     IFS=' ' read -r kind digest <<<"$(printf '%s' "$report" | head -1)"
     body=$(printf '%s' "$report" | tail -n +2)
-    # One warning per model context and file while the file holds the same invisible characters: each context that ingests the
-    # text is told once. Claimed only after a hit, so a clean touch keeps the file's one warning; mkdir is atomic, so one of two
-    # racing hooks reports.
+    # One warning per model context, file and set of invisible characters, claimed only after a hit so a clean touch keeps it; mkdir is atomic, so one of two racing hooks reports.
     key=$(printf '%s|%s|%s' "$ctx" "$file" "$digest" | cksum 2>/dev/null | cut -d' ' -f1)
     mark="${TMPDIR:-/tmp}/cc-unicode-$key"
     mkdir "$mark" 2>/dev/null || return 0

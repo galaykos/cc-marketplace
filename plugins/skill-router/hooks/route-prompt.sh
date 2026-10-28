@@ -1,12 +1,6 @@
 #!/bin/bash
-# route-prompt.sh — UserPromptSubmit, fails open: on any prompt but a harness frame, prints once each the low-confidence signals route.sh queued for this context;
-#   then, on the session's first work-shaped prompt that no ScheduleWakeup or CronCreate call scheduled (a /loop re-fire), the rules
-#   for judging the host's own command listing. It picks no command.
-# Off: CC_REMIND=off (every advisory nudge in this marketplace) or CC_ROUTE=off (this hook); unset, the /config options cc_remind / cc_route decide.
-# Misses: a symptom phrased without a state verb (`payment failures spiking`, `login error after the upgrade`); fires anyway on a chat sentence
-#   carrying one (`the build is slow to watch`) or a `?`-ended one naming a making verb (`what does the build script do?`); waits out
-#   a `?`-ended symptom with no making verb and no request form (`the login is broken?`). Repeats a signal on the next prompt when
-#   its state file cannot be rewritten.
+# UserPromptSubmit: on any prompt but a harness frame, prints once each the low-confidence signals route.sh queued for this context; then, on the session's first work-shaped prompt no ScheduleWakeup or CronCreate call scheduled, the rules for judging the host's command listing. It picks no command; fails open.
+# Misses a symptom without a state verb; fires on a chat sentence carrying one, or a ?-ended one naming a making verb; waits out a ?-ended symptom with no making verb or request form; repeats a signal whose state file cannot be rewritten. Off: CC_REMIND=off or CC_ROUTE=off; unset, /config.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route-prompt.sh
 MARKER_TTL_MIN=1440
 
@@ -155,9 +149,7 @@ cc_prompt_question() {
   case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
   case "$(cc_option CC_ROUTE on)" in off) exit 0 ;; esac
 
-  # A harness frame is not a human turn. The flush below ran on task notifications, hand-backs and Stop hook feedback, spending
-  # the digest where nobody judged it (45 of 65 in one measured session); skipped here, it waits for the next human prompt.
-  # The list is the shared prompt-shape block's, as in ask-ledger and code-review. Misses: a frame it does not name, which still flushes.
+  # A harness frame (the shared prompt-shape list) is not a human turn: skipped here, the flush waits for the next human prompt; a frame the list does not name still flushes.
   cc_prompt_frame "$prompt" && exit 0
 
   # Key and root as route.sh spells them (`.transcript_path // .session_id`, hashed; cc_state_root): any other spelling misses its file.
@@ -185,8 +177,7 @@ cc_prompt_question() {
   # Slash commands manage their own flow — but only AFTER the flush above ran.
   case "$prompt" in "/"*) exit 0 ;; esac
 
-  # A paste is reference, as in ask-ledger and taskmaster: its verbs are not the ask, and it no longer pushes the ask out of the head.
-  # Nothing typed beside it: the paste is the ask, read whole.
+  # A paste is reference, its verbs not the ask; with nothing typed beside it, the paste is the ask, read whole.
   scrub=$(printf '%s' "$prompt" | cc_prompt_unpaste)
   case "$scrub" in *[![:space:]]*) ;; *) scrub=$prompt ;; esac
   scrub=$(printf '%s' "$scrub" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
@@ -195,24 +186,18 @@ cc_prompt_question() {
   printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|router|route|trigger|catalog)' && exit 0
   printf '%s' "$head" | grep -qF '[skill-router]' && exit 0
 
-  # A question or a hands-off ask is not a work request (2026-10-13: the check fired on "I got a question, don't work on anything"
-  # and on `?`-ended error reports); one asking for strong-tier work outside the hands-off clause (`then fix…`, not `the deploy`),
-  # or a request form (`can you…?`), is.
+  # A question or a hands-off ask is not a work request; one asking for strong-tier work outside the hands-off clause, or a request form (`can you…?`), is.
   strong='build|create|make|add|implement|develop|write|rewrite|refactor|migrate|port|fix|debug|review|audit|design|redesign|restyle|theme|style|test|deploy|ship|optimi[sz]e|speed up|scaffold|set ?up|plan|spec|integrate|automate|investigate|500s?|regress(ed|ion)?|not working'
   cc_prompt_question "$scrub" "\b($strong)\b" && exit 0
   # One grep, three tiers: validate.sh allows four prompt greps here, so a new tier is an alternation in it, never a fifth line.
-  # A weak symptom (down, slow, broken…) counts only after a state verb: bare, it matches `scroll down` and `the meeting ran slow`.
-  # error/crash count after a weak-tier verb (`an`, `with`, `see`, `throw` added for them) or opening a sentence (`Error: …`):
-  # bare, they fired on `that error message in the log`; dropped entirely, `I'm getting an error` went silent.
+  # A weak symptom (down, slow, broken…) or error/crash counts only after a state or weak-tier verb, or error opening a sentence: bare, they match `scroll down` and `that error message in the log`.
   printf '%s' "$head" | grep -qiE "\b($strong|why is)\b|\b(is|are|was|were|been|went|going|get(s|ting)?|got|keeps?|kept|still|now|seems?|looks?|am|an|with|see(s|ing)?|saw|throw(s|ing|n)?|threw)\b[[:space:]]+([a-z]+[[:space:]]+)?\b(down|slow(er)?|broken|failing|fails|leak(s|ing)?|stuck|crash(es|ed|ing)?|errors?)\b|(^|[.!?;:][[:space:]]+)errors?\b" || exit 0
 
   # Raw session_id, not route.sh's context key: UserPromptSubmit never fires in a subagent, so no second context shares this marker.
   sid=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null)
   seen="${TMPDIR:-/tmp}/cc-route-catalog-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
   [ -e "$seen" ] && exit 0
-  # A /loop or ScheduleWakeup re-fire is answered like the slash command that set it, after the flush: the payload does not mark it,
-  # so cc_prompt_scheduled looks in the transcript for the call that scheduled it, once the check would otherwise speak.
-  # A host /loop tick is a frame, above.
+  # A /loop or ScheduleWakeup re-fire is answered like the slash command that set it; the payload does not mark it, so cc_prompt_scheduled reads the transcript, only once the check would otherwise speak.
   cc_prompt_scheduled "$prompt" "$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)" && exit 0
   # mkdir failed: anything at the path (fired, or a squatting file) suppresses; a vacant path means TMPDIR is unwritable, so deliver.
   if ! mkdir "$seen" 2>/dev/null; then

@@ -4,6 +4,10 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.32.1 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/palette-default.sh`, `hooks/preview-guard.sh`, `hooks/ui-check.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-ui-ux.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
 ## 0.32.0 — 2026-10-27
 
 - **UI work is checked in a browser before the turn ends.** A new Stop hook, `hooks/ui-check.sh`, reads the session transcript at each turn end. When a `.tsx`, `.jsx`, `.vue`, `.blade.php`, `.svelte`, `.astro`, `.html`, `.erb`, `.twig`, `.css` or `.scss` file in the project was edited (Edit, Write, MultiEdit, or a Bash `>`, `tee` or `sed -i` write) in this turn and after the last browser call, it sends the turn back once: render the changed page at 375, 768 and 1280 px wide and read the console, or say in one line why it cannot be checked in a browser. You see one line naming the files.

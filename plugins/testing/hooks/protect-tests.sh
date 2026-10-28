@@ -1,83 +1,7 @@
 #!/bin/bash
-# Absolute-path shebang not `/usr/bin/env bash`: the fail-open guarantee must hold
-# even under a stripped PATH where `env bash` exits 127.
-#
-# PreToolUse guard against FAKE GREEN: an edit that makes a test stop running rather
-# than makes the code pass. DENIES two shapes in a test file, and only in a test file:
-#
-#   1. a skip/exclusive marker being ADDED (`.skip`, `.only`, `xit(`, `xdescribe(`,
-#      `@pytest.mark.skip`, `markTestSkipped`, `$this->markTestIncomplete`, Go's
-#      `t.Skip(`, `#[ignore]`, `@Disabled`, `@Ignore`, `it.todo`, Pest's `})->skip()`,
-#      `->only()`, `->skipOn…()`, `->skipLocally()`, `->onlyOn…()`, `->todo()` and
-#      `beforeEach()->skip()`, and the paren-less Ruby/bats spellings `xit "…" do`, `skip "…"`,
-#      and `pending "…"` in a Ruby file only)
-#   2. a whole test file being emptied or deleted through Write — content that no
-#      longer contains a single test function while the file on disk did
-#
-# WHY THIS AND NOT PROSE. Skipping the failing test to get a green run is the
-# best-documented way a model reports success it did not earn, and it is invisible in
-# a summary: the suite passes, the count drops by one, nobody reads counts. Every
-# collection surveyed on 2026-09-14 ships the doctrine in prose ("never skip a test to
-# pass"); the model follows it until a test is the last thing between it and done.
-# `.only` is the same failure inverted — it does not skip one test, it skips all the
-# others, and a committed `.only` silently shrinks CI to a single case.
-#
-# WHAT IT DOES NOT CATCH, stated because the README tiers this `gate`:
-#   - A test weakened rather than skipped (an assertion deleted, an expectation
-#     loosened to `toBeTruthy`, a `try/except: pass` around the body). That is
-#     `code-architecture:drift-review`'s agent-graded territory and no regex reaches it.
-#   - A skip added through a tool this matcher does not name.
-#   - A paren-less skip whose argument is not a quoted string — `skip` alone on its own
-#     line, or `pending reason_variable`. The quote is what tells a skip declaration from
-#     `items.skip 2`, so dropping it would deny ordinary Ruby; the narrower miss is the
-#     cheaper of the two, and it is a miss, not a false deny.
-#   - A Pest skip whose argument is on the next line (`->skip()` on the line after `})` is
-#     read, in a .php file), one whose condition is an expression (`->skip($onCi)`), one after
-#     `it('x', fn () => …)`, or past a chained call whose argument holds parentheses
-#     (`->with(fn () => […])`). The matcher reads one line, and Pest's own argument shapes are
-#     what tell its skip from a Collection's `->skip($n)` — the same miss-over-false-deny trade.
-#   - A skip that was ALREADY in the file: only a newly introduced marker denies, so
-#     editing a legitimately-skipped test is never blocked.
-#   - Deleting a test file with `rm`: no guard stops a plain `rm` of a test file
-#     (destructive-guard denies only dangerous `rm` targets such as `~`, `.` and `.env`;
-#     a plain `rm` passes; a recursive one asks when git cannot restore the dir).
-#   - A marker inside a STRING LITERAL rather than in code — a meta-test asserting
-#     `expect(src).toContain("it.skip(")` denies. Deliberately not fixed: telling code
-#     from a string with a line regex is guesswork, and guessing wrong in the permissive
-#     direction is how a guard becomes decoration. The same-line reason comment clears
-#     it in one keystroke, which is the same escape every other case uses. (A marker in
-#     a PROSE comment is mostly already exempt: `// TODO: drop the it.skip below` matches
-#     the reason pattern.)
-#
-# BASH WRITES (0.11.2). The host steers file writes through Bash (`cat > f <<EOF`), which
-# a Write|Edit matcher never sees. On `Bash`, each heredoc body or echo/printf argument
-# text (the two shared blocks below) whose pipeline writes a test path is judged as a
-# Write of that path: old text is the file on disk; new text is the chunk for `>`, and
-# the file on disk plus the chunk for `>>`/`tee -a`, so an append never reads as emptying
-# the file. Chunks of one command compose per target (`> f` then `>> f`) and each target
-# is judged once on its final text. Text fed to a command that writes no file
-# (`node - <<EOF`, `pytest <<EOF`) is not read, and a Bash call with no write target exits
-# before any chunk is read. A `~/` target expands to $HOME; a relative one needs a payload
-# cwd and is skipped when the command holds a `cd`/`chdir`/`pushd` (it would resolve wrongly).
-# NOT caught on Bash: interpreter writes (python `open()`, php `file_put_contents`),
-# `cp`/`mv`/`install` of a prepared test file, `{ …; } > f` groups, a path held in a
-# variable, a here-string `<<<`, printf format substitution, `sed -i`/`perl -i` edits
-# (their replacement text is not a chunk), a second heredoc opened on one line, any
-# target after a writer's first (`tee a.test.ts b.test.ts` judges only a.test.ts),
-# emptying with no chunk text (`: > a.test.ts`, `cat other > a.test.ts`, `truncate -s0`),
-# a file written across SEVERAL calls (each call is judged alone), a relative target in a
-# command holding a `cd`, and a `>>` inside a quoted echo string (read as an append). The
-# body of `python3 - <<PY > tests/test_x.py` is judged as the file's text though the
-# script is not what lands there (the chunks block's own caveat).
-#
-# ESCAPE HATCH. A skip is sometimes right: a quarantined flake, an unimplemented
-# feature, a platform-specific case. The deny reason names the two ways through —
-# write the marker with a same-line reason comment (`// skip: flaky under CI, #1421`),
-# which this hook accepts, or set CC_PROTECT_TESTS=off for the session. The reason
-# requirement is the point: an intentional skip has one, a fake-green skip does not.
-#
-# Fail-open on every error path, missing jq included.
-# CC_PROTECT_TESTS unset: the /config option cc_protect_tests decides.
+# PreToolUse on Write/Edit/MultiEdit/NotebookEdit/apply_patch/create_new_file and Bash heredoc or echo writes to a test file: denies a newly added skip/only marker (.skip, xit, @pytest.mark.skip, t.Skip, #[ignore], Pest ->skip()…) with no same-line reason, and a Write removing every test.
+# Misses: a weakened assertion, a marker already there, rm, a skip whose argument is unquoted, an expression or on the next line, interpreter/cp/mv/sed -i writes, a target in a variable or after a cd; a marker in a string literal denies. CC_PROTECT_TESTS=off, else /config cc_protect_tests; fails open.
+# Why, limits, history: rationale/derivations/plugin-testing.md § plugins/testing/hooks/protect-tests.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
@@ -425,7 +349,6 @@ cc_strip_heredoc_bodies() {
     *) exit 0 ;;
   esac
 
-  # Test files only. A skip marker in production code is not this hook's business.
   is_test_path() {
     case "$(basename "$1")" in
       *.test.*|*.spec.*|*Test.php|*Test.java|*Test.kt|*_test.go|*_test.py|test_*.py|*_test.rb|*_spec.rb|*_test.rs|*.test.ts|*.test.tsx) return 0 ;;
@@ -436,34 +359,9 @@ cc_strip_heredoc_bodies() {
     return 1
   }
 
-  # `.skip(` and `.only(` must be anchored to a TEST identifier. Unanchored they match
-  # `list.stream().skip(1)` in Java, `items.iter().skip(2)` in Rust, and every other
-  # iterator/stream adapter of that name — languages this hook deliberately covers, so
-  # an ordinary edit to a Java or Rust test file was denied. Found by a branch review
-  # before merge. The anchored forms below still catch every real spelling
-  # (`it.skip`, `test.only`, `describe.skip`, `Scenario.only`, `it.each(...).skip`)
-  # because a test framework's skip always hangs off a test keyword. The `\b` after the
-  # keyword list is load-bearing too: `[A-Za-z]*` there let `it` match inside `iter`, so
-  # `items.iter().skip(2)` denied — the same false positive one layer down.
-  # RSpec AND minitest CALL WITHOUT PARENTHESES, which is how `xit "adds" do`,
-  # `pending "not ready"` and a bare `skip "needs db"` walked past a guard whose own header
-  # claimed Ruby coverage: every Ruby arm here required a `(`. The paren-less arms below
-  # demand a QUOTE after the keyword, because that is what separates a skip declaration
-  # from `items.skip 2` or an English word — the same reason the `.skip(` arm is anchored
-  # to a test identifier rather than left bare.
-  # Paren-less `pending "…"` is RSpec's alone, so that arm reads Ruby files only: in any file it
-  # denied a bash harness whose stub took a mode string (`stub pending 'build'`). Pest chains
-  # `->skip(`/`->only()` onto the test call, which the `.skip(` arm never matched: after `})`, or
-  # after `it(…)`/`test(…)` with no inner parenthesis, past chained calls (`->with([1, 2])`). A
-  # Collection or query builder spells both too, so `->only` needs empty parentheses and `->skip(`
-  # Pest's own argument: none, a quoted reason, a closure or a boolean literal (`->skip(2)`,
-  # `->skip(count($h))` and `->only(['id'])` stay silent). Pest's named helpers (`->skipOnCi()`,
-  # `->skipLocally()`, `->onlyOnLinux()`, `->todo()`) have no Collection twin, so any argument
-  # counts, and `beforeEach()->skip()` skips the whole file. Pest's skip message is not a reason (a
-  # same-line comment is); the shapes this misses are in the header.
-  # A chain split after `})` puts the skip on a line that OPENS with `->` (2026-10-15: it passed).
-  # That arm reads .php files only, with the same argument shapes, so `->skip(2)` on a Collection's
-  # continuation line stays silent; a scheduler's `->skip(fn () => …)` there denies.
+  # `.skip(`/`.only(` hang off a test keyword followed by \b: bare, they match a Java or Rust iterator's `.skip(1)` and `it` inside `iter`.
+  # Paren-less Ruby arms need a quote after the keyword, which tells a skip from `items.skip 2`; paren-less `pending "…"` is read in .rb files only.
+  # Pest: `->only` needs empty parens and `->skip(` Pest's own argument (none, a quoted reason, a closure, a boolean), so a Collection's `->skip(2)` stays silent; a `->`-led line is read in .php files only.
   skip_re='(\b(it|test|describe|context|suite|scenario|feature|bench|fixture|story)\b(\.[A-Za-z]+(\([^)]*\))?)*\.(skip|only|todo|failing)[[:space:]]*\(|\bx(it|describe|test|context|specify)[[:space:]]*[("'\''"]|@pytest\.mark\.skip|markTestSkipped|markTestIncomplete|\bt\.Skip(Now)?[[:space:]]*\(|#\[ignore\]|@Disabled\b|@Ignore\b|\bpending[[:space:]]*\(|\bskip[[:space:]]+["'\'']|\.skipIf[[:space:]]*\(|(\}\)|\b(it|test|describe|beforeEach)\([^()]*\))([[:space:]]*->[[:space:]]*[A-Za-z]+[[:space:]]*\([^()]*\))*[[:space:]]*->[[:space:]]*(only[[:space:]]*\([[:space:]]*\)|skip[[:space:]]*\([[:space:]]*(\)|["'\'']|fn\b|function\b|true\b|false\b)|(skip(On[A-Za-z]+|Locally)|onlyOn[A-Za-z]+|todo)[[:space:]]*\())'
   rspec_re='\bpending[[:space:]]+["'\'']'
   pest_next_re='^[[:space:]]*(->[[:space:]]*[A-Za-z]+[[:space:]]*\([^()]*\)[[:space:]]*)*->[[:space:]]*(only[[:space:]]*\([[:space:]]*\)|skip[[:space:]]*\([[:space:]]*(\)|["'\'']|fn\b|function\b|true\b|false\b)|(skip(On[A-Za-z]+|Locally)|onlyOn[A-Za-z]+|todo)[[:space:]]*\()'
@@ -473,8 +371,7 @@ cc_strip_heredoc_bodies() {
     hit=""; re=$skip_re
     case "$file" in *.rb) re="($skip_re|$rspec_re)" ;; *.php) re="($skip_re|$pest_next_re)" ;; esac
     if printf '%s' "$new" | grep -qE "$re"; then
-      # Count occurrences added vs already there. A rewrite that carries an existing
-      # marker through unchanged must not deny.
+      # Only markers beyond those already there deny: a rewrite carrying an existing marker through unchanged must not.
       n_new=$(printf '%s' "$new" | grep -oE "$re" | grep -c . || true)
       n_old=$(printf '%s' "$old" | grep -oE "$re" | grep -c . || true)
       case "$n_new" in ''|*[!0-9]*) n_new=0 ;; esac
@@ -487,11 +384,7 @@ cc_strip_heredoc_bodies() {
         fi
       fi
       if [ "$n_new" -gt "$n_old" ]; then
-        # An intentional skip carries its reason on the same line. Accept those — but
-        # judge only the ADDED marker lines. Counting every marker line in `new` denied an
-        # edit whose own new marker was properly reasoned whenever the same hunk carried a
-        # pre-existing unreasoned one through unchanged, which made the documented escape
-        # hatch fail exactly when it was used. Found by a branch review before merge.
+        # Only ADDED marker lines are judged for a same-line reason: an old unreasoned one in the hunk must not deny a reasoned new one.
         reason_re='(#|//|/\*|\*)[[:space:]]*(skip|todo|reason|why|flaky|quarantin|pending|because)|reason[[:space:]]*[:=]'
         prior="$old"
         if [ "$tool" = "Write" ] || [ -z "$old" ]; then
@@ -536,14 +429,11 @@ cc_strip_heredoc_bodies() {
     done <<EOF_C
 $(cc_bash_write_chunks "$cmd")
 EOF_C
-    # A relative target after an in-command `cd` would resolve against the wrong directory
-    # and read a kept marker as new: skip relative targets then (a miss, never a false deny).
-    # A `cd` in a heredoc body counts only where this shell may run the body (`. /dev/stdin <<EOF`).
+    # After an in-command `cd` relative targets are skipped (a miss, never a false deny); a `cd` in a heredoc body counts only where this shell may run it.
     hascd=0
     cc_strip_heredoc_bodies cd "$cmd" \
       | grep -qE '(^|[^A-Za-z0-9_./-])(cd|chdir|pushd)([^A-Za-z0-9_./-]|$)' && hascd=1
-    # Chunks of one command compose per target (`> f` then `>> f`), and each target is
-    # judged once on its final text, so a clear-then-append is not read as emptying f.
+    # Chunks compose per target (`> f` then `>> f`), each judged once on its final text, so clear-then-append is not emptying f.
     m=0; i=1
     while [ "$i" -le "$n" ]; do
       p=${ctgt[$i]}; i=$((i + 1))

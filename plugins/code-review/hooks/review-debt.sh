@@ -1,91 +1,6 @@
 #!/bin/bash
-# Absolute-path shebang (not `env bash`): the fail-open guarantee must hold even under a
-# stripped or broken PATH, where `env bash` itself exits 127.
-#
-# Review-debt nudge. ADVISORY: one line of additionalContext on a user prompt when the
-# code changed since this context's last review is big enough, or sensitive enough, that
-# an independent pass is worth asking for. It never blocks and it never reviews.
-#
-# WHY THIS EXISTS. Measured 2026-09-25 (rationale/2026-09-25-session-plugin-usage-review.md,
-# finding 7): one inline session shipped ~40 task-list items over 22 days — a second auth
-# guard, impersonation with an audit trail, invite and API tokens, encrypted credentials —
-# and dispatched ZERO reviewer agents. Its tests, PHPStan and CI were green on every item.
-# In the same weeks a sibling session's pipeline reviewers caught what those tools had
-# passed: API keys in logs, a race that overwrote a failure with "succeeded", a refusal
-# detector firing on ordinary words. That session lacked the prompt, not the tools: its
-# prompts ("proceed next recommended") carry no keyword a prompt router can match, and the
-# per-edit nudges never saw its writes (finding 1). So this measures the DIFF, not the words.
-#
-# THE RULE, per context (keyed on cksum(transcript_path)):
-#   - base: `<root>/.claude/code-review/review-base-<ctx>` holds a commit. The first prompt
-#     with no base records HEAD and says nothing — the nudge counts only what THIS context
-#     wrote, never the history it walked into.
-#   - changed = `git diff --name-only <base>` (commits since base plus the working tree),
-#     minus *.md, lockfiles, `.claude/`, `taskmaster-docs/` and generated/vendor dirs.
-#   - speak when changed >= 8 files, or >= 1 path matches the auth-surface pattern below.
-#   - ONCE PER HEAD: re-fire only after HEAD moves AND the count grew past what last fired.
-#   - SHIP PROMPTS skip the once-per-HEAD wait: a prompt whose first 400 characters outside
-#     code fences say commit, push, merge, PR or pull request is judged at once, untracked
-#     files counted too, and the line opens "Before this ships". It re-fires only when the
-#     count grew past what the last ship line said. Measured 2026-10-13: a money diff sat
-#     uncommitted when the user asked for a PR and a merge; HEAD had not moved, so the nudge
-#     stayed silent until after the merge, and the review it then prompted found a critical
-#     bug already on master.
-#   - base_f also holds the branch it was recorded on. A branch change moves the base to the
-#     commit the switch landed on (the HEAD reflog's newest `checkout:` entry, looked for only
-#     back to the old base's own entry), else to HEAD. Measured 2026-10-13: after `git switch`
-#     to a branch built on the old base, the old ancestor rule charged that branch's 162
-#     existing files to the session. The reflog point keeps a `git switch -c` plus commits made
-#     in one turn in the count, where a reset to HEAD would drop them.
-#   - a review moves the base to HEAD: an Agent/Task dispatch whose subagent_type ends in
-#     `reviewer` or sits in `security:` / `code-review:`, a Skill call of code-review:review,
-#     security:review or the host's built-in code-review / security-review, or a prompt the
-#     user typed as one of those slash commands (a typed command never reaches PostToolUse,
-#     and without this the user who ran the review this nudge asks for would be nudged again).
-#
-# WHY UserPromptSubmit, not Stop as the review table first proposed: a Stop hook reaches the
-# model only by blocking, and blocking on review debt would repeat finding 4 (a completion
-# gate blocking a correctly-waiting turn). A prompt-time line costs nothing when ignored.
-#
-# SILENT, and why:
-#   - outside a git work tree, or before the first commit — there is no diff to measure;
-#   - under an active task-runner run (`<root>/.claude/task-runner/active-run.json`): runs
-#     carry their own reviewer discipline, so each prompt there also moves the base to HEAD,
-#     or the whole run's diff would be charged to the first prompt after it;
-#   - off switches: CC_REMIND=off silences every advisory nudge in this marketplace;
-#     CC_REVIEW_NUDGE=off silences only this one.
-#     CC_REMIND / CC_REVIEW_NUDGE unset: the /config options cc_remind / cc_review_nudge decide.
-#
-# CHEAP ON THE SILENT PATH: the state root (one `git rev-parse`), HEAD (a second), the branch
-# (a `git symbolic-ref`), a stat of the run marker and two one-line reads. The diff runs at
-# most once per HEAD, except on a ship prompt, which also lists untracked files. Git runs with
-# GIT_OPTIONAL_LOCKS=0 so it never contends with the model's own `git` for index.lock.
-#
-# LIMITATION (honest scope — the four laws, see
-# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
-#   - COMMIT-DRIVEN except at a ship prompt. Between ship prompts the diff is evaluated once
-#     per HEAD, so uncommitted work is seen at the next commit or the next prompt naming a
-#     ship verb. A ship verb is matched on words, not intent: "push notifications" counts, a
-#     ship request worded without one ("land it", "/git-workflow:finish") does not, and a
-#     ship verb past 400 characters or inside a code fence is not read. Untracked files are
-#     counted only on a ship prompt.
-#   - A review is recognised by NAME, not by what it covered. A reviewer dispatched on one
-#     file moves the base past twenty; a review done outside these channels (a PR review,
-#     a manual read) is invisible and the nudge still fires.
-#   - The auth-surface pattern is a path regex: `tokens.css` (design tokens) matches it,
-#     and an auth bug in `app/Services/Billing.php` does not. It is the shared prompt-shape
-#     block's cc_prompt_auth_surface, edited there for every copy.
-#   - A base that stops being an ancestor of HEAD (rebase, amend) is reset to HEAD silently
-#     rather than diffed across branches — an amended commit's changes are lost to the count.
-#     A branch change keeps nothing from the branch left behind: switching away and back
-#     starts the count again. Without a HEAD reflog (or with the switch older than its last
-#     200 entries) the base moves to HEAD, dropping commits made on the new branch before
-#     this prompt. A base recorded before 0.33.0 holds no branch; it adopts the current one.
-#   - A stale active-run.json (a crashed run) keeps this silent until the file is removed.
-#   - Whether a nudged review was WORTH it is agent-graded; nothing here reads the verdict.
-#
-# FAIL-OPEN: missing jq/git, unreadable state, or any error exits 0 with no output.
-# State: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); the <root>/.claude/code-review/ above is only the fallback.
+# UserPromptSubmit, advisory: one line when 8+ files or an auth path changed since this context's last review (a ship prompt: at once, untracked included); a review Agent/Task/Skill call (PostToolUse) moves the base.
+# Misses: uncommitted work until a commit or ship verb; reviews by other names; a rebase or branch switch resets the count; silent while .claude/task-runner/active-run.json exists, a crashed run's stale one too. Off: CC_REMIND, CC_REVIEW_NUDGE.
 # Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/hooks/review-debt.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -231,8 +146,7 @@ cc_prompt_question() {
   case "$(cc_option CC_REVIEW_NUDGE on)" in off) exit 0 ;; esac
 
   input=$(cat)
-  # The event name is read, and inferred from the payload's shape when absent, so one
-  # missing field cannot silently disable both halves.
+  # The event is inferred from the payload's shape when absent, so one missing field cannot disable both halves.
   event=$(printf '%s' "$input" | jq -r '.hook_event_name
     // (if .tool_name then "PostToolUse" elif has("prompt") then "UserPromptSubmit" else empty end)' 2>/dev/null) || exit 0
 
@@ -283,8 +197,7 @@ cc_prompt_question() {
   dir=$(cc_plugin_state "$root" code-review)
   base_f="$dir/review-base-$ctx"
   seen_f="$dir/review-seen-$ctx"
-  # base_f is "<base commit> <branch>"; seen_f is "<last HEAD evaluated> <count that last
-  # fired> <count the last ship line named>".
+  # base_f: "<base commit> <branch>"; seen_f: "<last HEAD judged> <count that last fired> <count the last ship line named>".
   record() {
     mkdir -p "$dir" 2>/dev/null || exit 0
     [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null   # the state dir ignores itself
@@ -302,8 +215,7 @@ cc_prompt_question() {
   if [ -z "$bbranch" ]; then
     printf '%s %s\n' "$base" "$branch" > "$base_f" 2>/dev/null  # recorded before 0.33.0: adopt
   elif [ "$bbranch" != "$branch" ]; then
-    # Where the switch landed, searched only back to the old base's own entry: an older
-    # checkout predates this base, and moving the base onto it would charge history.
+    # Searched back only to the old base's own entry: an older checkout predates the base and would charge history.
     sw=$(git -C "$root" reflog -n 200 --format='%H %gs' 2>/dev/null \
       | awk -v b="$base" '$2 == "checkout:" { print $1; exit } $1 == b { exit }')
     { [ -n "$sw" ] && git -C "$root" merge-base --is-ancestor "$sw" "$head" 2>/dev/null; } || sw=$head
@@ -322,13 +234,11 @@ cc_prompt_question() {
     | grep -vE '\.md$|(^|/)\.claude/|(^|/)taskmaster-docs/|(^|/)(node_modules|vendor|dist|build|\.next|coverage|generated|__generated__)/' \
     | grep -vE '(^|/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|composer\.lock|Gemfile\.lock|Cargo\.lock|poetry\.lock|Pipfile\.lock|uv\.lock|go\.sum|bun\.lockb?|mix\.lock|flake\.lock)$')
   count=$(printf '%s\n' "$changed" | grep -c .)
-  # `auth` but not `author`: a publishing app's AuthorController is not an auth surface. The words are the prompt-shape block's
-  # cc_prompt_auth_surface; taskmaster's reminder reads the block's narrower cc_prompt_auth_ask on prompts.
+  # `auth` but not `author`; the words are the prompt-shape block's cc_prompt_auth_surface.
   auth=$(printf '%s\n' "$changed" | cc_prompt_auth_surface)
   nauth=$(printf '%s\n' "$auth" | grep -c .)
 
-  # A ship line answers to the last ship line, so a ship prompt still speaks after a plain
-  # nudge at the same count; it also raises the plain count, so the next commit stays quiet.
+  # A ship line answers to the last ship line and raises the plain count, so the next commit stays quiet.
   [ "$ship" = 1 ] && last=$shipped || last=$fired
   if { [ "$count" -ge 8 ] || [ "$nauth" -ge 1 ]; } && [ "$count" -gt "$last" ]; then
     if [ "$ship" = 1 ]; then shipped=$count; [ "$count" -gt "$fired" ] && fired=$count; else fired=$count; fi

@@ -1,6 +1,6 @@
 #!/bin/bash
-# ui-check.sh (Stop) — sends the turn back once when the session or a finished subagent edited a project UI file (Edit/Write/MultiEdit, Bash >/tee/sed -i)
-#   in this turn and after the last browser call; unsure of a browser, or asked once and declined: one line, no block. Off: CC_UI_CHECK=off|warn.
+# ui-check.sh (Stop) — sends the turn back once when the session or a finished subagent edited a project UI file (Edit/Write/MultiEdit, Bash >/tee/sed -i) in this turn and after the last browser call; unsure of a browser, or asked once and declined: one line, no block. Off: CC_UI_CHECK=off|warn.
+# Misses: a subagent's own turn (SubagentStop is not hooked), a browser it does not recognise, interpreter, cp and mv writes, Bash writes past the newest MAX_BASH_CANDIDATES commands; a browser word read as a substring counts as a check.
 # Why, limits, history: rationale/derivations/plugin-ui-ux.md § plugins/ui-ux/hooks/ui-check.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -442,10 +442,8 @@ EOF
   [ -r "$marker" ] && read -r m_ts m_state m_anchor < "$marker" 2>/dev/null
   case "$m_anchor" in '' | -) m_anchor=$m_ts ;; esac
 
-  # One line per event: time (inherited within a source when a record has none), source (m session, s<n> subagent), then U UI edit,
-  #   C Bash command that may write one, B browser call, W browser word in a command holding a heredoc, S dev-server start,
-  #   P the person's prompt, N another turn opener, F failed tool call, D0/D+/D- tool list, X bad line.
-  # Only lines that can hold one are parsed; jq compiles a regex on every test() call, so per-record checks are string checks first.
+  # Event line: time, source (m, s<n>), kind U UI edit, C Bash maybe-write, B browser, W browser word beside a heredoc, S dev server, P prompt, N other opener, F failed call, D0/D+/D- tool list, X bad line.
+  # jq compiles a regex on every test() call, so per-record checks are string checks first.
   prog="$CHECK_DEFS"'
     def uiext: ascii_downcase as $l | any($exts[]; . as $e | $l | endswith($e));
     def rootrel($cwd):
@@ -540,9 +538,7 @@ EOF
 $(printf '%s\n' "$events" | awk -F'\t' '$3 == "W" { print $4 "\t" $5 }' | tail -n "$MAX_HEREDOC_CHECKS")
 EOF
 
-  # Calls interleave by time. A bad session line silences the check (it could be the browser call); a bad subagent line drops that subagent.
-  # A browser call clears every edit before it; a turn opener clears only the session's own. Printed: availability from the tool list
-  #   (unknown without one), the last browser call, unique UI files, prompts and a dev-server start since the decline anchor, then edits newest first.
+  # A bad session line silences the check (it could be the browser call); a bad subagent line drops only that subagent.
   summary=$(printf '%s\n' "$events" | NOTCHECKS="$notchecks" ANCHOR="$m_anchor" awk -F'\t' '
     BEGIN { split(ENVIRON["NOTCHECKS"], nc, " "); for (i in nc) notcheck[nc[i]] = 1; anchor = ENVIRON["ANCHOR"] }
     $3 == "X" { if ($2 == "m") { bad = 1; exit } drop[$2] = 1; next }
@@ -617,8 +613,7 @@ EOF
   if [ "$subn" -eq "$listed_n" ]; then by=" by a subagent"
   elif [ "$subn" -gt 0 ]; then by=" ($subn by a subagent)"; fi
 
-  # After a block with no browser call since, the session declined: print, until a browser call, the person's second prompt since the
-  #   block, or a dev-server start.
+  # A block with no browser call since is a decline: print instead, until a browser call, a second prompt or a dev-server start.
   declined=0
   case "$m_state" in blocked | declined)
     later "$last_b" "$m_anchor" || [ "${pcount:-0}" -ge "$DECLINE_PROMPTS" ] || [ "$devstart" = 1 ] || declined=1 ;;

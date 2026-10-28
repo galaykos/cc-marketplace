@@ -1,8 +1,6 @@
 #!/bin/bash
-# activate.sh (SessionStart) — while a terse level is active, prints the contract block of skills/terse-output/SKILL.md, read at runtime
-#   under ${CLAUDE_PLUGIN_ROOT}, or one line naming the level when that block is unreadable; nothing otherwise. Always exits 0.
-# The level: CC_TERSE, then the level file, then the /config option cc_terse.
-# Misses: enforcement (nothing rewrites a message once emitted); a per-project level (the level file is one per machine).
+# SessionStart: while a terse level is active (CC_TERSE, then the level file, then /config cc_terse), prints the contract block of skills/terse-output/SKILL.md read at runtime under ${CLAUDE_PLUGIN_ROOT}, or one line naming the level when that block is unreadable. Always exits 0.
+# Misses enforcement (nothing rewrites a message once emitted) and a per-project level (the level file is one per machine).
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/activate.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.

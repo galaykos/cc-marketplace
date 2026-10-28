@@ -3,6 +3,11 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.11.6 — 2026-10-28
+
+### Changed
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/guard.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-database.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
 ## 0.11.5 — 2026-10-26
 
 ### Changed

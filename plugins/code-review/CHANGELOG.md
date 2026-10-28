@@ -3,6 +3,10 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.34.2 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/conventions.sh`, `hooks/density.sh`, `hooks/paths.sh`, `hooks/review-debt.sh`, `hooks/scan.sh`, `hooks/verbosity.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-code-review.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
 ## 0.34.1 — 2026-10-26
 
 - **The unreviewed-changes reminder no longer mentions per-card reviews.** It said "Per-card reviews do not cover cross-card changes" to users who never ran task-runner. It now says how many changed files have no review, the command to run and `CC_REVIEW_NUDGE=off`; an auth path reads "(touches auth: …)". When it fires is unchanged. Gate: `review-debt.test.sh` pins both texts and fails on "per-card".

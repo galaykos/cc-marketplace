@@ -3,6 +3,11 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.2 — 2026-10-28
+
+### Changed
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/compact-recovery.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-approaches.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
 ## 0.12.1 — 2026-10-26
 
 ### Changed

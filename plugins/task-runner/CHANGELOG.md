@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.49.5 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/announce.sh`, `hooks/drift.sh`, `hooks/rv-consent.sh`, `hooks/rv-observe.sh`, `hooks/scope.sh`, `hooks/spawn-cap.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-task-runner.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
 ## 0.49.4 — 2026-10-27
 
 - **One question at the end of a green run.** `/task-runner:run` step 5 no longer asks "Finish the branch now?" and leaves `/git-workflow:finish` to ask the destination again: it asks once, offering "Open a PR (Recommended)", "Merge locally" (only when the base is not the default branch), "Keep the branch" and "Stop here", then invokes `/git-workflow:finish --to <pr|merge|keep>` (git-workflow 0.13.3), which skips only its destination question. Every finish check still runs, a red suite, a critical finding or a confirmed secret still stops it, a pick finish does not allow there makes it ask again, and discard is never offered from the run. With a git-workflow older than 0.13.3 the run invokes finish without `--to`. The parked-tasks offer, the Goal exemption and the headless path are unchanged. Standing: agent-graded — no script reads the ask or the flag.

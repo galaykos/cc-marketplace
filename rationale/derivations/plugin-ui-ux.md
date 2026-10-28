@@ -224,6 +224,7 @@ Stale on the day it moved: `cc_state_root` also returns 1 for a cwd that no long
 session deleted, three levels deep, from a payload field nobody validated
 (overseer/hooks/track-read.sh:30-31 is the shape this copies).
 ```
+Editor's note (2026-10-28): the `track-read.sh:30-31` line number above is stale; the shape is the line in `plugins/overseer/hooks/track-read.sh` holding `[ -n "$cwd" ] && [ -d "$cwd" ] || exit 0`.
 
 ### The context key
 
@@ -355,3 +356,31 @@ Every rule errs toward silence: a wrong block costs the person a turn, a wrong "
 ### Cost
 
 Median over 5 runs (2026-10-27, Linux, jq 1.8.1), first stop then the repeat stop that finds its state file: 31.0 ms on a 2 MB transcript that ends in a block; 66.8 / 63.5 ms with 1,000 UI edits; 286.8 / 283.1 ms with 6,000; 227.6 / 225.4 ms on a 50 MB transcript beside 100 finished 0.5 MB subagent files, 20 of them with UI edits (105 MB in all); 7.6 ms when no UI file appears. The repeat stop saves little because reading dominates, not the walk. jq compiles a regex on every `test()` call, so per-record checks are `contains`/`endswith`, and awk passes on only the lines that can hold an event: the same 105 MB took 1,131.8 ms when every tool-call line was parsed.
+
+### Comments moved from the code (2026-10-28)
+
+Moved verbatim on 2026-10-28, with only each comment's `# ` leader and indentation removed; the file keeps a one-line form of each.
+
+The event lines:
+
+```text
+One line per event: time (inherited within a source when a record has none), source (m session, s<n> subagent), then U UI edit,
+  C Bash command that may write one, B browser call, W browser word in a command holding a heredoc, S dev-server start,
+  P the person's prompt, N another turn opener, F failed tool call, D0/D+/D- tool list, X bad line.
+Only lines that can hold one are parsed; jq compiles a regex on every test() call, so per-record checks are string checks first.
+```
+
+The summary pass:
+
+```text
+Calls interleave by time. A bad session line silences the check (it could be the browser call); a bad subagent line drops that subagent.
+A browser call clears every edit before it; a turn opener clears only the session's own. Printed: availability from the tool list
+  (unknown without one), the last browser call, unique UI files, prompts and a dev-server start since the decline anchor, then edits newest first.
+```
+
+The decline:
+
+```text
+After a block with no browser call since, the session declined: print, until a browser call, the person's second prompt since the
+  block, or a dev-server start.
+```

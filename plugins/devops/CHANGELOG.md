@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.6 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/workflow-guard.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-devops.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
 ## 0.9.5 — 2026-10-26
 
 - **The workflow guard's deny is shorter; what it denies is unchanged.** It says what was blocked and the fix in two sentences, then the file, the audit command and `CC_WORKFLOW_GUARD=off`. Gate: `workflow-audit.test.sh` pins both texts.

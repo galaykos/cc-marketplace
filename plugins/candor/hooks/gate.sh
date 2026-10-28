@@ -1,14 +1,6 @@
 #!/bin/bash
-# gate.sh (Stop, SubagentStop; payload on stdin) — refuses a turn end (Stop: JSON block on stdout; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 2, 3, 5: an incomplete
-#   registered task-runner run, a file:line resolving to nothing, a reversal after bare pushback, a naked completion claim, lockfile drift.
-# Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5);
-#   unset, each reads the /config option of its lower-cased name. Fails open: no jq, no enforcement; a clause lacking its input stands down.
-# Misses: a wrong API, flag or directory; an elided path; pushback outside its list; entries before the transcript tail; a hand-back
-#   hidden by a later user-shaped entry; a resumed agent's text whose boundary is not on disk yet; dependency lines no pattern matches.
-#   Blocks anyway: a citation into a file the turn shortened, deleted or renamed; a run record written before the run registered.
-#   Clause 4 misses a UI card with no review diff file and a range review its RV-RANGE marker over-claims; a sentinel with no start_sha owes none.
-#   It retires a closed run unchecked once HEAD moves past its gate pass, a commit made before the closing stop included.
-#   Its hold for a behavioral gate in flight reads task-runner's PID file and, on Linux, /proc: without /proc a recycled PID misreads.
+# Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 2, 3, 5: an incomplete registered task-runner run, a file:line resolving to nothing, a reversal after bare pushback, a naked completion claim, lockfile drift.
+# Misses a wrong API, flag or directory, pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5); unset, /config.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -75,7 +67,7 @@ cc_option() {
 . "$(dirname "$0")/cite.sh" 2>/dev/null
 
 INFLIGHT_TTL_MIN=180
-# Only for a running.pid with no deadline (task-runner before 0.48.0): seven built-in runners at its 1800 s suite cap run 210 minutes.
+# Only for a running.pid with no deadline: seven built-in runners at task-runner's 1800 s suite cap run 210 minutes.
 BG_PID_TTL_MIN=240
 DISCLOSURE_TAIL_LINES=200
 TRANSCRIPT_TAIL_LINES=4000
@@ -138,16 +130,14 @@ pass_note=""
 say() { printf '%s\n' "$1" >&2; notes="$notes$1
 "; }
 
-# Stop: the host shows systemMessage to the person and feeds reason to the model (probed on CLI 2.1.310). A SubagentStop
-#   systemMessage stayed in the agent's own transcript, so that event keeps exit 2.
+# Stop: the host shows systemMessage to the person and feeds reason to the model; a SubagentStop systemMessage stays in the agent's own transcript, so that event keeps exit 2.
 block_turn() { # <reason> <one plain line for the person>
   if [ "$evt" = "SubagentStop" ]; then printf '%s\n' "$1" >&2; exit 2; fi
   jq -cn --arg r "$notes$1" --arg m "$2" '{decision:"block",reason:$r,systemMessage:$m}'
   exit 0
 }
 
-# Every passing exit once clause 4 has run: a stop let through at an already-blocked HEAD still shows the person what the run owes,
-#   with no decision key, so it cannot block.
+# Every passing exit once clause 4 has run: shows the person what the run still owes, with no decision key, so it cannot block.
 pass_turn() {
   [ -z "$pass_note" ] || jq -cn --arg m "$pass_note" '{systemMessage:$m}'
   exit 0
@@ -173,15 +163,8 @@ inflight_count() {
   fi
 }
 
-# task-runner's behavioral gate run in background Bash writes bg/running.pid: its PID, the HEAD it tests and (0.48.0+) the epoch
-# second its own total ends it by. It counts as one worker while the sha is <head>, that deadline has not passed (with none, the
-# file is under BG_PID_TTL_MIN) and the gate is live; a dead gate or another HEAD is stale. No fixed hold fits both a raised
-# BEHAVIORAL_GATE_TOTAL and an older gate's 210 minutes.
-# Live, with /proc (Linux): the PID's command line names behavioral-gate.sh, or else a live process whose command line names it
-# runs from under <root>. A sandboxed run (bwrap --unshare-pid) records its own namespace's PID, which here names another process or none; the
-# host still lists the gate under its real PID. The [e] keeps the scan's own grep from matching itself.
-# Misses: without /proc (macOS, no PID namespace) liveness is kill -0, so a recycled PID at the same HEAD holds until the
-# deadline, or the file ages out; on Linux, any process naming behavioral-gate.sh from under <root> holds while that file is current.
+# bg/running.pid (PID, HEAD, optional deadline) is one worker while its sha is <head>, its deadline unpassed (none: younger than BG_PID_TTL_MIN) and live: with /proc, the PID's or else any <root> process's command line names behavioral-gate.sh (a sandbox records its own namespace's PID); [e] stops the scan's grep matching itself.
+# Misses: without /proc liveness is kill -0, so a recycled PID at the same HEAD holds until the deadline or the file ages out.
 bg_running() { # <head> -> 1 or 0
   local f="$root/.claude/task-runner/bg/running.pid" pid="" sha="" dl="" rp p
   if [ -r "$f" ]; then
@@ -228,8 +211,7 @@ run_clause() {
 
   # An abandoned run leaves its sentinel behind: a run that names its branch is enforced only on that branch.
   run_branch=$(jq -r '.branch // empty' "$sentinel" 2>/dev/null)
-  # symbolic-ref, not rev-parse --abbrev-ref: a tag named like the branch made that print heads/<branch>, a run read as another's.
-  # Exit 1 is a detached head; any other failure leaves the branch unknown, which never stands a run down.
+  # symbolic-ref, not rev-parse --abbrev-ref: a tag named like the branch prints heads/<branch>. Exit 1 is a detached head; any other failure leaves the branch unknown, which never stands a run down.
   cur_branch=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null)
   case $? in 0) cur_branch=${cur_branch#refs/heads/} ;; 1) cur_branch=HEAD ;; *) cur_branch="" ;; esac
   if [ -n "$run_branch" ] && [ -n "$cur_branch" ] && [ "$run_branch" != "$cur_branch" ]; then
@@ -291,8 +273,7 @@ run_clause() {
         run_item "UI reviews" "$(printf 'Dispatch ui-ux:ui-ux-reviewer (no other reviewer counts) for each card that changed UI files and has no ui-ux-reviewer review recorded:%s, as task-runner'"'"'s skills/task-execution/references/reviewer-routing.md (Coverage marker) describes, or record why not with scripts/review-skip.sh --card <id> --reason "<why>" (or --exempt no-reviewer-installed).' "$uicards")"
       fi
     fi
-    # A run registered by register-run.sh carries start_sha and owes one whole-range review at this HEAD; rv-observe records it from RV-RANGE.
-    # A commit after a range review owes a review of the commits since it, not the whole run again: `from` is the newest reviewed ancestor.
+    # A run with start_sha owes one whole-range review at this HEAD (rv-observe records it from RV-RANGE); after a commit, `from` is the newest reviewed ancestor, so only the commits since it are owed.
     local start_sha rf rid range_ok=0 from
     start_sha=$(jq -r '.start_sha // empty' "$sentinel" 2>/dev/null); from=$start_sha
     if [ -n "$start_sha" ] && [ -d "$rvdir" ]; then
@@ -391,8 +372,7 @@ run_clause() {
     return 0
   fi
 
-  # Mid-run and end-of-run both land here and cannot be told apart cheaply, so the message names both branches.
-  # Workers in flight: print, block nothing and write no nudge, keeping this HEAD's one block for after the last hand-back.
+  # Mid-run and end-of-run look alike, so the message names both; workers in flight: print, block nothing and write no nudge, keeping this HEAD's one block for after the last hand-back.
   local waiting
   waiting=$(inflight_count)
   case "$waiting" in '' | *[!0-9]*) waiting=0 ;; esac
@@ -577,8 +557,7 @@ clause_naked_completion() {
 }
 clause_naked_completion
 
-# Only a dependency-shaped change arms it: a version, scripts or description edit never touches a lockfile.
-# The $skip test is load-bearing, as in clauses 1-3: without it this clause re-fires on its own continuation and its escape never works.
+# Armed only by a dependency-shaped change; the $skip test is load-bearing, as in clauses 1-3, or the clause re-fires on its own continuation.
 clause_lockfile_drift() {
   [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" ] && [ "$(cc_option CC_LOCKFILE_GATE on)" != "off" ] || return 0
   if command -v git >/dev/null 2>&1 && git -C "$root" rev-parse --git-dir >/dev/null 2>&1; then
@@ -663,7 +642,6 @@ report_verdict() {
     [ "$sha_active" = "true" ] && pass_turn
   fi
 
-  # Record which clause blocked, so only that clause stands down on the continuation.
   if [ "$mode" = "block" ]; then
     mkdir -p "$state_dir" 2>/dev/null && printf '%s' "$verdict" > "$claimed" 2>/dev/null
   fi

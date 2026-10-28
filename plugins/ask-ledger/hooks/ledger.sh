@@ -1,46 +1,7 @@
 #!/bin/bash
-# Absolute-path shebang: fail-open must hold under a stripped PATH.
-#
-# UserPromptSubmit. On a work-shaped prompt (a making verb in an imperative clause — the
-# trigger candor's preamble and taskmaster's reminder share), destructure the ask into
-# the things it NAMES and keep them in a session ledger the Stop gate reads back:
-#   - quoted terms ("digimon", 'checkout total')
-#   - proper nouns not at a clause start (Laravel, React, Digimon, Stripe)
-#   - digit-letter tokens with their next word (2D sprites, 3D model, i18n)
-# The ledger is appended on every later work prompt (an "also add X" names X), deduped,
-# capped at 12 entries. It holds the names still OWED: the Stop gate removes a name once
-# a final message accounts for it, so a later prompt that names it again re-ledgers it.
-# The hook also tells the model, once per prompt that added entries, what the gate will
-# ask for at the end.
-#
-# WHY THIS EXISTS (2026-09-19, rationale/fable-distillation-2026-09-18.md §4). Six
-# headless runs asked for "Digimon themed … 2D pixel-art sprites" all drew invented
-# creatures and said nothing — no hedge, no reason, so candor's avert guard (which fires
-# on a reason being written) saw nothing. A script cannot judge whether the sprites are
-# Digimon. It can insist the model say, per named thing, whether it delivered it as
-# named, substituted it, or omitted it — and the gate can refuse a final message that
-# does not. The truth of each line is the model's word; the shape is enforced.
-#
-# A NAME THE REPO ALREADY HAS IS NOT A THING THE ASK INTRODUCES (2026-09-22). "Fix the
-# N+1 in OrderController when Laravel eager-loads Invoice and Payment relations under
-# Inertia" ledgered six entries and the Stop gate then blocked the turn until the model
-# wrote six lines about code it had been asked to REPAIR, not to deliver. Every
-# candidate is now checked against the session project's tracked tree (`git grep -qliF`,
-# `rg -qiF` when git grep errors out) and dropped when it is already there; a name the
-# repo has never heard of — Digimon, Stripe, a new library — still ledgers.
-#
-# WHAT IT DOES NOT SEE (honest scope): lowercase features ("login", "register", "a
-# library") — the ledger sees names, not nouns; a name mentioned in passing ("like
-# Stripe does") is ledgered and must be accounted for, one line, cheap; anything in a
-# fenced or inline code span, or in a paste, is ignored. The existence filter carries three residuals of
-# its own, each real: it needs a git work tree, so a session opened outside one is
-# unfiltered exactly as before; `git grep` reads TRACKED files, so a name that exists
-# only in an untracked or ignored file still ledgers; and it cannot tell a name the repo
-# has from a name the ask ADDS to what the repo has ("also add a Stripe refund flow" in
-# a repo that already mentions Stripe drops Stripe). It trades those false negatives for
-# the false positives above, which were blocking turns.
-# Off switch: CC_ASK_LEDGER=off. Fail-open.
-# CC_ASK_LEDGER unset: the /config option cc_ask_ledger decides.
+# ledger.sh — UserPromptSubmit: on a work-shaped prompt, ledgers the names it introduces (quoted 1-3 word terms, mid-clause proper nouns, digit-letter tokens) that the repo's tracked tree lacks, deduped, 12 at most, for gate.sh; says what the gate will ask. Off: CC_ASK_LEDGER=off (unset: /config option cc_ask_ledger). Fails open.
+# Misses: lowercase features, names in code spans or pastes, a name the ask adds to one the repo has; ledgers passing mentions; no filter outside a git work tree, for untracked-only names, or past 24 greps.
+# Why, limits, history: rationale/derivations/plugin-ask-ledger.md § plugins/ask-ledger/hooks/ledger.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
@@ -149,32 +110,9 @@ cc_prompt_question() {
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
   [ -n "$prompt" ] || exit 0
   case "$prompt" in /*) exit 0 ;; esac
-  # Harness-injected turns reach UserPromptSubmit as prompts: a subagent's completion
-  # notification, a Stop-hook relay, a system reminder. None is the user's ask, and a
-  # subagent report is dense with capitalised tokens (a review's "NULL", "WHERE",
-  # "FAIL") that would become ledger entries the Stop gate then demands lines for
-  # (measured 2026-09-22: twelve false names from one notification, two blocked turns).
-  # Anchored to the start: a real ask that merely QUOTES a marker mid-sentence is an ask.
-  #
-  # SUBAGENT HAND-BACKS (2026-09-25). A SendMessage report arrives as its own prompt,
-  # `Another Claude session sent a message:` then `<agent-message from="<id>">` then a
-  # `[Subagent hand-back]` frame, and none of those three was on the list. Measured in two
-  # sessions (rationale/2026-09-25-session-plugin-usage-review.md, finding 3): agent ids
-  # (`ac61f13cc0e92d08a`), their fragments (`430c`), `SubagentHandback`, `NOT`,
-  # `PopoverContent` ledgered; the gate blocked 6 turns and 32+ `<id>: as named` lines
-  # reached the user. The opening line and the tag are matched at the start; the frame
-  # marker at a line start, because the harness may put a note above it. The list is the
-  # shared prompt-shape block's cc_prompt_frame (one copy for this hook, skill-router's and
-  # code-review's); since 0.4.2 it also matches `<task-notification` carrying attributes
-  # and a host /loop tick (`# Autonomous loop …`, `# /loop tick …`).
+  # Anchored at the start: an ask that merely quotes a frame marker mid-sentence is still an ask.
   cc_prompt_frame "$prompt" && exit 0
 
-  # A PASTE IS REFERENCE, NOT THE ASK (2026-10-13: a pasted package-manager log and a
-  # pasted console dialog ledgered the host's paste id, log tokens and dialog labels, and
-  # the paste's own `update` made a question work-shaped). Each <pasted_content …> …
-  # </pasted_content …> span is cut (cc_prompt_unpaste) before the work-shape test and
-  # extraction; the ask text on the same line as either tag stays. Residual: a name that
-  # appears only inside a paste no longer ledgers.
   scrub=$(printf '%s' "$prompt" | cc_prompt_unpaste \
     | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-600 | tr 'A-Z' 'a-z')
@@ -186,24 +124,14 @@ cc_prompt_question() {
 
   ctx=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
   [ -n "$ctx" ] || exit 0
-  # A SCHEDULED RE-FIRE IS NOT A NEW ASK (2026-10-15). A /loop or ScheduleWakeup prompt comes
-  # back on a timer as plain text; the /loop that set it was a slash command this hook skips,
-  # and a model-written wakeup names the model's own words. The payload does not mark it, so
-  # the transcript is read for the call that scheduled it (cc_prompt_scheduled).
+  # A /loop or ScheduleWakeup re-fire returns as plain text the payload does not mark; only the transcript shows it.
   cc_prompt_scheduled "$prompt" "$ctx" && exit 0
   key=$(printf '%s' "$ctx" | cksum | cut -d' ' -f1)
   dir="${TMPDIR:-/tmp}/cc-ask-ledger-$key"
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-ask-ledger-*' -type d -mmin +1440 -exec rm -rf {} + 2>/dev/null
   mkdir -p "$dir" 2>/dev/null || exit 0
 
-  # A QUOTED SPAN OF FOUR OR MORE WORDS IS A PHRASE, NOT A NAME (2026-10-11: a review ask
-  # quoting "take usage without any result" ledgered the whole description and the gate
-  # blocked the turn over it). Names people quote run one to three words: "digimon",
-  # 'checkout total'.
-  # AN IN-WORD APOSTROPHE IS NOT A QUOTE (2026-10-13: "doesn't or didn't" ledgered
-  # `t or didn`). It is masked while quoted spans are found and put back inside them, so
-  # "Stripe's checkout" still ledgers as typed. Misses: the second apostrophe of
-  # rock'n'roll still opens a quote.
+  # A quoted span over three words is a phrase; an in-word apostrophe is masked so it opens no quote (rock'n'roll's second still does).
   ap=$(printf '\001')
   found=$(
     printf '%s\n' "$scrub" | sed "s/\([A-Za-z]\)'\([A-Za-z]\)/\1$ap\2/g" \
@@ -217,26 +145,14 @@ cc_prompt_question() {
             if (t ~ /^\(?[A-Z][A-Za-z0-9+#.-]{1,}[,)]?$/){ gsub(/[(),]/,"",t); print t } } } }'
   )
   stop='^(I|Claude|OK|Also|Then|Now|Please|Note|The|A|An|And|But|Or|If|It|We|You|They|He|She|This|That|These|Those|My|Our|Your|Its|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December|PR|CI|README|TODO|MVP|API|UI|UX)$'
-  # A CAPITAL I GLUED TO THE NEXT WORD is the pronoun missing a space, not a name
-  # (2026-10-07: "lets check if it works,  Iinstalled it" ledgered `Iinstalled`, and the
-  # gate blocked two later turns over it). Dropped: I before a word starting with i, an
-  # apostrophe-less contraction (Im, Ive), or one of the words that most often follow I.
-  # Names that merely start with I (Inertia, Ionic, Iran) keep their shape and still
-  # ledger; so does a glued I before a word not listed here (`Iwrote` goes, `Iforked` stays).
+  # A capital I glued to a listed word is the pronoun missing a space; Inertia and an unlisted `Iforked` still ledger.
   glued='^I(i[a-z]+|m|d|ve|ll|am|was|have|had|did|got|saw|see|know|think|guess|mean|want|wanted|need|needed|tried|added|fixed|made|used|changed|updated|created|wrote|just|also|already|like|hope|can|will|would|could|should)$'
   printf '%s\n' "$found" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -vE '^$' | grep -vE "$stop" | grep -vE "$glued" \
     | awk '{ k=tolower($0); if (!(k in s)) { s[k]=1; print } }' \
     | awk '{ a[NR]=$0 } END { for (i=1;i<=NR;i++){ keep=1; for (j=1;j<=NR;j++) if (i!=j && length(a[j])>length(a[i]) && index(tolower(a[j]), tolower(a[i]))) keep=0; if (keep) print a[i] } }' > "$dir/new" 2>/dev/null
   [ -s "$dir/new" ] || exit 0
 
-  # DROP WHAT THE REPO ALREADY HAS. Scoped to the git work tree of the payload cwd: no
-  # work tree, no filter (fail-open — the pre-2026-09-22 behaviour). `git grep` exits 0
-  # on a hit, 1 on a clean miss, >1 on an error (bare repo, no index), and only that
-  # last case falls through to rg, so an unmatched name is never re-searched twice.
-  # BOUNDED AT 24 GREPS, and candidates past that pass UNFILTERED — the honest residual
-  # of a bound inside a 5-second hook. 24 is twice the ledger's own 12-name cap so a
-  # prompt whose first names are all pre-existing still gets its later ones checked;
-  # measured 2026-09-22, 12 tree-wide greps on this marketplace cost 0.32 s.
+  # Drop what the repo has. 24 greps at most (twice the 12-name cap), inside a 5-second hook; later candidates pass unfiltered.
   root=""
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null)
@@ -246,10 +162,7 @@ cc_prompt_question() {
       [ -n "$cand" ] || continue
       if [ "$scanned" -lt 24 ]; then
         scanned=$((scanned + 1))
-        # -i: the ask writes a name in prose ("Laravel", "Payment") and the repo writes
-        # it as a slug, a column or a class (`laravel/framework`, `payments`). Case is
-        # not the signal for "this already exists here", and a case-sensitive miss put
-        # `Laravel` back in the ledger of a Laravel project.
+        # -i: the repo spells a name as a slug, column or class (`laravel/framework`, `payments`). Status >1 is an error and only that falls to rg.
         git -C "$root" grep -qliF -- "$cand" >/dev/null 2>&1
         case $? in
           0) continue ;;

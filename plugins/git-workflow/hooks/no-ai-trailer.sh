@@ -1,73 +1,14 @@
 #!/bin/bash
-# Absolute-path shebang: the fail-open guarantee must hold under a broken PATH.
-#
-# PreToolUse guard against AI ATTRIBUTION in git history. It denies a `git
-# commit` / `git merge` / `git tag` / `gh pr create|merge` / `gh release` whose
-# message carries a `Co-Authored-By: Claude …` trailer or a "Generated with
-# Claude Code" line, and a Write/Edit that plants the same text into a git
-# message file (`COMMIT_EDITMSG`, `MERGE_MSG`, anything under `.git/`).
-#
-# The failure it exists for: the host setting `attribution.commit: ""` in
-# ~/.claude/settings.json — or `"attribution": false` (2.1.281+; 2.1.280 skips the
-# whole file that holds it, this plugin's enable included) — is honoured by the host's OWN trailer
-# injection and by nothing else. The model still writes the trailer from habit — observed on
-# Claude Code 2.1.266 on 2026-09-09 with the setting present since 2026-09-03 —
-# and prose in a skill ("never add AI attribution", the since-dropped terse-commit) did not stop
-# it. A rule with no reader is recorded, not enforced; this is the reader.
-#
-# Tiering (deny, never ask): the trailer is never what the user wants when they
-# installed this, the fix is mechanical (drop the lines, re-run), and an `ask`
-# would hand the human the same click the setting was supposed to remove.
-#
-# What it does NOT catch, stated: a message read from a file the model wrote
-# with a tool this hook is not matched on, `git commit -F` on a pre-existing
-# file, a trailer added by `git config trailer.*` or a `prepare-commit-msg` hook
-# in the repo, a rewrite via `git filter-repo`, and any commit made outside the
-# session. Silence means "no known shape matched", not "history is clean".
-#
-# The one false deny it keeps on purpose: a commit whose own PROSE quotes a full
-# trailer line verbatim, address included, is denied. That text really does enter
-# git history, and a later `git log | grep` audit would flag it either way. Paraphrase
-# it, or use CLAUDE_AI_TRAILER=allow for that one command. Measured identical on the
-# pre-2026-09-15 guard, so it is inherent to matching text and not a new cost.
-#
-# CLAUDE_AI_TRAILER, read from the hook's own environment:
-#   unset   deny, as above
-#   allow   disabled — for a user who WANTS the trailer (then also clear the
-#           host setting; this hook and that setting agree by default)
-#
-# Fail-open by construction: missing jq, unparseable input, any internal error
-# allows the call. A guard that breaks the session gets uninstalled.
-#
-# CLI mode for tests and manual checks:
-#   no-ai-trailer.sh --check '<command>'   exit 0 allow, exit 2 deny
+# no-ai-trailer.sh — PreToolUse: denies a git commit/merge/tag/notes/rebase/cherry-pick/am or gh pr/release/repo create/merge/edit/comment at a command position whose text holds a `Co-Authored-By: Claude …` trailer or a "Generated with Claude Code" line, and a Write/Edit planting one in a git message file. Off: CLAUDE_AI_TRAILER=allow for that one command — or for good, by a user who wants the trailer. Fails open. `--check '<command>'`: exit 0 allow, 2 deny.
+# Misses: a message file written by an unmatched tool, `git commit -F` on an existing file, `git config trailer.*` or prepare-commit-msg trailers, filter-repo rewrites, commits outside the session. Denies on purpose: prose quoting a full trailer line, and a `(` in quoted text before one.
+# Why, limits, history: rationale/derivations/plugin-git-workflow.md § plugins/git-workflow/hooks/no-ai-trailer.sh
 
 set -u
 
-# grep reads one line at a time, so `.*` never crosses a newline here.
-# LC_ALL=C: the emoji is matched as a byte sequence, locale-independent.
+# LC_ALL=C matches the emoji as bytes; grep reads line by line, so `.*` never crosses a newline.
 export LC_ALL=C
 TRAILER_RE='co-authored-by:.*(claude|anthropic)|generated with \[?claude code|🤖 generated with'
-# The binary may be spelled with a path. `/usr/bin/git commit`, `./bin/git commit`,
-# `~/bin/git commit` and `/opt/homebrew/bin/gh pr create` are all ordinary invocations
-# and all bypassed the command-position anchor, which lists no `/`. The old loose prefix
-# caught them by accident (a `/` satisfies `[^a-z0-9_-]`), so tightening the anchor
-# turned the guard OFF for the most obvious wrapper there is — spelling out the path.
-# The optional prefix must end in `/`, so `/usr/share/digit commit` still does not match.
-# Between `git` and the write verb, ANY global option may appear — not just -c/-C.
-# `git --git-dir=… commit`, `git --work-tree … commit`, `git --no-pager commit` and
-# `git -P commit` all reach a real commit, and every one of them was ALLOWED by this
-# guard until 2026-09-15. It was never caught because the old loose `[^a-z0-9_-]`
-# prefix matched the `.git` inside `--git-dir=/repo/.git commit` — the right verdict
-# for the wrong reason, which survived only while the path happened to end in `.git`.
-# The option run therefore accepts a dash token, a path-like token (a separated value
-# for --git-dir/--work-tree/-C) and an assignment token (the value of -c). It does NOT
-# accept a bare word, so `git log | grep commit` stays allowed. Measured both
-# directions by fixture in scripts/__tests__/no-ai-trailer.test.sh — no count is
-# recorded here on purpose. The one that used to sit here was copied from a throwaway
-# corpus instead of read off the harness, and a second copy of any total is the
-# stale-number failure this repo keeps paying for: the harness's figure changes with
-# every fixture added, and only the harness can state it. Run it and read its total.
+# A path prefix must end in `/`; the option run between git and the verb takes dash, path-like and assignment tokens, never a bare word (`git log | grep commit` passes).
 GIT_WRITE_RE='(^|[;&|`()]|\$\()[[:space:]]*(([a-z_][a-z0-9_]*=[^[:space:]]*|bash|sh|zsh|dash|ksh|eval|exec|command|sudo|doas|env|nohup|timeout|nice|time|xargs|then|do|else|elif|if|while|until|-[-a-z0-9]*|[0-9]+|"|'"'"')[[:space:]]*)*(([^[:space:]]*/)?git([[:space:]]+(-[^[:space:]]*|[/.~][^[:space:]]*|[^[:space:]]*=[^[:space:]]*))*[[:space:]]+(commit|merge|tag|notes|rebase|cherry-pick|am)|([^[:space:]]*/)?gh[[:space:]]+(pr|release|repo)[[:space:]]+(create|merge|edit|comment))([[:space:]]|$)'
 
 lc() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
@@ -76,26 +17,7 @@ lc() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 classify_command() {
   local c; c=$(lc "$1")
   printf '%s' "$c" | grep -qE "$TRAILER_RE" || return 0
-  # THE VERB MUST BE AT A COMMAND POSITION. The prefix used to be `[^a-z0-9_-]`, which
-  # a plain space satisfies — so any command whose TEXT merely mentioned both the
-  # trailer and the words "git commit" was denied though no git ran: a heredoc writing
-  # a JSON fixture, a grep for the trailer, an audit script quoting it. Measured
-  # 2026-09-15, when this guard denied an audit agent for building its own payload.
-  #
-  # ONE OF THOSE THREE IS ONLY HALF FIXED, and saying so is cheaper than pretending:
-  # `(` is a command delimiter, so a `(` ANYWHERE in the text — including inside a
-  # quoted string — restarts command position. `echo "see (git commit -m '<trailer>')"`
-  # is still denied. The tempting fix, dropping `"`/`'` from the prefix tokens, was
-  # tested on 2026-09-15 and is wrong twice over: it opens `bash -c "git commit …"`,
-  # `sh -c`, and `eval "…"` as bypasses, and it does not even clear the false positive,
-  # because the `(` delimiter matches with or without a quote token. Telling the truth
-  # about a residual beats trading a DENY guard's teeth for it. Paraphrase the line,
-  # or set CLAUDE_AI_TRAILER=allow for that one command.
-  # Newlines separate commands too, so normalise them into the delimiter class. The
-  # keyword/assignment prefix is not decoration: without it `if git commit`,
-  # `; do git commit`, `sudo git commit` and `VAR=1 git commit` all escaped, which
-  # the old loose prefix did catch. Each of those four shapes has its own fixture —
-  # the claim said "verified by fixture" for eight days before any of them did.
+  # Keep the quote tokens in GIT_WRITE_RE's prefix: dropping them opens `bash -c "git commit …"` and `eval` as bypasses and leaves the `(` false deny.
   printf '%s' "$c" | tr '\n' ';' | grep -qE "$GIT_WRITE_RE" || return 0
   return 1
 }

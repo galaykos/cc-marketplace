@@ -1,32 +1,8 @@
-# Shared path scoping and the comment classifier for comment-discipline's two file guards (scan.sh, density.sh).
-# Not executable and has no shebang: it is only ever sourced.
-#
-# WHY THIS EXISTS. Both guards skip `*/.claude/*` — meant to exempt the Claude
-# configuration directory, whose contents nobody edits for readability. The pattern
-# also matched every source file inside a git worktree, because this marketplace's own
-# skills place worktrees at `.claude/worktrees/<branch>`: `worktree-isolation` says so,
-# and `track-orchestration/references/algorithm.md` literally runs
-# `git worktree add .claude/worktrees/<run-branch>-track-<slug>`. So the parallel-track
-# execution path wrote all of its code into the one directory the comment guard was
-# hardcoded to ignore, and a 73-file run drew not a single warning — one of two
-# independent reasons that guard was silent (the other being that scan.sh detects
-# comment KINDS, which is what density.sh was added to complement).
-#
-# The fix is scoping, not deleting the exemption: `.claude/settings.json` should still
-# be exempt when it sits in a worktree. So the exclusion test runs against a LOGICAL
-# path with any worktree prefix stripped — inside a worktree, a file is judged by where
-# it sits in the checkout, exactly as the same file would be judged in the main tree.
-#
-# LIMITATION (honest scope): the `.claude/worktrees/<name>/` shape is a convention this
-# marketplace states, not one git enforces. A worktree placed anywhere else was never
-# excluded and is unaffected; a worktree placed at `.claude/wt/<name>` would still be
-# skipped, and nothing here can detect that without probing the filesystem for a `.git`
-# file on every edit, which is a cost this hook does not want on its hot path.
+# Sourced, never run (no shebang): path scoping on the worktree-stripped logical path, the governed-file list and the comment classifier that scan.sh and density.sh share.
+# Misses: a worktree outside .claude/worktrees/<name>/ keeps its full path, so one at .claude/wt/<name> is still exempt; probing every edit for a .git file costs too much.
+# Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/hooks/paths.sh
 
-# cd_logical_path <path> — prints the path with every leading
-# `…/.claude/worktrees/<name>/` segment removed, so exclusion patterns see the
-# checkout-relative shape. Loops: a worktree checked out inside a worktree is
-# unusual but the nesting is what the pattern would otherwise trip on.
+# cd_logical_path <path> prints <path> with every leading …/.claude/worktrees/<name>/ segment removed, nested ones too.
 cd_logical_path() {
   local p="$1" rest
   while :; do
@@ -271,8 +247,7 @@ cd_resolve() {
 
 cd_bash_target() { cd_resolve "$@" && printf '%s\n' "$cd_path"; }
 
-# The files an interpreter, cp, mv, install or patch run changed come from cc_bash_write_effects, pasted in each hook because it
-# runs before this file is sourced. cd_effect_files <effects> <targets> <cwd> <hascd> prints each governed one no target resolves to.
+# cd_effect_files <effects> <targets> <cwd> <hascd>: each governed file cc_bash_write_effects (pasted per hook, it runs before this is sourced) listed that no target resolves to.
 cd_effect_files() {
   local f t seen="
 "
@@ -292,8 +267,7 @@ $1
 EOF_F
 }
 
-# cd_effect_added <root> <file> prints what a run added to <file>, nothing past 1 MiB: the whole file when HEAD lacks it, else the
-# `+` lines of `git diff -U0 HEAD`, a \037 line between hunks. The text before the run is gone, so any change uncommitted since HEAD reads as added.
+# cd_effect_added <root> <file>: all of a file HEAD lacks, else git diff -U0 HEAD's + lines (\037 between hunks), so uncommitted edits count; none past 1 MiB.
 cd_effect_added() {
   local rel="${2#"$1"/}" size
   size=$(wc -c < "$2" 2>/dev/null) && [ $((size)) -le 1048576 ] || return 0

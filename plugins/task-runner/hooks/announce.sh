@@ -1,47 +1,8 @@
 #!/bin/bash
-# Absolute-path shebang (not `/usr/bin/env bash`): the fail-open guarantee must hold
-# under a stripped or broken PATH.
-#
-# SessionStart, matcher `startup|resume|clear`. Says ONE line when this project has a
-# REGISTERED task-runner run on disk, so a session that opens cold already knows the
-# run exists before it does anything else.
-#
-# THE GAP IT CLOSES. `.claude/task-runner/active-run.json` survives the session that
-# wrote it; the model's knowledge of it does not. candor's Stop gate (clause 4) reads
-# that sentinel and refuses a clean stop until the run is closed, so a fresh session
-# that has never heard of the run meets the block at the END of its first turn with no
-# idea what it is about — and the cheapest-looking escape is deleting the sentinel of a
-# run that is still live. skill-router's compact-capsule.sh covers the same files after
-# a COMPACTION (matcher `compact`); this covers the cold session, and the two matchers
-# do not overlap, so a project with both installed hears it once.
-#
-# WHAT IT READS, all three pure reads, nothing is written, from the project root (the
-# state-root block below; a session started in a subdirectory still finds the run):
-#   .claude/task-runner/active-run.json  slug, branch, index_path (run.md step 1)
-#   .claude/cc-phase.json                phase and owner, when a phase is declared
-#   <index_path>                         the card table's status column, for the count
-#
-# STANDING: advisory. SessionStart `additionalContext` informs a turn; it cannot block
-# one, and nothing checks that the session acts on it. The teeth for an unclosed run
-# are candor's Stop gate, not this line.
-#
-# HONEST LIMITATIONS, all four real:
-#   1. It cannot tell a LIVE run from an abandoned one. There is no TTL on the sentinel
-#      and this hook adds none: it reports the branch the run registered so a reader can
-#      see at a glance whether the run belongs to the tree in front of them, and leaves
-#      the judgement there.
-#   2. The card count is the INDEX's bookkeeping, not the work. A row is "remaining"
-#      when its status cell does not begin done/parked/skipped, so a run that never
-#      updated its index reads as zero done, and a card marked done by hand reads as
-#      done. It counts what was written down.
-#   3. It parses the `| NN | … | status |` table task-cards writes. An index in some
-#      other shape yields no counts and the line still names slug and branch.
-#   4. Matcher-scoped to startup|resume|clear. A run registered DURING a session is
-#      never announced in that session — the session that registered it knows.
-#
-# Off switch: CC_REMIND=off (every reminder in this marketplace). Fail-open on missing
-# jq, malformed payload, an unreadable sentinel or an unreadable index.
-# CC_REMIND unset: the /config option cc_remind decides.
+# SessionStart (startup|resume|clear): one advisory line naming a registered run at the project root (slug, branch, open cards, phase), so a cold session knows it before candor's Stop gate refuses a clean stop.
+# Misses: a live run from an abandoned one (no TTL), work the index's status column does not record, an index without `| NN |` rows (no count), a run registered this session. CC_REMIND=off, else /config cc_remind; fails open.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/announce.sh
+
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
 # cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
@@ -129,8 +90,7 @@ cc_option() {
     [ -n "$p" ] && phase=", phase \`$p\`${o:+ set by $o}"
   fi
 
-  # symbolic-ref, not --abbrev-ref: a tag with the branch's name made that print `heads/<branch>`,
-  # read as another branch. Exit 1 is a detached head; any other failure is never compared.
+  # symbolic-ref, not --abbrev-ref: a tag named like the branch makes that print heads/<branch>. Exit 1 is a detached HEAD; other failures are never compared.
   here=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null)
   case $? in 0) here=${here#refs/heads/} ;; 1) here=HEAD ;; *) here="" ;; esac
   elsewhere=""

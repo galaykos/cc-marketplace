@@ -1,7 +1,5 @@
-# plugins-dir.sh — sourced, never run, by route.sh, prime.sh and subagent-skills.sh: resolves the installed-plugins root from CLAUDE_PLUGIN_ROOT
-#   under a flat (<plugins>/<plugin>) or versioned (<marketplace>/<plugin>/<version>) layout, and which plugins there are installed and enabled.
-# Misses: managed-policy settings (a plugin enabled only there is filtered out once another layer enables any plugin); pr_plugin_root's
-#   version is the highest it can order, not necessarily the one Claude Code loaded.
+# plugins-dir.sh — sourced, never run, by route.sh, prime.sh and subagent-skills.sh: resolves the installed-plugins root from CLAUDE_PLUGIN_ROOT under a flat (<plugins>/<plugin>) or versioned (<marketplace>/<plugin>/<version>) layout, and which plugins there are installed and enabled.
+# Misses managed-policy settings (a plugin enabled only there is filtered out once another layer enables any plugin); pr_plugin_root's version is the highest it can order, not necessarily the one Claude Code loaded.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/plugins-dir.sh
 
 # Sets PLUGINS_DIR (empty when undeterminable) and PLUGIN_LAYOUT (flat|versioned).

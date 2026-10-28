@@ -253,6 +253,7 @@ WHAT IT DOES NOT CATCH:
 ESCAPE: `# cwd-mkdir-ok: <reason>` anywhere in the hook. A reason that earns it says
 why resurrecting the directory is correct for that hook, not that the path is short.
 ```
+Editor's note (2026-10-28): the `track-read.sh:30-31` line number above is stale; the shape is the line in `plugins/overseer/hooks/track-read.sh` holding `[ -n "$cwd" ] && [ -d "$cwd" ] || exit 0`.
 
 ### pc_state_root
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.2 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/announce.sh`, `hooks/track-read.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-overseer.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
 ## 0.7.1 — 2026-10-26
 
 - **Acceptance can record a suite run that already passed instead of running it again.** `references/acceptance.md` Protocol step 1: only when the brief's verify set is one command and the milestone branch HEAD has a fresh receipt for exactly it (git-workflow's `scripts/receipt-fresh.sh --name suite --cmd "<it>"` or task-runner's `scripts/check-receipt.sh check --name suite --cmd "<it>"` prints `fresh:`) may the receipt's log file be the `tests` evidence; otherwise the verify set runs as before, one file with every tail. Standing: recorded — `program.sh accept` does not check where the `tests` file came from.

@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.10.3 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/activate.sh`, `hooks/avert.sh`, `hooks/cite.sh`, `hooks/gate.sh`, `hooks/mode.sh`, `hooks/preamble.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-candor.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
 ## 0.10.2 — 2026-10-26
 
 - **A task-runner run that cannot close lists everything it still owes in one block.** With a gate pass for HEAD, the run clause used to stop at the first missing record, so a run missing k kinds (the check that a test fails without the change, card reviews, the UI review, the whole-diff review, the behavioral-gate verdict, the red-team panel, a closing report that names its skips) took k blocks to learn them, and after the first block at a HEAD the rest only printed. It now runs every check it ran before, in the same order, and blocks once: "Not finished: N things must be done before the task-runner run <slug> can close:", then one action line per item. Which stops block, the one block per HEAD, the wait for workers in flight and every pass condition are unchanged. A later `Stop` at that HEAD that still owes items still passes, and now also prints `{"systemMessage":"candor let the turn end, but the task-runner run <slug> still owes N things: …"}` (no `decision` key, so it cannot block) instead of only stderr nobody saw. Pinned by `scripts/smoke/completion-gate-hook-tests.sh` "k=4 missing kinds -> one block …", "the one block lists all 4 missing kinds", "a later stop at the blocked HEAD that still owes items passes, and tells the person what is owed" and "all 4 supplied after the one block -> the next stop passes, silent".

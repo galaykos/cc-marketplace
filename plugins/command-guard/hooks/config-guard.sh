@@ -1,11 +1,6 @@
 #!/bin/bash
-# config-guard.sh (PreToolUse on file writes and Bash; payload on stdin) — asks, never denies, before a write to an existing settings, hooks,
-#   hook-script, plugin-manifest or lint/test config file (config_kind); on Bash, the first such target of the first eight. Silent in a marketplace repository.
-# Off: CC_CONFIG_GUARD=off, or CLAUDE_DESTRUCTIVE_GUARD=off or deny-only (this hook is the plugin's other ask tier). Fails open on every error path.
-# CC_CONFIG_GUARD / CLAUDE_DESTRUCTIVE_GUARD unset: the /config options cc_config_guard / claude_destructive_guard decide.
-# Misses: a file config_kind does not name; whether an edit weakens anything (it reads the path, not the diff); a file that does not exist yet;
-#   an MCP apply_patch (no single path); on Bash, writes the bash-write-targets block below does not report, targets past the eighth, a relative
-#   target after an in-command cd (resolved against the payload cwd instead), and `rm` of a config (destructive-guard judges only `rm -r` and `.env`, so a plain `rm` passes both).
+# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest or lint/test config (config_kind); on Bash, the first such target of the first eight. Silent in a marketplace repository.
+# Misses unlisted files, what the edit changes, new files, MCP apply_patch, Bash writes the targets block misses or past the eighth, a target after an in-command cd, a plain rm. Fail-open. Off: CC_CONFIG_GUARD=off or CLAUDE_DESTRUCTIVE_GUARD=off|deny-only; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/config-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.

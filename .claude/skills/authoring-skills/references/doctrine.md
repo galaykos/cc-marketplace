@@ -58,7 +58,7 @@ the teeth table's own two copies), in three mutually unaware vocabularies:
   `LIMITATION (honest scope, …)` in `taskmaster/scripts/spec-ledger-lint.sh`,
   bare `LIMITATION:` in `goal-ledger-check.sh`,
   `LIMITATION (this is a DENYLIST…)` in `verify-teeth-lint.sh`, and
-  `COVERAGE LIMIT (honest scope)` in `task-runner/hooks/scope.sh`;
+  the `Misses:` header line in `task-runner/hooks/scope.sh`;
 - a named-residual heading — `Residual (named)` in
   `task-runner/skills/task-execution/references/negative-control.md`,
   "The residual is named, not hidden" in `task-runner/skills/behavioral-gate/`

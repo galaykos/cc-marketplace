@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.2 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/config-guard.sh`, `hooks/destructive-guard.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-command-guard.md, which an install does not contain. Every hook parses to the same code as before (comments ignored), except `GUARD_VERSION` in `hooks/destructive-guard.sh`, now 0.9.2 so `--version` reports the version this plugin ships.
+
 ## 0.9.1 — 2026-10-26
 
 - **Shorter deny and ask messages; what is denied, asked or allowed is unchanged.** Each message now says what was blocked or what to confirm, the alternative, and one way out. A deny still says not to retry the command in another form; for the user it names the narrow exception, a regex line in `.claude/destructive-guard-allow`, instead of turning the whole guard off. The `cd` deny ends "then re-issue the corrected command"; config-guard asks "Confirm this is a real config change, not a way around a failing check." Gate: `destructive-guard.test.sh` and `config-guard.test.sh` pin the new texts; every earlier verdict case passes unchanged.

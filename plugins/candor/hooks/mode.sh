@@ -1,9 +1,6 @@
 #!/bin/bash
-# mode.sh (UserPromptSubmit; payload on stdin) — switches the terse level on `/candor:level <level>` or a narrow natural-language request,
-#   writing the level file; while a level is active, adds one budget line to each other prompt. Advisory; fails open; always exits 0.
-# The level: CC_TERSE, then the level file, then the /config option cc_terse.
-# Misses: a switch phrased outside its few patterns (the slash command is the reliable path); the budget line after a prompt its
-#   negation or question guard stops.
+# UserPromptSubmit: switches the terse level (CC_TERSE, then the level file, then /config cc_terse) on `/candor:level <level>` or a narrow natural-language request, writing the level file; while a level is active, adds one budget line to each other prompt. Advisory; fails open; exits 0.
+# Misses a switch phrased outside its few patterns (the slash command is the reliable path), and the budget line after a prompt its negation or question guard stops.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/mode.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.

@@ -1,13 +1,5 @@
-# cite.sh — sourced, never run, by hooks/gate.sh (clause 1) and scripts/candor-scan.sh (/candor:check): one citation lookup, so the
-#   report and the gate cannot disagree on what resolves. Defines functions only.
-# cite_extract: filter; prints each file:line in stdin once, sorted. URLs go first (a.php:80 in one is a port); the extension starts with
-#   a letter, so v1.2.3:4 and 10:30 never match; a leading / is kept; a host before :<port> (.localhost, .test, .local, .internal,
-#   .example, .invalid, .lan and common public TLDs) is no file, and a bare localhost:8000 has no extension; an elided path is skipped.
-# cite_miss <file:line> <root> <cwd>: prints why the citation does not resolve — no file of that basename where it searched, or a line
-#   past the end — and nothing when it resolves or cannot be decided: a path not found whose basename is not unique, or exists only
-#   under <root>'s node_modules or vendor (6 deep). A path is tried from <cwd>, then <root>, then as a suffix, then by basename (8 deep).
-# Misses: a file whose extension is a host name (.env.local:3) is never checked; a name only under dist, build or .venv, or past either
-#   depth cap, reads as missing; a wrong line in a basename a dependency also has passes; a wrong directory with a unique basename passes.
+# cite.sh — sourced, never run, by hooks/gate.sh (clause 1) and scripts/candor-scan.sh: one citation lookup. cite_extract: stdin filter printing each file:line once, sorted, with URLs, versions, times, host:port and elided paths dropped.
+# cite_miss <file:line> <root> <cwd>: prints why a citation does not resolve, nothing when it does or cannot be decided. Misses a name like .env.local:3, a file only under dist, build or .venv or past the depth caps (read as missing), a wrong line in a shared basename, a wrong directory with a unique one.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/cite.sh
 
 cite_extract() {
@@ -38,7 +30,7 @@ cite_miss() {
     m=$(cite_find "$root" -name "$b" | head -2)
     n=$(printf '%s\n' "$m" | grep -c .)
     if [ "$n" -eq 0 ]; then
-      # Subagents citing a dependency were blocked as inventing it: a basename only there is real but undecidable.
+      # A basename found only under node_modules or vendor is real but undecidable.
       [ -n "$(find "$root/node_modules" "$root/vendor" -maxdepth 6 -name "$b" -print -quit 2>/dev/null)" ] && return 0
       printf 'no file named %s found under %s (8 deep; node_modules and vendor 6 deep; dist, build, .venv, .git not searched)\n' "$b" "$root"
       return 0

@@ -1,6 +1,6 @@
 {
   "name": "all-plugins",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Installs every leaf plugin of this marketplace but opt-in prompt-coach at one scope (/all-plugins:install asks local or project once when --scope is absent; the script alone defaults to local), with --budget also raises skillListingBudgetFraction in that scope's settings so the whole skill listing is sent instead of overflowing the default budget (~6x at 200k), and undoes both — one script with an exit code (0 done, 1 a plugin failed, 2 marketplace not added), via /all-plugins:install and /all-plugins:uninstall or straight from the marketplace clone. Re-run after marketplace updates. Never picks — that is /stack-scan:suggest.",
   "author": {
     "name": "Ivan-WG",
