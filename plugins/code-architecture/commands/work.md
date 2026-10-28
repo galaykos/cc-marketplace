@@ -1,5 +1,5 @@
 ---
-description: Start any coding work here — picks quick (done inline), spec (questions and a spec first) or program (milestone by milestone), prints why and the steps ahead, then starts; --explain prints the route only; not for work that already has cards.
+description: Start any coding work here. Picks quick (done inline), spec (questions and a spec first) or program (milestone by milestone). Prints why and the steps ahead, then starts. `--explain` prints the route only. Not for work that already has cards.
 argument-hint: [what you want done] [--explain] [--lane quick|spec|program]
 ---
 

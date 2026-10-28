@@ -1,6 +1,6 @@
 ---
 name: physics-motion
-description: Use when a surface needs real 2D physics — objects that fall, collide, or drag (matter.js, rapier), not a spring a library already covers — or when a review flags a physics sim with no body budget, reduced-motion path, or keyboard route.
+description: Use when a surface needs real 2D physics, objects that fall, collide, or drag (matter.js, rapier). Or when a review flags a physics sim with no body budget, reduced-motion path, or keyboard route. Not for a spring a library already covers.
 ---
 
 ## What this decides

@@ -1,19 +1,18 @@
 # ui-ux
 
-UI/UX foundations: per-stack skills for **shadcn/ui** and **Tailwind**, design tokens,
-a theming system, motion best practices, a theme builder (shadcn/ReUI/Aceternity,
-Tailwind, Astryx, or Bootstrap) with a live colour-preview URL, `/ui-ux:build`, the
-WCAG 2.2 AA audit, and the ui-ux-reviewer / ui-ux-engineer / a11y-engineer agents.
-Generic CSS3/Grid/Flexbox/Bootstrap skills were removed after baseline tests showed the
-model covers them unaided — see rationale/stack-skill-baselines.md.
+UI/UX foundations. Per-stack skills cover **shadcn/ui** and **Tailwind**. Others cover
+design tokens, a theming system and motion best practices. A theme builder works with
+shadcn/ReUI/Aceternity, Tailwind, Astryx, or Bootstrap, and gives a live colour-preview
+URL. The plugin also ships `/ui-ux:build`, the WCAG 2.2 AA audit, and the
+ui-ux-reviewer / ui-ux-engineer / a11y-engineer agents.
 
 > **Install `ui-libraries` with this plugin — nothing does it for you.** The
 > component-library skills — Material UI, PrimeReact, Astryx, ReUI, Aceternity, and the
-> library-agnostic `component-libraries` floor with its per-library map — moved to
-> `ui-libraries` on 2026-09-26, when ui-ux reached the marketplace's per-plugin prose cap.
+> library-agnostic `component-libraries` skill for any other library, with its per-library
+> map — live in
+> `ui-libraries`.
 > No plugin here may declare `dependencies` (an update that adds one leaves it uninstalled
-> and the plugin fails to load), and the suites that used to bring both were retired the
-> same day. So run:
+> and the plugin fails to load). So run:
 >
 > ```bash
 > /plugin install ui-libraries@cc-plugins-marketplace
@@ -192,3 +191,12 @@ do not state the number.
   manifests show the stack. <!-- removed-ok --> (design-studio, retired 2026-09-14,
   used to declare them.)
 - **web-dev** — component-logic review (React and Vue 3) alongside the visual layer
+
+## History
+
+Generic CSS3/Grid/Flexbox/Bootstrap skills were removed after baseline tests showed the
+model covers them unaided — see rationale/stack-skill-baselines.md.
+
+The component-library skills moved to `ui-libraries` on 2026-09-26, when ui-ux reached
+the marketplace's per-plugin prose cap. The suites that used to bring both were retired
+the same day.

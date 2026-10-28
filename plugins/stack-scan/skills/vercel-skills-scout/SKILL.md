@@ -1,6 +1,6 @@
 ---
 name: vercel-skills-scout
-description: Use when hunting third-party skills for the current stack — "search skills.sh", "find a community skill for X", "is there a skill for this framework" — or when this marketplace has no plugin covering a need. Scans manifests, queries the skills.sh directory, suggests with provenance (source repo, installs, URL), previews picked skills, installs only explicit picks via npx skills add — project-level, never global, never auto.
+description: Use when hunting third-party skills for the current stack ("search skills.sh", "find a community skill for X", "is there a skill for this framework"). Or when this marketplace has no plugin covering a need. Scans manifests, queries the skills.sh directory, suggests with provenance (source repo, installs, URL). Previews picked skills; installs only explicit picks via npx skills add, project-level, never global, never auto.
 ---
 
 ## Purpose

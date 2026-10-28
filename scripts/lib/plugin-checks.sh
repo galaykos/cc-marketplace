@@ -2054,3 +2054,34 @@ pc_plugin_root_quoting() {
     }
     END { exit found }' || return 1
 }
+
+# pc_undefined_terms [plugins_root] [watchlist] [glossary_md] — a watchlist term in installer text with no "## Words we use" row: prints "undefined-term <file> <term>", returns 1.
+# Misses every term not on the watchlist, word forms past a plural s, agent descriptions and skill bodies, and whether a row's definition is right; a term inside a longer hyphenated word is no hit.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_undefined_terms
+pc_undefined_terms() {
+  local root="${1:-plugins}" watch="${2:-scripts/glossary-watchlist.txt}" gloss="${3:-README.md}" undef out
+  if [ ! -f "$watch" ]; then printf 'undefined-term %s (watchlist missing)\n' "$watch"; return 1; fi
+  [ -f "$gloss" ] || gloss=/dev/null
+  undef=$(awk -v G="$gloss" '
+    FILENAME == G {
+      if (/^## Words we use/) on = 1; else if (/^## /) on = 0
+      else if (on && /^\|/) { c = $0; sub(/^\|[ \t]*/, "", c); sub(/[ \t]*\|.*$/, "", c); gsub(/[`*]/, "", c); def[tolower(c)] = 1 }
+      next
+    }
+    /^[ \t]*(#|$)/ { next }
+    { t = tolower($0); gsub(/^[ \t]+|[ \t]+$/, "", t); if (!(t in def)) print t }' "$gloss" "$watch")
+  [ -n "$undef" ] || return 0
+  out=$({
+    find "$root" -mindepth 2 -maxdepth 2 -name README.md -exec awk '
+      FNR == 1 { f = 0 } /^[ \t]*(```|~~~)/ { f = !f; next } !f { print FILENAME "\t" $0 }' {} +
+    find "$root" -mindepth 3 -maxdepth 4 \( -path "$root/*/skills/*/SKILL.md" -o -path "$root/*/commands/*.md" \) -exec awk '
+      FNR == 1 { c = 0 } /^---[ \t]*$/ { c++; next } c == 1 && /^(description|when_to_use):/ { print FILENAME "\t" $0 }' {} +
+    find "$root" -mindepth 3 -maxdepth 3 -path "$root/*/.claude-plugin/plugin.json" -exec jq -r '[input_filename, (.description // "")] | @tsv' {} +
+  } 2>/dev/null | TERMS="$undef" awk -F'\t' '
+    BEGIN { n = split(ENVIRON["TERMS"], T, "\n"); for (i = 1; i <= n; i++) { r = T[i]; gsub(/[- ]/, "[- ]?", r); R[i] = "(^|[^a-z0-9_-])" r "s?([^a-z0-9_-]|$)" } }
+    { s = tolower(substr($0, length($1) + 2))
+      for (i = 1; i <= n; i++) if (!(($1, i) in seen) && s ~ R[i]) { seen[$1, i] = 1; print "undefined-term " $1 " " T[i] } }' | sort -u)
+  [ -n "$out" ] || return 0
+  printf '%s\n' "$out"
+  return 1
+}

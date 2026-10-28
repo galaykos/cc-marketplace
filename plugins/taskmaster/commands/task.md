@@ -18,7 +18,7 @@ skill; the banner IS its status line); a standard run prints
 `▷ taskmaster standard run — session <model> · subagents inherit it unless their agent pins a tier · effort: <effort> · boost: off` — substitute `<model>` with the session model and `<effort>` with `$CLAUDE_EFFORT` (resolve via `echo ${CLAUDE_EFFORT:-inherit}`); when the harness does not expose it, that prints the literal `inherit`.
 
 **Boost flags:** Extreme Boost fires ONLY when $ARGUMENTS *begins* with a bare
-`ultra` (boost) or `goal` (hands-off) token, or contains the explicit
+`ultra` (boost) or `goal` (boost + hands-off) token, or contains the explicit
 `ultra-task`/`ultratask` or `ultra-goal`/`ultragoal` token. Only the explicit
 tokens cross a command boundary — a bare token owned by an earlier chained
 command (e.g. `caveman ultra` preceding this command) NEVER triggers this run.

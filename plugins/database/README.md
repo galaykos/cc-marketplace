@@ -1,12 +1,11 @@
 # database
 
-Relational databases in one plugin: the engine-agnostic **sql-best-practices** skill,
-the **mariadb-best-practices** dialect skill (loaded only for MariaDB, with the engine
-detected first — review runs through `/code-review:review`; the plugin's own
-review entry was retired on 2026-09-14), a `database-engineer`
-worker that applies schema, migration, indexing and pooling work through the
-project's migration tooling, and a PreToolUse guard that asks for confirmation before
-a destructive statement lands.
+Relational databases in one plugin. The **sql-best-practices** skill works on any
+engine. The **mariadb-best-practices** skill covers the MariaDB dialect. It loads only
+for MariaDB, after the engine is detected. Reviews run through `/code-review:review`.
+A `database-engineer` agent applies schema, migration, indexing and pooling work through
+the project's migration tooling. A PreToolUse guard asks you to confirm before a
+destructive statement lands.
 
 ## Install
 
@@ -27,6 +26,7 @@ a destructive statement lands.
 from a `.sql` file alone), reviews statements, schemas and migrations against
 `sql-best-practices`, and adds `mariadb-best-practices` when the engine is MariaDB —
 severity-sorted one-line findings with fixes, routed to `database-engineer` on apply.
+The plugin's own review entry was retired on 2026-09-14.
 
 ## Skills
 

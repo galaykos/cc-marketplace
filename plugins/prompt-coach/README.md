@@ -1,13 +1,15 @@
 # prompt-coach
 
-A prompt coach for the terminal. At Enter it holds an eligible prompt for up to 5 s
-while a model judges whether nobody could act on it, whether it contradicts an earlier
-instruction, or, during a task-runner run on this branch, whether it strays off the
-running card or reopens a decision its spec settled; only a confidently flagged prompt is dropped, and an animated
-pixel-art sprite shows your text, the reason and a rewrite, with buttons that fill the
-prompt box and never submit it. A haiku first pass judges every eligible prompt, and the
-standby model below confirms a flag, at most 10 times a session. Terminal only; it
-needs Claude Code 2.1.291 or newer with mods allowed.
+A prompt coach for the terminal. When you press Enter, it holds an eligible prompt for up
+to 5 s while a model judges it. The model flags a prompt nobody could act on, or one that
+contradicts an earlier instruction. During a task-runner run on this branch, it also flags
+a prompt that strays off the running task card. The same goes for a prompt that reopens a
+decision its spec settled.
+Only a confidently flagged prompt is dropped. An animated pixel-art sprite then shows your
+text, the reason and a rewrite. Its buttons fill the prompt box and never submit it. A
+haiku first pass judges every eligible prompt. The standby model below confirms a flag,
+at most 10 times a session. Terminal only. It needs Claude Code 2.1.291 or newer with mods
+allowed.
 
 Bulk installs leave it out, because it bills a model call per eligible prompt:
 `/all-plugins:install` and `/stack-scan:suggest --full` skip it, though

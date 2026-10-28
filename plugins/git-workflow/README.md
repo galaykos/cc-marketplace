@@ -1,10 +1,10 @@
 # git-workflow
 
-Git workflow discipline: an isolated worktree per feature branch (proven-ignored
-location, deps installed, baseline suite run before any change), a structured
-finish protocol for development branches (verify, present options, merge/PR/park,
-clean up), review-exchange rigor on both sides of a code review, a guard
-that keeps AI attribution out of git history, and a check that asks before
+Git workflow discipline. Each feature branch gets an isolated worktree, in a location
+proven to be git-ignored. Deps are installed and the baseline suite runs before any
+change. Development branches end with a structured finish: verify, present options,
+merge, PR or park, then clean up. Review-exchange rigor applies on both sides of a code
+review. A guard keeps AI attribution out of git history. A check asks before
 `gh pr merge` while the pull request's CI is not green.
 
 ## Install

@@ -2537,6 +2537,56 @@ unquoted words on the line (`$ARGUMENTS`, a `<placeholder>` that may hold a spac
 agents, READMEs and scripts. No blessing marker.
 ```
 
+### pc_undefined_terms
+
+```text
+pc_undefined_terms [plugins_root] [watchlist] [glossary_md]
+Prints `undefined-term <file> <term>` once per file and term, sorted, for each term on
+scripts/glossary-watchlist.txt that has no `| term | … |` row under the glossary file's
+`## Words we use` heading and appears in installer text: a plugin README.md, a SKILL.md
+or command description / when_to_use line, or a plugin.json description. Returns 1 if
+any. A missing watchlist prints one `undefined-term <path> (watchlist missing)` line,
+because a deleted list that returned 0 would retire the check while its header still
+claimed it ran (the lesson pc_lanes_vocabulary records). A missing glossary file or
+heading leaves every watchlist term undefined.
+
+WHY IT EXISTS: plan item 7, rationale/improvement-plan-2026-10-26.md. The 2026-10-26
+language audit counted internal words installers meet with no definition anywhere they
+can read: `standing` 87 times in 36 installer files, defined only in a repo-only
+project skill; `gate` in at least five senses; `ultra` with three meanings. The fix was
+a glossary in the root README, and this check keeps the two in step: a term goes on the
+watchlist together with its row. Measured 2026-10-28 on the m12 working tree, with the
+28-term watchlist: 302 WARN lines with no glossary section, 0 with it.
+
+MATCHING: case-insensitive whole words; a hyphen counts as part of a word, so `ultra`
+does not hit inside `ultra-deep-research` and `goal` does not hit inside `goal-lean`;
+a space or hyphen inside a term matches a space, a hyphen or nothing (`red team`,
+`redteam`); an optional plural `s`. README fenced blocks are skipped: they hold
+commands and code, where a watchlist word is usually an identifier. Inline code spans
+are read: the effort tokens (`ultra-task`, `goal-lean`, …) appear almost only inside
+spans, and they are what an installer types.
+
+PORTABILITY: the undefined terms reach the matching awk through ENVIRON["TERMS"], not
+`-v terms=…`. The m12 review (2026-10-28) found that BWK awk, the macOS default, prints
+nothing and returns 0 when a -v value holds newlines; not reproduced here, since the
+Linux host has only mawk, where both forms work.
+
+STANDING: WARN. validate.sh prints each line and never fails on it; whether a row's
+definition is right is agent-graded at review, not checked.
+
+WHAT IT DOES NOT CATCH: any term not on the watchlist (a new internal word is invisible
+until someone lists it); word forms other than a plural `s` (`gated`, `boosted`);
+agent descriptions, skill and command bodies, references/ and the root README itself;
+marketplace.json descriptions, plugin.json userConfig option descriptions and command
+argument-hint lines; a term the glossary defines in a cell other than the first. A
+watchlist line is used as a regex fragment unescaped, so keep it to letters, digits,
+spaces and hyphens.
+
+FALSE POSITIVES: a file name or path in a README span or prose is read as words, so
+`hooks/ledger.sh` counts as a use of `ledger` (the `/` and `.` are boundaries). Harmless
+while the term has a row; it inflates the count only when it has none.
+```
+
 ## scripts/lib/template-engine.sh
 
 ### Header

@@ -7,6 +7,10 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.59.3 — 2026-10-28
+
+- **The `physics-motion` and `page-transitions` skills' descriptions now read in short, plain sentences.** Same triggers and review gaps; both keep the words the model matches them on.
+
 ## 0.59.2 — 2026-10-28
 
 - **Comments cut to what a reader needs; behaviour unchanged.** `scripts/technique-fingerprint.py`, `template/craft-gates/contrast.mjs`, `template/craft-gates/divergence.mjs`, `template/craft-gates/playwright.config.ts`; `hooks/ultra-craft.sh` (generated hook): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.

@@ -3,6 +3,10 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.4 — 2026-10-28
+
+- **The `rollout-planning` skill's description now reads in short, plain sentences.** Same trigger and plan contents; it keeps the words the model matches it on.
+
 ## 0.12.3 — 2026-10-28
 
 ### Changed

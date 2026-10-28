@@ -653,6 +653,15 @@ $stamptail_gap
 EOF
 fi
 
+# A scripts/glossary-watchlist.txt term in installer text with no row under README.md "## Words we use" (WARN only; pc_undefined_terms).
+term_gap=$(pc_undefined_terms plugins scripts/glossary-watchlist.txt README.md) || true
+while IFS= read -r l; do
+  [ -n "$l" ] || continue
+  warn "$l"
+done <<EOF
+$term_gap
+EOF
+
 # An unquoted `${CLAUDE_PLUGIN_ROOT}/…` run from a command or skill splits on a space; the host checks only hooks.json. One FAIL per plugin.
 quote_gap=$(pc_plugin_root_quoting plugins) || true
 if [ -n "$quote_gap" ]; then

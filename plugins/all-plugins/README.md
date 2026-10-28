@@ -1,18 +1,17 @@
 # all-plugins
 
-Installs every leaf plugin of this marketplace at one scope — `/all-plugins:install` asks local
-or project, `/all-plugins:uninstall` local, project or user, once when you typed no `--scope`,
-and nothing else — under
-`--budget` also raises the host's skill-listing budget so every description is actually
-sent — and undoes both.
-One script, one exit code; the two commands only relay it. "Every leaf" means every
-plugin in the marketplace's `marketplace.json` — there are no bundles to skip (the suites
-were retired 2026-09-26) — and that includes `all-plugins` itself, which `install` covers
-(normally a `skip`) and `uninstall` keeps unless `--self`. One plugin is left out by
-construction: **`prompt-coach`**, which bills a model call per eligible prompt, so it
-installs only when you name it (`claude plugin install prompt-coach@cc-plugins-marketplace -s local`).
-`install` never installs or enables it and prints it as a
-`skip (opt-in: bills a model call per prompt)` row; `uninstall` and `list` treat it like
+Installs every plugin in this marketplace at one scope, and removes them again. With no
+`--scope`, it asks once and nothing else: `/all-plugins:install` offers local or project,
+`/all-plugins:uninstall` offers local, project or user. With `--budget`, install also
+raises the host's skill-listing budget so every description in the listing reaches the model;
+uninstall reverses both. One script does the work, with one exit code; the two commands
+only relay it. A "leaf" is any plugin in the marketplace's `marketplace.json`; there are
+no bundles to skip. Every leaf includes `all-plugins` itself: `install` covers it (normally a
+`skip`), and `uninstall` keeps it unless `--self`. One plugin is left out by
+construction: **`prompt-coach`**, which bills a model call per eligible prompt. It installs
+only when you name it (`claude plugin install prompt-coach@cc-plugins-marketplace -s local`).
+`install` never installs or enables it, and prints it as a
+`skip (opt-in: bills a model call per prompt)` row. `uninstall` and `list` treat it like
 any other plugin.
 
 > **Re-run it after every marketplace update.** `install` installs what the marketplace
@@ -147,3 +146,7 @@ The `everything` bundle that once existed served this same want and was removed 
 "unreachable" reading, before the probe. This plugin is a script, not a bundle, and no
 gate enforces the cost stated here — it is recorded (see "What has teeth") and
 recomputed by `scripts/context-budget.sh` on every run.
+
+## History
+
+The suites were retired 2026-09-26, which is why there are no bundles to skip.

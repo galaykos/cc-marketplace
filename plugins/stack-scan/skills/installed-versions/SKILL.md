@@ -1,6 +1,6 @@
 ---
 name: installed-versions
-description: Use before version-dependent advice, when asked "what version of X is installed", or when work starts in an unfamiliar repo — inventories what is ACTUALLY installed from manifests, lockfiles, runtime binaries and images; flags drift.
+description: Use before version-dependent advice, when asked "what version of X is installed", or when work starts in an unfamiliar repo. Inventories what is ACTUALLY installed from manifests, lockfiles, runtime binaries and images. Flags drift.
 ---
 
 ## Constraint is a wish, lock is a fact

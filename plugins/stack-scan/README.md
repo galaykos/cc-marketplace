@@ -1,28 +1,24 @@
 # stack-scan
 
-Know what is actually installed, keep it healthy, and find what to add — one manifest
-pass, three commands. `/stack-scan:report` inventories the stack from
-composer/npm/yarn/pnpm/bun manifests and lockfiles, runtime pins, and docker/CI images
-into a required-vs-installed table with drift, missing-lock, and EOL flags.
-`/stack-scan:audit` runs the dependency hygiene pass — vulnerabilities, outdated
-packages, and licences against the project's distribution mode — from the same
-manifests, plus an image axis (`FROM` and compose/k8s `image:` tags through `trivy`
-when installed, an EOL tag check otherwise) so an infra-only repo is audited rather
-than turned away. `/stack-scan:suggest` reads them once more and suggests **every**
-cc-plugins-marketplace plugin in three tiers — stack-matched with the evidence file and
-key cited, the curated any-project core, and the universal remainder — then installs
-your picks; `--skills` turns the same detection outward and searches
-[skills.sh](https://www.skills.sh), Vercel Labs' open agent-skills directory, for
-third-party skills the marketplace does not cover.
+Know what is actually installed, keep it healthy, and find what to add. One manifest
+pass feeds three commands. `/stack-scan:report` inventories the stack from
+composer/npm/yarn/pnpm/bun manifests and lockfiles, runtime pins, and docker/CI images.
+It prints a required-vs-installed table with drift, missing-lock, and EOL flags.
+`/stack-scan:audit` runs the dependency hygiene pass from the same manifests:
+vulnerabilities, outdated packages, and licences against the project's distribution
+mode. It also checks images: `FROM` and compose/k8s `image:` tags go through `trivy`
+when installed, or an EOL tag check otherwise. So an infra-only repo is audited rather
+than turned away. `/stack-scan:suggest` reads the manifests once more. It suggests
+**every** cc-plugins-marketplace plugin in three tiers, then installs your picks. Tier 1
+is stack-matched, citing the evidence file and key. Tier 2 is the curated any-project
+core; tier 3 is the universal remainder. `--skills` turns the same detection outward.
+It searches [skills.sh](https://www.skills.sh), Vercel Labs' open agent-skills
+directory, for third-party skills the marketplace does not cover.
 
 Doctrine: constraint is a wish, lock is a fact — lock beats manifest, runtime beats
 lock, and every version claim cites its source. Suggestions cite evidence the same way:
 every stack-matched row names the manifest line that earned it, and nothing installs
 without your pick unless you passed `--yes`.
-
-The two scouts were separate plugins (`plugin-scout`, `vercel-skills-scout`) until
-2026-09-14; they merged into this one because all three commands read the same
-manifests, and the per-plugin boundary forced two byte-identical picker scripts.
 
 ## Install
 
@@ -242,3 +238,9 @@ Residuals, stated:
   The suites that sat between the two were retired 2026-09-26; where two plugins must
   travel together (`craft-layer` with `ui-ux` and `ui-libraries`), the scout prints the
   companion's install line under its report
+
+## History
+
+The two scouts were separate plugins (`plugin-scout`, `vercel-skills-scout`) until
+2026-09-14; they merged into this one because all three commands read the same
+manifests, and the per-plugin boundary forced two byte-identical picker scripts.

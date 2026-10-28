@@ -1,6 +1,6 @@
 ---
 name: page-transitions
-description: Use when adding motion between routes or pages — a shared element persisting across a nav, a full-page crossfade, an SPA route change (View Transitions API) — or when a review flags a transition with no reduced-motion or unsupported-browser fallback.
+description: Use when adding motion between routes or pages. A shared element persisting across a nav, a full-page crossfade, an SPA route change (View Transitions API). Or when a review flags a transition with no reduced-motion or unsupported-browser fallback.
 ---
 
 > Last verified: 2026-09-26 — https://nextjs.org/docs/app/guides/view-transitions — npm:react@19.3

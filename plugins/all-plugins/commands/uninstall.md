@@ -1,5 +1,5 @@
 ---
-description: Uninstall every leaf plugin of this marketplace from one scope — asks local, project or user once when --scope is absent, never defaults silently; --self removes all-plugins too; runs the plugin's script and relays its exit code: 0 done, 1 lists the plugins that failed, 2 names the missing precondition.
+description: Uninstall every leaf plugin of this marketplace from one scope. Without --scope it asks once for local, project or user, and never defaults silently. With --self it removes all-plugins too. It runs the plugin's script and relays its exit code. Exit 0 means done, 1 lists the plugins that failed, 2 names the missing precondition.
 argument-hint: [--scope local|project|user] [--dry-run] [--self] [--no-budget]
 disable-model-invocation: true
 ---

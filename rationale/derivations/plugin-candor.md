@@ -55,6 +55,8 @@ skips only that clause on its own continuation.
   flight (IN-FLIGHT WORKERS below).
 ```
 
+Editor's note (2026-10-28): ask-ledger and ui-ux also ship blocking Stop hooks; 'THE Stop gate' is history.
+
 ### Header: what no other gate carries
 
 ```text

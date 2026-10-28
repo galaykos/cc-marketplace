@@ -3,6 +3,10 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.15.6 — 2026-10-28
+
+- **The `secret-scanning` skill's description now reads in short, plain sentences.** Same triggers, the write-guard fixture escape included; it keeps the words the model matches it on.
+
 ## 0.15.5 — 2026-10-28
 
 - **Comments cut to what a reader needs; behaviour unchanged.** `scripts/scan-range.sh`; `hooks/scan.sh`, `hooks/unicode-scan.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.

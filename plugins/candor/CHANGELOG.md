@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.10.5 — 2026-10-28
+
+- **The `straight-talk` skill's description now reads in short, plain sentences.** Same triggers, quoted phrases included; it keeps the words the model matches it on.
+
 ## 0.10.4 — 2026-10-28
 
 - **Comments cut to what a reader needs; behaviour unchanged.** `scripts/candor-scan.sh`, `scripts/level.sh`, `scripts/measure.sh`, `scripts/shrink.mjs`, `scripts/statusline.sh`; `hooks/activate.sh`, `hooks/avert.sh`, `hooks/gate.sh`, `hooks/mode.sh`, `hooks/preamble.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.

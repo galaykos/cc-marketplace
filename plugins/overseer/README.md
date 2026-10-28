@@ -1,12 +1,12 @@
 # overseer
 
 A program-level product owner for long, multi-session, multi-branch builds. You type one
-sentence — `/overseer:start "Build a CRM that manages clients"` — and the plugin owns the
-rest the way a product manager owns a roadmap: it discovers what the project and the
-installed plugins can do, asks one round of questions, writes a milestone roadmap, and
-delivers each milestone on its own branch by briefing the pipeline plugins already installed.
-It accepts nothing it has not watched work: in a browser where the milestone has a screen,
-in a captured run where it has none.
+sentence: `/overseer:start "Build a CRM that manages clients"`. The plugin owns the rest,
+the way a product manager owns a roadmap. It discovers what the project and the installed
+plugins can do. It asks one round of questions and writes a milestone roadmap. It delivers
+each milestone on its own branch by briefing the plan-and-build plugins already installed.
+It accepts nothing it has not watched work. Where the milestone has a screen, it watches in
+a browser; where it has none, in a captured run.
 
 **Not sure where to start? Start with `/work <what you want done>`** (or `/code-architecture:work`): it sends a whole product here and anything smaller to a spec or an inline change.
 

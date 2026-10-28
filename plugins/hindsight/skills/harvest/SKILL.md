@@ -1,6 +1,6 @@
 ---
 name: harvest
-description: Use when /hindsight:harvest runs, or the user asks what keeps going wrong across PAST sessions — recurring friction in session and subagent transcripts: corrections repeated, chores redone, fixes abandoned twice, proposed as CLAUDE.md rules, memory entries and skill ideas on approval.
+description: Use when /hindsight:harvest runs or the user asks what keeps going wrong across PAST sessions. Recurring friction in session and subagent transcripts (corrections repeated, chores redone, fixes abandoned twice) is proposed as CLAUDE.md rules, memory entries and skill ideas on approval.
 ---
 
 Deep mining happens here, on demand: the SessionEnd hook only collects cheap

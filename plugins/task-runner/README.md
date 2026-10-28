@@ -1,8 +1,8 @@
 # task-runner
 
-Disciplined task execution: one task at a time, scope locked, bounded verify-fix
-inner loop (max three cycles, then park with evidence), no unbounded outer loop,
-full-suite completion gate.
+Disciplined task execution: one task at a time, with the scope locked. Each task gets a
+bounded verify-fix inner loop: at most three cycles, then it parks with evidence. There
+is no unbounded outer loop. The run counts as complete only after the full suite passes.
 
 **Not sure where to start? Start with `/work <what you want done>`** (or `/code-architecture:work`): it routes work through `/taskmaster:task` to this plugin's `/task-runner:run` when it needs a spec.
 

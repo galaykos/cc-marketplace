@@ -1,6 +1,6 @@
 ---
 name: primereact-best-practices
-description: Use when building, reviewing or migrating UI on PrimeReact — imports from `primereact`, `@primereact/ui`, `@primereact/core` or `@primeuix/themes`, a DataTable, Select or PrimeReactProvider, a v10 → v11 migration, or PrimeReact's Tailwind registry. v11 is a rewrite under a keyed PrimeUI licence; read the installed version before advising.
+description: Use when building, reviewing or migrating UI on PrimeReact — imports from `primereact`, `@primereact/ui`, `@primereact/core` or `@primeuix/themes`. A DataTable, Select or PrimeReactProvider, a v10 → v11 migration, or PrimeReact's Tailwind registry. Read the installed version before advising; v11 is a rewrite under a keyed PrimeUI licence.
 ---
 
 > Last verified: 2026-09-26 — https://primereact.dev/docs/primitive/guides/migration/updating-to-v11 — npm:primereact@11.1

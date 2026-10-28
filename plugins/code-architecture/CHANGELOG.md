@@ -2,6 +2,12 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.19.1 — 2026-10-28
+
+### Changed
+- **The `/work` description now reads in short, plain sentences.** Same lanes, flag and limit; it keeps the words the model matches it on.
+- **The `drift-review` skill's description reads the same way.** Same triggers and checks.
+
 ## 0.19.0 — 2026-10-27
 
 ### Added

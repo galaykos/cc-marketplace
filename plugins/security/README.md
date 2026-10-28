@@ -1,13 +1,13 @@
 # security
 
-Security review for web apps: OWASP-aligned checks for injection, XSS, CSRF,
-authorization vs authentication, mass assignment, file uploads, secrets handling,
-and dependency audit — mapped to PHP/Laravel and JS/Vue specifics. Also ships the
-threat-modeling skill (design-phase STRIDE, trust boundaries, abuse cases), the
-data-privacy skill (GDPR/CCPA regulatory layer: PII mapping, data-subject rights,
-consent, retention/deletion) and the api-auth skill (token model choice, OAuth2 +
-PKCE, scopes, refresh-token rotation) — the latter two applied as review lenses
-when the diff touches their surface.
+Security review for web apps. It runs OWASP-aligned checks for injection, XSS, CSRF,
+authorization vs authentication, mass assignment and file uploads. They also cover
+secrets handling and dependency audit. The checks map to PHP/Laravel and JS/Vue
+specifics. The threat-modeling skill works at design time: STRIDE, trust boundaries,
+abuse cases. The data-privacy skill is the GDPR/CCPA regulatory layer: PII mapping,
+data-subject rights, consent, retention/deletion. The api-auth skill covers token model
+choice, OAuth2 + PKCE, scopes and refresh-token rotation. A review applies data-privacy
+and api-auth as lenses when the diff touches their surface.
 
 ## Install
 

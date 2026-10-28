@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.49.7 — 2026-10-28
+
+- **The `code-redteam` skill's description now reads in short, plain sentences.** Same trigger, panel and hand-off to `/code-review:review`; it keeps the words the model matches it on.
+
 ## 0.49.6 — 2026-10-28
 
 - **Comments cut to what a reader needs; behaviour unchanged.** `scripts/behavioral-gate.sh`, `scripts/check-receipt.sh`, `scripts/code-redteam-diff.sh`, `scripts/dispatch-lint.sh`, `scripts/negative-control.sh`, `scripts/reduction-record.sh`, `scripts/register-run.sh`, `scripts/review-diff.sh`, `scripts/review-skip.sh`, `scripts/sweep-residual.sh`; `hooks/announce.sh`, `hooks/drift.sh`, `hooks/scope.sh`, `hooks/spawn-cap.sh` (shared-block comments); `hooks/ultra-assess.sh` (generated hook): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain. `--help` of `scripts/negative-control.sh`, `scripts/reduction-record.sh`, `scripts/register-run.sh`, `scripts/review-diff.sh`, `scripts/review-skip.sh`, `scripts/sweep-residual.sh` no longer prints the history prose; usage, flags and exit codes are unchanged.

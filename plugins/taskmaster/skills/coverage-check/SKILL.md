@@ -1,6 +1,6 @@
 ---
 name: coverage-check
-description: Use after task-cards splits a spec into cards — verifies every spec success criterion has a card and no card proves what the spec never asked, holding the execution handoff until findings resolve (agent-graded; no script enforces it).
+description: Use after task-cards splits a spec into cards. Verifies every spec success criterion has a card and no card proves what the spec never asked. Holds the execution handoff until findings resolve (agent-graded; no script enforces it).
 ---
 
 ## Where this sits

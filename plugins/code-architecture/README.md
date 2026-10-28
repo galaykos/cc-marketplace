@@ -1,16 +1,18 @@
 # code-architecture
 
-Engineering process for code-level structure: plan-before-code, YAGNI checks,
-SOLID applied with judgment, task orchestration, work verification, and
-low-cognitive-load code. KISS/DRY and the surgical-edit discipline (surface
-assumptions, every changed line traces to the request, clean up your own
-orphans — after Karpathy's LLM-coding guidelines) travel as references of the
-two skills that own them, not as separate always-on triggers. The reach order in
-`low-cognitive-load` and the ranked `net:` close of `/code-architecture:yagni` adapt
-rules from dietrichgebert/ponytail (MIT, v4.10.0). Depth as the measure of a split and the
-glossary's canonical term in `low-cognitive-load`, and the written glossary in
-`domain-modeling`, adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock);
-their effect is unmeasured.
+Engineering process for code-level structure: plan-before-code, YAGNI checks, SOLID
+applied with judgment, task orchestration, work verification, and low-cognitive-load
+code. KISS/DRY and the surgical-edit discipline are not separate always-on triggers.
+They travel as references of the two skills that own them. The surgical-edit discipline
+follows Karpathy's LLM-coding guidelines. It means: surface assumptions, trace every
+changed line to the request, clean up your own orphans. Two rules adapt
+dietrichgebert/ponytail (MIT, v4.10.0). One is the reach order in `low-cognitive-load`:
+where to look, in order, before writing new code. The other is how
+`/code-architecture:yagni` ends: proposals ranked by lines removed, then a `net:` total
+of what they cut. Two rules in `low-cognitive-load` adapt
+mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock). They are depth as the measure of a
+split, and the glossary's canonical term. The written glossary in `domain-modeling`
+adapts the same source. Their effect is unmeasured.
 
 **Start any work with `/work <what you want done>`** (or `/code-architecture:work`): it picks quick, spec or program, prints why and the steps ahead, and `--explain` shows the route without running anything.
 
@@ -18,8 +20,7 @@ Owns structure at both levels. Code: units, interfaces, file placement. System:
 service boundaries drawn on data ownership, scaling paths, cache placement, sync vs
 async integration and its failure modes, single points of failure, and domain
 modeling (bounded contexts, aggregates, ubiquitous language) — the `system-design`
-and `domain-modeling` skills and the `system-architect` worker (the system-design
-plugin was merged into this one on 2026-09-14). Message-driven architecture (delivery
+and `domain-modeling` skills and the `system-architect` worker. Message-driven architecture (delivery
 semantics, outbox, sagas, DLQ) lives in `resilience`'s `event-driven` skill.
 
 ## Install
@@ -67,6 +68,8 @@ Two skills were merged away in 0.10.0 rather than deleted: KISS/DRY is now
 "when writing or reviewing code", which fires on every edit and discriminates
 nothing; folding them cut two always-on triggers while keeping every line of the
 material.
+
+The system-design plugin was merged into this one on 2026-09-14.
 
 `work-verification` and `drift-review` are the two done-time disciplines and they ask
 different questions: `work-verification` asks whether the evidence backs the claim,
