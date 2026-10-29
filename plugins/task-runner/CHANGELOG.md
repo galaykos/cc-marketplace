@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.49.9 — 2026-10-29
+
+- **A run's report says what the run itself cost.** New `scripts/run-cost.sh` prints one line, `Process cost since 14:02: 6 agents · 1.84M tokens (main 0.41M, subagents 1.43M; 87% cache reads) · 38 min`, read from this session's transcript and its agent transcripts (`subagents/agent-*.jsonl`, `subagents/workflows/*/agent-*.jsonl`) since the run registered (the modification time of `.claude/task-runner/active-run.json`, else `closed-run.json`) or since `--since <epoch seconds | ISO-8601 with a zone>`. `/task-runner:run` step 4 prints it beside the result. Every record counts by its own timestamp, so a resumed agent's later work counts; tokens are input, output, cache writes and cache reads, once per message id across all files; agents are the agent transcripts holding a counted record; minutes are wall time. No prices. No jq, no session id, no transcript, no run record or a bad `--since` prints `Process cost: unknown — <reason>`, exit 0. Pinned by `scripts/__tests__/run-cost.test.sh` (29 cases, each rule with a control; 18 mutations of the script each turned it red). Residuals: compaction writes no usage record; another session's tokens are not read, so an index run resumed in a new session shows minutes since the first registration and this session's tokens, and `--fresh` or a second `--slug` registration restarts the count; the Workflow layout was read on a CLI 2.1.295 session only. Standing: recorded — nothing reads the line back.
+
 ## 0.49.8 — 2026-10-29
 
 - **`delegation-contracts` lists the code-reviewer's return as five fields.** Since code-review 0.34.4 a finding ends with ``quote: `…` ``, copied from the cited file, which `/code-review:review` checks against that file; the exemplar still showed four, so a dispatcher copying it asked for findings without the quote. Standing: recorded.

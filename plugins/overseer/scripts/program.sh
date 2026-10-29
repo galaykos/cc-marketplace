@@ -21,13 +21,13 @@
 #   program.sh evidence add --id <id> --kind <kind> --note "<n>" [--file <path>]   # --file required for file kinds
 #                                            # every kind of either profile may be recorded on any milestone; the profile decides only what accept DEMANDS
 #   program.sh evidence clear --id <id>
-#   program.sh accept --id <id>              # exit 0 → status done + "sized X · actual …" line; exit 2 → the first failing gate, listed
+#   program.sh accept --id <id>              # exit 0 → status done + "sized X · actual …" line + "Process cost since …" line; exit 2 → the first failing gate, listed
 #                                            # gates in order: a gated dispatch exists · kind groups pinned by existing paths · the profile's evidence kinds,
 #                                            # files present, each newer than the last gated worker dispatch · hands-off has an ASSUMED row
 #   program.sh decision add --text "<what>" --rationale "<why>" [--options "<a | b>"]
 #   program.sh decision add --assumed --text "<what>" --alternative "<other reading>" --rationale "<why>"
 #   program.sh dispatch check <prompt-file> [--kind worker|reader|reviewer|followup] [--milestone <id>]
-#                                            # exit 0 records the file (checksum, kind) in its dispatch/.gated — accept counts only those
+#                                            # exit 0 records the file (checksum, kind, time) in its dispatch/.gated — accept counts only those
 #                                            # --milestone (or a file under milestones/<id>/dispatch/): WARN for each of the kind's skill groups no
 #                                            # gated dispatch has pinned yet; WARN when the milestone has no rigour profile
 #                                            # worker (default): every preamble clause line verbatim (whitespace-folded), TOUCH ONLY, VERIFY, an existing
@@ -161,17 +161,64 @@ gated_files() {
   local id="$1" filt="${2:-}" gd sum k b f
   gd="$dir/milestones/$id/dispatch"; [ -f "$gd/.gated" ] || return 0
   while read -r sum k b; do
+    b=${b% [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z}
     [ -n "$b" ] && f="$gd/$b" && [ -f "$f" ] || continue
     [ -z "$filt" ] || in_list "$k" $filt || continue
     [ "$(cksum < "$f" | cut -d' ' -f1)" = "$sum" ] && printf '%s\n' "$f"
   done < <(awk '{last[$3]=$0} END{for (b in last) print last[b]}' "$gd/.gated")
 }
-# record_gated <file> <kind>: checksum, kind, basename into its milestone's .gated (the last row per file wins); a file outside milestones/<id>/dispatch/ is not recorded.
-record_gated() { local fa; fa=$(abspath "$1"); [ -z "$(in_dispatch_dir "$fa")" ] || printf '%s %s %s\n' "$(cksum < "$1" | cut -d' ' -f1)" "$2" "$(basename "$1")" >> "$(dirname "$fa")/.gated"; }
+# record_gated <file> <kind>: checksum, kind, basename, gating time into its milestone's .gated (the last row per file wins; rows written before 0.7.4 carry no time); a file outside milestones/<id>/dispatch/ is not recorded.
+record_gated() { local fa; fa=$(abspath "$1"); [ -z "$(in_dispatch_dir "$fa")" ] || printf '%s %s %s %s\n' "$(cksum < "$1" | cut -d' ' -f1)" "$2" "$(basename "$1")" "$(now)" >> "$(dirname "$fa")/.gated"; }
+GATED_AT='^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z$'
 abspath() { local d; d=$(cd "$(dirname "$1")" 2>/dev/null && pwd -P) || return 1; printf '%s/%s' "$d" "$(basename "$1")"; }
 # in_dispatch_dir <abs-file>: prints the milestone id when the file lives under milestones/<id>/dispatch/ (logical or physical $dir)
 in_dispatch_dir() { local f="$1" dp; dp=$(cd "$dir" 2>/dev/null && pwd -P) || dp="$dir"
   case "$f" in "$dir"/milestones/m[0-9]*/dispatch/*.md|"$dp"/milestones/m[0-9]*/dispatch/*.md) basename "$(dirname "$(dirname "$f")")";; esac; }
+# Shared block templates/blocks/process-cost.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/process-cost.md
+# cc_process_cost <since>: one line, what this session's process cost from <since> (epoch seconds, or ISO-8601 with Z or an offset) to
+# now, read from CLAUDE_CODE_SESSION_ID's transcript (~/.claude/projects/*/<id>.jsonl) and its agent transcripts (subagents/agent-*.jsonl,
+# subagents/workflows/*/agent-*.jsonl): tokens (input, output, cache writes, cache reads) of every record timestamped at or after <since>,
+# once per message.id across all files; agents = agent transcripts holding a counted record; whole minutes since <since>. No prices.
+# Otherwise `Process cost: unknown — <reason>` (no jq, no session id, no transcript, a bad <since>, jq failed). Status 0 always.
+# Misses: other sessions' transcripts, records with no timestamp, compaction (it writes no usage record), agents writing elsewhere.
+cc_process_cost() {
+  local since="${1:-}" sid="${CLAUDE_CODE_SESSION_ID:-}" t="" f out
+  command -v jq >/dev/null 2>&1 || { echo "Process cost: unknown — jq not found"; return 0; }
+  case "$sid" in '' | *[!A-Za-z0-9_-]*) echo "Process cost: unknown — no session id (CLAUDE_CODE_SESSION_ID)"; return 0 ;; esac
+  for f in "${HOME:-}"/.claude/projects/*/"$sid".jsonl; do [ -f "$f" ] && { t=$f; break; }; done
+  [ -n "$t" ] || { echo "Process cost: unknown — no transcript for session $sid"; return 0; }
+  out=$(set -- "$t"
+    for f in "${t%.jsonl}"/subagents/agent-*.jsonl "${t%.jsonl}"/subagents/workflows/*/agent-*.jsonl; do [ -f "$f" ] && set -- "$@" "$f"; done
+    jq -nrR --arg since "$since" --arg main "$t" '
+      def off: if . == "Z" then 0 else ((.[1:3] | tonumber) * 3600 + ((.[3:] | ltrimstr(":")) as $m
+        | if $m == "" then 0 else ($m | tonumber) * 60 end)) * (if .[0:1] == "-" then -1 else 1 end) end;
+      def ep: if test("^[0-9]+$") then tonumber else
+        capture("^(?<d>[0-9]{4}-[0-9]{2}-[0-9]{2})[T ](?<h>[0-9]{2}:[0-9]{2})(?<s>:[0-9]{2})?(\\.[0-9]+)?(?<z>Z|[+-][0-9]{2}(:?[0-9]{2})?)$")
+        | ("\(.d)T\(.h)\(.s // ":00")Z" | fromdateiso8601) - (.z | off) end;
+      def when: [strings | try ep catch empty] | .[0];
+      def count($r; $f): ($r.message | if type == "object" then . else {} end) as $m
+        | ($m.usage | if type == "object" then . else null end) as $u | ($m.id | if type == "string" then . else null end) as $id
+        | if $u == null or $m.model == "<synthetic>" or ($id != null and .seen[$id]) then . else
+            (if $id != null then .seen[$id] = true else . end) | ($u.cache_read_input_tokens // 0) as $cr
+            | (($u.input_tokens // 0) + ($u.output_tokens // 0) + ($u.cache_creation_input_tokens // 0) + $cr) as $n
+            | .cr += $cr | if $f == $main then .main += $n else .sub += $n | .agents[$f] = true end end;
+      def tok: if . >= 999500 then (. / 10000 | round) as $c | "\($c / 100 | floor).\($c % 100 | if . < 10 then "0\(.)" else "\(.)" end)M"
+        elif . >= 1000 then "\(. / 1000 | round)k" else "\(.)" end;
+      def clock: if strflocaltime("%Y-%m-%d") == (now | strflocaltime("%Y-%m-%d")) then strflocaltime("%H:%M")
+        else strflocaltime("%Y-%m-%d %H:%M") end;
+      ($since | when) as $s
+      | if $s == null then "Process cost: unknown — since \($since | tojson) is neither epoch seconds nor ISO-8601 with a zone" else
+          reduce (inputs | try fromjson catch null | objects) as $r ({seen: {}, agents: {}, main: 0, sub: 0, cr: 0};
+            ($r.timestamp | when) as $t | if $t != null and $t >= $s then count($r; input_filename) else . end)
+          | (.main + .sub) as $all | (.agents | length) as $n | (now - $s) as $el
+          | "Process cost since \($s | clock): \($n) agent\(if $n == 1 then "" else "s" end) · \($all | tok) tokens (main \(.main | tok),"
+            + " subagents \(.sub | tok); \(if $all > 0 then (.cr * 100 / $all | round) else 0 end)% cache reads)"
+            + " · \(if $el > 0 then ($el / 60 | floor) else 0 end) min" end' "$@" 2>/dev/null) || out=""
+  [ -n "$out" ] || out="Process cost: unknown — jq could not read the transcript"
+  printf '%s\n' "$out"
+  return 0
+}
 NEXT_FILTER='. as $p | [.milestones[] | select(.status!="done" and .status!="parked") | select(all((.depends // [])[]; . as $d | any($p.milestones[]; .id==$d and .status=="done")))] | .[0]'
 
 cmd="${1:-}"; shift || true
@@ -398,8 +445,11 @@ case "$cmd" in
     nw=$(gated_files "$id" "worker followup" | wc -l | tr -d ' '); ng=$(gated_files "$id" | wc -l | tr -d ' ')
     mbranch=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.branch' "$state"); mbase=$(jq -r '.base_branch' "$state")
     lines=$(git -C "$root" diff --shortstat "$mbase...$mbranch" 2>/dev/null | sed -E 's/^ *[0-9]+ files? changed,? *//; s/ insertions?\(\+\)/+/; s/ deletions?\(-\)/-/; s/, */ /g' | tr -d '\n')
-    mins=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.history as $h | ([$h[]|select(.status=="briefed" or .status=="building")|.at]|min) as $s | ([$h[]|select(.status=="done")|.at]|max) as $e | if $s==null or $e==null then "-" else ((($e|fromdate)-($s|fromdate))/60|floor|tostring) end' "$state")
+    began=$( { jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.history[]|select(.status=="briefed" or .status=="building")|.at' "$state"
+      awk -v t="$GATED_AT" 'NF >= 4 && $NF ~ t {print $NF}' "$dir/milestones/$id/dispatch/.gated" 2>/dev/null; } | sort | head -n 1)
+    mins=$(jq -r --arg id "$id" --arg s "$began" '.milestones[]|select(.id==$id)|([.history[]|select(.status=="done")|.at]|max) as $e | if $s=="" or $e==null then "-" else ((($e|fromdate)-($s|fromdate))/60|floor|tostring) end' "$state")
     echo "sized $msize · actual: $ng gated dispatches ($nw worker/follow-up) · ${lines:-diff n/a} lines vs $mbase · $mins min"
+    if [ -n "$began" ]; then cc_process_cost "$began"; else echo "Process cost: unknown — $id has no briefed, building or gated-dispatch time recorded"; fi
     # Name the next step here, at the decision point, not only in the skill text read hours earlier.
     nx=$(jq -r "$NEXT_FILTER"' | if . == null then "none" else .id + " (" + .title + ")" end' "$state")
     if [ "$nx" = none ]; then echo "next: none runnable — program.sh close (or park/unblock what remains)"

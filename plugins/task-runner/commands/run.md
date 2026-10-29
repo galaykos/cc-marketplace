@@ -171,7 +171,8 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    repo root), then print the
    completion report table (task / status / verify command / evidence), parked tasks
    with reasons, the follow-up backlog, and every recorded reduction by id and reason —
-   `bg-<HEAD12>` when the no-runner exit was taken. When cards touched UI, the report also carries one Screens table (screen · width · before · after · not observed) per `skills/task-execution/references/ui-walk.md`, whose walk is also the `--evidence` for that no-runner record.
+   `bg-<HEAD12>` when the no-runner exit was taken — and, beside the result, the one line
+   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-cost.sh"` prints: what the run itself cost. When cards touched UI, the report also carries one Screens table (screen · width · before · after · not observed) per `skills/task-execution/references/ui-walk.md`, whose walk is also the `--evidence` for that no-runner record.
    The rename, not a delete: the stop after the report is where candor's clause 4 reads
    the records (reviewer, control, range, disclosure), and it retires `closed-run.json`
    when they hold. The review observer and the skip-consent ask still treat it as the run,

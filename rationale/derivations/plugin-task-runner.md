@@ -1491,6 +1491,22 @@ Loud on purpose: this line is the mid-run disclosure. A skip the user only learn
 about when they ask is the failure this whole mechanism exists to prevent.
 ```
 
+## plugins/task-runner/scripts/run-cost.sh
+
+Written 2026-10-29 when the script shipped (0.49.9), not moved from code. Standing: `recorded`; its counting is the shared block, `rationale/derivations/templates-and-blocks.md` § `templates/blocks/process-cost.md`.
+
+### Where the run began
+
+The run record is the only start time task-runner already writes: `register-run.sh` writes `active-run.json` once and a resume leaves it untouched, so its modification time is the registration (the task board reads the same time, `hooks/board.ts`). The record holds no timestamp field, and adding one would change a file most of this plugin's hooks and candor's Stop gate read. At the report the record has been renamed to `closed-run.json` with `mv`, which keeps the time, so the script reads `active-run.json` first and `closed-run.json` second. The root is `git rev-parse --show-toplevel`, as `register-run.sh` resolves it. `--since` overrides both, for a run that never registered.
+
+### Re-registration and runs across sessions
+
+`register-run.sh` resumes, leaving the record and its time untouched, only for the same branch, slug and index without `--fresh`. `--fresh` rewrites it, and so does every call without `--index` (an inline list's `--slug`): the start moves to that registration, and the work before it drops out of the line. An index run resumed in a new session keeps its first registration, so the minutes span every session since then while the tokens are this session's only; the line does not say how much of the run happened elsewhere.
+
+### What it misses
+
+A run record touched after registration (an editor saving it, a `touch`) moves the start. The re-registration and multi-session cases above. Everything the block misses.
+
 ## plugins/task-runner/scripts/sweep-residual.sh
 
 ### Header

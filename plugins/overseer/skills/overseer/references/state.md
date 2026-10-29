@@ -73,7 +73,7 @@ guess, so `milestone set --size <X> --reason` may correct it (history keeps the 
 unset until the brief is scored — `dispatch-prompts.md` § Rigour) says what scrutiny the
 milestone buys; `dispatch check --milestone` WARNs while unset or contradicted by the card
 index (**WARN**). `milestones/<id>/dispatch/.gated` is written by `dispatch check` (checksum,
-kind, file per exit 0); `accept` reads only files listed there and unchanged since. `model` (`opus|auto`, set by `init
+kind, file, gating time per exit 0; a row written before 0.7.4 has no time and still counts); `accept` reads only files listed there and unchanged since, and its earliest gating time can start the milestone's clock. `model` (`opus|auto`, set by `init
 --model`, default `opus`) is the tier every dispatch's `MODEL:` line must respect
 (**gate**); a program written before the field exists reads as `opus`. `foreign_session_reason` at the
 program level is set only by `init --foreign-session`; while it is non-empty every

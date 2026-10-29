@@ -65,6 +65,25 @@ program
 is refused until at least one ASSUMED decision is recorded. The script checks that files
 exist, not what they show — the residual is stated in `skills/overseer/references/acceptance.md`.
 
+Once a milestone is accepted, `accept` prints what it took. Both lines count from one start:
+the earliest of the milestone's briefed and building times and the time `dispatch check`
+gated its first dispatch (stored in `dispatch/.gated` since 0.7.4; an older row has none).
+The first line is the roadmap size beside the actual dispatches, diff and minutes. The second
+is the process cost, measured from this session's transcript and its agent transcripts
+(`subagents/agent-*.jsonl`, and `subagents/workflows/*/agent-*.jsonl` for Workflow agents):
+
+```
+Process cost since 14:02: 6 agents · 1.84M tokens (main 0.41M, subagents 1.43M; 87% cache reads) · 38 min
+```
+
+Every record from the start on counts by its own timestamp, once per message across the
+files; **agents** are the agent transcripts holding at least one counted record. It shows no
+prices, and compaction writes no usage record, so its tokens are missing. A milestone
+delivered across sessions shows only the session that accepts it. The Workflow layout was
+read on a CLI 2.1.295 session only; that 2.1.310 writes it the same way is assumed. When the
+transcript cannot be read the line says `Process cost: unknown — <reason>` and accept still
+exits 0. **Standing: recorded** — it reports and gates nothing.
+
 ## What it composes, and what happens without them
 
 The overseer writes prompts; other plugins do the work. `capability-scan.sh` reports per

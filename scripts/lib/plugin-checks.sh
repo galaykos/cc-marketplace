@@ -223,7 +223,7 @@ FILES
 # Why, limits, history: rationale/derivations/scripts-lib.md § pc_shared_blocks
 pc_shared_blocks() {
   local root="${1:-plugins}" bdir="${2:-templates/blocks}" bad=0 f blk content fn name pair
-  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks option-resolver:cc_option plugin-state:cc_plugin_state heredoc-bodies:cc_strip_heredoc_bodies 'bash-write-effects:cc_bash_(effects_mark|write_effects)' 'prompt-shape:cc_prompt_[a-z_]+' 'write-scope:cc_scope_[a-z]+' quote-match:cc_quote_match; do
+  for pair in state-root:cc_state_root bash-write-targets:cc_bash_write_targets bash-write-chunks:cc_bash_write_chunks option-resolver:cc_option plugin-state:cc_plugin_state heredoc-bodies:cc_strip_heredoc_bodies 'bash-write-effects:cc_bash_(effects_mark|write_effects)' 'prompt-shape:cc_prompt_[a-z_]+' 'write-scope:cc_scope_[a-z]+' quote-match:cc_quote_match process-cost:cc_process_cost; do
     name=${pair%%:*}; fn=${pair#*:}
     [ -r "$bdir/$name.md" ] || continue
     blk=$(cat "$bdir/$name.md")

@@ -164,6 +164,38 @@ and it says nothing about whether the fan-out was a good idea — that is
 `/task-runner:plan`, which is prose. `CC_SPAWN_CAP=<n>` moves the first threshold;
 `CC_SPAWN_CAP=off` disables it.
 
+## What the run itself cost
+
+The completion report carries one line from `scripts/run-cost.sh`, beside the result:
+
+```
+Process cost since 14:02: 6 agents · 1.84M tokens (main 0.41M, subagents 1.43M; 87% cache reads) · 38 min
+```
+
+It is measured from this session's transcript (found by `CLAUDE_CODE_SESSION_ID`) and the
+agent transcripts beside it — `subagents/agent-*.jsonl` (subagents and forks) and
+`subagents/workflows/*/agent-*.jsonl` (Workflow agents) — from the moment the run registered
+(the modification time of `.claude/task-runner/active-run.json`, which the closing rename
+keeps) or `--since <epoch seconds | ISO-8601 with a zone>`. Every record from that moment on
+counts by its own timestamp, so a resumed agent's later work counts and its earlier work does
+not. Tokens are input, output, cache writes and cache reads, once per message across all the
+files. **Agents** are the agent transcripts holding at least one counted record; an agent's
+own agents count when their transcripts land in the same place. Cache reads are shown as a
+share. Minutes are wall time.
+
+What it does not show:
+
+- prices (they change, and the transcript has none);
+- compaction, which writes no usage record;
+- another session's tokens. An index run resumed in a new session keeps its first
+  registration, so its minutes span the sessions while its tokens are this session's only.
+  `register-run.sh --fresh`, or a second `--slug` registration, starts the count again.
+- The Workflow layout was read on a CLI 2.1.295 session only; that 2.1.310 writes the same
+  layout is assumed, not measured.
+
+When it cannot read the transcript it prints `Process cost: unknown — <reason>` and exits 0.
+**Standing: recorded** — the line reports and nothing reads it back.
+
 ## The run cannot end by narration
 
 A run registers itself at start through `scripts/register-run.sh`, which `/task-runner:run`,

@@ -1071,6 +1071,48 @@ A wrong mismatch costs a reviewer a dropped finding and, in candor, a blocked tu
 
 Five processes per call (`wc`, `head | tr | wc`, `awk`). Through quote-check.sh, on findings quoting real tracked files of this repository (2026-10-29, Linux, mawk): 25 findings 93 ms, 200 findings 744 ms, median of 5. With `all` the awk reads the whole file, at most 1 MiB.
 
+## templates/blocks/process-cost.md
+
+Written 2026-10-29 when the block shipped (task-runner 0.49.9, overseer 0.7.4), not moved from code. Standing: `recorded`; the byte-for-byte copies are a **gate** (`pc_shared_blocks`, pair `process-cost:cc_process_cost`).
+
+### Why it exists
+
+The improvement plan's deferred "cost of the process" line (`rationale/improvement-plan-2026-10-26.md`, Deferred), built when the user asked for it on 2026-10-29, for task-runner and overseer only: when a `/task-runner:run` finishes and when overseer accepts a milestone, the person sees one plain line of what the process itself cost since it began — subagents, tokens with cache reads apart, minutes — measured from the session's own transcripts, never estimated, and with no prices, because prices change and the transcript carries none. Two callers, task-runner's `scripts/run-cost.sh` and overseer's `program.sh accept`; plugins install alone, so the counting is pasted, not sourced.
+
+### What it decides, and why that way
+
+- **The transcript is found by globbing `~/.claude/projects/*/<session id>.jsonl`,** never by rebuilding the project slug: a session opened in one directory and moved into a worktree keeps its transcript where it started (this session's first `cwd` is the main repository, its transcript sits in the worktree's directory). A session id holding anything but letters, digits, `-` and `_` is refused before it reaches the glob.
+- **Agent transcripts are `subagents/agent-*.jsonl` and `subagents/workflows/*/agent-*.jsonl` beside the main one.** The first holds subagents and forks: a fork at spawn depth 2 (2026-10-15) sat there beside its parent's siblings. The second holds Workflow agents, one directory per workflow run (`wf_<id>/`, with `.meta.json` and `.prefix.json` beside each transcript, `agentType` `workflow-subagent`). That layout was read on one CLI 2.1.295 session, `e87bdd99`, 23 Workflow agents; that 2.1.310 writes it the same way is assumed, not measured. Fix cycle 1 (2026-10-29) added the second glob: the first version read only `subagents/agent-*.jsonl`, so a Workflow run counted nothing. Forked skills were not found in any transcript of this project to check where they write.
+- **Every record counts by its own timestamp, at or after `<since>`, in the main transcript and in every agent transcript alike.** The first version counted a subagent transcript whole when its first record came after `<since>` and not at all otherwise, so a resumed agent's later work was lost and an early agent's whole cost was dropped (fix cycle 1). A record with no timestamp is not counted: it cannot be placed.
+- **Once per `message.id`, across all files.** One API response is written as one record per content block, each carrying the same usage; m2 measured a 2.15× overcount without the dedupe (`scripts/turn-cost.sh`). The first record of an id stands for the request; the main transcript is read first, so a record a fork copies from its parent counts once, in main. A `<synthetic>` record (a locally generated notice) is skipped, as turn-cost.sh skips it.
+- **Tokens are the four top-level usage fields:** `input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`. The per-iteration breakdown under `usage.iterations` is not added again. Cache reads are summed apart and shown as a share of the total.
+- **Agents are the agent transcripts holding at least one counted record** (fix cycle 1). The first version counted the main thread's `Agent`/`Task` calls, which misses Workflow agents (spawned by a `Workflow` call) and every agent an agent spawns. A transcript whose records are all before `<since>`, untimed or copies of an id already counted is not an agent here.
+- **`<since>` is epoch seconds or ISO-8601 with `Z` or an offset;** a time with no zone is refused, because ISO-8601 reads it as local time and the transcript is UTC. A space for the `T` and fractional seconds are accepted.
+- **One jq process reads every file once,** line by line with `fromjson`, so a torn last line of a transcript still being written is skipped instead of failing the whole read; `input_filename` tells the main transcript from an agent's. The label is local time, `HH:MM` today and the date before it otherwise; the numbers are `M` with two decimals from 999,500 tokens, rounded `k` from 1,000.
+- **Status 0 always.** A cost line that fails a run's closing step or an accept would make the measurement the thing that breaks the work; every failure is `Process cost: unknown — <reason>`.
+
+### What it misses
+
+- Another session's transcript: a run or milestone that spans sessions shows only the session that prints the line.
+- Compaction: it writes no usage record, so its tokens are not in any figure.
+- Records without a timestamp (none carried usage in the transcripts read), and any usage a transcript does not record.
+- An agent writing its transcript anywhere but the two globs.
+- Prices, and the difference between a cheap and an expensive model: a token is a token here.
+
+### Checked (2026-10-29, CLI 2.1.310, this repository's overseer session)
+
+Against an independent per-record count in Python (the same rules, written apart: every record at or after `<since>`, once per message id across files, `<synthetic>` skipped, agents = agent transcripts with a counted record), with the block's `tok` formatting removed:
+
+- the m15 window, since 2026-10-29T12:49:05Z: 2 agents, main 5,694,428 and subagents 50,769,082 tokens, 98% cache reads, in both; 69 files read (main and 68 agents);
+- a 3-hour window: 5 agents, main 20,004,965 and subagents 82,404,678, 95%, in both;
+- the 2.1.295 session `e87bdd99` since 2026-10-12: 23 agents, all Workflow agents, main 9,240,244 and subagents 197,806,242, in both.
+
+turn-cost.sh prints requests and an estimated spend, not tokens; its request count over the same instant equals the Python count of main-thread requests (8 = 8, 29 = 29). Its `--workflow` mode finds no blocks for this session: the session's first `cwd` is the main repository while its transcript sits in the worktree's directory, and that mode needs both to name one project. Before fix cycle 1 the same two-step check, under the old whole-transcript rule, matched too (4 = 4 and 136 = 136 requests; equal token sums over an hour and a day).
+
+### Cost
+
+One jq process per call, plus two globs. On this session's transcripts (20 MB main, 68 agent transcripts totalling 177 MB), 1.83–1.84 s over three runs, Linux, jq 1.8.1: every file is read whatever `<since>` is. Not run under bash 3.2 or an older jq.
+
 ## templates/reminder-hook.sh.tmpl
 
 ### Off switch

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.4 — 2026-10-29
+
+- **Accepting a milestone says what the process cost.** `dispatch check` now stores the gating time as a fourth field of each `dispatch/.gated` row (older rows without it still gate). `accept` computes one start, the earliest of the milestone's briefed and building times and those stored gating times, and uses it for the `actual:` minutes (until now: briefed or building only) and for a new line after it, `Process cost since <time>: <n> agents · <tokens> (main …, subagents …; <n>% cache reads) · <n> min`, read from this session's transcript and its agent transcripts (`subagents/agent-*.jsonl`, `subagents/workflows/*/agent-*.jsonl`). Every record counts by its own timestamp, once per message id across all files; agents are the agent transcripts holding a counted record. No prices. With no start or no readable transcript it prints `Process cost: unknown — <reason>`; accept's exit status is unchanged. Residuals: compaction writes no usage record; only the session that runs accept is read; the Workflow layout was read on a CLI 2.1.295 session only. Pinned by `scripts/__tests__/program.test.sh`. Standing: recorded — it reports and gates nothing.
+
 ## 0.7.3 — 2026-10-28
 
 - **Comments cut to what a reader needs; behaviour unchanged.** `scripts/capability-scan.sh`, `scripts/program.sh`, `scripts/skill-path.sh`: each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain. The usage text `scripts/program.sh`, `scripts/skill-path.sh` print on a missing or bad argument no longer carries the history prose; usage, flags and exit codes are unchanged.

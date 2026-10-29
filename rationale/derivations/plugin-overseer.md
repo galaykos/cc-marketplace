@@ -178,6 +178,16 @@ the size was a roadmap guess; print what it actually took next to it so the next
 (nothing scores the miss — the bands would be invented; the reader compares)
 ```
 
+### accept: the process-cost line
+
+Written 2026-10-29 when it shipped (0.7.4), not moved from code. After the `actual:` line, accept prints the shared block's line (`rationale/derivations/templates-and-blocks.md` § `templates/blocks/process-cost.md`), pasted above the command dispatch.
+
+One start, computed once, feeds both the cost line and the `actual:` minutes: the earliest of the milestone's `briefed` and `building` history times and the gating times stored in `dispatch/.gated`. `queued` is when the roadmap was written, which can be days before any work, and a reader dispatch can come before the brief. The times are compared as `%Y-%m-%dT%H:%M:%SZ` strings. Until fix cycle 1 the `actual:` minutes counted from `briefed`/`building` only and the cost line also read dispatch files' modification times, so the two lines could disagree, and an edit to a dispatch file moved the start.
+
+`dispatch check` appends the gating time as the fourth field of its `.gated` row (`<checksum> <kind> <file> <time>`). A row written before 0.7.4 has three fields and still gates: `gated_files` strips a trailing time before it names the file, and the `awk` that keeps the last row per file keys on field 3 in both shapes. With no history time and no stored gating time the line says the start is unknown, and the `actual:` minutes read `-`.
+
+Accept's exit status does not depend on the line. It reads only the session that runs accept, so a milestone delivered across sessions shows that session's part; the line says nothing about other sessions, and that is the residual.
+
 ### accept: the next step
 
 ```text

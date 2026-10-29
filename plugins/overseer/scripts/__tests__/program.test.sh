@@ -6,7 +6,8 @@
 # worker never inherits even under --model auto; an M+ milestone's direct worker WARNs unless a taskmaster index registered after
 # the milestone names it (touching the brief changes nothing); an Ultra:/Goal: index on a lean/standard milestone WARNs (hands-off: points at goal-lean; Goal: boost=off does not), an
 # adversarial milestone with no marker or a boost=off one WARNs; `dispatch check` exit 0 records the file in dispatch/.gated and accept counts only
-# gated, unchanged files whose pins EXIST; accept refuses evidence older than the last gated worker dispatch; accept prints sized vs actual;
+# gated, unchanged files whose pins EXIST; accept refuses evidence older than the last gated worker dispatch; accept prints sized vs actual,
+# then the process-cost line from one start (earliest briefed/building time or .gated gating time; unknown, still exit 0, without one);
 # a second init over a program with milestones is refused (2); vocabularies are enforced (2);
 # `done` cannot be set by hand (2); file kinds need --file, stored absolute, must be a non-empty
 # regular file (2); accept refuses without the nine required kinds (2) and names the missing ones,
@@ -169,7 +170,7 @@ expect 2 "accept refuses with no gated dispatch (a hand-written file pinning eve
 grep -q "no gated dispatch" "$WS/err" && ok || bad "refusal names the gated-dispatch rule: $(head -1 "$WS/err")"
 sleep 1; wprompt "$SD/milestones/m1/dispatch/1-backend.md" "$STACKSK"
 expect 0 "dispatch check gates a milestone worker file" -- env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m1/dispatch/1-backend.md" --kind worker --milestone m1
-grep -qE "^[0-9]+ worker 1-backend\.md$" "$SD/milestones/m1/dispatch/.gated" && ok || bad ".gated records checksum, kind, file: $(cat "$SD/milestones/m1/dispatch/.gated")"
+grep -qE "^[0-9]+ worker 1-backend\.md [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" "$SD/milestones/m1/dispatch/.gated" && ok || bad ".gated records checksum, kind, file, gating time: $(cat "$SD/milestones/m1/dispatch/.gated")"
 # kind routing: m1 is 'feature' → needs stack + testing pinned, by paths that exist, in some gated dispatch
 expect 2 "accept refuses: kind feature has no testing skill pinned in any gated dispatch" -- env HOME="$FAKEHOME" "$PS" accept --id m1
 grep -q "testing:testing-best-practices" "$WS/err" && ok || bad "accept names the unpinned group"
@@ -196,13 +197,14 @@ rewalk
 sleep 1
 printf 'Fix cycle 2 — same preamble and rules as your card %s/dispatch/1-backend.md; same TOUCH ONLY set; same VERIFY; same RETURN shape.\n1. do y\n' "$SD/milestones/m1" > "$SD/milestones/m1/dispatch/1-followup.md"
 expect 0 "dispatch check --kind followup inside dispatch/" -- env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m1/dispatch/1-followup.md" --kind followup
-grep -qE "^[0-9]+ followup 1-followup\.md$" "$SD/milestones/m1/dispatch/.gated" && ok || bad "a gated follow-up is recorded in .gated: $(cat "$SD/milestones/m1/dispatch/.gated")"
+grep -qE "^[0-9]+ followup 1-followup\.md [0-9T:Z-]+$" "$SD/milestones/m1/dispatch/.gated" && ok || bad "a gated follow-up is recorded in .gated: $(cat "$SD/milestones/m1/dispatch/.gated")"
 expect 2 "accept refuses evidence older than a gated follow-up" -- env HOME="$FAKEHOME" "$PS" accept --id m1
 grep -q "recorded before the last gated worker" "$WS/err" && ok || bad "a follow-up moves the stale-evidence line: $(head -1 "$WS/err")"
 sleep 1; rewalk
 expect 0 "accept m1" -- env HOME="$FAKEHOME" "$PS" accept --id m1
 grep -qE "^next: m2 \(.*\) — ask once: continue now" "$WS/out" && ok || bad "accept prints the next runnable milestone and the interactive rule: $(grep next "$WS/out")"
 grep -qE "^sized M · actual: 4 gated dispatches \(2 worker/follow-up\)" "$WS/out" && ok || bad "accept prints sized vs actual: $(grep sized "$WS/out")"
+[ "$(awk '/^sized /{getline; print; exit}' "$WS/out")" = "Process cost: unknown — no session id (CLAUDE_CODE_SESSION_ID)" ] && ok || bad "with no session id accept still exits 0 and says the cost is unknown after actual: $(cat "$WS/out")"
 grep -q "same file" "$WS/err" && bad "distinct evidence files drew the one-file WARN" || ok
 grep -q "no gated reviewer" "$WS/err" && bad "a gated reviewer exists yet the no-reviewer WARN fired" || ok
 jq -e '.milestones[0].status=="done" and .milestones[0].accepted_at!=null' "$SD/program.json" >/dev/null && ok || bad "m1 done"
@@ -399,7 +401,7 @@ grep -q "kind auth is never lean" "$WS/err" && ok || bad "a lean surface kind WA
 mkdir -p "$SD/milestones/m5/dispatch"; cp "$WS/p2.md" "$SD/milestones/m5/dispatch/9.md"
 expect 0 "dispatch check derives the milestone from the file's path" -- env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m5/dispatch/9.md"
 grep -q "m5 has no rigour profile" "$WS/err" && ok || bad "path-derived milestone draws the milestone WARNs: $(cat "$WS/err")"
-grep -qE "^[0-9]+ worker 9\.md$" "$SD/milestones/m5/dispatch/.gated" && ok || bad "path-derived dispatch is recorded in .gated"
+grep -qE "^[0-9]+ worker 9\.md [0-9T:Z-]+$" "$SD/milestones/m5/dispatch/.gated" && ok || bad "path-derived dispatch is recorded in .gated"
 [ ! -f "$WS/.gated" ] && ok || bad "a prompt outside a dispatch dir is not recorded"
 expect 2 "dispatch check --milestone unknown id" -- "$PS" dispatch check "$WS/p2.md" --milestone m77
 # dense card WARN: the fixture preamble clauses + 20 items
@@ -590,6 +592,72 @@ grep -q "ui headless" "$WS/err" && ok || bad "the refusal names the known profil
 printf 'ghost2\tstack\ta kind added at runtime with a real profile\theadless\n' >> "$PLUG/kinds.tsv"
 expect 0 "a kinds.tsv row carrying a valid profile is accepted (the column is data, not hard-coded)" -- env OVERSEER_ROOT="$W9" HOME="$H9" bash "$PLUG/scripts/program.sh" milestone add --id m9 --title t --branch b --kind ghost2
 rm -rf "$W9"
+
+# ---- the process-cost line after accept --------------------------------------------------------------
+# accept computes one start, the earliest of the milestone's briefed and building times and the gating times `dispatch check` stores in
+# .gated, and uses it for both the `actual:` minutes and the cost line. How the transcript is counted is task-runner's
+# scripts/__tests__/run-cost.test.sh, on the same block; here only which start accept passes.
+W10=$(mktemp -d); git -C "$W10" init -q -b main 2>/dev/null || git -C "$W10" init -q
+mkdir -p "$W10/.claude/skills/proj"; printf 'x' > "$W10/.claude/skills/proj/SKILL.md"; S10="$W10/.claude/overseer"
+H10="$W10/home"; T10="$H10/.claude/projects/-p"; mkdir -p "$T10/s10/subagents"
+P10() { env OVERSEER_ROOT="$W10" HOME="$H10" TZ=UTC "$PS" "$@"; }
+A10() { env CLAUDE_CODE_SESSION_ID=s10 OVERSEER_ROOT="$W10" HOME="$H10" TZ=UTC "$PS" accept --id "$1"; }
+ready() { # ready <id>: one gated worker dispatch, then both headless evidence kinds
+  mkdir -p "$S10/milestones/$1/dispatch"; wprompt "$S10/milestones/$1/dispatch/1.md" "$W10/.claude/skills/proj/SKILL.md"
+  P10 dispatch check "$S10/milestones/$1/dispatch/1.md" --kind worker --milestone "$1" >/dev/null 2>&1
+  sleep 1; mkfile "$W10/$1-tests.txt"; mkfile "$W10/$1-run.txt"
+  P10 evidence add --id "$1" --kind tests --note n --file "$W10/$1-tests.txt" >/dev/null 2>&1
+  P10 evidence add --id "$1" --kind run-log --note n --file "$W10/$1-run.txt" >/dev/null 2>&1
+}
+at() { jq --arg id "$1" --arg st "$2" --arg at "$3" '(.milestones[]|select(.id==$id)|.history[]|select(.status==$st)|.at) = $at' "$S10/program.json" > "$S10/pj" && mv "$S10/pj" "$S10/program.json"; }
+gat() { # gat <id> [<time>]: rewrite the milestone's .gated rows to carry <time>, or no time (a row written before 0.7.4)
+  local g="$S10/milestones/$1/dispatch/.gated"; awk -v t="${2:-}" '{print $1, $2, $3 (t == "" ? "" : " " t)}' "$g" > "$g.tmp" && mv "$g.tmp" "$g"; }
+rec10() { printf '{"type":"assistant","timestamp":"%s","message":{"id":"%s","model":"m","content":[],"usage":{"input_tokens":%s}}}\n' "$@"; }
+# main thread: 09:00 1,000 · 09:45 2,000 · 10:15 4,000 tokens; one agent: 10:20 8,000
+{ rec10 2026-01-01T09:00:00Z a 1000; rec10 2026-01-01T09:45:00Z b 2000; rec10 2026-01-01T10:15:00Z c 4000; } > "$T10/s10.jsonl"
+rec10 2026-01-01T10:20:00Z x 8000 > "$T10/s10/subagents/agent-x.jsonl"
+P10 init --goal g --slug cost >/dev/null 2>&1
+for m in m1 m2 m3 m4 m5; do P10 milestone add --id "$m" --title t --branch "ov/$m" --kind audit --size S >/dev/null; done
+cost_after_actual() { awk '/^sized /{getline; print; exit}' "$WS/out"; }
+
+P10 milestone set --id m1 --status briefed >/dev/null; P10 milestone set --id m1 --status building >/dev/null
+at m1 queued 2026-01-01T08:00:00Z; at m1 briefed 2026-01-01T10:00:00Z; at m1 building 2026-01-01T10:30:00Z
+ready m1
+grep -qE '^[0-9]+ worker 1\.md [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$S10/milestones/m1/dispatch/.gated" && ok || bad "dispatch check stores the gating time in .gated: $(cat "$S10/milestones/m1/dispatch/.gated")"
+expect 0 "accept m1 with a session transcript" -- A10 m1
+cost_after_actual | grep -qE '^Process cost since 2026-01-01 10:00: 1 agent · 12k tokens \(main 4k, subagents 8k; 0% cache reads\) · [0-9]+ min$' \
+  && ok || bad "briefed 10:00 is the start, not queued 08:00 nor building 10:30 nor the gating time (now), on the line after actual: $(cat "$WS/out")"
+
+# a dispatch gated before the brief: the stored gating time is the start, for the cost line AND the actual: minutes
+P10 milestone set --id m2 --status briefed >/dev/null; P10 milestone set --id m2 --status building >/dev/null
+at m2 briefed 2026-01-01T10:00:00Z; at m2 building 2026-01-01T10:30:00Z
+ready m2; gat m2 2026-01-01T09:30:00Z
+expect 0 "accept m2" -- A10 m2
+grep -qE '^Process cost since 2026-01-01 09:30: 1 agent · 14k tokens \(main 6k, subagents 8k;' "$WS/out" && ok || bad "a dispatch gated before the brief is the start: $(cat "$WS/out")"
+am=$(sed -n 's/^sized .* · \([0-9][0-9]*\) min$/\1/p' "$WS/out"); cm=$(sed -n 's/^Process cost since .* · \([0-9][0-9]*\) min$/\1/p' "$WS/out")
+[ -n "$am" ] && [ -n "$cm" ] && [ $((cm - am)) -ge 0 ] && [ $((cm - am)) -le 1 ] && ok || bad "actual: minutes ($am) and the cost line's ($cm) count from one start"
+
+# a building row and no briefed one: building is the start; a file mtime is never read for it
+P10 milestone set --id m3 --status building >/dev/null; at m3 building 2026-01-01T09:40:00Z
+ready m3
+TZ=UTC touch -t 202601010900.00 "$S10/milestones/m3/dispatch/1.md"
+expect 0 "accept m3" -- A10 m3
+grep -qE '^Process cost since 2026-01-01 09:40: 1 agent · 14k tokens' "$WS/out" && ok || bad "a building-only row is the start; the dispatch file's 09:00 mtime is not: $(cat "$WS/out")"
+
+# no briefed or building row (queued straight to accepting): the earliest gating time is the start
+P10 milestone set --id m4 --status accepting >/dev/null; at m4 queued 2026-01-01T08:00:00Z
+ready m4; gat m4 2026-01-01T09:30:00Z
+expect 0 "accept m4" -- A10 m4
+grep -qE '^Process cost since 2026-01-01 09:30: 1 agent · 14k tokens' "$WS/out" && ok || bad "the gating time is the start when no briefed or building row exists: $(cat "$WS/out")"
+grep -q '^Process cost' "$WS/err" && bad "the process-cost line went to stderr" || ok
+
+# a .gated row written before 0.7.4 (no time) still gates; with no other time the cost is unknown and accept exits 0
+P10 milestone set --id m5 --status accepting >/dev/null
+ready m5; gat m5
+expect 0 "accept m5 reads an old .gated row" -- A10 m5
+[ "$(cost_after_actual)" = "Process cost: unknown — m5 has no briefed, building or gated-dispatch time recorded" ] && ok || bad "no start recorded is unknown, exit 0: $(cat "$WS/out")"
+grep -qE '^sized S · actual: 1 gated dispatches \(1 worker/follow-up\) · .* · - min$' "$WS/out" && ok || bad "no start: actual: minutes read '-': $(grep sized "$WS/out")"
+rm -rf "$W10"
 
 echo "program.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
