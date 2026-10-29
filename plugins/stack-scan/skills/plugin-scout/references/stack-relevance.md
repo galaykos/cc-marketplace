@@ -31,6 +31,12 @@ those rows exist because three tokens share a name with plugins removed on
 |---|---|---|---|
 | PHP / Laravel | `laravel` | composer.json require `laravel/framework` or `inertiajs/inertia-laravel`, or package.json dep `@inertiajs/*` — the SKILL.md tier-1 keys. Bare composer.json never earns it: a Symfony or WordPress repo must not install laravel | `php`, `laravel`, `inertia` <!-- removed-ok --> |
 | JS / web frontend | `web-dev`, `craft-layer` | package.json (scan root, or a workspace member one level deep under SKILL.md's Detection precondition — root `workspaces`, `pnpm-workspace.yaml` or `turbo.json`) declaring an exact dep among `react`, `react-dom`, `vue`, `svelte`, `@sveltejs/kit`, `astro`, `@angular/core`, `next`, `nuxt`, `react-native`, `vite`, `@inertiajs/*`, `@react-three/fiber`, `tailwindcss`, `three`; or a `components.json` at the scan root. Bare package.json never earns it: a Go repo with prettier must not install web-dev | `react`, `vue`, `svelte`, `astro`, `angular`, `next`, `nuxt`, `react-native`, `vite`, `node`, `inertia` <!-- removed-ok --> |
+| Game — Godot | `godot` | `project.godot` at the scan root | `godot` |
+| Game — Unity | `unity` | `ProjectSettings/ProjectVersion.txt` beside an `Assets/` directory — a lone `*.csproj` is not Unity | `unity` |
+| Game — Unreal | `unreal` | a `*.uproject` at the scan root | `unreal` |
+| Game — Phaser | `phaser` | package.json dep `phaser` | `phaser` |
+| Game — PixiJS | `pixijs` | package.json dep `pixi.js` | `pixijs` |
+| Game — any engine | `gamedev` | any Game row above; or `steam_appid.txt`, an `app_build*.vdf`/`depot_build*.vdf`, or `butler push` in a CI file | `gamedev`, or any Game token above |
 
 ## Everything else
 

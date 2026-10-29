@@ -13,10 +13,14 @@
   "debugging": 144,
   "design-kit": 700,
   "devops": 381,
+  "gamedev": 532,
   "git-workflow": 211,
+  "godot": 284,
   "hindsight": 159,
   "laravel": 170,
   "overseer": 88,
+  "phaser": 102,
+  "pixijs": 97,
   "prompt-coach": 0,
   "resilience": 539,
   "secret-scanning": 95,
@@ -31,5 +35,7 @@
   "ui-libraries": 445,
   "ui-ux": 677,
   "ultra-deep-research": 220,
+  "unity": 102,
+  "unreal": 110,
   "web-dev": 336
 }

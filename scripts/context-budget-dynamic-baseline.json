@@ -13,10 +13,14 @@
   "debugging": 0,
   "design-kit": 0,
   "devops": 0,
+  "gamedev": 0,
   "git-workflow": 0,
+  "godot": 0,
   "hindsight": 0,
   "laravel": 0,
   "overseer": 0,
+  "phaser": 0,
+  "pixijs": 0,
   "prompt-coach": 0,
   "resilience": 0,
   "secret-scanning": 0,
@@ -31,5 +35,7 @@
   "ui-libraries": 0,
   "ui-ux": 0,
   "ultra-deep-research": 0,
+  "unity": 0,
+  "unreal": 0,
   "web-dev": 0
 }

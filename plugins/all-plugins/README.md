@@ -12,7 +12,11 @@ construction: **`prompt-coach`**, which bills a model call per eligible prompt. 
 only when you name it (`claude plugin install prompt-coach@cc-plugins-marketplace -s local`).
 `install` never installs or enables it, and prints it as a
 `skip (opt-in: bills a model call per prompt)` row. `uninstall` and `list` treat it like
-any other plugin.
+any other plugin. The six game plugins — `godot`, `unity`, `unreal`, `phaser`, `pixijs` and `gamedev` —
+are left out the same way, as
+`skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)`. Their
+descriptions in every project's listing serve no project but a game, and `/stack-scan:suggest`
+puts each one where its manifest signal is. Install one by name like prompt-coach.
 
 > **Re-run it after every marketplace update.** `install` installs what the marketplace
 > holds **when you run it**. `/plugin marketplace update` updates the plugins you have;
@@ -41,7 +45,7 @@ only through one of those it stays silent, and when leaves are, it shows the lin
 ```bash
 # 1. In a session, after installing this one plugin:
 /plugin install all-plugins@cc-plugins-marketplace
-/all-plugins:install                   # every leaf but opt-in prompt-coach; asks local or project first (not found yet? /reload-plugins first)
+/all-plugins:install                   # every leaf but opt-in prompt-coach and the game plugins; asks local or project first (not found yet? /reload-plugins first)
 /all-plugins:uninstall                 # the inverse; --self removes all-plugins too
 /reload-plugins                        # nothing installed this run is active until you do
 
@@ -97,18 +101,18 @@ disk before any plugin is installed.
   manifests and installs a picked set with evidence; its `--sync` mode moves a machine off
   user scope project by project, and prints this script's `uninstall --scope user --self`
   as the last step. This plugin is for the case where
-  you have already decided you want everything but prompt-coach.
+  you have already decided you want everything but prompt-coach and the game plugins.
 
 ## What has teeth
 
 | Rule | Standing |
 |---|---|
-| The exit codes, the every-listed-plugin list, the `prompt-coach` opt-in skip, the scope flag, a script that never prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
+| The exit codes, the every-listed-plugin list, the `prompt-coach` and game-plugin opt-in skips, the scope flag, a script that never prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
 | The commands relay the script instead of running `claude plugin install` themselves | **agent-graded** — it is instruction text in `commands/*.md`; nothing detects a substituted loop |
 | Both commands ask for the scope when `--scope` is absent (`user` only typed, for install), and stop rather than defaulting when nobody answers | **agent-graded** — instruction text in `commands/install.md` and `commands/uninstall.md`; no harness drives a command |
 | The startup line: shown only while all-plugins is its marketplace's sole enabled plugin, on startup, to the person, off with `CC_ALL_PLUGINS_HINT=off` | **gate** — the same harness's `hint:` cases drive `hooks/hint.sh` against fixture settings files |
 | The budget step: nothing written without `--budget`; with it, the fraction written, never lowered, foreign values kept, invalid JSON untouched, removed only when it is the script's own value | **gate** — the same harness drives it against fixture settings files |
-| The overflow arithmetic | **recorded** — reproduced by `scripts/context-budget.sh`; the 0.07 figure moves as the marketplace grows, and the script recomputes it on every run |
+| The overflow arithmetic | **recorded** — reproduced by `scripts/context-budget.sh`; the 0.08 figure moves as the marketplace grows, and the script recomputes it on every run |
 | The zero-delta firing result | **recorded** — one n=50 measurement; nothing re-runs it in CI (`scripts/smoke/listing-eviction-probe.sh` needs a live model and `LISTING_PROBE=1`) |
 
 ## The listing budget — what `install --budget` changes besides the install list
@@ -117,19 +121,19 @@ Claude Code caps the skill+command listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` — default fraction
 0.01, so 6,000 chars on a 200k window (3-byte model) and 30,000 at 1M — and past the
 cap it drops entries to name-only, buying descriptions back in priority order. Every
-leaf here costs about 39,100 entry-chars (`name + 4 + min(description + when_to_use, 1536)` per
+leaf here costs about 44,400 entry-chars (`name + 4 + min(description + when_to_use, 1536)` per
 skill and command, the walk `scripts/lib/plugin-checks.sh`'s `pc_listing_entry_cost`
-does): 6.5x the 200k cap, 1.3x the 1M cap. The name+4 floor alone is 67% of the 200k
+does): 7.4x the 200k cap, 1.5x the 1M cap. The name+4 floor alone is 77% of the 200k
 cap, so no amount of description trimming makes everything fit there.
 
 So `install --budget` finishes by computing that cost from the marketplace clone and writing
 `skillListingBudgetFraction` into the scope's settings file — `.claude/settings.local.json`
 (local), `.claude/settings.json` (project), `~/.claude/settings.json` (user) — at the
-smallest 0.01 step that covers cost x 1.05 at the 200k floor: 0.07 today. The fraction
+smallest 0.01 step that covers cost x 1.05 at the 200k floor: 0.08 today. The fraction
 is a cap, not a fill, so a 1M window pays nothing extra for the larger value. It never
 lowers a value that already covers, keeps every other key, refuses to touch a file that
 is not valid JSON (stderr names the value to set by hand), and prints what it did. The
-price is the listing itself: about 12,200 system-prompt tokens per turn, almost all of
+price is the listing itself: about 14,800 system-prompt tokens per turn, almost all of
 it prompt-cache reads. `uninstall` removes the key only when it still holds the value
 `install --budget` would set now — any other value is yours and is left alone, with a
 line saying so. It does that by default, so a value an install before 0.3.0 wrote

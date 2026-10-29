@@ -1,0 +1,13 @@
+{
+  "name": "unity",
+  "version": "0.1.0",
+  "description": "Unity 6 (6000.x) traps a model gets wrong from memory — Rigidbody and Find* renames, the Unity 6 torque change, Cinemachine 3 class names, Input System project-wide actions enabling every map, Awaitable cancellation, batch-mode CI builds and build profiles, NavMeshSurface/NavMeshLink — plus a read-only .meta/GUID checker that exits 1 when files were moved, renamed or copied outside the Editor without their .meta.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "gamedev",
+    "tooling"
+  ]
+}

@@ -10,8 +10,9 @@ Nineteen steps, run 2026-10-26 to 2026-10-29, to make the plugins clearer, calme
 is one stacked pull request, #224 to #241 and the one carrying this entry; the plan and its before-and-after
 numbers are in `rationale/improvement-plan-2026-10-26.md`. Plugin versions named below are the ones this release ships.
 
-- **Ten game-development plugins removed:** bevy, defold, ebitengine, gamedev, godot, phaser, pixijs, roblox, unity
-  and unreal. Nothing replaces them; uninstall them if you have them.
+- **Four game-development plugins removed:** bevy, defold, ebitengine and roblox. Nothing replaces them; uninstall
+  them if you have them. godot, unity, unreal, phaser, pixijs and gamedev stay (skill-router 0.29.3, stack-scan
+  0.17.5 and all-plugins 0.7.4 keep their rows, scout signals and opt-in skip).
 - **One place to start coding work: `/work`** (code-architecture 0.19.1). It picks a quick, spec or program lane;
   `/code-architecture:coding-task` still works and does the same.
 - **Hook messages say what happened and what to do, in fewer words**, across 16 plugins. The text hooks add to each
@@ -33,7 +34,7 @@ numbers are in `rationale/improvement-plan-2026-10-26.md`. Plugin versions named
 - **What a run cost, beside its result:** a process-cost line after `/task-runner:run` (task-runner 0.49.9) and
   overseer's milestone accept (overseer 0.7.5), which also gains a five-line resume (`/overseer:resume`).
 - **`/candor:level newcomer`, `expert` or `on-call`** sets replies for who is reading (candor 0.10.7).
-- **Vetted outside tools in the scout** (stack-scan 0.17.4): rtk (its engine is BUSL-1.1, not open source), NVIDIA's
+- **Vetted outside tools in the scout** (stack-scan 0.17.5): rtk (its engine is BUSL-1.1, not open source), NVIDIA's
   SkillSpector and designlang, offered with licences read on 2026-10-29 and never installed; `--skills` runs
   SkillSpector on a pick before install when it is on PATH.
 

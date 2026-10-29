@@ -114,10 +114,4 @@ workflow-suite	null	2026-09-26	plug	7ca24e7f retired with the other suites becau
 bevy	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
 defold	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
 ebitengine	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
-gamedev	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
-godot	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
-phaser	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
-pixijs	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
 roblox	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
-unity	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
-unreal	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into

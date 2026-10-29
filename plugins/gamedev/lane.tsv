@@ -1,0 +1,11 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+gamedev:steam-release	skill	ship	steam-release	the project carries steam_appid.txt or an app_build_*.vdf / depot_build_*.vdf, or a steamcmd command, SetLive branch or Steamworks store step is in play	-
+gamedev:itch-release	skill	ship	itch-release	the project or its CI runs butler push, sets BUTLER_API_KEY or carries .itch.toml, or a build or jam entry is going to itch.io	-
+gamedev:game-assets	skill	build	game-asset-checks	a generated, purchased or hand-made sprite/texture/model is added to a game repo, or an asset's alpha, size, licence or AI provenance is in question	-
+gamedev:dialogue-scripting	skill	build	dialogue-scripting	the project carries .yarn/.yarnproject/.ink files or an inkjs / Yarn Spinner dependency	-
+gamedev:seeded-generation	skill	build	seeded-generation	procedural generation, daily seeds, replays or seed-only saves must reproduce across runs or engine/runtime upgrades	-
+gamedev:game-platform-floors	skill	verify	game-platform-floors	sizing game UI text or setting a mix loudness target for a console, PC, handheld or mobile release	-

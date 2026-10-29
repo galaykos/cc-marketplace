@@ -4,6 +4,11 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.17.5 — 2026-10-29
+
+- **The scout suggests six game plugins again.** godot, unity, unreal, phaser, pixijs and gamedev are back in the marketplace: `signals.md` gets their six rows back, with the "unless a game row above matched first" clause on the `go.mod`/`Cargo.toml`/`*.csproj` row; `stack-relevance.md` gets their six Game classes and `--stack` tokens; `flags.md`'s `--full` stack-bound list names the game plugins again. The generated catalog lists them. bevy, defold, ebitengine and roblox stay removed and are not suggested. Standing: agent-graded — the scout follows the rows; `pc_scout_names` gates only that the names are live.
+- The all-plugins line in the README says it skips the game plugins as well as prompt-coach.
+
 ## 0.17.4 — 2026-10-29
 
 - **Three outside tools in the scout, offered and never installed.** `plugin-scout`'s new `references/outside-tools.md` adds rows after the official ones in `Beyond this marketplace`: rtk (filters shell output before the model reads it; offered only when the person raises token cost or long command output), NVIDIA's SkillSpector (scans an agent skill before install; offered when third-party skills are installed or about to be) and designlang from design-extract (reads a live site's design tokens; offered when a UI must match a live site). Each row carries the install line from the tool's README and its licence as read on 2026-10-29: rtk's CLI is Apache-2.0 and its engine BUSL-1.1, source-available and not open source, so check the terms before commercial use; SkillSpector Apache-2.0; designlang MIT. Standing: recorded — no script re-reads a licence.

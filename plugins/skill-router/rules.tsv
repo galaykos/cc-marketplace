@@ -344,3 +344,29 @@ glob	**/__design-kit__/**	in-codebase	design-kit	high
 glob	**/.design-kit/artifacts/**	artifact	design-kit	high
 glob	**/.design-kit/motion/**	motion	design-kit	high
 glob	**/.design-kit/film/**	film	design-kit	high
+# game rows (2026-10-26, the gamedev import — rationale/gamedev-design-import-2026-10-26.md).
+# One plugin per engine, each installed only in its own projects, so a row fires only where
+# that plugin is installed. The generic .cs extension carries a `?` marker on the engine's own
+# manifest: a .cs file is Unity's only beside ProjectVersion.txt and Godot's only beside project.godot.
+glob	*.gd	godot-best-practices	godot	high
+glob	*.gdshader	godot-best-practices	godot	high
+glob	export_presets.cfg	godot-best-practices	godot	high
+glob	*.cs	godot-best-practices	godot	high	?project.godot~config_version
+glob	*.tscn	godot-project-check	godot	high
+glob	*.tres	godot-project-check	godot	high
+glob	project.godot	godot-project-check	godot	high
+content	godot(\.exe|4)?[[:space:]].*--headless	godot-headless-testing	godot	high
+glob	*.cs	unity-best-practices	unity	high	?ProjectSettings/ProjectVersion.txt~m_EditorVersion
+glob	*.inputactions	unity-best-practices	unity	high
+glob	*.uproject	unreal-best-practices	unreal	high
+content	(UCLASS\(|GENERATED_BODY\(\))	unreal-best-practices	unreal	high
+content	(from ['"]phaser['"]|\bnew Phaser\.(Game|Scene)\b)	phaser-best-practices	phaser	high
+content	(from ['"]pixi\.js['"]|\bnew PIXI\.)	pixijs-best-practices	pixijs	high
+glob	steam_appid.txt	steam-release	gamedev	high
+glob	*.vdf	steam-release	gamedev	high
+content	(steamcmd|\+run_app_build|game-ci/steam-deploy)	steam-release	gamedev	high
+glob	.itch.toml	itch-release	gamedev	high
+content	(butler[[:space:]]+push|BUTLER_API_KEY)	itch-release	gamedev	high
+glob	*.yarn	dialogue-scripting	gamedev	high
+glob	*.yarnproject	dialogue-scripting	gamedev	high
+glob	*.ink	dialogue-scripting	gamedev	high

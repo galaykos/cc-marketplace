@@ -1,0 +1,13 @@
+{
+  "name": "godot",
+  "version": "0.1.0",
+  "description": "Godot 4 skills that carry only what a model gets wrong from memory: the 4.3–4.7 inversions (Jolt Physics 3D as the default for new projects since 4.6, the 4.7 GDScript override and packed-array changes, flipped defaults), multiplayer authority, visibility and auth footguns, web-export and C# limits; a headless GDScript test runner that exits non-zero on failure; and a standard-library Python checker for broken res:// paths, uids and scene references. Pairs with gamedev.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "gamedev",
+    "tooling"
+  ]
+}

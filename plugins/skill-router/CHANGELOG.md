@@ -2,6 +2,10 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.29.3 — 2026-10-29
+
+- **Six game plugins route again.** godot, unity, unreal, phaser, pixijs and gamedev are back in the marketplace, so their 22 `rules.tsv` rows from 0.28.0 return unchanged: `.gd`, `.gdshader`, `export_presets.cfg`, `.tscn`, `.tres`, `project.godot`, a `godot --headless` line, `.cs` beside `project.godot` or `ProjectVersion.txt`, `.inputactions`, `.uproject`, `UCLASS(`/`GENERATED_BODY()`, a `phaser` or `pixi.js` import, and the Steam, itch.io and Yarn/Ink rows. bevy, defold, ebitengine and roblox stay removed, so `.rs`, `.go`, `.luau`, `game.project` and Rojo files still meet no engine row, and the six `# co-fire-ok:` declarations for `.rs` and `.go` stay gone. Standing: gate for the row syntax (`validate.sh`).
+
 ## 0.29.2 — 2026-10-28
 
 - **Comments cut to what a reader needs; behaviour unchanged.** `hooks/route-prompt.sh`, `hooks/route.sh`, `hooks/subagent-skills.sh`, `hooks/summary.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
