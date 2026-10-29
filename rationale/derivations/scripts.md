@@ -826,6 +826,8 @@ DISABLE: remove the Stop entry from .claude/settings.json, or
          export CRAFT_DONE_GATE=off
 ```
 
+Editor's note (2026-10-28): that CLAUDE.md text now lives in CLAUDE.md § CI step count (the count) and `.claude/skills/repo-gates/references/enforcement-tiers.md` (the tier tour) (m13).
+
 ### 2. ACKNOWLEDGMENT
 
 ```text
@@ -2205,6 +2207,8 @@ CLAUDE.md says bodies loaded by a routing rule are "unmetered by nature". Prose
 only (.md, generated files excluded): counting runtime assets read taskmaster at
 70,664 against a real 36,037. Ratchet, not ceiling — reasoning in the header.
 ```
+
+Editor's note (2026-10-28): that CLAUDE.md text now lives in `.claude/skills/repo-gates/SKILL.md` § `scripts/context-budget.sh` (m13).
 
 ### Lane vocabulary
 

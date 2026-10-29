@@ -587,6 +587,8 @@ LIMITATION (honest scope), four residuals:
      39k it is equally heavy and invisible here.
 ```
 
+Editor's note (2026-10-28): that CLAUDE.md text now lives in `.claude/skills/repo-gates/SKILL.md` § `scripts/context-budget.sh` (m13).
+
 ### pc_pick_parity (retired)
 
 ```text
@@ -1982,6 +1984,8 @@ it; this is the proportionate stand-in, and saying so is the point.
 
 Prints `prime-unmapped <skill>` and `map-unprimed <skill>` per offender; returns 1.
 ```
+
+Editor's note (2026-10-29): the marker table now lives in .claude/skills/repo-gates/SKILL.md (m13).
 
 ### pc_plugin_dependencies
 

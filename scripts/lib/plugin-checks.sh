@@ -734,7 +734,7 @@ pc_version_stamp() {
   return 1
 }
 
-# Lane checks read plugins/<name>/lane.tsv (format: CLAUDE.md § Lanes) and gate what a plugin DECLARES, never what its artifacts do (agent-graded).
+# Lane checks read plugins/<name>/lane.tsv (format: .claude/skills/repo-gates/SKILL.md § Lanes) and gate what a plugin DECLARES, never what its artifacts do (agent-graded).
 # Why, limits, history: rationale/derivations/scripts-lib.md § Lane declarations
 
 # _pc_lane_rows <lane_tsv> — "artifact<TAB>kind" per well-formed data row.
