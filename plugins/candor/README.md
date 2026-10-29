@@ -15,7 +15,7 @@ dropped (the host's `/commit` covers the first; the second had one user).
 
 ## What blocks
 
-`hooks/gate.sh`, wired to `Stop` and `SubagentStop`. **One gate, five clauses**,
+`hooks/gate.sh`, wired to `Stop` and `SubagentStop`. **One gate, six clauses**,
 each decidable. Until 2026-09-14 clauses 3 and 4 were separate Stop hooks in
 `code-architecture` and `task-runner`; three scripts on one event each had to
 namespace the host's shared `stop_hook_active` flag so no sibling could spend
@@ -29,6 +29,7 @@ that clause on its own continuation.
 | **3 Naked completion claim** | the assistant tail claims completion (done / fixed / implemented / verified / passes), a non-prose file was edited this session (`.md`/`.txt`/`.rst`/`.adoc` edits do not arm it — nothing executable proves a README right), and nothing was executed after the last such edit | run the check that would fail if the change were broken, or say what was not verified and the command that would verify it |
 | **4 Registered run not complete** | a task-runner run registered itself (`.claude/task-runner/active-run.json`, or `closed-run.json` after its closing rename, which the clause removes once every check holds, or silently once HEAD has moved past its gate pass) and is stopping with no recorded gate pass for HEAD (not while a background worker of this session is in flight — see below), cards neither done nor parked, short per-card control or reviewer records, a UI card (its review diff names a `.tsx`, `.jsx`, `.vue`, `.svelte`, stylesheet or `.blade.php` file that is not a test or story) with no ui-ux-reviewer record, no whole-range review recorded for HEAD on a run whose sentinel carries `start_sha`, a behavioral-gate verdict other than `covered` / `no-executable-surface` (`no-behavioral-coverage` passes only beside a recorded coverage reduction for that HEAD), a short red-team panel on a boosted run, or an undisclosed recorded reduction | continue with a tool call, ask with `AskUserQuestion`, park the card, or run the gate and record the pass |
 | **5 Lockfile drift** | a dependency manifest's dependency map changed in the working tree and the lockfile that governs it did not — npm/pnpm/yarn/bun, Composer, Bundler, Poetry/uv/pdm, Cargo, Go. For JSON manifests the parsed dependency maps are compared, not diff lines, so a `version` bump never arms it; the other four test dependency-shaped lines and exclude metadata keys by name | run the installer and commit the lockfile with the manifest, or say plainly that the lockfile is deliberately unchanged and why |
+| **6 Misquote** (0.10.6) | a line of the final message, outside a fenced block, carries a `path/file.ext:NNN` and after it `` quote: `…` `` (or a doubled-backtick span; the last such marker on the line, never one inside a code span); every such path resolves, by clause 1's lookup, to exactly one file; and the quote is in none of them — not in the working file, not in git's committed (`HEAD`) copy when the file is tracked, and not in what the transcript's last 4000 entries already showed — tool results other than tool-use errors (a command that exited non-zero still showed its output), and user turns (a pasted hunk, a dispatch prompt, a coordinator message, a background agent's `<result>`), never the assistant's own text, hook feedback, harness notes, a loaded skill or slash-command body, a compaction summary, or a user line that itself carries a `quote:` mark (on `SubagentStop`, the subagent's own transcript). Whitespace (no-break spaces too) is dropped on both sides, a leading patch `+` or `-` is dropped, `…` or `...` marks a gap, a table cell's `\|` is read as `|`, and a quote under 8 non-space characters is never judged. The whole file is searched, so a wrong line number alone never blocks. The first 20 marked quotes are read, and nothing is checked or searched once the hook has run 6 seconds; a quote left half-checked is not judged | fix the quote, or mark code the change removed `` was: `…` ``, which is never checked |
 
 The gate's own state — the one-block-per-text marker and the which-clause-blocked
 record — lives in the plugin's data directory, `${CLAUDE_PLUGIN_DATA}/<project-key>/candor/`
@@ -73,11 +74,11 @@ The disclosure check then requires `bg-<HEAD12>` in the closing report. `empty-s
 
 Clause 4 is dormant outside a registered run, on another branch than the run's,
 and without git — a records check, never a test run. On `SubagentStop` only
-clause 1 runs, over the subagent's final report; a subagent has no user turn to
+clauses 1 and 6 run, over the subagent's final report; a subagent has no user turn to
 push back and no session that edited files, so the rest disarm there. Markers are
 suffixed per agent, so a subagent block never spends the main thread's disarm.
 
-Clauses 1 and 2 judge the **final assistant message only**. Clause 3 matches its
+Clauses 1, 2 and 6 judge the **final assistant message only**. Clause 3 matches its
 claim and its honesty escape over the last 30 lines of assistant text, and that
 window bleeds in both directions (measured, documented in the marketplace repository's
 `rationale/derivations/plugin-candor.md` § `plugins/candor/hooks/gate.sh`, which an
@@ -88,9 +89,12 @@ the caveat before the summary.
 Modes: `CC_CANDOR_GATE=block` (default) `| warn | off` for the whole gate;
 `CC_EVIDENCE_GATE` and `TASK_RUNNER_STOP_GATE` still downgrade clauses 3 and 4
 alone, as they did when those were separate scripts; `CC_LOCKFILE_GATE=off`
-disables clause 5. Fails open on missing `jq`,
-an unreadable transcript, or empty text. One block per distinct final message
-(clauses 1-3) or per HEAD (clause 4), so a disagreement cannot loop — and a clause
+disables clause 5. Clause 6 has no switch of its own: `CC_CANDOR_GATE=off` or `=warn`
+turns it off or makes it print, with the whole gate. Fails open on missing `jq`,
+an unreadable transcript, or empty text. One block per clause and distinct final message
+(clauses 1-3 and 6; since 0.10.6 each clause keeps its own record, so a text two clauses
+fire on is blocked once by each, not by both in turn) or per HEAD (clause 4), so a
+disagreement cannot loop — and a clause
 that is bounded (or in warn mode) prints without silencing the others: a run held
 once at a HEAD is still checked for invented citations and naked completion claims
 on every later stop (0.3.1; `scripts/__tests__/gate.test.sh`, clause independence).
@@ -207,7 +211,7 @@ so the injected card and the skill body cannot drift.
 
 | Event | Script | Does |
 | --- | --- | --- |
-| `Stop`, `SubagentStop` | `hooks/gate.sh` | the five clauses above. A `Stop` block prints JSON: a reason the model must act on, and one line you see ("candor sent the turn back: …"). A `SubagentStop` block still exits 2 with the reason on stderr, because a one-line message there does not reach you. A later stop at a commit clause 4 already blocked once passes, and shows you one line of what the run still owes |
+| `Stop`, `SubagentStop` | `hooks/gate.sh` | the six clauses above. A `Stop` block prints JSON: a reason the model must act on, and one line you see ("candor sent the turn back: …"). A `SubagentStop` block still exits 2 with the reason on stderr, because a one-line message there does not reach you. A later stop at a commit clause 4 already blocked once passes, and shows you one line of what the run still owes |
 | `PreToolUse` (Agent, Task, Write, Edit, MultiEdit, Bash) | `hooks/avert.sh` | the text about to reach a worker or disk declares doing less than what was named for a reason the user did not give — a legal/IP reason, a substitute (original, invented, generic, placeholder, stand-in, look-alike, inspired-by) in place of the real thing, or precaution language ("to be safe", "as a precaution") — and no human turn raised that term: the call becomes a permission question, once per term per session. A Bash call's `git commit` message and `gh pr create`/`edit` title and body are not read: they record a hedge already made (a heredoc opened beside them, or text after a `;`, `&` or `|`, still is) `CC_AVERT=notify` makes it a notification the call proceeds past. Vocabulary-bound — an avert that never names its reason passes; `CC_AVERT=off` silences it |
 | `SessionStart` | `hooks/activate.sh` | injects the terse contract once, only when a level is active; silent otherwise |
 | `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton (~150 tokens per prompt — measured 596 chars at `lite`/`full`/`ultra`, 693 at a `wenyan-*` level — and nothing when off) |
@@ -278,6 +282,25 @@ Stated because a gate reads stronger than it is:
   `build/` or `.venv/` still blocks. A `file:line` whose extension is a dev host
   name (`.localhost`, `.test`, `.local`, `.example`…) is read as `host:port` and
   not checked.
+- **Clause 6 reads only marked quotes, and blocks only what is nowhere it looked.**
+  Backtick text without `quote:` is never read, and neither is a `quote:` inside a code
+  span or an earlier `quote:` on the same line. Not judged: a quote beside a path that
+  names several files (a bare `config.yml` when another file also ends in it), an absolute
+  or `~/` path found only by its basename elsewhere, a file only under `node_modules` or `vendor`, a binary file or
+  one over 1 MiB, a file staged but never committed (no `HEAD` copy to compare), a quote
+  with no `file:line` before it, the 21st marked quote on, any `file:line` reached after
+  the hook's 6th second, and every quote when git is not installed. A quote found in a
+  tool result or user turn of the transcript's last 4000 entries passes, whatever produced
+  it — on `Stop`, a subagent's hand-back or background `<result>` too (its own `SubagentStop`
+  judged it). That text is searched near the quote's identifier words, longest first: a word
+  found nowhere blocks; a word so common its surrounding lines pass 256 KiB gives way to the
+  next, and a quote whose every word is that common is not judged; a quote that joins two
+  words its source separates blocks. Pulling the text out gets 2 seconds, past which nothing
+  is judged; a large output the host saved outside the transcript is searched only through
+  the preview it left there.
+  A true quote under the wrong line number passes; `/code-review:review`'s own quote
+  check keeps a ±3-line window. A repository git refuses to read (another user's) is
+  read as untracked.
 - **Any tool call counts as re-checking (clause 2) and any post-edit execution
   counts as verification (clause 3).** A `git status` satisfies both. The gate
   proves something ran, not that the right thing ran.
@@ -324,7 +347,7 @@ commands and two skills; the terse hooks inject nothing until a level is set.
 ## Author-time checks
 
 ```bash
-bash plugins/candor/scripts/__tests__/gate.test.sh          # clauses 1, 2, 5, clause independence, modes, SubagentStop, state root, in-flight workers, coverage reduction
+bash plugins/candor/scripts/__tests__/gate.test.sh          # clauses 1, 2, 5, 6, clause independence, modes, SubagentStop, state root, in-flight workers, coverage reduction
 bash scripts/smoke/evidence-gate-hook-tests.sh              # clause 3
 bash scripts/smoke/completion-gate-hook-tests.sh            # clause 4 (drives task-runner's record writers too)
 bash plugins/candor/scripts/__tests__/candor-scan.test.sh   # the six axes

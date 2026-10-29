@@ -3,10 +3,10 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-# The gate is ONE hook with five clauses (hooks/gate.sh header). Until 2026-09-14 the
-# last two were code-architecture:evidence-gate and task-runner:completion-gate, and
+# The gate is ONE hook with six clauses (hooks/gate.sh header). Until 2026-09-14 clauses
+# 3 and 4 were code-architecture:evidence-gate and task-runner:completion-gate, and
 # this row yielded to the first; one script has nothing to yield to.
-candor:gate	hook	any	stop-turn-honesty	Stop or SubagentStop whose final message cites a file:line that does not resolve, retracts after bare pushback with no tool call between, claims completion after edits with nothing executed since, or ends a registered task-runner run with no recorded gate pass for HEAD while no background worker of the session is in flight	-
+candor:gate	hook	any	stop-turn-honesty	Stop or SubagentStop whose final message cites a file:line that does not resolve, marks after a file:line a quote: found in neither that file nor its HEAD copy, retracts after bare pushback with no tool call between, claims completion after edits with nothing executed since, or ends a registered task-runner run with no recorded gate pass for HEAD while no background worker of the session is in flight; or a dependency map changed with its lockfile untouched	-
 candor:mode	hook	any	reply-verbosity-mode	prompt head carries an explicit terse on/off/level directive, or a level is active and the prompt is work-shaped	-
 candor:check	command	verify	candour-transcript-measurement	the user asks how flattering, apologetic, defensive or unbacked this session's replies have been, or how far over the terse budget they ran	-
 candor:level	command	any	reply-verbosity-level	invoked as /candor:level [lite|full|ultra|wenyan-*|off|status]	-

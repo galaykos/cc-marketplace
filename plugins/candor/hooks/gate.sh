@@ -1,6 +1,6 @@
 #!/bin/bash
-# Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 2, 3, 5: an incomplete registered task-runner run, a file:line resolving to nothing, a reversal after bare pushback, a naked completion claim, lockfile drift.
-# Misses a wrong API, flag or directory, pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5); unset, /config.
+# Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 6, 2, 3, 5: an incomplete registered task-runner run, a file:line resolving to nothing, a file:line's quote: `…` in neither that file, its HEAD copy nor the transcript tail's tool output or user turns, a reversal after bare pushback, a naked completion claim, lockfile drift.
+# Misses a wrong API, flag or directory, pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff, quotes past MAX_QUOTES_CHECKED or QUOTE_DEADLINE_SECONDS or beside an ambiguous path; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5); unset, /config.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -70,6 +70,12 @@ BG_PID_TTL_MIN=240
 DISCLOSURE_TAIL_LINES=200
 TRANSCRIPT_TAIL_LINES=4000
 MAX_CITATIONS_CHECKED=25
+MAX_QUOTES_CHECKED=20
+# Seconds since the hook started (bash SECONDS), past which no quote check starts: a check reads a 1 MiB file once or twice at 0.7-2.5 s a read under mawk, and the hook is killed at 15.
+QUOTE_DEADLINE_SECONDS=6
+QUOTE_EXCERPT_BYTES=262144
+# Real 10-17 MB transcript tails extract in 0.1-0.15 s; a 22 MB synthetic one took 7.9 s.
+QUOTE_EXTRACT_SECONDS=2
 BARE_PUSHBACK_MAX_BYTES=400
 CLAIM_WINDOW_LINES=30
 
@@ -474,6 +480,144 @@ clause_fabricated_citation() {
 }
 clause_fabricated_citation
 
+# True only when <quote> is in neither <file> nor git's HEAD copy of it: a review may quote the code its turn then changed.
+quote_missing() { # <file> <line> <quote> <scratch file>
+  local d="${1%/*}" b="${1##*/}"
+  cc_quote_match "$1" "$2" "$3" all; [ $? -eq 1 ] || return 1
+  if [ -n "$4" ] && git -C "${d:-/}" show "HEAD:./$b" > "$4" 2>/dev/null; then
+    cc_quote_match "$4" "$2" "$3" all; [ $? -eq 1 ]; return
+  fi
+  # In the index but not in HEAD there is no copy to compare; untracked, or outside a repository, the file is the only copy.
+  ! git -C "${d:-/}" ls-files --error-unmatch -- "$b" >/dev/null 2>&1
+}
+
+# The quote's identifier words, longest first: no spacing falls inside one, so each sits verbatim in any copy of the quote.
+quote_words() {
+  printf '%s\n' "$1" | LC_ALL=C grep -oE '[A-Za-z_$][A-Za-z0-9_$]*' | LC_ALL=C awk '!seen[$0]++ { print length($0), $0 }' | sort -rn -k1,1 | cut -d' ' -f2-
+}
+
+# Clause 6: per line outside a fence, the last quote: `…` (or ``…``) span outside any code span, judged against every file:line before it.
+clause_misquote() {
+  [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "quote" ] || return 0
+  command -v cc_quote_match >/dev/null 2>&1 && command -v cite_file >/dev/null 2>&1 || return 0
+  local recs pre q cs c f miss label qtmp late=0 hits="" misses=""
+  # A fence closes only on its own character, at least as long; a backslash ending a single-backtick span escaped nothing.
+  recs=$(printf '%s\n' "$last_msg" | LC_ALL=C awk -v max="$MAX_QUOTES_CHECKED" '
+    match($0, /^[ \t]*(````*|~~~~*)/) {
+      r = substr($0, RSTART, RLENGTH); sub(/^[ \t]*/, "", r)
+      if (!fl) { fc = substr(r, 1, 1); fl = length(r); next }
+      if (substr(r, 1, 1) == fc && length(r) >= fl && substr($0, RSTART + RLENGTH) ~ /^[ \t\r]*$/) { fl = 0; next }
+    }
+    fl || !index($0, "quote:") { next }
+    {
+      l = " " $0; L = length(l); i = 2; o = 0; mq = 0
+      while (i <= L) {
+        ch = substr(l, i, 1)
+        if (ch == "`") {
+          j = i; while (j <= L && substr(l, j, 1) == "`") j++
+          if (!o) o = j - i; else if (j - i == o) o = 0
+          i = j; continue
+        }
+        if (!o && ch == "q" && substr(l, i, 6) == "quote:" && substr(l, i - 1, 1) !~ /[A-Za-z0-9_]/) {
+          k = i + 6; while (substr(l, k, 1) ~ /[ \t]/) k++
+          if (substr(l, k, 1) == "`") { mq = i; mk = k }
+        }
+        i++
+      }
+      if (!mq) next
+      p = substr(l, 1, mq - 1); s = substr(l, mk)
+      if (p !~ /\.[A-Za-z][A-Za-z0-9]*:[0-9]/) next
+      if (substr(s, 1, 2) == "``") { s = substr(s, 3); e = index(s, "``"); d = 1 } else { s = substr(s, 2); e = index(s, "`"); d = 0 }
+      if (e < 2) next
+      q = substr(s, 1, e - 1)
+      if (!d) sub(/\\+$/, "", q)
+      if (q == "") next
+      printf "%s\037%s\n", p, q
+      if (++n >= max + 0) exit
+    }' 2>/dev/null)
+  [ -n "$recs" ] || return 0
+  command -v git >/dev/null 2>&1 || { say "[candor] git not found, so quote: marks are not checked."; return 0; }
+  qtmp=$(mktemp "${TMPDIR:-/tmp}/cc-candor-quote.XXXXXX" 2>/dev/null) || return 0
+  while IFS=$'\037' read -r pre q; do
+    [ "$late" = 0 ] || break
+    cs=$(printf '%s\n' "$pre" | cite_extract)
+    miss=0; label=""
+    for c in $cs; do
+      # Past the deadline mid-line, the quote is left undecided.
+      [ "$SECONDS" -lt "$QUOTE_DEADLINE_SECONDS" ] || { late=1; miss=0; break; }
+      f=$(cite_file "${c%:*}" "$root" "$cwd") && quote_missing "$f" "${c##*:}" "$q" "$qtmp" \
+        && cite_file "${c%:*}" "$root" "$cwd" sole >/dev/null || { miss=0; break; }
+      miss=1; label="$label${label:+ / }$c"
+    done
+    [ "$miss" = 1 ] && hits="$hits$label"$'\037'"$q
+"
+  done <<EOF_QUOTES
+$recs
+EOF_QUOTES
+  # Would block: text the transcript tail already showed is not invented — a tool result (a diff, a PR not checked out, an older
+  # copy) or a user turn (a pasted hunk, a dispatch prompt, a background agent's <result>). Never the assistant's own text, a tool-use
+  # error, hook feedback, a harness note, a skill or slash-command body, a compaction summary, or a user line holding a quote: mark.
+  local jp kp w n found
+  if [ -n "$hits" ] && [ "$SECONDS" -lt "$QUOTE_DEADLINE_SECONDS" ]; then
+    printf '%s\n' "$tail_jsonl" > "$qtmp.in"
+    jq -nrR '
+      def plain: if type == "string" then . elif type == "array" then ([.[] | select(.type == "text") | .text] | join("\n")) else "" end;
+      def shown:
+        ([match("<result>([\\s\\S]*?)</result>"; "g") | .captures[0].string | select(. != null)] | .[]),
+        (gsub("<(system-reminder|task-notification)>[\\s\\S]*?</(system-reminder|task-notification)>"; "")
+         | select(test("^\\s*(Stop hook feedback:|SubagentStop hook feedback:|\\[SYSTEM NOTIFICATION)") | not)
+         | split("\n") | map(select(test("quote:[ \\t]*`") | not)) | join("\n"));
+      foreach (inputs | fromjson? | select(.type == "user" and (.isCompactSummary | not))) as $e ({cmd: false, e: null};
+          ($e.message.content | plain) as $t
+          | .e = (if $e.isMeta == true and (.cmd or ($t | startswith("Base directory for this skill:"))) then null else $e end)
+          | .cmd = ($t | test("<command-name>"));
+          .e // empty)
+      | .message.content as $c
+      | if ($c | type) == "string" then ($c | shown)
+        elif ($c | type) == "array" then ($c[]
+          | if .type == "text" then (.text | shown)
+            elif .type == "tool_result" then (.content | plain | select(startswith("<tool_use_error>") | not))
+            else empty end)
+        else empty end
+      | split("\n")[] | select(test("quotes text that is not in that file: `") | not) | sub("^ *[0-9]+(\t|→)"; "")' "$qtmp.in" > "$qtmp.raw" 2>/dev/null & jp=$!
+    ( sleep "$QUOTE_EXTRACT_SECONDS"; kill "$jp" 2>/dev/null ) </dev/null >/dev/null 2>&1 & kp=$!
+    # Killed at its budget, the extraction leaves every quote not judged.
+    if wait "$jp"; then
+      kill "$kp" 2>/dev/null
+      LC_ALL=C tr -d '\000' < "$qtmp.raw" > "$qtmp"
+      while IFS=$'\037' read -r label q; do
+        [ -n "$label" ] || continue
+        found=skip
+        for w in $(quote_words "$q"); do
+          # Past the deadline the rest are not judged.
+          [ "$SECONDS" -lt "$QUOTE_DEADLINE_SECONDS" ] || break 2
+          LC_ALL=C grep -a -F -C3 -- "$w" "$qtmp" 2>/dev/null | head -c $((QUOTE_EXCERPT_BYTES + 1)) > "$qtmp.part"
+          n=$(wc -c < "$qtmp.part")
+          # A word found nowhere cannot be in any copy of the quote; one so common its context passes the cap gives way to the next.
+          [ "$n" -gt 0 ] || { found=miss; break; }
+          [ "$n" -le "$QUOTE_EXCERPT_BYTES" ] || continue
+          cc_quote_match "$qtmp.part" 1 "$q" all
+          case $? in 1) found=miss ;; *) found=seen ;; esac
+          break
+        done
+        [ "$found" = miss ] || continue
+        misses="$misses
+  - $label quotes text that is not in that file: \`${q:0:60}\`."
+      done <<EOF_HITS
+$hits
+EOF_HITS
+    else
+      kill "$kp" 2>/dev/null
+    fi
+  fi
+  rm -f "$qtmp" "$qtmp".*
+  if [ -n "$misses" ]; then
+    verdict="quote"
+    detail="$misses"
+  fi
+}
+clause_misquote
+
 clause_unevidenced_reversal() {
   [ -z "$verdict" ] && [ -n "$last_msg" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "reversal" ] || return 0
   # Tool results arrive as type "user" with no text block, so selecting text excludes them.
@@ -629,13 +773,15 @@ report_verdict() {
     evidence) case "$ev_mode" in warn) mode=warn ;; esac ;;
   esac
 
-  # Loop guard: one block per distinct verdict and final text; a genuinely new turn produces new text.
+  # Loop guard: one block per clause and final text, a line per clause, so two clauses on one unchanged text cannot take turns.
   marker="$state_dir/last$agent_sfx"
   state=$(printf '%s|%s' "$verdict" "$detail$last_msg" | (command -v shasum >/dev/null 2>&1 && shasum | cut -d' ' -f1 || cksum | cut -d' ' -f1))
-  if [ -r "$marker" ] && [ "$(cat "$marker" 2>/dev/null)" = "$state" ]; then
+  if [ -r "$marker" ] && grep -qxF "$verdict $state" "$marker" 2>/dev/null; then
     pass_turn
   fi
-  if ! { mkdir -p "$state_dir" 2>/dev/null && { [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null || :; } && printf '%s' "$state" > "$marker" 2>/dev/null; }; then
+  if ! { mkdir -p "$state_dir" 2>/dev/null && { [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null || :; } \
+         && { grep -v "^$verdict " "$marker" 2>/dev/null; printf '%s %s\n' "$verdict" "$state"; } > "$marker.$$" 2>/dev/null \
+         && mv -f "$marker.$$" "$marker" 2>/dev/null; }; then
     # No marker, no per-text bound: honour the shared flag here only, so unwritable state cannot block the same turn forever.
     [ "$sha_active" = "true" ] && pass_turn
   fi
@@ -654,6 +800,15 @@ report_verdict() {
         [ "$evt" = "SubagentStop" ] && printf '  Then re-send your COMPLETE report, corrected: only your last message reaches the caller.\n'
         printf '  CC_CANDOR_GATE=off turns this check off (=warn only prints).\n')
       note="candor sent the turn back: the reply cites a file:line that does not exist." ;;
+    quote)
+      what="This turn"; [ "$evt" = "SubagentStop" ] && what="This report"
+      msg=$(printf '[candor] %s quotes code that is not in the file it cites.%s\n' "$what" "$detail"
+        printf '  Read: the text from `quote: ` to the next backtick (doubled backticks hold one), whitespace ignored, searched in the whole\n'
+        printf '  file, its HEAD copy, and the tool output and user turns of this transcript; quoting another file needs its own path:line.\n'
+        printf '  Fix the quote, or write `was:` for code the change removed.\n'
+        [ "$evt" = "SubagentStop" ] && printf '  Then re-send your COMPLETE report, corrected: only your last message reaches the caller.\n'
+        printf '  CC_CANDOR_GATE=off turns the whole gate off (=warn only prints).\n')
+      note="candor sent the turn back: the reply quotes code that is not in the file it cites." ;;
     reversal)
       msg=$(printf '[candor] The user pushed back with no new information, and this turn retracts your position anyway without re-checking anything.\n'
         printf '  Re-check (run the command or read the file that settles it, then report what it showed), or keep your position and say why.\n'

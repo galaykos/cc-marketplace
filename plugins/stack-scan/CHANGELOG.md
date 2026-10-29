@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.17.3 — 2026-10-29
+
+- The plugin catalog's candor row names its six clauses.
+
 ## 0.17.2 — 2026-10-28
 
 - **The `plugin-scout`, `installed-versions` and `vercel-skills-scout` skills' and `/stack-scan:suggest`'s descriptions now read in short, plain sentences.** Same triggers, tiers and flags; each keeps the words the model matches it on.

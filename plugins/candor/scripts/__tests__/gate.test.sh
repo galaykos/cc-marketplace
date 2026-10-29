@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # gate.test.sh — drives hooks/gate.sh with synthetic transcripts and Stop/SubagentStop payloads carrying transcript_path, asserting the verdict
-#   and its text: clauses 1, 2 and 5, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage.
+#   and its text: clauses 1, 2, 5 and 6, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/gate.test.sh
 set -u
 
@@ -679,6 +679,262 @@ if command -v git >/dev/null 2>&1; then
     "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && [ -f "$QCLOSED" ]; echo $?)"
 else
   printf 'SKIP  0.8.0 range / ui / closed-run cases (git not available)\n'
+fi
+
+# Clause 6, a misquote: a project of its own, where a file's HEAD copy, its working copy and an untracked file differ.
+if command -v git >/dev/null 2>&1; then
+  QP="$WS/quoteproj"; mkdir -p "$QP/src" "$QP/a" "$QP/b" "$QP/node_modules/pkgq/dist"
+  { printf 'export function sum(items, locale) {\n  if (!items) throw new Error("empty");\n  if (user.isActive &&\n'
+    printf '      user.hasRole("admin")) {\n  const total = items.reduce((a, b) => a + b, 0);\n'
+    for i in $(seq 6 24); do printf '  // pad %s\n' "$i"; done
+    printf '  return formatCurrency(total, locale);\n}\n'; } > "$QP/src/svc.ts"
+  printf 'export function route(request, response) {\n  log(request);\n  legacyHandler(request, response);\n}\n' > "$QP/src/old.ts"
+  printf 'function main() {\r\n  return computeTotal(order, taxRate);\r\n}\r\n' > "$QP/src/crlf.ts"
+  printf 'export const alpha = 1;\n' > "$QP/a/dup.ts"; printf 'export const beta = 2;\n' > "$QP/b/dup.ts"
+  git -C "$QP" init -q && git -C "$QP" config user.email t@t.t && git -C "$QP" config user.name t
+  git -C "$QP" add src a b >/dev/null 2>&1 && git -C "$QP" commit -qm init
+  printf 'export function route(request, response) {\n  log(request);\n  modern(request);\n}\n' > "$QP/src/old.ts"
+  printf 'export const fresh = makeWidget("blue");\n' > "$QP/src/new.ts"
+  printf 'export const staged = makeWidget("green");\n' > "$QP/src/staged.ts"; git -C "$QP" add src/staged.ts
+  { for i in $(seq 1 24); do printf '// line %s\n' "$i"; done; printf 'return formatCurrency(total, locale);\n'; } > "$QP/src/far.ts"
+  printf 'PNG\000\001binary' > "$QP/src/logo.png"
+  printf 'const msg = `no items for ${data.user}`;\n' > "$QP/src/tpl.ts"
+  mkdir -p "$QP/docs"; printf '# Finding format\n\nEach finding ends with a quote field.\n' > "$QP/docs/format.md"
+  mkdir -p "$QP/services/api" "$WS/qhome/notes"
+  printf 'name: the whole monorepo\n' > "$QP/config.yml"; printf 'listen_port: 8080 for the api\n' > "$QP/services/api/config.yml"
+  printf 'export function parse(input) {\n' > "$QP/src/parse.ts"; printf 'remember the milk\n' > "$WS/qhome/notes/todo.md"
+  printf 'module.exports = function util() {};\n' > "$QP/node_modules/pkgq/dist/util.js"
+  QUOTE_SUB='quotes text that is not in that file'
+  QCLAIMED="$QP/.claude/candor/blocked"
+  qpay() { jq -cn --arg tp "$1" --arg cwd "$QP" --argjson a "${2:-false}" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:$a}'; }
+  qrun() { { user "review the change"; asst "$2"; } > "$WS/quote.jsonl"; rm -rf "$QP/.claude/candor"; gate "$1" "$(qpay "$WS/quote.jsonl")"; }
+  qcheck() { # desc  env  message  exp_rc  exp_sub|__NONE__
+    local ok=1
+    qrun "$2" "$3"
+    [ "$rc" = "$4" ] || ok=0
+    if [ "$5" != "__NONE__" ]; then printf '%s' "$err" | grep -qF -- "$5" || ok=0; else [ -z "$err" ] || ok=0; fi
+    if [ "$ok" -eq 1 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"
+    else fail=$((fail+1)); printf 'FAIL  %s (rc=%s want %s; stderr=%s)\n' "$1" "$rc" "$4" "$err"; fi
+  }
+
+  Q='const total = items.map((x) => x * taxRateForTheRegionOfTheCurrentUser);'
+  qcheck "quote: a wrong quote of a tracked file blocks, naming path:line and the first 60 characters" "" \
+    "src/svc.ts:5 — high — the sum skips tax — add it — quote: \`$Q\`" 2 "src/svc.ts:5 $QUOTE_SUB: \`${Q:0:60}\`."
+  verdict_is "quote: the block says how the quote was read and searched, how to fix it, names the switch, and tells the person why" \
+    "$(printf '%s' "$err" | grep -qF 'Fix the quote, or write `was:` for code the change removed.' && printf '%s' "$err" | grep -qF 'CC_CANDOR_GATE=off turns the whole gate off' \
+       && printf '%s' "$err" | grep -qF 'Read: the text from `quote: ` to the next backtick (doubled backticks hold one)' \
+       && [ "$(printf '%s' "$out" | jq -r .systemMessage)" = "candor sent the turn back: the reply quotes code that is not in the file it cites." ]; echo $?)"
+  qcheck "quote: the right quote passes" "" \
+    'src/svc.ts:5 — high — the sum skips tax — add it — quote: `const total = items.reduce((a, b) => a + b, 0);`' 0 "__NONE__"
+  qcheck "quote: text 20 lines from the cited line of an untracked file passes (whole file)" "" 'src/far.ts:5 — quote: `return formatCurrency(total, locale);`' 0 "__NONE__"
+  qcheck "quote: a binary file is undecidable, never judged" "" 'src/logo.png:1 — quote: `this text is not in the image`' 0 "__NONE__"
+  qcheck "quote: a word ending in quote: is not the marker" "" 'src/svc.ts:5 — misquote: `const total = items.map(Number);`' 0 "__NONE__"
+  qcheck "quote: changed whitespace passes" "" 'src/svc.ts:5 — quote: `const   total=items.reduce( (a,b)=>a+b, 0 );`' 0 "__NONE__"
+  qcheck "quote: a CRLF file passes" "" 'src/crlf.ts:2 — quote: `return computeTotal(order, taxRate);`' 0 "__NONE__"
+  qcheck "quote: one quote over two wrapped file lines passes" "" 'src/svc.ts:3 — quote: `if (user.isActive && user.hasRole("admin")) {`' 0 "__NONE__"
+  qcheck "quote: a … cut whose parts are in the file passes" "" 'src/svc.ts:5 — quote: `const total = items.reduce(…, 0);`' 0 "__NONE__"
+  qcheck "quote: a … cut whose first part is not in the file blocks" "" 'src/svc.ts:5 — quote: `const total = items.filter(…, 0);`' 2 "$QUOTE_SUB"
+  qcheck "quote: under 8 non-space characters is not judged" "" 'src/svc.ts:5 — quote: `x = 9;`' 0 "__NONE__"
+  qcheck "quote: a + line copied from the patch passes" "" 'src/svc.ts:5 — quote: `+  const total = items.reduce((a, b) => a + b, 0);`' 0 "__NONE__"
+  qcheck "quote: a was: quote of removed code is not checked" "" \
+    'src/svc.ts:2 — high — the guard is gone — restore it — was: `if (items.length === 0) return cachedTotalForEmptyCart;`' 0 "__NONE__"
+  qcheck "quote: the same absent text marked quote: blocks" "" \
+    'src/svc.ts:2 — high — the guard is gone — restore it — quote: `if (items.length === 0) return cachedTotalForEmptyCart;`' 2 "$QUOTE_SUB"
+  qcheck "quote: text only in HEAD's copy of a file changed since passes" "" 'src/old.ts:3 — quote: `legacyHandler(request, response);`' 0 "__NONE__"
+  qcheck "quote: text in neither the working nor the HEAD copy blocks" "" 'src/old.ts:3 — quote: `modernHandler(request, response, next);`' 2 "src/old.ts:3 $QUOTE_SUB"
+  qcheck "quote: a wrong quote of an untracked file blocks" "" 'src/new.ts:1 — quote: `export const stale = makeWidget("red");`' 2 "src/new.ts:1 $QUOTE_SUB"
+  qcheck "quote: the right quote of an untracked file passes" "" 'src/new.ts:1 — quote: `export const fresh = makeWidget("blue");`' 0 "__NONE__"
+  qcheck "quote: a file staged but never committed has no HEAD copy to compare, not judged" "" \
+    'src/staged.ts:1 — quote: `export const stale = makeWidget("red");`' 0 "__NONE__"
+  qcheck "quote: a basename found only under node_modules is not judged" "" 'util.js:1 — quote: `nothing like this lives in util`' 0 "__NONE__"
+  qcheck "quote: the same file by its full path is judged and blocks" "" \
+    "$QP/node_modules/pkgq/dist/util.js:1 — quote: \`nothing like this lives in util\`" 2 "$QUOTE_SUB"
+  qcheck "quote: a path ending in an ambiguous basename is not judged" "" 'lib/dup.ts:1 — quote: `export const gamma = 3;`' 0 "__NONE__"
+  qcheck "quote: a path two files end in is not judged" "" 'dup.ts:1 — quote: `export const gamma = 3;`' 0 "__NONE__"
+  qcheck "quote: the one file a full path names is judged and blocks" "" 'a/dup.ts:1 — quote: `export const gamma = 3;`' 2 "a/dup.ts:1 $QUOTE_SUB"
+  qcheck "quote: a quote inside a fenced block is not checked" "" \
+    $'An example finding:\n```\nsrc/svc.ts:5 — quote: `const total = items.map(Number);`\n```' 0 "__NONE__"
+  qcheck "quote: the same line outside the fence blocks" "" 'src/svc.ts:5 — quote: `const total = items.map(Number);`' 2 "$QUOTE_SUB"
+  qcheck "quote: a quote with no path:line before it on its line is not checked" "" \
+    $'The service file has quote: `const total = items.map(Number);`\nquote: `const total = items.map(Number);` sits at src/svc.ts:5' 0 "__NONE__"
+  qcheck "quote: a quote checked beside a second file:line holding it passes" "" \
+    'src/new.ts:1 and src/svc.ts:5 — quote: `const total = items.reduce((a, b) => a + b, 0);`' 0 "__NONE__"
+  qcheck "quote: warn mode prints and does not block" "CC_CANDOR_GATE=warn" 'src/svc.ts:5 — quote: `const total = items.map(Number);`' 0 "$QUOTE_SUB"
+  qcheck "quote: off mode is silent" "CC_CANDOR_GATE=off" 'src/svc.ts:5 — quote: `const total = items.map(Number);`' 0 "__NONE__"
+  qcheck "quote: the last quote: span on a line is the one judged (right)" "" \
+    'src/svc.ts:5 — high — the comment reads quote: `nothing like this anywhere at all` — fix — quote: `const total = items.reduce((a, b) => a + b, 0);`' 0 "__NONE__"
+  qcheck "quote: the last quote: span on a line is the one judged (wrong)" "" \
+    'src/svc.ts:5 — high — the comment reads quote: `const total = items.reduce((a, b) => a + b, 0);` — fix — quote: `nothing like this anywhere at all`' 2 "$QUOTE_SUB"
+  qcheck "quote: a quote: named inside a code span is not the marker" "" 'docs/format.md:3 now documents the `quote:` field, then the `was:` field' 0 "__NONE__"
+  qcheck "quote: the same file with a real marker and absent text blocks" "" 'docs/format.md:3 — quote: `Each finding ends with a was field.`' 2 "$QUOTE_SUB"
+  qcheck "quote: a doubled-backtick span holding a backtick, right, passes" "" 'src/tpl.ts:1 — quote: ``const msg = `no items for ${data.user}`;``' 0 "__NONE__"
+  qcheck "quote: a doubled-backtick span holding a backtick, wrong, blocks" "" 'src/tpl.ts:1 — quote: ``const msg = `no orders for ${data.user}`;``' 2 "$QUOTE_SUB"
+  qcheck "quote: a single span cut at a backslash-escaped backtick judges the text before it" "" \
+    'src/tpl.ts:1 — high — x — quote: `const msg = \`no items for ${data.user}\`;`' 0 "__NONE__"
+  qcheck "quote: the same cut whose text before it is wrong blocks" "" 'src/tpl.ts:1 — quote: `const note = \`no items\`;`' 2 "$QUOTE_SUB"
+  qcheck "quote: a bare path a second file also ends in is not judged against the root's copy" "" \
+    'config.yml:1 — quote: `listen_port: 8080 for the api`' 0 "__NONE__"
+  qcheck "quote: the full path of that second file is judged and blocks" "" \
+    'services/api/config.yml:1 — quote: `listen_port: 9999 for nothing at all`' 2 "services/api/config.yml:1 $QUOTE_SUB"
+  qcheck "quote: an absolute path that resolves only by basename to another file is not judged" "" \
+    '/tmp/cc-nowhere-scratch/parse.ts:1 — quote: `export function parseAll(input, options) {`' 0 "__NONE__"
+  qcheck "quote: the absolute path of the file itself is judged and blocks" "" \
+    "$QP/src/parse.ts:1 — quote: \`export function parseAll(input, options) {\`" 2 "$QUOTE_SUB"
+  qcheck "quote: a ~/ path that resolves only by basename to another file is not judged" "HOME=$WS/qhome" \
+    '~/elsewhere/parse.ts:1 — quote: `export function parseAll(input, options) {`' 0 "__NONE__"
+  qcheck "quote: a ~/ path naming a real file is judged and blocks" "HOME=$WS/qhome" \
+    '~/notes/todo.md:1 — quote: `buy bread at the corner shop`' 2 "$QUOTE_SUB"
+  qcheck "quote: a 4-backtick fence holding a 3-backtick example is not checked" "" \
+    $'````md\n```\nsrc/svc.ts:5 — quote: `const total = items.map(Number);`\n```\n~~~\nsrc/svc.ts:5 — quote: `const total = items.map(Number);`\n````' 0 "__NONE__"
+  qcheck "quote: after that fence closes, the same line blocks" "" \
+    $'````md\n```\n````\nsrc/svc.ts:5 — quote: `const total = items.map(Number);`' 2 "$QUOTE_SUB"
+
+  # Tool output in the transcript tail: a quote read there (a diff, a PR not checked out) is not invented.
+  # Through stdin: one exec argument is capped at 128 KiB on Linux.
+  tres_text() { printf '%s' "$1" | jq -Rsc '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t1",content:.}]}}'; }
+  tres_read() { printf '%s' "$1" | jq -Rsc '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t2",content:[{type:"text",text:.}]}]}}'; }
+  qtool() { # desc  tool-result-line  message  exp_rc
+    { user "review the PR"; tools Bash; printf '%s\n' "$2"; asst "$3"; } > "$WS/quote.jsonl"
+    rm -rf "$QP/.claude/candor"; gate "" "$(qpay "$WS/quote.jsonl")"
+    verdict_is "$1" "$([ "$rc" = "$4" ] && { [ "$4" = 2 ] && printf '%s' "$err" | grep -qF "$QUOTE_SUB" || { [ "$4" = 0 ] && [ -z "$err" ]; }; }; echo $?)"
+  }
+  PRDIFF=$'diff --git a/src/svc.ts b/src/svc.ts\n@@ -5 +5 @@\n-  const total = items.reduce((a, b) => a + b, 0);\n+  return a && b && featureFlagEnabledForTheTenant();'
+  qtool "quote: text in neither copy but in a tool result (a PR diff not checked out) passes" "$(tres_text "$PRDIFF")" \
+    'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: a made-up quote beside the same diff still blocks" "$(tres_text "$PRDIFF")" \
+    'src/svc.ts:5 — high — x — y — quote: `return a || featureFlagDisabledForEveryone();`' 2
+  qtool "quote: a quote over two lines of Read output, line numbers dropped, passes" \
+    "$(tres_read $'1\tfunction legacy() {\n2\t  return oldTotal(order,\n3\t    taxRate);\n4\t}')" 'src/svc.ts:5 — quote: `return oldTotal(order, taxRate);`' 0
+  qtool "quote: assistant text is not tool output: a quote the model wrote earlier still blocks" "$(asst 'I think it reads return oldTotal(order, taxRate); there.')" \
+    'src/svc.ts:5 — quote: `return oldTotal(order, taxRate);`' 2
+  qtool "quote: a hunk the user pasted into a turn counts as read text, the quote passes" "$(user "Review this hunk from PR 42:
+$PRDIFF")" 'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: hook feedback echoing the text does not count, it blocks" \
+    "$(user 'Stop hook feedback:
+Some hook said: return a && b && featureFlagEnabledForTheTenant();')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a harness reminder inside a user turn does not count, it blocks" \
+    "$(user 'Looks good.<system-reminder>
+return a && b && featureFlagEnabledForTheTenant();
+</system-reminder>')" 'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a compaction summary (model-written) does not count, it blocks" \
+    "$(jq -cn '{type:"user",isCompactSummary:true,message:{content:"Earlier: return a && b && featureFlagEnabledForTheTenant();"}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a tool-use error echoing the text does not count, it blocks" \
+    "$(jq -cn '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t3",is_error:true,content:"<tool_use_error>String to replace not found in file.\nString: return a && b && featureFlagEnabledForTheTenant();</tool_use_error>"}]}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a command that exited non-zero still showed its output (a diff), the quote passes" \
+    "$(jq -cn --arg d "$PRDIFF" '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t3",is_error:true,content:("Exit code 1\n" + $d)}]}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: a pasted-back made-up finding (a user line with a quote: mark) does not count, it blocks" \
+    "$(user 'Are you sure about this one? src/svc.ts:5 — high — quote: `return a || featureFlagDisabledForEveryone();`')" \
+    'src/svc.ts:5 — high — x — y — quote: `return a || featureFlagDisabledForEveryone();`' 2
+  qtool "quote: a user turn given as text blocks (array form) counts, the quote passes" \
+    "$(jq -cn --arg d "$PRDIFF" '{type:"user",message:{content:[{type:"text",text:("Check this hunk:\n" + $d)}]}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: a loaded skill body (isMeta, array form) does not count, it blocks" \
+    "$(jq -cn --arg d "$PRDIFF" '{type:"user",isMeta:true,message:{content:[{type:"text",text:("Base directory for this skill: /x/skills/y\n\nExample:\n" + $d)}]}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a slash-command body (isMeta after the command) does not count, it blocks" \
+    "$(user '<command-message>x:review</command-message>
+<command-name>/x:review</command-name>'; jq -cn --arg d "$PRDIFF" '{type:"user",isMeta:true,message:{content:("# /x:review\n\nExample:\n" + $d)}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a coordinator message (isMeta, not a skill or command body) counts, the quote passes" \
+    "$(jq -cn --arg d "$PRDIFF" '{type:"user",isMeta:true,message:{content:("The coordinator sent a message while you were working:\nThe PR hunk:\n" + $d)}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  NOTE_HEAD=$'[SYSTEM NOTIFICATION - NOT USER INPUT]\n<task-notification>\n<task-id>a1</task-id>\n<status>completed</status>\n'
+  qtool "quote: a background agent's <result> in its notification counts, the relayed quote passes" \
+    "$(jq -cn --arg t "${NOTE_HEAD}<result>src/svc.ts:5 — high — x — y — quote: \`return a && b && featureFlagEnabledForTheTenant();\`</result>
+</task-notification>" '{type:"user",isMeta:true,message:{content:$t}}')" \
+    'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: the same notification's wrapper (summary) does not count, it blocks" \
+    "$(jq -cn --arg t "${NOTE_HEAD}<summary>return a && b && featureFlagEnabledForTheTenant();</summary>
+</task-notification>" '{type:"user",isMeta:true,message:{content:$t}}')" \
+    'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: an honest quote typed without the spaces of the only copy, a tool result, passes" \
+    "$(tres_text '+  if (account.isOwner && account.hasScope("billing")) {')" 'src/svc.ts:5 — quote: `if(account.isOwner&&account.hasScope("billing")){`' 0
+  qtool "quote: a NUL in the output does not make every quote pass, a made-up one beside it blocks" \
+    "$(jq -cn '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t4",content:"PNG\u0000featureFlagDisabledForEveryone()"}]}}')" \
+    'src/svc.ts:5 — quote: `featureFlagDisabledForEveryone() && legacyPathStillOn`' 2
+  qtool "quote: output holding a NUL and the true text still counts, the quote passes" \
+    "$(jq -cn '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t5",content:"PNG\u0000\n+  return a && b && featureFlagEnabledForTheTenant();"}]}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: output text typed back with other spacing in its longest run still counts, the quote passes" \
+    "$(tres_text '+  return computeTotal(order, taxRate);')" 'src/svc.ts:5 — quote: `return computeTotal(order,taxRate);`' 0
+  qcheck "quote: a quote: inside a longer code span is not the marker" "" \
+    'docs/format.md:3 — the line is now ``path:line — severity — problem — fix — quote: `<verbatim excerpt>` ``.' 0 "__NONE__"
+  # The whole loaded tail is searched, not its last 1 MiB: a PR diff read before 1.4 MB of other output still counts.
+  READS=$(seq 1 4000 | awk '{ printf "%d\tconst filler_%d = compute(%d);\n", $1, $1, $1 }')
+  { user "/code-review:review feature"; tools Bash; tres_text "$PRDIFF"
+    for i in 1 2 3 4 5 6 7 8 9 10; do tools Read; tres_text "$READS"; done; } > "$WS/bigtail.jsonl"
+  qbig() { cp "$WS/bigtail.jsonl" "$WS/quote.jsonl"; asst "$2" >> "$WS/quote.jsonl"; rm -rf "$QP/.claude/candor"; gate "" "$(qpay "$WS/quote.jsonl")"
+    verdict_is "$1 ($(wc -c < "$WS/quote.jsonl") bytes)" "$([ "$rc" = "$3" ]; echo $?)"; }
+  qbig "quote: a PR diff read before 1.4 MB of later output still counts, the quote passes" \
+    'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qbig "quote: a made-up quote in the same transcript blocks" 'src/svc.ts:5 — high — x — y — quote: `return a || featureFlagDisabledForEveryone();`' 2
+  qbig "quote: a made-up quote whose other words fill the session (const, compute) still blocks" \
+    'src/svc.ts:5 — high — x — y — quote: `const total = computeInventedTotal(order);`' 2
+
+  # The skip token: the clause stands down only on the continuation of its own block, even when the new text still misquotes.
+  qrun "" 'src/svc.ts:5 — quote: `const total = items.map(Number);`'
+  verdict_is "quote: a block records the quote clause as the one that blocked" "$([ "$rc" = 2 ] && [ "$(cat "$QCLAIMED" 2>/dev/null)" = quote ]; echo $?)"
+  { user "review the change"; asst 'src/svc.ts:5 — quote: `const total = items.map(String);`'; } > "$WS/quote.jsonl"
+  gate "" "$(qpay "$WS/quote.jsonl" true)"
+  verdict_is "quote: its own continuation passes and clears the record" "$([ "$rc" = 0 ] && [ ! -e "$QCLAIMED" ]; echo $?)"
+  rm -rf "$QP/.claude/candor"; gate "" "$(qpay "$WS/quote.jsonl" true)"
+  verdict_is "quote: another hook's continuation still blocks" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$QUOTE_SUB"; echo $?)"
+  { user "review the change"; asst 'src/ghost.ts:3 — quote: `nothing like this lives anywhere`'; } > "$WS/quote.jsonl"
+  rm -rf "$QP/.claude/candor"; mkdir -p "$QP/.claude/candor"; printf 'citation' > "$QCLAIMED"
+  gate "" "$(qpay "$WS/quote.jsonl" true)"
+  verdict_is "quote: on the citation clause's continuation, a file found nowhere is not judged" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
+
+  qsub() { jq -cn --arg tp "$WS/qparent.jsonl" --arg atp "$WS/agent.jsonl" --arg m "$1" --arg cwd "$QP" --argjson a "${2:-false}" \
+    '{hook_event_name:"SubagentStop",transcript_path:$tp,agent_transcript_path:$atp,agent_id:"q6agent",agent_type:"code-review:code-reviewer",last_assistant_message:$m,cwd:$cwd,stop_hook_active:$a}'; }
+  { user "main thread prompt"; } > "$WS/qparent.jsonl"
+  { user "review"; asst "placeholder"; } > "$WS/agent.jsonl"
+  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `const total = items.map(Number);`')"
+  verdict_is "quote: a subagent's wrong quote blocks and asks for the COMPLETE report" \
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "This report quotes code" && printf '%s' "$err" | grep -qF 're-send your COMPLETE report'; echo $?)"
+  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `const total = items.reduce((a, b) => a + b, 0);`')"
+  verdict_is "quote: a subagent's right quote passes" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
+  { user "review"; tools Bash; tres_text "$PRDIFF"; asst "placeholder"; } > "$WS/agent.jsonl"
+  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`')"
+  verdict_is "quote: a subagent's quote found in its own transcript's tool output passes" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
+  { user "review"; asst "placeholder"; } > "$WS/agent.jsonl"; { user "main thread prompt"; tools Bash; tres_text "$PRDIFF"; } > "$WS/qparent.jsonl"
+  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`')"
+  verdict_is "quote: the parent's tool output does not excuse a subagent's quote" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$QUOTE_SUB"; echo $?)"
+  { user "main thread prompt"; } > "$WS/qparent.jsonl"
+
+  # Loop guard: a report clauses 1 and 6 both fire on, re-sent unchanged on each continuation, blocks once per clause, citation first.
+  LOOPMSG=$'src/ghost_zz.ts:3 — high — a — b\nsrc/svc.ts:2 — high — x — y — quote: `if (items.length === 0) return cachedTotalForEmptyCart;`'
+  loop_seq() { # <payload builder: sub|stop> <message> -> c, q or . per stop, five stops
+    local i a s=""
+    rm -rf "$QP/.claude/candor"
+    for i in 1 2 3 4 5; do
+      a=false; [ "$i" -gt 1 ] && a=true
+      if [ "$1" = sub ]; then gate "" "$(qsub "$2" "$a")"
+      else { user "review the change"; asst "$2"; } > "$WS/quote.jsonl"; gate "" "$(qpay "$WS/quote.jsonl" "$a")"; fi
+      if [ "$rc" = 2 ]; then case "$err" in *"cites a location"*) s="${s}c" ;; *"quotes code"*) s="${s}q" ;; *) s="${s}?" ;; esac; else s="${s}."; fi
+    done
+    printf '%s' "$s"
+  }
+  s=$(loop_seq sub "$LOOPMSG")
+  verdict_is "loop: a subagent report both clauses fire on blocks once each, citation first, then passes (got $s)" "$([ "$s" = "cq..." ]; echo $?)"
+  s=$(loop_seq stop "$LOOPMSG")
+  verdict_is "loop: a Stop message both clauses fire on blocks once each, citation first, then passes (got $s)" "$([ "$s" = "cq..." ]; echo $?)"
+  s=$(loop_seq sub 'src/ghost_zz.ts:3 — high — a — b')
+  verdict_is "loop: a report only the citation clause fires on blocks once, then passes (got $s)" "$([ "$s" = "c...." ]; echo $?)"
+
+  BIG=""; for i in $(seq 1 200); do BIG="${BIG}src/svc.ts:5 — high — finding $i — fix — quote: \`no such text $i appears in this file\`
+"; done
+  t0=$(date +%s%N 2>/dev/null); s0=$SECONDS
+  qrun "" "$BIG"
+  t1=$(date +%s%N 2>/dev/null); el=$((SECONDS - s0)); ms="?"
+  case "$t0$t1" in *[!0-9]*) ;; *) ms=$(( (t1 - t0) / 1000000 )) ;; esac
+  verdict_is "quote: 200 wrong quotes block in ${ms} ms, listing the first 20 (MAX_QUOTES_CHECKED), well inside the 15 s timeout" \
+    "$([ "$rc" = 2 ] && [ "$(printf '%s' "$err" | grep -c "^  - src/svc.ts:5 $QUOTE_SUB")" = 20 ] && [ "$el" -lt 5 ]; echo $?)"
+else
+  printf 'SKIP  clause 6 quote cases (git not available)\n'
 fi
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"

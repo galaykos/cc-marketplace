@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.49.8 — 2026-10-29
+
+- **`delegation-contracts` lists the code-reviewer's return as five fields.** Since code-review 0.34.4 a finding ends with ``quote: `…` ``, copied from the cited file, which `/code-review:review` checks against that file; the exemplar still showed four, so a dispatcher copying it asked for findings without the quote. Standing: recorded.
+
 ## 0.49.7 — 2026-10-28
 
 - **The `code-redteam` skill's description now reads in short, plain sentences.** Same trigger, panel and hand-off to `/code-review:review`; it keeps the words the model matches it on.

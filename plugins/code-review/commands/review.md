@@ -122,7 +122,8 @@ exactly as written. Output contract unchanged either way; the `Checked:` line's
 first token names which branch ran. Standing: recorded — no script reads it.
 
 1. Read every changed hunk plus enough surrounding code to judge behavior —
-   never review a hunk in isolation when it calls or is called by nearby code.
+   never review a hunk in isolation when it calls or is called by nearby code. Read its
+   callers, and the tests that cover it: grep the test files for the changed symbols.
 2. Correctness pass: logic errors, off-by-one, null/undefined paths, error
    handling gaps, race conditions, resource leaks, wrong boundary conditions.
 3. Smell pass: apply the code-smells skill catalog to the changed code only —
@@ -153,19 +154,25 @@ first token names which branch ran. Standing: recorded — no script reads it.
 
 Output rules:
 
-- One line per finding: `path:line — severity — problem — fix`.
+- One line per finding: ``path:line — severity — problem — fix — quote: `<verbatim excerpt>` ``.
+  The quote is copied from the working file at that line, `…` marking a cut; doubled
+  backticks hold one with a backtick inside. `critical` and `high` must carry one, the
+  rest should; only the last `quote:` mark on the line is checked. A finding about code the
+  change deleted quotes it as a trailing ``was: `…` `` field instead: never checked, since
+  the working file no longer holds it.
   Severities: `critical` (wrong behavior/data loss), `high` (bug-prone or
   misleading), `medium` (smell/convention), `low` (nit). Sort by severity,
   critical first — the marketplace-wide scale the chassis reviews use, so
-  fan-in output merges with theirs without translation.
+  fan-in output merges with theirs on severity. A four-field line from a stack or
+  dispatched reviewer gets its quote added here (the quote check below), never dropped for lacking one.
 - No praise, no restating the diff, no findings on unchanged lines.
 - A `critical` or `high` finding says how to show it fails — the input or state that
   produces the wrong output — inside its problem clause. It is the same content the
   `failure_scenario` field carries below; the prose line must not be the poorer copy.
 - **Also emit through `ReportFindings` when that tool is available.** This command
   is the active code-review instruction the tool's own usage rule waits for, so
-  the condition is met here. Emit once, after the self-refute pass, with the
-  surviving findings ranked most-severe first (an empty array when none survived),
+  the condition is met here. Emit once, after the self-refute pass and the quote check,
+  with the surviving findings ranked most-severe first (an empty array when none survived),
   and keep the prose lines as well — the prose is what the stack fan-in merges on,
   and dropping it would break every plugin that reads this format. Map the
   marketplace scale onto the tool's fields: `category` takes the kebab-case kind
@@ -201,12 +208,7 @@ Output rules:
   - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer
     agent; security-deep issues → `/security:review`.
 
-Before the verdict, state the coverage: `Checked: host built-in | inline — …`, the branch
-that ran the generic pass as its first token — `host built-in` followed by the level and
-limit it ran at, `(level high, limit 10)`, or by `(level and limit inherited)` when its
-report names neither — then each fan-in checklist item, and
-`Not checked: … (why)` so it is explicit what was covered, what was clean, and what was
-skipped — not only what broke. Then run one adversarial self-refute pass over every `critical` and `high`
+Before the verdict, run one adversarial self-refute pass over every `critical` and `high`
 finding; if a finding does not survive it, drop or downgrade it with a note. The
 refutation checklist is the false-positive taxonomy — a finding matching any row is
 dropped, not downgraded:
@@ -224,7 +226,28 @@ dropped, not downgraded:
 - a stylistic call not stated in CLAUDE.md or the surrounding file — a preference,
   not a convention
 
-Close with a one-line verdict: merge-ready, merge-after-criticals, or rework.
+**Quote check.** Pipe the surviving finding lines, from the repository, to
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/quote-check.sh"`; when the PR or branch under review is
+not checked out, add `--ref <target>` (the branch, or `FETCH_HEAD` after
+`git fetch origin pull/<n>/head`). Each `mismatch`: Read the cited line and fix the quote or
+the citation, or drop the finding when the code does not hold what it claims. Each
+`missing-quote`: Read the cited line and add the quote — a stack or dispatched reviewer's
+four-field finding is never dropped for format. Each `unparsed` line (exit 2): rewrite it in
+the finding shape. Re-run until it exits 0; `undecidable`, `unquoted` and `removed` lines
+stand. Standing: gate for its verdicts (its harness); agent-graded for whether it runs.
+
+Then state the coverage: `Checked: host built-in | inline — …`, the branch that ran the
+generic pass as its first token — `host built-in` followed by the level and limit it ran at,
+`(level high, limit 10)`, or by `(level and limit inherited)` when its report names neither —
+then each fan-in checklist item and the quote check's last line (a findings count below
+yours means a line is out of shape), and `Not checked: … (why)` so it is explicit what was
+covered, what was clean, and what was skipped — not only what broke.
+
+Close with a one-line verdict: merge-ready, merge-after-criticals, rework, or
+**incomplete** — naming what is missing — when a pass `Checked:` names as applied did not
+run, a dispatched reviewer returned nothing, or the quote check could not run (its last run
+exited other than 0 or 1, or there was no shell). `incomplete` may carry the findings so far
+but never sits beside merge-ready.
 
 After the verdict, if findings exist, offer the next step as a selectable choice
 (AskUserQuestion): "Fix all findings" / "Apply critical+high only" / "Report only". On an
@@ -233,4 +256,8 @@ apply pick, dispatch the finding list down the static chain
 findings, and never apply a list of this size inline when a scope-locked executor
 with its own verify-fix loop is available. This plugin ships a REVIEWER, not a
 worker, so `task-executor` is the head of the chain rather than its second rung.
-Headless: verdict only.
+When the fixes return, close each applied finding in a table, one row per finding:
+`| path:line | fixed | <changed path:line> |` or `| path:line | contested | <one-line reason> |`.
+Pipe the applied finding lines and the table to
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/quote-check.sh" --close`; while it exits 1 a finding is
+open: fix it or contest it. Headless: verdict only.

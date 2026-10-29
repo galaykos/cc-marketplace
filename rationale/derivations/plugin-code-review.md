@@ -1257,3 +1257,36 @@ Editor's note (2026-10-28): 'reported separately below' is false as moved; see d
 Age is reported, never ratcheted: "340 TODOs" is a number nobody acts on;
 "11 of them are older than two years, 3 in payments" is a decision.
 ```
+
+## plugins/code-review/scripts/quote-check.sh
+
+Written 2026-10-29 when the script shipped (code-review 0.34.4), not moved from code. Standing: the verdicts are a **gate** (`scripts/__tests__/quote-check.test.sh`); whether a review runs the script and acts on it is **agent-graded**.
+
+### Why it exists
+
+Improvement plan item 8 (`rationale/improvement-plan-2026-10-26.md`, row 8): a review finding that quotes code should quote what the file holds, an unfinished review should say so, and every finding should end fixed or contested. Before 0.34.4 a finding cited `path:line` only (`commands/review.md`, output rules), nothing compared a quote with a file, nothing printed an unfinished review as anything but its verdict, and no vocabulary closed a finding. The match rule is `templates/blocks/quote-match.md`, shared with candor's Stop gate.
+
+### What it decides, and why that way
+
+- **Only a marked quote is checked, the line's last one:** `quote: \`…\`` on the finding's own line. Backtick text in a problem or fix clause is a name or a suggestion, not a claim about the file. The last `quote:` followed by a backtick span wins (fix cycle 3, correctness review #6): a problem clause that mentions `quote: \`…\`` no longer hides the fifth field. A doubled-backtick marker (`` quote: `` a `b` `` ``) is read whole, because a single-backtick one ends at the first backtick inside the code and would read as no quote.
+- **A finding is a line in the command's shape:** an optional list marker, heading (`###`) or blockquote, one or more comma-separated locations (`path:line`, bold or backticked, `:line:col`, `:a-b`), a dash (`—`, `–`, `-`, `--`), then a severity word in any case, bare or in `[ ]`, `**` or backticks (fix cycle 3, #7). A line that names a `path:line` and a dash-delimited `critical` or `high` but does not parse prints `unparsed` and the run exits 2: a high finding that silently escapes the check is the failure that matters. A medium or low line out of shape is still not read; the summary's count shows it.
+- **Location shapes reviewers write** (fix round 2, both re-check returns, 2026-10-29): a path may hold `[` `]` and `( )` (Next.js, SvelteKit and Nuxt dynamic routes, route groups); a range may use an en dash (`6–8`); a location may be a Markdown link (`[src/api.ts:6](…)`, its target dropped before the locations are read, so a `:443` port is not one), carry a trailing `(symbol)`, or be joined to the next by `and`. A leading `[` is dropped only when the path holds more `[` than `]`, so `[id].tsx` keeps its own. Before this round `app/blog/[slug]/page.tsx:2 — high —` was `unparsed` and ended the review `incomplete`.
+- **`unparsed` echoes the line only up to `quote:`** (false-block re-check #6): candor's misquote clause accepts a quote found in a tool result, and an echoed made-up quote would have been that tool result.
+- **Several locations:** the quote is judged at each; one match is `ok`, else a mismatch at any is `mismatch`, else `undecidable`. The first location is the finding's key, as `--close` reads it.
+- **A range `path:a-b`** is judged over lines a-3..b+3 (the block's window around the range's middle, at most one line wider at the top); before fix cycle 3 only a±3 was read, so a true quote from the range's end was a mismatch (#4).
+- **Paths resolve against the repository root,** then the working directory, then a single tracked file ending in `/<path>` (`git ls-files`, read once). Two or more is ambiguous and undecidable, as is no file.
+- **`--ref <ref>`** (fix cycle 3, false-block review #1, decision "m14 adversarial round 1"): a PR or branch reviewed without checking it out holds code the working tree lacks, so every quoted critical or high finding was a mismatch and the review's loop dropped it. With `--ref`, a quote that does not match the working file (or a path the working tree lacks) is also looked for in `git show <ref>:<path>`, the path taken as written or as the single file in the ref's tree ending in it. Either copy matching is `ok`. An unknown ref exits 2.
+- **Verdicts:** `ok`, `mismatch`, `missing-quote` (critical or high only, since the brief requires a quote there), `unquoted` (medium or low without one; not a failure, since the brief says they should quote and does not require it), `removed`, `undecidable`, `unparsed`. Exit 2 on an unparsed line or unreadable input, else 1 on a mismatch or a missing quote, else 0. The review prints `incomplete` for any exit other than 0 or 1.
+- **`was: \`…\`` quotes deleted code and is never checked** (fix cycle 1, 2026-10-29): a finding about a removed guard has nothing in the working file to quote, and checking it would make every such finding a mismatch. A finding whose only quote is a TRAILING `was:` field prints `removed` and counts as quoted, so a critical one is not `missing-quote`; a `was:` inside the problem clause is prose (fix cycle 3, #5); a `quote:` beside it is still checked. The block is called with a window of 3 (or the range's) here; candor's clause is specified with `all`.
+- **`--close`** reads the final findings and the closing table together: a row closes the first `path:line` in it when the next cell is `fixed` and the one after holds a changed `path:line`, or `contested` and a reason. A finding line with no closing row is open, so dropping a finding from the table does not close it; an input with nothing in it is not a close.
+
+### What it misses
+
+- A true quote that proves nothing, one under 8 non-space characters, a medium or low finding written in another shape, and a file edited since the review that is not passed as `--ref`.
+- The stack plugins' reviewer agents (ui-ux-reviewer, frontend-reviewer, architecture-reviewer, devops-reviewer) still write four fields; `commands/review.md` has the main thread add the quote rather than drop the finding (decision "m14 adversarial round 1"). Those agents were not changed.
+- A `was:` quote, true or invented: a reviewer can mark live code as deleted to skip the check.
+- `--close` takes the evidence on trust: it checks that a `path:line` is there, not that the change at it fixes anything. A finding left out of both the findings and the table it was given is not seen.
+
+### Cost
+
+25 findings 93 ms, 200 findings 744 ms (median of 5, 2026-10-29, Linux, mawk), quoting real lines of tracked files, half altered: every altered quote read as a mismatch and every true one as ok.

@@ -1036,6 +1036,41 @@ No template directive of any kind in these comments: _expand_includes copies thi
 substitution run over the whole text.
 ```
 
+## templates/blocks/quote-match.md
+
+Written 2026-10-29 when the block shipped (code-review 0.34.4), not moved from code. Standing: `recorded`; the byte-for-byte copies are a **gate** (`pc_shared_blocks`, pair `quote-match:cc_quote_match`).
+
+### Why it exists
+
+Improvement plan item 8 (`rationale/improvement-plan-2026-10-26.md`, row 8): a review finding that quotes code should quote what the file holds. Two callers judge the same rule: code-review's `scripts/quote-check.sh`, which `/code-review:review` runs before its verdict, and candor's Stop gate, which blocks a turn whose marked quote is not in the cited file (user decision 2026-10-29). Plugins install alone, so the rule is pasted, not sourced, and the two copies cannot drift.
+
+### What it decides, and why that way
+
+A wrong mismatch costs a reviewer a dropped finding and, in candor, a blocked turn; a wrong match costs one unchecked quote. Every rule errs toward the match.
+
+- **Window ±3 lines by default.** A reviewer cites the line a hunk header or a blame excerpt gave, and the quote is often the statement above or below it. Seven lines tolerate that drift and still tell a quote from a line elsewhere in the file.
+- **An optional fourth argument sets the window** (fix cycle 1, 2026-10-29): a whole number of lines either side, or `all` for the whole file. candor's Stop clause is specified to call it with `all` (m14 fix cycle 1), so it blocks only on a quote that is nowhere in the file: a blocked turn costs more than a review's dropped finding, and a citation a few lines off is the citation clause's business, not this one's. Anything else is status 2.
+- **Three tries, as typed and then unescaped** (fix cycle 3, 2026-10-29): the quote as typed; then with one leading `+` or `-` dropped; then cut at its ellipses. Failing all three, every `\|` is read as `|` in the quote AND the window, and the three tries run again. Cycle 2 rewrote the quote in place before the `+` and `…` tries, so a true quote of a real `\|` (a grep alternation) failed whenever it also carried a `…` or a `+`: all 12 of 671 reference-implementation divergences the correctness review found had that shape. Unescaping the window too lets a table cell mixing the file's own `\|` with an escaped pipe (`'TODO\|FIXME' "$1" \| wc -l`) match.
+- **`\|` is a Markdown table cell's escape** (fix cycle 2): a quote written in a table must escape its pipes, so `a | b` arrives as `a \| b`. Trying as typed first keeps a real `\|` in the file matching.
+- **One leading `+` or `-` forgiven** (fix cycle 1 for `+`, cycle 3 for `-`): a reviewer copying a line from the patch keeps its marker. Dropping can only shorten the needle, so code that opens with `++` or `--` still matches. A `-` line is deleted code: the working file lacks it, but candor also searches the HEAD copy, which holds it.
+- **ASCII whitespace and no-break spaces dropped, both sides,** not runs collapsed to one space: a collapse still fails `foo(a,b)` against `foo(a, b)`, a tab-indented file against a space-typed quote, and a call the file wraps over three lines against a quote typed on one. The window's lines are joined before the compare, so a quote may span lines. No-break space (U+00A0) is dropped too since fix cycle 3 (correctness review #12: the header said "every whitespace character" while only `[ \t\r\n\f\v]` was dropped, and a NBSP against a space blocked in candor); the header now names the set. Other Unicode spaces (U+2000-U+200A, U+3000) are not dropped.
+- **Literal first, then `…`/`...` as cuts.** JavaScript's spread and Go's variadic `...` are code, so the quote is first matched as typed. Failing that, each ellipsis cuts it into parts that must appear in order; a leading or trailing one is then a suffix or prefix match, which is the brief's rule, and an inner one is an elided middle, which the brief did not name.
+- **Under 8 non-space characters is status 0.** Counted after the cuts, in characters (UTF-8 continuation bytes are not counted), so `…;` or `x = 1` is never judged, nor a 6-letter Cyrillic word of 12 bytes.
+- **Status 2 is checked first and never means a wrong quote:** a path that is not a readable regular file, over 1 MiB, a NUL in the first 8000 bytes (git's own binary test), a line that is not a whole number from 1. Past the end of the file is status 1: the file read and the text is not there.
+- **The caller resolves the path.** candor already resolves a cited path its own way (`cite.sh`), and quote-check.sh resolves against the repository root; a block that searched too would answer the same question twice, differently.
+- **Portable.** No shell function call, no `declare -A`, no GNU-only flag; the compare runs in one awk under `LC_ALL=C` (its one awk function, `found`, holds the three tries), the quote passed through `ENVIRON`, since `-v` would turn a `\n` in quoted code into a newline. Run under mawk 1.3.4 and busybox awk on 2026-10-29; bash 3.2 not run.
+
+### What it misses
+
+- A true quote that proves nothing about the finding, and a quote that matches anywhere in the window while the finding points at another line in it; with `all`, anywhere in the file.
+- A file edited between the review and the check; text repeated within the window. A quote whose first character is a real `+` or `-` the file lacks matches with it dropped, and one holding `\|` matches a file with a bare `|` there.
+- A Unicode space other than U+00A0 against an ASCII one.
+- A quote holding a backtick, unless the caller reads a doubled-backtick marker (quote-check.sh does).
+
+### Cost
+
+Five processes per call (`wc`, `head | tr | wc`, `awk`). Through quote-check.sh, on findings quoting real tracked files of this repository (2026-10-29, Linux, mawk): 25 findings 93 ms, 200 findings 744 ms, median of 5. With `all` the awk reads the whole file, at most 1 MiB.
+
 ## templates/reminder-hook.sh.tmpl
 
 ### Off switch
