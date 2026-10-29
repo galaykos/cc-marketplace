@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# level.sh [--sources] — prints "<level> <source>" (env|file|option|off): the first non-empty of CC_TERSE, the level file's first word, the cc_terse option (CLAUDE_PLUGIN_OPTION_CC_TERSE, else managed-settings.json, then user settings.json), else off. --sources prints each layer, asking `claude plugin configure` first (~0.45 s). Exits 0.
+# level.sh [--sources] — prints "<level> <source>" (env|file|option|off), plus a reader name's length level (newcomer lite, expert full, on-call ultra): the first non-empty of CC_TERSE, the level file's first word, the cc_terse option (CLAUDE_PLUGIN_OPTION_CC_TERSE, else managed-settings.json, then user settings.json), else off. --sources prints each layer, asking `claude plugin configure` first (~0.45 s). Exits 0.
 # Misses: --settings files, managed-settings.d drop-ins, MDM or server-managed policy, a symlinked settings file; without jq, every settings file. CANDOR_MANAGED_SETTINGS (test-only) replaces the managed-settings path.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/level.sh
 {
@@ -58,7 +58,14 @@
   elif [ -n "$opt_v" ]; then level=$opt_v src=option
   else level=off src=off
   fi
-  case "$level" in lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra) ;; *) level=off ;; esac
+  len=""
+  case "$level" in
+    lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra) ;;
+    newcomer) len=" lite" ;;
+    expert) len=" full" ;;
+    on-call) len=" ultra" ;;
+    *) level=off ;;
+  esac
 
   if [ "${1:-}" = --sources ]; then
     printf 'CC_TERSE: %s\n' "${env_v:-unset}"
@@ -66,6 +73,6 @@
     printf 'cc_terse option (%s): %s\n' "$opt_at" "${opt_v:-unset}"
     printf 'active: '
   fi
-  printf '%s %s\n' "$level" "$src"
+  printf '%s %s%s\n' "$level" "$src" "$len"
 } 2>/dev/null
 exit 0

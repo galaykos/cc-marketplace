@@ -131,6 +131,7 @@ file and gets cited by path.
 ```bash
 /candor:level full      # the default working level
 /candor:level ultra     # answers in 3 prose lines, reports in 6
+/candor:level newcomer  # who is reading: lite's budgets, unfamiliar terms explained, lists of at most 5
 /candor:level off       # clears the level file; names CC_TERSE or the option if either still sets one
 /candor:level status    # every source, and which one wins
 /candor:check           # candour axes, plus the brevity measurement while a level is on
@@ -159,6 +160,28 @@ yields to a host that bans telegraphese; the budgets and skeleton bind
 everywhere. `wenyan-*` levels swap the word layer for classical Chinese
 (`skills/terse-output/references/wenyan.md`); verdicts stay in English because
 this gate's clause 3 greps the assistant's own words.
+
+**Or say who is reading.** A reader name sets the same dial — it replaces a level, it does not
+stack on one — and changes three things at once: length, jargon and list size.
+
+| Reader name | Length (budgets of) | Word rule — replaces that level's word layer | Lists and findings |
+|---|---|---|---|
+| `newcomer` | `lite` | explain in plain words, at first use, any plugin or project term a newcomer would not know (for example gate, card, lane, boost) | at most 5 |
+| `expert` | `full` | jargon allowed | at most 8 |
+| `on-call` | `ultra` | plain words only: no abbreviations, arrows or internal terms | at most 3 |
+
+There is no cap when findings are the deliverable: an invoked review or audit returns every
+finding. The level file stores the name; the hooks inject the mapped level's budgets plus one
+`Reader <name>:` line read from the `terse-output` skill's reader table, and every place that
+shows the level shows both — `level.sh` prints `newcomer file lite`, the badge
+`[TERSE:NEWCOMER/LITE]`. `/candor:level off` clears a reader name too; an unknown name counts as
+off. `CC_TERSE` and the `cc_terse` option take the names as well. Each prompt costs about 220
+tokens at `newcomer`, 190 at `expert` and 210 at `on-call`, against 164 at the level each maps
+to; `context-budget.sh`'s fixtures never set a reader name, so these are measured by hand.
+**Standing:** the name, its mapping, the injected line and both badges — `gate`
+(`mode-hook.test.sh`, `level-sources.test.sh`, `tests/badge.test.ts`); whether a reply follows
+the word rule and the cap — `unenforceable` (nothing rewrites a reply, and `/candor:check`
+counts prose lines only).
 
 **Running another brevity mode?** Remove it first; two always-on compression
 prompts on the same turn are not designed to coexist.
@@ -214,7 +237,7 @@ so the injected card and the skill body cannot drift.
 | `Stop`, `SubagentStop` | `hooks/gate.sh` | the six clauses above. A `Stop` block prints JSON: a reason the model must act on, and one line you see ("candor sent the turn back: …"). A `SubagentStop` block still exits 2 with the reason on stderr, because a one-line message there does not reach you. A later stop at a commit clause 4 already blocked once passes, and shows you one line of what the run still owes |
 | `PreToolUse` (Agent, Task, Write, Edit, MultiEdit, Bash) | `hooks/avert.sh` | the text about to reach a worker or disk declares doing less than what was named for a reason the user did not give — a legal/IP reason, a substitute (original, invented, generic, placeholder, stand-in, look-alike, inspired-by) in place of the real thing, or precaution language ("to be safe", "as a precaution") — and no human turn raised that term: the call becomes a permission question, once per term per session. A Bash call's `git commit` message and `gh pr create`/`edit` title and body are not read: they record a hedge already made (a heredoc opened beside them, or text after a `;`, `&` or `|`, still is) `CC_AVERT=notify` makes it a notification the call proceeds past. Vocabulary-bound — an avert that never names its reason passes; `CC_AVERT=off` silences it |
 | `SessionStart` | `hooks/activate.sh` | injects the terse contract once, only when a level is active; silent otherwise |
-| `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton (~150 tokens per prompt — measured 596 chars at `lite`/`full`/`ultra`, 693 at a `wenyan-*` level — and nothing when off) |
+| `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton, plus a reader name's `Reader` line (~160 tokens per prompt — measured 636–637 chars at `lite`/`full`/`ultra`, 733–734 at a `wenyan-*` level, 862 at `newcomer`, 743 at `expert`, 825 at `on-call` — and nothing when off) |
 | `UserPromptSubmit` | `hooks/preamble.sh` | once per session, on the first prompt whose head carries a making verb in an imperative clause: injects the five working moves before the first edit (under 1,000 bytes, bounded by the hook's own test); silent on every later prompt, on questions, on slash commands, on a harness frame (a hand-back, a notification), and under `CC_PREAMBLE=off`; a making verb only inside a pasted span does not count |
 | `SubagentStart` | `hooks/preamble.sh` | the same five moves, once per `agent_id`, for every subagent the Agent tool spawns — `UserPromptSubmit` never fires inside a subagent, and on 2026-09-18 the text reached 0 of 3 workers building an app; under 1,000 bytes too. Since 0.8.0 an agent that cannot edit gets no text — this marketplace's agents whose `tools:` holds neither `Write` nor `Edit` (reviewers, `*-expert`, scouts, `researcher`, `verifier`), matched by qualified name (`ultra-deep-research:verifier`, never a bare `verifier`), and the built-in `Explore`, `Plan` and `claude-code-guide`; `preamble-hook.test.sh` derives that set from every `agents/*.md` and fails on one the list misses; another source's read-only agent still gets it. Also writes the worker's in-flight record for clause 4 (under `$TMPDIR`, keyed on the hashed `session_id`), even under `CC_PREAMBLE=off` |
 

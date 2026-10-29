@@ -37,8 +37,8 @@ if [ -z "$tp" ] && [ "$across" -eq 0 ]; then
   fi
 fi
 
-read -r level _ <<< "$("${BASH:-bash}" "$(dirname "$0")/level.sh" 2>/dev/null)"
-case "$level" in
+read -r level _ len <<< "$("${BASH:-bash}" "$(dirname "$0")/level.sh" 2>/dev/null)"
+case "${len:-$level}" in
   lite | wenyan-lite) budget=18 ;;
   full | wenyan-full) budget=12 ;;
   ultra | wenyan-ultra) budget=6 ;;

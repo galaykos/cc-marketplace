@@ -1109,6 +1109,28 @@ Misses: a switch phrased outside its few patterns (the slash command is the reli
   negation or question guard stops.
 ```
 
+### Reader names (0.10.7)
+
+`newcomer`, `expert` and `on-call` are names on the same dial as the length levels, not a second
+setting (user decision 2026-10-29: one dial). The mapping to a length level's budgets lives in
+code — `mode.sh`, `activate.sh`, `level.sh`, `badge.ts`, `statusline.ps1` — as the levels
+themselves are listed in each; `measure.sh` and `statusline.sh` read `level.sh`'s third word
+instead, and the skill table's Length column only documents it. Each name adds one `Reader` line
+whose word rule replaces the mapped level's word layer (orchestrator decision 2026-10-29: `on-call`
+had been told both "plain words only" and ultra's abbreviations and arrows).
+That line is read at runtime from the `terse-output` skill's reader table, the same way the card
+is read from its contract block, so the injected text and the skill cannot drift; the table
+sits outside the contract block so the card every existing level injects stays byte-identical.
+`activate.sh` carries a copy of the awk that reads it, and `mode-hook.test.sh` asserts the two
+print the same line. Only `/candor:level <name>` switches to a reader name: the natural-language
+patterns were left alone, so a pasted "TERSE newcomer (lite) —" line cannot switch anything.
+The newcomer rule is self-contained — explain any plugin or project term a newcomer would not
+know, four examples given — rather than pointing at the marketplace README's "Words we use"
+glossary: the plugin does not ship that README, and the one marketplace clone checked
+(`~/.claude/plugins/marketplaces/cc-plugins-marketplace/`, 2026-10-29) had no such section; the full word list would add
+about 250 bytes to every prompt. `context-budget.sh`'s fixtures never set a reader name, so the
+per-prompt cost (bytes, before → after: 655 → 882, 654 → 763, 654 → 845) was measured by hand.
+
 ## plugins/candor/hooks/preamble.sh
 
 ### Header: the shebang

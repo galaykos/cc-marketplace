@@ -1,5 +1,5 @@
 #!/bin/bash
-# SessionStart: while a terse level is active (CC_TERSE, then the level file, then /config cc_terse), prints the contract block of skills/terse-output/SKILL.md read at runtime under ${CLAUDE_PLUGIN_ROOT}, or one line naming the level when that block is unreadable. Always exits 0.
+# SessionStart: while a terse level is active (CC_TERSE, then the level file, then /config cc_terse), prints the contract block of skills/terse-output/SKILL.md read at runtime under ${CLAUDE_PLUGIN_ROOT}, and a reader name's row of its reader table, or one line naming the level when that block is unreadable. Always exits 0.
 # Misses enforcement (nothing rewrites a message once emitted) and a per-project level (the level file is one per machine).
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/activate.sh
 
@@ -32,23 +32,31 @@ cc_option() {
   level=$(cc_option CC_TERSE off "$state")
 
   case "$level" in
-    lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra) ;;
+    lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra) shown=$level ;;
+    newcomer) shown="$level (lite)" ;;
+    expert) shown="$level (full)" ;;
+    on-call) shown="$level (ultra)" ;;
     *) exit 0 ;; # off, unset, or anything unrecognized — say nothing
   esac
 
   root="${CLAUDE_PLUGIN_ROOT:-}"
   skill="$root/skills/terse-output/SKILL.md"
 
-  card=""
+  card="" r=""
   if [ -n "$root" ] && [ -r "$skill" ]; then
     card=$(awk '/<!-- terse-contract:start -->/{f=1; next} /<!-- terse-contract:end -->/{f=0} f' "$skill" 2>/dev/null)
+    # As hooks/mode.sh's reader(): a reader name's row of the skill's reader table, one line.
+    [ "$shown" = "$level" ] || r=$(awk -F'|' -v n="$level" '/<!-- terse-readers:start -->/{f=1; next} /<!-- terse-readers:end -->/{f=0}
+      f { for (i = 2; i <= 5; i++) gsub(/^ +| +$/, "", $i)
+          if ($2 == n) printf "Reader %s: %s. Lists and findings %s (no cap when findings are the deliverable).", n, $4, $5 }' "$skill" 2>/dev/null)
   fi
+  [ -z "$r" ] || r=$'\n'"$r"$'\n'
 
   if [ -n "$card" ]; then
-    printf 'TERSE MODE ACTIVE — level: %s. Applies to chat messages only.\n\n%s\n' "$level" "$card"
+    printf 'TERSE MODE ACTIVE — level: %s. Applies to chat messages only.\n\n%s\n%s' "$shown" "$card" "$r"
   else
     printf 'TERSE MODE ACTIVE — level: %s. Contract unreadable at %s; run /candor:level to re-state it.\n' \
-      "$level" "${skill:-<unknown>}"
+      "$shown" "${skill:-<unknown>}"
   fi
 } 2>/dev/null
 exit 0
