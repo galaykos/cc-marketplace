@@ -1,6 +1,5 @@
 #!/bin/bash
-# measure.sh [--session-file PATH] [--last N] [--tokens] [--all] [--since Nd|Nh] — report-only: per turn-final message (text and no tool_use,
-#   by message id), prose lines (non-blank, unfenced, not `|`-led, one per 100 columns) against the terse budget. Exits 0; 2 on a usage error.
+# measure.sh [--session-file PATH] [--last N] [--tokens] [--all] [--since Nd|Nh] — report-only: per turn-final message (text, no tool_use, by message id), prose lines (non-blank, unfenced, not `|`-led, one per 100 columns) against the terse budget. Exits 0; 2 on a usage error.
 # Misses: an answer cannot be told from a work-done report, so every message is graded against the larger budget, a requested long reply too.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/measure.sh
 usage() {
@@ -38,16 +37,15 @@ if [ -z "$tp" ] && [ "$across" -eq 0 ]; then
   fi
 fi
 
-read -r level _ <<< "$("${BASH:-bash}" "$(dirname "$0")/level.sh" 2>/dev/null)"
-case "$level" in
+read -r level _ len <<< "$("${BASH:-bash}" "$(dirname "$0")/level.sh" 2>/dev/null)"
+case "${len:-$level}" in
   lite | wenyan-lite) budget=18 ;;
   full | wenyan-full) budget=12 ;;
   ultra | wenyan-ultra) budget=6 ;;
   *) level="off"; budget=12 ;; # measure against `full` when no level is set
 esac
 
-# One row per turn-final message: "<prose-lines> <chars>".
-# The @@MSG sentinel is printable on purpose: a control character works but makes this script unreadable to git and to an editor.
+# One "<prose-lines> <chars>" row per turn-final message. @@MSG is printable on purpose: a control character makes this script unreadable to git and to an editor.
 rows_for() {
   toolids=$(jq -rR 'fromjson? // empty
     | select(type == "object" and .type == "assistant")

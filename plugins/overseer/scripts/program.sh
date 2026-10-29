@@ -1,21 +1,8 @@
 #!/usr/bin/env bash
-# program.sh — the overseer's state machine. The ONLY writer of .claude/overseer/program.json
-# (serialised by an O_EXCL lock file, so two invocations of this script cannot lose each other's write).
-#
-# What it gates: a milestone cannot reach `done` without the evidence kinds its KIND's evidence
-# profile requires (kinds.tsv column 4 — `ui`, the default: the nine-kind browser walk; `headless`:
-# `tests` + `run-log`, for a kind with no screen); accept exits 2 and lists them; every file kind
-# must carry a --file that exists at add time AND at accept time (a deleted screenshot
-# un-accepts); every required
-# evidence row must be newer than the last worker/follow-up dispatch that passed `dispatch check`
-# (a walk recorded before the last fix cycle is a walk of older code); at least one dispatch
-# under the milestone passed `dispatch check` unchanged since (recorded in dispatch/.gated —
-# a file that never went through the check is not a gated dispatch, whatever it pins); the
-# kind's skill groups are pinned by paths that EXIST; a hands-off program must carry at least
-# one ASSUMED decision before its first accept; statuses, kinds, sizes and rigour profiles come
-# from fixed vocabularies. What it does NOT check: that the evidence is true — a screenshot of
-# the wrong page still passes; the acceptance reference says why that residual stays.
-#
+# program.sh — the overseer's state machine, the ONLY writer of .claude/overseer/program.json (an O_EXCL lock file serialises two invocations).
+# Gates: accept refuses `done` without the kind's evidence profile, files that exist, evidence newer than the last gated dispatch, a gated dispatch, existing skill pins and, on a hands-off program, an ASSUMED decision row. Misses: that the evidence is true — a screenshot of the wrong page still passes; the acceptance reference says why that residual stays.
+# Why, limits, history: rationale/derivations/plugin-overseer.md § plugins/overseer/scripts/program.sh (marketplace repository)
+
 # Usage:
 #   program.sh init --goal "<text>" --slug <slug> [--base <branch>] [--hands-off --reason "<why>"] [--foreign-session "<why>"] [--model opus|auto]
 #                                            # refuses when this Claude session was opened in another project (exit 2) unless --foreign-session says why
@@ -23,6 +10,7 @@
 #                                            # seats (reader, reviewer) may run at the session model (MODEL: inherit), workers stay at opus
 #   program.sh status [--json]
 #   program.sh next                          # first milestone not done/parked whose deps are done
+#   program.sh resume                        # five plain lines ≤ 100 chars: program, now, next, last decision, open items; exit 0
 #   program.sh milestone add --id <id> --title "<t>" --branch <b> [--depends a,b] [--kind <kind>] [--size S|M|L|XL] [--rigour lean|standard|adversarial]
 #                                            # kinds: kinds.tsv (default feature) — its row also carries the EVIDENCE PROFILE accept demands:
 #                                            #   `ui` (default): the nine browser kinds · `headless` (audit, library): tests + run-log, no screen to walk
@@ -34,13 +22,13 @@
 #   program.sh evidence add --id <id> --kind <kind> --note "<n>" [--file <path>]   # --file required for file kinds
 #                                            # every kind of either profile may be recorded on any milestone; the profile decides only what accept DEMANDS
 #   program.sh evidence clear --id <id>
-#   program.sh accept --id <id>              # exit 0 → status done + "sized X · actual …" line; exit 2 → the first failing gate, listed
+#   program.sh accept --id <id>              # exit 0 → status done + "sized X · actual …" line + "Process cost since …" line; exit 2 → the first failing gate, listed
 #                                            # gates in order: a gated dispatch exists · kind groups pinned by existing paths · the profile's evidence kinds,
 #                                            # files present, each newer than the last gated worker dispatch · hands-off has an ASSUMED row
 #   program.sh decision add --text "<what>" --rationale "<why>" [--options "<a | b>"]
 #   program.sh decision add --assumed --text "<what>" --alternative "<other reading>" --rationale "<why>"
 #   program.sh dispatch check <prompt-file> [--kind worker|reader|reviewer|followup] [--milestone <id>]
-#                                            # exit 0 records the file (checksum, kind) in its dispatch/.gated — accept counts only those
+#                                            # exit 0 records the file (checksum, kind, time) in its dispatch/.gated — accept counts only those
 #                                            # --milestone (or a file under milestones/<id>/dispatch/): WARN for each of the kind's skill groups no
 #                                            # gated dispatch has pinned yet; WARN when the milestone has no rigour profile
 #                                            # worker (default): every preamble clause line verbatim (whitespace-folded), TOUCH ONLY, VERIFY, an existing
@@ -67,20 +55,13 @@
 #      OVERSEER_PREAMBLE overrides where `dispatch check` finds the canonical discipline preamble.
 set -u
 
-# Evidence profiles (kinds.tsv column 4) — what `accept` demands of a milestone of that kind.
-# `ui` is the default and the original nine: a milestone with a screen is proven in a browser.
-# `headless` exists because that list is impossible for a kind with no screen — a research pass or a
-# CLI/script/library change can never record a viewport, so every such milestone ended `parked`
-# (measured 2026-09-16, a program run over this marketplace itself). Its two kinds are the two a
-# script CAN check: the suite ran, and the command the milestone exists to make work ran and was
-# captured. Both are file kinds, so `accept`'s "every row points at one file" WARN still bites.
+# Evidence profiles (kinds.tsv column 4): `ui`, a screen proven in a browser; `headless`, the two kinds a script can check for a kind with no screen — the suite ran, the command ran and was captured.
 REQUIRED_UI="tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop console-clean keyboard motion"
 REQUIRED_HEADLESS="tests run-log"
 OPTIONAL_KINDS="a11y review perf dark-mode progress"
 PROFILES="ui headless"
 FILE_KINDS="tests run-log browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop console-clean keyboard motion"
-# the recordable vocabulary is every profile's kinds plus the optional ones: a headless milestone
-# that did open a browser may record the screenshot, and a `ui` one may record its run log
+# Every profile's kinds are recordable on any milestone; the profile decides only what accept demands.
 KINDS_VOCABULARY=$(printf '%s\n' $REQUIRED_UI $REQUIRED_HEADLESS $OPTIONAL_KINDS | awk '!seen[$0]++' | tr '\n' ' ')
 STATUSES="queued briefed building accepting done parked"
 SIZES="S M L XL"
@@ -108,10 +89,7 @@ need_state() {
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 in_list() { local x="$1"; shift; for w in "$@"; do [ "$w" = "$x" ] && return 0; done; return 1; }
 arg() { [ -n "${2:-}" ] || { echo "program.sh: $1 needs a value" >&2; exit 3; }; printf '%s' "$2"; }
-# lock: bash's noclobber creates the lock file with O_EXCL inside the shell itself. Not mkdir(1): uutils
-# coreutils (Ubuntu 26.04's /usr/bin/mkdir) stats first and exits 0 when its mkdir(2) loses the race, so two
-# writers held the lock at once and 20 concurrent `evidence add` kept 14-19 rows (measured 2026-10-07).
-# Not flock: macOS does not ship it.
+# noclobber creates the lock with O_EXCL inside the shell; not mkdir(1) (uutils' exits 0 when it loses the race) nor flock (macOS lacks it).
 lock() {
   local n=0
   until ( set -C; : > "$state.lock" ) 2>/dev/null; do
@@ -134,16 +112,10 @@ has_ms() { jq -e --arg id "$1" '.milestones[] | select(.id==$id)' "$state" >/dev
 KINDS_FILE="$(cd "$(dirname "$0")/.." && pwd)/kinds.tsv"
 kind_required() { grep -v '^#' "$KINDS_FILE" | awk -F'\t' -v k="$1" '$1==k {print $2}'; }
 kind_known() { [ -n "$(kind_required "$1")" ]; }
-# kind_profile <kind>: column 4 of the kind's row — its EVIDENCE profile. Absent (every row written
-# before profiles existed) reads as `ui`, so the nine browser kinds stay the default for a kind with
-# a screen; `milestone add` refuses any other word, or a typo here would silently demand a browser
-# walk of a headless milestone — the failure this column was added to fix.
+# kind_profile <kind>: column 4, absent reads `ui`; milestone add refuses any other word, so a typo cannot demand a browser walk of a headless milestone.
 kind_profile() { local p; p=$(grep -v '^#' "$KINDS_FILE" | awk -F'\t' -v k="$1" '$1==k {gsub(/[[:space:]]/,"",$4); print $4}'); printf '%s' "${p:-ui}"; }
 required_kinds() { if [ "$(kind_profile "$1")" = headless ]; then printf '%s' "$REQUIRED_HEADLESS"; else printf '%s' "$REQUIRED_UI"; fi; }
-# session_root_check: this Claude session's transcript lives under ~/.claude/projects/<encoded cwd>/;
-# when that cwd is not this project, the pipeline commands (taskmaster, task-runner, craft) are
-# unreachable and both simulations ran on hand-dispatch without noticing. Fail-open when the
-# session id or transcript is unknown (plain terminal, other harness); refuse when it is known and foreign.
+# session_root_check: refuses when this session's transcript dir is another project's (its pipeline commands are unreachable); fails open when the session or transcript is unknown.
 session_root_check() {
   local sid="${CLAUDE_CODE_SESSION_ID:-}" t enc want
   [ -n "$sid" ] || return 0
@@ -153,12 +125,8 @@ session_root_check() {
   echo "program.sh: this Claude session was opened in another directory (transcript dir $enc), not in $root — the pipeline commands (taskmaster, task-runner, craft) are unreachable from here; start the session in $root, or pass --foreign-session \"<why>\" to init (recorded, every dispatch then WARNs)" >&2
   return 2
 }
-# pinned_groups_status <kind> <files...>: one line per group: "ok <group>" / "missing <group>" / "uninstalled <group>".
-# A pin counts only when the path EXISTS — a review found the text match alone let /nowhere/…/SKILL.md close an
-# auth milestone. `stack` is installed only when a project skill or a laravel/web-dev cache skill really is there.
-# pins_in <files...>: every …/SKILL.md path in the files that EXISTS, one per line. Two passes per line: the strict
-# match stops at a space, the lenient one allows spaces inside the path (a project under "…/my proj" could never pin
-# its own skill); a lenient over-capture across two pins on one line is a path that does not exist and drops out.
+# pinned_groups_status <kind> <files...>: one "ok|missing|uninstalled <group>" line per group; a pin counts only when its path EXISTS.
+# pins_in <files...>: every existing …/SKILL.md path in the files; a second, lenient pass allows spaces inside a path.
 pins_in() {
   local f p
   for f in "$@"; do
@@ -189,24 +157,69 @@ pinned_groups_status() {
     if [ "$hit" = 1 ]; then echo "ok $g"; elif [ "$inst" = 1 ]; then echo "missing $g"; else echo "uninstalled $g"; fi
   done
 }
-# gated_files <id> [kind-filter]: the dispatch files under milestones/<id>/dispatch/ whose current checksum matches the one
-# `dispatch check` recorded at its last exit 0 — a file edited after the check, or never checked, is not gated
+# gated_files <id> [kind-filter]: dispatch files whose checksum still matches the one `dispatch check` recorded; an edited or unchecked file is not gated.
 gated_files() {
   local id="$1" filt="${2:-}" gd sum k b f
   gd="$dir/milestones/$id/dispatch"; [ -f "$gd/.gated" ] || return 0
   while read -r sum k b; do
+    b=${b% [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z}
     [ -n "$b" ] && f="$gd/$b" && [ -f "$f" ] || continue
     [ -z "$filt" ] || in_list "$k" $filt || continue
     [ "$(cksum < "$f" | cut -d' ' -f1)" = "$sum" ] && printf '%s\n' "$f"
   done < <(awk '{last[$3]=$0} END{for (b in last) print last[b]}' "$gd/.gated")
 }
-# record_gated <file> <kind>: the row accept reads — checksum, kind, basename (the last row per file wins). Only a file
-# under its milestone's dispatch/ dir is recorded; a prompt checked elsewhere passes but is not a milestone dispatch
-record_gated() { local fa; fa=$(abspath "$1"); [ -z "$(in_dispatch_dir "$fa")" ] || printf '%s %s %s\n' "$(cksum < "$1" | cut -d' ' -f1)" "$2" "$(basename "$1")" >> "$(dirname "$fa")/.gated"; }
+# record_gated <file> <kind>: checksum, kind, basename, gating time into its milestone's .gated (the last row per file wins; rows written before 0.7.4 carry no time); a file outside milestones/<id>/dispatch/ is not recorded.
+record_gated() { local fa; fa=$(abspath "$1"); [ -z "$(in_dispatch_dir "$fa")" ] || printf '%s %s %s %s\n' "$(cksum < "$1" | cut -d' ' -f1)" "$2" "$(basename "$1")" "$(now)" >> "$(dirname "$fa")/.gated"; }
+GATED_AT='^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z$'
 abspath() { local d; d=$(cd "$(dirname "$1")" 2>/dev/null && pwd -P) || return 1; printf '%s/%s' "$d" "$(basename "$1")"; }
 # in_dispatch_dir <abs-file>: prints the milestone id when the file lives under milestones/<id>/dispatch/ (logical or physical $dir)
 in_dispatch_dir() { local f="$1" dp; dp=$(cd "$dir" 2>/dev/null && pwd -P) || dp="$dir"
   case "$f" in "$dir"/milestones/m[0-9]*/dispatch/*.md|"$dp"/milestones/m[0-9]*/dispatch/*.md) basename "$(dirname "$(dirname "$f")")";; esac; }
+# Shared block templates/blocks/process-cost.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/process-cost.md
+# cc_process_cost <since>: one line, what this session's process cost from <since> (epoch seconds, or ISO-8601 with Z or an offset) to
+# now, read from CLAUDE_CODE_SESSION_ID's transcript (~/.claude/projects/*/<id>.jsonl) and its agent transcripts (subagents/agent-*.jsonl,
+# subagents/workflows/*/agent-*.jsonl): tokens (input, output, cache writes, cache reads) of every record timestamped at or after <since>,
+# once per message.id across all files; agents = agent transcripts holding a counted record; whole minutes since <since>. No prices.
+# Otherwise `Process cost: unknown — <reason>` (no jq, no session id, no transcript, a bad <since>, jq failed). Status 0 always.
+# Misses: other sessions' transcripts, records with no timestamp, compaction (it writes no usage record), agents writing elsewhere.
+cc_process_cost() {
+  local since="${1:-}" sid="${CLAUDE_CODE_SESSION_ID:-}" t="" f out
+  command -v jq >/dev/null 2>&1 || { echo "Process cost: unknown — jq not found"; return 0; }
+  case "$sid" in '' | *[!A-Za-z0-9_-]*) echo "Process cost: unknown — no session id (CLAUDE_CODE_SESSION_ID)"; return 0 ;; esac
+  for f in "${HOME:-}"/.claude/projects/*/"$sid".jsonl; do [ -f "$f" ] && { t=$f; break; }; done
+  [ -n "$t" ] || { echo "Process cost: unknown — no transcript for session $sid"; return 0; }
+  out=$(set -- "$t"
+    for f in "${t%.jsonl}"/subagents/agent-*.jsonl "${t%.jsonl}"/subagents/workflows/*/agent-*.jsonl; do [ -f "$f" ] && set -- "$@" "$f"; done
+    jq -nrR --arg since "$since" --arg main "$t" '
+      def off: if . == "Z" then 0 else ((.[1:3] | tonumber) * 3600 + ((.[3:] | ltrimstr(":")) as $m
+        | if $m == "" then 0 else ($m | tonumber) * 60 end)) * (if .[0:1] == "-" then -1 else 1 end) end;
+      def ep: if test("^[0-9]+$") then tonumber else
+        capture("^(?<d>[0-9]{4}-[0-9]{2}-[0-9]{2})[T ](?<h>[0-9]{2}:[0-9]{2})(?<s>:[0-9]{2})?(\\.[0-9]+)?(?<z>Z|[+-][0-9]{2}(:?[0-9]{2})?)$")
+        | ("\(.d)T\(.h)\(.s // ":00")Z" | fromdateiso8601) - (.z | off) end;
+      def when: [strings | try ep catch empty] | .[0];
+      def count($r; $f): ($r.message | if type == "object" then . else {} end) as $m
+        | ($m.usage | if type == "object" then . else null end) as $u | ($m.id | if type == "string" then . else null end) as $id
+        | if $u == null or $m.model == "<synthetic>" or ($id != null and .seen[$id]) then . else
+            (if $id != null then .seen[$id] = true else . end) | ($u.cache_read_input_tokens // 0) as $cr
+            | (($u.input_tokens // 0) + ($u.output_tokens // 0) + ($u.cache_creation_input_tokens // 0) + $cr) as $n
+            | .cr += $cr | if $f == $main then .main += $n else .sub += $n | .agents[$f] = true end end;
+      def tok: if . >= 999500 then (. / 10000 | round) as $c | "\($c / 100 | floor).\($c % 100 | if . < 10 then "0\(.)" else "\(.)" end)M"
+        elif . >= 1000 then "\(. / 1000 | round)k" else "\(.)" end;
+      def clock: if strflocaltime("%Y-%m-%d") == (now | strflocaltime("%Y-%m-%d")) then strflocaltime("%H:%M")
+        else strflocaltime("%Y-%m-%d %H:%M") end;
+      ($since | when) as $s
+      | if $s == null then "Process cost: unknown — since \($since | tojson) is neither epoch seconds nor ISO-8601 with a zone" else
+          reduce (inputs | try fromjson catch null | objects) as $r ({seen: {}, agents: {}, main: 0, sub: 0, cr: 0};
+            ($r.timestamp | when) as $t | if $t != null and $t >= $s then count($r; input_filename) else . end)
+          | (.main + .sub) as $all | (.agents | length) as $n | (now - $s) as $el
+          | "Process cost since \($s | clock): \($n) agent\(if $n == 1 then "" else "s" end) · \($all | tok) tokens (main \(.main | tok),"
+            + " subagents \(.sub | tok); \(if $all > 0 then (.cr * 100 / $all | round) else 0 end)% cache reads)"
+            + " · \(if $el > 0 then ($el / 60 | floor) else 0 end) min" end' "$@" 2>/dev/null) || out=""
+  [ -n "$out" ] || out="Process cost: unknown — jq could not read the transcript"
+  printf '%s\n' "$out"
+  return 0
+}
 NEXT_FILTER='. as $p | [.milestones[] | select(.status!="done" and .status!="parked") | select(all((.depends // [])[]; . as $d | any($p.milestones[]; .id==$d and .status=="done")))] | .[0]'
 
 cmd="${1:-}"; shift || true
@@ -262,6 +275,63 @@ case "$cmd" in
   next)
     need_state
     jq -r "$NEXT_FILTER"' | if . == null then "none" else .id + "\t" + .status + "\t" + .branch + "\t" + .title end' "$state";;
+
+  resume)
+    [ $# -eq 0 ] || usage
+    rel=".claude/overseer"
+    [ -e "$state" ] || { echo "No overseer program here (no $rel/program.json) — /overseer:start opens one"; exit 0; }
+    in=(-n); jq -e 'type=="object" and (.milestones|type=="array") and all(.milestones[]; type=="object")' "$state" >/dev/null 2>&1 && in=("$state")
+    sug=missing
+    if [ ! -f "$dir/decisions.md" ]; then dec="none, $rel/decisions.md is missing"
+    elif [ ! -r "$dir/decisions.md" ]; then dec="unknown, $rel/decisions.md is unreadable"
+    else dec=$(grep -E '^\| [0-9]{4}-' "$dir/decisions.md" | tail -n 1 | sed 's/^| //; s/ |$//' | awk -F' \\| ' '{print $2}'); fi
+    if [ -f "$dir/suggestions.md" ]; then
+      if [ -r "$dir/suggestions.md" ]; then sug=$(grep -cE '^\| [0-9]{4}-' "$dir/suggestions.md"); else sug=unreadable; fi
+    fi
+    jq -r --arg rel "$rel" --arg dec "${dec:-none recorded yet}" --arg sug "$sug" '
+      def clean: tostring | gsub("\\s+"; " ") | ltrimstr(" ") | rtrimstr(" ");
+      def short($n): if length <= $n then . else (.[0:$n] | sub("\\s+\\S*$"; "") | sub("[\\s,;:.—-]+$"; "")) as $w
+        | (if ($w | length) > 0 and ($w | length) < $n then $w else .[0:$n - 1] end) + "…" end;
+      def fit($head; $text; $tail): $head + ($text | clean | short([100 - ($head | length) - ($tail | length), 12] | max)) + $tail;
+      def plural($k; $word): "\($k) \($word)" + (if $k == 1 then "" else "s" end);
+      def plain: {queued: "not started", briefed: "brief written, work not started", building: "being built",
+        accepting: "being checked for acceptance"}[tostring] // "status \(tostring)";
+      ($rel + "/program.json") as $pj
+      | (if $sug == "missing" then "no suggestions file yet" elif $sug == "unreadable" then "suggestions.md unreadable"
+         else plural($sug | tonumber; "suggestion") end) as $s
+      | ($rel + "/" + (if ($sug | test("^[0-9]+$")) then "suggestions.md, program.json" else "program.json" end)) as $where
+      | if type != "object" then
+          "Program: unreadable, \($pj) is not valid JSON with a milestones list",
+          "Now: unknown until \($pj) can be read",
+          "Next: restore \($pj); program.sh status names the error",
+          fit("Last decision: "; $dec; ""),
+          "Open: \($s), parked milestones unknown — \($where)"
+        else
+          .milestones as $m
+          | ([$m[] | select(.status == "parked")] | length) as $parked
+          | ([$m[] | select(.status == "briefed" or .status == "building" or .status == "accepting")] | .[0]) as $active
+          | ('"$NEXT_FILTER"') as $next
+          | ($active // $next) as $cur
+          | ([$m[] | select(.status != "done" and .status != "parked")] | .[0]) as $stuck
+          | fit("Program: "; .goal // .slug // "no goal recorded"; " — \([$m[] | select(.status == "done")] | length)/\($m | length) milestones done"
+              + (if $parked > 0 then " (\($parked) parked)" else "" end)),
+            if $cur != null then fit("Now: \($cur.id) "; $cur.title // ""; " — \($cur.status | plain), branch \($cur.branch // "none")")
+            elif ($m | length) == 0 then "Now: no milestones yet, the roadmap has not been written"
+            elif $stuck == null then "Now: nothing open, every milestone is done or parked"
+            else "Now: nothing can start, \($stuck.id) waits on " + ([($stuck.depends // [])[] | . as $d
+              | ([$m[] | select(.id == $d)][0].status // "not in the roadmap") as $st | select($st != "done") | "\($d) (\($st))"] | join(", ")) end,
+            if $cur != null then
+              if $cur.status == "queued" then "Next: start \($cur.id) — write its brief"
+              elif $cur.status == "briefed" or $cur.status == "building" then "Next: check the workers or dispatch the brief for \($cur.id)"
+              elif $cur.status == "accepting" then "Next: run accept for \($cur.id) — program.sh accept --id \($cur.id)"
+              else "Next: look at \($cur.id) with program.sh status" end
+            elif ($m | length) == 0 then "Next: write the roadmap — /overseer:start"
+            elif $stuck == null then "Next: close the program — program.sh close"
+            else "Next: retry what \($stuck.id) waits on, or park \($stuck.id)" end,
+            fit("Last decision: "; $dec; ""),
+            "Open: \($s), \(plural($parked; "parked milestone")) — \($where)"
+        end
+      | clean | short(100)' "${in[@]}" 2>/dev/null || echo "program.sh: resume could not read $state";;
 
   milestone)
     need_state
@@ -342,11 +412,7 @@ case "$cmd" in
           [ -f "$file" ] || { echo "program.sh: --file $file is not a regular file" >&2; exit 2; }
           [ -s "$file" ] || { echo "program.sh: --file $file is empty" >&2; exit 2; }
           file=$(abspath "$file")
-          # read-before-record: hooks/track-read.sh appends "epoch\tsession\tphysical path" per Read while a
-          # program is open. A file kind needs a row from THIS session at or after the file's last change —
-          # a screenshot nobody opened proves nothing, and one re-captured after the look is unread again.
-          # No session id (plain terminal) or no row at all for this session (hook not loaded) → WARN and
-          # record, fail-open said out loud; a session that read other files but not this one → refused.
+          # A file kind needs a hooks/track-read.sh row from this session at or after the file's last change; no session id, or no row for this session, warns and records (fail-open, said).
           sid="${CLAUDE_CODE_SESSION_ID:-}"; rl="$dir/.reads"
           if [ -n "$sid" ] && in_list "$kind" $FILE_KINDS; then
             if [ -f "$rl" ] && awk -F'\t' -v s="$sid" '$2==s {f=1} END{exit !f}' "$rl"; then
@@ -392,8 +458,7 @@ case "$cmd" in
       echo "record each with: program.sh evidence add --id $id --kind <kind> --note \"<what was done>\" --file <path>" >&2
       exit 2
     fi
-    # only dispatches that passed `dispatch check` and are unchanged since count: a review closed an auth milestone
-    # with zero dispatch files and a hand-written pin to a path that did not exist
+    # Only dispatches that passed `dispatch check` and are unchanged since count.
     dfiles=(); while IFS= read -r f; do [ -n "$f" ] && dfiles+=("$f"); done < <(gated_files "$id")
     if [ "${#dfiles[@]}" -eq 0 ]; then
       echo "program.sh: $id NOT accepted — no gated dispatch under milestones/$id/dispatch/ (a file counts once 'dispatch check' passed it and it is unchanged since; .gated is the record)" >&2
@@ -408,8 +473,7 @@ case "$cmd" in
       echo "pin it in the next dispatch (skill-path.sh <plugin> <skill>) or change the kind: this is the routing table in kinds.tsv" >&2
       exit 2
     fi
-    # a walk recorded before the last worker or follow-up dispatch walked older code (simulation 4 ran three fix
-    # cycles after its first browser pass); the newest gated worker file's mtime is the line every required row must be after
+    # Every required row must be newer than the newest gated worker/follow-up file: a walk before the last fix cycle walked older code.
     lastw=""; while IFS= read -r f; do [ -n "$f" ] || continue
       m=$(date -u -r "$f" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || continue; [ "$m" \> "$lastw" ] && lastw="$m"; done < <(gated_files "$id" "worker followup")
     stale=""
@@ -434,16 +498,17 @@ case "$cmd" in
     fi
     write --arg id "$id" --arg at "$(now)" '(.milestones[]|select(.id==$id)) |= (.status="done" | .reason="" | .accepted_at=$at | .history += [{status:"done",at:$at}])'
     echo "$id accepted → done"
-    # the size was a roadmap guess; print what it actually took next to it so the next milestone's guess has an anchor
-    # (nothing scores the miss — the bands would be invented; the reader compares)
+    # The size was a roadmap guess: print what it took beside it; nothing scores the miss.
     msize=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.size // "M"' "$state")
     nw=$(gated_files "$id" "worker followup" | wc -l | tr -d ' '); ng=$(gated_files "$id" | wc -l | tr -d ' ')
     mbranch=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.branch' "$state"); mbase=$(jq -r '.base_branch' "$state")
     lines=$(git -C "$root" diff --shortstat "$mbase...$mbranch" 2>/dev/null | sed -E 's/^ *[0-9]+ files? changed,? *//; s/ insertions?\(\+\)/+/; s/ deletions?\(-\)/-/; s/, */ /g' | tr -d '\n')
-    mins=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.history as $h | ([$h[]|select(.status=="briefed" or .status=="building")|.at]|min) as $s | ([$h[]|select(.status=="done")|.at]|max) as $e | if $s==null or $e==null then "-" else ((($e|fromdate)-($s|fromdate))/60|floor|tostring) end' "$state")
+    began=$( { jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.history[]|select(.status=="briefed" or .status=="building")|.at' "$state"
+      awk -v t="$GATED_AT" 'NF >= 4 && $NF ~ t {print $NF}' "$dir/milestones/$id/dispatch/.gated" 2>/dev/null; } | sort | head -n 1)
+    mins=$(jq -r --arg id "$id" --arg s "$began" '.milestones[]|select(.id==$id)|([.history[]|select(.status=="done")|.at]|max) as $e | if $s=="" or $e==null then "-" else ((($e|fromdate)-($s|fromdate))/60|floor|tostring) end' "$state")
     echo "sized $msize · actual: $ng gated dispatches ($nw worker/follow-up) · ${lines:-diff n/a} lines vs $mbase · $mins min"
-    # the moment after accept is where simulation 4 stopped (m1 of 3 done, "resume later", nobody there): say the
-    # next step here, at the decision point, not only in the skill text the model read two hours earlier
+    if [ -n "$began" ]; then cc_process_cost "$began"; else echo "Process cost: unknown — $id has no briefed, building or gated-dispatch time recorded"; fi
+    # Name the next step here, at the decision point, not only in the skill text read hours earlier.
     nx=$(jq -r "$NEXT_FILTER"' | if . == null then "none" else .id + " (" + .title + ")" end' "$state")
     if [ "$nx" = none ]; then echo "next: none runnable — program.sh close (or park/unblock what remains)"
     elif jq -e '.hands_off' "$state" >/dev/null 2>&1; then echo "next: $nx — hands-off: deliver it in this session; stopping here is a decisions.md row"
@@ -494,13 +559,10 @@ case "$cmd" in
     # a file under milestones/<id>/dispatch/ names its milestone; --milestone overrides (and is required elsewhere for the kind WARNs)
     [ -n "$ms" ] || ms=$(in_dispatch_dir "$(abspath "$f")")
     pre="${OVERSEER_PREAMBLE:-}"
-    # resolved like a skill pin (skill-path.sh: the CLI's enabled install, else the newest cache dir that has the file) —
-    # `find | sort -V | tail -1` across two marketplaces picked the alphabetically later marketplace's older version
+    # Resolved like a skill pin (skill-path.sh), never `find | sort -V`: across two marketplaces that picks the wrong version.
     if [ -z "$pre" ]; then sp=$(bash "$(dirname "$0")/skill-path.sh" task-runner delegation-contracts --project "$root" 2>/dev/null) && pre="$(dirname "$sp")/references/discipline-preamble.md"; fi
     if [ "$kind" = followup ]; then
-      # a message to a worker that is still alive: the preamble is already in its context, so the
-      # follow-up must SAY it still binds, keep the scope lock, verify and return shape, and name the
-      # dispatch file it continues — simulation 2 sent two of these with none of that recorded
+      # A follow-up reaches a live worker that holds the preamble: it must say it still binds, keep the scope lock, VERIFY, RETURN, and name the dispatch file it continues.
       grep -qiE 'preamble' "$f" || miss="$miss
   a follow-up must say the discipline preamble still applies (it is in the worker's context, not in this file)"
       grep -qE 'TOUCH ONLY|Touch only|touch only' "$f" || miss="$miss
@@ -514,13 +576,10 @@ case "$cmd" in
       [ -n "$miss" ] && { echo "program.sh: dispatch prompt $f NOT ready:$miss" >&2; exit 2; }
       record_gated "$f" followup; echo "dispatch prompt ok (followup): $f"; exit 0
     fi
-    # the preamble is worker discipline — implement, verify, full suite. A reader/reviewer carries none of it: gating
-    # it in put "run the full check suite" verbatim into every prompt that also had to say "you write no file"
+    # The preamble is worker discipline; a reader/reviewer carries none ("run the full check suite" contradicts "you write no file").
     if [ "$kind" != worker ]; then :
     elif [ -n "$pre" ] && [ -f "$pre" ]; then
-      # every line of every numbered clause, not only its first: clauses 2-9 of the canonical file span two to ten lines,
-      # and "skip diagnosis and guess" on clause 2's second line passed the first-line check. Whitespace is folded so a
-      # reflowed paragraph still counts as verbatim; a changed word does not.
+      # Every line of every numbered clause, whitespace folded: a reflowed paragraph still counts as verbatim, a changed word does not.
       folded=$(tr '\n' ' ' < "$f" | tr -s '[:space:]' ' ')
       clause=""; n=0
       while IFS= read -r line; do
@@ -548,8 +607,7 @@ case "$cmd" in
       grep -qE 'write no file|read-only|WRITE NO FILES|writes nothing' "$f" || miss="$miss
   a $kind dispatch must say it writes no file"
     fi
-    # MODEL: the seat's model, bound by the program tier — a dispatch that names none inherits the session
-    # model silently, which is how simulation 3 ran its card workers on the most expensive tier without a decision
+    # MODEL: the seat's model, bound by the program tier; a dispatch naming none inherits the session model silently.
     tier="opus"; [ -s "$state" ] && tier=$(jq -r '.model // "opus"' "$state" 2>/dev/null || echo opus)
     allowed="$MODELS_OPUS"; [ "$tier" = auto ] && [ "$kind" != worker ] && allowed="$MODELS_AUTO"   # a worker never inherits: judgment seats only
     mval=$(grep -m1 -oE '^MODEL: *[a-z0-9.-]+' "$f" | sed -E 's/^MODEL: *//')
@@ -586,9 +644,7 @@ case "$cmd" in
       done < <(pinned_groups_status "$mkind" "$f" ${others[@]+"${others[@]}"})
       if [ "$(jq -r '.foreign_session_reason // ""' "$state")" != "" ]; then warn="$warn
   foreign session: pipeline commands unreachable — this prompt is the fallback, say so in findings.md"; fi
-      # size routes the pipeline: S may go straight to a worker; M+ is briefed to taskmaster, and the proof it was
-      # is a card index newer than the brief. "The brief is so complete grill would ask nothing" is not a reason —
-      # both earlier simulations said exactly that for every milestone they hand-dispatched
+      # Size routes the pipeline: S may go straight to a worker, M+ is briefed to taskmaster, proven by a card index newer than the milestone.
       msize=$(jq -r --arg id "$ms" '.milestones[]|select(.id==$id)|.size // "M"' "$state")
       mrig=$(jq -r --arg id "$ms" '.milestones[]|select(.id==$id)|.rigour // ""' "$state")
       hands=$(jq -r '.hands_off // false' "$state")
@@ -597,9 +653,7 @@ case "$cmd" in
       if [ "$mrig" = lean ] && in_list "$mkind" $SURFACE_KINDS; then warn="$warn
   kind $mkind is never lean — its defects are irreversible or leak data; re-rigour to standard or adversarial"; fi
       if [ "$kind" = worker ]; then
-        # the index must name this milestone (its dir or heading: 2026-09-12-m2-landing, "# m2 landing") and be newer than
-        # the milestone's registration — not newer than the brief: amending the brief mid-milestone (normal) made the
-        # index look stale and swapped the boost WARN for a false "pipeline skipped" one. Newest such index wins.
+        # The index must name this milestone and be newer than its registration, not its brief (amending a brief mid-milestone is normal); the newest wins.
         idx=""; idre="(^|[^a-z0-9])$ms([^a-z0-9]|$)"
         reg=$(jq -r --arg id "$ms" '.milestones[]|select(.id==$id)|.history[0].at // ""' "$state")
         while IFS= read -r i; do
@@ -609,12 +663,7 @@ case "$cmd" in
         done < <(find "$root/taskmaster-docs/tasks" -name 00-INDEX.md 2>/dev/null)
         [ "$msize" = S ] || [ -n "$idx" ] || warn="$warn
   size $msize: $ms is briefed to taskmaster (/taskmaster:task <brief>), and no card index under taskmaster-docs/tasks/ registered after $ms names it — a direct worker here needs a decisions.md row saying why the pipeline was skipped"
-        # the Ultra:/Goal: marker is taskmaster's Extreme Boost. What it buys on top of a standard run: the spec red-team
-        # unconditionally (a standard run already runs it past three criteria or an ASSUMED row), coverage loop-until-dry,
-        # a code red-team over the shipped diff, and tier escalation; `goal` adds autonomy. Reviewers per card and the
-        # negative control are task-runner's baseline, boosted or not — 0.2.1 charged them to the boost and priced it wrong.
-        # The rigour profile says whether the code red-team is worth buying here; the marker says whether it was.
-        # `Goal: true (boost=off)` is taskmaster's goal-lean (≥0.42.1, task-runner ≥0.32.0): hands-off without the boost.
+        # Ultra:/Goal: is taskmaster's Extreme Boost (code red-team included); the rigour profile says whether it is worth buying. `Goal: true (boost=off)` is goal-lean (taskmaster ≥0.42.1).
         if [ -n "$idx" ]; then
           # head -40, not -12: task-cards/SKILL.md lets an upgraded-statement blockquote sit above the markers
           if head -40 "$idx" | grep -E '^(Goal|Ultra): *true' | grep -qv 'boost=off'; then
@@ -642,8 +691,7 @@ case "$cmd" in
     if jq -e '[.milestones[]|select(.status!="done" and .status!="parked")]|length>0' "$state" >/dev/null; then
       echo "program.sh: cannot close — milestones still open (not done/parked): $(jq -r '[.milestones[]|select(.status!="done" and .status!="parked")|.id]|join(" ")' "$state")" >&2; exit 2
     fi
-    # divergence: two done branches that contain neither the other were never seen in one tree
-    # (simulation 2 closed with the homepage from master and the board from m1 never combined)
+    # Two done branches that contain neither the other were never seen in one tree.
     if [ -z "$divok" ] && ! jq -e '[.milestones[]|select(.status=="done" and .kind=="integration")]|length>0' "$state" >/dev/null; then
       div=""
       for a in $(jq -r '.milestones[]|select(.status=="done")|.branch' "$state"); do
@@ -672,12 +720,10 @@ case "$cmd" in
     arch="$dir/archive/$slug-$at"
     mkdir -p "$arch"
     mv "$state" "$arch/program.json"
-    # other plugins' hooks (candor, comment-discipline) key their scratch dir on the edited file's directory and
-    # leave .claude/ dirs under dispatch/; they are never overseer's and do not belong in the record
+    # Other plugins' hooks leave .claude/ scratch dirs under dispatch/; they are not overseer's record.
     find "$dir/milestones" -type d -name .claude -prune -exec rm -rf {} + 2>/dev/null
     [ -d "$dir/milestones" ] && mv "$dir/milestones" "$arch/milestones"
-    # evidence rows hold absolute paths under $dir/milestones; the archive is the record a reader
-    # follows, so every path is rewritten to where the file now lives (checked by the harness)
+    # Evidence rows hold absolute paths under $dir/milestones: rewritten to where each file now lives (the harness checks).
     phys=$(cd "$dir" && pwd -P)   # evidence add stores the physical path; $dir may be the logical one (macOS /var vs /private/var)
     jq --arg a "$dir/milestones/" --arg b "$phys/milestones/" --arg to "$(cd "$arch" && pwd -P)/milestones/" \
       '(.milestones[].evidence[].file) |= (if startswith($a) then $to + .[($a|length):] elif startswith($b) then $to + .[($b|length):] else . end)' \

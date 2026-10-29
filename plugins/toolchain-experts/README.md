@@ -1,7 +1,7 @@
 # toolchain-experts
 
-Five expert reviewers for PHP, TypeScript/JavaScript, React, Vue and CSS that **run
-the project's own static analysis** and triage the real output, instead of reciting a
+Five expert reviewers for PHP, TypeScript/JavaScript, React, Vue and CSS. They **run
+the project's own static analysis** and triage the real output. They do not recite a
 best-practice checklist.
 
 ## Install

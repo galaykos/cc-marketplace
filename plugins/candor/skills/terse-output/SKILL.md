@@ -85,6 +85,27 @@ classical-Chinese register at the same budgets — `references/wenyan.md`.
 and shape are unchanged: cut by deleting content, never by abbreviating it.
 <!-- terse-contract:end -->
 
+## Reader names
+
+`/candor:level newcomer`, `expert` or `on-call` says who is reading instead of naming a length.
+Each takes one length level's budgets and report shape unchanged and adds a word rule and a cap
+on lists and findings. The word rule replaces that level's word layer: where they disagree, the
+reader's rule wins. It is one dial: a reader name replaces a length level, it never stacks on
+one. The hooks inject a row of this table as one line, `Reader <name>: <word rule>. Lists and
+findings <cap> (…)` — edit the wording here. The Length column documents the mapping; the hooks
+and scripts hold it in code.
+
+<!-- terse-readers:start -->
+| Reader | Length | Word rule | Lists and findings |
+| --- | --- | --- | --- |
+| newcomer | lite | explain in plain words, at first use, any plugin or project term a newcomer would not know (for example gate, card, lane, boost) | ≤ 5 |
+| expert | full | jargon allowed | ≤ 8 |
+| on-call | ultra | plain words only: no abbreviations, arrows or internal terms; this replaces ultra's word layer | ≤ 3 |
+<!-- terse-readers:end -->
+
+No cap when findings are the deliverable: an invoked review or audit returns every finding.
+Standing: unenforceable — nothing rewrites a reply; /candor:check counts prose lines only.
+
 ## Why shape, not just words
 
 Word-level rules alone lose. Measured over three long real sessions running an

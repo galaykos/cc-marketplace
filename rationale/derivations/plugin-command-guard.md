@@ -451,6 +451,103 @@ host decides the rest. Costs: nothing gates the ask tier when the host is
 NOT in auto mode, so this trades coverage for interruptions knowingly.
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+destructive-guard.sh [--check '<command>' | --version] — PreToolUse on Bash and MCP shell/SQL tools: deny irreversible data loss, ask on scoped
+destruction, allow the rest; deny a write to the allow-file; ask before a Write replaces a live .env. --check ignores the mode: exit 0/1/2 = allow/ask/deny.
+Fails open on its own errors (exit 0); a judgment past GUARD_DEADLINE (12 s) asks. hooks.json starts it with PATH bash, not this shebang, and its
+onFailure: block makes the host block a run that cannot start or overruns the 15 s timeout (CLI 2.1.295+).
+CLAUDE_DESTRUCTIVE_GUARD, else /config claude_destructive_guard: deny-only drops the ask tier, ask turns a command deny into a prompt, off disables.
+Allow-file .claude/destructive-guard-allow, project then ~: a line's regex matched unanchored on the whole lowercased command, trailing comment too, releases it; a command naming the file must be a pure read.
+Misses: an allow-file path built from a variable or glob, a script or a program git config names writing it, an MCP write tool other than apply_patch and create_new_file,
+NotebookEdit's notebook_path, a non-ASCII spelling the filesystem folds to the name; a failing cd to a relative target; env -S'…' or --split-string=… with the string glued on;
+a -C/-c value holding a space, or a git option past the -C/-c/--git-dir set where git does not lead (bash -c "git -P push"); an unlisted wrapper option value or spaced long form (sudo -R x): a refusal, or a miss if it names a reader; a wrapper by path but env (/usr/bin/sudo): a refusal.
+A heredoc body fed to anything but a shell or SQL client is not read (cc_strip_heredoc_bodies).
+```
+
+Above `strip_git_global_options() { # normalised segment, lead word`:
+
+```text
+Git rules are written ` git <subcommand>`, so the global options before it (-C, -c, --git-dir …) are dropped; an unknown one stays.
+Where git does not lead the segment only the short list is dropped, so quoted prose (gh pr create --title "git -P push --force") is not read as git.
+```
+
+Above `split_segments() {`:
+
+```text
+Quote-aware on the RAW string: dequoting first splits grep -E "a|rm -rf /" into a fake rm segment. check_cd_chain copies this walk.
+One walk in END, not per record: BWK awk reads RS = "\0" as paragraph mode. After $$' bash and zsh disagree, so `raw` splits on every separator.
+```
+
+Above `[ "$VERDICT" = "deny" ] && return 0`:
+
+```text
+deny wins over ask; the first deny wins over later denies.
+```
+
+Above `temp_remainder() { # lowercased token`:
+
+```text
+A path inside the OS temp dir is scratch, so deleting it is ordinary work; the roots themselves stay denied.
+Prints what sits under the temp root; prints nothing when the path is not one.
+```
+
+Above `rm_backslash_target() { # raw segment, 1 when it ends the command`:
+
+```text
+0 when a recursive rm's operand has a shell value of backslashes only: rm's own raw words, then each shell -c script and eval's
+arguments as commands of their own. A lone \ ending the segment is a word only when it ends the command (arg 2 = 1): a segment line
+read off split_segments also ends in one at a \<newline> continuation. Misses: $'\\', a variable holding \, ssh's or su -c's command.
+```
+
+Above `case "$tok" in`:
+
+```text
+unexpanded variable: if it is unset or empty, the path collapses to / or to cwd
+```
+
+Above `case "$tok" in`:
+
+```text
+The Playwright MCP's scratch dir asked on every cleanup (4 times in one session). Only that name, under the command's cwd, unmoved,
+and not a symlink: rm -rf link/ empties the link's target.
+```
+
+Above `body=$raw`:
+
+```text
+The whole-command reads above see heredoc bodies; the segment walk and the cd chain below do not see a stripped body.
+Inert mode, SQL clients counted as readers: judged line by line, a 21 KB `python3 - <<'EOF'` took 22.6 s against the
+15 s hook timeout and failed open. A huge kept body is still slow.
+```
+
+Above `if [ "$sub" = "clean" ]; then`:
+
+```text
+A token with an n flag (-n, -fn) or --dry-run is taken for a dry run, the preview the ask tier tells the model to run.
+-e (and --exclude, abbreviated or not) takes the rest of its cluster or the next word as a pattern, so an n there is no flag;
+after -- every word is a path; the last of --dry-run/-n and --no-dry-run wins, each also as git's abbreviation (--d…, --no-d…).
+```
+
+Above `d="$(dirname "$(dirname "$CLAUDE_PLUGIN_ROOT")")/devops"`:
+
+```text
+An installed plugin sits at cache/<marketplace>/<plugin>/<version>/, so devops is two levels up, under its own version dir.
+The host marks a superseded cached version with .orphaned_at and deletes it later; the 4th sort key ranks a release over its pre-release.
+```
+
+Above `judge_in_time() { # guard function, its arguments`:
+
+```text
+The host blocks a run past hooks.json's 15 s (onFailure: block), so a judgment still running after GUARD_DEADLINE seconds
+(12; the harness lowers it) is stopped and asks, in every mode: it has not ruled out a deny. No mktemp or sleep: unwatched.
+```
+
 ## plugins/command-guard/hooks/config-guard.sh
 
 ### Header
@@ -544,6 +641,22 @@ documented setting did not deliver what it promised. Both values that mean
 Self-exemption: this marketplace's own repository edits these files as its product.
 Keyed on the marketplace manifest at the repo root, not on a plugin name, so a
 consumer repo that happens to vendor a plugin is still guarded.
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+config-guard.sh (PreToolUse on file writes and Bash; payload on stdin) — asks, never denies, before a write to an existing settings, hooks,
+  hook-script, plugin-manifest or lint/test config file (config_kind); on Bash, the first such target of the first eight. Silent in a marketplace repository.
+Off: CC_CONFIG_GUARD=off, or CLAUDE_DESTRUCTIVE_GUARD=off or deny-only (this hook is the plugin's other ask tier). Fails open on every error path.
+CC_CONFIG_GUARD / CLAUDE_DESTRUCTIVE_GUARD unset: the /config options cc_config_guard / claude_destructive_guard decide.
+Misses: a file config_kind does not name; whether an edit weakens anything (it reads the path, not the diff); a file that does not exist yet;
+  an MCP apply_patch (no single path); on Bash, writes the bash-write-targets block below does not report, targets past the eighth, a relative
+  target after an in-command cd (resolved against the payload cwd instead), and `rm` of a config (destructive-guard judges only `rm -r` and `.env`, so a plain `rm` passes both).
 ```
 
 ## plugins/command-guard/scripts/__tests__/destructive-guard.test.sh

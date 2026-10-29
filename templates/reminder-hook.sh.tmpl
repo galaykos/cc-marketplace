@@ -1,7 +1,6 @@
 #!/bin/bash
 # generated from templates/reminder-hook.sh.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file
-# Fail open: never block the prompt. Print a reminder only when the prompt reads
-# like the work it nudges about — a mere mention of the words stays silent.
+# Fail open: one reminder line when the prompt's first 400 characters ask for the work it nudges about. Misses an ask past them or phrased as a question.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/reminder-hook.sh.tmpl
 command -v jq >/dev/null 2>&1 || exit 0
 {{> state-root}}
@@ -55,8 +54,7 @@ command -v jq >/dev/null 2>&1 || exit 0
   is_about_hooks && exit 0
   is_own_echo && exit 0
   is_question_only && exit 0
-{{#if shipVerbs}}  # Every shipVerbs match being create, add, open or make on a PR or commit (or, in git context, a branch, push, merge, tag or release)
-  # asks to ship. Its own key, since a regex of nouns (api-design's) never matches a verb; needs promptShape.
+{{#if shipVerbs}}  # shipVerbs, not regex: a regex of nouns (api-design's) never matches a verb. Needs promptShape.
   cc_prompt_ship_only "$head" '{{shipVerbs}}' && exit 0
 {{/if}}  # sid before cc_phase_guard: its session check reads it.
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
@@ -72,7 +70,7 @@ command -v jq >/dev/null 2>&1 || exit 0
     best=$(best_rank)
     if [ -z "$best" ] || [ "$best" = '{{arcRank}}' ]; then
       printf '%s (%s).\n' '{{message}}' '{{command}}'
-{{#if armsClarifyGate}}      # The trivial skip let an auth change through: withheld on the block's prompt-side auth words (needs promptShape).
+{{#if armsClarifyGate}}      # An auth change is never trivial: the skip is withheld on the prompt-shape block's auth words (needs promptShape).
       cc_prompt_auth_ask "$head" && printf '%s\n' 'The prompt names an auth surface: the trivial skip does not apply.'
 {{/if}}    fi
     sweep_stale_markers

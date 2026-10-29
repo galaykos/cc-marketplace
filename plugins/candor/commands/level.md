@@ -1,6 +1,6 @@
 ---
-description: Set or report the terse output level — lite, full, ultra, wenyan-*, off — a chat-message shape contract that never touches code, files, or how much work the turn does.
-argument-hint: "[lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra | off | status]"
+description: Set or report the terse output level — lite, full, ultra, wenyan-*, a reader name (newcomer, expert, on-call), off — a chat-message shape contract that never touches code, files, or how much work the turn does.
+argument-hint: "[lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra | newcomer | expert | on-call | off | status]"
 disable-model-invocation: true
 ---
 
@@ -21,7 +21,8 @@ It prints each layer the hooks read — `CC_TERSE`, the level file, the `cc_ters
 option — then `active: <level> <source>`. The option comes from `claude plugin configure`
 (CLI 2.1.285+) when the host answers, which sees user and managed settings and their
 drop-ins; otherwise the option line names the settings file it read instead. The first non-empty layer wins, in that order, and a
-value that is not a level below counts as `off` rather than falling through to the next layer.
+value that is not a level below counts as `off` rather than falling through to the next layer. A reader name
+adds the length level it maps to as a third word: `active: newcomer file lite`.
 
 Parse the first token of `$ARGUMENTS`:
 
@@ -48,9 +49,19 @@ them the same way, naming the register alongside the budgets.
 Then apply it from your very next message. Load the `terse-output` skill if the
 contract is not already in context.
 
+## `newcomer` / `expert` / `on-call`
+
+A reader name says who is reading. It takes one length level's budgets — `newcomer` →
+`lite`, `expert` → `full`, `on-call` → `ultra` — and the hook adds one `Reader <name>:` line
+with its word rule, which replaces that level's word layer, and its cap on lists and findings
+(the `terse-output` skill's reader table). It replaces a length level; it does not stack on
+one. Check the level-file line and `active` as above, then confirm in **one line**: the reader
+name, the length level and its two budget numbers, the word rule and the cap.
+Standing: unenforceable — nothing rewrites a reply; /candor:check counts prose lines only.
+
 ## `off`
 
-The hook removed the level file, and its context this turn says whether `CC_TERSE` or
+The hook removed the level file, a reader name included, and its context this turn says whether `CC_TERSE` or
 the `cc_terse` option still keeps a level active. If it says so, report that, whatever
 `active` shows; when `active` is `off` anyway, add that the option sits where this
 command cannot read it — always this session's `--settings` file, perhaps MDM or
@@ -68,7 +79,7 @@ config dir).
 ## `status` or no argument
 
 Report, without changing anything, every source the block above printed and which one
-wins (`active`). The level file and the option persist across sessions until changed;
+wins (`active`; for a reader name, both the name and its length level). The level file and the option persist across sessions until changed;
 `CC_TERSE` lasts as long as the environment that set it. The hooks apply a `cc_terse`
 this command cannot see: one saved only in this session's `--settings` file, always;
 perhaps one in MDM or server-managed policy (unmeasured); and

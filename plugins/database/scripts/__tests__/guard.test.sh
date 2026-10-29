@@ -214,6 +214,19 @@ check_at "sqlite: drizzle.config dialect turso"              allow "$WS/dz/drizz
 check_at "sqlite: a package's own wrangler config (monorepo)" allow "$WS/mono/apps/api/migrations/0001.sql" "$IDX" "$WS/mono"
 check_at "sqlite: its sibling package still asks"            ask   "$WS/mono/apps/web/db/0001.sql" "$IDX" "$WS/mono"
 
+# --- the reason text: what was found, what to confirm, the file, one off switch
+reason_is() { # label want-reason file content
+  local r
+  r=$(payload "$3" "$4" | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')
+  if [ "$r" = "$2" ]; then echo "PASS: $1"; else echo "FAIL: $1 — got: ${r:-<silent>}"; rc=1; fi
+}
+reason_is "data-loss reason" \
+  "destructive-SQL guard: this change adds DROP TABLE/DATABASE/SCHEMA. Confirm a backup or tested rollback exists and that it touches only the rows you mean. (file: db/migrate.sql) CC_DB_GUARD=off turns this check off." \
+  db/migrate.sql 'DROP TABLE users;'
+reason_is "lock reason" \
+  "destructive-SQL guard: this change adds a table-rewriting ALTER (column TYPE change or SET NOT NULL), which is slow on a large table and can block other queries. Use the non-blocking form (CREATE INDEX CONCURRENTLY; for a type change add a column and copy; for NOT NULL backfill, then validate) unless the table is small or a maintenance window is planned. (file: db/migrate.sql) CC_DB_GUARD=off turns this check off." \
+  db/migrate.sql 'ALTER TABLE users ALTER COLUMN age TYPE bigint;'
+
 # --- fail-open contract
 if printf 'not json' | bash "$HOOK" >/dev/null 2>&1; then
   echo "PASS: garbage input exits 0 (fail-open)"

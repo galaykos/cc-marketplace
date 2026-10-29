@@ -18,7 +18,7 @@ skill; the banner IS its status line); a standard run prints
 `▷ taskmaster standard run — session <model> · subagents inherit it unless their agent pins a tier · effort: <effort> · boost: off` — substitute `<model>` with the session model and `<effort>` with `$CLAUDE_EFFORT` (resolve via `echo ${CLAUDE_EFFORT:-inherit}`); when the harness does not expose it, that prints the literal `inherit`.
 
 **Boost flags:** Extreme Boost fires ONLY when $ARGUMENTS *begins* with a bare
-`ultra` (boost) or `goal` (hands-off) token, or contains the explicit
+`ultra` (boost) or `goal` (boost + hands-off) token, or contains the explicit
 `ultra-task`/`ultratask` or `ultra-goal`/`ultragoal` token. Only the explicit
 tokens cross a command boundary — a bare token owned by an earlier chained
 command (e.g. `caveman ultra` preceding this command) NEVER triggers this run.
@@ -105,11 +105,17 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
      earlier this session — an answer that chose the pipeline's weight, an explicit
      "just do it", a prior "Run now" — the decision is granted; invoke `/task-runner:run`
      on the index directly and report the result. Re-asking a settled decision stalls the turn.
+   - **Coverage findings carry this question.** When coverage-check had findings, its one
+     ask already offered "Apply and run now" (a granted run, as above) / "Apply, stop here"
+     alongside the resolutions; never ask twice. After its "Walk through each", ask below.
+   - **A red card lint stops the run.** A card lint from task-cards' lint step still red
+     after one fix means no run, whatever was answered: report it and print the command below.
    - **Never substitute prose for the ask.** Ending a turn with "next: run the cards,
      or I edit the file now" is not a handoff — those two labels are the same work, so
      the choice is false, and a plain-text offer yields a dead turn with nothing started.
      Either the ask below runs as an AskUserQuestion, or execution begins.
-   - If the task-runner plugin is installed, ask via AskUserQuestion: "Cards are
+   - If the task-runner plugin is installed and nothing above settled it, ask via
+     AskUserQuestion: "Cards are
      ready. Start execution now?" with options "Run now (Recommended)" and "Stop
      here — I'll run it later". On "Run now", immediately invoke the command itself —
      `/task-runner:run taskmaster-docs/tasks/YYYY-MM-DD-<slug>/00-INDEX.md` (Skill tool,
@@ -118,7 +124,7 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
      through `scripts/register-run.sh`, so the skill route no longer skips registration,
      which once left the review observer, candor's completion clause and the closing
      gate silently off.
-   - On "Stop here", or when AskUserQuestion is unavailable (headless), print
-     that exact command as the next step.
+   - On "Stop here" or "Apply, stop here", or when AskUserQuestion is unavailable
+     (headless), print that exact command as the next step.
    - Without task-runner installed, give the card paths and note each card is
      designed to run in a fresh session.

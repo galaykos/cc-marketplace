@@ -1,9 +1,7 @@
 #!/bin/bash
-# subagent-statusline.sh — session-hud's subagentStatusLine: one row per subagent with its type, model, effort, context use and age.
-#   Reads the host's {columns, tasks[]} JSON on stdin and writes one {"id","content"} line per row. Prints nothing, so every row keeps
-#   the engine's default, without jq, on input it cannot read, or with the switch off.
-# The switch is CC_HUD_SUBAGENTS, else CLAUDE_PLUGIN_OPTION_CC_HUD_SUBAGENTS where the host exports it, else the cc_hud_subagents
-#   option saved in the user settings.json; a project- or local-scope saved option is not read.
+# subagent-statusline.sh — session-hud's subagentStatusLine: one row per subagent with its type, model, effort, context use and age. Reads the host's {columns, tasks[]} JSON on stdin and writes one {"id","content"} line per row.
+# Prints nothing, so every row keeps the engine's default, without jq, on input it cannot read, or with the switch off.
+# The switch is CC_HUD_SUBAGENTS, else CLAUDE_PLUGIN_OPTION_CC_HUD_SUBAGENTS where the host exports it, else the cc_hud_subagents option saved in the user settings.json; a project- or local-scope saved option is not read.
 command -v jq >/dev/null 2>&1 || exit 0
 
 switch="${CC_HUD_SUBAGENTS:-${CLAUDE_PLUGIN_OPTION_CC_HUD_SUBAGENTS:-}}"

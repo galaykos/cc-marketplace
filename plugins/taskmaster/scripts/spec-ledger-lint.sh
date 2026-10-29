@@ -1,28 +1,16 @@
 #!/usr/bin/env bash
-# spec-ledger-lint.sh — author-time gate for grill's core rule: "no spec while
-# the ambiguity ledger holds an UNKNOWN row" (skills/grill/SKILL.md). The spec
-# must embed its final ledger, and that ledger must be fully converged.
-#
-# LIMITATION (honest scope, same class as verify-teeth-lint):
-#   This lint proves the spec CARRIES a converged ledger table — it cannot prove
-#   the interrogation really happened or that the rows are truthful. It converts
-#   "silently skip convergence" into "must actively fabricate a resolved ledger",
-#   and makes the final ledger a reviewable audit artifact inside the spec.
-#
+# spec-ledger-lint.sh — author-time gate for grill's core rule, "no spec while the ambiguity ledger holds an UNKNOWN row" (skills/grill/SKILL.md): the spec must embed its final ledger, fully converged, and a `## Success criteria` section.
+# Misses: whether the interrogation happened or the rows are truthful (skipping convergence now means fabricating a resolved ledger); a table with no Source column at all (its last cell is the status token, so no-source passes).
+# Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/spec-ledger-lint.sh (marketplace repository)
+
 # Checks (each -> exit 2, `spec-ledger: <reason>` on stderr):
 #   no-ledger     : spec has no `## Ambiguity ledger (final)` section
 #   empty-ledger  : the section holds no data rows
 #   open-unknown  : a row carries the UNKNOWN status token
 #   no-status     : a data row carries none of CLEAR / ASSUMED / UNKNOWN
 #   no-source     : a CLEAR row's Source cell holds no alphanumeric character (empty,
-#                   a dash, a "?"). grill promises "decisions (CLEAR rows with sources)";
-#                   a blank source is a settled claim nothing can be traced back to.
-#                   LENIENT BY DESIGN: a table with no Source column at all is an
-#                   accepted header variant, so its last cell is the status token and
-#                   the check passes. It catches the dropped source, not the absent column.
-#   no-criteria   : spec has no `## Success criteria` section. coverage-check and
-#                   spec-redteam both key off that exact heading, so a spec without it
-#                   degrades both into silent no-ops rather than failing loudly.
+#                   a dash, a "?").
+#   no-criteria   : spec has no `## Success criteria` section.
 #
 # CLI:
 #   spec-ledger-lint.sh --spec <spec.md>
@@ -32,11 +20,7 @@
 #   3  usage error (Honest limitation law: .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws".)
 set -euo pipefail
 
-# RUN RECORD. The lint is a gate when it runs, and nothing observed that it ran —
-# a card set could reach execution with none of the three invoked and every check in
-# the repo green. `record_run` appends one line per invocation beside the card; the
-# reader is hooks/card-lint-observe.sh. Written on BOTH outcomes: the record says the
-# lint ran and what it said, never that the card is good.
+# Run record (card-lint-record.sh), written on both outcomes: the lint ran and what it said, never that the spec is good.
 _cardlint_target=""
 . "$(dirname "$0")/card-lint-record.sh" 2>/dev/null || true
 record_run() { # $1 = verdict. No-op in --line mode: no file to key the record on.
@@ -74,8 +58,7 @@ done
 [ -f "$spec" ] || die_usage "spec file not found: $spec"
 _cardlint_target="$spec"
 
-# Extract the ledger section: from the `## Ambiguity ledger` heading (any level,
-# optional "(final)") to the next `## ` heading or EOF.
+# The ledger section: from the `## Ambiguity ledger` heading (any level, optional "(final)") to the next `## ` heading or EOF.
 section=$(awk '
   /^##+[[:space:]]+Ambiguity ledger/ { grab=1; next }
   grab && /^##[^#]/ { exit }
@@ -84,9 +67,7 @@ section=$(awk '
 
 [ -n "$section" ] || violation "no-ledger: spec has no '## Ambiguity ledger (final)' section — grill must embed the converged ledger before cards"
 
-# Data rows: pipe-table rows minus the header row and the |---| separator.
-# Header forms accepted: "Question"-style and grill's canonical "Item"-style
-# (`| # | Item | Current understanding | Status | Source |`), case-insensitive.
+# Data rows: pipe-table rows minus the |---| separator and a "Question"- or grill's "Item"-style header (`| # | Item | Current understanding | Status | Source |`), case-insensitive.
 rows=$(printf '%s\n' "$section" | grep -E '^\|' | grep -Ev '^\|[[:space:]:|-]+\|?$' | grep -Eiv '^\|[[:space:]]*#?[[:space:]]*\|?[[:space:]]*(question|item)' || true)
 
 [ -n "$rows" ] || violation "empty-ledger: ledger section holds no data rows"

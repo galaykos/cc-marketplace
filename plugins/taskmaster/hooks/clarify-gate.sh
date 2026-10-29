@@ -1,36 +1,13 @@
 #!/bin/bash
-# Absolute-path shebang (not `/usr/bin/env bash`): the fail-open guarantee must
-# hold even under a stripped/broken PATH.
-#
-# clarify-gate.sh — OPT-IN PreToolUse gate on Edit|Write|MultiEdit. OFF BY
-# DEFAULT: does nothing unless CC_CLARIFY_GATE=block is set. When enabled, it
-# denies the FIRST code write of a session in which remind.sh saw a work-shaped
-# prompt (the cc-workprompt marker), once per session, forcing one turn of
-# clarify-or-declare-trivial before code exists. The deny is the reflection
-# mechanism itself — the gate does not (cannot) verify a question round
-# actually happened; it buys one deliberate turn, nothing more. Standing when
-# enabled: gate. Standing when disabled (the default): unenforceable, and this
-# header says so on purpose.
-#
-# Doctrine note: command-guard reserves deny for irreversible loss; a first
-# code edit is reversible, which is why this ships OFF and opt-in — the owner
-# chooses the stricter contract, it is not imposed. Under hands-off goal runs
-# the model should state assumptions instead of asking (see reason text).
-# Pattern: comment-discipline/hooks/scan.sh — the once-per-session bound is
-# recorded BEFORE the deny; a bound that cannot be recorded means no block.
-# Fail-open everywhere; CC_REMIND=off also silences it. Honest limitation:
-# hook input cannot distinguish main-session from subagent edits, so when the
-# main model's first move is to delegate, the one deny can land on a worker's
-# first write instead of the main session's.
-# CC_CLARIFY_GATE / CC_REMIND unset: the /config options cc_clarify_gate / cc_remind decide.
+# clarify-gate.sh — opt-in PreToolUse on Edit|Write|MultiEdit, off unless CC_CLARIFY_GATE=block (unset: /config option cc_clarify_gate): denies, once per session, the first code write after remind.sh saw a work-shaped prompt, buying one clarify-or-state-assumptions turn. CC_REMIND=off also silences it. Fails open.
+# Misses: whether a question round happened (the deny is the mechanism, not a check); a subagent's edit looks like the main session's, so the one deny can land on a worker. Standing: gate when enabled, unenforceable by default.
+# Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/hooks/clarify-gate.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -61,6 +38,7 @@ cc_option() {
   [ -d "$pending" ] || exit 0
 
   gated="${TMPDIR:-/tmp}/cc-clarify-gated-$sidh"
+  # The bound is recorded before the deny; one that cannot be recorded means no block.
   mkdir "$gated" 2>/dev/null || exit 0
   rmdir "$pending" 2>/dev/null
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-clarify-gated-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null

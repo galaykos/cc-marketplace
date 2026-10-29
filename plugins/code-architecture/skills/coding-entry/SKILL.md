@@ -49,7 +49,10 @@ so does `skill-router/hooks/route-prompt.sh`. So this skill does not run alongsi
 clarify nudge — it replaces it, and must carry the decision itself or the user loses a
 guardrail by using the command.
 
-**Ask the ownership question first.** A deeper command may already own this shape of
+**Ask the ownership question first** — after the risk clause below, which is checked before
+every row except the whole-product and research ones: a risky ask needs a spec even when a
+row matches, and a risky bug goes to `/debugging:debug` first, its diagnosis then to
+`/taskmaster:task`. A deeper command may already own this shape of
 work, in which case the right move is to hand over, not to size the task. Only when no
 row matches does the size question below apply.
 
@@ -57,6 +60,7 @@ row matches does the size question below apply.
 |---|---|---|
 | one component, layout, or restyle | `/ui-ux:build` | it already resolves the stack skill and injects the Read paths into its worker |
 | a landing page, a marketing site, one crafted app surface | `/craft-layer:craft` | owns the direction → sections → build → audit chain |
+| an idea without a concrete capability list ("an app for X, not sure what it should do") | `/taskmaster:brainstorm` | owns shaping an idea into an approved design doc; checked before the whole-product row |
 | a whole product across sessions (a CRM, a SaaS, "clone X") | `/overseer:start` when installed, else `/taskmaster:task` | owns the milestone loop; craft and taskmaster are its per-milestone tools — the hand-off is the printed `route:` line the user runs, never a Skill-tool load |
 | a page decided section by section | `/craft-layer:sections` | owns the batched option rounds |
 | colours, tokens, a theme | `/ui-ux:theme` | owns the live-preview loop |

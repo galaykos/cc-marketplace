@@ -1,9 +1,8 @@
 # debugging
 
-Systematic debugging: root cause before any fix — reproduce first, read the
-actual error, isolate with hypothesis tests and bisection, one change at a
-time, verify against the original symptom; escalation rule after three failed
-fixes.
+Systematic debugging: root cause before any fix. Reproduce first and read the actual
+error. Isolate with hypothesis tests and bisection, one change at a time. Verify
+against the original symptom. After three failed fixes, an escalation rule applies.
 
 ## Install
 

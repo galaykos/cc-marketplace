@@ -1,18 +1,8 @@
 #!/usr/bin/env bash
-# capability-scan.sh — which installed plugins cover which pipeline phase, for THIS project,
-# plus the CI facts the Discover step kept missing.
-#
-# Unions three sources because each alone lies: `claude plugin list --json` filtered to
-# user scope or this project's path (the CLI is machine-wide); `enabledPlugins` in
-# .claude/settings.json, .claude/settings.local.json and ~/.claude/settings.json (a
-# --persist or hand-edited entry the CLI does not always report). Without the `claude`
-# CLI the installed column reads `unknown` and every preferred plugin is listed as missing
-# with its install command — the scan never guesses. The preferred column names only
-# plugins this marketplace ships; official plugins (playwright) are not install hints.
-# The CI block lists every workflow file, the branches it triggers on, and flags a trigger
-# that does not name the base branch — the mismatch that made one simulation's CI never run.
-# Exit 0 always; report-only.
-#
+# capability-scan.sh — which installed plugins cover which pipeline phase for THIS project (the CLI's user and this-project installs, plus enabledPlugins in the three settings files), and each CI workflow's trigger branches, flagging one that misses the base branch. Report-only, exit 0.
+# Misses: without the claude CLI the installed column reads `unknown`, never guessed; branches come from a flat grep under on:, not a YAML parse; official plugins (playwright) are never install hints.
+# Why, limits, history: rationale/derivations/plugin-overseer.md § plugins/overseer/scripts/capability-scan.sh
+
 # Usage: capability-scan.sh [--root <project>] [--json]
 # Output (TSV): phase<TAB>installed<TAB>missing<TAB>fallback, then `# ci:` lines
 set -u

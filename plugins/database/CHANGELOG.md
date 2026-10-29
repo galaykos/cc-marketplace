@@ -3,6 +3,24 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.11.7 — 2026-10-28
+
+### Changed
+- **Comments cut to what a reader needs; behaviour unchanged.** `hooks/guard.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
+## 0.11.6 — 2026-10-28
+
+### Changed
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/guard.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-database.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
+## 0.11.5 — 2026-10-26
+
+### Changed
+- **The destructive-SQL ask is shorter; which writes ask is unchanged.** It names what the
+  change adds, what to confirm (a backup or tested rollback, only the rows you mean, or the
+  non-blocking form for a locking change), the file, and `CC_DB_GUARD=off`. Gate:
+  `guard.test.sh` pins both texts.
+
 ## 0.11.4 — 2026-10-14
 
 ### Fixed

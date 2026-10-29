@@ -8,6 +8,13 @@ const NOW = Date.UTC(2026, 9, 6, 12)
 const INDEX = '/work/taskmaster-docs/tasks/ship-mods/00-INDEX.md'
 const RUN = '/work/.claude/task-runner/active-run.json'
 const SENTINEL = '/work/.claude/cc-phase.json'
+const BG = '/work/.claude/task-runner/bg/running.pid'
+const RV = '/work/.claude/task-runner/rv'
+const NC = '/work/.claude/task-runner/nc'
+const RECEIPT = '/work/.claude/task-runner/receipt.json'
+const GIT_INDEX = '/work/.git/index'
+const HEAD = '9f1c2b3a4d5e6f708192a3b4c5d6e7f8091a2b3c'
+const GATE = 'bash\0/home/u/.claude/plugins/cache/task-runner/scripts/behavioral-gate.sh\0--isolate\0'
 
 const row = (id: string, status: string, dependsOn = 'none', group = 'A') => `| ${id} | Card ${id} | ${dependsOn} | generic | ${group} | ${status} |`
 
@@ -29,8 +36,15 @@ const RUN_HERE_ABSOLUTE = JSON.stringify({ slug: 'ship-mods', branch: 'feat/x', 
 const RUN_ELSEWHERE = JSON.stringify({ slug: 'ship-mods', branch: 'master', index_path: INDEX })
 const PLAIN_RUN = JSON.stringify({ slug: 'adhoc', branch: 'feat/x' })
 const VERIFY = JSON.stringify({ phase: 'verify', owner: 'task-runner:run', session_id: 'S1' })
+const phased = (phase: string, session = 'S1') => JSON.stringify({ phase, owner: 'taskmaster:task', session_id: session })
+const pidFile = (pid: string, deadline = NOW / 1000 + 3600) => `${pid}\n${HEAD.slice(0, 12)}\n${deadline}\n`
+
+const FRESH: [number, string] = [0, 'fresh: suite passed at 9f1c2b3 (bash scripts/validate.sh)\n']
+const STALE: [number, string] = [1, 'stale: files changed since suite ran at 9f1c2b3\n']
 
 const TASKS = '/work/taskmaster-docs/tasks'
+
+const LEGEND = 'review = review recorded · check = test shown to fail without the change · skip, exempt = left out with a reason'
 
 const LAYOUT = [
   'Spec: taskmaster-docs/specs/ship-mods.md',
@@ -65,7 +79,7 @@ const PANE = { title: 'Task board', isFocused: false, bodyColumns: 40, placement
 
 const TASK_BOARD = { command: 'task-board', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: true, columns: 160 } } as const
 
-type Live = { version?: string; env?: Record<string, string>; commands?: string[]; isNarrow?: boolean; onOpen?: () => Promise<void> }
+type Live = { version?: string; env?: Record<string, string>; commands?: string[]; isNarrow?: boolean; hasProc?: boolean; onOpen?: () => Promise<void> }
 
 function seat(on: On, live: Live = {}) {
   const world = {
@@ -86,6 +100,10 @@ function seat(on: On, live: Live = {}) {
     submits: [] as string[],
     ran: [] as string[],
     gitRuns: 0,
+    procs: new Map<string, { cmdline: string; cwd: string }>(),
+    receiptCheck: undefined as [number, string] | undefined,
+    head: HEAD,
+    receiptRuns: [] as { argv: readonly string[]; cwd: string | undefined }[],
   }
   const put = (path: string, text: string) => world.disk.set(path, { text, mtimeMs: (world.disk.get(path)?.mtimeMs ?? NOW - 60_000) + 1_000 })
 
@@ -131,18 +149,45 @@ function seat(on: On, live: Live = {}) {
   on('process.run', ($, e) => {
     world.gitRuns += 1
 
-    const answers: Record<string, string> = {
-      'git rev-parse --show-cdup': '\n',
-      'git symbolic-ref -q HEAD': 'refs/heads/feat/x\n',
-    }
-    const stdout = answers[e.argv.join(' ')]
+    if (/\/scripts\/check-receipt\.sh$/.test(e.argv[1] ?? '')) {
+      world.receiptRuns.push({ argv: e.argv, cwd: e.init?.cwd })
 
-    return stdout === undefined
-      ? { deny: `unexpected command: ${e.argv.join(' ')}` }
-      : { value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+      const [exitCode, stdout] = world.receiptCheck ?? []
+
+      return exitCode === undefined || stdout === undefined
+        ? { deny: 'check-receipt.sh did not start' }
+        : { value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    }
+
+    const command = e.argv.join(' ')
+    const gates = [...world.procs].filter(([, proc]) => proc.cmdline.includes('behavioral-gate.sh')).map(([pid]) => `${pid}\n`)
+    const answers: Record<string, [number, string]> = {
+      'git rev-parse --show-cdup': [0, '\n'],
+      'git symbolic-ref -q HEAD': [0, 'refs/heads/feat/x\n'],
+      'git -C /work rev-parse HEAD': [0, `${HEAD}\n`],
+      'git rev-parse HEAD --git-path index': [0, `${world.head}\n.git/index\n`],
+      'pgrep -f behavioral-gate\\.sh': [gates.length > 0 ? 0 : 1, gates.join('')],
+      [`kill -0 ${e.argv[2]}`]: [world.procs.has(e.argv[2] ?? '') ? 0 : 1, ''],
+    }
+    const [exitCode, stdout] = answers[command] ?? []
+
+    return stdout === undefined || exitCode === undefined
+      ? { deny: `unexpected command: ${command}` }
+      : { value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
 
   on('fs.stat', ($, e) => {
+    const [, pid = ''] = /^\/proc\/(\d+)\/cwd$/.exec(e.path) ?? []
+    const proc = world.procs.get(pid)
+
+    if (e.path === '/proc/self') {
+      return live.hasProc === false ? { deny: `ENOENT: ${e.path}` } : { value: { kind: 'dir', size: 0, mtimeMs: 0, isLink: false } }
+    }
+
+    if (proc !== undefined) {
+      return { value: { kind: 'dir', size: 0, mtimeMs: 0, isLink: true, ...(e.resolve && { realPath: proc.cwd }) } }
+    }
+
     const file = world.disk.get(e.path)
 
     return file === undefined || world.unstatted.has(e.path)
@@ -152,14 +197,26 @@ function seat(on: On, live: Live = {}) {
 
   on('fs.list', ($, e) => {
     const names = [...world.disk.keys()].filter(path => path.startsWith(`${e.path}/`)).map(path => path.slice(e.path.length + 1).split('/')[0] ?? '')
+    const entryOf = (name: string) => {
+      const file = world.disk.get(`${e.path}/${name}`)
 
-    return names.length === 0
-      ? { deny: `ENOENT: ${e.path}` }
-      : { value: [...new Set(names)].map(name => ({ name, kind: 'dir' as const, size: 0, mtimeMs: 0, isLink: false })) }
+      return file === undefined
+        ? { name, kind: 'dir' as const, size: 0, mtimeMs: 0, isLink: false }
+        : { name, kind: 'file' as const, size: file.text.length, mtimeMs: file.mtimeMs, isLink: false }
+    }
+
+    return names.length === 0 ? { deny: `ENOENT: ${e.path}` } : { value: [...new Set(names)].map(entryOf) }
   })
 
   on('fs.read', async ($, e) => {
     world.reads.push(e.path)
+
+    const [, pid = ''] = /^\/proc\/(\d+)\/cmdline$/.exec(e.path) ?? []
+    const proc = world.procs.get(pid)
+
+    if (proc !== undefined) {
+      return { value: proc.cmdline }
+    }
 
     const file = world.disk.get(e.path)
     const gate = world.gate
@@ -276,6 +333,12 @@ function seat(on: On, live: Live = {}) {
 
 const SESSION = { cwd: '/work', surface: 'terminal', isInteractive: true } as const
 
+const TURN = { answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' } as const
+
+// A gate started `minutes` ago at this HEAD, recorded under `pid`.
+const checkStarted = (world: ReturnType<typeof seat>, pid: string, minutes: number) =>
+  world.disk.set(BG, { text: pidFile(pid), mtimeMs: NOW - minutes * 60_000 })
+
 const start = ($: Engine) => $.session.start(SESSION)
 
 const edit = ($: Engine, old_string: string, new_string: string, agentId?: string) =>
@@ -298,7 +361,7 @@ const buttons = async (pane: Mounted<'terminal', 'Pane'>) =>
   }))
 
 describe('board', () => {
-  test('status line shows card 5/12 with one parked', async ($, on) => {
+  test('status line shows the phase k of 8 and card 5/12 with one parked', async ($, on) => {
     const world = seat(on)
 
     world.put(RUN, RUN_HERE)
@@ -306,7 +369,333 @@ describe('board', () => {
     world.put(SENTINEL, VERIFY)
     await start($)
 
-    expect(world.statuses).toEqual(['task-runner  verify  card 5/12  1 parked  goal'])
+    expect(world.statuses).toEqual(['task-runner  verify 6/8  card 5/12  1 parked  goal'])
+  })
+
+  test('status line adds the minutes a live background check has run', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, BOARD)
+    world.procs.set('4242', { cmdline: GATE, cwd: '/work' })
+    checkStarted(world, '4242', 12)
+    await start($)
+
+    expect(world.statuses).toEqual(['task-runner  build 5/8  card 5/12  1 parked  goal  check running 12m'])
+  })
+
+  test('no check part when the recorded PID is no gate and no gate runs under the root', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, PLAIN_RUN)
+    world.procs.set('4242', { cmdline: 'vim\0notes.md\0', cwd: '/work' })
+    world.procs.set('77', { cmdline: GATE, cwd: '/elsewhere/work' })
+    checkStarted(world, '4242', 12)
+    await start($)
+
+    expect(world.statuses).toEqual(['task-runner  build 5/8'])
+  })
+
+  test('a gate under a PID namespace counts when one runs from under the root', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, PLAIN_RUN)
+    world.procs.set('77', { cmdline: GATE, cwd: '/work/.claude/worktrees/gate-iso' })
+    checkStarted(world, '2', 3)
+    await start($)
+
+    expect(world.statuses).toEqual(['task-runner  build 5/8  check running 3m'])
+  })
+
+  test('without /proc a live recorded PID counts, and a dead one does not', async ($, on) => {
+    const world = seat(on, { hasProc: false })
+
+    world.put(RUN, PLAIN_RUN)
+    world.procs.set('4242', { cmdline: 'anything', cwd: '/' })
+    checkStarted(world, '4242', 5)
+    await start($)
+    world.procs.delete('4242')
+    await $.tool.call({ tool: 'Bash', command: 'true' })
+
+    expect(world.statuses).toEqual(['task-runner  build 5/8  check running 5m', 'task-runner  build 5/8'])
+  })
+
+  test('the minutes moving writes the board again, the same minute does not', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, BOARD)
+    world.procs.set('4242', { cmdline: GATE, cwd: '/work' })
+    checkStarted(world, '4242', 12)
+    await start($)
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+
+    expect(world.writes, 'one minute: written once').toBe(1)
+
+    await world.clock.advance(60_000)
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+
+    expect(world.writes, 'the next minute: written again').toBe(2)
+    expect(world.statuses.at(-1)).toBe('task-runner  build 5/8  card 5/12  1 parked  goal  check running 13m')
+  })
+
+  test('the check minutes move each minute with no tool call, and stop when the check ends', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, PLAIN_RUN)
+    world.procs.set('4242', { cmdline: GATE, cwd: '/work' })
+    checkStarted(world, '4242', 12.5)
+    await start($)
+    await world.clock.advance(30_000)
+    await world.clock.advance(60_000)
+    world.procs.delete('4242')
+    await world.clock.advance(60_000)
+    await world.clock.advance(180_000)
+
+    expect(world.statuses).toEqual([
+      'task-runner  build 5/8  check running 12m',
+      'task-runner  build 5/8  check running 13m',
+      'task-runner  build 5/8  check running 14m',
+      'task-runner  build 5/8',
+    ])
+  })
+
+  test('the minute refresh stops when the run ends', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, PLAIN_RUN)
+    world.procs.set('4242', { cmdline: GATE, cwd: '/work' })
+    checkStarted(world, '4242', 3)
+    await start($)
+    await $.tool.call({ tool: 'Bash', command: 'rm .claude/task-runner/active-run.json' })
+    await world.clock.advance(180_000)
+
+    expect(world.statuses).toEqual(['task-runner  build 5/8  check running 3m', undefined])
+  })
+
+  test('with no run, a planning phase reads taskmaster and its place; build clears it', async ($, on) => {
+    const world = seat(on)
+
+    world.put(SENTINEL, phased('shape'))
+    await start($)
+    world.put(SENTINEL, phased('build'))
+    await $.turn.complete(TURN)
+
+    expect(world.statuses).toEqual(['taskmaster  shape 2/8', undefined])
+  })
+
+  test('with no run, every planning phase reads taskmaster; another session or the switch off clears it', async ($, on) => {
+    const world = seat(on)
+    const shown: (string | undefined)[] = []
+
+    await start($)
+
+    for (const phase of ['understand', 'decide', 'plan']) {
+      world.put(SENTINEL, phased(phase))
+      await $.turn.complete(TURN)
+      shown.push(world.statuses.at(-1))
+    }
+
+    world.put(SENTINEL, phased('shape', 'S2'))
+    await $.turn.complete(TURN)
+    shown.push(world.statuses.at(-1))
+
+    expect(shown).toEqual(['taskmaster  understand 1/8', 'taskmaster  decide 3/8', 'taskmaster  plan 4/8', undefined])
+  })
+
+  test('clears the taskmaster line under CC_TASK_BOARD=off', async ($, on) => {
+    const world = seat(on, { env: { CC_TASK_BOARD: 'off' } })
+
+    world.put(SENTINEL, phased('shape'))
+    await start($)
+
+    expect(world.statuses).toEqual([undefined])
+  })
+
+  test('pane marks each card\'s review and fails-without-the-change records, a skip or exempt apart, card 1 as 01', async ($, on) => {
+    const world = seat(on)
+    const record = (path: string, ageMs: number) => world.disk.set(path, { text: '{}', mtimeMs: NOW - ageMs })
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, LAYOUT)
+    record(`${RV}/rv-seen-01.json`, 1_000)
+    record(`${NC}/nc-pass-1.json`, 1_000)
+    record(`${RV}/rv-skip-05.json`, 1_000)
+    record(`${NC}/nc-skip-05.json`, 1_000)
+    record(`${RV}/rv-exempt-06.json`, 1_000)
+    record(`${RV}/rv-seen-07.json`, 3_600_000)
+    record(`${NC}/nc-pass-07.json`, 3_600_000)
+    await start($)
+
+    expect((await lines(await mount($, 50))).slice(2)).toEqual([
+      LEGEND,
+      '#  card                grp  stat     review  check',
+      '01 Card 01              A   [x]      yes     yes',
+      '05 Card 05              B   [>]      skip    skip',
+      '06 Card 06              C   [ ] <05  exempt  no',
+      '07 Card 07              B   [-]      no      no',
+      '08 Card 08              C   [!] <06  no      no',
+    ])
+  })
+
+  test('pane draws a board saved before 0.49.2 with no record columns and no waiting line', async ($, on) => {
+    seat(on)
+
+    const card = { id: '01', title: 'Card 01', dependsOn: [], group: 'A', status: 'done' }
+    const saved = { indexPath: INDEX, mtimeMs: NOW, model: { slug: 'ship-mods', specPath: null, marker: null, cards: [card], milestones: [] }, runActive: true, phase: 'build', hasRedTeam: false }
+
+    on('state.get', () => ({ value: { value: saved, version: 1 } }))
+
+    expect(await lines(await mount($))).toEqual(['Task board  ship-mods', 'build  1/1 done  0 parked', '#  card                        grp  stat', '01 Card 01                      A   [x]'])
+  })
+
+  test('pane shows a waiting line under the summary only while the background check runs', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, LAYOUT)
+    world.procs.set('4242', { cmdline: GATE, cwd: '/work' })
+    checkStarted(world, '4242', 12)
+    await start($)
+
+    const pane = await mount($)
+
+    expect((await lines(pane)).slice(0, 3)).toEqual(['Task board  ship-mods  ULTRA', 'build  1/5 done  1 parked', 'waiting on: background check running 12m'])
+
+    world.procs.delete('4242')
+    await $.tool.call({ tool: 'Bash', command: 'true' })
+
+    expect((await lines(pane)).slice(1, 3)).toEqual(['build  1/5 done  1 parked', LEGEND])
+  })
+
+  test('status line ends with suite ✓ and the commit once the suite receipt reads fresh, asking check-receipt.sh from the root', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, BOARD)
+    await start($)
+
+    expect(world.receiptRuns, 'no receipt.json: the script is not run').toEqual([])
+
+    world.put(RECEIPT, '{}')
+    world.receiptCheck = FRESH
+    await $.tool.call({ tool: 'Bash', command: 'true' })
+
+    expect(world.statuses).toEqual(['task-runner  build 5/8  card 5/12  1 parked  goal', 'task-runner  build 5/8  card 5/12  1 parked  goal  suite ✓ 9f1c2b3'])
+    expect(world.receiptRuns).toEqual([{ argv: ['bash', expect.stringMatching(/\/task-runner\/scripts\/check-receipt\.sh$/), 'check', '--name', 'suite'], cwd: '/work' }])
+  })
+
+  test('no suite part while the receipt reads stale or cannot be checked', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, PLAIN_RUN)
+    world.put(RECEIPT, '{}')
+    world.receiptCheck = STALE
+    await start($)
+    world.receiptCheck = undefined
+    await $.turn.complete(TURN)
+    world.receiptCheck = [0, 'stale: files changed since suite ran at 9f1c2b3\n']
+    await $.turn.complete(TURN)
+
+    expect(world.statuses).toEqual(['task-runner  build 5/8', 'task-runner  build 5/8', 'task-runner  build 5/8'])
+    expect(world.receiptRuns).toHaveLength(3)
+  })
+
+  test('asks check-receipt.sh again only at a turn end or once the receipt, HEAD or the index moved', async ($, on) => {
+    const world = seat(on)
+    const asked: number[] = []
+    const step = async (change: () => void, act: () => Promise<unknown>) => {
+      change()
+      await act()
+      asked.push(world.receiptRuns.length)
+    }
+    const call = () => $.tool.call({ tool: 'Bash', command: 'true' })
+
+    world.put(RUN, PLAIN_RUN)
+    world.put(RECEIPT, '{}')
+    world.put(GIT_INDEX, 'i')
+    world.receiptCheck = FRESH
+    await start($)
+    await step(() => undefined, call)
+    await step(() => undefined, call)
+    await step(() => undefined, () => $.turn.complete(TURN))
+    await step(() => world.put(RECEIPT, '{ }'), call)
+    await step(() => world.put(GIT_INDEX, 'j'), call)
+    await step(() => void (world.head = '0123456789abcdef0123456789abcdef01234567'), call)
+    await step(() => undefined, call)
+
+    expect(asked).toEqual([1, 1, 2, 3, 4, 5, 5])
+  })
+
+  test('pane shows a receipt row under the summary: passed at the commit with its command, else stale and why', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, LAYOUT)
+    world.put(RECEIPT, '{}')
+    world.receiptCheck = FRESH
+    await start($)
+
+    const pane = await mount($)
+
+    expect((await lines(pane)).slice(0, 4)).toEqual([
+      'Task board  ship-mods  ULTRA',
+      'build  1/5 done  1 parked',
+      'checks passed at 9f1c2b3: suite (bash scripts/validate.sh)',
+      LEGEND,
+    ])
+
+    world.receiptCheck = STALE
+    await $.turn.complete(TURN)
+
+    expect((await lines(pane))[2]).toBe('checks stale: files changed since suite ran at 9f1c2b3')
+
+    world.receiptCheck = undefined
+    await $.turn.complete(TURN)
+
+    expect((await lines(pane))[2]).toBe('checks stale: the receipt could not be checked')
+
+    world.disk.delete(RECEIPT)
+    await $.tool.call({ tool: 'Bash', command: 'true' })
+
+    expect((await lines(pane)).slice(1, 3)).toEqual(['build  1/5 done  1 parked', LEGEND])
+  })
+
+  test('pane cuts a long recorded command to 40 cells, so a receipt for `true` stays visible', async ($, on) => {
+    const world = seat(on)
+    const long = `bash -c '${'npm run lint && '.repeat(4)}npm test'`
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, LAYOUT)
+    world.put(RECEIPT, '{}')
+    world.receiptCheck = [0, 'fresh: suite passed at 9f1c2b3 (true)\n']
+    await start($)
+
+    const pane = await mount($, 120)
+
+    expect((await lines(pane))[2]).toBe('checks passed at 9f1c2b3: suite (true)')
+
+    world.receiptCheck = [0, `fresh: suite passed at 9f1c2b3 (${long})\n`]
+    await $.turn.complete(TURN)
+
+    expect((await lines(pane))[2]).toBe(`checks passed at 9f1c2b3: suite (${long.slice(0, 39)}…)`)
+  })
+
+  test('/task-board with no run shows the receipt row for the newest index and sets no line', async ($, on) => {
+    const world = seat(on)
+
+    world.put(INDEX, LAYOUT)
+    world.put(RECEIPT, '{}')
+    world.receiptCheck = FRESH
+    await start($)
+    await $.command.run(TASK_BOARD)
+
+    expect((await lines(await mount($))).slice(0, 3)).toEqual([
+      'Task board  ship-mods  ULTRA  not running',
+      '1/5 done  1 parked',
+      'checks passed at 9f1c2b3: suite (bash scripts/validate.sh)',
+    ])
+    expect(world.statuses.at(-1)).toBeUndefined()
   })
 
   test('clears the line while the run is on another branch', async ($, on) => {
@@ -325,7 +714,7 @@ describe('board', () => {
     world.put(RUN, PLAIN_RUN)
     await start($)
 
-    expect(world.statuses).toEqual(['task-runner  build'])
+    expect(world.statuses).toEqual(['task-runner  build 5/8'])
   })
 
   test('an index with no card table shows the phase with no card part', async ($, on) => {
@@ -335,7 +724,7 @@ describe('board', () => {
     world.put(INDEX, '# Task index\n\nCards follow.\n')
     await start($)
 
-    expect(world.statuses).toEqual(['task-runner  build'])
+    expect(world.statuses).toEqual(['task-runner  build 5/8'])
   })
 
   test('updates the line when a subagent edits the index mid-turn', async ($, on) => {
@@ -351,7 +740,7 @@ describe('board', () => {
       'a1',
     )
 
-    expect(world.statuses).toEqual(['task-runner  build  card 5/12  1 parked  goal', 'task-runner  build  card 6/12  1 parked  goal'])
+    expect(world.statuses).toEqual(['task-runner  build 5/8  card 5/12  1 parked  goal', 'task-runner  build 5/8  card 6/12  1 parked  goal'])
   })
 
   test('reads the index again only once its mtime changes', async ($, on) => {
@@ -375,7 +764,7 @@ describe('board', () => {
     await start($)
     await $.tool.call({ tool: 'Bash', command: 'true' })
 
-    expect(world.statuses).toEqual(['task-runner  build', 'task-runner  build  card 5/12  1 parked  goal'])
+    expect(world.statuses).toEqual(['task-runner  build 5/8', 'task-runner  build 5/8  card 5/12  1 parked  goal'])
   })
 
   test('reads the index on every refresh while it cannot be statted', async ($, on) => {
@@ -387,7 +776,7 @@ describe('board', () => {
     await start($)
     await edit($, `${row('05', 'in_progress (delegated)')}\n${row('06', 'pending')}`, `${row('05', 'done (9f1c2b3a)')}\n${row('06', 'in_progress (delegated)')}`)
 
-    expect(world.statuses).toEqual(['task-runner  build  card 5/12  1 parked  goal', 'task-runner  build  card 6/12  1 parked  goal'])
+    expect(world.statuses).toEqual(['task-runner  build 5/8  card 5/12  1 parked  goal', 'task-runner  build 5/8  card 6/12  1 parked  goal'])
   })
 
   test('an older refresh finishing last does not repaint an ended run', async ($, on) => {
@@ -420,7 +809,7 @@ describe('board', () => {
     read.release()
     await older
 
-    expect(world.statuses).toEqual(['task-runner  build  card 5/12  1 parked  goal'])
+    expect(world.statuses).toEqual(['task-runner  build 5/8  card 5/12  1 parked  goal'])
   })
 
   test('writes the board state only when it changed', async ($, on) => {
@@ -439,7 +828,7 @@ describe('board', () => {
     await $.tool.call({ tool: 'Bash', command: 'ls' })
 
     expect(world.writes, 'the run started: written once more').toBe(2)
-    expect(world.statuses.at(-1)).toBe('task-runner  build  card 5/12  1 parked  goal')
+    expect(world.statuses.at(-1)).toBe('task-runner  build 5/8  card 5/12  1 parked  goal')
   })
 
   test('an idle board looks again at most every 2 s, never on a subagent call', async ($, on) => {
@@ -474,7 +863,7 @@ describe('board', () => {
 
     await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
 
-    expect(world.statuses.at(-1)).toBe('task-runner  build  card 5/12  1 parked  goal')
+    expect(world.statuses.at(-1)).toBe('task-runner  build 5/8  card 5/12  1 parked  goal')
   })
 
   test('clears the line when the run ends', async ($, on) => {
@@ -485,7 +874,7 @@ describe('board', () => {
     await start($)
     await $.tool.call({ tool: 'Bash', command: 'rm .claude/task-runner/active-run.json' })
 
-    expect(world.statuses).toEqual(['task-runner  build  card 5/12  1 parked  goal', undefined])
+    expect(world.statuses).toEqual(['task-runner  build 5/8  card 5/12  1 parked  goal', undefined])
   })
 
   test('clears the line under CC_TASK_BOARD=off', async ($, on) => {
@@ -533,12 +922,13 @@ describe('board', () => {
       'build  1/5 done  1 parked',
       'Run next',
       'Red-team',
-      '#  card                     grp  stat',
-      '01 Card 01                   A   [x]',
-      '05 Card 05                   B   [>]',
-      '06 Card 06                   C   [ ] <05',
-      '07 Card 07                   B   [-]',
-      '08 Card 08                   C   [!] <06',
+      LEGEND,
+      '#  card      grp  stat     review  check',
+      '01 Card 01    A   [x]      no      no',
+      '05 Card 05    B   [>]      no      no',
+      '06 Card 06    C   [ ] <05  no      no',
+      '07 Card 07    B   [-]      no      no',
+      '08 Card 08    C   [!] <06  no      no',
     ])
   })
 
@@ -551,11 +941,11 @@ describe('board', () => {
 
     const pane = await mount($)
 
-    expect(await lines(pane)).toContain('01 Render the live task-board…  A   [ ]')
+    expect(await lines(pane)).toContain('01 Render the …  A   [ ]   no      no')
 
     await pane.redraw({ ...PANE, bodyColumns: 10 })
 
-    expect(await lines(pane)).toContain('01 Render …  A   [ ]')
+    expect(await lines(pane)).toContain('01 Render …  A   [ ]   no      no')
   })
 
   test('pane caps a long dependency hint instead of narrowing every title', async ($, on) => {
@@ -568,10 +958,10 @@ describe('board', () => {
 
     const shown = await lines(await mount($))
 
-    expect([shown[2], shown[3], shown.at(-1)]).toEqual([
-      '#  card                   grp  stat',
-      '11 Card 11                 A   [ ]',
-      '24 Card 24                 A   [ ] <11+5',
+    expect([shown[3], shown[4], shown.at(-1)]).toEqual([
+      '#  card     grp  stat       review  check',
+      '11 Card 11   A   [ ]        no      no',
+      '24 Card 24   A   [ ] <11+5  no      no',
     ])
   })
 
@@ -582,13 +972,13 @@ describe('board', () => {
     world.put(INDEX, MILESTONES)
     await start($)
 
-    expect((await lines(await mount($))).slice(2)).toEqual([
-      '#  card                     grp  stat',
+    expect((await lines(await mount($))).slice(3)).toEqual([
+      '#  card      grp  stat     review  check',
       'Milestone M1 — gates first',
-      '01 Card 01                   A   [x]',
-      '02 Card 02                   A   [ ]',
+      '01 Card 01    A   [x]      no      no',
+      '02 Card 02    A   [ ]      no      no',
       'Milestone M2 — then the pane',
-      '03 Card 03                   B   [ ] <02',
+      '03 Card 03    B   [ ] <02  no      no',
     ])
   })
 
@@ -627,7 +1017,7 @@ describe('board', () => {
     await start($)
     await $.command.run(TASK_BOARD)
 
-    expect(first.slice(0, 2)).toEqual(['Task board  ship-mods  ULTRA  not running', '1/5 done  1 parked'])
+    expect(first.slice(0, 3)).toEqual(['Task board  ship-mods  ULTRA  not running', '1/5 done  1 parked', '#  card                     grp  stat'])
     expect(world.statuses).toEqual([undefined, undefined])
   })
 

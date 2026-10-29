@@ -40,44 +40,46 @@ Six hooks, all fail-open (any error, or a missing `jq`, exits silently and never
   - **Not handed out:** a declared skill `prime.sh` has no evidence row for (`motion-best-practices`, `security-review`, `performance-tuning`, `observability-design`). No manifest can say it applies, so those agents load it from their own instructions, as before. The filter also inherits `prime.sh`'s misses: `a11y-audit` needs a `.tsx`/`.jsx` within three levels of the root, so `a11y-engineer` in a Vue- or Blade-only repo gets nothing; `devops-practices` needs `.github/workflows/`.
   - Cost: measured 200-265 ms per plugin-agent spawn on two real Laravel/Inertia repos. **`scripts/context-budget.sh` does not meter SubagentStart output** (it executes SessionStart, UserPromptSubmit and Pre/PostToolUse hooks only), so this channel is absent from every budget table.
 - **`SessionEnd` → `summary.sh`** — appends the session's surfaced/pending signals to the machine-local ledger and removes the state file; low-confidence signals themselves surface earlier, on the next prompt (below).
-- **`UserPromptSubmit` → `route-prompt.sh`** — first flushes any accumulated low-confidence content signals (a code file that mentions `password`, uses `async`/locks, is dense with `try/catch`; doc and style files — `.md`, `.txt`, `.css`, anything under `taskmaster-docs/` — queue nothing) as one digest on your next prompt, skipping harness frames such as a task notification, a subagent hand-back, Stop hook feedback or a host `/loop` tick — a channel the model receives in time to act, unlike SessionEnd — then, on the first work-shaped prompt of a session (a "don't work on anything" prompt is not one unless it also asks for work, nor is a `?`-ended one unless it names work or asks: `fix it, ok?`, `can you…?`, `why…?`; a `<pasted_content>` paste beside typed text does not count, and a `/loop` or ScheduleWakeup re-fire, found by the call that scheduled it in the transcript, is not one), injects the rules for judging which installed command fits the ask, pointed at the command listing the host already put in the session. The hook does not pick; the model does. Exception in rule 3: a scope-first reminder on the same prompt outranks tool-fit.
+- **`UserPromptSubmit` → `route-prompt.sh`** — first flushes any accumulated low-confidence content signals (a code file that mentions `password`, uses `async`/locks, is dense with `try/catch`; doc and style files — `.md`, `.txt`, `.css`, anything under `taskmaster-docs/` — queue nothing) as one digest on your next prompt, skipping harness frames such as a task notification, a subagent hand-back, Stop hook feedback or a host `/loop` tick — a channel the model receives in time to act, unlike SessionEnd — then, on the first work-shaped prompt of a session (a "don't work on anything" prompt is not one unless it also asks for work, nor is a `?`-ended one unless it names work or asks: `fix it, ok?`, `can you…?`, `why…?`; a `<pasted_content>` paste beside typed text does not count, and a `/loop` or ScheduleWakeup re-fire, found by the call that scheduled it in the transcript, is not one), injects a three-sentence note on when to ask about, or name, an installed command, judged against the command listing the host already put in the session (below). The hook does not pick; the model does.
 
 ## The tool-fit check
 
-You ask for a marketing landing page and the only plugin that speaks up nudges you into a requirements pipeline. The fix is not a bigger keyword table — a table routes only the phrasings its author imagined, and every new plugin needs a new row. So the hook hands over the **discipline** and points at the list the host already sent, and the judgment stays with the model, which reads meaning:
+You ask for a marketing landing page and the only plugin that speaks up nudges you into a requirements pipeline. The fix is not a bigger keyword table — a table routes only the phrasings its author imagined, and every new plugin needs a new row. So on the first work prompt of a session the hook sends one note, and the model judges the ask against the command list the host already sent:
 
 ```
-[skill-router] Tool-fit check (once this session). Judge against the slash commands
-already listed in this session — do not rebuild or ask for that list.
-  … the six numbered rules below …
+[skill-router] If the user named a tool and a listed command fits the ask better, ask once
+which to use. If none was named and one clearly fits, name it in one line after any open
+questions; otherwise say nothing about commands. In a run that decides for you (`goal`,
+`goal-lean`, `ultra-goal`, or `Goal: true` in the card index), pick the better fit, say so,
+and add it to the run's decision log.
 ```
 
-Until 0.18.0 the hook also rebuilt that list: one truncated frontmatter line per installed command, 5,122 of the 6,892 characters it emitted, growing by a row with every command you install. The host already lists every installed command with its **full** description; a second truncated copy bought nothing and was the largest line item in this plugin's dynamic budget. What the model does not have from the host listing is the discipline below — so that is all this hook sends now.
+Until 0.18.0 the hook also rebuilt that list: one truncated frontmatter line per installed command, 5,122 of the 6,892 characters it emitted, growing by a row with every command you install. The host already lists every installed command with its **full** description; a second truncated copy bought nothing and was the largest line item in this plugin's dynamic budget.
 
-**What that trade gave up, plainly:** the rebuilt catalog was filtered by repo evidence, so a Laravel repo was never shown the Next.js review. The host listing has no such filter. Rule 1 below — "most requests fit none of them" — is now the only thing holding that down, and it is the model's judgment, not a gate.
+**What that trade gave up, plainly:** the rebuilt catalog was filtered by repo evidence, so a Laravel repo was never shown the Next.js review. The host listing has no such filter. "Clearly fits", and saying nothing otherwise, is now the only thing holding that down, and it is the model's judgment, not a gate.
 
 ### What the model is told to do with it
 
-1. Judge by the **ask's substance**, not its wording. Most requests fit no command; silence is the default.
-2. **You named a tool and something else clearly fits better** → an `AskUserQuestion` with exactly two options, never a silent switch:
+- **You named a tool and a listed command fits the ask better** → it asks you once which to use, and never switches silently:
 
 ```
 You: run taskmaster: create a marketing landing page
 
 ⚠ taskmaster grills requirements; this ask is a visual deliverable.
-  [ Proceed with /craft-layer:craft (Recommended) ]  [ Proceed with taskmaster as asked ]
+  [ Proceed with /craft-layer:craft ]  [ Proceed with taskmaster as asked ]
 ```
 
-3. No tool named and one clearly fits → one line, no picker.
-4. Close call, or your choice was already right → nothing at all. Over-suggesting is the failure mode a command list invites, and rule 4 is what holds it back.
-5. One picker per named tool per session. Declining is durable.
-6. Under a hands-off boost (`ultra-goal`, or a `Goal:` marker), the Recommended route is auto-taken and written to the goal ledger with its rationale and both options — auditable after the fact, like every other goal auto-take.
+- **You named no tool and one clearly fits** → it names that command in one line, after any questions another reminder asked it to put to you first.
+- **Otherwise** (a close call, or your choice already fits) → it says nothing about commands. Over-suggesting is the failure mode a command list invites.
+- **A run that decides for you** (`goal`, `goal-lean`, `ultra-goal`, or `Goal: true` in the card index) → it picks the better-fitting command itself, says which instead of asking, and adds the pick to the run's decision log.
+
+Until 0.28.2 the note was six numbered rules (1,770 characters). It no longer spells out the two-option picker or the one-picker-per-tool limit; "ask once" carries both.
 
 ### What has teeth here
 
 **Agent-graded — the routing verdict.** Which command the model picks is a judgment with real variance. No script asserts it, and this README will not pretend otherwise.
 
-**Gated — the mechanism.** `scripts/smoke/prompt-route-tests.sh` (its own CI step) asserts that six discipline phrases survive in the directive (`Silence is the default`, `AskUserQuestion`, `(Recommended)`, `as asked`, `one picker per named tool per session`, `goal ledger` — not one assertion per numbered rule), that each guard silences the hook, and that it injects once per session. `scripts/validate.sh` fails the build on a hardcoded slash-command token in the hook, or on a fifth prompt-matching pattern — the signature of a routing table regrowing in shell.
+**Gated — the mechanism.** `scripts/smoke/prompt-route-tests.sh` (its own CI step) asserts that the note carries its key phrases (`named a tool`, `fits the ask better`, `ask once`, the clearly-fits sentence, `otherwise say nothing about commands`, `` `goal-lean` ``, `` `Goal: true` ``, the decision-log clause), that each guard silences the hook, and that it injects once per session. `scripts/validate.sh` fails the build on a hardcoded slash-command token in the hook, or on a fifth prompt-matching pattern — the signature of a routing table regrowing in shell.
 
 **Gated — Bash routing and the state root.** `scripts/__tests__/route.test.sh` (the plugin-harness CI step) runs real commands in temp git repos: a heredoc routes the same skills as an Edit of that file, a Bash call with no target, a missing target or an out-of-root target stays silent and writes no state but the marker, which git cannot see, a subdirectory cwd keeps state at the repo root, the one-shot holds across Edit then Bash, and the 8-target cap holds. The same file covers the 2026-09-26 rows: a `high` content row fires inline once per context and never reaches the digest while a `low` row in the same file still does; R3F, Lenis, Rive, dotLottie, chart, grid, interaction-library, Tailwind v4 CSS, `components.json`, PrimeReact, Base UI and React Aria fixtures route their owner; a Motion import no longer draws Aceternity and a JSX `<span>` no longer draws observability; a `shadcn … add` command routes once and a non-matching command writes no state but the marker. Since 0.26.0 it also asserts that a python heredoc write routes what an Edit of that file does, that a matching run which wrote nothing, the first call in a repo, and a file an Edit changed between two Bash calls stay silent; that a failed run routes in a `PostToolUseFailure` envelope and `cat gen.py | python3` is read; that another session's marker, a `$HOME` root and `status.showUntrackedFiles=no` read nothing; that a state dir made without a `.gitignore` gets one; and that a 1 MB token finishes within 3 s. Since 0.23.0 it also asserts `low-cognitive-load` on a `.php`, `.tsx`, `.jsx`, `.vue` and `config/app.php` edit and its absence on dotfile `.tsx`/`.jsx`/`.vue`/`.php` and Blade edits. It asserts one fixture per pattern, not the pattern's full reach.
 

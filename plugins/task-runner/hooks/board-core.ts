@@ -94,16 +94,92 @@ export function counts(m: IndexModel): { total: number; done: number; parked: nu
   }
 }
 
-export function statusLine(m: IndexModel, phase: string): string {
-  const c = counts(m)
+const ARC = ['understand', 'shape', 'decide', 'plan', 'build', 'verify', 'review', 'ship']
+
+export function phaseAt(phase: string): string {
+  const k = ARC.indexOf(phase) + 1
+  return k === 0 ? phase : `${phase} ${k}/${ARC.length}`
+}
+
+export type Receipt = { isFresh: true; head: string; cmd: string } | { isFresh: false; reason: string }
+
+// scripts/check-receipt.sh check prints `fresh: <name> passed at <head7> (<cmd>)` and exits 0, else `stale: <reason>` and exits 1.
+export function receiptOf(exitCode: number | null, stdout: string): Receipt {
+  const line = stdout.split('\n', 1)[0] ?? ''
+  const [, head, cmd = ''] = /^fresh: \S+ passed at ([0-9a-f]{7}) \((.*)\)$/.exec(line) ?? []
+  const [, reason] = /^stale: (.+)$/.exec(line) ?? []
+
+  if (exitCode === 0 && head !== undefined) {
+    return { isFresh: true, head, cmd }
+  }
+
+  return { isFresh: false, reason: exitCode === 1 && reason !== undefined ? reason : 'the receipt could not be checked' }
+}
+
+export function statusLine(m: IndexModel | null, phase: string, checkMinutes: number | null, receipt: Receipt | null = null): string {
+  const c = m === null ? null : counts(m)
+  const marker = m?.marker ?? null
   return [
     'task-runner',
-    phase,
-    `card ${c.done + (c.inProgress ? 1 : 0)}/${c.total}`,
-    c.parked > 0 ? `${c.parked} parked` : '',
-    c.unrecognised > 0 ? `${c.unrecognised} unrecognised` : '',
-    m.marker === null ? '' : m.marker === 'ULTRA' ? 'ultra' : 'goal',
+    phaseAt(phase),
+    c === null ? '' : `card ${c.done + (c.inProgress ? 1 : 0)}/${c.total}`,
+    c === null || c.parked === 0 ? '' : `${c.parked} parked`,
+    c === null || c.unrecognised === 0 ? '' : `${c.unrecognised} unrecognised`,
+    marker === null ? '' : marker === 'ULTRA' ? 'ultra' : 'goal',
+    checkMinutes === null ? '' : `check running ${checkMinutes}m`,
+    receipt?.isFresh === true ? `suite ✓ ${receipt.head}` : '',
   ]
     .filter((part) => part !== '')
     .join('  ')
+}
+
+export function planLine(phase: string): string | undefined {
+  return ARC.slice(0, ARC.indexOf('build')).includes(phase) ? `taskmaster  ${phaseAt(phase)}` : undefined
+}
+
+export type Mark = 'yes' | 'skip' | 'exempt'
+
+export type Records = { review: Record<string, Mark>; control: Record<string, Mark> }
+
+type Listed = { name: string; mtimeMs: number }
+
+// The names candor's gate.sh counts, written by rv-observe.sh, review-skip.sh and negative-control.sh; it drops range- ids from reviews only.
+const REVIEW = /^rv-(seen|skip|exempt)-(?!range-)(.+)\.json$/
+
+const CONTROL = /^nc-(pass|skip)-(.+)\.json$/
+
+const MARKS: Record<string, Mark> = { seen: 'yes', pass: 'yes', skip: 'skip', exempt: 'exempt' }
+
+const RANK: Mark[] = ['yes', 'skip', 'exempt']
+
+// candor counts any id, so a record written for `--card 1` covers the index's card 01.
+export function cardKey(id: string): string {
+  return /^\d+$/.test(id) ? id.replace(/^0+(?=\d)/, '') : id
+}
+
+// Only records newer than the run's registration count, as `find -newer` reads them there: card ids repeat across runs.
+function marksOf(entries: Listed[], names: RegExp, registeredMs: number): Record<string, Mark> {
+  const marks: Record<string, Mark> = {}
+  for (const { name, mtimeMs } of entries) {
+    const [, kind = '', id = ''] = names.exec(name) ?? []
+    const mark = MARKS[kind]
+    const key = cardKey(id)
+    const held = marks[key]
+    if (mark !== undefined && mtimeMs > registeredMs && (held === undefined || RANK.indexOf(mark) < RANK.indexOf(held))) marks[key] = mark
+  }
+  return marks
+}
+
+export function recordsOf(rv: Listed[], nc: Listed[], registeredMs: number): Records {
+  return { review: marksOf(rv, REVIEW, registeredMs), control: marksOf(nc, CONTROL, registeredMs) }
+}
+
+// Only for a running.pid with no deadline line (task-runner before 0.48.0), as in candor's gate.sh.
+const BG_PID_TTL_MS = 240 * 60 * 1000
+
+// candor's bg_running(): bg/running.pid holds the gate's PID, the HEAD it tests and the epoch second it ends by.
+export function checkPid(text: string, mtimeMs: number, nowMs: number, head: string): string | null {
+  const [pid = '', sha = '', deadline = ''] = text.split('\n').map((line) => line.trim())
+  const isCurrent = /^\d+$/.test(deadline) ? Math.floor(nowMs / 1000) < Number(deadline) : nowMs - mtimeMs <= BG_PID_TTL_MS
+  return isCurrent && /^\d+$/.test(pid) && /^[0-9a-f]{7,}$/.test(sha) && head.startsWith(sha) ? pid : null
 }

@@ -1,40 +1,9 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-WHAT IT DOES. Serves a docroot (default ./.design-kit) on 127.0.0.1:8124 with:
-  GET /              a gallery: every deck, board, artifact and preview under the
-                     docroot, newest first, grouped by top-level folder, with an
-                     iframe thumbnail per page
-  GET /_events       Server-Sent Events; a tick each time any file under the
-                     docroot changes mtime (0.75 s poll), so every served page that
-                     includes the reload snippet refreshes itself
-  GET /_index.json   the same listing the gallery renders, for scripts; each page
-                     carries `tokens`: the design-kit-tokens stamp it was built
-                     with and whether it still equals sha12(design-system/tokens.json)
-  GET /<path>        static files; .html pages get the reload snippet injected
-                     before </body> — except for a headless browser (User-Agent)
-                     or a `?static=1` query, because an open event stream keeps a
-                     screenshot or print from ever settling
-  POST /_decision    the ONE write route: a board's pick / knob / text-edit state,
-                     appended as one JSON line to <docroot>/decisions.jsonl with
-                     consumed:false. Accepted only from a loopback client, only
-                     with the X-Design-Kit-Decision header, only ≤ 8 KiB, only
-                     valid JSON — else 403 / 413 / 400. `dk decision` reads it.
-The gallery also shows a FLOW STRIP read from <docroot>/workshop.json (written by
-dk.sh) and a per-card token badge: green when the page's stamp equals the current
-tokens.json hash, amber "tokens moved since build" otherwise.
---lan binds 0.0.0.0 so a phone on the same network can open it. That is the only
-path here that lets a page leave the machine, and the launcher says so. /_decision
-stays loopback-only under --lan: a pick made on a phone is NOT recorded.
-
-WHAT IT DOES NOT DO. Export, restore and publish are scripts, not HTTP; the one
-write route above is append-only and never touches a served file. No auth: the LAN
-mode is for a phone on your own network. Port 8123 is the taskmaster/ui-ux mockup
-server and is never the default here.
-
-Standing: scripts/__tests__/serve.test.sh drives start, static serving, the
-reload injection, /_index.json, the /_decision accept and reject paths, both badge
-states, and stop. Nothing proves a browser rendered a page.
+Serves a docroot (default ./.design-kit) on 127.0.0.1:8124: GET / a gallery (flow strip from workshop.json, a token badge per page), /_events SSE live reload (0.75 s mtime poll), /_index.json the listing with each page's tokens stamp, /<path> static with the reload snippet injected (never for a headless browser or ?static=1); POST /_decision, the one write route, appends a board's pick to <docroot>/decisions.jsonl — loopback only, X-Design-Kit-Decision header, <= 8 KiB of JSON, else 403 / 413 / 400. --lan binds 0.0.0.0; /_decision stays loopback.
+Misses: no auth (LAN mode is for your own network); export, restore and publish are scripts, not routes; port 8123 is never the default (the taskmaster/ui-ux mockup server); nothing proves a browser rendered a page.
+Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
 import argparse
 import hashlib
@@ -335,8 +304,7 @@ class Handler(SimpleHTTPRequestHandler):
     def _wants_live(self):
         """Headless browsers taking a screenshot or a print must not get the
         reload snippet: its open EventSource never goes idle, so a virtual-time
-        budget never expires and the capture hangs (measured with Chrome 2026-09-22).
-        `?static=1` opts any client out."""
+        budget never expires and the capture hangs. `?static=1` opts any client out."""
         if "static=1" in (urlsplit(self.path).query or ""):
             return False
         return "headless" not in (self.headers.get("User-Agent") or "").lower()

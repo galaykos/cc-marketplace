@@ -1,8 +1,6 @@
 #!/bin/bash
-# summary.sh — SessionEnd, fails open: appends what the router surfaced in this context to $HOME/.claude/skill-router/<root-slug>/surfaced.jsonl,
-#   prints the signals no prompt flushed (transcript residue: no model turn follows) and removes the context's state and dispatch files.
-# Off: CC_SURFACED_LOG=off skips the ledger append; unset, the /config option cc_surfaced_log decides.
-# Misses: a context whose payload cwd no longer exists keeps its state file, orphaned.
+# SessionEnd: appends what the router surfaced in this context to $HOME/.claude/skill-router/<root-slug>/surfaced.jsonl, prints the signals no prompt flushed (transcript residue) and removes the context's state and dispatch files. Fails open. CC_SURFACED_LOG=off skips the ledger; unset, /config decides.
+# Misses a context whose payload cwd no longer exists: its state file stays, orphaned.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/summary.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -46,8 +44,6 @@ cc_plugin_state() {
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -105,14 +101,7 @@ cc_option() {
             session_id: $sid,
             fired: ((.fired // []) | unique),
             loaded: ((.loaded // []) | unique),
-            # SPLIT ON `flushed`, not one bucket. route-prompt.sh marks an entry
-            # flushed only when it actually printed the digest to the model, so
-            # collapsing both states into `pending_low` made "accumulated but
-            # never shown" indistinguishable from "surfaced" — and that is the
-            # exact number the turn-cost --skills queue ranks skills by. Measured before
-            # this fix: four skills read 47 pending_low across 17 local sessions
-            # with 0 fired, and nothing could say whether any reached the model.
-            # `pending_low` is kept as the union so an older reader keeps working.
+            # pending_low is the union an older reader expects; the two below split it on whether route-prompt.sh printed the digest.
             pending_low: ((.pending_low // []) | map(.skill) | unique),
             pending_low_flushed: ((.pending_low // []) | map(select(.flushed == true) | .skill) | unique),
             pending_low_unflushed: ((.pending_low // []) | map(select(.flushed != true) | .skill) | unique)

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Validates cc-plugins-marketplace structure. Exits non-zero on first category of failure.
+# validate.sh — BLOCKING structure gate: marketplace and plugin.json parity, frontmatter and SKILL budgets, doc location, jargon and removed refs, routing, lanes, README counts and tables, chassis headers, and the pc_* battery (scripts/lib/plugin-checks.sh); a FAIL line per finding, exit 1 if any.
+# Misses: behaviour (no hook or skill runs), cost (context-budget.sh), the host schema (official-validate.sh), history (check-version-bumps.sh), chassis drift (generate.sh --check); several checks only WARN, and each pc_* header names its own residuals.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/validate.sh
 set -u
 cd "$(dirname "$0")/.."
 . "$(dirname "$0")/lib/plugin-checks.sh" || { echo "FAIL: scripts/lib/plugin-checks.sh missing" >&2; exit 1; }
@@ -24,10 +26,7 @@ while IFS=$'\t' read -r name source; do
   [ "$jname" = "$name" ] || err "plugin '$name': plugin.json name is '$jname'"
 done < <(jq -r '.plugins[] | [.name, .source] | @tsv' "$MP")
 
-# Scratch under plugins/ (plugins/design-studio/ once held only a hook's marker files and
-# drew three FAILs about a plugin that never existed): one message, and the listing,
-# README and plugin-table checks below skip it. Rule and misses: pc_stray_dirs' header.
-# A heredoc, not a pipe, so fail=1 and STRAY_DIRS survive.
+# Scratch dirs under plugins/ draw one FAIL and are skipped below (rule: pc_stray_dirs' header); a heredoc, not a pipe, so fail=1 and STRAY_DIRS survive.
 STRAY_DIRS=""
 stray_out=$(pc_stray_dirs plugins) || true
 while IFS= read -r l; do
@@ -60,14 +59,7 @@ done
 jq -e ".owner | $author_ok" "$MP" >/dev/null 2>&1 \
   || err "$MP: owner must be an object with a string .name"
 
-# The frontmatter checks in the next three loops are pc_frontmatter's, the same
-# function done-gate.sh runs per file. It prints a file's structural lines, then its
-# description-linter lines; validate.sh prints every file's structural lines before
-# any file's linter lines, so the structural loops park linter lines in FM_LINT for
-# the linter loop rather than calling it twice per file. A line fm_is_linter does not
-# recognise counts as structural: a reworded linter message moves earlier, never drops.
-# The skill budget skip also keys on the exact "missing frontmatter opener" and
-# "frontmatter not terminated" wording; rewording either re-enables the budget check.
+# pc_frontmatter's lines split: structural ones err per file, linter ones park in FM_LINT for the linter loop; an unrecognised line counts as structural.
 FM_LINT=""
 fm_is_linter() { # $1 file, $2 one pc_frontmatter line
   case "${2#"$1: "}" in
@@ -103,18 +95,10 @@ fm_linter() {
   done <<<"$FM_LINT"
 }
 
-# Every skills/<name>/ directory must contain SKILL.md with terminated frontmatter,
-# name: + description:, and a body within the 200-line ceiling (no floor).
-# `.claude/skills/*/` — the repo's tracked PROJECT skills, where the authoring
-# doctrine has lived since 2026-09-03 — is held to the same rules: a doctrine home
-# outside every gate would be the "recorded" tier pretending to be "gate".
-# Why trigger phrasing skips a `disable-model-invocation: true` skill: pc_frontmatter's header.
+# Every skills/<name>/SKILL.md, in plugins and in .claude/skills (the tracked project skills): terminated frontmatter, name + description, a body within budget.
 for d in plugins/*/skills/*/ .claude/skills/*/; do
   [ -d "$d" ] || continue
-  # A symlinked project skill is somebody else's file mounted here, not authored
-  # in this repo; its budget and phrasing are theirs to keep. Only skills whose
-  # bytes live here are gated. None is symlinked today: the last one, a vendored
-  # 476-line plugin-structure skill, duplicated authoring-plugins and was removed.
+  # A symlinked project skill is someone else's file mounted here; only skills whose bytes live here are gated.
   [ -L "${d%/}" ] && continue
   f="${d}SKILL.md"
   fm_structural "$f" || continue
@@ -138,51 +122,22 @@ for f in plugins/*/commands/*.md plugins/*/agents/*.md; do
   fm_structural "$f"
 done
 
-# Description linter (hard). Why 500, why the pair, why no block scalar: pc_frontmatter's header.
+# Description linter (hard). Why 500, why the pair, why no block scalar: rationale/derivations/scripts-lib.md § pc_frontmatter.
 for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.md; do
   [ -f "$f" ] || continue
   fm_linter "$f"
 done
 
-# plugin.json description linter (WARN, not err): the frontmatter cap above never
-# covered plugin manifests, which is how a 1039-char description shipped unseen
-# (craft-layer, trimmed 2026-08-11). Always-on cost is already metered by
-# context-budget.sh, so this warns on the CLARITY smell only — a description too
-# long to be an install decision. Promote to err only after the tail is clean.
+# plugin.json description linter, WARN only: the clarity smell past 700 chars; always-on cost is context-budget.sh's.
 for f in plugins/*/.claude-plugin/plugin.json; do
   [ -f "$f" ] || continue
   dlen=$(jq -r '.description // ""' "$f" 2>/dev/null | wc -c | tr -d ' ')
   [ "$dlen" -le 700 ] || warn "$f: plugin description $dlen chars — over the 700-char clarity guideline; move detail to the README"
 done
 
-# Jargon-leak guard (HARD): internal taskmaster process vocabulary — "card NN" /
-# "cards NN", "Finding #N", "smoke-test #N", "the backlog" — must not leak into
-# shipped plugin prose (today's craft-layer review scrubbed 8 such leaks no gate
-# saw). Scans every functional .md per plugin (SKILL.md, references/*.md, commands,
-# agents) via find — NOT a `**` glob (globstar is off in scripts/) — with
-# references/ INCLUDED (the 8 leaks lived there), PLUS the plugin-root docs
-# (README/CHANGELOG/ROADMAP) via shell glob, which never crosses `/` — root docs
-# previously escaped the scan entirely. Excludes the taskmaster + task-runner
-# plugins, where these are legitimate domain vocab. The `taskmaster-docs` PATH is a
-# legitimate working-dir ref in ~6 plugins and is deliberately NOT a pattern.
-#
-# Removed-artifact guard (HARD), same file set: references to plugins/skills
-# removed or merged away in the W6.5 baseline sweep (typescript, vue2,
-# react-best-practices, the css-family skills, …) are dangling pointers the
-# /plugin:command check cannot see — ~10 plugins carried them undetected.
-# claude-api must be described as Claude Code's built-in/external skill, never as
-# a marketplace artifact.
-#
-# The patterns themselves, the rescue lists, the <!-- jargon-ok --> /
-# <!-- removed-ok --> escapes and the honest-scope notes all live in
-# scripts/lib/plugin-checks.sh (pc_jargon, pc_removed_refs) — one source shared by
-# these gates and their smoke fixtures. Do not restate them here; two copies of a
-# matcher is a guarantee one goes stale.
+# Jargon and removed-artifact guards (HARD) over every functional .md, plugin-root doc and project skill; patterns, rescues and escapes live in pc_jargon and pc_removed_refs.
 while IFS= read -r mdf; do
-  # The jargon exemption is theirs alone. Until 2026-09-17 this `continue` sat before
-  # every check, so the two plugins that fan out the most were never walked by the
-  # removed-ref, host-overlap or handoff gates — task-runner/commands/run.md carried a
-  # <!-- host-ok --> nothing had read.
+  # The jargon exemption is taskmaster's and task-runner's alone; every other check here walks them too.
   case "$mdf" in
     plugins/taskmaster/*|plugins/task-runner/*) ;;
     *) hit=$(pc_jargon "$mdf") \
@@ -204,16 +159,7 @@ done < <(
   } | sort -u
 )
 
-# Dispatch-binding gate (HARD). A shipped `agent(<args>)` sample that spawns an agent
-# this marketplace ships must bind it with `agentType`; without it `Workflow` spawns the
-# generic subagent and the agent's contract silently does not apply. Detector, guards and
-# honest scope live in pc_dispatch_binding (scripts/lib/plugin-checks.sh).
-#
-# Its own loop, NOT the one above. When this was written that loop skipped taskmaster and
-# task-runner outright — the two plugins that fan out the most — and inheriting the skip
-# would have blinded this gate to its likeliest offender. The skip is jargon-only since
-# 2026-09-17; the loop stays separate for its narrower file set (no plugin-root docs, no
-# project skills).
+# Dispatch binding (HARD): a shipped agent() sample spawning a marketplace agent passes agentType (pc_dispatch_binding); its own loop, for a narrower file set.
 while IFS= read -r mdf; do
   dhit=$(pc_dispatch_binding "$mdf") \
     || err "$mdf: Workflow agent() sample spawns [$(printf '%s' "$dhit" | awk '{print $3}' | sort -u | tr '\n' ' ')] without agentType — the generic workflow subagent runs instead and the agent's contract never applies; pass agentType, or mark the sample <!-- dispatch-ok -->"
@@ -229,23 +175,13 @@ while IFS=: read -r file ref; do
     err "$file: reference '$ref' names unknown plugin '$pname'"
   else
     cname="${ref##*:}"
-    # A `/plugin:name` reference resolves to a command file OR a same-named
-    # skill. Claude Code merged custom commands into skills — "A file at
-    # .claude/commands/deploy.md and a skill at .claude/skills/deploy/SKILL.md
-    # both create /deploy and work the same way"
-    # (https://code.claude.com/docs/en/skills) — so a plugin that ships only the
-    # skill still answers the slash command. Before 2026-08-20 this gate knew
-    # only about commands/, which is why deleting three commands that merely
-    # restated their identically-named skill produced 12 FAILs about references
-    # that had never stopped working.
+    # A /plugin:name reference resolves to a command file OR a same-named skill: custom commands merged into skills (code.claude.com/docs/en/skills).
     [ -f "plugins/$pname/commands/$cname.md" ] || [ -f "plugins/$pname/skills/$cname/SKILL.md" ] \
       || err "$file: reference '$ref' resolves to neither plugins/$pname/commands/$cname.md nor plugins/$pname/skills/$cname/SKILL.md"
   fi
 done < <(grep -roEH '/[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' README.md plugins/*/README.md plugins/*/commands plugins/*/skills plugins/*/agents 2>/dev/null \
          | grep -v 'https\?:' | grep -v '/preserve:' | sort -u)
-         # /preserve:<name> is the template engine's preserve-block closer
-         # (<!-- /preserve:NAME -->), not a plugin reference — see
-         # scripts/lib/template-engine.sh merge_preserve_blocks.
+         # /preserve:<name> is the template engine's preserve-block closer, not a plugin reference.
 
 # hooks.json files must parse and referenced scripts must be executable. One
 # pc_hook_exec call on plugins/, not one per plugin, so these FAILs keep find's order.
@@ -253,50 +189,20 @@ while IFS= read -r m; do err "$m"; done < <(pc_hook_exec plugins)
 while IFS= read -r m; do err "$m"; done < <(pc_mod_modules plugins)
 while IFS= read -r m; do err "$m"; done < <(pc_mod_kit plugins templates/mods/cc-kit.ts)
 
-# Plugins ship ONLY functional files. Task documentation, specs, and design/task
-# history live in taskmaster-docs/ (or a repo-level location outside plugins/) —
-# never inside a plugin. Allowed .md: README/CHANGELOG/ROADMAP at a plugin root,
-# a skill's SKILL.md and its references/, commands/, and agents/ — plus evals/,
-# which is functional despite being prose: `claude plugin eval` reads
-# `<plugin>/evals/**/prompt.md` and `graders/*.md` as the case definition, the same
-# way a skill reads references/. Added 2026-08-20 with the first four suites; a
-# design doc parked under evals/ is still a doc-location violation in spirit, and
-# nothing here can tell the two apart.
+# Plugins ship only functional .md: root README/CHANGELOG/ROADMAP, SKILL.md and references/, commands/, agents/, evals/ (read by `claude plugin eval`).
 allow_md='^(README|CHANGELOG|ROADMAP)\.md$|^skills/[^/]+/SKILL\.md$|^skills/[^/]+/references/.+\.md$|^commands/[^/]+\.md$|^agents/[^/]+\.md$|^evals/.+\.md$'
 while IFS= read -r mdf; do
   pc_doc_location "$mdf" "$allow_md" >/dev/null \
     || err "$mdf: non-functional doc inside a plugin — specs/design/task history belong in taskmaster-docs/, not plugins/"
 done < <(find plugins -name '*.md')
 
-# README leaf-count honesty. This USED TO ride on the `everything` bundle: the
-# check walked that bundle's dependencies, and the count check lived inside
-# `if [ -f "$EV" ]`. When `everything` was removed (2026-08-31 — 224
-# description-bearing artifacts against the host's ~15k-char skill listing meant
-# two thirds of it arrived name-only, nondeterministically; see
-# rationale/2026-08-31-token-cost-review.md), the count check would have died
-# with it, silently. It did not, because it was rehomed here first. Deleting an
-# artifact can delete a gate riding on it, and nothing warns you.
-#
-# Every plugin is a leaf since 2026-09-26: the themed suites were retired and no
-# plugin may declare `dependencies` (pc_plugin_dependencies, below), so the count is
-# every plugin.json. It used to skip any manifest with a `dependencies` key — the
-# bundles — and that skip is gone rather than kept as dead code, because a skip for a
-# shape the build now rejects would be a second place to disagree about what a leaf is.
+# README leaf-count honesty: every plugin.json is a leaf (no plugin may declare dependencies).
 leafcount=0
 for pj in plugins/*/.claude-plugin/plugin.json; do
   [ -f "$pj" ] || continue
   leafcount=$((leafcount + 1))
 done
-# Matches "all N plugins" AND "all N leaf plugins". The optional-word form is
-# the point: the narrow original regex could not see README.md's actual wording
-# ("all 72 leaf plugins"), so rc came back empty and the check passed vacuously
-# — shipping the exact 72-vs-69 drift it was written to catch. A missing count
-# is now an error too, not a silent pass.
-# Widened again 2026-09-15, same lesson one layer down: this checked only the
-# FIRST match and only the `all N …` wording, so README.md's opening line
-# ("**27 leaf plugins**") was never covered. It carried 27 while the gated line
-# carried 26 — one file disagreeing with itself, and the gate reporting green.
-# Every leaf-count claim is now checked, not just the first one that parses.
+# Every "all N [leaf] plugins" / "N leaf plugins" claim must equal the count, and a missing count is an error.
 rc_all=$(grep -oE '(all [0-9]+ (leaf )?plugins|[0-9]+ leaf plugins)' README.md | grep -oE '[0-9]+')
 if [ -z "$rc_all" ]; then
   err "README.md has no 'all N leaf plugins' count — the leaf-count claim must exist to be checkable"
@@ -308,9 +214,7 @@ else
   done <<< "$rc_all"
 fi
 
-# Stack-authoring-gap guard: a worker agent declaring `bestpractices-skill: <dir[,dir]>`
-# must name skill dirs that exist, and the delegation-contracts doctrine that
-# resolves+injects them must be present.
+# A worker agent's `bestpractices-skill:` dirs must exist, and delegation-contracts must carry the priming doctrine.
 for f in plugins/*/agents/*.md; do
   [ -f "$f" ] || continue
   marker=$(awk '/^---$/{c++; next} c==1 && /^bestpractices-skill:/{sub(/^bestpractices-skill:[[:space:]]*/,""); print; exit}' "$f")
@@ -328,9 +232,7 @@ if [ -f "$DC" ]; then
     || err "$DC: skill-priming doctrine (resolve+inject) missing"
 fi
 
-# Agent-routing: the tag vocabulary (task-cards), the implement-side map keys
-# (routing.md), and the verify-side map keys (reviewer-routing.md) must stay in sync,
-# and every reviewer-map RHS reference must resolve — drift/typos break routing silently.
+# Agent routing: task-cards' tag vocabulary, routing.md and reviewer-routing.md keys agree, and every reviewer-map reference resolves.
 VOCAB=plugins/taskmaster/skills/task-cards/references/agent-tags.md
 MAP=plugins/task-runner/skills/task-execution/references/routing.md
 RMAP=plugins/task-runner/skills/task-execution/references/reviewer-routing.md
@@ -355,10 +257,7 @@ elif [ -f "$VOCAB" ] || [ -f "$MAP" ]; then
   err "agent-routing: one of agent-tags.md / routing.md exists without the other"
 fi
 
-# Crew reference check: crew.md (the --crew contract) must exist, be linked from the
-# task-execution SKILL, and every plugin:name it names must resolve — a dangling ref or a
-# lost link breaks the crew wiring silently. Mirrors the reviewer-routing RHS check; the
-# `-d plugins/$pl` guard skips line-number tokens (crew.md:44) and prose (model:opus).
+# crew.md is linked from task-execution and every plugin:name in it resolves; the -d guard skips line-number and prose tokens.
 CREW=plugins/task-runner/skills/task-execution/references/crew.md
 CREW_SKILL=plugins/task-runner/skills/task-execution/SKILL.md
 if [ -f "$CREW" ]; then
@@ -373,18 +272,7 @@ if [ -f "$CREW" ]; then
   done
 fi
 
-# Chassis generated-header gate: every chassis-shaped file — commands/review.md,
-# commands/uninstall.md, commands/check.md, hooks/remind.sh — must EITHER carry the
-# generate.sh header OR be named by an optout entry in its plugin's .chassis.json
-# (object OR array form). Neither means the deterministic stamper never ran or was
-# bypassed — drift the regenerate-and-diff gate must catch.
-#
-# The optout must name the file it exempts. The earlier test was
-# `any(.chassis=="optout")` over the WHOLE manifest, so ONE opt-out entry exempted
-# all four chassis-shaped kinds at once: api-design (docs-first) and build-vs-buy each hand-
-# maintain commands/check.md while generating hooks/remind.sh, and a hand-edit that
-# stripped the header off remind.sh would have been silently covered by check.md's
-# exemption. An unscoped optout is now an error, not a blanket.
+# A chassis-shaped file carries the generate.sh header or an optout naming that exact file; an optout without `file` is an error, never a blanket.
 for f in plugins/*/commands/review.md plugins/*/commands/uninstall.md plugins/*/commands/check.md plugins/*/hooks/remind.sh; do
   [ -f "$f" ] || continue
   grep -q 'generated from templates/' "$f" && continue
@@ -402,10 +290,7 @@ for f in plugins/*/commands/review.md plugins/*/commands/uninstall.md plugins/*/
   err "$f: chassis-shaped file has no generated header and no matching optout in .chassis.json (run scripts/generate.sh --write, or add {\"chassis\":\"optout\",\"file\":\"$rel\",\"reason\":\"…\"})"
 done
 
-# Chassis agent-file header gate: every plugins/*/.chassis.json worker-agent object
-# that declares an agentFile must have that EXACT file carry the generated header —
-# keyed on the declared path only, never a plugins/*/agents/*.md glob, so hand-shaped
-# reviewer agents next to migrated engineers (web-dev, ui-ux, devops) are untouched.
+# A worker-agent object's declared agentFile carries the generated header; keyed on that path, so hand-written agents beside it are untouched.
 for man in plugins/*/.chassis.json; do
   [ -f "$man" ] || continue
   pdir="$(dirname "$man")"
@@ -418,11 +303,9 @@ for man in plugins/*/.chassis.json; do
   done < <(jq -r '([.] | flatten) | .[] | select(.chassis=="worker-agent" and has("agentFile")) | .agentFile' "$man" 2>/dev/null)
 done
 
-# ---- W2-M2 governance gates ------------------------------------------------
+# ---- Governance gates ------------------------------------------------------
 
-# Description-parity gate (hard): a plugin's marketplace.json .description must be
-# byte-identical to its plugin.json .description — a discovery listing that lies
-# about what a plugin does is a silent rot the chassis system cannot catch.
+# Description parity (hard): marketplace.json and plugin.json descriptions are byte-identical.
 while IFS=$'\t' read -r name source; do
   dir="${source#./}"
   pj="$dir/.claude-plugin/plugin.json"
@@ -436,11 +319,7 @@ while IFS=$'\t' read -r name source; do
   fi
 done < <(jq -r '.plugins[] | [.name, .source] | @tsv' "$MP")
 
-# rules.tsv resolution gate (hard): every skill token the skill-router references —
-# rules.tsv column 3, prime.sh `add <skill> <plugin>` lines, and any literal skill
-# name in route.sh — must resolve to a real plugins/*/skills/<skill>/SKILL.md.
-# route.sh sources its skills from rules.tsv at runtime and carries no literals
-# post-W2-M1; the grep catches any that get re-introduced. Locks A1's phantom fix.
+# rules.tsv resolution (hard): every skill skill-router names (rules.tsv col 3, prime.sh `add` lines) exists.
 SR=plugins/skill-router
 if [ -d "$SR" ]; then
   while IFS= read -r sk; do
@@ -461,10 +340,7 @@ if [ -d "$SR" ]; then
   [ -z "$route_lits" ] \
     || err "skill-router route.sh carries literal skill name(s): $(echo $route_lits) — must stay rules.tsv-driven"
 
-  # rules.tsv overlap gate (hard): two high-confidence glob rows sharing one
-  # pattern must be stack_marker-discriminated or declared complementary via a
-  # pairwise "# co-fire-ok:" directive — stack-exclusive pairs (vue2/vue3,
-  # php/laravel) must never co-fire on a detectable stack.
+  # rules.tsv overlap (hard): two high-confidence glob rows on one pattern need distinct stack_markers or a '# co-fire-ok:' directive.
   overlaps=$(pc_rules_overlap "$SR/rules.tsv") || true
   if [ -n "$overlaps" ]; then
     while IFS= read -r ol; do
@@ -473,11 +349,7 @@ if [ -d "$SR" ]; then
 $overlaps
 EOF_OVERLAPS
   fi
-  # Reachability gate (hard): a row that CANNOT fire is worse than a missing row —
-  # it reads as coverage. `**/routes/api.php` shipped for months matching nothing,
-  # because route.sh basename-matches every pattern except the `**/dir/**` form.
-  # The overlap and marker harnesses cannot see this class: a dead row collides
-  # with nothing and reaches no marker.
+  # Reachability (hard): a row that cannot fire reads as coverage; route.sh basename-matches all but the `**/dir/**` form.
   unreach=$(pc_rules_reachable "$SR/rules.tsv") || true
   if [ -n "$unreach" ]; then
     while IFS= read -r ur; do
@@ -487,9 +359,7 @@ $unreach
 EOF_UNREACH
   fi
 
-  # Col-4 owner must be a plugin directory. rules.tsv:124 named a plugin folded
-  # away weeks earlier; route.sh's installed-plugin filter suppressed the row and
-  # nothing at author time read the column. Derivation: pc_rules_owner's header.
+  # rules.tsv col 4 names a plugin directory; route.sh skips rows whose owner is not installed (pc_rules_owner's header).
   owners=$(pc_rules_owner "$SR/rules.tsv" plugins) || true
   if [ -n "$owners" ]; then
     while IFS= read -r ow; do
@@ -499,9 +369,7 @@ $owners
 EOF_OWNER
   fi
 
-  # Content-row co-firing, against a corpus of representative snippets. Content rows
-  # never share a literal pattern, so the glob-axis equality test above is vacuous for
-  # them; two different regexes matching one file is the real collision.
+  # Content rows co-fire when two regexes match one corpus snippet, which the glob equality test above cannot see.
   cofires=$(pc_rules_cofire "$SR/rules.tsv" scripts/smoke/router-corpus) || true
   if [ -n "$cofires" ]; then
     while IFS= read -r cf; do
@@ -511,20 +379,7 @@ $cofires
 EOF_COFIRES
   fi
 
-  # Tool-fit check gate (hard). route-prompt.sh injects a catalog it builds at runtime
-  # from the installed plugins' command frontmatter, and hands the ROUTING JUDGMENT to
-  # the model. Two properties are mechanically checkable and both are load-bearing:
-  #
-  #   1. No literal command token in the hook. A hardcoded `/plugin:command` is a route
-  #      the catalog never shows and nobody can audit — the same rule route.sh carries.
-  #   2. No per-tool routing patterns. At most four prompt-matching greps (three
-  #      narrowing refusals + the work-shaped gate); a fifth is a routing table growing
-  #      back in shell, the mechanism this deliberately replaced.
-  #
-  # What is NOT gated, stated plainly: which command the model picks. That is a
-  # judgment with real variance — agent-graded, not gated. See the has-teeth
-  # convention in CLAUDE.md; do not describe this check as guaranteeing a route.
-  # Created by 7fc492d0; rule and misses: the pc_route_prompt_literals/_greps headers.
+  # route-prompt.sh: no literal command token, at most four prompt greps (pc_route_prompt_literals/_greps); which command the model picks is agent-graded.
   RP="$SR/hooks/route-prompt.sh"
   if [ -f "$RP" ]; then
     prompt_lits=$(pc_route_prompt_literals "$RP") \
@@ -534,10 +389,7 @@ EOF_COFIRES
   fi
 fi
 
-# No plugin may declare `dependencies` (hard). Replaces the all-bundle dependency gate,
-# which proved every bundle's deps resolved: an update that ADDS a dependency does not
-# install it, and the plugin then fails to load — measured on CLI 2.1.283, 2026-09-26.
-# The measurement and the residuals are in pc_plugin_dependencies' header.
+# No plugin may declare `dependencies` (hard): an update that adds one leaves it uninstalled (pc_plugin_dependencies' header).
 deps_gap=$(pc_plugin_dependencies plugins) || true
 while IFS= read -r l; do
   [ -n "$l" ] || continue
@@ -546,9 +398,7 @@ done <<EOF_DEPS
 $deps_gap
 EOF_DEPS
 
-# CHANGELOG-parity gate (hard): the first `## [X.Y.Z]` heading in CHANGELOG.md must
-# equal the marketplace metadata.version — a released version with no matching
-# changelog top entry (or vice versa) is undocumented drift.
+# CHANGELOG parity (hard): the first `## [X.Y.Z]` heading equals marketplace metadata.version.
 if [ -f CHANGELOG.md ]; then
   cl_ver=$(grep -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
   mp_ver=$(jq -r '.metadata.version // empty' "$MP")
@@ -556,13 +406,9 @@ if [ -f CHANGELOG.md ]; then
     || err "CHANGELOG.md top version '$cl_ver' != marketplace metadata.version '$mp_ver'"
 fi
 
-# ---- W2-M5 keywords[] taxonomy gate --------------------------------------------
+# ---- keywords[] taxonomy gate --------------------------------------------------
 
-# keywords gate (hard): scripts/taxonomy.txt is the controlled discovery vocabulary.
-# Every plugin.json must carry a non-empty keywords[] whose every element is a
-# taxonomy term. A missing/empty keywords[] or an off-vocab term fails the build —
-# the generated scout catalog (stack-scan's plugin-scout skill) and keyword-driven discovery rely on it.
-# Orphan taxonomy terms (declared but used by no plugin) are WARN only.
+# keywords (hard): every plugin.json carries non-empty keywords[] from scripts/taxonomy.txt; an unused term is a WARN.
 TAX=scripts/taxonomy.txt
 if [ ! -f "$TAX" ]; then
   err "$TAX missing (keywords taxonomy is the controlled vocabulary)"
@@ -602,34 +448,13 @@ done
 [ "$rm_count" -eq 0 ] \
   || err "$rm_count plugin(s) missing README.md:${missing_readme}"
 
-# Version-leverage stamp coverage (HARD, promoted from WARN on 2026-08-02).
-# rationale/stack-skill-baselines.md exempts ~20 stack plugins from the
-# baseline-redundancy loop on the promise that they encode version leverage rather
-# than idioms; check-doc-staleness.sh can only see that leverage decay where a
-# `> Last verified: YYYY-MM-DD — <url>` stamp exists, and until this morning not
-# one of those plugins carried one.
-#
-# It shipped as a WARN because promoting it first would have forced a fabricated
-# provenance record onto nine plugins — a stamp asserts that someone checked the
-# content against that URL on that date, and writing nine unchecked ones would be
-# a lie in the one file whose entire purpose is provenance. The verification pass
-# has now run: every claimant's load-bearing version claim was checked against
-# upstream and stamped with the URL actually consulted, so the gate has teeth
-# without anyone having to trust it on faith.
+# Version-leverage stamp (HARD): a plugin claiming version leverage carries a `> Last verified:` stamp, or check-doc-staleness.sh cannot see it decay.
 for d in plugins/*/; do
   us=$(pc_version_stamp "$d") \
     || err "plugin '${us##* }' claims version leverage with no \`> Last verified:\` stamp in any skill — check-doc-staleness.sh is structurally blind to its claims. Verify one load-bearing claim against upstream and stamp it, or narrow the plugin's description so it stops claiming version leverage."
 done
 
-# README-listing (HARD): every plugin must also be LISTED in the top-level
-# README.md plugin tables — a bolded `**name**` or `**[name](...)` row. Presence
-# of a per-plugin README is not discoverability; 9 plugins shipped invisible to
-# the catalog before this gate (2026-07-23).
-#
-# TIGHTENED 2026-08-02: the previous form accepted the bolded name ANYWHERE in
-# the file, so a plugin mentioned once in a prose paragraph counted as catalogued
-# while appearing in no table a reader browses. The row must now actually be a
-# table row — a line starting `| **name**` or `| **[name](`.
+# README listing (HARD): every plugin has a table ROW in README.md (`| **name**` or `| **[name](`); a prose mention does not count.
 for d in plugins/*/; do
   lname=$(basename "$d")
   is_stray "$lname" && continue
@@ -637,11 +462,7 @@ for d in plugins/*/; do
     || err "plugin '$lname' has no README.md plugin-table ROW (a prose mention is not a catalogue entry)"
 done
 
-# Empty-section gate (HARD): a `###` heading followed by a table header and its
-# separator with ZERO data rows is a section that claims a category and lists
-# nothing. `### Automation & browser` sat empty from 2026-07-06 until this gate
-# landed, and every structural check in this repo passed it — an empty table is
-# well-formed markdown.
+# Empty sections (HARD): a `###` table header with zero rows claims a category and lists nothing.
 awk '
   /^### / { heading=$0; state=1; next }
   state==1 && /^\| *Plugin/ { state=2; next }
@@ -652,13 +473,7 @@ awk '
   err "README.md section '$emptyheading' has a table header with no rows — list something or remove the heading"
 done
 
-# Boost-preamble parity (HARD): the four full taskmaster commands carry one
-# byte-identical boost preamble between the `boost-preamble:start/end` markers,
-# and every trigger token the ultra hook greps for is named inside that block —
-# the trigger logic exists twice (bash regex in hooks/ultra.sh + command prose)
-# and this gate keeps the two implementations from diverging silently.
-# taskmaster.md is NOT in the list: it is a thin alias of task.md (checked
-# below), which is how it stays in parity — by carrying nothing to drift.
+# Boost-preamble parity (HARD): task, brainstorm, coverage, redteam carry one byte-identical block naming every ultra.sh token; taskmaster.md is an alias.
 TM_CMDS=plugins/taskmaster/commands
 pre_ref=""
 pre_ref_file=""
@@ -687,10 +502,7 @@ if [ -f "$ULTRA_HOOK" ] && [ -f "$TM_CMDS/task.md" ]; then
       || err "boost-preamble: hook token '$plain' (from $ULTRA_HOOK) not named in the command preamble block"
   done < <(grep -oE 'ultra-\?[a-z]+' "$ULTRA_HOOK" | sort -u)
 fi
-# Alias-shape gate (HARD): taskmaster.md must stay a thin delegation to task.md.
-# It was a 105-line byte-copy kept in sync by the parity gate above; parity by
-# duplication was the bug, not the fix. Thin = delegates with $ARGUMENTS, names
-# commands/task.md, carries no preamble block of its own, stays under 25 lines.
+# Alias shape (HARD): taskmaster.md stays a thin delegation to task.md ($ARGUMENTS, no preamble block, at most 25 lines).
 TM_ALIAS="$TM_CMDS/taskmaster.md"
 if [ -f "$TM_ALIAS" ]; then
   grep -q 'boost-preamble:start' "$TM_ALIAS" \
@@ -703,24 +515,7 @@ if [ -f "$TM_ALIAS" ]; then
 fi
 
 # ---- Lane declarations: who owns which territory -----------------------------
-# Every plugin declares, in its own plugins/<name>/lane.tsv, which territory each
-# of its artifacts owns, at which phase of the arc it may speak, the condition
-# that fires it, and who outranks it. The pc_lanes_* family reads those files by
-# glob (recount: `grep -c '^pc_lanes_[a-z_]*() {' scripts/lib/plugin-checks.sh`)
-# — there is deliberately no generated aggregate, because a concatenation would carry no
-# rule this glob does not and would add a chassis-drift surface for nothing.
-#
-# THE ONE THAT CARRIES THE MISSION is pc_lanes_territory: it is the only
-# mechanical statement in this marketplace that two artifacts must not silently
-# claim the same job. The 8 reviewer-class agents live in 8 different plugins
-# with 8 distinct filenames, so every other gate here sees eight unrelated files
-# while the model picks between them from descriptions alone.
-#
-# TIERS, per the has-teeth convention: agents and UserPromptSubmit/Stop hooks are
-# `gate`; commands and skills are `WARN` this run and are reported as a count,
-# not 200 lines. The format, the blessing shape, and the honest-scope residuals
-# all live in scripts/lib/plugin-checks.sh above pc_lanes_schema — one source
-# shared with scripts/smoke/lanes-tests.sh, which asserts these FAIL strings.
+# Lanes: each plugin's lane.tsv, read by glob (no aggregate); agents and prompt/Stop/deny hooks are gate, commands and skills WARN; format and residuals above pc_lanes_schema.
 lane_err() {   # lane_err <gate output> <one-line hint>; one err() per line
   local l
   while IFS= read -r l; do
@@ -751,12 +546,7 @@ lane_ws=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn skill ' || true)
 [ "$lane_wc" -gt 0 ] && warn "$lane_wc command(s) have no lane row — WARN tier this run; agents, prompt/Stop hooks and deny-capable Pre/PostToolUse hooks are the gate"
 [ "$lane_ws" -gt 0 ] && warn "$lane_ws skill(s) have no lane row — WARN tier this run; agents, prompt/Stop hooks and deny-capable Pre/PostToolUse hooks are the gate"
 
-# The territory gate above fires only on an exact `owns` collision, and the live
-# vocabulary is 1:1 with the claimed nouns, so it has never had a pair. Crowding is
-# the defect the probe actually priced (eight rivals on one territory: firing
-# 100% → ~75%), and it is invisible to a string compare. WARN tier deliberately —
-# the derivation, the six live clusters and the FAIL flip are in the function's
-# header in scripts/lib/plugin-checks.sh.
+# Adjacency (WARN): crowding on one phase and file shape, which the exact-`owns` territory gate cannot see (pc_lanes_adjacency's header).
 lane_adj=$(pc_lanes_adjacency plugins) || true
 if [ -n "$lane_adj" ]; then
   while IFS= read -r l; do
@@ -772,9 +562,7 @@ fi
 phase_gap=$(pc_phase_guard plugins) || true
 [ -n "$phase_gap" ] && lane_err "$phase_gap" "a hook whose lane names one phase must read .claude/cc-phase.json — declare the lane 'any' if it is a guard that must fire in every phase"
 
-# A description that promises "defers X to <plugin>" must be backed by a
-# yields_to edge in the plugin's own lane.tsv; host-built-in and plugin-class
-# targets are skipped by design. Derivation: pc_deference_edges' header.
+# A "defers X to <plugin>" description needs a yields_to edge in its own lane.tsv (pc_deference_edges' header).
 def_gap=$(pc_deference_edges plugins) || true
 [ -n "$def_gap" ] && lane_err "$def_gap" "plugin.json promises deference to a plugin that no lane row yields to — add the yields_to edge or reword the description"
 
@@ -783,18 +571,11 @@ def_gap=$(pc_deference_edges plugins) || true
 ctx_gap=$(pc_context_key plugins) || true
 [ -n "$ctx_gap" ] && lane_err "$ctx_gap" "a PostToolUse one-shot must key on transcript_path (falling back to session_id) — or carry '# context-key-ok: <why>' when session scope is genuinely correct"
 
-# Reading the context key is half the job; the value is normally an absolute PATH, so a
-# hook that pastes it into a filename writes to parents that do not exist and loses the
-# bound it claims to keep. pc_context_key cannot see the difference — both hooks mention
-# transcript_path. This is the half that can.
+# A context key is usually an absolute path, so pasted raw into a filename it writes nowhere; pc_context_key cannot tell (pc_marker_key).
 marker_gap=$(pc_marker_key plugins) || true
 [ -n "$marker_gap" ] && lane_err "$marker_gap" "a context key reaching a filesystem path must be hashed first (cksum/shasum, as the `seen=` line in code-review/hooks/conventions.sh does) — or carry '# marker-key-ok: <why>'"
 
-# A SKILL that names a reference as SOURCE OF TRUTH for its figures must not carry
-# a figure that reference lacks. Converts a mirror the skill itself declared
-# "recorded — no gate checks the two agree" into one that is checked. Scope and
-# limits are stated ONCE, in pc_source_of_truth's own header, and pinned by
-# scripts/smoke/source-of-truth-tests.sh.
+# A SKILL naming a reference as SOURCE OF TRUTH carries no figure that reference lacks (pc_source_of_truth's header).
 sot_gap=$(pc_source_of_truth plugins) || true
 [ -n "$sot_gap" ] && err "$sot_gap"
 
@@ -803,25 +584,15 @@ sot_gap=$(pc_source_of_truth plugins) || true
 fs_gap=$(pc_false_standing plugins) || true
 [ -n "$fs_gap" ] && err "$fs_gap"
 
-# An agent told to do what its own tools: cannot (run git, hash, write a file) improvises:
-# creative-director invented its seed in three of three runs. What it reads, what it misses
-# and why it FAILs: pc_agent_tool_fit's header.
+# An agent told to do what its tools: cannot improvises; what is read and missed: pc_agent_tool_fit's header.
 toolfit_gap=$(pc_agent_tool_fit plugins) || true
 [ -n "$toolfit_gap" ] && lane_err "$toolfit_gap" "an agent is told to do what its tools: cannot — move the step to the main thread and pass the agent its result, name that actor in the sentence, grant the tool, or mark the paragraph or list (for a \`\`\`shell block, the one above it) '<!-- tool-fit-ok: <why> -->'"
 
-# And the condition that let pc_marker_key's defect hide for a release: a harness
-# that only ever sends session_id grades the fallback branch, so the branch the host
-# actually takes is never executed. pc_marker_key gates the hook; this gates the
-# test that would have caught it.
+# A harness sending only session_id grades the fallback branch, where pc_marker_key's defect hid (pc_harness_payload).
 harness_gap=$(pc_harness_payload .) || true
 [ -n "$harness_gap" ] && lane_err "$harness_gap" "this harness exercises a hook that reads transcript_path but never sends one — add a case with a path-shaped transcript_path, or carry '# harness-payload-ok: <why>'"
 
-# The SessionStart index must not claim a skill the documented manifest map never
-# sanctioned — that is how prime.sh came to assert tailwind on any React dependency.
-# ...and, since 2026-09-22, the reverse: the map must not declare a repository signal
-# the probe never emits. WARN TIER for that direction only — the two it found are in
-# skill-router's hook, another hand than the one adding the check, and the forward
-# direction stays a FAIL. Derivation and the matcher blind spot: pc_prime_coverage's header.
+# prime.sh claims no skill the manifest map never sanctioned (FAIL), nor the map a signal prime.sh never emits (WARN); pc_prime_coverage's header.
 prime_gap=$(pc_prime_coverage plugins) || true
 prime_fwd=$(printf '%s\n' "$prime_gap" | grep '^prime-unmapped ') || true
 prime_rev=$(printf '%s\n' "$prime_gap" | grep '^map-unprimed ') || true
@@ -835,39 +606,23 @@ $prime_rev
 EOF
 fi
 
-# A hook runs inside the user's turn, so the plugin must say how long it may hold
-# it. Gates that a number EXISTS, not that it is right, and says nothing about
-# what a killed hook does — both residuals are stated in pc_hook_timeout's header.
+# Every hook entry declares a timeout — that a number exists, not that it is right (pc_hook_timeout).
 hook_to_gap=$(pc_hook_timeout plugins) || true
 [ -n "$hook_to_gap" ] && lane_err "$hook_to_gap" "every hook entry in hooks.json must declare a timeout (seconds) — size it to what the script does, not to a house default"
 
-# The slash-command menu shows `argument-hint` as the user types; without it a
-# command that reads $ARGUMENTS asks for input it never names. Derivation and
-# residuals: pc_command_arg_hint's header.
+# A command reading $ARGUMENTS declares argument-hint, shown in the slash-command menu (pc_command_arg_hint).
 arghint_gap=$(pc_command_arg_hint plugins) || true
 [ -n "$arghint_gap" ] && lane_err "$arghint_gap" "a command whose body reads \$ARGUMENTS must declare argument-hint: in its frontmatter — the host shows it in the slash-command menu"
 
-# The fail-open guarantee six hook headers assert in their own words, read back. FAIL
-# TIER as of 2026-09-22: all 11 offenders counted that day are fixed — eight were chassis
-# output and went with one line each in templates/reminder-hook.sh.tmpl and
-# templates/boost-hook.sh.tmpl, three (ui-ux and taskmaster preview-guard.sh, design-kit
-# unread-pick.sh) by hand. The check shipped at WARN for exactly as long as the tree
-# disagreed with it. `# env-shebang-ok: <reason>` is the escape for a host with no
-# /bin/bash; the residuals are in pc_hook_shebang's header.
+# A registered hook starts #!/bin/bash so fail-open holds under a stripped PATH; escape `# env-shebang-ok: <reason>` (pc_hook_shebang).
 shebang_gap=$(pc_hook_shebang plugins) || true
 [ -n "$shebang_gap" ] && lane_err "$shebang_gap" "a registered hook must start #!/bin/bash so the fail-open guarantee holds under a stripped PATH where \`env bash\` exits 127; or carry '# env-shebang-ok: <reason>'"
 
-# A hook may not `mkdir -p` a path built from the payload's cwd without first proving
-# that directory still exists — the shape that rebuilt a deleted three-level project
-# tree to hold a state dir. FAIL tier: the live tree passes it as it lands. What it
-# cannot see (a cwd that exists but is not this project) is in pc_cwd_validated's header.
+# No `mkdir -p` under a payload cwd not proven to exist; a cwd that exists but is not this project is missed (pc_cwd_validated).
 cwdval_gap=$(pc_cwd_validated plugins) || true
 [ -n "$cwdval_gap" ] && lane_err "$cwdval_gap" "a hook mkdir -p's a path built from the payload cwd with nothing proving that directory still exists — add [ -d \"\$cwd\" ] (or a test on a path inside it) before the write, or carry '# cwd-mkdir-ok: <why>'"
 
-# A hook may not build state from `$cwd/.claude`: the payload cwd follows the model's
-# `cd`, so per-project state split into one `.claude/` dir per subdirectory, one-shots
-# re-fired, and task-runner's scope-lock read an empty directory (2026-09-25 session
-# review, finding 2). State goes through the shared cc_state_root block. FAIL tier.
+# No state built from `$cwd/.claude` — cwd follows the model's cd; use the cc_state_root block (pc_state_root).
 stroot_gap=$(pc_state_root plugins) || true
 [ -n "$stroot_gap" ] && lane_err "$stroot_gap" "a hook builds a path from \$cwd/.claude — the payload cwd follows the model's cd; resolve root=\$(cc_state_root \"\$cwd\") (paste templates/blocks/state-root.md) and use \$root/.claude, or carry '# state-root-ok: <why this state is per-directory>'"
 
@@ -876,10 +631,7 @@ stroot_gap=$(pc_state_root plugins) || true
 shblk_gap=$(pc_shared_blocks plugins templates/blocks) || true
 [ -n "$shblk_gap" ] && lane_err "$shblk_gap" "a copy of a shared block differs from templates/blocks/<name>.md — paste the block file unchanged; change the block itself (and every copy) if the helper must change"
 
-# The person who needs to know a guard has an off switch is the person it just refused.
-# WARN TIER THIS RUN — five hooks in four plugins fail it the moment it ships, and they
-# are other hands than the one adding the check. Per-message attribution is out of reach
-# for a static reader; that half is agent-graded, and pc_offswitch_named's header says so.
+# A guard that can refuse names its off switch (WARN; per-message attribution is agent-graded — pc_offswitch_named).
 offsw_gap=$(pc_offswitch_named plugins) || true
 if [ -n "$offsw_gap" ]; then
   while IFS= read -r l; do
@@ -890,10 +642,7 @@ $offsw_gap
 EOF
 fi
 
-# A skill that promises version pinning must leave check-doc-staleness.sh --live
-# something to compare: an npm:/composer:/pypi: tail on its stamp. WARN TIER THIS RUN
-# (two offenders, both other plugins'). It gates the TAIL, never its truth —
-# pc_version_stamp_tail's header.
+# A version-pinning skill's stamp carries an npm:/composer:/pypi: tail for --live (WARN; the tail, never its truth — pc_version_stamp_tail).
 stamptail_gap=$(pc_version_stamp_tail plugins) || true
 if [ -n "$stamptail_gap" ]; then
   while IFS= read -r l; do
@@ -904,9 +653,16 @@ $stamptail_gap
 EOF
 fi
 
-# A command or skill line that runs `${CLAUDE_PLUGIN_ROOT}/…` unquoted, by path or through an
-# interpreter, splits on a space in the install path; the host checks hooks.json for this, never
-# a command or skill. One FAIL per plugin.
+# A scripts/glossary-watchlist.txt term in installer text with no row under README.md "## Words we use" (WARN only; pc_undefined_terms).
+term_gap=$(pc_undefined_terms plugins scripts/glossary-watchlist.txt README.md) || true
+while IFS= read -r l; do
+  [ -n "$l" ] || continue
+  warn "$l"
+done <<EOF
+$term_gap
+EOF
+
+# An unquoted `${CLAUDE_PLUGIN_ROOT}/…` run from a command or skill splits on a space; the host checks only hooks.json. One FAIL per plugin.
 quote_gap=$(pc_plugin_root_quoting plugins) || true
 if [ -n "$quote_gap" ]; then
   while IFS=$'\t' read -r qp qlocs; do
@@ -914,25 +670,15 @@ if [ -n "$quote_gap" ]; then
   done < <(printf '%s\n' "$quote_gap" | awk '{ a[$2] = a[$2] (a[$2] == "" ? "" : " ") $3 } END { for (p in a) print p "\t" a[p] }' | sort)
 fi
 
-# Corpus-level companion to the per-file SKILL budget: a ceiling authors write TO
-# stops being a ceiling, and no per-file check can see that. Ratchet, not
-# threshold — the reasoning is in pc_budget_crowding's header.
+# A ratchet on how many SKILL bodies crowd the 200-line ceiling (pc_budget_crowding's header).
 crowd_gap=$(pc_budget_crowding plugins scripts/skill-crowding-baseline.json) || true
 [ -n "$crowd_gap" ] && lane_err "$crowd_gap" "more SKILL bodies are now within 3 lines of the 200-line ceiling than the committed baseline — cut a body, do not raise scripts/skill-crowding-baseline.json"
 
-# The third budget instrument: pc_skill_budget bounds one FILE, pc_budget_crowding
-# bounds the distribution of file lengths, and NEITHER can see a plugin that stays
-# under both while shipping a 100k-token prose corpus across a dozen skills. That
-# channel is unmetered everywhere else — context-budget.sh gates three channels and
-# CLAUDE.md says bodies loaded by a routing rule are "unmetered by nature". Prose
-# only (.md, generated files excluded): counting runtime assets read taskmaster at
-# 70,664 against a real 36,037. Ratchet, not ceiling — reasoning in the header.
+# A ratchet on plugins over the per-plugin prose corpus cap, the channel neither per-file budget sees (pc_plugin_corpus's header).
 corpus_gap=$(pc_plugin_corpus plugins scripts/plugin-corpus-baseline.json) || true
 [ -n "$corpus_gap" ] && lane_err "$corpus_gap" "more plugins now exceed the per-plugin on-invoke prose corpus cap than the committed baseline — cut or split a plugin's skills, do not raise scripts/plugin-corpus-baseline.json"
 
-# An `owns` noun must be declared in scripts/lane-vocabulary.txt, so inventing one is a
-# reviewed act rather than the invisible default. pc_lanes_vocabulary's header is candid
-# that the catch is social; the gate is only on the bookkeeping.
+# An `owns` noun is declared in scripts/lane-vocabulary.txt; the gate is on bookkeeping, the catch is social (pc_lanes_vocabulary).
 vocab_gap=$(pc_lanes_vocabulary plugins scripts/lane-vocabulary.txt) || true
 [ -n "$vocab_gap" ] && lane_err "$vocab_gap" "a lane row uses an owns noun that scripts/lane-vocabulary.txt does not declare — add it under its phase, next to the nouns it sits beside, or reuse one of those"
 
@@ -941,10 +687,7 @@ vocab_gap=$(pc_lanes_vocabulary plugins scripts/lane-vocabulary.txt) || true
 twin_gap=$(pc_twin_files plugins) || true
 [ -n "$twin_gap" ] && lane_err "$twin_gap" "a file declaring itself a TWIN has drifted from its partner — re-copy it so both differ only in the TWIN line"
 
-# The plugin-scout skill's suggestion tables are hand-written and feed `--yes`, which
-# INSTALLS what they name — so a name that outlived its plugin is an install command
-# against nothing. Repo root, not `plugins`: the live set comes from marketplace.json.
-# Column-scoped and liveness-only; both residuals are in pc_scout_names' header.
+# plugin-scout's tables feed --yes, which installs what they name, so each name must be live (pc_scout_names' header).
 scout_name_gap=$(pc_scout_names .) || true
 [ -n "$scout_name_gap" ] && lane_err "$scout_name_gap" "the plugin-scout skill suggests a plugin marketplace.json does not list — retarget the row, use the '—' no-plugin idiom, or mark the line '<!-- scout-name-ok: <why> -->'"
 
@@ -958,13 +701,7 @@ shadow_gap=$(pc_cmd_skill_shadow plugins) || true
 renames_gap=$(pc_renames_ledger .) || true
 [ -n "$renames_gap" ] && lane_err "$renames_gap" "scripts/removed-plugins.tsv and marketplace.json renames disagree — every removed name needs a renames entry equal to its TSV successor, every chain must end at a current plugin or null without a cycle, and no renames key may be a live plugin; for renames-missing, add the entry (the jq command in scripts/removed-plugins.tsv's header rewrites the whole map, so run it only when every finding is renames-missing); for renames-orphan or renames-mismatch, add or correct the TSV row — never drop or retarget a committed renames key"
 
-# Handoff resolution over plugin.json DESCRIPTIONS. Ten of them carry "Defers X to Y"
-# claims — the densest ownership statements the marketplace ships, and the only ones a
-# USER reads before installing. They were the one surface pc_handoff_refs never scanned,
-# so a rename could orphan a user-facing deference claim silently.
-# Only this check, not the three siblings in the loop above: pc_removed_refs and
-# pc_host_overlap read prose intent and would misfire on a description that legitimately
-# names a removed plugin or a host skill.
+# pc_handoff_refs over plugin.json descriptions, the deference claims a user reads first; removed-ref and host-overlap would misfire there.
 for pj in plugins/*/.claude-plugin/plugin.json; do
   [ -f "$pj" ] || continue
   pjhit=$(pc_handoff_refs "$pj") \
@@ -972,12 +709,7 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
 done
 
 # ---- Role-floor registry gate ------------------------------------------------
-# role-floors.md rows must agree with agent frontmatter, and every agent pinning a
-# real tier must be CLASSIFIED: either a registry row (floored) or `floor: none`
-# plus a `floor-reason:` (deliberately unfloored). The nine FAIL strings pc_role_floors
-# emits are frozen — scripts/smoke/validate-fixtures/role-floors-check.sh asserts each one.
-# err() only, never exit ($fail governs the tail); a heredoc, not a pipe, so fail=1
-# survives the loop. Parse rules live in pc_role_floors' header.
+# role-floors.md agrees with agent frontmatter and every pinned agent is classified; FAIL strings frozen by role-floors-check.sh; a heredoc keeps fail=1.
 RF=plugins/task-runner/skills/delegation-contracts/references/role-floors.md
 rf_out=$(pc_role_floors "$RF" plugins) || true
 rf_exempt=""
@@ -998,34 +730,20 @@ else
 fi
 
 # ---- No session tooling state inside a plugin --------------------------------
-# A plugin ships to users, so anything tracked under it is distributed. Local
-# Claude Code state under a `.claude/` dir is per-session
-# and per-machine and must never be part of that. The root .gitignore rule is
-# anchored to the repo root, so nested `.claude/` dirs slipped through unnoticed
-# until they were already committed; this is the check that would have caught it.
+# Nothing under a plugin's `.claude/` may be tracked: plugins ship to users, and the root .gitignore rule is anchored.
 while IFS= read -r f; do
   err "$f: session tooling state tracked inside a plugin — 'git rm -r --cached' it"
 done < <(git ls-files 'plugins/*' 2>/dev/null | grep '/\.claude/' || true)
 
 # ---- One severity vocabulary on review surfaces --------------------------------
-# Every finding-emitting command and reviewer agent sorts on ONE scale —
-# critical/high/medium/low — so fan-in output merges without translation. Four
-# scales coexisted (blocker/major/minor, moderate, blockers-then-minors, none),
-# which made "Apply critical+high only" and "Fix blockers only" non-interoperable
-# on the same diff. This bans the divergent FORMAT-DEFINITION shapes, not the
-# words: prose like "a wrong mental model is the real blocker" stays legal.
-# taskmaster's spec-adversary is exempt — its blocker/major/minor grades SPEC
-# HOLES inside a closed pipeline, never code findings a fan-in merges.
+# One severity scale (critical/high/medium/low) on review surfaces: divergent format definitions fail, words do not; spec-adversary is exempt.
 while IFS= read -r f; do
   case "$f" in plugins/taskmaster/agents/spec-adversary.md) continue ;; esac
   err "${f%%:*}: divergent severity scale on a review surface — use critical/high/medium/low (line: ${f#*:})"
 done < <(grep -rnE 'merge-after-blockers|Severities:[^\n]*blocker|[Bb]lockers first|critical → high → moderate' plugins/*/commands/*.md plugins/*/agents/*.md 2>/dev/null | cut -d: -f1,2 || true)
 
 # ---- Dated-fact staleness report ---------------------------------------------
-# Files that assert an observed fact about the world carry `Last verified: <date>`.
-# A date nothing reads is a convention that dies quietly, so this reads them.
-# WARN-ONLY BY DESIGN: a fact does not become wrong on a schedule, and a
-# time-based failure would break CI on a quiet repo with no defect to fix.
+# `Last verified:` dates past STALE_DAYS are reported, WARN-only by design: a fact does not expire on a schedule.
 STALE_DAYS=180
 cutoff=$(date -u -v-${STALE_DAYS}d +%F 2>/dev/null || date -u -d "${STALE_DAYS} days ago" +%F 2>/dev/null || echo '')
 printf '== dated-fact staleness (>%sd) ==\n' "$STALE_DAYS"

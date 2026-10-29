@@ -1,6 +1,6 @@
 ---
 name: ultra
-description: Use when a taskmaster run EXPLICITLY triggers Extreme Boost — "ultra-task" (boost) or "ultra-goal" (boost + hands-off), hyphen optional, a bare `ultra` (boost), `goal` (hands-off) or `goal-lean` (hands-off, no boost) as FIRST token of a taskmaster command's args, or an `Ultra:`/`Goal: true` index marker; another command's token never fires.
+description: Use when a taskmaster run EXPLICITLY asks for Extreme Boost ("ultra-task") or boost + hands-off ("ultra-goal"). As FIRST token of a taskmaster command's args — bare `ultra` (boost), `goal` (boost + hands-off), `goal-lean` (hands-off, no boost). Or an `Ultra:`/`Goal: true` index marker. Hyphen optional; another command's token never fires.
 ---
 
 # Ultra — Extreme Boost for a taskmaster run (+ hands-off Goal mode)
@@ -17,12 +17,12 @@ defined here, the pipeline skills read it and escalate.
 Active for THIS run when any holds this turn:
 
 - `hooks/ultra.sh` matched `ultra-task`/`ultratask` (boost) or
-  `ultra-goal`/`ultragoal` (hands-off) in a free-text prompt and injected the
+  `ultra-goal`/`ultragoal` (boost + hands-off) in a free-text prompt and injected the
   directive, or
 - a taskmaster command (`task`, `taskmaster`, `redteam`, `brainstorm`,
   `coverage`) ran with that explicit token in its args, or with a bare `ultra`
-  (boost) or `goal` (hands-off) as the FIRST token of that command's own
-  argument string, or
+  (boost) or `goal` (boost + hands-off, as `ultra-goal`) as the FIRST token of
+  that command's own argument string, or
 - an execution run reads `00-INDEX.md` carrying `Ultra: true` (boost) or
   `Goal: true` (hands-off; a lone Goal marker also escalates workers — unless it
   carries `boost=off`, § Goal-lean).
@@ -105,7 +105,8 @@ is a dispatch-time override. Tokens take no suffix — a bare token, one fixed t
   (produced code is run, not just linted) + negative-control, mis-specified-task halts,
   security-hole flagging. These SURFACE; they are not consent prompts. Confirmed
   code-redteam findings feed the bounded auto-retry like reviewer findings; on exhaustion, park.
-- Never auto-accept security/auth/data-loss holes OR statement-fidelity holes (the upgraded
+- Never auto-accept security holes, any hole touching auth or stored data (loss, corruption,
+  schema or migration, personal data) whatever its lens, OR statement-fidelity holes (the upgraded
   statement adds, drops, or swaps capability vs the raw prompt): amend the spec/statement,
   or halt with evidence if unamendable.
 - Escape hatch (surface-and-stop, not a prompt): when no defensible recommendation can be

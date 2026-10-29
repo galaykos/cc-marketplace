@@ -1,41 +1,7 @@
 #!/bin/bash
-# unread-pick.sh — UserPromptSubmit: one line, only when a board pick is waiting.
-#
-# WHAT IT CATCHES. The user picked an artboard on a design-kit board (the board
-# posted it to the server's loopback /_decision route → .design-kit/decisions.jsonl)
-# and then typed a prompt without telling the session. Prints ONE line naming the
-# board and artboard so the session reads the pick instead of asking for it — the
-# "session watching the board" half of the decision channel, without polling.
-#
-# WHAT IT DOES NOT DO. It never blocks, never reads the prompt, and says nothing
-# when every row is consumed or no board exists. Turn-taking is not hand-rolled here:
-# it runs the marketplace's shared phase guard (templates/blocks/phase-guard.md,
-# inlined below) against its OWN lane.tsv row, so the phase list cannot drift from
-# the declaration the way a hardcoded one did — that copy read build|verify|review|ship
-# and spoke through `plan`, and had no TTL and no session check, so a sentinel left by
-# a run that died muted this channel in every later session. Off with CC_REMIND=off or
-# CC_DESIGN_KIT_PICK=off.
-# CC_REMIND / CC_DESIGN_KIT_PICK unset: the /config options cc_remind / cc_design_kit_pick decide.
-#
-# WHERE IT LOOKS. The phase sentinel and .design-kit/decisions.jsonl are read at the
-# project root, not the payload cwd, which follows the model's `cd` (finding 2,
-# rationale/2026-09-25-session-plugin-usage-review.md) — so both shared blocks are
-# inlined below: state-root (held byte-identical to templates/blocks/state-root.md by
-# pc_shared_blocks) and phase-guard. dk.sh resolves its .design-kit/ with the same
-# state-root block, so writer and reader agree from any directory. An explicit
-# DESIGN_KIT_DIR elsewhere is not seen here. NO gate holds the phase-guard copy to its
-# block — keeping the two identical is by hand, **recorded**.
-#
-# FAIL-OPEN, like every hook here: no python3, no jq, no readable sentinel, a foreign
-# session or a stale one all mean "proceed" or "say nothing", never an error on the
-# user's prompt. `set -e` is deliberately absent — an unset variable or a non-zero
-# probe must not take the prompt down with it.
-#
-# Standing: scripts/__tests__/unread-pick.test.sh drives silent, one-line, consumed,
-# phase-gated, stale-sentinel, subdirectory-cwd and no-python3 cases — **gate** (CI globs every
-# plugins/*/scripts/__tests__/*.test.sh). Nothing proves the model ACTS on the line
-# (agent-graded), and nothing here proves the guard is honoured on a branch the
-# harness does not drive.
+# unread-pick.sh — UserPromptSubmit: one line naming the board and artboard when a design-kit pick in <project root>/.design-kit/decisions.jsonl is unconsumed; stands down past its own lane.tsv phase (shared phase guard). Off: CC_REMIND=off or CC_DESIGN_KIT_PICK=off (unset: /config options cc_remind / cc_design_kit_pick). Fails open; never blocks or reads the prompt.
+# Misses: a DESIGN_KIT_DIR elsewhere, a stray <subdir>/.design-kit/, whether the model acts on the line (agent-graded). No gate holds the phase-guard copy to its block: it is kept identical by hand.
+# Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/hooks/unread-pick.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
@@ -60,8 +26,6 @@ cc_state_root() {
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -79,6 +43,7 @@ cc_option() {
   return 0
 }
 
+# No `set -e`: an unset variable or a failing probe must not take the prompt down.
 [ "$(cc_option CC_REMIND on)" = "off" ] && exit 0
 [ "$(cc_option CC_DESIGN_KIT_PICK on)" = "off" ] && exit 0
 command -v python3 >/dev/null 2>&1 || exit 0
@@ -87,17 +52,13 @@ cwd=""
 if command -v jq >/dev/null 2>&1; then cwd="$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null || true)"; fi
 [ -n "$cwd" ] || cwd="$PWD"
 root=$(cc_state_root "$cwd") || exit 0
-# The root's board only. dk.sh anchors .design-kit/ at this same root (the same
-# cc_state_root), and `dk decision --consume` clears rows there — so a stray
-# <subdir>/.design-kit/ left by a dk.sh before 0.5.1 is not announced: the consume this
-# line tells the model to run could never clear it, and it would repeat on every prompt.
+# The root's board only: `dk decision --consume` clears rows there, so a <subdir>/.design-kit/ would repeat on every prompt.
 dec="$root/.design-kit/decisions.jsonl"
 [ -s "$dec" ] || exit 0
 
 # Shared block templates/blocks/phase-guard.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-guard.md
-# No template directive of any kind in these comments: _expand_includes copies this file raw, then conditionals and
-# substitution run over the whole text.
+# No template directive in these comments: _expand_includes copies this file raw, then conditionals and substitution run over all of it.
 # cc_phase_guard returns 1 only when <cc_state_root>/.claude/cc-phase.json, unexpired (one older than cc_phase_ttl_min is deleted)
 # and not another session's, names a phase past $1's phase in this plugin's own lane.tsv; else 0.
 # cc_phase_now: the phase any unexpired sentinel names, whichever session wrote it, or empty.

@@ -47,10 +47,6 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `project.godot` (its `config/features` names the 4.x minor) | `godot` | a `*.csproj` beside it with `Sdk="Godot.NET.Sdk/…"` is Godot C#, not Unity — suggest `godot`, never `unity` |
 | `ProjectSettings/ProjectVersion.txt` (`m_EditorVersion:`) beside an `Assets/` directory | `unity` | Unity generates `*.csproj` files, so a lone `*.csproj` is not evidence |
 | a `*.uproject` (`"EngineAssociation"`) | `unreal` | |
-| a Rojo `*.project.json` whose tree names `"$className": "DataModel"`, `wally.toml`, a `rokit.toml`/`aftman.toml`/`foreman.toml` naming rojo, or a `*.rbxl`/`*.rbxlx` place file | `roblox` | `default.project.json` is Rojo's conventional name; a `*.project.json` without the DataModel class is not evidence |
-| Cargo.toml dependency key `bevy` (or `bevy_ecs`, `bevy_app`) | `bevy` | read the minor from `Cargo.lock` — every Bevy minor breaks APIs |
-| `game.project` at the scan root with a `[bootstrap]` or `[project]` section | `defold` | it wins over a `main.lua`; never key on `*.go`, which Defold game objects share with Go source |
-| go.mod requiring `github.com/hajimehoshi/ebiten/v2` | `ebitengine` | a bare go.mod is not evidence |
 | dep `phaser` | `phaser` | read the major from the lockfile: v3 and v4 differ |
 | dep `pixi.js` | `pixijs` | |
 | any game row above; or `steam_appid.txt`, an `app_build*.vdf`/`depot_build*.vdf`, `butler push` or `BUTLER_API_KEY` in a CI file, or `*.yarn`/`*.yarnproject`/`*.ink` files | `gamedev` | the engine-agnostic half: Steam and itch release, asset checks, dialogue scripting, seed stability |

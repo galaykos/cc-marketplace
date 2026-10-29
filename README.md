@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **43 leaf plugins** covering stacks, game engines, review,
+A Claude Code plugin marketplace: **39 leaf plugins** covering stacks, game engines, review,
 architecture, design, and the whole idea-to-shipped workflow. Every one installs on its
 own — there are no bundles (the four suites were retired 2026-09-26; see
 [Companions](#companions-install-these-together)).
@@ -10,6 +10,8 @@ it already knows. A plugin earns its place by carrying a rule the model gets
 wrong from memory — a version inversion, a footgun, a house convention — or by
 shipping a mechanism prose cannot replace: a hook that fires unasked, a script
 with an exit code, a gate that blocks a turn.
+
+**Start any work with `/work <what you want done>`** (or `/code-architecture:work`): it picks quick, spec or program, prints why and the steps ahead, and `--explain` shows the route without running anything.
 
 ---
 
@@ -185,9 +187,10 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_SURFACED_LOG` | skill-router | on | Append the session's surfaced routing signals to a machine-local ledger at session end: on or off |
 | `CC_TASK_BOARD` | task-runner | on | The status line of a run's phase and card progress on this branch, and the /task-board pane: on or off |
 | `CC_TASK_BOARD_PIN` | task-runner | off | Reopen the task board after you close it while a run is active: on or off |
-| `CC_TERSE` | candor | off | Terse reply level: off, lite, full, ultra, wenyan-lite, wenyan-full or wenyan-ultra |
+| `CC_TERSE` | candor | off | Terse reply level: off, lite, full, ultra, wenyan-lite, wenyan-full, wenyan-ultra, or a reader name: new … |
 | `CC_TERSE_BADGE` | candor | on | Show the active terse level as [TERSE:LEVEL] at the end of the hint line under the prompt (terminal, CLI … |
 | `CC_TEST_SHAPE` | testing | on | Name the blocks in a written test file that do not earn their place: on or off |
+| `CC_UI_CHECK` | ui-ux | on | Send the turn back once when a UI file changed and was not checked in a browser since: on, warn (print,  … |
 | `CC_UNICODE_SCAN` | secret-scanning | on | Warn when written or read text carries zero-width or bidirectional-override characters: on or off |
 | `CC_VERSION_PINS` | stack-scan | on | Prepend the installed npm or composer version to a skill whose Last verified stamp names that package: o … |
 | `CC_WORKFLOW_GUARD` | devops | on | Refuse a GitHub workflow write that hands secrets or a write token to untrusted code: on or off |
@@ -241,6 +244,43 @@ early:
   matching file, so you do not have to remember which one applies.
 - **candor**'s terse reply mode (`/candor:level`) reshapes Claude's chat replies
   into a budget — useful in long sessions, invisible to the code it writes.
+
+---
+
+## Words we use
+
+The plugin READMEs and skill descriptions use these words in a narrow sense.
+
+| Word | What it means here |
+|------|--------------------|
+| agent-graded | A reviewer agent checks the rule; no script does, so the result can vary between runs. |
+| boost | A stronger-than-standard run, also called Extreme Boost. Reasoning subagents use the stronger of your session model and opus, at xhigh effort, and a red-team is added. It lasts one run, and it is not Claude Code's `max` effort. |
+| card | A task card: one task written so a fresh session can do it in one sitting. taskmaster writes cards; task-runner runs them. |
+| control arm | The same eval run without the plugin. Only that comparison shows the plugin helped; "no control-arm eval" means it was never run. |
+| fan-in | One pass that gathers several reviews or subagent results into one list. `/code-review:review` is the fan-in for stack reviews: it loads every matching stack skill at once. |
+| fan-out | Running several subagents in parallel, each on one part of the job. |
+| footgun | A trap: something that looks right and causes harm when used. |
+| gate | A check that can stop work, not just advise: it fails the build, refuses a tool call, waits for your yes, or sends the turn back. As a standing, it means a script enforces the rule. |
+| `goal` | Typed as the first word after a taskmaster command (`/taskmaster:task goal …`). Same as `ultra-goal`: boost plus hands-off. Not Claude Code's own `/goal`. |
+| `goal-lean` | Typed as the first word after a taskmaster command: hands-off without the boost. Subagents are not escalated, and no code red-team runs. |
+| hands-off | taskmaster takes each recommended answer itself instead of asking you. It logs every pick to a goal ledger and runs on to a green test suite. It never merges or opens a PR. overseer's `--hands-off` works out each clarifying answer itself and records it as an ASSUMED decision. |
+| kill-trigger | A condition, named up front, that means you drop the chosen approach if it happens. |
+| lane | Which hook, skill, agent or command owns a job in one phase of work, and which one it gives way to; each plugin declares its lanes in `lane.tsv`. A plugin may also call one of its own routes a lane, as in `/code-architecture:work --lane quick\|spec\|program`. A "fix lane" is something else: the kind of fix a finding needs. |
+| ledger | A file a plugin keeps for one job and reads back later: every requirement and whether it is settled (ambiguity ledger), names the final reply must still account for (ask-ledger), every auto-taken pick (goal ledger). |
+| mod | A hook written as a TypeScript or JavaScript module, listed under `modules` in `hooks.json`, instead of a shell script. |
+| nudge | A short reminder a hook adds to the conversation. It advises and does not block. |
+| one-shot | Happens once. A one-shot hook message fires once, then stays quiet. A one-shot run goes start to finish without stopping to ask. |
+| recorded | Written down only. No script or reviewer checks it. |
+| red-team | A reviewer told to find holes, such as edge cases, wrong assumptions or security gaps, before the work is trusted. |
+| residual | What a check still misses after it runs, stated so nobody trusts the check for more than it does. |
+| rigour | overseer's review level for one milestone: `lean`, `standard` or `adversarial`. It decides whether the milestone buys the boost and its code red-team. |
+| sentinel | A small file a run writes while in progress, such as the phase sentinel `.claude/cc-phase.json`. Hooks read it to know the current phase. |
+| standing | How a rule is enforced: gate, agent-graded, recorded, or unenforceable (it cannot be checked as written). |
+| `ultra` | As the first word after a taskmaster command or `/craft-layer:craft`, it boosts that run. Elsewhere it is a different setting: candor's tersest reply level, ultra-deep-research's `--ultra` mode, or the built-in `/code-review`'s cloud pass. |
+| `ultra-assess` | Typed near the start of a prompt: boosts an assessment run (audit, inventory, gap analysis), which returns findings, not task cards. From task-runner; `ultraassess` and `ultra-assessment` work too. |
+| `ultra-craft` | Typed near the start of a prompt, or anywhere in `/craft-layer:craft`'s arguments: boosts a craft run. It aims higher, researches live dated sources, uses stronger reviewers and adds a red-team. From craft-layer; `ultracraft` works too. |
+| `ultra-goal` | Typed near the start of a prompt, or anywhere in a taskmaster command's arguments: boost plus hands-off. Same as a first-word `goal`; `ultragoal` works too. |
+| `ultra-task` | Typed near the start of a prompt, or anywhere in a taskmaster command's arguments: a boost for one taskmaster run. Same as a first-word `ultra`; `ultratask` works too. |
 
 ---
 
@@ -320,7 +360,7 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[ui-ux](plugins/ui-ux)** | shadcn/ui and Tailwind rules, design tokens, a theming system, motion best practices, the WCAG audit, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface — install `ui-libraries` with it ([companions](#companions-install-these-together)) |
+| **[ui-ux](plugins/ui-ux)** | shadcn/ui and Tailwind rules, design tokens, a theming system, motion best practices, the WCAG audit, plus `ui-ux-engineer` + `ui-ux-reviewer`, and a blocking Stop check (`hooks/ui-check.sh`) that sends the turn back once when a UI file changed and was not checked in a browser (with no browser tool installed it only warns) | Building or restyling any interface — install `ui-libraries` with it ([companions](#companions-install-these-together)) |
 | **[ui-libraries](plugins/ui-libraries)** | component-library rules split out of ui-ux: Material UI (MUI X), Astryx, ReUI, Aceternity, and any other React or Vue library via `component-libraries` | The project already uses a component library other than shadcn |
 | **[design-kit](plugins/design-kit)** | the Claude Desktop design picker as local, own-your-files skills: an HTML deck with PDF/PPTX export, an artboard canvas with knobs and PNG export, designs rendered with the project's own components plus handoff-bundle intake, a design system extracted from the repo or a URL (DTCG tokens, a record the host reads, a UI kit), self-contained artifacts in a local gallery, a static design animated into a looping showcase with MP4 and GIF exports, and a beat-synced product film made from a brief with its facts, sync, contrast and loudness checked by script | Slides, mockups, a design system, a shareable page, a motion showcase or a launch film without leaving the repo |
 | **[craft-layer](plugins/craft-layer)** | the studio pipeline: creative direction, design research, asset sourcing with a licence gate, information design, and a five-tier motion catalogue with mandatory reduced-motion and reduced-bundle fallbacks | The result has to look designed, not generated — needs `ui-ux` and `ui-libraries` installed too ([companions](#companions-install-these-together)) |
@@ -369,7 +409,7 @@ the shell mockup rather than scaffolding a sandbox.
 | **[toolchain-experts](plugins/toolchain-experts)** | five reviewers that RUN the project's configured static analysis rather than reciting a checklist — phpstan/psalm/phpcs/rector, tsc/eslint/biome, the React hook rules, vue-tsc/eslint-plugin-vue, stylelint/pa11y/lighthouse-ci — and report which config CI enforces, what the baseline forgives, and which rules are switched off | A diff in a repo that has analyzers configured, and you want their real output triaged rather than a second opinion |
 | **[testing](plugins/testing)** | the pyramid and what to actually test, Pest/PHPUnit, Vitest/Jest, Playwright/Dusk, mocking at owned boundaries, flaky-test causes, coverage traps, TDD | Writing tests, reviewing tests, or chasing a flake |
 | **[ask-ledger](plugins/ask-ledger)** | the silent-avert catch: a UserPromptSubmit hook destructures a work-shaped ask into the things it names (proper nouns, quoted terms, `2D`-style tokens) and a Stop gate refuses a final message that does not account for each — `as named` / `substituted → what, why` / `omitted → why`; gate on the shape, the truth is the model's word | Work keeps quietly doing less than you named and nobody says so |
-| **[candor](plugins/candor)** | the marketplace's one blocking Stop gate, five clauses a script can prove: a `file:line` citation that resolves to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass, a dependency manifest changed without its lockfile; plus the terse reply mode — chat-message brevity as a shape contract, `lite` / `full` / `ultra` | You want the honesty rule to have teeth rather than tone; long sessions where the narration costs more than the work |
+| **[candor](plugins/candor)** | a blocking Stop gate (ask-ledger and ui-ux ship the other two), six clauses a script can prove: a `file:line` citation that resolves to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass, a dependency manifest changed without its lockfile, a `file:line` whose marked `quote:` is in neither that file nor its committed copy; plus the terse reply mode — chat-message brevity as a shape contract, `lite` / `full` / `ultra` | You want the honesty rule to have teeth rather than tone; long sessions where the narration costs more than the work |
 | **[debugging](plugins/debugging)** | reproduce first, read the actual error, one hypothesis per experiment, bisect, verify against the original symptom, escalate after three failed fixes; plus a delegatable `debugger` agent | A bug, a failing test, or the third failed fix in a row |
 | **[resilience](plugins/resilience)** | timeouts, retries with backoff and idempotency, circuit breaking, degradation, delivery semantics — plus error-handling design and concurrency safety | Code crosses a process boundary, or two writers can race |
 
@@ -530,11 +570,11 @@ bill you did not agree to.
 ## Game development
 
 One plugin per engine, so a project installs only its own — `/stack-scan:suggest` finds it from
-the engine's manifest (`project.godot`, `ProjectVersion.txt`, `*.uproject`, a Rojo project, a
-`bevy` or `ebiten/v2` dependency, `game.project`, a `phaser` or `pixi.js` dep), and
-`/all-plugins:install` leaves all ten out unless you name them. Each carries only what a model
-gets wrong from memory — the inversions of the engine's last few releases, its footguns and hard
-limits — and four of them ship a read-only checker script with an exit code. Adapted from
+the engine's manifest (`project.godot`, `ProjectVersion.txt`, `*.uproject`, a `phaser` or
+`pixi.js` dep), and `/all-plugins:install` leaves all six out unless you name them. Each carries
+only what a model gets wrong from memory — the inversions of the engine's last few releases, its
+footguns and hard limits — and three of them ship a read-only checker script with an exit code.
+Adapted from
 [gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills)
 @184b72b (Apache-2.0); what was kept, cut and verified is in
 `rationale/gamedev-design-import-2026-10-26.md`. Nothing here is measured against a control arm.
@@ -544,10 +584,6 @@ limits — and four of them ship a read-only checker script with an exit code. A
 | **[godot](plugins/godot)** | Godot 4.4–4.7 inversions (Jolt as the 3D default and its behaviour differences, 4.7's typed-return and packed-array changes, `.uid` sidecars, `duplicate_deep`), multiplayer and export traps, a headless test runner that cannot hang or exit 0 on failure, and `check_godot_project.py` for broken `res://`, uid and scene references | Any `.gd`, `.tscn`, `.tres` or `project.godot` work |
 | **[unity](plugins/unity)** | Unity 6 renames and build-profile traps, batch-mode builds that exit 0 on errors, project-wide input actions enabling every map, `Awaitable` pooling, and `check_unity_project.py` for `.meta`/GUID breakage | C# under `Assets/`, input actions, CI builds |
 | **[unreal](plugins/unreal)** | UE 5.8's Zen cooked store and SDK minimums, Enhanced Input setup and rebinding, headless automation tests | Packaging, input, gameplay C++ |
-| **[roblox](plugins/roblox)** | DataStore budgets and retry traps, remote-event limits and ordering, Server Authority, the Studio MCP and lint pipeline | Luau under Rojo, data stores, networking |
-| **[bevy](plugins/bevy)** | the 0.17–0.20 breaking renames (resources as entities, `On<Add<T>>`, messages vs events, flattened pointer events) | Any Bevy system, query or plugin |
-| **[defold](plugins/defold)** | `game.project` compiled-path rules, Bob and headless-run traps, and `check_defold_project.py` | Defold collections, scripts, builds |
-| **[ebitengine](plugins/ebitengine)** | v2.9/v2.10 and Go 1.24 inversions (pure-Go desktop builds, `lib/wasm`, renamed vector and audio APIs), headless CI, and `check_ebitengine.py` for work in `Draw`/`Update` that belongs elsewhere | Any Ebitengine game |
 | **[phaser](plugins/phaser)** | Phaser 3→4 inversions (filters replace preFX/postFX, `setTintFill` a stub, `TAU` changed) and Arcade collision traps | `phaser` in the lockfile |
 | **[pixijs](plugins/pixijs)** | PixiJS v7→v8 inversions (`await app.init`, the ticker argument, `globalpointermove`, `Assets.load` first) | `pixi.js` in the lockfile |
 | **[gamedev](plugins/gamedev)** | the engine-agnostic half: Steam and itch.io release (`check_steam_build.py` for SteamPipe scripts), asset checks (`asset_report.py`), Yarn Spinner 3 and Ink, seed stability across runtime versions, XAG text-size and ASWG loudness floors | Shipping, assets, dialogue, procedural generation |
@@ -626,14 +662,15 @@ advertisement:
   ```bash
   grep -lE 'permissionDecision[": ]+deny' plugins/*/hooks/*.sh  # PreToolUse blocks
   grep -lE 'permissionDecision[": ]+ask'  plugins/*/hooks/*.sh  # blocks until you answer
-  grep -lE 'exit 2' plugins/*/hooks/*.sh                        # Stop-tier blocks
+  grep -lE 'decision[": ]+block' plugins/*/hooks/*.sh           # Stop-tier blocks
   ```
 
-  Two things the recount itself cannot tell you, so they are written down once:
-  `command-guard` builds its verdict dynamically (`jq --arg d "$decision"`) and matches
-  none of the three greps while being the broadest blocker here; and an `ask` stops the
+  Three things the recount itself cannot tell you, so they are written down once:
+  `command-guard`'s `destructive-guard.sh` builds its verdict dynamically (`jq -cn --arg d "$decision"`) and matches
+  none of the three greps while being the broadest blocker here; an `ask` stops the
   tool call just as hard as a `deny` — mis-tiering one as advisory is the mistake
-  `ui-ux`'s README made until 2026-09-14.
+  `ui-ux`'s README made until 2026-09-14; and the greps read only `hooks/*.sh`, so a mod
+  (`.ts`) hook that denies, such as secret-scanning's `hooks/redact.ts`, is not counted.
 
   Everything else is an instruction a competent model chooses to follow. Each
   plugin's own docs say which tier it is in; where they say `recorded`, nothing

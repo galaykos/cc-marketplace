@@ -1,12 +1,6 @@
 #!/bin/bash
-# route-prompt.sh — UserPromptSubmit, fails open: on any prompt but a harness frame, prints once each the low-confidence signals route.sh queued for this context;
-#   then, on the session's first work-shaped prompt that no ScheduleWakeup or CronCreate call scheduled (a /loop re-fire), the rules
-#   for judging the host's own command listing. It picks no command.
-# Off: CC_REMIND=off (every advisory nudge in this marketplace) or CC_ROUTE=off (this hook); unset, the /config options cc_remind / cc_route decide.
-# Misses: a symptom phrased without a state verb (`payment failures spiking`, `login error after the upgrade`); fires anyway on a chat sentence
-#   carrying one (`the build is slow to watch`) or a `?`-ended one naming a making verb (`what does the build script do?`); waits out
-#   a `?`-ended symptom with no making verb and no request form (`the login is broken?`). Repeats a signal on the next prompt when
-#   its state file cannot be rewritten.
+# UserPromptSubmit: on any prompt but a harness frame, prints once each the low-confidence signals route.sh queued for this context; then, on the session's first work-shaped prompt no ScheduleWakeup or CronCreate call scheduled, the rules for judging the host's command listing. It picks no command; fails open.
+# Misses a symptom without a state verb; fires on a chat sentence carrying one, or a ?-ended one naming a making verb; waits out a ?-ended symptom with no making verb or request form; repeats a signal whose state file cannot be rewritten. Off: CC_REMIND=off or CC_ROUTE=off; unset, /config.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route-prompt.sh
 MARKER_TTL_MIN=1440
 
@@ -51,8 +45,6 @@ cc_plugin_state() {
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -74,8 +66,7 @@ cc_option() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/prompt-shape.md
 # Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste, cc_prompt_auth_surface: stdin;
 #   cc_prompt_scheduled: the file it names) and writes nothing.
-# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back
-#   marker — not a human turn.
+# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back marker.
 # cc_prompt_scheduled <prompt> <transcript>: status 0 when <transcript> holds a ScheduleWakeup or CronCreate call whose prompt is
 #   <prompt> exactly: a timer re-delivering an earlier ask, which the hook payload does not mark. Needs jq.
 # cc_prompt_auth_surface: filter for paths; prints each stdin line naming an auth, secret, payment or migration surface (not `author`;
@@ -155,9 +146,7 @@ cc_prompt_question() {
   case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
   case "$(cc_option CC_ROUTE on)" in off) exit 0 ;; esac
 
-  # A harness frame is not a human turn. The flush below ran on task notifications, hand-backs and Stop hook feedback, spending
-  # the digest where nobody judged it (45 of 65 in one measured session); skipped here, it waits for the next human prompt.
-  # The list is the shared prompt-shape block's, as in ask-ledger and code-review. Misses: a frame it does not name, which still flushes.
+  # A harness frame (the shared prompt-shape list) is not a human turn: skipped here, the flush waits for the next human prompt; a frame the list does not name still flushes.
   cc_prompt_frame "$prompt" && exit 0
 
   # Key and root as route.sh spells them (`.transcript_path // .session_id`, hashed; cc_state_root): any other spelling misses its file.
@@ -176,7 +165,7 @@ cc_prompt_question() {
       | join("; ")
     ' "$state_f" 2>/dev/null)
     if [ -n "$digest" ]; then
-      printf '[skill-router] Signals from recent edits — judge each in one line before continuing, load the skill only if it applies: %s.\n' "$digest"
+      printf '[skill-router] Your recent edits may need these skills: %s. Load each one that applies, or say in one line why it does not.\n' "$digest"
       upd=$(jq '(.pending_low // []) |= map(.flushed = true)' "$state_f" 2>/dev/null) \
         && [ -n "$upd" ] && printf '%s\n' "$upd" > "$state_f" 2>/dev/null
     fi
@@ -185,8 +174,7 @@ cc_prompt_question() {
   # Slash commands manage their own flow — but only AFTER the flush above ran.
   case "$prompt" in "/"*) exit 0 ;; esac
 
-  # A paste is reference, as in ask-ledger and taskmaster: its verbs are not the ask, and it no longer pushes the ask out of the head.
-  # Nothing typed beside it: the paste is the ask, read whole.
+  # A paste is reference, its verbs not the ask; with nothing typed beside it, the paste is the ask, read whole.
   scrub=$(printf '%s' "$prompt" | cc_prompt_unpaste)
   case "$scrub" in *[![:space:]]*) ;; *) scrub=$prompt ;; esac
   scrub=$(printf '%s' "$scrub" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
@@ -195,24 +183,18 @@ cc_prompt_question() {
   printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|router|route|trigger|catalog)' && exit 0
   printf '%s' "$head" | grep -qF '[skill-router]' && exit 0
 
-  # A question or a hands-off ask is not a work request (2026-10-13: the check fired on "I got a question, don't work on anything"
-  # and on `?`-ended error reports); one asking for strong-tier work outside the hands-off clause (`then fix…`, not `the deploy`),
-  # or a request form (`can you…?`), is.
+  # A question or a hands-off ask is not a work request; one asking for strong-tier work outside the hands-off clause, or a request form (`can you…?`), is.
   strong='build|create|make|add|implement|develop|write|rewrite|refactor|migrate|port|fix|debug|review|audit|design|redesign|restyle|theme|style|test|deploy|ship|optimi[sz]e|speed up|scaffold|set ?up|plan|spec|integrate|automate|investigate|500s?|regress(ed|ion)?|not working'
   cc_prompt_question "$scrub" "\b($strong)\b" && exit 0
   # One grep, three tiers: validate.sh allows four prompt greps here, so a new tier is an alternation in it, never a fifth line.
-  # A weak symptom (down, slow, broken…) counts only after a state verb: bare, it matches `scroll down` and `the meeting ran slow`.
-  # error/crash count after a weak-tier verb (`an`, `with`, `see`, `throw` added for them) or opening a sentence (`Error: …`):
-  # bare, they fired on `that error message in the log`; dropped entirely, `I'm getting an error` went silent.
+  # A weak symptom (down, slow, broken…) or error/crash counts only after a state or weak-tier verb, or error opening a sentence: bare, they match `scroll down` and `that error message in the log`.
   printf '%s' "$head" | grep -qiE "\b($strong|why is)\b|\b(is|are|was|were|been|went|going|get(s|ting)?|got|keeps?|kept|still|now|seems?|looks?|am|an|with|see(s|ing)?|saw|throw(s|ing|n)?|threw)\b[[:space:]]+([a-z]+[[:space:]]+)?\b(down|slow(er)?|broken|failing|fails|leak(s|ing)?|stuck|crash(es|ed|ing)?|errors?)\b|(^|[.!?;:][[:space:]]+)errors?\b" || exit 0
 
   # Raw session_id, not route.sh's context key: UserPromptSubmit never fires in a subagent, so no second context shares this marker.
   sid=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null)
   seen="${TMPDIR:-/tmp}/cc-route-catalog-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
   [ -e "$seen" ] && exit 0
-  # A /loop or ScheduleWakeup re-fire is answered like the slash command that set it, after the flush: the payload does not mark it,
-  # so cc_prompt_scheduled looks in the transcript for the call that scheduled it, once the check would otherwise speak.
-  # A host /loop tick is a frame, above.
+  # A /loop or ScheduleWakeup re-fire is answered like the slash command that set it; the payload does not mark it, so cc_prompt_scheduled reads the transcript, only once the check would otherwise speak.
   cc_prompt_scheduled "$prompt" "$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)" && exit 0
   # mkdir failed: anything at the path (fired, or a squatting file) suppresses; a vacant path means TMPDIR is unwritable, so deliver.
   if ! mkdir "$seen" 2>/dev/null; then
@@ -220,30 +202,6 @@ cc_prompt_question() {
   fi
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-route-catalog-*' -type d -mmin +"$MARKER_TTL_MIN" -exec rmdir {} + 2>/dev/null
 
-  cat <<CATALOG
-[skill-router] Tool-fit check (once this session). Judge against the slash commands already listed in this session — do not rebuild or ask for that list.
-
-Apply this to work requests for the rest of the session:
-
-1. Judge which listed command best fits the ASK — its substance, not its wording. Most
-   requests fit none of them. Silence is the default and the common case.
-2. If the user NAMED a tool (a command, a plugin, a pipeline) and a listed command
-   clearly fits the ask better, do NOT silently switch and do NOT silently comply.
-   Ask via AskUserQuestion, exactly two options:
-     "Proceed with <better-command> (Recommended)" / "Proceed with <what-they-named> as asked"
-   Give one line of why the other fits — the deliverable's shape, not a preference.
-3. If no tool was named and one clearly fits, name it in one line and carry on. No picker.
-   Exception: when a scope-first reminder fired on the same prompt, satisfy it before
-   carrying on — scoping the work outranks tool-fit. Which reminder that is varies by
-   phase and rank, not by plugin: it may be the clarifying-round directive, a
-   build-vs-buy check, a docs check, or a stuck-loop nudge. Obey whichever one spoke.
-4. Close call, or the named tool IS the best fit: say nothing at all. A tool being
-   listed is not a reason to route to it; over-suggesting is the failure mode here.
-5. At most one picker per named tool per session. Declining is durable — a user who
-   kept their choice is not asked about that tool again.
-6. Under a hands-off boost (an ultra-goal run, or a Goal: marker in the card index),
-   auto-take the Recommended route instead of asking, and record it in the goal ledger
-   with the rationale and both options, per the taskmaster ultra skill's Goal rules.
-CATALOG
+  printf '%s\n' '[skill-router] If the user named a tool and a listed command fits the ask better, ask once which to use. If none was named and one clearly fits, name it in one line after any open questions; otherwise say nothing about commands. In a run that decides for you (`goal`, `goal-lean`, `ultra-goal`, or `Goal: true` in the card index), pick the better fit, say so, and add it to the run'\''s decision log.'
 } 2>/dev/null
 exit 0

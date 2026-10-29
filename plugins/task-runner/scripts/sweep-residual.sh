@@ -1,23 +1,15 @@
 #!/usr/bin/env bash
-# Sweep-migration residual gate. Freezes the target set of an at-scale mechanical
-# change, then RE-MEASURES it after the edits and fails while occurrences survive.
-#
-# WHY. Given "migrate every axios call to fetch" on a tree with twelve occurrences
-# — three behind an aliased import, one built dynamically, one in a CI YAML, one in
-# a test fixture — a competent model greps `axios.`, edits what it found, runs a
-# green suite (the alias path has no test), and reports the migration complete. The
-# failure is not knowledge. Nothing forces a SECOND measurement after the edits,
-# and nothing demands that a surviving occurrence be justified in writing. This is
-# that second measurement.
-#
+# sweep-residual.sh — residual gate for an at-scale mechanical change: --freeze records the files a pattern hits, --measure re-greps after the edits and fails while unallowlisted occurrences survive or the target set moved, --allow records a written reason for one.
+# Misses: one ERE over text, so a call built at runtime from pieces no regex spans is invisible; the freeze keeps the file list and a tree hash, not contents.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/sweep-residual.sh (marketplace repository)
+
 #   sweep-residual.sh --freeze  --id <id> --pattern <ere> [--dir DIR] [--glob EXT]…
 #   sweep-residual.sh --measure --id <id> [--dir DIR]
 #   sweep-residual.sh --allow   --id <id> --file PATH --reason "why"
 #
 # State: <repo root>/.claude/task-runner/sweep-<id>.json — the frozen file list, its git
 # tree hash, the original count, the allowlist, and every measurement taken. The root is
-# the git toplevel of --dir (else --dir itself), like reduction-record.sh: `--dir src` or a
-# run from a subdirectory used to leave a stray src/.claude/ state dir beside the code.
+# the git toplevel of --dir (else --dir itself).
 #
 # Exit codes, mirroring negative-control.sh's vocabulary:
 #   0  clean — zero unallowlisted residual
@@ -25,13 +17,6 @@
 #   4  target set moved — files appeared or vanished since the freeze
 #   5  cannot measure — no state file, no pattern, unreadable tree
 #   3  usage error
-#
-# HONEST LIMITATIONS. The freeze records the file list and a tree hash, not file
-# contents, so a file edited between freeze and measure is expected — that IS the
-# work. Detection is one ERE over text: a call constructed entirely at runtime from
-# pieces no regex spans is invisible here, which is exactly why the enumeration
-# step below asks for FOUR passes rather than one, and why the allowlist demands a
-# written reason instead of a suppression comment.
 set -u
 PROG=${0##*/}
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
@@ -64,9 +49,7 @@ STATE_ROOT=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || STATE_ROOT=
 STATE_DIR="$STATE_ROOT/.claude/task-runner"
 STATE="$STATE_DIR/sweep-$id.json"
 
-# Non-code carriers are IN SCOPE on purpose. A migration that leaves the old name
-# in a CI workflow, a fixture, a doc example or an i18n catalogue is not finished —
-# and those are precisely the files a code-shaped grep skips.
+# Non-code carriers (a CI workflow, a fixture, a doc example, an i18n catalogue) are in scope: a code-shaped grep skips exactly those.
 default_find() {
   find "$dir" \
     \( -name node_modules -o -name vendor -o -name .git -o -name dist -o -name build \
@@ -151,8 +134,7 @@ EOF
 
     printf 'sweep %s: original %s → now %s (unallowlisted residual %s)\n' "$id" "$orig" "${total:-0}" "$residual"
 
-    # Target set moved: new files carrying the pattern that were not frozen. A file
-    # added mid-run is the case a one-shot grep cannot see at all.
+    # New files carrying the pattern that were not frozen: a one-shot grep cannot see a file added mid-run.
     newfiles=""
     while IFS=$'\t' read -r f n; do
       [ -n "$f" ] || continue

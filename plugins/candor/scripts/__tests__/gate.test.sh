@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# gate.test.sh — drives hooks/gate.sh with synthetic transcripts and Stop/SubagentStop payloads carrying transcript_path, asserting exit status
-#   and stderr: clauses 1, 2 and 5, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage.
+# gate.test.sh — drives hooks/gate.sh with synthetic transcripts and Stop/SubagentStop payloads carrying transcript_path, asserting the verdict
+#   and its text: clauses 1, 2, 5 and 6, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/gate.test.sh
 set -u
 
@@ -32,11 +32,29 @@ tres()  { jq -cn '{type:"user",message:{content:[{type:"tool_result",content:"ok
 payload()        { jq -cn --arg tp "$1" --arg cwd "$CWD" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:false}'; }
 payload_active() { jq -cn --arg tp "$1" --arg cwd "$CWD" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:true}'; }
 
+# gate <env> <payload> [hook] sets rc, err and out (stdout). A Stop block is exit 0 with {"decision":"block",reason,systemMessage} on
+#   stdout: rc=2, and err is stderr plus the reason. A Stop pass may carry {"systemMessage":…} alone (rc stays 0). A SubagentStop
+#   block is exit 2 with the reason on stderr. Either event on the other's channel, or any other stdout, is rc=wrong-channel.
+gate() {
+  local sub=0
+  printf '%s' "$2" | jq -e '.hook_event_name=="SubagentStop"' >/dev/null 2>&1 && sub=1
+  out=$(printf '%s' "$2" | env ${1:-} bash "${3:-$HOOK}" 2>"$WS/stderr"); rc=$?
+  err=$(cat "$WS/stderr")
+  if [ -n "$out" ]; then
+    if [ "$rc" = 0 ] && [ "$sub" = 0 ] && printf '%s' "$out" | jq -e '.decision=="block" and (.reason|type=="string" and length>0) and (.systemMessage|type=="string" and length>0)' >/dev/null 2>&1; then
+      rc=2; err="$err${err:+
+}$(printf '%s' "$out" | jq -r .reason)"
+    elif [ "$rc" != 0 ] || [ "$sub" = 1 ] || ! printf '%s' "$out" | jq -e '(has("decision")|not) and (.systemMessage|type=="string" and length>0)' >/dev/null 2>&1; then
+      rc=wrong-channel
+    fi
+  elif [ "$rc" = 2 ] && [ "$sub" = 0 ]; then rc=wrong-channel; fi
+}
+
 check()      { rm -f "$MARKER" "$CLAIMED"; check_keep "$@"; }
 check_keep() {
-  local desc="$1" envv="$2" tfile="$3" exp_rc="$4" exp_sub="$5" err rc ok=1
-  err=$(payload "$tfile" | env $envv bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  [ "$rc" -eq "$exp_rc" ] || ok=0
+  local desc="$1" envv="$2" tfile="$3" exp_rc="$4" exp_sub="$5" ok=1
+  gate "$envv" "$(payload "$tfile")"
+  [ "$rc" = "$exp_rc" ] || ok=0
   if [ "$exp_sub" != "__NONE__" ]; then
     printf '%s' "$err" | grep -qF "$exp_sub" || ok=0
   else
@@ -126,8 +144,8 @@ T="$WS/c21.jsonl"; { user "where"; asst "The handler is in Invented.php:12."; } 
 check "an invented basename still blocks beside a vendor/ tree" "" "$T" 2 "no file named Invented.php found under"
 # The lookup is sourced from hooks/cite.sh: without it the citation clause stands down, the gate still exits 0.
 mkdir -p "$WS/lone"; cp "$HOOK" "$WS/lone/gate.sh"
-rm -f "$MARKER" "$CLAIMED"; err=$(payload "$T" | bash "$WS/lone/gate.sh" 2>&1 >/dev/null); rc=$?
-if [ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF 'hooks/cite.sh not loaded'; then pass=$((pass+1)); printf 'PASS  without hooks/cite.sh the citation clause stands down and says so\n'
+rm -f "$MARKER" "$CLAIMED"; gate "" "$(payload "$T")" "$WS/lone/gate.sh"
+if [ "$rc" = 0 ] && printf '%s' "$err" | grep -qF 'hooks/cite.sh not loaded'; then pass=$((pass+1)); printf 'PASS  without hooks/cite.sh the citation clause stands down and says so\n'
 else fail=$((fail+1)); printf 'FAIL  without hooks/cite.sh the citation clause stands down and says so (rc=%s; stderr=%s)\n' "$rc" "$err"; fi
 
 T="$WS/r1.jsonl"; { asst "The retry is disabled."; user "Are you sure?"; asst "You're absolutely right, my mistake — it is enabled."; } > "$T"
@@ -182,13 +200,16 @@ rm -f "$MARKER" "$CLAIMED"
 payload "$T" | bash "$HOOK" >/dev/null 2>&1
 if [ -f "$CLAIMED" ]; then pass=$((pass+1)); printf 'PASS  block writes the namespaced record\n'
 else fail=$((fail+1)); printf 'FAIL  block writes the namespaced record\n'; fi
-payload_active "$T" | bash "$HOOK" >/dev/null 2>&1; rc=$?
-if [ "$rc" -eq 0 ] && [ ! -f "$CLAIMED" ]; then pass=$((pass+1)); printf 'PASS  own continuation releases and clears the record\n'
+gate "" "$(payload_active "$T")"
+if [ "$rc" = 0 ] && [ ! -f "$CLAIMED" ]; then pass=$((pass+1)); printf 'PASS  own continuation releases and clears the record\n'
 else fail=$((fail+1)); printf 'FAIL  own continuation releases and clears the record (rc=%s)\n' "$rc"; fi
 rm -f "$MARKER" "$CLAIMED"
-payload_active "$T" | bash "$HOOK" >/dev/null 2>&1; rc=$?
-if [ "$rc" -eq 2 ]; then pass=$((pass+1)); printf 'PASS  sibling block does not disarm this gate\n'
+gate "" "$(payload_active "$T")"
+if [ "$rc" = 2 ]; then pass=$((pass+1)); printf 'PASS  sibling block does not disarm this gate\n'
 else fail=$((fail+1)); printf 'FAIL  sibling block does not disarm this gate (rc=%s)\n' "$rc"; fi
+if [ "$(printf '%s' "$out" | jq -r .systemMessage)" = "candor sent the turn back: the reply cites a file:line that does not exist." ]; then
+  pass=$((pass+1)); printf 'PASS  a Stop block tells the person why in one plain systemMessage line\n'
+else fail=$((fail+1)); printf 'FAIL  a Stop block tells the person why in one plain systemMessage line (out=%s)\n' "$out"; fi
 
 sub_payload() { # agent-transcript  last-msg  [stop_hook_active]
   jq -cn --arg tp "$WS/parent.jsonl" --arg atp "$1" --arg m "$2" --arg cwd "$CWD" --argjson a "${3:-false}" \
@@ -201,35 +222,35 @@ SUB_CLAIMED="$CWD/.claude/candor/blocked-$(printf '%s' aac4725192b90da07 | cksum
 sub_check() { # desc  last-msg  exp_rc  exp_sub
   local desc="$1" msg="$2" exp_rc="$3" exp_sub="$4" err rc ok=1
   rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"
-  err=$(sub_payload "$A" "$msg" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  [ "$rc" -eq "$exp_rc" ] || ok=0
+  gate "" "$(sub_payload "$A" "$msg")"
+  [ "$rc" = "$exp_rc" ] || ok=0
   if [ "$exp_sub" != "__NONE__" ]; then printf '%s' "$err" | grep -qF "$exp_sub" || ok=0; else [ -z "$err" ] || ok=0; fi
   if [ "$ok" -eq 1 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$desc"
   else fail=$((fail+1)); printf 'FAIL  %s (rc=%s want %s; stderr=%s)\n' "$desc" "$rc" "$exp_rc" "$err"; fi
 }
-sub_check "subagent: fabricated citation in last_assistant_message blocks" "Found it at src/ghost.ts:12." 2 "this report cites a location that does not exist"
+sub_check "subagent: fabricated citation in last_assistant_message blocks" "Found it at src/ghost.ts:12." 2 "This report cites a location that does not exist"
 sub_check "subagent: the block asks for the COMPLETE report, not just the fix" "Found it at src/ghost.ts:12." 2 "re-send your COMPLETE report"
 sub_check "subagent: resolving citation passes"                            "Found it at src/real.ts:3."   0 "__NONE__"
 sub_check "subagent: reversal clause disarmed (no user turn to push back)" "You're right, my mistake."   0 "__NONE__"
 { user "find the bug"; asst "See src/real.ts:3."; } > "$A"
-sub_check "subagent: payload text is judged, not the transcript tail"      "Found it at src/ghost.ts:12." 2 "this report"
+sub_check "subagent: payload text is judged, not the transcript tail"      "Found it at src/ghost.ts:12." 2 "This report"
 rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"
 sub_payload "$A" "Found it at src/ghost.ts:12." | bash "$HOOK" >/dev/null 2>&1
 if [ -f "$SUB_CLAIMED" ] && [ ! -f "$CLAIMED" ]; then pass=$((pass+1)); printf 'PASS  subagent block writes its own claim, not the main thread'"'"'s\n'
 else fail=$((fail+1)); printf 'FAIL  subagent block writes its own claim (sub=%s main=%s)\n' "$([ -f "$SUB_CLAIMED" ] && echo y || echo n)" "$([ -f "$CLAIMED" ] && echo y || echo n)"; fi
-sub_payload "$A" "Found it at src/ghost.ts:12." true | bash "$HOOK" >/dev/null 2>&1; rc=$?
-if [ "$rc" -eq 0 ] && [ ! -f "$SUB_CLAIMED" ]; then pass=$((pass+1)); printf 'PASS  subagent continuation releases its own record\n'
+gate "" "$(sub_payload "$A" "Found it at src/ghost.ts:12." true)"
+if [ "$rc" = 0 ] && [ ! -f "$SUB_CLAIMED" ]; then pass=$((pass+1)); printf 'PASS  subagent continuation releases its own record\n'
 else fail=$((fail+1)); printf 'FAIL  subagent continuation releases its own record (rc=%s)\n' "$rc"; fi
 rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"
 sub_payload "$A" "Found it at src/ghost.ts:12." | bash "$HOOK" >/dev/null 2>&1
-sub_payload "$A" "Found it at src/ghost.ts:12." | bash "$HOOK" >/dev/null 2>&1; rc=$?
-if [ "$rc" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  subagent: same report re-stop passes (one-shot)\n'
+gate "" "$(sub_payload "$A" "Found it at src/ghost.ts:12.")"
+if [ "$rc" = 0 ]; then pass=$((pass+1)); printf 'PASS  subagent: same report re-stop passes (one-shot)\n'
 else fail=$((fail+1)); printf 'FAIL  subagent: same report re-stop passes (rc=%s)\n' "$rc"; fi
 
 # CLI 2.1.284 hands a report back as the last SubagentHandback tool_use's input.message (rationale/candor-subagent-probe-2026-09-29.md).
 handback() { jq -cn --arg m "$1" --arg n "SubagentHandback" '{type:"assistant",message:{content:[{type:"tool_use",name:$n,input:{message:$m}}]}}'; }
 A="$WS/agent-hb1.jsonl"; { user "find the bug"; handback "Found it at src/ghost.ts:12."; } > "$A"
-sub_check "subagent handback: fabricated citation in the handed-back report blocks" "Report delivered." 2 "this report cites a location that does not exist"
+sub_check "subagent handback: fabricated citation in the handed-back report blocks" "Report delivered." 2 "This report cites a location that does not exist"
 A="$WS/agent-hb2.jsonl"; { user "find the bug"; handback "Found it at src/real.ts:3."; } > "$A"
 sub_check "subagent handback: resolving citation in the handed-back report passes"  "Report delivered." 0 "__NONE__"
 A="$WS/agent-hb3.jsonl"; { user "find the bug"; tools Read; tres; } > "$A"
@@ -256,42 +277,42 @@ if command -v git >/dev/null 2>&1; then
   SENT="$CWD/.claude/task-runner/active-run.json"; NUDGE="$CWD/.claude/task-runner/gate-nudge"
   mkdir -p "$CWD/.claude/task-runner"; printf '{"slug":"t"}' > "$SENT"
   touch -t 200001010000 "$SENT"                   # registration precedes every stop below
-  RUN_SUB='registered run with no behavioral-gate pass'
+  RUN_SUB='has no recorded pass of behavioral-gate.sh'
 
   T="$WS/c4a.jsonl"; { user "fix it"; asst "Fixed at src/ghost.ts:12."; } > "$T"
-  err=$(payload "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && ! printf '%s' "$err" | grep -qF "$CITE_SUB" && [ -r "$NUDGE" ]; then
+  gate "" "$(payload "$T")"
+  if [ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && ! printf '%s' "$err" | grep -qF "$CITE_SUB" && [ -r "$NUDGE" ]; then
     pass=$((pass+1)); printf 'PASS  live run: clause 4 blocks first and alone, writes the nudge\n'
   else fail=$((fail+1)); printf 'FAIL  live run: clause 4 blocks first and alone (rc=%s nudge=%s stderr=%s)\n' "$rc" "$([ -r "$NUDGE" ] && echo y || echo n)" "$err"; fi
 
-  err=$(payload_active "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && printf '%s' "$err" | grep -qF "$CITE_SUB"; then
+  gate "" "$(payload_active "$T")"
+  if [ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && printf '%s' "$err" | grep -qF "$CITE_SUB"; then
     pass=$((pass+1)); printf 'PASS  bounded clause 4 prints, clause 1 still blocks the invented citation (continuation)\n'
   else fail=$((fail+1)); printf 'FAIL  bounded clause 4 + clause 1 on continuation (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
   rm -f "$MARKER" "$CLAIMED"
-  err=$(payload "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$CITE_SUB"; then
+  gate "" "$(payload "$T")"
+  if [ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$CITE_SUB"; then
     pass=$((pass+1)); printf 'PASS  bounded clause 4, fresh stop: clause 1 still blocks\n'
   else fail=$((fail+1)); printf 'FAIL  bounded clause 4, fresh stop: clause 1 (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
   T="$WS/c4b.jsonl"; { user "fix it"; asst "Fixed at src/real.ts:3."; } > "$T"
   rm -f "$MARKER" "$CLAIMED"
-  err=$(payload "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; then
+  gate "" "$(payload "$T")"
+  if [ "$rc" = 0 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; then
     pass=$((pass+1)); printf 'PASS  bounded clause 4 with a clean turn: print-only exit 0\n'
   else fail=$((fail+1)); printf 'FAIL  bounded clause 4 with a clean turn (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
   T="$WS/c4c.jsonl"; { user "fix it"; tools Edit; tres; asst "Done — implemented and verified."; } > "$T"
   rm -f "$MARKER" "$CLAIMED"
-  err=$(payload "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'claims completion'; then
+  gate "" "$(payload "$T")"
+  if [ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'says the work is done'; then
     pass=$((pass+1)); printf 'PASS  bounded clause 4: clause 3 still blocks a naked completion claim\n'
   else fail=$((fail+1)); printf 'FAIL  bounded clause 4 + clause 3 (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
   T="$WS/c4a.jsonl"; rm -f "$MARKER" "$CLAIMED" "$NUDGE"
-  err=$(payload "$T" | TASK_RUNNER_STOP_GATE=warn bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && printf '%s' "$err" | grep -qF "$CITE_SUB" && [ ! -e "$NUDGE" ]; then
+  gate "TASK_RUNNER_STOP_GATE=warn" "$(payload "$T")"
+  if [ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && printf '%s' "$err" | grep -qF "$CITE_SUB" && [ ! -e "$NUDGE" ]; then
     pass=$((pass+1)); printf 'PASS  clause 4 in warn mode prints, writes no nudge, clause 1 still blocks\n'
   else fail=$((fail+1)); printf 'FAIL  clause 4 warn + clause 1 (rc=%s nudge=%s stderr=%s)\n' "$rc" "$([ -e "$NUDGE" ] && echo y || echo n)" "$err"; fi
 
@@ -312,43 +333,42 @@ if command -v git >/dev/null 2>&1; then
 
   ( cd "$LW" && printf '{"name":"x","dependencies":{"a":"^1.0.0","b":"^2.0.0"}}\n' > package.json )
   clear_lock_state
-  err=$(lock_payload | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'lockfile did not'; then
+  gate "" "$(lock_payload)"
+  if [ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'lockfile did not'; then
     pass=$((pass+1)); printf 'PASS  clause 5: a dependency added with no lockfile change blocks\n'
   else fail=$((fail+1)); printf 'FAIL  clause 5 blocks on drift (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
   ( cd "$LW" && printf '{"lockfileVersion":3,"packages":{}}\n' > package-lock.json )
   clear_lock_state
-  err=$(lock_payload | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 0 ] && [ -z "$err" ]; then
+  gate "" "$(lock_payload)"
+  if [ "$rc" = 0 ] && [ -z "$err" ]; then
     pass=$((pass+1)); printf 'PASS  clause 5: manifest AND lockfile changed together is silent\n'
   else fail=$((fail+1)); printf 'FAIL  clause 5 silent on a matched pair (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
   ( cd "$LW" && git checkout -q -- . && printf '{"name":"x","version":"2.0.0","dependencies":{"a":"^1.0.0"}}\n' > package.json )
   clear_lock_state
-  err=$(lock_payload | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 0 ] && [ -z "$err" ]; then
+  gate "" "$(lock_payload)"
+  if [ "$rc" = 0 ] && [ -z "$err" ]; then
     pass=$((pass+1)); printf 'PASS  clause 5: a version bump is not a dependency change\n'
   else fail=$((fail+1)); printf 'FAIL  clause 5 silent on a version-only edit (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
   ( cd "$LW" && git checkout -q -- . && printf '{"name":"x","dependencies":{"a":"^1.0.0","c":"^3.0.0"}}\n' > package.json )
   clear_lock_state
-  err=$(lock_payload | CC_LOCKFILE_GATE=off bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 0 ] && [ -z "$err" ]; then
+  gate "CC_LOCKFILE_GATE=off" "$(lock_payload)"
+  if [ "$rc" = 0 ] && [ -z "$err" ]; then
     pass=$((pass+1)); printf 'PASS  clause 5: CC_LOCKFILE_GATE=off silences it\n'
   else fail=$((fail+1)); printf 'FAIL  clause 5 off switch (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
-  err=$(jq -cn --arg cwd "$LW" '{agent_transcript_path:"/nonexistent",cwd:$cwd,hook_event_name:"SubagentStop",last_assistant_message:"done"}' \
-        | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 0 ]; then
+  gate "" "$(jq -cn --arg cwd "$LW" '{agent_transcript_path:"/nonexistent",cwd:$cwd,hook_event_name:"SubagentStop",last_assistant_message:"done"}')"
+  if [ "$rc" = 0 ]; then
     pass=$((pass+1)); printf 'PASS  clause 5: disarmed for a subagent (no user turn to answer it)\n'
   else fail=$((fail+1)); printf 'FAIL  clause 5 subagent disarm (rc=%s stderr=%s)\n' "$rc" "$err"; fi
 
   mkdir -p "$LW/sub/dir"
   ( cd "$LW" && printf '{"name":"x","dependencies":{"a":"^1.0.0","d":"^4.0.0"}}\n' > package.json )
   clear_lock_state
-  err=$(jq -cn --arg cwd "$LW/sub/dir" '{transcript_path:"/nonexistent",cwd:$cwd,stop_hook_active:false}' | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'lockfile did not' && [ ! -e "$LW/sub/dir/.claude" ] && [ -f "$LW/.claude/candor/last" ]; then
+  gate "" "$(jq -cn --arg cwd "$LW/sub/dir" '{transcript_path:"/nonexistent",cwd:$cwd,stop_hook_active:false}')"
+  if [ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'lockfile did not' && [ ! -e "$LW/sub/dir/.claude" ] && [ -f "$LW/.claude/candor/last" ]; then
     pass=$((pass+1)); printf 'PASS  clause 5: a stop from a subdirectory reads the manifest at the repo root, state at the root\n'
   else fail=$((fail+1)); printf 'FAIL  clause 5 from a subdirectory (rc=%s subdir-state=%s stderr=%s)\n' "$rc" "$([ -e "$LW/sub/dir/.claude" ] && echo y || echo n)" "$err"; fi
 
@@ -368,8 +388,8 @@ if command -v git >/dev/null 2>&1; then
   SID="sess-0-5-0"
   IDIR="$TMPDIR/cc-candor-inflight-$(printf '%s' "$SID" | cksum | cut -d' ' -f1)"
   rec_of() { printf '%s/%s' "$IDIR" "$(printf '%s' "$1" | cksum | cut -d' ' -f1)"; }
-  RUN_SUB='registered run with no behavioral-gate pass'
-  WAIT_SUB='still in flight'
+  RUN_SUB='has no recorded pass of behavioral-gate.sh'
+  WAIT_SUB='still running'
 
   # stop_json <cwd> <transcript> [background_tasks-json] — the Stop payload as the host sends it
   stop_json() {
@@ -385,8 +405,8 @@ if command -v git >/dev/null 2>&1; then
     '{hook_event_name:"SubagentStart",session_id:$sid,transcript_path:$tp,cwd:$cwd,agent_id:$a,agent_type:"general-purpose"}'; }
   substop_json() { jq -cn --arg cwd "$RR" --arg sid "$SID" --arg a "$1" --arg m "$2" --arg tp "$WS/rparent.jsonl" --arg atp "$WS/ragent.jsonl" \
     '{hook_event_name:"SubagentStop",session_id:$sid,transcript_path:$tp,agent_transcript_path:$atp,cwd:$cwd,agent_id:$a,agent_type:"general-purpose",last_assistant_message:$m,stop_hook_active:false}'; }
-  # run_hook <hook> <json> [env] — sets rc and err
-  run_hook() { err=$(printf '%s' "$2" | env ${3:-} bash "$1" 2>&1 >/dev/null); rc=$?; }
+  # run_hook <hook> <json> [env] — sets rc and err; the gate goes through gate()
+  run_hook() { if [ "$1" = "$HOOK" ]; then gate "${3:-}" "$2"; else err=$(printf '%s' "$2" | env ${3:-} bash "$1" 2>&1 >/dev/null); rc=$?; fi; }
   verdict_is() { # desc  condition-exit-status
     if [ "$2" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"
     else fail=$((fail+1)); printf 'FAIL  %s (rc=%s stderr=%s)\n' "$1" "$rc" "$err"; fi
@@ -399,16 +419,16 @@ if command -v git >/dev/null 2>&1; then
 
   T="$WS/rsub1.jsonl"; { user "where"; asst "The guard is at src/real.ts:3."; } > "$T"
   clear_rr; run_hook "$HOOK" "$(stop_json "$SUBD" "$T")"
-  verdict_is "state root: a repo-relative citation resolves from a subdirectory cwd" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  verdict_is "state root: a repo-relative citation resolves from a subdirectory cwd" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
   T="$WS/rsub2.jsonl"; { user "where"; asst "The guard is at src/ghost.ts:3."; } > "$T"
   clear_rr; run_hook "$HOOK" "$(stop_json "$SUBD" "$T")"
   verdict_is "state root: a block from a subdirectory writes its marker at the repo root, none in the subdir" \
-    "$([ "$rc" -eq 2 ] && [ -f "$RR/.claude/candor/last" ] && [ ! -e "$SUBD/.claude" ]; echo $?)"
+    "$([ "$rc" = 2 ] && [ -f "$RR/.claude/candor/last" ] && [ ! -e "$SUBD/.claude" ]; echo $?)"
 
   mkdir -p "$TRD"; printf '{"slug":"t"}' > "$RSENT"; touch -t 200001010000 "$RSENT"
   clear_rr; run_hook "$HOOK" "$(stop_json "$SUBD" "$CLEAN")"
   verdict_is "state root: a subdirectory cwd reads the run registered at the repo root" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && [ -r "$RNUDGE" ] && [ ! -e "$SUBD/.claude" ]; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && [ -r "$RNUDGE" ] && [ ! -e "$SUBD/.claude" ]; echo $?)"
 
   rm -rf "$IDIR"
   run_hook "$PREAMBLE" "$(start_json agentA)"
@@ -416,37 +436,37 @@ if command -v git >/dev/null 2>&1; then
     "$([ "$(cat "$(rec_of agentA)" 2>/dev/null)" = agentA ]; echo $?)"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
   verdict_is "in flight: a fresh record suppresses the no-gate-pass block, prints, writes no nudge" \
-    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB" && ! printf '%s' "$err" | grep -qF "$RUN_SUB" && [ ! -e "$RNUDGE" ]; echo $?)"
+    "$([ "$rc" = 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB" && ! printf '%s' "$err" | grep -qF "$RUN_SUB" && [ ! -e "$RNUDGE" ]; echo $?)"
   run_hook "$HOOK" "$(substop_json agentA "Card 01 done; the tests ran green.")"
   verdict_is "in flight: SubagentStart then SubagentStop leaves no record" \
-    "$([ "$rc" -eq 0 ] && [ -z "$(ls -A "$IDIR" 2>/dev/null)" ]; echo $?)"
+    "$([ "$rc" = 0 ] && [ -z "$(ls -A "$IDIR" 2>/dev/null)" ]; echo $?)"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
   verdict_is "in flight: after the last hand-back the no-gate-pass block is back" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
 
   run_hook "$PREAMBLE" "$(start_json agentOld)"; touch -t 200001010000 "$(rec_of agentOld)"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
   verdict_is "in flight: an expired record (>180 min) does not suppress the block, and is swept" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && [ ! -e "$(rec_of agentOld)" ]; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && [ ! -e "$(rec_of agentOld)" ]; echo $?)"
 
   run_hook "$PREAMBLE" "$(start_json agentOff)" "CC_PREAMBLE=off"
   verdict_is "in flight: CC_PREAMBLE=off silences the text, not the record" \
     "$([ -z "$(printf '%s' "$err")" ] && [ -f "$(rec_of agentOff)" ]; echo $?)"
   run_hook "$HOOK" "$(substop_json agentOff "Found it at src/ghost.ts:12.")"
   verdict_is "in flight: a SubagentStop the gate BLOCKS keeps the record (the agent keeps running)" \
-    "$([ "$rc" -eq 2 ] && [ -f "$(rec_of agentOff)" ]; echo $?)"
+    "$([ "$rc" = 2 ] && [ -f "$(rec_of agentOff)" ]; echo $?)"
   run_hook "$HOOK" "$(substop_json agentOff "Found it at src/real.ts:3.")"
-  verdict_is "in flight: its clean SubagentStop then removes it" "$([ "$rc" -eq 0 ] && [ ! -e "$(rec_of agentOff)" ]; echo $?)"
+  verdict_is "in flight: its clean SubagentStop then removes it" "$([ "$rc" = 0 ] && [ ! -e "$(rec_of agentOff)" ]; echo $?)"
 
   # The host's list, probed on CLI 2.1.282, wins whenever the payload carries it.
   BT_RUNNING='[{"id":"a176b79786a57ef62","type":"subagent","status":"running","description":"card 02","agent_type":"general-purpose"}]'
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" "$BT_RUNNING")"
   verdict_is "in flight: background_tasks listing a running subagent suppresses the block with no record" \
-    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB"; echo $?)"
+    "$([ "$rc" = 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB"; echo $?)"
   run_hook "$PREAMBLE" "$(start_json agentKilled)"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" '[{"id":"b1","type":"shell","status":"running","command":"sleep 9"}]')"
   verdict_is "in flight: a present background_tasks with no worker outranks a stale record (killed agent)" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
   rm -f "$(rec_of agentKilled)"
 
   # task-runner's behavioral gate in background Bash records its PID, then the HEAD it tests, in bg/running.pid.
@@ -458,34 +478,36 @@ if command -v git >/dev/null 2>&1; then
   printf '%s\n%s\n' "$LIVE" "$RHEAD" > "$TRD/bg/running.pid"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
   verdict_is "in flight: a behavioral gate whose PID is live at HEAD holds the no-gate-pass block like a worker" \
-    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB" && ! printf '%s' "$err" | grep -qF "$RUN_SUB" && [ ! -e "$RNUDGE" ]; echo $?)"
+    "$([ "$rc" = 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB" && ! printf '%s' "$err" | grep -qF "$RUN_SUB" && [ ! -e "$RNUDGE" ]; echo $?)"
   printf '%s\n%s\n' "$LIVE" "0123456789abcdef0123456789abcdef01234567" > "$TRD/bg/running.pid"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
   verdict_is "in flight: a live behavioral-gate PID recorded for another HEAD is ignored" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
   kill "$LIVE" 2>/dev/null; wait "$LIVE" 2>/dev/null
   printf '%s\n%s\n' "$LIVE" "$RHEAD" > "$TRD/bg/running.pid"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
   verdict_is "in flight: a dead behavioral-gate PID at HEAD is ignored" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
   verdict_is "no gate pass: the block says to run the behavioral gate in the background" \
     "$(printf '%s' "$err" | grep -qF 'repo root, in the background, run task-runner'"'"'s scripts/behavioral-gate.sh'; echo $?)"
   verdict_is "no gate pass: the block names the 7200000 ms Bash timeout (CLI 2.1.285+ stops a background call at 30 min)" \
     "$(printf '%s' "$err" | grep -qF 'with a Bash timeout of 7200000'; echo $?)"
+  verdict_is "no gate pass: the block sets the pace — one shell step per call, a denied or failed call ran nothing" \
+    "$(printf '%s' "$err" | grep -qxF '  No rush: run one shell step per call and read its result; a denied or failed call ran nothing.'; echo $?)"
   # Sandboxed Bash (bwrap --unshare-pid) records the sandbox's own PID: dead here, or another process. With /proc the gate is
   #   found by its command line and a cwd under the root.
   if [ -d /proc/self ]; then
     (cd "$RR" && exec bash "$WS/behavioral-gate.sh") >/dev/null 2>&1 & SBX=$!; await_gate "$SBX"
     clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
     verdict_is "sandbox: a dead recorded PID while a behavioral-gate.sh runs from under the root holds the block" \
-      "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB"; echo $?)"
+      "$([ "$rc" = 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB"; echo $?)"
     kill "$SBX" 2>/dev/null; wait "$SBX" 2>/dev/null
     (cd "$WS" && exec bash "$WS/behavioral-gate.sh") >/dev/null 2>&1 & SBX=$!; await_gate "$SBX"
     sleep 300 >/dev/null 2>&1 & OTHER=$!
     printf '%s\n%s\n' "$OTHER" "$RHEAD" > "$TRD/bg/running.pid"
     clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
     verdict_is "sandbox: a recorded PID naming another live process, the only gate outside the root, is ignored" \
-      "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+      "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
     kill "$SBX" "$OTHER" 2>/dev/null; wait "$SBX" "$OTHER" 2>/dev/null
   fi
   rm -f "$TRD/bg/running.pid"
@@ -494,13 +516,13 @@ if command -v git >/dev/null 2>&1; then
   printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$RHEAD" > "$TRD/gate-pass.json"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" "$BT_RUNNING")"
   verdict_is "in flight: a claimed pass with no bg verdict record still blocks" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'left no verdict record'; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'left no verdict record'; echo $?)"
 
   printf '{"head":"%s","verdict":"no-behavioral-coverage"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
   COVRED="$TRD/reductions/coverage-bg-$H12.json"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN")"
   verdict_is "coverage: no-behavioral-coverage without a reduction blocks and names the reduction command" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "no-behavioral-coverage"' && printf '%s' "$err" | grep -qF "reduction-record.sh --kind coverage --id bg-$H12"; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'reached "no-behavioral-coverage"' && printf '%s' "$err" | grep -qF "reduction-record.sh --kind coverage --id bg-$H12"; echo $?)"
   RS="$ROOT/plugins/task-runner/scripts/reduction-record.sh"
   if [ -r "$RS" ]; then
     # The real writer, run from a subdirectory: it must land the file this gate reads.
@@ -514,24 +536,24 @@ if command -v git >/dev/null 2>&1; then
   T="$WS/rhide.jsonl"; { user "run the cards"; asst "All cards done, gate recorded."; } > "$T"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
   verdict_is "coverage: a matching reduction the closing report never names still blocks (disclosure)" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "never names" && printf '%s' "$err" | grep -qF "bg-$H12"; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "never names" && printf '%s' "$err" | grep -qF "bg-$H12"; echo $?)"
   T="$WS/rshow.jsonl"; { user "run the cards"; asst "Cards done. Reduced: bg-$H12 — no JS runner in this project covers the changed React files."; } > "$T"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
   verdict_is "coverage: no-behavioral-coverage + matching reduction + report naming it -> allow" \
-    "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+    "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
   touch -t 199901010000 "$COVRED"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
   verdict_is "coverage: a reduction older than the run's registration does not count" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "no-behavioral-coverage"'; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'reached "no-behavioral-coverage"'; echo $?)"
   touch "$COVRED"
   printf '{"head":"%s","verdict":"unverifiable-suite"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
   verdict_is "coverage: unverifiable-suite plus a coverage reduction still blocks" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "unverifiable-suite"'; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'reached "unverifiable-suite"'; echo $?)"
   printf '{"head":"%s","verdict":"empty-suite"}' "$RHEAD" > "$TRD/bg/bg-$RHEAD.json"
   clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
   verdict_is "coverage: empty-suite plus a coverage reduction still blocks" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'reached "empty-suite"'; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'reached "empty-suite"'; echo $?)"
 else
   printf 'SKIP  0.5.0 state-root / in-flight / coverage cases (git not available)\n'
 fi
@@ -549,114 +571,370 @@ if command -v git >/dev/null 2>&1; then
   QTR="$RQ/.claude/task-runner"; QRV="$QTR/rv"; QSENT="$QTR/active-run.json"; QCLOSED="$QTR/closed-run.json"
   mkdir -p "$QRV"
   qsent() { printf '{"slug":"q","branch":"%s"%s}' "$QBR" "$1" > "$QSENT"; touch -t 200001010000 "$QSENT"; }
-  qrun() { rm -rf "$RQ/.claude/candor" "$QTR/gate-nudge"; err=$(jq -cn --arg cwd "$RQ" --arg tp "$1" \
-    '{hook_event_name:"Stop",session_id:"q",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}' | bash "$HOOK" 2>&1 >/dev/null); rc=$?; }
+  qrun() { rm -rf "$RQ/.claude/candor" "$QTR/gate-nudge"; gate "" "$(jq -cn --arg cwd "$RQ" --arg tp "$1" \
+    '{hook_event_name:"Stop",session_id:"q",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}')"; }
   qis() { if [ "$2" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"; else fail=$((fail+1)); printf 'FAIL  %s (rc=%s stderr=%s)\n' "$1" "$rc" "$err"; fi; }
   QT="$WS/qclean.jsonl"; { user "run the cards"; asst "All cards done, gate recorded."; } > "$QT"
-  RANGE_SUB='no whole-range review recorded for HEAD'
-  UI_SUB='no ui-ux-reviewer dispatch recorded'
+  RANGE_SUB='no whole-diff review recorded for HEAD'
+  UI_SUB='no ui-ux-reviewer review recorded'
 
   qsent ",\"start_sha\":\"$QSTART\""
   printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
   printf '{}' > "$QRV/rv-seen-01.json"; printf '{}' > "$QRV/rv-seen-02.json"
   qrun "$QT"
   qis "range: a start_sha run with no range record for HEAD blocks and names RV-RANGE" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && printf '%s' "$err" | grep -qF "RV-RANGE: $Q12" && printf '%s' "$err" | grep -qF "${QSTART:0:12}..HEAD"; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && printf '%s' "$err" | grep -qF "RV-RANGE: $Q12" && printf '%s' "$err" | grep -qF "${QSTART:0:12}..HEAD"; echo $?)"
   git -C "$RQ" tag "$QBR"
   qrun "$QT"
   qis "branch: a tag named like the run's branch does not move the run to another branch" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
   git -C "$RQ" tag -d "$QBR" >/dev/null
   git -C "$RQ" checkout -q --detach
   qrun "$QT"
   qis "branch: a detached HEAD is not the run's branch, as before" \
-    "$([ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "registered on branch $QBR, now on HEAD"; echo $?)"
+    "$([ "$rc" = 0 ] && printf '%s' "$err" | grep -qF "registered on branch $QBR and you are on HEAD"; echo $?)"
   git -C "$RQ" checkout -q "$QBR"
   QSHIM="$WS/qshim"; mkdir -p "$QSHIM"
   printf '#!/bin/sh\nfor a in "$@"; do [ "$a" = symbolic-ref ] && exit 128; done\nexec %s "$@"\n' "$(command -v git)" > "$QSHIM/git"; chmod +x "$QSHIM/git"
   PATH="$QSHIM:$PATH" qrun "$QT"
   qis "branch: symbolic-ref failing with exit 128 leaves the branch unknown, and the run is still enforced" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
   printf '{}' > "$QRV/range-${QSTART:0:12}.json"
   qrun "$QT"
-  qis "range: a record for an earlier HEAD does not count" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
+  qis "range: a record for an earlier HEAD does not count" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
   printf '{}' > "$QRV/range-${QHEAD:0:7}.json"
   qrun "$QT"
-  qis "range: a record whose id is a 7-char prefix of HEAD passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  qis "range: a record whose id is a 7-char prefix of HEAD passes" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
   echo c >> "$RQ/src/a.ts"; git -C "$RQ" commit -qam fix; QFIX=$(git -C "$RQ" rev-parse HEAD)
   printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QFIX" > "$QTR/gate-pass.json"
   qrun "$QT"
   qis "range: a commit after a range review owes only the commits since it" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qE "/code-review:review ${QHEAD:0:7}[0-9a-f]*\.\.HEAD"; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qE "/code-review:review ${QHEAD:0:7}[0-9a-f]*\.\.HEAD"; echo $?)"
   git -C "$RQ" reset -q --hard "$QHEAD"
   printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
   rm -f "$QRV"/range-*.json
   qsent ""
   qrun "$QT"
-  qis "range: a sentinel without start_sha (hand-written, pre-0.8.0) owes none" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  qis "range: a sentinel without start_sha (hand-written, pre-0.8.0) owes none" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
 
   qsent ",\"start_sha\":\"$QSTART\""
   printf '{"card":"range-%s","skipped":true,"reason":"x"}' "$Q12" > "$QRV/rv-skip-range-$Q12.json"
   printf '{"head":"%s","cards_total":3,"cards_done":3,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
   qrun "$QT"
   qis "range: a recorded range skip is not counted as a card's review" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'only 2 per-card reviewer records'; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'only 2 have a review recorded'; echo $?)"
   printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
   qrun "$QT"
   qis "range: a recorded range skip passes the check, then the report must name it" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "never names" && printf '%s' "$err" | grep -qF "range-$Q12"; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "never names" && printf '%s' "$err" | grep -qF "range-$Q12"; echo $?)"
   T="$WS/qnamed.jsonl"; { user "run the cards"; asst "Done. Skipped: range-$Q12, the range review (no code-review installed)."; } > "$T"
   qrun "$T"
-  qis "range: a range skip the report names passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  qis "range: a range skip the report names passes" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
   rm -f "$QRV/rv-skip-range-$Q12.json"; printf '{}' > "$QRV/range-$Q12.json"
 
   printf 'diff --git a/src/api.php b/src/api.php\n' > "$QRV/diff-01.patch"
   printf 'diff --git a/src/a.ts b/src/a.ts\ndiff --git a/src/Button.tsx b/src/Button.tsx\n' > "$QRV/diff-02.patch"
   qrun "$QT"
   qis "ui: a card whose review diff names a .tsx file, with no ui-ux-reviewer record, blocks and names that card only" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 02" && ! printf '%s' "$err" | grep -qF ' 01'; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 02" && ! printf '%s' "$err" | grep -qF ' 01'; echo $?)"
   printf '{}' > "$QRV/rv-agent-02@code-review.code-reviewer.json"
   qrun "$QT"
-  qis "ui: another reviewer's record does not stand in for ui-ux-reviewer" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB"; echo $?)"
+  qis "ui: another reviewer's record does not stand in for ui-ux-reviewer" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB"; echo $?)"
   printf '{}' > "$QRV/rv-agent-02@ui-ux.ui-ux-reviewer.json"
   qrun "$QT"
-  qis "ui: a ui-ux-reviewer record for the card passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  qis "ui: a ui-ux-reviewer record for the card passes" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
   printf 'diff --git a/resources/views/x.blade.php b/resources/views/x.blade.php\n' > "$QRV/diff-01.patch"
   qrun "$QT"
-  qis "ui: a .blade.php view is a UI file (the .php neighbour was silent)" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 01"; echo $?)"
+  qis "ui: a .blade.php view is a UI file (the .php neighbour was silent)" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 01"; echo $?)"
   printf '{"card":"01","exempt":"no-reviewer-installed"}' > "$QRV/rv-exempt-01.json"
   qrun "$QT"
-  qis "ui: an exemption for the card passes" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  qis "ui: an exemption for the card passes" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
   printf 'diff --git a/src/components/__tests__/Button.test.tsx b/src/components/__tests__/Button.test.tsx\n' > "$QRV/diff-03.patch"
   qrun "$QT"
-  qis "ui: a card whose only UI-extension file is a test owes no ui-ux-reviewer" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  qis "ui: a card whose only UI-extension file is a test owes no ui-ux-reviewer" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
   printf 'diff --git a/src/Card.stories.tsx b/src/Card.stories.tsx\ndiff --git a/src/Card.tsx b/src/Card.tsx\n' >> "$QRV/diff-03.patch"
   qrun "$QT"
-  qis "ui: a component beside its test and story still owes one" "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 03"; echo $?)"
+  qis "ui: a component beside its test and story still owes one" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$UI_SUB: 03"; echo $?)"
   rm -f "$QRV/diff-03.patch"
 
   rm -f "$QRV/range-$Q12.json"
   mv "$QSENT" "$QCLOSED"
   qrun "$QT"
   qis "closed run: the stop after the rename still reads the records and blocks" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && [ -f "$QCLOSED" ]; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && [ -f "$QCLOSED" ]; echo $?)"
   printf '{}' > "$QRV/range-$Q12.json"
   qrun "$QT"
-  qis "closed run: a clean closing stop passes and retires closed-run.json" "$([ "$rc" -eq 0 ] && [ -z "$err" ] && [ ! -e "$QCLOSED" ]; echo $?)"
+  qis "closed run: a clean closing stop passes and retires closed-run.json" "$([ "$rc" = 0 ] && [ -z "$err" ] && [ ! -e "$QCLOSED" ]; echo $?)"
   rm -f "$QRV/range-$Q12.json"; qrun "$QT"
-  qis "closed run: once retired, later stops are silent" "$([ "$rc" -eq 0 ] && [ -z "$err" ]; echo $?)"
+  qis "closed run: once retired, later stops are silent" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
   qsent ",\"start_sha\":\"$QSTART\""; mv "$QSENT" "$QCLOSED"
   echo d >> "$RQ/src/a.ts"; git -C "$RQ" commit -qam later; QLATER=$(git -C "$RQ" rev-parse HEAD)
   qrun "$QT"
   qis "closed run: left behind with a gate pass for an earlier HEAD, a later commit's stop retires it silently" \
-    "$([ "$rc" -eq 0 ] && [ -z "$err" ] && [ ! -e "$QCLOSED" ]; echo $?)"
+    "$([ "$rc" = 0 ] && [ -z "$err" ] && [ ! -e "$QCLOSED" ]; echo $?)"
   qsent ",\"start_sha\":\"$QSTART\""; mv "$QSENT" "$QCLOSED"
   printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$QLATER" > "$QTR/gate-pass.json"
   qrun "$QT"
   qis "closed run: a gate pass at HEAD with no range record still blocks" \
-    "$([ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && [ -f "$QCLOSED" ]; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && [ -f "$QCLOSED" ]; echo $?)"
 else
   printf 'SKIP  0.8.0 range / ui / closed-run cases (git not available)\n'
+fi
+
+# Clause 6, a misquote: a project of its own, where a file's HEAD copy, its working copy and an untracked file differ.
+if command -v git >/dev/null 2>&1; then
+  QP="$WS/quoteproj"; mkdir -p "$QP/src" "$QP/a" "$QP/b" "$QP/node_modules/pkgq/dist"
+  { printf 'export function sum(items, locale) {\n  if (!items) throw new Error("empty");\n  if (user.isActive &&\n'
+    printf '      user.hasRole("admin")) {\n  const total = items.reduce((a, b) => a + b, 0);\n'
+    for i in $(seq 6 24); do printf '  // pad %s\n' "$i"; done
+    printf '  return formatCurrency(total, locale);\n}\n'; } > "$QP/src/svc.ts"
+  printf 'export function route(request, response) {\n  log(request);\n  legacyHandler(request, response);\n}\n' > "$QP/src/old.ts"
+  printf 'function main() {\r\n  return computeTotal(order, taxRate);\r\n}\r\n' > "$QP/src/crlf.ts"
+  printf 'export const alpha = 1;\n' > "$QP/a/dup.ts"; printf 'export const beta = 2;\n' > "$QP/b/dup.ts"
+  git -C "$QP" init -q && git -C "$QP" config user.email t@t.t && git -C "$QP" config user.name t
+  git -C "$QP" add src a b >/dev/null 2>&1 && git -C "$QP" commit -qm init
+  printf 'export function route(request, response) {\n  log(request);\n  modern(request);\n}\n' > "$QP/src/old.ts"
+  printf 'export const fresh = makeWidget("blue");\n' > "$QP/src/new.ts"
+  printf 'export const staged = makeWidget("green");\n' > "$QP/src/staged.ts"; git -C "$QP" add src/staged.ts
+  { for i in $(seq 1 24); do printf '// line %s\n' "$i"; done; printf 'return formatCurrency(total, locale);\n'; } > "$QP/src/far.ts"
+  printf 'PNG\000\001binary' > "$QP/src/logo.png"
+  printf 'const msg = `no items for ${data.user}`;\n' > "$QP/src/tpl.ts"
+  mkdir -p "$QP/docs"; printf '# Finding format\n\nEach finding ends with a quote field.\n' > "$QP/docs/format.md"
+  mkdir -p "$QP/services/api" "$WS/qhome/notes"
+  printf 'name: the whole monorepo\n' > "$QP/config.yml"; printf 'listen_port: 8080 for the api\n' > "$QP/services/api/config.yml"
+  printf 'export function parse(input) {\n' > "$QP/src/parse.ts"; printf 'remember the milk\n' > "$WS/qhome/notes/todo.md"
+  printf 'module.exports = function util() {};\n' > "$QP/node_modules/pkgq/dist/util.js"
+  QUOTE_SUB='quotes text that is not in that file'
+  QCLAIMED="$QP/.claude/candor/blocked"
+  qpay() { jq -cn --arg tp "$1" --arg cwd "$QP" --argjson a "${2:-false}" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:$a}'; }
+  qrun() { { user "review the change"; asst "$2"; } > "$WS/quote.jsonl"; rm -rf "$QP/.claude/candor"; gate "$1" "$(qpay "$WS/quote.jsonl")"; }
+  qcheck() { # desc  env  message  exp_rc  exp_sub|__NONE__
+    local ok=1
+    qrun "$2" "$3"
+    [ "$rc" = "$4" ] || ok=0
+    if [ "$5" != "__NONE__" ]; then printf '%s' "$err" | grep -qF -- "$5" || ok=0; else [ -z "$err" ] || ok=0; fi
+    if [ "$ok" -eq 1 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"
+    else fail=$((fail+1)); printf 'FAIL  %s (rc=%s want %s; stderr=%s)\n' "$1" "$rc" "$4" "$err"; fi
+  }
+
+  Q='const total = items.map((x) => x * taxRateForTheRegionOfTheCurrentUser);'
+  qcheck "quote: a wrong quote of a tracked file blocks, naming path:line and the first 60 characters" "" \
+    "src/svc.ts:5 — high — the sum skips tax — add it — quote: \`$Q\`" 2 "src/svc.ts:5 $QUOTE_SUB: \`${Q:0:60}\`."
+  verdict_is "quote: the block says how the quote was read and searched, how to fix it, names the switch, and tells the person why" \
+    "$(printf '%s' "$err" | grep -qF 'Fix the quote, or write `was:` for code the change removed.' && printf '%s' "$err" | grep -qF 'CC_CANDOR_GATE=off turns the whole gate off' \
+       && printf '%s' "$err" | grep -qF 'Read: the text from `quote: ` to the next backtick (doubled backticks hold one)' \
+       && [ "$(printf '%s' "$out" | jq -r .systemMessage)" = "candor sent the turn back: the reply quotes code that is not in the file it cites." ]; echo $?)"
+  qcheck "quote: the right quote passes" "" \
+    'src/svc.ts:5 — high — the sum skips tax — add it — quote: `const total = items.reduce((a, b) => a + b, 0);`' 0 "__NONE__"
+  qcheck "quote: text 20 lines from the cited line of an untracked file passes (whole file)" "" 'src/far.ts:5 — quote: `return formatCurrency(total, locale);`' 0 "__NONE__"
+  qcheck "quote: a binary file is undecidable, never judged" "" 'src/logo.png:1 — quote: `this text is not in the image`' 0 "__NONE__"
+  qcheck "quote: a word ending in quote: is not the marker" "" 'src/svc.ts:5 — misquote: `const total = items.map(Number);`' 0 "__NONE__"
+  qcheck "quote: changed whitespace passes" "" 'src/svc.ts:5 — quote: `const   total=items.reduce( (a,b)=>a+b, 0 );`' 0 "__NONE__"
+  qcheck "quote: a CRLF file passes" "" 'src/crlf.ts:2 — quote: `return computeTotal(order, taxRate);`' 0 "__NONE__"
+  qcheck "quote: one quote over two wrapped file lines passes" "" 'src/svc.ts:3 — quote: `if (user.isActive && user.hasRole("admin")) {`' 0 "__NONE__"
+  qcheck "quote: a … cut whose parts are in the file passes" "" 'src/svc.ts:5 — quote: `const total = items.reduce(…, 0);`' 0 "__NONE__"
+  qcheck "quote: a … cut whose first part is not in the file blocks" "" 'src/svc.ts:5 — quote: `const total = items.filter(…, 0);`' 2 "$QUOTE_SUB"
+  qcheck "quote: under 8 non-space characters is not judged" "" 'src/svc.ts:5 — quote: `x = 9;`' 0 "__NONE__"
+  qcheck "quote: a + line copied from the patch passes" "" 'src/svc.ts:5 — quote: `+  const total = items.reduce((a, b) => a + b, 0);`' 0 "__NONE__"
+  qcheck "quote: a was: quote of removed code is not checked" "" \
+    'src/svc.ts:2 — high — the guard is gone — restore it — was: `if (items.length === 0) return cachedTotalForEmptyCart;`' 0 "__NONE__"
+  qcheck "quote: the same absent text marked quote: blocks" "" \
+    'src/svc.ts:2 — high — the guard is gone — restore it — quote: `if (items.length === 0) return cachedTotalForEmptyCart;`' 2 "$QUOTE_SUB"
+  qcheck "quote: text only in HEAD's copy of a file changed since passes" "" 'src/old.ts:3 — quote: `legacyHandler(request, response);`' 0 "__NONE__"
+  qcheck "quote: text in neither the working nor the HEAD copy blocks" "" 'src/old.ts:3 — quote: `modernHandler(request, response, next);`' 2 "src/old.ts:3 $QUOTE_SUB"
+  qcheck "quote: a wrong quote of an untracked file blocks" "" 'src/new.ts:1 — quote: `export const stale = makeWidget("red");`' 2 "src/new.ts:1 $QUOTE_SUB"
+  qcheck "quote: the right quote of an untracked file passes" "" 'src/new.ts:1 — quote: `export const fresh = makeWidget("blue");`' 0 "__NONE__"
+  qcheck "quote: a file staged but never committed has no HEAD copy to compare, not judged" "" \
+    'src/staged.ts:1 — quote: `export const stale = makeWidget("red");`' 0 "__NONE__"
+  qcheck "quote: a basename found only under node_modules is not judged" "" 'util.js:1 — quote: `nothing like this lives in util`' 0 "__NONE__"
+  qcheck "quote: the same file by its full path is judged and blocks" "" \
+    "$QP/node_modules/pkgq/dist/util.js:1 — quote: \`nothing like this lives in util\`" 2 "$QUOTE_SUB"
+  qcheck "quote: a path ending in an ambiguous basename is not judged" "" 'lib/dup.ts:1 — quote: `export const gamma = 3;`' 0 "__NONE__"
+  qcheck "quote: a path two files end in is not judged" "" 'dup.ts:1 — quote: `export const gamma = 3;`' 0 "__NONE__"
+  qcheck "quote: the one file a full path names is judged and blocks" "" 'a/dup.ts:1 — quote: `export const gamma = 3;`' 2 "a/dup.ts:1 $QUOTE_SUB"
+  qcheck "quote: a quote inside a fenced block is not checked" "" \
+    $'An example finding:\n```\nsrc/svc.ts:5 — quote: `const total = items.map(Number);`\n```' 0 "__NONE__"
+  qcheck "quote: the same line outside the fence blocks" "" 'src/svc.ts:5 — quote: `const total = items.map(Number);`' 2 "$QUOTE_SUB"
+  qcheck "quote: a quote with no path:line before it on its line is not checked" "" \
+    $'The service file has quote: `const total = items.map(Number);`\nquote: `const total = items.map(Number);` sits at src/svc.ts:5' 0 "__NONE__"
+  qcheck "quote: a quote checked beside a second file:line holding it passes" "" \
+    'src/new.ts:1 and src/svc.ts:5 — quote: `const total = items.reduce((a, b) => a + b, 0);`' 0 "__NONE__"
+  qcheck "quote: warn mode prints and does not block" "CC_CANDOR_GATE=warn" 'src/svc.ts:5 — quote: `const total = items.map(Number);`' 0 "$QUOTE_SUB"
+  qcheck "quote: off mode is silent" "CC_CANDOR_GATE=off" 'src/svc.ts:5 — quote: `const total = items.map(Number);`' 0 "__NONE__"
+  qcheck "quote: the last quote: span on a line is the one judged (right)" "" \
+    'src/svc.ts:5 — high — the comment reads quote: `nothing like this anywhere at all` — fix — quote: `const total = items.reduce((a, b) => a + b, 0);`' 0 "__NONE__"
+  qcheck "quote: the last quote: span on a line is the one judged (wrong)" "" \
+    'src/svc.ts:5 — high — the comment reads quote: `const total = items.reduce((a, b) => a + b, 0);` — fix — quote: `nothing like this anywhere at all`' 2 "$QUOTE_SUB"
+  qcheck "quote: a quote: named inside a code span is not the marker" "" 'docs/format.md:3 now documents the `quote:` field, then the `was:` field' 0 "__NONE__"
+  qcheck "quote: the same file with a real marker and absent text blocks" "" 'docs/format.md:3 — quote: `Each finding ends with a was field.`' 2 "$QUOTE_SUB"
+  qcheck "quote: a doubled-backtick span holding a backtick, right, passes" "" 'src/tpl.ts:1 — quote: ``const msg = `no items for ${data.user}`;``' 0 "__NONE__"
+  qcheck "quote: a doubled-backtick span holding a backtick, wrong, blocks" "" 'src/tpl.ts:1 — quote: ``const msg = `no orders for ${data.user}`;``' 2 "$QUOTE_SUB"
+  qcheck "quote: a single span cut at a backslash-escaped backtick judges the text before it" "" \
+    'src/tpl.ts:1 — high — x — quote: `const msg = \`no items for ${data.user}\`;`' 0 "__NONE__"
+  qcheck "quote: the same cut whose text before it is wrong blocks" "" 'src/tpl.ts:1 — quote: `const note = \`no items\`;`' 2 "$QUOTE_SUB"
+  qcheck "quote: a bare path a second file also ends in is not judged against the root's copy" "" \
+    'config.yml:1 — quote: `listen_port: 8080 for the api`' 0 "__NONE__"
+  qcheck "quote: the full path of that second file is judged and blocks" "" \
+    'services/api/config.yml:1 — quote: `listen_port: 9999 for nothing at all`' 2 "services/api/config.yml:1 $QUOTE_SUB"
+  qcheck "quote: an absolute path that resolves only by basename to another file is not judged" "" \
+    '/tmp/cc-nowhere-scratch/parse.ts:1 — quote: `export function parseAll(input, options) {`' 0 "__NONE__"
+  qcheck "quote: the absolute path of the file itself is judged and blocks" "" \
+    "$QP/src/parse.ts:1 — quote: \`export function parseAll(input, options) {\`" 2 "$QUOTE_SUB"
+  qcheck "quote: a ~/ path that resolves only by basename to another file is not judged" "HOME=$WS/qhome" \
+    '~/elsewhere/parse.ts:1 — quote: `export function parseAll(input, options) {`' 0 "__NONE__"
+  qcheck "quote: a ~/ path naming a real file is judged and blocks" "HOME=$WS/qhome" \
+    '~/notes/todo.md:1 — quote: `buy bread at the corner shop`' 2 "$QUOTE_SUB"
+  qcheck "quote: a 4-backtick fence holding a 3-backtick example is not checked" "" \
+    $'````md\n```\nsrc/svc.ts:5 — quote: `const total = items.map(Number);`\n```\n~~~\nsrc/svc.ts:5 — quote: `const total = items.map(Number);`\n````' 0 "__NONE__"
+  qcheck "quote: after that fence closes, the same line blocks" "" \
+    $'````md\n```\n````\nsrc/svc.ts:5 — quote: `const total = items.map(Number);`' 2 "$QUOTE_SUB"
+
+  # Tool output in the transcript tail: a quote read there (a diff, a PR not checked out) is not invented.
+  # Through stdin: one exec argument is capped at 128 KiB on Linux.
+  tres_text() { printf '%s' "$1" | jq -Rsc '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t1",content:.}]}}'; }
+  tres_read() { printf '%s' "$1" | jq -Rsc '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t2",content:[{type:"text",text:.}]}]}}'; }
+  qtool() { # desc  tool-result-line  message  exp_rc
+    { user "review the PR"; tools Bash; printf '%s\n' "$2"; asst "$3"; } > "$WS/quote.jsonl"
+    rm -rf "$QP/.claude/candor"; gate "" "$(qpay "$WS/quote.jsonl")"
+    verdict_is "$1" "$([ "$rc" = "$4" ] && { [ "$4" = 2 ] && printf '%s' "$err" | grep -qF "$QUOTE_SUB" || { [ "$4" = 0 ] && [ -z "$err" ]; }; }; echo $?)"
+  }
+  PRDIFF=$'diff --git a/src/svc.ts b/src/svc.ts\n@@ -5 +5 @@\n-  const total = items.reduce((a, b) => a + b, 0);\n+  return a && b && featureFlagEnabledForTheTenant();'
+  qtool "quote: text in neither copy but in a tool result (a PR diff not checked out) passes" "$(tres_text "$PRDIFF")" \
+    'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: a made-up quote beside the same diff still blocks" "$(tres_text "$PRDIFF")" \
+    'src/svc.ts:5 — high — x — y — quote: `return a || featureFlagDisabledForEveryone();`' 2
+  qtool "quote: a quote over two lines of Read output, line numbers dropped, passes" \
+    "$(tres_read $'1\tfunction legacy() {\n2\t  return oldTotal(order,\n3\t    taxRate);\n4\t}')" 'src/svc.ts:5 — quote: `return oldTotal(order, taxRate);`' 0
+  qtool "quote: assistant text is not tool output: a quote the model wrote earlier still blocks" "$(asst 'I think it reads return oldTotal(order, taxRate); there.')" \
+    'src/svc.ts:5 — quote: `return oldTotal(order, taxRate);`' 2
+  qtool "quote: a hunk the user pasted into a turn counts as read text, the quote passes" "$(user "Review this hunk from PR 42:
+$PRDIFF")" 'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: hook feedback echoing the text does not count, it blocks" \
+    "$(user 'Stop hook feedback:
+Some hook said: return a && b && featureFlagEnabledForTheTenant();')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a harness reminder inside a user turn does not count, it blocks" \
+    "$(user 'Looks good.<system-reminder>
+return a && b && featureFlagEnabledForTheTenant();
+</system-reminder>')" 'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a compaction summary (model-written) does not count, it blocks" \
+    "$(jq -cn '{type:"user",isCompactSummary:true,message:{content:"Earlier: return a && b && featureFlagEnabledForTheTenant();"}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a tool-use error echoing the text does not count, it blocks" \
+    "$(jq -cn '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t3",is_error:true,content:"<tool_use_error>String to replace not found in file.\nString: return a && b && featureFlagEnabledForTheTenant();</tool_use_error>"}]}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a command that exited non-zero still showed its output (a diff), the quote passes" \
+    "$(jq -cn --arg d "$PRDIFF" '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t3",is_error:true,content:("Exit code 1\n" + $d)}]}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: a pasted-back made-up finding (a user line with a quote: mark) does not count, it blocks" \
+    "$(user 'Are you sure about this one? src/svc.ts:5 — high — quote: `return a || featureFlagDisabledForEveryone();`')" \
+    'src/svc.ts:5 — high — x — y — quote: `return a || featureFlagDisabledForEveryone();`' 2
+  qtool "quote: a user turn given as text blocks (array form) counts, the quote passes" \
+    "$(jq -cn --arg d "$PRDIFF" '{type:"user",message:{content:[{type:"text",text:("Check this hunk:\n" + $d)}]}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: a loaded skill body (isMeta, array form) does not count, it blocks" \
+    "$(jq -cn --arg d "$PRDIFF" '{type:"user",isMeta:true,message:{content:[{type:"text",text:("Base directory for this skill: /x/skills/y\n\nExample:\n" + $d)}]}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a slash-command body (isMeta after the command) does not count, it blocks" \
+    "$(user '<command-message>x:review</command-message>
+<command-name>/x:review</command-name>'; jq -cn --arg d "$PRDIFF" '{type:"user",isMeta:true,message:{content:("# /x:review\n\nExample:\n" + $d)}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: a coordinator message (isMeta, not a skill or command body) counts, the quote passes" \
+    "$(jq -cn --arg d "$PRDIFF" '{type:"user",isMeta:true,message:{content:("The coordinator sent a message while you were working:\nThe PR hunk:\n" + $d)}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  NOTE_HEAD=$'[SYSTEM NOTIFICATION - NOT USER INPUT]\n<task-notification>\n<task-id>a1</task-id>\n<status>completed</status>\n'
+  qtool "quote: a background agent's <result> in its notification counts, the relayed quote passes" \
+    "$(jq -cn --arg t "${NOTE_HEAD}<result>src/svc.ts:5 — high — x — y — quote: \`return a && b && featureFlagEnabledForTheTenant();\`</result>
+</task-notification>" '{type:"user",isMeta:true,message:{content:$t}}')" \
+    'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: the same notification's wrapper (summary) does not count, it blocks" \
+    "$(jq -cn --arg t "${NOTE_HEAD}<summary>return a && b && featureFlagEnabledForTheTenant();</summary>
+</task-notification>" '{type:"user",isMeta:true,message:{content:$t}}')" \
+    'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`' 2
+  qtool "quote: an honest quote typed without the spaces of the only copy, a tool result, passes" \
+    "$(tres_text '+  if (account.isOwner && account.hasScope("billing")) {')" 'src/svc.ts:5 — quote: `if(account.isOwner&&account.hasScope("billing")){`' 0
+  qtool "quote: a NUL in the output does not make every quote pass, a made-up one beside it blocks" \
+    "$(jq -cn '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t4",content:"PNG\u0000featureFlagDisabledForEveryone()"}]}}')" \
+    'src/svc.ts:5 — quote: `featureFlagDisabledForEveryone() && legacyPathStillOn`' 2
+  qtool "quote: output holding a NUL and the true text still counts, the quote passes" \
+    "$(jq -cn '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t5",content:"PNG\u0000\n+  return a && b && featureFlagEnabledForTheTenant();"}]}}')" \
+    'src/svc.ts:5 — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qtool "quote: output text typed back with other spacing in its longest run still counts, the quote passes" \
+    "$(tres_text '+  return computeTotal(order, taxRate);')" 'src/svc.ts:5 — quote: `return computeTotal(order,taxRate);`' 0
+  qcheck "quote: a quote: inside a longer code span is not the marker" "" \
+    'docs/format.md:3 — the line is now ``path:line — severity — problem — fix — quote: `<verbatim excerpt>` ``.' 0 "__NONE__"
+  # The whole loaded tail is searched, not its last 1 MiB: a PR diff read before 1.4 MB of other output still counts.
+  READS=$(seq 1 4000 | awk '{ printf "%d\tconst filler_%d = compute(%d);\n", $1, $1, $1 }')
+  { user "/code-review:review feature"; tools Bash; tres_text "$PRDIFF"
+    for i in 1 2 3 4 5 6 7 8 9 10; do tools Read; tres_text "$READS"; done; } > "$WS/bigtail.jsonl"
+  qbig() { cp "$WS/bigtail.jsonl" "$WS/quote.jsonl"; asst "$2" >> "$WS/quote.jsonl"; rm -rf "$QP/.claude/candor"; gate "" "$(qpay "$WS/quote.jsonl")"
+    verdict_is "$1 ($(wc -c < "$WS/quote.jsonl") bytes)" "$([ "$rc" = "$3" ]; echo $?)"; }
+  qbig "quote: a PR diff read before 1.4 MB of later output still counts, the quote passes" \
+    'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
+  qbig "quote: a made-up quote in the same transcript blocks" 'src/svc.ts:5 — high — x — y — quote: `return a || featureFlagDisabledForEveryone();`' 2
+  qbig "quote: a made-up quote whose other words fill the session (const, compute) still blocks" \
+    'src/svc.ts:5 — high — x — y — quote: `const total = computeInventedTotal(order);`' 2
+
+  # The skip token: the clause stands down only on the continuation of its own block, even when the new text still misquotes.
+  qrun "" 'src/svc.ts:5 — quote: `const total = items.map(Number);`'
+  verdict_is "quote: a block records the quote clause as the one that blocked" "$([ "$rc" = 2 ] && [ "$(cat "$QCLAIMED" 2>/dev/null)" = quote ]; echo $?)"
+  { user "review the change"; asst 'src/svc.ts:5 — quote: `const total = items.map(String);`'; } > "$WS/quote.jsonl"
+  gate "" "$(qpay "$WS/quote.jsonl" true)"
+  verdict_is "quote: its own continuation passes and clears the record" "$([ "$rc" = 0 ] && [ ! -e "$QCLAIMED" ]; echo $?)"
+  rm -rf "$QP/.claude/candor"; gate "" "$(qpay "$WS/quote.jsonl" true)"
+  verdict_is "quote: another hook's continuation still blocks" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$QUOTE_SUB"; echo $?)"
+  { user "review the change"; asst 'src/ghost.ts:3 — quote: `nothing like this lives anywhere`'; } > "$WS/quote.jsonl"
+  rm -rf "$QP/.claude/candor"; mkdir -p "$QP/.claude/candor"; printf 'citation' > "$QCLAIMED"
+  gate "" "$(qpay "$WS/quote.jsonl" true)"
+  verdict_is "quote: on the citation clause's continuation, a file found nowhere is not judged" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
+
+  qsub() { jq -cn --arg tp "$WS/qparent.jsonl" --arg atp "$WS/agent.jsonl" --arg m "$1" --arg cwd "$QP" --argjson a "${2:-false}" \
+    '{hook_event_name:"SubagentStop",transcript_path:$tp,agent_transcript_path:$atp,agent_id:"q6agent",agent_type:"code-review:code-reviewer",last_assistant_message:$m,cwd:$cwd,stop_hook_active:$a}'; }
+  { user "main thread prompt"; } > "$WS/qparent.jsonl"
+  { user "review"; asst "placeholder"; } > "$WS/agent.jsonl"
+  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `const total = items.map(Number);`')"
+  verdict_is "quote: a subagent's wrong quote blocks and asks for the COMPLETE report" \
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "This report quotes code" && printf '%s' "$err" | grep -qF 're-send your COMPLETE report'; echo $?)"
+  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `const total = items.reduce((a, b) => a + b, 0);`')"
+  verdict_is "quote: a subagent's right quote passes" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
+  { user "review"; tools Bash; tres_text "$PRDIFF"; asst "placeholder"; } > "$WS/agent.jsonl"
+  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`')"
+  verdict_is "quote: a subagent's quote found in its own transcript's tool output passes" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
+  { user "review"; asst "placeholder"; } > "$WS/agent.jsonl"; { user "main thread prompt"; tools Bash; tres_text "$PRDIFF"; } > "$WS/qparent.jsonl"
+  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`')"
+  verdict_is "quote: the parent's tool output does not excuse a subagent's quote" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$QUOTE_SUB"; echo $?)"
+  { user "main thread prompt"; } > "$WS/qparent.jsonl"
+
+  # Loop guard: a report clauses 1 and 6 both fire on, re-sent unchanged on each continuation, blocks once per clause, citation first.
+  LOOPMSG=$'src/ghost_zz.ts:3 — high — a — b\nsrc/svc.ts:2 — high — x — y — quote: `if (items.length === 0) return cachedTotalForEmptyCart;`'
+  loop_seq() { # <payload builder: sub|stop> <message> -> c, q or . per stop, five stops
+    local i a s=""
+    rm -rf "$QP/.claude/candor"
+    for i in 1 2 3 4 5; do
+      a=false; [ "$i" -gt 1 ] && a=true
+      if [ "$1" = sub ]; then gate "" "$(qsub "$2" "$a")"
+      else { user "review the change"; asst "$2"; } > "$WS/quote.jsonl"; gate "" "$(qpay "$WS/quote.jsonl" "$a")"; fi
+      if [ "$rc" = 2 ]; then case "$err" in *"cites a location"*) s="${s}c" ;; *"quotes code"*) s="${s}q" ;; *) s="${s}?" ;; esac; else s="${s}."; fi
+    done
+    printf '%s' "$s"
+  }
+  s=$(loop_seq sub "$LOOPMSG")
+  verdict_is "loop: a subagent report both clauses fire on blocks once each, citation first, then passes (got $s)" "$([ "$s" = "cq..." ]; echo $?)"
+  s=$(loop_seq stop "$LOOPMSG")
+  verdict_is "loop: a Stop message both clauses fire on blocks once each, citation first, then passes (got $s)" "$([ "$s" = "cq..." ]; echo $?)"
+  s=$(loop_seq sub 'src/ghost_zz.ts:3 — high — a — b')
+  verdict_is "loop: a report only the citation clause fires on blocks once, then passes (got $s)" "$([ "$s" = "c...." ]; echo $?)"
+
+  BIG=""; for i in $(seq 1 200); do BIG="${BIG}src/svc.ts:5 — high — finding $i — fix — quote: \`no such text $i appears in this file\`
+"; done
+  t0=$(date +%s%N 2>/dev/null); s0=$SECONDS
+  qrun "" "$BIG"
+  t1=$(date +%s%N 2>/dev/null); el=$((SECONDS - s0)); ms="?"
+  case "$t0$t1" in *[!0-9]*) ;; *) ms=$(( (t1 - t0) / 1000000 )) ;; esac
+  verdict_is "quote: 200 wrong quotes block in ${ms} ms, listing the first 20 (MAX_QUOTES_CHECKED), well inside the 15 s timeout" \
+    "$([ "$rc" = 2 ] && [ "$(printf '%s' "$err" | grep -c "^  - src/svc.ts:5 $QUOTE_SUB")" = 20 ] && [ "$el" -lt 5 ]; echo $?)"
+else
+  printf 'SKIP  clause 6 quote cases (git not available)\n'
 fi
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"

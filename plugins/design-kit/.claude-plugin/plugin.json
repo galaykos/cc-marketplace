@@ -1,6 +1,6 @@
 {
   "name": "design-kit",
-  "version": "0.12.1",
+  "version": "0.12.4",
   "description": "The Claude Desktop design picker as local, own-your-files skills: /design-kit:slides (an HTML deck; PDF and PPTX by script), /design-kit:design (2-4 artboard directions with knobs), /design-kit:in-codebase (the design rendered with the project's OWN components; handoff-bundle intake with a token-drift table), /design-kit:system (tokens, typefaces and components into design-system/), /design-kit:artifact (a self-contained page, shared on consent), /design-kit:motion (a static design animated into a looping showcase) and /design-kit:film (a beat-synced product film from a brief, with checks by script). One localhost URL under .design-kit/; nothing leaves the machine unless you say yes.",
   "author": {
     "name": "Ivan-WG",

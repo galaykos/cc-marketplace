@@ -1,6 +1,6 @@
 ---
 name: plugin-scout
-description: Use when setting up Claude Code plugins for a project — "which plugins should I install", "what plugins fit this repo", a repo without plugins, or right after cloning: scans manifests, suggests every marketplace plugin in three tiers; `--yes` auto-installs tiers 1-2, `--full` installs everything stack-relevant after one confirm, `--persist`/`--global` set scope, `--all` pages every row, `--sync` reconciles the project's enabled set by scope.
+description: Use when setting up Claude Code plugins for a project, a repo without plugins, or right after cloning. Also "which plugins should I install", "what plugins fit this repo". Scans manifests, suggests every marketplace plugin in three tiers. `--yes` auto-installs tiers 1-2. `--full` installs everything stack-relevant after one confirm. `--persist` or `--global` sets scope, `--all` pages every row, `--sync` reconciles the project's enabled set by scope.
 ---
 
 ## Purpose
@@ -109,6 +109,7 @@ language servers, a browser MCP, live docs) and vendor agent tooling (Laravel Bo
 tier-1 evidence rule or is `core`, with its overlap sentence. Installs there are **printed,
 never run** (`claude plugin install <name>@claude-plugins-official`); `--yes` never touches
 the block; the file's exclusions (official duplicates of plugins here) are never suggested.
+Then the rows of `references/outside-tools.md` (rtk, SkillSpector, designlang), each with its licence cell, printed the same way.
 
 ## Report
 

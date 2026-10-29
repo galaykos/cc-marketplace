@@ -1,15 +1,6 @@
 #!/bin/bash
-# route.sh — PostToolUse, and PostToolUseFailure on a Bash call that exited non-zero; fails open: matches the edited file, each existing file a Bash command wrote under the project root (named by
-# the command, or — after an interpreter, cp, mv, install or patch run — changed in git since this hook's previous call), and the
-# command itself against rules.tsv; prints one additionalContext envelope of at most NUDGE_CAP `high` nudges naming plugin:skill, each skill
-# once per context and none the context already loaded; queues other content matches as pending_low, none from a doc or style file.
-# Speaks about no target outside the root, under taskmaster-docs/ or .claude/, or ignored by git.
-# Off: CC_REMIND=off, or unset with the /config option cc_remind off. CC_ROUTE is not read here: it silences route-prompt.sh, the tool-fit check and the flush of what this hook queues.
-# Misses: two concurrent calls can drop a pending_low entry; a payload cwd of `/` or `$HOME` outside git is taken for the project root;
-# a directory row matches only the directory name it spells (in any case); a command row routes an unquoted mention of its CLI
-# and misses a CLI run through a script or an npm alias; a Bash command's write targets past the eighth (MAX_BASH_TARGETS) are not read,
-# nor changed files past the eighth (MAX_BASH_EFFECTS); the bash-write-effects block's own misses apply, and a file anything else changed
-# between this hook's calls (an IDE, a parallel agent) is read as that run's write.
+# PostToolUse (PostToolUseFailure on Bash): matches the edited file, each existing file a Bash command wrote under the root (named, or changed in git after an interpreter, cp, mv, install or patch run) and the command itself against rules.tsv; prints at most NUDGE_CAP `high` plugin:skill nudges, none already loaded, and queues other content matches as pending_low.
+# Silent on targets outside the root, under taskmaster-docs/ or .claude/, or git-ignored. Misses a concurrent pending_low write, a CLI run through a script or npm alias, Bash targets or changed files past the eighth. Fails open. Off: CC_REMIND=off (or /config cc_remind); CC_ROUTE silences route-prompt.sh, not this.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route.sh
 MAX_BASH_TARGETS=8
 MAX_BASH_EFFECTS=8
@@ -55,8 +46,6 @@ cc_plugin_state() {
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -78,8 +67,7 @@ cc_option() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
 # cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
 # one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
-# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
-# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# A backup suffix is never a target: the word after BSD sed's -I, or a `''` or `.`-led word after a bare sed -i unless it is the only file.
 # Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
 # redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
 # operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
@@ -192,14 +180,13 @@ cc_bash_write_targets() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
 # cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
 # directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
-# cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
-# cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
-# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
-# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
-# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
-# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
-# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
+# cc_bash_write_effects read <marker>. cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute
+# paths, one per line: files `git status` under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out
+# by its `*` .gitignore). It runs git only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs,
+# deno, bun, cp, mv, install or patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not
+# $HOME and status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's
+# first call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much:
+# any change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
   local d="${2%/*}" k
@@ -292,8 +279,7 @@ route_cmd_mask() {
     done < <(grep "^command"$'\t' "$rules" 2>/dev/null)
     bash_effects=$(cc_bash_write_effects "$root" "$effects_mark" "$bash_cmd" "$MAX_BASH_EFFECTS" "$sess")
   fi
-  # Every call dates the marker, an Edit or a command that wrote nothing too, so a run's effects are only what changed after the
-  # previous call. The tool has finished before PostToolUse runs, so dating it here equals dating it as the hook exits.
+  # Every call dates the marker, an Edit or a no-write command too, so a run's effects are only what changed since the previous call; PostToolUse runs after the tool, so dating here equals dating at exit.
   cc_bash_effects_mark "$root" "$effects_mark" "$sess"
   [ "$tool" != Bash ] || [ -n "$bash_targets" ] || [ -n "$bash_effects" ] || [ -n "$cmd_hits" ] || exit 0
 
@@ -308,8 +294,6 @@ route_cmd_mask() {
   [ -n "$session_id" ] || exit 0
 
   # route_target_ok <path> — a file worth a rubric: under the project root, outside taskmaster-docs/ and .claude/, not ignored by git.
-  # Nudges fired on gitignored scratch scripts, taskmaster-docs evidence files and vendored copies, where nobody applies one.
-  # Misses: an ignored file outside any git repo routes; a committed vendored tree routes; a path spelled through another symlink than the root's reads as outside.
   route_target_ok() {
     case "$1" in "$root"/*) ;; *) return 1 ;; esac
     case "/${1#"$root"/}" in */taskmaster-docs/*|*/.claude/*) return 1 ;; esac
@@ -352,8 +336,7 @@ EOF_TARGETS
   [ -n "$ctx" ] || exit 0
   state_file="$state_dir/fired-$ctx.json"
   fired=""
-  # `loaded` holds skills the transcript showed loaded before any nudge: skipped like fired ones, but kept out of `fired`, which the
-  # SessionEnd ledger reports as surfaced by this router.
+  # `loaded` (skills the transcript showed loaded before any nudge) is skipped like `fired` but kept apart: the SessionEnd ledger reports `fired` as surfaced by this router.
   [ -r "$state_file" ] && fired=$(jq -r '((.fired // []) + (.loaded // []))[]' "$state_file" 2>/dev/null)
 
   # set_target <i> — the globals every matcher below reads, for target i.
@@ -429,18 +412,13 @@ EOF_TARGETS
 
   nudges=""
   emit_nudge() { # $1 skill, $2 owning_plugin, $3 its root or empty, $4 subject — accumulates; delivered once below.
-    # Qualified: a bare name loaded a project's own .claude/skills copy of the same name instead of this plugin's file.
-    # A subagent has no Skill tool, so the nudge names the SKILL.md path to Read when one is found.
+    # Qualified, as a bare name loads a project's own .claude/skills copy; with a SKILL.md path to Read, as a subagent has no Skill tool.
     local sp=""
-    [ -n "$3" ] && [ -f "$3/skills/$1/SKILL.md" ] && sp=" — Read $3/skills/$1/SKILL.md"
-    nudges="${nudges}$(printf '[skill-router] %s — load the `%s:%s` skill and review your change against it before continuing.%s' "$4" "$2" "$1" "$sp")"$'\n'
+    [ -n "$3" ] && [ -f "$3/skills/$1/SKILL.md" ] && sp=" (or Read $3/skills/$1/SKILL.md)"
+    nudges="${nudges}$(printf '[skill-router] Load the `%s:%s` skill for %s%s and check your change against it.' "$2" "$1" "$4" "$sp")"$'\n'
   }
 
-  # At most NUDGE_CAP nudges per call: arriving several at once (seven on one vendored copy) they were almost never followed, 0 of 25
-  # and 0 of 14 in two measured sessions. Rank 0, an import or command row (the edit named that library or CLI), beats rank 1, any other
-  # row, which beats rank 2, the skills rules.tsv's `# nudge-last:` line names: they match every file of their language, so the next
-  # such edit draws them again, where a path-specific skill may not recur. Ties keep target and rules.tsv order. A skill left over is
-  # not marked fired, so a later edit can carry it.
+  # At most NUDGE_CAP nudges per call, ranked 0 an import or command row, 1 any other row, 2 the rules.tsv `# nudge-last:` skills, which recur on every file of their language; ties keep target and rules order; a skill left over is not marked fired.
   NUDGE_CAP=2
   last_skills=$(sed -n 's/^# nudge-last:[[:space:]]*//p' "$rules" 2>/dev/null | tr -d '\r' | tr ' \t' '\n\n')
   cands=""; cand_skills=""; seq=0
@@ -460,11 +438,7 @@ EOF_TARGETS
     cands="${cands}$1"$'\t'"$seq"$'\t'"$2"$'\t'"$3"$'\t'"$pr"$'\t'"$4"$'\n'
   }
 
-  # A skill whose own file is already in this context: the "Base directory for this skill: <dir>" line a Skill call writes, a Read of
-  # its SKILL.md, or a qualified Skill call. One fixed-string grep over the whole transcript, only while a candidate exists: 32 ms on
-  # the largest local transcript (56 MB), about 1 ms at the median (0.7 MB). A tail read would miss a skill loaded at session start,
-  # the common case. A project's copy of the same bare name is another path and never counts. Misses: a load the host has not yet
-  # written to the file; a cache path from before a mid-session plugin update. Counts: a load a compaction has since summarised away.
+  # A skill already in this context (a Skill call's base-directory line, a Read of its SKILL.md, a qualified Skill call): one fixed-string grep over the whole transcript, only while a candidate exists, as a tail read misses a session-start load.
   loaded=""
   scan_loaded() {
     local pats="" r s sk pl pr subj
@@ -505,7 +479,7 @@ EOF_TARGETS
         plugin_installed "$plugin" || continue
         marker_ok "$marker" || continue
         already_fired "$skill" && continue
-        add_cand "$rank" "$skill" "$plugin" "This edit touches $base"
+        add_cand "$rank" "$skill" "$plugin" "$base"
       done < "$rules"
     done
     # A command row has no file, so `@base` and `@path` markers see an empty string.
@@ -515,7 +489,7 @@ EOF_TARGETS
       plugin_installed "$plugin" || continue
       marker_ok "$marker" || continue
       already_fired "$skill" && continue
-      add_cand 0 "$skill" "$plugin" "This command runs \`${frag}\`"
+      add_cand 0 "$skill" "$plugin" "\`${frag}\`"
     done <<EOF_CMD
 $cmd_hits
 EOF_CMD
@@ -539,9 +513,7 @@ EOF_CMD
     fi
   }
 
-  # Reads hcs, the one head per target nudge_high_matches read.
-  # Doc and style files queue nothing: `token` in a spec or a CSS file queued security-review. Same exemption as database's guard.sh;
-  # the cost is a doc that really is about the concern (a security runbook) drawing no signal.
+  # Reads hcs, the one head per target nudge_high_matches read. Doc and style files queue nothing (`token` in a spec queued security-review), as database's guard.sh exempts them.
   queue_low_matches() {
     pending_adds=""
     i=0

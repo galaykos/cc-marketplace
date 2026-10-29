@@ -1,12 +1,14 @@
 # overseer
 
 A program-level product owner for long, multi-session, multi-branch builds. You type one
-sentence — `/overseer:start "Build a CRM that manages clients"` — and the plugin owns the
-rest the way a product manager owns a roadmap: it discovers what the project and the
-installed plugins can do, asks one round of questions, writes a milestone roadmap, and
-delivers each milestone on its own branch by briefing the pipeline plugins already installed.
-It accepts nothing it has not watched work: in a browser where the milestone has a screen,
-in a captured run where it has none.
+sentence: `/overseer:start "Build a CRM that manages clients"`. The plugin owns the rest,
+the way a product manager owns a roadmap. It discovers what the project and the installed
+plugins can do. It asks one round of questions and writes a milestone roadmap. It delivers
+each milestone on its own branch by briefing the plan-and-build plugins already installed.
+It accepts nothing it has not watched work. Where the milestone has a screen, it watches in
+a browser; where it has none, in a captured run.
+
+**Not sure where to start? Start with `/work <what you want done>`** (or `/code-architecture:work`): it sends a whole product here and anything smaller to a spec or an inline change.
 
 ## Install
 
@@ -20,14 +22,14 @@ in a captured run where it has none.
 | Artifact | Kind | Does |
 | --- | --- | --- |
 | `/overseer:start` | command | opens a program: discover → clarify once → charter + roadmap → deliver the first milestone; `--model auto` is the only way a seat the overseer dispatches runs above opus |
-| `/overseer:resume` | command | continues an open program in a fresh session from its recorded milestone status |
+| `/overseer:resume` | command | prints the five-line resume first, then continues an open program in a fresh session from its recorded milestone status |
 | `/overseer:status` | command | prints the board — milestones, branches, evidence, next |
 | `overseer` | skill | the loop, the product-judgment rules, the acceptance protocol, the prompt templates |
 | `hooks/announce.sh` | SessionStart hook | one line when a program is open, silent otherwise |
 | `hooks/track-read.sh` | PostToolUse hook (Read) | while a program is open, ledgers each Read as `epoch, session, path` in `.claude/overseer/.reads`; prints nothing |
 | `hooks/status-line.ts` | hooks module (Claude Code ≥ 2.1.291) | pins the next open milestone as a status line under the prompt; see Mods |
 | `kinds.tsv` | data | milestone kind → the skill groups a gated dispatch must pin before accept, and the evidence profile accept demands (`ui`, the default, or `headless`); read by `program.sh` |
-| `scripts/program.sh` | script | the state machine; the only writer of `.claude/overseer/program.json`; `init --model` (tier), `milestone add --kind --size`, `dispatch check` (prompt gate: preamble, scope, verify, skill path, `MODEL:` line within the tier; kinds worker, reader, reviewer, followup; size WARN), `decision add --assumed`, `suggestion add`, `log`, `close` (divergence gate, plugins-used line, archive with evidence paths rewritten) |
+| `scripts/program.sh` | script | the state machine; the only writer of `.claude/overseer/program.json`; `init --model` (tier), `milestone add --kind --size`, `dispatch check` (prompt gate: preamble, scope, verify, skill path, `MODEL:` line within the tier; kinds worker, reader, reviewer, followup; size WARN), `decision add --assumed`, `suggestion add`, `log`, `resume` (five plain lines on where the program stands), `close` (divergence gate, plugins-used line, archive with evidence paths rewritten) |
 | `scripts/capability-scan.sh` | script | which installed plugins (user, project, local scope) cover which phase, the fallback for each gap, and the CI workflows with their trigger branches checked against the base branch |
 | `evals/` | eval cases | two scaffolded cases for `claude plugin eval plugins/overseer --scaffold --ablation with-without`: the hands-off rigour pick and the green-suite acceptance refusal; the without-plugin arm is the control the score is measured against (CHANGELOG 0.4.0 carries the measured deltas and their caveats) |
 | `scripts/skill-path.sh` | script | the absolute `SKILL.md` path to pin in a prompt, resolved through the CLI's install path (cache fallback names its route) |
@@ -46,6 +48,37 @@ in a captured run where it has none.
 
 Each step writes state, so the session can end anywhere and `/overseer:resume` picks up.
 
+## Coming back to a program
+
+`program.sh resume` prints where the program stands in five plain lines of at most 100
+characters each, read from the state files. `/overseer:resume` runs it first and shows the
+lines before anything else. It runs only when you ask: the SessionStart hook still prints
+its one line and nothing more.
+
+```
+Program: Build a CRM that manages clients — 1/3 milestones done
+Now: m2 Client import from CSV — being built, branch overseer/m2-import
+Next: check the workers or dispatch the brief for m2
+Last decision: Client lists use the shadcn data table already in the tree
+Open: 2 suggestions, 0 parked milestones — .claude/overseer/suggestions.md, program.json
+```
+
+- **Program**: the goal, cut at a word to fit, and how many milestones are done (and parked,
+  when any).
+- **Now**: the milestone in progress (briefed, building or accepting), else the next one that
+  can start, with its status in plain words and its branch. When none can start, what the
+  first open one waits on; when all are done or parked, that.
+- **Next**: one action from that status: start it (queued), check the workers or dispatch the
+  brief (briefed, building), run accept (accepting), close the program (all done or parked).
+- **Last decision**: the newest row of `decisions.md`, cut to fit.
+- **Open**: deferred suggestions in `suggestions.md`, parked milestones in `program.json`.
+
+With no program it prints one line saying so. A missing `decisions.md` or `suggestions.md`,
+or a `program.json` that is not valid, is named on the line that needed it. It writes
+nothing and always exits 0. **Standing: gate** — `scripts/__tests__/program.test.sh` holds
+each line to its shape and length; whether the lines are enough to pick the work up again
+is not tested.
+
 ## What "done" means here
 
 `program.sh accept` closes a milestone only when its kind's evidence kinds are recorded,
@@ -62,6 +95,25 @@ non-UI milestone can never record is how every one of them ended `parked`. A han
 program
 is refused until at least one ASSUMED decision is recorded. The script checks that files
 exist, not what they show — the residual is stated in `skills/overseer/references/acceptance.md`.
+
+Once a milestone is accepted, `accept` prints what it took. Both lines count from one start:
+the earliest of the milestone's briefed and building times and the time `dispatch check`
+gated its first dispatch (stored in `dispatch/.gated` since 0.7.4; an older row has none).
+The first line is the roadmap size beside the actual dispatches, diff and minutes. The second
+is the process cost, measured from this session's transcript and its agent transcripts
+(`subagents/agent-*.jsonl`, and `subagents/workflows/*/agent-*.jsonl` for Workflow agents):
+
+```
+Process cost since 14:02: 6 agents · 1.84M tokens (main 0.41M, subagents 1.43M; 87% cache reads) · 38 min
+```
+
+Every record from the start on counts by its own timestamp, once per message across the
+files; **agents** are the agent transcripts holding at least one counted record. It shows no
+prices, and compaction writes no usage record, so its tokens are missing. A milestone
+delivered across sessions shows only the session that accepts it. The Workflow layout was
+read on a CLI 2.1.295 session only; that 2.1.310 writes it the same way is assumed. When the
+transcript cannot be read the line says `Process cost: unknown — <reason>` and accept still
+exits 0. **Standing: recorded** — it reports and gates nothing.
 
 ## What it composes, and what happens without them
 

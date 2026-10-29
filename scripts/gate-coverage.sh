@@ -1,28 +1,7 @@
 #!/usr/bin/env bash
-# Which author-time checks has anyone actually watched FAIL?
-#
-# MAINTAINER PATH, NOT A GATE. Always exits 0 and never fails a build. It reports; the
-# judgment about whether an uncovered check deserves a fixture stays with a person,
-# because some checks are structural enough that a fixture would be ceremony.
-#
-# WHY IT EXISTS: a check nobody has seen fail is indistinguishable from `return 0`. That
-# is not hypothetical here — `pc_context_key` passed all three hooks that shipped the
-# 2026-08-17 marker-key regression, because it tests for a string's presence and every
-# offender contained the string.
-#
-# WHY IT IS A SCRIPT AND NOT A NUMBER IN A DOC: the first version of that day's review
-# said "20 checks, 2 have harnesses, so ~14 have never been watched fail" — arrived at by
-# counting harness FILES rather than tracing which checks each file exercises. The true
-# figure was 3, because one harness covers six checks. A recorded count in prose is a
-# measurement someone will trust and nobody will recompute. Run this instead.
-#
-# HONEST LIMITATION: coverage here means "a harness mentions this function by name". It
-# cannot tell an assertion that watches the check fail from one that merely calls it, and
-# it cannot see a harness that exercises a check through validate.sh without naming it.
-# So this over-reports coverage; treat a NONE as certain and a hit as probable. WIRED
-# counts mentions in validate.sh, context-budget.sh and official-validate.sh only;
-# done-gate.sh and authoring-guard.sh also source the lib and are not counted. A mention
-# is likewise not proof of a call.
+# gate-coverage.sh — maintainer path, exits 0: for each pc_* check, the harnesses (scripts/smoke/, plugins/*/scripts/__tests__/) that mention it (NONE = never watched fail) and its WIRED line count in validate.sh, context-budget.sh and official-validate.sh.
+# Misses: a hit is a mention, not proof of exercise, so it over-reports (NONE is certain, a hit probable); a check exercised through validate.sh without its name; calls from done-gate.sh and authoring-guard.sh.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/gate-coverage.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT" || exit 0

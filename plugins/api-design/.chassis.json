@@ -7,7 +7,7 @@
   {
     "chassis": "reminder-hook",
     "regex": "\\b(librar\\w*|sdk|integrat\\w*|webhook|oauth|graphql|(external|third[- ]party|public|vendor) api|api (client|key|token|docs?|reference))\\b",
-    "message": "api-design: this prompt mentions an API/SDK integration — verify current official docs before writing integration code, and if none are accessible ask the user for a URL or file",
+    "message": "api-design: read the current official docs before writing code against this API or SDK; if you cannot reach them, ask the user for a URL or file",
     "command": "/api-design:check",
     "extraGuard": "printf '%s' \"$head\" | grep -qiE '\\b(build|implement|write|creat\\w*|add|wire|connect|integrat\\w*|call|fetch|use|fix|debug|update)\\b'",
     "artifact": "api-design:remind",

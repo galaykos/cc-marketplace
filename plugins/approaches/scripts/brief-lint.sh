@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
-# brief-lint.sh — leaning detector for a consult brief.
-# Usage: brief-lint.sh [file]   (reads stdin when no file is given)
-#
-# The blind rule (skills/consult/SKILL.md) says the brief must carry facts, not
-# the session's conclusion. The session composing the brief is the party with
-# the anchor, so the rule was self-policed; this lint is the mechanical part.
-# Exit 0: no leaning phrasing found. Exit 1: offending lines listed.
-#
-# Residual (honest limitation): this catches conclusion PHRASING, not smuggled
-# conclusions. "The cache layer, which is broken, is at path X" passes the lint
-# and still leans. A clean lint is necessary, never sufficient — reread the
-# brief for framing before dispatch.
+# brief-lint.sh [file] (stdin when none) — leaning detector for a consult brief, the mechanical part of the blind rule (skills/consult/SKILL.md: facts, not the session's conclusion). Exit 0 no leaning phrasing, 1 offending lines listed.
+# Misses: smuggled conclusions — "The cache layer, which is broken, is at path X" passes and still leans; a clean lint is necessary, never sufficient: reread the brief for framing before dispatch.
+# Why, limits, history: rationale/derivations/plugin-approaches.md § plugins/approaches/scripts/brief-lint.sh
 set -u
 
 input=$(cat "${1:-/dev/stdin}") || exit 2

@@ -1,6 +1,6 @@
 ---
 name: straight-talk
-description: Use when a claim is challenged or about to be reversed — "are you sure", "that's wrong", "I disagree", "you made that up" — or when an honest, unflattering read of the user's own work is asked for, or you are told you agree, apologise or defend too much.
+description: Use when a claim is challenged or about to be reversed ("are you sure", "that's wrong", "I disagree", "you made that up"). Or when an honest, unflattering read of the user's own work is asked for. Or when you are told you agree, apologise or defend too much.
 ---
 
 The rules below are orderings. Each one is cheap to follow in the right order and

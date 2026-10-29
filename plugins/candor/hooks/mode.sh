@@ -1,9 +1,6 @@
 #!/bin/bash
-# mode.sh (UserPromptSubmit; payload on stdin) — switches the terse level on `/candor:level <level>` or a narrow natural-language request,
-#   writing the level file; while a level is active, adds one budget line to each other prompt. Advisory; fails open; always exits 0.
-# The level: CC_TERSE, then the level file, then the /config option cc_terse.
-# Misses: a switch phrased outside its few patterns (the slash command is the reliable path); the budget line after a prompt its
-#   negation or question guard stops.
+# UserPromptSubmit: switches the terse level (CC_TERSE, then the level file, then /config cc_terse) on `/candor:level <level>` or a narrow natural-language request, writing the level file; while a level is active, adds one budget line to each other prompt, plus a reader name's (newcomer, expert, on-call) row of the skill's reader table. Advisory; fails open; exits 0.
+# Misses a switch phrased outside its few patterns (the slash command is the reliable path), and the budget line after a prompt its negation or question guard stops.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/mode.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -11,8 +8,6 @@
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -53,6 +48,17 @@ cc_option() {
     awk '/<!-- terse-contract:start -->/{f=1; next} /<!-- terse-contract:end -->/{f=0} f' "$skill" 2>/dev/null
   }
 
+  length_of() { # length_of <level> — the length level whose budgets a reader name takes; any other value unchanged
+    case "$1" in newcomer) echo lite ;; expert) echo full ;; on-call) echo ultra ;; *) printf '%s\n' "$1" ;; esac
+  }
+
+  reader() { # reader <name> — the skill body's reader-table row for <name>, as one line
+    [ -n "$root" ] && [ -r "$skill" ] || return 0
+    awk -F'|' -v n="$1" '/<!-- terse-readers:start -->/{f=1; next} /<!-- terse-readers:end -->/{f=0}
+      f { for (i = 2; i <= 5; i++) gsub(/^ +| +$/, "", $i)
+          if ($2 == n) printf "Reader %s: %s. Lists and findings %s (no cap when findings are the deliverable).", n, $4, $5 }' "$skill" 2>/dev/null
+  }
+
   write_level() { # write_level <lite|full|ultra|off>
     [ -L "$state" ] && return 1 # never follow a symlink into someone else's file
     if [ "$1" = "off" ]; then
@@ -68,18 +74,23 @@ cc_option() {
     if [ "$1" = "off" ]; then
       # CC_TERSE and the cc_terse option outlive the removed file, so "off" names whichever still sets a level.
       lvl=$(cc_option CC_TERSE off)
+      held=$(length_of "$lvl")
+      [ "$held" = "$lvl" ] || held="$lvl ($held)"
       case "$lvl" in
-        lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra)
-          [ -n "$CC_TERSE" ] && emit "TERSE MODE: level file cleared, but CC_TERSE=$CC_TERSE is set in the environment and overrides it — still active at $CC_TERSE. Unset CC_TERSE to stop."
-          emit "TERSE MODE: level file cleared, but the candor /config option cc_terse keeps it active at $lvl. Set cc_terse to off in /config to stop." ;;
+        lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra | newcomer | expert | on-call)
+          [ -n "$CC_TERSE" ] && emit "TERSE MODE: level file cleared, but CC_TERSE=$CC_TERSE is set in the environment and overrides it — still active at $held. Unset CC_TERSE to stop."
+          emit "TERSE MODE: level file cleared, but the candor /config option cc_terse keeps it active at $held. Set cc_terse to off in /config to stop." ;;
       esac
       emit 'TERSE MODE OFF. Normal response length resumes; no further reminders this session.'
     fi
+    len=$(length_of "$1"); shown=$1; r=""
+    [ "$len" = "$1" ] || { shown="$1 ($len)"; r=$(reader "$1"); }
+    [ -z "$r" ] || r=$'\n\n'"$r"
     c=$(card)
     if [ -n "$c" ]; then
-      emit "$(printf 'TERSE MODE — level: %s. Applies to chat messages only.\n\n%s' "$1" "$c")"
+      emit "$(printf 'TERSE MODE — level: %s. Applies to chat messages only.\n\n%s%s' "$shown" "$c" "$r")"
     fi
-    emit "TERSE MODE — level: $1. Applies to chat messages only."
+    emit "TERSE MODE — level: $shown. Applies to chat messages only."
   }
 
   slash=0
@@ -88,7 +99,7 @@ cc_option() {
       arg=$(printf '%s' "$prompt" | tr 'A-Z' 'a-z' | awk '{print $2}')
       case "$arg" in
         wenyan) write_level wenyan-full && confirm wenyan-full ;; # documented alias
-        lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra)
+        lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra | newcomer | expert | on-call)
           write_level "$arg" && confirm "$arg" ;;
         off | stop | disable) write_level off && confirm off ;;
         *) exit 0 ;; # bare or unknown arg: the command file reports current state
@@ -125,9 +136,12 @@ cc_option() {
   fi
 
   level=$(cc_option CC_TERSE off "$state")
+  len=$(length_of "$level"); shown=$level; r=""
+  [ "$len" = "$level" ] || { shown="$level ($len)"; r=$(reader "$level"); }
+  [ -z "$r" ] || r=$'\n'"$r"
 
   # wenyan levels share their latin counterpart's budgets (skills/terse-output/references/wenyan.md).
-  case "$level" in
+  case "$len" in
     lite | wenyan-lite)   b='answer 10, report 18' ;;
     full | wenyan-full)   b='answer 6, report 12' ;;
     ultra | wenyan-ultra) b='answer 3, report 6' ;;
@@ -138,6 +152,6 @@ cc_option() {
     *) w='' ;;
   esac
 
-  emit "$(printf 'TERSE %s — chat message only; full depth in the work, the code, the files, the subagent prompts. Budget: progress 1 line, %s prose lines (tables, code and trees are free). Report shape: verdict → blocker or decision (only if the user must act) → artifacts → max 5 findings as `path:line — problem → impact` (cap waived when findings are the deliverable, e.g. an invoked review or audit) → skipped (print `none` if nothing was) → next. Cut process narration, re-summary of files just written, unchanged inventories, framing phrases, closing offers. Never drop a finding to fit — overflow goes to a file, cited by path.%s' "$level" "$b" "$w")"
+  emit "$(printf 'TERSE %s — chat message only; full depth in the work, the code, the files, the subagent prompts. Budget: progress 1 line, %s prose lines (tables, code and trees are free). Report shape: verdict → blocker or decision (only if the user must act) → artifacts → max 5 findings as `path:line — problem → impact` (cap waived when findings are the deliverable, e.g. an invoked review or audit) → skipped (print `none` if nothing was) → next. Cut process narration, re-summary of files just written, unchanged inventories, framing phrases, closing offers. Never drop a finding to fit — overflow goes to a file, cited by path.%s%s' "$shown" "$b" "$w" "$r")"
 } 2>/dev/null
 exit 0

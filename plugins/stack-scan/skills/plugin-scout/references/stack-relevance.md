@@ -34,10 +34,6 @@ those rows exist because three tokens share a name with plugins removed on
 | Game — Godot | `godot` | `project.godot` at the scan root | `godot` |
 | Game — Unity | `unity` | `ProjectSettings/ProjectVersion.txt` beside an `Assets/` directory — a lone `*.csproj` is not Unity | `unity` |
 | Game — Unreal | `unreal` | a `*.uproject` at the scan root | `unreal` |
-| Game — Roblox | `roblox` | a Rojo `*.project.json` whose tree names `"$className": "DataModel"`, `wally.toml`, a `rokit.toml`/`aftman.toml`/`foreman.toml` naming rojo, or a `*.rbxl`/`*.rbxlx` place file | `roblox` |
-| Game — Bevy | `bevy` | Cargo.toml dependency key `bevy` (or `bevy_ecs`, `bevy_app`) | `bevy` |
-| Game — Defold | `defold` | `game.project` at the scan root carrying a `[bootstrap]` or `[project]` section | `defold` |
-| Game — Ebitengine | `ebitengine` | go.mod requiring `github.com/hajimehoshi/ebiten/v2` — a bare go.mod is not evidence | `ebitengine` |
 | Game — Phaser | `phaser` | package.json dep `phaser` | `phaser` |
 | Game — PixiJS | `pixijs` | package.json dep `pixi.js` | `pixijs` |
 | Game — any engine | `gamedev` | any Game row above; or `steam_appid.txt`, an `app_build*.vdf`/`depot_build*.vdf`, or `butler push` in a CI file | `gamedev`, or any Game token above |

@@ -1,23 +1,22 @@
 # all-plugins
 
-Installs every leaf plugin of this marketplace at one scope — `/all-plugins:install` asks local
-or project, `/all-plugins:uninstall` local, project or user, once when you typed no `--scope`,
-and nothing else — under
-`--budget` also raises the host's skill-listing budget so every description is actually
-sent — and undoes both.
-One script, one exit code; the two commands only relay it. "Every leaf" means every
-plugin in the marketplace's `marketplace.json` — there are no bundles to skip (the suites
-were retired 2026-09-26) — and that includes `all-plugins` itself, which `install` covers
-(normally a `skip`) and `uninstall` keeps unless `--self`. One plugin is left out by
-construction: **`prompt-coach`**, which bills a model call per eligible prompt, so it
-installs only when you name it (`claude plugin install prompt-coach@cc-plugins-marketplace -s local`).
-`install` never installs or enables it and prints it as a
-`skip (opt-in: bills a model call per prompt)` row; `uninstall` and `list` treat it like
-any other plugin. The game plugins — `godot`, `unity`, `unreal`, `roblox`, `bevy`, `defold`,
-`ebitengine`, `phaser`, `pixijs` and `gamedev` — are left out the same way, as
-`skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)`: ten engines'
-descriptions in every project's listing serve none of them, and `/stack-scan:suggest` puts each
-one where its manifest signal is. Install one by name like prompt-coach.
+Installs every plugin in this marketplace at one scope, and removes them again. With no
+`--scope`, it asks once and nothing else: `/all-plugins:install` offers local or project,
+`/all-plugins:uninstall` offers local, project or user. With `--budget`, install also
+raises the host's skill-listing budget so every description in the listing reaches the model;
+uninstall reverses both. One script does the work, with one exit code; the two commands
+only relay it. A "leaf" is any plugin in the marketplace's `marketplace.json`; there are
+no bundles to skip. Every leaf includes `all-plugins` itself: `install` covers it (normally a
+`skip`), and `uninstall` keeps it unless `--self`. One plugin is left out by
+construction: **`prompt-coach`**, which bills a model call per eligible prompt. It installs
+only when you name it (`claude plugin install prompt-coach@cc-plugins-marketplace -s local`).
+`install` never installs or enables it, and prints it as a
+`skip (opt-in: bills a model call per prompt)` row. `uninstall` and `list` treat it like
+any other plugin. The six game plugins — `godot`, `unity`, `unreal`, `phaser`, `pixijs` and `gamedev` —
+are left out the same way, as
+`skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)`. Their
+descriptions in every project's listing serve no project but a game, and `/stack-scan:suggest`
+puts each one where its manifest signal is. Install one by name like prompt-coach.
 
 > **Re-run it after every marketplace update.** `install` installs what the marketplace
 > holds **when you run it**. `/plugin marketplace update` updates the plugins you have;
@@ -113,7 +112,7 @@ disk before any plugin is installed.
 | Both commands ask for the scope when `--scope` is absent (`user` only typed, for install), and stop rather than defaulting when nobody answers | **agent-graded** — instruction text in `commands/install.md` and `commands/uninstall.md`; no harness drives a command |
 | The startup line: shown only while all-plugins is its marketplace's sole enabled plugin, on startup, to the person, off with `CC_ALL_PLUGINS_HINT=off` | **gate** — the same harness's `hint:` cases drive `hooks/hint.sh` against fixture settings files |
 | The budget step: nothing written without `--budget`; with it, the fraction written, never lowered, foreign values kept, invalid JSON untouched, removed only when it is the script's own value | **gate** — the same harness drives it against fixture settings files |
-| The overflow arithmetic | **recorded** — reproduced by `scripts/context-budget.sh`; the 0.07 figure moves as the marketplace grows, and the script recomputes it on every run |
+| The overflow arithmetic | **recorded** — reproduced by `scripts/context-budget.sh`; the 0.08 figure moves as the marketplace grows, and the script recomputes it on every run |
 | The zero-delta firing result | **recorded** — one n=50 measurement; nothing re-runs it in CI (`scripts/smoke/listing-eviction-probe.sh` needs a live model and `LISTING_PROBE=1`) |
 
 ## The listing budget — what `install --budget` changes besides the install list
@@ -122,19 +121,19 @@ Claude Code caps the skill+command listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` — default fraction
 0.01, so 6,000 chars on a 200k window (3-byte model) and 30,000 at 1M — and past the
 cap it drops entries to name-only, buying descriptions back in priority order. Every
-leaf here costs about 36,500 entry-chars (`name + 4 + min(description + when_to_use, 1536)` per
+leaf here costs about 44,400 entry-chars (`name + 4 + min(description + when_to_use, 1536)` per
 skill and command, the walk `scripts/lib/plugin-checks.sh`'s `pc_listing_entry_cost`
-does): 6.1x the 200k cap, 1.2x the 1M cap. The name+4 floor alone is 67% of the 200k
+does): 7.4x the 200k cap, 1.5x the 1M cap. The name+4 floor alone is 77% of the 200k
 cap, so no amount of description trimming makes everything fit there.
 
 So `install --budget` finishes by computing that cost from the marketplace clone and writing
 `skillListingBudgetFraction` into the scope's settings file — `.claude/settings.local.json`
 (local), `.claude/settings.json` (project), `~/.claude/settings.json` (user) — at the
-smallest 0.01 step that covers cost x 1.05 at the 200k floor: 0.07 today. The fraction
+smallest 0.01 step that covers cost x 1.05 at the 200k floor: 0.08 today. The fraction
 is a cap, not a fill, so a 1M window pays nothing extra for the larger value. It never
 lowers a value that already covers, keeps every other key, refuses to touch a file that
 is not valid JSON (stderr names the value to set by hand), and prints what it did. The
-price is the listing itself: about 12,200 system-prompt tokens per turn, almost all of
+price is the listing itself: about 14,800 system-prompt tokens per turn, almost all of
 it prompt-cache reads. `uninstall` removes the key only when it still holds the value
 `install --budget` would set now — any other value is yours and is left alone, with a
 line saying so. It does that by default, so a value an install before 0.3.0 wrote
@@ -151,3 +150,7 @@ The `everything` bundle that once existed served this same want and was removed 
 "unreachable" reading, before the probe. This plugin is a script, not a bundle, and no
 gate enforces the cost stated here — it is recorded (see "What has teeth") and
 recomputed by `scripts/context-budget.sh` on every run.
+
+## History
+
+The suites were retired 2026-09-26, which is why there are no bundles to skip.

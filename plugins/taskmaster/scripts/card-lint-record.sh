@@ -1,39 +1,7 @@
 #!/usr/bin/env bash
-# card-lint-record.sh — the run record the four card linters leave behind, and the
-# ONE place its location, name and format are decided. Sourced by the writers
-# (card-shape-lint.sh, verify-teeth-lint.sh, skills-stamp-lint.sh, spec-ledger-lint.sh) and by the reader
-# (hooks/card-lint-observe.sh). Writer and reader sharing one file is the point: a
-# drift between them would disable the observation silently, with every gate still
-# green — which is the failure this whole path exists to make visible.
-#
-# WHY A RECORD AT ALL. The linters are gates WHEN THEY RUN, and nothing
-# observed that they ran: a card set could reach execution having had none of them
-# invoked, with every check in the repo green. The record is what an after-the-fact
-# reader can count.
-#
-# WHY THE RECORD IS KEYED ON THE CARD, NOT ON THE CALLING CONTEXT. Cards are linted
-# in the AUTHORING session and executed later — often another session, and always
-# another transcript once subagents carry the work. A record namespaced by the
-# writer's context could never be found by the reader, so the identity has to be the
-# card itself. The state that IS context-scoped — "have I already warned about this
-# set in this transcript" — belongs to the hook, and is keyed there on a hash of
-# transcript_path, never on session_id (a subagent shares its parent's) and never
-# raw in a path (transcript_path is absolute).
-#
-# WHERE. A `.lint-records/` directory beside the target, so records travel with the
-# card set and neither side has to agree on a cwd or a git root. Override with
-# CC_CARDLINT_DIR (the harness does, to stay out of a real card set).
-#
-# FORMAT. One tab-separated line appended per invocation:
-#   <iso8601-utc>  <linter>  <verdict>  <target-basename>
-# Appended, never truncated: a card linted, fixed and re-linted keeps both rows, and
-# the last row for a linter is its current verdict.
-#
-# Standing: `recorded`. Writing a record proves the linter was invoked against that
-# file and nothing else. It does not re-read the card, and a record can be created by
-# hand — what it closes is the honest-but-forgetful skip, not deliberate evasion.
-# Every function here fails silently and returns 0: a linter must never fail because
-# its bookkeeping could not be written.
+# card-lint-record.sh — the one definition of the card-lint run record, sourced by the four card linters and hooks/card-lint-observe.sh: one TSV line appended per run (<iso8601-utc> <linter> <verdict> <target-basename>) to .lint-records/<target-basename>.log beside the target (CC_CARDLINT_DIR overrides), keyed on the card because cards are linted in one session and run in another.
+# Misses: whether the card is good — a record proves only that the linter ran on that file; nothing re-reads the card, and a record can be written by hand. The writers fail silently and return 0 — a linter must never fail because its bookkeeping could not be written; cardlint_has returns 1 when no record exists.
+# Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/card-lint-record.sh
 
 cardlint_dir() { # $1 = target file -> ledger dir (not created)
   if [ -n "${CC_CARDLINT_DIR:-}" ]; then
@@ -44,10 +12,7 @@ cardlint_dir() { # $1 = target file -> ledger dir (not created)
 }
 
 cardlint_file() { # $1 = target file -> that file's record path
-  # The name is the target's basename, which is already a legal filename by
-  # construction — no hash needed here, and a readable ledger is worth more than
-  # one nobody can grep. (The hook's transcript key is a different thing entirely
-  # and IS hashed; see the header.)
+  # Not hashed: the basename is already a legal filename, and a ledger you can grep beats an opaque one.
   printf '%s/%s.log' "$(cardlint_dir "$1")" "$(basename "$1")"
 }
 

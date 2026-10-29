@@ -1,49 +1,7 @@
 #!/usr/bin/env bash
-# Warn-only staleness check for vendored doc digests (hybrid digest +
-# fetch-verify strategy). Scans */references/*.md under a root for the
-# machine-parsable stamp, expected within the first 6 lines of a digest:
-#
-#   > Last verified: YYYY-MM-DD — <root doc URL>[ — npm:<package>@<major>[.<minor>]]
-#
-# and prints a warning for any digest whose stamp is older than the threshold.
-# Scans BOTH */references/*.md and skills/*/SKILL.md: a version-leverage claim is
-# usually inline in the SKILL body, not in a reference file. Files with no stamp
-# are hand-written skill material, not doc-derived — silently ignored here.
-# validate.sh separately REQUIRES a stamp from any plugin whose own description
-# claims version leverage; that is the blocking half of this pair. NEVER blocks: exits 0 on every path,
-# including after warnings (warn-only by contract, spec A2); the CI step adds
-# continue-on-error as belt and braces. Runnable locally:
-#   bash scripts/check-doc-staleness.sh [--days N] [--path DIR] [--live] [--inventory]
-#     --days N    staleness threshold in days (default 90)
-#     --path DIR  scan root (default plugins/)
-#     --live      also compare npm:<pkg>@<ver> stamps against the live npm
-#                 version and HEAD every stamped URL; npm/network errors print
-#                 an info line, never warn
-#     --inventory print one tab-separated row per stamp (age, date, stamped npm,
-#                 live npm, URL status, file) instead of only the warnings — the
-#                 table the digest-refresh project skill walks
-#
-# What the age check does NOT catch, measured: the Astryx digest was 49 days
-# old on 2026-09-09 — inside the 90-day window — and already wrong on the
-# package layout, the theme API and a category name, because a 0.x package
-# had gone 0.3 → 0.5. Age is a proxy; the `npm:` tail is the real signal, and
-# for a 0.x package the MINOR is the breaking unit, so the tail may carry
-# `@<major>.<minor>` and --live then compares both. A stamp with no npm tail
-# is invisible to --live: stamp the package, or accept that only the date is
-# read back. Residual: a URL that still answers 200 with rewritten content is
-# reported as reachable; only a human or model diff catches that, which is
-# what the digest-refresh skill is for.
-#
-# Three more gaps, recorded 2026-10-05 and not built:
-#   - --live runs only by hand. CI runs the age check alone (validate.yml's
-#     "doc staleness" step), so motion 14 (npm, published 2026-10-02) sat
-#     behind two npm:motion@13 stamps until someone ran --live by hand.
-#   - npm: is the only tail read. A composer:/Packagist tail is ignored, so a
-#     Laravel or other PHP major surfaces only through the age warning, even
-#     though validate.sh's pc_version_stamp_tail accepts a composer: tail.
-#   - A versioned docs URL (laravel.com/docs/13.x/...) is HEADed, never probed
-#     for the next version (docs/14.x answering 200), so a new major with no
-#     package tail stays invisible to --live.
+# check-doc-staleness.sh [--days N] [--path DIR] [--live] [--inventory] — warns on a `> Last verified: YYYY-MM-DD — <url>[ — npm:<pkg>@<major>[.<minor>]]` stamp (first 6 lines of */references/*.md or skills/*/SKILL.md) older than --days (90); --live compares the npm tail and HEADs the URL; --inventory prints a row per stamp.
+# Misses: unstamped files, a URL answering 200 with rewritten content, composer: tails, a versioned docs URL's next major, and --live outside a hand run (CI runs the age check only); age is a proxy. Exits 0 on every path.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/check-doc-staleness.sh
 set -u
 cd "$(dirname "$0")/.." || exit 0
 
@@ -99,11 +57,7 @@ url_status() {
 [ "$inventory" -eq 1 ] && printf 'age_d\tverified\tstamped_npm\tlive_npm\turl_status\tfile\turl\n'
 
 while IFS= read -r f; do
-  # Binding stamp grammar: within the first 6 lines, first match wins. The bold form
-  # (`> **Last verified: …**`) is accepted because seven shipped craft-layer references
-  # used it and were invisible to this script for weeks — a staleness checker that
-  # silently skips files is worse than one that reports them, and the marker is for
-  # humans, who bold things. Both forms are canonical; neither is preferred.
+  # Stamp grammar: within the first 6 lines, first match wins; the bold `> **Last verified: …**` form counts too.
   stamp=$(head -6 "$f" | grep -E '^> \*{0,2}Last verified: ?\*{0,2} ?[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
   [ -n "$stamp" ] || continue
   d=$(printf '%s' "$stamp" | sed -E 's/^> \*{0,2}Last verified: ?\*{0,2} ?([0-9]{4}-[0-9]{2}-[0-9]{2}).*/\1/')
@@ -117,10 +71,7 @@ while IFS= read -r f; do
     echo "⚠ stale (${age}d > ${days}d): $f — last verified $d"
   fi
 
-  # Optional npm tail of the stamp: " — npm:<package>@<major>[.<minor>]"
-  # (package may be scoped, e.g. npm:@scope/pkg@3 — greedy [^ ]+ keeps the
-  # scope's @). A minor is meaningful on its own for 0.x packages, where the
-  # minor is the breaking unit; on >=1.x a stamped minor is compared too.
+  # Optional npm tail ` — npm:<package>@<major>[.<minor>]`: greedy [^ ]+ keeps a scoped package's @; a stamped minor is compared too (0.x breaks on minors).
   npm_part=$(printf '%s' "$stamp" | sed -nE 's/.*npm:([^ ]+)@([0-9]+(\.[0-9]+)?)[[:space:]]*$/\1 \2/p')
   pkg=""; stamped_ver="-"; live_ver="-"; status="-"
   if [ -n "$npm_part" ]; then
@@ -162,18 +113,7 @@ while IFS= read -r f; do
   fi
 
   [ "$inventory" -eq 1 ] && printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$age" "$d" "${pkg:+$pkg@}$stamped_ver" "$live_ver" "$status" "$f" "${url:--}"
-# WIDENED 2026-08-02 to include skills/*/SKILL.md. The scan was references-only,
-# and every one of the ~15 version-leverage stack plugins — nextjs, nuxt, vue3,
-# laravel, php, vite, threejs, node-backend, react-native, livewire, inertia,
-# mysql, mariadb, postgresql, sql — ships ZERO files under any references/
-# directory. All ten stamped files in the tree sit in ui-ux and craft-layer.
-# Their version claims live inline in SKILL.md bodies, which this check had never
-# been able to see. Those plugins are exempt from the baseline-redundancy loop
-# precisely BECAUSE they encode version leverage, so a stale leverage map turns
-# the marketplace's one durable advantage over a blind model into confidently
-# wrong advice that decays silently rather than on any edit.
-# WIDENED 2026-09-09 to .claude/skills when --path names it; the default root
-# stays plugins/ so the CI step's output is unchanged.
+# SKILL.md is scanned too: version-leverage claims live inline in skill bodies, not only under references/.
 done < <(find "$root" -type f \( -path '*/references/*.md' -o -path '*/skills/*/SKILL.md' \) 2>/dev/null | sort)
 
 # Warn-only by contract: never fail the caller, even after warnings.

@@ -1,32 +1,29 @@
 # approaches
 
-Solution-approach deliberation before non-trivial implementation: generate 2-3
-structurally different approaches, compare trade-offs, and commit with a stated
-kill-trigger — backed by a strategy catalog (tracer bullet, walking skeleton,
-spike, strangler fig, inversion, Polya) mapped to the risk each one beats, and
-a blind opinion round where four parallel opinion-lens personas (Standards
-Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue
-rework-shaped tasks.
+This plugin weighs solution approaches before non-trivial implementation. It sets out 2-3
+structurally different approaches and compares their trade-offs. Then it commits to
+one, with a stated kill-trigger: the condition that would make you drop it. A change that
+reworks existing code can instead get a blind opinion round. Four `opinion-lens`
+personas argue it in parallel: Standards Purist, Quality-over-Speed,
+Pragmatist-Minimalist and Skeptic-Investigator. A strategy catalog backs the choice,
+each strategy mapped to the risk it beats:
 
-The `build-vs-buy`, `estimation`, `rollout`, and `design-patterns` plugins were
-merged into this one: their skills (build-vs-buy, rollout-planning,
-pattern-selection) now ship here, their commands live on below, and
-build-vs-buy's UserPromptSubmit reminder hook moved over intact — it now nudges
-toward `/approaches:build-vs-buy`. Nothing was dropped in the merge itself; the
-`estimation` skill and its `size` command were removed later, on 2026-09-22.
+| Strategy | The risk it beats |
+| --- | --- |
+| tracer bullet | the parts might not connect |
+| walking skeleton | the project might never deploy |
+| spike | unknown tech or API |
+| strangler fig | a legacy replacement stalls |
+| inversion | high stakes, unclear failure routes |
+| Polya | a genuinely hard problem, stuck |
 
-The fresh-take plugin was merged into this one on 2026-09-14: `/approaches:consult` composes a
-facts-only brief and dispatches the blind `consultant` agent (stronger-model,
-read-only) at the two key moments — stuck after repeated failed fixes, or one
-keystroke from something irreversible — and its `hooks/consult-remind.sh` nudge
-on irreversible-command tokens came with it. Both are `decide`-phase blind second
-opinions, the same shape as the opinion panel; the plugin boundary carried nothing.
-
+`/approaches:consult` gives a blind, stronger-model second opinion when you are stuck or
+about to do something irreversible.
 Claude Code's `/advisor` (extended in 2.1.300) overlaps it: a server-side stronger model
 consulted from inside the session's conversation. Consult keeps three things the advisor
 does not do: a blind, facts-only brief (`scripts/brief-lint.sh` rejects leaning phrasing),
 a read-only investigation of the repo by the consultant itself, and the
-irreversible-command nudge. The Admission question is open, not answered: no control-arm
+irreversible-command nudge. Whether the consult agent earns its place is open: no control-arm
 run has shown a blind brief beating the anchored advisor on the same stuck moment. If one
 shows it does not, the consult agent is a duplicate and only the nudge earns its place.
 
@@ -77,3 +74,19 @@ name rather than in any any-project default.
 - **code-architecture** — hands the chosen approach to a file-level plan before coding
 - **taskmaster** — deliberation steps aside when the grill/brainstorm pipeline already owns the task
 - **debugging** — owns the stuck moment at three failures; `/approaches:consult` is the cheap exit one cycle earlier
+
+## History
+
+The `build-vs-buy`, `estimation`, `rollout`, and `design-patterns` plugins were
+merged into this one: their skills (build-vs-buy, rollout-planning,
+pattern-selection) now ship here, their commands live on above, and
+build-vs-buy's UserPromptSubmit reminder hook moved over intact — it now nudges
+toward `/approaches:build-vs-buy`. Nothing was dropped in the merge itself; the
+`estimation` skill and its `size` command were removed later, on 2026-09-22.
+
+The fresh-take plugin was merged into this one on 2026-09-14: `/approaches:consult` composes a
+facts-only brief and dispatches the blind `consultant` agent (stronger-model,
+read-only) at the two key moments — stuck after repeated failed fixes, or one
+keystroke from something irreversible — and its `hooks/consult-remind.sh` nudge
+on irreversible-command tokens came with it. Both are `decide`-phase blind second
+opinions, the same shape as the opinion panel; the plugin boundary carried nothing.

@@ -1,7 +1,6 @@
 # Shared block templates/blocks/phase-guard.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-guard.md
-# No template directive of any kind in these comments: _expand_includes copies this file raw, then conditionals and
-# substitution run over the whole text.
+# No template directive in these comments: _expand_includes copies this file raw, then conditionals and substitution run over all of it.
 # cc_phase_guard returns 1 only when <cc_state_root>/.claude/cc-phase.json, unexpired (one older than cc_phase_ttl_min is deleted)
 # and not another session's, names a phase past $1's phase in this plugin's own lane.tsv; else 0.
 # cc_phase_now: the phase any unexpired sentinel names, whichever session wrote it, or empty.

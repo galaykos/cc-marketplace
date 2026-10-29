@@ -48,6 +48,10 @@ mkf
 # --- deny shapes -------------------------------------------------------------
 denies "adds .skip with no reason" Edit \
   "{\"file_path\":\"$T/a.test.ts\",\"old_string\":\"it('a'\",\"new_string\":\"it.skip('a'\"}"
+r=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
+[ "$r" = "testing: blocked a test skip/exclusive marker with no reason on its line in a.test.ts, which would let the suite pass without running those tests. Fix the code instead, or if the skip is right, put the reason on the same line, e.g. \`it.skip('…')  // skip: flaky on CI, see #1421\`. CC_PROTECT_TESTS=off turns this check off." ] \
+  && ok "the deny says what was blocked, the fix, the same-line escape and one off switch" \
+  || bad "the deny says what was blocked, the fix, the same-line escape and one off switch" "$r"
 denies "adds .only (shrinks the suite to one case)" Edit \
   "{\"file_path\":\"$T/a.test.ts\",\"old_string\":\"it('a'\",\"new_string\":\"it.only('a'\"}"
 denies "adds xit" Write \

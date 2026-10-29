@@ -1,10 +1,6 @@
 #!/bin/bash
-# preamble.sh (UserPromptSubmit, SubagentStart; payload on stdin) — adds candor's five working moves as context: once per session, on the
-#   first prompt whose head has a making verb in an imperative clause; once per agent_id on SubagentStart, after recording the worker in flight,
-#   for an agent type that can edit (a read-only one gets the record and no text). A harness frame is no prompt; a paste's verbs do not count.
-# Off: CC_PREAMBLE=off silences the text, never the in-flight record; it does not answer to CC_REMIND. Unset, the /config option cc_preamble decides.
-#   Advisory: context cannot block. Fails open: without jq it does nothing; it always exits 0.
-# Misses: a work session opened with a question, until its first imperative prompt; a compaction drops the text and it is not re-sent.
+# UserPromptSubmit and SubagentStart: adds candor's five working moves as context, once per session on the first prompt whose head has a making verb in an imperative clause, and once per agent_id for an agent type that can edit, after recording the worker in flight.
+# Misses a work session opened with a question until its first imperative prompt; a compaction drops the text and it is not re-sent. Advisory; fails open. CC_PREAMBLE=off silences the text, never the record, and does not answer to CC_REMIND; unset, /config cc_preamble.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/preamble.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -12,8 +8,6 @@
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -35,8 +29,7 @@ cc_option() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/prompt-shape.md
 # Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste, cc_prompt_auth_surface: stdin;
 #   cc_prompt_scheduled: the file it names) and writes nothing.
-# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back
-#   marker — not a human turn.
+# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back marker.
 # cc_prompt_scheduled <prompt> <transcript>: status 0 when <transcript> holds a ScheduleWakeup or CronCreate call whose prompt is
 #   <prompt> exactly: a timer re-delivering an earlier ask, which the hook payload does not mark. Needs jq.
 # cc_prompt_auth_surface: filter for paths; prints each stdin line naming an auth, secret, payment or migration surface (not `author`;
@@ -132,10 +125,7 @@ MARKER_TTL_MIN=1440
 
   [ "$(cc_option CC_PREAMBLE on)" = "off" ] && exit 0
   if [ "$event" = "SubagentStart" ]; then
-    # No text for an agent that cannot edit: reviewers, scouts and Explore were told to prove a change in the browser.
-    # The names are this marketplace's agents and the built-ins whose tools hold no Write or Edit; preamble-hook.test.sh
-    # derives that set from agents/*.md and fails on one this list misses. Qualified: a bare-name glob would also silence
-    # another source's writable verifier or acme:security-reviewer. Misses: another source's read-only agent.
+    # No text for an agent that cannot edit; qualified names, so another source's writable namesake still gets it. preamble-hook.test.sh fails on a read-only marketplace agent this list misses.
     atype=$(printf '%s' "$input" | jq -r '.agent_type // empty' 2>/dev/null)
     case "$atype" in
       Explore | Plan | claude-code-guide | toolchain-experts:*-expert | approaches:consultant | approaches:opinion-lens \

@@ -1,38 +1,13 @@
 #!/bin/bash
-# Absolute-path shebang: fail-open must hold under a stripped PATH.
-#
-# Stop. Reads the session ledger ledger.sh wrote and the final assistant message from the
-# transcript; refuses the turn (exit 2, reason on stderr — the channel candor's gate
-# measured as the one that reaches the model) when any ledgered name has no accounting
-# line: a line naming it and one of `as named`, `substituted`, `omitted`. Blocks at most
-# twice per session, so a model that will not comply cannot be held forever; after that
-# the missing names are printed as a warning and the turn ends.
-#
-# AN ACCOUNTED NAME LEAVES THE LEDGER (2026-10-08). Every Stop rewrites the ledger to the
-# names its final message did not account for, so a name is owed by the turn that named
-# it (and by the retry a block asks for, which owes only the names the block listed) —
-# not by every turn after. The ledger was session-cumulative before: `Iinstalled`,
-# written `as named` in the turn that named it, was demanded again at the end of
-# "PR + Merge" and "resume the survey" and blocked both. A later prompt that names it
-# again re-ledgers it, and that turn owes it again. The give-up drops its names too: the
-# warning is their record. Residual: a later turn that quietly undoes an accounted name
-# without naming it again is not asked about.
-#
-# STANDING: gate on the SHAPE — the line must exist. Whether "as named" is true is
-# agent-graded: the model's word, and the reader's eye on the lines it was made to
-# write. That is the whole design: a silent substitution has to be written down as
-# "as named" — a lie — or as "substituted" — the confession — and neither is silence.
-# No ledger (no work-shaped prompt this session), no final message, or
-# CC_ASK_LEDGER=off: silent. Fail-open on missing jq or a bad payload.
-# CC_ASK_LEDGER unset: the /config option cc_ask_ledger decides.
+# gate.sh — Stop: sends the turn back (JSON block on stdout) when a name ledger.sh ledgered has no line in the final reply naming it with `as named`, `substituted` or `omitted`; twice a session at most, then warns; accounted names leave the ledger. Off: CC_ASK_LEDGER=off (unset: /config option cc_ask_ledger). Fails open.
+# Misses: whether "as named" is true (the model's word, agent-graded), and a later turn quietly undoing an accounted name it does not name again. Silent with no ledger or no final message.
+# Why, limits, history: rationale/derivations/plugin-ask-ledger.md § plugins/ask-ledger/hooks/gate.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -84,15 +59,16 @@ exec 3>&2
 
   n=$(cat "$dir/blocks" 2>/dev/null || echo 0)
   if [ "$n" -ge 2 ]; then
-    printf 'ask-ledger: still unaccounted after two blocks — %s. Ending the turn anyway; the reader should treat those names as unverified.\n' "$missing" >&3
+    printf 'ask-ledger: after two tries the final reply still does not say what happened to %s; ending the turn anyway, so treat those as unverified.\n' "$missing" >&3
     : > "$dir/entries"
     exit 0
   fi
   echo $((n+1)) > "$dir/blocks"
-  # The retry is the last thing the user reads; when it held only these lines, users re-asked
-  # the question the turn had already answered above them.
-  printf 'ask-ledger: the ask named %s and the final message does not account for them. Restate the answer'"'"'s one-line verdict first, then one line per name — `<name>: as named` | `<name>: substituted → what, why` | `<name>: omitted → why` — and say so truthfully: a substitution you never raised is a substitution, not "as named". Then stop again.\n' "$missing" >&3
-  printf 'ask-ledger: CC_ASK_LEDGER=off disables this gate for the session.\n' >&3
-  exit 2
+  # The verdict leads the retry: it is the last thing the user reads, and name lines alone made users re-ask.
+  reason=$(printf 'ask-ledger: your final reply does not say what happened to %s, which the request named. Restate the answer'"'"'s one-line verdict first, then one line per name, then stop again:\n  `<name>: as named` | `<name>: substituted → what, why` | `<name>: omitted → why`\n  A substitution you never raised is "substituted", not "as named".\n' "$missing"
+    printf 'ask-ledger: CC_ASK_LEDGER=off turns this check off.\n')
+  jq -cn --arg r "$reason" --arg m "ask-ledger sent the turn back: the reply does not say what happened to $missing." \
+    '{decision:"block",reason:$r,systemMessage:$m}'
+  exit 0
 } 2>/dev/null
 exit 0

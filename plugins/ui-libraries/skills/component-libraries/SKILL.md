@@ -1,6 +1,6 @@
 ---
 name: component-libraries
-description: Use when building or reviewing UI on any React or Vue component library — headless (Base UI, Radix, Reka UI, React Aria, Ark, Headless UI), styled (Mantine, Chakra, Ant Design, HeroUI, PrimeReact, PrimeVue, Vuetify, Element Plus), or any without a sibling skill — or a UK government, US federal, Shopify, IBM or Atlassian product owed its official design system (GOV.UK, USWDS, Polaris, Carbon, Atlassian) — library-agnostic rules plus a per-library map to sibling skill or docs URL.
+description: "Use when building or reviewing UI on any React or Vue component library, or any without a sibling skill. Headless: Base UI, Radix, Reka UI, React Aria, Ark, Headless UI. Styled: Mantine, Chakra, Ant Design, HeroUI, PrimeReact, PrimeVue, Vuetify, Element Plus. Or a UK government, US federal, Shopify, IBM or Atlassian product owed its official design system (GOV.UK, USWDS, Polaris, Carbon, Atlassian). Gives library-agnostic rules plus a per-library map to sibling skill or docs URL."
 ---
 
 # Component libraries — the library-agnostic floor

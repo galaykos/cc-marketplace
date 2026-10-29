@@ -120,7 +120,12 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    approval and `scripts/review-skip.sh --card range-<HEAD12> --reason "<why>"` (no
    code-review installed: `--exempt no-reviewer-installed`), and appears under `Skipped:`.
    Then finish with BOTH completion gates, never one alone:
-   - the full project check suite (catches lint/type/build regressions), AND
+   - the full project check suite (catches lint/type/build regressions), run after the run's
+     last commit through
+     `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-receipt.sh" run --name suite -- bash -c '<whole suite>'`.
+     The whole suite goes in as ONE argument: unquoted, the shell splits `a && b` and only `a`
+     is recorded. It records the pass at this commit so `/git-workflow:finish` can reuse it; a
+     commit after it makes the receipt stale. AND
    - the **behavioral-gate** on the run's changed files —
      `"${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh" --isolate --changed "<the run's
      touched files>" [--entrypoint <bin>] [--differential 'flag::with::without']
@@ -166,7 +171,8 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    repo root), then print the
    completion report table (task / status / verify command / evidence), parked tasks
    with reasons, the follow-up backlog, and every recorded reduction by id and reason —
-   `bg-<HEAD12>` when the no-runner exit was taken. When cards touched UI, the report also carries one Screens table (screen · width · before · after · not observed) per `skills/task-execution/references/ui-walk.md`, whose walk is also the `--evidence` for that no-runner record.
+   `bg-<HEAD12>` when the no-runner exit was taken — and, beside the result, the one line
+   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-cost.sh"` prints: what the run itself cost. When cards touched UI, the report also carries one Screens table (screen · width · before · after · not observed) per `skills/task-execution/references/ui-walk.md`, whose walk is also the `--evidence` for that no-runner record.
    The rename, not a delete: the stop after the report is where candor's clause 4 reads
    the records (reviewer, control, range, disclosure), and it retires `closed-run.json`
    when they hold. The review observer and the skip-consent ask still treat it as the run,
@@ -180,11 +186,24 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    index runs.
 
 5. Handoff — on a green completion report, if the git-workflow plugin is
-   installed, ask via AskUserQuestion: "Finish the branch now (Recommended)"
-   / "Stop here — I'll finish it later"; on finish, proceed exactly as
-   /git-workflow:finish would. If tasks were parked, offer instead: "Retry
-   parked tasks now" / "Stop here" — one offer, not both. Headless: print
-   the exact next command.
+   installed, ask ONE AskUserQuestion, "The run passed. What should happen to the
+   branch?", offering finish's destinations directly, each with what it does:
+   "Open a PR (Recommended)" — push the branch and open a pull request for review;
+   "Merge locally" — merge into the base branch here, no review; "Keep the branch" —
+   leave it open with a note on what is missing; "Stop here" — nothing more now,
+   finish it later with `/git-workflow:finish`. Offer "Merge locally" only where
+   finish's destination protocol allows it: the base is not the default branch
+   (git-workflow's `branch-completion` skill, "The default branch is PR-only"); when
+   unsure, leave it out. On a destination, invoke
+   `/git-workflow:finish --to <pr|merge|keep>` (Skill tool): it skips only its own
+   destination question, still runs every check, stops on a red suite, a critical
+   finding or a confirmed secret, and asks again when the pick is not allowed there.
+   Pass `--to` only when git-workflow is 0.13.3 or later (`version` in its
+   `.claude-plugin/plugin.json`); with an older one, invoke `/git-workflow:finish`
+   without it. Discard is never offered here; it stays behind `/git-workflow:finish`
+   without `--to`. Standing: agent-graded. If tasks were parked, offer instead:
+   "Retry parked tasks now" / "Stop here" — one offer, not both. Headless: print the
+   exact next command.
 
 **Goal marker** (`Goal: true` in `00-INDEX.md`) — hands-off
 execution per the task-execution skill. The step-1 run plan is displayed, then execution

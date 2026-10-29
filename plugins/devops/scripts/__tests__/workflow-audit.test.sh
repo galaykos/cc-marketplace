@@ -245,11 +245,31 @@ out=$(jq -nc --arg f ".github/workflows/ci.yml" --arg c 'jobs:
       '{tool_name:"Write",tool_input:{file_path:$f,content:$c}}' \
       | CLAUDE_PLUGIN_ROOT=/opt/plugins/devops bash "$HOOK" 2>/dev/null)
 if printf '%s' "$out" | grep -q '/opt/plugins/devops/scripts/workflow-audit.sh' \
-   && ! printf '%s' "$out" | grep -q 'Run bash plugins/devops/'; then
+   && ! printf '%s' "$out" | grep -q 'bash plugins/devops/'; then
   echo "PASS[hook]: deny reason names the installed audit path"
 else
   echo "FAIL[hook]: deny reason does not resolve CLAUDE_PLUGIN_ROOT: $out"; rc=1
 fi
+r=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')
+want='devops blocked this write: a run: step puts a ${{ github.event.* }} field a pull-request author controls (title, body, branch name, commit message) straight into the shell, where it runs as code. Pass it through env: and reference "$VAR" in the script. (file: .github/workflows/ci.yml) Full report: bash /opt/plugins/devops/scripts/workflow-audit.sh. CC_WORKFLOW_GUARD=off turns this check off.'
+if [ "$r" = "$want" ]; then echo "PASS[hook]: injection reason: what was blocked, the fix, the file, the report, one off switch"
+else echo "FAIL[hook]: injection reason text — got: $r"; rc=1; fi
+out=$(jq -nc --arg f ".github/workflows/ci.yml" --arg c 'on:
+  pull_request_target:
+jobs:
+  b:
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}' \
+      '{tool_name:"Write",tool_input:{file_path:$f,content:$c}}' \
+      | CLAUDE_PLUGIN_ROOT=/opt/plugins/devops bash "$HOOK" 2>/dev/null)
+r=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')
+case "$r" in
+  "devops blocked this write: the workflow checks out the pull request's code under pull_request_target or workflow_run, which runs it with the repository's secrets and a write token. Build the PR under pull_request with no secrets, or check out the base ref and treat the PR tree as data. (file: .github/workflows/ci.yml)"*)
+    echo "PASS[hook]: privileged-checkout reason: what was blocked and the fix" ;;
+  *) echo "FAIL[hook]: privileged-checkout reason text — got: $r"; rc=1 ;;
+esac
 
 if printf 'not json' | bash "$HOOK" >/dev/null 2>&1; then
   echo "PASS[hook]: garbage input exits 0 (fail-open)"

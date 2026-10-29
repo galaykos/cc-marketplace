@@ -1,8 +1,10 @@
 # task-runner
 
-Disciplined task execution: one task at a time, scope locked, bounded verify-fix
-inner loop (max three cycles, then park with evidence), no unbounded outer loop,
-full-suite completion gate.
+Disciplined task execution: one task at a time, with the scope locked. Each task gets a
+bounded verify-fix inner loop: at most three cycles, then it parks with evidence. There
+is no unbounded outer loop. The run counts as complete only after the full suite passes.
+
+**Not sure where to start? Start with `/work <what you want done>`** (or `/code-architecture:work`): it routes work through `/taskmaster:task` to this plugin's `/task-runner:run` when it needs a spec.
 
 ## Install
 
@@ -91,6 +93,9 @@ lines it changes. Critical/high findings re-enter the bounded fix loop. At run c
 cannot see what changed across cards.
 The run only completes when every task is done or parked AND the project's
 full check suite passes — including api-design's doc-drift check when installed.
+A green run then asks one question with git-workflow's destinations (open a PR, merge
+locally where allowed, keep the branch, stop) and passes the pick to
+`/git-workflow:finish --to <pr|merge|keep>`, which still runs every check.
 
 When a milestone's cards touch UI, the orchestrator walks the changed screens in a real
 browser before the milestone closes. Workers never do it: they share one browser and
@@ -158,6 +163,38 @@ here and not one bill. It cannot see an agent a subagent spawns through another 
 and it says nothing about whether the fan-out was a good idea — that is
 `/task-runner:plan`, which is prose. `CC_SPAWN_CAP=<n>` moves the first threshold;
 `CC_SPAWN_CAP=off` disables it.
+
+## What the run itself cost
+
+The completion report carries one line from `scripts/run-cost.sh`, beside the result:
+
+```
+Process cost since 14:02: 6 agents · 1.84M tokens (main 0.41M, subagents 1.43M; 87% cache reads) · 38 min
+```
+
+It is measured from this session's transcript (found by `CLAUDE_CODE_SESSION_ID`) and the
+agent transcripts beside it — `subagents/agent-*.jsonl` (subagents and forks) and
+`subagents/workflows/*/agent-*.jsonl` (Workflow agents) — from the moment the run registered
+(the modification time of `.claude/task-runner/active-run.json`, which the closing rename
+keeps) or `--since <epoch seconds | ISO-8601 with a zone>`. Every record from that moment on
+counts by its own timestamp, so a resumed agent's later work counts and its earlier work does
+not. Tokens are input, output, cache writes and cache reads, once per message across all the
+files. **Agents** are the agent transcripts holding at least one counted record; an agent's
+own agents count when their transcripts land in the same place. Cache reads are shown as a
+share. Minutes are wall time.
+
+What it does not show:
+
+- prices (they change, and the transcript has none);
+- compaction, which writes no usage record;
+- another session's tokens. An index run resumed in a new session keeps its first
+  registration, so its minutes span the sessions while its tokens are this session's only.
+  `register-run.sh --fresh`, or a second `--slug` registration, starts the count again.
+- The Workflow layout was read on a CLI 2.1.295 session only; that 2.1.310 writes the same
+  layout is assumed, not measured.
+
+When it cannot read the transcript it prints `Process cost: unknown — <reason>` and exits 0.
+**Standing: recorded** — the line reports and nothing reads it back.
 
 ## The run cannot end by narration
 
@@ -234,6 +271,33 @@ closing report is still checked against the run's records; candor's gate removes
 once they hold. Set `TASK_RUNNER_STOP_GATE=warn` to downgrade the block to a printed
 reminder everywhere.
 
+## Receipts
+
+`/task-runner:run` runs the closing suite, after the run's last commit, through
+`scripts/check-receipt.sh run --name suite -- bash -c '<whole suite>'`, which runs it from the
+repo root and records it in `.claude/task-runner/receipt.json`: the commit, a digest of the
+working tree, and the check's command (each argument quoted as given), exit status, time and a
+log of its last 60 output lines (`.claude/task-runner/receipts/suite-<commit>.txt`). A run at
+another commit or on another tree replaces the receipt; at the same ones, a failed check is
+replaced only by the same command run again. `check --name suite [--cmd '<command>']` prints
+`fresh: suite passed at <commit> (<command>)` and exits 0 only when the receipt names HEAD, the
+suite exited 0, its own log ends `exit 0`, the command is the one `--cmd` names, and nothing
+changed since: no tracked file edited or staged, no untracked file added or changed outside
+`.claude/` (whose `skills/`, `agents/`, `commands/`, `hooks/` and `settings.json` do count) and
+`taskmaster-docs/`, no root `.env*` file changed, no executable bit flipped, no submodule file
+edited. Anything else, an unreadable receipt included, prints `stale: <why>` and exits 1. It
+never writes the git index.
+
+Who reads it: `/git-workflow:finish` skips a fresh suite, overseer's acceptance may cite its log,
+and the task board shows `checks passed at <commit>: suite (<command>)` or `checks stale: <why>`
+under its summary, and `suite ✓ <commit>` at the end of the status line while a run's suite is
+fresh. The board asks `check` at each turn end and when the receipt, HEAD or the git index moved,
+not on every tool call; one that takes over 2 s reads stale. Not seen: other gitignored files
+(build output), skip-worktree or assume-unchanged files, untracked files inside submodules, nested
+repos that are not submodules, a receipt written by hand; a suite that leaves new untracked files
+behind reads stale at once. **Gate** — `scripts/__tests__/check-receipt.test.sh`,
+`tests/board.test.ts`.
+
 ## Mods (Claude Code ≥ 2.1.291)
 
 Since 0.44.0 the plugin also ships a hooks module, `hooks/mods.ts`, listed under `modules`
@@ -267,12 +331,23 @@ four features under three off switches.
   of code-review, git-workflow, debugging and testing.
 - **Status line** (`hooks/board.ts`). While a run is registered on the current branch, one
   line is pinned under the prompt:
-  `task-runner  <phase>  card <N>/<total>  <p> parked  <u> unrecognised  <ultra|goal>`, N
-  counting done cards plus the one in progress, empty parts dropped, and `<phase>` the live
-  phase sentinel's, else `build`. A card's status is the first word of its status cell; a word
+  `task-runner  <phase> <k>/8  card <N>/<total>  <p> parked  <u> unrecognised  <ultra|goal>  check running <m>m`.
+  `<phase>` is the live phase file's (`.claude/cc-phase.json`), else `build`, and `<k>/8` its
+  place in understand, shape, decide, plan, build, verify, review, ship (a phase outside that
+  list shows alone). N counts done cards plus the one in progress, and empty parts are dropped.
+  A card's status is the first word of its status cell; a word
   outside `pending`, `in_progress`, `done`, `parked`, `skipped` and `blocked` (a run that wrote
   `committed <sha>`) is counted as `unrecognised`, never silently as pending, and stays open
-  for the session-start notice, which names how many there are. A plain run, or an index with no card table, shows `task-runner  <phase>`.
+  for the session-start notice, which names how many there are. A plain run, or an index with no card table, shows `task-runner  <phase> <k>/8`.
+  `check running <m>m` shows while the behavioral gate runs in the background, read from
+  `.claude/task-runner/bg/running.pid` by candor's Stop check rule: the deadline on its third
+  line not yet passed (with no deadline, the file under 240 minutes old), the commit it names
+  is the current one, and the process it names is the gate, or on Linux any gate `pgrep` finds
+  running from inside the project; without `/proc`, any live process with that number counts.
+  `<m>` is the minutes since the file was written; while the check runs the line refreshes on
+  its own at each new minute, with no tool call or turn end needed, and stops when it ends.
+  With no run registered, a live phase file naming understand, shape, decide or plan shows
+  `taskmaster  <phase> <k>/8` (`taskmaster  shape 2/8`); any other phase shows no line.
   It refreshes at session start, at each main-loop turn end and, while a run is registered
   or the pane is open, after every tool call, main loop and subagents, parsing the index
   again only when its modification time moves (an index that cannot be statted, read or
@@ -284,12 +359,20 @@ four features under three off switches.
   refreshes nothing and a main-loop call refreshes at most once every 2 s, so a run that
   registers within 2 s of the last look shows at the next call after that, or at the turn
   end. **Gate** — `tests/board.test.ts`, "an idle board looks again at most every 2 s, never
-  on a subagent call" and "a run started within the idle gap shows at the turn end". The
-  line clears when no run is registered on this branch.
+  on a subagent call" and "a run started within the idle gap shows at the turn end". With no
+  run registered on this branch, the line clears unless the planning phase shows.
 - **Task board** (`hooks/board-view.tsx`, `/task-board`). A pane of the run's cards:
-  `Task board  <slug>  <marker>`, then `<phase>  <done>/<total> done  <p> parked  <u> unrecognised`, then a
-  button row, then one row per card (id, title cut to the pane width, parallel group,
-  marker), with a header row before each milestone's cards. `/task-board` opens or closes
+  `Task board  <slug>  <marker>`, then `<phase>  <done>/<total> done  <p> parked  <u> unrecognised`,
+  then `waiting on: background check running <m>m` only while that check runs (as in the
+  status line), then a button row, then one row per card (id, title cut to the pane width,
+  parallel group, marker), with a header row before each milestone's cards. During a run each
+  row adds two columns under a one-line legend: **review**, whether the card's review is
+  recorded, and **check**, whether its test was shown to fail without the change. Each reads
+  `yes`, `skip` (skipped with a reason), `exempt` (no review owed: a leaf card, or no
+  reviewer installed) or `no`. They are the records candor's Stop check counts:
+  `.claude/task-runner/rv/rv-seen-`, `rv-skip-` or `rv-exempt-<card>.json`, and
+  `.claude/task-runner/nc/nc-pass-` or `nc-skip-<card>.json`, only those written after the run
+  was registered. A numeric card id matches without its leading zeros (`1` is card `01`), as candor counts any id. `/task-board` opens or closes
   it; with no run it shows the newest `taskmaster-docs/tasks/*/00-INDEX.md`, labelled
   `not running`. It opens itself once per run in a session, the first time a refresh sees
   that run, when the terminal can place it; a pane you close stays closed for that run
@@ -315,8 +398,8 @@ four features under three off switches.
   too), `[!]` blocked, `[?]` a status outside the vocabulary. `<NN` names the first unmet dependency and `+N` how many more
   (`<11+5`); only a done dependency is met, so a parked one counts as unmet.
 - **Off switch for the line and the pane.** `CC_TASK_BOARD=off` (or `0`, `false`), or the
-  `/config` option `cc_task_board` off; the variable wins. Off clears the line at the next
-  refresh and keeps the pane from opening, and a session started with it off has no
+  `/config` option `cc_task_board` off; the variable wins. Off clears the line, the
+  planning-phase `taskmaster` line too, at the next refresh and keeps the pane from opening, and a session started with it off has no
   `/task-board`.
 - **CLI floor.** With mods off in the host or on a CLI below 2.1.287 no module loads; on
   2.1.288-2.1.290 the module passes every call through; either way the classic hooks work

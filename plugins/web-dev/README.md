@@ -1,15 +1,14 @@
 # web-dev
 
-Web development in one plugin: a **web-developer** worker for routing, REST/API
-integration, forms, state management, and SSR/CSR decisions; a **frontend-reviewer**
-that audits component and view logic; and three version-pinned stack skills —
-**Next.js**, **React Native** (with the Expo inversions), and **Vite**. Review runs
-through `/code-review:review`, the fan-in that detects the stack from the lockfile and
-loads every matching skill in one pass (the plugin's own review entry was
-retired on 2026-09-14 — it was a second name for that pass).
+Web development in one plugin. A **web-developer** agent handles routing, REST/API
+integration, forms, state management, and SSR/CSR decisions. A **frontend-reviewer**
+audits component and view logic. Three version-pinned stack skills cover **Next.js**,
+**React Native** (with the Expo/EAS traps), and **Vite**. Review runs through
+`/code-review:review`, one combined review. It detects the stack from the lockfile and
+loads every matching skill in one pass.
 
 Laravel keeps its own plugin and Inertia lives there — a PHP-side pairing — and the
-worker and reviewer defer to it when installed. Plain JavaScript and TypeScript
+web-developer agent and the frontend-reviewer defer to it when installed. Plain JavaScript and TypeScript
 need no stack skill — that shape measured zero against a blind control
 (`rationale/measured-zero-shapes.md`), which is why there is none here.
 
@@ -36,6 +35,9 @@ installed, else inline), not to `web-developer`: code-review ships a reviewer an
 worker of its own, and its chain is stack-agnostic by design. Dispatch `web-developer`
 directly for the implementation half. The skills also fire on their own while editing
 when `skill-router` is installed.
+
+The plugin's own review entry was retired on 2026-09-14 — it was a second name for
+the `/code-review:review` pass.
 
 ## Skills
 

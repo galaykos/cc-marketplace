@@ -1,12 +1,13 @@
 ---
 description: Finish a development branch — full-suite verify with state evidence, then merge/PR/keep/discard with cleanup.
-argument-hint: [branch]
+argument-hint: [branch] [--to pr|merge|keep]
 ---
 
-Finish the development branch $ARGUMENTS (or the current branch if no argument
-is given) using the branch-completion skill from this plugin. Invoke the skill
+Finish the development branch named in $ARGUMENTS (or the current branch if none
+is named) using the branch-completion skill from this plugin. Invoke the skill
 first. If a branch was named and is not checked out, switch to it (or its
-worktree) before doing anything else.
+worktree) before doing anything else. `--to pr|merge|keep` in $ARGUMENTS is not a
+branch name: it answers the destination question ahead of time (below).
 
 Write the arc phase sentinel `.claude/cc-phase.json` first, with taskmaster's writer
 and never by hand —
@@ -37,7 +38,14 @@ continues. Rows marked `left to you` (brain/, design-system/, research/, …) ar
 per-project state the script never touches — name them in the report, decide nothing.
 
 Run the project's full check suite as the gate — a red suite stops here with
-the failures reported; no destination options for broken work.
+the failures reported; no destination options for broken work. First run
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/receipt-fresh.sh" --name suite --root "<the branch's worktree>" --cmd "<the full suite command you would run>"`.
+Reuse only when it prints `fresh: …`, exits 0, and its `<head7>` equals
+`git rev-parse --short=7 <branch>`: the suite already passed there on this exact tree, so
+do not run it again, put `Reused: suite passed at <head7> (<cmd>)` in the report, and use
+the receipt log that line names (`.claude/task-runner/receipts/suite-<HEAD12>.txt` in that
+worktree) as the suite output tail. Anything else (`stale: …`, another exit, another
+head) runs the suite.
 
 On green, before offering any destination, run the review passes that exist in
 this installation — each only if its plugin is installed, none of them fatal on
@@ -52,6 +60,9 @@ silence:
   was actually asked, are there weakened tests, left-in stubs, skipped criteria.
 - `/secret-scanning:scan` on the diff — a credential reaching a PR is the one
   finding that cannot be fixed by a later commit.
+
+These three passes and the post-merge suite always run: a receipt stands in only for
+the suite before them.
 
 A green suite is evidence the code RUNS, not that it should merge; without this
 step those three are named nowhere in the path between finishing work and
@@ -73,8 +84,22 @@ to end, including post-merge re-verification, worktree removal, and branch
 deletion where the protocol calls for them — discard only after the user types
 the branch name back.
 
+**`--to pr|merge|keep`** skips this question and nothing else: everything above runs
+as without it, then the named destination's protocol runs — `pr` push and open a PR,
+`merge` merge locally, `keep` keep the branch open — post-merge suite and the skill's
+two halts (HEAD is the default branch, PR impossible) included. A red suite still
+stops before any destination. An unresolved `critical` finding, or a **confirmed**
+secret-scan hit, stops the `--to` path: show it and ask as above, where the waiver
+rule applies. A review or drift-review fix applied after the gate suite changed the
+tree: on the `--to` path, run the suite again (the receipt check first) before the
+destination. A `--to` the destination protocol does not offer here (`merge` when the
+base is the default branch), or any other value, `discard` included, is not applied:
+say so and ask as above. Discard is never reached through `--to`. Standing:
+agent-graded — no script reads the flag.
+
 Headless fallback: if AskUserQuestion is unavailable or the session is
 non-interactive, report the verification result, the state evidence, and the
 applicable options with the exact commands each would run — omitting any
 local-merge or push onto the default branch (PR-only) — and take no destructive
-action: no merge, no push, no branch deletion, no worktree removal.
+action: no merge, no push, no branch deletion, no worktree removal. `--to` changes
+none of this.

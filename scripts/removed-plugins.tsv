@@ -111,3 +111,7 @@ vite	web-dev	2026-09-02	moved	7c7c46b0 absorbed into web-dev (vite-best-practice
 vue2	null	2026-07-27	plug	bb8f2d22 removed after failing the baseline RED test (rationale/stack-skill-baselines.md). plug: reference shapes only; the rescue list keeps "**vue2** (Vue 2 is EOL) is no longer bundled" legal.
 vue3	null	2026-08-26	plug	cfef9c18 removed outright. plug: one of nine stack plugins removed 2026-08-26, safe because plugin names match only in reference shapes; that removal shipped a day of dangling references because this list was not fed in the same commit.
 workflow-suite	null	2026-09-26	plug	7ca24e7f retired with the other suites because no plugin may declare dependencies; install paths are all-plugins and /stack-scan:suggest. plug: retired 2026-09-26 and added in the same change; the CHANGELOG history lines naming it in a reference shape carry removed-ok.
+bevy	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
+defold	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
+ebitengine	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into
+roblox	null	2026-10-27	no	removed by remove-plugin.sh; successor null: no --merge-into

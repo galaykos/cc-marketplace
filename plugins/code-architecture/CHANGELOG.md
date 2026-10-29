@@ -2,6 +2,22 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.19.1 — 2026-10-28
+
+### Changed
+- **The `/work` description now reads in short, plain sentences.** Same lanes, flag and limit; it keeps the words the model matches it on.
+- **The `drift-review` skill's description reads the same way.** Same triggers and checks.
+
+## 0.19.0 — 2026-10-27
+
+### Added
+- **`/work` (`/code-architecture:work`), one place to start any coding work.** It triages the ask with `coding-entry`'s rule into three lanes — quick (done inline, the five discipline skills loaded and stack skills primed as before), spec (`/taskmaster:task` → `/task-runner:run` → `/git-workflow:finish`; a risky bug starts at `/debugging:debug`, a fuzzy idea at `/taskmaster:brainstorm`) or program (`/overseer:start`) — or hands it to the command that owns that kind of work, and prints one block: the lane, one line of why and the numbered steps, in place of `coding-entry`'s triage line. Auth, stored data, money, migrations or an irreversible effect take the spec lane and the reason is printed, where typing a slash command used to silence that reminder. Spec and handover verdicts now start step 1 instead of stopping at a printed handoff; only `/overseer:start` is left for the user to type. `--explain` prints the route and stops, loading nothing past `coding-entry` and writing nothing; `--lane quick|spec|program` overrides the triage and prints that it did. Standing: agent-graded; no harness drives the command.
+- **`coding-entry` checks the risk clause before the ownership table**, except the whole-product and research rows, and a new row sends an idea without a capability list to `/taskmaster:brainstorm` ahead of the whole-product row. Residual: brainstorm hands off to `/taskmaster:task`, not to overseer. Standing: agent-graded.
+- **Three eval cases for the quick lane: `evals/quick-fix-js`, `quick-fix-py`, `quick-fix-sh`.** Each scaffolds a small git project with one real bug and a failing test, sends `/code-architecture:work --lane quick <the fix>`, and passes only on a correct fix, the suite run green after the last edit, a diff no wider than the fix, and no claim a tool call did not show. They exist to decide whether the quick lane can drop the five discipline skills; that with/without run has not produced a result, so the lane still loads them. Running them needs `--allow-tools Write Edit Bash --scaffold`, copies of `code-review` and `testing` under the target listed in each case's `plugins:`, and a host where Claude Code's Bash sandbox can start. Standing: recorded — no score measured yet.
+
+### Changed
+- **`/code-architecture:coding-task` is an alias of `/work`.** It reads `commands/work.md` and follows it, so typing it still works; it no longer starts by description (`disable-model-invocation: true`), since taskmaster's reminder now names `/code-architecture:work`. Visible differences from before: the lane line replaces the triage line, and an ask that matches an ownership row (a bug, a component) but trips the risk clause now goes to the spec lane instead of the owning command.
+
 ## 0.18.3 — 2026-10-15
 
 ### Fixed

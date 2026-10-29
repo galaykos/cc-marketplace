@@ -1,46 +1,17 @@
 #!/usr/bin/env bash
-# Dependency-licence scan, lockfile-driven and distribution-mode aware.
-#
-# THE THREE THINGS THIS DOES THAT READING package.json DOES NOT:
-#
-# 1. TRANSITIVITY. Measured on a lockfile shipped inside this very marketplace:
-#    scripts/__tests__/fixtures/transitive-mpl/package-lock.json (a frozen shadcn+Vite lockfile) has 170 entries, twelve of
-#    them MPL-2.0 (lightningcss plus its eleven platform binaries, pulled in by
-#    Tailwind v4), and NONE of the twelve appears in package.json. A direct-dep
-#    read reports "all MIT/ISC, clean". Nobody enumerates 170 lock entries by
-#    hand; that is the whole argument for a script.
-#
-# 2. THE DISTRIBUTION-MODE CONDITIONAL. The same licence is benign or hazardous
-#    depending on how the artifact ships, and the axes run OPPOSITE ways:
-#    MPL-2.0/LGPL bite a distributed binary and are routine in a SaaS backend;
-#    AGPL is the exact inverse, biting hardest on SaaS — where the instinct "we
-#    don't distribute, so copyleft doesn't apply" is precisely wrong. The mode is
-#    the decision, and it is not in any manifest.
-#
-# 3. THE lockfileVersion TRAP. npm lockfileVersion 1 carries no `license` key at
-#    all, so a naive scan of an older repo returns zero findings — a silent false
-#    PASS. That is why exit 3 exists and why "unresolvable" is reported loudly
-#    rather than counted as clean.
-#
+# Dependency-licence scan over every package-lock.json (v2+) and composer.lock entry, transitive ones included, judged by distribution mode: MPL/LGPL bite a distributed binary, AGPL bites SaaS. An npm lockfileVersion 1 has no licence field: reported UNRESOLVABLE (exit 3), never clean.
+# Misses: legal truth (DECLARED metadata only, not legal advice); a dual-licensed package declaring one side, vendored code with no manifest entry, a LICENSE file contradicting the SPDX id, a licence changed since the locked version; lockfiles deeper than three directory levels; pnpm, yarn and bun lockfiles (no per-package licence field).
+# Why, limits, history: rationale/derivations/plugin-stack-scan.md § plugins/stack-scan/scripts/licence-scan.sh (marketplace repository)
+
 #   licence-scan.sh [--dir DIR] [--distribution MODE] [--policy FILE] [--init]
 #
 #     MODE: saas | distributed-binary | internal | oss-permissive | oss-copyleft
 #
 # Policy resolution: --distribution wins, else .licence-policy.json at the repo
-# root, else exit 3. Deliberately NOT inert-by-default: `--distribution saas`
-# alone is a complete, useful run with no config file to write first.
+# root, else exit 3.
 #
 # Exit: 0 clean · 2 a denied licence for this distribution mode · 3 cannot resolve
 #       (no mode, no lockfile, or a lockfile whose licence data is unreadable)
-#
-# HONEST LIMITATION, and it is a large one: this reads DECLARED metadata, never
-# legal truth. It also searches only three directory levels for lockfiles, so a
-# deeply nested monorepo package is out of scope unless scanned directly. It is blind to dual-licensed packages that declare only one side,
-# vendored code with no manifest entry, a LICENSE file contradicting the declared
-# SPDX id, and licence changes between the version you locked and the one you
-# read about. It answers "does anything declare a licence this distribution mode
-# should not ship", never "are we compliant". Nobody should present its output as
-# legal advice, and the report says so.
 set -u
 PROG=${0##*/}
 
@@ -83,8 +54,7 @@ if [ -z "$mode" ]; then
   exit 3
 fi
 
-# Deny sets per distribution mode. Stated as a table because the asymmetry is the
-# point: AGPL and MPL sit on opposite sides of the saas / distributed-binary line.
+# Deny sets per distribution mode: AGPL and MPL sit on opposite sides of the saas / distributed-binary line.
 case "$mode" in
   saas)               deny_re='^(AGPL|SSPL|BUSL|Commons-Clause|Elastic-2)'; note="a network-served product triggers AGPL/SSPL source-provision; MPL and LGPL are routine here" ;;
   distributed-binary) deny_re='^(GPL-[23]|AGPL|SSPL|BUSL|MPL-|LGPL-|CDDL|EPL-|CPL-|Commons-Clause|Elastic-2)'; note="shipping the artifact triggers file- and library-level copyleft; MPL/LGPL/GPL all matter" ;;
@@ -136,11 +106,7 @@ while IFS= read -r lock; do
 done < <(find "$dir" -maxdepth 3 -name composer.lock -not -path '*/vendor/*' 2>/dev/null)
 
 if [ "$sources" -eq 0 ]; then
-  # Say which lockfiles this lane reads and which it does not. npm and Composer record a
-  # `license` field per resolved package; pnpm, yarn and bun lockfiles do not, so there is
-  # nothing to read without resolving the registry — out of scope for an offline scan.
-  # A pnpm/yarn/bun repo used to exit 3 with a message naming only two filenames, reading
-  # as "no dependencies here" when the truth is "this lane cannot see yours".
+  # pnpm, yarn and bun lockfiles carry no per-package license field: name the one found, so exit 3 does not read as "no dependencies".
   other=$(find "$dir" -maxdepth 3 \( -name pnpm-lock.yaml -o -name yarn.lock -o -name bun.lock -o -name bun.lockb \) -not -path '*/node_modules/*' 2>/dev/null | head -3)
   if [ -n "$other" ]; then
     printf '%s: found %s, which carries no per-package license field — this lane reads package-lock.json and composer.lock only.\n' \

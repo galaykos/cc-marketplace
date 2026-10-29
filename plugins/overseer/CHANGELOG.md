@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.5 — 2026-10-29
+
+- **`program.sh resume` says where a program stands in five plain lines.** Each line is at most 100 characters, read from `program.json`, `decisions.md` and `suggestions.md`: the goal and milestones done (parked ones counted when any); the milestone in progress, else the next one that can start, with its status in plain words and its branch; the next action that status calls for; the newest decision row; the count of suggestions and parked milestones and where they are. Long text is cut at a word. With no program it prints one line; a missing or invalid state file is named on the line that needed it; it writes nothing and exits 0. `/overseer:resume` runs it first and shows the lines before anything else. On demand only: the SessionStart hook is unchanged. Pinned by `scripts/__tests__/program.test.sh`.
+
+## 0.7.4 — 2026-10-29
+
+- **Accepting a milestone says what the process cost.** `dispatch check` now stores the gating time as a fourth field of each `dispatch/.gated` row (older rows without it still gate). `accept` computes one start, the earliest of the milestone's briefed and building times and those stored gating times, and uses it for the `actual:` minutes (until now: briefed or building only) and for a new line after it, `Process cost since <time>: <n> agents · <tokens> (main …, subagents …; <n>% cache reads) · <n> min`, read from this session's transcript and its agent transcripts (`subagents/agent-*.jsonl`, `subagents/workflows/*/agent-*.jsonl`). Every record counts by its own timestamp, once per message id across all files; agents are the agent transcripts holding a counted record. No prices. With no start or no readable transcript it prints `Process cost: unknown — <reason>`; accept's exit status is unchanged. Residuals: compaction writes no usage record; only the session that runs accept is read; the Workflow layout was read on a CLI 2.1.295 session only. Pinned by `scripts/__tests__/program.test.sh`. Standing: recorded — it reports and gates nothing.
+
+## 0.7.3 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/capability-scan.sh`, `scripts/program.sh`, `scripts/skill-path.sh`: each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain. The usage text `scripts/program.sh`, `scripts/skill-path.sh` print on a missing or bad argument no longer carries the history prose; usage, flags and exit codes are unchanged.
+
+## 0.7.2 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/announce.sh`, `hooks/track-read.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-overseer.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
+## 0.7.1 — 2026-10-26
+
+- **Acceptance can record a suite run that already passed instead of running it again.** `references/acceptance.md` Protocol step 1: only when the brief's verify set is one command and the milestone branch HEAD has a fresh receipt for exactly it (git-workflow's `scripts/receipt-fresh.sh --name suite --cmd "<it>"` or task-runner's `scripts/check-receipt.sh check --name suite --cmd "<it>"` prints `fresh:`) may the receipt's log file be the `tests` evidence; otherwise the verify set runs as before, one file with every tail. Standing: recorded — `program.sh accept` does not check where the `tests` file came from.
+
 ## 0.7.0 — 2026-10-25
 
 - **The milestone line refreshes only after a main-loop `Bash`, `Write`, `Edit` or `MultiEdit` call.** A read-only call (`Read`, `Grep`, `Glob`) cannot change `program.json`, yet each one waited for a `git rev-parse`; now none does. An edit made outside the session shows at the next writing call. Gate: `tests/status-line.test.ts`, "leaves a read-only main-loop call to the next call that can write".

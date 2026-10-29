@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
-# negative-control.sh - B3(b) isolated red-before-green control.
-#
-# Proves a Verify command CAN fail (goes RED by an ASSERTION failure) against a
-# targeted disabling of the feature, in an ISOLATED COPY so the live working tree
-# is never mutated. A red caused by a build / collection / import error is NOT a
-# valid control (the check never reached an assertion) and is rejected.
-#
+# negative-control.sh — proves a Verify command CAN fail: in two copies of ROOT (default cwd, minus .git) it mutates only <impl-file> and passes when the mutated run is RED by a non-build/collection failure and the unmutated run green. The live tree is never touched.
+# Misses: whether the mutation disabled the feature under test (--auto takes the first of eight fixed edits that changes the file); a red of unknown signature counts as discriminating; a flaky Verify can read either way.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/negative-control.sh (marketplace repository)
+
 # Usage:
 #   negative-control.sh --verify "<cmd>" --target <impl-file> [--root <dir>] [--mutate <sed-expr> | --auto]
 #                       [--record-dir <dir> --card <id>]   # write nc-pass-<id>.json on exit 0
@@ -35,50 +32,23 @@ log()   { printf '%s: %s\n' "$PROG" "$*" >&2; }
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 halt()  { printf '%s: %s\n' "$PROG" "$1" >&2; exit 5; }
 
-# classify_red: read a run's combined stdout+stderr on stdin; print one of
-#   collection | build | assertion | unknown
-# Precedence is ASSERTION-MARKER-FIRST so a genuine assertion failure whose
-# *message* merely contains a build/collection word (e.g. a test asserting on
-# the string "SyntaxError") is NOT swallowed by the build/collection substring
-# match:
-#   1. HARD assertion markers that never appear in a pure build/collection run
-#      (AssertionError, ERR_ASSERTION, go `--- FAIL:`, pytest `^E +assert`, TAP
-#      `not ok`, jest expect()/Expected:/Received:) -> assertion.
-#   2. else collection/import substrings -> collection.
-#   3. else build/compile/syntax substrings -> build.
-#   4. else generic per-test fail glyphs (✖ / ✗) that runners such as
-#      `node --test` ALSO print for build failures -> only here, with no
-#      build/collection signature present, do they mean assertion.
-#   5. else unknown (still a valid discriminating red - see the caller).
-# Signatures verified against real output of `node --test` and `pytest`.
+# classify_red: a run's combined output on stdin -> collection | build | assertion | unknown, assertion markers first, so a test asserting on the string "SyntaxError" stays an assertion.
 classify_red() {
   local blob; blob=$(cat)
-  # 1) HARD assertion markers FIRST: these strings never appear in a pure
-  #    build/collection error, so matching them here cannot misfile a build red.
-  #    `not ok ` is deliberately NOT here — see tier 4. TAP prints it for ANY
-  #    failing subtest, a load/build failure included, so it is a generic fail
-  #    glyph and not a hard assertion marker.
+  # Never printed by a build/collection error. `not ok ` is not one: TAP prints it for any failing subtest, a load failure included.
   if printf '%s\n' "$blob" | grep -Eq \
      'AssertionError|ERR_ASSERTION|--- FAIL:|^E +assert|assert(ion)?[[:space:]]+(failed|error)|FAILED .*assert|expect\(|Expected:.*Received:'; then
     printf 'assertion\n'; return 0
   fi
-  # 2) collection / import errors (pytest ERROR collecting, python ImportError,
-  #    node MODULE_NOT_FOUND / Cannot find module, go missing package)
   if printf '%s\n' "$blob" | grep -Eq \
      'ERROR collecting|errors? during collection|INTERNALERROR|ModuleNotFoundError|ImportError|Cannot find module|ERR_MODULE_NOT_FOUND|MODULE_NOT_FOUND|cannot find package'; then
     printf 'collection\n'; return 0
   fi
-  # 3) build / compile / syntax errors
   if printf '%s\n' "$blob" | grep -Eq \
      'SyntaxError|IndentationError|TabError|\[build failed\]|# command-line-arguments|error TS[0-9]'; then
     printf 'build\n'; return 0
   fi
-  # 4) generic per-test fail glyphs, meaningful ONLY once build/collection are
-  #    ruled out. `node --test` prints ✖ for build failures too, and under its TAP
-  #    reporter (the non-TTY default on older Node) the same failure prints
-  #    `not ok 1 - <file>` — which is why the reporter node happens to pick must
-  #    not change the verdict. Both live here, after the build/collection checks,
-  #    never before them.
+  # Only once build/collection are ruled out: node --test prints ✖ for build failures too, and `not ok 1 - <file>` under its TAP reporter.
   if printf '%s\n' "$blob" | grep -Eq '✖|✗|not ok '; then
     printf 'assertion\n'; return 0
   fi
@@ -87,7 +57,6 @@ classify_red() {
 
 if [ "${1:-}" = "--classify-stdin" ]; then classify_red; exit 0; fi
 
-# ---- arg parse ----
 VERIFY=""; TARGET=""; MUTATE=""; HAVE_MUTATE=0; AUTO=0; ROOT="."
 RECORD_DIR=""; CARD=""; SKIP_REASON=""; HAVE_SKIP=0
 while [ $# -gt 0 ]; do
@@ -105,11 +74,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# Per-card record support: when --record-dir + --card are given, a PASS (exit 0)
-# writes nc-pass-<card>.json mechanically — a record authored by this tool, not
-# the model. --skip records a documented non-run (manual/visual card) as
-# nc-skip-<card>.json; the reason is model-authored, but at least it is an
-# auditable artifact the completion gate can count. Card ids are path-safe only.
+# --record-dir + --card: a pass writes nc-pass-<card>.json, authored by this tool; --skip writes nc-skip-<card>.json, its reason model-authored. Card ids are path-safe only.
 if [ -n "$CARD" ]; then
   case "$CARD" in *[!a-zA-Z0-9._-]*) usage "--card carries path characters: $CARD" ;; esac
 fi
@@ -133,12 +98,9 @@ if [ "$HAVE_MUTATE" = 1 ] && [ "$AUTO" = 1 ]; then usage "--mutate and --auto ar
 if [ "$HAVE_MUTATE" = 0 ] && [ "$AUTO" = 0 ]; then AUTO=1; fi
 [ -d "$ROOT" ] || usage "--root dir not found: $ROOT"
 
-# SRC is the subtree that gets copied+isolated; --target is resolved under it. With
-# the default --root '.', SRC is CWD and behavior is byte-identical to the old form.
 SRC=$(cd "$ROOT" && pwd -P) || halt "cannot resolve --root: $ROOT"
 [ -f "$SRC/$TARGET" ] || usage "target file not found under root ($ROOT): $TARGET"
 
-# ---- isolate: copy the working tree (minus .git) into two fresh temp copies ----
 TMP=$(mktemp -d 2>/dev/null) || halt "mktemp -d failed"
 trap 'rm -rf "$TMP"' EXIT
 GREEN="$TMP/green"; RED="$TMP/red"
@@ -152,7 +114,6 @@ copy_tree "$SRC" "$GREEN" || halt "failed to copy working tree into isolated gre
 copy_tree "$SRC" "$RED"   || halt "failed to copy working tree into isolated red copy"
 { [ -f "$GREEN/$TARGET" ] && [ -f "$RED/$TARGET" ]; } || halt "target missing in isolated copy: $TARGET"
 
-# ---- mutate the RED copy's impl only ----
 if [ "$HAVE_MUTATE" = 1 ]; then
   if ! sed "$MUTATE" "$RED/$TARGET" > "$RED/$TARGET.nc.tmp" 2>/dev/null; then
     rm -f "$RED/$TARGET.nc.tmp"; halt "mutation sed expression failed: $MUTATE"
@@ -184,7 +145,6 @@ if cmp -s "$GREEN/$TARGET" "$RED/$TARGET"; then
   halt "mutation was a no-op (target unchanged); control cannot run"
 fi
 
-# ---- run Verify in each copy ----
 RC=0; OUT=""
 run_verify() { # $1 dir ; sets globals RC and OUT
   local dir="$1"
@@ -202,7 +162,6 @@ fi
 
 run_verify "$RED"; rc_red=$RC; out_red=$OUT
 
-# ---- decide ----
 if [ "$rc_red" -eq 0 ]; then
   log "vacuous: Verify is GREEN on both the mutated and unmutated copy - it does not detect the disabled feature"
   echo "vacuous"
@@ -212,8 +171,6 @@ fi
 klass=$(printf '%s' "$out_red" | classify_red)
 case "$klass" in
   build|collection)
-    # exit 4 is reserved STRICTLY for a red POSITIVELY identified as a
-    # build/collection/import error - the check never reached its behavior.
     log "invalid-control: the mutated red was a $klass error, not a behavioral failure - it does not prove the check discriminates on behavior"
     log "--- mutated-run output (tail) ---"
     printf '%s\n' "$out_red" | tail -20 >&2
@@ -226,11 +183,7 @@ case "$klass" in
     echo "discriminating"
     exit 0 ;;
   *)
-    # unknown red: a discriminating failure whose runner signature is outside the
-    # allowlist (TAP `not ok`, a plain `exit 1` with a diff, a bespoke shell
-    # assert). It is NOT a build/collection error, so the Verify DID discriminate
-    # (mutated RED, unmutated GREEN). Treat it as a valid assertion-style red
-    # rather than parking a working control. (Fix 2)
+    # Outside the allowlist (TAP `not ok`, a plain `exit 1` with a diff, a bespoke assert) yet not build/collection: the Verify did discriminate.
     log "discriminating: mutated copy RED (rc=$rc_red) by a non-build/collection failure; unmutated copy GREEN"
     esc_v=$(printf '%s' "$VERIFY" | sed 's/\\/\\\\/g; s/"/\\"/g')
     record_write pass "{\"card\":\"$CARD\",\"target\":\"$TARGET\",\"verify\":\"$esc_v\"}"

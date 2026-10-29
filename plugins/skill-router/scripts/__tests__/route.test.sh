@@ -44,7 +44,7 @@ bashw() { # cwd command transcript [env...] — runs the command, then the hook
     | hook "$HOOK" "$@"
 }
 # Bare names, the plugin prefix dropped: case 19 pins the qualified spelling itself.
-skills()  { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null | grep -oE 'load the `[^`]+`' | sed 's/^load the `//; s/`$//; s/^[a-z0-9._-]*://' | sort -u; }
+skills()  { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null | grep -oE 'Load the `[^`]+`' | sed 's/^Load the `//; s/`$//; s/^[a-z0-9._-]*://' | sort -u; }
 ctxof()   { printf '%s' "$1" | cksum | cut -d' ' -f1; }
 statef()  { printf '%s/.claude/skill-router/fired-%s.json' "$1" "$(ctxof "$2")"; }
 has_skill() { skills <<<"$1" | grep -qxF "$2"; }
@@ -120,7 +120,7 @@ jq -e '(.fired | index("laravel-best-practices")) and (.fired | index("sql-best-
 #     files the ledger under the ROOT's slug.
 fl=$(jq -cn --arg c "$C/app/Http" --arg tp "$TC" '{hook_event_name:"UserPromptSubmit",prompt:"ok thanks",session_id:"sess",transcript_path:$tp,cwd:$c}' \
   | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
-grep -qF 'Signals from recent edits' <<<"$fl" && grep -qF 'Status.php' <<<"$fl" && ok \
+grep -qF 'Your recent edits may need these skills' <<<"$fl" && grep -qF 'Status.php' <<<"$fl" && ok \
   || bad "flush from another subdir: digest missing; got: ${fl:0:200}"
 jq -cn --arg c "$C/app/Enums" --arg tp "$TC" '{hook_event_name:"SessionEnd",session_id:"sess",transcript_path:$tp,cwd:$c}' \
   | hook "$SR/hooks/summary.sh" HOME="$WS/home" >/dev/null
@@ -212,7 +212,7 @@ printf '%s\n' "import { DataGrid } from '@mui/x-data-grid'" \
 out=$(edit "$U" "$U/src/features/orders/OrdersGrid.tsx" "$TU")
 has_skill "$out" mui-best-practices && ok || bad "content+high: mui-best-practices not inline on first import; got: ${out:0:200}"
 [ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && ok || bad "content+high: expected one envelope line"
-grep -qF 'This edit touches OrdersGrid.tsx' <<<"$out" && ok || bad "content+high: file-row subject text changed: ${out:0:200}"
+grep -qF 'skill for OrdersGrid.tsx' <<<"$out" && ok || bad "content+high: file-row subject text changed: ${out:0:200}"
 sf=$(statef "$U" "$TU")
 jq -e '.fired | index("mui-best-practices")' "$sf" >/dev/null 2>&1 && ok || bad "content+high: mui-best-practices not recorded in fired"
 pend "$sf" mui-best-practices && bad "content+high: mui-best-practices also landed in pending_low" || ok
@@ -314,7 +314,7 @@ has_skill "$out" shadcn-best-practices && ok || bad "command row: shadcn add did
 has_skill "$out" aceternity-best-practices && ok || bad "magicui install routes aceternity-best-practices; got: ${out:0:200}"
 [ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' >/dev/null 2>&1 \
   && ok || bad "command row: not exactly one PostToolUse envelope: ${out:0:200}"
-grep -qF 'This command runs `shadcn@latest add`' <<<"$out" && ok || bad "command row: subject does not quote the matched command: ${out:0:200}"
+grep -qF 'skill for `shadcn@latest add`' <<<"$out" && ok || bad "command row: subject does not quote the matched command: ${out:0:200}"
 jq -e '.fired | index("shadcn-best-practices")' "$(statef "$S" "$TS")" >/dev/null 2>&1 && ok || bad "command row: not recorded in fired"
 out=$(bashc "$S" 'pnpm dlx shadcn@latest add button' "$TS")
 [ -z "$out" ] && ok || bad "command row: re-nudged in the same context: ${out:0:160}"
@@ -427,11 +427,11 @@ for p in '<task-notification><task-id>t1</task-id><status>completed</status></ta
          $'# Autonomous loop tick (dynamic pacing)\n\nRun the autonomous check; fix the failing build.'; do
   t=$(fresh); edit "$D" "$D/app/Http/Controllers/ApiTokenController.php" "$t" >/dev/null
   fl=$(prompt_d "$p" "$t")
-  grep -qF 'Signals from recent edits' <<<"$fl" && bad "harness frame flushed the digest [${p:0:30}]" || ok
+  grep -qF 'Your recent edits may need these skills' <<<"$fl" && bad "harness frame flushed the digest [${p:0:30}]" || ok
   jq -e '.pending_low | any(.flushed != true)' "$(statef "$D" "$t")" >/dev/null 2>&1 && ok || bad "harness frame marked pending_low flushed [${p:0:30}]"
 done
 fl=$(prompt_d 'what does a <task-notification> prompt carry?' "$TD")
-grep -qF 'Signals from recent edits' <<<"$fl" && grep -qF 'ApiTokenController.php' <<<"$fl" && ok \
+grep -qF 'Your recent edits may need these skills' <<<"$fl" && grep -qF 'ApiTokenController.php' <<<"$fl" && ok \
   || bad "human prompt quoting a frame marker did not flush; got: ${fl:0:200}"
 grep -qE 'runbook\.md|badge\.css|login\.html|notes\.txt' <<<"$fl" && bad "digest named a doc/style file: ${fl:0:200}" || ok
 
@@ -440,8 +440,8 @@ grep -qE 'runbook\.md|badge\.css|login\.html|notes\.txt' <<<"$fl" && bad "digest
 Q="$WS/q"; mkrepo "$Q"; TQ="$WS/t-q.jsonl"
 printf '<?php\nclass Token { public function show() { return $this->token; } }\n' > "$Q/app/Models/Token.php"
 out=$(edit "$Q" "$Q/app/Models/Token.php" "$TQ")
-jq -r '.hookSpecificOutput.additionalContext' <<<"$out" 2>/dev/null | grep -qF 'load the `laravel:laravel-best-practices` skill and review your change' \
-  && ok || bad "qualified: nudge does not name laravel:laravel-best-practices; got: ${out:0:200}"
+jq -r '.hookSpecificOutput.additionalContext' <<<"$out" 2>/dev/null | grep -qF 'Load the `laravel:laravel-best-practices` skill for Token.php' \
+  && grep -qF 'and check your change against it.' <<<"$out" && ok || bad "qualified: nudge does not name laravel:laravel-best-practices; got: ${out:0:200}"
 grep -qF 'plugin)' <<<"$out" && bad "qualified: the old '(X plugin)' tail survived" || ok
 fl=$(jq -cn --arg c "$Q" --arg tp "$TQ" '{hook_event_name:"UserPromptSubmit",prompt:"next",session_id:"sess",transcript_path:$tp,cwd:$c}' \
   | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
@@ -506,7 +506,7 @@ has_skill "$out" tailwind-best-practices && ok || bad "min rank: the @import row
 [ "$(skills <<<"$out" | grep -c .)" = 2 ] && ok || bad "min rank: expected 2 nudges, got [$(echo $(skills <<<"$out"))]"
 printf '{"style":"new-york"}\n' > "$Z/components.json"
 out=$(bashc "$Z" 'printf x > components.json; npx shadcn@latest add button' "$(fresh)")
-grep -qF 'This command runs `shadcn@latest add`' <<<"$out" && ok || bad "min rank: the rank-0 command match did not carry its subject; got: ${out:0:200}"
+grep -qF 'skill for `shadcn@latest add`' <<<"$out" && ok || bad "min rank: the rank-0 command match did not carry its subject; got: ${out:0:200}"
 
 # 23. a skill found loaded is recorded as loaded (not fired, which the ledger reports as surfaced), so the next edit routing it does not grep the transcript again
 TY="$WS/t-y-once.jsonl"; tline_base "$(sdir laravel laravel-best-practices)" > "$TY"

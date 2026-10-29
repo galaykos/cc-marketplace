@@ -252,6 +252,15 @@ do
   pin_case "plugins/$pl/hooks/$f [remind-off]" silent off "$pl" "$f" "$p"
 done
 
+if pin_hook taskmaster remind.sh "plugins/taskmaster/hooks/remind.sh [names both routes]"; then
+  pin_run on taskmaster remind.sh "refactor the service"
+  case "$pin_out" in
+    *'do a small change inline with /code-architecture:work, a larger one in the full pipeline (/taskmaster:task).'*)
+      pass "plugins/taskmaster/hooks/remind.sh [names both routes]" ;;
+    *) fail "plugins/taskmaster/hooks/remind.sh [names both routes]" "got: $pin_out" ;;
+  esac
+fi
+
 for spec in "taskmaster|remind.sh|refactor the service" "approaches|consult-remind.sh|rm -rf node_modules"; do
   pl="${spec%%|*}"; rest="${spec#*|}"; f="${rest%%|*}"; p="${rest#*|}"
   pin_hook "$pl" "$f" "plugins/$pl/hooks/$f [fenced-trigger]" || continue

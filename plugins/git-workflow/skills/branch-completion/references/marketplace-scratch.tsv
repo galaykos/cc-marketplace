@@ -31,7 +31,7 @@ taskmaster-docs/	taskmaster, ui-ux	scratch	project	taskmaster/skills/grill/SKILL
 .claude/skill-router/	skill-router	scratch	plugin-data	legacy — skill-router/hooks/route.sh § state_dir, skill-router/hooks/summary.sh § state_file, skill-router/hooks/route-prompt.sh § state_f, skill-router/hooks/compact-capsule.sh § dir: fired-<ctx>.json read only by skill-router hooks; compact-log.jsonl read by no hook, grepped by hand (skill-router/README.md, the compact-log.jsonl paragraph)
 .claude/candor/	candor	scratch	plugin-data	legacy — candor/hooks/gate.sh § state_dir: blocked and last markers of the completion gate, read only by that hook
 .claude/testing/	testing	scratch	plugin-data	legacy — testing/hooks/test-shape.sh § dir: shape-<ctx> one-shot markers, read only by that hook
-.claude/ui-ux/	ui-ux	scratch	plugin-data	legacy — ui-ux/hooks/palette-default.sh § dir: palette-<ctx> one-shot markers, read only by that hook
+.claude/ui-ux/	ui-ux	scratch	plugin-data	legacy — ui-ux/hooks/palette-default.sh § dir: palette-<ctx> one-shot markers; ui-ux/hooks/ui-check.sh: ui-check-<ctx> files holding the newest UI edit it sent a turn back for; each read only by its own hook
 .claude/cc-phase.json	taskmaster, git-workflow, task-runner, code-architecture	scratch	project	taskmaster/commands/task.md:40 — the arc-phase sentinel every phase-owning command writes and must remove
 .claude/worktrees/	git-workflow	scratch	project	git-workflow/skills/worktree-isolation/SKILL.md:40 — where EnterWorktree puts feature worktrees; a checkout inside a checkout must never be committed
 .claude/hindsight/	hindsight	state	project	hindsight/skills/harvest/SKILL.md:152 — anti-patterns.md holds the failed-approach warnings the user approved; a team may want them

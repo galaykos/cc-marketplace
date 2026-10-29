@@ -1,55 +1,7 @@
 #!/bin/bash
-# Absolute-path shebang (not `env bash`): the fail-open guarantee must hold even
-# under a stripped/broken PATH, where `env bash` itself exits 127.
-#
-# PostToolUse on the first code write of a session. Emits additionalContext naming
-# the PATHS of the config files that define this project's conventions, and the CI
-# command that actually enforces them. One-shot per session, fail-silent.
-#
-# A WRITE IS A WRITE, WHATEVER THE TOOL (0.23.0). This matched Write|Edit|MultiEdit only,
-# and the host steers file writes through Bash: measured 2026-09-25
-# (rationale/2026-09-25-session-plugin-usage-review.md, finding 1), 233 of 238 main-thread
-# writes in one session were `cat > file <<EOF`, so the first code write of that session —
-# and of every session like it — never reached this hook. It now also matches Bash and
-# fires when cc_bash_write_targets (the shared block below) names at least one existing
-# code file under the project root. Same one-shot, same context key. What the block does
-# NOT parse — interpreter writes (python open(), php file_put_contents), cp/mv
-# destinations, a path held in a variable — still goes unseen; its own header lists them.
-# Since 0.33.0 a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run
-# counts too when git reports a code file changed since this hook's previous call (the
-# bash-write-effects block, at most MAX_BASH_EFFECTS files). That misses a writer it does
-# not name (npx prettier, make), gitignored files, a repo with no git, a mv or cp -p
-# destination and each session's first such run; a file an IDE or a parallel agent changed
-# in that window reads as the run's write. Every call dates the marker, the one-shot spent
-# or not; a spent one-shot reads no effects. A Bash call that exits non-zero fires
-# PostToolUseFailure, registered for Bash too. Costs: the CHANGELOG's 0.33.0 entry.
-#
-# CONFIGS ARE READ AT THE PROJECT ROOT, not the payload cwd. The cwd is the shell's and
-# follows the model's `cd` (same review, finding 2), so a session that had `cd app/Enums`
-# looked for `.editorconfig` in app/Enums, found nothing, and spent its one-shot silent.
-#
-# WHY PATHS AND NOT RULES. The defect is not that the model does not know what
-# `.editorconfig` means. It is that it does not OPEN it before writing a new file —
-# it emits its own defaults (2-space, single quotes, ~100 cols) into a repo
-# configured for tabs, double quotes and 120, and the next `npm run format` churns
-# the whole file. That is a not-looking deficit, and a hook fixes it.
-#
-# It is deliberately NOT a digest. An earlier design emitted "the three settings
-# most often violated" — a distilled checklist injected before the model reads the
-# source. That is the precise shape rationale/stack-skill-baselines.md measured as
-# making review WORSE: the treatment agent read three bullets and returned findings
-# that were a strict subset of what the blind control found by reading the file. A
-# summary substitutes for a read. So this emits locations, and the model opens
-# them.
-#
-# CI IS AUTHORITATIVE, and that is the one judgment here worth stating: a formatter
-# config that CI never invokes is decoration, and a repo with two formatters
-# configured has one that wins and one that fights. Both are named in the output
-# because neither is discoverable from any single file.
-#
-# Off switches: CC_REMIND=off silences every advisory nudge in this marketplace;
-# CC_CONVENTIONS=off silences only this one.
-# CC_REMIND / CC_CONVENTIONS unset: the /config options cc_remind / cc_conventions decide.
+# PostToolUse, once per context: at the first code write (Write, Edit, a Bash write, an interpreter run's changed file) names the convention configs, standards docs and CI lint line as paths, not a digest.
+# Misses: CI other than GitHub, GitLab, CircleCI, Jenkins, Azure, Bitbucket; any lint line after the first; Bash writes the pasted blocks miss. Off: CC_REMIND, CC_CONVENTIONS.
+# Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/hooks/conventions.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
@@ -74,8 +26,6 @@ cc_state_root() {
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -97,8 +47,7 @@ cc_option() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
 # cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
 # one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
-# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
-# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# A backup suffix is never a target: the word after BSD sed's -I, or a `''` or `.`-led word after a bare sed -i unless it is the only file.
 # Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
 # redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
 # operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
@@ -229,14 +178,13 @@ cc_plugin_state() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
 # cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
 # directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
-# cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
-# cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
-# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
-# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
-# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
-# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
-# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
+# cc_bash_write_effects read <marker>. cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute
+# paths, one per line: files `git status` under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out
+# by its `*` .gitignore). It runs git only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs,
+# deno, bun, cp, mv, install or patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not
+# $HOME and status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's
+# first call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much:
+# any change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
   local d="${2%/*}" k
@@ -266,19 +214,11 @@ cc_bash_write_effects() {
   case "$tool" in Write|Edit|MultiEdit|Bash) ;; *) exit 0 ;; esac
   [ "$tool" = Bash ] && { cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0; }
 
-  # ONCE PER SESSION. The paths do not change mid-session, and a second copy costs
-  # the same tokens for no new information.
-  # CONTEXT KEY, not session key. PostToolUse is the only hook channel that reaches
-  # subagents at all, and a subagent shares its parent's session_id while getting its
-  # own transcript. Keying a one-shot on session_id therefore dedups the worker against
-  # nudges only the PARENT ever saw, so the context where most fan-out code is written
-  # is the one context this never speaks in. Pattern and rationale: the context-key one-shot in hooks/scan.sh.
+  # Once per context, keyed on transcript_path: a subagent shares its parent's session_id.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // "nosession"' 2>/dev/null)
   seen="${TMPDIR:-/tmp}/cc-conventions-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
 
-  # Interpreter writes, through the bash-write-effects block: read with the old marker, then date it, on every call — the
-  # one-shot spent too, since the marker is per project and a subagent's first run must not inherit a stale window. A spent
-  # one-shot reads nothing: no git status for an answer nothing below would use. A failed Bash call fires PostToolUseFailure.
+  # Read effects with the old marker, then date it on every call, the one-shot spent too: the marker is per project.
   { IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; } < <(printf '%s' "$input" \
     | jq -r '.cwd // "", .session_id // "", if .hook_event_name == "PostToolUseFailure" then .hook_event_name else "PostToolUse" end' 2>/dev/null)
   effects=""; root=""
@@ -287,12 +227,8 @@ cc_bash_write_effects() {
     [ "$tool" = Bash ] && [ ! -d "$seen" ] && effects=$(cc_bash_write_effects "$root" "$emark" "$cmd" "$MAX_BASH_EFFECTS" "$sess")
     cc_bash_effects_mark "$root" "$emark" "$sess"
   fi
-  # CHEAP EXIT FIRST: with Bash in the matcher this runs after every shell command, and
-  # once the one-shot is spent nothing below can change the answer.
   [ -d "$seen" ] && exit 0
 
-  # Code only. A markdown or JSON edit is not where formatter churn happens, and
-  # firing on every doc write is how a nudge gets tuned out.
   is_code() {
     case "$1" in
       *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs|*.vue|*.svelte|*.php|*.py|*.go|*.rb|*.rs|*.java|*.kt|*.cs|*.css|*.scss) return 0 ;;
@@ -312,11 +248,7 @@ cc_bash_write_effects() {
 
   [ -n "$cwd" ] && [ -d "$cwd" ] && [ -n "$root" ] || exit 0
 
-  # BASH: a relative target resolves against the payload cwd — the Bash tool's own cwd,
-  # which is the one place that cwd is exactly right. Kept only when it lands under the
-  # project root and is now an existing code file. At most 8 targets per call, so a
-  # mass-write command cannot make one hook call slow. Then a code file the effects
-  # block listed: absolute, under the root and on disk already.
+  # A relative Bash target resolves against the payload cwd and must land under the project root; at most 8 targets.
   if [ "$tool" = "Bash" ]; then
     hit=""; n=0; tgts=""
     [ "$tw" = 1 ] && tgts=$(cc_bash_write_targets "$cmd")
@@ -352,7 +284,6 @@ EOF_E
            ruff.toml .ruff.toml phpstan.neon phpstan.neon.dist psalm.xml .golangci.yml .golangci.yaml \
            tslint.json stylelint.config.js .stylelintrc; do add "$f"; done
   for f in .pre-commit-config.yaml lefthook.yml .husky .lintstagedrc .lintstagedrc.json; do add "$f"; done
-  # pyproject/package.json only count when they actually carry tool config
   [ -f "$root/pyproject.toml" ] && grep -qE '^\[tool\.(ruff|black|isort|mypy)' "$root/pyproject.toml" 2>/dev/null \
     && found="$found pyproject.toml"
   # Kept apart from $found: a prose doc is not a tool, so it never earns the CI paragraph.
@@ -360,19 +291,7 @@ EOF_E
   for f in CONTRIBUTING.md .github/CONTRIBUTING.md docs/CONTRIBUTING.md CODING_STANDARDS.md \
            docs/CODING_STANDARDS.md STYLEGUIDE.md; do [ -f "$root/$f" ] && std="$std $f"; done
 
-  # The CI lint invocation — authoritative, and not derivable from any config file.
-  #
-  # SIX FORMATS, because only one of them was ever read. Scanning `.github/workflows/`
-  # alone meant every GitLab, CircleCI, Jenkins, Azure and Bitbucket repo got the configs
-  # half of this message and no `CI runs:` line — and the paragraph below still told the
-  # reader that whatever CI invokes is the standard, while naming nothing. The keyword
-  # list is shared; only the PREFIX differs, because each format spells "this is a shell
-  # command" its own way (`run:`, `script:`, `command:`, `sh '…'`, or a bare list item).
-  #
-  # WHAT THIS DOES NOT CATCH: any other runner (Drone, Buildkite, Tekton, Woodpecker,
-  # Travis, Bamboo, a Makefile target CI calls); a GitHub composite action or reusable
-  # workflow called from the job that does the linting; a command built from a variable;
-  # and anything after the FIRST hit — one line is named, not the pipeline.
+  # The CI lint line is authoritative and not derivable from any config; the six formats differ only in the command prefix.
   ci=""
   ci_try() { # $1 file  $2 ERE for what precedes the command on its line
     [ -n "$ci" ] && return 0
@@ -382,8 +301,7 @@ EOF_E
     cmd=$(printf '%s' "${line#*:}" | sed -E "s/^[[:space:]]*$2//; s/^[[:space:]]*//; s/[[:space:]]*\$//; s/^['\"]//; s/['\"]\$//")
     ci="${1#$root/}:${line%%:*} — $cmd"
   }
-  # `- run:` as a list item is the common GitHub shape; without the optional dash this
-  # matched nothing in a real workflow and the CI half silently never fired.
+  # The optional dash matters: `- run:` as a list item is the common GitHub shape.
   for w in "$root"/.github/workflows/*.yml "$root"/.github/workflows/*.yaml; do
     ci_try "$w" '-?[[:space:]]*run:[[:space:]]*'
   done

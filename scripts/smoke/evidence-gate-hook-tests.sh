@@ -5,7 +5,7 @@
 # The hook reads the Stop payload's transcript_path (session JSONL) and blocks a
 # turn that (1) claims completion in its assistant tail, (2) edited files, and
 # (3) executed nothing after the last edit. These cases drive the hook with
-# synthetic transcripts + canned Stop-hook stdin JSON and assert rc + stderr —
+# synthetic transcripts + canned Stop-hook stdin JSON and assert the verdict + its text —
 # both block mode (default) and the warn/off downgrades, plus every fail-open
 # and escape path the header promises.
 set -u
@@ -33,13 +33,27 @@ tool_entry() { # tool names as args
 
 payload() { jq -cn --arg tp "$1" --arg cwd "$CWD" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:false}'; }
 
+# run_gate <env> <json> sets rc and err. A Stop block is exit 0 with {"decision":"block",reason,systemMessage} on stdout: rc=2,
+#   and err is stderr plus the reason. A bare exit 2 is the old channel (rc=exit2); any other stdout is rc=stdout.
+run_gate() {
+  local out
+  out=$(printf '%s' "$2" | env $1 bash "$HOOK" 2>"$WS/stderr"); rc=$?
+  err=$(cat "$WS/stderr")
+  if [ "$rc" = 0 ] && [ -n "$out" ]; then
+    if printf '%s' "$out" | jq -e '.decision=="block" and (.reason|type=="string" and length>0) and (.systemMessage|type=="string" and length>0)' >/dev/null 2>&1; then
+      rc=2; err="$err${err:+
+}$(printf '%s' "$out" | jq -r .reason)"
+    else rc=stdout; fi
+  elif [ "$rc" = 2 ]; then rc=exit2; fi
+}
+
 # check <desc> <env> <transcript-file> <exp_rc> <exp_substr|__NONE__>
 # Marker cleared per case; check_keep preserves it (tests the one-shot bound).
 check() { rm -f "$MARKER" "$CLAIMED"; check_keep "$@"; }
 check_keep() {
-  local desc="$1" envv="$2" tfile="$3" exp_rc="$4" exp_sub="$5" err rc ok=1
-  err=$(payload "$tfile" | env $envv bash "$HOOK" 2>&1 >/dev/null); rc=$?
-  [ "$rc" -eq "$exp_rc" ] || ok=0
+  local desc="$1" envv="$2" tfile="$3" exp_rc="$4" exp_sub="$5" ok=1
+  run_gate "$envv" "$(payload "$tfile")"
+  [ "$rc" = "$exp_rc" ] || ok=0
   if [ "$exp_sub" != "__NONE__" ]; then
     printf '%s' "$err" | grep -qF "$exp_sub" || ok=0
   else
@@ -99,24 +113,23 @@ check "off mode is silent"                          "CC_EVIDENCE_GATE=off" "$T1"
 # its OWN per-text marker is what bounds the loop.
 rm -f "$MARKER" "$CLAIMED"
 sha_pay=$(jq -cn --arg tp "$T1" --arg cwd "$CWD" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:true}')
-err=$(printf '%s' "$sha_pay" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-if [ "$rc" -eq 2 ]; then pass=$((pass+1)); printf 'PASS  stop_hook_active does not spend this gate (still blocks)\n'
+run_gate "" "$sha_pay"
+if [ "$rc" = 2 ]; then pass=$((pass+1)); printf 'PASS  stop_hook_active does not spend this gate (still blocks)\n'
 else fail=$((fail+1)); printf 'FAIL  stop_hook_active still short-circuits (rc=%s)\n' "$rc"; fi
 
 # 10b. The gate's OWN continuation releases the turn: the record written by 10's block
 # is present, so the shared flag is honoured. A sibling's block leaves no record and
 # therefore cannot disarm this gate — that is the namespacing, and 10 asserts it.
-err=$(printf '%s' "$sha_pay" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-if [ "$rc" -eq 0 ] && [ -z "$err" ]; then pass=$((pass+1)); printf 'PASS  own marker bounds the loop on a repeat stop\n'
+run_gate "" "$sha_pay"
+if [ "$rc" = 0 ] && [ -z "$err" ]; then pass=$((pass+1)); printf 'PASS  own marker bounds the loop on a repeat stop\n'
 else fail=$((fail+1)); printf 'FAIL  would loop — marker did not bound it (rc=%s)\n' "$rc"; fi
 
 # 10c. Fallback: with no writable marker the gate has no bound of its own, so the
 # shared flag is honoured rather than blocking the same turn forever.
 UNW="$WS/unwritable"; mkdir -p "$UNW/.claude"; cp "$T1" "$UNW/t.jsonl"; chmod 500 "$UNW/.claude"
-err=$(jq -cn --arg tp "$UNW/t.jsonl" --arg cwd "$UNW" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:true}' \
-      | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+run_gate "" "$(jq -cn --arg tp "$UNW/t.jsonl" --arg cwd "$UNW" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:true}')"
 chmod 700 "$UNW/.claude" 2>/dev/null
-if [ "$rc" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  falls back to the shared flag when it cannot write a marker\n'
+if [ "$rc" = 0 ]; then pass=$((pass+1)); printf 'PASS  falls back to the shared flag when it cannot write a marker\n'
 else fail=$((fail+1)); printf 'FAIL  blocks forever on unwritable state (rc=%s)\n' "$rc"; fi
 
 # 11. Missing transcript -> fail open.

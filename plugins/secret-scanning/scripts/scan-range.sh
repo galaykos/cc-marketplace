@@ -1,15 +1,9 @@
 #!/bin/bash
-# scan-range.sh <base>..<head> | --cached | <path>… — applies hooks/patterns.tsv, the file the write guard and the redaction mod read, to the
-#   lines a git range or the index ADDED, or to whole files: a file path as given, a directory's git-tracked files (every file under it
-#   outside git). Prints one `<file>:<line> <label> (<first 4 characters>****, <n> chars)` per matching line, never a whole value; a count
-#   to stderr. A range or the index names files from the repo root, from any directory. A name holding a tab, newline, `"` or `\` prints
-#   in git's escapes (`\t`, `\n`, `\"`, `\\`), unquoted, in every mode.
-# Exit: 0 nothing matched · 1 a match · 2 nothing was scanned (no argument, a missing path, a range or index git cannot diff, an unusable
-#   patterns.tsv as scan.sh judges it, or no hooks/patterns.sh).
-# Matching is scan.sh's, through hooks/patterns.sh: secret and assigned rows in file order, the first non-placeholder match names the line.
-# Misses: a secret split across lines (each line is matched alone), a shape patterns.tsv does not list, a real value holding a placeholder
-#   word, binary files, a line a range removed (the secret is still in history), history outside the range, untracked files under a
-#   directory in git; in path mode a name's other control characters print raw.
+# scan-range.sh <base>..<head> | --cached | <path>… — applies hooks/patterns.tsv (scan.sh's matching, through hooks/patterns.sh) to the lines a range or the index ADDED, or to whole files (a directory: its git-tracked files); prints `<file>:<line> <label> (<first 4>****, <n> chars)` per match, never a value. Exit 0 none, 1 a match, 2 nothing scanned.
+# Misses: a secret split across lines, a shape patterns.tsv does not list, a real value holding a placeholder word, binary files, a line a range removed (still in history), history outside the range, untracked files under a directory in git.
+# Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/scripts/scan-range.sh
+
+# Output: a name holding a tab, newline, `"` or `\` prints in git's escapes, unquoted, in every mode (path mode prints other control characters raw); the count goes to stderr. Exit 2: no argument, a missing path, a range or index git cannot diff, an unusable patterns.tsv, no hooks/patterns.sh.
 set -u
 export LC_ALL=C
 pat_file="$(cd "$(dirname "$0")/.." && pwd)/hooks/patterns.tsv"

@@ -203,6 +203,8 @@ $TRAILER\"" | "$BASH_BIN" "$GUARD"); rc=$?
 printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 && ok || bad "expected permissionDecision deny" "$out"
 printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PreToolUse"' >/dev/null 2>&1 && ok || bad "expected hookEventName PreToolUse" "$out"
 printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -q 'Co-Authored-By' && ok || bad "reason must name the trailer" "$out"
+[ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason')" = 'git-workflow blocked AI attribution in this commit, merge, tag or PR: remove the "Co-Authored-By: Claude …" trailer and any "Generated with Claude Code" line, then run the same command again (not through a message file). CLAUDE_AI_TRAILER=allow, set by the user, turns this guard off.' ] \
+  && ok || bad "reason: what was blocked, the fix, one off switch" "$out"
 
 out=$(payload Bash 'git commit -m "fix: y"' | "$BASH_BIN" "$GUARD"); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && ok || bad "clean commit must be silent" "rc=$rc out=$out"

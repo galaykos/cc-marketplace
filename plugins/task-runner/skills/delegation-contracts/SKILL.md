@@ -55,8 +55,7 @@ next, not a human enjoying narrative. Demand compression in the prompt:
 In-repo exemplars to copy:
 
 - **context-scout** — fixed 5-section report, one line per fact with its `path:line`.
-- **code-reviewer** — `path:line — severity — problem — fix`, one
-  line per finding.
+- **code-reviewer** — ``path:line — severity — problem — fix — quote: `…` `` per finding.
 - **transcript-miner** — typed one-liners, each with a verbatim quote
   and a confidence tag.
 

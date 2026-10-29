@@ -1,0 +1,31 @@
+# Internal terms an installer meets: each needs a `| term | one plain line |` row under README.md "## Words we use", or validate.sh WARNs (pc_undefined_terms).
+# One term per line, lowercase; a space or hyphen inside a term also matches "red team", "redteam". Add a term with its glossary row.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_undefined_terms
+agent-graded
+boost
+card
+control arm
+fan-in
+fan-out
+footgun
+gate
+goal
+goal-lean
+hands-off
+kill-trigger
+lane
+ledger
+mod
+nudge
+one-shot
+recorded
+red-team
+residual
+rigour
+sentinel
+standing
+ultra
+ultra-assess
+ultra-craft
+ultra-goal
+ultra-task

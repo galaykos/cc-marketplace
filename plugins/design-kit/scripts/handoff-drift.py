@@ -1,41 +1,9 @@
 #!/usr/bin/env python3
 """handoff-drift.py — how far shipped code drifts from the repo's declared tokens.
 
-TWO MODES, ONE TOKEN READER.
-
-BUNDLE MODE (the default, `handoff-drift.py <dir>`) — how far a Claude Design
-handoff bundle drifts. Every colour (hex, rgb(), hsl(), oklch()) and font-family
-the bundle's .html/.css files use, against every token the repo declares: `--name:`
-custom properties in CSS under src/, resources/, app/, styles/ and the repo root
-(this covers Tailwind v4 `@theme` blocks), `key: '#hex'` pairs in tailwind.config.*,
-and `$value`s in design-system/tokens.json. Prints one DRIFT TABLE row per distinct
-bundle value: nearest token, distance, verdict `match` (exact), `near` (RGB
-distance <= --near, default 24) or `no token`. Exit 0 always — the table is the
-output; a `no token` row is a question for the user, not a failure.
-
-SCAN MODE (`--scan PATH...`, what `dk drift` runs) — the same question asked of the
-project's OWN components. Reads .tsx/.jsx/.vue/.blade.php/.css/.scss and reports
-two hit kinds: a literal colour that resolves to no declared token, and a NAMED
-TAILWIND PALETTE utility (`bg-indigo-500`, `text-slate-700/50`) whose palette name
-is not a declared token name — the shape that bypasses the token layer entirely, so
-`dk check` and the bundle table above both stay green while the components drift.
-`--ci` exits 1 on any hit; without it the table is the output and the exit is 0.
-No token source anywhere exits 2 (`not measured`) in either mode: a drift check
-that cannot find the tokens has not cleared anything.
-
-WHAT SCAN MODE DOES NOT CATCH, named rather than implied. Spacing, radius, shadow
-and font drift (colour only here). A colour computed at runtime, or one arriving
-through a CSS file the token reader already treats as a DECLARATION site — a
-literal on a `--name:` or `$name:` line is the token being defined, never a hit.
-An `href`/`to` attribute value is blanked before the scan, so a `#dad` anchor is
-not read as a colour, but any other 3-hex-digit slug in other syntax still is.
-`bg-primary` and `var(--primary)` are clean BY CONSTRUCTION — this check proves a
-component went through the token layer, never that it picked the right token, and
-semantic misuse (the right token on the wrong role) is invisible to it. A named
-palette utility is judged on the class STRING, so a project that renamed a scale to
-`indigo` in tailwind.config is reported unless tokens.json declares that name too.
-Standing: scripts/__tests__/handoff.test.sh drives bundle mode, drift.test.sh
-drives scan mode (hit, clean, --ci exit, not-measured).
+Bundle mode (`handoff-drift.py <dir>`): every colour and font-family a Claude Design bundle's .html/.css use, against every token the repo declares (CSS custom properties, tailwind.config.*, design-system/tokens.json) — one row per value, match / near (RGB distance <= --near) / no token; exit 0. Scan mode (`--scan PATH...`, `dk drift`): literal colours and named Tailwind palette utilities in components that reach no token; --ci exits 1 on a hit. No token source: exit 2 in either mode.
+Misses: spacing, radius, shadow and font drift; a runtime colour; a literal on a declaration line (`--name:`, `$name:`); a 3-hex slug outside href/to; the right token in the wrong role (`bg-primary` is clean by construction); a scale renamed `indigo` in tailwind.config unless tokens.json declares it.
+Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/handoff-drift.py
 """
 import argparse
 import glob
@@ -195,14 +163,7 @@ def _walk_dtcg(node, path, colours, fonts):
 SCAN_EXT = (".tsx", ".jsx", ".vue", ".blade.php", ".css", ".scss")
 SCAN_SKIP = ("node_modules", "vendor", ".design-kit", "__design-kit__", "dist", "build", ".git")
 
-# The Tailwind default palette scales. A utility naming one of these reaches a
-# colour without passing the token layer at all, which is why the class STRING is
-# the evidence here and no value lookup happens: `bg-indigo-500` resolves inside
-# Tailwind, never inside design-system/tokens.json. `bg-primary`, `bg-brand-600`
-# and any other semantic name are clean by construction — that is the whole point.
-# black/white/transparent/current/inherit are deliberately absent: `text-white` on
-# a dark button is not drift, and a row that fires on every real page is a row
-# someone switches off within a day.
+# Tailwind's default palette scales: a utility naming one never passes the token layer, so the class string is the evidence. black/white/transparent/current/inherit are deliberately absent.
 TW_SCALES = ("slate", "gray", "grey", "zinc", "neutral", "stone", "red", "orange", "amber",
              "yellow", "lime", "green", "emerald", "teal", "cyan", "sky", "blue", "indigo",
              "violet", "purple", "fuchsia", "pink", "rose")

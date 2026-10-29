@@ -4,6 +4,11 @@ All notable changes to the ultra-deep-research plugin. Entries start at 0.6.0, w
 this file was created; earlier releases have no entries rather than invented ones.
 The verdict lint referenced below landed in 0.5.0, before that.
 
+## 0.7.4 — 2026-10-28
+
+### Changed
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/verdict-lint.sh`: each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
 ## 0.7.3 — 2026-10-15
 
 ### Fixed

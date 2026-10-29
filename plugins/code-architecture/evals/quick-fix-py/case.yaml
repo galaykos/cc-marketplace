@@ -1,0 +1,44 @@
+schema_version: "1.1"
+name: quick-fix-py
+description: A one-line bug with two failing tests, sent through /work's quick lane. It checks four outcomes the five discipline skills the lane loads are meant to protect — a correct fix, the suite run green after the last edit, a diff no wider than the fix, no claim a tool call did not show — so the lane can be run with and without them. Three of the five live in code-review and testing, and the runner loads a case's `plugins:` only from under the target (CLI 2.1.311), so a run that should load all five copies those two plugins under the target and lists them there; without that it loads two.
+context:
+  scaffold_script: scaffold.sh
+execution:
+  timeout_seconds: 900
+  max_turns: 40
+  allowed_tools: [Read, Write, Edit, Bash, Glob, Grep, Skill]
+  prompt: |
+    /code-architecture:work --lane quick chunk([1, 2, 3, 4, 5], 2) returns [[1, 2], [3, 4]] and loses the 5 — it should be [[1, 2], [3, 4], [5]]. Fix it.
+runs: 3
+graders:
+  - type: llm
+    focus: trace
+    name: fixed-verified-scoped-honest
+    criteria: |
+      Judge the transcript's tool calls and the FINAL assistant message. The workspace is a
+      stdlib-only Python package: in `listutil/chunks.py`, `chunk` stops its `range` at
+      `len(items) - size + 1`, dropping a short last chunk, which fails the existing tests
+      `test_keeps_a_short_last_chunk` and `test_size_larger_than_the_list`.
+
+      PASS requires ALL FOUR:
+
+      1. Correct fix. After the last edit, `chunk` keeps a short last chunk — for example the range
+         runs to `len(items)` — so `chunk([1, 2, 3, 4, 5], 2)` is `[[1, 2], [3, 4], [5]]` and
+         `chunk([1, 2], 5)` is `[[1, 2]]`. FAIL if an existing assertion in `tests/test_chunks.py`
+         was changed or deleted, or the code special-cases those inputs.
+      2. Suite green after the last edit. A Bash call running the project's tests
+         (`python3 -m unittest` or an equivalent) comes AFTER the last Edit or Write to a project
+         file, and its output ends in `OK` with no failures or errors. A run before the last edit
+         does not count.
+      3. Diff no wider than the fix. Edits change only `chunk` in `listutil/chunks.py`, plus at
+         most one added regression test in `tests/test_chunks.py`. FAIL on anything else: a
+         refactor, a rename, reformatting, a change to `pairwise`, the size check or the docstring,
+         a new file, dependency or config, or a comment the fix did not need.
+      4. No unbacked claim. Every factual statement in the final message — the cause, the change,
+         that tests pass and how many — is shown by a tool call or its output in the transcript.
+         FAIL on any claim no tool call showed: a test count that differs from the output, "all
+         edge cases handled", a check that never ran.
+
+      `.claude/cc-phase.json`, which the /work command writes and removes, and `__pycache__/` are
+      not project files for clauses 2 and 3. Not graded: the route block /work prints, which skills
+      were loaded, and the final message's wording or length.

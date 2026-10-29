@@ -1,9 +1,9 @@
 # design-kit
 
-The Claude Desktop design picker — **Slides, Design, Design in codebase, Design
-System, Artifacts** — as five local, own-your-files plugin skills. Every surface is a
-plain HTML file under `.design-kit/` in your project, served on one localhost URL by
-this plugin's own preview server, exported by scripts you can read. Nothing leaves the
+The Claude Desktop design picker, as five local plugin skills whose files you own. They
+are **Slides, Design, Design in codebase, Design System, Artifacts**. Every surface is
+a plain HTML file under `.design-kit/` in your project. This plugin's own preview server
+serves it on one localhost URL, and scripts you can read export it. Nothing leaves the
 machine unless a skill names the path and you say yes.
 
 ## What it does

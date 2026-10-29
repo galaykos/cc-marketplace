@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
-# Flake hunter. Runs a test suite N times across two axes — fixed order and
-# randomized order — then set-diffs the per-run results to CLASSIFY each flake,
-# not merely detect it.
-#
-# WHY CLASSIFY. Handed an intermittently red suite, the ordinary move is to re-run
-# the one failing test alone, see green, and report "flaky, probably timing". That
-# is a guess, and the wrong guess about half the time. The plugin's own
-# testing-best-practices already lists the root causes and their fixes; what has
-# never existed is the evidence that selects BETWEEN them. Three distinguishable
-# shapes, and each implies a different fix:
+# flake-hunt.sh — runs a test suite N times in fixed and (with --shuffle) randomized order and set-diffs the per-run failures to CLASSIFY each flake, not merely detect it.
+# Misses: the cause (it observes, never diagnoses); a rare flake (N=5 finds 1-in-3 reliably, 1-in-50 almost never); test names outside the vitest/jest, pytest, go test and phpunit/pest shapes (whole-run pass/fail only).
+# Why, limits, history: rationale/derivations/plugin-testing.md § plugins/testing/scripts/flake-hunt.sh (marketplace repository)
+
+# Three shapes, each implying a different fix:
 #
 #   order-dependent   fails under shuffle, passes in fixed order
 #                     → shared state between tests; fix per-test isolation
@@ -21,14 +16,6 @@
 #                 [--baseline FILE] [--update-baseline]
 #
 # Exit: 0 no flakes (or none new vs baseline) · 2 flake detected · 3 cannot run
-#
-# HONEST LIMITATIONS. It observes; it does not diagnose. A test that fails on every
-# run is BROKEN, not flaky, and is reported as such rather than counted. N=5 finds
-# a 1-in-3 flake reliably and a 1-in-50 flake almost never — absence of a finding
-# at N=5 is not evidence of a stable suite, and the report says so. Test-name
-# extraction is regex over the runner's output: it recognises the common shapes
-# (vitest/jest, pytest, go test, phpunit/pest) and falls back to whole-run
-# pass/fail, which still detects flakiness but cannot name the test.
 set -u
 PROG=${0##*/}
 
@@ -52,8 +39,7 @@ printf '%s' "$runs" | grep -qE '^[0-9]+$' || { printf '%s: --runs must be an int
 WORK=$(mktemp -d) || exit 3
 trap 'rm -rf "$WORK"' EXIT
 
-# Failed test names from a run's output. Deliberately several shapes: the point is
-# to name the test when possible, not to support one runner.
+# Several runner shapes on purpose: the point is to name the test when possible, not to support one runner.
 extract_failures() { # file -> names, one per line
   {
     grep -oE '^[[:space:]]*(FAIL|✕|×|✗)[[:space:]]+.*' "$1" 2>/dev/null | sed -E 's/^[[:space:]]*(FAIL|✕|×|✗)[[:space:]]+//'
@@ -83,7 +69,6 @@ if [ -n "$shuffle" ]; then
   for i in $(seq 1 "$runs"); do run_once "shuffled #$i" "$shuffle" "$WORK/shuf.$i"; done
 fi
 
-# --- classify ---------------------------------------------------------------
 cat "$WORK"/fixed.*[0-9] 2>/dev/null >/dev/null
 fixed_fail_union=$(for i in $(seq 1 "$runs"); do extract_failures "$WORK/fixed.$i"; done | sort -u)
 fixed_fail_inter=$(for i in $(seq 1 "$runs"); do extract_failures "$WORK/fixed.$i"; done | sort | uniq -c \
@@ -93,8 +78,7 @@ if [ -n "$shuffle" ]; then
   shuf_fail_union=$(for i in $(seq 1 "$runs"); do extract_failures "$WORK/shuf.$i"; done | sort -u)
 fi
 
-# broken = failed in EVERY fixed run. Not a flake; reporting it as one sends the
-# reader hunting for nondeterminism in a test that is simply red.
+# Failed in every fixed run is broken, not a flake: calling it one sends the reader hunting nondeterminism in a red test.
 broken="$fixed_fail_inter"
 nondet=$(comm -23 <(printf '%s\n' "$fixed_fail_union" | sed '/^$/d') <(printf '%s\n' "$broken" | sed '/^$/d'))
 order_dep=""
@@ -128,7 +112,6 @@ fi
 printf '\nnote: %s runs per axis. A 1-in-3 flake shows up reliably at this N; a\n' "$runs"
 printf '      1-in-50 flake almost never does. No finding is not a stable suite.\n'
 
-# --- baseline ratchet -------------------------------------------------------
 if [ -n "$baseline" ]; then
   if [ "$update" -eq 1 ]; then
     printf '%s\n' "$flaky" | sed '/^$/d' | sort -u > "$baseline"

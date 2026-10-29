@@ -1,21 +1,22 @@
 # craft-layer
 
-Create unique, high-craft, animated, **informative** web apps — CRMs, SaaS dashboards,
-landing pages — on real projects across **React, Tailwind, Vite, Vue, Next, Nuxt, and
-Laravel** (Inertia; on Livewire it covers mounting motion only, not Livewire itself).
-`craft-layer` is the orchestration layer that turns an
-idea into a crafted app by composing the marketplace's existing UI/motion skills, adding
-only what they lack: an offer contract that pins what the page sells, concept-first
-creative direction, an optional guided section-decision loop, a research→brief playbook,
-an asset-sourcing + licence gate, a concept→token-system derivation, a tiered motion
-**decision** system, sprite guidance, information design, and a craft **audit**.
+Create unique, high-craft, animated, **informative** web apps: CRMs, SaaS dashboards,
+landing pages. It works on real projects across **React, Tailwind, Vite, Vue, Next,
+Nuxt, and Laravel** (Inertia). On Livewire it covers mounting motion only, not Livewire
+itself. `craft-layer` turns an idea into a crafted app by combining the marketplace's
+existing UI and motion skills. It adds only what they lack. An offer contract pins what
+the page sells. Creative direction starts from a concept. An optional guided loop decides
+the page section by section. A playbook turns research into a brief. Asset sourcing comes
+with a licence gate. A token system is derived from the concept. A tiered system makes
+the motion **decisions**. It also adds sprite guidance, information design, and a craft
+**audit**.
 
 > **craft-layer needs `ui-ux` and `ui-libraries` installed beside it — nothing installs
 > them for you.** It themes through `/ui-ux:theme` and builds through `/ui-ux:build`, which
 > loads the component-library skills (Aceternity, ReUI, MUI, PrimeReact, Astryx,
 > `component-libraries`) from `ui-libraries`. No plugin here may declare `dependencies`
-> (an update that adds one leaves it uninstalled and the plugin fails to load), and the
-> craft suite that used to bring all three was retired on 2026-09-26. Install them now:
+> (an update that adds one leaves it uninstalled and the plugin fails to load). Install
+> them now:
 >
 > ```bash
 > /plugin install ui-ux@cc-plugins-marketplace
@@ -323,3 +324,8 @@ claude plugin eval ./plugins/craft-layer --ablation with-without --runs 5 \
 
 Without the grant the suite still loads and then declines the case, so a clean-looking run
 has measured nothing. State the run count and vote spread with any delta.
+
+## History
+
+The craft suite that used to bring `craft-layer`, `ui-ux` and `ui-libraries` was retired on
+2026-09-26.

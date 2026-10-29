@@ -2,6 +2,18 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.12.4 — 2026-10-28
+
+- **The `system` skill's description now reads in short, plain sentences.** Same sources and outputs; it keeps the words the model matches it on.
+
+## 0.12.3 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/artifact-bundle.py`, `scripts/board-build.py`, `scripts/codebase-scaffold.sh`, `scripts/deck-build.py`, `scripts/deck-export-pptx.mjs`, `scripts/dk.sh`, `scripts/handoff-drift.py`, `scripts/scaffold-fill.py`, `scripts/serve.py`, `scripts/snapshot.sh`, `scripts/system-extract.py`; `hooks/unread-pick.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain. `--help` of `scripts/snapshot.sh` no longer prints the history prose; usage, flags and exit codes are unchanged.
+
+## 0.12.2 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/unread-pick.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-design-kit.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
 ## 0.12.1 — 2026-10-26
 
 - **`film.py sheet` tiles start at 0 and the index carries each tile's real time.** It sampled with ffmpeg's `fps=` filter, which picks a frame mid-interval (the first tile of a 16-frame sheet over 6 s was 0.167 s, not 0) and re-stamps frames onto its own grid, so the index's times did not match the pictures a reviewer cites. It now selects the first frame of each interval, frame 0 included, and `index.json` lists `tile_times_s` read from the selected frames. Standing: gate — `film.test.sh`; a mutation back to `fps=` fails it.

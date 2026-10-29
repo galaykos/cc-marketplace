@@ -2,6 +2,8 @@
 
 The text below was moved verbatim on 2026-10-04 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-secret-scanning.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
 
+`scripts/scan-range.sh` moved on 2026-10-28: its header as it stood, with the `# ` leader and the indentation before it removed; the file kept a header of three lines.
+
 ## plugins/secret-scanning/hooks/scan.sh
 
 ### Header: the shebang
@@ -195,6 +197,63 @@ Name the escape in the message that blocks you: an off-switch documented only in
 CHANGELOG is not reachable by the person it exists for.
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+scan.sh (PreToolUse on Write, Edit, MultiEdit, NotebookEdit, MCP apply_patch/create_new_file and Bash; payload on stdin) — denies a write whose new text
+  (for apply_patch, the whole patch), Bash heredoc body or echo/printf argument landing in a file carries a high-confidence, non-placeholder secret,
+  and a Bash write of redact.ts's [REDACTED: marker unless CC_SECRET_REDACT is off (Write/Edit carrying it are redact.ts's to refuse).
+  PostToolUse on the same tools, and PostToolUseFailure on a Bash call that exited non-zero (hook_event_name), warning only: after a python,
+  node, php, ruby, perl, deno, bun, cp, mv, install or patch run,
+  on the same patterns in what each file git reports changed since this lane's previous call added (the whole file when HEAD lacks it, else its
+  `+` lines against HEAD, so a line any uncommitted edit added is judged again). State: that lane's marker in the plugin's data dir
+  (CLAUDE_PLUGIN_DATA), else <root>/.claude/secret-scanning/ behind a `*` .gitignore.
+Off: CC_SECRET_SCAN=off. Fails open: a timeout, a missing jq or any error but a bad pattern file allows the write.
+Fails closed: a missing or malformed hooks/patterns.tsv, the pattern source, or a missing hooks/patterns.sh, its reader, denies every write with
+  text to scan (the PostToolUse lane stays silent).
+CC_SECRET_SCAN unset: the /config option cc_secret_scan decides.
+Misses: a URL password under 6 characters or led by `$` or `{`, a URL scheme not listed, a webhook URL other than Slack's; a real value holding a
+  placeholder word; an MCP write tool with other key names; on Bash, a command with no write target, interpreter writes and cp/mv before they
+  land, sed/perl -i text and what cc_bash_write_chunks misses; a command that outruns the hook timeout (no per-call cap). After the fact: changed
+  files past the eighth (MAX_BASH_EFFECTS), text past 1 MiB per file, the redaction marker, and the bash-write-effects block's misses; a file
+  anything else changed since the lane's previous call (an IDE, a parallel agent) is read as that run's write.
+```
+
+Above `detect() {`:
+
+```text
+detect <kind> <label> <flags> <ERE> — sets hit to <label> when a match of <ERE> in $text is no placeholder; a no-op once hit is set.
+grep needs `--`: the private-key pattern starts with dashes, which grep would read as options.
+```
+
+Above `scan_for_secret() {`:
+
+```text
+scan_for_secret <text> — the one scanner for both paths: resets hit, then sets it to the first label whose match is no placeholder.
+The first non-empty text loads $pat_file; an unusable one ends the run with a deny.
+```
+
+Above `if [ "$event" = PostToolUse ] || [ "$event" = PostToolUseFailure ]; then`:
+
+```text
+The PostToolUse lane: the write has landed, so it warns and never denies. It reads what an interpreter, cp, mv, install or
+patch run changed (the bash-write-effects block), each file judged on what it added: the whole file when HEAD lacks it, else
+its `+` lines against HEAD. The effects are read with the old marker, then the marker is dated, on EVERY call this lane sees,
+a failed Bash call's PostToolUseFailure included.
+```
+
+Above `redact=$(cc_option CC_SECRET_REDACT on | tr '[:upper:]' '[:lower:]')`:
+
+```text
+redact.ts masks a secret in tool output as [REDACTED:<label>] and refuses Write/Edit carrying it; through Bash, the
+same write-back would replace the real value on disk. With redaction off no mask is ever shown, so the text is quoted.
+off, 0 and false in any case, as redact.ts's switchOn reads the same variable.
+```
+
 ## plugins/secret-scanning/hooks/unicode-scan.sh
 
 ### Header: the shebang
@@ -337,6 +396,45 @@ the spelling cc_state_root used and the prefix test compares like with like.
 A relative target resolves against the payload cwd: that IS the shell's cwd.
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+unicode-scan.sh (PostToolUse on file writes and reads, Bash included, and PostToolUseFailure on Bash; payload on stdin) — warns once per model
+  context (a session's main thread, each subagent) and file, again only when the file's invisible characters change, never blocks,
+  naming line and codepoint, when a file the call wrote or read holds a zero-width, bidi, soft-hyphen, mid-file BOM or Unicode tag character
+  (a lone BOM leading a `*.log` line, or a tab-separated field of one, is a CI step's encoding and skipped);
+  after a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also each file git reports changed since this hook's previous call.
+Off: CC_UNICODE_SCAN=off or CC_REMIND=off. Fails open on every error path; its one-shot markers live in $TMPDIR, its one bash-effects marker in
+  the plugin's data dir (CLAUDE_PLUGIN_DATA), else <root>/.claude/secret-scanning/ behind a `*` .gitignore.
+CC_UNICODE_SCAN / CC_REMIND unset: the /config options cc_unicode_scan / cc_remind decide.
+Misses: homoglyphs; intent (presence only); a file over 2 MB or not valid UTF-8; naming hits past the sixth in a file (they still pick the
+  message and the one-shot); a file the session never touched; a character stored as a JSON backslash-u escape (a .ipynb or .json
+  the session only read); an MCP apply_patch (no single path); on Bash, a
+  target past the eighth, outside the project root, not an existing regular file or relative after an in-command cd, and cc_bash_write_targets' misses;
+  after an interpreter run, changed files past the eighth (MAX_BASH_EFFECTS) and the bash-write-effects block's misses. Reads too much: a file
+  anything else changed since this hook's previous call (an IDE, a parallel agent) is read as that run's write.
+```
+
+Above `{ IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; IFS= read -r ctx; } < <(printf '%s' "$input" \`:
+
+```text
+Interpreter writes: read the effects with the old marker, then date it, on EVERY call this hook sees (a Read too), so a
+file an Edit changed or a command that wrote nothing is never read as the next run's write. A failed Bash call fires
+PostToolUseFailure, whose envelope must name that event.
+```
+
+Above `key=$(printf '%s|%s|%s' "$ctx" "$file" "$digest" | cksum 2>/dev/null | cut -d' ' -f1)`:
+
+```text
+One warning per model context and file while the file holds the same invisible characters: each context that ingests the
+text is told once. Claimed only after a hit, so a clean touch keeps the file's one warning; mkdir is atomic, so one of two
+racing hooks reports.
+```
+
 ## plugins/secret-scanning/hooks/patterns.sh
 
 ```text
@@ -348,6 +446,20 @@ hooks/cite.sh is for its gate and /candor:check. scan.sh keeps its fail-closed c
 a missing patterns.sh defines a load_patterns that fails, so every write with text is
 refused as for a bad patterns.tsv; scan-range.sh exits 2. pat_value sets a variable
 rather than printing, so a secret-row match costs no subshell in the hook.
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+patterns.sh — sourced, never run, by hooks/scan.sh (the write guard) and scripts/scan-range.sh (/secret-scanning:scan): one reader of
+  hooks/patterns.tsv, so the guard and the sweep cannot disagree on what a row means, what is a placeholder, or which value is judged.
+load_patterns <file>: reads <file> into pat_kind/pat_label/pat_flags/pat_re (secret and assigned rows, in file order) and the
+  ph_i/ph_c placeholder alternations; returns 1 with pat_bad set when it is missing or malformed.
+placeholder <value>: 0 when the value announces itself as fake. pat_value <kind> <match>: sets pat_v to the value a match is judged on.
 ```
 
 ## plugins/secret-scanning/scripts/__tests__/scan-hook.test.sh
@@ -455,4 +567,22 @@ fail-open
 (rationale/2026-09-25-session-plugin-usage-review.md, finding 1). The hook runs AFTER the
 command, so each fixture file is created first and the payload carries the command that
 wrote it. The cwd is a SUBDIRECTORY of a temp git repo, as after the model's `cd`.
+```
+
+## plugins/secret-scanning/scripts/scan-range.sh
+
+### Header
+
+```text
+scan-range.sh <base>..<head> | --cached | <path>… — applies hooks/patterns.tsv, the file the write guard and the redaction mod read, to the
+  lines a git range or the index ADDED, or to whole files: a file path as given, a directory's git-tracked files (every file under it
+  outside git). Prints one `<file>:<line> <label> (<first 4 characters>****, <n> chars)` per matching line, never a whole value; a count
+  to stderr. A range or the index names files from the repo root, from any directory. A name holding a tab, newline, `"` or `\` prints
+  in git's escapes (`\t`, `\n`, `\"`, `\\`), unquoted, in every mode.
+Exit: 0 nothing matched · 1 a match · 2 nothing was scanned (no argument, a missing path, a range or index git cannot diff, an unusable
+  patterns.tsv as scan.sh judges it, or no hooks/patterns.sh).
+Matching is scan.sh's, through hooks/patterns.sh: secret and assigned rows in file order, the first non-placeholder match names the line.
+Misses: a secret split across lines (each line is matched alone), a shape patterns.tsv does not list, a real value holding a placeholder
+  word, binary files, a line a range removed (the secret is still in history), history outside the range, untracked files under a
+  directory in git; in path mode a name's other control characters print raw.
 ```

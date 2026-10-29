@@ -2,6 +2,8 @@
 
 The text below was moved verbatim on 2026-10-04 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/plugin-candor.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
 
+A second move, on 2026-10-28, cut each script under `scripts/` to a header of at most three lines and one line per trap the code cannot show. A block titled "Header as it stood on 2026-10-28" holds the header lines the first move had kept, verbatim; `scripts/shrink.mjs` moved for the first time, with its `// ` leader removed. Text inside a pasted `templates/blocks/` block did not move.
+
 ## plugins/candor/hooks/gate.sh
 
 ### Header: the shebang
@@ -52,6 +54,8 @@ skips only that clause on its own continuation.
   as before. The no-gate-pass branch alone also stands down while a worker is in
   flight (IN-FLIGHT WORKERS below).
 ```
+
+Editor's note (2026-10-28): ask-ledger and ui-ux also ship blocking Stop hooks; 'THE Stop gate' is history.
 
 ### Header: what no other gate carries
 
@@ -112,6 +116,7 @@ FAIL-OPEN on missing jq, an unreadable transcript, or empty text.
 
 A Stop hook reaches the model only via exit 2 with the reason on stderr; this
 uses exit 2. Exit 0 prints into a turn that has already ended.
+2026-10-26 (0.10.2): a Stop block is now {"decision":"block","reason":…,"systemMessage":…} on stdout with exit 0, because a probe on CLI 2.1.310 (`claude -p --output-format stream-json`) showed the reason reaching the model and the systemMessage shown to the user ("Stop says: …"), which exit 2 never did; SubagentStop keeps exit 2, since there the systemMessage stayed in the agent's own transcript.
 
 MODES:
   CC_CANDOR_GATE=block (default) | warn (print, never block) | off — the whole gate
@@ -581,6 +586,165 @@ the absolute path `/.claude/settings.json`, resolved to nothing, and blocked —
 on the exact file a settings question is answered from.
 ```
 
+### Clause 6: MISQUOTE (0.10.6, 2026-10-29)
+
+Written when the clause shipped, not moved from the code. Milestone m14 ("review findings carry
+checked evidence") gave `/code-review:review` a quote check before its verdict and this gate a
+clause that blocks a turn, main or subagent, whose marked quote is not in the file it cites
+(user decision, 2026-10-29). The marker is explicit — `` quote: `…` `` after a `file:line` on
+the same line — so unmarked backtick text, which is most of a message, is never read.
+
+The match is the shared block `templates/blocks/quote-match.md` (`cc_quote_match`), pasted into
+`hooks/cite.sh` byte for byte, so this clause and code-review's `scripts/quote-check.sh` agree
+on what a match is. The two differ on the window, by decision ("m14 false-block guards"): the
+review script keeps ±3 lines, because a misplaced line number is a review finding; this clause
+searches the whole file (`all`), because a turn block must mean clear fabrication — the lesson
+of the m8 Stop check in ui-ux, which took three adversarial rounds to stop blocking honest turns.
+For the same reason the clause also reads git's `HEAD` copy of a tracked file before it fires:
+a review routinely quotes code its own turn then changed. A file that is untracked, or outside
+any repository, is its own only copy and is judged on it alone. A file in the index but not in
+`HEAD` has no copy to compare and is skipped. `` was: `…` `` is the marker for code the change
+removed and is never read — the block message names it as the way out.
+
+Which path: a line may carry more than one `file:line` before its quote (a finding names its
+location, then a caller). The clause fires only when every one of them resolves to exactly one
+file and none holds the quote. Resolution is clause 1's ladder, factored into `cite_file` in
+`hooks/cite.sh` so both clauses read one lookup; clause 1 accepts the first of several files a
+path ends in, this clause skips the quote, since judging an arbitrary one of them could block a
+true quote.
+
+Cost: `MAX_QUOTES_CHECKED=20` marked lines, chosen below clause 1's 25 because each check can
+read a file twice. The cap alone does not bound time: measured on this machine (mawk 1.3.4),
+one whole-file read of a 1 MiB file took 0.70–0.73 s, so a check that misses in both copies
+costs about 1.3 s, and 20 wrong quotes into one 1 MiB tracked file ran 26.6 s with no deadline —
+past the 15 s hook timeout, which would also have lost clauses 2, 3 and 5 for that stop. Hence a
+deadline, read from bash's `SECONDS` (seconds since the hook started). It shipped at 8 s and
+checked once per line; round 1 (below) moved it inside the per-path loop and to 6 s.
+`gate-pins.test.sh` pins it by starting the hook with `SECONDS` in its environment, which bash
+imports as its starting value.
+
+Without git the clause prints one line and checks nothing: it cannot tell a tracked file from an
+untracked one, and calling every file untracked could block a quote only `HEAD` holds.
+
+**Adversarial round 1 (2026-10-29).** Two blind reviewers (correctness, false block) read the
+first cut; the decision row "m14 adversarial round 1" took their findings. What changed, each
+with a fire/control pair in `gate.test.sh` or `gate-pins.test.sh` and a mutant it kills:
+
+- *Tool output.* The false-block reviewer's blocker: an honest quote of a third version — a PR
+  or branch reviewed without being checked out, a fix committed mid-turn and then relayed with
+  its original quote, an untracked file edited after review — is in neither the working file
+  nor `HEAD`, and the first cut blocked it. Before blocking, the clause now extracts the text of
+  every `tool_result` in the last 1 MiB of the transcript it judges (the subagent's own on
+  `SubagentStop`), in one `jq` pass, dropping Read's `N<tab>` line prefixes, and runs
+  `cc_quote_match … all` over it (round 2, below, replaced the 1 MiB window and the whole-text
+  match). Only the would-block path pays for it. Assistant text is not read, so a quote the model wrote earlier
+  does not vouch for itself; a made-up quote beside a real diff still blocks. Residuals: on
+  `Stop`, a subagent's hand-back is a tool result, so a quote it carried passes there (its own
+  `SubagentStop` judged it); a large output the host saved to a file outside the transcript is
+  searched only through the preview left in it.
+- *Loop guard.* The correctness reviewer's major: the gate kept one record of the last blocked
+  text, so a report with a fabricated citation and a misquote, re-sent unchanged, drew blocks
+  from clauses 1 and 6 in turn without end (5 of 5 stops on `SubagentStop` in the reviewer's
+  probe). The record `last` now holds one line per clause, and a clause passes a text it already
+  blocked; the same report draws one block from each, citation first.
+- *Which marker.* The last `quote:` on a line is read, so a problem clause that itself mentions
+  a `quote:` does not hide the finding's own; a `quote:` preceded by a backtick (inside a code
+  span, as in a sentence documenting the field) is not a marker.
+- *Spans.* Markdown has no backslash escape inside a code span, so a single-backtick span over
+  a TypeScript template literal ends at the first `\``; trailing backslashes are dropped and the
+  text before the cut is judged as a prefix.
+- *Fences.* A fence closes only on a run of its own character at least as long as the opening,
+  so a ```` ```` ```` fence holding a ```` ``` ```` example is one block.
+- *Deadline.* Checked before each `file:line`, not once per line: one line citing four modified
+  1 MiB files, entered at 7 s, ran to 14.3 s in the reviewer's probe. A quote left half-checked
+  at expiry is undecided. A 1 MiB file of 2-byte lines takes 2.5 s a read under mawk (measured
+  here; 0.7 s for 50-byte lines), so a check that misses in both copies costs about 5 s; started
+  at 7 s it ended at 12 s, too near the 15 s kill, so the deadline moved from 8 to 6 s, where the
+  same check ended near 10 s and 20 wrong quotes into one tracked 1 MiB file ran 5.5 s (4 judged).
+- *Which file a path names.* Clause 1's ladder tries the cwd and the root before asking whether
+  the path is ambiguous, so in a monorepo `package.json:4` was judged against the root's copy
+  while the quote sat in `apps/web/package.json`, and a deleted `/tmp/scr/parse.ts` resolved by
+  basename to `src/parse.ts`. On the would-block path only, `cite_file … sole` now calls a
+  relative path that `cite_find -path "*/<path>"` finds twice undecidable, and an absolute or
+  `~/` path whose resolved file does not end in that path. Clause 1 is unchanged. Making the
+  walk conditional keeps it off every quote that matches.
+- *Message.* It now says how the quote was read (from `quote: ` to the next backtick, doubled
+  backticks holding one, whitespace ignored) and where it was searched, so a model does not
+  "fix" a line number the clause never used; and that `CC_CANDOR_GATE=off` turns the whole gate
+  off, not this check alone.
+
+**Adversarial round 2 (2026-10-29).** The same two lenses re-checked round 1:
+
+- *The search window and its cost.* The last 1 MiB of transcript bytes dropped an honest quote
+  whose diff was read before 1.56 MB of later Read output (the false-block reviewer's repro),
+  and matching each failing quote against the whole extracted text cost ~0.35 s a quote with no
+  deadline: 20 wrong quotes beside ~0.9 MB of Read output ran 10.3 s (40-byte lines) and
+  14.8 s (12-byte lines) in the correctness reviewer's probe. The text now comes from the whole
+  loaded tail (the 4000 entries every clause reads), and each failing quote is matched only
+  against `grep -F -C3` around its two longest whitespace-free runs, capped at
+  `QUOTE_EXCERPT_BYTES=262144`; a run so common its context passes the cap is not judged. Two
+  runs, not one, because a quote typed with other spacing inside its longest run would find no
+  line by that run alone (a case pins it). The search starts, and each quote in it starts,
+  only before the deadline; expired is not judged. A `\|` variant of the runs was tried and
+  removed: the second run already finds the line, and no case could make it necessary.
+- *What counts as shown.* Error results are skipped: a failed Edit echoes the `old_string` it
+  could not find, so an invented quote would vouch for itself. NUL bytes are dropped before
+  matching: one in the first 8000 bytes made the whole search undecidable, which passed every
+  quote. User turns now count (a pasted hunk, a subagent's dispatch prompt), less hook feedback
+  (candor's own block echoes the quote's first 60 characters), `<system-reminder>` and
+  `<task-notification>` spans, `[SYSTEM NOTIFICATION` turns and compaction summaries, which the
+  model wrote.
+- *Markers in a longer code span.* A per-character scan now tracks code-span state (a backtick
+  run opens a span, a run of the same length closes it), so a `quote:` inside a ``` `` … `` ```
+  span documenting the format is not a marker.
+- *Measured after the change* (20 wrong quotes into 20 tracked files, whole hook): a 3.5 MB tail
+  of Read output 1.7 s; a 1.6 MB tail built so each excerpt sits just under the cap, 2.6 s;
+  entered 5 s in, 6.6 s and 5.9 s, judging nothing past the deadline.
+- *A mutant that changes only time.* With the search under the deadline too, checking a line's
+  second path after the deadline no longer changes the verdict, so `gate-pins.test.sh` pins the
+  per-path deadline by elapsed time: a slow `git` shim makes one path cost 2.4 s, and the hook
+  must return before a second one could be read.
+
+**Adversarial round 3 (2026-10-29), the last planned.** Final re-checks on both lenses; what was
+not fixed here is a named residual in the README.
+
+- *Excerpt patterns.* Round 2's two longest whitespace-free runs, ORed, let a common second run
+  (`const`, `if`) fill the excerpt past the cap in a long session, so a made-up quote went
+  unjudged (~600 KB of Read output in the false-block reviewer's probe); and a single-run quote
+  typed with other spacing found no line at all and blocked. The patterns are now the quote's
+  identifier words (`[A-Za-z_$][A-Za-z0-9_$]*`), longest first, one at a time: spacing never
+  falls inside one, so each sits verbatim in any copy of the quote. A word found nowhere means
+  the quote is nowhere, a miss; a word whose excerpt passes the cap gives way to the next; only
+  when every word overflows is the quote not judged. The order is a cost choice (a longer word
+  gives a smaller excerpt); the verdict does not depend on it, and its mutant survives for that
+  reason. Residual: a quote that joins two words its source separates blocks.
+- *What counts as shown.* A background agent's `<result>` is kept (only the notification's
+  wrapper and its other fields go), so relaying a reviewer's honest third-version quote passes;
+  its own `SubagentStop` judged it. Only `<tool_use_error>` results are skipped: a Bash chain
+  that exits non-zero is stored as an error result with its full output ("Exit code 1…"), and a
+  diff there is real. isMeta entries in this project's transcripts were counted: agent messages
+  (113), reminders (66), notifications (61), coordinator messages, skill bodies ("Base directory
+  for this skill:"); a plugin command's body is the isMeta entry right after its `<command-name>`
+  entry. Skill and command bodies are skipped — a made-up quote copying a loaded skill's example
+  passed in the correctness reviewer's probe — and the rest are kept. A user line that itself
+  carries a `quote:` mark is not seen text: a user pasting the model's made-up finding back
+  ("are you sure?") would otherwise let the model repeat it.
+- *The extraction's cost.* The `jq` pass ran outside every bound: 22 MB of synthetic tool text
+  took 7.9 s in the correctness reviewer's probe, while real 10-17 MB tails take 0.10-0.15 s. It
+  now runs in the background with `QUOTE_EXTRACT_SECONDS=2`; killed at the budget, nothing is
+  judged. A `sleep`/`kill` pair rather than `timeout`, which macOS lacks. Measured after the
+  change (20 wrong quotes, 20 tracked files, whole hook): 3.5 MB of Read output 1.65 s, all
+  judged; entered 5 s in, 5.5 s, none judged; 31 MB of synthetic tool text 4.1 s, all judged.
+
+**The cwd of a worktree-isolated subagent's `SubagentStop`: unverified.** If the payload's
+`cwd` is the main checkout rather than the agent's worktree, a relative path resolves against
+the main checkout, where a file the agent changed in its worktree holds other text, and a true
+quote can block. No probe of that payload exists in this repository, and no fixture here can
+stand in for the host's choice, so the clause does not model it. Measure it with a logging
+`SubagentStop` hook and an `isolation: worktree` agent before relying on the clause there.
+
+Residuals named in the README: a repository git refuses to read is read as untracked.
+
 ### Clause 2: the user's evidence, HOLD and what ran
 
 ```text
@@ -703,6 +867,93 @@ No marker means no per-text bound this turn. THIS is where the shared flag
 earns its keep: without both, a gate that blocks on unwritable state blocks
 the same turn forever. Honouring it only here costs at most one unenforced
 stop on an already-degraded setup.
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+gate.sh (Stop, SubagentStop; payload on stdin) — refuses a turn end (Stop: JSON block on stdout; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 2, 3, 5: an incomplete
+  registered task-runner run, a file:line resolving to nothing, a reversal after bare pushback, a naked completion claim, lockfile drift.
+Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5);
+  unset, each reads the /config option of its lower-cased name. Fails open: no jq, no enforcement; a clause lacking its input stands down.
+Misses: a wrong API, flag or directory; an elided path; pushback outside its list; entries before the transcript tail; a hand-back
+  hidden by a later user-shaped entry; a resumed agent's text whose boundary is not on disk yet; dependency lines no pattern matches.
+  Blocks anyway: a citation into a file the turn shortened, deleted or renamed; a run record written before the run registered.
+  Clause 4 misses a UI card with no review diff file and a range review its RV-RANGE marker over-claims; a sentinel with no start_sha owes none.
+  It retires a closed run unchecked once HEAD moves past its gate pass, a commit made before the closing stop included.
+  Its hold for a behavioral gate in flight reads task-runner's PID file and, on Linux, /proc: without /proc a recycled PID misreads.
+```
+
+Above `BG_PID_TTL_MIN=240`:
+
+```text
+Only for a running.pid with no deadline (task-runner before 0.48.0): seven built-in runners at its 1800 s suite cap run 210 minutes.
+```
+
+Above `block_turn() { # <reason> <one plain line for the person>`:
+
+```text
+Stop: the host shows systemMessage to the person and feeds reason to the model (probed on CLI 2.1.310). A SubagentStop
+  systemMessage stayed in the agent's own transcript, so that event keeps exit 2.
+```
+
+Above `pass_turn() {`:
+
+```text
+Every passing exit once clause 4 has run: a stop let through at an already-blocked HEAD still shows the person what the run owes,
+  with no decision key, so it cannot block.
+```
+
+Above `bg_running() { # <head> -> 1 or 0`:
+
+```text
+task-runner's behavioral gate run in background Bash writes bg/running.pid: its PID, the HEAD it tests and (0.48.0+) the epoch
+second its own total ends it by. It counts as one worker while the sha is <head>, that deadline has not passed (with none, the
+file is under BG_PID_TTL_MIN) and the gate is live; a dead gate or another HEAD is stale. No fixed hold fits both a raised
+BEHAVIORAL_GATE_TOTAL and an older gate's 210 minutes.
+Live, with /proc (Linux): the PID's command line names behavioral-gate.sh, or else a live process whose command line names it
+runs from under <root>. A sandboxed run (bwrap --unshare-pid) records its own namespace's PID, which here names another process or none; the
+host still lists the gate under its real PID. The [e] keeps the scan's own grep from matching itself.
+Misses: without /proc (macOS, no PID namespace) liveness is kill -0, so a recycled PID at the same HEAD holds until the
+deadline, or the file ages out; on Linux, any process naming behavioral-gate.sh from under <root> holds while that file is current.
+```
+
+Above `cur_branch=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null)`:
+
+```text
+symbolic-ref, not rev-parse --abbrev-ref: a tag named like the branch made that print heads/<branch>, a run read as another's.
+Exit 1 is a detached head; any other failure leaves the branch unknown, which never stands a run down.
+```
+
+Above `local start_sha rf rid range_ok=0 from`:
+
+```text
+A run registered by register-run.sh carries start_sha and owes one whole-range review at this HEAD; rv-observe records it from RV-RANGE.
+A commit after a range review owes a review of the commits since it, not the whole run again: `from` is the newest reviewed ancestor.
+```
+
+Above `local waiting`:
+
+```text
+Mid-run and end-of-run both land here and cannot be told apart cheaply, so the message names both branches.
+Workers in flight: print, block nothing and write no nudge, keeping this HEAD's one block for after the last hand-back.
+```
+
+Above `clause_lockfile_drift() {`:
+
+```text
+Only a dependency-shaped change arms it: a version, scripts or description edit never touches a lockfile.
+The $skip test is load-bearing, as in clauses 1-3: without it this clause re-fires on its own continuation and its escape never works.
+```
+
+Above `if [ "$mode" = "block" ]; then`:
+
+```text
+Record which clause blocked, so only that clause stands down on the continuation.
 ```
 
 ## plugins/candor/hooks/mode.sh
@@ -843,6 +1094,42 @@ arguing about the mode is not asking for it.
 wenyan levels share their latin counterpart's budgets; only the word layer
 differs (skills/terse-output/references/wenyan.md).
 ```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+mode.sh (UserPromptSubmit; payload on stdin) — switches the terse level on `/candor:level <level>` or a narrow natural-language request,
+  writing the level file; while a level is active, adds one budget line to each other prompt. Advisory; fails open; always exits 0.
+The level: CC_TERSE, then the level file, then the /config option cc_terse.
+Misses: a switch phrased outside its few patterns (the slash command is the reliable path); the budget line after a prompt its
+  negation or question guard stops.
+```
+
+### Reader names (0.10.7)
+
+`newcomer`, `expert` and `on-call` are names on the same dial as the length levels, not a second
+setting (user decision 2026-10-29: one dial). The mapping to a length level's budgets lives in
+code — `mode.sh`, `activate.sh`, `level.sh`, `badge.ts`, `statusline.ps1` — as the levels
+themselves are listed in each; `measure.sh` and `statusline.sh` read `level.sh`'s third word
+instead, and the skill table's Length column only documents it. Each name adds one `Reader` line
+whose word rule replaces the mapped level's word layer (orchestrator decision 2026-10-29: `on-call`
+had been told both "plain words only" and ultra's abbreviations and arrows).
+That line is read at runtime from the `terse-output` skill's reader table, the same way the card
+is read from its contract block, so the injected text and the skill cannot drift; the table
+sits outside the contract block so the card every existing level injects stays byte-identical.
+`activate.sh` carries a copy of the awk that reads it, and `mode-hook.test.sh` asserts the two
+print the same line. Only `/candor:level <name>` switches to a reader name: the natural-language
+patterns were left alone, so a pasted "TERSE newcomer (lite) —" line cannot switch anything.
+The newcomer rule is self-contained — explain any plugin or project term a newcomer would not
+know, four examples given — rather than pointing at the marketplace README's "Words we use"
+glossary: the plugin does not ship that README, and the one marketplace clone checked
+(`~/.claude/plugins/marketplaces/cc-plugins-marketplace/`, 2026-10-29) had no such section; the full word list would add
+about 250 bytes to every prompt. `context-budget.sh`'s fixtures never set a reader name, so the
+per-prompt cost (bytes, before → after: 655 → 882, 654 → 763, 654 → 845) was measured by hand.
 
 ## plugins/candor/hooks/preamble.sh
 
@@ -992,6 +1279,30 @@ writable subagent's start. Standing: agent-graded; preamble-hook.test.sh 31-32 p
 text, no eval case measures the behaviour.
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+preamble.sh (UserPromptSubmit, SubagentStart; payload on stdin) — adds candor's five working moves as context: once per session, on the
+  first prompt whose head has a making verb in an imperative clause; once per agent_id on SubagentStart, after recording the worker in flight,
+  for an agent type that can edit (a read-only one gets the record and no text). A harness frame is no prompt; a paste's verbs do not count.
+Off: CC_PREAMBLE=off silences the text, never the in-flight record; it does not answer to CC_REMIND. Unset, the /config option cc_preamble decides.
+  Advisory: context cannot block. Fails open: without jq it does nothing; it always exits 0.
+Misses: a work session opened with a question, until its first imperative prompt; a compaction drops the text and it is not re-sent.
+```
+
+Above `atype=$(printf '%s' "$input" | jq -r '.agent_type // empty' 2>/dev/null)`:
+
+```text
+No text for an agent that cannot edit: reviewers, scouts and Explore were told to prove a change in the browser.
+The names are this marketplace's agents and the built-ins whose tools hold no Write or Edit; preamble-hook.test.sh
+derives that set from agents/*.md and fails on one this list misses. Qualified: a bare-name glob would also silence
+another source's writable verifier or acme:security-reviewer. Misses: another source's read-only agent.
+```
+
 ## plugins/candor/hooks/activate.sh
 
 ### Header: the shebang
@@ -1042,6 +1353,19 @@ LIMITATION (honest scope — the four laws, see
 Env beats file, the CC_BOOST / CC_REMIND convention: environment is the one
 state independently-installed plugins genuinely share, and the only control a
 headless run can set.
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+activate.sh (SessionStart) — while a terse level is active, prints the contract block of skills/terse-output/SKILL.md, read at runtime
+  under ${CLAUDE_PLUGIN_ROOT}, or one line naming the level when that block is unreadable; nothing otherwise. Always exits 0.
+The level: CC_TERSE, then the level file, then the /config option cc_terse.
+Misses: enforcement (nothing rewrites a message once emitted); a per-project level (the level file is one per machine).
 ```
 
 ## plugins/candor/hooks/avert.sh
@@ -1157,6 +1481,31 @@ the hedge pattern, so a call with no hedge pays nothing.
 Standing: gate — avert-hook.test.sh 16-18 (red against 0.7.1), neighbours 19-21.
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+avert.sh (PreToolUse on Agent, Task, Write, Edit, MultiEdit, Bash; payload on stdin) — asks the user before a call whose text names a legal
+  hedge, a declared substitute or precaution language that no human turn of the transcript contains; once per term per session.
+  A Bash call's git commit message and gh pr create|edit title and body are not read (unbody, below).
+Off: CC_AVERT=off; CC_AVERT=notify makes the ask a notification the call proceeds past. Without jq or on a bad payload it asks nothing.
+CC_AVERT unset: the /config option cc_avert decides (on, notify or off).
+Misses: a hedge outside its vocabulary; an avert that never names its reason; in a subagent, a hedge its dispatch prompt already wrote.
+  Asks anyway: when the transcript is missing. An ask is a deny in a -p run with no permission host.
+```
+
+Above `unbody() {`:
+
+```text
+A commit message or PR body documents a hedge already made; it does not make one (a PR body disclosing a precaution coded
+earlier was asked about). Cut: a git commit or gh pr create|edit at a command position, up to the next ; & | or line end, and
+any heredoc body opened in that span; bodies opened elsewhere are kept, in order. Misses: a ; & | inside the quoted message,
+or a multi-line quoted message with no heredoc, leaves the rest scanned (it asks); a message file written first is a Write.
+```
+
 ## plugins/candor/hooks/cite.sh
 
 ```text
@@ -1172,6 +1521,31 @@ runs both on one message — a vendor/ citation, a dependency basename, localhos
 and an invented basename — and a static case fails if either file grows its own lookup
 again. cite_miss takes root and cwd as arguments instead of reading the callers'
 globals, so the contract is in the call.
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+cite.sh — sourced, never run, by hooks/gate.sh (clause 1) and scripts/candor-scan.sh (/candor:check): one citation lookup, so the
+  report and the gate cannot disagree on what resolves. Defines functions only.
+cite_extract: filter; prints each file:line in stdin once, sorted. URLs go first (a.php:80 in one is a port); the extension starts with
+  a letter, so v1.2.3:4 and 10:30 never match; a leading / is kept; a host before :<port> (.localhost, .test, .local, .internal,
+  .example, .invalid, .lan and common public TLDs) is no file, and a bare localhost:8000 has no extension; an elided path is skipped.
+cite_miss <file:line> <root> <cwd>: prints why the citation does not resolve — no file of that basename where it searched, or a line
+  past the end — and nothing when it resolves or cannot be decided: a path not found whose basename is not unique, or exists only
+  under <root>'s node_modules or vendor (6 deep). A path is tried from <cwd>, then <root>, then as a suffix, then by basename (8 deep).
+Misses: a file whose extension is a host name (.env.local:3) is never checked; a name only under dist, build or .venv, or past either
+  depth cap, reads as missing; a wrong line in a basename a dependency also has passes; a wrong directory with a unique basename passes.
+```
+
+Above `[ -n "$(find "$root/node_modules" "$root/vendor" -maxdepth 6 -name "$b" -print -quit 2>/dev/null)" ] && return 0`:
+
+```text
+Subagents citing a dependency were blocked as inventing it: a basename only there is real but undecidable.
 ```
 
 ## plugins/candor/scripts/candor-scan.sh
@@ -1267,6 +1641,14 @@ Editor's note (2026-10-04): stale as moved — the second argument is the text t
 
 ```text
 show <label> <file-or-pattern-mode>
+```
+
+### Header as it stood on 2026-10-28, lines 1-3
+
+```text
+candor-scan.sh [--session-file PATH] [--last N] [--examples N] — report-only: counts a transcript's assistant messages on the six candour
+  axes and prints the hits with examples; changes nothing and always exits 0, so it can never be mistaken for a gate.
+Standing: **recorded** — this prints numbers, nothing reads them back.
 ```
 
 ## plugins/candor/scripts/measure.sh
@@ -1377,6 +1759,20 @@ the week a tier changes. Reporting either as a measurement is the thing this
 plugin's own contract forbids.
 ```
 
+### Header as it stood on 2026-10-28, lines 1-2
+
+```text
+measure.sh [--session-file PATH] [--last N] [--tokens] [--all] [--since Nd|Nh] — report-only: per turn-final message (text and no tool_use,
+  by message id), prose lines (non-blank, unfenced, not `|`-led, one per 100 columns) against the terse budget. Exits 0; 2 on a usage error.
+```
+
+### The row format and the @@MSG sentinel
+
+```text
+One row per turn-final message: "<prose-lines> <chars>".
+The @@MSG sentinel is printable on purpose: a control character works but makes this script unreadable to git and to an editor.
+```
+
 ## plugins/candor/scripts/level.sh
 
 ### Header
@@ -1404,6 +1800,18 @@ which is why the badge path never makes the call. 2.1.284: exit 1, "unknown comm
 'configure'", and the files are read. MDM and server-managed policy: not measured.
 ```
 
+### Header as it stood on 2026-10-28, lines 1-7
+
+```text
+level.sh [--sources] — prints "<level> <source>", source env|file|option|off, by the hooks' rule: the first non-empty of CC_TERSE, the level
+  file's first word, the cc_terse option, else off; out of vocabulary is off. --sources prints each layer first. Exits 0, silent on stderr.
+The option is CLAUDE_PLUGIN_OPTION_CC_TERSE where the host exports it, else one saved in managed-settings.json, then in the user settings.json.
+Misses: --settings files, managed-settings.d drop-ins, MDM or server-managed policy, a symlinked settings file; without jq, every settings file.
+--sources asks `claude plugin configure <id> --json` (2.1.285+) first: it resolves user, managed and drop-ins, follows symlinks, but cannot
+  see the session's own --settings flag; ~0.45 s, so only --sources pays it. Any failure — older CLI, no claude, not under plugins/cache — reads the files.
+CANDOR_MANAGED_SETTINGS replaces the managed-settings path; test-only, for the harness.
+```
+
 ## plugins/candor/scripts/statusline.sh
 
 ### Header
@@ -1427,6 +1835,14 @@ badge (a link pointed at a private key would render its bytes) although the hook
 follow it; level.sh caps the read, and only a whitelisted level renders. Anything
 unrecognized renders nothing rather than echoing bytes from a file this script does
 not control.
+```
+
+### Header as it stood on 2026-10-28, lines 1-3
+
+```text
+statusline.sh — prints the active terse level as a badge, e.g. [TERSE:ULTRA]; nothing when off, for a symlinked level file or for any
+  value outside the level vocabulary. Opt-in: wire it yourself as a "statusLine" command in settings.json.
+The level is level.sh's: CC_TERSE, then the level file, then the cc_terse /config option.
 ```
 
 ## plugins/candor/scripts/__tests__/gate.test.sh
@@ -1752,4 +2168,115 @@ Runs in the case's sandbox cwd; writes only the files below.
 Scaffold for unasked-additions-need-a-trigger: a 20-line CLI with one obvious extension
 point, so the smallest change is unambiguous and every addition beyond it is visible.
 Runs in the case's sandbox cwd; writes only the files below.
+```
+
+## plugins/candor/scripts/shrink.mjs
+
+### Header
+
+```text
+terse-shrink — an MCP stdio proxy that trims prose out of a server's tool
+catalog before it reaches the model.
+
+A large MCP server spends 5-15k tokens of always-on context describing itself.
+Most of that is prose the dispatcher does not need: "This tool allows you to
+…", "Please note that …", hedges, and restatements of the tool name.
+
+OPT-IN, and nothing wires it for you. Point an MCP server's command at this
+file with the real command as arguments:
+
+  "mcpServers": {
+    "fs": { "command": "node",
+            "args": ["<plugin>/scripts/shrink.mjs", "npx", "-y", "@some/mcp-server"] } }
+
+WHAT IT CHANGES: the `description` field of entries in tools/list, prompts/list
+and resources/list responses. Nothing else. Names, input schemas, arguments,
+results and every request travelling upstream pass through byte-for-byte —
+a proxy that edited a schema would change what the model can call, not just
+what it reads.
+
+WHY IT IS CONSERVATIVE BY DEFAULT: a tool description is the routing signal.
+Stripping articles saves a few percent and can flip which tool the model
+picks, so the default pass removes only filler phrases, hedges and
+self-referential preambles. TERSE_SHRINK_AGGRESSIVE=1 adds article dropping
+for parity with a full caveman-style pass — measurably smaller, measurably
+riskier, and off unless you ask.
+
+FAIL-OPEN: any parse error, any unexpected shape, and the line is forwarded
+untouched. A proxy that drops a message breaks the server it was meant to make
+cheaper.
+```
+
+### PROTECT
+
+```text
+Spans that must survive verbatim: fenced blocks, inline code, URLs, paths,
+{placeholders}, and ALL_CAPS identifiers. They are lifted out, the prose is
+rewritten, then they are put back.
+```
+
+### squeeze: the placeholder
+
+```text
+Placeholder is printable on purpose: a control-character sentinel works at
+runtime but turns this source file into something git calls binary and an
+editor refuses to render. `@@n@@` cannot appear in a description that was
+not already broken.
+```
+
+### squeeze: re-capitalising
+
+```text
+Deleting a mid-sentence preamble leaves a lowercase sentence start; re-cap
+the head and anything after terminal punctuation.
+```
+
+### squeeze: never empty
+
+```text
+Never hand back an empty description: an entry the model cannot read is
+worse than a verbose one.
+```
+
+### CATALOG_METHODS
+
+```text
+Ids of the catalog requests we are allowed to rewrite the response of. Matching
+on response SHAPE instead was wrong: a `tools/call` result whose payload happens
+to contain a `resources` array — every cloud, registry and k8s server has one —
+got its data rewritten, which is corruption, not compression. Only a response to
+a list request is a catalog.
+```
+
+### shrinkPayload
+
+```text
+Returns true when a description actually changed. The caller re-serializes only
+then: JSON.parse/stringify on every line silently rounds any integer above 2^53
+(snowflake ids, nanosecond timestamps, i64 counters) in messages this proxy has
+no business touching at all.
+```
+
+### Upstream requests and the StringDecoder
+
+```text
+Requests upstream are forwarded byte-for-byte; they are only READ on the way
+past, to remember which ids asked for a catalog.
+StringDecoder, not chunk.toString(): a chunk boundary can fall inside a multibyte
+character, and toString() on each half yields U+FFFD. That corrupted pass-through
+lines containing any non-ASCII text, which is exactly the byte-for-byte promise this
+proxy makes about traffic it does not shrink.
+```
+
+### Re-serialize only when changed
+
+```text
+Re-serialize ONLY when a description actually changed. Every other line —
+including every tool result — leaves this proxy exactly as it arrived.
+
+And not even then if the line carries an integer literal too long to
+survive a JSON round-trip: a catalog response can hold both a shrinkable
+description and a 19-digit id in `_meta`, and rounding that id is a worse
+outcome than a verbose description. Cheap pre-check on the raw text,
+because by the time it is parsed the damage is already done.
 ```

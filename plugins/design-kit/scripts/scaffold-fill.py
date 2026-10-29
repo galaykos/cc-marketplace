@@ -1,36 +1,9 @@
 #!/usr/bin/env python3
 """scaffold-fill.py — write a scratch page body from the extracted component inventory.
 
-WHAT IT DOES. Given the detected stack, a slug and design-system/components.json
-(written by system-extract.py), prints the full scratch source file to stdout:
-  - the ownership marker on line 1 (codebase-scaffold.sh's contract with cleanup);
-  - one import per component — a relative path from the scratch directory to the
-    component's source, or the alias from tsconfig.json/jsconfig.json `paths`
-    (`@/components/Button`) when one covers it; Nuxt uses `~/`;
-  - a comment block per component carrying its prop signature verbatim from
-    components.json (name, type, default, required);
-  - a `<section data-design-kit="strip">` rendering every component × every
-    union-typed variant value, children text from --brief (or the component name),
-    so the page opens with the real library in every real variant before the
-    model composes anything;
-  - for every `gaps` entry, a comment naming the file to open before using that
-    component — the extractor's blind spot made visible, never guessed around.
-Stacks: vite-react (tsx/jsx), next (page.tsx), vite-vue and nuxt (SFC with
-<script setup>), laravel (Blade <x-…> tags derived from the view path),
-laravel-inertia-react and -vue (an Inertia page that names a bare layout of its own:
-a page-level layout outranks createInertiaApp's default `layout`, which in the stock
-starter kits wraps every unnamed page in the signed-in AppLayout; React takes it in
-an array because Inertia 3 reads a bare arrow there as a layout callback).
-
-WHAT IT DOES NOT DO. It does not compile or type-check the imports — the dev
-server's overlay is the check; it does not pass a required prop it cannot fill
-(those lines are emitted commented out, naming the prop — a bare render of a
-component missing `rows` threw and blanked the page in the simulation), and it does not
-resolve barrel re-exports (a component exported only from an index file is
-imported from its own source path). Without components.json the caller keeps the
-plain template; this script is never on that path.
-Standing: scripts/__tests__/codebase.test.sh drives the vite-react path with and
-without an alias and the gap comment; the other stacks are exercised for shape only.
+Given the stack, a slug and design-system/components.json, prints the scratch source to stdout: the cleanup marker on line 1, one import per component (relative, or a tsconfig/jsconfig `paths` alias; `~/` on Nuxt), each component's prop signature verbatim as a comment, a `data-design-kit="strip"` section rendering every component in every union-typed variant (children from --brief), and a comment per `gaps` entry naming the file to open first. Stacks: vite-react, next, vite-vue, nuxt, laravel (Blade <x-…> tags), laravel-inertia-react and -vue (a page naming its own bare layout, so createInertiaApp's default stays out).
+Misses: it never compiles the imports (the dev server's overlay is the check), never passes a required prop it cannot fake (that line is emitted commented out, naming the prop), and does not resolve barrel re-exports.
+Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/scaffold-fill.py
 """
 import argparse
 import json
@@ -125,8 +98,7 @@ def fill_value(ptype, text, style):
 def required_fill(c, filled, text, style):
     """(attrs, unfillable) for the required props not already set — the strip
     renders every component it can without a runtime throw, and comments out the
-    ones it cannot fake rather than rendering them bare (measured 2026-09-22: a
-    DataTable with `rows` undefined threw and blanked the whole page)."""
+    ones it cannot fake rather than rendering them bare."""
     attrs, unfillable = [], []
     for p in c.get("props", []):
         if not p.get("required") or p["name"] in filled or p["name"] in ("children", "slot", "default"):
@@ -217,6 +189,7 @@ def render(stack, slug, comps, brief, lang, root, css=""):
         page = ["export default function DesignKitScratch() {", "  return (", f'    <main data-design-kit="{slug}">', body, "    </main>", "  );", "}"]
         if stack == "laravel-inertia-react":
             typed = ": { children: ReactNode }" if lang == "ts" else ""
+            # `layout = [Bare]` stays an array: Inertia 3 reads a bare function there as a layout callback.
             return "\n".join(head + [f"function Bare({{ children }}{typed}) {{", "  return <>{children}</>;", "}", ""] + page + ["DesignKitScratch.layout = [Bare];", ""])
         return "\n".join(head + page + [""])
     if stack in ("vite-vue", "nuxt", "laravel-inertia-vue"):
@@ -252,9 +225,7 @@ def laravel_wrapper(root):
     it (Breeze/Jetstream: app/View/Components/AppLayout.php or an anonymous
     components/app-layout.blade.php); otherwise a standalone page carrying the first
     `@vite([...])` directive found in the project's layouts, so the real stylesheet
-    loads; otherwise a bare page. Measured 2026-09-22: a fixture with only
-    resources/views/layouts/app.blade.php has no <x-app-layout> and the scratch page
-    would have thrown "Unable to locate a class or view for component [app-layout]"."""
+    loads; otherwise a bare page."""
     if os.path.isfile(os.path.join(root, "app", "View", "Components", "AppLayout.php")) or \
        os.path.isfile(os.path.join(root, "resources", "views", "components", "app-layout.blade.php")):
         return ["<x-app-layout>"], ["</x-app-layout>"], "wrapped in the project's <x-app-layout>"

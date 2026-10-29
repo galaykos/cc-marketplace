@@ -1,28 +1,7 @@
 #!/usr/bin/env bash
-# claude-md-check.sh — the mechanical half of a CLAUDE.md audit: which of the
-# paths and scripts a CLAUDE.md names no longer exist.
-#
-# Usage: claude-md-check.sh [repo-root]   (defaults to $PWD)
-# Finds: CLAUDE.md, .claude.md, .claude.local.md at any depth (node_modules,
-#        vendor, .git skipped). Prints per file: lines, bytes, then one row per
-#        stale reference — a backticked path that does not resolve from the repo
-#        root or the file's own directory, or a backticked `npm run X` /
-#        `composer X` / `make X` whose script target is not declared.
-# Exit 0 always — a report, not a gate. Nothing here is edited.
-#
-# Residual (stated, per the has-teeth convention): only BACKTICKED references are
-# read, and only three script runners are resolved. A path written in prose, a
-# command with a variable in it, or a runner not listed is not checked and not
-# reported as clean — it is simply not seen. Currency of ARCHITECTURE prose
-# (a described module boundary that moved) is judgment, left to the command.
-#
-# A token that resolves neither from the repo root nor from the file's own
-# directory gets one more chance: if it exists ANYWHERE in the tree as a path
-# suffix (`plugin.json`, `references/`, `hooks/x.sh`), it is read as an
-# illustrative fragment, not a stale path. Measured 2026-09-10 on this
-# marketplace's own CLAUDE.md before the rule: 35 rows, 3 real. A bare
-# extension (`.md`) is skipped outright. The cost, accepted: a root-anchored
-# path that went stale while a same-named file lives elsewhere is not reported.
+# claude-md-check.sh [repo-root] — the mechanical half of a CLAUDE.md audit: per CLAUDE.md, .claude.md and .claude.local.md (node_modules, vendor, .git skipped), lines, bytes and each stale backticked path (resolving from neither the repo root nor the file's dir) or `npm run X` / `composer X` / `make X` with no declared target. Exit 0 always.
+# Misses: prose paths, a command holding a variable, other runners, architecture claims; a root-anchored path gone stale while a same-named suffix exists elsewhere in the tree (read as an illustrative fragment).
+# Why, limits, history: rationale/derivations/plugin-hindsight.md § plugins/hindsight/scripts/claude-md-check.sh
 set -u
 root="${1:-$PWD}"
 [ -d "$root" ] || { echo "claude-md-check: not a directory: $root"; exit 0; }

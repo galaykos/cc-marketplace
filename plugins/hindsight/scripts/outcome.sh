@@ -1,24 +1,12 @@
 #!/usr/bin/env bash
-# outcome.sh — closes the loop the ledger always had the data for: did an
-# applied hindsight rule actually move the numbers in later sessions?
-#
-# Usage: outcome.sh [project-cwd]   (defaults to $PWD; slug derived like collect.sh)
-# Reads:  $HOME/.claude/hindsight/<slug>/ledger.jsonl   (written by the SessionEnd hook;
-#         rows tagged kind:"agent" are subagent transcripts and are skipped here — a
-#         session that fans out 90 reviewers would otherwise count as 91 sessions)
-#         $HOME/.claude/hindsight/<slug>/applied.jsonl  (written at harvest apply time)
-# Prints a per-rule before/after table. Exit 0 always — a report, not a gate.
-#
-# Residual (stated, per the has-teeth convention): this is CORRELATION. Sessions
-# after an applied rule differ in more than the rule — different work, other
-# rules, model updates. A moved number is a hint about where to spend a real
-# control/treatment run (see skill-creator's eval loop), not proof the rule
-# worked. The honest minimum is printed with every table; MIN_N=3 sessions per
-# side before any number is shown at all.
+# outcome.sh [project-cwd] — per applied hindsight rule (applied.jsonl), friction and errors per session before vs after it, from the SessionEnd ledger's session rows (agent rows skipped: a fan-out of 90 reviewers would count as 91 sessions). Exit 0 always.
+# Misses: causation — this is correlation (other work, other rules, model updates move the numbers too); a side with fewer than MIN_N (3) sessions shows no number.
+# Why, limits, history: rationale/derivations/plugin-hindsight.md § plugins/hindsight/scripts/outcome.sh
 set -u
 command -v jq >/dev/null 2>&1 || { echo "outcome: jq required"; exit 0; }
 cwd="${1:-$PWD}"
 [ -n "${HOME:-}" ] || { echo "outcome: no HOME"; exit 0; }
+# The same slug rule as hooks/collect.sh: if the two differ, this reads an empty dir.
 slug=$(printf '%s' "$cwd" | tr -c '[:alnum:]' '-')
 dir="$HOME/.claude/hindsight/$slug"
 ledger="$dir/ledger.jsonl"

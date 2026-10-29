@@ -4,6 +4,47 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.32.2 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/contrast.mjs`; `hooks/palette-default.sh`, `hooks/preview-guard.sh`, `hooks/ui-check.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
+## 0.32.1 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/palette-default.sh`, `hooks/preview-guard.sh`, `hooks/ui-check.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-ui-ux.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
+## 0.32.0 — 2026-10-27
+
+- **UI work is checked in a browser before the turn ends.** A new Stop hook, `hooks/ui-check.sh`, reads the session transcript at each turn end. When a `.tsx`, `.jsx`, `.vue`, `.blade.php`, `.svelte`, `.astro`, `.html`, `.erb`, `.twig`, `.css` or `.scss` file in the project was edited (Edit, Write, MultiEdit, or a Bash `>`, `tee` or `sed -i` write) in this turn and after the last browser call, it sends the turn back once: render the changed page at 375, 768 and 1280 px wide and read the console, or say in one line why it cannot be checked in a browser. You see one line naming the files.
+- **A finished subagent's UI edits count,** named as a subagent's, including one working in an isolated worktree under `.claude/worktrees/`. They are ordered by time with the session's own calls and survive the notification that reports the subagent done. While a background subagent is still doing UI work (its transcript changed in the last 30 minutes) the check says nothing and records nothing.
+- **What counts as a browser check:**
+  - a tool whose name holds `playwright`, `browser_`, `chrome`, `puppeteer` or `screenshot`, in any case;
+  - a Bash run naming `playwright`, `puppeteer`, `cypress`, `dusk`, `browser`, `test-storybook`, `wdio`, `lighthouse`, `lhci`, `pa11y`, `e2e`, `chrom`, `--screenshot`, `--headless`, `backstop` or `axe`.
+
+  Reading, writing, committing or installing something with such a name is not a check (`cat playwright.config.ts`, `npm i -D @playwright/test`, a heredoc that writes a spec file); quoted text is ignored.
+- **What never counts as a UI edit:**
+  - tests, mocks, e2e, specs and stories (`__tests__/`, `__mocks__/`, `test(s)/`, `e2e/`, `cypress/`, `spec/`, `playwright/`, `.test.`, `.spec.`, `.stories.`, `.story.`, `.cy.`, `setupTests.*`);
+  - scratch and build output: any top-level dot-directory such as `.claude/`, `taskmaster-docs/`, and `dist/`, `build/`, `out/`, `coverage/`, `storybook-static/`, `node_modules/`, `.next/`, `.nuxt/` or `.svelte-kit/` at any depth;
+  - files outside the project (`CLAUDE_PROJECT_DIR` when set);
+  - an edit whose result was an error;
+  - a relative Bash target after a `cd` or `pushd`.
+- **It errs toward silence.**
+  - It acts only on an edit strictly newer than the last one it acted on, and never on the stop right after its own block (`stop_hook_active`).
+  - After a request that was not taken up, later edits only print, until a browser call, your second prompt since the request, or a dev-server start (`npm run dev`, `vite`, `next dev`, `php artisan serve` and kin).
+  - When the session's tool list shows no browser tool, or (with no tool list) your settings enable none, it prints "no browser check was seen" and lets the turn end. Settings means `enabledPlugins` local over project over user, MCP servers minus disabled ones, and `.mcp.json` servers once approved.
+  - It also prints instead of blocking when it cannot save its state, and stays silent when a session transcript line does not parse.
+- **Off switch:** `CC_UI_CHECK=off` (or `false`, `0`, `no`, in any case), or `=warn` to print without sending the turn back; unset, the `/config` option `cc_ui_check` decides (default `on`).
+- **Not seen:** a subagent's own turn end (SubagentStop is not hooked), interpreter, `cp` and `mv` writes, and a browser run through a tool or command holding none of those words. An edit later reverted still counts. Limits and measurements: the marketplace repository's `rationale/derivations/plugin-ui-ux.md` § `plugins/ui-ux/hooks/ui-check.sh`.
+- **Cost:** median over 5 runs, depending on the session:
+
+  | session | time |
+  |---|---|
+  | 2 MB transcript that ends in a block | 31.0 ms |
+  | 1,000 UI edits | 66.8 ms |
+  | 6,000 UI edits | 286.8 ms |
+  | 50 MB transcript beside 100 finished subagent files (105 MB in all) | 227.6 ms |
+  | no UI file in the transcript | 7.6 ms |
+- **Standing:** the decision is mechanical (the hook decides; `plugins/ui-ux/scripts/__tests__/ui-check.test.sh` pins each case); whether the model then really renders the page at three widths is agent-graded — nothing reads the screenshots back.
+
 ## 0.31.0 — 2026-10-26
 
 - **Copy that explains the layout is a layout defect.** `/ui-ux:build` and the generated `ui-ux-engineer` cut taglines, helper text and secondary labels from what a build makes or restyles; when a screen needs one to make sense, the fix is the hierarchy, grouping or primary label, not the line. `ui-ux-reviewer` flags such copy with the layout fix as the remedy. Carved out so nothing breaks: an input's visible label, a format or constraint the field needs before input (WCAG 3.3.2), error text, units, and the legal, consent and nav copy the existing-target rule keeps; a decided `Copy voice:` line outranks it. Standing: agent-graded — `ui-ux-reviewer` applies it when dispatched; no script reads copy.

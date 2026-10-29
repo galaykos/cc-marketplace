@@ -14,7 +14,7 @@ skill; the banner IS its status line); a standard run prints
 `▷ taskmaster standard run — session <model> · subagents inherit it unless their agent pins a tier · effort: <effort> · boost: off` — substitute `<model>` with the session model and `<effort>` with `$CLAUDE_EFFORT` (resolve via `echo ${CLAUDE_EFFORT:-inherit}`); when the harness does not expose it, that prints the literal `inherit`.
 
 **Boost flags:** Extreme Boost fires ONLY when $ARGUMENTS *begins* with a bare
-`ultra` (boost) or `goal` (hands-off) token, or contains the explicit
+`ultra` (boost) or `goal` (boost + hands-off) token, or contains the explicit
 `ultra-task`/`ultratask` or `ultra-goal`/`ultragoal` token. Only the explicit
 tokens cross a command boundary — a bare token owned by an earlier chained
 command (e.g. `caveman ultra` preceding this command) NEVER triggers this run.
@@ -38,8 +38,9 @@ marker; only task-cards stamps the `Goal: true` marker.
 2. Invoke the coverage-check skill — cross-check the spec's `## Success criteria`
    against every card's `<proof>` criteria in both directions (coverage
    and traceability), plus the drift check.
-3. Present the coverage matrix, then take each GAP / ORPHAN / DRIFT through its
-   resolution choice per the skill; block until every finding is resolved or
+3. Present the coverage matrix with a recommended fix per finding, then ask once per
+   the skill — a finding that would change a success criterion asked on its own, card
+   edits under one "Apply all" question; block until every finding is resolved or
    explicitly accepted.
 4. Write the `## Coverage` section into `00-INDEX.md`. On a clean pass, print the
    matrix and stop.

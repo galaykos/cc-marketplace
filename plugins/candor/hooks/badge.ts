@@ -4,6 +4,12 @@ import { isSupported, switchOn } from './cc-kit'
 
 const LEVELS = ['lite', 'full', 'ultra', 'wenyan-lite', 'wenyan-full', 'wenyan-ultra']
 
+const READERS = new Map([
+  ['newcomer', 'lite'],
+  ['expert', 'full'],
+  ['on-call', 'ultra'],
+])
+
 type Shown = { badge: string; latest: number; isRead: boolean }
 
 // As scripts/level.sh reads the level file: the first word of its first line, within its first 1 KiB.
@@ -28,6 +34,11 @@ async function badgeOf($: EngineInterface, options: PluginOptions): Promise<stri
   const env = (await $.env.get('CC_TERSE')) ?? ''
   const file = env === '' && stat?.kind === 'file' ? firstWord(await $.fs.read(path).catch(() => '')) : ''
   const level = env || file || (typeof options.cc_terse === 'string' ? options.cc_terse : '')
+  const length = READERS.get(level)
+
+  if (length !== undefined) {
+    return `[TERSE:${level.toUpperCase()}/${length.toUpperCase()}]`
+  }
 
   return LEVELS.includes(level) ? `[TERSE:${level.toUpperCase()}]` : ''
 }

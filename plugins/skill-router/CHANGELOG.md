@@ -2,6 +2,27 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.29.3 — 2026-10-29
+
+- **Six game plugins route again.** godot, unity, unreal, phaser, pixijs and gamedev are back in the marketplace, so their 22 `rules.tsv` rows from 0.28.0 return unchanged: `.gd`, `.gdshader`, `export_presets.cfg`, `.tscn`, `.tres`, `project.godot`, a `godot --headless` line, `.cs` beside `project.godot` or `ProjectVersion.txt`, `.inputactions`, `.uproject`, `UCLASS(`/`GENERATED_BODY()`, a `phaser` or `pixi.js` import, and the Steam, itch.io and Yarn/Ink rows. bevy, defold, ebitengine and roblox stay removed, so `.rs`, `.go`, `.luau`, `game.project` and Rojo files still meet no engine row, and the six `# co-fire-ok:` declarations for `.rs` and `.go` stay gone. Standing: gate for the row syntax (`validate.sh`).
+
+## 0.29.2 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `hooks/route-prompt.sh`, `hooks/route.sh`, `hooks/subagent-skills.sh`, `hooks/summary.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
+## 0.29.1 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/compact-capsule.sh`, `hooks/plugins-dir.sh`, `hooks/prime.sh`, `hooks/route-prompt.sh`, `hooks/route.sh`, `hooks/subagent-skills.sh`, `hooks/summary.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-skill-router.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
+## 0.29.0 — 2026-10-27
+
+- **Game engine rows removed.** The ten game plugins left the marketplace, so `rules.tsv` drops their 31 routing rows and six `# co-fire-ok:` declarations (Godot, Unity, Unreal, Roblox, Bevy, Defold, Ebitengine, Phaser, PixiJS, and the Steam, itch.io and dialogue-file rows). An edit to a `.go` or `.rs` file now meets only the language-wide rows; a `.cs` file meets none. Standing: gate for the row syntax (`validate.sh`).
+
+## 0.28.2 — 2026-10-26
+
+- **The first-work-prompt note is three sentences.** `route-prompt.sh` no longer injects a six-rule, 1,769-byte tool-fit essay; it says: if the user named a tool and a listed command fits the ask better, ask once which to use; if none was named and one clearly fits, name it in one line after any open questions, otherwise say nothing about commands; in a run that decides for you (`goal`, `goal-lean`, `ultra-goal`, or `Goal: true` in the card index), pick the better fit, say so, and add it to the run's decision log. The two-option picker wording and the one-picker-per-tool line are gone; "ask once" carries both.
+- **The per-edit message leads with the skill:** "Load the `plugin:skill` skill for <file> (or Read <path>) and check your change against it." A command row names the command in backticks where the file goes. The edit digest and both `prime.sh` lines are reworded to lead with the action. Pinned by `scripts/smoke/prompt-route-tests.sh`, `route.test.sh`, `route-pins.test.sh` and `subagent-skills.test.sh`.
+
 ## 0.28.1 — 2026-10-26
 
 - **`design-kit:film`** routes on `**/.design-kit/film/**`, beside the motion row. Standing: gate for the row syntax (`validate.sh`).

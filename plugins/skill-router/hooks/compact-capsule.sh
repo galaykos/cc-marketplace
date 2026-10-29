@@ -1,8 +1,6 @@
 #!/bin/bash
-# compact-capsule.sh — SessionStart (matcher compact), fails open: lists the task state on disk at the project root a compaction summary
-#   may drop (phase sentinel, task-runner run and scope lock, taskmaster ledgers) and logs whether the sentinel's session_id is the payload's.
-# Misses: whether a ledger is still live (it prints the sentinel's started_at; each owner's TTL decides); state a plugin keeps outside the
-#   paths named here; the reasoning behind a phase or a card. Advisory: it cannot block a turn.
+# SessionStart (matcher compact): lists the task state on disk at the project root a compaction summary may drop (phase sentinel, task-runner run and scope lock, taskmaster ledgers) and logs whether the sentinel's session_id is the payload's. Advisory; fails open.
+# Misses whether a ledger is still live (it prints started_at; each owner's TTL decides), state kept outside the paths named here, and the reasoning behind a phase or a card.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/compact-capsule.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
