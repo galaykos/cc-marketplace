@@ -134,7 +134,11 @@ detection that feeds it and for asking before any change.
 Anthropic's own `claude-plugins-official` directory — only the vendor-agnostic ones that
 carry a mechanism nothing here ships — each with the plugin here it overlaps and its
 install command printed rather than run. Table, exclusions and recount command:
-`skills/plugin-scout/references/official-complements.md`.
+`skills/plugin-scout/references/official-complements.md`. Three outside tools follow when
+the work calls for them — rtk (shell-output filter; its engine is BUSL-1.1, not open
+source), NVIDIA's SkillSpector (a skill scanner) and designlang (a live site's design
+tokens) — each with its licence as read on 2026-10-29, printed, never installed:
+`skills/plugin-scout/references/outside-tools.md`.
 
 ## Suggesting third-party skills: the trust model
 
@@ -152,18 +156,24 @@ Consequences, all deliberate:
   `--skill` takes the display name `npx -y skills add <owner>/<repo> -l` prints, and the
   skills.sh `skillId` exits 0 without installing, so every install is confirmed with
   `npx -y skills ls`.
+- **SkillSpector before install, when you have it** — with NVIDIA's `skillspector` on
+  PATH, `scripts/skill-vet.sh` scans each pick statically, and a `CAUTION` or
+  `DO_NOT_INSTALL` verdict, or a scan that could not run, asks again; without it, one line
+  offers it and the install goes on. Gate: `scripts/__tests__/skill-vet.test.sh`, with a
+  stub scanner.
 - Suggests and installs skills.sh skills only; auditing, updating and removal are `npx
   skills update` / `remove`. Never touches `.claude/settings.json`; skills.sh tracks its
   installs in `skills-lock.json`. The search API is unofficial; on failure the mode stops
   and points at browsing the site rather than scraping it.
 
-Standing, per this marketplace's has-teeth convention: all of the above is
-recorded/agent-graded — no script gates it. Gated by name only: catalog freshness
+Standing, per this marketplace's has-teeth convention: all of the above but the
+SkillSpector script is recorded/agent-graded — no script gates it. Gated by name only: catalog freshness
 (`generate.sh --check`, which renders `skills/plugin-scout/references/catalog.md`),
-plugin names in the suggestion tables (`pc_scout_names`). The three shipped scripts are
+plugin names in the suggestion tables (`pc_scout_names`). The shipped scripts are
 the exception — real harnesses, run on every PR: `scripts/__tests__/pick.test.sh` (the
-picker's parser), `scan.test.sh` (the report's mechanical pass) and
-`licence-scan.test.sh` (the licence lane, including its exit-3 unresolvable path).
+picker's parser), `scan.test.sh` (the report's mechanical pass),
+`licence-scan.test.sh` (the licence lane, including its exit-3 unresolvable path) and
+`skill-vet.test.sh` (the SkillSpector step: absent, verdict, not scanned, symlinks, layouts).
 
 ## Mods (Claude Code ≥ 2.1.291)
 

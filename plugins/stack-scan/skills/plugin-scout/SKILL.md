@@ -109,6 +109,7 @@ language servers, a browser MCP, live docs) and vendor agent tooling (Laravel Bo
 tier-1 evidence rule or is `core`, with its overlap sentence. Installs there are **printed,
 never run** (`claude plugin install <name>@claude-plugins-official`); `--yes` never touches
 the block; the file's exclusions (official duplicates of plugins here) are never suggested.
+Then the rows of `references/outside-tools.md` (rtk, SkillSpector, designlang), each with its licence cell, printed the same way.
 
 ## Report
 

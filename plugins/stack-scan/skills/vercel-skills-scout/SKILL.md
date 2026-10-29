@@ -119,7 +119,17 @@ Print one numbered table, all queries merged, deduplicated by
    name the source URL — the install still needs the user's go-ahead in
    that case. Standing: this preview is recorded discipline, not a gate —
    no script blocks a skipped preview.
-3. Per confirmed pick, TWO commands — `--skill` matches the display name
+3. Scan before install — per pick, run and show the output of
+   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/skill-vet.sh" <owner>/<repo> <skillId>`. With
+   NVIDIA's `skillspector` on PATH it clones the repo shallowly, runs a static scan
+   (`--no-llm`) of the skill's folder and prints the verdict and top findings. Re-ask that
+   pick on `DO_NOT_INSTALL` ("Skip (Recommended)" first, then "Install anyway"), on
+   `CAUTION` (install anyway / skip) and on a "did not scan" line (install anyway / skip).
+   Without it, one line offers it; never install it unasked. It exits 0 on every path past
+   the usage check, so its absence never holds an install back. Standing: gate for the
+   script's paths (`scripts/__tests__/skill-vet.test.sh`, a stub scanner); agent-graded for
+   running it and re-asking.
+4. Per confirmed pick, TWO commands — `--skill` matches the display name
    the CLI itself lists, not the skills.sh `skillId`, and passing the
    skillId prints the repo's skill list and **exits 0 without installing**:
 
@@ -131,20 +141,21 @@ Print one numbered table, all queries merged, deduplicated by
    Project-level (the CLI's default inside a project) — never pass
    `-g`/`--global`. The `-y` only skips the CLI's own prompt; consent
    already happened at the pick. Fuller gotcha: `references/mechanics.md`.
-4. Confirm each install with `npx -y skills ls` — exit 0 does not prove a
-   skill landed (see step 3). Report per-skill success or failure as each
+5. Confirm each install with `npx -y skills ls` — exit 0 does not prove a
+   skill landed (see step 4). Report per-skill success or failure as each
    finishes; one failure does not abort the rest. Finish with one line:
    installed n, failed m, skipped k (already installed).
 
 ## Boundaries
 
-Standing: recorded/agent-graded — nothing in this repo gates any of it (the
-authoring-skills "say what has teeth" convention, a project skill of the marketplace repository). Discovers
-and installs skills.sh skills only: no audit, update, or removal (`npx skills remove`
+Standing: recorded/agent-graded — nothing in this repo gates any of it but the paths of
+`scripts/skill-vet.sh` (the authoring-skills "say what has teeth" convention, a project skill of the marketplace repository). Discovers
+and installs skills.sh skills only: no audit of installed skills, no update or removal (`npx skills remove`
 / `update` exist for that), and never touches `.claude/settings.json` — skills.sh
 tracks installs in `skills-lock.json`. No curation claim: suggestions rank by installs
 and the provenance columns exist so the user can judge. Detection never mutates the
-project; the only network calls are the search API and SKILL.md previews.
+project; the only network calls are the search API, SKILL.md previews and, when
+SkillSpector is installed, a shallow clone per pick (SkillSpector sends dependency names to OSV.dev).
 
 Mechanics detail — API response shape, URL formats, CLI flags, preview
 fallback order: `references/mechanics.md`.
