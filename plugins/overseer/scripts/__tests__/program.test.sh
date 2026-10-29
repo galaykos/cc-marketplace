@@ -659,5 +659,87 @@ expect 0 "accept m5 reads an old .gated row" -- A10 m5
 grep -qE '^sized S · actual: 1 gated dispatches \(1 worker/follow-up\) · .* · - min$' "$WS/out" && ok || bad "no start: actual: minutes read '-': $(grep sized "$WS/out")"
 rm -rf "$W10"
 
+# ---- resume: five plain lines from the state files, each case beside a control ------------------------
+W11=$(mktemp -d); S11="$W11/.claude/overseer"
+P11() { env OVERSEER_ROOT="$W11" "$PS" "$@"; }
+R11() { env OVERSEER_ROOT="$W11" "$PS" resume > "$WS/out" 2> "$WS/err"; echo $? > "$WS/code"; }
+L() { sed -n "$1p" "$WS/out"; }
+five() { # five <case>: exit 0, exactly five lines, none over 100 characters (code points, not bytes), stderr empty
+  [ "$(cat "$WS/code")" = 0 ] && [ "$(wc -l < "$WS/out" | tr -d ' ')" = 5 ] && [ "$(jq -R length "$WS/out" | sort -n | tail -1)" -le 100 ] && [ ! -s "$WS/err" ] \
+    && ok || bad "$1: want exit 0 and five lines of at most 100 characters: $(cat "$WS/code" "$WS/out" "$WS/err")"; }
+setst() { jq --arg id "$1" --arg st "$2" '(.milestones[]|select(.id==$id)|.status) = $st' "$S11/program.json" > "$S11/pj" && mv "$S11/pj" "$S11/program.json"; }
+
+R11
+[ "$(cat "$WS/code")" = 0 ] && [ "$(wc -l < "$WS/out" | tr -d ' ')" = 1 ] && grep -q "No overseer program here" "$WS/out" && grep -q "/overseer:start" "$WS/out" && [ ! -s "$WS/err" ] \
+  && ok || bad "no program: one line naming /overseer:start, exit 0: $(cat "$WS/code" "$WS/out" "$WS/err")"
+P11 init --goal "Build a CRM" --slug crm --base main >/dev/null 2>&1
+R11; five "an empty roadmap"
+grep -q "No overseer program" "$WS/out" && bad "control: an initialised program still says there is none" || ok
+[ "$(L 1)" = "Program: Build a CRM — 0/0 milestones done" ] && ok || bad "line 1 on an empty roadmap: $(L 1)"
+[ "$(L 2)" = "Now: no milestones yet, the roadmap has not been written" ] && [ "$(L 3)" = "Next: write the roadmap — /overseer:start" ] && ok || bad "an empty roadmap points at /overseer:start: $(L 2) / $(L 3)"
+
+P11 milestone add --id m1 --title Skeleton --branch ov/m1 >/dev/null; P11 milestone add --id m2 --title Upload --branch ov/m2 --depends m1 >/dev/null
+P11 milestone add --id m3 --title Polish --branch ov/m3 --depends m2 >/dev/null
+R11; five "queued"
+[ "$(L 2)" = "Now: m1 Skeleton — not started, branch ov/m1" ] && [ "$(L 3)" = "Next: start m1 — write its brief" ] && ok || bad "queued: $(L 2) / $(L 3)"
+grep -qE "check the workers|run accept" "$WS/out" && bad "control: a queued milestone drew another status's next step" || ok
+P11 milestone set --id m1 --status briefed >/dev/null; R11; five "briefed"
+[ "$(L 2)" = "Now: m1 Skeleton — brief written, work not started, branch ov/m1" ] && [ "$(L 3)" = "Next: check the workers or dispatch the brief for m1" ] && ok || bad "briefed: $(L 2) / $(L 3)"
+P11 milestone set --id m1 --status building >/dev/null; R11; five "building"
+[ "$(L 2)" = "Now: m1 Skeleton — being built, branch ov/m1" ] && [ "$(L 3)" = "Next: check the workers or dispatch the brief for m1" ] && ok || bad "building: $(L 2) / $(L 3)"
+grep -q "start m1" "$WS/out" && bad "control: a building milestone is told to start" || ok
+P11 milestone set --id m1 --status accepting >/dev/null; R11; five "accepting"
+[ "$(L 2)" = "Now: m1 Skeleton — being checked for acceptance, branch ov/m1" ] && [ "$(L 3)" = "Next: run accept for m1 — program.sh accept --id m1" ] && ok || bad "accepting: $(L 2) / $(L 3)"
+grep -q "check the workers" "$WS/out" && bad "control: an accepting milestone is told to check the workers" || ok
+# a milestone in progress is "now" even when an earlier one could start; with none in progress, the runnable one is
+P11 milestone add --id m4 --title Export --branch ov/m4 >/dev/null; setst m1 queued; setst m4 building; R11
+[ "$(L 2)" = "Now: m4 Export — being built, branch ov/m4" ] && ok || bad "the milestone in progress is now, not the runnable queued one: $(L 2)"
+setst m4 queued; R11
+[ "$(L 2)" = "Now: m1 Skeleton — not started, branch ov/m1" ] && ok || bad "control: with nothing in progress, the next runnable milestone is now: $(L 2)"
+
+# decisions and suggestions: the newest row, counts and paths; missing files are named
+P11 decision add --text "older pick" --rationale r >/dev/null; P11 decision add --text "newest pick" --rationale r >/dev/null
+P11 suggestion add --text "a" >/dev/null; P11 suggestion add --text "b" >/dev/null; R11; five "decisions and suggestions"
+[ "$(L 4)" = "Last decision: newest pick" ] && ok || bad "line 4 is the newest decision row: $(L 4)"
+grep -q "older pick" "$WS/out" && bad "control: an older decision row was printed" || ok
+[ "$(L 5)" = "Open: 2 suggestions, 0 parked milestones — .claude/overseer/suggestions.md, program.json" ] && ok || bad "line 5 counts and places: $(L 5)"
+mv "$S11/decisions.md" "$S11/decisions.bak"; mv "$S11/suggestions.md" "$S11/suggestions.bak"; R11; five "no decisions.md, no suggestions.md"
+[ "$(L 4)" = "Last decision: none, .claude/overseer/decisions.md is missing" ] && ok || bad "a missing decisions.md is named: $(L 4)"
+[ "$(L 5)" = "Open: no suggestions file yet, 0 parked milestones — .claude/overseer/program.json" ] && ok || bad "a missing suggestions.md is named: $(L 5)"
+mv "$S11/decisions.bak" "$S11/decisions.md"; mv "$S11/suggestions.bak" "$S11/suggestions.md"
+
+# parked, a milestone that cannot start, and all closed
+setst m4 done; P11 milestone set --id m1 --status parked --reason "branch missing" >/dev/null; R11; five "parked"
+[ "$(L 1)" = "Program: Build a CRM — 1/4 milestones done (1 parked)" ] && ok || bad "line 1 counts parked: $(L 1)"
+[ "$(L 2)" = "Now: nothing can start, m2 waits on m1 (parked)" ] && [ "$(L 3)" = "Next: retry what m2 waits on, or park m2" ] && ok || bad "a milestone waiting on a parked one: $(L 2) / $(L 3)"
+grep -q "1 parked milestone —" "$WS/out" && ok || bad "line 5 counts one parked milestone: $(L 5)"
+setst m1 done; setst m2 done; setst m3 parked; R11; five "all closed"
+[ "$(L 2)" = "Now: nothing open, every milestone is done or parked" ] && [ "$(L 3)" = "Next: close the program — program.sh close" ] && ok || bad "all done or parked: $(L 2) / $(L 3)"
+setst m3 done; R11
+[ "$(L 1)" = "Program: Build a CRM — 4/4 milestones done" ] && grep -q "0 parked milestones" "$WS/out" && ok || bad "control: with none parked, no parked count on line 1: $(L 1)"
+
+# long text is shortened to 100 characters at a word; multibyte text that fits is printed whole
+long=$(printf 'word%.0s ' $(seq 1 60)); P11 decision add --text "$long" --rationale r >/dev/null
+jq --arg g "$long" --arg t "$long" --arg b "ov/m5-$(printf 'x%.0s' $(seq 1 50))" '.goal = $g | .milestones += [{id:"m5",title:$t,branch:$b,status:"building",depends:[]}]' "$S11/program.json" > "$S11/pj" && mv "$S11/pj" "$S11/program.json"
+R11; five "long goal, title, branch and decision"
+L 1 | grep -qE '^Program: word( word)*… — 4/5 milestones done$' && L 2 | grep -qE '^Now: m5 word( word)*… — being built, branch ov/m5-x{50}$' && L 4 | grep -qE '^Last decision: word( word)*…$' \
+  && ok || bad "long text is cut at a word with …, the branch kept whole: $(cat "$WS/out")"
+uni=$(printf 'déjà vu %.0s' 1 2 3 4 5 6 7 8); uni="${uni% }"   # 63 characters, 79 bytes; line 1 leaves the goal 69
+jq --arg g "$uni" '.goal = $g' "$S11/program.json" > "$S11/pj" && mv "$S11/pj" "$S11/program.json"; R11
+[ "$(L 1)" = "Program: $uni — 4/5 milestones done" ] && ok || bad "control: a multibyte goal under the limit is not cut (characters, not bytes): $(L 1)"
+
+# a corrupt program.json: the lines name it, lines 4-5 still read their own files, never a jq error
+cp "$S11/program.json" "$WS/good11.json"
+for junk in '{"milestones": [' '{"goal":"g","milestones":[1]}'; do
+  printf '%s' "$junk" > "$S11/program.json"; R11; five "corrupt program.json ($junk)"
+  [ "$(L 1)" = "Program: unreadable, .claude/overseer/program.json is not valid JSON with a milestones list" ] && L 4 | grep -q "^Last decision: word" \
+    && grep -q "^Open: 2 suggestions, parked milestones unknown" "$WS/out" && ok || bad "corrupt state is named line by line ($junk): $(cat "$WS/out")"
+  grep -qi "jq: error" "$WS/out" "$WS/err" && bad "a jq error reached the reader ($junk)" || ok
+done
+cp "$WS/good11.json" "$S11/program.json"; R11
+grep -q "unreadable" "$WS/out" && bad "control: a valid program.json reads as unreadable" || ok
+expect 3 "resume takes no arguments" -- env OVERSEER_ROOT="$W11" "$PS" resume m1
+rm -rf "$W11"
+
 echo "program.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

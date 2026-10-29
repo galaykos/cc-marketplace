@@ -195,6 +195,15 @@ the moment after accept is where simulation 4 stopped (m1 of 3 done, "resume lat
 next step here, at the decision point, not only in the skill text the model read two hours earlier
 ```
 
+### resume: the five lines
+
+Written 2026-10-29 when it shipped (0.7.5), not moved from code. The program this repository ran (`marketplace-ux-dx-ax`, 19 milestones) needed a hand-written `RESUME.md` to be picked up across sessions; m1's audit filed a suggestion to generate that note from the state files instead. On demand only, by the user's check-in answer of 2026-10-29 (decisions.md): `program.sh resume` and `/overseer:resume` print it, and the SessionStart hook stays one line, so nothing is added to every session's context.
+
+- **Now** prefers a milestone in progress (briefed, building, accepting) over `NEXT_FILTER`'s pick. `NEXT_FILTER` takes the first open milestone in roadmap order whose dependencies are done, which can be a queued one ahead of the one being built; `milestone set` does not check dependencies, so a milestone in progress may not be runnable at all.
+- **100 characters** are counted as code points by jq (`length`, string slices), not bytes, so a goal in a non-Latin script is not cut early. The last line names paths relative to the project root: the absolute path to `suggestions.md` in this repository's worktree is 117 characters on its own.
+- **A bad `program.json` still prints five lines and exits 0.** Lines 4 and 5 read their own files, so the reader keeps the last decision and the suggestion count; `program.sh status` exits 5 with the parse error, which is where to look next. The validity check also requires every milestone to be an object, because jq stops with an error, not a line, on a milestone that is not one.
+- The newest decision is the last row by position in `decisions.md`, read the way `program.sh log` reads it (` | ` separates the columns), so a decision text holding ` | ` is cut there.
+
 ### dispatch check: the preamble's path
 
 ```text

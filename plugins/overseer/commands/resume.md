@@ -4,9 +4,13 @@ argument-hint: [milestone-id]
 disable-model-invocation: true
 ---
 
-Invoke the `overseer` skill from this plugin and continue the program recorded under
-`.claude/overseer/`. Read it with `"${CLAUDE_PLUGIN_ROOT}/scripts/program.sh" status`;
-when there is no program, say so and point to `/overseer:start` (do not invent one).
+First run `"${CLAUDE_PLUGIN_ROOT}/scripts/program.sh" resume` and show its output to the user
+as printed, before anything else: five lines (program, now, next, last decision, open items).
+When it prints the one line saying there is no program, stop there and point to
+`/overseer:start` (do not invent one).
+
+Then invoke the `overseer` skill from this plugin and continue the program recorded under
+`.claude/overseer/`. Read it with `"${CLAUDE_PLUGIN_ROOT}/scripts/program.sh" status`.
 
 1. Reconcile state with git per the skill's **Resume** rule — does each milestone's
    branch exist, is it merged, is a task-runner index still open for it. The board's

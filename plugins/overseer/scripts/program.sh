@@ -10,6 +10,7 @@
 #                                            # seats (reader, reviewer) may run at the session model (MODEL: inherit), workers stay at opus
 #   program.sh status [--json]
 #   program.sh next                          # first milestone not done/parked whose deps are done
+#   program.sh resume                        # five plain lines ≤ 100 chars: program, now, next, last decision, open items; exit 0
 #   program.sh milestone add --id <id> --title "<t>" --branch <b> [--depends a,b] [--kind <kind>] [--size S|M|L|XL] [--rigour lean|standard|adversarial]
 #                                            # kinds: kinds.tsv (default feature) — its row also carries the EVIDENCE PROFILE accept demands:
 #                                            #   `ui` (default): the nine browser kinds · `headless` (audit, library): tests + run-log, no screen to walk
@@ -274,6 +275,63 @@ case "$cmd" in
   next)
     need_state
     jq -r "$NEXT_FILTER"' | if . == null then "none" else .id + "\t" + .status + "\t" + .branch + "\t" + .title end' "$state";;
+
+  resume)
+    [ $# -eq 0 ] || usage
+    rel=".claude/overseer"
+    [ -e "$state" ] || { echo "No overseer program here (no $rel/program.json) — /overseer:start opens one"; exit 0; }
+    in=(-n); jq -e 'type=="object" and (.milestones|type=="array") and all(.milestones[]; type=="object")' "$state" >/dev/null 2>&1 && in=("$state")
+    sug=missing
+    if [ ! -f "$dir/decisions.md" ]; then dec="none, $rel/decisions.md is missing"
+    elif [ ! -r "$dir/decisions.md" ]; then dec="unknown, $rel/decisions.md is unreadable"
+    else dec=$(grep -E '^\| [0-9]{4}-' "$dir/decisions.md" | tail -n 1 | sed 's/^| //; s/ |$//' | awk -F' \\| ' '{print $2}'); fi
+    if [ -f "$dir/suggestions.md" ]; then
+      if [ -r "$dir/suggestions.md" ]; then sug=$(grep -cE '^\| [0-9]{4}-' "$dir/suggestions.md"); else sug=unreadable; fi
+    fi
+    jq -r --arg rel "$rel" --arg dec "${dec:-none recorded yet}" --arg sug "$sug" '
+      def clean: tostring | gsub("\\s+"; " ") | ltrimstr(" ") | rtrimstr(" ");
+      def short($n): if length <= $n then . else (.[0:$n] | sub("\\s+\\S*$"; "") | sub("[\\s,;:.—-]+$"; "")) as $w
+        | (if ($w | length) > 0 and ($w | length) < $n then $w else .[0:$n - 1] end) + "…" end;
+      def fit($head; $text; $tail): $head + ($text | clean | short([100 - ($head | length) - ($tail | length), 12] | max)) + $tail;
+      def plural($k; $word): "\($k) \($word)" + (if $k == 1 then "" else "s" end);
+      def plain: {queued: "not started", briefed: "brief written, work not started", building: "being built",
+        accepting: "being checked for acceptance"}[tostring] // "status \(tostring)";
+      ($rel + "/program.json") as $pj
+      | (if $sug == "missing" then "no suggestions file yet" elif $sug == "unreadable" then "suggestions.md unreadable"
+         else plural($sug | tonumber; "suggestion") end) as $s
+      | ($rel + "/" + (if ($sug | test("^[0-9]+$")) then "suggestions.md, program.json" else "program.json" end)) as $where
+      | if type != "object" then
+          "Program: unreadable, \($pj) is not valid JSON with a milestones list",
+          "Now: unknown until \($pj) can be read",
+          "Next: restore \($pj); program.sh status names the error",
+          fit("Last decision: "; $dec; ""),
+          "Open: \($s), parked milestones unknown — \($where)"
+        else
+          .milestones as $m
+          | ([$m[] | select(.status == "parked")] | length) as $parked
+          | ([$m[] | select(.status == "briefed" or .status == "building" or .status == "accepting")] | .[0]) as $active
+          | ('"$NEXT_FILTER"') as $next
+          | ($active // $next) as $cur
+          | ([$m[] | select(.status != "done" and .status != "parked")] | .[0]) as $stuck
+          | fit("Program: "; .goal // .slug // "no goal recorded"; " — \([$m[] | select(.status == "done")] | length)/\($m | length) milestones done"
+              + (if $parked > 0 then " (\($parked) parked)" else "" end)),
+            if $cur != null then fit("Now: \($cur.id) "; $cur.title // ""; " — \($cur.status | plain), branch \($cur.branch // "none")")
+            elif ($m | length) == 0 then "Now: no milestones yet, the roadmap has not been written"
+            elif $stuck == null then "Now: nothing open, every milestone is done or parked"
+            else "Now: nothing can start, \($stuck.id) waits on " + ([($stuck.depends // [])[] | . as $d
+              | ([$m[] | select(.id == $d)][0].status // "not in the roadmap") as $st | select($st != "done") | "\($d) (\($st))"] | join(", ")) end,
+            if $cur != null then
+              if $cur.status == "queued" then "Next: start \($cur.id) — write its brief"
+              elif $cur.status == "briefed" or $cur.status == "building" then "Next: check the workers or dispatch the brief for \($cur.id)"
+              elif $cur.status == "accepting" then "Next: run accept for \($cur.id) — program.sh accept --id \($cur.id)"
+              else "Next: look at \($cur.id) with program.sh status" end
+            elif ($m | length) == 0 then "Next: write the roadmap — /overseer:start"
+            elif $stuck == null then "Next: close the program — program.sh close"
+            else "Next: retry what \($stuck.id) waits on, or park \($stuck.id)" end,
+            fit("Last decision: "; $dec; ""),
+            "Open: \($s), \(plural($parked; "parked milestone")) — \($where)"
+        end
+      | clean | short(100)' "${in[@]}" 2>/dev/null || echo "program.sh: resume could not read $state";;
 
   milestone)
     need_state
