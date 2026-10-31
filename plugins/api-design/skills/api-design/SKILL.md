@@ -90,7 +90,16 @@ and stop. Every other code is a trivia question for your consumers.
 - POST that creates money-adjacent things (payments, orders) takes an
   `Idempotency-Key` header: the first request executes and caches the response;
   a retry with the same key returns the cached response — same status, same
-  body. The same key with a different payload is a 409.
+  body. Store a fingerprint of the body beside the key so a changed retry is detectable.
+- The same key with a different payload is a **422**, not a 409 — a problem+json `type`
+  of your own, e.g. `.../idempotency-key-reused`. 409 is for a retry that arrives while
+  the first request is still in flight (or wait a bounded time for it, or answer 202
+  plus a status URL — choices the draft does not name). A missing key where one is
+  required is a 400. Source: IETF `draft-ietf-httpapi-idempotency-key-header-08`
+  (2026-10-22), an Internet-Draft, not an RFC.
+- Claim the key atomically: a unique insert on (caller, endpoint, key) before the work
+  runs, never a lookup then an insert — check-then-act lets two concurrent retries both
+  charge. The deeper skill is the resilience plugin's `concurrency-safety`.
 - Keys expire (24h is common) and scope per endpoint per caller. Without this,
   every network timeout is a potential double charge.
 
