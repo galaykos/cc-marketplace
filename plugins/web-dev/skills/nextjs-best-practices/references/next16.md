@@ -1,8 +1,9 @@
 # Next.js 16 — the operational detail behind the body's one bullet
 
-> Last verified: 2026-09-26 — https://nextjs.org/blog/next-16-3 — npm:next@16.3
-> (16 GA 2025-10; 16.1 2025-12; 16.2 2026-03; 16.3 2026-08 — 16.3.6 current as of this stamp.
-> Cross-read against the docs bundled in next@16.3.6 at `node_modules/next/dist/docs/`.)
+> Last verified: 2026-10-31 — https://nextjs.org/blog/next-16-4 — npm:next@16.4
+> (16 GA 2025-10; 16.1 2025-12; 16.2 2026-03; 16.3 2026-08; 16.4 2026-10-06 — 16.4.3 current as
+> of this stamp. Sections through 16.3 were cross-read on 2026-09-26 against the docs bundled in
+> next@16.3.6; "Cache Components on" against nextjs.org docs on 2026-10-31.)
 
 The SKILL body compresses Next 16 into one bullet; this file is the per-change
 operational detail — what breaks, what the escape hatch is, what an agent should
@@ -42,6 +43,39 @@ NOT do by default.
   `'use cache'`.
 - Do not retrofit `'use cache'` onto a 15.x app without the flag — the directive
   errors when `cacheComponents` is off.
+
+## Cache Components on (`cacheComponents: true`)
+
+Read `next.config` before writing caching code. From 16.4 (2026-10-06) every new
+`create-next-app` app has Cache Components enabled, and the blog names it the default for
+Next 17; the config page says the next major enables it everywhere and removes the option. An
+existing 16 app keeps whatever its config says. Sources: nextjs.org/blog/next-16-4,
+/docs/app/guides/migrating-to-cache-components, /docs/app/api-reference/config/next-config-js/cacheComponents.
+
+- Segment exports `dynamic`, `revalidate` and `fetchCache` error. `dynamicParams` fails the
+  build ("Route segment config "dynamicParams" is not compatible with
+  `nextConfig.cacheComponents`."). `runtime` is unsupported: remove it, `runtime = 'nodejs'`
+  included.
+- `export const revalidate = 3600` → `'use cache'` + `cacheLife('hours')` in the page or the
+  data function. Built-in profiles: `seconds`, `minutes`, `hours`, `days`, `weeks`, `max`; for an
+  odd interval define a custom profile in `next.config` or pass `cacheLife({ revalidate: N })`.
+  `revalidate = 0` and `dynamic = 'force-dynamic'` → delete; uncached work already runs per request.
+- `dynamic = 'force-static'` → `'use cache'` + `cacheLife('max')`. To *enforce* static output,
+  16.4's `export const ensureStatic = 'navigation'` (or `'prefetch'`/`'shell'`); unlike
+  `force-static` it does not blank `cookies()`/`headers()`.
+- `fetch(url, { next: { revalidate, tags } })` keeps working; the migration moves it into a
+  `'use cache'` function with `cacheLife`/`cacheTag`. A `GET` route handler cannot carry the
+  directive on the export — call a cached helper.
+- `generateStaticParams` returning `[]` errors (`empty-generate-static-params`): return at least
+  one real param. Removing the export opts the route out of ISR. `dynamicParams = false` →
+  `notFound()` in the page.
+- Storage: `'use cache'` defaults to in-memory, per serverless instance and per deployment; the
+  `fetch` Data Cache and `unstable_cache` persist across both. For durable entries use
+  `'use cache: remote'` or a cache handler (`cacheHandlers`).
+- Set `partialPrefetching` explicitly beside the flag; leaving it unset logs a warning.
+- Escape hatch while migrating: `export const instant = false` on the segment (it may block; it
+  is not forced dynamic), or the `cache-components-instant-false` codemod across `./app`.
+  Synchronous IO (`new Date()`, `Math.random()`) in the prerender still fails the build.
 
 ## Debugging and deploys
 
@@ -88,6 +122,9 @@ NOT do by default.
   modern browsers, PNG fallback; no config needed.
 - `next/image`'s `priority` prop is deprecated for `preload`; the docs prefer
   `loading="eager"` or `fetchPriority="high"` for the LCP image in most cases.
+- `next/image` defaults tightened in 16: `qualities` is `[75]`, `minimumCacheTTL` is 4 hours,
+  remote sources use `images.remotePatterns` (`domains` is deprecated), local-IP optimization is
+  blocked, and local `src` with query strings needs `images.localPatterns`.
 - Removed outright: AMP support, `next lint` (run ESLint/Biome directly). Floors:
   React 19.2+, Node 20.9+.
 

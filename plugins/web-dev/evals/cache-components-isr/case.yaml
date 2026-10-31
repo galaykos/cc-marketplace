@@ -1,0 +1,69 @@
+schema_version: "1.0"
+name: cache-components-isr
+description: >
+  From Next 16.4 `create-next-app` turns `cacheComponents` on, and under that flag the
+  segment exports `export const revalidate` and `export const dynamic` error. The ISR
+  answer from memory is exactly those exports. The answer must cache with `'use cache'` +
+  `cacheLife` instead. UNMEASURED: no control arm has run, so this is a CANDIDATE case, not
+  evidence the skill helps. Delete it if a later control run (no plugin) passes it.
+  Added 2026-10-31.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    `package.json`:
+
+    ```json
+    {
+      "dependencies": { "next": "^16.4.0", "react": "^19.3.0", "react-dom": "^19.3.0" }
+    }
+    ```
+
+    `next.config.ts`:
+
+    ```ts
+    import type { NextConfig } from 'next'
+
+    const nextConfig: NextConfig = {
+      cacheComponents: true,
+      partialPrefetching: true,
+    }
+
+    export default nextConfig
+    ```
+
+    `app/blog/page.tsx`:
+
+    ```tsx
+    import { getPosts } from '@/lib/posts'
+
+    export default async function BlogPage() {
+      const posts = await getPosts()
+      return <ul>{posts.map((p) => <li key={p.slug}>{p.title}</li>)}</ul>
+    }
+    ```
+
+    Revalidate /blog hourly. Show the exact code change.
+runs: 3
+graders:
+  - type: llm
+    name: cache-components-model
+    criteria: |
+      This project's `next.config.ts` sets `cacheComponents: true`. Under that flag the
+      route segment exports `revalidate`, `dynamic` and `fetchCache` raise an error; caching
+      is declared with the `'use cache'` directive and its lifetime with `cacheLife`.
+
+      FAIL if the code the response proposes for this project contains
+      `export const revalidate` or `export const dynamic` in any form. Mentioning them only to
+      say they error under `cacheComponents` is not a FAIL.
+
+      PASS requires both:
+
+      1. No `export const revalidate` / `export const dynamic` in the proposed code.
+      2. A `'use cache'` directive in the page, in `getPosts`, or in a wrapper around it,
+         with a `cacheLife` call whose lifetime revalidates hourly: `cacheLife('hours')`,
+         `cacheLife({ revalidate: 3600 })`, or a custom profile defined in `next.config`
+         with `revalidate: 3600`.
+
+      Not graded: `cacheTag`, `Suspense`, `'use cache: remote'`, wording or length.

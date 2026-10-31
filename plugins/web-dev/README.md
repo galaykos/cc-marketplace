@@ -122,7 +122,8 @@ once the skip-clause holds. Standing: **recorded** — no script reads the marke
 `evals/` holds control-arm probes from the 2026-09-25 design-capability corpus
 (`rationale/2026-09-25-design-capability-corpus/`): each case names a rule the base model
 is expected to get wrong from memory, and a new artifact for that rule ships only if the
-no-plugin arm fails it. Run them with the write grant — the cases write files, and
+no-plugin arm fails it. `cache-components-isr` (added 2026-10-31) is not from that corpus: it is
+an unmeasured candidate whose control arm has never run. Run them with the write grant — the cases write files, and
 `Write`/`Edit` are gated tools the runner will not hand a plugin without it:
 
 ```bash

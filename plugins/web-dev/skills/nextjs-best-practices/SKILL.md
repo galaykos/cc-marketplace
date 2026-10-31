@@ -3,7 +3,7 @@ name: nextjs-best-practices
 description: Use when writing or reviewing Next.js App Router code — server vs client component boundaries, opt-in caching (fetch, revalidate, use cache), server actions, route handlers, streaming with Suspense, next/image and next/font, version leverage 14 through 16.
 ---
 
-> Last verified: 2026-09-26 — https://nextjs.org/blog — npm:next@16.3
+> Last verified: 2026-10-31 — https://nextjs.org/blog/next-16-4 — npm:next@16.4
 
 ## Read the installed version's docs first
 
@@ -42,13 +42,21 @@ export default function Page() { /* fetch moves to useEffect, SEO gone */ }
 
 Since Next.js 15, `fetch` defaults to `no-store`, GET route handlers are uncached, and
 the client router cache uses `staleTime: 0` for pages — the Next 14 cached-by-default
-mental model is inverted. Opt in explicitly per data source, and tag what you cache:
+mental model is inverted. Read `next.config` first: `cacheComponents` picks the model.
+
+`cacheComponents` off (15.x; 16 apps that never set it) — opt in per source, tag what you cache:
 
 ```ts
 const res = await fetch(url, { next: { revalidate: 3600, tags: ['posts'] } });
 export const revalidate = 3600;        // segment-level ISR
 export const dynamic = 'force-static'; // whole segment static
 ```
+
+`next.config` has `cacheComponents: true` (the `create-next-app` default from 16.4, announced as
+the default in 17) → those two exports and `fetchCache` error, `dynamicParams` fails the build,
+`runtime` is unsupported, `generateStaticParams` returning `[]` errors. Cache with `'use cache'` +
+`cacheLife('hours')`/`cacheTag()`, in memory per instance unless `'use cache: remote'` or a cache
+handler backs it. Per-export mapping: `references/next16.md` § Cache Components on.
 
 Invalidate by tag, not by hope: on Next 16, `revalidateTag(tag, profile)` takes a
 `cacheLife` profile (`'max'` for most content) for stale-while-revalidate; the
@@ -57,12 +65,10 @@ read-your-writes (user sees their edit immediately) and `refresh()` re-fetches u
 data only. Same-render `fetch` calls are deduplicated automatically; wrap non-fetch
 loaders (ORM calls) in React's `cache()` to get the same per-request memoization.
 
-`'use cache'` (Cache Components) is opt-in behind `cacheComponents: true` in
-`next.config.ts` — still not the default as of 16.3 (a future major will flip it). It
-caches a file, component, or async function with compiler-generated keys, tuned via
-`cacheLife()`/`cacheTag()`, and completes the PPR story (`experimental.ppr`/`dynamicIO`
-flags are gone). Runtime values are banned inside a cached scope: read `cookies()`/`headers()`
-in an uncached parent and pass results in as arguments.
+`'use cache'` works only with `cacheComponents: true`. It caches a file, component, or async
+function with compiler-generated keys, tuned via `cacheLife()`/`cacheTag()`, and completes the PPR
+story (`experimental.ppr`/`dynamicIO` flags are gone). Runtime values are banned inside a cached
+scope: read `cookies()`/`headers()` in an uncached parent and pass results in as arguments.
 
 ## Request APIs are async — await everything (sync access removed in 16)
 
@@ -135,11 +141,9 @@ hand-rolled `<head>` tags. On 16, metadata image routes receive async `params`.
 `next/image` needs `width`/`height` or `fill` (CLS protection); `fill` without `sizes`
 downloads desktop-size images on phones; the LCP hero loads eagerly — `priority` on 14/15,
 but 16 deprecates `priority` for `preload` and its docs prefer `loading="eager"` or
-`fetchPriority="high"` (standing: recorded). Next 16 tightened defaults: `qualities` is
-`[75]`, `minimumCacheTTL` is 4 hours, remote sources use `images.remotePatterns` (`domains`
-is deprecated), local-IP optimization is blocked, and local `src` with query strings needs
-`images.localPatterns`. `next/font` self-hosts fonts with zero layout shift — use it instead
-of `<link>` to Google Fonts, and subset.
+`fetchPriority="high"` (standing: recorded). Next 16 tightened the image defaults (`qualities`,
+`domains` → `remotePatterns`, `localPatterns`): `references/next16.md`. `next/font` self-hosts
+fonts with zero layout shift — use it instead of `<link>` to Google Fonts, and subset.
 
 ## proxy.ts (formerly middleware.ts)
 
@@ -160,16 +164,14 @@ Advising above the installed version is a finding; confirm boundaries against th
 - **15** — caching flipped to opt-in (fetch `no-store`, GET handlers and client router
   cache uncached); async request APIs introduced with sync access deprecated; React 19
   pairing; Turbopack dev stable; `after()` for post-response work.
-- **16** (current stable line; 16.3 as of 2026-09) — Turbopack is the default bundler
+- **16** (current stable line; 16.4.3 as of 2026-10-31) — Turbopack is the default bundler
   (webpack via `--webpack`); sync request-API access removed; `proxy.ts` replaces
-  `middleware.ts`; Cache Components/`'use cache'` available behind `cacheComponents`;
-  `revalidateTag(tag, profile)` + `updateTag()`/`refresh()`; React Compiler support
-  stable (off by default); parallel route slots require explicit `default.js`; AMP and
-  `next lint` removed; needs React 19.2+/Node 20.9+. 16.3 adds `catchError` (an error
-  boundary that lets `notFound()`/`redirect()` through), `next/root-params` (no prop-drilling
-  `[lang]`), and `partialPrefetching` and `export const instant`, both needing
-  `cacheComponents`. Per-change operational detail (what breaks, escape hatches,
-  16.1–16.3 minors): read `references/next16.md`.
+  `middleware.ts`; Cache Components/`'use cache'` behind `cacheComponents`, which
+  `create-next-app` turns on from 16.4; `revalidateTag(tag, profile)` + `updateTag()`/`refresh()`;
+  React Compiler support stable (off by default); parallel route slots require explicit
+  `default.js`; AMP and `next lint` removed; needs React 19.2+/Node 20.9+. 16.3 adds `catchError`,
+  `next/root-params`, `partialPrefetching` and `export const instant`. Per-change operational
+  detail (what breaks, escape hatches, the 16.x minors): read `references/next16.md`.
 
 ## Scope by model tier
 
@@ -184,6 +186,7 @@ to every file in scope; a Fable-class session may compress it once the lockfile 
 
 - `'use client'` on a page/layout, pulling the whole tree into the client bundle.
 - Assuming `fetch` is cached (or, after upgrading from 14, that it still is).
+- `export const revalidate`/`dynamic` in a `cacheComponents: true` app — an error there, not ISR.
 - Reading `cookies()`/`headers()` inside a `'use cache'` scope instead of passing
   values in from an uncached parent.
 - Skipping auth inside a server action because the UI hides the button.
