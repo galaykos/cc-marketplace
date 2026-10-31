@@ -1,0 +1,7 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+pixel-art:pixel-art-pipeline	skill	build	pixel-art-idioms	an aseprite -b export runs or is scripted, a sprite-sheet JSON with frames + meta (frameTags) is written or loaded, or image-model output is being reduced or palette-locked into pixel art	-
+pixel-art:tilemaps	skill	build	tilemap-idioms	the project carries .tmx/.tmj/.tsj/.ldtk/.ldtkl files or a .tsx rooted at <tileset>, or code reads or writes Tiled or LDtk map data	-

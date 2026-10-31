@@ -1,0 +1,6 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+meshy:meshy-generation	skill	build	ai-3d-generation	the task creates, polls, deletes or downloads Meshy tasks (meshy-cli, @meshy-ai/meshy-mcp-server or api.meshy.ai), or a .glb/.gltf must be measured against a triangle, texture-size or required-extension budget	-

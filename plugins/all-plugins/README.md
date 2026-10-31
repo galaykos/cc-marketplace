@@ -14,9 +14,9 @@ installs only when you name it (`claude plugin install prompt-coach@cc-plugins-m
 `install` never installs or enables it and prints it as a
 `skip (opt-in: bills a model call per prompt)` row; `uninstall` and `list` treat it like
 any other plugin. The game plugins — `godot`, `unity`, `unreal`, `roblox`, `bevy`, `defold`,
-`ebitengine`, `phaser`, `pixijs` and `gamedev` — are left out the same way, as
-`skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)`: ten engines'
-descriptions in every project's listing serve none of them, and `/stack-scan:suggest` puts each
+`ebitengine`, `phaser`, `pixijs`, `gamedev`, `blender`, `meshy` and `pixel-art` — are left out
+the same way, as `skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)`:
+thirteen game plugins' descriptions in every project's listing serve none of them, and `/stack-scan:suggest` puts each
 one where its manifest signal is. Install one by name like prompt-coach.
 
 > **Re-run it after every marketplace update.** `install` installs what the marketplace

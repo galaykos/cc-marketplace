@@ -345,6 +345,7 @@ glob	**/.design-kit/artifacts/**	artifact	design-kit	high
 glob	**/.design-kit/motion/**	motion	design-kit	high
 glob	**/.design-kit/film/**	film	design-kit	high
 # game rows (2026-10-26, the gamedev import — rationale/gamedev-design-import-2026-10-26.md).
+# blender, meshy and pixel-art rows added 2026-10-30 — rationale/gamedev-art-import-2026-10-30.md.
 # One plugin per engine, each installed only in its own projects, so a row fires only where
 # that plugin is installed. A generic extension (.cs .go .rs .script) carries a `?` marker on
 # the engine's own manifest: a Go service must never hear about Defold or Ebitengine, and a
@@ -358,6 +359,8 @@ glob	**/.design-kit/film/**	film	design-kit	high
 # co-fire-ok: *.go solid-principles defold-best-practices
 # co-fire-ok: *.go low-cognitive-load ebitengine-best-practices
 # co-fire-ok: *.go solid-principles ebitengine-best-practices
+# co-fire-ok: *.py low-cognitive-load blender-best-practices
+# co-fire-ok: *.py solid-principles blender-best-practices
 glob	*.gd	godot-best-practices	godot	high
 glob	*.gdshader	godot-best-practices	godot	high
 glob	export_presets.cfg	godot-best-practices	godot	high
@@ -368,6 +371,8 @@ glob	project.godot	godot-project-check	godot	high
 content	godot(\.exe|4)?[[:space:]].*--headless	godot-headless-testing	godot	high
 glob	*.cs	unity-best-practices	unity	high	?ProjectSettings/ProjectVersion.txt~m_EditorVersion
 glob	*.inputactions	unity-best-practices	unity	high
+glob	*.spriteatlas	unity-best-practices	unity	high
+glob	*.spriteatlasv2	unity-best-practices	unity	high
 glob	*.uproject	unreal-best-practices	unreal	high
 content	(UCLASS\(|GENERATED_BODY\(\))	unreal-best-practices	unreal	high
 glob	*.luau	roblox-best-practices	roblox	high
@@ -381,6 +386,19 @@ glob	*.go	defold-best-practices	defold	high	?game.project~.
 glob	*.go	ebitengine-best-practices	ebitengine	high	?go.mod~github\.com/hajimehoshi/ebiten/v2
 content	(from ['"]phaser['"]|\bnew Phaser\.(Game|Scene)\b)	phaser-best-practices	phaser	high
 content	(from ['"]pixi\.js['"]|\bnew PIXI\.)	pixijs-best-practices	pixijs	high
+content	(import|from)[[:space:]]+(bpy|bpy_extras|bmesh)([.[:space:]]|$)	blender-best-practices	blender	high
+content	blender(\.exe)?[[:space:]]+(-b|--background)[[:space:]]	blender-best-practices	blender	high
+glob	*.py	blender-best-practices	blender	high	?blender_manifest.toml~schema_version
+content	(MESHY_API_KEY|api\.meshy\.ai|@meshy-ai/|meshy-cli)	meshy-generation	meshy	high
+glob	*.tmx	tilemaps	pixel-art	high
+glob	*.tmj	tilemaps	pixel-art	high
+glob	*.tsj	tilemaps	pixel-art	high
+glob	*.tiled-project	tilemaps	pixel-art	high
+glob	*.ldtk	tilemaps	pixel-art	high
+glob	*.ldtkl	tilemaps	pixel-art	high
+content	<tileset[[:space:]]+[^>]*(tilewidth|firstgid)=	tilemaps	pixel-art	high
+content	"frameTags"[[:space:]]*:	pixel-art-pipeline	pixel-art	high
+content	aseprite(\.exe)?"?[[:space:]]+(-b|--batch)\b	pixel-art-pipeline	pixel-art	high
 glob	steam_appid.txt	steam-release	gamedev	high
 glob	*.vdf	steam-release	gamedev	high
 content	(steamcmd|\+run_app_build|game-ci/steam-deploy)	steam-release	gamedev	high

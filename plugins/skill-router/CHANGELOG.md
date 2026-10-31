@@ -2,6 +2,10 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.29.0 — 2026-10-30
+
+- **Routes the new game plugins.** `blender-best-practices` on a file importing `bpy`/`bmesh`, a `blender -b` command line, or a `*.py` beside a `blender_manifest.toml`; `meshy-generation` on `MESHY_API_KEY`, `api.meshy.ai`, `@meshy-ai/` or `meshy-cli` in a file; `tilemaps` on Tiled/LDtk map files and on a `<tileset>` TSX (no `*.tsx` glob — React); `pixel-art-pipeline` on Aseprite sheet JSON (`"frameTags":`) or an `aseprite -b` command. `unity-best-practices` also routes `*.spriteatlas`/`*.spriteatlasv2`. The blender `*.py` row co-fires with the two language-wide discipline rows on purpose. Standing: gate for the row syntax and co-fire blessings (`validate.sh`).
+
 ## 0.28.1 — 2026-10-26
 
 - **`design-kit:film`** routes on `**/.design-kit/film/**`, beside the motion row. Standing: gate for the row syntax (`validate.sh`).

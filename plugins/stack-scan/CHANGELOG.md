@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.17.0 — 2026-10-30
+
+- **Three new game plugins are suggested from file evidence.** plugin-scout signal and `--full` class rows for `blender` (a `*.blend`/`*.blend1`, a `blender_manifest.toml`, or a `.py` importing `bpy` — placed after the gamedev row so a product-visualisation repo does not pull gamedev in), `meshy` (`MESHY_API_KEY`, a `meshy-cli`/`@meshy-ai/*` dep or a `meshy` MCP server — never a `*.glb` alone) and `pixel-art` (`*.aseprite`, Tiled `*.tmx`/`*.tmj`/`*.tsj`/`*.tiled-project`, LDtk `*.ldtk`/`*.ldtkl`, or a `*.tsx` whose root is `<tileset>` — a bare `.tsx` is React). New `--stack` tokens: `blender`, `meshy`, `pixel-art`, `aseprite`, `tiled`, `ldtk`. Standing: agent-graded — the scout follows the rows; `pc_scout_names` gates only that the names are live.
+
 ## 0.16.0 — 2026-10-26
 
 - **Remotion and HyperFrames ship their own agent skills; the scout now says so.** Two Framework-native tooling rows: dep `remotion` / `@remotion/cli` → `npx skills add remotion-dev/skills`, with the licence note (a paid company licence for a for-profit organisation over 3 employees, read from Remotion's `LICENSE.md` on 2026-10-26); dep `hyperframes` / `@hyperframes/*` → `npx skills add heygen-com/hyperframes` or its Claude Code plugin. Both are printed, never run, like the rest of that table. Standing: agent-graded — the scout follows the rows.

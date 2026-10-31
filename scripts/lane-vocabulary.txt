@@ -53,8 +53,10 @@ task-list-parallelization-plan
 
 # --- build ---
 accessibility-remediation
+ai-3d-generation
 astryx-idioms
 bevy-idioms
+blender-idioms
 cicd-and-deploy-idioms
 code-film-production
 comment-placement-rule
@@ -85,6 +87,7 @@ performance-optimization
 phaser-idioms
 php-laravel-backend-implementation
 pipeline-and-infra-implementation
+pixel-art-idioms
 pixijs-idioms
 primereact-idioms
 react-native-idioms
@@ -101,6 +104,7 @@ stack-neutral-web-implementation
 third-party-api-doc-reminder
 third-party-api-doc-verification
 threejs-idioms
+tilemap-idioms
 ui-implementation
 unity-idioms
 unreal-idioms
