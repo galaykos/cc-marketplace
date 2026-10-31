@@ -102,7 +102,7 @@ asset lookups — stay NATIVE. Escalating a builder buys latency, not craft.
    about representative values, attack the post-audit FIX LIST as its own claim set, and
    RENDER the surface and look at it before calling it verified — are in
    `references/red-team-contract.md`. Each catches a defect a gate-clean build can still
-   ship: a surface that argues against the concept's own claim. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+   ship: a surface that argues against the concept's own claim. (Proportionality: size the panel to the blast radius; a count is a ceiling, not a quota.)
 
 6. **Persist the boost so the audit can read it back.** The contract's `Boost` row
    carries `ultra-craft` (or `none`). A boost that was only spoken cannot be
