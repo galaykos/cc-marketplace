@@ -441,11 +441,12 @@ MAX_BASH_EFFECTS=8
   CODE='[a-z0-9]+'
   scan_text() {
     lfile=$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')
-    case "$lfile" in *.md|*.mdx|*.txt|*.rst|*.json|*.yaml|*.yml|*.lock) isdoc=1 ;; *) isdoc=0 ;; esac
+    case "$lfile" in *.md|*.mdx|*.txt|*.rst) isdoc=prose ;; *.json|*.yaml|*.yml|*.lock) isdoc=data ;; *) isdoc="" ;; esac
     detect() { # detect <slug> <ERE> <one-line advice> [ext-alternation] [exclude-ERE]
+      # Every row skips a doc file, except that JSON and YAML still feed client-bundle-secret: CI, compose and eas.json set build env there.
+      [ -z "$isdoc" ] || [ "$isdoc:$1" = data:client-bundle-secret ] || return 0
       if [ -n "${4:-}" ]; then
         printf '%s' "$lfile" | grep -qE "\.(${4})$" || return 0
-        [ "$isdoc" = 1 ] && return 0
       fi
       if [ -n "${5:-}" ]; then
         printf '%s' "$text" | grep -E "$2" | grep -vE "$5" | grep -q . || return 0
