@@ -98,7 +98,8 @@ detection rules, checked against the shadcn theming and Tailwind v4 docs.
 - Chroma ≤ 0.03 binds dense data surfaces; a hero ground follows the brief instead.
 - Contrast floors: 4.5:1 for body text on its surface, 3:1 for large text and UI
   boundaries — check every pair, both modes, before showing anything. Standing:
-  agent-graded here; the only script checker is craft-layer's `/craft-layer:audit`.
+  gate for oklch() tokens — `/ui-ux:theme` step 5 runs `scripts/contrast.mjs` (exit 1
+  a pair fails, 2 not measured); agent-graded for hex or HSL tokens it cannot parse.
 
 ## Dark mode is a second design, not an inversion
 
