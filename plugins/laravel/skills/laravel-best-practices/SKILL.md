@@ -160,6 +160,7 @@ drop/rename later once code no longer depends on the old shape. Write a `down()`
 reverses `up()` — an empty or wrong `down()` makes rollback silently lose data or fail. Once a
 migration ships to any shared environment, don't edit it: add a new migration instead, since
 editing history breaks anyone who already ran it.
+On 11+, `->change()` drops every modifier you do not restate: making `votes` nullable must repeat its `->unsigned()->default(1)->comment('…')` too, or they are gone (11.x upgrade guide, "Likelihood Of Impact: High"; checked 2026-10-31).
 
 ```php
 // Bad: down() doesn't reverse up() — rollback leaves the column behind

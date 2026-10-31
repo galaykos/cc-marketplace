@@ -16,8 +16,8 @@ that classifies the command string itself.
 
 | Verdict | When | Effect |
 |---|---|---|
-| `deny` | irreversible loss whose blast radius is not visible in the command — `migrate:fresh`, `db:wipe`, `DROP DATABASE`, `rm -rf /`, `rm .env` or a `cp`/`mv`/`tee` over a live one, `artisan key:generate` over a set `APP_KEY`, `cd /missing/dir; …` (the rest would run in the live tree), `git clean -fdx`, `git push --force`, `docker compose down -v`, `kubectl delete pvc`, `terraform destroy`, `aws s3 rb`, `gcloud … delete` | the call is blocked; the model is told not to rephrase it, and to hand the command to the user |
-| `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git clean -fd`, `rm -rf ./some-dir` *when git cannot restore it* (see below), `DELETE FROM`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh`, a `Write` that replaces an existing `.env` | the user gets a permission prompt naming what is lost — with no interactive prompt (`claude -p`, a headless agent, `dontAsk`) the request is **auto-denied**, see [Running headless / in CI](#running-headless--in-ci) |
+| `deny` | irreversible loss whose blast radius is not visible in the command — `migrate:fresh`, `db:wipe`, `DROP DATABASE`, `rm -rf /`, `rm .env` or a `cp`/`mv`/`tee` over a live one, `artisan key:generate` over a set `APP_KEY`, `cd /missing/dir; …` (the rest would run in the live tree), `git clean -fdx`, `git push --force`, `git push origin :branch`, `rm -rf .git`, `ALTER TABLE … DROP COLUMN`, `db.coll.drop()`, `docker compose down -v`, `kubectl delete pvc`, `terraform destroy`, `aws s3 rb`, `gsutil rm -r`, `gcloud … delete`, `firestore:delete --all-collections` | the call is blocked; the model is told not to rephrase it, and to hand the command to the user |
+| `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git reset --merge`, `git switch -f`, `git clean -fd`, `git worktree remove --force`, `rm -rf ./some-dir` *when git cannot restore it* (see below), `git checkout -- <file>` / `git restore <file>` / `git rm -f <file>` *when it holds uncommitted changes*, `xargs rm -rf`, `find … -exec rm -rf`, `gh api -X DELETE`, `DELETE FROM`, an `UPDATE` with no `WHERE`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh`, a `Write` that replaces an existing `.env` | the user gets a permission prompt naming what is lost — with no interactive prompt (`claude -p`, a headless agent, `dontAsk`) the request is **auto-denied**, see [Running headless / in CI](#running-headless--in-ci) |
 | `allow` | everything else, including `rm -rf node_modules`, `rm -rf .playwright-mcp` (the Playwright MCP's scratch dir, unless it is a symlink or the command `cd`s first, in a subshell or through `env -C` too), `rm -rf /tmp/scratch-dir`, `git commit -m "drop the table step"`, `grep -r migrate:fresh .` | silent; normal permissions apply |
 
 `rm -rf` **inside the OS temp directory** is silent — under `/tmp`,
@@ -34,6 +34,13 @@ under it, deleting it is not a loss and there is no prompt. Ignored content
 counts as a loss — git has no copy of a `.gitignore`d `.env`. The check is
 dropped whenever the command contains `cd`/`pushd`, since the hook's working
 directory is then not the one the `rm` resolves against.
+
+A **per-file discard** is judged the same way. `git checkout -- <file>`,
+`git checkout <tree> -- <file>`, `git restore <file>` (not `--staged` alone) and
+`git rm -f <file>` ask only when `git diff` shows the file holds changes git has no
+commit of; on an unmodified file they are silent. They ask without looking after a
+`cd`, a `git -C`/`--git-dir`/`--work-tree`, or a `$` in the path. A `git checkout <file>`
+with no `--` is read as a branch switch and passes.
 
 A **live `.env`** is judged by state too. `cp .env.example .env` in a clone with no
 `.env` is the setup step and passes; the same command over an existing `.env`
@@ -77,7 +84,11 @@ script under a `hooks/` dir, `plugin.json` / `marketplace.json`, and the lint,
 type-check and test configs a build fails on (`.eslintrc*`, `eslint.config.*`,
 `biome.json`, `.rubocop.yml`, `ruff.toml`, `.flake8`, `setup.cfg`, `pytest.ini`,
 `pyproject.toml`, `phpstan.neon[.dist]`, `psalm.xml[.dist]`, `.php-cs-fixer*.php`,
-`.golangci.y[a]ml`, `clippy.toml`, `tsconfig.json`).
+`.golangci.y[a]ml`, `clippy.toml`, `tsconfig.json`, `mypy.ini`, `.stylelintrc*`,
+`phpunit.xml[.dist]`, `jest.config.*`, `vitest.config.*`, `.mocharc*`, `karma.conf.*`,
+`.coveragerc`, `.nycrc*`, `codecov.yml`), CI config (`.github/workflows/*.y[a]ml`,
+`.gitlab-ci.yml`) and git hooks (`.git/hooks/*`, `.husky/*`, `.pre-commit-config.yaml`,
+`lefthook.yml`).
 
 Why: given a gate it cannot satisfy, the cheapest path out is to edit the gate — turn
 off the rule, add an ignore, delete the hook — and in a diff summary that reads

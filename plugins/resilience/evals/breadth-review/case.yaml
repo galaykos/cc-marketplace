@@ -64,8 +64,9 @@ graders:
 
       The six:
 
-      1. **No timeout on either HTTP call** — a hung dependency stalls the whole scheduled
-         run, and the next tick piles on behind it.
+      1. **No explicit timeout on either HTTP call** — each inherits the client's implicit
+         default (Laravel: 30 s read, 10 s connect), so a slow dependency stalls the whole
+         scheduled run past the next tick, which piles on behind it.
       2. **`rememberForever` on stock levels** — inventory is volatile data cached with no
          TTL and no invalidation, so a single read pins a wrong value permanently. (Naming
          it as a stale-cache or cache-correctness bug counts.)

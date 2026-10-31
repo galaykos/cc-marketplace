@@ -113,6 +113,36 @@ git -C "$REPO" checkout -q --detach
 git -C "$REPO" checkout -q feature
 (cd "$REPO" && bash "$RR" --index "$IDX" --fresh >/dev/null 2>&1)
 
+# 3f) an installed copy sits at <cache>/<marketplace>/<plugin>/<version>/, where the dev-tree sibling
+# never exists, and `find | sort -V` over full paths sorts by marketplace name first (2026-10-31).
+CACHE="$HOME/.claude/plugins/cache"; INST="$CACHE/cc-plugins-marketplace/task-runner/0.49.10/scripts"
+mkdir -p "$INST" "$CACHE/lonely/task-runner/1.0.0/scripts"
+cp "$RR" "$INST/register-run.sh"; cp "$RR" "$CACHE/lonely/task-runner/1.0.0/scripts/register-run.sh"
+for v in zz-other/taskmaster/9.9.9 cc-plugins-marketplace/taskmaster/0.50.6 cc-plugins-marketplace/taskmaster/0.50.10; do
+  mkdir -p "$CACHE/$v/scripts"; printf '#!/bin/sh\necho %s > "%s"\n' "$v" "$WS/picked" > "$CACHE/$v/scripts/phase-sentinel.sh"
+done
+NOCLI=$(printf '%s' "$PATH" | tr ':' '\n' | while IFS= read -r d; do [ -x "$d/claude" ] || printf '%s:' "$d"; done); NOCLI=${NOCLI%:}
+pick() { rm -f "$WS/picked"; (cd "$REPO" && PATH="$1" bash "$2" --index "$IDX" --fresh >/dev/null 2>"$WS/err"); cat "$WS/picked" 2>/dev/null; }
+if PATH="$NOCLI" command -v claude >/dev/null 2>&1; then bad "installed copy, no CLI" "claude still on the filtered PATH"
+else
+  got=$(pick "$NOCLI" "$INST/register-run.sh")
+  [ "$got" = cc-plugins-marketplace/taskmaster/0.50.10 ] && ok "installed, no CLI: runs its own marketplace's newest taskmaster, not another marketplace's" \
+    || bad "installed, no CLI: runs its own marketplace's newest taskmaster" "picked=<$got>"
+  got=$(pick "$NOCLI" "$CACHE/lonely/task-runner/1.0.0/scripts/register-run.sh")
+  [ "$got" = zz-other/taskmaster/9.9.9 ] && grep -q 'may not be the copy' "$WS/err" \
+    && ok "no taskmaster in its own marketplace: the cache-wide copy runs and stderr says it may not be the loaded one" \
+    || bad "cache-wide fallback says so on stderr" "picked=<$got> err=<$(cat "$WS/err")>"
+fi
+STUB="$WS/stub"; mkdir -p "$STUB"
+jq -n --arg z "$CACHE/zz-other/taskmaster/9.9.9" --arg c "$CACHE/cc-plugins-marketplace/taskmaster/0.50.6" '[
+  {id:"taskmaster@zz-other",enabled:true,scope:"project",projectPath:"/elsewhere",installPath:$z},
+  {id:"taskmaster@zz-other",enabled:false,scope:"user",installPath:$z},
+  {id:"taskmaster@cc-plugins-marketplace",enabled:true,scope:"user",installPath:$c}]' > "$WS/list.json"
+printf '#!/bin/sh\n[ "$*" = "plugin list --json" ] && cat "%s"\n' "$WS/list.json" > "$STUB/claude"; chmod +x "$STUB/claude"
+got=$(pick "$STUB:$NOCLI" "$INST/register-run.sh")
+[ "$got" = cc-plugins-marketplace/taskmaster/0.50.6 ] && ok "installed, with the CLI: runs the enabled install's installPath, not the newest on disk or another project's" \
+  || bad "installed, with the CLI: runs the enabled install's installPath" "picked=<$got>"
+
 # 4) refusals
 (cd "$REPO" && bash "$RR" --index nope/00-INDEX.md >/dev/null 2>&1); r=$?
 [ "$r" = 3 ] && ok "an index that does not exist is a usage error (3)" || bad "missing index" "rc=$r"

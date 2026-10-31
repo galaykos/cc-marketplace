@@ -15,12 +15,16 @@ denied with the same patterns and the same placeholder escape. The source of bot
 plugin's `hooks/patterns.tsv`; the list below mirrors it, and when that file is missing or
 malformed the guard denies every write it would scan, naming the file:
 
-- **AWS access key ID** — `AKIA` + 16 base32 chars.
+- **AWS access key ID** — `AKIA`/`ASIA`/`ABIA`/`ACCA` (or `A3T` + one) + 16 uppercase letters or digits.
 - **Private key block** — `-----BEGIN … PRIVATE KEY-----`.
 - **GitHub token** — `ghp_`/`gho_`/`ghu_`/`ghs_`/`ghr_` + 36+ chars.
 - **Slack token** — `xoxb-`/`xoxp-`/`xoxa-`/`xoxr-`/`xoxs-` + body.
 - **Google API key** — `AIza` + 35 chars.
-- **Stripe live secret** — `sk_live_` + 24+ chars.
+- **Stripe live secret** — `sk_live_` + 24+ chars; a restricted `rk_live_` key + 10+.
+- **Other provider tokens**, at the lengths gitleaks' default rules give — Anthropic `sk-ant-api03-`/
+  `sk-ant-admin01-`, OpenAI `sk-proj-`/`sk-svcacct-`/`sk-admin-` holding `T3BlbkFJ`,
+  GitHub fine-grained `github_pat_`, GitLab `glpat-`, Hugging Face `hf_`, SendGrid `SG.`,
+  npm `npm_`, PyPI `pypi-AgEI…`. Test-mode Stripe keys and anything shorter pass.
 - **Credential in a URL** — a `postgres://`, `mysql://`, `mongodb://` (plus `+srv`),
   `redis://`, `amqp://` or `https://` scheme whose authority carries inline userinfo with a
   password of 6+ characters. A `${VAR}` or `{{ … }}` password is the correct shape and

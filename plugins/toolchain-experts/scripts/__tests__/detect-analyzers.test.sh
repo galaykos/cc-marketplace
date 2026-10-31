@@ -60,6 +60,17 @@ check "CI names which analyzer is authoritative" "$php" 0 \
   "ci .github/workflows/qa.yml phpstan"
 refute "CI cross-check does not claim an unrun tool" "$php" "workflows/qa.yml psalm"
 
+# --- phpstan level: `max` and an unreadable value still print a line -----------
+# A numbers-only grep printed nothing for `level: max`, which read as "no level set".
+pmax="$tmp/phpmax"; mkdir -p "$pmax"
+echo '{"require-dev":{"phpstan/phpstan":"^2"}}' > "$pmax/composer.json"
+printf 'parameters:\n    level: max\n' > "$pmax/phpstan.neon"
+check "level max is reported as max" "$pmax" 0 "strictness phpstan level max"
+printf 'parameters:\n    level: %%env.PHPSTAN_LEVEL%%\n' > "$pmax/phpstan.neon"
+check "a level key that cannot be read says unparsed" "$pmax" 0 "strictness phpstan level unparsed"
+printf "parameters:\n    level: 'max' # strictest\n" > "$pmax/phpstan.neon"
+check "a quoted max with a trailing comment is still max" "$pmax" 0 "strictness phpstan level max"
+
 # --- TS: the config-gap evidence --------------------------------------------
 ts="$tmp/ts"; mkdir -p "$ts"
 echo '{"devDependencies":{"typescript":"^5","eslint":"^9"}}' > "$ts/package.json"
@@ -264,6 +275,17 @@ echo '{"devDependencies":{"eslint":"^9"}}' > "$fmtck/package.json"
 echo 'module.exports={};' > "$fmtck/.eslintrc.js"
 refute "the eslint invocation does not use the removed unix formatter" "$fmtck" "--format=unix"
 check "the eslint invocation is version-portable" "$fmtck" 0 "'npx eslint .'"
+
+# --- eslint's baseline is its bulk-suppressions file, not its cache ----------
+sup="$tmp/suppress"; mkdir -p "$sup"
+echo '{"devDependencies":{"eslint":"^9"}}' > "$sup/package.json"
+echo 'export default [];' > "$sup/eslint.config.js"
+: > "$sup/.eslintcache"
+check "no suppressions file reports no baseline" "$sup" 0 "analyzer js eslint eslint.config.js - "
+refute "the lint cache is never reported as a baseline" "$sup" "eslint.config.js .eslintcache"
+echo '{}' > "$sup/eslint-suppressions.json"
+check "eslint-suppressions.json is reported as the baseline" "$sup" 0 \
+  "analyzer js eslint eslint.config.js eslint-suppressions.json"
 
 # --- usage ------------------------------------------------------------------
 out=$(bash "$DET" "$tmp/does-not-exist" 2>&1); rc=$?

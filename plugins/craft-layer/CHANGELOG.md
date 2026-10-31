@@ -7,6 +7,10 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.59.4 — 2026-10-31
+
+- **`ultra-craft` no longer points installers at a file they do not have.** Its red-team step cited `.claude/skills/authoring-skills/SKILL.md` in the marketplace repository for the proportionality law; an install contains no such path. The step now states the one rule it needs inline: size the panel to the blast radius, a count is a ceiling, not a quota (`skills/ultra-craft/SKILL.md`).
+
 ## 0.59.3 — 2026-10-28
 
 - **The `physics-motion` and `page-transitions` skills' descriptions now read in short, plain sentences.** Same triggers and review gaps; both keep the words the model matches them on.

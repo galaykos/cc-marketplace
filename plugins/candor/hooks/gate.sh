@@ -1,6 +1,6 @@
 #!/bin/bash
-# Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 6, 2, 3, 5: an incomplete registered task-runner run, a file:line resolving to nothing, a file:line's quote: `…` in neither that file, its HEAD copy nor the transcript tail's tool output or user turns, a reversal after bare pushback, a naked completion claim, lockfile drift.
-# Misses a wrong API, flag or directory, pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff, quotes past MAX_QUOTES_CHECKED or QUOTE_DEADLINE_SECONDS or beside an ambiguous path; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5); unset, /config.
+# Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 6, 2, 3, 5: an incomplete registered task-runner run, a file:line resolving to nothing, a file:line's quote: `…` in neither that file, its HEAD copy nor the transcript tail's tool output or user turns, a reversal after bare pushback, a naked completion claim (after an Edit or a Bash write to a non-prose file), lockfile drift.
+# Misses a wrong API, flag or directory, a Bash write cc_bash_write_targets cannot see (interpreter, cp/mv, a path in a variable), pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff, quotes past MAX_QUOTES_CHECKED or QUOTE_DEADLINE_SECONDS or beside an ambiguous path; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5); unset, /config.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -59,6 +59,256 @@ cc_option() {
   [ -n "$v" ] || v="${2:-}"
   printf '%s\n' "$v"
   return 0
+}
+
+# Shared block templates/blocks/bash-write-targets.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
+# cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
+# one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
+# A backup suffix is never a target: the word after BSD sed's -I, or a `''` or `.`-led word after a bare sed -i unless it is the only file.
+# Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
+# redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
+# operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
+cc_bash_write_targets() {
+  printf '%s\n' "$1" | awk '
+    function emit(p) {
+      gsub(/^["\047]|["\047]$/, "", p)
+      if (p == "" || p ~ /^\/dev\// || p ~ /[$`*?]/ || p ~ /^[&0-9-]/ && p !~ /[\/.]/) return
+      print p
+    }
+    function mask(s,   i, c, q, out, esc) {
+      q = ""; out = ""; esc = 0
+      for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+        if (esc) { out = out "_"; esc = 0; continue }
+        if (q == "") {
+          if (c == "\\") { esc = 1; out = out "_"; continue }
+          if (c == "\047" || c == "\"") q = c
+          out = out c
+        } else if (c == q) { q = ""; out = out c }
+        else { if (q == "\"" && c == "\\") esc = 1; out = out "_" }
+      }
+      return out
+    }
+    function segment(ms, os,   rest, off, tok, w, k, j, st, en, word, n, ws, we, x, c, a, inp, scr, eo, sfx, nf, f) {
+      rest = ms; off = 0
+      while (match(rest, /(^|[^0-9&=<>-])>>?[ \t]*("[^"]*"|\047[^\047]*\047|[^ \t&|;<>()"\047]+)/)) {
+        tok = substr(os, off + RSTART, RLENGTH)
+        off += RSTART + RLENGTH - 1; rest = substr(ms, off + 1)
+        sub(/^[^>]*>>?[ \t]*/, "", tok)
+        emit(tok)
+      }
+      n = 0; j = 1
+      while (j <= length(ms)) {
+        while (j <= length(ms) && substr(ms, j, 1) ~ /[ \t]/) j++
+        if (j > length(ms)) break
+        st = j; while (j <= length(ms) && substr(ms, j, 1) !~ /[ \t]/) j++
+        n++; ws[n] = st; we[n] = j - 1
+      }
+      if (n == 0) return
+      k = 1; word = substr(os, ws[1], we[1] - ws[1] + 1)
+      if (word == "sudo" && n > 1) { k = 2; word = substr(os, ws[2], we[2] - ws[2] + 1) }
+      if (word == "tee") {
+        for (k = k + 1; k <= n; k++) {
+          w = substr(os, ws[k], we[k] - ws[k] + 1)
+          if (w == "<" || w == "<<<") { k++; continue }
+          if (w !~ /^-/ && w !~ /^[<>0-9]/) emit(w)
+        }
+      } else if (word == "sed" || word == "perl") {
+        inp = 0; scr = 0; eo = 0; sfx = ""; nf = 0
+        for (k = k + 1; k <= n; k++) {
+          w = substr(os, ws[k], we[k] - ws[k] + 1); x = substr(ms, ws[k], we[k] - ws[k] + 1)
+          if (x ~ /[<>]/) {
+            a = substr(w, 1, match(x, /[<>]/) - 1)
+            if (a !~ /^[0-9&]*$/) f[++nf] = a
+            if (x ~ /[<>][&|]?$/) k++
+            continue
+          }
+          if (eo || x !~ /^-./) { f[++nf] = w; if (word == "perl") eo = 1; continue }
+          if (x == "--") { eo = 1; continue }
+          if (x ~ /^--/) {
+            if (word == "sed" && x ~ /^--in-place(=|$)/) inp = 1
+            if (word == "sed" && x ~ /^--(expression|file)(=|$)/) { scr = 1; if (x !~ /=/) k++ }
+            continue
+          }
+          for (j = 2; j <= length(x); j++) {
+            c = substr(x, j, 1)
+            if (c == "i" || word == "sed" && c == "I") {
+              inp = 1
+              if (word == "sed" && j == length(x) && k < n) {
+                a = substr(os, ws[k + 1], we[k + 1] - ws[k + 1] + 1); gsub(/^["\047]|["\047]$/, "", a)
+                if (c == "I") k++
+                else if (a == "" || a ~ /^\.[^\/<>]*$/) { k++; sfx = a }
+              }
+              break
+            }
+            if (c == "e" || c == (word == "sed" ? "f" : "E")) { scr = 1; if (j == length(x)) k++; break }
+            if (c == (word == "sed" ? "l" : "I")) { if (j == length(x)) k++; break }
+            if (word == "perl" && c ~ /[MmFxdDVC]/) break
+            if (word == "perl" && c ~ /[l0]/) while (substr(x, j + 1, 1) ~ /[0-7]/) j++
+          }
+        }
+        if (!inp) return
+        for (j = scr ? 1 : 2; j <= nf; j++) if (f[j] !~ /^-/ || eo) { emit(f[j]); sfx = "" }
+        if (sfx != "") emit(sfx)
+      }
+    }
+    skip { t = $0; sub(/^[ \t]+/, "", t); sub(/[ \t]+$/, "", t); if (t == term) skip = 0; next }
+    {
+      line = $0; m = mask(line)
+      if (match(m, /(^|[^<])<<-?[ \t]*["\047]?[A-Za-z_][A-Za-z0-9_]*/)) {
+        if (substr(m, RSTART, 1) != "<") { RSTART++; RLENGTH-- }
+        term = substr(line, RSTART, RLENGTH + 1)
+        sub(/^<<-?[ \t]*["\047]?/, "", term); sub(/[^A-Za-z0-9_].*$/, "", term)
+        skip = 1
+      }
+      st = 1
+      for (i = 1; i <= length(m) + 1; i++) {
+        c = substr(m, i, 1); c2 = substr(m, i, 2)
+        if (i > length(m) || c == ";" || c == "|" || c == "&" && c2 != "&>" && substr(m, i - 1, 1) !~ /[<>]/) {
+          if (i > st) segment(substr(m, st, i - st), substr(line, st, i - st))
+          if (c2 == "&&" || c2 == "||" || c2 == "|&") i++
+          st = i + 1
+        }
+      }
+    }' | awk '!seen[$0]++'
+}
+
+# Shared block templates/blocks/heredoc-bodies.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/heredoc-bodies.md
+# cc_strip_heredoc_bodies <mode> <command> [<reader ERE>] prints the command without the heredoc bodies the scan can place,
+# their terminators dropped with them. Mode all drops every such body. Mode inert keeps a body a reader may run: its opener's line
+# names a shell (rbash, mksh too), ssh, su, sudo -i/-s, runuser, chroot, exec, xargs, eval, source or `.`, or matches <reader ERE>
+# (tested lowercased, unquoted, space-padded), or the reader can sit off that line: a `\` continuation, a trailing | ( { do then
+# else, an unquoted $( ) ( ) <( ) but x=$( ), an fd number, a $ or quoted command word, a done/fi/esac/}/) lead. Once it drops a
+# body, inert keeps every line if a later line pipes into a reader (other words may sit before it, but a grep or rg lead is a filter
+# whatever its pattern names; `.`, source, eval or a $ command word first), or runs eval, a shell's -c or a $ command word after an
+# x=$( ) or x="$( )" body. Mode cd is inert with eval, source, `.` and the ERE the only named readers, for a cd test: a body this
+# shell runs is kept, one a named subshell runs is not. Every mode keeps every line after a `<<` the scan cannot place (quoted,
+# after a #, in arithmetic, ${ } or $[ ], an odd delimiter, a quote or ${ open across its line, a backtick, $$', an unmatched ),
+# a terminator with stray blanks) and a body with no terminator.
+# Misses: inert drops a body fed to anything else (python3 -, node, at, a function, alias or coproc), written to a script a later
+# line runs, or read into a variable by read; a case pattern's ) inside $( ) closes it early.
+cc_strip_heredoc_bodies() {
+  printf '%s\n' "$2" | heredoc_readers="${3:-}" LC_ALL=C awk -v how="$1" '
+    BEGIN {
+      rd = ENVIRON["heredoc_readers"]; sw = "((ba|z|da|k|c|tc|a|rba|mk|ok|ya)?sh|fish)"; hr = "[ /](eval|source|\\.) "
+      sh = "[ /](" sw "|ssh|su|runuser|chroot|exec|xargs) |[ /](sudo|doas) ([^;&|()]* )?(-[a-z]*[is][a-z]*|--login|--shell) "
+      shc = "[ /]" sw "( -[-a-z]+)* -[a-z]*c "
+    }
+    function reads(w) { return rd != "" && w ~ rd || w ~ hr || how != "cd" && w ~ sh }
+    function norm(s) { s = tolower(s); gsub(/\\[^a-z0-9_]/, "", s); gsub(/["\047\\]/, "", s); gsub(/[<>|;&()]/, " & ", s); gsub(/[ \t]+/, " ", s); return " " s " " }
+    function delim(s, j,   c, q, w) {
+      q = ""; w = ""
+      for (; j <= length(s); j++) {
+        c = substr(s, j, 1)
+        if (q != "") { if (c == q) q = ""; else w = w c; continue }
+        if (c ~ /[ \t;&|<>()]/) break
+        if (c == "\\") { j++; w = w substr(s, j, 1) } else if (c == "\047" || c == "\"") q = c; else w = w c
+      }
+      return q == "" ? w : ""
+    }
+    # One physical line; quote and $( ) state (st: p plain, v after =, q in "", w in ="", a/b arithmetic, e ${, s $[) carry across lines. 1 = ends in \.
+    function scan(s,   n, i, c, nx, d, t, w, j) {
+      n = length(s); cc = 0
+      for (i = 1; i <= n; i++) {
+        c = substr(s, i, 1); nx = substr(s, i + 1, 1); d = dl; dl = 0
+        if (sq) {
+          if (c == "<" && nx == "<") { off = 1; return 0 }
+          if (c == "\\" && ans) i++; else if (c == "\047") sq = 0
+          continue
+        }
+        if (c == "\\") { if (i == n) { dl = d; return 1 }; i++; pc = "x"; cs = 0; continue }
+        if (dq) {
+          if (c == "\"") { dq = 0; pc = c }
+          else if (c == "`" || c == "<" && nx == "<") { off = 1; return 0 }
+          else if (c == "$" && nx == "(") {
+            if (substr(s, i + 2, 1) == "(") { st = st "b"; i += 2 } else { st = st (dq > 1 ? "w" : "q"); i++ }
+            dq = 0; pc = "("; cs = 1
+          }
+          continue
+        }
+        if (cs && c !~ /[ \t]/) {
+          if (c ~ /[$"`\047]/) cw = 1
+          else if (c == ")" || match(substr(s, i, 6), /^(done|fi|esac|[}])([ \t;&|<>)]|$)/)) cl = 1
+          else if (match(substr(s, i, 7), /^([{!]|then|do|else|elif|if|while|until)[ \t]/)) { i += RLENGTH - 1; pc = " "; continue }
+          cs = 0
+        }
+        if (c == "\047") { if (d > 1) { off = 1; return 0 }; sq = 1; ans = (d == 1); pc = c; continue }
+        if (c == "\"") { dq = 1 + (pc == "="); pc = c; continue }
+        if (c == "`") { off = 1; return 0 }
+        if (c == "#") {
+          if (pc ~ /[ \t\n;&|()<>]/) { cc = i; if (index(substr(s, i), "<<") || substr(s, n, 1) == "\\") off = 1; return 0 }
+          hash = 1
+        }
+        if (c == "$") {
+          dl = d + 1
+          if (nx == "(") {
+            if (substr(s, i + 2, 1) == "(") { st = st "a"; i += 2 } else { st = st (pc == "=" ? "v" : "p"); i++ }
+            pc = "("; cs = 1; continue
+          }
+          if (nx ~ /[{[]/) { st = st (nx == "{" ? "e" : "s"); i++; pc = nx; continue }
+        }
+        t = substr(st, length(st))
+        if (c ~ /[]}[]/ && t == (c == "}" ? "e" : "s")) { if (c == "[") st = st t; else { st = substr(st, 1, length(st) - 1); pc = "x" }; continue }
+        if (c == "(") { if (nx == "(") { st = st "a"; i++ } else st = st "p"; pc = c; cs = 1; continue }
+        if (c == ")") {
+          if (t ~ /^[es]?$/) { off = 1; return 0 }
+          if (t ~ /[ab]/) { if (nx != ")") { off = 1; return 0 }; i++ }
+          st = substr(st, 1, length(st) - 1); if (t ~ /[qbw]/) dq = 1 + (t == "w")
+          pc = "x"; continue
+        }
+        if (c == "<" && nx == "<") {
+          if (substr(s, i + 2, 1) == "<") { i += 2; pc = "<"; continue }
+          if (hash || st ~ /[abes]/) { off = 1; return 0 }
+          if (st ~ /p/ || sd0 != "" || substr(s, i - 1, 1) ~ /[0-9]/) k2 = 1
+          j = i + 2; t = (substr(s, j, 1) == "-"); j += t
+          while (substr(s, j, 1) ~ /[ \t]/) j++
+          w = delim(s, j)
+          if (w !~ /^[A-Za-z0-9_.-]+$/) { off = 1; return 0 }
+          term[++nc] = w; tdash[nc] = t
+          i++; pc = "<"; continue
+        }
+        if (c ~ /[;&|]/) cs = 1
+        pc = c
+      }
+      return 0
+    }
+    { all[++na] = $0 }
+    mode == 2 { out[++no] = $0; next }
+    mode == 1 {
+      t = $0; if (tdash[qi]) sub(/^\t+/, "", t)
+      if (t == term[qi]) { if (keep) out[++no] = $0; else held[++nh] = $0; if (++qi > nc) { mode = 0; if (!keep) cut = 1; nh = 0 }; next }
+      t = $0; gsub(/^[ \t]+|[ \t]+$/, "", t)
+      if (t == term[qi]) { for (k = 1; k <= nh; k++) out[++no] = held[k]; nh = 0; out[++no] = $0; mode = 2; next }
+      if (keep) out[++no] = $0; else held[++nh] = $0
+      next
+    }
+    {
+      out[++no] = $0
+      if (cont) cflag = 1
+      else { sd0 = st; startq = sq || dq; nc = 0; hash = 0; cw = 0; cl = 0; k2 = 0; cflag = 0; pc = "\n"; cs = 1; lw = ""; dl = 0 }
+      lw = lw " " $0
+      cont = scan($0)
+      if (off) { mode = 2; next }
+      if (cont || !nc) next
+      if (startq || sq || dq || st ~ /[es]/) { mode = 2; next }
+      t = cc ? substr($0, 1, cc - 1) : $0; sub(/[ \t]+$/, "", t)
+      keep = how != "all" && (k2 || cw || cl || cflag || st ~ /[pab]/ || t ~ /(\|&?|[({]|(^|[ \t;&|])(do|then|else|elif))$/ || reads(norm(lw)))
+      if (!keep && !c0) c0 = no; if (!keep && st ~ /[vw]/) cv = 1
+      qi = 1; mode = 1; nh = 0
+      next
+    }
+    END {
+      if (mode == 1 && !keep) for (k = 1; k <= nh; k++) out[++no] = held[k]
+      for (k = c0; cut && how != "all" && k <= no; k++) {
+        t = out[k]; if (t ~ /[|(]&?[ \t]*$/ && k < no) t = t " " out[k + 1]
+        u = t = norm(t); r = cv && (t ~ / eval |(^|[;&|]) \$/ || how != "cd" && t ~ shc)
+        while (!r && match(u, /\|/)) { u = substr(u, RSTART + 1); p = u; sub(/^( [&(])+ /, " ", p); sub(/[;&|()].*/, " ", p); r = p !~ /^ ([ef]?grep|rg) / && (rd != "" && p ~ rd || how != "cd" && p ~ sh || p ~ /^ (\$[a-z_{]|(\.|source|eval) )/) }
+        if (r) { for (k = 1; k <= na; k++) print all[k]; exit }
+      }
+      for (k = 1; k <= no; k++) print out[k]
+    }'
 }
 
 # Clause 1's lookup, shared with /candor:check. A missing file stands the clause down; it never fails the gate.
@@ -665,6 +915,66 @@ clause_unevidenced_reversal() {
 clause_unevidenced_reversal
 
 ev_mode=$(cc_option CC_EVIDENCE_GATE block)
+# An edit to a prose file (.md, .txt, .rst, .adoc and kin), by Edit or by Bash, does not arm clause 3: no command's failure proves a README wrong.
+PROSE_EXTS='md|mdx|markdown|txt|rst|adoc|asciidoc'
+
+# One line per command list of <command>, heredoc bodies dropped, LAST first: R when a pipeline element's command word runs
+# something (pytest | tee log, pytest > out.json), - when every word only writes, moves or announces files, a tab, then the text.
+bash_command_units() {
+  cc_strip_heredoc_bodies all "$1" | LC_ALL=C awk '
+    function runs(s,   n, w, i, x, sk) {
+      n = split(s, w, /[ \t]+/); sk = 0
+      for (i = 1; i <= n; i++) {
+        x = w[i]; sub(/^[({!]+/, "", x); sub(/[)}]+$/, "", x)
+        if (x == "") continue
+        if (sk) { sk = 0; continue }
+        if (x ~ /^[0-9]*[<>]/) { if (x ~ /^[0-9]*[<>]+[&|]?$/) sk = 1; continue }
+        if (x ~ /^-/ || x ~ /^[A-Za-z_][A-Za-z0-9_]*=/ || x ~ /^(then|do|else|elif|if|while|until|time|sudo|command|env|nohup)$/) continue
+        return x !~ /^(cat|tee|echo|printf|sed|perl|cp|mv|rm|ln|mkdir|touch|chmod|cd|pushd|popd|true|:|fi|done|esac)$/
+      }
+      return 0
+    }
+    {
+      line = $0; m = ""; q = ""; esc = 0
+      for (i = 1; i <= length(line); i++) {
+        c = substr(line, i, 1)
+        if (esc) { m = m "_"; esc = 0; continue }
+        if (q == "") { if (c == "\\") { esc = 1; m = m "_"; continue }; if (c == "\047" || c == "\"") q = c; m = m c }
+        else if (c == q) { q = ""; m = m c }
+        else { if (q == "\"" && c == "\\") esc = 1; m = m "_" }
+      }
+      st = 1; es = 1; r = 0
+      for (i = 1; i <= length(m) + 1; i++) {
+        c = substr(m, i, 1); c2 = substr(m, i, 2)
+        if (i > length(m) || c == ";" || c2 == "&&" || c2 == "||" || c == "&" && c2 != "&>" && substr(m, i - 1, 1) !~ /[<>]/) {
+          if (runs(substr(m, es, i - es))) r = 1
+          if (substr(m, st, i - st) ~ /[^ \t]/) u[++nu] = (r ? "R" : "-") "\t" substr(line, st, i - st)
+          if (c2 == "&&" || c2 == "||") i++
+          st = i + 1; es = st; r = 0
+        } else if (c == "|") {
+          if (runs(substr(m, es, i - es))) r = 1
+          if (c2 == "|&") i++
+          es = i + 1
+        }
+      }
+    }
+    END { for (k = nu; k >= 1; k--) print u[k] }'
+}
+
+# Status 0 when <command> writes a non-prose file and nothing runs after that write in it: a write-then-run command
+# (cat > t.py <<EOF … EOF && pytest) clears itself, because the clause already takes any later run as evidence.
+bash_call_edits() {
+  local flag text
+  case "$1" in *'>'* | *tee* | *sed* | *perl*) ;; *) return 1 ;; esac
+  while IFS=$'\t' read -r flag text; do
+    [ "$flag" = R ] && return 1
+    [ -n "$text" ] && cc_bash_write_targets "$text" | LC_ALL=C grep -qviE "\\.($PROSE_EXTS)\$" && return 0
+  done <<EOF_UNITS
+$(bash_command_units "$1")
+EOF_UNITS
+  cc_bash_write_targets "$1" | LC_ALL=C grep -qviE "\\.($PROSE_EXTS)\$"
+}
+
 clause_naked_completion() {
   [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "evidence" ] && [ "$ev_mode" != "off" ] || return 0
   # grep -w, not \b: BSD grep has no \b, and an unanchored 'done' would match 'abandoned'.
@@ -675,22 +985,31 @@ clause_naked_completion() {
   # ACK must state this turn's verification state: a failure named as the thing fixed stays part of the claim.
   ACK='not tested|untested|unverified|not verified|did not (run|rerun)|didn.t (run|rerun)|have not (run|rerun)|haven.t (run|rerun)|not (run|rerun) yet|cannot verify|could not verify|not green|still fail(ing|s)?|currently fail(ing|s)?|(tests?|suite|build|lint|checks?|it) (is|are|was|were) (still |currently )?fail(ing|ed|s)?|(tests?|suite|build|lint|checks?|it) (still |currently )?fail(ing|ed|s)?|fail(ing|s) (with|on|because|due)|in progress|still working|wip|not done|incomplete|halt|halting|halted|blocked|parked|known issue|please verify|verify manually|left to do|remains to'
   if [ -n "$said" ] && printf '%s' "$said" | grep -qiwE "$CLAIM" && ! printf '%s' "$said" | grep -qiwE "$ACK"; then
-    # An edit to a prose file (.md, .txt, .rst, .adoc and kin) does not arm the clause: no command's failure proves a README wrong.
+    # Each Bash call's command follows its entry's names as a JSON string line; only the last Bash call can be the last edit or run, so only it is read.
     ev=$(printf '%s' "$tail_jsonl" \
       | jq -r 'select(.type=="assistant")
-               | [.message.content[]? | select(.type=="tool_use")
-                  | .name + (if (.name | test("^(Edit|Write|MultiEdit|NotebookEdit)$|apply_patch$|create_new_file$"))
+               | [.message.content[]? | select(.type=="tool_use")] as $u
+               | ([$u[] | .name + (if (.name | test("^(Edit|Write|MultiEdit|NotebookEdit)$|apply_patch$|create_new_file$"))
                              then "@" + ((.input.file_path // "") | ascii_downcase | (if test("\\.[a-z0-9]+$") then sub(".*\\."; "") else "" end))
                              else "" end)]
-               | join(" ")' 2>/dev/null \
-      | awk '
+                  | join(" ")),
+                 ($u[] | select(.name == "Bash") | (.input.command // "") | tostring | tojson)' 2>/dev/null \
+      | awk -v prose="$PROSE_EXTS" '
+          /^"/ { cmd = $0; next }
           { for (i = 1; i <= NF; i++) { n++
-              if ($i ~ /^(Edit|Write|MultiEdit|NotebookEdit)(@|$)/ && $i !~ /@(md|mdx|markdown|txt|rst|adoc|asciidoc)$/) last_edit = n
-              if ($i ~ /^(Bash|Agent|Task)$/)                   last_exec = n } }
+              if ($i ~ /^(Edit|Write|MultiEdit|NotebookEdit)(@|$)/ && $i !~ ("@(" prose ")$")) last_edit = n
+              if ($i ~ /^(Agent|Task)$/)   last_exec = n
+              if ($i == "Bash")            last_bash = n } }
           END {
+            if (last_bash > last_edit && last_bash > last_exec) { print "bash"; print cmd; exit }
+            if (last_bash > last_exec)    last_exec = last_bash
             if (!last_edit)               print "no-edits"
             else if (last_exec > last_edit) print "evidence"
             else                          print "naked-claim" }')
+    case "$ev" in
+      bash$'\n'*) if bash_call_edits "$(printf '%s' "${ev#bash$'\n'}" | jq -r '.' 2>/dev/null)"; then ev=naked-claim; else ev=evidence; fi ;;
+      bash) ev=evidence ;;
+    esac
     if [ "$ev" = "naked-claim" ]; then
       verdict="evidence"
       detail="$said"

@@ -9,8 +9,10 @@ description: Use when writing or reviewing Unity C# in a project with `ProjectSe
 ## Read the editor version first
 
 - Read `m_EditorVersion` in `ProjectSettings/ProjectVersion.txt`, and package versions in
-  `Packages/manifest.json` + `Packages/packages-lock.json`, before advising. `6000.x` is Unity 6
-  (6000.3 is the 6.3 LTS); `2022.3` and older predate every Unity 6 item below.
+  `Packages/manifest.json` + `Packages/packages-lock.json`, before advising. `6000.x` is Unity 6.
+  On 2026-10-31 Unity's release API listed 6000.6.7f1 as the recommended release, 6000.3 as the
+  LTS (6000.0 the older one) and 6000.7 in beta. `2022.3` and older predate every Unity 6 item below.
+- 7000.x is the Unity 7 alpha; nothing here was re-read against it.
 - Keep advice to that version. Never mix snippets across editor majors or package majors:
   Cinemachine 2 vs 3, AI Navigation 1 vs 2, Input System before vs from 1.8.
 - The generated `*.csproj` files are Editor output, not the version record.
@@ -46,9 +48,11 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_unity_project.py" <project-dir>
 | Builds, CI, saves | `SwitchActiveBuildTarget` in `-batchmode`; the global scene list under Build Profiles; `Debug.LogError` failing a CI build; `persistentDataPath` on tvOS or after a product rename | `references/build-ci.md` |
 | Camera, rendering | `CinemachineVirtualCamera` and the `Cinemachine` namespace; GPU Resident Drawer prerequisites; SRP Batcher compatibility | `references/render-camera.md` |
 | URP 2D, pixel art | `com.unity.2d.pixel-perfect` in URP; zooming via `orthographicSize` under a Pixel Perfect Camera; a Point sprite blurred by its atlas; setting `Light2D.normalMapQuality` from code; Chunk tilemaps under the SRP Batcher; `Rigidbody2D.velocity` | `references/2d.md` |
+| `m_EditorVersion` 6000.4 or later | a URP pass with only `Execute`; `GetInstanceID()` kept as an `int`; `FindFirstObjectByType`; a dictionary wrapper because "Unity cannot serialize dictionaries"; `#if DEVELOPMENT_BUILD`; `UxmlFactory`/`UxmlTraits`; Cinemachine 2 kept on 6.6 | `references/upgrades-6.4-6.6.md` |
 
-Read only the row the change touches. Each file carries the remedy with the trap, and says which
-of its items were re-read against Unity's docs on its stamp date.
+Read only the row the change touches. On 6000.4 or later, also read the last row's file: where it
+and a topic file disagree, it wins. Each file carries the remedy with the trap, and says which of
+its items were re-read against Unity's docs on its stamp date.
 
 ## Rules, and who enforces each
 
@@ -56,7 +60,7 @@ of its items were re-read against Unity's docs on its stamp date.
 |---|---|
 | A file moved outside the Editor keeps its `.meta`; no GUID is duplicated | **recorded** — `check_unity_project.py` exits 1 on a violation, but no hook or CI step runs it; you must |
 | Advice matches `ProjectVersion.txt` and the package lock | **agent-graded** |
-| New code uses the Unity 6 names (`linearVelocity`, `FindFirstObjectByType`, `PhysicsMaterial`, `CinemachineCamera`) | **agent-graded** — most old names still compile with obsolete warnings, so a green build proves nothing |
+| New code uses the Unity 6 names (`linearVelocity`, `FindAnyObjectByType`, `PhysicsMaterial`, `CinemachineCamera`; from 6000.5 `GetEntityId`) | **agent-graded** — most old names still compile with obsolete warnings, so a green build proves nothing |
 | A failed CI build exits non-zero | **recorded** — only the build method's own throw or `EditorApplication.Exit(1)` makes it so |
 | A URP project has no `com.unity.2d.pixel-perfect`; pixel-art sprites, their atlas and the Pixel Perfect Camera agree on PPU, Point filtering and no compression | **agent-graded** — no script reads `manifest.json`, import settings or atlas settings |
 
@@ -69,3 +73,4 @@ of its items were re-read against Unity's docs on its stamp date.
 - Calling `EditorUserBuildSettings.SwitchActiveBuildTarget` inside an `-executeMethod` build.
 - Installing `com.unity.2d.pixel-perfect` in a URP project to "fix" blurry pixel art.
 - Reading exit 0 from the checker on a fresh clone as "no missing scripts".
+- A URP pass with only `Execute` on 6000.4 or later: it does not render.

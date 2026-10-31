@@ -125,9 +125,9 @@ way, `/design-kit:design`, `/design-kit:slides` and `/design-kit:artifact` read 
 block first (agent-graded — nothing proves a sibling skill read it).
 
 `tokens.json` is DTCG-shaped (`$type`, `$value`, `{alias}`, `$extensions`) but keeps
-colours and dimensions as the strings the source wrote, which the 2025.10 draft no
-longer allows; the exact shape, the mode convention and what a consumer must tolerate
-are in `references/tokens-format.md`.
+colours, dimensions and durations as the strings the source wrote, where the final DTCG
+2025.10 report requires objects; the exact shape, the mode convention and what a
+consumer must tolerate are in `references/tokens-format.md`.
 
 ## Re-running
 

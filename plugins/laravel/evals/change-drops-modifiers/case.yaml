@@ -1,0 +1,47 @@
+schema_version: "1.0"
+name: change-drops-modifiers
+description: >
+  Since Laravel 11, `->change()` drops every column modifier the change does not restate.
+  The upgrade guide rates it "Likelihood Of Impact: High", and the 13.x migrations docs keep
+  the rule. A bare `->nullable()->change()` silently strips `unsigned`, `default` and
+  `comment` from the column. UNMEASURED: no control arm has run, so this is a CANDIDATE case,
+  not evidence the skill helps. Delete it if a later control run (no plugin) passes it.
+  Added 2026-10-31.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    `composer.json` requires `"laravel/framework": "^13.0"`.
+
+    `database/migrations/2026_01_10_000000_create_users_table.php` (already run in production):
+
+    ```php
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('name');
+        $table->integer('votes')->unsigned()->default(1)->comment('The vote count');
+        $table->timestamps();
+    });
+    ```
+
+    Make `votes` nullable. Write the new migration's `up()` and `down()`.
+runs: 3
+graders:
+  - type: llm
+    name: modifiers-restated
+    criteria: |
+      On Laravel 11+, modifying a column with `->change()` drops every modifier the change
+      does not restate. The column here has `unsigned`, `default(1)` and
+      `comment('The vote count')`.
+
+      FAIL if the proposed `up()` changes `votes` with a bare `->nullable()->change()`, or with
+      any `->change()` chain that leaves out `unsigned`, `default(1)` or the comment. FAIL if the
+      response edits the existing create-table migration instead of adding a new one.
+
+      PASS requires the `up()` change chain to carry `->unsigned()`, `->default(1)`,
+      `->comment(...)` and `->nullable()` before `->change()`. An equivalent raw `ALTER TABLE`
+      statement that keeps all three attributes also passes.
+
+      Not graded: `down()` beyond being present, migration class style, file name, wording or
+      length.

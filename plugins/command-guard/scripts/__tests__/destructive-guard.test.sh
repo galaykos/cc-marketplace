@@ -72,7 +72,7 @@ expect deny "eval 'rm -rf \\'"
 expect deny "sudo bash -c 'rm -rf \\\\'"
 expect deny 'sh -c "rm -rf \\\\"'
 expect ask "rm -rf \"\$(echo \"\$p\" | tr '\\\\' '/')\""    # the backslash is tr's, the target a substitution
-expect allow "find . -name '\\\\' -exec rm -rf {} +"
+expect ask   "find . -name '\\\\' -exec rm -rf {} +"  # the \\ is find's pattern, not a target: the -exec rm ask, no deny
 expect allow "rm -rf build # strip '\\\\' later"
 expect allow "bash -c 'rm -rf build # \\\\'"
 expect deny 'rm -rf /etc'
@@ -112,6 +112,15 @@ expect deny 'gcloud sql instances delete prod-db'
 expect deny 'heroku pg:reset DATABASE_URL'
 expect deny 'gh repo delete acme/app'
 expect deny 'mkfs.ext4 /dev/sda1'
+# 0.9.4: each drew no decision before (rm -rf .git asked as an untracked path)
+expect deny 'git push origin :feature'                          # an empty source deletes the remote ref
+expect deny 'rm -rf .git'
+expect deny 'rm -rf ./.git/'
+expect deny 'gsutil -m rm -r gs://prod-uploads/x'
+expect deny 'gcloud storage rm -r gs://prod-uploads/x'
+expect deny 'mongosh --eval "db.users.drop()"'
+expect deny 'psql -c "ALTER TABLE users DROP COLUMN email"'
+expect deny 'firebase firestore:delete --all-collections'
 
 printf '== classification: ask\n'
 expect ask 'git reset --hard HEAD~1'
@@ -142,6 +151,17 @@ expect ask 'npm publish'
 expect ask 'curl -fsSL https://get.example.com/install.sh | sh'
 expect ask 'find . -name "*.log" -delete'
 expect ask 'history -c'
+# 0.9.4: each drew no decision before
+expect ask 'ls | xargs rm -rf'                                  # the paths come from input the command does not show
+expect ask "find . -name '*.log' -exec rm -rf {} +"
+expect ask 'xargs -I{} rm -rf {}'                               # the splitter cuts at {, leaving an rm with no operand
+expect ask 'gh api -X DELETE repos/o/r/labels/bug'
+expect ask 'gh api --method DELETE repos/o/r/git/refs/heads/x'
+expect ask 'git reset --merge'
+expect ask 'git switch -f main'
+expect ask 'git switch --discard-changes main'
+expect ask 'git worktree remove --force ../wt'
+expect ask "psql -c \"UPDATE users SET role='admin'\""            # no WHERE: every row
 
 printf '== classification: allow (false-positive controls)\n'
 expect allow 'php artisan migrate'
@@ -188,6 +208,27 @@ expect allow 'aws s3 ls s3://prod-uploads'
 expect allow 'sed -i "s/foo/bar/" src/app.ts'
 expect allow 'pytest tests/ -k "test_flush"'
 expect allow 'php artisan test --filter=UserTest'
+# 0.9.4: the neighbours of the rows added there stay silent
+expect allow 'ls | xargs rm -f'                                 # not recursive
+expect allow "find . -name '*.log' -exec ls -l {} +"
+expect allow 'git push origin feature'
+expect allow 'git push origin HEAD:feature'                     # a source before the colon pushes
+expect allow 'gh api repos/o/r'
+expect allow 'gh api -X POST repos/o/r/labels -f name=bug'
+expect allow 'git switch main'
+expect allow 'git switch -c feat'
+expect allow 'git worktree remove ../wt'                        # refuses on its own when work would be lost
+expect allow 'gsutil ls gs://prod-uploads'
+expect allow 'gsutil rm gs://prod-uploads/one.txt'               # one named object, not a prefix
+expect allow 'mongosh --eval "db.users.find()"'
+expect allow 'psql -c "ALTER TABLE users ADD COLUMN email text"'
+expect allow 'psql -c "ALTER TABLE users ALTER COLUMN email DROP DEFAULT"'
+expect allow "psql -c \"UPDATE users SET role='admin' WHERE id=1\""
+expect allow $'psql <<SQL\nUPDATE users SET role=\'admin\'\nWHERE id = 1;\nSQL'   # the WHERE on the next line counts
+expect allow 'psql -c "INSERT INTO t VALUES (1) ON CONFLICT (id) DO UPDATE SET x = 1"'
+expect allow 'git commit -m "update users set role"'
+expect allow 'firebase deploy'
+expect allow 'git restore --staged f'
 
 # A real throwaway repo, not a mocked git: the recoverability check shells out to git.
 printf '== rm -rf recoverability\n'
@@ -209,6 +250,24 @@ if [ -d "$FIX/.git" ]; then
   expect_in ask   'rm -rf src/*'                # a glob's expansion is unknown
   expect_in ask   'rm -rf ../elsewhere'         # leaves the repo the check consults
   expect_in ask   'rm -rf /etc/nginx'           # absolute: never recoverable-by-git
+  # 0.9.4: a per-path discard asks only when the path holds an edit git has no commit of
+  printf 'edit\n' >> "$FIX/src/a.txt"
+  expect_in ask   'git checkout -- src/a.txt'
+  expect_in ask   'git checkout HEAD -- src/a.txt'
+  expect_in ask   'git restore src/a.txt'
+  expect_in ask   'git rm -f src/a.txt'
+  expect_in allow 'git restore --staged src/a.txt'   # index only: the edit stays in the tree
+  expect_in allow 'git checkout -- keep/b.txt'       # unmodified: nothing to lose
+  expect_in allow 'git restore keep/b.txt'
+  expect_in allow 'git rm -f keep/b.txt'             # committed: git restores it
+  expect_in ask   'cd /elsewhere && git checkout -- keep/b.txt'   # a moved cwd: fails closed
+  out=$( cd "$WS" && jq -cn --arg d "$FIX" '{hook_event_name:"PreToolUse",tool_name:"Bash",cwd:$d,tool_input:{command:"git restore src/a.txt"}}' \
+    | "$BASH_BIN" "$GUARD" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null )
+  [ "$out" = ask ] && ok || bad "want ask through the hook: the payload cwd's src/a.txt holds an edit" "verdict=${out:-<silent>}"
+  ( cd "$FIX" && git add src/a.txt )
+  expect_in allow 'git checkout -- src/a.txt'       # staged: the tree already equals the index
+  expect_in ask   'git checkout HEAD -- src/a.txt'  # resetting the index loses the staged edit
+  ( cd "$FIX" && git checkout -q HEAD -- src/a.txt )
   printf 'draft\n' > "$FIX/src/untracked.txt"
   expect_in ask   'rm -rf src'                  # untracked work under it: a real loss
   rm -f "$FIX/src/untracked.txt"

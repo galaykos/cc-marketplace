@@ -1,6 +1,6 @@
 #!/bin/bash
 # PreToolUse on Write/Edit/MultiEdit and Bash heredoc/echo writes: asks (never denies) before a change adds DROP, TRUNCATE, a DELETE/UPDATE with no WHERE, a migration-DSL drop, an empty-filter deleteMany/remove or .drop(), or a lock hazard (CREATE INDEX without CONCURRENTLY, a rewriting ALTER, a DynamoDB Scan off a script path).
-# Misses: a rollback method (down/downgrade), renames, doc surfaces (.md .mdx .markdown .txt .rst, taskmaster-docs/), a drop off its list (`drop_table 'users'`, a runtime-built name), lowercase `truncate x`, SQL run by a client with no file written (command-guard's), scratch targets, a CREATE INDEX in a SQLite project, a filter built across lines (a WHERE on the next line still asks). On Bash: interpreter writes (python open(), php file_put_contents), cp/mv/install, `sed -i`/`perl -i` text, `{ …; } > f` groups, a path in a variable, a relative target after an in-command `cd`, a doc surface listed first in a multi-target `tee`, a here-string, printf format substitution, a quoted string or `\` continuation spanning lines, a second heredoc on one line. CC_DB_GUARD=off, else /config cc_db_guard; fails open.
+# Misses: a rollback method (down/downgrade), renames, doc surfaces (.md .mdx .markdown .txt .rst, taskmaster-docs/), a drop off its list (`drop_table 'users'`, a runtime-built name), lowercase `truncate x`, SQL run by a client with no file written (command-guard's), scratch targets, a CREATE INDEX where config names SQLite, MySQL or MariaDB (Galera's TOI stall too), a filter built across lines (a WHERE on the next line still asks). On Bash: interpreter writes (python open(), php file_put_contents), cp/mv/install, `sed -i`/`perl -i` text, `{ …; } > f` groups, a path in a variable, a relative target after an in-command `cd`, a doc surface listed first in a multi-target `tee`, a here-string, printf format substitution, a quoted string or `\` continuation spanning lines, a second heredoc on one line. CC_DB_GUARD=off, else /config cc_db_guard; fails open.
 # Why, limits, history: rationale/derivations/plugin-database.md § plugins/database/hooks/guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -276,18 +276,26 @@ cc_scope_skip() {
     cc_scope_init "$sroot"
   }
   out_of_scope() { scope_init; cc_scope_skip "$1"; }
-  # SQLite has no CREATE INDEX CONCURRENTLY. Laravel's .env is not read: DB_CONNECTION=sqlite is its default local config, whatever production runs.
-  sqlite_project() { # <path>
-    local d f root
+  # Prints sqlite, postgres, mysql (MySQL or MariaDB) or nothing; the nearest directory naming an engine decides, two there is none.
+  # DB_CONNECTION=sqlite is not evidence: it is Laravel 11+'s default local config, whatever production runs.
+  db_engine() { # <path>
+    local d f root e
     scope_init
-    d=$(cc_scope_dir "$1") && cc_scope_root "$d" || return 1
+    d=$(cc_scope_dir "$1") && cc_scope_root "$d" || return 0
     root=$cc_scope_r
     while :; do
-      case "$d/" in "$root"/*) ;; *) return 1 ;; esac
-      for f in "$d/wrangler.toml" "$d/wrangler.json" "$d/wrangler.jsonc"; do [ -f "$f" ] && grep -q 'd1_databases' "$f" && return 0; done
-      [ -f "$d/prisma/schema.prisma" ] && grep -qE '^[[:space:]]*provider[[:space:]]*=[[:space:]]*"sqlite"' "$d/prisma/schema.prisma" && return 0
-      for f in "$d"/drizzle.config.*; do [ -f "$f" ] && grep -qE "dialect[\"' ]*:[[:space:]]*[\"'](sqlite|turso)" "$f" && return 0; done
-      [ "$d" != "$root" ] || return 1
+      case "$d/" in "$root"/*) ;; *) return 0 ;; esac
+      e=$(
+        for f in "$d/wrangler.toml" "$d/wrangler.json" "$d/wrangler.jsonc"; do [ -f "$f" ] && grep -q 'd1_databases' "$f" && echo sqlite; done
+        [ -f "$d/prisma/schema.prisma" ] && grep -oE '^[[:space:]]*provider[[:space:]]*=[[:space:]]*"(sqlite|postgresql|postgres|mysql)"' "$d/prisma/schema.prisma"
+        for f in "$d"/drizzle.config.*; do [ -f "$f" ] && grep -oE "dialect[\"' ]*:[[:space:]]*[\"'](sqlite|turso|postgresql|mysql)" "$f"; done
+        for f in "$d/compose.yml" "$d/compose.yaml" "$d/docker-compose.yml" "$d/docker-compose.yaml"; do [ -f "$f" ] && grep -E '^[[:space:]]*image:' "$f"; done
+        for f in "$d/.env" "$d/.env.example"; do [ -f "$f" ] && grep -oE "^DB_CONNECTION=[\"']?(mysql|mariadb|pgsql)([^A-Za-z0-9_]|$)" "$f" && break; done
+      )
+      e=$(printf '%s\n' "$e" | awk '{ l = tolower($0) }
+        l ~ /sqlite|turso/ { print "sqlite" } l ~ /postgres|postgis|pgvector|timescale|pgsql/ { print "postgres" } l ~ /mysql|mariadb|percona/ { print "mysql" }' | sort -u)
+      case "$e" in '') ;; *[!a-z]*) return 0 ;; *) printf '%s\n' "$e"; return 0 ;; esac
+      [ "$d" != "$root" ] || return 0
       d=$(dirname -- "$d")
     done
   }
@@ -319,11 +327,16 @@ cc_scope_skip() {
     fi
     # Lock hazards are checked only when no data-loss hit fired: data loss wins the message.
     lockhit=""
+    lockfix="Use the non-blocking form (CREATE INDEX CONCURRENTLY; for a type change add a column and copy; for NOT NULL backfill, then validate) unless the table is small or a maintenance window is planned."
     if [ -z "$hit" ]; then
-      # CREATE [UNIQUE] INDEX without CONCURRENTLY: a CREATE INDEX line carrying no CONCURRENTLY.
-      if printf '%s' "$text" | grep -iE '\bcreate[[:space:]]+(unique[[:space:]]+)?index\b' \
-           | grep -qivE '\bconcurrently\b' && ! sqlite_project "$target"; then
-        lockhit="a CREATE INDEX without CONCURRENTLY (PostgreSQL; other engines lock regardless)"
+      # CREATE [UNIQUE] INDEX without CONCURRENTLY: a CREATE INDEX line carrying no CONCURRENTLY. SQLite has no CONCURRENTLY; InnoDB builds it online.
+      if printf '%s' "$text" | grep -iE '\bcreate[[:space:]]+(unique[[:space:]]+)?index\b' | grep -qivE '\bconcurrently\b'; then
+        case "$(db_engine "$target")" in
+          sqlite|mysql) ;;
+          postgres) lockhit="a CREATE INDEX without CONCURRENTLY (PostgreSQL)" ;;
+          *) lockhit="a CREATE INDEX without CONCURRENTLY (engine not detected)"
+             lockfix="On PostgreSQL use CREATE INDEX CONCURRENTLY. On MySQL or MariaDB, InnoDB builds it online by default: append ALGORITHM=INPLACE LOCK=NONE so a locking fallback fails instead, and expect Galera's default TOI to stall writes cluster-wide while it builds. Skip this if the table is small or a maintenance window is planned." ;;
+        esac
       fi
       # Table-rewriting ALTERs: a column TYPE change or adding a NOT NULL constraint.
       [ -z "$lockhit" ] && printf '%s' "$text" | grep -qiE '\balter[[:space:]]+table\b[^;]*\balter\b[^;]*\btype\b|\balter[[:space:]]+table\b[^;]*\bset[[:space:]]+not[[:space:]]+null\b' && lockhit="a table-rewriting ALTER (column TYPE change or SET NOT NULL)"
@@ -406,7 +419,7 @@ EOF_C
   if [ -n "$hit" ]; then
     reason="destructive-SQL guard: this change adds ${hit}. Confirm a backup or tested rollback exists and that it touches only the rows you mean."
   else
-    reason="destructive-SQL guard: this change adds ${lockhit}, which is slow on a large table and can block other queries. Use the non-blocking form (CREATE INDEX CONCURRENTLY; for a type change add a column and copy; for NOT NULL backfill, then validate) unless the table is small or a maintenance window is planned."
+    reason="destructive-SQL guard: this change adds ${lockhit}, which is slow on a large table and can block other queries. ${lockfix}"
   fi
   [ -n "$file" ] && reason="$reason (file: $file)"
   # Name the escape in the message that blocks you.

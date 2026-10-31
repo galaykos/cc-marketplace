@@ -21,7 +21,7 @@ Inertia is two packages that must agree — check both before recommending anyth
 ## Props are the page's contract
 
 Controllers return exactly what the page renders. Every prop is serialized into the page source
-(the `data-page` attribute) — anyone can View Source it.
+(v3: a `<script type="application/json">` element; v1/v2: the `data-page` attribute by default; v3 upgrade guide, checked 2026-10-31) — anyone can View Source it.
 
 ```php
 // Bad: whole model — hidden-ish accessors, appended attributes, and relations leak into HTML

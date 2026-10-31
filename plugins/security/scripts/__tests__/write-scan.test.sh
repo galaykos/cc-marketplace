@@ -94,6 +94,20 @@ silentf "createCipheriv"    /tmp/a.js  'crypto.createCipheriv("aes-256-gcm", key
 warnsf "script no sri"      /tmp/a.html '<script src="https://cdn.x/lib.js"></script>'    "script-without-sri"
 silentf "script with sri"   /tmp/a.html '<script src="https://cdn.x/lib.js" integrity="sha384-abc" crossorigin="anonymous"></script>'
 silentf "script in .md"     /tmp/a.md   '<script src="https://cdn.x/lib.js"></script>'
+# 0.12.8: the five rows with no extension gate skipped no doc file, so a Markdown report quoting a sink drew the warning.
+silentf "guarded in .md"    /tmp/r.md   'protected $guarded = [];'
+warnsf "guarded in a model" /tmp/User.php 'protected $guarded = [];'                    "mass-assignment-open"
+silentf "blade in .md"      /tmp/r.md   '<div>{!! $user->bio !!}</div>'
+warnsf "blade in a view"    /tmp/bio.blade.php '<div>{!! $user->bio !!}</div>'          "blade-unescaped"
+silentf "vite secret in .md" /tmp/r.md  'VITE_STRIPE_SECRET=sk_test_x'
+warnsf "vite secret in .env" /tmp/.env  'VITE_STRIPE_SECRET=sk_test_x'                  "client-bundle-secret"
+# A JSON or YAML file still feeds this row: CI workflows, compose files and eas.json set build env there.
+warnsf "public secret in CI yml" /tmp/build.yml '  NEXT_PUBLIC_API_KEY: ${{ secrets.API_KEY }}' "client-bundle-secret"
+silentf "whereRaw in .md"   /tmp/r.md   '->whereRaw("id = {$id}")'
+warnsf "whereRaw in a repo" /tmp/Repo.php '->whereRaw("id = {$id}")'                    "raw-sql-interpolation"
+silentf "html sink in .md"  /tmp/r.md   '<div dangerouslySetInnerHTML={{__html: bio}} />'
+silentf "html sink in .json" /tmp/r.json '{"note": "el.innerHTML = user.bio"}'
+warnsf "html sink in .tsx"  /tmp/Bio.tsx '<div dangerouslySetInnerHTML={{__html: bio}} />' "raw-html-sink"
 
 warnsf "sys interp ts"      /tmp/a.ts  '{ role: "system", content: `You are a helper for ${user.name}` }' "prompt-interpolation"
 warnsf "sys key ts"         /tmp/a.ts  'system: `You are ${persona}. Answer briefly.`,'            "prompt-interpolation"

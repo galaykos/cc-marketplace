@@ -3,8 +3,26 @@
 > Last verified: 2026-08-12 — https://laravel.com/docs/13.x/releases
 > Floor rule (from the SKILL body): recommend an idiom only when composer.json's
 > `laravel/framework` floor is at or above the release that shipped it.
+> Laravel 11 support status and its three upgrade inversions: checked 2026-10-31 against
+> https://laravel.com/docs/11.x/upgrade and https://endoflife.date/laravel.
 
 ## Laravel 11 (2024-03) — the slim-skeleton boundary
+
+- **Unsupported**: bug fixes ended 2025-09-03, security fixes 2026-03-12 (endoflife.date). An 11
+  lockfile is an upgrade finding; flag it, then advise against what it has installed.
+- **`->change()` drops every modifier you do not restate** (upgrade guide, "Likelihood Of Impact:
+  High"). On 10, `$table->integer('votes')->nullable()->change()` kept the column's `unsigned`,
+  `default` and `comment`; on 11+ it removes them. Repeat each modifier in the change:
+  `->unsigned()->default(1)->comment('…')->nullable()->change()`. Indexes are untouched; add or drop
+  them with index modifiers (`->unique(false)->change()`). The 13.x migrations docs keep the rule.
+- **Carbon 3** (11 accepts Carbon 2 or 3): `diffIn*` methods return floats and can be negative to
+  show direction. Code that compares `diffInDays()` to an int or treats it as a positive count
+  changes meaning once `composer.lock` resolves Carbon 3; read Carbon's migration guide before
+  fixing it.
+- **`mariadb` driver**: 11 adds a dedicated driver. It behaves like the MySQL driver except that `uuid()`
+  creates a native UUID column, not `char(36)`. Switching an existing app's connection to
+  `mariadb` changes what old `uuid()` migrations build; the guide says to rewrite them as
+  `char('uuid', 36)`.
 
 - `bootstrap/app.php` is the single configuration surface: routing, middleware
   (`->withMiddleware`), and exception handling live there. `Http/Kernel.php`, the

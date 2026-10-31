@@ -1,0 +1,42 @@
+schema_version: "1.0"
+name: idempotency-mismatch
+description: A retried POST reuses its Idempotency-Key with a changed amount — the answer must be 422 (draft-ietf-httpapi-idempotency-key-header-08), not the remembered 409. UNRUN, and the control arm is unmeasured. If a no-plugin run passes, this case cannot measure the skill; delete it.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Our payments API takes an `Idempotency-Key` header on `POST /payments`.
+
+    A client sends `POST /payments` with `Idempotency-Key: 7f3c9a` and
+    `{"amount": 1999, "currency": "EUR"}`. It succeeds with 201. The client then retries
+    `POST /payments` with the same `Idempotency-Key: 7f3c9a`, but the body is now
+    `{"amount": 2999, "currency": "EUR"}`. The first request finished long ago.
+
+    What should the server return for the retry, and why?
+runs: 3
+graders:
+  - type: llm
+    name: mismatch-is-422
+    criteria: |
+      The IETF draft `draft-ietf-httpapi-idempotency-key-header-08` says a key reused with a
+      different request payload SHOULD get 422. It keeps 409 for a duplicate that arrives
+      while the first request is still being processed, and 400 for a missing key.
+
+      PASS requires both:
+
+      1. The response names **422** as the status for this retry (the same key with a
+         changed amount, the first request already finished).
+      2. The server rejects the retry: it neither charges the new amount nor replays the
+         first 201 as if the two requests matched.
+
+      FAIL if the response names 409 as the status for this scenario. That is the
+      remembered "conflict" answer this case exists to catch. Also FAIL on 400, on a 200
+      or 201 replay of the cached response, or on processing the new amount.
+
+      Mentioning 409 for a concurrent in-flight duplicate is correct and is not a FAIL.
+      Partial credit is not available: a response that offers 409 and 422 as equal options
+      for this scenario fails criterion 1.
+
+      Not graded: the problem+json body, key expiry, storage design, or citing the draft.
+      Mentioning them is neither rewarded nor punished.

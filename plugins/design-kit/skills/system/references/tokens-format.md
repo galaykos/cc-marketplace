@@ -1,18 +1,21 @@
 # tokens.json — the shape system-extract.py writes
 
-> Last verified: 2026-09-22 — https://www.designtokens.org/tr/drafts/format/ (Format Module 2025.10, Draft Community Group Report of 2026-09-08, which carries its own "Do not attempt to implement this version" warning)
+> Last verified: 2026-10-31 — https://www.designtokens.org/TR/2025.10/format/ and https://www.designtokens.org/TR/2025.10/color/ (Format and Color Modules 2025.10, Final Community Group Report of 28 October 2025, "intended for implementation"). The "Do not attempt to implement this version" warning belongs to the later editor's draft, https://www.designtokens.org/tr/drafts/format/ (Draft Community Group Report of 08 September 2026), not to 2025.10.
 
 The file is **DTCG-shaped, not DTCG-2025.10-conformant**, and says so here rather than
-in a footnote. Shared with the draft: every token is an object with `$type` and `$value`;
-groups are plain nested objects; `{group.token}` is an alias; `$extensions` holds
-tool-specific data. Diverging from the 2025.10 draft: that draft requires a `color`
-`$value` to be an object (`colorSpace`, `components`, optional `hex`) and a `dimension`
-to be `{ "value": n, "unit": "px" | "rem" }`. This file keeps both **as strings, as the
-source wrote them** — a hex, an `oklch()` call, an HSL triplet, `0.5rem`, `24px` — because
-the source's form is evidence, `%`/`em` units have no conforming object, and the draft
-tells implementers to wait. A consumer wanting the object form converts on its side.
-The extension key is `design-kit` (the draft recommends reverse-domain keys; this one is
-short on purpose and unlikely to collide).
+in a footnote. Shared with the 2025.10 report: every token is an object with `$type` and
+`$value`; groups are plain nested objects; `{group.token}` is an alias; `$extensions`
+holds tool-specific data. Diverging from the 2025.10 report: its Color Module requires a
+`color` `$value` to be an object (`colorSpace` and `components`, optional `alpha` and
+`hex`), and its Format Module requires a `dimension` to be
+`{ "value": n, "unit": "px" | "rem" }` and a `duration` `{ "value": n, "unit": "ms" | "s" }`.
+This file keeps all three **as strings, as the source wrote them** — a hex, an `oklch()`
+call, an HSL triplet, `0.5rem`, `24px`, `200ms` — because the source's form is evidence
+and `%`/`em` units have no conforming object. A consumer wanting the object form
+converts on its side. A named easing and a `shadow` diverge too; see the list at the end.
+The extension key is `design-kit` (the report recommends keys that avoid a clash with
+another vendor's, such as reverse-domain names; this one is short on purpose and
+unlikely to collide).
 
 ## Groups and types
 
@@ -79,6 +82,8 @@ nicer scheme.
 - `$value` for `fontFamily` is the FIRST family in a stack, unquoted; the fallback stack
   is not recorded.
 - `shadow` values are raw CSS strings, not the DTCG composite object.
+- A named easing (`ease-in-out`) stays a string; the 2025.10 report requires a
+  `cubicBezier` `$value` to be an array of four numbers.
 - Determinism is byte-level for the same source and script version; a script change may
   reorder or rename, so pin the plugin version in a consumer that diffs the file.
 

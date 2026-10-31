@@ -3,6 +3,10 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.15.7 — 2026-10-31
+
+- **The guard, the redaction mod and `/secret-scanning:scan` now catch current provider keys.** Until now, an Anthropic key in a string or a `Bearer` header, a fine-grained `github_pat_` token, OpenAI `sk-proj-`/`sk-svcacct-`/`sk-admin-` keys, GitLab `glpat-`, Hugging Face `hf_`, Stripe restricted `rk_live_`, SendGrid `SG.`, npm `npm_` and PyPI `pypi-AgEI…` tokens, and AWS `ASIA`/`ABIA`/`ACCA`/`A3T` key IDs passed. A value got caught only when its variable name looked like `api_key` or `token`. `hooks/patterns.tsv` gains ten rows and the AWS row gains four prefixes. All of them are adapted from gitleaks' default rules (MIT). A key that also sits under a key-like name is now denied under its provider's label. `scan-hook.test.sh` and `pattern-parity.test.sh` add a case for each row that must deny, and the nearest miss that must pass.
+
 ## 0.15.6 — 2026-10-28
 
 - **The `secret-scanning` skill's description now reads in short, plain sentences.** Same triggers, the write-guard fixture escape included; it keeps the words the model matches it on.

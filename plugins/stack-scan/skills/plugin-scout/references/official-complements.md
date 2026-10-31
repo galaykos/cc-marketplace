@@ -1,6 +1,6 @@
 # Official complements — what to install from `claude-plugins-official`
 
-> Last verified: 2026-09-02 — https://github.com/anthropics/claude-plugins-official
+> Last verified: 2026-10-31 (names), 2026-09-02 (mechanisms) — https://github.com/anthropics/claude-plugins-official
 
 This marketplace does not cover everything a development session needs, and
 several of the gaps are already filled by Anthropic's own directory,
@@ -56,32 +56,36 @@ nothing local replaces it (`context7`).
 
 ## Framework-native tooling
 
-> Last verified: 2026-09-26 — https://laravel.com/docs/13.x/boost
+> Last verified: 2026-10-31 (Boost, Expo, Terraform, Prisma, Apollo rows), 2026-09-26 (the rest) — https://github.com/laravel/boost
 
-Some framework vendors now ship their own version-matched agent layer. It is not a
-`claude-plugins-official` plugin, and the vendor-agnostic filter above does not apply: the
+Some framework vendors now ship their own version-matched agent layer, a few of them through
+`claude-plugins-official`. The vendor-agnostic filter above does not apply: the
 vendor is the framework the repo already depends on. A row prints in the same `Beyond this
 marketplace` block under the same evidence rule, with its overlap sentence. Every command
-is **printed, never run**: the Boost row runs a package manager, which Detection forbids.
-The two hosted rows are flagged, as `context7` is.
+is **printed, never run**: the Boost and Prisma rows run a package manager, which Detection forbids.
+Hosted parts are flagged, as `context7` is.
 
 | Tooling | Signal | What it carries that nothing here does | Overlap here |
 |---|---|---|---|
-| Laravel Boost: `composer require laravel/boost --dev`, then `php artisan boost:install` | composer require `laravel/framework` | Version-matched guidelines (Laravel 10–13, Livewire 2–4, Inertia 1–3, Tailwind 3–4) and on-demand skills picked from `composer.json`: `livewire-development`, `fluxui-development`, `inertia-{react,vue,svelte}-development`, and Filament's own `filament-development` when `filament/filament` is present. An MCP server (`php artisan boost:mcp`): app info, schema, logs, and a docs search that also covers Filament 2–5 | `inertia-*-development` co-fires with `laravel:inertia-best-practices`, `tailwindcss-development` with `ui-ux:tailwind-best-practices`, `pest-testing` with `testing:testing-best-practices`; expect two doctrines on those files. Boost writes `CLAUDE.md`/`AGENTS.md` guideline files loaded every session, an always-on cost this marketplace's budget gate does not meter |
+| Laravel Boost: `composer require laravel/boost --dev`, then `php artisan boost:install` | composer require `laravel/framework` | Version-matched guidelines (Laravel 10–13, Livewire 2–4, Inertia 1–3, Tailwind 3–4) and project skills written to `.claude/skills/`, picked from `composer.json`: `laravel-best-practices`, `testing-best-practices` (it absorbed `pest-testing` in v2.6.0), `livewire-development`, `fluxui-development`, `inertia-{react,vue,svelte}-development`, and Filament's own `filament-development` when `filament/filament` is present. Project rules: the `record-rule` MCP tool and the user-invoked `infer-conventions` skill write house conventions to `.ai/rules/`, committed and indexed by glob. An MCP server (`php artisan boost:mcp`): schema, read-only queries, Tinker, logs, `record-rule`, and a docs search that also covers Filament 2–5; v2.10.4 removed its application-info tool. `laravel-boost@claude-plugins-official` wires only that server and still needs `composer require laravel/boost`; `boost:install` writes the same `laravel-boost` server into `.mcp.json`, so take one of the two | **Same names:** Boost's project skills `laravel-best-practices` and `testing-best-practices` sit beside `laravel:laravel-best-practices` and `testing:testing-best-practices`, two doctrines under one name on every Laravel and test file; keep one. `inertia-*-development` co-fires with `laravel:inertia-best-practices`, `tailwindcss-development` with `ui-ux:tailwind-best-practices`. Boost writes its guidelines into `CLAUDE.md` (`AGENTS.md` when there is no `CLAUDE.md`), loaded every session, an always-on cost this marketplace's budget gate does not meter |
 | Next.js bundled docs, `node_modules/next/dist/docs/` | dep `next` | Docs matching the installed version, read locally. On ≥16.3 `next dev` writes the `nextjs-agent-rules` block into `AGENTS.md` and `CLAUDE.md` when it detects an agent (`grep nextjs-agent-rules AGENTS.md` hits → `✓`); on 16.2 add that `AGENTS.md` line by hand; on ≤16.1 `npx @next/codemod@canary agents-md` downloads a copy | `web-dev:nextjs-best-practices` keeps house judgment and the inversions; the bundled docs are the version truth, so read them first on ≥16.2 |
 | Astro Docs MCP (hosted, kapa.ai index): `claude mcp add --transport http astro-docs https://mcp.docs.astro.build/mcp` | dep `astro` | Current Astro docs over a remote MCP | none, no plugin here covers Astro |
 | Nuxt MCP (hosted): `claude mcp add --transport http nuxt https://nuxt.com/mcp` | dep `nuxt` | Nuxt docs over a remote MCP | none, the Nuxt one here was removed 2026-08-26 |
 | Remotion agent skills: `npx skills add remotion-dev/skills` | dep `remotion` or `@remotion/cli` | Remotion's own skills (best practices, create, render, captions, studio, upgrade and more) for its composition API, rendering and media | `design-kit:film` orders the film and checks it by script; these carry the API. **Remotion needs a paid company licence for a for-profit organisation over 3 employees** (its `LICENSE.md`) — say so with the row |
 | HyperFrames agent skills: `npx skills add heygen-com/hyperframes`, or `claude plugin marketplace add heygen-com/hyperframes` then `claude plugin install hyperframes@hyperframes` | dep `hyperframes` or `@hyperframes/*` | HeyGen's own skills for its HTML-to-MP4 renderer (Apache-2.0, Node 22+, deterministic seek-and-encode through headless Chrome and ffmpeg) | `design-kit:film` defaults to this renderer and defers its API to these skills |
+| Expo skills (bundles a hosted MCP): `claude plugin install expo@claude-plugins-official` | dep `expo` | Expo's own skills (MIT): Expo Router, native UI and `@expo/ui`, data fetching, DOM components, native modules, SDK upgrades, and a separate group for the paid EAS services (builds, store submission, updates, workflows), each opening with a costs note. Its hosted MCP (`mcp.expo.dev`) reads current docs, runs `npx expo install`, drives EAS builds and screenshots a simulator | `web-dev:react-native-best-practices` carries the house rules and the Expo/EAS traps; expect two doctrines on Expo files |
+| HashiCorp Terraform skills: `claude plugin marketplace add hashicorp/agent-skills`, then `claude plugin install terraform@hashicorp` (or `npx skills add hashicorp/agent-skills`). Terraform MCP: `claude plugin install terraform@claude-plugins-official` | `*.tf` or `.terraform/` | HashiCorp's own skills (MPL-2.0): style guide, `terraform test`, module refactoring, search and import, Stacks, policy, Azure Verified Modules, and provider development (resources, docs, acceptance tests, framework migration). The official-directory plugin runs HashiCorp's MCP server through Docker (`hashicorp/terraform-mcp-server:0.4.0`): public registry lookups for providers, modules and policies need no token; HCP Terraform and Enterprise workspaces need `TFE_TOKEN` | none as doctrine: `devops` ships only `scripts/plan-audit.sh`, which exits 2 on a plan that destroys a stateful resource. Both plugins are named `terraform`, one per marketplace, so name the marketplace in the install |
+| Prisma skills: `npx skills add prisma/skills` (or `--skill prisma-upgrade-v7`). MCP (hosted half): `claude plugin install prisma@claude-plugins-official` | dep `prisma`, `@prisma/client` or `@prisma/orm-*`; read the major from the lockfile | Prisma's own skills (MIT): the Prisma ORM 7 CLI, the Client API, setup, writing a SQL driver adapter, and `prisma-upgrade-v7`, the v6 → v7 migration (driver adapters, `prisma.config.ts`, ESM) through every breaking change; plus Prisma Postgres and Compute. Prisma 8 (early access, `@prisma/orm-*` packages) ships its own version-matched `prisma-8` skill inside the package, copied in by `prisma skills sync`. The official-directory plugin is MCP only: a local `npx -y prisma@7.10.1 mcp` and the hosted `mcp.prisma.io` | `database` carries the engine-agnostic schema and migration doctrine, and its PreToolUse guard asks before a Prisma drop; these carry Prisma's API. The plugin pins `prisma@7.10.1` for its local MCP, whatever the lockfile says |
+| Apollo GraphQL skills (bundles a hosted MCP): `claude plugin install apollo-skills@claude-plugins-official` — not `apollo`, which is Apollo.io's sales prospecting | dep `@apollo/*` | Apollo's own skills (MIT): Apollo Client 4 for React, Apollo Server 4, Federation, Router and its plugins, Rover, iOS, Kotlin, GraphQL operations and schema, and GraphOS Factory for a Connectors subgraph from a REST API. Its hosted GraphOS MCP is `mcp.apollographql.com` | `api-design:graphql-grpc` carries the stack-free schema, dataloader and resolver-authorization rules; Apollo's `graphql-schema` co-fires with it |
 
 Livewire, Flux and Filament have no row of their own: Boost is their vendor layer, and
 `references/signals.md` routes their keys here. React Router framework mode and the
 headless CMS SDKs have no vendor row verified; `signals.md` routes them to
 `api-design:api-docs-first`.
 
-## Deliberate exclusions — official plugins that overlap what is installed here
+## Deliberate exclusions — official and vendor plugins that overlap what is installed here
 
-Print these only when the user asks what else the official directory has; never
+Print these only when the user asks what else the official directory or a vendor has; never
 as a suggestion, because installing both loads two doctrines for one job.
 
 - `feature-dev` — one command over explore, design, implement, review with
@@ -115,6 +119,12 @@ as a suggestion, because installing both loads two doctrines for one job.
 - `code-modernization` — a full legacy-migration pipeline; nothing here competes,
   but it is a project shape, not a development floor, so it is a search away
   rather than a row.
+- `docker/skills` — Docker's own skills (Apache-2.0), not in the official directory:
+  `npx skills add docker/skills`, or `docker-skills@docker` from its own marketplace.
+  `docker-project-foundations`, `docker-build-strategies` and `docker-compose-patterns`
+  cover the Dockerfile and compose ground of `devops:docker-best-practices` and
+  `devops:compose-init`, two doctrines on one Dockerfile. Its Docker Sandboxes and Docker
+  Agent skills have no counterpart here; take those singly with `--skill <name>`.
 
 ## Standing
 
@@ -130,9 +140,15 @@ curl -s https://raw.githubusercontent.com/anthropics/claude-plugins-official/mai
   | python3 -c "import json,sys;print('\n'.join(sorted(p['name'] for p in json.load(sys.stdin)['plugins'])))"
 ```
 
-Verified against that file on 2026-09-02; the host built-in `code-review` entry was
+Mechanisms verified against that file on 2026-09-02. On 2026-10-31 it listed 315 names,
+every directory name this file cites among them. The host built-in `code-review` entry was
 verified against the Claude Code 2.1.259 skill listing on 2026-09-03, not the directory.
 The Framework-native rows were verified on 2026-09-26 against the vendors' own pages,
 which no script re-reads: laravel.com/docs/13.x/boost, filamentphp.com/docs/5.x/introduction/ai,
 nextjs.org/docs/app/guides/ai-agents, docs.astro.build/en/guides/build-with-ai,
-nuxt.com/docs/4.x/guide/ai/mcp.
+nuxt.com/docs/4.x/guide/ai/mcp. On 2026-10-31 the Boost row was re-read from the
+laravel/boost v2.10.4 tag (`CHANGELOG.md`, `src/Mcp/Tools/`, `.ai/*/skill/`), whose
+docs page still lists the removed tool, and the Expo, Terraform, Prisma and Apollo rows
+and the `docker/skills` exclusion from github.com/expo/skills, hashicorp/agent-skills,
+hashicorp/terraform-mcp-server, prisma/skills, prisma/orm, apollographql/skills,
+docker/skills and the directory's own entries for them.

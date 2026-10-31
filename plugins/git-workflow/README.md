@@ -19,7 +19,7 @@ review. A guard keeps AI attribution out of git history. A check asks before
 | Command | What it does |
 |---------|--------------|
 | `/git-workflow:finish [branch] [--to pr\|merge\|keep]` | Verify the full suite, show branch state evidence (diffstat, ahead/behind, commits), ask PR / keep / discard (plus merge-locally only when the base is not the default branch — the default branch is reached via PR only), execute the choice including worktree and branch cleanup; `--to` (passed by task-runner's run handoff) answers only the destination question — every check still runs, and it never discards or merges onto the default branch |
-| `/git-workflow:clean-gone [--dry-run]` | Fetch with prune, list every local branch whose upstream is `[gone]` with its worktree, skip the current branch and any dirty worktree, ask once, then remove worktrees and `-D` the branches — the sweep for PRs merged and deleted somewhere other than `/git-workflow:finish` |
+| `/git-workflow:clean-gone [--dry-run]` | Fetch with prune, list every local branch whose upstream is `[gone]` with its worktree, sort them into merged (squash and rebase merges included) and unmerged with `scripts/gone-branches.sh`, skip the current branch and any dirty worktree, ask once, then remove worktrees and `-D` the picked branches; an unmerged one goes only when named and confirmed on its own, since a deleted remote branch is no proof that its commits were merged — the sweep for PRs merged and deleted somewhere other than `/git-workflow:finish` |
 
 ## Example
 
@@ -128,6 +128,7 @@ Standing markers per the marketplace convention (see
 | `git commit -F <pre-existing file>`, a repo `prepare-commit-msg` hook, `git config trailer.*`, a commit outside the session | **unenforceable** | the message never crosses a matched tool call; silence means "no known shape matched", not "history is clean" |
 | finish / clean-gone / worktree protocols | **recorded** | prose the model follows; nothing reads it back |
 | a suite pass reused by finish | **gate** for the freshness rule; **recorded** for the finish step that calls it | `scripts/__tests__/receipt-fresh.test.sh` drives the reader; a change the Misses line above names still reads fresh |
+| which `[gone]` branches clean-gone offers to delete together | **gate** for the classification; **recorded** for the pick | `scripts/__tests__/gone-branches.test.sh` builds merged, squash-merged, rebase-merged, deleted-unmerged, committed-after-push and dirty-worktree branches and asserts each one's class |
 
 Fail-open, deliberately, both hooks: missing `jq`, unparseable input, any internal error —
 the hook stays silent, exits 0, and the command proceeds. Each harness asserts it.

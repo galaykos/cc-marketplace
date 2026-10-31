@@ -1311,6 +1311,20 @@ symbolic-ref, not --abbrev-ref: a tag with the branch's name made that print `he
 Exit 1 is a detached head; any other failure records no branch, which every reader takes as a match.
 ```
 
+### Which phase-sentinel.sh runs (2026-10-31)
+
+An installed plugin sits at `<cache>/<marketplace>/<plugin>/<version>/`, so the dev-tree sibling
+`$here/../../taskmaster` never exists there and the cache-wide `find | sort -V | tail -1` was the
+path always taken. `sort -V` over full paths orders by marketplace name first: with a
+`zz-other/taskmaster/9.9.9` beside `cc-plugins-marketplace/taskmaster/0.50.10` it ran the other
+marketplace's copy (red in `register-run.test.sh` § 3f on the 0.49.9 script). The order now: the
+dev-tree sibling; the `installPath` of the enabled `taskmaster@…` row in `claude plugin list --json`
+for this project or user scope (overseer's `scripts/skill-path.sh` filter, copied); the newest
+version directory in the script's own marketplace, `sort -V` on that name alone; then the old
+cache-wide find, with a stderr line that it may not be the loaded copy. The CLI filter was run
+against the real `claude plugin list --json` once, from this repository: it returned this project's
+`local`-scope row and skipped another worktree's older one.
+
 ## plugins/task-runner/scripts/negative-control.sh
 
 ### Header

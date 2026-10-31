@@ -105,6 +105,18 @@ Groups are ERE alternations over the lowercased basename's suffix.
 any extension; the doc exclusion below still applies
 ```
 
+### Doc exclusion on every row (2026-10-31, security 0.12.8)
+
+```text
+The doc exclusion sat inside the extension-gate branch, so the five rows that pass no extension group (mass-assignment-open,
+blade-unescaped, client-bundle-secret, raw-sql-interpolation, raw-html-sink) read doc files: a researcher writing a Markdown
+report drew blade-unescaped on prose. The "any extension; the doc exclusion below still applies" line above was the comment on
+CODE; it now holds for every row. The doc list is unchanged, split in two: prose (.md .mdx .txt .rst) skips every row; data
+(.json .yaml .yml .lock) skips every row but client-bundle-secret, which had always read those files and has real targets
+there (a CI workflow's env:, a compose environment:, eas.json's build env). .env files were never on the list.
+Residual: client-bundle-secret still warns on a JSON or YAML file that merely names a public-prefixed secret.
+```
+
 ### client-bundle-secret: the public-bundle prefixes
 
 ```text

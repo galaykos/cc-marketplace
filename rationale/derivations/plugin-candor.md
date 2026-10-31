@@ -801,6 +801,38 @@ same reasoning clause 4 already applies as its `no-executable-surface` verdict.
 A mutation with no file_path, no extension, or any other extension (json,
 yaml, sh, code) still arms it. RESIDUAL: a prose edit that lies about content
 ("documented and verified") passes — there was nothing to execute either way.
+
+BASH WRITES (0.10.8, 2026-10-31). Until then every Bash call was an exec, so a
+turn whose only writes were `cat > src/x.py <<EOF`, `sed -i` or `tee` never armed
+the clause ("no-edits"), while skill-router's README measured 233 of 238 main-thread
+writes as Bash heredocs. Now the jq pass emits each Bash call's command as a JSON
+string line after its entry's names; awk keeps the last one, and only when the LAST
+Bash call is after every Edit-tool edit and every Agent/Task call is it read (no
+earlier Bash call can decide the verdict: a later Bash call is either the later edit
+or the later run). bash_call_edits reads it: cheap exit when the text holds no `>`,
+`tee`, `sed` or `perl`; else cc_strip_heredoc_bodies all, one awk splitting the rest
+into command lists (; && || & newline), last first, each flagged R when a pipeline
+element's command word is not a writer/mover/announcer (cat tee echo printf sed perl
+cp mv rm ln mkdir touch chmod cd pushd popd true : fi done esac). Walking back: an R
+list means the write (somewhere earlier, or in that list: `pytest | tee log`,
+`pytest > out.json`) was followed or carried by a run, so the call is a run; a
+non-R list whose cc_bash_write_targets names a non-prose file is the edit; past the
+first list, the whole command's targets decide (a split the awk got wrong errs to edit).
+WRITE-THEN-RUN RULE: a command that runs something after its last write clears
+itself, because the clause already takes any later run as evidence and blocking
+`cat > t.py <<EOF … EOF && pytest` would accuse a verified turn of running nothing;
+`&& echo ok` or `&& chmod +x` after the write is no run, and a run BEFORE the write
+(`pytest && sed -i …`) does not clear it. A call writing only prose files stays a run,
+as before, or `pytest | tee results.txt` would stop counting. RESIDUALS: the block's
+own misses (interpreter writes, cp/mv/install/patch/git apply, a path in a variable,
+a `\` continuation, a quoted string spanning lines); `&& ls` or `&& git diff` clears a
+write as a separate `git status` call does; a generator whose output a redirect
+captures (`python3 gen.py > src/out.py`) reads as a run; `perl script.pl > out.c`
+reads as a write with no run (perl is on the writer list for `perl -pi`); a heredoc
+body the strip block cannot place is split as commands, and a run-shaped body line
+then clears the call. Measured, 20 runs, Stop with a claim: last call a test run 31 →
+33 ms median; a heredoc write 31 → 49 ms; a 5.0 MB tail of 1,333 heredoc calls 247 →
+303 ms. A Bash entry with no input.command reads as a run, the 0.10.7 outcome.
 ```
 
 ### Clause 5: LOCKFILE DRIFT

@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.12.5 — 2026-10-31
+
+- **DTCG Format Module 2025.10 is named as the final report it is.** The README, the `system` skill and `references/tokens-format.md` called 2025.10 a draft carrying "Do not attempt to implement this version". 2025.10 is a Final Community Group Report of 28 October 2025 that says it is intended for implementation. The warning is on the later editor's draft at designtokens.org/tr/drafts/format/. The places `tokens.json` diverges from 2025.10 are unchanged and now complete: colour, dimension and duration values, named easings and shadows stay the strings the source wrote. The README had said "exactly two places", which left out duration, easings and shadows. No change to what the script writes.
+
 ## 0.12.4 — 2026-10-28
 
 - **The `system` skill's description now reads in short, plain sentences.** Same sources and outputs; it keeps the words the model matches it on.

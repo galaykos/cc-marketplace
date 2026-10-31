@@ -462,6 +462,40 @@ load_patterns <file>: reads <file> into pat_kind/pat_label/pat_flags/pat_re (sec
 placeholder <value>: 0 when the value announces itself as fake. pat_value <kind> <match>: sets pat_v to the value a match is judged on.
 ```
 
+## plugins/secret-scanning/hooks/patterns.tsv
+
+### The provider rows adapted from gitleaks (0.15.7)
+
+Written 2026-10-31. Unlike the sections above, it was not moved out of code.
+
+What shipped: before this release, a Write into `app.ts` passed `hooks/scan.sh` when it held any of these: `const key = "sk-ant-api03-…AA";`, the same key in an `Authorization: "Bearer …"` header, `GH_PAT=github_pat_…`, or `const t = "github_pat_…";`. Only `apiKey: "sk-ant…"` and `ANTHROPIC_API_KEY=…` were denied, on the generic assigned row. A researcher reported more that passed: OpenAI `sk-proj-`/`sk-svcacct-`/`sk-admin-` keys holding `T3BlbkFJ`, GitLab `glpat-`, Hugging Face `hf_`, AWS `ASIA`/`ABIA`/`ACCA` key IDs, Stripe `rk_live_`, SendGrid `SG.`, npm `npm_` and PyPI `pypi-AgEI…`. The provider rows were written before those formats existed. The redaction mod and `scripts/scan-range.sh` read the same file, so they missed the same values.
+
+Source: gitleaks' default config, `config/gitleaks.toml`, fetched 2026-10-31 at commit `5f6ec56cfa6f8c67648d863582c7ae2f206d5c1c` (master, committed 2026-10-23). gitleaks is MIT-licensed, "Copyright (c) 2019 Zachary Rice" (its `LICENSE` at that commit). Rules used: `anthropic-api-key`, `anthropic-admin-api-key`, `openai-api-key`, `github-fine-grained-pat`, `gitlab-pat`, `huggingface-access-token`, `aws-access-token` (its prefix set only), `stripe-access-token` (`rk_live_` only), `sendgrid-api-token`, `npm-access-token`, `pypi-upload-token`.
+
+How each rule was translated into this file's dialect:
+
+- `\w` became `[A-Za-z0-9_]`, and `\-` inside brackets moved to the bracket's end. `(?i:[a-z]{34})` and `(?i)[a-z0-9=_\-\.]` now list both letter cases. `(?:` became `(`.
+- Dropped: the leading `\b`, the trailing `(?:[\x60'"\s;]|\\[nr]|$)` group, every `entropy` filter and every keyword prefilter. Without lookaround, a boundary has to consume a character. That shifts the redaction mask, and it swallows the separator the next key's match needs. So a row also matches a prefix inside a longer word (`xhf_` + 34 letters), and the first N characters of a longer run. Only the provider prefix and the length carry the confidence.
+- Some runs are open-ended where gitleaks gives a range: Stripe `{10,99}` and PyPI `{50,1000}` are capped above only so the trailing boundary can fire, and GitLab's `{20}` has no boundary at all. Here they are `{10,}`, `{50,}` and `{20,}`. The same texts match, and the mask covers the whole run instead of leaving its tail readable. Fixed-length formats keep the exact count: `{93}AA`, `{82}`, `{34}`, `{36}`, `{66}`.
+- npm keeps its `npm_` prefix case-sensitive. gitleaks' `(?i)` covers the prefix as well, and this file keeps `i` off provider rows.
+- AWS: the existing row gained `A3T[A-Z0-9]`, `ASIA`, `ABIA` and `ACCA`. Its `[0-9A-Z]{16}` body stays, rather than gitleaks' base32 `[A-Z2-7]{16}`, so no `AKIA` value that denied before passes now.
+
+Not taken:
+
+- Stripe `test` and `prod` keys, for both `sk_` and `rk_`. Test-mode keys reach no live data, and `.env.example` files carry them (`scan-hook.test.sh`, `.env.example x-run`).
+- `huggingface-organization-api-token`. Its `api_org_` prefix reads like a snake_case identifier, and nothing in the report named it.
+- `gitlab-pat-routable`. Its prefix is `glpat-`, which the open-ended row already matches.
+- Every other gitleaks rule.
+
+Order: the new rows sit after the Stripe live row, ahead of the URL and assigned rows. A key under a key-like name (`apiKey: "sk-ant-…"`) is now denied under its provider's label. The assigned row still matches it, so the mod's mask names both labels (`pattern-parity.test.sh` pins the text). Measured 2026-10-31: each row takes about 10 ms under `grep -oE` on a 1 MB line. The parity harness's redact timings stayed under its 500 ms bound (12 ms on the 300 kB `token-` line).
+
+Residual:
+
+- A real key holding a placeholder word (`todo`, `fake`, `xxxx`) is released, as on every row.
+- `hf_` and `SG.` match inside a longer word.
+- Any token format newer than that commit is missed.
+- So is an OpenAI key whose halves are neither 58 nor 74 characters.
+
 ## plugins/secret-scanning/scripts/__tests__/scan-hook.test.sh
 
 ### Header

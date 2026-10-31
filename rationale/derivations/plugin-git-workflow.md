@@ -190,3 +190,49 @@ keyword/assignment prefix is not decoration: without it `if git commit`,
 the old loose prefix did catch. Each of those four shapes has its own fixture —
 the claim said "verified by fixture" for eight days before any of them did.
 ```
+
+## plugins/git-workflow/scripts/gone-branches.sh
+
+Written with the script on 2026-10-31, not moved from it. Standing: `recorded`.
+
+What shipped that made it exist: `/git-workflow:clean-gone` (through 0.13.6) ran `git
+branch -D` on every local branch whose upstream read `[gone]`, on the reasoning that a gone
+upstream meant the merge happened remotely. It does not. The remote branch can be deleted
+unmerged (a closed PR, a stale-branch sweep, a teammate's cleanup), and a commit made locally
+after the last push was never on the remote, whatever happened to the PR. Only dirty
+worktrees were excluded. The idea that `[gone]` proves deletion and not landing comes from
+Trail of Bits' git-cleanup skill (CC-BY-SA); the idea is used here, none of its text.
+
+Why three tests and not one. `merge-base --is-ancestor` sees a merge commit and a
+fast-forward. A rebase merge rewrites every commit, so ancestry fails, but each patch-id
+survives: `git cherry <default> <branch>` printing no `+` line is that case. A squash merge
+folds several commits into one, so no single branch commit's patch-id matches. The probe
+builds one throwaway commit holding the branch's whole tree on top of its merge base (`git
+commit-tree`, which writes an object and no ref, so `git gc` prunes it) and asks `git
+cherry` whether that one patch is on the default branch. The harness asserts `git cherry`
+alone calls all three squashed commits unique, so the probe is what classifies them.
+
+Traps the code guards: a branch whose tree equals its merge base would yield an empty patch,
+and an empty patch shares its patch-id with every empty commit on the default branch, so the
+probe refuses it. The probe commit carries its own author and committer through the
+environment, because `user.useConfigOnly` with no identity makes `git commit-tree` fail and
+the squash class would silently vanish; the harness runs the script under exactly that
+config. On git 2.53 `git commit-tree` ignores `commit.gpgSign` (checked with `GIT_TRACE`), so
+the probe passes no signing flag.
+
+Default branch: `origin/HEAD` first (a fresh fetch moves it), else local `main`, else local
+`master`; the first output line says which. A local default that was never pulled reads a
+remotely merged branch as unmerged, which the harness asserts as the safe direction.
+
+Limits, each reading unmerged rather than merged: a branch merged into a non-default branch
+(a stacked PR); a squash edited on the remote (conflict resolution, review commits pushed by
+someone else and never fetched); a default branch on a remote not named `origin`; a branch
+that merged the default branch in and was then rebase-merged (the per-commit test is off for
+it, below).
+
+Merge commits on the branch: `git cherry` skips them, so content only a merge commit carries
+(a conflict resolution, a file added while merging) went uncompared, and a branch whose plain
+commits had all landed read content-merged. Found by a probe while writing the script
+(2026-10-31) and pinned by the harness's `evil` branch, red before the guard: the per-commit
+test now runs only when the branch has no merge commit of its own, and the squash probe,
+which compares the whole tree, decides the rest.

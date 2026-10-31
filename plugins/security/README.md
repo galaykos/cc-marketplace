@@ -100,7 +100,10 @@ guard also carries. A sibling repo or worktree written by absolute path from out
 roots is skipped too. Warn — never deny — because each has a legitimate form; `CC_SECURITY_SCAN=off`
 disables it, and `CC_REMIND=off` silences it along with
 every other advisory nudge in this marketplace. Single-line matching only: a `SafeLoader` on
-the next line still warns, a system prompt assembled across lines never does. GitHub Actions expression injection is deliberately not
+the next line still warns, a system prompt assembled across lines never does. No row reads a
+doc file (`.md`, `.mdx`, `.txt`, `.rst`, `.json`, `.yaml`, `.yml`, `.lock`), except that JSON and YAML
+still feed the public-prefix secret row, since CI workflows, compose files and `eas.json` set build env
+there (standing: **gate**, `write-scan.test.sh`). GitHub Actions expression injection is deliberately not
 here — `devops` denies it pre-write. Everything else (authz logic, cross-file flows,
 dependency audit) stays review-time via `/security:review`.
 

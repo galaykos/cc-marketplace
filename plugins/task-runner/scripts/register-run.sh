@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # register-run.sh — the one writer of .claude/task-runner/active-run.json: resumes a same branch+slug+index run untouched (its mtime is where gate records count from; --fresh, or no --index, registers anew); else deletes stale gate records, arms rv/ rt/ bg/ nc/ reductions/, writes slug, base, branch, start_sha. Sets phase build; seeds env-notes.md.
-# Misses: whether the model runs the line it reads (agent-graded); a sentinel written by hand, which carries no start_sha and so does not arm the range-review check.
+# Misses: whether the model runs the line it reads (agent-graded); a sentinel written by hand, which carries no start_sha and so does not arm the range-review check; without the CLI or a taskmaster in its own marketplace, a cache-wide phase-sentinel.sh that may not be the loaded copy (said on stderr).
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/register-run.sh (marketplace repository)
 
 # Usage:
@@ -26,8 +26,8 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "not inside a git work tree"
-ROOT=$(cd "$ROOT" && pwd -P)
+TOP=$(git rev-parse --show-toplevel 2>/dev/null) || die "not inside a git work tree"
+ROOT=$(cd "$TOP" && pwd -P)
 HEAD=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null) || die "no commit at HEAD"
 # symbolic-ref, not --abbrev-ref (a same-named tag printed `heads/<branch>`); exit 1 is a detached head, any other failure records no branch, which every reader takes as a match.
 BRANCH=$(git -C "$ROOT" symbolic-ref -q HEAD 2>/dev/null) && rc=0 || rc=$?
@@ -78,7 +78,24 @@ fi
 
 here=$(cd "$(dirname "$0")" && pwd)
 PS="$here/../../taskmaster/scripts/phase-sentinel.sh"
-[ -f "$PS" ] || PS=$(find "$HOME/.claude/plugins/cache" -path '*/taskmaster/*/scripts/phase-sentinel.sh' 2>/dev/null | sort -V | tail -1 || true)
+if [ ! -f "$PS" ] && command -v claude >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  # the enabled install for this project, else user scope: overseer's scripts/skill-path.sh, copied (plugins cannot import each other)
+  p=$(claude plugin list --json 2>/dev/null | jq -r --arg r "$TOP" --arg rp "$ROOT" '
+    [.[] | select(.enabled and (.id | startswith("taskmaster@")))]
+    | (map(select(.scope != "user" and (.projectPath == $r or .projectPath == $rp))) + map(select(.scope == "user")))
+    | .[0].installPath // empty' 2>/dev/null || true)
+  [ -z "$p" ] || PS="$p/scripts/phase-sentinel.sh"
+fi
+if [ ! -f "$PS" ]; then
+  # sort -V on the version directory alone: over full cache paths it orders by marketplace name first.
+  mk="$here/../../../taskmaster"
+  v=$(for d in "$mk"/*/; do [ -f "$d/scripts/phase-sentinel.sh" ] && basename "$d"; done 2>/dev/null | sort -V | tail -1 || true)
+  [ -z "$v" ] || PS="$mk/$v/scripts/phase-sentinel.sh"
+fi
+if [ ! -f "$PS" ]; then
+  PS=$(find "$HOME/.claude/plugins/cache" -path '*/taskmaster/*/scripts/phase-sentinel.sh' 2>/dev/null | sort -V | tail -1 || true)
+  [ -z "$PS" ] || printf '%s: using %s from a cache-wide search; it may not be the copy Claude Code loaded\n' "$PROG" "$PS" >&2
+fi
 if [ -n "$PS" ] && [ -f "$PS" ]; then
   bash "$PS" write build --owner task-runner:run --cwd "$ROOT" ${SESSION:+--session "$SESSION"} >/dev/null
 else

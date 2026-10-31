@@ -45,6 +45,21 @@ r=$(fire "$T/tsconfig.json" | jq -r '.hookSpecificOutput.permissionDecisionReaso
   && ok "the ask names the file, its kind and one off switch" \
   || bad "the ask names the file, its kind and one off switch" "$r"
 
+# 0.9.4: test, coverage, CI and git-hook configs, which lane.tsv named and config_kind did not
+mkdir -p "$T/.github/workflows" "$T/.husky" "$T/.git/hooks"
+for f in phpunit.xml phpunit.xml.dist jest.config.js vitest.config.ts .mocharc.yml karma.conf.js .coveragerc .nycrc.json \
+         codecov.yml mypy.ini .stylelintrc.json .github/workflows/ci.yml .github/workflows/release.yaml .gitlab-ci.yml \
+         .pre-commit-config.yaml lefthook.yml .husky/pre-commit .git/hooks/pre-commit .github/dependabot.yml jest.setup.js; do
+  printf 'x\n' > "$T/$f"
+done
+for f in phpunit.xml phpunit.xml.dist jest.config.js vitest.config.ts .mocharc.yml karma.conf.js .coveragerc .nycrc.json \
+         codecov.yml mypy.ini .stylelintrc.json .github/workflows/ci.yml .github/workflows/release.yaml .gitlab-ci.yml \
+         .pre-commit-config.yaml lefthook.yml .husky/pre-commit .git/hooks/pre-commit; do
+  asks "$T/$f" "$f asks"
+done
+allows "$T/.github/dependabot.yml" "a .github file outside workflows/ is silent"
+allows "$T/jest.setup.js"          "a test setup file is not its config: silent"
+
 allows "$T/src/app.ts"      "ordinary source is silent"
 allows "$T/README.md"       "a README is silent"
 allows "$T/.prettierrc"     "an unlisted config is silent (the list is literal)"
@@ -74,6 +89,9 @@ bash_allows "echo '[flake8]' > .flake8" "a Bash write creating a config is silen
 bash_asks "echo x > .flake8; sed -i '' s/a/b/ tsconfig.json" "a missing config target does not hide a later existing one" tsconfig.json
 bash_asks "echo x & sed -i s/a/b/ tsconfig.json" "bash: a config written after a lone & asks" tsconfig.json
 bash_allows "sed -i s/a/b/ notes.txt & cat tsconfig.json" "bash: a config only named after a lone & is allowed"
+bash_asks "echo 'exit 0' > .git/hooks/pre-commit" "bash: a redirect over an existing git hook asks" pre-commit
+bash_asks "sed -i 's/npm test/true/' .github/workflows/ci.yml" "bash: sed -i on an existing CI workflow asks" ci.yml
+bash_asks "printf 'x' | tee .husky/pre-commit" "bash: tee over an existing husky hook asks" pre-commit
 mkdir -p "$T/home/.claude" && printf '{}\n' > "$T/home/.claude/settings.json"
 HOME="$T/home" bash_asks "echo '{}' > ~/.claude/settings.json" "a ~/ target expands to HOME" settings.json
 

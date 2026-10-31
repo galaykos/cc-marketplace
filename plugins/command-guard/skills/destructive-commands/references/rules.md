@@ -59,8 +59,9 @@ so the guard does not try; the user runs it or it does not run.
 
 Families: framework schema resets (Laravel, Rails, Django, Prisma, Sequelize,
 TypeORM, Knex, Alembic, Doctrine, Flyway, Liquibase, Supabase, WP-CLI) ·
-executed `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE`, `dropdb`, `FLUSHALL`,
-`dropDatabase()`, `deleteMany({})` · `rm -rf` on `/`, `~`, `$HOME`, `.`, a
+executed `DROP TABLE/DATABASE/SCHEMA`, `ALTER TABLE … DROP COLUMN`, `TRUNCATE`, `dropdb`,
+`FLUSHALL`, `dropDatabase()`, a collection's `.drop()`, `deleteMany({})` · `rm -rf` on
+`/`, `~`, `$HOME`, `.`, `.git` (history, stashes and reflog nothing restores), a
 target whose shell value is only backslashes (`\` ending the command, `'\'`, `\\`,
 `"\\"`, read off `rm`'s own words and off a shell's `-c` script or `eval`'s arguments, so a
 backslash elsewhere in the command is no target; `$'\\'`, a variable holding `\` and a
@@ -75,21 +76,28 @@ or a truncating `>` onto an existing `.env`/`.env.*` git has no clean copy of
 (`.env.example` and its kin excluded), or onto a relative one after a `cd`;
 `artisan key:generate` over a set `APP_KEY` · `cd` into an absolute path that
 does not exist, not created earlier in the command, whose chain ends in `;` · `git clean -fdx`, `push --force`,
-`push --delete`, `filter-branch`, `reflog expire`, `gc --prune=now`,
+`push --delete` and its empty-source refspec (`push origin :branch`), `filter-branch`, `reflog expire`, `gc --prune=now`,
 `update-ref -d` · `docker compose down -v`, `docker volume rm/prune`,
 `system prune -a|--volumes` · `kubectl delete namespace|pvc|statefulset` ·
 `terraform destroy`, `pulumi destroy` · `aws s3 rb|rm --recursive|sync --delete`,
-any `aws … delete-*|terminate-*`, `gcloud|az|doctl|pscale|wrangler|flyctl|heroku
-… delete|destroy`, `heroku pg:reset`, `gh repo|release|secret delete` ·
+`gsutil rm -r`, `gcloud storage rm -r`, any `aws … delete-*|terminate-*`,
+`gcloud|az|doctl|pscale|wrangler|flyctl|heroku … delete|destroy`, `heroku pg:reset`,
+`gh repo|release|secret|cache delete`, `firebase firestore:delete --all-collections` ·
 `npm unpublish` · `mkfs`, `dd of=/dev/…`, redirects onto a raw device · fork bomb.
 
 **ask** — destructive, commonly intended, and either scoped or recoverable, so
-the user is the right decider: `git reset --hard`, `git clean -fd`,
+the user is the right decider: `git reset --hard`, `reset --merge`, `git clean -fd`,
 `git branch -D`, `git stash clear/drop`, `checkout .` / `checkout -- .` /
-`checkout -f`, `restore .` (not `--staged`), `push --force-with-lease` ·
-`crontab -r` · `artisan migrate --force` · `DELETE FROM` in a SQL client
+`checkout -f`, `switch -f` / `--discard-changes`, `restore .` (not `--staged`),
+`worktree remove --force`, `push --force-with-lease` · a per-path `checkout -- <path>`,
+`checkout <tree> -- <path>`, `restore <path>` (not `--staged` alone) or `rm -f <path>`
+**when `git diff` shows uncommitted changes there** (silent otherwise; after a `cd`, a
+`git -C`/`--git-dir`/`--work-tree` or a `$` path it asks without looking) ·
+`crontab -r` · `artisan migrate --force` · `DELETE FROM`, and an `UPDATE … SET` with no
+`WHERE` in the same statement (a `WHERE` on a later heredoc line counts), in a SQL client
 · `rm -rf` on a project-relative path, a deep absolute path, or a path built
-from a variable · `kubectl delete <pod>`, `helm uninstall`, `terraform apply
+from a variable, and a recursive `rm` fed by `xargs`, `find -exec`/`-execdir` or a `{}`
+placeholder · `gh api -X|--method DELETE` · `kubectl delete <pod>`, `helm uninstall`, `terraform apply
 -auto-approve`, `docker system prune`, `docker rm -f` · `npm publish` ·
 `curl … | sh` · a `Write` that replaces an existing `.env` git has no copy
 of (an `Edit` stays silent) · `find … -delete`, `shred`, `truncate -s 0`, `history -c`,
@@ -142,7 +150,12 @@ shapes. It cannot see:
   from 2.1.295 by `onFailure: "block"` in `hooks.json` — measured 2026-10-15 on 2.1.291
   and 2.1.300 with a fake local Messages API (the README's Failure mode);
 - a **shape nobody has written a rule for** — a new framework's reset command,
-  a CLI released next month;
+  a CLI released next month; and these near misses of rules that exist: a
+  `git checkout <path>` with no `--` (read as a branch switch), `rm -rf sub/.git`
+  (only a `.git` in the command's own directory denies; a nested one gets the ordinary
+  recursive-delete judgement), `ALTER TABLE t DROP c` without `COLUMN`, an `UPDATE`
+  whose `SET` sits on a later heredoc line than `UPDATE`, and `.drop()` or
+  `dropDatabase()` inside a `mongosh <<EOF` body (the splitter cuts the line at the `(`);
 - **which database a connection points at** — `DROP TABLE` through an MCP SQL
   tool is gated the same whether the session is on localhost or production;
 - a git subcommand behind a **`-C`/`-c` value holding a space** — once the quotes
@@ -240,6 +253,6 @@ Environment (set in the user's shell, before starting the session — a command
 string cannot reach it): `CLAUDE_DESTRUCTIVE_GUARD=ask` turns every deny into a
 prompt, `=deny-only` keeps every hard stop and drops the ask tier, `=off` disables
 the guard entirely. The plugin's other hook — `config-guard.sh`, an `ask` on a write
-to an existing settings / `hooks.json` / hook-script / plugin-manifest / lint-config
-file — is silenced by `CC_CONFIG_GUARD=off` and by either of the two values above
+to an existing settings / `hooks.json` / hook-script / plugin-manifest / lint, test,
+CI or git-hook config file — is silenced by `CC_CONFIG_GUARD=off` and by either of the two values above
 that mean "no ask tier" (`off`, `deny-only`).

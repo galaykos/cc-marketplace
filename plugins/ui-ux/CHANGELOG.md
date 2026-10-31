@@ -4,6 +4,10 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.32.3 — 2026-10-31
+
+- **`shadcn-theming` no longer says the only contrast checker is craft-layer's.** This plugin ships `scripts/contrast.mjs`, and `/ui-ux:theme` step 5 runs it on the accepted token set. The skill's contrast line now names it: a gate for oklch() tokens, agent-graded for hex or HSL tokens the script cannot parse (`skills/shadcn-theming/SKILL.md`).
+
 ## 0.32.2 — 2026-10-28
 
 - **Comments cut to what a reader needs; behaviour unchanged.** `scripts/contrast.mjs`; `hooks/palette-default.sh`, `hooks/preview-guard.sh`, `hooks/ui-check.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
