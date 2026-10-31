@@ -68,6 +68,53 @@ allow "secretive prose"  Write 'const secretiveNote = "aVeryLongCommentValue1234
 allow "non-write tool"  Glob  "$AWS"
 allow "empty content"   Write ''
 
+# The provider rows adapted from gitleaks (0.15.7): each denies under its own label, and its nearest miss passes.
+RUN='Kq7Zt9Wm2Rp4Lx8Vn3Bc6Hj5'; RUN_W='Kq7Zt9_Wm2-Rp4Lx8Vn3Bc6'; RUN_A='KqZtWmRpLxVnBcHj'
+run_of() { # run_of <n> [alphabet] -> n characters cycled from the alphabet, which holds no placeholder word
+  local s=""; while [ ${#s} -lt "$1" ]; do s+=${2:-$RUN}; done; printf '%s' "${s:0:$1}"
+}
+deny_as() { # deny_as <name> <label> <content>
+  out=$(run Write "$3")
+  if [[ "$(jq -r '.hookSpecificOutput.permissionDecisionReason // empty' <<<"$out")" == "secret-scanning: blocked a write containing $2. "* ]]; then pass=$((pass+1));
+  else echo "FAIL $1: expected a deny naming $2, got: ${out:-<empty>}"; fail=$((fail+1)); fi
+}
+ANT="sk-ant""-api03-$(run_of 93 "$RUN_W")AA"
+OAI_MARK="T3Blbk""FJ"
+deny_as "Anthropic key in a string"           "an Anthropic API key" "const key = \"$ANT\";"
+deny_as "Anthropic key as a Bearer header"    "an Anthropic API key" "headers: { Authorization: \"Bearer $ANT\" }"
+deny_as "Anthropic key under apiKey: names the provider" "an Anthropic API key" "apiKey: \"$ANT\""
+deny_as "Anthropic admin key"                 "an Anthropic admin API key" "ADMIN=sk-ant""-admin01-$(run_of 93 "$RUN_W")AA"
+deny_as "OpenAI project key"                  "an OpenAI API key" "k = \"sk-proj""-$(run_of 74 "$RUN_W")$OAI_MARK$(run_of 74 "$RUN_W")\""
+deny_as "OpenAI service-account key"          "an OpenAI API key" "sk-svcacct""-$(run_of 58 "$RUN_W")$OAI_MARK$(run_of 58 "$RUN_W")"
+deny_as "OpenAI admin key"                    "an OpenAI API key" "sk-admin""-$(run_of 58)$OAI_MARK$(run_of 58)"
+deny_as "OpenAI legacy key"                   "an OpenAI API key" "sk-""$(run_of 20)$OAI_MARK$(run_of 20)"
+GH_FG="github_pat""_$(run_of 82 'Kq7Zt9_Wm2Rp4Lx8Vn3Bc6')"
+deny_as "GitHub fine-grained token in .env"   "a GitHub fine-grained token" "GH_PAT=$GH_FG"
+deny_as "GitHub fine-grained token in a string" "a GitHub fine-grained token" "const t = \"$GH_FG\";"
+deny_as "GitLab personal access token"        "a GitLab personal access token" "GITLAB=glpat""-$(run_of 20 "$RUN_W")"
+deny_as "Hugging Face token"                  "a Hugging Face access token" "hf = \"hf""_$(run_of 34 "$RUN_A")\""
+deny_as "AWS temporary key ID (ASIA)"         "an AWS access key ID" "id = ASIA""$(run_of 16 'QRSTUVWXYZ234567')"
+deny_as "AWS key ID (ABIA)"                   "an AWS access key ID" "id = ABIA""$(run_of 16 'QRSTUVWXYZ234567')"
+deny_as "AWS key ID (ACCA)"                   "an AWS access key ID" "id = ACCA""$(run_of 16 'QRSTUVWXYZ234567')"
+deny_as "AWS key ID (A3T)"                    "an AWS access key ID" "id = A3TX""$(run_of 16 'QRSTUVWXYZ234567')"
+deny_as "Stripe restricted live key"          "a Stripe restricted key" "STRIPE=rk_live""_$(run_of 24)"
+deny_as "SendGrid API key"                    "a SendGrid API key" "SENDGRID=SG.""$(run_of 22 "$RUN_W").$(run_of 43 "$RUN_W")"
+deny_as "npm access token"                    "an npm access token" "//registry.npmjs.org/:_authToken=npm""_$(run_of 36)"
+deny_as "PyPI upload token"                   "a PyPI upload token" "password = pypi-AgEIcHlw""aS5vcmc$(run_of 60 "$RUN_W")"
+allow "sk-ant- placeholder"                   Write 'const key = "sk-ant-xxxxxxxx";'
+allow "full-length Anthropic key of x's"      Write "sk-ant""-api03-$(run_of 93 x)AA"
+allow "Anthropic key one character short"     Write "sk-ant""-api03-$(run_of 92 "$RUN_W")AA"
+allow "sk-proj- without the OpenAI marker"    Write "sk-proj""-$(run_of 156 "$RUN_W")"
+allow "short github_pat_ fragment"            Write 'see github_pat_11ABCDEFG in the docs'
+allow "short glpat- fragment"                 Write "GITLAB=glpat""-$(run_of 19 "$RUN_W")"
+allow "hf_ inside an identifier"              Write 'path = use_hf_hub_download(repo_id="org/model")'
+allow "hf_ run holding a digit"               Write "hf""_$(run_of 34)"
+allow "SG. in prose"                          Write 'Ask SG. Lee or the SG.Ops team about SG.v2 before Friday.'
+allow "npm_ config variable"                  Write 'npm_config_cache=/tmp/npm-cache npm ci'
+allow "Stripe restricted test key"            Write "rk_test""_$(run_of 24)"
+allow "short pypi- fragment"                  Write 'token = "pypi-AgEI..."'
+allow "ASIA in a region name"                 Write 'REGION = "ASIA_PACIFIC_SOUTHEAST_2"'
+
 AWS_DOC="AKIA""IOSFODNN7EXAMPLE"                       # AWS's own documented example key
 AWS_DOC2="AKIA""I44QH8DHBEXAMPLE"
 allow "AWS doc key (EXAMPLE suffix)"     Write "aws_ref = \"$AWS_DOC\""
@@ -289,7 +336,7 @@ for bad in "3 fields|has 3 fields|secret${T}x${T}-" "unknown kind|has kind|secre
 done
 grep -v "^secret$T" "$PAT" > "$PH/patterns.tsv"
 pat_case "malformed patterns file denies: no secret row" deny "$WRITE_CLEAN" "no secret row"
-SL=$(grep -n "^secret${T}a Stripe" "$PAT" | cut -d: -f1)
+SL=$(grep -n "^secret${T}a Stripe live secret key${T}" "$PAT" | cut -d: -f1)
 sed "${SL}s/\\]{24,}\$/{24,}/" "$PAT" > "$PH/patterns.tsv"
 pat_case "malformed patterns file denies: a row that compiles only when joined to the next" deny "$WRITE_CLEAN" \
   "line $SL has a pattern grep -E cannot compile"

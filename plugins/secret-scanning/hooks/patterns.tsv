@@ -16,12 +16,24 @@
 #   in scan.sh, or no secret row exists.
 #   Not checked: a backslash inside brackets, a collating element later in a bracket ([a[.x.]]), a
 #   placeholder word a real secret can contain.
-secret	an AWS access key ID	-	AKIA[0-9A-Z]{16}
+secret	an AWS access key ID	-	(A3T[A-Z0-9]|AKIA|ASIA|ABIA|ACCA)[0-9A-Z]{16}
 secret	a private key block	-	-----BEGIN ([A-Z]+ )?PRIVATE KEY-----
 secret	a GitHub token	-	gh[pousr]_[A-Za-z0-9]{36,}
 secret	a Slack token	-	xox[baprs]-[A-Za-z0-9-]{10,}
 secret	a Google API key	-	AIza[0-9A-Za-z_-]{35}
 secret	a Stripe live secret key	-	sk_live_[0-9a-zA-Z]{24,}
+# The ten rows below and the AWS row's A3T/ASIA/ABIA/ACCA prefixes follow gitleaks' default config (MIT), boundary groups dropped.
+# Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/patterns.tsv
+secret	a Stripe restricted key	-	rk_live_[0-9a-zA-Z]{10,}
+secret	an Anthropic API key	-	sk-ant-api03-[A-Za-z0-9_-]{93}AA
+secret	an Anthropic admin API key	-	sk-ant-admin01-[A-Za-z0-9_-]{93}AA
+secret	an OpenAI API key	-	sk-(proj|svcacct|admin)-([A-Za-z0-9_-]{74}|[A-Za-z0-9_-]{58})T3BlbkFJ([A-Za-z0-9_-]{74}|[A-Za-z0-9_-]{58})|sk-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}
+secret	a GitHub fine-grained token	-	github_pat_[A-Za-z0-9_]{82}
+secret	a GitLab personal access token	-	glpat-[A-Za-z0-9_-]{20,}
+secret	a Hugging Face access token	-	hf_[A-Za-z]{34}
+secret	a SendGrid API key	-	SG\.[A-Za-z0-9=_.-]{66}
+secret	an npm access token	-	npm_[A-Za-z0-9]{36}
+secret	a PyPI upload token	-	pypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{50,}
 secret	a credential embedded in a URL	-	(postgres|postgresql|mysql|mongodb(\+srv)?|redis|rediss|amqp|amqps|https?)://[^:/@ ]+:[^@ /?#${][^@ /?#]{5,}@
 secret	a Slack webhook URL	-	hooks\.slack\.com/services/T[^/]+/B[^/]+/.{16,}
 # i on the assigned row only: on a provider prefix it would loosen the shape toward noise.

@@ -138,6 +138,33 @@ fx allow   "URL with a space in the password"     "$(printf 'postgres://admin:%s
 fx allow   "URL with a \${VAR} password"          'DATABASE_URL=postgres://admin:${DB_PASS}@db/app'
 fx allow   "URL credential split across lines"    "$(printf 'https://svc\nfoo:%s@api.example.com' 'Gk39dkLwq2x')"
 fx allow   "empty text"                           ''
+RUN='Kq7Zt9Wm2Rp4Lx8Vn3Bc6Hj5'; RUN_W='Kq7Zt9_Wm2-Rp4Lx8Vn3Bc6'
+run_of() { local s=""; while [ ${#s} -lt "$1" ]; do s+=${2:-$RUN}; done; printf '%s' "${s:0:$1}"; }
+masked() { printf '%s:%s]' "${ASSIGNED%%:*}" "$1"; }
+ANT="sk-ant""-api03-$(run_of 93 "$RUN_W")AA"; OAI_MARK="T3Blbk""FJ"
+fx deny    "Anthropic key as a Bearer header, masked to the key" "Authorization: \"Bearer $ANT\"" \
+           "Authorization: \"Bearer $(masked 'an Anthropic API key')\""
+fx deny    "Anthropic key under apiKey: (provider and assigned rows merge)" "apiKey: \"$ANT\"" \
+           "apiKey: \"$(masked 'an Anthropic API key, an assigned secret literal')\""
+fx deny    "Anthropic admin key"                  "sk-ant""-admin01-$(run_of 93 "$RUN_W")AA"
+fx deny    "OpenAI project key (74-character halves), masked whole" "k = \"sk-proj""-$(run_of 74 "$RUN_W")$OAI_MARK$(run_of 74 "$RUN_W")\" # prod" \
+           "k = \"$(masked 'an OpenAI API key')\" # prod"
+fx deny    "OpenAI service-account key (58-character halves)" "sk-svcacct""-$(run_of 58 "$RUN_W")$OAI_MARK$(run_of 58 "$RUN_W")"
+fx deny    "OpenAI legacy key"                    "sk-""$(run_of 20)$OAI_MARK$(run_of 20)"
+fx deny    "GitHub fine-grained token"            "GH_PAT=github_pat""_$(run_of 82 'Kq7Zt9_Wm2Rp4Lx8Vn3Bc6')"
+fx deny    "GitLab personal access token, masked past 20 characters" "glpat""-$(run_of 26 "$RUN_W") rest" \
+           "$(masked 'a GitLab personal access token') rest"
+fx deny    "Hugging Face access token"            "hf""_$(run_of 34 'KqZtWmRpLxVnBcHj')"
+fx deny    "AWS temporary key ID (ASIA)"          "ASIA""$(run_of 16 'QRSTUVWXYZ234567')"
+fx deny    "Stripe restricted key"                "rk_live""_$(run_of 24)"
+fx deny    "SendGrid API key"                     "SG.""$(run_of 22 "$RUN_W").$(run_of 43 "$RUN_W")"
+fx deny    "npm access token"                     "npm""_$(run_of 36)"
+fx deny    "PyPI upload token"                    "pypi-AgEIcHlw""aS5vcmc$(run_of 60 "$RUN_W")"
+fx allow   "full-length Anthropic key of x's"     "sk-ant""-api03-$(run_of 93 x)AA"
+fx allow   "sk-proj- without the OpenAI marker"   "sk-proj""-$(run_of 156 "$RUN_W")"
+fx allow   "hf_ inside an identifier"             'use_hf_hub_download(repo_id="org/model")'
+fx allow   "SG. in prose"                         'Ask SG. Lee or the SG.Ops team about SG.v2 before Friday.'
+fx allow   "short glpat- fragment"                "glpat""-$(run_of 19 "$RUN_W")"
 fx diverge "astral characters in a Slack webhook tail (UTF-8 grep counts code points, JavaScript UTF-16 units)" \
            "${WEBHOOK}$EMOJI$EMOJI$EMOJI$EMOJI$EMOJI$EMOJI$EMOJI$EMOJI" "core:a Slack webhook URL"
 fx diverge "NUL inside an AWS key (bash drops NUL before grep reads the text)" "k = AKIA<NUL>ABCDEFGHIJKLMNOP" \
