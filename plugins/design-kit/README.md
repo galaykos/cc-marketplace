@@ -223,22 +223,24 @@ it twice and compares. Which of two primaries is canonical is asked, not decided
 Not this: it does not evaluate JS (a Tailwind config built from functions yields only
 its literal entries), does not render real components (`kit.html` cards are static
 stand-ins that name the component and its props — `/design-kit:in-codebase` renders
-the real thing), and does not conform to the DTCG 2025.10 object forms for colour and
-dimension — values stay as the source wrote them; `references/tokens-format.md` says why.
+the real thing), and does not conform to the DTCG 2025.10 object forms for colour,
+dimension and duration — values stay as the source wrote them; `references/tokens-format.md` says why.
 
-**Where these tokens can go.** The target is the DTCG **Format Module 2025.10** draft
-(designtokens.org, Draft Community Group Report of 2026-09-08, which carries its own
-"do not attempt to implement this version" warning). The structure matches it: one object
+**Where these tokens can go.** The target is the DTCG **Format Module 2025.10**
+(designtokens.org, Final Community Group Report of 28 October 2025, which says it is
+intended for implementation; the "do not attempt to implement this version" warning is on
+the later editor's draft, not on 2025.10). The structure matches it: one object
 per token with `$type` and `$value`, plain nested groups, `{group.token}` aliases,
-`$extensions` for tool data. It diverges in exactly two places, both written down in
+`$extensions` for tool data. It diverges in the value forms, all written down in
 `skills/system/references/tokens-format.md`: a `color` `$value` stays the string the
-source wrote — a hex, an `oklch()` call, a shadcn HSL triplet — rather than the draft's
-`{colorSpace, components, hex}` object, and a `dimension` stays `0.5rem` or `24px` rather
-than `{value, unit}`. Both because the form the source used is evidence, and because
-`%`/`em` have no conforming object form to convert into. What that costs a consumer:
+source wrote — a hex, an `oklch()` call, a shadcn HSL triplet — rather than the report's
+`{colorSpace, components}` object (`alpha` and `hex` optional), a `dimension` stays
+`0.5rem` or `24px` rather than `{value, unit}`, and a `duration` stays `200ms` likewise.
+Named easings and shadows stay strings too. The reason: the form the source used is
+evidence, and `%`/`em` have no conforming object form to convert into. What that costs a consumer:
 **Tokens Studio** (the Figma plugin that reads and writes DTCG) and **Style Dictionary**
 (which compiles DTCG into CSS, iOS and Android output) both read this structure, and both
-need those two value forms converted on their side. This plugin ships neither converter —
+need those value forms converted on their side. This plugin ships neither converter —
 standing: **recorded**, nothing here has been run against either tool.
 
 Since 0.2.0 it also writes `components.json` (props with types, defaults, required flags;
@@ -475,5 +477,5 @@ export beyond `/design-kit:motion`'s read-only REST calls, image generation, a c
 pages branch you push yourself.
 
 No Figma bridge does not mean no route out: `design-system/tokens.json` is DTCG-shaped,
-and the paragraph under `/design-kit:system` names the two value forms a Tokens Studio or
+and the paragraph under `/design-kit:system` names the value forms a Tokens Studio or
 Style Dictionary consumer has to convert to use it.
