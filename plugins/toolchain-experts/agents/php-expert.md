@@ -33,8 +33,10 @@ order is the content. In short:
 The analyzer's blind spots, derived from its config rather than from memory:
 
 - **Level reach.** phpstan levels are cumulative. Name the bug class the configured
-  level cannot reach in the code under review — unchecked nullables at level 5, no
-  argument-type checks below level 2 — not the number alone.
+  level cannot reach in the code under review — argument types go unchecked below
+  level 5, method calls and property access on nullable types below level 8 — not the
+  number alone. `level max` is the installed phpstan's highest level (10 since PHPStan
+  2.0), so name the version; `level unparsed` means read the config's `level:` yourself.
 - **errorLevel direction.** psalm's scale runs backwards: 1 is strictest, 8 loosest.
   Report the direction every time; a bare number misleads every reader.
 - **Baseline volume.** A baseline with hundreds of entries means the analyzer's

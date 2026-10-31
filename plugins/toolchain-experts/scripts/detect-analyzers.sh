@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # detect-analyzers.sh [project-root] — the project's OWN static-analysis setup, one greppable record per line: `analyzer <lang> <tool> <config|-> <baseline|-> <invocation>`, `formatter <lang> <tool> <config>` (never graded), `strictness <tool> <key> <value>` (the config-gap evidence), `ci <workflow> <tool> direct|via-script`, `none <reason>`. Exit 0 an analyzer found, 1 none (say so and stop — no remembered checklist), 2 bad usage.
-# Misses: monorepo workspaces, per-package configs below the root, a tool run only through a wrapper it cannot read; a reported tool may still fail to run; no `ci` line means "not found by grep in .github/workflows", never "not enforced".
+# Misses: monorepo workspaces, per-package configs below the root, a tool run only through a wrapper it cannot read, an eslint `--suppressions-location` other than the root; a reported tool may still fail to run; no `ci` line means "not found by grep in .github/workflows", never "not enforced".
 # Why, limits, history: rationale/derivations/plugin-toolchain-experts.md § plugins/toolchain-experts/scripts/detect-analyzers.sh
 set -u
 
@@ -32,9 +32,14 @@ if [ -f "$root/composer.json" ]; then
     cfg="${cfg:--}"
     base=$(first_file phpstan-baseline.neon phpstan-baseline.neon.dist) || base='-'
     emit "analyzer php phpstan ${cfg} ${base} 'vendor/bin/phpstan analyse --no-progress --error-format=raw'"
-    if [ "$cfg" != '-' ]; then
-      lvl=$(grep -oE '^[[:space:]]*level:[[:space:]]*[0-9]+' "$root/$cfg" 2>/dev/null | grep -oE '[0-9]+' | head -1)
-      [ -n "${lvl:-}" ] && printf 'strictness phpstan level %s\n' "$lvl"
+    if [ "$cfg" != '-' ] && lvl=$(grep -m1 -E '^[[:space:]]*level:' "$root/$cfg" 2>/dev/null); then
+      lvl=$(printf '%s' "$lvl" | tr -d '\r' | sed -E "s/^[[:space:]]*level:[[:space:]]*//; s/[[:space:]]*(#.*)?\$//; s/^['\"]//; s/['\"]\$//")
+      # phpstan loads conf/config.level<value>.neon, so `max` is a real level; anything else non-numeric is a parameter we cannot resolve.
+      case "$lvl" in
+        max)         printf 'strictness phpstan level max\n' ;;
+        ''|*[!0-9]*) printf 'strictness phpstan level unparsed\n' ;;
+        *)           printf 'strictness phpstan level %s\n' "$lvl" ;;
+      esac
     fi
   fi
   if cfg=$(first_file psalm.xml psalm.xml.dist); then
@@ -111,7 +116,7 @@ if [ -f "$root/package.json" ]; then
                       .eslintrc.js .eslintrc.cjs .eslintrc.json .eslintrc.yml .eslintrc.yaml .eslintrc) \
      || manifest_has package.json '"eslintConfig"'; then
     cfg="${cfg:-package.json#eslintConfig}"
-    base=$(first_file .eslintcache) || base='-'
+    base=$(first_file eslint-suppressions.json) || base='-'
     emit "analyzer js eslint ${cfg} ${base} 'npx eslint .'"
     # react-hooks/exhaustive-deps is often present but demoted to a warning, so CI stays green while stale-closure bugs ship.
     if [ -f "$root/$cfg" ]; then

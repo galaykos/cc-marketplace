@@ -50,8 +50,9 @@ breaks the build for everyone whose baseline still lists it.
 
 - phpstan: `phpstan-baseline.neon`, usually included from the main config.
 - psalm: `psalm-baseline.xml`.
-- eslint: inline `eslint-disable` comments are the per-line equivalent — a
-  disable carrying a reason is a decision; a bare one is undocumented debt.
+- eslint: `eslint-suppressions.json`, its bulk-suppressions file. Inline
+  `eslint-disable` comments are the per-line equivalent — a disable carrying a
+  reason is a decision; a bare one is undocumented debt.
 
 ### 4. Run it, and report the real exit code
 
@@ -103,7 +104,8 @@ files the model has not seen. The `strictness` records from step 1 are the evide
   reader believes are covered are not.
 - `strictness phpstan level N` — levels are cumulative; a level-5 run does not check
   what level 6+ checks. Name the bug class the configured level cannot reach rather
-  than the level number alone.
+  than the level number alone. `level max` is the installed version's highest level;
+  `level unparsed` means the key exists and the detector could not read it.
 - `strictness eslint react-hooks/exhaustive-deps warn` — the rule that catches stale
   closures and missing dependencies is present but demoted, so CI stays green while
   the defect ships. `off` is worse and reads identical in a passing build.
