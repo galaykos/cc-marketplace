@@ -2,6 +2,24 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.1 — 2026-10-31
+
+- **Unity 6.4 to 6.6.** The skill was stamped against 6000.3. A seventh reference,
+  `references/upgrades-6.4-6.6.md`, holds only the answers those releases made wrong. Each one says
+  what memory writes, what happens now and what to write instead:
+  - 6.4: URP passes need `RecordRenderGraph`, and `OnDisable` now reaches every descendant on `Destroy`;
+  - 6.5: `GetInstanceID` gives way to the 8-byte `EntityId`, `FindFirstObjectByType` and `FindObjectsSortMode` are deprecated, `PhysicsCore2D` is the new name, the Editor log is per project, the Built-in RP is deprecated and a custom `RequestLightsDelegate` needs a π fix;
+  - 6.6: `[SerializeField] Dictionary` serializes, Cinemachine 2 moves to 3 on open, `DEVELOPMENT_BUILD`/`UNITY_64` and the Development Build diagnostics change, UXML Factory/Traits and `SetRuntimeInputBackend` are gone, and dynamic batching is obsolete.
+- **SKILL.md.** A router row sends a project on `m_EditorVersion` 6000.4 or later to that file,
+  and the file wins where it disagrees with a topic file. The version lines name the release lines
+  Unity's release API listed on 2026-10-31: 6000.6.7f1 recommended, 6000.3 LTS, 6000.7 beta,
+  7000.x the Unity 7 alpha, against which nothing was re-read. The rules row names
+  `FindAnyObjectByType`, not `FindFirstObjectByType`.
+- **`render-camera.md`.** On 6.6 the package moves to Cinemachine 3 by itself, while the script
+  fixes and the Upgrader stay manual. `scripting-async.md` points at the 6.5 finder deprecation.
+- **Standing.** Every item was re-read on 2026-10-31 against Unity's upgrade guides and the pages
+  each item names. They are recorded only. Unmeasured: no eval with a control arm covers them.
+
 ## 0.2.0 — 2026-10-30
 
 - **URP 2D and pixel art.** A sixth reference, `references/2d.md`, covers:

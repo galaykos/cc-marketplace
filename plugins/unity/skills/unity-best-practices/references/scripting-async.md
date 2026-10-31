@@ -15,6 +15,10 @@ source without a re-read: the `Awaitable` and domain-reload items.
 
 All of them scan the loaded scenes. Cache the result; never call one per frame.
 
+From 6.5 (6000.5), `FindFirstObjectByType` and every `FindObjectsSortMode` overload are
+deprecated in turn. Write `FindAnyObjectByType<T>()` and `FindObjectsByType<T>()` there; see
+`upgrades-6.4-6.6.md` (re-read 2026-10-31).
+
 ## Awaitable (async/await) is not a coroutine
 
 - An `async` method keeps running after its GameObject is disabled or destroyed. Pass

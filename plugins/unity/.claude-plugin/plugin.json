@@ -1,6 +1,6 @@
 {
   "name": "unity",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Unity 6 (6000.x) traps a model gets wrong from memory — Rigidbody and Find* renames, the Unity 6 torque change, Cinemachine 3 class names, Input System project-wide actions enabling every map, Awaitable cancellation, batch-mode CI builds and build profiles, NavMeshSurface/NavMeshLink, URP 2D and pixel-art traps (URP's own Pixel Perfect Camera, Sprite Atlas settings that blur, Light2D normal maps) — plus a read-only .meta/GUID checker that exits 1 when files were moved, renamed or copied outside the Editor without their .meta.",
   "author": {
     "name": "Ivan-WG",

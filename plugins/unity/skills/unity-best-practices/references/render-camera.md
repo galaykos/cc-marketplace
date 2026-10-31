@@ -5,7 +5,8 @@
 Read `com.unity.cinemachine` and the render pipeline package
 (`com.unity.render-pipelines.universal` or `.high-definition`) from
 `Packages/packages-lock.json` first. Everything in this file was re-read against Unity's docs on
-the stamp date.
+the stamp date. The Upgrader bullets were re-read again on 2026-10-31, against Cinemachine 3.1's
+"Upgrade a Project from Cinemachine 2.x", and the 6.6 bullet was added then.
 
 ## Cinemachine 3 brings new component types, not renames
 
@@ -37,6 +38,12 @@ says "might be removed in a future release".
   references, and that mode has no undo. Commit before running it.
 - Once migrated, add `CINEMACHINE_NO_CM2_SUPPORT` to Scripting Define Symbols. The deprecated
   2.x classes then disappear, and any straggler fails to compile.
+- From Unity 6.6 (6000.6), Cinemachine is a core package, and opening a 2.x project moves it to
+  Cinemachine 3. Staying on 2.x now means pointing `Packages/manifest.json` at a local copy of
+  Cinemachine 2. Only the package version moves. Unity's 6.6 guide still sends the transition to
+  Cinemachine's upgrade page, so the steps above stay manual: fix the scripts (namespace, renamed
+  components, `m_` field names), then run the Upgrader
+  (https://docs.unity.com/en-us/engine/6000.6/manual/upgrade-guides/upgrade-guide-unity66).
 
 ## GPU Resident Drawer (URP) prerequisites
 
