@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # gate.test.sh — drives hooks/gate.sh with synthetic transcripts and Stop/SubagentStop payloads carrying transcript_path, asserting the verdict
-#   and its text: clauses 1, 2, 5 and 6, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage.
+#   and its text: clauses 1, 2, 5 and 6, clause 3 on Bash writes, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/gate.test.sh
 set -u
 
@@ -268,6 +268,31 @@ A="$WS/agent-injected.jsonl"
   meta "Stop hook feedback: ctx"; meta $'\n[SYSTEM NOTIFICATION] ctx'
   jq -cn '{type:"user",isCompactSummary:true,message:{content:"This session is being continued."}}'; asst "Report delivered."; } > "$A"
 sub_check "resumed: injected context after a hand-back is no boundary, the hand-back is judged" "Report delivered." 2 "$CITE_SUB"
+
+# Clause 3 reads a Bash call's command: one that writes a non-prose file is an edit, cleared only by a run after that write.
+bashc() { jq -cn --arg c "$1" '{type:"assistant",message:{content:[{type:"tool_use",name:"Bash",input:{command:$c}}]}}'; }
+EVID_SUB='no command ran after the last edit'
+PY_BODY=$'def parse(s):\n    return s.strip()\nEOF'; HEREDOC_PY="cat > src/x.py <<'EOF'"$'\n'"$PY_BODY"
+T="$WS/b1.jsonl"; { user "add the parser"; bashc "$HEREDOC_PY"; tres; asst "Done — the parser is implemented."; } > "$T"
+check "bash write: a heredoc to src/x.py, then a claim with nothing run, blocks"      "" "$T" 2 "$EVID_SUB"
+T="$WS/b2.jsonl"; { user "add the parser"; bashc "$HEREDOC_PY"; tres; bashc "python3 -m pytest -q"; tres; asst "Done — the parser is implemented."; } > "$T"
+check "bash write: a heredoc, then a later test command, then the claim, passes"     "" "$T" 0 "__NONE__"
+T="$WS/b3.jsonl"; { user "write notes"; bashc $'cat > docs/notes.md <<\'EOF\'\nsed -i \'s/a/b/\' src/y.py\necho x > src/z.py\nEOF'; tres; asst "Done — notes written."; } > "$T"
+check "bash write: a heredoc to a .md file is silent, a write named in its body too" "" "$T" 0 "__NONE__"
+T="$WS/b4.jsonl"; { user "rename it"; bashc "sed -i 's/oldName/newName/g' src/real.ts"; tres; asst "Fixed — renamed everywhere."; } > "$T"
+check "bash write: sed -i on a source file, then a claim, blocks"                    "" "$T" 2 "$EVID_SUB"
+T="$WS/b5.jsonl"; { user "fix it"; tools Edit; tres; bashc "ls -la && git status"; tres; asst "Done."; } > "$T"
+check "bash write: a command that writes nothing still counts as a run"             "" "$T" 0 "__NONE__"
+T="$WS/b6.jsonl"; { user "add the parser"; bashc "cat > src/x.py <<'EOF' && python3 -m pytest -q"$'\n'"$PY_BODY"; tres; asst "Done — tests pass."; } > "$T"
+check "bash write: write then run in one command clears itself"                      "" "$T" 0 "__NONE__"
+T="$WS/b7.jsonl"; { user "fix it"; tools Edit; tres; bashc "python3 -m pytest -q 2>&1 | tee /tmp/pytest.log"; tres; asst "Fixed — tests pass."; } > "$T"
+check "bash write: a run piped into a log file counts as the run"                    "" "$T" 0 "__NONE__"
+T="$WS/b8.jsonl"; { user "add the parser"; bashc $'cat > src/x.py <<\'EOF\'\npytest -q\nEOF'; tres; asst "Done."; } > "$T"
+check "bash write: a run-shaped line inside the heredoc body is not a run"          "" "$T" 2 "$EVID_SUB"
+T="$WS/b9.jsonl"; { user "add the parser"; bashc "cat > src/x.py <<'EOF' && echo written"$'\n'"$PY_BODY"; tres; asst "Done."; } > "$T"
+check "bash write: an echo after the write in one command is not a run"             "" "$T" 2 "$EVID_SUB"
+T="$WS/b10.jsonl"; { user "fix it"; bashc "python3 -m pytest -q && sed -i 's/a/b/' src/real.ts"; tres; asst "Fixed."; } > "$T"
+check "bash write: a run before the write in one command does not clear it"         "" "$T" 2 "$EVID_SUB"
 
 
 if command -v git >/dev/null 2>&1; then
