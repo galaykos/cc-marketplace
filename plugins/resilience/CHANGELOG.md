@@ -8,6 +8,10 @@ whose job is history would be worse than the gap. Adding this file opts the plug
 `scripts/check-version-bumps.sh`'s changelog gate permanently — every bump from here on
 must carry an entry.
 
+## 0.8.3 — 2026-10-31
+
+- **Two eval graders no longer reward a false Laravel fact.** `evals/timeout-and-retry` said Laravel's HTTP client has no default timeout, and `evals/breadth-review` leaned the same way. The framework's `PendingRequest` defaults to 30 s read and 10 s connect (11.x and 12.x source, checked 2026-10-31). Both graders now ask for "no explicit timeout", with the implicit default times the attempts as the harm, and the first says not to require the false "no timeout at all" claim. No case was re-run: both are ceiling cases whose control arm already passes.
+
 ## 0.8.2 — 2026-10-28
 
 - **The `/resilience:review` description now reads in short, plain sentences.** Same six concerns and `--concern` flag; it keeps the words the model matches it on.

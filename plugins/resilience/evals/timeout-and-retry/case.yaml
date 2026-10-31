@@ -1,6 +1,6 @@
 schema_version: "1.0"
 name: timeout-and-retry
-description: A queued Laravel job retries a POST that charges a card, with no timeout and no idempotency key — the review must name the double-charge, not just the missing timeout.
+description: A queued Laravel job retries a POST that charges a card, with no explicit timeout and no idempotency key — the review must name the double-charge, not just the missing timeout.
 execution:
   timeout_seconds: 900
   max_turns: 25
@@ -48,9 +48,12 @@ graders:
 
       PASS requires BOTH:
 
-      1. **No timeout.** The response must say the HTTP call has no timeout set and that a
-         hung connection blocks the worker (Laravel's default is no timeout on the underlying
-         client for this shape). Naming `->timeout(n)` / `->connectTimeout(n)` is the fix.
+      1. **No explicit timeout.** The response must say the HTTP call sets no timeout of its
+         own, so a slow dependency holds the worker for the client's implicit default on every
+         attempt (Laravel's `PendingRequest`: 30 s read, 10 s connect — framework 11.x and 12.x
+         source, checked 2026-10-31), three attempts in a row. Naming `->timeout(n)` /
+         `->connectTimeout(n)` sized to the job's budget is the fix. Do not require a claim that
+         the call has no timeout at all; that claim is false.
       2. **The retry is not idempotent — THE LOAD-BEARING ONE.** The response must state that
          retrying a POST that charges money can charge more than once, because a request whose
          RESPONSE was lost (timeout, connection reset, 5xx after commit) may already have
