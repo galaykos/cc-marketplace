@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.18.0 — 2026-10-31
+
+- **Three new game plugins are suggested from file evidence.** plugin-scout signal and `--full` class rows for `blender` (a `*.blend`/`*.blend1`, a `blender_manifest.toml`, or a `.py` importing `bpy` — placed after the gamedev row so a product-visualisation repo does not pull gamedev in), `meshy` (`MESHY_API_KEY`, a `meshy-cli`/`@meshy-ai/*` dep or a `meshy` MCP server — never a `*.glb` alone) and `pixel-art` (`*.aseprite`, Tiled `*.tmx`/`*.tmj`/`*.tsj`/`*.tiled-project`, LDtk `*.ldtk`/`*.ldtkl`, or a `*.tsx` whose root is `<tileset>` — a bare `.tsx` is React). New `--stack` tokens: `blender`, `meshy`, `pixel-art`, `aseprite`, `tiled`, `ldtk`. Standing: agent-graded — the scout follows the rows; `pc_scout_names` gates only that the names are live.
+
 ## 0.17.5 — 2026-10-29
 
 - **The scout suggests six game plugins again.** godot, unity, unreal, phaser, pixijs and gamedev are back in the marketplace: `signals.md` gets their six rows back, with the "unless a game row above matched first" clause on the `go.mod`/`Cargo.toml`/`*.csproj` row; `stack-relevance.md` gets their six Game classes and `--stack` tokens; `flags.md`'s `--full` stack-bound list names the game plugins again. The generated catalog lists them. bevy, defold, ebitengine and roblox stay removed and are not suggested. Standing: agent-graded — the scout follows the rows; `pc_scout_names` gates only that the names are live.

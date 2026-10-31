@@ -70,8 +70,8 @@ rule and the typed-token rule; this section does not restate them.
 
 - What it includes, by name so no later reader has to infer it: every
   **any-stack** leaf whether or not its signal fired — the stack-bound leaves
-  (`laravel`, `web-dev`, `craft-layer`, and the game plugins: one per engine plus
-  `gamedev`) follow `references/stack-relevance.md` and are the only rows `--full`
+  (`laravel`, `web-dev`, `craft-layer`, and the game plugins: one per engine or art
+  tool — `blender`, `meshy`, `pixel-art` — plus `gamedev`) follow `references/stack-relevance.md` and are the only rows `--full`
   skips for stack reasons; the three by-construction exclusions are below. Any-stack covers
   the whole of tier 2 (candor, hindsight and skill-router included, core since
   0.13.0) and, from tier 3, the process/pipeline group (taskmaster,

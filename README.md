@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **39 leaf plugins** covering stacks, game engines, review,
+A Claude Code plugin marketplace: **42 leaf plugins** covering stacks, game engines, review,
 architecture, design, and the whole idea-to-shipped workflow. Every one installs on its
 own — there are no bundles (the four suites were retired 2026-09-26; see
 [Companions](#companions-install-these-together)).
@@ -569,24 +569,29 @@ bill you did not agree to.
 
 ## Game development
 
-One plugin per engine, so a project installs only its own — `/stack-scan:suggest` finds it from
-the engine's manifest (`project.godot`, `ProjectVersion.txt`, `*.uproject`, a `phaser` or
-`pixi.js` dep), and `/all-plugins:install` leaves all six out unless you name them. Each carries
-only what a model gets wrong from memory — the inversions of the engine's last few releases, its
-footguns and hard limits — and three of them ship a read-only checker script with an exit code.
-Adapted from
+One plugin per engine or art tool, so a project installs only its own — `/stack-scan:suggest` finds
+it from the manifest or file (`project.godot`, `ProjectVersion.txt`, `*.uproject`, a `phaser` or
+`pixi.js` dep, `*.blend`, a Meshy key or client, `*.aseprite`, Tiled or LDtk maps), and
+`/all-plugins:install` leaves every game plugin out unless you name it. Each carries only what a
+model gets wrong from memory — the inversions of the tool's last few releases, its footguns and
+hard limits — and most ship a read-only checker script with an exit code. The engine plugins and
+gamedev were adapted from
 [gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills)
-@184b72b (Apache-2.0); what was kept, cut and verified is in
-`rationale/gamedev-design-import-2026-10-26.md`. Nothing here is measured against a control arm.
+@184b72b (Apache-2.0; `rationale/gamedev-design-import-2026-10-26.md`); blender, meshy, pixel-art
+and unity's 2D reference were rewritten from MIT repositories (`rationale/gamedev-art-import-2026-10-30.md`).
+Nothing here is measured against a control arm.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[godot](plugins/godot)** | Godot 4.4–4.7 inversions (Jolt as the 3D default and its behaviour differences, 4.7's typed-return and packed-array changes, `.uid` sidecars, `duplicate_deep`), multiplayer and export traps, a headless test runner that cannot hang or exit 0 on failure, and `check_godot_project.py` for broken `res://`, uid and scene references | Any `.gd`, `.tscn`, `.tres` or `project.godot` work |
-| **[unity](plugins/unity)** | Unity 6 renames and build-profile traps, batch-mode builds that exit 0 on errors, project-wide input actions enabling every map, `Awaitable` pooling, and `check_unity_project.py` for `.meta`/GUID breakage | C# under `Assets/`, input actions, CI builds |
+| **[unity](plugins/unity)** | Unity 6 renames and build-profile traps, batch-mode builds that exit 0 on errors, project-wide input actions enabling every map, `Awaitable` pooling, URP 2D and pixel-art traps (URP's own Pixel Perfect Camera, atlas settings that blur, Light2D normal maps), and `check_unity_project.py` for `.meta`/GUID breakage | C# under `Assets/`, input actions, sprite atlases, CI builds |
 | **[unreal](plugins/unreal)** | UE 5.8's Zen cooked store and SDK minimums, Enhanced Input setup and rebinding, headless automation tests | Packaging, input, gameplay C++ |
 | **[phaser](plugins/phaser)** | Phaser 3→4 inversions (filters replace preFX/postFX, `setTintFill` a stub, `TAU` changed) and Arcade collision traps | `phaser` in the lockfile |
 | **[pixijs](plugins/pixijs)** | PixiJS v7→v8 inversions (`await app.init`, the ticker argument, `globalpointermove`, `Assets.load` first) | `pixi.js` in the lockfile |
 | **[gamedev](plugins/gamedev)** | the engine-agnostic half: Steam and itch.io release (`check_steam_build.py` for SteamPipe scripts), asset checks (`asset_report.py`), Yarn Spinner 3 and Ink, seed stability across runtime versions, XAG text-size and ASWG loudness floors | Shipping, assets, dialogue, procedural generation |
+| **[blender](plugins/blender)** | Blender 5.x Python API removals and renames (`action.fcurves`, `scene.node_tree`, `BLENDER_EEVEE_NEXT`, `bgl`), headless runs that exit 0 on a Python error unless `--python-exit-code` comes before `--python`, FBX/glTF export rules for Unreal, Unity and Godot — and `check_bpy_scripts.py` (no Blender needed) plus `blender_qa.py` (mesh QA inside Blender) | A `.py` importing `bpy`, a `*.blend` in the repo, exporting assets to an engine |
+| **[meshy](plugins/meshy)** | Meshy AI 3D generation traps: an unknown create outcome is reconciled, never resubmitted; running tasks cannot be cancelled; files and signed URLs expire after 3 days; free-plan output is Meshy-owned under CC BY 4.0; rigging takes textured humanoids only — and `inspect_glb.py` for triangle, texture and required-extension budgets | Generating or importing a Meshy model, checking a GLB/glTF before engine import |
+| **[pixel-art](plugins/pixel-art)** | Aseprite CLI export (option order, the `json-hash` default, tag and trim drift), finishing AI-generated pixel art, Tiled GID flip bits and tilesets an engine skips, LDtk `__` fields and stale auto-layer tiles — and `check_sprite_sheet.py` + `check_tilemaps.py` | Sprite sheets, `*.aseprite`, Tiled `*.tmx`/`*.tmj`, LDtk `*.ldtk` |
 
 ---
 

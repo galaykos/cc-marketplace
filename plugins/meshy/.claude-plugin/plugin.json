@@ -1,0 +1,13 @@
+{
+  "name": "meshy",
+  "version": "0.1.0",
+  "description": "Meshy AI text/image-to-3D traps a model gets wrong from memory: an unknown create outcome is reconciled, never resubmitted; a running task cannot be cancelled; files and signed URLs expire after 3 days; free-plan output is Meshy-owned under CC BY 4.0; rigging takes textured humanoids only. Plus a stdlib Python GLB/glTF checker for triangle, texture-size and required-extension budgets with an exit code.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "gamedev",
+    "tooling"
+  ]
+}

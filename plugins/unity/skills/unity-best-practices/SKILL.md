@@ -1,6 +1,6 @@
 ---
 name: unity-best-practices
-description: Use when writing or reviewing Unity C# in a project with `ProjectSettings/ProjectVersion.txt` — Unity 6 renames (`linearVelocity`, `FindObjectsByType`, Cinemachine 3 `CinemachineCamera`), Input System project-wide actions, `Awaitable`, build profiles and `-batchmode` CI builds, NavMeshSurface/NavMeshLink — or after moving, renaming or deleting files under `Assets/` (`.meta`, GUID, "Missing script").
+description: Use when writing or reviewing Unity C# in a project with `ProjectSettings/ProjectVersion.txt` — Unity 6 renames (`linearVelocity`, `FindObjectsByType`, Cinemachine 3 `CinemachineCamera`), Input System project-wide actions, `Awaitable`, build profiles and `-batchmode` CI builds, NavMeshSurface, blurry pixel art, Pixel Perfect Camera, 2D lights — or after moving, renaming or deleting files under `Assets/` (`.meta`, GUID, "Missing script").
 ---
 
 > Last verified: 2026-10-26 — https://docs.unity3d.com/6000.3/Documentation/Manual/UpgradeGuideUnity6.html
@@ -40,11 +40,12 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_unity_project.py" <project-dir>
 
 | Topic | What memory says, and is now wrong (Unity 6 unless marked) | Read |
 |---|---|---|
-| Physics, navigation, 2D | `rb.velocity`/`drag`/`angularDrag`, `PhysicMaterial`; `AddForceAtPosition` torque under Acceleration/VelocityChange; the Navigation window's Bake tab; `OffMeshLink`; `usedByComposite` | `references/physics.md` |
+| Physics, navigation, 2D colliders | `rb.velocity`/`drag`/`angularDrag`, `PhysicMaterial`; `AddForceAtPosition` torque under Acceleration/VelocityChange; the Navigation window's Bake tab; `OffMeshLink`; `usedByComposite` | `references/physics.md` |
 | Input | the legacy Input Manager as a fine choice; PlayerInput enabling only its default map; keeping `StandaloneInputModule` | `references/input-system.md` |
 | Scripting | `FindObjectOfType`; `async` work that stops with its GameObject; ScriptableObject `OnEnable` resets with Reload Domain off | `references/scripting-async.md` |
 | Builds, CI, saves | `SwitchActiveBuildTarget` in `-batchmode`; the global scene list under Build Profiles; `Debug.LogError` failing a CI build; `persistentDataPath` on tvOS or after a product rename | `references/build-ci.md` |
 | Camera, rendering | `CinemachineVirtualCamera` and the `Cinemachine` namespace; GPU Resident Drawer prerequisites; SRP Batcher compatibility | `references/render-camera.md` |
+| URP 2D, pixel art | `com.unity.2d.pixel-perfect` in URP; zooming via `orthographicSize` under a Pixel Perfect Camera; a Point sprite blurred by its atlas; setting `Light2D.normalMapQuality` from code; Chunk tilemaps under the SRP Batcher; `Rigidbody2D.velocity` | `references/2d.md` |
 
 Read only the row the change touches. Each file carries the remedy with the trap, and says which
 of its items were re-read against Unity's docs on its stamp date.
@@ -57,6 +58,7 @@ of its items were re-read against Unity's docs on its stamp date.
 | Advice matches `ProjectVersion.txt` and the package lock | **agent-graded** |
 | New code uses the Unity 6 names (`linearVelocity`, `FindFirstObjectByType`, `PhysicsMaterial`, `CinemachineCamera`) | **agent-graded** — most old names still compile with obsolete warnings, so a green build proves nothing |
 | A failed CI build exits non-zero | **recorded** — only the build method's own throw or `EditorApplication.Exit(1)` makes it so |
+| A URP project has no `com.unity.2d.pixel-perfect`; pixel-art sprites, their atlas and the Pixel Perfect Camera agree on PPU, Point filtering and no compression | **agent-graded** — no script reads `manifest.json`, import settings or atlas settings |
 
 ## Anti-patterns
 
@@ -65,4 +67,5 @@ of its items were re-read against Unity's docs on its stamp date.
 - Leaving every project-wide action map enabled, then guarding each gameplay handler with
   "if the menu is open".
 - Calling `EditorUserBuildSettings.SwitchActiveBuildTarget` inside an `-executeMethod` build.
+- Installing `com.unity.2d.pixel-perfect` in a URP project to "fix" blurry pixel art.
 - Reading exit 0 from the checker on a fresh clone as "no missing scripts".

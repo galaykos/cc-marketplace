@@ -1,0 +1,13 @@
+{
+  "name": "blender",
+  "version": "0.1.0",
+  "description": "Blender Python and asset export as of Blender 5.x: a stdlib checker for bpy calls the target version removed or renamed (action.fcurves, scene.node_tree, BLENDER_EEVEE_NEXT, bgl, Geometry Nodes Socket_N keys) that also reads .blend header versions, an in-Blender mesh QA script with a real exit code, the headless --python-exit-code traps, and FBX/glTF export rules for Unreal, Unity and Godot.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "gamedev",
+    "tooling"
+  ]
+}

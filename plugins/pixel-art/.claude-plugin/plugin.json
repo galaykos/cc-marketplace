@@ -1,0 +1,13 @@
+{
+  "name": "pixel-art",
+  "version": "0.1.0",
+  "description": "Pixel art, sprite sheets and 2D tilemaps (Aseprite, Tiled, LDtk): the export and format traps a model gets wrong. Aseprite CLI option order, the json-hash default, frameTags that drift under --ignore-empty or --tag, trimmed-frame offsets, Pillow's dithering palette defaults, Tiled GID flip bits, compressed or external tilesets Phaser skips with only a warning, tile-object anchors, LDtk __ fields and stale auto-layer tiles. Plus two stdlib checkers with exit codes: sheet PNG against its JSON, and map references, GIDs and layer formats.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "gamedev",
+    "tooling"
+  ]
+}

@@ -2,6 +2,10 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.30.0 — 2026-10-31
+
+- **Routes the new game plugins.** `blender-best-practices` on a file importing `bpy`/`bmesh`, a `blender -b` command line, or a `*.py` beside a `blender_manifest.toml`; `meshy-generation` on `MESHY_API_KEY`, `api.meshy.ai`, `@meshy-ai/` or `meshy-cli` in a file; `tilemaps` on Tiled/LDtk map files and on a `<tileset>` TSX (no `*.tsx` glob — React); `pixel-art-pipeline` on Aseprite sheet JSON (`"frameTags":`) or an `aseprite -b` command. `unity-best-practices` also routes `*.spriteatlas`/`*.spriteatlasv2`. The blender `*.py` row co-fires with the two language-wide discipline rows on purpose. Standing: gate for the row syntax and co-fire blessings (`validate.sh`).
+
 ## 0.29.3 — 2026-10-29
 
 - **Six game plugins route again.** godot, unity, unreal, phaser, pixijs and gamedev are back in the marketplace, so their 22 `rules.tsv` rows from 0.28.0 return unchanged: `.gd`, `.gdshader`, `export_presets.cfg`, `.tscn`, `.tres`, `project.godot`, a `godot --headless` line, `.cs` beside `project.godot` or `ProjectVersion.txt`, `.inputactions`, `.uproject`, `UCLASS(`/`GENERATED_BODY()`, a `phaser` or `pixi.js` import, and the Steam, itch.io and Yarn/Ink rows. bevy, defold, ebitengine and roblox stay removed, so `.rs`, `.go`, `.luau`, `game.project` and Rojo files still meet no engine row, and the six `# co-fire-ok:` declarations for `.rs` and `.go` stay gone. Standing: gate for the row syntax (`validate.sh`).

@@ -2,6 +2,28 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.0 — 2026-10-30
+
+- **URP 2D and pixel art.** A sixth reference, `references/2d.md`, covers:
+  - URP's own Pixel Perfect Camera: never `com.unity.2d.pixel-perfect`, the obsolete boolean API, and why a zoom through `orthographicSize` is undone;
+  - Filter Mode and Grid Snapping, and which of them blur, shimmer or smooth pixels;
+  - pixel-art import: pixel pivots, Max Size downscaling, platform overrides;
+  - Sprite Atlas V2: atlas filter and compression, Include in Build, a sprite packed into two atlases;
+  - 2D lights: the Renderer 2D requirement, get-only `normalMapQuality`, secondary textures, light batching;
+  - Tilemap Renderer: Chunk under the SRP Batcher;
+  - Cinemachine 3: `CinemachinePixelPerfect`;
+  - `Rigidbody2D` names in Unity 6.
+- **Standing.** Every fact in the new reference was re-read on 2026-10-30 against Unity's docs,
+  or Unity's URP source where marked. They are recorded only. A new rules row covers PPU,
+  filtering and the pixel-perfect package; it is agent-graded, because no script reads import or
+  atlas settings.
+- **Skill trigger.** The description now names blurry pixel art, the Pixel Perfect Camera and 2D
+  lights, and no longer names NavMeshLink.
+- **README.** New install pointers for two Editor bridges, neither shipped nor tested here: MCP
+  for Unity (MIT) and Unity's own agent plugin (Unity Companion License).
+- **Credit and effect.** The topic list comes from scenario-labs/skills @5d68b48 (MIT). The prose
+  is rewritten and no code was copied. Unmeasured: no eval with a control arm covers it.
+
 ## 0.1.0 — 2026-10-26
 
 - **First release.** The `unity-best-practices` skill covers Unity 6 (6000.x). It has five

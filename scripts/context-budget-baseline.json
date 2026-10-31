@@ -3,6 +3,7 @@
   "api-design": 339,
   "approaches": 552,
   "ask-ledger": 0,
+  "blender": 81,
   "brain": 89,
   "candor": 174,
   "code-architecture": 725,
@@ -18,8 +19,10 @@
   "godot": 284,
   "hindsight": 159,
   "laravel": 170,
+  "meshy": 79,
   "overseer": 88,
   "phaser": 102,
+  "pixel-art": 125,
   "pixijs": 97,
   "prompt-coach": 0,
   "resilience": 539,
@@ -35,7 +38,7 @@
   "ui-libraries": 445,
   "ui-ux": 677,
   "ultra-deep-research": 220,
-  "unity": 102,
+  "unity": 111,
   "unreal": 110,
   "web-dev": 336
 }

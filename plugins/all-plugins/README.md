@@ -12,8 +12,8 @@ construction: **`prompt-coach`**, which bills a model call per eligible prompt. 
 only when you name it (`claude plugin install prompt-coach@cc-plugins-marketplace -s local`).
 `install` never installs or enables it, and prints it as a
 `skip (opt-in: bills a model call per prompt)` row. `uninstall` and `list` treat it like
-any other plugin. The six game plugins — `godot`, `unity`, `unreal`, `phaser`, `pixijs` and `gamedev` —
-are left out the same way, as
+any other plugin. The game plugins — `godot`, `unity`, `unreal`, `phaser`, `pixijs`, `gamedev`, `blender`, `meshy`
+and `pixel-art` — are left out the same way, as
 `skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)`. Their
 descriptions in every project's listing serve no project but a game, and `/stack-scan:suggest`
 puts each one where its manifest signal is. Install one by name like prompt-coach.
@@ -121,9 +121,9 @@ Claude Code caps the skill+command listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` — default fraction
 0.01, so 6,000 chars on a 200k window (3-byte model) and 30,000 at 1M — and past the
 cap it drops entries to name-only, buying descriptions back in priority order. Every
-leaf here costs about 44,400 entry-chars (`name + 4 + min(description + when_to_use, 1536)` per
+leaf here costs about 45,700 entry-chars (`name + 4 + min(description + when_to_use, 1536)` per
 skill and command, the walk `scripts/lib/plugin-checks.sh`'s `pc_listing_entry_cost`
-does): 7.4x the 200k cap, 1.5x the 1M cap. The name+4 floor alone is 77% of the 200k
+does): 7.6x the 200k cap, 1.5x the 1M cap. The name+4 floor alone is 77% of the 200k
 cap, so no amount of description trimming makes everything fit there.
 
 So `install --budget` finishes by computing that cost from the marketplace clone and writing

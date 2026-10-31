@@ -4,6 +4,39 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.126.0] - 2026-10-31
+
+A web search for third-party Claude Code plugins, skills and MCP servers covering game development, Unity,
+Blender, pixel art, 2D, 3D, Meshy and Higgsfield (~65 candidates), plus four user-named repositories, folded in
+under this repo's admission bar. Prose is rewritten, never copied; every kept fact was re-read against a primary
+source. Mapping, verdicts and what was dropped: `rationale/gamedev-art-import-2026-10-30.md`. Nothing here is
+measured against a control arm.
+
+- **blender 0.1.0 (new)** — Blender 5.x Python API removals and renames, the headless trap (a Python error exits 0
+  unless `--python-exit-code` comes before `--python`, re-measured on Blender 5.2.3), FBX/glTF export rules for
+  Unreal, Unity and Godot; `check_bpy_scripts.py` (stdlib AST scan, runs without Blender) and `blender_qa.py`
+  (mesh QA inside Blender, adapted from [EL4CTEO/blender-skills](https://github.com/EL4CTEO/blender-skills)
+  @71d031d, MIT — upstream exited 0 on a failed check). Standing: gate for the checker's harness (22 cases; the
+  in-Blender ones skip where `BLENDER_EXE` is unset, as in CI); recorded for the prose.
+- **meshy 0.1.0 (new)** — Meshy AI 3D generation traps from Meshy's own MIT repos and docs: reconcile an unknown
+  create, never resubmit; running tasks cannot be cancelled; files expire after 3 days; free-plan output is
+  Meshy-owned under CC BY 4.0 (Terms §3.2, which the pricing page contradicts). `inspect_glb.py` checks triangle,
+  texture and required-extension budgets (9 cases). Higgsfield's official plugin is an install pointer only: it
+  runs a closed-source CLI on paid credits.
+- **pixel-art 0.1.0 (new)** — Aseprite CLI export (option order, the `json-hash` default, tag and trim drift),
+  finishing AI-generated pixel art, Tiled GID flip bits and tilesets Phaser skips with only a warning, LDtk `__`
+  fields and stale auto-layer tiles; `check_sprite_sheet.py` and `check_tilemaps.py` (26 cases).
+- **unity 0.2.0** — `references/2d.md`: URP ships its own Pixel Perfect Camera (never add the Built-in package),
+  atlas and import settings that blur, Light2D normal maps, `Rigidbody2D.linearVelocity`; Editor-MCP and
+  Unity-official-plugin install pointers. Rules from [scenario-labs/skills](https://github.com/scenario-labs/skills)
+  @5d68b48 (MIT), re-verified on the 6000.3 manual.
+- **stack-scan 0.18.0, skill-router 0.30.0, all-plugins 0.7.5** — the three new plugins are suggested from file
+  evidence, routed at edit time, and stay opt-in for `/all-plugins:install` like the other game plugins.
+- MCP servers (Blender, Aseprite, Tiled, LDtk, Meshy, Unity Editor) are install lines in each README, never a
+  bundled `.mcp.json`. Not imported: the four named repositories' content (generic, broken, or BUSL-1.1), Unity's
+  official plugin (Unity Companion License), every NO-LICENSE repository, and Blender Lab's GPL-3.0 MCP beyond a
+  pointer.
+
 ## [0.125.0] - 2026-10-29
 
 Nineteen steps, run 2026-10-26 to 2026-10-29, to make the plugins clearer, calmer and quicker to use. Each step
