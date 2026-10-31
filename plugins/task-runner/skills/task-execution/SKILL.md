@@ -166,7 +166,7 @@ The run is complete only when:
 3. The project's FULL check suite passes at the end (local passes can compose into a global
    failure) AND the **behavioral-gate** actually runs the produced code (`scripts/behavioral-gate.sh
    --isolate --changed <run's files>` in background Bash, `timeout: 7200000`, never a hand-built checkout) — the repo suite may be a static linter that never runs new code.
-   If installed, api-design's drift check (`/api-design:drift`) joins, and code-architecture's **drift-review** reads `<start_sha>..HEAD` against what was ASKED — no suite checks that.
+   `/task-runner:run` runs neither drift check: `/git-workflow:finish` runs **code-architecture:drift-review** (diff vs. what was ASKED; no suite checks that); run `/api-design:drift` by hand.
 4. The final report is a table: task / status / verify command / evidence line, plus the
    parked list with reasons and the follow-up backlog collected by the scope lock, plus every UI group's Screens table.
 

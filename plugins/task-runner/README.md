@@ -92,7 +92,8 @@ lines it changes. Critical/high findings re-enter the bounded fix loop. At run c
 `/code-review:review` covers the whole range since the run started, because per-card passes
 cannot see what changed across cards.
 The run only completes when every task is done or parked AND the project's
-full check suite passes — including api-design's doc-drift check when installed.
+full check suite passes. Neither drift check runs inside the run: `/git-workflow:finish`
+runs code-architecture's drift-review, and api-design's `/api-design:drift` is run by hand.
 A green run then asks one question with git-workflow's destinations (open a PR, merge
 locally where allowed, keep the branch, stop) and passes the pick to
 `/git-workflow:finish --to <pr|merge|keep>`, which still runs every check.
@@ -459,4 +460,4 @@ live-view exemption in task-execution's "No status theater", which lets a board 
   a11y-engineer fixes the accessibility items reviewers defer, inside the run
 - **design-kit / overseer** — design-kit pairs the UI walk's shots into a before/after page;
   overseer's acceptance protocol is the fuller walk checklist
-- **api-design** — its doc-drift check (`/api-design:drift`) joins the completion gate when installed
+- **api-design** — its doc-drift check (`/api-design:drift`), run by hand before finishing; no run step calls it
