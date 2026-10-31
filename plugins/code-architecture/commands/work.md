@@ -63,9 +63,16 @@ and show which and the steps ahead before anything runs.
      taskmaster's writer —
      `bash "${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh" write build --owner code-architecture:work --session "<this session id>"`;
      when that path does not exist (an installed plugin sits at
-     `<marketplace>/<plugin>/<version>/`), run the newest installed copy,
-     `find ~/.claude/plugins/cache -path '*/taskmaster/*/scripts/phase-sentinel.sh' | sort -V | tail -1`;
-     when that finds nothing, write
+     `<marketplace>/<plugin>/<version>/`), run the copy Claude Code loaded: the
+     `installPath` of the enabled `taskmaster@…` row in `claude plugin list --json`
+     (this project's `projectPath`, else user scope; overseer's `scripts/skill-path.sh`
+     is the worked filter) + `/scripts/phase-sentinel.sh`. Without the CLI or that row, use this
+     marketplace's own copy, `"${CLAUDE_PLUGIN_ROOT}/../../taskmaster/<version>/scripts/phase-sentinel.sh"`,
+     the `<version>` directory picked by `sort -V` on that name alone. Only then
+     `find ~/.claude/plugins/cache -path '*/taskmaster/*/scripts/phase-sentinel.sh' | sort -V | tail -1`,
+     and say it may not be the loaded copy: over full paths `sort -V` orders by
+     marketplace name first, so it can pick another marketplace's copy, older or not.
+     When all of these find nothing, write
      `{"phase":"build","owner":"code-architecture:work","session_id":"<this session id>","started_at":"<ISO-8601 UTC>"}`
      to `.claude/cc-phase.json` at the repo root (`git rev-parse --show-toplevel`; outside
      git, the project directory). Do the work, reading a primed path when the work reaches

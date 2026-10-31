@@ -2,6 +2,11 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.19.2 — 2026-10-31
+
+### Fixed
+- **`/work`'s quick lane finds the taskmaster phase writer Claude Code loaded.** Its fallback was `find ~/.claude/plugins/cache … | sort -V | tail -1`, which over full paths orders by marketplace name first and could run another marketplace's copy. It now reads the `installPath` of the enabled `taskmaster@…` row in `claude plugin list --json` first, then this marketplace's own newest version, and only then the cache-wide search, saying it may not be the loaded copy. The hand-written phase file stays the last resort. Standing: agent-graded; no harness drives the command.
+
 ## 0.19.1 — 2026-10-28
 
 ### Changed
