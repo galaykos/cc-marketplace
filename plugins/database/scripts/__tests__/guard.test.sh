@@ -213,6 +213,27 @@ check_at "sqlite: Laravel .env DB_CONNECTION=pgsql still asks" ask "$WS/lvpg/dat
 check_at "sqlite: drizzle.config dialect turso"              allow "$WS/dz/drizzle/0000_x.sql" "$IDX" "$WS/dz"
 check_at "sqlite: a package's own wrangler config (monorepo)" allow "$WS/mono/apps/api/migrations/0001.sql" "$IDX" "$WS/mono"
 check_at "sqlite: its sibling package still asks"            ask   "$WS/mono/apps/web/db/0001.sql" "$IDX" "$WS/mono"
+# 0.11.8: MySQL and MariaDB have no CONCURRENTLY, and InnoDB builds a secondary index online by default, yet every
+# CREATE INDEX there asked for CONCURRENTLY. The nearest directory naming an engine decides; two engines there is none.
+mkdir -p "$WS/maria" "$WS/pgc" "$WS/unk" "$WS/mix" "$WS/lvmaria" "$WS/exmy" "$WS/prmy/prisma" "$WS/dzmy"
+printf 'services:\n  db:\n    image: mariadb:11.4\n  cache:\n    image: redis:7\n' > "$WS/maria/compose.yml"
+printf 'services:\n  db:\n    image: postgres:17\n' > "$WS/pgc/docker-compose.yml"
+printf 'services:\n  a:\n    image: postgres:17\n  b:\n    image: mariadb:11.4\n' > "$WS/mix/compose.yaml"
+printf 'DB_CONNECTION=mariadb\n' > "$WS/lvmaria/.env"
+printf 'DB_CONNECTION=sqlite\n' > "$WS/exmy/.env"; printf 'DB_CONNECTION=mysql\n' > "$WS/exmy/.env.example"
+printf 'datasource db {\n  provider = "mysql"\n}\n' > "$WS/prmy/prisma/schema.prisma"
+printf 'export default defineConfig({ dialect: "mysql" });\n' > "$WS/dzmy/drizzle.config.ts"
+check_at "engine: MariaDB compose image, CREATE INDEX is online"     allow "$WS/maria/db/0001.sql" "$IDX" "$WS/maria"
+check_at "engine: MariaDB compose image, CREATE UNIQUE INDEX"        allow "$WS/maria/db/0002.sql" 'CREATE UNIQUE INDEX u_a ON t (a);' "$WS/maria"
+check_at "engine: MariaDB compose image still asks on DROP TABLE"    ask   "$WS/maria/db/0003.sql" 'DROP TABLE users;' "$WS/maria"
+check_at "engine: MariaDB compose, bash heredoc CREATE INDEX"        allow "" "$(printf '%s\n' "cat > db/m.sql <<'EOF'" "$IDX" 'EOF')" "$WS/maria" Bash
+check_at "engine: Postgres compose image, CREATE INDEX still asks"   ask   "$WS/pgc/db/0001.sql" "$IDX" "$WS/pgc"
+check_at "engine: none detected, CREATE INDEX still asks"            ask   "$WS/unk/db/0001.sql" "$IDX" "$WS/unk"
+check_at "engine: a compose naming two engines is none, asks"        ask   "$WS/mix/db/0001.sql" "$IDX" "$WS/mix"
+check_at "engine: Laravel .env DB_CONNECTION=mariadb"                allow "$WS/lvmaria/database/migrations/x.php" "DB::statement('$IDX');" "$WS/lvmaria"
+check_at "engine: .env sqlite is no evidence, .env.example mysql is" allow "$WS/exmy/database/migrations/x.php" "DB::statement('$IDX');" "$WS/exmy"
+check_at "engine: Prisma provider mysql"                             allow "$WS/prmy/prisma/migrations/1/migration.sql" "$IDX" "$WS/prmy"
+check_at "engine: drizzle.config dialect mysql"                      allow "$WS/dzmy/drizzle/0000_x.sql" "$IDX" "$WS/dzmy"
 
 # --- the reason text: what was found, what to confirm, the file, one off switch
 reason_is() { # label want-reason file content
@@ -226,6 +247,14 @@ reason_is "data-loss reason" \
 reason_is "lock reason" \
   "destructive-SQL guard: this change adds a table-rewriting ALTER (column TYPE change or SET NOT NULL), which is slow on a large table and can block other queries. Use the non-blocking form (CREATE INDEX CONCURRENTLY; for a type change add a column and copy; for NOT NULL backfill, then validate) unless the table is small or a maintenance window is planned. (file: db/migrate.sql) CC_DB_GUARD=off turns this check off." \
   db/migrate.sql 'ALTER TABLE users ALTER COLUMN age TYPE bigint;'
+# 0.11.8: no engine detected (no payload cwd, so no root to read config under), so both engines' forms are named.
+reason_is "lock reason, CREATE INDEX, engine not detected" \
+  "destructive-SQL guard: this change adds a CREATE INDEX without CONCURRENTLY (engine not detected), which is slow on a large table and can block other queries. On PostgreSQL use CREATE INDEX CONCURRENTLY. On MySQL or MariaDB, InnoDB builds it online by default: append ALGORITHM=INPLACE LOCK=NONE so a locking fallback fails instead, and expect Galera's default TOI to stall writes cluster-wide while it builds. Skip this if the table is small or a maintenance window is planned. (file: db/migrate.sql) CC_DB_GUARD=off turns this check off." \
+  db/migrate.sql 'CREATE INDEX idx_a ON t (a);'
+r=$(jq -nc --arg f "$WS/pgc/db/0001.sql" --arg c "$IDX" --arg d "$WS/pgc" '{tool_name:"Write",cwd:$d,tool_input:{file_path:$f,content:$c}}' \
+      | TMPDIR="$WS/tmp" bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')
+want="destructive-SQL guard: this change adds a CREATE INDEX without CONCURRENTLY (PostgreSQL), which is slow on a large table and can block other queries. Use the non-blocking form (CREATE INDEX CONCURRENTLY; for a type change add a column and copy; for NOT NULL backfill, then validate) unless the table is small or a maintenance window is planned. (file: $WS/pgc/db/0001.sql) CC_DB_GUARD=off turns this check off."
+if [ "$r" = "$want" ]; then echo "PASS: lock reason, CREATE INDEX, PostgreSQL"; else echo "FAIL: lock reason, CREATE INDEX, PostgreSQL — got: ${r:-<silent>}"; rc=1; fi
 
 # --- fail-open contract
 if printf 'not json' | bash "$HOOK" >/dev/null 2>&1; then

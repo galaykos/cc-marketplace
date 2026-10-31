@@ -98,6 +98,26 @@ Residual: no root, no detection; another config (Rails database.yml, Django sett
 whose config names SQLite while the migration targets another engine is not asked.
 ```
 
+### db_engine (2026-10-31, database 0.11.8; replaced sqlite_project)
+
+```text
+Every CREATE INDEX outside a SQLite project asked for CONCURRENTLY, labelled "(PostgreSQL; other engines lock regardless)".
+On MySQL and MariaDB that is wrong twice: CONCURRENTLY is not in their CREATE INDEX grammar, and InnoDB creates a secondary
+index in place with concurrent DML permitted, by default. Sources read 2026-10-31: MySQL 8.4 and 9.7 "Online DDL Operations"
+(Creating or adding a secondary index: In Place Yes, Permits Concurrent DML Yes; "The table remains available for read and
+write operations while the index is being created"); MySQL 8.4 CREATE INDEX syntax ([algorithm_option | lock_option] ...);
+MariaDB "InnoDB Online DDL Operations with the INPLACE Alter Algorithm" (a plain index: INPLACE, not rebuilt, LOCK=NONE
+supported) and "InnoDB Online DDL Overview" (no ALGORITHM/LOCK means the most efficient algorithm and least restrictive lock;
+an explicit INPLACE or NONE the operation cannot honour raises an error); MariaDB Galera "Performing Schema Upgrades" (TOI,
+the default, blocks the entire cluster and stops write transactions on every node during the change).
+db_engine keeps sqlite_project's walk and its sources, adds the other families' values there, a compose image: line and
+DB_CONNECTION in .env, then .env.example (mysql, mariadb, pgsql; sqlite stays no evidence). The nearest directory holding any
+evidence decides; two families in it, or none up to the root, is unknown, and the unknown ask names both engines' forms.
+Residual: a FULLTEXT or SPATIAL index (LOCK=SHARED on InnoDB) was never matched; a Galera cluster's TOI stall on an online build
+is not asked, since no config read here says Galera; an image name that merely contains an engine (prom/mysqld-exporter)
+counts; the MariaDB page does not name UNIQUE indexes, which are treated as plain ones.
+```
+
 ### judge_sql: the rollback-method cut
 
 ```text

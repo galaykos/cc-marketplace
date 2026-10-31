@@ -3,6 +3,22 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.11.8 — 2026-10-31
+
+### Fixed
+- **A `CREATE INDEX` on MySQL or MariaDB no longer asks for `CONCURRENTLY`.** Every `CREATE INDEX`
+  outside a SQLite project asked, labelled "(PostgreSQL; other engines lock regardless)", and advised
+  `CREATE INDEX CONCURRENTLY`, which is a syntax error on MySQL and MariaDB, where InnoDB builds a
+  secondary index online by default. The guard now reads the engine from the nearest directory, between
+  the target's and the project root, holding wrangler's `d1_databases`, a Prisma `provider`, a
+  `drizzle.config.*` `dialect`, a compose `image:` line, or `DB_CONNECTION` in `.env`/`.env.example`
+  (mysql, mariadb, pgsql; `sqlite` there is still no evidence). SQLite, MySQL and MariaDB: silent.
+  PostgreSQL: the same ask and advice as before, labelled "(PostgreSQL)". No engine, or two in that
+  directory: the ask names both forms, `CONCURRENTLY` for PostgreSQL and `ALGORITHM=INPLACE LOCK=NONE`
+  for MySQL/MariaDB, with Galera's TOI stall. Residual: a Galera cluster's TOI stall on an online build
+  is not asked. Harness cases "engine: …" and the two CREATE INDEX "lock reason" cases in
+  `guard.test.sh` pin it; nine of them fail against 0.11.7.
+
 ## 0.11.7 — 2026-10-28
 
 ### Changed
