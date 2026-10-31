@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.7.1; earlier versions have no entries rather than invented ones.
 
+## 0.7.5 — 2026-10-31
+
+- **`install` also skips `blender`, `meshy` and `pixel-art`,** the three new game plugins, with the same `skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)` row.
+- The README's listing figures are re-measured with them in the marketplace: about 45,700 entry-chars, 7.6x the 200k cap; `--budget` still writes 0.08. The plugin description says ~7.6x.
+
 ## 0.7.4 — 2026-10-29
 
 - **`install` skips the six game plugins again.** godot, unity, unreal, phaser, pixijs and gamedev are back in the marketplace and print as `skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)`; install one by name. bevy, defold, ebitengine and roblox were removed from the marketplace. Standing: gate — `scripts/__tests__/all-plugins.test.sh` pins the godot skip row and the skip count.
