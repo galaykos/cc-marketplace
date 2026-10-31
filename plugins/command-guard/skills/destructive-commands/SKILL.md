@@ -28,8 +28,11 @@ never an action to take.
 | `alembic downgrade base` | `alembic downgrade <rev>` | one step, named |
 | `DROP TABLE` / `TRUNCATE` | `DELETE … WHERE …` inside a transaction | reversible before commit |
 | `DELETE FROM t` (no WHERE) | `SELECT count(*) FROM t WHERE …` first | see the blast radius |
+| `UPDATE t SET …` (no WHERE) | the same `SELECT count(*)` with the WHERE you mean | rewrites every row |
 | `rm -rf <dir>` | `rm -rf` on build output only (`node_modules`, `dist`, `.next`, `vendor`) | regenerable |
+| `… \| xargs rm -rf`, `find … -exec rm -rf {} +` | the same pipeline or `find` without the `rm`, read, then named paths | the list is not in the command |
 | `git reset --hard` | `git stash` | recoverable |
+| `git checkout -- <file>` / `git restore <file>` over your edits | `git stash`, or `git diff -- <file>` first | the edit has no commit |
 | `git clean -fdx` | `git clean -fd` | `-x` also deletes `.env` and local config |
 | `cp .env.example .env` in a scratch dir | `cp .env.example /abs/scratch/.env` after `test -d` | a relative `.env` after a failed `cd` is the live one |
 | `php artisan key:generate` for tests | `APP_KEY=base64:… ` exported for the process | rewrites `APP_KEY`; old ciphertext becomes unreadable |
@@ -37,7 +40,7 @@ never an action to take.
 | `docker compose down -v` | `docker compose down` | `-v` removes the volume holding the database |
 | `kubectl delete <stateful thing>` | `kubectl scale --replicas=0`, or delete one pod | storage survives |
 | `terraform destroy` | `terraform plan -destroy`, read it, hand it over | nothing applied |
-| any `aws|gcloud|az … delete` | the provider console, by the user | the confirmation names the resource |
+| any `aws|gcloud|az … delete`, `gsutil rm -r`, `gh api -X DELETE` | the provider console, by the user | the confirmation names the resource |
 
 ## When a schema reset is genuinely needed
 

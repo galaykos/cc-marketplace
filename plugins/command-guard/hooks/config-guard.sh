@@ -1,5 +1,5 @@
 #!/bin/bash
-# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest or lint/test config (config_kind); on Bash, the first such target of the first eight. Silent in a marketplace repository.
+# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest, lint/test, git-hook or CI config (config_kind); on Bash, the first such target of the first eight. Silent in a marketplace repository.
 # Misses unlisted files, what the edit changes, new files, MCP apply_patch, Bash writes the targets block misses or past the eighth, a target after an in-command cd, a plain rm. Fail-open. Off: CC_CONFIG_GUARD=off or CLAUDE_DESTRUCTIVE_GUARD=off|deny-only; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/config-guard.sh
 
@@ -144,13 +144,20 @@ config_kind() {
   case "/$1" in
     */.claude/settings.json|*/.claude/settings.local.json|*/.claude/settings.*.json) echo "a Claude Code settings file"; return ;;
     */.claude/hooks/*|*/hooks/hooks.json)                                            echo "a hooks configuration"; return ;;
+    */.github/workflows/*.yml|*/.github/workflows/*.yaml)                             echo "a CI configuration"; return ;;
+    */.husky/*|*/.git/hooks/*)                                                       echo "a git hook"; return ;;
   esac
   case "$b" in
     hooks.json)            echo "a hooks configuration"; return ;;
     plugin.json|marketplace.json)
                            echo "a plugin manifest"; return ;;
-    .eslintrc|.eslintrc.*|eslint.config.*|biome.json|.rubocop.yml|ruff.toml|.flake8|setup.cfg|pytest.ini|pyproject.toml|phpstan.neon|phpstan.neon.dist|psalm.xml|psalm.xml.dist|.php-cs-fixer.php|.php-cs-fixer.dist.php|.golangci.yml|.golangci.yaml|clippy.toml|tsconfig.json)
+    .eslintrc|.eslintrc.*|eslint.config.*|biome.json|.rubocop.yml|ruff.toml|.flake8|setup.cfg|pytest.ini|pyproject.toml|phpstan.neon|phpstan.neon.dist|psalm.xml|psalm.xml.dist|.php-cs-fixer.php|.php-cs-fixer.dist.php|.golangci.yml|.golangci.yaml|clippy.toml|tsconfig.json|mypy.ini|.stylelintrc|.stylelintrc.*)
                            echo "a lint, type-check or test config"; return ;;
+    phpunit.xml|phpunit.xml.dist|jest.config.*|vitest.config.*|.mocharc|.mocharc.*|karma.conf.*|.coveragerc|.nycrc|.nycrc.*|codecov.yml)
+                           echo "a lint, type-check or test config"; return ;;
+    .gitlab-ci.yml)        echo "a CI configuration"; return ;;
+    .pre-commit-config.yaml|lefthook.yml)
+                           echo "a git-hook configuration"; return ;;
   esac
   case "/$1" in
     */hooks/*.sh|*/hooks/*.py|*/hooks/*.mjs|*/hooks/*.js) echo "a hook script" ;;

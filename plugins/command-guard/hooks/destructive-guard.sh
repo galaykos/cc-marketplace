@@ -25,7 +25,7 @@ cc_option() {
   return 0
 }
 
-GUARD_VERSION=0.9.3
+GUARD_VERSION=0.9.4
 
 # Quotes and backslashes go so a quoted evasion (artisan "migrate:fresh") meets the rule the plain form does.
 norm_cmd() {
@@ -254,7 +254,7 @@ is_reader() {
 git_safe_subcmd() {
   case "$1" in
     log|show|diff|status|blame|ls-files|ls-remote|rev-parse|describe|config|remote|fetch|shortlog|grep|cat-file|whatchanged) return 0 ;;
-    commit|add|tag|merge|revert|cherry-pick|rebase|pull|clone|init|apply|am|worktree|submodule|bisect|switch|notes|mv) return 0 ;;
+    commit|add|tag|merge|revert|cherry-pick|rebase|pull|clone|init|apply|am|submodule|bisect|notes|mv) return 0 ;;
   esac
   return 1
 }
@@ -283,11 +283,13 @@ deny	flyway clean	drops every object in the configured schemas	`flyway migrate`
 deny	liquibase (drop-all|dropall)	drops every object in the schema	`liquibase update`
 deny	[ /]wp db (reset|drop)	drops the WordPress database	`wp db export` first, then a scoped query
 denysql	 drop (table|database|schema)( |$)	an executed DROP removes the object and its data outright	take a dump first, and scope the statement
+denysql	 alter table [^;]* drop column 	an executed DROP COLUMN removes the column and every value in it	take a dump first, and scope the statement
 denysql	 truncate (table )?[a-z_`\[]	TRUNCATE empties the table and is not transactional on every engine	a DELETE with a WHERE clause inside a transaction
 deny	[ /]dropdb( |$)	drops a PostgreSQL database	dump it first
 deny	mysqladmin .*drop	drops a MySQL database	dump it first
 denysql	(flushall|flushdb)( |$)	empties the Redis keyspace, including anything persisted	delete the specific keys or use a scoped pattern
 denysql	dropdatabase\(	drops the MongoDB database	drop the specific collection, after a dump
+denysql	\.drop\( *\)	drops the MongoDB collection and every document in it	`deleteMany` with a filter, after a dump
 denysql	deletemany\( *\{ *\}	an empty filter matches every document in the collection	pass a filter
 deny	 git (filter-branch|filter-repo)	rewrites every commit; old objects become unreachable	work on a copy of the repo, or a scratch clone
 deny	 git reflog expire	discards the reflog, which is the recovery path for a bad reset	leave the reflog alone; it expires on its own
@@ -295,6 +297,7 @@ deny	 git gc .*--prune=now	prunes unreachable objects immediately, destroying th
 deny	 git push( [^ ]+)* (--force|-[a-eg-z]*f[a-z]*)( |$)	overwrites remote history for everyone who has pulled it	`--force-with-lease`, and only on a branch you own
 deny	 git push .* [+][a-z0-9_./*-]+( |$|:)	a leading + on the refspec is a force push under another name	`--force-with-lease`, and only on a branch you own
 deny	 git push .*(--delete|--mirror)	deletes remote refs	delete the branch in the host UI where it is reviewable
+deny	 git push( [^ ]+)* :[^ :]+( |$)	an empty source before the colon deletes the remote ref, as --delete does	delete the branch in the host UI where it is reviewable
 deny	 git update-ref -d	deletes a ref directly, bypassing the reflog protections	`git branch -d`
 deny	 git clean ((([^ -][^ ]*|-|-[^ -][^ ]*|--[^ ]+) )*(--force|--interactive|--[^ =]+=[^ ]*|[^ -][^ ]*|-([^ e-]|[^ -][^ ]*[^ e-])|--([^ e-]|[^ e-][^ ]*[^ e-])) )?-[a-df-z]*x[a-z]*( |$)	-x also removes IGNORED files: .env, local configs, credentials	`git clean -fd` (leaves ignored files), or `git stash -u`
 deny	 rm ([^ ]+ )*\.env( |$|\.)	.env holds the only copy of local credentials; it is not in git	copy it aside first
@@ -306,18 +309,23 @@ deny	 kubectl delete (ns|namespace|pvc|persistentvolumeclaim|statefulset|sts)( |
 deny	 terraform destroy	tears down every managed resource, including databases	`terraform plan -destroy` and read it
 deny	 pulumi destroy	tears down every resource in the stack	`pulumi preview --diff`
 deny	 aws s3 (rb |rm .*--recursive|sync .*--delete)	deletes bucket contents; versioning may not be on	list the keys first, delete a prefix explicitly
+deny	 (gsutil|gcloud storage)( [^ ]+)* rm( [^ ]+)* (-[a-z]*r[a-z]*|--recursive)( |$)	deletes every object under the prefix; versioning may not be on	list the objects first, delete a prefix explicitly
 deny	 aws [a-z0-9-]+ (delete|terminate|purge)[a-z-]*	an AWS delete/terminate call is not undoable from the CLI	do it in the console where the confirmation names the resource
 deny	 (gcloud|az|doctl|pscale|wrangler|flyctl|fly|heroku) .*(delete|destroy)( |$)	a cloud delete removes a live resource for everyone	do it in the provider console
 deny	 heroku pg:reset	drops every table in the Heroku Postgres database	`heroku pg:backups:capture` first
 deny	 gh (repo|release|secret|cache) delete	deletes a GitHub resource for the whole repository	delete it in the web UI
+deny	 firebase( [^ ]+)* firestore:delete( [^ ]+)* --all-collections	deletes every document in every Firestore collection	export first (`gcloud firestore export`), then delete one collection path
 deny	 npm unpublish	removes a published package version other projects may depend on	deprecate it instead
 deny	 mkfs(\.[a-z0-9]+)?( |$)	formats a filesystem	nothing about this belongs in an agent session
 deny	 dd .*of= */dev/	writes directly over a block device	nothing about this belongs in an agent session
 deny	 > /dev/(sd|nvme|disk|hd)	writes over a raw disk	nothing about this belongs in an agent session
 ask	 git reset --hard	discards every uncommitted change in the working tree	`git stash` keeps them recoverable
+ask	 git reset( [^ ]+)* --merge( |$)	resets the index and the files a merge touched, discarding staged changes	`git stash` keeps them recoverable
 ask	 git clean 	deletes untracked files, which are not recoverable from git	`git stash -u` stashes untracked files instead
 ask	 git checkout (-- )?\.( |$)	discards all unstaged changes	`git stash`
 ask	 git checkout( [^ ]+)* (-f|--force)( |$)	throws away local changes to switch or reset the tree	`git stash`, then a plain checkout
+ask	 git switch( [^ ]+)* (-f|--force|--discard-changes)( |$)	throws away local changes to switch branches	`git stash`, then a plain switch
+ask	 git worktree remove( [^ ]+)* (-f|--force)( |$)	deletes the worktree directory with its uncommitted and untracked files	plain `git worktree remove` refuses when work would be lost
 ask	 git restore (-s [^ ]+ |--source[= ][^ ]+ |-w |--worktree |-- )*\.( |$)	discards all unstaged changes	`git stash`
 ask	 git restore( [^ ]+)* (-W|--worktree)( [^ ]+)* \.( |$)	discards all unstaged changes	`git stash`
 ask	 git branch -D 	force-deletes a branch even if it is unmerged	`git branch -d` refuses when work would be lost
@@ -332,8 +340,10 @@ ask	 helm (uninstall|delete) 	removes a release and possibly its storage	`helm g
 ask	 (terraform|tofu) apply .*-auto-approve	applies without showing the plan, which may include destroys	apply without -auto-approve and read the plan
 ask	 vagrant destroy	deletes the VM and its disk	`vagrant halt`
 ask	 (vercel|railway|netlify) (remove|rm|down)( |$)	removes a deployment or project	do it in the dashboard
+ask	 gh api( [^ ]+)* (-x|--method)( |=)?delete( |$)	sends a DELETE to the GitHub API, removing whatever the endpoint names	read the endpoint first; a repo, release or secret is better deleted in the web UI
 ask	 npm publish	publishes to a public registry; the version can never be reused	`npm publish --dry-run`
 ask	 find [^ ]* .*-delete( |$)	deletes every path the find matched	drop -delete and read the list first
+ask	 (xargs|-exec|-execdir)( [^ ]+)* ([^ ]*/)?rm( [^ ]+)* (-[a-z]*r[a-z]*|--recursive)( |$)	recursively deletes every path find or xargs hands it, none of which the command shows	run it without the rm, read the list, then delete named paths
 ask	 (shred|srm) 	overwrites files so they cannot be recovered	plain rm leaves the file recoverable by backup
 ask	 truncate -s ?0	empties the file in place	move it aside instead
 ask	 history -c	clears the shell history for the user	nothing in the task needs this
@@ -513,6 +523,15 @@ check_rm() { # normalised segment (lowercased, padded), the same case-preserved,
   case "$flags" in *r*|*R*) recursive=1 ;; esac
   [ "$recursive" -eq 1 ] || return 0
 
+  # The splitter cuts on {, so xargs -I{} rm -rf {} leaves an rm with no operand right before one.
+  if [ -n "${3:-}" ] && ! printf '%s\n' "$targets" | grep -q '^[^-]'; then
+    case "${4:-}" in *"$3{"*)
+      set_verdict ask "recursively deletes each path substituted for {}, none of which the command shows" \
+        "run it without the rm, read the list, then delete named paths" "$seg"
+      return 0 ;;
+    esac
+  fi
+
   # norm_cmd drops backslashes, so a target that is only backslashes is judged on the raw words.
   t=0; [ -n "${3:-}" ] && [ "${4%"$3"}" != "${4:-}" ] && t=1
   if [ -n "${3:-}" ] && rm_backslash_target "$3" "$t"; then
@@ -529,6 +548,10 @@ check_rm() { # normalised segment (lowercased, padded), the same case-preserved,
         set_verdict deny \
           "recursively deletes ${tok} — the whole filesystem, home directory, or the entire working tree" \
           "name the specific directory to delete" "$seg"
+        return 0 ;;
+      .git|.git/|.git/\*|./.git|./.git/|./.git/\*)
+        set_verdict deny "recursively deletes ${tok}, the repository itself: its history, unpushed branches, stashes and reflog, which nothing restores" \
+          "delete the files you mean inside the working tree; if the repository must go, ask the user to run it" "$seg"
         return 0 ;;
     esac
     # A system directory is one component (/etc); a regex, since the case glob /[a-z]* also matches /opt/app/releases/12.
@@ -573,6 +596,72 @@ check_rm() { # normalised segment (lowercased, padded), the same case-preserved,
 $targets
 EOF
   return 0
+}
+
+# Per path, like check_rm: checkout <tree> -- or -- paths, restore paths (not --staged alone), rm -f paths ask only when they hold uncommitted changes.
+# Fails closed (asks) after a cd, a git -C/--git-dir/--work-tree, or a $ path; a checkout without -- is read as a branch switch.
+check_git_discard() { # case-preserved padded segment, the same before the git global-option strip
+  local w o sub="" seen=0 dd=0 val=0 st=0 wt=0 force=0 base="" d unknown=0 words pre=() paths=() re=' git( [^ ]+)* (-C|--git-dir|--work-tree)[ =]'
+  read -ra words <<< "$1"
+  for w in "${words[@]}"; do
+    if [ "$seen" -eq 0 ]; then [ "$w" = git ] && seen=1; continue; fi
+    if [ -z "$sub" ]; then sub=$w; case "$sub" in checkout|restore|rm) continue ;; *) return 0 ;; esac; fi
+    if [ "$val" -eq 1 ]; then val=0; continue; fi
+    if [ "$dd" -eq 1 ]; then paths+=("$w"); continue; fi
+    case "$sub:$w" in
+      *:--) dd=1 ;;
+      *:--patch|*:--dry-run|checkout:--orphan|rm:--cached) return 0 ;;
+      restore:--staged) st=1 ;;
+      restore:--worktree) wt=1 ;;
+      restore:--source) val=1 ;;
+      rm:--force) force=1 ;;
+      *:--*) ;;
+      *:-?*)
+        o=${w#-}
+        case "$sub" in
+          checkout) case "$o" in *[bBp]*) return 0 ;; esac ;;
+          restore)  case "${o%%s*}" in *p*) return 0 ;; esac
+                    case "${o%%s*}" in *S*) st=1 ;; esac
+                    case "${o%%s*}" in *W*) wt=1 ;; esac
+                    case "$o" in *s) val=1 ;; esac ;;
+          rm)       case "$o" in *n*) return 0 ;; esac
+                    case "$o" in *f*) force=1 ;; esac ;;
+        esac ;;
+      *) pre+=("$w") ;;
+    esac
+  done
+  case "$sub" in
+    checkout) [ "$dd" -eq 1 ] || return 0; [ "${#pre[@]}" -gt 0 ] && base=HEAD ;;
+    restore)  [ "$st" -eq 1 ] && { [ "$wt" -eq 1 ] || return 0; base=HEAD; }; paths=("${pre[@]}" "${paths[@]}") ;;
+    rm)       [ "$force" -eq 1 ] || return 0; base=HEAD; paths=("${pre[@]}" "${paths[@]}") ;;
+  esac
+  [ "${#paths[@]}" -gt 0 ] || return 0
+  for w in "${paths[@]}"; do case "$w" in *'$'*) unknown=1 ;; esac; done
+  [[ " $2 " =~ $re ]] && unknown=1
+  [ "$CWD_MOVED" -eq 1 ] && unknown=1
+  if [ "$unknown" -eq 0 ]; then
+    command -v git >/dev/null 2>&1 || return 0
+    d=$(command_cwd)
+    git -C "$d" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+    git -C "$d" diff --quiet ${base:+"$base"} -- "${paths[@]}" >/dev/null 2>&1 && return 0
+  fi
+  set_verdict ask "discards the uncommitted changes in ${paths[*]}, which git has no copy of" \
+    "\`git stash\` keeps them recoverable; \`git diff -- <path>\` shows what would go" "$1"
+}
+
+# ERE cannot say "no WHERE", so this is no table row. A WHERE on a later line of the same statement (a heredoc) counts.
+check_sql_update() { # padded lowercased segment, the whole body normalised, lowercased and padded
+  local stmt frag re=' update [^;]* set .*'
+  while IFS= read -r stmt; do
+    [[ " $stmt " =~ $re ]] || continue
+    frag=${BASH_REMATCH[0]}
+    case "$frag" in *' where '*) continue ;; esac
+    frag=${frag%"${frag##*[! ]}"}
+    printf '%s\n' "$2" | tr ';' '\n' | grep -F -e "$frag" | grep -q ' where ' && continue
+    set_verdict ask "runs an UPDATE with no WHERE clause, which rewrites every row in the table" \
+      "add the WHERE clause, run \`SELECT count(*)\` with it first, and run it inside a transaction" "$1"
+    return 0
+  done < <(printf '%s\n' "$1" | tr ';' '\n')
 }
 
 # The human's opt-out, so the model may not write it: check_self_protection on Bash, guard_file_write on the write tools.
@@ -828,7 +917,7 @@ EOF
 
 # classify: raw command string -> VERDICT / V_WHAT / V_ALT / V_MATCH
 classify() {
-  local raw="$1" body full full_lc seg segn segn_lc lead sub pipe_to_shell=0 sql_ctx=0 redirects=0
+  local raw="$1" body body_lc="" full full_lc seg segn segn_pre segn_lc lead sub pipe_to_shell=0 sql_ctx=0 redirects=0
 
   full=$(norm_cmd "$raw")
   full_lc=$(printf '%s' "$full" | tr '[:upper:]' '[:lower:]')
@@ -850,11 +939,13 @@ classify() {
   # The whole-command reads above see heredoc bodies; the segment walk and cd chain below see them stripped (inert, SQL clients as readers): judged line by line, a large body overruns the hook timeout.
   body=$raw
   case "$raw" in *'<<'*) body=$(cc_strip_heredoc_bodies inert "$raw" "$SQL_CLIENT_RE"); [ -n "$body" ] || body=$raw ;; esac
+  [ "$sql_ctx" -eq 1 ] && body_lc=" $(norm_cmd "$body" | tr '[:upper:]' '[:lower:]') "
 
   while IFS= read -r seg; do
     [ -n "$seg" ] || continue
     segn=$(norm_cmd "$seg")
     [ -n "$segn" ] || continue
+    segn_pre=$segn
     segn=$(strip_git_global_options "$segn" "")
     lead=$(lead_word "$segn")
     [ "$lead" = git ] && segn=$(strip_git_global_options "$segn" git)
@@ -895,6 +986,8 @@ classify() {
 
     check_rm "$segn_lc" "$segn" "$seg" "$body"
     match_rule_table "$segn" "$segn_lc" "$sql_ctx"
+    [ "$VERDICT" = allow ] && [ "$lead" = git ] && check_git_discard "$segn" "$segn_pre"
+    [ "$VERDICT" = allow ] && [ "$sql_ctx" -eq 1 ] && check_sql_update "$segn_lc" "$body_lc"
 
     [ "$VERDICT" = "deny" ] && break
   done < <(split_segments "$body")
