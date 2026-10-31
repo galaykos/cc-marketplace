@@ -10,7 +10,14 @@
  * With no run and the pane closed, no index found, or the board
  * switched off, every field is null, `runActive` and `hasRedTeam` false and
  * `phase` empty. `hasRedTeam` is otherwise whether /taskmaster:redteam was
- * installed at the rewrite.
+ * installed at the rewrite. Only an active run has `records`, by card id (a
+ * numeric one without leading zeros), the review and fails-without-the-change
+ * records newer than its registration, and `checkMinutes`, the minutes since its
+ * live background check started, else null; a board saved before 0.49.2 has
+ * neither. `receipt` is what scripts/check-receipt.sh check last said of the
+ * suite (asked at a turn end, or once the receipt file, HEAD or the git index
+ * moved) while .claude/task-runner/receipt.json exists, else null; `cmd` is the
+ * recorded command. A board saved before 0.49.3 has none.
  */
 export type TaskBoard = {
   indexPath: string | null
@@ -19,6 +26,16 @@ export type TaskBoard = {
   runActive: boolean
   phase: string
   hasRedTeam: boolean
+  records: TaskBoardRecords | null
+  checkMinutes: number | null
+  receipt: TaskBoardReceipt | null
+}
+
+export type TaskBoardReceipt = { isFresh: true; head: string; cmd: string } | { isFresh: false; reason: string }
+
+export type TaskBoardRecords = {
+  review: Record<string, 'yes' | 'skip' | 'exempt'>
+  control: Record<string, 'yes' | 'skip' | 'exempt'>
 }
 
 export type TaskBoardModel = {
@@ -34,7 +51,7 @@ export type TaskBoardCard = {
   title: string
   dependsOn: string[]
   group: string
-  status: 'pending' | 'in_progress' | 'done' | 'parked' | 'blocked'
+  status: 'pending' | 'in_progress' | 'done' | 'parked' | 'blocked' | 'unrecognised'
   milestone?: string
 }
 

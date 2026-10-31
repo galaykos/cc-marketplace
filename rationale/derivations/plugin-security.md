@@ -136,6 +136,50 @@ on the same line as an exec sink; a tool-result/retrieved-chunk name interpolate
 into a prompt/messages string with no delimiter token on that line.
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+write-scan.sh (PostToolUse on Write, Edit, MultiEdit and Bash, PostToolUseFailure on Bash; payload on stdin) — warns, never denies, once per
+  context, file and finding,
+  on a security sink one written line or Bash-written file shows; the ported and LLM sinks only in their own file types, the Laravel/Vite/raw-HTML ones in any file.
+  After a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also on what each file git reports changed since this hook's
+  previous call added: the whole file when HEAD lacks it, else its `+` lines against HEAD (so a line any uncommitted edit added is judged again).
+  Skips a target under neither CLAUDE_PROJECT_DIR nor the cwd's root, or under $TMPDIR (default /tmp) unless the root holding it is there.
+  State: the bash-effects marker in the plugin's data dir (CLAUDE_PLUGIN_DATA), else <root>/.claude/security/ behind a `*` .gitignore.
+Off: CC_SECURITY_SCAN=off or CC_REMIND=off. Fails open on any error, a missing jq included.
+CC_SECURITY_SCAN / CC_REMIND unset: the /config options cc_security_scan / cc_remind decide.
+Misses: a sink split across lines or reached through an alias, and injection inside the data; cross-file flows, authz, raw SQL outside whereRaw;
+  a client secret with no public-bundle prefix or with no secret word in its name (NEXT_PUBLIC_FOO); on Bash, targets past the eighth, bytes past
+  256 KiB, writes cc_bash_write_targets misses, a relative target in a command holding a cd/pushd; after an interpreter run, changed files past the
+  eighth (MAX_BASH_EFFECTS) and the bash-write-effects block's misses. Warns anyway: a guard on the next line (SafeLoader, weights_only); a file
+  anything else changed since this hook's previous call (an IDE, a parallel agent), read as that run's write.
+```
+
+Above `{ IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; } < <(printf '%s' "$input" \`:
+
+```text
+Interpreter writes: read the effects with the old marker, then date it, on EVERY call this hook sees, so a file an Edit
+changed or a command that wrote nothing is never read as the next run's write. A failed Bash call fires PostToolUseFailure,
+whose envelope must name that event.
+```
+
+Above `cc_scope_init "$sroot"`:
+
+```text
+Scratch is not the project: probe scripts under /tmp drew sink warnings in real sessions (the write-scope block).
+```
+
+Above `added_text() {`:
+
+```text
+added_text <file> — what a run added to <file>, at most 256 KiB: the whole file when HEAD lacks it, else the `+` lines of
+`git diff -U0 HEAD`. The text before the run is gone, so a line any uncommitted edit added since HEAD is judged again.
+```
+
 ## plugins/security/scripts/__tests__/write-scan.test.sh
 
 ### Header

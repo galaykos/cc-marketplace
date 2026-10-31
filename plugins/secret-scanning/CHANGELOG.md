@@ -3,6 +3,22 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.15.6 — 2026-10-28
+
+- **The `secret-scanning` skill's description now reads in short, plain sentences.** Same triggers, the write-guard fixture escape included; it keeps the words the model matches it on.
+
+## 0.15.5 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/scan-range.sh`; `hooks/scan.sh`, `hooks/unicode-scan.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
+## 0.15.4 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/patterns.sh`, `hooks/scan.sh`, `hooks/unicode-scan.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-secret-scanning.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
+## 0.15.3 — 2026-10-26
+
+- **Shorter secret-scan and invisible-character messages; what is blocked or warned on is unchanged.** The secret deny leads with what was blocked, then the fix, the fixture escape, the file and `CC_SECRET_SCAN=off`. The invisible-character warning says what was found, to treat the file's visible text as unverified, and to remove the characters only if the model wrote them (a file it only read is not edited); it lists the lines and ends with `CC_UNICODE_SCAN=off`. Gate: `scan-hook.test.sh` and `unicode-scan.test.sh` pin the new texts, and `pattern-parity.test.sh` reads the label from the new deny.
+
 ## 0.15.2 — 2026-10-25
 
 - **The shared mod kit exports `hostOf` and runs the git-root lookup once per hook call.** `hooks/cc-kit.ts` (byte-identical in every mod plugin) now exports the host adapter that seven feature files pasted, and remembers `stateRoot` per host object, so a hook that asked three times runs `git rev-parse` once. It also carries `countOutcome`, a counts-only `$.store` tally. Redaction itself is unchanged.

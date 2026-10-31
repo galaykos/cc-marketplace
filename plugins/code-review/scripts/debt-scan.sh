@@ -30,6 +30,7 @@
 #     Go, Java and Ruby. A house-specific suppression comment is invisible.
 #   - --age uses `git log -S` per unique marker text: accurate, and O(markers).
 #     On a large repo run it deliberately, not in CI.
+# Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/scripts/debt-scan.sh
 set -u
 
 baseline=".claude/debt-baseline.json"
@@ -51,9 +52,7 @@ done
 [ -d "$dir" ] || { printf 'debt-scan: no such directory: %s\n' "$dir" >&2; exit 3; }
 command -v jq >/dev/null 2>&1 || { printf 'debt-scan: jq required\n' >&2; exit 3; }
 
-# Exclusions: vendored trees are somebody else's debt, and counting them makes the
-# number move when a dependency updates — which is exactly the noise a ratchet
-# cannot tolerate.
+# Vendored trees are somebody else's debt, and counting them moves the number on a dependency update: noise a ratchet cannot take.
 PRUNE='-name node_modules -o -name vendor -o -name .git -o -name dist -o -name build -o -name .venv -o -name target -o -name __pycache__'
 
 files() {
@@ -69,25 +68,15 @@ scan() { # extended-regex -> count
   | awk '{s+=$1} END {print s+0}'
 }
 
-# 1. SUPPRESSIONS — the category teams actually bleed on, and the one a TODO grep
-#    misses entirely, because a suppression reads as code rather than as debt.
+# 1. Suppressions: they read as code, so a TODO grep misses them.
 P_SUPPRESS='eslint-disable|@ts-ignore|@ts-expect-error|@phpstan-ignore|@psalm-suppress|# *noqa|@SuppressWarnings|#\[allow\(|// *nolint|rubocop:disable|# *type: *ignore|@pragma\('
-# 2. SKIPPED / QUARANTINED TESTS — a test that does not run is a claim nobody checks.
-#    `->skip(`/`->todo(` is Pest's chained form and its IDIOMATIC one — the PHPUnit
-#    entries below (markTestSkipped) do not cover it, so a Pest suite's quarantined
-#    tests counted zero while the same project's PHPUnit-style skips counted. Pest is
-#    first-class here: this marketplace ships php + laravel plugins, and testing's
-#    flake-hunt runner table lists Pest by name.
+# 2. Skipped or quarantined tests, Pest's idiomatic chained ->skip(/->todo( included: markTestSkipped does not cover it.
 P_SKIP='\b(it|test|describe|context)\.(skip|todo)\b|->(skip|todo)\(|\bx(it|describe)\b|@pytest\.mark\.(skip|xfail)|markTestSkipped|markTestIncomplete|t\.Skip\(|@Ignore\b|@Disabled\b|#\[ignore\]'
 # 3. BARE MARKERS — no owner, no date, no issue link.
 P_TODO='(^|[^[:alnum:]])(TODO|FIXME|HACK|XXX)([^[:alnum:](]|$)'
-# 4. DEPRECATED-SYMBOL REFERENCES — the deprecation was announced; nothing counts
-#    whether callers actually left.
+# 4. Deprecated-symbol references: nothing else counts whether callers left.
 P_DEPRECATED='@deprecated|Deprecated\(|DeprecationWarning'
-# 5. FEATURE FLAGS PAST THEIR REMOVAL DATE — approaches:rollout-planning tells
-#    authors to write a removal date down and nothing in this marketplace has ever
-#    read one back. This counts the flags that carry one at all; the date check is
-#    reported separately below.
+# 5. Feature-flag references (approaches:rollout-planning asks for a removal date nothing reads back); no date is checked.
 P_FLAG='(feature_?flag|isEnabled\(|featureEnabled\(|flags?\.[a-zA-Z_]+ *(===|==) *true|LaunchDarkly|unleash)'
 # 6. DELIBERATE SHORTCUTS — comment-led, so prose that merely says "shortcut:" is not one.
 P_SHORTCUT='(#|//|--|/\*)[[:space:]]*shortcut:'
@@ -143,8 +132,7 @@ files | xargs -0 grep -anHE --null "$P_SHORTCUT" 2>/dev/null | tr '\000' '\001' 
   }
   END { if (n > 40) printf "  +%d more\n", n - 40 }'
 
-# Age is reported, never ratcheted: "340 TODOs" is a number nobody acts on;
-# "11 of them are older than two years, 3 in payments" is a decision.
+# Age is reported, never ratcheted: "340 TODOs" is a number nobody acts on, "11 older than two years, 3 in payments" a decision.
 if [ "$want_age" -eq 1 ] && command -v git >/dev/null 2>&1 && git -C "$dir" rev-parse >/dev/null 2>&1; then
   printf '\noldest bare markers (first seen, via git log -S):\n'
   files | LC_ALL=C xargs -0 grep -ahoE "$P_TODO.{0,60}" 2>/dev/null | LC_ALL=C sed 's/^[^A-Z]*//' | LC_ALL=C sort -u | head -40 \

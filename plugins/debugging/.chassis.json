@@ -1,7 +1,7 @@
 {
   "chassis": "reminder-hook",
   "regex": "(still (failing|broken|crash(es|ing)?|fails|not working)|same error|didn.?t work|not working|keeps (failing|breaking|crashing)|failing again|broke again|nothing works|(second|third|2nd|3rd|fourth|4th) (time|attempt|try))",
-  "message": "ℹ debugging: a fix that did not hold is a hypothesis that was never tested — reproduce first, read the actual error, isolate one variable, and stop guessing after three failed attempts",
+  "message": "ℹ debugging: reproduce the failure and read the actual error before the next fix; after three failed fixes, stop guessing",
   "command": "/debugging:debug",
   "extraGuard": null,
   "artifact": "debugging:remind",

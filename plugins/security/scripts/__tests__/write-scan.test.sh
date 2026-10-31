@@ -26,6 +26,9 @@ silent() { # silent <name> <session> <tool> <content>
 }
 
 warns "empty guarded"      'protected $guarded = [];'                        "mass-assignment-open"
+if [[ "$(jq -r '.hookSpecificOutput.additionalContext // empty' <<<"$out")" == '[security] mass-assignment-open: empty $guarded disables mass-assignment protection — list guarded fields or use $fillable
+[security] Fix the lines above in /tmp/f.php, or say why each is safe; /security:review checks what these patterns cannot. CC_SECURITY_SCAN=off turns these warnings off.' ]]; then pass=$((pass+1));
+else echo "FAIL the warning: each finding, then the file, the next step and one off switch — got: ${out:-<empty>}"; fail=$((fail+1)); fi
 warns "blade unescaped"    '<div>{!! $user->bio !!}</div>'                   "blade-unescaped"
 warns "vite secret"        'VITE_STRIPE_SECRET=sk_test_x'                    "client-bundle-secret"
 warns "whereRaw interp"    '->whereRaw("id = {$id}")'                        "raw-sql-interpolation"

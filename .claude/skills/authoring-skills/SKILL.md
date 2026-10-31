@@ -32,8 +32,10 @@ not a summary.
 
 - Start with "Use when …" and name the concrete situations: the file types,
   the actions, the phrases a user would actually type.
-- Follow with an em dash and what the skill delivers, so the dispatcher can
-  weigh it against neighbors: "Use when X — does Y."
+- Then say what the skill delivers, so the dispatcher can weigh it against
+  neighbors: one sentence, "Use when X — does Y.", or several short ones, the
+  first opening "Use when …". The effect of the several-sentence form on
+  triggering is unmeasured.
 - Include trigger vocabulary verbatim. If users say "review my diff", the
   words "review" and "diff" belong in the description, not synonyms.
 - Trigger conditions ONLY, never a workflow recap — a description that

@@ -1,11 +1,6 @@
 #!/bin/bash
-# palette-default.sh (PostToolUse on Edit|Write|MultiEdit; payload on stdin) — names the indigo/violet/purple default accent once per
-#   transcript and project when a written UI file carries it as a Tailwind class or a default swatch hex. Advisory: it always exits 0.
-# Off: CC_REMIND=off silences every advisory nudge in this marketplace; CC_PALETTE=off only this one.
-# CC_REMIND / CC_PALETTE unset: the /config options cc_remind / cc_palette decide.
-# Misses: a composition (three equal cards, a ribbon on the middle one, a centred hero); a class name built at runtime (`bg-${tone}-500`)
-#   or passed as a prop value (`color="indigo"`); an in-band hex that is not a default swatch. The file is already written: it informs the next edit.
-# State: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/ui-ux/ is only the fallback.
+# palette-default.sh — PostToolUse on Edit|Write|MultiEdit: once per transcript and project, names the indigo/violet/purple default accent a written UI file carries as a Tailwind class or a default swatch hex; advisory, always exits 0. Off: CC_REMIND=off (every nudge) or CC_PALETTE=off (unset: /config options cc_remind / cc_palette). State: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state), else <root>/.claude/ui-ux/.
+# Misses: a composition (three equal cards, a ribbon on the middle one, a centred hero); a class built at runtime (`bg-${tone}-500`) or passed as a prop (`color="indigo"`); an in-band hex that is no default swatch. The file is already written: it informs the next edit.
 # Why, limits, history: rationale/derivations/plugin-ui-ux.md § plugins/ui-ux/hooks/palette-default.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -49,8 +44,6 @@ cc_plugin_state() {
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt

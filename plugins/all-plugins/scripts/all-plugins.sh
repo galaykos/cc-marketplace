@@ -1,53 +1,7 @@
 #!/usr/bin/env bash
-# all-plugins.sh — install every plugin of this marketplace at one scope with
-# zero prompts, uninstall them again, or list their state. A "leaf" is every plugin in
-# the marketplace.json: since 2026-09-26 no plugin here may declare `dependencies`
-# (the repo's validate.sh fails the key), so there is no bundle to skip. all-plugins
-# itself is on the list — `install` covers it (normally already there: `skip`),
-# `uninstall` keeps it unless --self, and removes it LAST with --self. `install` alone skips
-# what `opt_in` names (installed only when the person names it); `uninstall` and `list` walk it.
-#
-# It installs what the marketplace holds WHEN IT RUNS. A plugin added later is not
-# installed by a marketplace update; run `install` again — installed ones are skipped. A mechanism, not prose:
-# the exit code is the contract. 0 = done (including nothing to do); 1 = at least
-# one per-plugin command failed — the list is still walked to the end and every
-# failure is reported; 2 = usage error or a missing prerequisite.
-#
-# Usage: all-plugins.sh <install|uninstall|list> [--scope local|project|user]
-#                       [--dry-run] [--self] [--budget|--no-budget] [--marketplace NAME]
-#
-# The listing budget is opt-in (--budget). Claude Code caps the skill+command listing
-# it sends the model at contextWindowTokens x bytesPerToken x skillListingBudgetFraction
-# (default 0.01 — 6,000 chars at 200k on a 3-byte model) and past it drops entries to
-# name-only. Every leaf here costs several times that, so `install` computes the
-# listing cost the way scripts/lib/plugin-checks.sh's pc_listing_entry_cost does
-# (name + 4 + min(description, 1536) per skill/command — and `description` is the
-# JOINED pair the CLI lists, `description + " - " + when_to_use` when the frontmatter
-# carries both, capped once after the join, not twice; see the walk near the bottom of
-# this file), and raises skillListingBudgetFraction
-# in the SCOPE's settings file to the smallest 0.01 step that covers it at the 200k
-# floor — a cap, not a fill, so a 1M window pays nothing extra. `uninstall` removes
-# the key again, but only when it still holds the value this script would set; any
-# other value is somebody's and is left alone. --no-budget skips the removal too.
-# `install` raises only under --budget; `uninstall` removes by default, so a value an
-# older install wrote unasked is still cleaned up.
-#
-# What it does NOT do: never touches another marketplace; never
-# prompts — this marketplace declares no install commands, so nothing asks and `-y`
-# is never passed; does not reload the session (the hint names /reload-plugins).
-#
-# Whether an overflowed listing changes what fires was measured once at zero delta,
-# n=50 (rationale/2026-09-15-listing-eviction-probe.md), so the raise is not worth
-# about 12,000 system-prompt tokens per turn by default; --budget buys it for whoever
-# wants the question moot (rationale/marketplace-taskforce-review-2026-10-11.md).
-#
-# Discovery is never a hardcoded list: `claude plugin marketplace list --json`
-# locates the clone, its marketplace.json names the plugins, and `claude plugin
-# list --json` says what is installed WHERE — the same id appears once per project
-# at local/project scope, so an entry only counts when its projectPath is this one.
-#
-# Standing: mechanism — exit code is the contract; nothing in CI runs it against a
-# live CLI, the harness (scripts/__tests__/all-plugins.test.sh) drives a shim.
+# all-plugins.sh <install|uninstall|list> [--scope local|project|user] [--dry-run] [--self] [--budget|--no-budget] [--marketplace NAME] — installs every plugin in this marketplace's marketplace.json at one scope with zero prompts, uninstalls them, or lists their state, found through `claude plugin marketplace list --json` and `claude plugin list --json` (an entry counts only when its projectPath is this one). install skips what opt_in names; uninstall keeps all-plugins unless --self, then removes it LAST. --budget raises skillListingBudgetFraction in the scope's settings file to the smallest 0.01 step covering the listing at the 200k floor; uninstall removes the key only while it holds that value; --no-budget skips the removal.
+# Misses: a plugin added to the marketplace later (run install again); other marketplaces (never touched); the session reload (/reload-plugins); a live CLI in CI (the harness drives a shim). Exit 0 done or nothing to do, 1 a per-plugin command failed (the list is still walked, every failure reported), 2 usage or a missing prerequisite.
+# Why, limits, history: rationale/derivations/plugin-all-plugins.md § plugins/all-plugins/scripts/all-plugins.sh
 set -u
 
 SELF_NAME="all-plugins"
@@ -139,8 +93,7 @@ leaves() { # leaves <root> — stdout: every plugin name in marketplace.json, so
   [ -r "$mj" ] || die 2 "cannot read $mj — fix: claude plugin marketplace update $MARKETPLACE"
   jq -e '.plugins | type == "array"' "$mj" >/dev/null 2>&1 \
     || die 2 "$mj has no .plugins array — fix: claude plugin marketplace update $MARKETPLACE"
-  # No `dependencies` filter: the bundles it skipped were retired 2026-09-26 and the
-  # repo's validate.sh now fails any plugin.json that declares the key.
+  # No `dependencies` filter: the repo's validate.sh fails any plugin.json that declares the key.
   jq -r '.plugins[].name' "$mj" | LC_ALL=C sort
 }
 
@@ -173,7 +126,7 @@ state_of() { # state_of <name> — installed | disabled | absent
 opt_in() { # opt_in <name> — why `install` leaves it out by construction; empty for every other leaf
   case "$1" in
     prompt-coach) printf 'opt-in: bills a model call per prompt' ;;
-    godot|unity|unreal|roblox|bevy|defold|ebitengine|phaser|pixijs|gamedev|blender|meshy|pixel-art)
+    godot|unity|unreal|phaser|pixijs|gamedev|blender|meshy|pixel-art)
       printf 'opt-in: game plugin, /stack-scan:suggest installs it in a game repo' ;;
   esac
 }
@@ -186,9 +139,7 @@ row() { # row <verb> <name> <status>
   printf '%-9s  %-*s  %s\n' "$1" "$WIDTH" "$2" "$3"
 }
 
-# run_cli <verb> <name> — `claude plugin <verb> <name>@MARKETPLACE -s SCOPE`, or the
-# DRY line under --dry-run. On failure REASON holds the first stderr line. stdin is
-# /dev/null so a prompt, should the host ever grow one here, fails instead of hanging.
+# run_cli <verb> <name> — `claude plugin <verb> <name>@MARKETPLACE -s SCOPE` (the DRY line under --dry-run); on failure REASON holds the first stderr line; stdin is /dev/null so a prompt fails instead of hanging.
 run_cli() {
   local verb="$1" name="$2" err rc
   if [ "$DRY" -eq 1 ]; then
@@ -236,10 +187,7 @@ listing_cost() { # listing_cost <root> — stdout: entry chars of every leaf, pc
       desc=$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)
       wtu=$(printf '%s\n' "$fm" | sed -n 's/^when_to_use:[[:space:]]*//p' | head -1)
       dl=$(printf '%s%s' "$desc" "${wtu:+ - $wtu}" | LC_ALL=C wc -c | tr -d ' ')
-      # 1536 is the host's skillListingMaxDescChars default. SOURCE OF TRUTH:
-      # scripts/host-constants.sh in the marketplace repo, which re-reads it out of the
-      # pinned CLI binary. This copy cannot source it — this script ships inside the
-      # plugin and runs on an installer's disk where that repo path does not exist.
+      # 1536 is the host's skillListingMaxDescChars default; source of truth: scripts/host-constants.sh in the marketplace repo (copied, since this script ships alone).
       [ "$dl" -gt 1536 ] && dl=1536
       total=$(( total + ${#name} + 4 + dl ))
     done
@@ -408,8 +356,5 @@ main() {
   esac
 }
 
-# `main` is the last line on purpose: `uninstall --self` removes the plugin whose
-# cache dir holds this very file. bash parses a function body in full before running
-# it but reads top-level lines as it reaches them, so everything above is a function
-# and nothing past this point is ever read from a file that may already be gone.
+# `main` is the last line: `uninstall --self` deletes this very file, and bash reads top-level lines only as it reaches them.
 main "$@"

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # reduction-record.sh — record a declared reduction in what a run promised to do.
-#
+# Misses: whether the reason is true (model-authored) or the evidence shows anything (the path is checked, never its content); what is mechanical is that a reduction cannot be invisible.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/reduction-record.sh (marketplace repository)
+
 # Usage:
 #   reduction-record.sh --kind <kind> --id <ref> --reason "<why>" [--evidence <path>] [--record-dir <dir>]
 #
@@ -22,32 +24,13 @@
 #                     that verdict only with this record for that HEAD, and the closing
 #                     report must name bg-<HEAD12>. Not for code whose runner exists.
 #          other      anything else the run promised and did not fully deliver
-#
-# THE POINT. Every one of these is legitimate sometimes. None of them is legitimate
-# silently: the failure this exists to prevent is the one that already happened —
-# reviewers dropped on 7 of 8 cards to save context, reported as "all 8 done", found
-# only because the user asked afterwards.
-#
-# So a reduction leaves three traces: this record (which candor's Stop gate counts and
-# whose existence makes the closing report's disclosure mandatory), the reason echoed
-# to stderr at the moment of the decision so it lands in the transcript where it
-# happened, and — in an interactive session — a permission prompt from
-# hooks/rv-consent.sh before the record exists at all.
-#
-# The reviewer pass has its own recorder (review-skip.sh) because it is counted per
-# card against cards_done; this one covers the reductions that are not per-card.
-#
-# Standing: recorded. The reason is model-authored and nothing here can check it. What
-# is mechanical is that the reduction cannot be invisible.
 set -euo pipefail
 
 PROG=reduction-record
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 
 KIND=""; ID=""; REASON=""; EVIDENCE="";
-# Anchored at the repo ROOT, not the shell's cwd: a `cd sub && ...` invocation wrote the
-# record where the completion gate never looks, so the count came up short and blocked
-# the run.
+# The repo root, not the cwd: a record written under a subdirectory is one the completion gate never finds.
 ROOT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 DIR="$ROOT_DIR/.claude/task-runner/reductions"
 while [ $# -gt 0 ]; do
@@ -71,10 +54,7 @@ esac
 case "$ID" in *[!a-zA-Z0-9._-]*) usage "--id carries path characters: $ID" ;; esac
 [ -n "$REASON" ] || usage "need --reason \"<why>\" — a reduction with no stated reason is the thing this refuses to allow"
 
-# Checked before anything is written: a record naming evidence that is not there reads
-# as proof to whoever opens it later. Relative paths resolve against the shell's cwd,
-# like any argument; both sides are compared physically (pwd -P), so /tmp vs
-# /private/tmp on macOS cannot fail a path that is inside the repo.
+# Checked before any write: a record naming absent evidence reads as proof. Compared physically (pwd -P), so macOS /tmp vs /private/tmp passes.
 EV_REL=""
 if [ -n "$EVIDENCE" ]; then
   [ -e "$EVIDENCE" ] || usage "--evidence path does not exist: $EVIDENCE"
@@ -92,12 +72,10 @@ if [ -n "$EVIDENCE" ]; then
 fi
 
 mkdir -p "$DIR" 2>/dev/null || { printf '%s: cannot create %s\n' "$PROG" "$DIR" >&2; exit 5; }
-# The run's state root ignores itself (see hooks/scope.sh); only when this record
-# lands under the default .claude/task-runner/, never under a --record-dir override.
+# Only the default state root ignores itself (as hooks/scope.sh does), never a --record-dir override.
 case "${DIR%/*}" in */.claude/task-runner) [ -e "${DIR%/*}/.gitignore" ] || printf '*\n' > "${DIR%/*}/.gitignore" 2>/dev/null ;; esac
 
-# Strips control characters as well as escaping: a newline in --reason wrote a record
-# that is not valid JSON, which nothing reads back today but breaks the first tool that does.
+# Control characters stripped too: a newline in --reason made the record invalid JSON.
 esc() { printf '%s' "$1" | tr -d '\000-\037' | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 ev_json=""
 [ -z "$EV_REL" ] || ev_json=$(printf ',"evidence":"%s"' "$(esc "$EV_REL")")

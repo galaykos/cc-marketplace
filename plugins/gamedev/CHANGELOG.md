@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.1.1 — 2026-10-29
+
+- **Companion list matches the marketplace.** The description and README name the engine plugins this marketplace still ships — godot, unity, unreal, phaser and pixijs. roblox, bevy, defold and ebitengine were removed from the marketplace, so they are no longer named. Skills and scripts are unchanged.
+
 ## 0.1.0 — 2026-10-26
 
 - **New plugin: engine-agnostic game shipping.** Six skills: `steam-release`, `itch-release`,

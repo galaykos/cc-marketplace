@@ -1,11 +1,6 @@
 #!/bin/bash
-# avert.sh (PreToolUse on Agent, Task, Write, Edit, MultiEdit, Bash; payload on stdin) — asks the user before a call whose text names a legal
-#   hedge, a declared substitute or precaution language that no human turn of the transcript contains; once per term per session.
-#   A Bash call's git commit message and gh pr create|edit title and body are not read (unbody, below).
-# Off: CC_AVERT=off; CC_AVERT=notify makes the ask a notification the call proceeds past. Without jq or on a bad payload it asks nothing.
-# CC_AVERT unset: the /config option cc_avert decides (on, notify or off).
-# Misses: a hedge outside its vocabulary; an avert that never names its reason; in a subagent, a hedge its dispatch prompt already wrote.
-#   Asks anyway: when the transcript is missing. An ask is a deny in a -p run with no permission host.
+# PreToolUse on Agent, Task, Write, Edit, MultiEdit, Bash: asks the user, once per term per session, before a call whose text names a legal hedge, a declared substitute or precaution language that no human turn contains; a Bash git commit message or gh pr create|edit body is not read.
+# Misses a hedge outside its vocabulary, an avert that never names its reason, a hedge a subagent's dispatch already wrote; asks when the transcript is missing, and an ask is a deny in -p. No jq or a bad payload: silent. CC_AVERT=off disables, =notify notifies instead; unset, /config cc_avert.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/avert.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -13,8 +8,6 @@
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -34,10 +27,7 @@ cc_option() {
 
 MARKER_TTL_MIN=1440
 
-# A commit message or PR body documents a hedge already made; it does not make one (a PR body disclosing a precaution coded
-# earlier was asked about). Cut: a git commit or gh pr create|edit at a command position, up to the next ; & | or line end, and
-# any heredoc body opened in that span; bodies opened elsewhere are kept, in order. Misses: a ; & | inside the quoted message,
-# or a multi-line quoted message with no heredoc, leaves the rest scanned (it asks); a message file written first is a Write.
+# A commit message or PR body records a hedge already made: drop a git commit or gh pr create|edit span to the next ; & | or line end, and the heredoc bodies it opens; a ; & | inside the quoted message leaves the rest scanned (it asks).
 unbody() {
   LC_ALL=C awk 'BEGIN { qi = 1 }
     # Quoted text as _, length kept, so a << inside a quoted message opens nothing; a "$( reads the rest of the line unquoted.

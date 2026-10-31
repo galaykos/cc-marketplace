@@ -1,34 +1,7 @@
 #!/usr/bin/env node
-// terse-shrink — an MCP stdio proxy that trims prose out of a server's tool
-// catalog before it reaches the model.
-//
-// A large MCP server spends 5-15k tokens of always-on context describing itself.
-// Most of that is prose the dispatcher does not need: "This tool allows you to
-// …", "Please note that …", hedges, and restatements of the tool name.
-//
-// OPT-IN, and nothing wires it for you. Point an MCP server's command at this
-// file with the real command as arguments:
-//
-//   "mcpServers": {
-//     "fs": { "command": "node",
-//             "args": ["<plugin>/scripts/shrink.mjs", "npx", "-y", "@some/mcp-server"] } }
-//
-// WHAT IT CHANGES: the `description` field of entries in tools/list, prompts/list
-// and resources/list responses. Nothing else. Names, input schemas, arguments,
-// results and every request travelling upstream pass through byte-for-byte —
-// a proxy that edited a schema would change what the model can call, not just
-// what it reads.
-//
-// WHY IT IS CONSERVATIVE BY DEFAULT: a tool description is the routing signal.
-// Stripping articles saves a few percent and can flip which tool the model
-// picks, so the default pass removes only filler phrases, hedges and
-// self-referential preambles. TERSE_SHRINK_AGGRESSIVE=1 adds article dropping
-// for parity with a full caveman-style pass — measurably smaller, measurably
-// riskier, and off unless you ask.
-//
-// FAIL-OPEN: any parse error, any unexpected shape, and the line is forwarded
-// untouched. A proxy that drops a message breaks the server it was meant to make
-// cheaper.
+// shrink.mjs <command> [args...] — opt-in MCP stdio proxy (an MCP server's command becomes node, this file, the real command): trims filler, hedges and preambles from the `description` of tools/list, prompts/list and resources/list responses, nothing else; TERSE_SHRINK_AGGRESSIVE=1 also drops articles.
+// Misses: prose off its phrase lists; a catalog line carrying a 16+-digit integer passes unshrunk. Fails open: any parse error or unexpected shape forwards the line untouched.
+// Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/shrink.mjs
 import { spawn } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
 
@@ -40,9 +13,7 @@ if (!cmd) {
 
 const AGGRESSIVE = process.env.TERSE_SHRINK_AGGRESSIVE === '1';
 
-// Spans that must survive verbatim: fenced blocks, inline code, URLs, paths,
-// {placeholders}, and ALL_CAPS identifiers. They are lifted out, the prose is
-// rewritten, then they are put back.
+// Fenced blocks, inline code, URLs, paths, {placeholders} and ALL_CAPS identifiers are lifted out, then put back verbatim.
 const PROTECT = /```[\s\S]*?```|`[^`]*`|https?:\/\/\S+|\/[\w.-]+(?:\/[\w.-]+)+|\{[^}]*\}|\b[A-Z][A-Z0-9_]{2,}\b/g;
 
 const FILLER = [
@@ -66,10 +37,7 @@ const REPLACE = [
 function squeeze(text) {
   if (typeof text !== 'string' || text.length < 40) return text;
 
-  // Placeholder is printable on purpose: a control-character sentinel works at
-  // runtime but turns this source file into something git calls binary and an
-  // editor refuses to render. `@@n@@` cannot appear in a description that was
-  // not already broken.
+  // Printable on purpose: a control-character sentinel makes git call this file binary.
   const held = [];
   let s = text.replace(PROTECT, (m) => `@@${held.push(m) - 1}@@`);
 
@@ -78,21 +46,15 @@ function squeeze(text) {
   if (AGGRESSIVE) s = s.replace(/\b(?:a|an|the)\s+/gi, '');
 
   s = s.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
-  // Deleting a mid-sentence preamble leaves a lowercase sentence start; re-cap
-  // the head and anything after terminal punctuation.
+  // A removed preamble leaves a lowercase sentence start.
   s = s.replace(/(^|[.!?]\s+)([a-z])/g, (_, lead, ch) => lead + ch.toUpperCase());
   s = s.replace(/@@(\d+)@@/g, (_, i) => held[Number(i)]);
 
-  // Never hand back an empty description: an entry the model cannot read is
-  // worse than a verbose one.
+  // An entry the model cannot read is worse than a verbose one.
   return s.length ? s : text;
 }
 
-// Ids of the catalog requests we are allowed to rewrite the response of. Matching
-// on response SHAPE instead was wrong: a `tools/call` result whose payload happens
-// to contain a `resources` array — every cloud, registry and k8s server has one —
-// got its data rewritten, which is corruption, not compression. Only a response to
-// a list request is a catalog.
+// Only a response to a list request is a catalog: matching on shape rewrote `tools/call` results that carry a `resources` array.
 const CATALOG_METHODS = new Set([
   'tools/list', 'prompts/list', 'resources/list', 'resources/templates/list',
 ]);
@@ -108,10 +70,7 @@ function noteRequest(line) {
   } catch { /* not JSON we understand — nothing to remember */ }
 }
 
-// Returns true when a description actually changed. The caller re-serializes only
-// then: JSON.parse/stringify on every line silently rounds any integer above 2^53
-// (snowflake ids, nanosecond timestamps, i64 counters) in messages this proxy has
-// no business touching at all.
+// True only when a description changed; the caller re-serializes only then, as a JSON round-trip rounds integers above 2^53.
 function shrinkPayload(obj) {
   if (!obj || obj.id === undefined || !pendingCatalog.delete(String(obj.id))) return false;
   const r = obj.result;
@@ -137,12 +96,7 @@ child.on('error', (e) => {
 });
 child.on('exit', (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
 
-// Requests upstream are forwarded byte-for-byte; they are only READ on the way
-// past, to remember which ids asked for a catalog.
-// StringDecoder, not chunk.toString(): a chunk boundary can fall inside a multibyte
-// character, and toString() on each half yields U+FFFD. That corrupted pass-through
-// lines containing any non-ASCII text, which is exactly the byte-for-byte promise this
-// proxy makes about traffic it does not shrink.
+// Upstream requests pass byte-for-byte, read only for catalog ids. StringDecoder: a chunk boundary inside a multibyte character turns toString() halves into U+FFFD.
 const inDecoder = new StringDecoder('utf8');
 let inBuf = '';
 process.stdin.on('data', (chunk) => {
@@ -169,14 +123,7 @@ child.stdout.on('data', (chunk) => {
     let out = line;
     try {
       const obj = JSON.parse(line);
-      // Re-serialize ONLY when a description actually changed. Every other line —
-      // including every tool result — leaves this proxy exactly as it arrived.
-      //
-      // And not even then if the line carries an integer literal too long to
-      // survive a JSON round-trip: a catalog response can hold both a shrinkable
-      // description and a 19-digit id in `_meta`, and rounding that id is a worse
-      // outcome than a verbose description. Cheap pre-check on the raw text,
-      // because by the time it is parsed the damage is already done.
+      // Only when a description changed, and never with a 16+-digit integer on the line: rounding an id is worse than a verbose description.
       if (shrinkPayload(obj) && !/[0-9]{16,}/.test(line)) out = JSON.stringify(obj);
     } catch {
       out = line; // not JSON, or an unexpected shape — forward as-is

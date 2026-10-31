@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
-# scan.sh — the mechanical core of stack-scan: required-vs-installed inventory
-# from manifests, lockfiles, runtimes, and container files, as one markdown
-# report on stdout. Deterministic parses only; interpretation (upgrade advice,
-# EOL judgment) stays with the skill that wraps this.
-#
-# Usage: scan.sh [project-root]     Exit 0 always (a report, not a gate).
-#
-# Residual: covers node/php/python + docker files. Go/Rust/.NET/JVM rules exist
-# in references/ecosystems.md as instructions, not code — a repo in those
-# stacks gets the "not covered by scan.sh" line, never a silent zero.
+# scan.sh [project-root] — stack-scan's mechanical core: required-vs-installed inventory from manifests, lockfiles, runtimes and container files, one markdown report on stdout; deterministic parses only (upgrade advice and EOL judgment stay with the skill). Exit 0 always — a report, not a gate.
+# Misses: Go/Rust/.NET/JVM/Ruby (rules in references/ecosystems.md as instructions; such a repo gets a "not covered by scan.sh" line, never a silent zero); a framework missing from the list below (no row at all).
+# Why, limits, history: rationale/derivations/plugin-stack-scan.md § plugins/stack-scan/scripts/scan.sh
 set -u
 root="${1:-.}"
 cd "$root" 2>/dev/null || { echo "stack-scan: bad root '$root'"; exit 0; }
@@ -48,11 +41,7 @@ if [[ -f package.json ]] && j; then
   esac
   [[ -f package.json && -n "${locks[0]:-}" && package.json -nt "${locks[0]}" ]] \
     && flags+=("package.json is newer than ${locks[0]} — lock may be stale")
-  # Top framework floors worth pinning advice to. The list is what the report NAMES; a
-  # package absent from it leaves no row at all, so an Astro-, Svelte- or Angular-only
-  # repo scanned as "node + a lockfile" and nothing else (panel 2026-09-22, WEB 12). It
-  # does NOT decide what is installed and it never will be complete: a framework missing
-  # here is invisible, not misreported, and the honest fix is to add the name.
+  # The frameworks the report NAMES: one missing here is invisible, not misreported — add the name.
   for dep in react vue nuxt next vite express fastify "@nestjs/core" livewire \
              svelte "@sveltejs/kit" astro "@angular/core" \
              "@remix-run/react" react-router hono "@prisma/client" drizzle-orm; do

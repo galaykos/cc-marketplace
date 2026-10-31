@@ -1,12 +1,12 @@
 # devops
 
-Infrastructure in one plugin: CI/CD ordering, container/image hygiene, Kubernetes
-resource limits and probes, deploy strategy with rollback, and secrets handling
-(`devops-practices`); Dockerfile and compose discipline (`docker-best-practices`); and
-local dev environments generated from evidence via `/devops:init` (`compose-init`).
-Ships a `devops-engineer` worker + `devops-reviewer` read-only pair and a PreToolUse
-guard on workflow files. Owns infra-layer observability wiring, but defers in-code
-instrumentation to **resilience** (its observability skill).
+Infrastructure in one plugin. `devops-practices` covers CI/CD ordering, container/image
+hygiene, Kubernetes resource limits and probes, deploy strategy with rollback, and secrets
+handling. `docker-best-practices` covers Dockerfile and compose discipline. `/devops:init`
+(`compose-init`) generates local dev environments from evidence. It ships a
+`devops-engineer` agent that makes changes and a read-only `devops-reviewer`. A PreToolUse
+guard checks writes to workflow files. It owns infra-layer observability wiring, but
+leaves in-code instrumentation to **resilience** (its observability skill).
 
 ## What has teeth
 

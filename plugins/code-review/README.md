@@ -2,7 +2,7 @@
 
 Stack-agnostic code review: correctness bugs, code smells, and convention
 drift on any diff, branch, or PR — severity-sorted one-line findings
-(`path:line — severity — problem — fix`). Structure/YAGNI concerns are
+(``path:line — severity — problem — fix — quote: `…` ``). Structure/YAGNI concerns are
 deferred to code-architecture, security depth to security, and stack idioms
 to the per-framework review plugins.
 
@@ -52,7 +52,7 @@ list rather than one per plugin.
 ```
 
 Reviews state their coverage (`Checked:` / `Not checked:`) and close with a
-one-line verdict — merge-ready, merge-after-criticals, or rework — with an
+one-line verdict — merge-ready, merge-after-criticals, rework, or incomplete — with an
 option to apply the fixes. Since 0.17.0 the generic pass is delegated to Claude
 Code's built-in `/code-review` skill when the session has it; this command is
 the stack fan-in over it, and runs the generic pass itself only when the
@@ -75,6 +75,55 @@ with no diff, except that the command judges every comment in scope on a hand-up
 Credit: the "Reinvented shelf" smell, the `shortcut: <the limit>; revisit when <trigger>` comment form and the debt lane's `shortcuts` count adapt rules from [dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) v4.10.0 (MIT), rewritten here rather than copied.
 The "Mysterious name" smell, the decision-record test and required call order in `comment-discipline`, and a repo's contributing or coding-standards doc as a convention source (the review's convention pass, `conventions.sh`'s `standards:` line) adapt rules from [mattpocock/skills](https://github.com/mattpocock/skills) v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied; their effect on what the model writes is unmeasured.
 The elision deny in `scan.sh` is adapted from [leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill)'s output-skill (commit ce26fc25, MIT, © 2026 Leonxlnx), rewritten here rather than copied; its effect on what the model writes is unmeasured.
+
+## Quote check (since 0.34.4)
+
+A finding that quotes code marks the quote ``quote: `<excerpt>` `` at the end of the
+finding's line; `critical` and `high` findings must carry one. Before the verdict
+`/code-review:review` pipes its findings to `scripts/quote-check.sh`, which prints one line
+per finding:
+
+- `ok` — the line's last quote is in the file within 3 lines of the cited `path:line`
+  (or of a cited range, `path:12-30`), compared with ASCII whitespace and no-break spaces
+  dropped. One leading `+` or `-` (a line copied from the patch) is forgiven, `…` or `...`
+  marks a cut, and a Markdown table cell's `\|` is read as `|` when the quote fails as
+  typed. A quote under 8 non-space characters is accepted unjudged. With several locations
+  (`a.ts:3, b.ts:9 — high —`, or `… and …`), any one will do. A location may be bold, in
+  backticks or a Markdown link, carry an en-dash range (`6–8`) or a trailing `(symbol)`, and
+  a path may hold `[ ]` (`app/blog/[slug]/page.tsx`).
+- `mismatch` — the file is there and the quote is not. The review fixes the quote or the
+  citation, or drops the finding when the code does not hold what it claims, and runs the
+  check again. For a PR or branch that is not checked out, the review passes
+  `--ref <target>` and the quote is also looked for in that version (`git show <ref>:<path>`).
+- `missing-quote` — a critical or high finding without one: the review Reads the line and
+  adds it. A stack or dispatched reviewer that writes four fields loses no finding for that.
+- `removed` — the finding is about code the change deleted and quotes it as a trailing
+  ``was: `…` `` field, which is never checked: the working file no longer holds it. It counts
+  as quoted.
+- `unquoted` (a medium or low finding without one) and `undecidable` (no such file, a bare
+  name two tracked files end in, a binary file or one over 1 MiB) stand.
+- `unparsed` — a line naming a `path:line` and `— critical —` or `— high —` that is not in
+  the finding shape; the check exits 2 until the review rewrites it. The line is echoed only
+  up to its `quote:`, so the quote itself never appears in the check's output.
+
+The verdict gains **incomplete**: printed, naming what is missing, when a pass `Checked:`
+lists as applied did not run, a dispatched reviewer returned nothing, or the check could not
+run (any exit other than 0 or 1); it never sits beside merge-ready. After an apply pick, every applied finding ends in a
+closing table as `fixed` (with the changed `path:line`) or `contested` (with a reason), and
+`quote-check.sh --close` fails while one is neither, or has no row. The review also reads the
+tests that cover the changed code (a grep of the test files for the changed symbols) besides
+its callers.
+
+- **Misses.** A true quote that proves nothing; a quote found anywhere in the 7-line window;
+  a `was:` quote, true or not; a file edited since the review and not passed as `--ref`; a
+  medium or low finding not written in the one-line shape (the summary's count shows it).
+  `--close` takes the evidence column on trust. The stack plugins' own reviewer agents
+  still write four fields; this command adds the quote.
+- **Off switch.** None: it is a step of the review command, not a hook, and blocks nothing
+  outside a review.
+- **Standing.** The verdicts are a **gate** (`scripts/__tests__/quote-check.test.sh`, each
+  case that must fire beside one that must not); whether a review runs the check and acts on
+  it is **agent-graded**.
 
 ## Comment discipline (merged in on 2026-09-02) <!-- removed-ok -->
 

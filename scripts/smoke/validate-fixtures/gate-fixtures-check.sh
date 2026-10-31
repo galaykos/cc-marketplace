@@ -455,6 +455,30 @@ case "$out" in
   *badsw*) fail "offswitch: '# offswitch-ok:' silences it" "still flagged: $out" ;;
   *) pass "offswitch: '# offswitch-ok:' silences it" ;;
 esac
+# A Stop block printed as {"decision":"block",…} with exit 0 refuses like exit 2: ask-ledger's gate.sh, as shipped and with its
+#   reason's switch sentence reworded away, plus a printf of raw JSON.
+mkhook askloud gate.sh < plugins/ask-ledger/hooks/gate.sh
+sed 's/CC_ASK_LEDGER=off turns this check off/this check can be turned off/' plugins/ask-ledger/hooks/gate.sh | mkhook askquiet gate.sh
+mkhook rawquiet stop-block.sh <<'SH'
+#!/bin/bash
+input=$(cat)
+[ "${CC_FIXTURE_STOP:-on}" = off ] && exit 0
+printf '%s\n' '{"decision":"block","reason":"fixture: refused."}'
+exit 0
+SH
+out=$(pc_offswitch_named "$T") || true
+case "$out" in
+  *"offswitch-unnamed askquiet:gate.sh CC_ASK_LEDGER"*) pass "offswitch: ask-ledger's JSON Stop block with its switch named nowhere is flagged" ;;
+  *) fail "offswitch: ask-ledger's JSON Stop block with its switch named nowhere is flagged" "got: ${out:-<empty>}" ;;
+esac
+case "$out" in
+  *askloud*) fail "offswitch: ask-ledger's JSON Stop block naming CC_ASK_LEDGER in its reason is clean" "flagged: $out" ;;
+  *) pass "offswitch: ask-ledger's JSON Stop block naming CC_ASK_LEDGER in its reason is clean" ;;
+esac
+case "$out" in
+  *"offswitch-unnamed rawquiet:stop-block.sh CC_FIXTURE_STOP"*) pass "offswitch: a raw \"decision\":\"block\" printf with its switch named nowhere is flagged" ;;
+  *) fail "offswitch: a raw \"decision\":\"block\" printf with its switch named nowhere is flagged" "got: ${out:-<empty>}" ;;
+esac
 
 # ---- pc_switch_reads on hooks modules ------------------------------------------
 mkdir -p "$T/modsw/hooks"

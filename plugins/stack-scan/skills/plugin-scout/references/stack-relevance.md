@@ -34,10 +34,6 @@ those rows exist because three tokens share a name with plugins removed on
 | Game — Godot | `godot` | `project.godot` at the scan root | `godot` |
 | Game — Unity | `unity` | `ProjectSettings/ProjectVersion.txt` beside an `Assets/` directory — a lone `*.csproj` is not Unity | `unity` |
 | Game — Unreal | `unreal` | a `*.uproject` at the scan root | `unreal` |
-| Game — Roblox | `roblox` | a Rojo `*.project.json` whose tree names `"$className": "DataModel"`, `wally.toml`, a `rokit.toml`/`aftman.toml`/`foreman.toml` naming rojo, or a `*.rbxl`/`*.rbxlx` place file | `roblox` |
-| Game — Bevy | `bevy` | Cargo.toml dependency key `bevy` (or `bevy_ecs`, `bevy_app`) | `bevy` |
-| Game — Defold | `defold` | `game.project` at the scan root carrying a `[bootstrap]` or `[project]` section | `defold` |
-| Game — Ebitengine | `ebitengine` | go.mod requiring `github.com/hajimehoshi/ebiten/v2` — a bare go.mod is not evidence | `ebitengine` |
 | Game — Phaser | `phaser` | package.json dep `phaser` | `phaser` |
 | Game — PixiJS | `pixijs` | package.json dep `pixi.js` | `pixijs` |
 | Game — Meshy (AI 3D) | `meshy` | `MESHY_API_KEY` in `.env`/`.env.example`; package.json dep `meshy-cli`, `@meshy-ai/cli` or `@meshy-ai/meshy-mcp-server`; or a `meshy` server in `.mcp.json` — a `*.glb` alone is not evidence, every three.js repo has them | `meshy` |

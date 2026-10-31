@@ -151,7 +151,7 @@ apply_patch carries no single path, so it stays unrouted — stated, not hidden.
 which RECREATES a project directory the session has deleted — reproduced live three
 levels deep (2026-09-22 panel, architecture #1). A payload naming a directory that no
 longer exists has no state worth keeping and no file worth routing. Same guard as
-plugins/overseer/hooks/track-read.sh:30. LIMITATION: it proves the path EXISTS, not
+the `[ -d "$cwd" ]` test in plugins/overseer/hooks/track-read.sh. LIMITATION: it proves the path EXISTS, not
 that it is the project — a payload whose cwd is `/` or `$HOME` outside any git repo
 still passes, and the state dir is created there. Nothing available to a hook can
 tell those apart.
@@ -368,6 +368,83 @@ at most two per edit — import and command rows first, then file rows, then the
 later edit carries it. Rationale: rationale/session-retro-2026-10-13.md (Tier 1 §1).
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+route.sh — PostToolUse, and PostToolUseFailure on a Bash call that exited non-zero; fails open: matches the edited file, each existing file a Bash command wrote under the project root (named by
+the command, or — after an interpreter, cp, mv, install or patch run — changed in git since this hook's previous call), and the
+command itself against rules.tsv; prints one additionalContext envelope of at most NUDGE_CAP `high` nudges naming plugin:skill, each skill
+once per context and none the context already loaded; queues other content matches as pending_low, none from a doc or style file.
+Speaks about no target outside the root, under taskmaster-docs/ or .claude/, or ignored by git.
+Off: CC_REMIND=off, or unset with the /config option cc_remind off. CC_ROUTE is not read here: it silences route-prompt.sh, the tool-fit check and the flush of what this hook queues.
+Misses: two concurrent calls can drop a pending_low entry; a payload cwd of `/` or `$HOME` outside git is taken for the project root;
+a directory row matches only the directory name it spells (in any case); a command row routes an unquoted mention of its CLI
+and misses a CLI run through a script or an npm alias; a Bash command's write targets past the eighth (MAX_BASH_TARGETS) are not read,
+nor changed files past the eighth (MAX_BASH_EFFECTS); the bash-write-effects block's own misses apply, and a file anything else changed
+between this hook's calls (an IDE, a parallel agent) is read as that run's write.
+```
+
+Above `cc_bash_effects_mark "$root" "$effects_mark" "$sess"`:
+
+```text
+Every call dates the marker, an Edit or a command that wrote nothing too, so a run's effects are only what changed after the
+previous call. The tool has finished before PostToolUse runs, so dating it here equals dating it as the hook exits.
+```
+
+Above `route_target_ok() {`:
+
+```text
+route_target_ok <path> — a file worth a rubric: under the project root, outside taskmaster-docs/ and .claude/, not ignored by git.
+Nudges fired on gitignored scratch scripts, taskmaster-docs evidence files and vendored copies, where nobody applies one.
+Misses: an ignored file outside any git repo routes; a committed vendored tree routes; a path spelled through another symlink than the root's reads as outside.
+```
+
+Above `[ -r "$state_file" ] && fired=$(jq -r '((.fired // []) + (.loaded // []))[]' "$state_file" 2>/dev/null)`:
+
+```text
+`loaded` holds skills the transcript showed loaded before any nudge: skipped like fired ones, but kept out of `fired`, which the
+SessionEnd ledger reports as surfaced by this router.
+```
+
+Above `local sp=""`:
+
+```text
+Qualified: a bare name loaded a project's own .claude/skills copy of the same name instead of this plugin's file.
+A subagent has no Skill tool, so the nudge names the SKILL.md path to Read when one is found.
+```
+
+Above `NUDGE_CAP=2`:
+
+```text
+At most NUDGE_CAP nudges per call: arriving several at once (seven on one vendored copy) they were almost never followed, 0 of 25
+and 0 of 14 in two measured sessions. Rank 0, an import or command row (the edit named that library or CLI), beats rank 1, any other
+row, which beats rank 2, the skills rules.tsv's `# nudge-last:` line names: they match every file of their language, so the next
+such edit draws them again, where a path-specific skill may not recur. Ties keep target and rules.tsv order. A skill left over is
+not marked fired, so a later edit can carry it.
+```
+
+Above `loaded=""`:
+
+```text
+A skill whose own file is already in this context: the "Base directory for this skill: <dir>" line a Skill call writes, a Read of
+its SKILL.md, or a qualified Skill call. One fixed-string grep over the whole transcript, only while a candidate exists: 32 ms on
+the largest local transcript (56 MB), about 1 ms at the median (0.7 MB). A tail read would miss a skill loaded at session start,
+the common case. A project's copy of the same bare name is another path and never counts. Misses: a load the host has not yet
+written to the file; a cache path from before a mid-session plugin update. Counts: a load a compaction has since summarised away.
+```
+
+Above `queue_low_matches() {`:
+
+```text
+Reads hcs, the one head per target nudge_high_matches read.
+Doc and style files queue nothing: `token` in a spec or a CSS file queued security-review. Same exemption as database's guard.sh;
+the cost is a doc that really is about the concern (a security runbook) drawing no signal.
+```
+
 ## plugins/skill-router/hooks/route-prompt.sh
 
 Editor's note (2026-10-04, card 03): citations below that have moved since they were written — route.sh's "CONTEXT KEY block" is now a one-line "Context key" comment in its main block (its text: § plugins/skill-router/hooks/route.sh, ### CONTEXT KEY); route.sh's "deliver block" is now the function `deliver_nudges`; `testing/hooks/test-shape.sh:90` is now near its line 157; "the block above the heredoc" is ### The protocol, not a catalog, below.
@@ -539,6 +616,62 @@ actually sent a listing either; if a session has none, step 1 reads as vacuous a
 the hook is silent rather than wrong.
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+route-prompt.sh — UserPromptSubmit, fails open: on any prompt but a harness frame, prints once each the low-confidence signals route.sh queued for this context;
+  then, on the session's first work-shaped prompt that no ScheduleWakeup or CronCreate call scheduled (a /loop re-fire), the rules
+  for judging the host's own command listing. It picks no command.
+Off: CC_REMIND=off (every advisory nudge in this marketplace) or CC_ROUTE=off (this hook); unset, the /config options cc_remind / cc_route decide.
+Misses: a symptom phrased without a state verb (`payment failures spiking`, `login error after the upgrade`); fires anyway on a chat sentence
+  carrying one (`the build is slow to watch`) or a `?`-ended one naming a making verb (`what does the build script do?`); waits out
+  a `?`-ended symptom with no making verb and no request form (`the login is broken?`). Repeats a signal on the next prompt when
+  its state file cannot be rewritten.
+```
+
+Above `cc_prompt_frame "$prompt" && exit 0`:
+
+```text
+A harness frame is not a human turn. The flush below ran on task notifications, hand-backs and Stop hook feedback, spending
+the digest where nobody judged it (45 of 65 in one measured session); skipped here, it waits for the next human prompt.
+The list is the shared prompt-shape block's, as in ask-ledger and code-review. Misses: a frame it does not name, which still flushes.
+```
+
+Above `scrub=$(printf '%s' "$prompt" | cc_prompt_unpaste)`:
+
+```text
+A paste is reference, as in ask-ledger and taskmaster: its verbs are not the ask, and it no longer pushes the ask out of the head.
+Nothing typed beside it: the paste is the ask, read whole.
+```
+
+Above `strong='build|create|make|add|implement|develop|write|rewrite|refactor|migrate|port|fix|debug|review|audit|design|redesign|restyle|theme|style|test|deploy|ship|optimi[sz]e|speed up|scaffold|set ?up|plan|spec|integrate|automate|investigate|500s?|regress(ed|ion)?|not working'`:
+
+```text
+A question or a hands-off ask is not a work request (2026-10-13: the check fired on "I got a question, don't work on anything"
+and on `?`-ended error reports); one asking for strong-tier work outside the hands-off clause (`then fix…`, not `the deploy`),
+or a request form (`can you…?`), is.
+```
+
+Above `printf '%s' "$head" | grep -qiE "\b($strong|why is)\b|\b(is|are|was|were|been|went|going|get(s|ting)?|got|keeps?|kept|still|now|seems?|looks?|am|an|with|see(s|ing)?|saw|throw(s|ing|n)?|threw)\b[[:space:]]+([a-z]+[[:space:]]+)?\b(down|slow(er)?|broken|failing|fails|leak(s|ing)?|stuck|crash(es|ed|ing)?|errors?)\b|(^|[.!?;:][[:space:]]+)errors?\b" || exit 0`:
+
+```text
+A weak symptom (down, slow, broken…) counts only after a state verb: bare, it matches `scroll down` and `the meeting ran slow`.
+error/crash count after a weak-tier verb (`an`, `with`, `see`, `throw` added for them) or opening a sentence (`Error: …`):
+bare, they fired on `that error message in the log`; dropped entirely, `I'm getting an error` went silent.
+```
+
+Above `cc_prompt_scheduled "$prompt" "$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)" && exit 0`:
+
+```text
+A /loop or ScheduleWakeup re-fire is answered like the slash command that set it, after the flush: the payload does not mark it,
+so cc_prompt_scheduled looks in the transcript for the call that scheduled it, once the check would otherwise speak.
+A host /loop tick is a frame, above.
+```
+
 ## plugins/skill-router/hooks/summary.sh
 
 Editor's note (2026-10-04, card 03): route.sh's "CONTEXT KEY block" is now a one-line "Context key" comment in its main block (its text: § plugins/skill-router/hooks/route.sh, ### CONTEXT KEY).
@@ -609,6 +742,32 @@ a session that ended after `cd app/Models` filed its row under a slug of its own
 so one project could split into one ledger per directory the model ended in. The only
 reader (turn-cost.sh --skills) globs every slug, so the rows it already has stay
 counted; they just stop multiplying.
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+summary.sh — SessionEnd, fails open: appends what the router surfaced in this context to $HOME/.claude/skill-router/<root-slug>/surfaced.jsonl,
+  prints the signals no prompt flushed (transcript residue: no model turn follows) and removes the context's state and dispatch files.
+Off: CC_SURFACED_LOG=off skips the ledger append; unset, the /config option cc_surfaced_log decides.
+Misses: a context whose payload cwd no longer exists keeps its state file, orphaned.
+```
+
+Above `pending_low: ((.pending_low // []) | map(.skill) | unique),`:
+
+```text
+SPLIT ON `flushed`, not one bucket. route-prompt.sh marks an entry
+flushed only when it actually printed the digest to the model, so
+collapsing both states into `pending_low` made "accumulated but
+never shown" indistinguishable from "surfaced" — and that is the
+exact number the turn-cost --skills queue ranks skills by. Measured before
+this fix: four skills read 47 pending_low across 17 local sessions
+with 0 fired, and nothing could say whether any reached the model.
+`pending_low` is kept as the union so an older reader keeps working.
 ```
 
 ## plugins/skill-router/hooks/prime.sh
@@ -720,6 +879,34 @@ bundle detour). Renaming our skills was rejected: the qualified name fixes it wi
 breaking references. A shadow in ~/.claude/skills is not checked.
 ```
 
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+prime.sh — SessionStart, fails open: prints one line naming, as plugin:skill, the skills whose sr_repo_skills rows hold at the project
+  root, filtered to installed plugins, and one more naming any the project shadows with its own .claude/skills/<name>/SKILL.md.
+  Sourced (subagent-skills.sh), it only defines functions, sr_repo_skills and cc_state_root among them.
+Misses: a CI other than GitHub Actions; a MariaDB outside an image line of a root docker-compose.yml or compose.yml (a single-quoted or variable image value, a .yaml spelling,
+  a subdirectory, a networked server); a workspace's own manifests, read at the repo root instead; a shadowing skill in ~/.claude/skills.
+```
+
+Above `sr_repo_skills() {`:
+
+```text
+sr_repo_skills <project-root> calls the caller's `add <skill> <owning_plugin>` once per row whose evidence holds.
+The rows stay in this file, where pc_prime_coverage and validate.sh read them by path, and mirror coding-entry/references/skill-map.md.
+```
+
+Above `skills=""; shadowed=""`:
+
+```text
+Qualified names: a bare `Skill("testing-best-practices")` loaded a project's own .claude/skills copy of the same name
+(Laravel Boost ships several), so the plugin's file never reached the session. A shadowed name draws one more line.
+```
+
 ## plugins/skill-router/hooks/compact-capsule.sh
 
 ### Header: shebang and what it re-states
@@ -794,6 +981,19 @@ Every ledger below lives at the PROJECT root. Read under the payload cwd, a
 compaction after `cd app/Models` would find none of them and stay silent while a
 run, a scope lock and a phase sentinel sat two levels up (review finding 2 measured
 that drift, rationale/2026-09-25-session-plugin-usage-review.md).
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+compact-capsule.sh — SessionStart (matcher compact), fails open: lists the task state on disk at the project root a compaction summary
+  may drop (phase sentinel, task-runner run and scope lock, taskmaster ledgers) and logs whether the sentinel's session_id is the payload's.
+Misses: whether a ledger is still live (it prints the sentinel's started_at; each owner's TTL decides); state a plugin keeps outside the
+  paths named here; the reasoning behind a phase or a card. Advisory: it cannot block a turn.
 ```
 
 ## plugins/skill-router/hooks/subagent-skills.sh
@@ -919,6 +1119,32 @@ package-hygiene, docker, ci) ride only a dispatch naming their file kind — vit
 injected 20 times and read twice — except for an agent whose whole list is surface
 skills (database-engineer keeps sql). Misses: dispatches within 120 s share one
 record; an Agent call held longer than that for approval reads as naming nothing.
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+subagent-skills.sh — SubagentStart for a plugin-scoped agent, fails open: hands it the absolute SKILL.md Read paths of the skills its
+  bestpractices-skill: frontmatter declares and prime.sh's rows find at the project root, owner installed, minus its skills: preloads.
+  A general-purpose or claude agent gets every skill prime.sh's rows find, when its dispatch named a repo file. PreToolUse on the Agent
+  call records what the dispatch named, since nothing on disk holds the prompt at SubagentStart; a surface skill (Vite, SQL, manifests,
+  Docker, CI) rides only a dispatch naming its file kind, unless the agent declares nothing else.
+Off: CC_SUBAGENT_SKILLS=off (this hook) or CC_REMIND=off (every advisory nudge); unset, the /config options cc_subagent_skills / cc_remind decide.
+Misses: a declared skill with no prime.sh row (motion-best-practices, security-review, performance-tuning, observability-design) and
+  prime.sh's own misses; a path past the CAP-character output. Advisory: it cannot make the agent Read. Another marketplace's plugin of
+  the same name resolves against this one's definition. Dispatches of one agent type within DISPATCH_TTL seconds share one record, so
+  a parallel fan-out is judged as a whole; a dispatch whose Agent call waits longer than that for approval reads as naming nothing;
+  a file named without a path-shaped word (a migration described, not named) does not count.
+```
+
+Above `ctx=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)`:
+
+```text
+The parent's transcript in both events (measured, CLI 2.1.299), hashed as route.sh hashes its context key.
 ```
 
 ## plugins/skill-router/hooks/plugins-dir.sh
@@ -1051,6 +1277,19 @@ installed version and a worse guess, never a broken path.
 ```text
 Exactly one line per plugin whatever the layout — a versioned cache holding six
 releases of one plugin must not put six copies of its commands in a catalog.
+```
+
+### Moved 2026-10-28
+
+The comments below left the file on 2026-10-28, verbatim with only the `# ` leader and its indentation removed; each is introduced by the code line it sat above, as that line read on the day it moved.
+
+Header:
+
+```text
+plugins-dir.sh — sourced, never run, by route.sh, prime.sh and subagent-skills.sh: resolves the installed-plugins root from CLAUDE_PLUGIN_ROOT
+  under a flat (<plugins>/<plugin>) or versioned (<marketplace>/<plugin>/<version>) layout, and which plugins there are installed and enabled.
+Misses: managed-policy settings (a plugin enabled only there is filtered out once another layer enables any plugin); pr_plugin_root's
+  version is the highest it can order, not necessarily the one Claude Code loaded.
 ```
 
 ## plugins/skill-router/scripts/__tests__/route.test.sh

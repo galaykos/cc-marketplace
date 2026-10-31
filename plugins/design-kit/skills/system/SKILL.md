@@ -1,6 +1,6 @@
 ---
 name: system
-description: Use when a project needs its design system written down from what actually exists — extract tokens, typefaces and a component inventory from the repo, a live URL, or a folder of brand assets into design-system/ (DTCG tokens.json, DESIGN-SYSTEM.md, a UI-kit page) — or when a design, artifact or deck must start from the project's real palette instead of a remembered one.
+description: Use when a project needs its design system written down from what actually exists. Extracts tokens, typefaces and a component inventory from the repo, a live URL, or a folder of brand assets. Writes them to design-system/ (DTCG tokens.json, DESIGN-SYSTEM.md, a UI-kit page). Or when a design, artifact or deck must start from the project's real palette, not a remembered one.
 argument-hint: "[repo | https://url | brand-dir] [--out design-system]"
 ---
 

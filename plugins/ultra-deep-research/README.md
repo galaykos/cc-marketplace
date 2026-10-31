@@ -1,9 +1,9 @@
 # ultra-deep-research
 
-A deep-research harness for Claude Code. Ask it a hard question and it fans out
-parallel web searches, tiers sources by provenance, extracts date-stamped claims,
-**adversarially refutes** them, surfaces contradictions instead of hiding them, and
-synthesizes a cited report — inline and saved to `research/<topic>-<date>.md`.
+A deep-research harness for Claude Code. Ask it a hard question and it runs parallel web
+searches. It sorts sources into tiers by provenance and extracts date-stamped claims. Then
+it **adversarially** tries to refute them. It surfaces contradictions instead of hiding
+them. It synthesizes a cited report, shown inline and saved to `research/<topic>-<date>.md`.
 
 Built to beat research's core failure mode: a plausible claim echoed across low-quality
 pages that all copied one unverified origin.

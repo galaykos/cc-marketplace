@@ -1,29 +1,14 @@
 #!/bin/bash
-# Absolute-path shebang: the fail-open guarantee must hold under a stripped PATH.
-# PostToolUse on Read for the `overseer` plugin — the read ledger behind the read-before-record
-# gate. While a program is open in the session's project, every Read of a regular file appends
-# one row, "<epoch>\t<session_id>\t<physical path>", to <project>/.claude/overseer/.reads.
-# `program.sh evidence add --file X` then refuses a file no Read in THIS session touched since
-# X last changed: a screenshot nobody opened proves nothing, and before this ledger "the file
-# exists, not what it shows" was the plugin's own unenforceable row. Lifted from the
-# verify-gate in anthropics/cwc-long-running-agents (a PreToolUse deny unless the evidence
-# file was Read first); here the deny sits in program.sh, which is where accept already lives.
-# Prints NOTHING on stdout — zero context cost per Read. Silent when no program is open in
-# the project (every non-overseer project pays nothing), on a relative path that does not
-# resolve, on a missing file, and on any error. Killed (timeout 5s): the row is lost and
-# program.sh says the gate is inactive for the session, never that the file was read.
-# LIMITATION: a Read proves the bytes reached a context, not that a judgment was made on
-# them; that half stays agent-graded. A subagent shares the parent's session_id, so a
-# browser-tester's Read counts for the session that dispatched it — intended: the walk may
-# be delegated, the look must happen somewhere in this session.
+# track-read.sh — PostToolUse on Read: while an overseer program is open in the project, appends "<epoch>\t<session_id>\t<physical path>" per regular file read to <project>/.claude/overseer/.reads, the ledger `program.sh evidence add --file` checks. Prints nothing; silent with no program, an unresolved path, a missing file or any error.
+# Misses: whether a judgment was made on what was read (agent-graded); a subagent's Read counts for its parent's session, on purpose; a kill (timeout 5s) loses the row, and program.sh then calls the gate inactive.
+# Why, limits, history: rationale/derivations/plugin-overseer.md § plugins/overseer/hooks/track-read.sh
+
 # context-key-ok: session_id is recorded as a ledger FIELD that program.sh matches against
 # CLAUDE_CODE_SESSION_ID; no one-shot marker is keyed on it.
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
-  # `.*read_file` covers an IDE-MCP read, which uses the same `file_path` key (JetBrains
-  # MCP schema, read 2026-09-14). A session reading every artifact through the IDE would
-  # otherwise satisfy no evidence kind that requires the artifact to have been opened.
+  # The matcher's `.*read_file` (an IDE MCP read) carries the same `file_path` key.
   f=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
   sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null) || exit 0
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0

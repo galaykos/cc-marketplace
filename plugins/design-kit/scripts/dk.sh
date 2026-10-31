@@ -49,6 +49,7 @@
 # assembles a URL from a literal port: the URL is what preview.sh wrote to
 # .design-kit/.preview.url. Standing: scripts/__tests__/dk.test.sh drives every
 # verb against a temp project; the wrapped scripts keep their own harnesses.
+# Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/dk.sh
 set -euo pipefail
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -77,15 +78,10 @@ else DK="$ROOT/.design-kit"; fi
 export DESIGN_KIT_DIR="$DK"
 WS="$DK/workshop.json"; USAGE="$DK/usage.jsonl"; DEC="$DK/decisions.jsonl"
 verb="${1:-}"; [ $# -gt 0 ] && shift
-# help writes nothing — it used to run after ensure_ignored, so `dk --help` edited .gitignore
+# help exits before ensure_ignored, so `dk --help` writes nothing
 case "$verb" in -h|--help|"") sed -n '2,51p' "$0"; exit 0 ;; esac
 
-# ensure_ignored — the plugin's scratch paths never reach a commit by accident.
-# Once per repo: inside a git work tree, when .design-kit/ or __design-kit__/ is not
-# already ignored, append one managed block to .gitignore (idempotent — re-runs
-# rewrite the block, never duplicate it) and say so in one line. design-system/ is
-# NOT added: it is the tracked record. Outside git, nothing. DESIGN_KIT_IGNORE=off
-# skips it (a repo that wants the previews committed).
+# ensure_ignored — once per git repo, a managed .gitignore block for .design-kit/ and __design-kit__/ (never design-system/, the tracked record); DESIGN_KIT_IGNORE=off skips it.
 ensure_ignored() {
   [ "${DESIGN_KIT_IGNORE:-on}" = "off" ] && return 0
   git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
@@ -187,16 +183,7 @@ case "$verb" in
     log ok; exit 0 ;;
 
   drift)
-    # WHAT IT CATCHES. Literal hex/rgb/hsl/oklch colours and named Tailwind palette
-    # utilities in .tsx/.jsx/.vue/.blade.php/.css/.scss that resolve to no declared
-    # token. WHAT IT DOES NOT. Spacing, radius, shadow and font drift; a colour
-    # computed at runtime; a token used in the wrong role. handoff-drift.py's header
-    # carries the full residual list.
-    #
-    # --staged and --diff resolve the FILE LIST here, in git, so the python stays
-    # git-free and one reader serves both modes. --diff compares against the WORKING
-    # TREE, not HEAD: a check run before committing that reads HEAD is blind to the
-    # edit it was run for, which is the trap this repo has already paid for once.
+    # --staged and --diff resolve the file list here, in git; --diff compares the WORKING TREE to REF, not HEAD. What it catches and misses: handoff-drift.py's header.
     ci=""; paths=(); selector=""
     while [ $# -gt 0 ]; do
       case "$1" in
@@ -208,9 +195,7 @@ case "$verb" in
         *) paths+=("$1") ;;
       esac; shift
     done
-    # AN EMPTY SELECTOR SCANS NOTHING, never the whole tree. `--staged` with nothing
-    # staged, or `--diff <base>` with no changed file, used to fall through to `.`
-    # and red a --ci run over code the change never touched.
+    # An empty selector scans nothing, never the whole tree.
     if [ -n "$selector" ] && [ ${#paths[@]} -eq 0 ]; then
       echo "drift: $selector selected no file — nothing scanned"; log skip; exit 0
     fi
@@ -224,9 +209,7 @@ case "$verb" in
     exit "$rc" ;;
 
   snapshot|review)
-    # Both live in snapshot.sh, which owns the exit codes — 0 rendered, 1 bad
-    # arguments, 2 the browser or the server was unreachable — and they pass through
-    # here unchanged, so a wired-up caller reads the same number either way.
+    # snapshot.sh owns the exit codes (0 rendered, 1 bad arguments, 2 browser or server unreachable); they pass through unchanged.
     set +e; bash "$here/snapshot.sh" "$verb" "$@"; rc=$?; set -e
     case "$rc" in 0) log ok ;; 2) log skip ;; *) log fail ;; esac
     exit "$rc" ;;

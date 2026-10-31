@@ -1,34 +1,8 @@
 #!/bin/bash
-# Absolute-path shebang: fail-open must hold under a stripped PATH.
-#
-# PostToolUse observer — records that a reviewer pass was actually DISPATCHED for a
-# card. Writes nothing else, blocks nothing, and is silent on every path.
-#
-# WHY A HOOK AND NOT A RECORD THE RUN WRITES. The per-card negative control is
-# enforceable because a SCRIPT's exit writes nc-pass-<card>.json — the model cannot
-# author it. The reviewer pass had no such artifact: it is mandated in prose
-# (`skills/task-execution/SKILL.md` § Reviewer pass, "every task's diff, no
-# condition") and nothing observed it, so under context pressure a real run reviewed
-# card 01, skipped cards 02-08, reported "all 8 done, none parked", and passed every
-# gate. Closing that gap afterwards found a real bug and six over-claims.
-#
-# A model-written rv-pass-<card>.json would not have helped: the same run wrote
-# cards_done:8 into gate-pass.json while skipping the reviews, and would have written
-# pass records with the same conviction. What has teeth is evidence the ORCHESTRATOR
-# could not fabricate without lying in a tool call: this hook sees the dispatch itself.
-#
-# WHAT IT PROVES, EXACTLY: that an Agent/Task dispatch carrying one of the markers below
-# was made while a run was registered. Not that the reviewer or refuter read anything,
-# not that its findings were acted on, not that the right one was chosen. DEPTH stays
-# unenforceable — a subagent's transcript is a separate file the parent hook cannot
-# see. This closes "the pass never happened", which is the failure that occurred.
-#
-# STATE ROOT: the sentinel is read and records are written at the project root (the block
-# below), not under the payload cwd — a dispatch made after a `cd app/Models` used to look
-# for app/Models/.claude/task-runner/active-run.json, find none, and record nothing, which
-# the completion gate then reads as a review that never ran.
-#
-# FAIL-OPEN: missing jq, no registered run, unwritable dir, any error → exit 0 silently.
+# PostToolUse on Agent/Task/Skill in a registered run: records, at the project root, that a dispatch carrying RV-CARD, RV-RANGE, RT-LENS or RT-CRITIC was made (rv/, rt/ records the completion gate counts); silent, blocks nothing.
+# Misses: whether the subagent read anything, acted on it or was the right one (its transcript is not visible here); a marker outside tool_input. Fails open.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/rv-observe.sh
+
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
 # cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
@@ -55,22 +29,10 @@ cc_state_root() {
   [ -n "$cwd" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
 
-  # Only inside a registered run. Outside one there is nothing to be complete about,
-  # and the completion gate is fail-open there for the same reason. A closed-run.json is a
-  # run between its closing rename and candor's last read: a review that read asks for counts.
+  # A closed-run.json is a run between its closing rename and candor's last read: a review then still counts.
   [ -r "$root/.claude/task-runner/active-run.json" ] || [ -r "$root/.claude/task-runner/closed-run.json" ] || exit 0
 
-  # Markers ride in the dispatch prompt. Read the whole tool_input rather than a single
-  # field: the Agent tool names it `prompt`, and a future dispatch shape carrying it
-  # elsewhere should still count.
-  #
-  #   RV-CARD: <card>   a card's reviewer pass      (reviewer-routing.md § Coverage marker)
-  #   RV-RANGE: <sha>   the run-close range review  (run.md step 4); a Skill call counts too
-  #   RT-LENS: <lens>   one red-team refuter        (code-redteam § The N=3 refuter panel)
-  #   RT-CRITIC: <id>   the completeness critic     (same)
-  #
-  # One observer, several kinds: a second hook per mandated dispatch would be four
-  # copies of this file, and the marketplace's admission law forbids that.
+  # The whole tool_input, not `prompt` alone: a dispatch shape carrying the marker elsewhere still counts.
   blob=$(printf '%s' "$input" | jq -r '.tool_input // {} | tostring' 2>/dev/null)
 
   record() { # record <subdir> <prefix> <id> [<suffix>]
@@ -79,16 +41,14 @@ cc_state_root() {
     d="$root/.claude/task-runner/$1"
     mkdir -p "$d" 2>/dev/null || return 0
     [ -w "$d" ] || return 0
-    # Idempotent by id: several reviewers dispatch per card (code-reviewer plus the tag
-    # route) and one record per card is what the gate counts.
+    # Idempotent by id: several reviewers dispatch per card, and the gate counts one record per card.
     printf '{"id":"%s","dispatched":true}\n' "$3" > "$d/$2-$3${4:-}.json" 2>/dev/null
   }
 
   m=$(printf '%s' "$blob" | grep -oE 'RV-CARD: ?[a-zA-Z0-9._-]{1,64}' | head -1)
   if [ -n "$m" ]; then
     v=${m#RV-CARD:}; record rv rv-seen "${v# }"
-    # Also one file per card and reviewer type, beside the count: the completion clause asks
-    # for ui-ux-reviewer by name on a UI card, since the count alone let any reviewer stand in.
+    # One file per card and reviewer type too: the completion clause asks for ui-ux-reviewer by name on a UI card.
     t=$(printf '%s' "$input" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null | tr ':' '.')
     [ -z "$t" ] || record rv rv-agent "${v# }" "@$t"
   fi

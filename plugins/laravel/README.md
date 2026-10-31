@@ -1,13 +1,13 @@
 # laravel
 
-Laravel best practices — Eloquent N+1 prevention and eager loading, form request
-validation, thin controllers with service/action classes, queued jobs, authorization
-policies, additive-first migrations, a per-version leverage map for Laravel 11/12/13 —
-and the **Inertia.js** skill it pairs with (v1/v2/v3, Vue/React/Svelte adapters:
-partial reloads, deferred and lazy props, `useForm`, shared data, SSR). Review runs
-through `/code-review:review`, the fan-in that loads the Laravel skill on `.php` /
-`.blade.php` and the Inertia skill when the manifests show it (the plugin's own
-review entry was retired on 2026-09-14 — it was a second name for that pass).
+Laravel best practices: Eloquent N+1 prevention and eager loading, form request
+validation, and thin controllers with service/action classes. They also cover queued
+jobs, authorization policies and additive-first migrations. A per-version leverage map
+covers Laravel 11/12/13. The **Inertia.js** skill pairs with it (v1/v2/v3,
+Vue/React/Svelte adapters). It covers partial reloads, deferred and lazy props,
+`useForm`, shared data and SSR. Review runs through `/code-review:review`, one combined
+review. It loads the Laravel skill on `.php` / `.blade.php` and the Inertia skill when
+the manifests show it.
 
 ## Install
 
@@ -34,6 +34,9 @@ chain — `task-runner:task-executor` if installed, else inline — not to this 
 worker (`plugins/code-review/commands/review.md`, "This plugin ships a REVIEWER, not a
 worker"). `backend-engineer` is reached by dispatching it directly, which is what its
 PROACTIVELY-phrased description asks for; it is not wired into the review's apply path.
+
+The plugin's own review entry was retired on 2026-09-14 — it was a second name for
+the `/code-review:review` pass.
 
 ## Skills
 

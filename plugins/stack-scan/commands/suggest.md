@@ -1,5 +1,5 @@
 ---
-description: Scan manifests and suggest every marketplace plugin in three tiers, then install the picks; --yes auto-installs tiers 1-2, --full installs everything stack-relevant after one confirm, --all pages every row, --persist/--global set scope, --sync reconciles this project's enabled set by scope. --skills [query] searches skills.sh for third-party skills instead — explicit picks only, never auto.
+description: Scan manifests, suggest every marketplace plugin in three tiers, install the picks. `--yes` auto-installs tiers 1-2; `--full` installs everything stack-relevant after one confirm. `--all` pages every row; `--persist` or `--global` sets scope; `--sync` reconciles the project's enabled set by scope. `--skills [query]` searches skills.sh for third-party skills instead, explicit picks only, never auto.
 argument-hint: [path] [--yes] [--all] [--full] [--stack a,b,c] [--persist | --global] [--sync] | --skills [query]
 ---
 

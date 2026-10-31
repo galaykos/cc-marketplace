@@ -1,6 +1,8 @@
-# Shared blocks and chassis templates: the comment text moved out of the code (2026-10-04)
+# Shared blocks and chassis templates: the comment text moved out of the code (2026-10-04, 2026-10-28)
 
 The text below was moved verbatim on 2026-10-04 from the files named in the `##` headings, with only each comment's `# ` leader removed; the lines each file kept are not repeated here. A pointer by name was left in each file, `# Why, limits, history: rationale/derivations/templates-and-blocks.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
+
+The second move, on 2026-10-28, held each block to its first line, its pointer line, each function's contract and one line per trap, and each chassis template to a header of at most three lines (the `generated from` line, what the hook does and misses, the pointer). Its text is every `### Moved 2026-10-28` below: the lines as they stood, with the `# ` leader and the indentation before it removed, each introduced by where it sat; the file kept the one-line form named there, or nothing. Every paste of a changed block was rewritten byte-for-byte in the same change.
 
 ## templates/blocks/option-resolver.md
 
@@ -33,6 +35,15 @@ Status 0, no stderr: a malformed name, an expansion error that exits bash 5, yie
 ```text
 WHAT IT DOES NOT CATCH: a caller passing a variable instead of a literal name, or a value
 outside the switch's vocabulary — each hook still validates the value it gets.
+```
+
+### Moved 2026-10-28
+
+Between the `The host exports only SAVED options` line and the `Misses:` line; nothing kept in its place, since the contract above it already orders the variable before the option:
+
+```text
+A non-empty variable beats the option: the environment is shared, so one export before launch
+switches every plugin that reads it.
 ```
 
 ## templates/blocks/state-root.md
@@ -148,6 +159,15 @@ with no `/` or `.` in it. Reads too much: a `-`-led perl script argument that ha
 
 ```text
 The caller filters to existing files under its root.
+```
+
+### Moved 2026-10-28
+
+Below the contract; kept as one line, ``A backup suffix is never a target: the word after BSD sed's -I, or a `''` or `.`-led word after a bare sed -i unless it is the only file.``:
+
+```text
+BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
+a `''` or `.`-led word is read as one too, unless it would be the only file.
 ```
 
 ## templates/blocks/bash-write-chunks.md
@@ -400,6 +420,16 @@ guard, devops workflow-guard) cannot judge an effect before it happens and do no
 Recount: grep -rl 'cc_bash_write_effects() {' plugins/
 ```
 
+### Moved 2026-10-28
+
+The first three contract lines; the clause after `read <marker>` left, and the contract around it stayed, rewrapped:
+
+```text
+cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
+directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
+cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
+```
+
 ## templates/blocks/prompt-shape.md
 
 ### Banner and canonical copy
@@ -615,6 +645,15 @@ run, and no misfire on a frame was measured. candor's preamble.sh (2026-10-15): 
 unpaste, before its one-shot marker; not ship_only or scheduled (rationale in
 plugin-candor.md § preamble.sh "Prompt shape").
 Recount: grep -rl 'cc_prompt_frame() {' plugins/
+```
+
+### Moved 2026-10-28
+
+The cc_prompt_frame contract; kept as one line without its last clause:
+
+```text
+cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back
+  marker — not a human turn.
 ```
 
 ## templates/blocks/heredoc-bodies.md
@@ -988,6 +1027,92 @@ turn 40 of an executing build it is the defect this guard exists to kill.
 --- end phase guard ---------------------------------------------------------
 ```
 
+### Moved 2026-10-28
+
+Below the pointer line; kept as one line, `No template directive in these comments: _expand_includes copies this file raw, then conditionals and substitution run over all of it.`:
+
+```text
+No template directive of any kind in these comments: _expand_includes copies this file raw, then conditionals and
+substitution run over the whole text.
+```
+
+## templates/blocks/quote-match.md
+
+Written 2026-10-29 when the block shipped (code-review 0.34.4), not moved from code. Standing: `recorded`; the byte-for-byte copies are a **gate** (`pc_shared_blocks`, pair `quote-match:cc_quote_match`).
+
+### Why it exists
+
+Improvement plan item 8 (`rationale/improvement-plan-2026-10-26.md`, row 8): a review finding that quotes code should quote what the file holds. Two callers judge the same rule: code-review's `scripts/quote-check.sh`, which `/code-review:review` runs before its verdict, and candor's Stop gate, which blocks a turn whose marked quote is not in the cited file (user decision 2026-10-29). Plugins install alone, so the rule is pasted, not sourced, and the two copies cannot drift.
+
+### What it decides, and why that way
+
+A wrong mismatch costs a reviewer a dropped finding and, in candor, a blocked turn; a wrong match costs one unchecked quote. Every rule errs toward the match.
+
+- **Window ±3 lines by default.** A reviewer cites the line a hunk header or a blame excerpt gave, and the quote is often the statement above or below it. Seven lines tolerate that drift and still tell a quote from a line elsewhere in the file.
+- **An optional fourth argument sets the window** (fix cycle 1, 2026-10-29): a whole number of lines either side, or `all` for the whole file. candor's Stop clause is specified to call it with `all` (m14 fix cycle 1), so it blocks only on a quote that is nowhere in the file: a blocked turn costs more than a review's dropped finding, and a citation a few lines off is the citation clause's business, not this one's. Anything else is status 2.
+- **Three tries, as typed and then unescaped** (fix cycle 3, 2026-10-29): the quote as typed; then with one leading `+` or `-` dropped; then cut at its ellipses. Failing all three, every `\|` is read as `|` in the quote AND the window, and the three tries run again. Cycle 2 rewrote the quote in place before the `+` and `…` tries, so a true quote of a real `\|` (a grep alternation) failed whenever it also carried a `…` or a `+`: all 12 of 671 reference-implementation divergences the correctness review found had that shape. Unescaping the window too lets a table cell mixing the file's own `\|` with an escaped pipe (`'TODO\|FIXME' "$1" \| wc -l`) match.
+- **`\|` is a Markdown table cell's escape** (fix cycle 2): a quote written in a table must escape its pipes, so `a | b` arrives as `a \| b`. Trying as typed first keeps a real `\|` in the file matching.
+- **One leading `+` or `-` forgiven** (fix cycle 1 for `+`, cycle 3 for `-`): a reviewer copying a line from the patch keeps its marker. Dropping can only shorten the needle, so code that opens with `++` or `--` still matches. A `-` line is deleted code: the working file lacks it, but candor also searches the HEAD copy, which holds it.
+- **ASCII whitespace and no-break spaces dropped, both sides,** not runs collapsed to one space: a collapse still fails `foo(a,b)` against `foo(a, b)`, a tab-indented file against a space-typed quote, and a call the file wraps over three lines against a quote typed on one. The window's lines are joined before the compare, so a quote may span lines. No-break space (U+00A0) is dropped too since fix cycle 3 (correctness review #12: the header said "every whitespace character" while only `[ \t\r\n\f\v]` was dropped, and a NBSP against a space blocked in candor); the header now names the set. Other Unicode spaces (U+2000-U+200A, U+3000) are not dropped.
+- **Literal first, then `…`/`...` as cuts.** JavaScript's spread and Go's variadic `...` are code, so the quote is first matched as typed. Failing that, each ellipsis cuts it into parts that must appear in order; a leading or trailing one is then a suffix or prefix match, which is the brief's rule, and an inner one is an elided middle, which the brief did not name.
+- **Under 8 non-space characters is status 0.** Counted after the cuts, in characters (UTF-8 continuation bytes are not counted), so `…;` or `x = 1` is never judged, nor a 6-letter Cyrillic word of 12 bytes.
+- **Status 2 is checked first and never means a wrong quote:** a path that is not a readable regular file, over 1 MiB, a NUL in the first 8000 bytes (git's own binary test), a line that is not a whole number from 1. Past the end of the file is status 1: the file read and the text is not there.
+- **The caller resolves the path.** candor already resolves a cited path its own way (`cite.sh`), and quote-check.sh resolves against the repository root; a block that searched too would answer the same question twice, differently.
+- **Portable.** No shell function call, no `declare -A`, no GNU-only flag; the compare runs in one awk under `LC_ALL=C` (its one awk function, `found`, holds the three tries), the quote passed through `ENVIRON`, since `-v` would turn a `\n` in quoted code into a newline. Run under mawk 1.3.4 and busybox awk on 2026-10-29; bash 3.2 not run.
+
+### What it misses
+
+- A true quote that proves nothing about the finding, and a quote that matches anywhere in the window while the finding points at another line in it; with `all`, anywhere in the file.
+- A file edited between the review and the check; text repeated within the window. A quote whose first character is a real `+` or `-` the file lacks matches with it dropped, and one holding `\|` matches a file with a bare `|` there.
+- A Unicode space other than U+00A0 against an ASCII one.
+- A quote holding a backtick, unless the caller reads a doubled-backtick marker (quote-check.sh does).
+
+### Cost
+
+Five processes per call (`wc`, `head | tr | wc`, `awk`). Through quote-check.sh, on findings quoting real tracked files of this repository (2026-10-29, Linux, mawk): 25 findings 93 ms, 200 findings 744 ms, median of 5. With `all` the awk reads the whole file, at most 1 MiB.
+
+## templates/blocks/process-cost.md
+
+Written 2026-10-29 when the block shipped (task-runner 0.49.9, overseer 0.7.4), not moved from code. Standing: `recorded`; the byte-for-byte copies are a **gate** (`pc_shared_blocks`, pair `process-cost:cc_process_cost`).
+
+### Why it exists
+
+The improvement plan's deferred "cost of the process" line (`rationale/improvement-plan-2026-10-26.md`, Deferred), built when the user asked for it on 2026-10-29, for task-runner and overseer only: when a `/task-runner:run` finishes and when overseer accepts a milestone, the person sees one plain line of what the process itself cost since it began — subagents, tokens with cache reads apart, minutes — measured from the session's own transcripts, never estimated, and with no prices, because prices change and the transcript carries none. Two callers, task-runner's `scripts/run-cost.sh` and overseer's `program.sh accept`; plugins install alone, so the counting is pasted, not sourced.
+
+### What it decides, and why that way
+
+- **The transcript is found by globbing `~/.claude/projects/*/<session id>.jsonl`,** never by rebuilding the project slug: a session opened in one directory and moved into a worktree keeps its transcript where it started (this session's first `cwd` is the main repository, its transcript sits in the worktree's directory). A session id holding anything but letters, digits, `-` and `_` is refused before it reaches the glob.
+- **Agent transcripts are `subagents/agent-*.jsonl` and `subagents/workflows/*/agent-*.jsonl` beside the main one.** The first holds subagents and forks: a fork at spawn depth 2 (2026-10-15) sat there beside its parent's siblings. The second holds Workflow agents, one directory per workflow run (`wf_<id>/`, with `.meta.json` and `.prefix.json` beside each transcript, `agentType` `workflow-subagent`). That layout was read on one CLI 2.1.295 session, `e87bdd99`, 23 Workflow agents; that 2.1.310 writes it the same way is assumed, not measured. Fix cycle 1 (2026-10-29) added the second glob: the first version read only `subagents/agent-*.jsonl`, so a Workflow run counted nothing. Forked skills were not found in any transcript of this project to check where they write.
+- **Every record counts by its own timestamp, at or after `<since>`, in the main transcript and in every agent transcript alike.** The first version counted a subagent transcript whole when its first record came after `<since>` and not at all otherwise, so a resumed agent's later work was lost and an early agent's whole cost was dropped (fix cycle 1). A record with no timestamp is not counted: it cannot be placed.
+- **Once per `message.id`, across all files.** One API response is written as one record per content block, each carrying the same usage; m2 measured a 2.15× overcount without the dedupe (`scripts/turn-cost.sh`). The first record of an id stands for the request; the main transcript is read first, so a record a fork copies from its parent counts once, in main. A `<synthetic>` record (a locally generated notice) is skipped, as turn-cost.sh skips it.
+- **Tokens are the four top-level usage fields:** `input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`. The per-iteration breakdown under `usage.iterations` is not added again. Cache reads are summed apart and shown as a share of the total.
+- **Agents are the agent transcripts holding at least one counted record** (fix cycle 1). The first version counted the main thread's `Agent`/`Task` calls, which misses Workflow agents (spawned by a `Workflow` call) and every agent an agent spawns. A transcript whose records are all before `<since>`, untimed or copies of an id already counted is not an agent here.
+- **`<since>` is epoch seconds or ISO-8601 with `Z` or an offset;** a time with no zone is refused, because ISO-8601 reads it as local time and the transcript is UTC. A space for the `T` and fractional seconds are accepted.
+- **One jq process reads every file once,** line by line with `fromjson`, so a torn last line of a transcript still being written is skipped instead of failing the whole read; `input_filename` tells the main transcript from an agent's. The label is local time, `HH:MM` today and the date before it otherwise; the numbers are `M` with two decimals from 999,500 tokens, rounded `k` from 1,000.
+- **Status 0 always.** A cost line that fails a run's closing step or an accept would make the measurement the thing that breaks the work; every failure is `Process cost: unknown — <reason>`.
+
+### What it misses
+
+- Another session's transcript: a run or milestone that spans sessions shows only the session that prints the line.
+- Compaction: it writes no usage record, so its tokens are not in any figure.
+- Records without a timestamp (none carried usage in the transcripts read), and any usage a transcript does not record.
+- An agent writing its transcript anywhere but the two globs.
+- Prices, and the difference between a cheap and an expensive model: a token is a token here.
+
+### Checked (2026-10-29, CLI 2.1.310, this repository's overseer session)
+
+Against an independent per-record count in Python (the same rules, written apart: every record at or after `<since>`, once per message id across files, `<synthetic>` skipped, agents = agent transcripts with a counted record), with the block's `tok` formatting removed:
+
+- the m15 window, since 2026-10-29T12:49:05Z: 2 agents, main 5,694,428 and subagents 50,769,082 tokens, 98% cache reads, in both; 69 files read (main and 68 agents);
+- a 3-hour window: 5 agents, main 20,004,965 and subagents 82,404,678, 95%, in both;
+- the 2.1.295 session `e87bdd99` since 2026-10-12: 23 agents, all Workflow agents, main 9,240,244 and subagents 197,806,242, in both.
+
+turn-cost.sh prints requests and an estimated spend, not tokens; its request count over the same instant equals the Python count of main-thread requests (8 = 8, 29 = 29). Its `--workflow` mode finds no blocks for this session: the session's first `cwd` is the main repository while its transcript sits in the worktree's directory, and that mode needs both to name one project. Before fix cycle 1 the same two-step check, under the old whole-transcript rule, matched too (4 = 4 and 136 = 136 requests; equal token sums over an hour and a day).
+
+### Cost
+
+One jq process per call, plus two globs. On this session's transcripts (20 MB main, 68 agent transcripts totalling 177 MB), 1.83–1.84 s over three runs, Linux, jq 1.8.1: every file is read whatever `<since>` is. Not run under bash 3.2 or an older jq.
+
 ## templates/reminder-hook.sh.tmpl
 
 ### Off switch
@@ -1124,6 +1249,28 @@ the line (scripts/smoke/hook-guard-tests.sh, the tm_auth cases); whether the mod
 runs the round is agent-graded.
 ```
 
+### Moved 2026-10-28
+
+Header, between the `generated from` line and the pointer; kept as one line naming what the hook does and misses:
+
+```text
+Fail open: never block the prompt. Print a reminder only when the prompt reads
+like the work it nudges about — a mere mention of the words stays silent.
+```
+
+Above `cc_prompt_ship_only "$head" '{{shipVerbs}}' && exit 0`; kept as `shipVerbs, not regex: a regex of nouns (api-design's) never matches a verb. Needs promptShape.`:
+
+```text
+Every shipVerbs match being create, add, open or make on a PR or commit (or, in git context, a branch, push, merge, tag or release)
+asks to ship. Its own key, since a regex of nouns (api-design's) never matches a verb; needs promptShape.
+```
+
+Above `cc_prompt_auth_ask "$head" && printf …`; kept as the standing fact `An auth change is never trivial: the skip is withheld on the prompt-shape block's auth words (needs promptShape).`:
+
+```text
+The trivial skip let an auth change through: withheld on the block's prompt-side auth words (needs promptShape).
+```
+
 ## templates/boost-hook.sh.tmpl
 
 ### Off switch
@@ -1176,4 +1323,21 @@ the reliable control, this is the cheap one.
 ```text
 The directive is emitted through a quoted heredoc: no expansion, so the
 manifest text is the wire text — backticks, quotes and $ are all literal.
+```
+
+### Moved 2026-10-28
+
+Header, between the `generated from` line and the pointer; kept as one line naming what the hook does and misses. The manifest's `intro` line, which sat between the first line below and the second, did not move out: it renders above the hook's main `{` now, so the header stays at three lines:
+
+```text
+Fail open: never block the prompt. Inject the boost directive when the prompt asks.
+No suffix grammar — bare tokens only, fixed tier model=auto effort=xhigh
+(auto = session model or opus, whichever is higher on haiku<sonnet<opus<fable).
+```
+
+Above `plugin_switch={{envVar}}`; kept as one line:
+
+```text
+CC_BOOST=off silences every boost hook and the variable plugin_switch names silences this one; either
+/config option silences only this plugin's hook, and a non-empty environment variable wins over it.
 ```

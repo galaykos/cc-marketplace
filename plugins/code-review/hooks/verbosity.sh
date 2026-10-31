@@ -1,57 +1,7 @@
 #!/bin/bash
-# Absolute-path shebang not `/usr/bin/env bash`: the fail-open guarantee must hold
-# even under a stripped PATH where `env bash` exits 127.
-#
-# PostToolUse output-discipline guard (warn-only, at most ONE warning per session).
-# Measures how much conversational prose this session has emitted per tool call and
-# says so once when the session is an outlier. Silence is the overwhelmingly common
-# case — see the calibration below.
-#
-# WHY A MEASUREMENT AND NOT A RULE: "be concise" already exists as prose in many
-# places and loses, because it competes against task-local instructions that are more
-# specific — ledgers, status tables, "report back" contracts. A rule that says the same
-# thing more loudly is rule N+1 and loses the same way. This hook does not add a rule.
-# It reports a number about THIS session that nothing else in the marketplace measures.
-#
-# THE METRIC: total characters of assistant text ÷ number of assistant tool calls,
-# cumulative over the session transcript. High = the session is narrating relative to
-# how much it is doing.
-#
-# CALIBRATION (measured 2026-07-28 over 1,933 local session transcripts with >=8 tool
-# calls; 135 main-thread, 1,798 subagent):
-#     main-thread   p50=155  p90=325  p95=389  p99=821  max=910
-#     subagent      p50=152  p90=441  p95=634  p99=1118 max=3120
-# The threshold is 600, which fired on 3 of 135 observed main-thread sessions (2.2%)
-# and on none below p95. It is set to catch outliers, not to nag the median.
-#
-# SUBAGENTS ARE EXEMPT. Their p95 is 634 against the main thread's 389 because a
-# subagent's final text IS its return value — narration is its contract, not a defect.
-# Judging them by this metric would be measuring the wrong thing.
-#
-# LIMITATION (honest scope — the four laws, see
-# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
-#   - WARN-ONLY, and PostToolUse at that: it emits `additionalContext`, which is not a
-#     blocking key. It cannot stop a verbose turn, only inform the ones after it.
-#     Stop-event delivery was considered and rejected: a Stop hook reaches the model
-#     only by BLOCKING (exit 2), and spending a whole extra turn to complain about
-#     output volume would emit more prose than it saves.
-#   - The metric is CUMULATIVE, so a session that narrated early stays flagged even
-#     after it tightens up. One warning per session bounds the cost of that.
-#   - Prose the USER asked for (a written report, a long explanation) counts against
-#     the ratio. The hook cannot tell requested prose from unrequested narration, and
-#     does not pretend to — which is the main reason it warns instead of blocking.
-#   - The threshold is calibrated on ONE machine's transcripts. It is a starting number
-#     with its sample stated, not a universal constant.
-#   - Assumes PostToolUse carries `transcript_path`. If it does not, every path here
-#     exits 0 and the hook is simply silent — it degrades to nothing, never to noise.
-#   - The ledger below is WRITE-ONLY by design: nothing reads it back automatically.
-#     It exists so the threshold and this hook's effect can be evaluated later against
-#     real data instead of re-argued. Calling it a feedback loop today would be the
-#     over-claim this plugin's own review flagged in `hindsight`.
-#
-# FAIL-OPEN: missing jq/awk, unreadable transcript, or any error exits 0.
-# CC_REMIND unset: the /config option cc_remind decides.
-# State: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/comment-discipline/ is only the fallback.
+# PostToolUse, main thread only: warns once per session when assistant text per tool call, cumulative over the transcript, passes THRESHOLD; every scan goes to a local ledger.
+# Misses: prose the user asked for counts too; a session that tightens up stays flagged; THRESHOLD is calibrated on one machine; no transcript_path, no check. Off: CC_REMIND.
+# Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/hooks/verbosity.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
@@ -94,8 +44,6 @@ cc_plugin_state() {
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -124,38 +72,16 @@ cc_option() {
   tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null) || exit 0
   [ -n "$tp" ] && [ -r "$tp" ] || exit 0
 
-  # Subagent transcripts are exempt (see header). Match the path, not the content.
+  # Subagents are exempt: their final text is their return value. Match the path, not the content.
   case "$tp" in */subagents/*) exit 0 ;; esac
 
-  # `-d`, not just `-n`: a session outlives the directory, and `mkdir -p` below is happy to
-  # rebuild three levels of a project tree the user has just deleted — measured on a deleted
-  # `work/acme/design-studio`, which came back holding nothing but this hook's state dir.
-  #
-  # THE PAYLOAD cwd IS THE SHELL'S cwd, and it follows the model's `cd`. This header said it
-  # was "whatever the session STARTED in" until 0.23.0, and used that to keep state at
-  # `<cwd>/.claude/comment-discipline`. Measured false 2026-09-25
-  # (rationale/2026-09-25-session-plugin-usage-review.md, finding 2): one session's cwd was
-  # app/Enums, then app/Models, then the repo root; this "shown once per session" warning
-  # fired three times, one state dir per directory, and another repo had one COMMITTED.
-  # So state lives at cc_state_root (the block above: git toplevel, else CLAUDE_PROJECT_DIR,
-  # else cwd). The address `<root>/.claude/comment-discipline` is SHARED with density.sh and
-  # scan.sh, and all three moved in one change — a one-shot split across two addresses is no
-  # one-shot at all. (conventions.sh keys its one-shot under $TMPDIR and never shared it.)
-  # Does NOT catch: a cwd that exists but is not the project (a stale session left in a
-  # sibling checkout) — nothing in the payload distinguishes those.
+  # -d, not just -n: a session outlives its directory. State lives at the state root, an address shared with density.sh and scan.sh.
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
   sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
   [ -n "$sid" ] || exit 0
 
-  # CHEAP PATH FIRST. This hook runs after every tool call, so the common case must
-  # not parse the transcript. `wc -l` is one read of the file's size class, and the
-  # state file short-circuits every call after a warning has already been spent.
-  #
-  # State file: one line, "<lines-at-last-scan> <warned:0|1>". A scan costs one jq
-  # pass, so it is rate-limited to once per RESCAN_EVERY new transcript lines rather
-  # than once per session — a session that turns verbose late is still caught, while
-  # the number of expensive passes stays bounded and small.
+  # Cheap path first, since this runs after every tool call; state "<lines at last scan> <warned 0|1>" allows one scan per RESCAN_EVERY lines.
   MIN_LINES=60
   RESCAN_EVERY=150
   THRESHOLD=600
@@ -170,13 +96,7 @@ cc_option() {
   dir=$(cc_plugin_state "$root" comment-discipline)
   state="$dir/verbosity-$sid"
 
-  # BOTH BOUNDS BELOW LIVE IN THAT STATE FILE — "at most one warning per session" and
-  # "at most one transcript scan per RESCAN_EVERY lines". If it cannot be written, the
-  # hook has no memory: it warns on every tool call and re-scans the whole transcript
-  # every time, which is the opposite of both promises. So writability is checked ONCE,
-  # here, on the cheap path, before any expensive work — an unwritable state dir means
-  # this hook does nothing at all. Same rule as the deny lane in scan.sh: a bound that
-  # cannot be recorded is not a bound.
+  # Both bounds live in the state file, so an unwritable state dir means this hook does nothing at all.
   mkdir -p "$dir" 2>/dev/null || exit 0
   [ -w "$dir" ] || exit 0
   [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null   # the state dir ignores itself
@@ -207,17 +127,7 @@ EOF
 
   ratio=$((chars / calls))
 
-  # LEDGER. Every scan is recorded, warned or not — this is the only measurement
-  # trail any plugin in this marketplace leaves. The threshold above was calibrated
-  # once, on one machine, from transcripts that predate this hook; without a record
-  # of what it sees in practice, nothing could ever say whether 600 is right, or
-  # whether the warning changed the sessions that got it. A number nobody reads back
-  # is the failure this plugin's own review named.
-  #
-  # Machine-local, never inside the project tree — same placement reasoning as
-  # hindsight/hooks/collect.sh. One compact row per scan, capped so an old ledger
-  # cannot grow without bound. Nothing reads this automatically; it is a dataset for
-  # a future evaluation, and saying that is the honest scope.
+  # Ledger: every scan, machine-local, capped at 1 MB; nothing reads it back automatically.
   ledger="${HOME:-/tmp}/.claude/comment-discipline/verbosity-ledger.jsonl"
   if [ "$(wc -c < "$ledger" 2>/dev/null || echo 0)" -lt 1048576 ]; then
     mkdir -p "${ledger%/*}" 2>/dev/null &&

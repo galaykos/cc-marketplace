@@ -1,11 +1,12 @@
 # hindsight
 
-Cross-session self-improvement loop: a SessionEnd hook records cheap friction
-stats for every ended session — and, since 0.9.0, for every subagent that session
-spawned — into a machine-local ledger, and `/hindsight:harvest` mines the worst
-offenders' transcripts for recurring friction — proposing CLAUDE.md rules,
-lint/CI checks, skill/plugin ideas, defects against the plugin artifact that was
-running, and failed-approach warnings. Nothing is applied without your explicit approval.
+A self-improvement loop across sessions. A SessionEnd hook records cheap friction stats
+for every ended session. Since 0.9.0 it also records every subagent that session spawned.
+The stats go to a file on this machine (the ledger). `/hindsight:harvest` mines the
+worst offenders' transcripts for recurring friction. It proposes CLAUDE.md rules,
+lint/CI checks, skill/plugin ideas and failed-approach warnings. It also proposes defects
+against the plugin artifact that was running. Nothing is applied without your explicit
+approval.
 
 ## Install
 

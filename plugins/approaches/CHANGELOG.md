@@ -3,6 +3,25 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.4 — 2026-10-28
+
+- **The `rollout-planning` skill's description now reads in short, plain sentences.** Same trigger and plan contents; it keeps the words the model matches it on.
+
+## 0.12.3 — 2026-10-28
+
+### Changed
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/brief-lint.sh`; `hooks/consult-remind.sh`, `hooks/remind.sh` (generated hooks): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
+## 0.12.2 — 2026-10-28
+
+### Changed
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/compact-recovery.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-approaches.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
+## 0.12.1 — 2026-10-26
+
+### Changed
+- **Both reminders are plainer.** The build-vs-buy reminder now reads "before writing this by hand, check whether a library or service already does it; if one fits, use it", replacing the take/wrap/write wording. The consult reminder now says when the command helps: "for an irreversible step or a third try at a failing fix, a blind second opinion can help (/approaches:consult)"; it used to say only that one was available "if the moment warrants one". It stays advisory, and triggers are unchanged.
+
 ## 0.12.0 — 2026-10-26
 
 ### Changed

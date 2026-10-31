@@ -1,12 +1,8 @@
 #!/bin/bash
-# preview-guard.sh (PreToolUse on Artifact; payload on stdin) — asks before an .html or .htm artifact is published remotely: every time for
-#   a mockup (a preview basename, a path under taskmaster-docs/mockups, or such a docroot at or above cwd), once per session for any other.
-# Off: CC_PREVIEW_GUARD=off. Fails open: without jq it never asks, and it always exits 0.
-# CC_PREVIEW_GUARD unset: the /config option cc_preview_guard decides.
-# Misses: a session's later plain-.html publishes after its first ask, a retry of a denied one included.
-#   Asks anyway: every plain .html when the payload has no session_id; a mockup twice with ui-ux and taskmaster both installed (a plain
-#   page once: the two copies share one marker).
+# preview-guard.sh — PreToolUse on Artifact: asks before an .html/.htm artifact is published remotely, every time for a mockup (a preview basename, a path under taskmaster-docs/mockups, or such a docroot at or above cwd), once per session for any other. Off: CC_PREVIEW_GUARD=off (unset: /config option cc_preview_guard). Fails open: no jq, no ask; always exits 0.
+# Misses: a session's later plain-.html publishes after its first ask, a denied one's retry included. Asks anyway: every plain .html with no session_id; a mockup twice with ui-ux and taskmaster both installed (a plain page once: one shared marker).
 # Why, limits, history: rationale/derivations/plugin-ui-ux.md § plugins/ui-ux/hooks/preview-guard.sh
+
 # TWIN: plugins/taskmaster/hooks/preview-guard.sh is an identical copy save this line.
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -14,8 +10,6 @@
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt

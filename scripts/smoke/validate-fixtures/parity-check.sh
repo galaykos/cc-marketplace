@@ -4,7 +4,8 @@
 # non-zero and each check's FAIL string survives validate.sh's call site to the build:
 # SKILL budget, doc-location, jargon and removed-artifact (a skill and a plugin-root
 # README), lane schema, deference, role-floor unclassified pin and exemption report, stray
-# dir (the only line naming it), both route-prompt checks, and the renames ledger.
+# dir (the only line naming it), both route-prompt checks, the renames ledger, and the
+# undefined-term WARN line.
 # Plants go into a git mirror, never the live tree: two of them edit shipped files (a
 # plugin.json, skill-router's route-prompt.sh), and live plants have both reached a commit
 # after a killed run and reverted a completed feature on restore. validate.sh cds to its
@@ -104,6 +105,8 @@ rp_n=${rp_n:-0}
   done
 } >> "$MIRROR/$RP"
 jq 'del(.renames.a11y)' "$MIRROR/$MPJ" > "$MIRROR/$MPJ.tmp" && mv "$MIRROR/$MPJ.tmp" "$MIRROR/$MPJ" || exit 2
+printf 'zzparityterm\n' >> "$MIRROR/scripts/glossary-watchlist.txt"
+echo "A zzparityterm line." >> "$MIRROR/$RM"
 
 out=$( cd "$MIRROR" && bash scripts/validate.sh 2>&1 ) && vrc=0 || vrc=$?
 rc=0
@@ -174,6 +177,9 @@ printf '%s\n' "$out" | grep -qxF "FAIL: $P/hooks/hooks.json: hook script $HK mis
 printf '%s\n' "$out" | grep -qF 'FAIL: renames-missing a11y — ' \
   && echo "PASS: e2e renames-ledger FAIL reaches the build" \
   || { echo "FAIL: e2e renames-ledger FAIL for the deleted renames.a11y did not reach the build"; rc=1; }
+printf '%s\n' "$out" | grep -qxF "WARN: undefined-term $RM zzparityterm" \
+  && echo "PASS: e2e undefined-term WARN reaches the build" \
+  || { echo "FAIL: e2e undefined-term WARN for the planted zzparityterm did not reach the build"; rc=1; }
 
 # ---------------------------------------------------------------------------
 # Jargon gate: both directions, plus the escape hatch.
@@ -327,5 +333,44 @@ dassert_clean clean-agenttype.md      # the binding is present
 dassert_clean clean-api-mention.md    # guard 1: `agent()` empty parens is not a call
 dassert_clean clean-no-agent-ref.md   # guard 2: no shipped agent named -> generic is right
 dassert_clean rescued-dispatch-ok.md  # <!-- dispatch-ok --> suppresses a would-be hit
+
+# ---------------------------------------------------------------------------
+# Undefined-term WARN (pc_undefined_terms): one fixture tree, three glossary states.
+# ---------------------------------------------------------------------------
+UT="$MIRROR/undefined-terms"
+UP="$UT/plugins/p"
+mkdir -p "$UP/.claude-plugin" "$UP/skills/s" "$UP/commands" || exit 2
+printf '%s\n' ledger ultra-task goal gate nudge red-team card mod sentinel > "$UT/watch.txt"
+printf '%s\n' '# p' '' 'Uses a ledger here.' 'Type `ultra-task` first.' 'A goal-lean run differs.' \
+  'A Red Team reads it.' '```bash' 'gate gate' '```' > "$UP/README.md"
+printf '%s\n' '---' 'name: s' 'description: Use when a nudge is due.' 'when_to_use: While a sentinel is live.' '---' \
+  'A card in the body only.' > "$UP/skills/s/SKILL.md"
+printf '%s\n' '---' 'description: Run the mods now.' '---' > "$UP/commands/c.md"
+printf '%s\n' '{"name": "p", "description": "Keeps a gate."}' > "$UP/.claude-plugin/plugin.json"
+utassert() { # $1 desc  $2 glossary  $3 want status  $4 want output (newline-separated, any order)
+  out_u=$(pc_undefined_terms "$UT/plugins" "$UT/watch.txt" "$2"); st=$?
+  if [ "$st" -eq "$3" ] && [ "$(printf '%s\n' "$out_u" | sort)" = "$(printf '%s\n' "$4" | sort)" ]; then echo "PASS: undefined-term $1"
+  else echo "FAIL: undefined-term $1 (status=$st, want $3; got: $out_u)"; rc=1; fi
+}
+# No glossary: prose, a code span (read: tokens are typed), a spaced variant, a plural, a description,
+# a when_to_use and plugin.json all hit; a fenced block, a skill body and `goal` inside `goal-lean` do not.
+utassert "with no glossary" "$UT/none.md" 1 "undefined-term $UP/.claude-plugin/plugin.json gate
+undefined-term $UP/README.md ledger
+undefined-term $UP/README.md red-team
+undefined-term $UP/README.md ultra-task
+undefined-term $UP/commands/c.md mod
+undefined-term $UP/skills/s/SKILL.md nudge
+undefined-term $UP/skills/s/SKILL.md sentinel"
+# A defined term is silent, backticks in the term cell included; a nudge row under another heading defines nothing.
+printf '%s\n' '## Words we use' '' '| Word | Meaning |' '|---|---|' '| ledger | x |' '| `ultra-task` | x |' \
+  '| goal | x |' '| gate | x |' '| red-team | x |' '| card | x |' '| mod | x |' '| sentinel | x |' '' '## Other' '| nudge | x |' \
+  > "$UT/glossary.md"
+utassert "defined terms are silent" "$UT/glossary.md" 1 "undefined-term $UP/skills/s/SKILL.md nudge"
+{ printf '%s\n' '## Words we use' '| Word | Meaning |' '|---|---|'; sed 's/.*/| & | x |/' "$UT/watch.txt"; } > "$UT/glossary-all.md"
+utassert "every term defined: status 0, no output" "$UT/glossary-all.md" 0 ""
+out_u=$(pc_undefined_terms "$UT/plugins" "$UT/missing.txt" "$UT/glossary.md"); st=$?
+[ "$st" -eq 1 ] && [ "$out_u" = "undefined-term $UT/missing.txt (watchlist missing)" ] \
+  && echo "PASS: undefined-term missing watchlist is reported, not passed" \
+  || { echo "FAIL: undefined-term missing watchlist (status=$st out='$out_u')"; rc=1; }
 
 exit $rc

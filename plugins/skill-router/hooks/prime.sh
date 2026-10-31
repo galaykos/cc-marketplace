@@ -1,9 +1,6 @@
 #!/bin/bash
-# prime.sh — SessionStart, fails open: prints one line naming, as plugin:skill, the skills whose sr_repo_skills rows hold at the project
-#   root, filtered to installed plugins, and one more naming any the project shadows with its own .claude/skills/<name>/SKILL.md.
-#   Sourced (subagent-skills.sh), it only defines functions, sr_repo_skills and cc_state_root among them.
-# Misses: a CI other than GitHub Actions; a MariaDB outside an image line of a root docker-compose.yml or compose.yml (a single-quoted or variable image value, a .yaml spelling,
-#   a subdirectory, a networked server); a workspace's own manifests, read at the repo root instead; a shadowing skill in ~/.claude/skills.
+# SessionStart: prints one line naming, as plugin:skill, the skills whose sr_repo_skills rows hold at the project root, filtered to installed plugins, and one more naming any the project shadows in .claude/skills/. Sourced (subagent-skills.sh), it only defines functions. Fails open.
+# Misses a CI other than GitHub Actions, a MariaDB outside an image line of a root docker-compose.yml or compose.yml, a workspace's own manifests (read at the repo root), and a shadowing skill in ~/.claude/skills.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/prime.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -30,8 +27,7 @@ dep() { # $1 manifest under SR_ROOT, $2 ERE
   [ -f "$SR_ROOT/$1" ] && grep -qE "$2" "$SR_ROOT/$1" 2>/dev/null
 }
 
-# sr_repo_skills <project-root> calls the caller's `add <skill> <owning_plugin>` once per row whose evidence holds.
-# The rows stay in this file, where pc_prime_coverage and validate.sh read them by path, and mirror coding-entry/references/skill-map.md.
+# sr_repo_skills <project-root> calls the caller's `add <skill> <owning_plugin>` per row whose evidence holds; the rows stay here, where pc_prime_coverage and validate.sh read them by path, mirroring coding-entry's skill-map.md.
 sr_repo_skills() {
   SR_ROOT="$1"
   [ -f "$SR_ROOT/composer.json" ] && add package-hygiene stack-scan
@@ -83,8 +79,7 @@ sr_repo_skills() {
     pr_plugin_installed "$1"
   }
 
-  # Qualified names: a bare `Skill("testing-best-practices")` loaded a project's own .claude/skills copy of the same name
-  # (Laravel Boost ships several), so the plugin's file never reached the session. A shadowed name draws one more line.
+  # Qualified names: a bare Skill(name) loads a project's own .claude/skills copy of the same name, so a shadowed name draws one more line.
   skills=""; shadowed=""
   add() { # $1 skill, $2 owning_plugin
     installed "$2" || return 0
@@ -97,7 +92,7 @@ sr_repo_skills() {
   skills="${skills# }"
   [ -n "$skills" ] || exit 0
   csv=$(printf '%s' "$skills" | tr ' ' ',' | sed 's/,/, /g')
-  printf '[skill-router] Repo-relevant skills this session: %s. Load each when you touch its surface.\n' "$csv"
-  [ -z "$shadowed" ] || printf '[skill-router] This project ships its own %s in .claude/skills: a bare name loads that copy, a different file; load the plugin skill by the qualified name above.\n' "${shadowed#, }"
+  printf '[skill-router] Skills that match this repo: %s. Load each one before you work on what it covers.\n' "$csv"
+  [ -z "$shadowed" ] || printf '[skill-router] Load %s by the plugin:skill name above: a bare name loads the project copy in .claude/skills instead.\n' "${shadowed#, }"
 } 2>/dev/null
 exit 0

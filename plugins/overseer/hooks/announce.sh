@@ -1,14 +1,7 @@
 #!/bin/bash
-# Absolute-path shebang: the fail-open guarantee must hold under a stripped PATH.
-# SessionStart announcer for the `overseer` plugin. Prints ONE line when the project
-# has an open program (a milestone that is neither done nor parked) so a fresh session
-# knows to /overseer:resume instead of starting cold. Resolves the project the same way
-# program.sh does — the git toplevel of the session cwd, else the cwd itself — so a
-# session opened in a subdirectory is still announced. Silent when no program exists,
-# when every milestone is done or parked (that program is closed; `program.sh close`
-# archives it), or on any error. Pure read — writes nothing.
-# Killed (timeout 10s): prints nothing; the resume command still works, so a missed
-# announcement costs one manual /overseer:status, never state.
+# announce.sh — SessionStart: one line when the project (git toplevel of the cwd, else the cwd, as program.sh resolves it) has an open overseer program, a milestone neither done nor parked, naming the next runnable one and /overseer:resume. Pure read; silent otherwise and on any error.
+# Misses: nothing is printed when killed (timeout 10s); a missed line costs one manual /overseer:status, never state.
+# Why, limits, history: rationale/derivations/plugin-overseer.md § plugins/overseer/hooks/announce.sh
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0

@@ -1,14 +1,7 @@
 #!/bin/bash
-# SessionStart (startup only) hint: all-plugins is enabled and no other plugin of its marketplace is.
-# all-plugins installs the leaves and adds nothing itself; a user once ran days of sessions with zero
-# leaves, believing the marketplace was on. One line to the person (systemMessage, never model context).
-# CC_ALL_PLUGINS_HINT=off hides the startup line naming all-plugins as the only plugin enabled.
-# "Enabled" is the enabledPlugins map merged from the settings files the CLI writes, later wins: user
-# (${CLAUDE_CONFIG_DIR:-~/.claude}/settings.json), then project and local (<project>/.claude/settings.json,
-# settings.local.json), the project being CLAUDE_PROJECT_DIR, else the payload cwd.
-# Misses: managed policy settings, --settings files and --plugin-dir loads. Unseen all-plugins: silent;
-# leaves enabled only through a channel unread here: a wrong line.
-# Fail open: no jq, unreadable settings or any error prints nothing.
+# hint.sh — SessionStart, startup only: one systemMessage line to the person, never model context, when all-plugins is the only plugin of its marketplace in the enabledPlugins merged from user, project and local settings (later wins). Off: CC_ALL_PLUGINS_HINT=off hides the startup line naming all-plugins as the only plugin enabled. Fails open.
+# Misses: managed policy settings, --settings files and --plugin-dir loads: an all-plugins enabled only there stays silent, leaves enabled only there draw a wrong line.
+# Why, limits, history: rationale/derivations/plugin-all-plugins.md § plugins/all-plugins/hooks/hint.sh
 {
   [ "${CC_ALL_PLUGINS_HINT:-on}" = off ] && exit 0
   command -v jq >/dev/null 2>&1 || exit 0

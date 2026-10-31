@@ -1,6 +1,6 @@
 ---
 name: coverage-check
-description: Use after task-cards splits a spec into cards — verifies every spec success criterion has a card and no card proves what the spec never asked, holding the execution handoff until findings resolve (agent-graded; no script enforces it).
+description: Use after task-cards splits a spec into cards. Verifies every spec success criterion has a card and no card proves what the spec never asked. Holds the execution handoff until findings resolve (agent-graded; no script enforces it).
 ---
 
 ## Where this sits
@@ -18,8 +18,7 @@ One correspondence: the spec's `## Success criteria` against every card's
 `<proof>` criteria (`<criterion>` elements; `**Acceptance criteria:**` on a legacy card). The relationship is many-to-many — one criterion may
 take several cards to satisfy, one card may serve several criteria. Match by
 meaning, never by string equality: a criterion is covered when at least one
-card's acceptance criteria would, if met, make that criterion true. You are
-reading intent, not diffing text.
+card's acceptance criteria would, if met, make that criterion true.
 
 A second correspondence, when the spec has a `## Visual contract` section: each
 binding visual/creative entry against the card(s) that build that surface. A
@@ -58,6 +57,7 @@ exceptions:
 
 Orphans / drift: 07 (adds a metrics endpoint — no criterion or decision).
 Accepted gaps: none.
+Recommended: 3 → Add a card (none touches the index) · 07 → Drop the card (nothing asks for it).
 ```
 
 No HTML, no separate file — the index is the single run view.
@@ -70,7 +70,8 @@ above as its output contract. Never pass it the conversation, the ledger, or you
 summary: a brief pre-digested by the cards' author re-imports the blind spots this gate
 exists to escape. It reads `## Success criteria` (and `## Visual contract` when present)
 and every card's `<criterion>` elements, walks both directions, and returns ONLY the
-`## Coverage` block — no file dumps. Every finding is then resolved in the main thread.
+`## Coverage` block — no file dumps. The main thread adds the `Recommended:` line (a
+resolution and a why per finding) and resolves every finding.
 
 **Headless fallback.** No subagent dispatch → build the matrix inline with the same
 rules and format; only the fresh-eyes property degrades, so read both documents cold,
@@ -78,11 +79,9 @@ end to end, before matching.
 
 ## The resolution gate
 
-Standing: **agent-graded — no script enforces this.** The hold below is this
-skill's instruction to the executing agent, judged in-thread; no build gate
-backs it. Do not proceed to the handoff while any finding is unresolved. Present the matrix,
-then take each finding through a choice (AskUserQuestion; bare options when
-headless):
+Standing: **agent-graded — no script enforces this**; the hold is judged in-thread.
+Do not proceed to the handoff while any finding is unresolved. Present the
+matrix with its `Recommended:` line, each pick one of these options:
 
 - **PLACEMENT** → no question: move it into that card's `<criterion>`, extend its
   `<verify>` to detect it, list each edit in one line, and continue. It becomes a GAP to
@@ -97,30 +96,34 @@ headless):
   at the surface / *Defer the surface* (move it to non-goals, re-approval) /
   *Accept as covered elsewhere* (record it in `## Coverage`).
 
-Loop until every finding is resolved or explicitly accepted, then write the final
+If any finding needs a choice, ask ONE AskUserQuestion batch (bare options when
+headless; at most four questions, overflow into a second batch):
+
+- **Own question** for each finding whose recommendation is not a card edit — it
+  accepts, reclassifies, defers or adds a criterion: its options, the recommended
+  first, marked (Recommended).
+- **One shared question** for card edits (add, fold, point, tie or drop a card). In
+  `/taskmaster:task` with task-runner installed and no run yet authorized it also
+  carries the run, asked even with no card edits: "Apply the recommended resolutions
+  and start execution now?" → "Apply and run now (Recommended)" / "Apply, stop here" /
+  "Walk through each"; the run starts after the card lints. Otherwise: "Apply the
+  recommended resolutions?" → "Apply all (Recommended)" / "Walk through each".
+  Walking through asks each as above; the handoff then asks to run.
+
+Loop until every finding is resolved or explicitly accepted (a re-check finding gets
+the run-free ask), then write the final
 `## Coverage` section — including accepted gaps and their reasons — and continue.
 
 ## Clean pass
 
 When both directions map with no gap, orphan, or drift, say so in one line, write
-the clean `## Coverage` matrix into `00-INDEX.md`, and let the handoff proceed. A
-clean pass is the common case for a well-run grill; the gate earns its keep on the
-runs where it is not.
-
-## Worked example
-
-Six criteria, five covered; criterion 4 ("a malformed payload is rejected with a 422")
-maps to no card — GAP. Card 07 asserts "adds a Prometheus metrics endpoint", named by no
-criterion or decision — DRIFT. Present the matrix; the user picks "Add a card" for the
-gap (task-cards authors it) and "Drop the card" for 07. Re-check, clean, write
-`## Coverage`, proceed.
+the clean `## Coverage` matrix into `00-INDEX.md`, and let the handoff proceed.
 
 ## Anti-patterns
 
 - **Authoring cards here.** "Add a card" hands off to task-cards; splitting is its judgment.
 - **String-matching criteria.** A criterion and the line that satisfies it rarely share words.
-- **Proceeding on an unresolved gap.** Nothing but this instruction stops a wave-through.
+- **Proceeding on an unresolved gap.**
 - **Flagging a non-goal as a gap.** `## Non-goals` are not criteria.
 - **Re-litigating an accepted gap.** Recorded with a reason, it is settled for the run.
-- **Summarizing the documents for the subagent, or letting it resolve findings.** Paths,
-  not digests; it returns the matrix, the main thread decides.
+- **Summarizing the documents for the subagent, or letting it resolve findings.**

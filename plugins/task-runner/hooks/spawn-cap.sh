@@ -1,51 +1,7 @@
 #!/bin/bash
-# Absolute-path shebang not `/usr/bin/env bash`: the fail-open guarantee must hold
-# even under a stripped PATH where `env bash` exits 127.
-#
-# PreToolUse spawn budget. Counts subagent dispatches per session and returns `ask`
-# once the count crosses a soft cap (default 20), then again at every doubling.
-#
-# WHY THIS EXISTS. `scripts/turn-cost.sh` in the marketplace repo states the fact this
-# guard acts on: subagent turns are invisible in the transcript and they are billed.
-# A fan-out that was planned as three agents and became thirty is not visible anywhere
-# until the bill — not in the transcript, not in a summary, not in `parallel-planning`'s
-# estimate, which is prose the dispatcher reads once at the start and not again at
-# dispatch number twenty-six. Nothing in this marketplace counts.
-#
-# WHY `ask` AND NOT `deny`. A large fan-out is sometimes right — a tracks run over a
-# dependency wave, a review panel over a big diff. The cap is not a claim that thirty is
-# wrong; it is a claim that thirty should be a decision someone made. A deny would make
-# the plugin wrong about the legitimate case; an ask makes the count visible exactly
-# once per threshold and costs one keystroke.
-#
-# WHY IT DOUBLES RATHER THAN ASKING EVERY TIME. Asking at 21, 22, 23… trains the user to
-# approve reflexively, which is the same as not asking. Thresholds at 20, 40, 80 keep the
-# signal rare enough to read.
-#
-# INSIDE A REGISTERED RUN (.claude/task-runner/active-run.json at the state root, naming
-# the checked-out branch or none) it NOTIFIES instead (2026-10-14), and its first threshold is
-# max(cap, cards x 3), cards counted from the run's index_path (a worker plus reviewers
-# per card). The run was already authorized, and the ask at #20 left one run idle for 67
-# minutes, then 25 at #40, while its sibling agents finished; neither approval changed
-# the plan. The notice goes to the user (systemMessage) and the model
-# (additionalContext), and names the plan.
-# Residual: a run that dispatches past its plan is told, not stopped. The branch is read with
-# `symbolic-ref`: a tag with the branch's name made --abbrev-ref print `heads/<branch>`, so the
-# run read as another branch's and the cap asked. A detached HEAD (exit 1) reads `HEAD`; any other
-# failure leaves the branch unknown, which matches the run.
-#
-# WHAT IT DOES NOT CATCH, stated because the README tiers this:
-#   - Agents a SUBAGENT spawns. The count is keyed on the session, and a nested dispatch
-#     carries the parent's session id, so nesting inflates the same counter rather than
-#     escaping it — but a subagent that spawns through a different mechanism is invisible.
-#   - Cost. It counts dispatches, not tokens or dollars; a cap of 20 haiku calls and 20
-#     opus calls are the same number here and are not the same bill.
-#   - Anything about whether the fan-out was a good idea. That is
-#     `task-runner:parallel-planning`, which is prose and stays prose.
-#
-# CC_SPAWN_CAP=<n> moves the first threshold; CC_SPAWN_CAP=off disables it.
-# CC_SPAWN_CAP unset: the /config option cc_spawn_cap decides.
-# Fail-open on every error path.
+# PreToolUse on Agent/Task: counts subagent dispatches per session and asks at a soft cap (default 20), then at each doubling; in a registered run on this branch it notifies instead, first at max(cap, cards x 3).
+# Misses: spawns outside Agent/Task, cost (dispatches, not tokens), whether the fan-out was wise; a run past its plan is told, not stopped. CC_SPAWN_CAP=<n> or off, else /config cc_spawn_cap; fails open.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/spawn-cap.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
@@ -70,8 +26,6 @@ cc_state_root() {
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -110,11 +64,7 @@ cc_option() {
   dir="${TMPDIR:-/tmp}/cc-spawn-$key"
   mkdir -p "$dir" 2>/dev/null || exit 0
 
-  # One marker per dispatch, created with mkdir — atomic, no read-modify-write, so two
-  # dispatches racing cannot lose a count. `$$-$(date +%s)-$RANDOM` alone can collide:
-  # same PID, same second, and $RANDOM repeats within a seeded shell, which silently
-  # undercounts. mkdir FAILS on collision, so the loop retries instead of losing the
-  # count; ten attempts then give up (fail-open) rather than spin.
+  # One mkdir per dispatch: mkdir(2) fails on a colliding name and the loop retries; uutils mkdir(1) may not, so a race can undercount by one. Ten tries, then fail open.
   n_try=0
   while :; do
     mkdir "$dir/d-$$-$(date +%s)-$RANDOM-$n_try" 2>/dev/null && break
@@ -133,9 +83,7 @@ cc_option() {
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   root=$(cc_state_root "$cwd") || root=""
   sent="$root/.claude/task-runner/active-run.json"
-  # A sentinel names the branch it was registered on; one left behind on another branch
-  # turned this ask into a notice for unrelated work. Read as candor's clause 4 reads it: a
-  # run differs only when both names are known and differ.
+  # The run is another branch's only when both names are known and differ; symbolic-ref, since a tag named like the branch makes --abbrev-ref print heads/<branch>.
   if [ -n "$root" ] && [ -r "$sent" ] && sb=$(jq -r '.branch // empty' "$sent" 2>/dev/null) &&
      { cb=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null); [ $? -ne 1 ] || cb=HEAD; cb=${cb#refs/heads/}; [ -z "$sb" ] || [ -z "$cb" ] || [ "$sb" = "$cb" ]; }; then
     run=$(jq -r '.slug // empty' "$sent" 2>/dev/null); [ -n "$run" ] || run=run
@@ -153,18 +101,17 @@ cc_option() {
     fi
   fi
 
-  # Threshold at the first one, then every doubling: 20, 40, 80, 160…
   t="$first"
   while [ "$t" -lt "$n" ]; do t=$((t * 2)); done
   [ "$n" -eq "$t" ] || exit 0
 
   if [ -n "$run" ]; then
-    msg="task-runner: subagent dispatch #$n in this session, inside the registered run $run ($plan). This is a notice, not a question: the run is already authorized, and an approval prompt here once left a run idle for over an hour while its other agents finished. The next notice is at #$((n * 2)). If the count has outrun the plan, the usual causes are a retry loop that re-dispatches instead of reading the last report, or a fan-out sized per file rather than per independent unit. CC_SPAWN_CAP=<n> moves the threshold, CC_SPAWN_CAP=off disables it."
+    msg="task-runner: subagent dispatch #$n in this session (each is billed), inside the registered run $run ($plan); next notice at #$((n * 2)). Continue if this matches the plan; otherwise stop re-dispatching and read the last report."
     jq -cn --arg r "$msg" '{systemMessage:$r,hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$r}}' 2>/dev/null
     exit 0
   fi
 
-  reason="task-runner: this is subagent dispatch #$n in this session. Subagent turns do not appear in the transcript and they are billed, so a fan-out that grew past its plan is invisible until the invoice — this is the only place it gets counted. If the work genuinely needs this many, approve and carry on; the next prompt is at #$((n * 2)). If it does not, the usual causes are a retry loop that re-dispatches instead of reading the last report, or a fan-out sized per file rather than per independent unit — task-runner's parallel-planning skill sizes it per dependency level. CC_SPAWN_CAP=<n> moves the threshold, CC_SPAWN_CAP=off disables it."
+  reason="task-runner: this is subagent dispatch #$n in this session; each is billed and none shows in the transcript. Approve if this many was planned (next prompt at #$((n * 2))); if not, decline and stop re-dispatching. CC_SPAWN_CAP=<n> moves the threshold (off disables it)."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}' 2>/dev/null

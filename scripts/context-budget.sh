@@ -1,49 +1,7 @@
 #!/usr/bin/env bash
-# Blocking per-plugin context-budget gate (D3/A5). TWO metered channels, each
-# with its own committed baseline and its own ratchet:
-#
-#   ALWAYS-ON (scripts/context-budget-baseline.json) — surface every session
-#   pays before a single file is read: the frontmatter `description:` byte
-#   length of skills/*/SKILL.md, commands/*.md, agents/*.md, PLUS the stdout of
-#   its SessionStart hooks, PLUS
-#   the `tools/list` payload of any local MCP server the plugin declares.
-#
-#   ACTIVATED (scripts/context-budget-activated-baseline.json) — the always-on
-#   surface again, but with the state its hooks are WAITING FOR. Added
-#   2026-08-20 because the always-on pass runs against an empty HOME and no env,
-#   which meters the OFF state: candor's terse-mode SessionStart hook emits ~5 kB once a
-#   level is set and 0 in the sandbox (recount: `CC_TERSE=full CLAUDE_PLUGIN_ROOT=plugins/candor
-#   bash plugins/candor/hooks/activate.sh </dev/null | wc -c`), brain's emits ~2 kB once
-#   brain/INDEX.md exists and 75 B without it. That is ~1.7k tokens a real user pays and no
-#   baseline saw. This channel is a SEPARATE column, not folded into always-on,
-#   because "installed and idle" and "installed and switched on" are two honest
-#   numbers and averaging them would describe neither.
-#
-#   DYNAMIC (scripts/context-budget-dynamic-baseline.json) — surface injected
-#   per prompt and per tool call: the stdout of UserPromptSubmit and
-#   Pre/PostToolUse hooks. This channel was UNMETERED until 2026-08-02 and the
-#   omission was load-bearing: skill-router's UserPromptSubmit hook alone emits
-#   ~9.4 kB (~2.4k tokens) of a second command catalog on any work-shaped
-#   prompt, against an always-on baseline entry of 0. "Zero always-on tokens"
-#   was true and irrelevant for every hook-bearing plugin. Measuring it does not
-#   make it always-on — a per-tool hook fires per Edit, not once — so it is
-#   reported and ratcheted SEPARATELY rather than folded into the always-on sum.
-#
-# All hook and MCP measurement runs sandboxed against an empty project with an
-# empty HOME (a deterministic, repo-neutral LOWER bound; real output can grow
-# with the user's project) and is fail-open per hook. chars/4. A plugin more
-# than its tolerance over EITHER baseline fails (exit 1); --update-baseline, a
-# missing jq, and a missing baseline file stay exit 0.
-#
-# STILL NOT METERED, by nature rather than by omission: skill BODIES loaded when
-# a routing rule fires (a routed a11y-audit is ~1.8k tokens on top of its
-# description), and remote MCP servers, whose tool surface cannot be read
-# offline. Both are named in the run's closing notes rather than silently
-# scored as zero. Unmetered by OMISSION, latent while no plugin ships an MCP
-# server: a server's `instructions` string, which `initialize` returns and this
-# gate never reads (it keeps the `tools/list` reply), so a LOCAL server's is
-# missed. `/context` counts it as its own row since CLI 2.1.283 (cut at 4,096
-# chars by default since 2.1.296). No closing note names it.
+# context-budget.sh [--update-baseline | --reconcile | --update-official] — BLOCKING: a plugin more than 2 tokens (bytes/4) over its committed baseline in the always-on (descriptions, SessionStart stdout, local MCP tools/list), activated (the same with the state hooks wait for) or dynamic (prompt and per-Edit hook stdout, worst case) channel fails, as does a declared ceiling; the listing channel only reports.
+# Misses: skill bodies a routing rule loads, remote MCP servers, a local MCP server's `instructions`, Stop and Bash-matched hooks, state the fixtures lack; sandboxed output is a lower bound. A missing jq or baseline file, and --update-baseline, exit 0.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/context-budget.sh
 set -u
 cd "$(dirname "$0")/.."
 
@@ -57,12 +15,7 @@ update_official=0
 for arg in "$@"; do
   case "$arg" in
     --update-baseline)  update=1 ;;
-    # Reconciliation against `claude plugin details`, the host's OWN meter.
-    # LOCAL ONLY, WARN ONLY, and not a CI step: `details` resolves a plugin by
-    # INSTALLED NAME (it rejects a path, and its own `--plugin-dir` hint is not
-    # an option of that subcommand), so a checkout with nothing installed cannot
-    # run it. Claiming it as a gate would be claiming a check CI can never
-    # execute.
+    # Local and WARN-only, never CI: `claude plugin details` resolves a plugin by installed name only.
     --reconcile)        reconcile=1 ;;
     --update-official)  reconcile=1; update_official=1 ;;
   esac
@@ -70,12 +23,7 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo "WARN: jq not found, skipping context-budget"; exit 0; }
 
-# Sum of frontmatter description-value bytes (plus `when_to_use:` when present, joined by
-# the 3-char " - " the CLI renders between them — the host shows the pair as one string,
-# so all three are charged) across a plugin dir's
-# skills/*/SKILL.md, commands/*.md, agents/*.md (tolerates missing dirs). The fields
-# come from pc_listing_fields (scripts/lib/plugin-checks.sh, sourced below), the one
-# frontmatter walk every listing meter and linter shares.
+# Frontmatter description bytes (+ " - " + when_to_use, as the CLI joins them) over skills, commands and agents, read through pc_listing_fields.
 plugin_desc_bytes() {
   local pdir="$1" total=0 f fields desc wtu bytes
   for f in "$pdir"/skills/*/SKILL.md "$pdir"/commands/*.md "$pdir"/agents/*.md; do
@@ -92,52 +40,19 @@ plugin_desc_bytes() {
   printf '%s' "$total"
 }
 
-# Same walk, counting CHARACTERS instead of bytes (`wc -m`). The listing channel
-# needs this and the token channels do not: a token estimate is bytes/4, but the
-# listing cap is documented in CHARS and this corpus is em-dash heavy, so the two
-# diverge by ~3%. Measured 2026-08-31 on taskmaster-suite: 15,016 bytes against
-# 14,581 chars — 435 bytes of multi-byte punctuation, enough to report a bundle
-# OVER a cap it is 419 chars UNDER. That is the whole reason this function exists.
-#
-# HONEST LIMITATION, and it is the important half: nobody here has verified which
-# unit the HOST counts. Chars is the unit its documentation states, so chars is
-# what this compares — but an install within ~3% of the cap cannot be called under
-# or over with confidence on either measure, and the channel says so when it lands
-# in that band rather than printing a verdict it has not earned.
-# Listing entry cost: delegated to pc_listing_entry_cost in scripts/lib/plugin-checks.sh
-# — the SINGLE implementation (shared with the pc_listing_declaration gate until that
-# went with the bundles, 2026-09-26), after the two by-value copies were measured disagreeing by their separator models (9 chars on
-# taskmaster-suite) while every bundle README told readers to reconcile one against the
-# other. This wrapper returns chars-without-separators and stashes the entry count in
-# The call sites read "chars entries" via `set --` and add the CLI's n-1
-# separator term once per install (a $()-wrapper cannot return the count: the
-# subshell drops any variable it sets).
-# Unit note (inherited from the helper): LC_ALL=C bytes — a deterministic ~1% overcount
-# of the chars the CLI counts, conservative for a floor warning. Agents excluded: they
-# render in a separate system-prompt section (unverified whether it shares this budget).
+# Listing entry cost is pc_listing_entry_cost's (LC_ALL=C bytes, ~1% over the CLI's chars; agents excluded); call sites add the n-1 separators.
 . "$(dirname "$0")/lib/plugin-checks.sh"
 # The host's own listing constants, defined once in scripts/host-constants.sh and
 # re-read out of the pinned CLI by `host-constants.sh --check`. Sourcing only assigns.
 . "$(dirname "$0")/host-constants.sh"
 
-# Stdout bytes a plugin's SessionStart hooks inject each session, measured by
-# executing them in a throwaway sandbox (empty CLAUDE_PROJECT_DIR/HOME, minimal
-# SessionStart JSON on stdin, fail-open per hook). Deterministic lower bound.
+# SessionStart stdout per plugin, run in an empty sandbox (CLAUDE_PROJECT_DIR = HOME = the sandbox): a deterministic lower bound.
 HOOK_SANDBOX=$(mktemp -d)
-# File-shape fixtures for the per-tool probe live in their OWN sandbox, never in
-# HOOK_SANDBOX. The always-on channel measures SessionStart stdout against an
-# EMPTY project — put a src/ and a migrations/ next to it and the stack-sniffing
-# SessionStart hooks find a project to describe, which moves the always-on figure
-# for a reason that has nothing to do with always-on cost. First attempt did
-# exactly that: +36 tokens on four bundles, pure fixture contamination.
+# Edit fixtures get their own sandbox: a src/ beside the SessionStart one lets stack-sniffing hooks move the always-on figure.
 EDIT_SANDBOX=$(mktemp -d)
 mkdir -p "$EDIT_SANDBOX/src/components" "$EDIT_SANDBOX/src/styles" \
          "$EDIT_SANDBOX/tests" "$EDIT_SANDBOX/database/migrations" 2>/dev/null
-# The fixture CONTENT trips the hooks on purpose. A clean file measures a hook
-# that fired and found nothing, which is not what a real edit costs — the point
-# of the channel is what an edit that DOES trip a guard pays. Clean fixtures
-# under-report by construction: `testing` read 0 on a well-formed test and 509
-# bytes on one asserting internals, and both are "the hook ran".
+# The fixture content trips the guards on purpose: a clean file measures a hook that ran and found nothing.
 printf 'export const a = 2\nexport const b = a\n' > "$EDIT_SANDBOX/src/example.ts"
 printf 'export const W = () => <div style={{color:"#3366ff"}} onClick={()=>{}} />\n' \
   > "$EDIT_SANDBOX/src/components/Widget.tsx"
@@ -168,17 +83,7 @@ plugin_sessionstart_bytes() {
   printf '%s' "$total"
 }
 
-# Stdout bytes a plugin's SessionStart hooks inject in the ACTIVATED state — the
-# same hooks, run against a sandbox carrying the state they wait for. The fixture
-# turns on everything this repo knows how to turn on; a hook waiting for some
-# OTHER state still measures its OFF value here, and that residual is the reason
-# this is a floor and not a ceiling.
-#
-# Fixture contents, each with the hook it exists for:
-#   CC_TERSE=full            → candor/hooks/activate.sh (env beats its state file)
-#   brain/INDEX.md           → brain/hooks/inject.sh (clamped at 2048 B by its `head -c 2048`)
-#   package.json + composer.json + a src tree
-#                            → skill-router/hooks/prime.sh, which sniffs manifests
+# The same SessionStart hooks against a sandbox holding the state they wait for (CC_TERSE=full, brain/INDEX.md, manifests); other state still reads OFF, so a floor.
 ACT_SANDBOX=$(mktemp -d)
 trap 'rm -rf "$HOOK_SANDBOX" "$ACT_SANDBOX" "$EDIT_SANDBOX"' EXIT
 mkdir -p "$ACT_SANDBOX/brain" "$ACT_SANDBOX/src" "$ACT_SANDBOX/app"
@@ -217,53 +122,24 @@ plugin_sessionstart_activated_bytes() {
   printf '%s' "$total"
 }
 
-# Stdout bytes a plugin's per-prompt / per-tool hooks inject, measured the same
-# sandboxed way as SessionStart. UserPromptSubmit gets a work-shaped prompt
-# because several hooks gate on exactly that (skill-router's route-prompt.sh
-# matches build|create|fix|review|refactor|... — a neutral prompt measures zero
-# and would understate the channel by ~2.4k tokens). Pre/PostToolUse get a
-# synthetic Edit payload, the hottest path in the product.
+# UserPromptSubmit and Pre/PostToolUse stdout, same sandbox: a work-shaped prompt corpus, and a synthetic Edit per file shape.
 plugin_dynamic_hook_bytes() {
   local pdir="$1" total=0 cmd resolved out bytes ev payload sid tmp prompt ptmp ups_max=0 ups_sum=0
   local hj="$pdir/hooks/hooks.json"
   [ -f "$hj" ] || { printf '0'; return; }
-  # A FRESH session id and a FRESH TMPDIR per measurement. Several hooks are
-  # once-per-session, keyed on a marker directory under $TMPDIR — reuse a session
-  # id and the second run measures 0, which would make this gate order-dependent
-  # and silently report a plugin's cost as zero on every run after the first.
-  # Uniqueness comes from mktemp, not a counter: this function is called inside
-  # command substitution, so a shell variable incremented here never survives.
+  # A fresh session id and TMPDIR per measurement (mktemp: a counter would not survive this subshell), or once-per-session hooks read 0 after the first run.
   tmp=$(mktemp -d "$HOOK_SANDBOX/dyn.XXXXXX" 2>/dev/null) || { printf '0'; return; }
   sid="ctx-budget-$(basename "$tmp")"
-  # A real transcript file, not just a path: hooks split two ways on this field —
-  # most hash it as a context key, but some OPEN it — task-runner/hooks/drift.sh
-  # (:61 readability guard, :73 `tail`) and comment-discipline/hooks/verbosity.sh.
-  # An unreadable path would meter the second kind on its error branch, which is
-  # the same defect one level down from the one sending the field at all fixes.
+  # A real, empty transcript file: some hooks open transcript_path, and an unreadable one meters their error branch.
   : > "$HOOK_SANDBOX/transcript-$sid.jsonl" 2>/dev/null || true
-  # UserPromptSubmit is measured against a CORPUS, scored MAX, not one string.
-  #
-  # WHY. This used to send exactly one prompt — "refactor the auth module, add
-  # tests and review the diff". api-design's remind.sh (the docs-first reminder) gates on
-  # (sdk|endpoint|integrat\w*|webhook|oauth|graphql); none of those words is in
-  # that sentence, so the hook baselined at 0 while emitting 206 bytes (~52 tok)
-  # on a real integration prompt. A hook whose trigger vocabulary misses the one
-  # probe is unmetered forever, and its growth with it. MAX rather than SUM
-  # because a user sends one prompt, not five; the corpus asks "what is the worst
-  # single prompt", which is the number the budget is about.
-  #
-  # LIMITATION: a hook whose trigger appears in no corpus entry still reads 0,
-  # and that 0 is indistinguishable from "never fires". Extend the corpus when a
-  # new trigger vocabulary ships; nothing here can detect that for you.
+  # UserPromptSubmit is scored MAX over a prompt corpus; a hook whose trigger is in no entry reads 0 — extend the corpus when a new trigger vocabulary ships.
   for prompt in \
     "refactor the auth module, add tests and review the diff" \
     "implement a webhook endpoint that integrates the Stripe SDK" \
     "the deploy pipeline is failing and the container will not start" \
     "design the schema and write the migration for the orders table" \
     "write code to call the GitHub API using their client library"; do
-    # Fresh sid + TMPDIR per corpus entry: several prompt hooks are once-per
-    # session behind a marker, so a reused id would score every entry after the
-    # first at 0 and turn the corpus back into the single probe it replaces.
+    # Fresh sid + TMPDIR per corpus entry, for the same once-per-session reason.
     ptmp=$(mktemp -d "$HOOK_SANDBOX/dynp.XXXXXX" 2>/dev/null) || continue
     payload=$(jq -nc --arg cwd "$HOOK_SANDBOX" --arg sid "ctx-budget-$(basename "$ptmp")" --arg p "$prompt" \
       '{hook_event_name:"UserPromptSubmit",prompt:$p,session_id:$sid,cwd:$cwd}')
@@ -286,44 +162,10 @@ plugin_dynamic_hook_bytes() {
   for ev in PreToolUse PostToolUse; do
     case "$ev" in
       *)
-        # transcript_path IS SENT, and that is load-bearing. Every context-keyed hook
-        # in this marketplace reads `.transcript_path // .session_id` (a subagent
-        # shares its parent's session_id, so keying on it dedups the worker against
-        # nudges it never saw). A payload carrying only session_id therefore meters
-        # every one of those hooks on its FALLBACK branch — the same
-        # grade-the-branch-the-host-never-takes shape `pc_harness_payload` closes for
-        # test harnesses, which scans only scripts/smoke/ and plugins/*/scripts/
-        # __tests__/ and so never saw this meter.
-        #
-        # NO BASELINE MOVED when this landed, and that is the honest result: this
-        # fixes WHICH BRANCH is metered, not any number. Hooks that merely hash the
-        # field emit the same bytes either way; the ones this re-branches are the two
-        # the probe runs that OPEN the transcript — comment-discipline's verbosity.sh
-        # and task-runner's drift.sh, both of which exited at a no-transcript guard
-        # under the old payload and now read the file. Both emit 0 bytes either way,
-        # which is why no number moved. (NOT hindsight/hooks/collect.sh, which two
-        # earlier drafts of this comment named: it is wired to SessionEnd, and this
-        # meter executes only SessionStart, UserPromptSubmit and Pre/PostToolUse — so
-        # it is not metered on any branch, error or otherwise.) An earlier version
-        # of this comment also cited
-        # testing/hooks/test-shape.sh's 0 as the evidence — wrong cause: that hook's
-        # path gate (:81-84) exits before it ever reads a context key at :95, so it
-        # reads 0 on `src/example.ts` with or without this field. That is the FILE
-        # SHAPE gap, named separately in the closing notes at the bottom of this file.
+        # transcript_path is sent: context-keyed hooks read `.transcript_path // .session_id`, so session_id alone would meter their fallback branch.
         : ;;
     esac
-    # FILE-SHAPE CORPUS. One synthetic Edit at one path used to be the whole probe,
-    # and the closing notes named the consequence: a hook gated on any other path
-    # shape read 0 "regardless of what it would emit". Six of the nine per-edit
-    # hooks in this marketplace scored 0 for exactly that reason, not for silence —
-    # testing's matcher wants a test file, comment-discipline has a CSS branch,
-    # ui-ux's palette hook wants a stylesheet, database's guard wants a migration.
-    # A channel that cannot see a hook fire cannot be reduced on purpose.
-    #
-    # Aggregation mirrors the prompt corpus deliberately: SUM across a plugin's
-    # hooks for one shape (an edit that trips two of them pays both), MAX across
-    # shapes (report the worst single edit, not a fictional session that edits
-    # five files at once). The figure is what ONE edit can cost.
+    # File-shape corpus: SUM across a plugin's hooks for one shape, MAX across shapes — what ONE edit can cost.
     shape_max=0
     for shape in \
       "src/example.ts" \
@@ -354,11 +196,7 @@ plugin_dynamic_hook_bytes() {
   printf '%s' "$total"
 }
 
-# Bytes of the tools/list result a plugin's LOCAL MCP servers put in context at
-# session start. Always-on by nature: tool definitions are loaded once and stay.
-# Remote servers (type http/sse) cannot be read offline — they are counted as 0
-# here and enumerated separately in the closing notes, so the run reports the
-# blind spot instead of scoring it as free.
+# tools/list bytes of a plugin's local stdio MCP servers; remote (http/sse) ones count 0 here and are named in the closing notes.
 plugin_mcp_bytes() {
   local pdir="$1" total=0 name cmd args resolved out res bytes
   local mj="$pdir/.mcp.json"
@@ -406,12 +244,7 @@ if [ "$no_act_baseline" -eq 0 ] && ! jq empty "$ACT_BASELINE" 2>/dev/null; then
   exit 1
 fi
 
-# A stdio MCP server needs its runtime to answer tools/list. On a machine
-# without that runtime the measurement is 0, which against a non-zero baseline
-# would read as "this plugin shrank by 475 tokens" and fail the build for a
-# missing binary. Exempt those plugins from the always-on delta this run and say
-# so — a gate that fires on the checker's toolchain rather than on the surface
-# under test is worse than no gate.
+# A stdio MCP server whose runtime is missing measures 0: exempt that plugin's always-on delta rather than fail on the checker's toolchain.
 MCP_UNMEASURABLE=""
 for mj in plugins/*/.mcp.json; do
   [ -f "$mj" ] || continue
@@ -433,56 +266,11 @@ warn_lines=""
 dyn_rows=""
 act_rows=""
 fail=0
-# LISTING CAP. Claude Code allocates a budget for the skill listing and drops
-# descriptions past it, least-invoked-first, names surviving. One source
-# documents the default as ~15,000 chars; the eviction was observed live on
-# 2026-08-26 (rationale/marketplace-necessity-review-2026-08-26.md:262-287),
-# where ~31 marketplace descriptions arrived stripped and the stripped set was
-# nondeterministic at the margin across identical reloads.
-#
-# THE CAP IS NOT A CONSTANT AND NOT 15,000. This channel asserted `LISTING_CAP=15000`
-# from its creation until 2026-08-31, sourced from a doc paraphrase nobody checked.
-# Read out of the shipped CLI (2.1.251) the rule is:
-#
-#     budget_chars = contextWindowTokens * bytesPerToken * skillListingBudgetFraction
-#
-#   * `skillListingBudgetFraction` defaults to **0.01** and is a settings.json key.
-#   * `bytesPerToken` is **4** for the older tokenizer set (through opus-4-6 /
-#     sonnet-4-6 / haiku-4-5) and **3** for everything newer, opus-5 included.
-#   * A SECOND, independent cap applies per skill: `skillListingMaxDescChars`,
-#     default **1536**. Longer descriptions are truncated individually, always,
-#     budget or not. This repo's own description linter caps at 500, so it never binds.
-#
-# So the real budget spans a 6.7x range depending on where you run:
-#
-#     opus-5    @200k = 6,000 chars     opus-5    @1M = 30,000 chars
-#     opus-4-6  @200k = 8,000 chars     opus-4-6  @1M = 40,000 chars
-#
-# AND THE UNIT IS NOT DESCRIPTION TEXT. The CLI costs each entry as
-# `name + 4 + min(description + " - " + when_to_use, 1536)`, joined by one separator each — so
-# the artifact NAME and a 4-char delimiter are charged per artifact. Artifact COUNT is
-# in the measure directly, which is the mechanical reason "fewer artifacts" beats
-# "shorter descriptions" and not merely an empirical one.
-#
-# Over budget, the CLI does not drop the tail: it reduces every non-protected entry
-# to name-only, then buys descriptions back in PRIORITY order until the budget is
-# spent (bundled-prompt skills are protected outright). So the survivors are the
-# high-priority ones, and "least-invoked first" is the right intuition.
-#
-# SHORT-CIRCUIT, unmodelled: the CLI reads `process.env.SLASH_COMMAND_TOOL_CHAR_BUDGET`
-# FIRST and returns it verbatim when set, so a user who exports it has no formula at all
-# and every number below is wrong for them. Nothing here detects that.
-#
-# WHAT THIS CHANNEL REPORTS: the worst realistic case, opus-5 at 200k = 6,000 chars,
-# overridable with LISTING_CTX_TOKENS / LISTING_BYTES_PER_TOKEN / LISTING_FRACTION.
-# A 1M-context session gets 5x that, so an install flagged here may be entirely fine
-# where you personally run it — the row prints both. Report-only, never fails a build.
+# LISTING CAP (report-only): budget_chars = ctxTokens x bytesPerToken x skillListingBudgetFraction, entry = name + 4 + min(desc + " - " + when_to_use, 1536); shown at opus-5 200k = 6,000 chars.
+# The derivation (CLI 2.1.251, the 6.7x range, priority buy-back, SLASH_COMMAND_TOOL_CHAR_BUDGET): rationale/derivations/scripts.md § scripts/context-budget.sh
 LISTING_CTX_TOKENS=${LISTING_CTX_TOKENS:-$HOST_LISTING_CTX_TOKENS}
 LISTING_BYTES_PER_TOKEN=${LISTING_BYTES_PER_TOKEN:-3}
-# LISTING_FRACTION takes the same unit as the CLI's skillListingBudgetFraction
-# (0.01, 0.02, ...) — the unit all-plugins' README and script teach. awk, not $(( )): the
-# first version read an undocumented integer-percent variable and crashed on
-# exactly the values the READMEs recommend.
+# The unit of skillListingBudgetFraction (0.01, 0.02 …), so awk, not $(( )).
 LISTING_FRACTION=${LISTING_FRACTION:-$HOST_LISTING_FRACTION}
 LISTING_CAP=$(awk -v t="$LISTING_CTX_TOKENS" -v b="$LISTING_BYTES_PER_TOKEN" -v f="$LISTING_FRACTION" 'BEGIN{printf "%d", t*b*f}')
 LISTING_CAP_1M=$(awk -v b="$LISTING_BYTES_PER_TOKEN" -v f="$LISTING_FRACTION" 'BEGIN{printf "%d", 1000000*b*f}')
@@ -501,10 +289,6 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
   bname=$(jq -r '.name' "$pj" 2>/dev/null)
   [ -n "$bname" ] || continue
 
-  # Every plugin is measured from its own dir. A `dependencies` branch summed a bundle's
-  # members (plus its own uninstall command) until 2026-09-26, when the suites were
-  # retired and pc_plugin_dependencies started failing any plugin.json that declares one;
-  # a branch for a shape validate.sh rejects would be dead code with a vote.
   pdir="${pj%/.claude-plugin/plugin.json}"
   total_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_bytes "$pdir") + $(plugin_mcp_bytes "$pdir") ))
   dyn_bytes=$(plugin_dynamic_hook_bytes "$pdir")
@@ -515,17 +299,7 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
   tokens=$(( (total_bytes + 2) / 4 ))
   dyn_tokens=$(( (dyn_bytes + 2) / 4 ))
   act_tokens=$(( (act_bytes + 2) / 4 ))
-  # LISTING CHANNEL (report-only). Descriptions ONLY — deliberately not the
-  # always-on sum. The host's skill listing is built from description text; a
-  # SessionStart hook's stdout and an MCP tools/list are injected by other
-  # means and survive the listing budget, which is the whole distinction this
-  # channel exists to draw. Hooks are eviction-proof; descriptions are not.
-  # NEAR band: within 3% of the cap EITHER WAY — [97%, 103%]. The unit the host
-  # counts is unverified (this measures LC_ALL=C bytes, a ~1% overcount of chars),
-  # so inside that band neither "under" nor "over" is a claim this channel has
-  # earned. The first version checked `-gt cap` before the band, so 100-103%
-  # printed a confident OVER — the exact unearned verdict the band was added to
-  # avoid. The order below is the fix: band first, OVER only past 103%.
+  # Descriptions only (hook stdout and MCP survive eviction); NEAR is [97%, 103%] of the cap and is checked before OVER, since the host's unit is unverified.
   [ "${listing_n:-0}" -gt 1 ] && listing_chars=$((listing_chars + listing_n - 1))
   near_lo=$((LISTING_CAP * 97 / 100))
   near_hi=$((LISTING_CAP * 103 / 100))
@@ -536,20 +310,14 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
     listing_rows="${listing_rows}$(printf '%-24s %9s  NEAR (%s%% of cap, no headroom)' "$bname" "$listing_chars" "$(awk -v a="$listing_chars" -v c="$LISTING_CAP" 'BEGIN{printf "%.0f", 100*a/c}')")
 "
   fi
-  # UNION (every plugin). Every row above answers "if you installed only this one
-  # thing", which is the question nobody asks of a marketplace they install whole. The
-  # all-plugins-installed figure appeared in NO tooling here until 2026-09-15, so two
-  # independent audits each had to recompute it by hand. The number is deliberately NOT
-  # written down here or in any README: this line is the one place that computes it.
+  # UNION: the whole marketplace installed, computed only here and written down nowhere.
   union_chars=$((union_chars + own_chars)); union_n=$((union_n + own_n))
   union_plugins=$((union_plugins + 1))
   leaf_tokens_total=$((leaf_tokens_total + tokens))
   leaf_dyn_total=$((leaf_dyn_total + dyn_tokens))
   leaf_act_total=$((leaf_act_total + act_tokens))
 
-  # Activated channel: only reported when the state actually changes what a
-  # plugin emits. A plugin whose activated figure equals its always-on figure has
-  # no waiting-for-state surface and would add a row saying nothing.
+  # Activated rows only where the state changes what a plugin emits.
   if [ "$act_tokens" -ne "$tokens" ]; then
     act_b=""
     [ "$no_act_baseline" -eq 0 ] && act_b=$(jq -r --arg b "$bname" '.[$b] // empty' "$ACT_BASELINE" 2>/dev/null)
@@ -611,21 +379,7 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       baseline_tok="$b"
       delta=$((tokens - b))
       delta_str="$delta"
-      # Tolerance: 2 tokens per plugin. (A bundle got 2 x member-count while bundles
-      # existed; they were retired 2026-09-26 and the scaling went with them.)
-      #
-      # BASIS (a number with no stated basis is theater). The metric is bytes/4,
-      # so 2 tokens is an 8-byte edit — one short word. Every meaningful
-      # description change is larger: adding a trigger phrase costs 15+ bytes.
-      # At zero tolerance, fixing a 4-character typo in one description took
-      # i18n from 116 to 117 tokens and exited 1, freezing every description in
-      # the marketplace at its current byte length.
-      #
-      # LIMITATION (honest scope): this converts "any typo is a blocking budget
-      # failure" into "only real surface growth is". It does NOT bound aggregate
-      # drift — every leaf drifting its full +2 is ~150 tokens across the
-      # marketplace that no run reports. Accepted, not covered; the ratchet is
-      # per-plugin, and that is exactly what it means.
+      # Tolerance 2 tokens (an 8-byte edit): zero froze every description at its byte length; aggregate drift is the ceilings' job, not this ratchet's.
       tolerance=2
       # Exempt a plugin whose MCP runtime is absent.
       mcp_exempt=0
@@ -654,35 +408,7 @@ done
 
 echo "TOTAL: $leaf_tokens_total tokens"
 
-# Emit the listing channel. Report-only by construction: no `fail=1`, no ceiling
-# comparison that can red a build. It answers a question the token table cannot —
-# not "what does the catalogue weigh" but "what will the host actually load".
-#
-# AN `OVER` STATUS IS A REACHABILITY WARNING AND NEVER A COST WARNING, and the
-# channel now says so on every run because the number looks exactly like a bill.
-# The host DROPS description text past the cap, so that text is never sent and
-# never charged: an over-cap install pays the same description cost as any install
-# sitting at the cap. Trimming descriptions above the cap therefore saves ~nothing
-# (measured twice: 2.8% catalogue-wide at distillation-2026-08-23.md:206-214, 1.8%
-# for taskmaster-suite specifically). What overflow was ASSUMED to cost is DISPATCH — the
-# dropped descriptions arrive name-only and the surviving set is nondeterministic
-# across reloads (observed live, marketplace-necessity-review-2026-08-26.md:262-287).
-#
-# THAT ASSUMPTION WAS MEASURED ON 2026-09-15 AND DID NOT HOLD. Stripping a skill's
-# description changed how often it fired by nothing: 47/50 with descriptions against
-# 47/50 name-only, across five conditions from one installed skill up to 226, and in
-# the hardest condition the name-only arm scored HIGHER. Method, per-condition table
-# and — importantly — what it does NOT establish: rationale/2026-09-15-listing-eviction-probe.md;
-# re-runnable via scripts/smoke/listing-eviction-probe.sh. What DID cost firing was
-# OVERLAP: eight skills contesting one territory took BOTH arms from 100% to ~75%.
-#
-# So this row is still worth printing — it is the honest measure of what the host
-# will load — but it is not evidence that anything became unreachable, and nobody
-# should trim a description or raise skillListingBudgetFraction on the strength of
-# it. The membership argument that retired the `everything` bundle on 2026-08-31
-# survives, on the overlap finding rather than the eviction one: fewer artifacts,
-# because adjacent artifacts compete. Full cost derivation:
-# rationale/2026-08-31-token-cost-review.md.
+# OVER is a loading warning, never a cost one: text past the cap is never sent, and stripping a description was measured not to change firing.
 echo
 echo "listing channel (CLI entry cost: name + 4 + min(description + \" - \" + when_to_use,${LISTING_MAX_DESC}), skills + commands)"
 echo "  budget = ctxTokens x bytesPerToken x fraction; showing ${LISTING_CTX_TOKENS} tok x ${LISTING_BYTES_PER_TOKEN} x ${LISTING_FRACTION} = ${LISTING_CAP} chars (a 1M-context session gets ${LISTING_CAP_1M})"
@@ -695,10 +421,7 @@ fi
 [ "${union_n:-0}" -gt 1 ] && union_chars=$((union_chars + union_n - 1))
 echo
 echo "  EVERYTHING INSTALLED (all ${union_plugins} plugins, ${union_n} entries): ${union_chars} chars"
-# ceil3: round the recommendation UP to the precision it is PRINTED at. The old margin
-# was a flat x1.02, which is smaller than one ulp of %.3f at the 1M tier — so the printed
-# fraction could round DOWN to a value that does not fit, and the margin meant to prevent
-# exactly that was invisible at the only tier where it mattered. The ceiling IS the margin.
+# ceil3 rounds the recommended fraction UP at its printed precision; that ceiling is the margin.
 awk -v a="$union_chars" -v c="$LISTING_CAP" -v c1="$LISTING_CAP_1M" -v f="$LISTING_FRACTION" -v b="$LISTING_BYTES_PER_TOKEN" 'BEGIN{
   printf "    %.2fx the %d-char cap here; %.2fx the %d-char cap at 1M\n", a/c, c, a/c1, c1;
   printf "    to fit WITHOUT eviction set skillListingBudgetFraction to %.3f here, or %.3f at 1M\n", ceil3((a/c)*f), ceil3((a/c1)*f);
@@ -719,27 +442,7 @@ else
   echo "  no install exceeds the cap"
 fi
 
-# AGGREGATE CEILING. The per-plugin ratchet above says of itself, at :127-131, that
-# it "does NOT bound aggregate drift" — every leaf may drift its full +2 and no run
-# reports the sum, while --update-baseline accepts any growth on request. So the one
-# number the README advertises to users as the cost of `everything` had nothing
-# holding it anywhere. This does: a declared ceiling that fails the build, so a new
-# leaf has to be paid for by a deletion or by an explicit, reviewable decision to
-# raise the number in this file. That is the only version of the marketplace's own
-# "new surfaces name their funding deletion" rule with teeth.
-#
-# Raising it is legitimate and deliberately visible: edit the line below in a commit
-# someone reviews. --update-baseline does NOT move it, which is the point — the
-# per-plugin ratchet is a convenience, this is a budget.
-# Raised 12600 -> 12800 on 2026-08-15 for the `lean` plugin (73 tokens: one skill
-# description, no command, no agent). The funding question was asked the other way
-# first, and the answer is worth recording: the marketplace's fattest frontmatter
-# description is 435 bytes against a 500-byte cap, so paying for `lean` by deletion
-# meant trimming trigger phrasing out of five or six unrelated skills to buy 0.5% of
-# this budget. Degrading dispatch quality across the catalogue to avoid a 200-token
-# line edit is precisely the ratio-chasing `lean:cost-model` and testing's
-# proportionality.md both reject — the cheaper artifact would have been the more
-# expensive decision. Spending it deliberately and saying so is the honest form.
+# A declared budget --update-baseline never moves: pay for new surface with a deletion, or raise it in a reviewed commit.
 ALWAYS_ON_CEILING=12800
 if [ "$leaf_tokens_total" -gt "$ALWAYS_ON_CEILING" ]; then
   warn_lines="${warn_lines}FAIL: always-on total $leaf_tokens_total exceeds the declared ceiling $ALWAYS_ON_CEILING — pay for the new surface with a deletion, or raise ALWAYS_ON_CEILING in scripts/context-budget.sh in a reviewed commit (--update-baseline does not move it)
@@ -753,20 +456,7 @@ if [ -n "$dyn_rows" ]; then
   printf '%-20s %8s %10s %10s\n' "plugin (dynamic)" "tokens" "baseline" "delta"
   printf '%s' "$dyn_rows"
   echo "TOTAL DYNAMIC: $leaf_dyn_total tokens (per work-shaped prompt + per Edit, not per session)"
-  # Raised 2600 -> 2800 on 2026-08-11 with the delivery-channel fixes: the
-  # skill-router inline nudges moved to the metered additionalContext envelope
-  # (previously unmetered dead stdout), plain-source routing rows were added,
-  # and taskmaster's clarify directive widened. Those are deliberate spends the
-  # owner chose; the old ceiling would have sat 1 token from failure. The
-  # ceiling still exists to make the NEXT unplanned growth a conversation.
-  # Raised 2800 -> 2900 on 2026-08-15. `lean`'s PostToolUse budget hook measures 85
-  # tokens and PASSES the old ceiling — at 2798 of 2800. It is raised anyway, on this
-  # block's own stated reasoning: the 2026-08-11 raise was justified partly because
-  # "the old ceiling would have sat 1 token from failure", and 2 tokens is that case
-  # again. Left alone, the next person to touch ANY hook in this marketplace gets a red
-  # build naming a plugin they did not edit. Note what is NOT being bought: skill-router
-  # alone is 2663 of the 2798 (95%), so this channel remains one plugin's command
-  # catalog plus rounding. That is the number worth attacking next, not this ceiling.
+  # Same rule as ALWAYS_ON_CEILING: raise it only in a reviewed commit.
   DYNAMIC_CEILING=2900
   if [ "$leaf_dyn_total" -gt "$DYNAMIC_CEILING" ]; then
     warn_lines="${warn_lines}FAIL: dynamic total $leaf_dyn_total exceeds the declared ceiling $DYNAMIC_CEILING — same rule as the always-on ceiling
@@ -785,43 +475,7 @@ if [ -n "$act_rows" ]; then
   echo "  = always-on $leaf_tokens_total + $((leaf_act_total - leaf_tokens_total)) tokens no baseline saw before 2026-08-20"
 fi
 
-# RECONCILIATION against `claude plugin details` — the host's own meter.
-#
-# WHY. This script estimates always-on cost as description bytes / 4. The host
-# charges a per-component floor on top of that (~60-130 tok even for a one-line
-# description) and counts commands as skills, so our number reads LOW: measured
-# 2026-08-20, summing `claude plugin details` over the 61 leaves gave 19,667
-# tokens against our 12,789 — a factor of 1.54, and the gap scales with COMPONENT
-# COUNT, which is exactly what a distillation is supposed to reduce. A meter that
-# under-reads in proportion to the thing it exists to control is worth
-# reconciling against.
-#
-# THAT SNAPSHOT'S POPULATION IS STALE AND THE RATIO INHERITS IT. The 61 leaves it
-# sums were measured before `cfef9c1`, and include nine plugins since deleted
-# (i18n, livewire, mysql, node-backend, nuxt, php, postgresql, react, vue3) and
-# none of the bundles. Today's tree is 52 leaves. Re-measuring needs an install,
-# because `details` resolves by installed name — so 1.54 is carried forward as a
-# HISTORICAL figure, not a current one. Treat it as an order-of-magnitude
-# correction, never as a coefficient to multiply today's numbers by. (This
-# paragraph lived in CLAUDE.md until 2026-08-31 and was deleted there on the
-# premise that this header carried it. It did not. Verifying that claim per fact,
-# rather than per file, is the only reason it is here.)
-#
-# IT IS NOT GROUND TRUTH, measured 2026-08-21. `details` is a static estimate over
-# the FILES: it charged a `disable-model-invocation: true` skill ~60 always-on
-# tokens for a description the session listing provably does not contain (probes
-# in rationale/host-lever-probes-2026-08-21.md). Read the gap it reports as a
-# better model of the host's per-component floor, not as a measurement of what
-# the harness actually loads.
-#
-# STANDING: local, WARN-only, NOT a CI step, and this comment is the reason.
-# `claude plugin details` resolves a plugin by INSTALLED NAME — it rejects a path
-# and its own `--plugin-dir` hint is not an option of that subcommand — so a
-# fresh checkout with nothing installed cannot run it. Wiring it into CI would
-# ship a check that can never execute there.
-#
-# --reconcile        compare live against the committed snapshot, WARN on drift
-# --update-official  re-take the snapshot (records the date it was taken)
+# --reconcile / --update-official: compare with `claude plugin details`, the host's own static estimate; local and WARN-only, since it resolves by installed name.
 if [ "$reconcile" -eq 1 ]; then
   echo
   if ! command -v claude >/dev/null 2>&1; then
@@ -853,9 +507,7 @@ if [ "$reconcile" -eq 1 ]; then
         > "$OFFICIAL" 2>/dev/null
       echo "official snapshot written: $OFFICIAL"
     elif [ -f "$OFFICIAL" ]; then
-      # Drift against the last snapshot: >15% on any plugin is a WARN, because a
-      # jump means either the host changed how it charges or we changed the
-      # plugin without noticing what it costs a user.
+      # >15% drift from the snapshot is a WARN: the host's charging or the plugin changed.
       while IFS=$'\t' read -r dname dold; do
         [ -n "$dname" ] || continue
         dnew=$(printf '%s' "$recon_json" | jq -r --arg k "$dname" '.[$k] // empty' 2>/dev/null)
@@ -870,9 +522,7 @@ if [ "$reconcile" -eq 1 ]; then
   fi
 fi
 
-# Remote MCP servers cannot be read offline. Naming them is the whole point:
-# a plugin shipping one is an always-on context cost AND an outbound runtime
-# dependency, and scoring it zero would say the opposite.
+# Remote MCP servers cannot be read offline: name them rather than score them 0.
 mcp_remote=$(for m in plugins/*/.mcp.json; do
   [ -f "$m" ] || continue
   p=$(basename "$(dirname "$m")")
@@ -889,22 +539,7 @@ echo 'note: mod-injected text (tool.call `context`, `prompt.suggest`, `ui.status
 echo "note: the listing cap is a FORMULA read out of CLI 2.1.251 (ctxTokens x bytesPerToken x skillListingBudgetFraction, default fraction 0.01, configurable in settings.json) — derivation in this script's LISTING_* header; the channel is report-only and never fails the build"
 echo "note: the listing channel costs entries the way the CLI does (name + 4 + capped desc, skills + commands). SessionStart stdout and MCP tools/list are always-on but not part of this listing, so they are eviction-proof and excluded. AGENTS are excluded too, and that one is UNVERIFIED rather than known: they render in a separate system-prompt listing and whether it draws on the same budget was not established"
 echo "note: the activated channel turns on what THIS fixture knows (terse level, brain/INDEX.md, manifests); a hook waiting for other state still reads its OFF value"
-# EVENT AND TOOL SHAPE. The dynamic channel executes UserPromptSubmit and
-# Pre/PostToolUse-as-Edit, and nothing else. Two whole categories therefore read
-# 0, and a 0 here is indistinguishable from "emits nothing" — the same failure
-# the corpus comment above names for prompt vocabulary, one level up:
-#   - Stop hooks. Three plugins ship one (candor, code-architecture, task-runner)
-#     and their block reasons are model-visible text, measured at roughly
-#     211 / 127 / 742 tokens upper bound across branches. Never executed here.
-#   - PreToolUse matched on Bash. command-guard's deny reason is ~175 tokens per
-#     denied call and its dynamic baseline reads 0.
-# Naming it is the honest floor; metering it means teaching this loop the other
-# event and tool shapes, which is a real change and not one this note makes.
 echo "note: Stop hooks and Bash-matched PreToolUse are never executed by the dynamic probe (candor, code-architecture, task-runner, command-guard read 0 for that reason, not because they are silent)"
-# FILE SHAPE. The synthetic Edit targets src/example.ts, so a hook gated on a
-# path pattern it does not match scores 0 for a reason that has nothing to do
-# with its size — testing/hooks/test-shape.sh emits ~146 tokens on a real test
-# file and baselines 0 here.
 echo "note: the per-tool probe now drives five file shapes (source, component, test, stylesheet, migration) with content chosen to trip the guards; MAX across shapes, SUM across a plugin's hooks for one shape"
 echo "note: a per-edit hook still reading 0 is NOT necessarily silent, and the cause is no longer path shape. Measured 2026-08-31: of six plugins reading 0, the file-shape corpus moved ONE (testing, 0 -> 127). The rest are gated on state this probe does not create (an active task-runner run), on a Bash matcher the probe never fires, or on content narrower than a generic fixture (a secret-shaped string, a comment body, a project theme file). Widening the fixture until every guard trips would measure a worst case no real edit reaches."
 
@@ -913,13 +548,7 @@ echo "note: a per-edit hook still reading 0 is NOT necessarily silent, and the c
 [ "$no_act_baseline" -eq 1 ] && echo "WARN: no activated baseline" >&2
 
 if [ "$update" -eq 1 ]; then
-  # Updating IS the remedy — suppress the FAIL/remedy lines on this path.
-  # But an unmeasurable MCP plugin must not have its zero WRITTEN: the delta
-  # check above exempts it, so a baseline zeroed here passes locally and then
-  # fails CI by the full tool-surface amount (+475 on registry-source,
-  # 2026-08-26, written by an --update-baseline run on a node-less machine).
-  # Preserve the old value for the plugin. (The deficit was also added back into every
-  # bundle that summed it, in both channels, until the bundles were retired 2026-09-26.)
+  # Keep an unmeasurable MCP plugin's old baseline: its written 0 would pass locally and fail CI by the whole tool surface.
   for mu in $MCP_UNMEASURABLE; do
     old_val=$(jq -r --arg p "$mu" '.[$p] // empty' "$BASELINE" 2>/dev/null)
     new_val=$(printf '%s\n' "$new_baseline" | jq -r --arg p "$mu" '.[$p] // empty')

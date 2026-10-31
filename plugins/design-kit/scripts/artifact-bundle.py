@@ -1,34 +1,9 @@
 #!/usr/bin/env python3
 """artifact-bundle.py — make ONE self-contained HTML artifact, versioned.
 
-    artifact-bundle.py <page.html | page.md | dir> [--name slug]
-                       [--out-dir .design-kit/artifacts] [--shell page-shell.html]
-                       [--zip] [--json]
-
-WHAT IT DOES (each a gate the harness drives):
-  - inlines every LOCAL <link rel=stylesheet>, <script src>, <img src>, <source src>,
-    <video/audio src>, and CSS url(...) target (images, fonts) as text or a data URI,
-    resolved relative to the file that referenced it;
-  - leaves absolute http(s) references in place and REPORTS each one as `network:` —
-    an artifact that needs the network says so instead of pretending;
-  - reports every relative <a href> to another file as `unresolved-link:` (a single
-    page has nothing beside it; use in-page anchors);
-  - refuses input that is not strict UTF-8, naming byte offset, line and column;
-  - stamps <meta name="design-kit-artifact" content="<slug> v<N> <ISO date>">;
-  - writes <out-dir>/<slug>.html, keeps every prior version at
-    <out-dir>/.versions/<slug>/v<N>.html, and appends to <out-dir>/<slug>.versions.json;
-  - warns (exit 0) when the result is over 16 MiB; `--zip` also writes <slug>.zip.
-  A `.md` input is rendered through the shell with a small stdlib converter:
-  ATX headings, paragraphs, one-level `-`/`1.` lists, blockquotes, `---` rules,
-  fenced code, pipe tables, links, images, inline code, **bold**, *italic*. NOT
-  supported: nested lists, reference-style links, footnotes, setext headings,
-  task lists; raw HTML passes through untouched.
-
-WHAT IT DOES NOT DO. It does not execute scripts, so a page that loads assets
-from JavaScript at runtime keeps those references and they are not reported.
-`srcset` attributes are reported as unsupported, not rewritten. A `../` or absolute
-local ref that resolves outside the input's directory tree is never read: it is left
-in the page as-is and reported as a warning, so nothing outside the tree is inlined.
+Usage: artifact-bundle.py <page.html | page.md | dir> [--name slug] [--out-dir .design-kit/artifacts] [--shell page-shell.html] [--zip] [--json]. Inlines every local stylesheet, script, image, media and CSS url() target as text or a data URI; reports http(s) refs as `network:` and relative links as `unresolved-link:`; refuses non-UTF-8 input; stamps a design-kit-artifact meta; writes <slug>.html, keeps every prior version under .versions/<slug>/; warns over 16 MiB. A .md input goes through a small stdlib converter (no nested lists, reference links, footnotes, setext headings or task lists; raw HTML passes through).
+Misses: assets a script loads at runtime (scripts never run, so they are not reported); srcset (reported, not rewritten); a local ref outside the input's tree is left as-is with a warning, never inlined.
+Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/artifact-bundle.py
 """
 import argparse
 import base64
@@ -69,10 +44,7 @@ def fail(msg, code=2):
 
 
 def dk_dir():
-    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit
-    at the git root — never under a subdirectory the shell had cd'd into, which scattered
-    a second .design-kit/ (finding 2 of the marketplace's
-    rationale/2026-09-25-session-plugin-usage-review.md)."""
+    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit at the git root (the cwd outside git)."""
     import subprocess
     if os.environ.get("DESIGN_KIT_DIR"):
         return os.environ["DESIGN_KIT_DIR"]
@@ -269,8 +241,6 @@ def inline_html(doc, base_dir, report):
     return doc
 
 
-# --- minimal markdown -------------------------------------------------------
-
 def _inline_md(text):
     text = html.escape(text, quote=False)
     text = re.sub(r"!\[([^\]]*)\]\(([^)\s]+)\)", r'<img alt="\1" src="\2">', text)
@@ -341,8 +311,6 @@ def render_shell(shell_path, title, body):
     shell = shell.replace("<!-- SLOT: body -->", body)
     return shell
 
-
-# --- versioning ---------------------------------------------------------------
 
 def stamp(doc, slug, version, date):
     meta = f'<meta name="design-kit-artifact" content="{html.escape(slug)} v{version} {date}">'

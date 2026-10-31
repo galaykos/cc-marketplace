@@ -4,9 +4,36 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
-## 0.17.0 — 2026-10-30
+## 0.18.0 — 2026-10-31
 
 - **Three new game plugins are suggested from file evidence.** plugin-scout signal and `--full` class rows for `blender` (a `*.blend`/`*.blend1`, a `blender_manifest.toml`, or a `.py` importing `bpy` — placed after the gamedev row so a product-visualisation repo does not pull gamedev in), `meshy` (`MESHY_API_KEY`, a `meshy-cli`/`@meshy-ai/*` dep or a `meshy` MCP server — never a `*.glb` alone) and `pixel-art` (`*.aseprite`, Tiled `*.tmx`/`*.tmj`/`*.tsj`/`*.tiled-project`, LDtk `*.ldtk`/`*.ldtkl`, or a `*.tsx` whose root is `<tileset>` — a bare `.tsx` is React). New `--stack` tokens: `blender`, `meshy`, `pixel-art`, `aseprite`, `tiled`, `ldtk`. Standing: agent-graded — the scout follows the rows; `pc_scout_names` gates only that the names are live.
+
+## 0.17.5 — 2026-10-29
+
+- **The scout suggests six game plugins again.** godot, unity, unreal, phaser, pixijs and gamedev are back in the marketplace: `signals.md` gets their six rows back, with the "unless a game row above matched first" clause on the `go.mod`/`Cargo.toml`/`*.csproj` row; `stack-relevance.md` gets their six Game classes and `--stack` tokens; `flags.md`'s `--full` stack-bound list names the game plugins again. The generated catalog lists them. bevy, defold, ebitengine and roblox stay removed and are not suggested. Standing: agent-graded — the scout follows the rows; `pc_scout_names` gates only that the names are live.
+- The all-plugins line in the README says it skips the game plugins as well as prompt-coach.
+
+## 0.17.4 — 2026-10-29
+
+- **Three outside tools in the scout, offered and never installed.** `plugin-scout`'s new `references/outside-tools.md` adds rows after the official ones in `Beyond this marketplace`: rtk (filters shell output before the model reads it; offered only when the person raises token cost or long command output), NVIDIA's SkillSpector (scans an agent skill before install; offered when third-party skills are installed or about to be) and designlang from design-extract (reads a live site's design tokens; offered when a UI must match a live site). Each row carries the install line from the tool's README and its licence as read on 2026-10-29: rtk's CLI is Apache-2.0 and its engine BUSL-1.1, source-available and not open source, so check the terms before commercial use; SkillSpector Apache-2.0; designlang MIT. Standing: recorded — no script re-reads a licence.
+- **`--skills` scans a pick with SkillSpector before installing it, when SkillSpector is there.** New `scripts/skill-vet.sh <owner>/<repo> <skillId>` (or an existing absolute directory; any other source is not scanned): with `skillspector` on PATH it clones the repo shallowly with symlinks checked out as plain files, finds the skill folder (`skills/<skillId>/`, `<skillId>/`, a `<skillId>/` folder at any depth, then a `SKILL.md` whose frontmatter `name` is the skillId), runs a static scan (`--no-llm`) of it and prints the verdict and up to five findings, worst first. A symlinked skill folder or `SKILL.md` is reported and not scanned. `DO_NOT_INSTALL` re-asks the pick with "Skip (Recommended)" first; `CAUTION` and a "did not scan" line re-ask it as install anyway / skip. Without SkillSpector, one line offers it. It exits 0 on every path past the usage check, so the install never waits on SkillSpector. Standing: gate for the script's paths, `scripts/__tests__/skill-vet.test.sh` (45 checks, a stub scanner); agent-graded for the skill running it and re-asking. Not run against the real SkillSpector: its report shape is taken from its README.
+
+## 0.17.3 — 2026-10-29
+
+- The plugin catalog's candor row names its six clauses.
+
+## 0.17.2 — 2026-10-28
+
+- **The `plugin-scout`, `installed-versions` and `vercel-skills-scout` skills' and `/stack-scan:suggest`'s descriptions now read in short, plain sentences.** Same triggers, tiers and flags; each keeps the words the model matches it on.
+
+## 0.17.1 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/licence-scan.sh`, `scripts/pick.sh`, `scripts/scan.sh`, `scripts/sync-plan.sh`: each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain. `--help` of `scripts/licence-scan.sh` no longer prints the history prose; usage, flags and exit codes are unchanged.
+
+## 0.17.0 — 2026-10-27
+
+- **The scout no longer suggests game plugins.** The ten game plugins left the marketplace: `signals.md` drops their ten engine rows and the "unless a game row above matched first" clause on the `go.mod`/`Cargo.toml`/`*.csproj` row, `stack-relevance.md` drops the ten Game classes and their `--stack` tokens, and `flags.md`'s `--full` stack-bound list is back to `laravel`, `web-dev`, `craft-layer`. The generated catalog no longer lists them.
+- The all-plugins line in the README no longer mentions game plugins.
 
 ## 0.16.0 — 2026-10-26
 

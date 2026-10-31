@@ -39,6 +39,9 @@ case "$out" in
   *"dispatch #20"*) ok "the reason names the dispatch number" ;;
   *) bad "the reason names the dispatch number" "got: $out" ;;
 esac
+want='task-runner: this is subagent dispatch #20 in this session; each is billed and none shows in the transcript. Approve if this many was planned (next prompt at #40); if not, decline and stop re-dispatching. CC_SPAWN_CAP=<n> moves the threshold (off disables it).'
+got=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
+[ "$got" = "$want" ] && ok "the ask reason is the plain prompt, word for word" || bad "the ask reason is the plain prompt, word for word" "got: $got"
 
 # Sessions are counted independently.
 out=$(fire cap-c); [ -z "$out" ] && ok "a fresh session starts at zero" || bad "a fresh session starts at zero" "$out"
@@ -83,6 +86,10 @@ case "$last" in *'"permissionDecision"'*) bad "inside a run it notifies, never a
   *) bad "inside a run it notifies the user and the model, never asks" "got: ${last:-<silent>}" ;; esac
 case "$last" in *'registered run demo (10 cards in docs/tasks/demo/00-INDEX.md, about 30 dispatches'*) ok "the notice names the plan" ;;
   *) bad "the notice names the plan" "$last" ;; esac
+want='task-runner: subagent dispatch #60 in this session (each is billed), inside the registered run demo (10 cards in docs/tasks/demo/00-INDEX.md, about 30 dispatches at 3 per card); next notice at #120. Continue if this matches the plan; otherwise stop re-dispatching and read the last report.'
+got=$(printf '%s' "$last" | jq -r '[.systemMessage, .hookSpecificOutput.additionalContext] | unique | if length == 1 then .[0] else "user and model texts differ" end' 2>/dev/null)
+[ "$got" = "$want" ] && ok "the notice is the plain sentence, word for word, to the user and the model alike, and asks no one to approve" \
+  || bad "the notice is the plain sentence, word for word, to the user and the model alike, and asks no one to approve" "got: $got"
 
 # A run whose plan is below the cap keeps the cap, and still notifies.
 { printf '| card | title | status |\n|---|---|---|\n| 01 | t | done |\n| 02 | t | pending |\n'; } > "$RUN/docs/tasks/demo/00-INDEX.md"

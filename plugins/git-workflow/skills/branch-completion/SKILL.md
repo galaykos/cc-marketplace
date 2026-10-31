@@ -13,12 +13,12 @@ states is inventory: unmerged branches age into conflict farms, and every
 
 ## The verification gate
 
-Before any destination talk, run the project's FULL check suite — tests, lint,
-type-check, build, whatever the repo defines — not just the tests near the
-change. This mirrors the task-runner plugin's completion gate, for the same
-reason: local passes compose into global failures. A red suite ends the
-conversation — nothing to merge, PR, or park with a clear conscience. Report
-the failures and fix first; never present destinations for a red branch.
+Before any destination talk, run the project's FULL check suite — tests, lint, type-check,
+build, whatever the repo defines — not just the tests near the change; local passes compose
+into global failures, as in task-runner's completion gate. A pass of that exact command at the branch's head on this
+exact tree counts — `scripts/receipt-fresh.sh --name suite --root <worktree> --cmd "<suite command>"` prints `fresh:`
+with that head — and the report says `Reused:` and names the receipt log; the post-merge suite never reuses. A red
+suite ends the conversation: report the failures and fix first; never present destinations for a red branch.
 
 ## Evidence, then options
 
@@ -31,20 +31,21 @@ git rev-list --left-right --count "$BASE...HEAD"        # behind / ahead
 git log --oneline "$BASE..HEAD"                         # the commits
 ```
 
-Present that evidence plus the suite result, then the destination options —
-the set depends on the base (see "The default branch is PR-only" below).
-For a large or many-session branch, offer one optional artifact before the
-destination ask: a change explainer — what changed, why, decisions and
-deviations — for a reviewer who saw none of the work (HTML served on the project's
-own preview URL, else markdown). Offer, never default:
-small branches don't earn the ceremony. For a
-feature whose base is NOT the default branch, offer all four: merge locally,
-push and open a PR, keep the branch open, discard the work. When the base IS
-the default branch, drop "merge locally" — offer only push and open a PR, keep
-the branch open, discard the work. Never assume which applies: an obviously
-mergeable branch may be an experiment, a scruffy spike may be tomorrow's
-release. Interactive sessions ask via AskUserQuestion; headless sessions report
-evidence and options, then stop — destructive defaults are how work disappears.
+Present that evidence plus the suite result, then the destination options — the
+set depends on the base (see "The default branch is PR-only" below). For a large
+or many-session branch, offer one optional artifact before the destination ask:
+a change explainer — what changed, why, decisions and deviations — for a
+reviewer who saw none of the work (HTML served on the project's own preview URL,
+else markdown). Offer, never default: small branches don't earn the ceremony.
+For a feature whose base is NOT the default branch, offer all four: merge
+locally, push and open a PR, keep the branch open, discard the work. When the
+base IS the default branch, drop "merge locally" — offer only push and open a
+PR, keep the branch open, discard the work. Never assume which applies: an
+obviously mergeable branch may be an experiment, a scruffy spike may be
+tomorrow's release. Interactive sessions ask via AskUserQuestion; headless
+sessions report evidence and options, then stop — destructive defaults are how
+work disappears. A pick made ahead, `--to pr|merge|keep`, skips only this
+question: `references/destination-ahead.md`.
 
 ## The default branch is PR-only
 

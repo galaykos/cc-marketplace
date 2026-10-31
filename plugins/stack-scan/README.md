@@ -1,28 +1,24 @@
 # stack-scan
 
-Know what is actually installed, keep it healthy, and find what to add — one manifest
-pass, three commands. `/stack-scan:report` inventories the stack from
-composer/npm/yarn/pnpm/bun manifests and lockfiles, runtime pins, and docker/CI images
-into a required-vs-installed table with drift, missing-lock, and EOL flags.
-`/stack-scan:audit` runs the dependency hygiene pass — vulnerabilities, outdated
-packages, and licences against the project's distribution mode — from the same
-manifests, plus an image axis (`FROM` and compose/k8s `image:` tags through `trivy`
-when installed, an EOL tag check otherwise) so an infra-only repo is audited rather
-than turned away. `/stack-scan:suggest` reads them once more and suggests **every**
-cc-plugins-marketplace plugin in three tiers — stack-matched with the evidence file and
-key cited, the curated any-project core, and the universal remainder — then installs
-your picks; `--skills` turns the same detection outward and searches
-[skills.sh](https://www.skills.sh), Vercel Labs' open agent-skills directory, for
-third-party skills the marketplace does not cover.
+Know what is actually installed, keep it healthy, and find what to add. One manifest
+pass feeds three commands. `/stack-scan:report` inventories the stack from
+composer/npm/yarn/pnpm/bun manifests and lockfiles, runtime pins, and docker/CI images.
+It prints a required-vs-installed table with drift, missing-lock, and EOL flags.
+`/stack-scan:audit` runs the dependency hygiene pass from the same manifests:
+vulnerabilities, outdated packages, and licences against the project's distribution
+mode. It also checks images: `FROM` and compose/k8s `image:` tags go through `trivy`
+when installed, or an EOL tag check otherwise. So an infra-only repo is audited rather
+than turned away. `/stack-scan:suggest` reads the manifests once more. It suggests
+**every** cc-plugins-marketplace plugin in three tiers, then installs your picks. Tier 1
+is stack-matched, citing the evidence file and key. Tier 2 is the curated any-project
+core; tier 3 is the universal remainder. `--skills` turns the same detection outward.
+It searches [skills.sh](https://www.skills.sh), Vercel Labs' open agent-skills
+directory, for third-party skills the marketplace does not cover.
 
 Doctrine: constraint is a wish, lock is a fact — lock beats manifest, runtime beats
 lock, and every version claim cites its source. Suggestions cite evidence the same way:
 every stack-matched row names the manifest line that earned it, and nothing installs
 without your pick unless you passed `--yes`.
-
-The two scouts were separate plugins (`plugin-scout`, `vercel-skills-scout`) until
-2026-09-14; they merged into this one because all three commands read the same
-manifests, and the per-plugin boundary forced two byte-identical picker scripts.
 
 ## Install
 
@@ -138,7 +134,11 @@ detection that feeds it and for asking before any change.
 Anthropic's own `claude-plugins-official` directory — only the vendor-agnostic ones that
 carry a mechanism nothing here ships — each with the plugin here it overlaps and its
 install command printed rather than run. Table, exclusions and recount command:
-`skills/plugin-scout/references/official-complements.md`.
+`skills/plugin-scout/references/official-complements.md`. Three outside tools follow when
+the work calls for them — rtk (shell-output filter; its engine is BUSL-1.1, not open
+source), NVIDIA's SkillSpector (a skill scanner) and designlang (a live site's design
+tokens) — each with its licence as read on 2026-10-29, printed, never installed:
+`skills/plugin-scout/references/outside-tools.md`.
 
 ## Suggesting third-party skills: the trust model
 
@@ -156,18 +156,24 @@ Consequences, all deliberate:
   `--skill` takes the display name `npx -y skills add <owner>/<repo> -l` prints, and the
   skills.sh `skillId` exits 0 without installing, so every install is confirmed with
   `npx -y skills ls`.
+- **SkillSpector before install, when you have it** — with NVIDIA's `skillspector` on
+  PATH, `scripts/skill-vet.sh` scans each pick statically, and a `CAUTION` or
+  `DO_NOT_INSTALL` verdict, or a scan that could not run, asks again; without it, one line
+  offers it and the install goes on. Gate: `scripts/__tests__/skill-vet.test.sh`, with a
+  stub scanner.
 - Suggests and installs skills.sh skills only; auditing, updating and removal are `npx
   skills update` / `remove`. Never touches `.claude/settings.json`; skills.sh tracks its
   installs in `skills-lock.json`. The search API is unofficial; on failure the mode stops
   and points at browsing the site rather than scraping it.
 
-Standing, per this marketplace's has-teeth convention: all of the above is
-recorded/agent-graded — no script gates it. Gated by name only: catalog freshness
+Standing, per this marketplace's has-teeth convention: all of the above but the
+SkillSpector script is recorded/agent-graded — no script gates it. Gated by name only: catalog freshness
 (`generate.sh --check`, which renders `skills/plugin-scout/references/catalog.md`),
-plugin names in the suggestion tables (`pc_scout_names`). The three shipped scripts are
+plugin names in the suggestion tables (`pc_scout_names`). The shipped scripts are
 the exception — real harnesses, run on every PR: `scripts/__tests__/pick.test.sh` (the
-picker's parser), `scan.test.sh` (the report's mechanical pass) and
-`licence-scan.test.sh` (the licence lane, including its exit-3 unresolvable path).
+picker's parser), `scan.test.sh` (the report's mechanical pass),
+`licence-scan.test.sh` (the licence lane, including its exit-3 unresolvable path) and
+`skill-vet.test.sh` (the SkillSpector step: absent, verdict, not scanned, symlinks, layouts).
 
 ## Mods (Claude Code ≥ 2.1.291)
 
@@ -242,3 +248,9 @@ Residuals, stated:
   The suites that sat between the two were retired 2026-09-26; where two plugins must
   travel together (`craft-layer` with `ui-ux` and `ui-libraries`), the scout prints the
   companion's install line under its report
+
+## History
+
+The two scouts were separate plugins (`plugin-scout`, `vercel-skills-scout`) until
+2026-09-14; they merged into this one because all three commands read the same
+manifests, and the per-plugin boundary forced two byte-identical picker scripts.

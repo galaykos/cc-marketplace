@@ -119,6 +119,39 @@ describe('badge', () => {
     expect(world.tail).toBe(undefined)
   })
 
+  test('shows a reader name with the length level it maps to', async ($, on) => {
+    const world = seat(on)
+
+    world.disk.set(LEVEL_FILE, 'newcomer\n')
+    await start($)
+    const ui = await mount($, 'session 12m')
+    expect(world.tail, 'newcomer').toBe('session 12m · [TERSE:NEWCOMER/LITE]')
+
+    world.disk.set(LEVEL_FILE, 'on-call\n')
+    await $.turn.start({ text: '/candor:level on-call', turnId: 't1' })
+    await ui.drawn()
+    expect(world.tail, 'on-call').toBe('session 12m · [TERSE:ON-CALL/ULTRA]')
+  })
+
+  test('takes a reader name from cc_terse', { options: { cc_terse: 'expert' } }, async ($, on) => {
+    const world = seat(on)
+
+    await start($)
+    await mount($)
+
+    expect(world.tail).toBe('[TERSE:EXPERT/FULL]')
+  })
+
+  test('shows nothing for an unknown name, an Object.prototype key included', async ($, on) => {
+    const world = seat(on)
+
+    world.disk.set(LEVEL_FILE, 'toString\n')
+    await start($)
+    await mount($)
+
+    expect(world.tail).toBe(undefined)
+  })
+
   test('shows nothing for a symlinked level file, even under CC_TERSE', async ($, on) => {
     const world = seat(on, { env: { CC_TERSE: 'ultra' } })
 

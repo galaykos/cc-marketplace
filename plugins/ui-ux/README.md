@@ -1,19 +1,18 @@
 # ui-ux
 
-UI/UX foundations: per-stack skills for **shadcn/ui** and **Tailwind**, design tokens,
-a theming system, motion best practices, a theme builder (shadcn/ReUI/Aceternity,
-Tailwind, Astryx, or Bootstrap) with a live colour-preview URL, `/ui-ux:build`, the
-WCAG 2.2 AA audit, and the ui-ux-reviewer / ui-ux-engineer / a11y-engineer agents.
-Generic CSS3/Grid/Flexbox/Bootstrap skills were removed after baseline tests showed the
-model covers them unaided — see rationale/stack-skill-baselines.md.
+UI/UX foundations. Per-stack skills cover **shadcn/ui** and **Tailwind**. Others cover
+design tokens, a theming system and motion best practices. A theme builder works with
+shadcn/ReUI/Aceternity, Tailwind, Astryx, or Bootstrap, and gives a live colour-preview
+URL. The plugin also ships `/ui-ux:build`, the WCAG 2.2 AA audit, and the
+ui-ux-reviewer / ui-ux-engineer / a11y-engineer agents.
 
 > **Install `ui-libraries` with this plugin — nothing does it for you.** The
 > component-library skills — Material UI, PrimeReact, Astryx, ReUI, Aceternity, and the
-> library-agnostic `component-libraries` floor with its per-library map — moved to
-> `ui-libraries` on 2026-09-26, when ui-ux reached the marketplace's per-plugin prose cap.
+> library-agnostic `component-libraries` skill for any other library, with its per-library
+> map — live in
+> `ui-libraries`.
 > No plugin here may declare `dependencies` (an update that adds one leaves it uninstalled
-> and the plugin fails to load), and the suites that used to bring both were retired the
-> same day. So run:
+> and the plugin fails to load). So run:
 >
 > ```bash
 > /plugin install ui-libraries@cc-plugins-marketplace
@@ -92,6 +91,23 @@ that looks great as a swatch can fail hard as a button.
     returns `permissionDecision: "ask"`, which stops the tool call until you answer:
     every time for a strongly visual artifact, once per session for a weak signal.
     It never decides for you, but calling it advisory was wrong — an ask blocks.
+  - `ui-check` (Stop) — **sends the turn back once.** When a UI file in the project
+    (`.tsx` `.jsx` `.vue` `.blade.php` `.svelte` `.astro` `.html` `.erb` `.twig` `.css`
+    `.scss`) was edited in this turn and after the last browser call, the model is asked
+    to render the changed page at 375, 768 and 1280 px wide and read the console, or to
+    say in one line why it cannot; you see one line naming the files. A browser call is a
+    browser tool, or a Bash run of Playwright, Cypress, Dusk, an e2e or headless-browser
+    script, Lighthouse, pa11y, axe and kin. A finished subagent's edits count too, named
+    as a subagent's, including in an isolated worktree. It only prints, never blocks,
+    when it is unsure a browser tool is set up, or when a request earlier in the session
+    was not taken up (until your second prompt after it or a dev-server start); while a
+    background subagent is still doing UI work it says nothing. It never blocks the same
+    edits twice, nor the stop right after its own block. Tests, mocks, stories, scratch
+    and build output (`.claude/`, `dist/`, `node_modules/`, `.next/` and kin, at any
+    depth) and failed edits never count. `CC_UI_CHECK=off` turns it off, `=warn` prints
+    without sending the turn back. It does not check a subagent's own turn end
+    (SubagentStop) or see interpreter and `cp`/`mv` writes. Whether the model really
+    looked is agent-graded; the hook only decides when to ask.
   - `palette-default` (PostToolUse on a written UI file) — **advisory.** It names the
     indigo/violet/purple category default when it arrives through Tailwind class
     strings or a literal default swatch, once per session, and never blocks. A violet
@@ -175,3 +191,12 @@ do not state the number.
   manifests show the stack. <!-- removed-ok --> (design-studio, retired 2026-09-14,
   used to declare them.)
 - **web-dev** — component-logic review (React and Vue 3) alongside the visual layer
+
+## History
+
+Generic CSS3/Grid/Flexbox/Bootstrap skills were removed after baseline tests showed the
+model covers them unaided — see rationale/stack-skill-baselines.md.
+
+The component-library skills moved to `ui-libraries` on 2026-09-26, when ui-ux reached
+the marketplace's per-plugin prose cap. The suites that used to bring both were retired
+the same day.

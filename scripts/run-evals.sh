@@ -1,86 +1,7 @@
 #!/usr/bin/env bash
-# Maintainer command: run ONE plugin's eval suite against a no-plugin control arm under a
-# hard cost cap, and write a summary that is safe to commit under rationale/evals/.
-#
-#   RUN_EVALS=1 bash scripts/run-evals.sh <plugin> [extra `claude plugin eval` args…]
-#
-# WHY THIS EXISTS. Nothing in the repo ran `claude plugin eval` for real: scripts/eval-cases.sh
-# only LOADS suites. A hand run leaves its result under the gitignored plugins/<p>/evals/results/,
-# in a document full of prompts and absolute paths, so no run left a committable record, and
-# CLAUDE.md forbids stating a delta without its run count and vote spread. This fixes the
-# flags (control arm, cap, local report, output kept out of the plugin) and writes those
-# counts to a file that can be committed.
-#
-# WHAT IT DOES. Refuses (exit 3, before any `claude` call) unless RUN_EVALS=1. Refuses (exit
-# 64, also before any call) a missing plugin, one with no plugins/<p>/evals/, a non-numeric
-# cap, python3 without yaml, a suite with any case.yaml declaring `context.scaffold_script`
-# or not readable as a YAML mapping, and any extra argument off an ALLOW-list: `--runs`,
-# `--case`, `--model`, `--judge-model`, `--threshold` (one value each) and `--tag`,
-# `--allow-tools` (one or more values), each as `--flag v…` or `--flag=v`; a bare token is
-# accepted only as the value of the allowed flag before it. An allow-list because the CLI
-# keeps the last value of a repeated flag: a new or aliased flag would otherwise override a
-# fixed one (`--max-cost-usd`, `--json`…) or run code outside the sandbox (`--scaffold`,
-# `--allow-real-servers`, `--mocks off`) while the summary recorded the fixed value. Runs
-#   claude plugin eval ./plugins/<p> --ablation with-without --max-cost-usd <cap>
-#     --no-publish --trust-plugin --output-dir <tmp> --report <tmp>/report.html
-#     --json <tmp>/aggregate.json <extra…>
-# with cap = RUN_EVALS_MAX_COST_USD (default 5). Then writes
-# rationale/evals/<YYYY-MM-DD>-<HHMMSS>-<p>.json (UTC; dir overridable by RUN_EVALS_OUT_DIR)
-# and exits with the CLI's exit code — 0 pass, 1 below threshold or load error, 2 partial
-# (cost ceiling or auth), 130 interrupted. A serialized summary matching a home path or a
-# UUID (session-id shape) is refused: exit 65, nothing written. No result document from the
-# CLI means no summary. When the summariser fails after the CLI wrote a document, the temp
-# dir is kept, its document path is printed, and the script exits with the summariser's code.
-#
-# FIELDS IT RELIES ON, as observed rather than documented: a `--max-cost-usd 0` load of
-# candor on CLI 2.1.285 (2026-09-30) wrote `cases: []` with no per-case run count anywhere,
-# `partial: true`, `partialReason: "cost_ceiling"`; completed documents from CLI 2.1.283
-# carry `cases[].runsPerCase` and a numeric `cases[].arms.{with,without}[].score`, neither
-# in the docs' field table. Read: `claudeVersion`, `costUsd`, `partial`, `partialReason`,
-# `cases[].name`, `cases[].runsPerCase`, `cases[].arms.*[].score`, `cases[].arms.*[].error`,
-# `cases[].aggregates.delta`. A run whose `error` is non-empty (the docs' field table: "why a
-# run ended abnormally, such as `timed out after 300s`") is counted in `errors` and
-# `completed` and left out of `scores` and `spread`; its numeric score, when it has one, is
-# kept apart in `erroredScores`. The spread's denominator is every run with no error, scored
-# or not; its numerator is the runs scoring 1 or more, whatever `--threshold` or `passed`
-# say, so an unscored run counts against the arm and shows as `scores` shorter than the
-# denominator. No document holding an errored run has been read: that shape is the docs', assumed.
-# Case files (plugins/<p>/evals/**/case.yaml: `name`, else the directory; `runs`; `tags`) are
-# read with PyYAML before the paid call. The summary's cases are the document's `cases[]`;
-# only a partial document, or one listing no cases, gains the case files it omits, 0
-# completed, and only those the `--case`/`--tag` filters select. The filters are applied as
-# CLI 2.1.285 applies them, measured by zero-cost loads 2026-09-30: `--case` (last one wins)
-# against the whole `name`, case-sensitive, `*` any run and `?` one character, every other
-# character literal (NOT fnmatch: `[n]amed-one` selects nothing); `--tag` accumulates across
-# repeats and selects a case carrying ANY of them; both together are ANDed. Planned runs per
-# arm: `--runs`, else the document's `runsPerCase`, else the case file's `runs`, else 3.
-# Nothing else is copied: no prompt, grader text, `error` string, path or trace id.
-#
-# WHAT IT DOES NOT:
-#   - show a skill helped. A case whose `without` spread is n/n has no headroom: it is a
-#     regression guard and can never measure the skill (CLAUDE.md's ceiling rule).
-#   - separate a regression from a flake at fewer than three runs per arm. The summary
-#     carries the counts and per-arm spread so a delta quoted from it can carry them too.
-#   - tell an infrastructure error from one the plugin caused. The docs grade an errored run
-#     on what it produced and record a `max_turns` overrun as an error, so a run dropped from
-#     the spread may have earned its score: `erroredScores` holds it, and a reader who wants
-#     the spread over every graded run recomputes it from `scores` plus `erroredScores`.
-#     `delta` is the CLI's own figure, copied as written, so it can cover runs the spread
-#     beside it leaves out.
-#   - meter spend. `costUsd` is the CLI's list-price estimate, not plan usage, and the cap
-#     is checked before each run launches, so runs already in flight can pass it.
-#   - keep the HTML report or the full document after a summary is written; both leave with
-#     the temp dir, because they hold prompts, grader evidence and paths.
-#   - track a later CLI's filter rules; the ones above are one version's. A case.yaml the
-#     runner rejects on load is still planned in a partial record, and a prompt.md-shaped
-#     case (no case.yaml) is counted only if the document lists it.
-#   - run a suite that needs `--scaffold`. Without it a scaffolded case is paid for while
-#     scoring the repo root, so the suite is refused, whatever the filters select; the
-#     plugin README carries the manual command. A prompt.md case's frontmatter is not read.
-#   - catch a leak the regex does not match; the field whitelist is the real defence.
-#
-# Standing: `recorded` — nothing runs it in CI. scripts/smoke/run-evals-tests.sh proves the
-# plumbing (refusal, flags, summary shape, a zero-cost real load), never a score.
+# RUN_EVALS=1 bash scripts/run-evals.sh <plugin> [extra `claude plugin eval` args…] — one plugin's eval suite against a no-plugin control arm under a cost cap (RUN_EVALS_MAX_COST_USD, default 5); writes a committable summary to rationale/evals/ and exits with the CLI's code.
+# Refuses before any call: no RUN_EVALS=1 (exit 3); a bad plugin or cap, an arg off the allow-list, no PyYAML, a scaffolded or unreadable case.yaml (64). Writes no summary matching a home path or UUID (65). Misses: whether a skill helped, a flake, real spend.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/run-evals.sh
 set -u
 cd "$(dirname "$0")/.." || exit 1
 
@@ -99,6 +20,7 @@ refuse_arg() {
   echo "run-evals.sh: $1 — refused; extra arguments are limited to --runs, --case, --tag, --allow-tools, --model, --judge-model and --threshold with their values" >&2
   exit 64
 }
+# An allow-list on purpose: the CLI keeps the LAST value of a repeated flag, so a new or aliased flag could override --max-cost-usd/--json or leave the sandbox — do not widen it lightly.
 need=; more=; prev=
 for a in "$@"; do
   if [ -n "$need" ]; then

@@ -1,14 +1,14 @@
 # api-design
 
 APIs in both directions. **Designing your own:** REST resource naming, status-code
-discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457
-error format, idempotency, Laravel API Resources, plus the `graphql-grpc` skill —
-GraphQL (N+1/DataLoader, per-field resolver authz, depth/complexity limits, cursor
-pagination) and gRPC (proto field-number safety, streaming, deadlines, status codes) —
-applied when the surface is non-REST. **Consuming others':** verify current official
-API/SDK docs before writing integration code (the `api-docs-first` skill and a
-UserPromptSubmit reminder), and keep your own docs true after a change with the
-`docs-upkeep` drift scan.
+discipline, and pagination/filtering/sorting conventions. Also versioning strategy, the
+RFC 9457 error format, idempotency and Laravel API Resources. When the surface is
+non-REST, the `graphql-grpc` skill applies. For GraphQL it covers N+1/DataLoader,
+per-field resolver authz, depth/complexity limits and cursor pagination. For gRPC it
+covers proto field-number safety, streaming, deadlines and status codes. **Consuming
+others':** verify current official API/SDK docs before writing integration code. The
+`api-docs-first` skill and a UserPromptSubmit reminder do that. After a change, the
+`docs-upkeep` drift scan keeps your own docs true.
 
 ## Install
 

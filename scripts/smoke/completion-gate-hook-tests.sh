@@ -7,11 +7,11 @@
 # The hook is a cheap RECORDS check (no test execution): given a throwaway git repo
 # as .cwd, it enforces that a run which registered itself (active-run.json) has a
 # gate-pass.json recorded for the current HEAD before it stops clean. These cases
-# drive the hook with canned Stop-hook stdin JSON and assert rc + stderr.
+# drive the hook with canned Stop-hook stdin JSON and assert the verdict + its text.
 #
-# DEFAULT IS BLOCK (exit 2) — a Stop hook reaches the model only through exit 2, so the
-# cases below assert the default blocks and that TASK_RUNNER_STOP_GATE=warn downgrades
-# each blocking path to print-only. Both modes are covered on every branch that can block.
+# DEFAULT IS BLOCK — {"decision":"block",…} on stdout with exit 0, which run_gate reads
+# as rc=2 — and TASK_RUNNER_STOP_GATE=warn downgrades each blocking path to print-only.
+# Both modes are covered on every branch that can block.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -38,12 +38,27 @@ NUDGE="$REPO/.claude/task-runner/gate-nudge"
 # The hook blocks at most ONCE per HEAD, so each case starts from a cleared nudge marker
 # and is judged on its own. check_keep() preserves the marker — that is how the
 # one-block-per-HEAD bound itself is tested.
+# run_gate <env> <json> sets rc, err and out (stdout). A Stop block is exit 0 with {"decision":"block",reason,systemMessage} on stdout:
+#   rc=2, and err is stderr plus the reason. A pass may carry {"systemMessage":…} alone (rc stays 0). A bare exit 2 is the old
+#   channel (rc=exit2); any other stdout is rc=stdout.
+run_gate() {
+  set +e
+  out=$(printf '%s' "$2" | env $1 bash "$HOOK" 2>"$WS/stderr"); rc=$?
+  set -e
+  err=$(cat "$WS/stderr")
+  if [ "$rc" = 0 ] && [ -n "$out" ]; then
+    if printf '%s' "$out" | jq -e '.decision=="block" and (.reason|type=="string" and length>0) and (.systemMessage|type=="string" and length>0)' >/dev/null 2>&1; then
+      rc=2; err="$err${err:+
+}$(printf '%s' "$out" | jq -r .reason)"
+    elif ! printf '%s' "$out" | jq -e '(has("decision")|not) and (.systemMessage|type=="string" and length>0)' >/dev/null 2>&1; then
+      rc=stdout
+    fi
+  elif [ "$rc" = 2 ]; then rc=exit2; fi
+}
 check() { rm -f "$NUDGE"; check_keep "$@"; }
 check_keep() {
-  local desc="$1" envv="$2" json="$3" exp_rc="$4" exp_sub="$5" err rc ok=1
-  set +e
-  err=$(printf '%s' "$json" | env $envv bash "$HOOK" 2>&1 1>/dev/null); rc=$?
-  set -e
+  local desc="$1" envv="$2" json="$3" exp_rc="$4" exp_sub="$5" ok=1
+  run_gate "$envv" "$json"
   [ "$rc" = "$exp_rc" ] || ok=0
   if [ "$exp_sub" = "__NONE__" ]; then
     [ -z "$err" ] || ok=0
@@ -64,17 +79,17 @@ check "no active-run sentinel -> silent no-op" "" "$J" 0 __NONE__
 # 2) registered, no gate-pass, DEFAULT -> BLOCK (exit 2). This is the stalled-run case:
 #    a run that registered itself and then yielded in prose with no card started.
 printf '{"slug":"demo-run","base":"HEAD"}' > "$SENT"; rm -f "$GP"
-check "registered + no gate-pass (default) -> exit 2" "" "$J" 2 "completion-gate"
+check "registered + no gate-pass (default) -> exit 2" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # 2b) the blocked stop must carry the mid-run branch, not only the completion branch —
 #     naming just "run behavioral-gate.sh" is useless to a run that is on card 1 of 17.
 check "block message names the mid-run continue path" "" "$J" 2 "AskUserQuestion"
 
 # 2c) opt-out: warn mode downgrades the same case to print-only
-check "registered + no gate-pass (warn) -> print-only exit 0" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "completion-gate"
+check "registered + no gate-pass (warn) -> print-only exit 0" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "no recorded pass of behavioral-gate.sh"
 
 # 3) registered, no gate-pass, explicit block mode -> BLOCK (exit 2)
-check "registered + no gate-pass (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "completion-gate"
+check "registered + no gate-pass (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # 4) registered + gate-pass matching HEAD -> allow, silent (even under block)
 printf '{"head":"%s"}' "$HEAD" > "$GP"
@@ -82,7 +97,7 @@ check "gate-pass matches HEAD (block) -> allow, silent" "TASK_RUNNER_STOP_GATE=b
 
 # 5) registered + STALE gate-pass (wrong head), block -> BLOCK
 printf '{"head":"deadbeefdeadbeef"}' > "$GP"
-check "stale gate-pass head (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "completion-gate"
+check "stale gate-pass head (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # 6) stop_hook_active NO LONGER short-circuits this gate.
 # The flag is SHARED across every Stop hook — Claude Code sets it on the continuation
@@ -97,12 +112,12 @@ rm -f "$GP" "$NUDGE" 2>/dev/null
 # silence". A harness that registers the run and stops in the same second exercises
 # that tie, not the bound — which made this assertion flaky rather than wrong.
 touch -t 202601010000 "$SENT"
-check_keep "stop_hook_active does not spend this gate (still blocks)" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 2 "registered run"
+check_keep "stop_hook_active does not spend this gate (still blocks)" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 2 "no recorded pass of behavioral-gate.sh"
 
 # 6b) The bound is the marker: a second stop at the SAME HEAD does not BLOCK. It still
 # prints — one block per HEAD, then print-only, per this hook's own design (":62-66").
 # Asserting silence here would be asserting the wrong contract.
-check_keep "per-HEAD nudge bounds the loop on a repeat stop" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 0 "registered run"
+check_keep "per-HEAD nudge bounds the loop on a repeat stop" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 0 "no recorded pass of behavioral-gate.sh"
 
 # 7) malformed sentinel -> fail-open exit 0 with a warning
 printf '{not valid json' > "$SENT"
@@ -163,20 +178,20 @@ printf '{"slug":"demo-run","base":"HEAD"}' > "$SENT"    # restore plain sentinel
 rm -f "$GP"
 git -C "$REPO" checkout -q -b other-branch
 printf '{"slug":"demo-run","base":"HEAD","branch":"%s"}' "$(git -C "$REPO" rev-parse --abbrev-ref HEAD)" > "$SENT"
-check "sentinel branch == current branch -> enforced" "" "$J" 2 "completion-gate"
+check "sentinel branch == current branch -> enforced" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 printf '{"slug":"demo-run","base":"HEAD","branch":"a-dead-run-branch"}' > "$SENT"
-check "sentinel from another branch -> not enforced" "" "$J" 0 "not enforced here"
+check "sentinel from another branch -> not enforced" "" "$J" 0 "not checked here"
 
 printf '{"slug":"demo-run","base":"HEAD"}' > "$SENT"   # pre-0.17 sentinel, no branch field
-check "sentinel without branch field -> enforced (back-compat)" "" "$J" 2 "completion-gate"
+check "sentinel without branch field -> enforced (back-compat)" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # 21-25) ONE BLOCK PER HEAD — the bound that keeps a stale sentinel from nagging every
 # stop. Independent of stop_hook_active: the hook records the HEAD it blocked on.
 # mtimes are set explicitly: the marker counts only while it is newer than the sentinel
 # it was written under, and a same-tick write would otherwise make these cases racy.
 touch -t 200001010000 "$SENT"          # registration precedes the block it provoked
-check_keep "second stop at the same HEAD -> print-only exit 0" "" "$J" 0 "completion-gate"
+check_keep "second stop at the same HEAD -> print-only exit 0" "" "$J" 0 "no recorded pass of behavioral-gate.sh"
 if [ "$(cat "$NUDGE" 2>/dev/null)" = "$HEAD" ]; then
   echo "PASS: nudge marker records the blocked HEAD"; pass=$((pass+1))
 else
@@ -186,23 +201,23 @@ fi
 # a marker left by an EARLIER run must not eat this run's first block: same HEAD, no
 # commit in between, but a fresh registration — the case a per-repo marker gets wrong.
 touch "$SENT"                          # re-register at the same HEAD, after the marker
-check_keep "marker predating this registration -> block still fires" "" "$J" 2 "completion-gate"
+check_keep "marker predating this registration -> block still fires" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 touch -t 200001010000 "$SENT"          # back to within-run ordering for the cases below
 
 # a new commit re-arms the gate — enforcement rides on progress, so a real run is held
 # at every card boundary, not nudged once for the whole run
 echo more >> "$REPO/f.txt"; git -C "$REPO" add -A; git -C "$REPO" commit -qm second
 HEAD="$(git -C "$REPO" rev-parse HEAD)"
-check "new commit re-arms the gate -> exit 2 again" "" "$J" 2 "completion-gate"
+check "new commit re-arms the gate -> exit 2 again" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # warn mode never writes a marker, so it cannot disarm a later block
-check "warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "completion-gate"
+check "warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "no recorded pass of behavioral-gate.sh"
 if [ -e "$NUDGE" ]; then
   echo "FAIL: warn mode wrote a nudge marker"; fail=$((fail+1))
 else
   echo "PASS: warn mode leaves no marker"; pass=$((pass+1))
 fi
-check "block still fires after a warn-mode stop" "" "$J" 2 "completion-gate"
+check "block still fires after a warn-mode stop" "" "$J" 2 "no recorded pass of behavioral-gate.sh"
 
 # ---- per-card negative-control coverage (opt-in by nc/ dir presence) ----
 NC="$ROOT/plugins/task-runner/scripts/negative-control.sh"
@@ -217,8 +232,8 @@ check "complete counts, no nc dir -> legacy allow" "" "$J" 0 __NONE__
 # nc/ dir with fewer records than cards_done -> block (a done card had no control)
 mkdir -p "$NCDIR"
 printf '{"card":"01"}' > "$NCDIR/nc-pass-01.json"
-check "nc records 1 < done 3 -> block" "" "$J" 2 "negative-control records"
-check "nc records short + warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "negative-control records"
+check "nc records 1 < done 3 -> block" "" "$J" 2 "fails without the change"
+check "nc records short + warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "fails without the change"
 
 # records covering done count (mix of mechanical pass + documented skip) -> allow
 out=$("$NC" --skip "visual-only card" --record-dir "$NCDIR" --card 02 2>&1)
@@ -261,8 +276,8 @@ check "no rv dir at all -> legacy allow" "" "$J" 0 __NONE__
 
 mkdir -p "$RVDIR"
 printf '{"card":"01"}' > "$RVDIR/rv-seen-01.json"
-check "rv records 1 < done 3 -> block" "" "$J" 2 "per-card reviewer records"
-check "rv records short + warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "per-card reviewer records"
+check "rv records 1 < done 3 -> block" "" "$J" 2 "have a review recorded"
+check "rv records short + warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "have a review recorded"
 
 # the observer writes a record from a dispatch carrying the marker
 printf '{"cwd":"%s","tool_name":"Agent","tool_input":{"prompt":"RV-CARD: 02\\nreview the diff"}}' "$REPO" \
@@ -401,6 +416,44 @@ if bash "$RS2" --kind dispatch --id m2 --record-dir "$REDDIR" >/dev/null 2>&1; t
 else
   echo "PASS: reduction-record refuses a reason-less reduction"; pass=$((pass+1))
 fi
+
+# ---- every missing record in ONE block: k=4 kinds at one HEAD (nc, rv, whole-diff review, behavioral-gate verdict) ----
+K="$WS/k"; mkdir -p "$K"
+git -C "$K" init -q; git -C "$K" config user.email t@t.t; git -C "$K" config user.name t
+echo a > "$K/a.txt"; git -C "$K" add -A; git -C "$K" commit -qm start; KSTART="$(git -C "$K" rev-parse HEAD)"
+echo b >> "$K/a.txt"; git -C "$K" commit -qam card; KHEAD="$(git -C "$K" rev-parse HEAD)"
+KTR="$K/.claude/task-runner"; mkdir -p "$KTR/nc" "$KTR/rv" "$KTR/bg"
+printf '{"slug":"k-run","start_sha":"%s"}' "$KSTART" > "$KTR/active-run.json"; touch -t 200001010000 "$KTR/active-run.json"
+printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$KHEAD" > "$KTR/gate-pass.json"
+KJ='{"cwd":"'"$K"'","stop_hook_active":false}'
+check_keep "k=4 missing kinds -> one block with the count in its lead line" "" "$KJ" 2 \
+  "Not finished: 4 things must be done before the task-runner run k-run can close:"
+items=$(printf '%s\n' "$err" | grep -c '^  - ' || true)
+if [ "$items" = 4 ] && printf '%s' "$err" | grep -q 'fails without the change' && printf '%s' "$err" | grep -q 'have a review recorded' \
+   && printf '%s' "$err" | grep -q 'no whole-diff review recorded for HEAD' && printf '%s' "$err" | grep -q 'left no verdict record'; then
+  echo "PASS: the one block lists all 4 missing kinds, one line each"; pass=$((pass+1))
+else
+  echo "FAIL: the one block lists all 4 missing kinds ($items item lines; err=<$err>)"; fail=$((fail+1))
+fi
+if [ "$(printf '%s' "$out" | jq -r .systemMessage)" = "candor sent the turn back: 4 things to do before the task-runner run k-run can close." ]; then
+  echo "PASS: the block's systemMessage tells the person the count in one plain line"; pass=$((pass+1))
+else
+  echo "FAIL: the block's systemMessage (out=<$out>)"; fail=$((fail+1))
+fi
+printf '{}' > "$KTR/nc/nc-pass-01.json"; printf '{}' > "$KTR/nc/nc-pass-02.json"
+run_gate "" "$KJ"
+if [ "$rc" = 0 ] && printf '%s' "$out" | jq -e 'has("decision")|not' >/dev/null 2>&1 \
+   && [ "$(printf '%s' "$out" | jq -r .systemMessage)" = "candor let the turn end, but the task-runner run k-run still owes 3 things: card reviews, the whole-diff review, a behavioral-gate verdict." ]; then
+  echo "PASS: a later stop at the blocked HEAD that still owes items passes, and tells the person what is owed (no decision key)"; pass=$((pass+1))
+else
+  echo "FAIL: a later stop at the blocked HEAD that still owes items (rc=$rc out=<$out>)"; fail=$((fail+1))
+fi
+printf '{}' > "$KTR/rv/rv-seen-01.json"; printf '{}' > "$KTR/rv/rv-seen-02.json"
+printf '{}' > "$KTR/rv/range-${KHEAD:0:12}.json"
+printf '{"head":"%s","verdict":"covered"}' "$KHEAD" > "$KTR/bg/bg-$KHEAD.json"
+check_keep "all 4 supplied after the one block -> the next stop passes, silent" "" "$KJ" 0 __NONE__
+[ -z "$out" ] && { echo "PASS: a stop that owes nothing prints nothing on stdout"; pass=$((pass+1)); } \
+  || { echo "FAIL: a stop that owes nothing printed <$out>"; fail=$((fail+1)); }
 
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

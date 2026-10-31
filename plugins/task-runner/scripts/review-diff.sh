@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
 # review-diff.sh — write the diff a reviewer reads, so no reviewer has to run git.
-#
+# Misses: a rename reads as a delete and an add; a binary file is named, not shown; a path git quotes (spaces, non-ASCII) gets no blame; lines a hunk only adds have no history.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/review-diff.sh (marketplace repository)
+
 # Usage:
 #   review-diff.sh --card <id> --base <ref> [<path>...]
-#
-# WHY. The reviewer agents hold Read, Grep and Glob: no shell. Dispatches said "review the
-# diff" and never delivered one, so reviewers re-read whole files (1.4M to 16M cache-read
-# tokens a review), compared against memory or another checkout, and skipped the history
-# pass their rubric asks for; a hand-made patch file then drew patch-line citations.
-# The orchestrator runs this before each RV-CARD dispatch and names the printed path in it.
-# (The run-close range review is /code-review:review, which writes its own.)
 #
 # Writes .claude/task-runner/rv/diff-<id>.patch: `git diff <base> -- <paths>` (the working
 # tree against the card's base, so uncommitted work is in it; paths are root-relative, as a
@@ -21,8 +16,6 @@
 #
 # Exit: 0 written, 3 usage, 4 no diff for the paths given (nothing written), 5 not a git
 # work tree or not writable.
-# Misses: a rename reads as a delete and an add; a binary file is named, not shown; a path
-# git quotes (spaces, non-ASCII) gets no blame; lines a hunk only adds have no history.
 set -euo pipefail
 
 PROG=review-diff

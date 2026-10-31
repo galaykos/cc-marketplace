@@ -2,6 +2,18 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.7 — 2026-10-28
+
+- **Comments cut to what a reader needs; behaviour unchanged.** `scripts/plan-audit.sh`, `scripts/workflow-audit.sh`; `hooks/workflow-guard.sh` (shared-block comments): each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
+
+## 0.9.6 — 2026-10-28
+
+- **Hook comments cut to what a reader needs; behaviour unchanged.** `hooks/workflow-guard.sh`: each keeps a header saying what it catches and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/plugin-devops.md, which an install does not contain. Every hook parses to the same code as before (comments ignored).
+
+## 0.9.5 — 2026-10-26
+
+- **The workflow guard's deny is shorter; what it denies is unchanged.** It says what was blocked and the fix in two sentences, then the file, the audit command and `CC_WORKFLOW_GUARD=off`. Gate: `workflow-audit.test.sh` pins both texts.
+
 ## 0.9.4 — 2026-10-15
 
 - **Runnable `${CLAUDE_PLUGIN_ROOT}` paths are quoted.** `/devops:review` and the devops-practices skill's `plan-audit.sh` and `workflow-audit.sh` lines passed `${CLAUDE_PLUGIN_ROOT}/…` to `bash`, `node` or `python3` unquoted, so an install path holding a space (a `HOME` or `CLAUDE_CONFIG_DIR` with one) split it and the script never ran. Each is now `"${CLAUDE_PLUGIN_ROOT}/…"`. Standing: gate — the marketplace's `validate.sh` fails an unquoted path on a runnable line of a command or skill.

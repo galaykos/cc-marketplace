@@ -74,6 +74,65 @@ printf 'lite\n' > "$CLAUDE_CONFIG_DIR/terse-mode"
 check "level file beats the option"             "$(run_opt 'add an endpoint' "$G" full)" "TERSE lite"
 check "level off names the option still holding it" "$(run_opt '/candor:level off' "$G" full)" "cc_terse keeps it active at full"
 check "level off names CC_TERSE before the option" "$(run_opt '/candor:level off' "$G" full ultra)" "CC_TERSE=ultra"
+for nl in newcomer:lite expert:full on-call:ultra; do
+  n=${nl%%:*} l=${nl#*:}
+  check "level off names reader $n held by CC_TERSE, with its length" "$(run_opt '/candor:level off' "$G" '' "$n")" \
+    "CC_TERSE=$n is set in the environment and overrides it — still active at $n ($l)."
+  check "level off names reader $n held by the option, with its length" "$(run_opt '/candor:level off' "$G" "$n")" \
+    "cc_terse keeps it active at $n ($l)."
+done
+
+ctx() { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
+session() { printf '{"hook_event_name":"SessionStart","source":"startup"}' \
+  | env -u CC_TERSE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$ROOT/plugins/candor/hooks/activate.sh" 2>/dev/null; }
+eq() { # $1 label, $2 got, $3 want
+  [ "$2" = "$3" ] && { echo "PASS: $1"; return; }
+  echo "FAIL: $1 — want '$3', got '${2:-<empty>}'"; rc=1
+}
+lvlfile() { cat "$CLAUDE_CONFIG_DIR/terse-mode" 2>/dev/null || echo '<absent>'; }
+
+R=$(box)
+while IFS='|' read -r name len budgets jargon cap; do
+  rm -f "$CLAUDE_CONFIG_DIR/terse-mode"
+  conf=$(run "/candor:level $name" "$R" | ctx)
+  line=$(printf '%s\n' "$conf" | grep '^Reader ')
+  eq    "$name: the level file stores the reader name"     "$(lvlfile)" "$name"
+  check "$name: the switch names its length level"         "$conf" "TERSE MODE — level: $name ($len). Applies"
+  check "$name: the switch carries the contract card"      "$conf" "## Contract"
+  check "$name: the reader line carries the word rule"     "$line" "Reader $name: $jargon"
+  check "$name: …and the cap, none on deliverable findings" "$line" "Lists and findings $cap (no cap when findings are the deliverable)."
+  turn=$(run 'add an endpoint' "$R" | ctx)
+  check "$name: each prompt names its length level"        "$turn" "TERSE $name ($len) — chat message only"
+  check "$name: …with that level's budgets"                "$turn" "$budgets prose lines"
+  eq    "$name: …and the same reader line, last"           "$(printf '%s\n' "$turn" | tail -1)" "$line"
+  check "$name: SessionStart names its length level"       "$(session | head -1)" "level: $name ($len). Applies"
+  eq    "$name: SessionStart injects the same reader line" "$(session | grep '^Reader ')" "$line"
+done <<'EOF'
+newcomer|lite|answer 10, report 18|explain in plain words, at first use, any plugin or project term a newcomer would not know|≤ 5
+expert|full|answer 6, report 12|jargon allowed|≤ 8
+on-call|ultra|answer 3, report 6|plain words only: no abbreviations, arrows or internal terms; this replaces ultra's word layer|≤ 3
+EOF
+
+rm -f "$CLAUDE_CONFIG_DIR/terse-mode"
+conf=$(run '/candor:level full' "$R" | ctx)
+check "control full: the switch names no length level"   "$conf" "TERSE MODE — level: full. Applies"
+check "control full: …and adds no reader line"           "$(printf '%s\n' "$conf" | grep '^Reader ' || true)" ""
+turn=$(run 'add an endpoint' "$R" | ctx)
+check "control full: the prompt line is unchanged"       "$turn" "TERSE full — chat message only"
+eq    "control full: …one line, no reader line"          "$(printf '%s\n' "$turn" | wc -l | tr -d ' ')" 1
+check "control full: SessionStart adds no reader line"   "$(session | grep '^Reader ' || true)" ""
+
+rm -f "$CLAUDE_CONFIG_DIR/terse-mode"
+check "an unknown name switches nothing"                 "$(run '/candor:level newbie' "$R")" ""
+eq    "  …and writes no level file"                      "$(lvlfile)" "<absent>"
+printf 'newbie\n' > "$CLAUDE_CONFIG_DIR/terse-mode"
+check "an unknown name in the level file is off"         "$(run 'add an endpoint' "$R")" ""
+check "  …and SessionStart says nothing"                 "$(session)" ""
+
+run '/candor:level on-call' "$R" >/dev/null
+check "/candor:level off clears a reader name"           "$(run '/candor:level off' "$R" | ctx)" "TERSE MODE OFF"
+eq    "  …and removes the level file"                    "$(lvlfile)" "<absent>"
+check "  …and the next prompt is silent"                 "$(run 'add an endpoint' "$R")" ""
 
 out=$(printf '' | env -u CC_TERSE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null); e=$?
 [ "$e" -eq 0 ] && echo "PASS: empty stdin exits 0" || { echo "FAIL: empty stdin exit $e"; rc=1; }

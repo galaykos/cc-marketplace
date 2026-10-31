@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
 # skill-path.sh — print the absolute SKILL.md path of an installed plugin skill, for pinning in a dispatch prompt.
 #
-# Resolves through `claude plugin list --json` (installPath of the ENABLED install) so the pinned file
-# is the one the CLI would load; falls back to the newest cache directory only when the CLI is absent,
-# and says so on stderr. A `sort -V` over full cache paths is NOT a version sort of the middle
-# segment — that shortcut pinned database 0.4.2 while 0.7.0 was installed (simulation 2, lesson 12).
-# The CLI list is NOT cwd-scoped: it carries every project's local/project installs, each with its
-# `projectPath`. Taking the first enabled row pinned another project's taskmaster 0.41.7 while THIS
-# project had 0.41.9 (simulation 3 pinned ui-ux 0.20.3 against an installed 0.21.0). So the row must
-# belong to this project (`projectPath` = --project root, else the git toplevel of the cwd, else the cwd)
-# or be a user-scope install; a row from another project is never a candidate.
+# Resolves through `claude plugin list --json`: the installPath of the ENABLED install that belongs to this project
+# (`projectPath` = --project root, else the git toplevel of the cwd, else the cwd) or is user-scope, never another
+# project's. Misses: without the CLI, the newest cache dir by version, which may not be the one loaded (said on stderr).
+# Why, limits, history: rationale/derivations/plugin-overseer.md § plugins/overseer/scripts/skill-path.sh (marketplace repository)
 #
 # Usage: skill-path.sh <plugin> <skill> [--project <root>]   # project root: also checks <root>/.claude/skills/<skill>
 # Exit: 0 printed a path that exists · 1 not found · 4 jq missing when the CLI route is used
@@ -35,6 +30,7 @@ best=""
 for d in "$HOME"/.claude/plugins/cache/*/"$plugin"/*/; do
   [ -f "$d/skills/$skill/SKILL.md" ] || continue
   v=$(basename "$d")
+  # sort -V on basenames only: over full cache paths it is not a version sort.
   if [ -z "$best" ] || [ "$(printf '%s\n%s\n' "$(basename "$best")" "$v" | sort -V | tail -1)" = "$v" ]; then best="$d"; fi
 done
 if [ -n "$best" ]; then echo "skill-path.sh: CLI route unavailable, using newest cache dir $(basename "$best")" >&2; printf '%s\n' "${best%/}/skills/$skill/SKILL.md"; exit 0; fi

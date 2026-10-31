@@ -1,23 +1,7 @@
-/* Craft audit — accent/ink-on-surface contrast gate.
-   Parses the oklch() token values out of src/index.css, converts to sRGB, and
-   computes WCAG 2 relative-luminance ratios for every pairing that matters.
-
-   WCAG 2 is the conformance gate (per ui-ux theming-system/accent-system):
-   APCA is not normative and WCAG 3 has not settled a contrast algorithm.
-
-   Run from the PROJECT ROOT, against the plugin's own copy — no vendoring needed:
-     cd <project> && node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/contrast.mjs
-
-   WHY THE TOKEN SOURCE IS RESOLVED FROM `process.cwd()` AND NOT FROM THIS FILE.
-   It used to be `new URL('../src/index.css', import.meta.url)` — relative to the
-   SCRIPT — which silently made the gate work in exactly one layout: copied to
-   `<project>/scripts/`. Run any other way it read the PLUGIN's own template CSS,
-   or crashed. So the gate was coupled to being vendored, and vendoring is what
-   produces a stale snapshot that passes builds the current gate fails. Reading
-   from the working directory is what lets one copy of this file, in the plugin,
-   grade any project — and it matches how `divergence.mjs` has always resolved
+/* contrast.mjs — craft-layer's contrast gate: WCAG 2 ratios (the conformance gate; APCA is not normative) for the ink, accent, status, focus, border and chart pairings of the oklch() tokens under :root and .dark in the project's token CSS. Run from the project root: `node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/contrast.mjs`; CRAFT_TOKEN_SOURCE names the file. Exit 1 a pairing fails, 2 not measured — a failure: gates.spec.ts turns axe's color-contrast off for this file.
+   Misses: hex, hsl and HSL-triplet tokens (only oklch() is parsed), any :root or .dark block after the first, pairings outside PAIRS. A role reads the first theming-system or shadcn name present (ROLE_ALIASES).
 # TWIN: plugins/craft-layer/template/craft-gates/contrast.mjs is an identical copy save this line. craft-layer owns the original; ui-ux ships this copy because craft-layer NEEDS ui-ux and not the reverse, so a ui-ux install without craft-layer would reach no contrast checker at all. Invoke it here as ${CLAUDE_PLUGIN_ROOT}/scripts/contrast.mjs.
-   its token source, including the same env override and candidate list. */
+   Why, limits, history: rationale/derivations/plugin-craft-layer.md § plugins/craft-layer/template/craft-gates/contrast.mjs */
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -30,6 +14,7 @@ const TOKEN_CANDIDATES = [
   'assets/css/main.css',
 ].filter(Boolean)
 
+// The token source resolves from process.cwd(), never import.meta.url (that read the plugin's own CSS).
 const cssPath = TOKEN_CANDIDATES.map((c) => resolve(process.cwd(), c)).find((p) => existsSync(p))
 if (!cssPath) {
   console.error(`not measured: no token source found under ${process.cwd()}`)
@@ -111,21 +96,7 @@ const PAIRS = [
 ]
 
 let failures = 0
-/* ROLE ALIASES — the repair that made this gate able to measure anything.
-   The PAIRS table above is written in theming-system's ROLE vocabulary, and
-   `--ink-1` / `--surface-base` / `--accent-display` are names no project in this
-   marketplace emits: theming-system itself calls them `ink-primary/secondary/
-   tertiary`, and every shadcn build — the stack ui-ux ships guidance for —
-   writes `--foreground` / `--background` / `--primary`. So all 44 pairings
-   resolved to nothing, every line printed `not measured (token missing)`,
-   `failures` stayed 0, and the terminator printed "OK: every pairing clears its
-   WCAG 2 threshold" over a build it had never read a single colour from — while
-   gates.spec.ts switched axe's own `color-contrast` rule off and named THIS file
-   the gate of record. A contrast gate that cannot resolve a token is not a
-   passing contrast gate; it is no contrast gate, and it was standing in for one.
-
-   Each role now resolves to the first name present in the block, so one table
-   grades both vocabularies. */
+/* Each role resolves to the first name present, so one table grades the theming-system and shadcn vocabularies; an unresolved role is not measured, never a pass. */
 const ROLE_ALIASES = {
   '--ink-1':           ['--ink-1', '--ink-primary', '--foreground', '--card-foreground'],
   '--ink-2':           ['--ink-2', '--ink-secondary', '--muted-foreground', '--foreground'],
@@ -167,10 +138,7 @@ for (const [mode, sel] of [['light', ':root'], ['dark', '.dark']]) {
 }
 
 console.log(`\ncoverage: ${measured}/${PAIRS.length * 2} pairing(s) measured`)
-/* ZERO MEASURED IS NOT A PASS. Same reasoning divergence.mjs states in its own
-   header and applies to a missing token source: a gate whose subject is "does
-   this build clear the threshold" cannot treat "I read no colours" as clearing
-   it — least of all while it is the reason a real checker is switched off. */
+/* Zero measured is not a pass: gates.spec.ts turns axe's color-contrast off because this file is the gate of record. */
 if (measured === 0) {
   console.error('\nnot measured: no pairing resolved a token in this build.')
   console.error(`(looked for ${Object.keys(ROLE_ALIASES).length} roles under both the theming-system and shadcn vocabularies)`)

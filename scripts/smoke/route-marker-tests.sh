@@ -247,8 +247,7 @@ rm -rf "$TMP/dedupcwd/.claude"
 
 # ---- delivery channel: nudges must arrive as ONE PostToolUse additionalContext
 # envelope. Plain stdout with exit 0 from a PostToolUse hook never reaches the
-# executing model (channel doctrine: task-runner/hooks/scope.sh,
-# comment-discipline/hooks/scan.sh) — these assertions exist so a rewrite back
+# executing model (channel doctrine: rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/scope.sh) — these assertions exist so a rewrite back
 # to bare printf fails CI instead of silently disconnecting the router.
 out=$(route "$TMP/emptycwd" App.vue)
 if printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' >/dev/null 2>&1; then

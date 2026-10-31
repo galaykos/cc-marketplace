@@ -77,6 +77,8 @@ r=$(reason "$out")
 case "$r" in *"still running: build"*) ok ;; *) bad "ask must name the running check" "$r" ;; esac
 case "$r" in *"CC_MERGE_CHECKS=off"*) ok ;; *) bad "ask must name the off-switch" "$r" ;; esac
 case "$r" in *lint*) bad "a passing check is not named" "$r" ;; *) ok ;; esac
+[ "$r" = "git-workflow: PR 12 is not green on CI — still running: build. Approve only to merge anyway (a known-flaky or optional check); otherwise wait with gh pr checks 12 --watch, or merge with --auto. CC_MERGE_CHECKS=off turns this check off." ] \
+  && ok || bad "ask: what is not green, when to approve, how to wait, one off switch" "$r"
 
 out=$(run fail 'gh pr merge 12 --squash')
 is_ask "$out" && ok || bad "failing check must ask" "$out"

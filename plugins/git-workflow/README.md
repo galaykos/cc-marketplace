@@ -1,10 +1,10 @@
 # git-workflow
 
-Git workflow discipline: an isolated worktree per feature branch (proven-ignored
-location, deps installed, baseline suite run before any change), a structured
-finish protocol for development branches (verify, present options, merge/PR/park,
-clean up), review-exchange rigor on both sides of a code review, a guard
-that keeps AI attribution out of git history, and a check that asks before
+Git workflow discipline. Each feature branch gets an isolated worktree, in a location
+proven to be git-ignored. Deps are installed and the baseline suite runs before any
+change. Development branches end with a structured finish: verify, present options,
+merge, PR or park, then clean up. Review-exchange rigor applies on both sides of a code
+review. A guard keeps AI attribution out of git history. A check asks before
 `gh pr merge` while the pull request's CI is not green.
 
 ## Install
@@ -18,7 +18,7 @@ that keeps AI attribution out of git history, and a check that asks before
 
 | Command | What it does |
 |---------|--------------|
-| `/git-workflow:finish [branch]` | Verify the full suite, show branch state evidence (diffstat, ahead/behind, commits), ask PR / keep / discard (plus merge-locally only when the base is not the default branch — the default branch is reached via PR only), execute the choice including worktree and branch cleanup |
+| `/git-workflow:finish [branch] [--to pr\|merge\|keep]` | Verify the full suite, show branch state evidence (diffstat, ahead/behind, commits), ask PR / keep / discard (plus merge-locally only when the base is not the default branch — the default branch is reached via PR only), execute the choice including worktree and branch cleanup; `--to` (passed by task-runner's run handoff) answers only the destination question — every check still runs, and it never discards or merges onto the default branch |
 | `/git-workflow:clean-gone [--dry-run]` | Fetch with prune, list every local branch whose upstream is `[gone]` with its worktree, skip the current branch and any dirty worktree, ask once, then remove worktrees and `-D` the branches — the sweep for PRs merged and deleted somewhere other than `/git-workflow:finish` |
 
 ## Example
@@ -35,6 +35,17 @@ and committing straight onto the default branch routes you to a branch + PR
 instead. Merges re-run the full suite on the merged result before any branch or
 worktree is deleted; discards require typing the branch name back; headless runs
 report options and touch nothing.
+
+When a task-runner run already passed the same suite command at the branch's head on this
+exact tree, finish does not run it again, says `Reused: suite passed at <head7> (<cmd>)` and
+shows the receipt log as the suite output. `scripts/receipt-fresh.sh --name suite --root <worktree>
+--cmd "<suite command>"` decides from task-runner's `.claude/task-runner/receipt.json`: another
+commit or command, a changed, staged or new file (outside `.claude/` state and `taskmaster-docs/`;
+new `.claude/skills|agents|commands|hooks` files, `.claude/settings.json` and root `.env*` files
+count), a failed run, a log task-runner did not write or that does not end `exit 0`, or an
+unreadable receipt reads `stale:`, and the suite runs. The review passes and the post-merge suite
+always run. Misses: skip-worktree/assume-unchanged files, other gitignored files, untracked files
+inside submodules, nested non-submodule repos, a receipt written by hand.
 
 Credit: in `branch-completion`, the no-template PR body's before/after evidence and
 reversibility line adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock),
@@ -116,6 +127,7 @@ Standing markers per the marketplace convention (see
 | a merge whose PR is a variable, a second merge in one command, a merge outside `gh pr merge` | **unenforceable** | the PR cannot be read from the command, or no matched tool call carries it |
 | `git commit -F <pre-existing file>`, a repo `prepare-commit-msg` hook, `git config trailer.*`, a commit outside the session | **unenforceable** | the message never crosses a matched tool call; silence means "no known shape matched", not "history is clean" |
 | finish / clean-gone / worktree protocols | **recorded** | prose the model follows; nothing reads it back |
+| a suite pass reused by finish | **gate** for the freshness rule; **recorded** for the finish step that calls it | `scripts/__tests__/receipt-fresh.test.sh` drives the reader; a change the Misses line above names still reads fresh |
 
 Fail-open, deliberately, both hooks: missing `jq`, unparseable input, any internal error —
 the hook stays silent, exits 0, and the command proceeds. Each harness asserts it.

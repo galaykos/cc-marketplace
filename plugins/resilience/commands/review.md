@@ -1,5 +1,5 @@
 ---
-description: Review code or a design for runtime-quality gaps — failure modes (timeouts, retries, degradation), error handling, concurrency hazards, observability, performance hotspots and cache correctness, event-driven delivery — one line per finding; --concern narrows to one rubric.
+description: Review code or a design for runtime-quality gaps. Covers failure modes (timeouts, retries, degradation), error handling, concurrency hazards, observability, performance hotspots, cache correctness, event-driven delivery. One line per finding; --concern narrows to one rubric.
 argument-hint: [path-diff-or-design-doc] [--concern failure|errors|concurrency|observability|performance|events|all]
 ---
 

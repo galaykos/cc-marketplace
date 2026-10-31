@@ -7,7 +7,8 @@
 #
 # The level: CC_TERSE, then the level file's first word, then the cc_terse /config option
 # (CLAUDE_PLUGIN_OPTION_CC_TERSE, else pluginConfigs["candor@*"] in managed-settings.json, then
-# in the user settings.json), else off; a value outside the vocabulary is off. A reparse-point
+# in the user settings.json), else off; a value outside the vocabulary is off; a reader name shows
+# its length level, e.g. [TERSE:ON-CALL/ULTRA]. A reparse-point
 # settings file is not read, and neither are --settings files or policy delivered another way.
 #
 # SECURITY: the level file is user-writable state rendered into a terminal on
@@ -52,7 +53,9 @@ try {
     }
   }
 
-  if ($mode -cnotin @('lite', 'full', 'ultra', 'wenyan-lite', 'wenyan-full', 'wenyan-ultra')) { exit 0 }
+  $len = switch -CaseSensitive ($mode) { 'newcomer' { 'lite' } 'expert' { 'full' } 'on-call' { 'ultra' } }
+  if ($len) { $mode = "$mode/$len" }
+  elseif ($mode -cnotin @('lite', 'full', 'ultra', 'wenyan-lite', 'wenyan-full', 'wenyan-ultra')) { exit 0 }
 
   $esc = [char]27
   Write-Host -NoNewline "$esc[2;36m[TERSE:$($mode.ToUpper())]$esc[0m"

@@ -4,7 +4,7 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
-## [0.125.0] - 2026-10-30
+## [0.126.0] - 2026-10-31
 
 A web search for third-party Claude Code plugins, skills and MCP servers covering game development, Unity,
 Blender, pixel art, 2D, 3D, Meshy and Higgsfield (~65 candidates), plus four user-named repositories, folded in
@@ -30,12 +30,46 @@ measured against a control arm.
   atlas and import settings that blur, Light2D normal maps, `Rigidbody2D.linearVelocity`; Editor-MCP and
   Unity-official-plugin install pointers. Rules from [scenario-labs/skills](https://github.com/scenario-labs/skills)
   @5d68b48 (MIT), re-verified on the 6000.3 manual.
-- **stack-scan 0.17.0, skill-router 0.29.0, all-plugins 0.6.1** — the three new plugins are suggested from file
+- **stack-scan 0.18.0, skill-router 0.30.0, all-plugins 0.7.5** — the three new plugins are suggested from file
   evidence, routed at edit time, and stay opt-in for `/all-plugins:install` like the other game plugins.
 - MCP servers (Blender, Aseprite, Tiled, LDtk, Meshy, Unity Editor) are install lines in each README, never a
   bundled `.mcp.json`. Not imported: the four named repositories' content (generic, broken, or BUSL-1.1), Unity's
   official plugin (Unity Companion License), every NO-LICENSE repository, and Blender Lab's GPL-3.0 MCP beyond a
   pointer.
+
+## [0.125.0] - 2026-10-29
+
+Nineteen steps, run 2026-10-26 to 2026-10-29, to make the plugins clearer, calmer and quicker to use. Each step
+is one stacked pull request, #224 to #241 and the one carrying this entry; the plan and its before-and-after
+numbers are in `rationale/improvement-plan-2026-10-26.md`. Plugin versions named below are the ones this release ships.
+
+- **Four game-development plugins removed:** bevy, defold, ebitengine and roblox. Nothing replaces them; uninstall
+  them if you have them. godot, unity, unreal, phaser, pixijs and gamedev stay (skill-router 0.29.3, stack-scan
+  0.17.5 and all-plugins 0.7.4 keep their rows, scout signals and opt-in skip).
+- **One place to start coding work: `/work`** (code-architecture 0.19.1). It picks a quick, spec or program lane;
+  `/code-architecture:coding-task` still works and does the same.
+- **Hook messages say what happened and what to do, in fewer words**, across 16 plugins. The text hooks add to each
+  prompt fell from 1,202 to 808 tokens.
+- **candor's Stop check lists everything a run still owes in one block** instead of one item per turn (candor 0.10.7).
+- **One passing suite run per commit is reused** by task-runner 0.49.9, git-workflow 0.13.6 and overseer's accept,
+  instead of being run again.
+- **taskmaster asks at two checkpoints** (taskmaster 0.50.6): red-team holes and coverage findings come as one batch
+  each, to accept as recommended or walk through; a blocker still gets its own question.
+- **ui-ux checks UI in a browser before the turn ends** (ui-ux 0.32.2): a UI file changed and not looked at in a
+  browser since sends the turn back once. `CC_UI_CHECK=warn` only prints; `off` turns it off.
+- **Comments cut to what a reader needs** in scripts, hooks, plugin scripts, shared blocks and templates; behaviour
+  unchanged, and the history kept in `rationale/derivations/`.
+- **One vocabulary:** a "Words we use" glossary in the README, plain README openings and skill descriptions, and a
+  check that warns on a term the glossary does not define.
+- **For maintainers:** CLAUDE.md went from 446 to 199 lines; its reference material is now the `repo-gates` project skill.
+- **Review findings quote the code, and the quote is checked** (code-review 0.34.4); candor's Stop check blocks a
+  quote found in neither the cited file nor its committed copy (candor 0.10.7).
+- **What a run cost, beside its result:** a process-cost line after `/task-runner:run` (task-runner 0.49.9) and
+  overseer's milestone accept (overseer 0.7.5), which also gains a five-line resume (`/overseer:resume`).
+- **`/candor:level newcomer`, `expert` or `on-call`** sets replies for who is reading (candor 0.10.7).
+- **Vetted outside tools in the scout** (stack-scan 0.17.5): rtk (its engine is BUSL-1.1, not open source), NVIDIA's
+  SkillSpector and designlang, offered with licences read on 2026-10-29 and never installed; `--skills` runs
+  SkillSpector on a pick before install when it is on PATH.
 
 ## [0.124.0] - 2026-10-26
 

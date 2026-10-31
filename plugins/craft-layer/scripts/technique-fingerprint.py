@@ -1,39 +1,9 @@
 #!/usr/bin/env python3
 """technique-fingerprint.py — name a reference site's stack and motion techniques.
 
-design-research used to describe a reference's motion from a still, which for a
-WebGL or scroll-driven page is a blank frame or one static state. This fetches the
-homepage plus capped first-party JS and CSS and greps them for library signatures,
-so a research row can say "GSAP + ScrollTrigger + Lenis" instead of guessing.
-
-Ported from the design-corpus detector
-(rationale/2026-09-25-design-capability-corpus/tools/detect.py): the signature
-table, the manifest-mention guard, the first-party asset rule, and the rule that
-View Transitions and CSS scroll-driven animation count only from markup or CSS.
-Fonts, colour flags and hosting are corpus statistics and were not ported.
-
-Usage:
-    technique-fingerprint.py URL [--json] [--max-js N] [--max-css N] [--max-bytes N]
-    technique-fingerprint.py --file PAGE.html [--base-url URL] [--json] [...]
-
---file reads a saved page instead of fetching. Each asset URL the page names is
-resolved by its PATH under the page's directory (the host is ignored, and a path
-escaping that directory is refused), so a saved "page + assets" folder works
-offline. Pass --base-url with the page's real address when the saved HTML holds
-absolute asset URLs, so the first-party rule sees the right host.
-
-Exit codes:
-    0  a report was produced from a readable homepage
-    1  the homepage was refused, unreachable, a bot challenge or a near-empty
-       shell — the report still prints and names why; record it, do not guess
-    2  usage error, or a --file that cannot be read
-
-LIMITATION: a match is positive evidence; no match is NOT evidence of absence
-(lazy chunks past the cap, server-rendered markup with no client bundle, bot
-walls, a library bundled under a minified name). It reads source text, never
-behaviour: whether the motion honours reduced motion is visible only in a
-browser, which is why the research method also asks for a reduced-motion capture
-and a short scroll clip.
+Greps the homepage plus capped first-party JS and CSS (or a saved page, --file, its assets looked up by path under its directory) for library signatures. Exit 0 a report from a readable homepage; 1 refused, unreachable, a bot wall or a near-empty shell (the report still says why); 2 a usage error or an unreadable --file.
+Misses: a match is evidence, no match is not absence (lazy chunks past the cap, server-only markup, bot walls, minified names); it reads source text, never behaviour such as a reduced-motion path.
+Why, limits, history: rationale/derivations/plugin-craft-layer.md § plugins/craft-layer/scripts/technique-fingerprint.py
 """
 import argparse
 import json
@@ -172,9 +142,7 @@ GROUP_OF = {name: g for g, group in SIG_GROUPS.items() for name in group}
 
 MANIFEST_CTX = re.compile(r'^[\w@/.-]*["\']?\s*:\s*["\'][\^~>=]*\d')
 ATTR = re.compile(r'''([a-zA-Z-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))''')
-# A page that SAYS "leaflet" does not load it. The homepage is matched as its tags
-# (attributes, classes, URLs), comments and inline <script>/<style> bodies; the text
-# between tags — the visible copy — is dropped, for every signature.
+# A page that SAYS "leaflet" does not load it: the text between tags (the visible copy) is never matched.
 MARKUP = re.compile(r'<script\b[^>]*>.*?(?:</script\s*>|\Z)|<style\b[^>]*>.*?(?:</style\s*>|\Z)'
                     r'|<!--.*?(?:-->|\Z)|<[^>]*>', re.S | re.I)
 BOT_WALL = re.compile(r'Just a moment\.\.\.|cf-chl-|challenge-platform|Attention Required|px-captcha|_Incapsula_')

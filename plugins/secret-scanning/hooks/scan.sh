@@ -1,21 +1,6 @@
 #!/bin/bash
-# scan.sh (PreToolUse on Write, Edit, MultiEdit, NotebookEdit, MCP apply_patch/create_new_file and Bash; payload on stdin) — denies a write whose new text
-#   (for apply_patch, the whole patch), Bash heredoc body or echo/printf argument landing in a file carries a high-confidence, non-placeholder secret,
-#   and a Bash write of redact.ts's [REDACTED: marker unless CC_SECRET_REDACT is off (Write/Edit carrying it are redact.ts's to refuse).
-#   PostToolUse on the same tools, and PostToolUseFailure on a Bash call that exited non-zero (hook_event_name), warning only: after a python,
-#   node, php, ruby, perl, deno, bun, cp, mv, install or patch run,
-#   on the same patterns in what each file git reports changed since this lane's previous call added (the whole file when HEAD lacks it, else its
-#   `+` lines against HEAD, so a line any uncommitted edit added is judged again). State: that lane's marker in the plugin's data dir
-#   (CLAUDE_PLUGIN_DATA), else <root>/.claude/secret-scanning/ behind a `*` .gitignore.
-# Off: CC_SECRET_SCAN=off. Fails open: a timeout, a missing jq or any error but a bad pattern file allows the write.
-# Fails closed: a missing or malformed hooks/patterns.tsv, the pattern source, or a missing hooks/patterns.sh, its reader, denies every write with
-#   text to scan (the PostToolUse lane stays silent).
-# CC_SECRET_SCAN unset: the /config option cc_secret_scan decides.
-# Misses: a URL password under 6 characters or led by `$` or `{`, a URL scheme not listed, a webhook URL other than Slack's; a real value holding a
-#   placeholder word; an MCP write tool with other key names; on Bash, a command with no write target, interpreter writes and cp/mv before they
-#   land, sed/perl -i text and what cc_bash_write_chunks misses; a command that outruns the hook timeout (no per-call cap). After the fact: changed
-#   files past the eighth (MAX_BASH_EFFECTS), text past 1 MiB per file, the redaction marker, and the bash-write-effects block's misses; a file
-#   anything else changed since the lane's previous call (an IDE, a parallel agent) is read as that run's write.
+# PreToolUse on Write, Edit, MultiEdit, NotebookEdit, MCP apply_patch/create_new_file and Bash: denies new text, or a Bash heredoc or echo landing in a file, carrying a high-confidence non-placeholder secret, and a Bash write of redact.ts's marker unless CC_SECRET_REDACT is off. PostToolUse(Failure): warns on what an interpreter, cp, mv, install or patch run added.
+# Misses short or $-led URL passwords, unlisted schemes and webhooks, a real value holding a placeholder word, other MCP key names; on Bash, a command with no write target (a live key in curl -H …), interpreter and cp/mv writes before they land, sed/perl -i text, what cc_bash_write_chunks misses, a command that outruns the hook timeout; after the fact, changed files past the eighth or 1 MiB and the redaction marker, and a file anything else changed reads as the run's write. Fail-open, except a missing or malformed patterns.tsv or patterns.sh denies. Off: CC_SECRET_SCAN=off; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/scan.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -23,8 +8,6 @@
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -46,8 +29,7 @@ cc_option() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
 # cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
 # one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
-# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
-# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# A backup suffix is never a target: the word after BSD sed's -I, or a `''` or `.`-led word after a bare sed -i unless it is the only file.
 # Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
 # redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
 # operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
@@ -255,14 +237,13 @@ cc_plugin_state() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
 # cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
 # directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
-# cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
-# cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
-# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
-# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
-# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
-# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
-# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
+# cc_bash_write_effects read <marker>. cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute
+# paths, one per line: files `git status` under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out
+# by its `*` .gitignore). It runs git only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs,
+# deno, bun, cp, mv, install or patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not
+# $HOME and status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's
+# first call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much:
+# any change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
   local d="${2%/*}" k
@@ -309,8 +290,7 @@ MAX_EFFECT_BYTES=1048576
       '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}' 2>/dev/null
     exit 0
   }
-  # detect <kind> <label> <flags> <ERE> — sets hit to <label> when a match of <ERE> in $text is no placeholder; a no-op once hit is set.
-  # grep needs `--`: the private-key pattern starts with dashes, which grep would read as options.
+  # detect <kind> <label> <flags> <ERE>: sets hit when a match of <ERE> in $text is no placeholder, a no-op once hit is set; grep needs `--` because the private-key pattern starts with dashes.
   detect() {
     local m opts=-oE
     [ -z "$hit" ] || return 0
@@ -323,14 +303,13 @@ MAX_EFFECT_BYTES=1048576
 $(printf '%s' "$text" | grep "$opts" -- "$4" 2>/dev/null)
 EOF_M
   }
-  # scan_for_secret <text> — the one scanner for both paths: resets hit, then sets it to the first label whose match is no placeholder.
-  # The first non-empty text loads $pat_file; an unusable one ends the run with a deny.
+  # scan_for_secret <text>: resets hit, then sets it to the first label whose match is no placeholder; the first non-empty text loads $pat_file, and an unusable one ends the run with a deny.
   scan_for_secret() {
     local k
     text=$1; hit=""
     [ -n "$text" ] || return 0
     if [ -z "$pat_loaded" ]; then
-      load_patterns "$pat_file" || deny "secret-scanning: the pattern file $pat_file is unusable ($pat_bad), so this write cannot be checked for secrets and is blocked. Reinstall or update the plugin to restore it. CC_SECRET_SCAN=off disables this guard for the session."
+      load_patterns "$pat_file" || deny "secret-scanning: blocked this write because the pattern file $pat_file is unusable ($pat_bad). Reinstall or update the plugin. CC_SECRET_SCAN=off turns this check off."
       pat_loaded=1
     fi
     for k in "${!pat_re[@]}"; do
@@ -338,10 +317,7 @@ EOF_M
     done
   }
 
-  # The PostToolUse lane: the write has landed, so it warns and never denies. It reads what an interpreter, cp, mv, install or
-  # patch run changed (the bash-write-effects block), each file judged on what it added: the whole file when HEAD lacks it, else
-  # its `+` lines against HEAD. The effects are read with the old marker, then the marker is dated, on EVERY call this lane sees,
-  # a failed Bash call's PostToolUseFailure included.
+  # PostToolUse lane: the write has landed, so it warns and never denies; the effects are read with the old marker, then the marker is dated, on EVERY call, a failed Bash call included.
   if [ "$event" = PostToolUse ] || [ "$event" = PostToolUseFailure ]; then
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
     [ -n "$cwd" ] && [ -d "$cwd" ] && root=$(cc_state_root "$cwd") || exit 0
@@ -372,8 +348,8 @@ EOF_M
 $effects
 EOF_E
     [ -n "$found" ] || exit 0
-    jq -cn --arg c "secret-scanning: a Bash command just wrote what looks like a secret through a write this guard cannot read before it lands (an interpreter, cp, mv, install or patch):$found
-The value is on disk now. Move it to an environment variable or a secret store and take it out of the file before it is committed; if it is a deliberate fixture, make the value announce itself — end it in EXAMPLE, or use a placeholder word (example, placeholder, changeme, dummy, xxxx). CC_SECRET_SCAN=off disables this guard." \
+    jq -cn --arg c "secret-scanning: a Bash command just wrote what looks like a secret to disk:$found
+Move each value to an environment variable or secret store before it is committed; for a test fixture, end it in EXAMPLE or use a placeholder word. CC_SECRET_SCAN=off turns this check off." \
       --arg ev "$event" '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$c}}' 2>/dev/null
     exit 0
   fi
@@ -396,15 +372,13 @@ The value is on disk now. Move it to an environment variable or a secret store a
     done <<EOF_C
 $(cc_bash_write_chunks "$cmd")
 EOF_C
-    # redact.ts masks a secret in tool output as [REDACTED:<label>] and refuses Write/Edit carrying it; through Bash, the
-    # same write-back would replace the real value on disk. With redaction off no mask is ever shown, so the text is quoted.
-    # off, 0 and false in any case, as redact.ts's switchOn reads the same variable.
+    # A Bash write of redact.ts's mask would replace the real value on disk; off, 0 and false in any case, as redact.ts's switchOn reads the same variable.
     redact=$(cc_option CC_SECRET_REDACT on | tr '[:upper:]' '[:lower:]')
     if [ "$redact" != off ] && [ "$redact" != 0 ] && [ "$redact" != false ]; then
       i=1
       while [ "$i" -le "$n" ]; do
         case "${ctext[$i]}" in
-          *'[REDACTED:'*) deny "secret-scanning: this command writes the redaction marker [REDACTED:…] to ${ctgt[$i]}. It may have come from a tool result secret-scanning redacted; if so, writing it would replace the real value on disk, so leave the value out of the write, or edit only the lines around it with the Edit tool. If the text quotes the marker on purpose, ask the user to set CC_SECRET_REDACT=off, which also stops redacting secrets in tool output." ;;
+          *'[REDACTED:'*) deny "secret-scanning: this command writes the redaction marker [REDACTED:…] to ${ctgt[$i]}. That would replace the real secret on disk: leave the value out, or edit only the lines around it with the Edit tool. CC_SECRET_REDACT=off, set by the user, allows it and also turns redaction off." ;;
         esac
         i=$((i + 1))
       done
@@ -428,9 +402,9 @@ EOF_C
   fi
   [ -n "$hit" ] || exit 0
 
-  reason="secret-scanning: this write appears to contain ${hit}. Blocked before it reaches disk. Move the value to an environment variable or a secret store and reference it by name; if this is a deliberate fixture, make the value announce itself — end it in EXAMPLE, or use a placeholder word (example, placeholder, changeme, dummy, xxxx) — and the guard lets it through."
+  reason="secret-scanning: blocked a write containing ${hit}. Put the value in an environment variable or secret store and reference it by name; for a test fixture, end the value in EXAMPLE or use a placeholder word (example, placeholder, changeme, dummy, xxxx)."
   [ -n "$file" ] && reason="$reason (file: $file)"
-  reason="$reason CC_SECRET_SCAN=off disables this guard for the session."
+  reason="$reason CC_SECRET_SCAN=off turns this check off."
   deny "$reason"
 } 2>/dev/null
 exit 0

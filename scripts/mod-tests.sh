@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
-# mod-tests.sh — run `claude plugin test` on every mod: each plugins/*/ whose
-# hooks/hooks.json has `modules`, plus templates/mods/kit-harness (the shared kit's tests).
-#
-# WHAT IT CATCHES: a failing mod test; a mod with no *.test.ts or *.test.tsx (the CLI exits
-# 1); a host with hooks modules turned off (disableAllHooks exits 1, measured on 2.1.291) —
-# the "hooks modules are turned off" text is matched too, so an off run that exits 0 still
-# FAILs instead of passing on zero tests.
-# WHAT IT DOES NOT: it runs tests; it proves nothing a test does not assert — a module branch
-# no test reaches passes. No typecheck (tsc is a spec non-goal). Whether each `modules` entry
-# exists and exports register is validate.sh's (pc_mod_modules); kit copies, pc_mod_kit.
-#
-# Standing: gate (a named, fail-capable CI step after the CLI install) — and a local pre-push check.
+# mod-tests.sh — `claude plugin test` on every mod (plugins/*/ whose hooks.json has `modules`) and templates/mods/kit-harness: FAILs a red test, a mod with no *.test.ts(x), hooks modules turned off (exit 1 or that text).
+# Misses: a module branch no test reaches, types (no tsc), whether each `modules` entry exists and exports register (validate.sh: pc_mod_modules, pc_mod_kit). Standing: gate, a CI step and a pre-push check.
+# Why, limits, history: rationale/derivations/scripts.md § scripts/mod-tests.sh
 set -u
 cd "$(dirname "$0")/.." || exit 2
 

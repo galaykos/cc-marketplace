@@ -1,17 +1,13 @@
 #!/bin/bash
 # generated from templates/boost-hook.sh.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file
-# Fail open: never block the prompt. Inject the boost directive when the prompt asks.
-# One hook, two tokens: ultra-task (boost) / ultra-goal (boost + hands-off).
-# No suffix grammar — bare tokens only, fixed tier model=auto effort=xhigh
-# (auto = session model or opus, whichever is higher on haiku<sonnet<opus<fable).
+# Fail open: injects the boost directive when the prompt's first 200 characters invoke its token outside code spans, not negated. Misses a token past them and a quoted mention, which still fires.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/boost-hook.sh.tmpl
+
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -29,12 +25,12 @@ cc_option() {
   return 0
 }
 
+# One hook, two tokens: ultra-task (boost) / ultra-goal (boost + hands-off).
 {
   input=$(cat)
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
   case "$prompt" in "/"*) exit 0 ;; esac # slash commands own their flag path
-  # CC_BOOST=off silences every boost hook and the variable plugin_switch names silences this one; either
-  # /config option silences only this plugin's hook, and a non-empty environment variable wins over it.
+  # CC_BOOST=off silences every boost hook, plugin_switch's variable this one; either /config option only this plugin's, and a non-empty variable wins.
   plugin_switch=TASKMASTER_BOOST
   case "$(cc_option CC_BOOST on)$(cc_option "$plugin_switch" on)" in *off*) exit 0 ;; esac
 

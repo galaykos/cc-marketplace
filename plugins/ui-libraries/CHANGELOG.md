@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.1 — 2026-10-28
+
+- **The `component-libraries` skill's description now reads in short, plain sentences.** It names the same libraries and design systems and keeps the words the model matches it on.
+- **The `mui-best-practices` and `primereact-best-practices` descriptions read the same way.** Same packages, components and version notes.
+
 ## 0.3.0 — 2026-10-06
 
 - **Magic UI and React Bits follow Aceternity's rules.** `aceternity-best-practices` no longer hands Magic UI to `ui-ux:motion-best-practices`: Magic UI (`@magicui/<name>`) and React Bits (`@react-bits/<Name>-<JS|TS>-<CSS|TW>`) are the same class of copy-in marketing effect, so placement, one hero effect per view, pausing off-screen, reduced motion, SSR randomness and theming apply to them, and their docs pages stand in for Aceternity's. One exception: an animated number (NumberTicker, CountUp) follows ui-ux's counter rule — final value in the markup, no count under reduced motion. Animate UI's app primitives and hand-written `motion/react` code stay with motion-best-practices. The skill's description is unchanged, so this plugin's always-on context does not move.

@@ -1,11 +1,6 @@
 #!/bin/bash
-# config-guard.sh (PreToolUse on file writes and Bash; payload on stdin) — asks, never denies, before a write to an existing settings, hooks,
-#   hook-script, plugin-manifest or lint/test config file (config_kind); on Bash, the first such target of the first eight. Silent in a marketplace repository.
-# Off: CC_CONFIG_GUARD=off, or CLAUDE_DESTRUCTIVE_GUARD=off or deny-only (this hook is the plugin's other ask tier). Fails open on every error path.
-# CC_CONFIG_GUARD / CLAUDE_DESTRUCTIVE_GUARD unset: the /config options cc_config_guard / claude_destructive_guard decide.
-# Misses: a file config_kind does not name; whether an edit weakens anything (it reads the path, not the diff); a file that does not exist yet;
-#   an MCP apply_patch (no single path); on Bash, writes the bash-write-targets block below does not report, targets past the eighth, a relative
-#   target after an in-command cd (resolved against the payload cwd instead), and `rm` of a config (destructive-guard judges only `rm -r` and `.env`, so a plain `rm` passes both).
+# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest or lint/test config (config_kind); on Bash, the first such target of the first eight. Silent in a marketplace repository.
+# Misses unlisted files, what the edit changes, new files, MCP apply_patch, Bash writes the targets block misses or past the eighth, a target after an in-command cd, a plain rm. Fail-open. Off: CC_CONFIG_GUARD=off or CLAUDE_DESTRUCTIVE_GUARD=off|deny-only; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/config-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -13,8 +8,6 @@
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -36,8 +29,7 @@ cc_option() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
 # cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
 # one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
-# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
-# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# A backup suffix is never a target: the word after BSD sed's -I, or a `''` or `.`-led word after a bare sed -i unless it is the only file.
 # Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
 # redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
 # operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
@@ -150,18 +142,18 @@ config_kind() {
   local b
   b=$(basename "$1")
   case "/$1" in
-    */.claude/settings.json|*/.claude/settings.local.json|*/.claude/settings.*.json) echo "the settings file that decides which tools and permissions this session has"; return ;;
-    */.claude/hooks/*|*/hooks/hooks.json)                                            echo "a hooks configuration — the file that decides which guards run at all"; return ;;
+    */.claude/settings.json|*/.claude/settings.local.json|*/.claude/settings.*.json) echo "a Claude Code settings file"; return ;;
+    */.claude/hooks/*|*/hooks/hooks.json)                                            echo "a hooks configuration"; return ;;
   esac
   case "$b" in
-    hooks.json)            echo "a hooks configuration — the file that decides which guards run at all"; return ;;
+    hooks.json)            echo "a hooks configuration"; return ;;
     plugin.json|marketplace.json)
-                           echo "a plugin manifest — it declares the hooks, matchers and dependencies an install gets"; return ;;
+                           echo "a plugin manifest"; return ;;
     .eslintrc|.eslintrc.*|eslint.config.*|biome.json|.rubocop.yml|ruff.toml|.flake8|setup.cfg|pytest.ini|pyproject.toml|phpstan.neon|phpstan.neon.dist|psalm.xml|psalm.xml.dist|.php-cs-fixer.php|.php-cs-fixer.dist.php|.golangci.yml|.golangci.yaml|clippy.toml|tsconfig.json)
-                           echo "a lint, type-check or test configuration — the rules a build fails on"; return ;;
+                           echo "a lint, type-check or test config"; return ;;
   esac
   case "/$1" in
-    */hooks/*.sh|*/hooks/*.py|*/hooks/*.mjs|*/hooks/*.js) echo "a hook script — the code a guard runs" ;;
+    */hooks/*.sh|*/hooks/*.py|*/hooks/*.mjs|*/hooks/*.js) echo "a hook script" ;;
   esac
 }
 
@@ -222,7 +214,7 @@ EOF_T
     [ -f "$root/.claude-plugin/marketplace.json" ] && exit 0
   fi
 
-  reason="command-guard: this writes to $kind (\`$base\`). Editing it is often the task — and it is also the cheapest way past a gate that just refused something, which is why you are being asked rather than told. Confirm you intend a configuration change here, not a way around a check. If a rule is wrong, say so in the change; if a check is in the way, the check is the thing to argue with. This guard reads the PATH, not the diff: it cannot tell adding a rule from deleting one. CC_CONFIG_GUARD=off disables it for the session; so does CLAUDE_DESTRUCTIVE_GUARD=deny-only."
+  reason="command-guard: editing $kind (\`$base\`). Confirm this is a real config change, not a way around a failing check. CC_CONFIG_GUARD=off turns this prompt off."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}' 2>/dev/null

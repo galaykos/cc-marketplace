@@ -46,11 +46,18 @@ stop_payload() { jq -cn --arg tp "$1" --arg cwd "$PROJ" \
   '{session_id:"s-1",transcript_path:$tp,cwd:$cwd,permission_mode:"default",
     hook_event_name:"Stop",stop_hook_active:false}'; }
 
-run() { # run <desc> <transcript> <exp_rc> <exp_substr|__NONE__>
-  local desc="$1" t="$2" want="$3" sub="$4" err rc ok=1
+run() { # run <desc> <transcript> <exp_rc> <exp_substr|__NONE__> — a block is exit 0 with {"decision":"block",reason,systemMessage} on stdout: rc=2
+  local desc="$1" t="$2" want="$3" sub="$4" err out rc ok=1
   rm -f "$PROJ/.claude/candor/last" "$PROJ/.claude/candor/blocked"
-  err=$(stop_payload "$t" | "$HOOK" 2>&1 >/dev/null); rc=$?
-  [ "$rc" -eq "$want" ] || ok=0
+  out=$(stop_payload "$t" | "$HOOK" 2>"$WS/stderr"); rc=$?
+  err=$(cat "$WS/stderr")
+  if [ "$rc" = 0 ] && [ -n "$out" ]; then
+    if printf '%s' "$out" | jq -e '.decision=="block" and (.reason|type=="string" and length>0) and (.systemMessage|type=="string" and length>0)' >/dev/null 2>&1; then
+      rc=2; err="$err${err:+
+}$(printf '%s' "$out" | jq -r .reason)"
+    else rc=stdout; fi
+  elif [ "$rc" = 2 ]; then rc=exit2; fi
+  [ "$rc" = "$want" ] || ok=0
   if [ "$sub" != "__NONE__" ]; then printf '%s' "$err" | grep -qF "$sub" || ok=0
   else [ -z "$err" ] || ok=0; fi
   if [ "$ok" -eq 1 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$desc"
@@ -101,8 +108,8 @@ run "ordinary honest turn passes" "$T" 0 "__NONE__"
 
 rm -f "$PROJ/.claude/candor/last" "$PROJ/.claude/candor/blocked"
 stop_payload "$WS/t1.jsonl" | "$HOOK" >/dev/null 2>&1
-r2=$(stop_payload "$WS/t1.jsonl" | "$HOOK" >/dev/null 2>&1; echo $?)
-if [ "$r2" = "0" ] && [ -f "$PROJ/.claude/candor/last" ]; then
+r2=$(stop_payload "$WS/t1.jsonl" | "$HOOK" 2>/dev/null; echo "rc=$?")
+if [ "$r2" = "rc=0" ] && [ -f "$PROJ/.claude/candor/last" ]; then
   pass=$((pass+1)); printf 'PASS  one-shot marker written under a non-git project\n'
 else fail=$((fail+1)); printf 'FAIL  one-shot marker under a non-git project (second rc=%s)\n' "$r2"; fi
 

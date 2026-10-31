@@ -1,18 +1,6 @@
 #!/bin/bash
-# write-scan.sh (PostToolUse on Write, Edit, MultiEdit and Bash, PostToolUseFailure on Bash; payload on stdin) — warns, never denies, once per
-#   context, file and finding,
-#   on a security sink one written line or Bash-written file shows; the ported and LLM sinks only in their own file types, the Laravel/Vite/raw-HTML ones in any file.
-#   After a python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run, also on what each file git reports changed since this hook's
-#   previous call added: the whole file when HEAD lacks it, else its `+` lines against HEAD (so a line any uncommitted edit added is judged again).
-#   Skips a target under neither CLAUDE_PROJECT_DIR nor the cwd's root, or under $TMPDIR (default /tmp) unless the root holding it is there.
-#   State: the bash-effects marker in the plugin's data dir (CLAUDE_PLUGIN_DATA), else <root>/.claude/security/ behind a `*` .gitignore.
-# Off: CC_SECURITY_SCAN=off or CC_REMIND=off. Fails open on any error, a missing jq included.
-# CC_SECURITY_SCAN / CC_REMIND unset: the /config options cc_security_scan / cc_remind decide.
-# Misses: a sink split across lines or reached through an alias, and injection inside the data; cross-file flows, authz, raw SQL outside whereRaw;
-#   a client secret with no public-bundle prefix or with no secret word in its name (NEXT_PUBLIC_FOO); on Bash, targets past the eighth, bytes past
-#   256 KiB, writes cc_bash_write_targets misses, a relative target in a command holding a cd/pushd; after an interpreter run, changed files past the
-#   eighth (MAX_BASH_EFFECTS) and the bash-write-effects block's misses. Warns anyway: a guard on the next line (SafeLoader, weights_only); a file
-#   anything else changed since this hook's previous call (an IDE, a parallel agent), read as that run's write.
+# PostToolUse on Write, Edit, MultiEdit and Bash (PostToolUseFailure on Bash): warns, never denies, once per context, file and finding, on a security sink in a written line, a Bash-written file, or what an interpreter, cp, mv, install or patch run added; scratch outside the project is skipped.
+# Misses a sink split across lines or aliased, cross-file flows, authz, raw SQL outside whereRaw, a client secret without a public prefix, Bash targets or changed files past the eighth or 256 KiB; warns on a guard on the next line and on files anything else changed. Fail-open. Off: CC_SECURITY_SCAN=off or CC_REMIND=off; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-security.md § plugins/security/hooks/write-scan.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -20,8 +8,6 @@
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -43,8 +29,7 @@ cc_option() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-targets.md
 # cc_bash_write_targets <command> prints each path the command writes through `>`/`>>`, `[sudo] tee` or `sed -i`/`perl -i`,
 # one per line as spelled; heredoc bodies and quoted text never match. A path guard keeps existing files under its root.
-# BSD sed's -I always takes the next word as its backup suffix, so that word is never a target; after a bare sed -i,
-# a `''` or `.`-led word is read as one too, unless it would be the only file.
+# A backup suffix is never a target: the word after BSD sed's -I, or a `''` or `.`-led word after a bare sed -i unless it is the only file.
 # Misses: interpreter writes, cp/mv/install, a path in a variable, a glob, a `\` line continuation, a digit- or &-led
 # redirect and `>&`, sed/perl/tee behind another command word (gsed, /usr/bin/sed, env, xargs, sudo -u), a `-`-led
 # operand with no `/` or `.`, operands cut short by a `&` inside `$(( ))`/`${ }`, every line after a `<<\EOF` opener.
@@ -374,14 +359,13 @@ cc_plugin_state() {
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/bash-write-effects.md
 # cc_bash_effects_mark <root> <marker> <session> rewrites <marker> to hold <session>'s cksum when <root> holds a .git, and gives its
 # directory a `*` .gitignore when it has none. Call it on EVERY call the hook sees (Write, Edit, Bash, a failed Bash too), after
-# cc_bash_write_effects read <marker>: the tool has finished when the hook runs, so <marker> then post-dates every write of that call.
-# cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute paths, one per line: files `git status`
-# under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out by its `*` .gitignore). It runs git
-# only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs, deno, bun, cp, mv, install or
-# patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not $HOME and
-# status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's first
-# call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much: any
-# change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
+# cc_bash_write_effects read <marker>. cc_bash_write_effects <root> <marker> <command> <max> <session> prints at most <max> absolute
+# paths, one per line: files `git status` under <root> reports changed or untracked and newer than <marker> (a plugin state dir stays out
+# by its `*` .gitignore). It runs git only when <command> holds python, node, php, ruby, perl (any version suffix or directory), nodejs,
+# deno, bun, cp, mv, install or patch as a word, <marker> holds <session>'s cksum (another session's marker reads as none), <root> is not
+# $HOME and status.showUntrackedFiles is not no. Misses: writers it does not name, gitignored files, submodules, no git, each session's
+# first call, a file written then reverted, a mv or cp -p destination (it keeps the source's mtime), files past <max>. Reads too much:
+# any change since <marker> — an IDE, a parallel agent, a job, a state file another tool keeps in a .claude/ dir git does not ignore.
 cc_bash_effects_mark() {
   [ -e "$1/.git" ] || return 0
   local d="${2%/*}" k
@@ -412,9 +396,7 @@ MAX_BASH_EFFECTS=8
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in Write|Edit|MultiEdit|Bash) ;; *) exit 0 ;; esac
 
-  # Interpreter writes: read the effects with the old marker, then date it, on EVERY call this hook sees, so a file an Edit
-  # changed or a command that wrote nothing is never read as the next run's write. A failed Bash call fires PostToolUseFailure,
-  # whose envelope must name that event.
+  # Read the effects with the old marker, then mark, on EVERY call, so an Edit's file or a no-write command is never read as the next run's write; a failed Bash call answers as PostToolUseFailure.
   { IFS= read -r cwd; IFS= read -r sess; IFS= read -r hev; } < <(printf '%s' "$input" \
     | jq -r '.cwd // "", .session_id // "", if .hook_event_name == "PostToolUseFailure" then .hook_event_name else "PostToolUse" end' 2>/dev/null)
   sroot=""; effects=""
@@ -443,7 +425,6 @@ MAX_BASH_EFFECTS=8
     [ -n "$text" ] || exit 0
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // "unknown"' 2>/dev/null)
   fi
-  # Scratch is not the project: probe scripts under /tmp drew sink warnings in real sessions (the write-scope block).
   cc_scope_init "$sroot"
   # Context key, not session: a subagent shares its parent's session_id but has its own transcript.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // "nosession"' 2>/dev/null)
@@ -486,7 +467,7 @@ MAX_BASH_EFFECTS=8
       "{!! \$var !!} skips Blade escaping — use {{ }} unless this exact value is sanitized HTML"
     detect "client-bundle-secret" \
       '(^|[^A-Z0-9_])(VITE|NEXT_PUBLIC|NUXT_PUBLIC|EXPO_PUBLIC|PUBLIC|REACT_APP|GATSBY|VUE_APP)_[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|PRIVATE|API_?KEY)' \
-      "a public-bundle env prefix (VITE_, NEXT_PUBLIC_, NUXT_PUBLIC_, EXPO_PUBLIC_, PUBLIC_, REACT_APP_, GATSBY_, VUE_APP_) compiles the value into the client bundle — server secrets must not carry one"
+      "a public env prefix (VITE_, NEXT_PUBLIC_ and the like) compiles the value into the client bundle — a server secret must not carry one"
     detect "raw-sql-interpolation" \
       'whereRaw\((["'"'"'][^"'"'"')]*\{\$|[^,)]*\.[[:space:]]*\$)' \
       "variable inside whereRaw SQL — use ? placeholders with the bindings array"
@@ -496,7 +477,7 @@ MAX_BASH_EFFECTS=8
 
     detect "code-eval" \
       '(^|[^[:alnum:]_.$>])eval[[:space:]]*\(|new[[:space:]]+Function[[:space:]]*\(' \
-      "eval()/new Function() executes a string as code — parse data with JSON/literal parsers; a static string wants the literal, not eval. When eval is genuinely required, a one-line comment at the call saying why" \
+      "eval()/new Function() runs a string as code — parse data with JSON or a literal parser; if eval is truly needed, say why in a one-line comment at the call" \
       "$CODE"
     detect "shell-string-exec" \
       'child_process\.exec(Sync)?[[:space:]]*\(|(^|[^[:alnum:]_.])execSync[[:space:]]*\(|(^|[^[:alnum:]_.$>])(shell_exec|passthru|popen|proc_open)[[:space:]]*\(|(^|[^[:alnum:]_.$>])(exec|system)[[:space:]]*\([[:space:]]*["'"'"'$]|os\.system[[:space:]]*\(|subprocess\.[A-Za-z_]+\(.*shell[[:space:]]*=[[:space:]]*True' \
@@ -552,8 +533,7 @@ MAX_BASH_EFFECTS=8
       "$JS|$PY|$PHP" '<<<|"""|'"'''"'|<[a-z_]+>|\[BEGIN|---|```'
   }
 
-  # added_text <file> — what a run added to <file>, at most 256 KiB: the whole file when HEAD lacks it, else the `+` lines of
-  # `git diff -U0 HEAD`. The text before the run is gone, so a line any uncommitted edit added since HEAD is judged again.
+  # added_text <file>: at most 256 KiB of what a run added, the whole file when HEAD lacks it, else the `+` lines of `git diff -U0 HEAD`, so an uncommitted earlier edit is judged again.
   added_text() {
     local rel="${1#"$sroot"/}"
     if git -C "$sroot" cat-file -e "HEAD:$rel" 2>/dev/null; then
@@ -613,7 +593,7 @@ EOF_E
   fi
 
   [ -n "$hits" ] || exit 0
-  ctx="${hits}[security] warn-tier only (file: ${hit_files}) — judgment cases stay with /security:review; CC_SECURITY_SCAN=off disables."
+  ctx="${hits}[security] Fix the lines above in ${hit_files}, or say why each is safe; /security:review checks what these patterns cannot. CC_SECURITY_SCAN=off turns these warnings off."
   jq -cn --arg c "$ctx" --arg ev "${hev:-PostToolUse}" \
     '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$c}}' 2>/dev/null
   exit 0

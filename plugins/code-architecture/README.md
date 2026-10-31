@@ -1,23 +1,26 @@
 # code-architecture
 
-Engineering process for code-level structure: plan-before-code, YAGNI checks,
-SOLID applied with judgment, task orchestration, work verification, and
-low-cognitive-load code. KISS/DRY and the surgical-edit discipline (surface
-assumptions, every changed line traces to the request, clean up your own
-orphans — after Karpathy's LLM-coding guidelines) travel as references of the
-two skills that own them, not as separate always-on triggers. The reach order in
-`low-cognitive-load` and the ranked `net:` close of `/code-architecture:yagni` adapt
-rules from dietrichgebert/ponytail (MIT, v4.10.0). Depth as the measure of a split and the
-glossary's canonical term in `low-cognitive-load`, and the written glossary in
-`domain-modeling`, adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock);
-their effect is unmeasured.
+Engineering process for code-level structure: plan-before-code, YAGNI checks, SOLID
+applied with judgment, task orchestration, work verification, and low-cognitive-load
+code. KISS/DRY and the surgical-edit discipline are not separate always-on triggers.
+They travel as references of the two skills that own them. The surgical-edit discipline
+follows Karpathy's LLM-coding guidelines. It means: surface assumptions, trace every
+changed line to the request, clean up your own orphans. Two rules adapt
+dietrichgebert/ponytail (MIT, v4.10.0). One is the reach order in `low-cognitive-load`:
+where to look, in order, before writing new code. The other is how
+`/code-architecture:yagni` ends: proposals ranked by lines removed, then a `net:` total
+of what they cut. Two rules in `low-cognitive-load` adapt
+mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock). They are depth as the measure of a
+split, and the glossary's canonical term. The written glossary in `domain-modeling`
+adapts the same source. Their effect is unmeasured.
+
+**Start any work with `/work <what you want done>`** (or `/code-architecture:work`): it picks quick, spec or program, prints why and the steps ahead, and `--explain` shows the route without running anything.
 
 Owns structure at both levels. Code: units, interfaces, file placement. System:
 service boundaries drawn on data ownership, scaling paths, cache placement, sync vs
 async integration and its failure modes, single points of failure, and domain
 modeling (bounded contexts, aggregates, ubiquitous language) — the `system-design`
-and `domain-modeling` skills and the `system-architect` worker (the system-design
-plugin was merged into this one on 2026-09-14). Message-driven architecture (delivery
+and `domain-modeling` skills and the `system-architect` worker. Message-driven architecture (delivery
 semantics, outbox, sagas, DLQ) lives in `resilience`'s `event-driven` skill.
 
 ## Install
@@ -35,7 +38,8 @@ semantics, outbox, sagas, DLQ) lives in `resilience`'s `event-driven` skill.
 | `/code-architecture:yagni` | Audit code or a design for speculative generality |
 | `/code-architecture:solid` | Audit code or a design for SOLID violations |
 | `/code-architecture:verify` | Verify completed work against its success criteria, with evidence |
-| `/code-architecture:coding-task` | Start ad-hoc coding work with the house rules already loaded — detects the stack, loads the always-relevant skills, and says in one line whether the task proceeds inline or belongs in the taskmaster pipeline |
+| `/code-architecture:work` | Start any coding work here — triages the ask into quick (done inline, house rules loaded), spec (`/taskmaster:task` → `/task-runner:run` → `/git-workflow:finish`), program (`/overseer:start`), or hands it to the command that owns that kind of work (`/ui-ux:build`, `/debugging:debug`, …); `--explain` prints the route only, `--lane` overrides it |
+| `/code-architecture:coding-task` | The old name of `/code-architecture:work`; still works |
 
 Two host built-ins sit beside these in the listing. `/simplify` reviews the changed
 code for reuse, simplification and efficiency and **applies** the fixes; the
@@ -51,7 +55,7 @@ feature.
 Best-practice skills auto-trigger by context — `plan-before-code`,
 `low-cognitive-load`, `solid-principles`, `yagni-check`,
 `work-verification`, `drift-review`, `system-design`, `domain-modeling`, and
-`coding-entry` (the one `/code-architecture:coding-task` invokes). The
+`coding-entry` (the one `/code-architecture:work` invokes). The
 `architecture-reviewer` agent reviews structural changes for boundaries, cohesion,
 and cognitive load, and on a design doc or service topology audits against the
 system-design rubric. The `system-architect` worker (opus floor) designs and
@@ -64,6 +68,8 @@ Two skills were merged away in 0.10.0 rather than deleted: KISS/DRY is now
 "when writing or reviewing code", which fires on every edit and discriminates
 nothing; folding them cut two always-on triggers while keeping every line of the
 material.
+
+The system-design plugin was merged into this one on 2026-09-14.
 
 `work-verification` and `drift-review` are the two done-time disciplines and they ask
 different questions: `work-verification` asks whether the evidence backs the claim,

@@ -1,24 +1,7 @@
 #!/bin/bash
-# Absolute-path shebang (not `env bash`): the fail-silent guarantee must hold
-# even with a stripped/broken PATH, where `/usr/bin/env bash` itself exits 127
-# with stderr noise before this script ever runs.
-# Fail silent: never block or noise SessionEnd (D14). Appends one cheap-stats
-# row per ended session to $HOME/.claude/hindsight/<slug>/ledger.jsonl — machine-local,
-# never inside the project tree (D2, D4-D6).
-# Transcript JSONL format is officially unstable (D13) — every parse is
-# defensive and prefers undercounting over crashing.
-#
-# Subagents (0.9.0): every agent the session spawned left its own transcript at
-# <transcript_path minus .jsonl>/subagents/agent-<id>.jsonl with a sibling
-# .meta.json naming its agentType. Those are the only record of what an agent
-# hit, and no other channel reaches them: turn-cost.sh calls subagent turns
-# invisible for exactly this reason. One row per agent, same stats, tagged
-# kind:"agent" so readers that predate the tag (outcome.sh's per-session means)
-# can filter them out; rows without kind are sessions. Dedup by agent_id keeps a
-# resumed session's second SessionEnd from re-appending the same agents. A
-# session with many agents can outrun the hook timeout — the session row is
-# written FIRST and each agent row is one append, so a timeout loses only the
-# tail of the agents, never the session, and never noises the exit.
+# collect.sh — SessionEnd: appends one stats row per ended session, then one `kind:"agent"` row per subagent transcript not yet ledgered (deduped by agent_id), to $HOME/.claude/hindsight/<slug>/ledger.jsonl, never the project tree. Fails silent: never blocks, never prints.
+# Misses: what the unstable transcript format hides (every parse undercounts rather than crash); agent rows past the hook timeout (the session row is written first).
+# Why, limits, history: rationale/derivations/plugin-hindsight.md § plugins/hindsight/hooks/collect.sh
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -33,9 +16,7 @@
   [ -f "$transcript_path" ] || exit 0
   [ -r "$transcript_path" ] || exit 0
 
-  # One pass over a transcript: keep raw lines for marker greps and
-  # parsed lines (malformed ones silently dropped) for structural counts.
-  # Shared by the session and every agent transcript below.
+  # Raw lines feed the marker greps, parsed lines (malformed ones dropped) the structural counts.
   stats_prog='
     [inputs] as $raw
     | [$raw[] | fromjson? // empty] as $lines
@@ -82,14 +63,7 @@
     }' 2>/dev/null) || exit 0
   [ -n "$row" ] || exit 0
 
-  # Machine-local state lives under $HOME, never in the project tree. The ledger holds
-  # absolute transcript paths and per-machine session history, so it was never a project
-  # artifact — and creating a directory inside every project this hook runs in is a cost
-  # the plugin should not impose. $HOME is read explicitly: `~` does not expand under a
-  # stripped environment, and an unset HOME exits 0 like every other failure here. The
-  # slug is the same rule Claude Code uses for its projects dir — the absolute cwd with
-  # every non-alphanumeric character replaced by '-' — so a project's ledger and its
-  # transcripts sit under matching names.
+  # $HOME, not `~`, which does not expand under a stripped environment; the slug is Claude Code's projects-dir rule.
   [ -n "${HOME:-}" ] || exit 0
   slug=$(printf '%s' "$cwd" | tr -c '[:alnum:]' '-') || exit 0
   [ -n "$slug" ] || exit 0

@@ -1,8 +1,8 @@
 # testing
 
-Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and
-Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures,
-mocking boundaries, flaky-test causes, coverage traps.
+Testing best practices: the test pyramid and what to actually test. Pest/PHPUnit and
+Vitest/Jest idioms, and Playwright/Dusk e2e discipline. Factories and fixtures, mocking
+boundaries, flaky-test causes and coverage traps.
 
 ## Install
 

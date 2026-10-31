@@ -345,20 +345,11 @@ glob	**/.design-kit/artifacts/**	artifact	design-kit	high
 glob	**/.design-kit/motion/**	motion	design-kit	high
 glob	**/.design-kit/film/**	film	design-kit	high
 # game rows (2026-10-26, the gamedev import — rationale/gamedev-design-import-2026-10-26.md).
-# blender, meshy and pixel-art rows added 2026-10-30 — rationale/gamedev-art-import-2026-10-30.md.
 # One plugin per engine, each installed only in its own projects, so a row fires only where
-# that plugin is installed. A generic extension (.cs .go .rs .script) carries a `?` marker on
-# the engine's own manifest: a Go service must never hear about Defold or Ebitengine, and a
-# .cs file is Unity's only beside ProjectVersion.txt and Godot's only beside project.godot.
-# The engine skills co-fire with the two language-wide discipline rows on .go and .rs: the
-# engine's inversions and the readability rubric answer different questions about one file,
-# and nudge-last already ranks the discipline rows after any engine row.
-# co-fire-ok: *.rs low-cognitive-load bevy-best-practices
-# co-fire-ok: *.rs solid-principles bevy-best-practices
-# co-fire-ok: *.go low-cognitive-load defold-best-practices
-# co-fire-ok: *.go solid-principles defold-best-practices
-# co-fire-ok: *.go low-cognitive-load ebitengine-best-practices
-# co-fire-ok: *.go solid-principles ebitengine-best-practices
+# that plugin is installed. The generic .cs extension carries a `?` marker on the engine's own
+# manifest: a .cs file is Unity's only beside ProjectVersion.txt and Godot's only beside project.godot.
+# blender, meshy and pixel-art rows added 2026-10-30 — rationale/gamedev-art-import-2026-10-30.md.
+# The blender *.py row co-fires with the two language-wide discipline rows on purpose: nudge-last ranks them after it.
 # co-fire-ok: *.py low-cognitive-load blender-best-practices
 # co-fire-ok: *.py solid-principles blender-best-practices
 glob	*.gd	godot-best-practices	godot	high
@@ -375,15 +366,6 @@ glob	*.spriteatlas	unity-best-practices	unity	high
 glob	*.spriteatlasv2	unity-best-practices	unity	high
 glob	*.uproject	unreal-best-practices	unreal	high
 content	(UCLASS\(|GENERATED_BODY\(\))	unreal-best-practices	unreal	high
-glob	*.luau	roblox-best-practices	roblox	high
-glob	default.project.json	roblox-best-practices	roblox	high	?default.project.json~DataModel
-glob	*.rs	bevy-best-practices	bevy	high	?Cargo.toml~(^|[[:space:]])bevy[[:space:]]*=
-glob	game.project	defold-best-practices	defold	high
-glob	*.script	defold-best-practices	defold	high	?game.project~.
-glob	*.gui_script	defold-best-practices	defold	high	?game.project~.
-glob	*.collection	defold-best-practices	defold	high	?game.project~.
-glob	*.go	defold-best-practices	defold	high	?game.project~.
-glob	*.go	ebitengine-best-practices	ebitengine	high	?go.mod~github\.com/hajimehoshi/ebiten/v2
 content	(from ['"]phaser['"]|\bnew Phaser\.(Game|Scene)\b)	phaser-best-practices	phaser	high
 content	(from ['"]pixi\.js['"]|\bnew PIXI\.)	pixijs-best-practices	pixijs	high
 content	(import|from)[[:space:]]+(bpy|bpy_extras|bmesh)([.[:space:]]|$)	blender-best-practices	blender	high

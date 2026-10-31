@@ -1,6 +1,6 @@
 ---
 name: secret-scanning
-description: Use when a secret may be entering the codebase — writing config or .env, wiring an API client, pasting an API key, token or hardcoded credential, reviewing a diff for leaked credentials — or when this plugin's write guard denied a write and the fixture escape is needed.
+description: Use when a secret may be entering the codebase (writing config or .env, wiring an API client, pasting an API key, token or hardcoded credential). Or reviewing a diff for leaked credentials. Or when this plugin's write guard denied a write and the fixture escape is needed.
 ---
 
 # Secret scanning

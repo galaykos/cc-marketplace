@@ -169,7 +169,7 @@ want_fires  "paste: an ask after a long paste" "$(printf '<pasted_content id="2"
 want_fires  "paste: a paste alone is read whole" '<pasted_content id="3">npm ERR! build failed while we deploy to staging</pasted_content>'
 want_silent "slash prompt"        "/taskmaster:task build a landing page"
 want_silent "meta: about the hook" "disable the router hook that injects the catalog"
-want_silent "own output echoed"   "[skill-router] Tool-fit check (once this session)."
+want_silent "own output echoed"   "[skill-router] If the user named a tool and a listed command fits the ask better, ask once which to use."
 want_silent "CC_ROUTE=off"        "build a landing page" CC_ROUTE=off
 want_silent "CC_REMIND=off"       "build a landing page" CC_REMIND=off
 # A /loop or ScheduleWakeup re-fire (2026-10-15): a host tick is a frame; a re-fired prompt is found by the call that scheduled
@@ -248,8 +248,10 @@ printf '== half A: directive content ==\n'
 # What survives is the half that was never about the rows: the anti-nag discipline,
 # which is the reason this hook may speak at all.
 cat_out="$(run_hook "build a landing page for a B2B marketing agency" "$ROOT/$SR")"
-for phrase in "Silence is the default" "AskUserQuestion" "(Recommended)" "as asked" \
-              "one picker per named tool per session" "goal ledger"; do
+for phrase in "named a tool" "fits the ask better" "ask once" \
+              "If none was named and one clearly fits, name it in one line after any open questions" \
+              "otherwise say nothing about commands" '`goal-lean`' '`Goal: true`' \
+              "pick the better fit, say so, and add it to the run's decision log"; do
   printf '%s' "$cat_out" | grep -qF "$phrase" \
     && pass "directive carries: $phrase" || fail "directive carries: $phrase" "missing"
 done
@@ -292,6 +294,9 @@ if [ -f "$DBG" ] && [ -f "$FT" ]; then
     printf '%s' "$out" | grep -qF 'stronger-model' \
       && fail "destructive line is re-pointed" "still sells a stronger-model take: $out" \
       || pass "destructive line no longer sells a stronger-model take"
+    printf '%s' "$out" | grep -qF 'a blind second opinion can help (/approaches:consult).' \
+      && pass "destructive line stays advisory and names its command" \
+      || fail "destructive line stays advisory" "got: $out"
   else
     fail "the consult reminder still fires on a destructive token" "the sole pre-proposal signal is gone"
   fi

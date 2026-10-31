@@ -1,10 +1,13 @@
 # taskmaster
 
-Interrogation-first task clarification: batched clarifying questions against an
-ambiguity ledger, theme-aware shell mockups on a single always-live preview URL
-for visual decisions — rendered in the project's own colors when detectable, with
-compare modes and tradeoff callouts (consent-gated: full mockups, ASCII only, or
-none — asked once per session), then a spec and single-prompt task cards.
+Task clarification that starts by asking you questions. It asks them in batches,
+working through a list of what is still unclear (the ambiguity ledger). Visual
+decisions get theme-aware shell mockups on a single always-live preview URL. They
+render in the project's own colors when it can detect them, with compare modes and
+tradeoff callouts. You choose once per session: full mockups, ASCII only, or none.
+Then it writes a spec and task cards, each one runnable as a single prompt.
+
+**Not sure where to start? Start with `/work <what you want done>`** (or `/code-architecture:work`): it sends work that needs a spec here and does small changes inline.
 
 ## Install
 
@@ -58,7 +61,8 @@ Without arguments it asks for a description first. The pipeline then:
    first UI card builds how an agent signs in and the seeded states the grill
    settled, and each UI card names the screen, widths and state the browser walk
    at group close must see
-8. When task-runner is installed, asks "Start execution now?" — one approval and
+8. When task-runner is installed, asks "Start execution now?" — in the same batch of
+   questions as the coverage check's recommended fixes when it found gaps — one approval and
    it invokes `/task-runner:run` on the index itself, so the run registers for the
    completion gate, no manual command needed (still printed as the fallback if you decline)
 
@@ -88,7 +92,7 @@ Three separate knobs, easy to confuse because they all start with `ultra`:
 
 | Token | What it moves | Owned by |
 |---|---|---|
-| `ultra-task` / `ultra-goal` (or bare `ultra` / `goal` as a command's first argument) | subagent tier floor, mandatory red-team + coverage, bounded fan-out ceilings, goal ledger | this plugin |
+| `ultra-task` / `ultra-goal`, or a bare `ultra` (boost) / `goal` (boost + hands-off) as a command's first argument | subagent tier floor, mandatory red-team + coverage, bounded fan-out ceilings, goal ledger | this plugin |
 | `ultracode`, or the Ultracode toggle in `/effort` | permission and bias to actually call the `Workflow` tool — real parallel fan-out instead of the inline fallback. Since CLI 2.1.284 a switch of its own: it no longer raises effort | Claude Code |
 | `ultrathink` | main-thread reasoning depth: the clarifying rounds, spec judgment, synthesis | Claude Code |
 
@@ -126,11 +130,13 @@ out: the `task-runner` plugin's `verification-panels` skill,
 
 ## Ultra-goal — hands-off mode
 
-Prefix any taskmaster command with a bare `goal` (as its first argument) or drop an
-`ultra-goal`/`ultragoal` token anywhere in the prompt to run the pipeline
-**hands-off**. The tier is fixed at auto/xhigh (the session model or opus,
-whichever is higher — there is no per-token tier suffix); `ultra-goal` implies the
-full `ultra-task` boost. The `ultra` skill (Goal mode) owns the full contract.
+Put a bare `goal` first in any taskmaster command's arguments to run the pipeline
+**hands-off** with the full `ultra-task` boost. An `ultra-goal`/`ultragoal` token does
+the same anywhere in a taskmaster command's arguments, or within the first 200
+characters of a free-text prompt. The tier is fixed at auto/xhigh (the session model
+or opus, whichever is higher — there is no per-token tier suffix). For hands-off
+without the boost, use `goal-lean` (below). The `ultra` skill (Goal mode) owns the
+full contract.
 Not the host's built-in `/goal`: that is a session-scoped prompt-based Stop hook
 ("keep going until X"), while this `goal` token is a taskmaster argument that
 auto-takes the pipeline's recommendations — the two share a word, not a mechanism.
@@ -159,8 +165,9 @@ picks between `goal` and `goal-lean` per milestone from its rigour profile.
 
 Safety floor: goal mode **never** runs a branch merge/PR (the git surface stays
 manual), never suppresses the never-suppress set defined in the `ultra` skill's Goal
-contract, and never auto-accepts a security/auth/data-loss or statement-fidelity red-team
-hole as known risk (it amends the spec or halts). Hands-off execution requires task-runner ≥ 0.11.0; older
+contract, and never auto-accepts as known risk a security red-team hole, any hole touching
+auth or stored data (loss, corruption, schema or migration, personal data) whatever its
+lens, or a statement-fidelity hole (it amends the spec or halts). Hands-off execution requires task-runner ≥ 0.11.0; older
 runners fall back to interactive.
 
 ## Conversation example

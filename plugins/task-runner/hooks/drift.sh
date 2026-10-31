@@ -1,46 +1,8 @@
 #!/bin/bash
-# Absolute-path shebang (not `env bash`): the fail-open guarantee must hold even under a
-# stripped or broken PATH, where `env bash` itself exits 127.
-#
-# PostToolUse. The AD-HOC complement to scope.sh, which is a provable no-op on most turns:
-# scope.sh exits unless a run is registered (`[ -f "$sentinel" ] || exit 0` — grep it, a
-# line number here went stale once already), so when there is no task-runner run — a
-# one-line request typed straight into a session, which is the common case — nothing in
-# this marketplace watches whether the work stayed near the ask. This is the only surface
-# here that is stack-agnostic by construction: it counts FILES against a REQUEST, so it
-# reads a Dockerfile turn, a SQL turn and a React turn identically.
-#
-# THE THRESHOLD IS MEASURED, NOT CHOSEN. 400 local transcripts, 169 turns that edited at
-# least one file: p50=2, p75=5, p90=12, p95=21, p99=40, max=157. DRIFT_FLOOR is p90, so
-# roughly one edit-turn in ten can reach it before the two filters below apply. An earlier
-# draft of this hook proposed 4 — that would have fired on about a third of all turns,
-# which is the "a number someone wrote down" non-trigger the lean plugin's cost-model
-# skill rejected (lean was removed 2026-09-14; the rule stands), and is why this hook was refused the first time it was proposed rather than
-# shipped with a guess. Re-derive from your own transcripts before changing it.
-#
-# STANDING: advisory. additionalContext is not a blocking key and this exits 0 on every
-# path. It asks a question; it never renders a verdict. Breadth is not wrongness.
-#
-# LIMITATION (honest scope — the four laws, see
-# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
-#   - BREADTH ONLY, NEVER DEPTH. 300 lines of unasked refactor inside the one file the
-#     request named is completely invisible here, and that is probably the commoner way to
-#     stray. This measures the axis that is countable, not the axis that matters most.
-#   - A legitimately wide mechanical request IS a false positive. The breadth-marker list
-#     below ("everywhere", "rename", "migrate", …) exists to cut the obvious cases, and it
-#     is a word list, so it will miss phrasings nobody thought of.
-#   - It reads the LAST typed user message only. A request built up over three turns is
-#     scored against its final sentence.
-#   - It cannot see a fan-out's total: each subagent context counts its own edits, the same
-#     aggregate blind spot code-review/hooks/density.sh names for itself.
-#   - Whether a given extra file was NECESSARY needs a reader. That judgment stays
-#     agent-graded, and is why the message ends in a question.
-#
-# Off switches: CC_REMIND=off silences this and the other reminder hooks; CC_DRIFT=off only
-# this. scope.sh, the run-scoped tripwire, reads only the run's scope file and is not muted.
-# CC_REMIND / CC_DRIFT unset: the /config options cc_remind / cc_drift decide.
-#
-# FAIL-OPEN: missing jq, unreadable transcript, unwritable state, or any error exits 0.
+# PostToolUse on Edit/Write/MultiEdit with no registered run: asks once per request when 12+ files (p90 of measured edit-turns) were edited since the last typed message and at least half go unnamed in it; new-directory files and breadth words ("rename", "everywhere") exempt.
+# Misses: depth inside a named file, a fan-out's total, a request built over several messages, wide phrasings off the word list; advisory. CC_REMIND=off or CC_DRIFT=off, else /config cc_remind / cc_drift; fails open.
+# Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/drift.sh
+
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
 # cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
@@ -64,8 +26,6 @@ cc_state_root() {
 # cc_option <ENV_NAME> <default> [<level-file>] prints, status 0, the first non-empty of: variable ENV_NAME,
 # <level-file>'s first word, option CLAUDE_PLUGIN_OPTION_<ENV_NAME> (true/false as on/off), <default>.
 # The host exports only SAVED options, so <default> must equal the manifest's default.
-# A non-empty variable beats the option: the environment is shared, so one export before launch
-# switches every plugin that reads it.
 # Misses: a malformed name, which yields <default>; a variable passed instead of a literal name; a value outside the vocabulary.
 cc_option() {
   local v="" opt
@@ -94,43 +54,25 @@ cc_option() {
   case "$tool" in Edit|Write|MultiEdit) ;; *) exit 0 ;; esac
 
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  # `-d`, not just `-n`: the payload cwd is a STRING the host supplies, and the mkdir
-  # below happily recreates a project directory the user has just deleted, three levels
-  # deep (live repro, AR 1 of the 2026-09-22 panel). A cwd that is not a directory now
-  # means "no state to keep" — exit, never create. Every state path below is anchored at
-  # the project root (the state-root block above), so a turn run from a subdirectory
-  # neither scatters a second .claude/task-runner/ beside it nor misses the run's sentinel.
+  # `-d`, not just `-n`: the mkdir below would recreate a project directory the user deleted; no directory means no state to keep.
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
 
-  # STATE HYGIENE (0.34.4). .claude/task-runner/ is written by the run itself
-  # (active-run.json, rv/, bg/, gate-pass.json) and by this plugin's scripts; none of
-  # it belongs in a commit, and it showed up as untracked in every repo a run touched
-  # (overseer's acceptance protocol names it as "other plugins' scratch"). A directory
-  # can ignore itself, so the first hook to see it drops a `.gitignore` holding `*`.
+  # Nothing in .claude/task-runner/ belongs in a commit: the first hook to see the directory makes it ignore itself.
   tr_dir="$root/.claude/task-runner"
   if [ -d "$tr_dir" ] && [ ! -e "$tr_dir/.gitignore" ]; then printf '*\n' > "$tr_dir/.gitignore" 2>/dev/null; fi
 
-  # A registered run means scope.sh owns this turn; two voices on one territory is the
-  # collision plugins/*/lane.tsv exists to prevent. The run, not a scope file: since
-  # 0.41.0 scope.sh ignores scope files while no run is registered (a finished run's
-  # leftovers flagged the next task's edits), so yielding to a bare scope.json would
-  # leave a leftover muting BOTH hooks.
+  # A registered run, not a scope file, hands the turn to scope.sh: a leftover scope.json would mute both hooks.
   [ -r "$root/.claude/task-runner/active-run.json" ] && exit 0
 
   tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
   [ -n "$tp" ] && [ -r "$tp" ] || exit 0            # no transcript → nothing to compare against
 
+  # The threshold is the p90 of 169 measured edit-turns; re-derive it from your own transcripts before changing it.
   DRIFT_FLOOR=12          # p90 of 169 measured edit-turns; see the header
   UNNAMED_RATIO=2         # at least half the files unnamed in the ask (1/N where N=2)
 
-  # Only the tail is read: a long session's transcript is large, and everything this needs
-  # sits after the last typed user message.
-  # Transcript lines are JSON OBJECTS, one per line — not JSON-encoded strings. An
-  # earlier draft piped them through `fromjson`, which wants a string, so every line was
-  # discarded and the hook was silent on every input including the ones it exists for.
-  # It looked exactly like correct suppression: three silence fixtures passed and the one
-  # positive fixture did not, which is why a positive case is not optional.
+  # Transcript lines are JSON objects, not JSON-encoded strings: `fromjson` would discard every one and silence the hook.
   tail_json=$(tail -n 900 "$tp" 2>/dev/null)
   [ -n "$tail_json" ] || exit 0
 
@@ -154,12 +96,7 @@ cc_option() {
   count=$(printf '%s\n' "$files" | grep -c . 2>/dev/null)
   [ "${count:-0}" -ge "$DRIFT_FLOOR" ] || exit 0
 
-  # Files created under a directory this request created are the ask's new feature, not
-  # strays: "build a homepage" wrote 12 new files under a new components/welcome/ and was told
-  # 12 of 12 were unnamed (2026-10-13 retro). A directory is new when every file in it is one a
-  # Write since the request created (the transcript's toolUseResult.type "create"). Residual: a
-  # new file in a directory that already held files still counts, and so does a new directory
-  # anything else wrote into (a generator, a cache).
+  # Files in a directory holding only files this request created are the ask's new feature, not strays.
   created=$( { printf '%s\n' "$since" | sed -n 's/^C //p'
     printf '%s' "$input" | jq -r 'select(.tool_response.type? == "create") | .tool_input.file_path // empty' 2>/dev/null
   } | grep . | sort -u)
@@ -190,8 +127,6 @@ EOF
     [ "${count:-0}" -ge "$DRIFT_FLOOR" ] || exit 0
   fi
 
-  # A request that ASKS for breadth is not drift. Cheap word list, and its misses are
-  # named in the limitation above.
   printf '%s' "$ask" | grep -qiE '\b(everywhere|every file|all (the )?(files|of them)|across the|entire|whole (repo|codebase|project)|rename|migrate|sweep|bulk|each of|throughout|codebase-wide|repo-wide)\b' && exit 0
 
   unnamed=0
@@ -204,9 +139,7 @@ $files
 EOF
   [ $((unnamed * UNNAMED_RATIO)) -ge "$count" ] || exit 0
 
-  # One question per user message, not per edit. Keyed on the transcript AND the ask, both
-  # hashed: the raw key is an absolute path, and pasting one into a filename names a file
-  # whose parents never existed — see authoring-hooks, references/one-shot-state.md.
+  # One question per user message, keyed on transcript and ask, hashed: a raw path in a filename names parents that never exist.
   ctx=$(printf '%s%s' "$tp" "$ask" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0
   dir="$root/.claude/task-runner"

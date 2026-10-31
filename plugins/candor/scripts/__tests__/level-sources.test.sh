@@ -38,6 +38,12 @@ fixture lite full;    eq "CC_TERSE beats file and option"         "$(level CC_TE
 fixture '' '';        eq "CLAUDE_PLUGIN_OPTION_CC_TERSE alone"    "$(level CLAUDE_PLUGIN_OPTION_CC_TERSE=full)" "full option"
 fixture '' bogus;     eq "invalid option is off"                  "$(level)" "off option"
 fixture full '';      eq "invalid CC_TERSE is off, file unused"   "$(level CC_TERSE=bogus)" "off env"
+fixture newcomer '';  eq "a reader name adds its length level"    "$(level)" "newcomer file lite"
+fixture '' expert;    eq "a reader name from the option"          "$(level)" "expert option full"
+fixture lite '';      eq "a reader name in CC_TERSE beats the file" "$(level CC_TERSE=on-call)" "on-call env ultra"
+fixture newbie '';    eq "an unknown name is off"                 "$(level)" "off file"
+fixture on-call '';   eq "--sources shows the name and its length level" "$(bash "$S/level.sh" --sources 2>&1 | sed -n '2p;4p')" \
+  "$(printf 'level file (%s/terse-mode): on-call\nactive: on-call file ultra' "$CLAUDE_CONFIG_DIR")"
 
 fixture '' ''; printf '{"pluginConfigs": {' > "$CLAUDE_CONFIG_DIR/settings.json"
 eq "malformed settings: off, nothing on stderr" "$(level)" "off off"
@@ -85,17 +91,26 @@ eq "neither call reached the stub" "$(cat "$TMP/stub.log")" ""
 fixture '' full;  eq "badge shows an option-only level"  "$(badge)" "$(printf '\033[2;36m[TERSE:FULL]\033[0m')"
 fixture '' full;  eq "badge: CC_TERSE beats the option"  "$(badge CC_TERSE=ultra)" "$(printf '\033[2;36m[TERSE:ULTRA]\033[0m')"
 fixture '' '';    eq "badge silent when off"             "$(badge)" ""
+fixture newcomer ''; eq "badge shows a reader name and its length level" "$(badge)" "$(printf '\033[2;36m[TERSE:NEWCOMER/LITE]\033[0m')"
+fixture '' on-call;  eq "badge: a reader name from the option" "$(badge)" "$(printf '\033[2;36m[TERSE:ON-CALL/ULTRA]\033[0m')"
+fixture newbie '';   eq "badge silent for an unknown name"     "$(badge)" ""
 fixture '' full; printf 'lite\n' > "$TMP/elsewhere"; ln -s "$TMP/elsewhere" "$CLAUDE_CONFIG_DIR/terse-mode"
 eq "badge refuses a symlinked level file" "$(badge)" ""
 
 printf '%s\n' '{"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"done"}]}}' > "$TMP/t.jsonl"
-for c in "|" "|full" "lite|full" "|bogus" "full|:CC_TERSE=ultra" "|:CLAUDE_PLUGIN_OPTION_CC_TERSE=lite" "full|:CC_TERSE=bogus"; do
+for c in "|" "|full" "lite|full" "|bogus" "full|:CC_TERSE=ultra" "|:CLAUDE_PLUGIN_OPTION_CC_TERSE=lite" "full|:CC_TERSE=bogus" \
+         "newcomer|" "|expert" "full|:CC_TERSE=on-call"; do
   spec=${c%%:*}; var=""; case "$c" in *:*) var=${c#*:} ;; esac
   fixture "${spec%%|*}" "${spec#*|}"
   set -- ${var:+"$var"}
   want=$(level "$@"); want=${want%% *}
   got=$(env "$@" bash "$S/measure.sh" --session-file "$TMP/t.jsonl" 2>&1 | sed -n 's/^level *: \([^ ]*\) .*/\1/p')
   eq "measure.sh level matches level.sh [$c]" "$got" "$want"
+done
+for c in newcomer:18 expert:12 on-call:6; do
+  fixture "${c%%:*}" ''
+  eq "measure.sh grades ${c%%:*} against its length level's ceiling" \
+    "$(bash "$S/measure.sh" --session-file "$TMP/t.jsonl" 2>&1 | sed -n 's/^level *: //p')" "${c%%:*} (ceiling ${c#*:} prose lines)"
 done
 
 exit $rc

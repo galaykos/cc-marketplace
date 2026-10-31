@@ -32,18 +32,8 @@
 #                     strip and a gap comment per extractor blind spot. Without it
 #                     the plain template is written. --brief "<text>" seeds the
 #                     strip's children text; --components <path> overrides the file.
-#
-# WHAT IT DOES NOT CATCH. A project with two stacks (Laravel + a separate Vite SPA)
-# resolves to Laravel because `artisan` outranks `vite.config.*`; pass --stack to
-# override. It never starts the dev server and never composes the design — the
-# model does both; the strip proves the imports resolve, nothing more. Inertia with
-# the Svelte adapter stays `laravel`. An APP_URL that is not the URL the app is served
-# on (the skeleton's bare http://localhost under `php artisan serve`) is printed as is.
-# A Tailwind v4 entry stylesheet the scaffold cannot find (Nuxt's, any but
-# resources/css/app.css on Laravel) gets no @source line. Standing:
-# scripts/__tests__/codebase.test.sh drives --detect and --create on a Vite React
-# fixture (plain, inventory-filled, alias-imported), a Laravel fixture and Laravel +
-# Inertia React and Vue fixtures, and cmp's the stylesheet and routes file after cleanup.
+# Misses: a two-stack project resolves to Laravel (artisan outranks vite.config.*; --stack overrides) and Inertia + Svelte stays laravel; an APP_URL the app is not served on prints as is; a Tailwind v4 entry stylesheet it cannot find gets no @source line. It never starts the dev server or composes the design; the strip proves only that the imports resolve.
+# Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/codebase-scaffold.sh
 set -euo pipefail
 
 MARK="__design-kit__ scratch — removed by codebase-cleanup.sh"
@@ -105,8 +95,7 @@ while IFS= read -r kv; do
 done < <(detect)
 
 write() { mkdir -p "$(dirname "$1")"; cat > "$1"; echo "wrote=$1"; }
-# mark_line <file> <line>: append once, after a newline only when the file ends without one
-# (a routes file with no final newline had its last route joined, then deleted by cleanup)
+# mark_line <file> <line>: append once, after a newline only when the file ends without one, so cleanup never deletes a joined last line
 mark_line() {
   python3 - "$1" "$2" <<'PY'
 import sys
@@ -208,8 +197,7 @@ EOF
 EOF
     echo "open=$d_dev_url/__design-kit__/$slug" ;;
   laravel)
-    # the wrapper (<x-app-layout> vs a standalone page with the layout's @vite) is
-    # evidence-based, so the plain template also goes through scaffold-fill.py
+    # the wrapper (<x-app-layout> or a standalone page) is evidence-based, so the plain template also goes through scaffold-fill.py
     target="resources/views/__design-kit__/$slug.blade.php"; mkdir -p "$(dirname "$target")"
     if [ -f "$components" ]; then fill "$target" </dev/null; else
       python3 "$HERE/scaffold-fill.py" laravel "$slug" --components /dev/null --brief "$brief" > "$target"; echo "wrote=$target"; fi

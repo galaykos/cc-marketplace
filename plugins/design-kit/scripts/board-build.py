@@ -1,22 +1,9 @@
 #!/usr/bin/env python3
 """board-build.py — render a design board (2–4 artboards on one canvas) from a spec.
 
-WHAT IT DOES. Reads a JSON or markdown spec (shape: skills/design/references/
-spec-format.md), fills skills/design/assets/board-shell.html, writes
-.design-kit/boards/YYYY-MM-DD-<slug>.html and prints the path. Theme defaults come
-from --tokens (default design-system/tokens.json when it exists): a DTCG file is
-walked for an accent colour, a base spacing, a corner radius and a body font
-family, each by path-name heuristic, each falling back to the shell's neutral
-default when absent; the accent is read from hex, rgb(), hsl() or oklch(), and a token
-file that maps no accent says so on stderr. Standing: scripts/__tests__/board-build.test.sh.
-
-WHAT IT GATES (exit 2). Fewer than 2 or more than 4 artboards; an empty body;
-"lorem ipsum" anywhere in a body; any external reference in a body (`http(s)://`
-in src/href/url()/@import, a <link>, a <script src>) — the board must render with
-the network off. WHAT IT DOES NOT CATCH: content that is realistic-looking but
-wrong, an artboard that is a palette swap of its neighbour (the skill's rule,
-agent-graded), and accessibility of the bodies (the shell's primitives carry the
-floor; a hand-written body can undo it).
+Reads a JSON or markdown spec (skills/design/references/spec-format.md), fills skills/design/assets/board-shell.html, writes .design-kit/boards/YYYY-MM-DD-<slug>.html and prints the path; accent, spacing, radius and body font come from --tokens (default design-system/tokens.json) by path-name heuristic, else the shell's defaults. Exit 2 on fewer than 2 or more than 4 artboards, an empty body, "lorem ipsum", or any external reference in a body (the board renders with the network off).
+Misses: realistic-looking but wrong content, an artboard that is a palette swap of its neighbour (agent-graded), and the bodies' accessibility (a hand-written body can undo the shell's floor).
+Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/board-build.py
 """
 import argparse
 import datetime as _dt
@@ -106,9 +93,7 @@ _COLOR_FN = re.compile(r"(rgba?|hsla?|oklch)\(\s*" + _NUM + r"(%|deg)?[\s,]+" + 
 
 def _color_to_hsl(value):
     """(h, s, l) from a 6-digit hex, rgb(), hsl() or oklch() — the shapes system-extract.py
-    passes through from a stylesheet. Until 0.10.0 only hex was read, so a Tailwind v4
-    @theme in oklch drew the board in the default blue without a word. Residual: oklab(),
-    lab(), lch(), color() and a `{color.x}` alias read as no colour."""
+    passes through from a stylesheet. Residual: oklab(), lab(), lch(), color() and a `{color.x}` alias read as no colour."""
     v = str(value).strip()
     m = re.fullmatch(r"#?([0-9a-f]{6})", v, re.I)
     if m:
@@ -278,10 +263,7 @@ def tokens_stamp(tokens_path):
 
 
 def dk_dir():
-    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit
-    at the git root — never under a subdirectory the shell had cd'd into, which scattered
-    a second .design-kit/ (finding 2 of the marketplace's
-    rationale/2026-09-25-session-plugin-usage-review.md)."""
+    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit at the git root (the cwd outside git)."""
     import subprocess
     if os.environ.get("DESIGN_KIT_DIR"):
         return os.environ["DESIGN_KIT_DIR"]

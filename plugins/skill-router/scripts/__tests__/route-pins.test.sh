@@ -43,7 +43,7 @@ bashw() { # cwd command transcript — runs the command, then the hook
     '{hook_event_name:"PostToolUse",tool_name:"Bash",session_id:"sess",transcript_path:$tp,cwd:$c,
       tool_input:{command:$cmd,description:"write"}}' | hook
 }
-nudges_for() { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null | grep -c "load the \`pinplug:$1\`"; }
+nudges_for() { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null | grep -c "Load the \`pinplug:$1\`"; }
 statef() { printf '%s/.claude/skill-router/fired-%s.json' "$1" "$(printf '%s' "$2" | cksum | cut -d' ' -f1)"; }
 mkrepo() { mkdir -p "$1"; git -C "$1" init -q; }
 
