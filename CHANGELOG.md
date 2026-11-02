@@ -13,7 +13,10 @@ Game plugins: Unity's plugin can load beside ours, and the art checkers start ru
   installing Unity's plugin alongside: ours carries the traps and the offline `.meta`/GUID checker, theirs carries
   breadth and the Unity CLI. stack-scan 0.18.2, skill-router 0.30.1, all-plugins 0.7.6, gamedev 0.1.2 and
   pixel-art 0.1.1 name the new plugin. Standing: gate for the ledger (`pc_renames_ledger`) and live names
-  (`pc_scout_names`); the side-by-side load was not tested.
+  (`pc_scout_names`). The two plugins loaded together in one `claude -p` session (CLI 2.1.316, `--plugin-dir`).
+- **unity-traps 0.3.1** — "Driving the Editor" leads with the Unity CLI used through Unity's plugin. It marks the
+  `com.unity.ai.assistant` MCP server deprecated (manual notice since 2.18.0-pre.2) and keeps CoplayDev's MCP for
+  Unity as the pre-6.0 alternative. Read 2026-11-02. Standing: recorded.
 
 ## [0.126.0] - 2026-10-31
 

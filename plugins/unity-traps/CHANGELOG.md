@@ -2,6 +2,19 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.1 — 2026-11-02
+
+- **Driving the Editor: the Unity CLI first.** The README section now leads with the Unity CLI
+  (`unity`, beta) used through Unity's plugin. Setup is `unity pipeline install` per project, then
+  `unity status`, and driving a running Editor needs Unity 6.0 LTS or later. The section also says
+  the MCP server in `com.unity.ai.assistant` is deprecated: the notice has been in the package
+  manual since 2.18.0-pre.2 (2026-08-18), and `unity mcp configure` is the MCP route Unity still
+  supports. CoplayDev's MCP for Unity (MIT, v10.3.0) is the alternative for projects older than
+  Unity 6.0. Every fact was read on 2026-11-02 from Unity's docs, Unity's plugin at `759ad5f` and
+  CoplayDev's repo. Standing: recorded.
+- **Side-by-side load tested.** Unity's plugin (0.1.8-beta) and this one loaded together in one
+  `claude -p` session on CLI 2.1.316, both passed with `--plugin-dir`. No Editor command was run.
+
 ## 0.3.0 — 2026-11-02
 
 - **Renamed from `unity` to `unity-traps`.** Unity's official Claude Code plugin

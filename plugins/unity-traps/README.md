@@ -66,17 +66,51 @@ unmeasured.
 
 ## Driving the Editor (not shipped here)
 
-This plugin ships no MCP server and no `.mcp.json`. Two third-party options exist. Both were
-read on 2026-10-30, and neither was installed or tested here:
+This plugin ships no MCP server and no `.mcp.json`. Everything in this section was read on
+2026-11-02 from Unity's docs and from Unity's plugin at commit `759ad5f` (0.1.8-beta).
 
-- **MCP for Unity** ([CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp), MIT). It is
-  a Unity package plus a Python server that runs under [`uv`](https://docs.astral.sh/uv/)
-  (Python 3.10+). Install it from Unity → Package Manager → Add package from git URL
-  `https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main`, then run
-  Window → MCP for Unity → Configure All Detected Clients, which writes the client configuration
-  itself.
-- **Unity's own agent plugin**, the companion above. Its plugin is named `unity`, which is why this
-  one is `unity-traps`.
+**Primary path: the Unity CLI, through Unity's plugin.** Unity's plugin "only ships skills and
+doesn't use a Model Context Protocol (MCP) server. Skills that control the Unity Editor run Unity
+CLI commands"
+([Unity's plugin for Claude Code](https://docs.unity.com/en-us/ai/unity-plugin/claude-code.md)).
+The CLI is a standalone binary, `unity`, still in beta (`unity --version` prints
+`1.0.0-beta.N`). It drives an open Editor through the `com.unity.pipeline` package, over a server
+that accepts localhost connections only:
+
+```bash
+curl -fsSL https://unity.com/install.sh | bash   # Windows: irm https://unity.com/install.ps1 | iex
+                                                 # or: brew install --cask unity-cli / winget install Unity.CLI
+unity pipeline install                           # once per project: adds the Pipeline package
+unity status                                     # with the Editor open: lists each Editor the CLI can reach
+```
+
+Driving a running Editor needs Unity 6.0 LTS or later. The CLI's other commands work with any
+Editor version: installing Editors, headless builds and test runs
+([install](https://docs.unity.com/en-us/unity-cli/use-unity-cli.md),
+[capabilities](https://docs.unity.com/en-us/unity-cli/replace-mcp-server-unity-cli.md)).
+
+**Deprecated: the MCP server in `com.unity.ai.assistant`.** "Unity has deprecated the MCP server
+component of the in-editor AI assistant package." The package manual has said "Unity MCP server is
+deprecated. Use the Unity command-line interface (CLI) instead." since 2.18.0-pre.2 (2026-08-18),
+and still says it in 2.19. The server still ships, so do not set it up for new work. An agent that
+can only speak MCP should use the CLI's own MCP server, which is not deprecated:
+`unity mcp configure claude`. When the agent can run shell commands, Unity recommends
+`unity command` over MCP, which it calls "faster and use[s] fewer tokens"
+([replacement page](https://docs.unity.com/en-us/unity-cli/replace-mcp-server-unity-cli.md),
+[2.18 changelog](https://docs.unity3d.com/Packages/com.unity.ai.assistant@2.18/changelog/CHANGELOG.html)).
+
+**Alternative: MCP for Unity** ([CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp),
+MIT, v10.3.0 of 2026-10-04). Unity says third-party MCP packages are not affected by the
+deprecation. Use this one when the project is older than Unity 6.0: it supports 2021.3 LTS
+through 6.x. It is a Unity package plus a Python 3.10+ server run by
+[`uv`](https://docs.astral.sh/uv/). To install it, add it from Unity → Package Manager → Add
+package from git URL `https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main`. Then run
+Window → MCP for Unity → Configure All Detected Clients, which writes the client configuration.
+
+Tested here on 2026-11-02: Unity's plugin and this one loaded together in one `claude -p` session
+(CLI 2.1.316, both passed with `--plugin-dir`). It listed 33 `unity:` skills and
+`unity-traps:unity-best-practices`. Not tested here: any Editor command, and either MCP server.
+Standing: **recorded**. Nothing re-reads these pages, so treat the versions above as of that date.
 
 Credit: Adapted from [gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) @184b72b (Apache-2.0, © 2026 Abhishek Barali and contributors); prose distilled and rewritten here, scripts copied and modified (see NOTICE). The URP 2D
 reference takes its topic list from [scenario-labs/skills](https://github.com/scenario-labs/skills)
