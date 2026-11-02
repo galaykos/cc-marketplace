@@ -46,3 +46,60 @@ starting with `%YAML`) are skipped.
 
 Standard library only. Read-only: nothing is ever written.
 ```
+
+## plugins/unity-traps/hooks/meta-check.sh
+
+Added 2026-11-02 (unity-traps 0.4.0). Until then `check_unity_project.py` was **recorded** only: the
+README said no hook or CI step ran it, so a `.meta` an agent left behind on a `mv` surfaced only
+when Unity reimported the asset with a new GUID and every scene reference to it went missing. The
+user asked for the checkers to run on their own, warning and never blocking.
+
+Design:
+
+- **Trigger.** A Bash command that holds a move/copy/delete verb (`mv cp rm rmdir rsync ln install
+  unlink`, `git mv|rm`, `find … -delete`, Python `shutil`/`os`/`Path.rename`, Node `fs.*Sync`,
+  .NET `File|Directory.Move|Copy|Delete`) and the string `Assets`. A Write/Edit qualifies only when
+  it writes an `Assets/*.meta`. A hand-written `.meta` is how a copy duplicates a GUID; any other
+  Write is a new file, which the checker already calls normal.
+- **Which project.** It walks up from each touched path, then from `cwd`, looking for
+  `ProjectSettings/ProjectVersion.txt`. That covers a monorepo with the Unity project in a
+  subfolder, and a shell that is already inside it.
+- **What is said.** Errors are reported wherever they are, because each one is a broken reference.
+  Warnings are reported only on a touched path, its `.meta`, or below a touched folder. A legacy
+  project with fifty class/file name mismatches would otherwise answer every `mv` with fifty lines.
+  `missing-meta` is kept only after a move or rename (`mv`, `git mv`, `shutil.move`, `os.rename`,
+  `.rename(`, `File.Move`). A copy into `Assets/` should arrive without a `.meta`, so Unity gives it
+  a fresh GUID; that warning is noise there. After a move it is the only sign of a deleted `.meta`.
+  Each finding is said once per context (transcript, hashed), in `meta-seen-<ctx>` under the
+  plugin's state directory.
+- **Cost.** The checker took 0.74 s on a synthetic 40,201-file project (200 folders, 12,000
+  scripts, 8,000 prefabs, 158 MB), on three warm runs on 2026-11-02. `CHECK_TIMEOUT=20` per run, and
+  hooks.json allows 45 s. A cheap exit on a Bash call that is not a move: 9 ms median, 10 ms max,
+  over 20 runs.
+- **Limits** (also in the header): a path held in a variable, a relative path after an in-command
+  `cd` (its warnings filter out; errors still show), a move by the Editor, an IDE or `make`. A verb
+  inside a heredoc body triggers a run, which costs one checker pass and prints only on a finding.
+
+Standing: the firing and silence cases are a **gate** in
+`scripts/smoke/game-checker-hooks-tests.sh`, run in CI.
+
+**Live host check, 2026-11-02.** One headless `claude -p` session (CLI 2.1.316, haiku), with unity-traps and meshy loaded by `--plugin-dir`, ran `mv` of an `Assets/` script without its `.meta`, then `cp` of a 60,000-triangle `.glb`. Its final reply named both findings: the `.meta` left behind, and "60,000 triangles, over the 15,000 budget". So the host delivered both hooks' context, and the PreToolUse/PostToolUse `tool_use_id` bracket held. blender and pixel-art were driven only through the harness. What the agent does with a finding is
+**agent-graded**.
+
+## scripts/smoke/game-checker-hooks-tests.sh
+
+One harness for the four checker hooks added on 2026-11-02: unity-traps `meta-check.sh`, meshy
+`glb-check.sh`, blender `bpy-check.sh` and pixel-art `sheet-check.sh`. Each hook gets cases that
+must fire on a broken fixture and cases that must stay silent on its nearest neighbour:
+
+- unity-traps: `ls` and `grep` of `Assets`, a `git mv` of an asset with its `.meta`, a project
+  with no `ProjectVersion.txt`, a written `.cs`;
+- meshy: a model within budget, a call naming no model, a PostToolUse with no PreToolUse marker;
+- blender: a non-write command, a `.py` named only inside a heredoc body, a `.py` without `bpy`, no
+  version source, a 4.2 `.blend` beating a 5.2 Blender on PATH, a file outside the project;
+- pixel-art: a written `package.json`, a bracketed `cat package.json`.
+
+Every case asserts exit 0 and the payload's own `hookEventName`. One case also proves that the
+repo-fallback state directory is invisible to git. The payloads carry `transcript_path`, the key
+the hooks use. Blender is a PATH stub that prints a version, so the harness runs without Blender,
+as CI does. 48 cases on 2026-11-02.

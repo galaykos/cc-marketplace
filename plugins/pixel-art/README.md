@@ -38,8 +38,8 @@ skills; this plugin ships no `.mcp.json`.
 
 | Rule | Standing |
 |---|---|
-| A sheet JSON agrees with its PNG: image present at the declared size, frames inside it, tags inside the frames array, positive durations, no repeated hash key | **gate** where `check_sprite_sheet.py` runs (exit 1); nothing runs it unasked, so running it is agent-graded |
-| Map references resolve, GIDs belong to a tile after masking, layer data has the right length | **gate** where `check_tilemaps.py` runs (exit 1); same caveat |
+| A sheet JSON agrees with its PNG: image present at the declared size, frames inside it, tags inside the frames array, positive durations, no repeated hash key | **gate** where `check_sprite_sheet.py` runs (exit 1). `hooks/sheet-check.sh` runs it on a sheet JSON (or the same-stem JSON beside a PNG) that a Write names, or that changes during a Bash call naming a sheet tool or extension. It adds findings once per context and never blocks; `scripts/smoke/game-checker-hooks-tests.sh` pins it in CI. A sheet whose JSON stem differs from its PNG: run it yourself, agent-graded |
+| Map references resolve, GIDs belong to a tile after masking, layer data has the right length | **gate** where `check_tilemaps.py` runs (exit 1). The same hook runs it on a `.tmx`, `.tmj` or `.ldtk` a Write names or a bracketed Bash call changes. `.tsx`/`.tsj`/`.ldtkl` alone: run it yourself, agent-graded |
 | No layer format the target engine skips | **gate** under `--engine phaser`; a warning under `--engine melonjs` and for zstd |
 | CLI option order, `--list-tags`, Pillow palette defaults, area downscaling of generated art, LDtk edits through plain fields | recorded: written in the skills, nothing reads it back |
 | The checkers' own contracts | **gate**: `scripts/__tests__/check_sprite_sheet.test.sh` and `check_tilemaps.test.sh`, run by CI's plugin-harness step |

@@ -52,7 +52,8 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_unity_project.py" path/to/Project -
 
 | Rule | Standing |
 |---|---|
-| The checker's verdicts and exit codes | **gate** for the script itself: `scripts/__tests__/check_unity_project.test.sh` runs 32 cases in CI. Running the checker on your project is **recorded** only, because no hook or CI step runs it for you. |
+| The checker's verdicts and exit codes | **gate** for the script itself: `scripts/__tests__/check_unity_project.test.sh` runs 32 cases in CI. |
+| The checker runs after a move | **gate** where the hook fires. `hooks/meta-check.sh` runs it after a Bash call whose `mv`, `cp`, `rm`, `rsync`, `ln`, `git mv`/`git rm`, `find -delete` or Python/Node/.NET move names an `Assets/` path, and after a Write/Edit of an `Assets/*.meta`. It adds errors anywhere and warnings on the touched paths, each once per context, and never blocks. Its firing and silence are pinned in CI by `scripts/smoke/game-checker-hooks-tests.sh`. A move it cannot see (a path in a variable, the Editor, an IDE) still needs a manual run: **recorded**. |
 | Every fact in the references | **recorded**. Each reference names which of its items were re-read against Unity's docs on its stamp date and which are carried from the upstream source unread. |
 | Version-matching advice to `ProjectVersion.txt` and the package lock | **agent-graded** |
 

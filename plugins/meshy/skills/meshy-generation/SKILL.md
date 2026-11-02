@@ -16,7 +16,7 @@ exit codes below are 0.7.x), the MCP server `@meshy-ai/meshy-mcp-server`, or raw
 | Never resend a create after a timeout, a dropped connection, a 5xx or CLI exit 10; reconcile first | **recorded**. meshy-cli and the MCP server already refuse to retry a create (their own code); a hand-written client has no guard, and the API has no idempotency key |
 | A running task cannot be cancelled; do not delete to "save credits" | **recorded** — the API answers 409 and the task keeps running |
 | Download on `SUCCEEDED`; never keep a signed URL as the only copy | **recorded** — files are gone after 3 days |
-| Measure the model file against the target's triangle, texture and extension budget before import or upload | **gate** for what `inspect_glb.py` checks (exit 1); no hook runs it, so whether it runs is **agent-graded** |
+| Measure the model file against the target's triangle, texture and extension budget before import or upload | **gate** for what `inspect_glb.py` checks (exit 1). The plugin's hook runs it at 15,000 triangles / 2,048 px when a model lands through a Write, a Bash call naming glb/gltf/meshy, or Meshy's MCP download; warn-only. Another budget or another route: run it yourself, **agent-graded** |
 | Ship a free-plan model only with credit to Meshy; never post a paid model to Meshy Community | **recorded** — the Terms of Use, below; nothing reads a licence |
 | Steam AI-content disclosure and the per-asset licence record | the **gamedev** companion's `game-assets` skill owns both |
 

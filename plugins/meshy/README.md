@@ -79,7 +79,7 @@ The checker is stdlib-only Python 3, reads the files it is given and writes noth
 |---|---|
 | Never resend a create after a timeout, dropped connection, `5xx` or meshy-cli exit 10 | **recorded** in the skill. meshy-cli and the MCP server refuse to retry a create in their own code; a hand-written client has nothing |
 | A running task cannot be cancelled; files expire after 3 days | **recorded** — the API enforces both, nothing here does |
-| Triangle, texture-size and required-extension budget of a GLB/glTF | **gate** for what `inspect_glb.py` checks (exit 1); no hook runs it, so whether it runs is **agent-graded** |
+| Triangle, texture-size and required-extension budget of a GLB/glTF | **gate** for what `inspect_glb.py` checks (exit 1). `hooks/glb-check.sh` runs it at 15,000 triangles and 2,048 px on a `.glb`/`.gltf` a Write names, or one that lands during a Bash call naming glb/gltf/meshy or a Meshy MCP download. It adds failures once per context and never blocks; `scripts/smoke/game-checker-hooks-tests.sh` pins it in CI. A model landed another way (`unzip`, a script that names no model) or measured against another budget: run the checker yourself, **agent-graded** |
 | Free-plan output carries CC BY 4.0 credit to Meshy; a model shared to Meshy Community becomes CC0 | **recorded** — read from Meshy's Terms of Use; no script reads a licence |
 | The checker's own contract (counts, transforms, budgets, extensions, exit codes) | **gate** — `scripts/__tests__/inspect_glb.test.sh`, run by CI's plugin-harness step |
 

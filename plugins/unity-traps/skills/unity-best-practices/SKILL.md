@@ -58,7 +58,7 @@ its items were re-read against Unity's docs on its stamp date.
 
 | Rule | Standing |
 |---|---|
-| A file moved outside the Editor keeps its `.meta`; no GUID is duplicated | **recorded** — `check_unity_project.py` exits 1 on a violation, but no hook or CI step runs it; you must |
+| A file moved outside the Editor keeps its `.meta`; no GUID is duplicated | **gate** where the plugin's PostToolUse hook fires: it runs `check_unity_project.py` after a Bash move/copy/delete naming `Assets/` or a written `.meta`, and adds what it finds; warn-only. A move it cannot see (a path in a variable, an IDE): run the checker yourself |
 | Advice matches `ProjectVersion.txt` and the package lock | **agent-graded** |
 | New code uses the Unity 6 names (`linearVelocity`, `FindAnyObjectByType`, `PhysicsMaterial`, `CinemachineCamera`; from 6000.5 `GetEntityId`) | **agent-graded** — most old names still compile with obsolete warnings, so a green build proves nothing |
 | A failed CI build exits non-zero | **recorded** — only the build method's own throw or `EditorApplication.Exit(1)` makes it so |

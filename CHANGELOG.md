@@ -17,6 +17,17 @@ Game plugins: Unity's plugin can load beside ours, and the art checkers start ru
 - **unity-traps 0.3.1** — "Driving the Editor" leads with the Unity CLI used through Unity's plugin. It marks the
   `com.unity.ai.assistant` MCP server deprecated (manual notice since 2.18.0-pre.2) and keeps CoplayDev's MCP for
   Unity as the pre-6.0 alternative. Read 2026-11-02. Standing: recorded.
+- **The art checkers run on their own: unity-traps 0.4.0, meshy 0.2.0, blender 0.2.0, pixel-art 0.2.0.** Each
+  plugin gains a warn-only hook that runs its checker when its file kind lands, and adds what it finds once per
+  context:
+  - `.meta` moves and deletes under `Assets/`;
+  - `.glb`/`.gltf` downloads, at 15,000 triangles and 2,048 px;
+  - written `bpy` scripts, against the project's Blender version;
+  - sprite sheets and Tiled/LDtk maps.
+
+  meshy and pixel-art bracket a Bash or MCP call between PreToolUse and PostToolUse, so a `curl -o` or an
+  `aseprite -b` export is seen. Standing: gate where each hook fires, by the new CI step
+  `scripts/smoke/game-checker-hooks-tests.sh` (48 cases). CLAUDE.md's CI count is now 52 named steps, 50 fail-capable.
 
 ## [0.126.0] - 2026-10-31
 

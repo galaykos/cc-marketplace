@@ -55,6 +55,8 @@ jobs:
         run: bash scripts/smoke/comment-density-tests.sh
       - name: Verbosity hook smoke tests
         run: bash scripts/smoke/verbosity-hook-tests.sh
+      - name: Game checker hooks smoke tests (unity-traps, meshy, blender, pixel-art)
+        run: bash scripts/smoke/game-checker-hooks-tests.sh
       - name: Authoring-guard smoke tests
         run: bash scripts/smoke/guard-tests.sh
       - name: Hook syntax smoke tests

@@ -35,7 +35,7 @@ scene; it was run on Blender 5.2.3 only.
 
 | Rule | Standing |
 |---|---|
-| No bpy call the target version removed or renamed | **gate** for whoever runs `check_bpy_scripts.py` (exit 1); running it is **recorded** — no hook runs it |
+| No bpy call the target version removed or renamed | **gate** for what `check_bpy_scripts.py` reads (exit 1). `hooks/bpy-check.sh` runs it on a `.py` under the project that imports `bpy`/`bmesh`, after a Write/Edit or a Bash redirect, `tee` or `sed -i` into it. The target comes from a `.blend` beside it, else the project's newest `.blend`, else `blender --version`. It adds findings once per context and never blocks; `scripts/smoke/game-checker-hooks-tests.sh` pins it in CI. An interpreter or `cp` write, or no version source at all, still needs a manual run: **recorded** |
 | The checker's contract: exit codes, version windows, header decoding, both zstd branches | **gate** — `scripts/__tests__/check_bpy_scripts.test.sh`, run by CI's plugin-harness step |
 | Each checker rule is true of a real Blender: the old API gone, the named replacement present | **gate** only where `BLENDER_EXE` names a binary (`test_rules_in_blender.py`); CI has no Blender and skips it. Last run 2026-10-30 on 5.2.3: 29 of 29 |
 | A mesh passes QA before it is called done | **gate** when `blender_qa.py` runs (exit 1); whether it runs is **agent-graded** |

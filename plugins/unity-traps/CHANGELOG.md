@@ -2,6 +2,23 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.4.0 — 2026-11-02
+
+- **The `.meta` checker runs on its own.** A new PostToolUse hook, `hooks/meta-check.sh`, runs
+  `check_unity_project.py` when either happens:
+  - a Bash call moves, copies or deletes an `Assets/` path: `mv`, `cp`, `rm`, `rsync`, `ln`,
+    `git mv`/`git rm`, `find -delete`, or a Python, Node or .NET file call;
+  - a Write/Edit writes an `Assets/*.meta`.
+
+  It reports errors anywhere in the project, and warnings only on the paths the call touched. Each
+  finding is reported once per context, as added context: it warns and never blocks. Off:
+  `CC_UNITY_META_CHECK=off`, or the new `/config` switch.
+- **Measured.** The checker ran in 0.74 s on a synthetic 40,201-file project. The hook's cheap exit
+  on a Bash call that is not a move took 9 ms median and 10 ms max over 20 runs.
+- **Standing.** Running the checker after a move moves from recorded to **gate** where the hook
+  fires; `scripts/smoke/game-checker-hooks-tests.sh` pins when it fires and when it stays silent, in CI. A move the hook cannot see (a
+  path in a variable, the Editor, an IDE) still needs a manual run.
+
 ## 0.3.1 — 2026-11-02
 
 - **Driving the Editor: the Unity CLI first.** The README section now leads with the Unity CLI
