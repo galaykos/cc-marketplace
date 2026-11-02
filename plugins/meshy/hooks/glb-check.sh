@@ -76,6 +76,14 @@ cc_plugin_state() {
 
   event=$(printf '%s' "$input" | jq -r '.hook_event_name // empty' 2>/dev/null)
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null)
+  # Every Bash call fires PreToolUse: the command test runs before git, cksum or any state path.
+  if [ "$event" = "PreToolUse" ]; then
+    case "$tool" in
+      Bash) printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null | grep -qiE 'glb|gltf|meshy' || exit 0 ;;
+      mcp__*[Dd]ownload*) ;;
+      *) exit 0 ;;
+    esac
+  fi
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
   sroot=$(cc_state_root "$cwd") || exit 0
@@ -87,14 +95,9 @@ cc_plugin_state() {
   call=$(printf '%s' "$input" | jq -r '.tool_use_id // empty' 2>/dev/null)
   mark=""
   [ -n "$call" ] && mark="$dir/glb-call-$(printf '%s' "$call" | cksum | cut -d' ' -f1)"
-  bracketed=0
-  case "$tool" in
-    Bash) printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null | grep -qiE 'glb|gltf|meshy' && bracketed=1 ;;
-    mcp__*) case "$tool" in *[Dd]ownload*) bracketed=1 ;; esac ;;
-  esac
 
   if [ "$event" = "PreToolUse" ]; then
-    [ "$bracketed" = 1 ] && [ -n "$mark" ] || exit 0
+    [ -n "$mark" ] || exit 0
     mkdir -p "$dir" 2>/dev/null || exit 0
     [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null
     find "$dir" -maxdepth 1 -name 'glb-call-*' -mmin +120 -delete 2>/dev/null

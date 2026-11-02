@@ -16,6 +16,8 @@ Consumer-facing changes only. Newest first.
 - **Measured.** The cheap exit took 14–15 ms median and 16 ms max over 20 runs.
 - **Standing.** Running the checkers moves from agent-graded to **gate** where the hook fires
   (`scripts/smoke/game-checker-hooks-tests.sh`, in CI). `.tsx`/`.tsj`/`.ldtkl` alone are not watched.
+- **Review fix.** As in meshy, PreToolUse tests the command text first. The harness's PNG case now
+  matches the checker's finding rather than the file name.
 
 ## 0.1.1 — 2026-11-02
 

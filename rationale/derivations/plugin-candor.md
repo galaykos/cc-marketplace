@@ -19,7 +19,7 @@ orders three kinds of call:
   commands, read 2026-11-02), or an MCP screenshot;
 - a console read: `unity command console get|status`, or `read_console`.
 
-It blocks only when both a capture and a console read are missing after the last change. It stands
+It blocks when either a capture or a console read is missing after the last change. It stands
 down when no route exists, because demanding a capture a headless box cannot take would teach the
 agent to dodge the word "done"; the skill tells it to say "not captured" instead.
 
@@ -30,7 +30,9 @@ The MCP action names come from CoplayDev/unity-mcp v10.3.0's tool sources, read 
 **Limits:**
 
 - a Unity change through a tool it does not name (a Unity CLI `script eval` that edits, an IDE);
-- an MCP server whose tool names lack "unity";
+- an MCP server whose name does not hold "unity" as a word (`UnityMCP`, `mcp-unity` and `mcpUnity` do;
+  `community-forum` and `myunity` do not);
+- an MCP for Unity edit tool beyond the ones read from v10.3.0's sources, which arms nothing;
 - a capture taken but not looked at;
 - a camera that captures the wrong thing.
 

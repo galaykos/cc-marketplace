@@ -8,6 +8,11 @@ Consumer-facing changes only. Newest first.
   `scene.node_tree`. On 2026-11-02 it scored 5/5 with the plugin and 5/5 without, so it is a
   regression guard, not a measure of the skill. Spend was $0.97. Results are in
   `rationale/gamedev-evals-2026-11-02.md`.
+- **Review fixes.**
+  - The bpy hook splits the checker's output with awk instead of GNU-only sed `\t`, so it no
+    longer garbles on macOS. That was not run on BSD awk here.
+  - It now also reads `import os, bpy` and `import gpu, bgl` lines.
+  - It caps Bash targets after keeping only `.py` files, not before.
 
 ## 0.2.0 — 2026-11-02
 

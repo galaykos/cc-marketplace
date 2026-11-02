@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # gate.test.sh — drives hooks/gate.sh with synthetic transcripts and Stop/SubagentStop payloads carrying transcript_path, asserting the verdict
-#   and its text: clauses 1, 2, 5 and 6, clause 3 on Bash writes, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage.
+#   and its text: clauses 1, 2, 5, 6 and 7, clause 3 on Bash writes, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/gate.test.sh
 set -u
 
@@ -964,10 +964,12 @@ fi
 
 # Clause 7: Unity scene, prefab or Assets script work claimed done needs a capture and a console read after the last change.
 VIS_SUB='did not run after the last change'
-mkdir -p "$CWD/Game/Assets/Scripts" "$CWD/Game/ProjectSettings" "$WS/ubin" "$WS/nounity"
+mkdir -p "$CWD/Game/Assets/Scripts" "$CWD/Game/ProjectSettings" "$WS/ubin" "$WS/ubin0" "$WS/nounity"
 echo 'm_EditorVersion: 6000.3.1f1' > "$CWD/Game/ProjectSettings/ProjectVersion.txt"
-printf '#!/bin/sh\nexit 0\n' > "$WS/ubin/unity"; chmod +x "$WS/ubin/unity"
-UPATH="PATH=$WS/ubin:/usr/bin:/bin"; NPATH="PATH=$WS/nounity:/usr/bin:/bin"
+printf '#!/bin/sh\n[ "$1" = --version ] && echo 1.0.0-beta.13\nexit 0\n' > "$WS/ubin/unity"; chmod +x "$WS/ubin/unity"
+printf '#!/bin/sh\nexit 0\n' > "$WS/ubin0/unity"; chmod +x "$WS/ubin0/unity"
+BASE_PATH="$(dirname "$(command -v jq)"):/usr/bin:/bin"
+UPATH="PATH=$WS/ubin:$BASE_PATH"; NPATH="PATH=$WS/nounity:$BASE_PATH"
 writef() { jq -cn --arg f "$1" '{type:"assistant",message:{content:[{type:"tool_use",name:"Write",input:{file_path:$f,content:"x"}}]}}'; }
 mcp()    { jq -cn --arg n "$1" --arg a "$2" '{type:"assistant",message:{content:[{type:"tool_use",name:$n,input:{action:$a}}]}}'; }
 CAP='unity command capture game_view -- --source camera --save_path Screenshots/check.png'
@@ -1002,6 +1004,27 @@ T="$WS/v12.jsonl"; { user "show me the hierarchy"; mcp mcp__UnityMCP__manage_sce
 check "clause 7: a read-only MCP call arms nothing" "$NPATH" "$T" 0 "__NONE__"
 T="$WS/v13.jsonl"; { user "earlier turn"; writef "$CWD/Game/Assets/Scenes/Level1.unity"; tres; asst "Not done yet."; user "now just tell me the date"; bashc "date"; tres; asst "Done: it is Monday."; } > "$T"
 check "clause 7: a change in an earlier turn does not arm this turn" "$UPATH" "$T" 0 "__NONE__"
+skillc() { jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"Skill",input:{skill:"unity-traps:unity-best-practices"}}]}}'; }
+metau()  { jq -cn --arg t "$1" '{type:"user",isMeta:true,message:{content:[{type:"text",text:$t}]}}'; }
+T="$WS/v14.jsonl"; { user "add a pickup"; writef "$CWD/Game/Assets/Scenes/Level1.unity"; tres; skillc; tres; metau "Base directory for this skill: /x/unity-best-practices
+
+# Unity best practices"; bashc "ls"; tres; asst "Done."; } > "$T"
+check "clause 7: a loaded skill body (isMeta) mid-turn does not hide the earlier change" "$UPATH" "$T" 2 "$VIS_SUB"
+T="$WS/v15.jsonl"; { user "add a level"; bashc "cat > Game/Assets/Scenes/L1.unity <<'EOF'
+%YAML 1.1
+EOF
+$CAP && $CON"; tres; asst "Done, captured."; } > "$T"
+check "clause 7: a write, capture and console get in one Bash call pass" "$UPATH" "$T" 0 "__NONE__"
+T="$WS/v16.jsonl"; { user "post and add a pickup"; mcp mcp__community-forum__post create; tres; writef "$CWD/Game/Assets/Scenes/Level1.unity"; tres; bashc "ls"; tres; asst "Done."; } > "$T"
+check "clause 7: an MCP tool whose server only contains 'unity' (community) is no route" "$NPATH" "$T" 0 "__NONE__"
+check "clause 7: an executable named unity that prints no version is no route" "PATH=$WS/ubin0:$BASE_PATH" "$WS/v5.jsonl" 0 "__NONE__"
+T="$WS/v17.jsonl"; { user "add a pickup"; writef "$CWD/Game/Assets/Scenes/Level1.unity"; tres; bashc "$WS/ubin/$CAP"; tres; bashc "$WS/ubin/$CON"; tres; asst "Done"; } > "$T"
+check "clause 7: a capture and console get through a full path pass" "$UPATH" "$T" 0 "__NONE__"
+T="$WS/v18.jsonl"; { user "add a menu item"; jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"Edit",input:{file_path:"Game/Assets/Editor/Tool.cs"}}]}}'; tres; bashc "ls"; tres; asst "Done."; } > "$T"
+check "clause 7: an Editor/ script arms nothing" "$UPATH" "$T" 0 "__NONE__"
+mkdir -p "$WS/Test/Proj/ProjectSettings"; echo 'm_EditorVersion: 6000.3.1f1' > "$WS/Test/Proj/ProjectSettings/ProjectVersion.txt"
+T="$WS/v19.jsonl"; { user "fix the player"; writef "$WS/Test/Proj/Assets/Scripts/Player.cs"; tres; bashc "ls"; tres; asst "Done."; } > "$T"
+check "clause 7: a project kept under a Test/ folder still arms" "$UPATH" "$T" 2 "$VIS_SUB"
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

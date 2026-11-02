@@ -1,5 +1,5 @@
 #!/bin/bash
-# PostToolUse/PostToolUseFailure, a Bash call whose mv, cp, rm, rsync, ln, git mv|rm, find -delete or shutil/os/fs/File call names an Assets/ path, or a Write/Edit of an Assets/*.meta: runs check_unity_project.py on the Unity project above it and adds errors anywhere plus warnings on the touched paths, each once per context.
+# PostToolUse/PostToolUseFailure, a Bash call whose mv, cp, rm, rsync, ln, git mv|rm, find -delete or shutil/os/fs/File call names an Assets/ path or runs with cwd inside Assets/, or a Write/Edit of an Assets/*.meta: runs check_unity_project.py on the Unity project above it and adds errors anywhere plus warnings on the touched paths, each once per context.
 # Misses: a path in a variable, a relative path after an in-command cd (warnings filtered out), a move by a tool it does not name (make, an IDE), findings past MAX_SHOWN, projects past MAX_PROJECTS, a run past CHECK_TIMEOUT; a verb in a heredoc body triggers a run. Warn-only, fail-open. Off: CC_UNITY_META_CHECK=off, or /config.
 # Why, limits, history: rationale/derivations/plugin-unity-traps.md § plugins/unity-traps/hooks/meta-check.sh
 
@@ -93,9 +93,13 @@ VERBS='(^|[;&|({[:space:]])(mv|cp|rm|rmdir|rsync|ln|install|unlink)[[:space:]]|(
   case "$tool" in
     Bash)
       cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
-      case "$cmd" in *Assets*) ;; *) exit 0 ;; esac
+      # A shell already inside Assets/ names no Assets path: cwd itself is the touched path then.
+      incwd=0
+      case "$cwd" in */Assets|*/Assets/*) incwd=1 ;; esac
+      case "$cmd" in *Assets*) ;; *) [ "$incwd" = 1 ] || exit 0 ;; esac
       printf '%s\n' "$cmd" | grep -qE "$VERBS" || exit 0
       printf '%s\n' "$cmd" | grep -qE "$MOVES" && moved=1
+      [ "$incwd" = 1 ] && touched="$cwd"$'\n'
       while IFS= read -r t; do
         [ -n "$t" ] || continue
         case "$t" in /*) ;; *) t="$cwd/$t" ;; esac
@@ -112,7 +116,6 @@ VERBS='(^|[;&|({[:space:]])(mv|cp|rm|rmdir|rsync|ln|install|unlink)[[:space:]]|(
   esac
   [ -n "$touched" ] || exit 0
 
-  # The project holding ProjectSettings/ProjectVersion.txt above each touched path, else above cwd.
   find_project() {
     local d="$1" i=0
     while [ -n "$d" ] && [ "$i" -lt 12 ]; do

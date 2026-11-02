@@ -1,5 +1,5 @@
 #!/bin/bash
-# PostToolUse/PostToolUseFailure on a Write/Edit of a .py, or a Bash redirect/tee/sed -i into one, under the project root that imports bpy or bmesh: runs check_bpy_scripts.py on that file against the version of a .blend beside it, else the project's newest .blend, else `blender --version`, and adds its errors and warnings once per context.
+# PostToolUse/PostToolUseFailure on a Write/Edit of a .py, or a Bash redirect/tee/sed -i into one, under the project root that imports bpy, bmesh, bpy_extras, bgl or gpu: runs check_bpy_scripts.py on that file against the version of a .blend beside it, else the project's newest .blend, else `blender --version`, and adds its errors and warnings once per context.
 # Misses: interpreter, cp/mv and variable-path writes from Bash, a relative target after an in-command cd, no version source at all (silent), findings past MAX_SHOWN, a run past CHECK_TIMEOUT; every check_bpy_scripts.py limit (names, not types). Warn-only, fail-open. Off: CC_BPY_CHECK=off, or /config.
 # Why, limits, history: rationale/derivations/plugin-blender.md § plugins/blender/hooks/bpy-check.sh
 
@@ -212,19 +212,18 @@ cc_bash_write_targets() {
           /*.py) cands="$cands$t"$'\n' ;;
           *.py) [ "$hascd" = 0 ] && cands="$cands$cwd/$t"$'\n' ;;
         esac
-      done < <(cc_bash_write_targets "$cmd" | head -n "$MAX_BASH_TARGETS")
+      done < <(cc_bash_write_targets "$cmd" | LC_ALL=C grep -E '\.py$' | head -n "$MAX_BASH_TARGETS")
       ;;
     *) exit 0 ;;
   esac
 
-  # Only a .py under the project root that imports bpy or bmesh.
   files=""
   while IFS= read -r f; do
     [ -n "$f" ] || continue
     case "$f" in *.py) ;; *) continue ;; esac
     case "$f" in "$sroot"/*) ;; *) continue ;; esac
     [ -f "$f" ] && [ -r "$f" ] || continue
-    grep -qE '^[[:space:]]*(import|from)[[:space:]]+(bpy|bmesh)([[:space:].,]|$)' "$f" 2>/dev/null || continue
+    grep -qE '^[[:space:]]*(import|from)[[:space:]]+(.*[^[:alnum:]_.])?(bpy|bmesh|bpy_extras|bgl|gpu)([^[:alnum:]_]|$)' "$f" 2>/dev/null || continue
     case $'\n'"$files" in *$'\n'"$f"$'\n'*) ;; *) files="$files$f"$'\n' ;; esac
   done <<< "$cands"
   [ -n "$files" ] || exit 0
@@ -283,7 +282,9 @@ cc_bash_write_targets() {
       else
         more=$((more + 1))
       fi
-    done < <(printf '%s\n' "$out" | sed -nE 's/^(ERROR|WARNING) [^:]*:([0-9]+): (.*)$/\2\t\1 \3/p')
+    done < <(printf '%s\n' "$out" | awk '/^(ERROR|WARNING) [^:]*:[0-9]+: / {
+        r = substr($0, index($0, " ") + 1); r = substr(r, index(r, ":") + 1)
+        printf "%s\t%s %s\n", substr(r, 1, index(r, ":") - 1), $1, substr(r, index(r, ":") + 2) }')
   done <<< "$files"
   [ "$nshown" -gt 0 ] || exit 0
 

@@ -1022,7 +1022,7 @@ clause_naked_completion
 
 uv_mode=$(cc_option CC_UNITY_VISUAL_GATE block)
 # Clause 7: this turn changed a Unity scene, prefab or script and says it is done, with no capture and no console read after that
-# change, while a capture route exists (the unity CLI on PATH, or a Unity MCP tool in the transcript). A route-less session stands down.
+# change, while a capture route exists (a unity CLI that prints a version, or a Unity MCP tool in the turn). A route-less turn stands down.
 CAPTURE_ACK='not captured|no capture|did not capture|didn.t capture|could not capture|cannot capture|capture (was )?not (run|taken)|without a capture|console (was )?not read|did not read the console|didn.t read the console'
 unity_project_of() { # <path> -> 0 when a ProjectSettings/ProjectVersion.txt sits at or above its directory
   local d i=0
@@ -1034,15 +1034,20 @@ unity_project_of() { # <path> -> 0 when a ProjectSettings/ProjectVersion.txt sit
   done
   return 1
 }
+# An Editor or test script changes nothing a capture shows; only a folder below Assets/ counts, so a project kept under ~/Test/ still arms.
+unity_change() { # <absolute path>
+  case "/${1#*/Assets/}" in */Editor/*|*/Tests/*|*/Test/*) return 1 ;; esac
+  case "$1" in *.unity|*.prefab|*/Assets/*.cs) unity_project_of "$1" ;; *) return 1 ;; esac
+}
 clause_unity_visual() {
   [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ -n "$last_msg" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "visual" ] && [ "$uv_mode" != "off" ] || return 0
   printf '%s' "$last_msg" | grep -qiwE "$CLAIM" || return 0
   printf '%s' "$last_msg" | grep -qiwE "$ACK" && return 0
   printf '%s' "$last_msg" | grep -qiE "$CAPTURE_ACK" && return 0
   # One line per tool call of this turn (after the last prompt the person typed): kind, a tab, then the path, command or tool name.
-  local calls n=0 last_edit=0 last_cap=0 last_con=0 route=0 files="" kind text t p
+  local calls n=0 last_edit=0 last_cap=0 last_con=0 route=0 files="" kind text t p to=""
   calls=$(printf '%s' "$tail_jsonl" | jq -rs '
-    def usertext: .type=="user" and (.isCompactSummary|not) and ((.message.content // null) as $c
+    def usertext: .type=="user" and (.isMeta != true) and (.isCompactSummary|not) and ((.message.content // null) as $c
       | if ($c|type)=="string" then $c
         elif ($c|type)=="array" and (any($c[]; .type=="tool_result")|not) then [$c[] | select(.type=="text") | .text][0]
         else null end
@@ -1051,32 +1056,30 @@ clause_unity_visual() {
     | $e[$b+1:][] | select(.type=="assistant") | (.message.content // [])[] | select(.type=="tool_use")
     | if (.name | test("^(Edit|Write|MultiEdit)$")) then "E\t" + ((.input.file_path // "") | tostring)
       elif .name == "Bash" then "B\t" + ((.input.command // "") | tostring | tojson)
-      elif (.name | test("unity"; "i")) then "M\t" + .name + " " + ((.input.action // "") | tostring)
+      elif (.name | startswith("mcp__")) and ((.name | split("__"))[1] // "" | test("(^|[^[:alpha:]])unity"; "i") or test("[a-z]Unity"))
+        then "M\t" + .name + " " + ((.input.action // "") | tostring)
       else empty end' 2>/dev/null)
   [ -n "$calls" ] || return 0
-  command -v unity >/dev/null 2>&1 && route=1
   while IFS=$'\t' read -r kind text; do
     [ -n "$kind" ] || continue
     n=$((n + 1))
     case "$kind" in
       E)
         case "$text" in /*) p="$text" ;; *) p="$cwd/$text" ;; esac
-        case "$p" in
-          *.unity|*.prefab|*/Assets/*.cs) unity_project_of "$p" && { last_edit=$n; files="$files${files:+, }${p##*/}"; } ;;
-        esac ;;
+        unity_change "$p" && { last_edit=$n; files="$files${files:+, }${p##*/}"; } ;;
       B)
         # Cheap filter first: a command naming no unity, .prefab or Assets cannot capture, read the console or change a Unity file.
         case "$text" in *[Uu]nity* | *.prefab* | *Assets*) ;; *) continue ;; esac
         t=$(printf '%s' "$text" | jq -r '.' 2>/dev/null)
-        if printf '%s' "$t" | grep -qE '(^|[;&|[:space:]])unity[[:space:]]+(command|cmd)[[:space:]]+capture[[:space:]]'; then last_cap=$n; route=1; fi
-        if printf '%s' "$t" | grep -qE '(^|[;&|[:space:]])unity[[:space:]]+(command|cmd)[[:space:]]+console[[:space:]]+(get|status)'; then last_con=$n; route=1; fi
         while IFS= read -r p; do
           [ -n "$p" ] || continue
           case "$p" in /*) ;; *) p="$cwd/$p" ;; esac
-          case "$p" in
-            *.unity|*.prefab|*/Assets/*.cs) unity_project_of "$p" && { last_edit=$n; files="$files${files:+, }${p##*/}"; } ;;
-          esac
+          unity_change "$p" && { last_edit=$n; files="$files${files:+, }${p##*/}"; }
         done < <(cc_bash_write_targets "$t")
+        # A capture or console read in the same command as a write counts as after it, even one written before the write.
+        n=$((n + 1))
+        if printf '%s' "$t" | grep -qE '(^|[;&|[:space:]])([^[:space:];&|]*/)?unity[[:space:]]+(command|cmd)[[:space:]]+capture[[:space:]]'; then last_cap=$n; route=1; fi
+        if printf '%s' "$t" | grep -qE '(^|[;&|[:space:]])([^[:space:];&|]*/)?unity[[:space:]]+(command|cmd)[[:space:]]+console[[:space:]]+(get|status)'; then last_con=$n; route=1; fi
         ;;
       M)
         route=1
@@ -1091,7 +1094,13 @@ clause_unity_visual() {
   done <<EOF_CALLS
 $calls
 EOF_CALLS
-  [ "$last_edit" -gt 0 ] && [ "$route" = 1 ] || return 0
+  [ "$last_edit" -gt 0 ] || return 0
+  # Any other executable named unity is not a capture route: the Unity CLI prints a bare version such as 1.0.0-beta.13.
+  if [ "$route" = 0 ] && command -v unity >/dev/null 2>&1; then
+    command -v timeout >/dev/null 2>&1 && to="timeout 3"
+    case "$($to unity --version </dev/null 2>/dev/null | head -n 1)" in [0-9]*) route=1 ;; esac
+  fi
+  [ "$route" = 1 ] || return 0
   local missing=""
   [ "$last_cap" -gt "$last_edit" ] || missing="a capture of the scene or camera"
   [ "$last_con" -gt "$last_edit" ] || missing="$missing${missing:+ and }a console read"

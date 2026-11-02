@@ -14,7 +14,7 @@ Higgsfield's own `higgsfield-generate` skill. Every vendor fact below, with its 
 
 | Rule | Standing |
 |---|---|
-| Pick the asset's budget row before the first paid call, and measure the model against it at every handoff | **gate** where meshy's hook fires (15,000 triangles, 2,048 px). Any other row: run `inspect_glb.py` with its numbers, **agent-graded** |
+| Pick the asset's budget row before the first paid call, and measure the model against it at every handoff | **gate** (warn-only hook) where meshy's hook fires (15,000 triangles, 2,048 px). Any other row: run `inspect_glb.py` with its numbers, **agent-graded** |
 | State the credit cost of each call, and the total of a batch, and get a yes before submitting | **agent-graded**. Higgsfield's help center: "There's no native credit cap." Nothing refuses a call for you |
 | Never create a Meshy task again because your own request timed out; list tasks first | **recorded**. Meshy: "Don't create a new task when your own request times out" |
 | Download each result as soon as it succeeds; keep the concept, prompt, references and task ids in a manifest | **recorded**. Meshy keeps API models "at most 3 days", Higgsfield's API keeps request files seven days |

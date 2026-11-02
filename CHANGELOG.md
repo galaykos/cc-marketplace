@@ -44,6 +44,10 @@ Game plugins: Unity's plugin can load beside ours, and the art checkers start ru
   - Cinemachine 3 scored 4/5 with the plugin and 5/5 without; five runs cannot tell that from a flake.
 
   Record: `rationale/gamedev-evals-2026-11-02.md`.
+- **Branch review fixes.** A review of the branch found 20 issues, 2 high and 10 medium, and all 20 are fixed. Two
+  high bugs in candor's clause 7 were reproduced: a Skill load hid a Unity change, and a write plus capture in one
+  call was blocked anyway. The rest cover the unity hook missing moves from inside `Assets/`, blender's GNU-only sed,
+  candor's "six clauses" description, and standing rows that over-claimed.
 
 ## [0.126.0] - 2026-10-31
 

@@ -97,6 +97,10 @@ if [ -f "$U/.claude/unity-traps/.gitignore" ] && [ -z "$(git -C "$U" status --po
 else
   fail=$((fail + 1)); echo "FAIL  unity: repo-fallback state dir is invisible to git"
 fi
+mv "$U/Game/Assets/Scripts/Player.cs" "$U/Game/Assets/Scripts/Hero.cs"
+check "unity: mv run from a cwd inside Assets/ fires moved-without-meta" fire 'moved-without-meta Assets/Scripts/Hero.cs' "$U_HOOK" "$(payload PostToolUse Bash "$U/Game/Assets/Scripts" "$WS/u10.jsonl" u14 'mv Player.cs Hero.cs' "")"
+check "unity: ls run from a cwd inside Assets/ is silent" silent '' "$U_HOOK" "$(payload PostToolUse Bash "$U/Game/Assets" "$WS/u11.jsonl" u15 'ls -la' "")"
+mv "$U/Game/Assets/Scripts/Hero.cs" "$U/Game/Assets/Scripts/Player.cs"
 
 # ---------- meshy: glb-check.sh ----------
 M="$WS/meshy"; mkdir -p "$M/assets"; (cd "$M" && git init -q)
@@ -159,6 +163,8 @@ edit tools/inbody.py > tools/inbody.py
 EOF" "")" PATH="$WS/bin:$BASE_PATH"
 printf 'import os\nprint(os.getcwd())\n' > "$B/tools/plain.py"
 check "blender: a .py that does not import bpy is silent" silent '' "$B_HOOK" "$(payload PostToolUse Write "$B" "$TB" b6 "" "$B/tools/plain.py")" PATH="$WS/bin:$BASE_PATH"
+printf 'import os, bpy\nact = bpy.context.object.animation_data.action\nfor fc in act.fcurves:\n    pass\n' > "$B/tools/multi.py"
+check "blender: a written .py importing 'os, bpy' with action.fcurves fires" fire 'tools/multi.py:3 ERROR' "$B_HOOK" "$(payload PostToolUse Write "$B" "$TB" b6b "" "$B/tools/multi.py")" PATH="$WS/bin:$BASE_PATH"
 printf "$removed" > "$B/tools/nover.py"
 check "blender: no .blend and no blender on PATH is silent" silent '' "$B_HOOK" "$(payload PostToolUse Write "$B" "$TB" b7 "" "$B/tools/nover.py")" PATH="$WS/nobin:$BASE_PATH"
 printf 'BLENDER-v402\0\0\0\0\0' > "$B/old/scene.blend"
@@ -185,7 +191,7 @@ check "pixel: a bracketed call that changed no sheet is silent" silent '' "$P_HO
 printf '{"height":2,"width":2,"infinite":false,"layers":[{"data":[1,2,3],"height":2,"width":2,"type":"tilelayer","name":"g","opacity":1,"visible":true,"x":0,"y":0,"id":1}],"orientation":"orthogonal","renderorder":"right-down","tileheight":16,"tilewidth":16,"tilesets":[{"firstgid":1,"source":"missing.tsj"}],"type":"map","version":"1.10","nextlayerid":2,"nextobjectid":1}' > "$P/maps/l1.tmj"
 check "pixel: a written .tmj with a missing tileset fires" fire "external tileset 'missing.tsj' not found" "$P_HOOK" "$(payload PostToolUse Write "$P" "$TP" p4 "" "$P/maps/l1.tmj")"
 png "$P/art/slime.png" 16; sheet "$P/art/slime.json" 16 slime.png
-check "pixel: a .png beside a sheet that no longer matches it fires" fire 'slime' "$P_HOOK" "$(payload PostToolUse Write "$P" "$TP" p5 "" "$P/art/slime.png")"
+check "pixel: a .png beside a sheet that no longer matches it fires" fire 'is 16x16 but meta\.size says 32x32' "$P_HOOK" "$(payload PostToolUse Write "$P" "$TP" p5 "" "$P/art/slime.png")"
 check "pixel: PostToolUse with no PreToolUse marker is silent" silent '' "$P_HOOK" "$(payload PostToolUse Bash "$P" "$TP" p6 "$EXPORT" "")"
 check "pixel: CC_PIXEL_CHECK=off is silent" silent '' "$P_HOOK" "$(payload PostToolUse Write "$P" "$WS/p-off.jsonl" p7 "" "$P/maps/l1.tmj")" CC_PIXEL_CHECK=off
 

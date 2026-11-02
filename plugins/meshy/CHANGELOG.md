@@ -7,6 +7,9 @@ Consumer-facing changes only. Newest first.
 - **Control-arm eval.** `evals/no-resubmit-unknown-create` covers a client timeout on create
   followed by a resubmit. On 2026-11-02 it scored 5/5 with the plugin and 5/5 without, so it is a
   regression guard. Spend was $1.06. Results are in `rationale/gamedev-evals-2026-11-02.md`.
+- **Review fix.** The hook's PreToolUse now tests the command text before doing any git or jq work.
+  A non-matching Bash call took about 7 ms instead of about 15 ms, over 20 runs (relayed from the
+  fix run).
 
 ## 0.2.0 — 2026-11-02
 

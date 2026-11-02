@@ -22,6 +22,15 @@ All notable changes to the `candor` plugin.
   earlier turn. Whether the agent reads the PNG it captured is agent-graded.
 - **Measured.** On a 300-Bash-call turn the whole gate takes 67–71 ms with clause 7, and 44–45 ms
   without it.
+- **Review fixes before release** (a review of the branch reproduced the first three):
+  - a Skill load mid-turn no longer hides an earlier Unity change;
+  - a write, capture and console read in one Bash call now passes;
+  - an MCP server whose name merely contains "unity" (community-forum) is no longer a route;
+  - a `unity` binary counts as a route only if `unity --version` prints a version;
+  - a full-path CLI call counts as a capture;
+  - `Editor/` and `Tests/` scripts no longer arm the clause.
+
+  The plugin description and lane row now say seven clauses. 242 harness cases.
 
 ## 0.10.8 — 2026-10-31
 

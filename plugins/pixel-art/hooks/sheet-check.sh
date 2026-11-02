@@ -75,6 +75,12 @@ cc_plugin_state() {
 
   event=$(printf '%s' "$input" | jq -r '.hook_event_name // empty' 2>/dev/null)
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null)
+  # Every Bash call fires PreToolUse: the command test runs before git, cksum or any state path.
+  if [ "$event" = "PreToolUse" ]; then
+    [ "$tool" = "Bash" ] || exit 0
+    printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null \
+      | grep -qiE 'aseprite|libresprite|texturepacker|tiled|ldtk|sprite|sheet|\.(png|json|tmx|tmj|ldtk)' || exit 0
+  fi
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
   sroot=$(cc_state_root "$cwd") || exit 0
@@ -88,9 +94,7 @@ cc_plugin_state() {
   [ -n "$call" ] && mark="$dir/sheet-call-$(printf '%s' "$call" | cksum | cut -d' ' -f1)"
 
   if [ "$event" = "PreToolUse" ]; then
-    [ "$tool" = "Bash" ] && [ -n "$mark" ] || exit 0
-    printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null \
-      | grep -qiE 'aseprite|libresprite|texturepacker|tiled|ldtk|sprite|sheet|\.(png|json|tmx|tmj|ldtk)' || exit 0
+    [ -n "$mark" ] || exit 0
     mkdir -p "$dir" 2>/dev/null || exit 0
     [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null
     find "$dir" -maxdepth 1 -name 'sheet-call-*' -mmin +120 -delete 2>/dev/null

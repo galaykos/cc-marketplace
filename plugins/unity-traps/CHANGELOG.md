@@ -13,6 +13,12 @@ Consumer-facing changes only. Newest first.
   Spend was $2.54. Results are in `rationale/gamedev-evals-2026-11-02.md` and
   `rationale/evals/2026-11-02-075620-unity-traps.json`. The README's "Measured" paragraph now
   shows the table.
+- **Review fixes.**
+  - The meta-check hook now also fires on a move made from a shell already inside `Assets/`,
+    such as `mv Player.cs Hero.cs` in `Assets/Scripts`.
+  - The skill's done-gate row says what clause 7 checks: that a capture and a console read ran
+    in the turn. Whether the console was error-free is agent-graded.
+  - "gate" rows now read "gate (warn-only hook)".
 
 ## 0.5.0 — 2026-11-02
 
