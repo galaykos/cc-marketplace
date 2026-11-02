@@ -38,6 +38,25 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_unity_project.py" <project-dir>
   scripts". The checker also skips binary-serialized assets and DLL-hosted scripts, and it never
   replaces opening the project in Unity.
 
+## Before calling scene, prefab or gameplay work done: look at it
+
+A compile and a passing test do not show a camera pointing at nothing, a prefab with a missing
+script, or an exception thrown on the first frame. Capture what the player sees, read the console,
+and treat any error as not done. These are Unity CLI commands, run through Unity's plugin (see the
+README, "Driving the Editor"), with an Editor open and `unity status` ready:
+
+```bash
+unity command capture game_view -- --source camera --save_path Screenshots/check.png   # or: capture scene_view
+unity command console get -- --tail 50 --level error                                   # errors and exceptions only
+```
+
+- Read the PNG before you describe it. `--source camera` works on a locked or unattended machine;
+  `--source screen` there returned a solid-colour image with no error, so treat a one-colour
+  capture as suspect. Name a camera with `--camera <name>`.
+- With MCP for Unity instead: `manage_camera` with action `screenshot`, then `read_console`.
+- No Editor or no route (CI, a headless box, a project older than 6.0 with no MCP)? Say "not
+  captured" and why in the final message, rather than calling it done.
+
 ## Where the traps live
 
 | Topic | What memory says, and is now wrong (Unity 6 unless marked) | Read |
@@ -60,6 +79,7 @@ its items were re-read against Unity's docs on its stamp date.
 |---|---|
 | A file moved outside the Editor keeps its `.meta`; no GUID is duplicated | **gate** where the plugin's PostToolUse hook fires: it runs `check_unity_project.py` after a Bash move/copy/delete naming `Assets/` or a written `.meta`, and adds what it finds; warn-only. A move it cannot see (a path in a variable, an IDE): run the checker yourself |
 | Advice matches `ProjectVersion.txt` and the package lock | **agent-graded** |
+| Scene, prefab or gameplay work is captured and the console read, error-free, before it is called done | **gate** where candor is installed and a capture route exists (the `unity` CLI on PATH, or a Unity MCP tool in the session): its Stop gate sends back a done claim with no capture and no console read after the last scene, prefab or `Assets/` script change. Elsewhere **agent-graded**. Reading the image is always agent-graded |
 | New code uses the Unity 6 names (`linearVelocity`, `FindAnyObjectByType`, `PhysicsMaterial`, `CinemachineCamera`; from 6000.5 `GetEntityId`) | **agent-graded** — most old names still compile with obsolete warnings, so a green build proves nothing |
 | A failed CI build exits non-zero | **recorded** — only the build method's own throw or `EditorApplication.Exit(1)` makes it so |
 | A URP project has no `com.unity.2d.pixel-perfect`; pixel-art sprites, their atlas and the Pixel Perfect Camera agree on PPU, Point filtering and no compression | **agent-graded** — no script reads `manifest.json`, import settings or atlas settings |
@@ -74,3 +94,4 @@ its items were re-read against Unity's docs on its stamp date.
 - Installing `com.unity.2d.pixel-perfect` in a URP project to "fix" blurry pixel art.
 - Reading exit 0 from the checker on a fresh clone as "no missing scripts".
 - A URP pass with only `Execute` on 6000.4 or later: it does not render.
+- "Done" on a scene or prefab change from a green compile alone, with no capture and no console read.

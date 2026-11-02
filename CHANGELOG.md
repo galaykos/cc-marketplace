@@ -32,6 +32,10 @@ Game plugins: Unity's plugin can load beside ours, and the art checkers start ru
   rig, Blender QA and export, and Unity import. Each handoff gets a budget and a checker. Credit caps use only
   documented commands; Higgsfield has no native cap, and `max_credits`/`batch`/`jobs wait` are not in its docs or CLI.
   Character consistency comes from references rather than seeds. Sources: `rationale/gamedev-asset-pipeline-2026-11-02.md`.
+- **Visual done-gate: unity-traps 0.5.0, candor 0.11.0.** The unity skill now asks for a camera or scene capture
+  and an error-free console read before scene, prefab or gameplay work is called done. candor's Stop gate gains
+  clause 7, which sends that claim back when neither ran after the last Unity change and the `unity` CLI or a Unity
+  MCP tool was available. Standing: gate (15 harness cases); agent-graded where no route exists.
 
 ## [0.126.0] - 2026-10-31
 

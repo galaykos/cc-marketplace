@@ -962,5 +962,46 @@ else
   printf 'SKIP  clause 6 quote cases (git not available)\n'
 fi
 
+# Clause 7: Unity scene, prefab or Assets script work claimed done needs a capture and a console read after the last change.
+VIS_SUB='did not run after the last change'
+mkdir -p "$CWD/Game/Assets/Scripts" "$CWD/Game/ProjectSettings" "$WS/ubin" "$WS/nounity"
+echo 'm_EditorVersion: 6000.3.1f1' > "$CWD/Game/ProjectSettings/ProjectVersion.txt"
+printf '#!/bin/sh\nexit 0\n' > "$WS/ubin/unity"; chmod +x "$WS/ubin/unity"
+UPATH="PATH=$WS/ubin:/usr/bin:/bin"; NPATH="PATH=$WS/nounity:/usr/bin:/bin"
+writef() { jq -cn --arg f "$1" '{type:"assistant",message:{content:[{type:"tool_use",name:"Write",input:{file_path:$f,content:"x"}}]}}'; }
+mcp()    { jq -cn --arg n "$1" --arg a "$2" '{type:"assistant",message:{content:[{type:"tool_use",name:$n,input:{action:$a}}]}}'; }
+CAP='unity command capture game_view -- --source camera --save_path Screenshots/check.png'
+CON='unity command console get -- --tail 50 --level error'
+
+T="$WS/v1.jsonl"; { user "add a pickup to the level"; writef "$CWD/Game/Assets/Scenes/Level1.unity"; tres; bashc "ls Game/Assets"; tres; asst "Done — the pickup is in the scene."; } > "$T"
+check "clause 7: a scene change called done with no capture blocks, naming both" "$UPATH" "$T" 2 "a capture of the scene or camera and a console read $VIS_SUB"
+check_keep "clause 7: the same message re-stop passes (one-shot)" "$UPATH" "$T" 0 "__NONE__"
+T="$WS/v2.jsonl"; { user "add a pickup"; writef "Game/Assets/Prefabs/Coin.prefab"; tres; bashc "$CAP"; tres; bashc "$CON"; tres; asst "Done — captured the camera and the console is clean."; } > "$T"
+check "clause 7: capture and console read after the change pass" "$UPATH" "$T" 0 "__NONE__"
+T="$WS/v3.jsonl"; { user "fix the player"; bashc "$CAP"; tres; bashc "$CON"; tres; writef "$CWD/Game/Assets/Scripts/Player.cs"; tres; bashc "ls"; tres; asst "Fixed and done."; } > "$T"
+check "clause 7: a capture before the last script change does not count" "$UPATH" "$T" 2 "$VIS_SUB"
+T="$WS/v4.jsonl"; { user "add a pickup"; writef "$CWD/Game/Assets/Scenes/Level1.unity"; tres; bashc "$CAP"; tres; asst "Done, captured it."; } > "$T"
+check "clause 7: a capture without a console read blocks" "$UPATH" "$T" 2 "a console read $VIS_SUB"
+T="$WS/v5.jsonl"; { user "add a pickup"; writef "$CWD/Game/Assets/Scenes/Level1.unity"; tres; bashc "ls"; tres; asst "Done."; } > "$T"
+check "clause 7: no route (no unity CLI, no Unity MCP tool) stands down" "$NPATH" "$T" 0 "__NONE__"
+T="$WS/v6.jsonl"; { user "add a pickup"; writef "$CWD/Game/Assets/Scenes/Level1.unity"; tres; bashc "ls"; tres; asst "Done in the scene file; not captured, because no Editor is open on this machine."; } > "$T"
+check "clause 7: saying 'not captured' and why passes" "$UPATH" "$T" 0 "__NONE__"
+T="$WS/v7.jsonl"; { user "add a pickup"; writef "$CWD/Game/Assets/Scenes/Level1.unity"; tres; bashc "ls"; tres; asst "All set."; } > "$T"
+check "clause 7: CC_UNITY_VISUAL_GATE=off passes" "$UPATH CC_UNITY_VISUAL_GATE=off" "$T" 0 "__NONE__"
+check "clause 7: CC_UNITY_VISUAL_GATE=warn prints and passes" "$UPATH CC_UNITY_VISUAL_GATE=warn" "$T" 0 "$VIS_SUB"
+T="$WS/v8.jsonl"; { user "edit the helper"; writef "$CWD/src/real.ts"; tres; bashc "ls"; tres; asst "Done."; } > "$T"
+check "clause 7: a non-Unity file arms nothing" "$UPATH" "$T" 0 "__NONE__"
+mkdir -p "$CWD/Loose/Assets"
+T="$WS/v9.jsonl"; { user "edit"; writef "$CWD/Loose/Assets/Thing.cs"; tres; bashc "ls"; tres; asst "Done."; } > "$T"
+check "clause 7: Assets/*.cs outside a Unity project arms nothing" "$UPATH" "$T" 0 "__NONE__"
+T="$WS/v10.jsonl"; { user "move the crate"; mcp mcp__UnityMCP__manage_gameobject modify; tres; mcp mcp__UnityMCP__manage_camera screenshot; tres; mcp mcp__UnityMCP__read_console get; tres; asst "Done — screenshot and console checked."; } > "$T"
+check "clause 7: MCP for Unity edit, screenshot and read_console pass" "$NPATH" "$T" 0 "__NONE__"
+T="$WS/v11.jsonl"; { user "move the crate"; mcp mcp__UnityMCP__manage_gameobject modify; tres; mcp mcp__UnityMCP__manage_camera screenshot; tres; asst "Done."; } > "$T"
+check "clause 7: an MCP edit with a screenshot and no console read blocks" "$NPATH" "$T" 2 "a console read $VIS_SUB"
+T="$WS/v12.jsonl"; { user "show me the hierarchy"; mcp mcp__UnityMCP__manage_scene get_hierarchy; tres; asst "Done — here is the hierarchy."; } > "$T"
+check "clause 7: a read-only MCP call arms nothing" "$NPATH" "$T" 0 "__NONE__"
+T="$WS/v13.jsonl"; { user "earlier turn"; writef "$CWD/Game/Assets/Scenes/Level1.unity"; tres; asst "Not done yet."; user "now just tell me the date"; bashc "date"; tres; asst "Done: it is Monday."; } > "$T"
+check "clause 7: a change in an earlier turn does not arm this turn" "$UPATH" "$T" 0 "__NONE__"
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -2,6 +2,22 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.0 — 2026-11-02
+
+- **Look before calling it done.** The skill has a new section for scene, prefab or gameplay work:
+  - capture the camera or scene with
+    `unity command capture game_view -- --source camera --save_path …` (or `capture scene_view`);
+  - read the console with `unity command console get -- --tail 50 --level error`;
+  - treat any error as not done.
+
+  It uses `--source camera` on a locked machine, where a `screen` capture came back one colour
+  with no error. With MCP for Unity, `manage_camera` screenshot and `read_console` do the same.
+  With no route, say "not captured" and why. Sources: Unity's `unity-cli` skill
+  (`references/playmode-verification-loop.md` at `759ad5f`) and the `com.unity.pipeline` 0.9
+  capture manual, both read 2026-11-02.
+- **Standing.** **gate** where candor 0.11.0 is installed and a route exists: its Stop-gate clause 7
+  sends back the done claim. Elsewhere **agent-graded**. Not run here against a live Editor.
+
 ## 0.4.0 — 2026-11-02
 
 - **The `.meta` checker runs on its own.** A new PostToolUse hook, `hooks/meta-check.sh`, runs

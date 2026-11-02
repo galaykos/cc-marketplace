@@ -196,6 +196,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_UI_CHECK` | ui-ux | on | Send the turn back once when a UI file changed and was not checked in a browser since: on, warn (print,  … |
 | `CC_UNICODE_SCAN` | secret-scanning | on | Warn when written or read text carries zero-width or bidirectional-override characters: on or off |
 | `CC_UNITY_META_CHECK` | unity-traps | on | Run check_unity_project.py after a Bash call moves, copies or deletes an Assets/ path, or a .meta is wri … |
+| `CC_UNITY_VISUAL_GATE` | candor | block | Stop-gate clause for Unity scene, prefab or Assets script work called done with no capture and no consol … |
 | `CC_VERSION_PINS` | stack-scan | on | Prepend the installed npm or composer version to a skill whose Last verified stamp names that package: o … |
 | `CC_WORKFLOW_GUARD` | devops | on | Refuse a GitHub workflow write that hands secrets or a write token to untrusted code: on or off |
 | `CLAUDE_AI_TRAILER` | git-workflow | — | CLAUDE_AI_TRAILER=allow for that one command |

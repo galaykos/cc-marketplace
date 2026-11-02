@@ -6,6 +6,44 @@ A second move, on 2026-10-28, cut each script under `scripts/` to a header of at
 
 ## plugins/candor/hooks/gate.sh
 
+**Clause 7, 2026-11-02 (candor 0.11.0).** The user asked for a visual done-gate on Unity work: before
+scene, prefab or gameplay work is called done, capture the scene or camera and read the console. The
+request said "if candor's Stop gate can check for a capture in the turn, add that as a gate." It can.
+The gate already reads the transcript tail. Clause 7 limits it to the turn by taking the entries after
+the last prompt the person typed, the same `usertext` test the SubagentStop hand-back uses. It then
+orders three kinds of call:
+
+- a Unity change: a Write/Edit or Bash write to a `.unity`, a `.prefab` or an `Assets/**/*.cs` under
+  a `ProjectVersion.txt`, or an MCP for Unity editing action;
+- a capture: `unity command capture` (Unity CLI 1.0.0-beta, `com.unity.pipeline` 0.9 capture
+  commands, read 2026-11-02), or an MCP screenshot;
+- a console read: `unity command console get|status`, or `read_console`.
+
+It blocks only when both a capture and a console read are missing after the last change. It stands
+down when no route exists, because demanding a capture a headless box cannot take would teach the
+agent to dodge the word "done"; the skill tells it to say "not captured" instead.
+
+The MCP action names come from CoplayDev/unity-mcp v10.3.0's tool sources, read 2026-11-02:
+`manage_gameobject` (every action edits), `manage_script create|delete`, `manage_scene create|save`,
+`script_apply_edits`, `apply_text_edits`. A `get_*`, `load` or `read` call arms nothing.
+
+**Limits:**
+
+- a Unity change through a tool it does not name (a Unity CLI `script eval` that edits, an IDE);
+- an MCP server whose tool names lack "unity";
+- a capture taken but not looked at;
+- a camera that captures the wrong thing.
+
+**Cost.** A synthetic 300-Bash-call turn ending in a `.unity` write and "Done." took the whole
+gate 1,152–1,159 ms over three runs when each Bash command was decoded with `jq` and scanned.
+A `case` pre-filter now skips commands that name no `unity`, `.prefab` or `Assets`, and the same
+turn takes 67–71 ms. With the clause off it takes 44–45 ms. Measured 2026-11-02, against the
+hook's 15 s timeout.
+
+Whether the PNG was read stays agent-graded. CLAUDE.md's renames successor rule is untouched: the
+clause lives in candor, which already registers a Stop hook, so unity-traps registers no blocking
+hook and `renames["unity"] = "unity-traps"` stays valid.
+
 ### Header: the shebang
 
 ```text
