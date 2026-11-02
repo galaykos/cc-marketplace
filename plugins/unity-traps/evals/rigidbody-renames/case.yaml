@@ -1,0 +1,38 @@
+schema_version: "1.0"
+name: rigidbody-renames
+description: 'A Unity 6000.3 Rigidbody script must use the Unity 6 names (linearVelocity, linearDamping, angularDamping), not the remembered velocity/drag/angularDrag that compile only with obsolete warnings. Regression guard: on 2026-11-02 the control arm passed 5/5 (rationale/gamedev-evals-2026-11-02.md).'
+execution:
+  timeout_seconds: 600
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Our Unity project is on 6000.3: `ProjectSettings/ProjectVersion.txt` says
+    `m_EditorVersion: 6000.3.4f1`.
+
+    Write a `Hover` MonoBehaviour for a hovercraft that has a Rigidbody. In `Awake` it sets the
+    body's linear drag to 2 and its angular drag to 4. In `FixedUpdate` it reads the body's
+    current velocity and, when the horizontal speed is over 12 m/s, writes back a velocity whose
+    horizontal part is capped at 12 m/s, keeping the vertical part.
+
+    Reply with the C# file only.
+runs: 3
+graders:
+  - type: llm
+    name: unity6-rigidbody-names
+    criteria: |
+      Unity 6 renamed three Rigidbody members. The old names still compile, with obsolete
+      warnings:
+      - `Rigidbody.velocity` became `Rigidbody.linearVelocity`;
+      - `Rigidbody.drag` became `Rigidbody.linearDamping`;
+      - `Rigidbody.angularDrag` became `Rigidbody.angularDamping`.
+
+      PASS requires all three:
+      1. The code reads and writes the velocity through `linearVelocity`.
+      2. The linear drag is set through `linearDamping`.
+      3. The angular drag is set through `angularDamping`.
+
+      FAIL if the code uses `.velocity`, `.drag` or `.angularDrag` on a Rigidbody, even once,
+      or uses both the old and the new name for one property. Naming an old member in a comment
+      to say it was renamed is fine.
+
+      Not graded: the capping math, null checks, `RequireComponent`, code style.

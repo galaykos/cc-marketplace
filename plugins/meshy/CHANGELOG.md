@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.1 — 2026-11-02
+
+- **Control-arm eval.** `evals/no-resubmit-unknown-create` covers a client timeout on create
+  followed by a resubmit. On 2026-11-02 it scored 5/5 with the plugin and 5/5 without, so it is a
+  regression guard. Spend was $1.06. Results are in `rationale/gamedev-evals-2026-11-02.md`.
+
 ## 0.2.0 — 2026-11-02
 
 - **Models are measured when they land.** A new hook, `hooks/glb-check.sh`, runs `inspect_glb.py`

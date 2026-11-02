@@ -89,6 +89,9 @@ against the glTF schema. It sizes PNG and JPEG images only, so a KTX2 or WebP im
 extensions an engine supports: every required extension fails unless passed to `--allow-ext`.
 Passing it says the counts are within budget, not that an engine imports the file.
 
-Measured: nothing — no control-arm eval.
+Measured on 2026-11-02, with a control arm: `evals/no-resubmit-unknown-create` passed 5/5 with
+the plugin and 5/5 without it (CLI 2.1.316, haiku judge). It is a regression guard, since the
+base model already lists tasks before re-creating one. Whether the skill helps is unmeasured.
+See `rationale/gamedev-evals-2026-11-02.md`.
 
 Credit: facts drawn from Meshy's MIT-licensed [meshy-3d-agent](https://github.com/meshy-dev/meshy-3d-agent) @1acd965, [meshy-cli](https://github.com/meshy-dev/meshy-cli) @80ac347 and [meshy-mcp-server](https://github.com/meshy-dev/meshy-mcp-server) @0f4c10a, each re-checked against docs.meshy.ai and Meshy's Terms of Use on 2026-10-30; prose rewritten, no code copied.

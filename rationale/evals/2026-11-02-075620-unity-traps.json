@@ -1,0 +1,140 @@
+{
+  "schema": 2,
+  "plugin": "unity-traps",
+  "startedAt": "2026-11-02T07:56:20Z",
+  "claudeVersion": "2.1.316",
+  "maxCostUsd": 15,
+  "costUsd": 2.5432337,
+  "exitCode": 1,
+  "partial": false,
+  "partialReason": null,
+  "arms": [
+    "with",
+    "without"
+  ],
+  "runsPerCaseOverride": 5,
+  "plannedRuns": 30,
+  "completedRuns": 30,
+  "cases": [
+    {
+      "name": "cinemachine-3",
+      "planned": {
+        "with": 5,
+        "without": 5
+      },
+      "completed": {
+        "with": 5,
+        "without": 5
+      },
+      "scores": {
+        "with": [
+          1,
+          0,
+          1,
+          1,
+          1
+        ],
+        "without": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "spread": {
+        "with": "4/5",
+        "without": "5/5"
+      },
+      "errors": {
+        "with": 0,
+        "without": 0
+      },
+      "erroredScores": {
+        "with": [],
+        "without": []
+      },
+      "delta": -0.19999999999999996
+    },
+    {
+      "name": "dictionary-serialization-66",
+      "planned": {
+        "with": 5,
+        "without": 5
+      },
+      "completed": {
+        "with": 5,
+        "without": 5
+      },
+      "scores": {
+        "with": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "without": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "spread": {
+        "with": "5/5",
+        "without": "0/5"
+      },
+      "errors": {
+        "with": 0,
+        "without": 0
+      },
+      "erroredScores": {
+        "with": [],
+        "without": []
+      },
+      "delta": 1
+    },
+    {
+      "name": "rigidbody-renames",
+      "planned": {
+        "with": 5,
+        "without": 5
+      },
+      "completed": {
+        "with": 5,
+        "without": 5
+      },
+      "scores": {
+        "with": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "without": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "spread": {
+        "with": "5/5",
+        "without": "5/5"
+      },
+      "errors": {
+        "with": 0,
+        "without": 0
+      },
+      "erroredScores": {
+        "with": [],
+        "without": []
+      },
+      "delta": 0
+    }
+  ]
+}

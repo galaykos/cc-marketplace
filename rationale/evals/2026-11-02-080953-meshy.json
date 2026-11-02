@@ -1,0 +1,60 @@
+{
+  "schema": 2,
+  "plugin": "meshy",
+  "startedAt": "2026-11-02T08:09:53Z",
+  "claudeVersion": "2.1.316",
+  "maxCostUsd": 5,
+  "costUsd": 1.0576654,
+  "exitCode": 0,
+  "partial": false,
+  "partialReason": null,
+  "arms": [
+    "with",
+    "without"
+  ],
+  "runsPerCaseOverride": 5,
+  "plannedRuns": 10,
+  "completedRuns": 10,
+  "cases": [
+    {
+      "name": "no-resubmit-unknown-create",
+      "planned": {
+        "with": 5,
+        "without": 5
+      },
+      "completed": {
+        "with": 5,
+        "without": 5
+      },
+      "scores": {
+        "with": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "without": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "spread": {
+        "with": "5/5",
+        "without": "5/5"
+      },
+      "errors": {
+        "with": 0,
+        "without": 0
+      },
+      "erroredScores": {
+        "with": [],
+        "without": []
+      },
+      "delta": 0
+    }
+  ]
+}

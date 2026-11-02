@@ -1,0 +1,40 @@
+schema_version: "1.0"
+name: removed-5x-bpy
+description: 'Blender 5.x removed Action.fcurves (F-curves live in a channelbag per slot) and scene.node_tree (the compositor is scene.compositing_node_group, a CompositorNodeTree node group with no Composite node). The remembered 4.x script uses both. Regression guard: on 2026-11-02 the control arm passed 5/5 (rationale/gamedev-evals-2026-11-02.md).'
+execution:
+  timeout_seconds: 600
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    We run Blender 5.2 headless:
+    `blender -b scene.blend --python-exit-code 1 --python dump.py`
+
+    Write `dump.py`. It must do two things:
+    1. Print the `data_path` and `array_index` of every F-curve in the active object's action.
+    2. Build the scene's compositor: Render Layers → Glare → the compositor's final image
+       output, replacing any compositor setup the scene already has.
+
+    Reply with the script only.
+runs: 3
+graders:
+  - type: llm
+    name: blender5-api
+    criteria: |
+      Blender 5.0 removed `Action.fcurves`: F-curves live in a channelbag per action slot, read
+      with `bpy_extras.anim_utils.action_get_channelbag_for_slot(action, slot)` (or
+      `action_ensure_channelbag_for_slot`), or by walking `action.layers` → `strips` →
+      `channelbags`. Blender 5.0 also removed `Scene.node_tree`: the compositor is a node group
+      assigned to `scene.compositing_node_group`, made with
+      `bpy.data.node_groups.new(name, 'CompositorNodeTree')`, and its image leaves through a
+      Group Output node (there is no Composite node).
+
+      PASS requires both:
+      1. The F-curves are read through a channelbag (either way above), not `action.fcurves`.
+      2. The compositor is built in a node group assigned to `scene.compositing_node_group`.
+
+      FAIL if the script reads `action.fcurves` or `action.groups`, or gets the compositor
+      through `scene.node_tree` (setting `scene.use_nodes = True` and then using
+      `scene.node_tree` included), even inside a try/except fallback chosen first.
+
+      Not graded: exact node names, socket names, the Glare settings, whether a Composite node
+      is also attempted after a correct node-group setup, error handling, code style.

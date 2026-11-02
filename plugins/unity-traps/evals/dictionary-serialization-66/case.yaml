@@ -1,0 +1,35 @@
+schema_version: "1.0"
+name: dictionary-serialization-66
+description: 'On Unity 6000.6 a [SerializeField] Dictionary<TKey,TValue> serializes and gets an Inspector editor; the remembered answer builds a parallel-lists wrapper because "Unity cannot serialize dictionaries". Measured 2026-11-02: with 5/5, without 0/5 (rationale/gamedev-evals-2026-11-02.md).'
+execution:
+  timeout_seconds: 600
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Our Unity project is on 6000.6: `ProjectSettings/ProjectVersion.txt` says
+    `m_EditorVersion: 6000.6.7f1`.
+
+    I want a ScriptableObject called `LootTable` that holds a map from item id (`string`) to drop
+    weight (`int`). Designers must be able to edit the map in the Inspector, and it must be saved
+    with the asset. Write the C# for it, as simply as Unity allows on this version.
+runs: 3
+graders:
+  - type: llm
+    name: native-dictionary-serialization
+    criteria: |
+      From Unity 6.6, a field declared exactly as `Dictionary<TKey, TValue>` and marked
+      `[SerializeField]` is serialized and gets an Inspector editor. Unity's manual, 6000.6
+      "Dictionaries" page. A public field still needs `[SerializeField]`.
+
+      PASS requires both:
+      1. The map is a field of type `Dictionary<string, int>` marked `[SerializeField]`
+         (private or public), and that field is what Unity saves and the Inspector edits.
+      2. The answer does not claim that Unity cannot serialize a dictionary on this version.
+
+      FAIL if the saved data lives in a workaround: parallel key and value lists, a list of
+      key/value structs, a `SerializableDictionary` class, or `ISerializationCallbackReceiver`
+      that rebuilds a dictionary from lists. Also FAIL if the answer says dictionaries are not
+      serializable on 6000.6. Mentioning such a wrapper only as the pre-6.6 way, while the code
+      uses the native field, is fine.
+
+      Not graded: `CreateAssetMenu`, lookup helpers, validation, code style.

@@ -2,6 +2,13 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.1 — 2026-11-02
+
+- **Control-arm eval.** `evals/removed-5x-bpy` asks for the removed `action.fcurves` and
+  `scene.node_tree`. On 2026-11-02 it scored 5/5 with the plugin and 5/5 without, so it is a
+  regression guard, not a measure of the skill. Spend was $0.97. Results are in
+  `rationale/gamedev-evals-2026-11-02.md`.
+
 ## 0.2.0 — 2026-11-02
 
 - **bpy scripts are checked when written.** A new hook, `hooks/bpy-check.sh`, runs

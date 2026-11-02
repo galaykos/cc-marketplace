@@ -2,6 +2,18 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.1 — 2026-11-02
+
+- **Control-arm evals.** Three cases in `evals/`, run 5 times per arm on 2026-11-02:
+  - `dictionary-serialization-66` scored 5/5 with the plugin and 0/5 without, **+1.00**;
+  - `rigidbody-renames` scored 5/5 and 5/5, a regression guard;
+  - `cinemachine-3` scored 4/5 and 5/5. That is one failure in five, which this run count cannot
+    tell from a flake.
+
+  Spend was $2.54. Results are in `rationale/gamedev-evals-2026-11-02.md` and
+  `rationale/evals/2026-11-02-075620-unity-traps.json`. The README's "Measured" paragraph now
+  shows the table.
+
 ## 0.5.0 — 2026-11-02
 
 - **Look before calling it done.** The skill has a new section for scene, prefab or gameplay work:

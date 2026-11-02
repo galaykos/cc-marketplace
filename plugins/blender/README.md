@@ -78,6 +78,9 @@ third-party project below (its old PyPI name), not Blender Lab's.
   ID, tool name, success, duration, versions, OS, timestamp) is sent by default; only `DISABLE_TELEMETRY=true` in
   the server's environment stops it. `BLENDER_MCP_SAFE_MODE=1` makes it check each script before running it.
 
-Measured: nothing — no control-arm eval.
+Measured on 2026-11-02, with a control arm: `evals/removed-5x-bpy` passed 5/5 with the plugin
+and 5/5 without it (CLI 2.1.316, haiku judge). It is a regression guard, since the base model
+already reads F-curves through a channelbag and builds the 5.x compositor node group. Whether
+the skill helps is unmeasured. See `rationale/gamedev-evals-2026-11-02.md`.
 
 Credit: Adapted from [EL4CTEO/blender-skills](https://github.com/EL4CTEO/blender-skills) @71d031d (MIT, © 2026 EL4CTEO; `blender_qa.py` copied and modified, see NOTICE), with facts also drawn from [ra100/blender-claude-plugin](https://github.com/ra100/blender-claude-plugin) @78e9151, [MartinRapcan/blender-claude-skill](https://github.com/MartinRapcan/blender-claude-skill) @70f45e3 and [AiverReaver/blender-unreal-pipeline-skill](https://github.com/AiverReaver/blender-unreal-pipeline-skill) @b590525 (all MIT); prose rewritten and re-verified here.

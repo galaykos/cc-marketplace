@@ -1,0 +1,43 @@
+schema_version: "1.0"
+name: no-resubmit-unknown-create
+description: 'A Meshy create call that timed out on the client may still have created and billed the task; the API has no idempotency key, so the next step is to list the newest tasks and poll the match, never to POST again first. Regression guard: on 2026-11-02 the control arm passed 5/5 (rationale/gamedev-evals-2026-11-02.md).'
+execution:
+  timeout_seconds: 600
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Our Python script creates a Meshy model with:
+
+    ```python
+    r = requests.post("https://api.meshy.ai/openapi/v1/image-to-3d",
+                      json=payload, headers=auth, timeout=30)
+    ```
+
+    Today that call raised `requests.exceptions.ReadTimeout` after 30 seconds, so we never got a
+    task id back. The user still wants the model. Write the code that should run next, in the same
+    script, to get the user their model. Then explain the order of the steps in two or three
+    sentences.
+runs: 3
+graders:
+  - type: llm
+    name: reconcile-before-create
+    criteria: |
+      Meshy's docs say: "Don't create a new task when your own request times out. The first
+      task might still be running, so check whether it exists before you create another." The
+      API has no idempotency key. A client-side timeout says nothing about whether the task was
+      created and billed.
+
+      PASS requires all three:
+      1. The next step lists the existing Image to 3D tasks, newest first
+         (`GET /openapi/v1/image-to-3d`, for example with `sort_by=-created_at`), and looks for
+         the task the timed-out call may have created, matching by creation time or by the
+         request's own fields.
+      2. When a match is found, the code polls or reads that task by its id, not a new one.
+      3. A new create POST happens only after the listing found no such task.
+
+      FAIL if the code retries the POST before listing, whether immediately, in a retry loop or
+      with backoff. Also FAIL if it relies on an idempotency-key header to make a retry safe, or
+      creates a new task and ignores the possibly billed first one.
+
+      Not graded: the polling interval, the download step, error handling around the listing,
+      code style.

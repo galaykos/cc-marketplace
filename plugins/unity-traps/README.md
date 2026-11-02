@@ -62,8 +62,16 @@ the project yet, the checker cannot read package script GUIDs, so a missing-scri
 is reported as a warning, not an error. Exit 0 on such a checkout does not prove there are no
 missing scripts. It also skips binary-serialized assets and DLL-hosted scripts.
 
-Measured: nothing — no control-arm eval. Whether these facts change what the model writes is
-unmeasured.
+Measured on 2026-11-02, with a control arm (`evals/`, 5 runs per arm, CLI 2.1.316, haiku judge;
+`rationale/gamedev-evals-2026-11-02.md`):
+
+| case | with | without | reading |
+|---|---|---|---|
+| `dictionary-serialization-66` | 5/5 | 0/5 | **+1.00**: without the plugin every run built the pre-6.6 wrapper |
+| `rigidbody-renames` | 5/5 | 5/5 | regression guard: the base model already writes `linearVelocity` |
+| `cinemachine-3` | 4/5 | 5/5 | −0.20 is one run in five, which five runs cannot tell from a flake; no measured effect |
+
+The other references are unmeasured.
 
 ## Driving the Editor (not shipped here)
 

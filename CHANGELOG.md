@@ -36,6 +36,14 @@ Game plugins: Unity's plugin can load beside ours, and the art checkers start ru
   and an error-free console read before scene, prefab or gameplay work is called done. candor's Stop gate gains
   clause 7, which sends that claim back when neither ran after the last Unity change and the `unity` CLI or a Unity
   MCP tool was available. Standing: gate (15 harness cases); agent-graded where no route exists.
+- **Control-arm evals: unity-traps 0.5.1, blender 0.2.1, meshy 0.2.1.** Five new cases ran 5 times per arm, with and
+  without the plugin, for $4.57 in total:
+  - unity-traps' Unity 6.6 dictionary-serialization fact is the one measured effect: 5/5 with the plugin, 0/5
+    without, +1.00;
+  - the Rigidbody, Blender 5.x and Meshy cases pass without the plugin, so they are regression guards;
+  - Cinemachine 3 scored 4/5 with the plugin and 5/5 without; five runs cannot tell that from a flake.
+
+  Record: `rationale/gamedev-evals-2026-11-02.md`.
 
 ## [0.126.0] - 2026-10-31
 
