@@ -18,7 +18,7 @@ Companions, installed separately (no plugin here may declare `dependencies`):
 - **gamedev**: `claude plugin install gamedev@cc-plugins-marketplace`. Its `asset_report.py` checks the PNG itself
   (size, alpha, colour count) and its `game-assets` skill covers licences and Steam's AI disclosure. This plugin does
   not repeat either.
-- Your engine's plugin (`godot`, `unity`, `phaser`, `pixijs`, ...) owns texture filtering, mipmaps, pixels-per-unit
+- Your engine's plugin (`godot`, `unity-traps`, `phaser`, `pixijs`, ...) owns texture filtering, mipmaps, pixels-per-unit
   and the engine's tile nodes.
 
 ## What ships

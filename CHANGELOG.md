@@ -4,6 +4,17 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.127.0] - 2026-11-02
+
+Game plugins: Unity's plugin can load beside ours, and the art checkers start running on their own.
+
+- **unity → unity-traps 0.3.0 (renamed)** — Unity's official plugin (Unity-Technologies/unity-agent-plugin) is
+  also named `unity`. `renames` maps `unity` to `unity-traps`, so existing installs migrate. The README recommends
+  installing Unity's plugin alongside: ours carries the traps and the offline `.meta`/GUID checker, theirs carries
+  breadth and the Unity CLI. stack-scan 0.18.2, skill-router 0.30.1, all-plugins 0.7.6, gamedev 0.1.2 and
+  pixel-art 0.1.1 name the new plugin. Standing: gate for the ledger (`pc_renames_ledger`) and live names
+  (`pc_scout_names`); the side-by-side load was not tested.
+
 ## [0.126.0] - 2026-10-31
 
 A web search for third-party Claude Code plugins, skills and MCP servers covering game development, Unity,

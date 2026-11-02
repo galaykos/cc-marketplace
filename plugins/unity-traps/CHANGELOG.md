@@ -1,6 +1,17 @@
-# Changelog — unity
+# Changelog — unity-traps
 
 Consumer-facing changes only. Newest first.
+
+## 0.3.0 — 2026-11-02
+
+- **Renamed from `unity` to `unity-traps`.** Unity's official Claude Code plugin
+  (Unity-Technologies/unity-agent-plugin) is also named `unity`, so the two could not be told apart
+  in one install. The marketplace's `renames` map sends an existing `unity@cc-plugins-marketplace`
+  install to `unity-traps`. The skill (`unity-traps:unity-best-practices`), the references and the
+  checker are unchanged.
+- **README.** It recommends installing Unity's plugin alongside, and says what each covers: this
+  plugin carries the traps and the offline `.meta`/GUID checker; Unity's carries breadth and the Unity
+  CLI. Standing: recorded. Whether the two load side by side in one session was not tested.
 
 ## 0.2.1 — 2026-10-31
 

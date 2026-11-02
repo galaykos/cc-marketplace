@@ -44,8 +44,8 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | a `package.json` or `composer.json` exists | — | the Composer/npm dependency-hygiene rubric ships IN the plugin running this scout, so there is no row to offer: name the lane instead — `/stack-scan:audit` for vulnerabilities, outdated packages and licences |
 | `.env` key `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*` | — | **no plugin covers this** — `security`'s write-scan keeps the LLM-sink patterns, and the host's built-in `claude-api` skill carries provider facts |
 | `prometheus` / `grafana` / `otel-collector` service in compose, or `@opentelemetry/*` dep | `resilience` | |
-| `project.godot` (its `config/features` names the 4.x minor) | `godot` | a `*.csproj` beside it with `Sdk="Godot.NET.Sdk/…"` is Godot C#, not Unity — suggest `godot`, never `unity` |
-| `ProjectSettings/ProjectVersion.txt` (`m_EditorVersion:`) beside an `Assets/` directory | `unity` | Unity generates `*.csproj` files, so a lone `*.csproj` is not evidence |
+| `project.godot` (its `config/features` names the 4.x minor) | `godot` | a `*.csproj` beside it with `Sdk="Godot.NET.Sdk/…"` is Godot C#, not Unity — suggest `godot`, never `unity-traps` |
+| `ProjectSettings/ProjectVersion.txt` (`m_EditorVersion:`) beside an `Assets/` directory | `unity-traps` | Unity generates `*.csproj` files, so a lone `*.csproj` is not evidence |
 | a `*.uproject` (`"EngineAssociation"`) | `unreal` | |
 | dep `phaser` | `phaser` | read the major from the lockfile: v3 and v4 differ |
 | dep `pixi.js` | `pixijs` | |

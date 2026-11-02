@@ -15,6 +15,6 @@ their respective owners and are used for identification and descriptive purposes
 only. Their use does not imply any affiliation with or endorsement by those owners.
 
 Modified for cc-marketplace (2026-10-26):
-- scripts/check_unity_project.py: the module docstring shortened to a three-line summary (the original moved to rationale/derivations/plugin-unity.md in the cc-marketplace repository), section-banner comments removed, the --help epilog lists every issue code and the Library/PackageCache downgrade, and the examples call python3.
+- scripts/check_unity_project.py: the module docstring shortened to a three-line summary (the original moved to rationale/derivations/plugin-unity-traps.md in the cc-marketplace repository), section-banner comments removed, the --help epilog lists every issue code and the Library/PackageCache downgrade, and the examples call python3.
 - scripts/__tests__/test_check_unity_project.py: the checker path repointed to ../check_unity_project.py and a provenance line added; every upstream test case kept unchanged.
 - scripts/__tests__/check_unity_project.test.sh: new wrapper that runs the tests with python3 -I -B.

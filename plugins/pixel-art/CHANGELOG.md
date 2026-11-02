@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.1.1 — 2026-11-02
+
+- **README names `unity-traps`,** the renamed `unity` plugin, among the engine plugins that own
+  texture filtering and pixels-per-unit. Skills and scripts are unchanged.
+
 ## 0.1.0 — 2026-10-30
 
 - New plugin. `pixel-art-pipeline` skill: Aseprite CLI option order, the `json-hash` default, `--list-tags`, tag indices that drift under `--ignore-empty`/`--tag`/`--frame-range`, trimmed-frame offsets, millisecond vs Lua-seconds durations, and finishing image-model output (measure the grid, area downscale, Pillow palette locks without the default dither or WEB palette).

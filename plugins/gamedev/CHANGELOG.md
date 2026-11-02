@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.1.2 — 2026-11-02
+
+- **Companion list names `unity-traps`.** The `unity` plugin was renamed, so the description and
+  README name `unity-traps`. Skills and scripts are unchanged.
+
 ## 0.1.1 — 2026-10-29
 
 - **Companion list matches the marketplace.** The description and README name the engine plugins this marketplace still ships — godot, unity, unreal, phaser and pixijs. roblox, bevy, defold and ebitengine were removed from the marketplace, so they are no longer named. Skills and scripts are unchanged.

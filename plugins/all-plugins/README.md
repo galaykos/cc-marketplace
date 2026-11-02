@@ -12,7 +12,7 @@ construction: **`prompt-coach`**, which bills a model call per eligible prompt. 
 only when you name it (`claude plugin install prompt-coach@cc-plugins-marketplace -s local`).
 `install` never installs or enables it, and prints it as a
 `skip (opt-in: bills a model call per prompt)` row. `uninstall` and `list` treat it like
-any other plugin. The game plugins — `godot`, `unity`, `unreal`, `phaser`, `pixijs`, `gamedev`, `blender`, `meshy`
+any other plugin. The game plugins — `godot`, `unity-traps`, `unreal`, `phaser`, `pixijs`, `gamedev`, `blender`, `meshy`
 and `pixel-art` — are left out the same way, as
 `skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)`. Their
 descriptions in every project's listing serve no project but a game, and `/stack-scan:suggest`

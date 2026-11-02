@@ -1,4 +1,4 @@
-"""End-to-end tests for plugins/unity/scripts/check_unity_project.py."""
+"""End-to-end tests for plugins/unity-traps/scripts/check_unity_project.py."""
 # Derived from gamedev-skills/awesome-gamedev-agent-skills@184b72b (Apache-2.0, see NOTICE); modified.
 
 from __future__ import annotations

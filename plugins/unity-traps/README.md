@@ -1,4 +1,4 @@
-# unity
+# unity-traps
 
 Unity 6 (6000.x) facts that a model gets wrong from memory, and one mechanism. The skill
 carries only inverted answers and footguns: renamed APIs, a changed torque formula, Cinemachine 3's
@@ -10,11 +10,32 @@ moves, renames or copies files under `Assets/` outside the Editor.
 ## Install
 
 ```bash
-claude plugin install unity@cc-plugins-marketplace
+claude plugin install unity-traps@cc-plugins-marketplace
 ```
 
-Companion: **gamedev** carries the engine-agnostic shipping and workflow material. Install it
-alongside with `claude plugin install gamedev@cc-plugins-marketplace`; nothing installs it for you.
+This plugin was named `unity` through 0.2.1; 0.3.0 is its first release as `unity-traps`. It was renamed so it can load beside Unity's own plugin,
+which is also named `unity`. An install of `unity@cc-plugins-marketplace` migrates to `unity-traps`
+through the marketplace's `renames` map.
+
+Companions, neither installed for you:
+
+- **Unity's official plugin** ([Unity-Technologies/unity-agent-plugin](https://github.com/Unity-Technologies/unity-agent-plugin),
+  Unity Companion License, not MIT). Install it alongside; the two cover different ground:
+
+  | | covers |
+  |---|---|
+  | `unity-traps` (this plugin) | the narrow set of Unity 6 answers a model gets wrong from memory, and the offline `.meta`/GUID checker, which needs no running Editor |
+  | `unity` (Unity's) | breadth across the engine, and the Unity CLI for driving the Editor (see "Driving the Editor") |
+
+  ```bash
+  claude plugin marketplace add Unity-Technologies/unity-agent-plugin
+  claude plugin install unity@unity-agent-plugin
+  ```
+
+  Both have a skill on pixel-perfect rendering and sprite atlases. Where they disagree, this plugin's
+  `references/2d.md` names the Unity manual page it was checked against, so check that page.
+- **gamedev** carries the engine-agnostic shipping and workflow material:
+  `claude plugin install gamedev@cc-plugins-marketplace`.
 
 ## What ships
 
@@ -54,17 +75,8 @@ read on 2026-10-30, and neither was installed or tested here:
   `https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main`, then run
   Window → MCP for Unity → Configure All Detected Clients, which writes the client configuration
   itself.
-- **Unity's own agent plugin**
-  ([Unity-Technologies/unity-agent-plugin](https://github.com/Unity-Technologies/unity-agent-plugin),
-  Unity Companion License, not MIT). It installs from Unity's own marketplace:
-
-  ```bash
-  claude plugin marketplace add Unity-Technologies/unity-agent-plugin
-  claude plugin install unity@unity-agent-plugin
-  ```
-
-  Its plugin is also named `unity`, and its skills overlap this one on pixel-perfect rendering
-  and sprite atlases. Whether the two load side by side was not tested.
+- **Unity's own agent plugin**, the companion above. Its plugin is named `unity`, which is why this
+  one is `unity-traps`.
 
 Credit: Adapted from [gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) @184b72b (Apache-2.0, © 2026 Abhishek Barali and contributors); prose distilled and rewritten here, scripts copied and modified (see NOTICE). The URP 2D
 reference takes its topic list from [scenario-labs/skills](https://github.com/scenario-labs/skills)

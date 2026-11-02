@@ -1,8 +1,8 @@
-# unity: the docstring text moved out of the code (2026-10-26)
+# unity-traps: the docstring text moved out of the code (2026-10-26)
 
-The text below is the module docstring of `check_unity_project.py` as shipped upstream at gamedev-skills/awesome-gamedev-agent-skills@184b72b (Apache-2.0), moved verbatim on 2026-10-26 when the script was ported; the file now opens with a three-line summary in its place. A pointer by name was left in the file, `# Why, limits, history: rationale/derivations/plugin-unity.md § <heading>`. Standing: `recorded` — no gate reads this file.
+The text below is the module docstring of `check_unity_project.py` as shipped upstream at gamedev-skills/awesome-gamedev-agent-skills@184b72b (Apache-2.0), moved verbatim on 2026-10-26 when the script was ported; the file now opens with a three-line summary in its place. A pointer by name was left in the file, `# Why, limits, history: rationale/derivations/plugin-unity-traps.md § <heading>`. On 2026-11-02 the plugin was renamed from `unity` to `unity-traps`; this file (then `plugin-unity.md`) and its heading moved with it. Standing: `recorded` — no gate reads this file.
 
-## plugins/unity/scripts/check_unity_project.py
+## plugins/unity-traps/scripts/check_unity_project.py
 
 ### Header: what it checks and why
 
