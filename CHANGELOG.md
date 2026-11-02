@@ -28,6 +28,10 @@ Game plugins: Unity's plugin can load beside ours, and the art checkers start ru
   meshy and pixel-art bracket a Bash or MCP call between PreToolUse and PostToolUse, so a `curl -o` or an
   `aseprite -b` export is seen. Standing: gate where each hook fires, by the new CI step
   `scripts/smoke/game-checker-hooks-tests.sh` (48 cases). CLAUDE.md's CI count is now 52 named steps, 50 fail-capable.
+- **gamedev 0.2.0** — a new `asset-pipeline` skill takes a Higgsfield concept through Meshy image-to-3D, remesh and
+  rig, Blender QA and export, and Unity import. Each handoff gets a budget and a checker. Credit caps use only
+  documented commands; Higgsfield has no native cap, and `max_credits`/`batch`/`jobs wait` are not in its docs or CLI.
+  Character consistency comes from references rather than seeds. Sources: `rationale/gamedev-asset-pipeline-2026-11-02.md`.
 
 ## [0.126.0] - 2026-10-31
 

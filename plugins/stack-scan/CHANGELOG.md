@@ -9,6 +9,8 @@ recorded; plugin-scout, which was merged into this plugin, kept its own changelo
 - **The Unity row suggests `unity-traps`.** The `unity` plugin was renamed, so `signals.md`,
   `stack-relevance.md` and the generated catalog name `unity-traps`. The `--stack unity` token is
   unchanged. Standing: gate for the name (`pc_scout_names`); the row's use is agent-graded.
+- **The catalog's gamedev row** names gamedev 0.2.0's AI art pipeline. The row is regenerated from
+  gamedev's description.
 
 ## 0.18.1 — 2026-10-31
 

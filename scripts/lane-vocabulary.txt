@@ -71,6 +71,7 @@ dialogue-scripting
 dockerfile-and-compose-idioms
 error-propagation-discipline
 game-asset-checks
+asset-pipeline-handoffs
 godot-idioms
 in-code-instrumentation
 inertia-idioms
