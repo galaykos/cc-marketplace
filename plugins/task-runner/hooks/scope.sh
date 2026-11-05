@@ -1,6 +1,6 @@
 #!/bin/bash
-# PostToolUse (and PostToolUseFailure on Bash) in a registered run: warns when an edited path, a Bash write target or a file changed after an interpreter run (8 each) is outside the union of the run's live scope*.json allow lists; .claude/task-runner/ is never checked.
-# Misses: a worker in another worktree, scope files written mid-run (they widen the union), writes neither the parser nor git can name, absolute paths outside the root; a malformed scope file disarms the call. Advisory; fails open.
+# PostToolUse (and PostToolUseFailure on Bash) in a registered run: warns when an edited path, a Bash write target or a file changed after an interpreter run (8 each) is outside the union of the run's live scope*.json allow lists; never checked: the run's index dir and .claude/<dir>/ state except skills, agents, commands, hooks, rules, output-styles, worktrees.
+# Misses: a worker in another worktree, scope files written mid-run (they widen the union), writes neither the parser nor git can name, absolute paths outside the root, any file in the index's dir (an index at the root exempts nothing); a malformed scope file disarms the call. Advisory; fails open.
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/scope.sh
 MAX_BASH_TARGETS=8
 MAX_BASH_EFFECTS=8
@@ -228,6 +228,19 @@ cc_bash_write_effects() {
     jq -e '.allow | type == "array"' "$s" >/dev/null 2>&1 || { echo "task-runner scope-lock: $(basename "$s") has no \"allow\" array (expected {\"allow\":[\"path\",\"dir/\"],\"task\":\"<id>\"}) — scope not enforced this call" >&3; exit 0; }
   done
 
+  # The orchestrator's own bookkeeping: the index's siblings (cards, PLAN.md, .lint-records/) and plugin scratch under .claude/<dir>/.
+  idx_dir=$(jq -r '.index_path // empty' "$sentinel" 2>/dev/null); idx_dir="${idx_dir#./}"
+  case "$idx_dir" in "$root"/*) idx_dir="${idx_dir#"$root"/}" ;; esac
+  case "$idx_dir" in /* | ../*) idx_dir="" ;; */*) idx_dir="${idx_dir%/*}/" ;; *) idx_dir="" ;; esac
+  exempt() {
+    case "$1" in
+      .claude/skills/* | .claude/agents/* | .claude/commands/* | .claude/hooks/* | .claude/rules/* | .claude/output-styles/* | .claude/worktrees/*) ;;
+      .claude/*/*) return 0 ;;
+    esac
+    [ -n "$idx_dir" ] && case "$1" in "$idx_dir"*) return 0 ;; esac
+    return 1
+  }
+
   rels=()
   if [ "$tool" = "Bash" ]; then
     [ -n "$cmd" ] || exit 0
@@ -243,7 +256,7 @@ cc_bash_write_effects() {
         p="$d/${p##*/}" ;;
       esac
       case "$p" in "$root"/*) rel="${p#"$root"/}" ;; *) return 1 ;; esac
-      case "$rel" in .claude/task-runner/*) return 1 ;; esac
+      exempt "$rel" && return 1
       for q in "${rels[@]}"; do [ "$q" = "$rel" ] && return 1; done
       rels+=("$rel")
     }
@@ -268,7 +281,7 @@ EOF
     [ -n "$file" ] || exit 0
     # An absolute path outside the root (/tmp, the user's memory dir) is no card's file: skipped, as in the Bash branch.
     rel="$file"; case "$file" in "$root"/*) rel="${file#"$root"/}" ;; /*) exit 0 ;; esac
-    case "$rel" in .claude/task-runner/*) exit 0 ;; esac
+    exempt "$rel" && exit 0
     rels+=("$rel")
   fi
   [ "${#rels[@]}" -gt 0 ] || exit 0

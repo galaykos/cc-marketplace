@@ -383,5 +383,45 @@ else
   echo "SKIP 18: python3 not available"
 fi
 
+# 19) BOOKKEEPING (0.50.1, retro 2026-11-05 issue 11): 16-45 warnings per run on the orchestrator's own files,
+#     0 reverts in 118. The registered run's index dir and .claude/<dir>/ plugin scratch stay silent; project
+#     config under .claude/, another task's index dir and app files still warn. The silent ones are red on 0.50.0.
+B="$WS/fx-bookkeeping"; mkrun "$B"; BI="taskmaster-docs/tasks/t"
+mkdir -p "$B/$BI/.lint-records" "$B/.claude/code-review/rv" "$B/.claude/overseer/dispatch" "$B/app"
+printf '{"slug":"t","index_path":"%s/00-INDEX.md"}' "$BI" > "$B/.claude/task-runner/active-run.json"
+touch -t 202601010000 "$B/.claude/task-runner/active-run.json"
+silent_edit() { local c; c=$(edit_ctx "$B" "$B/$1"); check "bookkeeping: Edit $1 -> silent (ctx=<$c>)" "$([ -z "$c" ] && echo 1)"; }
+warns_edit() { local c; c=$(edit_ctx "$B" "$B/$1"); check "bookkeeping: Edit $1 -> still warns (ctx=<$c>)" \
+  "$(case "$c" in *"$1 was edited but is NOT among the files card 07 declared"*) echo 1 ;; esac)"; }
+for p in "$BI/00-INDEX.md" "$BI/PLAN.md" "$BI/03-add-endpoint.md" "$BI/.lint-records/03-add-endpoint.md.log" \
+         .claude/code-review/.gitignore .claude/approaches/approaches.md .claude/candor/ledger.md \
+         .claude/overseer/findings.md .claude/overseer/decisions.md .claude/overseer/dispatch/03.md; do silent_edit "$p"; done
+for p in app/Http/Controllers/X.php .claude/settings.json .claude/settings.local.json .claude/skills/x/SKILL.md \
+         .claude/agents/x.md .claude/commands/x.md .claude/hooks/x.sh .claude/rules/x.md \
+         taskmaster-docs/tasks/other/00-INDEX.md taskmaster-docs/tasks/t-old/00-INDEX.md taskmaster-docs/PLAN.md; do warns_edit "$p"; done
+ctx=$(runb "$B" "git diff > .claude/code-review/rv/03.patch")
+check "bookkeeping: Bash redirect to .claude/code-review/rv/ -> silent (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+ctx=$(runb "$B" "cat >> .claude/overseer/findings.md <<'EOF'
+- card 03: verify passed
+EOF")
+check "bookkeeping: Bash heredoc append to .claude/overseer/findings.md -> silent (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+ctx=$(runb "$B" "bash lint.sh > $BI/.lint-records/04.md.log 2>&1")
+check "bookkeeping: Bash redirect to the index dir's .lint-records/ -> silent (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+ctx=$(runb "$B" "echo x > app/Y.php")
+check "bookkeeping: Bash redirect to an app file -> still warns (ctx=<$ctx>)" \
+  "$(case "$ctx" in *"app/Y.php was edited"*) echo 1 ;; esac)"
+printf '{"slug":"t","index_path":"%s/%s/00-INDEX.md"}' "$B" "$BI" > "$B/.claude/task-runner/active-run.json"
+touch -t 202601010000 "$B/.claude/task-runner/active-run.json"
+silent_edit "$BI/PLAN.md"
+warns_edit app/Http/Controllers/X.php
+printf '{"slug":"t","index_path":"00-INDEX.md"}' > "$B/.claude/task-runner/active-run.json"
+touch -t 202601010000 "$B/.claude/task-runner/active-run.json"
+warns_edit app/Http/Controllers/X.php
+warns_edit "$BI/PLAN.md"
+printf '{"slug":"t"}' > "$B/.claude/task-runner/active-run.json"
+touch -t 202601010000 "$B/.claude/task-runner/active-run.json"
+warns_edit "$BI/00-INDEX.md"
+silent_edit .claude/overseer/findings.md
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

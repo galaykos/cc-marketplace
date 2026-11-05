@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.50.1 — 2026-11-05
+
+- **`hooks/scope.sh` no longer warns on the orchestrator's own bookkeeping.** It skips every file in the directory that holds the registered run's index (`index_path` in `active-run.json`, relative or absolute: the index, `PLAN.md`, the cards, `.lint-records/`) and every `.claude/<dir>/` plugin state directory (`.claude/code-review/`, `.claude/overseer/`, `.claude/approaches/`, `.claude/candor/`, …). It still checks `.claude/settings.json`, `.claude/settings.local.json` and `.claude/skills/`, `agents/`, `commands/`, `hooks/`, `rules/`, `output-styles/`, `worktrees/`, another task's index directory and app files. An index at the project root exempts nothing. Before this the hook fired 16 to 45 times per run on these files and caught nothing: a census relays 0 reverts in 118 warnings (`rationale/session-retro-2026-11-05.md`, issue 11). Pinned by the 31 bookkeeping cases in `scripts/__tests__/scope-hook.test.sh` § 19; the 15 must-stay-silent ones are red on 0.50.0.
+
 ## 0.50.0 — 2026-11-05
 
 - **`Verify: range` in the index moves verification from the card to the run.** Per card the worker runs its verify through `check-receipt.sh run --name card-<id>` and the runner's re-verify is a `check` of that receipt; no negative control and no reviewer pass. At close: the range review, one code-redteam round with the teeth lens (`RT-LENS: teeth-<head12>`), the suite once by receipt, the behavioral gate. Overseer writes the marker; a plain run is unchanged. overseer's `references/range-verify.md`.

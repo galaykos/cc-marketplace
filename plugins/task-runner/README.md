@@ -133,7 +133,11 @@ a session, and takes any other change in that window (an IDE save, a parallel wo
 unignored cache) for the command's write. It reads the scope files at the project root in
 whatever directory the shell sits, and ignores any left over from an earlier run. A scope
 file without an `allow` array (`{"allow":["path","dir/"],"task":"<id>"}`) leaves the call
-unenforced and says so on stderr; writes outside the project root are not checked. Most
+unenforced and says so on stderr; writes outside the project root are not checked, and nor
+are the run's own bookkeeping files: the directory holding the registered run's index (cards,
+`PLAN.md`, lint records) and `.claude/<dir>/` plugin state. `.claude/settings*.json` and
+`.claude/` `skills/`, `agents/`, `commands/`, `hooks/`, `rules/`, `output-styles/` and
+`worktrees/` are still checked. Most
 turns have no registered run, and there it exits at once — so
 `drift.sh` asks one question, once per request, when a narrow ask has produced a wide
 change: **12+** files edited (p90 of 169 measured local edit-turns), no breadth word in
