@@ -702,6 +702,26 @@ if command -v git >/dev/null 2>&1; then
   qrun "$QT"
   qis "closed run: a gate pass at HEAD with no range record still blocks" \
     "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB" && [ -f "$QCLOSED" ]; echo $?)"
+
+  # Verify: range (an overseer run, 0.12.0): no per-card control or review is owed; the range review and one teeth lens are.
+  rm -f "$QCLOSED"; git -C "$RQ" reset -q --hard "$QHEAD"
+  printf '# Cards\nVerify: range\n' > "$RQ/00-INDEX.md"
+  qsent ",\"start_sha\":\"$QSTART\",\"base\":\"$QSTART\",\"index_path\":\"00-INDEX.md\""
+  rm -f "$QRV"/rv-*.json; mkdir -p "$QTR/nc" "$QTR/rt"; rm -f "$QTR"/nc/*.json "$QTR"/rt/*.json
+  printf '{"head":"%s","cards_total":3,"cards_done":3,"cards_parked":0}' "$QHEAD" > "$QTR/gate-pass.json"
+  printf '{}' > "$QRV/range-$Q12.json"
+  qrun "$QT"
+  qis "verify-range: no per-card review, control or UI review is owed; a teeth lens is" \
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "RT-LENS: teeth-$Q12" && ! printf '%s' "$err" | grep -qE 'have a review recorded|have one in|ui-ux-reviewer review recorded'; echo $?)"
+  printf '{}' > "$QTR/rt/rt-lens-teeth-$Q12.json"
+  qrun "$QT"
+  qis "verify-range: the range review plus a teeth lens record passes" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
+  rm -f "$QRV/range-$Q12.json"; qrun "$QT"
+  qis "verify-range: the range review is still owed" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RANGE_SUB"; echo $?)"
+  printf '{}' > "$QRV/range-$Q12.json"; printf '# Cards\n' > "$RQ/00-INDEX.md"; qrun "$QT"
+  qis "verify-range control: without the marker the per-card reviews are owed again" \
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'have a review recorded'; echo $?)"
+  rm -f "$RQ/00-INDEX.md" "$QSENT"
 else
   printf 'SKIP  0.8.0 range / ui / closed-run cases (git not available)\n'
 fi

@@ -138,6 +138,22 @@ out=$(jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Bash", tool_input:{command:
   | bash "$CONSENT" 2>/dev/null)
 [ -z "$out" ] && ok "rv-consent silent outside a registered run" || bad "rv-consent silent outside a registered run" "out=<$out>"
 
+# 5) a hands-off (Goal) or overseer (Verify: range) run is told, never asked; a plain run still asks
+for marker in 'Goal: true (boost=off)' 'Verify: range' 'Goal: false'; do
+  printf '# Cards\n\n%s\n' "$marker" > "$REPO/00-INDEX.md"
+  printf '{"slug":"t","index_path":"00-INDEX.md"}' > "$SENT"
+  out=$(jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Bash", tool_input:{command:"bash reduction-record.sh --kind coverage --id bg-1 --reason \"no C# runner\""}}' \
+    | bash "$CONSENT" 2>/dev/null)
+  if [ "$marker" = 'Goal: false' ]; then
+    printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "ask"' >/dev/null 2>&1 \
+      && ok "rv-consent still asks when the index says Goal: false" || bad "rv-consent still asks when the index says Goal: false" "out=<$out>"
+  else
+    printf '%s' "$out" | jq -e '(.hookSpecificOutput|not) and (.systemMessage|test("no C# runner"))' >/dev/null 2>&1 \
+      && ok "rv-consent notifies without asking under: $marker" || bad "rv-consent notifies without asking under: $marker" "out=<$out>"
+  fi
+done
+printf '{"slug":"t"}' > "$SENT"; rm -f "$REPO/00-INDEX.md"
+
 # 4) fail-open on a cwd that no longer exists
 for h in "$OBS" "$CONSENT"; do
   printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"x"}}' "$WS/gone" | bash "$h" >/dev/null 2>&1

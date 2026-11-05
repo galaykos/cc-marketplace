@@ -1,6 +1,6 @@
 #!/bin/bash
-# PreToolUse on Write/Edit/MultiEdit/Bash in a registered (or just-closed) run: asks the user before a discretionary reduction is recorded: an rv-skip-*.json or reductions/*.json write, a redirect into rv-skip-*.json, review-skip.sh or reduction-record.sh with --reason. --exempt never asks.
-# Misses: a record name held in a variable or a nested $(…). Unverified under auto-accept, bypassPermissions or headless -p, where the ask may deny the record write. Fails open (allow, no prompt).
+# PreToolUse on Write/Edit/MultiEdit/Bash in a registered (or just-closed) run: asks the user before a discretionary reduction is recorded: an rv-skip-*.json or reductions/*.json write, a redirect into rv-skip-*.json, review-skip.sh or reduction-record.sh with --reason. --exempt never asks; a run whose index carries `Goal: true` or `Verify: range` is told in a systemMessage, never asked.
+# Misses: a record name held in a variable or a nested $(…); a marker line edited after registration. Unverified under auto-accept, bypassPermissions or headless -p, where the ask may deny the record write. Fails open (allow, no prompt).
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/rv-consent.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -76,6 +76,15 @@ cc_state_root() {
 
   what="the reviewer pass for card"
   printf '%s' "$flat" | grep -q 'reduction-record\.sh' && what="a declared step for"
+  # Hands-off (Goal) and overseer (Verify: range) runs have nobody to answer: an ask idled them 1.5-9.5 h (rationale/session-retro-2026-11-05.md, issue 2).
+  sent="$root/.claude/task-runner/active-run.json"; [ -r "$sent" ] || sent="$root/.claude/task-runner/closed-run.json"
+  idx=$(jq -r '.index_path // empty' "$sent" 2>/dev/null)
+  case "$idx" in '') ;; /*) ;; *) idx="$root/$idx" ;; esac
+  if [ -n "$idx" ] && grep -qiE '^[[:space:]]*(Goal:[[:space:]]*true|Verify:[[:space:]]*range)' "$idx" 2>/dev/null; then
+    jq -cn --arg m "$(printf 'task-runner: reducing %s %s (reason: %s). Recorded without asking: this run is hands-off or overseer-driven; the completion report must still name it.' "$what" "$card" "$reason")" \
+      '{systemMessage:$m}' 2>/dev/null
+    exit 0
+  fi
   msg=$(printf 'Reducing %s %s. Reason: %s\n\nApproving records the reduction and lets the run continue; the completion report must still disclose it. Denying means the full step runs.' "$what" "$card" "$reason")
 
   jq -cn --arg m "$msg" \

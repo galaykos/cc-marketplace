@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.50.0 — 2026-11-05
+
+- **`Verify: range` in the index moves verification from the card to the run.** Per card the worker runs its verify through `check-receipt.sh run --name card-<id>` and the runner's re-verify is a `check` of that receipt; no negative control and no reviewer pass. At close: the range review, one code-redteam round with the teeth lens (`RT-LENS: teeth-<head12>`), the suite once by receipt, the behavioral gate. Overseer writes the marker; a plain run is unchanged. overseer's `references/range-verify.md`.
+- **`hooks/rv-consent.sh` no longer asks in hands-off or overseer runs.** When the run's index carries `Goal: true` or `Verify: range`, a discretionary reduction (`review-skip.sh` / `reduction-record.sh --reason`) is announced in a `systemMessage` and recorded; the closing report must still name it (candor clause 4). An unanswered ask idled runs for 1.5 to 9.5 hours (`rationale/session-retro-2026-11-05.md`, issue 2). Pinned by three new `scripts/__tests__/rv-hooks.test.sh` cases, two red on 0.49.10.
+
 ## 0.49.10 — 2026-10-31
 
 - **`scripts/register-run.sh` runs the taskmaster phase writer Claude Code loaded, not whichever sorts last.** An installed plugin sits at `<marketplace>/<plugin>/<version>/`, so the dev-tree sibling never existed there and `find ~/.claude/plugins/cache … | sort -V | tail -1` always ran; over full paths that orders by marketplace name first, so another marketplace's taskmaster could write the phase file. The order is now: the dev-tree sibling; the `installPath` of the enabled `taskmaster@…` row in `claude plugin list --json` for this project, else user scope; the newest version in the script's own marketplace (`sort -V` on the version name alone); then the old cache-wide search, which now says on stderr that it may not be the loaded copy. Nothing found still writes the phase file by hand. Pinned by three new `scripts/__tests__/register-run.test.sh` cases, red on 0.49.9. Residual: the CLI case runs against a stub; the filter itself was checked once against the real `claude plugin list --json`.

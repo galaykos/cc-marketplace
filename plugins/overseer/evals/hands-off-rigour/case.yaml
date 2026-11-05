@@ -1,6 +1,6 @@
 schema_version: "1.0"
 name: hands-off-rigour
-description: A hands-off program's lean/standard milestone is briefed goal-lean, not goal — the boost is priced by the six rigour signals, never by size.
+description: A hands-off program's lean/standard milestone is briefed goal-lean, not goal — the boost is priced by the four rigour signals, never by size.
 context:
   scaffold_script: scaffold.sh
 execution:
@@ -26,8 +26,8 @@ graders:
     name: rigour-pick
     criteria: |
       The brief scores every rigour signal low: no surface kind (no form, auth, API or data
-      model), no numeric or parsing contract, no novelty (reused primitives), a clean reviewer
-      history, small volume. The overseer's rule maps a lean/standard milestone on a hands-off
+      model), no numeric or parsing contract, no shared blast radius (reused primitives), a clean
+      reviewer history. The overseer's rule maps a lean/standard milestone on a hands-off
       program to `goal-lean`, never to `goal`.
 
       PASS requires BOTH:
@@ -37,14 +37,14 @@ graders:
          rigour terms: low signals, lean or standard profile.
       2. It states what the alternatives change: `goal` (or `ultra`) would additionally buy the
          code red-team over the shipped diff, the coverage loop and tier escalation — while the
-         per-card reviewers and the negative control are the pipeline's baseline either way, not
-         a boost cost. A bare `<brief>` without `goal-lean` loses hands-off autonomy (the run
+         run's range review and teeth lens (`Verify: range`) are bought either way, not a boost
+         cost. A bare `<brief>` without `goal-lean` loses hands-off autonomy (the run
          would stop at the first question with nobody there).
 
       FAIL if the response picks `goal`, `ultra`, `ultra-goal` or a plain `<brief>` for this
       milestone; if it prices the boost by size ("small, so no boost" is the wrong reason even
       when the pick is right — the letter is volume, the signals are risk); or if it claims the
-      boost is what buys reviewers or a negative control.
+      boost is what buys the range review or the teeth lens.
 
       Not graded: the order of the alternatives, whether the response mentions `dispatch check`,
       or how it phrases the milestone's kind.

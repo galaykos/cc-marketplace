@@ -135,6 +135,18 @@ pins_in() {
       | while IFS= read -r p; do [ -n "$p" ] && [ -f "$p" ] && printf '%s\n' "$p"; done
   done | sort -u
 }
+# plugin_installed <plugin> [skill]: the skill's file is in the plugin cache AND, when the start-time
+# scan (capabilities.tsv) read this project's installs, the plugin is one of them — the cache is
+# machine-wide, so a plugin installed for another project must not make a milestone owe it.
+plugin_installed() {
+  local avail sk="${2:-*}"
+  # $sk unquoted: the default `*` must glob; a named skill is path-safe (kinds.tsv tokens)
+  ls -d "$HOME"/.claude/plugins/cache/*/"$1"/*/skills/$sk/SKILL.md >/dev/null 2>&1 || return 1
+  [ -f "$dir/capabilities.tsv" ] || return 0
+  avail=$(grep -v '^#' "$dir/capabilities.tsv" | awk -F'\t' 'NR>1 && $2!="-" {print $2}' | tr ',' '\n' | sed '/^$/d' | sort -u)
+  { [ -z "$avail" ] || printf '%s\n' "$avail" | grep -qx unknown; } && return 0
+  printf '%s\n' "$avail" | grep -qx "$1"
+}
 pinned_groups_status() {
   local kind="$1"; shift; local g alt plugin skill hit inst pins
   pins=$(pins_in "$@")
@@ -143,7 +155,10 @@ pinned_groups_status() {
     for alt in $(printf '%s' "$g" | tr '|' ' '); do
       if [ "$alt" = stack ]; then
         printf '%s\n' "$pins" | grep -qE '/\.claude/skills/[A-Za-z0-9_-]+/SKILL\.md$|/(laravel|web-dev)/[^/ ]+/skills/[A-Za-z0-9_-]+/SKILL\.md$' && hit=1
-        { ls "$root"/.claude/skills/*/SKILL.md >/dev/null 2>&1 || ls -d "$HOME"/.claude/plugins/cache/*/laravel/*/skills/*/SKILL.md "$HOME"/.claude/plugins/cache/*/web-dev/*/skills/*/SKILL.md >/dev/null 2>&1; } && inst=1
+        # laravel/web-dev stand in only for a project on that stack: a Unity tree owes neither, wherever they are installed
+        { ls "$root"/.claude/skills/*/SKILL.md >/dev/null 2>&1 ||
+          { grep -qs '"laravel/framework"' "$root/composer.json" && plugin_installed laravel; } ||
+          { [ -f "$root/package.json" ] && plugin_installed web-dev; }; } && inst=1
         continue
       fi
       plugin="${alt%%:*}"; skill="${alt#*:}"
@@ -151,7 +166,7 @@ pinned_groups_status() {
         printf '%s\n' "$pins" | grep -qE "/\.claude/skills/$skill/SKILL\.md$" && hit=1; [ -f "$root/.claude/skills/$skill/SKILL.md" ] && inst=1
       else
         printf '%s\n' "$pins" | grep -qE "/$plugin/[^/ ]+/skills/$skill/SKILL\.md$" && hit=1
-        [ -n "$(ls -d "$HOME"/.claude/plugins/cache/*/"$plugin"/*/skills/"$skill"/SKILL.md 2>/dev/null | head -1)" ] && inst=1
+        plugin_installed "$plugin" "$skill" && inst=1
       fi
     done
     if [ "$hit" = 1 ]; then echo "ok $g"; elif [ "$inst" = 1 ]; then echo "missing $g"; else echo "uninstalled $g"; fi

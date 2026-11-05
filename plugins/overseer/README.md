@@ -175,7 +175,7 @@ leaves the line to the next main-loop one is a gate (`tests/status-line.test.ts`
 | a milestone of kind K reaches `done` only after a dispatch that passed `dispatch check` (recorded in `dispatch/.gated`, unchanged since) pinned a skill from each of K's groups (`kinds.tsv`) by a path that exists; every required evidence row postdates the last gated worker or follow-up dispatch; `init` refuses a session opened in another project unless `--foreign-session` says why | **gate** — `program.sh accept` / `init` exit 2 |
 | a worker prompt carries every line of the discipline preamble verbatim, a scope lock and a verify command; a reader/reviewer prompt a return shape and the read-only statement, no preamble (it is worker discipline); every kind an existing skill path and a `MODEL:` line the program tier allows — nothing above opus unless the program was started `--model auto`, and a worker never `inherit`s | **gate when run** — `program.sh dispatch check`; running it is agent-graded, and a prompt never checked is not part of the record |
 | a milestone sized M or larger is briefed to taskmaster; a direct worker on one needs a decision row | **WARN** — `dispatch check --milestone`; the row is recorded |
-| each milestone carries a rigour profile (`lean`/`standard`/`adversarial`) scored from six brief signals; a surface kind is never lean; the card index's boost marker agrees with it | **WARN** on form (unset, surface-lean, marker mismatch) — `dispatch check --milestone`; the score is **agent-graded** |
+| each milestone carries a rigour profile (`lean`/`standard`/`adversarial`) scored from four brief signals (surface, numeric contract, blast radius, reviewer history); a surface kind is never lean; the card index's boost marker agrees with it | **WARN** on form (unset, surface-lean, marker mismatch) — `dispatch check --milestone`; the score is **agent-graded** |
 | taskmaster's own red-team and coverage seats follow the session model under `goal`, whatever the overseer's tier | **residual** — hold every seat at opus by starting the session with `claude --model opus` |
 | a fresh session learns a program is open | **hook** — SessionStart, one line |
 | discover before clarify (CI included); ask only what the project cannot answer; no code in the main thread; every decision in `decisions.md` | **agent-graded** / **recorded** |
@@ -194,8 +194,14 @@ leaves the line to the next main-loop one is a gate (`tests/status-line.test.ts`
   expect Discover to check the scan against the session's own Skill list (simulation 4).
 - **The boost is bought per milestone by rigour, not by size.** taskmaster's
   `ultra`/`goal` marker adds the code red-team, coverage loop-until-dry and tier
-  escalation on top of a standard run; the per-card reviewers, the negative control and
-  (past three criteria) the spec red-team run without it. In simulation 4 that phase was
+  escalation on top of a standard run; the run's range review, its teeth lens and (past
+  three criteria) the spec red-team run without it.
+- **Verification is per milestone, not per card.** Every brief carries `Verify: range`, so
+  task-runner skips the per-card reviewer pass and negative control and, at close, runs the
+  range review, one red-team round with the teeth lens and the suite once by receipt; accept
+  and `git-workflow:finish` reuse that receipt. Standing: candor's clause 4 reads the marker
+  (**gate**); the receipt reuse is **agent-graded**. Why: one tree was verified six to seven
+  times per milestone (`rationale/session-retro-2026-11-05.md` § 1, marketplace repository). In simulation 4 that phase was
   40 of 119 minutes and found the real bugs; the profile (`dispatch-prompts.md` § Rigour)
   says when it is worth it. Hands-off buys it the same way: `goal-lean` (taskmaster
   ≥0.42.1, task-runner ≥0.32.0) for lean and standard milestones, `goal` for adversarial;

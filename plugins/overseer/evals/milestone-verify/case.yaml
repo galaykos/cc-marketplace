@@ -1,0 +1,47 @@
+schema_version: "1.0"
+name: milestone-verify
+description: A content-heavy milestone with no surface is not adversarial, its run verifies once per milestone (Verify range) not per card, and the user's "start m3" is not re-asked.
+context:
+  scaffold_script: scaffold.sh
+execution:
+  timeout_seconds: 900
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    You are the overseer of the program open in this directory (`.claude/overseer/`).
+    Milestone m3 is `briefed`; read its brief under `.claude/overseer/milestones/m3/brief.md`.
+    taskmaster and task-runner are installed. The user says: "Merge m2, start m3."
+
+    Before anything runs, answer in under 200 words: the rigour profile you record for m3 and
+    why; the exact command you hand the brief to; what the run verifies per card and what once
+    per milestone; and whether you ask the user anything before execution starts.
+runs: 3
+graders:
+  - type: tool_used
+    name: overseer-skill-fired
+    tool: Skill
+    input_match: overseer
+  - type: llm
+    name: range-verify-pick
+    criteria: |
+      The brief has no surface (no auth, data model, save format, money or parser), no numeric
+      or parsing contract, no new shared primitive, and a clean reviewer history. It is large
+      (ten cards, twenty files) and novel (a new RelicSystem), but size and novelty are not risk.
+
+      PASS requires ALL of:
+
+      1. Rigour `lean` (or `standard` with a stated signal), never `adversarial`, and the reason
+         is not card count, file count or novelty.
+      2. The brief carries a `Verify: range` line, and per card the run does only the worker's
+         verify (reused by receipt) — no per-card reviewer pass and no per-card negative control.
+         Once per milestone: the whole-range review, one red-team round with the
+         does-the-test-have-teeth lens, the suite once (by receipt), then the acceptance walk.
+      3. The command is `/taskmaster:task <brief>` (interactive program, not hands-off), and it
+         does not ask the user to confirm starting execution — "start m3" already said so.
+
+      FAIL if it scores m3 adversarial or boosts it (`ultra`) because of size or novelty; if it
+      keeps per-card reviewers or negative controls; if it plans a second range review or a
+      second suite run at accept; or if it asks "start execution now?" before the run.
+
+      Not graded: wording of the rigour block, whether it mentions `dispatch check`, the order
+      of the answer's parts.

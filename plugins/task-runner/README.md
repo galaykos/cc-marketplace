@@ -239,6 +239,7 @@ So the mandated passes now leave evidence a run cannot author for itself:
 | red-team panel (boosted runs that shipped code) | `rt-lens-*` / `rt-critic-*` from the same observer | 3 lenses + 1 critic, or a recorded degradation |
 | whole-range review at run close (runs registered by `register-run.sh`) | `range-<sha>` from the same observer, on `RV-RANGE: <HEAD12>` in the `/code-review:review` call | a record for the closing HEAD, or a recorded skip |
 | ui-ux-reviewer on a UI card | `rv-agent-<card>@<reviewer>` from the same observer, for each card whose `rv/diff-<card>.patch` names a `.tsx`, `.jsx`, `.vue`, `.svelte`, stylesheet or `.blade.php` file | a ui-ux-reviewer record, or a recorded skip or exemption |
+| teeth lens (runs whose index carries `Verify: range`, which owe no per-card reviewer, negative control or UI review) | `rt-lens-teeth-*` from the same observer, on `RT-LENS: teeth-<HEAD12>` | one record when the range shipped code, or a recorded red-team reduction |
 
 Skips stay possible and stop being silent. `scripts/review-skip.sh` (per card) and
 `scripts/reduction-record.sh` (`--kind redteam|dispatch|suite|coverage|other` — a degraded

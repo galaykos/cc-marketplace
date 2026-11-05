@@ -81,18 +81,19 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    Status → `briefed` once the brief file is written.
 2. **Brief.** Write `milestones/<id>/brief.md` per `references/dispatch-prompts.md` § Brief
    (goal, browser-demonstrable acceptance, scope, binding decisions, skills by path,
-   verify commands) and score its **rigour** — six signals, § Rigour: surface, numeric
-   contract, novelty, blast radius, reviewer history, volume → `lean|standard|adversarial`,
-   recorded with `milestone set --rigour … --reason`. Rigour, not size, decides what
-   scrutiny is bought.
+   verify commands, the `Verify: range` line) and score its **rigour** — four signals,
+   § Rigour: surface, numeric contract, blast radius, reviewer history →
+   `lean|standard|adversarial`, recorded with `milestone set --rigour … --reason`. Novelty
+   and volume are size, not risk.
 3. **Execute.** Size M and up with taskmaster installed: `/taskmaster:task <brief>`
    (lean/standard), `ultra <brief>` (adversarial: buys the code red-team over the diff),
    hands-off `goal-lean <brief>` (lean/standard) or
-   `goal <brief>` (adversarial). Per-card reviewers and negative controls are
-   task-runner's baseline, never a boost cost. Let taskmaster hand off to task-runner
-   (`--tracks` only for two-plus track-eligible milestones; parallel groups within one
-   are its default path); when the index appears, diff
-   its decisions against the brief's binding ones and record each delta.
+   `goal <brief>` (adversarial). `Verify: range` makes task-runner verify once per run —
+   range review, one red-team round with the teeth lens, the suite once by receipt — not
+   per card (`references/range-verify.md`). The user's "start mN" covers
+   execution: never re-ask before the run. Let taskmaster hand off to task-runner
+   (`--tracks` only for two-plus track-eligible milestones); when the index appears,
+   confirm it carries `Verify: range`, diff its decisions against the brief's and record each delta.
    Size S, or no taskmaster: cards from the brief, one scope-locked worker
    per disjoint file set. Every prompt you dispatch is written
    to `milestones/<id>/dispatch/<n>.md` and passed through `program.sh dispatch check
@@ -104,12 +105,13 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    `--kind followup`, gated too. WARNs: a dense card; with `--milestone` (implied by the
    path) unpinned kind groups, a skipped pipeline on M+, and rigour: unset, a lean surface
    kind, a card index whose boost marker contradicts it. Status → `building`.
-4. **Review.** Route the diff to every installed reviewer the capability map names. A
-   reviewer is a dispatch: `dispatch/<n>-review-<name>.md`, `--kind reviewer`,
-   saying it writes no file. A severity is a hypothesis: reproduce a `critical` in the
+4. **Review.** The run's close reviewed the range and ran the teeth lens: never repeat
+   either. Add only a reviewer the capability map names that it did not run (ui-ux on a
+   screen) — a dispatch: `dispatch/<n>-review-<name>.md`, `--kind reviewer`. A severity is a hypothesis: reproduce a `critical` in the
    browser before it buys a fix cycle. Confirmed findings go back through step 3, three
    cycles, then park. Independent milestones may run in parallel (`references/worktree.md`).
-5. **Accept.** Status → `accepting`. Run `references/acceptance.md`: suite green, then the
+5. **Accept.** Status → `accepting`. Run `references/acceptance.md`: suite green (the run's
+   fresh receipts, re-run only if stale), then the
    feature driven in a real browser — happy path with its success feedback in frame, error
    path, three widths, full keyboard path, reduced motion emulated, console clean
    (a `headless` kind: suite + `run-log`, no walk) — each
@@ -153,15 +155,12 @@ Every worker, reviewer and subagent runs in a fresh context: a prompt that depen
 conversation is broken. Apply `task-runner:delegation-contracts` when installed (minimal
 form in `references/dispatch-prompts.md`): skills and files by absolute path, resolved by
 you; return shape and verify commands stated; a worker's discipline preamble `cat`-ed in,
-never retyped (a retyped one drifts clause by clause). A prompt
-naming a plugin the scan showed missing will be ignored — use the fallback.
+never retyped. A prompt naming a plugin the scan showed missing is ignored — use the fallback.
 
-**Model per seat is a line, not a default.** Every dispatch file carries `MODEL: <value>`
-and the Agent call passes the same `model:`; the program tier binds it (`opus`: nothing
-above opus in any seat — a cost cap overriding role-floors, on record; `auto`: reader/reviewer
-seats `inherit`, a worker never — **gate**, `dispatch check`; seat table in
-`dispatch-prompts.md`). It binds only your prompts (taskmaster's seats follow the session
-model — residual).
+**Model per seat is a line, not a default.** Every dispatch file carries `MODEL: <value>`,
+the Agent call passes the same `model:`, and the program tier bounds it (**gate**,
+`dispatch check`; seat table and tiers in `dispatch-prompts.md`). It binds only your
+prompts; taskmaster's seats follow the session model (residual).
 
 ## Rules with teeth, and rules without
 
@@ -172,7 +171,8 @@ model — residual).
 | The Deliver step-3 prompt rules (preamble, scope lock, verify, return shape, `MODEL:`, an existing skill path) | **gate when run** — `dispatch check`; running it is **agent-graded**; unrun, the prompt is outside the record |
 | A milestone of kind K reaches `done` only once a checked, unchanged dispatch pins a skill from each of K's groups by an existing path | **gate** — `accept` exits 2; an uninstalled group is a WARN |
 | An M+ milestone goes through taskmaster; a direct worker on one is recorded | **WARN** — `dispatch check --milestone`; the row is **recorded** |
-| Every milestone has a rigour profile; a surface kind is never lean; the index's boost marker agrees with it | **WARN** on form — `dispatch check --milestone`; the six-signal score is **agent-graded** |
+| Every milestone has a rigour profile; a surface kind is never lean; the index's boost marker agrees with it | **WARN** on form — `dispatch check --milestone`; the four-signal score is **agent-graded** |
+| Every brief carries `Verify: range`: its run owes a range review and a teeth lens, no per-card review or control | **gate** (candor clause 4); writing the line is **agent-graded** |
 | A hands-off program delivers every runnable milestone; an unused installed command has a decision row | **recorded** |
 | A fresh session learns a program is open | **hook** — SessionStart, one line |
 | Discover ran before Clarify; Clarify asked nothing the project answered; CI was inventoried | **agent-graded** |
@@ -187,7 +187,7 @@ model — residual).
 - **Tests-as-acceptance.** A green suite closing a milestone nobody opened in a browser.
 - **Pipeline by exception.** Every milestone "too well specified for grill", hand-dispatched.
 - **Rigour by size.** "M, so no boost" / "hands-off, so boost all": the letter is volume;
-  the six signals say what a wrong build costs.
+  the four signals say what a wrong build costs.
 - **Silent scope creep.** A milestone that grew a second feature — park the extra as m<N+1>.
 - **Marketing ahead of the product.** A homepage naming stages, roles or counts no
   milestone ships (acceptance.md, product-truth check).
