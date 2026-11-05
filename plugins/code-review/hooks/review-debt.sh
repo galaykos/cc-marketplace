@@ -1,6 +1,6 @@
 #!/bin/bash
-# UserPromptSubmit, advisory: one line when 8+ files or an auth path changed since this context's last review (a ship prompt: at once, untracked included); a review Agent/Task/Skill call (PostToolUse) moves the base.
-# Misses: uncommitted work until a commit or ship verb; reviews by other names; a rebase or branch switch resets the count; silent while .claude/task-runner/active-run.json exists, a crashed run's stale one too. Off: CC_REMIND, CC_REVIEW_NUDGE.
+# UserPromptSubmit, advisory: one line when 8+ code/config files or an auth path changed since this context's last review (a ship prompt: at once, untracked included); a review Agent/Task/Skill call (PostToolUse) moves the base.
+# Skips docs, lockfiles, art, media, fonts and binaries; `guard` is auth only as a word (Guard.php, JwtGuard; not GuardPost). Misses: uncommitted work until a commit or ship verb; reviews by other names; a rebase or branch switch resets the count; silent while .claude/task-runner/active-run.json exists, a crashed run's stale one too. Off: CC_REMIND, CC_REVIEW_NUDGE.
 # Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/hooks/review-debt.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -229,10 +229,18 @@ cc_prompt_question() {
   changed=$( { git -C "$root" -c core.quotepath=off diff --name-only "$base" -- 2>/dev/null
                [ "$ship" = 1 ] && git -C "$root" -c core.quotepath=off ls-files --others --exclude-standard 2>/dev/null; } \
     | grep -vE '\.md$|(^|/)\.claude/|(^|/)taskmaster-docs/|(^|/)(node_modules|vendor|dist|build|\.next|coverage|generated|__generated__)/' \
-    | grep -vE '(^|/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|composer\.lock|Gemfile\.lock|Cargo\.lock|poetry\.lock|Pipfile\.lock|uv\.lock|go\.sum|bun\.lockb?|mix\.lock|flake\.lock)$')
+    | grep -vE '(^|/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|composer\.lock|Gemfile\.lock|Cargo\.lock|poetry\.lock|Pipfile\.lock|uv\.lock|go\.sum|bun\.lockb?|mix\.lock|flake\.lock)$' \
+    | LC_ALL=C grep -viE '\.(png|jpe?g|gif|webp|bmp|tga|tiff?|psd|psb|ico|icns|svg|exr|hdr|dds|ktx2?|avif|heic|xcf|kra|aseprite|fbx|blend1?|glb|gltf|obj|mtl|dae|3ds|max|stl|ply|usd[acz]?|abc|vox|sbsar|spp|meta|mat|controller|overridecontroller|anim|prefab|unity|physicmaterial|mask|mixer|rendertexture|spriteatlas|playable|cubemap|lighting|terrainlayer|bytes|import|uasset|umap|wav|mp3|ogg|flac|aiff?|m4a|opus|bank|mp4|mov|webm|avi|mkv|ttf|otf|woff2?|eot|pdf|zip|gz|tgz|7z|rar|dll|so|dylib|exe|jar|class|pyc|wasm)$')
   count=$(printf '%s\n' "$changed" | grep -c .)
-  # `auth` but not `author`; the words are the prompt-shape block's cc_prompt_auth_surface.
-  auth=$(printf '%s\n' "$changed" | cc_prompt_auth_surface)
+  # cc_prompt_auth_surface matches `guard` inside GuardPost and Guardian; masking those first keeps Guard.php and JwtGuard, and the line number maps a hit back to its path.
+  hits=$(printf '%s\n' "$changed" | LC_ALL=C awk '{ s = $0; l = tolower(s); o = ""; p = 1
+      while ((i = index(substr(l, p), "guard")) > 0) {
+        i += p - 1; b = i > 1 ? substr(s, i - 1, 1) : ""; e = i + 5
+        if (substr(l, e, 1) == "s") e++
+        w = (b !~ /[A-Za-z]/ || substr(s, i, 2) == "Gu") && substr(s, e, 1) !~ /[A-Za-z]/
+        o = o substr(s, p, i - p) (w ? substr(s, i, 5) : "xxxxx"); p = i + 5 }
+      print NR " " o substr(s, p) }' | cc_prompt_auth_surface | cut -d' ' -f1 | tr '\n' ' ')
+  auth=$(printf '%s\n' "$changed" | awk -v h=" $hits" 'index(h, " " NR " ")')
   nauth=$(printf '%s\n' "$auth" | grep -c .)
 
   # A ship line answers to the last ship line and raises the plain count, so the next commit stays quiet.

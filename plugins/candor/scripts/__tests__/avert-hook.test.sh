@@ -82,4 +82,45 @@ bash_case "22 a <<WORD quoted in the commit message opens no heredoc" \
   $'git commit -m "handle <<EOF in parser" && cat > brief.md <<EOF\nuse look-alike creatures\nEOF' ask
 bash_case "23 a <<< here-string in the commit span opens no heredoc" \
   $'git commit -qF - <<<EOF && cat > brief.md <<EOF\nuse look-alike creatures\nEOF' ask
+# Retro 2026-11-05 issue 13: a topic term (legal, generic, look-alike, inspired-by) asks only beside a cut cue in its clause, and never in a memory note.
+fresh() { # $1 label, $2 tool, $3 json tool_input, $4 want
+  local t="$TMP/f$((++nf)).jsonl"; mk_transcript "$t" ""
+  check "$1" "$(run "$2" "$3" "$t")" "$4"
+}
+nf=0
+MEM=/home/u/.claude/projects/-g-little-sprito/memory/little-sprito-direction.md
+KOS='Story will reuse public-domain Koschei the Deathless folklore (write original text; avoid copyrighted modern retellings/translations).'
+fresh "24 a launch plan's to-do row naming a trademark check is silent" Write \
+  "$(jq -cn '{file_path:"/x/design/reviews/launch-plan.md",content:"| Nov | Check \"Hoardling\" on both stores and as a trademark before store art uses it | Free |"}')" ""
+fresh "25 a trademark reason beside a cut in the same clause asks" Write \
+  "$(jq -cn '{file_path:"/x/design/reviews/launch-plan.md",content:"| Nov | Leave out the Hoardling name from store art over trademark doubts | Free |"}')" ask
+fresh "26 a memory note recording the user's public-domain plan is silent" Edit \
+  "$(jq -cn --arg f "$MEM" --arg s "$KOS" '{file_path:$f,old_string:"x",new_string:$s}')" ""
+fresh "27 the same avoid-copyrighted clause in a project doc asks" Edit \
+  "$(jq -cn --arg s "$KOS" '{file_path:"/x/docs/story-plan.md",old_string:"x",new_string:$s}')" ask
+fresh "28 a substitute declared in a memory note still asks" Write \
+  "$(jq -cn --arg f "$MEM" '{file_path:$f,content:"Original 2.5D beat-em-up in the genre of Little Fighter (not a recreation: original characters/data only)."}')" ask
+bash_case "29 a heredoc of story credits saying inspired by is silent" \
+  $'cat > Assets/Editor/CampaignStory.cs <<\'EOF\'\ncampaign.credits = string.Join("\\n", new[] {\n    "Story inspired by the public-domain Russian folk tales of",\n    "Koschei the Deathless, Marya Morevna, Baba Yaga and the Isle of Buyan.",\n});\nEOF' ""
+bash_case "30 inspired by beside instead of in one clause asks" \
+  $'cat > brief.md <<\'EOF\'\nWrite a story inspired by the folk tales instead of the user\'s draft.\nEOF' ask
+fresh "31 a security probe for unicode look-alikes is silent" Agent \
+  "$(jq -cn '{prompt:"Probe `app/Services/ArtDirection/SourceBlock.php` (delimiter defusing — try forged openers/closers, unicode look-alikes, nested runs, newlines inside url)."}')" ""
+fresh "32 look-alike glyphs instead of the licensed font asks" Agent \
+  "$(jq -cn '{prompt:"Use look-alike glyphs instead of the licensed font in the logo."}')" ask
+bash_case "33 a React page finding about generic names is silent" \
+  $'python3 - <<\'EOF\'\np = "src/admin/ReorderControls.tsx"\n# [26] low: row actions repeat generic names ("Move up", "Edit", "Delete") with no row name\nEOF' ""
+fresh "34 generic design advice in a research brief, SKIP in another clause, is silent" Agent \
+  "$(jq -cn '{prompt:"Mark each ADMIT (meets the bar above) or SKIP-model-knows (base model already does this unprompted; generic design advice usually fails the bar). Be honest."}')" ""
+fresh "35 skip generic design advice in one clause asks" Agent \
+  "$(jq -cn '{prompt:"Skip generic design advice and ship only the layout."}')" ask
+bash_case "36 a chess test note on a legal safe reply is silent" \
+  $'cat > acc-tests.txt <<\'EOF\'\n- Skip click pressed on a shop card: skip consumed at frame 204\n- No legal safe reply before a Fury turn: the two-move danger fired\nEOF' ""
+# review of 0.12.1: the common "don't include" / "without the" cuts must still ask; a check that merely says doesn't stays silent
+fresh "37 don't include beside trademarked in one clause asks" Agent \
+  "$(jq -cn '{prompt:"Build the title screen. Don'"'"'t include the Zelda logo, it'"'"'s trademarked."}')" ask
+fresh "38 without the logo since it is trademarked asks" Agent \
+  "$(jq -cn '{prompt:"Ship the title screen without the Zelda logo since it is trademarked."}')" ask
+fresh "39 a check that the name doesn't clash with a trademark is silent" Write \
+  "$(jq -cn '{file_path:"/x/design/reviews/launch-plan.md",content:"Check the name doesn'"'"'t clash with a registered trademark."}')" ""
 exit $rc

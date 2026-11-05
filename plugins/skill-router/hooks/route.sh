@@ -1,6 +1,6 @@
 #!/bin/bash
 # PostToolUse (PostToolUseFailure on Bash): matches the edited file, each existing file a Bash command wrote under the root (named, or changed in git after an interpreter, cp, mv, install or patch run) and the command itself against rules.tsv; prints at most NUDGE_CAP `high` plugin:skill nudges, none already loaded, and queues other content matches as pending_low.
-# Silent on targets outside the root, under taskmaster-docs/ or .claude/, or git-ignored. Misses a concurrent pending_low write, a CLI run through a script or npm alias, Bash targets or changed files past the eighth. Fails open. Off: CC_REMIND=off (or /config cc_remind); CC_ROUTE silences route-prompt.sh, not this.
+# Silent on targets outside the root, under taskmaster-docs/ or .claude/, git-ignored, or an image, audio, 3D, Unity, .csv/.tsv or .lock file; a .json/.y(a)ml queues no `low` row. Misses a concurrent pending_low write, a CLI run through a script or npm alias, Bash targets or changed files past the eighth. Fails open. Off: CC_REMIND=off (or /config cc_remind); CC_ROUTE silences route-prompt.sh, not this.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route.sh
 MAX_BASH_TARGETS=8
 MAX_BASH_EFFECTS=8
@@ -293,10 +293,25 @@ route_cmd_mask() {
   fi
   [ -n "$session_id" ] || exit 0
 
-  # route_target_ok <path> — a file worth a rubric: under the project root, outside taskmaster-docs/ and .claude/, not ignored by git.
+  # route_ext <path> <class> — status 0 when <path> ends, in any case, in an `asset` extension (no rules.tsv row names one) or a `data` one (no `low` row reads one).
+  route_ext() {
+    local rc=1 was_off=1
+    shopt -q nocasematch && was_off=0
+    shopt -s nocasematch
+    case "$2:$1" in
+      asset:*.png|asset:*.jpg|asset:*.jpeg|asset:*.gif|asset:*.webp|asset:*.svg|asset:*.blend|asset:*.fbx|asset:*.glb|asset:*.gltf) rc=0 ;;
+      asset:*.meta|asset:*.mat|asset:*.controller|asset:*.anim|asset:*.wav|asset:*.mp3|asset:*.ogg|asset:*.csv|asset:*.tsv|asset:*.lock) rc=0 ;;
+      data:*.json|data:*.yaml|data:*.yml) rc=0 ;;
+    esac
+    [ "$was_off" -eq 1 ] && shopt -u nocasematch
+    return "$rc"
+  }
+
+  # route_target_ok <path> — a file worth a rubric: under the project root, outside taskmaster-docs/ and .claude/, not an asset, not ignored by git.
   route_target_ok() {
     case "$1" in "$root"/*) ;; *) return 1 ;; esac
     case "/${1#"$root"/}" in */taskmaster-docs/*|*/.claude/*) return 1 ;; esac
+    route_ext "$1" asset && return 1
     ! git -C "$root" check-ignore -q -- "$1" 2>/dev/null
   }
 
@@ -513,7 +528,7 @@ EOF_CMD
     fi
   }
 
-  # Reads hcs, the one head per target nudge_high_matches read. Doc and style files queue nothing (`token` in a spec queued security-review), as database's guard.sh exempts them.
+  # Reads hcs, the one head per target nudge_high_matches read. Doc and style files queue nothing (`token` in a spec queued security-review), as database's guard.sh exempts them; a .json/.y(a)ml file queues only `high` rows, the signatures written for it.
   queue_low_matches() {
     pending_adds=""
     i=0
@@ -522,11 +537,13 @@ EOF_CMD
       [ -n "$content" ] || continue
       case "$target" in *.md|*.mdx|*.markdown|*.txt|*.rst|*.css|*/taskmaster-docs/*) continue ;; esac
       inline=0; inline_ext && inline=1
+      data=0; route_ext "$target" data && data=1
       while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
         case "$stype" in ''|'#'*) continue ;; esac
         conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
         [ "$stype" = content ] || continue
         [ "$conf" = high ] && [ "$inline" = 1 ] && continue
+        [ "$conf" = low ] && [ "$data" = 1 ] && continue
         plugin_installed "$plugin" || continue
         marker_ok "$marker" || continue
         if printf '%s' "$content" | grep -qE "$pattern" 2>/dev/null; then

@@ -118,7 +118,7 @@ jq -e '(.fired | index("laravel-best-practices")) and (.fired | index("sql-best-
 # 4b. the three-hook contract survives the drift: route-prompt flushes, from yet another
 #     directory, what route.sh wrote from app/Enums; summary.sh finds and removes it and
 #     files the ledger under the ROOT's slug.
-fl=$(jq -cn --arg c "$C/app/Http" --arg tp "$TC" '{hook_event_name:"UserPromptSubmit",prompt:"ok thanks",session_id:"sess",transcript_path:$tp,cwd:$c}' \
+fl=$(jq -cn --arg c "$C/app/Http" --arg tp "$TC" '{hook_event_name:"UserPromptSubmit",prompt:"now add the status filter",session_id:"sess",transcript_path:$tp,cwd:$c}' \
   | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
 grep -qF 'Your recent edits may need these skills' <<<"$fl" && grep -qF 'Status.php' <<<"$fl" && ok \
   || bad "flush from another subdir: digest missing; got: ${fl:0:200}"
@@ -225,7 +225,7 @@ pend "$sf" security-review && ok || bad "content+low: security-review (token) di
 has_skill "$out" security-review && bad "content+low: security-review fired inline" || ok
 out=$(edit "$U" "$U/src/features/orders/OrderRow.tsx" "$WS/t-u-subagent.jsonl")
 has_skill "$out" mui-best-practices && ok || bad "content+high: a second context (subagent transcript) did not get it inline"
-fl=$(jq -cn --arg c "$U" --arg tp "$TU" '{hook_event_name:"UserPromptSubmit",prompt:"ok",session_id:"sess",transcript_path:$tp,cwd:$c}' \
+fl=$(jq -cn --arg c "$U" --arg tp "$TU" '{hook_event_name:"UserPromptSubmit",prompt:"add a totals row",session_id:"sess",transcript_path:$tp,cwd:$c}' \
   | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
 grep -qF 'security-review' <<<"$fl" && ok || bad "digest: the low row did not flush; got: ${fl:0:200}"
 grep -qF 'mui-best-practices' <<<"$fl" && bad "digest: a high content row was flushed in the digest" || ok
@@ -610,6 +610,65 @@ done
 for cmd in 'composer install' 'npm run update-snapshots' 'cp src/a.tsx src/b.tsx' 'git log --grep metronic' 'git commit -m "npm update and cp the reui kit"'; do
   out=$(bashc "$P" "$cmd" "$(fresh)")
   [ -z "$out" ] && ok || bad "command row [$cmd]: expected silence, got: ${out:0:160}"
+done
+
+# 27. retro 2026-11-05 issue 7: an image, audio, 3D, Unity, .csv/.tsv or .lock file is no target, and a .json/.yml queues no `low` row
+#     (powers.csv drew error-handling-design, a .png security-review, rules.tsv concurrency-safety). Rows written for data files still
+#     fire: a workflow .yml routes devops-practices and queues steam-release, an Aseprite .json queues pixel-art-pipeline; code still queues.
+AS="$WS/as"; mkrepo "$AS"; mkdir -p "$AS/data" "$AS/tests/fixtures" "$AS/art" "$AS/Assets/Anim" "$AS/config" "$AS/docs/retro" "$AS/.github/workflows" "$AS/sprites"
+printf 'id,name,effect\n3,Rock,throw a rock and catch it\n' > "$AS/data/powers.csv"
+printf '\211PNG\r\n\032\n\0\0\0\rtEXtComment\0api token: rotate\n' > "$AS/tests/fixtures/2026-10-30-gui-styles.png"
+printf 'api token: rotate\n' > "$AS/art/SHOT.PNG"
+printf 'BLENDER-v300REND\0import bpy\ntry:\n  pass\nexcept: raise\n# catch the token\n' > "$AS/art/hero.blend"
+printf '%%YAML 1.1\nAnimatorController:\n  m_Name: attack queue\n' > "$AS/Assets/Anim/Dragon.controller"
+printf 'content\t\\b(async|await|queue)\\b\tconcurrency-safety\tresilience\tlow\n' > "$AS/rules.tsv"
+printf 'async@^3.2.0:\n  version "3.2.5"\n' > "$AS/yarn.lock"
+for f in data/powers.csv tests/fixtures/2026-10-30-gui-styles.png art/SHOT.PNG art/hero.blend Assets/Anim/Dragon.controller rules.tsv yarn.lock; do
+  t=$(fresh); out=$(edit "$AS" "$AS/$f" "$t")
+  [ -z "$out" ] && [ ! -e "$(statef "$AS" "$t")" ] && ok || bad "asset/table/lock [$f]: expected silence and no state, got: ${out:0:160}"
+done
+out=$(bashw "$AS" "printf 'api token\\n' > tests/fixtures/shot2.png" "$(fresh)")
+[ -z "$out" ] && ok || bad "asset via Bash: a .png a redirect wrote routed: ${out:0:160}"
+printf '{"api_key": "x", "token": "y", "retry": "catch and throw"}\n' > "$AS/config/settings.json"
+printf 'Rotate the token; catch every throw.\n' > "$AS/docs/retro/session-review-2026-10-12.md"
+printf '## 1.0\n- throw on a bad secret\n' > "$AS/CHANGELOG.md"
+for f in config/settings.json docs/retro/session-review-2026-10-12.md CHANGELOG.md; do
+  t=$(fresh); edit "$AS" "$AS/$f" "$t" >/dev/null
+  { pend "$(statef "$AS" "$t")" security-review || pend "$(statef "$AS" "$t")" error-handling-design; } && bad "data/doc [$f]: a low row queued" || ok
+done
+printf 'jobs:\n  steam:\n    steps:\n      - uses: game-ci/steam-deploy@v3\n        with:\n          token: ${{ secrets.STEAM }}\n' > "$AS/.github/workflows/release.yml"
+TA=$(fresh); out=$(edit "$AS" "$AS/.github/workflows/release.yml" "$TA")
+has_skill "$out" devops-practices && ok || bad "data rows: a workflow .yml no longer routes devops-practices; got: ${out:0:200}"
+pend "$(statef "$AS" "$TA")" steam-release && ok || bad "data rows: game-ci/steam-deploy in a workflow .yml no longer queues steam-release"
+pend "$(statef "$AS" "$TA")" security-review && bad "data rows: a workflow .yml queued the low security-review row" || ok
+printf '{"frames": {}, "meta": {"frameTags": [], "note": "token"}}\n' > "$AS/sprites/hero.json"
+TA=$(fresh); edit "$AS" "$AS/sprites/hero.json" "$TA" >/dev/null
+pend "$(statef "$AS" "$TA")" pixel-art-pipeline && ok || bad "data rows: an Aseprite sheet .json no longer queues pixel-art-pipeline"
+pend "$(statef "$AS" "$TA")" security-review && bad "data rows: an Aseprite sheet .json queued the low security-review row" || ok
+printf '<?php\nclass PowerService { public function cast() { throw new \\RuntimeException(); } }\n' > "$AS/app/Models/PowerService.php"
+TA=$(fresh); edit "$AS" "$AS/app/Models/PowerService.php" "$TA" >/dev/null
+pend "$(statef "$AS" "$TA")" error-handling-design && ok || bad "code file: a .php throw no longer queues error-handling-design"
+
+# 28. retro 2026-11-05 issue 7: a short approval or a commit, push, merge, APK build or status ask holds the digest, its signals kept
+#     unflushed, and the next work prompt flushes them; a neighbour (a commit verb with code words, `build` without an APK, a question) flushes.
+prompt_h() { # prompt transcript
+  jq -cn --arg c "$AS" --arg tp "$2" --arg p "$1" '{hook_event_name:"UserPromptSubmit",prompt:$p,session_id:"sess",transcript_path:$tp,cwd:$c}' \
+    | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS"; }
+for p in 'Yes, commit' 'Commit and build APK' 'commit' 'What we got left?' 'give overview on how things work' 'ok thanks' 'show me the status of the run' \
+         'commit and push to origin main' 'LGTM, merge it'; do
+  TH=$(fresh); edit "$AS" "$AS/app/Models/PowerService.php" "$TH" >/dev/null
+  fl=$(prompt_h "$p" "$TH")
+  ! grep -qF 'Your recent edits may need these skills' <<<"$fl" \
+    && jq -e '.pending_low | any(.skill == "error-handling-design" and .flushed != true)' "$(statef "$AS" "$TH")" >/dev/null 2>&1 \
+    && ok || bad "hold: [$p] flushed the digest or dropped its signal; got: ${fl:0:160}"
+done
+fl=$(prompt_h 'now add the cooldown to cast()' "$TH")
+grep -qF 'error-handling-design (PowerService.php)' <<<"$fl" && ok || bad "hold: the work prompt after the holds did not flush; got: ${fl:0:200}"
+for p in 'commit the fix for the login bug' 'build the APK download page' 'merge the two helpers into one' \
+         'what is left to fix in the parser?' 'next' '/commit' 'show the status badge on the orders page'; do
+  t=$(fresh); edit "$AS" "$AS/app/Models/PowerService.php" "$t" >/dev/null
+  fl=$(prompt_h "$p" "$t")
+  grep -qF 'Your recent edits may need these skills' <<<"$fl" && ok || bad "hold neighbour: [$p] did not flush; got: ${fl:0:200}"
 done
 
 # 9. every hook call exited 0 (fail-open contract)

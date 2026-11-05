@@ -22,8 +22,8 @@ own plugin so it can be disabled on its own.
 
 | event | script | does |
 |---|---|---|
-| `UserPromptSubmit` | `hooks/ledger.sh` | on a work-shaped prompt (a making verb in an imperative clause), destructures the ask into the things it **names** — proper nouns not at a clause start (`Laravel`, `Digimon`), quoted terms of one to three words (`"digimon"`), digit-letter tokens with their word (`2D Sprites`) — drops every name the project's tracked tree already carries, and keeps the rest as a session ledger of names still owed (deduped, later prompts append, 12 max), telling the model the gate shape once per prompt that added entries |
-| `Stop` | `hooks/gate.sh` | refuses the final message (it prints JSON: a reason for the model, and one line you see, "ask-ledger sent the turn back: …") unless it carries one line per name still owed: `<name>: as named` \| `<name>: substituted → what, why` \| `<name>: omitted → why`. The block asks the retry to restate the answer's one-line verdict before those lines, because the retry is what the user reads last. A name the final message accounts for leaves the ledger. At most two blocks per session; then it warns, drops the names it warned about, and lets the turn end |
+| `UserPromptSubmit` | `hooks/ledger.sh` | on a work-shaped prompt (a making verb in an imperative clause), destructures the ask into the things it **names** — proper nouns not at a clause start (`Laravel`, `Digimon`), quoted terms of one to three words (`"digimon"`), digit-letter tokens with their word (`2D Sprites`), the hyphenated target of a rename (`unity-traps`) — splits a joined stack (`Laravel+InertiaJS+React`) into its parts, skips an all-caps file name (`CLAUDE.md`), a capital-and-digits label (`M0`), a hex fragment of an id or path (`77eb`), whatever follows an `or` (`… or generate with Comfy`) and a filler word after a digit token (`3D etc` is `3D`), drops every name the project's tracked tree already carries, and keeps the rest as a session ledger of names still owed (deduped, later prompts append, 12 max), telling the model the gate shape once per prompt that added entries |
+| `Stop` | `hooks/gate.sh` | refuses the final message (it prints JSON: a reason for the model, and one line you see, "ask-ledger sent the turn back: …") unless it carries one line per name still owed: `<name>: as named` \| `<name>: substituted → what, why` \| `<name>: omitted → why`. The block asks the retry to restate the answer's one-line verdict before those lines, because the retry is what the user reads last. A name the final message accounts for leaves the ledger. At most two blocks per session; then it warns, drops the names it warned about, and lets the turn end. While the Stop payload's `background_tasks` lists a running subagent or teammate, the reply is interim: the stop passes and the owed names wait for a later one (a background shell does not count; a dev server never ends) |
 
 Your original prompt of 2026-09-18 ("create a Laravel + React project … landing page
 with 2D Sprites and motion animation, Digimon themed … a "digimon" library") ledgers
@@ -42,7 +42,8 @@ and again by any later turn whose prompt names it again; never by a turn that di
 - **What it does not see:** lowercase features (`login`, `register`, `a library`) — the
   ledger sees names, not nouns; a name mentioned in passing ("like Stripe does") is
   ledgered and costs one line; anything inside code spans or a paste (`<pasted_content>`
-  blocks are reference, not the ask). A name the extractor misses is
+  blocks are reference, not the ask); a name offered after `or`, a capital-and-digits name
+  (`S3`) and an all-caps file the ask is to create (`AGENTS.md`). A name the extractor misses is
   a name the gate never asks about. Once a final message accounts for a name, a later turn
   that quietly undoes it without naming it again is not asked about.
 - **A capital `I` glued to the next word is the pronoun, not a name.** "lets check if it

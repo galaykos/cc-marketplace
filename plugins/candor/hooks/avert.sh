@@ -1,6 +1,6 @@
 #!/bin/bash
-# PreToolUse on Agent, Task, Write, Edit, MultiEdit, Bash: asks the user, once per term per session, before a call whose text names a legal hedge, a declared substitute or precaution language that no human turn contains; a Bash git commit message or gh pr create|edit body is not read.
-# Misses a hedge outside its vocabulary, an avert that never names its reason, a hedge a subagent's dispatch already wrote; asks when the transcript is missing, and an ask is a deny in -p. No jq or a bad payload: silent. CC_AVERT=off disables, =notify notifies instead; unset, /config cc_avert.
+# PreToolUse on Agent, Task, Write, Edit, MultiEdit, Bash: asks the user, once per term per session, before a call whose text declares a substitute or precaution, or names a legal, generic, look-alike or inspired-by term beside a cut cue (skip, avoid, drop, instead, omit…) in one clause, and no human turn contains it.
+# Skips a topic term with no cut cue in its clause or in a write to an auto-memory note (.claude/projects/*/memory/), a Bash git commit message or gh pr create|edit body. Misses a hedge outside its vocabulary or with its cue in another clause, an avert that never names its reason, a hedge a subagent's dispatch already wrote; asks when the transcript is missing, and an ask is a deny in -p. No jq or a bad payload: silent. CC_AVERT=off disables, =notify notifies instead; unset, /config cc_avert.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/avert.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -85,13 +85,19 @@ unbody() {
   [ -n "$text" ] || exit 0
 
   # "instead of X use Y" and "avoid N+1" stay silent: "instead of" needs the real or official thing, "to avoid" a legal or rights object.
-  hedge='trademark|copyright|infring|licen[cs](e|ing) (concern|risk|issue|reason)|legal(ly)? (risk|reason|concern|safe|issue)|(original|invented|made-up|fictional|generic|placeholder|stand-in) (mascot|character|creature|design|version|substitute|logo|brand|name|asset|art)s?|not (a )?cop(y|ies) of|look-?alike|inspired[- ]by|(instead of|rather than|in place of) (the |any )?(real|actual|official|licensed|branded|named) |(to (be|stay|play it) safe|as a precaution|to (avoid|sidestep|steer clear of) (any |the )?(legal|licen|copyright|trademark|ip |brand|rights|infring))'
-  term=$(printf '%s' "$text" | grep -oiE "$hedge" | head -1)
+  swap='(original|invented|made-up|fictional|placeholder|stand-in|look-?alike) (mascot|character|creature|design|version|substitute|logo|brand|name|asset|art)s?|not (a )?cop(y|ies) of|(instead of|rather than|in place of) (the |any )?(real|actual|official|licensed|branded|named) |to (be|stay|play it) safe|as a precaution|to (avoid|sidestep|steer clear of) (any |the )?(legal|licen|copyright|trademark|ip |brand|rights|infring)'
+  # These name a subject as often as a reason (a risk list, a homoglyph probe, a credits line): they ask only beside a cut cue in one clause, never in a memory note, which records a decision already made.
+  topic='trademark|copyright|infring|licen[cs](e|ing) (concern|risk|issue|reason)|legal(ly)? (risk|reason|concern|safe|issue)|generic (mascot|character|creature|design|version|substitute|logo|brand|name|asset|art)s?|look-?alike|inspired[- ]by'
+  cut="(^|[^a-z])(skip|won'?t|won’t|will not|not include|(do(es)?n'?t|don’t|do(es)? not) (include|use|add|ship|show|copy|reference)|without the|leave out|left out|leav(e|ing) (it|them) out|drop(s|ped|ping)?([^a-z]|\$)|out of scope|avoid|instead|rather than|in place of|defer|omit|exclud(e|es|ed|ing)|steer clear|sidestep)"
+  printf '%s' "$text" | grep -qiE "$swap|$topic" || exit 0
+  mem=0
+  case "$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" in */.claude/projects/*/memory/*) mem=1 ;; esac
+  if [ "$tool" = Bash ]; then text=$(printf '%s\n' "$text" | unbody); fi
+  term=$(printf '%s\n' "$text" | LC_ALL=C awk -v s="$swap" -v t="$topic" -v c="$cut" -v m="$mem" '{
+    n = split($0, p, /[.!?;]([ \t]+|$)/)
+    for (i = 1; i <= n; i++) { l = tolower(p[i]); if (match(l, s) || !m && l ~ c && match(l, t)) { print substr(p[i], RSTART, RLENGTH); exit } }
+  }')
   [ -n "$term" ] || exit 0
-  if [ "$tool" = Bash ]; then
-    term=$(printf '%s\n' "$text" | unbody | grep -oiE "$hedge" | head -1)
-    [ -n "$term" ] || exit 0
-  fi
   stem=$(printf '%s' "$term" | tr 'A-Z' 'a-z' | cut -c1-8)
 
   transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)

@@ -1,6 +1,6 @@
 {
   "name": "candor",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, seven clauses a script can prove: a file:line resolving to no file or past its end; a marked quote: in neither the cited file nor its HEAD copy; a reversal after bare pushback with no tool call between; a completion claim after edits with nothing run since; a Unity scene, prefab or script edit called done with no capture and console read since; a task-runner run ending without its gate pass; a manifest changed without its lockfile. Flattery, apologies and defensiveness are counted by /candor:check, never blocked. Plus a terse mode (/candor:level): prose-line budgets and a fixed report skeleton, never less work in the turn.",
   "author": {
     "name": "Ivan-WG",

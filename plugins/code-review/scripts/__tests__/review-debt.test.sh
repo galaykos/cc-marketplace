@@ -159,6 +159,30 @@ commit "docs" docs/a.md docs/b.md docs/c.md docs/d.md docs/e.md docs/f.md docs/g
   composer.lock package-lock.json taskmaster-docs/spec/token.txt .claude/settings.json vendor/pkg/Auth.php
 silent "docs-only change (8 .md + lockfiles + tooling dirs)" "$(prompt)"
 
+# ---- art, media and Unity assets are not code; `guard` is auth only as a word -----------
+# The names are firings quoted in rationale/session-retro-2026-11-05.md, issue 6.
+skill code-review:review
+commit "art" Assets/Art/SM_Env_GuardPost.fbx Assets/Art/SM_Env_GuardPost.fbx.meta Assets/UI/upg_guardpost.png \
+  Assets/UI/upg_guardpost.png.meta Assets/Animations/Hero_Guard.controller Assets/Materials/Fx_Guardian.mat \
+  Assets/Audio/hit.wav Assets/Models/hero.blend Assets/Models/hero.glb Assets/Art/concept.psd
+silent "art only: 10 binaries and Unity assets, guard in their names" "$(prompt)"
+printf 'x\n' > "$R/Assets/UI/upg_guardpost_v2.PNG"; printf 'x\n' > "$R/Assets/Models/hero_lod1.FBX"
+silent "ship prompt with only art changed and untracked" "$(say "$R" "commit this" "$TP1")"
+rm -f "$R/Assets/UI/upg_guardpost_v2.PNG" "$R/Assets/Models/hero_lod1.FBX"
+commit "code beside art" Assets/Scripts/c1.cs Assets/Scripts/c2.cs Assets/Scripts/c3.cs Assets/Scripts/c4.cs \
+  Assets/Scripts/c5.cs Assets/Scripts/c6.cs Assets/Scripts/c7.cs Assets/Scripts/c8.cs \
+  Assets/Art/b.fbx Assets/UI/b.png Assets/Audio/b.ogg
+out=$(prompt)
+fires "8 code files beside 13 art files count as 8" "$out" "8 changed files have had no review"
+printf '%s' "$out" | grep -q 'touches auth' && { echo "FAIL: art named for a guard post drew an auth clause: $out"; rc=1; }
+skill code-review:review
+commit "guard post code" Assets/Scripts/SM_Env_GuardPost.cs Assets/Scripts/Fx_Guardian.cs Assets/Scripts/upg_guardpost.ts
+silent "GuardPost, Guardian and guardpost in code paths are not auth" "$(prompt)"
+skill code-review:review
+commit "guards" Guard.php src/guard.ts lib/JwtGuard.php src/guards/admin.ts
+fires "guard as a word, a plural or a camelCase part is still auth" "$(prompt)" \
+  "4 changed files have had no review" "touches auth: Guard.php, lib/JwtGuard.php, src/guard.ts, +1 more"
+
 # ---- under an active task-runner run: silent, and the run's diff is not charged later
 mkdir -p "$R/.claude/task-runner" && printf '{}\n' > "$R/.claude/task-runner/active-run.json"
 commit "run work" run/a.ts run/b.ts run/c.ts run/d.ts run/e.ts run/f.ts run/g.ts run/h.ts app/Http/Middleware/Tenant.php

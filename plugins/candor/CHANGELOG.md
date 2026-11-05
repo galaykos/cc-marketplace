@@ -2,6 +2,12 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.12.1 — 2026-11-05
+
+- **The common ways of saying a cut still ask.** A pre-merge review found `don't include …, it's trademarked` passing silently. The cue list now also takes `don't/doesn't/do not` + include/use/add/ship/show/copy/reference, `without the`, `leave it/them out` and every form of `exclude`; a check that a name "doesn't clash with a trademark" stays silent. Pinned by `avert-hook.test.sh` cases 37-39.
+- **The hedge guard asks on a cut, not on a word.** `hooks/avert.sh` used to ask whenever "trademark", "copyright", "generic", "look-alike", "inspired by" or "legal safe" appeared, even as plain content. In a week it asked in nine sessions and stalled work for up to 34 minutes (retro 2026-11-05, issue 13). These topic terms now ask only when a cut cue sits in the same clause: skip, won't, will not, not include, leave out, drop, out of scope, avoid, instead, rather than, in place of, defer, omit, exclude, steer clear or sidestep. A clause ends at a line end or at `.` `!` `?` `;` before a space. A write to an auto-memory note (`.claude/projects/*/memory/`) never asks on a topic term. Declared substitutes (original, invented, placeholder, stand-in or look-alike plus a noun, "not copies of", "instead of the real") and precaution phrases still ask on their own, memory notes included.
+- **Pinned** by `scripts/__tests__/avert-hook.test.sh` cases 24–36. They are built from the retro's seven firings. The seven silent cases (24, 26, 29, 31, 33, 34, 36) are red on 0.12.0. Their six neighbours (25, 27, 28, 30, 32, 35) must still ask.
+
 ## 0.12.0 — 2026-11-05
 
 - **Clause 4 reads `Verify: range`.** A task-runner run whose index carries the line (overseer milestones) owes no per-card negative control, reviewer record or UI review. It owes the whole-range review as before, plus one red-team record with the teeth lens (`rt-lens-teeth-*`) when the range shipped code, or a recorded red-team reduction. Pinned by four new `scripts/__tests__/gate.test.sh` cases, two red on 0.11.0.
