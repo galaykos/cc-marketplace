@@ -145,7 +145,7 @@ route_hold() {
       ok = "^(please|yes|yeah|yep|yup|y|ok|okay|sure|lgtm|thanks|thank|you|thx|ty|great|good|perfect|cool|nice|alright|agreed|approved|sounds|looks|go|ahead|proceed|do|it|ship|now|so|also)$"
       ship = "^(git )?(commit|push|merge)( (it|this|that|them|these|those|all|everything|changes|the|work|to|into|origin|master|main|remote|upstream|branch|now|too))*$"
       build = "^(build|make)( (an?|the|new|debug|release|signed))* (apk|aab|ipa)s?$"
-      status = "^(whats|what)( (is|are|we|you|i|got|have|still))* (left|next|remaining|pending|outstanding)( to ?do)?$|^where (are|were) we( (at|now))?$|^(status|progress|recap|summary|overview)( (update|report|check))?$|^(give|show)( (me|us))?( (an|a|the))? (overview|summary|status|recap)( .*)?$"
+      status = "^(whats|what)( (is|are|we|you|i|got|have|still))* (left|next|remaining|pending|outstanding)( to ?do)?$|^where (are|were) we( (at|now))?$|^(status|progress|recap|summary|overview)( (update|report|check))?$|^(give|show)( (me|us))?( (an|a|the))? (overview|summary|status|recap)( (of|on|about|for) .*)?$"
       gsub(/\047|’/, "", t)
       gsub(/[,;.!?:]+|[ \t]+(and|then|&)[ \t]+/, "\n", t)
       n = split(t, c, "\n"); seen = 0

@@ -116,4 +116,11 @@ fresh "35 skip generic design advice in one clause asks" Agent \
   "$(jq -cn '{prompt:"Skip generic design advice and ship only the layout."}')" ask
 bash_case "36 a chess test note on a legal safe reply is silent" \
   $'cat > acc-tests.txt <<\'EOF\'\n- Skip click pressed on a shop card: skip consumed at frame 204\n- No legal safe reply before a Fury turn: the two-move danger fired\nEOF' ""
+# review of 0.12.1: the common "don't include" / "without the" cuts must still ask; a check that merely says doesn't stays silent
+fresh "37 don't include beside trademarked in one clause asks" Agent \
+  "$(jq -cn '{prompt:"Build the title screen. Don'"'"'t include the Zelda logo, it'"'"'s trademarked."}')" ask
+fresh "38 without the logo since it is trademarked asks" Agent \
+  "$(jq -cn '{prompt:"Ship the title screen without the Zelda logo since it is trademarked."}')" ask
+fresh "39 a check that the name doesn't clash with a trademark is silent" Write \
+  "$(jq -cn '{file_path:"/x/design/reviews/launch-plan.md",content:"Check the name doesn'"'"'t clash with a registered trademark."}')" ""
 exit $rc

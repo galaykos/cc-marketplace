@@ -4,6 +4,7 @@ All notable changes to the `ask-ledger` plugin.
 
 ## 0.4.7 — 2026-11-05
 
+- **An offer cut stops at the next `and`/`then`/`but` clause.** A pre-merge review found `use Kenney packs or generate with Comfy and add Stripe` dropping `Stripe`. Pinned by `ledger-hook.test.sh` case 13z2. The Stop gate's deferral also counts every listed subagent or teammate, whatever its status, as candor's gate does (an entry leaves the list at hand-back).
 ### Fixed
 - **Fewer non-deliverables ledgered as names (retro 2026-11-05, issue 12).** Real sessions ledgered `CLAUDE` and `M0` from "Read CLAUDE.md and continue with Milestone 0", `77eb` and `8aca` from a session id and a notes path, `3D etc`, `MCP`, `Comfy` from an either/or offer, and `Laravel+InertiaJS+React` as one name the reply's "Laravel + Inertia + React" could not match. `hooks/ledger.sh` now skips an all-caps file name, a capital-and-digits label, the word Milestone, digits followed by two or more lowercase hex letters, MCP, every name after an `or` up to the next clause mark, and a filler word after a digit token (`3D etc` is `3D`). It splits `A+B+C` into its parts, so each is checked against the repo. Residuals: a name offered after `or`, an `S3`-style name and an all-caps file the ask is to create no longer ledger. The user's quoted phrase ("take usage without any result") was already fixed in 0.4.1.
 - **A rename target ledgers.** `rename` makes a prompt work-shaped, and the hyphen- or underscore-joined target of "rename … to" is a name: "rename the plugin to unity-traps" ledgers `unity-traps`.

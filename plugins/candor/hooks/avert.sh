@@ -88,7 +88,7 @@ unbody() {
   swap='(original|invented|made-up|fictional|placeholder|stand-in|look-?alike) (mascot|character|creature|design|version|substitute|logo|brand|name|asset|art)s?|not (a )?cop(y|ies) of|(instead of|rather than|in place of) (the |any )?(real|actual|official|licensed|branded|named) |to (be|stay|play it) safe|as a precaution|to (avoid|sidestep|steer clear of) (any |the )?(legal|licen|copyright|trademark|ip |brand|rights|infring)'
   # These name a subject as often as a reason (a risk list, a homoglyph probe, a credits line): they ask only beside a cut cue in one clause, never in a memory note, which records a decision already made.
   topic='trademark|copyright|infring|licen[cs](e|ing) (concern|risk|issue|reason)|legal(ly)? (risk|reason|concern|safe|issue)|generic (mascot|character|creature|design|version|substitute|logo|brand|name|asset|art)s?|look-?alike|inspired[- ]by'
-  cut="(^|[^a-z])(skip|won'?t|won’t|will not|not include|leave out|left out|drop(s|ped|ping)?([^a-z]|\$)|out of scope|avoid|instead|rather than|in place of|defer|omit|exclude|steer clear|sidestep)"
+  cut="(^|[^a-z])(skip|won'?t|won’t|will not|not include|(do(es)?n'?t|don’t|do(es)? not) (include|use|add|ship|show|copy|reference)|without the|leave out|left out|leav(e|ing) (it|them) out|drop(s|ped|ping)?([^a-z]|\$)|out of scope|avoid|instead|rather than|in place of|defer|omit|exclud(e|es|ed|ing)|steer clear|sidestep)"
   printf '%s' "$text" | grep -qiE "$swap|$topic" || exit 0
   mem=0
   case "$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" in */.claude/projects/*/memory/*) mem=1 ;; esac

@@ -1,6 +1,6 @@
 #!/bin/bash
 # gate.sh — Stop: sends the turn back (JSON block on stdout) when a name ledger.sh ledgered has no line in the final reply naming it with `as named`, `substituted` or `omitted`; twice a session at most, then warns; accounted names leave the ledger. Off: CC_ASK_LEDGER=off (unset: /config option cc_ask_ledger). Fails open.
-# Misses: whether "as named" is true (the model's word, agent-graded), and a later turn quietly undoing an accounted name it does not name again. Silent with no ledger, no final message, or while the payload's background_tasks lists a running subagent or teammate (owed names wait for a later stop).
+# Misses: whether "as named" is true (the model's word, agent-graded), and a later turn quietly undoing an accounted name it does not name again. Silent with no ledger, no final message, or while the payload's background_tasks lists a subagent or teammate (an entry leaves the list at hand-back, as candor's gate reads it) (owed names wait for a later stop).
 # Why, limits, history: rationale/derivations/plugin-ask-ledger.md § plugins/ask-ledger/hooks/gate.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -57,7 +57,7 @@ exec 3>&2
   printf '%s' "$owed" > "$dir/entries"
   [ -n "$missing" ] || exit 0
   # A running background agent hands back and wakes this session, so this reply is interim; a background shell may be a server that never ends.
-  waiting=$(printf '%s' "$input" | jq -r '[.background_tasks? // [] | .[]? | select((.type == "subagent" or .type == "teammate") and ((.status // "running") == "running"))] | length' 2>/dev/null)
+  waiting=$(printf '%s' "$input" | jq -r '[.background_tasks? // [] | .[]? | select(.type == "subagent" or .type == "teammate")] | length' 2>/dev/null)
   case "$waiting" in '' | 0 | *[!0-9]*) ;; *) exit 0 ;; esac
 
   n=$(cat "$dir/blocks" 2>/dev/null || echo 0)

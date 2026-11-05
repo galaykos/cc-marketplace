@@ -654,7 +654,7 @@ pend "$(statef "$AS" "$TA")" error-handling-design && ok || bad "code file: a .p
 prompt_h() { # prompt transcript
   jq -cn --arg c "$AS" --arg tp "$2" --arg p "$1" '{hook_event_name:"UserPromptSubmit",prompt:$p,session_id:"sess",transcript_path:$tp,cwd:$c}' \
     | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS"; }
-for p in 'Yes, commit' 'Commit and build APK' 'commit' 'What we got left?' 'give overview on how things work' 'ok thanks' \
+for p in 'Yes, commit' 'Commit and build APK' 'commit' 'What we got left?' 'give overview on how things work' 'ok thanks' 'show me the status of the run' \
          'commit and push to origin main' 'LGTM, merge it'; do
   TH=$(fresh); edit "$AS" "$AS/app/Models/PowerService.php" "$TH" >/dev/null
   fl=$(prompt_h "$p" "$TH")
@@ -665,7 +665,7 @@ done
 fl=$(prompt_h 'now add the cooldown to cast()' "$TH")
 grep -qF 'error-handling-design (PowerService.php)' <<<"$fl" && ok || bad "hold: the work prompt after the holds did not flush; got: ${fl:0:200}"
 for p in 'commit the fix for the login bug' 'build the APK download page' 'merge the two helpers into one' \
-         'what is left to fix in the parser?' 'next' '/commit'; do
+         'what is left to fix in the parser?' 'next' '/commit' 'show the status badge on the orders page'; do
   t=$(fresh); edit "$AS" "$AS/app/Models/PowerService.php" "$t" >/dev/null
   fl=$(prompt_h "$p" "$t")
   grep -qF 'Your recent edits may need these skills' <<<"$fl" && ok || bad "hold neighbour: [$p] did not flush; got: ${fl:0:200}"

@@ -106,6 +106,8 @@ check "13x a filler word after a digit token is not part of it" "$(run 'make a 3
 check "13y MCP is not a name; the service beside it is" "$(run 'I connected MCP to Higgsfield, now make the hero image' s13y)" "Higgsfield"
 check "13z the alternative after an or is not ledgered, the first offer is" \
   "$(run 'make the sprites: use Kenney packs, or generate with Comfy' s13z)" "Kenney"
+check "13z2 without a comma, an and-clause after the offer is new work and still ledgers" \
+  "$(run 'make the sprites: use Kenney packs or generate with Comfy and add Stripe' s13z2)" "Kenney,Stripe"
 check "13aa a plus-joined stack is three names, not one" "$(run 'set up Laravel+InertiaJS+React and build the dashboard' s13aa)" "Laravel,InertiaJS,React"
 check "13ab named features still ledger" "$(run 'add Leveling and Gacha systems' s13ab)" "Leveling,Gacha"
 check "13ac a rename target ledgers" "$(run 'rename the plugin to unity-traps' s13ac)" "unity-traps"

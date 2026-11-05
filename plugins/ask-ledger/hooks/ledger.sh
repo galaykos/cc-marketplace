@@ -131,7 +131,9 @@ cc_prompt_question() {
   # A quoted span over three words is a phrase; an in-word apostrophe is masked so it opens no quote (rock'n'roll's second still does).
   ap=$(printf '\001')
   # What follows an `or` up to the next clause mark is an offered alternative; an all-caps word with an extension (CLAUDE.md) is a file the ask points at.
-  bare=$(printf '%s\n' "$scrub" | sed -E 's/(^|[^A-Za-z])[Oo][Rr]([[:space:]][^,;:.!?]*)?([^A-Za-z]|$)/\1\3/g; s/(^|[^A-Za-z0-9_])[A-Z][A-Z0-9_]*\.[a-z][a-z0-9]*/\1/g')
+  # A following `and`/`then`/`but` clause is new work, not part of the offer: \002 marks where the cut must stop.
+  cm=$(printf '\002')
+  bare=$(printf '%s\n' "$scrub" | sed -E "s/([[:space:]])([Aa][Nn][Dd]|[Tt][Hh][Ee][Nn]|[Bb][Uu][Tt])([[:space:]])/\\1$cm\\2\\3/g; s/(^|[^A-Za-z])[Oo][Rr]([[:space:]][^,;:.!?$cm]*)?([^A-Za-z]|\$)/\\1\\3/g; s/$cm//g; s/(^|[^A-Za-z0-9_])[A-Z][A-Z0-9_]*\\.[a-z][a-z0-9]*/\\1/g")
   found=$(
     printf '%s\n' "$scrub" | sed "s/\([A-Za-z]\)'\([A-Za-z]\)/\1$ap\2/g" \
       | grep -oE '"[^"]{2,40}"|'"'"'[^'"'"']{2,40}'"'" | sed 's/^["'"'"']//; s/["'"'"']$//' | tr "$ap" "'" | awk 'NF <= 3'
