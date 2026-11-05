@@ -625,7 +625,8 @@ case "$cmd" in
     # MODEL: the seat's model, bound by the program tier; a dispatch naming none inherits the session model silently.
     tier="opus"; [ -s "$state" ] && tier=$(jq -r '.model // "opus"' "$state" 2>/dev/null || echo opus)
     allowed="$MODELS_OPUS"; [ "$tier" = auto ] && [ "$kind" != worker ] && allowed="$MODELS_AUTO"   # a worker never inherits: judgment seats only
-    mval=$(grep -m1 -oE '^MODEL: *[a-z0-9.-]+' "$f" | sed -E 's/^MODEL: *//')
+    # a sentence-ending period is prose, not part of the name: the templates read as sentences and `opus.` was refused twice (retro 2026-11-05)
+    mval=$(grep -m1 -oE '^MODEL: *[a-z0-9.-]+' "$f" | sed -E 's/^MODEL: *//; s/\.+$//')
     if [ -z "$mval" ]; then miss="$miss
   no MODEL: line (tier $tier allows: $allowed) — the Agent call must pass the same value"
     elif ! in_list "$mval" $allowed; then miss="$miss

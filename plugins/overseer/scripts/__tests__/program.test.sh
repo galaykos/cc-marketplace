@@ -301,6 +301,12 @@ expect 2 "tier opus refuses MODEL: inherit" -- "$PS" dispatch check "$WS/p2-inhe
 grep -q "above the program tier 'opus'" "$WS/err" && ok || bad "refusal names the tier"
 { cat "$WS/p2-nomodel.md"; printf 'MODEL: sonnet\n'; } > "$WS/p2-sonnet.md"
 expect 0 "tier opus allows a model below opus" -- "$PS" dispatch check "$WS/p2-sonnet.md"
+# 0.8.0: the templates read as sentences, and `MODEL: opus.` was refused in two real runs
+{ cat "$WS/p2-nomodel.md"; printf 'MODEL: opus.\n'; } > "$WS/p2-period.md"
+expect 0 "a sentence-ending period after the model is not part of its name" -- "$PS" dispatch check "$WS/p2-period.md"
+{ cat "$WS/p2-nomodel.md"; printf 'MODEL: opu.\n'; } > "$WS/p2-typo.md"
+expect 2 "control: a misspelt model with a period is still refused" -- "$PS" dispatch check "$WS/p2-typo.md"
+grep -q "MODEL: opu is above" "$WS/err" && ok || bad "the refusal names the model without its period: $(head -1 "$WS/err")"
 # tier auto: a seat may inherit the session model — a separate program, initialised with --model auto
 W5=$(mktemp -d); git -C "$W5" init -q -b main 2>/dev/null || git -C "$W5" init -q
 OVERSEER_ROOT="$W5" "$PS" init --goal g --slug g --model auto >/dev/null 2>&1

@@ -160,7 +160,7 @@ You are implementing ONE card in <abs project root>. Cwd resets between commands
 absolute paths or `git -C`.
 CARD: <title>. DONE WHEN: <criteria copied from the brief>.
 AGENT: <agent type this prompt is sent to, e.g. task-runner:task-executor — close counts it>.
-MODEL: <opus | sonnet | haiku — the seat table; the Agent call passes the same value>.
+MODEL: <opus | sonnet | haiku — the seat table; the Agent call passes the same value>
 STATE FILES: brief <abs>, findings <abs>, decisions <abs>.   SIBLINGS: <none | who, files>.
 OWNER: you own exactly TOUCH ONLY; a sibling owns <files> — do not read-modify-write theirs.
 TOUCH ONLY: <files, listed — never "the files in the brief">. DO NOT TOUCH: <files>.
@@ -192,7 +192,7 @@ SIZE THE ENGINE FIRST: any perf budget you write must sit above the floor of the
 libraries you mandate (motion core + features ≈ 42 KB gz; say the number, then budget).
 PRODUCT VOCABULARY: <the nouns and counts the other milestones ship — stages, roles,
 object names>; never describe a capability that is not in a done or queued milestone.
-MODEL: <opus under the default tier; inherit only when the program was started --model auto>.
+MODEL: <opus under the default tier; inherit only when the program was started --model auto>
 RETURN (max 120 lines, this structure): <sections>. No narrative outside it.
 ```
 Gate it with `program.sh dispatch check <file> --kind reader`. The overseer amends the
@@ -205,7 +205,7 @@ contradicts a product that ships five fixed ones).
 ```
 Review the diff `git -C <root> diff <base>...<branch>` against <skill abs paths>.
 You are read-only: you write no file and run no command that changes the tree.
-MODEL: <opus | inherit — the seat table>.
+MODEL: <opus | inherit — the seat table>
 One line per finding: `path:line — severity — problem — fix`. Severity-sorted.
 Skip style nits unless they change meaning. Max 30 lines. RETURN `CLEAN` when none.
 ```
