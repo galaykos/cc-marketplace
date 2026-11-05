@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.50.4; earlier versions have no entries rather than invented ones.
 
+## 0.51.0 — 2026-11-05
+
+- **task-cards copies a brief's `Verify: range` line into the index.** When the brief `/taskmaster:task` was given (overseer writes one per milestone), or the spec header, carries it, `00-INDEX.md` gets the exact line beside any `Ultra:`/`Goal:` marker; task-runner and candor read it. Never added on taskmaster's own judgment. `skills/task-cards/references/index-markers.md`.
+
 ## 0.50.6 — 2026-10-28
 
 - **A bare `goal` first token is now described as what it does: boost + hands-off, the same as `ultra-goal`.** The `ultra` skill's description and trigger list, and the preambles of `/taskmaster:task`, `/taskmaster:redteam`, `/taskmaster:brainstorm` and `/taskmaster:coverage`, said hands-off only; each command's next sentence already ran it as `ultra-goal`. The `ultra` description also reads in short, plain sentences, with the same tokens and markers.

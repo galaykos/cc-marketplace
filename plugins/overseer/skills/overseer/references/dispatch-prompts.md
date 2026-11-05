@@ -83,7 +83,15 @@ Touch: <dirs/files>. Do not touch: <dirs/files>.
 <the lines from CLAUDE.md/AGENTS.md that bind: deps, structure, docs, verification>
 ## Verify
 <exact commands: suite, types, lint, build>
+Verify: range
 ```
+
+The `Verify: range` line is literal and always present: task-cards copies it into the
+index, and task-runner then verifies once per run — range review, one red-team round with
+the teeth lens, the suite once by receipt — instead of a reviewer pass and a negative control
+per card (`references/range-verify.md`). Per-card review was
+30–50 % of each card's wall time and passed cards the range review then found critical
+(`rationale/session-retro-2026-11-05.md` § 1, in the marketplace repository).
 
 Add a `## Rigour` block (next section) before handing over. Hand it over as
 `/taskmaster:task <brief>` (interactive; grill treats the acceptance lines as CLEAR rows and
@@ -99,37 +107,33 @@ the card index has two-plus parallel groups, hand execution to `/task-runner:run
 ## Rigour — what scrutiny a milestone buys, decided from the brief, not from its size
 
 The size letter says how much work a milestone is; it says nothing about how wrong the
-work can be. The boost buys the code red-team over the shipped diff (three refuters, a
+work can be. The boost buys the full code red-team over the shipped diff (three refuters, a
 completeness critic with browser probes, up to three rounds), coverage loop-until-dry and
-tier escalation; per-card reviewers and the negative control are baseline either way, and
-the spec red-team already runs past three criteria or an ASSUMED row.
+tier escalation. Nothing is free: the run's range review and teeth lens (`Verify: range`)
+and taskmaster's spec red-team (past three criteria or an ASSUMED row) are bought every time,
+so rigour buys only what sits on top of them.
 
-Score six signals from the brief, one line each in the block; the profile is the sum,
-overrides first (**agent-graded** — no script reads a brief for novelty):
+Score four signals from the brief, one line each in the block; the profile is the sum,
+overrides first (**agent-graded** — no script reads a brief for blast radius). Novelty and
+volume are not signals: they made every game milestone `adversarial` (retro above, § 1c):
 
 | # | signal | where it shows |
 | --- | --- | --- |
 | 1 | irreversible or data surface: kind `auth`/`api`/`data-model`/`form`, or Scope touches auth, session, payment, PII, migration, money arithmetic | kind, § Scope |
 | 2 | a numeric or parsing contract in the acceptance lines (computed value, format, range, parser) | § Acceptance |
-| 3 | novel shape — no sibling in the tree implements it | `discovery.md` |
-| 4 | shared blast radius — `Primitives to ADD` non-empty, tokens/layout/middleware a later milestone consumes, two-plus dependants | brief, roadmap |
-| 5 | reviewer history — the previous milestone's `findings.md` has a major from a second reviewer or the red-team (first milestone: 1) | `milestones/*/findings.md` |
-| 6 | four-plus cards or ten-plus files expected | brief, roadmap |
+| 3 | shared blast radius — `Primitives to ADD` non-empty, tokens/layout/middleware a later milestone consumes, two-plus dependants | brief, roadmap |
+| 4 | reviewer history — the previous milestone's `findings.md` has a major from the range review or the red-team (first milestone: 0) | `milestones/*/findings.md` |
 
 - **signal 1 → never lean**, whatever the sum (`dispatch check` WARNs on a lean surface kind).
-- **sum ≤ 1 and no logic change → `lean`**: `/taskmaster:task <brief>`; baseline reviewers
-  and negative control (free); no code red-team — the spec red-team is taskmaster's own gate
-  and fires on any brief with three-plus criteria, whatever the profile. A copy change, a footer year.
-- **sum 2–3 → `standard`**: `/taskmaster:task <brief>` (the spec red-team fires on its own
-  gate); after the run, ONE code red-team round you drive yourself — the correctness lens
-  always, the security lens only with a surface, the test-teeth lens when a card's negative
-  control needed an explicit mutant — as reviewer dispatches (`--kind reviewer`), then the
-  fix loop. A marketing page, whose kind already forces a11y and direction, is the worked
-  case.
-- **sum ≥ 4 → `adversarial`**: `/taskmaster:task ultra <brief>` (hands-off: `goal`, never
+- **sum ≤ 1 → `lean`**: `/taskmaster:task <brief>`; the run's range review and teeth lens,
+  nothing on top. Most milestones, including a new screen or a batch of game content.
+- **sum 2 → `standard`**: `/taskmaster:task <brief>`; after the run, the correctness lens
+  (plus security with a surface) over the same range as reviewer dispatches (`--kind
+  reviewer`) — the run already ran the teeth lens — then the fix loop.
+- **sum ≥ 3 → `adversarial`**: `/taskmaster:task ultra <brief>` (hands-off: `goal`, never
   `goal-lean`): the
   full code red-team; stop after the critic round unless its fixes touched source no test
-  covers. A first milestone with money maths and new primitives scores 5; an application
+  covers. A first milestone with money maths and new primitives scores 3; an application
   form (name, email, phone) is signal 1 → adversarial, which `--kind feature` never
   reaches — register it `--kind form`.
 
@@ -141,12 +145,12 @@ on a lean/standard milestone (interactive: brief without the token; hands-off: `
 whose marker is `Goal: true (boost=off)`) or no boost on an adversarial one (**WARN**; the
 score itself is recorded). Budget
 left is not an input: the plugin has no cost channel, and a rule on a number nothing can
-read is a fifth unenforceable claim. What the rule never cuts: the reviewers task-runner
-routes per card and the negative control — they cost nothing extra.
+read is a fifth unenforceable claim. What the rule never cuts: the run's range review and
+teeth lens.
 
 ```
 ## Rigour: <lean | standard | adversarial>
-1 surface: <yes/no — why> · 2 numeric/parsing: … · 3 novel: … · 4 blast radius: … · 5 history: … · 6 volume: …
+1 surface: <yes/no — why> · 2 numeric/parsing: … · 3 blast radius: … · 4 history: …
 ```
 
 ## Worker (no taskmaster/task-runner installed, or a card dispatched directly)
@@ -156,7 +160,7 @@ You are implementing ONE card in <abs project root>. Cwd resets between commands
 absolute paths or `git -C`.
 CARD: <title>. DONE WHEN: <criteria copied from the brief>.
 AGENT: <agent type this prompt is sent to, e.g. task-runner:task-executor — close counts it>.
-MODEL: <opus | sonnet | haiku — the seat table; the Agent call passes the same value>.
+MODEL: <opus | sonnet | haiku — the seat table; the Agent call passes the same value>
 STATE FILES: brief <abs>, findings <abs>, decisions <abs>.   SIBLINGS: <none | who, files>.
 OWNER: you own exactly TOUCH ONLY; a sibling owns <files> — do not read-modify-write theirs.
 TOUCH ONLY: <files, listed — never "the files in the brief">. DO NOT TOUCH: <files>.
@@ -188,7 +192,7 @@ SIZE THE ENGINE FIRST: any perf budget you write must sit above the floor of the
 libraries you mandate (motion core + features ≈ 42 KB gz; say the number, then budget).
 PRODUCT VOCABULARY: <the nouns and counts the other milestones ship — stages, roles,
 object names>; never describe a capability that is not in a done or queued milestone.
-MODEL: <opus under the default tier; inherit only when the program was started --model auto>.
+MODEL: <opus under the default tier; inherit only when the program was started --model auto>
 RETURN (max 120 lines, this structure): <sections>. No narrative outside it.
 ```
 Gate it with `program.sh dispatch check <file> --kind reader`. The overseer amends the
@@ -201,7 +205,7 @@ contradicts a product that ships five fixed ones).
 ```
 Review the diff `git -C <root> diff <base>...<branch>` against <skill abs paths>.
 You are read-only: you write no file and run no command that changes the tree.
-MODEL: <opus | inherit — the seat table>.
+MODEL: <opus | inherit — the seat table>
 One line per finding: `path:line — severity — problem — fix`. Severity-sorted.
 Skip style nits unless they change meaning. Max 30 lines. RETURN `CLEAN` when none.
 ```
@@ -210,8 +214,8 @@ No preamble: that file is worker discipline and its clauses contradict a seat th
 nothing. Save it as `dispatch/<n>-review-<name>.md` and gate it with `--kind reviewer` before
 sending — a reviewer is a dispatch, and the record of a fix cycle is incomplete without
 the prompt that produced its findings (`accept` WARNs when a milestone has none). On the
-taskmaster path task-runner writes the richer per-card form (`RV-CARD:`, one line per
-criterion, the compressed return); this template is the direct-worker path's.
+taskmaster path the run's close already reviewed the range (`Verify: range`); this template
+is for the direct-worker path and the extra lenses a `standard` profile adds.
 
 ## Follow-up to a worker that is still alive
 

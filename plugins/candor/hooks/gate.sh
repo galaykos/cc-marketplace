@@ -493,9 +493,14 @@ run_clause() {
       cpark=$(jq -r '.cards_parked' "$gatepass" 2>/dev/null)
       run_item "card counts that add up" "$(printf 'Finish or park every card, then record the three counts in .claude/task-runner/gate-pass.json as numbers that add up (now %s: done=%s parked=%s total=%s).' "$v" "$cdone" "$cpark" "$ct")"
     fi
+    # `Verify: range` in the index (an overseer run) verifies per milestone: no per-card control or review is owed; the range review and a teeth lens below are.
+    local vidx range_mode=0
+    vidx=$(jq -r '.index_path // empty' "$sentinel" 2>/dev/null)
+    case "$vidx" in '' | /*) ;; *) vidx="$root/$vidx" ;; esac
+    [ -n "$vidx" ] && grep -qiE '^[[:space:]]*Verify:[[:space:]]*range' "$vidx" 2>/dev/null && range_mode=1
     # Only records newer than this registration count: card ids repeat across runs, and these dirs are never cleared.
     local ncdir="$root/.claude/task-runner/nc" nc_count
-    if [ "$v" = "complete" ] && [ -d "$ncdir" ]; then
+    if [ "$v" = "complete" ] && [ "$range_mode" = 0 ] && [ -d "$ncdir" ]; then
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
       nc_count=$(find "$ncdir" -maxdepth 1 \( -name 'nc-pass-*.json' -o -name 'nc-skip-*.json' \) -newer "$sentinel" 2>/dev/null |
         sed -E 's#.*/nc-(pass|skip)-##; s#\.json$##' | sort -u | wc -l | tr -d ' ')
@@ -504,7 +509,7 @@ run_clause() {
       fi
     fi
     local rvdir="$root/.claude/task-runner/rv" rv_count
-    if [ "$v" = "complete" ] && [ -d "$rvdir" ]; then
+    if [ "$v" = "complete" ] && [ "$range_mode" = 0 ] && [ -d "$rvdir" ]; then
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
       rv_count=$(find "$rvdir" -maxdepth 1 \( -name 'rv-seen-*.json' -o -name 'rv-skip-*.json' -o -name 'rv-exempt-*.json' \) -newer "$sentinel" 2>/dev/null |
         sed -E 's#.*/rv-(seen|skip|exempt)-##; s#\.json$##' | grep -v '^range-' | sort -u | wc -l | tr -d ' ')
@@ -514,7 +519,7 @@ run_clause() {
     fi
     # A card whose review diff (task-runner's review-diff.sh) names a UI file owes ui-ux-reviewer: the count above let any reviewer stand in.
     local pf card uicards=""
-    if [ "$v" = "complete" ] && [ -d "$rvdir" ]; then
+    if [ "$v" = "complete" ] && [ "$range_mode" = 0 ] && [ -d "$rvdir" ]; then
       while IFS= read -r pf; do
         # Tests and stories are not UI: reviewer-routing sends a test-only card to code-reviewer alone.
         grep -E '^diff --git a/.* b/.*\.(tsx|jsx|vue|svelte|css|scss|sass|less|blade\.php)$' "$pf" 2>/dev/null |
@@ -592,6 +597,18 @@ run_clause() {
         if [ "$degraded" -eq 0 ] 2>/dev/null && { [ "$lenses" -lt 3 ] || [ "$critic" -lt 1 ]; } 2>/dev/null; then
           run_item "the red-team panel" "$(printf 'Dispatch the missing red-team agents as task-runner'"'"'s code-redteam skill describes, or record a reduced inline pass with scripts/reduction-record.sh --kind redteam --id <ref> --reason "<why>": the run is marked for max effort (Ultra or Goal in its index) and the red-team panel is short (%s of 3 refuters, %s of 1 completeness critic).' "$lenses" "$critic")"
         fi
+      fi
+    fi
+    # The per-card negative control's replacement in range mode: one teeth lens (RT-LENS: teeth-<ref>) over the range, unless the diff is docs and data only.
+    local vbase teeth
+    if [ "$v" = "complete" ] && [ "$range_mode" = 1 ]; then
+      vbase=$(jq -r '.base // empty' "$sentinel" 2>/dev/null)
+      if [ -z "$vbase" ] || ! git -C "$root" rev-parse --verify "$vbase" >/dev/null 2>&1 ||
+         git -C "$root" diff --name-only "$vbase..HEAD" 2>/dev/null | grep -qvE '\.(md|txt|json|ya?ml|lock|csv|svg|png|jpe?g|gif)$|^$'; then
+        teeth=$(find "$root/.claude/task-runner/rt" -maxdepth 1 -name 'rt-lens-teeth*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
+        [ "${teeth:-0}" -gt 0 ] 2>/dev/null ||
+          [ -n "$(find "$root/.claude/task-runner/reductions" -maxdepth 1 -name 'redteam-*.json' -newer "$sentinel" 2>/dev/null)" ] ||
+          run_item "a test-teeth lens over the range" "$(printf 'Dispatch one red-team refuter with the does-the-test-have-teeth lens over the run'"'"'s range (task-runner'"'"'s code-redteam skill), its prompt opening with "RT-LENS: teeth-%s": this run verifies per milestone (Verify: range in its index), so that lens replaces the per-card negative controls. Or record why not with scripts/reduction-record.sh --kind redteam --id <ref> --reason "<why>".' "${head:0:12}")"
       fi
     fi
     local ids tp said missing id

@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.12.0 — 2026-11-05
+
+- **Clause 4 reads `Verify: range`.** A task-runner run whose index carries the line (overseer milestones) owes no per-card negative control, reviewer record or UI review. It owes the whole-range review as before, plus one red-team record with the teeth lens (`rt-lens-teeth-*`) when the range shipped code, or a recorded red-team reduction. Pinned by four new `scripts/__tests__/gate.test.sh` cases, two red on 0.11.0.
+
 ## 0.11.0 — 2026-11-02
 
 - **Clause 7: Unity work is looked at before it is called done.** A `Stop` is sent back when all of

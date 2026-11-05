@@ -168,7 +168,7 @@ executor nothing where it looks. The `> ` prefix is load-bearing: marker parsing
 so an unprefixed statement line beginning `Ultra:` or `Goal:` would be read as a tier
 declaration. No labeled pair in the spec header (older or hand-written spec) → skip the
 section entirely; never derive a statement at card time. Boosted runs stamp `Ultra:`/`Goal:`
-markers beside it — `references/index-markers.md`.
+markers beside it, and an overseer brief's `Verify: range` line is copied too — `references/index-markers.md`.
 
 When cards are executed by subagents, the dispatch-prompt and return-format
 contract is the task-runner plugin's delegation-contracts skill.

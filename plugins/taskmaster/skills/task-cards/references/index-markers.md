@@ -1,6 +1,18 @@
-# Index markers — `Ultra:` and `Goal:`
+# Index markers — `Ultra:`, `Goal:` and `Verify:`
 
-Read this when a run is boosted. On a standard run none of it applies.
+Read this when a run is boosted, or when the brief that opened it carries `Verify: range`.
+On any other run none of it applies.
+
+## `Verify: range` — copied, never decided here
+
+When the brief `/taskmaster:task` was given (overseer writes one per milestone), or the spec
+header, carries a line `Verify: range`, write exactly `Verify: range` near the top of
+`00-INDEX.md`, unprefixed, beside any `Ultra:`/`Goal:` line. task-runner then verifies per run,
+not per card (overseer's `references/range-verify.md`), and candor's clause 4 reads the same
+line. Never add it on your own judgment: whether per-card review is bought is the caller's call.
+Overseer re-checks the index for it after task-cards (**agent-graded**); candor reads it (**gate**).
+
+## `Ultra:` and `Goal:`
 
 Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: true
 (model=auto, effort=xhigh)` line near the top of `00-INDEX.md` — copy the directive's

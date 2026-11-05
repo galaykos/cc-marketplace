@@ -301,6 +301,12 @@ expect 2 "tier opus refuses MODEL: inherit" -- "$PS" dispatch check "$WS/p2-inhe
 grep -q "above the program tier 'opus'" "$WS/err" && ok || bad "refusal names the tier"
 { cat "$WS/p2-nomodel.md"; printf 'MODEL: sonnet\n'; } > "$WS/p2-sonnet.md"
 expect 0 "tier opus allows a model below opus" -- "$PS" dispatch check "$WS/p2-sonnet.md"
+# 0.8.0: the templates read as sentences, and `MODEL: opus.` was refused in two real runs
+{ cat "$WS/p2-nomodel.md"; printf 'MODEL: opus.\n'; } > "$WS/p2-period.md"
+expect 0 "a sentence-ending period after the model is not part of its name" -- "$PS" dispatch check "$WS/p2-period.md"
+{ cat "$WS/p2-nomodel.md"; printf 'MODEL: opu.\n'; } > "$WS/p2-typo.md"
+expect 2 "control: a misspelt model with a period is still refused" -- "$PS" dispatch check "$WS/p2-typo.md"
+grep -q "MODEL: opu is above" "$WS/err" && ok || bad "the refusal names the model without its period: $(head -1 "$WS/err")"
 # tier auto: a seat may inherit the session model — a separate program, initialised with --model auto
 W5=$(mktemp -d); git -C "$W5" init -q -b main 2>/dev/null || git -C "$W5" init -q
 OVERSEER_ROOT="$W5" "$PS" init --goal g --slug g --model auto >/dev/null 2>&1
@@ -740,6 +746,46 @@ cp "$WS/good11.json" "$S11/program.json"; R11
 grep -q "unreadable" "$WS/out" && bad "control: a valid program.json reads as unreadable" || ok
 expect 3 "resume takes no arguments" -- env OVERSEER_ROOT="$W11" "$PS" resume m1
 rm -rf "$W11"
+
+# ---- the stack group reads this project's installs, not the machine-wide cache (0.8.0) -----------
+# a Unity project with no project skills, on a machine whose cache holds laravel for another
+# project: accept demanded a stack pin nothing here could satisfy (retro 2026-11-05, c5294305).
+W12=$(mktemp -d); H12=$(mktemp -d); git -C "$W12" init -q -b main 2>/dev/null || git -C "$W12" init -q
+for s in testing/1.0.0/skills/testing-best-practices laravel/1.0.0/skills/laravel-best-practices; do
+  mkdir -p "$H12/.claude/plugins/cache/mkt/$s"; printf 'x' > "$H12/.claude/plugins/cache/mkt/$s/SKILL.md"; done
+TS12="$H12/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices/SKILL.md"
+P12() { env OVERSEER_ROOT="$W12" HOME="$H12" "$PS" "$@"; }
+P12 init --goal "unity game" --slug u >/dev/null 2>&1
+P12 milestone add --id m1 --title t --branch ov/m1 --kind library --size S --rigour lean >/dev/null 2>&1
+P12 milestone set --id m1 --status building >/dev/null 2>&1
+mkdir -p "$W12/.claude/overseer/milestones/m1/dispatch"; wprompt "$W12/.claude/overseer/milestones/m1/dispatch/1.md" "$TS12"
+P12 dispatch check "$W12/.claude/overseer/milestones/m1/dispatch/1.md" --kind worker --milestone m1 >/dev/null 2>&1
+sleep 1; mkfile "$W12/suite.txt"; mkfile "$W12/run.txt"
+P12 evidence add --id m1 --kind tests --note n --file "$W12/suite.txt" >/dev/null 2>&1
+P12 evidence add --id m1 --kind run-log --note n --file "$W12/run.txt" >/dev/null 2>&1
+printf '{"require":{"laravel/framework":"^12.0"}}' > "$W12/composer.json"
+expect 2 "control: a laravel tree with no scan owes the stack group (laravel is in the cache)" -- P12 accept --id m1
+grep -q "stack" "$WS/err" && ok || bad "control refusal names the stack group: $(head -1 "$WS/err")"
+printf 'phase\tinstalled\tmissing\tfallback\ntests\ttesting\t-\t-\n' > "$W12/.claude/overseer/capabilities.tsv"
+expect 0 "accept passes when the scan shows laravel/web-dev are not installed for this project" -- P12 accept --id m1
+printf 'phase\tinstalled\tmissing\tfallback\nbackend\tlaravel\t-\t-\ntests\ttesting\t-\t-\n' > "$W12/.claude/overseer/capabilities.tsv"
+rm -f "$W12/composer.json"
+P12 milestone add --id m3 --title t3 --branch ov/m3 --kind library --size S --rigour lean >/dev/null 2>&1
+P12 milestone set --id m3 --status building >/dev/null 2>&1
+mkdir -p "$W12/.claude/overseer/milestones/m3/dispatch"; wprompt "$W12/.claude/overseer/milestones/m3/dispatch/1.md" "$TS12"
+P12 dispatch check "$W12/.claude/overseer/milestones/m3/dispatch/1.md" --kind worker --milestone m3 >/dev/null 2>&1
+sleep 1; P12 evidence add --id m3 --kind tests --note n --file "$W12/suite.txt" >/dev/null 2>&1
+P12 evidence add --id m3 --kind run-log --note n --file "$W12/run.txt" >/dev/null 2>&1
+expect 0 "laravel installed for this project (user scope) is still not owed by a tree with no laravel/framework" -- P12 accept --id m3
+printf '{"require":{"laravel/framework":"^12.0"}}' > "$W12/composer.json"
+P12 milestone add --id m2 --title t2 --branch ov/m2 --kind library --size S --rigour lean >/dev/null 2>&1
+P12 milestone set --id m2 --status building >/dev/null 2>&1
+mkdir -p "$W12/.claude/overseer/milestones/m2/dispatch"; wprompt "$W12/.claude/overseer/milestones/m2/dispatch/1.md" "$TS12"
+P12 dispatch check "$W12/.claude/overseer/milestones/m2/dispatch/1.md" --kind worker --milestone m2 >/dev/null 2>&1
+sleep 1; P12 evidence add --id m2 --kind tests --note n --file "$W12/suite.txt" >/dev/null 2>&1
+P12 evidence add --id m2 --kind run-log --note n --file "$W12/run.txt" >/dev/null 2>&1
+expect 2 "a laravel tree whose scan lists laravel keeps the stack group owed" -- P12 accept --id m2
+rm -rf "$W12" "$H12"
 
 echo "program.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

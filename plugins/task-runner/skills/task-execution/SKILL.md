@@ -89,6 +89,11 @@ produced diff, and under `Goal:` auto-takes the pipeline gates (a `Goal:` carryi
 malformed-marker fallback, the run-start announcement, and what Goal never suppresses:
 `references/boost-execution.md`.
 
+**Range verification:** under `Verify: range` in `00-INDEX.md`, the worker verifies via
+`scripts/check-receipt.sh run --name card-<id> --`, your re-verify is its `check`, and a card gets
+no negative control or reviewer pass. Close adds one code-redteam round (`RT-LENS: teeth-<head12>`)
+and runs the suite once, by receipt. Overseer's `references/range-verify.md`.
+
 Critical/high findings send the task back into the fix loop; each such round counts toward the SAME three-cycle ceiling as verify failures (under `--crew`, the crew loop
 uses its own fresh budget) — so the reviewer pass cannot loop unboundedly. Medium/low findings go to the follow-up backlog, not the current diff; after a reviewer-driven fix,
 re-run the verify command before re-review. Accessibility findings and `/ui-ux:audit` deferrals are the exception: they
@@ -96,12 +101,10 @@ close in the run, fixed or recorded (`references/reviewer-routing.md` § UI diff
 
 ## UI card groups: walk at close
 
-When a milestone (else the run) whose diff touches UI closes, the ORCHESTRATOR walks the changed screens in a browser.
-Never a worker does this: workers share one browser and hold no MCP tools. The walk serves built assets and signs in
-through the spec's walk access, never the user's credentials. It covers 1280 and 375 with an overflow probe, the keyboard
-(Escape returns focus to the trigger), the console, and reduced motion. Its closing message carries one Screens table
-(screen · width · before · after · not observed), and a skipped walk is recorded. Procedure, shot layout, and the
-`--evidence` for a no-runner record: `references/ui-walk.md`. Standing: recorded.
+When a milestone (else the run) whose diff touches UI closes, the ORCHESTRATOR — never a worker (no MCP tools) — walks
+the changed screens from built assets, signed in through the spec's walk access, never the user's credentials: 1280 and
+375 with an overflow probe, keyboard, console, reduced motion. One Screens table closes it; a skipped walk is recorded.
+Procedure: `references/ui-walk.md`. Standing: recorded.
 
 ## No unbounded outer loop
 
@@ -126,9 +129,8 @@ or parked, the run ENDS with a report, no self-restart.
 No status dashboards, run boards, or progress pages — the index is the single
 view; a run-board page goes stale. HTML artifacts are for content that earns
 the medium (mockups, walkthroughs); a table a message can carry is not a file.
-A live view is exempt — one that re-parses the index whenever its modification time moves and
-keeps only that parse, as this plugin's status line and `/task-board` pane do: the index drawn,
-not a second record. Status is still written only to the index. Standing: recorded.
+A live view that only re-draws the index on change (this plugin's status line and `/task-board`
+pane) is exempt: it is not a second record. Status is written only to the index. Standing: recorded.
 
 ## Drift tripwires
 
@@ -151,9 +153,9 @@ is the evidence. One failed re-verification sends the task back; a second reclai
 
 ## Evidence format
 
-Evidence recorded per task is boringly literal: the exact command as run, its exit code, and
+Evidence recorded per task is literal: the exact command as run, its exit code, and
 the last relevant output lines. Manual checks ("dialog renders centered") are recorded as
-manual, with what was observed; "Verified ✓" alone is not evidence and closes nothing.
+manual, with what was observed; "Verified ✓" alone is not evidence.
 
 ## Completion protocol
 
