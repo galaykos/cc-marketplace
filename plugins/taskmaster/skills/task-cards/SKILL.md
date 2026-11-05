@@ -179,9 +179,9 @@ Once `00-INDEX.md` is written, before the task-runner handoff, in order:
 
 1. **Verify coverage.** Invoke coverage-check: it cross-checks success criteria ↔ cards
    both ways, blocks on any gap/orphan/drift, and writes `## Coverage` into `00-INDEX.md`.
-2. **Lint each card.** All four live in `${CLAUDE_PLUGIN_ROOT}/scripts/` — a bare name
+2. **Lint each card.** All five live in `${CLAUDE_PLUGIN_ROOT}/scripts/` — a bare name
    resolves nowhere in the user's project. Per card run `card-shape-lint.sh`,
-   `verify-teeth-lint.sh` and `skills-stamp-lint.sh`, each `--card <file>`; what each
+   `verify-teeth-lint.sh`, `skills-stamp-lint.sh` and `card-paths-lint.sh`, each `--card <file>`; what each
    blocks is a gate row in `references/card-shape.md`.
    Plus `spec-ledger-lint.sh --spec <spec>` once — an unconverged spec (open UNKNOWN, missing/empty ledger) never becomes cards; route holes back to grill.
 3. **Suggest a project skill.** If a `project-skill-suggester` skill is available (the
