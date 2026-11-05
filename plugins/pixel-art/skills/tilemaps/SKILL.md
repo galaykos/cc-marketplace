@@ -13,7 +13,7 @@ to the engine plugins.
 
 | Rule | Standing |
 |---|---|
-| Tileset, image, template and level paths resolve; every GID belongs to a tile after masking; layer data has the layer's length | **gate** — `check_tilemaps.py` exit 1; no hook runs it, so whether it runs is agent-graded |
+| Tileset, image, template and level paths resolve; every GID belongs to a tile after masking; layer data has the layer's length | **gate** — `check_tilemaps.py` exit 1; the plugin's hook runs it when a `.tmx`, `.tmj` or `.ldtk` changes through a Write or a command naming one; warn-only. `.tsx`/`.tsj`/`.ldtkl` alone: run it yourself, agent-graded |
 | No layer format the target engine skips | **gate** under `--engine phaser` (melonJS: warning); otherwise zstd is a warning |
 | A loader masks all four flag bits and resolves `firstgid` by the largest one not above the GID | recorded — the checker reads map files, not loader code |
 | LDtk edits go to non-`__` fields and are re-saved in LDtk | recorded; stale auto-layer tiles are a checker warning |

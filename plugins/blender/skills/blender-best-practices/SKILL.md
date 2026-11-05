@@ -23,7 +23,7 @@ description: Use when writing, reviewing or running Blender Python — a .py imp
 
 | Rule | Standing |
 |---|---|
-| No bpy call the target version removed or renamed | **gate** for whoever runs `check_bpy_scripts.py`: exit 1. No hook runs it, so running it is **agent-graded** |
+| No bpy call the target version removed or renamed | **gate** for `check_bpy_scripts.py` (exit 1). The plugin's hook runs it on a written `.py` that imports `bpy`, against a project `.blend` or the Blender on PATH; warn-only. An interpreter-written script or no version source: run it yourself, **agent-graded** |
 | Deprecated-but-working calls (`use_nodes = True`, VSE `frame_final_*`, `blend_method`) | checker **warning**; `--strict` exits 1 |
 | A headless run that must fail on a Python exception passes `--python-exit-code N` **before** `--python` | **recorded** — nothing reads the command line you wrote |
 | A generated or edited mesh passes `blender_qa.py` before it is called done | **gate** when it runs inside Blender (exit 1); whether it runs is **agent-graded** |

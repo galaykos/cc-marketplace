@@ -35,7 +35,7 @@ scene; it was run on Blender 5.2.3 only.
 
 | Rule | Standing |
 |---|---|
-| No bpy call the target version removed or renamed | **gate** for whoever runs `check_bpy_scripts.py` (exit 1); running it is **recorded** — no hook runs it |
+| No bpy call the target version removed or renamed | **gate** for what `check_bpy_scripts.py` reads (exit 1). `hooks/bpy-check.sh` runs it on a `.py` under the project that imports `bpy`/`bmesh`, after a Write/Edit or a Bash redirect, `tee` or `sed -i` into it. The target comes from a `.blend` beside it, else the project's newest `.blend`, else `blender --version`. It adds findings once per context and never blocks; `scripts/smoke/game-checker-hooks-tests.sh` pins it in CI. An interpreter or `cp` write, or no version source at all, still needs a manual run: **recorded** |
 | The checker's contract: exit codes, version windows, header decoding, both zstd branches | **gate** — `scripts/__tests__/check_bpy_scripts.test.sh`, run by CI's plugin-harness step |
 | Each checker rule is true of a real Blender: the old API gone, the named replacement present | **gate** only where `BLENDER_EXE` names a binary (`test_rules_in_blender.py`); CI has no Blender and skips it. Last run 2026-10-30 on 5.2.3: 29 of 29 |
 | A mesh passes QA before it is called done | **gate** when `blender_qa.py` runs (exit 1); whether it runs is **agent-graded** |
@@ -78,6 +78,9 @@ third-party project below (its old PyPI name), not Blender Lab's.
   ID, tool name, success, duration, versions, OS, timestamp) is sent by default; only `DISABLE_TELEMETRY=true` in
   the server's environment stops it. `BLENDER_MCP_SAFE_MODE=1` makes it check each script before running it.
 
-Measured: nothing — no control-arm eval.
+Measured on 2026-11-02, with a control arm: `evals/removed-5x-bpy` passed 5/5 with the plugin
+and 5/5 without it (CLI 2.1.316, haiku judge). It is a regression guard, since the base model
+already reads F-curves through a channelbag and builds the 5.x compositor node group. Whether
+the skill helps is unmeasured. See `rationale/gamedev-evals-2026-11-02.md`.
 
 Credit: Adapted from [EL4CTEO/blender-skills](https://github.com/EL4CTEO/blender-skills) @71d031d (MIT, © 2026 EL4CTEO; `blender_qa.py` copied and modified, see NOTICE), with facts also drawn from [ra100/blender-claude-plugin](https://github.com/ra100/blender-claude-plugin) @78e9151, [MartinRapcan/blender-claude-skill](https://github.com/MartinRapcan/blender-claude-skill) @70f45e3 and [AiverReaver/blender-unreal-pipeline-skill](https://github.com/AiverReaver/blender-unreal-pipeline-skill) @b590525 (all MIT); prose rewritten and re-verified here.

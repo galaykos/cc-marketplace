@@ -2,6 +2,30 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.1 — 2026-11-02
+
+- **Control-arm eval.** `evals/removed-5x-bpy` asks for the removed `action.fcurves` and
+  `scene.node_tree`. On 2026-11-02 it scored 5/5 with the plugin and 5/5 without, so it is a
+  regression guard, not a measure of the skill. Spend was $0.97. Results are in
+  `rationale/gamedev-evals-2026-11-02.md`.
+- **Review fixes.**
+  - The bpy hook splits the checker's output with awk instead of GNU-only sed `\t`, so it no
+    longer garbles on macOS. That was not run on BSD awk here.
+  - It now also reads `import os, bpy` and `import gpu, bgl` lines.
+  - It caps Bash targets after keeping only `.py` files, not before.
+
+## 0.2.0 — 2026-11-02
+
+- **bpy scripts are checked when written.** A new hook, `hooks/bpy-check.sh`, runs
+  `check_bpy_scripts.py` on a `.py` under the project that imports `bpy` or `bmesh`. It fires after
+  a Write/Edit, or a Bash redirect, `tee` or `sed -i` into the file (the shared `bash-write-targets`
+  block). The target version comes from a `.blend` beside the file, else the project's newest
+  `.blend`, else `blender --version` on PATH, else the hook stays silent. Findings are added once
+  per context and the hook never blocks. Off: `CC_BPY_CHECK=off`, or `/config`.
+- **Measured.** The cheap exit took 10 ms median and 11 ms max over 20 runs.
+- **Standing.** Running the checker moves from recorded to **gate** where the hook fires (`scripts/smoke/game-checker-hooks-tests.sh`, in
+  CI, including the heredoc-body and `>>` cases). An interpreter-written script is still recorded.
+
 ## 0.1.0 — 2026-10-30
 
 - New plugin. `blender-best-practices` skill: read the Blender version first (the 5.x `.blend` header is 17 bytes

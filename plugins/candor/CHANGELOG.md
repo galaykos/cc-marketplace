@@ -2,6 +2,36 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.11.0 — 2026-11-02
+
+- **Clause 7: Unity work is looked at before it is called done.** A `Stop` is sent back when all of
+  these hold in this turn:
+  - the final message claims completion;
+  - a `*.unity`, a `*.prefab` or an `Assets/**/*.cs` in a Unity project changed, or an MCP for Unity
+    edit ran;
+  - after the last such change, no capture ran (`unity command capture …` or a Unity MCP
+    screenshot), or no console read ran (`unity command console get|status` or `read_console`).
+
+  The message gives the exact commands. Saying "not captured" and why passes. The clause stands
+  down when no capture route exists: no `unity` on PATH and no Unity MCP tool in the turn. Off or
+  print-only: `CC_UNITY_VISUAL_GATE=off|warn`, or the new `/config` option.
+- **Shared words.** Clause 3's completion words and acknowledgements moved to the top level, so
+  clauses 3 and 7 read one list. The strings are unchanged.
+- **Standing.** **gate**: `scripts/__tests__/gate.test.sh` gains 15 clause-7 cases (235 in total),
+  including no route, a capture before the last change, a read-only MCP call, and a change in an
+  earlier turn. Whether the agent reads the PNG it captured is agent-graded.
+- **Measured.** On a 300-Bash-call turn the whole gate takes 67–71 ms with clause 7, and 44–45 ms
+  without it.
+- **Review fixes before release** (a review of the branch reproduced the first three):
+  - a Skill load mid-turn no longer hides an earlier Unity change;
+  - a write, capture and console read in one Bash call now passes;
+  - an MCP server whose name merely contains "unity" (community-forum) is no longer a route;
+  - a `unity` binary counts as a route only if `unity --version` prints a version;
+  - a full-path CLI call counts as a capture;
+  - `Editor/` and `Tests/` scripts no longer arm the clause.
+
+  The plugin description and lane row now say seven clauses. 242 harness cases.
+
 ## 0.10.8 — 2026-10-31
 
 - **The completion-claim check (clause 3) now sees code written through Bash.** Only `Edit`, `Write`, `MultiEdit` and `NotebookEdit` counted as an edit, and every `Bash` call counted as a run, so a turn that wrote `src/x.py` with `cat > … <<EOF`, `tee`, `sed -i` or `>>` and then said "done" was never judged (in this repository, 233 of 238 main-thread writes were Bash heredocs). The last `Bash` call of the transcript tail is now read: when its command writes a non-prose file (the shared `cc_bash_write_targets` block, pasted into `hooks/gate.sh` with `cc_strip_heredoc_bodies`), it is the edit, and a later call has to run something. A command that writes and then runs something in itself (`cat > t.py <<EOF … EOF && pytest`, `pytest | tee out.log`, `pytest > out.json`) counts as the edit and the run, because the clause already accepts any later run as evidence; one whose only words after the write are `cat`, `tee`, `echo`, `printf`, `sed`, `perl`, `cp`, `mv`, `rm`, `ln`, `mkdir`, `touch`, `chmod`, `cd`, `pushd`, `popd`, `true`, `:` or a shell closer does not, and neither does a run before the write. A line inside a heredoc body is never read as a run. Writes to `.md`/`.txt`/`.rst`/`.adoc` and kin stay exempt, and a call writing only those still counts as a run. Not seen: interpreter writes, `cp`/`mv`/`install`/`patch`/`git apply` targets, a path in a variable, a `\` continuation (README, "What this does not carry"). Pinned by `gate.test.sh` "bash write: …" (10 cases; the five that block pass silently on 0.10.7, and each new branch goes red under a mutation of its line). Cost, 20 runs each, Stop with a claim: last call a test run 31 → 33 ms median (max 48); last call a heredoc write 31 → 49 ms (max 51); a 5.0 MB tail of 1,333 heredoc calls 247 → 303 ms (max 313).

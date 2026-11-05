@@ -4,6 +4,14 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.18.2 — 2026-11-02
+
+- **The Unity row suggests `unity-traps`.** The `unity` plugin was renamed, so `signals.md`,
+  `stack-relevance.md` and the generated catalog name `unity-traps`. The `--stack unity` token is
+  unchanged. Standing: gate for the name (`pc_scout_names`); the row's use is agent-graded.
+- **The catalog's gamedev row** names gamedev 0.2.0's AI art pipeline. The row is regenerated from
+  gamedev's description.
+
 ## 0.18.1 — 2026-10-31
 
 - **The Laravel Boost row is current again.** Read from the laravel/boost v2.10.4 tag: its MCP server no longer has the application-info tool (removed in v2.10.4), it gained `record-rule`, and the user-invoked `infer-conventions` skill writes house conventions to `.ai/rules/`. Boost's project skills `laravel-best-practices` and `testing-best-practices` (which absorbed `pest-testing`) have the same names as `laravel:laravel-best-practices` and `testing:testing-best-practices`; the overlap cell now says so. `laravel-boost@claude-plugins-official` wires only the MCP server and still needs the composer package.

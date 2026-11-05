@@ -4,6 +4,51 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.127.0] - 2026-11-02
+
+Game plugins: Unity's plugin can load beside ours, and the art checkers start running on their own.
+
+- **unity → unity-traps 0.3.0 (renamed)** — Unity's official plugin (Unity-Technologies/unity-agent-plugin) is
+  also named `unity`. `renames` maps `unity` to `unity-traps`, so existing installs migrate. The README recommends
+  installing Unity's plugin alongside: ours carries the traps and the offline `.meta`/GUID checker, theirs carries
+  breadth and the Unity CLI. stack-scan 0.18.2, skill-router 0.30.1, all-plugins 0.7.6, gamedev 0.1.2 and
+  pixel-art 0.1.1 name the new plugin. Standing: gate for the ledger (`pc_renames_ledger`) and live names
+  (`pc_scout_names`). The two plugins loaded together in one `claude -p` session (CLI 2.1.316, `--plugin-dir`).
+- **unity-traps 0.3.1** — "Driving the Editor" leads with the Unity CLI used through Unity's plugin. It marks the
+  `com.unity.ai.assistant` MCP server deprecated (manual notice since 2.18.0-pre.2) and keeps CoplayDev's MCP for
+  Unity as the pre-6.0 alternative. Read 2026-11-02. Standing: recorded.
+- **The art checkers run on their own: unity-traps 0.4.0, meshy 0.2.0, blender 0.2.0, pixel-art 0.2.0.** Each
+  plugin gains a warn-only hook that runs its checker when its file kind lands, and adds what it finds once per
+  context:
+  - `.meta` moves and deletes under `Assets/`;
+  - `.glb`/`.gltf` downloads, at 15,000 triangles and 2,048 px;
+  - written `bpy` scripts, against the project's Blender version;
+  - sprite sheets and Tiled/LDtk maps.
+
+  meshy and pixel-art bracket a Bash or MCP call between PreToolUse and PostToolUse, so a `curl -o` or an
+  `aseprite -b` export is seen. Standing: gate where each hook fires, by the new CI step
+  `scripts/smoke/game-checker-hooks-tests.sh` (48 cases). CLAUDE.md's CI count is now 52 named steps, 50 fail-capable.
+- **gamedev 0.2.0** — a new `asset-pipeline` skill takes a Higgsfield concept through Meshy image-to-3D, remesh and
+  rig, Blender QA and export, and Unity import. Each handoff gets a budget and a checker. Credit caps use only
+  documented commands; Higgsfield has no native cap, and `max_credits`/`batch`/`jobs wait` are not in its docs or CLI.
+  Character consistency comes from references rather than seeds. Sources: `rationale/gamedev-asset-pipeline-2026-11-02.md`.
+- **Visual done-gate: unity-traps 0.5.0, candor 0.11.0.** The unity skill now asks for a camera or scene capture
+  and an error-free console read before scene, prefab or gameplay work is called done. candor's Stop gate gains
+  clause 7, which sends that claim back when neither ran after the last Unity change and the `unity` CLI or a Unity
+  MCP tool was available. Standing: gate (15 harness cases); agent-graded where no route exists.
+- **Control-arm evals: unity-traps 0.5.1, blender 0.2.1, meshy 0.2.1.** Five new cases ran 5 times per arm, with and
+  without the plugin, for $4.57 in total:
+  - unity-traps' Unity 6.6 dictionary-serialization fact is the one measured effect: 5/5 with the plugin, 0/5
+    without, +1.00;
+  - the Rigidbody, Blender 5.x and Meshy cases pass without the plugin, so they are regression guards;
+  - Cinemachine 3 scored 4/5 with the plugin and 5/5 without; five runs cannot tell that from a flake.
+
+  Record: `rationale/gamedev-evals-2026-11-02.md`.
+- **Branch review fixes.** A review of the branch found 20 issues, 2 high and 10 medium, and all 20 are fixed. Two
+  high bugs in candor's clause 7 were reproduced: a Skill load hid a Unity change, and a write plus capture in one
+  call was blocked anyway. The rest cover the unity hook missing moves from inside `Assets/`, blender's GNU-only sed,
+  candor's "six clauses" description, and standing rows that over-claimed.
+
 ## [0.126.0] - 2026-10-31
 
 A web search for third-party Claude Code plugins, skills and MCP servers covering game development, Unity,

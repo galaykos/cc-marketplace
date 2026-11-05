@@ -1,0 +1,40 @@
+schema_version: "1.0"
+name: cinemachine-3
+description: 'With com.unity.cinemachine 3.1 the namespace is Unity.Cinemachine and the components are CinemachineCamera, CinemachineFollow and CinemachineRotationComposer; the remembered 2.x code uses Cinemachine, CinemachineVirtualCamera, CinemachineTransposer and CinemachineComposer. On 2026-11-02 the control arm passed 5/5 and the plugin arm 4/5, one unexplained failure; regression guard until a re-run says otherwise (rationale/gamedev-evals-2026-11-02.md).'
+execution:
+  timeout_seconds: 600
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Our Unity 6000.3 project has `com.unity.cinemachine` 3.1.4 in `Packages/packages-lock.json`.
+
+    Write a runtime MonoBehaviour `FollowCamSetup` with a public `Transform target`. In `Start` it
+    creates a Cinemachine camera on a new GameObject that follows `target` at an offset of
+    (0, 3, -6) and keeps `target` centred in the frame. Add whatever Cinemachine components that
+    takes from code; there is no editor setup.
+
+    Reply with the C# file only.
+runs: 3
+graders:
+  - type: llm
+    name: cinemachine3-types
+    criteria: |
+      Cinemachine 3.x moved its namespace from `Cinemachine` to `Unity.Cinemachine`, and its
+      components are new types. `CinemachineVirtualCamera` → `CinemachineCamera`,
+      `CinemachineTransposer` → `CinemachineFollow`, `CinemachineComposer` →
+      `CinemachineRotationComposer`. The 2.x classes survive only as deprecated types.
+
+      PASS requires all three:
+      1. `using Unity.Cinemachine;` (or fully qualified `Unity.Cinemachine.` names).
+      2. The camera is a `CinemachineCamera`.
+      3. The follow offset is set on a `CinemachineFollow` (its `FollowOffset`), and centring is
+         done by a `CinemachineRotationComposer`. Equivalent 3.x components such as
+         `CinemachinePositionComposer` for a framing follow are acceptable for the offset. 2.x
+         types are not.
+
+      FAIL if the code has `using Cinemachine;`, or names `CinemachineVirtualCamera`,
+      `CinemachineTransposer`, `CinemachineFramingTransposer`, `CinemachineComposer`, or
+      `GetCinemachineComponent<…>` with a 2.x body type.
+
+      Not graded: whether `Follow`/`LookAt` or `Target.TrackingTarget` is used to set the
+      target, priority, damping values, code style.

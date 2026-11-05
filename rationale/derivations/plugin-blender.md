@@ -181,3 +181,31 @@ Armature-only stack and dropped by a Subdivision modifier; FBX and glTF exporter
 - No hook runs either script; the skill tells the model when to.
 - CI cannot run Blender: the rule-truth test and the QA geometry tests run only where `BLENDER_EXE` is set.
 - AiverReaver's `fbx_inspect.py` (a stdlib FBX gate for `UnitScaleFactor` and node scale) was not imported.
+
+## plugins/blender/hooks/bpy-check.sh
+
+Added 2026-11-02 (blender 0.2.0). Until then `check_bpy_scripts.py` was **recorded** as far as
+running it went: no hook ran it. A script still calling `action.fcurves` or `scene.node_tree` on
+Blender 5.x was found only when it raised `AttributeError` mid-run, or did nothing in a headless
+run started without `--python-exit-code`.
+
+**Trigger.** A Write/Edit of a `.py`, or a Bash redirect, `tee` or `sed -i` into one, through the
+shared `bash-write-targets` block. The file must sit under the project root and import `bpy` or
+`bmesh`. A grep tests the import first, so most Python writes cost no checker run.
+
+**Target version.** The checker reads a `.blend` under the scanned file's own folder and exits 2
+without one. The user chose the fallback order on 2026-11-02:
+
+1. the newest `.blend` header anywhere in the project, read with the checker's own
+   `--blend-version`, up to 50 files;
+2. `blender --version` from PATH. On Blender 5.2.3 three runs took 0.18 s in total;
+3. otherwise silence, since every rule is version-windowed.
+
+The message names which source set the target.
+
+**Cost.** A cheap exit on a Bash call that writes nothing takes 10 ms median, 11 ms max, over 20
+runs.
+
+Standing: firing and silence are a **gate** in `scripts/smoke/game-checker-hooks-tests.sh`. The
+heredoc-body and `>>` cases are there because the hook-bash-writes skill requires them. Acting on a
+finding is **agent-graded**.

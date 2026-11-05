@@ -1,7 +1,7 @@
 {
   "name": "candor",
-  "version": "0.10.8",
-  "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, six clauses a script can prove: a file:line resolving to no file or past its end; a marked quote: in neither the cited file nor its HEAD copy; a position retracted after bare pushback with no tool call between; a completion claim after edits with nothing run since; a task-runner run ending without its gate pass; a dependency map changed without its lockfile. Flattery, apologies and defensive phrasing are counted by /candor:check, never blocked. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn.",
+  "version": "0.11.0",
+  "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, seven clauses a script can prove: a file:line resolving to no file or past its end; a marked quote: in neither the cited file nor its HEAD copy; a reversal after bare pushback with no tool call between; a completion claim after edits with nothing run since; a Unity scene, prefab or script edit called done with no capture and console read since; a task-runner run ending without its gate pass; a manifest changed without its lockfile. Flattery, apologies and defensiveness are counted by /candor:check, never blocked. Plus a terse mode (/candor:level): prose-line budgets and a fixed report skeleton, never less work in the turn.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
@@ -58,6 +58,12 @@
       "type": "string",
       "title": "Run-completion clause mode (TASK_RUNNER_STOP_GATE)",
       "description": "Stop-gate clause for a task-runner run stopping without its recorded gate pass: block, warn or off. The environment variable TASK_RUNNER_STOP_GATE overrides this.",
+      "default": "block"
+    },
+    "cc_unity_visual_gate": {
+      "type": "string",
+      "title": "Unity look-before-done clause (CC_UNITY_VISUAL_GATE)",
+      "description": "Stop-gate clause for Unity scene, prefab or Assets script work called done with no capture and no console read after the last change, while the unity CLI or a Unity MCP tool is available: block, warn or off. The environment variable CC_UNITY_VISUAL_GATE overrides this.",
       "default": "block"
     }
   }

@@ -185,8 +185,8 @@ re-run while the smoke suite ran concurrently; both mutate scratch state.
 
 ## CI step count
 
-`.github/workflows/validate.yml` has **51 named steps; 49 can fail the build**. On a push to
-`master` only **48** can fail: `check-version-bumps.sh` is gated
+`.github/workflows/validate.yml` has **52 named steps; 50 can fail the build**. On a push to
+`master` only **49** can fail: `check-version-bumps.sh` is gated
 `if: github.event_name == 'pull_request'`. This is the one count deliberately carried here and
 nowhere else (`scripts/done-gate.sh:3` says why). **Recount it, do not copy it:**
 

@@ -1,6 +1,6 @@
 {
   "name": "blender",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "Blender Python and asset export as of Blender 5.x: a stdlib checker for bpy calls the target version removed or renamed (action.fcurves, scene.node_tree, BLENDER_EEVEE_NEXT, bgl, Geometry Nodes Socket_N keys) that also reads .blend header versions, an in-Blender mesh QA script with a real exit code, the headless --python-exit-code traps, and FBX/glTF export rules for Unreal, Unity and Godot.",
   "author": {
     "name": "Ivan-WG",
@@ -9,5 +9,13 @@
   "keywords": [
     "gamedev",
     "tooling"
-  ]
+  ],
+  "userConfig": {
+    "cc_bpy_check": {
+      "type": "boolean",
+      "title": "bpy removal check (CC_BPY_CHECK)",
+      "description": "Run check_bpy_scripts.py on a written .py that imports bpy, and add the removed or deprecated calls it finds: on or off. The environment variable CC_BPY_CHECK overrides this.",
+      "default": true
+    }
+  }
 }

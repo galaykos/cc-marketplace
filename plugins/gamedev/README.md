@@ -6,7 +6,7 @@ across upgrades, and meeting platform floors for text size and loudness. It carr
 model gets wrong from memory — store rules, platform limits, changed defaults — plus two
 scripts with exit codes.
 
-It is the companion to this marketplace's engine plugins — godot, unity, unreal, phaser and
+It is the companion to this marketplace's engine plugins — godot, unity-traps, unreal, phaser and
 pixijs — which carry the per-engine rules and name `gamedev` as
 theirs. Install it next to the one your project uses; nothing installs the pair for you.
 
@@ -23,6 +23,7 @@ claude plugin install gamedev@cc-plugins-marketplace
 | `steam-release` | Uploading with steamcmd, editing `app_build`/`depot_build` `.vdf` scripts, setting a build live, the store and review timeline, the Content Survey's AI section, Steam Cloud, Steam Deck / Steam Machine compatibility |
 | `itch-release` | `butler push`, channel names, an HTML5 build that shows as a download or loads blank, CI with `BUTLER_API_KEY`, a jam entry on itch.io |
 | `game-assets` | `asset_report.py`: fake-transparency, size and colour-count checks; licence redistribution and Steam AI-disclosure classes |
+| `asset-pipeline` | A Higgsfield concept taken through Meshy image-to-3D, remesh and rig, Blender QA and export, and Unity import: a triangle and texture budget per asset, the checker at each handoff, credit caps from Higgsfield's and Meshy's documented commands, and references (not seeds) for a consistent character. Vendor facts and sources: `rationale/gamedev-asset-pipeline-2026-11-02.md` in this repository |
 | `dialogue-scripting` | Yarn Spinner 3 and Ink facts a 2.x memory gets wrong |
 | `seeded-generation` | Which PRNGs change sequences across runtime versions, and what to ship instead |
 | `game-platform-floors` | Xbox XAG 101 text-size floors and Sony ASWG-R001 loudness targets |
@@ -42,6 +43,8 @@ claude plugin install gamedev@cc-plugins-marketplace
 | The checker's own behaviour | **gate** — `scripts/__tests__/check_steam_build.test.sh` runs its unittest suite in this marketplace's CI; it proves the checks fire, not that they match what steamcmd does today |
 | Store timelines, review order, upload limits, HTML5 limits | **recorded** — dated by each skill's `Last verified` stamp; nothing re-reads the Steamworks or itch.io pages |
 | Content Survey answers, store-page feature parity with the build | **agent-graded** — only a reader of the game's assets and store page can judge them |
+| An AI-generated model meets its budget row at each handoff | **gate** where meshy's PostToolUse hook fires (15,000 triangles, 2,048 px); any other row is **agent-graded**, since the agent runs `inspect_glb.py` with its numbers |
+| A paid Higgsfield or Meshy call is priced and confirmed first | **agent-graded** — Higgsfield documents no native credit cap, and nothing here refuses a call |
 
 Measured: nothing — no control-arm eval covers any skill here, so whether each one changes what
 the model does is unknown.

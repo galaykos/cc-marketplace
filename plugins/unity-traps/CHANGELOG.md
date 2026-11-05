@@ -1,6 +1,81 @@
-# Changelog — unity
+# Changelog — unity-traps
 
 Consumer-facing changes only. Newest first.
+
+## 0.5.1 — 2026-11-02
+
+- **Control-arm evals.** Three cases in `evals/`, run 5 times per arm on 2026-11-02:
+  - `dictionary-serialization-66` scored 5/5 with the plugin and 0/5 without, **+1.00**;
+  - `rigidbody-renames` scored 5/5 and 5/5, a regression guard;
+  - `cinemachine-3` scored 4/5 and 5/5. That is one failure in five, which this run count cannot
+    tell from a flake.
+
+  Spend was $2.54. Results are in `rationale/gamedev-evals-2026-11-02.md` and
+  `rationale/evals/2026-11-02-075620-unity-traps.json`. The README's "Measured" paragraph now
+  shows the table.
+- **Review fixes.**
+  - The meta-check hook now also fires on a move made from a shell already inside `Assets/`,
+    such as `mv Player.cs Hero.cs` in `Assets/Scripts`.
+  - The skill's done-gate row says what clause 7 checks: that a capture and a console read ran
+    in the turn. Whether the console was error-free is agent-graded.
+  - "gate" rows now read "gate (warn-only hook)".
+
+## 0.5.0 — 2026-11-02
+
+- **Look before calling it done.** The skill has a new section for scene, prefab or gameplay work:
+  - capture the camera or scene with
+    `unity command capture game_view -- --source camera --save_path …` (or `capture scene_view`);
+  - read the console with `unity command console get -- --tail 50 --level error`;
+  - treat any error as not done.
+
+  It uses `--source camera` on a locked machine, where a `screen` capture came back one colour
+  with no error. With MCP for Unity, `manage_camera` screenshot and `read_console` do the same.
+  With no route, say "not captured" and why. Sources: Unity's `unity-cli` skill
+  (`references/playmode-verification-loop.md` at `759ad5f`) and the `com.unity.pipeline` 0.9
+  capture manual, both read 2026-11-02.
+- **Standing.** **gate** where candor 0.11.0 is installed and a route exists: its Stop-gate clause 7
+  sends back the done claim. Elsewhere **agent-graded**. Not run here against a live Editor.
+
+## 0.4.0 — 2026-11-02
+
+- **The `.meta` checker runs on its own.** A new PostToolUse hook, `hooks/meta-check.sh`, runs
+  `check_unity_project.py` when either happens:
+  - a Bash call moves, copies or deletes an `Assets/` path: `mv`, `cp`, `rm`, `rsync`, `ln`,
+    `git mv`/`git rm`, `find -delete`, or a Python, Node or .NET file call;
+  - a Write/Edit writes an `Assets/*.meta`.
+
+  It reports errors anywhere in the project, and warnings only on the paths the call touched. Each
+  finding is reported once per context, as added context: it warns and never blocks. Off:
+  `CC_UNITY_META_CHECK=off`, or the new `/config` switch.
+- **Measured.** The checker ran in 0.74 s on a synthetic 40,201-file project. The hook's cheap exit
+  on a Bash call that is not a move took 9 ms median and 10 ms max over 20 runs.
+- **Standing.** Running the checker after a move moves from recorded to **gate** where the hook
+  fires; `scripts/smoke/game-checker-hooks-tests.sh` pins when it fires and when it stays silent, in CI. A move the hook cannot see (a
+  path in a variable, the Editor, an IDE) still needs a manual run.
+
+## 0.3.1 — 2026-11-02
+
+- **Driving the Editor: the Unity CLI first.** The README section now leads with the Unity CLI
+  (`unity`, beta) used through Unity's plugin. Setup is `unity pipeline install` per project, then
+  `unity status`, and driving a running Editor needs Unity 6.0 LTS or later. The section also says
+  the MCP server in `com.unity.ai.assistant` is deprecated: the notice has been in the package
+  manual since 2.18.0-pre.2 (2026-08-18), and `unity mcp configure` is the MCP route Unity still
+  supports. CoplayDev's MCP for Unity (MIT, v10.3.0) is the alternative for projects older than
+  Unity 6.0. Every fact was read on 2026-11-02 from Unity's docs, Unity's plugin at `759ad5f` and
+  CoplayDev's repo. Standing: recorded.
+- **Side-by-side load tested.** Unity's plugin (0.1.8-beta) and this one loaded together in one
+  `claude -p` session on CLI 2.1.316, both passed with `--plugin-dir`. No Editor command was run.
+
+## 0.3.0 — 2026-11-02
+
+- **Renamed from `unity` to `unity-traps`.** Unity's official Claude Code plugin
+  (Unity-Technologies/unity-agent-plugin) is also named `unity`, so the two could not be told apart
+  in one install. The marketplace's `renames` map sends an existing `unity@cc-plugins-marketplace`
+  install to `unity-traps`. The skill (`unity-traps:unity-best-practices`), the references and the
+  checker are unchanged.
+- **README.** It recommends installing Unity's plugin alongside, and says what each covers: this
+  plugin carries the traps and the offline `.meta`/GUID checker; Unity's carries breadth and the Unity
+  CLI. Standing: recorded. Whether the two load side by side in one session was not tested.
 
 ## 0.2.1 — 2026-10-31
 

@@ -1,6 +1,6 @@
 {
   "name": "meshy",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "Meshy AI text/image-to-3D traps a model gets wrong from memory: an unknown create outcome is reconciled, never resubmitted; a running task cannot be cancelled; files and signed URLs expire after 3 days; free-plan output is Meshy-owned under CC BY 4.0; rigging takes textured humanoids only. Plus a stdlib Python GLB/glTF checker for triangle, texture-size and required-extension budgets with an exit code.",
   "author": {
     "name": "Ivan-WG",
@@ -9,5 +9,13 @@
   "keywords": [
     "gamedev",
     "tooling"
-  ]
+  ],
+  "userConfig": {
+    "cc_glb_check": {
+      "type": "boolean",
+      "title": "GLB budget check (CC_GLB_CHECK)",
+      "description": "Run inspect_glb.py at 15,000 triangles and 2,048 px on a .glb/.gltf a call wrote, and add what fails: on or off. The environment variable CC_GLB_CHECK overrides this.",
+      "default": true
+    }
+  }
 }

@@ -3,7 +3,7 @@
 assets moved without their .meta, leftover .meta files, missing script references, class/file name mismatches.
 Does NOT read binary-serialized assets or DLL scripts; with no Library/PackageCache, missing-script is a warning."""
 # Derived from gamedev-skills/awesome-gamedev-agent-skills@184b72b (Apache-2.0, see NOTICE); modified.
-# Why, limits, history: rationale/derivations/plugin-unity.md § plugins/unity/scripts/check_unity_project.py
+# Why, limits, history: rationale/derivations/plugin-unity-traps.md § plugins/unity-traps/scripts/check_unity_project.py
 
 from __future__ import annotations
 

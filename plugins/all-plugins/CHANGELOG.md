@@ -2,6 +2,13 @@
 
 Consumer-facing changes only. Newest first. Started at 0.7.1; earlier versions have no entries rather than invented ones.
 
+## 0.7.6 — 2026-11-02
+
+- **`install` skips `unity-traps`, the renamed `unity`.** It prints the same
+  `skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)` row. Standing: gate
+  for the godot row and the skip count (`scripts/__tests__/all-plugins.test.sh`); the unity-traps
+  row itself is not pinned.
+
 ## 0.7.5 — 2026-10-31
 
 - **`install` also skips `blender`, `meshy` and `pixel-art`,** the three new game plugins, with the same `skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)` row.

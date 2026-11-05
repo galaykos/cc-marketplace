@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, game engines, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.126.0"
+    "version": "0.127.0"
   },
   "plugins": [
     {
@@ -127,7 +127,7 @@
     {
       "name": "candor",
       "source": "./plugins/candor",
-      "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, six clauses a script can prove: a file:line resolving to no file or past its end; a marked quote: in neither the cited file nor its HEAD copy; a position retracted after bare pushback with no tool call between; a completion claim after edits with nothing run since; a task-runner run ending without its gate pass; a dependency map changed without its lockfile. Flattery, apologies and defensive phrasing are counted by /candor:check, never blocked. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn."
+      "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, seven clauses a script can prove: a file:line resolving to no file or past its end; a marked quote: in neither the cited file nor its HEAD copy; a reversal after bare pushback with no tool call between; a completion claim after edits with nothing run since; a Unity scene, prefab or script edit called done with no capture and console read since; a task-runner run ending without its gate pass; a manifest changed without its lockfile. Flattery, apologies and defensiveness are counted by /candor:check, never blocked. Plus a terse mode (/candor:level): prose-line budgets and a fixed report skeleton, never less work in the turn."
     },
     {
       "name": "ask-ledger",
@@ -180,8 +180,8 @@
       "description": "Godot 4 skills that carry only what a model gets wrong from memory: the 4.3–4.7 inversions (Jolt Physics 3D as the default for new projects since 4.6, the 4.7 GDScript override and packed-array changes, flipped defaults), multiplayer authority, visibility and auth footguns, web-export and C# limits; a headless GDScript test runner that exits non-zero on failure; and a standard-library Python checker for broken res:// paths, uids and scene references. Pairs with gamedev."
     },
     {
-      "name": "unity",
-      "source": "./plugins/unity",
+      "name": "unity-traps",
+      "source": "./plugins/unity-traps",
       "description": "Unity 6 (6000.x) traps a model gets wrong from memory — Rigidbody and Find* renames, the Unity 6 torque change, Cinemachine 3 class names, Input System project-wide actions enabling every map, Awaitable cancellation, batch-mode CI builds and build profiles, NavMeshSurface/NavMeshLink, URP 2D and pixel-art traps (URP's own Pixel Perfect Camera, Sprite Atlas settings that blur, Light2D normal maps) — plus a read-only .meta/GUID checker that exits 1 when files were moved, renamed or copied outside the Editor without their .meta."
     },
     {
@@ -202,7 +202,7 @@
     {
       "name": "gamedev",
       "source": "./plugins/gamedev",
-      "description": "Engine-agnostic game shipping: Steam release (a SteamPipe build-script validator, the store and review timeline, Content Survey AI disclosure, Steam Cloud and Deck/Machine compatibility) and itch.io release (butler channels, HTML5 limits, jam submissions), plus game asset checks, Yarn Spinner and Ink dialogue scripting, seed-stable procedural generation, and console/PC/handheld text-size and loudness floors. Companion to the engine plugins (Godot, Unity, Unreal, Phaser, PixiJS)."
+      "description": "Engine-agnostic game shipping: Steam release (a SteamPipe build-script validator, the store and review timeline, Content Survey AI disclosure, Steam Cloud and Deck/Machine compatibility) and itch.io release (butler channels, HTML5 limits, jam submissions), plus game asset checks, an AI art pipeline (Higgsfield concept → Meshy 3D, remesh, rig → Blender → Unity) with a budget and a checker at each handoff, Yarn Spinner and Ink dialogue scripting, seed-stable procedural generation, and console/PC/handheld text-size and loudness floors. Companion to the engine plugins (godot, unity-traps, unreal, phaser, pixijs)."
     },
     {
       "name": "blender",
@@ -306,6 +306,7 @@
     "bevy": null,
     "defold": null,
     "ebitengine": null,
-    "roblox": null
+    "roblox": null,
+    "unity": "unity-traps"
   }
 }

@@ -2,6 +2,28 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.0 — 2026-11-02
+
+- **Sheets and maps are checked when they change.** A new hook, `hooks/sheet-check.sh`, runs one
+  of two checkers:
+  - `check_sprite_sheet.py` on a sheet JSON holding `"frames"`, or the same-stem JSON beside a PNG;
+  - `check_tilemaps.py` on a `.tmx`, `.tmj` or `.ldtk`.
+
+  It fires when a Write names the file, or when the file changes during a Bash call naming a sheet
+  tool or extension. Such a call is bracketed the way meshy's is, so an `aseprite -b` export is
+  seen. Findings are added once per context and the hook never blocks. Off: `CC_PIXEL_CHECK=off`,
+  or `/config`.
+- **Measured.** The cheap exit took 14–15 ms median and 16 ms max over 20 runs.
+- **Standing.** Running the checkers moves from agent-graded to **gate** where the hook fires
+  (`scripts/smoke/game-checker-hooks-tests.sh`, in CI). `.tsx`/`.tsj`/`.ldtkl` alone are not watched.
+- **Review fix.** As in meshy, PreToolUse tests the command text first. The harness's PNG case now
+  matches the checker's finding rather than the file name.
+
+## 0.1.1 — 2026-11-02
+
+- **README names `unity-traps`,** the renamed `unity` plugin, among the engine plugins that own
+  texture filtering and pixels-per-unit. Skills and scripts are unchanged.
+
 ## 0.1.0 — 2026-10-30
 
 - New plugin. `pixel-art-pipeline` skill: Aseprite CLI option order, the `json-hash` default, `--list-tags`, tag indices that drift under `--ignore-empty`/`--tag`/`--frame-range`, trimmed-frame offsets, millisecond vs Lua-seconds durations, and finishing image-model output (measure the grid, area downscale, Pillow palette locks without the default dither or WEB palette).

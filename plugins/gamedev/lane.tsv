@@ -9,3 +9,4 @@ gamedev:game-assets	skill	build	game-asset-checks	a generated, purchased or hand
 gamedev:dialogue-scripting	skill	build	dialogue-scripting	the project carries .yarn/.yarnproject/.ink files or an inkjs / Yarn Spinner dependency	-
 gamedev:seeded-generation	skill	build	seeded-generation	procedural generation, daily seeds, replays or seed-only saves must reproduce across runs or engine/runtime upgrades	-
 gamedev:game-platform-floors	skill	verify	game-platform-floors	sizing game UI text or setting a mix loudness target for a console, PC, handheld or mobile release	-
+gamedev:asset-pipeline	skill	build	asset-pipeline-handoffs	a generated concept image is taken to a 3D model, rigged, cleaned in Blender or imported into Unity, or a batch of AI-generated assets needs a credit cap, a triangle/texture budget or one character kept consistent	-

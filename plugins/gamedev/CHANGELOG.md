@@ -2,6 +2,29 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.0 — 2026-11-02
+
+- **New skill: `asset-pipeline`.** It takes a Higgsfield concept image through Meshy image-to-3D,
+  remesh and rig, then Blender QA and export, then Unity import. It covers:
+  - a triangle and texture budget per asset class, built from Meshy's documented
+    `target_polycount` defaults and limits;
+  - the checker to run at each handoff;
+  - credit caps from the commands Higgsfield and Meshy document: `higgsfield generate cost`,
+    `generate wait`, `account status`, and Meshy's per-request prices;
+  - references, not seeds, for keeping one character the same across generations.
+- **Sources.** Every vendor fact was read on 2026-11-02 and is cited with a quote in
+  `rationale/gamedev-asset-pipeline-2026-11-02.md`. Not used, because neither Higgsfield's docs nor
+  its CLI 1.2.2 `--help` contain them: `max_credits`, a `batch` command, `jobs wait`. The skill says
+  so.
+- **Standing.** The budget at the meshy handoff is a gate where meshy's hook fires. Credit
+  confirmation is agent-graded. The per-asset manifest is recorded. Unmeasured: no control-arm eval
+  covers the skill.
+
+## 0.1.2 — 2026-11-02
+
+- **Companion list names `unity-traps`.** The `unity` plugin was renamed, so the description and
+  README name `unity-traps`. Skills and scripts are unchanged.
+
 ## 0.1.1 — 2026-10-29
 
 - **Companion list matches the marketplace.** The description and README name the engine plugins this marketplace still ships — godot, unity, unreal, phaser and pixijs. roblox, bevy, defold and ebitengine were removed from the marketplace, so they are no longer named. Skills and scripts are unchanged.

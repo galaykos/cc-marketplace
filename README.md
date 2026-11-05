@@ -144,6 +144,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_ASK_LEDGER` | ask-ledger | on | Ledger what a prompt names and have the Stop gate ask for an accounting line for each: on or off |
 | `CC_AVERT` | candor | on | Ask before a write or dispatch that carries a hedge the user never raised: on, notify or off |
 | `CC_BOOST` | craft-layer, task-runner, taskmaster | on | Boost hooks that raise model and effort when a prompt carries an ultra- token: on or off |
+| `CC_BPY_CHECK` | blender | on | Run check_bpy_scripts.py on a written .py that imports bpy, and add the removed or deprecated calls it f … |
 | `CC_CANDOR_GATE` | candor | block | The whole candor Stop gate: block, warn (print, never block) or off |
 | `CC_CARDLINT` | taskmaster | on | Say when a card set reaches execution without its author-time linters having run: on or off |
 | `CC_CLARIFY_GATE` | taskmaster | off | Refuse the first code write after a work-shaped prompt, once per session: block or off |
@@ -158,6 +159,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_DRIFT` | task-runner | on | Nudge when a turn touches files well beyond the request, outside a task-runner run: on or off |
 | `CC_ELISION_GUARD` | code-review | on | Refuse, not just warn about, a write replacing code with // … existing code … or similar: on or off |
 | `CC_EVIDENCE_GATE` | candor | block | Stop-gate clause for a completion claim with nothing run since the last edit: block, warn or off |
+| `CC_GLB_CHECK` | meshy | on | Run inspect_glb.py at 15,000 triangles and 2,048 px on a .glb/.gltf a call wrote, and add what fails: on … |
 | `CC_HUD_HINT` | session-hud | off | Add the HUD segments to the dim hint line under the prompt: on or off |
 | `CC_HUD_PIN` | session-hud | off | Reopen the /hud pane after you close it by hand; under 144 terminal columns it waits until the terminal  … |
 | `CC_HUD_SEGMENTS` | session-hud | context,limits,cost,time,git | Which segments the hint and status lines show, comma-separated, in order: context, limits, cost, time, g … |
@@ -168,6 +170,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_MERGE_CHECKS` | git-workflow | on | Ask before gh pr merge while the pull request's checks are pending or failing: on or off |
 | `CC_OVERSEER_STATUS` | overseer | on | Pin the open program's next milestone under the prompt: on or off |
 | `CC_PALETTE` | ui-ux | on | Name the category-default indigo, violet or purple accent when a UI write uses it: on or off |
+| `CC_PIXEL_CHECK` | pixel-art | on | Run check_sprite_sheet.py or check_tilemaps.py on a sprite sheet or Tiled/LDtk map a call changed, and a … |
 | `CC_PREAMBLE` | candor | on | Inject the five working moves before the first edit of a session and of each subagent: on or off |
 | `CC_PREVIEW_GUARD` | taskmaster, ui-ux | on | Ask before an HTML page is published as a remote artifact instead of served locally: on or off |
 | `CC_PROMPT_COACH` | prompt-coach | on | Judge an eligible prompt at Enter, and hold a flagged one for the sprite's rewrite: on or off |
@@ -192,6 +195,8 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_TEST_SHAPE` | testing | on | Name the blocks in a written test file that do not earn their place: on or off |
 | `CC_UI_CHECK` | ui-ux | on | Send the turn back once when a UI file changed and was not checked in a browser since: on, warn (print,  … |
 | `CC_UNICODE_SCAN` | secret-scanning | on | Warn when written or read text carries zero-width or bidirectional-override characters: on or off |
+| `CC_UNITY_META_CHECK` | unity-traps | on | Run check_unity_project.py after a Bash call moves, copies or deletes an Assets/ path, or a .meta is wri … |
+| `CC_UNITY_VISUAL_GATE` | candor | block | Stop-gate clause for Unity scene, prefab or Assets script work called done with no capture and no consol … |
 | `CC_VERSION_PINS` | stack-scan | on | Prepend the installed npm or composer version to a skill whose Last verified stamp names that package: o … |
 | `CC_WORKFLOW_GUARD` | devops | on | Refuse a GitHub workflow write that hands secrets or a write token to untrusted code: on or off |
 | `CLAUDE_AI_TRAILER` | git-workflow | — | CLAUDE_AI_TRAILER=allow for that one command |
@@ -578,13 +583,13 @@ hard limits — and most ship a read-only checker script with an exit code. The 
 gamedev were adapted from
 [gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills)
 @184b72b (Apache-2.0; `rationale/gamedev-design-import-2026-10-26.md`); blender, meshy, pixel-art
-and unity's 2D reference were rewritten from MIT repositories (`rationale/gamedev-art-import-2026-10-30.md`).
+and unity-traps' 2D reference were rewritten from MIT repositories (`rationale/gamedev-art-import-2026-10-30.md`).
 Nothing here is measured against a control arm.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[godot](plugins/godot)** | Godot 4.4–4.7 inversions (Jolt as the 3D default and its behaviour differences, 4.7's typed-return and packed-array changes, `.uid` sidecars, `duplicate_deep`), multiplayer and export traps, a headless test runner that cannot hang or exit 0 on failure, and `check_godot_project.py` for broken `res://`, uid and scene references | Any `.gd`, `.tscn`, `.tres` or `project.godot` work |
-| **[unity](plugins/unity)** | Unity 6 renames and build-profile traps, batch-mode builds that exit 0 on errors, project-wide input actions enabling every map, `Awaitable` pooling, URP 2D and pixel-art traps (URP's own Pixel Perfect Camera, atlas settings that blur, Light2D normal maps), and `check_unity_project.py` for `.meta`/GUID breakage | C# under `Assets/`, input actions, sprite atlases, CI builds |
+| **[unity-traps](plugins/unity-traps)** | Unity 6 renames and build-profile traps, batch-mode builds that exit 0 on errors, project-wide input actions enabling every map, `Awaitable` pooling, URP 2D and pixel-art traps (URP's own Pixel Perfect Camera, atlas settings that blur, Light2D normal maps), and `check_unity_project.py` for `.meta`/GUID breakage | C# under `Assets/`, input actions, sprite atlases, CI builds |
 | **[unreal](plugins/unreal)** | UE 5.8's Zen cooked store and SDK minimums, Enhanced Input setup and rebinding, headless automation tests | Packaging, input, gameplay C++ |
 | **[phaser](plugins/phaser)** | Phaser 3→4 inversions (filters replace preFX/postFX, `setTintFill` a stub, `TAU` changed) and Arcade collision traps | `phaser` in the lockfile |
 | **[pixijs](plugins/pixijs)** | PixiJS v7→v8 inversions (`await app.init`, the ticker argument, `globalpointermove`, `Assets.load` first) | `pixi.js` in the lockfile |

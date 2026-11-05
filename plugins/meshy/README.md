@@ -79,7 +79,7 @@ The checker is stdlib-only Python 3, reads the files it is given and writes noth
 |---|---|
 | Never resend a create after a timeout, dropped connection, `5xx` or meshy-cli exit 10 | **recorded** in the skill. meshy-cli and the MCP server refuse to retry a create in their own code; a hand-written client has nothing |
 | A running task cannot be cancelled; files expire after 3 days | **recorded** — the API enforces both, nothing here does |
-| Triangle, texture-size and required-extension budget of a GLB/glTF | **gate** for what `inspect_glb.py` checks (exit 1); no hook runs it, so whether it runs is **agent-graded** |
+| Triangle, texture-size and required-extension budget of a GLB/glTF | **gate** for what `inspect_glb.py` checks (exit 1). `hooks/glb-check.sh` runs it at 15,000 triangles and 2,048 px on a `.glb`/`.gltf` a Write names, or one that lands during a Bash call naming glb/gltf/meshy or a Meshy MCP download. It adds failures once per context and never blocks; `scripts/smoke/game-checker-hooks-tests.sh` pins it in CI. A model landed another way (`unzip`, a script that names no model) or measured against another budget: run the checker yourself, **agent-graded** |
 | Free-plan output carries CC BY 4.0 credit to Meshy; a model shared to Meshy Community becomes CC0 | **recorded** — read from Meshy's Terms of Use; no script reads a licence |
 | The checker's own contract (counts, transforms, budgets, extensions, exit codes) | **gate** — `scripts/__tests__/inspect_glb.test.sh`, run by CI's plugin-harness step |
 
@@ -89,6 +89,9 @@ against the glTF schema. It sizes PNG and JPEG images only, so a KTX2 or WebP im
 extensions an engine supports: every required extension fails unless passed to `--allow-ext`.
 Passing it says the counts are within budget, not that an engine imports the file.
 
-Measured: nothing — no control-arm eval.
+Measured on 2026-11-02, with a control arm: `evals/no-resubmit-unknown-create` passed 5/5 with
+the plugin and 5/5 without it (CLI 2.1.316, haiku judge). It is a regression guard, since the
+base model already lists tasks before re-creating one. Whether the skill helps is unmeasured.
+See `rationale/gamedev-evals-2026-11-02.md`.
 
 Credit: facts drawn from Meshy's MIT-licensed [meshy-3d-agent](https://github.com/meshy-dev/meshy-3d-agent) @1acd965, [meshy-cli](https://github.com/meshy-dev/meshy-cli) @80ac347 and [meshy-mcp-server](https://github.com/meshy-dev/meshy-mcp-server) @0f4c10a, each re-checked against docs.meshy.ai and Meshy's Terms of Use on 2026-10-30; prose rewritten, no code copied.

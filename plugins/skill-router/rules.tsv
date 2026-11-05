@@ -360,10 +360,10 @@ glob	*.tscn	godot-project-check	godot	high
 glob	*.tres	godot-project-check	godot	high
 glob	project.godot	godot-project-check	godot	high
 content	godot(\.exe|4)?[[:space:]].*--headless	godot-headless-testing	godot	high
-glob	*.cs	unity-best-practices	unity	high	?ProjectSettings/ProjectVersion.txt~m_EditorVersion
-glob	*.inputactions	unity-best-practices	unity	high
-glob	*.spriteatlas	unity-best-practices	unity	high
-glob	*.spriteatlasv2	unity-best-practices	unity	high
+glob	*.cs	unity-best-practices	unity-traps	high	?ProjectSettings/ProjectVersion.txt~m_EditorVersion
+glob	*.inputactions	unity-best-practices	unity-traps	high
+glob	*.spriteatlas	unity-best-practices	unity-traps	high
+glob	*.spriteatlasv2	unity-best-practices	unity-traps	high
 glob	*.uproject	unreal-best-practices	unreal	high
 content	(UCLASS\(|GENERATED_BODY\(\))	unreal-best-practices	unreal	high
 content	(from ['"]phaser['"]|\bnew Phaser\.(Game|Scene)\b)	phaser-best-practices	phaser	high
