@@ -23,6 +23,7 @@ at authoring time only, through the **gate** rows below (why:
 | a UI card has one `<walk surface="/approvals" widths="1280,375">seeded state to see</walk>` in `<proof>` | **agent-graded** — no lint requires it; the group-close walk reads it (task-runner `skills/task-execution/references/ui-walk.md`) |
 | a card needing a browser names its driver in `<verify>`/`<walk>` (a Playwright MCP, a `playwright` dependency) | **agent-graded** — a card saying only "browser smoke" sent the worker to a host browser extension the user had not installed |
 | a framework card names a real skill | **gate** — `skills-stamp-lint.sh` |
+| no unreplaced template token (`__B__`, `{{CARD_ID}}`); a `mode="edit"` file exists; a path `<verify>` runs exists or this or a sibling card creates it | **gate** — `card-paths-lint.sh` `placeholder` / `edit-missing` / `verify-target-missing` (retro 2026-11-05: cards halted on all three) |
 | a bare `<skill>` stamp a same-named project skill shadows (`.claude/skills/<name>`, a plugin shipping that name or a known Laravel Boost twin) | **WARN** — `skills-stamp-lint.sh` `shadowed-skill`, which prints the `plugin:skill` stamp |
 | a limit is proved by lowering it in the test, not by exceeding a production-sized constant | **agent-graded** — spec-redteam and the reviewer pass; no lint reads a criterion's size |
 | a `<criterion>` describes behaviour, not the diff | **agent-graded** — coverage-check reads it; no script can |
