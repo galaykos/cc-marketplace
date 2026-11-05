@@ -622,8 +622,11 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
   first prompt) has 8 or more changed files, or at least one path matching an auth-surface
   pattern (auth, login, password, token, secret, credential, policy, permission, role,
   guard, middleware, impersonation, session, oauth, webhook, payment, crypt, registration,
-  sign-up, `migrations/`).
-  Markdown, lockfiles, `.claude/`, `taskmaster-docs/` and vendor/build dirs don't count.
+  sign-up, `migrations/`). Since 0.34.5 guard counts only as a word or a camelCase part
+  (`Guard.php`, `src/guards/`, `JwtGuard.php`), not inside `GuardPost` or `Guardian`.
+  Markdown, lockfiles, `.claude/`, `taskmaster-docs/` and vendor/build dirs don't count, nor,
+  since 0.34.5, images, 3D models, Unity assets, audio, video, fonts, archives and compiled
+  binaries; a diff with only those says nothing.
   Once per commit: it speaks again only after HEAD moves and the count has grown. A reviewer
   agent, a `code-review:review` / `security:review` call, or typing one of those commands
   resets the count. It stays silent during a task-runner run, which has its own reviewers,
