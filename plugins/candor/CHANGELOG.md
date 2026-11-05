@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.12.2 — 2026-11-05
+
+- **Clause 4 lets a pause or a status question end the turn.** It sent back a turn whose user had asked to pause the run, a fork's "what is our status here?", and similar asides, which forced an AskUserQuestion or a polling loop just to stop (`rationale/session-retro-2026-11-05.md`, issue 14). When the last human prompt in the transcript (task notifications, system reminders and command frames skipped) asks to pause, stop, hold or continue later, or is a question with no work verb, the clause prints what the run still owes, adds that the stop is allowed, and writes no nudge, so the run's next work turn is still blocked once. A work prompt, a question asking for work ("can you fix the parser and continue?") and "stop" inside a bug report ("the timer does not stop when paused, fix it") still block. Pinned by ten new `scripts/__tests__/gate.test.sh` cases, six red on 0.12.1. Residual: a pause asked in words this pattern does not know still blocks once per HEAD, as before.
+
 ## 0.12.1 — 2026-11-05
 
 - **The common ways of saying a cut still ask.** A pre-merge review found `don't include …, it's trademarked` passing silently. The cue list now also takes `don't/doesn't/do not` + include/use/add/ship/show/copy/reference, `without the`, `leave it/them out` and every form of `exclude`; a check that a name "doesn't clash with a trademark" stays silent. Pinned by `avert-hook.test.sh` cases 37-39.

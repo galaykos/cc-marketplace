@@ -455,6 +455,23 @@ if command -v git >/dev/null 2>&1; then
   verdict_is "state root: a subdirectory cwd reads the run registered at the repo root" \
     "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && [ -r "$RNUDGE" ] && [ ! -e "$SUBD/.claude" ]; echo $?)"
 
+  # 0.12.2, retro 2026-11-05 issue 14: a turn that answered a pause request or only asked a question is not sent back for the run;
+  #   it names what the run owes and writes no nudge. A work prompt, a question asking for work, and "stop" inside a bug report still block.
+  ASIDE='This turn answered a pause request or a question'
+  for p in 'pause the tasks, I will be back tomorrow' 'Stop here for now' 'what is our status here?' 'where are we? how is the run going?' \
+           'ok, hold on' 'lets continue later'; do
+    T="$WS/raside.jsonl"; { user "run the cards"; asst "card 03 done"; user "$p"; asst "Paused; state saved."; \
+      jq -cn '{type:"user",message:{content:"<task-notification>\n<status>completed</status>\n</task-notification>"}}'; } > "$T"
+    clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+    verdict_is "aside: [$p] lets the stop end, names the owed run, writes no nudge" \
+      "$([ "$rc" = 0 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && printf '%s' "$err" | grep -qF "$ASIDE" && [ ! -e "$RNUDGE" ]; echo $?)"
+  done
+  for p in 'run the cards' 'can you fix the parser and continue?' 'the timer does not stop when paused, fix it' '/task-runner:run'; do
+    T="$WS/rwork.jsonl"; { user "$p"; asst "Next card is 04."; } > "$T"
+    clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$T")"
+    verdict_is "aside neighbour: [$p] still blocks" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+  done
+
   rm -rf "$IDIR"
   run_hook "$PREAMBLE" "$(start_json agentA)"
   verdict_is "in flight: SubagentStart writes a record holding the agent_id" \

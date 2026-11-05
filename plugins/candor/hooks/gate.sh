@@ -1,6 +1,6 @@
 #!/bin/bash
 # Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 6, 2, 3, 7, 5: an incomplete registered task-runner run, a file:line resolving to nothing, a file:line's quote: `…` in neither that file, its HEAD copy nor the transcript tail's tool output or user turns, a reversal after bare pushback, a naked completion claim (after an Edit or a Bash write to a non-prose file), a Unity scene/prefab/Assets script change claimed done with no capture and console read after it while a route exists (unity CLI on PATH or a Unity MCP tool), lockfile drift.
-# Misses a wrong API, flag or directory, a Bash write cc_bash_write_targets cannot see (interpreter, cp/mv, a path in a variable), pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff, quotes past MAX_QUOTES_CHECKED or QUOTE_DEADLINE_SECONDS or beside an ambiguous path; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5), CC_UNITY_VISUAL_GATE=off|warn (7); unset, /config.
+# Misses a wrong API, flag or directory, a Bash write cc_bash_write_targets cannot see (interpreter, cp/mv, a path in a variable), pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff, quotes past MAX_QUOTES_CHECKED or QUOTE_DEADLINE_SECONDS or beside an ambiguous path; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5), CC_UNITY_VISUAL_GATE=off|warn (7); unset, /config.; clause 4 does not send back a turn whose last human prompt was a pause or a question with no work verb (it names the owed run).
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -670,13 +670,37 @@ run_clause() {
 RUN_HEAD=""; RUN_SENTINEL=""
 run_clause
 
+# run_aside: the turn's last human prompt asked for a pause or only asked a question, so it was never run work; clause 4 names
+# what the run owes and lets that stop end (retro 2026-11-05 issue 14: a requested pause, a fork's status question, each sent back).
+run_aside() {
+  local tp hp
+  tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
+  [ -n "$tp" ] && [ -r "$tp" ] || return 1
+  hp=$(tail -n "$TRANSCRIPT_TAIL_LINES" "$tp" 2>/dev/null | jq -rs '
+    [ .[] | select(.type=="user" and (.isMeta != true) and (.isCompactSummary|not))
+          | (if (.message.content | type) == "string" then .message.content
+             else ((.message.content // []) | map(select(.type=="text") | .text) | join("\n")) end)
+          | select(length > 0)
+          | select(test("^\\s*(<task-notification|<system-reminder|\\[SYSTEM NOTIFICATION|<command-|<local-command|Caveat:|Another Claude session sent)") | not) ]
+    | last // empty' 2>/dev/null | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
+  [ -n "$hp" ] || return 1
+  printf '%s' "$hp" | grep -qE "^[[:space:]]*(ok,? |okay,? |please )?(pause|stop|halt|hold on|wait)([^a-z]|$)|(^|[^a-z'])(pause|stop|halt) (all|everything|here|now|working|the run|the tasks|for now)([^a-z]|$)|(continue|resume|pick (it|this) up) (it |this )?(later|tomorrow)" && return 0
+  # A question with no work verb asks for an answer, not for the next card.
+  printf '%s' "$hp" | grep -qE '\?[[:space:]]*$' || return 1
+  printf '%s' "$hp" | grep -qE "(^|[^a-z])(fix|add|build|implement|continue|proceed|start|run the|make|write|create|update|change|finish|merge|commit|deploy)([^a-z]|$)" && return 1
+  return 0
+}
+
 if [ "$verdict" = "run" ]; then
   run_mode="$gate_mode"
   case "$(cc_option TASK_RUNNER_STOP_GATE block)" in warn) run_mode=warn ;; esac
   # The switch is named here, the one print site of every clause-4 reason: a blocked reader sees only this text.
   run_msg="$run_msg
   TASK_RUNNER_STOP_GATE=off turns this check off (=warn only prints)."
-  if [ "$run_mode" = "block" ]; then
+  if [ "$run_mode" = "block" ] && run_aside; then
+    run_msg="$run_msg
+  This turn answered a pause request or a question, so the stop is allowed; the run's next work turn is checked again."
+  elif [ "$run_mode" = "block" ]; then
     # One block per HEAD: the nudge counts only while newer than the sentinel, so an earlier run's marker cannot eat this one's block.
     nudge="$root/.claude/task-runner/gate-nudge"
     if [ -r "$nudge" ] && [ "$nudge" -nt "$RUN_SENTINEL" ] && [ "$(cat "$nudge" 2>/dev/null)" = "$RUN_HEAD" ]; then

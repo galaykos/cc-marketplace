@@ -43,6 +43,12 @@ run's records (`active-run.json` or `closed-run.json`, `gate-pass.json`, `nc/`, 
 `cwd` follows the model's `cd`; before 0.5.0 a stop taken from a subdirectory looked
 for the run there, found none, and clause 4 enforced nothing.
 
+**Pauses and status questions (0.12.2).** Clause 4 does not send back a turn whose last
+human prompt asks to pause, stop, hold or continue later, or is a question with no work
+verb ("what is our status here?"). It prints what the run still owes and writes no
+nudge, so the run's next work turn is still blocked once. Standing: **gate** for the
+pattern match; whether a prompt the pattern misses was really a pause is unenforceable.
+
 **Workers in flight (0.5.0).** Clause 4's *no gate pass for HEAD* branch does not
 block while this session has a background worker running, because the worker's
 hand-back wakes the orchestrator anyway. Measured on 2026-09-25: one orchestrated
