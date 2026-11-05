@@ -95,6 +95,20 @@ runtp() { # $1 prompt, $2 transcript → the ledger entries for that transcript'
 }
 check "13r a ScheduleWakeup re-fire writes no ledger" "$(runtp 'Continue: add the Stripe refund flow once the Paddle reviewer reports.' "$TXL")" ""
 check "13s a typed ask beside the scheduled call still ledgers" "$(runtp 'add the Stripe refund flow' "$TXL")" "Stripe"
+# 13u-13ac: non-deliverables ledgered in real sessions (retro 2026-11-05 issue 12). Each quote got a
+# work verb where the extract cut it off, because the bare quote is not work-shaped.
+check "13u a file name and a milestone label are not names" \
+  "$(run 'Read CLAUDE.md and continue with Milestone 0, then fix the M0 build' s13u)" ""
+check "13v beside them a real name still ledgers" "$(run 'Read CLAUDE.md, then add Stripe to M0' s13v)" "Stripe"
+check "13w hex fragments of a session id or path are not names; a digit-letter token still is" \
+  "$(run 'fix what broke in …/77eb…/notes.md for session 8aca-4f10 and add 2D Sprites' s13w)" "2D Sprites"
+check "13x a filler word after a digit token is not part of it" "$(run 'make a 3D etc model' s13x)" "3D"
+check "13y MCP is not a name; the service beside it is" "$(run 'I connected MCP to Higgsfield, now make the hero image' s13y)" "Higgsfield"
+check "13z the alternative after an or is not ledgered, the first offer is" \
+  "$(run 'make the sprites: use Kenney packs, or generate with Comfy' s13z)" "Kenney"
+check "13aa a plus-joined stack is three names, not one" "$(run 'set up Laravel+InertiaJS+React and build the dashboard' s13aa)" "Laravel,InertiaJS,React"
+check "13ab named features still ledger" "$(run 'add Leveling and Gacha systems' s13ab)" "Leveling,Gacha"
+check "13ac a rename target ledgers" "$(run 'rename the plugin to unity-traps' s13ac)" "unity-traps"
 
 # --- 14-16 the existing-identifier filter (2026-09-22). A name the repo already carries
 #     is code to be REPAIRED, not a thing to be delivered; ledgering it made the Stop gate
@@ -104,6 +118,7 @@ if command -v git >/dev/null 2>&1; then
   git -C "$FX" init -q 2>/dev/null
   printf '# Acme\nA Laravel + Inertia app.\n' > "$FX/README.md"
   printf '<?php\nuse App\\Models\\Invoice;\nclass OrderController {}\n' > "$FX/app/OrderController.php"
+  printf '{"dependencies":{"@inertiajs/react":"^2.0","react":"^19.0"}}\n' > "$FX/package.json"
   git -C "$FX" add -A >/dev/null 2>&1
   git -C "$FX" -c user.email=t@t -c user.name=t commit -qm init >/dev/null 2>&1
   runat() { # $1 prompt, $2 session, $3 cwd
@@ -118,6 +133,8 @@ if command -v git >/dev/null 2>&1; then
     "$(runat 'update the Laravel config' s15 "$FX")" ""
   check "16 a name the repo has never heard of still ledgers" \
     "$(runat 'add a Stripe checkout to OrderController' s16 "$FX")" "Stripe"
+  check "16b a plus-joined stack the repo already runs is dropped part by part" \
+    "$(runat 'set up Laravel+InertiaJS+React and build the dashboard' s16b "$FX")" ""
 else
   echo "SKIP: 14-16 existing-identifier filter (git not available)"
 fi

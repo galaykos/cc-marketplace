@@ -1,6 +1,6 @@
 #!/bin/bash
-# ledger.sh — UserPromptSubmit: on a work-shaped prompt, ledgers the names it introduces (quoted 1-3 word terms, mid-clause proper nouns, digit-letter tokens) that the repo's tracked tree lacks, deduped, 12 at most, for gate.sh; says what the gate will ask. Off: CC_ASK_LEDGER=off (unset: /config option cc_ask_ledger). Fails open.
-# Misses: lowercase features, names in code spans or pastes, a name the ask adds to one the repo has; ledgers passing mentions; no filter outside a git work tree, for untracked-only names, or past 24 greps.
+# ledger.sh — UserPromptSubmit: on a work-shaped prompt, ledgers the names it introduces (quoted 1-3 word terms, mid-clause proper nouns with A+B+C split, digit-letter tokens, a rename's hyphenated target) that the repo's tracked tree lacks, deduped, 12 at most, for gate.sh; says what the gate will ask. Off: CC_ASK_LEDGER=off (unset: /config option cc_ask_ledger). Fails open.
+# Skips all-caps file names (CLAUDE.md), capital-digit labels (M0), hex fragments (77eb), names after `or`, a filler word after a digit token (3D etc). Misses: lowercase features, names in code spans or pastes, a name the ask adds to one the repo has, S3-style names; ledgers passing mentions; no repo filter outside git, for untracked-only names, or past 24 greps.
 # Why, limits, history: rationale/derivations/plugin-ask-ledger.md § plugins/ask-ledger/hooks/ledger.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -113,7 +113,7 @@ cc_prompt_question() {
   scrub=$(printf '%s' "$prompt" | cc_prompt_unpaste \
     | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-600 | tr 'A-Z' 'a-z')
-  verbs='\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write|make|ship|redo|replace)\b'
+  verbs='\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write|make|ship|redo|replace|rename)\b'
   clauses=$(printf '%s' "$head" | awk '{gsub(/\?/," __Q__\n"); gsub(/\. /,"\n"); print}')
   printf '%s\n' "$clauses" | grep -iE "$verbs" \
     | grep -qvE '(__Q__|^[[:space:]]*(can|could|should|would|shall|is|are|was|were|do|does|did|am|will|what|why|how|when|where|which|who|whether)[^a-z])' \
@@ -130,18 +130,30 @@ cc_prompt_question() {
 
   # A quoted span over three words is a phrase; an in-word apostrophe is masked so it opens no quote (rock'n'roll's second still does).
   ap=$(printf '\001')
+  # What follows an `or` up to the next clause mark is an offered alternative; an all-caps word with an extension (CLAUDE.md) is a file the ask points at.
+  bare=$(printf '%s\n' "$scrub" | sed -E 's/(^|[^A-Za-z])[Oo][Rr]([[:space:]][^,;:.!?]*)?([^A-Za-z]|$)/\1\3/g; s/(^|[^A-Za-z0-9_])[A-Z][A-Z0-9_]*\.[a-z][a-z0-9]*/\1/g')
   found=$(
     printf '%s\n' "$scrub" | sed "s/\([A-Za-z]\)'\([A-Za-z]\)/\1$ap\2/g" \
       | grep -oE '"[^"]{2,40}"|'"'"'[^'"'"']{2,40}'"'" | sed 's/^["'"'"']//; s/["'"'"']$//' | tr "$ap" "'" | awk 'NF <= 3'
-    printf '%s\n' "$scrub" | grep -oE '\b[0-9]+[A-Za-z]{1,4}\b( [A-Za-z]{3,})?'
-    printf '%s\n' "$scrub" | awk '
+    # Digits then two-plus lowercase hex letters (77eb, 8aca) are a fragment of an id or hash; a filler word is not the token's word.
+    printf '%s\n' "$bare" | grep -oE '\b[0-9]+[A-Za-z]{1,4}\b( [A-Za-z]{3,})?' \
+      | awk '$1 ~ /^[0-9]+[a-f][a-f]+$/ && length($1) >= 4 { next }
+          NF == 2 && tolower($2) ~ /^(etc|and|nor|but|yet|the|for|with|from|into|onto|via|per|plus|than|then|that|this|its|our|your|any|all|are|was|not)$/ { $0 = $1 }
+          { print }'
+    printf '%s\n' "$bare" | grep -oiE '\brenam(e|es|ed|ing)\b[^.;:!?]{0,60}\bto +[A-Za-z0-9]+([-_][A-Za-z0-9]+)+' \
+      | sed -E 's/.*[[:space:]][Tt][Oo][[:space:]]+//'
+    # A capital and digits only (M0, P1) is a plan label; A+B+C is three names.
+    printf '%s\n' "$bare" | awk '
       { line=$0; gsub(/[.?!:;]+/, "\n", line); n=split(line, parts, "\n")
         for (i=1;i<=n;i++){ m=split(parts[i], w, /[[:space:]]+/); first=1
           for (j=1;j<=m;j++){ t=w[j]; if (t=="") continue
             if (first){ first=0; continue }
-            if (t ~ /^\(?[A-Z][A-Za-z0-9+#.-]{1,}[,)]?$/){ gsub(/[(),]/,"",t); print t } } } }'
+            if (t ~ /^\(?[A-Z][A-Za-z0-9+#.-]{1,}[,)]?$/){ gsub(/[(),]/,"",t)
+              if (t ~ /^[A-Z][0-9]+$/) continue
+              if (t ~ /\+[A-Za-z]/){ k=split(t, pp, "+"); for (q=1;q<=k;q++) if (pp[q] ~ /^[A-Z][A-Za-z0-9#.-]+$/) print pp[q]; continue }
+              print t } } } }'
   )
-  stop='^(I|Claude|OK|Also|Then|Now|Please|Note|The|A|An|And|But|Or|If|It|We|You|They|He|She|This|That|These|Those|My|Our|Your|Its|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December|PR|CI|README|TODO|MVP|API|UI|UX)$'
+  stop='^(I|Claude|OK|Also|Then|Now|Please|Note|The|A|An|And|But|Or|If|It|We|You|They|He|She|This|That|These|Those|My|Our|Your|Its|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December|PR|CI|README|TODO|MVP|API|UI|UX|MCP|Milestone)$'
   # A capital I glued to a listed word is the pronoun missing a space; Inertia and an unlisted `Iforked` still ledger.
   glued='^I(i[a-z]+|m|d|ve|ll|am|was|have|had|did|got|saw|see|know|think|guess|mean|want|wanted|need|needed|tried|added|fixed|made|used|changed|updated|created|wrote|just|also|already|like|hope|can|will|would|could|should)$'
   printf '%s\n' "$found" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -vE '^$' | grep -vE "$stop" | grep -vE "$glued" \

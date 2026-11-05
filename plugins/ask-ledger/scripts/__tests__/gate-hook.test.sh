@@ -82,4 +82,18 @@ prompt s12 'check if CI is done and merge'
 is "12b the next turn owes nothing" "$(run s12 'Merged.')" "rc=0"
 prompt s12 'now add Stripe refunds to the checkout'
 check "12c a later prompt that names it again owes it again" "$(run s12 'Refunds added.')" "what happened to Stripe, which"
+
+# --- 13 an interim reply while this session's background agents run is not the final one
+#     (retro 2026-11-05 issue 12: "work isn't finished, background jobs running" was blocked). ---
+runbg() { # $1 session, $2 final message, $3 background_tasks JSON
+  jq -n --arg s "$1" --arg m "$2" --argjson bt "$3" '{hook_event_name:"Stop",session_id:$s,transcript_path:("/nowhere/"+$s+".jsonl"),stop_hook_active:false,last_assistant_message:$m,background_tasks:$bt}' \
+    | hook -u CC_ASK_LEDGER
+}
+ledger s13 unity-traps
+is "13a a running background subagent lets an interim reply end" \
+  "$(runbg s13 "Work isn't finished, background jobs running." '[{"id":"a1","type":"subagent","status":"running","description":"scout"}]')" "rc=0"
+check "13b the name is still owed once no agent runs" "$(runbg s13 'All done.' '[]')" "what happened to unity-traps, which"
+ledger s13c unity-traps
+check "13c a background shell alone does not defer the demand" \
+  "$(runbg s13c 'Waiting on the dev server.' '[{"id":"b1","type":"shell","status":"running","description":"npm run dev"}]')" "what happened to unity-traps, which"
 exit $rc
