@@ -2,6 +2,11 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.30.2 — 2026-11-05
+
+- **No signal from an asset, table or lockfile.** `route.sh` drops an image, audio, 3D model, Unity asset (`.meta`, `.mat`, `.controller`, `.anim`), `.csv`, `.tsv` or `.lock` file as a target, in any case; no `rules.tsv` row names one. A `.json`, `.yaml` or `.yml` file queues no `low` row. The rows written for those files keep working: `components.json`, `package.json`, `composer.json`, `*.tokens.json`, `tokens.json`, `eas.json`, `openapi*.y*ml`, `docker-compose*.yml`, `compose*.yml`, `steam_appid.txt`, `**/workflows/**`, `**/design-system/**`, `**/.design-kit/decks/**`, and the `high` content signatures that reach a data file through the digest (Aseprite's `"frameTags":`, `game-ci/steam-deploy`, `butler push`, `godot --headless`, `blender -b`, `aseprite -b`, `MESHY_API_KEY`). Answers retro issue 7 (2026-11-05): `powers.csv` drew error-handling-design, a `.png` security-review, `rules.tsv` concurrency-safety. Pinned by `route.test.sh` case 27.
+- **The edit digest waits out a non-work prompt.** `route-prompt.sh` keeps the pending signals, unflushed, when every clause of the prompt is an approval (`yes`, `ok thanks`, `lgtm`, `go ahead`), a commit, push or merge (`commit and push to origin main`), an APK, AAB or IPA build, or a status ask (`what we got left?`, `give overview on how things work`), and flushes them on the next prompt that is not. A clause with any other word still flushes: `commit the fix for the login bug`, `build the APK download page`, `next`, a slash command. Answers retro issue 7: the digest flushed on "Yes, commit", "Commit and build APK" and "What we got left?". Pinned by `route.test.sh` case 28; cases 4b and 10 now flush on a work prompt instead of "ok".
+
 ## 0.30.1 — 2026-11-02
 
 - **Unity rows route to `unity-traps`.** The four `unity-best-practices` rows (`*.cs` beside

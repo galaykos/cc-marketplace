@@ -1,6 +1,6 @@
 #!/bin/bash
-# UserPromptSubmit: on any prompt but a harness frame, prints once each the low-confidence signals route.sh queued for this context; then, on the session's first work-shaped prompt no ScheduleWakeup or CronCreate call scheduled, the rules for judging the host's command listing. It picks no command; fails open.
-# Misses a symptom without a state verb; fires on a chat sentence carrying one, or a ?-ended one naming a making verb; waits out a ?-ended symptom with no making verb or request form; repeats a signal whose state file cannot be rewritten. Off: CC_REMIND=off or CC_ROUTE=off; unset, /config.
+# UserPromptSubmit: on any prompt but a harness frame, a short approval or a commit, push, merge, APK build or status ask, prints once each the low-confidence signals route.sh queued for this context; then, on the session's first work-shaped prompt no ScheduleWakeup or CronCreate call scheduled, the rules for judging the host's command listing. It picks no command; fails open.
+# Holds the digest on a hold-shaped clause that is code work (`merge it`); misses a symptom without a state verb; fires on a chat sentence carrying one, or a ?-ended one naming a making verb; waits out a ?-ended symptom with no making verb or request form; repeats a signal whose state file cannot be rewritten. Off: CC_REMIND=off or CC_ROUTE=off; unset, /config.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route-prompt.sh
 MARKER_TTL_MIN=1440
 
@@ -137,6 +137,31 @@ cc_prompt_question() {
     | grep -qiE "(^|[.,;:!?]|(^|[^a-z])(and|but|then|so|also|first|just|now|please|to|should|must|can|could|will|would|let'?s))[^a-z0-9]*($2)"
 }
 
+# route_hold <prompt>: status 0 when every clause, approval words trimmed off both ends, is empty, a commit/push/merge, an APK/AAB/IPA build or a status ask.
+route_hold() {
+  printf '%s\n' "$1" | LC_ALL=C awk '
+    { t = t " " tolower($0) }
+    END {
+      ok = "^(please|yes|yeah|yep|yup|y|ok|okay|sure|lgtm|thanks|thank|you|thx|ty|great|good|perfect|cool|nice|alright|agreed|approved|sounds|looks|go|ahead|proceed|do|it|ship|now|so|also)$"
+      ship = "^(git )?(commit|push|merge)( (it|this|that|them|these|those|all|everything|changes|the|work|to|into|origin|master|main|remote|upstream|branch|now|too))*$"
+      build = "^(build|make)( (an?|the|new|debug|release|signed))* (apk|aab|ipa)s?$"
+      status = "^(whats|what)( (is|are|we|you|i|got|have|still))* (left|next|remaining|pending|outstanding)( to ?do)?$|^where (are|were) we( (at|now))?$|^(status|progress|recap|summary|overview)( (update|report|check))?$|^(give|show)( (me|us))?( (an|a|the))? (overview|summary|status|recap)( .*)?$"
+      gsub(/\047|’/, "", t)
+      gsub(/[,;.!?:]+|[ \t]+(and|then|&)[ \t]+/, "\n", t)
+      n = split(t, c, "\n"); seen = 0
+      for (i = 1; i <= n; i++) {
+        w = split(c[i], a)
+        if (w > 0) seen = 1
+        lo = 1; while (lo <= w && a[lo] ~ ok) lo++
+        hi = w; while (hi >= lo && a[hi] ~ ok) hi--
+        r = ""; for (k = lo; k <= hi; k++) r = r (k > lo ? " " : "") a[k]
+        if (r == "" || r ~ ship || r ~ build || r ~ status) continue
+        exit 1
+      }
+      exit !seen
+    }'
+}
+
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -157,7 +182,7 @@ cc_prompt_question() {
   [ -n "$cwd_f" ] && root_f=$(cc_state_root "$cwd_f")
   state_f=""
   [ -n "$root_f" ] && [ -n "$ctx_f" ] && state_f="$(cc_plugin_state "$root_f" skill-router)/fired-$ctx_f.json"
-  if [ -n "$sid_f" ] && [ -n "$state_f" ] && [ -r "$state_f" ]; then
+  if [ -n "$sid_f" ] && [ -n "$state_f" ] && [ -r "$state_f" ] && ! route_hold "$prompt"; then
     digest=$(jq -r '
       [ (.pending_low // [])[] | select(.flushed != true) ]
       | group_by(.skill)
