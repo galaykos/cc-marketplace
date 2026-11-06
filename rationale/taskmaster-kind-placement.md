@@ -34,7 +34,6 @@ after its `## Kind recipe` ships, 2 of 3 headless runs still yield code-shaped c
 
 ## Open
 
-A hands-off `Credits:` budget is deferred to its own spec. Until then nothing stops a hands-off
-run from taking the credit yes: Goal mode auto-takes AskUserQuestion
-(`plugins/taskmaster/skills/ultra/SKILL.md` § Goal mode) and no never-suppress list names a
-paid call (agent-graded, unmeasured).
+A hands-off `Credits:` budget is deferred to its own spec. Since taskmaster 0.54.0 Goal mode
+asks a paid call's cost confirmation instead of auto-taking it (`plugins/taskmaster/skills/ultra/SKILL.md`
+§ Goal mode never-suppress list; agent-graded, unmeasured), so a hands-off run waits for a yes.

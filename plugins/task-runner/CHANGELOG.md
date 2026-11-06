@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.50.2 — 2026-11-06
+
+- **`asset` cards route to `task-executor`.** `references/routing.md` maps the new taskmaster `asset` tag to `task-runner:task-executor` with the card's `<skill>` stamps. `reviewer-routing.md` maps it to `code-review:code-reviewer` plus the stamped skills. Dispatch step 2 now says a card calling an MCP tool runs inline whatever its tag, because workers hold no MCP tools. Standing: gate for the tag keys (`scripts/validate.sh` vocabulary sync); the inline rule is agent-graded.
+- **A paid call's cost confirmation is never suppressed under Goal.** `references/boost-execution.md` and `commands/run.md` add it to the Goal never-suppress list (always asked). Standing: agent-graded.
+
 ## 0.50.1 — 2026-11-05
 
 - **`hooks/scope.sh` no longer warns on the orchestrator's own bookkeeping.** It skips every file in the directory that holds the registered run's index (`index_path` in `active-run.json`, relative or absolute: the index, `PLAN.md`, the cards, `.lint-records/`) and every `.claude/<dir>/` plugin state directory (`.claude/code-review/`, `.claude/overseer/`, `.claude/approaches/`, `.claude/candor/`, …). It still checks `.claude/settings.json`, `.claude/settings.local.json` and `.claude/skills/`, `agents/`, `commands/`, `hooks/`, `rules/`, `output-styles/`, `worktrees/`, another task's index directory and app files. An index at the project root exempts nothing. Before this the hook fired 16 to 45 times per run on these files and caught nothing: a census relays 0 reverts in 118 warnings (`rationale/session-retro-2026-11-05.md`, issue 11). Pinned by the 31 bookkeeping cases in `scripts/__tests__/scope-hook.test.sh` § 19; the 15 must-stay-silent ones are red on 0.50.0.
