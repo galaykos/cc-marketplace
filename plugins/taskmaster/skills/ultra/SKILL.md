@@ -89,7 +89,7 @@ is a dispatch-time override. Tokens take no suffix — a bare token, one fixed t
 
 ## Goal mode — autonomy on top of the boost
 
-- Auto-take: AskUserQuestion gates resolve to the "(Recommended)" option; unmarked choices
+- Auto-take: AskUserQuestion gates (not cost asks) resolve to the "(Recommended)" option; unmarked choices
   (variant picks, erd forks, hole resolutions) DERIVE a recommendation first, then take it —
   never blind-first. Binding contracts (erd Data Model, Visual contract, brainstorm design
   doc) self-approve, logged. Visual consent auto-answers "Full mockups";
@@ -103,22 +103,22 @@ is a dispatch-time override. Tokens take no suffix — a bare token, one fixed t
   stop, surface the parked list.
 - NEVER suppress: halt-with-evidence, the full-suite completion gate, the behavioral-gate
   (produced code is run, not just linted) + negative-control, mis-specified-task halts,
-  security-hole flagging. These SURFACE; they are not consent prompts. Confirmed
-  code-redteam findings feed the bounded auto-retry like reviewer findings; on exhaustion, park.
+  security-hole flagging. These SURFACE, not consent prompts.
+  A paid external call's cost confirmation (Meshy, Higgsfield credits) is ASKED, never auto-taken.
+  Confirmed code-redteam findings feed the bounded auto-retry like reviewer findings; on exhaustion, park.
 - Never auto-accept security holes, any hole touching auth or stored data (loss, corruption,
   schema or migration, personal data) whatever its lens, OR statement-fidelity holes (the upgraded
   statement adds, drops, or swaps capability vs the raw prompt): amend the spec/statement,
   or halt with evidence if unamendable.
-- Escape hatch (surface-and-stop, not a prompt): when no defensible recommendation can be
-  derived — contradictory requirements, a fork with no dominant option after analysis, an
-  idea too vague to self-shape — halt with evidence, never coin-flip.
+- Escape hatch (surface-and-stop, not a prompt): no defensible recommendation derivable
+  (contradictory requirements, no dominant option after analysis, an idea too vague to
+  self-shape) → halt with evidence, never coin-flip.
 
 ## Goal-lean — autonomy without the boost
 
 `goal-lean` is Goal mode with the boost contract switched off. Every rule in § Goal
-mode and § Goal audit trail applies unchanged — auto-take with derive-then-take, run
-through execution, never merge, the never-suppress set, the escape hatch, the ledger
-(the ledger header records `boost=off`). Nothing in § The boost contract applies:
+mode (never-suppress set and escape hatch included) and § Goal audit trail applies
+unchanged; the ledger header records `boost=off`. Nothing in § The boost contract applies:
 reasoning roles run at the session tier; grill takes its normal rounds; spec-redteam and
 coverage-check run by their OWN gates (three-plus criteria or an ASSUMED row still fires
 spec-redteam, so a hands-off run of any real brief keeps its wrong-pick checkpoint; a

@@ -93,6 +93,43 @@ expect "php row"       "php runtime"
 expect "laravel row"   "laravel/framework"
 expect "no-lock flag"  "NO composer.lock"
 
+# Fixture 2b: game engines and Blender. A Godot + Blender repo printed an empty table
+# (2026-11-06), the silent zero this script promises never to give.
+mkdir -p "$T/g/art" "$T/u/ProjectSettings" "$T/u/Assets" "$T/r" "$T/n/ProjectSettings"
+printf 'config_version=5\n[application]\nconfig/features=PackedStringArray("4.7", "Forward Plus")\n' > "$T/g/project.godot"
+touch "$T/g/art/knight.blend"
+OUT=$(bash "$SCAN" "$T/g")
+expect "godot row"   "| godot | 4.7 |"
+# Stubbed engine binaries pin the --version branch both ways, as stub_node does for node.
+mkdir -p "$T/stub-godot-ok" "$T/stub-godot-bad"
+printf '#!/bin/sh\necho 4.7.stable\n' > "$T/stub-godot-ok/godot"; printf '#!/bin/sh\nexit 1\n' > "$T/stub-godot-bad/godot"
+chmod +x "$T/stub-godot-ok/godot" "$T/stub-godot-bad/godot"
+OUT=$(PATH="$T/stub-godot-ok:$PATH" bash "$SCAN" "$T/g")
+expect "godot installed from --version" "| godot | 4.7 | 4.7.stable |"
+OUT=$(PATH="$T/stub-godot-bad:$PATH" bash "$SCAN" "$T/g")
+expect "godot --version failure named" "| godot | 4.7 | on PATH, --version failed |"
+expect "blender row" "| blender | — |"
+printf 'm_EditorVersion: 6000.0.23f1\nm_EditorVersionWithRevision: 6000.0.23f1 (abc)\n' > "$T/u/ProjectSettings/ProjectVersion.txt"
+OUT=$(bash "$SCAN" "$T/u")
+expect "unity row"   "| unity | 6000.0.23f1 |"
+printf '{ "FileVersion": 3, "EngineAssociation": "5.4" }\n' > "$T/r/Game.uproject"
+OUT=$(bash "$SCAN" "$T/r")
+expect "unreal row"  "| unreal | 5.4 |"
+printf 'import bpy\n' > "$T/r/build.py"
+OUT=$(bash "$SCAN" "$T/r")
+expect "bpy import is blender evidence" "| blender | — |"
+
+# Fixture 2c: NEGATIVE CONTROLS — evidence signals.md says is not enough. A ProjectVersion.txt
+# with no Assets/ beside it, a lone .glb (every three.js repo has one), a .py without bpy.
+printf 'm_EditorVersion: 6000.0.23f1\n' > "$T/n/ProjectSettings/ProjectVersion.txt"
+touch "$T/n/model.glb"; printf 'import os\n' > "$T/n/tool.py"
+mkdir -p "$T/n/vendor" "$T/n/a/b/c"; touch "$T/n/vendor/pack.blend" "$T/n/a/b/c/deep.blend"
+OUT=$(bash "$SCAN" "$T/n")
+refute "control: no unity without Assets/" "| unity |"
+refute "control: no blender from .glb, plain .py, vendor/ or depth 4" "| blender |"
+OUT=$(bash "$SCAN" "$T/b")
+for eng in godot unity unreal blender; do refute "control: laravel has no $eng row" "| $eng |"; done
+
 # Fixture 3: empty dir — still a report, exit 0, no flags beyond none-line.
 mkdir -p "$T/c"
 OUT=$(bash "$SCAN" "$T/c"); rc=$?

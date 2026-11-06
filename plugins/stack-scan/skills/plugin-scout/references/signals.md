@@ -19,6 +19,9 @@ change both or neither. **Three of the four have already forked** and each
 divergence is recorded in that row's note; reconciling them is a `skill-router`
 change, out of this plugin's scope.
 
+The godot, unity, unreal and blender rows are also mirrored in `scripts/scan.sh`'s engine
+section: change both or neither.
+
 ## Reading a dependency row
 
 "dep X" means an **exact key** in `dependencies` or `devDependencies`, not a

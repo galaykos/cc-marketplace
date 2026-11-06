@@ -229,12 +229,31 @@ behaviour rather than the diff, whether a reason="…" is true, whether the
 <change> is the right change. Those stay agent-graded in task-cards. It also does
 not grade the <verify> text — that is verify-teeth-lint.sh — nor the <skill>
 names against the touched files — that is skills-stamp-lint.sh. A UI card's
-<walk> line is optional and unchecked: present or absent, no finding.
+<walk> line is optional: present or absent, no finding (its surface shape is checked since 2026-11-06, see walk-surface).
 
 LEGACY SHAPE. A card with no <card> wrapper but a **Verify:** line is the bold-label
 shape task-cards emitted before taskmaster 0.45.0. It passes with a NOTE on stderr
 and exit 0: in-flight card sets keep executing. task-cards emits only the tagged
 shape; the acceptance here is for cards already written, not a second template.
+```
+
+### walk-surface (2026-11-06)
+
+```text
+The chess-knight baseline (taskmaster 0.53.0, headless, 2026-11-06) emitted
+<walk surface="assets/preview/side.png" widths="768"> and every card lint passed.
+task-runner walks only browser routes, and only when a UI group closes
+(plugins/task-runner/skills/task-execution/SKILL.md:102-107), so that line is never
+run; the card's own "Read the PNGs" step was the real look check. The check fails a
+surface ending in a listed image/3D/video/audio extension, compared lower-case on the
+part before ?/#.
+Absolute http(s) URLs are exempt, and .svg/.avif are not listed, because a web route
+can legitimately serve them (/opengraph-image.svg). A route serving a listed extension
+(Next.js /icon.png, /opengraph-image.png) is blocked too, a known false positive: walk
+the page that shows it instead. Read views images only, so a video,
+audio or 3D look check depends on the worker rendering a PNG first; nothing checks it.
+A route <walk> on a card whose diff touches no UI file is walked only when its
+milestone's diff touches UI (task-runner references/ui-walk.md).
 ```
 
 ## plugins/taskmaster/scripts/goal-ledger-check.sh

@@ -1,10 +1,9 @@
 # Card agent routing (main-runner only)
 
-Only the main `/task-runner:run` orchestrator routes: it can spawn subagents and can
-see the available-agent-types list in its own context. A resolved worker is a **leaf**
-that executes and never re-routes. Keep the tag keys below in sync with the vocabulary
-in `taskmaster/skills/task-cards/references/agent-tags.md` — `scripts/validate.sh`
-fails on drift.
+Only the main `/task-runner:run` orchestrator routes (it spawns subagents and sees the
+agent-types list); a resolved worker is a **leaf** that never re-routes. Tag keys stay in
+sync with `taskmaster/skills/task-cards/references/agent-tags.md`
+(`scripts/validate.sh` fails on drift).
 
 ## Resolution map (ordered preference — first reachable wins, else `task-executor`)
 
@@ -19,18 +18,22 @@ performance   → [resilience:performance-engineer]
 observability → [resilience:observability-engineer]
 backend       → [laravel:backend-engineer if Laravel*, web-dev:web-developer]
 api           → [laravel:backend-engineer if Laravel*, web-dev:web-developer]
+asset         → [task-runner:task-executor]
 generic       → [task-runner:task-executor]
 ```
 
 \* `composer.json` requires `laravel/framework`: the stack decides, never what is installed.
+`asset`: the card's `<skill>` stamps carry the domain rules.
 
 ## Per-card dispatch procedure
 
-1. **Read the tag.** Take the card's `<agent>` value (`**Agent:**` on a legacy card). Missing or not in the closed
-   vocabulary → treat as `generic` and log the normalization.
+1. **Read the tag.** Take the card's `<agent>` value (`**Agent:**` on a legacy card). Missing or out of
+   vocabulary → `generic`, logged.
 2. **Resolve the worker.** Walk the tag's preference list; pick the first agent present
    in the runner's available-agent-types list, else `task-runner:task-executor`. Log any
-   downgrade (requested tag → actual worker) in the run report.
+   downgrade (requested tag → actual worker) in the run report. A card calling an MCP
+   tool (Meshy's, Blender's) runs inline whatever its tag: workers hold no MCP tools.
+   Standing: agent-graded.
 3. **Arm scope.** Write the card's allowed files to
    `<repo root>/.claude/task-runner/scope-<cardId>.json` as
    `{"allow":["path","dir/"],"task":"<cardId>"}` (no other shape is read), not the
@@ -47,12 +50,11 @@ generic       → [task-runner:task-executor]
    When a stamped skill's `SKILL.md` cannot be resolved (plugin not installed), NEVER
    proceed silently: print one line in the run output — `degraded: card <id> runs
    framework-blind ("<skill>" not installed; install <plugin> to fix)` — and continue.
-5. **Dispatch** the resolved worker with that prompt. **The resolution above binds only
-   if the dispatch names the worker.** On the Agent path that is `subagent_type:
-   <resolved>`; on the `Workflow` path it is the `agentType` option —
-   `agent(prompt, {agentType: 'task-runner:task-executor', …})`. A `Workflow` `agent()`
-   call that omits it spawns the GENERIC workflow subagent: the prompt arrives, the
-   resolved agent's own contract (e.g. `task-executor`'s code-shape and named-untested
+5. **Dispatch** the resolved worker with that prompt. **The resolution binds only if the
+   dispatch names the worker:** `subagent_type: <resolved>` on the Agent path, the
+   `agentType` option on `Workflow` (`agent(prompt, {agentType: 'task-runner:task-executor', …})`).
+   A `Workflow` `agent()` call omitting it spawns the GENERIC subagent: the prompt arrives,
+   the resolved agent's contract (e.g. `task-executor`'s code-shape and named-untested
    rules) silently does not, and every gate still passes green.
 
    Log the dispatch mechanism and the bound agent per card in the run report, next to

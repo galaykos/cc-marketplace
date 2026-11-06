@@ -1,8 +1,7 @@
 # Verify-side reviewer routing
 
-How the runner picks the reviewer(s) for a card after its verification passes. This
-adds a tag-routed reviewer on top of the baseline pass — it never removes one. Same closed
-tag vocabulary as `references/routing.md`. Serial execution only (§ Tracks).
+Which reviewer(s) a card gets after its verify passes: a tag-routed reviewer ADDED to the
+baseline pass, never removing one. Tags as in `references/routing.md`; serial only (§ Tracks).
 
 ## The baseline reviewer pass
 
@@ -39,6 +38,7 @@ security      -> security:security-engineer (review-only) + prime {card Skills-t
 testing       -> code-review:code-reviewer + prime {card Skills-to-apply} + testing:testing-best-practices
 performance   -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:performance-tuning
 observability -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:observability-design
+asset         -> code-review:code-reviewer + prime {card Skills-to-apply}
 ```
 
 `ui-ux:a11y-audit` is preloaded by those two agents (ui-ux ≥0.26.3, web-dev ≥0.9.3); prime it
@@ -62,10 +62,9 @@ For a gap-tag `code-reviewer` dispatch, also inject:
 
 > `RV-CARD: <card id>`
 
-`hooks/rv-observe.sh` watches for it and records that the pass was dispatched; the
-completion gate counts those records against done cards. A dispatch that omits the marker
-is not counted, so the run blocks at completion rather than passing silently — the failure
-direction is deliberate.
+`hooks/rv-observe.sh` records each dispatch carrying it; the completion gate counts those
+records against done cards. A dispatch omitting it is uncounted, so the run blocks at
+completion rather than passing silently — deliberately.
 
 **Diff delivery** — reviewers hold Read, Grep and Glob: never tell one to run git. Before each
 `RV-CARD` dispatch run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/review-diff.sh" --card <id> --base
@@ -117,11 +116,11 @@ Runs after the card's verification passes — a command OR a recorded manual che
    the run report (matching `routing.md`'s downgrade log).
 5. **Concurrent dispatch — BASELINE, not `--crew`-gated:** the deduped read-only reviewer
    set is dispatched as **one concurrent batch** over the card diff (reads parallelize
-   freely). Any reviewer that holds the `Bash` tool (e.g. `devops:devops-reviewer`, tools
-   `Read, Grep, Bash`) is **excluded from the batch and run serially** — a Bash reviewer
-   can write build artifacts into the shared tree, so it must not run concurrently with
-   anything; that includes `security-engineer`. The `security:security-review` skill, when
-   it stands in, runs inline in the orchestrator after the batch joins.
+   freely). A reviewer holding `Bash` (e.g. `devops:devops-reviewer`: `Read, Grep, Bash`)
+   is **excluded from the batch and run serially** — it can write build artifacts into
+   the shared tree, so it never runs concurrently; that includes `security-engineer`.
+   The `security:security-review` skill, when it stands in, runs inline in the
+   orchestrator after the batch joins.
 6. **Severity** (one scale, code-review's): **critical/high** → re-enter the existing
    **3-cycle fix loop** (`SKILL.md`'s fix-loop rule);
    **medium/low** → the backlog, except accessibility findings and deferrals

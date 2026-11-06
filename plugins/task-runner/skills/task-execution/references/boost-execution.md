@@ -1,9 +1,8 @@
 # Extreme Boost at execution time
 
-Read this when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker. On a
-standard run none of it applies — and a `Goal: true (boost=off)` marker (taskmaster's
-`goal-lean`) is a standard run plus the autonomy paragraph below: read ONLY the sentences
-marked "Under `Goal:`" from it.
+Read this when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker; a standard
+run skips it. A `Goal: true (boost=off)` marker (taskmaster's `goal-lean`) is a standard
+run plus the autonomy paragraph below: read ONLY its "Under `Goal:`" sentences.
 
 ## The rules
 
@@ -21,8 +20,8 @@ the Agent tool only when it lists an `effort` parameter. Delegated stack impleme
 Under the marker, ALSO run the **code-redteam** pass (its skill) over the produced diff — at each serial milestone boundary and once before completion (in `--tracks`:
 once on the merged branch) — routing confirmed findings to reopen the targeted card under a fresh budget. **Under `Goal:`** (hands-off): auto-take pipeline gates — the
 run-plan preview is DISPLAYED, then execution proceeds without waiting; post-run "Retry parked" is bounded to at most ONE auto-retry, and only on forward progress (a task
-moved parked→done), else surface the parked list and stop. Halt-with-evidence, mis-specified-task halts, and the full-suite completion gate are UNCHANGED and NEVER
-suppressed under Goal.
+moved parked→done), else surface the parked list and stop. Halt-with-evidence, mis-specified-task halts, the full-suite completion gate, and
+a paid external call's cost confirmation (always asked) are UNCHANGED and NEVER suppressed under Goal.
 
 ## Why it lives here and not in the `ultra` skill
 

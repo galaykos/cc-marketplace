@@ -208,6 +208,21 @@ does NOT decide what is installed and it never will be complete: a framework mis
 here is invisible, not misreported, and the honest fix is to add the name.
 ```
 
+### Game engines and Blender (2026-11-06)
+
+```text
+A Godot + Blender fixture (project.godot + knight.blend) printed an empty table and
+"none detected by the mechanical pass" — the silent zero the header promises never to
+give, and the input taskmaster's context-scout reads as hard constraints. Measured the
+same day: the whole scan takes 0.17 s on a Laravel + Vue + MariaDB fixture, so a cached
+inventory file was rejected for that shape of repo (a file fingerprint also cannot see an
+`nvm use`); a Blender- or Python-heavy repo, which hits the .py grep and a cold
+`blender --version`, was not measured. Evidence rules copy plugin-scout's signals.md engine and blender rows: Unity
+needs ProjectVersion.txt beside Assets/; a lone .glb or a .py without bpy is not Blender.
+Installed versions come only from a binary on PATH; Unity and Unreal installs are
+hub-managed, so their Installed cell stays "—" rather than guessed.
+```
+
 ## plugins/stack-scan/scripts/sync-plan.sh
 
 ### Header
