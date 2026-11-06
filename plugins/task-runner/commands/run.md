@@ -211,6 +211,6 @@ proceeds without waiting. The step-5 green branch-finish gate is
 EXEMPT from take-Recommended — under Goal it ALWAYS resolves to "Stop here" regardless of
 which option is labeled Recommended (never auto-run branch merge/PR). The parked "Retry
 parked tasks now" offer is bounded to one auto-retry on forward progress (a task moved
-parked→done), else auto-take "Stop here" and surface the parked list. Halts-with-evidence,
-mis-specified-task halts, the full-suite + behavioral-gate completion gate, and a paid external
-call's cost confirmation (always asked) are never suppressed.
+parked→done), else auto-take "Stop here" and surface the parked list. What Goal never
+suppresses (halts, the full-suite + behavioral-gate completion gate, a paid call's cost
+confirmation) is listed once, in `skills/task-execution/references/boost-execution.md`.

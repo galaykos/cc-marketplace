@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # card-shape-lint.sh — author-time STRUCTURAL lint for a role-tagged task card (task-cards `references/card-shape.md`); a legacy bold-label card (no <card> wrapper, a **Verify:** line) passes with a NOTE.
-# Misses: whether a <criterion> describes behaviour rather than the diff, whether a reason="…" is true, whether the <change> is right (agent-graded in task-cards); the <verify> text (verify-teeth-lint.sh); <skill> names against the touched files (skills-stamp-lint.sh); whether a UI card has a <walk> line, and a route <walk> on a card whose diff touches no UI file (walked only when its milestone's diff touches UI).
+# Misses: whether a <criterion> describes behaviour rather than the diff, whether a reason="…" is true, whether the <change> is right (agent-graded in task-cards); the <verify> text (verify-teeth-lint.sh); <skill> names against the touched files (skills-stamp-lint.sh); whether a UI card has a <walk> line, and a route <walk> on a card whose diff touches no UI file (walked only when its milestone's diff touches UI); a single-quoted or missing <walk> surface (skipped).
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/card-shape-lint.sh (marketplace repository)
 
 # WHAT IT CATCHES (each -> exit 2, one `card-shape: <reason>` line on stderr per
