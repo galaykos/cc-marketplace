@@ -57,12 +57,10 @@ decision, a newcomer's silence is a gap.
 
 ## Persist and resume
 
-After reprinting the ledger each round, also write it — a header carrying the raw +
-upgraded statement pair plus the table — to `.claude/taskmaster/ledger-<slug>.md`
-(`<slug>` a kebab of the task description), so an interrupted
-interrogation is not lost. Creating that directory, drop a `.gitignore` holding `*`
-into it if one is not there — this is scratch and belongs in no commit, and only
-THIS repo's .gitignore covers it otherwise. At grill start, an unfinished
+After reprinting the ledger each round, also write it — the raw + upgraded statement pair
+plus the table — to `.claude/taskmaster/ledger-<slug>.md` (`<slug>` a kebab of the task), so
+an interrupted interrogation is not lost. Creating that directory, drop a `.gitignore`
+holding `*` into it if absent: this is scratch and belongs in no commit. At grill start, an unfinished
 `.claude/taskmaster/ledger-*.md` offers Resume / Start fresh; Resume reuses the
 stored statement (never re-derived), loads the table, continues from the first
 UNKNOWN row — no re-scout (a "lookup pending" row's one lookup excepted), no re-asking
@@ -82,6 +80,17 @@ dimension left unwalked is a section left empty:
 - **Constraints** → CLEAR rows that bound every option set you offer, sourced from
   lockfiles and configs, never from memory of what a version supports.
 
+Two more, every run, settled in round 1 (agent-graded; no lint sees the walk):
+
+- **Known bugs** → name the kinds the task builds (a signup page: form, state-swapping action,
+  network call), read them in `${CLAUDE_PLUGIN_ROOT}/agents/spec-adversary.md` § Known-bug
+  catalog, and make each bug that can happen here a row with a recommended default, riding
+  round 1's Accept-all list. Each becomes a success criterion.
+- **Detail level** → always one question: *Guided* (cards fix goal, rules, interfaces, criteria;
+  the worker picks the implementation) or *Exact* (cards prescribe edits and values). Recommend
+  Exact for money, auth, stored data, migrations, public contracts, else Guided; no user → that
+  rule, ASSUMED. The spec header records `Detail: guided|exact` (**gate**: `spec-ledger-lint.sh`).
+
 ## Question mechanics
 
 - Batch through `AskUserQuestion`: up to 4 questions per round, each single-topic.
@@ -93,8 +102,7 @@ dimension left unwalked is a section left empty:
   "(Recommended)", and use `multiSelect` when choices are not mutually exclusive.
 - Open round 1 by listing every open row with its recommended default, then one question:
   *Accept all recommended* / *Walk through them*. Accept makes each defaulted row CLEAR
-  (source: user, accepted default); ask only the rows with no defensible default. One
-  run's user took "(Recommended)" in 16 of 16 answers across the run.
+  (source: user, accepted default); ask only the rows with no defensible default.
 - Offer concrete options, never "flexible/it depends" filler. Wrong-but-concrete
   options provoke corrections; vague options provoke shrugs.
 - A code fact found missing mid-round is a lookup, not a question: brief `context-scout`
@@ -103,9 +111,8 @@ dimension left unwalked is a section left empty:
   (an installed version, a service's state), or no Task tool → read it inline before the
   next round. A row whose lookup was cut off reads "lookup pending" in its Source, and
   Resume re-dispatches it (recorded: the Source names what the lookup read).
-- Example-driven disambiguation: when words stay ambiguous, fabricate 2–3 concrete
-  input → output examples ("user submits X, sees Y / sees Z — which?") and ask
-  which is correct. One picked example beats three paragraphs of requirements.
+- Example-driven disambiguation: when words stay ambiguous, offer 2–3 concrete input →
+  output examples ("user submits X, sees Y / sees Z — which?") and ask which is correct.
 - Visual decisions — switch to the `visual-decisions` skill from this plugin when
   the user must pick between options that look or flow differently (layout variants,
   component placement, user flows, architecture topology, data shapes); not for
@@ -141,8 +148,7 @@ dimension left unwalked is a section left empty:
 When the task is a whole experience or crosses several subsystems (an
 onboarding funnel, a multi-view feature), one flat ledger explodes by round 2:
 
-- Round 1 becomes decomposition: propose the slices (screens, flows,
-  capabilities) and confirm the slice list itself with the user first.
+- Round 1 becomes decomposition: propose the slices (screens, flows, capabilities) and confirm the list first.
 - The ledger gains a Slice column; grill slice by slice in priority order — depth-first beats breadth-first.
 - Cross-slice contracts (data one screen collects that another consumes) get
   their own ledger rows — they are the rows a per-slice view would miss.
@@ -181,10 +187,8 @@ each task card self-contained later.
 
 ## Headless fallback
 
-If `AskUserQuestion` is unavailable (subagent context, non-interactive run): print
-the ledger, list numbered assumptions with your chosen defaults, mark them ASSUMED,
-proceed on those defaults, and flag the assumption list prominently in the final
-output so the user can veto any of them afterward.
+No `AskUserQuestion` (subagent, non-interactive): mark each open row ASSUMED with a named
+default, proceed, and print the numbered assumption list prominently for a later veto.
 
 ## Anti-patterns
 
@@ -192,5 +196,4 @@ output so the user can veto any of them afterward.
 - Generic template questions detached from this task or this repo.
 - Accepting a vague answer on a scope-critical row: respond with 2–3 concrete
   options or examples instead of repeating the question louder.
-- Padding rounds to look thorough. The measure of a good interrogation is how much
-  code it changed or prevented, not how many questions it asked.
+- Padding rounds to look thorough: measure an interrogation by the code it changed or prevented.

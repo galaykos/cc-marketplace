@@ -15,13 +15,10 @@ Overseer re-checks the index for it after task-cards (**agent-graded**); candor 
 ## `Ultra:` and `Goal:`
 
 Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: true
-(model=auto, effort=xhigh)` line near the top of `00-INDEX.md` — copy the directive's
-`model`/`effort` VERBATIM. The tier is FIXED, not defaulted: `ultra/SKILL.md` § Fixed tier
-makes it `model=auto, effort=xhigh` always, and both hook
-directives hardcode it — so those two values are the only ones that can ever appear. `auto`
-stays the literal `auto` so execution
-re-resolves it in its own session. That is how a fresh-session execution run inherits the boost at the
-same tier. Under `ULTRA-GOAL ACTIVE` (the `ultra` skill's Goal mode), FIRST run
+(model=auto, effort=xhigh)` line near the top of `00-INDEX.md`, copying the directive's
+`model`/`effort` VERBATIM: the tier is FIXED (`ultra/SKILL.md` § Fixed tier, hardcoded in both
+hook directives), and the literal `auto` lets a fresh execution session re-resolve it, so the
+run inherits the boost at the same tier. Under `ULTRA-GOAL ACTIVE` (the `ultra` skill's Goal mode), FIRST run
 `"${CLAUDE_PLUGIN_ROOT}/scripts/goal-ledger-check.sh" --slug <slug>` — exit 2 blocks the stamp
 (an unaudited goal run may not hand itself off); then ALSO write an exact `Goal: true
 (model=<model>, effort=<effort>) — requires task-runner ≥0.11.0; older runners fall back to
@@ -38,7 +35,5 @@ line would buy the code red-team the caller declined.
 
 ## The upgraded statement is NOT here
 
-Writing `## Upgraded statement` into the index is unconditional and lives in the SKILL
-body (`SKILL.md`, "Output layout"), because task-execution reads it on every run. Only
-the `Ultra:`/`Goal:` markers are boosted-only, and the blockquote
-prefix that keeps exact-prefix marker parsing safe is stated beside the write.
+Writing `## Upgraded statement` is unconditional, so it lives in `SKILL.md` "Output layout"
+beside its blockquote-prefix rule; only the `Ultra:`/`Goal:` markers are boosted-only.

@@ -27,6 +27,7 @@ at authoring time only, through the **gate** rows below (why:
 | a bare `<skill>` stamp a same-named project skill shadows (`.claude/skills/<name>`, a plugin shipping that name or a known Laravel Boost twin) | **WARN** — `skills-stamp-lint.sh` `shadowed-skill`, which prints the `plugin:skill` stamp |
 | a limit is proved by lowering it in the test, not by exceeding a production-sized constant | **agent-graded** — spec-redteam and the reviewer pass; no lint reads a criterion's size |
 | a `<criterion>` describes behaviour, not the diff | **agent-graded** — coverage-check reads it; no script can |
+| a `guided` card's `<change>` opens `Direction (…):` with no edit list | **agent-graded** — `spec-ledger-lint.sh` reads only the spec's `Detail:` |
 | a `reason` is true; the `<change>` is the right change | **agent-graded** — spec-redteam and the reviewer pass |
 | the lints ran at all | **recorded + observed** — `hooks/card-lint-observe.sh` warns once per run, in the main thread, on a card with no record |
 

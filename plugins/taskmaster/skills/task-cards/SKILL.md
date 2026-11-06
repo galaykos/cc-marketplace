@@ -60,22 +60,26 @@ read that copy instead; `skills-stamp-lint.sh` warns (never blocks) when a proje
 shadows a bare stamp. `<agent>`: one tag from `references/agent-tags.md`, `generic` when
 files span >1 domain. `<contract>` only when the spec has that binding section.
 
+## Detail level
+
+The spec's `Detail:` sets what `<change>` prescribes; absent → `exact`: edits, names, values.
+`guided` → `<change>` opens `Direction (implementation is yours within must-not):` with the aim
+and settled decisions, no edit list. Files, `<interface>`, `<contract>` and criteria stay exact
+at both levels, and each known-bug criterion lands on the card building that kind.
+
 ## Sizing rules
 
 - One card = one prompt = one sitting. When in doubt, split.
 - Split when: more than ~5 files touched, more than ~300 changed lines expected,
   or the title needs "and". Exception: purely mechanical sweeps (a rename across
-  40 files) stay one card while the whole sweep lands green in one commit —
-  mechanical breadth is not complexity. When it cannot, sequence it: an expand card
-  adds the new form while the old one still works (Verify: the new form's own test); one
-  card per batch (package, directory), each depending on the expand card, moves callers
-  (Verify: the moved callers' named tests plus a zero count of the old form in that
-  batch); a contract card depending on every batch deletes the old form (Verify: a zero
-  count repo-wide plus the named tests). Batches obey the parallel-group and milestone
-  rules below. Recorded: no lint or reviewer reads ordering intent.
-- Every card ends verifiable. "Part 1: types only" is valid ONLY if something
-  checks it (compiles, tests pass); a split whose first half cannot be verified
-  is one card pretending to be two.
+  40 files) stay one card while the whole sweep lands green in one commit. When it cannot,
+  sequence it: an expand card adds the new form beside the old (Verify: its own test); one card
+  per batch (package, directory), each depending on it, moves callers (Verify: their named tests
+  plus a zero count of the old form in that batch); a contract card after every batch deletes the
+  old form (Verify: a zero count repo-wide plus the named tests). Batches obey the group and milestone
+  rules below; recorded: no lint reads ordering intent.
+- Every card ends verifiable. "Part 1: types only" is valid ONLY if something checks it
+  (compiles, tests pass); an unverifiable first half is one card pretending to be two.
 - Size every card S/M/L/XL against an anchor — the anchor is a card the same person
   shipped in one sitting, which is M. Anything L+ is split or spiked before it enters
   the index.
@@ -123,12 +127,10 @@ files span >1 domain. `<contract>` only when the spec has that binding section.
 - Topologically order by `<depends-on>`; number cards in that order.
 - Mark parallel groups — cards with no mutual dependency that touch disjoint
   files. Within a group, put the riskiest card first so failures surface early.
-- Cards coupled through shared work-in-progress state are ordering bugs: merge
-  them or move the shared piece into its own earlier card. A prefactor gets the same: a
-  behaviour-preserving refactor that makes a later card smaller is its own earlier card.
-  Its Verify names the existing tests that cover the moved code AND one assertion only
-  the refactor makes true — a zero count at the old site, or a named test importing the
-  new location — never a bare suite run (recorded, as the sweep sequencing above). (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+- Cards coupled through shared work-in-progress state are ordering bugs: merge them or move
+  the shared piece into its own earlier card — a prefactor too, whose Verify names the tests
+  covering the moved code AND one assertion only the refactor makes true (a zero count at the
+  old site, a test importing the new location), never a bare suite run (recorded). (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## Milestones for big runs
 
@@ -150,9 +152,7 @@ milestones — each one independently shippable and verifiable:
 ```
 taskmaster-docs/tasks/YYYY-MM-DD-<slug>/
   00-INDEX.md
-  01-extract-invoice-totals.md
-  02-add-soft-delete-migration.md
-  ...
+  01-extract-invoice-totals.md ...
 ```
 
 `00-INDEX.md` holds: the spec path, a table (card / title / depends-on / agent /
@@ -184,18 +184,14 @@ Once `00-INDEX.md` is written, before the task-runner handoff, in order:
    `verify-teeth-lint.sh`, `skills-stamp-lint.sh` and `card-paths-lint.sh`, each `--card <file>`; what each
    blocks is a gate row in `references/card-shape.md`.
    Plus `spec-ledger-lint.sh --spec <spec>` once — an unconverged spec (open UNKNOWN, missing/empty ledger) never becomes cards; route holes back to grill.
-3. **Suggest a project skill.** If a `project-skill-suggester` skill is available (the
-   marketplace repository keeps one under `.claude/skills/`), it scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill);
-   skip silently when absent, never blocks.
+3. **Suggest a project skill.** A `project-skill-suggester` skill available → it scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill); absent → skip silently.
 
 ## Anti-patterns
 
-- Cards that only make sense in conversation order — the fresh-session test kills these.
-- Hidden dependencies: card 04 quietly assumes card 02's helper. Needed → `<depends-on>`.
+- Cards that only make sense in conversation order; hidden dependencies (card 04 quietly assumes card 02's helper → `<depends-on>`).
 - Criteria that restate the diff ("function X exists") instead of behavior.
 - A `<must-not>` whose `reason` restates the prohibition ("do not touch: out of scope").
   The lint sees a non-empty attribute; only a reader sees an empty one.
-- A "misc cleanup" card — leftovers become real cards or non-goals.
-- Splitting below verifiability: ten unverifiable micro-cards are worse than three honest ones.
+- A "misc cleanup" card (leftovers become real cards or non-goals); splitting below verifiability.
 - Duplicating the whole spec into every card. Context is what THIS card needs.
 - Status inside a card — it lives only in `00-INDEX.md`, so cards stay re-runnable verbatim.
