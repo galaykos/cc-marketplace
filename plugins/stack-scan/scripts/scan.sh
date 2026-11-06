@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# scan.sh [project-root] — stack-scan's mechanical core: required-vs-installed inventory from manifests, lockfiles, runtimes and container files, one markdown report on stdout; deterministic parses only (upgrade advice and EOL judgment stay with the skill). Exit 0 always — a report, not a gate.
-# Misses: Go/Rust/.NET/JVM/Ruby (rules in references/ecosystems.md as instructions; such a repo gets a "not covered by scan.sh" line, never a silent zero); a framework missing from the list below (no row at all).
+# scan.sh [project-root] — stack-scan's mechanical core: required-vs-installed inventory from manifests, lockfiles, runtimes, container files and game-engine/Blender project files, one markdown report on stdout; deterministic parses only (upgrade advice and EOL judgment stay with the skill). Exit 0 always — a report, not a gate.
+# Misses: Go/Rust/.NET/JVM/Ruby (rules in references/ecosystems.md as instructions; such a repo gets a "not covered by scan.sh" line, never a silent zero); a framework missing from the list below (no row at all); an engine's installed version unless its binary is on PATH (Unity, Unreal: never), and Blender evidence deeper than 3 levels.
 # Why, limits, history: rationale/derivations/plugin-stack-scan.md § plugins/stack-scan/scripts/scan.sh
 set -u
 root="${1:-.}"
@@ -97,6 +97,31 @@ for cf in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do
     row "compose image" "$img" "—" "$cf"
   done < <(grep -E '^\s*image:' "$cf" | sed 's/.*image:\s*//; s/["'"'"']//g' | sort -u)
 done
+
+# ---------------- Game engines and Blender ----------------
+# Evidence rules mirror skills/plugin-scout/references/signals.md (engine and blender rows).
+ver_of() { have "$1" && "$1" --version 2>/dev/null | head -1 || echo "not on PATH"; }
+near() { find . -maxdepth 3 \( -name .git -o -name node_modules -o -name vendor \) -prune -o "$@" -print 2>/dev/null; }
+if [[ -f project.godot ]]; then
+  gv=$(grep -m1 -oE 'config/features=PackedStringArray\("[0-9]+\.[0-9]+' project.godot | grep -oE '[0-9]+\.[0-9]+$')
+  row "godot" "${gv:-—}" "$(ver_of godot)" "project.godot config/features"
+fi
+if [[ -f ProjectSettings/ProjectVersion.txt && -d Assets ]]; then
+  uv=$(sed -n 's/^m_EditorVersion:[[:space:]]*//p' ProjectSettings/ProjectVersion.txt | head -1)
+  row "unity" "${uv:-—}" "—" "ProjectSettings/ProjectVersion.txt"
+fi
+for up in *.uproject; do
+  [[ -f "$up" ]] || continue
+  ev=$(grep -m1 -oE '"EngineAssociation"[[:space:]]*:[[:space:]]*"[^"]*"' "$up" | sed 's/.*"\([^"]*\)"$/\1/')
+  row "unreal" "${ev:-—}" "—" "$up EngineAssociation"
+done
+bl=$(near \( -name '*.blend' -o -name '*.blend1' -o -name blender_manifest.toml \) | head -1)
+if [[ -z "$bl" ]]; then
+  while IFS= read -r f; do
+    grep -qE '^[[:space:]]*(import|from)[[:space:]]+bpy' "$f" 2>/dev/null && { bl=$f; break; }
+  done < <(near -name '*.py' | head -200)
+fi
+[[ -n "$bl" ]] && row "blender" "—" "$(ver_of blender)" "${bl#./}"
 
 # ---------------- Not covered ----------------
 for f in go.mod Cargo.toml global.json build.gradle pom.xml Gemfile; do
