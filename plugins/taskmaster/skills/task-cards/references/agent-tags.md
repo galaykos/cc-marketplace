@@ -1,27 +1,22 @@
 # Agent capability tags
 
-Every card emits `<agent>` with exactly one tag from the closed vocabulary below
-(a legacy card carries `**Agent:**`; both are read). `scripts/card-shape-lint.sh`
-reads THIS file's fenced list at run time to gate the value, so the list below is
-the single copy.
-The tag is a routing hint the runner resolves to a specialist worker; it selects
-**aptitude, not authority** (all workers are equally privileged). Keep this vocabulary
-in sync with **both** resolution maps —
-`task-runner/skills/task-execution/references/routing.md` (implement side) and
-`.../reviewer-routing.md` (verify side). `scripts/validate.sh` compares this list
-against each map separately and fails with a different message per map, so editing
-only one of the two goes red in CI even though the other still matches.
+Every card emits one `<agent>` tag from the closed vocabulary below (legacy cards'
+`**Agent:**` too). `scripts/card-shape-lint.sh` reads THIS fenced list at run time to gate
+the value: the single copy. The tag routes by **aptitude, not authority** (all workers
+equally privileged). Sync it with **both** task-runner maps,
+`skills/task-execution/references/routing.md` and `reviewer-routing.md`;
+`scripts/validate.sh` checks each and fails per map.
 
 ## Closed vocabulary
 
 ```
 database  frontend  ui-ux  backend  api  security
-testing  devops  performance  observability  generic
+testing  devops  performance  observability  asset  generic
 ```
 
 ## Derivation rule
 
-Choose the tag from the files the card touches:
+Choose it from the files the card touches:
 
 | Touched files | Tag |
 |---|---|
@@ -35,13 +30,17 @@ Choose the tag from the files the card touches:
 | CI, Dockerfile, k8s, deploy config | `devops` |
 | profiling, caching, bundle-size work | `performance` |
 | logging, metrics, tracing instrumentation | `observability` |
+| calls a generation or modelling tool (Meshy, Higgsfield, Blender; CLI or MCP) or creates .glb .gltf .blend .fbx .obj .usdz .stl outputs | `asset` |
 
 ## Tie-breakers
 
 - **Styling vs component (`ui-ux` vs `frontend`):** a card touching *only*
   styling/design-token/layout files → `ui-ux`; a card touching any component/logic
   file, **even if it also changes styles** → `frontend`.
+- **Asset vs api / generic:** a card whose own run calls a generation or modelling tool is
+  `asset`, as is a script whose only job is that asset; server code calling it at runtime
+  keeps `api`/`backend`.
 - **Single-domain rule:** tag a specialist only when **all touched files share one
   domain**. A card whose files span more than one domain (or match no row) → `generic`.
-- Always emit the field; never omit it. A missing or out-of-vocabulary value is
-  normalized to `generic` by the runner (logged).
+- Always emit the field. The runner normalizes a missing or out-of-vocabulary value to
+  `generic` (logged).
