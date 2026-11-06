@@ -213,4 +213,5 @@ which option is labeled Recommended (never auto-run branch merge/PR). The parked
 parked tasks now" offer is bounded to one auto-retry on forward progress (a task moved
 parked→done), else auto-take "Stop here" and surface the parked list. What Goal never
 suppresses (halts, the full-suite + behavioral-gate completion gate, a paid call's cost
-confirmation) is listed once, in `skills/task-execution/references/boost-execution.md`.
+confirmation) is listed once, in `skills/task-execution/references/boost-execution.md`, whose
+"full-suite completion gate" is step 4's pair: the suite and the behavioral-gate.

@@ -35,5 +35,6 @@ after its `## Kind recipe` ships, 2 of 3 headless runs still yield code-shaped c
 ## Open
 
 A hands-off `Credits:` budget is deferred to its own spec. Since taskmaster 0.54.0 Goal mode
-asks a paid call's cost confirmation instead of auto-taking it (`plugins/taskmaster/skills/ultra/SKILL.md`
-§ Goal mode never-suppress list; agent-graded, unmeasured), so a hands-off run waits for a yes.
+asks a paid call's cost confirmation instead of auto-taking it (`ultra/SKILL.md` § Goal mode),
+but a card with no ask bypasses that: in 1 post-change run headless grill pre-granted the spend
+as an ASSUMED default, so the card submitted with no ask. Agent-graded; the G2 spec owns the fix.

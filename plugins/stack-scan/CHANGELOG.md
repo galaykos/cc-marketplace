@@ -6,7 +6,7 @@ recorded; plugin-scout, which was merged into this plugin, kept its own changelo
 
 ## 0.18.3 — 2026-11-06
 
-- **The scan names game engines and Blender.** `scripts/scan.sh` adds rows for Godot (`project.godot`, the 4.x minor from `config/features`), Unity (`ProjectSettings/ProjectVersion.txt` beside `Assets/`), Unreal (`*.uproject` `EngineAssociation`) and Blender (a `*.blend`, `blender_manifest.toml` or a `.py` importing `bpy`, within 3 levels). A Godot + Blender repo printed an empty table before. The installed version is read only from a binary on PATH. Standing: gate — `scripts/__tests__/scan.test.sh` asserts each row and three negative controls (no Unity without `Assets/`, no Blender from a lone `.glb` or a plain `.py`, no engine rows for a Laravel repo).
+- **The scan names game engines and Blender.** `scripts/scan.sh` adds rows for Godot (`project.godot`, the 4.x minor from `config/features`), Unity (`ProjectSettings/ProjectVersion.txt` beside `Assets/`), Unreal (`*.uproject` `EngineAssociation`) and Blender (a `*.blend`, `blender_manifest.toml` or a `.py` importing `bpy` among the first 200 found, within 3 levels). A Godot + Blender repo printed an empty table before. The installed version is read only from a binary on PATH. Standing: gate — `scripts/__tests__/scan.test.sh` asserts each row and three negative controls (no Unity without `Assets/`, no Blender from a lone `.glb` or a plain `.py`, no engine rows for a Laravel repo).
 
 ## 0.18.2 — 2026-11-02
 
