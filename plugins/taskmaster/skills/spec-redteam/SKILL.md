@@ -15,7 +15,7 @@ argues the approach, and a spec hole is a hole whichever way the spec is built.
 
 ## The blast-radius gate
 
-A red-team is not free — run it only when the spec warrants it, **except under a boost, where it runs unconditionally** (see the Otherwise clause). Run when ANY holds:
+A red-team is not free — run it only when the spec warrants it (a boost excepted, below). Run when ANY holds:
 
 - the spec has **three or more success criteria**, or
 - it **touches more than one module or directory**, or
@@ -79,9 +79,8 @@ The agent returns a structured holes list grouped by lens, each hole tagged
 
 ## Present and resolve — blocking
 
-Standing: **agent-graded** — no script gates the spec→cards boundary on red-team
-resolution. `spec-ledger-lint.sh` checks only open UNKNOWN rows, and task-runner's
-completion gate is execution-side.
+Standing: **agent-graded** — no script gates the spec→cards boundary on red-team resolution
+(`spec-ledger-lint.sh` reads the ledger, not the holes).
 
 Present the holes grouped by lens, each with its recommended resolution (one of the
 three below) and a one-line why. Before marking one Recommended, grep the tests and
@@ -149,7 +148,7 @@ key; a 401); the minor rides the shared question as Accept. Then cards.
 
 ## Anti-patterns
 
-- **Running on a trivial spec — unboosted.** Under a boost it runs regardless (§ the gate's Exception).
+- **Running on a trivial spec, unboosted.**
 - **Passing the grill conversation to the agent.** Blindness is the mechanism; feed
   it only the spec path.
 - **Treating a dismiss as a failure.** The adversary produces judgment; a wrong hole

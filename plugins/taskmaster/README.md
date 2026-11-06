@@ -36,7 +36,10 @@ Without arguments it asks for a description first. The pipeline then:
    constraints come from lockfiles instead of guesses
 2. Dispatches the context-scout agent to scan the codebase before asking you anything
 3. Asks batched clarifying questions until every item in the ambiguity ledger is
-   resolved. Choices between options that look or flow differently are decided via
+   resolved. Round 1 always asks the detail level (Guided: the worker picks the
+   implementation; Exact: cards prescribe the edits) and lists the known bugs of what
+   the task builds (a form's double submit, a list's empty state) as rows with
+   recommended defaults, so each becomes a success criterion. Choices between options that look or flow differently are decided via
    shell-based mockups on a live preview URL — built from a shipped template with
    a sticky decision header, side-by-side/stacked/flip compare modes, and numbered
    callouts pairing tradeoff bullets to mockup regions, rendered in the project's

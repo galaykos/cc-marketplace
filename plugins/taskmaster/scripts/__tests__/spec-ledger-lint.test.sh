@@ -196,6 +196,31 @@ mk nocriteria.md '# Spec
 Do.'
 run_case "spec without success criteria blocked" 2 "no-criteria" --spec "$tmp/nocriteria.md"
 
+# 12) detail level: guided/exact pass silently, a missing line warns but passes, any other value blocks
+base='## Ambiguity ledger (final)
+| # | Item | Current understanding | Status | Source |
+|---|------|-----------------------|--------|--------|
+| 1 | Auth method | Session-based | CLEAR | config/auth.php:14 |
+## Success criteria
+- it works'
+mk dguided.md "# Spec
+Detail: guided
+$base"
+run_case "Detail: guided passes" 0 "" --spec "$tmp/dguided.md"
+mk dexact.md "# Spec
+**Detail:** exact
+$base"
+run_case "bold **Detail:** exact passes" 0 "" --spec "$tmp/dexact.md"
+mk dbad.md "# Spec
+Detail: loose
+$base"
+run_case "Detail: loose blocked" 2 "bad-detail" --spec "$tmp/dbad.md"
+mk dnone.md "# Spec
+$base"
+run_case "no Detail line warns and passes" 0 "WARN no-detail" --spec "$tmp/dnone.md"
+set +e; quiet=$("$lint" --spec "$tmp/dguided.md" 2>&1); set -e
+[ -z "$quiet" ] && { printf 'PASS: a guided spec prints nothing\n'; pass=$((pass+1)); } || { printf 'FAIL: guided spec printed <%s>\n' "$quiet"; fail=$((fail+1)); }
+
 # 11) usage errors
 run_case "missing --spec is usage error" 3 "usage error" --line "x"
 run_case "nonexistent file is usage error" 3 "not found" --spec "$tmp/nope.md"

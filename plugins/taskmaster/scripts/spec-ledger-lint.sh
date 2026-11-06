@@ -11,6 +11,8 @@
 #   no-source     : a CLEAR row's Source cell holds no alphanumeric character (empty,
 #                   a dash, a "?").
 #   no-criteria   : spec has no `## Success criteria` section.
+#   bad-detail    : a `Detail:` line whose value is not guided or exact.
+#   (WARN, exit 0) no-detail: no `Detail:` line; task-cards then cuts exact cards, today's default.
 #
 # CLI:
 #   spec-ledger-lint.sh --spec <spec.md>
@@ -101,6 +103,14 @@ fi
 
 grep -qEi '^##+[[:space:]]+Success criteria' "$spec" \
   || violation "no-criteria: spec has no '## Success criteria' section — coverage-check and spec-redteam both read that heading"
+
+# grill's detail question: `Detail: guided|exact` (bold label allowed). Missing only warns, so a spec written before the question existed still converts.
+detail=$(grep -m1 -E '^(\*\*)?Detail:' "$spec" | sed -E 's/^(\*\*)?Detail:(\*\*)?[[:space:]]*//; s/[[:space:]`*].*$//' | tr 'A-Z' 'a-z' || true)
+if grep -qE '^(\*\*)?Detail:' "$spec"; then
+  case "$detail" in guided|exact) ;; *) violation "bad-detail: 'Detail:' is '${detail}' — grill writes exactly guided or exact" ;; esac
+else
+  printf 'spec-ledger: WARN no-detail: no Detail: guided|exact line — task-cards will cut exact cards; grill asks this every run\n' >&2
+fi
 
 record_run pass
 exit 0
