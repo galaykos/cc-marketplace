@@ -111,6 +111,14 @@ if [ "$rc" = 2 ] && printf '%s' "$out" | grep -q interface-consumer && printf '%
   printf 'PASS: two defects -> both reported (rc=%s)\n' "$rc"; pass=$((pass+1))
 else printf 'FAIL: two defects -> both reported (rc=%s out=<%s>)\n' "$rc" "$out"; fail=$((fail+1)); fi
 
+# --- walk-surface: a <walk> on a file is never walked (task-runner walks routes at UI group close) ---
+with_walk() { printf '%s\n' "$good" | W="$1" awk '{ print } /^<proof>/ { print ENVIRON["W"] }'; }
+run_case "walk-surface blocks a png path" 2 "walk-surface" "$(with_walk '<walk surface="assets/preview/side.png" widths="768">side view</walk>')"
+run_case "walk-surface blocks uppercase with query" 2 "walk-surface" "$(with_walk '<walk surface="Out/Render.PNG?v=2">render</walk>')"
+run_case "walk-surface passes a route" 0 "" "$(with_walk '<walk surface="/approvals" widths="1280,375">seeded state</walk>')"
+run_case "walk-surface passes an svg web path" 0 "" "$(with_walk '<walk surface="/opengraph-image.svg">og image</walk>')"
+run_case "walk-surface passes an absolute url" 0 "" "$(with_walk '<walk surface="https://example.com/a.png">remote</walk>')"
+
 # --- usage ---
 set +e; out=$("$lint" 2>&1); rc=$?; set -e
 if [ "$rc" = 3 ]; then printf 'PASS: usage: no args (rc=3)\n'; pass=$((pass+1))

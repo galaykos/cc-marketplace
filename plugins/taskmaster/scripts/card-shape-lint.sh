@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # card-shape-lint.sh — author-time STRUCTURAL lint for a role-tagged task card (task-cards `references/card-shape.md`); a legacy bold-label card (no <card> wrapper, a **Verify:** line) passes with a NOTE.
-# Misses: whether a <criterion> describes behaviour rather than the diff, whether a reason="…" is true, whether the <change> is right (agent-graded in task-cards); the <verify> text (verify-teeth-lint.sh); <skill> names against the touched files (skills-stamp-lint.sh); a UI card's optional <walk> line.
+# Misses: whether a <criterion> describes behaviour rather than the diff, whether a reason="…" is true, whether the <change> is right (agent-graded in task-cards); the <verify> text (verify-teeth-lint.sh); <skill> names against the touched files (skills-stamp-lint.sh); whether a UI card has a <walk> line, and a route <walk> on a card whose diff touches no UI file (walked only when its milestone's diff touches UI).
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/card-shape-lint.sh (marketplace repository)
 
 # WHAT IT CATCHES (each -> exit 2, one `card-shape: <reason>` line on stderr per
@@ -20,6 +20,9 @@
 #                          skills/task-cards/references/agent-tags.md (read at run time,
 #                          never copied here; unreadable list -> this ONE check is skipped
 #                          with a NOTE, the rest still run)
+#   walk-surface         : a <walk> surface ending in a listed image/3D/video/audio extension
+#                          (png jpg/jpeg webp gif glb gltf blend fbx obj usdz stl 3mf mp4 webm mov
+#                          wav mp3; case-insensitive, before ?/#; http(s) URLs and .svg/.avif pass)
 #
 # CLI:
 #   card-shape-lint.sh --card <card.md>
@@ -124,6 +127,15 @@ if [ -n "$agent" ]; then
     printf '%s: NOTE agent vocabulary list unreadable at %s — <agent> value not checked\n' "$PROG" "$vocab_file" >&2
   fi
 fi
+
+while IFS= read -r l; do
+  surf=$(printf '%s' "$l" | sed -n 's/^<walk[^>]*[[:space:]]surface="\([^"]*\)".*/\1/p')
+  case "$surf" in http://*|https://*|'') continue ;; esac
+  path=$(printf '%s' "${surf%%[?#]*}" | tr 'A-Z' 'a-z')
+  if printf '%s' "$path" | grep -Eq '\.(png|jpe?g|webp|gif|glb|gltf|blend|fbx|obj|usdz|stl|3mf|mp4|webm|mov|wav|mp3)$'; then
+    finding "walk-surface: <walk> surface is a file, not a route — a look check on a render belongs in the card's <change> (render to PNG, then Read) — $l"
+  fi
+done < <(grep -E '^<walk([ />]|$)' "$card" || true)
 
 if [ "$findings" -gt 0 ]; then
   record_run block
