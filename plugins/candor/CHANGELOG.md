@@ -2,6 +2,11 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.12.3 — 2026-11-07
+
+- **The Stop gate runs about 4x faster on a long session.** `hooks/gate.sh` writes the transcript tail once to a temp file that every clause's jq reads. It used to hold the tail in a shell variable and pipe it through `printf` for each clause, which cost about 0.1 s per copy. On a 9.7 MB transcript one Stop went from 0.82 s to 0.21 s (3 runs each, this machine). Verdicts are unchanged: the gate harness (256 cases) and both completion-gate smoke suites pass, and the old and new gate agree on four slices of a real transcript. If no temp file can be made, the gate now sees no transcript and fails open. Standing: gate (unchanged clauses).
+- **The terse budgets are labelled advice.** The README and the `terse-output` skill now say that nothing counts a reply's lines before it is sent. Reports ran 15–40 prose lines against ultra's 6 in eight retro sessions, and a blocking clause was decided against. Standing: advice.
+
 ## 0.12.2 — 2026-11-05
 
 - **Clause 4 lets a pause or a status question end the turn.** It sent back a turn whose user had asked to pause the run, a fork's "what is our status here?", and similar asides, which forced an AskUserQuestion or a polling loop just to stop (`rationale/session-retro-2026-11-05.md`, issue 14). When the last human prompt in the transcript (task notifications, system reminders and command frames skipped) asks to pause, stop, hold or continue later, or is a question with no work verb, the clause prints what the run still owes, adds that the stop is allowed, and writes no nudge, so the run's next work turn is still blocked once. A work prompt, a question asking for work ("can you fix the parser and continue?") and "stop" inside a bug report ("the timer does not stop when paused, fix it") still block. Pinned by ten new `scripts/__tests__/gate.test.sh` cases, six red on 0.12.1. Residual: a pause asked in words this pattern does not know still blocks once per HEAD, as before.
