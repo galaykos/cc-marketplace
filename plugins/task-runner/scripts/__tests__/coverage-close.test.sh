@@ -40,6 +40,9 @@ expect() { # name rc grep
 index 'done (abc123)' 'done (def456)' 'done' > "$T/00-INDEX.md"
 expect "all cards done: clean, accepted gap listed" 0 "uncovered: 3. A note nobody built"
 
+index 'complete (abc)' 'merged' '✅ shipped' > "$T/00-INDEX.md"
+expect "complete, merged and ✅ count as done: clean" 0 "uncovered: 3."
+
 index 'parked — 3 failed cycles' 'done' 'done' > "$T/00-INDEX.md"
 expect "only card parked: missing" 1 "missing: 1. The thing exists — no covering card is done (01 parked"
 

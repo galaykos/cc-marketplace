@@ -35,11 +35,13 @@ for f in "$dir"/[0-9]*.md; do
   id=$(norm "$id"); n=$((n + 1))
   add "card	$id	$base"
   deps=$(grep -m1 -oE '<depends-on>[^<]*</depends-on>' "$f" | sed -e 's/<depends-on>//' -e 's#</depends-on>##')
+  set -f
   for d in $(printf '%s' "$deps" | tr ',;' '  '); do
     case "$d" in none | None | NONE | - | —) continue ;; esac
     printf '%s' "$d" | grep -qE '^[0-9]+$' || { add "badref	$id	$d"; continue; }
     add "dep	$id	$(norm "$d")"
   done
+  set +f
   while IFS= read -r c; do
     [ -n "$c" ] || continue
     printf '%s' "$c" | grep -qE '^[0-9]+$' || { add "badref	$id	$c"; continue; }
@@ -70,16 +72,18 @@ hits=$(printf '%s' "$facts" | awk -F'\t' '
   $1 == "create" { if (!(($3) in creator)) creator[$3] = $2; else creator[$3] = creator[$3] " " $2; next }
   $1 == "use"    { nu++; up[nu] = $2; uq[nu] = $3; next }
   $1 == "badref" { printf "card-set: bad-ref: card %s names \"%s\", not a card number\n", $2, $3; next }
-  function reach(a, b,    i, d) {   # does a depend on b, directly or through others?
+  function reach(a, b,    i, d, outer) {   # does a depend on b, directly or through others?
     if ((a, b) in memo) return memo[a, b]
-    if (a in visiting) return 0
-    visiting[a] = 1
+    if (a in visiting) { cut = 1; return 0 }
+    visiting[a] = 1; outer = cut; cut = 0
     for (i = 1; i <= nd[a]; i++) {
       d = dep[a, i]
       if (d == a) continue
       if (d == b || reach(d, b)) { delete visiting[a]; memo[a, b] = 1; return 1 }
     }
-    delete visiting[a]; memo[a, b] = 0; return 0
+    # A zero reached through a cycle cut short is not final, so it is not memoised.
+    delete visiting[a]; if (!cut) memo[a, b] = 0
+    cut = cut || outer; return 0
   }
   END {
     for (a in card) for (i = 1; i <= nd[a]; i++) {

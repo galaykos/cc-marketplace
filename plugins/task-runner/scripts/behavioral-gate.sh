@@ -69,12 +69,12 @@ ENTRYPOINTS=()
 DIFFERENTIALS=()
 CUSTOM_RUNNERS=()
 ISOLATE=0; IN_PLACE=0
-# A list FILE (`@paths.txt`, or a .txt/.lst/.list file whose lines name existing paths) expands to its lines: read as one
-# changed .txt it classified as doc and recorded no-executable-surface with nothing run (retro 2026-11-05, two sessions).
+# A path-list file expands to its lines: read as one changed .txt it would classify as doc and record no-executable-surface with nothing run.
 list_file() { # list_file <tok>: 0 when tok is a path-list file
   local l n=0 hit=0
   [ -f "$1" ] || return 1
   case "$1" in *.txt|*.lst|*.list) : ;; *) return 1 ;; esac
+  git ls-files --error-unmatch -- "$1" >/dev/null 2>&1 && return 1
   while IFS= read -r l || [ -n "$l" ]; do
     [ -n "$l" ] || continue
     case "$l" in *[[:space:]]*) return 1 ;; esac
@@ -87,7 +87,11 @@ add_changed() {
   set -f; IFS=$' \t\n'
   for tok in $raw; do
     [ -n "$tok" ] || continue
-    case "$tok" in @*) [ -f "${tok#@}" ] || usage "--changed $tok: no such list file"; tok=${tok#@} ;; *) list_file "$tok" || { CHANGED+=("$tok"); continue; } ;; esac
+    if [ "${tok#@}" != "$tok" ] && [ ! -e "$tok" ]; then
+      [ -f "${tok#@}" ] || usage "--changed $tok: no such list file"; tok=${tok#@}
+    elif ! list_file "$tok"; then
+      CHANGED+=("$tok"); continue
+    fi
     while IFS= read -r l || [ -n "$l" ]; do [ -n "$l" ] && CHANGED+=("$l"); done < "$tok"
     log "changed: read paths from list file $tok"
   done

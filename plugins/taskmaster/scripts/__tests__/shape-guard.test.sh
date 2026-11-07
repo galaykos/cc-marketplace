@@ -49,6 +49,8 @@ silent "no sentinel: write passes" Write "$(W "$R/src/app.ts")"
 bash "$S" write shape --owner taskmaster:brainstorm --session sess-A --cwd "$R" 2>/dev/null
 denies "round trip: real writer's sentinel denies src write" Write "$(W "$R/src/app.ts")"
 silent "design doc under taskmaster-docs passes" Write "$(W "$R/taskmaster-docs/specs/2026-11-07-x-design.md")"
+denies "a .. path out of taskmaster-docs denies" Write "$(W "$R/taskmaster-docs/../src/app.ts")"
+silent "a ./ segment inside taskmaster-docs passes" Write "$(W "$R/taskmaster-docs/specs/./x.md")"
 silent "plugin state under .claude passes" Write "$(W "$R/.claude/approaches/deliberated.json")"
 silent "outside the project root passes" Write "$(W "$T/elsewhere.txt")"
 denies "relative path resolved against cwd denies" Write "$(W "src/rel.ts")"

@@ -181,6 +181,14 @@ case_run "@ on a missing list file -> usage(3)" "$P2" 3 -- --changed @nope.txt
 printf 'release notes for the team\n' > "$D3/notes.txt"
 case_run "a prose .txt stays doc -> no-executable-surface(0)" "$D3" 0 --label 'no-executable-surface' -- --changed notes.txt
 rm -f "$P2/changed.txt" "$P2/files.dat" "$D3/notes.txt"
+TL="$WS/tracked-list"; mkdir -p "$TL"
+printf 'def f():\n    return 1\n' > "$TL/impl.py"
+printf 'impl.py\n' > "$TL/paths.txt"
+( cd "$TL" && git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm fixture )
+case_run "a git-tracked .txt naming paths is the changed file -> no-executable-surface(0)" "$TL" 0 --label 'no-executable-surface' -- --changed paths.txt
+AT="$WS/at-path"; mkdir -p "$AT/@scope/pkg"
+printf 'def f():\n    return 1\n' > "$AT/@scope/pkg/i.py"
+case_run "a real path starting with @ is a changed file, not a list -> no-behavioral-coverage(2)" "$AT" 2 --label 'no-behavioral-coverage' -- --changed @scope/pkg/i.py
 
 # ---- 3d. Unity C# with no runner names the pinned Editor, never a bare unity ----
 U3="$WS/unity"; mkdir -p "$U3/ProjectSettings" "$U3/Assets"

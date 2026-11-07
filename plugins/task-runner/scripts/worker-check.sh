@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # worker-check.sh [--since <sha>] — run after a worker returns, inside a registered run: reports a local branch other than the run's whose tip commit is newer than the run's registration (a stray commit), and a diff since <sha> (default start_sha) where 20+ added code lines and 30%+ of them are comment-only. Exit 1 with one `worker-check: <kind>: <detail>` line per finding on stdout, 0 clean, 3 no run or usage.
-# Misses: commands a worker ran (a migration against the dev database leaves no diff), a stray commit on the run's own branch, comments added in .md or config files, a block comment's inner lines without a leading `*`; a user committing on another branch during the run reads as stray.
+# Misses: commands a worker ran (a migration against the dev database leaves no diff), a new untracked file with an old mtime (cp -p, tar), a stray commit on the run's own branch, comments added in .md or config files, a block comment's inner lines without a leading `*`; a user committing on another branch during the run reads as stray.
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/worker-check.sh
 set -uo pipefail
 
@@ -34,7 +34,6 @@ reg=$(stat -c %Y "$sent" 2>/dev/null || stat -f %m "$sent" 2>/dev/null) || usage
 found=0
 say() { printf 'worker-check: %s\n' "$1"; found=1; }
 
-# 1. Stray commits: another local branch moved after the run registered.
 while IFS=$'\t' read -r ref ts sha subj; do
   [ -n "$ref" ] || continue
   [ "$ref" = "$branch" ] && continue
@@ -43,11 +42,11 @@ while IFS=$'\t' read -r ref ts sha subj; do
   say "stray-commit: branch $ref got ${sha:0:12} \"$subj\" after the run registered on ${branch:-its branch}"
 done < <(git -C "$root" for-each-ref refs/heads --format='%(refname:short)%09%(committerdate:unix)%09%(objectname)%09%(contents:subject)' 2>/dev/null)
 
-# 2. Comment-heavy diff: added comment-only lines in code files since the base, tracked changes plus new untracked files.
 counts=$(
   {
     git -C "$root" diff --unified=0 --no-color "$since" -- . 2>/dev/null
     git -C "$root" ls-files --others --exclude-standard -z 2>/dev/null | while IFS= read -r -d '' f; do
+      [ "$root/$f" -nt "$sent" ] || continue
       printf '+++ b/%s\n' "$f"; sed 's/^/+/' "$root/$f" 2>/dev/null
     done
   } | awk '

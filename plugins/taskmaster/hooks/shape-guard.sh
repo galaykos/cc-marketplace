@@ -1,6 +1,6 @@
 #!/bin/bash
 # shape-guard.sh — PreToolUse on Edit|Write|MultiEdit: denies a write to a project file outside taskmaster-docs/ and .claude/ while /taskmaster:brainstorm's `shape` sentinel (.claude/cc-phase.json, owner taskmaster:brainstorm, this session or none, under 120 min old) is live; visual-decisions' __design-preview__ scratch writes pass. Fails open.
-# Misses: writes through Bash (heredoc, sed -i, python) and NotebookEdit; files outside the project root; the agent clearing the sentinel itself; taskmaster:task's own shape phase, which is not guarded. Standing: gate.
+# Misses: writes through Bash (heredoc, sed -i, python) and NotebookEdit; a `..` path where realpath lacks -m -s (stock macOS); files outside the project root; the agent clearing the sentinel itself; taskmaster:task's own shape phase, which is not guarded. Standing: gate.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/hooks/shape-guard.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -38,6 +38,7 @@ cc_state_root() {
   [ -z "$ssid" ] || [ "$ssid" = "$sid" ] || exit 0
 
   case "$path" in /*) ;; *) path="$cwd/$path" ;; esac
+  if r=$(realpath -m -s -- "$root") && p=$(realpath -m -s -- "$path"); then root=$r; path=$p; fi
   case "$path" in
     *__design-preview__*|"$root"/taskmaster-docs/*|"$root"/.claude/*) exit 0 ;;
     "$root"/*) ;;

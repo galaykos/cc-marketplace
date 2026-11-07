@@ -43,6 +43,11 @@ touch -d '1 minute ago' .claude/task-runner/active-run.json
 expect "untracked comment-heavy file is reported" 1 "comment-heavy: 30 of 63"
 rm heavy.py
 
+{ for i in $(seq 1 30); do printf '# explain step %s\nx%s = %s\n' "$i" "$i" "$i"; done; } > old.py
+touch -d '2 hours ago' old.py
+expect "untracked comment-heavy file older than the run is not reported" 0 ""
+rm old.py
+
 { for i in $(seq 1 40); do printf 'const v%s = %s;\n' "$i" "$i"; done; printf '// why: the API caps at 40\n'; } > light.ts
 git add light.ts; git commit -qm "card 2"
 expect "a normal diff with one why-comment is clean" 0 ""

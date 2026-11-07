@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # coverage-close.sh --index <00-INDEX.md> — at run close, joins the index's card table (Status column) with its `## Coverage` table: prints `missing:` for a success criterion none of whose cards is done, `partial:` when only some are, and `uncovered:` for a criterion no card covers. Exit 1 on any missing or partial, 0 otherwise, 3 when the index lacks either table.
-# Misses: a card marked done whose change does not meet the criterion (the reviewers' job), a criterion row whose cards are named in prose rather than as numbers, a status cell not opening with "done" for finished work.
+# Misses: a card marked done whose change does not meet the criterion (the reviewers' job), a criterion row whose cards are named in prose rather than as numbers, a status cell not opening with done, complete(d), merged or ✅ for finished work.
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/coverage-close.sh
 set -uo pipefail
 
@@ -34,11 +34,11 @@ awk -F'|' '
       if (!insec && cc && sc) { mode = "card"; ccol = cc; scol = sc; next }
       next
     }
-    if ($0 ~ /^\|[ \t:|-]+\|[ \t]*$/) next           # separator row
+    if ($0 ~ /^\|[ \t:|-]+\|[ \t]*$/) next
     if (mode == "card") {
       id = trim($ccol); if (id !~ /^[0-9]+$/) next
       st = tolower(trim($scol)); id = norm(id)
-      cards[id] = 1; status[id] = st; done[id] = (st ~ /^done/); havecards = 1
+      cards[id] = 1; status[id] = st; done[id] = (st ~ /^(done|complete|completed|merged|✅)/); havecards = 1
       next
     }
     if (mode == "cov") {

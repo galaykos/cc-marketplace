@@ -70,6 +70,20 @@ D="$T/badref"
 card "$D" 01 '' '<change>x</change>' 'npm test' 'card two'
 expect "a non-number dependency fails" "$D" 2 bad-ref
 
+D="$T/glob"
+card "$D" 01 '' '<change>x</change>' 'npm test' '*'
+err=$(cd "$D" && bash "$L" --dir . 2>&1 >/dev/null); rc=$?
+if [ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'bad-ref: card 1 names "*"'; then ok "a * dependency is a bad-ref, not glob-expanded"
+else bad "a * dependency is a bad-ref, not glob-expanded (rc=$rc err=$err)"; fi
+
+D="$T/cycle-memo"
+card "$D" 01 '' '<change>x</change>' 'npm test' '02, 03'
+card "$D" 02 '' '<change>x</change>' 'npm test' '01'
+card "$D" 03 '' '<interface consumer="01">a()</interface><interface consumer="02">b()</interface>' 'npm test' 'none'
+err=$(bash "$L" --dir "$D" 2>&1 >/dev/null); rc=$?
+if [ "$rc" = 2 ] && printf '%s' "$err" | grep -q 'depends-cycle' && ! printf '%s' "$err" | grep -q 'interface-unordered'; then ok "a reach cut short by a cycle is not memoised as unreachable"
+else bad "a reach cut short by a cycle is not memoised as unreachable (rc=$rc err=$err)"; fi
+
 D="$T/empty"; mkdir -p "$D"
 expect "a dir with no cards is a usage error" "$D" 3 ""
 expect "no --dir is a usage error" "$T/nope" 3 ""
