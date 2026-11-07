@@ -117,5 +117,85 @@ class InsideBlender(unittest.TestCase):
         self.assertEqual(self.qa("--profile", "film")[0], 2)
 
 
+class UvDamagePure(unittest.TestCase):
+    def setUp(self):
+        self.qa = load()
+
+    def test_density_median_flips_and_outliers(self):
+        faces = [(1.0, 0.01)] * 9 + [(1.0, -0.01), (1.0, 0.5)]
+        self.assertEqual(self.qa.uv_density(faces), (0.01, 1, 1, 11))
+
+    def test_a_collapsed_median_and_new_flips_are_errors(self):
+        errors, warnings = self.qa.uv_damage((0.0113, 0, 3, 2000), (0.0014, 4, 40, 100))
+        self.assertEqual(len(errors), 2)
+        self.assertIn("fell 88%", errors[0])
+        self.assertEqual(len(warnings), 1)
+
+    def test_a_mild_decimation_passes(self):
+        self.assertEqual(self.qa.uv_damage((0.0113, 0, 3, 2000), (0.0102, 0, 5, 1000)), ([], []))
+
+    def test_one_stray_flip_on_a_large_mesh_is_a_warning(self):
+        errors, warnings = self.qa.uv_damage((0.0113, 0, 3, 2000), (0.0110, 1, 3, 1000))
+        self.assertEqual((errors, len(warnings)), ([], 1))
+
+
+UV_FIXTURE = '''
+import bpy, math, sys
+bpy.ops.wm.read_factory_settings(use_empty=True)
+bpy.ops.mesh.primitive_monkey_add()
+src = bpy.context.object; src.name = "Src"
+src.modifiers.new("S", "SUBSURF").levels = 2
+bpy.ops.object.modifier_apply(modifier="S")
+bpy.ops.object.mode_set(mode="EDIT"); bpy.ops.mesh.select_all(action="SELECT")
+bpy.ops.uv.smart_project(angle_limit=math.radians(5))
+bpy.ops.object.mode_set(mode="OBJECT")
+for name, ratio in (("Lod50", 0.5), ("Lod05", 0.05)):
+    d = src.copy(); d.data = src.data.copy(); d.name = name; bpy.context.scene.collection.objects.link(d)
+    d.modifiers.new("D", "DECIMATE").ratio = ratio
+    for o in bpy.context.scene.objects: o.select_set(o == d)
+    bpy.context.view_layer.objects.active = d
+    bpy.ops.object.modifier_apply(modifier="D")
+bpy.ops.wm.save_as_mainfile(filepath=sys.argv[sys.argv.index("--") + 1])
+'''
+
+
+@unittest.skipUnless(BLENDER and os.path.isfile(BLENDER), "set BLENDER_EXE to a Blender 5.x binary to run")
+class UvDamageInBlender(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.blend = os.path.join(cls.tmp.name, "uv.blend")
+        builder = os.path.join(cls.tmp.name, "build.py")
+        Path(builder).write_text(UV_FIXTURE)
+        subprocess.run([BLENDER, "-b", "--factory-startup", "--python-exit-code", "2", "--python", builder, "--", cls.blend],
+                       check=True, capture_output=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def compare(self, target):
+        result = subprocess.run([BLENDER, "-b", self.blend, "--factory-startup", "--python-exit-code", "2", "--python", str(SCRIPT),
+                                 "--", "--json", "--objects", target, "--compare-uv", "Src"], capture_output=True, text=True)
+        line = next((ln for ln in result.stdout.splitlines() if ln.startswith("{")), "{}")
+        return result.returncode, json.loads(line)
+
+    def test_heavy_decimation_on_a_fragmented_atlas_is_an_error(self):
+        code, report = self.compare("Lod05")
+        self.assertEqual(code, 1)
+        self.assertTrue(any("Lod05 vs Src: median UV area" in e for e in report["errors"]), report["errors"])
+
+    def test_half_decimation_keeps_the_uv_density(self):
+        _, report = self.compare("Lod50")
+        self.assertFalse([e for e in report["errors"] if "vs Src" in e], report["errors"])
+        self.assertFalse([w for w in report["warnings"] if "median UV area" in w])
+        self.assertIn("Lod50", report["uv_compare"]["texel_density_px_per_m"])
+
+    def test_a_source_without_uvs_is_a_could_not_run(self):
+        result = subprocess.run([BLENDER, "-b", self.blend, "--factory-startup", "--python-exit-code", "2", "--python", str(SCRIPT),
+                                 "--", "--objects", "Lod50", "--compare-uv", "Nope"], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,35 @@
+schema_version: "1.0"
+name: fbx-all-actions-cross-clips
+description: 'FBX "All Actions" (on by default) writes every action whose paths resolve on an object onto that object, so a prop action ships on the character; turning it off alone drops active-only actions, because FBX then writes NLA strips only. Probed in Blender 5.2.3 on 2026-11-07. Not run yet: the control arm is expected to fail.'
+execution:
+  timeout_seconds: 600
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Our Blender 5.2 scene has a character armature `Hero` with actions `Walk` and `Run`, and a prop
+    `Crate` (an empty) with an action `CrateSlide`. Every action animates only object or bone
+    transforms. We export one FBX for Unreal from a headless script.
+
+    Write the `bpy.ops.export_scene.fbx(...)` call and any scene setup the script needs so the FBX
+    holds exactly three clips: `Walk` and `Run` on Hero and `CrateSlide` on Crate. Reply with the
+    script only.
+runs: 3
+graders:
+  - type: llm
+    name: one-clip-per-owner
+    criteria: |
+      Facts (Blender 5.2 FBX exporter): `bake_anim_use_all_actions` defaults to True and writes
+      every action whose F-curve paths resolve on an object as a take on that object, so with
+      default settings CrateSlide is also written on Hero and Walk/Run on Crate when their paths
+      resolve. With `bake_anim_use_all_actions=False` and `bake_anim_use_nla_strips=True`, FBX writes
+      NLA-track strips only; an action that is only an object's active action is not written.
+
+      PASS requires both:
+      1. The export sets `bake_anim_use_all_actions=False`.
+      2. The script puts each action on its own object's NLA track (strips on Hero for Walk and
+         Run, on Crate for CrateSlide), or the reply otherwise ensures every clip is an NLA strip.
+
+      FAIL if the export leaves All Actions on (explicitly or by default), or turns it off while
+      relying on the active action alone.
+
+      Not graded: axis or scale settings, leaf bones, deform-only, file paths, code style.

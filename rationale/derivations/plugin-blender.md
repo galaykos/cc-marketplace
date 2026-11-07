@@ -56,6 +56,32 @@ A renamed variable, an aliased import (`from bpy import ops`) or `getattr` hides
 with a matching attribute and receiver spelling is reported. Removals outside the table (bone layers,
 `BMLoopUV.select`, render-pass names, Principled socket names) are not checked.
 
+**2026-11-07, rig and animation rules.** `armature-layers`, `bone-groups`, `bake-action-kwargs`, `uv-select`,
+`uv-select-bmesh`, `driver-fmodifier` and `bone-hide` were added from Track 6a research items R4, R6, A6, A7 and S4.
+Each was confirmed by introspecting Blender 5.2.3 (`bake_action(obj, *, action, frames, bake_options)`;
+`MeshUVLoopLayer` and `BMLoopUV` have no selection attributes; `driver_add` leaves 0 modifiers) and the 5.0 notes for
+the UV replacements (`BMLoop.uv_select_vert`, `uv_select_edge`, `BMFace.uv_select`). `driver-fmodifier` fires only
+in a file that calls `driver_add`, so `curve.modifiers[0]` after `modifiers.new` stays silent. `rigify-convert-rotation`
+(5.3) waits for 5.3 to be final. The one bpy script in this repo stayed clean; no larger corpus was scanned.
+
+## plugins/blender/scripts/anim_audit.py
+
+Added 2026-11-07 (Track 6a of the gitignored `taskmaster-docs/integration-roadmap-2026-11-07.md`; research in
+`taskmaster-docs/integration-roadmap-2026-11-07/blender-research.md`, items A1–A11, M2). The exporter is the oracle:
+the script runs `export_scene.fbx` and `export_scene.gltf` with the project's overrides and reads the files (FBX
+AnimStack names from the binary, glTF sampler input ranges from the JSON), so it never re-implements the exporters'
+action-membership rules. Probed in Blender 5.2.3 LTS on 2026-11-07 while building it:
+- three empties, one location action each, default FBX: nine takes (`Object|Action` for every pair);
+- `bake_anim_use_all_actions=False` with `bake_anim_use_nla_strips` on (the default): no take for an action that is
+  only active; NLA strips export as takes named by the strip; both off: one take named after the scene;
+- both on with NLA strips: each strip ships twice (`Walk` and `Hero|Walk`);
+- glTF clip keyed 101–124 at 24 fps: 4.208–5.167 s;
+- `Object.path_resolve` on a missing bone path raises `ValueError`, which is how a stale path is named.
+The second and third bullets changed the fix the first version printed ("turn All Actions off"), which on its own
+drops every active-only action. Residuals: the engine's import is not run; an action with no user is cross-checked only against
+the object its 5.x slot identifier names (a renamed object keeps the old slot name, so the check is skipped), and
+`--loop` borrows that object or warns; actions before 4.4 have no slots and are skipped; NLA strip names that differ from their action's name are matched by strip name.
+
 ## plugins/blender/scripts/blender_qa.py
 
 ### Upstream docstring (EL4CTEO/blender-skills@71d031d skills/blender-asset-qa/scripts/qa_check.py), verbatim
@@ -86,6 +112,20 @@ Returns {"pass": bool, "errors": [...], "warnings": [...], "objects": {name: met
 
 CI runs only the pure parts. The geometry checks are upstream's, exercised here on three fixtures in 5.2.3; they
 were not re-derived. No check judges silhouette, deformation, shading or material intent.
+
+**2026-11-07, `--compare-uv`.** Research item S1 measured a 5° smart-projected Suzanne at subdivision 2: median UV/3D
+area ratio 0.0113, then 0.0102 at decimate 0.5, 0.0046 at 0.2 and 0.0014 at 0.05. The 30% threshold sits between 0.5
+and 0.2. The fixture in `test_blender_qa.py` showed one flipped UV face at decimate 0.5, so flips fail only past 1% of
+faces (at least 3) and warn below that.
+
+## plugins/blender/scripts/rig_check.py
+
+Ported 2026-11-07 from EL4CTEO/blender-skills@fb92cfb (MIT; NOTICE lists the changes) because upstream exits 0 on a
+failed verdict. Added checks come from the Track 6a research (R1–R3, R7–R9, R12). The FBX deform-only model (every
+deform bone plus each ancestor with a deforming descendant) was checked against the exporter on 2026-11-07: a full
+human metarig generated with Rigify in 5.2.3 exported 278 bones with `use_armature_deform_only=True`, the same set
+the model computes, under the roots `root` and `MCH-torso.parent`. Residuals: Humanoid/UE/R15 maps are name
+patterns only; weight symmetry is sampled; B-Bone loss in an engine was read in exporter source, not observed.
 
 ## Provenance
 

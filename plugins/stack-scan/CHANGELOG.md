@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.18.4 — 2026-11-07
+
+- **Catalog row for blender 0.3.0.** `plugin-scout/references/catalog.md` is regenerated from the blender plugin's new description, which now names rigging, animation, `anim_audit.py` and `rig_check.py`. No behaviour change. Standing: gate (`scripts/generate.sh --check`).
+
 ## 0.18.3 — 2026-11-06
 
 - **The scan names game engines and Blender.** `scripts/scan.sh` adds rows for Godot (`project.godot`, the 4.x minor from `config/features`), Unity (`ProjectSettings/ProjectVersion.txt` beside `Assets/`), Unreal (`*.uproject` `EngineAssociation`) and Blender (a `*.blend`, `blender_manifest.toml` or a `.py` importing `bpy` among the first 200 found, within 3 levels). A Godot + Blender repo printed an empty table before. The installed version is read only from a binary on PATH. Standing: gate — `scripts/__tests__/scan.test.sh` asserts each row and three negative controls (no Unity without `Assets/`, no Blender from a lone `.glb` or a plain `.py`, no engine rows for a Laravel repo).

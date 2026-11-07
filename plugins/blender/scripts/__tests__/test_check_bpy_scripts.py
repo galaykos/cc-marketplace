@@ -32,6 +32,38 @@ ob.modifiers.new("B", "BOOLEAN").solver = 'FAST'
 mat = bpy.data.materials.new("M")
 mat.use_nodes = True
 '''
+RIG_OLD = '''import bpy, bmesh
+from bpy_extras import anim_utils
+ob = bpy.context.object
+arm = ob.data
+arm.layers[0] = True
+grp = ob.pose.bone_groups.new(name="g")
+anim_utils.bake_action(ob, action=None, frames=range(1, 10), only_selected=False)
+print(ob.data.uv_layers.active.vertex_selection)
+bm = bmesh.new(); uv_layer = bm.loops.layers.uv.active
+loop = bm.faces[0].loops[0]; loop[uv_layer].select = True
+fc = ob.driver_add("location", 0)
+fc.modifiers.remove(fc.modifiers[0])
+ob.data.bones["spine"].hide = True
+from bpy_extras.anim_utils import bake_action
+bake_action(ob, action=None, frames=range(1, 10), do_pose=True)
+'''
+RIG_NEW = '''import bpy, bmesh
+from bpy_extras import anim_utils
+ob = bpy.context.object
+gp = bpy.data.grease_pencils["G"]
+print(gp.layers[0].name)
+ob.pose.bones["spine"].hide = True
+col = ob.data.collections.new("DEF")
+opts = anim_utils.BakeOptions(only_selected=False, do_pose=True, do_object=False, do_visual_keying=True, do_constraint_clear=False,
+                              do_parents_clear=False, do_clean=False, do_location=True, do_rotation=True, do_scale=True,
+                              do_bbone=False, do_custom_props=False)
+anim_utils.bake_action(ob, action=None, frames=range(1, 10), bake_options=opts)
+curve = ob.animation_data.action.layers[0]
+mod = curve.modifiers.new("NOISE"); print(curve.modifiers[0])
+bm = bmesh.new(); loop = bm.faces[0].loops[0]; loop.uv_select_vert = True
+ob.driver_add("location", 1)
+'''
 NEW_SCRIPT = '''import bpy
 from bpy_extras import anim_utils
 ob = bpy.context.active_object
@@ -95,6 +127,18 @@ class CheckerCli(unittest.TestCase):
     def test_replacement_api_is_clean_at_52(self):
         self.write("tools/rig.py", NEW_SCRIPT)
         code, report = self.report("--blender", "5.2", "--strict")
+        self.assertEqual((code, report["error_count"], report["warning_count"]), (0, 0, 0), report)
+
+    def test_rig_and_anim_rules_fire_and_their_neighbours_stay_silent(self):
+        self.write("tools/rig_old.py", RIG_OLD)
+        self.write("tools/rig_new.py", RIG_NEW)
+        code, report = self.report("--blender", "5.2")
+        self.assertEqual(code, 1)
+        old = {(e["rule"], e["line"]) for e in report["errors"] + report["warnings"] if e["file"] == "tools/rig_old.py"}
+        self.assertEqual(old, {("armature-layers", 5), ("bone-groups", 6), ("bake-action-kwargs", 7), ("uv-select", 8),
+                               ("uv-select-bmesh", 10), ("driver-fmodifier", 12), ("bone-hide", 13), ("bake-action-kwargs", 15)})
+        self.assertFalse([e for e in report["errors"] + report["warnings"] if e["file"] == "tools/rig_new.py"], report)
+        code, report = self.report("--blender", "3.6")
         self.assertEqual((code, report["error_count"], report["warning_count"]), (0, 0, 0), report)
 
     def test_version_windows_flip_with_the_target(self):

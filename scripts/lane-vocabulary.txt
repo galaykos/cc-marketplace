@@ -57,6 +57,7 @@ accessibility-remediation
 ai-3d-generation
 astryx-idioms
 blender-idioms
+blender-rig-anim-export
 cicd-and-deploy-idioms
 code-film-production
 comment-placement-rule

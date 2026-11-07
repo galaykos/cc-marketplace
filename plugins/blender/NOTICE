@@ -10,6 +10,14 @@ licensed under the MIT License (see LICENSE). Modified for cc-marketplace (2026-
   {"pass": false} and exited 0, which a CI step reads as success;
 - output is a text summary or one --json object instead of the upstream @@JSON@@ marker line.
 
+scripts/rig_check.py is derived from EL4CTEO/blender-skills@fb92cfb
+(skills/blender-character-rigging/scripts/rig_check.py), Copyright (c) 2026 EL4CTEO, licensed under the MIT
+License (see LICENSE). Modified for cc-marketplace (2026-11-07):
+- the --fix and --save modes are dropped (the script only reads the scene) and the _bpyx helpers are inlined;
+- it exits 0 on pass, 1 on errors (or warnings with --strict) and 2 when it cannot run, instead of exiting 0;
+- added: the FBX "Only Deform Bones" root model, B-Bone, Preserve Volume and Bone Envelopes checks, empty deform
+  groups, and shape-key mask, relative-key and mute checks.
+
 All other files are original to cc-marketplace. The skill and its references were written from primary
 documentation and from probes of a Blender 5.2.3 LTS binary; facts first found in EL4CTEO/blender-skills,
 ra100/blender-claude-plugin, MartinRapcan/blender-claude-skill and AiverReaver/blender-unreal-pipeline-skill
