@@ -48,9 +48,8 @@ note `role-floors.md unresolved — floors not applied`.
 ## The panel — ultra only
 
 Under `ULTRA-TASK ACTIVE`, via either dispatch mechanism (the Workflow tool or the Agent
-tool), this is a **blind panel**, not a single adversary — the width `ultra/SKILL.md` and
-`/taskmaster:redteam` already promise. Unboosted runs keep the single adversary above;
-nothing here changes a standard run.
+tool), this is a **blind panel**, not a single adversary. Unboosted runs keep the
+single adversary above.
 
 Size N by the gate conditions already computed above. Panel width is owned by
 `task-runner:verification-panels` § Panel width; `ultra/references/dispatch-tiers.md`
@@ -69,8 +68,7 @@ first match wins:
 3. Exactly one non-security bullet fires → **2 adversaries**.
 4. Zero bullets fire but a boost forces the run (§ the gate's Exception) → **2 adversaries**.
 
-Count the four bullets as four; the security bullet is ONE disjunction counted once, not
-once per surface named in it. These counts are ceilings, not quotas. Panel MECHANICS —
+The security bullet counts once, however many surfaces it names. These counts are ceilings, not quotas. Panel MECHANICS —
 blindness, dedupe, the no-`Workflow` label — are `task-runner:verification-panels`; do
 not re-derive them.
 
