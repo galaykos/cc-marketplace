@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SubagentStop": [
+      {
+        "matcher": "^ultra-deep-research:(researcher|verifier)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/verify-return.sh\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

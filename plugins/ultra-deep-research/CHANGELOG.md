@@ -4,6 +4,10 @@ All notable changes to the ultra-deep-research plugin. Entries start at 0.6.0, w
 this file was created; earlier releases have no entries rather than invented ones.
 The verdict lint referenced below landed in 0.5.0, before that.
 
+## 0.8.0 — 2026-11-07
+
+- **Cited means fetched, enforced at the agent's stop.** New SubagentStop hook `hooks/verify-return.sh`, matched to `ultra-deep-research:researcher` and `ultra-deep-research:verifier`. It sends a return back (exit 2, reason on stderr) when a URL on a `url:` or `FETCH:` line never appears in that agent's own WebFetch calls or their results. New `scripts/sources-check.sh` does that check; a redirect target counts, and a URL seen only in WebSearch results does not. The hook also runs `verdict-lint.sh` on every verifier return, which was only prose before. An agent is let through after two blocked returns. Standing: gate; `scripts/__tests__/verify-return.test.sh`, 11 cases.
+
 ## 0.7.4 — 2026-10-28
 
 ### Changed

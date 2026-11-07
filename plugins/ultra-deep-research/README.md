@@ -92,6 +92,9 @@ which is what the manifest's request count exists to expose.
   atomic, cited, date-stamped, tiered claims for a single facet.
 - **Agent** `verifier` — adversarial refuter: tries to break each load-bearing claim
   before it is trusted.
+- **Hook** `hooks/verify-return.sh` (SubagentStop on `researcher` and `verifier`) — sends a
+  return back when it cites a URL the agent never fetched (`scripts/sources-check.sh`), or when
+  a verdict block fails `scripts/verdict-lint.sh`; at most twice per agent.
 
 ## What you get back
 
@@ -107,10 +110,13 @@ and attacked before it is trusted. No fabricated URLs, dates, or figures — an 
 
 Since 0.5.0 the verdict FORMAT half has a lint: `scripts/verdict-lint.sh` rejects a
 `confirmed` verdict missing a verbatim quote, retrieval timestamp, or corroborating
-source (the skill demotes it to `contested`), with a fixture harness CI runs. Its
-standing is **agent-graded**, not a gate: only the skill's and the command's prose tells
-the orchestrator to pipe each verdict through it, no hook or CI step runs it over a
-live run, and the harness proves the script, not that a run invoked it. Whether the
+source (the skill demotes it to `contested`), with a fixture harness CI runs. Since 0.8.0 a SubagentStop hook runs it on every verifier return, and runs
+`scripts/sources-check.sh` on every researcher and verifier return: each URL on a `url:` or
+`FETCH:` line must appear in that agent's own WebFetch calls or their results (a redirect
+target counts), or the agent is sent back to fetch it, drop the claim, or mark it
+unverifiable. Standing: **gate** for the format and for "cited means fetched"; the hook
+lets an agent stop after two blocked returns, so a stuck agent is never trapped, and the
+orchestrator's own demotion step still applies. Whether the
 quote is real and the sources independent is agent-graded too — the lint cannot know,
 and saying so is the point.
 

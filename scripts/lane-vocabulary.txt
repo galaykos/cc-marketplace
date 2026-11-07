@@ -117,6 +117,7 @@ game-platform-floors
 godot-headless-test-runner
 godot-reference-check
 load-bearing-claim-refutation
+cited-source-fetch-check
 own-docs-drift-scan
 produced-artifact-execution
 test-authoring
