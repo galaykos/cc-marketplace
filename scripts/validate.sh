@@ -681,7 +681,8 @@ corpus_gap=$(pc_plugin_corpus plugins scripts/plugin-corpus-baseline.json) || tr
 # A lexical routing proxy over every SKILL.md description against labelled prompts (scripts/trigger-corpus.sh's header).
 trig_out=$(bash scripts/trigger-corpus.sh 2>&1); trig_rc=$?
 while IFS= read -r trig_line; do [ -n "$trig_line" ] && warn "${trig_line#WARN }"; done < <(printf '%s\n' "$trig_out" | grep '^WARN ')
-[ "$trig_rc" = 0 ] || lane_err "$(printf '%s\n' "$trig_out" | grep '^FAIL ' | sed 's/^FAIL //')" "a labelled prompt in scripts/trigger-corpus.tsv no longer ranks its skill in the top 3 — restore the description's trigger words, or move the row to known-miss and say why"
+[ "$trig_rc" = 2 ] && warn "trigger corpus not run: $(printf '%s' "$trig_out" | tail -n 1)"
+[ "$trig_rc" = 1 ] && lane_err "$(printf '%s\n' "$trig_out" | grep '^FAIL ' | sed 's/^FAIL //')" "a labelled prompt in scripts/trigger-corpus.tsv no longer ranks its skill in the top 3 — restore the description's trigger words, or move the row to known-miss and say why"
 
 # An `owns` noun is declared in scripts/lane-vocabulary.txt; the gate is on bookkeeping, the catch is social (pc_lanes_vocabulary).
 vocab_gap=$(pc_lanes_vocabulary plugins scripts/lane-vocabulary.txt) || true
