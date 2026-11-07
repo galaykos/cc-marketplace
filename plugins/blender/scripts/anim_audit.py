@@ -64,7 +64,8 @@ def gltf_clips(doc):
 
 
 def judge(actions, stacks, clips, fps, expect=None, scene=None, all_actions=True):
-    """Pure verdicts. actions: {name: {"users": [objects], "fake_only": bool, "nla": bool, "curves": int, "stale": [(obj, path)]}}.
+    """Pure verdicts. actions: {name: {"users": [objects], "owners": [objects its slots name, when it has no user], "fake_only": bool, "nla": bool,
+    "curves": int, "stale": [(obj, path)]}}; an action with neither users nor owners is not checked for fbx-cross.
     stacks: FBX stack names ('Object|Action' from All Actions, a bare strip name from NLA, the scene name for one baked take)
     or None when FBX was not checked; clips: glTF (name, t0, t1) or None. Returns (errors, warnings)."""
     errors, warnings = [], []
@@ -89,7 +90,8 @@ def judge(actions, stacks, clips, fps, expect=None, scene=None, all_actions=True
                 else:
                     why = ""
                 errors.append(("fbx-dropped", name, f"FBX did not export {name}{why}"))
-            for ob in sorted(paired.get(name, set()) - set(a["users"])):
+            owners = set(a["users"] or a["owners"])
+            for ob in sorted(paired.get(name, set()) - owners if owners else ()):
                 errors.append(("fbx-cross", name, f"FBX exports {name} on {ob}, which never uses it: All Actions (bake_anim_use_all_actions, on by default) "
                                                   "writes every action whose paths resolve on an object; push each clip onto its object's NLA track "
                                                   "and export with bake_anim_use_all_actions=False"))
@@ -147,6 +149,11 @@ def fcurves(action):
         yield from getattr(action, "fcurves", [])
 
 
+def slot_owners(act):
+    """Objects named by a slot identifier ('OB' + name, 4.4+); a slot keeps the name the object had when it was keyed."""
+    return sorted(s.identifier[2:] for s in getattr(act, "slots", []) if s.identifier.startswith("OB") and s.identifier[2:] in bpy.data.objects)
+
+
 def inventory():
     users, on_nla = {}, set()
     for ob in bpy.data.objects:
@@ -173,8 +180,8 @@ def inventory():
                 except ValueError:
                     stale.append((ob_name, fc.data_path))
                     break
-        out[act.name] = {"users": u, "fake_only": not u and act.use_fake_user, "nla": act.name in on_nla, "curves": len(curves), "stale": stale,
-                         "range": [round(v, 3) for v in act.frame_range]}
+        out[act.name] = {"users": u, "owners": [] if u else slot_owners(act), "fake_only": not u and act.use_fake_user, "nla": act.name in on_nla,
+                         "curves": len(curves), "stale": stale, "range": [round(v, 3) for v in act.frame_range]}
     return out
 
 
@@ -191,19 +198,46 @@ def pose_at(ob, frame):
     return out
 
 
+def borrowed_poses(ob, act, frames):
+    """Poses at frames with act assigned to ob through its own slot; ob's previous action and slot are put back."""
+    created = ob.animation_data is None
+    ad = ob.animation_data or ob.animation_data_create()
+    prev = ad.action, ad.action_slot
+    ad.action = act
+    ad.action_slot = next(s for s in act.slots if s.identifier == "OB" + ob.name)
+    try:
+        return [pose_at(ob, f) for f in frames]
+    finally:
+        if created:
+            ob.animation_data_clear()
+        else:
+            ad.action = prev[0]
+            if prev[0] is not None:
+                ad.action_slot = prev[1]
+
+
 def check_loops(names, tol):
-    errors = []
+    errors, warnings = [], []
     for name in names:
         act = bpy.data.actions.get(name)
-        ob = next((o for o in bpy.data.objects if o.animation_data and o.animation_data.action == act), None) if act else None
-        if ob is None:
-            errors.append(("loop-unchecked", name, f"{name} is not the active action of any object, so its loop was not checked"))
+        if act is None:
+            errors.append(("loop-unchecked", name, f"no action is named {name}, so its loop was not checked"))
             continue
         start, end = act.frame_range
-        msg = loop_verdict(name, pose_at(ob, start), pose_at(ob, end), tol)
+        ob = next((o for o in bpy.data.objects if o.animation_data and o.animation_data.action == act), None)
+        owners = slot_owners(act) if ob is None else []
+        if ob is not None:
+            first, last = pose_at(ob, start), pose_at(ob, end)
+        elif len(owners) == 1:
+            first, last = borrowed_poses(bpy.data.objects[owners[0]], act, (start, end))
+        else:
+            warnings.append(("loop-unchecked", name, f"{name} is no object's active action and its slots name {len(owners)} objects, "
+                                                     "so its loop was not checked"))
+            continue
+        msg = loop_verdict(name, first, last, tol)
         if msg:
             errors.append(("loop-pop", name, msg))
-    return errors
+    return errors, warnings
 
 
 def export(fmt, folder, overrides):
@@ -226,7 +260,9 @@ def run(args):
     clips = export("gltf", folder, dict(args.gltf)) if args.format in ("gltf", "both") else None
     fbx = dict(args.fbx)
     errors, warnings = judge(actions, stacks, clips, fps, args.expect, scene.name, fbx.get("bake_anim_use_all_actions", True))
-    errors += check_loops(args.loop, args.tol)
+    loop_errors, loop_warnings = check_loops(args.loop, args.tol)
+    errors += loop_errors
+    warnings += loop_warnings
     return {"tool": "anim_audit", "blender": bpy.app.version_string, "fps": round(fps, 3), "actions": actions,
             "fbx_stacks": stacks, "gltf_clips": clips, "exports": folder if args.keep else None,
             "errors": [dict(check=c, action=a, message=m) for c, a, m in errors],

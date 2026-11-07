@@ -148,7 +148,6 @@ def check_mesh(ob, arm, deform_names, root_names, profile, limit):
         on_root += any(n in root_names for n, _ in ws)
     orphan = [g.name for g in ob.vertex_groups if g.name not in bones]
     weighted = {gi.get(g.group) for v in ob.data.vertices for g in v.groups if g.weight > 1e-4}
-    empty_deform = sorted(n for n in deform_names if n not in weighted)
     asym = 0
     verts = ob.data.vertices
     kd = KDTree(len(verts))
@@ -168,8 +167,6 @@ def check_mesh(ob, arm, deform_names, root_names, profile, limit):
     if unw:
         errors.append(f"{ob.name}: {unw} unweighted verts: they stay in place, and glTF adds a 'neutral_bone' joint for them. "
                       "A failed automatic-weights run still reports FINISHED and stops at the bone that failed")
-    if empty_deform:
-        warnings.append(f"{ob.name}: {len(empty_deform)} deform bones weight no vertex {empty_deform[:5]} (an automatic-weights failure stops early)")
     if over:
         errors.append(f"{ob.name}: {over} verts over {limit} influences (the engine keeps the highest {limit})")
     if unnorm:
@@ -194,7 +191,7 @@ def check_mesh(ob, arm, deform_names, root_names, profile, limit):
         if muted:
             warnings.append(f"{ob.name}: muted shape keys {muted[:5]}: glTF skips them")
     return errors, warnings, {"verts": len(verts), "unweighted": unw, f"over_{limit}": over, "not_normalized": unnorm,
-                              "deform_bones_without_weights": len(empty_deform), "groups_without_bone": orphan[:10]}
+                              "groups_without_bone": orphan[:10]}, weighted
 
 
 def run(armature=None, meshes=None, profile="game", limit=4, **_):
@@ -214,14 +211,18 @@ def run(armature=None, meshes=None, profile="game", limit=4, **_):
         obs = [bpy.data.objects[n] for n in meshes]
     else:
         obs = [o for o in bpy.data.objects if o.type == "MESH" and any(m.type == "ARMATURE" and m.object == arm for m in o.modifiers)]
-    skin = {}
+    skin, weighted = {}, set()
     for ob in obs:
-        e, w, s = check_mesh(ob, arm, deform_names, root_names, profile, limit)
+        e, w, s, hit = check_mesh(ob, arm, deform_names, root_names, profile, limit)
         errors += e
         warnings += w
         skin[ob.name] = s
+        weighted |= hit
+    empty_deform = sorted(deform_names - weighted) if obs else []
+    if empty_deform:
+        warnings.append(f"{len(empty_deform)} deform bones weight no vertex in any checked mesh {empty_deform[:5]} (an automatic-weights failure stops early)")
     return {"tool": "rig_check", "armature": arm.name, "bones": len(arm.data.bones), "deform_bones": len(deform_names),
-            "info": info, "skin": skin, "errors": errors, "warnings": warnings}
+            "deform_bones_without_weights": len(empty_deform), "info": info, "skin": skin, "errors": errors, "warnings": warnings}
 
 
 def main(argv=None):

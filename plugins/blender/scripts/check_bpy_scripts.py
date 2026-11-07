@@ -28,7 +28,7 @@ SHADED = r"(?i)(?:^|\.)(?:mat|material|world|scene|scn|sc|\w+_mat|\w+_material)$
 ID_LIKE = r"(?i)(?:^|\.)(?:scene|scn|sc|ob|obj|object|world|mat|material|view_layer|camera|light)$|(?:scenes|objects|materials)\[[^\]]*\]$"
 ARMATURE = r"(?i)(?:^|\.)(?:arm|armature|rig|\w+_arm|\w+_armature|\w+_rig)$|armatures\[[^\]]*\]$|\.bones\[[^\]]*\]$|(?:^|\.)(?:bone|ebone|edit_bone|\w+_bone)$"
 UV_LOOP = r"(?i)\[\s*(?:uv_layer|uv_lay|uv|uvl|lay)\s*\]$|(?:^|\.)(?:luv|loop_uv|uv_loop)$"
-FCURVE = r"(?i)(?:^|\.)(?:fc|fcu|fcurve|curve|drv|driver_fc|\w+_fc|\w+_fcu|\w+_fcurve)$"
+FCURVE = r"(?i)(?:^|\.)(?:fc|fcu|fcurve|drv|driver_fc|\w+_fc|\w+_fcu|\w+_fcurve)$"
 FOREVER = None
 
 # A rule fires for targets from the first version of its window up to, not including, the second.
@@ -239,8 +239,8 @@ def scan_tree(tree, rules):
             elif kind == "value":
                 for _ in value_hits(node, rule):
                     yield line, rule
-            elif kind == "kwarg" and isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) \
-                    and node.func.attr == rule["func"] and any(k.arg in rule["names"] for k in node.keywords):
+            elif kind == "kwarg" and isinstance(node, ast.Call) and getattr(node.func, "attr", getattr(node.func, "id", None)) == rule["func"] \
+                    and any(k.arg in rule["names"] for k in node.keywords):
                 yield line, rule
             elif kind == "call" and isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == rule["func"]:
                 owner = node.func.value

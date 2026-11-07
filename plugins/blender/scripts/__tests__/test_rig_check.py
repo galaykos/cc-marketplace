@@ -61,6 +61,12 @@ if broken:
     mod.use_deform_preserve_volume = True
     g.add([0, 1], 1.0, "REPLACE")
     body.shape_key_add(name="Basis"); smile = body.shape_key_add(name="Smile"); smile.vertex_group = "spine"
+elif sys.argv[-1] == "split":
+    g.add([0, 1, 2, 3], 1.0, "REPLACE")
+    me2 = bpy.data.meshes.new("Legs"); me2.from_pydata([(0, 0, 0), (0.1, 0, 0.2), (0, 0.1, 0.4)], [], [(0, 1, 2)])
+    legs = bpy.data.objects.new("Legs", me2); sc.collection.objects.link(legs)
+    legs.modifiers.new("Armature", "ARMATURE").object = arm
+    legs.vertex_groups.new(name="hips").add([0, 1, 2], 1.0, "REPLACE")
 else:
     g.add([2, 3], 1.0, "REPLACE")
     body.vertex_groups.new(name="hips").add([0, 1], 1.0, "REPLACE")
@@ -76,7 +82,7 @@ class InBlender(unittest.TestCase):
         builder = os.path.join(cls.tmp.name, "build.py")
         Path(builder).write_text(BUILD)
         cls.blends = {}
-        for kind in ("clean", "broken"):
+        for kind in ("clean", "broken", "split"):
             out = os.path.join(cls.tmp.name, kind + ".blend")
             subprocess.run([BLENDER, "-b", "--factory-startup", "--python-exit-code", "2", "--python", builder, "--", out, kind],
                            check=True, capture_output=True)
@@ -100,9 +106,14 @@ class InBlender(unittest.TestCase):
         code, report = self.check("broken")
         self.assertEqual(code, 1)
         text = "\n".join(report["errors"] + report["warnings"])
-        for needle in ("2 roots", "Preserve Volume", "2 unweighted verts", "vertex-group mask", "B-Bone segments", "non-deform bones"):
+        for needle in ("2 roots", "Preserve Volume", "2 unweighted verts", "vertex-group mask", "B-Bone segments", "non-deform bones",
+                       "1 deform bones weight no vertex in any checked mesh ['arm.L']"):
             self.assertIn(needle, text)
         self.assertEqual(report["info"]["deform_only_export"]["roots"], ["MCH-torso", "hips"])
+
+    def test_meshes_that_each_weight_a_different_bone_leave_no_bone_empty(self):
+        code, report = self.check("split", "--strict")
+        self.assertEqual((code, sorted(report["skin"]), report["errors"], report["warnings"]), (0, ["Body", "Legs"], [], []), report)
 
     def test_a_missing_armature_is_a_could_not_run(self):
         code, _ = self.check("clean", "--armature", "Nope")

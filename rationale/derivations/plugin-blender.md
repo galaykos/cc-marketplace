@@ -78,8 +78,9 @@ action-membership rules. Probed in Blender 5.2.3 LTS on 2026-11-07 while buildin
 - glTF clip keyed 101–124 at 24 fps: 4.208–5.167 s;
 - `Object.path_resolve` on a missing bone path raises `ValueError`, which is how a stale path is named.
 The second and third bullets changed the fix the first version printed ("turn All Actions off"), which on its own
-drops every active-only action. Residuals: the engine's import is not run; a loop is checked only for an action that
-is some object's active action; NLA strip names that differ from their action's name are matched by strip name.
+drops every active-only action. Residuals: the engine's import is not run; an action with no user is cross-checked only against
+the object its 5.x slot identifier names (a renamed object keeps the old slot name, so the check is skipped), and
+`--loop` borrows that object or warns; actions before 4.4 have no slots and are skipped; NLA strip names that differ from their action's name are matched by strip name.
 
 ## plugins/blender/scripts/blender_qa.py
 

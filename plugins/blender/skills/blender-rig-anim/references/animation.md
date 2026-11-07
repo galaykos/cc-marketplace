@@ -52,6 +52,7 @@
 ## Loops
 
 A looping clip whose last frame differs from its first pops on every cycle. `anim_audit.py --loop NAME` compares
-the evaluated pose at the action's first and last frame (location in metres, rotation in radians, `--tol`). It
-checks only an action that is some object's active action. Whether an engine drops a duplicated last frame on
-import is not verified here.
+the evaluated pose at the action's first and last frame (location in metres, rotation in radians, `--tol`). An
+action that is no object's active action, such as a fake-user clip, is assigned for the check to the one object its
+slot names (`OB` + object name, 4.4+). If no slot names an existing object, or several do, the clip gets a
+`loop-unchecked` warning. Whether an engine drops a duplicated last frame on import is not verified here.

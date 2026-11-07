@@ -45,6 +45,8 @@ loop = bm.faces[0].loops[0]; loop[uv_layer].select = True
 fc = ob.driver_add("location", 0)
 fc.modifiers.remove(fc.modifiers[0])
 ob.data.bones["spine"].hide = True
+from bpy_extras.anim_utils import bake_action
+bake_action(ob, action=None, frames=range(1, 10), do_pose=True)
 '''
 RIG_NEW = '''import bpy, bmesh
 from bpy_extras import anim_utils
@@ -60,6 +62,7 @@ anim_utils.bake_action(ob, action=None, frames=range(1, 10), bake_options=opts)
 curve = ob.animation_data.action.layers[0]
 mod = curve.modifiers.new("NOISE"); print(curve.modifiers[0])
 bm = bmesh.new(); loop = bm.faces[0].loops[0]; loop.uv_select_vert = True
+ob.driver_add("location", 1)
 '''
 NEW_SCRIPT = '''import bpy
 from bpy_extras import anim_utils
@@ -133,7 +136,7 @@ class CheckerCli(unittest.TestCase):
         self.assertEqual(code, 1)
         old = {(e["rule"], e["line"]) for e in report["errors"] + report["warnings"] if e["file"] == "tools/rig_old.py"}
         self.assertEqual(old, {("armature-layers", 5), ("bone-groups", 6), ("bake-action-kwargs", 7), ("uv-select", 8),
-                               ("uv-select-bmesh", 10), ("driver-fmodifier", 12), ("bone-hide", 13)})
+                               ("uv-select-bmesh", 10), ("driver-fmodifier", 12), ("bone-hide", 13), ("bake-action-kwargs", 15)})
         self.assertFalse([e for e in report["errors"] + report["warnings"] if e["file"] == "tools/rig_new.py"], report)
         code, report = self.report("--blender", "3.6")
         self.assertEqual((code, report["error_count"], report["warning_count"]), (0, 0, 0), report)

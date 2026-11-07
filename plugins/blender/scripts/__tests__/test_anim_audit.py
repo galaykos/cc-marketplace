@@ -15,8 +15,8 @@ aa = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(aa)
 
 
-def act(users=(), fake_only=False, curves=1, stale=(), nla=False):
-    return {"users": list(users), "fake_only": fake_only, "nla": nla, "curves": curves, "stale": list(stale)}
+def act(users=(), fake_only=False, curves=1, stale=(), nla=False, owners=()):
+    return {"users": list(users), "owners": list(owners), "fake_only": fake_only, "nla": nla, "curves": curves, "stale": list(stale)}
 
 
 class Verdicts(unittest.TestCase):
@@ -35,6 +35,16 @@ class Verdicts(unittest.TestCase):
         kinds = {(c, a) for c, a, _ in errors}
         self.assertEqual(kinds, {("fbx-cross", "Slide"), ("fbx-dropped", "Run")})
         self.assertIn("Gone", next(m for c, a, m in errors if c == "fbx-dropped"))
+
+    def test_a_fake_user_clip_with_no_known_owner_is_not_cross(self):
+        actions = {"Walk": act(["Rig"]), "Run": act(fake_only=True)}
+        self.assertEqual(aa.judge(actions, ["Rig|Walk", "Rig|Run"], None, 24)[0], [])
+
+    def test_a_fake_user_clip_is_cross_off_the_object_its_slot_names(self):
+        actions = {"Walk": act(["Rig"]), "Run": act(fake_only=True, owners=["Rig"])}
+        errors, _ = aa.judge(actions, ["Rig|Walk", "Rig|Run", "Crate|Run"], None, 24)
+        self.assertEqual([(c, a) for c, a, _ in errors], [("fbx-cross", "Run")])
+        self.assertIn("Run on Crate", errors[0][2])
 
     def test_nla_strip_stacks_count_and_a_double_ship_warns(self):
         actions = {"Walk": act(["Hero"], nla=True)}
@@ -85,7 +95,7 @@ class Verdicts(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stderr)
 
 
-BUILD = '''
+HEAD = '''
 import bpy, sys
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene; sc.render.fps = 24
@@ -96,13 +106,22 @@ def key(ob, name, frames):
     for f, v in frames:
         ob.location[0] = v; ob.keyframe_insert("location", index=0, frame=f)
     return a
+'''
+SAVE = 'bpy.ops.wm.save_as_mainfile(filepath=sys.argv[sys.argv.index("--") + 1])\n'
+BUILD = HEAD + '''
 key(empty("Hero"), "Walk", [(1, 0), (24, 0.5), (48, 0)])
 key(empty("Crate"), "CrateSlide", [(1, 0), (24, 2)])
 key(empty("Late"), "LateClip", [(101, 0), (124, 1)])
-bpy.ops.wm.save_as_mainfile(filepath=sys.argv[sys.argv.index("--") + 1])
-'''
+''' + SAVE
 BUILD_NLA = BUILD.replace("ob.animation_data.action = a", "ob.animation_data.action = a").replace(
     "    return a\n", "    ob.animation_data.action = None\n    ob.animation_data.nla_tracks.new().strips.new(name, int(frames[0][0]), a)\n    return a\n")
+BUILD_FAKE = HEAD + '''
+rig = empty("Rig"); empty("Crate").animation_data_create()
+key(rig, "Run", [(1, 0), (12, 1), (24, 0)]).use_fake_user = True
+key(rig, "Idle", [(1, 0), (24, 1)]).use_fake_user = True
+gone = empty("Gone"); key(gone, "Spare", [(1, 0), (24, 0)]).use_fake_user = True; bpy.data.objects.remove(gone)
+key(rig, "Walk", [(1, 0), (24, 0.5), (48, 0)])
+''' + SAVE
 
 
 @unittest.skipUnless(BLENDER and os.path.isfile(BLENDER), "set BLENDER_EXE to a Blender 5.x binary to run")
@@ -112,7 +131,8 @@ class InBlender(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.blend = os.path.join(cls.tmp.name, "scene.blend")
         cls.nla = os.path.join(cls.tmp.name, "nla.blend")
-        for source, out in ((BUILD, cls.blend), (BUILD_NLA, cls.nla)):
+        cls.fake = os.path.join(cls.tmp.name, "fake.blend")
+        for source, out in ((BUILD, cls.blend), (BUILD_NLA, cls.nla), (BUILD_FAKE, cls.fake)):
             builder = os.path.join(cls.tmp.name, "build.py")
             Path(builder).write_text(source)
             subprocess.run([BLENDER, "-b", "--factory-startup", "--python-exit-code", "2", "--python", builder, "--", out],
@@ -150,6 +170,19 @@ class InBlender(unittest.TestCase):
         code, report = self.audit("--format", "gltf", "--gltf", "export_anim_slide_to_zero=True", "--loop", "Walk", "CrateSlide")
         self.assertEqual(code, 1)
         self.assertEqual([(e["check"], e["action"]) for e in report["errors"]], [("loop-pop", "CrateSlide")])
+
+    def test_a_fake_user_clip_is_cross_only_off_the_object_its_slot_names(self):
+        _, report = self.audit("--format", "fbx", blend=self.fake)
+        self.assertIn("Rig|Run", report["fbx_stacks"])
+        cross = sorted(e["message"].split(",")[0] for e in report["errors"] if e["check"] == "fbx-cross" and e["action"] == "Run")
+        self.assertEqual(cross, ["FBX exports Run on Crate"], report)
+
+    def test_a_fake_user_loop_is_judged_through_its_slot_and_an_unowned_one_warns(self):
+        code, report = self.audit("--format", "gltf", "--loop", "Run", "Idle", blend=self.fake)
+        self.assertEqual((code, [(e["check"], e["action"]) for e in report["errors"]]), (1, [("loop-pop", "Idle")]), report)
+        code, report = self.audit("--format", "gltf", "--loop", "Spare", blend=self.fake)
+        self.assertEqual((code, report["errors"]), (0, []), report)
+        self.assertIn(("loop-unchecked", "Spare"), {(w["check"], w["action"]) for w in report["warnings"]})
 
     def test_a_refused_override_is_a_could_not_run(self):
         code, _ = self.audit("--fbx", "no_such_option=1")
