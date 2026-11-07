@@ -101,3 +101,13 @@ and still leans. A clean lint is necessary, never sufficient — reread the
 brief for framing before dispatch.
 ```
 
+## plugins/approaches/scripts/mark-deliberated.sh
+
+Added 2026-11-07 (Process track, item A4 of `rationale/plugin-landscape-comparison-2026-10-31.md`). The marker had three
+prose writers (this plugin's skill, taskmaster's grill and brainstorm) and two readers (`hooks/compact-recovery.sh`,
+brain's indexer); a hand-written marker with a quote or a missing `at` read as no marker, silently. The script is the
+writer phase-sentinel.sh is for taskmaster's sentinel: it validates the slug, writes through `jq -n` so the JSON always
+parses, and resolves the project root with the shared state-root block, as the hook does. The 120-minute expiry in
+`check` matches compact-recovery's TTL. Not done: taskmaster's grill and brainstorm still tell the model to write the
+marker by hand. taskmaster's skills corpus sits 29 bytes under its cap, so pointing them at the script waits for cuts
+there. Brain's indexer reads only `task`, `by` and `at`; it ignores the new optional fields until its agent file names them.

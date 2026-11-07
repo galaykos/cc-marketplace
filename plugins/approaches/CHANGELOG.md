@@ -3,6 +3,10 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.13.0 — 2026-11-07
+
+- **One script writes and reads the deliberation marker.** New `scripts/mark-deliberated.sh`. `write --task <slug>` writes `.claude/approaches/deliberated.json` at the project root, with optional `--shape`, `--why` and `--kill-trigger` fields that `/brain index` can copy. `check --task <slug>` exits 0 when an unexpired marker names that task. The `approach-deliberation` skill's double-run guard now calls it instead of having the model hand-write JSON. Slugs are kebab-case, and quotes are refused. Standing: agent-graded for the call; gate for the script (`scripts/__tests__/mark-deliberated.test.sh`, 10 cases, including a round trip through `hooks/compact-recovery.sh`).
+
 ## 0.12.4 — 2026-10-28
 
 - **The `rollout-planning` skill's description now reads in short, plain sentences.** Same trigger and plan contents; it keeps the words the model matches it on.

@@ -42,11 +42,13 @@ produces confident nonsense.
 One deliberation per task; a second is re-litigation, and the manual commands do
 not bypass it. Check the MARKER, never memory — `.claude/approaches/deliberated.json` at the repo root
 (`{"task": "<short slug>", "by": "approach-deliberation", "at": "<ISO-8601>"}`):
-read it FIRST, skip if it names this task, write it on completion. The marker makes
-the exclusion checkable across subagents, compaction and resumed sessions, where
-memory is not. **Standing:
-agent-graded** — `pc_lanes_territory` proves the territory is declared; no gate
-proves this skill reads the file.
+read it FIRST, skip if it names this task, write it on completion — through
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/mark-deliberated.sh" check --task <slug>` (exit 0: already
+decided) and `… write --task <slug> --shape "<pick>" --why "<line>" --kill-trigger "<…>"`, never by
+hand. The marker makes the exclusion checkable across subagents, compaction and resumed
+sessions, where memory is not. **Standing: agent-graded** — the script is the one writer and
+reader (harness-tested, including a round trip through `compact-recovery.sh`); no gate proves
+this skill calls it.
 
 ## Defer rule
 
