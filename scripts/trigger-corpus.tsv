@@ -1,0 +1,38 @@
+# Trigger corpus for scripts/trigger-corpus.sh: one labelled prompt per row, TAB-separated.
+# status<TAB>plugin:skill<TAB>prompt. gate: the skill must rank in the top 3 of all SKILL.md descriptions (validate.sh fails otherwise).
+# known-miss: a real prompt the description does not catch yet; printed as a warning until it ranks, then promote it to gate.
+# Rows are user-shaped prompts, one skill each; commands (taskmaster brainstorm, /code-review:review) are not ranked.
+# collision-ok: craft-layer:ultra-craft taskmaster:ultra — both boost skills; each description fires only on its own command's token (0.31 lexical, 2026-11-07)
+gate	craft-layer:scroll-orchestration	add a scroll-pinned parallax section with GSAP ScrollTrigger to the landing page
+gate	testing:testing-best-practices	my tests are flaky, they pass locally and fail in CI sometimes
+gate	database:sql-best-practices	write a migration that adds an index on orders.customer_id
+gate	debugging:systematic-debugging	the build keeps failing with the same error after my fix
+gate	devops:compose-init	set up a docker-compose file so I can run this project locally
+gate	taskmaster:grill	grill me on this feature before we write the spec
+gate	taskmaster:task-cards	break this spec down into task cards
+gate	ultra-deep-research:ultra-deep-research	research the latest pricing of vector databases with sources
+gate	hindsight:harvest	what went wrong across my last sessions, find recurring friction
+gate	blender:blender-rig-anim	export my rigged character from Blender to Unreal with all its animation clips
+gate	blender:blender-rig-anim	the FBX from blender has extra animation clips on the wrong objects
+gate	pixel-art:pixel-art-pipeline	make a pixel art sprite sheet for the player walk cycle
+gate	meshy:meshy-generation	generate a 3D model of a treasure chest with Meshy
+gate	unity-traps:unity-best-practices	my Unity scene changes are not showing up after I edit the prefab
+gate	api-design:api-design	design a REST endpoint for creating invoices with idempotency
+gate	api-design:api-docs-first	is this API call right? check the Stripe docs before writing it
+gate	security:security-review	review this code for SQL injection and XSS
+gate	resilience:resilience-design	add retries and a timeout to this HTTP client call
+gate	resilience:performance-tuning	this endpoint is slow, profile it
+gate	testing:tdd	write tests for this service first, TDD style
+gate	design-kit:slides	make a pitch deck from these notes
+gate	design-kit:in-codebase	render this design with our real components on the dev server
+gate	ui-ux:shadcn-theming	create a dark theme for our shadcn app
+gate	ui-ux:a11y-audit	check this page for WCAG accessibility problems
+gate	craft-layer:creative-direction	build a CRM landing page that doesn't look generic
+gate	stack-scan:plugin-scout	which plugins should I install for this repo
+gate	stack-scan:installed-versions	what version of laravel is installed here
+gate	api-design:docs-upkeep	update the README after this change
+gate	code-architecture:plan-before-code	plan the files I need to change before coding
+gate	code-architecture:yagni-check	is this over-engineered
+gate	approaches:approach-deliberation	compare two approaches for the cache layer
+known-miss	godot:godot-best-practices	write a Godot 4 script for a 2D platformer character controller
+known-miss	ui-ux:motion-best-practices	add a hover transition and reduced-motion fallback to this button

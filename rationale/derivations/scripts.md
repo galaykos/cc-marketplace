@@ -2281,3 +2281,19 @@ A date nothing reads is a convention that dies quietly, so this reads them.
 WARN-ONLY BY DESIGN: a fact does not become wrong on a schedule, and a
 time-based failure would break CI on a quiet repo with no defect to fix.
 ```
+
+## scripts/trigger-corpus.sh
+
+Added 2026-11-07 (Process track PR4; item C2 of `rationale/plugin-landscape-comparison-2026-10-31.md`, after addyosmani's
+tier-2 trigger tests). No script read a skill description against the prompts it is meant to catch, so an edit that
+dropped a trigger word, or a new skill whose description crowded an old one, showed up only as a skill that stopped
+firing. The check is a lexical proxy: BM25 over each SKILL.md's `name`, `description` and `when_to_use`, with
+hyphenated words split and a light suffix strip. It cannot say what the model will route to. It says that the words a
+labelled prompt uses still point at its skill. The first run (2026-11-07, 33 rows written for this check) put 31 in
+the top 3 and missed two real near-miss pairs the 10-31 review named: `godot:godot-best-practices` loses a GDScript
+controller prompt to its two siblings, and `ui-ux:motion-best-practices` loses a hover-transition prompt to craft-layer's
+motion skills. Those two are `known-miss` rows (warnings) until their descriptions change. The collision threshold
+started at 0.5, where no pair in the repo reaches it (a check that cannot fire). It is 0.3: the highest pair then was
+0.31, the two `ultra` boost skills, allow-listed with a reason. The motion pairs sit at 0.27. The corpus prompts were
+written by this session, not mined from user transcripts, so they encode its guesses about phrasing. Wired into
+`validate.sh`, not a new CI step, so the CI step count in CLAUDE.md does not change.
