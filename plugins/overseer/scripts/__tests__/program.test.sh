@@ -787,5 +787,31 @@ P12 evidence add --id m2 --kind run-log --note n --file "$W12/run.txt" >/dev/nul
 expect 2 "a laravel tree whose scan lists laravel keeps the stack group owed" -- P12 accept --id m2
 rm -rf "$W12" "$H12"
 
+# ---- token budget: dispatch check refuses once this session's spend reaches it --------------
+W13=$(mktemp -d); H13=$(mktemp -d); git -C "$W13" init -q -b main 2>/dev/null || git -C "$W13" init -q
+P13() { env OVERSEER_ROOT="$W13" HOME="$H13" "$PS" "$@"; }
+expect 2 "init refuses a zero token budget" -- P13 init --goal g --slug b --budget-tokens 0
+expect 0 "init with a token budget" -- P13 init --goal g --slug b --budget-tokens 1000
+[ "$(jq -r .budget_tokens "$W13/.claude/overseer/program.json")" = 1000 ] && ok || bad "init records budget_tokens"
+P13 status | grep -q "token budget: 1000 per session" && ok || bad "status prints the budget"
+P13 milestone add --id m1 --title t --branch ov/m1 --kind library --size S --rigour lean >/dev/null 2>&1
+P13 milestone set --id m1 --status building >/dev/null 2>&1
+mkdir -p "$W13/.claude/overseer/milestones/m1/dispatch" "$H13/.claude/projects/p"
+mkdir -p "$W13/sk"; printf 'x\n' > "$W13/sk/SKILL.md"
+D13="$W13/.claude/overseer/milestones/m1/dispatch/1.md"; wprompt "$D13" "$W13/sk/SKILL.md"
+sleep 1
+rec13() { printf '{"timestamp":"%s","message":{"id":"%s","model":"m","usage":{"input_tokens":%s,"output_tokens":0}}}\n' "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" "$1" "$2" >> "$H13/.claude/projects/p/sess-b.jsonl"; }
+rec13 a 400
+expect 0 "under budget: dispatch passes" -- env CLAUDE_CODE_SESSION_ID=sess-b OVERSEER_ROOT="$W13" HOME="$H13" "$PS" dispatch check "$D13" --kind worker --milestone m1
+rec13 b 2000
+expect 2 "budget spent: dispatch refused" -- env CLAUDE_CODE_SESSION_ID=sess-b OVERSEER_ROOT="$W13" HOME="$H13" "$PS" dispatch check "$D13" --kind worker --milestone m1
+grep -q "token budget 1000 spent" "$WS/err" && ok || bad "refusal names the budget"
+expect 0 "no session id: spend unreadable, dispatch passes with a WARN" -- env -u CLAUDE_CODE_SESSION_ID OVERSEER_ROOT="$W13" HOME="$H13" "$PS" dispatch check "$D13" --kind worker --milestone m1
+grep -q "spend is unreadable" "$WS/err" && ok || bad "unreadable spend WARNs"
+expect 2 "budget refuses a non-number" -- P13 budget --tokens lots
+expect 0 "budget off" -- P13 budget --tokens off
+expect 0 "budget off: dispatch passes again" -- env CLAUDE_CODE_SESSION_ID=sess-b OVERSEER_ROOT="$W13" HOME="$H13" "$PS" dispatch check "$D13" --kind worker --milestone m1
+rm -rf "$W13" "$H13"
+
 echo "program.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

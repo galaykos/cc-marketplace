@@ -2,6 +2,15 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.51.0 — 2026-11-07
+
+- **`--changed` reads a list file instead of treating it as one doc file.** `behavioral-gate.sh` expands `@<file>` (when no path named `@<file>` exists), or an untracked `.txt`/`.lst`/`.list` file whose lines are paths (at least one existing), into its lines. A tracked `.txt` stays the changed file. Before this, the list was classified as a `.txt` doc and recorded `no-executable-surface` with no test run, a record that satisfies the completion gate (seen in two sessions). A prose `.txt` still classifies as doc. Standing: gate; 4 new cases in `scripts/__tests__/behavioral-gate.test.sh`, red on 0.50.2.
+- **The no-runner verdict names a Unity project's Editor version.** When `ProjectSettings/ProjectVersion.txt` exists, the gate prints `m_EditorVersion` and says to run tests through that exact install, never an unpinned `unity` on PATH, which drove another open project and wiped a save. The gate does not run Unity itself. Standing: gate for the message; 1 case.
+- **New `scripts/worker-check.sh`, run after each worker.** Exits 1 on a commit to a local branch other than the run's after the run registered (track branches exempt), or on a worker diff where 20+ added code lines and 30%+ are comment-only (untracked files count only when newer than the run registration). `/task-runner:run` step 2 calls it. A migration run against a dev database leaves no diff and is not seen. Standing: gate where run; `scripts/__tests__/worker-check.test.sh`, 10 cases.
+- **New `scripts/coverage-close.sh --index`, run at close.** Joins the card table's Status column with `## Coverage` and prints `missing:` (no covering card done; done, complete, completed, merged or ✅ count as done), `partial:` and `uncovered:` lines, which the final report lists under `Not delivered:`. Exit 1 on missing or partial. Before this, a run could close green with a criterion's only card parked. Standing: gate where run; `scripts/__tests__/coverage-close.test.sh`, 7 cases.
+- **Close review rounds stop when they do not converge.** `/task-runner:run` step 4: two fix passes in a row that each surface a new critical/high end the loop. The open findings go to the user (hands-off: under `Skipped:`, and the run closes halted). One run in the 2026-11-05 retro took 5 rounds, 84 agents and 1,366 minutes. Standing: agent-graded.
+- **`task-execution` no longer triggers on "a todo list".** That phrase registered a run and armed the close protocol for an ordinary checklist. Standing: recorded.
+
 ## 0.50.2 — 2026-11-06
 
 - **`asset` cards route to `task-executor`.** `references/routing.md` maps the new taskmaster `asset` tag to `task-runner:task-executor` with the card's `<skill>` stamps. `reviewer-routing.md` maps it to `code-review:code-reviewer` plus the stamped skills. Dispatch step 2 now says a card calling an MCP tool runs inline whatever its tag, because workers hold no MCP tools. Standing: gate for the tag keys (`scripts/validate.sh` vocabulary sync); the inline rule is agent-graded.

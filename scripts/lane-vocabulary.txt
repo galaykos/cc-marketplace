@@ -31,6 +31,7 @@ research-facet-sharding
 third-party-skill-suggestion
 
 # --- shape ---
+brainstorm-shape-write-guard
 creative-concept-divergence
 pre-edit-clarification-gate
 requirements-clarification

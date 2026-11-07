@@ -1,6 +1,6 @@
 ---
 name: task-execution
-description: Use when executing a list of defined tasks (taskmaster cards, a plan's sequence, a todo list) — one task at a time, scope locked, bounded implement-verify-fix loop per task, status tracking, halt-with-evidence instead of drifting.
+description: Use when executing a list of defined tasks (taskmaster cards, a plan's sequence) — one task at a time, scope locked, bounded implement-verify-fix loop per task, status tracking, halt-with-evidence instead of drifting.
 ---
 
 ## The contract

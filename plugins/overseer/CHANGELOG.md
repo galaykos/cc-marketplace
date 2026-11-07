@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0 — 2026-11-07
+
+- **A token budget that `dispatch check` enforces.** `program.sh init --budget-tokens <n>` and `program.sh budget --tokens <n>|off` set `budget_tokens` in `program.json`. Once this session has spent that many tokens since the program began, `dispatch check` refuses every dispatch (exit 2). The refusal says to write what the milestone did not buy to `decisions.md` and ask the user to raise the budget (hands-off: park the milestone). `status` prints the budget. Spend comes from the shared process-cost block, which reads this session's transcripts only, so a fresh session counts from zero, and an unreadable spend WARNs instead of blocking. `/overseer:start` accepts `--budget-tokens <n>`. Standing: gate; 11 new cases in `scripts/__tests__/program.test.sh`.
+- **`--hands-off` prints a `/goal` line that keeps the program going.** Before m1, `/overseer:start` prints `/goal <program.sh> next prints none …, or stop after <N> turns` for the user to run. The host's `/goal` evaluator starts another turn until `next` prints none, so a hands-off program no longer stops after m1 with nobody at the keyboard. A command cannot set a goal itself. Standing: recorded.
+
 ## 0.8.0 — 2026-11-05
 
 - **Verification is per milestone, not per card.** Every brief now carries a `Verify: range` line; taskmaster copies it into the card index and task-runner then skips the per-card reviewer pass and negative control, and at close runs the range review, one red-team round with the does-the-test-have-teeth lens and the suite once by receipt. The Review step no longer repeats the range review or the teeth lens; accept's "suite first" reuses a fresh receipt for every command in the verify set, not only a one-command set. Why: one unchanged tree was verified six to seven times per milestone, and per-card reviews took 30-50 % of each card's time while passing cards the range review found critical (`rationale/session-retro-2026-11-05.md` § 1). Standing: candor's clause 4 reads the marker (**gate**); writing it and reusing receipts are **agent-graded**. Eval: `evals/milestone-verify`.

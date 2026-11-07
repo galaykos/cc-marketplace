@@ -150,6 +150,24 @@ first write instead of the main session's.
 CC_CLARIFY_GATE / CC_REMIND unset: the /config options cc_clarify_gate / cc_remind decide.
 ```
 
+## plugins/taskmaster/hooks/shape-guard.sh
+
+Added 2026-11-07 (Track 1 item PL5 of the gitignored `taskmaster-docs/integration-roadmap-2026-11-07.md`,
+from `rationale/plugin-landscape-comparison-2026-10-31.md` item T2). Until then `commands/brainstorm.md`
+called its no-code-before-approval rule `unenforceable`. superpowers' release notes report prose of the same
+rule leaking in 24 of 24 runs and 3 of 24 once enforced (relayed by the 10-31 researcher, not re-measured here).
+
+Shape: brainstorm writes a `shape` sentinel through `phase-sentinel.sh` with owner `taskmaster:brainstorm`; the
+hook denies Write/Edit/MultiEdit to project files outside `taskmaster-docs/` and `.claude/` while it is live for
+this session (or for any session when the sentinel carries none) and younger than the reader's 120-minute TTL.
+Keyed on the brainstorm owner only: `/taskmaster:task` also writes `shape`, and some of its runs reach execution
+before the sentinel is cleared, so guarding it would deny the build. visual-decisions' real-component rung writes
+`__design-preview__` scratch files and one marker-carrying `require` line in `routes/web.php`; both pass.
+
+Residuals: Bash and NotebookEdit writes (no Bash-write block is sourced; adding one is the next step if leaks
+show up there); a path whose prefix differs from the logical git root (a symlinked checkout) passes; the model
+can run `phase-sentinel.sh clear` itself, which the command forbids in prose only.
+
 ## plugins/taskmaster/scripts/card-lint-record.sh
 
 ### Header
@@ -200,6 +218,20 @@ construction — no hash needed here, and a readable ledger is worth more than
 one nobody can grep. (The hook's transcript key is a different thing entirely
 and IS hashed; see the header.)
 ```
+
+## plugins/taskmaster/scripts/card-set-lint.sh
+
+Added 2026-11-07 (Track 1 item PL7 of the gitignored `taskmaster-docs/integration-roadmap-2026-11-07.md`,
+from `rationale/plugin-landscape-comparison-2026-10-31.md` item T1, superpowers' cross-card preflight). The
+per-card lints cannot see order: `card-paths-lint.sh` accepts a verify path "created by a sibling" whether or not
+that sibling runs first, and `card-shape-lint.sh` checks only that an `<interface>` names a consumer. task-runner
+schedules by `<depends-on>`, so a consumer with no dependency path to its producer can land in the same parallel
+group and run first.
+
+Run on the three card sets under `taskmaster-docs/tasks/` on 2026-11-07: the first version flagged card 30 of
+`2026-10-06-ship-claude-code-mods` (a follow-up card editing files card 10 had already created). Such a card is
+added after its producer ran, so a path already on disk now skips the create-order check; after that change all
+three sets pass. Interface ordering is still checked for those, because an interface is not a file.
 
 ## plugins/taskmaster/scripts/card-shape-lint.sh
 

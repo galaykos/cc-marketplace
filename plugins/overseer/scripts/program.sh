@@ -4,7 +4,8 @@
 # Why, limits, history: rationale/derivations/plugin-overseer.md § plugins/overseer/scripts/program.sh (marketplace repository)
 
 # Usage:
-#   program.sh init --goal "<text>" --slug <slug> [--base <branch>] [--hands-off --reason "<why>"] [--foreign-session "<why>"] [--model opus|auto]
+#   program.sh init --goal "<text>" --slug <slug> [--base <branch>] [--hands-off --reason "<why>"] [--foreign-session "<why>"] [--model opus|auto] [--budget-tokens <n>]
+#   program.sh budget --tokens <n>|off       # dispatch check refuses every dispatch once this session has spent <n> tokens since the program began
 #                                            # refuses when this Claude session was opened in another project (exit 2) unless --foreign-session says why
 #                                            # --model (default opus): the tier every dispatch may use — opus: nothing above opus; auto: judgment
 #                                            # seats (reader, reviewer) may run at the session model (MODEL: inherit), workers stay at opus
@@ -240,14 +241,16 @@ NEXT_FILTER='. as $p | [.milestones[] | select(.status!="done" and .status!="par
 cmd="${1:-}"; shift || true
 case "$cmd" in
   init)
-    goal=""; slug=""; base=""; hands=false; why=""; foreign=""; model="opus"
+    goal=""; slug=""; base=""; hands=false; why=""; foreign=""; model="opus"; budget=""
     while [ $# -gt 0 ]; do case "$1" in
       --goal) goal=$(arg "$1" "${2:-}") || exit 3; shift 2;; --slug) slug=$(arg "$1" "${2:-}") || exit 3; shift 2;;
       --model) model=$(arg "$1" "${2:-}") || exit 3; shift 2;;
       --base) base=$(arg "$1" "${2:-}") || exit 3; shift 2;; --reason) why=$(arg "$1" "${2:-}") || exit 3; shift 2;;
       --foreign-session) foreign=$(arg "$1" "${2:-}") || exit 3; shift 2;;
+      --budget-tokens) budget=$(arg "$1" "${2:-}") || exit 3; shift 2;;
       --hands-off) hands=true; shift;; *) usage;; esac; done
     [ -n "$goal" ] && [ -n "$slug" ] || usage
+    case "${budget:-x}" in x) budget=null ;; *[!0-9]* | 0) echo "program.sh: --budget-tokens must be a positive whole number of tokens" >&2; exit 2 ;; esac
     if [ -z "$foreign" ]; then session_root_check || exit 2; fi
     printf '%s' "$slug" | grep -Eq '^[a-z0-9][a-z0-9-]*$' || { echo "program.sh: slug must be [a-z0-9-]" >&2; exit 2; }
     in_list "$model" $TIERS || { echo "program.sh: --model must be one of: $TIERS (opus: no seat above opus; auto: judgment seats may inherit the session model)" >&2; exit 2; }
@@ -260,8 +263,8 @@ case "$cmd" in
     [ -n "$base" ] || base=$(git -C "$root" branch --show-current 2>/dev/null)
     [ -n "$base" ] || base=main
     mkdir -p "$dir/milestones" && printf '*\n' > "$dir/.gitignore"
-    jq -n --arg goal "$goal" --arg slug "$slug" --arg base "$base" --argjson hands "$hands" --arg why "$why" --arg fs "$foreign" --arg model "$model" --arg at "$(now)" \
-      '{version:1,goal:$goal,slug:$slug,base_branch:$base,hands_off:$hands,hands_off_reason:$why,foreign_session_reason:$fs,model:$model,created_at:$at,milestones:[]}' > "$state"
+    jq -n --arg goal "$goal" --arg slug "$slug" --arg base "$base" --argjson hands "$hands" --arg why "$why" --arg fs "$foreign" --arg model "$model" --arg at "$(now)" --argjson budget "$budget" \
+      '{version:1,goal:$goal,slug:$slug,base_branch:$base,hands_off:$hands,hands_off_reason:$why,foreign_session_reason:$fs,model:$model,created_at:$at,budget_tokens:$budget,milestones:[]}' > "$state"
     [ -n "$foreign" ] && echo "program.sh: WARN foreign session recorded (\"$foreign\") — taskmaster, task-runner and craft commands are unreachable; every phase they own runs on the fallback" >&2
     [ -f "$dir/decisions.md" ] || printf '# Decisions taken on the user'"'"'s behalf\n\nRows marked ASSUMED answer a question the user was not asked; the options column holds the reading that was NOT taken.\n\n| when | decision | options | rationale |\n| --- | --- | --- | --- |\n' > "$dir/decisions.md"
     echo "program initialised: $state (base: $base, model tier: $model)";;
@@ -271,7 +274,7 @@ case "$cmd" in
     if [ "${1:-}" = "--json" ]; then cat "$state"; exit 0; fi
     assumed=$(grep -c '^| [^|]* | ASSUMED: ' "$dir/decisions.md" 2>/dev/null || true)
     jq -r --arg assumed "${assumed:-0}" '"program: " + .goal + "  [" + .slug + "]  base: " + .base_branch + "  model: " + (.model // "opus") + (if .hands_off then "  hands-off (" + (.hands_off_reason // "no reason recorded") + ")" else "" end),
-           "milestones: " + ([.milestones[]|select(.status=="done")]|length|tostring) + "/" + (.milestones|length|tostring) + " done  ·  assumed decisions: " + $assumed,
+           "milestones: " + ([.milestones[]|select(.status=="done")]|length|tostring) + "/" + (.milestones|length|tostring) + " done  ·  assumed decisions: " + $assumed + (if .budget_tokens then "  ·  token budget: " + (.budget_tokens|tostring) + " per session" else "" end),
            "",
            "id\tstatus\tkind\tsize\trigour\tbranch\tdepends\tevidence\twall\ttitle",
            (.milestones[] | [.id, .status, (.kind // "feature"), (.size // "M"), (.rigour // "" | if .=="" then "-" else . end), .branch, ((.depends // [])|join(",")|if .=="" then "-" else . end),
@@ -564,6 +567,13 @@ case "$cmd" in
       grep -E '^\| [0-9]{4}-' "$dir/suggestions.md" 2>/dev/null | sed 's/^| //; s/ |$//' | awk -F' \\| ' '{printf "%s\t%s\tsuggestion %s\n", $1, $2, $3}'
     } | sort | awk -F'\t' 'BEGIN{print "at\tmilestone\tevent"} {print}';;
 
+  budget)
+    need_state
+    [ "${1:-}" = "--tokens" ] && [ -n "${2:-}" ] || usage
+    case "$2" in off) b=null ;; *[!0-9]* | 0) echo "program.sh: --tokens must be a positive whole number or off" >&2; exit 2 ;; *) b=$2 ;; esac
+    write --argjson b "$b" '.budget_tokens = $b'
+    echo "token budget: $2";;
+
   dispatch)
     [ "${1:-}" = "check" ] && [ -n "${2:-}" ] || usage
     f="$2"; kind="worker"; ms=""; shift 2
@@ -571,6 +581,17 @@ case "$cmd" in
     in_list "$kind" worker reader reviewer followup || { echo "program.sh: --kind must be worker, reader, reviewer or followup" >&2; exit 2; }
     [ -f "$f" ] || { echo "program.sh: no such prompt file $f" >&2; exit 3; }
     miss=""; warn=""
+    # The budget is this session's spend since the program began (cc_process_cost reads one session's transcripts).
+    bud=$( [ -s "$state" ] && jq -r '.budget_tokens // empty' "$state" 2>/dev/null )
+    if [ -n "$bud" ]; then
+      cl=$(cc_process_cost "$(jq -r '.created_at' "$state")")
+      sp=$(printf '%s' "$cl" | grep -oE '[0-9]+(\.[0-9]+)?[kM]? tokens' | head -n 1 | awk '{ n = $1 + 0; if ($1 ~ /M$/) n *= 1000000; else if ($1 ~ /k$/) n *= 1000; printf "%d", n }')
+      if [ -z "$sp" ]; then warn="$warn
+  token budget $bud set, but this session's spend is unreadable: $cl"
+      elif [ "$sp" -ge "$bud" ]; then
+        echo "program.sh: dispatch prompt $f NOT ready: token budget $bud spent ($cl). Stop dispatching: write what the milestone did not buy to decisions.md and ask the user to raise it (program.sh budget --tokens <n>); hands-off: park the milestone with that reason" >&2; exit 2
+      fi
+    fi
     # a file under milestones/<id>/dispatch/ names its milestone; --milestone overrides (and is required elsewhere for the kind WARNs)
     [ -n "$ms" ] || ms=$(in_dispatch_dir "$(abspath "$f")")
     pre="${OVERSEER_PREAMBLE:-}"

@@ -25,6 +25,7 @@ earns its place at authoring time only, via the **gate** rows (why:
 | a card needing a browser names its driver in `<verify>`/`<walk>` (Playwright MCP, a `playwright` dep) | **agent-graded** — "browser smoke" alone once sent a worker to an uninstalled host extension |
 | a framework card names a real skill | **gate** — `skills-stamp-lint.sh` |
 | no unreplaced template token (`__B__`, `{{CARD_ID}}`); a `mode="edit"` file exists; a path `<verify>` runs exists or this/a sibling card creates it | **gate** — `card-paths-lint.sh` `placeholder` / `edit-missing` / `verify-target-missing` (retro 2026-11-05: cards halted on all three) |
+| set order: real acyclic `<depends-on>`; every producer precedes its consumers | **gate** — `card-set-lint.sh` |
 | a bare `<skill>` stamp shadowed by a same-named project skill (`.claude/skills/<name>`, a plugin's, a known Laravel Boost twin) | **WARN** — `skills-stamp-lint.sh` `shadowed-skill` (prints the `plugin:skill` stamp) |
 | a limit is proved by lowering it in the test, not exceeding a production-sized constant | **agent-graded** — spec-redteam and the reviewer; no lint reads a criterion's size |
 | a `<criterion>` describes behaviour, not the diff | **agent-graded** — coverage-check reads it; no script can |

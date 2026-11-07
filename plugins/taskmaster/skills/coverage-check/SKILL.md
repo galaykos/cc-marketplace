@@ -111,7 +111,7 @@ headless; at most four questions, overflow into a second batch):
   Walking through asks each as above; the handoff then asks to run.
 
 Loop until every finding is resolved or explicitly accepted (a re-check finding gets
-the run-free ask), then write the final
+the run-free ask; re-check only edited cards, inline; zero findings ends it), then write the final
 `## Coverage` section — including accepted gaps and their reasons — and continue.
 
 ## Clean pass
