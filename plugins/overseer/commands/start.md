@@ -1,14 +1,16 @@
 ---
 description: Start an overseer program — one sentence of product intent, delivered milestone by milestone across sessions and branches
-argument-hint: [product-goal] [--hands-off] [--model opus|auto]
+argument-hint: [product-goal] [--hands-off] [--model opus|auto] [--budget-tokens <n>]
 disable-model-invocation: true
 ---
 
 Invoke the `overseer` skill from this plugin and open a program for $ARGUMENTS (if
 empty, ask for one sentence naming the product and who it is for, then continue). Strip
-trailing `--hands-off` and `--model <tier>` tokens before using the goal text; pass the
-tier to `program.sh init --model` (default `opus`: no seat runs above opus; `auto`: the
-user chose to let judgment seats inherit the session model). Then:
+trailing `--hands-off`, `--model <tier>` and `--budget-tokens <n>` tokens before using the goal
+text; pass the tier to `program.sh init --model` (default `opus`: no seat runs above opus;
+`auto`: the user chose to let judgment seats inherit the session model) and the budget to
+`program.sh init --budget-tokens` (after it, `dispatch check` refuses every dispatch once this
+session has spent that many tokens since the program began; **gate**). Then:
 
 1. Refuse to start when `"${CLAUDE_PLUGIN_ROOT}/scripts/program.sh" status` reports a
    program with milestones — print its board and route to `/overseer:resume` (or to
@@ -35,3 +37,9 @@ user chose to let judgment seats inherit the session model). Then:
    session; interactive, ask once per milestone whether to continue now or resume in a
    fresh session. Do not stop after planning, and do not stop after m1 with nobody at the
    keyboard — a roadmap with one branch behind it delivers nothing the user can try.
+   Under `--hands-off`, before m1, print this line once for the user to run (a command
+   cannot set a goal; headless: `claude -p "/goal …"`), with `<N>` twice the milestone count:
+   `/goal "${CLAUDE_PLUGIN_ROOT}/scripts/program.sh" next prints none (run it and show its output at the end of every turn), or stop after <N> turns`.
+   The host's `/goal` evaluator starts another turn until that holds, so the program no longer
+   stops after m1 when nobody is at the keyboard. Standing: recorded — nothing checks that the
+   line was printed or run.

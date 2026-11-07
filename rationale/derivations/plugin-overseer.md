@@ -289,6 +289,15 @@ evidence rows hold absolute paths under $dir/milestones; the archive is the reco
 follows, so every path is rewritten to where the file now lives (checked by the harness)
 ```
 
+**2026-11-07, token budget (Track 1 PL8, `taskmaster-docs/integration-roadmap-2026-11-07.md`; 10-31 item O2;
+retro 2026-11-05 shape C).** `dispatch-prompts.md` said budget could not be an input because the plugin had no cost
+channel, but 0.7.4 had already pasted the process-cost block for `accept`'s cost line. `dispatch check` now parses that
+block's token figure (rounded to k/M, so the comparison is approximate) against `budget_tokens`. It is per session by
+construction: the block reads one session's transcripts. A refusal, not a priority-ordered rationing of checks (shape C
+in full); what was not bought goes to decisions.md by instruction (recorded). The `/goal` line (O1) uses the host's
+`/goal`, verified on code.claude.com/docs/en/goal on 2026-11-07: a session-scoped prompt Stop hook, condition up to
+4,000 characters, works with `claude -p`, and the docs suggest a turn clause to bound it.
+
 ## plugins/overseer/scripts/capability-scan.sh
 
 ### Header

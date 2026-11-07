@@ -144,8 +144,10 @@ kind is lean, and when the card index disagrees with it — a boosted `Goal:`/`U
 on a lean/standard milestone (interactive: brief without the token; hands-off: `goal-lean`,
 whose marker is `Goal: true (boost=off)`) or no boost on an adversarial one (**WARN**; the
 score itself is recorded). Budget
-left is not an input: the plugin has no cost channel, and a rule on a number nothing can
-read is a fifth unenforceable claim. What the rule never cuts: the run's range review and
+left is not a rigour input. It is a ceiling: with `--budget-tokens` (or `program.sh budget
+--tokens`), `dispatch check` refuses every dispatch once this session's spend reaches it
+(**gate**; one session's transcripts only, so a fresh session counts from zero).
+What the rule never cuts: the run's range review and
 teeth lens.
 
 ```
