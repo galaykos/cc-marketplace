@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.9.2; earlier versions have no entries rather than invented ones.
 
+## 0.10.0 — 2026-11-07
+
+- **A chain of fix commits now triggers the debugging discipline.** New UserPromptSubmit hook `hooks/fix-chain.sh`: once this session has made two fix commits (subject `fix`, `fixes`, `fixed`, `hotfix` or `bugfix`, or a merged `*fix*` branch) that touch a common file, the next prompt gets one advisory line, and again at four. The line says the diagnosis is likely wrong and to reproduce the original symptom before another fix. In one recorded session, five fix PRs each exposed the next failure and the keyword reminder did not fire until the user's outburst. `CC_REMIND=off` silences it. Standing: advisory; `scripts/__tests__/fix-chain.test.sh`, 10 cases.
+
 ## 0.9.3 — 2026-10-28
 
 - **The `systematic-debugging` skill's description now reads in short, plain sentences.** Same triggers and steps; it keeps the words the model matches it on.

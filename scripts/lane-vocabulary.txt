@@ -195,6 +195,7 @@ security-sink-write-warning
 session-usage-display
 stack-scoped-skill-listing
 stop-turn-honesty
+fix-commit-chain-signal
 stuck-loop-signal
 subagent-dispatch-contract
 subagent-model-floor
