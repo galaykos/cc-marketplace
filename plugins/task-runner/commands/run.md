@@ -107,6 +107,10 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    exact verify command per task, at most three fix cycles before parking; after
    each task's verify passes, run the reviewer pass per the skill (conditional
    on the review plugins installed), plus the full crew pass when `--crew` is set.
+   After each worker returns, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/worker-check.sh" --since <sha before the card>`.
+   Exit 1 names a stray commit on another branch (stop and show the user; never reset it
+   yourself) or a comment-heavy diff (send the card back to strip comments it did not ask
+   for). Standing: gate where run; nothing forces the call.
 3. Update status in the index only; collect scope-lock follow-ups as a backlog
    list, never as in-run detours. No status HTML — the index and the
    conversation are the run's views (per the task-execution skill).
@@ -116,9 +120,17 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    that marker, and candor's clause 4 requires the record at the closing HEAD. Required:
    per-card passes never substitute, because they cannot see what changed across cards.
    Fix its findings through the bounded fix loop; a commit after the review moves HEAD, so
-   mark a pass over `<reviewed head>..HEAD` with the new HEAD. A skip needs the user's
+   mark a pass over `<reviewed head>..HEAD` with the new HEAD. **Two fix passes in a row that
+   each surface a new critical/high stop the loop:** no third pass. List the open findings with
+   the pass that introduced each and ask the user (hands-off: record them under `Skipped:` and
+   close the run as halted). Fixes that keep re-breaking mean the diagnosis is wrong, not the
+   fix. Standing: agent-graded, because no script reads finding severity across passes. A skip needs the user's
    approval and `scripts/review-skip.sh --card range-<HEAD12> --reason "<why>"` (no
    code-review installed: `--exempt no-reviewer-installed`), and appears under `Skipped:`.
+   Then, for a taskmaster index, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/coverage-close.sh" --index <index>`
+   and copy its `missing:`/`partial:`/`uncovered:` lines into the final report under
+   `Not delivered:` (exit 1 means a spec criterion has no done card; the run may still close).
+   Standing: gate where run.
    Then finish with BOTH completion gates, never one alone:
    - the full project check suite (catches lint/type/build regressions), run after the run's
      last commit through

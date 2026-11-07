@@ -172,6 +172,22 @@ case_run "docs-only -> no-executable-surface(0)" "$D3" 0 --label 'no-executable-
 printf '# tmpl\n' > "$D3/agent.md.tmpl"
 case_run "tmpl-is-doc -> no-executable-surface(0)" "$D3" 0 --label 'no-executable-surface' -- --changed 'README.md agent.md.tmpl'
 
+# ---- 3c. a list FILE of changed paths expands to its lines, never one .txt "doc" ----
+printf 'impl.py\n' > "$P2/changed.txt"
+case_run "list file changed.txt -> its paths, covered(0)" "$P2" 0 --label 'covered' -- --changed changed.txt
+printf 'impl.py\n' > "$P2/files.dat"
+case_run "@list file -> its paths, covered(0)" "$P2" 0 --label 'covered' -- --changed @files.dat
+case_run "@ on a missing list file -> usage(3)" "$P2" 3 -- --changed @nope.txt
+printf 'release notes for the team\n' > "$D3/notes.txt"
+case_run "a prose .txt stays doc -> no-executable-surface(0)" "$D3" 0 --label 'no-executable-surface' -- --changed notes.txt
+rm -f "$P2/changed.txt" "$P2/files.dat" "$D3/notes.txt"
+
+# ---- 3d. Unity C# with no runner names the pinned Editor, never a bare unity ----
+U3="$WS/unity"; mkdir -p "$U3/ProjectSettings" "$U3/Assets"
+printf 'm_EditorVersion: 6000.2.7f1\nm_EditorVersionWithRevision: 6000.2.7f1 (abc)\n' > "$U3/ProjectSettings/ProjectVersion.txt"
+printf 'class A {}\n' > "$U3/Assets/A.cs"
+case_run "unity .cs, no runner -> no-behavioral-coverage(2) naming Editor 6000.2.7f1" "$U3" 2 --label 'Editor 6000.2.7f1' -- --changed Assets/A.cs
+
 # ---- 4a. js changed, NO test file -> no-behavioral-coverage (2) ----
 N4="$WS/node-nocov"; mkdir -p "$N4"
 cat > "$N4/impl.js" <<'JS'

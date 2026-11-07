@@ -69,10 +69,28 @@ ENTRYPOINTS=()
 DIFFERENTIALS=()
 CUSTOM_RUNNERS=()
 ISOLATE=0; IN_PLACE=0
+# A list FILE (`@paths.txt`, or a .txt/.lst/.list file whose lines name existing paths) expands to its lines: read as one
+# changed .txt it classified as doc and recorded no-executable-surface with nothing run (retro 2026-11-05, two sessions).
+list_file() { # list_file <tok>: 0 when tok is a path-list file
+  local l n=0 hit=0
+  [ -f "$1" ] || return 1
+  case "$1" in *.txt|*.lst|*.list) : ;; *) return 1 ;; esac
+  while IFS= read -r l || [ -n "$l" ]; do
+    [ -n "$l" ] || continue
+    case "$l" in *[[:space:]]*) return 1 ;; esac
+    n=$((n + 1)); [ -e "$l" ] && hit=1
+  done < "$1"
+  [ "$n" -gt 0 ] && [ "$hit" = 1 ]
+}
 add_changed() {
-  local raw="$1" tok _o="$IFS"
+  local raw="$1" tok l _o="$IFS"
   set -f; IFS=$' \t\n'
-  for tok in $raw; do [ -n "$tok" ] && CHANGED+=("$tok"); done
+  for tok in $raw; do
+    [ -n "$tok" ] || continue
+    case "$tok" in @*) [ -f "${tok#@}" ] || usage "--changed $tok: no such list file"; tok=${tok#@} ;; *) list_file "$tok" || { CHANGED+=("$tok"); continue; } ;; esac
+    while IFS= read -r l || [ -n "$l" ]; do [ -n "$l" ] && CHANGED+=("$l"); done < "$tok"
+    log "changed: read paths from list file $tok"
+  done
   IFS="$_o"; set +f
 }
 check_spec() { # check_spec <flag> <spec>
@@ -102,7 +120,7 @@ while [ $# -gt 0 ]; do
     --runner-for)     shift; [ $# -ge 2 ] || usage "--runner-for requires <lang> '<cmd>::<empty-output-regex>'"; set_runner_for "$1" "$2"; shift 2 ;;
     --isolate)        ISOLATE=1; shift ;;
     --in-place)       IN_PLACE=1; shift ;;
-    -h|--help)   printf 'usage: %s (--isolate | --in-place) --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--runner '\''<cmd>::<empty-regex>'\''] [--runner-for <py|js|go|php|rs|rb|java> '\''<cmd>::<empty-regex>'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2
+    -h|--help)   printf 'usage: %s (--isolate | --in-place) --changed <file-or-list-or-@listfile> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--runner '\''<cmd>::<empty-regex>'\''] [--runner-for <py|js|go|php|rs|rb|java> '\''<cmd>::<empty-regex>'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2
                  printf '  --runner adds a runner; --runner-for replaces that language'\''s built-in one.\n  BEHAVIORAL_GATE_TIMEOUT=<seconds> caps each suite run (default 1800; entrypoint probes: 60).\n  BEHAVIORAL_GATE_TOTAL=<seconds> caps the whole gate (default 6600); a run it cuts short is unverifiable-suite.\n  Where the host sets no limit (CLI 2.1.288+ outside -p, SDK, CI and cloud), raise it for a long suite set,\n  e.g. BEHAVIORAL_GATE_TOTAL=14400; 0 is not "no total", it cuts every run.\n  Run the gate in background Bash with timeout 7200000: a foreground call ends by 10 minutes, a background one\n  by 30 unless its timeout says more (2 h max), with no verdict.\n  --isolate works in <repo>/.claude/task-runner/iso/ and exports BG_TREE_REL (its path from the repo root).\n' >&2; exit 3 ;;
     --*)         usage "unknown flag: $1" ;;
     *)           add_changed "$1"; shift ;;
@@ -241,6 +259,8 @@ if [ "${#runners[@]}" -eq 0 ]; then
   if [ "$HAS_OPAQUE" = 1 ]; then
     log "needs behavioral coverage but NO test runner resolves for the touched types"
     log "declare one with --runner '<cmd>::<empty-output-regex>' if this stack has a suite"
+    uv=$(sed -n 's/^m_EditorVersion:[[:space:]]*//p' "${live_top:-.}/ProjectSettings/ProjectVersion.txt" 2>/dev/null | head -n 1)
+    [ -z "$uv" ] || log "Unity project: run its tests through Editor $uv (ProjectVersion.txt) by that exact install's path, never an unpinned unity on PATH, which can drive another open project"
     log "VERDICT: no-behavioral-coverage"
     bg_record no-behavioral-coverage
     exit 2

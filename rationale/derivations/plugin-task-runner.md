@@ -1140,6 +1140,17 @@ unwired flag would spuriously read as observable — reject it as a usage error.
 with-marker must appear WITH the flag and NOT without it; without-marker vice-versa
 ```
 
+**2026-11-07, list files and Unity (Track 1 PL3, `taskmaster-docs/integration-roadmap-2026-11-07.md`).** Two
+sessions in `rationale/session-retro-2026-11-05.md` (24d655d6, c4be0af8) handed `--changed` a FILE of paths; it
+was read as one changed `.txt`, classified doc, and recorded `no-executable-surface` with nothing run, a record that
+would satisfy the completion gate. A `.txt`/`.lst`/`.list` token whose lines are single tokens with at least one
+existing path, or any `@file`, now expands to its lines; a prose `.txt` still classifies as doc. Unity projects
+(c5294305, d707c56b) hit "NO test runner" on every card and an unpinned `unity` CLI drove another open editor and
+wiped a save; the no-runner branch now names the Editor version from `ProjectSettings/ProjectVersion.txt` and says
+to run that exact install. The gate does not run Unity itself: no Unity test command was verified for this change.
+Not done: lerd's vite worker provisioning the gate's throwaway worktree (`public/hot`, `.env`, partial
+`node_modules`, 24d655d6) — the trigger lerd uses was not established, so no fix was attempted.
+
 ## plugins/task-runner/scripts/check-receipt.sh
 
 ### Header
@@ -1182,6 +1193,15 @@ Keeps dedup stable across trivial title rewording between rounds.
 Turn a raw "file:line<TAB>title" line into its dedup key
 "file:line<TAB>normalized-title". A line with no tab keys on itself.
 ```
+
+## plugins/task-runner/scripts/coverage-close.sh
+
+Added 2026-11-07 (Track 1 PL6; `rationale/plugin-landscape-comparison-2026-10-31.md` item R1, after spec-kit
+`converge` and flow-next). A run could close green while a spec criterion's only card was parked: the index showed
+the parked card, but nothing joined it back to the criterion it carried, so the final report said "done". The
+script joins the card table's Status column with the `## Coverage` table. Run on the three card sets under
+`taskmaster-docs/tasks/` on 2026-11-07: all exit 0 (every card done); the harness flips one fixture's status to prove
+the verdict is not vacuous.
 
 ## plugins/task-runner/scripts/dispatch-lint.sh
 
@@ -1570,3 +1590,14 @@ and those are precisely the files a code-shaped grep skips.
 Target set moved: new files carrying the pattern that were not frozen. A file
 added mid-run is the case a one-shot grep cannot see at all.
 ```
+
+## plugins/task-runner/scripts/worker-check.sh
+
+Added 2026-11-07 (Track 1 PL4; `rationale/session-retro-2026-11-05.md` issue 18). Workers added 206 lines of unasked
+comments in one run (c4be0af8), and a harness made stray commits on the real repo (77602909). code-review's
+density hook sees a Write or a truncating heredoc per file, not a worker's Edits summed over a card. The script is
+called by the runner after each worker. Thresholds (20 lines and 30%) are a choice, not a measurement: one why-comment
+in a 40-line file stays silent, a docblock per function trips it. Not caught: a migration run against the dev
+database (d89db2df) leaves no diff, so no script here sees it; track-orchestration's `<run-branch>-track-*`
+branches are exempt from the stray check.
+
