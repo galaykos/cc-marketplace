@@ -26,6 +26,9 @@ NODE_GROUP = r"(?i)(?:^|\.)(?:ng|group|node_group|node_tree|tree|\w+_group|\w+_t
 BONE = r"\.bones\[[^\]]*\]$|\.bones\.active$"
 SHADED = r"(?i)(?:^|\.)(?:mat|material|world|scene|scn|sc|\w+_mat|\w+_material)$|(?:materials|worlds|scenes)\[[^\]]*\]$"
 ID_LIKE = r"(?i)(?:^|\.)(?:scene|scn|sc|ob|obj|object|world|mat|material|view_layer|camera|light)$|(?:scenes|objects|materials)\[[^\]]*\]$"
+ARMATURE = r"(?i)(?:^|\.)(?:arm|armature|rig|\w+_arm|\w+_armature|\w+_rig)$|armatures\[[^\]]*\]$|\.bones\[[^\]]*\]$|(?:^|\.)(?:bone|ebone|edit_bone|\w+_bone)$"
+UV_LOOP = r"(?i)\[\s*(?:uv_layer|uv_lay|uv|uvl|lay)\s*\]$|(?:^|\.)(?:luv|loop_uv|uv_loop)$"
+FCURVE = r"(?i)(?:^|\.)(?:fc|fcu|fcurve|curve|drv|driver_fc|\w+_fc|\w+_fcu|\w+_fcurve)$"
 FOREVER = None
 
 # A rule fires for targets from the first version of its window up to, not including, the second.
@@ -56,6 +59,14 @@ RULES = [
          msg="bpy.data.grease_pencils_v3 renamed in 5.0: bpy.data.grease_pencils"),
     dict(id="boolean-fast", kind="value", names={"solver"}, values={"FAST"}, window=((5, 0), FOREVER), level="error",
          msg="Boolean solver 'FAST' renamed in 5.0: 'FLOAT' (solvers are FLOAT, EXACT, MANIFOLD)"),
+    dict(id="uv-select", kind="attr", names={"vertex_selection", "edge_selection"}, window=((5, 0), FOREVER), level="error",
+         msg="MeshUVLoopLayer.vertex_selection/edge_selection removed in 5.0: UV selection is shared by all UV maps, in bmesh BMLoop.uv_select_vert/uv_select_edge and BMFace.uv_select"),
+    dict(id="uv-select-bmesh", kind="attr", names={"select", "select_edge"}, recv=UV_LOOP, window=((5, 0), FOREVER), level="error",
+         msg="BMLoopUV.select/select_edge removed in 5.0: loop.uv_select_vert, loop.uv_select_edge, face.uv_select"),
+    dict(id="driver-fmodifier", kind="index", attr="modifiers", recv=FCURVE, needs_call="driver_add", window=((5, 0), FOREVER), level="error",
+         msg="since 5.0 driver_add() adds no F-modifier (it adds two keyframes), so fcurve.modifiers[0] after it is an IndexError"),
+    dict(id="bone-hide", kind="attr", names={"hide"}, recv=BONE, recv_not=r"pose\.bones", window=((5, 0), FOREVER), level="warning",
+         msg="since 5.0 armature.bones[n].hide hides only the edit bone: Object and Pose mode visibility is ob.pose.bones[n].hide"),
     dict(id="space-action", kind="attr", names={"action"}, recv=r"space_data$", window=((5, 0), FOREVER), level="error",
          msg="context.space_data.action removed in 5.0: context.active_action"),
     dict(id="bone-select", kind="attr", names={"select", "select_head", "select_tail"}, recv=BONE, recv_not=r"pose\.bones", window=((5, 0), FOREVER), level="error",
@@ -80,6 +91,14 @@ RULES = [
          msg="NodeTree.inputs/outputs removed in 4.0: tree.interface.new_socket(name, in_out='INPUT', socket_type='NodeSocketFloat')"),
     dict(id="ops-context-dict", kind="ops", window=((4, 0), FOREVER), level="error",
          msg="4.0 removed the context-override argument of bpy.ops: with bpy.context.temp_override(**overrides): bpy.ops..."),
+    dict(id="armature-layers", kind="attr", names={"layers"}, recv=ARMATURE, window=((4, 0), FOREVER), level="error",
+         msg="armature and bone layers removed in 4.0: bone collections, armature.collections.new(name) and collection.assign(bone)"),
+    dict(id="bone-groups", kind="attr", names={"bone_groups", "bone_group", "bone_group_index"}, window=((4, 0), FOREVER), level="error",
+         msg="pose bone groups removed in 4.0: bone collections for grouping, bone.color.palette for colour"),
+    dict(id="bake-action-kwargs", kind="kwarg", func="bake_action",
+         names={"only_selected", "do_pose", "do_object", "do_visual_keying", "do_constraint_clear", "do_parents_clear", "do_clean"},
+         window=((4, 1), FOREVER), level="error",
+         msg="anim_utils.bake_action takes bake_options=anim_utils.BakeOptions(...) since 4.1, all 12 fields required; the old keywords raise TypeError"),
     dict(id="auto-smooth", kind="attr", names={"use_auto_smooth", "auto_smooth_angle"}, window=((4, 1), FOREVER), level="error",
          msg="Mesh auto smooth removed in 4.1: Smooth by Angle (bpy.ops.object.shade_auto_smooth or shade_smooth_by_angle) and the sharp_edge attribute"),
     dict(id="normals-split", kind="attr", names={"calc_normals_split", "free_normals_split", "create_normals_split"}, window=((4, 1), FOREVER), level="error",
@@ -197,6 +216,8 @@ def value_hits(node, rule):
 
 def scan_tree(tree, rules):
     """Yield (line, rule) for every rule a node matches."""
+    called = {n.func.attr if isinstance(n.func, ast.Attribute) else getattr(n.func, "id", "")
+              for n in ast.walk(tree) if isinstance(n, ast.Call)}
     for node in ast.walk(tree):
         line = getattr(node, "lineno", 0)
         for rule in rules:
@@ -225,6 +246,10 @@ def scan_tree(tree, rules):
                 owner = node.func.value
                 if isinstance(owner, ast.Attribute) and recv_ok(rule, receiver(owner)) and re.search(rule["recv_owner"], receiver(owner.value)):
                     yield line, rule
+            elif kind == "index" and isinstance(node, ast.Subscript) and isinstance(node.value, ast.Attribute) \
+                    and node.value.attr == rule["attr"] and isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, int) \
+                    and recv_ok(rule, receiver(node.value.value)) and rule.get("needs_call", "") in called | {""}:
+                yield line, rule
             elif kind == "ops" and isinstance(node, ast.Call) and is_bpy_ops(node.func) and node.args:
                 first = node.args[0]
                 if not (isinstance(first, ast.Constant) and isinstance(first.value, (str, bool))) and not isinstance(first, ast.JoinedStr):

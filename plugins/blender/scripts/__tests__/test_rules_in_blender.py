@@ -27,6 +27,16 @@ PROBES = {
                           "has('CompositorNodeOutputFile', 'directory', 'file_name', 'file_output_items')"),
     "grease-pencil-v3": ("not has('BlendData', 'grease_pencils_v3')", "has('BlendData', 'grease_pencils')"),
     "boolean-fast": ("'FAST' not in enum('BooleanModifier', 'solver')", "'FLOAT' in enum('BooleanModifier', 'solver')"),
+    "uv-select": ("not has('MeshUVLoopLayer', 'vertex_selection') and not has('MeshUVLoopLayer', 'edge_selection')",
+                  "hasattr(bmesh.types.BMLoop, 'uv_select_vert') and hasattr(bmesh.types.BMFace, 'uv_select')"),
+    "uv-select-bmesh": ("not hasattr(bmesh.types.BMLoopUV, 'select') and not hasattr(bmesh.types.BMLoopUV, 'select_edge')",
+                        "hasattr(bmesh.types.BMLoop, 'uv_select_edge')"),
+    "driver-fmodifier": ("len(bpy.data.objects.new('D', None).driver_add('location', 0).modifiers) == 0", "True"),
+    "bone-hide": ("True", "has('PoseBone', 'hide')"),
+    "armature-layers": ("not has('Armature', 'layers') and not has('Bone', 'layers')", "has('Armature', 'collections', 'collections_all')"),
+    "bone-groups": ("not has('Pose', 'bone_groups') and not has('PoseBone', 'bone_group')", "has('Armature', 'collections')"),
+    "bake-action-kwargs": ("raises(lambda: anim_utils.bake_action(None, action=None, frames=[], only_selected=True), TypeError)",
+                           "hasattr(anim_utils, 'BakeOptions')"),
     "space-action": ("not has('SpaceDopeSheetEditor', 'action')", "'active_action' in dir(bpy.context) or has('Context', 'active_action')"),
     "bone-select": ("not has('Bone', 'select') and not has('Bone', 'select_head') and not has('Bone', 'select_tail')",
                     "has('PoseBone', 'select') and has('EditBone', 'select_head')"),
@@ -49,7 +59,7 @@ PROBES = {
 }
 
 RUNNER = r'''
-import bpy, gpu, importlib.util, json, sys
+import bpy, bmesh, gpu, importlib.util, json, sys
 from bpy_extras import anim_utils
 def has(t, *names):
     rna = getattr(bpy.types, t).bl_rna

@@ -4,3 +4,4 @@
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 blender:blender-best-practices	skill	build	blender-idioms	the file imports bpy, bpy_extras, bmesh, bgl or gpu, the task opens or exports a .blend, or a command runs blender -b	-
+blender:blender-rig-anim	skill	build	blender-rig-anim-export	the task rigs, skins or animates in Blender for a game engine, bakes or exports actions, or a clip from an FBX/glTF export is missing, duplicated, on the wrong object or late	blender:blender-best-practices

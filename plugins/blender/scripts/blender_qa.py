@@ -1,4 +1,4 @@
-"""Catches z-fighting, floating parts, inverted normals, open or degenerate topology, unapplied scale, UV and weight gaps in one asset's meshes; runs inside Blender.
+"""Catches z-fighting, floating parts, inverted normals, open or degenerate topology, unapplied scale, UV and weight gaps in one asset's meshes, and with --compare-uv the UV damage a decimation did to a source mesh; runs inside Blender.
 Does NOT judge silhouette, deformation, shading or material intent, and skips the z-fight and floating checks above --max-tris.
 Exit 0 pass, 1 errors (or warnings with --strict), 2 could not run: blender -b f.blend --python-exit-code 2 --python blender_qa.py -- --objects A B"""
 # Derived from EL4CTEO/blender-skills@71d031d skills/blender-asset-qa/scripts/qa_check.py and shared/_bpyx.py (MIT, see LICENSE); modified.
@@ -42,6 +42,8 @@ def parse_args(args):
     p.add_argument("--no-modifiers", action="store_true", help="check the base mesh, not the evaluated one")
     p.add_argument("--max-tris", type=int, default=300000)
     p.add_argument("--no-uv", dest="uv", action="store_false")
+    p.add_argument("--compare-uv", default=None, metavar="SRC", help="compare UV density against SRC, the mesh before decimation or remesh")
+    p.add_argument("--res", type=int, default=2048, help="texture size for the texel-density figure (px)")
     p.add_argument("--strict", action="store_true", help="exit 1 on warnings too")
     p.add_argument("--json", action="store_true", help="print one JSON object instead of text")
     return p.parse_args(args)
@@ -143,7 +145,83 @@ def _uv_stats(ob, bm_local):
             "uv_coverage_pct": round(100 * used / n / n, 1)}
 
 
-def run(objects=None, profile="game", eps=0.001, tol=0.002, no_modifiers=False, max_tris=300000, uv=True, **_):
+def uv_density(faces):
+    """faces: (world area, signed UV area) per face. Returns (median UV/3D area ratio, flipped faces, faces off the median by 4x, faces rated)."""
+    rated = [(abs(u) / a, u) for a, u in faces if a > 1e-12 and abs(u) > 1e-14]
+    if not rated:
+        return 0.0, 0, 0, 0
+    ratios = sorted(r for r, _ in rated)
+    median = ratios[len(ratios) // 2]
+    positive = sum(1 for _, u in rated if u > 0)
+    flipped = min(positive, len(rated) - positive)
+    outliers = sum(1 for r in ratios if r > 4 * median or r < median / 4)
+    return median, flipped, outliers, len(rated)
+
+
+def uv_damage(src, dst, drop=0.3):
+    """src/dst: uv_density results. Returns error and warning messages for dst against its source."""
+    errors, warnings = [], []
+    if src[0] > 0 and dst[0] < src[0] * (1 - drop):
+        errors.append(f"median UV area per world area fell {100 * (1 - dst[0] / src[0]):.0f}% ({src[0]:.5f} -> {dst[0]:.5f}): "
+                      "decimation collapsed UV islands, so the texture stretches and tears")
+    if dst[1] > src[1]:
+        more = f"{dst[1] - src[1]} more flipped UV faces than the source ({src[1]} -> {dst[1]})"
+        (errors if dst[1] - src[1] > max(2, dst[3] // 100) else warnings).append(more)
+    if dst[2] > 2 * src[2] + 5:
+        warnings.append(f"faces off the median texel density by 4x grew {src[2]} -> {dst[2]}")
+    return errors, warnings
+
+
+def _face_uv(ob):
+    me = ob.data
+    if not me.uv_layers:
+        return None
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bm.transform(ob.matrix_world)
+    uv = bm.loops.layers.uv.active
+    out = []
+    for f in bm.faces:
+        pts = [lp[uv].uv for lp in f.loops]
+        out.append((f.calc_area(), 0.5 * sum(pts[i].x * pts[(i + 1) % len(pts)].y - pts[(i + 1) % len(pts)].x * pts[i].y for i in range(len(pts)))))
+    bm.free()
+    return out
+
+
+def compare_uv_with(src_name, obs, res):
+    src_ob = bpy.data.objects[src_name]
+    src_faces = _face_uv(src_ob)
+    if src_faces is None:
+        raise ValueError(f"--compare-uv source {src_name} has no UV map")
+    src = uv_density(src_faces)
+    errors, warnings, info = [], [], {"source": src_name, "texel_density_px_per_m": {src_name: round(math.sqrt(src[0]) * res, 1)}}
+    for ob in obs:
+        if ob.name == src_name:
+            continue
+        faces = _face_uv(ob)
+        if faces is None:
+            errors.append(f"{ob.name}: no UV map to compare with {src_name}")
+            continue
+        dst = uv_density(faces)
+        info["texel_density_px_per_m"][ob.name] = round(math.sqrt(dst[0]) * res, 1)
+        e, w = uv_damage(src, dst)
+        errors += [f"{ob.name} vs {src_name}: {m}" for m in e]
+        warnings += [f"{ob.name} vs {src_name}: {m}" for m in w]
+    return errors, warnings, info
+
+
+def run(objects=None, compare_uv=None, res=2048, **kw):
+    result = _checks(objects=objects, **kw)
+    if compare_uv:
+        e, w, info = compare_uv_with(compare_uv, [o for o in pick_objects(objects) if o.type == "MESH"], res)
+        result["errors"] += e
+        result["warnings"] += w
+        result["pass"] = not result["errors"]
+        result["uv_compare"] = info
+    return result
+
+
+def _checks(objects=None, profile="game", eps=0.001, tol=0.002, no_modifiers=False, max_tris=300000, uv=True, **_):
     object_mode()
     sev = PROFILES[profile]
     obs = [o for o in pick_objects(objects) if o.type == "MESH"]

@@ -25,7 +25,10 @@ claude plugin install gamedev@cc-plugins-marketplace
 |---|---|
 | `blender-best-practices` skill | A `.py` imports `bpy`, a task opens or exports a `.blend`, or a command runs `blender -b` — read the version first, then the rules table, `references/api-5x.md` and `references/export.md` |
 | `scripts/check_bpy_scripts.py` | Before running or merging Blender Python, or before moving a project to a newer Blender: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_bpy_scripts.py" . --blender 5.2` (`--json`, `--strict`; `--blend-version FILE` prints the version that saved a file) |
-| `scripts/blender_qa.py` | Before calling a generated or edited mesh done: `blender -b f.blend --factory-startup --python-exit-code 2 --python "${CLAUDE_PLUGIN_ROOT}/scripts/blender_qa.py" -- --objects A B` |
+| `scripts/blender_qa.py` | Before calling a generated or edited mesh done: `blender -b f.blend --factory-startup --python-exit-code 2 --python "${CLAUDE_PLUGIN_ROOT}/scripts/blender_qa.py" -- --objects A B`; add `--compare-uv SRC` after a decimation or remesh to catch collapsed UV density and flipped UV faces against the source mesh |
+| `blender-rig-anim` skill | Rigging, skinning or animating for a game engine, or a clip that is missing, duplicated, on the wrong object or late after export — the rules table, then `references/rigging.md` and `references/animation.md` |
+| `scripts/anim_audit.py` | Before handing an animated `.blend` to an engine: runs the real FBX and glTF exporters (`--fbx`/`--gltf KEY=VALUE` for your settings) and reports actions that did not ship, clips written on the wrong object or twice, glTF clips that start late, and `--loop` clips whose ends do not meet; `--expect` names the clips that must ship |
+| `scripts/rig_check.py` | Before exporting a skinned character: extra roots after "Only Deform Bones", B-Bones, Preserve Volume or envelopes, unweighted verts and empty deform groups, over-limit influences, masked or chained shape keys; `--profile unity|unreal|roblox` adds naming gaps |
 
 The checker is stdlib-only Python 3 (tested on 3.13 and 3.14) and never writes to the project; reading a zstd-compressed `.blend` (the
 5.0+ default) needs Python 3.14, and older Pythons say so instead of guessing. The QA script only reads the
@@ -37,10 +40,13 @@ scene; it was run on Blender 5.2.3 only.
 |---|---|
 | No bpy call the target version removed or renamed | **gate** for what `check_bpy_scripts.py` reads (exit 1). `hooks/bpy-check.sh` runs it on a `.py` under the project that imports `bpy`/`bmesh`, after a Write/Edit or a Bash redirect, `tee` or `sed -i` into it. The target comes from a `.blend` beside it, else the project's newest `.blend`, else `blender --version`. It adds findings once per context and never blocks; `scripts/smoke/game-checker-hooks-tests.sh` pins it in CI. An interpreter or `cp` write, or no version source at all, still needs a manual run: **recorded** |
 | The checker's contract: exit codes, version windows, header decoding, both zstd branches | **gate** — `scripts/__tests__/check_bpy_scripts.test.sh`, run by CI's plugin-harness step |
-| Each checker rule is true of a real Blender: the old API gone, the named replacement present | **gate** only where `BLENDER_EXE` names a binary (`test_rules_in_blender.py`); CI has no Blender and skips it. Last run 2026-10-30 on 5.2.3: 29 of 29 |
+| Each checker rule is true of a real Blender: the old API gone, the named replacement present | **gate** only where `BLENDER_EXE` names a binary (`test_rules_in_blender.py`); CI has no Blender and skips it. Last run 2026-11-07 on 5.2.3: 36 of 36 |
 | A mesh passes QA before it is called done | **gate** when `blender_qa.py` runs (exit 1); whether it runs is **agent-graded** |
 | `blender_qa.py`'s own behaviour | CI exercises only its pure parts (argument parsing, island grouping, exit status, refusing to run outside Blender); its geometry checks run only with `BLENDER_EXE` — last run 2026-10-30 on 5.2.3, passing |
-| `--python-exit-code` before `--python`; FBX/glTF export settings; Unity and glTF packing; Godot suffixes | **recorded** — written in the skill, nothing reads it back |
+| What shipped in an FBX/glTF export matches the scene's actions | **gate** when `anim_audit.py` runs (exit 1); it judges the exported files, not the settings. Its pure verdicts run in CI; the exporter runs only with `BLENDER_EXE` (`test_anim_audit.py`) — last run 2026-11-07 on 5.2.3, passing |
+| A skinned rig exports with one root, plain skinning and full weights | **gate** when `rig_check.py` runs (exit 1). Its deform-only model matched the FBX exporter's bone set on a generated Rigify human rig (278 bones) on 2026-11-07; geometry tests run only with `BLENDER_EXE` |
+| A decimated copy keeps its UV density | **gate** when `blender_qa.py --compare-uv` runs; thresholds (a 30% median drop, flips past 1% of faces) are a choice, measured on one Suzanne fixture |
+| `--python-exit-code` before `--python`; FBX/glTF export settings; Unity and glTF packing; Godot suffixes; baking and NLA rules | **recorded** — written in the skills, nothing reads it back |
 
 Residual limits: the checker judges an attribute by its name and its receiver's spelling, not its type, so a
 renamed variable, an aliased import or a `getattr` call hides a break, and a non-Blender object with a matching

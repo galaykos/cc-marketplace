@@ -1,0 +1,30 @@
+schema_version: "1.0"
+name: masked-shape-key-export
+description: 'A shape key vertex-group mask is dropped by both the FBX and glTF exporters (they read the raw key positions; research probe in Blender 5.2.3, 2026-11-07), so L/R correctives authored with a mask ship as whole-face shapes. Not run yet: the control arm is expected to fail.'
+execution:
+  timeout_seconds: 600
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Our Blender 5.2 head mesh has one shape key, `Smile`, moving both mouth corners. We need
+    `Smile_L` and `Smile_R` as separate morph targets in a glTF for Godot. There are vertex groups
+    `Face_L` and `Face_R`.
+
+    Write a headless bpy script that creates `Smile_L` and `Smile_R` and exports the glTF so that
+    each morph moves only its side. Reply with the script only.
+runs: 3
+graders:
+  - type: llm
+    name: baked-sides
+    criteria: |
+      Facts (Blender 5.2): `ShapeKey.vertex_group` masks a key's effect inside Blender only; the
+      glTF and FBX exporters write the key's raw positions, so a key that is a copy of `Smile` with
+      `vertex_group = "Face_L"` still moves both sides in the exported morph target.
+
+      PASS requires: each side's key carries side-only positions before export, for example by
+      setting the mask and then creating a new key from the mix (`shape_key_add(from_mix=True)`)
+      with only that key active, or by writing the per-vertex positions themselves.
+
+      FAIL if the reply relies on `vertex_group` on the exported key to limit the morph.
+
+      Not graded: naming, export settings other than morph targets, code style.

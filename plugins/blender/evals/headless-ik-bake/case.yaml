@@ -1,0 +1,35 @@
+schema_version: "1.0"
+name: headless-ik-bake
+description: 'bpy.ops.nla.bake defaults to only_selected=True, visual_keying=False and frames 1-250 (RNA defaults probed in Blender 5.2.3 on 2026-11-07), so a headless bake of an IK rig with defaults keys only the selected bones and loses the constraint result. Not run yet: the control arm is expected to fail.'
+execution:
+  timeout_seconds: 600
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    In Blender 5.2, armature `Rig` walks with IK constraints on both legs; its action `Walk_IK`
+    runs from frame 1 to 32. For export we need a plain FK action, `Walk`, with every bone's
+    resulting transform keyed on every frame, made headless:
+    `blender -b char.blend --python-exit-code 1 --python bake.py`
+
+    Write `bake.py`. Reply with the script only.
+runs: 3
+graders:
+  - type: llm
+    name: visual-bake-all-bones
+    criteria: |
+      Facts (Blender 5.2): `bpy.ops.nla.bake` defaults are `only_selected=True`,
+      `visual_keying=False`, `frame_start=1`, `frame_end=250`. Without visual keying a bake keys
+      the bones' own channels, not the IK result; with only_selected it keys only selected bones.
+      `bpy_extras.anim_utils.bake_action` takes `bake_options=anim_utils.BakeOptions(...)` (12
+      required fields) since 4.1, not keyword flags.
+
+      PASS requires all three:
+      1. Visual keying is on (`visual_keying=True` to nla.bake, or `do_visual_keying=True` in BakeOptions).
+      2. Every bone is baked: `only_selected=False`, or the script selects all pose bones first.
+      3. The frame range is the action's (1-32), not the 1-250 default.
+
+      FAIL on any of: visual keying left off; only the default selection baked; frames 1-250
+      left as the default; `bake_action` called with the removed keyword flags.
+
+      Not graded: whether constraints are cleared afterwards, the new action's creation method,
+      code style.
