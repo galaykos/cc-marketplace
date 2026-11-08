@@ -249,3 +249,14 @@ def test_mesh_without_uvs_fails_uv_missing_and_skips_the_uv_checks():
         assert checks[check_id]["status"] == "warn" and checks[check_id]["measured"] is None, check_id
     assert (checks["tris"]["measured"], checks["non_manifold"]["status"], checks["normals"]["status"]) == \
         (320, "pass", "pass")
+
+
+
+def test_collision_named_from_the_lod0_mesh_passes():
+    from forge import collision, lod
+    crate = fixtures.crate()
+    lod.make_lod_chain(crate, ratios=[1.0, 0.5], engine="unity", protect=("boundary",))
+    collision.make_collision(crate, kind="box", engine="unity")
+    checks = {c["id"]: c for c in validate.validate_asset(crate, engine="unity", platform="pc", asset_class="prop_small")["checks"]}
+    assert checks["collision_naming"]["status"] == "pass", checks["collision_naming"]
+    assert checks["collision_naming"]["measured"]["named"] == ["SM_Crate_LOD0_Collider"]

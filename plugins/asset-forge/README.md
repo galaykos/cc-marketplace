@@ -6,8 +6,9 @@ studio conventions. This plugin adds a headless MCP server that renders, validat
 **snapshots** of the live scene (never the working `.blend`), a pure-bpy library the live session imports, and
 pipeline skills with per-engine presets.
 
-**Status: 0.3.0 ships the forge library and the headless server tools.** The skills' content, the hooks and the
-art-reviewer agent are not built yet. Each skill says so when it loads.
+**Status: 0.4.0 ships the library, the server tools and the skills.** The hooks and the art-reviewer agent are not
+built yet; until the agent ships, the review skill critiques in the same format itself and says the review was not
+independent.
 
 ## Install
 
@@ -19,9 +20,9 @@ Needs `python3` on PATH (standard library only; tested on 3.14) and Blender (tes
 or installed: no uv, no pip, no Pillow. Live editing goes through a Blender MCP server you already run (this
 plugin calls `execute_blender_code` and the screenshot tools; it ships none of them).
 
-Companion: install **blender** alongside it. Its checkers (`blender_qa.py`, `rig_check.py`, `anim_audit.py`)
-and its export rules are what asset-forge calls rather than duplicating. Nothing installs the pair for you: no
-plugin here may declare `dependencies`.
+Works best beside **blender**: the retarget skill sends animated exports through its `anim_audit.py` and
+`rig_check.py`, and its export rules back the presets. asset-forge runs without it. Nothing installs the pair for
+you: no plugin here may declare `dependencies`.
 
 ```bash
 claude plugin install blender@cc-plugins-marketplace
@@ -43,18 +44,28 @@ project's `asset-forge.json`, written by the `pipeline` skill on first use.
 | `forge` MCP server (`mcp__plugin_asset-forge_forge__*`) | Headless jobs on a snapshot `.blend`. `env_check` (which Blender, its version and engines); `render_review_set` (contact sheet returned inline); `validate_asset`; `bake_maps`; `stylize_texture` (albedo returned inline); `export_asset`; `texture_views` and `project_texture` (the two halves of AI texturing: guides out, generated per-view images back onto the UVs); `batch_run` (any public forge function over many files, copies only) |
 | `blender_lib/forge/` library | 14 modules, pure bpy/bmesh/numpy, importable live (`sys.path.insert(0, "${CLAUDE_PLUGIN_ROOT}/blender_lib"); import forge`) and headless. `review_renders` (turntable, silhouette, game-distance, wireframe, UV-checker and matcap tiles plus one contact sheet, in a temporary scene), `validate` (20 checks against budget and engine preset), `uv`, `lod`, `collision`, `export` (FBX/glTF per engine preset, kwargs filtered against the exporter's live RNA), `bake` (normal, AO, curvature, thickness, ID in Cycles), `stylize` (procedural hand-painted albedo, no AI), `project_paint` (project per-view images back onto UVs), `deform` (grab, inflate, pinch, crease, bulge, smooth, flatten, noise, stroke), `blockout` (skin skeleton, metaballs, rocks, lathe, loft), `retopo` (voxel, QuadriFlow, decimate to budget, `clean_ai_mesh`), `retarget` (bone maps, bake, in-place, root motion, loop cleanup, NLA naming) |
 | `presets/` | Engine presets (unity, unreal, godot, generic: exporter settings, naming, collision and LOD conventions, texture packing), platform budgets (pc, console, mobile: tris per asset class, texture sizes, texel density, LOD ratios), bone maps (mixamo→rigify, mixamo→ue5) |
-| skills `pipeline`, `new-asset`, `organic-modeling`, `stylized-texturing`, `animation-retarget`, `review` | Stubs that state their status. All six carry `disable-model-invocation: true`, so they cost no listing context and never fire on their own until their content ships; `/asset-forge:<name>` still opens one |
+| `pipeline` skill | Fires on game-asset work in Blender: the project's `asset-forge.json` (asked once, engine never guessed, several platform tiers allowed), the order from brief to export, live vs headless per step, the snapshot and forge-import snippets, the undo-push rule |
+| `/asset-forge:new-asset <brief>` | One asset end to end, pausing after the blockout review and after the texture review, ending in validation per tier, export and a report |
+| `/asset-forge:review [object]` | Snapshot → review renders → validation → independent critique (verdict, six scores, spatial issues with concrete fixes) |
+| `organic-modeling`, `stylized-texturing`, `animation-retarget` | Read by path from `pipeline` (also typeable as `/asset-forge:<name>`): skeleton blockout + deform recipes and a proportions sheet; procedural vs Meshy-projected texturing; retargeting Mixamo/Meshy/BVH with in-place or root motion per engine. Only `pipeline` is in Claude's skill listing, which keeps the plugin's always-on cost at one description |
 
 ## What has teeth
 
 | Rule | Standing |
 |---|---|
+| Every python block in the organic-modeling skill and its recipes runs as written and yields a manifold mesh of the stated size | gate where run: `scripts/__tests__/blender/test_recipes.py` |
+| `skills/pipeline/references/forge-api.md` matches the library's signatures | gate: `scripts/gen_forge_api.py --check`, run by `forge-server.test.sh` (no Blender needed) |
 | The server speaks MCP over stdio and every tool works on the fixtures | gate where run: `scripts/__tests__/forge-server.test.sh`, 27 cases (the 15 Blender cases skip when no Blender is found) |
 | Each forge function does what its docstring says (verts outside a deform radius never move, retargeted limbs within 5° of the source, exports re-import with the expected names and triangle counts, the bad-asset fixture fails validation) | gate where run: `scripts/__tests__/forge-lib.test.sh`, 105 cases inside Blender 5.2.3. CI has no Blender, so it prints SKIP there: the cases run on a developer machine only |
 | A headless job never writes the `.blend` it opened | gate: the runner refuses `save_copy_to` equal to the opened file, and the server compares the file's size and modification time before and after every job, failing with `stage: source-modified`; harness case "after every tool the source .blend is byte-identical" |
 | Headless jobs open a snapshot, not the user's working file | recorded: the server cannot see which file the live session has open; the snapshot step is the skills' job |
 
 ## Limitations
+
+- The skills' pauses, snapshot rule and "look before you claim" are prose: nothing enforces them yet; a
+  review-after-change hook is planned.
+- Tier-1 texturing paints light, shade and edges, not motifs: plank seams, grain, rivets and keyholes need geometry
+  or Tier 2 (the treasure-chest test's reviewer scored surface detail 2/5 for this).
 
 - Nothing was imported into Unity, Unreal or Godot: export round-trips go through Blender's own importers. The
   255-vertex hull cap is PhysX's and unverified for Unreal's Chaos; Mixamo bone names in the bone maps are not yet

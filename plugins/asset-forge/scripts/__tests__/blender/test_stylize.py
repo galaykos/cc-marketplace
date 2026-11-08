@@ -92,3 +92,28 @@ def test_stylize_refuses_bad_input(tmp):
         else:
             raise AssertionError(f"accepted: {words}")
     assert not list(tmp.iterdir()) and crate.material_slots[0].material.name == "M_Crate"
+
+
+def test_apply_albedo_assigns_one_textured_material_and_is_rerunnable(tmp):
+    import bpy
+    import fixtures
+    from forge import stylize as st
+    crate = fixtures.crate()
+    crate.data.materials.append(bpy.data.materials.new("Second"))
+    img = bpy.data.images.new("alb", 8, 8)
+    img.filepath_raw = str(tmp / "alb.png")
+    img.file_format = "PNG"
+    img.save()
+    first = st.apply_albedo(crate, tmp / "alb.png")
+    again = st.apply_albedo(crate, tmp / "alb.png")
+    assert first["material"] == again["material"] == "M_SM_Crate_Stylized"
+    assert [s.material.name for s in crate.material_slots] == ["M_SM_Crate_Stylized"]
+    assert first["slots_merged"] == 2 and {p.material_index for p in crate.data.polygons} == {0}
+    tex = [n for n in crate.material_slots[0].material.node_tree.nodes if n.type == "TEX_IMAGE"]
+    assert len(tex) == 1 and tex[0].image.filepath.endswith("alb.png")
+    try:
+        st.apply_albedo(crate, tmp / "missing.png")
+    except st.ForgeError:
+        pass
+    else:
+        raise AssertionError("missing albedo accepted")

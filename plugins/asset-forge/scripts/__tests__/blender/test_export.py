@@ -28,7 +28,7 @@ def _asset(engine):
     bm.to_mesh(crate.data)
     bm.free()
     crate.location = (2, 1, 0)
-    lod.make_lod_chain(crate, engine=engine, platform="pc")
+    lod.make_lod_chain(crate, engine=engine, platform="pc", protect=("boundary",))
     collision.make_collision(crate, kind="convex", engine=engine)
     return {o.name: util.tri_count(o) for o in bpy.data.objects if o.type == "MESH"}
 

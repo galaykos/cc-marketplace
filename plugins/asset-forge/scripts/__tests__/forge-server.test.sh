@@ -63,6 +63,8 @@ printf '%s' "$out" | jq -e '.stage == "timeout"' >/dev/null && ok "a job past it
 out=$(cd "$SRV" && FORGE_BLENDER_PATH="$FAKE" python3 -c 'import json, headless; print(json.dumps(headless.run_job("env", blend_path="/nonexistent/x.blend")))')
 printf '%s' "$out" | jq -e '.stage == "input"' >/dev/null && ok "a missing blend_path is refused before Blender starts" || bad "missing blend ($out)"
 
+python3 "$here/../gen_forge_api.py" --check >/dev/null && ok "skills/pipeline/references/forge-api.md matches the forge sources" || bad "forge-api.md is stale: run python3 scripts/gen_forge_api.py"
+
 real=$(cd "$SRV" && FORGE_BLENDER_PATH="" python3 -c 'import headless; p, _ = headless.find_blender(); print(p or "")')
 tool() { # <name> <arguments-json> -> the tools/call result object
   jq -cn --arg n "$1" --argjson a "$2" '{jsonrpc:"2.0",id:9,method:"tools/call",params:{name:$n,arguments:$a}}' \

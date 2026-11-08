@@ -158,7 +158,8 @@ def _lods(obj, base, lod_pattern):
 
 
 def _collision(obj, base, patterns):
-    rxs = [_pattern_regex(p, base) for p in patterns.values()]
+    # collision.make_collision names hulls from the exact render-mesh name (Unreal requires it), LOD0 suffix included
+    rxs = [_pattern_regex(p, name) for p in patterns.values() for name in dict.fromkeys((base, obj.name))]
     candidates = {o for o in obj.children if o.type == "MESH"}
     candidates |= {o for o in bpy.data.objects
                    if o.type == "MESH" and o is not obj and base.lower() in o.name.lower()}

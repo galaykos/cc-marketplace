@@ -226,3 +226,27 @@ def stylize(obj, out_dir, palette=None, recipe="stone", resolution=1024, maps=No
     return ok(object=obj.name, recipe=recipe, albedo=str(albedo), material=mat.name, maps=map_paths,
               baked_maps=missing, palette=pal, resolution=resolution,
               seconds={"maps": round(maps_seconds, 3), "albedo": round(time.perf_counter() - start - maps_seconds, 3)})
+
+
+def apply_albedo(obj, albedo_path, material_name=None, roughness=0.85):
+    """Live step after a headless stylize or projection: merge `obj` to ONE slot holding one material whose base
+    colour is the PNG at `albedo_path` (sRGB) — the per-slot colours are already in the albedo, and one slot is one
+    draw call. Re-running reuses the material. Returns the material and image names and how many slots merged."""
+    obj = get_object(obj, "MESH")
+    path = Path(albedo_path)
+    if not path.is_file():
+        raise ForgeError(f"albedo not found: {albedo_path}")
+    image = bpy.data.images.load(str(path), check_existing=True)
+    mat = material(material_name or f"M_{obj.name}_Stylized")
+    nt = mat.node_tree
+    bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
+    tex = next((n for n in nt.nodes if n.type == "TEX_IMAGE"), None) or nt.nodes.new("ShaderNodeTexImage")
+    tex.image = image
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    bsdf.inputs["Roughness"].default_value = roughness
+    merged = len(obj.material_slots)
+    for poly in obj.data.polygons:
+        poly.material_index = 0
+    obj.data.materials.clear()  # pop() leaves material_slots stale; clear() resyncs them
+    obj.data.materials.append(mat)
+    return ok(object=obj.name, material=mat.name, image=image.name, slots_merged=merged)

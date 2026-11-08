@@ -96,7 +96,7 @@ def test_rerun_replaces_the_chain_and_drops_stale_lods():
     assert len(bpy.data.objects) == count
     assert [e["tris"] for e in again["lods"]] == [e["tris"] for e in first["lods"]]
     shorter = lod.make_lod_chain("SM_Crate_LOD0", ratios=[1.0, 0.5], engine="unity")
-    assert shorter["removed"] == ["SM_Crate_LOD1", "SM_Crate_LOD2", "SM_Crate_LOD3"]
+    assert len(first["lods"]) >= 3 and shorter["removed"] == [e["name"] for e in first["lods"][1:]]
     assert "SM_Crate_LOD2" not in bpy.data.objects and len(bpy.data.objects) == 2
 
 
@@ -126,3 +126,27 @@ def test_refusals():
     other = fixtures.crate("SM_Box")
     assert "already named" in _refused(lod.make_lod_chain, other, ratios=[1.0, 0.5])
     assert other.name == "SM_Box"
+
+
+def test_all_seam_mesh_skips_identical_levels_and_boundary_protect_reduces():
+    import bmesh
+    import bpy
+    from forge import lod, uv, util
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=24, v_segments=12, radius=0.5)
+    obj = util.new_mesh_object("SM_Ball", bm)
+    bm.free()
+    for e in obj.data.edges:
+        e.use_seam = True
+    uv.unwrap(obj)
+    locked = lod.make_lod_chain(obj, ratios=[1.0, 0.5, 0.25], engine="unity")
+    assert [x["name"] for x in locked["lods"]] == ["SM_Ball_LOD0"] and len(locked["skipped"]) == 2, locked
+    assert bpy.data.objects.get("SM_Ball_LOD1") is None
+    loose = lod.make_lod_chain(bpy.data.objects["SM_Ball_LOD0"], ratios=[1.0, 0.5], engine="unity", protect=("boundary",))
+    assert loose["lods"][1]["achieved_ratio"] < 0.6 and not loose["skipped"], loose
+    try:
+        lod.make_lod_chain(bpy.data.objects["SM_Ball_LOD0"], protect=("uv",))
+    except util.ForgeError:
+        pass
+    else:
+        raise AssertionError("unknown protect accepted")
