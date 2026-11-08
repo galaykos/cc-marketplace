@@ -659,6 +659,38 @@ Misses: a file config_kind does not name; whether an edit weakens anything (it r
   target after an in-command cd (resolved against the payload cwd instead), and `rm` of a config (destructive-guard judges only `rm -r` and `.env`, so a plain `rm` passes both).
 ```
 
+### Analyzer baselines and baseline_regen (0.9.5)
+
+Roadmap Q4, from the 2026-10-31 landscape review's TC-5: toolchain-experts' `analyzer-triage` said "Fix, or add to
+baseline with a reason" and nothing stopped a run turned green by regenerating the baseline wholesale. Same class as an
+agent relaxing the checker, so it joins this guard rather than getting its own hook.
+
+Flag names and file names were read from each tool's source on 2026-11-08 (raw GitHub, not installed; none of the
+tools was on PATH):
+
+- phpstan `phpstan-src` 2.1.x `src/Command/AnalyseCommand.php`: `new InputOption('generate-baseline', 'b',
+  InputOption::VALUE_OPTIONAL, …)`; with no value the file is `phpstan-baseline.neon`; the extension must be `neon` or
+  `php`. Hence `-b` counts, but only after a word whose basename is `phpstan` or `phpstan.phar`: on its own, `-b` is
+  grep's byte offset and a dozen other flags.
+- psalm 6.x `src/Psalm/Internal/Cli/Psalm.php`: `set-baseline::`, `update-baseline`, `use-baseline:`,
+  `ignore-baseline`; `Config::DEFAULT_BASELINE_NAME = 'psalm-baseline.xml'`. `ErrorBaseline::update` keeps only
+  entries still present (it unsets missing files and types and takes `min()` of the counts), so `--update-baseline`
+  adds nothing and stays silent.
+- eslint `main` `lib/options.js`: `suppress-all`, `suppress-rule`, `suppressions-location`, `prune-suppressions`;
+  `lib/services/suppressions-service.js`: `DEFAULT_SUPPRESSIONS_FILENAME = "eslint-suppressions.json"`, and `prune()`
+  only deletes entries or lowers counts, so `--prune-suppressions` stays silent.
+- biome `main` `crates/biome_cli/src/commands/mod.rs`: no baseline file; `lint --suppress [--reason]` writes ignore
+  comments into the sources. Not matched: it is not a baseline, and the skill names it as the same move instead.
+- rector: no baseline file.
+
+The long flags match with no tool word, so `npm run lint -- --suppress-all` and `composer stan -- --generate-baseline`
+ask. Words are read on the masked line (quoted text and escapes become `_`, as in the targets block), with heredoc bodies
+skipped and a `#` comment dropped, so a commit message or a README written through a heredoc stays silent. Misses: a
+quoted flag (`"--suppress-all"`, which the shell still passes), `-b` behind a script name with no `phpstan` word, a flag
+inside a heredoc fed to a shell, a custom baseline file name, and a baseline file a Write creates (new files pass, as
+for every kind here; eslint reads `eslint-suppressions.json` with no config change, so that one hides findings).
+Cost, 21 runs each on `git status && ls -la` through the hook, same machine: median 8.4 ms before, 9.0 ms after.
+
 ## plugins/command-guard/scripts/__tests__/destructive-guard.test.sh
 
 ### Header

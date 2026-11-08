@@ -1,6 +1,6 @@
 #!/bin/bash
-# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest, lint/test, git-hook or CI config (config_kind); on Bash, the first such target of the first eight. Silent in a marketplace repository.
-# Misses unlisted files, what the edit changes, new files, MCP apply_patch, Bash writes the targets block misses or past the eighth, a target after an in-command cd, a plain rm. Fail-open. Off: CC_CONFIG_GUARD=off or CLAUDE_DESTRUCTIVE_GUARD=off|deny-only; unset, /config decides.
+# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest, lint/test, analyzer-baseline, git-hook or CI config (config_kind); on Bash, the first such target of the first eight, or a flag that writes baseline entries (baseline_regen). Silent in a marketplace repository.
+# Misses unlisted files, what the edit changes, new files, MCP apply_patch, Bash writes the targets block misses or past the eighth, a target after an in-command cd, a plain rm, a quoted or heredoc-body regenerate flag, phpstan's -b behind a script name. Fail-open. Off: CC_CONFIG_GUARD=off or CLAUDE_DESTRUCTIVE_GUARD=off|deny-only; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/config-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -149,6 +149,8 @@ config_kind() {
   esac
   case "$b" in
     hooks.json)            echo "a hooks configuration"; return ;;
+    phpstan-baseline.neon|phpstan-baseline.neon.dist|phpstan-baseline.php|psalm-baseline.xml|eslint-suppressions.json)
+                           echo "an analyzer baseline"; return ;;
     plugin.json|marketplace.json)
                            echo "a plugin manifest"; return ;;
     .eslintrc|.eslintrc.*|eslint.config.*|biome.json|.rubocop.yml|ruff.toml|.flake8|setup.cfg|pytest.ini|pyproject.toml|phpstan.neon|phpstan.neon.dist|psalm.xml|psalm.xml.dist|.php-cs-fixer.php|.php-cs-fixer.dist.php|.golangci.yml|.golangci.yaml|clippy.toml|tsconfig.json|mypy.ini|.stylelintrc|.stylelintrc.*)
@@ -162,6 +164,45 @@ config_kind() {
   case "/$1" in
     */hooks/*.sh|*/hooks/*.py|*/hooks/*.mjs|*/hooks/*.js) echo "a hook script" ;;
   esac
+}
+
+# Shrink-only runs are left out on purpose: psalm --update-baseline and eslint --prune-suppressions only drop fixed entries.
+baseline_regen() {
+  printf '%s\n' "$1" | awk '
+    function mask(s,   i, c, q, out, esc) {
+      q = ""; out = ""; esc = 0
+      for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+        if (esc) { out = out "_"; esc = 0; continue }
+        if (q == "") {
+          if (c == "\\") { esc = 1; out = out "_"; continue }
+          if (c == "\047" || c == "\"") q = c
+          out = out c
+        } else if (c == q) { q = ""; out = out c }
+        else { if (q == "\"" && c == "\\") esc = 1; out = out "_" }
+      }
+      return out
+    }
+    skip { t = $0; gsub(/^[ \t]+|[ \t]+$/, "", t); if (t == term) skip = 0; next }
+    {
+      m = mask($0)
+      if (match(m, /(^|[^<])<<-?[ \t]*["\047\\]?[A-Za-z_][A-Za-z0-9_]*/)) {
+        term = substr($0, RSTART, RLENGTH)
+        sub(/^[^<]*<<-?[ \t]*["\047\\]?/, "", term); sub(/[^A-Za-z0-9_].*$/, "", term)
+        skip = 1
+      }
+      sub(/(^|[ \t])#.*/, "", m)
+      n = split(m, seg, /[;&|()`]/)
+      for (s = 1; s <= n; s++) {
+        php = 0; k = split(seg[s], w, /[ \t]+/)
+        for (i = 1; i <= k; i++) {
+          b = w[i]; sub(/.*\//, "", b)
+          if (b ~ /^phpstan(\.phar)?$/) php = 1
+          if (w[i] ~ /^--(generate-baseline|set-baseline|suppress-all|suppress-rule)(=|$)/) { sub(/=.*/, "", w[i]); print w[i]; exit }
+          if (php && w[i] ~ /^-b/) { print "phpstan -b"; exit }
+        }
+      }
+    }' 2>/dev/null
 }
 
 MAX_BASH_TARGETS=8
@@ -182,8 +223,14 @@ MAX_BASH_TARGETS=8
     *) exit 0 ;;
   esac
 
+  verb=editing; base=""
   if [ "$tool" = Bash ]; then
     cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
+    base=$(baseline_regen "$cmd")
+  fi
+  if [ -n "$base" ]; then
+    verb=regenerating; kind="an analyzer baseline"
+  elif [ "$tool" = Bash ]; then
     targets=$(cc_bash_write_targets "$cmd" | head -n "$MAX_BASH_TARGETS")
     [ -n "$targets" ] || exit 0
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
@@ -221,7 +268,7 @@ EOF_T
     [ -f "$root/.claude-plugin/marketplace.json" ] && exit 0
   fi
 
-  reason="command-guard: editing $kind (\`$base\`). Confirm this is a real config change, not a way around a failing check. CC_CONFIG_GUARD=off turns this prompt off."
+  reason="command-guard: $verb $kind (\`$base\`). Confirm this is a real config change, not a way around a failing check. CC_CONFIG_GUARD=off turns this prompt off."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}' 2>/dev/null

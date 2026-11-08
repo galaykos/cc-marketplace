@@ -95,11 +95,49 @@ bash_asks "printf 'x' | tee .husky/pre-commit" "bash: tee over an existing husky
 mkdir -p "$T/home/.claude" && printf '{}\n' > "$T/home/.claude/settings.json"
 HOME="$T/home" bash_asks "echo '{}' > ~/.claude/settings.json" "a ~/ target expands to HOME" settings.json
 
+# 0.9.5: analyzer baselines, as files and as the flags that write their entries
+for f in phpstan-baseline.neon phpstan-baseline.neon.dist phpstan-baseline.php psalm-baseline.xml eslint-suppressions.json baseline.md; do
+  printf 'x\n' > "$T/$f"
+done
+for f in phpstan-baseline.neon phpstan-baseline.neon.dist phpstan-baseline.php psalm-baseline.xml eslint-suppressions.json; do
+  asks "$T/$f" "$f asks"
+done
+r=$(fire "$T/phpstan-baseline.neon" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
+[ "$r" = 'command-guard: editing an analyzer baseline (`phpstan-baseline.neon`). Confirm this is a real config change, not a way around a failing check. CC_CONFIG_GUARD=off turns this prompt off.' ] \
+  && ok "the baseline ask names its kind and the file" || bad "the baseline ask names its kind and the file" "$r"
+r=$(fire "$T/phpstan.neon" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
+case "$r" in *'editing a lint, type-check or test config (`phpstan.neon`)'*) ok "phpstan.neon keeps its lint-config ask" ;;
+  *) bad "phpstan.neon keeps its lint-config ask" "${r:-<silent>}" ;; esac
+allows "$T/baseline.md" "a file merely named baseline.md is silent"
+bash_asks "cat new.neon > phpstan-baseline.neon" "bash: a redirect over an existing baseline asks" phpstan-baseline.neon
+bash_allows "echo x > baseline.md" "bash: a write to baseline.md is silent"
+bash_asks "vendor/bin/phpstan analyse --generate-baseline" "bash: phpstan --generate-baseline asks" --generate-baseline
+bash_asks "php -d memory_limit=1G vendor/bin/phpstan analyse -b" "bash: phpstan's short -b asks" "phpstan -b"
+bash_asks "composer phpstan -- --generate-baseline=phpstan-baseline.php" "bash: --generate-baseline through a composer script asks" --generate-baseline
+bash_asks "vendor/bin/psalm --set-baseline=psalm-baseline.xml" "bash: psalm --set-baseline asks" --set-baseline
+bash_asks "npx eslint . --suppress-all" "bash: eslint --suppress-all asks" --suppress-all
+bash_asks "npx eslint src --suppress-rule no-unused-vars" "bash: eslint --suppress-rule asks" --suppress-rule
+bash_asks "npm run lint -- --suppress-all" "bash: --suppress-all through an npm script asks" --suppress-all
+r=$(fire_bash "vendor/bin/phpstan analyse --generate-baseline" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
+[ "$r" = 'command-guard: regenerating an analyzer baseline (`--generate-baseline`). Confirm this is a real config change, not a way around a failing check. CC_CONFIG_GUARD=off turns this prompt off.' ] \
+  && ok "the regenerate ask names the flag" || bad "the regenerate ask names the flag" "$r"
+bash_allows "vendor/bin/phpstan analyse" "bash: phpstan analyse without the flag is silent"
+bash_allows "vendor/bin/phpstan analyse -c phpstan.neon --memory-limit=1G" "bash: phpstan with other flags is silent"
+bash_allows "vendor/bin/psalm --update-baseline" "bash: psalm --update-baseline (drops fixed entries only) is silent"
+bash_allows "npx eslint . --prune-suppressions" "bash: eslint --prune-suppressions (drops fixed entries only) is silent"
+bash_allows "grep -b phpstan composer.json" "bash: a -b before any phpstan word is silent"
+bash_allows 'git commit -m "phpstan: stop running --generate-baseline in CI"' "bash: a regenerate flag inside quotes is silent"
+bash_allows $'cat > notes.txt <<\'EOF\'\nnpx eslint . --suppress-all\nEOF' "bash: a regenerate flag inside a heredoc body is silent"
+out=$(CC_CONFIG_GUARD=off fire_bash "npx eslint . --suppress-all")
+[ -z "$out" ] && ok "CC_CONFIG_GUARD=off silences the regenerate ask" || bad "CC_CONFIG_GUARD=off silences the regenerate ask" "$out"
+
 printf '{}\n' > "$T/.claude-plugin-marker-absent"
 mkdir -p "$T/.claude-plugin" && printf '{"plugins":[]}\n' > "$T/.claude-plugin/marketplace.json"
 out=$(fire "$T/.claude/settings.json")
 [ -z "$out" ] && ok "silent inside a marketplace repo (it edits these files as its product)" \
   || bad "silent inside a marketplace repo" "asked anyway: $out"
+out=$(fire_bash "vendor/bin/phpstan analyse --generate-baseline")
+[ -z "$out" ] && ok "a regenerate is silent inside a marketplace repo" || bad "a regenerate is silent inside a marketplace repo" "$out"
 rm -rf "$T/.claude-plugin"
 
 out=$(python3 -c "
