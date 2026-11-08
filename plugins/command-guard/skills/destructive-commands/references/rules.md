@@ -123,18 +123,23 @@ root rather than as a path in it.
 
 Also `rm -rf` of a variable **this command** set from `mktemp` (`$tmp`, `${tmp}`):
 the assignment must be a top-level command of its own (not in `( )`, `$( )`, `{ }`,
-a function, `if`/`for`/`case` or a pipeline, and not after `&&`/`||`), its value
-`$( )` or backticks holding only `mktemp` (`|| mktemp` fallbacks and `2>/dev/null`
-allowed, `-u` not), and the `rm` must come after it. A path under it (`"$tmp"/*`,
-`"$tmp/sub"`, no `..`) also needs a failed `mktemp` to stop the shell, because it
-leaves the variable empty and `"$tmp"/*` becomes `/*`: `${tmp:?}`, a plain
-assignment's `|| exit`/`|| return`, or `set -e` before a standalone one. `local`,
-`export` and `declare` return 0 whatever `mktemp` did, so neither of the last two
-counts for them. Any other write to the variable in the command (`tmp=…`, `read`,
-`unset`, `for`, `printf -v`, `${tmp:=…}`), or any `eval`, `source` or `.`, asks.
-So does text another shell expands, which never sees this shell's variable: a
-single-quoted argument (`bash -c '…'`, `ssh host '…'`) or an escaped `\$tmp`, except
-in `trap`, and the body of a quoted heredoc fed to a shell (`bash <<'EOF'`).
+a function, `if`/`for`/`case`, a pipeline, an and-or list ending in `&` or a heredoc
+body, not after `&&`/`||`, not `local`, which fails outside a function, and not a
+`declare`/`typeset`/`readonly`/`export` flagged `-n`, `-i`, `-a` or `-A`), its value `$( )` or backticks
+holding only `mktemp` (`|| mktemp` fallbacks and `2>/dev/null` allowed, `-u` not),
+and the `rm` must come after it. A path under it (`"$tmp"/*`, `"$tmp/sub"`, no `..`)
+also needs a failed `mktemp` to stop the shell, because it leaves the variable empty
+and `"$tmp"/*` becomes `/*`. Exactly two guards count: `${tmp:?}` in the target, or
+a top-level `|| exit` (`|| exit N`, `|| { …; exit N; }`, `exit` a command word of the
+group and not text in a string) on the variable's only plain assignment; a second
+assignment's `|| exit` would run an EXIT trap with the variable empty. `set -e`,
+`|| return` and `export`/`declare` (which return 0 whatever `mktemp` did) do not
+count. Any other write to the variable in the command (`tmp=…`, `tmp[0]=…`, `read`,
+`mapfile`, `unset`, `for`, `printf -v`/`-vtmp`, `${tmp:=…}`, quoted or glued names too), any
+`eval`, `source` or `.`, or a `HOME`/`TMPDIR` assignment asks. So does text another
+shell expands, which never sees this shell's variable: a single-quoted argument
+(`bash -c '…'`, `ssh host '…'`) or an escaped `\$tmp`, except in `trap`, and the body
+of a quoted heredoc fed to a shell (`bash <<'EOF'`).
 Residual: a path through a symlink the command itself planted inside the directory.
 
 SQL text rules only fire when something in the command speaks SQL (a client

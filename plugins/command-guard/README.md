@@ -30,13 +30,15 @@ braced `${TMPDIR}` spelling, falls back to `ask`.
 
 A variable the same command set from `mktemp` is silent too: `tmp=$(mktemp -d); …;
 rm -rf "$tmp"`, where the assignment is a top-level command of its own (not in a
-subshell, a function, an `if` or a pipeline, or after `&&`). A path under it
-(`"$tmp"/*`, `"$tmp/sub"`) also needs proof that a failed `mktemp` cannot leave the
-variable empty, since `"$tmp"/*` would then be `/*`: `${tmp:?}`, `tmp=$(mktemp -d) ||
-exit`, or `set -e` before the assignment. It asks again when the command assigns the
-variable anything else, runs `eval` or `source`, deletes it before the assignment,
-walks out of it with `..`, or hands the `rm` to another shell that never sees the
-variable (`bash -c '…'`, `ssh host '…'`, `bash <<'EOF'`; `trap '…'` runs here).
+subshell, a function, an `if`, a pipeline, a backgrounded list or a heredoc body, not
+after `&&`, and not `local` or `declare -n`/`-i`/`-a`/`-A`). A path under it (`"$tmp"/*`, `"$tmp/sub"`) also needs proof that a failed
+`mktemp` cannot leave the variable empty, since `"$tmp"/*` would then be `/*`. Two
+proofs count: `${tmp:?}` in the target, or `|| exit` (`|| { …; exit 1; }`) on the
+variable's only assignment. `set -e` and `|| return` do not. It asks again when the
+command assigns the variable anything else, runs `eval` or `source`, deletes it
+before the assignment, walks out of it with `..`, names `HOME` or `TMPDIR`, or hands
+the `rm` to another shell that never sees the variable (`bash -c '…'`, `ssh host
+'…'`, `bash <<'EOF'`; `trap '…'` runs here).
 
 `rm -rf` on a relative path is decided by **recoverability, not spelling**: if the
 path is absent, or tracked by git with nothing untracked, modified or ignored

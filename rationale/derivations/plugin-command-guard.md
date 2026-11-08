@@ -218,13 +218,40 @@ What makes the variable provable, and why each condition exists:
   leaves the INHERITED value: `[ x ] && TMP=$(mktemp -d); rm -rf "$TMP"` with TMP
   in the user's environment is `rm -rf /tmp`. A prefix assignment
   (`tmp=$(mktemp -d) cmd`) sets it for cmd only, so a word after the value
-  disqualifies it.
-- No other write anywhere in the command: `tmp=`, `tmp+=`, read, mapfile,
-  unset, for, select, getopts, let, local/declare/typeset/readonly, printf -v,
-  `${tmp:=}`, (( )). Anywhere, not only before the rm: a trap string runs at
-  exit, after every later line. eval, source and `.` can write anything, so
-  any of them drops every variable; so does a mktemp function or alias.
-  Bash's own variables (PWD, REPLY, OPTARG, …) are never trusted: cd writes PWD.
+  disqualifies it. A top-level `local` fails ("can only be used in a
+  function") and assigns nothing, so it is not an assignment at all:
+  `local HOME=$(mktemp -d); rm -rf "${HOME:?}"/*` would empty the real home.
+  Nor is a declare/typeset/readonly/export whose flag cluster holds n, i, a or
+  A (coordinator decision, 2026-11-08): `declare -n` rejects a path as a
+  nameref and `declare -i` as an arithmetic expression, both leaving the
+  inherited value; -a/-A do assign element 0 but are refused with them. An
+  and-or list ending in a lone & (`tmp=$(mktemp -d) && x &`, a `{ }` group or
+  a `&&` line continuation included) runs whole in a background subshell, so
+  bg() scans the list on from the assignment (quotes, ( ) { } depth, comments,
+  >& and &> skipped) and refuses it; an if/while/case in the list is not
+  parsed and also refuses.
+- Not in a heredoc body. An unquoted body fed to another shell (`bash <<EOF`,
+  `ssh host <<EOF`, `docker exec -i c sh <<EOF`) survives the inert strip, and
+  its `tmp=$(mktemp -d) || exit 1` is the other shell's line: this shell only
+  expands it. The walk skips every line from a `<<[-]WORD` opener to its
+  terminator. The strip leaves an opener whose body it dropped with no
+  terminator, which looks like an unterminated body (bash runs that to the end
+  of the text); the raw command, passed in mk_raw, settles it: when any `<<` in
+  it has no terminator line after it (read loosely, skipping bodies it can
+  place), a missing terminator stops all further credit. mk_raw is set only
+  when the strip changed the text; a raw command over 128 KiB then fails exec
+  (E2BIG) and nothing is credited, an ask rather than a wrong allow.
+- No other write anywhere in the command: `tmp=`, `tmp+=`, `tmp[0]=` (`$tmp` is
+  `${tmp[0]}`), read, mapfile, unset, for, select, getopts, let,
+  local/declare/typeset/readonly, printf -v, `${tmp:=}`, (( )). A name glued to
+  a redirect (`read -r tmp<f`), to -v (`printf -vtmp`) or quoted (`read
+  "tmp"`, `unset "tmp"`, `printf -v "tmp"`) counts. Anywhere, not only before the rm: a trap string
+  runs at exit, after every later line. eval, source and `.` can write
+  anything, so any of them drops every variable; so does a mktemp function or
+  alias. Bash's own variables (PWD, REPLY, OPTARG, …) are never trusted: cd
+  writes PWD. HOME and TMPDIR are never credited either: a crediting mistake
+  there costs the user's home or every tool's scratch root, and
+  `declare -n HOME=$(mktemp -d)` (an invalid nameref) assigns nothing.
 - The rm comes after the first such assignment, by segment ordinal. The walk
   reports byte offsets; split_segments on the prefix (plus a sentinel, or a
   trailing newline is lost to awk's record split) counts the segments before it,
@@ -234,12 +261,29 @@ The failure case the item did not name: mktemp can fail (read-only or missing
 TMPDIR, full disk), and a failed `tmp=$(mktemp -d)` assigns the empty string.
 `rm -rf "$tmp"` is then `rm -rf ''`, a no-op, so the bare variable is always
 safe. `rm -rf "$tmp"/*` is `rm -rf /*`. So a path under the variable is exempt
-only when a failed mktemp stops the shell first: `${tmp:?}` in the target, a
-plain assignment's `|| exit|return` (or `|| { …; exit; }`), or `set -e` before
-a standalone assignment (not followed by && or ||, where errexit is ignored,
-and no later `set +e`). local/export/declare return 0 whatever the
-substitution did, so neither of the last two counts for them. Unguarded, the
-sub-path still asks with the variable-collapse reason, which is now exact.
+only when a failed mktemp stops the shell first, and exactly two guards count
+(user decision, 2026-11-08): `${tmp:?}` in the target, or a top-level
+`|| exit` (`|| exit N`, `|| { …; exit N; }`) directly on a plain assignment
+that is the variable's only one. In the group, exit must be a command word
+after `{`, `;` or a newline, outside quotes, and the group may hold no
+nesting, `( )`, pipe, background job, `&&`/`||` or heredoc: `{ echo x || exit
+1; }` falls through when echo succeeds. A trailing pipe (`|| exit 1 | tee`)
+runs exit in a subshell. export/declare return 0 whatever the substitution did,
+so their `|| exit` never fires. Unguarded, the sub-path still asks with the
+variable-collapse reason, which is now exact.
+
+What no longer counts, and why (second review of the first cut, 2026-11-08):
+- `set -e`: a `set +e` inside a block or after && was skipped by the walk, and
+  errexit is off in any command tested by && or || (an eval among them).
+  Tracking that is a shell interpreter; the user chose to drop it.
+- `|| return`: outside a function it fails and the script runs on; and the old
+  pattern matched exit/return anywhere in `|| { … }`, an echo string included
+  (`{ echo "mktemp failed (exit $?)" >&2; }`).
+- A guard on one of two assignments: when the later one's `|| exit` fires, the
+  EXIT trap (or a function the trap calls) runs with the variable empty, so a
+  trap's `"$tmp"/*` registered after the first assignment is `/*`. One
+  assignment means a failure exits before anything after it, the trap
+  included, is registered. `${tmp:?}` in a trap body stays exempt.
 
 Another shell does not have the variable. Text it expands, a single-quoted
 argument (`bash -c '…'`, `ssh host '…'`, `docker exec c sh -c '…'`), an escaped
@@ -254,7 +298,11 @@ heredoc and a double-quoted `bash -c "…$tmp…"` are expanded here and stay ex
 Residuals: a path through a symlink the command itself planted inside the
 directory (`ln -s ~ "$tmp/h"; rm -rf "$tmp/h/"*`); an assignment in
 `if tmp=$(mktemp -d); then` is inside a block and asks; an unquoted
-`rm -rf ${tmp}` asks, since split_segments cuts on the braces.
+`rm -rf ${tmp}` asks, since split_segments cuts on the braces; an assignment
+after a dropped non-shell heredoc whose delimiter a later kept heredoc reuses
+asks (the walk pairs the opener with the later terminator and skips between).
+bg() reads a heredoc body inside a continued list (`… && cat <<EOF &&`) as list
+text, and ends a double-quoted string early at a quote nested in its `$( )`.
 Pre-existing and not changed here: is_temp_path lowercases the token, so a
 command's own `$tmp/x` is read as the hook's `$TMP/x`, and passes whenever TMP
 is set in the hook's environment; and a trap's signal name
@@ -891,11 +939,21 @@ means `rm -rf $TMPDIR/build` is `rm -rf /build`, which must not go silent.
 ```text
 expect_mk runs --check with TMP and TMPDIR unset: is_temp_path reads `$tmp/x` as
 the hook's `$TMP/x`, so with TMP set a sub-path case would pass without the new
-code. The 21 allow cases ask against 0.9.5; the 48 ask/deny cases (true positives
+code. The 26 allow cases ask against 0.9.5; the 79 ask/deny cases (true positives
 kept: reassigned, used before, escaping, other command, not persisting, not lone
 mktemp, unguarded sub-path, expanded by another shell) hold on both, and the six
-another-shell asks were allowed by this change's first cut. One case goes through
-the PreToolUse payload, the retro's own command.
+another-shell asks were allowed by this change's first cut. The second review's
+22 asks (three flipped from allow: top-level local, set -euo pipefail, set -e
+with a subshell rm) were all allowed at 82226aae, the first cut; five allow
+controls pass on both: a trap's sub-path after the only
+guarded assignment, an assignment after a kept shell heredoc, after a dropped
+cat heredoc, after a dropped python heredoc holding `1 << 2`, and after a `<<<`
+here-string. Three follow-ups found while fixing those add 9 asks that the
+fixed second cut allowed (declare -n, -i, typeset -a, declare -rA; && … &,
+|| { … } &, a && line continuation into &, && if … fi &; printf -vtmp) and three
+allow controls that pass on both (>&2, &>/dev/null, declare -r). One case goes
+through the PreToolUse payload, the retro's own command. Run under mawk and
+busybox awk; gawk was not installed.
 ```
 
 ### Allow-file: pure readers
