@@ -1,6 +1,6 @@
 {
   "name": "asset-forge",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Game-asset creation in Blender: a headless MCP server (Python standard library, no install) that renders review sets, validates, bakes and exports snapshots of the live scene, never the working .blend; a pure-bpy library of sculpt-like deforms, organic blockouts, stylized texture bakes, LODs, collision and retargeting; pipeline skills with per-engine presets; and an art-reviewer agent. Complements the Blender MCP server and the blender plugin's checkers.",
   "author": {
     "name": "Ivan-WG",

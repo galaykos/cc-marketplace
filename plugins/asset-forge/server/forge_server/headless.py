@@ -53,6 +53,13 @@ def _tail(*streams):
     return "\n".join(text.strip().splitlines()[-LOG_TAIL_LINES:])
 
 
+def _fingerprint(path):
+    if not path:
+        return None
+    st = Path(path).stat()
+    return st.st_size, st.st_mtime_ns
+
+
 def run_job(op, args=None, blend_path=None, timeout=300):
     """Run runner.py's `op` with `args` (a JSON-serialisable dict). timeout is in seconds. Returns the runner's dict,
     or {"ok": False, "stage", "error", "blender_log_tail"} for any failure outside it."""
@@ -61,6 +68,7 @@ def run_job(op, args=None, blend_path=None, timeout=300):
         return {"ok": False, "stage": "locate-blender", "error": source}
     if blend_path and not Path(blend_path).is_file():
         return {"ok": False, "stage": "input", "error": f"blend_path does not exist: {blend_path}"}
+    before = _fingerprint(blend_path)
     with tempfile.TemporaryDirectory(prefix="asset-forge-") as tmp:
         request = Path(tmp, "request.json")
         result = Path(tmp, "result.json")
@@ -86,6 +94,9 @@ def run_job(op, args=None, blend_path=None, timeout=300):
             out = json.loads(result.read_text())
         except ValueError as exc:
             return {"ok": False, "stage": "result", "error": f"unreadable result JSON: {exc}", "blender_log_tail": log_tail}
+    if before != _fingerprint(blend_path):
+        out = {"ok": False, "stage": "source-modified", "error": f"the job changed {blend_path}; headless jobs must "
+               "work on a snapshot and never save over it", "job_result": out}
     out["blender"] = {"path": exe, "found_by": source}
     if not out.get("ok"):
         out["blender_log_tail"] = log_tail

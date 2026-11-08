@@ -61,6 +61,8 @@ def op_call(module, function, kwargs=None, save_copy_to=None):
     fn = getattr(importlib.import_module(f"forge.{module}"), function)
     result = fn(**(kwargs or {}))
     if save_copy_to:
+        if bpy.data.filepath and Path(save_copy_to).resolve() == Path(bpy.data.filepath).resolve():
+            raise ValueError("save_copy_to is the opened file; a headless job never saves over its source")
         bpy.ops.wm.save_as_mainfile(filepath=str(save_copy_to), copy=True)
         result["saved_copy"] = str(save_copy_to)
     return result

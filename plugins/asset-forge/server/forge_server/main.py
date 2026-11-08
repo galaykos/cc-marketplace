@@ -1,34 +1,13 @@
 """asset-forge MCP server: JSON-RPC 2.0 over stdio, one JSON message per line, Python standard library only.
 stdout carries protocol messages and nothing else; diagnostics go to stderr."""
 import json
-import os
-import platform
 import sys
 import traceback
 
-import headless
+import tools
 
-SERVER_INFO = {"name": "asset-forge-forge", "version": "0.2.0"}
+SERVER_INFO = {"name": "asset-forge-forge", "version": "0.3.0"}
 KNOWN_PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
-
-
-def tool_env_check(_args):
-    report = headless.run_job("env", timeout=120)
-    report["server"] = {"python": sys.version.split()[0], "platform": platform.platform(),
-                        "plugin_data": os.environ.get("CLAUDE_PLUGIN_DATA") or None}
-    report["tier2_texturing"] = "through the Meshy MCP server, driven by the stylized-texturing skill; this server does not call it"
-    return report
-
-
-TOOLS = {
-    "env_check": {
-        "handler": tool_env_check,
-        "description": "Check the headless Blender this server runs: executable path and how it was found, version, "
-                       "settable render engines, numpy in Blender's Python. Run first when any other tool fails.",
-        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
-        "annotations": {"readOnlyHint": True, "openWorldHint": False},
-    },
-}
 
 
 def _result(msg_id, result):
@@ -61,15 +40,16 @@ def handle(message):
     if method == "ping":
         return _result(msg_id, {})
     if method == "tools/list":
-        listed = [{"name": name, "description": spec["description"], "inputSchema": spec["inputSchema"],
-                   "annotations": spec["annotations"]} for name, spec in TOOLS.items()]
+        listed = [{"name": name, "description": desc, "inputSchema": schema,
+                   **({"annotations": tools.ANNOTATIONS[name]} if name in tools.ANNOTATIONS else {})}
+                  for name, (_handler, desc, schema) in tools.TOOLS.items()]
         return _result(msg_id, {"tools": listed})
     if method == "tools/call":
         name = params.get("name")
-        if name not in TOOLS:
+        if name not in tools.TOOLS:
             return _error(msg_id, -32602, f"unknown tool: {name}")
         try:
-            payload = TOOLS[name]["handler"](params.get("arguments") or {})
+            payload = tools.call(name, params.get("arguments") or {})
         except Exception as exc:
             traceback.print_exc(file=sys.stderr)
             payload = {"ok": False, "stage": f"server:{name}", "error": f"{type(exc).__name__}: {exc}"}

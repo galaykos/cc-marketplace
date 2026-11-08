@@ -340,3 +340,12 @@ def project_and_bake(obj, view_images, out_dir, resolution=1024, seam_blend=0.2)
               texels_covered=int(covered.sum()), texels_seen=int(hit.sum()), texels_filled=int((~hit).sum()),
               view_texels={cam.name: int((winner == i).sum()) for i, (cam, _) in enumerate(views)},
               seconds=round(time.perf_counter() - start, 3), notes=NOTES)
+
+
+def prepare_views(obj, out_dir, views=("front", "back", "left", "right", "top"), resolution=1024):
+    """setup_views then render_guides in one call, for a headless job that saves the cameras with a copy of the file.
+    Returns the cameras, {camera: {guide: path}} and the depth ranges (metres)."""
+    cams = setup_views(obj, views=views, resolution=resolution)
+    guides = render_guides(obj, out_dir, cams["cameras"])
+    return ok(object=cams["object"], cameras=cams["cameras"], resolution=cams["resolution"],
+              guides=guides["guides"], depth_range_m=guides["depth_range_m"])
