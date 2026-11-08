@@ -95,6 +95,21 @@ check "ts: the call closes, prose after it"  allow src/Page.tsx      $'const r =
 check "ts: a quote in a comment after it"    allow src/Page.tsx      $'const m = /x/.exec(line) // don\'t\nreturn <p>Drop table rows here</p>'
 # Residual, pinned so a fix flips it on purpose: SQL built in a variable and passed to the call later.
 check "ts: SQL in a variable, residual"      allow src/reset.ts      $'const q = "TRUNCATE TABLE sessions"\nawait pool.query(q)'
+# Driver APIs the first call list missed, each asking on 0.11.9; and SQL earlier on the line than a call chained on a call result.
+check "php: DBAL executeStatement"           ask   src/Command/Reset.php "\$this->connection->executeStatement('TRUNCATE TABLE sessions');"
+check "py: sqlite3 executescript"            ask   app/reset.py      'conn.executescript("DROP TABLE users")'
+check "js: node-sqlite3 db.run"              ask   src/reset.js      'db.run("DELETE FROM sessions")'
+check "php: mysqli_query"                    ask   app/reset.php     'mysqli_query($c, "TRUNCATE users");'
+check "php: pg_query"                        ask   app/reset.php     'pg_query($c, "DROP TABLE users");'
+check "py: peewee execute_sql"               ask   app/reset.py      'db.execute_sql("DROP TABLE users")'
+check "rs: diesel sql_query, chained below"  ask   src/reset.rs      $'diesel::sql_query("DROP TABLE users")\n    .execute(conn)?;'
+check "ts: postgres.js sql.unsafe"           ask   src/reset.ts      'await sql.unsafe("DROP TABLE users")'
+check "java: createNativeQuery"              ask   src/main/java/Reset.java 'em.createNativeQuery("DELETE FROM t").executeUpdate();'
+check "java: SQL before a chained executeUpdate()" ask src/main/java/Reset.java 'em.createQuery("DELETE FROM Session s").executeUpdate();'
+check "sh: wrangler d1 execute --command"    ask   scripts/reset.sh  'npx wrangler d1 execute db --command "DROP TABLE users"'
+check "sh: pgcli heredoc"                    ask   scripts/reset.sh  $'pgcli "$DATABASE_URL" <<\'SQL\'\nDROP TABLE sessions;\nSQL'
+check "sh: duckdb -c"                        ask   scripts/reset.sh  'duckdb app.db -c "DROP TABLE users"'
+check "sh: SQL piped into psql"              ask   scripts/reset.sh  'echo "DROP TABLE users;" | psql "$DATABASE_URL"'
 check "DELETE with no WHERE"          ask   db/migrate.sql   'DELETE FROM orders;'
 check "DELETE with WHERE"             allow db/migrate.sql   'DELETE FROM orders WHERE id = 1;'
 # 0.8.3: Laravel's schema builder spells DROP TABLE without the keywords.
@@ -141,7 +156,36 @@ check "laravel: down() dropAllTables" ask "$MIG" \
 check "laravel: names in a variable, created and dropped alike" allow "$MIG" \
   $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        $tableNames = config(\'permission.table_names\');\n        Schema::create($tableNames[\'roles\'], fn ($t) => $t->id());\n        Schema::create($tableNames["permissions"], fn ($t) => $t->id());\n    }\n\n    public function down(): void\n    {\n        $tableNames = config(\'permission.table_names\');\n        Schema::drop($tableNames[\'permissions\']);\n        Schema::drop($tableNames[\'roles\']);\n    }\n};'
 check "laravel: raw DROP TABLE of two created tables" allow "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        DB::statement(\'CREATE TABLE a (id int)\');\n        DB::statement(\'CREATE TABLE "b" (id int)\');\n    }\n\n    public function down(): void\n    {\n        DB::statement(\'DROP TABLE IF EXISTS a, "b"\');\n    }\n};'
+# A create that may never run creates nothing: IF NOT EXISTS, a name tested by hasTable/table_exists?/has_table, a comment.
+check "laravel: raw DROP TABLE of a created and an IF NOT EXISTS table" ask "$MIG" \
   $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        DB::statement(\'CREATE TABLE a (id int)\');\n        DB::statement(\'CREATE TABLE IF NOT EXISTS "b" (id int)\');\n    }\n\n    public function down(): void\n    {\n        DB::statement(\'DROP TABLE IF EXISTS a, "b"\');\n    }\n};'
+check "laravel: Schema::create under hasTable, dropped in down()" ask "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        if (! Schema::hasTable(\'users\')) {\n            Schema::create(\'users\', fn ($t) => $t->id());\n        }\n    }\n\n    public function down(): void\n    {\n        Schema::dropIfExists(\'users\');\n    }\n};'
+check "laravel: a create named in a comment, dropped in down()" ask "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        // was Schema::create(\'users\') in 2014\n        Schema::table(\'users\', fn ($t) => $t->boolean(\'flag\'));\n    }\n\n    public function down(): void\n    {\n        Schema::dropIfExists(\'users\');\n    }\n};'
+check "laravel: a create with a comment after it on its line" allow "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        Schema::create(\'widgets\', fn ($t) => $t->id()); // widgets\n    }\n\n    public function down(): void\n    {\n        Schema::dropIfExists(\'widgets\');\n    }\n};'
+check "rails: create_table if_not_exists, dropped in down" ask db/migrate/007_x.rb \
+  $'class X < ActiveRecord::Migration[7.1]\n  def up\n    create_table :users, if_not_exists: true do |t|\n      t.string :name\n    end\n  end\n\n  def down\n    drop_table :users\n  end\nend'
+check "rails: create_table unless table_exists?, dropped in down" ask db/migrate/008_x.rb \
+  $'class X < ActiveRecord::Migration[7.1]\n  def up\n    create_table :users unless table_exists?(:users)\n  end\n\n  def down\n    drop_table :users\n  end\nend'
+check "alembic: create_table under has_table, dropped in downgrade" ask alembic/versions/0009_x.py \
+  $'def upgrade():\n    if not sa.inspect(op.get_bind()).has_table("user"):\n        op.create_table("user", sa.Column("id", sa.Integer))\n\n\ndef downgrade():\n    op.drop_table("user")'
+# Code sharing a line with the rollback opener was cut unread, so a one-line down() dropped any table in silence.
+check "laravel: one-line down() drops a table up() did not create" ask database/migrations/2026_01_01_000001_add_flag_to_users.php \
+  $'<?php\nreturn new class extends Migration\n{\n'"$alter_up"$'\n    public function down(): void { Schema::dropIfExists(\'users\'); }\n};'
+check "laravel: one-line down() drops the table up() creates" allow "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n'"$up_create"$'\n    public function down(): void { Schema::dropIfExists(\'widgets\'); }\n};'
+check "rails: def down; drop_table; end on one line" ask db/migrate/006_add_flag.rb \
+  $'class AddFlag < ActiveRecord::Migration[7.1]\n  def up\n    add_column :users, :flag, :boolean\n  end\n\n  def down; drop_table :users; end\nend'
+check "alembic: def downgrade(): op.drop_table on one line" ask alembic/versions/0008_x.py \
+  $'def upgrade():\n    op.add_column("user", sa.Column("flag", sa.Boolean()))\n\n\ndef downgrade(): op.drop_table("user")'
+# Only the drop rules skip the rollback method: the other data-loss and lock rules read it.
+check "laravel: TRUNCATE in down() asks" ask "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n'"$up_create"$'\n    public function down(): void\n    {\n        Schema::dropIfExists(\'widgets\');\n        DB::statement(\'TRUNCATE TABLE users\');\n    }\n};'
+check "laravel: CREATE INDEX in down() asks" ask "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        Schema::table(\'users\', fn ($t) => $t->dropIndex(\'users_email\'));\n    }\n\n    public function down(): void\n    {\n        DB::statement(\'CREATE INDEX users_email ON users (email)\');\n    }\n};'
 check "laravel: raw DROP TABLE of a created and an uncreated table" ask "$MIG" \
   $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        DB::statement(\'CREATE TABLE a (id int)\');\n    }\n\n    public function down(): void\n    {\n        DB::statement(\'DROP TABLE a, users\');\n    }\n};'
 check "doctrine: addSql CREATE TABLE, DROP TABLE in down()" allow migrations/Version20261108000000.php \
@@ -250,12 +294,12 @@ EMIG="$WS/proj/database/migrations/2026_01_01_000000_create_widgets_table.php"
 printf '%s\n' '<?php' 'return new class extends Migration' '{' "$up_create" '    public function down(): void' '    {' '    }' '};' > "$EMIG"
 AMIG="$WS/proj/database/migrations/2026_01_01_000001_add_flag_to_users.php"
 printf '%s\n' '<?php' 'return new class extends Migration' '{' "$alter_up" '    public function down(): void' '    {' '    }' '};' > "$AMIG"
-check_edit_at() { # label want tool file new-text [second edit]
+check_edit_at() { # label want tool file new-text [second new-text [old-text [second old-text]]]
   local out got p
   if [ "$3" = MultiEdit ]; then
-    p=$(jq -nc --arg f "$4" --arg a "$5" --arg b "$6" --arg d "$WS/proj" '{tool_name:"MultiEdit",cwd:$d,tool_input:{file_path:$f,edits:[{old_string:"x",new_string:$a},{old_string:"y",new_string:$b}]}}')
+    p=$(jq -nc --arg f "$4" --arg a "$5" --arg b "$6" --arg oa "${7:-x}" --arg ob "${8:-y}" --arg d "$WS/proj" '{tool_name:"MultiEdit",cwd:$d,tool_input:{file_path:$f,edits:[{old_string:$oa,new_string:$a},{old_string:$ob,new_string:$b}]}}')
   else
-    p=$(jq -nc --arg f "$4" --arg a "$5" --arg d "$WS/proj" '{tool_name:"Edit",cwd:$d,tool_input:{file_path:$f,old_string:"x",new_string:$a}}')
+    p=$(jq -nc --arg f "$4" --arg a "$5" --arg oa "${7:-x}" --arg d "$WS/proj" '{tool_name:"Edit",cwd:$d,tool_input:{file_path:$f,old_string:$oa,new_string:$a}}')
   fi
   out=$(printf '%s' "$p" | TMPDIR="$WS/tmp" bash "$HOOK" 2>/dev/null)
   if printf '%s' "$out" | grep -q '"permissionDecision":"ask"'; then got=ask; else got=allow; fi
@@ -266,6 +310,14 @@ check_edit_at "edit: down() of a create migration on disk"          allow Edit  
 check_edit_at "edit: the same down() on an alter migration on disk" ask   Edit      "$AMIG" "$down_widgets"
 check_edit_at "multiedit: a drop in an edit's own down() is still cut" allow MultiEdit "$EMIG" "$down_widgets" $'            $table->string(\'name\');'
 check_edit_at "multiedit: the same edits on an alter migration ask"    ask   MultiEdit "$AMIG" "$down_widgets" $'            $table->string(\'name\');'
+# The file on disk is read with the call's own replacements applied: a create the same MultiEdit removes creates nothing.
+UMIG="$WS/proj/database/migrations/2026_01_01_000002_create_users_table.php"
+printf '%s\n' '<?php' 'return new class extends Migration' '{' "${up_create//widgets/users}" '    public function down(): void' '    {' '    }' '};' > "$UMIG"
+empty_down=$'    public function down(): void\n    {\n    }'
+check_edit_at "multiedit: create turned into table, down() drops it" ask MultiEdit "$UMIG" \
+  "Schema::table('users'" "${down_widgets//widgets/users}" "Schema::create('users'" "$empty_down"
+check_edit_at "multiedit: create kept, down() drops it"              allow MultiEdit "$UMIG" \
+  $'$table->id();\n            $table->string(\'name\');' "${down_widgets//widgets/users}" "\$table->id();" "$empty_down"
 # The payload cwd follows the shell's cd; CLAUDE_PROJECT_DIR does not. With the shell in a sibling repo, a migration written
 # into the project was skipped as outside the cwd's root (0.11.4's first cut); either root now holds a judged target.
 mkdir -p "$WS/real/db" "$WS/sib/db"; git -C "$WS/real" init -q 2>/dev/null; git -C "$WS/sib" init -q 2>/dev/null

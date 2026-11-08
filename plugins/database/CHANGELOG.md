@@ -16,11 +16,18 @@ releases were not recorded here and are not reconstructed.
   and the rewriting `ALTER` now count in a `.sql`/`.pgsql`/`.psql`/`.ddl` file or under
   `migrations/`, `migration/`, `db/migrate/` or `alembic/`; elsewhere only inside a raw-query
   call (`query(`, `execute(`, `exec(`, `raw(`, `statement(`, `unprepared(`, `addSql(`,
-  `` sql` ``, `$executeRaw`, `DB::delete(` and driver variants) or a line naming a SQL client,
-  from the opener until its parentheses and quotes close, a heredoc it opens included.
-  Migration-DSL drops and the NoSQL shapes are read everywhere, as before. Trade: SQL built
-  in a variable and passed to the call later (`const q = "TRUNCATE TABLE x"; pool.query(q)`)
-  asked before and is now silent; pinned in the harness.
+  `executeStatement(`, `executescript(`, `execute_sql(`, `*_query(` such as `mysqli_query(`,
+  `pg_query(` and diesel's `sql_query(`, `unsafe(`, `createNativeQuery(`, `.run("…"`,
+  `` sql` ``, `$executeRaw`, `DB::delete(` and driver variants) or a line naming a SQL client
+  (`psql` and its peers, `pgcli`, `duckdb`, `wrangler d1 execute`), from the opener until its
+  parentheses and quotes close, a heredoc it opens included. A client line, or a call chained on a call result (`…).executeUpdate()`),
+  is read from the line's start. Migration-DSL drops and the NoSQL shapes are read everywhere,
+  as before. Trade: what asked on 0.11.9 and is silent now, outside a SQL file or a
+  migration: SQL built in a variable and passed to the call later
+  (`const q = "TRUNCATE TABLE x"; pool.query(q)`, pinned in the harness); a call or client off
+  the list (`jdbcTemplate.update(`, C#'s `CommandText`, `pg_query_params(`, `mycli`, `litecli`,
+  `usql`); a `.run(` whose statement is not a string on the same line; SQL on the line above
+  a chained opener (`em.createQuery("…")` then `.executeUpdate()` on the next line).
 
 ### Fixed
 - **A `down()` that drops a table its migration did not create asks again.** 0.11.4 cut every
@@ -28,16 +35,27 @@ releases were not recorded here and are not reconstructed.
   `Schema::dropIfExists('users')` in `down()` passed in silence; reproduced for Laravel, Rails
   and Alembic. The cut now exempts only a drop of a table the migration creates
   (`Schema::create`, `createTable(`, `create_table`, `CREATE TABLE`; for an Edit, also read
-  from the target file on disk). A drop of any other table, every table, a database or a
-  schema in `down()` asks. A new create-table migration's `down()` stays silent.
-- Standing: gate — `guard.test.sh` 98 → 139 checks. 21 fail against 0.11.9: 13 that must be
-  silent (12 near-misses, one a Bash heredoc, and the pinned variable trade), six `down()`
-  drops that must ask, and two Edit/MultiEdit cases on an alter migration. The raw-SQL cases (`pool.query`, a multi-line
-  `` sql` `` template, `$executeRaw`, `cursor.execute("""…""")`, `db.Exec`, `DB::statement`,
-  `DB::unprepared(<<<SQL`, `DB::delete`, `psql -c`, a psql heredoc) ask on both. Four scope
-  cases now carry a raw call, so they still test the scope rule and not the file type. Every
-  check also passes under busybox awk. Median per Write 13.8 → 14.6 ms on `app-logo.tsx`,
-  14.1 → 15.2 ms on a create migration (21 interleaved runs each).
+  from the target file on disk with the call's own replacements applied). A create in a
+  comment, under `IF NOT EXISTS` or `if_not_exists`, or of a name tested by `hasTable`,
+  `table_exists?` or `has_table` creates nothing. A drop of any other table, every table, a
+  database or a schema in `down()` asks, and so does one on the `down()` opener's own line
+  (`def down; drop_table :users; end`). Only the drop rules skip `down()`; every other rule
+  reads it, so a `TRUNCATE` or a `CREATE INDEX` there asks. A new create-table migration's
+  `down()` stays silent.
+- Standing: gate — `guard.test.sh` 98 → 168 checks. 33 fail against 0.11.9: 13 that must be
+  silent (12 near-misses, one a Bash heredoc, and the pinned variable trade), 17 rollback
+  cases that must ask (six drops of a table, or every table, the migration did not create;
+  six of a table created only conditionally or in a comment; three one-line rollbacks; a
+  `TRUNCATE` and a `CREATE INDEX` in `down()`), and three Edit/MultiEdit cases read against
+  the file on disk.
+  The raw-SQL cases (`pool.query`, a multi-line `` sql` `` template, `$executeRaw`,
+  `cursor.execute("""…""")`, `db.Exec`, `DB::statement`, `DB::unprepared(<<<SQL`,
+  `DB::delete`, `psql -c`, a psql heredoc, and one per driver API and client added above) ask
+  on both. Four scope cases now carry a raw call, so they still test the scope rule and not
+  the file type. Every check also passes under busybox awk; gawk was not available to test.
+  Median per Write, two passes of 21 interleaved runs at load average 5–6:
+  13.6 / 14.8 → 14.2 / 16.0 ms on `app-logo.tsx`, 14.5 / 15.1 → 15.5 / 16.6 ms on a create
+  migration.
 
 ## 0.11.9 — 2026-11-08
 
