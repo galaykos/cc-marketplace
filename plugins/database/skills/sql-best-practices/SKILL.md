@@ -137,6 +137,14 @@ mid-scroll; keyset cost is constant and the page boundary is a row, not a count.
   and a destructive one without a confirmed backup is not runnable.
 - Go through the project's migration tool (Alembic, Flyway, Prisma, Rails, Knex,
   golang-migrate). Raw ad-hoc DDL where a migration system exists is a bug.
+- Lint changed migrations with a tool the user already has; never install one. Postgres
+  `.sql` and `command -v squawk`: `squawk --reporter gcc --pg-version <detected, e.g. 16.0>
+  <changed .sql files>`, plus `--assume-in-transaction` when the tool wraps each file in
+  one. Offline; reads `.squawk.toml` from the cwd up. Each `file:line:col: level rule
+  message` line is a finding; exit 1 with no such line is a failed run. A DSL migration is
+  not SQL squawk reads. Rails with `strong_migrations` in `Gemfile.lock`: its checks run
+  inside the app's own `bin/rails db:migrate`; cite them, never migrate to review. Tool
+  absent: say it was not run, go on. Standing: recorded — nothing checks the run happened.
 
 > Worked example — rename `users.name` to `full_name` with zero downtime:
 > **expand** (add `full_name` nullable, deploy; old code still writes `name`) →
