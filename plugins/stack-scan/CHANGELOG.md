@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.18.5 — 2026-11-08
+
+- **Catalog row for the new asset-forge plugin.** `plugin-scout/references/catalog.md` is regenerated. No signals row yet: asset-forge 0.1.0 is a skeleton, and the scout should not suggest it until its library ships. Standing: gate (`scripts/generate.sh --check`).
+
 ## 0.18.4 — 2026-11-07
 
 - **Catalog row for blender 0.3.0.** `plugin-scout/references/catalog.md` is regenerated from the blender plugin's new description, which now names rigging, animation, `anim_audit.py` and `rig_check.py`. No behaviour change. Standing: gate (`scripts/generate.sh --check`).
