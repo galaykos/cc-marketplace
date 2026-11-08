@@ -160,6 +160,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_DRIFT` | task-runner | on | Nudge when a turn touches files well beyond the request, outside a task-runner run: on or off |
 | `CC_ELISION_GUARD` | code-review | on | Refuse, not just warn about, a write replacing code with // … existing code … or similar: on or off |
 | `CC_EVIDENCE_GATE` | candor | block | Stop-gate clause for a completion claim with nothing run since the last edit: block, warn or off |
+| `CC_FORGE_REVIEW` | asset-forge | on | Block a turn from ending once per change cycle when the Blender scene changed since the last asset-forge … |
 | `CC_GLB_CHECK` | meshy | on | Run inspect_glb.py at 15,000 triangles and 2,048 px on a .glb/.gltf a call wrote, and add what fails: on … |
 | `CC_HUD_HINT` | session-hud | off | Add the HUD segments to the dim hint line under the prompt: on or off |
 | `CC_HUD_PIN` | session-hud | off | Reopen the /hud pane after you close it by hand; under 144 terminal columns it waits until the terminal  … |

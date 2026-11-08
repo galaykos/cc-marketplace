@@ -137,10 +137,30 @@ def export_asset(args):
     _require(args, "objects", "engine", "out_dir")
     objects = args["objects"] if isinstance(args["objects"], list) else [args["objects"]]
     kwargs = {"objects": objects, "engine": args["engine"], "out_dir": _out_dir(args, "export")}
-    for key in ("file_stem", "include_lods", "include_collision", "platform"):
+    for key in ("file_stem", "include_lods", "include_collision", "platform"):  # asset_class only feeds validation
         if args.get(key) is not None:
             kwargs[key] = args[key]
-    return _call(blend, "export", "export_asset", kwargs, timeout=600)
+    vkw = {"obj": objects[0], "engine": args["engine"], "platform": args.get("platform") or "pc",
+           "asset_class": args.get("asset_class") or "prop_medium"}
+    validation = _call(blend, "validate", "validate_asset", vkw, timeout=180)
+    result = _call(blend, "export", "export_asset", kwargs, timeout=600)
+    failed = [c["id"] for c in validation.get("checks", []) if c.get("status") == "fail"]
+    result["source_validation"] = {"passed": validation.get("passed"), "failed": failed,
+                                   "asset_class": vkw["asset_class"], "error": validation.get("error")}
+    if result.get("ok"):
+        files = [{"path": f["path"], "objects": f["objects"]} for f in result.get("files", [])]
+        audit = headless.run_job("call", {"module": "export", "function": "audit_export",
+                                          "kwargs": {"files": files, "engine": args["engine"]}}, timeout=300)
+        audit.pop("blender", None)
+        result["post_export_audit"] = audit
+        if not audit.get("ok") or not audit.get("passed"):
+            result.update(ok=False, stage="post-export-audit",
+                          error="the exported file does not hold what was meant to ship: see post_export_audit")
+        elif failed:
+            result.update(ok=False, stage="source-validation", error=f"files were written, but {objects[0]} fails "
+                          f"validation ({', '.join(failed)}): fix it live and export again, or tell the user why it "
+                          "ships as is")
+    return result
 
 
 def texture_views(args):
@@ -200,7 +220,7 @@ def batch_run(args):
             "seconds": round(time.time() - started, 2)}
 
 
-_BLEND = {"type": "string", "description": "A snapshot .blend (live scene: save_as_mainfile(copy=True) first)"}
+_BLEND = {"type": "string", "description": "Snapshot .blend, never the working file"}
 _OUT = {"type": "string"}
 _OBJ = {"type": "string"}
 _INT = {"type": "integer"}
@@ -244,7 +264,7 @@ TOOLS = {
                      _schema({"blend_path": _BLEND, "objects": {"type": "array", "items": {"type": "string"}},
                               "engine": _enum(ENGINES), "out_dir": _OUT, "file_stem": {"type": "string"},
                               "include_lods": {"type": "boolean"}, "include_collision": {"type": "boolean"},
-                              "platform": _enum(PLATFORMS)},
+                              "platform": _enum(PLATFORMS), "asset_class": _enum(ASSET_CLASSES)},
                              ["blend_path", "objects", "engine", "out_dir"])),
     "texture_views": (texture_views, "AI texturing step 1: per-view cameras and guide renders; returns views_blend "
                       "for project_texture.",

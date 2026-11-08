@@ -101,6 +101,12 @@ if [ -n "$real" ]; then
   r=$(tool export_asset "$(jq -cn --arg b "$F/crate.blend" --arg o "$T/export" '{blend_path:$b, objects:["SM_Crate"], engine:"unity", out_dir:$o}')")
   printf '%s' "$r" | payload | jq -e '.ok' >/dev/null && ls "$T/export"/*.fbx >/dev/null 2>&1 && ok "export_asset writes an FBX for unity" || bad "export ($(printf '%s' "$r" | payload | head -c 300))"
 
+  r=$(tool export_asset "$(jq -cn --arg b "$F/bad_asset.blend" --arg o "$T/export-bad" '{blend_path:$b, objects:["crate final"], engine:"unity", out_dir:$o, asset_class:"prop_small"}')")
+  printf '%s' "$r" | jq -e '.isError' >/dev/null && printf '%s' "$r" | payload | jq -e '.stage == "source-validation" and (.source_validation.failed | index("ngons")) and (.files | length) == 1 and .post_export_audit.ok' >/dev/null \
+    && ok "exporting the bad asset writes the file but returns an error naming the failed checks" || bad "bad export ($(printf '%s' "$r" | payload | head -c 400))"
+  printf '%s' "$(tool export_asset "$(jq -cn --arg b "$F/crate.blend" --arg o "$T/export2" '{blend_path:$b, objects:["SM_Crate"], engine:"godot", out_dir:$o, asset_class:"prop_small"}')")" | payload \
+    | jq -e '.ok and .post_export_audit.passed and .source_validation.passed' >/dev/null && ok "a clean export carries a passing source validation and post-export audit" || bad "clean export audit"
+
   r=$(tool bake_maps "$(jq -cn --arg b "$F/crate.blend" --arg o "$T/bake" '{blend_path:$b, low:"SM_Crate", out_dir:$o, maps:["ao"], resolution:128, samples:4}')")
   printf '%s' "$r" | payload | jq -e '.ok' >/dev/null && [ -s "$T/bake/SM_Crate_ao.png" ] && ok "bake_maps writes the AO map" || bad "bake ($(printf '%s' "$r" | payload | head -c 300))"
 

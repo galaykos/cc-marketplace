@@ -1,5 +1,6 @@
 """Engine-correct FBX / glTF export of an asset with its LODs and collision, driven by presets/engines/<engine>.json.
 Writes only under out_dir; sizes in bytes; positions in metres."""
+import re
 from pathlib import Path
 
 import bpy
@@ -171,3 +172,48 @@ def export_asset(objects, engine="unity", out_dir=None, file_stem=None, include_
         bpy.context.view_layer.update()
     return ok(engine=engine, format=fmt, platform=platform, files=written, dropped_keys=dropped + static_dropped,
               objects_exported=len(exported), log=log)
+
+
+def audit_export(files, engine="unity"):
+    """Re-import exported files into an empty scene and check what actually shipped, per file: each `files` entry is
+    {"path", "objects": [names the export meant to write]}. Checks: the file exists and is non-empty, every expected
+    object arrived and nothing else did (the importer's own armature/empties aside), every mesh has faces, a UV map
+    and no n-gon, render meshes carry a material and collision meshes follow the preset's naming. Run it on a scene
+    you can discard: it clears the current file. Returns per-file checks and `passed`."""
+    preset = load_preset("engines", engine)
+    collision_rx = [re.compile(re.escape(p).replace(re.escape("{name}"), ".+").replace(re.escape("{nn}"), r"\d+"))
+                    for p in preset["naming"].get("collision", {}).values()]
+    results = []
+    for entry in files:
+        path = Path(entry["path"])
+        checks = []
+
+        def add(check, passed, detail):
+            checks.append({"id": check, "status": "pass" if passed else "fail", "detail": detail})
+
+        add("file", path.is_file() and path.stat().st_size > 0, str(path))
+        if not path.is_file():
+            results.append({"path": str(path), "passed": False, "checks": checks})
+            continue
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        if path.suffix.lower() == ".fbx":
+            bpy.ops.import_scene.fbx(filepath=str(path))
+        else:
+            bpy.ops.import_scene.gltf(filepath=str(path))
+        meshes = {o.name: o for o in bpy.data.objects if o.type == "MESH"}
+        expected = set(entry.get("objects", []))
+        add("objects_present", expected <= set(meshes), {"missing": sorted(expected - set(meshes))})
+        add("no_extra_meshes", set(meshes) <= expected, {"extra": sorted(set(meshes) - expected)})
+        tris = {}
+        for name, obj in meshes.items():
+            polys = obj.data.polygons
+            tris[name] = sum(p.loop_total - 2 for p in polys)
+            is_collision = any(rx.fullmatch(name) for rx in collision_rx)
+            add(f"{name}:faces", len(polys) > 0, len(polys))
+            add(f"{name}:ngons", not any(p.loop_total > 4 for p in polys), sum(p.loop_total > 4 for p in polys))
+            if not is_collision:
+                add(f"{name}:uv", len(obj.data.uv_layers) > 0, len(obj.data.uv_layers))
+                add(f"{name}:material", any(s.material for s in obj.material_slots), len(obj.material_slots))
+        results.append({"path": str(path), "passed": all(c["status"] == "pass" for c in checks), "tris": tris,
+                        "checks": checks})
+    return ok(engine=engine, passed=all(r["passed"] for r in results), files=results)

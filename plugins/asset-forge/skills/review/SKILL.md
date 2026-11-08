@@ -19,8 +19,8 @@ disable-model-invocation: true
 4. **Critique**: dispatch the `asset-forge:art-reviewer` agent with: the contact-sheet path and the per-view image
    paths with the layout, the reference image paths, the brief, `style.description`, the budget numbers, and the
    validator JSON — or, at blockout stage, the triangle count and the measured size in metres (the reviewer
-   cannot read either from the images and asks for them). Give it nothing about how the asset was built. If that agent is not available, critique with
-   the same output format yourself and say that the review was not independent.
+   cannot read either from the images and asks for them). Give it nothing about how the asset was built. If the agent cannot be dispatched (a subagent
+   context), critique with the same output format yourself and say that the review was not independent.
 5. **Present** the verdict, scores and issues to the user, each issue mapped to a concrete fix — a forge call
    (`deform.inflate(obj, center=…, radius=…, amount=…)`), a modelling instruction, or a texture parameter.
 6. **Apply** fixes only after the user agrees, or all of them when the user said "fix everything". Then re-run

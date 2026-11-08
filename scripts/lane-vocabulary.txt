@@ -209,3 +209,5 @@ ultra-assess-boost-directive
 ultra-craft-boost-directive
 ultra-task-boost-directive
 unreviewed-diff-nudge
+game-asset-art-review
+game-asset-review-after-change

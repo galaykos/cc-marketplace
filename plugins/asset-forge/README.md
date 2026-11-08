@@ -6,9 +6,8 @@ studio conventions. This plugin adds a headless MCP server that renders, validat
 **snapshots** of the live scene (never the working `.blend`), a pure-bpy library the live session imports, and
 pipeline skills with per-engine presets.
 
-**Status: 0.4.0 ships the library, the server tools and the skills.** The hooks and the art-reviewer agent are not
-built yet; until the agent ships, the review skill critiques in the same format itself and says the review was not
-independent.
+**Status: 0.5.0 ships the library, the server tools, the skills, the art-reviewer agent and the review-after-change
+gate.** Evals and the organic, texture and animation stress tests are still to come.
 
 ## Install
 
@@ -32,6 +31,7 @@ claude plugin install blender@cc-plugins-marketplace
 
 | Option | Default | What it does |
 |---|---|---|
+| `cc_forge_review` (`CC_FORGE_REVIEW`) | on | The review-after-change gate below |
 | `blender_path` | empty | Blender executable for headless jobs. Empty: `BLENDER_PATH`, then `blender` on PATH, then `~/Applications/blender-*`, `/opt/blender*`, the macOS app and `C:/Program Files/Blender Foundation` |
 
 Per-project settings (engine, platform tiers, art style, game camera, budgets, folders) will live in the game
@@ -47,6 +47,8 @@ project's `asset-forge.json`, written by the `pipeline` skill on first use.
 | `pipeline` skill | Fires on game-asset work in Blender: the project's `asset-forge.json` (asked once, engine never guessed, several platform tiers allowed), the order from brief to export, live vs headless per step, the snapshot and forge-import snippets, the undo-push rule |
 | `/asset-forge:new-asset <brief>` | One asset end to end, pausing after the blockout review and after the texture review, ending in validation per tier, export and a report |
 | `/asset-forge:review [object]` | Snapshot → review renders → validation → independent critique (verdict, six scores, spatial issues with concrete fixes) |
+| `art-reviewer` agent | Dispatched by the review flow: reads the contact sheet, references and validator JSON cold, never how the asset was built, and returns a verdict (ship, revise, rework), six 1–5 scores, spatial issues each with a concrete fix, and what to keep |
+| `hooks/review-state.sh` | After `execute_blender_code` the scene counts as changed; a successful `render_review_set` clears it. At Stop, a context that used asset-forge and changed the scene since its last review is sent back once per change cycle to run the review or say why not |
 | `organic-modeling`, `stylized-texturing`, `animation-retarget` | Read by path from `pipeline` (also typeable as `/asset-forge:<name>`): skeleton blockout + deform recipes and a proportions sheet; procedural vs Meshy-projected texturing; retargeting Mixamo/Meshy/BVH with in-place or root motion per engine. Only `pipeline` is in Claude's skill listing, which keeps the plugin's always-on cost at one description |
 
 ## What has teeth
@@ -57,13 +59,15 @@ project's `asset-forge.json`, written by the `pipeline` skill on first use.
 | `skills/pipeline/references/forge-api.md` matches the library's signatures | gate: `scripts/gen_forge_api.py --check`, run by `forge-server.test.sh` (no Blender needed) |
 | The server speaks MCP over stdio and every tool works on the fixtures | gate where run: `scripts/__tests__/forge-server.test.sh`, 27 cases (the 15 Blender cases skip when no Blender is found) |
 | Each forge function does what its docstring says (verts outside a deform radius never move, retargeted limbs within 5° of the source, exports re-import with the expected names and triangle counts, the bad-asset fixture fails validation) | gate where run: `scripts/__tests__/forge-lib.test.sh`, 105 cases inside Blender 5.2.3. CI has no Blender, so it prints SKIP there: the cases run on a developer machine only |
+| An asset that changed since its last review is not called done silently | gate: `hooks/review-state.sh` at Stop, once per change cycle; `scripts/__tests__/review-state.test.sh`, 14 cases with the host's payloads. Misses: edits made by hand in Blender, and reviews done without `render_review_set` |
+| An export reports what failed | gate: `export_asset` runs `validate_asset` on the source and re-imports what it wrote (`post_export_audit`: expected objects, no extras, faces, n-gons, UVs, materials); a failure in either returns an error naming the checks, with the written files listed |
 | A headless job never writes the `.blend` it opened | gate: the runner refuses `save_copy_to` equal to the opened file, and the server compares the file's size and modification time before and after every job, failing with `stage: source-modified`; harness case "after every tool the source .blend is byte-identical" |
 | Headless jobs open a snapshot, not the user's working file | recorded: the server cannot see which file the live session has open; the snapshot step is the skills' job |
 
 ## Limitations
 
-- The skills' pauses, snapshot rule and "look before you claim" are prose: nothing enforces them yet; a
-  review-after-change hook is planned.
+- The skills' pauses, snapshot rule and "look before you claim" are prose; only "review after a change" has a gate.
+- The art-reviewer judges renders, so it cannot see engine lighting, shaders or the in-game view.
 - Tier-1 texturing paints light, shade and edges, not motifs: plank seams, grain, rivets and keyholes need geometry
   or Tier 2 (the treasure-chest test's reviewer scored surface detail 2/5 for this).
 

@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.0 — 2026-11-08
+
+- **`art-reviewer` agent.** An independent critique from the contact sheet, references and validator alone. It returns a verdict, six 1–5 scores and spatial issues, each with a concrete fix. On a deliberately wrong blockout (a 1.44 m column briefed as a 0.8 m chest), dispatched from a fresh `claude -p` session, it returned `rework` with silhouette, proportions and readability at 1. It named the size miss in numbers (31% of the target width, 240% of the height) and gave target dimensions. Standing: agent-graded.
+- **Review-after-change gate** (`hooks/review-state.sh`, option `cc_forge_review` / `CC_FORGE_REVIEW`, default on). An `execute_blender_code` call marks the scene changed; a successful `render_review_set` clears it. At Stop, a context that used asset-forge and changed the scene since its last review is sent back once per change cycle. Plain Blender work in a session that never touched asset-forge is never blocked. Standing: gate, `scripts/__tests__/review-state.test.sh` (14 cases).
+- **`export_asset` validates the source and audits what it wrote.** `source_validation` runs `validate_asset` (new optional `asset_class`). `post_export_audit` re-imports the files into an empty scene and checks the expected objects arrived with nothing extra, with faces, no n-gons, UVs and materials. Either failure returns an error naming the checks; the files written are still listed. The design's separate post-export hook and SessionStart setup hook were folded away: `rationale/derivations/plugin-asset-forge.md`.
+
 ## 0.4.0 — 2026-11-08
 
 - **The six skills.** `pipeline` is the one skill Claude can trigger by itself: config, order, live vs headless, snapshot and import snippets. In 3 of 3 fresh `claude -p` sessions, "make a low-poly stylized treasure chest in Blender for my Unity game" loaded it first, and the session then read the project config. `new-asset` and `review` are commands; `organic-modeling` (recipes, proportions), `stylized-texturing` (Tier 1 vs Tier 2, seam checklist) and `animation-retarget` are read by path from `pipeline`. Standing: recorded for the procedures; gate for the recipe code (`test_recipes.py`) and for the generated API reference (`gen_forge_api.py --check`).

@@ -143,3 +143,17 @@ def test_refusals(tmp):
     hidden.hide_viewport = True
     assert "hidden by their collection" in _refused(export.export_asset, crate, out_dir=str(tmp))
     assert os.listdir(tmp) == []
+
+
+def test_audit_export_catches_missing_and_extra_objects(tmp):
+    _asset("unity")
+    out = export.export_asset(["SM_Crate_LOD0"], engine="unity", out_dir=str(tmp))
+    files = [{"path": f["path"], "objects": f["objects"]} for f in out["files"]]
+    good = export.audit_export(files, engine="unity")
+    assert good["passed"], good
+    wrong = export.audit_export([{"path": files[0]["path"], "objects": files[0]["objects"][1:] + ["SM_Ghost"]}], engine="unity")
+    ids = {c["id"]: c for c in wrong["files"][0]["checks"]}
+    assert not wrong["passed"] and ids["objects_present"]["detail"]["missing"] == ["SM_Ghost"]
+    assert ids["no_extra_meshes"]["detail"]["extra"] == [files[0]["objects"][0]]
+    gone = export.audit_export([{"path": str(tmp / "nope.fbx"), "objects": []}])
+    assert not gone["passed"]
