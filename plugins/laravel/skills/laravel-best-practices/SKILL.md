@@ -169,3 +169,16 @@ public function down(): void { /* forgot to drop the column */ }
 // Good: down() mirrors up()
 public function down(): void { Schema::table('users', fn ($t) => $t->dropColumn('phone')); }
 ```
+
+## Translations — run the parity checker on `lang/`
+
+A key missing from one locale falls back to `fallback_locale` or prints the key itself. A renamed `:placeholder` prints raw. No test fails either way. On a diff touching `lang/` (or `resources/lang/`), run:
+
+```sh
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/i18n_parity.py" . [--base-locale en] [--json]
+```
+
+- Exit 0 parity; 1 a missing, extra or placeholder finding, or a PHP file it could not read; 2 usage, or no layout has the base locale; 3 no locale files.
+- It parses PHP and never runs it. A file beyond literal `return [...]` arrays is reported `unparsed` with its line, never guessed: read that file yourself.
+- `:name`, `:Name` and `:NAME` are one placeholder. A plural's `|` segments compare by the placeholders they hold, not by count. A `lang/<locale>.json` key is its own base-language string. `lang/vendor/` is skipped.
+- Standing: **gate** where run (exit 1); that it ran is **recorded**. It cannot see an untranslated copy or an empty string.
