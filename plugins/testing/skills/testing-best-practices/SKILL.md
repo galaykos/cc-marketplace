@@ -125,8 +125,8 @@ It runs the project's own Infection, Stryker or mutmut 3 on the files changed vs
 the base (default: the merge-base with the default branch) and prints each survivor
 as `path:line — mutator — what survived`, plus the score. A survivor is a missing
 assertion with an address: write the test that kills it, or say why the mutant is
-equivalent; never weaken the mutator config to clear one. Exit 3 means no tool is
-configured: report the config it names; installing a tool is the owner's call.
+equivalent; never weaken the mutator config to clear one. Exit 3 means no tool it can
+run: report the config or the reason it names; installing a tool is the owner's call.
 Standing: gate where run (exit 1 on a survivor); nothing makes it run.
 
 Too MUCH suite is the other trap, and nothing measures it: every gate around you

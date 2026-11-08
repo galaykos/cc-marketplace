@@ -91,7 +91,7 @@ if [ -n "$shuffle" ]; then
   printf '\nrandomized order:\n'
   [ -n "$seed" ] && printf '  replaying seed %s in every shuffled run\n' "$seed"
   for i in $(seq 1 "$runs"); do
-    s=${seed:-$(( (RANDOM << 15 | RANDOM) + 1 ))}
+    s=${seed:-$(( (RANDOM << 15 | RANDOM) % 999999999 + 1 ))} # the range --seed accepts
     if extra=$(seeded "$shuffle" "$s"); then
       printf '%s\n' "$s" > "$WORK/shuf.$i.seed"
       run_once "shuffled #$i" "$extra" "$WORK/shuf.$i" "seed=$s"

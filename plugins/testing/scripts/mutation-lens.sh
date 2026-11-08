@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # mutation-lens.sh — runs the project's OWN Infection, Stryker or mutmut 3 on the files changed vs a base and lists each surviving mutant as `path:line — mutator — what survived`, plus the score.
-# Misses: untracked files (`git add -N` brings one in); a tool not configured (it never installs one); mutmut 2.x; Stryker with clearTextReporter.reportMutants off. Stryker's --mutate replaces the config's mutate globs.
+# Misses: untracked files (`git add -N` brings one in); a tool not configured (it never installs one; mutmut needs its [tool.mutmut] table); mutmut 2.x; Stryker with inPlace (refused) or clearTextReporter.reportMutants off. Stryker's --mutate replaces the config's mutate globs.
 # Why, limits, history: rationale/derivations/plugin-testing.md § plugins/testing/scripts/mutation-lens.sh (marketplace repository)
 #
 #   mutation-lens.sh [--dir DIR] [--base REF] [--max-seconds N]
 #
 #   --dir          project root holding the tool's config (default .)
 #   --base         diff base (default: the merge-base of HEAD with the default branch)
-#   --max-seconds  wall-clock cap per tool run (default 900); the tool's process group is killed at the cap
+#   --max-seconds  wall-clock cap per tool run (default 900); at the cap, or on an interrupt, the tool's process group gets SIGINT, 10 s, SIGTERM, 2 s, SIGKILL
 #
-# Exit: 0 no surviving mutant · 1 survivors · 2 usage · 3 no tool configured or installed · 4 a tool failed or hit --max-seconds
+# Exit: 0 no surviving mutant · 1 survivors · 2 usage · 3 no tool it can run (none configured or installed, or Stryker inPlace) · 4 a tool failed, hit --max-seconds or was interrupted
 set -u
 PROG=${0##*/}
 
@@ -32,28 +32,54 @@ cd "$dir" 2>/dev/null || usage "--dir $dir is not a directory"
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || usage "$(pwd) is not in a git work tree; the lens scopes by git diff"
 
 WORK=$(mktemp -d) || exit 4
-CHILD="" ; WATCH=""
+CHILD="" ; WATCH="" ; SCOPE="" ; GRACE=10
+alive_after() { local i=0; while [ "$i" -lt "$1" ] && kill -0 -- -"$2" 2>/dev/null; do sleep 1; i=$((i + 1)); done; kill -0 -- -"$2" 2>/dev/null; }
+# SIGINT (what Ctrl-C sends) first, SIGKILL last: a tool killed mid-mutant cannot put a source back.
+stop_group() {
+  kill -INT -- -"$1" 2>/dev/null || return 0
+  alive_after "$GRACE" "$1" || return 0
+  kill -TERM -- -"$1" 2>/dev/null
+  alive_after 2 "$1" || return 0
+  kill -KILL -- -"$1" 2>/dev/null
+}
+killed_note() { # a run cut short may have left a mutant in a source it touched
+  [ -n "$SCOPE" ] || return 0
+  printf '  a run cut short can leave a mutant in a source file; check: git diff --'
+  printf '%s\n' "$SCOPE" | while IFS= read -r f; do [ -n "$f" ] && printf ' %q' "$f"; done
+  printf '\n'
+}
 cleanup() {
   [ -n "$CHILD" ] && kill -KILL -- -"$CHILD" 2>/dev/null
   [ -n "$WATCH" ] && kill -KILL -- -"$WATCH" 2>/dev/null
   rm -rf "$WORK"
 }
+on_signal() {
+  trap '' INT TERM HUP
+  if [ -n "$CHILD" ]; then
+    [ -n "$WATCH" ] && kill -KILL -- -"$WATCH" 2>/dev/null
+    WATCH=""
+    printf '\nmutation-lens: interrupted; stopping the tool (SIGINT, then SIGTERM and SIGKILL after %ss)\n' "$GRACE"
+    stop_group "$CHILD"; CHILD=""
+    killed_note
+  fi
+  exit 4
+}
 trap cleanup EXIT
-trap 'exit 4' INT TERM HUP
+trap on_signal INT TERM HUP
 
-# Own process group per run, so the cap kills the tool's workers too, not only the launcher.
+# Own process group per run, so the cap stops the tool's workers too, not only the launcher.
 run_capped() { # log cmd... -> the command's rc, or 124 at the cap
   local log=$1 rc; shift
   rm -f "$WORK/capped"
   set -m
   "$@" </dev/null >"$log" 2>&1 &
   CHILD=$!
-  ( sleep "$maxs"; : > "$WORK/capped"; kill -TERM -- -"$CHILD" 2>/dev/null; sleep 3; kill -KILL -- -"$CHILD" 2>/dev/null ) </dev/null >/dev/null 2>&1 &
+  ( sleep "$maxs"; : > "$WORK/capped"; stop_group "$CHILD" ) </dev/null >/dev/null 2>&1 &
   WATCH=$!
   set +m
   wait "$CHILD" 2>/dev/null; rc=$?
-  kill -KILL -- -"$WATCH" 2>/dev/null; wait "$WATCH" 2>/dev/null
-  if [ -f "$WORK/capped" ]; then kill -KILL -- -"$CHILD" 2>/dev/null; rc=124; fi
+  if [ -f "$WORK/capped" ]; then wait "$WATCH" 2>/dev/null; kill -KILL -- -"$CHILD" 2>/dev/null; rc=124
+  else kill -KILL -- -"$WATCH" 2>/dev/null; wait "$WATCH" 2>/dev/null; fi
   CHILD="" ; WATCH=""
   return "$rc"
 }
@@ -66,10 +92,11 @@ done
 if [ -x vendor/bin/infection ]; then inf_bin=vendor/bin/infection
 elif command -v infection >/dev/null 2>&1; then inf_bin=$(command -v infection); fi
 
-str_cfg="" ; str_dep=0 ; str_bin=""
+str_cfg="" ; str_dep=0 ; str_bin="" ; str_inplace=0
 for p in "" .; do for s in .config .conf; do for e in json mjs js cjs; do
   [ -z "$str_cfg" ] && [ -f "${p}stryker${s}.$e" ] && str_cfg="${p}stryker${s}.$e"
 done; done; done
+[ -n "$str_cfg" ] && grep -qE "inPlace[\"']?[[:space:]]*:[[:space:]]*true" "$str_cfg" && str_inplace=1
 [ -f package.json ] && grep -q '"@stryker-mutator/' package.json && str_dep=1
 [ -x node_modules/.bin/stryker ] && str_bin=node_modules/.bin/stryker
 
@@ -85,14 +112,17 @@ if [ -n "$inf_cfg" ] && [ -n "$inf_bin" ]; then run_inf=1
 elif [ -n "$inf_cfg" ]; then note "Infection is configured ($inf_cfg) but not installed: no vendor/bin/infection and none on PATH (composer install)."
 elif [ -n "$inf_bin" ] && [ -x vendor/bin/infection ]; then note "Infection is installed but has no infection.json5: run without one it starts its interactive configure and writes a config. Create it with: vendor/bin/infection configure"
 fi
-if { [ -n "$str_cfg" ] || [ "$str_dep" = 1 ]; } && [ -n "$str_bin" ]; then run_str=1
+if { [ -n "$str_cfg" ] || [ "$str_dep" = 1 ]; } && [ -n "$str_bin" ] && [ "$str_inplace" = 1 ]; then
+  note "Stryker is not run: $str_cfg sets inPlace: true, so it mutates your source files, and a run cut short (the cap, an outer timeout, a SIGKILL) can leave a mutant in them. Run Stryker yourself, or drop inPlace."
+elif { [ -n "$str_cfg" ] || [ "$str_dep" = 1 ]; } && [ -n "$str_bin" ]; then run_str=1
 elif [ -n "$str_cfg" ] || [ "$str_dep" = 1 ]; then note "Stryker is configured (${str_cfg:-package.json @stryker-mutator}) but node_modules/.bin/stryker is missing (npm install)."
 fi
-if [ -n "$mm_bin" ] && { [ -n "$mm_cfg" ] || [ "$py_proj" = 1 ]; }; then
+if [ -n "$mm_bin" ] && [ -n "$mm_cfg" ]; then
   mm_major=$(mutmut --version 2>/dev/null | sed -n 's/.*version \([0-9][0-9]*\).*/\1/p' | head -1)
   if [ -n "$mm_major" ] && [ "$mm_major" -ge 3 ]; then run_mm=1
   else note "\`mutmut --version\` printed no 3.x version: mutmut 2, whose output this lens does not read (run \`mutmut run --paths-to-mutate <files>\` yourself), or mutmut 3 that cannot find its sources (set source_paths under [tool.mutmut])."; fi
 elif [ -n "$mm_cfg" ]; then note "mutmut is configured ($mm_cfg) but not on PATH (activate the project's virtualenv)."
+elif [ -n "$mm_bin" ] && [ "$py_proj" = 1 ]; then note "mutmut is on PATH but this project has no [tool.mutmut] table in pyproject.toml (or [mutmut] in setup.cfg), so it is not run: a mutmut from another environment would guess the sources. Add the table with source_paths."
 fi
 
 if [ $((run_inf + run_str + run_mm)) -eq 0 ]; then
@@ -123,7 +153,7 @@ else
   base_ref=$(git merge-base HEAD "$def" 2>/dev/null) || usage "HEAD and $def share no commit; pass --base <ref>"
   base_label="merge-base of HEAD and $def ($(git rev-parse --short "$base_ref"))"
 fi
-changed=$(git -c core.quotePath=false diff --name-only --relative --diff-filter=AM "$base_ref" -- . 2>/dev/null)
+changed=$(git -c core.quotePath=false diff --name-only --no-renames --relative --diff-filter=AM "$base_ref" -- . 2>/dev/null)
 untracked=$(git ls-files --others --exclude-standard -- . | wc -l | tr -d ' ')
 
 pick() { printf '%s\n' "$changed" | grep -E "$1" | grep -vE "$2" ; }
@@ -140,7 +170,7 @@ REPORT="$WORK/report"
 
 tool_failed() { # name rc log
   failed=1
-  if [ "$2" = 124 ]; then printf '  FAILED: %s ran past --max-seconds %s and was killed; no verdict. Raise the cap or narrow the base.\n' "$1" "$maxs"
+  if [ "$2" = 124 ]; then printf '  FAILED: %s ran past --max-seconds %s and was stopped; no verdict. Raise the cap or narrow the base.\n' "$1" "$maxs"; killed_note
   else printf '  FAILED: %s exited %s with no report to read. Last lines:\n' "$1" "$2"; tail -n 15 "$3" | sed 's/^/    | /'; fi
 }
 
@@ -158,7 +188,7 @@ if [ "$run_inf" = 1 ]; then
   if [ -z "$php_files" ]; then
     printf '  no changed .php file vs the base: nothing to mutate\n'
   else
-    txt="$WORK/infection.txt" ; sj="$WORK/infection-summary.json"
+    txt="$WORK/infection.txt" ; sj="$WORK/infection-summary.json" ; SCOPE=$php_files
     run_capped "$WORK/infection.log" "$inf_bin" --git-diff-filter=AM --git-diff-base="$base_ref" \
       --logger-text="$txt" --logger-summary-json="$sj" --with-uncovered --no-progress --no-interaction
     rc=$?
@@ -201,6 +231,7 @@ if [ "$run_str" = 1 ]; then
   else
     list=$(printf '%s\n' "$js_files" | paste -sd, -)
     printf '  mutating: %s\n' "$list"
+    SCOPE=$js_files
     run_capped "$WORK/stryker.log" "$str_bin" run --mutate "$list" --reporters clear-text
     rc=$?
     esc=$(printf '\033'); sed "s/${esc}\[[0-9;]*m//g" "$WORK/stryker.log" > "$WORK/stryker.txt" 2>/dev/null
@@ -228,7 +259,7 @@ fi
 
 # --- mutmut 3: `mutmut run <mutant-name globs>` then `mutmut show <name>` (verified in mutmut 3.8.1 __main__.py) ---
 if [ "$run_mm" = 1 ]; then
-  printf '\n== mutmut (%s) ==\n' "${mm_cfg:-no [tool.mutmut] table; mutmut guesses the source paths}"
+  printf '\n== mutmut (%s) ==\n' "$mm_cfg"
   if [ -z "$py_files" ]; then
     printf '  no changed Python source file vs the base (tests excluded): nothing to mutate\n'
   else
@@ -240,6 +271,7 @@ if [ "$run_mm" = 1 ]; then
     set -- $globs
     set +f
     printf '  mutating: %s\n' "$(printf '%s\n' "$py_files" | paste -sd, -)"
+    SCOPE=$py_files
     run_capped "$WORK/mutmut.log" mutmut run "$@"
     rc=$?
     tr '\r' '\n' < "$WORK/mutmut.log" > "$WORK/mutmut.txt"

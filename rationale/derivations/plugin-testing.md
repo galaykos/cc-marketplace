@@ -427,8 +427,13 @@ flags through, `src/Plugins/Snapshot.php`), Jest `packages/jest-cli/src/args.ts`
 `rspec-core/lib/rspec/core/option_parser.rb` (`--order TYPE[:SEED]`). Real runs on the same day:
 PHPUnit 11 printed `Random Seed: 4242` for `--seed 4242`; pytest 9.2 with pytest-randomly 5.0
 printed `Using --randomly-seed=777`. Jest, Vitest, go test and RSpec were not run. Seeds stay
-below 2^30 so every runner's range accepts them. Harness: the seed cases in
-`scripts/__tests__/flake-hunt.test.sh`.
+within 1 to 999,999,999, the range `--seed` accepts, which every runner's range above holds.
+Harness: the seed cases in `scripts/__tests__/flake-hunt.test.sh`.
+
+Review fix, 2026-11-08: the generator first drew `(RANDOM << 15 | RANDOM) + 1`, up to 2^30, while
+`--seed` accepts below 10^9, so about 6.9% of printed replay commands were refused. It now draws
+modulo 999,999,999. The harness feeds the largest of 60 generated seeds back through `--seed`;
+against the old generator that case failed in 5 of 5 runs, and it cannot fail on the fixed one.
 
 ## plugins/testing/scripts/mutation-lens.sh
 
@@ -480,6 +485,28 @@ pinned by someone else's lockfile is a dependency decision, not a test run.
 Not in the item's list (0, 1, 2, 3). A tool that crashes, prints no report, or runs past
 `--max-seconds` has no verdict; reporting it as 0 would be a false pass, as 1 a false finding.
 
+### Review fixes (2026-11-08)
+
+- Stopping a tool. The first version sent SIGTERM, then SIGKILL 3 s later at the cap, and an
+  immediate SIGKILL to the tool's group on an interrupt. A tool killed mid-mutant has no chance
+  to put a source back. Now both paths send SIGINT first, what Ctrl-C sends and what a tool's own
+  interrupt handling is written for (Stryker's and Infection's handlers were not read), wait up to
+  10 s, then SIGTERM, 2 s, SIGKILL, and print the scoped files as a `git diff --` command. A shell that starts the lens as an async command without job control
+  starts it, and so the tool, with SIGINT ignored; then the SIGTERM step does the work.
+- Stryker `inPlace: true` is refused, not warned about: it mutates the sources themselves, and
+  Claude Code's Bash timeout or a SIGKILL can end a run where no trap runs. A warning would
+  still leave a mutant in a file that may carry the user's uncommitted edits. Detection is a
+  literal `inPlace: true` in the config file; a value computed in a JS config is not seen.
+- `--no-renames` on the scope diff: with rename detection on (git's default since 2.9) a moved
+  and edited file is status R, which `--diff-filter=AM` dropped, so the lens said "nothing to
+  mutate". Infection still scopes itself with its own `--git-diff-filter=AM`, so for a renamed
+  PHP file Infection may report no modified files; not changed, because whether Infection accepts
+  `R` in that filter was not verified against its source.
+- mutmut needs its config. The first version ran a mutmut found on PATH in any Python project,
+  which contradicted the header and the Infection rule; a mutmut from another environment guesses
+  the source paths. Now `[tool.mutmut]` (or `setup.cfg [mutmut]`) is required, and its absence is
+  named with exit 3.
+
 ## plugins/testing/scripts/red-proof.sh
 
 Added 2026-11-08 for roadmap item Q3 (from TS-3). The `tdd` skill's "Fix already written: revert
@@ -510,3 +537,39 @@ so the red run still has the fix, and a stash that conflicts on pop leaves the t
 `scripts/__tests__/red-proof.test.sh` compares a manifest of every file (blob id, executable
 bit), `git ls-files -s` and the staged diff before and after each case. Breaking `restore()` to a
 no-op turned 24 of its checks red on 2026-11-08.
+
+### Review fixes (2026-11-08)
+
+A review of the first version found ways to lose the fix it exists to protect:
+
+- Two runs at once. The stale-backup scan ran before the run's own directory existed, so two
+  runs started together both passed it; the second backed up the first's reverted state and
+  restored HEAD over the fix. Now `mkdir .git/red-proof/.lock` is the lock, taken before the
+  scan and held to exit. A lock whose pid is dead is taken over under a second `mkdir`
+  (`.lock-break`) and only if it still names that pid, so two runs breaking one stale lock cannot
+  both win. Measured on 2026-11-08: three runs started together, 15 times, with and without a
+  stale lock: no overlapping test runs, 15 proven and 30 refused each way.
+- A reused pid. The scan checked `kill -0` before the reverted marker and advised removing the
+  backup if the process was gone; after a SIGKILL mid-revert and pid reuse, following that
+  deleted the only copy of the fix. Now a reverted backup is checked first, always prints its
+  `RECOVER`, and exits 5, with a note when its pid is alive. The busy message names only the
+  lock, and only when no backup is marked reverted.
+- A missing copy. A backup copy that vanished read as "absent before", so the restore deleted
+  the file and verification passed. The backed-up paths are now listed in memory at backup time;
+  a listed copy that is missing is left alone and fails verification (exit 5), with the tree id.
+- The reverted marker outlived the restore, so a kill during the green run left a marker, and the
+  next run offered the old backup over newer edits. It is removed as soon as the restore verifies.
+- `git diff` honours `diff.noprefix`, `diff.context` and other `diff.*` settings, so `--commit`
+  failed for those users; `git diff-tree -p --binary` is plumbing and reads none of them. Names
+  come from `diff-tree -r -z`, since `--name-only` without `-z` C-quotes a tab or a quote.
+- What a test backgrounds is killed with its group after a normal exit, so it cannot write into
+  the restore or the green run. A process that calls `setsid` leaves the group and is not seen.
+- The default `--timeout` was 600 s; Claude Code's Bash tool stops a command at 2 minutes unless
+  told otherwise, so the restore depended on how that outer kill lands. The default is now 50 s,
+  so two capped runs plus their kills fit under it; a slower suite is told to pass `--timeout N`
+  and a Bash timeout above 2N+10 s. The choice over "keep 600 and have the skills pass a lower
+  value": the script is safe without anyone reading a skill. With the fix reverted, an interrupt
+  now kills the test at once instead of after 1 s, so the restore starts sooner.
+
+The harness gained a case for each, plus SIGINT, SIGHUP, and a `--commit` that adds, deletes,
+renames and chmods with a binary. Against the first version, 16 of the new checks failed.

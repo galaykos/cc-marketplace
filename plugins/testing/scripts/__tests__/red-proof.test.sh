@@ -106,6 +106,40 @@ printf 'echo FIXED-AGAIN\n' > "$r/src/calc.sh"; manifest "$r" > "$FX/m.conflict"
 expect_rc "a commit that no longer reverse-applies exits 3" 3 "$got"
 same_tree conflict "$FX/m.conflict" "$r"
 
+# --- --commit that adds, deletes, renames and chmods, with a binary: each reverts, each comes back ---
+r=$(mkrepo acd)
+printf 'old\n' > "$r/src/old.sh"; printf 'gone\n' > "$r/src/gone.sh"; printf 'tool\n' > "$r/src/tool.sh"; git -C "$r" add -A; git -C "$r" commit -qm base
+printf 'echo FIXED\n' > "$r/src/calc.sh"; mkdir -p "$r/src/lib"; git -C "$r" mv src/old.sh src/lib/moved.sh; printf 'moved\n' >> "$r/src/lib/moved.sh"
+git -C "$r" rm -q src/gone.sh; printf '\000\001\002\377bin' > "$r/src/blob.bin"; chmod +x "$r/src/tool.sh"
+git -C "$r" add -A; git -C "$r" commit -qm "fix with add, delete, rename, mode, binary"; manifest "$r" > "$FX/m.acd"
+t='s=$(grep -q FIXED src/calc.sh && echo green || echo red); { find src -type f | LC_ALL=C sort; [ -x src/tool.sh ] && echo exec; } > '"$FX"'/acd.$s; sh tests/check.sh'
+(cd "$r" && bash "$S" --test "$t" --commit HEAD >/dev/null 2>&1); got=$?
+expect_rc "--commit with an add, a delete, a rename, a mode change and a binary: PROVEN" 0 "$got"
+[ "$(cat "$FX/acd.red" 2>/dev/null)" = "$(printf 'src/calc.sh\nsrc/gone.sh\nsrc/old.sh\nsrc/tool.sh')" ] \
+  && pass "the reverted run saw the parent's files: blob and moved file gone, deleted and old name back, x bit off" \
+  || { fail "the reverted run saw the wrong files"; sed 's/^/      /' "$FX/acd.red" 2>/dev/null; }
+[ "$(cat "$FX/acd.green" 2>/dev/null)" = "$(printf 'src/blob.bin\nsrc/calc.sh\nsrc/lib/moved.sh\nsrc/tool.sh\nexec')" ] \
+  && pass "the green run saw the commit's files again" || fail "the green run saw the wrong files"
+same_tree acd "$FX/m.acd" "$r"; no_backup "$r" acd
+
+# --- a user's diff config does not reach the reverse patch ---------------------
+for cfg in diff.noprefix=true diff.context=0; do
+  r=$(mkrepo "cfg-${cfg%%=*}"); git -C "$r" config "${cfg%%=*}" "${cfg#*=}"
+  printf '# a\n# b\n# c\necho BUG\n# d\n# e\n# f\n' > "$r/src/calc.sh"; git -C "$r" commit -qam "mid-file"
+  printf '# a\n# b\n# c\necho FIXED\n# d\n# e\n# f\n' > "$r/src/calc.sh"; git -C "$r" commit -qam fix; manifest "$r" > "$FX/m.cfg"
+  (cd "$r" && bash "$S" --test "sh tests/check.sh" --commit HEAD >/dev/null 2>&1); got=$?
+  expect_rc "--commit with $cfg in the repo config: PROVEN" 0 "$got"
+  same_tree "$cfg" "$FX/m.cfg" "$r"
+done
+
+# --- --commit on a file name git would C-quote: tab, quotes, backslash ---------
+r=$(mkrepo odd); odd=$'src/odd "q"\tname\\x.sh'
+printf 'echo BUG\n' > "$r/$odd"; git -C "$r" add -A; git -C "$r" commit -qm odd
+printf 'echo FIXED\n' > "$r/$odd"; git -C "$r" commit -qam "fix odd"; manifest "$r" > "$FX/m.odd"
+(cd "$r" && bash "$S" --test 'cat src/odd* | grep -q FIXED' --commit HEAD >/dev/null 2>&1); got=$?
+expect_rc "--commit on an odd file name reverts it: PROVEN" 0 "$got"
+same_tree odd "$FX/m.odd" "$r"
+
 # --- nearest silent input: the named file has no change, the test never runs ---
 r=$(mkrepo nochange); manifest "$r" > "$FX/m.nochange"
 (cd "$r" && bash "$S" --test "touch $FX/ran" --files src/calc.sh >/dev/null 2>&1); got=$?
@@ -129,6 +163,94 @@ if [ "$(id -u)" != 0 ]; then
 else
   echo "SKIP: restore-failure case needs a non-root user (root ignores the read-only directory)"
 fi
+
+# --- SIGINT and SIGHUP mid-run restore the fix like SIGTERM (job control, so the signal is not ignored) ---
+for sig in INT HUP; do
+  r=$(mkrepo "sig$sig"); printf 'echo FIXED\n' > "$r/src/calc.sh"; manifest "$r" > "$FX/m.sig"
+  set -m
+  (cd "$r" && exec bash "$S" --test 'grep -q FIXED src/calc.sh || sleep 4327' --files src/calc.sh --timeout 120) > "$FX/sig.out" 2>&1 &
+  pid=$!
+  set +m
+  for _ in $(seq 1 100); do grep -q BUG "$r/src/calc.sh" 2>/dev/null && pgrep -f '^sleep 4327' >/dev/null && break; sleep 0.1; done
+  kill -"$sig" "$pid"; wait "$pid"; got=$?
+  expect_rc "SIG$sig during the reverted run exits 3" 3 "$got"
+  grep -q 'fix restored byte-identical' "$FX/sig.out" && pass "SIG$sig: the trap reports the restore" || fail "SIG$sig: no restore report"
+  pgrep -f '^sleep 4327' >/dev/null && { fail "SIG$sig: the test survived"; pkill -f '^sleep 4327'; } || pass "SIG$sig: the test's process group died with the run"
+  same_tree "sig$sig" "$FX/m.sig" "$r"; no_backup "$r" "sig$sig"
+done
+
+# --- a process the test backgrounds does not outlive the test into the restore ---
+r=$(mkrepo bg); printf 'echo FIXED\n' > "$r/src/calc.sh"; manifest "$r" > "$FX/m.bg"
+(cd "$r" && bash "$S" --test '(sleep 4328 &); sleep 4329 & sh tests/check.sh' --files src/calc.sh >/dev/null 2>&1); got=$?
+expect_rc "a test that leaves a background process: PROVEN" 0 "$got"
+pgrep -f '^sleep 432[89]' >/dev/null && { fail "the test's background processes survived the run"; pkill -f '^sleep 432[89]'; } || pass "the test's background processes were killed with its group"
+same_tree bg "$FX/m.bg" "$r"
+
+# --- a backup copy deleted mid-run: exit 5, never "absent before" -------------
+r=$(mkrepo lost); printf 'echo FIXED\n' > "$r/src/calc.sh"; manifest "$r" > "$FX/m.lost"
+out=$(cd "$r" && bash "$S" --test 'grep -q FIXED src/calc.sh || { rm -f .git/red-proof/*/files/src/calc.sh; exit 1; }' --files src/calc.sh 2>&1); got=$?
+expect_rc "a backup copy missing at restore exits 5" 5 "$got"
+printf '%s' "$out" | grep -q 'backup copy missing: src/calc.sh' && pass "the missing copy is named" || fail "the missing copy is not named"
+[ -e "$r/src/calc.sh" ] && pass "the reverted file is left in place, not deleted" || fail "the file was deleted"
+(cd "$r" && bash "$S" --test true --files src/calc.sh >/dev/null 2>&1); got=$?
+expect_rc "the next run refuses while that backup is pending" 5 "$got"
+tree0=$(printf '%s' "$out" | sed -n 's/^recovery point: tree \([0-9a-f]*\);.*/\1/p')
+git -C "$r" restore --source="$tree0" --worktree -- src/calc.sh && rm -rf "$r/.git/red-proof"
+same_tree "lost, recovered from the printed tree" "$FX/m.lost" "$r"
+
+# --- concurrent runs: one lock per repository ------------------------------
+r=$(mkrepo duo); printf 'echo FIXED\n' > "$r/src/calc.sh"; manifest "$r" > "$FX/m.duo"
+# A loaded machine can start the second run after the first ends, so the check is no overlap, not a refusal.
+t='echo in >> '"$FX"'/duo.log; sleep 1; echo out >> '"$FX"'/duo.log; sh tests/check.sh'
+: > "$FX/duo.log"
+(cd "$r" && bash "$S" --test "$t" --files src/calc.sh >/dev/null 2>&1) & p1=$!
+(cd "$r" && bash "$S" --test "$t" --files src/calc.sh >/dev/null 2>&1) & p2=$!
+wait "$p1"; r1=$?; wait "$p2"; r2=$?
+case "$(printf '%s\n' "$r1" "$r2" | sort | tr '\n' ' ')" in
+  "0 3 "|"0 5 "|"0 0 ") pass "two runs started together: one proves, the other refuses or runs after it (rc=$r1/$r2)" ;;
+  *) fail "two runs started together returned rc=$r1 and rc=$r2" ;;
+esac
+seq=$(tr '\n' ' ' < "$FX/duo.log")
+case "$seq" in
+  "in out in out "|"in out in out in out in out ") pass "the two runs' tests never overlapped ($(grep -c in "$FX/duo.log") test runs)" ;;
+  *) fail "the two runs' tests overlapped: $seq" ;;
+esac
+same_tree duo "$FX/m.duo" "$r"; no_backup "$r" duo
+
+# A second run during the first one's reverted run: it touches nothing and prints the restore commands.
+t='if grep -q FIXED src/calc.sh; then exit 0; fi; touch '"$FX"'/duo.red; sleep 3; exit 1'
+rm -f "$FX/duo.red"
+(cd "$r" && bash "$S" --test "$t" --files src/calc.sh > "$FX/duo1.out" 2>&1) & p1=$!
+for _ in $(seq 1 100); do [ -e "$FX/duo.red" ] && break; sleep 0.1; done
+out=$(cd "$r" && bash "$S" --test true --files src/calc.sh 2>&1); got=$?
+expect_rc "a run while another has the fix reverted exits 5" 5 "$got"
+printf '%s' "$out" | grep -q 'which wrote it, is alive' && printf '%s' "$out" | grep -q 'Restore every fix path' \
+  && pass "it names the live pid and still prints the restore commands" || fail "no live-pid note or no restore commands"
+printf '%s' "$out" | grep -qE 'if it is gone, remove' && fail "it advises deleting the backup" || pass "it never advises deleting the backup"
+wait "$p1"; got=$?
+expect_rc "the first run is unaffected and PROVEN" 0 "$got"
+same_tree "duo, second run during the first" "$FX/m.duo" "$r"; no_backup "$r" "duo second"
+
+# A SIGKILL during the green run leaves no reverted marker: a later edit is never offered for overwrite.
+t='if grep -q FIXED src/calc.sh; then touch '"$FX"'/duo.green; sleep 4330; fi; exit 1'
+rm -f "$FX/duo.green"
+(cd "$r" && exec bash "$S" --test "$t" --files src/calc.sh >/dev/null 2>&1) & p1=$!
+for _ in $(seq 1 100); do [ -e "$FX/duo.green" ] && break; sleep 0.1; done
+kill -KILL "$p1"; wait "$p1" 2>/dev/null; pkill -f '^sleep 4330'
+printf 'echo FIXED, and edited after the kill\n' > "$r/src/calc.sh"; manifest "$r" > "$FX/m.duo2"
+out=$(cd "$r" && bash "$S" --test 'grep -q FIXED src/calc.sh' --files src/calc.sh 2>&1); got=$?
+expect_rc "after a SIGKILL in the green run the next run takes the stale lock and proves" 0 "$got"
+printf '%s' "$out" | grep -q 'left the fix reverted' && fail "the next run offered the old backup over the newer edit" || pass "the next run does not offer the old backup"
+same_tree "duo, newer edit kept" "$FX/m.duo2" "$r"; no_backup "$r" "duo stale lock"
+
+# A reverted backup whose pid is alive (here: this harness, as after pid reuse): refused with the restore commands, kept.
+r=$(mkrepo reused); printf 'echo FIXED\n' > "$r/src/calc.sh"
+mkdir -p "$r/.git/red-proof/20260101-000000-$$/files"; : > "$r/.git/red-proof/20260101-000000-$$/reverted"
+printf 'Restore every fix path (fixture)\n' > "$r/.git/red-proof/20260101-000000-$$/RECOVER"
+out=$(cd "$r" && bash "$S" --test "sh tests/check.sh" --files src/calc.sh 2>&1); got=$?
+expect_rc "a reverted backup with a live pid is refused" 5 "$got"
+printf '%s' "$out" | grep -q 'Restore every fix path (fixture)' && pass "its RECOVER is printed although the pid is alive" || fail "RECOVER not printed for a live pid"
+[ -f "$r/.git/red-proof/20260101-000000-$$/reverted" ] && pass "the backup is kept" || fail "the backup was removed"
 
 # A run killed before it reverted anything leaves a backup dir with no `reverted` marker: cleared, not refused.
 r=$(mkrepo stale); printf 'echo FIXED\n' > "$r/src/calc.sh"

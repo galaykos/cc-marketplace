@@ -5,6 +5,7 @@ Consumer-facing changes only. Newest first. Started at 0.9.2; earlier versions h
 ## 0.10.1 — 2026-11-08
 
 - **`systematic-debugging` says how to prove the regression test guards the fix.** With the fix reverted the test must fail, with it restored it must pass. When the testing plugin is installed, its `scripts/red-proof.sh` does this and checks the restored working tree is byte-identical; without it, revert by hand. Standing: gate where run; nothing makes it run.
+- **The red-proof step says where the script is and what exit 5 means.** The script ships in the testing plugin, so this plugin's root does not reach it: the skill names the lookup, the `installPath` of the `testing@…` entry in `claude plugin list --json`, else the newest copy in the plugins cache. Exit 5 means red-proof could not restore the fix: run the restore commands it prints first. Standing: recorded.
 
 ## 0.10.0 — 2026-11-07
 

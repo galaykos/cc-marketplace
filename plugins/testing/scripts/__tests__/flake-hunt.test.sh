@@ -123,6 +123,17 @@ for pair in "--order-by=random|--order-by=random --random-order-seed=12345" \
   else echo "FAIL: --shuffle \"$flag\" sent \"$(grep . "$FX/seedlog" | sort -u | tr '\n' '|')\", want \"$want\""; rc=1; fi
 done
 
+# Every printed seed replays through --seed. Sixty shuffled runs: a generator reaching past --seed's range shows up.
+: > "$FX/seedlog"
+out=$(bash "$S" --cmd "bash $FX/seedrunner.sh $FX/seedlog" --runs 60 --shuffle "--randomize" 2>&1)
+max=$(printf '%s\n' "$out" | sed -n 's/.*seed=\([0-9][0-9]*\)$/\1/p' | sort -n | tail -1)
+: > "$FX/seedlog"
+bash "$S" --cmd "bash $FX/seedrunner.sh $FX/seedlog" --runs 2 --shuffle "--randomize" --seed "$max" >/dev/null 2>&1; got=$?
+if [ -n "$max" ] && [ "$got" != 3 ] && [ "$(grep . "$FX/seedlog" | sort -u)" = "--randomize --seed=$max" ]; then
+  echo "PASS: the largest of 60 generated seeds ($max) replays through --seed"
+else echo "FAIL: generated seed ${max:-none} did not replay through --seed (rc=$got)"; rc=1; fi
+ec "--seed 999999999, the top of its range, is accepted (rc 2 is the flake, 3 would be a refusal)" 2 bash "$S" --cmd "bash $FX/seedrunner.sh $FX/seedlog" --runs 2 --shuffle "--randomize" --seed 999999999
+
 # Nearest silent input: a shuffle flag flake-hunt does not know keeps its old behaviour, no seed claimed.
 : > "$FX/c"
 out=$(bash "$S" --cmd "bash $FX/runner.sh $FX/c" --runs 2 --shuffle "; true" 2>&1)

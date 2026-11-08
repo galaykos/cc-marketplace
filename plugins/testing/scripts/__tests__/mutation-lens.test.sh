@@ -15,7 +15,7 @@ fail() { echo "FAIL: $1"; rc=1; }
 expect_rc() { if [ "$2" = "$3" ]; then pass "$1 (rc=$3)"; else fail "$1 — want rc=$2, got $3"; fi; }
 has() { if printf '%s' "$2" | grep -qF -- "$3"; then pass "$1"; else fail "$1 — missing: $3"; printf '%s\n' "$2" | sed 's/^/      | /'; fi; }
 
-# A repo with one commit on main and HEAD on branch feat, plus the given files.
+# An empty repo on an unborn main, ignoring the tools' own dirs; each case adds its files and commits.
 mkrepo() {
   local r="$FX/$1"; mkdir -p "$r"
   git -C "$r" init -q; git -C "$r" checkout -q -b main
@@ -39,6 +39,7 @@ for a in "$@"; do case "$a" in --logger-text=*) txt=${a#*=} ;; --logger-summary-
 case "$FAKE_MODE" in
   crash) echo "In Foo.php line 1: Boom"; exit 1 ;;
   hang) exec sleep 4323 ;;
+  graceful) trap 'sleep 1; echo restored > "$FAKE_MARK"; exit 130' INT; while :; do sleep 0.2; done ;;
   nochange) printf ' [OK] Could not find any modified files in the configured sources for the git\n      filter "AM" and the base "abc".\n'; exit 0 ;;
 esac
 {
@@ -83,6 +84,23 @@ expect_rc "a tool past --max-seconds exits 4" 4 "$got"
 has "the cap is named" "$out" "ran past --max-seconds 2"
 [ $(( $(date +%s) - start )) -lt 30 ] && pass "the hung tool was cut at the cap" || fail "the cap did not cut the run"
 pgrep -f '^sleep 4323' >/dev/null && fail "the hung tool survived the cap" || pass "the hung tool's process group was killed"
+has "after the cap it names the files to git diff" "$out" "check: git diff -- src/Calc.php"
+
+# At the cap, and on an interrupt, the tool gets SIGINT and time to clean up before any SIGKILL.
+export FAKE_MARK="$FX/restored"; rm -f "$FAKE_MARK"
+out=$(cd "$r" && FAKE_MODE=graceful PATH="$BASEPATH" bash "$S" --max-seconds 2 2>&1); got=$?
+expect_rc "a tool stopped at the cap exits 4" 4 "$got"
+[ -s "$FAKE_MARK" ] && pass "at the cap the tool got SIGINT and its cleanup ran" || fail "the tool was killed before its SIGINT cleanup"
+rm -f "$FAKE_MARK"; : > "$FAKE_LOG"
+set -m # job control: an async command of a shell without it starts with SIGINT ignored, and so would the tool
+(cd "$r" && FAKE_MODE=graceful PATH="$BASEPATH" exec bash "$S" --max-seconds 120) > "$FX/int.out" 2>&1 &
+pid=$!
+set +m
+for _ in $(seq 1 100); do [ -s "$FAKE_LOG" ] && break; sleep 0.1; done
+sleep 0.3; kill -TERM "$pid"; wait "$pid"; got=$?
+expect_rc "an interrupted lens exits 4" 4 "$got"
+[ -s "$FAKE_MARK" ] && pass "on an interrupt the tool got SIGINT and its cleanup ran" || fail "the interrupt killed the tool before its cleanup"
+has "an interrupted run names the files to git diff" "$(cat "$FX/int.out")" "check: git diff -- src/Calc.php"
 
 # Nearest silent input: only a non-PHP file changed, so Infection is never started.
 git -C "$r" checkout -q -b docs main; printf '# toy, reworded\n' > "$r/README.md"; commit "$r" docs
@@ -120,6 +138,31 @@ has "a Stryker survivor parsed through its colour codes" "$out" 'src/a.ts:3 — 
 has "a NoCoverage mutant is labelled" "$out" 'src/a.ts:7 — ArithmeticOperator — `return x * 2;` → `return x / 2;` — no test covers this line'
 has "Stryker's score is the All files row" "$out" "score: 66.67%"
 
+# A moved and edited file is in scope under its new name (renames are not detected, so it reads as added).
+r=$(mkrepo strmv); mkdir -p "$r/src" "$r/node_modules/.bin"
+printf '{ "devDependencies": { "@stryker-mutator/core": "10.1.1" } }\n' > "$r/package.json"
+printf 'export const b = 2;\nexport const c = 3;\n' > "$r/src/b.ts"; commit "$r" init; git -C "$r" checkout -q -b feat
+git -C "$r" mv src/b.ts src/moved.ts; printf 'export const d = 4;\n' >> "$r/src/moved.ts"; commit "$r" move
+cp "$FX/str/node_modules/.bin/stryker" "$r/node_modules/.bin/stryker"
+: > "$FAKE_LOG"
+(cd "$r" && PATH="$BASEPATH" bash "$S" >/dev/null 2>&1)
+has "a moved and edited file is mutated under its new name" "$(cat "$FAKE_LOG")" "run --mutate src/moved.ts --reporters clear-text"
+
+# Stryker with inPlace: true mutates the user's sources, so the lens refuses it; inPlace false runs.
+r=$(mkrepo strinplace); mkdir -p "$r/src" "$r/node_modules/.bin"
+printf '{ "devDependencies": { "@stryker-mutator/core": "10.1.1" } }\n' > "$r/package.json"
+printf '{ "inPlace": true }\n' > "$r/stryker.config.json"; printf 'export const a = 1;\n' > "$r/src/a.ts"
+commit "$r" init; git -C "$r" checkout -q -b feat; printf 'export const a = 2;\n' > "$r/src/a.ts"
+cp "$FX/str/node_modules/.bin/stryker" "$r/node_modules/.bin/stryker"
+: > "$FAKE_LOG"
+out=$(cd "$r" && PATH="$BASEPATH" bash "$S" 2>&1); got=$?
+expect_rc "Stryker with inPlace: true is refused: exit 3" 3 "$got"
+has "the refusal names inPlace" "$out" "sets inPlace: true, so it mutates your source files"
+[ -s "$FAKE_LOG" ] && fail "Stryker ran with inPlace: true" || pass "Stryker was not started with inPlace: true"
+printf '{ "inPlace": false }\n' > "$r/stryker.config.json"
+(cd "$r" && PATH="$BASEPATH" bash "$S" >/dev/null 2>&1); got=$?
+expect_rc "Stryker with inPlace: false runs (survivors, exit 1)" 1 "$got"
+
 # --- mutmut 3 -------------------------------------------------------------------
 r=$(mkrepo mm); mkdir -p "$r/src/pkg" "$r/tests" "$FX/mmbin"
 printf '[project]\nname = "pkg"\n\n[tool.mutmut]\nsource_paths = ["src/"]\n' > "$r/pyproject.toml"
@@ -153,6 +196,16 @@ has "mutmut's score uses its badge formula" "$out" "score: 50.0%"
 out=$(cd "$r" && FAKE_MODE=v2 PATH="$FX/mmbin:$BASEPATH" bash "$S" 2>&1); got=$?
 expect_rc "a mutmut without a 3.x version is not run: exit 3" 3 "$got"
 has "the mutmut 2 case says how to run it by hand" "$out" "mutmut run --paths-to-mutate"
+
+# Nearest silent input: a Python project with mutmut on PATH but no [tool.mutmut] table is not run.
+r=$(mkrepo mmnocfg); mkdir -p "$r/src/pkg"; printf '[project]\nname = "pkg"\n' > "$r/pyproject.toml"
+printf 'def f():\n    return 1\n' > "$r/src/pkg/m.py"; commit "$r" init; git -C "$r" checkout -q -b feat
+printf 'def f():\n    return 2\n' > "$r/src/pkg/m.py"
+: > "$FAKE_LOG"
+out=$(cd "$r" && PATH="$FX/mmbin:$BASEPATH" bash "$S" 2>&1); got=$?
+expect_rc "mutmut on PATH without [tool.mutmut]: exit 3" 3 "$got"
+has "it says the table is missing" "$out" "has no [tool.mutmut] table"
+[ -s "$FAKE_LOG" ] && fail "mutmut ran without its config" || pass "mutmut was not started without its config"
 
 # --- no tool: exit 3, naming the config that would enable one ---------------------
 r=$(mkrepo none); printf '{}\n' > "$r/composer.json"; commit "$r" init
