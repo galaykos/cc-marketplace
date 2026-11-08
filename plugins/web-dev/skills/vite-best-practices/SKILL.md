@@ -138,6 +138,23 @@ Advising above the locked version is a finding; confirm boundaries against the d
   instead of throwing. HMR boundaries are dev ergonomics, never a correctness
   mechanism the app depends on.
 
+## Locale files — run the parity checker
+
+A key missing from one locale renders the fallback language or the raw key, and a renamed `{{var}}` or `{var}`
+is never filled; no build or test fails. On a diff touching i18next (`locales/`, `public/locales/`) or vue-i18n
+(`src/locales/`, `src/i18n/`) JSON, run:
+
+```sh
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/i18n_parity.py" . [--base-locale en] [--json]
+```
+
+- Exit 0 parity; 1 a missing, extra or placeholder finding, or a file it could not parse; 2 usage, or no layout
+  has the base locale; 3 no locale files.
+- An i18next `_one`/`_other` set is one key family, so `ru`'s `_few`/`_many` are not extra. Which plural forms a
+  language needs is not checked. `$t(key)` nesting and vue-i18n `@:key` links count as placeholders.
+- The format follows the path; a `package.json` naming only i18next or only vue-i18n overrides it. YAML is not read.
+- Standing: **gate** where run (exit 1); that it ran is **recorded**.
+
 ## Scope by model tier
 
 **All models** — every rule above: the version gates, the boundaries, the footguns. Facts
@@ -145,7 +162,7 @@ do not scale down with the model. **Compensation (worker-tier)** — the detect 
 verify order the `/code-review:review` fan-in runs (detect the stack from the lockfile,
 pin the version, verify each rule), followed literally, every skill in scope applied
 to every file in scope; a Fable-class session may compress it once the lockfile is read.
-**Skip** — a diff touching no `vite.config.*`, no `.env*`, no `import.meta` and no dynamic `import()` earns a one-line verdict; do not walk the rubric to prove it.
+**Skip** — a diff touching no `vite.config.*`, no `.env*`, no `import.meta`, no dynamic `import()` and no locale file earns a one-line verdict; do not walk the rubric to prove it.
 
 ## Anti-patterns
 
