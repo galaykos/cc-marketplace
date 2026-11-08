@@ -409,3 +409,104 @@ to name the test when possible, not to support one runner.
 broken = failed in EVERY fixed run. Not a flake; reporting it as one sends the
 reader hunting for nondeterminism in a test that is simply red.
 ```
+
+### seed (added 2026-11-08)
+
+Roadmap item Q3 (gitignored `taskmaster-docs/integration-roadmap-2026-11-07.md`, from TS-1): an
+order-dependent flake found by a shuffled run could not be replayed, because the order was
+random and nothing recorded it. Each known `--shuffle` value now gets the runner's own seed flag
+with a fresh seed per run, the seed is printed on the run's line, a failing run prints a replay
+command, and `--seed N` replays one order in every shuffled run. Flag names were read from each
+runner's CLI source on 2026-11-08: PHPUnit `src/TextUI/Configuration/Cli/Builder.php` at 9.6,
+10.5, 11.5, 12.5, 13.0.0 and 13.4.6 (`--order-by=random`, `--random-order-seed=`; PHPUnit's
+unreleased main branch renames the seed flag to `--random-seed`), Pest 5.3.5 (passes both PHPUnit
+flags through, `src/Plugins/Snapshot.php`), Jest `packages/jest-cli/src/args.ts` (`--randomize`,
+`--seed`, range ±0x7fffffff), Vitest `packages/vitest/src/node/cli/cli-config.ts`
+(`--sequence.shuffle`, `--sequence.seed`), pytest-randomly `src/pytest_randomly/__init__.py`
+(`--randomly-seed`), Go `src/cmd/go/internal/test/test.go` (`-shuffle off,on,N`) and RSpec
+`rspec-core/lib/rspec/core/option_parser.rb` (`--order TYPE[:SEED]`). Real runs on the same day:
+PHPUnit 11 printed `Random Seed: 4242` for `--seed 4242`; pytest 9.2 with pytest-randomly 5.0
+printed `Using --randomly-seed=777`. Jest, Vitest, go test and RSpec were not run. Seeds stay
+below 2^30 so every runner's range accepts them. Harness: the seed cases in
+`scripts/__tests__/flake-hunt.test.sh`.
+
+## plugins/testing/scripts/mutation-lens.sh
+
+Added 2026-11-08 for roadmap item Q2 (from G10 and CR-4): `testing-best-practices` said "spot-check
+the suite's teeth with mutation testing (Infection, Stryker)" and nothing ran it. The lens runs the
+project's own tool on the files changed vs a base and never installs one, because a mutation tool
+pinned by someone else's lockfile is a dependency decision, not a test run.
+
+### Flags, and where each was verified (2026-11-08)
+
+- Infection 0.35.9, source tarball: `src/Command/Option/SourceFilterOptions.php` defines
+  `--git-diff-filter` and `--git-diff-base`, and `src/Git/CommandLineGit.php` diffs the working
+  tree against `git merge-base <base> HEAD` limited to the configured source directories, so the
+  lens passes the base and lets Infection pick the files. `RunCommand.php` defines
+  `--logger-text`, `--logger-summary-json`, `--with-uncovered` and `--no-progress`; Symfony
+  Console supplies `--no-interaction`. The text report shape is `BaseTextFileReporter.php`
+  (`%d) %s:%d    [M] %s [ID] %s`). Without a config file Infection starts its `configure`
+  command and writes one, so the lens treats an installed Infection with no config as not
+  configured (exit 3).
+- Stryker `@stryker-mutator/core` 10.1.1, npm tarball: `src/stryker-cli.ts` defines
+  `-m, --mutate <list>` and `--reporters <list>`. There is no CLI flag for the JSON report's
+  file name, so the lens reads the clear-text reporter (`src/reporters/clear-text-reporter.ts`:
+  `[Status] Mutator`, `file:line:col`, `-   ` and `+   ` lines) and its score table's
+  `All files` row. Config names come from `src/config/config-file-formats.ts`.
+- mutmut 3.8.1, sdist: `run` takes mutant-name globs (fnmatch) and re-runs every mutant it
+  names; a mutant is named `<module>.x_<func>__mutmut_<n>` or `<module>.xǁ<Class>ǁ<method>__mutmut_<n>`
+  with a leading `src.` dropped and an `__init__` segment removed (`utils/format_utils.py`).
+  With names given it prints a `Mutant results` list, one status emoji per mutant. `show`
+  prints a diff of the function alone, so the lens finds the file line itself. The score is
+  mutmut's own badge formula, (killed + timeout) / (total − skipped). mutmut 2.5.1 has a
+  different CLI (`--paths-to-mutate`, `--use-patch-file`, `result-ids`), so the lens does not
+  run it and says how to run it by hand.
+
+### Real runs (2026-11-08, toy projects under /tmp)
+
+- Stryker 10.1.1 on Node 22.23 (it refuses Node 20): an assertion-free test gave 8 survivors and
+  0.00%; with assertions, 2 survivors (`n > 0` → `n >= 0`, and an untouched added file) and
+  75.00%, matching the score table.
+- Infection 0.35.9 with PHPUnit 11 on PHP 8.5: 1 escaped (`GreaterThan`) and 3 not covered,
+  MSI 33.33%. Without `--with-uncovered` Infection dropped the untested method's mutants and
+  reported 66.67%, which is why the flag is passed. A change only under `tests/` gave Infection's
+  own "Could not find any modified files" and exit 0.
+- mutmut 3.8.1 with pytest 9.2: survivors in a function and in a class method landed on the
+  right file lines; a changed file outside `source_paths` gave the "nothing matches" path, and a
+  function in a package `__init__.py` was found.
+
+### Exit 4
+
+Not in the item's list (0, 1, 2, 3). A tool that crashes, prints no report, or runs past
+`--max-seconds` has no verdict; reporting it as 0 would be a false pass, as 1 a false finding.
+
+## plugins/testing/scripts/red-proof.sh
+
+Added 2026-11-08 for roadmap item Q3 (from TS-3). The `tdd` skill's "Fix already written: revert
+the fix, run the test — it MUST fail; restore the fix — it passes" was prose, and a revert done by
+hand is where a fix gets lost: `git stash` without `-u` leaves a new untracked fix file in place,
+so the red run still has the fix, and a stash that conflicts on pop leaves the tree half restored.
+
+### Design
+
+- Backup copies under `.git/red-proof/<run>/`, not `git stash`: the stash stack is shared with the
+  user, and a pop can conflict. Each fix path is copied with its mode (a symlink as a symlink),
+  restored by copying back, and compared with `cmp` and the executable bit.
+- The whole non-ignored working tree, untracked files included, is snapshotted as a git tree id
+  through a scratch copy of the index (`GIT_INDEX_FILE`, `git add -A`, `git write-tree`). The real
+  index is never written. The same tree id is the recovery point printed before anything changes.
+- Each test run gets its own process group (`set -m`), so `--timeout` kills the test and its
+  children, and a signal to red-proof kills the test before the trap restores the fix. A
+  SIGKILL cannot be trapped; the backup and a `RECOVER` file stay, and the next run refuses to
+  start (exit 5) until they are used.
+- `--commit` keeps paths that look like tests: a commit with the fix and its test is the common
+  case, and reverting the test too fails the red run because the test is gone.
+- A hang in the reverted run counts as the failure and is named as a timeout. Exit 3 (nothing
+  reverted, or interrupted and restored) is not in the item's list; it marks "no verdict, tree
+  intact" apart from 5, "no verdict, tree not intact".
+
+### Harness
+
+`scripts/__tests__/red-proof.test.sh` compares a manifest of every file (blob id, executable
+bit), `git ls-files -s` and the staged diff before and after each case. Breaking `restore()` to a
+no-op turned 24 of its checks red on 2026-11-08.

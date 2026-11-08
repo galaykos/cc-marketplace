@@ -84,7 +84,8 @@ definition of a regression test, and the failing run is its certificate.
 - Fix already written (or applied reflexively before testing): revert the
   fix, run the test — it MUST fail; restore the fix — it passes. A test
   that passes against the reverted code does not guard this bug; rewrite
-  it until the revert turns it red.
+  it until the revert turns it red. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/red-proof.sh" --test "<cmd>"
+  --files <fix files>` (or `--commit <sha>`) does the revert, both runs and the exact restore for you.
 
 Record the failing output, not just the final green — the same evidence
 discipline as the task-runner plugin's task-execution skill: "verified"

@@ -18,6 +18,14 @@ boundaries, flaky-test causes and coverage traps.
 | `testing:review` — **retired in 0.10.0** | `/code-review:review` loads `testing-best-practices` for any diff touching tests or untested production code, in one pass with every other matching rubric. The rubric did not change; one listing entry did |
 | `/testing:flake-hunt [--runs N] [--shuffle "<runner flag>"] [--baseline FILE] [--update-baseline]` | Hunt and classify flaky tests — repeated runs in fixed and randomized order, set-diffed into order-dependent / non-deterministic / broken, each with its fix lane. `--baseline FILE` exits 2 only on a flake not already in that file; `--update-baseline` rewrites it |
 
+## Scripts
+
+| Script | Reach for it when |
+|---|---|
+| `scripts/red-proof.sh --test "<cmd>" --files <paths…>\|--commit <sha>` | Proving a regression test guards its fix: reverts the fix, the test must fail, restores the fix byte-for-byte (timeout and interrupt included), the test must pass. Exit 0 proven, 1 passes without the fix, 4 fails with it, 5 could not restore (with recovery commands) |
+| `scripts/mutation-lens.sh [--base <ref>]` | Asking whether the changed code's tests would notice a broken line: runs the project's own Infection, Stryker or mutmut on the changed files only and lists surviving mutants. Never installs a tool; exit 3 names the config that would enable one |
+| `/testing:flake-hunt … --seed N` | Replaying the exact random order of a failing run; the seed is printed with every randomized failure |
+
 ## Hook
 
 | Hook | Event | What it does | Standing |

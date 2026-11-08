@@ -1,0 +1,267 @@
+#!/usr/bin/env bash
+# red-proof.sh — proves a test guards a fix: reverts the fix in the working tree, runs the test (must fail), restores the fix byte-identical, runs the test again (must pass).
+# Misses: why the reverted run failed (any failure counts, a hang included); ignored files (outside the whole-tree check); with --commit, a fix inside a path that looks like a test, which is kept, not reverted.
+# Why, limits, history: rationale/derivations/plugin-testing.md § plugins/testing/scripts/red-proof.sh (marketplace repository)
+#
+#   red-proof.sh --test "<command>" (--files <path>... | --commit <sha>) [--timeout SECONDS]
+#
+#   --files    the fix is these files' working-tree changes against HEAD (new untracked files included)
+#   --commit   the fix is that commit's diff, reverse-applied to the working tree; paths that look like tests stay
+#   --timeout  cap per test run (default 600); a run past it is killed with its process group and counts as a failure
+#
+# The index is never touched. A run killed with SIGKILL leaves its backup under .git/red-proof/; the next run refuses to start and prints how to restore.
+# Exit: 0 proven · 1 the test passed without the fix · 2 usage · 3 nothing reverted, or interrupted and restored · 4 the test failed with the fix · 5 could not restore cleanly
+set -u
+PROG=${0##*/}
+
+usage() {
+  printf '%s: %s\n' "$PROG" "$1" >&2
+  printf 'usage: %s --test "<command>" (--files <path>... | --commit <sha>) [--timeout SECONDS]\n' "$PROG" >&2
+  exit 2
+}
+help() { awk 'NR==1{next} /^#/{sub(/^# ?/,""); print; next} {exit}' "$0"; }
+
+TEST="" ; MODE="" ; COMMIT="" ; TIMEOUT=600 ; ARGS=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --test) [ $# -ge 2 ] || usage "--test needs a command"; TEST=$2; shift 2 ;;
+    --files)
+      [ -z "$MODE" ] || usage "--files and --commit are exclusive"; MODE=files; shift
+      while [ $# -gt 0 ]; do case "$1" in --*) break ;; esac; ARGS+=("$1"); shift; done ;;
+    --commit)
+      [ -z "$MODE" ] || usage "--files and --commit are exclusive"
+      [ $# -ge 2 ] || usage "--commit needs a commit"; MODE=commit; COMMIT=$2; shift 2 ;;
+    --timeout) [ $# -ge 2 ] || usage "--timeout needs seconds"; TIMEOUT=$2; shift 2 ;;
+    -h|--help) help; exit 0 ;;
+    *) usage "unknown argument $1" ;;
+  esac
+done
+[ -n "$TEST" ] || usage "--test is required"
+[ -n "$MODE" ] || usage "name the fix: --files <path>... or --commit <sha>"
+[ "$MODE" = commit ] || [ "${#ARGS[@]}" -gt 0 ] || usage "--files needs at least one path"
+case "$TIMEOUT" in ''|*[!0-9]*) usage "--timeout must be a positive integer" ;; esac
+[ "$TIMEOUT" -gt 0 ] || usage "--timeout must be a positive integer"
+
+ORIG_PWD=$(pwd -P)
+top=$(git rev-parse --show-toplevel 2>/dev/null) || usage "not inside a git work tree"
+ROOT=$(cd "$top" && pwd -P)
+GITDIR=$(git rev-parse --absolute-git-dir 2>/dev/null) || usage "cannot locate the git directory"
+STORE="$GITDIR/red-proof"
+g() { git -C "$ROOT" --literal-pathspecs "$@"; }
+
+for old in "$STORE"/*/; do
+  [ -d "$old" ] || continue
+  old=${old%/}
+  if kill -0 "${old##*-}" 2>/dev/null; then
+    printf '%s: another red-proof run (pid %s) is using this repository; if it is gone, remove %s\n' "$PROG" "${old##*-}" "$old" >&2; exit 3
+  fi
+  [ -f "$old/reverted" ] || { rm -rf "$old"; continue; }
+  printf '%s: a previous run did not finish restoring; its backup is %s\n\n' "$PROG" "$old" >&2
+  cat "$old/RECOVER" >&2 2>/dev/null
+  exit 5
+done
+
+# Paths in a test-shaped place stay put in --commit mode: reverting the test with the fix fails the run for the wrong reason.
+TESTLIKE='(^|/)(tests?|__tests__|__mocks__|specs?|testdata|fixtures)/|(^|/)test_[^/]*$|(_test|_spec|\.test|\.spec|Test|Tests)\.[A-Za-z0-9]+$|(^|/)conftest\.py$'
+FIX=() ; KEPT=""
+if [ "$MODE" = files ]; then
+  for p in "${ARGS[@]}"; do
+    case "$p" in /*) abs=$p ;; *) abs="$ORIG_PWD/$p" ;; esac
+    { [ -d "$abs" ] && [ ! -L "$abs" ]; } && usage "$p is a directory; name the files"
+    d=$(cd "$(dirname "$abs")" 2>/dev/null && pwd -P) || usage "cannot resolve $p (its directory does not exist; use --commit)"
+    case "$d/" in "$ROOT"/*) ;; *) usage "$p is outside the repository $ROOT" ;; esac
+    d=${d#"$ROOT"}; d=${d#/}
+    FIX+=("${d:+$d/}$(basename "$abs")")
+  done
+  for p in "${FIX[@]}"; do
+    printf '%s\n' "$p" | grep -qE "$TESTLIKE" && printf 'warning: %s looks like a test; reverting it makes the red run fail for the wrong reason\n' "$p" >&2
+  done
+else
+  sha=$(git rev-parse --verify --quiet "$COMMIT^{commit}") || usage "--commit $COMMIT is not a commit"
+  n=$(git rev-list --parents -n 1 "$sha" | wc -w | tr -d ' ')
+  [ "$n" -le 2 ] || usage "$COMMIT is a merge commit; name the fix with --files"
+  if [ "$n" -eq 2 ]; then parent="$sha^"; else parent=$(git hash-object -t tree /dev/null); fi
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    if printf '%s\n' "$p" | grep -qE "$TESTLIKE"; then KEPT="$KEPT $p"; else FIX+=("$p"); fi
+  done <<EOF
+$(g -c core.quotePath=false diff --name-only --no-renames "$parent" "$sha")
+EOF
+  [ "${#FIX[@]}" -gt 0 ] || { printf '%s: every path %s touches looks like a test; nothing to revert\n' "$PROG" "$COMMIT"; exit 3; }
+fi
+
+RUN="$STORE/$(date +%Y%m%d-%H%M%S)-$$"
+mkdir -p "$RUN/files" || { printf '%s: cannot create %s\n' "$PROG" "$RUN" >&2; exit 3; }
+trap 'rm -rf "$RUN"; exit 3' INT TERM HUP
+
+# The whole non-ignored working tree, untracked files included, as one tree id, through a scratch copy of the index.
+tree_of() {
+  rm -f "$RUN/index"
+  [ -f "$GITDIR/index" ] && cp "$GITDIR/index" "$RUN/index"
+  ( cd "$ROOT" && GIT_INDEX_FILE="$RUN/index" git add -A . >/dev/null 2>&1 && GIT_INDEX_FILE="$RUN/index" git write-tree )
+}
+TREE0=$(tree_of) || { rm -rf "$RUN"; printf '%s: cannot snapshot the working tree (git add -A failed)\n' "$PROG" >&2; exit 3; }
+
+copy_entry() { # src dst: a symlink as a symlink, a file with its mode and times
+  mkdir -p "$(dirname "$2")" || return 1
+  if [ -L "$1" ]; then ln -s "$(readlink "$1")" "$2"; else cp -p "$1" "$2"; fi
+}
+for p in "${FIX[@]}"; do
+  if [ -e "$ROOT/$p" ] || [ -L "$ROOT/$p" ]; then
+    copy_entry "$ROOT/$p" "$RUN/files/$p" || { rm -rf "$RUN"; printf '%s: cannot back up %s\n' "$PROG" "$p" >&2; exit 3; }
+  fi
+  d=$(dirname "$p")
+  while [ "$d" != . ] && [ ! -d "$ROOT/$d" ]; do printf '%s\n' "$d" >> "$RUN/created-dirs"; d=$(dirname "$d"); done
+done
+
+{
+  printf 'red-proof stopped with the fix reverted. Before the run the working tree was git tree %s.\n' "$TREE0"
+  printf 'Restore every fix path, then delete the backup so red-proof runs again:\n\n  cd %q\n' "$ROOT"
+  for p in "${FIX[@]}"; do
+    if [ -e "$RUN/files/$p" ] || [ -L "$RUN/files/$p" ]; then printf '  rm -f %q && cp -pPR %q %q\n' "$p" "$RUN/files/$p" "$p"
+    else printf '  rm -f %q\n' "$p"; fi
+  done
+  printf '  rm -rf %q\n\nThe same bytes are also in git: git restore --source=%s --worktree -- <path>\n' "$RUN" "$TREE0"
+} > "$RUN/RECOVER"
+
+CHILD="" ; WATCH="" ; REVERTED=0
+kill_child() {
+  if [ -n "$CHILD" ]; then kill -TERM -- -"$CHILD" 2>/dev/null; sleep 1; kill -KILL -- -"$CHILD" 2>/dev/null; fi
+  [ -n "$WATCH" ] && kill -KILL -- -"$WATCH" 2>/dev/null
+  CHILD="" ; WATCH=""
+}
+
+restore() {
+  local p bad=0
+  for p in "${FIX[@]}"; do
+    if [ -e "$ROOT/$p" ] || [ -L "$ROOT/$p" ]; then rm -f "$ROOT/$p" 2>/dev/null || bad=1; fi
+    if [ -e "$RUN/files/$p" ] || [ -L "$RUN/files/$p" ]; then copy_entry "$RUN/files/$p" "$ROOT/$p" 2>/dev/null || bad=1; fi
+  done
+  if [ -f "$RUN/created-dirs" ]; then
+    sort -r "$RUN/created-dirs" | while IFS= read -r d; do rmdir "$ROOT/$d" 2>/dev/null; done
+  fi
+  return "$bad"
+}
+
+# Byte check of each fix path against its backup copy: content, symlink target, executable bit, existence.
+verify_fix() {
+  local p a b bad=0
+  for p in "${FIX[@]}"; do
+    a="$RUN/files/$p" ; b="$ROOT/$p"
+    if [ -L "$a" ]; then [ -L "$b" ] && [ "$(readlink "$a")" = "$(readlink "$b")" ] || { bad=1; printf '    differs: %s\n' "$p"; }
+    elif [ -e "$a" ]; then
+      { [ -f "$b" ] && [ ! -L "$b" ] && cmp -s "$a" "$b" && { [ -x "$a" ] && [ -x "$b" ] || { [ ! -x "$a" ] && [ ! -x "$b" ]; }; }; } \
+        || { bad=1; printf '    differs: %s\n' "$p"; }
+    else { [ -e "$b" ] || [ -L "$b" ]; } && { bad=1; printf '    should be absent: %s\n' "$p"; }
+    fi
+  done
+  return "$bad"
+}
+
+recover_loud() {
+  printf '\nRED-PROOF COULD NOT RESTORE THE FIX CLEANLY. Nothing is lost: the backup stays at %s.\n' "$RUN" >&2
+  cat "$RUN/RECOVER" >&2
+}
+
+finish_interrupted() {
+  trap '' INT TERM HUP
+  kill_child
+  if [ "$REVERTED" = 1 ]; then
+    printf '\n%s: interrupted with the fix reverted; restoring it\n' "$PROG" >&2
+    if restore && verify_fix >&2; then REVERTED=0; rm -rf "$RUN"; printf '%s: fix restored byte-identical; no verdict\n' "$PROG" >&2; exit 3; fi
+    REVERTED=0; recover_loud; exit 5
+  fi
+  rm -rf "$RUN"; exit 3
+}
+on_exit() {
+  rc=$?
+  if [ "$REVERTED" = 1 ]; then
+    kill_child
+    if restore && verify_fix >&2; then rm -rf "$RUN"; else recover_loud; exit 5; fi
+  fi
+  rmdir "$STORE" 2>/dev/null
+  exit "$rc"
+}
+trap finish_interrupted INT TERM HUP
+trap on_exit EXIT
+
+run_test() { # label -> RC, TIMED
+  local log="$RUN/$1.log"
+  rm -f "$RUN/capped"
+  set -m
+  ( cd "$ORIG_PWD" && exec bash -c "$TEST" ) </dev/null >"$log" 2>&1 &
+  CHILD=$!
+  ( sleep "$TIMEOUT"; : > "$RUN/capped"; kill -TERM -- -"$CHILD" 2>/dev/null; sleep 3; kill -KILL -- -"$CHILD" 2>/dev/null ) </dev/null >/dev/null 2>&1 &
+  WATCH=$!
+  set +m
+  wait "$CHILD" 2>/dev/null; RC=$?
+  kill -KILL -- -"$WATCH" 2>/dev/null; wait "$WATCH" 2>/dev/null
+  TIMED=0
+  if [ -f "$RUN/capped" ]; then TIMED=1; kill -KILL -- -"$CHILD" 2>/dev/null; fi
+  CHILD="" ; WATCH=""
+}
+show_tail() { if [ -s "$RUN/$1.log" ]; then tail -n 12 "$RUN/$1.log" | sed 's/^/    | /'; else printf '    | (no output)\n'; fi; }
+
+printf 'red-proof: fix = %s path(s) from %s: %s\n' "${#FIX[@]}" "$( [ "$MODE" = files ] && echo '--files' || echo "--commit $COMMIT")" "${FIX[*]}"
+[ -n "$KEPT" ] && printf 'kept, not reverted (look like tests):%s\n' "$KEPT"
+printf 'recovery point: tree %s; backup %s (deleted when the run ends cleanly)\n' "$TREE0" "$RUN"
+
+REVERTED=1
+: > "$RUN/reverted"
+rev_ok=1
+if [ "$MODE" = files ]; then
+  for p in "${FIX[@]}"; do
+    if git -C "$ROOT" cat-file -e "HEAD:$p" 2>/dev/null; then g restore --source=HEAD --worktree -- "$p" 2>>"$RUN/revert.err" || { rev_ok=0; break; }
+    else rm -f "$ROOT/$p" 2>>"$RUN/revert.err" || { rev_ok=0; break; }; fi
+  done
+else
+  g diff --binary --no-renames --no-ext-diff --no-color "$parent" "$sha" -- "${FIX[@]}" > "$RUN/fix.patch"
+  { g apply -R --check "$RUN/fix.patch" && g apply -R "$RUN/fix.patch"; } 2>>"$RUN/revert.err" || rev_ok=0
+fi
+if [ "$rev_ok" = 0 ]; then
+  printf '%s: could not revert the fix:\n' "$PROG"; sed 's/^/    | /' "$RUN/revert.err"
+  restore && verify_fix && { REVERTED=0; rm -rf "$RUN"; printf 'working tree unchanged; no verdict\n'; exit 3; }
+  REVERTED=0; recover_loud; exit 5
+fi
+TREE1=$(tree_of)
+if [ "$TREE1" = "$TREE0" ]; then
+  restore && verify_fix && { REVERTED=0; rm -rf "$RUN"; printf 'NOTHING REVERTED: the working tree is the same with the fix reverted (no change vs HEAD in the named files?); the test was not run.\n'; exit 3; }
+  REVERTED=0; recover_loud; exit 5
+fi
+
+printf '\n1/3 fix reverted; running the test (must FAIL)\n'
+run_test red; RED_RC=$RC; RED_TIMED=$TIMED
+if [ "$RED_TIMED" = 1 ]; then printf '    FAIL: timed out after %ss and killed (counted as a failure: a hang, not an assertion)\n' "$TIMEOUT"
+elif [ "$RED_RC" -ne 0 ]; then printf '    FAIL rc=%s, as required\n' "$RED_RC"
+else printf '    PASS rc=0 with the fix reverted\n'; fi
+
+trap '' INT TERM HUP
+if ! restore || ! verify_fix; then REVERTED=0; recover_loud; exit 5; fi
+REVERTED=0
+trap finish_interrupted INT TERM HUP
+TREE2=$(tree_of)
+others=$(g diff-tree -r --name-only --no-renames "$TREE0" "$TREE2" 2>/dev/null)
+printf '\n2/3 fix restored: %s path(s) byte-identical to before the run\n' "${#FIX[@]}"
+if [ "$TREE2" = "$TREE0" ]; then printf '    whole working tree, untracked files included: identical (tree %s)\n' "$TREE0"
+else
+  printf '    whole working tree: the test command itself changed these during the reverted run (left as they are):\n'
+  printf '%s\n' "$others" | sed 's/^/      /'
+fi
+
+printf '\n3/3 running the test with the fix (must PASS)\n'
+run_test green; GREEN_RC=$RC; GREEN_TIMED=$TIMED
+if [ "$GREEN_TIMED" = 1 ]; then printf '    FAIL: timed out after %ss and killed\n' "$TIMEOUT"
+elif [ "$GREEN_RC" -ne 0 ]; then printf '    FAIL rc=%s\n' "$GREEN_RC"
+else printf '    PASS rc=0\n'; fi
+
+printf '\n'
+if [ "$GREEN_TIMED" = 1 ] || [ "$GREEN_RC" -ne 0 ]; then
+  printf 'NOT PROVEN: the test fails WITH the fix, so its failure without the fix shows nothing. Its output:\n'; show_tail green
+  rm -rf "$RUN"; exit 4
+fi
+if [ "$RED_TIMED" = 0 ] && [ "$RED_RC" -eq 0 ]; then
+  printf 'NOT PROVEN: the test passed with the fix reverted, so it does not guard this fix. Rewrite it until the revert turns it red.\n'
+  rm -rf "$RUN"; exit 1
+fi
+printf 'PROVEN: the test fails without the fix and passes with it. Reverted-run output:\n'; show_tail red
+rm -rf "$RUN"; exit 0
