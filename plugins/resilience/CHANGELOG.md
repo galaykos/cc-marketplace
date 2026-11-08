@@ -8,6 +8,13 @@ whose job is history would be worse than the gap. Adding this file opts the plug
 `scripts/check-version-bumps.sh`'s changelog gate permanently — every bump from here on
 must carry an entry.
 
+## 0.9.0 — 2026-11-08
+
+- **`/resilience:review` prints a diff risk score before a diff review.** New `scripts/diff-risk.sh [--dir D] [--base REF] [--since DATE] [--json]` scores each file the change touches (merge-base to working tree, plus untracked files) from its git history up to the base. A revert is 3, a fix is 2, and a revert or fix within 14 days of the file's previous commit adds 1. It lists the top files with the commits behind each score and one overall line. One `git log` per run. Commit subjects are printed as text, never run; control bytes show as `?`.
+- **Inform only.** It never blocks, never skips triage and never changes which rubrics load. Exit 0 scored, 2 usage or no base, 3 not a git work tree, 4 git or awk missing.
+- **Standing.** The scoring is a **gate** where run: `scripts/__tests__/diff-risk.test.sh` covers the formula, near-miss subjects (`prefix fixture`, `fixed-width font`), shell metacharacters in a subject, `--json` and the exit codes, and CI runs it. The reviewer's extra care on top-scored files is **recorded**. Unmeasured: whether it changes what a review finds.
+- README names the diff risk score and its standing.
+
 ## 0.8.3 — 2026-10-31
 
 - **Two eval graders no longer reward a false Laravel fact.** `evals/timeout-and-retry` said Laravel's HTTP client has no default timeout, and `evals/breadth-review` leaned the same way. The framework's `PendingRequest` defaults to 30 s read and 10 s connect (11.x and 12.x source, checked 2026-10-31). Both graders now ask for "no explicit timeout", with the implicit default times the attempts as the harm, and the first says not to require the false "no timeout at all" claim. No case was re-run: both are ceiling cases whose control arm already passes.

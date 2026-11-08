@@ -34,6 +34,11 @@ Runtime quality in one plugin — does it stay up, can you see it, is it fast.
 /resilience:review        # reviews the current diff, rubrics chosen by what it touches
 ```
 
+A diff review starts with `scripts/diff-risk.sh`: each touched file scored from its own history (3 per revert,
+2 per fix, 1 per fix within 14 days of the previous change), with the commits behind the score. It informs where
+to read hardest and never blocks or changes the rubrics. Standing: gate for the script (its harness), recorded for
+the reading.
+
 Until 2026-09-14 each concern was its own command (`error-review`, `concurrency-review`,
 `observability-review`, `performance-review`); one entry with a flag costs the host's
 skill listing one line instead of five, and the code-review fan-in already loads the
