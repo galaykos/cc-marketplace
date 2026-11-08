@@ -717,17 +717,21 @@ if [ "$verdict" = "run" ]; then
   verdict=""; run_msg=""
 fi
 
+tailf=""
+trap '[ -n "$tailf" ] && rm -f "$tailf"' EXIT
+tj() { jq "$@" "$tailf"; }
 read_transcript() {
   # A subagent's report lives in its own transcript; the parent's path is the fallback for a payload without one.
   tp=$(printf '%s' "$input" | jq -r '.agent_transcript_path // .transcript_path // empty' 2>/dev/null)
-  tail_jsonl=""
-  if [ -n "$tp" ] && [ -r "$tp" ]; then
-    tail_jsonl=$(tail -n "$TRANSCRIPT_TAIL_LINES" "$tp" 2>/dev/null)
+  # The tail goes straight to a file jq reads: a multi-megabyte shell variable cost ~0.1 s per copy and per pipe.
+  have_tail=""
+  if [ -n "$tp" ] && [ -r "$tp" ] && tailf=$(mktemp "${TMPDIR:-/tmp}/cc-candor-tail.XXXXXX" 2>/dev/null); then
+    tail -n "$TRANSCRIPT_TAIL_LINES" "$tp" > "$tailf" 2>/dev/null && [ -s "$tailf" ] && have_tail=1
   fi
 
   handback=""
   if [ "$evt" = "SubagentStop" ]; then
-    [ -n "$tail_jsonl" ] && handback=$(printf '%s' "$tail_jsonl" | jq -rs --arg n "SubagentHandback" '
+    [ -n "$have_tail" ] && handback=$(tj -rs --arg n "SubagentHandback" '
       def usertext: .type=="user" and (.isCompactSummary|not) and ((.message.content // null) as $c
         | if ($c|type)=="string" then $c
           elif ($c|type)=="array" and (any($c[]; .type=="tool_result")|not) then [$c[] | select(.type=="text") | .text][0]
@@ -742,7 +746,7 @@ read_transcript() {
   # A malformed JSONL line empties the -s slurp, which fails open: hence each fallback tests for empty.
   last_msg=$handback
   [ -n "$last_msg" ] || last_msg=$(printf '%s' "$input" | jq -r '.last_assistant_message // empty' 2>/dev/null)
-  [ -n "$last_msg" ] || [ -z "$tail_jsonl" ] || last_msg=$(printf '%s' "$tail_jsonl" | jq -rs '
+  [ -n "$last_msg" ] || [ -z "$have_tail" ] || last_msg=$(tj -rs '
     [ .[] | select(.type=="assistant")
           | ((.message.content // []) | map(select(.type=="text") | .text) | join("\n"))
           | select(length > 0) ] | last // empty' 2>/dev/null)
@@ -850,7 +854,7 @@ EOF_QUOTES
   # error, hook feedback, a harness note, a skill or slash-command body, a compaction summary, or a user line holding a quote: mark.
   local jp kp w n found
   if [ -n "$hits" ] && [ "$SECONDS" -lt "$QUOTE_DEADLINE_SECONDS" ]; then
-    printf '%s\n' "$tail_jsonl" > "$qtmp.in"
+    cp "$tailf" "$qtmp.in"
     jq -nrR '
       def plain: if type == "string" then . elif type == "array" then ([.[] | select(.type == "text") | .text] | join("\n")) else "" end;
       def shown:
@@ -910,9 +914,9 @@ EOF_HITS
 clause_misquote
 
 clause_unevidenced_reversal() {
-  [ -z "$verdict" ] && [ -n "$last_msg" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "reversal" ] || return 0
+  [ -z "$verdict" ] && [ -n "$last_msg" ] && [ -n "$have_tail" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "reversal" ] || return 0
   # Tool results arrive as type "user" with no text block, so selecting text excludes them.
-  last_user=$(printf '%s' "$tail_jsonl" | jq -rs '
+  last_user=$(tj -rs '
     [ .[] | select(.type=="user")
           | (if (.message.content | type) == "string" then .message.content
              else ((.message.content // []) | map(select(.type=="text") | .text) | join("\n")) end)
@@ -938,7 +942,7 @@ clause_unevidenced_reversal() {
      && printf '%s' "$last_user" | grep -qiE "$PUSHBACK" \
      && printf '%s' "$last_msg" | grep -qiE "$CAVE" \
      && ! printf '%s' "$last_msg" | grep -qiE "$HOLD"; then
-    ran=$(printf '%s' "$tail_jsonl" | jq -r '
+    ran=$(tj -r '
       if .type=="user" then
         (if ((.message.content | type) == "string")
             or (((.message.content // []) | map(select(.type=="text")) | length) > 0)
@@ -1022,15 +1026,13 @@ CLAIM='done|complete|completed|finished|implemented|fixed|resolved|verified|pass
 ACK='not tested|untested|unverified|not verified|did not (run|rerun)|didn.t (run|rerun)|have not (run|rerun)|haven.t (run|rerun)|not (run|rerun) yet|cannot verify|could not verify|not green|still fail(ing|s)?|currently fail(ing|s)?|(tests?|suite|build|lint|checks?|it) (is|are|was|were) (still |currently )?fail(ing|ed|s)?|(tests?|suite|build|lint|checks?|it) (still |currently )?fail(ing|ed|s)?|fail(ing|s) (with|on|because|due)|in progress|still working|wip|not done|incomplete|halt|halting|halted|blocked|parked|known issue|please verify|verify manually|left to do|remains to'
 
 clause_naked_completion() {
-  [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "evidence" ] && [ "$ev_mode" != "off" ] || return 0
+  [ -z "$verdict" ] && [ -n "$have_tail" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "evidence" ] && [ "$ev_mode" != "off" ] || return 0
   # grep -w, not \b: BSD grep has no \b, and an unanchored 'done' would match 'abandoned'.
-  said=$(printf '%s' "$tail_jsonl" \
-    | jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' 2>/dev/null \
+  said=$(tj -r 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' 2>/dev/null \
     | tail -"$CLAIM_WINDOW_LINES")
   if [ -n "$said" ] && printf '%s' "$said" | grep -qiwE "$CLAIM" && ! printf '%s' "$said" | grep -qiwE "$ACK"; then
     # Each Bash call's command follows its entry's names as a JSON string line; only the last Bash call can be the last edit or run, so only it is read.
-    ev=$(printf '%s' "$tail_jsonl" \
-      | jq -r 'select(.type=="assistant")
+    ev=$(tj -r 'select(.type=="assistant")
                | [.message.content[]? | select(.type=="tool_use")] as $u
                | ([$u[] | .name + (if (.name | test("^(Edit|Write|MultiEdit|NotebookEdit)$|apply_patch$|create_new_file$"))
                              then "@" + ((.input.file_path // "") | ascii_downcase | (if test("\\.[a-z0-9]+$") then sub(".*\\."; "") else "" end))
@@ -1081,13 +1083,13 @@ unity_change() { # <absolute path>
   case "$1" in *.unity|*.prefab|*/Assets/*.cs) unity_project_of "$1" ;; *) return 1 ;; esac
 }
 clause_unity_visual() {
-  [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ -n "$last_msg" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "visual" ] && [ "$uv_mode" != "off" ] || return 0
+  [ -z "$verdict" ] && [ -n "$have_tail" ] && [ -n "$last_msg" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "visual" ] && [ "$uv_mode" != "off" ] || return 0
   printf '%s' "$last_msg" | grep -qiwE "$CLAIM" || return 0
   printf '%s' "$last_msg" | grep -qiwE "$ACK" && return 0
   printf '%s' "$last_msg" | grep -qiE "$CAPTURE_ACK" && return 0
   # One line per tool call of this turn (after the last prompt the person typed): kind, a tab, then the path, command or tool name.
   local calls n=0 last_edit=0 last_cap=0 last_con=0 route=0 files="" kind text t p to=""
-  calls=$(printf '%s' "$tail_jsonl" | jq -rs '
+  calls=$(tj -rs '
     def usertext: .type=="user" and (.isMeta != true) and (.isCompactSummary|not) and ((.message.content // null) as $c
       | if ($c|type)=="string" then $c
         elif ($c|type)=="array" and (any($c[]; .type=="tool_result")|not) then [$c[] | select(.type=="text") | .text][0]

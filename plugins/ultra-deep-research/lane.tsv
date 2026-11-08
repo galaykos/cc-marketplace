@@ -5,3 +5,4 @@
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 ultra-deep-research:researcher	agent	understand	research-facet-sharding	dispatched as one shard of a research fan-out with one assigned facet	-
 ultra-deep-research:verifier	agent	verify	load-bearing-claim-refutation	a claim the report leans on has not been attacked from its own sources	-
+ultra-deep-research:verify-return	hook	verify	cited-source-fetch-check	SubagentStop of the researcher or verifier when its return cites a url:/FETCH: URL its own WebFetch calls never fetched, or a verdict block fails verdict-lint.sh; at most twice per agent	-

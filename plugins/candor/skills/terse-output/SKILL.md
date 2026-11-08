@@ -104,7 +104,7 @@ and scripts hold it in code.
 <!-- terse-readers:end -->
 
 No cap when findings are the deliverable: an invoked review or audit returns every finding.
-Standing: unenforceable — nothing rewrites a reply; /candor:check counts prose lines only.
+Standing: advice, unenforceable — nothing rewrites or blocks a reply; /candor:check counts prose lines after the fact.
 
 ## Why shape, not just words
 

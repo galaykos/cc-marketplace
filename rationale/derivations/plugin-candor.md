@@ -6,6 +6,15 @@ A second move, on 2026-10-28, cut each script under `scripts/` to a header of at
 
 ## plugins/candor/hooks/gate.sh
 
+**2026-11-07, latency (Process track PR2; `rationale/session-retro-2026-11-05.md` issue 15: mean 0.5–3.1 s, up to 490
+runs in a session).** A traced run on this session's 9.7 MB transcript (`bash -x` with `$EPOCHREALTIME` in PS4) put
+the cost in moving the tail: `tail` into a shell variable, then `printf '%s' "$tail_jsonl" | jq` once per clause,
+~0.1 s each against ~0.05 s for jq reading the same bytes from a file. The tail now goes straight to a `mktemp`
+file removed by an EXIT trap, and every clause calls `tj` (jq on that file). 0.82 s → 0.21 s, three runs each. The
+first rewrite replaced the pipe inside `tj` itself, which would have recursed when the temp file was missing; the
+fallback is now "no transcript" (fail open). A per-HEAD cache, the retro's suggestion, does not fit: the
+transcript changes every turn. ask-ledger's gate measured 0.01 s on the same payload, so it was left alone.
+
 **Clause 7, 2026-11-02 (candor 0.11.0).** The user asked for a visual done-gate on Unity work: before
 scene, prefab or gameplay work is called done, capture the scene or camera and read the console. The
 request said "if candor's Stop gate can check for a capture in the turn, add that as a gate." It can.

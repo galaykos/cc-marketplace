@@ -25,3 +25,19 @@ real, the fetch happened, or the corroborating source is independent. Those
 stay with the orchestrator's judgment and the verifier's own rules.
 ```
 
+## plugins/ultra-deep-research/scripts/sources-check.sh
+
+Added 2026-11-07 (Process track PR3; `rationale/plugin-landscape-comparison-2026-10-31.md` rank 7, after
+199-bio's citation check, which has no licence, so the idea was reimplemented and no code copied). The verifier's
+rule 1 ("fetch the cited source THIS session") and the researcher's "only cite pages you actually opened" were prose.
+The check reads the agent's own transcript: WebFetch `input.url` plus every URL in those calls' results, because
+WebFetch reports a cross-host redirect in its result rather than following it. URLs are compared after dropping a
+fragment, trailing punctuation and trailing slashes, and with http folded to https.
+
+## plugins/ultra-deep-research/hooks/verify-return.sh
+
+Added 2026-11-07 with sources-check.sh. SubagentStop fields used: `agent_type` (also the matcher), `agent_id`,
+`agent_transcript_path`, `last_assistant_message`, as the hooks reference lists them (fetched 2026-11-07). A
+SubagentStop block is exit 2 with the reason on stderr, the same as candor's gate. The reason is built inside the
+fail-open `{ … } 2>/dev/null` block and printed after it; the first draft printed it inside, where it was swallowed.
+The bound of two blocks per agent keeps an agent that cannot fetch a page from looping.

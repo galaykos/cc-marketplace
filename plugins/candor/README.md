@@ -130,6 +130,11 @@ running a word-compression mode at its strongest setting, mid-turn lines held at
 just wrote, re-prints an unchanged inventory. So the mode budgets and shapes the
 message instead of shortening its sentences.
 
+**The budgets are advice, not a gate.** Nothing counts a reply's lines before it is sent; `/candor:check`
+measures afterwards and blocks nothing. Across 8 sessions in the 2026-11-05 retro, ultra reports ran 15–40 prose
+lines against a budget of 6. A Stop-hook gate was considered and not built: it would cost a turn per overrun to
+trim prose the user can skim. Standing: advice (agent-graded by the model reading it).
+
 **The one law: fewer words in the message, never less work in the turn.** Code,
 commits, files written, subagent prompts, tool calls, tests and verification
 depth are out of scope at every level. A finding that does not fit goes into a
