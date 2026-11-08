@@ -65,8 +65,36 @@ check "Tailwind truncate table-cell"  allow src/Cell.tsx     '<td className="tru
 check "className truncate table"      allow src/Grid.tsx     '<div className="truncate table w-full">{v}</div>'
 check "Vue :class truncate table"     allow src/Grid.vue     "<div :class=\"['truncate table w-full']\">"
 check "cn() truncate table"           allow src/Grid.tsx     'const c = cn("truncate table w-full", active && "font-bold")'
-check "class string outside a helper" ask   src/Grid.tsx     'const c = "truncate table w-full"'
+# 0.11.10: SQL keywords count only in a .sql file, a migration, a raw-query call or a SQL-client line, so this residual is gone.
+check "class string outside a helper" allow src/Grid.tsx     'const c = "truncate table w-full"'
 check "lowercase truncate table, .sql" ask  db/cleanup.sql   'truncate table users;'
+# 0.11.10 (retro 2026-11-05 #19): the three starter-kit TSX files asked "TRUNCATE" on 0.11.3; their class lists are silent since
+# 0.11.4, and the nearest shapes that still asked were UI text and identifiers in non-SQL files. Each must stay silent:
+check "retro: starter-kit truncate class"    allow resources/js/components/app-logo.tsx '<span className="mb-0.5 truncate leading-tight font-semibold">Laravel Starter Kit</span>'
+check "tsx: enum member TRUNCATE ="          allow src/overflow.ts   'export enum Overflow { TRUNCATE = "truncate", WRAP = "wrap" }'
+check "tsx: UI string TRUNCATE the log"      allow src/LogPanel.tsx  '<Button onClick={clear}>TRUNCATE the log view</Button>'
+check "tsx: prose drop table rows"           allow src/Board.tsx     '<p className="text-sm">Drop table rows here to reorder</p>'
+check "tsx: prose Delete from favorites"     allow src/Fav.tsx       '<MenuItem>Delete from favorites</MenuItem>'
+check "tsx: prose Update ... set"            allow src/Profile.tsx   '<p>Update your account and set a new password</p>'
+check "tsx: prose Create index page"         allow src/Nav.tsx       '<Link title="Create index page" href="/new" />'
+check "ts: a comment naming drop table"      allow src/jobs.ts       '// TODO: drop table legacy_jobs after the backfill lands'
+check "ts: RegExp exec() is no SQL call"     allow src/parse.ts      'const m = /TRUNCATE (\w+)/.exec(line)'
+# ...while raw SQL in application code still asks, through each raw-call shape and a SQL client:
+check "ts: pool.query TRUNCATE"              ask   src/reset.ts      'await pool.query("TRUNCATE TABLE sessions")'
+check "ts: sql template across lines"        ask   src/db/reset.ts   $'await db.execute(sql`\n  DELETE FROM sessions\n`)'
+check "ts: prisma \$executeRaw"              ask   src/reset.ts      'await prisma.$executeRaw`TRUNCATE TABLE "Session"`'
+check "py: cursor.execute triple-quoted"     ask   app/reset.py      $'cursor.execute(\n    """\n    DROP TABLE sessions\n    """\n)'
+check "go: db.Exec"                          ask   internal/reset.go 'db.Exec("DROP TABLE sessions")'
+check "php: DB::statement outside migrations" ask  app/Console/Commands/Reset.php "DB::statement('TRUNCATE TABLE sessions');"
+check "php: DB::unprepared heredoc"          ask   app/Console/Commands/Reset.php $'DB::unprepared(<<<SQL\n    DROP TABLE sessions;\nSQL);'
+check "php: DB::delete with no WHERE"        ask   app/Services/Purge.php "DB::delete('delete from sessions');"
+check "sh: psql -c"                          ask   scripts/reset.sh  'psql "$DATABASE_URL" -c "TRUNCATE TABLE sessions"'
+check "sh: psql heredoc"                     ask   scripts/reset.sh  $'psql "$DATABASE_URL" <<\'SQL\'\nDROP TABLE sessions;\nSQL'
+check "ts: CREATE INDEX in a raw call"       ask   src/db/idx.ts     'await knex.raw("CREATE INDEX idx_a ON t (a)")'
+check "ts: the call closes, prose after it"  allow src/Page.tsx      $'const r = await pool.query("SELECT 1")\nreturn <p>Drop table rows here</p>'
+check "ts: a quote in a comment after it"    allow src/Page.tsx      $'const m = /x/.exec(line) // don\'t\nreturn <p>Drop table rows here</p>'
+# Residual, pinned so a fix flips it on purpose: SQL built in a variable and passed to the call later.
+check "ts: SQL in a variable, residual"      allow src/reset.ts      $'const q = "TRUNCATE TABLE sessions"\nawait pool.query(q)'
 check "DELETE with no WHERE"          ask   db/migrate.sql   'DELETE FROM orders;'
 check "DELETE with WHERE"             allow db/migrate.sql   'DELETE FROM orders WHERE id = 1;'
 # 0.8.3: Laravel's schema builder spells DROP TABLE without the keywords.
@@ -101,9 +129,31 @@ check "string naming down() in up() cuts nothing"  ask "$MIG" \
 check_multi "multiedit: down() in edit 1 does not cut edit 2's drop" ask "$MIG" \
   $'    public function down(): void\n    {\n        Schema::create(\'users\', fn ($t) => $t->id());\n    }' \
   $'        Schema::drop(\'users\');'
-check_multi "multiedit: a drop in an edit's own down() is still cut" allow "$MIG" \
-  $'    public function down(): void\n    {\n        Schema::dropIfExists(\'widgets\');\n    }' \
-  $'            $table->string(\'name\');'
+# 0.11.10: the cut exempts only a drop of a table the migration creates (Schema::create, createTable(, create_table, CREATE TABLE);
+# a down() that drops any other table, or every table, asks. Both directions per framework the cut covers.
+alter_up=$'    public function up(): void\n    {\n        Schema::table(\'users\', function (Blueprint $table) {\n            $table->boolean(\'flag\');\n        });\n    }\n'
+check "laravel: down() drops a table up() did not create" ask "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n'"$alter_up"$'\n    public function down(): void\n    {\n        Schema::dropIfExists(\'users\');\n    }\n};'
+check "laravel: down() drops a created and an uncreated table" ask "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n'"$up_create"$'\n    public function down(): void\n    {\n        Schema::dropIfExists(\'widgets\');\n        Schema::drop(\'users\');\n    }\n};'
+check "laravel: down() dropAllTables" ask "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n'"$up_create"$'\n    public function down(): void\n    {\n        Schema::dropAllTables();\n    }\n};'
+check "laravel: names in a variable, created and dropped alike" allow "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        $tableNames = config(\'permission.table_names\');\n        Schema::create($tableNames[\'roles\'], fn ($t) => $t->id());\n        Schema::create($tableNames["permissions"], fn ($t) => $t->id());\n    }\n\n    public function down(): void\n    {\n        $tableNames = config(\'permission.table_names\');\n        Schema::drop($tableNames[\'permissions\']);\n        Schema::drop($tableNames[\'roles\']);\n    }\n};'
+check "laravel: raw DROP TABLE of two created tables" allow "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        DB::statement(\'CREATE TABLE a (id int)\');\n        DB::statement(\'CREATE TABLE IF NOT EXISTS "b" (id int)\');\n    }\n\n    public function down(): void\n    {\n        DB::statement(\'DROP TABLE IF EXISTS a, "b"\');\n    }\n};'
+check "laravel: raw DROP TABLE of a created and an uncreated table" ask "$MIG" \
+  $'<?php\nreturn new class extends Migration\n{\n    public function up(): void\n    {\n        DB::statement(\'CREATE TABLE a (id int)\');\n    }\n\n    public function down(): void\n    {\n        DB::statement(\'DROP TABLE a, users\');\n    }\n};'
+check "doctrine: addSql CREATE TABLE, DROP TABLE in down()" allow migrations/Version20261108000000.php \
+  $'final class Version20261108000000 extends AbstractMigration\n{\n    public function up(Schema $schema): void\n    {\n        $this->addSql(\'CREATE TABLE widget (id INT AUTO_INCREMENT NOT NULL, PRIMARY KEY(id))\');\n    }\n\n    public function down(Schema $schema): void\n    {\n        $this->addSql(\'DROP TABLE widget\');\n    }\n}'
+check "rails: down drops a table up did not create" ask db/migrate/004_x.rb \
+  $'class X < ActiveRecord::Migration[7.1]\n  def up\n    create_table :widgets\n  end\n\n  def down\n    drop_table :users\n  end\nend'
+check "rails: create_table with options, drop_table(:x)" allow db/migrate/005_x.rb \
+  $'class X < ActiveRecord::Migration[7.1]\n  def up\n    create_table :widgets, id: :uuid do |t|\n      t.string :name\n    end\n  end\n\n  def down\n    drop_table(:widgets)\n  end\nend'
+check "alembic: downgrade drops a table upgrade did not create" ask alembic/versions/0006_x.py \
+  $'def upgrade():\n    op.add_column("user", sa.Column("flag", sa.Boolean()))\n\n\ndef downgrade():\n    op.drop_table("user")'
+check "alembic: autogenerate create_table across lines" allow alembic/versions/0007_x.py \
+  $'def upgrade() -> None:\n    op.create_table(\n        "widget",\n        sa.Column("id", sa.Integer(), nullable=False),\n    )\n\n\ndef downgrade() -> None:\n    op.drop_index(op.f("ix_widget_id"), table_name="widget")\n    op.drop_table("widget")'
 # 0.10.0: the DSL row was case-sensitive, required a `(`, and knew no Django
 # operation — so Rails, GORM and Django wrote a table drop in silence. Both
 # directions: a config key that merely SPELLS one of the names is not a migration.
@@ -178,16 +228,44 @@ check_at() { # label want file content cwd [tool]
   if printf '%s' "$out" | grep -q '"permissionDecision":"ask"'; then got=ask; else got=allow; fi
   if [ "$got" = "$2" ]; then echo "PASS: $1 ($got)"; else echo "FAIL: $1 — want $2, got $got"; rc=1; fi
 }
-check_at "scope: a target under TMPDIR, project elsewhere"   allow "$WS/tmp/probe/x.php"    'DROP TABLE users;' "$WS/proj"
-check_at "scope: a TMPDIR target, no payload cwd"            allow "$WS/tmp/probe/x.php"    'DROP TABLE users;' ""
+check_at "scope: a target under TMPDIR, project elsewhere"   allow "$WS/tmp/probe/x.php"    "DB::statement('DROP TABLE users');" "$WS/proj"
+check_at "scope: a TMPDIR target, no payload cwd"            allow "$WS/tmp/probe/x.php"    "DB::statement('DROP TABLE users');" ""
 check_at "scope: a TMPDIR dir not created yet"               allow "$WS/tmp/new/dir/x.sql"  'CREATE INDEX idx_a ON t (a);' "$WS/proj"
-check_at "scope: a target outside the project root"         allow "$WS/elsewhere/Fake.php" 'DELETE FROM orders;' "$WS/proj"
+check_at "scope: a target outside the project root"         allow "$WS/elsewhere/Fake.php" "DB::delete('DELETE FROM orders');" "$WS/proj"
 check_at "scope: a target in the project still asks"         ask   "$WS/proj/db/x.sql"      'DROP TABLE users;' "$WS/proj"
 check_at "scope: a new dir in the project still asks"        ask   "$WS/proj/db/new/x.sql"  'DROP TABLE users;' "$WS/proj"
 check_at "scope: no payload cwd, outside TMPDIR still asks"  ask   "$WS/proj/db/x.sql"      'DROP TABLE users;' ""
 check_at "scope: a project living in TMPDIR is still judged" ask   "$WS/tmp/inproj/db/x.sql" 'DROP TABLE users;' "$WS/tmp/inproj"
-check_at "scope: bash heredoc into a TMPDIR probe"           allow "" "$(printf '%s\n' "cat > $WS/tmp/probe/m.php <<'EOF'" 'DROP TABLE users;' 'EOF')" "$WS/proj" Bash
+check_at "scope: bash heredoc into a TMPDIR probe"           allow "" "$(printf '%s\n' "cat > $WS/tmp/probe/m.sql <<'EOF'" 'DROP TABLE users;' 'EOF')" "$WS/proj" Bash
 check_at "scope: bash heredoc into the project still asks"   ask   "" "$(printf '%s\n' "cat > db/m.sql <<'EOF'" 'DROP TABLE users;' 'EOF')" "$WS/proj" Bash
+# 0.11.10: the skipped .php cases above carry a raw call, so they are judged as SQL; in the project the same text asks.
+check_at "scope: the TMPDIR probe's text in the project asks" ask "$WS/proj/app/x.php"    "DB::statement('DROP TABLE users');" "$WS/proj"
+check_at "scope: the outside fake's text in the project asks" ask "$WS/proj/app/Fake.php" "DB::delete('DELETE FROM orders');" "$WS/proj"
+check_at "scope: bash heredoc of tsx prose into the project"  allow "" "$(printf '%s\n' "cat > src/Board.tsx <<'EOF'" '<p>Drop table rows here</p>' 'EOF')" "$WS/proj" Bash
+check_at "scope: bash heredoc of a psql script into the project" ask "" "$(printf '%s\n' "cat > scripts/reset.sh <<'EOF'" 'psql -c "TRUNCATE TABLE sessions"' 'EOF')" "$WS/proj" Bash
+# An Edit's new text is a fragment of a file that exists: what up() creates is read from that file. The fixture sits in the
+# project ($WS/proj, the hook's TMPDIR is $WS/tmp), so a hit is not skipped as scratch.
+mkdir -p "$WS/proj/database/migrations"
+EMIG="$WS/proj/database/migrations/2026_01_01_000000_create_widgets_table.php"
+printf '%s\n' '<?php' 'return new class extends Migration' '{' "$up_create" '    public function down(): void' '    {' '    }' '};' > "$EMIG"
+AMIG="$WS/proj/database/migrations/2026_01_01_000001_add_flag_to_users.php"
+printf '%s\n' '<?php' 'return new class extends Migration' '{' "$alter_up" '    public function down(): void' '    {' '    }' '};' > "$AMIG"
+check_edit_at() { # label want tool file new-text [second edit]
+  local out got p
+  if [ "$3" = MultiEdit ]; then
+    p=$(jq -nc --arg f "$4" --arg a "$5" --arg b "$6" --arg d "$WS/proj" '{tool_name:"MultiEdit",cwd:$d,tool_input:{file_path:$f,edits:[{old_string:"x",new_string:$a},{old_string:"y",new_string:$b}]}}')
+  else
+    p=$(jq -nc --arg f "$4" --arg a "$5" --arg d "$WS/proj" '{tool_name:"Edit",cwd:$d,tool_input:{file_path:$f,old_string:"x",new_string:$a}}')
+  fi
+  out=$(printf '%s' "$p" | TMPDIR="$WS/tmp" bash "$HOOK" 2>/dev/null)
+  if printf '%s' "$out" | grep -q '"permissionDecision":"ask"'; then got=ask; else got=allow; fi
+  if [ "$got" = "$2" ]; then echo "PASS: $1 ($got)"; else echo "FAIL: $1 — want $2, got $got"; rc=1; fi
+}
+down_widgets=$'    public function down(): void\n    {\n        Schema::dropIfExists(\'widgets\');\n    }'
+check_edit_at "edit: down() of a create migration on disk"          allow Edit      "$EMIG" "$down_widgets"
+check_edit_at "edit: the same down() on an alter migration on disk" ask   Edit      "$AMIG" "$down_widgets"
+check_edit_at "multiedit: a drop in an edit's own down() is still cut" allow MultiEdit "$EMIG" "$down_widgets" $'            $table->string(\'name\');'
+check_edit_at "multiedit: the same edits on an alter migration ask"    ask   MultiEdit "$AMIG" "$down_widgets" $'            $table->string(\'name\');'
 # The payload cwd follows the shell's cd; CLAUDE_PROJECT_DIR does not. With the shell in a sibling repo, a migration written
 # into the project was skipped as outside the cwd's root (0.11.4's first cut); either root now holds a judged target.
 mkdir -p "$WS/real/db" "$WS/sib/db"; git -C "$WS/real" init -q 2>/dev/null; git -C "$WS/sib" init -q 2>/dev/null

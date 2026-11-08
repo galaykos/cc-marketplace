@@ -1,6 +1,6 @@
 #!/bin/bash
 # PreToolUse on Write/Edit/MultiEdit and Bash heredoc/echo writes: asks (never denies) before a change adds DROP, TRUNCATE, a DELETE/UPDATE with no WHERE, a migration-DSL drop, an empty-filter deleteMany/remove or .drop(), or a lock hazard (CREATE INDEX without CONCURRENTLY, a rewriting ALTER, a DynamoDB Scan off a script path).
-# Misses: a rollback method (down/downgrade), renames, doc surfaces (.md .mdx .markdown .txt .rst, taskmaster-docs/), a drop off its list (`drop_table 'users'`, a runtime-built name), lowercase `truncate x`, SQL run by a client with no file written (command-guard's), scratch targets, a CREATE INDEX where config names SQLite, MySQL or MariaDB (Galera's TOI stall too), a filter built across lines (a WHERE on the next line still asks). On Bash: interpreter writes (python open(), php file_put_contents), cp/mv/install, `sed -i`/`perl -i` text, `{ …; } > f` groups, a path in a variable, a relative target after an in-command `cd`, a doc surface listed first in a multi-target `tee`, a here-string, printf format substitution, a quoted string or `\` continuation spanning lines, a second heredoc on one line. CC_DB_GUARD=off, else /config cc_db_guard; fails open.
+# Misses: a rollback method (down/downgrade) dropping a table the migration creates (any other drop there asks), SQL keywords outside a .sql file, a migrations dir, a raw-query call or a SQL-client line (a statement built in a variable, a Ruby heredoc after execute(...)), renames, doc surfaces (.md .mdx .markdown .txt .rst, taskmaster-docs/), a drop off its list (`drop_table 'users'`, a runtime-built name), lowercase `truncate x`, SQL run by a client with no file written (command-guard's), scratch targets, a CREATE INDEX where config names SQLite, MySQL or MariaDB (Galera's TOI stall too), a filter built across lines (a WHERE on the next line still asks). On Bash: interpreter writes (python open(), php file_put_contents), cp/mv/install, `sed -i`/`perl -i` text, `{ …; } > f` groups, a path in a variable, a relative target after an in-command `cd`, a doc surface listed first in a multi-target `tee`, a here-string, printf format substitution, a quoted string or `\` continuation spanning lines, a second heredoc on one line. CC_DB_GUARD=off, else /config cc_db_guard; fails open.
 # Why, limits, history: rationale/derivations/plugin-database.md § plugins/database/hooks/guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -300,6 +300,86 @@ cc_scope_skip() {
     done
   }
 
+  # Status 0 when the rollback text after a \037 line drops a table the text before it does not create (Schema::create, createTable(,
+  # create_table, CREATE TABLE), or every table, a database or a schema. Names compare as written, quotes and a symbol's : dropped.
+  rollback_drops() {
+    awk '
+      $0 == "\037" { rb = 1; next }
+      { if (rb) r = r " " $0; else k = k " " $0 }
+      function nm(s) { gsub(/[][\\"`\047 \t]/, "", s); sub(/^:/, "", s); return s }
+      function names(s, re, how, a,   v, t) {
+        while (match(s, re)) {
+          s = substr(s, RSTART + RLENGTH)
+          if (how == "c") { v = s; sub(/[,)].*/, "", v); a[nm(v)] = 1 }
+          else if (how == "t") { v = s; sub(/^[ \t]+/, "", v); a[match(v, /^[:"\047a-z0-9_.$]+/) ? nm(substr(v, 1, RLENGTH)) : ""] = 1 }
+          else if (how == "q") {
+            for (t = s; ; t = substr(t, RLENGTH + 1)) {
+              v = match(t, /^[`"]?[a-z0-9_$]+([`"]?\.[`"]?[a-z0-9_$]+)?[`"]?/) ? substr(t, 1, RLENGTH) : ""
+              a[nm(v)] = 1
+              if (v == "") break
+              t = substr(t, RLENGTH + 1)
+              if (!match(t, /^[ \t]*,[ \t]*/)) break
+            }
+          } else a[""] = 1
+        }
+      }
+      END {
+        k = tolower(k); r = tolower(r); gsub(/\\/, "", k); gsub(/\\/, "", r)
+        names(k, "schema::create[ \t]*[(]", "c", made); names(k, "createtable[ \t]*[(]", "c", made)
+        names(k, "create_table[ \t(]+", "t", made); names(k, "(^|[^a-z0-9_])create[ \t]+table[ \t]+(if[ \t]+not[ \t]+exists[ \t]+)?", "q", made)
+        delete made[""]
+        names(r, "schema::drop(ifexists)?[ \t]*[(]", "c", gone); names(r, "droptable(ifexists)?[ \t]*[(]", "c", gone)
+        names(r, "drop_table([ \t]*[(]|[ \t]+:)", "t", gone); names(r, "(^|[^a-z0-9_])drop[ \t]+table[ \t]+(if[ \t]+exists[ \t]+)?", "q", gone)
+        names(r, "schema::drop(alltables|allviews|database|databaseifexists)[ \t]*[(]", "*", gone)
+        names(r, "(^|[^a-z0-9_])drop[ \t]+(database|schema)([^a-z0-9_]|$)", "*", gone)
+        names(r, "(dropschema|drop_schema|dropall|drop_all)([ \t]*[(]|[ \t]+:[a-z_])", "*", gone)
+        for (v in gone) if (!(v in made)) exit 0
+        exit 1
+      }'
+  }
+
+  # Lines of a non-SQL file that are raw SQL: a raw-query call (query/exec/raw/statement/addSql…, sql``, DB::delete) or a line naming a
+  # SQL client, from the opener until its ( ) and quotes close, a heredoc it opens included.
+  sql_spans() {
+    printf '%s\n' "$1" | awk '
+      function step(s,   i, c, t) {
+        for (i = 1; i <= length(s); i++) {
+          c = substr(s, i, 1)
+          if (q != "") {
+            if (c == "\\") i++
+            else if (length(q) == 3) { if (substr(s, i, 3) == q) { q = ""; i += 2 } }
+            else if (c == q) q = ""
+            continue
+          }
+          t = substr(s, i, 3)
+          if (t ~ /^\/\// || c == "#" && (i == 1 || substr(s, i - 1, 1) ~ /[ \t]/)) break
+          if (t == "\"\"\"" || t == "\047\047\047") { q = t; i += 2 }
+          else if (c == "\"" || c == "\047" || c == "`") q = c
+          else if (c == "(") d++
+          else if (c == ")") d--
+          else if (c == "<" && match(substr(s, i), /^<<<?[-~]?[ \t]*["\047]?[A-Z_][A-Z0-9_]*/)) {
+            hd = substr(s, i, RLENGTH); sub(/^<<<?[-~]?[ \t]*["\047]?/, "", hd); i += RLENGTH - 1
+          }
+        }
+      }
+      $0 == "\036" { on = 0; hd = ""; next }
+      {
+        s = $0
+        if (hd != "") {
+          print s
+          t = s; sub(/^[ \t]+/, "", t)
+          if (index(t, hd) != 1 || substr(t, length(hd) + 1, 1) ~ /[A-Za-z0-9_]/) next
+          s = substr(t, length(hd) + 1); hd = ""
+        } else if (!on) {
+          if (!match(tolower(s), /(^|[^a-z0-9_$])[$]?(execute|exec|query|queryrow|raw|rawsql|statement|unprepared|prepare|executeraw|executerawunsafe|queryraw|queryrawunsafe|exec_query|exec_update|exec_delete|executeupdate|executequery|executesql|executesqlraw|executesqlrawasync|fromsqlraw|execcontext|querycontext|mustexec|addsql|runsql|affectingstatement|sql)[ \t]*!?[ \t]*[(`]|db::(select|insert|update|delete)[ \t]*[(]|(^|[^a-z0-9_.-])(psql|mysql|mariadb|sqlite3|sqlcmd|clickhouse-client)([ \t]|$)/)) next
+          s = substr(s, RSTART); on = 1; d = 0; q = ""
+          print s
+        } else print s
+        step(s)
+        if (d <= 0 && q == "" && hd == "") on = 0
+      }'
+  }
+
   # Reads text and flc; sets hit (data loss) or lockhit (lock hazard).
   judge_sql() {
     hit=""
@@ -310,17 +390,31 @@ cc_scope_skip() {
       alembic/versions/*.py|*/alembic/versions/*.py|migrations/versions/*.py|*/migrations/versions/*.py) rbo='^def[ \t]+downgrade[ \t]*[(]' rbe='^def[ \t]' ;;
       *) rbo='' ;;
     esac
-    [ -n "$rbo" ] && text=$(printf '%s\n' "$text" | awk -v o="$rbo" -v e="$rbe" '$0 == "\036" { s = 0; next } $0 ~ o { s = 1; next } $0 ~ e { s = 0 } !s')
-    [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '\bdrop[[:space:]]+(table|database|schema)\b' && hit="DROP TABLE/DATABASE/SCHEMA"
+    if [ -n "$rbo" ]; then
+      rb=$(printf '%s\n' "$text" | awk -v o="$rbo" -v e="$rbe" '$0 == "\036" { s = 0; next } $0 ~ o { s = 1; next } $0 ~ e { s = 0 } s')
+      text=$(printf '%s\n' "$text" | awk -v o="$rbo" -v e="$rbe" '$0 == "\036" { s = 0; next } $0 ~ o { s = 1; next } $0 ~ e { s = 0 } !s')
+      # An Edit's new text is a fragment: the file it lands in names what up() creates.
+      if [ -n "$rb" ]; then
+        disk=""
+        case "$tool" in Edit|MultiEdit) [ -f "$file" ] && disk=$(awk -v o="$rbo" -v e="$rbe" '$0 ~ o { s = 1; next } $0 ~ e { s = 0 } !s' "$file") ;; esac
+        printf '%s\n%s\n\037\n%s\n' "$text" "$disk" "$rb" | rollback_drops && hit="a down() that drops a table this migration does not create"
+      fi
+    fi
+    # SQL keywords count in a .sql file or a migration; elsewhere only inside a raw-query call or a SQL-client line, so prose and Tailwind never ask.
+    case "$flc" in
+      *.sql|*.pgsql|*.psql|*.ddl|migrations/*|*/migrations/*|migration/*|*/migration/*|db/migrate/*|*/db/migrate/*|alembic/*|*/alembic/*) sqltext=$text ;;
+      *) sqltext=$(sql_spans "$text") ;;
+    esac
+    [ -z "$hit" ] && printf '%s' "$sqltext" | grep -qiE '\bdrop[[:space:]]+(table|database|schema)\b' && hit="DROP TABLE/DATABASE/SCHEMA"
     # Laravel's `Schema::dropIfExists('users')` is `DROP TABLE users` without the SQL keywords.
     [ -z "$hit" ] && printf '%s' "$text" | grep -qE 'Schema::(drop|dropIfExists|dropAllTables|dropAllViews|dropDatabase|dropDatabaseIfExists)[[:space:]]*\(' && hit="a Schema::drop* call (Laravel's DROP TABLE)"
     # Case-insensitive; the symbol form needs a space before `:` and a name after (`drop_table :users`), so `dropAll: boolean` stays silent.
     [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '(\.|->|\b)(dropTable|dropTableIfExists|drop_table|dropSchema|drop_schema|dropAll|drop_all|DeleteModel|RemoveField|DeleteField)([[:space:]]*\(|[[:space:]]+:[A-Za-z_])' && hit="a drop-table call in a migration"
     # Uppercase `TRUNCATE <x>`, or any-case `truncate table <name>` off a class list: Tailwind's `truncate` and `truncate table-cell` must stay silent.
-    [ -z "$hit" ] && { printf '%s' "$text" | grep -qE '\bTRUNCATE[[:space:]]+[^;]' || printf '%s' "$text" | grep -iE '\btruncate[[:space:]]+table[[:space:]]+[^;[:space:]]' | grep -vE '(class(Name)?=|class:|\b(clsx|cn|cva)\(|\btw`)' | grep -q .; } && hit="TRUNCATE"
+    [ -z "$hit" ] && { printf '%s' "$sqltext" | grep -qE '\bTRUNCATE[[:space:]]+[^;]' || printf '%s' "$sqltext" | grep -iE '\btruncate[[:space:]]+table[[:space:]]+[^;[:space:]]' | grep -vE '(class(Name)?=|class:|\b(clsx|cn|cva)\(|\btw`)' | grep -q .; } && hit="TRUNCATE"
     # unqualified DELETE/UPDATE: a line with DELETE FROM or UPDATE … SET and no WHERE on it
     if [ -z "$hit" ]; then
-      if printf '%s' "$text" | grep -iE '\b(delete[[:space:]]+from|update[[:space:]]+[^;]+[[:space:]]set)\b' \
+      if printf '%s' "$sqltext" | grep -iE '\b(delete[[:space:]]+from|update[[:space:]]+[^;]+[[:space:]]set)\b' \
            | grep -ivE '\bwhere\b' | grep -qiE '(delete[[:space:]]+from|update)'; then
         hit="an unqualified DELETE/UPDATE (no WHERE)"
       fi
@@ -330,7 +424,7 @@ cc_scope_skip() {
     lockfix="Use the non-blocking form (CREATE INDEX CONCURRENTLY; for a type change add a column and copy; for NOT NULL backfill, then validate) unless the table is small or a maintenance window is planned."
     if [ -z "$hit" ]; then
       # CREATE [UNIQUE] INDEX without CONCURRENTLY: a CREATE INDEX line carrying no CONCURRENTLY. SQLite has no CONCURRENTLY; InnoDB builds it online.
-      if printf '%s' "$text" | grep -iE '\bcreate[[:space:]]+(unique[[:space:]]+)?index\b' | grep -qivE '\bconcurrently\b'; then
+      if printf '%s' "$sqltext" | grep -iE '\bcreate[[:space:]]+(unique[[:space:]]+)?index\b' | grep -qivE '\bconcurrently\b'; then
         case "$(db_engine "$target")" in
           sqlite|mysql) ;;
           postgres) lockhit="a CREATE INDEX without CONCURRENTLY (PostgreSQL)" ;;
@@ -339,7 +433,7 @@ cc_scope_skip() {
         esac
       fi
       # Table-rewriting ALTERs: a column TYPE change or adding a NOT NULL constraint.
-      [ -z "$lockhit" ] && printf '%s' "$text" | grep -qiE '\balter[[:space:]]+table\b[^;]*\balter\b[^;]*\btype\b|\balter[[:space:]]+table\b[^;]*\bset[[:space:]]+not[[:space:]]+null\b' && lockhit="a table-rewriting ALTER (column TYPE change or SET NOT NULL)"
+      [ -z "$lockhit" ] && printf '%s' "$sqltext" | grep -qiE '\balter[[:space:]]+table\b[^;]*\balter\b[^;]*\btype\b|\balter[[:space:]]+table\b[^;]*\bset[[:space:]]+not[[:space:]]+null\b' && lockhit="a table-rewriting ALTER (column TYPE change or SET NOT NULL)"
     fi
 
     # NoSQL twins, only when nothing above fired: an empty-filter delete is a DELETE with no WHERE, a request-path Scan a full-table read.

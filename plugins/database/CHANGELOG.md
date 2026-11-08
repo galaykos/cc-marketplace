@@ -3,6 +3,42 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.11.10 — 2026-11-08
+
+### Changed
+- **SQL keywords ask only where SQL runs.** The retro's three React/TSX writes (Laravel
+  starter-kit `app-logo.tsx`, `team-switcher.tsx`, `user-dropdown-menu.tsx`, retro
+  2026-11-05 #19) asked "TRUNCATE" on 0.11.3 and were already silent on 0.11.9, but UI text
+  and identifiers in `.ts`/`.tsx` still asked: an enum member `TRUNCATE = "…"`, button text
+  "TRUNCATE the log view", "Drop table rows here", "Delete from favorites", "Update your
+  account and set a new password", "Create index page", a `// TODO: drop table …` comment.
+  `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE`, an unqualified `DELETE`/`UPDATE`, `CREATE INDEX`
+  and the rewriting `ALTER` now count in a `.sql`/`.pgsql`/`.psql`/`.ddl` file or under
+  `migrations/`, `migration/`, `db/migrate/` or `alembic/`; elsewhere only inside a raw-query
+  call (`query(`, `execute(`, `exec(`, `raw(`, `statement(`, `unprepared(`, `addSql(`,
+  `` sql` ``, `$executeRaw`, `DB::delete(` and driver variants) or a line naming a SQL client,
+  from the opener until its parentheses and quotes close, a heredoc it opens included.
+  Migration-DSL drops and the NoSQL shapes are read everywhere, as before. Trade: SQL built
+  in a variable and passed to the call later (`const q = "TRUNCATE TABLE x"; pool.query(q)`)
+  asked before and is now silent; pinned in the harness.
+
+### Fixed
+- **A `down()` that drops a table its migration did not create asks again.** 0.11.4 cut every
+  rollback method from judging, so `Schema::table('users', …)` in `up()` with
+  `Schema::dropIfExists('users')` in `down()` passed in silence; reproduced for Laravel, Rails
+  and Alembic. The cut now exempts only a drop of a table the migration creates
+  (`Schema::create`, `createTable(`, `create_table`, `CREATE TABLE`; for an Edit, also read
+  from the target file on disk). A drop of any other table, every table, a database or a
+  schema in `down()` asks. A new create-table migration's `down()` stays silent.
+- Standing: gate — `guard.test.sh` 98 → 139 checks. 21 fail against 0.11.9: 13 that must be
+  silent (12 near-misses, one a Bash heredoc, and the pinned variable trade), six `down()`
+  drops that must ask, and two Edit/MultiEdit cases on an alter migration. The raw-SQL cases (`pool.query`, a multi-line
+  `` sql` `` template, `$executeRaw`, `cursor.execute("""…""")`, `db.Exec`, `DB::statement`,
+  `DB::unprepared(<<<SQL`, `DB::delete`, `psql -c`, a psql heredoc) ask on both. Four scope
+  cases now carry a raw call, so they still test the scope rule and not the file type. Every
+  check also passes under busybox awk. Median per Write 13.8 → 14.6 ms on `app-logo.tsx`,
+  14.1 → 15.2 ms on a create migration (21 interleaved runs each).
+
 ## 0.11.9 — 2026-11-08
 
 ### Added

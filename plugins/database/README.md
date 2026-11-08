@@ -48,18 +48,21 @@ loss or a lock hazard:
 
 | Tier | Shapes | Standing |
 |---|---|---|
-| data loss | `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE` (uppercase, or `truncate table` in any case on a line with no class list — Tailwind's `truncate` class stays silent), an unqualified `DELETE`/`UPDATE` with no `WHERE`; Laravel's `Schema::drop*(`; the same statement as spelled by Prisma, Drizzle, TypeORM, Doctrine, Knex, Alembic, Rails, GORM and Django (`dropTable`, `drop_table :users`, `dropSchema`, `drop_all`, `DeleteModel`, `RemoveField`, `DeleteField`, …), matched case-insensitively; and the NoSQL twins — `deleteMany`/`updateMany`/`remove` with an empty filter, a bare `deleteMany()`, `.drop()`/`.dropCollection()`/`.dropDatabase()` | **ask** — `permissionDecision: "ask"`, fixtures in `scripts/__tests__/guard.test.sh` |
+| data loss | `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE` (uppercase, or `truncate table` in any case on a line with no class list), an unqualified `DELETE`/`UPDATE` with no `WHERE` — these SQL keywords, and the lock-hazard ones below, count only in a `.sql` file, a migration (`migrations/`, `db/migrate/`, `alembic/`), a raw-query call (`query(`, `execute(`, `exec(`, `raw(`, `statement(`, `unprepared(`, `addSql(`, `` sql` ``, `$executeRaw`, `DB::delete(` …) or a line naming a SQL client (`psql` and its peers), so Tailwind's `truncate` and UI text such as "Drop table rows here" stay silent; Laravel's `Schema::drop*(`; the same statement as spelled by Prisma, Drizzle, TypeORM, Doctrine, Knex, Alembic, Rails, GORM and Django (`dropTable`, `drop_table :users`, `dropSchema`, `drop_all`, `DeleteModel`, `RemoveField`, `DeleteField`, …), matched case-insensitively; and the NoSQL twins — `deleteMany`/`updateMany`/`remove` with an empty filter, a bare `deleteMany()`, `.drop()`/`.dropCollection()`/`.dropDatabase()` | **ask** — `permissionDecision: "ask"`, fixtures in `scripts/__tests__/guard.test.sh` |
 | lock hazard | `CREATE INDEX` without `CONCURRENTLY`, except where config names SQLite (no `CONCURRENTLY`) or MySQL/MariaDB (InnoDB builds a secondary index online by default). The engine comes from the nearest directory, between the target's and the project root, holding wrangler's `d1_databases`, a Prisma `provider`, a `drizzle.config.*` `dialect`, a compose `image:` (postgres, mysql, mariadb …) or `DB_CONNECTION` in `.env`/`.env.example` (mysql, mariadb, pgsql; not `sqlite`, Laravel 11+'s local default). PostgreSQL gets the `CONCURRENTLY` advice; no engine, or two in that directory, gets both engines' forms. Galera's TOI stall on an online build is not asked (`mariadb-best-practices`); a table-rewriting `ALTER` (column TYPE change, `SET NOT NULL`), a DynamoDB `Scan` on a path that is not a script/migration/seed/test | **ask** — same tier, different message |
 | everything else in `sql-best-practices` | expand→migrate→contract ordering, index choice, pool sizing, rollback notes | **agent-graded** — a reviewer applies them; no script does |
 
 It asks, never hard-denies (down-migrations legitimately drop), and fails open on
 any error. `CC_DB_GUARD=off` disables it for the session, and the ask message says
-so. A migration's rollback method is not judged — `function down(` in a PHP file under
-`migrations/` (Laravel, Doctrine), `def down` under `db/migrate/` (Rails), `def downgrade(`
-(Alembic), each up to the next method — so a new create-table migration whose `down()`
-drops the table does not ask, while a drop in `up()` or in a helper still does (standing:
-**gate**, `guard.test.sh`). A Knex, TypeORM or Sequelize rollback still asks, and so does an
-Edit or MultiEdit edit whose new text sits inside `down()` without the opener.
+so. A migration's rollback method — `function down(` in a PHP file under `migrations/`
+(Laravel, Doctrine), `def down` under `db/migrate/` (Rails), `def downgrade(` (Alembic), each
+up to the next method — may drop what the migration creates (`Schema::create`, `createTable(`,
+`create_table`, `CREATE TABLE`, read from the file on disk too for an Edit), so a new
+create-table migration whose `down()` drops the table does not ask. A `down()` that drops
+any other table, every table, a database or a schema asks, and so does a drop in `up()` or
+in a helper (standing: **gate**, `guard.test.sh`). A Knex, TypeORM or Sequelize rollback
+still asks, and so does an Edit or MultiEdit edit whose new text sits inside `down()`
+without the opener. Raw SQL built in a variable and passed to the call later is not read.
 Scratch is not the project: a target under neither `CLAUDE_PROJECT_DIR` nor the payload
 cwd's git toplevel, or under `$TMPDIR` (default `/tmp`) while the root holding it is not
 there, is not judged, the rule security's `write-scan` uses (standing: **gate**,
