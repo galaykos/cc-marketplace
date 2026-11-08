@@ -632,8 +632,10 @@ missing field cannot silently disable both halves.
 ### State file formats
 
 ```text
-base_f is "<base commit> <branch>"; seen_f is "<last HEAD evaluated> <count that last
-fired> <count the last ship line named>".
+base_f is "<base commit> <branch>"; seen_f is "<last HEAD evaluated>"; fired_f holds one
+"<base> <count a line named>" per line; credit_f holds one "<blob> <path>" per file content
+a review was handed ("-" for a path with no regular file). Until 0.35.0 seen_f also held
+"<count that last fired> <count the last ship line named>"; 0.35.0 reads only its first word.
 ```
 
 ### Where the switch landed
@@ -652,10 +654,48 @@ cc_prompt_auth_surface; taskmaster's reminder reads the block's narrower cc_prom
 
 ### The ship line's count
 
-```text
-A ship line answers to the last ship line, so a ship prompt still speaks after a plain
-nudge at the same count; it also raises the plain count, so the next commit stays quiet.
-```
+Until 0.35.0: "A ship line answers to the last ship line, so a ship prompt still speaks after a
+plain nudge at the same count; it also raises the plain count, so the next commit stays quiet."
+Since 0.35.0 both kinds answer to one count per base (next section).
+
+### Review credit and once per range (0.35.0)
+
+Measured 2026-11-08 in session 18499add of this repository: of the 15 nudges the transcript
+holds, five repeated work already nudged or reviewed, and the reflog shows why each time.
+
+- A PR merged on the host, then `git switch master` (reflog `checkout:`, landing on the old
+  master tip) and `git pull --ff-only` (reflog `pull -q --ff-only: Fast-forward`). The switch
+  rule moved the base to the landing point, the pull put the merged branch on top of it, and
+  the next prompt charged the whole branch: "18 files since 760ec357" after a
+  `code-review:review` of that range, "20 since e9cd99f7" after another, "75 since b8a77cb6"
+  after a review and three `code-review:code-reviewer` agents, and "20 since 1663de75" for
+  work nudged twice already.
+- A ship prompt ("Turn on Auto-fix", which names a PR) repeated "20 since 1663de75" at the
+  same base and count as the plain line before it.
+
+The review credit was a commit, the base, so it held only on the branch it was recorded on.
+Now a review also writes the blob of every file in the range current at that moment (since
+the base, uncommitted and untracked included, after the same code filter), and a judged diff
+drops a file whose content matches a credited blob. That survives a switch, a pull, a merge
+commit, a squash merge and committing reviewed work that was uncommitted, and still counts a
+file edited after the review. `--no-filters` keeps a clean filter (Git LFS) from running per
+file; past 2000 files, or when `hash-object` fails, a file is marked `?` and never credited,
+so the error is a nudge, not silence.
+
+Once per range: fired_f keys the largest count a line named on the base, plain and ship
+alike. A switch back to the same landing point, or a ship prompt after a plain line at the
+same count, repeats nothing; uncommitted work that raises the count still speaks.
+
+An Agent PostToolUse arrives at launch on this host even when `run_in_background` was not set
+(every Agent result in that session was `status: async_launched`), so the credit is the content
+handed to the reviewer, not the content at its hand-back. Crediting at the hand-back would
+credit edits made while the reviewer ran.
+
+Residual: a review is still recognised by name, so a reviewer handed one file credits every
+file in the range. Work nudged on a branch and then merged is named once more against the
+trunk's landing point when its count there tops every line already given for that base. A
+context upgraded from 0.34.x may repeat one line it already gave, since its counts were not
+carried into fired_f. A reviewer killed after launch keeps its credit.
 
 ## plugins/code-review/hooks/scan.sh
 

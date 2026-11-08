@@ -10,6 +10,8 @@
 # `.tool_input.skill` under those names on PostToolUse, and whether a typed slash command
 # reaches UserPromptSubmit as `/name args`. Both shapes are copied from sibling hooks in
 # this marketplace (candor/hooks/avert.sh, taskmaster/hooks/ultra.sh), not re-measured here.
+# agent_bg's and skill_as's tool_response are a 2026-11-08 session transcript's toolUseResult
+# records, not a captured hook payload; the hook reads neither field.
 set -u
 cd "$(dirname "$0")/../../../.." || exit 1
 H="$PWD/plugins/code-review/hooks/review-debt.sh"
@@ -37,6 +39,9 @@ TP3='/Users/x/.claude/projects/-Users-x-proj/33333333-cccc.jsonl'
 TP4='/Users/x/.claude/projects/-Users-x-proj/44444444-dddd.jsonl'
 TP5='/Users/x/.claude/projects/-Users-x-proj/55555555-eeee.jsonl'
 TP6='/Users/x/.claude/projects/-Users-x-proj/66666666-ffff.jsonl'
+TP7='/Users/x/.claude/projects/-Users-x-proj/77777777-aaaa.jsonl'
+TP8='/Users/x/.claude/projects/-Users-x-proj/88888888-bbbb.jsonl'
+TP9='/Users/x/.claude/projects/-Users-x-proj/99999999-cccc.jsonl'
 
 say() { # cwd prompt transcript -> additionalContext ('' when silent)
   jq -nc --arg c "$1" --arg p "$2" --arg t "$3" \
@@ -53,6 +58,19 @@ skill() { # skill name
   jq -nc --arg c "$R" --arg s "$1" --arg t "$TP1" \
     '{hook_event_name:"PostToolUse",tool_name:"Skill",session_id:"sid-1",transcript_path:$t,cwd:$c,
       tool_input:{skill:$s},tool_response:{}}' | bash "$H" >/dev/null 2>&1
+}
+agent_bg() { # subagent_type transcript — an Agent call the host ran in the background, as PostToolUse sees it
+  jq -nc --arg c "$R" --arg a "$1" --arg t "$2" \
+    '{hook_event_name:"PostToolUse",tool_name:"Agent",session_id:"sid-1",transcript_path:$t,cwd:$c,
+      tool_input:{subagent_type:$a,description:"Review the branch",prompt:"x",run_in_background:true},
+      tool_response:{isAsync:true,status:"async_launched",agentId:"a41def590cfbd9bc0",description:"Review the branch",
+        prompt:"x",outputFile:"/tmp/a41def590cfbd9bc0.output",canReadOutputFile:true,canContinueAgent:true}}' \
+    | bash "$H" >/dev/null 2>&1
+}
+skill_as() { # skill transcript — a Skill call with the tool_response the host records for it
+  jq -nc --arg c "$R" --arg s "$1" --arg t "$2" \
+    '{hook_event_name:"PostToolUse",tool_name:"Skill",session_id:"sid-1",transcript_path:$t,cwd:$c,
+      tool_input:{skill:$s,args:"HEAD"},tool_response:{success:true,commandName:$s}}' | bash "$H" >/dev/null 2>&1
 }
 commit() { # msg path... — writes fresh content to each path, commits
   local m="$1" f; shift
@@ -98,10 +116,8 @@ printf '%s' "$out" | grep -q 'touches auth' && { echo "FAIL: no auth path, yet a
 printf '%s\n' "$out" > "$FX/nudge-count.txt"
 silent "same HEAD, second prompt" "$(prompt)"
 
-# ---- a ship verb speaks at the same HEAD, even after the plain nudge; once per count ---
-fires "ship prompt after the plain nudge, same HEAD" "$(say "$R" "commit this and push" "$TP1")" \
-  "Before this ships: 9 changed files have had no review in this session since $short1" \
-  "uncommitted and untracked files included" "/code-review:review $short1 now"
+# ---- a ship prompt after the plain nudge, same base and count: once per range -----------
+silent "ship prompt after the plain nudge, same HEAD and count" "$(say "$R" "commit this and push" "$TP1")"
 silent "second ship prompt, same count" "$(say "$R" "open the PR" "$TP1")"
 
 # ---- HEAD moves but the count does not grow: silent ---------------------------------
@@ -277,6 +293,48 @@ fires "the slash form /commit is a ship verb" "$(say "$R" "/commit" "$TP6")" "Be
 printf 'new\n' > "$R/ft/y.ts"
 fires "a hand-back marker quoted mid-sentence is the user's ship prompt" \
   "$(say "$R" "merge it once the relay prints [Subagent hand-back] for card 3" "$TP6")" "Before this ships: 4 changed files"
+
+# ---- a review credits the content it was handed: a merge and a pull do not charge it again --
+# The 2026-11-08 session: a PR merged on the host, then `git switch master` and a fast-forward
+# pull, charged the whole reviewed branch to the switch's landing point.
+g add -A && g commit -qm "the sixth context's work"
+g switch -q -c trunk
+silent "first prompt of a seventh context" "$(say "$R" go "$TP7")"
+t7=$(g rev-parse --short HEAD)
+g switch -q -c pr7
+commit "pr work" pr/a.ts pr/b.ts pr/c.ts pr/d.ts pr/e.ts pr/f.ts pr/g.ts pr/h.ts pr/i.ts
+agent_bg code-review:code-reviewer "$TP7"
+commit "review fix" pr/a.ts
+g switch -q -c gh-merge trunk && g merge -q --no-ff -m "Merge pull request #7" pr7 \
+  && g switch -q trunk && g merge -q --ff-only gh-merge
+silent "merged and pulled after a background reviewer: only the file changed since counts" "$(say "$R" go "$TP7")"
+commit "next" nx/a.ts nx/b.ts nx/c.ts nx/d.ts nx/e.ts nx/f.ts nx/g.ts nx/h.ts
+fires "the fixed file and 8 new ones count, the 8 reviewed and unchanged do not" "$(say "$R" go "$TP7")" \
+  "9 changed files have had no review in this session since $t7"
+
+# ---- work reviewed uncommitted, then committed, stays credited; an edit after it does not --
+silent "first prompt of an eighth context" "$(say "$R" go "$TP8")"
+t8=$(g rev-parse --short HEAD)
+mkdir -p "$R/wt"
+for f in a b c d e f g h i; do printf '%s %s\n' "$f" "$RANDOM" > "$R/wt/$f.ts"; done
+skill_as code-review "$TP8"
+g add -A && g commit -qm "reviewed work"
+silent "9 files reviewed by the host's code-review while untracked, then committed" "$(say "$R" go "$TP8")"
+for f in a b c d e f g h; do printf 'edited\n' >> "$R/wt/$f.ts"; done
+fires "8 of them edited after the review, at a ship prompt" "$(say "$R" "commit it" "$TP8")" \
+  "Before this ships: 8 changed files have had no review in this session since $t8"
+
+# ---- unreviewed work merged and pulled at the same base and count: once per range ---------
+g add -A && g commit -qm "the eighth context's edits"
+silent "first prompt of a ninth context" "$(say "$R" go "$TP9")"
+t9=$(g rev-parse --short HEAD)
+g switch -q -c pr9
+commit "unreviewed" q/a.ts q/b.ts q/c.ts q/d.ts q/e.ts q/f.ts q/g.ts q/h.ts q/i.ts
+fires "9 unreviewed files on a new branch" "$(say "$R" go "$TP9")" "9 changed files have had no review in this session since $t9"
+g switch -q -c gh9 trunk && g merge -q --no-ff -m "Merge pull request #9" pr9 \
+  && g switch -q trunk && g merge -q --ff-only gh9
+silent "merged and pulled: the same 9 files from the same base" "$(say "$R" go "$TP9")"
+silent "then a ship prompt at the same count" "$(say "$R" "push it" "$TP9")"
 
 # ---- outside git: silent, and no state written -----------------------------------------
 mkdir -p "$FX/plain"

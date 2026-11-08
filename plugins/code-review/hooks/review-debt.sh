@@ -1,6 +1,6 @@
 #!/bin/bash
-# UserPromptSubmit, advisory: one line when 8+ code/config files or an auth path changed since this context's last review (a ship prompt: at once, untracked included); a review Agent/Task/Skill call (PostToolUse) moves the base.
-# Skips docs, lockfiles, art, media, fonts and binaries; `guard` is auth only as a word (Guard.php, JwtGuard; not GuardPost). Misses: uncommitted work until a commit or ship verb; reviews by other names; a rebase or branch switch resets the count; silent while .claude/task-runner/active-run.json exists, a crashed run's stale one too. Off: CC_REMIND, CC_REVIEW_NUDGE.
+# UserPromptSubmit, advisory: one line when 8+ code/config files or an auth path changed since this context's last review (a ship prompt: at once, untracked included), once per base and count; a review Agent/Task/Skill call (PostToolUse) moves the base and credits each file's content as it was then.
+# Skips docs, lockfiles, art, media, fonts and binaries; `guard` is auth only as a word (Guard.php, JwtGuard; not GuardPost). Misses: uncommitted work until a commit or ship verb; reviews by other names; what a review did not read; a rebase or branch switch resets the base; silent while .claude/task-runner/active-run.json exists, a crashed run's stale one too. Off: CC_REMIND, CC_REVIEW_NUDGE.
 # Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/hooks/review-debt.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -194,20 +194,53 @@ cc_prompt_question() {
   dir=$(cc_plugin_state "$root" code-review)
   base_f="$dir/review-base-$ctx"
   seen_f="$dir/review-seen-$ctx"
-  # base_f: "<base commit> <branch>"; seen_f: "<last HEAD judged> <count that last fired> <count the last ship line named>".
+  fired_f="$dir/review-fired-$ctx"
+  credit_f="$dir/review-credit-$ctx"
+  # base_f: "<base commit> <branch>"; seen_f: "<last HEAD judged>"; fired_f: "<base> <count a line named>" per line;
+  # credit_f: "<blob> <path>" per file content a review was handed; blob "-" is no regular file there.
   record() {
     mkdir -p "$dir" 2>/dev/null || exit 0
     [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null   # the state dir ignores itself
     printf '%s %s\n' "$1" "$branch" > "$base_f" 2>/dev/null
-    printf '%s 0 0\n' "$1" > "$seen_f" 2>/dev/null
+    printf '%s\n' "$1" > "$seen_f" 2>/dev/null
     find "$dir" -maxdepth 1 -name 'review-*' -type f -mtime +14 -exec rm -f {} + 2>/dev/null
   }
+  code_only() {
+    grep -vE '\.md$|(^|/)\.claude/|(^|/)taskmaster-docs/|(^|/)(node_modules|vendor|dist|build|\.next|coverage|generated|__generated__)/' \
+    | grep -vE '(^|/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|composer\.lock|Gemfile\.lock|Cargo\.lock|poetry\.lock|Pipfile\.lock|uv\.lock|go\.sum|bun\.lockb?|mix\.lock|flake\.lock)$' \
+    | LC_ALL=C grep -viE '\.(png|jpe?g|gif|webp|bmp|tga|tiff?|psd|psb|ico|icns|svg|exr|hdr|dds|ktx2?|avif|heic|xcf|kra|aseprite|fbx|blend1?|glb|gltf|obj|mtl|dae|3ds|max|stl|ply|usd[acz]?|abc|vox|sbsar|spp|meta|mat|controller|overridecontroller|anim|prefab|unity|physicmaterial|mask|mixer|rendertexture|spriteatlas|playable|cubemap|lighting|terrainlayer|bytes|import|uasset|umap|wav|mp3|ogg|flac|aiff?|m4a|opus|bank|mp4|mov|webm|avi|mkv|ttf|otf|woff2?|eot|pdf|zip|gz|tgz|7z|rar|dll|so|dylib|exe|jar|class|pyc|wasm)$'
+  }
+  # Order kept; "?" marks a file left unhashed (past 2000, or hash-object failed), so it is never credited.
+  blobs() {
+    local all=() reg=() hs=() p i=0
+    while IFS= read -r p; do
+      [ -n "$p" ] || continue
+      all+=("$p")
+      [ "${#reg[@]}" -lt 2000 ] && [ -f "$root/$p" ] && reg+=("$p")
+    done
+    [ "${#reg[@]}" -gt 0 ] && while IFS= read -r p; do hs+=("$p"); done \
+      < <(printf '%s\n' "${reg[@]}" | git -C "$root" hash-object --no-filters --stdin-paths 2>/dev/null)
+    [ "${#hs[@]}" = "${#reg[@]}" ] || hs=()
+    for p in "${all[@]}"; do
+      if [ "$i" -lt "${#reg[@]}" ] && [ "${reg[$i]}" = "$p" ]; then printf '%s %s\n' "${hs[$i]:-?}" "$p"; i=$((i + 1))
+      elif [ -f "$root/$p" ]; then printf '? %s\n' "$p"
+      else printf -- '- %s\n' "$p"; fi
+    done
+  }
 
-  [ "$reviewed" = 1 ] && { record "$head"; exit 0; }
+  base=""; bbranch=""; seen_head=""
+  [ -r "$base_f" ] && read -r base bbranch _ < "$base_f"
+  if [ "$reviewed" = 1 ]; then
+    { [ -n "$base" ] && git -C "$root" merge-base --is-ancestor "$base" "$head" 2>/dev/null; } || base=$head
+    record "$head"
+    { cat "$credit_f" 2>/dev/null
+      { git -C "$root" -c core.quotepath=off diff --name-only "$base" -- 2>/dev/null
+        git -C "$root" -c core.quotepath=off ls-files --others --exclude-standard 2>/dev/null; } | code_only | blobs | grep -v '^? '
+    } | awk '!seen[$0]++' | tail -n 5000 > "$credit_f.$$" 2>/dev/null && mv -f "$credit_f.$$" "$credit_f" 2>/dev/null
+    exit 0
+  fi
   [ -e "$root/.claude/task-runner/active-run.json" ] && { record "$head"; exit 0; }
 
-  base=""; bbranch=""; seen_head=""; fired=0; shipped=0
-  [ -r "$base_f" ] && read -r base bbranch _ < "$base_f"
   [ -n "$base" ] || { record "$head"; exit 0; }               # first prompt: baseline, silent
   if [ -z "$bbranch" ]; then
     printf '%s %s\n' "$base" "$branch" > "$base_f" 2>/dev/null  # recorded before 0.33.0: adopt
@@ -218,19 +251,16 @@ cc_prompt_question() {
     { [ -n "$sw" ] && git -C "$root" merge-base --is-ancestor "$sw" "$head" 2>/dev/null; } || sw=$head
     record "$sw"; base=$sw
   fi
-  [ -r "$seen_f" ] && read -r seen_head fired shipped _ < "$seen_f"
+  [ -r "$seen_f" ] && read -r seen_head _ < "$seen_f"
   [ "$ship" = 1 ] || [ "$seen_head" != "$head" ] || exit 0    # this HEAD is already judged
-  case "$fired" in ''|*[!0-9]*) fired=0 ;; esac
-  case "$shipped" in ''|*[!0-9]*) shipped=0 ;; esac
 
   # A base off HEAD's history (rebase, amend) would diff across histories.
   git -C "$root" merge-base --is-ancestor "$base" "$head" 2>/dev/null || { record "$head"; exit 0; }
 
   changed=$( { git -C "$root" -c core.quotepath=off diff --name-only "$base" -- 2>/dev/null
-               [ "$ship" = 1 ] && git -C "$root" -c core.quotepath=off ls-files --others --exclude-standard 2>/dev/null; } \
-    | grep -vE '\.md$|(^|/)\.claude/|(^|/)taskmaster-docs/|(^|/)(node_modules|vendor|dist|build|\.next|coverage|generated|__generated__)/' \
-    | grep -vE '(^|/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|composer\.lock|Gemfile\.lock|Cargo\.lock|poetry\.lock|Pipfile\.lock|uv\.lock|go\.sum|bun\.lockb?|mix\.lock|flake\.lock)$' \
-    | LC_ALL=C grep -viE '\.(png|jpe?g|gif|webp|bmp|tga|tiff?|psd|psb|ico|icns|svg|exr|hdr|dds|ktx2?|avif|heic|xcf|kra|aseprite|fbx|blend1?|glb|gltf|obj|mtl|dae|3ds|max|stl|ply|usd[acz]?|abc|vox|sbsar|spp|meta|mat|controller|overridecontroller|anim|prefab|unity|physicmaterial|mask|mixer|rendertexture|spriteatlas|playable|cubemap|lighting|terrainlayer|bytes|import|uasset|umap|wav|mp3|ogg|flac|aiff?|m4a|opus|bank|mp4|mov|webm|avi|mkv|ttf|otf|woff2?|eot|pdf|zip|gz|tgz|7z|rar|dll|so|dylib|exe|jar|class|pyc|wasm)$')
+               [ "$ship" = 1 ] && git -C "$root" -c core.quotepath=off ls-files --others --exclude-standard 2>/dev/null; } | code_only)
+  [ -s "$credit_f" ] && [ -n "$changed" ] && changed=$(printf '%s\n' "$changed" | blobs \
+    | awk 'NR == FNR { c[$0]; next } !($0 in c) { sub(/^[^ ]* /, ""); print }' "$credit_f" -)
   count=$(printf '%s\n' "$changed" | grep -c .)
   # cc_prompt_auth_surface matches `guard` inside GuardPost and Guardian; masking those first keeps Guard.php and JwtGuard, and the line number maps a hit back to its path.
   hits=$(printf '%s\n' "$changed" | LC_ALL=C awk '{ s = $0; l = tolower(s); o = ""; p = 1
@@ -243,15 +273,12 @@ cc_prompt_question() {
   auth=$(printf '%s\n' "$changed" | awk -v h=" $hits" 'index(h, " " NR " ")')
   nauth=$(printf '%s\n' "$auth" | grep -c .)
 
-  # A ship line answers to the last ship line and raises the plain count, so the next commit stays quiet.
-  [ "$ship" = 1 ] && last=$shipped || last=$fired
-  if { [ "$count" -ge 8 ] || [ "$nauth" -ge 1 ]; } && [ "$count" -gt "$last" ]; then
-    if [ "$ship" = 1 ]; then shipped=$count; [ "$count" -gt "$fired" ] && fired=$count; else fired=$count; fi
-    printf '%s %s %s\n' "$head" "$fired" "$shipped" > "$seen_f" 2>/dev/null || exit 0
-  else
-    printf '%s %s %s\n' "$head" "$fired" "$shipped" > "$seen_f" 2>/dev/null
-    exit 0
-  fi
+  # Keyed on the base alone: a switch back to it, or a ship prompt after a plain line at the same count, repeats nothing.
+  last=$(awk -v b="$base" '$1 == b && $2 + 0 > m { m = $2 + 0 } END { print m + 0 }' "$fired_f" 2>/dev/null)
+  case "$last" in ''|*[!0-9]*) last=0 ;; esac
+  printf '%s\n' "$head" > "$seen_f" 2>/dev/null
+  { [ "$count" -ge 8 ] || [ "$nauth" -ge 1 ]; } && [ "$count" -gt "$last" ] || exit 0
+  printf '%s %s\n' "$base" "$count" >> "$fired_f" 2>/dev/null || exit 0
 
   short=$(git -C "$root" rev-parse --short "$base" 2>/dev/null) || short="$base"
   paths=""
