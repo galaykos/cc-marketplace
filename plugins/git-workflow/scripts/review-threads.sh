@@ -46,11 +46,17 @@ gh_call() {
   printf '%s' "$out"
 }
 
+repo_given=$repo
 if [ -z "$repo" ]; then
   repo=$(gh_call "finding the repository (pass --repo owner/name)" repo view --json nameWithOwner -q .nameWithOwner) || exit $?
 fi
 if [ -z "$pr" ]; then
-  pr=$(gh_call "finding this branch's pull request (pass --pr <n>)" pr view -R "$repo" --json number -q .number) || exit $?
+  if [ -n "$repo_given" ]; then
+    branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || die 4 "no current branch to find a pull request for in $repo (pass --pr <n>)"
+    pr=$(gh_call "finding the pull request for branch $branch in $repo (pass --pr <n>)" pr view "$branch" -R "$repo" --json number -q .number) || exit $?
+  else
+    pr=$(gh_call "finding this branch's pull request (pass --pr <n>)" pr view --json number -q .number) || exit $?
+  fi
   case "$pr" in '' | *[!0-9]*) die 4 "no pull request number for this branch (pass --pr <n>)" ;; esac
 fi
 

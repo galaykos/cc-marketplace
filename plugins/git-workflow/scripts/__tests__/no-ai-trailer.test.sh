@@ -225,11 +225,16 @@ expect allow "git commit -m \"x\" & echo '$TRAILER'"
 expect allow "cat <<'EOF' > .claude/notes.md
 gh pr create --body \"$GEN\"
 EOF"
-expect allow "git commit -q -F - <<'EOF'
+expect allow "grep -c \"$TRAILER\" log; git commit -q -F - <<'EOF'
 Code review since fe42cc2: 21 fixes to spell rules, the Shop chest and spell looks
 
 - Legendary and Frost/Grass gates read a new bestCheckpoint that Molt keeps
 EOF"
+expect allow "echo '$TRAILER' >> notes; git commit -F - <<< 'feat: clean'"
+# Quoted message text is not a variable, substitution or -F/-t option.
+expect allow "echo '$TRAILER' >> notes; git commit -m \"add -f flag\""
+expect allow "echo '$TRAILER' >> notes; git commit -m 'costs \$5, see \`make -t\`'"
+expect allow "echo '$TRAILER' >> notes; git commit -m \"costs \\\$5, see \\\`make\\\`\""
 
 printf '== classification: deny — the message reaches the git write another way\n'
 # The same split must keep these: the message comes through a pipe, a here-string, a variable, a substitution,
@@ -309,6 +314,45 @@ expect deny "git commit -m \"feat: a) b
 
 $TRAILER\""
 expect deny "echo \$((1<<2)); git commit -m \"x $TRAILER\""          # unsplittable: judged whole
+expect deny "cat > /tmp/m <<'EOF'
+$TRAILER
+EOF
+git commit -F \"/tmp/m\""
+
+printf '== classification: deny — a pipe across a line break, from a group, or |&\n'
+# The rows ending in xargs or git am carry no stdin value, so only the splitter keeps them denied.
+expect deny "printf '%s\n' x '' '$TRAILER' |
+git commit -F -"
+expect deny "{ echo x; echo; echo \"$TRAILER\"; } | git commit -F -"
+expect deny "( echo x; echo; echo \"$TRAILER\" ) | git commit -F -"
+expect deny "printf 'x\n\n%s\n' '$TRAILER' |& git commit -F -"
+expect deny "printf '%s\n' x '' '$TRAILER' |
+xargs -0 git commit -m"
+expect deny "printf '%s\n' x '' '$TRAILER' | # the message
+# then the commit
+xargs -0 git commit -m"
+expect deny "cat <<'EOF' |
+x
+
+$TRAILER
+EOF
+xargs -0 git commit -m"
+expect deny "{ echo x; echo \"$TRAILER\"; } | xargs -0 git commit -m"
+expect deny "( echo x; echo \"$TRAILER\" ) | xargs -0 git commit -m"
+expect deny "{ echo x
+echo \"$TRAILER\"
+} |
+git am"
+expect deny "printf 'x\n\n%s\n' '$TRAILER' |& xargs -0 git commit -m"
+
+printf '== classification: deny — stdin read from a file the same command wrote\n'
+expect deny "printf 'x\n\n%s\n' \"$TRAILER\" > /tmp/m; git commit -F - < /tmp/m"
+expect deny "printf 'x\n\n%s\n' \"$TRAILER\" > /tmp/m && cat /tmp/m | git commit -F -"
+expect deny "printf 'x\n\n%s\n' \"$TRAILER\" > /tmp/m; git commit -F- < /tmp/m"
+expect deny "printf 'x\n\n%s\n' \"$TRAILER\" > /tmp/m; cat /tmp/m | git commit --file=-"
+expect deny "printf '%s\n' '$GEN' > b.md; cat b.md | gh pr create --title t --body-file -"
+expect deny "printf '%s\n' '$GEN' > n.md; gh release create v1 --notes-file - < n.md"
+expect deny "printf 'x\n\n%s\n' \"$TRAILER\" > /tmp/m; git am < /tmp/m"
 expect deny "git notes add -m \"$TRAILER\" HEAD"
 expect deny "gh release create v1 --notes \"$GEN\""
 

@@ -239,6 +239,33 @@ denials, and none of the observed firings involved a verb outside that list. Nar
 left to the owner. Found on the way and left alone: `git -C repo commit` with a bare relative directory
 does not reach the verb on either version, since the option run takes no bare word.
 
+Review fixes, same day, before release. A review reproduced three gaps in the split, all fixed with the
+shapes pinned in the harness:
+
+- The splitter opened a segment at every top-level newline and at the `;`, `(` and `)` inside a group,
+  so a message piped from another segment was judged without its source: `printf … |` then a newline then
+  `git commit -F -`, `{ …; } | git commit -F -`, `( … ) | …`, and `|&`, whose `&` was a cut. A line ending
+  in a top-level `|` (a comment after it allowed) now continues the segment. `|&`, and a segment opening
+  with `}` or `)` piped onward, fall back to the whole-command verdict.
+- Stdin read from a file the same command wrote was not indirect: `… > /tmp/m; git commit -F - < /tmp/m`
+  and `… && cat /tmp/m | git commit -F -` passed. A stdin value (`-F -`, `-F-`, `--file=-`, `--body-file -`,
+  `--notes-file -`) or a `<` redirect is now indirect unless the segment has its own heredoc or here-string.
+- `INDIRECT_RE` and the `$(`/backtick test ran over quoted message text, so `git commit -m "add -f flag"`
+  beside a trailer elsewhere was still denied: the retro #22 false deny again. Both now read a copy with
+  single-quoted spans and the literal parts of double-quoted spans blanked. The quote characters stay, so
+  `-F "/tmp/m"` still reads as a file; `$name`, `$(` and backticks inside double quotes stay too.
+
+Evidence, 2026-11-08: each of the five pieces removed alone (the line-end pipe, `|&`, the group check, the
+stdin rule, the blanking) fails 3, 1, 3, 6 and 3 harness rows. The rows ending in `xargs -0 git commit -m`
+or `git am` carry no stdin value, so only the splitter keeps them denied. The harness run against 0.13.7
+fails only allow rows and the replay, and every deny row passes there. Timing through the hook's stdin,
+median of 5 on this machine: a 284 KB heredoc payload 26 ms (23 ms before the fixes, 23 ms on 0.13.7), a
+100 KB double-quoted `-m` 34 ms (28 ms, 15 ms).
+
+Found and left alone, each allowed by 0.14.0 before these fixes and denied by 0.13.7: a quoted option
+name, `git commit "-F" /tmp/m`; and a `for … done |` or `if … fi |` piped into `git am`, which reads stdin
+without a `-` value. An escaped `\<` outside quotes still counts as a redirect, a false deny.
+
 ## plugins/git-workflow/scripts/review-threads.sh
 
 Written with the script on 2026-11-08. Standing: `recorded`.
@@ -258,6 +285,15 @@ User, and a bot is `__typename == "Bot"` or a login ending `[bot]`.
 Live runs: cli/cli#14952 has 7 threads, all resolved, so `--unresolved-only` prints the summary and exits
 1. cli/cli#13013 has 1 open of 3 and exits 0. cli/cli#13982 lists 14 open. A missing PR exits 4 and
 relays GitHub's message.
+
+PR lookup: without `--pr`, the script runs `gh pr view --json number` with no `-R` when `--repo` was not
+passed, and with `--repo` it gives the current branch as the selector. gh 2.46.0 refuses
+`gh pr view -R owner/name` with no selector ("argument required when using the --repo flag", exit 1), so
+until a review caught it the skill's default `review-threads.sh --unresolved-only` exited 4 on every
+branch; the harness stub now refuses it the same way. Live, 2026-11-08: from a scratch repository on the
+head branch of cli/cli#14964, `--repo cli/cli` found the PR and exited 1 (none open). From this checkout
+the no-`--repo` path reached gh and relayed "no pull requests found for branch". Not run live: that path on
+a branch that has a PR.
 
 Exit codes: 4 was added to the four the roadmap named. A failed lookup (no PR for the branch, a network
 error, a GraphQL error) is not "none open", and reporting it as 1 would send the loop on believing no

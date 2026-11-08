@@ -21,7 +21,10 @@ printf '%s\n' "$*" >> "$FAKE_LOG"
 case "$1 $2" in
   "repo view") [ -n "${FAKE_REPO:-}" ] && { printf '%s\n' "$FAKE_REPO"; exit 0; }
                echo "none of the git remotes configured for this repository point to a known GitHub host" >&2; exit 1 ;;
-  "pr view") [ -n "${FAKE_PR:-}" ] && { printf '%s\n' "$FAKE_PR"; exit 0; }
+  "pr view") shift 2; sel="" withR=0
+             while [ $# -gt 0 ]; do case "$1" in -R|--repo) withR=1; shift 2 ;; --json|-q|--jq) shift 2 ;; -*) shift ;; *) sel=$1; shift ;; esac; done
+             [ "$withR" = 1 ] && [ -z "$sel" ] && { echo 'argument required when using the --repo flag' >&2; exit 1; }
+             [ -n "${FAKE_PR:-}" ] && { printf '%s\n' "$FAKE_PR"; exit 0; }
              echo 'no pull requests found for branch "topic"' >&2; exit 1 ;;
   "api graphql") [ -n "${FAKE_ERR:-}" ] && printf '%s\n' "$FAKE_ERR" >&2
                  cat "$FAKE_FIXTURE"; exit "${FAKE_RC:-0}" ;;
@@ -115,7 +118,17 @@ for f in 'reviewThreads(first: 100)' 'pageInfo { hasNextPage }' 'id isResolved i
 done
 use main; FAKE_REPO=o/r FAKE_PR=7 run
 code 0 "repo and PR read from gh when not passed"
-grep -qF 'repo view' "$FAKE_LOG" && grep -qF 'pr view -R o/r' "$FAKE_LOG" && ok || bad "falls back to gh repo view / gh pr view" "$(cat "$FAKE_LOG")"
+grep -qF 'repo view' "$FAKE_LOG" && grep -qxF 'pr view --json number -q .number' "$FAKE_LOG" && ok || bad "falls back to gh repo view / gh pr view without -R" "$(cat "$FAKE_LOG")"
+mkdir -p "$tmp/repo"; git -C "$tmp/repo" init -q -b topic
+back=$PWD; cd "$tmp/repo" || exit 1
+use main; FAKE_PR=7 run --repo o/r
+code 0 "--repo without --pr finds the current branch's PR"
+grep -qxF 'pr view topic -R o/r --json number -q .number' "$FAKE_LOG" && ! grep -qF 'repo view' "$FAKE_LOG" && ok || bad "--repo without --pr gives the branch as the selector" "$(cat "$FAKE_LOG")"
+git -C "$tmp/repo" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init; git -C "$tmp/repo" checkout -q --detach
+use main; FAKE_PR=7 run --repo o/r
+code 4 "--repo without --pr on a detached HEAD"
+grep -qF -- '--pr <n>' <<<"$errout" && ! grep -qF 'pr view' "$FAKE_LOG" && ok || bad "a detached HEAD names --pr and calls no gh pr view" "$errout / $(cat "$FAKE_LOG")"
+cd "$back" || exit 1
 use main; FAKE_REPO=o/r FAKE_PR='' run
 code 4 "no PR for this branch"
 grep -qF -- '--pr <n>' <<<"$errout" && ok || bad "the no-PR error names --pr" "$errout"

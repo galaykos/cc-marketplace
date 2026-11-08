@@ -65,8 +65,9 @@ into a git message file (`COMMIT_EDITMSG`, `MERGE_MSG`, `SQUASH_MSG`,
 wrapper (`sudo`, `bash -c`, `VAR=1 …`, an absolute path, any `git` global option)
 does not get past it. Each command is judged on its own words, pipeline and
 heredocs: a trailer in a heredoc append, a `grep` or an `echo` beside a clean commit
-passes (0.14.0), while a message that reaches the commit through a pipe, a variable,
-a substitution or an `-F` file written in the same command is still denied. The deny
+passes (0.14.0), while a message that reaches the commit through a pipe (across a
+line break or out of a `{ }` or `( )` group too), a variable, a substitution, stdin
+(`-F -`, `< file`) or an `-F` file written in the same command is still denied. The deny
 reason tells the model to drop the lines and run the same command again.
 
 Why a hook and not a sentence: the host setting `attribution.commit: ""` in
